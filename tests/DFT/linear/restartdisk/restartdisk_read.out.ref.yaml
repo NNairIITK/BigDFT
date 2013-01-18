@@ -27,9 +27,11 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-11 10:43:38.282
+ Version Number                        : 1.7-dev.22
+ Timestamp of this run                 : 2013-01-17 13:58:22.506
  Root process Hostname                 : moutarde
+ Number of MPI tasks                   :  6
+ OpenMP parallelization                :  No
  #... (file:read.perf)...................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -55,6 +57,11 @@
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
+ #|pdsyev_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
+ #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
+ #|ef_interpol_det  1.00E-20    FOE: max determinant of cubic interpolation matrix           
  #... (file:read.dft).............................................DFT Calculation Parameters
  #|0.45 0.45 0.45  hx,hy,hz: grid spacing in the three directions                            
  #|5.0  7.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -92,42 +99,73 @@
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
  #... (file:read.lin)......................................................Linear Parameters
- #|1              iterations with low accuracy, high accuracy                                
- #|0              iterations to optimize the basis functions for low accuracy and high accura
- #|4.d-5  4.d-5   convergence criterion for low and high accuracy                            
- #|5.d-3          gnrm multiplier                                                            
- #|5  0  1.d0  1. DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for S
- #|5              number of iterations in the preconditioner                                 
- #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
- #|1  1           max number of process uses for pdsyev/pdsygv, pdgemm                       
- #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
+ #|2              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
+ #|1              outer loop iterations (low, high)                                          
+ #|0              basis iterations (low, high)                                               
+ #|4              kernel iterations (low, high)                                              
+ #|5              DIIS history for basis (low, high)                                         
+ #|0              DIIS history for kernel (low, high)                                        
+ #|.5d0     .     density mixing parameter (low, high)                                       
+ #|1.d-7    1.d-  outer loop convergence (low, high)                                         
+ #|4.d-5    4.d   basis convergence (low, high)                                              
+ #|1.d0     5.    multiplier to (exit one TMB optimization, fix TMB completely). Only used fo
+ #|0.5d0          factor to reduce the confinement. Only used for hybrid mode.               
+ #|1.d-9    1.d   kernel convergence (low, high)                                             
+ #|1.d-10         convergence criterion on density to fix TMBS                               
  #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
- #|0  4  .5d0  1.d-low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in 
- #|0  6  .5d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
+ #|1.d0     1     initial step size for basis optimization (DIIS, SD)                        
+ #|-0.5d0   0.5d  lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted a
+ #|5              number of iterations in the preconditioner                                 
+ #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
- #|1.d-9          convergence criterion for the kernel optimization                          
- #|1.d-10         convergence criterion for the support functions to be fixed                
  #|0  T           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
  #|O 4 4.0d-2 0.0d-4 6.0 7.0  20.d0 Atom name, number of basis functions per atom, prefactor 
  #|H 1 4.0d-2 0.0d-4 6.0 7.0  20.d0 Atom name, number of basis functions per atom, prefactor 
+ # ==== WARNING: the following lines have not been processed by the parser ====
+ #|                                                                                          
   #--------------------------------------------------------------------------------------- |
- Data Writing directory                : .//data-read/
+ Data Writing directory                : ./data-read/
+ Material acceleration                 :  No #iproc=0
+  #---------------------------------------------------- Input Atomic System (file: read.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  2
+   Number of atoms                     :  3
+   Types of atoms                      :  [ O, H ]
+   Boundary Conditions                 : Free #Code: F
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------------- Geometry optimization Input Parameters (file: read.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
      XC ID                             :  &ixc  1
-     Name                              : "XC: Teter 93"
+     Exchange-Correlation reference    : "XC: Teter 93"
+     XC functional implementation      : ABINIT
+     Spin polarization                 :  No
    Net Charge (Ions-Electrons)         :  1
  Basis set definition:
    Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
    Coarse and Fine Radii Multipliers   :  [  5.0,  7.0 ]
- Ground State Optimization:
+ Self-Consistent Cycle Parameters:
    Wavefunction:
      Gradient Norm Threshold           :  &gnrm_cv  1.0E-05
      CG Steps for Preconditioner       :  5
      DIIS History length               :  10
      Max. Wfn Iterations               :  &itermax  100
      Max. Subspace Diagonalizations    :  1
+     Input wavefunction policy         : Linear on disk # 102
+     Output wavefunction policy        : none # 0
+     Output grid policy                : none # 0
+     Output grid format                : text # 0
+     Virtual orbitals                  :  0
+     Number of plotted density orbitals:  0
    Density/Potential:
      Max. Iterations                   :  1
  Post Optimization Parameters:
@@ -135,7 +173,7 @@
      Scheduled                         :  No
   #----------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
- - Symbol                              : O #---------------------------------- Type No.  01
+ - Symbol                              : O #Type No.  01
    No. of Electrons                    :  6
    No. of Atoms                        :  1
    Radii of active regions (AU):
@@ -157,7 +195,7 @@
      -  [  0.00000,  0.00000,  0.00000 ]
    No. of projectors                   :  1
    PSP XC                              : "XC: Teter 93"
- - Symbol                              : H #---------------------------------- Type No.  02
+ - Symbol                              : H #Type No.  02
    No. of Electrons                    :  1
    No. of Atoms                        :  2
    Radii of active regions (AU):
@@ -212,18 +250,17 @@
    Fine resolution grid:
      No. of segments                   :  69
      No. of points                     :  370
-  #---------------------------------------------------------------------- Occupation numbers
+  #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  7
  Spin treatment                        : Averaged
-  #WARNING:Odd number of electrons, no closed shell system
+  #WARNING: Odd number of electrons, no closed shell system
  Orbitals Repartition:
    MPI tasks  0- 3                     :  1
    MPI tasks  4- 5                     :  0
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  4
-   Orbitals No. 1- 3                   :  2.0000
-   Orbital No.  4                      :  1.0000
+ Total Number of Orbitals              :  4
+ Occupation numbers coming from        : System properties
+ Input Occupation Numbers:
+ - Occupation Numbers: {Orbitals No. 1-3:  2.0000, Orbital No. 4:  1.0000}
  Wavefunctions memory occupation for root MPI process:  0 MB 202 KB 448 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -245,41 +282,35 @@
    Poisson Solver                      : 24.915
    Hamiltonian application             : 32.102
  Estimated Memory Peak (MB)            :  32
+  #WARNING: Do not call check_communications in the linear scaling version!
+ Ion-Ion interaction energy            :  6.88446996418391E+00
+  #---------------------------------------------------------------- Ionic Potential Creation
+ Total ionic charge                    : -7.999999007847
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  103,  103,  101 ]
    MPI tasks                           :  6
- Input Hamiltonian: { #------------------------------------ Reading Wavefunctions from disk
- Poisson Solver: {BC: Free, Box:  [  103,  103,  101 ], MPI tasks:  6}, 
- }
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  103,  103,  101 ]
-   MPI tasks                           :  6
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  103,  103,  101 ]
-   MPI tasks                           :  6
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  103,  103,  101 ]
-   MPI tasks                           :  6
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  103,  103,  101 ]
-   MPI tasks                           :  6
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  103,  103,  101 ]
-   MPI tasks                           :  6
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  103,  103,  101 ]
-   MPI tasks                           :  6
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  103,  103,  101 ]
-   MPI tasks                           :  6
+  #ALLOCATING KSwfn%orbs%eval... is this correct?
+  #--------------------------------------------------------- Reading Wavefunctions from disk
+ Input Hamiltonian:
+   Reformating Wavefunctions           :  No
+   Reading Waves Time:
+   - 
+      {Process:  0, Timing:  [  4.000E-02,  4.000E-02 ]}
+   Poisson Solver:
+     BC                                : Free
+     Box                               :  [  103,  103,  101 ]
+     MPI tasks                         :  6
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  4196,  71 ]
+
+   Maxdiff for transpose (checksum)    :  4.36557456851005554E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  3905,  71 ]
+
+   Maxdiff for transpose (checksum)    :  2.91038304567337036E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  103,  103,  101 ]
@@ -312,6 +343,35 @@
    BC                                  : Free
    Box                                 :  [  103,  103,  101 ]
    MPI tasks                           :  6
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  103,  103,  101 ]
+   MPI tasks                           :  6
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  103,  103,  101 ]
+   MPI tasks                           :  6
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  103,  103,  101 ]
+   MPI tasks                           :  6
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  103,  103,  101 ]
+   MPI tasks                           :  6
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  103,  103,  101 ]
+   MPI tasks                           :  6
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  103,  103,  101 ]
+   MPI tasks                           :  6
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  103,  103,  101 ]
+   MPI tasks                           :  6
+  #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  103,  103,  101 ]
@@ -323,14 +383,19 @@
    P vector                            :  [  2.0677E+01,  2.0529E+01,  1.9956E+01 ]
    norm(P)                             :  3.531551E+01
  Non Local forces calculated           :  Yes
+  #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  5.16
-   Elapsed time (s)                    :  5.19
+   CPU time (s)                        :  6.19
+   Elapsed time (s)                    :  6.21
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Odd number of electrons, no closed shell system
+ - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 5173
-   Tot. No. of Deallocations: 5173
+   Tot. No. of Allocations  : 5109
+   Tot. No. of Deallocations: 5109
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 73
+      Peak Value (MB): 72
       for the array: psir
       in the routine: psi_to_vlocpsi

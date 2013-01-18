@@ -1,18 +1,6 @@
- <BigDFT> Log of the run will be written in logfile: .//log-Xabsb2B.yaml
- <BigDFT> Logfile already existing, move previous file in:
-   .//logfiles/log-Xabsb2B.16:41:02.861.yaml
- No material acceleration (iproc=0)
-
+ <BigDFT> log of the run will be written in logfile: ./log-Xabsb2B.yaml
  ===================== BigDFT XANE calculation =============== inputPsiId= 0
-   Geom. Code=    P   |   Box Sizes (Bohr) =  2.26767E+01  2.26767E+01  2.26767E+01
-   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
- ----------------------------------------------Direct and transposed data repartition
- | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
- |    0 |       2     |------|------------||       321382  |------|-----------------|
- |      |             |   1  |    1-    1 ||               |   1  |       1-  160691|
- |      |             |   2  |    1-    1 ||               |   2  |       1-  160691|
   allocate ionic potential 
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of paw projectors per atom
@@ -21,19 +9,11 @@
  Total number of projectors =                   24
  Total number of components =               669120
  Percent of zero components =                   18
- ion-ion interaction energy -1.59920646116928E+01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge           -16.000000000000   0.000E+00
   going to calculate spectra 
  check b2B_xanes.cube T
   scaling function for interpolation 
 for replica   0 SHIFT   9.448627E-01 9.448627E-01 9.448627E-01
   IN ROUTINE  chebychev  
- ----------------------------------------------Direct and transposed data repartition
- | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
- |    0 |       2     |------|------------||       321382  |------|-----------------|
- |      |             |   1  |    1-    1 ||               |   1  |       1-  160691|
- |      |             |   2  |    1-    1 ||               |   2  |       1-  160691|
  weigths   0.50000000000000000       0.50000000000000000     
  LB_nproc=            1
  USING PTILDES TO BUILD INITIAL WAVE
@@ -96,11 +76,4 @@ new cheb coeffs     -0.1839950082D-03    -0.1806031521D-03     0.1577869100D-03 
 -2.0698685564937247E-04
  2.0656304627373842E-04
 -1.8399500824586748E-04
- DEALLOCATING
- CPU time/ELAPSED time for root process     0       120.15       157.43
- Final values of the Forces for each atom
-     1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
- the sum of the forces is
-      x direction     0.00000000E+00
-      y direction     0.00000000E+00
-      z direction     0.00000000E+00
+ CPU time/ELAPSED time for root process     0       131.60       174.15

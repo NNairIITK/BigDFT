@@ -1,16 +1,17 @@
 # Give here the list of existing tests
 TESTDIRS = Locreg \
-	   base \
-	   mixpotential \
-	   cleanup \
+	       base \
+	       mixpotential \
+	       cleanup \
            onlyhigh \
-	   restartdisk \
+	       restartdisk \
            directmin \
-	   foe \
-	   geopt \
-	   testforces 
+	       foe \
+	       geopt \
+	       testforces
 
 EXTRA_TESTDIRS =  water \
+                  molecule \
                   deltascf \
                   reformat
 
@@ -54,13 +55,18 @@ deltascf_write_neut.out.post-out:
 	  mixpotential.out*)          prec="1.e-9" ;; \
 	  onlyhigh.out*)              prec="1.1e-9" ;; \
 	  cleanup.out*)               prec="1.1e-8" ;; \
+	  geopt_diag.out*)             prec="2.e-9" ;; \
 	  geopt_foe.out*)             prec="2.e-9" ;; \
 	  reformat_read.out*)             prec="1.e-9" ;; \
 	  deltascf_read_charge.out*)             prec="1.e-9" ;; \
 	  water_dirmin.out*)          prec="1.e-8" ;; \
-	  water_mixdens.out*)         prec="1.e-8" ;; \
-	  water_mixpot.out*)          prec="1.e-8" ;; \
+	  water_mixdens.out*)         prec="1.1e-8" ;; \
+	  water_mixpot.out*)          prec="1.1e-8" ;; \
 	  water_foe.out*)             prec="1.e-8" ;; \
+	  molecule_dmin.out*)          prec="1.e-9" ;; \
+	  molecule_dmix.out*)         prec="1.e-9" ;; \
+	  molecule_pmix.out*)          prec="1.1e-9" ;; \
+	  molecule_foe.out*)             prec="1.e-9" ;; \
 	  reformat_write.out*)        prec="3.e-10" ;; \
       *)                          prec="1.1e-10" ;; \
       esac ; \

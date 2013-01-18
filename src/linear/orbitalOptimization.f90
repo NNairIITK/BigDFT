@@ -8,14 +8,14 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine optimizeDIIS(iproc, nproc, orbs, lorbs, lzd, hphi, phi, ldiis, it)
+subroutine optimizeDIIS(iproc, orbs, lorbs, lzd, hphi, phi, ldiis)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => optimizeDIIS
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, it
+integer,intent(in):: iproc
 type(orbitals_data),intent(in):: orbs, lorbs
 type(local_zone_descriptors),intent(in):: lzd
 real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(in):: hphi
@@ -84,8 +84,6 @@ do iorb=1,orbs%norbp
        end do
     end if
 end do
-
-
 
 do iorb=1,orbs%norbp
 
@@ -193,7 +191,6 @@ do iorb=1,orbs%norbp
         end do
     end do
 
-
     !ilr=onWhichAtom(iorb)
     ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
@@ -224,14 +221,13 @@ end subroutine optimizeDIIS
 
 
 
-
-subroutine initializeDIIS(isx, lzd, orbs, norb, ldiis)
+subroutine initializeDIIS(isx, lzd, orbs, ldiis)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: isx, norb
+integer,intent(in):: isx
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(localizedDIISParameters),intent(inout):: ldiis
@@ -257,7 +253,6 @@ allocate(ldiis%phiHist(ii), stat=istat)
 call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
 allocate(ldiis%hphiHist(ii), stat=istat)
 call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
-
 
 end subroutine initializeDIIS
 
@@ -288,7 +283,6 @@ deallocate(ldiis%hphiHist, stat=istat)
 call memocc(istat, iall, 'ldiis%hphiHist', subname)
 
 end subroutine deallocateDIIS
-
 
 
 
@@ -529,3 +523,4 @@ end subroutine deallocateDIIS
 !!
 !!
 !!end subroutine optimizeDIIS_inguess
+

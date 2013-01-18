@@ -62,7 +62,7 @@ make_input()
     id=$3
 
     # Clean the directory
-    rm -f log input.*
+    rm -f log.yaml input.*
 
     # Create the posinp file
     make_xyz $position_file $n_nodes $restart_file
@@ -87,10 +87,10 @@ run_job()
     # $2 the datadir
     # $3 the replica id
     if test -z "$run_parallel" ; then
-	(%%abs_top_builddir%%/src/bigdft > log; echo "job done" >> log)&
+	(%%abs_top_builddir%%/src/bigdft > log.yaml; echo "#NEB: job done" >> log.yaml)&
     else
-	$run_parallel %%abs_top_builddir%%/src/bigdft > log
-	echo "job done" >> log
+	$run_parallel %%abs_top_builddir%%/src/bigdft > log.yaml
+	echo "#NEB: job done" >> log.yaml
     fi
 }
 
@@ -104,20 +104,20 @@ check_job()
     #  1: job finished and succeeded
     #  2: job finished but failed
 
-    if [ ! -f log ] ; then
+    if [ ! -f log.yaml ] ; then
 	# Job not started yet.
 	echo "-1"
 	return
     fi
 
-    if grep -qs "job done" log ; then
+    if grep -qs "#NEB: job done" log.yaml ; then
 
-	if grep -qs "Final values of the Forces for each atom" log ; then
+	if grep -qs "Atomic Forces (Ha/Bohr)" log.yaml ; then
 	    # Success case
 	    echo "1"
 	    return
 	else
-	    if grep -qs "Input Wavefunctions Creation" log ; then
+	    if grep -qs "Input Hamiltonian" log.yaml ; then
 	        # Failure
 		echo "2"
 		return
@@ -141,6 +141,10 @@ grep_forces()
     # OUTPUTS:
     #  the total energy
     #  the list of forces for each atoms
-    grep "FINAL iter" log | sed 's/  */ /g' | cut -d' ' -f6
-    grep -A $1 "Final values of the Forces for each atom" log | sed 's/  */ /g' | cut -d' ' -f4,5,6 | tail -n $1
+    #old version
+    #grep "FINAL" log.yaml | sed 's/  */ /g' | cut -d' ' -f6
+    #grep -A $1 "Final values of the Forces for each atom" log | sed 's/  */ /g' | cut -d' ' -f4,5,6 | tail -n $1
+    #new version based on yaml output
+    grep FINAL log.yaml | grep EKS | awk '{print $4}' | sed s/,//g
+    grep  -A $1 'Atomic Forces (Ha/Bohr)'  log.yaml | awk '{print $4,$5,$6}' | sed s/,//g | tail -n $1
 }

@@ -19,9 +19,9 @@ program BigDFT
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
 
    character(len=*), parameter :: subname='BigDFT' !< Used by memocc routine (timing)
-   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
+   integer :: iproc,nproc,i_stat,i_all,ierr,infocode
    integer :: ncount_bigdft
-   real(gp) :: etot,sumx,sumy,sumz,fnoise
+   real(gp) :: etot,fnoise
    logical :: exist_list
    !input variables
    type(atoms_data) :: atoms
@@ -93,11 +93,7 @@ program BigDFT
       !standard names
       call standard_inputfile_names(inputs, radical, bigdft_mpi%nproc)
       call read_input_variables(bigdft_mpi%iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
-      if (bigdft_mpi%iproc == 0) then
-         call print_general_parameters(bigdft_mpi%nproc,inputs,atoms)
-         !call write_input_parameters(inputs,atoms)
-      end if
-
+      
       ! Decide whether we use the cubic or the linear version
       select case (inputs%inputpsiid)
       case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
@@ -115,6 +111,11 @@ program BigDFT
 
       call init_restart_objects(bigdft_mpi%iproc,inputs%matacc,atoms,rst,subname)
 
+      if (bigdft_mpi%iproc == 0) then
+         call print_general_parameters(bigdft_mpi%nproc,inputs,atoms)
+         !call write_input_parameters(inputs,atoms)
+      end if
+
       !if other steps are supposed to be done leave the last_run to minus one
       !otherwise put it to one
       if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1 .or. inputs%ncount_cluster_x <= 1) then
@@ -127,7 +128,8 @@ program BigDFT
          filename=trim(inputs%dir_output)//'geopt.mon'
          open(unit=16,file=filename,status='unknown',position='append')
          if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
-         if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+         if (iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
+         !if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
          ! geometry optimization
          call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,rxyz,atoms,fxyz,strten,etot,rst,inputs,ncount_bigdft)
          close(16)
@@ -147,26 +149,6 @@ program BigDFT
          filename=trim('forces_'//trim(arr_posinp(iconfig)))
          if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'Geometry + metaData forces',forces=fxyz)
       end if
-
-      if (iproc == 0) then
-         sumx=0.d0
-         sumy=0.d0
-         sumz=0.d0
-         write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
-         do iat=1,atoms%nat
-            write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-            iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
-            sumx=sumx+fxyz(1,iat)
-            sumy=sumy+fxyz(2,iat)
-            sumz=sumz+fxyz(3,iat)
-         enddo
-         !$$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-         !$$           write(*,'(1x,a)')'the sum of the forces is'
-         !$$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-         !$$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-         !$$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-         !$$        end if
-      endif
 
       call deallocate_atoms(atoms,subname) 
 

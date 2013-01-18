@@ -1262,7 +1262,7 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
 
   ! coarse part
   !$omp parallel default(shared)&
-  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i)
+  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i1,i0,i)
   !$omp do !!!!schedule(static,1)
   do iseg=1,nseg_c
      jj=keyv_c(iseg)

@@ -178,17 +178,10 @@ program frequencies
       call restart_inputs(inputs)
    end if
 
-   if (bigdft_mpi%iproc == 0) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
-
    if (bigdft_mpi%iproc == 0) then
-      write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
-      do iat=1,atoms%nat
-         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-            &   iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(i+3*(iat-1)),i=1,3)
-      end do
-   end if
-
-   if (bigdft_mpi%iproc == 0) then
+      write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+      !Print atomic forces
+      !call write_forces(atoms,fxyz)
       !This file contains the hessian for post-processing: it is regenerated each time.
       open(unit=u_hessian,file='hessian.dat',status="unknown")
       write(u_hessian,'(a,3(1pe20.10))') '#step=',freq_step(:)

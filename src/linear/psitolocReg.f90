@@ -176,7 +176,7 @@ END SUBROUTINE global_to_local
 
 
 !> Tranform one wavefunction between Global region and localisation region
-subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
+subroutine psi_to_locreg2(iproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 
   use module_base
   use module_types
@@ -185,7 +185,6 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 
   ! Subroutine Scalar Arguments
   integer,intent(in) :: iproc                  ! process ID
-  integer,intent(in) :: nproc                  ! number of processes
   integer,intent(in) :: ldim          ! dimension of lpsi 
   integer,intent(in) :: gdim          ! dimension of gpsi 
   type(locreg_descriptors),intent(in) :: Llr  ! Local grid descriptor
@@ -352,7 +351,7 @@ END SUBROUTINE psi_to_locreg2
 !! @warning 
 !! WARNING: Make sure psi is set to zero where Glr does not collide with Llr (or everywhere)
 
-subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lpsi, psi)
+subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lpsi, psi)
 
   use module_base
   use module_types
@@ -360,7 +359,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
  implicit none
 
   ! Subroutine Scalar Arguments
-  integer,intent(in):: iproc, nproc
+  integer,intent(in):: iproc
   integer :: Gdim          ! dimension of psi 
   integer :: Ldim          ! dimension of lpsi
   integer :: norb          ! number of orbitals
@@ -590,3 +589,4 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
  end do
 
 END SUBROUTINE global_to_local_parallel
+

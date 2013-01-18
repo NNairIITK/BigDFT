@@ -163,8 +163,6 @@ if(mixdiis%is>mixdiis%isx) then
 end if
 
 
-
-
 ! Calculate a new line for the matrix.
 i=max(1,mixdiis%is-mixdiis%isx+1)
 do j=i,mixdiis%is
@@ -179,7 +177,6 @@ end do
 
 ! Sum up over all processes.
 call mpiallred(mixdiis%mat(1,min(mixdiis%isx,mixdiis%is)), min(mixdiis%is,mixdiis%isx), mpi_sum, bigdft_mpi%mpi_comm, ierr)
-
 
 
 ! Copy the matrix to an auxiliary array and fill with the zeros and ones.

@@ -8,7 +8,6 @@ subroutine nullifyInputLinparameters(lin)
   type(linearInputParameters),intent(inout):: lin
 
   nullify(lin%locrad)
-  nullify(lin%potentialPrefac)
   nullify(lin%potentialPrefac_lowaccuracy)
   nullify(lin%potentialPrefac_highaccuracy)
   nullify(lin%norbsPerType)
@@ -31,7 +30,7 @@ subroutine nullify_p2pComms(p2pcomm)
   nullify(p2pcomm%recvBuf)
   nullify(p2pcomm%comarr)
   nullify(p2pcomm%ise)
-  nullify(p2pcomm%requests)
+  !nullify(p2pcomm%requests)
   nullify(p2pcomm%mpi_datatypes)
 
 end subroutine nullify_p2pComms
@@ -72,8 +71,7 @@ subroutine nullify_matrixDescriptors(mad)
   nullify(mad%nsegline)
   nullify(mad%keyg)
   !!nullify(mad%keygmatmul)
-  nullify(mad%keygline)
-  nullify(mad%kernel_locreg)
+  !nullify(mad%kernel_locreg)
   nullify(mad%istsegline)
   nullify(mad%kernel_nseg)
   nullify(mad%kernel_segkeyg)
@@ -93,7 +91,6 @@ subroutine nullify_local_zone_descriptors(lzd)
  
   call nullify_locreg_descriptors(lzd%glr)
   nullify(lzd%llr)
-  nullify(lzd%doHamAppl)
  
 end subroutine nullify_local_zone_descriptors
 

@@ -244,6 +244,7 @@ END SUBROUTINE localize_projectors
 subroutine fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,idir
   real(gp), intent(in) :: hx,hy,hz
@@ -257,9 +258,8 @@ subroutine fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
   !n(c) integer, parameter :: nterm_max=20 !if GTH nterm_max=4
   integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt
 
-  if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0)&
-       write(*,'(1x,a)',advance='no') &
-       'Calculating wavelets expansion of projectors...'
+  !if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) &
+       !write(*,'(1x,a)',advance='no') 'Calculating wavelets expansion of projectors...'
   !warnings related to the projectors norm
   nwarnings=0
   !allocate these vectors up to the maximum size we can get
@@ -282,19 +282,25 @@ subroutine fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
         call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
              lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings)
      enddo
-     if (iproj /= nlpspd%nproj) stop 'incorrect number of projectors created'
+     if (iproj /= nlpspd%nproj) then
+        call yaml_warning('Incorrect number of projectors created')
+     end if
      ! projector part finished
   end do
-  if (istart_c-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp generation'
- 
-  if (iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
-     if (nwarnings == 0) then
-        write(*,'(1x,a)')'done.'
-     else
-        write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
-        write(*,'(1x,a)')'Some projectors may be too rough.'
-        write(*,'(1x,a,f6.3)')&
-             'Consider the possibility of modifying hgrid and/or the localisation radii.'
+
+  if (istart_c-1 /= nlpspd%nprojel) then
+     call yaml_warning('Incorrect once-and-for-all psp generation')
+     stop
+  end if
+
+  if (nwarnings /= 0 .and. iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
+     call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
+     if (nwarnings /= 0) then
+        call yaml_newline()
+        call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
+        !write(*,'(1x,a,i0,a)') 'found ',nwarnings,' warnings.'
+        !write(*,'(1x,a)') 'Some projectors may be too rough.'
+        !write(*,'(1x,a,f6.3)') 'Consider the possibility of modifying hgrid and/or the localisation radii.'
      end if
   end if
 

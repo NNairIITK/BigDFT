@@ -1,3 +1,4 @@
+
 subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
   use module_base
   use module_types
@@ -13,29 +14,23 @@ subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
   real(kind=8),dimension(3*ndim),intent(inout) :: phid  !< Derivative basis functions
   
   ! Local variables
-  integer :: ist1, nf, istat, iall, iorb, jproc
-  integer :: ist, jlr, offset, ilr, iiorb
-  real(kind=8),dimension(0:3),parameter :: scal=1.d0
-  real(kind=8),dimension(:),allocatable :: w_f1, w_f2, w_f3
-  real(kind=8),dimension(:),pointer :: phiLoc
-  real(kind=8),dimension(:,:,:),allocatable :: w_c, phix_c, phiy_c, phiz_c
-  real(kind=8),dimension(:,:,:,:),allocatable :: w_f, phix_f, phiy_f, phiz_f
-  character(len=*),parameter :: subname='get_derivative_supportfunctions'
+  integer :: ist1, iorb, ist, ilr, iiorb
 
   ist=1
   ist1=1
   do iorb=1,lorbs%norbp
-      iiorb=lorbs%isorb+iorb
-      ilr=lorbs%inWhichLocreg(iiorb)
+     iiorb=lorbs%isorb+iorb
+     ilr=lorbs%inWhichLocreg(iiorb)
 
-      call get_one_derivative_supportfunction(ilr,hgrid,lzd,phi(ist),phid(ist1))
+     call get_one_derivative_supportfunction(ilr,hgrid,lzd,phi(ist),phid(ist1))
 
-      ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
-      ist1 = ist1 + 3*(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f)
+     ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+     ist1 = ist1 + 3*(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f)
   end do
 
 end subroutine get_derivative_supportfunctions
-  
+
+
 subroutine get_one_derivative_supportfunction(ilr,hgrid,lzd,phi,phid)
    use module_base
    use module_types
@@ -670,3 +665,4 @@ contains
 
   end subroutine deallocateWorkarrays
 end subroutine get_derivative
+

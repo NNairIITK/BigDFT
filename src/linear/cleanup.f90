@@ -823,7 +823,6 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
   ! Local variables
   integer:: iis1, iie1, i1
 
-  call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)
 
   if(associated(lzd%llr)) then  
@@ -853,7 +852,6 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
   ! Local variables
   integer:: iis1, iie1, i1
 
-  call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
 
   if(associated(lzd%llr)) then
      iis1=lbound(lzd%llr,1)
@@ -1065,7 +1063,7 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   call checkAndDeallocatePointer(p2pcomm%recvBuf, 'p2pcomm%recvBuf', subname)
   call checkAndDeallocatePointer(p2pcomm%comarr, 'p2pcomm%comarr', subname)
   call checkAndDeallocatePointer(p2pcomm%ise, 'p2pcomm%ise', subname)
-  call checkAndDeallocatePointer(p2pcomm%requests, 'p2pcomm%requests', subname)
+  !call checkAndDeallocatePointer(p2pcomm%requests, 'p2pcomm%requests', subname)
 
   if (associated(p2pcomm%mpi_datatypes)) then
       is=lbound(p2pcomm%mpi_datatypes,2)
@@ -1092,30 +1090,8 @@ subroutine deallocate_overlapParameters(op, subname)
   type(overlapParameters),intent(inout):: op
   character(len=*),intent(in):: subname
 
-  ! Local variables
-  integer:: iis1, iie1, iis2, iie2, i1, i2
-
   call checkAndDeallocatePointer(op%noverlaps, 'op%noverlaps', subname)
   call checkAndDeallocatePointer(op%overlaps, 'op%overlaps', subname)
-  !!call checkAndDeallocatePointer(op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
-  !!call checkAndDeallocatePointer(op%indexInSendBuf, 'op%indexInSendBuf', subname)
-
-
-!!if(associated(op%wfd_overlap)) then
-!!   iis1=lbound(op%wfd_overlap,1)
-!!   iie1=ubound(op%wfd_overlap,1)
-!!   iis2=lbound(op%wfd_overlap,2)
-!!   iie2=ubound(op%wfd_overlap,2)
-!!   do i2=iis2,iie2
-!!       do i1=iis1,iie1
-!!              call deallocate_wavefunctions_descriptors(op%wfd_overlap(i1,i2), subname)
-!!          end do
-!!      end do
-!!      deallocate(op%wfd_overlap)
-!!      nullify(op%wfd_overlap)
-!!  end if
-
-
 
 end subroutine deallocate_overlapParameters
 
@@ -1136,8 +1112,7 @@ subroutine deallocate_matrixDescriptors(mad, subname)
   !!call checkAndDeallocatePointer(mad%keygmatmul, 'mad%keygmatmul', subname)
   !!call checkAndDeallocatePointer(mad%keyvmatmul, 'mad%keyvmatmul', subname)
   call checkAndDeallocatePointer(mad%nsegline, 'mad%nsegline', subname)
-  call checkAndDeallocatePointer(mad%keygline, 'mad%keygline', subname)
-  call checkAndDeallocatePointer(mad%kernel_locreg, 'mad%kernel_locreg', subname)
+  !call checkAndDeallocatePointer(mad%kernel_locreg, 'mad%kernel_locreg', subname)
   call checkAndDeallocatePointer(mad%istsegline, 'mad%istsegline', subname)
   call checkAndDeallocatePointer(mad%kernel_nseg, 'mad%kernel_nseg', subname)
   call checkAndDeallocatePointer(mad%kernel_segkeyg, 'mad%kernel_segkeyg', subname)
@@ -1173,18 +1148,6 @@ subroutine destroy_wfn_metadata(wfnmd)
      iall=-product(shape(wfnmd%density_kernel_compr))*kind(wfnmd%density_kernel_compr)
      deallocate(wfnmd%density_kernel_compr, stat=istat)
      call memocc(istat, iall, 'wfnmd%density_kernel_compr', subname)
-  end if
-
-  if (associated(wfnmd%alpha_coeff)) then
-     iall=-product(shape(wfnmd%alpha_coeff))*kind(wfnmd%alpha_coeff)
-     deallocate(wfnmd%alpha_coeff, stat=istat)
-     call memocc(istat, iall, 'wfnmd%alpha_coeff', subname)
-  end if
-
-  if (associated(wfnmd%grad_coeff_old)) then
-     iall=-product(shape(wfnmd%grad_coeff_old))*kind(wfnmd%grad_coeff_old)
-     deallocate(wfnmd%grad_coeff_old, stat=istat)
-     call memocc(istat, iall, 'wfnmd%grad_coeff_old', subname)
   end if
 
 end subroutine destroy_wfn_metadata

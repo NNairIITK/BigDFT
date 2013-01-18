@@ -173,7 +173,7 @@ print *,'here'
         pgauss(j) = 8.0e-3_dp*1.25_dp**(6*(j-1))
         !compare the gaussians together
 !        n_range=200
-        if (i==1) call discretize_gaussian(n_range,1.d0,pgauss(j),0._gp,&
+        if (i==1) call discretize_gaussian(n_range,1.d0,pgauss(j),0.1_gp,&
              hgrid,'gaussian'//trim(adjustl(yaml_toa(j))))
      end do
 
@@ -535,6 +535,15 @@ subroutine discretize_gaussian(nrange,fac,pgauss,x0,hgrid,filename)
 !  call gauss_to_daub(hgrid,fac,x0,sqrt(0.5/pgauss),0,&!no err, errsuc
 !       2*nrange+1,n_left,n_right,c,err_norm,&         !no err_wav. nmax instead of n_intvx
 !       ww,nwork,.false.)                             !added work arrays ww with dimension nwork
+  !create the isf array in the gaussian module
+  call initialize_real_space_conversion()
+  do j=-nrange,nrange
+     f_phi_i2(j)=scfdotf(j,hgrid,pgauss,x0,0)
+     !print *,'j',j,f_phi_i2(j)
+  end do
+  !use the elemental property of the scfdotf function
+  f_phi_i2=scfdotf((/(j,j=-nrange,nrange)/),hgrid,pgauss,x0,0)
+  call finalize_real_space_conversion('discretize_gaussian')
 
   !then print the results
   moments=0.0_dp
@@ -559,6 +568,8 @@ subroutine discretize_gaussian(nrange,fac,pgauss,x0,hgrid,filename)
   deallocate(f_i,f_phi_i,f_phi_i2)
 
 end subroutine discretize_gaussian
+
+!write a routine which performs the integration of a function on a given grid
 
 subroutine my_gauss_conv_scf(itype_scf,pgauss,x0,hgrid,dx,n_range,n_scf,x_scf,y_scf,kernel_scf,work)
   use module_base
@@ -585,7 +596,7 @@ subroutine my_gauss_conv_scf(itype_scf,pgauss,x0,hgrid,dx,n_range,n_scf,x_scf,y_
   !We calculate the number of iterations to go from pgauss to p0_ref
   n_iter = nint((log(pgauss) - log(p0_cell))/log(4.0_dp))
 
-!  write(*,*) 'n_iter = ', n_iter
+  write(*,*) 'n_iter = ', n_iter
 
   if (n_iter <= 0 .or. x0 /= 0.d0)then
      n_iter = 0

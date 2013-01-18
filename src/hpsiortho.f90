@@ -335,6 +335,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
 
 end subroutine psitohpsi
 
+
 subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
      proj,Lzd,nlpspd,confdatarr,ngatherarr,pot,psi,hpsi,&
      energs,SIC,GPU,&
@@ -404,7 +405,7 @@ END SUBROUTINE FullHamiltonianApplication
 !> Application of the Local Hamiltonian
 subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
      Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-     energs,SIC,GPU,PotOrKin,pkernel,orbsocc,psirocc,dpbox,potential,comgp)
+     energs,SIC,GPU,PotOrKin,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hpsi_noconf,econf)
    use module_base
    use module_types
    use module_xc
@@ -433,6 +434,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
    !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
    real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
    type(p2pComms),intent(inout), optional:: comgp
+   real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout),optional :: hpsi_noconf
+   real(gp),intent(out),optional :: econf
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
    logical :: exctX,op2p
@@ -556,6 +559,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
       call local_hamiltonian_GPU(orbs,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
            orbs%nspin,pot,psi,GPU%hpsi_ASYNC,energs%ekin,energs%epot,GPU)
    else if (OCLconv) then
+
+      !pin potential
       call local_hamiltonian_OCL(orbs,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
            orbs%nspin,pot,psi,GPU%hpsi_ASYNC,energs%ekin,energs%epot,GPU)
    else
@@ -584,10 +589,18 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
 !!$      call memocc(i_stat,i_all,'fake_pot',subname)
          
       else if (PotOrKin==2) then !only pot
-
-         call psi_to_vlocpsi(iproc,orbs,Lzd,&
-              ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
-              SIC%ixc,SIC%alpha,energs%epot,energs%evsic)
+         if (present(hpsi_noconf)) then
+             if (.not.present(econf)) then
+                 stop 'ERROR: econf must be present when hpsi_noconf is present'
+             end if
+             call psi_to_vlocpsi(iproc,orbs,Lzd,&
+                  ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
+                  SIC%ixc,SIC%alpha,energs%epot,energs%evsic,hpsi_noconf,econf)
+         else
+             call psi_to_vlocpsi(iproc,orbs,Lzd,&
+                  ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
+                  SIC%ixc,SIC%alpha,energs%epot,energs%evsic)
+         end if
       else if (PotOrKin==3) then !only kin
          call psi_to_kinpsi(iproc,orbs,lzd,psi,hpsi,energs%ekin)
       end if
@@ -610,6 +623,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
      proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
    use module_base
    use module_types
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc
    type(atoms_data), intent(in) :: at
@@ -656,7 +670,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
          dosome=.false.
          do iorb=isorb,ieorb
             !dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
-            dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr .and. lzd%doHamAppl(ilr))
+            !dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr .and. lzd%doHamAppl(ilr))
+            dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
             if (dosome) exit
          end do
          if (.not. dosome) cycle loop_lr
@@ -739,7 +754,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
             istart_ck=istart_c !TO BE CHANGED IN THIS ONCE-AND-FOR-ALL
          else
            ! COULD CHANGE THIS NOW !!
-           stop 'Localization Regions not allowed in once-and-for-all'    
+           call yaml_warning('Localization Regions not allowed in once-and-for-all')
+           stop
          end if
 
       end do loop_lr
@@ -753,18 +769,24 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
    end do loop_kpt
 
    if (.not. DistProjApply) then !TO BE REMOVED WITH NEW PROJECTOR APPLICATION
-      if (istart_ck-1 /= nlpspd%nprojel) &
-         &   stop 'incorrect once-and-for-all psp application'
+      if (istart_ck-1 /= nlpspd%nprojel) then
+         call yaml_warning('Incorrect once-and-for-all psp application')
+         stop
+      end if
    end if
    !for the moment it has to be removed. A number of components in orbital distribution should be defined
    !if (ispsi-1 /= (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
 
    !used on the on-the-fly projector creation
    if (nwarnings /= 0 .and. iproc == 0) then
-      write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
-      write(*,'(1x,a)')'Some projectors may be too rough.'
-      write(*,'(1x,a,f6.3)')&
-         &   'Consider the possibility of reducing hgrid for having a more accurate run.'
+     call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
+     if (nwarnings /= 0) then
+        call yaml_newline()
+        call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
+        !write(*,'(1x,a,i0,a)') 'found ',nwarnings,' warnings.'
+        !write(*,'(1x,a)') 'Some projectors may be too rough.'
+        !write(*,'(1x,a,f6.3)') 'Consider the possibility of modifying hgrid and/or the localisation radii.'
+     end if
    end if
 
 
@@ -936,7 +958,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
    else
        !!if(.not.comgp%communication_complete) call gatherPotential(iproc, nproc, comgp)
        !!if(.not.comgp%communication_complete) call wait_p2p_communication(iproc, nproc, comgp)
-       call wait_p2p_communication(iproc, nproc, comgp)
+       !!call wait_p2p_communication(iproc, nproc, comgp)
+       call synchronize_onesided_communication(iproc, nproc, comgp)
    end if
 
    call timing(iproc,'Pot_commun    ','OF') 
@@ -1128,6 +1151,7 @@ subroutine free_full_potential(nproc,flag,pot,subname)
 
 END SUBROUTINE free_full_potential
 
+
 !> Calculate total energies from the energy terms
 subroutine total_energies(energs, iter, iproc)
   use module_base
@@ -1151,6 +1175,7 @@ subroutine total_energies(energs, iter, iproc)
      call timing(iproc,'energs_signals','OF')
   end if
 end subroutine total_energies
+
 
 !> Extract the energy (the quantity which has to be minimised by the wavefunction)
 !! and calculate the corresponding gradient.
@@ -1329,10 +1354,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      gnrm_zero=0.0_gp
   end if
 
-  if (iproc==0 .and. verbose > 1) then
-     !write(*,'(1x,a)')&
-     !     &   'done.'
-  end if
+  !if (iproc==0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
 
   if (iproc==0  .and. verbose > 0) then
      call yaml_map('Preconditioning',.true.)
@@ -1372,6 +1394,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   endif
 
 END SUBROUTINE calculate_energy_and_gradient
+
 
 !> Operations after h|psi> 
 !! (transposition, orthonormalisation, inverse transposition)
@@ -1422,7 +1445,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
 
    call orthogonalize(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%orthpar)
 
-   !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
+   !  call checkortho_p(iproc,nproc,norb,nvctrp,psit)
 
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
@@ -1430,10 +1453,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
       nullify(wfn%psit)
    end if
 
-   if (iproc == 0 .and. verbose > 1) then
-      !write(*,'(1x,a)')&
-      !   &   'done.'
-   end if
+   !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
 
    ! Emit that new wavefunctions are ready.
    if (wfn%c_obj /= 0) then
@@ -1710,6 +1730,7 @@ end subroutine eigensystem_info
 subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    use module_base
    use module_types
+   use yaml_output
    implicit none
    logical, intent(in) :: filewrite
    integer, intent(in) :: iproc, nproc
@@ -1738,7 +1759,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    case  (SMEARING_DIST_METPX) !Methfessel and Paxton (same as COLD with a=0)
       a=0.d0
    case default
-      if(iproc==0) print*, 'unrecognized occopt=', occopt
+      if(iproc==0) print *, 'unrecognized occopt=', occopt
       stop 
    end select
 
@@ -1748,7 +1769,10 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
       full=1.d0   ! maximum occupation for spin polarized orbital
    endif
 
-   if (orbs%nkpts.ne.1 .and. filewrite) stop 'Fermilevel: CANNOT write input.occ with more than one k-point'
+   if (orbs%nkpts.ne.1 .and. filewrite) then
+      if (iproc == 0) print *,'Fermilevel: CANNOT write input.occ with more than one k-point'
+      stop
+   end if
    charge=0.0_gp
    do ikpt=1,orbs%nkpts
       !number of zero orbitals for the given k-point
@@ -1786,7 +1810,10 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
       !  f:= occupation # for band i ,  df:=df/darg
       loop_fermi: do
          ii=ii+1
-         if (ii > 10000) stop 'error Fermilevel'
+         if (ii > 10000) then
+            if (iproc == 0) print *,'error Fermilevel'
+            stop
+         end if
          electrons=0.d0
          dlectrons=0.d0
          do ikpt=1,orbs%nkpts
@@ -1856,7 +1883,12 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
             cutoffd=.5d0*(1.d0+resd +exp(-xd**2)*(-a*xd**2 + .5d0*a+xd)/sqrtpi)
          end if
       enddo
-      if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
+      if (cutoffu > 1.d-12 .or. cutoffd > 1.d-12 .and. iproc == 0) then
+         call yaml_warning('The last orbitals levels are occupation number != 0.0' // &
+             & ' lastu=' // trim(yaml_toa(cutoffu,fmt='(1pe8.1)')) // &
+             & ' lastd=' // trim(yaml_toa(cutoffd,fmt='(1pe8.1)')))
+      end if
+      !if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
       orbs%efermi=ef
 
       !update the occupation number

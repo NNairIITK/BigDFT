@@ -40,8 +40,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old
 
-  ! Dump XC functionals.
-  if (iproc == 0) call xc_dump()
+  ! Dump XC functionals (done now in output.f90)
+  !if (iproc == 0) call xc_dump()
 
 !!$  if (iproc==0) then
 !!$     write( *,'(1x,a)')&
@@ -84,15 +84,15 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   ! Create linear orbs data structure.
   if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_DISK_LINEAR &
       .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
-     call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, Lzd%Glr, &
-          rxyz, lorbs)
+     call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, rxyz, lorbs)
 
      ! There are needed for the restart (at least if the atoms have moved...)
      present_inwhichlocreg_old = present(inwhichlocreg_old)
      present_onwhichatom_old = present(onwhichatom_old)
      if (present_inwhichlocreg_old .and. .not.present_onwhichatom_old &
          .or. present_onwhichatom_old .and. .not.present_inwhichlocreg_old) then
-         stop 'inwhichlocreg_old and onwhichatom_old should be present at the same time'
+         call yaml_warning('inwhichlocreg_old and onwhichatom_old should be present at the same time')
+         stop 
      end if
      if (present_inwhichlocreg_old .and. present_onwhichatom_old) then
          call vcopy(lorbs%norb, onwhichatom_old(1), 1, lorbs%onwhichatom(1), 1)
@@ -191,7 +191,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
       call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
-      if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
+      if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
+      !if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
   end if
 
   !---end of system definition routine
@@ -270,6 +271,7 @@ END SUBROUTINE system_properties
 subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,i3s,n3d,i3xcsh,n3p
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -310,9 +312,8 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 !!$        if (exists) then
         if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or.&
              at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
-           if (iproc == 0) write(*,'(1x,a)',advance='no')&
-                'NLCC: calculate core density for atom: '//&
-                trim(at%atomnames(ityp))//';'
+           if (iproc == 0) call yaml_map('NLCC, Calculate core density for atom:',trim(at%atomnames(ityp)))
+           !if (iproc == 0) write(*,'(1x,a)',advance='no') 'NLCC: calculate core density for atom: '// trim(at%atomnames(ityp))//';'
            rx=rxyz(1,iat) 
            ry=rxyz(2,iat)
            rz=rxyz(3,iat)
@@ -323,7 +324,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
            call calc_rhocore_iat(iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                 d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,i3s,n3d,rhocore)
 
-           if (iproc == 0) write(*,'(1x,a)')'done.'
+           !if (iproc == 0) write(*,'(1x,a)')'done.'
         end if
      end do
 
@@ -354,8 +355,8 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
      call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
      tt=tt*hxh*hyh*hzh
-     if (iproc == 0) write(*,'(1x,a,f15.7)') &
-       'Total core charge on the grid (To be compared with analytic one): ',tt
+     if (iproc == 0) call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
+     !if (iproc == 0) write(*,'(1x,a,f15.7)') 'Total core charge on the grid (To be compared with analytic one): ',tt
 
   else
      !No NLCC needed, nullify the pointer 
@@ -680,6 +681,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   integer :: ispol,ichg,ichgsum,norbe,norbat,nspin
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
+  character(len=60) :: radical
 
 
   !calculate number of electrons and orbitals
@@ -699,7 +701,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   end if
 
   if (verb) then
-     call yaml_comment('Occupation numbers',hfill='-')
+     call yaml_comment('Occupation Numbers',hfill='-')
      call yaml_map('Total Number of Electrons',nelec,fmt='(i8)')
      !write(*,'(1x,a,t28,i8)') 'Total Number of Electrons',nelec
   end if
@@ -742,11 +744,15 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
 
      if (in%nspin == 2 .and. ispinsum /= norbu-norbd) then
         !if (iproc==0) then 
-           write(*,'(1x,a,i0,a)')&
-                'ERROR: Total input polarisation (found ',ispinsum,&
-                ') must be equal to norbu-norbd.'
-           write(*,'(1x,3(a,i0))')&
-                'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
+           call yaml_warning('Total input polarisation (found ' // trim(yaml_toa(ispinsum)) &
+                & // ') must be equal to norbu-norbd.')
+           call yaml_comment('With norb=' // trim(yaml_toa(norb)) // ' and mpol=' // trim(yaml_toa(in%mpol)) // &
+                & ' norbu-norbd=' // trim((yaml_toa(norbu-norbd))))
+           !write(*,'(1x,a,i0,a)')&
+           !     'ERROR: Total input polarisation (found ',ispinsum,&
+           !     ') must be equal to norbu-norbd.'
+           !write(*,'(1x,3(a,i0))')&
+           !     'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
         !end if
         stop
      end if
@@ -908,12 +914,33 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
      !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
      call yaml_close_map()
   end if
-
+  
+  if (iproc == 0) then
+     if (trim(in%run_name) == '') then
+        radical = 'input'
+     else
+        radical = in%run_name
+     end if
+     call yaml_map('Total Number of Orbitals',norb,fmt='(i8)')
+     if (verb) then
+        if (iunit /= 0) then
+           call yaml_map('Occupation numbers coming from', trim(radical) // '.occ')
+        else
+           call yaml_map('Occupation numbers coming from','System properties')
+        end if
+     end if
+  end if
   !assign to each k-point the same occupation number
+  if (iproc==0) call yaml_open_sequence('Input Occupation Numbers')
   do ikpts=1,orbs%nkpts
+     if (iproc == 0 .and. atoms%geocode /= 'F') then
+        call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpts,fmt='(i4.4)'))) // ' BZ coord. = ' // &
+        & trim(yaml_toa(orbs%kpts(:, ikpts),fmt='(f12.6)')))
+     end if
      call occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
+  if (iproc == 0) call yaml_close_sequence()
 end subroutine read_orbital_variables
 
 
@@ -1059,7 +1086,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   do ityp=1,atoms%ntypes
      call yaml_sequence(advance='no')
      call yaml_map('Symbol',trim(atoms%atomnames(ityp)),advance='no')
-     call yaml_comment('Type No. '//trim(yaml_toa(ityp,fmt='(i2.2)')),hfill='-')
+     call yaml_comment('Type No. '//trim(yaml_toa(ityp,fmt='(i2.2)')))
      call yaml_map('No. of Electrons',atoms%nelpsp(ityp))
      natyp=0
      do iat=1,atoms%nat
@@ -1267,13 +1294,15 @@ subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
   if (ngc==UNINITIALIZED(1)) ngc=0
 END SUBROUTINE nlcc_start_position
 
-!>   Fix all the atomic occupation numbers of the atoms which has the same type
-!!   look also at the input polarisation and spin
-!!   look at the file of the input occupation numbers and, if exists, modify the 
-!!   occupations accordingly
+
+!> Fix all the atomic occupation numbers of the atoms which has the same type
+!! look also at the input polarisation and spin
+!! look at the file of the input occupation numbers and, if exists, modify the 
+!! occupations accordingly
 subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: ityp,mxpl,mxchg,nspin,nmax,lmax,nelecmax,nsccode
@@ -1303,7 +1332,8 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
         nspinor=4
         noncoll=2
      case default
-        write(*,*)' ERROR: nspin not valid:',nspin
+        call yaml_warning('nspin not valid:' // trim(yaml_toa(nspin)))
+        !write(*,*)' ERROR: nspin not valid:',nspin
         stop
   end select
 
@@ -1314,7 +1344,8 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
      open(unit=91,file=filename,status='old',iostat=ierror)
      !Check the open statement
      if (ierror /= 0) then
-        write(*,*)'Failed to open the existing  file: '//filename
+        call yaml_warning('Failed to open the existing  file: '// trim(filename))
+        !write(*,*)'Failed to open the existing  file: '//filename
         stop
      end if
   end if
@@ -2306,7 +2337,8 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
      close(11)
   endif
 end subroutine pawpatch_from_file
-  
+ 
+
 subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, denspot, optloop, &
        & ntypes, radii_cf, crmult, frmult)
   use module_types

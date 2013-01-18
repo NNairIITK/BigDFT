@@ -25,14 +25,7 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
  ---------------------------------------------------------- Gaussian Basis Projection
- ----------------------------------------------------------------- Forces Calculation
  writing electronic_density     
- average noise along x direction:   4.81443555E-06
- average noise along y direction:  -1.75643359E-04
- average noise along z direction:   3.14601145E-06
- total average noise            :   1.75737491E-04
- clean forces norm (Ha/Bohr): maxval=  2.917500454333E-04  fnrm2=  1.331233091522E-07
- raw forces:                  maxval=  2.527894501702E-04  fnrm2=  1.640593694549E-07
  --------------------------------------------------------- Mulliken Charge Population Analysis
  Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg
       1     |  s          |    0.88  |  0.28516 |  0.28516   |  0.57031  |  0.00000 |  0.42969

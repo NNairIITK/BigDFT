@@ -30,38 +30,38 @@ end subroutine set_inputfile
 
 
 !> Define the name of the input files
-subroutine standard_inputfile_names(inputs, radical, nproc)
+subroutine standard_inputfile_names(in, radical, nproc)
   use module_types
   use module_base
   use yaml_output
   implicit none
-  type(input_variables), intent(inout) :: inputs
+  type(input_variables), intent(inout) :: in
   character(len = *), intent(in) :: radical
   integer, intent(in) :: nproc
   integer :: ierr
 
-  !set name of the run
-  inputs%run_name=repeat(' ',len(inputs%run_name))
-  if (trim(radical) /= 'input') inputs%run_name=trim(radical)
+  !set prefix name of the run (as input by defaut for input.dft)
+  in%run_name=repeat(' ',len(in%run_name))
+  if (trim(radical) /= 'input') in%run_name=trim(radical)
 
-  call set_inputfile(inputs%file_dft, radical,    "dft")
-  call set_inputfile(inputs%file_geopt, radical,  "geopt")
-  call set_inputfile(inputs%file_kpt, radical,    "kpt")
-  call set_inputfile(inputs%file_perf, radical,   "perf")
-  call set_inputfile(inputs%file_tddft, radical,  "tddft")
-  call set_inputfile(inputs%file_mix, radical,    "mix")
-  call set_inputfile(inputs%file_sic, radical,    "sic")
-  call set_inputfile(inputs%file_occnum, radical, "occ")
-  call set_inputfile(inputs%file_igpop, radical,  "occup")
-  call set_inputfile(inputs%file_lin, radical,    "lin")
+  call set_inputfile(in%file_dft, radical,    "dft")
+  call set_inputfile(in%file_geopt, radical,  "geopt")
+  call set_inputfile(in%file_kpt, radical,    "kpt")
+  call set_inputfile(in%file_perf, radical,   "perf")
+  call set_inputfile(in%file_tddft, radical,  "tddft")
+  call set_inputfile(in%file_mix, radical,    "mix")
+  call set_inputfile(in%file_sic, radical,    "sic")
+  call set_inputfile(in%file_occnum, radical, "occ")
+  call set_inputfile(in%file_igpop, radical,  "occup")
+  call set_inputfile(in%file_lin, radical,    "lin")
 
   if (trim(radical) == "input") then
-        inputs%dir_output="data" // trim(bigdft_run_id_toa())
+        in%dir_output="data" // trim(bigdft_run_id_toa())
   else
-        inputs%dir_output="data-"//trim(radical)//trim(bigdft_run_id_toa())
+        in%dir_output="data-"//trim(radical)//trim(bigdft_run_id_toa())
   end if
 
-  inputs%files = INPUTS_NONE
+  in%files = INPUTS_NONE
 
   ! To avoid race conditions where procs create the default file and other test its
   ! presence, we put a barrier here.
@@ -74,17 +74,17 @@ END SUBROUTINE standard_inputfile_names
 !! Initialize memocc
 !! @todo
 !!   Should be better for debug purpose to read input.perf before
-subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
+subroutine read_input_variables(iproc,posinp,in,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
-  use yaml_output
+  !use yaml_output
   implicit none
 
   !Arguments
   character(len=*), intent(in) :: posinp
   integer, intent(in) :: iproc
-  type(input_variables), intent(inout) :: inputs
+  type(input_variables), intent(inout) :: in
   type(atoms_data), intent(out) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
 
@@ -93,17 +93,17 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 
   !call yaml_open_map('Representation of the input files')
   ! Read all parameters and update atoms and rxyz.
-  call read_input_parameters(iproc,inputs, atoms, rxyz)
+  call read_input_parameters(iproc,in, atoms, rxyz)
 
   !call yaml_close_map()
   ! Read associated pseudo files.
-  call init_atomic_values((iproc == 0), atoms, inputs%ixc)
-  call read_atomic_variables(atoms, trim(inputs%file_igpop),inputs%nspin)
+  call init_atomic_values((iproc == 0), atoms, in%ixc)
+  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
 
   ! Start the signaling loop in a thread if necessary.
-  if (inputs%signaling .and. iproc == 0) then
-     call bigdft_signals_init(inputs%gmainloop, 2, inputs%domain, len(trim(inputs%domain)))
-     call bigdft_signals_start(inputs%gmainloop, inputs%signalTimeout)
+  if (in%signaling .and. iproc == 0) then
+     call bigdft_signals_init(in%gmainloop, 2, in%domain, len(trim(in%domain)))
+     call bigdft_signals_start(in%gmainloop, in%signalTimeout)
   end if
 
 END SUBROUTINE read_input_variables
@@ -112,71 +112,74 @@ END SUBROUTINE read_input_variables
 !> Do initialisation for all different calculation parameters of BigDFT. 
 !! Set default values if not any. Atomic informations are updated  by
 !! symmetries if necessary and by geometry input parameters.
-subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
+subroutine read_input_parameters(iproc,in,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_parameters
+  use yaml_output
 
   implicit none
 
   !Arguments
   integer, intent(in) :: iproc
-  type(input_variables), intent(inout) :: inputs
+  type(input_variables), intent(inout) :: in
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
   !Local variables
   integer :: ierr
 
   ! Default for inputs (should not be necessary if all the variables comes from the parsing)
-  call default_input_variables(inputs)
+  call default_input_variables(in)
   ! Read linear variables
   ! Parse all input files, independent from atoms.
-  call inputs_parse_params(inputs, iproc, .true.)
-  if(inputs%inputpsiid==100 .or. inputs%inputpsiid==101 .or. inputs%inputpsiid==102) &
+  call inputs_parse_params(in, iproc, .true.)
+  if(in%inputpsiid==100 .or. in%inputpsiid==101 .or. in%inputpsiid==102) &
       DistProjApply=.true.
-  if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) then
+  if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) then
      !only on the fly calculation
      DistProjApply=.true.
   end if
   ! Shake atoms, if required.
-  call atoms_set_displacement(atoms, rxyz, inputs%randdis)
+  call atoms_set_displacement(atoms, rxyz, in%randdis)
 
   ! Update atoms with symmetry information
-  call atoms_set_symmetries(atoms, rxyz, inputs%disableSym, inputs%symTol, inputs%elecfield)
+  call atoms_set_symmetries(atoms, rxyz, in%disableSym, in%symTol, in%elecfield)
 
   ! Parse input files depending on atoms.
-  call inputs_parse_add(inputs, atoms, iproc, .true.)
+  call inputs_parse_add(in, atoms, iproc, .true.)
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
-     if (iproc==0) write(*,'(1x,a)') 'GPU calculation allowed only in periodic boundary conditions'
+     if (iproc==0) call yaml_warning('GPU calculation allowed only in periodic boundary conditions')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
   ! Stop the code if it is trying to run GPU with spin=4
-  if (inputs%nspin == 4 .and. (GPUconv .or. OCLconv)) then
-     if (iproc==0) write(*,'(1x,a)') 'GPU calculation not implemented with non-collinear spin'
+  if (in%nspin == 4 .and. (GPUconv .or. OCLconv)) then
+     if (iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
 !!$  ! Stop code for unproper input variables combination.
-!!$  if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym .and. atoms%geocode == 'S') then
+!!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%geocode == 'S') then
 !!$     if (iproc==0) then
 !!$        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
 !!$        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
 !!$     end if
 !!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
 !!$  end if
-  if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
-     if (iproc==0) write(*,'(1x,a)') 'Gaussian projection is not implemented with k-point support'
+  if (in%nkpt > 1 .and. in%gaussian_help) then
+     if (iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
   !check whether a directory name should be associated for the data storage
-  call check_for_data_writing_directory(iproc,inputs)
+  call check_for_data_writing_directory(iproc,in)
 
 END SUBROUTINE read_input_parameters
 
+
+!> Check the directory of data (create if not present)
 subroutine check_for_data_writing_directory(iproc,in)
   use module_base
   use module_types
@@ -214,7 +217,7 @@ subroutine check_for_data_writing_directory(iproc,in)
      if (iproc == 0) then
         call getdir(in%dir_output, len_trim(in%dir_output), dirname, 100, i_stat)
         if (i_stat /= 0) then
-           write(*,*) "ERROR: cannot create output directory '" // trim(in%dir_output) // "'."
+           call yaml_warning("Cannot create output directory '" // trim(in%dir_output) // "'.")
            call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
         end if
      end if
@@ -226,49 +229,47 @@ subroutine check_for_data_writing_directory(iproc,in)
      in%dir_output=repeat(' ',len(in%dir_output))
   end if
 
-end subroutine check_for_data_writing_directory
+END SUBROUTINE check_for_data_writing_directory
 
 
-
-!> Set default values.
-subroutine default_input_variables(inputs)
+!> Set default values for input variables
+subroutine default_input_variables(in)
   use module_base
   use module_types
   implicit none
 
-  type(input_variables), intent(inout) :: inputs
+  type(input_variables), intent(inout) :: in
 
   ! Default values.
-  inputs%output_wf_format = WF_FORMAT_NONE
-  inputs%output_denspot_format = output_denspot_FORMAT_CUBE
-  nullify(inputs%kpt)
-  nullify(inputs%wkpt)
-  nullify(inputs%kptv)
-  nullify(inputs%nkptsv_group)
+  in%output_wf_format = WF_FORMAT_NONE
+  in%output_denspot_format = output_denspot_FORMAT_CUBE
+  nullify(in%kpt)
+  nullify(in%wkpt)
+  nullify(in%kptv)
+  nullify(in%nkptsv_group)
   ! Default abscalc variables
-  call abscalc_input_variables_default(inputs)
+  call abscalc_input_variables_default(in)
   ! Default frequencies variables
-  call frequencies_input_variables_default(inputs)
+  call frequencies_input_variables_default(in)
   ! Default values for geopt.
-  call geopt_input_variables_default(inputs) 
+  call geopt_input_variables_default(in) 
   ! Default values for mixing procedure
-  call mix_input_variables_default(inputs) 
+  call mix_input_variables_default(in) 
   ! Default values for tddft
-  call tddft_input_variables_default(inputs)
+  call tddft_input_variables_default(in)
   !Default for Self-Interaction Correction variables
-  call sic_input_variables_default(inputs)
+  call sic_input_variables_default(in)
   ! Default for signaling
-  inputs%gmainloop = 0.d0
+  in%gmainloop = 0.d0
   ! Default for lin.
-  nullify(inputs%lin%potentialPrefac)
-  nullify(inputs%lin%potentialPrefac_lowaccuracy)
-  nullify(inputs%lin%potentialPrefac_highaccuracy)
-  nullify(inputs%lin%norbsPerType)
-  nullify(inputs%lin%locrad)
-  nullify(inputs%lin%locrad_lowaccuracy)
-  nullify(inputs%lin%locrad_highaccuracy)
-  nullify(inputs%lin%locrad_type)
-  nullify(inputs%lin%kernel_cutoff)
+  nullify(in%lin%potentialPrefac_lowaccuracy)
+  nullify(in%lin%potentialPrefac_highaccuracy)
+  nullify(in%lin%norbsPerType)
+  nullify(in%lin%locrad)
+  nullify(in%lin%locrad_lowaccuracy)
+  nullify(in%lin%locrad_highaccuracy)
+  nullify(in%lin%locrad_type)
+  nullify(in%lin%kernel_cutoff)
 END SUBROUTINE default_input_variables
 
 
@@ -669,84 +670,83 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_set_file(iproc,dump,trim(filename),exists,'Linear Parameters')  
   if (exists) in%files = in%files + INPUTS_LIN
 
-  ! Read the number of iterations and convergence criterion for the basis functions BF
-  comments = 'iterations with low accuracy, high accuracy'
+  ! number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
+  comments='number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)'
+  call input_var(in%lin%nlevel_accuracy,'2',ranges=(/1,2/),comment=comments)
+
+  ! number of iterations
+  comments = 'outer loop iterations (low, high)'
   call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,100000/))
   call input_var(in%lin%nit_highaccuracy,'1',ranges=(/0,100000/),comment=comments)
 
-  comments = 'iterations to optimize the basis functions for low accuracy and high accuracy'
+  comments = 'basis iterations (low, high)'
   call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,100000/))
   call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,100000/),comment=comments)
-  
-  ! Convergence criterion
-  comments= 'convergence criterion for low and high accuracy'
+
+  comments = 'kernel iterations (low, high)'
+  call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/0,1000/))
+  call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/0,1000/),comment=comments)
+
+  ! DIIS history lengths
+  comments = 'DIIS history for basis (low, high)'
+  call input_var(in%lin%DIIS_hist_lowaccur,'5',ranges=(/0,100/))
+  call input_var(in%lin%DIIS_hist_highaccur,'0',ranges=(/0,100/),comment=comments)
+
+  comments = 'DIIS history for kernel (low, high)'
+  call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
+  call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/),comment=comments)
+
+  ! mixing parameters
+  comments = 'density mixing parameter (low, high)'
+  call input_var(in%lin%alpha_mix_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%alpha_mix_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/),comment=comments)
+
+  ! Convergence criteria
+  comments = 'outer loop convergence (low, high)'
+  call input_var(in%lin%lowaccuracy_conv_crit,'1.d-8',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%highaccuracy_conv_crit,'1.d-12',ranges=(/0.d0,1.d0/),comment=comments)
+
+  comments = 'basis convergence (low, high)'
   call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
-
-  ! New convergence criteria
-  comments= 'gnrm multiplier'
-  call input_var(in%lin%gnrm_mult,'2.d-5',ranges=(/1.d-10,1.d0/),comment=comments)
   
-  ! DIIS History, Step size for DIIS, Step size for SD
-  comments = 'DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for SD'
-  call input_var(in%lin%DIIS_hist_lowaccur,'5',ranges=(/0,100/))
-  call input_var(in%lin%DIIS_hist_highaccur,'0',ranges=(/0,100/))
+  comments = 'multiplier to (exit one TMB optimization, fix TMB completely). Only used for hybrid mode'
+  call input_var(in%lin%deltaenergy_multiplier_TMBexit,'1.d0',ranges=(/1.d-5,1.d1/))
+  call input_var(in%lin%deltaenergy_multiplier_TMBfix,'1.d0',ranges=(/1.d-5,1.d1/),comment=comments)
+
+  comments = 'factor to reduce the confinement. Only used for hybrid mode.'
+  call input_var(in%lin%reduce_confinement_factor,'0.5d0',ranges=(/0.d0,1.d0/),comment=comments)
+
+  comments = 'kernel convergence (low, high)'
+  call input_var(in%lin%convCritMix_lowaccuracy,'1.d-13',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%convCritMix_highaccuracy,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
+
+  comments = 'convergence criterion on density to fix TMBS'
+  call input_var(in%lin%support_functions_converged,'1.d-10',ranges=(/0.d0,1.d0/),comment=comments)
+
+  ! Miscellaneous
+  comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (FOE)'
+  call input_var(in%lin%scf_mode,'100',ranges=(/100,103/),comment=comments)
+
+  comments = 'initial step size for basis optimization (DIIS, SD)' ! DELETE ONE
   call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,10.0_gp/))
   call input_var(in%lin%alphaSD,'1.d0',ranges=(/0.0_gp,10.0_gp/),comment=comments)
-  
-  ! lin%startWithSD, lin%startDIIS
-  !comments = 'start with SD, start criterion for DIIS'
-  !call input_var(in%lin%startWithSD,'F')
-  !call input_var(in%lin%startDIIS,'2.d2',ranges=(/1.d0,1.d3/),comment=comments)
-  
-  !number of iterations in the preconditioner : lin%nItPrecond
+
+  comments = 'lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small'
+  call input_var(in%lin%evlow,'-.5d0',ranges=(/-10.d0,-1.d-10/))
+  call input_var(in%lin%evhigh,'-.5d0',ranges=(/1.d-10,10.d0/),comment=comments)
+
   comments='number of iterations in the preconditioner'
   call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment=comments)
   
-  !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
-  comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)'
-  call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,1000/))
-  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,1000/))
-  call input_var(in%lin%communication_strategy_overlap,'0',ranges=(/0,1/),comment=comments)
-  
-  !max number of process uses for pdsyev/pdsygv, pdgemm
-  call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100000/))
-  call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100000/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
-  
-  ! Orthogonalization of wavefunctions amd orthoconstraint
   comments = '0-> exact Loewdin, 1-> taylor expansion; &
              &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
   call input_var(in%lin%methTransformOverlap,'1',ranges=(/-1,1/))
   call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
-  
-  !mixing method: dens or pot
-  comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (FOE)'
-  call input_var(in%lin%scf_mode,'100',ranges=(/100,103/),comment=comments)
-  
-  !mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter, convergence criterion
-  comments = 'low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, '&
-       //'              mixing parameter, convergence criterion'
-  call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
-  call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/0,1000/))
-  call input_var(in%lin%alpha_mix_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%lowaccuracy_conv_crit,'1.d-8',ranges=(/0.d0,1.d0/),comment=comments)
-
-  comments = 'high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, '&
-       //'              mixing parameter, convergence criterion'
-  call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/))
-  call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/0,1000/))
-  call input_var(in%lin%alpha_mix_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%highaccuracy_conv_crit,'1.d-12',ranges=(/0.d0,1.d0/),comment=comments)
 
   comments='fscale: length scale over which complementary error function decays from 1 to 0'
   call input_var(in%lin%fscale,'1.d-2',ranges=(/0.d0,1.d0/),comment=comments)
 
-  comments = 'convergence criterion for the kernel optimization'
-  call input_var(in%lin%convCritMix,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
-
-  call input_var(in%lin%support_functions_converged,'1.d-10',&
-       ranges=(/0.d0,1.d0/),comment='convergence criterion for the support functions to be fixed')
-  
   !plot basis functions: true or false
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; &
            &calculate dipole ; pulay correction'
@@ -756,7 +756,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
-  call allocateBasicArraysInputLin(in%lin, atoms%ntypes, atoms%nat)
+  call allocateBasicArraysInputLin(in%lin, atoms%ntypes)
   
   ! Now read in the parameters specific for each atom type.
   comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, &
@@ -1304,7 +1304,7 @@ END SUBROUTINE kpt_input_variables
 
 
 !> Read the input variables which can be used for performances
-subroutine perf_input_variables(iproc,dump,filename,inputs)
+subroutine perf_input_variables(iproc,dump,filename,in)
   use module_base
   use module_types
   use module_input
@@ -1314,7 +1314,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
   logical, intent(in) :: dump
-  type(input_variables), intent(inout) :: inputs
+  type(input_variables), intent(inout) :: in
   !local variables
   !n(c) character(len=*), parameter :: subname='perf_input_variables'
   logical :: exists
@@ -1322,110 +1322,121 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   character(len=500) :: logfile,logfile_old,logfile_dir
 
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
-  if (exists) inputs%files = inputs%files + INPUTS_PERF
+  if (exists) in%files = in%files + INPUTS_PERF
   !Use Linear scaling methods
-  inputs%linear=INPUT_IG_OFF
+  in%linear=INPUT_IG_OFF
 
-  inputs%matacc=material_acceleration_null()
+  in%matacc=material_acceleration_null()
 
-  call input_var("debug", .false., "Debug option", inputs%debug)
-  call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
+  call input_var("debug", .false., "Debug option", in%debug)
+  call input_var("fftcache", 8*1024, "Cache size for the FFT", in%ncache_fft)
   call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU ", "OCLCPU ", "OCLACC " /), &
-       & "Acceleration", inputs%matacc%iacceleration)
+       & "Acceleration", in%matacc%iacceleration)
 
   !determine desired OCL platform which is used for acceleration
-  call input_var("OCL_platform",repeat(' ',len(inputs%matacc%OCL_platform)), &
-       & "Chosen OCL platform", inputs%matacc%OCL_platform)
-  ipos=min(len(inputs%matacc%OCL_platform),len(trim(inputs%matacc%OCL_platform))+1)
-  do i=ipos,len(inputs%matacc%OCL_platform)
-     inputs%matacc%OCL_platform(i:i)=achar(0)
+  call input_var("OCL_platform",repeat(' ',len(in%matacc%OCL_platform)), &
+       & "Chosen OCL platform", in%matacc%OCL_platform)
+  ipos=min(len(in%matacc%OCL_platform),len(trim(in%matacc%OCL_platform))+1)
+  do i=ipos,len(in%matacc%OCL_platform)
+     in%matacc%OCL_platform(i:i)=achar(0)
   end do
 
   call input_var("blas", .false., "CUBLAS acceleration", GPUblas) !@TODO to relocate
   call input_var("projrad", 15.0d0, &
-       & "Radius of the projector as a function of the maxrad", inputs%projrad)
+       & "Radius of the projector as a function of the maxrad", in%projrad)
   call input_var("exctxpar", "OP2P", &
-       & "Exact exchange parallelisation scheme", inputs%exctxpar)
+       & "Exact exchange parallelisation scheme", in%exctxpar)
   call input_var("ig_diag", .true., &
        & "Input guess: (T:Direct, F:Iterative) diag. of Ham.", &
-       & inputs%orthpar%directDiag)
+       & in%orthpar%directDiag)
   call input_var("ig_norbp", 5, &
        & "Input guess: Orbitals per process for iterative diag.", &
-       & inputs%orthpar%norbpInguess)
+       & in%orthpar%norbpInguess)
   call input_var("ig_blocks", (/ 300, 800 /), &
        & "Input guess: Block sizes for orthonormalisation", blocks)
   call input_var("ig_tol", 1d-4, &
-       & "Input guess: Tolerance criterion", inputs%orthpar%iguessTol)
+       & "Input guess: Tolerance criterion", in%orthpar%iguessTol)
   call input_var("methortho", 0, (/ 0, 1, 2 /), &
-       & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", inputs%orthpar%methOrtho)
+       & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", in%orthpar%methOrtho)
   call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",&
-       inputs%rho_commun)
-  call input_var("psolver_groupsize",0, "Size of Poisson Solver taskgroups (0=nproc)", inputs%PSolver_groupsize)
-  call input_var("psolver_accel",0, "Acceleration of the Poisson Solver (0=none, 1=CUDA)", inputs%matacc%PSolver_igpu)
+       in%rho_commun)
+  call input_var("psolver_groupsize",0, "Size of Poisson Solver taskgroups (0=nproc)", in%PSolver_groupsize)
+  call input_var("psolver_accel",0, "Acceleration of the Poisson Solver (0=none, 1=CUDA)", in%matacc%PSolver_igpu)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
-       inputs%unblock_comms)
+       in%unblock_comms)
   call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
-       & "Linear Input Guess approach",inputs%linear)
-  call input_var("tolsym", 1d-8, "Tolerance for symmetry detection",inputs%symTol)
-  call input_var("signaling", .false., "Expose calculation results on Network",inputs%signaling)
-  call input_var("signalTimeout", 0, "Time out on startup for signal connection",inputs%signalTimeout)  
-  call input_var("domain", "", "Domain to add to the hostname to find the IP", inputs%domain)
+       & "Linear Input Guess approach",in%linear)
+  call input_var("tolsym", 1d-8, "Tolerance for symmetry detection",in%symTol)
+  call input_var("signaling", .false., "Expose calculation results on Network",in%signaling)
+  call input_var("signalTimeout", 0, "Time out on startup for signal connection",in%signalTimeout)  
+  call input_var("domain", "", "Domain to add to the hostname to find the IP", in%domain)
   !verbosity of the output
   call input_var("verbosity", 2,(/0,1,2,3/), &
-     & "verbosity of the output 0=low, 2=high",inputs%verbosity)
-  inputs%writing_directory=repeat(' ',len(inputs%writing_directory))
-  call input_var("outdir", ".","Writing directory", inputs%writing_directory)
+     & "verbosity of the output 0=low, 2=high",in%verbosity)
+  in%writing_directory=repeat(' ',len(in%writing_directory))
+  call input_var("outdir", ".","Writing directory", in%writing_directory)
 
   !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
   call input_var("psp_onfly", .true., &
        & "Calculate pseudopotential projectors on the fly",DistProjApply)
+ 
+  !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+  call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",in%lin%blocksize_pdsyev) !ranges=(/-100,1000/)
+  call input_var("pdgemm_blocksize",-8,"SCALAPACK linear scaling blocksize",in%lin%blocksize_pdgemm) !ranges=(/-100,1000/)
+  
+  !max number of process uses for pdsyev/pdsygv, pdgemm
+  call input_var("maxproc_pdsyev",4,"SCALAPACK linear scaling max num procs",in%lin%nproc_pdsyev) !ranges=(/1,100000/)
+  call input_var("maxproc_pdgemm",4,"SCALAPACK linear scaling max num procs",in%lin%nproc_pdgemm) !ranges=(/1,100000/)
 
-  if (inputs%verbosity == 0 ) then
+  !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+  !is smaller than this value, switch from cubic to linear interpolation.
+  call input_var("ef_interpol_det",1.d-20,"FOE: max determinant of cubic interpolation matrix",in%lin%ef_interpol_det)
+
+  if (in%verbosity == 0 ) then
      call memocc_set_state(0)
   end if
   logfile=repeat(' ',len(logfile))
   logfile_old=repeat(' ',len(logfile_old))
   logfile_dir=repeat(' ',len(logfile_dir))
   !open the logfile if needed, and set stdout
-  if (trim(inputs%writing_directory) /= '.') then
+  if (trim(in%writing_directory) /= '.') then
      !add the output directory in the directory name
      if (iproc == 0) then
-        call getdir(inputs%writing_directory,&
-             len_trim(inputs%writing_directory),logfile,len(logfile),ierr)
+        call getdir(in%writing_directory,&
+             len_trim(in%writing_directory),logfile,len(logfile),ierr)
         if (ierr /= 0) then
            write(*,*) "ERROR: cannot create writing directory '"&
-                //trim(inputs%writing_directory) // "'."
+                //trim(in%writing_directory) // "'."
            call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
         end if
      end if
      call MPI_BCAST(logfile,len(logfile),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
-     lgt=min(len(inputs%writing_directory),len(logfile))
-     inputs%writing_directory(1:lgt)=logfile(1:lgt)
+     lgt=min(len(in%writing_directory),len(logfile))
+     in%writing_directory(1:lgt)=logfile(1:lgt)
      lgt=0
-     call buffer_string(inputs%dir_output,len(inputs%dir_output),&
+     call buffer_string(in%dir_output,len(in%dir_output),&
           trim(logfile),lgt,back=.true.)
      if (iproc ==0) then
         logfile=repeat(' ',len(logfile))
-        if (len_trim(inputs%run_name) >0) then
-           logfile='log-'//trim(inputs%run_name)//'.yaml'
+        if (len_trim(in%run_name) >0) then
+           logfile='log-'//trim(in%run_name)//'.yaml'
         else
            logfile='log.yaml'
         end if
         !inquire for the existence of a logfile
-        call yaml_map('<BigDFT> Log of the run will be written in logfile',&
-             trim(inputs%writing_directory)//trim(logfile))
-        inquire(file=trim(inputs%writing_directory)//trim(logfile),exist=exists)
+        call yaml_map('<BigDFT> log of the run will be written in logfile',&
+             trim(in%writing_directory)//trim(logfile))
+        inquire(file=trim(in%writing_directory)//trim(logfile),exist=exists)
         if (exists) then
-           logfile_old=trim(inputs%writing_directory)//'logfiles'
+           logfile_old=trim(in%writing_directory)//'logfiles'
            call getdir(logfile_old,&
                 len_trim(logfile_old),logfile_dir,len(logfile_dir),ierr)
            if (ierr /= 0) then
-              write(*,*) "ERROR: cannot create writing directory '"&
-                   //trim(logfile_dir) // "'."
+              write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
               call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
            end if
            logfile_old=trim(logfile_dir)//trim(logfile)
-           logfile=trim(inputs%writing_directory)//trim(logfile)
+           logfile=trim(in%writing_directory)//trim(logfile)
            !change the name of the existing logfile
            lgt=index(logfile_old,'.yaml')
            call buffer_string(logfile_old,len(logfile_old),&
@@ -1440,8 +1451,9 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
                 trim(logfile_old))
 
         else
-           logfile=trim(inputs%writing_directory)//trim(logfile)
+           logfile=trim(in%writing_directory)//trim(logfile)
         end if
+        !Create stream and logfile
         call yaml_set_stream(unit=70,filename=trim(logfile),record_length=92)
         call input_set_stdout(unit=70)
         call memocc_set_stdout(unit=70)
@@ -1459,24 +1471,24 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_free((iproc == 0) .and. dump)
     
   !Block size used for the orthonormalization
-  inputs%orthpar%bsLow = blocks(1)
-  inputs%orthpar%bsUp  = blocks(2)
+  in%orthpar%bsLow = blocks(1)
+  in%orthpar%bsUp  = blocks(2)
   
   ! Set performance variables
-  if (.not. inputs%debug) then
+  if (.not. in%debug) then
      call memocc_set_state(1)
   end if
-  call set_cache_size(inputs%ncache_fft)
+  call set_cache_size(in%ncache_fft)
 
   !Check after collecting all values
-  if(.not.inputs%orthpar%directDiag .or. inputs%orthpar%methOrtho==1) then 
+  if(.not.in%orthpar%directDiag .or. in%orthpar%methOrtho==1) then 
      write(*,'(1x,a)') 'Input Guess: Block size used for the orthonormalization (ig_blocks)'
-     if(inputs%orthpar%bsLow==inputs%orthpar%bsUp) then
-        write(*,'(5x,a,i0)') 'Take block size specified by user: ',inputs%orthpar%bsLow
-     else if(inputs%orthpar%bsLow<inputs%orthpar%bsUp) then
-        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',inputs%orthpar%bsLow,' and ',inputs%orthpar%bsUp
+     if(in%orthpar%bsLow==in%orthpar%bsUp) then
+        write(*,'(5x,a,i0)') 'Take block size specified by user: ',in%orthpar%bsLow
+     else if(in%orthpar%bsLow<in%orthpar%bsUp) then
+        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',in%orthpar%bsLow,' and ',in%orthpar%bsUp
      else
-        write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
+        write(*,'(1x,a)') "ERROR: invalid values of in%bsLow and in%bsUp. Change them in 'input.perf'!"
         call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
      end if
      write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
@@ -1667,15 +1679,15 @@ END SUBROUTINE abscalc_input_variables
 !!    freq_alpha: frequencies step for finite difference = alpha*hx, alpha*hy, alpha*hz
 !!    freq_order; order of the finite difference (2 or 3 i.e. 2 or 4 points)
 !!    freq_method: 1 - systematic moves of atoms over each direction
-subroutine frequencies_input_variables_default(inputs)
+subroutine frequencies_input_variables_default(in)
   use module_base
   use module_types
   implicit none
-  type(input_variables), intent(out) :: inputs
+  type(input_variables), intent(out) :: in
 
-  inputs%freq_alpha=1.d0/real(64,kind(1.d0))
-  inputs%freq_order=2
-  inputs%freq_method=1
+  in%freq_alpha=1.d0/real(64,kind(1.d0))
+  in%freq_order=2
+  in%freq_method=1
 
 END SUBROUTINE frequencies_input_variables_default
 
@@ -1840,8 +1852,7 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
         end if
      end do
      if (verb) then
-        call yaml_map('Occupation numbers come from',' Input file (<runname>.occ)',advance='no')
-        call yaml_comment('('//trim(yaml_toa(nt))//' lines read)')
+        call yaml_comment('('//adjustl(trim(yaml_toa(nt)))//'lines read)')
         !write(*,'(1x,a,i0,a)') &
         !     'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
      end if
@@ -1866,23 +1877,21 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
            spinsgn(iorb)=-1.0_gp
         end do
      end if
-  else
-     if (verb) call yaml_map('Occupation numbers come from','System properties')
   end if
   if (verb) then 
-     call yaml_open_map('Occupation Numbers')
-     call yaml_map('Total Number of Orbitals',norb,fmt='(i8)')
+     call yaml_sequence(advance='no')
+     call yaml_open_map('Occupation Numbers',flow=.true.)
      !write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
      iorb1=1
      rocc=occup(1)
      do iorb=1,norb
         if (occup(iorb) /= rocc) then
            if (iorb1 == iorb-1) then
-              call yaml_map('Orbital No. '//trim(yaml_toa(iorb1,fmt='(i0)')),rocc,fmt='(f6.4)')
+              call yaml_map('Orbital No.'//trim(yaml_toa(iorb1)),rocc,fmt='(f6.4)')
               !write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
            else
-           call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1,fmt='(i0)'))//'-'//&
-                trim(yaml_toa(iorb-1,fmt='(i0)')),rocc,fmt='(f6.4)')
+           call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+                adjustl(trim(yaml_toa(iorb-1))),rocc,fmt='(f6.4)')
            !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
            end if
            rocc=occup(iorb)
@@ -1890,11 +1899,11 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
         end if
      enddo
      if (iorb1 == norb) then
-        call yaml_map('Orbital No. '//trim(yaml_toa(norb,fmt='(i0)')),occup(norb),fmt='(f6.4)')
+        call yaml_map('Orbital No.'//trim(yaml_toa(norb)),occup(norb),fmt='(f6.4)')
         !write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
      else
-        call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1,fmt='(i0)'))//'-'//&
-             trim(yaml_toa(norb,fmt='(i0)')),occup(norb),fmt='(f6.4)')
+        call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+             adjustl(trim(yaml_toa(norb))),occup(norb),fmt='(f6.4)')
         !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
      end if
      call yaml_close_map()
@@ -1903,9 +1912,11 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
   !Check if sum(occup)=nelec
   rocc=sum(occup)
   if (abs(rocc-real(nelec,gp))>1.e-6_gp) then
+     call yaml_warning('ERROR in determining the occupation numbers: the total number of electrons ' &
+        & // trim(yaml_toa(rocc,fmt='(f13.6)')) // ' is not equal to' // trim(yaml_toa(nelec)))
      !if (iproc==0) then
-     write(*,'(1x,a,f13.6,a,i0)') 'ERROR in determining the occupation numbers: the total number of electrons ',rocc,&
-          ' is not equal to ',nelec
+     !write(*,'(1x,a,f13.6,a,i0)') 'ERROR in determining the occupation numbers: the total number of electrons ',rocc,&
+     !     ' is not equal to ',nelec
      !end if
      stop
   end if
@@ -2379,9 +2390,12 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
 
 END SUBROUTINE atomic_coordinate_axpy
 
+
+!> Initialization of acceleration (OpenCL)
 subroutine init_material_acceleration(iproc,matacc,GPU)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in):: iproc
   type(material_acceleration), intent(in) :: matacc
@@ -2402,7 +2416,9 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
         iblas = 0
      end if
      if (initerror == 1) then
-        write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
+        call yaml_warning('(iproc=' // trim(yaml_toa(iproc,fmt='(i0)')) // &
+        &    ') S_GPU library init failed, aborting...')
+        !write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
         call MPI_ABORT(bigdft_mpi%mpi_comm,initerror,ierror)
      end if
 
@@ -2414,9 +2430,13 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
         !change the value of the GPU convolution flag defined in the module_base
         GPUblas=.true.
      end if
+
      if (iproc == 0) then
-        write(*,'(1x,a)') 'CUDA support activated (iproc=0)'
-     end if
+        call yaml_map('Material acceleration','CUDA',advance='no')
+        call yaml_comment('iproc=0')
+       ! write(*,'(1x,a)') 'CUDA support activated (iproc=0)'
+    end if
+
   else if (matacc%iacceleration >= 2) then
      ! OpenCL convolutions are activated
      ! use CUBLAS for the linear algebra for the moment
@@ -2435,19 +2455,27 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
         !end do
         GPU%ndevices=min(GPU%ndevices,nproc_node)
         if (iproc == 0) then
-           write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
-                min(GPU%ndevices,nproc_node),GPU%ndevices
+           call yaml_map('Material acceleration','OpenCL',advance='no')
+           call yaml_comment('iproc=0')
+           call yaml_open_map('Number of OpenCL devices per node',flow=.true.)
+           call yaml_map('used',trim(yaml_toa(min(GPU%ndevices,nproc_node),fmt='(i0)')))
+           call yaml_map('available',trim(yaml_toa(GPU%ndevices,fmt='(i0)')))
+           !write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
+           !     min(GPU%ndevices,nproc_node),GPU%ndevices
+           call yaml_close_map()
         end if
         !the number of devices is the min between the number of processes per node
         GPU%ndevices=min(GPU%ndevices,nproc_node)
         OCLconv=.true.
      end if
+
   else
      if (iproc == 0) then
-        write(*,'(1x,a)') 'No material acceleration (iproc=0)'
+        call yaml_map('Material acceleration',.false.,advance='no')
+        call yaml_comment('iproc=0')
+        ! write(*,'(1x,a)') 'No material acceleration (iproc=0)'
      end if
   end if
-  if (iproc == 0) write(*,*)
 
 END SUBROUTINE init_material_acceleration
 
@@ -2524,18 +2552,17 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
 END SUBROUTINE processor_id_per_node
 
 
-!> initialize_atomic_file
-!! @author
-!! Written by Laurent K Beland 2011 UdeM
-!! this routine does the same operations as
+!> this routine does the same operations as
 !! read_atomic_file but uses inputs from memory
 !! as input positions instead of inputs from file
 !! Useful for QM/MM implementation of BigDFT-ART
+!! @author Written by Laurent K Beland 2011 UdeM
 subroutine initialize_atomic_file(iproc,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => initialize_atomic_file
   use m_ab6_symmetry
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc
   type(atoms_data), intent(inout) :: atoms
@@ -2543,7 +2570,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   !local variables
   character(len=*), parameter :: subname='initialize_atomic_file'
   integer :: i_stat
-  integer :: iat,i
+  integer :: iat,i,ierr
 
   allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%amu,'atoms%amu',subname)
@@ -2569,18 +2596,18 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
    !convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     atoms%alat1=atoms%alat1/bohr2ang
-     atoms%alat2=atoms%alat2/bohr2ang
-     atoms%alat3=atoms%alat3/bohr2ang
+     atoms%alat1=atoms%alat1/Bohr_Ang
+     atoms%alat2=atoms%alat2/Bohr_Ang
+     atoms%alat3=atoms%alat3/Bohr_Ang
   else if (atoms%units == 'reduced') then
      !assume that for reduced coordinates cell size is in bohr
      atoms%alat1=real(atoms%alat1,gp)
      atoms%alat2=real(atoms%alat2,gp)
      atoms%alat3=real(atoms%alat3,gp)
   else
-     write(*,*) 'length units in input file unrecognized'
-     write(*,*) 'recognized units are angstroem or atomic = bohr'
-     stop 
+     call yaml_warning('Length units in input file unrecognized')
+     call yaml_warning('recognized units are angstroem or atomic = bohr')
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   endif
   
   do iat=1,atoms%nat
@@ -2602,7 +2629,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
      if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
         ! if Angstroem convert to Bohr
         do i=1,3 
-           rxyz(i,iat)=rxyz(i,iat)/bohr2ang
+           rxyz(i,iat)=rxyz(i,iat)/Bohr_Ang
         enddo
      else if (atoms%units == 'reduced') then 
         rxyz(1,iat)=rxyz(1,iat)*atoms%alat1

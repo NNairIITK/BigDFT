@@ -99,35 +99,41 @@ program test_forces
    simpson(npath)=1.d0/3.d0
 
 
-
    do iconfig=1,nconfig
-
       !welcome screen
-      if (iproc==0) call print_logo()
-      if (iproc==0) then 
-         print*
-         print*
-         print*,'*******************************************************************************************************'
-         print*,"This is a test program to verify  whether the force are the derivative of the energy: F=-dE/dR"
-         print '(a,i3,a,f7.4,a,f6.4,a)', "It performs the integration of the calculated forces over " , npath,  &
-            &   " random displacement (in the range [", -dx, ",",dx,"] a.u.)"
-         print*, "and compares the result with the difference of the energy  between the final and the initial position:"// &
-            &   " E2-E1 = -Integral F.dR" 
-         print*," The advantage is two fold: 1) avoiding cancellation error in finite difference derivative," // & 
-         " 2) considernig the forces over all atoms "
-         print*,'*********************************************************************************************************'
-         print*
-         print*
+      if (iproc==0) then
+         !start a new document in the beginning of the output, if the document is closed before
+         call yaml_new_document()
+         call print_logo()
+         call yaml_comment('',hfill='-')
+         call yaml_comment('This is a test program to verify  whether the force are the derivative of the energy: F=-dE/dR')
+         call yaml_comment('It performs the integration of the calculated forces over ' // trim(yaml_toa(npath)))
+         call yaml_comment(' random displacement (in the range [", -dx, ",",dx,"] a.u.)')
+         call yaml_comment(' and compares the result with the difference of the energy')
+         call yaml_comment(' between the final and the initial position: E2-E1 = -Integral F.dR"')
+         call yaml_comment(' The advantage is two fold:')
+         call yaml_comment(' 1) avoiding cancellation error in finite difference derivative,')
+         call yaml_comment(' 2) considering the forces over all atoms.')
+         call yaml_comment('',hfill='-')
+         !print*
+         !print*
+         !print*,'*******************************************************************************************************'
+         !print*,"This is a test program to verify  whether the force are the derivative of the energy: F=-dE/dR"
+         !print '(a,i3,a,f7.4,a,f6.4,a)', "It performs the integration of the calculated forces over " , npath,  &
+         !   &   " random displacement (in the range [", -dx, ",",dx,"] a.u.)"
+         !print*, "and compares the result with the difference of the energy  between the final and the initial position:"// &
+         !   &   " E2-E1 = -Integral F.dR" 
+         !print*," The advantage is two fold: 1) avoiding cancellation error in finite difference derivative," // & 
+         !" 2) considernig the forces over all atoms "
+         !print*,'*********************************************************************************************************'
+         !print*
+         !print*
       endif
 
       ! Read all input files.
       !standard names
       call standard_inputfile_names(inputs,radical,nproc)
       call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
-      !     if (iproc == 0) then
-      !       call print_general_parameters(nproc,inputs,atoms)
-      !    end if
-
 
       ! Decide whether we use the cubic or the linear version
       select case (inputs%inputpsiid)
@@ -147,6 +153,10 @@ program test_forces
       call memocc(i_stat,fxyz,'fxyz',subname)
 
       call init_restart_objects(iproc,inputs%matacc,atoms,rst,subname)
+
+      !     if (iproc == 0) then
+      !       call print_general_parameters(nproc,inputs,atoms)
+      !    end if
 
       !if other steps are supposed to be done leave the last_run to minus one
       !otherwise put it to one
@@ -182,7 +192,8 @@ program test_forces
          call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
          !        inputs%inputPsiId=0   ! change PsiId to 0 if you want to  generate a new Psi and not use the found one
 
-         if (iproc == 0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+         if (iproc == 0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
+         !if (iproc == 0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
 
          if (ipath == 1 ) etot0=etot
          !   do one step of the path integration
@@ -191,22 +202,15 @@ program test_forces
             !fdr=sum(fxyz(1:3,1:atoms%nat)*drxyz(1:3,1:atoms%nat))
             fdr=sum(fxyz(:,:)*drxyz(:,:))
             path=path-simpson(ipath)*fdr
-            write(*,"('path iter:',i3,'   -F.dr=',e13.5,'    path integral=',e13.5 )") ipath,-fdr, path 
-
-
-            write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
-            !      write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-            !             (iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3),  iat=1,atoms%nat)
-            !     sumx=sum(fxyz(1,1:atoms%nat))
-            !     sumy=sum(fxyz(2,1:atoms%nat))
-            !     sumz=sum(fxyz(3,1:atoms%nat))
-
-            !     write(*,'(1x,a)')'the sum of the forces is'
-            !     write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-            !     write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-            !     write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-         endif
-      enddo !loop over ipath
+            call yaml_map('Path iteration',ipath)
+            call yaml_map('-F.dr',-fdr,fmt='(1pe13.5)')
+            call yaml_map('Path integral',path,fmt='(1pe13.5)')
+            !write(*,"('path iter:',i3,'   -F.dr=',e13.5,'    path integral=',e13.5 )") ipath,-fdr, path 
+            
+            !Print atomic forces
+            call write_forces(atoms,fxyz)
+         end if
+      end do !loop over ipath
 
 
       deallocate(drxyz)

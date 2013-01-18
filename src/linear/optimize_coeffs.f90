@@ -28,7 +28,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   integer:: iorb, jorb, korb, lorb, istat, iall, info, iiorb, ierr
   real(8),dimension(:,:),allocatable:: lagmat, rhs, ovrlp_tmp, ovrlp_coeff, gradp,coeffp
   integer,dimension(:),allocatable:: ipiv
-  real(8):: tt, ddot, mean_alpha, dnrm2
+  real(8):: tt, ddot, mean_alpha, dnrm2, ttav
   character(len=*),parameter:: subname='optimize_coeffs'
 
   allocate(lagmat(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
@@ -49,7 +49,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   allocate(ovrlp_coeff(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
 
-  call timing(iproc,'dirmin_lagmat1','ON') !lr408t
+  call timing(iproc,'dirmin_lagmat1','ON')
 
   !call distribute_coefficients(orbs, tmb)
 
@@ -75,8 +75,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
      call vcopy(tmb%orbs%norb*tmb%orbs%norb,ovrlp_coeff(1,1),1,lagmat(1,1),1)
   end if
 
-  call timing(iproc,'dirmin_lagmat1','OF') !lr408t
-  call timing(iproc,'dirmin_lagmat2','ON') !lr408t
+  call timing(iproc,'dirmin_lagmat1','OF')
+  call timing(iproc,'dirmin_lagmat2','ON')
 
 ! Calculate the right hand side
   rhs=0.d0
@@ -104,14 +104,15 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   call timing(iproc,'dirmin_dgesv','ON') !lr408t
 
   info = 0 ! needed for when some processors have orbs%orbp=0
-  if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
+
+  if(tmb%orthpar%blocksize_pdsyev<0) then
       if (orbs%norbp>0) then
           call dgesv(tmb%orbs%norb, tmb%orbs%norbp, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), &
                rhs(1,tmb%orbs%isorb+1), tmb%orbs%norb, info)
       end if
   else
       call mpiallred(rhs(1,1), tmb%orbs%norb*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      call dgesv_parallel(iproc, tmb%wfnmd%bpo%nproc_pdsyev, tmb%wfnmd%bpo%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
+      call dgesv_parallel(iproc, tmb%orthpar%nproc_pdsyev, tmb%orthpar%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
            tmb%orbs%norb, tmb%orbs%norb, ovrlp_tmp, tmb%orbs%norb, rhs, tmb%orbs%norb, info)
   end if
 
@@ -126,7 +127,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   ! Precondition the gradient (only making things worse...)
   !call precondition_gradient_coeff(tmb%orbs%norb, tmb%orbs%norbp, ham, ovrlp, gradp)
 
-  call timing(iproc,'dirmin_sddiis','ON') !lr408t
+  call timing(iproc,'dirmin_sddiis','ON')
 
   ! Improve the coefficients
   if (ldiis_coeff%isx > 0) then
@@ -134,16 +135,17 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
       ldiis_coeff%is=ldiis_coeff%is+1
   end if  
 
-  if (ldiis_coeff%isx > 1 .and. .false.) then !do DIIS
-  !TO DO: make sure DIIS communicates coeff correctly
-     call DIIS_coeff(iproc, nproc, orbs, tmb, gradp, tmb%wfnmd%coeff, ldiis_coeff)
+  if (ldiis_coeff%isx > 0) then !do DIIS
+  !TO DO: make sure DIIS works
+     call DIIS_coeff(iproc, orbs, tmb, gradp, tmb%wfnmd%coeff, ldiis_coeff)
   else  !steepest descent
      allocate(coeffp(tmb%orbs%norb,tmb%orbs%norbp),stat=istat)
      call memocc(istat, coeffp, 'coeffp', subname)
      do iorb=1,tmb%orbs%norbp
         iiorb=tmb%orbs%isorb+iorb
+
         do jorb=1,tmb%orbs%norb
-           coeffp(jorb,iorb)=tmb%wfnmd%coeff(jorb,iiorb)-tmb%wfnmd%alpha_coeff(iiorb)*gradp(jorb,iorb)
+           coeffp(jorb,iorb)=tmb%wfnmd%coeff(jorb,iorb)-ldiis_coeff%alpha_coeff*gradp(jorb,iorb)
         end do
      end do
      if(nproc > 1) then 
@@ -160,39 +162,18 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   !For fnrm, we only sum on the occupied KS orbitals
   tt=0.d0
   do iorb=1,tmb%orbs%norbp
-      print *,'norm gradp',iorb+tmb%orbs%isorb, ddot(tmb%orbs%norb, gradp(1,iorb), 1, gradp(1,iorb), 1)
+      !print *,'norm gradp',iorb+tmb%orbs%isorb, ddot(tmb%orbs%norb, gradp(1,iorb), 1, gradp(1,iorb), 1)
       tt=tt+ddot(tmb%orbs%norb, gradp(1,iorb), 1, gradp(1,iorb), 1)
   end do
   call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   fnrm=sqrt(tt/dble(tmb%orbs%norb))
-  tmb%wfnmd%it_coeff_opt=tmb%wfnmd%it_coeff_opt+1
-
-  if(tmb%wfnmd%it_coeff_opt>1) then
-      mean_alpha=0.d0
-      do iorb=1,tmb%orbs%norbp
-          iiorb=tmb%orbs%isorb+iorb
-          tt=ddot(tmb%orbs%norb, gradp(1,iorb), 1, tmb%wfnmd%grad_coeff_old(1,iorb), 1)
-          tt=tt/(dnrm2(tmb%orbs%norb, gradp(1,iorb), 1)*dnrm2(tmb%orbs%norb, tmb%wfnmd%grad_coeff_old(1,iorb), 1))
-          !if(iproc==0) write(*,*) 'iorb, tt', iorb, tt
-          if(tt>.85d0) then
-              tmb%wfnmd%alpha_coeff(iiorb)=1.1d0*tmb%wfnmd%alpha_coeff(iiorb)
-          else
-              tmb%wfnmd%alpha_coeff(iiorb)=0.5d0*tmb%wfnmd%alpha_coeff(iiorb)
-          end if
           !print *,'iproc,alpha',iproc,iiorb,tmb%wfnmd%alpha_coeff(iiorb),tt
-          mean_alpha=mean_alpha+tmb%wfnmd%alpha_coeff(iiorb)
-      end do
-      mean_alpha=mean_alpha/dble(tmb%orbs%norb)
-      call mpiallred(mean_alpha, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      if(iproc==0) write(*,*) 'mean_alpha',mean_alpha
-  end if
 
 
-  call dcopy(tmb%orbs%norb*tmb%orbs%norbp, gradp(1,1), 1, tmb%wfnmd%grad_coeff_old(1,1), 1)
-
-  call timing(iproc,'dirmin_sddiis','OF') !lr408t
+  call timing(iproc,'dirmin_sddiis','OF')
 
   call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 0, tmb%orbs, ovrlp, tmb%wfnmd%coeff)
+
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)
@@ -221,7 +202,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
 end subroutine optimize_coeffs
 
 !Just to test without MPI
-!must also change the size of grad_coeff_old from norbp to norb in initAndUtils.f90
 subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm)
   use module_base
   use module_types
@@ -241,7 +221,7 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
   integer:: ialpha, ibeta
   real(8),dimension(:,:),allocatable:: lagmat, rhs, ovrlp_tmp, coeff_tmp, ovrlp_coeff, grad
   integer,dimension(:),allocatable:: ipiv
-  real(8):: tt, ddot, mean_alpha, dnrm2
+  real(8):: tt, ddot, mean_alpha, dnrm2, ttav
   character(len=*),parameter:: subname='optimize_coeffs2'
 
   allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
@@ -281,8 +261,8 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
 
   call vcopy(orbs%norb*orbs%norb,ovrlp_coeff(1,1),1,lagmat(1,1),1)
 
-  call timing(iproc,'dirmin_lagmat1','OF') !lr408t
-  call timing(iproc,'dirmin_lagmat2','ON') !lr408t
+  call timing(iproc,'dirmin_lagmat1','OF')
+  call timing(iproc,'dirmin_lagmat2','ON')
 
   ! Calculate the right hand side
   rhs=0.d0
@@ -304,11 +284,11 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
   ! Solve the linear system ovrlp*grad=rhs
   call dcopy(tmb%orbs%norb**2, ovrlp(1,1), 1, ovrlp_tmp(1,1), 1)
 
-  call timing(iproc,'dirmin_lagmat2','OF') !lr408t
-  call timing(iproc,'dirmin_dgesv','ON') !lr408t
+  call timing(iproc,'dirmin_lagmat2','OF')
+  call timing(iproc,'dirmin_dgesv','ON')
 
   info = 0 ! needed for when some processors have orbs%orbp=0
-  if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
+  if(tmb%orthpar%blocksize_pdsyev<0) then
      allocate(ipiv(tmb%orbs%norb), stat=istat)
      call memocc(istat, ipiv, 'ipiv', subname)
      call dgesv(tmb%orbs%norb, orbs%norb, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), &
@@ -317,7 +297,7 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
      deallocate(ipiv, stat=istat)
      call memocc(istat, iall, 'ipiv', subname)
   else
-     call dgesv_parallel(iproc, tmb%wfnmd%bpo%nproc_pdsyev, tmb%wfnmd%bpo%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
+      call dgesv_parallel(iproc, tmb%orthpar%nproc_pdsyev, tmb%orthpar%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
           tmb%orbs%norb, orbs%norb, ovrlp_tmp, tmb%orbs%norb, rhs, tmb%orbs%norb, info)
   end if
 
@@ -327,7 +307,7 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
   end if
 
   call dcopy(tmb%orbs%norb*orbs%norb, rhs(1,1), 1, grad(1,1), 1)
-  call timing(iproc,'dirmin_dgesv','OF') !lr408t
+  call timing(iproc,'dirmin_dgesv','OF') 
 
   ! Precondition the gradient (only making things worse...)
   !call precondition_gradient_coeff(tmb%orbs%norb, orbs%norbp, ham, ovrlp, gradp)
@@ -340,12 +320,12 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
       ldiis_coeff%is=ldiis_coeff%is+1
   end if  
 
-  if (.false. .and. ldiis_coeff%isx > 1) then !do DIIS, must change this for non parallel
-     call DIIS_coeff(iproc, nproc, orbs, tmb, grad, tmb%wfnmd%coeff, ldiis_coeff)
+  if (.false. .and. ldiis_coeff%isx > 0) then !do DIIS, must change this for non parallel
+     call DIIS_coeff(iproc, orbs, tmb, grad, tmb%wfnmd%coeff, ldiis_coeff)
   else  !steepest descent
      do iorb=1,orbs%norb
         do ialpha=1,tmb%orbs%norb
-           tmb%wfnmd%coeff(ialpha,iorb)=tmb%wfnmd%coeff(ialpha,iorb)-tmb%wfnmd%alpha_coeff(iorb)*grad(ialpha,iorb)
+           tmb%wfnmd%coeff(ialpha,iorb)=tmb%wfnmd%coeff(ialpha,iorb)-ldiis_coeff%alpha_coeff*grad(ialpha,iorb)
         end do
      end do
   end if
@@ -356,25 +336,6 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
       tt=tt+ddot(tmb%orbs%norb, grad(1,iorb), 1, grad(1,iorb), 1)
   end do
   fnrm=sqrt(tt/dble(orbs%norb))
-
-  tmb%wfnmd%it_coeff_opt=tmb%wfnmd%it_coeff_opt+1
-  if(tmb%wfnmd%it_coeff_opt>1) then
-      mean_alpha=0.d0
-      do iorb=1,orbs%norb
-          tt=ddot(tmb%orbs%norb, grad(1,iorb), 1, tmb%wfnmd%grad_coeff_old(1,iorb), 1)
-          tt=tt/(dnrm2(tmb%orbs%norb, grad(1,iorb), 1)*dnrm2(tmb%orbs%norb, tmb%wfnmd%grad_coeff_old(1,iorb), 1))
-          if(tt>.85d0) then
-              tmb%wfnmd%alpha_coeff(iorb)=1.1d0*tmb%wfnmd%alpha_coeff(iorb)
-          else
-              tmb%wfnmd%alpha_coeff(iorb)=0.5d0*tmb%wfnmd%alpha_coeff(iorb)
-          end if
-          mean_alpha=mean_alpha+tmb%wfnmd%alpha_coeff(iorb)
-      end do
-      mean_alpha=mean_alpha/dble(orbs%norb)
-      if(iproc==0) write(*,*) 'mean_alpha',mean_alpha
-  end if
-
-  call dcopy(tmb%orbs%norb*orbs%norb, grad(1,1), 1, tmb%wfnmd%grad_coeff_old(1,1), 1)
 
   call timing(iproc,'dirmin_sddiis','OF') !lr408t
   call timing(iproc,'dirmin_lowdin1','ON') !lr408t
@@ -499,14 +460,14 @@ end subroutine precondition_gradient_coeff
 
 
 
-subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
+subroutine DIIS_coeff(iproc, orbs, tmb, grad, coeff, ldiis)
   use module_base
   use module_types
   use module_interfaces, except_this_one => DIIS_coeff
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
+  integer,intent(in):: iproc
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(in):: tmb
   real(8),dimension(tmb%orbs%norb*tmb%orbs%norbp),intent(in):: grad
@@ -537,15 +498,15 @@ subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
   call to_zero((ldiis%isx+1)**2, mat(1,1))
   call to_zero(ldiis%isx+1, rhs(1))
   
+  ncount=tmb%orbs%norb
+
   ! Copy coeff and grad to history.
   ist=1
   do iorb=1,tmb%orbs%norbp
       jst=1
       do jorb=1,iorb-1
-          ncount=tmb%orbs%norb
           jst=jst+ncount*ldiis%isx
       end do
-      ncount=tmb%orbs%norb
       jst=jst+(ldiis%mis-1)*ncount
       call dcopy(ncount, coeff(ist+tmb%orbs%isorb*tmb%orbs%norb), 1, ldiis%phiHist(jst), 1)
       call dcopy(ncount, grad(ist), 1, ldiis%hphiHist(jst), 1)
@@ -569,11 +530,9 @@ subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
       jst=1
       ist1=1
       do jorb=1,iorb-1
-          ncount=tmb%orbs%norb
           jst=jst+ncount*ldiis%isx
           ist1=ist1+ncount
       end do
-      ncount=tmb%orbs%norb
       do j=i,ldiis%is
          mi=mod(j-1,ldiis%isx)+1
          ist2=jst+(mi-1)*ncount
@@ -586,10 +545,8 @@ subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
       end do
   end do
   
-  
   ist=1+tmb%orbs%isorb*tmb%orbs%norb
   do iorb=1,tmb%orbs%norbp
-      
       ! Copy the matrix to an auxiliary array and fill with the zeros and ones.
       do i=1,min(ldiis%isx,ldiis%is)
           mat(i,min(ldiis%isx,ldiis%is)+1)=1.d0
@@ -600,8 +557,7 @@ subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
       end do
       mat(min(ldiis%isx,ldiis%is)+1,min(ldiis%isx,ldiis%is)+1)=0.d0
       rhs(min(ldiis%isx,ldiis%is)+1)=1.d0
-  
-  
+   
       ! Solve the linear system
       !!do istat=1,ldiis%isx+1
           !!do iall=1,ldiis%isx+1
@@ -615,7 +571,7 @@ subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
          call memocc(istat, work, 'work', subname)
          call dsysv('u', min(ldiis%isx,ldiis%is)+1, 1, mat, ldiis%isx+1,  & 
               ipiv, rhs(1), ldiis%isx+1, work, lwork, info)
-         lwork=work(1)
+         lwork=nint(work(1))
          iall=-product(shape(work))*kind(work)
          deallocate(work,stat=istat)
          call memocc(istat,iall,'work',subname)
@@ -634,33 +590,26 @@ subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
       else
          rhs(1)=1.d0
       endif
-  
-  
+    
       ! Make a new guess for the orbital.
-      ncount=tmb%orbs%norb
       call razero(ncount, coeff(ist))
       isthist=max(1,ldiis%is-ldiis%isx+1)
       jj=0
       jst=0
       do jorb=1,iorb-1
-          ncount=tmb%orbs%norb
           jst=jst+ncount*ldiis%isx
       end do
       do j=isthist,ldiis%is
           jj=jj+1
           mj=mod(j-1,ldiis%isx)+1
-          ncount=tmb%orbs%norb
           jjst=jst+(mj-1)*ncount
           do k=1,ncount
               coeff(ist+k-1) = coeff(ist+k-1) + rhs(jj)*(ldiis%phiHist(jjst+k)-ldiis%hphiHist(jjst+k))
           end do
       end do
-  
-      ncount=tmb%orbs%norb
       ist=ist+ncount
   end do
-  
-  
+    
   iall=-product(shape(mat))*kind(mat)
   deallocate(mat, stat=istat)
   call memocc(istat, iall, 'mat', subname)
@@ -668,17 +617,14 @@ subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
   iall=-product(shape(rhs))*kind(rhs)
   deallocate(rhs, stat=istat)
   call memocc(istat, iall, 'rhs', subname)
-  
-  
+
   iall=-product(shape(ipiv))*kind(ipiv)
   deallocate(ipiv, stat=istat)
   call memocc(istat, iall, 'ipiv', subname)
   
   !!call timing(iproc,'optimize_DIIS ','OF')
 
-
 end subroutine DIIS_coeff
-
 
 
 subroutine initialize_DIIS_coeff(isx, ldiis)
@@ -692,13 +638,13 @@ subroutine initialize_DIIS_coeff(isx, ldiis)
   
   ! Local variables
   character(len=*),parameter:: subname='initialize_DIIS_coeff'
-  
-  
+    
   ldiis%isx=isx
   ldiis%is=0
   ldiis%switchSD=.false.
   ldiis%trmin=1.d100
   ldiis%trold=1.d100
+  ldiis%alpha_coeff=0.1d0
 
 end subroutine initialize_DIIS_coeff
 
@@ -710,7 +656,7 @@ subroutine allocate_DIIS_coeff(tmb, ldiis)
   
   ! Calling arguments
   type(DFT_wavefunction),intent(in):: tmb
-  type(localizedDIISParameters),intent(out):: ldiis
+  type(localizedDIISParameters),intent(inout):: ldiis
   
   ! Local variables
   integer:: iorb, ii, istat

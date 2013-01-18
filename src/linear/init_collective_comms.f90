@@ -24,7 +24,7 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, mad, collcom, collcom_
   
   ! Local variables
   integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
-  integer :: ipt, jproc, p2p_tag, nvalp_c, nvalp_f, imin, imax, jorb, kproc, jjorb, isend, irecv
+  integer :: ipt, jproc, nvalp_c, nvalp_f, imin, imax, jorb, kproc, jjorb, isend, irecv
   integer :: compressed_index
   real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
   real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, t1, t2
@@ -90,8 +90,6 @@ t2=mpi_wtime()
 !!if(iproc==0) write(*,'(a,es10.3)') 'time for part 2:',t2-t1
 t1=mpi_wtime()
 
-
-
   ! some checks
   if(nproc>1) then
       call mpi_allreduce(weightp_c, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -130,7 +128,7 @@ t1=mpi_wtime()
   !     istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
   !     weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, &
   !     collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
-  call determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
+  call determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
        istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
        weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, weight_c, weight_f, &
        collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
@@ -177,8 +175,10 @@ t1=mpi_wtime()
        index_in_global_c, index_in_global_f, nvalp_c, nvalp_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t2=mpi_wtime()
+
+
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  t2=mpi_wtime()
 !!if(iproc==0) write(*,'(a,es10.3)') 'time for part 5:',t2-t1
 t1=mpi_wtime()
 
@@ -222,6 +222,7 @@ t1=mpi_wtime()
   allocate(collcom%isendbuf_f(collcom%ndimpsi_f), stat=istat)
   call memocc(istat, collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
 
+
   call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%ndimind_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%ndimind_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f, &
@@ -230,8 +231,8 @@ t1=mpi_wtime()
        collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
 
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t2=mpi_wtime()
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  t2=mpi_wtime()
 !!if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
 t1=mpi_wtime()
 
@@ -553,8 +554,9 @@ subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weigh
   integer,intent(out) :: nvalp_c, nvalp_f
   
   ! Local variables
-  integer :: jproc, i1, i2, i3, ii, ii2, istart, iend, jj, j0, j1, jprocdone,ii_c,ii_f
-  integer :: i, iseg, i0, iitot, ierr, iiseg, istat, iall
+  integer :: jproc, i1, i2, i3, ii, istart, iend, jj, j0, j1, ii_c, ii_f
+  !!$$integer :: ii2, iiseg, jprocdone
+  integer :: i, iseg, i0, iitot, ierr, istat, iall
   real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt, tmp, tmp2
   real(8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
   character(len=*),parameter :: subname='assign_weight_to_process'
@@ -1155,8 +1157,7 @@ end subroutine assign_weight_to_process2
 
 
 
-
-subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
+subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
            istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
            weightp_c, weightp_f, nptsp_c, nptsp_f, weight_c, weight_f, &
            norb_per_gridpoint_c, norb_per_gridpoint_f)
@@ -1166,7 +1167,6 @@ subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istarte
   
   ! Calling arguments
   integer,intent(in):: iproc, nproc, nptsp_c, nptsp_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
-  type(orbitals_data),intent(in):: orbs
   type(local_zone_descriptors),intent(in):: lzd
   integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
   real(8),intent(in):: weightp_c, weightp_f
@@ -1175,10 +1175,9 @@ subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istarte
   integer,dimension(nptsp_f),intent(out):: norb_per_gridpoint_f
   
   ! Local variables
-  integer:: ii, iiorb, i1, i2, i3, iipt, iorb, iii, iseg, jj, j0, j1, iitot, ilr, i, istart, iend, i0, istat, iall
+  integer:: ii, i1, i2, i3, iipt, iseg, jj, j0, j1, iitot, i, istart, iend, i0
   integer::icheck_c,icheck_f,iiorb_c,iiorb_f, npgp_c,npgp_f
   !!integer,dimension(:),allocatable:: iseg_start_c, iseg_start_f
-  character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
 
 
   icheck_c = 0
@@ -2059,18 +2058,18 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
       i_f=0
 
       do iorb=1,orbs%norbp
-          iiorb=orbs%isorb+iorb
-          ilr=orbs%inwhichlocreg(iiorb)
+         iiorb=orbs%isorb+iorb
+         ilr=orbs%inwhichlocreg(iiorb)
 
-          call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
+         call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
 
-          i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
-          i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
+         i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
+         i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
 
-          call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
-  
-          i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
-          i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
+         call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
+
+         i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
+         i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
 
       end do
     
@@ -2087,10 +2086,10 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
 
   m = mod(collcom%ndimpsi_c,7)
   if(m/=0) then
-      do i=1,m
-          ind = collcom%isendbuf_c(i)
-          psiwork_c(ind) = psi_c(i)
-      end do
+     do i=1,m
+        ind = collcom%isendbuf_c(i)
+        psiwork_c(ind) = psi_c(i)
+     end do
   end if
   !$omp do
   do i = m+1,collcom%ndimpsi_c,7
@@ -2147,7 +2146,8 @@ subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f
   real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psitwork_f
   
   ! Local variables
-  integer :: ierr, istat, iall, ist, ist_c, ist_f, jproc, iisend, iirecv
+  integer :: ierr, istat, iall
+  !!integer :: iisend, iirecv, ist, ist_c, ist_f, jproc
   real(kind=8),dimension(:),allocatable :: psiwork, psitwork
   integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
   character(len=*),parameter :: subname='transpose_communicate_psi'
@@ -2354,7 +2354,6 @@ subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f
   ! fine part
 
   !$omp do
-
   do i=1,sum_f
       ind=collcom%iexpand_f(i)
       psitwork_f(7*ind-6)=psit_f(7*i-6)
@@ -2365,7 +2364,6 @@ subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f
       psitwork_f(7*ind-1)=psit_f(7*i-1)
       psitwork_f(7*ind-0)=psit_f(7*i-0)
   end do
-
   !$omp end do
   !$omp end parallel
 
@@ -2386,10 +2384,11 @@ subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwor
   real(kind=8),dimension(7*collcom%ndimpsi_f),intent(out) :: psiwork_f
   
   ! Local variables
-  integer :: ierr, istat, iall, ist, ist_c, ist_f, jproc, iisend, iirecv
-  real(kind=8),dimension(:),allocatable :: psiwork, psitwork
-  integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
-  character(len=*),parameter :: subname='transpose_communicate_psit'
+  integer :: ierr
+  !!integer :: iall, ist, ist_c, ist_f, jproc, iisend, iirecv, istat
+  !!real(kind=8),dimension(:),allocatable :: psiwork, psitwork
+  !!integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+  !!character(len=*),parameter :: subname='transpose_communicate_psit'
 
   !call mpi_comm_size(bigdft_mpi%mpi_comm, nproc, ierr)
   !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
@@ -2554,7 +2553,7 @@ subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
             i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
             i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
             
-	    call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi_f(i_f+1),1,psi(i_tot+1),1)
+            call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi_f(i_f+1),1,psi(i_tot+1),1)
 
 
             i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
@@ -2722,14 +2721,14 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom)
    !local variables
    character(len=*), parameter :: subname='check_communications'
    integer, parameter :: ilog=6
-   integer :: i,ispinor,iorb,indspin,jproc,i_stat,i_all,iscomp,idsx,index,ikptsp
-   integer :: ikpt,ispsi,nspinor,nvctrp,ierr,i0,ifine,ii,iiorb,ipt,jorb,jkpt,jcomp
-   integer :: ipsi,ipsic,ipsiworkc,icomp,ipsif,ipsiworkf
+   integer :: i,ispinor,iorb,indspin,i_stat,i_all,ikptsp
+   integer :: ikpt,ierr,i0,ifine,ii,iiorb,ipt,jorb
+   integer :: icomp
+   !!$integer :: ipsi,ipsic,ipsif,ipsiworkc,ipsiworkf,jcomp,jkpt
    real(wp) :: psival,maxdiff,tt
    real(wp), dimension(:), allocatable :: psi,psit_c,psit_f
    real(wp), dimension(:,:), allocatable :: checksum
    real(wp) :: epsilon,tol
-   character(len = 25) :: filename
    logical :: abort
 
    !allocate the "wavefunction" and fill it, and also the workspace
@@ -3005,11 +3004,9 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
   real(kind=8),dimension(mad%nvctr),intent(out) :: ovrlp_compr
 
   ! Local variables
-  integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, iall, m,tid,norb,nthreads,iseg,jorb
-  integer :: istart,iend,orb_rest,ind0,ind1,ind2,ind3
+  integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, m, tid, norb, nthreads
+  integer :: istart, iend, orb_rest, ind0, ind1, ind2, ind3
   integer,dimension(:),allocatable :: n
-  real(8) :: nthrds
-  character(len=*),parameter :: subname='calculate_overlap_transposed'
   !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
@@ -3019,7 +3016,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
   nthreads=1
   !$  nthreads = OMP_GET_max_threads()
 
-   allocate(n(nthreads),stat=istat)
+  allocate(n(nthreads),stat=istat)
 
   norb = orbs%norb / nthreads
   
@@ -3486,8 +3483,7 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
   real(8),dimension(orbs%norb),intent(out):: norm
   
   ! Local variables
-  integer:: i0, ipt, ii, iiorb, i, ierr, istat, iall, iorb
-  character(len=*),parameter:: subname='normalize_transposed'
+  integer:: i0, ipt, ii, iiorb, i, ierr, iorb
 
   call to_zero(orbs%norb, norm(1))
 
@@ -3540,7 +3536,7 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
   !$omp do
   do ipt=1,collcom%nptsp_c 
       ii=collcom%norb_per_gridpoint_c(ipt)
-      i0 = collcom%isptsp_c(ipt) 	 
+      i0=collcom%isptsp_c(ipt)
       do i=1,ii
           iiorb=collcom%indexrecvorbital_c(i0+i)
           psit_c(i0+i)=psit_c(i0+i)*norm(iiorb)
@@ -3568,3 +3564,4 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
 !$omp end parallel
 
 end subroutine normalize_transposed
+

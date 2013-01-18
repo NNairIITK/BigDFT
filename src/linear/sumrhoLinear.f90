@@ -285,254 +285,27 @@ subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,
 END SUBROUTINE partial_density_linear
 
 
-!!!subroutine sumrhoForLocalizedBasis2(iproc,nproc,lzd,orbs,&
-!!!     comsr,densKern,nrho,rho,at,nscatterarr)
-!!!!
-!!!use module_base
-!!!use module_types
-!!!use libxc_functionals
-!!!use module_interfaces, exceptThisOne => sumrhoForLocalizedBasis2
-!!!implicit none
-!!!
-!!!! Calling arguments
-!!!integer,intent(in) :: iproc, nproc, nrho
-!!!type(local_zone_descriptors),intent(in) :: lzd
-!!!type(orbitals_data),intent(in) :: orbs
-!!!!type(p2pCommsSumrho),intent(inout) :: comsr
-!!!type(p2pComms),intent(inout) :: comsr
-!!!!real(kind=8),dimension(orbs%norb,norb),intent(in) :: coeff
-!!!!real(kind=8),dimension(ld_coeff,norb),intent(in) :: coeff
-!!!real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: densKern
-!!!real(8),dimension(nrho),intent(out),target:: rho
-!!!type(atoms_data),intent(in) :: at
-!!!integer, dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-!!!
-!!!! Local variables
-!!!integer :: iorb, jorb, indLarge, i1, i2, i3, ilr, jlr
-!!!integer :: i1s, i1e, i2s, i2e, i3s, i3e, i1d, j1d, i2d, j2d, i3d, j3d, indri, indrj, istri, istrj
-!!!integer :: indi2, indi3, indj2, indj3, indl2, indl3, iiorb, jjorb
-!!!integer :: ierr, is, ie
-!!!integer :: m, i1d0, j1d0, indri0, indrj0, indLarge0
-!!!integer :: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,jshift2,jshift3
-!!!integer,dimension(3,4) :: astart, aend, bstart,bend
-!!!real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern
-!!!!real(kind=8),dimension(:,:),allocatable :: densKern
-!!!!character(len=*),parameter :: subname='sumrhoForLocalizedBasis2'
-!!!
-!!!if(iproc==0) write(*,'(a)',advance='no') 'Calculating charge density... '
-!!!
-!!!
-!!!
-!!!
-!!!! Define some constant factors.
-!!!hxh=.5d0*lzd%hgrids(1)
-!!!hyh=.5d0*lzd%hgrids(2)
-!!!hzh=.5d0*lzd%hgrids(3)
-!!!factor=1.d0/(hxh*hyh*hzh)
-!!!
-!!!! Initialize rho.
-!!!if (libxc_functionals_isgga()) then
-!!!    call razero(nrho, rho)
-!!!else
-!!!    ! There is no mpi_allreduce, therefore directly initialize to
-!!!    ! 10^-20 and not 10^-20/nproc.
-!!!    !rho=1.d-20
-!!!    call tenminustwenty(nrho, rho, nproc)
-!!!end if
-!!!call timing(iproc,'p2pSumrho_wait','ON')
-!!!
-!!!
-!!!call wait_p2p_communication(iproc, nproc, comsr)
-!!!
-!!!
-!!!
-!!!! Now calculate the charge density. Each process calculates only one slice of the total charge density.
-!!!! Such a slice has the full extent in the x and y direction, but is limited in the z direction.
-!!!! The bounds of the slice are given by nscatterarr. To do so, each process has received all orbitals that
-!!!! extend into this slice. The number of these orbitals is given by lin%comsr%noverlaps(iproc).
-!!!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-!!!!call cpu_time(t1)
-!!!
-!!!call timing(iproc,'p2pSumrho_wait','OF')
-!!!
-!!!
-!!!!!call calculate_charge_density(iproc, nproc, lzd, hxh, hyh, hzh, orbs, densKern, factor, &
-!!!!!           nscatterarr, maxval(comsr%noverlaps), comsr%noverlaps, comsr%overlaps, comsr%comarr, comsr%ise3, comsr%nrecvBuf, comsr%recvBuf, nrho, rho)
-!!!
-!!!call timing(iproc,'sumrho_TMB    ','ON')
-!!!
-!!!! Bounds of the slice in global coordinates.
-!!!is=nscatterarr(iproc,3) 
-!!!ie=is+nscatterarr(iproc,1)-1
-!!!
-!!!! This sum is "symmetric", so only do the second loop (jorb) only up to iorb and multiply by two if iorb/=jorb.
-!!!totalCharge=0.d0
-!!!!print*,'comsr%noverlaps(iproc)',iproc,comsr%noverlaps(iproc)
-!!!do iorb=1,comsr%noverlaps(iproc)
-!!!    iiorb=comsr%overlaps(iorb) !global index of orbital iorb
-!!!    ilr=orbs%inwhichlocreg(iiorb) !localization region of orbital iorb
-!!!    istri=comsr%comarr(5,iorb,iproc)-1 !starting index of orbital iorb in the receive buffer
-!!!    do jorb=1,iorb
-!!!        jjorb=comsr%overlaps(jorb) !global indes of orbital jorb
-!!!        jlr=orbs%inwhichlocreg(jjorb) !localization region of orbital jorb
-!!!        istrj=comsr%comarr(5,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
-!!!        !!tt = (lzd%llr(ilr)%locregCenter(1)-lzd%llr(jlr)%locregCenter(1))**2 &
-!!!        !!    +(lzd%llr(ilr)%locregCenter(2)-lzd%llr(jlr)%locregCenter(2))**2 &
-!!!        !!    +(lzd%llr(ilr)%locregCenter(3)-lzd%llr(jlr)%locregCenter(3))**2
-!!!        !!tt=sqrt(tt)
-!!!        !!write(200,*) tt, densKern(iiorb,jjorb)
-!!!        !!if(tt>6.d0) cycle
-!!!
-!!!        azones = 1
-!!!        bzones = 1
-!!!        !Calculate the number of regions to cut alr and blr
-!!!        do ii=1,2
-!!!           if(lzd%llr(ilr)%outofzone(ii) > 0) azones = azones * 2
-!!!           if(lzd%llr(jlr)%outofzone(ii) > 0) bzones = bzones * 2
-!!!        end do
-!!!
-!!!        !FRACTURE THE FIRST LOCALIZATION REGION
-!!!        call fracture_periodic_zone_ISF(azones,lzd%Glr,lzd%Llr(ilr),lzd%Llr(ilr)%outofzone(:),astart,aend)
-!!!       
-!!!        !FRACTURE SECOND LOCREG
-!!!        call fracture_periodic_zone_ISF(bzones,lzd%Glr,lzd%Llr(jlr),lzd%Llr(jlr)%outofzone(:),bstart,bend)
-!!!        do izones=1,azones
-!!!           do jzones=1,bzones
-!!!              ! Bounds of the overlap of orbital iorb and jorb in global coordinates.
-!!!              i1s=max(astart(1,izones),bstart(1,jzones))
-!!!              i1e=min(aend(1,izones)-1,bend(1,jzones)-1)
-!!!              i2s=max(astart(2,izones),bstart(2,jzones))
-!!!              i2e=min(aend(2,izones)-1,bend(2,jzones)-1)
-!!!              i3s=max(comsr%ise3(iorb,1),comsr%ise3(jorb,1))
-!!!              i3e=min(comsr%ise3(iorb,2),comsr%ise3(jorb,2))
-!!!              call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(ilr),x,y,z,ishift1, ishift2, ishift3)
-!!!              call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(jlr),x,y,z,jshift1, jshift2, jshift3)
-!!!              factorTimesDensKern = factor*densKern(iiorb,jjorb)
-!!!              if(iorb/=jorb) then
-!!!                  ! Multiply by two since these elements appear twice (but are calculated only once).
-!!!                  factorTimesDensKern = 2.d0*factorTimesDensKern
-!!!              end if
-!!!              ! Now loop over all points in the box in which the orbitals overlap.
-!!!              !if(i3s>i3e) write(*,*) 'no calculation done'
-!!!
-!!!              do i3=i3s,i3e !bounds in z direction
-!!!                  i3d=i3 -max(is,-ishift3) !z coordinate of orbital iorb with respect to the overlap box
-!!!                  j3d=i3 -max(is,-jshift3) !z coordinate of orbital jorb with respect to the overlap box
-!!!                  indi3=i3d*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i !z-part of the index of orbital iorb in the 1-dim receive buffer
-!!!                  indj3=j3d*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n1i !z-part of the index of orbital jorb in the 1-dim receive buffer
-!!!                  !indl3=(i3-is)*lzd%Glr%d%n2i*lzd%Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
-!!!                  !indl3=(modulo(i3-1,Lzd%Glr%d%n3i)-is+1)*lzd%Glr%d%n2i*lzd%Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
-!!!                  indl3=(modulo(i3,Lzd%Glr%d%n3i+1)-is)*lzd%Glr%d%n2i*lzd%Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
-!!!                  do i2=i2s,i2e !bounds in y direction
-!!!                      i2d=i2 + ishift2 !y coordinate of orbital iorb with respect to the overlap box
-!!!                      j2d=i2 + jshift2 !y coordinate of orbital jorb with respect to the overlap box
-!!!                      indi2=i2d*lzd%llr(ilr)%d%n1i !y-part of the index of orbital iorb in the 1-dim receive buffer
-!!!                      indj2=j2d*lzd%llr(jlr)%d%n1i !y-part of the index of orbital jorb in the 1-dim receive buffer
-!!!                      !indl2=i2*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
-!!!                      !indl2=(modulo(i2-1,Lzd%Glr%d%n2i)+1)*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
-!!!                      indl2=(modulo(i2,Lzd%Glr%d%n2i+1))*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
-!!!                      ! For all other than free BC, choose m such that the unrolled part is never used.
-!!!                      if(Lzd%Glr%geocode=='F') then
-!!!                          m=mod(i1e-i1s+1,4)
-!!!                      else
-!!!                          m=i1e-i1s+1
-!!!                      end if
-!!!                      if(m/=0) then
-!!!                          ! The following five variables hold some intermediate results to speed up the code.
-!!!                          i1d0= ishift1 
-!!!                          j1d0= jshift1
-!!!                          indri0 = indi3 + indi2 + istri + 1
-!!!                          indrj0 = indj3 + indj2 + istrj + 1
-!!!                          indLarge0 = indl3 + indl2 + 1   
-!!!                          do i1=i1s,i1s+m-1
-!!!                              i1d=i1d0+i1 !x coordinate of orbital iorb with respect to the overlap box
-!!!                              j1d=j1d0+i1 !x coordinate of orbital jorb with respect to the overlap box
-!!!                              indri = indri0 + i1d !index of orbital iorb in the 1-dim receive buffer
-!!!                              indrj = indrj0 + j1d !index of orbital jorb in the 1-dim receive buffer
-!!!                              !indLarge = indLarge0 + i1 !index for which the charge density is beeing calculated
-!!!                              !indLarge = indLarge0 + modulo(i1-1,Lzd%Glr%d%n1i)+1 !index for which the charge density is beeing calculated
-!!!                              indLarge = indLarge0 + modulo(i1,Lzd%Glr%d%n1i+1) !index for which the charge density is beeing calculated
-!!!                              tt = factorTimesDensKern*comsr%recvBuf(indri)*comsr%recvBuf(indrj)
-!!!                              rho(indLarge) = rho(indLarge) + tt !update the charge density at point indLarge
-!!!                              totalCharge = totalCharge + tt !add the contribution to the total charge
-!!!                          end do
-!!!                      end if
-!!!                      ! This is the same again, this time with unrolled loops.
-!!!                      if(i1e-i1s+1>4) then
-!!!                          i1d0= ishift1 
-!!!                          j1d0= jshift1
-!!!                          indri0 = indi3 + indi2 + istri + 1
-!!!                          indrj0 = indj3 + indj2 + istrj + 1
-!!!                          indLarge0 = indl3 + indl2 + 1
-!!!                          do i1=i1s+m,i1e,4
-!!!                              i1d=i1d0+i1
-!!!                              j1d=j1d0+i1
-!!!                              indri = indri0 + i1d
-!!!                              indrj = indrj0 + j1d
-!!!                              !indLarge = indLarge0 + i1
-!!!                              tt0 = factorTimesDensKern*comsr%recvBuf(indri  )*comsr%recvBuf(indrj  )
-!!!                              tt1 = factorTimesDensKern*comsr%recvBuf(indri+1)*comsr%recvBuf(indrj+1)
-!!!                              tt2 = factorTimesDensKern*comsr%recvBuf(indri+2)*comsr%recvBuf(indrj+2)
-!!!                              tt3 = factorTimesDensKern*comsr%recvBuf(indri+3)*comsr%recvBuf(indrj+3)
-!!!                              !indLarge = indLarge0 + modulo(i1-1,Lzd%Glr%d%n1i)+1
-!!!                              indLarge = indLarge0 + i1
-!!!                              rho(indLarge  ) = rho(indLarge  ) + tt0
-!!!                              !indLarge = indLarge0 +modulo(i1,Lzd%Glr%d%n1i)+1
-!!!                              indLarge = indLarge0 + i1+1
-!!!                              rho(indLarge) = rho(indLarge) + tt1
-!!!                              !rho(indLarge+1) = rho(indLarge+1) + tt1
-!!!                              !indLarge = indLarge0 + modulo(i1+1,Lzd%Glr%d%n1i)+1
-!!!                              indLarge = indLarge0 + i1+2
-!!!                              rho(indLarge) = rho(indLarge) + tt2
-!!!                              !rho(indLarge+2) = rho(indLarge+2) + tt1
-!!!                              !indLarge = indLarge0 + modulo(i1+2,Lzd%Glr%d%n1i)+1
-!!!                              indLarge = indLarge0 + i1+3
-!!!                              rho(indLarge) = rho(indLarge) + tt3
-!!!                              !rho(indLarge+3) = rho(indLarge+3) + tt1
-!!!                              totalCharge = totalCharge + tt0 + tt1 + tt2 + tt3
-!!!                          end do
-!!!                      end if
-!!!                  end do
-!!!              end do
-!!!          end do !jzones
-!!!       end do !izones
-!!!    end do
-!!!end do
-!!!
-!!!if(iproc==0) write(*,'(a)') 'done.'
-!!!
-!!!call timing(iproc,'sumrho_TMB    ','OF')
-!!!
-!!!call timing(iproc,'sumrho_allred','ON')
-!!!
-!!!call mpiallred(totalCharge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-!!!if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
-!!!
-!!!call timing(iproc,'sumrho_allred','OF')
-!!!
-!!!
-!!!
-!!!end subroutine sumrhoForLocalizedBasis2
 
-subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs_tmb, coeff, kernel)
+subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, kernel)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, ld_coeff
-  type(orbitals_data),intent(in):: orbs, orbs_tmb
+  integer,intent(in):: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs, orbs_tmb
   logical, intent(in) :: isKernel
-  real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff    !only use the first (occupied) orbitals
-  real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
+  real(kind=8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
+  real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out) :: kernel
 
   ! Local variables
-  integer:: istat, iall, ierr, sendcount, jproc, iorb, itmb
-  real(8),dimension(:,:),allocatable:: density_kernel_partial, fcoeff,ks,ksk,ksksk
-  character(len=*),parameter:: subname='calculate_density_kernel'
-  integer,dimension(:),allocatable:: recvcounts, dspls
-  integer,parameter:: ALLGATHERV=1, ALLREDUCE=2
-  integer,parameter:: communication_strategy=ALLREDUCE
+  integer :: istat, iall, ierr, sendcount, jproc, iorb, itmb
+  real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, fcoeff
+! real(kind=8), dimension(:,:,), allocatable :: ks,ksk,ksksk
+  character(len=*),parameter :: subname='calculate_density_kernel'
+  integer,dimension(:),allocatable :: recvcounts, dspls
+  integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
+  integer,parameter :: communication_strategy=ALLREDUCE
 
   if (communication_strategy==ALLGATHERV) then
       call timing(iproc,'calc_kernel','ON') !lr408t
@@ -559,8 +332,8 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
              end do
           end if
 
-          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), ld_coeff, &
-               fcoeff(orbs_tmb%isorb+1,1), ld_coeff, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
+          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), orbs_tmb%norb, &
+               fcoeff(orbs_tmb%isorb+1,1), orbs_tmb%norb, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
       end if
       iall = -product(shape(fcoeff))*kind(fcoeff)
       deallocate(fcoeff,stat=istat)
@@ -627,8 +400,8 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
           end do
 
           end if
-          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), ld_coeff, &
-               fcoeff(1,orbs%isorb+1), ld_coeff, 0.d0, kernel(1,1), orbs_tmb%norb)
+          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
+               fcoeff(1,orbs%isorb+1), orbs_tmb%norb, 0.d0, kernel(1,1), orbs_tmb%norb)
           iall = -product(shape(fcoeff))*kind(fcoeff)
           deallocate(fcoeff,stat=istat)
           call memocc(istat, iall, 'fcoeff', subname)
@@ -648,12 +421,12 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
   end if
 
  ! Purify Kernel
- !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, kernel(1,orbs_tmb%isorb+1), ld_coeff, &
- !           overlap(1,orbs_tmb%isorb+1), ld_coeff, 0.d0, ks(1,1), orbs_tmb%norb) 
- !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, ks(1,orbs_tmb%isorb+1), ld_coeff, &
- !           kernel(1,orbs_tmb%isorb+1), ld_coeff, 0.d0, ksk(1,1), orbs_tmb%norb)
- !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, ks(1,orbs_tmb%isorb+1), ld_coeff, &
- !           ksk(1,orbs_tmb%isorb+1), ld_coeff, 0.d0, ksksk(1,1), orbs_tmb%norb)
+ !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, kernel(1,orbs_tmb%isorb+1), orbs_tmb%norb, &
+ !           overlap(1,orbs_tmb%isorb+1), orbs_tmb%norb, 0.d0, ks(1,1), orbs_tmb%norb) 
+ !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, ks(1,orbs_tmb%isorb+1), orbs_tmb%norb, &
+ !           kernel(1,orbs_tmb%isorb+1), orbs_tmb%norb, 0.d0, ksk(1,1), orbs_tmb%norb)
+ !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, ks(1,orbs_tmb%isorb+1), orbs_tmb%norb, &
+ !           ksk(1,orbs_tmb%isorb+1), orbs_tmb%norb, 0.d0, ksksk(1,1), orbs_tmb%norb)
 
 
  !!if(present(overlap)) then
@@ -664,12 +437,12 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
    !!allocate(ksksk(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
    !!call memocc(istat, ksksk, 'ksksk', subname) 
 
-   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, kernel(1,1), ld_coeff, &
-   !!           overlap(1,1), ld_coeff, 0.d0, ks(1,1), orbs_tmb%norb) 
-   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, ks(1,1), ld_coeff, &
-   !!           kernel(1,1), ld_coeff, 0.d0, ksk(1,1), orbs_tmb%norb)
-   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, ks(1,1), ld_coeff, &
-   !!           ksk(1,1), ld_coeff, 0.d0, ksksk(1,1), orbs_tmb%norb)
+   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, kernel(1,1), orbs_tmb%norb, &
+   !!           overlap(1,1), orbs_tmb%norb, 0.d0, ks(1,1), orbs_tmb%norb) 
+   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, ks(1,1), orbs_tmb%norb, &
+   !!           kernel(1,1), orbs_tmb%norb, 0.d0, ksk(1,1), orbs_tmb%norb)
+   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, ks(1,1), orbs_tmb%norb, &
+   !!           ksk(1,1), orbs_tmb%norb, 0.d0, ksksk(1,1), orbs_tmb%norb)
    !!print *,'PURIFYING THE KERNEL'
    !!kernel = 3*ksk-2*ksksk
    !!
@@ -700,20 +473,15 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, mad, nscatterarr
   type(collective_comms),intent(inout) :: collcom_sr
 
   ! Local variables
-  integer :: iorb, iiorb, ilr, ncount, is1, ie1, is2, ie2, is3, ie3, ii, i1, i2, i3, ierr, istat, iall, jproc, norb, ipt
-  integer ::  ind, indglob, iitot, i, jproc_send, jproc_recv, i3e, jproc_out, p2p_tag, imin, imax, jorb, jjorb, kproc
+  integer :: iorb, iiorb, ierr, istat, iall, jproc, ipt
+  integer :: imin, imax, jorb, jjorb, kproc
   integer :: isend, irecv
-  integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp, nsend, indexsendbuf
   integer :: compressed_index
-  integer,dimension(:),allocatable :: indexsendorbital
-  integer,dimension(:),allocatable :: indexsendorbital2, indexrecvbuf
-  integer,dimension(:),allocatable :: gridpoint_start, indexrecvorbital2
-  real(kind=8) :: weight_tot, weight_ideal, tt, weightp, ttp
+  real(kind=8) :: weight_tot, weight_ideal, tt
   integer,dimension(:,:),allocatable :: istartend, iminmaxarr, requests, sendbuf
   character(len=*),parameter :: subname='determine_weights_sumrho'
-  real(8) :: t1, t2, weight_start, weight_end, ttt
+  real(8) :: t1, t2
   real(kind=8),dimension(:),allocatable :: weights_per_slice, weights_per_zpoint
-  real(kind=8),dimension(:,:),allocatable :: weights_startend
 
   ! Note: all weights are double precision to avoid integer overflow
 
@@ -1517,7 +1285,6 @@ subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs,
   ! Local variables
   integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ind, ii, istat, iall, ierr
   integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
-  real(kind=8) :: tt
   character(len=*),parameter :: subname='determine_communication_arrays_sumrho'
 
 
@@ -2056,9 +1823,7 @@ subroutine transpose_communicate_psirt(iproc, nproc, collcom_sr, psirtwork, psir
   real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(out) :: psirwork
 
   ! Local variables
-  integer :: ierr, istat, iall, ist, ist_c, ist_f, jproc, iisend, iirecv
-  real(kind=8),dimension(:),allocatable :: psiwork, psitwork
-  integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+  integer :: ierr
   character(len=*),parameter :: subname='transpose_communicate_psit'
 
   if (nproc>1) then
@@ -2130,7 +1895,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kern
 
   ! Local variables
   integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind
-  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot, tt1
+  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1
   real(kind=8),dimension(:),allocatable :: rho_local, kernel_compr_pad
   character(len=*),parameter :: subname='sumrho_for_TMBs'
 
@@ -2174,17 +1939,11 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kern
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
           tt1=collcom_sr%psit_c(i0+i)
           ind=collcom_sr%matrixindex_in_compressed(iiorb,iiorb)
-          !if (ind/=-1) then
-              ! Otherwise this corresponds to a zero element of the kernel
-              tt=tt+kernel_compr_pad(ind)*tt1*tt1
-          !end if
+          tt=tt+kernel_compr_pad(ind)*tt1*tt1
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
               ind=collcom_sr%matrixindex_in_compressed(jjorb,iiorb)
-              !if (ind/=-1) then
-              ! Otherwise this corresponds to a zero element of the kernel
-                  tt=tt+2.0_dp*kernel_compr_pad(ind)*tt1*collcom_sr%psit_c(i0+j)
-              !end if
+              tt=tt+2.0_dp*kernel_compr_pad(ind)*tt1*collcom_sr%psit_c(i0+j)
           end do
       end do
       tt=factor*tt
@@ -2225,48 +1984,3 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kern
   call memocc(istat, iall, 'rho_local', subname)
 
 end subroutine sumrho_for_TMBs
-
-
-
-
-subroutine purify_kernel(orbs_tmb, overlap, kernel)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(orbitals_data),intent(in) :: orbs_tmb
-  real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(in) :: overlap
-  real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(inout) :: kernel
-
-  ! Local variables
-  integer :: istat, iall
-  real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk
-  character(len=*),parameter :: subname='purify_kernel'
-
-   allocate(ks(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
-   call memocc(istat, ks, 'ks', subname) 
-   allocate(ksk(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
-   call memocc(istat, ksk, 'ksk', subname) 
-   allocate(ksksk(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
-   call memocc(istat, ksksk, 'ksksk', subname) 
-
-   call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, kernel(1,1), orbs_tmb%norb, &
-              overlap(1,1), orbs_tmb%norb, 0.d0, ks(1,1), orbs_tmb%norb) 
-   call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, ks(1,1), orbs_tmb%norb, &
-              kernel(1,1), orbs_tmb%norb, 0.d0, ksk(1,1), orbs_tmb%norb)
-   call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, ks(1,1), orbs_tmb%norb, &
-              ksk(1,1), orbs_tmb%norb, 0.d0, ksksk(1,1), orbs_tmb%norb)
-   print *,'PURIFYING THE KERNEL'
-   kernel = 3*ksk-2*ksksk
-   
-   iall = -product(shape(ks))*kind(ks)
-   deallocate(ks,stat=istat)
-   call memocc(istat, iall, 'ks', subname)
-   iall = -product(shape(ksk))*kind(ksk)
-   deallocate(ksk,stat=istat)
-   call memocc(istat, iall, 'ksk', subname)
-   iall = -product(shape(ksksk))*kind(ksksk)
-   deallocate(ksksk,stat=istat)
-   call memocc(istat, iall, 'ksksk', subname)
-end subroutine purify_kernel

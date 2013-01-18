@@ -31,8 +31,6 @@ subroutine copy_tmbs(tmbin, tmbout, subname)
 
   ! should technically copy these across as well but not needed for restart and will eventually be removing wfnmd as a type
   nullify(tmbout%wfnmd%density_kernel_compr)
-  nullify(tmbout%wfnmd%alpha_coeff)
-  nullify(tmbout%wfnmd%grad_coeff_old)
 
   ! should also copy/nullify p2pcomms etc
 
@@ -1006,25 +1004,6 @@ end if
 end subroutine copy_orbitals_data
 
 
-subroutine copy_basis_specifications(bsin, bsout, subname)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(basis_specifications),intent(in):: bsin
-  type(basis_specifications),intent(out):: bsout
-  character(len=*),intent(in):: subname
-  
-  bsout%conv_crit=bsin%conv_crit
-  bsout%target_function=bsin%target_function
-  bsout%meth_transform_overlap=bsin%meth_transform_overlap
-  bsout%nit_precond=bsin%nit_precond
-  bsout%nit_basis_optimization=bsin%nit_basis_optimization
-  bsout%correction_orthoconstraint=bsin%correction_orthoconstraint
-
-end subroutine copy_basis_specifications
-
 subroutine copy_orthon_data(odin, odout, subname)
   use module_base
   use module_types
@@ -1045,28 +1024,9 @@ subroutine copy_orthon_data(odin, odout, subname)
   odout%nItOrtho=odin%nItOrtho
   odout%blocksize_pdsyev=odin%blocksize_pdsyev
   odout%blocksize_pdgemm=odin%blocksize_pdgemm
+  odout%nproc_pdsyev=odin%nproc_pdsyev
 
 end subroutine copy_orthon_data
-
-
-
-subroutine copy_basis_performance_options(bpoin, bpoout, subname)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(basis_performance_options),intent(in):: bpoin
-  type(basis_performance_options),intent(out):: bpoout
-  character(len=*),intent(in):: subname
-  
-  
-  bpoout%blocksize_pdgemm=bpoin%blocksize_pdgemm
-  bpoout%blocksize_pdsyev=bpoin%blocksize_pdsyev
-  bpoout%nproc_pdsyev=bpoin%nproc_pdsyev
-  bpoout%communication_strategy_overlap=bpoin%communication_strategy_overlap
-  
-end subroutine copy_basis_performance_options
 
 
 subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
@@ -1089,21 +1049,6 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
   lzd_out%ndimpotisf=lzd_in%ndimpotisf
   lzd_out%hgrids(:)=lzd_in%hgrids(:)
 
-  if(associated(lzd_out%doHamAppl)) then
-      iall=-product(shape(lzd_out%doHamAppl))*kind(lzd_out%doHamAppl)
-      deallocate(lzd_out%doHamAppl, stat=istat)
-      call memocc(istat, iall, 'lzd_out%doHamAppl', subname)
-  end if
-  if(associated(lzd_in%doHamAppl)) then
-      iis1=lbound(lzd_in%doHamAppl,1)
-      iie1=ubound(lzd_in%doHamAppl,1)
-      allocate(lzd_out%doHamAppl(iis1:iie1), stat=istat)
-      call memocc(istat, lzd_out%doHamAppl, 'lzd_out%doHamAppl', subname)
-      do i1=iis1,iie1
-          lzd_out%doHamAppl(i1) = lzd_in%doHamAppl(i1)
-      end do
-  end if
-
   call nullify_locreg_descriptors(lzd_out%glr)
   call copy_locreg_descriptors(lzd_in%glr, lzd_out%glr, subname)
 
@@ -1119,6 +1064,5 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
           call copy_locreg_descriptors(lzd_in%llr(i1), lzd_out%llr(i1), subname)
       end do
   end if
-
 
 end subroutine copy_local_zone_descriptors
