@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-01-18 11:13:31.152
+ Timestamp of this run                 : 2013-01-18 12:23:33.321
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -62,7 +62,8 @@
  #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
  #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
  #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
- #|ef_interpol_det  1.00E-10    FOE: max determinant of cubic interpolation matrix           
+ #|ef_interpol_det  1.00E-12    FOE: max determinant of cubic interpolation matrix           
+ #|ef_interpol_chargediff  1.00EFOE: max charge difference for interpolation                 
  #... (file:input.dft)............................................DFT Calculation Parameters
  #|0.45 0.45 0.45  hx,hy,hz: grid spacing in the three directions                            
  #|4.0  5.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -475,14 +476,14 @@
  Non Local forces calculated           :  Yes
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  60.18
-   Elapsed time (s)                    :  60.35
+   CPU time (s)                        :  62.03
+   Elapsed time (s)                    :  62.51
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 114578
-   Tot. No. of Deallocations: 114578
+   Tot. No. of Allocations  : 115118
+   Tot. No. of Deallocations: 115118
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 255
