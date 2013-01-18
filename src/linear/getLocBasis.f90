@@ -334,7 +334,8 @@ end subroutine get_coeff
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,tmblarge,energs_base,&
     reduce_conf, fix_supportfunctions, ham_compr,nit_precond,target_function,&
-    correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix)
+    correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix,&
+    ratio_deltas)
   !
   ! Purpose:
   ! ========
@@ -370,6 +371,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(out) :: reduce_conf, fix_supportfunctions
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
   real(kind=8),intent(in) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
+  real(kind=8),intent(out) :: ratio_deltas
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
@@ -503,7 +505,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ediff=trH-trH_old
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+          ratio_deltas=ediff/delta_energy_prev
           if (iproc==0) write(*,*) 'ediff, delta_energy_prev', ediff, delta_energy_prev
+          if (iproc==0) write(*,*) 'ratio_deltas',ratio_deltas
           if ((ediff>deltaenergy_multiplier_TMBexit*delta_energy_prev .or. energy_increased) .and. it>1) then
               if (iproc==0) write(*,*) 'reduce the confinement'
               reduce_conf=.true.
