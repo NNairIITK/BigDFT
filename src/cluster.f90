@@ -801,7 +801,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          call deallocate_collective_comms(tmb%collcom_sr, subname)
          call deallocate_collective_comms(tmblarge%collcom_sr, subname)
          call deallocate_p2pComms(tmb%comon, subname)
-         call deallocate_p2pComms(tmblarge%comon, subname)
+         call deallocate_p2pComms(tmb%comon_shamop, subname)
          call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
               KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
               proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&

@@ -1288,7 +1288,7 @@ subroutine destroy_new_locregs(iproc, nproc, tmb, tmblarge)
   call deallocate_local_zone_descriptors(tmblarge%lzd, subname)
   call deallocate_orbitals_data(tmblarge%orbs, subname)
   call deallocate_overlapParameters(tmblarge%op, subname)
-  call deallocate_p2pComms(tmblarge%comon, subname)
+  call deallocate_p2pComms(tmb%comon_shamop, subname)
   call deallocate_matrixDescriptors(tmblarge%mad, subname)
   !!call deallocate_collective_comms(tmblarge%collcom, subname)
   call deallocate_collective_comms(tmblarge%collcom_sr, subname)
@@ -1551,7 +1551,7 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
   call nullify_collective_comms(tmblarge%collcom_sr)
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-       at, input, tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+       at, input, tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmb%comon_shamop, &
        tmb%comgp_shamop, tmblarge%mad, tmb%collcom_shamop)
   call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
        tmblarge%psi, tmblarge%hpsi)
