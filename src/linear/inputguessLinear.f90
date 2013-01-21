@@ -55,7 +55,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(kind=8) :: rcov,rprb,ehomo,amu                                          
   real(kind=8) :: neleconf(nmax,0:lmax)                                        
   integer :: nsccode,mxpl,mxchg
-  real(8),dimension(:),allocatable :: ham_compr, ovrlp_compr
 
   call nullify_orbitals_data(orbs_gauss)
 
@@ -257,17 +256,17 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
 
 
-  allocate(ham_compr(tmblarge%sparsemat%nvctr), stat=istat)
-  call memocc(istat, ham_compr, 'ham_compr', subname)
-  allocate(ovrlp_compr(tmblarge%sparsemat%nvctr), stat=istat)
-  call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
+  allocate(tmb%linmat%ham%matrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
+  call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
+  allocate(tmb%linmat%ovrlp%matrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
+  call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
 
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,tmblarge, ham_compr, ovrlp_compr, .true.)
+           input%SIC,tmb,fnrm,.true.,.false.,tmblarge,.true.)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,tmblarge, ham_compr, ovrlp_compr, .true.)
+           input%SIC,tmb,fnrm,.true.,.false.,tmblarge,.true.)
   end if
 
   !call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
@@ -286,12 +285,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end if
 
 
-  iall=-product(shape(ham_compr))*kind(ham_compr)
-  deallocate(ham_compr, stat=istat)
-  call memocc(istat, iall, 'ham_compr', subname)
-  iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
-  deallocate(ovrlp_compr, stat=istat)
-  call memocc(istat, iall, 'ovrlp_compr', subname)
+  iall=-product(shape(tmb%linmat%ham%matrix_compr))*kind(tmb%linmat%ham%matrix_compr)
+  deallocate(tmb%linmat%ham%matrix_compr, stat=istat)
+  call memocc(istat, iall, 'tmb%linmat%ham%matrix_compr', subname)
+  iall=-product(shape(tmb%linmat%ovrlp%matrix_compr))*kind(tmb%linmat%ovrlp%matrix_compr)
+  deallocate(tmb%linmat%ovrlp%matrix_compr, stat=istat)
+  call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix_compr', subname)
 
 
   ! Important: Don't use for the rest of the code

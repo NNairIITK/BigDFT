@@ -2863,7 +2863,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, sparsemat, collcom, 
   !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
-  
+
   call to_zero(sparsemat%nvctr, ovrlp_compr(1))
 
   nthreads=1

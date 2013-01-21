@@ -1877,7 +1877,7 @@ module module_interfaces
 
       subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,tmblarge,energs_base,&
-          reduce_conf, fix_supportfunctions, ham_compr,nit_precond,target_function,&
+          reduce_conf, fix_supportfunctions,nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix)
         use module_base
         use module_types
@@ -1901,7 +1901,6 @@ module module_interfaces
         type(SIC_data) :: SIC !<parameters for the SIC methods
         type(DFT_wavefunction),target,intent(inout) :: tmblarge
         type(energy_terms),intent(in) :: energs_base
-        real(8),dimension(tmblarge%sparsemat%nvctr),intent(out) :: ham_compr
         logical,intent(out) :: reduce_conf, fix_supportfunctions
         integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
         real(kind=8),intent(in) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
@@ -1950,9 +1949,8 @@ module module_interfaces
     end subroutine psimix
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,&
-        GPU, infoCoeff,ebs,nlpspd,proj,&
-        SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-        tmblarge, ham_compr, ovrlp_compr, calculate_ham, ldiis_coeff)
+        GPU,infoCoeff,ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,&
+        communicate_phi_for_lsumrho,tmblarge,calculate_ham,ldiis_coeff)
       use module_base
       use module_types
       implicit none
@@ -1973,7 +1971,6 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout) :: tmb
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       type(DFT_wavefunction),intent(inout):: tmblarge
-      real(8),dimension(tmblarge%sparsemat%nvctr),intent(inout) :: ham_compr, ovrlp_compr
       logical,intent(in) :: calculate_ham
       type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
     end subroutine get_coeff
@@ -2870,16 +2867,14 @@ module module_interfaces
          type(matrixDescriptors_foe),intent(out):: mad
        end subroutine initMatrixCompression_foe
 
-       subroutine initSparseMatrix(iproc, nproc, lzd, at, input, orbs, collcom, sparsemat)
+       subroutine initSparseMatrix(iproc, nproc, lzd, input, orbs, sparsemat)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          type(local_zone_descriptors),intent(in) :: lzd
-         type(atoms_data),intent(in) :: at
          type(input_variables),intent(in) :: input
          type(orbitals_data),intent(in):: orbs
-         type(collective_comms),intent(in) :: collcom
          type(sparseMatrix),intent(out):: sparsemat
        end subroutine initSparseMatrix
 
@@ -3180,7 +3175,7 @@ module module_interfaces
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-                  orbs_tmp, lzd, llborbs, lbcomgp, comsr, lbmad, sparsemat, lbcollcom, lbcollcom_sr)
+                  orbs_tmp, lzd, llborbs, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
          use module_base
          use module_types
          implicit none
@@ -3200,7 +3195,6 @@ module module_interfaces
          type(p2pComms),intent(inout):: lbcomgp
          type(p2pComms),intent(inout):: comsr
          type(matrixDescriptors_foe),intent(inout):: lbmad
-         type(sparseMatrix),intent(inout):: sparsemat
          type(collective_comms),intent(inout):: lbcollcom
          type(collective_comms),intent(inout),optional :: lbcollcom_sr
        end subroutine update_locreg
@@ -3276,23 +3270,6 @@ module module_interfaces
          real(8),dimension(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout):: rhopotold
          real(8),intent(out):: pnrm
        end subroutine mix_main
-
-       subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locrad, transform, lzd, tmb, denspot, &
-                  ldiis)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc
-         real(8),intent(in):: hx, hy, hz
-         type(atoms_data),intent(in) :: at
-         type(input_variables),intent(in) :: input
-         type(local_zone_descriptors),intent(inout):: lzd
-         real(8),dimension(lzd%nlr),intent(in):: locrad
-         logical,intent(in):: transform
-         type(DFT_wavefunction),intent(inout):: tmb
-         type(DFT_local_fields),intent(inout):: denspot
-         type(localizedDIISParameters),intent(inout),optional:: ldiis
-       end subroutine redefine_locregs_quantities
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, &
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
@@ -3383,8 +3360,8 @@ module module_interfaces
          real(gp),intent(out),optional :: econf_sum
        end subroutine psi_to_vlocpsi
 
-       subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
-                  at, input, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
+       subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
+                  rxyz, tmb, tmblarge, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
          use module_base
          use module_types
          implicit none
@@ -3392,7 +3369,8 @@ module module_interfaces
          real(8),intent(in):: hx, hy, hz
          type(atoms_data),intent(in) :: at
          type(input_variables),intent(in):: input
-         type(DFT_wavefunction),intent(inout):: tmb
+         real(8),dimension(3,at%nat),intent(in):: rxyz
+         type(DFT_wavefunction),intent(inout):: tmb, tmblarge
          type(DFT_local_fields),intent(inout) :: denspot
          type(localizedDIISParameters),intent(inout):: ldiis
          logical, intent(out) :: locreg_increased

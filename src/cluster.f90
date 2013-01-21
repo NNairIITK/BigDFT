@@ -398,25 +398,26 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
 
-     allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
-     call memocc(i_stat, denspot0, 'denspot0', subname)
-
      call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., tmblarge)
 
      call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
      call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%collcom)
      call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, denspot%dpbox%nscatterarr,tmb%collcom_sr)
 
-     ! call sparse_init here
-     call initSparseMatrix(iproc, nproc, tmb%lzd, atoms, in, tmb%orbs, tmb%collcom, tmb%sparsemat)
-     call initSparseMatrix(iproc, nproc, tmblarge%lzd, atoms, in, tmblarge%orbs, tmblarge%collcom, tmblarge%sparsemat)
+     ! to be removed once used correctly - as below
+     call initSparseMatrix(iproc, nproc, tmb%lzd, in, tmb%orbs, tmb%sparsemat)
+     call initSparseMatrix(iproc, nproc, tmblarge%lzd, in, tmblarge%orbs, tmblarge%sparsemat)
 
-     ! maybe move allocation from here
+     !call initSparseMatrix(iproc, nproc, tmb%lzd, in, tmb%orbs, tmb%linmat%ovrlp)
+     !call initSparseMatrix(iproc, nproc, tmblarge%lzd, in, tmblarge%orbs, tmb%linmat%ham)
+     !call initSparseMatrix(iproc, nproc, tmblarge%lzd, in, tmblarge%orbs, tmb%linmat%denskern)
+
+     ! move allocation from here into initsparsematrix?! or new allocatesparsematrix
      allocate(tmb%linmat%denskern%matrix_compr(tmblarge%sparsemat%nvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
-     ! Use only one density kernel
-     tmblarge%linmat%denskern%matrix_compr => tmb%linmat%denskern%matrix_compr
 
+     allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
+     call memocc(i_stat, denspot0, 'denspot0', subname)
   else
      allocate(denspot0(1+ndebug), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)

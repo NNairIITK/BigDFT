@@ -8,7 +8,7 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    tmblarge,ham_compr,ovrlp_compr,calculate_ham,ldiis_coeff)
+    tmblarge,calculate_ham,ldiis_coeff)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -31,7 +31,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(DFT_wavefunction),intent(inout) :: tmb
   logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
   type(DFT_wavefunction),intent(inout) :: tmblarge
-  real(8),dimension(tmblarge%sparsemat%nvctr),intent(inout) :: ham_compr, ovrlp_compr
   logical,intent(in) :: calculate_ham
   type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
@@ -69,7 +68,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       end if
       ! use tmblarge%sparsemat since the matrix compression must be done the large version
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmblarge%sparsemat, tmb%collcom, tmb%psit_c, &
-           tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_compr)
+           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp%matrix_compr)
   end if
 
   ! Post the p2p communications for the density. (must not be done in inputguess)
@@ -114,8 +113,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !!end if
       !END DEBUG
 
-
-
       iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
       deallocate(denspot%pot_work, stat=istat)
       call memocc(istat, iall, 'denspot%pot_work', subname)
@@ -152,7 +149,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
            tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
       call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%sparsemat, tmblarge%collcom, &
-           tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, ham_compr)
+           tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, tmb%linmat%ham%matrix_compr)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)
       call memocc(istat, iall, 'hpsit_c', subname)
@@ -168,10 +165,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   if (scf_mode/=LINEAR_FOE) then
       allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
       call memocc(istat, ham, 'ham', subname)
-      call uncompressMatrix(tmblarge%orbs%norb, tmblarge%sparsemat, ham_compr, ham)
+      call uncompressMatrix(tmblarge%orbs%norb, tmblarge%sparsemat, tmb%linmat%ham%matrix_compr, ham)
       allocate(overlapmatrix(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
       call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
-      call uncompressMatrix(tmblarge%orbs%norb, tmblarge%sparsemat, ovrlp_compr, overlapmatrix)
+      call uncompressMatrix(tmblarge%orbs%norb, tmblarge%sparsemat, tmb%linmat%ovrlp%matrix_compr, overlapmatrix)
   end if
 
   ! DEBUG LR
@@ -260,7 +257,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       do iseg=1,tmblarge%sparsemat%nseg
           do jorb=tmblarge%sparsemat%keyg(1,iseg),tmblarge%sparsemat%keyg(2,iseg)
               ii=ii+1
-              ebs = ebs + tmb%linmat%denskern%matrix_compr(ii)*ham_compr(ii)
+              ebs = ebs + tmb%linmat%denskern%matrix_compr(ii)*tmb%linmat%ham%matrix_compr(ii)
           end do  
       end do
 
@@ -300,8 +297,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
               iilarge=tmblarge%sparsemat%keyv(iseglarge)-tmblarge%sparsemat%keyg(1,iseglarge)
               do i=is,ie
                   iismall=iismall+1
-                  ovrlp_compr_small(iismall)=ovrlp_compr(iilarge+i)
-                  ham_compr_small(iismall)=ham_compr(iilarge+i)
+                  ovrlp_compr_small(iismall)=tmb%linmat%ovrlp%matrix_compr(iilarge+i)
+                  ham_compr_small(iismall)=tmb%linmat%ham%matrix_compr(iilarge+i)
               end do
               if (ie>=is) exit
               iseglarge=iseglarge+1
@@ -332,8 +329,8 @@ end subroutine get_coeff
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,tmblarge,energs_base,&
-    reduce_conf, fix_supportfunctions, ham_compr,nit_precond,target_function,&
-    correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix)
+    reduce_conf,fix_supportfunctions,nit_precond,target_function,&
+    correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit,deltaenergy_multiplier_TMBfix)
   !
   ! Purpose:
   ! ========
@@ -365,7 +362,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(SIC_data) :: SIC !<parameters for the SIC methods
   type(DFT_wavefunction),target,intent(inout) :: tmblarge
   type(energy_terms),intent(in) :: energs_base
-  real(8),dimension(tmblarge%sparsemat%nvctr),intent(out) :: ham_compr
   logical,intent(out) :: reduce_conf, fix_supportfunctions
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
   real(kind=8),intent(in) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
@@ -593,7 +589,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
               ! iteration of get_coeff.
               call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%sparsemat, tmblarge%collcom, &
-                   tmblarge%psit_c, hpsit_c_tmp, tmblarge%psit_f, hpsit_f_tmp, ham_compr)
+                   tmblarge%psit_c, hpsit_c_tmp, tmblarge%psit_f, hpsit_f_tmp, tmb%linmat%ham%matrix_compr)
           end if
 
           exit iterLoop
@@ -1425,8 +1421,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   !!end if
   !END DEBUG LR
 
-  call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%sparsemat, &
-       kernel, kernel_compr)
+  call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%sparsemat, kernel, kernel_compr)
   iall=-product(shape(kernel))*kind(kernel)
   deallocate(kernel,stat=istat)
   call memocc(istat,iall,'kernel',subname)
