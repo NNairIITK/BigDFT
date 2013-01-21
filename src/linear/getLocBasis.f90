@@ -475,7 +475,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           write(*,'(a)', advance='no') ' Orthoconstraint... '
       end if
 
-      call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
+      !!call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
 
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
