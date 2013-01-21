@@ -3190,7 +3190,7 @@ module module_interfaces
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-                  orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
+                  orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, lbmad, lbcollcom, lbcollcom_sr)
          use module_base
          use module_types
          implicit none
@@ -3210,7 +3210,6 @@ module module_interfaces
          type(overlapParameters),intent(inout):: lbop
          type(p2pComms),intent(inout):: lbcomon
          type(p2pComms),intent(inout):: lbcomgp
-         type(p2pComms),intent(inout):: comsr
          type(matrixDescriptors),intent(inout):: lbmad
          type(collective_comms),intent(inout):: lbcollcom
          type(collective_comms),intent(inout),optional :: lbcollcom_sr

@@ -132,7 +132,6 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, norb_cubic, iproc, nproc)
 
   call nullify_p2pComms(wfn%comrp)
 
-  call nullify_p2pcomms(wfn%comsr)
   !!call initialize_comms_sumrho(iproc, nproc, dpbox%nscatterarr, lzd, wfn%orbs, wfn%comsr)
 
   ndim = maxval(wfn%op%noverlaps)

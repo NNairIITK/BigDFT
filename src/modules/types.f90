@@ -828,7 +828,6 @@ module module_types
      type(overlapParameters):: op !<describing the overlaps
      	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
      type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
-     type(p2pComms):: comsr !<describing the p2p communications for sumrho
      	type(matrixDescriptors):: mad !<describes the structure of the matrices
      type(collective_comms):: collcom, collcom_shamop ! describes collective communication
      type(collective_comms):: collcom_sr ! describes collective communication for the calculation of the charge density

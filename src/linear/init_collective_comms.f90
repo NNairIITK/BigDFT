@@ -34,6 +34,8 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, mad, collcom, collcom_
   character(len=*),parameter :: subname='init_collective_comms'
   
   call timing(iproc,'init_collcomm ','ON')
+
+  call nullify_collective_comms(collcom)
   
   allocate(weight_c(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
   call memocc(istat, weight_c, 'weight_c', subname)

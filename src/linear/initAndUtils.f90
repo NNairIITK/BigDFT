@@ -1029,7 +1029,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locr
       locregCenter(:,ilr)=lzd_tmp%llr(ilr)%locregCenter
   end do
 
-  call deallocate_p2pComms(tmb%comsr, subname)
   call deallocate_orbitals_data(tmb%orbs, subname)
   call deallocate_overlapParameters(tmb%op, subname)
   call deallocate_p2pComms(tmb%comon, subname)
@@ -1040,7 +1039,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locr
   call deallocate_local_zone_descriptors(lzd, subname)
   call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, orbs_tmp%inwhichlocreg, locregCenter, lzd_tmp%glr, &
        .false., denspot%dpbox%nscatterarr, hx, hy, hz, at, input, &
-       orbs_tmp, lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%comsr, tmb%mad, &
+       orbs_tmp, lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%mad, &
        tmb%collcom, tmb%collcom_sr)
 
   if(transform) then
@@ -1081,7 +1080,7 @@ end subroutine redefine_locregs_quantities
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
            useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-           orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
+           orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, lbmad, lbcollcom, lbcollcom_sr)
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
@@ -1104,7 +1103,6 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   type(overlapParameters),intent(inout) :: lbop
   type(p2pComms),intent(inout) :: lbcomon
   type(p2pComms),intent(inout) :: lbcomgp
-  type(p2pComms),intent(inout) :: comsr
   type(matrixDescriptors),intent(inout) :: lbmad
   type(collective_comms),intent(inout) :: lbcollcom
   type(collective_comms),intent(inout),optional :: lbcollcom_sr
@@ -1184,10 +1182,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   !    call init_collective_comms_sumro(iproc, nproc, lzd, llborbs, nscatterarr, lbcollcom_sr)
   !end if
 
-  call nullify_p2pComms(comsr)
-  !!call initialize_comms_sumrho(iproc, nproc, nscatterarr, lzd, llborbs, comsr)
   call initialize_communication_potential(iproc, nproc, nscatterarr, llborbs, lzd, lbcomgp)
-  !!call allocateCommunicationbufferSumrho(iproc, comsr, subname)
   call allocateCommunicationsBuffersPotential(lbcomgp, subname)
 
 end subroutine update_locreg
@@ -1295,9 +1290,8 @@ subroutine destroy_new_locregs(iproc, nproc, tmb, tmblarge)
   call deallocate_overlapParameters(tmblarge%op, subname)
   call deallocate_p2pComms(tmblarge%comon, subname)
   call deallocate_matrixDescriptors(tmblarge%mad, subname)
-  call deallocate_collective_comms(tmblarge%collcom, subname)
+  !!call deallocate_collective_comms(tmblarge%collcom, subname)
   call deallocate_collective_comms(tmblarge%collcom_sr, subname)
-  call deallocate_p2pComms(tmblarge%comsr, subname)
 
   call deallocate_collective_comms(tmb%collcom_shamop, subname)
 
@@ -1350,7 +1344,6 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_p2pComms(wfn%comon, subname)
   call deallocate_p2pComms(wfn%comgp, subname)
   call deallocate_p2pComms(wfn%comrp, subname)
-  call deallocate_p2pComms(wfn%comsr, subname)
   call deallocate_matrixDescriptors(wfn%mad, subname)
   call deallocate_orbitals_data(wfn%orbs, subname)
   !call deallocate_communications_arrays(wfn%comms, subname)
@@ -1559,7 +1552,7 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        at, input, tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
-       tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmb%collcom_shamop)
+       tmblarge%comgp, tmblarge%mad, tmb%collcom_shamop)
   call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
        tmblarge%psi, tmblarge%hpsi)
   call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
