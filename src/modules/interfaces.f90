@@ -4065,7 +4065,7 @@ module module_interfaces
           type(SIC_data),intent(in):: SIC
           type(DFT_local_fields), intent(inout) :: denspot
           type(GPU_pointers),intent(inout):: GPU
-          type(DFT_wavefunction),intent(in):: tmb
+          type(DFT_wavefunction),intent(inout):: tmb
           type(DFT_wavefunction),intent(inout):: tmblarge
           real(8),dimension(3,at%nat),intent(out):: fpulay
         end subroutine pulay_correction

@@ -1137,7 +1137,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   type(SIC_data),intent(in) :: SIC
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers),intent(inout) :: GPU
-  type(DFT_wavefunction),intent(in) :: tmb
+  type(DFT_wavefunction),intent(inout) :: tmb
   type(DFT_wavefunction),intent(inout) :: tmblarge
   real(kind=8),dimension(3,at%nat),intent(out) :: fpulay
 
@@ -1161,9 +1161,9 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
 
   !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-  !!     tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
+  !!     tmb%comgp_shamop%nrecvbuf, tmb%comgp_shamop%recvbuf, tmb%comgp_shamop, tmblarge%lzd)
   call start_onesided_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-       tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
+       tmb%comgp_shamop%nrecvbuf, tmb%comgp_shamop%recvbuf, tmb%comgp_shamop, tmblarge%lzd)
 
   allocate(confdatarrtmp(tmblarge%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmblarge%orbs%norbp)
@@ -1175,13 +1175,13 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   ! only kinetic because waiting for communications
   call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
        tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
-       energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
+       energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp_shamop)
   call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
-       tmblarge%comgp)
+       tmb%comgp_shamop)
   ! only potential
   call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
        tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
-       energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
+       energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp_shamop)
 
   call timing(iproc,'glsynchham1','ON') !lr408t
   call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,lhphilarge,&
