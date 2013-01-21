@@ -133,7 +133,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   if (iproc==0) call yaml_open_map('Checking Communications of Enlarged Minimal Basis')
   call check_communications_locreg(iproc,nproc,tmblarge%orbs,&
-       tmblarge%Lzd,tmblarge%collcom)
+       tmblarge%Lzd,tmb%collcom_shamop)
   if (iproc ==0) call yaml_close_map()
 
 
@@ -185,7 +185,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                at, input, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
           ! Reajust tmblarge also
           if(locreg_increased) then
-             call destroy_new_locregs(iproc, nproc, tmblarge)
+             call destroy_new_locregs(iproc, nproc, tmb, tmblarge)
              call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
              if(tmblarge%can_use_transposed) then
                  iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
@@ -207,7 +207,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
              call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged, &
                   tmblarge)
              call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
-             call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmblarge%collcom)
+             call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmb%collcom_shamop)
              call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%mad, &
                   denspot%dpbox%nscatterarr, tmb%collcom_sr)
 
@@ -1191,23 +1191,23 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   
 
   ! Now transpose the psi and hpsi
-  allocate(lpsit_c(tmblarge%collcom%ndimind_c))
+  allocate(lpsit_c(tmb%collcom_shamop%ndimind_c))
   call memocc(istat, lpsit_c, 'lpsit_c', subname)
-  allocate(lpsit_f(7*tmblarge%collcom%ndimind_f))
+  allocate(lpsit_f(7*tmb%collcom_shamop%ndimind_f))
   call memocc(istat, lpsit_f, 'lpsit_f', subname)
-  allocate(hpsit_c(tmblarge%collcom%ndimind_c))
+  allocate(hpsit_c(tmb%collcom_shamop%ndimind_c))
   call memocc(istat, hpsit_c, 'hpsit_c', subname)
-  allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
+  allocate(hpsit_f(7*tmb%collcom_shamop%ndimind_f))
   call memocc(istat, hpsit_f, 'hpsit_f', subname)
-  allocate(psit_c(tmblarge%collcom%ndimind_c))
+  allocate(psit_c(tmb%collcom_shamop%ndimind_c))
   call memocc(istat, psit_c, 'psit_c', subname)
-  allocate(psit_f(7*tmblarge%collcom%ndimind_f))
+  allocate(psit_f(7*tmb%collcom_shamop%ndimind_f))
   call memocc(istat, psit_f, 'psit_f', subname)
 
-  call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+  call transpose_localized(iproc, nproc, tmblarge%orbs,  tmb%collcom_shamop, &
        tmblarge%psi, lpsit_c, lpsit_f, tmblarge%lzd)
 
-  call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+  call transpose_localized(iproc, nproc, tmblarge%orbs,  tmb%collcom_shamop, &
        lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
 
   !now build the derivative and related matrices <dPhi_a | H | Phi_b> and <dPhi_a | Phi_b>
@@ -1220,13 +1220,13 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
      call get_derivative(jdir, tmblarge%orbs%npsidim_orbs, tmblarge%lzd%hgrids(1), tmblarge%orbs, &
           tmblarge%lzd, tmblarge%psi, lhphilarge)
 
-     call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+     call transpose_localized(iproc, nproc, tmblarge%orbs,  tmb%collcom_shamop, &
           lhphilarge, psit_c, psit_f, tmblarge%lzd)
 
-     call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
+     call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmb%collcom_shamop,&
           psit_c, lpsit_c, psit_f, lpsit_f, dovrlp_compr(1,jdir))
 
-     call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
+     call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmb%collcom_shamop,&
           psit_c, hpsit_c, psit_f, hpsit_f, matrix_compr(1,jdir))
   end do
 

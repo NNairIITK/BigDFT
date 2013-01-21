@@ -763,7 +763,7 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   real(wp),dimension(n1i,n2i,n3i,nspinor),intent(inout),optional :: psir_noconf !< real-space wfn in lr where only the potential (without confinement) will be applied
   real(gp), intent(out),optional :: econf
   !local variables
-  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et,ii1,ii2,ii3
+  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et,ii1,ii2,ii3,istat,iall
   real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt11_noconf,ttt,r2
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,pot1_noconf
   real(gp) :: epot_p,econf_p,ierr
@@ -773,6 +773,7 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   integer,pointer :: potorder
   real(kind=8),target :: zero_dble
   integer,target :: zero_int
+  character(len=*),parameter :: subname='apply_potential_lr'
 
 
   zero_dble=0.d0
@@ -784,7 +785,12 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
       prefac => confdata%prefac
       potorder => confdata%potorder
   else
-      allocate(hh(3), rxyzConf(3), ioffset(3))
+      allocate(hh(3), stat=istat)
+      call memocc(istat, hh, 'hh', subname)
+      allocate(rxyzConf(3), stat=istat)
+      call memocc(istat, rxyzConf, 'rxyzConf', subname)
+      allocate(ioffset(3), stat=istat)
+      call memocc(istat, ioffset, 'ioffset', subname)
       hh=0.d0
       ioffset=0
       rxyzConf=0.d0
@@ -1001,6 +1007,17 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   
   !$omp end parallel
 
+  if (.not.present(confdata)) then
+      iall=-product(shape(hh))*kind(hh)
+      deallocate(hh,stat=istat)
+      call memocc(istat,iall,'hh',subname)
+      iall=-product(shape(rxyzConf))*kind(rxyzConf)
+      deallocate(rxyzConf,stat=istat)
+      call memocc(istat,iall,'rxyzConf',subname)
+      iall=-product(shape(ioffset))*kind(ioffset)
+      deallocate(ioffset,stat=istat)
+      call memocc(istat,iall,'ioffset',subname)
+  end if
 
 contains
   

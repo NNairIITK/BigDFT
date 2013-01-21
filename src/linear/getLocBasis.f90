@@ -137,22 +137,22 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
               call memocc(istat, iall, 'tmblarge%psit_f', subname)
           end if
 
-          allocate(tmblarge%psit_c(tmblarge%collcom%ndimind_c), stat=istat)
+          allocate(tmblarge%psit_c(tmb%collcom_shamop%ndimind_c), stat=istat)
           call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
-          allocate(tmblarge%psit_f(7*tmblarge%collcom%ndimind_f), stat=istat)
+          allocate(tmblarge%psit_f(7*tmb%collcom_shamop%ndimind_f), stat=istat)
           call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
-          call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+          call transpose_localized(iproc, nproc, tmblarge%orbs,  tmb%collcom_shamop, &
                tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
           tmblarge%can_use_transposed=.true.
       end if
 
-      allocate(hpsit_c(tmblarge%collcom%ndimind_c))
+      allocate(hpsit_c(tmb%collcom_shamop%ndimind_c))
       call memocc(istat, hpsit_c, 'hpsit_c', subname)
-      allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
+      allocate(hpsit_f(7*tmb%collcom_shamop%ndimind_f))
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
-      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmb%collcom_shamop, &
            tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
-      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmb%collcom_shamop, &
            tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, ham_compr)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)
@@ -479,14 +479,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, hpsi_noconf, hpsit_c, hpsit_f, tmblarge%lzd)
+          call transpose_localized(iproc, nproc, tmblarge%orbs, tmb%collcom_shamop, hpsi_noconf, hpsit_c, hpsit_f, tmblarge%lzd)
       else
-          call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
+          call transpose_localized(iproc, nproc, tmblarge%orbs, tmb%collcom_shamop, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
       end if
 
-      ncount=sum(tmblarge%collcom%nrecvcounts_c)
+      ncount=sum(tmb%collcom_shamop%nrecvcounts_c)
       if(ncount>0) call dcopy(ncount, hpsit_c(1), 1, hpsit_c_tmp(1), 1)
-      ncount=7*sum(tmblarge%collcom%nrecvcounts_f)
+      ncount=7*sum(tmb%collcom_shamop%nrecvcounts_f)
       if(ncount>0) call dcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
@@ -598,7 +598,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (infoBasisFunctions>=0) then
               ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
               ! iteration of get_coeff.
-              call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+              call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmb%collcom_shamop, &
                    tmblarge%psit_c, hpsit_c_tmp, tmblarge%psit_f, hpsit_f_tmp, ham_compr)
           end if
 
@@ -711,16 +711,16 @@ contains
       allocate(lphiold(size(tmb%psi)), stat=istat)
       call memocc(istat, lphiold, 'lphiold', subname)
 
-      allocate(hpsit_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
+      allocate(hpsit_c(sum(tmb%collcom_shamop%nrecvcounts_c)), stat=istat)
       call memocc(istat, hpsit_c, 'hpsit_c', subname)
 
-      allocate(hpsit_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
+      allocate(hpsit_f(7*sum(tmb%collcom_shamop%nrecvcounts_f)), stat=istat)
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
 
-      allocate(hpsit_c_tmp(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
+      allocate(hpsit_c_tmp(sum(tmb%collcom_shamop%nrecvcounts_c)), stat=istat)
       call memocc(istat, hpsit_c_tmp, 'hpsit_c_tmp', subname)
 
-      allocate(hpsit_f_tmp(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
+      allocate(hpsit_f_tmp(7*sum(tmb%collcom_shamop%nrecvcounts_f)), stat=istat)
       call memocc(istat, hpsit_f_tmp, 'hpsit_f_tmp', subname)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then

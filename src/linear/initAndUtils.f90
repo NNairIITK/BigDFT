@@ -1272,7 +1272,7 @@ end subroutine deallocate_auxiliary_basis_function
 
 
 
-subroutine destroy_new_locregs(iproc, nproc, tmb)
+subroutine destroy_new_locregs(iproc, nproc, tmb, tmblarge)
   use module_base
   use module_types
   use module_interfaces, except_this_one => destroy_new_locregs
@@ -1280,24 +1280,26 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
-  type(DFT_wavefunction),intent(inout) :: tmb
+  type(DFT_wavefunction),intent(inout) :: tmb, tmblarge
 
   ! Local variables
   character(len=*),parameter :: subname='destroy_new_locregs'
 
-  !!call wait_p2p_communication(iproc, nproc, tmb%comgp)
-  call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
- ! call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
-  call deallocate_p2pComms(tmb%comgp, subname)
+  !!call wait_p2p_communication(iproc, nproc, tmblarge%comgp)
+  call synchronize_onesided_communication(iproc, nproc, tmblarge%comgp)
+ ! call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
+  call deallocate_p2pComms(tmblarge%comgp, subname)
 
-  call deallocate_local_zone_descriptors(tmb%lzd, subname)
-  call deallocate_orbitals_data(tmb%orbs, subname)
-  call deallocate_overlapParameters(tmb%op, subname)
-  call deallocate_p2pComms(tmb%comon, subname)
-  call deallocate_matrixDescriptors(tmb%mad, subname)
-  call deallocate_collective_comms(tmb%collcom, subname)
-  call deallocate_collective_comms(tmb%collcom_sr, subname)
-  call deallocate_p2pComms(tmb%comsr, subname)
+  call deallocate_local_zone_descriptors(tmblarge%lzd, subname)
+  call deallocate_orbitals_data(tmblarge%orbs, subname)
+  call deallocate_overlapParameters(tmblarge%op, subname)
+  call deallocate_p2pComms(tmblarge%comon, subname)
+  call deallocate_matrixDescriptors(tmblarge%mad, subname)
+  call deallocate_collective_comms(tmblarge%collcom, subname)
+  call deallocate_collective_comms(tmblarge%collcom_sr, subname)
+  call deallocate_p2pComms(tmblarge%comsr, subname)
+
+  call deallocate_collective_comms(tmb%collcom_shamop, subname)
 
 end subroutine destroy_new_locregs
 
@@ -1557,7 +1559,7 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        at, input, tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
-       tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+       tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmb%collcom_shamop)
   call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
        tmblarge%psi, tmblarge%hpsi)
   call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)

@@ -69,17 +69,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   energy_increased=.false.
 
 
-  allocate(hpsittmp_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
+  allocate(hpsittmp_c(sum(tmb%collcom_shamop%nrecvcounts_c)), stat=istat)
   call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
-  allocate(hpsittmp_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
+  allocate(hpsittmp_f(7*sum(tmb%collcom_shamop%nrecvcounts_f)), stat=istat)
   call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
 
   if(target_function==TARGET_FUNCTION_IS_ENERGY .or. &
      target_function==TARGET_FUNCTION_IS_HYBRID) then
-      if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
-          call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
-      if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
-          call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
+      if(sum(tmb%collcom_shamop%nrecvcounts_c)>0) &
+          call dcopy(sum(tmb%collcom_shamop%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
+      if(sum(tmb%collcom_shamop%nrecvcounts_f)>0) &
+          call dcopy(7*sum(tmb%collcom_shamop%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           allocate(kernel_compr_tmp(tmblarge%mad%nvctr), stat=istat)
@@ -121,15 +121,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
                   end do
               end do
           end do
-          call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
-          call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
+          call transpose_localized(iproc, nproc, tmblarge%orbs, tmb%collcom_shamop, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
+          call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmb%collcom_shamop, &
                tmblarge%mad, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
           deallocate(kernel_compr_tmp, stat=istat)
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
       else
 
-          call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
+          call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmb%collcom_shamop, &
                tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
 
       end if
@@ -142,7 +142,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   call memocc(istat, lagmat_compr, 'lagmat_compr', subname)
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%mad, &
-       tmblarge%collcom, tmblarge%orthpar, correction_orthoconstraint, tmblarge%psi, tmblarge%hpsi, &
+       tmb%collcom_shamop, tmblarge%orthpar, correction_orthoconstraint, tmblarge%psi, tmblarge%hpsi, &
        lagmat_compr, tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%hpsi, tmb%hpsi)

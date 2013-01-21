@@ -406,7 +406,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., & 
            tmblarge)
      call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
-     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmblarge%collcom)
+     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmb%collcom_shamop)
      call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%mad, denspot%dpbox%nscatterarr, tmb%collcom_sr)
   else
      allocate(denspot0(1+ndebug), stat=i_stat)
@@ -797,7 +797,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          nsize_psi=1
          ! This is just to save memory, since calculate_forces will require quite a lot
          call deallocate_collective_comms(tmb%collcom, subname)
-         call deallocate_collective_comms(tmblarge%collcom, subname)
          call deallocate_collective_comms(tmb%collcom_shamop, subname)
          call deallocate_collective_comms(tmb%collcom_sr, subname)
          call deallocate_collective_comms(tmblarge%collcom_sr, subname)
@@ -813,7 +812,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          deallocate(fpulay,stat=i_stat)
          call memocc(i_stat,i_all,'fpulay',subname)
 
-         call destroy_new_locregs(iproc, nproc, tmblarge)
+         call destroy_new_locregs(iproc, nproc, tmb, tmblarge)
          call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
 
          !!!! TEST ##################

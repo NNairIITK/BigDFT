@@ -3164,12 +3164,12 @@ module module_interfaces
        end subroutine calc_gradient
 
 
-       subroutine destroy_new_locregs(iproc, nproc, tmb)
+       subroutine destroy_new_locregs(iproc, nproc, tmb, tmblarge)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
-         type(DFT_wavefunction),intent(inout):: tmb
+         type(DFT_wavefunction),intent(inout):: tmb, tmblarge
        end subroutine destroy_new_locregs
 
        subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
