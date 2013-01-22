@@ -812,7 +812,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          call memocc(i_stat,i_all,'fpulay',subname)
 
          call destroy_new_locregs(iproc, nproc, tmb, tmblarge)
-         call deallocate_auxiliary_basis_function(subname, tmb%psi_shamop, tmblarge%hpsi)
+         call deallocate_auxiliary_basis_function(subname, tmb%psi_shamop, tmb%hpsi_shamop)
 
          !!!! TEST ##################
          !!fxyz=0.d0

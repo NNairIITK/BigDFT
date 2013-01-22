@@ -186,14 +186,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           ! Reajust tmblarge also
           if(locreg_increased) then
              call destroy_new_locregs(iproc, nproc, tmb, tmblarge)
-             call deallocate_auxiliary_basis_function(subname, tmb%psi_shamop, tmblarge%hpsi)
+             call deallocate_auxiliary_basis_function(subname, tmb%psi_shamop, tmb%hpsi_shamop)
              if(tmblarge%can_use_transposed) then
-                 iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
-                 deallocate(tmblarge%psit_c, stat=istat)
-                 call memocc(istat, iall, 'tmblarge%psit_c', subname)
-                 iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
-                 deallocate(tmblarge%psit_f, stat=istat)
-                 call memocc(istat, iall, 'tmblarge%psit_f', subname)
+                 iall=-product(shape(tmb%psit_c_shamop))*kind(tmb%psit_c_shamop)
+                 deallocate(tmb%psit_c_shamop, stat=istat)
+                 call memocc(istat, iall, 'tmb%psit_c_shamop', subname)
+                 iall=-product(shape(tmb%psit_f_shamop))*kind(tmb%psit_f_shamop)
+                 deallocate(tmb%psit_f_shamop, stat=istat)
+                 call memocc(istat, iall, 'tmb%psit_f_shamop', subname)
              end if
              deallocate(tmblarge%confdatarr, stat=istat)
 
@@ -544,12 +544,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   end if
 
   if(tmblarge%can_use_transposed) then
-      iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
-      deallocate(tmblarge%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmblarge%psit_c', subname)
-      iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
-      deallocate(tmblarge%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmblarge%psit_f', subname)
+      iall=-product(shape(tmb%psit_c_shamop))*kind(tmb%psit_c_shamop)
+      deallocate(tmb%psit_c_shamop, stat=istat)
+      call memocc(istat, iall, 'tmb%psit_c_shamop', subname)
+      iall=-product(shape(tmb%psit_f_shamop))*kind(tmb%psit_f_shamop)
+      deallocate(tmb%psit_f_shamop, stat=istat)
+      call memocc(istat, iall, 'tmb%psit_f_shamop', subname)
   end if
   deallocate(tmblarge%confdatarr, stat=istat)
 
