@@ -2250,12 +2250,12 @@ module module_interfaces
        real(8),intent(out):: ehart, eexcu, vexcu
      end subroutine updatePotential
      
-     subroutine initCommsOrtho(iproc, nproc, nspin, lzd, orbs, &
+     subroutine initCommsOrtho(iproc, nproc, lzd, orbs, &
                 locregShape, noverlaps, overlaps)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, nspin
+       integer,intent(in):: iproc, nproc
        type(local_zone_descriptors),intent(in):: lzd
        type(orbitals_data),intent(in):: orbs
        character(len=1),intent(in):: locregShape
@@ -2477,6 +2477,15 @@ module module_interfaces
        character(len=*),intent(in):: subname
      end subroutine copy_orbitals_data
 
+     subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(sparseMatrix),intent(in):: sparseMat_in
+       type(sparseMatrix),intent(inout):: sparseMat_out
+       character(len=*),intent(in):: subname
+    end subroutine sparse_copy_pattern
+
     subroutine deallocate_local_zone_descriptors(lzd, subname)
       use module_base
       use module_types
@@ -2696,9 +2705,7 @@ module module_interfaces
      end subroutine initInputguessConfinement
 
       subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, &
-                 correction_orthoconstraint, &
-                 orbs, lagmat, ovrlp, sparsemat, &
-                 ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
+                 correction_orthoconstraint, orbs, lagmat, ovrlp, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
         use module_base
         use module_types
         implicit none
@@ -2706,7 +2713,6 @@ module module_interfaces
         type(orbitals_data),intent(in):: orbs
         real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
         real(8),dimension(orbs%norb,orbs%norb),intent(in):: lagmat
-        type(sparseMatrix),intent(in):: sparsemat
         real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
       end subroutine applyOrthoconstraintNonorthogonal2
 
@@ -2745,24 +2751,25 @@ module module_interfaces
         real(8),dimension(n),intent(out):: w
       end subroutine dsyev_parallel
 
-      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, sparsemat, collcom, orthpar, correction_orthoconstraint, &
-                 lphi, lhphi, lagmat_compr, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
+      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, collcom, orthpar, correction_orthoconstraint, &
+           linmat, lphi, lhphi, lagmat, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
         use module_base
         use module_types
         implicit none
-        integer,intent(in):: iproc, nproc
-        type(local_zone_descriptors),intent(in):: lzd
-        type(orbitals_Data),intent(in):: orbs
-        type(sparseMatrix),intent(in):: sparsemat
-        type(collective_comms),intent(in):: collcom
-        type(orthon_data),intent(in):: orthpar
-        integer,intent(in):: correction_orthoconstraint
-        real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi
-        real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
-        real(kind=8),dimension(sparsemat%nvctr),intent(out),target :: lagmat_compr
-        real(8),dimension(:),pointer:: psit_c, psit_f, hpsit_c, hpsit_f
-        logical,intent(inout):: can_use_transposed, overlap_calculated
+        integer,intent(in) :: iproc, nproc
+        type(local_zone_descriptors),intent(in) :: lzd
+        type(orbitals_Data),intent(in) :: orbs
+        type(collective_comms),intent(in) :: collcom
+        type(orthon_data),intent(in) :: orthpar
+        integer,intent(in) :: correction_orthoconstraint
+        real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(in) :: lphi
+        real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lhphi
+        type(SparseMatrix),intent(inout) :: lagmat
+        real(8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
+        logical,intent(inout) :: can_use_transposed, overlap_calculated
+        type(linear_matrices),intent(inout) :: linmat
       end subroutine orthoconstraintNonorthogonal
+
 
       subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
         use module_base
@@ -2867,13 +2874,12 @@ module module_interfaces
          type(matrixDescriptors_foe),intent(out):: mad
        end subroutine initMatrixCompression_foe
 
-       subroutine initSparseMatrix(iproc, nproc, lzd, input, orbs, sparsemat)
+       subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          type(local_zone_descriptors),intent(in) :: lzd
-         type(input_variables),intent(in) :: input
          type(orbitals_data),intent(in):: orbs
          type(sparseMatrix),intent(out):: sparsemat
        end subroutine initSparseMatrix
@@ -3271,7 +3277,7 @@ module module_interfaces
          real(8),intent(out):: pnrm
        end subroutine mix_main
 
-       subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, &
+       subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
@@ -3281,7 +3287,6 @@ module module_interfaces
          implicit none
          integer,intent(in) :: iproc, nproc, it
          type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
-         real(8),dimension(tmblarge%sparsemat%nvctr),target,intent(in) :: kernel_compr
          type(localizedDIISParameters),intent(inout) :: ldiis
          real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
          real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha

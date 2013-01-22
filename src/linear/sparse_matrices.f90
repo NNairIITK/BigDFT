@@ -1,4 +1,4 @@
-subroutine initSparseMatrix(iproc, nproc, lzd, input, orbs, sparsemat)
+subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
   use module_base
   use module_types
   use module_interfaces
@@ -7,7 +7,6 @@ subroutine initSparseMatrix(iproc, nproc, lzd, input, orbs, sparsemat)
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
   type(local_zone_descriptors),intent(in) :: lzd
-  type(input_variables),intent(in) :: input
   type(orbitals_data),intent(in) :: orbs
   type(sparseMatrix), intent(out) :: sparsemat
   
@@ -21,7 +20,7 @@ subroutine initSparseMatrix(iproc, nproc, lzd, input, orbs, sparsemat)
   call timing(iproc,'init_matrCompr','ON')
 
   call nullify_sparsematrix(sparsemat)
-  call initCommsOrtho(iproc, nproc, input%nspin, lzd, orbs, 's', sparsemat%noverlaps, sparsemat%overlaps)
+  call initCommsOrtho(iproc, nproc, lzd, orbs, 's', sparsemat%noverlaps, sparsemat%overlaps)
 
   sparsemat%nseg=0
   sparsemat%nvctr=0
@@ -175,15 +174,14 @@ subroutine initSparseMatrix(iproc, nproc, lzd, input, orbs, sparsemat)
 end subroutine initSparseMatrix
 
 
-
-subroutine initCommsOrtho(iproc, nproc, nspin, lzd, orbs, locregShape, noverlaps, overlaps) 
+subroutine initCommsOrtho(iproc, nproc, lzd, orbs, locregShape, noverlaps, overlaps) 
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => initCommsOrtho
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, nspin
+  integer,intent(in) :: iproc, nproc
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
   character(len=1),intent(in) :: locregShape

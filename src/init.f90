@@ -1679,41 +1679,6 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          deallocate(tmb%psit_f, stat=i_stat)
          call memocc(i_stat, i_all, 'tmb%psit_f', subname)
      end if
-
-
-     !! ! This will give a slightly wrong charge, since the old kernel is used
-     !! call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
-     !! call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-     !!      tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-     !! ! Must initialize rhopotold (FOR NOW... use the trivial one)
-     !! call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
-     !!      denspot%rhov(1), 1, denspot0(1), 1)
-     !! call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-     !! call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
-
-     !! ! Now calculate the correct kernel
-     !! allocate(ham_compr(tmblarge%sparsemat%nvctr), stat=i_stat)
-     !! call memocc(i_stat, ham_compr, 'ham_compr', subname)
-     !! allocate(ovrlp_compr(tmblarge%sparsemat%nvctr), stat=i_stat)
-     !! call memocc(i_stat, ovrlp_compr, 'ovrlp_compr', subname)
-     !! nullify(tmb%psit_c)
-     !! nullify(tmb%psit_f)
-     !! tmb%can_use_transposed=.false.
-     !! call get_coeff(iproc,nproc,LINEAR_FOE,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-     !!      input%SIC,tmb,fnrm,.true.,.false.,&
-     !!      tmblarge, ham_compr, ovrlp_compr, .true.)
-     !! i_all=-product(shape(ham_compr))*kind(ham_compr)
-     !! deallocate(ham_compr, stat=i_stat)
-     !! call memocc(i_stat, i_all, 'ham_compr', subname)
-     !! i_all=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
-     !! deallocate(ovrlp_compr, stat=i_stat)
-     !! call memocc(i_stat, i_all, 'ovrlp_compr', subname)
-     !! i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
-     !! deallocate(tmb%psit_c,stat=i_stat)
-     !! call memocc(i_stat,i_all,'tmb%psit_c',subname)
-     !! i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)
-     !! deallocate(tmb%psit_f,stat=i_stat)
-     !! call memocc(i_stat,i_all,'tmb%psit_f',subname)
   end if
 
   !!if (iproc==0) then
@@ -1726,7 +1691,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   if (input%lin%scf_mode/=LINEAR_FOE) then
       call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%orbs, tmblarge%sparsemat, tmb%collcom_sr, tmb%linmat%denskern%matrix_compr, &
+           tmb%orbs, tmb%linmat%denskern, tmb%collcom_sr, tmb%linmat%denskern%matrix_compr, &
            KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
       call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
            denspot%rhov(1), 1, denspot0(1), 1)

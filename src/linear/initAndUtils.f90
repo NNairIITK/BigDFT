@@ -851,17 +851,13 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   call initMatrixCompression_foe(iproc, nproc, lzd, at, input, llborbs, lbmad)
 
-  !!call initCompressedMatmul3(iproc, llborbs%norb, lbmad)
-
-  !!call init_collective_comms(iproc, nproc, llborbs, lzd, lbmad, lbcollcom)
-  !if (present(lbcollcom_sr)) then
-  !    call init_collective_comms_sumro(iproc, nproc, lzd, llborbs, nscatterarr, lbcollcom_sr)
-  !end if
+  call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
+  if (present(lbcollcom_sr)) then
+      call init_collective_comms_sumro(iproc, nproc, lzd, llborbs, nscatterarr, lbcollcom_sr)
+  end if
 
   call nullify_p2pComms(comsr)
-  !!call initialize_comms_sumrho(iproc, nproc, nscatterarr, lzd, llborbs, comsr)
   call initialize_communication_potential(iproc, nproc, nscatterarr, llborbs, lzd, lbcomgp)
-  !!call allocateCommunicationbufferSumrho(iproc, comsr, subname)
   call allocateCommunicationsBuffersPotential(lbcomgp, subname)
 
 end subroutine update_locreg
@@ -1026,9 +1022,9 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_p2pComms(wfn%comsr, subname)
   call deallocate_matrixDescriptors_foe(wfn%mad, subname)
   call deallocate_sparseMatrix(wfn%sparsemat, subname)
-  !call deallocate_sparseMatrix(tmb%linmat%denskern, subname)
-  !call deallocate_sparseMatrix(wfn%linmat%ham, subname)
-  !call deallocate_sparseMatrix(wfn%linmat%ovrlp, subname)
+  call deallocate_sparseMatrix(wfn%linmat%denskern, subname)
+  call deallocate_sparseMatrix(wfn%linmat%ham, subname)
+  call deallocate_sparseMatrix(wfn%linmat%ovrlp, subname)
 
   call deallocate_orbitals_data(wfn%orbs, subname)
   !call deallocate_communications_arrays(wfn%comms, subname)

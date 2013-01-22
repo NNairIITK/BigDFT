@@ -400,20 +400,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., tmblarge)
 
-     call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
-     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%collcom)
-     call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, denspot%dpbox%nscatterarr,tmb%collcom_sr)
-
      ! to be removed once used correctly - as below
-     call initSparseMatrix(iproc, nproc, tmb%lzd, in, tmb%orbs, tmb%sparsemat)
-     call initSparseMatrix(iproc, nproc, tmblarge%lzd, in, tmblarge%orbs, tmblarge%sparsemat)
+     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%sparsemat)
+     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%sparsemat)
 
-     !call initSparseMatrix(iproc, nproc, tmb%lzd, in, tmb%orbs, tmb%linmat%ovrlp)
-     !call initSparseMatrix(iproc, nproc, tmblarge%lzd, in, tmblarge%orbs, tmb%linmat%ham)
-     !call initSparseMatrix(iproc, nproc, tmblarge%lzd, in, tmblarge%orbs, tmb%linmat%denskern)
+     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
+     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%ham)
+     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%denskern)
 
      ! move allocation from here into initsparsematrix?! or new allocatesparsematrix
-     allocate(tmb%linmat%denskern%matrix_compr(tmblarge%sparsemat%nvctr), stat=i_stat)
+     allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)

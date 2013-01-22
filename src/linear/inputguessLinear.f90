@@ -256,9 +256,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
 
 
-  allocate(tmb%linmat%ham%matrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
+  allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=istat)
   call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
-  allocate(tmb%linmat%ovrlp%matrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
+  allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)
   call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
 
   if (input%lin%scf_mode==LINEAR_FOE) then

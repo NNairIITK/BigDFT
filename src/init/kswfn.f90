@@ -129,10 +129,13 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, norb_cubic, iproc, nproc)
 
   call initMatrixCompression_foe(iproc, nproc, wfn%lzd, atoms, in, wfn%orbs, wfn%mad)
 
+  call create_wfn_metadata('l', wfn%orbs%norb, norb_cubic, wfn%orbs%norbp, in, wfn%wfnmd)
+
   call nullify_collective_comms(wfn%collcom)
   call nullify_collective_comms(wfn%collcom_sr)
 
-  call create_wfn_metadata('l', wfn%orbs%norb, norb_cubic, wfn%orbs%norbp, in, wfn%wfnmd)
+  call init_collective_comms(iproc, nproc, wfn%orbs, wfn%lzd, wfn%collcom)
+  call init_collective_comms_sumro(iproc, nproc, wfn%lzd, wfn%orbs, dpbox%nscatterarr, wfn%collcom_sr)
 
 END SUBROUTINE kswfn_init_comm
 

@@ -357,7 +357,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
           ! Calculate the charge density.
           call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               tmb%orbs, tmblarge%sparsemat, tmb%collcom_sr, tmb%linmat%denskern%matrix_compr, &
+               tmb%orbs, tmb%linmat%denskern, tmb%collcom_sr, tmb%linmat%denskern%matrix_compr, &
                KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
 
@@ -501,7 +501,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! END DEBUG
 
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%orbs, tmblarge%sparsemat, tmb%collcom_sr, tmb%linmat%denskern%matrix_compr, &
+       tmb%orbs, tmb%linmat%denskern, tmb%collcom_sr, tmb%linmat%denskern%matrix_compr, &
        KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
 
@@ -530,10 +530,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
       call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
 
-      allocate(tmb%linmat%ham%matrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
+      allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=istat)
       call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
 
-      allocate(tmb%linmat%ovrlp%matrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
+      allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)
       call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
 
 
@@ -615,10 +615,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                      rxyz, nlpspd, proj, GPU, KSwfn%orbs, tmb, tmblarge, denspot, rhopotold, energs)
                      energs%eexctX=0.0_gp
 
-                allocate(tmb%linmat%ham%matrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
+                allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=istat)
                 call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
 
-                allocate(tmb%linmat%ovrlp%matrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
+                allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)
                 call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
 
                 ! Give tmblarge%sparsemat since this is the correct matrix description
@@ -1025,19 +1025,19 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call deallocate_matrixDescriptors_foe(tmb%mad, subname)
      call deallocate_sparseMatrix(tmb%sparsemat, subname)
 
-     !call deallocate_sparseMatrix(tmb%linmat%denskern, subname)
-     !call deallocate_sparseMatrix(tmb%linmat%ham, subname)
-     !call deallocate_sparseMatrix(tmb%linmat%ovrlp, subname)
+     call deallocate_sparseMatrix(tmb%linmat%denskern, subname)
+     call deallocate_sparseMatrix(tmb%linmat%ham, subname)
+     call deallocate_sparseMatrix(tmb%linmat%ovrlp, subname)
 
-     iall=-product(shape(tmb%linmat%ham%matrix_compr))*kind(tmb%linmat%ham%matrix_compr)
-     deallocate(tmb%linmat%ham%matrix_compr, stat=istat)
-     call memocc(istat, iall, 'tmb%linmat%ham%matrix_compr', subname)
-     iall=-product(shape(tmb%linmat%ovrlp%matrix_compr))*kind(tmb%linmat%ovrlp%matrix_compr)
-     deallocate(tmb%linmat%ovrlp%matrix_compr, stat=istat)
-     call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix_compr', subname)
-     iall=-product(shape(tmb%linmat%denskern%matrix_compr))*kind(tmb%linmat%denskern%matrix_compr)
-     deallocate(tmb%linmat%denskern%matrix_compr, stat=istat)
-     call memocc(istat, iall, 'tmb%linmat%denskern%matrix_compr', subname)
+     !iall=-product(shape(tmb%linmat%ham%matrix_compr))*kind(tmb%linmat%ham%matrix_compr)
+     !deallocate(tmb%linmat%ham%matrix_compr, stat=istat)
+     !call memocc(istat, iall, 'tmb%linmat%ham%matrix_compr', subname)
+     !iall=-product(shape(tmb%linmat%ovrlp%matrix_compr))*kind(tmb%linmat%ovrlp%matrix_compr)
+     !deallocate(tmb%linmat%ovrlp%matrix_compr, stat=istat)
+     !call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix_compr', subname)
+     !iall=-product(shape(tmb%linmat%denskern%matrix_compr))*kind(tmb%linmat%denskern%matrix_compr)
+     !deallocate(tmb%linmat%denskern%matrix_compr, stat=istat)
+     !call memocc(istat, iall, 'tmb%linmat%denskern%matrix_compr', subname)
 
      allocate(locregCenter(3,lzd_tmp%nlr), stat=istat)
      call memocc(istat, locregCenter, 'locregCenter', subname)
@@ -1094,25 +1094,20 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged, tmblarge)
 
-     ! Update collective comms and sparse matrices
-     call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
-     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%collcom)
-     call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, &
-          denspot%dpbox%nscatterarr, tmb%collcom_sr)
-
+     ! Update sparse matrices
      ! to be removed once used correctly - as below
-     call initSparseMatrix(iproc, nproc, tmb%lzd, input, tmb%orbs, tmb%sparseMat)
-     call initSparseMatrix(iproc, nproc, tmblarge%lzd, input, tmblarge%orbs, tmblarge%sparseMat)
+     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%sparseMat)
+     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%sparseMat)
 
-     !call initSparseMatrix(iproc, nproc, tmb%lzd, input, tmb%orbs, tmb%linmat%ovrlp)
-     !call initSparseMatrix(iproc, nproc, tmblarge%lzd, input, tmblarge%orbs, tmb%linmat%ham)
-     !call initSparseMatrix(iproc, nproc, tmblarge%lzd, input, tmblarge%orbs, tmb%linmat%denskern)
+     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
+     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%ham)
+     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%denskern)
 
-     allocate(tmb%linmat%denskern%matrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
+     allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=istat)
      call memocc(istat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
-     allocate(tmb%linmat%ham%matrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
+     allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=istat)
      call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
-     allocate(tmb%linmat%ovrlp%matrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
+     allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)
      call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
 
   else ! no change in locrad, just confining potential that needs updating

@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, &
+subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
            energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
@@ -21,7 +21,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, it
   type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
-  real(8),dimension(tmblarge%sparsemat%nvctr),target,intent(in) :: kernel_compr
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
   real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
@@ -41,8 +40,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
-  real(kind=8),dimension(:),allocatable :: lagmat_compr, hpsi_conf, hpsi_tmp
+  real(kind=8),dimension(:),allocatable :: hpsi_conf, hpsi_tmp
   real(kind=8),dimension(:),pointer :: kernel_compr_tmp
+  type(sparseMatrix) :: lagmat
 
 
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
@@ -82,24 +82,24 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
           call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          allocate(kernel_compr_tmp(tmblarge%sparsemat%nvctr), stat=istat)
+          allocate(kernel_compr_tmp(tmb%linmat%denskern%nvctr), stat=istat)
           call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
-          call vcopy(tmblarge%sparsemat%nvctr, kernel_compr(1), 1, kernel_compr_tmp(1), 1)
+          !call vcopy(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
           ii=0
-          do iseg=1,tmblarge%sparsemat%nseg
-              do jorb=tmblarge%sparsemat%keyg(1,iseg),tmblarge%sparsemat%keyg(2,iseg)
+          do iseg=1,tmb%linmat%denskern%nseg
+              do jorb=tmb%linmat%denskern%keyg(1,iseg),tmb%linmat%denskern%keyg(2,iseg)
                   ii=ii+1
-                  iiorb = (jorb-1)/tmblarge%orbs%norb + 1
-                  jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
+                  iiorb = (jorb-1)/tmb%orbs%norb + 1
+                  jjorb = jorb - (iiorb-1)*tmb%orbs%norb
                   if(iiorb==jjorb) then
                       kernel_compr_tmp(ii)=0.d0
                   else
-                      kernel_compr_tmp(ii)=kernel_compr(ii)
+                      kernel_compr_tmp(ii)=tmb%linmat%denskern%matrix_compr(ii)
                   end if
               end do
           end do
       else
-          kernel_compr_tmp => kernel_compr
+          kernel_compr_tmp => tmb%linmat%denskern%matrix_compr
       end if
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
@@ -108,14 +108,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
           do iorb=tmblarge%orbs%isorb+1,tmblarge%orbs%isorb+tmblarge%orbs%norbp
               ilr=tmblarge%orbs%inwhichlocreg(iorb)
               ii=0
-              do iseg=1,tmblarge%sparsemat%nseg
-                  do jorb=tmblarge%sparsemat%keyg(1,iseg),tmblarge%sparsemat%keyg(2,iseg)
+              do iseg=1,tmb%linmat%denskern%nseg
+                  do jorb=tmb%linmat%denskern%keyg(1,iseg),tmb%linmat%denskern%keyg(2,iseg)
                       ii=ii+1
                       iiorb = (jorb-1)/tmblarge%orbs%norb + 1
                       jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
                       if(iiorb==jjorb .and. iiorb==iorb) then
                           ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-                          call dscal(ncount, kernel_compr(ii), tmblarge%hpsi(ist), 1)
+                          call dscal(ncount, tmb%linmat%denskern%matrix_compr(ii), tmblarge%hpsi(ist), 1)
                           ist=ist+ncount
                       end if
                   end do
@@ -123,52 +123,40 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
           end do
           call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
           call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
-               tmblarge%sparsemat, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
+               tmb%linmat%denskern, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
           deallocate(kernel_compr_tmp, stat=istat)
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
       else
-
           call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
-               tmblarge%sparsemat, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-
+               tmb%linmat%denskern, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
       end if
-
   end if
 
 
+  ! make lagmat a structure with same sparsity as h
+  call nullify_sparsematrix(lagmat)
+  call sparse_copy_pattern(tmb%linmat%ham, lagmat, subname)
+  allocate(lagmat%matrix_compr(lagmat%nvctr), stat=istat)
+  call memocc(istat, lagmat%matrix_compr, 'lagmat%matrix_compr', subname)
 
-  allocate(lagmat_compr(tmblarge%sparsemat%nvctr), stat=istat)
-  call memocc(istat, lagmat_compr, 'lagmat_compr', subname)
-
-  call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%sparsemat, &
-       tmblarge%collcom, tmblarge%orthpar, correction_orthoconstraint, tmblarge%psi, tmblarge%hpsi, &
-       lagmat_compr, tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
+  call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%collcom, tmblarge%orthpar, &
+       correction_orthoconstraint, tmb%linmat, tmblarge%psi, tmblarge%hpsi, lagmat, tmblarge%psit_c, tmblarge%psit_f, &
+       hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%hpsi, tmb%hpsi)
-
 
   if (present(hpsi_noprecond)) call dcopy(tmb%orbs%npsidim_orbs, tmb%hpsi, 1, hpsi_noprecond, 1)
 
   ! Calculate trace (or band structure energy, resp.)
   trH=0.d0
-  ii=0
-  do iseg=1,tmblarge%sparsemat%nseg
-      do jorb=tmblarge%sparsemat%keyg(1,iseg),tmblarge%sparsemat%keyg(2,iseg)
-          iiorb = (jorb-1)/tmb%orbs%norb + 1
-          jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
-          ii=ii+1
-          if (iiorb==jjorb) then
-              trH = trH + lagmat_compr(ii)
-          end if
-      end do
+
+  do iorb=1,tmb%orbs%norb
+     ii=lagmat%matrixindex_in_compressed(iorb,iorb)
+     trH = trH + lagmat%matrix_compr(ii)
   end do
 
-
-  iall=-product(shape(lagmat_compr))*kind(lagmat_compr)
-  deallocate(lagmat_compr, stat=istat)
-  call memocc(istat, iall, 'lagmat_compr', subname)
-
+  call deallocate_sparseMatrix(lagmat,subname)
 
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel

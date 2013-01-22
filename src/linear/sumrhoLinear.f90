@@ -1765,8 +1765,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, sparsemat, collcom_sr
   if (nproc>1) then
       call mpi_alltoallv(rho_local, collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
                          mpi_double_precision, rho, collcom_sr%nrecvcounts_repartitionrho, &
-                         collcom_sr%nrecvdspls_repartitionrho, mpi_double_precision, &
-                         bigdft_mpi%mpi_comm, ierr)
+                         collcom_sr%nrecvdspls_repartitionrho, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
       call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
   end if
