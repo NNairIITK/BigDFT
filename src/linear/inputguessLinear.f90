@@ -327,15 +327,15 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Important: Don't use for the rest of the code
   tmblarge%can_use_transposed = .false.
 
-  if(associated(tmblarge%psit_c)) then
-      iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
-      deallocate(tmblarge%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmblarge%psit_c', subname)
+  if(associated(tmb%psi_shamopt_c)) then
+      iall=-product(shape(tmb%psi_shamopt_c))*kind(tmb%psi_shamopt_c)
+      deallocate(tmb%psi_shamopt_c, stat=istat)
+      call memocc(istat, iall, 'tmb%psi_shamopt_c', subname)
   end if
-  if(associated(tmblarge%psit_f)) then
-      iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
-      deallocate(tmblarge%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmblarge%psit_f', subname)
+  if(associated(tmb%psi_shamopt_f)) then
+      iall=-product(shape(tmb%psi_shamopt_f))*kind(tmb%psi_shamopt_f)
+      deallocate(tmb%psi_shamopt_f, stat=istat)
+      call memocc(istat, iall, 'tmb%psi_shamopt_f', subname)
   end if
   
   if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'

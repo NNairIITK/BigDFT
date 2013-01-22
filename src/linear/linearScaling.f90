@@ -103,7 +103,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   !!   ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
   !!   ! that the outer part is not modified!
-  !!   if (tmb%orbs_shamop%npsidim_orbs > 0) call to_zero(tmb%orbs_shamop%npsidim_orbs,tmblarge%psi(1))
+  !!   if (tmb%orbs_shamop%npsidim_orbs > 0) call to_zero(tmb%orbs_shamop%npsidim_orbs,tmb%psi_shamop(1))
   !!end if
 
   ! Orthogonalize the input guess minimal basis functions using exact calculation of S^-1/2
@@ -186,14 +186,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           ! Reajust tmblarge also
           if(locreg_increased) then
              call destroy_new_locregs(iproc, nproc, tmb, tmblarge)
-             call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
+             call deallocate_auxiliary_basis_function(subname, tmb%psi_shamop, tmb%hpsi_shamop)
              if(tmblarge%can_use_transposed) then
-                 iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
-                 deallocate(tmblarge%psit_c, stat=istat)
-                 call memocc(istat, iall, 'tmblarge%psit_c', subname)
-                 iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
-                 deallocate(tmblarge%psit_f, stat=istat)
-                 call memocc(istat, iall, 'tmblarge%psit_f', subname)
+                 iall=-product(shape(tmb%psi_shamopt_c))*kind(tmb%psi_shamopt_c)
+                 deallocate(tmb%psi_shamopt_c, stat=istat)
+                 call memocc(istat, iall, 'tmb%psi_shamopt_c', subname)
+                 iall=-product(shape(tmb%psi_shamopt_f))*kind(tmb%psi_shamopt_f)
+                 deallocate(tmb%psi_shamopt_f, stat=istat)
+                 call memocc(istat, iall, 'tmb%psi_shamopt_f', subname)
              end if
              deallocate(tmblarge%confdatarr, stat=istat)
 
@@ -544,12 +544,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   end if
 
   if(tmblarge%can_use_transposed) then
-      iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
-      deallocate(tmblarge%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmblarge%psit_c', subname)
-      iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
-      deallocate(tmblarge%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmblarge%psit_f', subname)
+      iall=-product(shape(tmb%psi_shamopt_c))*kind(tmb%psi_shamopt_c)
+      deallocate(tmb%psi_shamopt_c, stat=istat)
+      call memocc(istat, iall, 'tmb%psi_shamopt_c', subname)
+      iall=-product(shape(tmb%psi_shamopt_f))*kind(tmb%psi_shamopt_f)
+      deallocate(tmb%psi_shamopt_f, stat=istat)
+      call memocc(istat, iall, 'tmb%psi_shamopt_f', subname)
   end if
   deallocate(tmblarge%confdatarr, stat=istat)
 
@@ -643,8 +643,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           if (input%lin%pulay_correction) then
              ! Check the input guess by calculation the Pulay forces.
 
-             call to_zero(tmb%orbs_shamop%npsidim_orbs,tmblarge%psi(1))
-             call small_to_large_locreg(iproc, nproc, tmb%lzd, tmb%lzd_shamop, tmb%orbs, tmb%orbs_shamop, tmb%psi, tmblarge%psi)
+             call to_zero(tmb%orbs_shamop%npsidim_orbs,tmb%psi_shamop(1))
+             call small_to_large_locreg(iproc, nproc, tmb%lzd, tmb%lzd_shamop, tmb%orbs, tmb%orbs_shamop, tmb%psi, tmb%psi_shamop)
 
              ! add get_coeff here
              ! - need some restructuring/reordering though, or addition of lots of extra initializations?!
@@ -1170,17 +1170,17 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
 
 
   call NonLocalHamiltonianApplication(iproc,at,tmb%orbs_shamop,rxyz,&
-       proj,tmb%lzd_shamop,nlpspd,tmblarge%psi,lhphilarge,energs%eproj)
+       proj,tmb%lzd_shamop,nlpspd,tmb%psi_shamop,lhphilarge,energs%eproj)
 
   ! only kinetic because waiting for communications
   call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs_shamop,&
-       tmb%lzd_shamop,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
+       tmb%lzd_shamop,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi_shamop,lhphilarge,&
        energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp_shamop)
   call full_local_potential(iproc,nproc,tmb%orbs_shamop,tmb%lzd_shamop,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
        tmb%comgp_shamop)
   ! only potential
   call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs_shamop,&
-       tmb%lzd_shamop,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
+       tmb%lzd_shamop,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi_shamop,lhphilarge,&
        energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp_shamop)
 
   call timing(iproc,'glsynchham1','ON') !lr408t
@@ -1205,7 +1205,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   call memocc(istat, psit_f, 'psit_f', subname)
 
   call transpose_localized(iproc, nproc, tmb%orbs_shamop,  tmb%collcom_shamop, &
-       tmblarge%psi, lpsit_c, lpsit_f, tmb%lzd_shamop)
+       tmb%psi_shamop, lpsit_c, lpsit_f, tmb%lzd_shamop)
 
   call transpose_localized(iproc, nproc, tmb%orbs_shamop,  tmb%collcom_shamop, &
        lhphilarge, hpsit_c, hpsit_f, tmb%lzd_shamop)
@@ -1218,7 +1218,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   jdir=1
   do jdir = 1, 3
      call get_derivative(jdir, tmb%orbs_shamop%npsidim_orbs, tmb%lzd_shamop%hgrids(1), tmb%orbs_shamop, &
-          tmb%lzd_shamop, tmblarge%psi, lhphilarge)
+          tmb%lzd_shamop, tmb%psi_shamop, lhphilarge)
 
      call transpose_localized(iproc, nproc, tmb%orbs_shamop,  tmb%collcom_shamop, &
           lhphilarge, psit_c, psit_f, tmb%lzd_shamop)
