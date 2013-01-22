@@ -816,7 +816,7 @@ module module_types
      integer :: istep_history !< present step of wfn history
      !data properties
      logical:: can_use_transposed !< true if the transposed quantities are allocated and can be used
-     type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
+     type(orbitals_data) :: orbs, orbs_shamop !<wavefunction specification in terms of orbitals
      type(communications_arrays) :: comms !< communication objects for the cubic approach
      type(diis_objects) :: diis
      type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential

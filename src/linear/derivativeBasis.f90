@@ -436,19 +436,19 @@ end subroutine get_one_derivative_supportfunction
   call memocc(istat,iall,'hpsit_f',subname)
 
   !First going to need the divergence of the derivative basis, to do this we need to derive it again.
-  !allocate(psidiv(tmblarge%orbs%npsidim_orbs), stat=istat)
+  !allocate(psidiv(tmb%orbs_shamop%npsidim_orbs), stat=istat)
   !call memocc(istat, psidiv, 'psidiv', subname)
-  !allocate(outflux(tmblarge%orbs%norb),stat=istat)
+  !allocate(outflux(tmb%orbs_shamop%norb),stat=istat)
   !call memocc(istat, outflux, 'outflux', subname)
 
-  !call get_divergence(tmblarge%orbs%npsidim_orbs,tmb%lzd_shamop%hgrids(1), tmb%lzd_shamop, tmblarge%orbs, tmbder%psi, psidiv)
+  !call get_divergence(tmb%orbs_shamop%npsidim_orbs,tmb%lzd_shamop%hgrids(1), tmb%lzd_shamop, tmb%orbs_shamop, tmbder%psi, psidiv)
 
   ! Now integrate the divergence only in the outer region (corresponds to a shell of 32 isf points because of large region).
   !!ldir = 1
   !!outflux = 0.0_dp
-  !!do iorb = 1, tmblarge%orbs%norbp
-  !!   iiorb = iorb + tmblarge%orbs%isorb
-  !!   ilr = tmblarge%orbs%inwhichlocreg(iiorb)
+  !!do iorb = 1, tmb%orbs_shamop%norbp
+  !!   iiorb = iorb + tmb%orbs_shamop%isorb
+  !!   ilr = tmb%orbs_shamop%inwhichlocreg(iiorb)
   !!   call initialize_work_arrays_sumrho(tmb%lzd_shamop%llr(ilr),w)
   !!   allocate(psir(tmb%lzd_shamop%llr(ilr)%d%n1i*tmb%lzd_shamop%llr(ilr)%d%n2i*tmb%lzd_shamop%llr(ilr)%d%n3i),stat=istat)
   !!   call memocc(istat,psir,'psir',subname)
@@ -472,12 +472,12 @@ end subroutine get_one_derivative_supportfunction
   !!   ldir = ldir + tmb%lzd_shamop%llr(ilr)%wfd%nvctr_c + 7*tmb%lzd_shamop%llr(ilr)%wfd%nvctr_f
   !!end do
 
-  !!call mpiallred(outflux(1),tmblarge%orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+  !!call mpiallred(outflux(1),tmb%orbs_shamop%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
   !!if(iproc == 0) then
   !!   factor = 0.5*tmb%lzd_shamop%hgrids(1)*0.5*tmb%lzd_shamop%hgrids(2)*0.5*tmb%lzd_shamop%hgrids(3)
-  !!   do iiorb = 1, tmblarge%orbs%norb
-  !!      print *,'Basis function ',iiorb,'on atom',tmblarge%orbs%onwhichatom(iiorb)
+  !!   do iiorb = 1, tmb%orbs_shamop%norb
+  !!      print *,'Basis function ',iiorb,'on atom',tmb%orbs_shamop%onwhichatom(iiorb)
   !!      print *,' has an outward flux of ', outflux(iiorb)!*factor
   !!   end do
   !!end if

@@ -1286,7 +1286,7 @@ subroutine destroy_new_locregs(iproc, nproc, tmb, tmblarge)
   call deallocate_p2pComms(tmb%comgp_shamop, subname)
 
   call deallocate_local_zone_descriptors(tmb%lzd_shamop, subname)
-  call deallocate_orbitals_data(tmblarge%orbs, subname)
+  call deallocate_orbitals_data(tmb%orbs_shamop, subname)
   call deallocate_overlapParameters(tmb%op_shamop, subname)
   call deallocate_p2pComms(tmb%comon_shamop, subname)
   call deallocate_matrixDescriptors(tmblarge%mad, subname)
@@ -1548,26 +1548,26 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
 
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-       at, input, tmb%orbs, tmb%lzd_shamop, tmblarge%orbs, tmb%op_shamop, tmb%comon_shamop, &
+       at, input, tmb%orbs, tmb%lzd_shamop, tmb%orbs_shamop, tmb%op_shamop, tmb%comon_shamop, &
        tmb%comgp_shamop, tmblarge%mad, tmb%collcom_shamop)
-  call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
+  call allocate_auxiliary_basis_function(max(tmb%orbs_shamop%npsidim_comp,tmb%orbs_shamop%npsidim_orbs), subname, &
        tmblarge%psi, tmblarge%hpsi)
   !!call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
   tmblarge%can_use_transposed=.false.
   nullify(tmblarge%psit_c)
   nullify(tmblarge%psit_f)
-  allocate(tmblarge%confdatarr(tmblarge%orbs%norbp), stat=istat)
+  allocate(tmblarge%confdatarr(tmb%orbs_shamop%norbp), stat=istat)
 
-  call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, tmblarge%orbs%onwhichatom(1), 1)
+  call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, tmb%orbs_shamop%onwhichatom(1), 1)
 
   if(.not.lowaccur_converged) then
-      call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
+      call define_confinement_data(tmblarge%confdatarr,tmb%orbs_shamop,rxyz,at,&
            tmb%lzd_shamop%hgrids(1),tmb%lzd_shamop%hgrids(2),tmb%lzd_shamop%hgrids(3),&
-           4,input%lin%potentialPrefac_lowaccuracy,tmb%lzd_shamop,tmblarge%orbs%onwhichatom)
+           4,input%lin%potentialPrefac_lowaccuracy,tmb%lzd_shamop,tmb%orbs_shamop%onwhichatom)
   else
-      call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
+      call define_confinement_data(tmblarge%confdatarr,tmb%orbs_shamop,rxyz,at,&
            tmb%lzd_shamop%hgrids(1),tmb%lzd_shamop%hgrids(2),tmb%lzd_shamop%hgrids(3),&
-           4,input%lin%potentialPrefac_highaccuracy,tmb%lzd_shamop,tmblarge%orbs%onwhichatom)
+           4,input%lin%potentialPrefac_highaccuracy,tmb%lzd_shamop,tmb%orbs_shamop%onwhichatom)
   end if
 
   iall=-product(shape(locregCenter))*kind(locregCenter)

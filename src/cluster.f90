@@ -406,7 +406,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., & 
            tmblarge)
      call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
-     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmb%lzd_shamop, tmblarge%mad, tmb%collcom_shamop)
+     call init_collective_comms(iproc, nproc, tmb%orbs_shamop, tmb%lzd_shamop, tmblarge%mad, tmb%collcom_shamop)
      call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%mad, denspot%dpbox%nscatterarr, tmb%collcom_sr)
   else
      allocate(denspot0(1+ndebug), stat=i_stat)

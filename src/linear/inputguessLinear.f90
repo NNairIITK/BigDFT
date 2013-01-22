@@ -226,8 +226,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   do iseg=1,tmblarge%mad%nseg
       do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
           ii=ii+1
-          iiorb = (jorb-1)/tmblarge%orbs%norb + 1
-          jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
+          iiorb = (jorb-1)/tmb%orbs_shamop%norb + 1
+          jjorb = jorb - (iiorb-1)*tmb%orbs_shamop%norb
           if(iiorb==jjorb) then
               density_kernel_compr(ii)=1.d0*tmb%orbs%occup(inversemapping(iiorb))
           else
