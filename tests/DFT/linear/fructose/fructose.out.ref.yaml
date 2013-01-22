@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-01-22 11:12:28.521
+ Timestamp of this run                 : 2013-01-22 11:59:45.731
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -64,7 +64,7 @@
  #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
  #|ef_interpol_det  1.00E-12    FOE: max determinant of cubic interpolation matrix           
  #|ef_interpol_chargediff  1.00EFOE: max charge difference for interpolation                 
- #|mixing_after_inputguess F    mixing step after linear input guess (T/F)                   
+ #|mixing_after_inputguess T    mixing step after linear input guess (T/F)                   
  #... (file:input.dft)............................................DFT Calculation Parameters
  #|0.45 0.45 0.45  hx,hy,hz: grid spacing in the three directions                            
  #|4.0  5.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -481,14 +481,14 @@
  Non Local forces calculated           :  Yes
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  98.22
-   Elapsed time (s)                    :  49.44
+   CPU time (s)                        :  91.51
+   Elapsed time (s)                    :  45.96
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 115934
-   Tot. No. of Deallocations: 115934
+   Tot. No. of Allocations  : 115592
+   Tot. No. of Deallocations: 115592
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 255
