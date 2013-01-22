@@ -1285,7 +1285,6 @@ subroutine destroy_new_locregs(iproc, nproc, tmb, tmblarge)
   call deallocate_local_zone_descriptors(tmb%lzd_shamop, subname)
   call deallocate_orbitals_data(tmb%orbs_shamop, subname)
   call deallocate_overlapParameters(tmb%op_shamop, subname)
-  call deallocate_p2pComms(tmb%comon_shamop, subname)
   call deallocate_matrixDescriptors(tmblarge%mad, subname)
 
   call deallocate_collective_comms(tmb%collcom_shamop, subname)

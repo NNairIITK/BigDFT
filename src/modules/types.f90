@@ -837,7 +837,7 @@ module module_types
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
      type(wfn_metadata) :: wfnmd !<specifications of the kind of wavefunction
-     type(p2pComms):: comon, comon_shamop !<describing p2p communications for orthonormality
+     type(p2pComms):: comon !<describing p2p communications for orthonormality
      type(overlapParameters):: op, op_shamop !<describing the overlaps
      type(p2pComms):: comgp, comgp_shamop !<describing p2p communications for distributing the potential
      type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
