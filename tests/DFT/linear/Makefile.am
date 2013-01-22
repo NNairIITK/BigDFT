@@ -3,12 +3,12 @@ TESTDIRS = Locreg \
 	   base \
 	   mixpotential \
 	   cleanup \
-           onlyhigh \
+       onlyhigh \
 	   restartdisk \
-           directmin \
+       directmin \
 	   foe \
 	   geopt \
-	   testforces
+	   testforces \
 	   fructose
 
 EXTRA_TESTDIRS = water \
