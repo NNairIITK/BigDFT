@@ -1676,7 +1676,7 @@ subroutine transpose_unswitch_psir(collcom_sr, psirwork, psir)
 
 end subroutine transpose_unswitch_psir
 
-subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, sparsemat, collcom_sr, kernel_compr, ndimrho, rho)
+subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, denskern, ndimrho, rho)
   use module_base
   use module_types
   use libxc_functionals
@@ -1686,15 +1686,14 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, sparsemat, collcom_sr
   integer,intent(in) :: iproc, nproc, ndimrho
   real(kind=8),intent(in) :: hx, hy, hz
   type(orbitals_data),intent(in) :: orbs
-  type(sparseMatrix),intent(in) :: sparsemat
   type(collective_comms),intent(in) :: collcom_sr
-  real(kind=8),dimension(sparsemat%nvctr),intent(in) :: kernel_compr
+  type(sparseMatrix),intent(in) :: denskern
   real(kind=8),dimension(ndimrho),intent(out) :: rho
 
   ! Local variables
   integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind
   real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1
-  real(kind=8),dimension(:),allocatable :: rho_local, kernel_compr_pad
+  real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
 
 
@@ -1720,14 +1719,9 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, sparsemat, collcom_sr
 
   if (iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
 
-  allocate(kernel_compr_pad(0:sparsemat%nvctr), stat=istat)
-  call memocc(istat, kernel_compr_pad, 'kernel_compr_pad', subname)
-  kernel_compr_pad(0)=0.d0
-  call vcopy(sparsemat%nvctr, kernel_compr(1), 1, kernel_compr_pad(1), 1)
-
   total_charge=0.d0
   !$omp parallel default(private) &
-  !$omp shared(total_charge, collcom_sr, factor, kernel_compr_pad, rho_local)
+  !$omp shared(total_charge, collcom_sr, factor, denskern%matrix_compr, rho_local)
   !$omp do schedule(static,50) reduction(+:total_charge)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
@@ -1736,12 +1730,13 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, sparsemat, collcom_sr
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
           tt1=collcom_sr%psit_c(i0+i)
-          ind=sparsemat%matrixindex_in_compressed(iiorb,iiorb)
-          tt=tt+kernel_compr_pad(ind)*tt1*tt1
+          ind=denskern%matrixindex_in_compressed(iiorb,iiorb)
+          tt=tt+denskern%matrix_compr(ind)*tt1*tt1
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
-              ind=sparsemat%matrixindex_in_compressed(jjorb,iiorb)
-              tt=tt+2.0_dp*kernel_compr_pad(ind)*tt1*collcom_sr%psit_c(i0+j)
+              ind=denskern%matrixindex_in_compressed(jjorb,iiorb)
+              if (ind==0) cycle
+              tt=tt+2.0_dp*denskern%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
           end do
       end do
       tt=factor*tt
@@ -1750,10 +1745,6 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, sparsemat, collcom_sr
   end do
   !$omp end do
   !$omp end parallel
-
-  iall=-product(shape(kernel_compr_pad))*kind(kernel_compr_pad)
-  deallocate(kernel_compr_pad, stat=istat)
-  call memocc(istat, iall, 'kernel_compr_pad', subname)
 
   if (iproc==0) write(*,'(a)') 'done.'
 
