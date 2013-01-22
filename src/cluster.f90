@@ -406,7 +406,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., & 
            tmblarge)
      call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
-     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmb%collcom_shamop)
+     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmb%lzd_shamop, tmblarge%mad, tmb%collcom_shamop)
      call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%mad, denspot%dpbox%nscatterarr, tmb%collcom_sr)
   else
      allocate(denspot0(1+ndebug), stat=i_stat)
@@ -799,7 +799,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          call deallocate_collective_comms(tmb%collcom, subname)
          call deallocate_collective_comms(tmb%collcom_shamop, subname)
          call deallocate_collective_comms(tmb%collcom_sr, subname)
-         call deallocate_collective_comms(tmblarge%collcom_sr, subname)
          call deallocate_p2pComms(tmb%comon, subname)
          call deallocate_p2pComms(tmb%comon_shamop, subname)
          call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
@@ -830,7 +829,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          !!     tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
          !!call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
          !!     KSwfn%Lzd%hgrids(3),atoms,rxyz,&
-         !!     tmb%orbs,nlpspd,proj,tmblarge%lzd,tmblarge%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
+         !!     tmb%orbs,nlpspd,proj,tmb%lzd_shamop,tmblarge%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
          !!if (nproc > 1) then
          !!   call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
          !!end if

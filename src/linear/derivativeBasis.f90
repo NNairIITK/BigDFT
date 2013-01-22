@@ -441,7 +441,7 @@ end subroutine get_one_derivative_supportfunction
   !allocate(outflux(tmblarge%orbs%norb),stat=istat)
   !call memocc(istat, outflux, 'outflux', subname)
 
-  !call get_divergence(tmblarge%orbs%npsidim_orbs,tmblarge%lzd%hgrids(1), tmblarge%lzd, tmblarge%orbs, tmbder%psi, psidiv)
+  !call get_divergence(tmblarge%orbs%npsidim_orbs,tmb%lzd_shamop%hgrids(1), tmb%lzd_shamop, tmblarge%orbs, tmbder%psi, psidiv)
 
   ! Now integrate the divergence only in the outer region (corresponds to a shell of 32 isf points because of large region).
   !!ldir = 1
@@ -449,18 +449,18 @@ end subroutine get_one_derivative_supportfunction
   !!do iorb = 1, tmblarge%orbs%norbp
   !!   iiorb = iorb + tmblarge%orbs%isorb
   !!   ilr = tmblarge%orbs%inwhichlocreg(iiorb)
-  !!   call initialize_work_arrays_sumrho(tmblarge%lzd%llr(ilr),w)
-  !!   allocate(psir(tmblarge%lzd%llr(ilr)%d%n1i*tmblarge%lzd%llr(ilr)%d%n2i*tmblarge%lzd%llr(ilr)%d%n3i),stat=istat)
+  !!   call initialize_work_arrays_sumrho(tmb%lzd_shamop%llr(ilr),w)
+  !!   allocate(psir(tmb%lzd_shamop%llr(ilr)%d%n1i*tmb%lzd_shamop%llr(ilr)%d%n2i*tmb%lzd_shamop%llr(ilr)%d%n3i),stat=istat)
   !!   call memocc(istat,psir,'psir',subname)
-  !!   call daub_to_isf(tmblarge%lzd%llr(ilr),w,psidiv(ldir),psir)
-  !!   !call daub_to_isf(tmblarge%lzd%llr(ilr),w,tmblarge%psi(ldir),psir)
-  !!   do i1 = 1, tmblarge%lzd%llr(ilr)%d%n1i
-  !!      if(i1 > 32 .and. tmblarge%lzd%llr(ilr)%d%n1i-i1 > 32) cycle
-  !!      do i2 = 1 , tmblarge%lzd%llr(ilr)%d%n2i
-  !!         if(i2 > 32 .and. tmblarge%lzd%llr(ilr)%d%n2i-i2 > 32) cycle
-  !!         do i3 = 1, tmblarge%lzd%llr(ilr)%d%n3i 
-  !!            if(i3 > 32 .and. tmblarge%lzd%llr(ilr)%d%n3i-i3 > 32) cycle
-  !!            ipt = (i3-1)*tmblarge%lzd%llr(ilr)%d%n2i*tmblarge%lzd%llr(ilr)%d%n1i + (i2-1)*tmblarge%lzd%llr(ilr)%d%n1i + i1
+  !!   call daub_to_isf(tmb%lzd_shamop%llr(ilr),w,psidiv(ldir),psir)
+  !!   !call daub_to_isf(tmb%lzd_shamop%llr(ilr),w,tmblarge%psi(ldir),psir)
+  !!   do i1 = 1, tmb%lzd_shamop%llr(ilr)%d%n1i
+  !!      if(i1 > 32 .and. tmb%lzd_shamop%llr(ilr)%d%n1i-i1 > 32) cycle
+  !!      do i2 = 1 , tmb%lzd_shamop%llr(ilr)%d%n2i
+  !!         if(i2 > 32 .and. tmb%lzd_shamop%llr(ilr)%d%n2i-i2 > 32) cycle
+  !!         do i3 = 1, tmb%lzd_shamop%llr(ilr)%d%n3i 
+  !!            if(i3 > 32 .and. tmb%lzd_shamop%llr(ilr)%d%n3i-i3 > 32) cycle
+  !!            ipt = (i3-1)*tmb%lzd_shamop%llr(ilr)%d%n2i*tmb%lzd_shamop%llr(ilr)%d%n1i + (i2-1)*tmb%lzd_shamop%llr(ilr)%d%n1i + i1
   !!            outflux(iiorb) = outflux(iiorb) + psir(ipt)!*psir(ipt)
   !!         end do
   !!      end do 
@@ -469,13 +469,13 @@ end subroutine get_one_derivative_supportfunction
   !!   iall = -product(shape(psir))*kind(psir)
   !!   deallocate(psir,stat=istat)
   !!   call memocc(istat,iall,'psir',subname)
-  !!   ldir = ldir + tmblarge%lzd%llr(ilr)%wfd%nvctr_c + 7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
+  !!   ldir = ldir + tmb%lzd_shamop%llr(ilr)%wfd%nvctr_c + 7*tmb%lzd_shamop%llr(ilr)%wfd%nvctr_f
   !!end do
 
   !!call mpiallred(outflux(1),tmblarge%orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
   !!if(iproc == 0) then
-  !!   factor = 0.5*tmblarge%lzd%hgrids(1)*0.5*tmblarge%lzd%hgrids(2)*0.5*tmblarge%lzd%hgrids(3)
+  !!   factor = 0.5*tmb%lzd_shamop%hgrids(1)*0.5*tmb%lzd_shamop%hgrids(2)*0.5*tmb%lzd_shamop%hgrids(3)
   !!   do iiorb = 1, tmblarge%orbs%norb
   !!      print *,'Basis function ',iiorb,'on atom',tmblarge%orbs%onwhichatom(iiorb)
   !!      print *,' has an outward flux of ', outflux(iiorb)!*factor

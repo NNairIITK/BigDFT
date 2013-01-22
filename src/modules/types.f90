@@ -810,7 +810,7 @@ module module_types
      real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
      !basis sets
      type(gaussian_basis) :: gbd !<gaussian basis description, if associated
-     type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
+     type(local_zone_descriptors) :: lzd, lzd_shamop !< data on the localisation regions, if associated
      !restart objects (consider to move them in rst structure)
      type(old_wavefunction), dimension(:), pointer :: oldpsis !< previously calculated wfns
      integer :: istep_history !< present step of wfn history
