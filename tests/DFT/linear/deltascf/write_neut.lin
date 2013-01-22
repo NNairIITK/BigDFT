@@ -3,7 +3,7 @@
 4        2                       basis iterations (low, high)
 5        5                       kernel iterations (low, high)
 0        0                       DIIS history for basis (low, high)
-3        3                       DIIS history for kernel (low, high)
+0        0                       DIIS history for kernel (low, high)
 .4d0     .4d0                    density mixing parameter (low, high)
 1.d-8    1.d-8                   outer loop convergence (low, high)
 5.d-6    1.d-6                   basis convergence (low, high)

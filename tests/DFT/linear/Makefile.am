@@ -1,23 +1,20 @@
 # Give here the list of existing tests
 TESTDIRS = Locreg \
-	       base \
-	       mixpotential \
-	       cleanup \
+	   base \
+	   mixpotential \
+	   cleanup \
            onlyhigh \
-	       restartdisk \
+	   restartdisk \
            directmin \
-	       foe \
-	       geopt \
-	       testforces \
-		   paracetamol \
-		   fructose
+	   foe \
+	   geopt \
+	   testforces
+	   fructose
 
-EXTRA_TESTDIRS =  water \
-                  molecule \
-                  deltascf \
-                  reformat \
-	              hybridlarge \
-				  penicillin-G
+EXTRA_TESTDIRS = water \
+                 molecule \
+                 deltascf \
+                 reformat
 
 EXTRA_DIST = 
 

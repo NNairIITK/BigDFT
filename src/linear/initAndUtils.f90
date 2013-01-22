@@ -1031,7 +1031,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locr
 
   call deallocate_orbitals_data(tmb%orbs, subname)
   call deallocate_overlapParameters(tmb%op, subname)
-  call deallocate_p2pComms(tmb%comon, subname)
   call deallocate_matrixDescriptors(tmb%mad, subname)
   call deallocate_collective_comms(tmb%collcom, subname)
   call deallocate_collective_comms(tmb%collcom_sr, subname)
@@ -1039,7 +1038,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locr
   call deallocate_local_zone_descriptors(lzd, subname)
   call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, orbs_tmp%inwhichlocreg, locregCenter, lzd_tmp%glr, &
        .false., denspot%dpbox%nscatterarr, hx, hy, hz, at, input, &
-       orbs_tmp, lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%mad, &
+       orbs_tmp, lzd, tmb%orbs, tmb%op, tmb%comgp, tmb%mad, &
        tmb%collcom, tmb%collcom_sr)
 
   if(transform) then
@@ -1080,7 +1079,7 @@ end subroutine redefine_locregs_quantities
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
            useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-           orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, lbmad, lbcollcom, lbcollcom_sr)
+           orbs_tmp, lzd, llborbs, lbop, lbcomgp, lbmad, lbcollcom, lbcollcom_sr)
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
@@ -1101,7 +1100,6 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   type(local_zone_descriptors),intent(inout) :: lzd
   type(orbitals_data),intent(inout) :: llborbs
   type(overlapParameters),intent(inout) :: lbop
-  type(p2pComms),intent(inout) :: lbcomon
   type(p2pComms),intent(inout) :: lbcomgp
   type(matrixDescriptors),intent(inout) :: lbmad
   type(collective_comms),intent(inout) :: lbcollcom
@@ -1111,10 +1109,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   integer :: norb, norbu, norbd, nspin, iorb, istat, ilr, npsidim, i, ii, ndim
   character(len=*),parameter :: subname='update_locreg'
 
-  call timing(iproc,'updatelocreg1','ON') !lr408t
+  call timing(iproc,'updatelocreg1','ON') 
   call nullify_orbitals_data(llborbs)
   call nullify_overlapParameters(lbop)
-  call nullify_p2pComms(lbcomon)
   call nullify_matrixDescriptors(lbmad)
   call nullify_collective_comms(lbcollcom)
   if (present(lbcollcom_sr)) then
@@ -1149,9 +1146,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   end do
 
   lzd%nlr=nlr
-  call timing(iproc,'updatelocreg1','OF') !lr408t
+  call timing(iproc,'updatelocreg1','OF') 
   call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, at, lzd, orbs_tmp, glr_tmp, locrad, 's')!, llborbs)
-  call timing(iproc,'updatelocreg1','ON') !lr408t
+  call timing(iproc,'updatelocreg1','ON') 
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
   lzd%hgrids(1)=hx
@@ -1169,9 +1166,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   llborbs%eval=-.5d0
   llborbs%npsidim_orbs=max(npsidim,1)
 
-  call timing(iproc,'updatelocreg1','OF') !lr408t
+  call timing(iproc,'updatelocreg1','OF') 
 
-  call initCommsOrtho(iproc, nproc, nspin, lzd, llborbs, 's', lbop, lbcomon)
+  call initCommsOrtho(iproc, nproc, nspin, lzd, llborbs, 's', lbop)
   ndim = maxval(lbop%noverlaps)
   call initMatrixCompression(iproc, nproc, ndim, lzd, at, input, llborbs, &
        lbop%noverlaps, lbop%overlaps, lbmad)
@@ -1339,7 +1336,6 @@ subroutine destroy_DFT_wavefunction(wfn)
   call memocc(istat, iall, 'wfn%psi', subname)
 
   call deallocate_overlapParameters(wfn%op, subname)
-  call deallocate_p2pComms(wfn%comon, subname)
   call deallocate_p2pComms(wfn%comgp, subname)
   call deallocate_p2pComms(wfn%comrp, subname)
   call deallocate_matrixDescriptors(wfn%mad, subname)
@@ -1548,7 +1544,7 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
 
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-       at, input, tmb%orbs, tmb%lzd_shamop, tmb%orbs_shamop, tmb%op_shamop, tmb%comon_shamop, &
+       at, input, tmb%orbs, tmb%lzd_shamop, tmb%orbs_shamop, tmb%op_shamop, &
        tmb%comgp_shamop, tmblarge%mad, tmb%collcom_shamop)
   call allocate_auxiliary_basis_function(max(tmb%orbs_shamop%npsidim_comp,tmb%orbs_shamop%npsidim_orbs), subname, &
        tmb%psi_shamop, tmb%hpsi_shamop)
