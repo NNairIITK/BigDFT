@@ -188,12 +188,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
              call destroy_new_locregs(iproc, nproc, tmb, tmblarge)
              call deallocate_auxiliary_basis_function(subname, tmb%psi_shamop, tmb%hpsi_shamop)
              if(tmblarge%can_use_transposed) then
-                 iall=-product(shape(tmb%psi_shamopt_c))*kind(tmb%psi_shamopt_c)
-                 deallocate(tmb%psi_shamopt_c, stat=istat)
-                 call memocc(istat, iall, 'tmb%psi_shamopt_c', subname)
-                 iall=-product(shape(tmb%psi_shamopt_f))*kind(tmb%psi_shamopt_f)
-                 deallocate(tmb%psi_shamopt_f, stat=istat)
-                 call memocc(istat, iall, 'tmb%psi_shamopt_f', subname)
+                 iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+                 deallocate(tmb%psit_c, stat=istat)
+                 call memocc(istat, iall, 'tmb%psit_c', subname)
+                 iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+                 deallocate(tmb%psit_f, stat=istat)
+                 call memocc(istat, iall, 'tmb%psit_f', subname)
              end if
              deallocate(tmblarge%confdatarr, stat=istat)
 
@@ -544,12 +544,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   end if
 
   if(tmblarge%can_use_transposed) then
-      iall=-product(shape(tmb%psi_shamopt_c))*kind(tmb%psi_shamopt_c)
-      deallocate(tmb%psi_shamopt_c, stat=istat)
-      call memocc(istat, iall, 'tmb%psi_shamopt_c', subname)
-      iall=-product(shape(tmb%psi_shamopt_f))*kind(tmb%psi_shamopt_f)
-      deallocate(tmb%psi_shamopt_f, stat=istat)
-      call memocc(istat, iall, 'tmb%psi_shamopt_f', subname)
+      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+      deallocate(tmb%psit_c, stat=istat)
+      call memocc(istat, iall, 'tmb%psit_c', subname)
+      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+      deallocate(tmb%psit_f, stat=istat)
+      call memocc(istat, iall, 'tmb%psit_f', subname)
   end if
   deallocate(tmblarge%confdatarr, stat=istat)
 

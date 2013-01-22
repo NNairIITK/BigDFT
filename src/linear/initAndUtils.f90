@@ -1554,8 +1554,8 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
        tmb%psi_shamop, tmb%hpsi_shamop)
   !!call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
   tmblarge%can_use_transposed=.false.
-  nullify(tmb%psi_shamopt_c)
-  nullify(tmb%psi_shamopt_f)
+  nullify(tmb%psit_c)
+  nullify(tmb%psit_f)
   allocate(tmblarge%confdatarr(tmb%orbs_shamop%norbp), stat=istat)
 
   call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, tmb%orbs_shamop%onwhichatom(1), 1)

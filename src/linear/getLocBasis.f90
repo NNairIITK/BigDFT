@@ -126,23 +126,23 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       ! Calculate the matrix elements <phi|H|phi>.
       if(.not.tmblarge%can_use_transposed) then
-          if(associated(tmb%psi_shamopt_c)) then
-              iall=-product(shape(tmb%psi_shamopt_c))*kind(tmb%psi_shamopt_c)
-              deallocate(tmb%psi_shamopt_c, stat=istat)
-              call memocc(istat, iall, 'tmb%psi_shamopt_c', subname)
+          if(associated(tmb%psit_c)) then
+              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+              deallocate(tmb%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_c', subname)
           end if
-          if(associated(tmb%psi_shamopt_f)) then
-              iall=-product(shape(tmb%psi_shamopt_f))*kind(tmb%psi_shamopt_f)
-              deallocate(tmb%psi_shamopt_f, stat=istat)
-              call memocc(istat, iall, 'tmb%psi_shamopt_f', subname)
+          if(associated(tmb%psit_f)) then
+              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+              deallocate(tmb%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_f', subname)
           end if
 
-          allocate(tmb%psi_shamopt_c(tmb%collcom_shamop%ndimind_c), stat=istat)
-          call memocc(istat, tmb%psi_shamopt_c, 'tmb%psi_shamopt_c', subname)
-          allocate(tmb%psi_shamopt_f(7*tmb%collcom_shamop%ndimind_f), stat=istat)
-          call memocc(istat, tmb%psi_shamopt_f, 'tmb%psi_shamopt_f', subname)
+          allocate(tmb%psit_c(tmb%collcom_shamop%ndimind_c), stat=istat)
+          call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+          allocate(tmb%psit_f(7*tmb%collcom_shamop%ndimind_f), stat=istat)
+          call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
           call transpose_localized(iproc, nproc, tmb%orbs_shamop,  tmb%collcom_shamop, &
-               tmb%psi_shamop, tmb%psi_shamopt_c, tmb%psi_shamopt_f, tmb%lzd_shamop)
+               tmb%psi_shamop, tmb%psit_c, tmb%psit_f, tmb%lzd_shamop)
           tmblarge%can_use_transposed=.true.
       end if
 
@@ -153,7 +153,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call transpose_localized(iproc, nproc, tmb%orbs_shamop,  tmb%collcom_shamop, &
            tmb%hpsi_shamop, hpsit_c, hpsit_f, tmb%lzd_shamop)
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs_shamop, tmblarge%mad, tmb%collcom_shamop, &
-           tmb%psi_shamopt_c, hpsit_c, tmb%psi_shamopt_f, hpsit_f, ham_compr)
+           tmb%psit_c, hpsit_c, tmb%psit_f, hpsit_f, ham_compr)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)
       call memocc(istat, iall, 'hpsit_c', subname)
@@ -542,15 +542,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end if
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
-          if(associated(tmb%psi_shamopt_c)) then
-              iall=-product(shape(tmb%psi_shamopt_c))*kind(tmb%psi_shamopt_c)
-              deallocate(tmb%psi_shamopt_c, stat=istat)
-              call memocc(istat, iall, 'tmb%psi_shamopt_c', subname)
+          if(associated(tmb%psit_c)) then
+              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+              deallocate(tmb%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_c', subname)
           end if
-          if(associated(tmb%psi_shamopt_f)) then
-              iall=-product(shape(tmb%psi_shamopt_f))*kind(tmb%psi_shamopt_f)
-              deallocate(tmb%psi_shamopt_f, stat=istat)
-              call memocc(istat, iall, 'tmb%psi_shamopt_f', subname)
+          if(associated(tmb%psit_f)) then
+              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+              deallocate(tmb%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_f', subname)
               tmblarge%can_use_transposed=.false.
           end if
           if(iproc==0) write(*,*) 'it_tot',it_tot
@@ -599,7 +599,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
               ! iteration of get_coeff.
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs_shamop, tmblarge%mad, tmb%collcom_shamop, &
-                   tmb%psi_shamopt_c, hpsit_c_tmp, tmb%psi_shamopt_f, hpsit_f_tmp, ham_compr)
+                   tmb%psit_c, hpsit_c_tmp, tmb%psit_f, hpsit_f_tmp, ham_compr)
           end if
 
           exit iterLoop
@@ -618,12 +618,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       overlap_calculated=.false.
       ! It is now not possible to use the transposed quantities, since they have changed.
       if(tmblarge%can_use_transposed) then
-          iall=-product(shape(tmb%psi_shamopt_c))*kind(tmb%psi_shamopt_c)
-          deallocate(tmb%psi_shamopt_c, stat=istat)
-          call memocc(istat, iall, 'tmb%psi_shamopt_c', subname)
-          iall=-product(shape(tmb%psi_shamopt_f))*kind(tmb%psi_shamopt_f)
-          deallocate(tmb%psi_shamopt_f, stat=istat)
-          call memocc(istat, iall, 'tmb%psi_shamopt_f', subname)
+          iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+          deallocate(tmb%psit_c, stat=istat)
+          call memocc(istat, iall, 'tmb%psit_c', subname)
+          iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+          deallocate(tmb%psit_f, stat=istat)
+          call memocc(istat, iall, 'tmb%psit_f', subname)
           tmblarge%can_use_transposed=.false.
       end if
 
