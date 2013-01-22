@@ -1552,20 +1552,19 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
        tmb%comgp_shamop, tmblarge%mad, tmb%collcom_shamop)
   call allocate_auxiliary_basis_function(max(tmb%orbs_shamop%npsidim_comp,tmb%orbs_shamop%npsidim_orbs), subname, &
        tmb%psi_shamop, tmb%hpsi_shamop)
-  !!call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
-  tmblarge%can_use_transposed=.false.
+  tmb%can_use_transposed_shamop=.false.
   nullify(tmb%psit_c_shamop)
   nullify(tmb%psit_f_shamop)
-  allocate(tmblarge%confdatarr(tmb%orbs_shamop%norbp), stat=istat)
+  allocate(tmb%confdatarr_shamop(tmb%orbs_shamop%norbp), stat=istat)
 
   call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, tmb%orbs_shamop%onwhichatom(1), 1)
 
   if(.not.lowaccur_converged) then
-      call define_confinement_data(tmblarge%confdatarr,tmb%orbs_shamop,rxyz,at,&
+      call define_confinement_data(tmb%confdatarr_shamop,tmb%orbs_shamop,rxyz,at,&
            tmb%lzd_shamop%hgrids(1),tmb%lzd_shamop%hgrids(2),tmb%lzd_shamop%hgrids(3),&
            4,input%lin%potentialPrefac_lowaccuracy,tmb%lzd_shamop,tmb%orbs_shamop%onwhichatom)
   else
-      call define_confinement_data(tmblarge%confdatarr,tmb%orbs_shamop,rxyz,at,&
+      call define_confinement_data(tmb%confdatarr_shamop,tmb%orbs_shamop,rxyz,at,&
            tmb%lzd_shamop%hgrids(1),tmb%lzd_shamop%hgrids(2),tmb%lzd_shamop%hgrids(3),&
            4,input%lin%potentialPrefac_highaccuracy,tmb%lzd_shamop,tmb%orbs_shamop%onwhichatom)
   end if
@@ -1584,8 +1583,8 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
   allocate(tmb%wfnmd%density_kernel_compr(tmblarge%mad%nvctr), stat=istat)
   call memocc(istat, tmb%wfnmd%density_kernel_compr, 'tmb%wfnmd%density_kernel_compr', subname)
 
-  ! Use only one density kernel
-  tmblarge%wfnmd%density_kernel_compr => tmb%wfnmd%density_kernel_compr
+  !!! Use only one density kernel
+  !!tmblarge%wfnmd%density_kernel_compr => tmb%wfnmd%density_kernel_compr
 
 end subroutine create_large_tmbs
 

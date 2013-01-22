@@ -816,11 +816,11 @@ module module_types
      type(old_wavefunction), dimension(:), pointer :: oldpsis !< previously calculated wfns
      integer :: istep_history !< present step of wfn history
      !data properties
-     logical:: can_use_transposed !< true if the transposed quantities are allocated and can be used
+     logical:: can_use_transposed,can_use_transposed_shamop !< true if the transposed quantities are allocated and can be used
      type(orbitals_data) :: orbs, orbs_shamop !<wavefunction specification in terms of orbitals
      type(communications_arrays) :: comms !< communication objects for the cubic approach
      type(diis_objects) :: diis
-     type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
+     type(confpot_data), dimension(:), pointer :: confdatarr,confdatarr_shamop !<data for the confinement potential
      type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case

@@ -187,7 +187,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           if(locreg_increased) then
              call destroy_new_locregs(iproc, nproc, tmb, tmblarge)
              call deallocate_auxiliary_basis_function(subname, tmb%psi_shamop, tmb%hpsi_shamop)
-             if(tmblarge%can_use_transposed) then
+             if(tmb%can_use_transposed_shamop) then
                  iall=-product(shape(tmb%psit_c_shamop))*kind(tmb%psit_c_shamop)
                  deallocate(tmb%psit_c_shamop, stat=istat)
                  call memocc(istat, iall, 'tmb%psit_c_shamop', subname)
@@ -195,7 +195,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                  deallocate(tmb%psit_f_shamop, stat=istat)
                  call memocc(istat, iall, 'tmb%psit_f_shamop', subname)
              end if
-             deallocate(tmblarge%confdatarr, stat=istat)
+             deallocate(tmb%confdatarr_shamop, stat=istat)
 
              iall=-product(shape(ham_compr))*kind(ham_compr)
              deallocate(ham_compr, stat=istat)
@@ -217,7 +217,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
              call memocc(istat, overlapmatrix_compr, 'overlapmatrix_compr', subname)
 
           else
-             call define_confinement_data(tmblarge%confdatarr,tmb%orbs_shamop,rxyz,at,&
+             call define_confinement_data(tmb%confdatarr_shamop,tmb%orbs_shamop,rxyz,at,&
                    tmb%lzd_shamop%hgrids(1),tmb%lzd_shamop%hgrids(2),tmb%lzd_shamop%hgrids(3),&
                    4,input%lin%potentialPrefac_highaccuracy,tmb%lzd_shamop,tmb%orbs_shamop%onwhichatom)
           end if
@@ -306,18 +306,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
            if (target_function==TARGET_FUNCTION_IS_HYBRID .and. reduce_conf) then
                if (input%lin%reduce_confinement_factor>0.d0) then
                    if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
-                   tmblarge%confdatarr(:)%prefac=input%lin%reduce_confinement_factor*tmblarge%confdatarr(:)%prefac
+                   tmb%confdatarr_shamop(:)%prefac=input%lin%reduce_confinement_factor*tmb%confdatarr_shamop(:)%prefac
                else
                    if (ratio_deltas<=1.d0) then
                        if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',ratio_deltas
-                       tmblarge%confdatarr(:)%prefac=ratio_deltas*tmblarge%confdatarr(:)%prefac
+                       tmb%confdatarr_shamop(:)%prefac=ratio_deltas*tmb%confdatarr_shamop(:)%prefac
                    else
                        if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
                        if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
-                       tmblarge%confdatarr(:)%prefac=0.5d0*tmblarge%confdatarr(:)%prefac
+                       tmb%confdatarr_shamop(:)%prefac=0.5d0*tmb%confdatarr_shamop(:)%prefac
                    end if
                end if
-               !if (iproc==0) write(*,'(a,es18.8)') 'tmblarge%confdatarr(1)%prefac',tmblarge%confdatarr(1)%prefac
+               !if (iproc==0) write(*,'(a,es18.8)') 'tmb%confdatarr_shamop(1)%prefac',tmb%confdatarr_shamop(1)%prefac
            end if
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,tmblarge,energs, &
@@ -543,7 +543,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       call to_zero(3*at%nat, fpulay(1,1))
   end if
 
-  if(tmblarge%can_use_transposed) then
+  if(tmb%can_use_transposed_shamop) then
       iall=-product(shape(tmb%psit_c_shamop))*kind(tmb%psit_c_shamop)
       deallocate(tmb%psit_c_shamop, stat=istat)
       call memocc(istat, iall, 'tmb%psit_c_shamop', subname)
@@ -551,7 +551,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       deallocate(tmb%psit_f_shamop, stat=istat)
       call memocc(istat, iall, 'tmb%psit_f_shamop', subname)
   end if
-  deallocate(tmblarge%confdatarr, stat=istat)
+  deallocate(tmb%confdatarr_shamop, stat=istat)
 
 
   !Write the linear wavefunctions to file if asked
@@ -777,7 +777,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       if(target_function==TARGET_FUNCTION_IS_HYBRID) then
           mean_conf=0.d0
           do iorb=1,tmb%orbs%norbp
-              mean_conf=mean_conf+tmblarge%confdatarr(iorb)%prefac
+              mean_conf=mean_conf+tmb%confdatarr_shamop(iorb)%prefac
           end do
           call mpiallred(mean_conf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
           mean_conf=mean_conf/dble(tmb%orbs%norb)

@@ -125,7 +125,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
 
       ! Calculate the matrix elements <phi|H|phi>.
-      if(.not.tmblarge%can_use_transposed) then
+      if(.not.tmb%can_use_transposed_shamop) then
           if(associated(tmb%psit_c_shamop)) then
               iall=-product(shape(tmb%psit_c_shamop))*kind(tmb%psit_c_shamop)
               deallocate(tmb%psit_c_shamop, stat=istat)
@@ -143,7 +143,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call memocc(istat, tmb%psit_f_shamop, 'tmb%psit_f_shamop', subname)
           call transpose_localized(iproc, nproc, tmb%orbs_shamop,  tmb%collcom_shamop, &
                tmb%psi_shamop, tmb%psit_c_shamop, tmb%psit_f_shamop, tmb%lzd_shamop)
-          tmblarge%can_use_transposed=.true.
+          tmb%can_use_transposed_shamop=.true.
       end if
 
       allocate(hpsit_c(tmb%collcom_shamop%ndimind_c))
@@ -438,7 +438,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            proj,tmb%lzd_shamop,nlpspd,tmb%psi_shamop,tmb%hpsi_shamop,energs%eproj)
       ! only kinetic because waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs_shamop,&
-           tmb%lzd_shamop,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi_shamop,tmb%hpsi_shamop,&
+           tmb%lzd_shamop,tmb%confdatarr_shamop,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi_shamop,tmb%hpsi_shamop,&
            energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp_shamop)
       call full_local_potential(iproc,nproc,tmb%orbs_shamop,tmb%lzd_shamop,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
            tmb%comgp_shamop)
@@ -446,7 +446,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call vcopy(tmb%orbs_shamop%npsidim_orbs, tmb%hpsi_shamop(1), 1, hpsi_noconf(1), 1)
           call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs_shamop,&
-               tmb%lzd_shamop,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi_shamop,tmb%hpsi_shamop,&
+               tmb%lzd_shamop,tmb%confdatarr_shamop,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi_shamop,tmb%hpsi_shamop,&
                energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp_shamop,&
                hpsi_noconf=hpsi_noconf,econf=econf)
           if (nproc>1) then
@@ -454,7 +454,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end if
       else
           call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs_shamop,&
-               tmb%lzd_shamop,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi_shamop,tmb%hpsi_shamop,&
+               tmb%lzd_shamop,tmb%confdatarr_shamop,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi_shamop,tmb%hpsi_shamop,&
                energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp_shamop)
       end if
 
@@ -475,7 +475,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           write(*,'(a)', advance='no') ' Orthoconstraint... '
       end if
 
-      !!call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
 
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
@@ -525,7 +524,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (energy_increased) then
           if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
-          tmblarge%can_use_transposed=.false.
+          tmb%can_use_transposed_shamop=.false.
           call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
           if (scf_mode/=LINEAR_FOE) then
               ! Recalculate the kernel with the old coefficients
@@ -551,7 +550,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               iall=-product(shape(tmb%psit_f_shamop))*kind(tmb%psit_f_shamop)
               deallocate(tmb%psit_f_shamop, stat=istat)
               call memocc(istat, iall, 'tmb%psit_f_shamop', subname)
-              tmblarge%can_use_transposed=.false.
+              tmb%can_use_transposed_shamop=.false.
           end if
           if(iproc==0) write(*,*) 'it_tot',it_tot
           overlap_calculated=.false.
@@ -617,14 +616,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       overlap_calculated=.false.
       ! It is now not possible to use the transposed quantities, since they have changed.
-      if(tmblarge%can_use_transposed) then
+      if(tmb%can_use_transposed_shamop) then
           iall=-product(shape(tmb%psit_c_shamop))*kind(tmb%psit_c_shamop)
           deallocate(tmb%psit_c_shamop, stat=istat)
           call memocc(istat, iall, 'tmb%psit_c_shamop', subname)
           iall=-product(shape(tmb%psit_f_shamop))*kind(tmb%psit_f_shamop)
           deallocate(tmb%psit_f_shamop, stat=istat)
           call memocc(istat, iall, 'tmb%psit_f_shamop', subname)
-          tmblarge%can_use_transposed=.false.
+          tmb%can_use_transposed_shamop=.false.
       end if
 
 

@@ -325,7 +325,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
 
   ! Important: Don't use for the rest of the code
-  tmblarge%can_use_transposed = .false.
+  tmb%can_use_transposed_shamop = .false.
 
   if(associated(tmb%psit_c_shamop)) then
       iall=-product(shape(tmb%psit_c_shamop))*kind(tmb%psit_c_shamop)
