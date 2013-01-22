@@ -409,7 +409,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
       else
           isegend=tmblarge%mad%nseg
       end if
-      !$omp parallel default(private) shared(isegstart, isegend, tmblarge, fermip, fermi_compr)
+      !$omp parallel default(private) shared(isegstart, isegend, tmb, tmblarge, fermip, fermi_compr)
       !$omp do
       do iseg=isegstart,isegend
           ii=tmblarge%mad%keyv(iseg)-1
