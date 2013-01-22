@@ -476,9 +476,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          call transpose_localized(iproc, nproc, tmb%orbs_shamop, tmb%collcom_shamop, hpsi_noconf, hpsit_c, hpsit_f, tmb%lzd_shamop)
+          call transpose_localized(iproc, nproc, tmb%orbs_shamop, tmb%collcom_shamop, &
+               hpsi_noconf, hpsit_c, hpsit_f, tmb%lzd_shamop)
       else
-          call transpose_localized(iproc, nproc, tmb%orbs_shamop, tmb%collcom_shamop, tmb%hpsi_shamop, hpsit_c, hpsit_f, tmb%lzd_shamop)
+          call transpose_localized(iproc, nproc, tmb%orbs_shamop, tmb%collcom_shamop, &
+               tmb%hpsi_shamop, hpsit_c, hpsit_f, tmb%lzd_shamop)
       end if
 
       ncount=sum(tmb%collcom_shamop%nrecvcounts_c)

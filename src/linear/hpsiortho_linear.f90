@@ -121,7 +121,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
                   end do
               end do
           end do
-          call transpose_localized(iproc, nproc, tmb%orbs_shamop, tmb%collcom_shamop, tmb%hpsi_shamop, hpsit_c, hpsit_f, tmb%lzd_shamop)
+          call transpose_localized(iproc, nproc, tmb%orbs_shamop, tmb%collcom_shamop, &
+               tmb%hpsi_shamop, hpsit_c, hpsit_f, tmb%lzd_shamop)
           call build_linear_combination_transposed(tmb%orbs_shamop%norb, kernel_compr_tmp, tmb%collcom_shamop, &
                tmblarge%mad, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
@@ -143,7 +144,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%lzd_shamop, tmb%orbs_shamop, tmblarge%mad, &
        tmb%collcom_shamop, tmb%orthpar, correction_orthoconstraint, tmb%psi_shamop, tmb%hpsi_shamop, &
-       lagmat_compr, tmb%psit_c_shamop, tmb%psit_f_shamop, hpsit_c, hpsit_f, tmb%can_use_transposed_shamop, overlap_calculated)
+       lagmat_compr, tmb%psit_c_shamop, tmb%psit_f_shamop, hpsit_c, hpsit_f, &
+       tmb%can_use_transposed_shamop, overlap_calculated)
 
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmb%lzd_shamop, tmb%orbs, tmb%orbs_shamop, tmb%hpsi_shamop, tmb%hpsi)
 
