@@ -142,7 +142,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   call memocc(istat, lagmat_compr, 'lagmat_compr', subname)
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%lzd_shamop, tmb%orbs_shamop, tmblarge%mad, &
-       tmb%collcom_shamop, tmb%orthpar, correction_orthoconstraint, tmblarge%psi, tmblarge%hpsi, &
+       tmb%collcom_shamop, tmb%orthpar, correction_orthoconstraint, tmb%psi_shamop, tmblarge%hpsi, &
        lagmat_compr, tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmb%lzd_shamop, tmb%orbs, tmb%orbs_shamop, tmblarge%hpsi, tmb%hpsi)

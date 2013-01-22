@@ -86,22 +86,22 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       allocate(confdatarrtmp(tmb%orbs%norbp))
       call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
-      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmb%lzd_shamop, tmb%orbs, tmb%orbs_shamop, tmb%psi, tmblarge%psi)
+      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmb%lzd_shamop, tmb%orbs, tmb%orbs_shamop, tmb%psi, tmb%psi_shamop)
 
       if (tmb%orbs_shamop%npsidim_orbs > 0) call to_zero(tmb%orbs_shamop%npsidim_orbs,tmblarge%hpsi(1))
 
       call NonLocalHamiltonianApplication(iproc,at,tmb%orbs_shamop,rxyz,&
-           proj,tmb%lzd_shamop,nlpspd,tmblarge%psi,tmblarge%hpsi,energs%eproj)
+           proj,tmb%lzd_shamop,nlpspd,tmb%psi_shamop,tmblarge%hpsi,energs%eproj)
       ! only kinetic as waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs_shamop,&
-           tmb%lzd_shamop,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
+           tmb%lzd_shamop,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi_shamop,tmblarge%hpsi,&
            energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp_shamop)
       call full_local_potential(iproc,nproc,tmb%orbs_shamop,tmb%lzd_shamop,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
            tmb%comgp_shamop)
       !call wait_p2p_communication(iproc, nproc, tmb%comgp_shamop)
       ! only potential
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs_shamop,&
-           tmb%lzd_shamop,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
+           tmb%lzd_shamop,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi_shamop,tmblarge%hpsi,&
            energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp_shamop)
       call timing(iproc,'glsynchham1','ON') !lr408t
       call SynchronizeHamiltonianApplication(nproc,tmb%orbs_shamop,tmb%lzd_shamop,GPU,tmblarge%hpsi,&
@@ -142,7 +142,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           allocate(tmblarge%psit_f(7*tmb%collcom_shamop%ndimind_f), stat=istat)
           call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
           call transpose_localized(iproc, nproc, tmb%orbs_shamop,  tmb%collcom_shamop, &
-               tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmb%lzd_shamop)
+               tmb%psi_shamop, tmblarge%psit_c, tmblarge%psit_f, tmb%lzd_shamop)
           tmblarge%can_use_transposed=.true.
       end if
 
@@ -432,13 +432,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
       if (tmb%orbs_shamop%npsidim_orbs > 0)  call to_zero(tmb%orbs_shamop%npsidim_orbs,tmblarge%hpsi(1))
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmb%lzd_shamop, tmb%orbs, tmb%orbs_shamop, &
-           tmb%psi, tmblarge%psi)
+           tmb%psi, tmb%psi_shamop)
 
       call NonLocalHamiltonianApplication(iproc,at,tmb%orbs_shamop,rxyz,&
-           proj,tmb%lzd_shamop,nlpspd,tmblarge%psi,tmblarge%hpsi,energs%eproj)
+           proj,tmb%lzd_shamop,nlpspd,tmb%psi_shamop,tmblarge%hpsi,energs%eproj)
       ! only kinetic because waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs_shamop,&
-           tmb%lzd_shamop,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
+           tmb%lzd_shamop,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi_shamop,tmblarge%hpsi,&
            energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp_shamop)
       call full_local_potential(iproc,nproc,tmb%orbs_shamop,tmb%lzd_shamop,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
            tmb%comgp_shamop)
@@ -446,7 +446,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call vcopy(tmb%orbs_shamop%npsidim_orbs, tmblarge%hpsi(1), 1, hpsi_noconf(1), 1)
           call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs_shamop,&
-               tmb%lzd_shamop,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
+               tmb%lzd_shamop,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi_shamop,tmblarge%hpsi,&
                energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp_shamop,&
                hpsi_noconf=hpsi_noconf,econf=econf)
           if (nproc>1) then
@@ -454,7 +454,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end if
       else
           call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs_shamop,&
-               tmb%lzd_shamop,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
+               tmb%lzd_shamop,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi_shamop,tmblarge%hpsi,&
                energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp_shamop)
       end if
 

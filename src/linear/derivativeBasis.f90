@@ -453,7 +453,7 @@ end subroutine get_one_derivative_supportfunction
   !!   allocate(psir(tmb%lzd_shamop%llr(ilr)%d%n1i*tmb%lzd_shamop%llr(ilr)%d%n2i*tmb%lzd_shamop%llr(ilr)%d%n3i),stat=istat)
   !!   call memocc(istat,psir,'psir',subname)
   !!   call daub_to_isf(tmb%lzd_shamop%llr(ilr),w,psidiv(ldir),psir)
-  !!   !call daub_to_isf(tmb%lzd_shamop%llr(ilr),w,tmblarge%psi(ldir),psir)
+  !!   !call daub_to_isf(tmb%lzd_shamop%llr(ilr),w,tmb%psi_shamop(ldir),psir)
   !!   do i1 = 1, tmb%lzd_shamop%llr(ilr)%d%n1i
   !!      if(i1 > 32 .and. tmb%lzd_shamop%llr(ilr)%d%n1i-i1 > 32) cycle
   !!      do i2 = 1 , tmb%lzd_shamop%llr(ilr)%d%n2i
