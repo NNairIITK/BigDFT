@@ -812,7 +812,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          call memocc(i_stat,i_all,'fpulay',subname)
 
          call destroy_new_locregs(iproc, nproc, tmb, tmblarge)
-         call deallocate_auxiliary_basis_function(subname, tmb%psi_shamop, tmb%hpsi_shamop)
+         call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
 
          !!!! TEST ##################
          !!fxyz=0.d0
@@ -829,7 +829,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          !!     tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
          !!call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
          !!     KSwfn%Lzd%hgrids(3),atoms,rxyz,&
-         !!     tmb%orbs,nlpspd,proj,tmb%lzd_shamop,tmb%psi_shamop,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
+         !!     tmb%orbs,nlpspd,proj,tmb%lzd_shamop,tmblarge%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
          !!if (nproc > 1) then
          !!   call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
          !!end if

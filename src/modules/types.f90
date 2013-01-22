@@ -806,7 +806,6 @@ module module_types
   type, public :: DFT_wavefunction
      !coefficients
      real(wp), dimension(:), pointer :: psi,hpsi,psit,psit_c,psit_f !< orbitals, or support functions, in wavelet basis
-     real(wp), dimension(:), pointer :: psi_shamop,hpsi_shamop,psit_c_shamop,psit_f_shamop !< orbitals, or support functions, in wavelet basis
      real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
      real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
      !basis sets
