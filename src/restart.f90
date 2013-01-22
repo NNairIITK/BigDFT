@@ -1366,6 +1366,8 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,norb,ntmb,&
 
 
 
+
+
   norb_change = .false.
 
   !write(*,*) 'INSIDE readonewave'

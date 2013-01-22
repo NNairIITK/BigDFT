@@ -48,7 +48,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
       allocate(hpsi_conf(tmb%orbs%npsidim_orbs), stat=istat)
       call memocc(istat, hpsi_conf, 'hpsi_conf', subname)
-      call large_to_small_locreg(iproc, nproc, tmb%lzd, tmb%lzd_shamop, tmb%orbs, tmb%orbs_shamop, tmb%hpsi_shamop, hpsi_conf)
+      call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%hpsi, hpsi_conf)
       ist=1
       do iorb=1,tmb%orbs%norbp
           iiorb=tmb%orbs%isorb+iorb
@@ -69,17 +69,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   energy_increased=.false.
 
 
-  allocate(hpsittmp_c(sum(tmb%collcom_shamop%nrecvcounts_c)), stat=istat)
+  allocate(hpsittmp_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
   call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
-  allocate(hpsittmp_f(7*sum(tmb%collcom_shamop%nrecvcounts_f)), stat=istat)
+  allocate(hpsittmp_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
   call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
 
   if(target_function==TARGET_FUNCTION_IS_ENERGY .or. &
      target_function==TARGET_FUNCTION_IS_HYBRID) then
-      if(sum(tmb%collcom_shamop%nrecvcounts_c)>0) &
-          call dcopy(sum(tmb%collcom_shamop%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
-      if(sum(tmb%collcom_shamop%nrecvcounts_f)>0) &
-          call dcopy(7*sum(tmb%collcom_shamop%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
+      if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
+          call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
+      if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
+          call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           allocate(kernel_compr_tmp(tmblarge%mad%nvctr), stat=istat)
@@ -89,8 +89,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
           do iseg=1,tmblarge%mad%nseg
               do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
                   ii=ii+1
-                  iiorb = (jorb-1)/tmb%orbs_shamop%norb + 1
-                  jjorb = jorb - (iiorb-1)*tmb%orbs_shamop%norb
+                  iiorb = (jorb-1)/tmblarge%orbs%norb + 1
+                  jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
                   if(iiorb==jjorb) then
                       kernel_compr_tmp(ii)=0.d0
                   else
@@ -105,32 +105,31 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
 
           ist=1
-          do iorb=tmb%orbs_shamop%isorb+1,tmb%orbs_shamop%isorb+tmb%orbs_shamop%norbp
-              ilr=tmb%orbs_shamop%inwhichlocreg(iorb)
+          do iorb=tmblarge%orbs%isorb+1,tmblarge%orbs%isorb+tmblarge%orbs%norbp
+              ilr=tmblarge%orbs%inwhichlocreg(iorb)
               ii=0
               do iseg=1,tmblarge%mad%nseg
                   do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
                       ii=ii+1
-                      iiorb = (jorb-1)/tmb%orbs_shamop%norb + 1
-                      jjorb = jorb - (iiorb-1)*tmb%orbs_shamop%norb
+                      iiorb = (jorb-1)/tmblarge%orbs%norb + 1
+                      jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
                       if(iiorb==jjorb .and. iiorb==iorb) then
-                          ncount=tmb%lzd_shamop%llr(ilr)%wfd%nvctr_c+7*tmb%lzd_shamop%llr(ilr)%wfd%nvctr_f
-                          call dscal(ncount, kernel_compr(ii), tmb%hpsi_shamop(ist), 1)
+                          ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
+                          call dscal(ncount, kernel_compr(ii), tmblarge%hpsi(ist), 1)
                           ist=ist+ncount
                       end if
                   end do
               end do
           end do
-          call transpose_localized(iproc, nproc, tmb%orbs_shamop, tmb%collcom_shamop, &
-               tmb%hpsi_shamop, hpsit_c, hpsit_f, tmb%lzd_shamop)
-          call build_linear_combination_transposed(tmb%orbs_shamop%norb, kernel_compr_tmp, tmb%collcom_shamop, &
+          call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
+          call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
                tmblarge%mad, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
           deallocate(kernel_compr_tmp, stat=istat)
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
       else
 
-          call build_linear_combination_transposed(tmb%orbs_shamop%norb, kernel_compr_tmp, tmb%collcom_shamop, &
+          call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
                tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
 
       end if
@@ -142,12 +141,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   allocate(lagmat_compr(tmblarge%mad%nvctr), stat=istat)
   call memocc(istat, lagmat_compr, 'lagmat_compr', subname)
 
-  call orthoconstraintNonorthogonal(iproc, nproc, tmb%lzd_shamop, tmb%orbs_shamop, tmblarge%mad, &
-       tmb%collcom_shamop, tmb%orthpar, correction_orthoconstraint, tmb%psi_shamop, tmb%hpsi_shamop, &
-       lagmat_compr, tmb%psit_c_shamop, tmb%psit_f_shamop, hpsit_c, hpsit_f, &
-       tmb%can_use_transposed_shamop, overlap_calculated)
+  call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%mad, &
+       tmblarge%collcom, tmblarge%orthpar, correction_orthoconstraint, tmblarge%psi, tmblarge%hpsi, &
+       lagmat_compr, tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
-  call large_to_small_locreg(iproc, nproc, tmb%lzd, tmb%lzd_shamop, tmb%orbs, tmb%orbs_shamop, tmb%hpsi_shamop, tmb%hpsi)
+  call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%hpsi, tmb%hpsi)
 
 
   if (present(hpsi_noprecond)) call dcopy(tmb%orbs%npsidim_orbs, tmb%hpsi, 1, hpsi_noprecond, 1)
@@ -158,7 +156,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   do iseg=1,tmblarge%mad%nseg
       do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
           iiorb = (jorb-1)/tmb%orbs%norb + 1
-          jjorb = jorb - (iiorb-1)*tmb%orbs_shamop%norb
+          jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
           ii=ii+1
           if (iiorb==jjorb) then
               trH = trH + lagmat_compr(ii)

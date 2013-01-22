@@ -162,7 +162,7 @@ module module_types
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer, dimension(:), pointer :: norbsPerType
     integer :: scf_mode, nlevel_accuracy
-    logical :: calc_dipole, pulay_correction, mixing_after_inputguess
+    logical :: calc_dipole, pulay_correction
   end type linearInputParameters
 
   integer, parameter, public :: INPUT_IG_OFF  = 0
@@ -627,19 +627,6 @@ module module_types
       integer,dimension(:,:,:),pointer :: kernel_segkeyg
   end type matrixDescriptors
 
-  type,public :: sparseMatrix
-      integer :: nvctr, nseg, full_dim1, full_dim2
-      integer,dimension(:),pointer:: noverlaps
-      integer,dimension(:,:),pointer:: overlaps
-      integer,dimension(:),pointer :: keyv, nsegline, istsegline
-      integer,dimension(:,:),pointer :: keyg
-      real(kind=8),dimension(:),pointer :: matrix_compr
-      real(kind=8),dimension(:,:),pointer :: matrix
-  end type sparseMatrix
-
-  type,public :: linear_matrices !may not keep
-      type(sparseMatrix) :: ham, ovrlp, density_kernel
-  end type linear_matrices
 
   type:: collective_comms
     integer:: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f, nptsp_f, ndimpsi_f
@@ -690,7 +677,8 @@ module module_types
     integer:: is, isx, mis, DIISHistMax, DIISHistMin
     integer:: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
     real(kind=8),dimension(:),pointer:: phiHist, hphiHist
-    real(kind=8):: alpha_coeff !step size for optimization of coefficients
+    real(kind=8),dimension(:),pointer:: alpha_coeff !step size for optimization of coefficients
+    real(kind=8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
     real(kind=8),dimension(:,:,:),pointer:: mat
     real(kind=8):: trmin, trold, alphaSD, alphaDIIS
     logical:: switchSD, immediateSwitchToSD, resetDIIS
@@ -818,30 +806,30 @@ module module_types
   type, public :: DFT_wavefunction
      !coefficients
      real(wp), dimension(:), pointer :: psi,hpsi,psit,psit_c,psit_f !< orbitals, or support functions, in wavelet basis
-     real(wp), dimension(:), pointer :: psi_shamop,hpsi_shamop,psit_c_shamop,psit_f_shamop !< orbitals, or support functions, in wavelet basis
      real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
      real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
      !basis sets
      type(gaussian_basis) :: gbd !<gaussian basis description, if associated
-     type(local_zone_descriptors) :: lzd, lzd_shamop !< data on the localisation regions, if associated
+     type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
      !restart objects (consider to move them in rst structure)
-     type(old_wavefunction), dimension(:), pointer :: oldpsis !< previously calculated wfns
-     integer :: istep_history !< present step of wfn history
+     	type(old_wavefunction), dimension(:), pointer :: oldpsis !< previously calculated wfns
+     	integer :: istep_history !< present step of wfn history
      !data properties
-     logical:: can_use_transposed,can_use_transposed_shamop !< true if the transposed quantities are allocated and can be used
-     type(orbitals_data) :: orbs, orbs_shamop !<wavefunction specification in terms of orbitals
+     logical:: can_use_transposed !< true if the transposed quantities are allocated and can be used
+     type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
      type(communications_arrays) :: comms !< communication objects for the cubic approach
-     type(diis_objects) :: diis
-     type(confpot_data), dimension(:), pointer :: confdatarr,confdatarr_shamop !<data for the confinement potential
+     	type(diis_objects) :: diis
+     type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
      type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
-     type(wfn_metadata) :: wfnmd !<specifications of the kind of wavefunction
+     	type(wfn_metadata) :: wfnmd !<specifications of the kind of wavefunction
      type(p2pComms):: comon !<describing p2p communications for orthonormality
-     type(overlapParameters):: op, op_shamop !<describing the overlaps
-     type(p2pComms):: comgp, comgp_shamop !<describing p2p communications for distributing the potential
+     type(overlapParameters):: op !<describing the overlaps
+     	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
      type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
-     type(matrixDescriptors):: mad !<describes the structure of the matrices
+     type(p2pComms):: comsr !<describing the p2p communications for sumrho
+     	type(matrixDescriptors):: mad !<describes the structure of the matrices
      type(collective_comms):: collcom, collcom_shamop ! describes collective communication
      type(collective_comms):: collcom_sr ! describes collective communication for the calculation of the charge density
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero

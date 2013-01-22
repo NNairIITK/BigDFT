@@ -1954,7 +1954,7 @@ module module_interfaces
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,&
         GPU, infoCoeff,ebs,nlpspd,proj,&
         SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-        tmblarge, ham_compr, ovrlp_compr, calculate_ham, ldiis_coeff)
+        tmblarge, ham_compr, ovrlp_compr, calculate_ham, it_coeff_opt, ldiis_coeff)
       use module_base
       use module_types
       implicit none
@@ -1977,6 +1977,7 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout):: tmblarge
       real(8),dimension(tmblarge%mad%nvctr),intent(inout) :: ham_compr, ovrlp_compr
       logical,intent(in) :: calculate_ham
+      integer, intent(inout) :: it_coeff_opt
       type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
     end subroutine get_coeff
 
@@ -2256,7 +2257,7 @@ module module_interfaces
      end subroutine updatePotential
      
      subroutine initCommsOrtho(iproc, nproc, nspin, lzd, orbs, &
-                locregShape, op)
+                locregShape, op, comon)
        use module_base
        use module_types
        implicit none
@@ -2265,6 +2266,7 @@ module module_interfaces
        type(orbitals_data),intent(in):: orbs
        character(len=1),intent(in):: locregShape
        type(overlapParameters),intent(out):: op
+       type(p2pComms),intent(out):: comon
      end subroutine initCommsOrtho
      
      subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comarr)
@@ -2377,6 +2379,14 @@ module module_interfaces
        type(p2pComms),intent(inout):: comsr
        character(len=*),intent(in):: subname
      end subroutine allocateCommunicationbufferSumrho
+
+     subroutine deallocateCommuncationBuffersOrtho(comon, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(p2pComms),intent(inout):: comon
+       character(len=*),intent(in):: subname
+     end subroutine deallocateCommuncationBuffersOrtho
 
 
      subroutine allocateCommunicationsBuffersPotential(comgp, subname)
@@ -2883,20 +2893,6 @@ module module_interfaces
          type(matrixDescriptors),intent(out):: mad
        end subroutine initMatrixCompression
 
-       subroutine initMatrixCompression2(iproc, nproc, ndim, lzd, at, input, orbs, noverlaps, overlaps, mad)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc, ndim
-         type(local_zone_descriptors),intent(in) :: lzd
-         type(atoms_data),intent(in) :: at
-         type(input_variables),intent(in) :: input
-         type(orbitals_data),intent(in):: orbs
-         integer,dimension(orbs%norb),intent(in):: noverlaps
-         integer,dimension(ndim,orbs%norb),intent(in):: overlaps
-         type(matrixDescriptors),intent(out):: mad
-       end subroutine initMatrixCompression2
-
       subroutine allocate_workarrays_quartic_convolutions(lr, subname, work)
         use module_base
         use module_types
@@ -3168,12 +3164,12 @@ module module_interfaces
        end subroutine calc_gradient
 
 
-       subroutine destroy_new_locregs(iproc, nproc, tmb, tmblarge)
+       subroutine destroy_new_locregs(iproc, nproc, tmb)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
-         type(DFT_wavefunction),intent(inout):: tmb, tmblarge
+         type(DFT_wavefunction),intent(inout):: tmb
        end subroutine destroy_new_locregs
 
        subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
@@ -3194,7 +3190,7 @@ module module_interfaces
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-                  orbs_tmp, lzd, llborbs, lbop, lbcomgp, lbmad, lbcollcom, lbcollcom_sr)
+                  orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
          use module_base
          use module_types
          implicit none
@@ -3212,7 +3208,9 @@ module module_interfaces
          type(local_zone_descriptors),intent(inout):: lzd
          type(orbitals_data),intent(inout):: llborbs
          type(overlapParameters),intent(inout):: lbop
+         type(p2pComms),intent(inout):: lbcomon
          type(p2pComms),intent(inout):: lbcomgp
+         type(p2pComms),intent(inout):: comsr
          type(matrixDescriptors),intent(inout):: lbmad
          type(collective_comms),intent(inout):: lbcollcom
          type(collective_comms),intent(inout),optional :: lbcollcom_sr
@@ -3444,7 +3442,7 @@ module module_interfaces
          integer, intent(out) :: target_function, nit_basis
        end subroutine set_optimization_variables
 
-       subroutine determine_overlap_from_descriptors(iproc, nproc, orbs, orbsig, lzd, lzdig, op)
+       subroutine determine_overlap_from_descriptors(iproc, nproc, orbs, orbsig, lzd, lzdig, op, comon)
          use module_base
          use module_types
          implicit none
@@ -3452,6 +3450,7 @@ module module_interfaces
          type(orbitals_data),intent(in):: orbs, orbsig
          type(local_zone_descriptors),intent(in):: lzd, lzdig
          type(overlapParameters),intent(inout):: op
+         type(p2pComms),intent(inout):: comon
        end subroutine determine_overlap_from_descriptors
 
        subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
@@ -3817,7 +3816,7 @@ module module_interfaces
           type(p2pComms),intent(out):: comgp
         end subroutine initialize_communication_potential
 
-        subroutine set_comms_ortho(iproc, nproc, orbs, lzd, op)
+        subroutine set_comms_ortho(iproc, nproc, orbs, lzd, op, comon)
           use module_base
           use module_types
           implicit none
@@ -3825,6 +3824,7 @@ module module_interfaces
           type(orbitals_data),intent(in):: orbs
           type(local_zone_descriptors),intent(in):: lzd
           type(overlapParameters),intent(inout):: op
+          type(p2pComms),intent(inout):: comon
         end subroutine set_comms_ortho
 
         subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
@@ -3836,7 +3836,7 @@ module module_interfaces
           type(orbitals_data), intent(inout) :: orbs
         end subroutine local_potential_dimensions
 
-        subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm)
+        subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm, it_coeff_opt)
           use module_base
           use module_types
           implicit none
@@ -3846,6 +3846,7 @@ module module_interfaces
           real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout)::  ham,ovrlp
           type(localizedDIISParameters),intent(inout):: ldiis_coeff
           real(8),intent(out):: fnrm
+          integer,intent(inout) :: it_coeff_opt
         end subroutine optimize_coeffs
 
         subroutine DIIS_coeff(iproc, orbs, tmb, grad, coeff, ldiis)
@@ -4065,7 +4066,7 @@ module module_interfaces
           type(SIC_data),intent(in):: SIC
           type(DFT_local_fields), intent(inout) :: denspot
           type(GPU_pointers),intent(inout):: GPU
-          type(DFT_wavefunction),intent(inout):: tmb
+          type(DFT_wavefunction),intent(in):: tmb
           type(DFT_wavefunction),intent(inout):: tmblarge
           real(8),dimension(3,at%nat),intent(out):: fpulay
         end subroutine pulay_correction

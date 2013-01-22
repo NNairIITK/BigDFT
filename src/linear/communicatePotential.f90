@@ -244,14 +244,14 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
 
   else nproc_if
 
-      !comgp%nsendbuf = lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
+      comgp%nsendbuf = lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
       comgp%nrecvbuf = (comgp%ise(2,iproc)-comgp%ise(1,iproc)+1)*(comgp%ise(4,iproc)-comgp%ise(3,iproc)+1)*&
                        (comgp%ise(6,iproc)-comgp%ise(5,iproc)+1)
   
   end if nproc_if
 
 
-  !comgp%nsendbuf=max(comgp%nsendbuf,1)
+  comgp%nsendbuf=max(comgp%nsendbuf,1)
   comgp%nrecvbuf=max(comgp%nrecvbuf,1)
   
 

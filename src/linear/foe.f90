@@ -47,14 +47,14 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   end do
 
 
-  allocate(penalty_ev(tmb%orbs_shamop%norb,tmb%orbs_shamop%norbp,2), stat=istat)
+  allocate(penalty_ev(tmblarge%orbs%norb,tmblarge%orbs%norbp,2), stat=istat)
   call memocc(istat, penalty_ev, 'penalty_ev', subname)
 
 
   allocate(ovrlpeff_compr(tmb%mad%nvctr), stat=istat)
   call memocc(istat, ovrlpeff_compr, 'ovrlpeff_compr', subname)
 
-  allocate(fermip(tmb%orbs_shamop%norb,tmb%orbs_shamop%norbp), stat=istat)
+  allocate(fermip(tmblarge%orbs%norb,tmblarge%orbs%norbp), stat=istat)
   call memocc(istat, fermip, 'fermip', subname)
 
   allocate(SHS(tmb%mad%nvctr), stat=istat)
@@ -104,7 +104,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
       calculate_SHS=.true.
 
-      call to_zero(tmb%orbs_shamop%norb*tmb%orbs_shamop%norbp, fermip(1,1))
+      call to_zero(tmblarge%orbs%norb*tmblarge%orbs%norbp, fermip(1,1))
 
       it=0
       it_solver=0
@@ -177,7 +177,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           !!end if
         
         
-          if (tmb%orbs_shamop%nspin==1) then
+          if (tmblarge%orbs%nspin==1) then
               do ipl=1,npl
                   cc(ipl,1)=2.d0*cc(ipl,1)
                   cc(ipl,2)=2.d0*cc(ipl,2)
@@ -402,22 +402,22 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
   call to_zero(tmblarge%mad%nvctr, fermi_compr(1))
 
-  if (tmb%orbs_shamop%norbp>0) then
-      isegstart=tmblarge%mad%istsegline(tmb%orbs_shamop%isorb_par(iproc)+1)
-      if (tmb%orbs_shamop%isorb+tmb%orbs_shamop%norbp<tmb%orbs_shamop%norb) then
-          isegend=tmblarge%mad%istsegline(tmb%orbs_shamop%isorb_par(iproc+1)+1)-1
+  if (tmblarge%orbs%norbp>0) then
+      isegstart=tmblarge%mad%istsegline(tmblarge%orbs%isorb_par(iproc)+1)
+      if (tmblarge%orbs%isorb+tmblarge%orbs%norbp<tmblarge%orbs%norb) then
+          isegend=tmblarge%mad%istsegline(tmblarge%orbs%isorb_par(iproc+1)+1)-1
       else
           isegend=tmblarge%mad%nseg
       end if
-      !$omp parallel default(private) shared(isegstart, isegend, tmb, tmblarge, fermip, fermi_compr)
+      !$omp parallel default(private) shared(isegstart, isegend, tmblarge, fermip, fermi_compr)
       !$omp do
       do iseg=isegstart,isegend
           ii=tmblarge%mad%keyv(iseg)-1
           do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
               ii=ii+1
-              iiorb = (jorb-1)/tmb%orbs_shamop%norb + 1
-              jjorb = jorb - (iiorb-1)*tmb%orbs_shamop%norb
-              fermi_compr(ii)=fermip(jjorb,iiorb-tmb%orbs_shamop%isorb)
+              iiorb = (jorb-1)/tmblarge%orbs%norb + 1
+              jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
+              fermi_compr(ii)=fermip(jjorb,iiorb-tmblarge%orbs%isorb)
           end do
       end do
       !$omp end do

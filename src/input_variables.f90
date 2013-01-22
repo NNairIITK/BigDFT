@@ -1390,14 +1390,8 @@ subroutine perf_input_variables(iproc,dump,filename,in)
 
   !FOE: if the determinant of the interpolation matrix to find the Fermi energy
   !is smaller than this value, switch from cubic to linear interpolation.
-  call input_var("ef_interpol_det",1.d-20,"FOE: max determinant of cubic interpolation matrix",&
-       in%lin%ef_interpol_det)
-  call input_var("ef_interpol_chargediff",10.d0,"FOE: max charge difference for interpolation",&
-       in%lin%ef_interpol_chargediff)
-
-  !determines whether a mixing step shall be preformed after the input guess !(linear version)
-  call input_var("mixing_after_inputguess",.true.,"mixing step after linear input guess (T/F)",&
-       in%lin%mixing_after_inputguess)
+  call input_var("ef_interpol_det",1.d-20,"FOE: max determinant of cubic interpolation matrix",in%lin%ef_interpol_det)
+  call input_var("ef_interpol_chargediff",10.d0,"FOE: max charge difference for interpolation",in%lin%ef_interpol_chargediff)
 
   if (in%verbosity == 0 ) then
      call memocc_set_state(0)

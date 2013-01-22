@@ -396,7 +396,6 @@ low_level = \
 	linear/foe.f90 \
 	linear/chebyshev.f90 \
 	linear/communications_onesided.f90 \
-        linear/sparse_matrices.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \

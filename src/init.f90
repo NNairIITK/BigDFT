@@ -1654,7 +1654,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
-     tmb%can_use_transposed_shamop=.false.
+     tmblarge%can_use_transposed=.false.
      ! the following subroutine will overwrite phi, therefore store in a temporary array...
      !!allocate(phi_tmp(size(tmb%psi)), stat=i_stat)
      !!call memocc(i_stat, phi_tmp, 'phi_tmp', subname)

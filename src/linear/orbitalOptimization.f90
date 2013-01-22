@@ -253,6 +253,8 @@ allocate(ldiis%phiHist(ii), stat=istat)
 call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
 allocate(ldiis%hphiHist(ii), stat=istat)
 call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
+nullify(ldiis%alpha_coeff) ! only needed for DIIS coeff, not DIIS basis
+nullify(ldiis%grad_coeff_old) ! as above
 
 end subroutine initializeDIIS
 
@@ -281,6 +283,18 @@ call memocc(istat, iall, 'ldiis%phiHist', subname)
 iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
 deallocate(ldiis%hphiHist, stat=istat)
 call memocc(istat, iall, 'ldiis%hphiHist', subname)
+
+if (associated(ldiis%alpha_coeff)) then
+   iall=-product(shape(ldiis%alpha_coeff))*kind(ldiis%alpha_coeff)
+   deallocate(ldiis%alpha_coeff, stat=istat)
+   call memocc(istat, iall, 'wfnmd%alpha_coeff', subname) 
+end if
+
+if (associated(ldiis%grad_coeff_old)) then
+   iall=-product(shape(ldiis%grad_coeff_old))*kind(ldiis%grad_coeff_old)
+   deallocate(ldiis%grad_coeff_old, stat=istat)
+   call memocc(istat, iall, 'wfnmd%grad_coeff_old', subname)
+end if
 
 end subroutine deallocateDIIS
 

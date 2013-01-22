@@ -125,13 +125,14 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, norb_cubic, iproc, nproc)
 
   !!wfn%wfnmd%bs%use_derivative_basis=.false.
 
-  call initCommsOrtho(iproc, nproc, in%nspin, wfn%lzd, wfn%orbs, 's', wfn%op)
+  call initCommsOrtho(iproc, nproc, in%nspin, wfn%lzd, wfn%orbs, 's', wfn%op, wfn%comon)
 
   call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
        & wfn%orbs, wfn%lzd, wfn%comgp)
 
   call nullify_p2pComms(wfn%comrp)
 
+  call nullify_p2pcomms(wfn%comsr)
   !!call initialize_comms_sumrho(iproc, nproc, dpbox%nscatterarr, lzd, wfn%orbs, wfn%comsr)
 
   ndim = maxval(wfn%op%noverlaps)

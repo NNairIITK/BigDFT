@@ -405,11 +405,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat, denspot0, 'denspot0', subname)
      call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., & 
            tmblarge)
-     
-     ! call sparse_init here
- 
      call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
-     call init_collective_comms(iproc, nproc, tmb%orbs_shamop, tmb%lzd_shamop, tmblarge%mad, tmb%collcom_shamop)
+     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmblarge%collcom)
      call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%mad, denspot%dpbox%nscatterarr, tmb%collcom_sr)
   else
      allocate(denspot0(1+ndebug), stat=i_stat)
@@ -800,8 +797,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          nsize_psi=1
          ! This is just to save memory, since calculate_forces will require quite a lot
          call deallocate_collective_comms(tmb%collcom, subname)
+         call deallocate_collective_comms(tmblarge%collcom, subname)
          call deallocate_collective_comms(tmb%collcom_shamop, subname)
          call deallocate_collective_comms(tmb%collcom_sr, subname)
+         call deallocate_collective_comms(tmblarge%collcom_sr, subname)
+         call deallocate_p2pComms(tmb%comon, subname)
+         call deallocate_p2pComms(tmblarge%comon, subname)
          call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
               KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
               proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
@@ -812,8 +813,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          deallocate(fpulay,stat=i_stat)
          call memocc(i_stat,i_all,'fpulay',subname)
 
-         call destroy_new_locregs(iproc, nproc, tmb, tmblarge)
-         call deallocate_auxiliary_basis_function(subname, tmb%psi_shamop, tmb%hpsi_shamop)
+         call destroy_new_locregs(iproc, nproc, tmblarge)
+         call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
 
          !!!! TEST ##################
          !!fxyz=0.d0
@@ -830,7 +831,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          !!     tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
          !!call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
          !!     KSwfn%Lzd%hgrids(3),atoms,rxyz,&
-         !!     tmb%orbs,nlpspd,proj,tmb%lzd_shamop,tmb%psi_shamop,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
+         !!     tmb%orbs,nlpspd,proj,tmblarge%lzd,tmblarge%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
          !!if (nproc > 1) then
          !!   call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
          !!end if

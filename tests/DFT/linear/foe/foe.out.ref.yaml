@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-01-22 10:20:14.351
+ Timestamp of this run                 : 2013-01-18 12:28:20.431
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -64,7 +64,6 @@
  #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
  #|ef_interpol_det  1.00E-12    FOE: max determinant of cubic interpolation matrix           
  #|ef_interpol_chargediff  1.00EFOE: max charge difference for interpolation                 
- #|mixing_after_inputguess F    mixing step after linear input guess (T/F)                   
  #... (file:input.dft)............................................DFT Calculation Parameters
  #|0.40 0.40 0.40  hx,hy,hz: grid spacing in the three directions                            
  #|4.0  5.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -328,10 +327,6 @@
      BC                                : Free
      Box                               :  [  105,  109,  199 ]
      MPI tasks                         :  4
-   Poisson Solver:
-     BC                                : Free
-     Box                               :  [  105,  109,  199 ]
-     MPI tasks                         :  4
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  26478,  626 ]
  
@@ -432,22 +427,22 @@
    Box                                 :  [  105,  109,  199 ]
    MPI tasks                           :  4
  Electric Dipole Moment (AU):
-   P vector                            :  [ -7.0416E-02, -7.7573E-02, -1.3271E-01 ]
-   norm(P)                             :  1.690774E-01
+   P vector                            :  [ -7.0210E-02, -7.5980E-02, -1.3276E-01 ]
+   norm(P)                             :  1.683097E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.7898E-01, -1.9717E-01, -3.3731E-01 ]
-   norm(P)                             :  4.297519E-01
+   P vector                            :  [ -1.7846E-01, -1.9312E-01, -3.3745E-01 ]
+   norm(P)                             :  4.278007E-01
  Non Local forces calculated           :  Yes
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  74.36
-   Elapsed time (s)                    :  37.80
+   CPU time (s)                        :  66.87
+   Elapsed time (s)                    :  33.94
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 43855
-   Tot. No. of Deallocations: 43855
+   Tot. No. of Allocations  : 42812
+   Tot. No. of Deallocations: 42812
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 367
