@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-01-22 10:28:25.862
+ Timestamp of this run                 : 2013-01-23 08:54:34.261
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -117,7 +117,7 @@
  #|1.d-10         convergence criterion on density to fix TMBS                               
  #|103            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
  #|1.d0     1     initial step size for basis optimization (DIIS, SD)                        
- #|-1.3d0   1.2d  lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted a
+ #|-1.6d0   1.6d  lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted a
  #|5              number of iterations in the preconditioner                                 
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|3.d-2          fscale: length scale over which complementary error function decays from 1 
@@ -481,8 +481,8 @@
  Non Local forces calculated           :  Yes
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  95.65
-   Elapsed time (s)                    :  48.33
+   CPU time (s)                        :  96.66
+   Elapsed time (s)                    :  50.42
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -829,21 +829,21 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  91.53
-   Elapsed time (s)                    :  46.56
+   CPU time (s)                        :  98.91
+   Elapsed time (s)                    :  51.72
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- FORCES norm(Ha/Bohr): { maxval:  2.24496E-01, fnrm2:  4.49470E-01, fluct:  1.96858E-01}
+ FORCES norm(Ha/Bohr): { maxval:  2.24501E-01, fnrm2:  4.49472E-01, fluct:  1.96859E-01}
  Geometry:
    Ncount_BigDFT                       :  1
    Iteration                           :  1
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -2.02823722166042E+02, -2.02823722166042E+02 ]
-   Forces                              :  [  2.24E-01,  6.70E-01,  1.97E-01,  1.97E-01 ]
+   etot                                :  [ -2.02823712522201E+02, -2.02823712522201E+02 ]
+   Forces                              :  [  2.25E-01,  6.70E-01,  1.97E-01,  1.97E-01 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
-   FORCES norm(Ha/Bohr): { maxval:  2.24496E-01, fnrm2:  4.49470E-01, fluct:  1.96858E-01}
+   FORCES norm(Ha/Bohr): { maxval:  2.24501E-01, fnrm2:  4.49472E-01, fluct:  1.96859E-01}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -925,7 +925,7 @@
  - O: {AU:  [  20.542,  16.924,  18.901 ], GU:  [  47.772,  39.358,  43.955 ]} # 0009
  - O: {AU:  [  19.317,  10.941,  8.0522 ], GU:  [  44.923,  25.443,  18.726 ]} # 0010
  - O: {AU:  [  15.131,  15.957,  12.817 ], GU:  [  35.189,  37.109,  29.806 ]} # 0011
- - O: {AU:  [  6.1549,  14.042,  11.353 ], GU:  [  14.314,  32.656,  26.401 ]} # 0012
+ - O: {AU:  [  6.1549,  14.042,  11.353 ], GU:  [  14.314,  32.656,  26.402 ]} # 0012
  - H: {AU:  [  10.992,  18.121,  14.791 ], GU:  [  25.562,  42.141,  34.397 ]} # 0013
  - H: {AU:  [  14.586,  20.079,  18.954 ], GU:  [  33.921,  46.696,  44.079 ]} # 0014
  - H: {AU:  [  14.429,  9.4574,  19.602 ], GU:  [  33.556,  21.994,  45.586 ]} # 0015
@@ -980,8 +980,8 @@
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
-     No. of segments                   :  3615
-     No. of points                     :  147853
+     No. of segments                   :  3614
+     No. of points                     :  147854
    Fine resolution grid:
      No. of segments                   :  541
      No. of points                     :  2064
@@ -1003,7 +1003,7 @@
   #----------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.3 #    (Number of Orbitals: 48)
-   Single orbital                      : 1.244 #  (Number of Components: 162301)
+   Single orbital                      : 1.244 #  (Number of Components: 162302)
    All (distributed) orbitals          : 44.592 # (Number of Orbitals per MPI task: 12)
    Wavefunction storage size           : 341.784 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.28
@@ -1016,9 +1016,9 @@
    Hamiltonian application             : 476.277
  Estimated Memory Peak (MB)            :  476
   #WARNING: Do not call check_communications in the linear scaling version!
- Ion-Ion interaction energy            :  5.27629504567549E+02
+ Ion-Ion interaction energy            :  5.27629469351533E+02
   #------------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -96.000000725428
+ Total ionic charge                    : -96.000000725414
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  167,  159,  167 ]
@@ -1040,13 +1040,13 @@
      Box                               :  [  167,  159,  167 ]
      MPI tasks                         :  4
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  36822,  514 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  36823,  514 ]
  
-   Tolerances for this check           :  [  2.60172225695893951E-07,  1.59872115546022542E-14 ]
+   Tolerances for this check           :  [  2.60166670140264233E-07,  1.59872115546022542E-14 ]
    Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  39583,  357 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  39584,  357 ]
  
    Tolerances for this check           :  [  1.67591668904255408E-06,  1.59872115546022542E-14 ]
    Maxdiff for transpose (checksum)    :  6.98491930961608887E-10
@@ -1183,25 +1183,25 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  99.37
-   Elapsed time (s)                    :  50.46
+   CPU time (s)                        :  97.29
+   Elapsed time (s)                    :  51.01
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- FORCES norm(Ha/Bohr): { maxval:  1.79633E-01, fnrm2:  2.44327E-01, fluct:  1.94678E-01}
+ FORCES norm(Ha/Bohr): { maxval:  1.79634E-01, fnrm2:  2.44318E-01, fluct:  1.94679E-01}
  Geometry:
    Ncount_BigDFT                       :  2
    Iteration                           :  2
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -2.02888263218170E+02, -6.45410521278791E-02 ]
+   etot                                :  [ -2.02888233122299E+02, -6.45206000984899E-02 ]
    Forces                              :  [  1.80E-01,  4.94E-01,  1.95E-01,  1.95E-01 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
-   FORCES norm(Ha/Bohr): { maxval:  1.79633E-01, fnrm2:  2.44327E-01, fluct:  1.94678E-01}
+   FORCES norm(Ha/Bohr): { maxval:  1.79634E-01, fnrm2:  2.44318E-01, fluct:  1.94679E-01}
  End of minimization using             : SDCG
  Memory Consumption Report:
-   Tot. No. of Allocations  : 225800
-   Tot. No. of Deallocations: 225800
+   Tot. No. of Allocations  : 221183
+   Tot. No. of Deallocations: 221183
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 332
