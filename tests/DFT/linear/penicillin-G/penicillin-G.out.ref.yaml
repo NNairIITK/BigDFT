@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-01-17 10:06:29.982
+ Timestamp of this run                 : 2013-01-18 14:43:31.141
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -63,6 +63,7 @@
  #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
  #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
  #|ef_interpol_det  1.00E-12    FOE: max determinant of cubic interpolation matrix           
+ #|ef_interpol_chargediff  1.00EFOE: max charge difference for interpolation                 
  #... (file:input.dft)............................................DFT Calculation Parameters
  #|0.45 0.45 0.45  hx,hy,hz: grid spacing in the three directions                            
  #|4.0  4.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -87,7 +88,7 @@
  #|SDCG           Geometry optimisation method                                               
  #|2              Maximum number of force evaluations                                        
  #|1.d0  0.       fract_fluct,forcemax                                                       
- #|2.d-1          random displacement amplitude                                              
+ #|0.d0           random displacement amplitude                                              
  #|0.5d0          Stepsize for the geometry optimisation                                     
  #... (file:input.tddft.. not present)....................................TD-DFT Parameters 
  #|NONE           TDDFT Method                                                               
@@ -140,7 +141,7 @@
  Geometry Optimization Parameters:
    Maximum steps                       :  2
    Algorithm                           : SDCG
-   Random atomic displacement          :  2.0E-01
+   Random atomic displacement          :  0.0E+00
    Fluctuation in forces               :  1.0E+00
    Maximum in forces                   :  0.0E+00
    Steepest descent step               :  5.0E-01
@@ -285,57 +286,57 @@
    PSP XC                              : "XC: Teter 93"
   #-------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
- - C: {AU:  [  10.496,  29.879,  11.137 ], GU:  [  23.325,  66.398,  24.748 ]} # 0001
- - C: {AU:  [  10.679,  27.225,  11.281 ], GU:  [  23.730,  60.500,  25.069 ]} # 0002
- - C: {AU:  [  12.151,  26.337,  13.507 ], GU:  [  27.002,  58.526,  30.016 ]} # 0003
- - C: {AU:  [  8.0564,  25.896,  11.318 ], GU:  [  17.903,  57.547,  25.151 ]} # 0004
- - H: {AU:  [  6.6829,  27.106,  9.9936 ], GU:  [  14.851,  60.235,  22.208 ]} # 0005
- - C: {AU:  [  6.6742,  25.823,  13.638 ], GU:  [  14.832,  57.385,  30.307 ]} # 0006
- - O: {AU:  [  5.6995,  23.971,  14.535 ], GU:  [  12.666,  53.268,  32.300 ]} # 0007
- - O: {AU:  [  6.4846,  28.186,  14.871 ], GU:  [  14.410,  62.636,  33.046 ]} # 0008
- - N: {AU:  [  8.1807,  23.533,  10.143 ], GU:  [  18.179,  52.295,  22.539 ]} # 0009
- - C: {AU:  [  9.5129,  21.424,  11.212 ], GU:  [  21.140,  47.609,  24.915 ]} # 0010
- - O: {AU:  [  9.6506,  20.600,  13.292 ], GU:  [  21.446,  45.777,  29.538 ]} # 0011
- - C: {AU:  [  10.641,  20.801,  8.7716 ], GU:  [  23.647,  46.225,  19.492 ]} # 0012
- - N: {AU:  [  9.5201,  18.572,  7.5501 ], GU:  [  21.156,  41.271,  16.778 ]} # 0013
- - C: {AU:  [  10.139,  16.345,  8.5549 ], GU:  [  22.531,  36.322,  19.011 ]} # 0014
- - O: {AU:  [  11.859,  16.160,  10.324 ], GU:  [  26.354,  35.910,  22.942 ]} # 0015
- - C: {AU:  [  8.6720,  14.064,  7.7537 ], GU:  [  19.271,  31.254,  17.230 ]} # 0016
- - C: {AU:  [  9.5253,  11.604,  9.0117 ], GU:  [  21.167,  25.787,  20.026 ]} # 0017
- - C: {AU:  [  8.4465,  10.878,  11.127 ], GU:  [  18.770,  24.172,  24.726 ]} # 0018
- - C: {AU:  [  9.2717,  8.6634,  12.476 ], GU:  [  20.604,  19.252,  27.725 ]} # 0019
- - C: {AU:  [  11.363,  7.4147,  11.494 ], GU:  [  25.252,  16.477,  25.542 ]} # 0020
- - C: {AU:  [  12.489,  8.2004,  9.1819 ], GU:  [  27.754,  18.223,  20.404 ]} # 0021
- - C: {AU:  [  11.595,  10.266,  8.1183 ], GU:  [  25.766,  22.814,  18.041 ]} # 0022
- - H: {AU:  [  12.799,  20.364,  8.7716 ], GU:  [  28.443,  45.254,  19.492 ]} # 0023
- - C: {AU:  [  9.7469,  23.368,  7.8255 ], GU:  [  21.660,  51.929,  17.390 ]} # 0024
- - H: {AU:  [  8.6049,  23.496,  6.2205 ], GU:  [  19.122,  52.214,  13.823 ]} # 0025
- - S: {AU:  [  11.874,  26.011,  8.0781 ], GU:  [  26.386,  57.803,  17.951 ]} # 0026
- - H: {AU:  [  12.539,  30.773,  11.074 ], GU:  [  27.864,  68.384,  24.609 ]} # 0027
- - H: {AU:  [  9.6756,  30.751,  9.5584 ], GU:  [  21.501,  68.335,  21.241 ]} # 0028
- - H: {AU:  [  9.6337,  30.729,  12.919 ], GU:  [  21.408,  68.287,  28.709 ]} # 0029
- - H: {AU:  [  14.165,  27.193,  13.381 ], GU:  [  31.478,  60.429,  29.735 ]} # 0030
- - H: {AU:  [  11.256,  26.920,  15.205 ], GU:  [  25.012,  59.823,  33.788 ]} # 0031
- - H: {AU:  [  12.305,  24.276,  13.585 ], GU:  [  27.344,  53.946,  30.189 ]} # 0032
- - H: {AU:  [  5.6347,  28.002,  16.346 ], GU:  [  12.522,  62.227,  36.325 ]} # 0033
- - H: {AU:  [  7.9852,  18.672,  6.4762 ], GU:  [  17.745,  41.494,  14.391 ]} # 0034
- - H: {AU:  [  6.6812,  14.366,  8.1007 ], GU:  [  14.847,  31.924,  18.002 ]} # 0035
- - H: {AU:  [  8.9890,  13.999,  5.7039 ], GU:  [  19.975,  31.108,  12.675 ]} # 0036
- - H: {AU:  [  6.8709,  11.976,  12.010 ], GU:  [  15.269,  26.614,  26.689 ]} # 0037
- - H: {AU:  [  8.3892,  8.0428,  14.146 ], GU:  [  18.643,  17.873,  31.436 ]} # 0038
- - H: {AU:  [  12.180,  5.6771,  12.503 ], GU:  [  27.066,  12.616,  27.784 ]} # 0039
- - H: {AU:  [  14.140,  7.1512,  8.4424 ], GU:  [  31.422,  15.892,  18.761 ]} # 0040
- - H: {AU:  [  12.584,  11.056,  6.2840 ], GU:  [  27.965,  24.568,  13.964 ]} # 0041
- Rigid Shift Applied (AU)              :  [  9.7799,  18.130,  11.028 ]
+ - C: {AU:  [  10.574,  30.006,  11.081 ], GU:  [  23.498,  66.680,  24.625 ]} # 0001
+ - C: {AU:  [  10.890,  27.540,  11.323 ], GU:  [  24.199,  61.199,  25.161 ]} # 0002
+ - C: {AU:  [  12.295,  26.642,  13.540 ], GU:  [  27.323,  59.204,  30.090 ]} # 0003
+ - C: {AU:  [  8.3006,  26.087,  11.366 ], GU:  [  18.446,  57.971,  25.258 ]} # 0004
+ - H: {AU:  [  6.7785,  27.405,  10.008 ], GU:  [  15.063,  60.900,  22.240 ]} # 0005
+ - C: {AU:  [  6.8988,  26.005,  13.522 ], GU:  [  15.331,  57.790,  30.049 ]} # 0006
+ - O: {AU:  [  5.9588,  24.112,  14.417 ], GU:  [  13.242,  53.583,  32.038 ]} # 0007
+ - O: {AU:  [  6.5793,  28.420,  14.930 ], GU:  [  14.621,  63.155,  33.178 ]} # 0008
+ - N: {AU:  [  8.2736,  23.837,  10.035 ], GU:  [  18.386,  52.971,  22.300 ]} # 0009
+ - C: {AU:  [  9.7181,  21.717,  11.110 ], GU:  [  21.596,  48.259,  24.689 ]} # 0010
+ - O: {AU:  [  9.9272,  20.877,  13.170 ], GU:  [  22.060,  46.394,  29.267 ]} # 0011
+ - C: {AU:  [  10.753,  21.122,  8.7964 ], GU:  [  23.895,  46.939,  19.548 ]} # 0012
+ - N: {AU:  [  9.6414,  18.826,  7.5320 ], GU:  [  21.425,  41.835,  16.738 ]} # 0013
+ - C: {AU:  [  10.313,  16.635,  8.4341 ], GU:  [  22.917,  36.966,  18.742 ]} # 0014
+ - O: {AU:  [  12.135,  16.399,  10.351 ], GU:  [  26.966,  36.442,  23.003 ]} # 0015
+ - C: {AU:  [  8.8386,  14.328,  7.7867 ], GU:  [  19.641,  31.840,  17.304 ]} # 0016
+ - C: {AU:  [  9.6907,  11.768,  9.0320 ], GU:  [  21.535,  26.151,  20.071 ]} # 0017
+ - C: {AU:  [  8.6574,  11.144,  11.043 ], GU:  [  19.239,  24.765,  24.540 ]} # 0018
+ - C: {AU:  [  9.4111,  8.8380,  12.501 ], GU:  [  20.913,  19.640,  27.780 ]} # 0019
+ - C: {AU:  [  11.551,  7.6640,  11.494 ], GU:  [  25.669,  17.031,  25.543 ]} # 0020
+ - C: {AU:  [  12.666,  8.4166,  9.0805 ], GU:  [  28.147,  18.704,  20.179 ]} # 0021
+ - C: {AU:  [  11.779,  10.427,  8.1860 ], GU:  [  26.176,  23.172,  18.191 ]} # 0022
+ - H: {AU:  [  12.995,  20.490,  8.7086 ], GU:  [  28.877,  45.533,  19.352 ]} # 0023
+ - C: {AU:  [  9.9352,  23.625,  7.7030 ], GU:  [  22.078,  52.500,  17.118 ]} # 0024
+ - H: {AU:  [  8.7357,  23.711,  6.2621 ], GU:  [  19.413,  52.690,  13.916 ]} # 0025
+ - S: {AU:  [  11.997,  26.258,  7.9613 ], GU:  [  26.660,  58.351,  17.692 ]} # 0026
+ - H: {AU:  [  12.721,  31.057,  11.015 ], GU:  [  28.270,  69.015,  24.477 ]} # 0027
+ - H: {AU:  [  9.9316,  31.013,  9.5817 ], GU:  [  22.070,  68.918,  21.293 ]} # 0028
+ - H: {AU:  [  9.7632,  30.985,  12.924 ], GU:  [  21.696,  68.856,  28.721 ]} # 0029
+ - H: {AU:  [  14.430,  27.509,  13.355 ], GU:  [  32.067,  61.132,  29.678 ]} # 0030
+ - H: {AU:  [  11.419,  27.106,  15.200 ], GU:  [  25.376,  60.235,  33.777 ]} # 0031
+ - H: {AU:  [  12.416,  24.583,  13.566 ], GU:  [  27.592,  54.629,  30.148 ]} # 0032
+ - H: {AU:  [  5.8199,  28.237,  16.294 ], GU:  [  12.933,  62.750,  36.209 ]} # 0033
+ - H: {AU:  [  8.1605,  18.833,  6.4708 ], GU:  [  18.134,  41.851,  14.380 ]} # 0034
+ - H: {AU:  [  6.8867,  14.583,  8.1241 ], GU:  [  15.304,  32.407,  18.054 ]} # 0035
+ - H: {AU:  [  9.1988,  14.316,  5.7558 ], GU:  [  20.442,  31.813,  12.791 ]} # 0036
+ - H: {AU:  [  7.1054,  12.294,  12.013 ], GU:  [  15.790,  27.320,  26.696 ]} # 0037
+ - H: {AU:  [  8.5284,  8.2124,  14.077 ], GU:  [  18.952,  18.250,  31.282 ]} # 0038
+ - H: {AU:  [  12.445,  5.8432,  12.512 ], GU:  [  27.656,  12.985,  27.805 ]} # 0039
+ - H: {AU:  [  14.327,  7.3245,  8.3509 ], GU:  [  31.839,  16.277,  18.558 ]} # 0040
+ - H: {AU:  [  12.831,  11.351,  6.2493 ], GU:  [  28.513,  25.224,  13.887 ]} # 0041
+ Rigid Shift Applied (AU)              :  [  9.8576,  18.252,  10.902 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
  Sizes of the simulation domain:
-   AU                                  :  [  19.800,  36.450,  22.050 ]
-   Angstroem                           :  [  10.478,  19.289,  11.668 ]
-   Grid Spacing Units                  :  [  44,  81,  49 ]
+   AU                                  :  [  20.250,  36.900,  22.050 ]
+   Angstroem                           :  [  10.716,  19.527,  11.668 ]
+   Grid Spacing Units                  :  [  45,  82,  49 ]
    High resolution region boundaries (GU):
-     From                              :  [  11,  11,  11 ]
-     To                                :  [  33,  70,  38 ]
+     From                              :  [  12,  12,  12 ]
+     To                                :  [  33,  70,  37 ]
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
@@ -344,9 +345,9 @@
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  6.23
-     Kernel (MB)                       :  6.40
-     Full Grid Arrays (MB)             :  22.60
+     Density (MB)                      :  6.54
+     Kernel (MB)                       :  6.72
+     Full Grid Arrays (MB)             :  23.22
      Load Balancing of calculations:
        Density:
          MPI tasks 0- 2                : 100%
@@ -357,11 +358,11 @@
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
-     No. of segments                   :  3025
-     No. of points                     :  82587
+     No. of segments                   :  3022
+     No. of points                     :  82772
    Fine resolution grid:
-     No. of segments                   :  496
-     No. of points                     :  1402
+     No. of segments                   :  489
+     No. of points                     :  1367
   #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  122
  Spin treatment                        : Averaged
@@ -372,34 +373,34 @@
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-61:  2.0000}
- Wavefunctions memory occupation for root MPI process:  11 MB 286 KB 128 B
+ Wavefunctions memory occupation for root MPI process:  11 MB 278 KB 640 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  27
-   Total number of components          :  43590
+   Total number of components          :  43810
    Percent of zero components          :  4
   #-------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.4 #    (Number of Orbitals: 61)
-   Single orbital                      : 0.722 #  (Number of Components: 92401)
-   All (distributed) orbitals          : 33.860 # (Number of Orbitals per MPI task: 16)
-   Wavefunction storage size           : 259.446 # (DIIS/SD workspaces included)
-   Nonlocal Pseudopotential Arrays     : 0.341
-   Full Uncompressed (ISF) grid        : 22.619
-   Workspaces storage size             : 2.568
+   Single orbital                      : 0.722 #  (Number of Components: 92341)
+   All (distributed) orbitals          : 33.837 # (Number of Orbitals per MPI task: 16)
+   Wavefunction storage size           : 259.273 # (DIIS/SD workspaces included)
+   Nonlocal Pseudopotential Arrays     : 0.343
+   Full Uncompressed (ISF) grid        : 23.228
+   Workspaces storage size             : 2.528
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 121.674
-   Density Construction                : 346.137
-   Poisson Solver                      : 340.899
-   Hamiltonian application             : 350.501
- Estimated Memory Peak (MB)            :  350
+   Kernel calculation                  : 127.707
+   Density Construction                : 348.478
+   Poisson Solver                      : 344.783
+   Hamiltonian application             : 352.510
+ Estimated Memory Peak (MB)            :  352
   #WARNING: Do not call check_communications in the linear scaling version!
- Ion-Ion interaction energy            :  1.00582150259472E+03
+ Ion-Ion interaction energy            :  1.00572642903614E+03
   #---------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -121.999999222843
+ Total ionic charge                    : -121.999997416940
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
@@ -411,238 +412,442 @@
    -  {Atom Type: N, Electronic configuration: {s: [ 2.00], p: [ 1.00,  1.00,  1.00]}}
    -  {Atom Type: S, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
    Wavelet conversion succeeded        :  Yes
-   Deviation from normalization        :  7.47E-04
+   Deviation from normalization        :  7.53E-04
    Poisson Solver:
      BC                                : Free
-     Box                               :  [  119,  193,  129 ]
+     Box                               :  [  121,  195,  129 ]
      MPI tasks                         :  4
+   Calculating wavelets expansion of projectors, found warnings:  8
+    #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  29105,  422 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  29187,  414 ]
  
    Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  27302,  401 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  26961,  381 ]
  
    Maxdiff for transpose (checksum)    :  1.39698386192321777E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  242.75
-   Elapsed time (s)                    :  124.94
+   CPU time (s)                        :  245.14
+   Elapsed time (s)                    :  123.98
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Wavefunction Optimization Finished, exit signal:  0
 ---
   #----------------------------------------------------------- Geometry minimization using SDCG
@@ -789,57 +994,57 @@
    PSP XC                              : "XC: Teter 93"
   #----------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
- - C: {AU:  [  10.496,  29.879,  11.137 ], GU:  [  23.325,  66.398,  24.748 ]} # 0001
- - C: {AU:  [  10.679,  27.225,  11.281 ], GU:  [  23.730,  60.500,  25.069 ]} # 0002
- - C: {AU:  [  12.151,  26.337,  13.507 ], GU:  [  27.002,  58.526,  30.016 ]} # 0003
- - C: {AU:  [  8.0564,  25.896,  11.318 ], GU:  [  17.903,  57.547,  25.151 ]} # 0004
- - H: {AU:  [  6.6829,  27.106,  9.9936 ], GU:  [  14.851,  60.235,  22.208 ]} # 0005
- - C: {AU:  [  6.6742,  25.823,  13.638 ], GU:  [  14.832,  57.385,  30.307 ]} # 0006
- - O: {AU:  [  5.6995,  23.971,  14.535 ], GU:  [  12.666,  53.268,  32.300 ]} # 0007
- - O: {AU:  [  6.4846,  28.186,  14.871 ], GU:  [  14.410,  62.636,  33.046 ]} # 0008
- - N: {AU:  [  8.1807,  23.533,  10.143 ], GU:  [  18.179,  52.295,  22.539 ]} # 0009
- - C: {AU:  [  9.5129,  21.424,  11.212 ], GU:  [  21.140,  47.609,  24.915 ]} # 0010
- - O: {AU:  [  9.6506,  20.600,  13.292 ], GU:  [  21.446,  45.777,  29.538 ]} # 0011
- - C: {AU:  [  10.641,  20.801,  8.7716 ], GU:  [  23.647,  46.225,  19.492 ]} # 0012
- - N: {AU:  [  9.5201,  18.572,  7.5501 ], GU:  [  21.156,  41.271,  16.778 ]} # 0013
- - C: {AU:  [  10.139,  16.345,  8.5549 ], GU:  [  22.531,  36.322,  19.011 ]} # 0014
- - O: {AU:  [  11.859,  16.160,  10.324 ], GU:  [  26.354,  35.910,  22.942 ]} # 0015
- - C: {AU:  [  8.6720,  14.064,  7.7537 ], GU:  [  19.271,  31.254,  17.230 ]} # 0016
- - C: {AU:  [  9.5253,  11.604,  9.0117 ], GU:  [  21.167,  25.787,  20.026 ]} # 0017
- - C: {AU:  [  8.4465,  10.878,  11.127 ], GU:  [  18.770,  24.172,  24.726 ]} # 0018
- - C: {AU:  [  9.2717,  8.6634,  12.476 ], GU:  [  20.604,  19.252,  27.725 ]} # 0019
- - C: {AU:  [  11.363,  7.4147,  11.494 ], GU:  [  25.252,  16.477,  25.542 ]} # 0020
- - C: {AU:  [  12.489,  8.2004,  9.1819 ], GU:  [  27.754,  18.223,  20.404 ]} # 0021
- - C: {AU:  [  11.595,  10.266,  8.1183 ], GU:  [  25.766,  22.814,  18.041 ]} # 0022
- - H: {AU:  [  12.799,  20.364,  8.7716 ], GU:  [  28.443,  45.254,  19.492 ]} # 0023
- - C: {AU:  [  9.7469,  23.368,  7.8255 ], GU:  [  21.660,  51.929,  17.390 ]} # 0024
- - H: {AU:  [  8.6049,  23.496,  6.2205 ], GU:  [  19.122,  52.214,  13.823 ]} # 0025
- - S: {AU:  [  11.874,  26.011,  8.0781 ], GU:  [  26.386,  57.803,  17.951 ]} # 0026
- - H: {AU:  [  12.539,  30.773,  11.074 ], GU:  [  27.864,  68.384,  24.609 ]} # 0027
- - H: {AU:  [  9.6756,  30.751,  9.5584 ], GU:  [  21.501,  68.335,  21.241 ]} # 0028
- - H: {AU:  [  9.6337,  30.729,  12.919 ], GU:  [  21.408,  68.287,  28.709 ]} # 0029
- - H: {AU:  [  14.165,  27.193,  13.381 ], GU:  [  31.478,  60.429,  29.735 ]} # 0030
- - H: {AU:  [  11.256,  26.920,  15.205 ], GU:  [  25.012,  59.823,  33.788 ]} # 0031
- - H: {AU:  [  12.305,  24.276,  13.585 ], GU:  [  27.344,  53.946,  30.189 ]} # 0032
- - H: {AU:  [  5.6347,  28.002,  16.346 ], GU:  [  12.522,  62.227,  36.325 ]} # 0033
- - H: {AU:  [  7.9852,  18.672,  6.4762 ], GU:  [  17.745,  41.494,  14.391 ]} # 0034
- - H: {AU:  [  6.6812,  14.366,  8.1007 ], GU:  [  14.847,  31.924,  18.002 ]} # 0035
- - H: {AU:  [  8.9890,  13.999,  5.7039 ], GU:  [  19.975,  31.108,  12.675 ]} # 0036
- - H: {AU:  [  6.8709,  11.976,  12.010 ], GU:  [  15.269,  26.614,  26.689 ]} # 0037
- - H: {AU:  [  8.3892,  8.0428,  14.146 ], GU:  [  18.643,  17.873,  31.436 ]} # 0038
- - H: {AU:  [  12.180,  5.6771,  12.503 ], GU:  [  27.066,  12.616,  27.784 ]} # 0039
- - H: {AU:  [  14.140,  7.1512,  8.4424 ], GU:  [  31.422,  15.892,  18.761 ]} # 0040
- - H: {AU:  [  12.584,  11.056,  6.2840 ], GU:  [  27.965,  24.568,  13.964 ]} # 0041
- Rigid Shift Applied (AU)              :  [  9.7799,  18.130,  11.028 ]
+ - C: {AU:  [  10.574,  30.006,  11.081 ], GU:  [  23.498,  66.680,  24.625 ]} # 0001
+ - C: {AU:  [  10.890,  27.540,  11.323 ], GU:  [  24.199,  61.199,  25.161 ]} # 0002
+ - C: {AU:  [  12.295,  26.642,  13.540 ], GU:  [  27.323,  59.204,  30.090 ]} # 0003
+ - C: {AU:  [  8.3006,  26.087,  11.366 ], GU:  [  18.446,  57.971,  25.258 ]} # 0004
+ - H: {AU:  [  6.7785,  27.405,  10.008 ], GU:  [  15.063,  60.900,  22.240 ]} # 0005
+ - C: {AU:  [  6.8988,  26.005,  13.522 ], GU:  [  15.331,  57.790,  30.049 ]} # 0006
+ - O: {AU:  [  5.9588,  24.112,  14.417 ], GU:  [  13.242,  53.583,  32.038 ]} # 0007
+ - O: {AU:  [  6.5793,  28.420,  14.930 ], GU:  [  14.621,  63.155,  33.178 ]} # 0008
+ - N: {AU:  [  8.2736,  23.837,  10.035 ], GU:  [  18.386,  52.971,  22.300 ]} # 0009
+ - C: {AU:  [  9.7181,  21.717,  11.110 ], GU:  [  21.596,  48.259,  24.689 ]} # 0010
+ - O: {AU:  [  9.9272,  20.877,  13.170 ], GU:  [  22.060,  46.394,  29.267 ]} # 0011
+ - C: {AU:  [  10.753,  21.122,  8.7964 ], GU:  [  23.895,  46.939,  19.548 ]} # 0012
+ - N: {AU:  [  9.6414,  18.826,  7.5320 ], GU:  [  21.425,  41.835,  16.738 ]} # 0013
+ - C: {AU:  [  10.313,  16.635,  8.4341 ], GU:  [  22.917,  36.966,  18.742 ]} # 0014
+ - O: {AU:  [  12.135,  16.399,  10.351 ], GU:  [  26.966,  36.442,  23.003 ]} # 0015
+ - C: {AU:  [  8.8386,  14.328,  7.7867 ], GU:  [  19.641,  31.840,  17.304 ]} # 0016
+ - C: {AU:  [  9.6907,  11.768,  9.0320 ], GU:  [  21.535,  26.151,  20.071 ]} # 0017
+ - C: {AU:  [  8.6574,  11.144,  11.043 ], GU:  [  19.239,  24.765,  24.540 ]} # 0018
+ - C: {AU:  [  9.4111,  8.8380,  12.501 ], GU:  [  20.913,  19.640,  27.780 ]} # 0019
+ - C: {AU:  [  11.551,  7.6640,  11.494 ], GU:  [  25.669,  17.031,  25.543 ]} # 0020
+ - C: {AU:  [  12.666,  8.4166,  9.0805 ], GU:  [  28.147,  18.704,  20.179 ]} # 0021
+ - C: {AU:  [  11.779,  10.427,  8.1860 ], GU:  [  26.176,  23.172,  18.191 ]} # 0022
+ - H: {AU:  [  12.995,  20.490,  8.7086 ], GU:  [  28.877,  45.533,  19.352 ]} # 0023
+ - C: {AU:  [  9.9352,  23.625,  7.7030 ], GU:  [  22.078,  52.500,  17.118 ]} # 0024
+ - H: {AU:  [  8.7357,  23.711,  6.2621 ], GU:  [  19.413,  52.690,  13.916 ]} # 0025
+ - S: {AU:  [  11.997,  26.258,  7.9613 ], GU:  [  26.660,  58.351,  17.692 ]} # 0026
+ - H: {AU:  [  12.721,  31.057,  11.015 ], GU:  [  28.270,  69.015,  24.477 ]} # 0027
+ - H: {AU:  [  9.9316,  31.013,  9.5817 ], GU:  [  22.070,  68.918,  21.293 ]} # 0028
+ - H: {AU:  [  9.7632,  30.985,  12.924 ], GU:  [  21.696,  68.856,  28.721 ]} # 0029
+ - H: {AU:  [  14.430,  27.509,  13.355 ], GU:  [  32.067,  61.132,  29.678 ]} # 0030
+ - H: {AU:  [  11.419,  27.106,  15.200 ], GU:  [  25.376,  60.235,  33.777 ]} # 0031
+ - H: {AU:  [  12.416,  24.583,  13.566 ], GU:  [  27.592,  54.629,  30.148 ]} # 0032
+ - H: {AU:  [  5.8199,  28.237,  16.294 ], GU:  [  12.933,  62.750,  36.209 ]} # 0033
+ - H: {AU:  [  8.1605,  18.833,  6.4708 ], GU:  [  18.134,  41.851,  14.380 ]} # 0034
+ - H: {AU:  [  6.8867,  14.583,  8.1241 ], GU:  [  15.304,  32.407,  18.054 ]} # 0035
+ - H: {AU:  [  9.1988,  14.316,  5.7558 ], GU:  [  20.442,  31.813,  12.791 ]} # 0036
+ - H: {AU:  [  7.1054,  12.294,  12.013 ], GU:  [  15.790,  27.320,  26.696 ]} # 0037
+ - H: {AU:  [  8.5284,  8.2124,  14.077 ], GU:  [  18.952,  18.250,  31.282 ]} # 0038
+ - H: {AU:  [  12.445,  5.8432,  12.512 ], GU:  [  27.656,  12.985,  27.805 ]} # 0039
+ - H: {AU:  [  14.327,  7.3245,  8.3509 ], GU:  [  31.839,  16.277,  18.558 ]} # 0040
+ - H: {AU:  [  12.831,  11.351,  6.2493 ], GU:  [  28.513,  25.224,  13.887 ]} # 0041
+ Rigid Shift Applied (AU)              :  [  9.8576,  18.252,  10.902 ]
   #---------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
  Sizes of the simulation domain:
-   AU                                  :  [  19.800,  36.450,  22.050 ]
-   Angstroem                           :  [  10.478,  19.289,  11.668 ]
-   Grid Spacing Units                  :  [  44,  81,  49 ]
+   AU                                  :  [  20.250,  36.900,  22.050 ]
+   Angstroem                           :  [  10.716,  19.527,  11.668 ]
+   Grid Spacing Units                  :  [  45,  82,  49 ]
    High resolution region boundaries (GU):
-     From                              :  [  11,  11,  11 ]
-     To                                :  [  33,  70,  38 ]
+     From                              :  [  12,  12,  12 ]
+     To                                :  [  33,  70,  37 ]
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
@@ -848,9 +1053,9 @@
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  6.23
-     Kernel (MB)                       :  6.40
-     Full Grid Arrays (MB)             :  22.60
+     Density (MB)                      :  6.54
+     Kernel (MB)                       :  6.72
+     Full Grid Arrays (MB)             :  23.22
      Load Balancing of calculations:
        Density:
          MPI tasks 0- 2                : 100%
@@ -861,11 +1066,11 @@
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
-     No. of segments                   :  3025
-     No. of points                     :  82587
+     No. of segments                   :  3022
+     No. of points                     :  82772
    Fine resolution grid:
-     No. of segments                   :  496
-     No. of points                     :  1402
+     No. of segments                   :  489
+     No. of points                     :  1367
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  122
  Spin treatment                        : Averaged
@@ -876,34 +1081,34 @@
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-61:  2.0000}
- Wavefunctions memory occupation for root MPI process:  11 MB 286 KB 128 B
+ Wavefunctions memory occupation for root MPI process:  11 MB 278 KB 640 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  27
-   Total number of components          :  43590
+   Total number of components          :  43810
    Percent of zero components          :  4
   #----------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.4 #    (Number of Orbitals: 61)
-   Single orbital                      : 0.722 #  (Number of Components: 92401)
-   All (distributed) orbitals          : 33.860 # (Number of Orbitals per MPI task: 16)
-   Wavefunction storage size           : 259.446 # (DIIS/SD workspaces included)
-   Nonlocal Pseudopotential Arrays     : 0.341
-   Full Uncompressed (ISF) grid        : 22.619
-   Workspaces storage size             : 2.568
+   Single orbital                      : 0.722 #  (Number of Components: 92341)
+   All (distributed) orbitals          : 33.837 # (Number of Orbitals per MPI task: 16)
+   Wavefunction storage size           : 259.273 # (DIIS/SD workspaces included)
+   Nonlocal Pseudopotential Arrays     : 0.343
+   Full Uncompressed (ISF) grid        : 23.228
+   Workspaces storage size             : 2.528
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 121.674
-   Density Construction                : 346.137
-   Poisson Solver                      : 340.899
-   Hamiltonian application             : 350.501
- Estimated Memory Peak (MB)            :  350
+   Kernel calculation                  : 127.707
+   Density Construction                : 348.478
+   Poisson Solver                      : 344.783
+   Hamiltonian application             : 352.510
+ Estimated Memory Peak (MB)            :  352
   #WARNING: Do not call check_communications in the linear scaling version!
- Ion-Ion interaction energy            :  1.00582150259472E+03
+ Ion-Ion interaction energy            :  1.00572642903614E+03
   #------------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -121.999999222843
+ Total ionic charge                    : -121.999997416940
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
   #------------------------------------------------------------------ Support functions Restart
  Input Hamiltonian:
@@ -915,250 +1120,454 @@
    -  {Atom Type: N, Electronic configuration: {s: [ 2.00], p: [ 1.00,  1.00,  1.00]}}
    -  {Atom Type: S, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
    Wavelet conversion succeeded        :  Yes
-   Deviation from normalization        :  7.47E-04
+   Deviation from normalization        :  7.53E-04
    Poisson Solver:
      BC                                : Free
-     Box                               :  [  119,  193,  129 ]
+     Box                               :  [  121,  195,  129 ]
      MPI tasks                         :  4
+   Calculating wavelets expansion of projectors, found warnings:  8
+    #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  29105,  422 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  29187,  414 ]
  
-   Tolerances for this check           :  [  2.51753574789842086E-07,  2.44249065417534439E-14 ]
+   Tolerances for this check           :  [  2.49471431902229399E-07,  2.44249065417534439E-14 ]
    Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  27302,  401 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  26961,  381 ]
  
-   Tolerances for this check           :  [  1.71867859437539147E-06,  2.44249065417534439E-14 ]
+   Tolerances for this check           :  [  1.71458216574926974E-06,  2.44249065417534439E-14 ]
    Maxdiff for transpose (checksum)    :  1.39698386192321777E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  195,  129 ]
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  237.93
-   Elapsed time (s)                    :  123.80
+   CPU time (s)                        :  245.69
+   Elapsed time (s)                    :  124.33
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- FORCES norm(Ha/Bohr): { maxval:  2.01447E-01, fnrm2:  2.70389E-01, fluct:  1.94190E-01}
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ FORCES norm(Ha/Bohr): { maxval:  2.40626E-01, fnrm2:  7.01169E-01, fluct:  2.36315E-01}
  Geometry:
    Ncount_BigDFT                       :  1
    Iteration                           :  1
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.92619216115856E+02, -1.92619216115856E+02 ]
-   Forces                              :  [  2.01E-01,  5.20E-01,  1.94E-01,  1.94E-01 ]
+   etot                                :  [ -1.92320204526349E+02, -1.92320204526349E+02 ]
+   Forces                              :  [  2.41E-01,  8.37E-01,  2.36E-01,  2.36E-01 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
-   FORCES norm(Ha/Bohr): { maxval:  2.01447E-01, fnrm2:  2.70389E-01, fluct:  1.94190E-01}
+   FORCES norm(Ha/Bohr): { maxval:  2.40626E-01, fnrm2:  7.01169E-01, fluct:  2.36315E-01}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -1301,56 +1710,56 @@
    PSP XC                              : "XC: Teter 93"
   #----------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
- - C: {AU:  [  10.557,  29.936,  11.150 ], GU:  [  23.460,  66.525,  24.778 ]} # 0001
- - C: {AU:  [  10.695,  27.185,  11.255 ], GU:  [  23.766,  60.412,  25.012 ]} # 0002
- - C: {AU:  [  12.206,  26.341,  13.494 ], GU:  [  27.125,  58.535,  29.986 ]} # 0003
- - C: {AU:  [  8.0683,  25.925,  11.269 ], GU:  [  17.930,  57.611,  25.042 ]} # 0004
- - H: {AU:  [  6.7275,  27.087,  9.9907 ], GU:  [  14.950,  60.194,  22.202 ]} # 0005
- - C: {AU:  [  6.6760,  25.808,  13.675 ], GU:  [  14.836,  57.351,  30.389 ]} # 0006
- - O: {AU:  [  5.7745,  24.060,  14.551 ], GU:  [  12.832,  53.468,  32.336 ]} # 0007
- - O: {AU:  [  6.5436,  28.194,  14.874 ], GU:  [  14.541,  62.653,  33.054 ]} # 0008
- - N: {AU:  [  8.2718,  23.529,  10.144 ], GU:  [  18.382,  52.286,  22.543 ]} # 0009
- - C: {AU:  [  9.5351,  21.430,  11.225 ], GU:  [  21.189,  47.622,  24.946 ]} # 0010
- - O: {AU:  [  9.7020,  20.610,  13.292 ], GU:  [  21.560,  45.800,  29.538 ]} # 0011
- - C: {AU:  [  10.701,  20.778,  8.7396 ], GU:  [  23.779,  46.173,  19.421 ]} # 0012
- - N: {AU:  [  9.5747,  18.594,  7.5643 ], GU:  [  21.277,  41.320,  16.810 ]} # 0013
- - C: {AU:  [  10.213,  16.335,  8.6031 ], GU:  [  22.696,  36.300,  19.118 ]} # 0014
- - O: {AU:  [  11.823,  16.169,  10.332 ], GU:  [  26.272,  35.930,  22.960 ]} # 0015
- - C: {AU:  [  8.7130,  14.059,  7.7384 ], GU:  [  19.362,  31.243,  17.196 ]} # 0016
- - C: {AU:  [  9.5775,  11.623,  8.9995 ], GU:  [  21.283,  25.830,  19.999 ]} # 0017
- - C: {AU:  [  8.4690,  10.865,  11.154 ], GU:  [  18.820,  24.145,  24.787 ]} # 0018
- - C: {AU:  [  9.3282,  8.6868,  12.430 ], GU:  [  20.729,  19.304,  27.622 ]} # 0019
- - C: {AU:  [  11.392,  7.4184,  11.486 ], GU:  [  25.316,  16.485,  25.524 ]} # 0020
- - C: {AU:  [  12.520,  8.1973,  9.2062 ], GU:  [  27.821,  18.216,  20.458 ]} # 0021
- - C: {AU:  [  11.637,  10.291,  8.0832 ], GU:  [  25.859,  22.869,  17.963 ]} # 0022
- - H: {AU:  [  12.798,  20.366,  8.7602 ], GU:  [  28.441,  45.258,  19.467 ]} # 0023
- - C: {AU:  [  9.7747,  23.378,  7.8492 ], GU:  [  21.721,  51.951,  17.443 ]} # 0024
- - H: {AU:  [  8.6270,  23.490,  6.1955 ], GU:  [  19.171,  52.200,  13.768 ]} # 0025
- - S: {AU:  [  11.873,  25.993,  8.1303 ], GU:  [  26.384,  57.763,  18.067 ]} # 0026
- - H: {AU:  [  12.537,  30.754,  11.063 ], GU:  [  27.860,  68.342,  24.585 ]} # 0027
- - H: {AU:  [  9.6944,  30.743,  9.5376 ], GU:  [  21.543,  68.317,  21.195 ]} # 0028
- - H: {AU:  [  9.6641,  30.713,  12.884 ], GU:  [  21.476,  68.252,  28.632 ]} # 0029
- - H: {AU:  [  14.160,  27.178,  13.373 ], GU:  [  31.466,  60.395,  29.718 ]} # 0030
- - H: {AU:  [  11.277,  26.921,  15.190 ], GU:  [  25.060,  59.824,  33.756 ]} # 0031
- - H: {AU:  [  12.326,  24.285,  13.568 ], GU:  [  27.392,  53.967,  30.151 ]} # 0032
- - H: {AU:  [  5.6403,  27.988,  16.351 ], GU:  [  12.534,  62.195,  36.337 ]} # 0033
- - H: {AU:  [  8.0148,  18.670,  6.4602 ], GU:  [  17.811,  41.490,  14.356 ]} # 0034
- - H: {AU:  [  6.7161,  14.362,  8.0819 ], GU:  [  14.925,  31.915,  17.960 ]} # 0035
- - H: {AU:  [  9.0144,  13.990,  5.6985 ], GU:  [  20.032,  31.090,  12.663 ]} # 0036
- - H: {AU:  [  6.9079,  11.964,  11.984 ], GU:  [  15.351,  26.586,  26.631 ]} # 0037
- - H: {AU:  [  8.4109,  8.0419,  14.131 ], GU:  [  18.691,  17.871,  31.402 ]} # 0038
- - H: {AU:  [  12.191,  5.6961,  12.479 ], GU:  [  27.092,  12.658,  27.731 ]} # 0039
- - H: {AU:  [  14.153,  7.1582,  8.4380 ], GU:  [  31.452,  15.907,  18.751 ]} # 0040
- - H: {AU:  [  12.599,  11.040,  6.2979 ], GU:  [  27.997,  24.533,  13.995 ]} # 0041
- Rigid Shift Applied (AU)              :  [  9.8101,  18.132,  11.023 ]
+ - C: {AU:  [  10.675,  29.891,  11.091 ], GU:  [  23.722,  66.423,  24.647 ]} # 0001
+ - C: {AU:  [  10.928,  27.238,  11.264 ], GU:  [  24.284,  60.528,  25.032 ]} # 0002
+ - C: {AU:  [  12.397,  26.417,  13.490 ], GU:  [  27.548,  58.706,  29.978 ]} # 0003
+ - C: {AU:  [  8.3368,  25.907,  11.261 ], GU:  [  18.526,  57.572,  25.026 ]} # 0004
+ - H: {AU:  [  6.8544,  27.161,  9.9826 ], GU:  [  15.232,  60.357,  22.184 ]} # 0005
+ - C: {AU:  [  6.9083,  25.755,  13.565 ], GU:  [  15.352,  57.233,  30.143 ]} # 0006
+ - O: {AU:  [  6.0763,  23.970,  14.434 ], GU:  [  13.503,  53.268,  32.076 ]} # 0007
+ - O: {AU:  [  6.7175,  28.240,  14.836 ], GU:  [  14.928,  62.756,  32.969 ]} # 0008
+ - N: {AU:  [  8.4113,  23.596,  10.026 ], GU:  [  18.692,  52.436,  22.280 ]} # 0009
+ - C: {AU:  [  9.7495,  21.506,  11.117 ], GU:  [  21.666,  47.791,  24.705 ]} # 0010
+ - O: {AU:  [  10.037,  20.691,  13.153 ], GU:  [  22.304,  45.980,  29.229 ]} # 0011
+ - C: {AU:  [  10.862,  20.845,  8.6994 ], GU:  [  24.138,  46.322,  19.332 ]} # 0012
+ - N: {AU:  [  9.7320,  18.623,  7.5251 ], GU:  [  21.627,  41.385,  16.722 ]} # 0013
+ - C: {AU:  [  10.425,  16.386,  8.4861 ], GU:  [  23.166,  36.413,  18.858 ]} # 0014
+ - O: {AU:  [  12.190,  16.227,  10.307 ], GU:  [  27.089,  36.060,  22.905 ]} # 0015
+ - C: {AU:  [  8.9183,  14.091,  7.7395 ], GU:  [  19.818,  31.312,  17.199 ]} # 0016
+ - C: {AU:  [  9.7785,  11.590,  8.9634 ], GU:  [  21.730,  25.755,  19.919 ]} # 0017
+ - C: {AU:  [  8.6832,  10.888,  11.092 ], GU:  [  19.296,  24.195,  24.648 ]} # 0018
+ - C: {AU:  [  9.5086,  8.6399,  12.403 ], GU:  [  21.130,  19.200,  27.562 ]} # 0019
+ - C: {AU:  [  11.595,  7.4323,  11.469 ], GU:  [  25.767,  16.516,  25.487 ]} # 0020
+ - C: {AU:  [  12.737,  8.1554,  9.1046 ], GU:  [  28.305,  18.123,  20.233 ]} # 0021
+ - C: {AU:  [  11.851,  10.261,  8.0955 ], GU:  [  26.335,  22.802,  17.990 ]} # 0022
+ - H: {AU:  [  13.013,  20.273,  8.6781 ], GU:  [  28.918,  45.050,  19.285 ]} # 0023
+ - C: {AU:  [  9.9934,  23.416,  7.7306 ], GU:  [  22.208,  52.036,  17.179 ]} # 0024
+ - H: {AU:  [  8.7758,  23.482,  6.1880 ], GU:  [  19.502,  52.181,  13.751 ]} # 0025
+ - S: {AU:  [  12.029,  26.017,  7.9886 ], GU:  [  26.732,  57.817,  17.752 ]} # 0026
+ - H: {AU:  [  12.736,  30.805,  10.983 ], GU:  [  28.302,  68.456,  24.407 ]} # 0027
+ - H: {AU:  [  9.9670,  30.785,  9.5227 ], GU:  [  22.149,  68.411,  21.161 ]} # 0028
+ - H: {AU:  [  9.8199,  30.741,  12.857 ], GU:  [  21.822,  68.313,  28.571 ]} # 0029
+ - H: {AU:  [  14.437,  27.264,  13.328 ], GU:  [  32.082,  60.586,  29.618 ]} # 0030
+ - H: {AU:  [  11.456,  26.886,  15.175 ], GU:  [  25.459,  59.747,  33.722 ]} # 0031
+ - H: {AU:  [  12.462,  24.365,  13.525 ], GU:  [  27.694,  54.144,  30.055 ]} # 0032
+ - H: {AU:  [  5.8131,  27.988,  16.328 ], GU:  [  12.918,  62.194,  36.284 ]} # 0033
+ - H: {AU:  [  8.2030,  18.611,  6.4184 ], GU:  [  18.229,  41.357,  14.263 ]} # 0034
+ - H: {AU:  [  6.9391,  14.356,  8.0772 ], GU:  [  15.420,  31.903,  17.949 ]} # 0035
+ - H: {AU:  [  9.2508,  14.082,  5.7223 ], GU:  [  20.557,  31.294,  12.716 ]} # 0036
+ - H: {AU:  [  7.1717,  12.053,  11.954 ], GU:  [  15.937,  26.784,  26.564 ]} # 0037
+ - H: {AU:  [  8.5630,  7.9793,  14.048 ], GU:  [  19.029,  17.732,  31.218 ]} # 0038
+ - H: {AU:  [  12.475,  5.6446,  12.461 ], GU:  [  27.722,  12.544,  27.690 ]} # 0039
+ - H: {AU:  [  14.365,  7.1078,  8.3235 ], GU:  [  31.923,  15.795,  18.497 ]} # 0040
+ - H: {AU:  [  12.868,  11.104,  6.2498 ], GU:  [  28.595,  24.676,  13.888 ]} # 0041
+ Rigid Shift Applied (AU)              :  [  9.9169,  18.030,  10.873 ]
   #---------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
  Sizes of the simulation domain:
-   AU                                  :  [  19.800,  36.450,  22.050 ]
-   Angstroem                           :  [  10.478,  19.289,  11.668 ]
-   Grid Spacing Units                  :  [  44,  81,  49 ]
+   AU                                  :  [  20.250,  36.450,  22.050 ]
+   Angstroem                           :  [  10.716,  19.289,  11.668 ]
+   Grid Spacing Units                  :  [  45,  81,  49 ]
    High resolution region boundaries (GU):
-     From                              :  [  11,  11,  11 ]
+     From                              :  [  12,  11,  11 ]
      To                                :  [  33,  70,  38 ]
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
@@ -1360,9 +1769,9 @@
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  6.23
-     Kernel (MB)                       :  6.40
-     Full Grid Arrays (MB)             :  22.60
+     Density (MB)                      :  6.54
+     Kernel (MB)                       :  6.72
+     Full Grid Arrays (MB)             :  22.98
      Load Balancing of calculations:
        Density:
          MPI tasks 0- 2                : 100%
@@ -1373,11 +1782,11 @@
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
-     No. of segments                   :  3022
-     No. of points                     :  82325
+     No. of segments                   :  3029
+     No. of points                     :  82630
    Fine resolution grid:
-     No. of segments                   :  497
-     No. of points                     :  1395
+     No. of segments                   :  485
+     No. of points                     :  1369
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  122
  Spin treatment                        : Averaged
@@ -1388,34 +1797,34 @@
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-61:  2.0000}
- Wavefunctions memory occupation for root MPI process:  11 MB 247 KB 256 B
+ Wavefunctions memory occupation for root MPI process:  11 MB 262 KB 640 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  27
-   Total number of components          :  43570
+   Total number of components          :  43605
    Percent of zero components          :  4
   #----------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.4 #    (Number of Orbitals: 61)
-   Single orbital                      : 0.720 #  (Number of Components: 92090)
-   All (distributed) orbitals          : 33.743 # (Number of Orbitals per MPI task: 16)
-   Wavefunction storage size           : 258.573 # (DIIS/SD workspaces included)
+   Single orbital                      : 0.721 #  (Number of Components: 92213)
+   All (distributed) orbitals          : 33.789 # (Number of Orbitals per MPI task: 16)
+   Wavefunction storage size           : 258.929 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.341
-   Full Uncompressed (ISF) grid        : 22.619
-   Workspaces storage size             : 2.568
+   Full Uncompressed (ISF) grid        : 22.1008
+   Workspaces storage size             : 2.559
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 121.674
-   Density Construction                : 345.263
-   Poisson Solver                      : 340.2
-   Hamiltonian application             : 349.628
- Estimated Memory Peak (MB)            :  349
+   Kernel calculation                  : 127.707
+   Density Construction                : 347.661
+   Poisson Solver                      : 344.413
+   Hamiltonian application             : 351.926
+ Estimated Memory Peak (MB)            :  351
   #WARNING: Do not call check_communications in the linear scaling version!
- Ion-Ion interaction energy            :  1.00814350774543E+03
+ Ion-Ion interaction energy            :  1.00685766757836E+03
   #------------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -122.000000419571
+ Total ionic charge                    : -121.999997930764
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
   #------------------------------------------------------------------ Support functions Restart
  Input Hamiltonian:
@@ -1427,254 +1836,254 @@
    -  {Atom Type: N, Electronic configuration: {s: [ 2.00], p: [ 1.00,  1.00,  1.00]}}
    -  {Atom Type: S, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
    Wavelet conversion succeeded        :  Yes
-   Deviation from normalization        :  7.29E-04
+   Deviation from normalization        :  7.79E-04
    Poisson Solver:
      BC                                : Free
-     Box                               :  [  119,  193,  129 ]
+     Box                               :  [  121,  193,  129 ]
      MPI tasks                         :  4
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  29063,  414 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  29230,  411 ]
  
-   Tolerances for this check           :  [  2.49314289042988452E-07,  2.44249065417534439E-14 ]
-   Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
+   Tolerances for this check           :  [  2.49796431906568614E-07,  2.44249065417534439E-14 ]
+   Maxdiff for transpose (checksum)    :  1.45519152283668518E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  27287,  399 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  26960,  390 ]
  
-   Tolerances for this check           :  [  1.71703573721059989E-06,  2.44249065417534439E-14 ]
-   Maxdiff for transpose (checksum)    :  1.39698386192321777E-09
+   Tolerances for this check           :  [  1.71524288004380538E-06,  2.44249065417534439E-14 ]
+   Maxdiff for transpose (checksum)    :  1.62981450557708740E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  119,  193,  129 ]
+   Box                                 :  [  121,  193,  129 ]
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  237.16
-   Elapsed time (s)                    :  123.13
+   CPU time (s)                        :  246.38
+   Elapsed time (s)                    :  124.79
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- FORCES norm(Ha/Bohr): { maxval:  1.22619E-01, fnrm2:  1.28480E-01, fluct:  1.91858E-01}
+ FORCES norm(Ha/Bohr): { maxval:  2.25295E-01, fnrm2:  3.23595E-01, fluct:  2.34738E-01}
  Geometry:
    Ncount_BigDFT                       :  2
    Iteration                           :  2
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.92675747153078E+02, -5.65310372215890E-02 ]
-   Forces                              :  [  1.23E-01,  3.58E-01,  1.92E-01,  1.92E-01 ]
+   etot                                :  [ -1.92487935350781E+02, -1.67730824431601E-01 ]
+   Forces                              :  [  2.25E-01,  5.69E-01,  2.35E-01,  2.35E-01 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
-   FORCES norm(Ha/Bohr): { maxval:  1.22619E-01, fnrm2:  1.28480E-01, fluct:  1.91858E-01}
+   FORCES norm(Ha/Bohr): { maxval:  2.25295E-01, fnrm2:  3.23595E-01, fluct:  2.34738E-01}
  End of minimization using             : SDCG
  Memory Consumption Report:
-   Tot. No. of Allocations  : 797788
-   Tot. No. of Deallocations: 797788
+   Tot. No. of Allocations  : 797707
+   Tot. No. of Deallocations: 797707
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 464

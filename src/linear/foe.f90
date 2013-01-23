@@ -163,9 +163,9 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           call timing(iproc, 'FOE_auxiliary ', 'OF')
           call timing(iproc, 'chebyshev_coef', 'ON')
 
-          call CHEBFT(evlow, evhigh, npl, cc(1,1), ef, fscale, tmprtr)
-          call CHDER(evlow, evhigh, cc(1,1), cc(1,2), npl)
-          call CHEBFT2(evlow, evhigh, npl, cc(1,3))
+          call chebft(evlow, evhigh, npl, cc(1,1), ef, fscale, tmprtr)
+          call chder(evlow, evhigh, cc(1,1), cc(1,2), npl)
+          call chebft2(evlow, evhigh, npl, cc(1,3))
           call evnoise(npl, cc(1,3), evlow, evhigh, anoise)
 
           call timing(iproc, 'chebyshev_coef', 'OF')
@@ -349,7 +349,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
 
           ! Calculate the new Fermi energy.
-          if (it_solver>=4) then
+          if (it_solver>=4 .and. abs(sumn-charge)<tmb%wfnmd%ef_interpol_chargediff) then
               det=determinant(4,interpol_matrix)
               if (iproc==0) write(*,'(1x,a,2es10.2)') 'determinant of interpolation matrix, limit:', &
                                                      det, tmb%wfnmd%ef_interpol_det
@@ -376,9 +376,9 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
 
           if (iproc==0) then
-              write(*,'(1x,a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
+              write(*,'(1x,a,2es21.13)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
               write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-charge, charge_tolerance
-              write(*,'(1x,a,es18.9)') 'suggested Fermi energy for next iteration:', ef
+              write(*,'(1x,a,es21.13)') 'suggested Fermi energy for next iteration:', ef
           end if
 
           if (abs(charge_diff)<charge_tolerance) then

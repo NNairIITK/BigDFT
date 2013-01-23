@@ -8,7 +8,8 @@ TESTDIRS = Locreg \
            directmin \
 	       foe \
 	       geopt \
-	       testforces 
+	       testforces \
+		   fructose
 
 EXTRA_TESTDIRS =  water \
                   molecule \
@@ -72,6 +73,7 @@ deltascf_write_neut.out.post-out:
 	  molecule_pmix.out*)          prec="1.1e-9" ;; \
 	  molecule_foe.out*)             prec="1.e-9" ;; \
 	  reformat_write.out*)        prec="3.e-10" ;; \
+	  paracetamol.out*)           prec="2.e-10" ;; \
       *)                          prec="1.1e-10" ;; \
       esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

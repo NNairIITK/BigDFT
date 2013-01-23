@@ -715,7 +715,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%deltaenergy_multiplier_TMBfix,'1.d0',ranges=(/1.d-5,1.d1/),comment=comments)
 
   comments = 'factor to reduce the confinement. Only used for hybrid mode.'
-  call input_var(in%lin%reduce_confinement_factor,'0.5d0',ranges=(/0.d0,1.d0/),comment=comments)
+  call input_var(in%lin%reduce_confinement_factor,'0.5d0',ranges=(/-1.d100,1.d0/),comment=comments)
 
   comments = 'kernel convergence (low, high)'
   call input_var(in%lin%convCritMix_lowaccuracy,'1.d-13',ranges=(/0.d0,1.d0/))
@@ -1391,6 +1391,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   !FOE: if the determinant of the interpolation matrix to find the Fermi energy
   !is smaller than this value, switch from cubic to linear interpolation.
   call input_var("ef_interpol_det",1.d-20,"FOE: max determinant of cubic interpolation matrix",in%lin%ef_interpol_det)
+  call input_var("ef_interpol_chargediff",10.d0,"FOE: max charge difference for interpolation",in%lin%ef_interpol_chargediff)
 
   if (in%verbosity == 0 ) then
      call memocc_set_state(0)

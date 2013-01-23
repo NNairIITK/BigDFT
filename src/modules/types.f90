@@ -152,7 +152,7 @@ module module_types
     integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
     integer :: nit_lowaccuracy, nit_highaccuracy
     integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
-    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, evlow, evhigh
+    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
     real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor, ef_interpol_det
     integer :: plotBasisFunctions
     real(kind=8) ::  fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
@@ -703,6 +703,7 @@ module module_types
     real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)
     real(kind=8) :: fscale !< length scale for complementary error function (FOE)
     real(kind=8) :: ef_interpol_det !<FOE: max determinant of cubic interpolation matrix
+    real(kind=8) :: ef_interpol_chargediff !<FOE: max charge difference for interpolation
   end type wfn_metadata
 
 
@@ -827,7 +828,7 @@ module module_types
      	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
      type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
      type(p2pComms):: comsr !<describing the p2p communications for sumrho
-     type(collective_comms):: collcom ! describes collective communication
+     type(collective_comms):: collcom, collcom_shamop ! describes collective communication
      type(collective_comms):: collcom_sr ! describes collective communication for the calculation of the charge density
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
      	type(matrixDescriptors_foe):: mad !<describes the structure of the matrices

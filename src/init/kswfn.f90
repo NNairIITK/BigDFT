@@ -131,6 +131,7 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, norb_cubic, iproc, nproc)
 
   call create_wfn_metadata('l', wfn%orbs%norb, norb_cubic, wfn%orbs%norbp, in, wfn%wfnmd)
 
+  call nullify_collective_comms(wfn%collcom_shamop)
   call nullify_collective_comms(wfn%collcom)
   call nullify_collective_comms(wfn%collcom_sr)
 

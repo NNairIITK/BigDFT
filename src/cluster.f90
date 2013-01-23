@@ -796,6 +796,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          ! This is just to save memory, since calculate_forces will require quite a lot
          call deallocate_collective_comms(tmb%collcom, subname)
          call deallocate_collective_comms(tmblarge%collcom, subname)
+         call deallocate_collective_comms(tmb%collcom_shamop, subname)
          call deallocate_collective_comms(tmb%collcom_sr, subname)
          call deallocate_collective_comms(tmblarge%collcom_sr, subname)
          call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
