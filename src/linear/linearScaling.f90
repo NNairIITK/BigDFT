@@ -1196,7 +1196,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   !!integer :: ialpha, iat, iiorb
   real(kind=8) :: kernel, ekernel
   real(kind=8),dimension(:),allocatable :: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f
-  real(kind=8),dimension(:,:),allocatable :: matrix_compr, dovrlp_compr
+  type(sparseMatrix) :: dovrlp(3), dham(3)
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   character(len=*),parameter :: subname='pulay_correction'
@@ -1259,23 +1259,30 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
        lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
 
   !now build the derivative and related matrices <dPhi_a | H | Phi_b> and <dPhi_a | Phi_b>
-  allocate(matrix_compr(tmblarge%sparsemat%nvctr,3), stat=istat)
-  call memocc(istat, matrix_compr, 'matrix_compr', subname)
-  allocate(dovrlp_compr(tmblarge%sparsemat%nvctr,3), stat=istat)
-  call memocc(istat, dovrlp_compr, 'dovrlp_compr', subname)
-  jdir=1
+
+  ! DOVRLP AND DHAM SHOULD HAVE DIFFERENT SPARSITIES, BUT TO MAKE LIFE EASIER KEEPING THEM THE SAME FOR NOW
+  ! also array of structure a bit inelegant at the moment
   do jdir = 1, 3
-     call get_derivative(jdir, tmblarge%orbs%npsidim_orbs, tmblarge%lzd%hgrids(1), tmblarge%orbs, &
-          tmblarge%lzd, tmblarge%psi, lhphilarge)
+    call nullify_sparsematrix(dovrlp(jdir))
+    call nullify_sparsematrix(dham(jdir))
+    call sparse_copy_pattern(tmb%linmat%ham,dovrlp(jdir),subname) 
+    call sparse_copy_pattern(tmb%linmat%ham,dham(jdir),subname)
+    allocate(dham(jdir)%matrix_compr(dham(jdir)%nvctr), stat=istat)
+    call memocc(istat, dham(jdir)%matrix_compr, 'dham%matrix_compr', subname)
+    allocate(dovrlp(jdir)%matrix_compr(dovrlp(jdir)%nvctr), stat=istat)
+    call memocc(istat, dovrlp(jdir)%matrix_compr, 'dovrlp%matrix_compr', subname)
 
-     call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
-          lhphilarge, psit_c, psit_f, tmblarge%lzd)
+    call get_derivative(jdir, tmblarge%orbs%npsidim_orbs, tmblarge%lzd%hgrids(1), tmblarge%orbs, &
+         tmblarge%lzd, tmblarge%psi, lhphilarge)
 
-     call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%sparsemat, tmblarge%collcom,&
-          psit_c, lpsit_c, psit_f, lpsit_f, dovrlp_compr(1,jdir))
+    call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, &
+         lhphilarge, psit_c, psit_f, tmblarge%lzd)
 
-     call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%sparsemat, tmblarge%collcom,&
-          psit_c, hpsit_c, psit_f, hpsit_f, matrix_compr(1,jdir))
+    call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, dovrlp(jdir), tmblarge%collcom,&
+         psit_c, lpsit_c, psit_f, lpsit_f, dovrlp(jdir)%matrix_compr)
+
+    call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, dham(jdir), tmblarge%collcom,&
+         psit_c, hpsit_c, psit_f, hpsit_f, dham(jdir)%matrix_compr)
   end do
 
 
@@ -1300,19 +1307,20 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   !!end if
   !END DEBUG
 
+   ! needs generalizing if dovrlp and dham are to have different structures
    call to_zero(3*at%nat, fpulay(1,1))
    do jdir=1,3
      !do ialpha=1,tmblarge%orbs%norb
      if (tmblarge%orbs%norbp>0) then
-         isegstart=tmblarge%sparsemat%istsegline(tmblarge%orbs%isorb_par(iproc)+1)
+         isegstart=dham(jdir)%istsegline(tmblarge%orbs%isorb_par(iproc)+1)
          if (tmblarge%orbs%isorb+tmblarge%orbs%norbp<tmblarge%orbs%norb) then
-             isegend=tmblarge%sparsemat%istsegline(tmblarge%orbs%isorb_par(iproc+1)+1)-1
+             isegend=dham(jdir)%istsegline(tmblarge%orbs%isorb_par(iproc+1)+1)-1
          else
-             isegend=tmblarge%sparsemat%nseg
+             isegend=dham(jdir)%nseg
          end if
          do iseg=isegstart,isegend
-              ii=tmblarge%sparsemat%keyv(iseg)-1
-              do jorb=tmblarge%sparsemat%keyg(1,iseg),tmblarge%sparsemat%keyg(2,iseg)
+              ii=dham(jdir)%keyv(iseg)-1
+              do jorb=dham(jdir)%keyg(1,iseg),dham(jdir)%keyg(2,iseg)
                   ii=ii+1
                   iialpha = (jorb-1)/tmblarge%orbs%norb + 1
                   ibeta = jorb - (iialpha-1)*tmblarge%orbs%norb
@@ -1324,7 +1332,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
                       ekernel = ekernel+orbs%eval(iorb)*orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb) 
                   end do
                   fpulay(jdir,jat)=fpulay(jdir,jat)+&
-                         2.0_gp*(kernel*matrix_compr(ii,jdir)-ekernel*dovrlp_compr(ii,jdir))
+                         2.0_gp*(kernel*dham(jdir)%matrix_compr(ii)-ekernel*dovrlp(jdir)%matrix_compr(ii))
               end do
          end do
      end if
@@ -1388,13 +1396,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   deallocate(denspot%pot_work, stat=istat)
   call memocc(istat, iall, 'denspot%pot_work', subname)
 
-  iall=-product(shape(matrix_compr))*kind(matrix_compr)
-  deallocate(matrix_compr, stat=istat)
-  call memocc(istat, iall, 'matrix_compr', subname)
-
-  iall=-product(shape(dovrlp_compr))*kind(dovrlp_compr)
-  deallocate(dovrlp_compr, stat=istat)
-  call memocc(istat, iall, 'dovrlp_compr', subname)
+  do jdir=1,3
+     call deallocate_sparseMatrix(dovrlp(jdir),subname)
+     call deallocate_sparseMatrix(dham(jdir),subname)
+  end do
 
   if(iproc==0) write(*,'(1x,a)') 'done.'
 

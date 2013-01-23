@@ -1,3 +1,5 @@
+!currently assuming square matrices
+
 subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
   use module_base
   use module_types
@@ -21,6 +23,9 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
 
   call nullify_sparsematrix(sparsemat)
   call initCommsOrtho(iproc, nproc, lzd, orbs, 's', sparsemat%noverlaps, sparsemat%overlaps)
+
+  sparsemat%full_dim1=orbs%norb
+  sparsemat%full_dim2=orbs%norb
 
   sparsemat%nseg=0
   sparsemat%nvctr=0
@@ -460,25 +465,24 @@ function compressed_index(irow, jcol, norb, sparsemat)
 end function compressed_index
 
 
-subroutine compress_matrix_for_allreduce(n, sparsemat, mat, mat_compr)
+subroutine compress_matrix_for_allreduce(sparsemat)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: n
-  type(sparseMatrix),intent(in) :: sparsemat
-  real(kind=8),dimension(n**2),intent(in) :: mat
-  real(kind=8),dimension(sparsemat%nvctr),intent(out) :: mat_compr
+  type(sparseMatrix),intent(inout) :: sparsemat
 
   ! Local variables
-  integer :: jj, iseg, jorb
+  integer :: jj, iseg, jorb, irow, jcol
 
-  !$omp parallel do default(private) shared(sparsemat,mat_compr,mat)
+  !$omp parallel do default(private) shared(sparsemat)
   do iseg=1,sparsemat%nseg
       jj=1
       do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
-          mat_compr(sparsemat%keyv(iseg)+jj-1)=mat(jorb)
+          jcol = (jorb-1)/sparsemat%full_dim1 + 1
+          irow = jorb - (jcol-1)*sparsemat%full_dim1
+          sparsemat%matrix_compr(sparsemat%keyv(iseg)+jj-1)=sparsemat%matrix(irow,jcol)
           jj=jj+1
       end do
   end do
@@ -488,29 +492,27 @@ end subroutine compress_matrix_for_allreduce
 
 
 
-subroutine uncompressMatrix(norb, sparsemat, lmat, mat)
+subroutine uncompressMatrix(sparsemat)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer, intent(in) :: norb
-  type(sparseMatrix), intent(in) :: sparsemat
-  real(kind=8), dimension(sparsemat%nvctr), intent(in) :: lmat
-  real(kind=8), dimension(norb**2), intent(out) :: mat
+  type(sparseMatrix), intent(inout) :: sparsemat
   
   ! Local variables
-  integer :: iseg, ii, jorb
+  integer :: iseg, ii, jorb, irow, jcol
 
+  call to_zero(sparsemat%full_dim1**2, sparsemat%matrix(1,1))
   
-  call to_zero(norb**2, mat(1))
-  
-  !$omp parallel do default(private) shared(sparsemat,lmat,mat)
+  !$omp parallel do default(private) shared(sparsemat)
 
   do iseg=1,sparsemat%nseg
       ii=0
       do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
-          mat(jorb)=lmat(sparsemat%keyv(iseg)+ii)
+          jcol = (jorb-1)/sparsemat%full_dim1 + 1
+          irow = jorb - (jcol-1)*sparsemat%full_dim1
+          sparsemat%matrix(irow,jcol)=sparsemat%matrix_compr(sparsemat%keyv(iseg)+ii)
           ii=ii+1
       end do
   end do

@@ -1565,7 +1565,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, infoCoeff, ilr_old
-  real(kind=8),dimension(:,:),allocatable:: density_kernel, ovrlp_tmb
+  real(kind=8),dimension(:,:),allocatable:: density_kernel
   !!real(kind=8),dimension(:),allocatable :: ham_compr, ovrlp_compr, phi_tmp
   logical:: overlap_calculated
   character(len=*),parameter:: subname='input_memory_linear'
@@ -1639,22 +1639,27 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   !!call memocc(i_stat, density_kernel, 'density_kernel', subname)
 
   if (input%lin%scf_mode/=LINEAR_FOE) then
-      allocate(ovrlp_tmb(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
-      call memocc(i_stat, ovrlp_tmb, 'ovrlp_tmb', subname)
+      allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
+      call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+      allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr),stat=i_stat)
+      call memocc(i_stat,tmb%linmat%ovrlp%matrix_compr,'tmb%linmat%ovrlp%matrix_compr',subname)
       tmb%can_use_transposed=.false.
       nullify(tmb%psit_c)
       nullify(tmb%psit_f)
       call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-           KSwfn%orbs, tmb, tmblarge, ovrlp_tmb, overlap_calculated, tmb%linmat%denskern%matrix_compr)
+           KSwfn%orbs, tmb, tmblarge, tmb%linmat%ovrlp, overlap_calculated, tmb%linmat%denskern)
       i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
       deallocate(tmb%psit_c,stat=i_stat)
       call memocc(i_stat,i_all,'tmb%psit_c',subname)
       i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)
       deallocate(tmb%psit_f,stat=i_stat)
       call memocc(i_stat,i_all,'tmb%psit_f',subname)
-      i_all = -product(shape(ovrlp_tmb))*kind(ovrlp_tmb)
-      deallocate(ovrlp_tmb,stat=i_stat)
-      call memocc(i_stat,i_all,'ovrlp_tmb',subname)
+      i_all = -product(shape(tmb%linmat%ovrlp%matrix_compr))*kind(tmb%linmat%ovrlp%matrix_compr)
+      deallocate(tmb%linmat%ovrlp%matrix_compr,stat=i_stat)
+      call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix_compr',subname)   
+      i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
+      deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
+      call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
   else
 
 
@@ -2263,7 +2268,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   character(len = *), parameter :: subname = "input_wf"
   integer :: i_stat, nspin, i_all, iorb, jorb, ilr, jlr
   type(gaussian_basis) :: Gvirt
-  real(8),dimension(:,:),allocatable:: tempmat,density_kernel
+  real(8),dimension(:,:),allocatable:: density_kernel
   logical :: norb_change
   logical :: overlap_calculated
 
@@ -2486,8 +2491,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           & input_wf_format,KSwfn%orbs%norb,tmb%lzd,tmb%orbs, &
           & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval,norb_change)
 
-     allocate(tempmat(tmb%orbs%norb,tmb%orbs%norb),stat=i_stat)
-     call memocc(i_stat,tempmat,'tempmat',subname)
+     allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb),stat=i_stat)
+     call memocc(i_stat,tmb%linmat%ovrlp%matrix,'tmb%linmat%ovrlp%matrix',subname)
+     allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr),stat=i_stat)
+     call memocc(i_stat,tmb%linmat%ovrlp%matrix_compr,'tmb%linmat%ovrlp%matrix_compr',subname)
      tmb%can_use_transposed=.false.                                                     
      nullify(tmb%psit_c)                                                                
      nullify(tmb%psit_f)     
@@ -2495,7 +2502,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! Will be coming back to this
      if (.true.) then                                                       
         call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-             KSwfn%orbs, tmb, tmblarge, tempmat, overlap_calculated, tmb%linmat%denskern%matrix_compr)     
+             KSwfn%orbs, tmb, tmblarge, tmb%linmat%ovrlp, overlap_calculated, tmb%linmat%denskern)     
         !call calculate_density_kernel(iproc, nproc, .true., &
         !      KSwfn%orbs, tmb%orbs, tmb%wfnmd%coeff, density_kernel)
         i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
@@ -2518,17 +2525,19 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         end do
         close(11)
 
-        call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%linmat%denskern, tmb%linmat%denskern%matrix, &
-             tmb%linmat%denskern%matrix_compr)
+        call compress_matrix_for_allreduce(tmb%linmat%denskern)
 
         i_all = -product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
         deallocate(tmb%linmat%denskern%matrix,stat=i_stat)
         call memocc(i_stat,i_all,'tmb%linmat%denskern%matrix',subname)
      end if
-                                
-     i_all = -product(shape(tempmat))*kind(tempmat)
-     deallocate(tempmat,stat=i_stat)
-     call memocc(i_stat,i_all,'tempmat',subname)
+      
+     i_all = -product(shape(tmb%linmat%ovrlp%matrix_compr))*kind(tmb%linmat%ovrlp%matrix_compr)
+     deallocate(tmb%linmat%ovrlp%matrix_compr,stat=i_stat)
+     call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix_compr',subname)                          
+     i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
+     deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
+     call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
 
 
      ! Now need to calculate the charge density and the potential related to this inputguess

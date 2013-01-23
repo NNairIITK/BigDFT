@@ -3986,16 +3986,16 @@ end subroutine overlapPowerMinusOneHalf_old
         end subroutine calculate_density_kernel
 
         subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, &
-                   tmblarge, ovrlp_tmb, overlap_calculated, kernel_compr)
+                   tmblarge, ovrlp_tmb, overlap_calculated, kernel)
           use module_base
           use module_types
           implicit none
           integer,intent(in):: iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb, tmblarge
-          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
+          type(sparseMatrix),intent(inout):: ovrlp_tmb
           logical,intent(out):: overlap_calculated
-          real(8),dimension(tmblarge%sparsemat%nvctr),intent(out):: kernel_compr
+          type(sparseMatrix),intent(inout):: kernel
         end subroutine reconstruct_kernel
 
         subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
