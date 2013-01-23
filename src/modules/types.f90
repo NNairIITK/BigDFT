@@ -630,7 +630,7 @@ module module_types
   end type sparseMatrix
 
   type,public :: linear_matrices !may not keep
-      type(sparseMatrix) :: ham, ovrlp, denskern
+      type(sparseMatrix) :: ham, ovrlp, denskern, inv_ovrlp
   end type linear_matrices
 
   type:: collective_comms

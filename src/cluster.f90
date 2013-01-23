@@ -404,8 +404,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%sparsemat)
      call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%sparsemat)
 
-     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
      call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%ham)
+     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
+     !call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%inv_ovrlp)
      call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%denskern)
 
      ! move allocation from here into initsparsematrix?! or new allocatesparsematrix

@@ -2272,20 +2272,70 @@ module module_interfaces
      end subroutine setCommsParameters
      
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
-                orbs, lzd, sparsemat, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
+                orbs, lzd, ovrlp, inv_ovrlp, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc,nproc,methTransformOverlap
        type(orbitals_data),intent(in):: orbs
        type(local_zone_descriptors),intent(in):: lzd
-       type(sparseMatrix),intent(in):: sparsemat
+       type(sparseMatrix),intent(inout):: ovrlp
+       type(sparseMatrix),intent(in):: inv_ovrlp
        type(collective_comms),intent(in):: collcom
        type(orthon_data),intent(in):: orthpar
        real(8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
        real(8),dimension(:),pointer:: psit_c, psit_f
        logical,intent(out):: can_use_transposed
      end subroutine orthonormalizeLocalized
+
+subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, ovrlp, inv_ovrlp)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, iorder, blocksize, norb
+  real(kind=8),dimension(norb,norb),intent(in) :: ovrlp
+  real(kind=8),dimension(norb,norb),intent(out) :: inv_ovrlp
+end subroutine overlapPowerMinusOne
+
+subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
+           blocksize_pdgemm, norb, norbp, isorb, ovrlp, inv_ovrlp_half)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
+  type(sparseMatrix),intent(inout) :: ovrlp
+  type(sparseMatrix),intent(inout) :: inv_ovrlp_half
+end subroutine overlapPowerMinusOneHalf
+
+subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, collcom, ovrlp, inv_ovrlp_half)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, comm
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(collective_comms),intent(in) :: collcom
+  type(sparseMatrix),intent(in) :: ovrlp
+  type(sparseMatrix),intent(inout) :: inv_ovrlp_half
+end subroutine overlap_power_minus_one_half_per_atom
+
+subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
+           blocksize_pdgemm, norb, norbp, isorb, ovrlp, inv_ovrlp_half)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
+  real(kind=8),dimension(norb,norb),intent(in) :: ovrlp
+  real(kind=8),dimension(norb,norb),intent(out) :: inv_ovrlp_half
+end subroutine overlapPowerMinusOneHalf_old
 
      subroutine optimizeDIIS(iproc, orbs, lorbs, lzd, hphi, phi, ldiis)
        use module_base
@@ -2716,40 +2766,40 @@ module module_interfaces
         real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
       end subroutine applyOrthoconstraintNonorthogonal2
 
-      subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
-        use module_base
-        implicit none
-        integer,intent(in):: iproc, nproc, blocksize, comm, m, n, k, lda, ldb, ldc
-        character(len=1),intent(in):: transa, transb
-        real(8),intent(in):: alpha, beta
-        real(8),dimension(lda,k),intent(in):: a
-        real(8),dimension(ldb,n),intent(in):: b
-        real(8),dimension(ldc,n),intent(out):: c
-      end subroutine dgemm_parallel
+      !subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
+      !  use module_base
+      !  implicit none
+      !  integer,intent(in):: iproc, nproc, blocksize, comm, m, n, k, lda, ldb, ldc
+      !  character(len=1),intent(in):: transa, transb
+      !  real(8),intent(in):: alpha, beta
+      !  real(8),dimension(lda,k),intent(in):: a
+      !  real(8),dimension(ldb,n),intent(in):: b
+      !  real(8),dimension(ldc,n),intent(out):: c
+      !end subroutine dgemm_parallel
 
-      subroutine dsymm_parallel(iproc, nproc, blocksize, comm, side, uplo, m, n, alpha, a, lda, b, ldb, beta, c, ldc)
-        use module_base
-        implicit none
-        integer,intent(in):: iproc, nproc, blocksize, comm, m, n, lda, ldb, ldc
-        character(len=1),intent(in):: side, uplo
-        real(8),intent(in):: alpha, beta
-        real(8),dimension(lda,m),intent(in):: a
-        real(8),dimension(ldb,n),intent(in):: b
-        real(8),dimension(ldc,n),intent(out):: c
-      end subroutine dsymm_parallel
+      !subroutine dsymm_parallel(iproc, nproc, blocksize, comm, side, uplo, m, n, alpha, a, lda, b, ldb, beta, c, ldc)
+      !  use module_base
+      !  implicit none
+      !  integer,intent(in):: iproc, nproc, blocksize, comm, m, n, lda, ldb, ldc
+      !  character(len=1),intent(in):: side, uplo
+      !  real(8),intent(in):: alpha, beta
+      !  real(8),dimension(lda,m),intent(in):: a
+      !  real(8),dimension(ldb,n),intent(in):: b
+      !  real(8),dimension(ldc,n),intent(out):: c
+      !end subroutine dsymm_parallel
 
-      subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, w, info)
-        use module_base
-        use module_types
-        implicit none
-      
-        ! Calling arguments
-        integer,intent(in):: iproc, nproc, blocksize, comm, n, lda
-        integer,intent(out):: info
-        character(len=1),intent(in):: jobz, uplo
-        real(8),dimension(lda,n),intent(inout):: a
-        real(8),dimension(n),intent(out):: w
-      end subroutine dsyev_parallel
+      !subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, w, info)
+      !  use module_base
+      !  use module_types
+      !  implicit none
+      !
+      !  ! Calling arguments
+      !  integer,intent(in):: iproc, nproc, blocksize, comm, n, lda
+      !  integer,intent(out):: info
+      !  character(len=1),intent(in):: jobz, uplo
+      !  real(8),dimension(lda,n),intent(inout):: a
+      !  real(8),dimension(n),intent(out):: w
+      !end subroutine dsyev_parallel
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, collcom, orthpar, correction_orthoconstraint, &
            linmat, lphi, lhphi, lagmat, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
@@ -2782,26 +2832,6 @@ module module_interfaces
         real(8),dimension(ldb,n),intent(inout):: b
         real(8),dimension(n),intent(out):: w
       end subroutine dsygv_parallel
-
-      subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-                 blocksize_pdgemm, norb, norbp, isorb, sparsemat, ovrlp_compr)
-        use module_base
-        use module_types
-        implicit none
-        
-        ! Calling arguments
-        integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
-        type(sparseMatrix),intent(in) :: sparsemat
-        real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: ovrlp_compr
-      end subroutine overlapPowerMinusOneHalf
-
-      subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, ovrlp)
-        use module_base
-        use module_types
-        implicit none
-        integer,intent(in):: iproc, nproc, iorder, blocksize, norb
-        real(8),dimension(norb,norb),intent(inout):: ovrlp
-      end subroutine overlapPowerMinusOne
 
      subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
                 confpotorder, potentialprefac, iorb, eval_zero)
@@ -4362,27 +4392,15 @@ module module_interfaces
           type(denspot_distribution), intent(in) :: dpbox
         end subroutine kswfn_init_comm
 
-        subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, sparsemat, collcom, ovrlp_compr)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc, comm
-          type(orbitals_data),intent(in) :: orbs
-          type(local_zone_descriptors),intent(in) :: lzd
-          type(sparseMatrix),intent(in) :: sparsemat
-          type(collective_comms),intent(in) :: collcom
-          real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: ovrlp_compr
-        end subroutine overlap_power_minus_one_half_per_atom
 
         subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
-             orbs,nlpspd,proj,lzd,collcom,sparsematlarge,phi,kernel_compr,fsep,refill,strten)
+             orbs,nlpspd,proj,lzd,collcom,phi,denskern,fsep,refill,strten)
           use module_base
           use module_types
           implicit none
           type(atoms_data), intent(in) :: at
           type(local_zone_descriptors), intent(in) :: lzd
           type(collective_comms),intent(in) :: collcom
-          type(sparseMatrix),intent(in) :: sparsematlarge
           type(nonlocal_psp_descriptors), intent(in) :: nlpspd
           logical, intent(in) :: refill
           integer, intent(in) :: iproc, nproc
@@ -4391,7 +4409,7 @@ module module_interfaces
           type(orbitals_data), intent(in) :: orbs
           real(gp), dimension(3,at%nat), intent(in) :: rxyz
           real(wp), dimension(orbs%npsidim_orbs), intent(in) :: phi
-          real(gp), dimension(sparsematlarge%nvctr),intent(in) :: kernel_compr
+          type(SparseMatrix),intent(in) :: denskern
           real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
           real(gp), dimension(3,at%nat), intent(inout) :: fsep
           real(gp), dimension(6), intent(out) :: strten
@@ -4412,18 +4430,6 @@ module module_interfaces
           real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
           real(kind=8),dimension(sparsemat%nvctr),intent(out) :: ovrlp_compr
         end subroutine calculate_overlap_transposed
-
-        subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-                   blocksize_pdgemm, norb, norbp, isorb, ovrlp, sparsemat)
-          use module_base
-          use module_types
-          implicit none
-          
-          ! Calling arguments
-          integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
-          real(kind=8),dimension(norb,norb),intent(inout) :: ovrlp
-          type(sparseMatrix),intent(in),optional :: sparsemat
-        end subroutine overlapPowerMinusOneHalf_old
 
         subroutine build_linear_combination_transposed(norb, matrix_compr, collcom, sparsemat, psitwork_c, psitwork_f, &
              reset, psit_c, psit_f, iproc)

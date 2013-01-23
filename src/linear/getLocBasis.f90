@@ -65,7 +65,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
       end if
-      ! use tmblarge%sparsemat since the matrix compression must be done the large version
+
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp%matrix_compr)
   end if
@@ -245,7 +245,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
       call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
       call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%wfnmd%coeff, tmb%linmat%denskern%matrix)
-      call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%sparsemat, tmb%linmat%denskern%matrix, &
+      call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmb%linmat%denskern, tmb%linmat%denskern%matrix, &
            tmb%linmat%denskern%matrix_compr)
       iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
       deallocate(tmb%linmat%denskern%matrix, stat=istat)
@@ -1253,7 +1253,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
 
   ! Local variables
   integer:: istat, ierr, iall
-  real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff, kernel
+  real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff, kernel, ovrlp_coeff2
   real(8),dimension(:),allocatable :: ovrlp_compr
   character(len=*),parameter:: subname='reconstruct_kernel'
   integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
@@ -1344,10 +1344,15 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   end if
 
 
-
   ! Recalculate the kernel.
+  allocate(ovrlp_coeff2(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, ovrlp_coeff2, 'ovrlp_coeff2', subname)
+  call vcopy(orbs%norb*orbs%norb,ovrlp_coeff(1,1),1,ovrlp_coeff2(1,1),1)
   call overlapPowerMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, iorder, &
-       blocksize_dsyev, blocksize_pdgemm, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff)
+       blocksize_dsyev, blocksize_pdgemm, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff2, ovrlp_coeff)
+  iall=-product(shape(ovrlp_coeff2))*kind(ovrlp_coeff2)
+  deallocate(ovrlp_coeff2,stat=istat)
+  call memocc(istat,iall,'ovrlp_coeff2',subname)
 
   ! Build the new linear combinations
   if (communication_strategy==ALLGATHERV) then

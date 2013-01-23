@@ -363,9 +363,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
       if(iproc==0) then
            write(*,'(1x,a)',advance='no') 'Orthonormalization... '
       end if
-      ! Give tmblarge%sparsemat since this is the correct matrix description
+      ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orbs, tmb%lzd, &
-           tmblarge%sparsemat, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+           tmb%linmat%ovrlp, tmb%linmat%denskern, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
   end if
 
   ! Emit that new wavefunctions are ready.

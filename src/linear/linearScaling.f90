@@ -64,10 +64,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       call initializeMixrhopotDIIS(input%lin%mixHist_lowaccuracy, denspot%dpbox%ndimpot, mixdiis)
   end if
 
-  !!!! TEST #######################################
-  !!    call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, collcom_sr)
-  !!!! END TEST ###################################
-
   pnrm=1.d100
   pnrm_out=1.d100
   energyold=0.d0
@@ -95,25 +91,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
      call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
   end if
 
-  ! Should be removed by passing tmblarge to restart
-  !!if(input%inputPsiId  == INPUT_PSI_MEMORY_LINEAR .or. input%inputPsiId  == INPUT_PSI_DISK_LINEAR) then
-  !!   call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged, &
-  !!        tmblarge)
-
-  !!   ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
-  !!   ! that the outer part is not modified!
-  !!   if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
-  !!end if
-
   ! Orthogonalize the input guess minimal basis functions using exact calculation of S^-1/2
   tmb%can_use_transposed=.false.
   nullify(tmb%psit_c)
   nullify(tmb%psit_f)
   if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
 
-  ! Give tmblarge%sparsemat since this is the correct matrix description
-  call orthonormalizeLocalized(iproc, nproc, -1, tmb%orbs, tmb%lzd, tmblarge%sparsemat, tmb%collcom, &
-       tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+      ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
+  call orthonormalizeLocalized(iproc, nproc, -1, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%denskern, &
+       tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
 
   ! Check the quality of the input guess
   call check_inputguess()
@@ -319,7 +305,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
        end if
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
-      !call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%sparsemat, tmb%collcom)
       kernel_loop : do it_scc=1,nit_scc
 
           ! If the hamiltonian is available do not recalculate it
@@ -618,9 +603,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                 allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)
                 call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
 
-                ! Give tmblarge%sparsemat since this is the correct matrix description
-                call orthonormalizeLocalized(iproc, nproc, 0, tmb%orbs, tmb%lzd, tmblarge%sparsemat, tmb%collcom, &
-                     tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+                      ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
+                call orthonormalizeLocalized(iproc, nproc, 0, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%denskern, &
+                     tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
              else if (fnrm_pulay>1.d-2) then ! 1.d2 1.d-2
                 if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
@@ -1023,8 +1008,9 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call deallocate_sparseMatrix(tmb%sparsemat, subname)
 
      call deallocate_sparseMatrix(tmb%linmat%denskern, subname)
-     call deallocate_sparseMatrix(tmb%linmat%ham, subname)
+     !call deallocate_sparseMatrix(tmb%linmat%inv_ovrlp, subname)
      call deallocate_sparseMatrix(tmb%linmat%ovrlp, subname)
+     call deallocate_sparseMatrix(tmb%linmat%ham, subname)
 
      !iall=-product(shape(tmb%linmat%ham%matrix_compr))*kind(tmb%linmat%ham%matrix_compr)
      !deallocate(tmb%linmat%ham%matrix_compr, stat=istat)
@@ -1096,8 +1082,9 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%sparseMat)
      call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%sparseMat)
 
-     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
      call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%ham)
+     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
+     !call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%inv_ovrlp)
      call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%denskern)
 
      allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=istat)
@@ -1106,6 +1093,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
      allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)
      call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
+     !allocate(tmb%linmat%inv_ovrlp%matrix_compr(tmb%linmat%inv_ovrlp%nvctr), stat=istat)
+     !call memocc(istat, tmb%linmat%inv_ovrlp%matrix_compr, 'tmb%linmat%inv_ovrlp%matrix_compr', subname)
 
   else ! no change in locrad, just confining potential that needs updating
 
