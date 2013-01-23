@@ -1068,7 +1068,7 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
           !!end do
           
           ! Calculate S^-1/2 for the small overlap matrix
-          call overlapPowerMinusOneHalf_old(iproc, nproc, comm, 0, -8, -8, n, 0, 0, ovrlp_tmp)
+          call overlapPowerMinusOneHalf_old(iproc, nproc, comm, 0, -8, -8, n, ovrlp_tmp)
 
           ! Fill it back to the original matrix, filling the remaining parts of the column with zeros.
           !!jjorb=0
@@ -1203,31 +1203,23 @@ end subroutine overlap_power_minus_one_half_per_atom
 
 ! Should be used if mad is not available... to be cleaned
 subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-           blocksize_pdgemm, norb, norbp, isorb, ovrlp, mad)
+           blocksize_pdgemm, norb, ovrlp, mad)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => overlapPowerMinusOneHalf_old
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
+  integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
   real(kind=8),dimension(norb,norb),intent(inout) :: ovrlp
   type(matrixDescriptors),intent(in),optional :: mad
 
   
   ! Local variables
   integer :: lwork, istat, iall, iorb, jorb, info, iseg, iiorb, jjorb
-  !!integer :: i, ierr
   character(len=*),parameter :: subname='overlapPowerMinusOneHalf'
   real(kind=8),dimension(:),allocatable :: eval, work
-  !!real(kind=8),dimension(:),allocatable :: ovrlp_compr
   real(kind=8),dimension(:,:,:),allocatable :: tempArr
-  !!real(kind=8),dimension(:,:),allocatable :: temp1, temp2
-  !!real(kind=8),dimension(5) :: cc
-  !*real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
-  !*real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
-  !*real(dp) :: temp
-  !*real(dp), allocatable, dimension(:) :: temp_vec
 
   call timing(iproc,'lovrlp^-1/2   ','ON')
   
@@ -1249,7 +1241,6 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
           end if
       else
           
-          !lwork=1000*norb
           allocate(work(10), stat=istat)
           call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, -1, info)
 
@@ -1260,7 +1251,6 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
           call memocc(istat, work, 'work', subname)
           call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
 
-          !*!lwork=1000*norb
           !*allocate(work(1), stat=istat)
           !*call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
           !*     norb, WORK, -1, info )
@@ -1373,91 +1363,9 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
 
   else
 
+     ! Taylor expansion up to 4th order
       stop 'must fix this'
 
-!!      ! Taylor expansion up to 4th order
-!!      if (norbp>0) then
-!!          cc(1)=-1.d0/2.d0
-!!          cc(2)=3.d0/8.d0
-!!          cc(3)=-15.d0/48.d0
-!!          cc(4)=105.d0/384.d0
-!!          cc(5)=-945.d0/3840.d0
-!!
-!!
-!!          do iorb=1,norb
-!!              do jorb=1,norb
-!!                  !!write(400+iproc,*) iorb,jorb,ovrlp(jorb,iorb)
-!!                  if (iorb==jorb) then
-!!                      ovrlp(jorb,iorb)=ovrlp(jorb,iorb)-1.d0
-!!                  else
-!!                      ovrlp(jorb,iorb)=ovrlp(jorb,iorb)
-!!                  end if
-!!                  !!write(420+iproc,*) iorb,jorb,ovrlp(jorb,iorb)
-!!              end do
-!!          end do
-!!          allocate(ovrlp_compr(mad%nvctr), stat=istat)
-!!          call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
-!!          call compress_matrix_for_allreduce(norb, mad, ovrlp, ovrlp_compr)
-!!
-!!          call to_zero(norb*norb, ovrlp(1,1))
-!!          do iorb=isorb+1,isorb+norbp
-!!              ovrlp(iorb,iorb)=1.d0
-!!          end do
-!!
-!!          allocate(temp1(norb,norbp), stat=istat)
-!!          call memocc(istat, temp1, 'temp1', subname)
-!!          allocate(temp2(norb,norbp), stat=istat)
-!!          call memocc(istat, temp2, 'temp2', subname)
-!!          call to_zero(norb*norbp, temp2(1,1))
-!!
-!!          do iorb=1,norbp
-!!              iiorb=isorb+iorb
-!!              do jorb=1,norb
-!!                  if (iiorb==jorb) then
-!!                      temp1(jorb,iorb)=1.d0
-!!                  else
-!!                      temp1(jorb,iorb)=0.d0
-!!                  end if
-!!              end do
-!!          end do
-!!
-!!
-!!          !!do iorb=1,norb
-!!          !!    do jorb=1,norb
-!!          !!        write(460+iproc,*) iorb,jorb,ovrlp(jorb,iorb)
-!!          !!    end do
-!!          !!end do
-!!          do i=1,5
-!!              call sparsemm(ovrlp_compr, temp1, temp2, norb, norbp, mad)
-!!              do iorb=1,norbp
-!!                  !!do jorb=1,norb
-!!                  !!    write(440+iproc,*) iorb,jorb,temp2(jorb,iorb)
-!!                  !!end do
-!!              end do
-!!              call daxpy(norb*norbp, cc(i), temp2, 1, ovrlp(1,isorb+1), 1) 
-!!              call dcopy(norb*norbp, temp2, 1, temp1, 1)
-!!          end do
-!!          !!do iorb=1,norb
-!!          !!    do jorb=1,norb
-!!          !!        write(480+iproc,*) iorb,jorb,ovrlp(jorb,iorb)
-!!          !!    end do
-!!          !!end do
-!!
-!!          iall=-product(shape(temp1))*kind(temp1)
-!!          deallocate(temp1, stat=istat)
-!!          call memocc(istat, iall, 'temp1', subname)
-!!          iall=-product(shape(temp2))*kind(temp2)
-!!          deallocate(temp2, stat=istat)
-!!          call memocc(istat, iall, 'temp2', subname)
-!!
-!!      end if
-!!
-!!      call mpiallred(ovrlp(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-!!
-!!
-!!
-!!      !!write(*,'(1x,a)') 'ERROR: methTransformOrder must be 0 or 1!'
-!!      !!stop
 
   end if
 

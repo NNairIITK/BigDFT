@@ -4454,13 +4454,13 @@ module module_interfaces
         end subroutine calculate_overlap_transposed
 
         subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-                   blocksize_pdgemm, norb, norbp, isorb, ovrlp, mad)
+                   blocksize_pdgemm, norb, ovrlp, mad)
           use module_base
           use module_types
           implicit none
           
           ! Calling arguments
-          integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
+          integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
           real(kind=8),dimension(norb,norb),intent(inout) :: ovrlp
           type(matrixDescriptors),intent(in),optional :: mad
         end subroutine overlapPowerMinusOneHalf_old

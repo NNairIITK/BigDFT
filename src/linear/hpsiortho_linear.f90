@@ -387,3 +387,104 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
 
 end subroutine hpsitopsi_linear
 
+subroutine check_matrix_compression(iproc,tmblarge)
+  use module_base
+  use module_types
+  use module_interfaces
+  use yaml_output
+  implicit none
+  integer,intent(in) :: iproc
+  type(DFT_wavefunction),target,intent(in) :: tmblarge
+  !Local variables
+  integer :: i_stat, i_all, iorb, jorb, irow, icol, iseg, ii
+  character(len=*),parameter :: subname='check_matrix_compression'
+  real(kind=8) :: maxdiff
+  real(kind=8), parameter :: tol=1.e-10
+  real(kind=8), dimension(:,:), allocatable :: kernel
+  real(kind=8), dimension(:), allocatable :: kernel_compr
+
+  allocate(kernel(tmblarge%orbs%norb,tmblarge%orbs%norb),stat=i_stat)
+  call memocc(i_stat,kernel,'kernel',subname)
+
+  allocate(kernel_compr(tmblarge%mad%nvctr),stat=i_stat)
+  call memocc(i_stat,kernel_compr,'kernel_compr',subname)
+
+  call to_zero(tmblarge%orbs%norb**2,kernel(1,1))
+  do iseg = 1, tmblarge%mad%nseg
+     do jorb = tmblarge%mad%keyg(1,iseg), tmblarge%mad%keyg(2,iseg)
+        call get_indecies(jorb,irow,icol)
+        !print *,'irow,icol',irow, icol,test_value_matrix(tmblarge%orbs%norb, irow, icol)
+        kernel(irow,icol) = test_value_matrix(tmblarge%orbs%norb, irow, icol)
+     end do
+  end do
+  
+  call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, kernel, kernel_compr)
+
+  maxdiff = 0.d0
+  do iseg = 1, tmblarge%mad%nseg
+     ii=0
+     do jorb = tmblarge%mad%keyg(1,iseg), tmblarge%mad%keyg(2,iseg)
+        call get_indecies(jorb,irow,icol)
+        maxdiff = max(abs(kernel_compr(tmblarge%mad%keyv(iseg)+ii)-test_value_matrix(tmblarge%orbs%norb, irow, icol)),maxdiff)
+        ii=ii+1
+     end do
+  end do
+
+  if (iproc==0) call yaml_map('Tolerances for this check',tol,fmt='(1pe25.17)')
+
+  if(iproc==0) then
+    if (maxdiff > tol) then
+       call yaml_warning('COMPRESSION ERROR : difference of '//trim(yaml_toa(maxdiff,fmt='(1pe12.5)')))
+    else
+       call yaml_map('Maxdiff for compress', maxdiff,fmt='(1pe25.17)')
+    end if
+  end if
+
+  call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, kernel_compr, kernel)
+
+  maxdiff = 0.d0
+  do iseg = 1, tmblarge%mad%nseg
+     do jorb = tmblarge%mad%keyg(1,iseg), tmblarge%mad%keyg(2,iseg)
+        call get_indecies(jorb,irow,icol)
+        maxdiff = max(abs(kernel(irow,icol)-test_value_matrix(tmblarge%orbs%norb, irow, icol)),maxdiff) 
+     end do
+  end do
+
+  if(iproc==0) then
+    if (maxdiff > tol) then
+       call yaml_warning('UNCOMPRESSION ERROR : difference of '//trim(yaml_toa(maxdiff,fmt='(1pe12.5)')))
+    else
+       call yaml_map('Maxdiff for uncompress', maxdiff,fmt='(1pe25.17)')
+    end if
+  end if
+
+  i_all = -product(shape(kernel))*kind(kernel)
+  deallocate(kernel,stat=i_stat)
+  call memocc(i_stat,i_all,'kernel',subname)
+
+  i_all = -product(shape(kernel_compr))*kind(kernel_compr)
+  deallocate(kernel_compr,stat=i_stat)
+  call memocc(i_stat,i_all,'kernel_compr',subname)
+
+contains
+   !> define a value for the wavefunction which is dependent of the indices
+   function test_value_matrix(norb,iorb,jorb)
+      use module_base
+      implicit none
+      integer, intent(in) :: norb,iorb,jorb
+      real(kind=8) :: test_value_matrix
+
+      test_value_matrix = norb*(iorb-1)+jorb
+      !print *,iorb,jorb,test_value_matrix
+   END FUNCTION test_value_matrix
+
+   subroutine get_indecies(ind,irow,icol)
+     implicit none
+     integer, intent(in) :: ind
+     integer, intent(out) :: irow, icol
+
+     icol = (ind - 1) / tmblarge%orbs%norb + 1
+     irow = ind - (icol-1)*tmblarge%orbs%norb
+     !print *,'irow,icol',irow,icol
+   END SUBROUTINE get_indecies 
+end subroutine check_matrix_compression

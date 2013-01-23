@@ -1307,7 +1307,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
      overlap_calculated=.true.
   end if
 
-  call reorthonormalize_coeff(iproc, nproc, tmb%orbs%norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
+  call reorthonormalize_coeff(iproc, nproc, orbs%norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
        tmb%orbs, ovrlp_tmb, tmb%wfnmd%coeff)
 
   ! Recalculate the kernel
@@ -1378,7 +1378,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
   ! Recalculate the kernel.
   call overlapPowerMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, inversion_method, &
-       blocksize_dsyev, blocksize_pdgemm, basis_orbs%norb, basis_orbs%norbp, basis_orbs%isorb, ovrlp_coeff)
+       blocksize_dsyev, blocksize_pdgemm, norb, ovrlp_coeff)
 
   ! Build the new linear combinations
   call dgemm('n', 'n', basis_orbs%norb, norb, norb, 1.d0, coeff(1,1), basis_orbs%norb, &

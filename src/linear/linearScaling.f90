@@ -131,10 +131,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   if (iproc==0) call yaml_close_map()
 
   if (iproc==0) call yaml_open_map('Checking Communications of Enlarged Minimal Basis')
-  call check_communications_locreg(iproc,nproc,tmblarge%orbs,&
-       tmblarge%Lzd,tmblarge%collcom)
+  call check_communications_locreg(iproc,nproc,tmblarge%orbs,tmblarge%Lzd,tmblarge%collcom)
   if (iproc ==0) call yaml_close_map()
 
+  if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of sparse matrices')
+  call check_matrix_compression(iproc,tmblarge)
+  if (iproc ==0) call yaml_close_map()
 
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration, with istart=0
   istart = min(1,nit_lowaccuracy)
