@@ -357,7 +357,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat,i_all,'psi',subname)
   else if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
 
-     call copy_tmbs(tmb, tmb_old, KSwfn%orbs%norb, subname)
+     call copy_tmbs(tmb, tmb_old, subname)
 
      call destroy_DFT_wavefunction(tmb)
      call deallocate_local_zone_descriptors(tmb%lzd, subname)
@@ -396,7 +396,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !!call init_p2p_tags(nproc)
      !!tag=0
 
-     call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
+     call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, iproc, nproc)
 
      call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., tmblarge)
 
@@ -408,6 +408,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
      !call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%inv_ovrlp)
      call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%denskern)
+
+     if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of sparse matrices')
+     call check_matrix_compression(iproc,tmb%linmat%ham)
+     call check_matrix_compression(iproc,tmb%linmat%ovrlp)
+     call check_matrix_compression(iproc,tmb%linmat%denskern)
+     if (iproc ==0) call yaml_close_map()
 
      ! move allocation from here into initsparsematrix?! or new allocatesparsematrix
      allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=i_stat)

@@ -295,7 +295,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in) :: orbs, orbs_tmb
   logical, intent(in) :: isKernel
-  real(kind=8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff
+  real(kind=8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
   real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out) :: kernel
 
   ! Local variables

@@ -88,7 +88,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then  
      call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
-     call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
+     call allocate_DIIS_coeff(tmb, ldiis_coeff)
   end if
 
   ! Orthogonalize the input guess minimal basis functions using exact calculation of S^-1/2
@@ -117,10 +117,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   if (iproc==0) call yaml_close_map()
 
   if (iproc==0) call yaml_open_map('Checking Communications of Enlarged Minimal Basis')
-  call check_communications_locreg(iproc,nproc,tmblarge%orbs,&
-       tmblarge%Lzd,tmblarge%collcom)
+  call check_communications_locreg(iproc,nproc,tmblarge%orbs,tmblarge%Lzd,tmblarge%collcom)
   if (iproc ==0) call yaml_close_map()
-
 
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration, with istart=0
   istart = min(1,nit_lowaccuracy)
@@ -191,7 +189,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
          ! need to reallocate DIIS matrices to adjust for changing history length
          if (ldiis_coeff_changed) then
             call deallocateDIIS(ldiis_coeff)
-            call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
+            call allocate_DIIS_coeff(tmb, ldiis_coeff)
          end if
       end if
 
@@ -1419,29 +1417,29 @@ end subroutine pulay_correction
 
 
 
-subroutine derivative_coeffs_from_standard_coeffs(orbs, tmb, tmbder)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(orbitals_data),intent(in) :: orbs
-  type(DFT_wavefunction),intent(in) :: tmb
-  type(DFT_wavefunction),intent(out) :: tmbder
-
-  ! Local variables
-  integer :: iorb, jorb, jjorb
-
-  call to_zero(tmbder%orbs%norb*orbs%norb, tmbder%wfnmd%coeff(1,1))
-  do iorb=1,orbs%norb
-      jjorb=0
-      do jorb=1,tmbder%orbs%norb,4
-          jjorb=jjorb+1
-          tmbder%wfnmd%coeff(jorb,iorb)=tmb%wfnmd%coeff(jjorb,iorb)
-      end do
-  end do
-
-end subroutine derivative_coeffs_from_standard_coeffs
+!!subroutine derivative_coeffs_from_standard_coeffs(orbs, tmb, tmbder)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  type(orbitals_data),intent(in) :: orbs
+!!  type(DFT_wavefunction),intent(in) :: tmb
+!!  type(DFT_wavefunction),intent(out) :: tmbder
+!!
+!!  ! Local variables
+!!  integer :: iorb, jorb, jjorb
+!!
+!!  call to_zero(tmbder%orbs%norb*orbs%norb, tmbder%wfnmd%coeff(1,1))
+!!  do iorb=1,orbs%norb
+!!      jjorb=0
+!!      do jorb=1,tmbder%orbs%norb,4
+!!          jjorb=jjorb+1
+!!          tmbder%wfnmd%coeff(jorb,iorb)=tmb%wfnmd%coeff(jjorb,iorb)
+!!      end do
+!!  end do
+!!
+!!end subroutine derivative_coeffs_from_standard_coeffs
 
 
 

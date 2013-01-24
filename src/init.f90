@@ -1611,7 +1611,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
   ! Copy the coefficients
   if (input%lin%scf_mode/=LINEAR_FOE) then
-      call dcopy(KSwfn%orbs%norb*tmb%orbs%norb, tmb_old%wfnmd%coeff(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
+      call dcopy(tmb%orbs%norb*tmb%orbs%norb, tmb_old%wfnmd%coeff(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
   end if
   !!write(*,*) 'after dcopy, iproc',iproc
 
@@ -1644,6 +1644,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr),stat=i_stat)
       call memocc(i_stat,tmb%linmat%ovrlp%matrix_compr,'tmb%linmat%ovrlp%matrix_compr',subname)
       tmb%can_use_transposed=.false.
+      overlap_calculated = .false.
       nullify(tmb%psit_c)
       nullify(tmb%psit_f)
       call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
@@ -2495,7 +2496,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call memocc(i_stat,tmb%linmat%ovrlp%matrix,'tmb%linmat%ovrlp%matrix',subname)
      allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr),stat=i_stat)
      call memocc(i_stat,tmb%linmat%ovrlp%matrix_compr,'tmb%linmat%ovrlp%matrix_compr',subname)
-     tmb%can_use_transposed=.false.                                                     
+        tmb%can_use_transposed=.false.
+        overlap_calculated=.false.
      nullify(tmb%psit_c)                                                                
      nullify(tmb%psit_f)     
     

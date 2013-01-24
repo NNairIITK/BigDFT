@@ -1104,14 +1104,14 @@ subroutine update_wavefunctions_size(lzd,orbs,iproc,nproc)
 end subroutine update_wavefunctions_size
 
 
-subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, input, wfnmd)
+subroutine create_wfn_metadata(mode, norb, norbp, input, wfnmd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   character(len=1),intent(in) :: mode
-  integer,intent(in) :: llbnorb, norb, norbp
+  integer,intent(in) :: norb, norbp
   type(input_variables),intent(in) :: input
   type(wfn_metadata),intent(out) :: wfnmd
 
@@ -1124,14 +1124,11 @@ subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, input, wfnmd)
       ! linear scaling mode
 
       if (input%lin%scf_mode/=LINEAR_FOE .or. input%lin%pulay_correction) then
-          allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
+          allocate(wfnmd%coeff(norb,norb), stat=istat)
           call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
       else
           nullify(wfnmd%coeff)
       end if
-
-      allocate(wfnmd%coeffp(llbnorb,norbp), stat=istat)
-      call memocc(istat, wfnmd%coeffp, 'wfnmd%coeffp', subname)
 
       wfnmd%ef=0.d0
       wfnmd%evlow=input%lin%evlow
@@ -1143,7 +1140,6 @@ subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, input, wfnmd)
 
   else if(mode=='c') then
       ! cubic scaling mode
-
       nullify(wfnmd%coeff)
   else
       stop 'wrong mode'

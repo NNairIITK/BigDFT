@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 !currently incomplete - need to add comms arrays etc
-subroutine copy_tmbs(tmbin, tmbout, norb_kswfn, subname)
+subroutine copy_tmbs(tmbin, tmbout, subname)
   use module_base
   use module_types
   use module_interfaces
@@ -16,7 +16,6 @@ subroutine copy_tmbs(tmbin, tmbout, norb_kswfn, subname)
 
   type(DFT_wavefunction), intent(in) :: tmbin
   type(DFT_wavefunction), intent(out) :: tmbout
-  integer, intent(in) :: norb_kswfn
   character(len=*),intent(in):: subname
 
   call nullify_orbitals_data(tmbout%orbs)
@@ -25,13 +24,12 @@ subroutine copy_tmbs(tmbin, tmbout, norb_kswfn, subname)
   call copy_old_supportfunctions(tmbin%orbs,tmbin%lzd,tmbin%psi,tmbout%lzd,tmbout%psi)
   ! Here I use KSwfn%orbs%norb in spite of the fact that KSwfn%orbs will only be defined later.. not very nice
   if (associated(tmbin%wfnmd%coeff)) then !(in%lin%scf_mode/=LINEAR_FOE) then ! should move this check to copy_old_coeffs
-      call copy_old_coefficients(norb_kswfn, tmbin%orbs%norb, tmbin%wfnmd%coeff, tmbout%wfnmd%coeff)
+      call copy_old_coefficients(tmbin%orbs%norb, tmbin%wfnmd%coeff, tmbout%wfnmd%coeff)
   else
       nullify(tmbout%wfnmd%coeff)
   end if
 
   ! should technically copy these across as well but not needed for restart and will eventually be removing wfnmd as a type
-  nullify(tmbout%wfnmd%coeffp)
   nullify(tmbout%linmat%denskern%matrix_compr)
 
   ! should also copy/nullify p2pcomms etc

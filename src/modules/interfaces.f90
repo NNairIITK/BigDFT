@@ -2290,55 +2290,6 @@ module module_interfaces
        logical,intent(out):: can_use_transposed
      end subroutine orthonormalizeLocalized
 
-subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, ovrlp, inv_ovrlp)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc, iorder, blocksize, norb
-  real(kind=8),dimension(norb,norb),intent(in) :: ovrlp
-  real(kind=8),dimension(norb,norb),intent(out) :: inv_ovrlp
-end subroutine overlapPowerMinusOne
-
-subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-           blocksize_pdgemm, norb, norbp, isorb, ovrlp, inv_ovrlp_half)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
-  type(sparseMatrix),intent(inout) :: ovrlp
-  type(sparseMatrix),intent(inout) :: inv_ovrlp_half
-end subroutine overlapPowerMinusOneHalf
-
-subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, collcom, ovrlp, inv_ovrlp_half)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc, comm
-  type(orbitals_data),intent(in) :: orbs
-  type(local_zone_descriptors),intent(in) :: lzd
-  type(collective_comms),intent(in) :: collcom
-  type(sparseMatrix),intent(in) :: ovrlp
-  type(sparseMatrix),intent(inout) :: inv_ovrlp_half
-end subroutine overlap_power_minus_one_half_per_atom
-
-subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-           blocksize_pdgemm, norb, norbp, isorb, ovrlp, inv_ovrlp_half)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
-  real(kind=8),dimension(norb,norb),intent(in) :: ovrlp
-  real(kind=8),dimension(norb,norb),intent(out) :: inv_ovrlp_half
-end subroutine overlapPowerMinusOneHalf_old
-
      subroutine optimizeDIIS(iproc, orbs, lorbs, lzd, hphi, phi, ldiis)
        use module_base
        use module_types
@@ -3248,12 +3199,12 @@ end subroutine overlapPowerMinusOneHalf_old
          type(p2pComms),intent(inout):: comsr
        end subroutine communicate_basis_for_density
 
-       subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, input, wfnmd)
+       subroutine create_wfn_metadata(mode, norb, norbp, input, wfnmd)
          use module_base
          use module_types
          implicit none
          character(len=1),intent(in):: mode
-         integer,intent(in):: llbnorb, norb, norbp
+         integer,intent(in):: norb, norbp
          type(input_variables),intent(in):: input
          type(wfn_metadata),intent(out):: wfnmd
        end subroutine create_wfn_metadata
@@ -3860,12 +3811,11 @@ end subroutine overlapPowerMinusOneHalf_old
           type(localizedDIISParameters),intent(out):: ldiis
         end subroutine initialize_DIIS_coeff
 
-        subroutine allocate_DIIS_coeff(tmb, orbs, ldiis)
+        subroutine allocate_DIIS_coeff(tmb, ldiis)
           use module_base
           use module_types
           implicit none
           type(DFT_wavefunction),intent(in):: tmb
-          type(orbitals_data),intent(in):: orbs
           type(localizedDIISParameters),intent(out):: ldiis
         end subroutine allocate_DIIS_coeff
 
@@ -3996,7 +3946,7 @@ end subroutine overlapPowerMinusOneHalf_old
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb, tmblarge
           type(sparseMatrix),intent(inout):: ovrlp_tmb
-          logical,intent(out):: overlap_calculated
+          logical,intent(inout):: overlap_calculated
           type(sparseMatrix),intent(inout):: kernel
         end subroutine reconstruct_kernel
 
@@ -4153,10 +4103,10 @@ end subroutine overlapPowerMinusOneHalf_old
           type(GPU_pointers), intent(inout) :: GPU
         end subroutine input_memory_linear
 
-        subroutine copy_old_coefficients(norb_KS, norb_tmb, coeff, coeff_old)
+        subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
           use module_base
           implicit none
-          integer,intent(in):: norb_KS, norb_tmb
+          integer,intent(in):: norb_tmb
           real(8),dimension(:,:),pointer:: coeff, coeff_old
         end subroutine copy_old_coefficients
 
@@ -4384,10 +4334,10 @@ end subroutine overlapPowerMinusOneHalf_old
           real(kind=8),intent(out) :: ebs
         end subroutine foe
 
-        subroutine kswfn_init_comm(wfn, in, atoms, dpbox, norb_cubic, iproc, nproc)
+        subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
           use module_types
           implicit none
-          integer, intent(in) :: iproc, nproc, norb_cubic
+          integer, intent(in) :: iproc, nproc
           type(DFT_wavefunction), intent(inout) :: wfn
           type(input_variables), intent(in) :: in
           type(atoms_data),intent(in) :: atoms

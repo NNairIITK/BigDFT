@@ -102,11 +102,11 @@ subroutine kswfn_mpi_copy(psic, jproc, psiStart, psiSize)
   call MPI_RECV(psic, psiSize, MPI_DOUBLE_PRECISION, jproc, 123, bigdft_mpi%mpi_comm, status, ierr)
 END SUBROUTINE kswfn_mpi_copy
 
-subroutine kswfn_init_comm(wfn, in, atoms, dpbox, norb_cubic, iproc, nproc)
+subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
   use module_types
   use module_interfaces, except_this_one => kswfn_init_comm
   implicit none
-  integer, intent(in) :: iproc, nproc, norb_cubic
+  integer, intent(in) :: iproc, nproc
   type(DFT_wavefunction), intent(inout) :: wfn
   type(input_variables), intent(in) :: in
   type(atoms_data),intent(in) :: atoms
@@ -129,7 +129,7 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, norb_cubic, iproc, nproc)
 
   call initMatrixCompression_foe(iproc, nproc, wfn%lzd, atoms, in, wfn%orbs, wfn%mad)
 
-  call create_wfn_metadata('l', wfn%orbs%norb, norb_cubic, wfn%orbs%norbp, in, wfn%wfnmd)
+  call create_wfn_metadata('l', wfn%orbs%norb, wfn%orbs%norbp, in, wfn%wfnmd)
 
   call nullify_collective_comms(wfn%collcom_shamop)
   call nullify_collective_comms(wfn%collcom)
