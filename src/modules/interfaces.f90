@@ -4369,7 +4369,7 @@ module module_interfaces
           type(sparseMatrix),intent(inout) :: ovrlp
         end subroutine calculate_overlap_transposed
 
-        subroutine build_linear_combination_transposed(norb, matrix_compr, collcom, sparsemat, psitwork_c, psitwork_f, &
+        subroutine build_linear_combination_transposed(norb, collcom, sparsemat, psitwork_c, psitwork_f, &
              reset, psit_c, psit_f, iproc)
           use module_base
           use module_types
@@ -4378,7 +4378,6 @@ module module_interfaces
           ! Calling arguments
           integer,intent(in) :: norb
           type(sparseMatrix),intent(in) :: sparsemat
-          real(kind=8),dimension(sparsemat%nvctr),intent(in) :: matrix_compr
           type(collective_comms),intent(in) :: collcom
           real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
           real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f

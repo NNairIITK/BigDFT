@@ -85,7 +85,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           allocate(kernel_compr_tmp(tmb%linmat%denskern%nvctr), stat=istat)
           call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
-          !call vcopy(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          call vcopy(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
           ii=0
           do iseg=1,tmb%linmat%denskern%nseg
               do jorb=tmb%linmat%denskern%keyg(1,iseg),tmb%linmat%denskern%keyg(2,iseg)
@@ -93,14 +93,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                   iiorb = (jorb-1)/tmb%orbs%norb + 1
                   jjorb = jorb - (iiorb-1)*tmb%orbs%norb
                   if(iiorb==jjorb) then
-                      kernel_compr_tmp(ii)=0.d0
+                      tmb%linmat%denskern%matrix_compr(ii)=0.d0
                   else
-                      kernel_compr_tmp(ii)=tmb%linmat%denskern%matrix_compr(ii)
+                      tmb%linmat%denskern%matrix_compr(ii)=kernel_compr_tmp(ii)
                   end if
               end do
           end do
-      else
-          kernel_compr_tmp => tmb%linmat%denskern%matrix_compr
       end if
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
@@ -116,7 +114,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                       jjorb = jorb - (iiorb-1)*tmb%orbs%norb
                       if(iiorb==jjorb .and. iiorb==iorb) then
                           ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-                          call dscal(ncount, tmb%linmat%denskern%matrix_compr(ii), tmblarge%hpsi(ist), 1)
+                          call dscal(ncount, kernel_compr_tmp(ii), tmblarge%hpsi(ist), 1)
                           ist=ist+ncount
                       end if
                   end do
@@ -124,13 +122,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           end do
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmblarge%collcom, &
                tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
-          call build_linear_combination_transposed(tmb%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
+          call build_linear_combination_transposed(tmb%orbs%norb, tmblarge%collcom, &
                tmb%linmat%denskern, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
+          ! copy correct kernel back
+          call vcopy(tmb%linmat%denskern%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
           deallocate(kernel_compr_tmp, stat=istat)
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
       else
-          call build_linear_combination_transposed(tmb%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
+          call build_linear_combination_transposed(tmb%orbs%norb, tmblarge%collcom, &
                tmb%linmat%denskern, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
       end if
   end if

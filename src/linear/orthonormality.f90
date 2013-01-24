@@ -80,7 +80,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 
       call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
       call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
-      call build_linear_combination_transposed(orbs%norb, inv_ovrlp_half%matrix_compr, collcom, inv_ovrlp_half, &
+      call build_linear_combination_transposed(orbs%norb, collcom, inv_ovrlp_half, &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
       allocate(norm(orbs%norb), stat=istat)
       call memocc(istat, norm, 'norm', subname)
@@ -130,8 +130,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   ! Local variables
   integer :: istat, iall, iorb, jorb, ii, ii_trans
-  real(kind=8),dimension(:),pointer :: tmp_mat_compr
-  type(SparseMatrix) :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
+  type(SparseMatrix) :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans, tmp_mat
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
 
 
@@ -224,25 +223,25 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans%matrix', subname)
   end if
 
-  allocate(tmp_mat_compr(ovrlp_minus_one_lagmat%nvctr), stat=istat)
-  call memocc(istat, tmp_mat_compr, 'tmp_mat_compr', subname)
+  call nullify_sparseMatrix(tmp_mat)
+  call sparse_copy_pattern(ovrlp_minus_one_lagmat,tmp_mat,subname)
+
+  allocate(tmp_mat%matrix_compr(tmp_mat%nvctr), stat=istat)
+  call memocc(istat, tmp_mat%matrix_compr, 'tmp_mat%matrix_compr', subname)
 
   do jorb=1,orbs%norb
      do iorb=1,orbs%norb
           ii_trans = ovrlp_minus_one_lagmat_trans%matrixindex_in_compressed(jorb, iorb)
           ii = ovrlp_minus_one_lagmat%matrixindex_in_compressed(iorb, jorb)
           if (ii==0.or.ii_trans==0) cycle
-          tmp_mat_compr(ii)=-0.5d0*ovrlp_minus_one_lagmat%matrix_compr(ii) &
+          tmp_mat%matrix_compr(ii)=-0.5d0*ovrlp_minus_one_lagmat%matrix_compr(ii) &
                -0.5d0*ovrlp_minus_one_lagmat_trans%matrix_compr(ii_trans)
       end do
   end do
 
-  call build_linear_combination_transposed(orbs%norb, tmp_mat_compr, collcom, &
-       ovrlp_minus_one_lagmat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
-
-  iall=-product(shape(tmp_mat_compr))*kind(tmp_mat_compr)
-  deallocate(tmp_mat_compr, stat=istat)
-  call memocc(istat, iall, 'tmp_mat_compr', subname)
+  call build_linear_combination_transposed(orbs%norb, collcom, &
+       tmp_mat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+  call deallocate_sparseMatrix(tmp_mat, subname)
 
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
 
