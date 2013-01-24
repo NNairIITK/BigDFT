@@ -390,11 +390,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          KSwfn%comms,shift,proj,radii_cf)
   end if
 
+  ! temporary, really want to just initialize it here rather than copy
+  KSwfn%npsidim_orbs = KSwfn%orbs%npsidim_orbs
+  KSwfn%npsidim_comp = KSwfn%orbs%npsidim_comp
+
   ! We complete here the definition of DFT_wavefunction structures.
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      !!call init_p2p_tags(nproc)
      !!tag=0
+
+     ! temporary, really want to just initialize it here rather than copy
+     tmb%npsidim_orbs = tmb%orbs%npsidim_orbs
+     tmb%npsidim_comp = tmb%orbs%npsidim_comp
 
      call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, iproc, nproc)
 

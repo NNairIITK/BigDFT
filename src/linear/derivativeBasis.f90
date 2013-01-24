@@ -257,9 +257,9 @@ end subroutine get_one_derivative_supportfunction
 !! character(len=*),parameter:: subname='correction_locrad'
 !!
 !!
-!!  allocate(phidr(max(tmb%orbs%npsidim_orbs, tmb%orbs%npsidim_comp)), stat=istat)
+!!  allocate(phidr(max(tmb%npsidim_orbs, tmb%npsidim_comp)), stat=istat)
 !!  call memocc(istat,phidr,'phidr',subname)
-!!  call to_zero(max(tmb%orbs%npsidim_orbs, tmb%orbs%npsidim_comp),phidr(1))
+!!  call to_zero(max(tmb%npsidim_orbs, tmb%npsidim_comp),phidr(1))
 !!  
 !!  ! First construct the radial derivatives
 !!  ist = 1
@@ -438,12 +438,12 @@ end subroutine get_one_derivative_supportfunction
 !!  call memocc(istat,iall,'hpsit_f',subname)
 !!
 !!  !First going to need the divergence of the derivative basis, to do this we need to derive it again.
-!!  !allocate(psidiv(tmblarge%orbs%npsidim_orbs), stat=istat)
+!!  !allocate(psidiv(tmblarge%npsidim_orbs), stat=istat)
 !!  !call memocc(istat, psidiv, 'psidiv', subname)
 !!  !allocate(outflux(tmblarge%orbs%norb),stat=istat)
 !!  !call memocc(istat, outflux, 'outflux', subname)
 !!
-!!  !call get_divergence(tmblarge%orbs%npsidim_orbs,tmblarge%lzd%hgrids(1), tmblarge%lzd, tmblarge%orbs, tmbder%psi, psidiv)
+!!  !call get_divergence(tmblarge%npsidim_orbs,tmblarge%lzd%hgrids(1), tmblarge%lzd, tmblarge%orbs, tmbder%psi, psidiv)
 !!
 !!  ! Now integrate the divergence only in the outer region (corresponds to a shell of 32 isf points because of large region).
 !!  !!ldir = 1

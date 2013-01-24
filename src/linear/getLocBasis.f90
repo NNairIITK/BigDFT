@@ -35,7 +35,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
   ! Local variables 
-  integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr, ii, iseg, ind_ham, ind_denskern
+  integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr, ind_ham, ind_denskern
   integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
@@ -63,7 +63,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
               allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
               call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
           end if
-          call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+          call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
       end if
 
@@ -73,7 +74,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   ! Post the p2p communications for the density. (must not be done in inputguess)
   if(communicate_phi_for_lsumrho) then
-      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
+      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
+           tmb%orbs, tmb%psi, tmb%collcom_sr)
   end if
 
   if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
@@ -84,9 +86,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       allocate(confdatarrtmp(tmb%orbs%norbp))
       call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
-      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
+      call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmblarge%lzd, &
+           tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
 
-      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%hpsi(1))
+      if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmblarge%hpsi(1))
 
       call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
            proj,tmblarge%lzd,nlpspd,tmblarge%psi,tmblarge%hpsi,energs%eproj)
@@ -137,7 +140,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
           allocate(tmblarge%psit_f(7*tmblarge%collcom%ndimind_f), stat=istat)
           call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
-          call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmblarge%collcom, &
                tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
           tmblarge%can_use_transposed=.true.
       end if
@@ -146,7 +149,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, hpsit_c, 'hpsit_c', subname)
       allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
-      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+      call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmblarge%collcom, &
            tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
       call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs,tmblarge%collcom, &
            tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, tmb%linmat%ham)
@@ -379,7 +382,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   call allocateLocalArrays()
 
   ! setting lhphiold to zero for calculate_energy_and_gradient_linear - why is this needed?
-  call to_zero(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp),lhphiold(1))
+  call to_zero(max(tmb%npsidim_orbs,tmb%npsidim_comp),lhphiold(1))
 
   call timing(iproc,'getlocbasinit','ON')
   tmb%can_use_transposed=.false.
@@ -417,9 +420,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       endif
 
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
-      if (tmblarge%orbs%npsidim_orbs > 0)  call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%hpsi(1))
-      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, &
-           tmb%psi, tmblarge%psi)
+      if (tmb%ham_descr%npsidim_orbs > 0)  call to_zero(tmb%ham_descr%npsidim_orbs,tmblarge%hpsi(1))
+      call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmblarge%lzd, &
+           tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
 
       call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
            proj,tmblarge%lzd,nlpspd,tmblarge%psi,tmblarge%hpsi,energs%eproj)
@@ -431,7 +434,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            tmblarge%comgp)
       ! only potential
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          call vcopy(tmblarge%orbs%npsidim_orbs, tmblarge%hpsi(1), 1, hpsi_noconf(1), 1)
+          call vcopy(tmb%ham_descr%npsidim_orbs, tmblarge%hpsi(1), 1, hpsi_noconf(1), 1)
           call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
                tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
                energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp,&
@@ -466,9 +469,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, hpsi_noconf, hpsit_c, hpsit_f, tmblarge%lzd)
+          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmblarge%collcom, &
+               hpsi_noconf, hpsit_c, hpsit_f, tmblarge%lzd)
       else
-          call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
+          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmblarge%collcom, &
+               tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
       end if
 
       ncount=sum(tmblarge%collcom%nrecvcounts_c)
@@ -511,7 +516,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if (energy_increased) then
           if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
           tmblarge%can_use_transposed=.false.
-          call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
+          call dcopy(tmb%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
           if (scf_mode/=LINEAR_FOE) then
               ! Recalculate the kernel with the old coefficients
               call dcopy(tmb%orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
@@ -615,7 +620,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Estimate the energy change, that is to be expected in the next optimization
       ! step, given by the product of the force and the "displacement" .
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          call estimate_energy_change(tmb%orbs, tmb%lzd, psidiff, hpsi_noprecond, delta_energy)
+          call estimate_energy_change(tmb%npsidim_orbs, tmb%orbs, tmb%lzd, psidiff, hpsi_noprecond, delta_energy)
           if (iproc==0) write(*,*) 'delta_energy', delta_energy
           delta_energy_prev=delta_energy
       end if
@@ -684,10 +689,10 @@ contains
       allocate(fnrmOldArr(tmb%orbs%norb), stat=istat)
       call memocc(istat, fnrmOldArr, 'fnrmOldArr', subname)
 
-      allocate(tmb%hpsi(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp)), stat=istat)
+      allocate(tmb%hpsi(max(tmb%npsidim_orbs,tmb%npsidim_comp)), stat=istat)
       call memocc(istat, tmb%hpsi, 'tmb%hpsi', subname)
     
-      allocate(lhphiold(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp)), stat=istat)
+      allocate(lhphiold(max(tmb%npsidim_orbs,tmb%npsidim_comp)), stat=istat)
       call memocc(istat, lhphiold, 'lhphiold', subname)
 
       allocate(lphiold(size(tmb%psi)), stat=istat)
@@ -706,13 +711,13 @@ contains
       call memocc(istat, hpsit_f_tmp, 'hpsit_f_tmp', subname)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-         allocate(hpsi_noconf(tmblarge%orbs%npsidim_orbs), stat=istat)
+         allocate(hpsi_noconf(tmb%ham_descr%npsidim_orbs), stat=istat)
          call memocc(istat, hpsi_noconf, 'hpsi_noconf', subname)
 
-         allocate(psidiff(tmb%orbs%npsidim_orbs), stat=istat)
+         allocate(psidiff(tmb%npsidim_orbs), stat=istat)
          call memocc(istat, psidiff, 'psidiff', subname)
 
-         allocate(hpsi_noprecond(tmb%orbs%npsidim_orbs), stat=istat)
+         allocate(hpsi_noprecond(tmb%npsidim_orbs), stat=istat)
          call memocc(istat, hpsi_noprecond, 'hpsi_noprecond', subname)
       end if
 
@@ -829,7 +834,7 @@ subroutine improveOrbitals(iproc, tmb, ldiis, alpha)
       ldiis%mis=mod(ldiis%is,ldiis%isx)+1
       ldiis%is=ldiis%is+1
       if(ldiis%alphaDIIS/=1.d0) then
-          call dscal(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), ldiis%alphaDIIS, tmb%hpsi, 1)
+          call dscal(max(tmb%npsidim_orbs,tmb%npsidim_comp), ldiis%alphaDIIS, tmb%hpsi, 1)
       end if
       call optimizeDIIS(iproc, tmb%orbs, tmb%orbs, tmb%lzd, tmb%hpsi, tmb%psi, ldiis)
   end if
@@ -943,23 +948,24 @@ subroutine diagonalizeHamiltonian2(iproc, orbs, HamSmall, ovrlp, eval)
 
 end subroutine diagonalizeHamiltonian2
 
-subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, orbslarge, phismall, philarge)
+subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
+       orbssmall, orbslarge, phismall, philarge)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc, npsidim_orbs_small, npsidim_orbs_large
   type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
   type(orbitals_data),intent(in) :: orbssmall, orbslarge
-  real(kind=8),dimension(orbssmall%npsidim_orbs),intent(in) :: phismall
-  real(kind=8),dimension(orbslarge%npsidim_orbs),intent(out) :: philarge
+  real(kind=8),dimension(npsidim_orbs_small),intent(in) :: phismall
+  real(kind=8),dimension(npsidim_orbs_large),intent(out) :: philarge
   
   ! Local variables
   integer :: ists, istl, iorb, ilr, ilrlarge, sdim, ldim, nspin
        call timing(iproc,'small2large','ON') ! lr408t 
   ! No need to put arrays to zero, Lpsi_to_global2 will handle this.
-  call to_zero(orbslarge%npsidim_orbs, philarge(1))
+  call to_zero(npsidim_orbs_large, philarge(1))
   ists=1
   istl=1
   do iorb=1,orbslarge%norbp
@@ -973,36 +979,37 @@ subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
       ists=ists+lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
       istl=istl+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
   end do
-  if(orbssmall%norbp>0 .and. ists/=orbssmall%npsidim_orbs+1) then
-      write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',ists,'=ists /= orbssmall%npsidim_orbs+1=',orbssmall%npsidim_orbs+1
+  if(orbssmall%norbp>0 .and. ists/=npsidim_orbs_small+1) then
+      write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',ists,'=ists /= npsidim_orbs_small+1=',npsidim_orbs_small+1
       stop
   end if
-  if(orbslarge%norbp>0 .and. istl/=orbslarge%npsidim_orbs+1) then
-      write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',istl,'=istk /= orbslarge%npsidim_orbs+1=',orbslarge%npsidim_orbs+1
+  if(orbslarge%norbp>0 .and. istl/=npsidim_orbs_large+1) then
+      write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',istl,'=istk /= npsidim_orbs_large+1=',npsidim_orbs_large+1
       stop
   end if
        call timing(iproc,'small2large','OF') ! lr408t 
 end subroutine small_to_large_locreg
 
 
-subroutine large_to_small_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, orbslarge, philarge, phismall)
+subroutine large_to_small_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
+       orbssmall, orbslarge, philarge, phismall)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc, npsidim_orbs_small, npsidim_orbs_large
   type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
   type(orbitals_data),intent(in) :: orbssmall, orbslarge
-  real(kind=8),dimension(orbslarge%npsidim_orbs),intent(in) :: philarge
-  real(kind=8),dimension(orbssmall%npsidim_orbs),intent(out) :: phismall
+  real(kind=8),dimension(npsidim_orbs_large),intent(in) :: philarge
+  real(kind=8),dimension(npsidim_orbs_small),intent(out) :: phismall
   
   ! Local variables
   integer :: istl, ists, ilr, ilrlarge, ldim, gdim, iorb
        call timing(iproc,'large2small','ON') ! lr408t   
   ! Transform back to small locreg
   ! No need to this array to zero, since all values will be filled with a value during the copy.
-  !!call to_zero(orbssmall%npsidim_orbs, phismall(1))
+  !!call to_zero(npsidim_orbs_small, phismall(1))
   ists=1
   istl=1
   do iorb=1,orbssmall%norbp
@@ -1016,8 +1023,8 @@ subroutine large_to_small_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
       istl=istl+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
   end do
 
-  if(orbssmall%norbp>0 .and. ists/=orbssmall%npsidim_orbs+1) stop 'ists/=orbssmall%npsidim_orbs+1'
-  if(orbslarge%norbp>0 .and. istl/=orbslarge%npsidim_orbs+1) stop 'istl/=orbslarge%npsidim_orbs+1'
+  if(orbssmall%norbp>0 .and. ists/=npsidim_orbs_small+1) stop 'ists/=npsidim_orbs_small+1'
+  if(orbslarge%norbp>0 .and. istl/=npsidim_orbs_large+1) stop 'istl/=npsidim_orbs_large+1'
        call timing(iproc,'large2small','OF') ! lr408t 
 end subroutine large_to_small_locreg
 
@@ -1027,17 +1034,17 @@ end subroutine large_to_small_locreg
 
 
 
-subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lphi, collcom_sr)
+subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, orbs, lphi, collcom_sr)
   use module_base
   use module_types
   use module_interfaces, except_this_one => communicate_basis_for_density_collective
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc, nproc, npsidim
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
-  real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in) :: lphi
+  real(kind=8),dimension(npsidim),intent(in) :: lphi
   type(collective_comms),intent(inout) :: collcom_sr
   
   ! Local variables
@@ -1102,18 +1109,18 @@ end subroutine communicate_basis_for_density_collective
 
 
 
-subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
+subroutine DIISorSD(iproc, it, npsidim, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, it
+  integer,intent(in) :: iproc, it, npsidim
   real(kind=8),intent(in) :: trH
   type(DFT_wavefunction),intent(inout) :: tmbopt
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout) :: alpha, alphaDIIS
-  real(kind=8),dimension(max(tmbopt%orbs%npsidim_comp,tmbopt%orbs%npsidim_orbs)),intent(out) :: lphioldopt
+  real(kind=8),dimension(npsidim),intent(out) :: lphioldopt
   
   ! Local variables
   integer :: idsx, ii, offset, istdest, iorb, iiorb, ilr, ncount, istsource
@@ -1248,11 +1255,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
 
   ! Local variables
   integer:: istat, iall
-  real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff
   character(len=*),parameter:: subname='reconstruct_kernel'
-  integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
-  integer,parameter:: communication_strategy=ALLREDUCE
-  !!integer :: iorb,jorb
 
   call timing(iproc,'renormCoefComp','ON')
 
@@ -1273,7 +1276,8 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
          call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
          allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
          call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
-         call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+         call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.
      end if
      call timing(iproc,'renormCoefComp','OF')
@@ -1405,15 +1409,16 @@ end subroutine reorthonormalize_coeff
 
 
 !> Estimate the energy change, given by the product of the force and the "displacement" .
-subroutine estimate_energy_change(orbs, lzd, psidiff, hpsi_noprecond, delta_energy)
+subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, psidiff, hpsi_noprecond, delta_energy)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
+  integer, intent(in) :: npsidim_orbs
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
-  real(kind=8),dimension(orbs%npsidim_orbs),intent(in) :: psidiff, hpsi_noprecond
+  real(kind=8),dimension(npsidim_orbs),intent(in) :: psidiff, hpsi_noprecond
   real(kind=8),intent(out) :: delta_energy
 
   ! Local variables

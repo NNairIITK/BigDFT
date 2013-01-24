@@ -492,6 +492,8 @@ module module_types
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
   end type orbitals_data
 
   !> Contains the information needed for communicating the wavefunctions
@@ -597,6 +599,9 @@ module module_types
      type(GPU_pointers), pointer :: GPU
      type(pcproj_data_type), pointer :: PPD
      type(pawproj_data_type), pointer :: PAWD
+     ! removed from orbs, not sure if needed here or not
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
   end type lanczos_args
 
 
@@ -801,6 +806,17 @@ module module_types
   integer,parameter,public :: LINEAR_LOWACCURACY  = 101 !low accuracy after restart
   integer,parameter,public :: LINEAR_HIGHACCURACY = 102 !high accuracy after restart
 
+  !check if all comms are necessary here
+  type, public :: hamiltonian_descriptors
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+     type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
+     type(collective_comms):: collcom ! describes collective communication
+     	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
+     type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
+     type(p2pComms):: comsr !<describing the p2p communications for sumrho
+  end type hamiltonian_descriptors
+
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
@@ -833,6 +849,7 @@ module module_types
         type(linear_matrices):: linmat
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+     type(hamiltonian_descriptors) :: ham_descr
   end type DFT_wavefunction
 
   !> Flags for optimization loop id

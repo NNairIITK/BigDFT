@@ -8,14 +8,14 @@
 !    For the list of contributors, see ~/AUTHORS
 
 
-subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_reference)
+subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom, collcom_reference)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_collective_comms
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc, nproc, npsidim_orbs
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
   type(collective_comms),intent(inout) :: collcom
@@ -170,7 +170,7 @@ t1=mpi_wtime()
   call memocc(istat, collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
   allocate(collcom%nrecvdspls_f(0:nproc-1), stat=istat)
   call memocc(istat, collcom%nrecvdspls_f, 'collcom%nrecvdspls_f', subname)
-  call determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
+  call determine_communication_arrays(iproc, nproc, npsidim_orbs, orbs, lzd, istartend_c, istartend_f, &
        index_in_global_c, index_in_global_f, nvalp_c, nvalp_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
@@ -1120,8 +1120,8 @@ end subroutine determine_num_orbs_per_gridpoint_new
 
 
 
-subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
-           index_in_global_c, index_in_global_f, &
+subroutine determine_communication_arrays(iproc, nproc, npsidim_orbs, orbs, lzd, &
+           istartend_c, istartend_f, index_in_global_c, index_in_global_f, &
            nvalp_c, nvalp_f,  nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, &
            nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f)
   use module_base
@@ -1129,7 +1129,7 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc, nproc, npsidim_orbs
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
   integer,dimension(2,0:nproc-1),intent(in) :: istartend_c, istartend_f
@@ -1226,10 +1226,10 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
 
 
   ! The first check is to make sure that there is no stop in case this process has no orbitals (in which case
-  ! orbs%npsidim_orbs is 1 and not 0 as assumed by the check)
-  if(orbs%npsidim_orbs>1 .and. sum(nsendcounts_c)+7*sum(nsendcounts_f)/=orbs%npsidim_orbs) then
-      write(*,'(a,2i10)') 'sum(nsendcounts_c)+sum(nsendcounts_f)/=orbs%npsidim_orbs', &
-                          sum(nsendcounts_c)+sum(nsendcounts_f), orbs%npsidim_orbs
+  ! npsidim_orbs is 1 and not 0 as assumed by the check)
+  if(npsidim_orbs>1 .and. sum(nsendcounts_c)+7*sum(nsendcounts_f)/=npsidim_orbs) then
+      write(*,'(a,2i10)') 'sum(nsendcounts_c)+sum(nsendcounts_f)/=npsidim_orbs', &
+                          sum(nsendcounts_c)+sum(nsendcounts_f), npsidim_orbs
       stop
   end if
 
@@ -1878,15 +1878,16 @@ end subroutine get_index_in_global2
 
 
 
-subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
+subroutine transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
+  integer, intent(in) :: npsidim_orbs
   type(orbitals_Data),intent(in) :: orbs
   type(collective_comms),intent(in) :: collcom
-  real(kind=8),dimension(orbs%npsidim_orbs),intent(in) :: psi
+  real(kind=8),dimension(npsidim_orbs),intent(in) :: psi
   real(kind=8),dimension(collcom%ndimpsi_c),intent(out) :: psiwork_c
   real(kind=8),dimension(7*collcom%ndimpsi_f),intent(out) :: psiwork_f
   type(local_zone_descriptors),intent(in),optional :: lzd
@@ -1935,7 +1936,7 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
   ! coarse part
 
   !$omp parallel default(private) &
-  !$omp shared(orbs, collcom, psi, psiwork_c, psiwork_f, lzd, psi_c,psi_f,m)
+  !$omp shared(collcom, psi, psiwork_c, psiwork_f, lzd, psi_c,psi_f,m)
 
   m = mod(collcom%ndimpsi_c,7)
   if(m/=0) then
@@ -2325,17 +2326,18 @@ end subroutine transpose_communicate_psit
 
 
 
-subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
+subroutine transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
   use module_base
   use module_types
   implicit none
   
   ! Caling arguments
+  integer, intent(in) :: npsidim_orbs
   type(orbitals_data),intent(in) :: orbs
   type(collective_comms),intent(in) :: collcom
   real(kind=8),dimension(collcom%ndimpsi_c),intent(in) :: psiwork_c
   real(kind=8),dimension(7*collcom%ndimpsi_f),intent(in) :: psiwork_f
-  real(kind=8),dimension(orbs%npsidim_orbs),intent(out) :: psi
+  real(kind=8),dimension(npsidim_orbs),intent(out) :: psi
   type(local_zone_descriptors),intent(in),optional :: lzd
   
   ! Local variables
@@ -2429,17 +2431,17 @@ subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
 
 end subroutine transpose_unswitch_psi
 
-subroutine transpose_localized(iproc, nproc, orbs, collcom, psi, psit_c, psit_f, lzd)
+subroutine transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psi, psit_c, psit_f, lzd)
   use module_base
   use module_types
   use module_interfaces, except_this_one => transpose_localized
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc, nproc, npsidim_orbs
   type(orbitals_data),intent(in) :: orbs
   type(collective_comms),intent(in) :: collcom
-  real(kind=8),dimension(orbs%npsidim_orbs),intent(in) :: psi
+  real(kind=8),dimension(npsidim_orbs),intent(in) :: psi
   real(kind=8),dimension(collcom%ndimind_c),intent(out) :: psit_c
   real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psit_f
   type(local_zone_descriptors),optional,intent(in) :: lzd
@@ -2460,9 +2462,9 @@ subroutine transpose_localized(iproc, nproc, orbs, collcom, psi, psit_c, psit_f,
   
   call timing(iproc,'Un-TransSwitch','ON')
   if(present(lzd)) then
-      call transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
+      call transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
   else
-      call transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f)
+      call transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f)
   end if
   call timing(iproc,'Un-TransSwitch','OF')
 
@@ -2496,19 +2498,19 @@ end subroutine transpose_localized
 
 
 
-subroutine untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, psi, lzd)
+subroutine untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, psi, lzd)
   use module_base
   use module_types
   use module_interfaces, except_this_one => untranspose_localized
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc, nproc, npsidim_orbs
   type(orbitals_data),intent(in) :: orbs
   type(collective_comms),intent(in) :: collcom
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c
   real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f
-  real(kind=8),dimension(orbs%npsidim_orbs),intent(out) :: psi
+  real(kind=8),dimension(npsidim_orbs),intent(out) :: psi
   type(local_zone_descriptors),optional,intent(in) :: lzd
   
   ! Local variables
@@ -2540,9 +2542,9 @@ subroutine untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, ps
 
   call timing(iproc,'Un-TransSwitch','ON')
   if(present(lzd)) then
-      call transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
+      call transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
   else
-      call transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi)
+      call transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwork_f, psi)
   end if
   call timing(iproc,'Un-TransSwitch','OF')
   
@@ -2561,7 +2563,7 @@ subroutine untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, ps
   
 end subroutine untranspose_localized
 
-subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom)
+subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs,npsidim_comp)
    use module_base
    use module_types
    use module_interfaces
@@ -2571,6 +2573,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom)
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: lzd
    type(collective_comms), intent(in) :: collcom
+   integer, intent(in) :: npsidim_orbs, npsidim_comp
    !local variables
    character(len=*), parameter :: subname='check_communications'
    integer, parameter :: ilog=6
@@ -2585,7 +2588,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom)
    logical :: abort
 
    !allocate the "wavefunction" and fill it, and also the workspace
-   allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
+   allocate(psi(max(npsidim_orbs,npsidim_comp)+ndebug),stat=i_stat)
    call memocc(i_stat,psi,'psi',subname)
    allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=i_stat)
    call memocc(i_stat, psit_c, 'psit_c', subname)
@@ -2593,7 +2596,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom)
    call memocc(i_stat, psit_f, 'psit_f', subname)
    allocate(checksum(orbs%norb*orbs%nspinor,2), stat=i_stat)
    call memocc(i_stat, checksum, 'checksum', subname)
-   tol=1.e-10*real(orbs%npsidim_orbs,wp)/real(orbs%norbp,wp)
+   tol=1.e-10*real(npsidim_orbs,wp)/real(orbs%norbp,wp)
 
    checksum(:,:)=0.0_wp
    do iorb=1,orbs%norbp
@@ -2611,7 +2614,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom)
       end do
    end do
 
-   call transpose_localized(iproc, nproc, orbs, collcom, psi, psit_c, psit_f, lzd)
+   call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psi, psit_c, psit_f, lzd)
    
    !check the results of the transposed wavefunction
    maxdiff=0.0_wp
@@ -2709,7 +2712,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom)
    if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
 
 
-   call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, psi, lzd)
+   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, psi, lzd)
 
    maxdiff=0.0_wp
    do iorb=1,orbs%norbp
@@ -2881,7 +2884,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   end do
 
   !$omp parallel default(private) &
-  !$omp shared(collcom, ovrlp%matrix_compr, psit_c1, psit_c2, psit_f1, psit_f2, n)
+  !$omp shared(collcom, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2, n)
   tid=0
   !$ tid = OMP_GET_THREAD_NUM()
   istart = 1
@@ -3085,7 +3088,7 @@ subroutine build_linear_combination_transposed(norb, matrix_compr, collcom, spar
 
  
   !$omp parallel default(private) &
-  !$omp shared(collcom, psit_c, psitwork_c, psit_f, psitwork_f, matrix_compr)
+  !$omp shared(collcom, psit_c, psitwork_c, psit_f, psitwork_f, sparsemat, matrix_compr)
 
   !$omp do
    do ipt=1,collcom%nptsp_c 

@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
+subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_orbs, &
            orbs, lzd, ovrlp, inv_ovrlp, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
   use module_base
   use module_types
@@ -16,14 +16,14 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc,nproc,methTransformOverlap
+  integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
   type(sparseMatrix),intent(inout) :: ovrlp
   type(sparseMatrix),intent(in) :: inv_ovrlp ! just using structure for now
   type(collective_comms),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
-  real(kind=8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
+  real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
   real(kind=8),dimension(:),pointer :: psit_c, psit_f
   logical,intent(inout) :: can_use_transposed
 
@@ -58,7 +58,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
           allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
           call memocc(istat, psit_f, 'psit_f', subname)
 
-          call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
+          call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
           can_use_transposed=.true.
 
       end if
@@ -89,7 +89,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
       iall=-product(shape(norm))*kind(norm)
       deallocate(norm, stat=istat)
       call memocc(istat, iall, 'norm', subname)
-      call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
+      call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
 
       iall=-product(shape(psittemp_c))*kind(psittemp_c)
       deallocate(psittemp_c, stat=istat)
@@ -106,22 +106,23 @@ end subroutine orthonormalizeLocalized
 
 ! can still tidy this up more when tmblarge is removed
 ! use sparsity of density kernel for all inverse quantities
-subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, collcom, orthpar, correction_orthoconstraint, &
-           linmat, lphi, lhphi, lagmat, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
+subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
+           correction_orthoconstraint, linmat, lphi, lhphi, lagmat, psit_c, psit_f, hpsit_c, hpsit_f, &
+           can_use_transposed, overlap_calculated)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_Data),intent(in) :: orbs
   type(collective_comms),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
   integer,intent(in) :: correction_orthoconstraint
-  real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(in) :: lphi
-  real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lhphi
+  real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
+  real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
   type(SparseMatrix),intent(inout) :: lagmat
   real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
   logical,intent(inout) :: can_use_transposed, overlap_calculated
@@ -160,7 +161,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, collcom, orthpa
       allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, psit_f, 'psit_f', subname)
 
-      call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
+      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
   end if
 
@@ -172,7 +173,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, collcom, orthpa
      allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
  
-     call transpose_localized(iproc, nproc, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
+     call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if
 
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
@@ -243,7 +244,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, collcom, orthpa
   deallocate(tmp_mat_compr, stat=istat)
   call memocc(istat, iall, 'tmp_mat_compr', subname)
 
-  call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
+  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
 
   if (correction_orthoconstraint/=0) then
       nullify(ovrlp_minus_one_lagmat%matrix_compr)

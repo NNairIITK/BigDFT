@@ -2273,19 +2273,19 @@ module module_interfaces
        integer,dimension(8),intent(out):: comarr
      end subroutine setCommsParameters
      
-     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
+     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_orbs, &
                 orbs, lzd, ovrlp, inv_ovrlp, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc,nproc,methTransformOverlap
+       integer,intent(in):: iproc,nproc,methTransformOverlap,npsidim_orbs
        type(orbitals_data),intent(in):: orbs
        type(local_zone_descriptors),intent(in):: lzd
        type(sparseMatrix),intent(inout):: ovrlp
        type(sparseMatrix),intent(in):: inv_ovrlp
        type(collective_comms),intent(in):: collcom
        type(orthon_data),intent(in):: orthpar
-       real(8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
+       real(8),dimension(npsidim_orbs), intent(inout) :: lphi
        real(8),dimension(:),pointer:: psit_c, psit_f
        logical,intent(out):: can_use_transposed
      end subroutine orthonormalizeLocalized
@@ -2754,19 +2754,20 @@ module module_interfaces
       !  real(8),dimension(n),intent(out):: w
       !end subroutine dsyev_parallel
 
-      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, collcom, orthpar, correction_orthoconstraint, &
-           linmat, lphi, lhphi, lagmat, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
+      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
+           correction_orthoconstraint, linmat, lphi, lhphi, lagmat, psit_c, psit_f, hpsit_c, hpsit_f, &
+           can_use_transposed, overlap_calculated)
         use module_base
         use module_types
         implicit none
-        integer,intent(in) :: iproc, nproc
+        integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp
         type(local_zone_descriptors),intent(in) :: lzd
         type(orbitals_Data),intent(in) :: orbs
         type(collective_comms),intent(in) :: collcom
         type(orthon_data),intent(in) :: orthpar
         integer,intent(in) :: correction_orthoconstraint
-        real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(in) :: lphi
-        real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lhphi
+        real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
+        real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
         type(SparseMatrix),intent(inout) :: lagmat
         real(8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
         logical,intent(inout) :: can_use_transposed, overlap_calculated
@@ -2829,21 +2830,6 @@ module module_interfaces
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
      end subroutine FullHamiltonianApplication
-
-     subroutine transformToGlobal(iproc,nproc,lzd,lorbs,orbs,comms,input,coeff,lphi,psi,psit)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nproc
-       type(local_zone_descriptors),intent(in):: lzd
-       type(orbitals_data),intent(in):: lorbs, orbs
-       type(communications_arrays):: comms
-       type(input_variables),intent(in):: input
-       real(8),dimension(lorbs%norb,orbs%norb),intent(in):: coeff
-       real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout):: lphi
-       real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),target,intent(out):: psi
-       real(8),dimension(:),pointer,intent(inout):: psit
-     end subroutine transformToGlobal
 
        subroutine initMatrixCompression_foe(iproc, nproc, lzd, at, input, orbs, mad)
          use module_base
@@ -3317,16 +3303,16 @@ module module_interfaces
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
        end subroutine hpsitopsi_linear
        
-       subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
+       subroutine DIISorSD(iproc, it, npsidim, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, it
+         integer,intent(in):: iproc, it, npsidim
          real(8),intent(in):: trH
          type(DFT_wavefunction),intent(inout):: tmbopt
          type(localizedDIISParameters),intent(inout):: ldiis
          real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha, alphaDIIS
-         real(8),dimension(max(tmbopt%orbs%npsidim_comp,tmbopt%orbs%npsidim_orbs)),intent(out):: lphioldopt
+         real(8),dimension(npsidim),intent(out):: lphioldopt
        end subroutine DIISorSD
  
        subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
@@ -3419,11 +3405,11 @@ module module_interfaces
          real(8),intent(out):: weight_c_tot, weight_f_tot
        end subroutine get_weights
 
-       subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_reference)
+       subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom, collcom_reference)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc
+         integer,intent(in):: iproc, nproc, npsidim_orbs
          type(orbitals_data),intent(in):: orbs
          type(local_zone_descriptors),intent(in):: lzd
          type(collective_comms),intent(inout):: collcom
@@ -3494,14 +3480,14 @@ module module_interfaces
          integer,dimension(ndimind_f),intent(out):: indexrecvorbital_f, iextract_f, iexpand_f
        end subroutine get_switch_indices
 
-       subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
-                  index_in_global_c, index_in_global_f, &
+       subroutine determine_communication_arrays(iproc, nproc, npsidim_orbs, orbs, lzd, &
+                  istartend_c, istartend_f, index_in_global_c, index_in_global_f, &
                   nvalp_c, nvalp_f,  nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, &
                   nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc
+         integer,intent(in):: iproc, nproc, npsidim_orbs
          type(orbitals_data),intent(in):: orbs
          type(local_zone_descriptors),intent(in):: lzd
          integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
@@ -3529,10 +3515,11 @@ module module_interfaces
          integer,intent(out):: nptsp_c, nptsp_f
        end subroutine assign_weight_to_process2
 
-       subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
+       subroutine transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
          use module_base
          use module_types
          implicit none
+         integer, intent(in) :: npsidim_orbs
          type(orbitals_Data),intent(in):: orbs
          type(collective_comms),intent(in):: collcom
          real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
@@ -3587,10 +3574,11 @@ module module_interfaces
          real(8),dimension(7*collcom%ndimpsi_f),intent(out):: psiwork_f
        end subroutine transpose_communicate_psit
 
-       subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
+       subroutine transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
          use module_base
          use module_types
          implicit none
+         integer, intent(in) :: npsidim_orbs
          type(orbitals_data),intent(in):: orbs
          type(collective_comms),intent(in):: collcom
          real(8),dimension(collcom%ndimpsi_c),intent(in):: psiwork_c
@@ -3599,11 +3587,11 @@ module module_interfaces
          type(local_zone_descriptors),intent(in),optional:: lzd
        end subroutine transpose_unswitch_psi
 
-       subroutine transpose_localized(iproc, nproc, orbs, collcom, psi, psit_c, psit_f, lzd)
+       subroutine transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psi, psit_c, psit_f, lzd)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc
+         integer,intent(in):: iproc, nproc, npsidim_orbs
          type(orbitals_data),intent(in):: orbs
          type(collective_comms),intent(in):: collcom
          real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
@@ -3612,16 +3600,16 @@ module module_interfaces
          type(local_zone_descriptors),optional,intent(in):: lzd
        end subroutine transpose_localized
 
-       subroutine untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, psi, lzd)
+       subroutine untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, psi, lzd)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc
+         integer,intent(in):: iproc, nproc, npsidim_orbs
          type(orbitals_data),intent(in):: orbs
          type(collective_comms),intent(in):: collcom
          real(8),dimension(collcom%ndimind_c),intent(in):: psit_c
          real(8),dimension(7*collcom%ndimind_f),intent(in):: psit_f
-         real(8),dimension(orbs%npsidim_orbs),intent(out):: psi
+         real(8),dimension(npsidim_orbs),intent(out):: psi
          type(local_zone_descriptors),optional,intent(in):: lzd
        end subroutine untranspose_localized
 
@@ -4194,14 +4182,14 @@ module module_interfaces
            integer,dimension(orbs%norb),intent(in) :: rootarr
         end subroutine communicate_locreg_descriptors_keys
 
-        subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lphi, collcom_sr)
+        subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, orbs, lphi, collcom_sr)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: iproc, nproc
+          integer,intent(in) :: iproc, nproc, npsidim
           type(local_zone_descriptors),intent(in) :: lzd
           type(orbitals_data),intent(in) :: orbs
-          real(kind=8),dimension(orbs%npsidim_orbs),intent(in) :: lphi
+          real(kind=8),dimension(npsidim),intent(in) :: lphi
           type(collective_comms),intent(inout) :: collcom_sr
         end subroutine communicate_basis_for_density_collective
 

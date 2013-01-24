@@ -851,7 +851,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   call initMatrixCompression_foe(iproc, nproc, lzd, at, input, llborbs, lbmad)
 
-  call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
+  call init_collective_comms(iproc, nproc, llborbs%npsidim_orbs, llborbs, lzd, lbcollcom)
   if (present(lbcollcom_sr)) then
       call init_collective_comms_sumro(iproc, nproc, lzd, llborbs, nscatterarr, lbcollcom_sr)
   end if
@@ -1231,7 +1231,11 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
        at, input, tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%comgp, tmblarge%comsr, &
        tmblarge%mad, tmblarge%collcom)
 
-  call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
+  ! ready for after tmblarge%orbs has been deleted
+  tmb%ham_descr%npsidim_orbs = tmblarge%orbs%npsidim_orbs
+  tmb%ham_descr%npsidim_comp = tmblarge%orbs%npsidim_comp
+
+  call allocate_auxiliary_basis_function(max(tmb%ham_descr%npsidim_comp,tmb%ham_descr%npsidim_orbs), subname, &
        tmblarge%psi, tmblarge%hpsi)
   call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
   tmblarge%can_use_transposed=.false.

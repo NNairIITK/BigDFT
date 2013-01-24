@@ -235,7 +235,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
               else
                   isegend=ovrlp%nseg
               end if
-              !$omp parallel default(private) shared(isegstart, isegend, tmb, fermip, ovrlp%matrix_compr, sumn) 
+              !$omp parallel default(private) shared(isegstart, isegend, tmb, fermip, ovrlp, sumn) 
               !$omp do reduction(+:sumn)
               do iseg=isegstart,isegend
                   ii=ovrlp%keyv(iseg)-1
@@ -409,7 +409,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
       else
           isegend=fermi%nseg
       end if
-      !$omp parallel default(private) shared(isegstart, isegend, tmb, fermip, fermi%matrix_compr)
+      !$omp parallel default(private) shared(isegstart, isegend, tmb, fermip, fermi)
       !$omp do
       do iseg=isegstart,isegend
           ii=fermi%keyv(iseg)-1
