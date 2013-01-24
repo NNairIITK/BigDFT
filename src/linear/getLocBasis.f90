@@ -37,13 +37,13 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! Local variables 
   integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr, ii, iseg, ind_ham, ind_denskern
   integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie
-  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, ovrlp_compr_small, ham_compr_small
+  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   type(energy_terms) :: energs
+  type(sparseMatrix) :: ham_small
   character(len=*),parameter :: subname='get_coeff'
   real(kind=8) :: tmprtr
-logical :: overlap_calculated
 
 
   if(calculate_ham) then
@@ -101,10 +101,10 @@ logical :: overlap_calculated
       call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
            tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
            energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
-      call timing(iproc,'glsynchham1','ON') !lr408t
+      call timing(iproc,'glsynchham1','ON')
       call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,tmblarge%hpsi,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
-      call timing(iproc,'glsynchham1','OF') !lr408t
+      call timing(iproc,'glsynchham1','OF')
       deallocate(confdatarrtmp)
 
       !DEBUG
@@ -163,7 +163,7 @@ logical :: overlap_calculated
 
 
   if (scf_mode/=LINEAR_FOE) then
-      allocate(tmb%linmat%ham%matrix(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
+      allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
       call memocc(istat, tmb%linmat%ham%matrix, 'tmb%linmat%ham%matrix', subname)
       call uncompressMatrix(tmb%linmat%ham)
       allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
@@ -282,23 +282,22 @@ logical :: overlap_calculated
 
   else ! foe
 
-      ! NOT GENERAL HERE - assuming overlap conforms to small - check what foe does with compression
-      !allocate(ovrlp_compr_small(tmb%sparsemat%nvctr), stat=istat)
-      !call memocc(istat, ovrlp_compr_small, 'ovrlp_compr_small', subname)
-      allocate(ham_compr_small(tmb%sparsemat%nvctr), stat=istat)
-      call memocc(istat, ham_compr_small, 'ham_compr_small', subname)
+      ! NOT ENTIRELY GENERAL HERE - assuming ovrlp is small and ham is large, converting ham to match ovrlp
+      call nullify_sparsematrix(ham_small)
+      call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,subname)
+      allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
+      call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
 
       iismall=0
       iseglarge=1
-      do isegsmall=1,tmb%sparsemat%nseg
+      do isegsmall=1,tmb%linmat%ovrlp%nseg
           do
-              is=max(tmb%sparsemat%keyg(1,isegsmall),tmb%linmat%ham%keyg(1,iseglarge))
-              ie=min(tmb%sparsemat%keyg(2,isegsmall),tmb%linmat%ham%keyg(2,iseglarge))
+              is=max(tmb%linmat%ovrlp%keyg(1,isegsmall),tmb%linmat%ham%keyg(1,iseglarge))
+              ie=min(tmb%linmat%ovrlp%keyg(2,isegsmall),tmb%linmat%ham%keyg(2,iseglarge))
               iilarge=tmb%linmat%ham%keyv(iseglarge)-tmb%linmat%ham%keyg(1,iseglarge)
               do i=is,ie
                   iismall=iismall+1
-                  !ovrlp_compr_small(iismall)=tmb%linmat%ovrlp%matrix_compr(iilarge+i)
-                  ham_compr_small(iismall)=tmb%linmat%ham%matrix_compr(iilarge+i)
+                  ham_small%matrix_compr(iismall)=tmb%linmat%ham%matrix_compr(iilarge+i)
               end do
               if (ie>=is) exit
               iseglarge=iseglarge+1
@@ -306,19 +305,13 @@ logical :: overlap_calculated
       end do
 
       tmprtr=0.d0
-      call foe(iproc, nproc, tmb, tmblarge, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
-           tmb%wfnmd%fscale, tmb%wfnmd%ef, tmprtr, 2, &
-           ham_compr_small, tmb%linmat%ovrlp%matrix_compr, tmb%wfnmd%bisection_shift, tmb%linmat%denskern%matrix_compr, ebs)
+      call foe(iproc, nproc, tmb, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, tmb%wfnmd%fscale, tmb%wfnmd%ef, &
+           tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%wfnmd%bisection_shift, tmb%linmat%denskern, ebs)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
       tmblarge%orbs%eval=-.5d0
 
-      !iall=-product(shape(ovrlp_compr_small))*kind(ovrlp_compr_small)
-      !deallocate(ovrlp_compr_small, stat=istat)
-      !call memocc(istat, iall, 'ovrlp_compr_small', subname)
-      iall=-product(shape(ham_compr_small))*kind(ham_compr_small)
-      deallocate(ham_compr_small, stat=istat)
-      call memocc(istat, iall, 'ham_compr_small', subname)
+      call deallocate_sparsematrix(ham_small,subname)
 
   end if
 

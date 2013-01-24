@@ -105,14 +105,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
 
           ist=1
-          do iorb=tmblarge%orbs%isorb+1,tmblarge%orbs%isorb+tmblarge%orbs%norbp
-              ilr=tmblarge%orbs%inwhichlocreg(iorb)
+          do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
+              ilr=tmb%orbs%inwhichlocreg(iorb)
               ii=0
               do iseg=1,tmb%linmat%denskern%nseg
                   do jorb=tmb%linmat%denskern%keyg(1,iseg),tmb%linmat%denskern%keyg(2,iseg)
                       ii=ii+1
-                      iiorb = (jorb-1)/tmblarge%orbs%norb + 1
-                      jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
+                      iiorb = (jorb-1)/tmb%orbs%norb + 1
+                      jjorb = jorb - (iiorb-1)*tmb%orbs%norb
                       if(iiorb==jjorb .and. iiorb==iorb) then
                           ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
                           call dscal(ncount, tmb%linmat%denskern%matrix_compr(ii), tmblarge%hpsi(ist), 1)
@@ -122,13 +122,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
               end do
           end do
           call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
-          call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
+          call build_linear_combination_transposed(tmb%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
                tmb%linmat%denskern, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
           deallocate(kernel_compr_tmp, stat=istat)
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
       else
-          call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
+          call build_linear_combination_transposed(tmb%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
                tmb%linmat%denskern, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
       end if
   end if

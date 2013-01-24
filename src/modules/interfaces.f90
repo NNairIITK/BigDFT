@@ -4317,20 +4317,19 @@ module module_interfaces
           integer,dimension(0:nproc-1),intent(out) :: nrecvcounts_repartitionrho, nrecvdspls_repartitionrho
         end subroutine communication_arrays_repartitionrho
 
-        subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, &
-                   tmprtr, mode, ham_compr, ovrlp_compr, bisection_shift, fermi_compr, ebs)
+        subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, &
+                   tmprtr, mode, ham, ovrlp, bisection_shift, fermi, ebs)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc
-          type(DFT_wavefunction),intent(inout) :: tmb, tmblarge
+          type(DFT_wavefunction),intent(inout) :: tmb
           type(orbitals_data),intent(in) :: orbs
           real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
           integer,intent(in) :: mode
-          real(8),dimension(tmb%sparsemat%nvctr),intent(in) :: ovrlp_compr
-          real(8),dimension(tmb%sparsemat%nvctr),intent(in) :: ham_compr
+          type(sparseMatrix),intent(in) :: ovrlp, ham
           real(kind=8),intent(inout) :: bisection_shift
-          real(8),dimension(tmb%sparsemat%nvctr),intent(out) :: fermi_compr
+          type(sparseMatrix),intent(inout) :: fermi
           real(kind=8),intent(out) :: ebs
         end subroutine foe
 
@@ -4446,22 +4445,7 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
 
-        subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, nvctr, orbitalindex, &
-                   sendcounts, recvcounts, senddspls, recvdspls, fermi, penalty_ev)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc, npl, nvctr
-          real(8),dimension(npl,3),intent(in) :: cc
-          type(DFT_wavefunction),intent(in) :: tmb 
-          real(kind=8),dimension(tmb%sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
-          integer,dimension(nvctr),intent(in) :: orbitalindex
-          integer,dimension(0:nproc-1),intent(in) :: sendcounts, recvcounts, senddspls, recvdspls
-          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
-          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
-        end subroutine chebyshev
-
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, calculate_SHS, &
+        subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovrlp_compr, calculate_SHS, &
                    SHS, fermi, penalty_ev)
           use module_base
           use module_types
@@ -4469,9 +4453,10 @@ module module_interfaces
           integer,intent(in) :: iproc, nproc, npl
           real(8),dimension(npl,3),intent(in) :: cc
           type(DFT_wavefunction),intent(in) :: tmb 
-          real(kind=8),dimension(tmb%sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
+          type(sparseMatrix), intent(in) :: sparsemat
+          real(kind=8),dimension(sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
           logical,intent(in) :: calculate_SHS
-          real(kind=8),dimension(tmb%sparsemat%nvctr),intent(inout) :: SHS
+          real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: SHS
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
         end subroutine chebyshev_clean

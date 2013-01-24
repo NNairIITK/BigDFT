@@ -400,14 +400,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., tmblarge)
 
-     ! to be removed once used correctly - as below
-     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%sparsemat)
-     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%sparsemat)
-
-     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%ham)
+     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmb%orbs, tmb%linmat%ham)
      call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
-     !call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%inv_ovrlp)
-     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%denskern)
+     !call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
+     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmb%orbs, tmb%linmat%denskern)
 
      if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of sparse matrices')
      call check_matrix_compression(iproc,tmb%linmat%ham)

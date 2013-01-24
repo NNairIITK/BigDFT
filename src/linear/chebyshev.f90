@@ -1,4 +1,5 @@
-subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, calculate_SHS, &
+!again assuming all matrices have same sparsity, still some tidying to be done
+subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovrlp_compr, calculate_SHS, &
            SHS, fermi, penalty_ev)
   use module_base
   use module_types
@@ -9,9 +10,10 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
   integer,intent(in) :: iproc, nproc, npl
   real(8),dimension(npl,3),intent(in) :: cc
   type(DFT_wavefunction),intent(in) :: tmb 
-  real(kind=8),dimension(tmb%sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
+  type(sparseMatrix), intent(in) :: sparsemat
+  real(kind=8),dimension(sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
   logical,intent(in) :: calculate_SHS
-  real(kind=8),dimension(tmb%sparsemat%nvctr),intent(inout) :: SHS
+  real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: SHS
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
   ! Local variables
@@ -35,9 +37,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
   norbp = tmb%orbs%norbp
   isorb = tmb%orbs%isorb
 
-  call init_onedimindices(norbp, isorb, tmb%mad, tmb%sparsemat, nout, onedimindices)
+  call init_onedimindices(norbp, isorb, tmb%mad, sparsemat, nout, onedimindices)
 
-  call determine_sequential_length(norbp, isorb, norb, tmb%mad, tmb%sparsemat, nseq, nmaxsegk, nmaxvalk)
+  call determine_sequential_length(norbp, isorb, norb, tmb%mad, sparsemat, nseq, nmaxsegk, nmaxvalk)
 
 
   allocate(ham_compr_seq(nseq), stat=istat)
@@ -49,7 +51,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
   allocate(ivectorindex(nseq), stat=istat)
   call memocc(istat, ivectorindex, 'ivectorindex', subname)
 
-  call get_arrays_for_sequential_acces(norbp, isorb, norb, tmb%mad, tmb%sparsemat, nseq, nmaxsegk, nmaxvalk, &
+  call get_arrays_for_sequential_acces(norbp, isorb, norb, tmb%mad, sparsemat, nseq, nmaxsegk, nmaxvalk, &
        istindexarr, ivectorindex)
 
 
@@ -61,15 +63,15 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
 
       call to_zero(norb*norbp, matrix(1,1))
       if (tmb%orbs%norbp>0) then
-          isegstart=tmb%sparsemat%istsegline(tmb%orbs%isorb_par(iproc)+1)
+          isegstart=sparsemat%istsegline(tmb%orbs%isorb_par(iproc)+1)
           if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-              isegend=tmb%sparsemat%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+              isegend=sparsemat%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
           else
-              isegend=tmb%sparsemat%nseg
+              isegend=sparsemat%nseg
           end if
           do iseg=isegstart,isegend
-              ii=tmb%sparsemat%keyv(iseg)-1
-              do jorb=tmb%sparsemat%keyg(1,iseg),tmb%sparsemat%keyg(2,iseg)
+              ii=sparsemat%keyv(iseg)-1
+              do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
                   ii=ii+1
                   iiorb = (jorb-1)/tmb%orbs%norb + 1
                   jjorb = jorb - (iiorb-1)*tmb%orbs%norb
@@ -79,11 +81,11 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
       end if
   end if
 
-  call sequential_acces_matrix(norbp, isorb, norb, tmb%mad, tmb%sparsemat, ham_compr, nseq, nmaxsegk, nmaxvalk, &
+  call sequential_acces_matrix(norbp, isorb, norb, tmb%mad, sparsemat, ham_compr, nseq, nmaxsegk, nmaxvalk, &
        ham_compr_seq)
 
 
-  call sequential_acces_matrix(norbp, isorb, norb, tmb%mad, tmb%sparsemat, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
+  call sequential_acces_matrix(norbp, isorb, norb, tmb%mad, sparsemat, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
        ovrlp_compr_seq)
 
   allocate(vectors(norb,norbp,4), stat=istat)
@@ -100,18 +102,18 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
           call to_zero(norbp*norb, matrix(1,1))
           call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1), &
                norb, norbp, ivectorindex, nout, onedimindices)
-          call to_zero(tmb%sparsemat%nvctr, SHS(1))
+          call to_zero(sparsemat%nvctr, SHS(1))
           
           if (tmb%orbs%norbp>0) then
-              isegstart=tmb%sparsemat%istsegline(tmb%orbs%isorb_par(iproc)+1)
+              isegstart=sparsemat%istsegline(tmb%orbs%isorb_par(iproc)+1)
               if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-                  isegend=tmb%sparsemat%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+                  isegend=sparsemat%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
               else
-                  isegend=tmb%sparsemat%nseg
+                  isegend=sparsemat%nseg
               end if
               do iseg=isegstart,isegend
-                  ii=tmb%sparsemat%keyv(iseg)-1
-                  do jorb=tmb%sparsemat%keyg(1,iseg),tmb%sparsemat%keyg(2,iseg)
+                  ii=sparsemat%keyv(iseg)-1
+                  do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
                       ii=ii+1
                       iiorb = (jorb-1)/tmb%orbs%norb + 1
                       jjorb = jorb - (iiorb-1)*tmb%orbs%norb
@@ -120,11 +122,11 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
               end do
           end if
 
-          call mpiallred(SHS(1), tmb%sparsemat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(SHS(1), sparsemat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
       end if
 
-      call sequential_acces_matrix(norbp, isorb, norb, tmb%mad, tmb%sparsemat, SHS, nseq, nmaxsegk, &
+      call sequential_acces_matrix(norbp, isorb, norb, tmb%mad, sparsemat, SHS, nseq, nmaxsegk, &
            nmaxvalk, SHS_seq)
 
   end if

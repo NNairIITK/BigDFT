@@ -1015,7 +1015,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call deallocate_orbitals_data(tmb%orbs, subname)
 
      call deallocate_matrixDescriptors_foe(tmb%mad, subname)
-     call deallocate_sparseMatrix(tmb%sparsemat, subname)
 
      call deallocate_sparseMatrix(tmb%linmat%denskern, subname)
      !call deallocate_sparseMatrix(tmb%linmat%inv_ovrlp, subname)
@@ -1088,14 +1087,10 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged, tmblarge)
 
      ! Update sparse matrices
-     ! to be removed once used correctly - as below
-     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%sparseMat)
-     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%sparseMat)
-
-     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%ham)
+     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmb%orbs, tmb%linmat%ham)
      call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
-     !call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%inv_ovrlp)
-     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmb%linmat%denskern)
+     !call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
+     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmb%orbs, tmb%linmat%denskern)
 
      allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=istat)
      call memocc(istat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
@@ -1110,7 +1105,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
           tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-          4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+          4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmb%orbs%onwhichatom)
 
   end if
 
@@ -1223,8 +1218,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   call start_onesided_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
        tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
 
-  allocate(confdatarrtmp(tmblarge%orbs%norbp))
-  call default_confinement_data(confdatarrtmp,tmblarge%orbs%norbp)
+  allocate(confdatarrtmp(tmb%orbs%norbp))
+  call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
 
   call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
@@ -1297,10 +1292,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
 
 
   !DEBUG
-  !!print *,'iproc,tmblarge%orbs%norbp',iproc,tmblarge%orbs%norbp
+  !!print *,'iproc,tmb%orbs%norbp',iproc,tmb%orbs%norbp
   !!if(iproc==0)then
-  !!do iorb = 1, tmblarge%orbs%norb
-  !!   do iiorb=1,tmblarge%orbs%norb
+  !!do iorb = 1, tmb%orbs%norb
+  !!   do iiorb=1,tmb%orbs%norb
   !!      !print *,'Hamiltonian of derivative: ',iorb, iiorb, (matrix(iorb,iiorb,jdir),jdir=1,3)
   !!      print *,'Overlap of derivative: ',iorb, iiorb, (dovrlp(iorb,iiorb,jdir),jdir=1,3)
   !!   end do
@@ -1309,7 +1304,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   !!!Check if derivatives are orthogonal to functions
   !!if(iproc==0)then
   !!  do iorb = 1, tmbder%orbs%norb
-  !!     !print *,'overlap of derivative: ',iorb, (dovrlp(iorb,iiorb),iiorb=1,tmblarge%orbs%norb)
+  !!     !print *,'overlap of derivative: ',iorb, (dovrlp(iorb,iiorb),iiorb=1,tmb%orbs%norb)
   !!     do iiorb=1,tmbder%orbs%norb
   !!         write(*,*) iorb, iiorb, dovrlp(iorb,iiorb)
   !!     end do
@@ -1320,11 +1315,11 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
    ! needs generalizing if dovrlp and dham are to have different structures
    call to_zero(3*at%nat, fpulay(1,1))
    do jdir=1,3
-     !do ialpha=1,tmblarge%orbs%norb
-     if (tmblarge%orbs%norbp>0) then
-         isegstart=dham(jdir)%istsegline(tmblarge%orbs%isorb_par(iproc)+1)
-         if (tmblarge%orbs%isorb+tmblarge%orbs%norbp<tmblarge%orbs%norb) then
-             isegend=dham(jdir)%istsegline(tmblarge%orbs%isorb_par(iproc+1)+1)-1
+     !do ialpha=1,tmb%orbs%norb
+     if (tmb%orbs%norbp>0) then
+         isegstart=dham(jdir)%istsegline(tmb%orbs%isorb_par(iproc)+1)
+         if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+             isegend=dham(jdir)%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
          else
              isegend=dham(jdir)%nseg
          end if
@@ -1332,9 +1327,9 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
               ii=dham(jdir)%keyv(iseg)-1
               do jorb=dham(jdir)%keyg(1,iseg),dham(jdir)%keyg(2,iseg)
                   ii=ii+1
-                  iialpha = (jorb-1)/tmblarge%orbs%norb + 1
-                  ibeta = jorb - (iialpha-1)*tmblarge%orbs%norb
-                  jat=tmblarge%orbs%onwhichatom(iialpha)
+                  iialpha = (jorb-1)/tmb%orbs%norb + 1
+                  ibeta = jorb - (iialpha-1)*tmb%orbs%norb
+                  jat=tmb%orbs%onwhichatom(iialpha)
                   kernel = 0.d0
                   ekernel= 0.d0
                   do iorb=1,orbs%norb
@@ -1346,29 +1341,6 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
               end do
          end do
      end if
-     !!do ialpha=1,tmblarge%orbs%norbp
-     !!  iialpha=tmblarge%orbs%isorb+ialpha
-     !!  jat=tmblarge%orbs%onwhichatom(iialpha)
-     !!  do ibeta=1,tmblarge%orbs%norb
-     !!     kernel = 0.d0
-     !!     ekernel= 0.d0
-     !!     do iorb=1,orbs%norb
-     !!       kernel  = kernel+orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb)
-     !!       ekernel = ekernel+orbs%eval(iorb)*orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb) 
-     !!     end do
-     !!     !do iat=1,at%nat
-     !!     !if(jat == iat ) then
-     !!     !!fpulay(jdir,jat)=fpulay(jdir,jat)+&
-     !!     !!       2.0_gp*(kernel*matrix(ibeta,iialpha,jdir)-ekernel*dovrlp(ibeta,iialpha,jdir))
-     !!     fpulay(jdir,jat)=fpulay(jdir,jat)+&
-     !!            2.0_gp*(kernel*matrix_compr(ind,jdir)-ekernel*dovrlp_compr(ind,jdir))
-     !!     !else
-     !!     !fpulay(jdir,iat)=fpulay(jdir,iat)-&
-     !!     !       2.0_gp/at%nat*(kernel*matrix(ibeta,ialpha,jdir)-ekernel*dovrlp(ibeta,ialpha,jdir))
-     !!     !end if
-     !!     !end do
-     !!  end do
-     !!end do
    end do 
 
    call mpiallred(fpulay(1,1), 3*at%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)

@@ -1,5 +1,6 @@
-subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmprtr, mode, &
-           ham_compr, ovrlp_compr, bisection_shift, fermi_compr, ebs)
+!could still do more tidying - assuming all sparse matrices except for fermi have the same pattern
+subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode, &
+           ham, ovrlp, bisection_shift, fermi, ebs)
   use module_base
   use module_types
   use module_interfaces, except_this_one => foe
@@ -7,14 +8,13 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
-  type(DFT_wavefunction),intent(inout) :: tmb, tmblarge
+  type(DFT_wavefunction),intent(inout) :: tmb
   type(orbitals_data),intent(in) :: orbs
   real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
   integer,intent(in) :: mode
-  real(kind=8),dimension(tmb%sparsemat%nvctr),intent(in) :: ovrlp_compr
-  real(kind=8),dimension(tmb%sparsemat%nvctr),intent(in) :: ham_compr
+  type(sparseMatrix),intent(in) :: ovrlp, ham
   real(kind=8),intent(inout) :: bisection_shift
-  real(kind=8),dimension(tmblarge%sparsemat%nvctr),intent(out) :: fermi_compr
+  type(sparseMatrix),intent(inout) :: fermi
   real(kind=8),intent(out) :: ebs
 
   ! Local variables
@@ -47,34 +47,34 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   end do
 
 
-  allocate(penalty_ev(tmblarge%orbs%norb,tmblarge%orbs%norbp,2), stat=istat)
+  allocate(penalty_ev(tmb%orbs%norb,tmb%orbs%norbp,2), stat=istat)
   call memocc(istat, penalty_ev, 'penalty_ev', subname)
 
 
-  allocate(ovrlpeff_compr(tmb%sparsemat%nvctr), stat=istat)
+  allocate(ovrlpeff_compr(ovrlp%nvctr), stat=istat)
   call memocc(istat, ovrlpeff_compr, 'ovrlpeff_compr', subname)
 
-  allocate(fermip(tmblarge%orbs%norb,tmblarge%orbs%norbp), stat=istat)
+  allocate(fermip(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
   call memocc(istat, fermip, 'fermip', subname)
 
-  allocate(SHS(tmb%sparsemat%nvctr), stat=istat)
+  allocate(SHS(ovrlp%nvctr), stat=istat)
   call memocc(istat, SHS, 'SHS', subname)
 
   ii=0
-  do iseg=1,tmb%sparsemat%nseg
-      do jorb=tmb%sparsemat%keyg(1,iseg),tmb%sparsemat%keyg(2,iseg)
+  do iseg=1,ovrlp%nseg
+      do jorb=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
           iiorb = (jorb-1)/tmb%orbs%norb + 1
           jjorb = jorb - (iiorb-1)*tmb%orbs%norb
           ii=ii+1
           if (iiorb==jjorb) then
-              ovrlpeff_compr(ii)=1.5d0-.5d0*ovrlp_compr(ii)
+              ovrlpeff_compr(ii)=1.5d0-.5d0*ovrlp%matrix_compr(ii)
           else
-              ovrlpeff_compr(ii)=-.5d0*ovrlp_compr(ii)
+              ovrlpeff_compr(ii)=-.5d0*ovrlp%matrix_compr(ii)
           end if
       end do  
   end do
 
-  allocate(hamscal_compr(tmb%sparsemat%nvctr), stat=istat)
+  allocate(hamscal_compr(ham%nvctr), stat=istat)
   call memocc(istat, hamscal_compr, 'hamscal_compr', subname)
 
 
@@ -104,7 +104,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
       calculate_SHS=.true.
 
-      call to_zero(tmblarge%orbs%norb*tmblarge%orbs%norbp, fermip(1,1))
+      call to_zero(tmb%orbs%norb*tmb%orbs%norbp, fermip(1,1))
 
       it=0
       it_solver=0
@@ -124,10 +124,10 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
               scale_factor=2.d0/(evhigh-evlow)
               shift_value=.5d0*(evhigh+evlow)
               ii=0
-              do iseg=1,tmb%sparsemat%nseg
-                  do jorb=tmb%sparsemat%keyg(1,iseg),tmb%sparsemat%keyg(2,iseg)
+              do iseg=1,ovrlp%nseg
+                  do jorb=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
                       ii=ii+1
-                      hamscal_compr(ii)=scale_factor*(ham_compr(ii)-shift_value*ovrlp_compr(ii))
+                      hamscal_compr(ii)=scale_factor*(ham%matrix_compr(ii)-shift_value*ovrlp%matrix_compr(ii))
                   end do  
               end do
               calculate_SHS=.true.
@@ -177,7 +177,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           !!end if
         
         
-          if (tmblarge%orbs%nspin==1) then
+          if (tmb%orbs%nspin==1) then
               do ipl=1,npl
                   cc(ipl,1)=2.d0*cc(ipl,1)
                   cc(ipl,2)=2.d0*cc(ipl,2)
@@ -188,9 +188,9 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
         
           call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-          call chebyshev_clean(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, calculate_SHS, &
+          ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
+          call chebyshev_clean(iproc, nproc, npl, cc, tmb, ovrlp, hamscal_compr, ovrlpeff_compr, calculate_SHS, &
                SHS, fermip, penalty_ev)
-
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
 
@@ -229,21 +229,21 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           sumn=0.d0
           sumnder=0.d0
           if (tmb%orbs%norbp>0) then
-              isegstart=tmb%sparsemat%istsegline(tmb%orbs%isorb_par(iproc)+1)
+              isegstart=ovrlp%istsegline(tmb%orbs%isorb_par(iproc)+1)
               if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-                  isegend=tmb%sparsemat%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+                  isegend=ovrlp%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
               else
-                  isegend=tmb%sparsemat%nseg
+                  isegend=ovrlp%nseg
               end if
-              !$omp parallel default(private) shared(isegstart, isegend, tmb, fermip, ovrlp_compr, sumn) 
+              !$omp parallel default(private) shared(isegstart, isegend, tmb, fermip, ovrlp%matrix_compr, sumn) 
               !$omp do reduction(+:sumn)
               do iseg=isegstart,isegend
-                  ii=tmb%sparsemat%keyv(iseg)-1
-                  do jorb=tmb%sparsemat%keyg(1,iseg),tmb%sparsemat%keyg(2,iseg)
+                  ii=ovrlp%keyv(iseg)-1
+                  do jorb=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
                       ii=ii+1
                       iiorb = (jorb-1)/tmb%orbs%norb + 1
                       jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-                      sumn = sumn + fermip(jjorb,iiorb-tmb%orbs%isorb)*ovrlp_compr(ii)
+                      sumn = sumn + fermip(jjorb,iiorb-tmb%orbs%isorb)*ovrlp%matrix_compr(ii)
                   end do  
               end do
               !$omp end do
@@ -400,31 +400,31 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   call timing(iproc, 'FOE_auxiliary ', 'OF')
   call timing(iproc, 'chebyshev_comm', 'ON')
 
-  call to_zero(tmblarge%sparsemat%nvctr, fermi_compr(1))
+  call to_zero(fermi%nvctr, fermi%matrix_compr(1))
 
-  if (tmblarge%orbs%norbp>0) then
-      isegstart=tmblarge%sparsemat%istsegline(tmblarge%orbs%isorb_par(iproc)+1)
-      if (tmblarge%orbs%isorb+tmblarge%orbs%norbp<tmblarge%orbs%norb) then
-          isegend=tmblarge%sparsemat%istsegline(tmblarge%orbs%isorb_par(iproc+1)+1)-1
+  if (tmb%orbs%norbp>0) then
+      isegstart=fermi%istsegline(tmb%orbs%isorb_par(iproc)+1)
+      if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+          isegend=fermi%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
       else
-          isegend=tmblarge%sparsemat%nseg
+          isegend=fermi%nseg
       end if
-      !$omp parallel default(private) shared(isegstart, isegend, tmblarge, fermip, fermi_compr)
+      !$omp parallel default(private) shared(isegstart, isegend, tmb, fermip, fermi%matrix_compr)
       !$omp do
       do iseg=isegstart,isegend
-          ii=tmblarge%sparsemat%keyv(iseg)-1
-          do jorb=tmblarge%sparsemat%keyg(1,iseg),tmblarge%sparsemat%keyg(2,iseg)
+          ii=fermi%keyv(iseg)-1
+          do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
               ii=ii+1
-              iiorb = (jorb-1)/tmblarge%orbs%norb + 1
-              jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
-              fermi_compr(ii)=fermip(jjorb,iiorb-tmblarge%orbs%isorb)
+              iiorb = (jorb-1)/tmb%orbs%norb + 1
+              jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+              fermi%matrix_compr(ii)=fermip(jjorb,iiorb-tmb%orbs%isorb)
           end do
       end do
       !$omp end do
       !$omp end parallel
   end if
 
-  call mpiallred(fermi_compr(1), tmblarge%sparsemat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(fermi%matrix_compr(1), fermi%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
   call timing(iproc, 'chebyshev_comm', 'OF')
@@ -438,14 +438,14 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   ebs=0.d0
   iismall=0
   iseglarge=1
-  do isegsmall=1,tmb%sparsemat%nseg
+  do isegsmall=1,ham%nseg
       do
-          is=max(tmb%sparsemat%keyg(1,isegsmall),tmblarge%sparsemat%keyg(1,iseglarge))
-          ie=min(tmb%sparsemat%keyg(2,isegsmall),tmblarge%sparsemat%keyg(2,iseglarge))
-          iilarge=tmblarge%sparsemat%keyv(iseglarge)-tmblarge%sparsemat%keyg(1,iseglarge)
+          is=max(ham%keyg(1,isegsmall),fermi%keyg(1,iseglarge))
+          ie=min(ham%keyg(2,isegsmall),fermi%keyg(2,iseglarge))
+          iilarge=fermi%keyv(iseglarge)-fermi%keyg(1,iseglarge)
           do i=is,ie
               iismall=iismall+1
-              ebs = ebs + fermi_compr(iilarge+i)*hamscal_compr(iismall)
+              ebs = ebs + fermi%matrix_compr(iilarge+i)*hamscal_compr(iismall)
           end do
           if (ie>=is) exit
           iseglarge=iseglarge+1

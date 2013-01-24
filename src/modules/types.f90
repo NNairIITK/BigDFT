@@ -484,9 +484,7 @@ module module_types
      integer :: norb          !< Total number of orbitals per k point
      integer :: norbp         !< Total number of orbitals for the given processors
      integer :: norbu,norbd,nspin,nspinor,isorb
-     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: nkpts,nkptsp,iskpts
-     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      real(gp) :: efermi,HLgap, eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
      integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom
@@ -832,8 +830,9 @@ module module_types
      type(collective_comms):: collcom_sr ! describes collective communication for the calculation of the charge density
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
      	type(matrixDescriptors_foe):: mad !<describes the structure of the matrices
-        type(sparseMatrix):: sparsemat
         type(linear_matrices):: linmat
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
   end type DFT_wavefunction
 
   !> Flags for optimization loop id
