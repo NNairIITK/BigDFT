@@ -66,8 +66,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           tmb%can_use_transposed=.true.
       end if
 
-      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%collcom, tmb%psit_c, &
-           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp%matrix_compr)
+      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
+           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
   end if
 
   ! Post the p2p communications for the density. (must not be done in inputguess)
@@ -147,8 +147,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
       call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
            tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
-      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmb%linmat%ham, tmblarge%collcom, &
-           tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, tmb%linmat%ham%matrix_compr)
+      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs,tmblarge%collcom, &
+           tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, tmb%linmat%ham)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)
       call memocc(istat, iall, 'hpsit_c', subname)
@@ -590,8 +590,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (infoBasisFunctions>=0) then
               ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
               ! iteration of get_coeff.
-              call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmb%linmat%ham, tmblarge%collcom, &
-                   tmblarge%psit_c, hpsit_c_tmp, tmblarge%psit_f, hpsit_f_tmp, tmb%linmat%ham%matrix_compr)
+              call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%collcom, &
+                   tmblarge%psit_c, hpsit_c_tmp, tmblarge%psit_f, hpsit_f_tmp, tmb%linmat%ham)
           end if
 
           exit iterLoop
@@ -1294,8 +1294,8 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   end if
   call timing(iproc,'renormCoefComp','OF')
 
-  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, ovrlp_tmb, tmb%collcom, &
-       tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_tmb%matrix_compr)
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
+       tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_tmb)
   call uncompressMatrix(ovrlp_tmb)
 
   call timing(iproc,'renormCoefComp','ON')

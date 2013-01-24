@@ -62,7 +62,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
           can_use_transposed=.true.
 
       end if
-      call calculate_overlap_transposed(iproc, nproc, orbs, ovrlp, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp%matrix_compr)
+      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
 
       if (methTransformOverlap==-1) then
           !call overlap_power_minus_one_half_per_atom(iproc, nproc, bigdft_mpi%mpi_comm, orbs, lzd, collcom, ovrlp, inv_ovrlp_half)
@@ -175,13 +175,12 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, collcom, orthpa
      call transpose_localized(iproc, nproc, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if
 
-  call calculate_overlap_transposed(iproc, nproc, orbs, lagmat, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat%matrix_compr)
+  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
 
   if (correction_orthoconstraint==0) then
       if(overlap_calculated) stop 'overlap_calculated should be wrong... To be modified later'
 
-      call calculate_overlap_transposed(iproc, nproc, orbs, linmat%ovrlp, collcom, psit_c, psit_c, psit_f, psit_f, &
-           linmat%ovrlp%matrix_compr)
+      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
 
       allocate(linmat%ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, linmat%ovrlp%matrix, 'linmat%ovrlp%matrix', subname)

@@ -1290,11 +1290,11 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
     call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, &
          lhphilarge, psit_c, psit_f, tmblarge%lzd)
 
-    call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, dovrlp(jdir), tmblarge%collcom,&
-         psit_c, lpsit_c, psit_f, lpsit_f, dovrlp(jdir)%matrix_compr)
+    call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%collcom,&
+         psit_c, lpsit_c, psit_f, lpsit_f, dovrlp(jdir))
 
-    call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, dham(jdir), tmblarge%collcom,&
-         psit_c, hpsit_c, psit_f, hpsit_f, dham(jdir)%matrix_compr)
+    call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%collcom,&
+         psit_c, hpsit_c, psit_f, hpsit_f, dham(jdir))
   end do
 
 

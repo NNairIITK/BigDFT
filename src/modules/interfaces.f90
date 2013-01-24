@@ -4417,8 +4417,8 @@ end subroutine overlapPowerMinusOneHalf_old
           real(gp), dimension(6), intent(out) :: strten
         end subroutine nonlocal_forces_linear
 
-        subroutine calculate_overlap_transposed(iproc, nproc, orbs, sparsemat, collcom, &
-                   psit_c1, psit_c2, psit_f1, psit_f2, ovrlp_compr)
+        subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
+                   psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
           use module_base
           use module_types
           implicit none
@@ -4426,11 +4426,10 @@ end subroutine overlapPowerMinusOneHalf_old
           ! Calling arguments
           integer,intent(in) :: iproc, nproc
           type(orbitals_data),intent(in) :: orbs
-          type(sparseMatrix),intent(in) :: sparsemat
           type(collective_comms),intent(in) :: collcom
           real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
           real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
-          real(kind=8),dimension(sparsemat%nvctr),intent(out) :: ovrlp_compr
+          type(sparseMatrix),intent(inout) :: ovrlp
         end subroutine calculate_overlap_transposed
 
         subroutine build_linear_combination_transposed(norb, matrix_compr, collcom, sparsemat, psitwork_c, psitwork_f, &
