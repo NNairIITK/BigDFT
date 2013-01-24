@@ -484,9 +484,7 @@ module module_types
      integer :: norb          !< Total number of orbitals per k point
      integer :: norbp         !< Total number of orbitals for the given processors
      integer :: norbu,norbd,nspin,nspinor,isorb
-     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: nkpts,nkptsp,iskpts
-     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      real(gp) :: efermi,HLgap, eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
      integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom
@@ -494,6 +492,8 @@ module module_types
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
   end type orbitals_data
 
   !> Contains the information needed for communicating the wavefunctions
@@ -599,34 +599,42 @@ module module_types
      type(GPU_pointers), pointer :: GPU
      type(pcproj_data_type), pointer :: PPD
      type(pawproj_data_type), pointer :: PAWD
+     ! removed from orbs, not sure if needed here or not
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
   end type lanczos_args
 
 
   !> Contains all parameters needed for point to point communication
   type,public:: p2pComms
     integer,dimension(:),pointer:: noverlaps
-    real(kind=8),dimension(:),pointer:: sendBuf, recvBuf
+    real(kind=8),dimension(:),pointer:: recvBuf
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: nsendBuf, nrecvBuf, window
+    integer:: nrecvBuf, window
     integer,dimension(:,:),pointer:: ise ! starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
     integer,dimension(:,:),pointer:: mpi_datatypes
     logical:: communication_complete
   end type p2pComms
 
-  !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
-  type,public:: overlapParameters
-      integer,dimension(:),pointer:: noverlaps
-      integer,dimension(:,:),pointer:: overlaps
-  end type overlapParameters
-
-  type,public:: matrixDescriptors
-      integer:: nvctr, nseg
-      integer,dimension(:),pointer:: keyv, nsegline, istsegline
-      integer,dimension(:,:),pointer:: keyg
+  type,public :: matrixDescriptors_foe
       integer,dimension(:),pointer :: kernel_nseg
       integer,dimension(:,:,:),pointer :: kernel_segkeyg
-  end type matrixDescriptors
+  end type matrixDescriptors_foe
 
+  type,public :: sparseMatrix
+      integer :: nvctr, nseg, full_dim1, full_dim2
+      integer,dimension(:),pointer:: noverlaps
+      integer,dimension(:,:),pointer:: overlaps
+      integer,dimension(:),pointer :: keyv, nsegline, istsegline
+      integer,dimension(:,:),pointer :: keyg
+      real(kind=8),dimension(:),pointer :: matrix_compr
+      real(kind=8),dimension(:,:),pointer :: matrix
+      integer,dimension(:,:),pointer :: matrixindex_in_compressed
+  end type sparseMatrix
+
+  type,public :: linear_matrices !may not keep
+      type(sparseMatrix) :: ham, ovrlp, denskern, inv_ovrlp
+  end type linear_matrices
 
   type:: collective_comms
     integer:: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f, nptsp_f, ndimpsi_f
@@ -640,7 +648,6 @@ module module_types
     real(kind=8),dimension(:),pointer :: psit_c, psit_f
     integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
     integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
-    integer,dimension(:,:),pointer :: matrixindex_in_compressed
   end type collective_comms
 
 
@@ -677,8 +684,7 @@ module module_types
     integer:: is, isx, mis, DIISHistMax, DIISHistMin
     integer:: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
     real(kind=8),dimension(:),pointer:: phiHist, hphiHist
-    real(kind=8),dimension(:),pointer:: alpha_coeff !step size for optimization of coefficients
-    real(kind=8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
+    real(kind=8):: alpha_coeff !step size for optimization of coefficients
     real(kind=8),dimension(:,:,:),pointer:: mat
     real(kind=8):: trmin, trold, alphaSD, alphaDIIS
     logical:: switchSD, immediateSwitchToSD, resetDIIS
@@ -695,8 +701,6 @@ module module_types
   type,public:: wfn_metadata
     real(kind=8),dimension(:,:),pointer:: coeff !<expansion coefficients
     real(kind=8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
-    real(kind=8),dimension(:,:),pointer:: density_kernel !<density kernel
-    real(8),dimension(:),pointer :: density_kernel_compr !<compressed density kernel
     real(kind=8) :: ef !< Fermi energy for FOE
     real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
     real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)
@@ -802,6 +806,17 @@ module module_types
   integer,parameter,public :: LINEAR_LOWACCURACY  = 101 !low accuracy after restart
   integer,parameter,public :: LINEAR_HIGHACCURACY = 102 !high accuracy after restart
 
+  !check if all comms are necessary here
+  type, public :: hamiltonian_descriptors
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+     type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
+     type(collective_comms):: collcom ! describes collective communication
+     	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
+     type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
+     type(p2pComms):: comsr !<describing the p2p communications for sumrho
+  end type hamiltonian_descriptors
+
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
@@ -824,15 +839,17 @@ module module_types
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
      	type(wfn_metadata) :: wfnmd !<specifications of the kind of wavefunction
-     type(p2pComms):: comon !<describing p2p communications for orthonormality
-     type(overlapParameters):: op !<describing the overlaps
      	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
      type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
      type(p2pComms):: comsr !<describing the p2p communications for sumrho
-     	type(matrixDescriptors):: mad !<describes the structure of the matrices
      type(collective_comms):: collcom, collcom_shamop ! describes collective communication
      type(collective_comms):: collcom_sr ! describes collective communication for the calculation of the charge density
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
+     	type(matrixDescriptors_foe):: mad !<describes the structure of the matrices
+        type(linear_matrices):: linmat
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+     type(hamiltonian_descriptors) :: ham_descr
   end type DFT_wavefunction
 
   !> Flags for optimization loop id

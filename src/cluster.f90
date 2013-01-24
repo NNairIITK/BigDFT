@@ -357,11 +357,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat,i_all,'psi',subname)
   else if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
 
-     call copy_tmbs(tmb, tmb_old, KSwfn%orbs%norb, subname)
+     call copy_tmbs(tmb, tmb_old, subname)
 
-     !!allocate(density_kernel_old(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
-     !!call memocc(i_stat, density_kernel_old, 'density_kernel_old', subname)
-     !!call dcopy(tmb%orbs%norb**2, tmb%wfnmd%density_kernel, 1, density_kernel_old, 1)
      call destroy_DFT_wavefunction(tmb)
      call deallocate_local_zone_descriptors(tmb%lzd, subname)
      i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
@@ -393,21 +390,41 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          KSwfn%comms,shift,proj,radii_cf)
   end if
 
+  ! temporary, really want to just initialize it here rather than copy
+  KSwfn%npsidim_orbs = KSwfn%orbs%npsidim_orbs
+  KSwfn%npsidim_comp = KSwfn%orbs%npsidim_comp
+
   ! We complete here the definition of DFT_wavefunction structures.
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      !!call init_p2p_tags(nproc)
      !!tag=0
 
-     call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
+     ! temporary, really want to just initialize it here rather than copy
+     tmb%npsidim_orbs = tmb%orbs%npsidim_orbs
+     tmb%npsidim_comp = tmb%orbs%npsidim_comp
+
+     call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, iproc, nproc)
+
+     call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., tmblarge)
+
+     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmb%orbs, tmb%linmat%ham)
+     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
+     !call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
+     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmb%orbs, tmb%linmat%denskern)
+
+     if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of sparse matrices')
+     call check_matrix_compression(iproc,tmb%linmat%ham)
+     call check_matrix_compression(iproc,tmb%linmat%ovrlp)
+     call check_matrix_compression(iproc,tmb%linmat%denskern)
+     if (iproc ==0) call yaml_close_map()
+
+     ! move allocation from here into initsparsematrix?! or new allocatesparsematrix
+     allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=i_stat)
+     call memocc(i_stat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
-     call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., & 
-           tmblarge)
-     call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
-     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmblarge%collcom)
-     call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%mad, denspot%dpbox%nscatterarr, tmb%collcom_sr)
   else
      allocate(denspot0(1+ndebug), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
@@ -465,13 +482,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   end if
 
 
-  !obtain initial wavefunctions.
-  !!if (inputpsi==INPUT_PSI_MEMORY_LINEAR) then
-  !!    call dcopy(tmb%orbs%norb**2, density_kernel_old, 1, tmb%wfnmd%density_kernel, 1)
-  !!    i_all=-product(shape(density_kernel_old))*kind(density_kernel_old)
-  !!    deallocate(density_kernel_old,stat=i_stat)
-  !!    call memocc(i_stat,i_all,'gaucoeffs',subname)
-  !!end if
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
        wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
@@ -521,10 +531,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      end if
   else
 
-     call linearScaling(iproc,nproc,KSwfn,&
-          tmb,tmblarge,atoms,in,&
-          rxyz,denspot,denspot0,&
-          nlpspd,proj,GPU,energs,energy,fpulay,infocode)
+     call linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,atoms,in,&
+          rxyz,denspot,denspot0,nlpspd,proj,GPU,energs,energy,fpulay,infocode)
 
      !!call finalize_p2p_tags()
   
@@ -801,8 +809,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          call deallocate_collective_comms(tmb%collcom_shamop, subname)
          call deallocate_collective_comms(tmb%collcom_sr, subname)
          call deallocate_collective_comms(tmblarge%collcom_sr, subname)
-         call deallocate_p2pComms(tmb%comon, subname)
-         call deallocate_p2pComms(tmblarge%comon, subname)
          call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
               KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
               proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&

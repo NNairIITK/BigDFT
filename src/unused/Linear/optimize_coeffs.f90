@@ -130,3 +130,47 @@ subroutine transform_coeffs_to_derivatives(iproc, nproc, orbs, lzd, tmb, tmbder)
 end subroutine transform_coeffs_to_derivatives
 
 
+!!subroutine distribute_coefficients(orbs, tmb)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  type(orbitals_data),intent(in):: orbs
+!!  type(DFT_wavefunction),intent(inout):: tmb
+!!
+!!  ! Local variables
+!!  integer:: iorb, iiorb
+!!
+!!  do iorb=1,orbs%norbp
+!!      iiorb=orbs%isorb+iorb
+!!      call dcopy(tmb%orbs%norb, tmb%wfnmd%coeff(1,iiorb), 1, tmb%wfnmd%coeffp(1,iorb), 1)
+!!  end do
+!!
+!!end subroutine distribute_coefficients
+!!
+!!
+!!
+!!subroutine collect_coefficients(nproc, orbs, tmb, coeffp, coeff)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer, intent(in) :: nproc
+!!  type(orbitals_data),intent(in):: orbs
+!!  type(DFT_wavefunction),intent(inout):: tmb
+!!  real(8),dimension(tmb%orbs%norb,orbs%norbp),intent(in):: coeffp
+!!  real(8),dimension(tmb%orbs%norb,orbs%norb),intent(out):: coeff
+!!
+!!  ! Local variables
+!!  integer:: ierr
+!!
+!!  if (nproc > 1) then
+!!     call mpi_allgatherv(coeffp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, coeff(1,1), &
+!!          tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+!!  else
+!!     call vcopy(tmb%orbs%norb*orbs%norb,coeffp(1,1),1,coeff(1,1),1)
+!!  end if
+!!
+!!end subroutine collect_coefficients

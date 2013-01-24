@@ -14,7 +14,9 @@ TESTDIRS = Locreg \
 EXTRA_TESTDIRS = water \
                  molecule \
                  deltascf \
-                 reformat
+                 reformat \
+		         paracetamol
+#paracetamol move temporary
 
 EXTRA_DIST = 
 
