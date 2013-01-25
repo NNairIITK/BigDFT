@@ -120,7 +120,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
         !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_den)&
         !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
         if (wfn%orbs%npsidim_orbs > 0) call to_zero(wfn%orbs%npsidim_orbs,wfn%hpsi(1))
-        call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs,rxyz,&
+        call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
              proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,energs%eproj)
      end if
      !$OMP END PARALLEL !if unblock_comms_den
@@ -297,7 +297,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_pot)&
      !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
      if (wfn%orbs%npsidim_orbs >0) call to_zero(wfn%orbs%npsidim_orbs,wfn%hpsi(1))
-     call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs,rxyz,&
+     call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
           proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,energs%eproj)
   end if
   !$OMP END PARALLEL !if unblock_comms_pot
@@ -311,10 +311,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
  
   !here exctxpar might be passed
   !choose to just add the potential if needed
-  call LocalHamiltonianApplication(iproc,nproc,atoms,wfn%orbs,&
+  call LocalHamiltonianApplication(iproc,nproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,&
        wfn%Lzd,wfn%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,wfn%psi,wfn%hpsi,&
        energs,wfn%SIC,GPU,correcth,pkernel=denspot%pkernelseq)
-  call SynchronizeHamiltonianApplication(nproc,wfn%orbs,wfn%Lzd,GPU,wfn%hpsi,&
+  call SynchronizeHamiltonianApplication(nproc,wfn%orbs%npsidim_orbs,wfn%orbs,wfn%Lzd,GPU,wfn%hpsi,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
   ! Emit that hpsi are ready.
   if (wfn%c_obj /= 0) then
@@ -376,25 +376,25 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
 
 
  if (.not. present(pkernel)) then
-    call LocalHamiltonianApplication(iproc,nproc,at,orbs,&
+    call LocalHamiltonianApplication(iproc,nproc,at,orbs%npsidim_orbs,orbs,&
          Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
          energs,SIC,GPU,1)
  else if (present(pkernel) .and. .not. present(orbsocc)) then
-    call LocalHamiltonianApplication(iproc,nproc,at,orbs,&
+    call LocalHamiltonianApplication(iproc,nproc,at,orbs%npsidim_orbs,orbs,&
          Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
           energs,SIC,GPU,1,pkernel=pkernel)
  else if (present(pkernel) .and. present(orbsocc) .and. present(psirocc)) then
-    call LocalHamiltonianApplication(iproc,nproc,at,orbs,&
+    call LocalHamiltonianApplication(iproc,nproc,at,orbs%npsidim_orbs,orbs,&
          Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
          energs,SIC,GPU,1,pkernel,orbsocc,psirocc)
  else
     stop 'HamiltonianApplication, argument error'
  end if
 
-  call NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
+  call NonLocalHamiltonianApplication(iproc,at,orbs%npsidim_orbs,orbs,rxyz,&
        proj,Lzd,nlpspd,psi,hpsi,energs%eproj)
 
-  call SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
+  call SynchronizeHamiltonianApplication(nproc,orbs%npsidim_orbs,orbs,Lzd,GPU,hpsi,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
 
@@ -403,7 +403,7 @@ END SUBROUTINE FullHamiltonianApplication
 
 
 !> Application of the Local Hamiltonian
-subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
+subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
      Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
      energs,SIC,GPU,PotOrKin,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hpsi_noconf,econf)
    use module_base
@@ -414,18 +414,18 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
    implicit none
    !logical, intent(in) :: onlypot !< if true, only the potential operator is applied
    integer, intent(in) :: PotOrKin
-   integer, intent(in) :: iproc,nproc
+   integer, intent(in) :: iproc,nproc,npsidim_orbs
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd 
    type(SIC_data), intent(in) :: SIC
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+   real(wp), dimension(npsidim_orbs), intent(in) :: psi
    type(confpot_data), dimension(orbs%norbp) :: confdatarr
    real(wp), dimension(:), pointer :: pot
    !real(wp), dimension(*) :: pot
    type(energy_terms), intent(inout) :: energs
-   real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout) :: hpsi
+   real(wp), target, dimension(max(1,npsidim_orbs)), intent(inout) :: hpsi
    type(GPU_pointers), intent(inout) :: GPU
    type(coulomb_operator), intent(in), optional :: pkernel
    type(orbitals_data), intent(in), optional :: orbsocc
@@ -434,7 +434,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
    !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
    real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
    type(p2pComms),intent(inout), optional:: comgp
-   real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout),optional :: hpsi_noconf
+   real(wp), target, dimension(max(1,npsidim_orbs)), intent(inout),optional :: hpsi_noconf
    real(gp),intent(out),optional :: econf
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
@@ -575,12 +575,12 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
       !print *,'here',ipotmethod,associated(pkernelSIC)
       if (PotOrKin==1) then ! both
          if(present(dpbox) .and. present(potential) .and. present(comgp)) then
-            call local_hamiltonian(iproc,nproc,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+            call local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
                  ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
                  SIC%ixc,SIC%alpha,energs%ekin,energs%epot,energs%evsic,&
                  dpbox,potential,comgp)
          else
-            call local_hamiltonian(iproc,nproc,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+            call local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
                  ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
                  SIC%ixc,SIC%alpha,energs%ekin,energs%epot,energs%evsic)
          end if
@@ -593,16 +593,16 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
              if (.not.present(econf)) then
                  stop 'ERROR: econf must be present when hpsi_noconf is present'
              end if
-             call psi_to_vlocpsi(iproc,orbs,Lzd,&
+             call psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
                   ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
                   SIC%ixc,SIC%alpha,energs%epot,energs%evsic,hpsi_noconf,econf)
          else
-             call psi_to_vlocpsi(iproc,orbs,Lzd,&
+             call psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
                   ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
                   SIC%ixc,SIC%alpha,energs%epot,energs%evsic)
          end if
       else if (PotOrKin==3) then !only kin
-         call psi_to_kinpsi(iproc,orbs,lzd,psi,hpsi,energs%ekin)
+         call psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,energs%ekin)
       end if
 
       !sum the external and the BS double counting terms
@@ -619,21 +619,21 @@ END SUBROUTINE LocalHamiltonianApplication
 
 !> Routine which calculates the application of nonlocal projectors on the wavefunctions
 !! Reduce the wavefunction in case it is needed
-subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
+subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
      proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
    use module_base
    use module_types
    use yaml_output
    implicit none
-   integer, intent(in) :: iproc
+   integer, intent(in) :: iproc, npsidim_orbs
    type(atoms_data), intent(in) :: at
    type(orbitals_data),  intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
    type(nonlocal_psp_descriptors), intent(in) :: nlpspd
    real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
-   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+   real(wp), dimension(npsidim_orbs), intent(in) :: psi
+   real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
    real(gp), intent(out) :: eproj_sum
    !local variables
    logical :: dosome, overlap
@@ -796,17 +796,17 @@ END SUBROUTINE NonLocalHamiltonianApplication
 
 !> routine which puts a barrier to ensure that both local and nonlocal hamiltonians have been applied
 !! in the GPU case puts a barrier to end the overlapped Local and nonlocal applications
-subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,evsic,eexctX)
+subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,evsic,eexctX)
    use module_base
    use module_types
    use module_xc
    implicit none
-   integer, intent(in) :: nproc
-   type(orbitals_data),  intent(in) :: orbs
+   integer, intent(in) :: nproc,npsidim_orbs
+   type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
    type(GPU_pointers), intent(inout) :: GPU
    real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,evsic,eexctX
-   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+   real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
    !local variables
    character(len=*), parameter :: subname='SynchronizeHamiltonianApplication'
    logical :: exctX

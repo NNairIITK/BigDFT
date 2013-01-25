@@ -758,9 +758,9 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
 end subroutine lzd_init_llr
 
 
-subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
+subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
            useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-           orbs_tmp, lzd, llborbs, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
+           orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
@@ -768,18 +768,17 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, nlr
+  integer,intent(out) :: npsidim_orbs, npsidim_comp
   logical,intent(in) :: useDerivativeBasisFunctions
   integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(kind=8),intent(in) :: hx, hy, hz
   type(atoms_data),intent(in) :: at
   type(input_variables),intent(in) :: input
   real(kind=8),dimension(nlr),intent(in) :: locrad
-  type(orbitals_data),intent(in) :: orbs_tmp
-  integer,dimension(orbs_tmp%norb),intent(in) :: inwhichlocreg_reference
+  type(orbitals_data),intent(in) :: orbs
   real(kind=8),dimension(3,nlr),intent(in) :: locregCenter
   type(locreg_descriptors),intent(in) :: glr_tmp
   type(local_zone_descriptors),intent(inout) :: lzd
-  type(orbitals_data),intent(inout) :: llborbs
   type(p2pComms),intent(inout) :: lbcomgp
   type(p2pComms),intent(inout) :: comsr
   type(matrixDescriptors_foe),intent(inout) :: lbmad
@@ -788,11 +787,10 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   
   ! Local variables
-  integer :: norb, norbu, norbd, nspin, iorb, istat, ilr, npsidim, i, ii
+  integer :: iorb, istat, ilr, npsidim, i, ii
   character(len=*),parameter :: subname='update_locreg'
 
   call timing(iproc,'updatelocreg1','ON') 
-  call nullify_orbitals_data(llborbs)
   call nullify_matrixDescriptors_foe(lbmad)
   call nullify_collective_comms(lbcollcom)
   if (present(lbcollcom_sr)) then
@@ -801,34 +799,10 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call nullify_p2pComms(lbcomgp)
   call nullify_local_zone_descriptors(lzd)
   !!tag=1
-  if(.not.useDerivativeBasisFunctions) then
-      norbu=orbs_tmp%norb
-  else
-      norbu=4*orbs_tmp%norb
-  end if
-  norb=norbu
-  norbd=0
-  nspin=1
-  call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
-       orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs,.true.) !simple repartition
-
-  ! Assign inwhichlocreg manually
-  if(useDerivativeBasisFunctions) then
-      norb=4
-  else
-      norb=1
-  end if
-  ii=0
-  do iorb=1,orbs_tmp%norb
-      do i=1,norb
-          ii=ii+1
-          llborbs%inwhichlocreg(ii)=inwhichlocreg_reference(iorb)
-      end do
-  end do
 
   lzd%nlr=nlr
   call timing(iproc,'updatelocreg1','OF') 
-  call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, at, lzd, orbs_tmp, glr_tmp, locrad, 's')!, llborbs)
+  call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, at, lzd, orbs, glr_tmp, locrad, 's')!, llborbs)
   call timing(iproc,'updatelocreg1','ON') 
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
@@ -837,27 +811,28 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   lzd%hgrids(3)=hz
 
   npsidim = 0
-  do iorb=1,llborbs%norbp
-   ilr=llborbs%inwhichlocreg(iorb+llborbs%isorb)
+  do iorb=1,orbs%norbp
+   ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
    npsidim = npsidim + lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
   end do
 
-  allocate(llborbs%eval(llborbs%norb), stat=istat)
-  call memocc(istat, llborbs%eval, 'llborbs%eval', subname)
-  llborbs%eval=-.5d0
-  llborbs%npsidim_orbs=max(npsidim,1)
+  npsidim_orbs=max(npsidim,1)
+  ! set npsidim_comp here too?!
+
+  ! don't really want to keep this unless we do so right from the start, but for now keep it to avoid updating refs
+  orbs%eval=-.5d0
 
   call timing(iproc,'updatelocreg1','OF') 
 
-  call initMatrixCompression_foe(iproc, nproc, lzd, at, input, llborbs, lbmad)
+  call initMatrixCompression_foe(iproc, nproc, lzd, at, input, orbs, lbmad)
 
-  call init_collective_comms(iproc, nproc, llborbs%npsidim_orbs, llborbs, lzd, lbcollcom)
+  call init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, lbcollcom)
   if (present(lbcollcom_sr)) then
-      call init_collective_comms_sumro(iproc, nproc, lzd, llborbs, nscatterarr, lbcollcom_sr)
+      call init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, lbcollcom_sr)
   end if
 
   call nullify_p2pComms(comsr)
-  call initialize_communication_potential(iproc, nproc, nscatterarr, llborbs, lzd, lbcomgp)
+  call initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, lbcomgp)
   call allocateCommunicationsBuffersPotential(lbcomgp, subname)
 
 end subroutine update_locreg
@@ -1042,7 +1017,7 @@ subroutine destroy_DFT_wavefunction(wfn)
 end subroutine destroy_DFT_wavefunction
 
 
-subroutine update_wavefunctions_size(lzd,orbs,iproc,nproc)
+subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,nproc)
   use module_base
   use module_types
   implicit none
@@ -1051,6 +1026,7 @@ subroutine update_wavefunctions_size(lzd,orbs,iproc,nproc)
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(inout) :: orbs
   integer, intent(in) :: iproc, nproc
+  integer, intent(out) :: npsidim_orbs, npsidim_comp
 
   ! Local variables
   integer :: npsidim, ilr, iorb
@@ -1065,7 +1041,7 @@ subroutine update_wavefunctions_size(lzd,orbs,iproc,nproc)
 !print*,iorb,orbs%norbp,ilr,orbs%isorb
    npsidim = npsidim + lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
   end do
-  orbs%npsidim_orbs=max(npsidim,1)
+  npsidim_orbs=max(npsidim,1)
 
 
   nvctr_tot = 1
@@ -1089,7 +1065,7 @@ subroutine update_wavefunctions_size(lzd,orbs,iproc,nproc)
           nvctr_par(jproc,1)*orbs%norbp*orbs%nspinor
   end do
 
-  orbs%npsidim_comp=sum(ncntt(0:nproc-1))
+  npsidim_comp=sum(ncntt(0:nproc-1))
 
   iall=-product(shape(nvctr_par))*kind(nvctr_par)
   deallocate(nvctr_par,stat=istat)
@@ -1226,14 +1202,10 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
   end do
 
   call nullify_collective_comms(tmblarge%collcom_sr)
-  call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
+  call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, locregCenter, tmb%lzd%glr, &
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-       at, input, tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%comgp, tmblarge%comsr, &
-       tmblarge%mad, tmblarge%collcom)
-
-  ! ready for after tmblarge%orbs has been deleted
-  tmb%ham_descr%npsidim_orbs = tmblarge%orbs%npsidim_orbs
-  tmb%ham_descr%npsidim_comp = tmblarge%orbs%npsidim_comp
+       at, input, tmb%orbs, tmblarge%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
+       tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
 
   call allocate_auxiliary_basis_function(max(tmb%ham_descr%npsidim_comp,tmb%ham_descr%npsidim_orbs), subname, &
        tmblarge%psi, tmblarge%hpsi)
@@ -1241,18 +1213,16 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
   tmblarge%can_use_transposed=.false.
   nullify(tmblarge%psit_c)
   nullify(tmblarge%psit_f)
-  allocate(tmblarge%confdatarr(tmblarge%orbs%norbp), stat=istat)
-
-  call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, tmblarge%orbs%onwhichatom(1), 1)
+  allocate(tmblarge%confdatarr(tmb%orbs%norbp), stat=istat)
 
   if(.not.lowaccur_converged) then
-      call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
+      call define_confinement_data(tmblarge%confdatarr,tmb%orbs,rxyz,at,&
            tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-           4,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+           4,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmb%orbs%onwhichatom)
   else
-      call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
+      call define_confinement_data(tmblarge%confdatarr,tmb%orbs,rxyz,at,&
            tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-           4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+           4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmb%orbs%onwhichatom)
   end if
 
   iall=-product(shape(locregCenter))*kind(locregCenter)

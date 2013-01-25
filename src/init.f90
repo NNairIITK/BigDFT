@@ -2318,7 +2318,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     allocate(tmb%psi(max(tmb%orbs%npsidim_comp,tmb%orbs%npsidim_orbs)), stat=i_stat)
+     allocate(tmb%psi(max(tmb%npsidim_comp,tmb%npsidim_orbs)), stat=i_stat)
      call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
      allocate(tmb%confdatarr(tmb%orbs%norbp))
      call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,atoms,&

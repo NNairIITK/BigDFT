@@ -680,7 +680,7 @@ module module_interfaces
          type(rho_descriptors),intent(inout) :: rho_d
        END SUBROUTINE rho_segkey
 
-       subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
+       subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
             energs,SIC,GPU,PotOrKin,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hpsi_noconf,econf)
          use module_base
@@ -688,7 +688,7 @@ module module_interfaces
          use module_xc
          implicit none
          integer, intent(in) :: PotOrKin !< if true, only the potential operator is applied
-         integer, intent(in) :: iproc,nproc
+         integer, intent(in) :: iproc,nproc,npsidim_orbs
          type(atoms_data), intent(in) :: at
          type(orbitals_data), intent(in) :: orbs
          type(local_zone_descriptors), intent(in) :: Lzd 
@@ -711,12 +711,12 @@ module module_interfaces
          real(gp),intent(out),optional :: econf
        end subroutine LocalHamiltonianApplication
 
-       subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
+       subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
            proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc
+        integer, intent(in) :: iproc, npsidim_orbs
         type(atoms_data), intent(in) :: at
         type(orbitals_data),  intent(in) :: orbs
         type(local_zone_descriptors), intent(in) :: Lzd
@@ -728,13 +728,13 @@ module module_interfaces
         real(gp), intent(out) :: eproj_sum
       END SUBROUTINE NonLocalHamiltonianApplication
 
-      subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
+      subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,hpsi,&
            ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
         use module_base
         use module_types
         use module_xc
         implicit none
-        integer, intent(in) :: nproc
+        integer, intent(in) :: nproc,npsidim_orbs
         type(orbitals_data),  intent(in) :: orbs
         type(local_zone_descriptors), intent(in) :: Lzd 
         type(GPU_pointers), intent(inout) :: GPU
@@ -1711,14 +1711,14 @@ module module_interfaces
         !v, that is psivirt, is transposed on input and direct on output
       end subroutine constrained_davidson
 
-      subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
+      subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
            ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
            dpbox,potential,comgp)
         use module_base
         use module_types
         use module_xc
         implicit none
-        integer, intent(in) :: iproc,nproc,ipotmethod,ixc
+        integer, intent(in) :: iproc,nproc,ipotmethod,ixc,npsidim_orbs
         real(gp), intent(in) :: hx,hy,hz,alphaSIC
         type(orbitals_data), intent(in) :: orbs
         type(local_zone_descriptors), intent(in) :: Lzd
@@ -3015,13 +3015,13 @@ module module_interfaces
        end subroutine create_LzdLIG
 
        subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-            orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
+            orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
             inwhichlocreg_old, onwhichatom_old)
          use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
-         integer, intent(out) :: inputpsi,input_wf_format
+         integer, intent(out) :: inputpsi,input_wf_format,lnpsidim_orbs,lnpsidim_comp
          type(input_variables), intent(in) :: in 
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
@@ -3148,25 +3148,24 @@ module module_interfaces
          type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
        end subroutine define_confinement_data
 
-       subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
+       subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-                  orbs_tmp, lzd, llborbs, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
+                  orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc, nlr
+         integer,intent(out) :: npsidim_orbs, npsidim_comp
          logical,intent(in):: useDerivativeBasisFunctions
          integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
          real(8),intent(in):: hx, hy, hz
          type(atoms_data),intent(in) :: at
          type(input_variables),intent(in) :: input
          real(8),dimension(nlr),intent(in):: locrad
-         type(orbitals_data),intent(in):: orbs_tmp
-         integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
+         type(orbitals_data),intent(in):: orbs
          real(8),dimension(3,nlr),intent(in):: locregCenter
          type(locreg_descriptors),intent(in):: glr_tmp
          type(local_zone_descriptors),intent(inout):: lzd
-         type(orbitals_data),intent(inout):: llborbs
          type(p2pComms),intent(inout):: lbcomgp
          type(p2pComms),intent(inout):: comsr
          type(matrixDescriptors_foe),intent(inout):: lbmad
@@ -3315,12 +3314,12 @@ module module_interfaces
          real(8),dimension(npsidim),intent(out):: lphioldopt
        end subroutine DIISorSD
  
-       subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
+       subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
             ipotmethod,confdatarr,pot,psi,vpsi,pkernel,ixc,alphaSIC,epot_sum,evSIC,vpsi_noconf,econf_sum)
          use module_base
          use module_types
          implicit none
-         integer, intent(in) :: iproc,ipotmethod,ixc
+         integer, intent(in) :: iproc,ipotmethod,ixc,npsidim_orbs
          real(gp), intent(in) :: alphaSIC
          type(orbitals_data), intent(in) :: orbs
          type(local_zone_descriptors), intent(in) :: Lzd
@@ -3995,7 +3994,7 @@ module module_interfaces
           type(SIC_data),intent(in):: SIC
           type(DFT_local_fields), intent(inout) :: denspot
           type(GPU_pointers),intent(inout):: GPU
-          type(DFT_wavefunction),intent(in):: tmb
+          type(DFT_wavefunction),intent(inout):: tmb
           type(DFT_wavefunction),intent(inout):: tmblarge
           real(8),dimension(3,at%nat),intent(out):: fpulay
         end subroutine pulay_correction
@@ -4049,11 +4048,11 @@ module module_interfaces
           character(len=*),intent(in):: subname
         end subroutine init_local_work_arrays
 
-        subroutine psi_to_kinpsi(iproc,orbs,lzd,psi,hpsi,ekin_sum)
+        subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
           use module_base
           use module_types
           implicit none
-          integer, intent(in) :: iproc
+          integer, intent(in) :: iproc,npsidim_orbs
           type(orbitals_data), intent(in) :: orbs
           type(local_zone_descriptors), intent(in) :: Lzd
           real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi

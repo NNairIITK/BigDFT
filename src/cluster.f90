@@ -382,15 +382,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   if(in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
     call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-         KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
+         KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
          KSwfn%comms,shift,proj,radii_cf,tmb_old%orbs%inwhichlocreg,tmb_old%orbs%onwhichatom)
   else
     call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-         KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
+         KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
          KSwfn%comms,shift,proj,radii_cf)
   end if
 
   ! temporary, really want to just initialize it here rather than copy
+  ! but still need to move all cubic references to KSwfn%orbs%npsidim to just KSwfn%npsidim
   KSwfn%npsidim_orbs = KSwfn%orbs%npsidim_orbs
   KSwfn%npsidim_comp = KSwfn%orbs%npsidim_comp
 
@@ -399,10 +400,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      !!call init_p2p_tags(nproc)
      !!tag=0
-
-     ! temporary, really want to just initialize it here rather than copy
-     tmb%npsidim_orbs = tmb%orbs%npsidim_orbs
-     tmb%npsidim_comp = tmb%orbs%npsidim_comp
 
      call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, iproc, nproc)
 
@@ -480,7 +477,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if (denspot%c_obj /= 0) then
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
-
 
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&

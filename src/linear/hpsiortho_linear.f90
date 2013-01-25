@@ -49,7 +49,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       allocate(hpsi_conf(tmb%npsidim_orbs), stat=istat)
       call memocc(istat, hpsi_conf, 'hpsi_conf', subname)
       call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmblarge%lzd, &
-           tmb%orbs, tmblarge%orbs, tmblarge%hpsi, hpsi_conf)
+           tmb%orbs, tmblarge%hpsi, hpsi_conf)
       ist=1
       do iorb=1,tmb%orbs%norbp
           iiorb=tmb%orbs%isorb+iorb
@@ -147,7 +147,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        lagmat, tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmblarge%lzd, &
-       tmb%orbs, tmblarge%orbs, tmblarge%hpsi, tmb%hpsi)
+       tmb%orbs, tmblarge%hpsi, tmb%hpsi)
 
   if (present(hpsi_noprecond)) call dcopy(tmb%npsidim_orbs, tmb%hpsi, 1, hpsi_noprecond, 1)
 

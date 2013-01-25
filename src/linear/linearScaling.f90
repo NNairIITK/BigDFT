@@ -81,9 +81,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! Allocate the communication arrays for the calculation of the charge density.
   !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
 
-  ! take the eigenvalues from the input guess for the preconditioning 
-  call vcopy(tmb%orbs%norb, tmb%orbs%eval(1), 1, tmblarge%orbs%eval(1), 1)
-
   call timing(iproc,'linscalinit','OF') !lr408t
 
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then  
@@ -568,7 +565,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
              call to_zero(tmb%ham_descr%npsidim_orbs,tmblarge%psi(1))
              call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmblarge%lzd, &
-                  tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
+                  tmb%orbs, tmb%psi, tmblarge%psi)
 
              ! add get_coeff here
              ! - need some restructuring/reordering though, or addition of lots of extra initializations?!
@@ -892,7 +889,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
   ! Local variables
   integer :: iall, istat, ilr, npsidim_orbs_tmp, npsidim_comp_tmp
-  type(orbitals_data) :: orbs_tmp
   real(kind=8),dimension(:,:),allocatable :: locregCenter
   real(kind=8),dimension(:),allocatable :: lphilarge
   type(local_zone_descriptors) :: lzd_tmp
@@ -923,9 +919,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
      call deallocate_local_zone_descriptors(tmb%lzd, subname)
 
-     call nullify_orbitals_data(orbs_tmp)
-     call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
-     call deallocate_orbitals_data(tmb%orbs, subname)
+     npsidim_orbs_tmp = tmb%npsidim_orbs
+     npsidim_comp_tmp = tmb%npsidim_comp
 
      call deallocate_matrixDescriptors_foe(tmb%mad, subname)
 
@@ -950,15 +945,9 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
         locregCenter(:,ilr)=lzd_tmp%llr(ilr)%locregCenter
      end do
 
-     call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, orbs_tmp%inwhichlocreg, locregCenter, lzd_tmp%glr, &
-          .false., denspot%dpbox%nscatterarr, hx, hy, hz, at, input, orbs_tmp, tmb%lzd, tmb%orbs, tmb%comgp, tmb%comsr, &
-          tmb%mad, tmb%collcom, tmb%collcom_sr)
-
-     tmb%npsidim_orbs = tmb%orbs%npsidim_orbs
-     tmb%npsidim_comp = tmb%orbs%npsidim_comp
-
-     npsidim_orbs_tmp = orbs_tmp%npsidim_orbs
-     npsidim_comp_tmp = orbs_tmp%npsidim_comp
+     call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, locregCenter, lzd_tmp%glr, .false., &
+          denspot%dpbox%nscatterarr, hx, hy, hz, at, input, tmb%orbs, tmb%lzd, tmb%npsidim_orbs, tmb%npsidim_comp, &
+          tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom, tmb%collcom_sr)
 
      iall=-product(shape(locregCenter))*kind(locregCenter)
      deallocate(locregCenter, stat=istat)
@@ -969,10 +958,9 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call memocc(istat, lphilarge, 'lphilarge', subname)
      call to_zero(tmb%npsidim_orbs, lphilarge(1))
      call small_to_large_locreg(iproc, npsidim_orbs_tmp, tmb%npsidim_orbs, lzd_tmp, tmb%lzd, &
-          orbs_tmp, tmb%orbs, tmb%psi, lphilarge)
-     call vcopy(tmb%orbs%norb, orbs_tmp%onwhichatom(1), 1, tmb%orbs%onwhichatom(1), 1)
+          tmb%orbs, tmb%psi, lphilarge)
+
      call deallocate_local_zone_descriptors(lzd_tmp, subname)
-     call deallocate_orbitals_data(orbs_tmp, subname)
      iall=-product(shape(tmb%psi))*kind(tmb%psi)
      deallocate(tmb%psi, stat=istat)
      call memocc(istat, iall, 'tmb%psi', subname)
@@ -1023,7 +1011,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
   else ! no change in locrad, just confining potential that needs updating
 
-     call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
+     call define_confinement_data(tmblarge%confdatarr,tmb%orbs,rxyz,at,&
           tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
           4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmb%orbs%onwhichatom)
 
@@ -1110,7 +1098,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   type(SIC_data),intent(in) :: SIC
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers),intent(inout) :: GPU
-  type(DFT_wavefunction),intent(in) :: tmb
+  type(DFT_wavefunction),intent(inout) :: tmb
   type(DFT_wavefunction),intent(inout) :: tmblarge
   real(kind=8),dimension(3,at%nat),intent(out) :: fpulay
 
@@ -1127,7 +1115,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   character(len=*),parameter :: subname='pulay_correction'
 
   ! Begin by updating the Hpsi
-  call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
+  call local_potential_dimensions(tmblarge%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
 
   allocate(lhphilarge(tmb%ham_descr%npsidim_orbs), stat=istat)
   call memocc(istat, lhphilarge, 'lhphilarge', subname)
@@ -1142,22 +1130,22 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
 
-  call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
+  call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,rxyz,&
        proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge,energs%eproj)
 
   ! only kinetic because waiting for communications
-  call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
+  call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
        tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
        energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
-  call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
+  call full_local_potential(iproc,nproc,tmb%orbs,tmblarge%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
        tmblarge%comgp)
   ! only potential
-  call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
+  call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
        tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
        energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
 
   call timing(iproc,'glsynchham1','ON') !lr408t
-  call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,lhphilarge,&
+  call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmblarge%lzd,GPU,lhphilarge,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
   call timing(iproc,'glsynchham1','OF') !lr408t
   deallocate(confdatarrtmp)
@@ -1197,16 +1185,16 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
     allocate(dovrlp(jdir)%matrix_compr(dovrlp(jdir)%nvctr), stat=istat)
     call memocc(istat, dovrlp(jdir)%matrix_compr, 'dovrlp%matrix_compr', subname)
 
-    call get_derivative(jdir, tmb%ham_descr%npsidim_orbs, tmblarge%lzd%hgrids(1), tmblarge%orbs, &
+    call get_derivative(jdir, tmb%ham_descr%npsidim_orbs, tmblarge%lzd%hgrids(1), tmb%orbs, &
          tmblarge%lzd, tmblarge%psi, lhphilarge)
 
     call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmblarge%collcom, &
          lhphilarge, psit_c, psit_f, tmblarge%lzd)
 
-    call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%collcom,&
+    call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmblarge%collcom,&
          psit_c, lpsit_c, psit_f, lpsit_f, dovrlp(jdir))
 
-    call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%collcom,&
+    call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmblarge%collcom,&
          psit_c, hpsit_c, psit_f, hpsit_f, dham(jdir))
   end do
 
