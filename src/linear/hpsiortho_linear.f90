@@ -48,7 +48,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
       allocate(hpsi_conf(tmb%npsidim_orbs), stat=istat)
       call memocc(istat, hpsi_conf, 'hpsi_conf', subname)
-      call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmblarge%lzd, &
+      call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, tmblarge%hpsi, hpsi_conf)
       ist=1
       do iorb=1,tmb%orbs%norbp
@@ -70,17 +70,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   energy_increased=.false.
 
 
-  allocate(hpsittmp_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
+  allocate(hpsittmp_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
   call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
-  allocate(hpsittmp_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
+  allocate(hpsittmp_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
   call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
 
   if(target_function==TARGET_FUNCTION_IS_ENERGY .or. &
      target_function==TARGET_FUNCTION_IS_HYBRID) then
-      if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
-          call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
-      if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
-          call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
+      if(sum(tmb%ham_descr%collcom%nrecvcounts_c)>0) &
+          call dcopy(sum(tmb%ham_descr%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
+      if(sum(tmb%ham_descr%collcom%nrecvcounts_f)>0) &
+          call dcopy(7*sum(tmb%ham_descr%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           allocate(kernel_compr_tmp(tmb%linmat%denskern%nvctr), stat=istat)
@@ -113,16 +113,16 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                       iiorb = (jorb-1)/tmb%orbs%norb + 1
                       jjorb = jorb - (iiorb-1)*tmb%orbs%norb
                       if(iiorb==jjorb .and. iiorb==iorb) then
-                          ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
+                          ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
                           call dscal(ncount, kernel_compr_tmp(ii), tmblarge%hpsi(ist), 1)
                           ist=ist+ncount
                       end if
                   end do
               end do
           end do
-          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmblarge%collcom, &
-               tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
-          call build_linear_combination_transposed(tmb%orbs%norb, tmblarge%collcom, &
+          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+               tmblarge%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+          call build_linear_combination_transposed(tmb%orbs%norb, tmb%ham_descr%collcom, &
                tmb%linmat%denskern, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           ! copy correct kernel back
           call vcopy(tmb%linmat%denskern%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
@@ -130,7 +130,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           deallocate(kernel_compr_tmp, stat=istat)
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
       else
-          call build_linear_combination_transposed(tmb%orbs%norb, tmblarge%collcom, &
+          call build_linear_combination_transposed(tmb%orbs%norb, tmb%ham_descr%collcom, &
                tmb%linmat%denskern, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
       end if
   end if
@@ -142,11 +142,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   allocate(lagmat%matrix_compr(lagmat%nvctr), stat=istat)
   call memocc(istat, lagmat%matrix_compr, 'lagmat%matrix_compr', subname)
 
-  call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
-       tmb%orbs, tmblarge%collcom, tmblarge%orthpar, correction_orthoconstraint, tmb%linmat, tmblarge%psi, tmblarge%hpsi, &
+  call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
+       tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, tmb%linmat, tmblarge%psi, tmblarge%hpsi, &
        lagmat, tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
-  call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmblarge%lzd, &
+  call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
        tmb%orbs, tmblarge%hpsi, tmb%hpsi)
 
   if (present(hpsi_noprecond)) call dcopy(tmb%npsidim_orbs, tmb%hpsi, 1, hpsi_noprecond, 1)

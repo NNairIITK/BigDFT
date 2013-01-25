@@ -784,7 +784,7 @@ module module_interfaces
 
       subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
            refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
-           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,tmblarge,fpulay)
+           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
         use module_base
         use module_types
         implicit none
@@ -804,7 +804,7 @@ module module_interfaces
         real(gp), intent(out) :: fnoise,pressure
         real(gp), dimension(6), intent(out) :: strten
         real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
-        type(DFT_wavefunction),intent(in),optional :: tmb,tmblarge
+        type(DFT_wavefunction),intent(in),optional :: tmb
         real(gp),dimension(3,atoms%nat),optional,intent(in) :: fpulay
       END SUBROUTINE calculate_forces
       
@@ -2064,18 +2064,6 @@ module module_interfaces
       type(energy_terms),intent(inout) :: energs
     end subroutine inputguessConfinement
 
-    subroutine initialize_comms_sumrho(iproc,nproc,nscatterarr,lzd,orbs,comsr)
-      use module_base
-      use module_types
-      implicit none
-      integer,intent(in):: iproc,nproc
-      integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-      type(local_zone_descriptors),intent(in):: lzd
-      type(orbitals_data),intent(in):: orbs
-      type(p2pComms),intent(out):: comsr
-    end subroutine initialize_comms_sumrho
-
-
    subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calculateBounds)
       use module_base
       use module_types
@@ -2226,21 +2214,6 @@ module module_interfaces
        integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
        real(wp), dimension(:), pointer, optional :: psivirt
      end subroutine LDiagHam
-
-     subroutine sumrhoForLocalizedBasis2(iproc,nproc,lzd,orbs,&
-          comsr,densKern,nrho,rho,at,nscatterarr)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nproc, nrho
-       type(local_zone_descriptors),intent(in):: lzd
-       type(orbitals_data),intent(in):: orbs
-       type(p2pComms),intent(inout):: comsr
-       real(8),dimension(orbs%norb,orbs%norb),intent(in):: densKern
-       real(8),dimension(nrho),intent(out),target:: rho
-       type(atoms_data),intent(in):: at
-       integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-     end subroutine sumrhoForLocalizedBasis2
 
      subroutine updatePotential(ixc,nspin,denspot,ehart,eexcu,vexcu)
        use module_base
@@ -3150,7 +3123,7 @@ module module_interfaces
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-                  orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
+                  orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbmad, lbcollcom, lbcollcom_sr)
          use module_base
          use module_types
          implicit none
@@ -3167,22 +3140,10 @@ module module_interfaces
          type(locreg_descriptors),intent(in):: glr_tmp
          type(local_zone_descriptors),intent(inout):: lzd
          type(p2pComms),intent(inout):: lbcomgp
-         type(p2pComms),intent(inout):: comsr
          type(matrixDescriptors_foe),intent(inout):: lbmad
          type(collective_comms),intent(inout):: lbcollcom
          type(collective_comms),intent(inout),optional :: lbcollcom_sr
        end subroutine update_locreg
-
-       subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc
-         type(local_zone_descriptors),intent(in):: lzd
-         type(orbitals_data),intent(in):: llborbs
-         real(8),dimension(llborbs%npsidim_orbs),intent(in):: lphi
-         type(p2pComms),intent(inout):: comsr
-       end subroutine communicate_basis_for_density
 
        subroutine create_wfn_metadata(mode, norb, norbp, input, wfnmd)
          use module_base
@@ -3649,18 +3610,18 @@ module module_interfaces
          integer, intent(out) :: onwhichatom
        end subroutine io_read_descr_linear
 
-       subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,rxyz,  &
+       subroutine readmywaves_linear(iproc,filename,iformat,norb,npsidim,Lzd,orbs,at,rxyz_old,rxyz,  &
            psi,coeff,eval,norb_change,orblist)
          use module_base
          use module_types
          implicit none
-         integer, intent(in) :: iproc, iformat,norb
+         integer, intent(in) :: iproc, iformat,norb,npsidim
          type(orbitals_data), intent(inout) :: orbs  ! orbs related to the basis functions
          type(local_zone_descriptors), intent(in) :: Lzd
          type(atoms_data), intent(in) :: at
          real(gp), dimension(3,at%nat), intent(in) :: rxyz
          real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
-         real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi
+         real(wp), dimension(npsidim), intent(out) :: psi
          character(len=*), intent(in) :: filename
          real(wp), dimension(norb,orbs%norb), intent(out) :: coeff
          real(gp), dimension(norb),intent(out) :: eval

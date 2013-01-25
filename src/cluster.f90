@@ -405,10 +405,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., tmblarge)
 
-     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmb%orbs, tmb%linmat%ham)
+     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%ham)
      call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
-     !call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
-     call initSparseMatrix(iproc, nproc, tmblarge%lzd, tmb%orbs, tmb%linmat%denskern)
+     !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
+     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%denskern)
 
      if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of sparse matrices')
      call check_matrix_compression(iproc,tmb%linmat%ham)
@@ -801,21 +801,27 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          nsize_psi=1
          ! This is just to save memory, since calculate_forces will require quite a lot
          call deallocate_collective_comms(tmb%collcom, subname)
-         call deallocate_collective_comms(tmblarge%collcom, subname)
-         call deallocate_collective_comms(tmb%collcom_shamop, subname)
+         call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
          call deallocate_collective_comms(tmb%collcom_sr, subname)
-         call deallocate_collective_comms(tmblarge%collcom_sr, subname)
          call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
               KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
               proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
               in%nspin,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
               denspot%pot_work,denspot%V_XC,nsize_psi,KSwfn%psi,fion,fdisp,fxyz,&
-              ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,tmblarge,fpulay)
+              ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
          i_all=-product(shape(fpulay))*kind(fpulay)
          deallocate(fpulay,stat=i_stat)
          call memocc(i_stat,i_all,'fpulay',subname)
 
-         call destroy_new_locregs(iproc, nproc, tmblarge)
+         !call destroy_new_locregs(iproc, nproc, tmblarge)
+     ! to eventually be better sorted
+     call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
+     call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
+     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
+     call deallocate_matrixDescriptors_foe(tmb%ham_descr%mad, subname)
+     call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
+
+
          call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
 
          !!!! TEST ##################
@@ -833,7 +839,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          !!     tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
          !!call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
          !!     KSwfn%Lzd%hgrids(3),atoms,rxyz,&
-         !!     tmb%orbs,nlpspd,proj,tmblarge%lzd,tmblarge%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
+         !!     tmb%orbs,nlpspd,proj,tmb%ham_descr%lzd,tmblarge%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
          !!if (nproc > 1) then
          !!   call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
          !!end if

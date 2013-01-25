@@ -760,7 +760,7 @@ end subroutine lzd_init_llr
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
            useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-           orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
+           orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbmad, lbcollcom, lbcollcom_sr)
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
@@ -780,7 +780,6 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
   type(locreg_descriptors),intent(in) :: glr_tmp
   type(local_zone_descriptors),intent(inout) :: lzd
   type(p2pComms),intent(inout) :: lbcomgp
-  type(p2pComms),intent(inout) :: comsr
   type(matrixDescriptors_foe),intent(inout) :: lbmad
   type(collective_comms),intent(inout) :: lbcollcom
   type(collective_comms),intent(inout),optional :: lbcollcom_sr
@@ -818,6 +817,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
 
   npsidim_orbs=max(npsidim,1)
   ! set npsidim_comp here too?!
+  npsidim_comp=1
 
   ! don't really want to keep this unless we do so right from the start, but for now keep it to avoid updating refs
   orbs%eval=-.5d0
@@ -831,7 +831,6 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
       call init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, lbcollcom_sr)
   end if
 
-  call nullify_p2pComms(comsr)
   call initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, lbcomgp)
   call allocateCommunicationsBuffersPotential(lbcomgp, subname)
 
@@ -944,7 +943,6 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
 
   call deallocate_collective_comms(tmb%collcom, subname)
   call deallocate_collective_comms(tmb%collcom_sr, subname)
-  call deallocate_p2pComms(tmb%comsr, subname)
 
 end subroutine destroy_new_locregs
 
@@ -993,7 +991,6 @@ subroutine destroy_DFT_wavefunction(wfn)
 
   call deallocate_p2pComms(wfn%comgp, subname)
   call deallocate_p2pComms(wfn%comrp, subname)
-  call deallocate_p2pComms(wfn%comsr, subname)
   call deallocate_matrixDescriptors_foe(wfn%mad, subname)
   call deallocate_sparseMatrix(wfn%linmat%denskern, subname)
   !call deallocate_sparseMatrix(wfn%linmat%inv_ovrlp, subname)
@@ -1201,15 +1198,20 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
       locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
   end do
 
+  ! to be removed
   call nullify_collective_comms(tmblarge%collcom_sr)
+  call nullify_p2pcomms(tmblarge%comgp)
+  call nullify_collective_comms(tmblarge%collcom)
+  call nullify_local_zone_descriptors(tmblarge%lzd)
+
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, locregCenter, tmb%lzd%glr, &
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-       at, input, tmb%orbs, tmblarge%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
-       tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+       at, input, tmb%orbs, tmb%ham_descr%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
+       tmb%ham_descr%comgp, tmb%ham_descr%mad, tmb%ham_descr%collcom)
 
   call allocate_auxiliary_basis_function(max(tmb%ham_descr%npsidim_comp,tmb%ham_descr%npsidim_orbs), subname, &
        tmblarge%psi, tmblarge%hpsi)
-  call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
+
   tmblarge%can_use_transposed=.false.
   nullify(tmblarge%psit_c)
   nullify(tmblarge%psit_f)
@@ -1217,12 +1219,12 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
 
   if(.not.lowaccur_converged) then
       call define_confinement_data(tmblarge%confdatarr,tmb%orbs,rxyz,at,&
-           tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-           4,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmb%orbs%onwhichatom)
+           tmb%ham_descr%lzd%hgrids(1),tmb%ham_descr%lzd%hgrids(2),tmb%ham_descr%lzd%hgrids(3),&
+           4,input%lin%potentialPrefac_lowaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
   else
       call define_confinement_data(tmblarge%confdatarr,tmb%orbs,rxyz,at,&
-           tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-           4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmb%orbs%onwhichatom)
+           tmb%ham_descr%lzd%hgrids(1),tmb%ham_descr%lzd%hgrids(2),tmb%ham_descr%lzd%hgrids(3),&
+           4,input%lin%potentialPrefac_highaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
   end if
 
   iall=-product(shape(locregCenter))*kind(locregCenter)

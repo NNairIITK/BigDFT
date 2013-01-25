@@ -284,7 +284,7 @@ end subroutine forces_via_finite_differences
 
 subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
-     ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,tmblarge,fpulay)
+     ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_forces
@@ -306,7 +306,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   real(gp), intent(out) :: fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
-  type(DFT_wavefunction),intent(in),optional :: tmb, tmblarge
+  type(DFT_wavefunction),intent(in),optional :: tmb
   real(gp),dimension(3,atoms%nat),optional,intent(in) :: fpulay
   !local variables
   integer :: ierr,iat,i,j

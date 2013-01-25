@@ -2320,10 +2320,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      allocate(tmb%psi(max(tmb%npsidim_comp,tmb%npsidim_orbs)), stat=i_stat)
      call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
-     allocate(tmb%confdatarr(tmb%orbs%norbp))
-     call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,atoms,&
-          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),4,&
-          in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
+     !allocate(tmb%confdatarr(tmb%orbs%norbp))
+     !call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,atoms,&
+     !     KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),4,&
+     !     in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
   else
      allocate(KSwfn%confdatarr(KSwfn%orbs%norbp))
      call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)
@@ -2490,7 +2490,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      ! By reading the basis functions and coefficients from file
      call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
-          & input_wf_format,KSwfn%orbs%norb,tmb%lzd,tmb%orbs, &
+          & input_wf_format,KSwfn%orbs%norb,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
           & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval,norb_change)
 
      allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb),stat=i_stat)

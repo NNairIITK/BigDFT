@@ -891,19 +891,19 @@ END SUBROUTINE writeLinearCoefficients
 
 
 !> Write all my wavefunctions in files by calling writeonewave
-subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,at,rxyz,psi,coeff,eval)
+subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,norb,at,rxyz,psi,coeff,eval)
   use module_types
   use module_base
   use yaml_output
   use module_interfaces, except_this_one => writeonewave
   implicit none
-  integer, intent(in) :: iproc,iformat
+  integer, intent(in) :: iproc,iformat,npsidim
   integer, intent(in) :: norb   !< number of orbitals, not basis functions
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
   type(local_zone_descriptors), intent(in) :: Lzd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(in) :: psi  ! Should be the real linear dimension and not the global
+  real(wp), dimension(npsidim), intent(in) :: psi  ! Should be the real linear dimension and not the global
   real(wp), dimension(orbs%norb,orbs%norb), intent(in) :: coeff
   real(wp), dimension(norb), intent(in) :: eval
   character(len=*), intent(in) :: filename
@@ -1429,20 +1429,20 @@ END SUBROUTINE read_coeff_minbasis
 
 !> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell                                                                                                                                                                                                                                                                                                                                   
 !!  have changed
-subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,rxyz,  & 
+subroutine readmywaves_linear(iproc,filename,iformat,norb,npsidim,Lzd,orbs,at,rxyz_old,rxyz,  & 
     psi,coeff,eval,norb_change,orblist)
   use module_base
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => readmywaves_linear
   implicit none
-  integer, intent(in) :: iproc, iformat,norb
+  integer, intent(in) :: iproc, iformat,norb,npsidim
   type(orbitals_data), intent(inout) :: orbs  ! orbs related to the basis functions
   type(local_zone_descriptors), intent(in) :: Lzd
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
-  real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi  
+  real(wp), dimension(npsidim), intent(out) :: psi  
   real(gp), dimension(orbs%norb,orbs%norb),intent(out) :: coeff
   real(gp), dimension(norb),intent(out) :: eval
   character(len=*), intent(in) :: filename
