@@ -249,18 +249,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
            if (target_function==TARGET_FUNCTION_IS_HYBRID .and. reduce_conf) then
                if (input%lin%reduce_confinement_factor>0.d0) then
                    if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
-                   tmblarge%confdatarr(:)%prefac=input%lin%reduce_confinement_factor*tmblarge%confdatarr(:)%prefac
+                   tmb%confdatarr(:)%prefac=input%lin%reduce_confinement_factor*tmb%confdatarr(:)%prefac
                else
                    if (ratio_deltas<=1.d0) then
                        if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',ratio_deltas
-                       tmblarge%confdatarr(:)%prefac=ratio_deltas*tmblarge%confdatarr(:)%prefac
+                       tmb%confdatarr(:)%prefac=ratio_deltas*tmb%confdatarr(:)%prefac
                    else
                        if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
                        if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
-                       tmblarge%confdatarr(:)%prefac=0.5d0*tmblarge%confdatarr(:)%prefac
+                       tmb%confdatarr(:)%prefac=0.5d0*tmb%confdatarr(:)%prefac
                    end if
                end if
-               !if (iproc==0) write(*,'(a,es18.8)') 'tmblarge%confdatarr(1)%prefac',tmblarge%confdatarr(1)%prefac
+               !if (iproc==0) write(*,'(a,es18.8)') 'tmb%confdatarr(1)%prefac',tmb%confdatarr(1)%prefac
            end if
 
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
@@ -471,7 +471,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       deallocate(tmblarge%psit_f, stat=istat)
       call memocc(istat, iall, 'tmblarge%psit_f', subname)
   end if
-  deallocate(tmblarge%confdatarr, stat=istat)
+  ! here or cluster, not sure which is best
+  deallocate(tmb%confdatarr, stat=istat)
 
 
   !Write the linear wavefunctions to file if asked
@@ -713,7 +714,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       if(target_function==TARGET_FUNCTION_IS_HYBRID) then
           mean_conf=0.d0
           do iorb=1,tmb%orbs%norbp
-              mean_conf=mean_conf+tmblarge%confdatarr(iorb)%prefac
+              mean_conf=mean_conf+tmb%confdatarr(iorb)%prefac
           end do
           call mpiallred(mean_conf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
           mean_conf=mean_conf/dble(tmb%orbs%norb)
@@ -987,7 +988,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
 
 
-     call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
+     call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmb%hpsi)
      if(tmblarge%can_use_transposed) then
         iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
         deallocate(tmblarge%psit_c, stat=istat)
@@ -997,7 +998,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
         call memocc(istat, iall, 'tmblarge%psit_f', subname)
      end if
      
-     deallocate(tmblarge%confdatarr, stat=istat)
+     deallocate(tmb%confdatarr, stat=istat)
 
      call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged, tmblarge)
 
@@ -1018,7 +1019,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
   else ! no change in locrad, just confining potential that needs updating
 
-     call define_confinement_data(tmblarge%confdatarr,tmb%orbs,rxyz,at,&
+     call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,at,&
           tmb%ham_descr%lzd%hgrids(1),tmb%ham_descr%lzd%hgrids(2),tmb%ham_descr%lzd%hgrids(3),&
           4,input%lin%potentialPrefac_highaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
 

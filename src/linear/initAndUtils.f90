@@ -1210,19 +1210,19 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
        tmb%ham_descr%comgp, tmb%ham_descr%mad, tmb%ham_descr%collcom)
 
   call allocate_auxiliary_basis_function(max(tmb%ham_descr%npsidim_comp,tmb%ham_descr%npsidim_orbs), subname, &
-       tmblarge%psi, tmblarge%hpsi)
+       tmblarge%psi, tmb%hpsi)
 
   tmblarge%can_use_transposed=.false.
   nullify(tmblarge%psit_c)
   nullify(tmblarge%psit_f)
-  allocate(tmblarge%confdatarr(tmb%orbs%norbp), stat=istat)
+  allocate(tmb%confdatarr(tmb%orbs%norbp), stat=istat)
 
   if(.not.lowaccur_converged) then
-      call define_confinement_data(tmblarge%confdatarr,tmb%orbs,rxyz,at,&
+      call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,at,&
            tmb%ham_descr%lzd%hgrids(1),tmb%ham_descr%lzd%hgrids(2),tmb%ham_descr%lzd%hgrids(3),&
            4,input%lin%potentialPrefac_lowaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
   else
-      call define_confinement_data(tmblarge%confdatarr,tmb%orbs,rxyz,at,&
+      call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,at,&
            tmb%ham_descr%lzd%hgrids(1),tmb%ham_descr%lzd%hgrids(2),tmb%ham_descr%lzd%hgrids(3),&
            4,input%lin%potentialPrefac_highaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
   end if

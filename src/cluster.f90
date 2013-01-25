@@ -822,7 +822,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
 
 
-         call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
+         call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmb%hpsi)
 
          !!!! TEST ##################
          !!fxyz=0.d0
@@ -1286,7 +1286,7 @@ contains
         .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
        deallocate(KSwfn%confdatarr)
     else
-       deallocate(tmb%confdatarr)
+       !deallocate(tmb%confdatarr)
     end if
 
     ! Free radii_cf

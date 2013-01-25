@@ -89,23 +89,23 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, tmb%psi, tmblarge%psi)
 
-      if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmblarge%hpsi(1))
+      if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
 
       call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,rxyz,&
-           proj,tmb%ham_descr%lzd,nlpspd,tmblarge%psi,tmblarge%hpsi,energs%eproj)
+           proj,tmb%ham_descr%lzd,nlpspd,tmblarge%psi,tmb%hpsi,energs%eproj)
       ! only kinetic as waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
+           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmb%hpsi,&
            energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
       call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
            tmb%ham_descr%comgp)
       !call wait_p2p_communication(iproc, nproc, tmb%ham_descr%comgp)
       ! only potential
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
+           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmb%hpsi,&
            energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
       call timing(iproc,'glsynchham1','ON')
-      call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmblarge%hpsi,&
+      call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham1','OF')
       deallocate(confdatarrtmp)
@@ -150,7 +150,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       allocate(hpsit_f(7*tmb%ham_descr%collcom%ndimind_f))
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
       call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-           tmblarge%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+           tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
            tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, tmb%linmat%ham)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
@@ -369,7 +369,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:,:),allocatable :: coeff_old
   logical :: energy_increased, overlap_calculated
   character(len=*),parameter :: subname='getLocalizedBasis'
-  real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f
+  real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
   real(8),dimension(2):: reducearr
   real(gp) :: econf
@@ -417,23 +417,23 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       endif
 
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
-      if (tmb%ham_descr%npsidim_orbs > 0)  call to_zero(tmb%ham_descr%npsidim_orbs,tmblarge%hpsi(1))
+      if (tmb%ham_descr%npsidim_orbs > 0)  call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
       call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, tmb%psi, tmblarge%psi)
 
       call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,rxyz,&
-           proj,tmb%ham_descr%lzd,nlpspd,tmblarge%psi,tmblarge%hpsi,energs%eproj)
+           proj,tmb%ham_descr%lzd,nlpspd,tmblarge%psi,tmb%hpsi,energs%eproj)
       ! only kinetic because waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-           tmb%ham_descr%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
+           tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmb%hpsi,&
            energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
       call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
            tmb%ham_descr%comgp)
       ! only potential
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          call vcopy(tmb%ham_descr%npsidim_orbs, tmblarge%hpsi(1), 1, hpsi_noconf(1), 1)
+          call vcopy(tmb%ham_descr%npsidim_orbs, tmb%hpsi(1), 1, hpsi_noconf(1), 1)
           call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-               tmb%ham_descr%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
+               tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmb%hpsi,&
                energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp,&
                hpsi_noconf=hpsi_noconf,econf=econf)
           if (nproc>1) then
@@ -441,7 +441,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end if
       else
           call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-               tmb%ham_descr%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
+               tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmb%hpsi,&
                energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
       end if
 
@@ -451,7 +451,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
       call timing(iproc,'glsynchham2','ON')
-      call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmblarge%hpsi,&
+      call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF')
 
@@ -467,7 +467,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                hpsi_noconf, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
       else
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-               tmblarge%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+               tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
       end if
 
       ncount=sum(tmb%ham_descr%collcom%nrecvcounts_c)
@@ -476,13 +476,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if(ncount>0) call dcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-         call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, &
-              fnrm, fnrmMax, meanAlpha, alpha_max, energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, &
-              energs_base, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_noprecond)
+         call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
+              meanAlpha, alpha_max, energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, energs_base, &
+              hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, hpsi_noprecond)
       else
          call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, &
               fnrm, fnrmMax, meanAlpha, alpha_max, energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, &
-              energs_base, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint)
+              energs_base, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small)
       end if
 
 
@@ -591,10 +591,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
-              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, psidiff)
+              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, psidiff)
       else
          call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
-              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS)
+              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small)
       end if
 
 
@@ -683,8 +683,8 @@ contains
       allocate(fnrmOldArr(tmb%orbs%norb), stat=istat)
       call memocc(istat, fnrmOldArr, 'fnrmOldArr', subname)
 
-      allocate(tmb%hpsi(max(tmb%npsidim_orbs,tmb%npsidim_comp)), stat=istat)
-      call memocc(istat, tmb%hpsi, 'tmb%hpsi', subname)
+      allocate(hpsi_small(max(tmb%npsidim_orbs,tmb%npsidim_comp)), stat=istat)
+      call memocc(istat, hpsi_small, 'hpsi_small', subname)
     
       allocate(lhphiold(max(tmb%npsidim_orbs,tmb%npsidim_comp)), stat=istat)
       call memocc(istat, lhphiold, 'lhphiold', subname)
@@ -742,9 +742,9 @@ contains
       deallocate(fnrmOldArr, stat=istat)
       call memocc(istat, iall, 'fnrmOldArr', subname)
 
-      iall=-product(shape(tmb%hpsi))*kind(tmb%hpsi)
-      deallocate(tmb%hpsi, stat=istat)
-      call memocc(istat, iall, 'tmb%hpsi', subname)
+      iall=-product(shape(hpsi_small))*kind(hpsi_small)
+      deallocate(hpsi_small, stat=istat)
+      call memocc(istat, iall, 'hpsi_small', subname)
 
       iall=-product(shape(lhphiold))*kind(lhphiold)
       deallocate(lhphiold, stat=istat)
@@ -797,7 +797,7 @@ end subroutine getLocalizedBasis
 
 
 
-subroutine improveOrbitals(iproc, tmb, ldiis, alpha)
+subroutine improveOrbitals(iproc, tmb, ldiis, alpha, gradient)
   use module_base
   use module_types
   use module_interfaces, except_this_one => improveOrbitals
@@ -808,6 +808,7 @@ subroutine improveOrbitals(iproc, tmb, ldiis, alpha)
   type(DFT_wavefunction),intent(inout) :: tmb
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(kind=8),dimension(tmb%orbs%norbp),intent(in) :: alpha
+  real(kind=wp),dimension(max(tmb%npsidim_orbs,tmb%npsidim_comp)),intent(inout) :: gradient
   
   ! Local variables
   integer :: istart, iorb, iiorb, ilr, ncount
@@ -820,7 +821,7 @@ subroutine improveOrbitals(iproc, tmb, ldiis, alpha)
           iiorb=tmb%orbs%isorb+iorb
           ilr=tmb%orbs%inwhichlocreg(iiorb)
           ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-          call daxpy(ncount, -alpha(iorb), tmb%hpsi(istart), 1, tmb%psi(istart), 1)
+          call daxpy(ncount, -alpha(iorb), gradient(istart), 1, tmb%psi(istart), 1)
           istart=istart+ncount
       end do
       call timing(iproc,'optimize_SD   ','OF')
@@ -828,9 +829,9 @@ subroutine improveOrbitals(iproc, tmb, ldiis, alpha)
       ldiis%mis=mod(ldiis%is,ldiis%isx)+1
       ldiis%is=ldiis%is+1
       if(ldiis%alphaDIIS/=1.d0) then
-          call dscal(max(tmb%npsidim_orbs,tmb%npsidim_comp), ldiis%alphaDIIS, tmb%hpsi, 1)
+          call dscal(max(tmb%npsidim_orbs,tmb%npsidim_comp), ldiis%alphaDIIS, gradient, 1)
       end if
-      call optimizeDIIS(iproc, tmb%orbs, tmb%orbs, tmb%lzd, tmb%hpsi, tmb%psi, ldiis)
+      call optimizeDIIS(iproc, tmb%orbs, tmb%orbs, tmb%lzd, gradient, tmb%psi, ldiis)
   end if
 
 end subroutine improveOrbitals

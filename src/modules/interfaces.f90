@@ -3210,7 +3210,7 @@ module module_interfaces
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-                  hpsi_noprecond)
+                  hpsi_small, hpsi_noprecond)
          use module_base
          use module_types
          implicit none
@@ -3227,6 +3227,7 @@ module module_interfaces
          type(energy_terms),intent(in) :: energs
          real(8),dimension(:),pointer:: hpsit_c, hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
+         real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
        end subroutine calculate_energy_and_gradient_linear
 
@@ -3239,7 +3240,7 @@ module module_interfaces
          character(len=*),intent(in):: subname
        end subroutine copy_orthon_data
 
-       subroutine improveOrbitals(iproc, tmb, ldiis, alpha)
+       subroutine improveOrbitals(iproc, tmb, ldiis, alpha, gradient)
          use module_base
          use module_types
          implicit none
@@ -3247,10 +3248,11 @@ module module_interfaces
          type(DFT_wavefunction),intent(inout):: tmb
          type(localizedDIISParameters),intent(inout):: ldiis
          real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
+         real(kind=wp),dimension(max(tmb%npsidim_orbs,tmb%npsidim_comp)),intent(inout) :: gradient
        end subroutine improveOrbitals
 
        subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
-                  lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, psidiff)
+                  lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, psidiff)
          use module_base
          use module_types
          implicit none
@@ -3260,6 +3262,7 @@ module module_interfaces
          real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lphiold
          real(8),intent(in):: trH, meanAlpha, alpha_max
          real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
+         real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: hpsi_small
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
        end subroutine hpsitopsi_linear
        
