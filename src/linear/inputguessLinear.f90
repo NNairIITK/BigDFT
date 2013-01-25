@@ -232,6 +232,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!stop
 
 
+
   if (input%lin%mixing_after_inputguess) then
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
            .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
@@ -256,6 +257,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%denskern, &
   !!     tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
 
+
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
            input%SIC,tmb,fnrm,.true.,.false.,tmblarge,.true.)
@@ -266,10 +268,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
-  call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), tmb%orbs, &
-       tmb%collcom_sr, tmb%linmat%denskern, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
+       tmb%orbs, tmb%collcom_sr, tmb%linmat%denskern, &
+       tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
-  !call plot_density(iproc,nproc,'initial',at,rxyz,denspot%dpbox,input%nspin,denspot%rhov)
+  !!!call plot_density(iproc,nproc,'initial',at,rxyz,denspot%dpbox,input%nspin,denspot%rhov)
+
 
   ! Mix the density.
   if (input%lin%mixing_after_inputguess .and. (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE)) then
@@ -292,6 +296,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
       call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
+
 
 
   iall=-product(shape(tmb%linmat%ham%matrix_compr))*kind(tmb%linmat%ham%matrix_compr)
