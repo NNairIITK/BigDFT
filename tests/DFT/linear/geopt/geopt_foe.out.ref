@@ -1,6 +1,6 @@
  <BigDFT> log of the run will be written in logfile: ./log-foe.yaml
 
- <BigDFT> Logfile already existing, move previous file in: ./logfiles/log-foe.13:24:12.419.yaml
+ <BigDFT> Logfile already existing, move previous file in: ./logfiles/log-foe.17:20:09.462.yaml
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
     | Processes from 0 to 1 treat 3 orbitals, |
@@ -24,6 +24,7 @@ V3prb    1.7560E+00
  Processes from 2 to 5 treat 2 inguess orbitals 
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.399999937595E+01
+ calling orthonormalizeLocalized (exact)
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
@@ -243,7 +244,6 @@ Calculating charge density... done.
  ------------------------------------------------------------- Input guess generated.
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
- calling orthonormalizeLocalized (exact)
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
@@ -1242,6 +1242,7 @@ V3prb    1.7560E+00
  Processes from 2 to 5 treat 2 inguess orbitals 
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.399999937595E+01
+ calling orthonormalizeLocalized (exact)
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
@@ -1461,7 +1462,6 @@ Calculating charge density... done.
  ------------------------------------------------------------- Input guess generated.
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
- calling orthonormalizeLocalized (exact)
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
@@ -2460,6 +2460,7 @@ V3prb    1.7560E+00
  Processes from 2 to 5 treat 2 inguess orbitals 
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.399999932313E+01
+ calling orthonormalizeLocalized (exact)
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
@@ -2591,7 +2592,6 @@ Calculating charge density... done.
  ------------------------------------------------------------- Input guess generated.
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
- calling orthonormalizeLocalized (exact)
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
@@ -3590,6 +3590,7 @@ V3prb    1.7560E+00
  Processes from 2 to 5 treat 2 inguess orbitals 
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.399999933028E+01
+ calling orthonormalizeLocalized (exact)
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
@@ -3705,7 +3706,6 @@ Calculating charge density... done.
  ------------------------------------------------------------- Input guess generated.
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
- calling orthonormalizeLocalized (exact)
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
@@ -4696,6 +4696,7 @@ V3prb    1.7560E+00
  Processes from 2 to 5 treat 2 inguess orbitals 
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.399999933016E+01
+ calling orthonormalizeLocalized (exact)
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
@@ -4811,7 +4812,6 @@ Calculating charge density... done.
  ------------------------------------------------------------- Input guess generated.
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
- calling orthonormalizeLocalized (exact)
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
@@ -5802,6 +5802,7 @@ V3prb    1.7560E+00
  Processes from 2 to 5 treat 2 inguess orbitals 
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.399999933016E+01
+ calling orthonormalizeLocalized (exact)
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
@@ -5909,7 +5910,6 @@ Calculating charge density... done.
  ------------------------------------------------------------- Input guess generated.
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
- calling orthonormalizeLocalized (exact)
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.

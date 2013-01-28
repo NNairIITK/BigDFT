@@ -418,6 +418,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      ! move allocation from here into initsparsematrix?! or new allocatesparsematrix
      allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
+     allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=i_stat)
+     call memocc(i_stat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
+     allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=i_stat)
+     call memocc(i_stat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)

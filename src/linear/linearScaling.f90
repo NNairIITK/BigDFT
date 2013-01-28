@@ -176,11 +176,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                    .true.,ldiis_coeff=ldiis_coeff)
           end if
+
+          ! Some special treatement if we are in the high accuracy part
+          call adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_converged, &
+               ldiis_coeff_hist, ldiis_coeff_changed)
       end if
 
-      ! Some special treatement if we are in the high accuracy part
-      call adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_converged, &
-           ldiis_coeff_hist, ldiis_coeff_changed)
 
       if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
          call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
@@ -188,6 +189,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
          if (ldiis_coeff_changed) then
             call deallocateDIIS(ldiis_coeff)
             call allocate_DIIS_coeff(tmb, ldiis_coeff)
+            ldiis_coeff_changed = .false.
          end if
       end if
 
@@ -522,13 +524,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
       call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
 
-      allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=istat)
-      call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
-
-      allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)
-      call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
-
-
     end subroutine allocate_local_arrays
 
 
@@ -545,14 +540,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
       deallocate(rhopotold_out, stat=istat)
       call memocc(istat, iall, 'rhopotold_out', subname)
-
-      iall=-product(shape(tmb%linmat%ham%matrix_compr))*kind(tmb%linmat%ham%matrix_compr)
-      deallocate(tmb%linmat%ham%matrix_compr, stat=istat)
-      call memocc(istat, iall, 'tmb%linmat%ham%matrix_compr', subname)
-
-      iall=-product(shape(tmb%linmat%ovrlp%matrix_compr))*kind(tmb%linmat%ovrlp%matrix_compr)
-      deallocate(tmb%linmat%ovrlp%matrix_compr, stat=istat)
-      call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix_compr', subname)
 
     end subroutine deallocate_local_arrays
 
@@ -594,28 +581,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
                 nit_highaccuracy=input%lin%nit_highaccuracy
 
-                iall=-product(shape(tmb%linmat%ham%matrix_compr))*kind(tmb%linmat%ham%matrix_compr)
-                deallocate(tmb%linmat%ham%matrix_compr, stat=istat)
-                call memocc(istat, iall, 'tmb%linmat%ham%matrix_compr', subname)
-
-                iall=-product(shape(tmb%linmat%ovrlp%matrix_compr))*kind(tmb%linmat%ovrlp%matrix_compr)
-                deallocate(tmb%linmat%ovrlp%matrix_compr, stat=istat)
-                call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix_compr', subname)
-
                 call inputguessConfinement(iproc, nproc, at, input, &
                      KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                      rxyz, nlpspd, proj, GPU, KSwfn%orbs, tmb, denspot, rhopotold, energs)
                      energs%eexctX=0.0_gp
 
-                allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=istat)
-                call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
-
-                allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)
-                call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
-
+                !already done in inputguess
                       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
-                call orthonormalizeLocalized(iproc, nproc, 0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, &
-                     tmb%linmat%denskern, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+                !call orthonormalizeLocalized(iproc, nproc, 0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, &
+                !     tmb%linmat%denskern, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
              else if (fnrm_pulay>1.d-2) then ! 1.d2 1.d-2
                 if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
@@ -927,16 +901,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !call deallocate_sparseMatrix(tmb%linmat%inv_ovrlp, subname)
      call deallocate_sparseMatrix(tmb%linmat%ovrlp, subname)
      call deallocate_sparseMatrix(tmb%linmat%ham, subname)
-
-     !iall=-product(shape(tmb%linmat%ham%matrix_compr))*kind(tmb%linmat%ham%matrix_compr)
-     !deallocate(tmb%linmat%ham%matrix_compr, stat=istat)
-     !call memocc(istat, iall, 'tmb%linmat%ham%matrix_compr', subname)
-     !iall=-product(shape(tmb%linmat%ovrlp%matrix_compr))*kind(tmb%linmat%ovrlp%matrix_compr)
-     !deallocate(tmb%linmat%ovrlp%matrix_compr, stat=istat)
-     !call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix_compr', subname)
-     !iall=-product(shape(tmb%linmat%denskern%matrix_compr))*kind(tmb%linmat%denskern%matrix_compr)
-     !deallocate(tmb%linmat%denskern%matrix_compr, stat=istat)
-     !call memocc(istat, iall, 'tmb%linmat%denskern%matrix_compr', subname)
 
      allocate(locregCenter(3,lzd_tmp%nlr), stat=istat)
      call memocc(istat, locregCenter, 'locregCenter', subname)

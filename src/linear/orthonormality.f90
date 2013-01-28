@@ -164,10 +164,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       can_use_transposed=.true.
   end if
 
-!print*,''
-!print*,'orthonormloc',can_use_transposed
-!print*,''
-
   ! It is assumed that this routine is called with the transposed gradient ready if it is associated...
   if(.not.associated(hpsit_c)) then
       allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)

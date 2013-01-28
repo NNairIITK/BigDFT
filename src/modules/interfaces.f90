@@ -3723,14 +3723,13 @@ module module_interfaces
           type(orbitals_data), intent(inout) :: orbs
         end subroutine local_potential_dimensions
 
-        subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm)
+        subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
           use module_base
           use module_types
           implicit none
           integer,intent(in):: iproc, nproc
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb
-          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout)::  ham,ovrlp
           type(localizedDIISParameters),intent(inout):: ldiis_coeff
           real(8),intent(out):: fnrm
         end subroutine optimize_coeffs
@@ -3881,17 +3880,14 @@ module module_interfaces
           real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
         end subroutine calculate_density_kernel
 
-        subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, &
-                   ovrlp_tmb, overlap_calculated, kernel)
+        subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, overlap_calculated)
           use module_base
           use module_types
           implicit none
           integer,intent(in):: iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb
-          type(sparseMatrix),intent(inout):: ovrlp_tmb
           logical,intent(inout):: overlap_calculated
-          type(sparseMatrix),intent(inout):: kernel
         end subroutine reconstruct_kernel
 
         subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &

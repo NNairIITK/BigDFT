@@ -81,7 +81,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   ! Calculate the Hamiltonian matrix if it is not already present.
   if(calculate_ham) then
-
       allocate(confdatarrtmp(tmb%orbs%norbp))
       call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
@@ -120,9 +119,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, iall, 'denspot%pot_work', subname)
 
       if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application done.'
-!print*,''
-!print*,'tmb%ham_descr%can_use_transposed',tmb%ham_descr%can_use_transposed
-!print*,''
+
       ! Calculate the matrix elements <phi|H|phi>.
       if(.not.tmb%ham_descr%can_use_transposed) then
           if(associated(tmb%ham_descr%psit_c)) then
@@ -159,7 +156,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       iall=-product(shape(hpsit_f))*kind(hpsit_f)
       deallocate(hpsit_f, stat=istat)
       call memocc(istat, iall, 'hpsit_f', subname)
-
   else
       if(iproc==0) write(*,*) 'No Hamiltonian application required.'
   end if
@@ -236,7 +232,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, iall, 'matrixElements', subname)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
-      call optimize_coeffs(iproc, nproc, orbs, tmb%linmat%ham%matrix, tmb%linmat%ovrlp%matrix, tmb, ldiis_coeff, fnrm)
+      call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   end if
 
   if (scf_mode/=LINEAR_FOE) then
@@ -454,12 +450,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF')
 
-
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then
           write(*,'(a)', advance='no') ' Orthoconstraint... '
       end if
-
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
@@ -607,9 +601,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
           tmb%ham_descr%can_use_transposed=.false.
       end if
-!print*,''
-!print*,'getloc',tmb%ham_descr%can_use_transposed
-!print*,''
 
       ! Estimate the energy change, that is to be expected in the next optimization
       ! step, given by the product of the force and the "displacement" .
@@ -619,20 +610,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           delta_energy_prev=delta_energy
       end if
 
-
       ! Copy the coefficients to coeff_old. The coefficients will be modified in reconstruct_kernel.
       if (scf_mode/=LINEAR_FOE) then
           call dcopy(tmb%orbs%norb*tmb%orbs%norb, tmb%wfnmd%coeff(1,1), 1, coeff_old(1,1), 1)
       end if
 
       if(scf_mode/=LINEAR_FOE) then
-          allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-          call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-               orbs, tmb, tmb%linmat%ovrlp, overlap_calculated, tmb%linmat%denskern)
-          iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-          deallocate(tmb%linmat%ovrlp%matrix, stat=istat)
-          call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix', subname)
+               orbs, tmb, overlap_calculated)
       end if
       if(iproc==0) then
           write(*,'(a)') 'done.'
@@ -665,7 +650,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   call deallocateLocalArrays()
 
 contains
-
 
 
     subroutine allocateLocalArrays()
@@ -1231,7 +1215,7 @@ subroutine DIISorSD(iproc, it, npsidim, trH, tmbopt, ldiis, alpha, alphaDIIS, lp
 end subroutine DIISorSD
 
 subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, blocksize_pdgemm, &
-           orbs, tmb, ovrlp_tmb, overlap_calculated, kernel)
+           orbs, tmb, overlap_calculated)
   use module_base
   use module_types
   use module_interfaces, except_this_one => reconstruct_kernel
@@ -1241,9 +1225,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   integer,intent(in):: iproc, nproc, inversion_method, blocksize_dsyev, blocksize_pdgemm
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
-  type(sparseMatrix),intent(inout):: ovrlp_tmb
   logical,intent(inout):: overlap_calculated
-  type(sparseMatrix),intent(inout):: kernel
 
   ! Local variables
   integer:: istat, iall
@@ -1275,27 +1257,34 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
      call timing(iproc,'renormCoefComp','OF')
 
      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
-          tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_tmb)
-     call uncompressMatrix(ovrlp_tmb)
+          tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
 
      call timing(iproc,'renormCoefComp','ON')
      overlap_calculated=.true.
   end if
 
+  allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+  call uncompressMatrix(tmb%linmat%ovrlp)
+
   call reorthonormalize_coeff(iproc, nproc, orbs%norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
-       tmb%orbs, ovrlp_tmb%matrix, tmb%wfnmd%coeff)
+       tmb%orbs, tmb%linmat%ovrlp%matrix, tmb%wfnmd%coeff)
+
+  iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
+  deallocate(tmb%linmat%ovrlp%matrix, stat=istat)
+  call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix', subname)
 
   ! Recalculate the kernel
-  allocate(kernel%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, kernel%matrix, 'kernel%matrix', subname)
+  allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
 
-  call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%wfnmd%coeff, kernel%matrix)
+  call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%wfnmd%coeff, tmb%linmat%denskern%matrix)
 
-  call compress_matrix_for_allreduce(kernel)
+  call compress_matrix_for_allreduce(tmb%linmat%denskern)
 
-  iall=-product(shape(kernel%matrix))*kind(kernel%matrix)
-  deallocate(kernel%matrix,stat=istat)
-  call memocc(istat,iall,'kernel%matrix',subname)
+  iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
+  deallocate(tmb%linmat%denskern%matrix,stat=istat)
+  call memocc(istat,iall,'tmb%linmat%denskern%matrix',subname)
 
 end subroutine reconstruct_kernel
 

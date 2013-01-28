@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-01-28 12:51:21.911
+ Timestamp of this run                 : 2013-01-28 17:18:27.950
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
@@ -78,7 +78,7 @@
  #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
  #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
  #|T              disable the symmetry detection                                             
- #... (file:default.mix.. not present)....................................Mixing Parameters 
+ #... (file:default.mix)...................................................Mixing Parameters
  #|0              Mixing parameters                                                          
  #|1              Maximum number of diagonalisation iterations                               
  #|1.e-4          Stop criterion on the residue of potential or density                      
@@ -90,13 +90,13 @@
  #|1.d0  0.       fract_fluct,forcemax                                                       
  #|0.d0           random displacement amplitude                                              
  #|1.d0           Stepsize for the geometry optimisation                                     
- #... (file:default.tddft.. not present)..................................TD-DFT Parameters 
+ #... (file:default.tddft).................................................TD-DFT Parameters
  #|NONE           TDDFT Method                                                               
- #... (file:default.sic.. not present).......................................SIC Parameters 
+ #... (file:default.sic)......................................................SIC Parameters
  #|NONE           SIC method: NONE, PZ, NK                                                   
  #|0.0            SIC downscaling parameter                                                  
  #|0.0            Reference occupation fref (NK case only)                                   
- #... (file:default.kpt.. not present)...................Brillouin Zone Sampling Parameters 
+ #... (file:default.kpt)..................................Brillouin Zone Sampling Parameters
  #|manual         K-point sampling method                                                    
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
@@ -594,8 +594,8 @@
  Non Local forces calculated           :  Yes
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  24.00
-   Elapsed time (s)                    :  24.09
+   CPU time (s)                        :  24.08
+   Elapsed time (s)                    :  24.16
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -794,8 +794,8 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  2.01
-   Elapsed time (s)                    :  2.02
+   CPU time (s)                        :  2.02
+   Elapsed time (s)                    :  2.03
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1266,8 +1266,8 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  25.23
-   Elapsed time (s)                    :  25.32
+   CPU time (s)                        :  24.83
+   Elapsed time (s)                    :  25.26
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1276,7 +1276,7 @@
    Ncount_BigDFT                       :  2
    Iteration                           :  2
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.71780848696857E+01, -4.19699764266213E-03 ]
+   etot                                :  [ -1.71780848696594E+01, -4.19699761633652E-03 ]
    Forces                              :  [  1.21E-02,  1.55E-02,  1.95E-03,  1.95E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -1431,7 +1431,7 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
- Ion-Ion interaction energy            :  6.88242932234893E+00
+ Ion-Ion interaction energy            :  6.88242932265509E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000000008829
  Poisson Solver:
@@ -1738,8 +1738,8 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  24.52
-   Elapsed time (s)                    :  24.60
+   CPU time (s)                        :  24.47
+   Elapsed time (s)                    :  24.55
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1748,7 +1748,7 @@
    Ncount_BigDFT                       :  3
    Iteration                           :  3
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.71782172209659E+01, -1.32351280125675E-04 ]
+   etot                                :  [ -1.71782172209405E+01, -1.32351281070697E-04 ]
    Forces                              :  [  3.04E-03,  4.19E-03,  2.53E-03,  2.53E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -1903,7 +1903,7 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
- Ion-Ion interaction energy            :  6.88826973891345E+00
+ Ion-Ion interaction energy            :  6.88826973932643E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000000009216
  Poisson Solver:
@@ -2210,25 +2210,25 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  27.09
-   Elapsed time (s)                    :  27.18
+   CPU time (s)                        :  24.33
+   Elapsed time (s)                    :  24.41
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- FORCES norm(Ha/Bohr): { maxval:  1.94389E-03, fnrm2:  9.84112E-06, fluct:  2.98738E-03}
+ FORCES norm(Ha/Bohr): { maxval:  1.94389E-03, fnrm2:  9.84113E-06, fluct:  2.98738E-03}
  Geometry:
    Ncount_BigDFT                       :  4
    Iteration                           :  4
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.71782292884712E+01, -1.20675053629782E-05 ]
+   etot                                :  [ -1.71782292884452E+01, -1.20675047021734E-05 ]
    Forces                              :  [  1.94E-03,  3.14E-03,  2.99E-03,  2.99E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  1
-   FORCES norm(Ha/Bohr): { maxval:  1.94389E-03, fnrm2:  9.84112E-06, fluct:  2.98738E-03}
+   FORCES norm(Ha/Bohr): { maxval:  1.94389E-03, fnrm2:  9.84113E-06, fluct:  2.98738E-03}
  End of minimization using             : SDCG
  Memory Consumption Report:
-   Tot. No. of Allocations  : 60756
-   Tot. No. of Deallocations: 60756
+   Tot. No. of Allocations  : 60546
+   Tot. No. of Deallocations: 60546
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 122

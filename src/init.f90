@@ -1632,35 +1632,20 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   !!write(*,*) 'after deallocate, iproc', iproc
 
   ! Update the kernel
-  !!allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
-  !!call memocc(i_stat, density_kernel, 'density_kernel', subname)
-
   if (input%lin%scf_mode/=LINEAR_FOE) then
-      allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
-      call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-      allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr),stat=i_stat)
-      call memocc(i_stat,tmb%linmat%ovrlp%matrix_compr,'tmb%linmat%ovrlp%matrix_compr',subname)
       tmb%can_use_transposed=.false.
       overlap_calculated = .false.
       nullify(tmb%psit_c)
       nullify(tmb%psit_f)
       call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-           KSwfn%orbs, tmb, tmb%linmat%ovrlp, overlap_calculated, tmb%linmat%denskern)
+           KSwfn%orbs, tmb, overlap_calculated)
       i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
       deallocate(tmb%psit_c,stat=i_stat)
       call memocc(i_stat,i_all,'tmb%psit_c',subname)
       i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)
       deallocate(tmb%psit_f,stat=i_stat)
       call memocc(i_stat,i_all,'tmb%psit_f',subname)
-      i_all = -product(shape(tmb%linmat%ovrlp%matrix_compr))*kind(tmb%linmat%ovrlp%matrix_compr)
-      deallocate(tmb%linmat%ovrlp%matrix_compr,stat=i_stat)
-      call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix_compr',subname)   
-      i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-      deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
-      call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
   else
-
-
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
      tmb%ham_descr%can_use_transposed=.false.
@@ -2487,10 +2472,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
           & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff)
 
-     allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb),stat=i_stat)
-     call memocc(i_stat,tmb%linmat%ovrlp%matrix,'tmb%linmat%ovrlp%matrix',subname)
-     allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr),stat=i_stat)
-     call memocc(i_stat,tmb%linmat%ovrlp%matrix_compr,'tmb%linmat%ovrlp%matrix_compr',subname)
         tmb%can_use_transposed=.false.
         overlap_calculated=.false.
      nullify(tmb%psit_c)                                                                
@@ -2499,7 +2480,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! Will be coming back to this
      if (.true.) then                                                       
         call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-             KSwfn%orbs, tmb, tmb%linmat%ovrlp, overlap_calculated, tmb%linmat%denskern)     
+             KSwfn%orbs, tmb, overlap_calculated)     
         !call calculate_density_kernel(iproc, nproc, .true., &
         !      KSwfn%orbs, tmb%orbs, tmb%wfnmd%coeff, density_kernel)
         i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
@@ -2528,14 +2509,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         deallocate(tmb%linmat%denskern%matrix,stat=i_stat)
         call memocc(i_stat,i_all,'tmb%linmat%denskern%matrix',subname)
      end if
-      
-     i_all = -product(shape(tmb%linmat%ovrlp%matrix_compr))*kind(tmb%linmat%ovrlp%matrix_compr)
-     deallocate(tmb%linmat%ovrlp%matrix_compr,stat=i_stat)
-     call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix_compr',subname)                          
-     i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-     deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
-     call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
-
 
      ! Now need to calculate the charge density and the potential related to this inputguess
      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &

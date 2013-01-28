@@ -10,7 +10,7 @@
 !!        of orthonormality constraints. This should speedup the convergence by
 !!        reducing the effective number of degrees of freedom.
 
-subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm)
+subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   use module_base
   use module_types
   use module_interfaces, except_this_one => optimize_coeffs
@@ -20,7 +20,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ham,ovrlp
   type(localizedDIISParameters),intent(inout):: ldiis_coeff
   real(8),intent(out):: fnrm
 
@@ -58,7 +57,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
           tt=0.d0
           do korb=1,tmb%orbs%norb
               do lorb=1,tmb%orbs%norb
-                  tt=tt+tmb%wfnmd%coeff(korb,jorb)*tmb%wfnmd%coeff(lorb,iiorb)*ham(lorb,korb)
+                  tt=tt+tmb%wfnmd%coeff(korb,jorb)*tmb%wfnmd%coeff(lorb,iiorb)*tmb%linmat%ham%matrix(lorb,korb)
               end do
           end do
           ovrlp_coeff(jorb,iorb)=tt
@@ -83,11 +82,11 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
       do lorb=1,tmb%orbs%norb
           tt=0.d0
           do korb=1,tmb%orbs%norb
-              tt=tt+tmb%wfnmd%coeff(korb,iiorb)*ham(korb,lorb)
+              tt=tt+tmb%wfnmd%coeff(korb,iiorb)*tmb%linmat%ham%matrix(korb,lorb)
           end do
           do jorb=1,orbs%norb
               do korb=1,tmb%orbs%norb
-                  tt=tt-lagmat(jorb,iiorb)*tmb%wfnmd%coeff(korb,jorb)*ovrlp(korb,lorb)
+                  tt=tt-lagmat(jorb,iiorb)*tmb%wfnmd%coeff(korb,jorb)*tmb%linmat%ovrlp%matrix(korb,lorb)
               end do
           end do
           rhs(lorb,iiorb)=tt*orbs%occup(iiorb)
@@ -95,7 +94,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   end do
 
   ! Solve the linear system ovrlp*grad=rhs
-  call dcopy(tmb%orbs%norb**2, ovrlp(1,1), 1, ovrlp_tmp(1,1), 1)
+  call dcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp%matrix(1,1), 1, ovrlp_tmp(1,1), 1)
   call timing(iproc,'dirmin_lagmat2','OF') !lr408t
   call timing(iproc,'dirmin_dgesv','ON') !lr408t
 
@@ -122,7 +121,7 @@ if(iproc==0) write(200,*) gradp
   call timing(iproc,'dirmin_dgesv','OF') !lr408t
 
   ! Precondition the gradient (only making things worse...)
-  !call precondition_gradient_coeff(tmb%orbs%norb, tmb%orbs%norbp, ham, ovrlp, gradp)
+  !call precondition_gradient_coeff(tmb%orbs%norb, tmb%orbs%norbp, tmb%linmat%ham%matrix, tmb%linmat%ovrlp%matrix, gradp)
 
   call timing(iproc,'dirmin_sddiis','ON')
 
@@ -166,12 +165,9 @@ if(iproc==0) write(100,*) tmb%wfnmd%coeff
   call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   fnrm=sqrt(tt/dble(orbs%norb))
 
-
   call timing(iproc,'dirmin_sddiis','OF')
 
-  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 0, tmb%orbs, ovrlp, tmb%wfnmd%coeff)
-  call vcopy(orbs%norb*orbs%norb,ovrlp_coeff(1,1),1,lagmat(1,1),1)
-
+  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 0, tmb%orbs, tmb%linmat%ovrlp%matrix, tmb%wfnmd%coeff)
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)
@@ -200,7 +196,7 @@ if(iproc==0) write(100,*) tmb%wfnmd%coeff
 end subroutine optimize_coeffs
 
 !Just to test without MPI
-subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm)
+subroutine optimize_coeffs2(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   use module_base
   use module_types
   use module_interfaces, except_this_one => optimize_coeffs
@@ -210,7 +206,6 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
   integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: ham,ovrlp
   type(localizedDIISParameters),intent(inout):: ldiis_coeff
   real(8),intent(out):: fnrm
 
@@ -247,7 +242,7 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
           tt=0.d0
           do ialpha=1,tmb%orbs%norb
               do ibeta=1,tmb%orbs%norb
-                  tt=tt+tmb%wfnmd%coeff(ialpha,jorb)*tmb%wfnmd%coeff(ibeta,iorb)*ham(ialpha,ibeta)
+                  tt=tt+tmb%wfnmd%coeff(ialpha,jorb)*tmb%wfnmd%coeff(ibeta,iorb)*tmb%linmat%ham%matrix(ialpha,ibeta)
               end do
           end do
           ovrlp_coeff(jorb,iorb)=tt
@@ -265,11 +260,11 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
       do ialpha=1,tmb%orbs%norb
           tt=0.d0
           do ibeta=1,tmb%orbs%norb
-              tt=tt+tmb%wfnmd%coeff(ibeta,iorb)*ham(ibeta,ialpha)
+              tt=tt+tmb%wfnmd%coeff(ibeta,iorb)*tmb%linmat%ham%matrix(ibeta,ialpha)
           end do
           do jorb=1,orbs%norb
               do ibeta=1,tmb%orbs%norb
-                  tt=tt-lagmat(jorb,iorb)*tmb%wfnmd%coeff(ibeta,jorb)*ovrlp(ibeta,ialpha)
+                  tt=tt-lagmat(jorb,iorb)*tmb%wfnmd%coeff(ibeta,jorb)*tmb%linmat%ovrlp%matrix(ibeta,ialpha)
               end do
           end do
           rhs(ialpha,iorb)=tt*orbs%occup(iorb)
@@ -277,7 +272,7 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
   end do
 
   ! Solve the linear system ovrlp*grad=rhs
-  call dcopy(tmb%orbs%norb**2, ovrlp(1,1), 1, ovrlp_tmp(1,1), 1)
+  call dcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp%matrix(1,1), 1, ovrlp_tmp(1,1), 1)
 
   call timing(iproc,'dirmin_lagmat2','OF')
   call timing(iproc,'dirmin_dgesv','ON')
@@ -305,7 +300,7 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
   call timing(iproc,'dirmin_dgesv','OF') 
 
   ! Precondition the gradient (only making things worse...)
-  !call precondition_gradient_coeff(tmb%orbs%norb, orbs%norbp, ham, ovrlp, gradp)
+  !call precondition_gradient_coeff(tmb%orbs%norb, orbs%norbp, tmb%linmat%ham%matrix, ovrlp, gradp)
 
   call timing(iproc,'dirmin_sddiis','ON') !lr408t
 
@@ -335,7 +330,7 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
   call timing(iproc,'dirmin_sddiis','OF') !lr408t
   
   ! Normalize the coefficients (Loewdin)
-  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 0, tmb%orbs, ovrlp, tmb%wfnmd%coeff)
+  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 0, tmb%orbs, tmb%linmat%ovrlp%matrix, tmb%wfnmd%coeff)
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)

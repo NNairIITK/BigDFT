@@ -247,17 +247,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end if
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
 
-  allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=istat)
-  call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
-  allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)
-  call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
-
-  !!to add back in
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
   if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
   call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%denskern, &
        tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
-
 
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
@@ -273,7 +266,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
        tmb%collcom_sr, tmb%linmat%denskern, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
   !!!call plot_density(iproc,nproc,'initial',at,rxyz,denspot%dpbox,input%nspin,denspot%rhov)
-
 
   ! Mix the density.
   if (input%lin%mixing_after_inputguess .and. (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE)) then
@@ -296,15 +288,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
       call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
-
-
-
-  iall=-product(shape(tmb%linmat%ham%matrix_compr))*kind(tmb%linmat%ham%matrix_compr)
-  deallocate(tmb%linmat%ham%matrix_compr, stat=istat)
-  call memocc(istat, iall, 'tmb%linmat%ham%matrix_compr', subname)
-  iall=-product(shape(tmb%linmat%ovrlp%matrix_compr))*kind(tmb%linmat%ovrlp%matrix_compr)
-  deallocate(tmb%linmat%ovrlp%matrix_compr, stat=istat)
-  call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix_compr', subname)
 
 
   ! Important: Don't use for the rest of the code
