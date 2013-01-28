@@ -121,8 +121,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, iall, 'denspot%pot_work', subname)
 
       if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application done.'
-
-
+!print*,''
+!print*,'tmblarge%can_use_transposed',tmblarge%can_use_transposed
+!print*,''
       ! Calculate the matrix elements <phi|H|phi>.
       if(.not.tmblarge%can_use_transposed) then
           if(associated(tmblarge%psit_c)) then
@@ -262,17 +263,17 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       end do
 
       ! Calculate the KS eigenvalues - needed for Pulay - could take advantage of compression here as above?
-      call to_zero(orbs%norb, orbs%eval(1))
-      do iorb=1,orbs%norbp
-          iiorb=orbs%isorb+iorb
-          do jorb=1,tmb%orbs%norb
-              do korb=1,tmb%orbs%norb
-                  orbs%eval(iiorb) = orbs%eval(iiorb) + &
-                                     tmb%wfnmd%coeff(jorb,iiorb)*tmb%wfnmd%coeff(korb,iiorb)*tmb%linmat%ham%matrix(jorb,korb)
-              end do
-          end do
-      end do
-      call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !call to_zero(orbs%norb, orbs%eval(1))
+      !do iorb=1,orbs%norbp
+      !    iiorb=orbs%isorb+iorb
+      !    do jorb=1,tmb%orbs%norb
+      !        do korb=1,tmb%orbs%norb
+      !            orbs%eval(iiorb) = orbs%eval(iiorb) + &
+      !                               tmb%wfnmd%coeff(jorb,iiorb)*tmb%wfnmd%coeff(korb,iiorb)*tmb%linmat%ham%matrix(jorb,korb)
+      !        end do
+      !    end do
+      !end do
+      !call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
       iall=-product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
       deallocate(tmb%linmat%ham%matrix, stat=istat)
@@ -534,7 +535,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
               deallocate(tmblarge%psit_f, stat=istat)
               call memocc(istat, iall, 'tmblarge%psit_f', subname)
-              tmblarge%can_use_transposed=.false.
           end if
           if(iproc==0) write(*,*) 'it_tot',it_tot
           overlap_calculated=.false.
@@ -609,7 +609,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call memocc(istat, iall, 'tmblarge%psit_f', subname)
           tmblarge%can_use_transposed=.false.
       end if
-
+!print*,''
+!print*,'getloc',tmblarge%can_use_transposed
+!print*,''
 
       ! Estimate the energy change, that is to be expected in the next optimization
       ! step, given by the product of the force and the "displacement" .
@@ -812,7 +814,6 @@ subroutine improveOrbitals(iproc, tmb, ldiis, alpha, gradient)
   
   ! Local variables
   integer :: istart, iorb, iiorb, ilr, ncount
-  
 
   if(ldiis%isx==0) then ! steepest descents
       call timing(iproc,'optimize_SD   ','ON')
@@ -831,7 +832,7 @@ subroutine improveOrbitals(iproc, tmb, ldiis, alpha, gradient)
       if(ldiis%alphaDIIS/=1.d0) then
           call dscal(max(tmb%npsidim_orbs,tmb%npsidim_comp), ldiis%alphaDIIS, gradient, 1)
       end if
-      call optimizeDIIS(iproc, tmb%orbs, tmb%orbs, tmb%lzd, gradient, tmb%psi, ldiis)
+      call optimizeDIIS(iproc, max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%lzd, gradient, tmb%psi, ldiis)
   end if
 
 end subroutine improveOrbitals

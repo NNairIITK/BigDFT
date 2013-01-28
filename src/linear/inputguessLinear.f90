@@ -254,8 +254,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
 
   !!to add back in
-  !!call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%denskern, &
-  !!     tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+      ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
+  if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+  call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%denskern, &
+       tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
 
 
   if (input%lin%scf_mode==LINEAR_FOE) then

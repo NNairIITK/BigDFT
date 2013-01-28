@@ -164,12 +164,16 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       can_use_transposed=.true.
   end if
 
+!print*,''
+!print*,'orthonormloc',can_use_transposed
+!print*,''
+
   ! It is assumed that this routine is called with the transposed gradient ready if it is associated...
   if(.not.associated(hpsit_c)) then
       allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
       call memocc(istat, hpsit_c, 'hpsit_c', subname)
  
-     allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+      allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
  
      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
@@ -177,9 +181,10 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
 
-  if (correction_orthoconstraint==0) then
+  if (correction_orthoconstraint==0) then !not correctly working
       if(overlap_calculated) stop 'overlap_calculated should be wrong... To be modified later'
 
+      ! problem here as psit match tmblarge whereas linmat%ovrlp matches tmb
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
 
       allocate(linmat%ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)

@@ -1591,11 +1591,12 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   !!write(*,*) 'after reformat_supportfunctions, iproc',iproc
 
   ! need the input guess eval for preconditioning as they won't be recalculated
-  if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+  !if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+  ! needed for Pulay as now using tmb rather Kswfn evals
      do iorb=1,tmb%orbs%norb
         tmb%orbs%eval(iorb) = tmb_old%orbs%eval(iorb)
      end do
-  end if
+  !end if
 
   call deallocate_local_zone_descriptors(tmb_old%lzd, subname)
   call deallocate_orbitals_data(tmb_old%orbs, subname)
@@ -2271,7 +2272,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   integer :: i_stat, nspin, i_all, iorb, jorb, ilr, jlr
   type(gaussian_basis) :: Gvirt
   real(8),dimension(:,:),allocatable:: density_kernel
-  logical :: norb_change
   logical :: overlap_calculated
 
   !determine the orthogonality parameters
@@ -2490,8 +2490,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      ! By reading the basis functions and coefficients from file
      call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
-          & input_wf_format,KSwfn%orbs%norb,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
-          & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval,norb_change)
+          & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
+          & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff)
 
      allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb),stat=i_stat)
      call memocc(i_stat,tmb%linmat%ovrlp%matrix,'tmb%linmat%ovrlp%matrix',subname)

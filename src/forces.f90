@@ -337,7 +337,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
            orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
   else if (imode==1) then
       !linear version of nonlocal forces
-      call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
+      call nonlocal_forces_linear(iproc,nproc,tmb%npsidim_orbs,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
            tmb%orbs,nlpspd,proj,tmb%lzd,tmb%collcom,tmb%psi,tmb%linmat%denskern,fxyz,refill_proj,&
            strtens(1,2))
   else
@@ -4143,7 +4143,7 @@ END SUBROUTINE erf_stress
 !> Calculates the nonlocal forces on all atoms arising from the wavefunctions 
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
-subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
+subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
      orbs,nlpspd,proj,lzd,collcom,phi,denskern,fsep,refill,strten)
   use module_base
   use module_types
@@ -4154,12 +4154,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   type(collective_comms),intent(in) :: collcom
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   logical, intent(in) :: refill
-  integer, intent(in) :: iproc, nproc
+  integer, intent(in) :: iproc, nproc, npsidim_orbs
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(orbs%npsidim_orbs), intent(in) :: phi
+  real(wp), dimension(npsidim_orbs), intent(in) :: phi
   type(SparseMatrix),intent(in) :: denskern
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%nat), intent(inout) :: fsep

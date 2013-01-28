@@ -2263,15 +2263,15 @@ module module_interfaces
        logical,intent(out):: can_use_transposed
      end subroutine orthonormalizeLocalized
 
-     subroutine optimizeDIIS(iproc, orbs, lorbs, lzd, hphi, phi, ldiis)
+     subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc
-       type(orbitals_data),intent(in):: orbs, lorbs
+       integer,intent(in):: iproc, npsidim
+       type(orbitals_data),intent(in):: orbs
        type(local_zone_descriptors),intent(in):: lzd
-       real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(in):: hphi
-       real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout):: phi
+       real(8),dimension(npsidim),intent(in):: hphi
+       real(8),dimension(npsidim),intent(inout):: phi
        type(localizedDIISParameters),intent(inout):: ldiis
      end subroutine optimizeDIIS
 
@@ -3613,12 +3613,12 @@ module module_interfaces
          integer, intent(out) :: onwhichatom
        end subroutine io_read_descr_linear
 
-       subroutine readmywaves_linear(iproc,filename,iformat,norb,npsidim,Lzd,orbs,at,rxyz_old,rxyz,  &
-           psi,coeff,eval,norb_change,orblist)
+       subroutine readmywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz_old,rxyz,  &
+           psi,coeff,orblist)
          use module_base
          use module_types
          implicit none
-         integer, intent(in) :: iproc, iformat,norb,npsidim
+         integer, intent(in) :: iproc, iformat,npsidim
          type(orbitals_data), intent(inout) :: orbs  ! orbs related to the basis functions
          type(local_zone_descriptors), intent(in) :: Lzd
          type(atoms_data), intent(in) :: at
@@ -3626,9 +3626,7 @@ module module_interfaces
          real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
          real(wp), dimension(npsidim), intent(out) :: psi
          character(len=*), intent(in) :: filename
-         real(wp), dimension(norb,orbs%norb), intent(out) :: coeff
-         real(gp), dimension(norb),intent(out) :: eval
-         logical, intent(out) :: norb_change
+         real(wp), dimension(orbs%norb,orbs%norb), intent(out) :: coeff
          integer, dimension(orbs%norb), optional :: orblist
         end subroutine readmywaves_linear
 
@@ -4295,7 +4293,7 @@ module module_interfaces
         end subroutine kswfn_init_comm
 
 
-        subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
+        subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
              orbs,nlpspd,proj,lzd,collcom,phi,denskern,fsep,refill,strten)
           use module_base
           use module_types
@@ -4305,12 +4303,12 @@ module module_interfaces
           type(collective_comms),intent(in) :: collcom
           type(nonlocal_psp_descriptors), intent(in) :: nlpspd
           logical, intent(in) :: refill
-          integer, intent(in) :: iproc, nproc
+          integer, intent(in) :: iproc, nproc, npsidim_orbs
           real(gp), intent(in) :: hx,hy,hz
           type(locreg_descriptors) :: lr
           type(orbitals_data), intent(in) :: orbs
           real(gp), dimension(3,at%nat), intent(in) :: rxyz
-          real(wp), dimension(orbs%npsidim_orbs), intent(in) :: phi
+          real(wp), dimension(npsidim_orbs), intent(in) :: phi
           type(SparseMatrix),intent(in) :: denskern
           real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
           real(gp), dimension(3,at%nat), intent(inout) :: fsep

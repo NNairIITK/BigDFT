@@ -91,11 +91,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   tmb%can_use_transposed=.false.
   nullify(tmb%psit_c)
   nullify(tmb%psit_f)
-  if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+  !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
 
+  ! now done in inputguess
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
-  call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%denskern, &
-       tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+  !call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%denskern, &
+  !     tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
 
   ! Check the quality of the input guess
   call check_inputguess()
@@ -433,9 +434,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   end do outerLoop
 
-  ! Diagonalize the matrix for the FOE case to get the coefficients. Only necessary if
-  ! the Pulay forces are to be calculated.
-  if (input%lin%scf_mode==LINEAR_FOE .and. input%lin%pulay_correction) then
+  ! Diagonalize the matrix for the FOE/direct min case to get the coefficients. Only necessary if
+  ! the Pulay forces are to be calculated, or if we are printing eigenvalues for restart
+  if ((input%lin%scf_mode==LINEAR_FOE.or.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION)& 
+       .and. (input%lin%pulay_correction.or.input%lin%plotBasisFunctions /= WF_FORMAT_NONE)) then
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
            tmblarge,.true.,ldiis_coeff=ldiis_coeff)
@@ -470,6 +472,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
       deallocate(tmblarge%psit_f, stat=istat)
       call memocc(istat, iall, 'tmblarge%psit_f', subname)
+      tmblarge%can_use_transposed=.false.
   end if
   ! here or cluster, not sure which is best
   deallocate(tmb%confdatarr, stat=istat)
@@ -478,7 +481,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   !Write the linear wavefunctions to file if asked
   if(input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
     call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
-       max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,KSwfn%orbs%norb,at,rxyz,tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval)
+       max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,at,rxyz,tmb%psi,tmb%wfnmd%coeff)
   end if
 
   !DEBUG
@@ -996,6 +999,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
         iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
         deallocate(tmblarge%psit_f, stat=istat)
         call memocc(istat, iall, 'tmblarge%psit_f', subname)
+        tmblarge%can_use_transposed=.false.
      end if
      
      deallocate(tmb%confdatarr, stat=istat)
@@ -1250,7 +1254,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
                   ekernel= 0.d0
                   do iorb=1,orbs%norb
                       kernel  = kernel+orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb)
-                      ekernel = ekernel+orbs%eval(iorb)*orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb) 
+                      ekernel = ekernel+tmb%orbs%eval(iorb)*orbs%occup(iorb) &
+                           *tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb) 
                   end do
                   fpulay(jdir,jat)=fpulay(jdir,jat)+&
                          2.0_gp*(kernel*dham(jdir)%matrix_compr(ii)-ekernel*dovrlp(jdir)%matrix_compr(ii))

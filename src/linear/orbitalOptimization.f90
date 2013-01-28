@@ -8,18 +8,18 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine optimizeDIIS(iproc, orbs, lorbs, lzd, hphi, phi, ldiis)
+subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => optimizeDIIS
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc
-type(orbitals_data),intent(in):: orbs, lorbs
+integer,intent(in):: iproc, npsidim
+type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
-real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(in):: hphi
-real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout):: phi
+real(8),dimension(npsidim),intent(in):: hphi
+real(8),dimension(npsidim),intent(inout):: phi
 type(localizedDIISParameters),intent(inout):: ldiis
 
 ! Local variables
