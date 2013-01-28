@@ -10,7 +10,7 @@
 
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
-           energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, &
+           energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
            hpsi_small, hpsi_noprecond)
   use module_base
@@ -20,7 +20,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, it
-  type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
+  type(DFT_wavefunction),target,intent(inout):: tmb
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
   real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
@@ -123,7 +123,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           end do
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
-          call build_linear_combination_transposed(tmb%orbs%norb, tmb%ham_descr%collcom, &
+          call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%denskern, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           ! copy correct kernel back
           call vcopy(tmb%linmat%denskern%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
@@ -131,7 +131,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           deallocate(kernel_compr_tmp, stat=istat)
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
       else
-          call build_linear_combination_transposed(tmb%orbs%norb, tmb%ham_descr%collcom, &
+          call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%denskern, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
       end if
   end if
@@ -144,8 +144,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call memocc(istat, lagmat%matrix_compr, 'lagmat%matrix_compr', subname)
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
-       tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, tmb%linmat, tmblarge%psi, tmb%hpsi, &
-       lagmat, tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
+       tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
+       lagmat, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, overlap_calculated)
 
   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
        tmb%orbs, tmb%hpsi, hpsi_small)
@@ -307,7 +307,7 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 
-subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
+subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
            lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, hpsi_small, psidiff)
   use module_base
   use module_types
@@ -317,7 +317,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, it
   type(localizedDIISParameters),intent(inout) :: ldiis
-  type(DFT_wavefunction),target,intent(inout) :: tmb, tmblarge
+  type(DFT_wavefunction),target,intent(inout) :: tmb
   real(kind=8),dimension(tmb%npsidim_orbs),intent(inout) :: lphiold
   real(kind=8),intent(in) :: trH, alpha_mean, alpha_max
   real(kind=8),dimension(tmb%orbs%norbp),intent(inout) :: alpha, alphaDIIS

@@ -472,25 +472,17 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   type(collective_comms),intent(inout) :: collcom_sr
 
   ! Local variables
-  integer :: iorb, iiorb, ierr, istat, iall, jproc, ipt
-  integer :: imin, imax, jorb, jjorb, kproc
-  integer :: isend, irecv
-  integer :: compressed_index
-  real(kind=8) :: weight_tot, weight_ideal, tt
-  integer,dimension(:,:),allocatable :: istartend, iminmaxarr, requests, sendbuf
+  integer :: ierr, istat, iall, ipt
+  real(kind=8) :: weight_tot, weight_ideal
+  integer,dimension(:,:),allocatable :: istartend
   character(len=*),parameter :: subname='determine_weights_sumrho'
   real(kind=8),dimension(:),allocatable :: weights_per_slice, weights_per_zpoint
 
   ! Note: all weights are double precision to avoid integer overflow
-
-!DO WE NEED SO MANY BARRIERS HERE?
-
   call timing(iproc,'init_collco_sr','ON')
 
   allocate(istartend(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend, 'istartend', subname)
- 
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   allocate(weights_per_slice(0:nproc-1), stat=istat)
   call memocc(istat, weights_per_slice, 'weights_per_slice', subname)
@@ -498,7 +490,6 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   allocate(weights_per_zpoint(lzd%glr%d%n3i), stat=istat)
   call memocc(istat, weights_per_zpoint, 'weights_per_zpoint', subname)
 
-  call mpi_barrier(mpi_comm_world, ierr)
   call get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, weight_tot, weight_ideal, &
        weights_per_slice, weights_per_zpoint)
   call mpi_barrier(mpi_comm_world, ierr)
@@ -514,7 +505,6 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   allocate(collcom_sr%norb_per_gridpoint_c(collcom_sr%nptsp_c), stat=istat)
   call memocc(istat, collcom_sr%norb_per_gridpoint_c, 'collcom_sr%norb_per_gridpoint_c', subname)
 
-  call mpi_barrier(mpi_comm_world, ierr)
   call determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, collcom_sr%nptsp_c, lzd, orbs, &
        istartend, weight_tot, weights_per_zpoint, collcom_sr%norb_per_gridpoint_c)
   call mpi_barrier(mpi_comm_world, ierr)
@@ -528,7 +518,6 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   allocate(collcom_sr%nrecvdspls_c(0:nproc-1), stat=istat)
   call memocc(istat, collcom_sr%nrecvdspls_c, 'collcom_sr%nrecvdspls_c', subname)
 
-  call mpi_barrier(mpi_comm_world, ierr)
   call determine_communication_arrays_sumrho(iproc, nproc, collcom_sr%nptsp_c, lzd, orbs, istartend, &
        collcom_sr%norb_per_gridpoint_c, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
        collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%ndimpsi_c, collcom_sr%ndimind_c)
@@ -571,12 +560,9 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   allocate(collcom_sr%nrecvdspls_repartitionrho(0:nproc-1), stat=istat)
   call memocc(istat, collcom_sr%nrecvdspls_repartitionrho, 'collcom_sr%nrecvdspls_repartitionrho', subname)
 
-  call mpi_barrier(mpi_comm_world, ierr)
-
   call communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
        collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
        collcom_sr%nrecvcounts_repartitionrho, collcom_sr%nrecvdspls_repartitionrho)
-  call mpi_barrier(mpi_comm_world, ierr)
 
   iall = -product(shape(weights_per_zpoint))*kind(weights_per_zpoint)
   deallocate(weights_per_zpoint,stat=istat)
@@ -606,8 +592,8 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
   real(kind=8),dimension(lzd%glr%d%n3i),intent(out) :: weights_per_zpoint
 
   ! Local variables
-  integer :: iorb, iiorb, ilr, ncount, ierr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3, istat, iall
-  real(kind=8) :: tt, ttt, tmp
+  integer :: iorb, ilr, ierr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3, istat, iall
+  real(kind=8) :: tt
   real(kind=8),dimension(:,:),allocatable :: weight_xy
   character(len=*),parameter :: subname='get_weights_sumrho'
 
@@ -945,8 +931,8 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   integer,dimension(nptsp),intent(out) :: norb_per_gridpoint
 
   ! Local variables
-  integer :: i3, ii, i2, i1, ipt, norb, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr, i
-  real(8) :: tt, weight_check, t1, t2
+  integer :: i3, ii, i2, i1, ipt, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr, i
+  real(8) :: tt, weight_check
   logical :: fast
 
 
@@ -1459,13 +1445,12 @@ subroutine communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, i
 
 end subroutine communication_arrays_repartitionrho
 
-subroutine transpose_switch_psir(orbs, collcom_sr, psir, psirwork)
+subroutine transpose_switch_psir(collcom_sr, psir, psirwork)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  type(orbitals_data),intent(in) :: orbs
   type(collective_comms),intent(in) :: collcom_sr
   real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(in) :: psir
   real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(out) :: psirwork
@@ -1474,7 +1459,7 @@ subroutine transpose_switch_psir(orbs, collcom_sr, psir, psirwork)
   integer :: i, m, ind
 
   !$omp parallel default(private) &
-  !$omp shared(orbs, collcom_sr, psir, psirwork, m)
+  !$omp shared(collcom_sr, psir, psirwork, m)
 
   m = mod(collcom_sr%ndimpsi_c,7)
   if(m/=0) then
@@ -1622,7 +1607,6 @@ subroutine transpose_communicate_psirt(iproc, nproc, collcom_sr, psirtwork, psir
 
   ! Local variables
   integer :: ierr
-  character(len=*),parameter :: subname='transpose_communicate_psit'
 
   if (nproc>1) then
   call mpi_alltoallv(psirtwork, collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, mpi_double_precision, psirwork, &
@@ -1676,7 +1660,7 @@ subroutine transpose_unswitch_psir(collcom_sr, psirwork, psir)
 
 end subroutine transpose_unswitch_psir
 
-subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, denskern, ndimrho, rho)
+subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho)
   use module_base
   use module_types
   use libxc_functionals
@@ -1685,7 +1669,6 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, denskern,
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, ndimrho
   real(kind=8),intent(in) :: hx, hy, hz
-  type(orbitals_data),intent(in) :: orbs
   type(collective_comms),intent(in) :: collcom_sr
   type(sparseMatrix),intent(in) :: denskern
   real(kind=8),dimension(ndimrho),intent(out) :: rho

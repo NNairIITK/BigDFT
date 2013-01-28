@@ -13,7 +13,7 @@
 !! Each processors write its initial wavefunctions into the wavefunction file
 !! The files are then read by readwave
 subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
-     rxyz, nlpspd, proj, GPU, orbs, tmb, tmblarge, denspot, rhopotold, energs)
+     rxyz, nlpspd, proj, GPU, orbs, tmb, denspot, rhopotold, energs)
   use module_base
   use module_interfaces, exceptThisOne => inputguessConfinement
   use module_types
@@ -30,7 +30,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   type(orbitals_data),intent(inout) :: orbs
   type(DFT_wavefunction),intent(inout) :: tmb
-  type(DFT_wavefunction),intent(inout) :: tmblarge
   type(DFT_local_fields), intent(inout) :: denspot
   real(dp), dimension(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) :: rhopotold
   type(energy_terms),intent(inout) :: energs
@@ -222,7 +221,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !Calculate the density in the new scheme
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
-  call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), tmb%orbs, &
+  call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%denskern, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
   !!do istat=1,size(denspot%rhov)
@@ -262,17 +261,16 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,tmblarge,.true.)
+           input%SIC,tmb,fnrm,.true.,.false.,.true.)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,tmblarge,.true.)
+           input%SIC,tmb,fnrm,.true.,.false.,.true.)
   end if
 
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%orbs, tmb%collcom_sr, tmb%linmat%denskern, &
-       tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%collcom_sr, tmb%linmat%denskern, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
   !!!call plot_density(iproc,nproc,'initial',at,rxyz,denspot%dpbox,input%nspin,denspot%rhov)
 
@@ -310,17 +308,17 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
 
   ! Important: Don't use for the rest of the code
-  tmblarge%can_use_transposed = .false.
+  tmb%ham_descr%can_use_transposed = .false.
 
-  if(associated(tmblarge%psit_c)) then
-      iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
-      deallocate(tmblarge%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmblarge%psit_c', subname)
+  if(associated(tmb%ham_descr%psit_c)) then
+      iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
+      deallocate(tmb%ham_descr%psit_c, stat=istat)
+      call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
   end if
-  if(associated(tmblarge%psit_f)) then
-      iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
-      deallocate(tmblarge%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmblarge%psit_f', subname)
+  if(associated(tmb%ham_descr%psit_f)) then
+      iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
+      deallocate(tmb%ham_descr%psit_f, stat=istat)
+      call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
   end if
   
   if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'

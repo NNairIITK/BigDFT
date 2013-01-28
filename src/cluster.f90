@@ -250,7 +250,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(wavefunctions_descriptors) :: wfd_old
   type(local_zone_descriptors) :: lzd_old
   type(nonlocal_psp_descriptors) :: nlpspd
-  type(DFT_wavefunction) :: tmblarge
   type(DFT_wavefunction) :: VTwfn !< Virtual wavefunction
   type(DFT_wavefunction) :: tmb_old
   !!type(DFT_wavefunction) :: tmb
@@ -403,7 +402,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, iproc, nproc)
 
-     call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., tmblarge)
+     call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false.)
 
      call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%ham)
      call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
@@ -478,9 +477,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
 
-  call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-       denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
-       wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
+  call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,&
+       inputpsi,input_wf_format,norbv,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
 
   if (in%nvirt > norbv) then
      nvirt = norbv
@@ -527,7 +525,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      end if
   else
 
-     call linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,atoms,in,&
+     call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
           rxyz,denspot,denspot0,nlpspd,proj,GPU,energs,energy,fpulay,infocode)
 
      !!call finalize_p2p_tags()
@@ -822,7 +820,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
 
 
-         call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmb%hpsi)
+         call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
 
          !!!! TEST ##################
          !!fxyz=0.d0
@@ -839,7 +837,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          !!     tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
          !!call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
          !!     KSwfn%Lzd%hgrids(3),atoms,rxyz,&
-         !!     tmb%orbs,nlpspd,proj,tmb%ham_descr%lzd,tmblarge%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
+         !!     tmb%orbs,nlpspd,proj,tmb%ham_descr%lzd,tmb%ham_descr%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
          !!if (nproc > 1) then
          !!   call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
          !!end if

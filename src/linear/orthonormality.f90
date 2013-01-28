@@ -65,12 +65,12 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
 
       if (methTransformOverlap==-1) then
-          !call overlap_power_minus_one_half_per_atom(iproc, nproc, bigdft_mpi%mpi_comm, orbs, lzd, collcom, ovrlp, inv_ovrlp_half)
+          !call overlap_power_minus_one_half_per_atom(iproc, nproc, bigdft_mpi%mpi_comm, orbs, lzd, ovrlp, inv_ovrlp_half)
           call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, 0, orthpar%blocksize_pdsyev, &
-              orthpar%blocksize_pdgemm, orbs%norb, orbs%norbp, orbs%isorb, ovrlp, inv_ovrlp_half)
+              orthpar%blocksize_pdgemm, orbs%norb, ovrlp, inv_ovrlp_half)
       else
           call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
-              orthpar%blocksize_pdgemm, orbs%norb, orbs%norbp, orbs%isorb, ovrlp, inv_ovrlp_half)
+              orthpar%blocksize_pdgemm, orbs%norb, ovrlp, inv_ovrlp_half)
       end if
 
       allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
@@ -80,7 +80,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 
       call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
       call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
-      call build_linear_combination_transposed(orbs%norb, collcom, inv_ovrlp_half, &
+      call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
       allocate(norm(orbs%norb), stat=istat)
       call memocc(istat, norm, 'norm', subname)
@@ -244,8 +244,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       end do
   end do
 
-  call build_linear_combination_transposed(orbs%norb, collcom, &
-       tmp_mat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+  call build_linear_combination_transposed(collcom, tmp_mat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
   call deallocate_sparseMatrix(tmp_mat, subname)
 
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
@@ -476,14 +475,14 @@ end subroutine overlapPowerMinusOne
 
 
 subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-           blocksize_pdgemm, norb, norbp, isorb, ovrlp, inv_ovrlp_half)
+           blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half)
   use module_base
   use module_types
   use module_interfaces
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
+  integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
   type(sparseMatrix),intent(inout) :: ovrlp
   type(sparseMatrix),intent(out) :: inv_ovrlp_half
 
@@ -675,7 +674,7 @@ subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
 end subroutine deviation_from_unity
 
 
-subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, collcom, ovrlp, inv_ovrlp_half)
+subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, ovrlp, inv_ovrlp_half)
   use module_base
   use module_types
   use module_interfaces
@@ -685,7 +684,6 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
   integer,intent(in) :: iproc, nproc, comm
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
-  type(collective_comms),intent(in) :: collcom
   type(sparseMatrix),intent(in) :: ovrlp
   type(sparseMatrix),intent(inout) :: inv_ovrlp_half
 
@@ -700,8 +698,6 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
   allocate(in_neighborhood(orbs%norb), stat=istat)
   call memocc(istat, in_neighborhood, 'in_neighborhood', subname)
   call to_zero(inv_ovrlp_half%nvctr, inv_ovrlp_half%matrix_compr(1))
-
-
 
           jjorb=0
           do jorb=1,orbs%norb
@@ -770,7 +766,7 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
 !end do
 
      ! Calculate S^-1/2 for the small overlap matrix
-     call overlapPowerMinusOneHalf_old(iproc, nproc, comm, 0, -8, -8, n, 0, 0, ovrlp_tmp, ovrlp_tmp_inv_half)
+     call overlapPowerMinusOneHalf_old(iproc, nproc, comm, 0, -8, -8, n, ovrlp_tmp, ovrlp_tmp_inv_half)
 !print*,''
 !print*,'inv_ovrlp_tmp',n,iorb
 !do jorb=1,n
@@ -845,7 +841,7 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
   real(kind=8),dimension(norb,norb),intent(inout) :: inv_ovrlp_half
   
   ! Local variables
-  integer :: lwork, istat, iall, iorb, jorb, info, iseg, iiorb, jjorb
+  integer :: lwork, istat, iall, iorb, jorb, info
   character(len=*),parameter :: subname='overlapPowerMinusOneHalf'
   real(kind=8),dimension(:),allocatable :: eval, work
   real(kind=8),dimension(:,:,:),allocatable :: tempArr

@@ -28,7 +28,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   integer:: iorb, jorb, korb, lorb, istat, iall, info, iiorb, ierr
   real(8),dimension(:,:),allocatable:: lagmat, rhs, ovrlp_tmp, ovrlp_coeff, gradp,coeffp
   integer,dimension(:),allocatable:: ipiv
-  real(8):: tt, ddot, mean_alpha, dnrm2, ttav
+  real(8):: tt, ddot
   character(len=*),parameter:: subname='optimize_coeffs'
 
   allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
@@ -219,7 +219,7 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
   integer:: ialpha, ibeta
   real(8),dimension(:,:),allocatable:: lagmat, rhs, ovrlp_tmp, ovrlp_coeff, grad
   integer,dimension(:),allocatable:: ipiv
-  real(8):: tt, ddot, mean_alpha, dnrm2, ttav
+  real(8):: tt, ddot
   character(len=*),parameter:: subname='optimize_coeffs2'
 
   allocate(lagmat(orbs%norb,orbs%norb), stat=istat)

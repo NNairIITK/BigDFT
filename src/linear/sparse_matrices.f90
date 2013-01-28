@@ -532,7 +532,7 @@ subroutine check_matrix_compression(iproc,sparsemat)
   integer,intent(in) :: iproc
   type(sparseMatrix),intent(inout) :: sparsemat
   !Local variables
-  integer :: i_stat, i_all, iorb, jorb, irow, icol, iseg, ii
+  integer :: i_stat, i_all, jorb, irow, icol, iseg, ii
   character(len=*),parameter :: subname='check_matrix_compression'
   real(kind=8) :: maxdiff
   real(kind=8), parameter :: tol=1.e-10

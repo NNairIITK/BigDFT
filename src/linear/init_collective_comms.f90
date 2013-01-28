@@ -23,11 +23,10 @@ subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom,
   
   ! Local variables
   integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
-  integer :: ipt, jproc, nvalp_c, nvalp_f, imin, imax, jorb, kproc, jjorb, isend, irecv
-  integer :: compressed_index
+  integer :: ipt, nvalp_c, nvalp_f
   real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
   real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, t1, t2
-  integer,dimension(:,:),allocatable :: istartend_c, istartend_f, sendbuf, requests, iminmaxarr
+  integer,dimension(:,:),allocatable :: istartend_c, istartend_f
   integer,dimension(:,:,:),allocatable :: index_in_global_c, index_in_global_f
   integer,dimension(:),allocatable :: npts_par_c, npts_par_f
   character(len=*),parameter :: subname='init_collective_comms'
@@ -3060,14 +3059,13 @@ subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 end subroutine calculate_pulay_overlap
 
-subroutine build_linear_combination_transposed(norb, collcom, sparsemat, psitwork_c, psitwork_f, &
+subroutine build_linear_combination_transposed(collcom, sparsemat, psitwork_c, psitwork_f, &
      reset, psit_c, psit_f, iproc)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: norb
   type(sparseMatrix),intent(in) :: sparsemat
   type(collective_comms),intent(in) :: collcom
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c

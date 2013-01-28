@@ -1041,7 +1041,7 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
   character(len=*),intent(in):: subname
 
   ! Local variables
-  integer:: istat, iall, i1, iis1, iie1
+  integer:: istat, i1, iis1, iie1
 
   lzd_out%linear=lzd_in%linear
   lzd_out%nlr=lzd_in%nlr

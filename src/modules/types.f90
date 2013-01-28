@@ -815,6 +815,8 @@ module module_types
      	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
      type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
      	type(matrixDescriptors_foe):: mad !<describes the structure of the matrices
+        real(wp), dimension(:), pointer :: psi,psit_c,psit_f !< these should eventually be eliminated
+        logical:: can_use_transposed
   end type hamiltonian_descriptors
 
   !> The wavefunction which have to be considered at the DFT level

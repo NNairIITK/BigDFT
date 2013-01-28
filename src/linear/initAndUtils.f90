@@ -217,9 +217,8 @@ subroutine initMatrixCompression_foe(iproc, nproc, lzd, at, input, orbs, mad)
   type(matrixDescriptors_foe),intent(out) :: mad
   
   ! Local variables
-  integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, irow, irowold, isegline, ilr, jlr
-  integer :: iwa, jwa, itype, jtype, ierr, nseglinemax, iall
-  integer,dimension(:,:,:),pointer:: keygline
+  integer :: iorb, jorb, iiorb, jjorb, istat, iseg, ilr, jlr
+  integer :: iwa, jwa, itype, jtype, ierr, iall
   logical :: seg_started
   real(kind=8) :: tt, cut
   logical,dimension(:,:),allocatable :: kernel_locreg
@@ -1163,7 +1162,7 @@ end subroutine update_auxiliary_basis_function
 
 
 
-subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged, tmblarge)
+subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged)
   use module_base
   use module_types
   use module_interfaces, except_this_one => create_large_tmbs
@@ -1177,7 +1176,6 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
   type(atoms_data),intent(in):: at
   real(8),dimension(3,at%nat),intent(in):: rxyz
   logical,intent(in):: lowaccur_converged
-  type(DFT_Wavefunction),intent(out):: tmblarge
 
   ! Local variables
   integer:: iorb, ilr, istat, iall
@@ -1198,23 +1196,17 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
       locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
   end do
 
-  ! to be removed
-  call nullify_collective_comms(tmblarge%collcom_sr)
-  call nullify_p2pcomms(tmblarge%comgp)
-  call nullify_collective_comms(tmblarge%collcom)
-  call nullify_local_zone_descriptors(tmblarge%lzd)
-
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, locregCenter, tmb%lzd%glr, &
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        at, input, tmb%orbs, tmb%ham_descr%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
        tmb%ham_descr%comgp, tmb%ham_descr%mad, tmb%ham_descr%collcom)
 
   call allocate_auxiliary_basis_function(max(tmb%ham_descr%npsidim_comp,tmb%ham_descr%npsidim_orbs), subname, &
-       tmblarge%psi, tmb%hpsi)
+       tmb%ham_descr%psi, tmb%hpsi)
 
-  tmblarge%can_use_transposed=.false.
-  nullify(tmblarge%psit_c)
-  nullify(tmblarge%psit_f)
+  tmb%ham_descr%can_use_transposed=.false.
+  nullify(tmb%ham_descr%psit_c)
+  nullify(tmb%ham_descr%psit_f)
   allocate(tmb%confdatarr(tmb%orbs%norbp), stat=istat)
 
   if(.not.lowaccur_converged) then
