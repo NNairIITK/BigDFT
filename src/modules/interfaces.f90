@@ -2799,7 +2799,7 @@ module module_interfaces
        real(wp), dimension(:), pointer, optional :: psirocc
      end subroutine FullHamiltonianApplication
 
-       subroutine init_foe(iproc, nproc, lzd, at, input, orbs, foe_obj)
+       subroutine init_foe(iproc, nproc, lzd, at, input, orbs, foe_obj, reset)
          use module_base
          use module_types
          implicit none
@@ -2809,6 +2809,7 @@ module module_interfaces
          type(input_variables),intent(in) :: input
          type(orbitals_data),intent(in):: orbs
          type(foe_data),intent(out):: foe_obj
+         logical, intent(in) :: reset
        end subroutine init_foe
 
        subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)

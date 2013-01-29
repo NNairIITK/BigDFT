@@ -203,7 +203,7 @@ function megabytes(bytes)
   
 end function megabytes
 
-subroutine init_foe(iproc, nproc, lzd, at, input, orbs, foe_obj)
+subroutine init_foe(iproc, nproc, lzd, at, input, orbs, foe_obj, reset)
   use module_base
   use module_types
   implicit none
@@ -215,6 +215,7 @@ subroutine init_foe(iproc, nproc, lzd, at, input, orbs, foe_obj)
   type(input_variables),intent(in) :: input
   type(orbitals_data),intent(in) :: orbs
   type(foe_data),intent(out) :: foe_obj
+  logical, intent(in) :: reset
   
   ! Local variables
   integer :: iorb, jorb, iiorb, jjorb, istat, iseg, ilr, jlr
@@ -227,14 +228,15 @@ subroutine init_foe(iproc, nproc, lzd, at, input, orbs, foe_obj)
   
   call timing(iproc,'init_matrCompr','ON')
 
-  foe_obj%ef=0.d0
-  foe_obj%evlow=input%lin%evlow
-  foe_obj%evhigh=input%lin%evhigh
-  foe_obj%bisection_shift=1.d-1
-  foe_obj%fscale=input%lin%fscale
-  foe_obj%ef_interpol_det=input%lin%ef_interpol_det
-  foe_obj%ef_interpol_chargediff=input%lin%ef_interpol_chargediff
-
+  if (reset) then
+     foe_obj%ef=0.d0
+     foe_obj%evlow=input%lin%evlow
+     foe_obj%evhigh=input%lin%evhigh
+     foe_obj%bisection_shift=1.d-1
+     foe_obj%fscale=input%lin%fscale
+     foe_obj%ef_interpol_det=input%lin%ef_interpol_det
+     foe_obj%ef_interpol_chargediff=input%lin%ef_interpol_chargediff
+  end if
 
   call nullify_foe(foe_obj)
 
@@ -832,7 +834,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
 
   call timing(iproc,'updatelocreg1','OF') 
 
-  if (present(lfoe)) call init_foe(iproc, nproc, lzd, at, input, orbs, lfoe)
+  if (present(lfoe)) call init_foe(iproc, nproc, lzd, at, input, orbs, lfoe, .false.)
 
   call init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, lbcollcom)
   if (present(lbcollcom_sr)) then
