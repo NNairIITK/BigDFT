@@ -231,7 +231,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!stop
 
 
-
   if (input%lin%mixing_after_inputguess) then
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
            .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then

@@ -28,7 +28,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   logical,intent(inout) :: can_use_transposed
 
   ! Local variables
-  integer :: it, istat, iall
+  integer :: it, istat, iall, iorb, jorb
   real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm
   type(sparseMatrix) :: inv_ovrlp_half
   character(len=*),parameter :: subname='orthonormalizeLocalized'
@@ -65,9 +65,34 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
 
       if (methTransformOverlap==-1) then
-          !call overlap_power_minus_one_half_per_atom(iproc, nproc, bigdft_mpi%mpi_comm, orbs, ovrlp, inv_ovrlp_half)
-          call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, 0, orthpar%blocksize_pdsyev, &
-              orthpar%blocksize_pdgemm, orbs%norb, ovrlp, inv_ovrlp_half)
+          call overlap_power_minus_one_half_parallel(iproc, nproc, bigdft_mpi%mpi_comm, orbs, ovrlp, inv_ovrlp_half)
+          !DEBUG
+          !allocate(inv_ovrlp_half%matrix(orbs%norb,orbs%norb))
+          !call uncompressMatrix(inv_ovrlp_half)
+          !if (iproc==0) then
+          !do iorb=1,orbs%norb
+          !do jorb=1,orbs%norb
+          !write(10,*) iorb,jorb,inv_ovrlp_half%matrix(iorb,jorb)
+          !end do
+          !end do
+          !end if
+          !deallocate(inv_ovrlp_half%matrix)
+          !call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, 0, orthpar%blocksize_pdsyev, &
+          !    orthpar%blocksize_pdgemm, orbs%norb, ovrlp, inv_ovrlp_half)
+
+          !allocate(inv_ovrlp_half%matrix(orbs%norb,orbs%norb))
+          !call uncompressMatrix(inv_ovrlp_half)
+          !if (iproc==0) then
+          !do iorb=1,orbs%norb
+          !do jorb=1,orbs%norb
+          !write(11,*) iorb,jorb,inv_ovrlp_half%matrix(iorb,jorb)
+          !end do
+          !end do
+          !end if
+          !deallocate(inv_ovrlp_half%matrix)
+          !call mpi_finalize(istat)
+          !stop
+          !END DEBUG
       else
           call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
               orthpar%blocksize_pdgemm, orbs%norb, ovrlp, inv_ovrlp_half)
@@ -669,7 +694,7 @@ subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
 end subroutine deviation_from_unity
 
 
-subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, ovrlp, inv_ovrlp_half)
+subroutine overlap_power_minus_one_half_parallel(iproc, nproc, comm, orbs, ovrlp, inv_ovrlp_half)
   use module_base
   use module_types
   use module_interfaces
@@ -682,50 +707,53 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, ovrlp
   type(sparseMatrix),intent(inout) :: inv_ovrlp_half
 
   ! Local variables
-  integer :: iend, i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb, ilr
+  integer :: iend, i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
   integer :: iiorb, ierr, ii, iseg, ind
   real(kind=8),dimension(:,:),allocatable :: ovrlp_tmp, ovrlp_tmp_inv_half
   logical,dimension(:),allocatable :: in_neighborhood
-  character(len=*),parameter :: subname='overlap_power_minus_one_half_per_atom'
+  character(len=*),parameter :: subname='overlap_power_minus_one_half_parallel'
 
 
   allocate(in_neighborhood(orbs%norb), stat=istat)
   call memocc(istat, in_neighborhood, 'in_neighborhood', subname)
   call to_zero(inv_ovrlp_half%nvctr, inv_ovrlp_half%matrix_compr(1))
 
-          jjorb=0
-          do jorb=1,orbs%norb
-              do korb=1,orbs%norb
-                  ind = ovrlp%matrixindex_in_compressed(korb, jorb)
-                  if (ind>0) then
-                      print*, korb,jorb,ovrlp%matrix_compr(ind)
-                  else
-                      print*, korb,jorb,0.0d0
-                  end if
-                  !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
-              end do
-          end do
-
+  !DEBUG
+  !if (iproc==0) then
+  !   jjorb=0
+  !   do jorb=1,orbs%norb
+  !      do korb=1,orbs%norb
+  !         ind = ovrlp%matrixindex_in_compressed(korb, jorb)
+  !         if (ind>0) then
+  !            print*, korb,jorb,ovrlp%matrix_compr(ind)
+  !         else
+  !            print*, korb,jorb,0.0d0
+  !         end if
+  !         !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+  !      end do
+  !   end do
+  !end if
+  !call mpi_barrier(bigdft_mpi%mpi_comm,istat)
 
   do iorb=1,orbs%norbp
      iiorb=orbs%isorb+iorb
-     ilr=orbs%inwhichlocreg(iiorb)
+     !ilr=orbs%inwhichlocreg(iiorb)
      ! We are at the start of a new atom
      ! Count all orbitals that are in the neighborhood
 
-     iseg=ovrlp%istsegline(iiorb)
+     iseg=inv_ovrlp_half%istsegline(iiorb)
      iend=iiorb*orbs%norb
      n=0
      in_neighborhood(:)=.false.
      do 
-        do i=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
+        do i=inv_ovrlp_half%keyg(1,iseg),inv_ovrlp_half%keyg(2,iseg)
            ii=i-(iiorb-1)*orbs%norb
            in_neighborhood(ii)=.true.
            n=n+1
         end do
         iseg=iseg+1
-        if (iseg>ovrlp%nseg) exit
-        if (ovrlp%keyg(1,iseg)>iend) exit
+        if (iseg>inv_ovrlp_half%nseg) exit
+        if (inv_ovrlp_half%keyg(1,iseg)>iend) exit
      end do
 
      allocate(ovrlp_tmp(n,n), stat=istat)
@@ -753,19 +781,24 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, ovrlp
      allocate(ovrlp_tmp_inv_half(n,n))
      call memocc(istat, ovrlp_tmp_inv_half, 'ovrlp_tmp_inv_half', subname)
 
-!print*,''
-!print*,'ovrlp_tmp',n,iorb
-!do jorb=1,n
-!print*,jorb,ovrlp_tmp(:,jorb)
-!end do
+     !if (iiorb==orbs%norb) then
+     !print*,''
+     !print*,'ovrlp_tmp',n,iiorb
+     !do jorb=1,n
+     !print*,jorb,ovrlp_tmp(:,jorb)
+     !end do
+     !end if
 
      ! Calculate S^-1/2 for the small overlap matrix
      call overlapPowerMinusOneHalf_old(iproc, nproc, comm, 0, -8, -8, n, ovrlp_tmp, ovrlp_tmp_inv_half)
-!print*,''
-!print*,'inv_ovrlp_tmp',n,iorb
-!do jorb=1,n
-!print*,jorb,ovrlp_tmp_inv_half(:,jorb)
-!end do
+
+     !if (iiorb==orbs%norb) then
+     !print*,''
+     !print*,'inv_ovrlp_tmp',n,iiorb
+     !do jorb=1,n
+     !print*,jorb,ovrlp_tmp_inv_half(:,jorb)
+     !end do
+     !end if
 
      jjorb=0
      do jorb=1,orbs%norb
@@ -776,12 +809,14 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, ovrlp
            do korb=1,orbs%norb
               if (.not.in_neighborhood(korb)) cycle
               kkorb=kkorb+1
-              ind = inv_ovrlp_half%matrixindex_in_compressed(jorb, korb)
+              ind = inv_ovrlp_half%matrixindex_in_compressed(korb,jorb)
               if (ind>0) then
                  inv_ovrlp_half%matrix_compr(ind)=ovrlp_tmp_inv_half(kkorb,jjorb)
+                 !if (iiorb==orbs%norb) print*,'problem here?!',iiorb,kkorb,jjorb,korb,jorb,ind,ovrlp_tmp_inv_half(kkorb,jjorb)
               end if
               !write(1300+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
            end do
+           exit !no need to keep looping
         end if
      end do
 
@@ -794,31 +829,30 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, ovrlp
      call memocc(istat, iall, 'ovrlp_tmp', subname)
   end do
 
-  call mpiallred(inv_ovrlp_half%matrix_compr(1), ovrlp%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(inv_ovrlp_half%matrix_compr(1), inv_ovrlp_half%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   iall=-product(shape(in_neighborhood))*kind(in_neighborhood)
   deallocate(in_neighborhood, stat=istat)
   call memocc(istat, iall, 'in_neighborhood', subname)
 
+  !if (iproc==0) then
+  !   jjorb=0
+  !   do jorb=1,orbs%norb
+  !      do korb=1,orbs%norb
+  !         ind = inv_ovrlp_half%matrixindex_in_compressed(korb, jorb)
+  !         if (ind>0) then
+  !            print*, korb,jorb,inv_ovrlp_half%matrix_compr(ind)
+  !         else
+  !            print*, korb,jorb,0.0d0
+  !         end if
+  !         !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+  !      end do
+  !   end do
+  !end if
+  !call mpi_finalize(ind)
+  !stop
 
-if (iproc==0) then
-          jjorb=0
-          do jorb=1,orbs%norb
-              do korb=1,orbs%norb
-                  ind = inv_ovrlp_half%matrixindex_in_compressed(korb, jorb)
-                  if (ind>0) then
-                      print*, korb,jorb,inv_ovrlp_half%matrix_compr(ind)
-                  else
-                      print*, korb,jorb,0.0d0
-                  end if
-                  !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
-              end do
-          end do
-end if
-
-call mpi_finalize(ind)
-stop
-end subroutine overlap_power_minus_one_half_per_atom
+end subroutine overlap_power_minus_one_half_parallel
 
 
 ! Should be used if sparsemat is not available... to be cleaned
