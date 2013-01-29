@@ -241,71 +241,73 @@ subroutine init_foe(iproc, nproc, lzd, at, input, orbs, foe_obj, reset)
   call nullify_foe(foe_obj)
 
   ! Initialize kernel_locreg
-  allocate(kernel_locreg(orbs%norbp,orbs%norb), stat=istat)
-  call memocc(istat, kernel_locreg, 'kernel_locreg', subname)
-  allocate(foe_obj%kernel_nseg(orbs%norb), stat=istat)
-  call memocc(istat, foe_obj%kernel_nseg, 'foe_obj%kernel_nseg', subname)
-  call to_zero(orbs%norb, foe_obj%kernel_nseg(1))
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      ilr=orbs%inwhichlocreg(iiorb)
-      iwa=orbs%onwhichatom(iiorb)
-      itype=at%iatype(iwa)
-      foe_obj%kernel_nseg(iiorb)=0
-      seg_started=.false.
-      do jjorb=1,orbs%norb
-          jlr=orbs%inwhichlocreg(jjorb)
-          jwa=orbs%onwhichatom(jjorb)
-          jtype=at%iatype(jwa)
-          tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
-               (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
-               (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
-          cut = input%lin%kernel_cutoff(itype)+input%lin%kernel_cutoff(jtype)
-          tt=sqrt(tt)
-          if (tt<=cut) then
+  if (input%lin%scf_mode==LINEAR_FOE) then ! otherwise don't need to allocate just nullify as above
+     allocate(kernel_locreg(orbs%norbp,orbs%norb), stat=istat)
+     call memocc(istat, kernel_locreg, 'kernel_locreg', subname)
+     allocate(foe_obj%kernel_nseg(orbs%norb), stat=istat)
+     call memocc(istat, foe_obj%kernel_nseg, 'foe_obj%kernel_nseg', subname)
+     call to_zero(orbs%norb, foe_obj%kernel_nseg(1))
+     do iorb=1,orbs%norbp
+        iiorb=orbs%isorb+iorb
+        ilr=orbs%inwhichlocreg(iiorb)
+        iwa=orbs%onwhichatom(iiorb)
+        itype=at%iatype(iwa)
+        foe_obj%kernel_nseg(iiorb)=0
+        seg_started=.false.
+        do jjorb=1,orbs%norb
+           jlr=orbs%inwhichlocreg(jjorb)
+           jwa=orbs%onwhichatom(jjorb)
+           jtype=at%iatype(jwa)
+           tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
+                (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
+                (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
+           cut = input%lin%kernel_cutoff(itype)+input%lin%kernel_cutoff(jtype)
+           tt=sqrt(tt)
+           if (tt<=cut) then
               kernel_locreg(iorb,jjorb)=.true.
               if (.not.seg_started) then
-                  foe_obj%kernel_nseg(iiorb)=foe_obj%kernel_nseg(iiorb)+1
+                 foe_obj%kernel_nseg(iiorb)=foe_obj%kernel_nseg(iiorb)+1
               end if
               seg_started=.true.
-          else
+           else
               kernel_locreg(iorb,jjorb)=.false.
               seg_started=.false.
-          end if
-      end do
-  end do
-  call mpiallred(foe_obj%kernel_nseg(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+           end if
+        end do
+     end do
+     call mpiallred(foe_obj%kernel_nseg(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-  allocate(foe_obj%kernel_segkeyg(2,maxval(foe_obj%kernel_nseg),orbs%norb), stat=istat)
-  call memocc(istat, foe_obj%kernel_segkeyg, 'foe_obj%kernel_segkeyg', subname)
-  call to_zero(2*maxval(foe_obj%kernel_nseg)*orbs%norb, foe_obj%kernel_segkeyg(1,1,1))
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      iseg=0
-      seg_started=.false.
-      do jjorb=1,orbs%norb
-          if(kernel_locreg(iorb,jjorb)) then
+     allocate(foe_obj%kernel_segkeyg(2,maxval(foe_obj%kernel_nseg),orbs%norb), stat=istat)
+     call memocc(istat, foe_obj%kernel_segkeyg, 'foe_obj%kernel_segkeyg', subname)
+     call to_zero(2*maxval(foe_obj%kernel_nseg)*orbs%norb, foe_obj%kernel_segkeyg(1,1,1))
+     do iorb=1,orbs%norbp
+        iiorb=orbs%isorb+iorb
+        iseg=0
+        seg_started=.false.
+        do jjorb=1,orbs%norb
+           if(kernel_locreg(iorb,jjorb)) then
               if (.not.seg_started) then
-                  iseg=iseg+1
-                  foe_obj%kernel_segkeyg(1,iseg,iiorb)=jjorb
+                 iseg=iseg+1
+                 foe_obj%kernel_segkeyg(1,iseg,iiorb)=jjorb
               end if
               seg_started=.true.
-          else
+           else
               if (seg_started) then
-                  foe_obj%kernel_segkeyg(2,iseg,iiorb)=jjorb-1
+                 foe_obj%kernel_segkeyg(2,iseg,iiorb)=jjorb-1
               end if
               seg_started=.false.
-          end if
-      end do
-      if (seg_started) then
-          foe_obj%kernel_segkeyg(2,iseg,iiorb)=orbs%norb
-      end if
-  end do
-  call mpiallred(foe_obj%kernel_segkeyg(1,1,1), 2*maxval(foe_obj%kernel_nseg)*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+           end if
+        end do
+        if (seg_started) then
+           foe_obj%kernel_segkeyg(2,iseg,iiorb)=orbs%norb
+        end if
+     end do
+     call mpiallred(foe_obj%kernel_segkeyg(1,1,1), 2*maxval(foe_obj%kernel_nseg)*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-  iall = -product(shape(kernel_locreg))*kind(kernel_locreg) 
-  deallocate(kernel_locreg,stat=istat)
-  call memocc(istat,iall,'kernel_locreg',subname)
+     iall = -product(shape(kernel_locreg))*kind(kernel_locreg) 
+     deallocate(kernel_locreg,stat=istat)
+     call memocc(istat,iall,'kernel_locreg',subname)
+  end if
 
   call timing(iproc,'init_matrCompr','OF')
 
