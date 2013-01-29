@@ -458,7 +458,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   if (input%lin%pulay_correction) then
       if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
       !!! Testing energy corrections due to locrad
-      !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%wfnmd%coeff) 
+      !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%coeff) 
       ! Calculate Pulay correction to the forces
       call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, fpulay)
   else
@@ -481,7 +481,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !Write the linear wavefunctions to file if asked
   if(input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
     call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
-       max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,at,rxyz,tmb%psi,tmb%wfnmd%coeff)
+       max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,at,rxyz,tmb%psi,tmb%coeff)
   end if
 
   !DEBUG
@@ -895,7 +895,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      npsidim_orbs_tmp = tmb%npsidim_orbs
      npsidim_comp_tmp = tmb%npsidim_comp
 
-     call deallocate_matrixDescriptors_foe(tmb%mad, subname)
+     call deallocate_foe(tmb%foe_obj, subname)
 
      call deallocate_sparseMatrix(tmb%linmat%denskern, subname)
      !call deallocate_sparseMatrix(tmb%linmat%inv_ovrlp, subname)
@@ -910,7 +910,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, locregCenter, lzd_tmp%glr, .false., &
           denspot%dpbox%nscatterarr, hx, hy, hz, at, input, tmb%orbs, tmb%lzd, tmb%npsidim_orbs, tmb%npsidim_comp, &
-          tmb%comgp, tmb%mad, tmb%collcom, tmb%collcom_sr)
+          tmb%comgp, tmb%collcom, tmb%foe_obj, tmb%collcom_sr)
 
      iall=-product(shape(locregCenter))*kind(locregCenter)
      deallocate(locregCenter, stat=istat)
@@ -948,9 +948,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
      call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
      call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
-     call deallocate_matrixDescriptors_foe(tmb%ham_descr%mad, subname)
      call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
-
 
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
      if(tmb%ham_descr%can_use_transposed) then
@@ -1212,9 +1210,9 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
                   kernel = 0.d0
                   ekernel= 0.d0
                   do iorb=1,orbs%norb
-                      kernel  = kernel+orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb)
+                      kernel  = kernel+orbs%occup(iorb)*tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb)
                       ekernel = ekernel+tmb%orbs%eval(iorb)*orbs%occup(iorb) &
-                           *tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb) 
+                           *tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb) 
                   end do
                   fpulay(jdir,jat)=fpulay(jdir,jat)+&
                          2.0_gp*(kernel*dham(jdir)%matrix_compr(ii)-ekernel*dovrlp(jdir)%matrix_compr(ii))
@@ -1282,12 +1280,12 @@ end subroutine pulay_correction
 !!  ! Local variables
 !!  integer :: iorb, jorb, jjorb
 !!
-!!  call to_zero(tmbder%orbs%norb*orbs%norb, tmbder%wfnmd%coeff(1,1))
+!!  call to_zero(tmbder%orbs%norb*orbs%norb, tmbder%coeff(1,1))
 !!  do iorb=1,orbs%norb
 !!      jjorb=0
 !!      do jorb=1,tmbder%orbs%norb,4
 !!          jjorb=jjorb+1
-!!          tmbder%wfnmd%coeff(jorb,iorb)=tmb%wfnmd%coeff(jjorb,iorb)
+!!          tmbder%coeff(jorb,iorb)=tmb%coeff(jjorb,iorb)
 !!      end do
 !!  end do
 !!

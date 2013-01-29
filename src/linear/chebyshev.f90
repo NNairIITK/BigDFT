@@ -37,9 +37,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovr
   norbp = tmb%orbs%norbp
   isorb = tmb%orbs%isorb
 
-  call init_onedimindices(norbp, isorb, tmb%mad, sparsemat, nout, onedimindices)
+  call init_onedimindices(norbp, isorb, tmb%foe_obj, sparsemat, nout, onedimindices)
 
-  call determine_sequential_length(norbp, isorb, norb, tmb%mad, sparsemat, nseq, nmaxsegk, nmaxvalk)
+  call determine_sequential_length(norbp, isorb, norb, tmb%foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk)
 
 
   allocate(ham_compr_seq(nseq), stat=istat)
@@ -51,7 +51,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovr
   allocate(ivectorindex(nseq), stat=istat)
   call memocc(istat, ivectorindex, 'ivectorindex', subname)
 
-  call get_arrays_for_sequential_acces(norbp, isorb, norb, tmb%mad, sparsemat, nseq, nmaxsegk, nmaxvalk, &
+  call get_arrays_for_sequential_acces(norbp, isorb, norb, tmb%foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk, &
        istindexarr, ivectorindex)
 
 
@@ -81,11 +81,11 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovr
       end if
   end if
 
-  call sequential_acces_matrix(norbp, isorb, norb, tmb%mad, sparsemat, ham_compr, nseq, nmaxsegk, nmaxvalk, &
+  call sequential_acces_matrix(norbp, isorb, norb, tmb%foe_obj, sparsemat, ham_compr, nseq, nmaxsegk, nmaxvalk, &
        ham_compr_seq)
 
 
-  call sequential_acces_matrix(norbp, isorb, norb, tmb%mad, sparsemat, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
+  call sequential_acces_matrix(norbp, isorb, norb, tmb%foe_obj, sparsemat, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
        ovrlp_compr_seq)
 
   allocate(vectors(norb,norbp,4), stat=istat)
@@ -126,7 +126,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovr
 
       end if
 
-      call sequential_acces_matrix(norbp, isorb, norb, tmb%mad, sparsemat, SHS, nseq, nmaxsegk, &
+      call sequential_acces_matrix(norbp, isorb, norb, tmb%foe_obj, sparsemat, SHS, nseq, nmaxsegk, &
            nmaxvalk, SHS_seq)
 
   end if
@@ -407,14 +407,14 @@ end subroutine axpy_kernel_vectors
 
 
 
-subroutine determine_sequential_length(norbp, isorb, norb, mad, sparsemat, nseq, nmaxsegk, nmaxvalk)
+subroutine determine_sequential_length(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb, norb
-  type(matrixDescriptors_foe),intent(in) :: mad
+  type(foe_data),intent(in) :: foe_obj
   type(sparseMatrix),intent(in) :: sparsemat
   integer,intent(out) :: nseq, nmaxsegk, nmaxvalk
 
@@ -426,10 +426,10 @@ subroutine determine_sequential_length(norbp, isorb, norb, mad, sparsemat, nseq,
   nmaxvalk=0
   do i = 1,norbp
      ii=isorb+i
-     nmaxsegk=max(nmaxsegk,mad%kernel_nseg(ii))
-     do iseg=1,mad%kernel_nseg(ii)
-          nmaxvalk=max(nmaxvalk,mad%kernel_segkeyg(2,iseg,ii)-mad%kernel_segkeyg(1,iseg,ii)+1)
-          do iorb=mad%kernel_segkeyg(1,iseg,ii),mad%kernel_segkeyg(2,iseg,ii)
+     nmaxsegk=max(nmaxsegk,foe_obj%kernel_nseg(ii))
+     do iseg=1,foe_obj%kernel_nseg(ii)
+          nmaxvalk=max(nmaxvalk,foe_obj%kernel_segkeyg(2,iseg,ii)-foe_obj%kernel_segkeyg(1,iseg,ii)+1)
+          do iorb=foe_obj%kernel_segkeyg(1,iseg,ii),foe_obj%kernel_segkeyg(2,iseg,ii)
               do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
                   do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
                       nseq=nseq+1
@@ -444,14 +444,14 @@ end subroutine determine_sequential_length
 
 
 
-subroutine init_onedimindices(norbp, isorb, mad, sparsemat, nout, onedimindices)
+subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb
-  type(matrixDescriptors_foe),intent(in) :: mad
+  type(foe_data),intent(in) :: foe_obj
   type(sparseMatrix),intent(in) :: sparsemat
   integer,intent(out) :: nout
   integer,dimension(:,:),pointer :: onedimindices
@@ -464,8 +464,8 @@ subroutine init_onedimindices(norbp, isorb, mad, sparsemat, nout, onedimindices)
   nout=0
   do i = 1,norbp
      iii=isorb+i
-     do iseg=1,mad%kernel_nseg(iii)
-          do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+     do iseg=1,foe_obj%kernel_nseg(iii)
+          do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
               nout=nout+1
           end do
       end do
@@ -478,8 +478,8 @@ subroutine init_onedimindices(norbp, isorb, mad, sparsemat, nout, onedimindices)
   itot=1
   do i = 1,norbp
      iii=isorb+i
-     do iseg=1,mad%kernel_nseg(iii)
-          do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+     do iseg=1,foe_obj%kernel_nseg(iii)
+          do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
               ii=ii+1
               onedimindices(1,ii)=i
               onedimindices(2,ii)=iorb
@@ -498,7 +498,7 @@ end subroutine init_onedimindices
 
 
 
-subroutine get_arrays_for_sequential_acces(norbp, isorb, norb, mad, sparsemat, nseq, nmaxsegk, nmaxvalk, &
+subroutine get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk, &
            istindexarr, ivectorindex)
   use module_base
   use module_types
@@ -506,7 +506,7 @@ subroutine get_arrays_for_sequential_acces(norbp, isorb, norb, mad, sparsemat, n
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
-  type(matrixDescriptors_foe),intent(in) :: mad
+  type(foe_data),intent(in) :: foe_obj
   type(sparseMatrix),intent(in) :: sparsemat
   integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(out) :: istindexarr
   integer,dimension(nseq),intent(out) :: ivectorindex
@@ -518,9 +518,9 @@ subroutine get_arrays_for_sequential_acces(norbp, isorb, norb, mad, sparsemat, n
   ii=1
   do i = 1,norbp
      iii=isorb+i
-     do iseg=1,mad%kernel_nseg(iii)
-          do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
-              istindexarr(iorb-mad%kernel_segkeyg(1,iseg,iii)+1,iseg,i)=ii
+     do iseg=1,foe_obj%kernel_nseg(iii)
+          do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
+              istindexarr(iorb-foe_obj%kernel_segkeyg(1,iseg,iii)+1,iseg,i)=ii
               do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
                   do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
                       jjorb = jorb - (iorb-1)*norb
@@ -537,14 +537,14 @@ end subroutine get_arrays_for_sequential_acces
 
 
 
-subroutine sequential_acces_matrix(norbp, isorb, norb, mad, sparsemat, a, nseq, nmaxsegk, nmaxvalk, a_seq)
+subroutine sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, a, nseq, nmaxsegk, nmaxvalk, a_seq)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
-  type(matrixDescriptors_foe),intent(in) :: mad
+  type(foe_data),intent(in) :: foe_obj
   type(sparseMatrix),intent(in) :: sparsemat
   real(kind=8),dimension(sparsemat%nvctr),intent(in) :: a
   real(kind=8),dimension(nseq),intent(out) :: a_seq
@@ -556,8 +556,8 @@ subroutine sequential_acces_matrix(norbp, isorb, norb, mad, sparsemat, a, nseq, 
   ii=1
   do i = 1,norbp
      iii=isorb+i
-     do iseg=1,mad%kernel_nseg(iii)
-          do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+     do iseg=1,foe_obj%kernel_nseg(iii)
+          do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
               do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
                   jj=1
                   do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)

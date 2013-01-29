@@ -1075,21 +1075,21 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
 
 end subroutine deallocate_p2pComms
 
-subroutine deallocate_matrixDescriptors_foe(mad, subname)
+subroutine deallocate_foe(foe_obj, subname)
   use module_base
   use module_types
   use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_matrixDescriptors_foe
+  use module_interfaces, exceptThisOne => deallocate_foe
   implicit none
   
   ! Calling arguments
-  type(matrixDescriptors_foe),intent(inout):: mad
+  type(foe_data),intent(inout):: foe_obj
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(mad%kernel_nseg, 'mad%kernel_nseg', subname)
-  call checkAndDeallocatePointer(mad%kernel_segkeyg, 'mad%kernel_segkeyg', subname)
+  call checkAndDeallocatePointer(foe_obj%kernel_nseg, 'foe_obj%kernel_nseg', subname)
+  call checkAndDeallocatePointer(foe_obj%kernel_segkeyg, 'foe_obj%kernel_segkeyg', subname)
 
-end subroutine deallocate_matrixDescriptors_foe
+end subroutine deallocate_foe
 
 subroutine deallocate_sparseMatrix(sparsemat, subname)
   use module_base
@@ -1113,29 +1113,6 @@ subroutine deallocate_sparseMatrix(sparsemat, subname)
   call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed, 'sparseMat%matrixindex_in_compressed', subname)
 
 end subroutine deallocate_sparseMatrix
-
-
-subroutine destroy_wfn_metadata(wfnmd)
-  use module_base
-  use module_types
-  use deallocatePointers
-  implicit none
-  
-  ! Calling arguments
-  type(wfn_metadata),intent(inout):: wfnmd
-
-  ! Local variables
-  integer:: istat, iall
-  character(len=*),parameter:: subname='destroy_wfn_metadata'
-
-  if (associated(wfnmd%coeff)) then
-      iall=-product(shape(wfnmd%coeff))*kind(wfnmd%coeff)
-      deallocate(wfnmd%coeff, stat=istat)
-      call memocc(istat, iall, 'wfnmd%coeff', subname)
-  end if
-
-end subroutine destroy_wfn_metadata
-
 
 
 

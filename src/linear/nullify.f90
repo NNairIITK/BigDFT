@@ -34,19 +34,19 @@ end subroutine nullify_p2pComms
 
 
 
-subroutine nullify_matrixDescriptors_foe(mad)
+subroutine nullify_foe(foe_obj)
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => nullify_matrixDescriptors_foe
+  use module_interfaces, exceptThisOne => nullify_foe
   implicit none
 
   ! Calling argument
-  type(matrixDescriptors_foe),intent(out):: mad
+  type(foe_data),intent(out):: foe_obj
 
-  nullify(mad%kernel_nseg)
-  nullify(mad%kernel_segkeyg)
+  nullify(foe_obj%kernel_nseg)
+  nullify(foe_obj%kernel_segkeyg)
 
-end subroutine nullify_matrixDescriptors_foe
+end subroutine nullify_foe
 
 
 subroutine nullify_sparsematrix(sparsemat)

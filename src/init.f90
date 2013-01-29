@@ -1608,17 +1608,16 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
   ! Copy the coefficients
   if (input%lin%scf_mode/=LINEAR_FOE) then
-      call dcopy(tmb%orbs%norb*tmb%orbs%norb, tmb_old%wfnmd%coeff(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
+      call dcopy(tmb%orbs%norb*tmb%orbs%norb, tmb_old%coeff(1,1), 1, tmb%coeff(1,1), 1)
   end if
   !!write(*,*) 'after dcopy, iproc',iproc
 
-  !if (input%lin%scf_mode/=LINEAR_FOE) then
-  !    i_all = -product(shape(tmb_old%wfnmd%coeff))*kind(tmb_old%wfnmd%coeff)
-  !    deallocate(tmb_old%wfnmd%coeff,stat=i_stat)
-  !    call memocc(i_stat,i_all,'tmb_old%wfnmd%coeff',subname)
-  !end if
+  if (associated(tmb_old%coeff)) then
+      i_all=-product(shape(tmb_old%coeff))*kind(tmb_old%coeff)
+      deallocate(tmb_old%coeff, stat=i_stat)
+      call memocc(i_stat, i_all, 'tmb_old%coeff', subname)
+  end if
 
-  call destroy_wfn_metadata(tmb_old%wfnmd)
   ! MOVE LATER 
   if (associated(tmb_old%linmat%denskern%matrix_compr)) then
      i_all=-product(shape(tmb_old%linmat%denskern%matrix_compr))*kind(tmb_old%linmat%denskern%matrix_compr)
@@ -2470,7 +2469,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! By reading the basis functions and coefficients from file
      call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
           & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
-          & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff)
+          & atoms,rxyz_old,rxyz,tmb%psi,tmb%coeff)
 
         tmb%can_use_transposed=.false.
         overlap_calculated=.false.
@@ -2482,7 +2481,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
              KSwfn%orbs, tmb, overlap_calculated)     
         !call calculate_density_kernel(iproc, nproc, .true., &
-        !      KSwfn%orbs, tmb%orbs, tmb%wfnmd%coeff, density_kernel)
+        !      KSwfn%orbs, tmb%orbs, tmb%coeff, density_kernel)
         i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
         deallocate(tmb%psit_c,stat=i_stat)                                                 
         call memocc(i_stat,i_all,'tmb%psit_c',subname)                                     
@@ -2493,7 +2492,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
         call memocc(i_stat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
         call calculate_density_kernel(iproc, nproc, .true., &
-              KSwfn%orbs, tmb%orbs, tmb%wfnmd%coeff, tmb%linmat%denskern%matrix)
+              KSwfn%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
 
         open(11)
         do iorb=1,tmb%orbs%norb

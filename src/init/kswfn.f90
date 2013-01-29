@@ -124,11 +124,7 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
   call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
        & wfn%orbs, wfn%lzd, wfn%comgp)
 
-  call nullify_p2pComms(wfn%comrp)
-
-  call initMatrixCompression_foe(iproc, nproc, wfn%lzd, atoms, in, wfn%orbs, wfn%mad)
-
-  call create_wfn_metadata('l', wfn%orbs%norb, wfn%orbs%norbp, in, wfn%wfnmd)
+  call init_foe(iproc, nproc, wfn%lzd, atoms, in, wfn%orbs, wfn%foe_obj)
 
   call nullify_collective_comms(wfn%collcom)
   call nullify_collective_comms(wfn%collcom_sr)

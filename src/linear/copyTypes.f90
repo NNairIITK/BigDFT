@@ -22,11 +22,11 @@ subroutine copy_tmbs(tmbin, tmbout, subname)
   call copy_orbitals_data(tmbin%orbs, tmbout%orbs, subname)
   call nullify_local_zone_descriptors(tmbout%lzd)
   call copy_old_supportfunctions(tmbin%orbs,tmbin%lzd,tmbin%psi,tmbout%lzd,tmbout%psi)
-  ! Here I use KSwfn%orbs%norb in spite of the fact that KSwfn%orbs will only be defined later.. not very nice
-  if (associated(tmbin%wfnmd%coeff)) then !(in%lin%scf_mode/=LINEAR_FOE) then ! should move this check to copy_old_coeffs
-      call copy_old_coefficients(tmbin%orbs%norb, tmbin%wfnmd%coeff, tmbout%wfnmd%coeff)
+
+  if (associated(tmbin%coeff)) then !(in%lin%scf_mode/=LINEAR_FOE) then ! should move this check to copy_old_coeffs
+      call copy_old_coefficients(tmbin%orbs%norb, tmbin%coeff, tmbout%coeff)
   else
-      nullify(tmbout%wfnmd%coeff)
+      nullify(tmbout%coeff)
   end if
 
   ! should technically copy these across as well but not needed for restart and will eventually be removing wfnmd as a type

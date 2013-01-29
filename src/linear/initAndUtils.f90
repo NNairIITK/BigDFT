@@ -203,7 +203,7 @@ function megabytes(bytes)
   
 end function megabytes
 
-subroutine initMatrixCompression_foe(iproc, nproc, lzd, at, input, orbs, mad)
+subroutine init_foe(iproc, nproc, lzd, at, input, orbs, foe_obj)
   use module_base
   use module_types
   implicit none
@@ -214,7 +214,7 @@ subroutine initMatrixCompression_foe(iproc, nproc, lzd, at, input, orbs, mad)
   type(atoms_data),intent(in) :: at
   type(input_variables),intent(in) :: input
   type(orbitals_data),intent(in) :: orbs
-  type(matrixDescriptors_foe),intent(out) :: mad
+  type(foe_data),intent(out) :: foe_obj
   
   ! Local variables
   integer :: iorb, jorb, iiorb, jjorb, istat, iseg, ilr, jlr
@@ -227,20 +227,29 @@ subroutine initMatrixCompression_foe(iproc, nproc, lzd, at, input, orbs, mad)
   
   call timing(iproc,'init_matrCompr','ON')
 
-  call nullify_matrixDescriptors_foe(mad)
+  foe_obj%ef=0.d0
+  foe_obj%evlow=input%lin%evlow
+  foe_obj%evhigh=input%lin%evhigh
+  foe_obj%bisection_shift=1.d-1
+  foe_obj%fscale=input%lin%fscale
+  foe_obj%ef_interpol_det=input%lin%ef_interpol_det
+  foe_obj%ef_interpol_chargediff=input%lin%ef_interpol_chargediff
+
+
+  call nullify_foe(foe_obj)
 
   ! Initialize kernel_locreg
   allocate(kernel_locreg(orbs%norbp,orbs%norb), stat=istat)
   call memocc(istat, kernel_locreg, 'kernel_locreg', subname)
-  allocate(mad%kernel_nseg(orbs%norb), stat=istat)
-  call memocc(istat, mad%kernel_nseg, 'mad%kernel_nseg', subname)
-  call to_zero(orbs%norb, mad%kernel_nseg(1))
+  allocate(foe_obj%kernel_nseg(orbs%norb), stat=istat)
+  call memocc(istat, foe_obj%kernel_nseg, 'foe_obj%kernel_nseg', subname)
+  call to_zero(orbs%norb, foe_obj%kernel_nseg(1))
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
       iwa=orbs%onwhichatom(iiorb)
       itype=at%iatype(iwa)
-      mad%kernel_nseg(iiorb)=0
+      foe_obj%kernel_nseg(iiorb)=0
       seg_started=.false.
       do jjorb=1,orbs%norb
           jlr=orbs%inwhichlocreg(jjorb)
@@ -254,7 +263,7 @@ subroutine initMatrixCompression_foe(iproc, nproc, lzd, at, input, orbs, mad)
           if (tt<=cut) then
               kernel_locreg(iorb,jjorb)=.true.
               if (.not.seg_started) then
-                  mad%kernel_nseg(iiorb)=mad%kernel_nseg(iiorb)+1
+                  foe_obj%kernel_nseg(iiorb)=foe_obj%kernel_nseg(iiorb)+1
               end if
               seg_started=.true.
           else
@@ -263,11 +272,11 @@ subroutine initMatrixCompression_foe(iproc, nproc, lzd, at, input, orbs, mad)
           end if
       end do
   end do
-  call mpiallred(mad%kernel_nseg(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(foe_obj%kernel_nseg(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-  allocate(mad%kernel_segkeyg(2,maxval(mad%kernel_nseg),orbs%norb), stat=istat)
-  call memocc(istat, mad%kernel_segkeyg, 'mad%kernel_segkeyg', subname)
-  call to_zero(2*maxval(mad%kernel_nseg)*orbs%norb, mad%kernel_segkeyg(1,1,1))
+  allocate(foe_obj%kernel_segkeyg(2,maxval(foe_obj%kernel_nseg),orbs%norb), stat=istat)
+  call memocc(istat, foe_obj%kernel_segkeyg, 'foe_obj%kernel_segkeyg', subname)
+  call to_zero(2*maxval(foe_obj%kernel_nseg)*orbs%norb, foe_obj%kernel_segkeyg(1,1,1))
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       iseg=0
@@ -276,21 +285,21 @@ subroutine initMatrixCompression_foe(iproc, nproc, lzd, at, input, orbs, mad)
           if(kernel_locreg(iorb,jjorb)) then
               if (.not.seg_started) then
                   iseg=iseg+1
-                  mad%kernel_segkeyg(1,iseg,iiorb)=jjorb
+                  foe_obj%kernel_segkeyg(1,iseg,iiorb)=jjorb
               end if
               seg_started=.true.
           else
               if (seg_started) then
-                  mad%kernel_segkeyg(2,iseg,iiorb)=jjorb-1
+                  foe_obj%kernel_segkeyg(2,iseg,iiorb)=jjorb-1
               end if
               seg_started=.false.
           end if
       end do
       if (seg_started) then
-          mad%kernel_segkeyg(2,iseg,iiorb)=orbs%norb
+          foe_obj%kernel_segkeyg(2,iseg,iiorb)=orbs%norb
       end if
   end do
-  call mpiallred(mad%kernel_segkeyg(1,1,1), 2*maxval(mad%kernel_nseg)*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(foe_obj%kernel_segkeyg(1,1,1), 2*maxval(foe_obj%kernel_nseg)*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   iall = -product(shape(kernel_locreg))*kind(kernel_locreg) 
   deallocate(kernel_locreg,stat=istat)
@@ -299,7 +308,7 @@ subroutine initMatrixCompression_foe(iproc, nproc, lzd, at, input, orbs, mad)
   call timing(iproc,'init_matrCompr','OF')
 
 
-end subroutine initMatrixCompression_foe
+end subroutine init_foe
 
 
 subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,rxyz)
@@ -759,7 +768,7 @@ end subroutine lzd_init_llr
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
            useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-           orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbmad, lbcollcom, lbcollcom_sr)
+           orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
@@ -779,7 +788,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
   type(locreg_descriptors),intent(in) :: glr_tmp
   type(local_zone_descriptors),intent(inout) :: lzd
   type(p2pComms),intent(inout) :: lbcomgp
-  type(matrixDescriptors_foe),intent(inout) :: lbmad
+  type(foe_data),intent(inout),optional :: lfoe
   type(collective_comms),intent(inout) :: lbcollcom
   type(collective_comms),intent(inout),optional :: lbcollcom_sr
 
@@ -789,7 +798,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
   character(len=*),parameter :: subname='update_locreg'
 
   call timing(iproc,'updatelocreg1','ON') 
-  call nullify_matrixDescriptors_foe(lbmad)
+  if (present(lfoe)) call nullify_foe(lfoe)
   call nullify_collective_comms(lbcollcom)
   if (present(lbcollcom_sr)) then
       call nullify_collective_comms(lbcollcom_sr)
@@ -823,7 +832,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
 
   call timing(iproc,'updatelocreg1','OF') 
 
-  call initMatrixCompression_foe(iproc, nproc, lzd, at, input, orbs, lbmad)
+  if (present(lfoe)) call init_foe(iproc, nproc, lzd, at, input, orbs, lfoe)
 
   call init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, lbcollcom)
   if (present(lbcollcom_sr)) then
@@ -935,7 +944,7 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
 
   call deallocate_local_zone_descriptors(tmb%lzd, subname)
   call deallocate_orbitals_data(tmb%orbs, subname)
-  call deallocate_matrixDescriptors_foe(tmb%mad, subname)
+  call deallocate_foe(tmb%foe_obj, subname)
   !call deallocate_sparseMatrix(tmb%linmat%denskern, subname)
   !call deallocate_sparseMatrix(tmb%linmat%ham, subname)
   !call deallocate_sparseMatrix(tmb%linmat%ovrlp, subname)
@@ -944,30 +953,6 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
   call deallocate_collective_comms(tmb%collcom_sr, subname)
 
 end subroutine destroy_new_locregs
-
-!!subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, norbp, input, wfn)
-!!  use module_base
-!!  use module_types
-!!  use module_interfaces, except_this_one => create_DFT_wavefunction
-!!  implicit none
-!!  
-!!  ! Calling arguments
-!!  character(len=1),intent(in) :: mode
-!!  integer,intent(in) :: nphi, lnorb, norb, norbp
-!!  type(input_variables),intent(in) :: input
-!!  type(DFT_wavefunction),intent(out) :: wfn
-!!
-!!  ! Local variables
-!!  integer :: istat
-!!  character(len=*),parameter :: subname='create_DFT_wavefunction'
-!!
-!!  call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, norbp, wfn%mad%nvctr, input, wfn%wfnmd)
-!!
-!!  allocate(wfn%psi(wfn%wfnmd%nphi), stat=istat)
-!!  call memocc(istat, wfn%psi, 'wfn%psi', subname)
-!!
-!!end subroutine create_DFT_wavefunction
-
 
 
 subroutine destroy_DFT_wavefunction(wfn)
@@ -989,8 +974,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call memocc(istat, iall, 'wfn%psi', subname)
 
   call deallocate_p2pComms(wfn%comgp, subname)
-  call deallocate_p2pComms(wfn%comrp, subname)
-  call deallocate_matrixDescriptors_foe(wfn%mad, subname)
+  call deallocate_foe(wfn%foe_obj, subname)
   call deallocate_sparseMatrix(wfn%linmat%denskern, subname)
   !call deallocate_sparseMatrix(wfn%linmat%inv_ovrlp, subname)
   call deallocate_sparseMatrix(wfn%linmat%ovrlp, subname)
@@ -998,17 +982,20 @@ subroutine destroy_DFT_wavefunction(wfn)
 
   call deallocate_orbitals_data(wfn%orbs, subname)
   !call deallocate_communications_arrays(wfn%comms, subname)
-  call destroy_wfn_metadata(wfn%wfnmd)
   call deallocate_collective_comms(wfn%collcom, subname)
   call deallocate_collective_comms(wfn%collcom_sr, subname)
+  call deallocate_local_zone_descriptors(wfn%lzd, subname)
 
-  !to be moved later
-  if (associated(wfn%linmat%denskern%matrix_compr)) then
-     iall=-product(shape(wfn%linmat%denskern%matrix_compr))*kind(wfn%linmat%denskern%matrix_compr)
-     deallocate(wfn%linmat%denskern%matrix_compr, stat=istat)
-     call memocc(istat, iall, 'wfn%linmat%denskern%matrix_compr', subname)
+  if (associated(wfn%coeff)) then
+      iall=-product(shape(wfn%coeff))*kind(wfn%coeff)
+      deallocate(wfn%coeff, stat=istat)
+      call memocc(istat, iall, 'wfn%coeff', subname)
   end if
 
+  !call deallocate_p2pComms(wfn%ham_descr%comgp, subname)
+  !call deallocate_local_zone_descriptors(wfn%ham_descr%lzd, subname)
+  !call deallocate_matrixDescriptors_foe(wfn%ham_descr%mad, subname)
+  !call deallocate_collective_comms(wfn%ham_descr%collcom, subname)
 
 end subroutine destroy_DFT_wavefunction
 
@@ -1072,51 +1059,6 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
   call memocc(istat,iall,'ncntt',subname)  
 
 end subroutine update_wavefunctions_size
-
-
-subroutine create_wfn_metadata(mode, norb, norbp, input, wfnmd)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  character(len=1),intent(in) :: mode
-  integer,intent(in) :: norb, norbp
-  type(input_variables),intent(in) :: input
-  type(wfn_metadata),intent(out) :: wfnmd
-
-  ! Local variables
-  integer :: istat
-  character(len=*),parameter :: subname='create_wfn_metadata'
-
-  ! Determine which variables we need, depending on the mode we are in.
-  if(mode=='l') then
-      ! linear scaling mode
-
-      if (input%lin%scf_mode/=LINEAR_FOE .or. input%lin%pulay_correction) then
-          allocate(wfnmd%coeff(norb,norb), stat=istat)
-          call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
-      else
-          nullify(wfnmd%coeff)
-      end if
-
-      wfnmd%ef=0.d0
-      wfnmd%evlow=input%lin%evlow
-      wfnmd%evhigh=input%lin%evhigh
-      wfnmd%bisection_shift=1.d-1
-      wfnmd%fscale=input%lin%fscale
-      wfnmd%ef_interpol_det=input%lin%ef_interpol_det
-      wfnmd%ef_interpol_chargediff=input%lin%ef_interpol_chargediff
-
-  else if(mode=='c') then
-      ! cubic scaling mode
-      nullify(wfnmd%coeff)
-  else
-      stop 'wrong mode'
-  end if
-
-end subroutine create_wfn_metadata
-
 
 
 subroutine update_auxiliary_basis_function(subname, npsidim, lphi, lhphi, lphiold, lhphiold)
@@ -1199,7 +1141,7 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, locregCenter, tmb%lzd%glr, &
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        at, input, tmb%orbs, tmb%ham_descr%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
-       tmb%ham_descr%comgp, tmb%ham_descr%mad, tmb%ham_descr%collcom)
+       tmb%ham_descr%comgp, tmb%ham_descr%collcom)
 
   call allocate_auxiliary_basis_function(max(tmb%ham_descr%npsidim_comp,tmb%ham_descr%npsidim_orbs), subname, &
        tmb%ham_descr%psi, tmb%hpsi)

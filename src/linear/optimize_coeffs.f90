@@ -57,7 +57,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
           tt=0.d0
           do korb=1,tmb%orbs%norb
               do lorb=1,tmb%orbs%norb
-                  tt=tt+tmb%wfnmd%coeff(korb,jorb)*tmb%wfnmd%coeff(lorb,iiorb)*tmb%linmat%ham%matrix(lorb,korb)
+                  tt=tt+tmb%coeff(korb,jorb)*tmb%coeff(lorb,iiorb)*tmb%linmat%ham%matrix(lorb,korb)
               end do
           end do
           ovrlp_coeff(jorb,iorb)=tt
@@ -82,11 +82,11 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
       do lorb=1,tmb%orbs%norb
           tt=0.d0
           do korb=1,tmb%orbs%norb
-              tt=tt+tmb%wfnmd%coeff(korb,iiorb)*tmb%linmat%ham%matrix(korb,lorb)
+              tt=tt+tmb%coeff(korb,iiorb)*tmb%linmat%ham%matrix(korb,lorb)
           end do
           do jorb=1,orbs%norb
               do korb=1,tmb%orbs%norb
-                  tt=tt-lagmat(jorb,iiorb)*tmb%wfnmd%coeff(korb,jorb)*tmb%linmat%ovrlp%matrix(korb,lorb)
+                  tt=tt-lagmat(jorb,iiorb)*tmb%coeff(korb,jorb)*tmb%linmat%ovrlp%matrix(korb,lorb)
               end do
           end do
           rhs(lorb,iiorb)=tt*orbs%occup(iiorb)
@@ -134,27 +134,27 @@ if(iproc==0) write(200,*) gradp
   if (ldiis_coeff%isx > 0) then !do DIIS
   !TO DO: make sure DIIS works
   print *,'in DIIS'
-     call DIIS_coeff(iproc, orbs, tmb, gradp, tmb%wfnmd%coeff, ldiis_coeff)
+     call DIIS_coeff(iproc, orbs, tmb, gradp, tmb%coeff, ldiis_coeff)
   else  !steepest descent
      allocate(coeffp(tmb%orbs%norb,orbs%norbp),stat=istat)
      call memocc(istat, coeffp, 'coeffp', subname)
      do iorb=1,orbs%norbp
         iiorb = orbs%isorb + iorb
         do jorb=1,tmb%orbs%norb
-           coeffp(jorb,iorb)=tmb%wfnmd%coeff(jorb,iiorb)-ldiis_coeff%alpha_coeff*gradp(jorb,iorb)
+           coeffp(jorb,iorb)=tmb%coeff(jorb,iiorb)-ldiis_coeff%alpha_coeff*gradp(jorb,iorb)
         end do
      end do
 
      if(nproc > 1) then 
-        call mpi_allgatherv(coeffp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%wfnmd%coeff(1,1), &
+        call mpi_allgatherv(coeffp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%coeff(1,1), &
            tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
      else
-        call dcopy(tmb%orbs%norb*orbs%norb,coeffp(1,1),1,tmb%wfnmd%coeff(1,1),1)
+        call dcopy(tmb%orbs%norb*orbs%norb,coeffp(1,1),1,tmb%coeff(1,1),1)
      end if
      iall=-product(shape(coeffp))*kind(coeffp)
      deallocate(coeffp, stat=istat)
      call memocc(istat, iall, 'coeffp', subname)
-if(iproc==0) write(100,*) tmb%wfnmd%coeff
+if(iproc==0) write(100,*) tmb%coeff
   end if
 
   !For fnrm, we only sum on the occupied KS orbitals
@@ -167,7 +167,7 @@ if(iproc==0) write(100,*) tmb%wfnmd%coeff
 
   call timing(iproc,'dirmin_sddiis','OF')
 
-  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 0, tmb%orbs, tmb%linmat%ovrlp%matrix, tmb%wfnmd%coeff)
+  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 0, tmb%orbs, tmb%linmat%ovrlp%matrix, tmb%coeff)
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)
@@ -242,7 +242,7 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
           tt=0.d0
           do ialpha=1,tmb%orbs%norb
               do ibeta=1,tmb%orbs%norb
-                  tt=tt+tmb%wfnmd%coeff(ialpha,jorb)*tmb%wfnmd%coeff(ibeta,iorb)*tmb%linmat%ham%matrix(ialpha,ibeta)
+                  tt=tt+tmb%coeff(ialpha,jorb)*tmb%coeff(ibeta,iorb)*tmb%linmat%ham%matrix(ialpha,ibeta)
               end do
           end do
           ovrlp_coeff(jorb,iorb)=tt
@@ -260,11 +260,11 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
       do ialpha=1,tmb%orbs%norb
           tt=0.d0
           do ibeta=1,tmb%orbs%norb
-              tt=tt+tmb%wfnmd%coeff(ibeta,iorb)*tmb%linmat%ham%matrix(ibeta,ialpha)
+              tt=tt+tmb%coeff(ibeta,iorb)*tmb%linmat%ham%matrix(ibeta,ialpha)
           end do
           do jorb=1,orbs%norb
               do ibeta=1,tmb%orbs%norb
-                  tt=tt-lagmat(jorb,iorb)*tmb%wfnmd%coeff(ibeta,jorb)*tmb%linmat%ovrlp%matrix(ibeta,ialpha)
+                  tt=tt-lagmat(jorb,iorb)*tmb%coeff(ibeta,jorb)*tmb%linmat%ovrlp%matrix(ibeta,ialpha)
               end do
           end do
           rhs(ialpha,iorb)=tt*orbs%occup(iorb)
@@ -311,11 +311,11 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   end if  
 
   if (.false. .and. ldiis_coeff%isx > 0) then !do DIIS, must change this for non parallel
-     call DIIS_coeff(iproc, orbs, tmb, grad, tmb%wfnmd%coeff, ldiis_coeff)
+     call DIIS_coeff(iproc, orbs, tmb, grad, tmb%coeff, ldiis_coeff)
   else  !steepest descent
      do iorb=1,orbs%norb
         do ialpha=1,tmb%orbs%norb
-           tmb%wfnmd%coeff(ialpha,iorb)=tmb%wfnmd%coeff(ialpha,iorb)-ldiis_coeff%alpha_coeff*grad(ialpha,iorb)
+           tmb%coeff(ialpha,iorb)=tmb%coeff(ialpha,iorb)-ldiis_coeff%alpha_coeff*grad(ialpha,iorb)
         end do
      end do
   end if
@@ -330,7 +330,7 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   call timing(iproc,'dirmin_sddiis','OF') !lr408t
   
   ! Normalize the coefficients (Loewdin)
-  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 0, tmb%orbs, tmb%linmat%ovrlp%matrix, tmb%wfnmd%coeff)
+  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 0, tmb%orbs, tmb%linmat%ovrlp%matrix, tmb%coeff)
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)

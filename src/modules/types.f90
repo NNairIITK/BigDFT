@@ -616,10 +616,16 @@ module module_types
     logical:: communication_complete
   end type p2pComms
 
-  type,public :: matrixDescriptors_foe
-      integer,dimension(:),pointer :: kernel_nseg
-      integer,dimension(:,:,:),pointer :: kernel_segkeyg
-  end type matrixDescriptors_foe
+  type,public :: foe_data
+    integer,dimension(:),pointer :: kernel_nseg
+    integer,dimension(:,:,:),pointer :: kernel_segkeyg
+    real(kind=8) :: ef !< Fermi energy for FOE
+    real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
+    real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)
+    real(kind=8) :: fscale !< length scale for complementary error function (FOE)
+    real(kind=8) :: ef_interpol_det !<FOE: max determinant of cubic interpolation matrix
+    real(kind=8) :: ef_interpol_chargediff !<FOE: max charge difference for interpolation
+  end type foe_data
 
   type,public :: sparseMatrix
       integer :: nvctr, nseg, full_dim1, full_dim2
@@ -696,19 +702,6 @@ module module_types
     real(kind=8),dimension(:),pointer:: rhopotHist, rhopotresHist
     real(kind=8),dimension(:,:),pointer:: mat
   end type mixrhopotDIISParameters
-
-
-  type,public:: wfn_metadata
-    real(kind=8),dimension(:,:),pointer:: coeff !<expansion coefficients
-    real(kind=8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
-    real(kind=8) :: ef !< Fermi energy for FOE
-    real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
-    real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)
-    real(kind=8) :: fscale !< length scale for complementary error function (FOE)
-    real(kind=8) :: ef_interpol_det !<FOE: max determinant of cubic interpolation matrix
-    real(kind=8) :: ef_interpol_chargediff !<FOE: max charge difference for interpolation
-  end type wfn_metadata
-
 
   !> Contains the arguments needed for the diis procedure
   type, public :: diis_objects
@@ -813,8 +806,6 @@ module module_types
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
      type(collective_comms):: collcom ! describes collective communication
      	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
-     type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
-     	type(matrixDescriptors_foe):: mad !<describes the structure of the matrices
         real(wp), dimension(:), pointer :: psi,psit_c,psit_f !< these should eventually be eliminated
         logical:: can_use_transposed
   end type hamiltonian_descriptors
@@ -840,17 +831,16 @@ module module_types
      type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
-     	type(wfn_metadata) :: wfnmd !<specifications of the kind of wavefunction
      	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
-     type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
      type(collective_comms):: collcom ! describes collective communication
      type(collective_comms):: collcom_sr ! describes collective communication for the calculation of the charge density
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
-     	type(matrixDescriptors_foe):: mad !<describes the structure of the matrices
+     	type(foe_data):: foe_obj !<describes the structure of the matrices
         type(linear_matrices):: linmat
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(hamiltonian_descriptors) :: ham_descr
+     real(kind=8),dimension(:,:),pointer:: coeff !<expansion coefficients
   end type DFT_wavefunction
 
   !> Flags for optimization loop id

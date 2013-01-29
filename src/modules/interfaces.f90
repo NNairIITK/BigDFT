@@ -2547,12 +2547,12 @@ module module_interfaces
       character(len=*),intent(in):: subname
     end subroutine deallocate_grow_bounds
 
-    subroutine nullify_matrixDescriptors_foe(mad)
+    subroutine nullify_foe(foe_obj)
       use module_base
       use module_types
       implicit none
-      type(matrixDescriptors_foe),intent(out):: mad
-    end subroutine nullify_matrixDescriptors_foe
+      type(foe_data),intent(out):: foe_obj
+    end subroutine nullify_foe
 
     subroutine nullify_sparseMatrix(sparsemat)
       use module_base
@@ -2640,13 +2640,13 @@ module module_interfaces
       type(orbitals_data),optional,intent(in):: lborbs
     end subroutine initLocregs
 
-    subroutine deallocate_matrixDescriptors_foe(mad, subname)
+    subroutine deallocate_foe(foe_obj, subname)
       use module_base
       use module_types
       implicit none
-      type(matrixDescriptors_foe),intent(inout):: mad
+      type(foe_data),intent(inout):: foe_obj
       character(len=*),intent(in):: subname
-    end subroutine deallocate_matrixDescriptors_foe
+    end subroutine deallocate_foe
 
     subroutine deallocate_sparseMatrix(sparsemat, subname)
       use module_base
@@ -2799,7 +2799,7 @@ module module_interfaces
        real(wp), dimension(:), pointer, optional :: psirocc
      end subroutine FullHamiltonianApplication
 
-       subroutine initMatrixCompression_foe(iproc, nproc, lzd, at, input, orbs, mad)
+       subroutine init_foe(iproc, nproc, lzd, at, input, orbs, foe_obj)
          use module_base
          use module_types
          implicit none
@@ -2808,8 +2808,8 @@ module module_interfaces
          type(atoms_data),intent(in) :: at
          type(input_variables),intent(in) :: input
          type(orbitals_data),intent(in):: orbs
-         type(matrixDescriptors_foe),intent(out):: mad
-       end subroutine initMatrixCompression_foe
+         type(foe_data),intent(out):: foe_obj
+       end subroutine init_foe
 
        subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
          use module_base
@@ -3118,7 +3118,7 @@ module module_interfaces
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-                  orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbmad, lbcollcom, lbcollcom_sr)
+                  orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
          use module_base
          use module_types
          implicit none
@@ -3135,28 +3135,10 @@ module module_interfaces
          type(locreg_descriptors),intent(in):: glr_tmp
          type(local_zone_descriptors),intent(inout):: lzd
          type(p2pComms),intent(inout):: lbcomgp
-         type(matrixDescriptors_foe),intent(inout):: lbmad
+         type(foe_data),intent(inout),optional :: lfoe
          type(collective_comms),intent(inout):: lbcollcom
          type(collective_comms),intent(inout),optional :: lbcollcom_sr
        end subroutine update_locreg
-
-       subroutine create_wfn_metadata(mode, norb, norbp, input, wfnmd)
-         use module_base
-         use module_types
-         implicit none
-         character(len=1),intent(in):: mode
-         integer,intent(in):: norb, norbp
-         type(input_variables),intent(in):: input
-         type(wfn_metadata),intent(out):: wfnmd
-       end subroutine create_wfn_metadata
-
-       subroutine destroy_wfn_metadata(wfnmd)
-         use module_base
-         use module_types
-         !use deallocatePointers
-         implicit none
-         type(wfn_metadata),intent(inout):: wfnmd
-       end subroutine destroy_wfn_metadata
 
        subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, norbp, input, wfn)
          use module_base
@@ -3261,16 +3243,16 @@ module module_interfaces
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
        end subroutine hpsitopsi_linear
        
-       subroutine DIISorSD(iproc, it, npsidim, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
+       subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, it, npsidim
-         real(8),intent(in):: trH
+         integer,intent(in):: iproc, it
+         real(kind=8),intent(in):: trH
          type(DFT_wavefunction),intent(inout):: tmbopt
          type(localizedDIISParameters),intent(inout):: ldiis
-         real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha, alphaDIIS
-         real(8),dimension(npsidim),intent(out):: lphioldopt
+         real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha, alphaDIIS
+         real(kind=8),dimension(max(tmbopt%npsidim_orbs,tmbopt%npsidim_comp)),intent(out):: lphioldopt
        end subroutine DIISorSD
  
        subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
@@ -4393,25 +4375,25 @@ module module_interfaces
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
         end subroutine chebyshev_clean
 
-        subroutine init_onedimindices(norbp, isorb, mad, sparsemat, nout, onedimindices)
+        subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)
           use module_base
           use module_types
           implicit none
         
           ! Calling arguments
           integer,intent(in) :: norbp, isorb
-          type(matrixDescriptors_foe),intent(in) :: mad
+          type(foe_data),intent(in) :: foe_obj
           type(sparseMatrix),intent(in) :: sparsemat
           integer,intent(out) :: nout
           integer,dimension(:,:),pointer :: onedimindices
         end subroutine init_onedimindices
 
-        subroutine enable_sequential_acces_vector(norbp, norb, isorb, mad, b, nseq, bseq, indexarr)
+        subroutine enable_sequential_acces_vector(norbp, norb, isorb, foe_obj, b, nseq, bseq, indexarr)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: norbp, norb, isorb
-          type(matrixDescriptors_foe),intent(in) :: mad
+          type(foe_data),intent(in) :: foe_obj
           real(kind=8),dimension(norb,norbp),intent(in) :: b
           integer,intent(out) :: nseq
           real(kind=8),dimension(:),pointer,intent(out) :: bseq
@@ -4555,34 +4537,34 @@ module module_interfaces
           integer,intent(inout) :: ib(2,nfl2:nfu2,nfl3:nfu3)
         end subroutine squares_1d
 
-        subroutine determine_sequential_length(norbp, isorb, norb, mad, sparsemat, nseq, nmaxsegk, nmaxvalk)
+        subroutine determine_sequential_length(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: norbp, isorb, norb
-          type(matrixDescriptors_foe),intent(in) :: mad
+          type(foe_data),intent(in) :: foe_obj
           type(sparseMatrix),intent(in) :: sparsemat
           integer,intent(out) :: nseq, nmaxsegk, nmaxvalk
         end subroutine determine_sequential_length
 
-        subroutine get_arrays_for_sequential_acces(norbp, isorb, norb, mad, sparsemat, nseq, nmaxsegk, nmaxvalk, &
+        subroutine get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk, &
                    istindexarr, ivectorindex)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
-          type(matrixDescriptors_foe),intent(in) :: mad
+          type(foe_data),intent(in) :: foe_obj
           type(sparseMatrix),intent(in) :: sparsemat
           integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(out) :: istindexarr
           integer,dimension(nseq),intent(out) :: ivectorindex
         end subroutine get_arrays_for_sequential_acces
 
-        subroutine sequential_acces_matrix(norbp, isorb, norb, mad, sparsemat, a, nseq, nmaxsegk, nmaxvalk, a_seq)
+        subroutine sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, a, nseq, nmaxsegk, nmaxvalk, a_seq)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
-          type(matrixDescriptors_foe),intent(in) :: mad
+          type(foe_data),intent(in) :: foe_obj
           type(sparseMatrix),intent(in) :: sparsemat
           real(kind=8),dimension(sparsemat%nvctr),intent(in) :: a
           real(kind=8),dimension(nseq),intent(out) :: a_seq

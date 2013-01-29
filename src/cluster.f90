@@ -238,7 +238,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   logical :: refill_proj !,potential_from_disk=.false.
   logical :: DoDavidson,DoLastRunThings=.false.
   integer :: nvirt,norbv
-  integer :: i, input_wf_format, tag
+  integer :: i, input_wf_format
   integer :: n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,ierr,jproc,inputpsi,igroup,ikpt,nproctiming
@@ -248,7 +248,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   real(gp) :: pressure
   type(grid_dimensions) :: d_old
   type(wavefunctions_descriptors) :: wfd_old
-  type(local_zone_descriptors) :: lzd_old
   type(nonlocal_psp_descriptors) :: nlpspd
   type(DFT_wavefunction) :: VTwfn !< Virtual wavefunction
   type(DFT_wavefunction) :: tmb_old
@@ -265,9 +264,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
   ! before reformatting if useFormattedInput is .true.
-  real(wp), dimension(:), pointer :: psi_old,phi_old
-  real(gp),dimension(:,:),pointer:: coeff_old, density_kernel_old
-  integer,dimension(:),pointer:: inwhichlocreg_old, onwhichatom_old
+  real(wp), dimension(:), pointer :: psi_old
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj,gbd_occ!,rhocore
   ! Variables for the virtual orbitals and band diagram.
@@ -355,11 +352,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      deallocate(KSwfn%psi,stat=i_stat)
      call memocc(i_stat,i_all,'psi',subname)
   else if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
-
      call copy_tmbs(tmb, tmb_old, subname)
-
      call destroy_DFT_wavefunction(tmb)
-     call deallocate_local_zone_descriptors(tmb%lzd, subname)
      i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
      deallocate(KSwfn%psi,stat=i_stat)
      call memocc(i_stat,i_all,'psi',subname)
@@ -422,6 +416,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
      allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
+
+     if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction) then
+        allocate(tmb%coeff(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
+        call memocc(i_stat, tmb%coeff, 'tmb%coeff', subname)
+     else
+        nullify(tmb%coeff)
+     end if
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
@@ -549,7 +550,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         deallocate(fpulay,stat=i_stat)
         call memocc(i_stat,i_all,'fpulay',subname)
         call destroy_DFT_wavefunction(tmb)
-        call deallocate_local_zone_descriptors(tmb%lzd, subname)
         i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
         deallocate(KSwfn%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
@@ -815,15 +815,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          deallocate(fpulay,stat=i_stat)
          call memocc(i_stat,i_all,'fpulay',subname)
 
-         !call destroy_new_locregs(iproc, nproc, tmblarge)
-     ! to eventually be better sorted
-     call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
-     call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
-     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
-     call deallocate_matrixDescriptors_foe(tmb%ham_descr%mad, subname)
-     call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
-
-
+         ! to eventually be better sorted
+         call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
+         call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
+         call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
+         call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
          call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
 
          !!!! TEST ##################

@@ -65,7 +65,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
 
       if (methTransformOverlap==-1) then
-          !call overlap_power_minus_one_half_per_atom(iproc, nproc, bigdft_mpi%mpi_comm, orbs, lzd, ovrlp, inv_ovrlp_half)
+          !call overlap_power_minus_one_half_per_atom(iproc, nproc, bigdft_mpi%mpi_comm, orbs, ovrlp, inv_ovrlp_half)
           call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, 0, orthpar%blocksize_pdsyev, &
               orthpar%blocksize_pdgemm, orbs%norb, ovrlp, inv_ovrlp_half)
       else
@@ -256,7 +256,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   overlap_calculated=.false.
 
 end subroutine orthoconstraintNonorthogonal
-
 
 
 
@@ -670,7 +669,7 @@ subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
 end subroutine deviation_from_unity
 
 
-subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, ovrlp, inv_ovrlp_half)
+subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, ovrlp, inv_ovrlp_half)
   use module_base
   use module_types
   use module_interfaces
@@ -679,7 +678,6 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, comm
   type(orbitals_data),intent(in) :: orbs
-  type(local_zone_descriptors),intent(in) :: lzd
   type(sparseMatrix),intent(in) :: ovrlp
   type(sparseMatrix),intent(inout) :: inv_ovrlp_half
 

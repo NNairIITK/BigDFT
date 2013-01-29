@@ -349,11 +349,11 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
 
           ! Calculate the new Fermi energy.
-          if (it_solver>=4 .and. abs(sumn-charge)<tmb%wfnmd%ef_interpol_chargediff) then
+          if (it_solver>=4 .and. abs(sumn-charge)<tmb%foe_obj%ef_interpol_chargediff) then
               det=determinant(4,interpol_matrix)
               if (iproc==0) write(*,'(1x,a,2es10.2)') 'determinant of interpolation matrix, limit:', &
-                                                     det, tmb%wfnmd%ef_interpol_det
-              if(abs(det)>tmb%wfnmd%ef_interpol_det) then
+                                                     det, tmb%foe_obj%ef_interpol_det
+              if(abs(det)>tmb%foe_obj%ef_interpol_det) then
                   ef=ef_interpol
                   if (iproc==0) write(*,'(1x,a)') 'new fermi energy from cubic interpolation'
               else

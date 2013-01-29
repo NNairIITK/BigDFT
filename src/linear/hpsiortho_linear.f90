@@ -328,8 +328,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   integer :: istat, iall, i
   character(len=*),parameter :: subname='hpsitopsi_linear'
 
-
-  call DIISorSD(iproc, it, max(tmb%npsidim_orbs,tmb%npsidim_comp), trH, tmb, ldiis, alpha, alphaDIIS, lphiold)
+  call DIISorSD(iproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold)
   if(iproc==0) then
       if(ldiis%isx>0) then
           write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
