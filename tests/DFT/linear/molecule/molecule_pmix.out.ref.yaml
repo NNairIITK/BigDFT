@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-01-28 13:10:07.559
+ Timestamp of this run                 : 2013-01-29 18:20:23.194
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
@@ -451,14 +451,14 @@
  Non Local forces calculated           :  Yes
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  86.77
-   Elapsed time (s)                    :  87.74
+   CPU time (s)                        :  87.51
+   Elapsed time (s)                    :  88.82
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 64399
-   Tot. No. of Deallocations: 64399
+   Tot. No. of Allocations  : 64464
+   Tot. No. of Deallocations: 64464
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 624
