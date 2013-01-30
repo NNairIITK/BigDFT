@@ -211,12 +211,12 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       allocate(linmat%ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, linmat%ovrlp%matrix, 'linmat%ovrlp%matrix', subname)
 
-      call uncompressMatrix(linmat%ovrlp)
+      call uncompressMatrix(iproc,linmat%ovrlp)
 
       allocate(lagmat%matrix(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, lagmat%matrix, 'lagmat%matrix', subname)
 
-      call uncompressMatrix(lagmat)
+      call uncompressMatrix(iproc,lagmat)
 
       allocate(ovrlp_minus_one_lagmat%matrix(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, ovrlp_minus_one_lagmat%matrix, 'ovrlp_minus_one_lagmat%matrix', subname)
@@ -236,13 +236,13 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       deallocate(lagmat%matrix, stat=istat)
       call memocc(istat, iall, 'lagmat%matrix', subname)
 
-      call compress_matrix_for_allreduce(ovrlp_minus_one_lagmat)
+      call compress_matrix_for_allreduce(iproc,ovrlp_minus_one_lagmat)
 
       iall=-product(shape(ovrlp_minus_one_lagmat%matrix))*kind(ovrlp_minus_one_lagmat%matrix)
       deallocate(ovrlp_minus_one_lagmat%matrix, stat=istat)
       call memocc(istat, iall, 'ovrlp_minus_one_lagmat%matrix', subname)
  
-      call compress_matrix_for_allreduce(ovrlp_minus_one_lagmat_trans)
+      call compress_matrix_for_allreduce(iproc,ovrlp_minus_one_lagmat_trans)
 
       iall=-product(shape(ovrlp_minus_one_lagmat_trans%matrix))*kind(ovrlp_minus_one_lagmat_trans%matrix)
       deallocate(ovrlp_minus_one_lagmat_trans%matrix, stat=istat)
@@ -529,7 +529,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       allocate(ovrlp%matrix(norb,norb), stat=istat)
       call memocc(istat, ovrlp%matrix, 'ovrlp%matrix', subname)
 
-      call uncompressMatrix(ovrlp)
+      call uncompressMatrix(iproc,ovrlp)
   
       allocate(inv_ovrlp_half%matrix(norb,norb), stat=istat)
       call memocc(istat, inv_ovrlp_half%matrix, 'inv_ovrlp_half%matrix', subname)
@@ -621,7 +621,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       end if
       call dcopy(norb**2, tempArr(1,1,2), 1, inv_ovrlp_half%matrix(1,1), 1)
 
-      call compress_matrix_for_allreduce(inv_ovrlp_half)
+      call compress_matrix_for_allreduce(iproc,inv_ovrlp_half)
 
       iall=-product(shape(eval))*kind(eval)
       deallocate(eval, stat=istat)

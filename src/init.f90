@@ -2502,7 +2502,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         end do
         close(11)
 
-        call compress_matrix_for_allreduce(tmb%linmat%denskern)
+        call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
 
         i_all = -product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
         deallocate(tmb%linmat%denskern%matrix,stat=i_stat)

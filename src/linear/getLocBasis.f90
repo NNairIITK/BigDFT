@@ -164,10 +164,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   if (scf_mode/=LINEAR_FOE) then
       allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
       call memocc(istat, tmb%linmat%ham%matrix, 'tmb%linmat%ham%matrix', subname)
-      call uncompressMatrix(tmb%linmat%ham)
+      call uncompressMatrix(iproc,tmb%linmat%ham)
       allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
       call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-      call uncompressMatrix(tmb%linmat%ovrlp)
+      call uncompressMatrix(iproc,tmb%linmat%ovrlp)
   end if
 
   ! DEBUG LR
@@ -240,7 +240,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
       call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
       call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
-      call compress_matrix_for_allreduce(tmb%linmat%denskern)
+      call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
       iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
       deallocate(tmb%linmat%denskern%matrix, stat=istat)
       call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
@@ -511,7 +511,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
               call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, &
                    tmb%coeff, tmb%linmat%denskern%matrix)
-              call compress_matrix_for_allreduce(tmb%linmat%denskern)
+              call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
               iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
               deallocate(tmb%linmat%denskern%matrix, stat=istat)
               call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
@@ -1264,7 +1264,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
 
   allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-  call uncompressMatrix(tmb%linmat%ovrlp)
+  call uncompressMatrix(iproc,tmb%linmat%ovrlp)
 
   call reorthonormalize_coeff(iproc, nproc, orbs%norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
        tmb%orbs, tmb%linmat%ovrlp%matrix, tmb%coeff)
@@ -1279,7 +1279,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
 
   call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
 
-  call compress_matrix_for_allreduce(tmb%linmat%denskern)
+  call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
 
   iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
   deallocate(tmb%linmat%denskern%matrix,stat=istat)
