@@ -1230,7 +1230,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   integer:: istat, iall
   character(len=*),parameter:: subname='reconstruct_kernel'
 
-  call timing(iproc,'renormCoefComp','ON')
+  !call timing(iproc,'renormCoefComp','ON')
 
   ! Calculate the overlap matrix between the TMBs.
   if(.not. overlap_calculated) then
@@ -1253,12 +1253,12 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.
      end if
-     call timing(iproc,'renormCoefComp','OF')
+     !call timing(iproc,'renormCoefComp','OF')
 
      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
           tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
 
-     call timing(iproc,'renormCoefComp','ON')
+     !call timing(iproc,'renormCoefComp','ON')
      overlap_calculated=.true.
   end if
 
@@ -1308,6 +1308,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   !integer :: iorb, jorb !DEBUG
   !real(kind=8) :: tt, tt2, tt3, ddot   !DEBUG
  
+  call timing(iproc,'renormCoefComp','ON')
+
   allocate(coeff_tmp(basis_orbs%norb,max(norb,1)), stat=istat)
   call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
   allocate(ovrlp_coeff(norb,norb), stat=istat)
@@ -1339,8 +1341,10 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   allocate(ovrlp_coeff2(norb,norb), stat=istat)
   call memocc(istat, ovrlp_coeff2, 'ovrlp_coeff2', subname)
 
+  call timing(iproc,'renormCoefComm','OF')
   call overlapPowerMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, inversion_method, &
        blocksize_dsyev, blocksize_pdgemm, norb, ovrlp_coeff, ovrlp_coeff2)
+  call timing(iproc,'renormCoefComp','ON')
 
   ! Build the new linear combinations
   call dgemm('n', 'n', basis_orbs%norb, norb, norb, 1.d0, coeff(1,1), basis_orbs%norb, &

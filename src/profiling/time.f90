@@ -126,14 +126,15 @@ module timeData
        'wfd_creation  ','Other         ' ,'Miscellaneous ' ,  & 
        'comm_llr      ','Communications' ,'Miscellaneous ' ,  &
        'AllocationProf','Other         ' ,'Allocate arrs ' ,  &
-       'dirmin_lagmat1','Other         ' ,'allgatherv etc' ,  &
-       'dirmin_lagmat2','Other         ' ,'allreduce etc ' ,  &
+       'dirmin_lagmat1','Linear Algebra' ,'allgatherv etc' ,  &
+       'dirmin_lagmat2','Linear Algebra' ,'allreduce etc ' ,  &
        'dirmin_dgesv  ','Linear Algebra' ,'dgesv/pdgesv  ' ,  &
-       'dirmin_sddiis ','Other         ' ,'allreduce etc ' ,  &
+       'dirmin_sddiis ','Linear Algebra' ,'allreduce etc ' ,  &
        'chebyshev_comp','Linear Algebra' ,'matmul/matadd ' ,  &
        'chebyshev_comm','Communications' ,'allreduce     ' ,  &
        'chebyshev_coef','Other         ' ,'Miscellaneous ' ,  &
        'FOE_auxiliary ','Other         ' ,'Miscellaneous ' ,  &
+       'compress_uncom','Other         ' ,'Miscellaneous ' ,  &
        'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat/))
   logical :: parallel,init,newfile,debugmode
   integer :: ncounters, ncaton,nproc = 0,nextra,ncat_stopped

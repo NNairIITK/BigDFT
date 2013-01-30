@@ -476,6 +476,9 @@ subroutine compress_matrix_for_allreduce(sparsemat)
   ! Local variables
   integer :: jj, iseg, jorb, irow, jcol
 
+  call timing(iproc,'compress_uncom','ON')
+
+
   !$omp parallel do default(private) shared(sparsemat)
   do iseg=1,sparsemat%nseg
       jj=1
@@ -487,6 +490,8 @@ subroutine compress_matrix_for_allreduce(sparsemat)
       end do
   end do
   !$omp end parallel do
+
+  call timing(iproc,'compress_uncom','OF')
 
 end subroutine compress_matrix_for_allreduce
 
@@ -502,6 +507,8 @@ subroutine uncompressMatrix(sparsemat)
   
   ! Local variables
   integer :: iseg, ii, jorb, irow, jcol
+
+  call timing(iproc,'compress_uncom','ON')
 
   call to_zero(sparsemat%full_dim1**2, sparsemat%matrix(1,1))
   
@@ -519,6 +526,8 @@ subroutine uncompressMatrix(sparsemat)
 
   !$omp end parallel do
   
+  call timing(iproc,'compress_uncom','OF')
+
 end subroutine uncompressMatrix
 
 

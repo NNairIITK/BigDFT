@@ -18,6 +18,7 @@ Keys to ignore:
  - High Res. box is treated separately
  - Grid Spacing threshold (AU)
  - Direct and transposed data repartition
+ - Maxdiff*
 
 Expected Test CPUtime: #
  C: #[expected, error]
@@ -147,3 +148,4 @@ NLCC: &NLCCs
 NLCC_free-O2: *NLCCs
 NLCC_free: *NLCCs
 NLCC_periodic-O2: *NLCCs
+
