@@ -15,7 +15,7 @@
 !!                   1 is the application of the exact exchange (which has to be precomputed and stored in the potential array)
 !!                   2 is the application of the Perdew-Zunger SIC
 !!                   3 is the application of the Non-Koopman's correction SIC
-subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
+subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
      ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
      dpbox,potential,comgp)
   use module_base
@@ -23,16 +23,16 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
   use module_interfaces, except_this_one => local_hamiltonian
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,nproc,ipotmethod,ixc
+  integer, intent(in) :: iproc,nproc,ipotmethod,ixc,npsidim_orbs
   real(gp), intent(in) :: hx,hy,hz,alphaSIC
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
-  real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi !this dimension will be modified
+  real(wp), dimension(npsidim_orbs), intent(in) :: psi !this dimension will be modified
   real(wp), dimension(:),pointer :: pot !< the potential, with the dimension compatible with the ipotmethod flag
   !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
-  real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+  real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
   type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
   type(denspot_distribution),intent(in),optional :: dpbox
   !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
@@ -210,24 +210,24 @@ END SUBROUTINE local_hamiltonian
 !!                   1 is the application of the exact exchange (which has to be precomputed and stored in the potential array)
 !!                   2 is the application of the Perdew-Zunger SIC
 !!                   3 is the application of the Non-Koopman's correction SIC
-subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
+subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
      ipotmethod,confdatarr,pot,psi,vpsi,pkernel,ixc,alphaSIC,epot_sum,evSIC,vpsi_noconf,econf_sum)
   use module_base
   use module_types
   use module_interfaces, except_this_one => psi_to_vlocpsi
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,ipotmethod,ixc
+  integer, intent(in) :: iproc,ipotmethod,ixc,npsidim_orbs
   real(gp), intent(in) :: alphaSIC
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
-  real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi !this dimension will be modified
+  real(wp), dimension(npsidim_orbs), intent(in) :: psi !this dimension will be modified
   real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
   real(gp), intent(out) :: epot_sum,evSIC
-  real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: vpsi
+  real(wp), dimension(npsidim_orbs), intent(inout) :: vpsi
   type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
-  real(wp), dimension(orbs%npsidim_orbs), intent(inout),optional :: vpsi_noconf
+  real(wp), dimension(npsidim_orbs), intent(inout),optional :: vpsi_noconf
   real(gp),intent(out),optional :: econf_sum
   !local variables
   character(len=*), parameter :: subname='psi_to_vlocpsi'
@@ -409,17 +409,17 @@ end do loop_lr
 END SUBROUTINE psi_to_vlocpsi
 
 
-subroutine psi_to_kinpsi(iproc,orbs,lzd,psi,hpsi,ekin_sum)
+subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
   use module_base
   use module_types
   use module_interfaces, except_this_one => psi_to_kinpsi
   implicit none
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc,npsidim_orbs
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
-  real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+  real(wp), dimension(npsidim_orbs), intent(in) :: psi
   real(gp), intent(out) :: ekin_sum
-  real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+  real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
 
   !local variables
   character(len=*), parameter :: subname='psi_to_kinpsi'

@@ -69,7 +69,7 @@ subroutine mix_main(iproc, nproc, mixHist, input, glr, alpha_mix, &
   real(8),intent(out):: pnrm
   
   ! Local variables
-  integer:: ndimtot, i, ierr
+  integer:: ndimtot
 
   ! Mix the density.
   if(mixHist==0) then

@@ -833,15 +833,15 @@ END SUBROUTINE writeonewave_linear
 
 
 subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,nat,rxyz,&
-           norb,ntmb,nvctr_c,nvctr_f,coeff,eval)
+           ntmb,nvctr_c,nvctr_f,coeff,eval)
   use module_base
   use yaml_output
   implicit none
   logical, intent(in) :: useFormattedOutput
-  integer, intent(in) :: unitwf,norb,n1,n2,n3,nat,ntmb,nvctr_c,nvctr_f
+  integer, intent(in) :: unitwf,n1,n2,n3,nat,ntmb,nvctr_c,nvctr_f
   real(gp), intent(in) :: hx,hy,hz
-  real(wp), dimension(ntmb,norb), intent(in) :: coeff
-  real(wp), dimension(norb), intent(in) :: eval
+  real(wp), dimension(ntmb,ntmb), intent(in) :: coeff
+  real(wp), dimension(ntmb), intent(in) :: eval
   real(gp), dimension(3,nat), intent(in) :: rxyz
   !local variables
   integer :: iat,i,j,iorb
@@ -849,7 +849,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
 
   ! Write the Header
   if (useFormattedOutput) then
-     write(unitwf,*) norb,ntmb
+     write(unitwf,*) ntmb,ntmb
      write(unitwf,*) hx,hy,hz
      write(unitwf,*) n1,n2,n3
      write(unitwf,*) nat
@@ -857,11 +857,11 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
      write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
      enddo
      write(unitwf,*) nvctr_c, nvctr_f
-     do iorb=1,norb
+     do iorb=1,ntmb
      write(unitwf,*) iorb,eval(iorb)
      enddo
   else
-     write(unitwf) norb, ntmb
+     write(unitwf) ntmb, ntmb
      write(unitwf) hx,hy,hz
      write(unitwf) n1,n2,n3
      write(unitwf) nat
@@ -869,13 +869,13 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
      write(unitwf) (rxyz(j,iat),j=1,3)
      enddo
      write(unitwf) nvctr_c, nvctr_f
-     do iorb=1,norb
+     do iorb=1,ntmb
      write(unitwf) iorb,eval(iorb)
      enddo
   end if
 
   ! Now write the coefficients
-  do i = 1, norb
+  do i = 1, ntmb
      do j = 1, ntmb
           tt = coeff(j,i)
           if (useFormattedOutput) then
@@ -891,21 +891,20 @@ END SUBROUTINE writeLinearCoefficients
 
 
 !> Write all my wavefunctions in files by calling writeonewave
-subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,at,rxyz,psi,coeff,eval)
+subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz,psi,coeff)
   use module_types
   use module_base
   use yaml_output
   use module_interfaces, except_this_one => writeonewave
   implicit none
-  integer, intent(in) :: iproc,iformat
-  integer, intent(in) :: norb   !< number of orbitals, not basis functions
+  integer, intent(in) :: iproc,iformat,npsidim
+  !integer, intent(in) :: norb   !< number of orbitals, not basis functions
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
   type(local_zone_descriptors), intent(in) :: Lzd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(in) :: psi  ! Should be the real linear dimension and not the global
-  real(wp), dimension(orbs%norb,norb), intent(in) :: coeff
-  real(wp), dimension(norb), intent(in) :: eval
+  real(wp), dimension(npsidim), intent(in) :: psi  ! Should be the real linear dimension and not the global
+  real(wp), dimension(orbs%norb,orbs%norb), intent(in) :: coeff
   character(len=*), intent(in) :: filename
   !Local variables
   integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat
@@ -965,8 +964,8 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,at,rxyz,psi,
          open(99, file=filename//'_coeff.bin', status='unknown',form='unformatted')
       end if
       call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
-           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at%nat,rxyz,norb,orbs%norb,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,&
-           coeff,eval)
+           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at%nat,rxyz,orbs%norb,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,&
+           coeff,orbs%eval)
       close(99)
     end if
      call cpu_time(tr1)
@@ -1340,8 +1339,8 @@ subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2
 END SUBROUTINE io_read_descr_coeff
 
 
-subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,norb,ntmb,&
-     & at,rxyz_old,rxyz,coeff,eval,norb_change)
+subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,&
+     & at,rxyz_old,rxyz,coeff,eval)
   use module_base
   use module_types
   use internal_io
@@ -1349,13 +1348,13 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,norb,ntmb,&
   use yaml_output
   implicit none
   logical, intent(in) :: useFormattedInput
-  integer, intent(in) :: unitwf,iproc,norb,ntmb
+  integer, intent(in) :: unitwf,iproc,ntmb
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
-  real(wp), dimension(ntmb,norb), intent(out) :: coeff
-  real(wp), dimension(norb), intent(out) :: eval
-  logical, intent(out) :: norb_change
+  real(wp), dimension(ntmb,ntmb), intent(out) :: coeff
+  real(wp), dimension(ntmb), intent(out) :: eval
+
   !local variables
   character(len = 256) :: error
   logical :: perx,pery,perz,lstat
@@ -1364,11 +1363,6 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,norb,ntmb,&
   real(wp) :: tt
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
 
-
-
-
-
-  norb_change = .false.
 
   !write(*,*) 'INSIDE readonewave'
   call io_read_descr_coeff(unitwf, useFormattedInput, norb_old, ntmb_old, n1_old, n2_old, n3_old, &
@@ -1390,119 +1384,39 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,norb,ntmb,&
   enddo
   displ=sqrt(tx+ty+tz)
 
-  if (norb == norb_old) then
-
-     ! read the eigenvalues
-     if (useFormattedInput) then
-        do iorb=1,norb
-           read(unitwf,*,iostat=i_stat) iorb_old,eval(iorb)
-           if (iorb_old /= iorb) stop 'read_coeff_minbasis'
-        enddo
-     else 
-        do iorb=1,norb
-           read(unitwf,iostat=i_stat) iorb_old,eval(iorb)
-           if (iorb_old /= iorb) stop 'read_coeff_minbasis'
-        enddo
-        if (i_stat /= 0) stop 'Problem reading the coefficients'
-     end if
-
-     !if (iproc == 0) write(*,*) 'coefficients need NO reformatting'
-
-     ! Now read the coefficients
-     do i = 1, norb
-        do j = 1, ntmb
-           if (useFormattedInput) then
-              read(unitwf,*,iostat=i_stat) i1,i2,tt
-           else
-              read(unitwf,iostat=i_stat) i1,i2,tt
-           end if
-           if (i_stat /= 0) stop 'Problem reading the coefficients'
-           coeff(j,i) = tt  
-        end do
-     end do
-     !!if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients read'
-  else
-     ! tmbs themselves should be ok, but need to recalculate the coefficients
-     if (norb < norb_old) then ! for now if we have too many, just eliminate highest
-        ! read the eigenvalues
-        if (useFormattedInput) then
-           do iorb=1,norb
-              read(unitwf,*,iostat=i_stat) iorb_old,eval(iorb)
-              if (iorb_old /= iorb) stop 'read_coeff_minbasis'
-           enddo
-           do iorb=norb+1,norb_old
-              read(unitwf,*,iostat=i_stat) iorb_old,tt
-           end do
-        else 
-           do iorb=1,norb
-              read(unitwf,iostat=i_stat) iorb_old,eval(iorb)
-              if (iorb_old /= iorb) stop 'read_coeff_minbasis'
-           enddo
-           do iorb=norb+1,norb_old
-              read(unitwf,iostat=i_stat) iorb_old,tt
-           end do
-           if (i_stat /= 0) stop 'Problem reading the coefficients'
-        end if
-
-        if (iproc == 0) write(*,*) 'Eliminating coefficients for highest',norb_old-norb,'states'
-
-        do i = 1, norb_old
-           do j = 1, ntmb
-              if (useFormattedInput) then
-                 read(unitwf,*,iostat=i_stat) i1,i2,tt
-              else
-                 read(unitwf,iostat=i_stat) i1,i2,tt
-              end if
-              if (i_stat /= 0) stop 'Problem reading the coefficients'
-              if (i <= norb) coeff(j,i) = tt  
-           end do
-        end do
-        !!if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients read'    
-     else
-        if (iproc == 0) write(*,*) 'Not enough orbitals in coefficients, resetting them to the identity'
-        ! read the eigenvalues
-        if (useFormattedInput) then
-           do iorb=1,norb_old
-              read(unitwf,*,iostat=i_stat) iorb_old,eval(iorb)
-              if (iorb_old /= iorb) stop 'read_coeff_minbasis'
-           enddo
-           do iorb=norb_old+1,norb
-              eval(iorb) = 0.0_dp ! set to zero for lack of better idea
-           end do
-        else 
-           do iorb=1,norb_old
-              read(unitwf,iostat=i_stat) iorb_old,eval(iorb)
-              if (iorb_old /= iorb) stop 'read_coeff_minbasis'
-           enddo
-           do iorb=norb_old+1,norb
-              eval(iorb) = 0.0_dp ! set to zero for lack of better idea
-           end do
-           if (i_stat /= 0) stop 'Problem reading the coefficients'
-        end if
-
-        norb_change = .true.
-        do i = 1, norb_old
-           do j = 1, ntmb
-              if (useFormattedInput) then
-                 read(unitwf,*,iostat=i_stat) i1,i2,tt
-              else
-                 read(unitwf,iostat=i_stat) i1,i2,tt
-              end if
-              if (i_stat /= 0) stop 'Problem reading the coefficients'
-              coeff(j,i) = tt  
-           end do
-        end do
-        do i=norb_old+1,norb
-           do j = 1, ntmb
-              if (j==i) then
-                 coeff(j,i)=1.0_dp  
-              else 
-                 coeff(j,i)=0.0_dp  
-              end if
-           end do
-        end do
-     end if
+  if (norb_old /= ntmb_old) then
+     if (iproc == 0) write(error,"(A)") 'error in read coeffs, eval and coeffs should be ntmb*ntmb'
+     call io_error(trim(error))
   end if
+
+  ! read the eigenvalues
+  if (useFormattedInput) then
+     do iorb=1,ntmb
+        read(unitwf,*,iostat=i_stat) iorb_old,eval(iorb)
+        if (iorb_old /= iorb) stop 'read_coeff_minbasis'
+     enddo
+  else 
+     do iorb=1,ntmb
+        read(unitwf,iostat=i_stat) iorb_old,eval(iorb)
+        if (iorb_old /= iorb) stop 'read_coeff_minbasis'
+     enddo
+     if (i_stat /= 0) stop 'Problem reading the eigenvalues'
+  end if
+
+  !if (iproc == 0) write(*,*) 'coefficients need NO reformatting'
+
+  ! Now read the coefficients
+  do i = 1, ntmb
+     do j = 1, ntmb
+        if (useFormattedInput) then
+           read(unitwf,*,iostat=i_stat) i1,i2,tt
+        else
+           read(unitwf,iostat=i_stat) i1,i2,tt
+        end if
+        if (i_stat /= 0) stop 'Problem reading the coefficients'
+        coeff(j,i) = tt  
+     end do
+  end do
 
 
 END SUBROUTINE read_coeff_minbasis
@@ -1510,24 +1424,22 @@ END SUBROUTINE read_coeff_minbasis
 
 !> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell                                                                                                                                                                                                                                                                                                                                   
 !!  have changed
-subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,rxyz,  & 
-    psi,coeff,eval,norb_change,orblist)
+subroutine readmywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz_old,rxyz,  & 
+    psi,coeff,orblist)
   use module_base
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => readmywaves_linear
   implicit none
-  integer, intent(in) :: iproc, iformat,norb
+  integer, intent(in) :: iproc, iformat, npsidim
   type(orbitals_data), intent(inout) :: orbs  ! orbs related to the basis functions
   type(local_zone_descriptors), intent(in) :: Lzd
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
-  real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi  
-  real(gp), dimension(norb,orbs%norb),intent(out) :: coeff
-  real(gp), dimension(norb),intent(out) :: eval
+  real(wp), dimension(npsidim), intent(out) :: psi  
+  real(gp), dimension(orbs%norb,orbs%norb),intent(out) :: coeff
   character(len=*), intent(in) :: filename
-  logical, intent(out) :: norb_change
   integer, dimension(orbs%norb), optional :: orblist
   !Local variables
   character(len=*), parameter :: subname='readmywaves_linear'
@@ -1609,8 +1521,8 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
      else
         stop 'Coefficient format not implemented'
      end if
-     call read_coeff_minbasis(99,(iformat == WF_FORMAT_PLAIN),iproc,norb,orbs%norb,&
-          at,rxyz_old,rxyz,coeff,eval,norb_change)
+     call read_coeff_minbasis(99,(iformat == WF_FORMAT_PLAIN),iproc,orbs%norb,&
+          at,rxyz_old,rxyz,coeff,orbs%eval)
      close(99)
   else
      !write(*,*) "Unknown wavefunction file format from filename."
@@ -1968,12 +1880,12 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
 END SUBROUTINE copy_old_supportfunctions
 
 
-subroutine copy_old_coefficients(norb_KS, norb_tmb, coeff, coeff_old)
+subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
   use module_base
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: norb_KS, norb_tmb
+  integer,intent(in):: norb_tmb
   real(8),dimension(:,:),pointer:: coeff, coeff_old
 
   ! Local variables
@@ -1981,10 +1893,10 @@ subroutine copy_old_coefficients(norb_KS, norb_tmb, coeff, coeff_old)
   integer:: istat
 !  integer:: iall
 
-  allocate(coeff_old(norb_tmb,norb_KS),stat=istat)
+  allocate(coeff_old(norb_tmb,norb_tmb),stat=istat)
   call memocc(istat,coeff_old,'coeff_old',subname)
 
-  call vcopy(norb_KS*norb_tmb, coeff(1,1), 1, coeff_old(1,1), 1)
+  call vcopy(norb_tmb*norb_tmb, coeff(1,1), 1, coeff_old(1,1), 1)
 
   !!iall=-product(shape(coeff))*kind(coeff)
   !!deallocate(coeff,stat=istat)

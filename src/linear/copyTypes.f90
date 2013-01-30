@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 !currently incomplete - need to add comms arrays etc
-subroutine copy_tmbs(tmbin, tmbout, norb_kswfn, subname)
+subroutine copy_tmbs(tmbin, tmbout, subname)
   use module_base
   use module_types
   use module_interfaces
@@ -16,23 +16,21 @@ subroutine copy_tmbs(tmbin, tmbout, norb_kswfn, subname)
 
   type(DFT_wavefunction), intent(in) :: tmbin
   type(DFT_wavefunction), intent(out) :: tmbout
-  integer, intent(in) :: norb_kswfn
   character(len=*),intent(in):: subname
 
   call nullify_orbitals_data(tmbout%orbs)
   call copy_orbitals_data(tmbin%orbs, tmbout%orbs, subname)
   call nullify_local_zone_descriptors(tmbout%lzd)
   call copy_old_supportfunctions(tmbin%orbs,tmbin%lzd,tmbin%psi,tmbout%lzd,tmbout%psi)
-  ! Here I use KSwfn%orbs%norb in spite of the fact that KSwfn%orbs will only be defined later.. not very nice
-  if (associated(tmbin%wfnmd%coeff)) then !(in%lin%scf_mode/=LINEAR_FOE) then ! should move this check to copy_old_coeffs
-      call copy_old_coefficients(norb_kswfn, tmbin%orbs%norb, tmbin%wfnmd%coeff, tmbout%wfnmd%coeff)
+
+  if (associated(tmbin%coeff)) then !(in%lin%scf_mode/=LINEAR_FOE) then ! should move this check to copy_old_coeffs
+      call copy_old_coefficients(tmbin%orbs%norb, tmbin%coeff, tmbout%coeff)
   else
-      nullify(tmbout%wfnmd%coeff)
+      nullify(tmbout%coeff)
   end if
 
   ! should technically copy these across as well but not needed for restart and will eventually be removing wfnmd as a type
-  nullify(tmbout%wfnmd%coeffp)
-  nullify(tmbout%wfnmd%density_kernel_compr)
+  nullify(tmbout%linmat%denskern%matrix_compr)
 
   ! should also copy/nullify p2pcomms etc
 
@@ -1043,7 +1041,7 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
   character(len=*),intent(in):: subname
 
   ! Local variables
-  integer:: istat, iall, i1, iis1, iie1
+  integer:: istat, i1, iis1, iie1
 
   lzd_out%linear=lzd_in%linear
   lzd_out%nlr=lzd_in%nlr
@@ -1068,3 +1066,146 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
   end if
 
 end subroutine copy_local_zone_descriptors
+
+
+!only copying sparsity pattern here, not copying whole matrix
+subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, subname)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => sparse_copy_pattern
+  implicit none
+
+  ! Calling arguments
+  type(sparseMatrix),intent(in):: sparseMat_in
+  type(sparseMatrix),intent(inout):: sparseMat_out
+  character(len=*),intent(in):: subname
+
+  ! Local variables
+  integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+
+  sparsemat_out%nvctr = sparsemat_in%nvctr
+  sparsemat_out%nseg = sparsemat_in%nseg
+  sparsemat_out%full_dim1 = sparsemat_in%full_dim1
+  sparsemat_out%full_dim2 = sparsemat_in%full_dim2
+
+  nullify(sparsemat_out%matrix)
+  nullify(sparsemat_out%matrix_compr)
+
+  if(associated(sparsemat_out%noverlaps)) then
+     iall=-product(shape(sparsemat_out%noverlaps))*kind(sparsemat_out%noverlaps)
+     deallocate(sparsemat_out%noverlaps, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%noverlaps', subname)
+  end if
+  if(associated(sparsemat_in%noverlaps)) then
+     iis1=lbound(sparsemat_in%noverlaps,1)
+     iie1=ubound(sparsemat_in%noverlaps,1)
+     allocate(sparsemat_out%noverlaps(iis1:iie1), stat=istat)
+     call memocc(istat, sparsemat_out%noverlaps, 'sparsemat_out%noverlaps', subname)
+     do i1=iis1,iie1
+        sparsemat_out%noverlaps(i1) = sparsemat_in%noverlaps(i1)
+     end do
+  end if
+ 
+  if(associated(sparsemat_out%overlaps)) then
+     iall=-product(shape(sparsemat_out%overlaps))*kind(sparsemat_out%overlaps)
+     deallocate(sparsemat_out%overlaps, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%overlaps', subname)
+  end if
+  if(associated(sparsemat_in%overlaps)) then
+     iis1=lbound(sparsemat_in%overlaps,1)
+     iie1=ubound(sparsemat_in%overlaps,1)
+     iis2=lbound(sparsemat_in%overlaps,2)
+     iie2=ubound(sparsemat_in%overlaps,2)
+     allocate(sparsemat_out%overlaps(iis1:iie1,iis2:iie2), stat=istat)
+     call memocc(istat, sparsemat_out%overlaps, 'sparsemat_out%overlaps', subname)
+     do i1=iis1,iie1
+        do i2 = iis2,iie2
+           sparsemat_out%overlaps(i1,i2) = sparsemat_in%overlaps(i1,i2)
+        end do
+     end do
+  end if
+
+  if(associated(sparsemat_out%keyv)) then
+     iall=-product(shape(sparsemat_out%keyv))*kind(sparsemat_out%keyv)
+     deallocate(sparsemat_out%keyv, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%keyv', subname)
+  end if
+  if(associated(sparsemat_in%keyv)) then
+     iis1=lbound(sparsemat_in%keyv,1)
+     iie1=ubound(sparsemat_in%keyv,1)
+     allocate(sparsemat_out%keyv(iis1:iie1), stat=istat)
+     call memocc(istat, sparsemat_out%keyv, 'sparsemat_out%keyv', subname)
+     do i1=iis1,iie1
+        sparsemat_out%keyv(i1) = sparsemat_in%keyv(i1)
+     end do
+  end if
+
+  if(associated(sparsemat_out%nsegline)) then
+     iall=-product(shape(sparsemat_out%nsegline))*kind(sparsemat_out%nsegline)
+     deallocate(sparsemat_out%nsegline, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%nsegline', subname)
+  end if
+  if(associated(sparsemat_in%nsegline)) then
+     iis1=lbound(sparsemat_in%nsegline,1)
+     iie1=ubound(sparsemat_in%nsegline,1)
+     allocate(sparsemat_out%nsegline(iis1:iie1), stat=istat)
+     call memocc(istat, sparsemat_out%nsegline, 'sparsemat_out%nsegline', subname)
+     do i1=iis1,iie1
+        sparsemat_out%nsegline(i1) = sparsemat_in%nsegline(i1)
+     end do
+  end if
+
+  if(associated(sparsemat_out%istsegline)) then
+     iall=-product(shape(sparsemat_out%istsegline))*kind(sparsemat_out%istsegline)
+     deallocate(sparsemat_out%istsegline, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%istsegline', subname)
+  end if
+  if(associated(sparsemat_in%istsegline)) then
+     iis1=lbound(sparsemat_in%istsegline,1)
+     iie1=ubound(sparsemat_in%istsegline,1)
+     allocate(sparsemat_out%istsegline(iis1:iie1), stat=istat)
+     call memocc(istat, sparsemat_out%istsegline, 'sparsemat_out%istsegline', subname)
+     do i1=iis1,iie1
+        sparsemat_out%istsegline(i1) = sparsemat_in%istsegline(i1)
+     end do
+  end if
+
+  if(associated(sparsemat_out%keyg)) then
+     iall=-product(shape(sparsemat_out%keyg))*kind(sparsemat_out%keyg)
+     deallocate(sparsemat_out%keyg, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%keyg', subname)
+  end if
+  if(associated(sparsemat_in%keyg)) then
+     iis1=lbound(sparsemat_in%keyg,1)
+     iie1=ubound(sparsemat_in%keyg,1)
+     iis2=lbound(sparsemat_in%keyg,2)
+     iie2=ubound(sparsemat_in%keyg,2)
+     allocate(sparsemat_out%keyg(iis1:iie1,iis2:iie2), stat=istat)
+     call memocc(istat, sparsemat_out%keyg, 'sparsemat_out%keyg', subname)
+     do i1=iis1,iie1
+        do i2 = iis2,iie2
+           sparsemat_out%keyg(i1,i2) = sparsemat_in%keyg(i1,i2)
+        end do
+     end do
+  end if
+
+  if(associated(sparsemat_out%matrixindex_in_compressed)) then
+     iall=-product(shape(sparsemat_out%matrixindex_in_compressed))*kind(sparsemat_out%matrixindex_in_compressed)
+     deallocate(sparsemat_out%matrixindex_in_compressed, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%matrixindex_in_compressed', subname)
+  end if
+  if(associated(sparsemat_in%matrixindex_in_compressed)) then
+     iis1=lbound(sparsemat_in%matrixindex_in_compressed,1)
+     iie1=ubound(sparsemat_in%matrixindex_in_compressed,1)
+     iis2=lbound(sparsemat_in%matrixindex_in_compressed,2)
+     iie2=ubound(sparsemat_in%matrixindex_in_compressed,2)
+     allocate(sparsemat_out%matrixindex_in_compressed(iis1:iie1,iis2:iie2), stat=istat)
+     call memocc(istat, sparsemat_out%matrixindex_in_compressed, 'sparsemat_out%matrixindex_in_compressed', subname)
+     do i1=iis1,iie1
+        do i2 = iis2,iie2
+           sparsemat_out%matrixindex_in_compressed(i1,i2) = sparsemat_in%matrixindex_in_compressed(i1,i2)
+        end do
+     end do
+  end if
+
+end subroutine sparse_copy_pattern

@@ -13,7 +13,7 @@
 !! Each processors write its initial wavefunctions into the wavefunction file
 !! The files are then read by readwave
 subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
-     rxyz, nlpspd, proj, GPU, orbs, tmb, tmblarge, denspot, rhopotold, energs)
+     rxyz, nlpspd, proj, GPU, orbs, tmb, denspot, rhopotold, energs)
   use module_base
   use module_interfaces, exceptThisOne => inputguessConfinement
   use module_types
@@ -30,7 +30,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   type(orbitals_data),intent(inout) :: orbs
   type(DFT_wavefunction),intent(inout) :: tmb
-  type(DFT_wavefunction),intent(inout) :: tmblarge
   type(DFT_local_fields), intent(inout) :: denspot
   real(dp), dimension(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) :: rhopotold
   type(energy_terms),intent(inout) :: energs
@@ -38,24 +37,23 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Local variables
   type(gaussian_basis) :: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
-  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,iseg,jjorb
+  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat
   real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0
   integer, dimension(:,:), allocatable :: norbsc_arr
-  real(gp), dimension(:), allocatable :: locrad, density_kernel_compr
+  real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
   integer, dimension(:),allocatable :: norbsPerAt, mapping, inversemapping
   logical,dimension(:),allocatable :: covered
   integer, parameter :: nmax=6,lmax=3
   integer :: ist,jorb,iadd,ii,jj,ityp
   integer :: jlr,iiorb
-  integer :: infoCoeff, it_coeff_opt
+  integer :: infoCoeff
   type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
   character(len=2) :: symbol
   real(kind=8) :: rcov,rprb,ehomo,amu,pnrm
   real(kind=8) :: neleconf(nmax,0:lmax)                                        
   integer :: nsccode,mxpl,mxchg
-  real(8),dimension(:),allocatable :: ham_compr, ovrlp_compr
   type(mixrhopotDIISParameters) :: mixdiis
 
   call nullify_orbitals_data(orbs_gauss)
@@ -188,7 +186,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Transform the atomic orbitals to the wavelet basis.
   orbs_gauss%inwhichlocreg=tmb%orbs%inwhichlocreg
   call wavefunction_dimension(tmb%lzd,orbs_gauss)
-  call to_zero(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), tmb%psi(1))
+  call to_zero(max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%psi(1))
   call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
        psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
 
@@ -214,34 +212,17 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!     denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
 
   !Put the Density kernel to identity for now
-  !!call to_zero(tmb%orbs%norb**2, tmb%wfnmd%density_kernel(1,1))
-  !!do ii = 1, tmb%orbs%norb
-  !!   tmb%wfnmd%density_kernel(ii,ii) = 1.d0*tmb%orbs%occup(inversemapping(ii))
-  !!end do 
-
-  allocate(density_kernel_compr(tmblarge%mad%nvctr), stat=istat)
-  call memocc(istat, density_kernel_compr, 'density_kernel_compr', subname)
-
-  ii=0
-  do iseg=1,tmblarge%mad%nseg
-      do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
-          ii=ii+1
-          iiorb = (jorb-1)/tmblarge%orbs%norb + 1
-          jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
-          if(iiorb==jjorb) then
-              density_kernel_compr(ii)=1.d0*tmb%orbs%occup(inversemapping(iiorb))
-          else
-              density_kernel_compr(ii)=0.0d0
-          end if
-      end do
+  call to_zero(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1))
+  do iorb=1,tmb%orbs%norb
+     ii=tmb%linmat%denskern%matrixindex_in_compressed(iorb,iorb)
+     tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(inversemapping(iorb))
   end do
 
-
   !Calculate the density in the new scheme
-  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
+  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
+       tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%orbs, tmblarge%mad, tmb%collcom_sr, density_kernel_compr, &
-       tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%collcom_sr, tmb%linmat%denskern, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
   !!do istat=1,size(denspot%rhov)
   !!    write(300+iproc,*) istat, denspot%rhov(istat)
@@ -249,93 +230,77 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!call mpi_finalize(istat)
   !!stop
 
-  iall=-product(shape(density_kernel_compr))*kind(density_kernel_compr)
-  deallocate(density_kernel_compr, stat=istat)
-  call memocc(istat, iall, 'density_kernel_compr', subname)
 
-  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
-       .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+  if (input%lin%mixing_after_inputguess) then
+      if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
+           .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+      end if
+  end if
+  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+  if (input%lin%mixing_after_inputguess) then
+      if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+          call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+      end if
+  end if
+  if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
+
+      ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
+  if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+  call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%denskern, &
+       tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+
+  if (input%lin%scf_mode==LINEAR_FOE) then
+      call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+           input%SIC,tmb,fnrm,.true.,.false.,.true.)
+  else
+      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+           input%SIC,tmb,fnrm,.true.,.false.,.true.)
+  end if
+
+  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
+       tmb%orbs, tmb%psi, tmb%collcom_sr)
+  call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
+       tmb%collcom_sr, tmb%linmat%denskern, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+
+  !!!call plot_density(iproc,nproc,'initial',at,rxyz,denspot%dpbox,input%nspin,denspot%rhov)
+
+  ! Mix the density.
+  if (input%lin%mixing_after_inputguess .and. (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE)) then
+     call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
+          denspot, mixdiis, rhopotold, pnrm)
+  end if
+
+  if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
       call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
-
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+  ! Mix the potential.
+  if (input%lin%mixing_after_inputguess .and. input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+     call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
+          denspot, mixdiis, rhopotold, pnrm)
+  end if
 
   if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
       call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
-  if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
-
-
-!!  ! Give tmblarge%mad since this is the correct matrix description
-!!  call orthonormalizeLocalized(iproc, nproc, -1, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom, &
-!!       tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
-
-  allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
-  call memocc(istat, ham_compr, 'ham_compr', subname)
-  allocate(ovrlp_compr(tmblarge%mad%nvctr), stat=istat)
-  call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
-
-  if (input%lin%scf_mode==LINEAR_FOE) then
-      call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,tmblarge, ham_compr, ovrlp_compr, .true., it_coeff_opt)
-  else
-      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,tmblarge, ham_compr, ovrlp_compr, .true., it_coeff_opt)
-  end if
-
-
-!!  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
-!!  call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-!!       tmb%orbs, tmblarge%mad, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
-!!       tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-!!
-!!  ! Mix the density.
-!!  if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-!!     call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
-!!          denspot, mixdiis, rhopotold, pnrm)
-!!  end if
-!!
-!!  
-!!  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
-!!       .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-!!      call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
-!!  end if
-!!
-!!  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-!!
-!!  ! Mix the potential.
-!!  if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-!!     call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
-!!          denspot, mixdiis, rhopotold, pnrm)
-!!  end if
-!!
-!!  if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-!!      call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
-!!  end if
-
-
-  iall=-product(shape(ham_compr))*kind(ham_compr)
-  deallocate(ham_compr, stat=istat)
-  call memocc(istat, iall, 'ham_compr', subname)
-  iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
-  deallocate(ovrlp_compr, stat=istat)
-  call memocc(istat, iall, 'ovrlp_compr', subname)
-
 
   ! Important: Don't use for the rest of the code
-  tmblarge%can_use_transposed = .false.
+  tmb%ham_descr%can_use_transposed = .false.
 
-  if(associated(tmblarge%psit_c)) then
-      iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
-      deallocate(tmblarge%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmblarge%psit_c', subname)
+  if(associated(tmb%ham_descr%psit_c)) then
+      iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
+      deallocate(tmb%ham_descr%psit_c, stat=istat)
+      call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
   end if
-  if(associated(tmblarge%psit_f)) then
-      iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
-      deallocate(tmblarge%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmblarge%psit_f', subname)
+  if(associated(tmb%ham_descr%psit_f)) then
+      iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
+      deallocate(tmb%ham_descr%psit_f, stat=istat)
+      call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
   end if
   
   if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
