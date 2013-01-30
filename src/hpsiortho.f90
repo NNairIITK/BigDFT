@@ -1504,8 +1504,11 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
      end if
      call NonLocalHamiltonianApplication(iproc,at,wfn%orbs,rxyz,&
           proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,eproj_sum,proj_G,paw)
-     
+
+!    Transpose spsi:     
      call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,paw%spsi,work=wfn%hpsi)
+!    Gather cprj:
+     call gather_cprj()
    end if
 
    call timing(iproc,'Diis          ','OF')
@@ -1578,6 +1581,117 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    !end if
    !END DEBUG
 contains
+
+!In this routine cprj will be communicated to all processors
+subroutine gather_cprj()
+  use module_base
+  use module_types
+  implicit none
+! Local variables:
+  integer::iatom,ilmn,iorb,ierr,ikpts,jproc
+  character(len=*), parameter :: subname='gather_cprj'
+! Tabulated data to be send/received for mpi
+  integer,allocatable,dimension(:):: ndsplt
+  integer,allocatable,dimension(:):: ncntd 
+  integer,allocatable,dimension(:):: ncntt 
+! auxiliar arrays
+  real(dp),allocatable,dimension(:,:,:,:)::raux,raux2  
+
+  if (nproc > 1) then
+
+!   Allocate temporary arrays
+    allocate(ndsplt(0:nproc-1),stat=i_stat)
+    call memocc(i_stat,ndsplt,'ndsplt',subname)
+    allocate(ncntd(0:nproc-1),stat=i_stat)
+    call memocc(i_stat,ncntd,'ncntd',subname)
+    allocate(ncntt(0:nproc-1),stat=i_stat)
+    call memocc(i_stat,ncntt,'ncntt',subname)
+    allocate(raux(2,paw%lmnmax,paw%natom,wfn%orbs%norbp),stat=i_stat)
+    call memocc(i_stat,raux,'raux',subname)
+    allocate(raux2(2,paw%lmnmax,paw%natom,wfn%orbs%norb),stat=i_stat)
+    call memocc(i_stat,raux,'raux2',subname)
+
+!   Set tables for mpi operations:
+!   Send buffer:
+    do jproc=0,nproc-1
+      ncntd(jproc)=0
+      do ikpts=1,wfn%orbs%nkpts
+        ncntd(jproc)=ncntd(jproc)+&
+             2*paw%lmnmax*paw%natom*wfn%orbs%norb_par(iproc,ikpts)*wfn%orbs%nspinor
+      end do
+    end do
+!   receive buffer:
+    do jproc=0,nproc-1
+       ncntt(jproc)=0
+       do ikpts=1,wfn%orbs%nkpts
+          ncntt(jproc)=ncntt(jproc)+&
+               2*paw%lmnmax*paw%natom*wfn%orbs%norb_par(jproc,ikpts)*wfn%orbs%nspinor
+       end do
+    end do
+!   Displacements table:
+!    ndspld(0)=0
+!    do jproc=1,nproc-1
+!      ndspld(jproc)=ndspld(jproc-1)+ncntd(jproc-1)
+!    end do
+    ndsplt(0)=0
+    do jproc=1,nproc-1
+       ndsplt(jproc)=ndsplt(jproc-1)+ncntt(jproc-1)
+    end do
+
+!   Transfer cprj to raux:
+    raux=0.0_dp
+!Missing nspinor
+    do iorb=1,wfn%orbs%norbp
+      do iatom=1,paw%natom
+        do ilmn=1,paw%cprj(iatom,iorb)%nlmn
+          raux(:,ilmn,iatom,iorb)=paw%cprj(iatom,iorb)%cp(:,ilmn)
+        end do
+      end do
+    end do
+!
+!    sendcnt=2*lmnmax*natom*orbs%norbp !N. of data to send
+!    recvcnt=2*lmnmax*natom*orbs%norb  !N. of data to receive
+!   
+!    call MPI_ALLGATHER(raux,sendcnt,MPI_DOUBLE_PRECISION,&
+!&     raux2,recvcnt,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+    call MPI_ALLGATHERV(raux,ncntd,mpidtypw,&
+&     raux2,ncntt,ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
+!
+!   Transfer back, raux2 to cprj:
+!   First set cprj to zero
+    do iorb=1,wfn%orbs%norbp
+      do iatom=1,paw%natom
+        paw%cprj(iatom,iorb)%cp(:,:)=0.0_dp
+      end do
+    end do
+!
+    do iorb=1,wfn%orbs%norb
+      do iatom=1,paw%natom
+        do ilmn=1,paw%cprj(iatom,iorb)%nlmn
+          paw%cprj(iatom,iorb)%cp(:,ilmn)=raux2(:,ilmn,iatom,iorb)
+        end do
+      end do
+    end do
+!   Deallocate arrays:
+    i_all=-product(shape(ndsplt))*kind(ndsplt)
+    deallocate(ndsplt,stat=i_stat)
+    call memocc(i_stat,i_all,'ndsplt',subname)
+    i_all=-product(shape(ncntd))*kind(ncntd)
+    deallocate(ncntd,stat=i_stat)
+    call memocc(i_stat,i_all,'ncntd',subname)
+    i_all=-product(shape(ncntt))*kind(ncntt)
+    deallocate(ncntt,stat=i_stat)
+    call memocc(i_stat,i_all,'ncntt',subname)
+    i_all=-product(shape(raux))*kind(raux)
+    deallocate(raux,stat=i_stat)
+    call memocc(i_stat,i_all,'raux',subname)
+    i_all=-product(shape(raux2))*kind(raux2)
+    deallocate(raux2,stat=i_stat)
+    call memocc(i_stat,i_all,'raux2',subname)
+  end if
+
+
+end subroutine gather_cprj
 
 real(8) function ddot(n,A,l1,B,l2)
   implicit none
