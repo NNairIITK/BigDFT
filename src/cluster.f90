@@ -324,9 +324,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call correct_grid(atoms%alat1,hx_old,KSwfn%Lzd%Glr%d%n1)
         call correct_grid(atoms%alat3,hz_old,KSwfn%Lzd%Glr%d%n3)
      end if
+      call nullify_local_zone_descriptors(lzd_old)
+
+     call copy_local_zone_descriptors(KSwfn%Lzd, lzd_old, subname)
      call copy_old_wavefunctions(nproc,KSwfn%orbs,&
           KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
           KSwfn%Lzd%Glr%wfd,KSwfn%psi,d_old%n1,d_old%n2,d_old%n3,wfd_old,psi_old)
+
  
   else if (in%inputPsiId == INPUT_PSI_MEMORY_GAUSS) then
      !deallocate wavefunction and descriptors for placing the gaussians
@@ -1161,9 +1165,11 @@ contains
     call memocc(i_stat, i_all, 'denspot0', subname)
 
     ! Free all remaining parts of KSwfn
-    call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
-         KSwfn%Lzd%Glr%bounds,subname)
-    call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
+write(*,*) 'WARNING HERE!!!!!'
+!!    call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
+!!         KSwfn%Lzd%Glr%bounds,subname)
+!!    call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
+
 !    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
 !    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
 !    call memocc(i_stat,i_all,'Glr%projflg',subname)
