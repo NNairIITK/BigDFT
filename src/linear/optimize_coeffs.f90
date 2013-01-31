@@ -117,7 +117,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   end if
 
   call dcopy(tmb%orbs%norb*orbs%norbp, rhs(1,orbs%isorb+1), 1, gradp(1,1), 1)
-if(iproc==0) write(200,*) gradp
+  !if(iproc==0) write(200,*) gradp
   call timing(iproc,'dirmin_dgesv','OF') !lr408t
 
   ! Precondition the gradient (only making things worse...)
@@ -132,8 +132,8 @@ if(iproc==0) write(200,*) gradp
   end if  
 
   if (ldiis_coeff%isx > 0) then !do DIIS
-  !TO DO: make sure DIIS works
-  print *,'in DIIS'
+     !TO DO: make sure DIIS works
+     print *,'in DIIS'
      call DIIS_coeff(iproc, orbs, tmb, gradp, tmb%coeff, ldiis_coeff)
   else  !steepest descent
      allocate(coeffp(tmb%orbs%norb,orbs%norbp),stat=istat)
@@ -154,7 +154,7 @@ if(iproc==0) write(200,*) gradp
      iall=-product(shape(coeffp))*kind(coeffp)
      deallocate(coeffp, stat=istat)
      call memocc(istat, iall, 'coeffp', subname)
-if(iproc==0) write(100,*) tmb%coeff
+     !if(iproc==0) write(100,*) tmb%coeff
   end if
 
   !For fnrm, we only sum on the occupied KS orbitals

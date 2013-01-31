@@ -465,16 +465,20 @@ function compressed_index(irow, jcol, norb, sparsemat)
 end function compressed_index
 
 
-subroutine compress_matrix_for_allreduce(sparsemat)
+subroutine compress_matrix_for_allreduce(iproc,sparsemat)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
+  integer, intent(in) :: iproc
   type(sparseMatrix),intent(inout) :: sparsemat
 
   ! Local variables
   integer :: jj, iseg, jorb, irow, jcol
+
+  call timing(iproc,'compress_uncom','ON')
+
 
   !$omp parallel do default(private) shared(sparsemat)
   do iseg=1,sparsemat%nseg
@@ -488,20 +492,25 @@ subroutine compress_matrix_for_allreduce(sparsemat)
   end do
   !$omp end parallel do
 
+  call timing(iproc,'compress_uncom','OF')
+
 end subroutine compress_matrix_for_allreduce
 
 
 
-subroutine uncompressMatrix(sparsemat)
+subroutine uncompressMatrix(iproc,sparsemat)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
+  integer, intent(in) :: iproc
   type(sparseMatrix), intent(inout) :: sparsemat
   
   ! Local variables
   integer :: iseg, ii, jorb, irow, jcol
+
+  call timing(iproc,'compress_uncom','ON')
 
   call to_zero(sparsemat%full_dim1**2, sparsemat%matrix(1,1))
   
@@ -519,6 +528,8 @@ subroutine uncompressMatrix(sparsemat)
 
   !$omp end parallel do
   
+  call timing(iproc,'compress_uncom','OF')
+
 end subroutine uncompressMatrix
 
 
@@ -553,7 +564,7 @@ subroutine check_matrix_compression(iproc,sparsemat)
      end do
   end do
   
-  call compress_matrix_for_allreduce(sparsemat)
+  call compress_matrix_for_allreduce(iproc,sparsemat)
 
   maxdiff = 0.d0
   do iseg = 1, sparsemat%nseg
@@ -576,7 +587,7 @@ subroutine check_matrix_compression(iproc,sparsemat)
     end if
   end if
 
-  call uncompressMatrix(sparsemat)
+  call uncompressMatrix(iproc,sparsemat)
 
   maxdiff = 0.d0
   do iseg = 1, sparsemat%nseg
