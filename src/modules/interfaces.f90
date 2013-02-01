@@ -2255,7 +2255,7 @@ module module_interfaces
        type(orthon_data),intent(in):: orthpar
        real(8),dimension(npsidim_orbs), intent(inout) :: lphi
        real(8),dimension(:),pointer:: psit_c, psit_f
-       logical,intent(out):: can_use_transposed
+       logical,intent(inout):: can_use_transposed
      end subroutine orthonormalizeLocalized
 
      subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis)
@@ -3734,7 +3734,7 @@ module module_interfaces
           use module_types
           implicit none
           integer,intent(in):: isx
-          type(localizedDIISParameters),intent(out):: ldiis
+          type(localizedDIISParameters),intent(inout):: ldiis
         end subroutine initialize_DIIS_coeff
 
         subroutine allocate_DIIS_coeff(tmb, ldiis)
@@ -3742,7 +3742,7 @@ module module_interfaces
           use module_types
           implicit none
           type(DFT_wavefunction),intent(in):: tmb
-          type(localizedDIISParameters),intent(out):: ldiis
+          type(localizedDIISParameters),intent(inout):: ldiis
         end subroutine allocate_DIIS_coeff
 
         subroutine initialize_DFT_local_fields(denspot)

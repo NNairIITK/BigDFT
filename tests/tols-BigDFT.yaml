@@ -19,6 +19,7 @@ Keys to ignore:
  - Grid Spacing threshold (AU)
  - Direct and transposed data repartition
  - Maxdiff*
+ - Tolerances for this check
 
 Expected Test CPUtime: #
  C: #[expected, error]

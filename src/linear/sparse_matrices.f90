@@ -13,7 +13,7 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
   type(sparseMatrix), intent(out) :: sparsemat
   
   ! Local variables
-  integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, nseg, irow, irowold, isegline, ilr
+  integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, nseg, irow, irowold, isegline, ilr, segn, ind, iseg
   integer :: nseglinemax, iall
   integer :: compressed_index
   integer,dimension(:,:,:),pointer:: keygline
@@ -168,10 +168,25 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
   call memocc(istat, sparsemat%matrixindex_in_compressed, 'sparsemat%matrixindex_in_compressed', subname)
 
   do iorb=1,orbs%norb
-      do jorb=1,orbs%norb
-          sparsemat%matrixindex_in_compressed(iorb,jorb)=compressed_index(iorb,jorb,orbs%norb,sparsemat)
-      end do
+     do jorb=1,orbs%norb
+        sparsemat%matrixindex_in_compressed(iorb,jorb)=compressed_index(iorb,jorb,orbs%norb,sparsemat)
+     end do
   end do
+
+  allocate(sparsemat%orb_from_index(sparsemat%nvctr,2), stat=istat)
+  call memocc(istat, sparsemat%orb_from_index, 'sparsemat%orb_from_index', subname)
+
+  ind = 0
+  do iseg = 1, sparsemat%nseg
+     do segn = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
+        ind=ind+1
+        iorb = (segn - 1) / sparsemat%full_dim1 + 1
+        jorb = segn - (iorb-1)*sparsemat%full_dim1
+        sparsemat%orb_from_index(ind,1) = jorb
+        sparsemat%orb_from_index(ind,2) = iorb
+     end do
+  end do
+
 
   call timing(iproc,'init_matrCompr','OF')
 
@@ -481,15 +496,22 @@ subroutine compress_matrix_for_allreduce(iproc,sparsemat)
 
 
   !$omp parallel do default(private) shared(sparsemat)
-  do iseg=1,sparsemat%nseg
-      jj=1
-      do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
-          jcol = (jorb-1)/sparsemat%full_dim1 + 1
-          irow = jorb - (jcol-1)*sparsemat%full_dim1
-          sparsemat%matrix_compr(sparsemat%keyv(iseg)+jj-1)=sparsemat%matrix(irow,jcol)
-          jj=jj+1
-      end do
+  !do iseg=1,sparsemat%nseg
+  !    jj=1
+  !    do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
+  !        jcol = (jorb-1)/sparsemat%full_dim1 + 1
+  !        irow = jorb - (jcol-1)*sparsemat%full_dim1
+  !        sparsemat%matrix_compr(sparsemat%keyv(iseg)+jj-1)=sparsemat%matrix(irow,jcol)
+  !        jj=jj+1
+  !    end do
+  !end do
+
+  do jj=1,sparsemat%nvctr
+     irow = sparsemat%orb_from_index(jj,1)
+     jcol = sparsemat%orb_from_index(jj,2)
+     sparsemat%matrix_compr(jj)=sparsemat%matrix(irow,jcol)
   end do
+
   !$omp end parallel do
 
   call timing(iproc,'compress_uncom','OF')
@@ -516,14 +538,20 @@ subroutine uncompressMatrix(iproc,sparsemat)
   
   !$omp parallel do default(private) shared(sparsemat)
 
-  do iseg=1,sparsemat%nseg
-      ii=0
-      do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
-          jcol = (jorb-1)/sparsemat%full_dim1 + 1
-          irow = jorb - (jcol-1)*sparsemat%full_dim1
-          sparsemat%matrix(irow,jcol)=sparsemat%matrix_compr(sparsemat%keyv(iseg)+ii)
-          ii=ii+1
-      end do
+  !do iseg=1,sparsemat%nseg
+  !    ii=0
+  !    do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
+  !        jcol = (jorb-1)/sparsemat%full_dim1 + 1
+  !        irow = jorb - (jcol-1)*sparsemat%full_dim1
+  !        sparsemat%matrix(irow,jcol)=sparsemat%matrix_compr(sparsemat%keyv(iseg)+ii)
+  !        ii=ii+1
+  !    end do
+  !end do
+
+  do ii=1,sparsemat%nvctr
+     irow = sparsemat%orb_from_index(ii,1)
+     jcol = sparsemat%orb_from_index(ii,2)
+     sparsemat%matrix(irow,jcol)=sparsemat%matrix_compr(ii)
   end do
 
   !$omp end parallel do

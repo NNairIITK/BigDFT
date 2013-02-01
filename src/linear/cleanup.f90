@@ -1111,6 +1111,7 @@ subroutine deallocate_sparseMatrix(sparsemat, subname)
   call checkAndDeallocatePointer(sparseMat%matrix_compr, 'sparseMat%matrix_compr', subname)
   call checkAndDeallocatePointer(sparseMat%matrix, 'sparseMat%matrix', subname)
   call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed, 'sparseMat%matrixindex_in_compressed', subname)
+  call checkAndDeallocatePointer(sparseMat%orb_from_index, 'sparseMat%orb_from_index', subname)
 
 end subroutine deallocate_sparseMatrix
 

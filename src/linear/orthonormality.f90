@@ -638,20 +638,24 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       ! inv_ovrlp_half can be less sparse than ovrlp, so pad with zeros first
       call to_zero(inv_ovrlp_half%nvctr,inv_ovrlp_half%matrix_compr(1))
       ! Taylor expansion up to first order.
-      ii=0
-      do iseg=1,ovrlp%nseg
-          do jorb=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
-              ii=ii+1
-              iiorb = (jorb-1)/norb + 1
-              jjorb = jorb - (iiorb-1)*norb
-              ii_inv = inv_ovrlp_half%matrixindex_in_compressed(jjorb,iiorb) ! double check this order
+      !ii=0
+      !do iseg=1,ovrlp%nseg
+      !    do jorb=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
+      !        ii=ii+1
+      !        iiorb = (jorb-1)/norb + 1
+      !        jjorb = jorb - (iiorb-1)*norb
+           do ii=1,ovrlp%nvctr
+              iiorb = ovrlp%orb_from_index(ii,1)
+              jjorb = ovrlp%orb_from_index(ii,2)
+
+              ii_inv = inv_ovrlp_half%matrixindex_in_compressed(iiorb,jjorb) ! double check this order
               if(iiorb==jjorb) then
                   inv_ovrlp_half%matrix_compr(ii_inv)=1.5d0-.5d0*ovrlp%matrix_compr(ii)
               else
                   inv_ovrlp_half%matrix_compr(ii_inv)=-.5d0*ovrlp%matrix_compr(ii)
               end if
           end do
-      end do
+      !end do
   else
       
       stop 'deprecated'

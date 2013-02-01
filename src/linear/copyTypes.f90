@@ -1208,4 +1208,26 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, subname)
      end do
   end if
 
+  if(associated(sparsemat_out%orb_from_index)) then
+     iall=-product(shape(sparsemat_out%orb_from_index))*kind(sparsemat_out%orb_from_index)
+     deallocate(sparsemat_out%orb_from_index, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%orb_from_index', subname)
+  end if
+  if(associated(sparsemat_in%orb_from_index)) then
+     iis1=lbound(sparsemat_in%orb_from_index,1)
+     iie1=ubound(sparsemat_in%orb_from_index,1)
+     iis2=lbound(sparsemat_in%orb_from_index,2)
+     iie2=ubound(sparsemat_in%orb_from_index,2)
+     allocate(sparsemat_out%orb_from_index(iis1:iie1,iis2:iie2), stat=istat)
+     call memocc(istat, sparsemat_out%orb_from_index, 'sparsemat_out%orb_from_index', subname)
+     do i1=iis1,iie1
+        do i2 = iis2,iie2
+           sparsemat_out%orb_from_index(i1,i2) = sparsemat_in%orb_from_index(i1,i2)
+        end do
+     end do
+  end if
+
 end subroutine sparse_copy_pattern
+
+
+

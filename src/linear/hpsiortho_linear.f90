@@ -87,38 +87,41 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           allocate(kernel_compr_tmp(tmb%linmat%denskern%nvctr), stat=istat)
           call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
           call vcopy(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
-          ii=0
-          do iseg=1,tmb%linmat%denskern%nseg
-              do jorb=tmb%linmat%denskern%keyg(1,iseg),tmb%linmat%denskern%keyg(2,iseg)
-                  ii=ii+1
-                  iiorb = (jorb-1)/tmb%orbs%norb + 1
-                  jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+          !ii=0
+          !do iseg=1,tmb%linmat%denskern%nseg
+          !    do jorb=tmb%linmat%denskern%keyg(1,iseg),tmb%linmat%denskern%keyg(2,iseg)
+          !        ii=ii+1
+          !        iiorb = (jorb-1)/tmb%orbs%norb + 1
+          !        jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+              do ii=1,tmb%linmat%denskern%nvctr
+                      iiorb = tmb%linmat%denskern%orb_from_index(ii,1)
+                      jjorb = tmb%linmat%denskern%orb_from_index(ii,2)
                   if(iiorb==jjorb) then
                       tmb%linmat%denskern%matrix_compr(ii)=0.d0
                   else
                       tmb%linmat%denskern%matrix_compr(ii)=kernel_compr_tmp(ii)
                   end if
               end do
-          end do
-      end if
-
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+          !end do
 
           ist=1
           do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
               ilr=tmb%orbs%inwhichlocreg(iorb)
-              ii=0
-              do iseg=1,tmb%linmat%denskern%nseg
-                  do jorb=tmb%linmat%denskern%keyg(1,iseg),tmb%linmat%denskern%keyg(2,iseg)
-                      ii=ii+1
-                      iiorb = (jorb-1)/tmb%orbs%norb + 1
-                      jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+              !ii=0
+              !do iseg=1,tmb%linmat%denskern%nseg
+              !    do jorb=tmb%linmat%denskern%keyg(1,iseg),tmb%linmat%denskern%keyg(2,iseg)
+              !        ii=ii+1
+              !        iiorb = (jorb-1)/tmb%orbs%norb + 1
+              !        jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+              do ii=1,tmb%linmat%denskern%nvctr
+                      iiorb = tmb%linmat%denskern%orb_from_index(ii,1)
+                      jjorb = tmb%linmat%denskern%orb_from_index(ii,2)
                       if(iiorb==jjorb .and. iiorb==iorb) then
                           ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
                           call dscal(ncount, kernel_compr_tmp(ii), tmb%hpsi(ist), 1)
                           ist=ist+ncount
                       end if
-                  end do
+                  !end do
               end do
           end do
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &

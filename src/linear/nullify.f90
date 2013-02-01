@@ -67,6 +67,7 @@ subroutine nullify_sparsematrix(sparsemat)
   nullify(sparsemat%matrix)
   nullify(sparsemat%matrix_compr)
   nullify(sparsemat%matrixindex_in_compressed)
+  nullify(sparsemat%orb_from_index)
 
 end subroutine nullify_sparsematrix
 
