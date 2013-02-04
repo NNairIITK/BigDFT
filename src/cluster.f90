@@ -158,6 +158,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
         call memocc(i_stat,i_all,'eval',subname)
 
         call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd,subname)
+        call deallocate_wfd(rst%KSwfn%lzd%Glr%wfd_old,subname)
 
         !finalize memory counting (there are still at least positions and the forces allocated)
         call memocc(0,0,'count','stop')
@@ -453,6 +454,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
        lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
+
 
   if (in%nvirt > norbv) then
      nvirt = norbv
@@ -1165,9 +1167,9 @@ contains
     call memocc(i_stat, i_all, 'denspot0', subname)
 
     ! Free all remaining parts of KSwfn
-write(*,*) 'WARNING HERE!!!!!'
-!!    call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
-!!         KSwfn%Lzd%Glr%bounds,subname)
+!!write(*,*) 'WARNING HERE!!!!!'
+    call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
+         KSwfn%Lzd%Glr%bounds,subname)
 !!    call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
 
 !    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
