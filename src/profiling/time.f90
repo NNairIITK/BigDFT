@@ -12,7 +12,7 @@
 module timeData
   use module_defs, only: mpi_environment, bigdft_mpi
   implicit none
-  integer, parameter :: ncat=113,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=116,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -69,6 +69,8 @@ module timeData
        'lovrlp_uncompr','Other         ' ,'insert zeros  ' ,  &
        'extract_orbs  ','Other         ' ,'copy to sendb ' ,  &
        'lovrlp^-1/2   ','Linear Algebra' ,'exact or appr ' ,  &
+       'lovrlp^-1/2old','Linear Algebra' ,'exact or appr ' ,  &
+       'lovrlp^-1/2com','Linear Algebra' ,'exact or appr ' ,  &
        'build_lincomb ','Linear Algebra' ,'many daxpy    ' ,  &
        'convolQuartic ','Convolutions  ' ,'No OpenCL     ' ,  &
        'p2pSumrho_wait','Communications' ,'mpi_test/wait ' ,  &
@@ -117,7 +119,8 @@ module timeData
        'deallocprec   ','Other         ' ,'Miscellaneous ' ,  &
        'large2small   ','Other         ' ,'Miscellaneous ' ,  &
        'small2large   ','Other         ' ,'Miscellaneous ' ,  &
-       'renormCoefComp','Other         ' ,'Miscellaneous ' ,  &
+       'renormCoefCom1','Other         ' ,'Miscellaneous ' ,  &
+       'renormCoefCom2','Other         ' ,'Miscellaneous ' ,  &
        'renormCoefComm','Communications' ,'Miscellaneous ' ,  &
        'waitAllgatKern','Other         ' ,'Miscellaneous ' ,  &
        'UnBlockPot    ','Other         ' ,'Overlap comms ' ,  &

@@ -251,7 +251,10 @@ subroutine optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
 
   ! ovrlp%matrix will have been destroyed by dgesv, so need to uncompress again - done in reorthonorm_coeff if needed
   !call uncompressMatrix(iproc,tmb%linmat%ovrlp)
-  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 0, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+  ! do twice with approx S^_1/2, as not quite good enough at preserving charge if only once, but exact too expensive
+  ! instead of twice could add some criterion to check accuracy?
+  call reorthonormalize_coeff(iproc, nproc, orbs, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+  call reorthonormalize_coeff(iproc, nproc, orbs, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
 
 end subroutine optimize_coeffs_sparse
 
@@ -532,7 +535,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
 
   ! ovrlp%matrix will have been destroyed by dgesv, so need to uncompress again - done in reorthonorm_coeff if needed
   !call uncompressMatrix(iproc,tmb%linmat%ovrlp)
-  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 0, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+  call reorthonormalize_coeff(iproc, nproc, orbs, -8, -8, 0, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)

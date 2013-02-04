@@ -3660,14 +3660,6 @@ module module_interfaces
           character(len=*),intent(in):: subname
         end subroutine copy_local_zone_descriptors
 
-        subroutine update_auxiliary_basis_function(subname, npsidim, lphi, lhphi, lphiold, lhphiold)
-          use module_base
-          implicit none
-          integer,intent(in):: npsidim
-          real(8),dimension(:),pointer,intent(out):: lphi, lhphi, lphiold, lhphiold
-          character(len=*),intent(in):: subname
-        end subroutine update_auxiliary_basis_function
-
         subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2_old, n3_old, &
             & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
          use module_base
@@ -4570,6 +4562,18 @@ module module_interfaces
           real(kind=8),dimension(sparsemat%nvctr),intent(in) :: a
           real(kind=8),dimension(nseq),intent(out) :: a_seq
         end subroutine sequential_acces_matrix
+
+        subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
+                   blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half, orbs)
+          use module_base
+          use module_types
+          implicit none
+  
+          integer,intent(in) :: iproc, nproc, norb, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm
+          real(kind=8),dimension(norb,norb),intent(in) :: ovrlp
+          real(kind=8),dimension(norb,norb),intent(inout) :: inv_ovrlp_half
+          type(orbitals_data), optional, intent(in) :: orbs
+        end subroutine overlapPowerMinusOneHalf_old
 
    end interface
 

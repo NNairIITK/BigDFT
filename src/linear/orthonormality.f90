@@ -861,31 +861,33 @@ end subroutine overlap_power_minus_one_half_parallel
 
 ! Should be used if sparsemat is not available... to be cleaned
 subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-           blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half)
+           blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half, orbs)
   use module_base
   use module_types
   use module_interfaces
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
+  integer,intent(in) :: iproc, nproc, norb, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm
   real(kind=8),dimension(norb,norb),intent(in) :: ovrlp
   real(kind=8),dimension(norb,norb),intent(inout) :: inv_ovrlp_half
+  type(orbitals_data), optional, intent(in) :: orbs
   
   ! Local variables
-  integer :: lwork, istat, iall, iorb, jorb, info
+  integer :: lwork, istat, iall, iorb, jorb, info, iiorb, ierr
   character(len=*),parameter :: subname='overlapPowerMinusOneHalf'
   real(kind=8),dimension(:),allocatable :: eval, work
+  real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_halfp
   real(kind=8),dimension(:,:,:),allocatable :: tempArr
 
-  call timing(iproc,'lovrlp^-1/2   ','ON')
-  
-  call vcopy(norb*norb,ovrlp(1,1),1,inv_ovrlp_half(1,1),1)
+  call timing(iproc,'lovrlp^-1/2old','ON')
+
 
   if(methTransformOrder==0) then
+  
+      call vcopy(norb*norb,ovrlp(1,1),1,inv_ovrlp_half(1,1),1)
 
       ! Exact calculation of ovrlp**(-1/2)
-
       allocate(eval(norb), stat=istat)
       call memocc(istat, eval, 'eval', subname)
       allocate(tempArr(norb,norb,2), stat=istat)
@@ -955,8 +957,8 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
       end if
 
       ! Calculate S^{-1/2}. 
-      ! First calculate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
-      ! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
+      ! First calculate ovrlp*diag(1/sqrt(eval)) (ovrlp is the diagonalized overlap
+      ! matrix and diag(1/sqrt(eval)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
       do iorb=1,norb
           do jorb=1,norb
               tempArr(jorb,iorb,1)=inv_ovrlp_half(jorb,iorb)/sqrt(abs(eval(iorb)))
@@ -969,8 +971,8 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
           call dgemm('n', 't', norb, norb, norb, 1.d0, inv_ovrlp_half(1,1), &
                norb, tempArr(1,1,1), norb, 0.d0, tempArr(1,1,2), norb)
       else
-          call dgemm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'n', 't', norb, norb, norb, 1.d0, inv_ovrlp_half(1,1), &
-               norb, tempArr(1,1,1), norb, 0.d0, tempArr(1,1,2), norb)
+          call dgemm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'n', 't', norb, norb, norb, 1.d0, &
+               inv_ovrlp_half(1,1), norb, tempArr(1,1,1), norb, 0.d0, tempArr(1,1,2), norb)
       end if
       call dcopy(norb**2, tempArr(1,1,2), 1, inv_ovrlp_half(1,1), 1)
 
@@ -982,31 +984,66 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
       call memocc(istat, iall, 'tempArr', subname)
 
   else if(methTransformOrder==1) then
+     if (present(orbs)) then ! parallel version
 
+        !if (norb/=orbs%norb) add warning later
 
-      ! Taylor expansion up to first order.
+        ! Taylor expansion up to first order.
+        allocate(inv_ovrlp_halfp(orbs%norb,orbs%norbp), stat=istat)
+        call memocc(istat, inv_ovrlp_halfp, 'inv_ovrlp_halfp', subname)
 
-          ! No matrix compression available
-          !$omp parallel do default(private) shared(inv_ovrlp_half,norb)
-          do iorb=1,norb
-              do jorb=1,norb
-                  if(iorb==jorb) then
-                      inv_ovrlp_half(jorb,iorb)=1.5d0-.5d0*inv_ovrlp_half(jorb,iorb)
-                  else
-                      inv_ovrlp_half(jorb,iorb)=-.5d0*inv_ovrlp_half(jorb,iorb)
-                  end if
-              end do
-          end do
-          !$omp end parallel do
+        ! No matrix compression available
+        !!$omp parallel do default(private) shared(inv_ovrlp_half,ovrlp,orbs)
+        do iorb=1,orbs%norbp
+           iiorb=orbs%isorb+iorb
+           do jorb=1,orbs%norb
+              if(iiorb==jorb) then
+                 inv_ovrlp_halfp(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iiorb)
+              else
+                 inv_ovrlp_halfp(jorb,iorb)=-.5d0*ovrlp(jorb,iiorb)
+              end if
+           end do
+        end do
+        !!$omp end parallel do
 
+        call timing(iproc,'lovrlp^-1/2old','OF')
+        call timing(iproc,'lovrlp^-1/2com','ON')
+        ! gather together
+        if(nproc > 1) then
+           call mpi_allgatherv(inv_ovrlp_halfp(1,1), orbs%norb*orbs%norbp, mpi_double_precision, inv_ovrlp_half(1,1), &
+                orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+        else
+           call dcopy(orbs%norbp*orbs%norb,inv_ovrlp_halfp(1,1),1,inv_ovrlp_half(1,1),1)
+        end if
+        call timing(iproc,'lovrlp^-1/2com','OF')
+        call timing(iproc,'lovrlp^-1/2old','ON')
+
+        iall=-product(shape(inv_ovrlp_halfp))*kind(inv_ovrlp_halfp)
+        deallocate(inv_ovrlp_halfp, stat=istat)
+        call memocc(istat, iall, 'inv_ovrlp_halfp', subname)
+
+     else ! no orbs present, use serial version
+        ! No matrix compression available
+        !$omp parallel do default(private) shared(inv_ovrlp_half,ovrlp,norb)
+        do iorb=1,norb
+           do jorb=iorb,norb
+              if(iorb==jorb) then
+                 inv_ovrlp_half(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iorb)
+              else
+                 inv_ovrlp_half(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
+                 inv_ovrlp_half(iorb,jorb)=-.5d0*ovrlp(jorb,iorb)
+              end if
+           end do
+        end do
+        !$omp end parallel do
+     end if
   else
 
      ! Taylor expansion up to 4th order
       stop 'must fix this'
 
-
   end if
 
-  call timing(iproc,'lovrlp^-1/2   ','OF')
+  call timing(iproc,'lovrlp^-1/2old','OF')
 
 end subroutine overlapPowerMinusOneHalf_old
