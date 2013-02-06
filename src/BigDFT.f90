@@ -179,6 +179,8 @@ program BigDFT
           call destroy_DFT_wavefunction(rst%tmb)
       end if
 
+
+     !always deallocate lzd for new input guess
      call deallocate_lzd(rst%tmb%lzd, subname)
 
       if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &

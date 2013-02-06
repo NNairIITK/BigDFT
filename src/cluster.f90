@@ -293,7 +293,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   norbv=abs(in%norbv)
   nvirt=in%nvirt
-
+  !Nullify for new input guess
   call nullify_local_zone_descriptors(lzd_old)
   call nullify_wavefunctions_descriptors(wfd_old)
   
@@ -332,9 +332,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call copy_old_wavefunctions(nproc,KSwfn%orbs,&
           KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
           KSwfn%Lzd%Glr%wfd,KSwfn%psi,d_old%n1,d_old%n2,d_old%n3,wfd_old,psi_old)
-
-    ! write(*,*) 'COPY'
-
+     !already here due to new input guess
      call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds, subname)
 
   else if (in%inputPsiId == INPUT_PSI_MEMORY_GAUSS) then
@@ -460,12 +458,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
        lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
+  !new position due to new input guess
 
-    call deallocate_wfd(wfd_old,subname)
+  call deallocate_wfd(wfd_old,subname)
   call deallocate_local_zone_descriptors(lzd_old,subname)
-
-!   call deallocate_bounds(tmb%Lzd%Glr%geocode,tmb%Lzd%Glr%hybrid_on,&
-!         tmb%Lzd%Glr%bounds,subname)
 
 
  if(in%nvirt > norbv) then
