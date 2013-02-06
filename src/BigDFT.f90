@@ -47,6 +47,10 @@ program BigDFT
    
    call memocc_set_memory_limit(memorylimit)
 
+   !Nullify LZD for cubic version (new input guess)
+
+    call nullify_local_zone_descriptors(rst%tmb%lzd)
+
 
    ! Read a possible radical format argument.
    call get_command_argument(1, value = radical, status = istat)
@@ -173,9 +177,9 @@ program BigDFT
       if (inputs%inputPsiId==INPUT_PSI_LINEAR_AO .or. inputs%inputPsiId==INPUT_PSI_MEMORY_LINEAR &
           .or. inputs%inputPsiId==INPUT_PSI_DISK_LINEAR) then
           call destroy_DFT_wavefunction(rst%tmb)
-          call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
       end if
 
+     call deallocate_lzd(rst%tmb%lzd, subname)
 
       if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &
            & call deallocateBasicArraysInput(inputs%lin)

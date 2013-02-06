@@ -176,6 +176,17 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
 
            !allocate kinetic bounds, only for free BC
            if (Glr%geocode == 'F') then
+	!	write(*,*) 'associated'
+        !      if(associated(Glr%bounds%kb%ibyz_c)) then
+	!        call MPI_FINALIZE(i_stat)
+        !       stop
+        !         call deallocate_bounds(Glr%geocode,Glr%hybrid_on,Glr%bounds,subname)
+        !        write(*,*) 'DEALLOCATED'
+		!i_all = -product(shape(Glr%bounds%kb%ibyz_c))*kind(Glr%bounds%kb%ibyz_c)
+                !deallocate(Glr%bounds%kb%ibyz_c,stat=i_stat)
+                !call memocc(i_stat,i_all,'Glr%bounds%kb%ibyz_c',subname)
+	        !nullify(Glr%bounds%kb%ibyz_c)
+         !     end if
               allocate(Glr%bounds%kb%ibyz_c(2,0:n2,0:n3+ndebug),stat=i_stat)
               call memocc(i_stat,Glr%bounds%kb%ibyz_c,'Glr%bounds%kb%ibyz_c',subname)
               allocate(Glr%bounds%kb%ibxz_c(2,0:n1,0:n3+ndebug),stat=i_stat)
@@ -235,7 +246,13 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
         !!$         Glr%wfd%keygloc(i,j) = Glr%wfd%keyglob(i,j)
         !!$      end do
         !!$   end do
+         !write(123,*) associated(Glr%bounds%gb%ibzxx_c)
+         ! if(associated(Glr%bounds%gb%ibzxx_c)) then
+         !  i_all = -product(shape(Glr%bounds%gb%ibzxx_c))*kind(Glr%bounds%gb%ibzxx_c)
+!         call deallocate_bounds(Glr%geocode,Glr%hybrid_on,Glr%bounds,subname) 
 
+         !  call memocc(i_stat,i_all,'Glr%bounds%gb%ibzxx_c',subname)
+         !  end if
            !for free BC admits the bounds arrays
            if (Glr%geocode == 'F') then
               !allocate grow, shrink and real bounds
@@ -279,6 +296,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
                  &   Glr%bounds%kb%ibxy_f,Glr%bounds%sb%ibxy_ff,Glr%bounds%sb%ibzzx_f,Glr%bounds%sb%ibyyzz_f,&
                  &   Glr%bounds%kb%ibyz_f,Glr%bounds%gb%ibyz_ff,Glr%bounds%gb%ibzxx_f,Glr%bounds%gb%ibxxyy_f)
            endif
+
+
         end subroutine wfd_from_grids
 
 
@@ -1402,7 +1421,6 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
                d_old%n1,d_old%n2,d_old%n3,rxyz_old,wfd_old,psi_old,hx,hy,hz,&
                & d%n1,d%n2,d%n3,rxyz,wfd,psi)
 
-          call deallocate_wfd(wfd_old,subname)
 
           i_all=-product(shape(psi_old))*kind(psi_old)
           deallocate(psi_old,stat=i_stat)
@@ -2217,7 +2235,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
     enddo
     displ=sqrt(tx+ty+tz)
     
-!   if(displ<1.d-3) then
+   if(displ<1.d-3) then
 
      call timing(iproc,'restart_wvl   ','ON')
      call input_wf_memory(iproc, atoms, &
@@ -2225,18 +2243,18 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
          rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
         KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs)
      call timing(iproc,'restart_wvl   ','OF')
-     call deallocate_local_zone_descriptors(lzd_old, subname)
 
-! else
-!    call timing(iproc,'restart_rsp   ','ON')
-!    call input_wf_memory_new(nproc, iproc, atoms, &
-!         rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
-!         rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-!         KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs,KSwfn%lzd)
-!     call timing(iproc,'restart_rsp   ','OF')
-!     call deallocate_local_zone_descriptors(lzd_old, subname)
+      call deallocate_local_zone_descriptors(lzd_old,subname)
+ else
 
-!  end if
+    call timing(iproc,'restart_rsp   ','ON')
+    call input_wf_memory_new(nproc, iproc, atoms, &
+         rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
+         rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+         KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs,KSwfn%lzd)
+     call timing(iproc,'restart_rsp   ','OF')
+
+  end if
 
 
     if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
@@ -2999,7 +3017,11 @@ if(iproc.eq.0) write(456,*) t2-t1
         ist=ist+Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
   end do loop_orbs_back
 
-  call deallocate_wfd(wfd_old,subname)
+   call deallocate_local_zone_descriptors(lzd_old,subname)
+
+!  call deallocate_wfd(wfd_old,subname)
+
+
   call deallocate_work_arrays_sumrho(w)
 
   i_all = -product(shape(psir_old))*kind(psir_old)
@@ -3026,9 +3048,9 @@ if(iproc.eq.0) write(456,*) t2-t1
   deallocate(exp_z,stat=i_stat)
   call memocc(i_stat,i_all, 'exp_z', subname)
 
-!  i_all=-product(shape(psi_old))*kind(psi_old)
-!  deallocate(psi_old,stat=i_stat)
-!  call memocc(i_stat,i_all,'psi_old',subname)
+  i_all=-product(shape(psi_old))*kind(psi_old)
+  deallocate(psi_old,stat=i_stat)
+  call memocc(i_stat,i_all,'psi_old',subname)
 888 FORMAT(i4,1X,i4,1X,i4,1X,F7.4)
 999 FORMAT(i4,1X,i4,1X,i4,1X,F7.4,1X,F7.4,1X,F7.4)
 END SUBROUTINE input_wf_memory_new
