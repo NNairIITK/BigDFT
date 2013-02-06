@@ -2588,11 +2588,11 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 !  allocate(exp_x(atoms%nat,lzd%glr%d%n1i),stat=i_stat)
 !  call memocc(i_stat,exp_x,'exp_x',subname)  
  
-  allocate(exp_y(atoms%nat),stat=i_stat)
-  call memocc(i_stat,exp_y,'exp_y',subname)  
+!  allocate(exp_y(atoms%nat),stat=i_stat)
+!  call memocc(i_stat,exp_y,'exp_y',subname)  
   
-  allocate(exp_z(atoms%nat),stat=i_stat)
-  call memocc(i_stat,exp_z,'exp_z',subname)  
+!  allocate(exp_z(atoms%nat),stat=i_stat)
+!  call memocc(i_stat,exp_z,'exp_z',subname)  
   
   if(lzd_old%Glr%geocode == 'F')  call razero(nbox*npsir,psir_old)
 
@@ -2612,15 +2612,17 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
   hhx_old = 0.5*hx_old ; hhy_old = 0.5*hy_old ; hhz_old = 0.5*hz_old  
   hhx = 0.5*hx ; hhy = 0.5*hy ; hhz = 0.5*hz  
- s_old = 0d0
+  s_old = 0d0
   jacdet = 0.d0 ; expfct = 0.d0
- 
-  r1 = 3.5*hhx
-  r2 = 3.5*hhy
-  r3 = 3.5*hhz
 
+  !empirical settings...
+ 
+  r1 = 10*hhx
+  r2 = 10*hhy
+  r3 = 10*hhz
+  cutoff = 8.0
+  
   radius = sqrt(r1**2+r2**2+r3**2)
-  cutoff = 10*radius
   irange = int(lzd%glr%d%n3i/nproc) 
   istart = iproc*irange + 1
   iend = (iproc+1)*irange
@@ -2639,21 +2641,28 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
     ii3 = i3 -14
     zz = ii3*hhz
-    do k = 1,atoms%nat
-        distance = -0.5*(zz-rxyz_old(3,k))**2/radius**2
-        exp_z(k) = exp(distance)
-    end do
+  !  do k = 1,atoms%nat
+  !      distance = -0.5*(zz-rxyz_old(3,k))**2/radius**2
+  !      if(distance<4) then
+  !        exp_z(k)=0d0
+  !        cycle
+  !      end if
+  !      exp_z(k) = ex(distance)
+  !  end do
 
 !   do i3 = 1, lzd%glr%d%n3i
 
     do i2 = 1,lzd%glr%d%n2i
-
       ii2 = i2 -14
       yz = ii2*hhy
-      do k = 1,atoms%nat
-        distance = -0.5*(yz-rxyz_old(2,k))**2/radius**2
-        exp_y(k) = exp(distance)
-      end do
+   !   do k = 1,atoms%nat
+   !     distance = -0.5*(yz-rxyz_old(2,k))**2/radius**2
+   !     if(distance<4) then
+   !       exp_y(k)=0d0
+   !       cycle
+   !     end if
+   !     exp_y(k) = ex(distance)
+   !   end do
   
      do i1 = 1,lzd%glr%d%n1i
 
@@ -2666,11 +2675,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
          
          do k = 1, atoms%nat
 
-            distance = (xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2
-            if(sqrt(distance)>cutoff) cycle
-            expfct = exp(-0.5*(xz-rxyz_old(1,k))**2/radius**2)*exp_y(k)*exp_z(k) !+ &
-                             !& (yz - rxyz_old(2,k))**2 + &
-                             !& (zz - rxyz_old(3,k))**2)/radius**2)
+            distance = 0.5*(((xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2)/radius**2)
+            if(distance > cutoff) cycle
+            expfct = ex(distance,cutoff) 
 
             s1 = s1 + (rxyz(1,k)-rxyz_old(1,k))*expfct
             s2 = s2 + (rxyz(2,k)-rxyz_old(2,k))*expfct
@@ -2692,9 +2699,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
           do k = 1, atoms%nat
 
-            distance = (x-rxyz_old(1,k))**2+(y-rxyz_old(2,k))**2+(z-rxyz_old(3,k))**2
-           if(sqrt(distance)>cutoff) cycle
-            expfct = exp(-0.5*(distance/radius**2))
+            distance = 0.5*(((x-rxyz_old(1,k))**2+(y-rxyz_old(2,k))**2+(z-rxyz_old(3,k))**2)/radius**2)
+           if(distance> cutoff) cycle
+            expfct = ex(distance,cutoff)
             
             norm = norm + expfct
             
@@ -2833,11 +2840,11 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
      
            do k = 1, atoms%nat
 
-             distance = (x-rxyz_old(1,k))**2+(y-rxyz_old(2,k))**2+(z-rxyz_old(3,k))**2
+             distance = 0.5*(((x-rxyz_old(1,k))**2+(y-rxyz_old(2,k))**2+(z-rxyz_old(3,k))**2)/radius**2)
            
-          !   if(sqrt(distance) > cutoff ) cycle
+             if(distance > cutoff ) cycle
 
-             expfct = exp(-0.5*(distance/radius**2))
+             expfct = ex(distance,cutoff)
 
              norm = norm + expfct
 
@@ -3017,18 +3024,29 @@ if(iproc.eq.0) write(456,*) t2-t1
 !  deallocate(exp_x,stat=i_stat)
 !  call memocc(i_stat,i_all, 'exp_x', subname)
   
-  i_all = -product(shape(exp_y))*kind(exp_y)
-  deallocate(exp_y,stat=i_stat)
-  call memocc(i_stat,i_all, 'exp_y', subname)
+!  i_all = -product(shape(exp_y))*kind(exp_y)
+!  deallocate(exp_y,stat=i_stat)
+!  call memocc(i_stat,i_all, 'exp_y', subname)
   
-  i_all = -product(shape(exp_z))*kind(exp_z)
-  deallocate(exp_z,stat=i_stat)
-  call memocc(i_stat,i_all, 'exp_z', subname)
+!  i_all = -product(shape(exp_z))*kind(exp_z)
+!  deallocate(exp_z,stat=i_stat)
+!  call memocc(i_stat,i_all, 'exp_z', subname)
 
   i_all=-product(shape(psi_old))*kind(psi_old)
   deallocate(psi_old,stat=i_stat)
   call memocc(i_stat,i_all,'psi_old',subname)
 888 FORMAT(i4,1X,i4,1X,i4,1X,F7.4)
 999 FORMAT(i4,1X,i4,1X,i4,1X,F7.4,1X,F7.4,1X,F7.4)
+
+contains
+
+  real(wp) function ex(x,m)
+     implicit none
+     real(wp),intent(in) :: x,m
+
+     ex = (1.0 - x/m)**m
+
+  end function ex
+
 END SUBROUTINE input_wf_memory_new
 
