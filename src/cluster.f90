@@ -454,6 +454,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
        denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
        lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
 
+
   if (in%nvirt > norbv) then
      nvirt = norbv
   end if
@@ -1165,9 +1166,9 @@ contains
     call memocc(i_stat, i_all, 'denspot0', subname)
 
     ! Free all remaining parts of KSwfn
-write(*,*) 'WARNING HERE!!!!!'
-!!    call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
-!!         KSwfn%Lzd%Glr%bounds,subname)
+!!write(*,*) 'WARNING HERE!!!!!'
+    call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
+         KSwfn%Lzd%Glr%bounds,subname)
 !!    call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
 
 !    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)

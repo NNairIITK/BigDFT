@@ -197,6 +197,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
               write( *,*) ' ERROR: there is no coarse grid points (nseg_c=0)!'
               stop
            end if
+
            if (Glr%geocode == 'F') then
               call make_bounds(n1,n2,n3,logrid_c,Glr%bounds%kb%ibyz_c,Glr%bounds%kb%ibxz_c,Glr%bounds%kb%ibxy_c)
            end if
@@ -1401,11 +1402,11 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
                d_old%n1,d_old%n2,d_old%n3,rxyz_old,wfd_old,psi_old,hx,hy,hz,&
                & d%n1,d%n2,d%n3,rxyz,wfd,psi)
 
-         ! call deallocate_wfd(wfd_old,subname)
+          call deallocate_wfd(wfd_old,subname)
 
-         ! i_all=-product(shape(psi_old))*kind(psi_old)
-         ! deallocate(psi_old,stat=i_stat)
-         ! call memocc(i_stat,i_all,'psi_old',subname)
+          i_all=-product(shape(psi_old))*kind(psi_old)
+          deallocate(psi_old,stat=i_stat)
+          call memocc(i_stat,i_all,'psi_old',subname)
         END SUBROUTINE input_wf_memory
 
 
@@ -1507,7 +1508,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
 
           call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
           call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+               tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+               denspot%rhov)
 
 
 
@@ -2215,29 +2217,26 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
     enddo
     displ=sqrt(tx+ty+tz)
     
-   if(displ<1.d-3) then
-!     t1 = MPI_WTIME()
+!   if(displ<1.d-3) then
 
      call timing(iproc,'restart_wvl   ','ON')
      call input_wf_memory(iproc, atoms, &
          rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
          rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
         KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs)
-!     t2 = MPI_WTIME() 
      call timing(iproc,'restart_wvl   ','OF')
-!     if(iproc.eq.0)  write(777,*) 'old', t2-t1 
- else
-!    t1 = MPI_WTIME()
-     call timing(iproc,'restart_rsp   ','ON')
-    call input_wf_memory_new(nproc, iproc, atoms, &
-         rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
-         rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-         KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs,KSwfn%lzd)
-!    t2 = MPI_WTIME()
-     call timing(iproc,'restart_rsp   ','OF')
-!    if(iproc.eq.0)  write(777,*) 'time', t2-t1 
-!
-  end if
+     call deallocate_local_zone_descriptors(lzd_old, subname)
+
+! else
+!    call timing(iproc,'restart_rsp   ','ON')
+!    call input_wf_memory_new(nproc, iproc, atoms, &
+!         rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
+!         rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+!         KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs,KSwfn%lzd)
+!     call timing(iproc,'restart_rsp   ','OF')
+!     call deallocate_local_zone_descriptors(lzd_old, subname)
+
+!  end if
 
 
     if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
@@ -2916,7 +2915,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
         dgrid3 = shift(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,7)
 
 
-           if(p1 < 2 .or. p1 > lzd_old%glr%d%n1i-1 .or. p2 < 2 .or. p2 > lzd_old%glr%d%n2i-1 .or. p3 < 2 .or. p3 > lzd_old%glr%d%n3i-1 ) then
+           if(p1 < 2 .or. p1 > lzd_old%glr%d%n1i-1 .or. p2 < 2 .or. p2 > lzd_old%glr%d%n2i-1 .or. &
+              p3 < 2 .or. p3 > lzd_old%glr%d%n3i-1 ) then
                 psir(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,1,iorb) = 0.d0
                 cycle
            end if
