@@ -635,7 +635,7 @@ module module_types
       integer,dimension(:,:),pointer :: keyg
       real(kind=8),dimension(:),pointer :: matrix_compr
       real(kind=8),dimension(:,:),pointer :: matrix
-      integer,dimension(:,:),pointer :: matrixindex_in_compressed
+      integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
   end type sparseMatrix
 
   type,public :: linear_matrices !may not keep

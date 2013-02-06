@@ -232,7 +232,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, iall, 'matrixElements', subname)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
-      call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
+      call optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   end if
 
   if (scf_mode/=LINEAR_FOE) then
@@ -1264,11 +1264,8 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
 
   allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-  call uncompressMatrix(iproc,tmb%linmat%ovrlp)
-
-  call reorthonormalize_coeff(iproc, nproc, orbs%norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
-       tmb%orbs, tmb%linmat%ovrlp%matrix, tmb%coeff)
-
+  call reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
+       tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
   iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
   deallocate(tmb%linmat%ovrlp%matrix, stat=istat)
   call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix', subname)
@@ -1287,7 +1284,8 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
 
 end subroutine reconstruct_kernel
 
-subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
+!!!!!!!! passing sparse ovrlp, but for now assuming ovrlp%matrix will be allocated if using dense
+subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
            basis_overlap, coeff)
   use module_base
   use module_types
@@ -1296,62 +1294,114 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
   ! Calling arguments
   integer, intent(in) :: iproc, nproc
-  integer, intent(in) :: norb    !number of Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
   integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method 
   type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
-  real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(in) :: basis_overlap
+  type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
+  type(sparseMatrix),intent(in) :: basis_overlap
   real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
   ! Local variables
-  integer :: ierr, istat, iall
+  integer :: ierr, istat, iall, ind, iorb, korb, kkorb, lorb, llorb, jorb, skipped, done, iseg, segn
+  integer :: npts_per_proc, ind_start, ind_end, indc
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp, ovrlp_coeff, ovrlp_coeff2
   character(len=*),parameter:: subname='reorthonormalize_coeff'
   !integer :: iorb, jorb !DEBUG
-  !real(kind=8) :: tt, tt2, tt3, ddot   !DEBUG
- 
-  call timing(iproc,'renormCoefComp','ON')
+  real(kind=8) :: tt!, tt2, tt3, ddot   !DEBUG
+  logical :: dense
 
-  allocate(coeff_tmp(basis_orbs%norb,max(norb,1)), stat=istat)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr) ! to check timings
+  call timing(iproc,'renormCoefCom1','ON')
+
+  allocate(coeff_tmp(basis_orbs%norb,max(orbs%norb,1)), stat=istat)
   call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
-  allocate(ovrlp_coeff(norb,norb), stat=istat)
+  allocate(ovrlp_coeff(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
 
   if(iproc==0) then
       write(*,'(a)',advance='no') 'coeff renormalization...'
   end if
 
-  ! Calculate the overlap matrix among the coefficients with respect to basis_overlap.
-  if (basis_orbs%norbp>0) then
-      call dgemm('n', 'n', basis_orbs%norbp, norb, basis_orbs%norb, 1.d0, basis_overlap(basis_orbs%isorb+1,1), &
-           basis_orbs%norb, coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp, basis_orbs%norbp)
-      call dgemm('t', 'n', norb, norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
-           basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ovrlp_coeff, norb)
-  else
-      call to_zero(norb**2, ovrlp_coeff(1,1))
-  end if
+  call to_zero(orbs%norb**2, ovrlp_coeff(1,1))
+
+  dense=.true.
+
+  if (dense) then
+     call uncompressMatrix(iproc,basis_overlap)
+     ! Calculate the overlap matrix among the coefficients with respect to basis_overlap.
+     if (basis_orbs%norbp>0) then
+         call dgemm('n', 'n', basis_orbs%norbp, orbs%norb, basis_orbs%norb, 1.d0, basis_overlap%matrix(basis_orbs%isorb+1,1), &
+              basis_orbs%norb, coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp, basis_orbs%norbp)
+         call dgemm('t', 'n', orbs%norb, orbs%norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
+              basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ovrlp_coeff, orbs%norb)
+     end if
+  else ! sparse - still less efficient than dense, also needs moving to a subroutine
+
+     npts_per_proc = nint(real(basis_overlap%nvctr + basis_overlap%full_dim1,dp) / real(nproc*2,dp))
+     ind_start = 1+iproc*npts_per_proc
+     ind_end = (iproc+1)*npts_per_proc
+     if (iproc==nproc-1) ind_end = basis_overlap%nvctr!ceiling(0.5d0*real(basis_overlap%nvctr + basis_overlap%full_dim1,dp))
+
+     indc=0
+     do ind = 1, basis_overlap%nvctr
+        korb = basis_overlap%orb_from_index(ind,1)
+        llorb = basis_overlap%orb_from_index(ind,2)
+        if (korb<llorb) cycle ! so still only doing half
+        indc = indc + 1
+        if (indc < ind_start .or. indc > ind_end) cycle
+
+        do iorb=1,orbs%norb
+             if (llorb==korb) then
+                tt=basis_overlap%matrix_compr(ind)*coeff(korb,iorb)
+                do jorb=iorb,orbs%norb
+                    ovrlp_coeff(jorb,iorb)=ovrlp_coeff(jorb,iorb) &
+                         +coeff(llorb,jorb)*tt
+                end do
+             else
+                do jorb=iorb,orbs%norb
+                    ovrlp_coeff(jorb,iorb)=ovrlp_coeff(jorb,iorb) &
+                         +(coeff(llorb,iorb)*coeff(korb,jorb)+coeff(llorb,jorb)*coeff(korb,iorb))&
+                         *basis_overlap%matrix_compr(ind)
+                end do
+             end if
+         end do
+     end do
+
+     ! use symmetry to calculate other half
+     do iorb=1,orbs%norb
+        do jorb=iorb+1,orbs%norb
+           ovrlp_coeff(iorb,jorb) = ovrlp_coeff(jorb,iorb)
+        end do
+     end do
+
+  end if !sparse/dense
 
   if (nproc>1) then
-      call timing(iproc,'renormCoefComp','OF')
+      call timing(iproc,'renormCoefCom1','OF')
       call timing(iproc,'renormCoefComm','ON')
-      call mpiallred(ovrlp_coeff(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(ovrlp_coeff(1,1), orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       call timing(iproc,'renormCoefComm','OF')
-      call timing(iproc,'renormCoefComp','ON')
+      call timing(iproc,'renormCoefCom1','ON')
   end if
 
   ! Recalculate the kernel.
-  allocate(ovrlp_coeff2(norb,norb), stat=istat)
+  allocate(ovrlp_coeff2(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp_coeff2, 'ovrlp_coeff2', subname)
 
-  call timing(iproc,'renormCoefComm','OF')
+  call timing(iproc,'renormCoefCom1','OF')
+
   call overlapPowerMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, inversion_method, &
-       blocksize_dsyev, blocksize_pdgemm, norb, ovrlp_coeff, ovrlp_coeff2)
-  call timing(iproc,'renormCoefComp','ON')
+       blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp_coeff, ovrlp_coeff2, orbs)
+  call timing(iproc,'renormCoefCom2','ON')
+
+  iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)
+  deallocate(ovrlp_coeff,stat=istat)
+  call memocc(istat,iall,'ovrlp_coeff',subname)
 
   ! Build the new linear combinations
-  call dgemm('n', 'n', basis_orbs%norb, norb, norb, 1.d0, coeff(1,1), basis_orbs%norb, &
-       ovrlp_coeff2(1,1), norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
+  call dgemm('n', 'n', basis_orbs%norb, orbs%norb, orbs%norb, 1.d0, coeff(1,1), basis_orbs%norb, &
+       ovrlp_coeff2(1,1), orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
 
-  call dcopy(basis_orbs%norb*norb,coeff_tmp(1,1),1,coeff(1,1),1)
-  call timing(iproc,'renormCoefComp','OF')
+  call dcopy(basis_orbs%norb*orbs%norb,coeff_tmp(1,1),1,coeff(1,1),1)
+  call timing(iproc,'renormCoefCom2','OF')
 
   !!!DEBUG
   !!! Check normalization
@@ -1380,9 +1430,6 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   deallocate(coeff_tmp,stat=istat)
   call memocc(istat,iall,'coeff_tmp',subname)
 
-  iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)
-  deallocate(ovrlp_coeff,stat=istat)
-  call memocc(istat,iall,'ovrlp_coeff',subname)
 
 end subroutine reorthonormalize_coeff
 

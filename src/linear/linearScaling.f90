@@ -76,6 +76,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   trace_old=0.0d0
   ldiis_coeff_hist=input%lin%mixHist_lowaccuracy
   reduce_conf=.false.
+  ldiis_coeff_changed = .false.
 
   ! Allocate the communication arrays for the calculation of the charge density.
 

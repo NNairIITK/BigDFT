@@ -459,7 +459,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   type(orbitals_data),intent(inout) :: orbs
   integer, intent(in) :: linearmode
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  type(local_zone_descriptors), intent(out) :: Lzd
+  type(local_zone_descriptors), intent(inout) :: Lzd
 !  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
@@ -1063,49 +1063,6 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
   call memocc(istat,iall,'ncntt',subname)  
 
 end subroutine update_wavefunctions_size
-
-
-subroutine update_auxiliary_basis_function(subname, npsidim, lphi, lhphi, lphiold, lhphiold)
-  use module_base
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: npsidim
-  real(kind=8),dimension(:),pointer,intent(out) :: lphi, lhphi, lphiold, lhphiold
-  character(len=*),intent(in) :: subname
-
-  ! Local variables
-  integer :: istat, iall
-
-  iall=-product(shape(lphi))*kind(lphi)
-  deallocate(lphi, stat=istat)
-  call memocc(istat, iall, 'lphi', subname)
-  iall=-product(shape(lhphi))*kind(lhphi)
-  deallocate(lhphi, stat=istat)
-  call memocc(istat, iall, 'lhphi', subname)
-  iall=-product(shape(lphiold))*kind(lphiold)
-  deallocate(lphiold, stat=istat)
-  call memocc(istat, iall, 'lphiold', subname)
-  iall=-product(shape(lhphiold))*kind(lhphiold)
-  deallocate(lhphiold, stat=istat)
-  call memocc(istat, iall, 'lhphiold', subname)
-
-  allocate(lphi(npsidim), stat=istat)
-  call memocc(istat, lphi, 'lphi', subname)
-  allocate(lhphi(npsidim), stat=istat)
-  call memocc(istat, lhphi, 'lhphi', subname)
-  allocate(lphiold(npsidim), stat=istat)
-  call memocc(istat, lphiold, 'lphiold', subname)
-  allocate(lhphiold(npsidim), stat=istat)
-  call memocc(istat, lhphiold, 'lhphiold', subname)
-
-  call to_zero(npsidim, lphi(1))
-  call to_zero(npsidim, lhphi(1))
-  call to_zero(npsidim, lphiold(1))
-  call to_zero(npsidim, lhphiold(1))
-
-end subroutine update_auxiliary_basis_function
-
 
 
 subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged)
