@@ -302,7 +302,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       end do
 
       tmprtr=0.d0
-      call foe(iproc, nproc, tmb, orbs, tmb%foe_obj%evlow, tmb%foe_obj%evhigh, tmb%foe_obj%fscale, tmb%foe_obj%ef, &
+      call foe(iproc, nproc, tmb%orbs, tmb%foe_obj,  tmb%foe_obj%evlow, tmb%foe_obj%evhigh, tmb%foe_obj%fscale, tmb%foe_obj%ef, &
            tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%foe_obj%bisection_shift, tmb%linmat%denskern, ebs)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
