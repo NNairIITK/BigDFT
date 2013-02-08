@@ -133,9 +133,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
           call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
            convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
-      else if (input%lin%nlevel_accuracy==1) then
-      call set_variables_for_hybrid(tmb%lzd%nlr, input, at, tmb%orbs, lowaccur_converged, tmb%confdatarr, &
-           target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
+      else if (input%lin%nlevel_accuracy==1 .and. itout==1) then
+          call set_variables_for_hybrid(tmb%lzd%nlr, input, at, tmb%orbs, lowaccur_converged, tmb%confdatarr, &
+               target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
          !! lowaccur_converged=.false.
          !! do iorb=1,tmb%orbs%norbp
          !!     ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
