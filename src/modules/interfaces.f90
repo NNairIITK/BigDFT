@@ -4226,18 +4226,17 @@ module module_interfaces
           integer,dimension(0:nproc-1),intent(out) :: nrecvcounts_repartitionrho, nrecvdspls_repartitionrho
         end subroutine communication_arrays_repartitionrho
 
-        subroutine foe(iproc, nproc, orbs, foe_obj, evlow, evhigh, fscale, ef, &
-                   tmprtr, mode, ham, ovrlp, bisection_shift, fermi, ebs)
+        subroutine foe(iproc, nproc, orbs, foe_obj, &
+                   tmprtr, mode, ham, ovrlp, fermi, ebs)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc
           type(orbitals_data),intent(in) :: orbs
           type(foe_data),intent(inout) :: foe_obj
-          real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
+          real(kind=8),intent(inout) :: tmprtr
           integer,intent(in) :: mode
           type(sparseMatrix),intent(in) :: ovrlp, ham
-          real(kind=8),intent(inout) :: bisection_shift
           type(sparseMatrix),intent(inout) :: fermi
           real(kind=8),intent(out) :: ebs
         end subroutine foe

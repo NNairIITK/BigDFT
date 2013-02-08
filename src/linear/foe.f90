@@ -1,6 +1,6 @@
 !could still do more tidying - assuming all sparse matrices except for fermi have the same pattern
-subroutine foe(iproc, nproc, orbs, foe_obj, evlow, evhigh, fscale, ef, tmprtr, mode, &
-           ham, ovrlp, bisection_shift, fermi, ebs)
+subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
+           ham, ovrlp, fermi, ebs)
   use module_base
   use module_types
   use module_interfaces, except_this_one => foe
@@ -10,10 +10,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, evlow, evhigh, fscale, ef, tmprtr, m
   integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs
   type(foe_data),intent(inout) :: foe_obj
-  real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
+  real(kind=8),intent(inout) :: tmprtr
   integer,intent(in) :: mode
   type(sparseMatrix),intent(in) :: ovrlp, ham
-  real(kind=8),intent(inout) :: bisection_shift
   type(sparseMatrix),intent(inout) :: fermi
   real(kind=8),intent(out) :: ebs
 
@@ -91,10 +90,10 @@ subroutine foe(iproc, nproc, orbs, foe_obj, evlow, evhigh, fscale, ef, tmprtr, m
 
 
       ! Don't let this value become too small.
-      bisection_shift = max(bisection_shift,1.d-4)
+      foe_obj%bisection_shift = max(foe_obj%bisection_shift,1.d-4)
 
-      efarr(1)=ef-bisection_shift
-      efarr(2)=ef+bisection_shift
+      efarr(1)=foe_obj%ef-foe_obj%bisection_shift
+      efarr(2)=foe_obj%ef+foe_obj%bisection_shift
       sumnarr(1)=0.d0
       sumnarr(2)=1.d100
 
@@ -113,16 +112,16 @@ subroutine foe(iproc, nproc, orbs, foe_obj, evlow, evhigh, fscale, ef, tmprtr, m
           it=it+1
           
           if (adjust_lower_bound) then
-              ef=efarr(1)
+              foe_obj%ef=efarr(1)
           else if (adjust_upper_bound) then
-              ef=efarr(2)
+              foe_obj%ef=efarr(2)
           end if
       
 
           ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
-          if (evlow/=evlow_old .or. evhigh/=evhigh_old) then
-              scale_factor=2.d0/(evhigh-evlow)
-              shift_value=.5d0*(evhigh+evlow)
+          if (foe_obj%evlow/=evlow_old .or. foe_obj%evhigh/=evhigh_old) then
+              scale_factor=2.d0/(foe_obj%evhigh-foe_obj%evlow)
+              shift_value=.5d0*(foe_obj%evhigh+foe_obj%evlow)
               ii=0
               do iseg=1,ovrlp%nseg
                   do jorb=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
@@ -134,18 +133,18 @@ subroutine foe(iproc, nproc, orbs, foe_obj, evlow, evhigh, fscale, ef, tmprtr, m
           else
               calculate_SHS=.false.
           end if
-          evlow_old=evlow
-          evhigh_old=evhigh
+          evlow_old=foe_obj%evlow
+          evhigh_old=foe_obj%evhigh
 
 
           ! Determine the degree of the polynomial
-          npl=nint(3.0d0*(evhigh-evlow)/fscale)
+          npl=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/foe_obj%fscale)
           if (npl>nplx) stop 'npl>nplx'
 
           if (iproc==0) then
               write( *,'(1x,a,i0)') repeat('-',75 - int(log(real(it))/log(10.))) // ' FOE it=', it
-              write(*,'(1x,a,2x,i0,2es12.3,es18.9,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', &
-                                                            it, evlow, evhigh, ef, npl
+              write(*,'(1x,a,2x,i0,2es12.3,es18.9,3x,i0)') 'FOE: it, foe_obj%evlow, foe_obj%evhigh, efermi, npl', &
+                                                            it, foe_obj%evlow, foe_obj%evhigh, foe_obj%ef, npl
               write(*,'(1x,a,2x,2es13.5)') 'Bisection bounds: ', efarr(1), efarr(2)
           end if
 
@@ -153,27 +152,27 @@ subroutine foe(iproc, nproc, orbs, foe_obj, evlow, evhigh, fscale, ef, tmprtr, m
           allocate(cc(npl,3), stat=istat)
           call memocc(istat, cc, 'cc', subname)
 
-          if (evlow>=0.d0) then
+          if (foe_obj%evlow>=0.d0) then
               stop 'ERROR: lowest eigenvalue must be negative'
           end if
-          if (evhigh<=0.d0) then
+          if (foe_obj%evhigh<=0.d0) then
               stop 'ERROR: highest eigenvalue must be positive'
           end if
 
           call timing(iproc, 'FOE_auxiliary ', 'OF')
           call timing(iproc, 'chebyshev_coef', 'ON')
 
-          call chebft(evlow, evhigh, npl, cc(1,1), ef, fscale, tmprtr)
-          call chder(evlow, evhigh, cc(1,1), cc(1,2), npl)
-          call chebft2(evlow, evhigh, npl, cc(1,3))
-          call evnoise(npl, cc(1,3), evlow, evhigh, anoise)
+          call chebft(foe_obj%evlow, foe_obj%evhigh, npl, cc(1,1), foe_obj%ef, foe_obj%fscale, tmprtr)
+          call chder(foe_obj%evlow, foe_obj%evhigh, cc(1,1), cc(1,2), npl)
+          call chebft2(foe_obj%evlow, foe_obj%evhigh, npl, cc(1,3))
+          call evnoise(npl, cc(1,3), foe_obj%evlow, foe_obj%evhigh, anoise)
 
           call timing(iproc, 'chebyshev_coef', 'OF')
           call timing(iproc, 'FOE_auxiliary ', 'ON')
         
           !!if (iproc==0) then
-          !!    call pltwght(npl,cc(1,1),cc(1,2),evlow,evhigh,ef,fscale,tmprtr)
-          !!    call pltexp(anoise,npl,cc(1,3),evlow,evhigh)
+          !!    call pltwght(npl,cc(1,1),cc(1,2),foe_obj%evlow,foe_obj%evhigh,foe_obj%ef,foe_obj%fscale,tmprtr)
+          !!    call pltexp(anoise,npl,cc(1,3),foe_obj%evlow,foe_obj%evhigh)
           !!end if
         
         
@@ -206,7 +205,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, evlow, evhigh, fscale, ef, tmprtr, m
                                             allredarr(1), anoise
                   write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
               end if
-              evlow=evlow*1.2d0
+              foe_obj%evlow=foe_obj%evlow*1.2d0
               restart=.true.
           end if
           if (allredarr(2)>anoise) then
@@ -215,7 +214,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, evlow, evhigh, fscale, ef, tmprtr, m
                                             allredarr(2), anoise
                   write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
               end if
-              evhigh=evhigh*1.2d0
+              foe_obj%evhigh=foe_obj%evhigh*1.2d0
               restart=.true.
           end if
 
@@ -261,22 +260,22 @@ subroutine foe(iproc, nproc, orbs, foe_obj, evlow, evhigh, fscale, ef, tmprtr, m
               if (charge_diff<=0.d0) then
                   ! Lower bound okay
                   adjust_lower_bound=.false.
-                  bisection_shift=bisection_shift*9.d-1
+                  foe_obj%bisection_shift=foe_obj%bisection_shift*9.d-1
                   sumnarr(1)=sumn
                   it_solver=it_solver+1
                   ii=min(it_solver,4)
                   do i=1,4
-                      interpol_matrix(ii,1)=ef**3
-                      interpol_matrix(ii,2)=ef**2
-                      interpol_matrix(ii,3)=ef
+                      interpol_matrix(ii,1)=foe_obj%ef**3
+                      interpol_matrix(ii,2)=foe_obj%ef**2
+                      interpol_matrix(ii,3)=foe_obj%ef
                       interpol_matrix(ii,4)=1
                   end do
                   interpol_vector(ii)=(sumn-foe_obj%charge)
                   if (iproc==0) write(*,'(1x,a)') 'lower bound for the eigenvalue spectrum is okay.'
                   cycle
               else
-                  efarr(1)=efarr(1)-bisection_shift
-                  bisection_shift=bisection_shift*1.1d0
+                  efarr(1)=efarr(1)-foe_obj%bisection_shift
+                  foe_obj%bisection_shift=foe_obj%bisection_shift*1.1d0
                   if (iproc==0) write(*,'(1x,a,es12.5)') &
                       'lower bisection bound does not give negative charge difference: diff=',charge_diff
                   cycle
@@ -285,12 +284,12 @@ subroutine foe(iproc, nproc, orbs, foe_obj, evlow, evhigh, fscale, ef, tmprtr, m
               if (charge_diff>=0.d0) then
                   ! Upper bound okay
                   adjust_upper_bound=.false.
-                  bisection_shift=bisection_shift*9.d-1
+                  foe_obj%bisection_shift=foe_obj%bisection_shift*9.d-1
                   sumnarr(2)=sumn
                   if (iproc==0) write(*,'(1x,a)') 'upper bound for the eigenvalue spectrum is okay.'
               else
-                  efarr(2)=efarr(2)+bisection_shift
-                  bisection_shift=bisection_shift*1.1d0
+                  efarr(2)=efarr(2)+foe_obj%bisection_shift
+                  foe_obj%bisection_shift=foe_obj%bisection_shift*1.1d0
                   if (iproc==0) write(*,'(1x,a,es12.5)') &
                       'upper bisection bound does not give positive charge difference: diff=',charge_diff
                   cycle
@@ -311,9 +310,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, evlow, evhigh, fscale, ef, tmprtr, m
               interpol_vector(3)=interpol_vector(4)
           end if
           ii=min(it_solver,4)
-          interpol_matrix(ii,1)=ef**3
-          interpol_matrix(ii,2)=ef**2
-          interpol_matrix(ii,3)=ef
+          interpol_matrix(ii,1)=foe_obj%ef**3
+          interpol_matrix(ii,2)=foe_obj%ef**2
+          interpol_matrix(ii,3)=foe_obj%ef
           interpol_matrix(ii,4)=1
           interpol_vector(ii)=sumn-foe_obj%charge
 
@@ -334,43 +333,45 @@ subroutine foe(iproc, nproc, orbs, foe_obj, evlow, evhigh, fscale, ef, tmprtr, m
 
 
               call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
-                   interpol_solution(3), interpol_solution(4), ef, ef_interpol)
+                   interpol_solution(3), interpol_solution(4), foe_obj%ef, ef_interpol)
           end if
 
 
           ! Adjust the bounds for the bisection.
           if (charge_diff<0.d0) then
-              efarr(1)=ef
+              efarr(1)=foe_obj%ef
               sumnarr(1)=sumn
           else if (charge_diff>=0.d0) then
-              efarr(2)=ef
+              efarr(2)=foe_obj%ef
               sumnarr(2)=sumn
           end if
 
 
           ! Calculate the new Fermi energy.
+          if (iproc==0) write(*,*) 'it_solver',it_solver
+          if (iproc==0) write(*,*) 'abs(sumn-foe_obj%charge), foe_obj%ef_interpol_chargediff', abs(sumn-foe_obj%charge), foe_obj%ef_interpol_chargediff
           if (it_solver>=4 .and. abs(sumn-foe_obj%charge)<foe_obj%ef_interpol_chargediff) then
               det=determinant(4,interpol_matrix)
               if (iproc==0) write(*,'(1x,a,2es10.2)') 'determinant of interpolation matrix, limit:', &
                                                      det, foe_obj%ef_interpol_det
               if(abs(det)>foe_obj%ef_interpol_det) then
-                  ef=ef_interpol
+                  foe_obj%ef=ef_interpol
                   if (iproc==0) write(*,'(1x,a)') 'new fermi energy from cubic interpolation'
               else
                   ! linear interpolation
                   if (iproc==0) write(*,'(1x,a)') 'new fermi energy from linear interpolation'
                   m = (interpol_vector(4)-interpol_vector(3))/(interpol_matrix(4,3)-interpol_matrix(3,3))
                   b = interpol_vector(4)-m*interpol_matrix(4,3)
-                  ef = -b/m
+                  foe_obj%ef = -b/m
               end if
           else
               ! Use mean value of bisection and secant method
               ! Secant method solution
-              ef = efarr(2)-(sumnarr(2)-foe_obj%charge)*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1))
+              foe_obj%ef = efarr(2)-(sumnarr(2)-foe_obj%charge)*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1))
               ! Add bisection solution
-              ef = ef + .5d0*(efarr(1)+efarr(2))
+              foe_obj%ef = foe_obj%ef + .5d0*(efarr(1)+efarr(2))
               ! Take the mean value
-              ef=.5d0*ef
+              foe_obj%ef=.5d0*foe_obj%ef
               if (iproc==0) write(*,'(1x,a)') 'new fermi energy from bisection / secant method'
           end if
 
@@ -378,7 +379,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, evlow, evhigh, fscale, ef, tmprtr, m
           if (iproc==0) then
               write(*,'(1x,a,2es21.13)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
               write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-foe_obj%charge, charge_tolerance
-              write(*,'(1x,a,es21.13)') 'suggested Fermi energy for next iteration:', ef
+              write(*,'(1x,a,es21.13)') 'suggested Fermi energy for next iteration:', foe_obj%ef
           end if
 
           if (abs(charge_diff)<charge_tolerance) then
