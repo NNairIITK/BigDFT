@@ -2799,7 +2799,7 @@ module module_interfaces
        real(wp), dimension(:), pointer, optional :: psirocc
      end subroutine FullHamiltonianApplication
 
-       subroutine init_foe(iproc, nproc, lzd, at, input, orbs, foe_obj, reset)
+       subroutine init_foe(iproc, nproc, lzd, at, input, orbs_KS, orbs, foe_obj, reset)
          use module_base
          use module_types
          implicit none
@@ -2807,7 +2807,7 @@ module module_interfaces
          type(local_zone_descriptors),intent(in) :: lzd
          type(atoms_data),intent(in) :: at
          type(input_variables),intent(in) :: input
-         type(orbitals_data),intent(in):: orbs
+         type(orbitals_data),intent(in):: orbs_KS, orbs
          type(foe_data),intent(out):: foe_obj
          logical, intent(in) :: reset
        end subroutine init_foe

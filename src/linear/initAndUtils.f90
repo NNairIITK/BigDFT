@@ -203,7 +203,7 @@ function megabytes(bytes)
   
 end function megabytes
 
-subroutine init_foe(iproc, nproc, lzd, at, input, orbs, foe_obj, reset)
+subroutine init_foe(iproc, nproc, lzd, at, input, orbs_KS, orbs, foe_obj, reset)
   use module_base
   use module_types
   implicit none
@@ -213,7 +213,7 @@ subroutine init_foe(iproc, nproc, lzd, at, input, orbs, foe_obj, reset)
   type(local_zone_descriptors),intent(in) :: lzd
   type(atoms_data),intent(in) :: at
   type(input_variables),intent(in) :: input
-  type(orbitals_data),intent(in) :: orbs
+  type(orbitals_data),intent(in) :: orbs_KS, orbs
   type(foe_data),intent(out) :: foe_obj
   logical, intent(in) :: reset
   
@@ -836,7 +836,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
 
   call timing(iproc,'updatelocreg1','OF') 
 
-  if (present(lfoe)) call init_foe(iproc, nproc, lzd, at, input, orbs, lfoe, .false.)
+  if (present(lfoe)) call init_foe(iproc, nproc, lzd, at, input, orbs_KS, orbs, lfoe, .false.)
 
   call init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, lbcollcom)
   if (present(lbcollcom_sr)) then

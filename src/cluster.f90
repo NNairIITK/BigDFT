@@ -395,7 +395,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !!tag=0
 
      call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, iproc, nproc)
-     call init_foe(iproc, nproc, tmb%lzd, atoms, in, tmb%orbs, tmb%foe_obj, .true.)
+     call init_foe(iproc, nproc, tmb%lzd, atoms, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, in, atoms, rxyz, .false.)
 
