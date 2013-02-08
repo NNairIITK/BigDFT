@@ -143,7 +143,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
           if (iproc==0) then
               write( *,'(1x,a,i0)') repeat('-',75 - int(log(real(it))/log(10.))) // ' FOE it=', it
-              write(*,'(1x,a,2x,i0,2es12.3,es18.9,3x,i0)') 'FOE: it, foe_obj%evlow, foe_obj%evhigh, efermi, npl', &
+              write(*,'(1x,a,2x,i0,2es12.3,es18.9,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', &
                                                             it, foe_obj%evlow, foe_obj%evhigh, foe_obj%ef, npl
               write(*,'(1x,a,2x,2es13.5)') 'Bisection bounds: ', efarr(1), efarr(2)
           end if
@@ -348,8 +348,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
 
           ! Calculate the new Fermi energy.
-          if (iproc==0) write(*,*) 'it_solver',it_solver
-          if (iproc==0) write(*,*) 'abs(sumn-foe_obj%charge), foe_obj%ef_interpol_chargediff', abs(sumn-foe_obj%charge), foe_obj%ef_interpol_chargediff
           if (it_solver>=4 .and. abs(sumn-foe_obj%charge)<foe_obj%ef_interpol_chargediff) then
               det=determinant(4,interpol_matrix)
               if (iproc==0) write(*,'(1x,a,2es10.2)') 'determinant of interpolation matrix, limit:', &
