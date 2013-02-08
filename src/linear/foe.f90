@@ -41,10 +41,10 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   ! initialization
   interpol_solution = 0.d0
 
-  charge=0.d0
-  do iorb=1,orbs%norb
-       charge=charge+orbs%occup(iorb)
-  end do
+  !!charge=0.d0
+  !!do iorb=1,orbs%norb
+  !!     charge=charge+orbs%occup(iorb)
+  !!end do
 
 
   allocate(penalty_ev(tmb%orbs%norb,tmb%orbs%norbp,2), stat=istat)
@@ -256,7 +256,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
 
           ! Make sure that the bounds for the bisection are negative and positive
-          charge_diff = sumn-charge
+          charge_diff = sumn-tmb%foe_obj%charge
           if (adjust_lower_bound) then
               if (charge_diff<=0.d0) then
                   ! Lower bound okay
@@ -271,7 +271,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
                       interpol_matrix(ii,3)=ef
                       interpol_matrix(ii,4)=1
                   end do
-                  interpol_vector(ii)=(sumn-charge)
+                  interpol_vector(ii)=(sumn-tmb%foe_obj%charge)
                   if (iproc==0) write(*,'(1x,a)') 'lower bound for the eigenvalue spectrum is okay.'
                   cycle
               else
@@ -315,7 +315,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           interpol_matrix(ii,2)=ef**2
           interpol_matrix(ii,3)=ef
           interpol_matrix(ii,4)=1
-          interpol_vector(ii)=sumn-charge
+          interpol_vector(ii)=sumn-tmb%foe_obj%charge
 
           ! Solve the linear system interpol_matrix*interpol_solution=interpol_vector
           if (it_solver>=4) then
@@ -349,7 +349,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
 
           ! Calculate the new Fermi energy.
-          if (it_solver>=4 .and. abs(sumn-charge)<tmb%foe_obj%ef_interpol_chargediff) then
+          if (it_solver>=4 .and. abs(sumn-tmb%foe_obj%charge)<tmb%foe_obj%ef_interpol_chargediff) then
               det=determinant(4,interpol_matrix)
               if (iproc==0) write(*,'(1x,a,2es10.2)') 'determinant of interpolation matrix, limit:', &
                                                      det, tmb%foe_obj%ef_interpol_det
@@ -366,7 +366,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           else
               ! Use mean value of bisection and secant method
               ! Secant method solution
-              ef = efarr(2)-(sumnarr(2)-charge)*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1))
+              ef = efarr(2)-(sumnarr(2)-tmb%foe_obj%charge)*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1))
               ! Add bisection solution
               ef = ef + .5d0*(efarr(1)+efarr(2))
               ! Take the mean value
@@ -377,7 +377,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
           if (iproc==0) then
               write(*,'(1x,a,2es21.13)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
-              write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-charge, charge_tolerance
+              write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-tmb%foe_obj%charge, charge_tolerance
               write(*,'(1x,a,es21.13)') 'suggested Fermi energy for next iteration:', ef
           end if
 

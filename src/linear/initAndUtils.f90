@@ -236,6 +236,10 @@ subroutine init_foe(iproc, nproc, lzd, at, input, orbs_KS, orbs, foe_obj, reset)
      foe_obj%fscale=input%lin%fscale
      foe_obj%ef_interpol_det=input%lin%ef_interpol_det
      foe_obj%ef_interpol_chargediff=input%lin%ef_interpol_chargediff
+     foe_obj%charge=0.d0
+     do iorb=1,orbs_KS%norb
+          foe_obj%charge=foe_obj%charge+orbs_KS%occup(iorb)
+     end do
   end if
 
   call nullify_foe(foe_obj)
