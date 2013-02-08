@@ -164,7 +164,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       if(cur_it_highaccuracy==1) then
           ! Adjust the confining potential if required.
           call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               at, input, rxyz, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
+               at, input, rxyz, KSwfn, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
 
           if (target_function==TARGET_FUNCTION_IS_HYBRID) then
               if (iproc==0) write(*,*) 'WARNING: COMMENTED THESE LINES'
@@ -843,7 +843,7 @@ end subroutine set_optimization_variables
 
 
 subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
-           rxyz, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
+           rxyz, KSwfn, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
   use module_base
   use module_types
   use module_interfaces, except_this_one => adjust_locregs_and_confinement
@@ -855,7 +855,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   type(atoms_data),intent(in) :: at
   type(input_variables),intent(in) :: input
   real(8),dimension(3,at%nat),intent(in):: rxyz
-  type(DFT_wavefunction),intent(inout) :: tmb
+  type(DFT_wavefunction),intent(inout) :: KSwfn, tmb
   type(DFT_local_fields),intent(inout) :: denspot
   type(localizedDIISParameters),intent(inout) :: ldiis
   logical, intent(out) :: locreg_increased
@@ -910,7 +910,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      end do
 
      call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, locregCenter, lzd_tmp%glr, .false., &
-          denspot%dpbox%nscatterarr, hx, hy, hz, at, input, tmb%orbs, tmb%lzd, tmb%npsidim_orbs, tmb%npsidim_comp, &
+          denspot%dpbox%nscatterarr, hx, hy, hz, at, input, KSwfn%orbs, tmb%orbs, tmb%lzd, tmb%npsidim_orbs, tmb%npsidim_comp, &
           tmb%comgp, tmb%collcom, tmb%foe_obj, tmb%collcom_sr)
 
      iall=-product(shape(locregCenter))*kind(locregCenter)
@@ -964,7 +964,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      
      deallocate(tmb%confdatarr, stat=istat)
 
-     call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged)
+     call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz, lowaccur_converged)
 
      ! Update sparse matrices
      call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%ham)

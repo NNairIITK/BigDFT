@@ -772,7 +772,7 @@ end subroutine lzd_init_llr
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
            useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-           orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
+           orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
@@ -787,7 +787,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
   type(atoms_data),intent(in) :: at
   type(input_variables),intent(in) :: input
   real(kind=8),dimension(nlr),intent(in) :: locrad
-  type(orbitals_data),intent(in) :: orbs
+  type(orbitals_data),intent(in) :: orbs_KS, orbs
   real(kind=8),dimension(3,nlr),intent(in) :: locregCenter
   type(locreg_descriptors),intent(in) :: glr_tmp
   type(local_zone_descriptors),intent(inout) :: lzd
@@ -1065,7 +1065,7 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
 end subroutine update_wavefunctions_size
 
 
-subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged)
+subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz, lowaccur_converged)
   use module_base
   use module_types
   use module_interfaces, except_this_one => create_large_tmbs
@@ -1073,7 +1073,7 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
 
   ! Calling arguments
   integer,intent(in):: iproc, nproc
-  type(DFT_Wavefunction),intent(inout):: tmb
+  type(DFT_Wavefunction),intent(inout):: KSwfn, tmb
   type(DFT_local_fields),intent(in):: denspot
   type(input_variables),intent(in):: input
   type(atoms_data),intent(in):: at
@@ -1101,7 +1101,7 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
 
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, locregCenter, tmb%lzd%glr, &
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-       at, input, tmb%orbs, tmb%ham_descr%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
+       at, input, KSwfn%orbs, tmb%orbs, tmb%ham_descr%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
        tmb%ham_descr%comgp, tmb%ham_descr%collcom)
 
   call allocate_auxiliary_basis_function(max(tmb%ham_descr%npsidim_comp,tmb%ham_descr%npsidim_orbs), subname, &

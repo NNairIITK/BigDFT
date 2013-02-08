@@ -395,8 +395,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !!tag=0
 
      call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, iproc, nproc)
+     call init_foe(iproc, nproc, tmb%lzd, atoms, in, tmb%orbs, tmb%foe_obj, .true.)
 
-     call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false.)
+     call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, in, atoms, rxyz, .false.)
 
      call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%ham)
      call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)

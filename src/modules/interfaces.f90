@@ -3119,7 +3119,7 @@ module module_interfaces
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-                  orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
+                  orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
          use module_base
          use module_types
          implicit none
@@ -3131,7 +3131,7 @@ module module_interfaces
          type(atoms_data),intent(in) :: at
          type(input_variables),intent(in) :: input
          real(8),dimension(nlr),intent(in):: locrad
-         type(orbitals_data),intent(in):: orbs
+         type(orbitals_data),intent(in):: orbs_KS, orbs
          real(8),dimension(3,nlr),intent(in):: locregCenter
          type(locreg_descriptors),intent(in):: glr_tmp
          type(local_zone_descriptors),intent(inout):: lzd
@@ -3276,7 +3276,7 @@ module module_interfaces
        end subroutine psi_to_vlocpsi
 
        subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
-                  rxyz, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
+                  rxyz, KSwfn, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
          use module_base
          use module_types
          implicit none
@@ -3285,7 +3285,7 @@ module module_interfaces
          type(atoms_data),intent(in) :: at
          type(input_variables),intent(in):: input
          real(8),dimension(3,at%nat),intent(in):: rxyz
-         type(DFT_wavefunction),intent(inout):: tmb
+         type(DFT_wavefunction),intent(inout):: KSwfn, tmb
          type(DFT_local_fields),intent(inout) :: denspot
          type(localizedDIISParameters),intent(inout):: ldiis
          logical, intent(out) :: locreg_increased
@@ -3925,12 +3925,12 @@ module module_interfaces
           real(8),dimension(3,at%nat),intent(out):: fpulay
         end subroutine pulay_correction
 
-        subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged)
+        subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz, lowaccur_converged)
           use module_base
           use module_types
           implicit none
           integer,intent(in):: iproc, nproc
-          type(DFT_Wavefunction),intent(inout):: tmb
+          type(DFT_Wavefunction),intent(inout):: KSwfn, tmb
           type(DFT_local_fields),intent(in):: denspot
           type(input_variables),intent(in):: input
           type(atoms_data),intent(in):: at
