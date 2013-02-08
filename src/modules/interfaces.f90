@@ -4352,20 +4352,21 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
 
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovrlp_compr, calculate_SHS, &
-                   SHS, fermi, penalty_ev)
+        subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_compr, &
+                   ovrlp_compr, calculate_SHS, SHS, fermi, penalty_ev)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc, npl
           real(8),dimension(npl,3),intent(in) :: cc
-          type(DFT_wavefunction),intent(in) :: tmb 
+          type(orbitals_data),intent(in) :: orbs
+          type(foe_data),intent(in) :: foe_obj
           type(sparseMatrix), intent(in) :: sparsemat
           real(kind=8),dimension(sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
           logical,intent(in) :: calculate_SHS
           real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: SHS
-          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
-          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
+          real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
+          real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
         end subroutine chebyshev_clean
 
         subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)

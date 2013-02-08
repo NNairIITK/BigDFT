@@ -189,7 +189,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           call timing(iproc, 'FOE_auxiliary ', 'OF')
 
           ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
-          call chebyshev_clean(iproc, nproc, npl, cc, tmb, ovrlp, hamscal_compr, ovrlpeff_compr, calculate_SHS, &
+          call chebyshev_clean(iproc, nproc, npl, cc, tmb%orbs, tmb%foe_obj, ovrlp, hamscal_compr, ovrlpeff_compr, calculate_SHS, &
                SHS, fermip, penalty_ev)
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
