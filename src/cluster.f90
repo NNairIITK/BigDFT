@@ -1027,7 +1027,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
        .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
      
-     call pkernel_free(denspot%pkernelseq,subname)
+     !if (loc(denspot%pkernelseq%kernel) /= loc(denspot%pkernel%kernel)) then !this is not standard
+     if (.not. associated(denspot%pkernelseq%kernel,target=denspot%pkernel%kernel) .and. &
+          associated(denspot%pkernelseq%kernel)) then
+        call pkernel_free(denspot%pkernelseq,subname)
+     end if
 !!$     i_all=-product(shape(denspot%pkernelseq))*kind(denspot%pkernelseq)
 !!$     deallocate(denspot%pkernelseq,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'kernelseq',subname)
@@ -1146,7 +1150,11 @@ contains
 
        if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
             .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
-          call pkernel_free(denspot%pkernelseq,subname)
+!          if (loc(denspot%pkernelseq%kernel) /= loc(denspot%pkernel%kernel)) then !not standard
+             if (.not. associated(denspot%pkernelseq%kernel,target=denspot%pkernel%kernel) .and. &
+                  associated(denspot%pkernelseq%kernel)) then
+             call pkernel_free(denspot%pkernelseq,subname)
+          end if
        else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
           nullify(denspot%pkernelseq%kernel)
        end if
@@ -1486,7 +1494,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            call optloop_emit_done(opt, OPTLOOP_WAVEFUNCTIONS, energs, iproc, nproc)
         end if
 
-        if (iproc == 0) then 
+        if (iproc == 0) then
            !if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',opt%iter,' minimization iterations required'
            !write( *,'(1x,a)') &
            !     &   '--------------------------------------------------- End of Wavefunction Optimisation'
@@ -1500,21 +1508,15 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            if (opt%itrpmax >1) then
               if ( KSwfn%diis%energy > KSwfn%diis%energy_min) &
-                 &  call yaml_warning('Found an energy value lower than the ' // final_out // &
-                 &       ' energy, delta:' // trim(yaml_toa(KSwfn%diis%energy-KSwfn%diis%energy_min,fmt='(1pe9.2)')))
-              !write( *,'(1x,a,2(1pe9.2))')&
-              !     'WARNING: Found an energy value lower than the ' // final_out // &
-              !     ' energy, delta:',KSwfn%diis%energy-KSwfn%diis%energy_min
+                   call yaml_warning('Found an energy value lower than the ' // final_out // &
+                   ' energy, delta:' // trim(yaml_toa(KSwfn%diis%energy-KSwfn%diis%energy_min,fmt='(1pe9.2)')))
            else
               !write this warning only if the system is closed shell
               call check_closed_shell(KSwfn%orbs,lcs)
               if (lcs) then
                  if ( energs%eKS > KSwfn%diis%energy_min) &
-                 &  call yaml_warning('Found an energy value lower than the FINAL energy, delta:' // &
-                 &       trim(yaml_toa(energs%eKS-KSwfn%diis%energy_min,fmt='(1pe9.2)')))
-                 !write( *,'(1x,a,2(1pe9.2))')&
-                 !     'WARNING: Found an energy value lower than the FINAL energy, delta:',&
-                 !     energs%eKS-KSwfn%diis%energy_min
+                      call yaml_warning('Found an energy value lower than the FINAL energy, delta:' // &
+                      trim(yaml_toa(energs%eKS-KSwfn%diis%energy_min,fmt='(1pe9.2)')))
               end if
            end if
         end if

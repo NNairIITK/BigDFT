@@ -1,9 +1,11 @@
  <BigDFT> log of the run will be written in logfile: ./log-binary.yaml
+ <BigDFT> Logfile already existing, move previous file in:
+   ./logfiles/log-binary.22:50:27.727.yaml
+ 1th wavefunction written
  1th wavefunction written
  1th wavefunction written
  1th wavefunction written
  2th wavefunction written
- 1th wavefunction written
  2th wavefunction written
  2th wavefunction written
  2th wavefunction written
@@ -18,12 +20,12 @@
  5th wavefunction written
  5th wavefunction written
  5th wavefunction written
+ 6th wavefunction written
  5th wavefunction written
  6th wavefunction written
  6th wavefunction written
+ 7th wavefunction written
  6th wavefunction written
- 6th wavefunction written
- 7th wavefunction written
  7th wavefunction written
  7th wavefunction written
  7th wavefunction written
@@ -35,23 +37,20 @@
  1th wavefunction written
  1th wavefunction written
  1th wavefunction written
+ 2th wavefunction written
  2th wavefunction written
  2th wavefunction written
  2th wavefunction written
  3th wavefunction written
- 2th wavefunction written
+ 3th wavefunction written
+ 3th wavefunction written
  3th wavefunction written
  4th wavefunction written
- 3th wavefunction written
  4th wavefunction written
-- 
-  {Process:  1, Timing:  [  2.700E-01,  1.700E-01 ]}
- 3th wavefunction written
  4th wavefunction written
  4th wavefunction written
  export wavefunction file: "data-binary-read/wavefunction-k002-DI.bin.b0003" in .cube format
 ---
-  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
  Code logo:
          TTTT         F       DDDDD
         T    T               D
@@ -79,8 +78,8 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2012-12-28 00:09:20.780
+ Version Number                        : 1.7-dev.23
+ Timestamp of this run                 : 2013-02-11 22:50:45.925
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  0
  OpenMP parallelization                :  Yes
@@ -149,6 +148,28 @@
  #|0.0 0. 0.0                                                                                
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : data-binary-read/
+  #--------------------------------------------- Input Atomic System (file: binary-read.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  1
+   Number of atoms                     :  2
+   Types of atoms                      :  [ O ]
+   Boundary Conditions                 : Periodic #Code: P
+   Box Sizes (AU)                      :  [  8.50377E+00,  8.50377E+00,  8.50377E+00 ]
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------ Geometry optimization Input Parameters (file: binary-read.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
+  #------------------- K points description (Reduced and Brillouin zone coordinates, Weight)
+  #WARNING: symmetries have been disabled, k points are not irreductible.
+ K points:
+ -  {Rc:  [  0.0000,  0.0000,  0.0000 ], Bz:  [  0.0000,  0.0000,  0.0000 ], Wgt:  0.3333} # 0001
+ -  {Rc:  [  0.3333,  0.0000,  0.0000 ], Bz:  [  0.2463,  0.0000,  0.0000 ], Wgt:  0.6667} # 0002
   #--------------------------------------------- Input Atomic System (file: binary-read.xyz)
  Atomic System Properties:
    Number of atomic types              :  1
@@ -290,4 +311,4 @@
       Peak Value (MB): 6
       for the array: ww
       in the routine: reformatonewave
- CPU time/ELAPSED time          0.60         0.75
+ CPU time/ELAPSED time          0.56         0.72

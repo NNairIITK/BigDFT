@@ -18,6 +18,8 @@ Keys to ignore:
  - High Res. box is treated separately
  - Grid Spacing threshold (AU)
  - Direct and transposed data repartition
+ - Write Waves Time
+ - Reading Waves Time
 
 Expected Test CPUtime: #
  C: #[expected, error]
@@ -111,12 +113,19 @@ O2-Spin:
 TiSmear:
  Epsilon: 5.e-11
 
+H2O-CP2K:
+ Total energy with tail correction: 1.5e-11
+
 TDDFT:
  Epsilon: 1.1e-10
 
 test.splsad.ref.yaml:
  Epsilon: 1.1e-10
- Electric Dipole Moment (Debye): 1.e-8
+ Electric Dipole Moment (Debye): 1.2e-8
+
+test.minhop.ref.yaml:
+  Keys to ignore:
+    - (MH) cpu(hrs)
 
 test.testforces.ref.yaml:
  Epsilon: 1.2e-10
@@ -147,3 +156,20 @@ NLCC: &NLCCs
 NLCC_free-O2: *NLCCs
 NLCC_free: *NLCCs
 NLCC_periodic-O2: *NLCCs
+
+taskgroups:
+  Energies: 1.1e-10
+  EKS: 1.4e-11
+
+Davidson-SiH4:
+  e_virtual: 1.2e-11
+  Eigenvalues and eigenstate residue: 1.3e-10
+
+TDDFT:
+  e_virtual: 2.3e-10
+  Eigenvalues and eigenstate residue: 1.1e-7
+  Epot: 1.1e-10
+  Gradient Norm: 7.1e-10
+
+BigDFT2Wannier.b2w.ref.yaml:
+  amnk_guess(nb): 5.0e-11

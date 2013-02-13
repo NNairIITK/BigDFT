@@ -25,84 +25,98 @@ program abscalc_main
    type(atoms_data) :: atoms
    type(input_variables) :: inputs
    type(restart_objects) :: rst
-   character(len=50), dimension(:), allocatable :: arr_posinp
-   character(len=60) :: radical
+   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
+   character(len=60) :: filename,run_id
    ! atomic coordinates, forces
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
-   integer :: iconfig,nconfig,istat
+   integer :: iconfig,nconfig,istat,igroup,ngroups
+   integer, dimension(4) :: mpi_info
    logical :: exists
 
-   ! Start MPI in parallel version
-   !in the case of MPIfake libraries the number of processors is automatically adjusted
-   call MPI_INIT(ierr)
-   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+   !-finds the number of taskgroup size
+   !-initializes the mpi_environment for each group
+   !-decides the radical name for each run
+   call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
+   !just for backward compatibility
+   iproc=mpi_info(1)
+   nproc=mpi_info(2)
+
+   igroup=mpi_info(3)
+   !number of groups
+   ngroups=mpi_info(4)
+
+
+!!$   ! Start MPI in parallel version
+!!$   !in the case of MPIfake libraries the number of processors is automatically adjusted
+!!$   call MPI_INIT(ierr)
+!!$   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+!!$   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+!!$
+!!$   ! Read a possible radical format argument.
+!!$   call get_command_argument(1, value = radical, status = istat)
+!!$   if (istat > 0) then
+!!$      write(radical, "(A)") "input"
+!!$   end if
+!!$
+!!$   ! find out which input files will be used
+!!$   inquire(file="list_posinp",exist=exist_list)
+!!$   if (exist_list) then
+!!$      open(54,file="list_posinp")
+!!$      read(54,*) nconfig
+!!$      if (nconfig > 0) then
+!!$         !allocation not referenced since memocc count not initialised
+!!$         allocate(arr_posinp(1:nconfig))
+!!$         do iconfig=1,nconfig
+!!$            read(54,*) arr_posinp(iconfig)
+!!$         enddo
+!!$      else
+!!$         nconfig=1
+!!$         allocate(arr_posinp(1:1))
+!!$      endif
+!!$   else
+!!$      nconfig=1
+!!$      allocate(arr_posinp(1:1))
+!!$   endif
+
+
+   !allocate arrays of run ids
+   allocate(arr_radical(abs(nconfig)))
+   allocate(arr_posinp(abs(nconfig)))
+
+   !here we call  a routine which
    ! Read a possible radical format argument.
-   call get_command_argument(1, value = radical, status = istat)
-   if (istat > 0) then
-      write(radical, "(A)") "input"
-   end if
+   call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
 
-   ! find out which input files will be used
-   inquire(file="list_posinp",exist=exist_list)
-   if (exist_list) then
-      open(54,file="list_posinp")
-      read(54,*) nconfig
-      if (nconfig > 0) then 
-         !allocation not referenced since memocc count not initialised
-         allocate(arr_posinp(1:nconfig))
+   do iconfig=1,abs(nconfig)
+      if (modulo(iconfig-1,ngroups)==igroup) then
 
-         do iconfig=1,nconfig
-            read(54,*) arr_posinp(iconfig)
-         enddo
-      else
-         !normal case
-         nconfig=1
-         allocate(arr_posinp(1:1))
-         if (istat > 0) then
-            arr_posinp(1)='posinp'
-         else
-            arr_posinp(1)=trim(radical)
-         end if
-      endif
-      close(54)
-   else
-      nconfig=1
-      allocate(arr_posinp(1:1))
-      if (istat > 0) then
-         arr_posinp(1)='posinp'
-      else
-         arr_posinp(1)=trim(radical)
-      end if
-   end if
+         !Welcome screen
+         !if (iproc==0) call print_logo()
 
-   do iconfig=1,nconfig
+         call bigdft_set_input(arr_radical(iconfig),arr_posinp(iconfig),rxyz,inputs,atoms)
 
-      !Welcome screen
-      !if (iproc==0) call print_logo()
+!!$
+!!$      ! Read all input files.
+!!$      !standard names
+!!$      call standard_inputfile_names(inputs,radical,nproc)
+!!$      call read_input_variables(iproc,nproc,arr_posinp(iconfig),inputs, atoms, rxyz,nconfig,radical,istat)
+!!$
+!!$      !Initialize memory counting
+!!$      !call memocc(0,iproc,'count','start')
+!!$
+!!$      !Read absorption-calculation input variables
+!!$      !inquire for the needed file 
+!!$      !if not present, set default (no absorption calculation)
 
-      ! Read all input files.
-      !standard names
-      call standard_inputfile_names(inputs,radical,nproc)
-      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
-
-      !Initialize memory counting
-      !call memocc(0,iproc,'count','start')
-
-      !Read absorption-calculation input variables
-      !inquire for the needed file 
-      !if not present, set default (no absorption calculation)
-
-      inquire(file=trim(radical)//".abscalc",exist=exists)
+      inquire(file=trim(run_id)//".abscalc",exist=exists)
       if (.not. exists) then
          if (iproc == 0) write(*,*) 'ERROR: need file input.abscalc for x-ray absorber treatment.'
          if(nproc/=0)   call MPI_FINALIZE(ierr)
          stop
       end if
-      call abscalc_input_variables(iproc,trim(radical)//".abscalc",inputs)
+      call abscalc_input_variables(iproc,trim(run_id)//".abscalc",inputs)
       if( inputs%iat_absorber <1 .or. inputs%iat_absorber > atoms%nat) then
          if (iproc == 0) write(*,*)'ERROR: inputs%iat_absorber  must .ge. 1 and .le. number_of_atoms '
          if(nproc/=0)   call MPI_FINALIZE(ierr)
@@ -114,7 +128,7 @@ program abscalc_main
       allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
       call memocc(i_stat,fxyz,'fxyz',subname)
 
-      call init_restart_objects(iproc,inputs%matacc,atoms,rst,subname)
+      call init_restart_objects(iproc,inputs,atoms,rst,subname)
 
       call call_abscalc(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
 
@@ -134,20 +148,26 @@ program abscalc_main
       deallocate(fxyz,stat=i_stat)
       call memocc(i_stat,i_all,'fxyz',subname)
 
-      call free_input_variables(inputs)
 
-      !finalize memory counting
-      call memocc(0,0,'count','stop')
+      call bigdft_free_input(inputs)
+!!$      call free_input_variables(inputs)
+!!$
+!!$      !finalize memory counting
+!!$      call memocc(0,0,'count','stop')
 
       !     call sg_end()
-
+   end if
    enddo !loop over iconfig
 
+   deallocate(arr_posinp,arr_radical)
 
-   !No referenced by memocc!
-   deallocate(arr_posinp)
+   call bigdft_finalize()
 
-   call MPI_FINALIZE(ierr)
+!!$
+!!$   !No referenced by memocc!
+!!$   deallocate(arr_posinp)
+!!$
+!!$   call MPI_FINALIZE(ierr)
 
 END PROGRAM abscalc_main
 

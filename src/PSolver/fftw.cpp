@@ -220,8 +220,6 @@ extern "C" void fftw_3d_psolver_general_plan_(int *N,
  int geo2 = geo[1];
  int geo3 = geo[2];
 
- cout << "plan geo1: " << geo2 << " " << NX << endl;
-
  int n1d[3]= {1, 1, 1};
 
  int ysize = NY/2 + geo2 * NY/2;

@@ -867,6 +867,8 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
      end do
   end do
 
+  ispsi=1 !to initialize the value in case of no projectors
+
   !look for the strategy of projectors application
   if (DistProjApply) then
      !apply the projectors on the fly for each k-point of the processor
@@ -891,12 +893,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
            jseg_f=1
 
            do idir=0,9
-!!$           mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-!!$           mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-!!$           jseg_c=nlpspd%nseg_p(2*iat-2)+1
-!!$           jseg_f=nlpspd%nseg_p(2*iat-1)+1
-!!$           mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-!!$           mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
 
            ityp=at%iatype(iat)
               !calculate projectors
@@ -923,8 +919,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                                      wfd%keyvglob,wfd%keyglob,psi(ispsi),&
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                                     nlpspd%keyv_p(jseg_c),&
-!!$                                     nlpspd%keyg_p(1,jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),&
@@ -980,12 +974,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                     jseg_c=1
                     jseg_f=1
 
-!!$                    mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-!!$                    mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-!!$                    jseg_c=nlpspd%nseg_p(2*iat-2)+1
-!!$                    jseg_f=nlpspd%nseg_p(2*iat-1)+1
-!!$                    mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-!!$                    mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
                     ityp=at%iatype(iat)
                     do l=1,4
                        do i=1,3
@@ -996,8 +984,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                                      wfd%keyvglob,wfd%keyglob,psi(ispsi),  &
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                                     nlpspd%keyv_p(jseg_c),&
-!!$                                     nlpspd%keyg_p(1,jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))

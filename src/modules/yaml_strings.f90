@@ -51,7 +51,13 @@ contains
           istat=-1
           return
        else
-          stop 'ERROR (buffer string): string too long'
+          write(*,*)'ERROR (buffer string): string too long'
+          write(*,*)'Initial String: ',string(1:string_pos)
+          write(*,*)'Buffer: ',trim(buffer)
+          write(*,*)'String position: ',string_pos
+          write(*,*)'Length of Buffer: ',lgt_add
+          write(*,*)'String limit: ',string_lgt
+          stop 
        end if
     end if
        

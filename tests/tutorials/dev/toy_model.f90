@@ -36,7 +36,7 @@ program wvl
   type(coulomb_operator) :: pkernel
   !temporary variables
   integer(kind=8) :: itns
-  character(len=100) :: address
+  character(len=100) :: address,posinp_name
 
   ! Start MPI in parallel version
   call MPI_INIT(ierr)
@@ -50,7 +50,9 @@ program wvl
   ! Setup names for input and output files.
   call standard_inputfile_names(inputs, "toy",nproc)
   ! Read all input stuff, variables and atomic coordinates and pseudo.
-  call read_input_variables(iproc,"posinp",inputs, atoms, rxyz)
+  !the arguments of this routine should be changed
+  posinp_name='posinp'
+  call read_input_variables(iproc,nproc,posinp_name,inputs, atoms, rxyz,1,'input',0)
 
   allocate(radii_cf(atoms%ntypes,3))
 

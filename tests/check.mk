@@ -99,9 +99,17 @@ report:
 	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
 	   cat accel.perf >> $$file ; \
 	fi ; \
+	if test -f list_posinp; then \
+	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
+	fi; \
 	echo outdir ./ >> $$file ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
-	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
+	if test -f $$file.bak ; then \
+	   mv $$file.bak $$file ; else rm -f $$file ; \
+	fi ; \
+	if test -f list_posinp; then \
+	   cat log-* > log.yaml ; \
+	fi
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.geopt.mon.out: $(abs_top_builddir)/src/bigdft
@@ -140,7 +148,7 @@ report:
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.minhop.out: $(abs_top_builddir)/src/global
 	$(run_parallel) $(abs_top_builddir)/src/global > $@
-	mv log-mdinput.yaml log.yaml
+#	mv log-mdinput.yaml log.yaml
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.xabs.out: $(abs_top_builddir)/src/abscalc
@@ -252,7 +260,12 @@ run_message:
 	if test -n "$$name" ; then \
 	$$DIFF $$c $$dir/log-$$name.yaml;\
 	else \
+	name=`basename $$c .xabs.ref.yaml` ;\
+	if test -n "$$name" ; then \
+	$$DIFF $$c $$dir/log-$$name.yaml;\
+	else \
 	$$DIFF $$c $$dir/log.yaml;\
+	fi ;\
 	fi ;\
 	done ; \
 	touch $@
@@ -269,8 +282,14 @@ run_message:
 	echo "Update reference with " $$dir/log-$$name.yaml; \
 	                     cp -vi $$dir/log-$$name.yaml $$c;\
 	else \
+	name=`basename $$c .xabs.ref.yaml` ;\
+	if test -n "$$name" ; then \
+	echo "Update reference with " $$dir/log-$$name.yaml; \
+		             cp -vi $$dir/log-$$name.yaml $$c;\
+	else \
 	echo "Update reference with " $$dir/log.yaml; \
 	                     cp -vi $$dir/log.yaml $$c;\
+	fi ;\
 	fi ;\
 	done ; \
 	touch $@

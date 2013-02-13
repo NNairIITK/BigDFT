@@ -137,6 +137,16 @@ void FC_FUNC(delete, DELETE)(const char *f, int *lgF, int *status)
   free(path);
 }
 
+void FC_FUNC(deldir, DELDIR)(const char *f, int *lgF, int *status)
+{
+  char *path;
+
+  path = strndup(f, (size_t)*lgF);
+  *status = rmdir(path);
+  free(path);
+}
+
+
 void FC_FUNC(movefile, MOVEFILE)(const char *oldfile, int *lgoldfile, const char *newfile, int *lgnewfile, int *status)
 {
   char *oldpath;
