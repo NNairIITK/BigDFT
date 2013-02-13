@@ -69,6 +69,10 @@ GEOPT-BFGS:
 
 GEOPT-LBFGS: 
  Epsilon: 3.1e-10
+ EH: 1.11e-9
+ Epot: 3.3e-10
+ Eion: 8.5e-10
+ Enl: 6.5e-10
  DIIS weights: 1.1e-5
 
 NaCl:
