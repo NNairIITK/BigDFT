@@ -531,5 +531,5 @@ $(typelibs_DATA): $(gir_DATA) $(G_IR_COMPILER)
 		-o $(typelibs_DATA) \
 		$(gir_DATA)
 
-CLEANFILES += $(gir_DATA) $(typelibs_DATA)
+CLEANFILES += $(gir_DATA) $(typelibs_DATA) libbigdft.so
 endif

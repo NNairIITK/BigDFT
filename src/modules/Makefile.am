@@ -43,7 +43,9 @@ mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_INPUT.@MODULE_EXT@ \
 	GAUSSIANS.@MODULE_EXT@ \
 	BIGDFT_API.@MODULE_EXT@ \
-	YAML_OUTPUT.@MODULE_EXT@ 
+	YAML_OUTPUT.@MODULE_EXT@ \
+	DICTIONARIES.@MODULE_EXT@ \
+	DYNAMIC_MEMORY.@MODULE_EXT@
 else
 mod_bigdft = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -55,7 +57,9 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 	module_input.@MODULE_EXT@ \
 	gaussians.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ \
-	yaml_output.@MODULE_EXT@
+	yaml_output.@MODULE_EXT@ \
+	dictionaries.@MODULE_EXT@ \
+	dynamic_memory.@MODULE_EXT@
 endif
 module_DATA = $(mod_bigdft)
 include_HEADERS = $(bindings_headers)

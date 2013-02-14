@@ -13,6 +13,7 @@ config.h.in
 stamp-h1
 mpif.h
 time.prc
+debian
 src/lib/fft/fft_check
 src/parameters.h
 src/cluster
