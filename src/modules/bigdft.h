@@ -13,6 +13,7 @@
 
 #ifdef GLIB_MAJOR_VERSION
 #include <glib-object.h>
+G_BEGIN_DECLS
 #endif
 
 #include <bigdft_cst.h>
@@ -729,5 +730,8 @@ gboolean bigdft_read_wave_descr(const gchar *filename, int *norbu,
                                 int *norbd, int *nkpt, int *nspinor,
                                 int *iorb, int *ispin, int *ikpt, int *ispinor);
 
+#ifdef GLIB_MAJOR_VERSION
+G_END_DECLS
+#endif
 
 #endif
