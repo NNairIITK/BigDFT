@@ -720,40 +720,83 @@ fi
 dnl Test for Scalapack
 if test x"$withmpi" = x"yes" ; then
 dnl Test for blacs
-dnl Get the lapack library
-ac_blacs=no
-AC_ARG_WITH(blacs, AS_HELP_STRING([--with-blacs], [Link with blacs library (default = no).]), ac_blacs=$withval, ac_blacs=no)
+ac_blacs=-lblacs
+AC_ARG_WITH(blacs, AS_HELP_STRING([--with-blacs], [Link with blacs library (default = no).]), ac_blacs=$withval, ac_blacs=-lblacs)
 AC_ARG_WITH(blacs-path, AS_HELP_STRING([--with-blacs-path], [Give the path of the Blacs library (default = /usr/lib).]),
             ac_blacs_dir=$withval, ac_blacs_dir=)
 if test -n "$ac_blacs_dir" ; then
   LDFLAGS="$LDFLAGS -L$ac_blacs_dir"
 fi
 withblacs=no
-if test	x"$ac_blacs" = x"yes" ; then
-  ac_blacs=blacs
-fi
 if test "$ac_blacs" != "no" ; then
-  AC_CHECK_LIB($ac_blacs, blacs_get, withblacs=yes, withblacs=no,$LINALG_LIBS)
+  case $ac_blacs in
+    -l*)
+    AC_MSG_CHECKING([for blacs libraries])
+    AC_LANG_CONFTEST([AC_LANG_CALL([], [blacs_get])])
+    LIBS_SVG=$LIBS
+    for ac_lib in $ac_blacs '-lblacs -lblacsF77init' '-lblacs-openmpi' '-lblacs-openmpi -lblacsF77init-openmpi'; do
+      LIBS="$ac_lib $LIBS_SVG"
+      AC_LINK_IFELSE([], [ac_blacs=$ac_lib], [ac_blacs="no"])
+      if test x"$ac_blacs" != x"no" ; then
+        break
+      fi
+    done
+    rm conftest*
+    LIBS=$LIBS_SVG
+    AC_MSG_RESULT([$ac_blacs])
+    if test x"$ac_blacs" != x"no" ; then
+      withblacs=yes
+    else
+      withblacs=warn
+    fi
+    ;;
+    *)
+    AC_CHECK_LIB($ac_blacs, blacs_get, withblacs=yes, withblacs=warn,$LINALG_LIBS)
+    ac_blacs=-l$ac_blacs
+    ;;
+  esac
   if test "$withblacs" = "yes"; then
-    LINALG_LIBS="-l$ac_blacs $LINALG_LIBS"
+    LINALG_LIBS="$ac_blacs $LINALG_LIBS"
   fi
 fi
 dnl get the scalapack library
-ac_scalapack=no
-AC_ARG_WITH(scalapack, AS_HELP_STRING([--with-scalapack], [Link with scalapack library (default = no).]), ac_scalapack=$withval, ac_scalapack=no)
+ac_scalapack=-lscalapack
+AC_ARG_WITH(scalapack, AS_HELP_STRING([--with-scalapack], [Link with scalapack library (default = no).]), ac_scalapack=$withval, ac_scalapack=-lscalapack)
 AC_ARG_WITH(scalapack-path, AS_HELP_STRING([--with-scalapack-path], [Give the path of the Scalapack library (default = /usr/lib).]),
             ac_scalapack_dir=$withval, ac_scalapack_dir=)
 if test -n "$ac_scalapack_dir" ; then
   LDFLAGS="$LDFLAGS -L$ac_scalapack_dir"
 fi
 withscalapack=no
-if test	x"$ac_scalapack" = x"yes" ; then
-  ac_scalapack=scalapack
-fi
-if test "$scalapack" != "no" ; then
-  AC_CHECK_LIB($ac_scalapack, pdsygvx, withscalapack=yes, withscalapack=warn,$LINALG_LIBS)
+if test "$ac_scalapack" != "no" ; then
+  case $ac_scalapack in
+    -l*)
+    AC_MSG_CHECKING([for scalapack libraries])
+    AC_LANG_CONFTEST([AC_LANG_CALL([], [pdsygvx])])
+    LIBS_SVG=$LIBS
+    for ac_lib in $ac_scalapack '-lscalapack-openmpi'; do
+      LIBS="$ac_lib $LIBS_SVG"
+      AC_LINK_IFELSE([], [ac_scalapack=$ac_lib], [ac_scalapack="no"])
+      if test x"$ac_scalapack" != x"no" ; then
+        break
+      fi
+    done
+    rm conftest*
+    LIBS=$LIBS_SVG
+    AC_MSG_RESULT([$ac_scalapack])
+    if test x"$ac_scalapack" != x"no" ; then
+      withscalapack=yes
+    else
+      withscalapack=warn
+    fi
+    ;;
+    *)
+    AC_CHECK_LIB($ac_scalapack, pdsygvx, withscalapack=yes, withscalapack=warn,$LINALG_LIBS)
+    ac_scalapack=-l$ac_scalapack
+    ;;
+  esac
   if test "$withscalapack" = "yes"; then
-    LINALG_LIBS="-l$ac_scalapack $LINALG_LIBS"
+    LINALG_LIBS="$ac_scalapack $LINALG_LIBS"
   fi
 fi
    

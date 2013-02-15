@@ -221,7 +221,7 @@ def fatal_error(args,reports):
   sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
   reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
   #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
-  sys.exit(1)
+  sys.exit(0)
 
 if __name__ == "__main__":
   parser = parse_arguments()
@@ -232,15 +232,15 @@ if __name__ == "__main__":
 
 #print args.ref,args.data,args.output
 
-references = [a for a in yaml.load_all(open(args.ref, "r"), Loader = yaml.CLoader)]
+references = [a for a in yaml.load_all(open(args.ref, "r").read(), Loader = yaml.CLoader)]
 try:
-  datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+  datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
 except:
   datas = []
   reports = open(args.output, "w")
   fatal_error(args,reports)
   
-orig_tols  = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)
+orig_tols  = yaml.load(open(args.tols, "r").read(), Loader = yaml.CLoader)
 
 # take default value for the tolerances
 try:

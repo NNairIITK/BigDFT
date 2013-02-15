@@ -164,7 +164,7 @@ $(PSPS):
 	          rm -f $i ; \
 	       fi ; \
 	   done ; \
-       rm -f *.out *.mon *.report default* *.prc; \
+       rm -f *.out *.mon *.report *.report.yaml default* *.prc; \
 	   rm -fr data data-*; rm -f accel.perf; \
 	   rm -f velocities.xyz pdos.dat td_spectra.txt ; \
 	   rm -f bfgs_eigenvalues.dat frequencies.res frequencies.xyz hessian.dat ; \
