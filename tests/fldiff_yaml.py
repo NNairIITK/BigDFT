@@ -13,7 +13,7 @@ path=os.path.dirname(sys.argv[0])
 #  sys.path.insert(0,'/local/gigi/binaries/ifort-OMP-OCL-CUDA-gC/PyYAML-3.10/lib')
 
 import yaml
-from yaml_hl import *
+#from yaml_hl import *
 
 start_fail = "<fail>" #"\033[0;31m"
 start_fail_esc = "\033[0;31m "
@@ -364,7 +364,7 @@ for i in range(len(references)):
                             default_flow_style=False,explicit_start=True))
   newreport.close()
   reports.write(open("report", "rb").read())
-  hl = YAMLHighlight(options)
+  hl = yaml_hl.YAMLHighlight(options)
   hl.highlight()
   
 #create dictionary for the final report
