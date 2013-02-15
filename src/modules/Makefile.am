@@ -61,7 +61,7 @@ module_DATA = $(mod_bigdft)
 include_HEADERS = $(bindings_headers)
 nodist_include_HEADERS = $(bindings_headers_nodist)
 
-EXTRA_DIST = configure.inc.in bigdft_cst.h.in
+EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py
 
 AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
