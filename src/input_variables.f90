@@ -98,15 +98,15 @@ subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
   ierr=BIGDFT_SUCCESS
   posinp_file=repeat(' ',len(posinp_file))
   run_id=repeat(' ',len(run_id))
+  !traditional scheme
+  !if (ncommands == 0) then
+     run_id='input'
+  !end if
+
   mpi_groupsize=0
   
   !first see how many arguments are present
   ncommands=COMMAND_ARGUMENT_COUNT()
-
-  !traditional scheme
-  if (ncommands == 0) then
-     run_id='input'
-  end if
 
   do icommands=1,ncommands
      command=repeat(' ',len(command))
@@ -116,7 +116,8 @@ subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
      call find_command()
      if (ierr /= 0) return
   end do
-  
+
+
 
 contains
 
@@ -1666,9 +1667,14 @@ subroutine create_log_file(iproc,inputs)
            logfile=trim(inputs%writing_directory)//trim(logfile)
         end if
         !Create stream and logfile
-        call yaml_set_stream(unit=70,filename=trim(logfile),record_length=92)
-        call input_set_stdout(unit=70)
-        call memocc_set_stdout(unit=70)
+        call yaml_set_stream(unit=70,filename=trim(logfile),record_length=92,istat=ierr)
+        !create that only if the stream is not already present, otherwise print a warning
+        if (ierr == 0) then
+           call input_set_stdout(unit=70)
+           call memocc_set_stdout(unit=70)
+        else
+           call yaml_warning('Logfile '//trim(logfile)//' cannot be created, stream already present. Ignoring...')
+        end if
      end if
   else
      !use stdout, do not crash if unit is present

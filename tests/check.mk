@@ -250,22 +250,18 @@ run_message:
 	touch $@
 
 
-%.diff: %.run
+%.diff	: %.run
 	@dir=`basename $@ .diff` ; \
         chks="$(srcdir)/$$dir/*.ref" ; \
 	for c in $$chks ; do $$DIFF $$c $$dir/$$(basename $$c .ref)".out";\
 	done ; \
         ychks="$(srcdir)/$$dir/*.ref.yaml" ; \
-	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
-	if test -n "$$name" ; then \
-	$$DIFF $$c $$dir/log-$$name.yaml;\
-	else \
-	name=`basename $$c .xabs.ref.yaml` ;\
+	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed s/.out// | sed s/.xabs// | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	echo 'name222' $${name} 'c222' $$c 'test' test -n $$name;\
 	if test -n "$$name" ; then \
 	$$DIFF $$c $$dir/log-$$name.yaml;\
 	else \
 	$$DIFF $$c $$dir/log.yaml;\
-	fi ;\
 	fi ;\
 	done ; \
 	touch $@

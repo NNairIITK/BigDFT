@@ -14,7 +14,7 @@ TESTDIRS = \
            testforces \
 	   IO-wf
 
-EXTRA_DIST = 
+EXTRA_DIST = MH_taskgroups
 
 if HAVE_ETSF_IO
 TESTDIRS += IO-wf-ETSF
@@ -23,7 +23,7 @@ endif
 
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
-TESTDIRS += MINHOP MH_taskgroups
+TESTDIRS += MINHOP
 endif
 
 # Give here the pseudo-potentials used by each test.
