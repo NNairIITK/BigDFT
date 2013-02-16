@@ -178,6 +178,7 @@ module module_types
      integer :: iacceleration
      integer :: Psolver_igpu !< acceleration of the Poisson solver
      character(len=11) :: OCL_platform
+     character(len=11) :: OCL_devices
   end type material_acceleration
 
 
@@ -945,6 +946,7 @@ contains
     ma%iacceleration=0
     ma%Psolver_igpu=0
     ma%OCL_platform=repeat(' ',len(ma%OCL_platform))
+    ma%OCL_platform=repeat(' ',len(ma%OCL_devices))
   end function material_acceleration_null
 
   function pkernel_null() result(k)

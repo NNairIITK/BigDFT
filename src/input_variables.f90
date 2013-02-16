@@ -1502,6 +1502,12 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   do i=ipos,len(in%matacc%OCL_platform)
      in%matacc%OCL_platform(i:i)=achar(0)
   end do
+  call input_var("OCL_devices",repeat(' ',len(in%matacc%OCL_devices)), &
+       & "Chosen OCL devices", in%matacc%OCL_devices)
+  ipos=min(len(in%matacc%OCL_devices),len(trim(in%matacc%OCL_devices))+1)
+  do i=ipos,len(in%matacc%OCL_devices)
+     in%matacc%OCL_devices(i:i)=achar(0)
+  end do
 
   call input_var("blas", .false., "CUBLAS acceleration", GPUblas) !@TODO to relocate
   call input_var("projrad", 15.0d0, &

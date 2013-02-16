@@ -203,17 +203,35 @@ in_message:
 	@if test -n "$(run_ocl)" ; then \
 	  echo "==============================================" ; \
 	  echo "Will generate a 'input.perf' file to force OCL" ; \
+	    if test -n "$(ocl_platform)" ; then \
+	      echo "Forcing use of $(ocl_platform)" ; \
+	    fi ; \
+	    if test -n "$(ocl_devices)" ; then \
+	      echo "Forcing use of $(ocl_devices)" ; \
+	    fi ; \
 	  echo "==============================================" ; \
 	fi
 
 $(INS): in_message
 	@dir=`basename $@ .in` ; \
-        if ! test x"$(srcdir)" = x"." ; then \
-          if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
-          for i in $(srcdir)/$$dir/* ; do cp -f $$i $$dir; done ; \
-        fi ; \
+	if ! test x"$(srcdir)" = x"." ; then \
+	if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
+	  for i in $(srcdir)/$$dir/* ; do cp -f $$i $$dir; done ; \
+	fi ; \
 	if test -n "$(accel_in_message)" -a -n "$(run_ocl)" ; then \
-	  echo "ACCEL OCLGPU" > $$dir/accel.perf ; \
+	  if test "$(run_ocl)" = "CPU" ; then \
+	    echo "ACCEL OCLCPU" > $$dir/accel.perf ; \
+	  elif test "$(run_ocl)" = "ACC" ; then \
+	    echo "ACCEL OCLACC" > $$dir/accel.perf ; \
+	  else \
+	    echo "ACCEL OCLGPU" > $$dir/accel.perf ; \
+	  fi ; \
+	  if test -n "$(ocl_platform)" ; then \
+	    echo "OCL_PLATFORM $(ocl_platform)" >> $$dir/accel.perf ; \
+	  fi ; \
+	  if test -n "$(ocl_devices)" ; then \
+	    echo "OCL_DEVICES $(ocl_devices)" >> $$dir/accel.perf ; \
+	  fi ; \
 	fi ; \
         cd $$dir && $(MAKE) -f ../Makefile $$dir".psp"; \
         $(MAKE) -f ../Makefile $$dir".post-in"; \
@@ -359,6 +377,12 @@ oclrun: head_message $(mpirun_message)
 	@echo ""
 	@echo " Use the environment variable run_ocl"
 	@echo "     ex: export run_ocl='on' to use OpenCL acceleration"
+	@echo "     use run_ocl='CPU' or 'ACC' to force use of hardware"
+	@echo "     different than GPU"
+	@echo " and the environment variable ocl_platform"
+	@echo "     ex: export ocl_platform='NVIDIA'"
+	@echo " and the environment variable ocl_devices"
+	@echo "     ex: export ocl_devices='K20'"
 
 foot_message: $(mpirun_message) $(oclrun_message) head_message
 	@echo "========================================================="
