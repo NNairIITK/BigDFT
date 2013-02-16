@@ -591,7 +591,7 @@ program MINHOP
         if (i_stat /= BIGDFT_SUCCESS) then
            write(*,*)'error(ksevals), i_stat',i_stat
   if (bigdft_mpi%iproc == 0) write(*,*)'#(MH) ', ncount_bigdft,' Wvfnctn Opt. steps for accurate geo. rel of MD conf.'
-  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Number of Wvfnctn Opt. steps for accurate geo. rel of MD conf.:',ncount_bigdft)
+  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Number of Wvfnctn Opt. steps for accurate geo. rel of MD conf.',ncount_bigdft)
 
            stop
         end if
@@ -751,7 +751,7 @@ end do hopping_loop
   if (bigdft_mpi%iproc == 0) then
      call yaml_open_map('(MH) Final results')
      write(*,*) '#(MH) found in total ',nlmin,' minima'
-     call yaml_map('(MH) Total minima found: ',nlmin)
+     call yaml_map('(MH) Total minima found',nlmin)
      write(*,*) '#(MH) Accepted ',accepted,' minima'
      call yaml_map('(MH) Number of accepted minima',accepted)
      call winter(atoms,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, & 
@@ -1870,7 +1870,7 @@ END SUBROUTINE adjustrxyz
 !  use module_base
 !  use module_types
 !  use m_ab6_symmetry
-  use yaml_output
+!  use yaml_output
 !  implicit none
 !  !implicit real*8 (a-h,o-z)
 !  integer, intent(in) :: iproc

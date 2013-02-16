@@ -257,7 +257,6 @@ run_message:
 	done ; \
         ychks="$(srcdir)/$$dir/*.ref.yaml" ; \
 	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed s/.out// | sed s/.xabs// | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
-	echo 'name222' $${name} 'c222' $$c 'test' test -n $$name;\
 	if test -n "$$name" ; then \
 	$$DIFF $$c $$dir/log-$$name.yaml;\
 	else \
@@ -273,19 +272,13 @@ run_message:
 	                     cp -vi $$dir/$$(basename $$c .ref)".out"  $$c;\
 	done ; \
         ychks="$(srcdir)/$$dir/*.ref.yaml" ; \
-	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed s/.out// | sed s/.xabs// | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
 	if test -n "$$name" ; then \
 	echo "Update reference with " $$dir/log-$$name.yaml; \
 	                     cp -vi $$dir/log-$$name.yaml $$c;\
 	else \
-	name=`basename $$c .xabs.ref.yaml` ;\
-	if test -n "$$name" ; then \
-	echo "Update reference with " $$dir/log-$$name.yaml; \
-		             cp -vi $$dir/log-$$name.yaml $$c;\
-	else \
 	echo "Update reference with " $$dir/log.yaml; \
 	                     cp -vi $$dir/log.yaml $$c;\
-	fi ;\
 	fi ;\
 	done ; \
 	touch $@
