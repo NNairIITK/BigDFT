@@ -231,9 +231,14 @@ module dynamic_memory
     end subroutine f_malloc_set_status
 
     subroutine f_malloc_finalize()
-      use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump
+      use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
+      implicit none
+      !local variables
+      integer :: unt
       !put the last values in the dictionary if not freed
       if (associated(dict_routine)) then
+         call yaml_get_default_stream(unt)
+         !call yaml_stream_attributes(unit=unt)
          call yaml_warning('Not all the arrays have been freed: memory leaks are possible')
          call prepend(dict_global,dict_routine)
 !      end if
@@ -250,10 +255,12 @@ module dynamic_memory
     end subroutine f_malloc_finalize
 
     subroutine check_for_errors(ierror,try)
-      use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump
+      use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
       implicit none
       logical, intent(in) :: try
       integer, intent(in) :: ierror
+      !local variables
+      integer :: unt
 
       !recuperate possible error
       if (ierror /= INVALID_RANK) lasterror='Fortran (de)allocation problem'
@@ -265,6 +272,7 @@ module dynamic_memory
          else
             write(*,*)'(de)allocation error, exiting. Error code:',ierror
             write(*,*)'last error:',lasterror
+            call yaml_get_default_stream(unt)
             call yaml_open_map('Status of the routine before exiting')
             call yaml_dict_dump(dict_routine)
             call yaml_close_map()
@@ -311,6 +319,7 @@ module dynamic_memory
       !local variables
       integer :: i
       integer(kind=8) :: ilsize
+      type(dictionary), pointer :: dict_tmp
       
       !finalize the routine
       !if (trim(present_routine) /= trim(m%routine_id)) then
@@ -328,24 +337,41 @@ module dynamic_memory
       end do
       !create the dictionary array
       !add the array to the routine
-      call set(dict_routine//trim(address),dict_array(m%routine_id,m%array_id,ilsize))
+      call dict_array(m%routine_id,m%array_id,ilsize,dict_tmp)
+      call set(dict_routine//trim(address),dict_tmp)
+      !call set(dict_routine//trim(address),dict_array(m%routine_id,m%array_id,ilsize))
       call check_for_errors(ierr,m%try)
       call memocc(ierr,product(m%shape(1:m%rank))*sizeof,m%array_id,m%routine_id)
       contains
         
-        function dict_array(routine_id,array_id,size)
+        subroutine dict_array(routine_id,array_id,size,dict_tmp)
           implicit none
           character(len=*), intent(in) :: array_id,routine_id
           integer(kind=8), intent(in) :: size !< in bytes
-          type(dictionary), pointer :: dict_array
+          type(dictionary), pointer :: dict_tmp
+          nullify(dict_tmp)
+          call dict_init(dict_tmp)
+          call set(dict_tmp//arrayid,trim(array_id))
+          call set(dict_tmp//sizeid,size)
+          call set(dict_tmp//routineid,trim(routine_id))
 
-          call dict_init(dict_array)
+        end subroutine dict_array
 
-          call set(dict_array//arrayid,trim(array_id))
-          call set(dict_array//sizeid,size)
-          call set(dict_array//routineid,trim(routine_id))
+!!$        function dict_array(routine_id,array_id,size)
+!!$          implicit none
+!!$          character(len=*), intent(in) :: array_id,routine_id
+!!$          integer(kind=8), intent(in) :: size !< in bytes
+!!$          type(dictionary), pointer :: dict_array
+!!$          nullify(dict_array)
+!!$print *,'test',associated(dict_array)
+!!$          call dict_init(dict_array)
+!!$print *,'test',associated(dict_array)
+!!$          call set(dict_array//arrayid,trim(array_id))
+!!$          call set(dict_array//sizeid,size)
+!!$          call set(dict_array//routineid,trim(routine_id))
+!!$
+!!$        end function dict_array
 
-        end function dict_array
 
     end subroutine profile_allocation
 
@@ -408,7 +434,7 @@ module dynamic_memory
       double precision, dimension(:,:), allocatable, intent(inout) :: array
       type(malloc_information_all), intent(in) :: m
       !local variables
-      integer :: istat,ierr,npaddim
+      integer :: istat,ierr,npaddim,i
       character(len=info_length) :: address
 !      call timing(0,'AllocationProf','IR') 
       if (rank_is_ok(size(shape(array)),m%rank)) then
@@ -450,20 +476,21 @@ module dynamic_memory
     subroutine i1_all_free(array)
       implicit none
       integer, dimension(:), allocatable, intent(inout) :: array
-      !local variables
-      integer :: ierr
-      character(len=info_length) :: address
-      !local variables
+      include 'deallocate-inc.f90' 
+!!$      !local variables
+!!$      integer :: ierr
+!!$      character(len=info_length) :: address
+!!$      !local variables
 !!$      integer :: i_all
-      integer(kind=8) :: ilsize
-!      call timing(0,'AllocationProf','IR') 
-      !profile the array allocation
-      call getaddress(array,address,len(address),ierr)
-      ilsize=int(product(shape(array))*kind(array),kind=8)
-      !fortran deallocation
-      deallocate(array,stat=ierror)
-      !hopefully only address is necessary for the deallocation
-      call profile_deallocation(ierror,ilsize,address)
+!!$      integer(kind=8) :: ilsize
+!!$!      call timing(0,'AllocationProf','IR') 
+!!$      !profile the array allocation
+!!$      call getaddress(array,address,len(address),ierr)
+!!$      ilsize=int(product(shape(array))*kind(array),kind=8)
+!!$      !fortran deallocation
+!!$      deallocate(array,stat=ierror)
+!!$      !hopefully only address is necessary for the deallocation
+!!$      call profile_deallocation(ierror,ilsize,address)
 
 !!$  i_all=-product(shape(array))*kind(array)
 !!$  deallocate(array,stat=ierror)
@@ -475,20 +502,21 @@ module dynamic_memory
     subroutine d1_all_free(array)
       implicit none
       double precision, dimension(:), allocatable, intent(inout) :: array
-      !local variables
-      integer :: istat,ierr
-      character(len=info_length) :: address
-      !local variables
-      integer :: i_all
-      integer(kind=8) :: ilsize
-!      call timing(0,'AllocationProf','IR') 
-      !profile the array allocation
-      call getaddress(array,address,len(address),ierr)
-      ilsize=int(product(shape(array))*kind(array),kind=8)
-      !fortran deallocation
-      deallocate(array,stat=ierror)
-      !hopefully only address is necessary for the deallocation
-      call profile_deallocation(ierror,ilsize,address)
+      include 'deallocate-inc.f90' 
+!!$      !local variables
+!!$      integer :: istat,ierr
+!!$      character(len=info_length) :: address
+!!$      !local variables
+!!$      integer :: i_all
+!!$      integer(kind=8) :: ilsize
+!!$!      call timing(0,'AllocationProf','IR') 
+!!$      !profile the array allocation
+!!$      call getaddress(array,address,len(address),ierr)
+!!$      ilsize=int(product(shape(array))*kind(array),kind=8)
+!!$      !fortran deallocation
+!!$      deallocate(array,stat=ierror)
+!!$      !hopefully only address is necessary for the deallocation
+!!$      call profile_deallocation(ierror,ilsize,address)
 
 !!$  i_all=-product(shape(array))*kind(array)
 !!$  deallocate(array,stat=ierror)
@@ -499,22 +527,23 @@ module dynamic_memory
     subroutine d2_all_free(array)
       implicit none
       double precision, dimension(:,:), allocatable, intent(inout) :: array
-      !local variables
-      integer :: istat,ierr
-      character(len=info_length) :: address
-      !local variables
-      integer :: i_all
-      integer(kind=8) :: ilsize
-!      call timing(0,'AllocationProf','IR') 
-      !profile the array allocation
-      call getaddress(array,address,len(address),ierr)
-      !here the size should be corrected with ndebug
-      ilsize=int(product(shape(array))*kind(array),kind=8)
-      !fortran deallocation
-      deallocate(array,stat=ierror)
-      !hopefully only address is necessary for the deallocation
-      call profile_deallocation(ierror,ilsize,address)
-!      call timing(0,'AllocationProf','RS') 
+      include 'deallocate-inc.f90' 
+!!$      !local variables
+!!$      integer :: istat,ierr
+!!$      character(len=info_length) :: address
+!!$      !local variables
+!!$      integer :: i_all
+!!$      integer(kind=8) :: ilsize
+!!$!      call timing(0,'AllocationProf','IR') 
+!!$      !profile the array allocation
+!!$      call getaddress(array,address,len(address),ierr)
+!!$      !here the size should be corrected with ndebug
+!!$      ilsize=int(product(shape(array))*kind(array),kind=8)
+!!$      !fortran deallocation
+!!$      deallocate(array,stat=ierror)
+!!$      !hopefully only address is necessary for the deallocation
+!!$      call profile_deallocation(ierror,ilsize,address)
+!!$!      call timing(0,'AllocationProf','RS') 
     end subroutine d2_all_free
 
 

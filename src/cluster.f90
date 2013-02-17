@@ -60,6 +60,9 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   !put a barrier for all the processes
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 
+  !check that the positions are identical for all the processes
+  
+
   !fill the rxyz array with the positions
   !wrap the atoms in the periodic directions when needed
   do iat=1,atoms%nat

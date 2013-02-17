@@ -346,6 +346,10 @@ try:
 except:
   hostname='unknown'
 
+if len(references) != len(datas):
+  print 'Error, number of documents differ between reference (',len(references),') and data (',len(datas),')' 
+  fatal_error(args,reports)
+
 for i in range(len(references)):
   tols={}  #copy.deepcopy(orig_tols)
 #  print data

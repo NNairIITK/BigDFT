@@ -614,6 +614,9 @@ program memguess
 
    ! De-allocations
    call deallocate_orbs(orbs,subname)
+
+   !remove the directory which has been created if it is possible
+   call deldir(in%dir_output,len(trim(in%dir_output)),ierror)
    call free_input_variables(in)  
 
    !finalize memory counting
