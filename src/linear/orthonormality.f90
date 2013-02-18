@@ -504,7 +504,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
   type(sparseMatrix),intent(inout) :: ovrlp
-  type(sparseMatrix),intent(out) :: inv_ovrlp_half
+  type(sparseMatrix),intent(inout) :: inv_ovrlp_half
 
   ! Local variables
   integer :: lwork, istat, iall, iorb, jorb, info, iseg, iiorb, jjorb, ii, ii_inv
@@ -1010,7 +1010,7 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
         call timing(iproc,'lovrlp^-1/2com','ON')
         ! gather together
         if(nproc > 1) then
-           call mpi_allgatherv(inv_ovrlp_halfp(1,1), orbs%norb*orbs%norbp, mpi_double_precision, inv_ovrlp_half(1,1), &
+           call mpi_allgatherv(inv_ovrlp_halfp, orbs%norb*orbs%norbp, mpi_double_precision, inv_ovrlp_half, &
                 orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
         else
            call dcopy(orbs%norbp*orbs%norb,inv_ovrlp_halfp(1,1),1,inv_ovrlp_half(1,1),1)

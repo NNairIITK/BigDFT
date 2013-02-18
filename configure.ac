@@ -1020,7 +1020,8 @@ Build:
   Devel. documentation:      $ac_have_doxygen / $ac_devel_doc
 
 Options:
-  Debug version:             $ac_use_debug		
+  Debug version:             $ac_use_debug
+  Max. Memory per task (GB): $MEMORY_LIMIT
   With MPI:                  $ac_use_mpi
    | include dir.:           $MPI_INCLUDE
    | linker flags:           $MPI_LDFLAGS

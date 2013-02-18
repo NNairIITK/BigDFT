@@ -141,8 +141,10 @@ subroutine optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
      call memocc(istat, rhs, 'rhs', subname)
 
      ! calc for i on this proc: (I_ab - S_ag K^gb) H_bg c_i^d
-     call dgemm('t', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, skh(1,1), &
-          tmb%orbs%norb, tmb%coeff(1,orbs%isorb+1), tmb%orbs%norb, 0.d0, rhs(1,orbs%isorb+1), tmb%orbs%norb)
+     if (orbs%norbp>0) then
+        call dgemm('t', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, skh(1,1), &
+             tmb%orbs%norb, tmb%coeff(1,orbs%isorb+1), tmb%orbs%norb, 0.d0, rhs(1,orbs%isorb+1), tmb%orbs%norb)
+     end if
 
      iall=-product(shape(skh))*kind(skh)
      deallocate(skh, stat=istat)
@@ -224,7 +226,7 @@ subroutine optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
      end do
 
      if(nproc > 1) then 
-        call mpi_allgatherv(coeffp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%coeff(1,1), &
+        call mpi_allgatherv(coeffp, tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%coeff, &
            tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
      else
         call dcopy(tmb%orbs%norb*orbs%norb,coeffp(1,1),1,tmb%coeff(1,1),1)
