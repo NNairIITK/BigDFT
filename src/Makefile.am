@@ -2,11 +2,13 @@
 
 # Main targets.
 # ------------
+dynlibdir       = $(libdir)
 bin_PROGRAMS    = $(binaries_sources)
 noinst_PROGRAMS = $(local_binaries)
 bin_SCRIPTS     = $(scripts_sources)
 lib_LIBRARIES   = $(lib_bigdft)
 module_DATA     = $(mod_bigdft)
+dynlib_DATA     = $(bigdft_dynamic_library)
 
 # Sub-directories.
 # ---------------
@@ -43,6 +45,15 @@ EXTRA_DIST = \
 
 # Build targets, binaries and libraries.
 # -------------
+if BUILD_DYNAMIC_LIBS
+bigdft_dynamic_library = libbigdft-1.so.7.0.22
+bigdft_library = libbigdft-1.so.7
+bigdft_library_rpath = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
+else
+bigdft_dynamic_library =
+bigdft_library = libbigdft.a @LIBS_SHORT_DEPS@
+bigdft_library_rpath =
+endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft.a libdft_common.a
 PS_SOURCES = PSolver/Build_Kernel.f90 \
@@ -223,7 +234,7 @@ else
 minima_hopping_sources =
 endif
 global_SOURCES = # Should be global.f90, but see below.
-global_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+global_LDADD = $(bigdft_library) @LINALG_LIBS@
 # Hack to avoid global.f90 inclusion into make dist.
 am_global_OBJECTS = global.$(OBJEXT)
 global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
@@ -414,53 +425,80 @@ libbigdft_a_SOURCES = \
 	$(low_level) \
 	$(high_level)
 nodist_libbigdft_a_SOURCES = $(nodist_bindings_files)
-libbigdft_a_LIBADD = $(modules_objects) 
-$(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft.a libdft_common.a
+libbigdft_a_LIBADD = $(modules_objects)
+
+$(bigdft_dynamic_library): $(modules_objects) $(libbigdft_a_OBJECTS)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -o $@ $^ @LIBS_SHORT_DEPS@
+	@chmod a+x $@
+
+libbigdft-1.so.7: $(bigdft_dynamic_library)
+	ln -fs $^ $@
+
+install-data-hook:
+	if test -n "$(bigdft_dynamic_library)" ; then \
+	  cd $(DESTDIR)$(dynlibdir) ; \
+	  chmod a+x $(bigdft_dynamic_library) ; \
+	  ln -fs $(bigdft_dynamic_library) libbigdft-1.so.7 ; \
+	  ln -fs $(bigdft_dynamic_library) libbigdft-1.so ; \
+	fi
+
+#obsolete dependency $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft.a libdft_common.a
 
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+bigdft_LDADD = $(bigdft_library)
+bigdft_LDFLAGS = $(bigdft_library_rpath)
 
 splsad_SOURCES = splinedsaddle.f90
-splsad_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+splsad_LDADD = $(bigdft_library) @LINALG_LIBS@
+splsad_LDFLAGS = $(bigdft_library_rpath)
 
 #rism_SOURCES = rism.f90 rismlowlevel.f90
-#rism_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+#rism_LDADD = $(bigdft_library)
 
 #sandbox_SOURCES = sandbox.f90
-#sandbox_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+#sandbox_LDADD = $(bigdft_library)
 
 #oneatom_SOURCES = oneatom.f90
-#oneatom_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+#oneatom_LDADD = $(bigdft_library)
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
-BigDFT2Wannier_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+BigDFT2Wannier_LDADD = $(bigdft_library) @LINALG_LIBS@
+BigDFT2Wannier_LDFLAGS = $(bigdft_library_rpath)
 
-WaCo_SOURCES = WaCo.f90                                                                                                                                                                    
-WaCo_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+WaCo_SOURCES = WaCo.f90
+WaCo_LDADD = $(bigdft_library) @LINALG_LIBS@
+WaCo_LDFLAGS = $(bigdft_library_rpath)
 
 MDanalysis_SOURCES = distances.f90
-MDanalysis_LDADD = libbigdft.a @LIBS_DEPENDENCIES@ 
+MDanalysis_LDADD = $(bigdft_library)
+MDanalysis_LDFLAGS = $(bigdft_library_rpath)
 
 abscalc_SOURCES = abscalc.f90
-abscalc_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+abscalc_LDADD = $(bigdft_library) @LINALG_LIBS@
+abscalc_LDFLAGS = $(bigdft_library_rpath)
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+test_forces_LDADD = $(bigdft_library)
+test_forces_LDFLAGS = $(bigdft_library_rpath)
 
 NEB_SOURCES = NEB.f90
-NEB_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+NEB_LDADD = $(bigdft_library)
+NEB_LDFLAGS = $(bigdft_library_rpath)
 
 memguess_SOURCES = memguess.f90 MPIfake.f90
-memguess_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+memguess_LDADD = $(bigdft_library) @LINALG_LIBS@
+memguess_LDFLAGS = $(bigdft_library_rpath)
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+frequencies_LDADD = $(bigdft_library) @LINALG_LIBS@
+frequencies_LDFLAGS = $(bigdft_library_rpath)
 
 bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-bart_LDADD = art/libart.a libbigdft.a @LIBS_DEPENDENCIES@
+bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
+bart_LDFLAGS = $(bigdft_library_rpath)
 
-CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* 
+CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.*
 
 NVCC = @NVCC@
 NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@ 
@@ -496,10 +534,8 @@ BUILT_GIRSOURCES = BigDFT-1.7.gir
 gir_DATA = $(BUILT_GIRSOURCES)
 typelibs_DATA = $(BUILT_GIRSOURCES:.gir=.typelib)
 
-libbigdft.so: $(modules_objects) $(libbigdft_a_OBJECTS)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -o $@ $^ @LIBS_SHORT_DEPS@
-
-$(gir_DATA): $(G_IR_SCANNER) libbigdft.so
+$(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
+	@ln -s $(bigdft_dynamic_library) libbigdft-1.so
 	$(G_IR_SCANNER) -v --warn-all \
 		--namespace BigDFT \
 		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ \
@@ -510,7 +546,7 @@ $(gir_DATA): $(G_IR_SCANNER) libbigdft.so
 		--include GLib-2.0 \
 		--include Gio-2.0 \
 		--output=$(gir_DATA) \
-	        --library=bigdft \
+	        --library=bigdft-1 \
 		--no-libtool \
 		-DGLIB_MAJOR_VERSION=2 -L$(builddir) \
 		-I$(srcdir)/modules -I$(builddir)/modules \
@@ -523,6 +559,7 @@ $(gir_DATA): $(G_IR_SCANNER) libbigdft.so
 		$(srcdir)/lib/bindings_wavefunctions.c \
 		$(srcdir)/lib/bindings_signals.c \
 		$(srcdir)/lib/bindings_signals_inet.c
+	@rm -f libbigdft-1.so
 
 $(typelibs_DATA): $(gir_DATA) $(G_IR_COMPILER)
 	$(G_IR_COMPILER) \
@@ -531,5 +568,5 @@ $(typelibs_DATA): $(gir_DATA) $(G_IR_COMPILER)
 		-o $(typelibs_DATA) \
 		$(gir_DATA)
 
-CLEANFILES += $(gir_DATA) $(typelibs_DATA) libbigdft.so
+CLEANFILES += $(gir_DATA) $(typelibs_DATA)
 endif

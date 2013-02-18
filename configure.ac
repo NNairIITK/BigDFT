@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.21],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.22],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -80,6 +80,11 @@ if test "$ar" = ":" ; then
   AC_MSG_ERROR(["No 'ar' program found."])
 fi
 
+dnl Produce dynamic excecutables.
+AC_ARG_ENABLE(dynamic-binaries, AS_HELP_STRING([--enable-dynamic-binaries],
+                                               [Build dynamically linked binaries (disabled by default).]),
+              ac_build_dynamic=$enableval, ac_build_dynamic="no")
+
 dnl Look for GLib and friends for bindings.
 AC_ARG_ENABLE(bindings, AS_HELP_STRING([--disable-bindings], [Don't build C bindings (enabled by default).]),
               ac_build_bindings=$enableval, ac_build_bindings="yes")
@@ -109,6 +114,8 @@ if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
     AC_SUBST(typelibsdir)
     AC_SUBST([G_IR_SCANNER], [$($PKG_CONFIG --variable=g_ir_scanner gobject-introspection-1.0)])
     AC_SUBST([G_IR_COMPILER], [$($PKG_CONFIG --variable=g_ir_compiler gobject-introspection-1.0)])
+    dnl Force dynamic library building.
+    ac_build_dynamic="yes"
   fi
 else
   have_glib=no
@@ -123,6 +130,17 @@ if test x"$have_gdbus" = x"yes" ; then
   AC_DEFINE([HAVE_GDBUS], [], [If set, we can use gdbus])
 fi
 AM_CONDITIONAL(HAVE_GDBUS, test "$have_gdbus" = "yes")
+
+dnl Test for library building tools.
+if test x"$ac_build_dynamic" = x"yes" ; then
+  AX_FLAG_PIC()
+  if test -z "$ax_flag_pic" ; then
+    AC_MSG_ERROR(["No available position-independent code flag, use --disable-bindings."])
+  fi
+  CFLAGS="$CFLAGS $ax_flag_pic"
+  FCFLAGS="$FCFLAGS $ax_flag_pic"
+fi
+AM_CONDITIONAL([BUILD_DYNAMIC_LIBS], [test "x$ac_build_dynamic" = "xyes"])
 
 dnl Enable or not MPI.
 ac_use_mpi="yes"
