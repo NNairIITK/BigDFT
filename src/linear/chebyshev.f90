@@ -1,6 +1,6 @@
 !again assuming all matrices have same sparsity, still some tidying to be done
-subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovrlp_compr, calculate_SHS, &
-           SHS, fermi, penalty_ev)
+subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_compr, &
+           ovrlp_compr, calculate_SHS, SHS, fermi, penalty_ev)
   use module_base
   use module_types
   use module_interfaces, except_this_one => chebyshev_clean
@@ -9,13 +9,14 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovr
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, npl
   real(8),dimension(npl,3),intent(in) :: cc
-  type(DFT_wavefunction),intent(in) :: tmb 
+  type(orbitals_data),intent(in) :: orbs
+  type(foe_data),intent(in) :: foe_obj
   type(sparseMatrix), intent(in) :: sparsemat
   real(kind=8),dimension(sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
   logical,intent(in) :: calculate_SHS
   real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: SHS
-  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
-  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
+  real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
+  real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
   ! Local variables
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr,i,j, nseq, nmaxsegk, nmaxvalk
   integer :: isegstart, isegend, iseg, ii, jjorb, nout
@@ -33,13 +34,13 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovr
   call timing(iproc, 'chebyshev_comp', 'ON')
 
 
-  norb = tmb%orbs%norb
-  norbp = tmb%orbs%norbp
-  isorb = tmb%orbs%isorb
+  norb = orbs%norb
+  norbp = orbs%norbp
+  isorb = orbs%isorb
 
-  call init_onedimindices(norbp, isorb, tmb%foe_obj, sparsemat, nout, onedimindices)
+  call init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)
 
-  call determine_sequential_length(norbp, isorb, norb, tmb%foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk)
+  call determine_sequential_length(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk)
 
 
   allocate(ham_compr_seq(nseq), stat=istat)
@@ -51,21 +52,21 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovr
   allocate(ivectorindex(nseq), stat=istat)
   call memocc(istat, ivectorindex, 'ivectorindex', subname)
 
-  call get_arrays_for_sequential_acces(norbp, isorb, norb, tmb%foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk, &
+  call get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk, &
        istindexarr, ivectorindex)
 
 
   if (number_of_matmuls==one) then
-      allocate(matrix(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
+      allocate(matrix(orbs%norb,orbs%norbp), stat=istat)
       call memocc(istat, matrix, 'matrix', subname)
       allocate(SHS_seq(nseq), stat=istat)
       call memocc(istat, SHS_seq, 'SHS_seq', subname)
 
       call to_zero(norb*norbp, matrix(1,1))
-      if (tmb%orbs%norbp>0) then
-          isegstart=sparsemat%istsegline(tmb%orbs%isorb_par(iproc)+1)
-          if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-              isegend=sparsemat%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+      if (orbs%norbp>0) then
+          isegstart=sparsemat%istsegline(orbs%isorb_par(iproc)+1)
+          if (orbs%isorb+orbs%norbp<orbs%norb) then
+              isegend=sparsemat%istsegline(orbs%isorb_par(iproc+1)+1)-1
           else
               isegend=sparsemat%nseg
           end if
@@ -73,19 +74,19 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovr
               ii=sparsemat%keyv(iseg)-1
               do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
                   ii=ii+1
-                  iiorb = (jorb-1)/tmb%orbs%norb + 1
-                  jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-                  matrix(jjorb,iiorb-tmb%orbs%isorb)=ovrlp_compr(ii)
+                  iiorb = (jorb-1)/orbs%norb + 1
+                  jjorb = jorb - (iiorb-1)*orbs%norb
+                  matrix(jjorb,iiorb-orbs%isorb)=ovrlp_compr(ii)
               end do
           end do
       end if
   end if
 
-  call sequential_acces_matrix(norbp, isorb, norb, tmb%foe_obj, sparsemat, ham_compr, nseq, nmaxsegk, nmaxvalk, &
+  call sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, ham_compr, nseq, nmaxsegk, nmaxvalk, &
        ham_compr_seq)
 
 
-  call sequential_acces_matrix(norbp, isorb, norb, tmb%foe_obj, sparsemat, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
+  call sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
        ovrlp_compr_seq)
 
   allocate(vectors(norb,norbp,4), stat=istat)
@@ -104,10 +105,10 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovr
                norb, norbp, ivectorindex, nout, onedimindices)
           call to_zero(sparsemat%nvctr, SHS(1))
           
-          if (tmb%orbs%norbp>0) then
-              isegstart=sparsemat%istsegline(tmb%orbs%isorb_par(iproc)+1)
-              if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-                  isegend=sparsemat%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+          if (orbs%norbp>0) then
+              isegstart=sparsemat%istsegline(orbs%isorb_par(iproc)+1)
+              if (orbs%isorb+orbs%norbp<orbs%norb) then
+                  isegend=sparsemat%istsegline(orbs%isorb_par(iproc+1)+1)-1
               else
                   isegend=sparsemat%nseg
               end if
@@ -115,9 +116,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovr
                   ii=sparsemat%keyv(iseg)-1
                   do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
                       ii=ii+1
-                      iiorb = (jorb-1)/tmb%orbs%norb + 1
-                      jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-                      SHS(ii)=matrix(jjorb,iiorb-tmb%orbs%isorb)
+                      iiorb = (jorb-1)/orbs%norb + 1
+                      jjorb = jorb - (iiorb-1)*orbs%norb
+                      SHS(ii)=matrix(jjorb,iiorb-orbs%isorb)
                   end do
               end do
           end if
@@ -126,7 +127,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovr
 
       end if
 
-      call sequential_acces_matrix(norbp, isorb, norb, tmb%foe_obj, sparsemat, SHS, nseq, nmaxsegk, &
+      call sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, SHS, nseq, nmaxsegk, &
            nmaxvalk, SHS_seq)
 
   end if

@@ -2808,7 +2808,7 @@ module module_interfaces
        real(wp), dimension(:), pointer, optional :: psirocc
      end subroutine FullHamiltonianApplication
 
-       subroutine init_foe(iproc, nproc, lzd, at, input, orbs, foe_obj, reset)
+       subroutine init_foe(iproc, nproc, lzd, at, input, orbs_KS, orbs, foe_obj, reset)
          use module_base
          use module_types
          implicit none
@@ -2816,7 +2816,7 @@ module module_interfaces
          type(local_zone_descriptors),intent(in) :: lzd
          type(atoms_data),intent(in) :: at
          type(input_variables),intent(in) :: input
-         type(orbitals_data),intent(in):: orbs
+         type(orbitals_data),intent(in):: orbs_KS, orbs
          type(foe_data),intent(out):: foe_obj
          logical, intent(in) :: reset
        end subroutine init_foe
@@ -3128,7 +3128,7 @@ module module_interfaces
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-                  orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
+                  orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
          use module_base
          use module_types
          implicit none
@@ -3140,7 +3140,7 @@ module module_interfaces
          type(atoms_data),intent(in) :: at
          type(input_variables),intent(in) :: input
          real(8),dimension(nlr),intent(in):: locrad
-         type(orbitals_data),intent(in):: orbs
+         type(orbitals_data),intent(in):: orbs_KS, orbs
          real(8),dimension(3,nlr),intent(in):: locregCenter
          type(locreg_descriptors),intent(in):: glr_tmp
          type(local_zone_descriptors),intent(inout):: lzd
@@ -3285,7 +3285,7 @@ module module_interfaces
        end subroutine psi_to_vlocpsi
 
        subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
-                  rxyz, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
+                  rxyz, KSwfn, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
          use module_base
          use module_types
          implicit none
@@ -3294,7 +3294,7 @@ module module_interfaces
          type(atoms_data),intent(in) :: at
          type(input_variables),intent(in):: input
          real(8),dimension(3,at%nat),intent(in):: rxyz
-         type(DFT_wavefunction),intent(inout):: tmb
+         type(DFT_wavefunction),intent(inout):: KSwfn, tmb
          type(DFT_local_fields),intent(inout) :: denspot
          type(localizedDIISParameters),intent(inout):: ldiis
          logical, intent(out) :: locreg_increased
@@ -3934,12 +3934,12 @@ module module_interfaces
           real(8),dimension(3,at%nat),intent(out):: fpulay
         end subroutine pulay_correction
 
-        subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged)
+        subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz, lowaccur_converged)
           use module_base
           use module_types
           implicit none
           integer,intent(in):: iproc, nproc
-          type(DFT_Wavefunction),intent(inout):: tmb
+          type(DFT_Wavefunction),intent(inout):: KSwfn, tmb
           type(DFT_local_fields),intent(in):: denspot
           type(input_variables),intent(in):: input
           type(atoms_data),intent(in):: at
@@ -4235,18 +4235,17 @@ module module_interfaces
           integer,dimension(0:nproc-1),intent(out) :: nrecvcounts_repartitionrho, nrecvdspls_repartitionrho
         end subroutine communication_arrays_repartitionrho
 
-        subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, &
-                   tmprtr, mode, ham, ovrlp, bisection_shift, fermi, ebs)
+        subroutine foe(iproc, nproc, orbs, foe_obj, &
+                   tmprtr, mode, ham, ovrlp, fermi, ebs)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc
-          type(DFT_wavefunction),intent(inout) :: tmb
           type(orbitals_data),intent(in) :: orbs
-          real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
+          type(foe_data),intent(inout) :: foe_obj
+          real(kind=8),intent(inout) :: tmprtr
           integer,intent(in) :: mode
           type(sparseMatrix),intent(in) :: ovrlp, ham
-          real(kind=8),intent(inout) :: bisection_shift
           type(sparseMatrix),intent(inout) :: fermi
           real(kind=8),intent(out) :: ebs
         end subroutine foe
@@ -4361,20 +4360,21 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
 
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, sparsemat, ham_compr, ovrlp_compr, calculate_SHS, &
-                   SHS, fermi, penalty_ev)
+        subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_compr, &
+                   ovrlp_compr, calculate_SHS, SHS, fermi, penalty_ev)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc, npl
           real(8),dimension(npl,3),intent(in) :: cc
-          type(DFT_wavefunction),intent(in) :: tmb 
+          type(orbitals_data),intent(in) :: orbs
+          type(foe_data),intent(in) :: foe_obj
           type(sparseMatrix), intent(in) :: sparsemat
           real(kind=8),dimension(sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
           logical,intent(in) :: calculate_SHS
           real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: SHS
-          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
-          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
+          real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
+          real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
         end subroutine chebyshev_clean
 
         subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)

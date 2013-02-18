@@ -124,8 +124,6 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
   call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
        & wfn%orbs, wfn%lzd, wfn%comgp)
 
-  call init_foe(iproc, nproc, wfn%lzd, atoms, in, wfn%orbs, wfn%foe_obj, .true.)
-
   call nullify_collective_comms(wfn%collcom)
   call nullify_collective_comms(wfn%collcom_sr)
 

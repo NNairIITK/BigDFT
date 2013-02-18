@@ -630,6 +630,7 @@ module module_types
     real(kind=8) :: fscale !< length scale for complementary error function (FOE)
     real(kind=8) :: ef_interpol_det !<FOE: max determinant of cubic interpolation matrix
     real(kind=8) :: ef_interpol_chargediff !<FOE: max charge difference for interpolation
+    real(kind=8) :: charge !total charge of the system
   end type foe_data
 
   type,public :: sparseMatrix
