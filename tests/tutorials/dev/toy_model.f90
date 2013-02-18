@@ -20,7 +20,7 @@ program wvl
   type(denspot_distribution)           :: dpcom
   type(GPU_pointers)                   :: GPU
   
-  integer :: i, j, ierr, iproc, nproc, nelec,nconfig
+  integer :: i, j, ierr, iproc, nproc ,nconfig
   real(dp) :: nrm, epot_sum
   real(gp) :: psoffset
   real(gp), allocatable :: radii_cf(:,:)
@@ -67,8 +67,7 @@ program wvl
 !!$  call read_input_variables(iproc,nproc,posinp_name,inputs, atoms, rxyz,1,'input',0)
 
   allocate(radii_cf(atoms%ntypes,3))
-
-  call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf,nelec)
+  call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf)
   
   call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/)) 
   call system_size(iproc,atoms,rxyz,radii_cf,inputs%crmult,inputs%frmult, &

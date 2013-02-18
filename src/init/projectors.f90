@@ -707,8 +707,9 @@ subroutine crtproj(geocode,nterm,lr, &
      !$omp enddo
 
      ! First term: fine projector components
-     ! fine part
-     !$omp do reduction(+:mvctr2)
+     ! fine part (beware of the behaviour with loop of zero size!)
+     !bug of ifort OMP runtime at this level
+     !$omp do reduction(+:mvctr2) 
      do iseg=mseg_c+1,mseg_c+mseg_f
         jj=keyv_p(iseg)
         j0=keyg_p(1,iseg)
@@ -811,7 +812,7 @@ subroutine crtproj(geocode,nterm,lr, &
         stop
      end if
 
-     if (mvctr2 /= mvctr_f) then
+     if (mvctr2 /= mvctr_f .and. mseg_f >0) then
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr /= mvctr_f ',mvctr2,mvctr_f
         stop
      end if
@@ -824,7 +825,6 @@ subroutine crtproj(geocode,nterm,lr, &
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
      !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
      !$omp shared(nterm,mvctr_f,mseg_f,mvctr3,mvctr4,mvctr5,mvctr6)
-
      !part with real and imaginary part
      !modify the openMP statements such as to benefit from parallelisation
      ! coarse part
@@ -1051,7 +1051,7 @@ subroutine crtproj(geocode,nterm,lr, &
         stop
      end if
 
-     if (mvctr4 /=  mvctr_f) then
+     if (mvctr4 /=  mvctr_f .and. mseg_f >0) then
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr /= mvctr_f ',mvctr4,mvctr_f
         stop
      end if
@@ -1061,7 +1061,7 @@ subroutine crtproj(geocode,nterm,lr, &
         stop
      end if
 
-     if (mvctr6 /= mvctr_f) then
+     if (mvctr6 /= mvctr_f .and. mseg_f >0) then
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr /= mvctr_f ',mvctr6,mvctr_f
         stop
      end if

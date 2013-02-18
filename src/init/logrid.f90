@@ -14,6 +14,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      ibyz_c,ibzxx_c,ibxxyy_c,ibyz_f,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
   !    creates complicated ib arrays    
   use module_base
+  use module_interfaces, except_this_one => make_all_ib
   implicit none
   integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer :: i1,i2,i3,i_stat,i_all !n(c) m1,m2,m3
@@ -104,6 +105,7 @@ END SUBROUTINE make_all_ib
 
 !>   This subroutine mimics the comb_grow_f one
 subroutine make_ib_inv(logrid_big,ibxy,ibzzx,ibyyzz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+  use module_interfaces, except_this_one => make_ib_inv
   implicit none
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer,intent(in):: ibxy(2,nfl1:nfu1,nfl2:nfu2)
@@ -181,6 +183,7 @@ END SUBROUTINE ib_from_logrid_inv
 
 !> This subroutine mimics the comb_grow_f one
 subroutine make_ib_c(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,n3)
+  use module_interfaces, except_this_one => make_ib_c
   implicit none
   integer nt,n1,n2,n3
   integer ibyz(2,0:n2,0:n3)! input
@@ -210,6 +213,7 @@ END SUBROUTINE make_ib_c
 
 !> This subroutine mimics the comb_grow_f one
 subroutine make_ib(logrid_big,ibyz,ibzxx,ibxxyy,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+  use module_interfaces, except_this_one => make_ib
   implicit none
   integer nt,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer ibyz(  2,nfl2:nfu2,nfl3:nfu3)! input

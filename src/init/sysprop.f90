@@ -10,7 +10,7 @@
 
 !> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-     orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
+     orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
      inwhichlocreg_old, onwhichatom_old)
   use module_base
   use module_types
@@ -20,12 +20,12 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc 
-  integer, intent(out) :: inputpsi, input_wf_format
+  integer, intent(out) :: inputpsi, input_wf_format, lnpsidim_orbs, lnpsidim_comp
   type(input_variables), intent(in) :: in 
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-  type(orbitals_data), intent(out) :: orbs, lorbs
-  type(local_zone_descriptors), intent(out) :: Lzd, Lzd_lin
+  type(orbitals_data), intent(inout) :: orbs, lorbs
+  type(local_zone_descriptors), intent(inout) :: Lzd, Lzd_lin
   type(DFT_local_fields), intent(out) :: denspot
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
   type(communications_arrays), intent(out) :: comms
@@ -35,7 +35,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nelec,nB,nKB,nMB,i_stat,i_all
+  integer :: nB,nKB,nMB,i_stat,i_all,ii,iat,iorb
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old
@@ -80,12 +80,11 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
        rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr)
 
   ! Create global orbs data structure.
-  call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
+  call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs)
   ! Create linear orbs data structure.
   if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_DISK_LINEAR &
       .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
-     call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, Lzd%Glr, &
-          rxyz, lorbs)
+     call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, rxyz, lorbs)
 
      ! There are needed for the restart (at least if the atoms have moved...)
      present_inwhichlocreg_old = present(inwhichlocreg_old)
@@ -96,14 +95,25 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
          stop 
      end if
      if (present_inwhichlocreg_old .and. present_onwhichatom_old) then
-         call vcopy(lorbs%norb, inwhichlocreg_old(1), 1, lorbs%inwhichlocreg(1), 1)
          call vcopy(lorbs%norb, onwhichatom_old(1), 1, lorbs%onwhichatom(1), 1)
-         i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
-         deallocate(inwhichlocreg_old,stat=i_stat)
-         call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
-         i_all=-product(shape(onwhichatom_old))*kind(onwhichatom_old)
-         deallocate(onwhichatom_old,stat=i_stat)
-         call memocc(i_stat,i_all,'onwhichatom_old',subname)
+         !call vcopy(lorbs%norb, inwhichlocreg_old(1), 1, lorbs%inwhichlocreg(1), 1)
+         !use onwhichatom to build the new inwhichlocreg (because the old inwhichlocreg can be ordered differently)
+         ii = 0
+         do iat=1, atoms%nat
+            do iorb=1,lorbs%norb
+               if(iat ==  lorbs%onwhichatom(iorb)) then
+                  ii = ii + 1
+                  lorbs%inwhichlocreg(iorb)= ii
+                  !lorbs%onwhichmpi(iorb) = ii-1
+               end if
+            end do 
+         end do
+         !i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
+         !deallocate(inwhichlocreg_old,stat=i_stat)
+         !call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
+         !i_all=-product(shape(onwhichatom_old))*kind(onwhichatom_old)
+         !deallocate(onwhichatom_old,stat=i_stat)
+         !call memocc(i_stat,i_all,'onwhichatom_old',subname)
      end if
   end if
 
@@ -150,7 +160,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
              input_wf_format,lzd_lin,lorbs,atoms,rxyz)
         !what to do with derivatives?
      end if
-     call update_wavefunctions_size(lzd_lin,lorbs,iproc,nproc)
+     call update_wavefunctions_size(lzd_lin,lnpsidim_orbs,lnpsidim_comp,lorbs,iproc,nproc)
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
@@ -236,13 +246,12 @@ END SUBROUTINE system_createKernels
 
 
 !> Calculate the important objects related to the physical properties of the system
-subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
+subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf)
   use module_base
   use module_types
   use module_interfaces, except_this_one => system_properties
   implicit none
   integer, intent(in) :: iproc,nproc
-  integer, intent(out) :: nelec
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(inout) :: atoms
   type(orbitals_data), intent(inout) :: orbs
@@ -253,7 +262,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
 !!$  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
   if (iproc == 0) call print_atomic_variables(atoms, radii_cf, max(in%hx,in%hy,in%hz), in%ixc)
-  call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
+  call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs)
 END SUBROUTINE system_properties
 
 
@@ -652,7 +661,7 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
 END SUBROUTINE read_radii_variables
 
 
-subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
+subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   use module_base
   use module_types
   use module_interfaces
@@ -661,39 +670,20 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   type(input_variables), intent(in) :: in
   integer, intent(in) :: iproc,nproc
   logical, intent(in) :: verb
-  type(atoms_data), intent(inout) :: atoms
-  integer, intent(out) :: nelec
+  type(atoms_data), intent(in) :: atoms
   type(orbitals_data), intent(inout) :: orbs
   !local variables
   character(len=*), parameter :: subname='read_orbital_variables'
   integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
   logical :: exists
   integer :: iat,iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
-  integer :: norbuempty,norbdempty
+  integer :: norbuempty,norbdempty,nelec
   integer :: nt,ntu,ntd,ityp,ierror,ispinsum
   integer :: ispol,ichg,ichgsum,norbe,norbat,nspin
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
   character(len=60) :: radical
 
-!!if(in%inputPsiId==100) then
-!!     norbitals=0
-!!     do i_n=1,nmax
-!!         do i_l=0,min(i_n-1,lmax-1)
-!!             if(neleconf(i_n,i_l)>0.d0) norbitals=norbitals+2*(i_l)+1
-!!         end do
-!!     end do
-!!     write(*,'(a,3i6)') 'ityp, norb, orbsPerAt', ityp, norbitals, orbsPerAt(ityp)
-!!     if(norbitals<orbsPerAt(ityp)) then
-!!         write(*,'(a,a)') 'adding orbitals for ', atoms%atomnames(ityp)
-!!         norbitals=0
-!!         do i_n=1,nmax
-!!             do i_l=0,min(i_n-1,lmax-1)
-!!                 if(neleconf(i_n,i_l)>0.d0) norbitals=norbitals+2*(i_l)+1
-!!             end do
-!!         end do
-!!     end if
-!!end if
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
@@ -1448,222 +1438,222 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
 END SUBROUTINE atomic_occupation_numbers
 
 
-!> Define the descriptors of the orbitals from a given norb
-!! It uses the cubic strategy for partitioning the orbitals
-subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
-  integer, intent(in) :: nspinor
-  type(orbitals_data), intent(out) :: orbs
-  real(gp), dimension(nkpt), intent(in) :: wkpt
-  real(gp), dimension(3,nkpt), intent(in) :: kpt
-  !local variables
-  character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,iiorb
-  integer :: mpiflag
-  logical, dimension(:), allocatable :: GPU_for_orbs
-  integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
-
-
-  allocate(orbs%norb_par(0:nproc-1+ndebug,0:nkpt),stat=i_stat)
-  call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
-
-  !assign the value of the k-points
-  orbs%nkpts=nkpt
-  !allocate vectors related to k-points
-  allocate(orbs%kpts(3,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
-  allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
-  orbs%kpts(:,1:nkpt) = kpt(:,:)
-  orbs%kwgts(1:nkpt) = wkpt(:)
-
-  ! Change the wavefunctions to complex if k-points are used (except gamma).
-  orbs%nspinor=nspinor
-  if (nspinor == 1) then
-     if (maxval(abs(orbs%kpts)) > 0._gp) orbs%nspinor=2
-     !nspinor=2 !fake, used for testing with gamma
-  end if
-  orbs%nspin = nspin
-
-  !initialise the array
-  do jproc=0,nproc-1
-     orbs%norb_par(jproc,0)=0 !size 0 nproc-1
-  end do
-
-  !create an array which indicate which processor has a GPU associated 
-  !from the viewpoint of the BLAS routines (deprecated, not used anymore)
-  if (.not. GPUshare) then
-     allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
-     call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
-     
-     if (nproc > 1) then
-        call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
-             bigdft_mpi%mpi_comm,ierr)
-     else
-        GPU_for_orbs(0)=GPUconv
-     end if
-     
-     i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
-     deallocate(GPU_for_orbs,stat=i_stat)
-     call memocc(i_stat,i_all,'GPU_for_orbs',subname)
-  end if
-
-  allocate(norb_par(0:nproc-1,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,norb_par,'norb_par',subname)
-
-  !old system for calculating k-point repartition
-!!$  call parallel_repartition_with_kpoints(nproc,orbs%nkpts,norb,orbs%norb_par)
-!!$
-!!$  !check the distribution
-!!$  norb_tot=0
-!!$  do jproc=0,iproc-1
-!!$     norb_tot=norb_tot+orbs%norb_par(jproc)
-!!$  end do
-!!$  !reference orbital for process
-!!$  orbs%isorb=norb_tot
-!!$  do jproc=iproc,nproc-1
-!!$     norb_tot=norb_tot+orbs%norb_par(jproc)
-!!$  end do
-!!$
-!!$  if(norb_tot /= norb*orbs%nkpts) then
-!!$     write(*,*)'ERROR: partition of orbitals incorrect, report bug.'
-!!$     write(*,*)orbs%norb_par(:),norb*orbs%nkpts
-!!$     stop
-!!$  end if
-!!$
-!!$  !calculate the k-points related quantities
-!!$  allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,mykpts,'mykpts',subname)
-!!$
-!!$  call parallel_repartition_per_kpoints(iproc,nproc,orbs%nkpts,norb,orbs%norb_par,&
-!!$       orbs%nkptsp,mykpts,norb_par)
-!!$  if (orbs%norb_par(iproc) >0) then
-!!$     orbs%iskpts=mykpts(1)-1
-!!$  else
-!!$     orbs%iskpts=0
-!!$  end if
-!!$  i_all=-product(shape(mykpts))*kind(mykpts)
-!!$  deallocate(mykpts,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'mykpts',subname)
-
-  !new system for k-point repartition
-  call kpts_to_procs_via_obj(nproc,orbs%nkpts,norb,norb_par)
-  !assign the values for norb_par and check the distribution
-  norb_tot=0
-  do jproc=0,nproc-1
-     if (jproc==iproc) orbs%isorb=norb_tot
-     do ikpt=1,orbs%nkpts
-        orbs%norb_par(jproc,0)=orbs%norb_par(jproc,0)+norb_par(jproc,ikpt)
-     end do
-     norb_tot=norb_tot+orbs%norb_par(jproc,0)
-  end do
-
-  if(norb_tot /= norb*orbs%nkpts) then
-     write(*,*)'ERROR: partition of orbitals incorrect, report bug.'
-     write(*,*)orbs%norb_par(:,0),norb*orbs%nkpts
-     stop
-  end if
-
-
-  !allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)
-  !call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
-  !orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
-
-  !this array will be reconstructed in the orbitals_communicators routine
-  i_all=-product(shape(norb_par))*kind(norb_par)
-  deallocate(norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'norb_par',subname)
-
-  !assign the values of the orbitals data
-  orbs%norb=norb
-  orbs%norbp=orbs%norb_par(iproc,0)
-  orbs%norbu=norbu
-  orbs%norbd=norbd
-
-  ! Modify these values
-  call repartitionOrbitals2(iproc, nproc, orbs%norb, orbs%norb_par, orbs%norbp, orbs%isorb)
-
-
-  allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
-
-  !assign the k-point to the given orbital, counting one orbital after each other
-  jorb=0
-  do ikpt=1,orbs%nkpts
-     do iorb=1,orbs%norb
-        jorb=jorb+1 !this runs over norb*nkpts values
-        if (jorb > orbs%isorb .and. jorb <= orbs%isorb+orbs%norbp) then
-           orbs%iokpt(jorb-orbs%isorb)=ikpt
-        end if
-     end do
-  end do
-
-  !allocate occupation number and spinsign
-  !fill them in normal way
-  allocate(orbs%occup(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%occup,'orbs%occup',subname)
-  allocate(orbs%spinsgn(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
-  orbs%occup(1:orbs%norb*orbs%nkpts)=1.0_gp 
-  do ikpt=1,orbs%nkpts
-     do iorb=1,orbs%norbu
-        orbs%spinsgn(iorb+(ikpt-1)*orbs%norb)=1.0_gp
-     end do
-     do iorb=1,orbs%norbd
-        orbs%spinsgn(iorb+orbs%norbu+(ikpt-1)*orbs%norb)=-1.0_gp
-     end do
-  end do
-
-  !put a default value for the fermi energy
-  orbs%efermi = UNINITIALIZED(orbs%efermi)
-  !and also for the gap
-  orbs%HLgap = UNINITIALIZED(orbs%HLgap)
-
-  ! allocate inwhichlocreg
-
-  allocate(orbs%inwhichlocreg(orbs%norb*orbs%nkpts),stat=i_stat)
-  call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
-  ! default for inwhichlocreg
-  orbs%inwhichlocreg = 1
-
-  !nullify(orbs%inwhichlocregP)
-
-  !allocate the array which assign the k-point to processor in transposed version
-  allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
-
-  !initialize the starting point of the potential for each orbital (to be removed?)
-  allocate(orbs%ispot(orbs%norbp),stat=i_stat)
-  call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
-
-
-  ! Define two new arrays:
-  ! - orbs%isorb_par is the same as orbs%isorb, but every process also knows
-  !   the reference orbital of each other process.
-  ! - orbs%onWhichMPI indicates on which MPI process a given orbital
-  !   is located.
-  allocate(orbs%isorb_par(0:nproc-1), stat=i_stat)
-  call memocc(i_stat, orbs%isorb_par, 'orbs%isorb_par', subname)
-  allocate(orbs%onWhichMPI(sum(orbs%norb_par(:,0))), stat=i_stat)
-  call memocc(i_stat, orbs%onWhichMPI, 'orbs%onWhichMPI', subname)
-  iiorb=0
-  orbs%isorb_par=0
-  do jproc=0,nproc-1
-      do iorb=1,orbs%norb_par(jproc,0)
-          iiorb=iiorb+1
-          orbs%onWhichMPI(iiorb)=jproc
-      end do
-      if(iproc==jproc) then
-          orbs%isorb_par(jproc)=orbs%isorb
-      end if
-  end do
-  call MPI_Initialized(mpiflag,ierr)
-  if(mpiflag /= 0 .and. nproc > 1) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-
-END SUBROUTINE orbitals_descriptors_forLinear
+!!!!> Define the descriptors of the orbitals from a given norb
+!!!!! It uses the cubic strategy for partitioning the orbitals
+!!!subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
+!!!  use module_base
+!!!  use module_types
+!!!  implicit none
+!!!  integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
+!!!  integer, intent(in) :: nspinor
+!!!  type(orbitals_data), intent(out) :: orbs
+!!!  real(gp), dimension(nkpt), intent(in) :: wkpt
+!!!  real(gp), dimension(3,nkpt), intent(in) :: kpt
+!!!  !local variables
+!!!  character(len=*), parameter :: subname='orbitals_descriptors'
+!!!  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,iiorb
+!!!  integer :: mpiflag
+!!!  logical, dimension(:), allocatable :: GPU_for_orbs
+!!!  integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
+!!!
+!!!
+!!!  allocate(orbs%norb_par(0:nproc-1+ndebug,0:nkpt),stat=i_stat)
+!!!  call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
+!!!
+!!!  !assign the value of the k-points
+!!!  orbs%nkpts=nkpt
+!!!  !allocate vectors related to k-points
+!!!  allocate(orbs%kpts(3,orbs%nkpts+ndebug),stat=i_stat)
+!!!  call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
+!!!  allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
+!!!  call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
+!!!  orbs%kpts(:,1:nkpt) = kpt(:,:)
+!!!  orbs%kwgts(1:nkpt) = wkpt(:)
+!!!
+!!!  ! Change the wavefunctions to complex if k-points are used (except gamma).
+!!!  orbs%nspinor=nspinor
+!!!  if (nspinor == 1) then
+!!!     if (maxval(abs(orbs%kpts)) > 0._gp) orbs%nspinor=2
+!!!     !nspinor=2 !fake, used for testing with gamma
+!!!  end if
+!!!  orbs%nspin = nspin
+!!!
+!!!  !initialise the array
+!!!  do jproc=0,nproc-1
+!!!     orbs%norb_par(jproc,0)=0 !size 0 nproc-1
+!!!  end do
+!!!
+!!!  !create an array which indicate which processor has a GPU associated 
+!!!  !from the viewpoint of the BLAS routines (deprecated, not used anymore)
+!!!  if (.not. GPUshare) then
+!!!     allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
+!!!     call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
+!!!     
+!!!     if (nproc > 1) then
+!!!        call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
+!!!             bigdft_mpi%mpi_comm,ierr)
+!!!     else
+!!!        GPU_for_orbs(0)=GPUconv
+!!!     end if
+!!!     
+!!!     i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
+!!!     deallocate(GPU_for_orbs,stat=i_stat)
+!!!     call memocc(i_stat,i_all,'GPU_for_orbs',subname)
+!!!  end if
+!!!
+!!!  allocate(norb_par(0:nproc-1,orbs%nkpts+ndebug),stat=i_stat)
+!!!  call memocc(i_stat,norb_par,'norb_par',subname)
+!!!
+!!!  !old system for calculating k-point repartition
+!!!!!$  call parallel_repartition_with_kpoints(nproc,orbs%nkpts,norb,orbs%norb_par)
+!!!!!$
+!!!!!$  !check the distribution
+!!!!!$  norb_tot=0
+!!!!!$  do jproc=0,iproc-1
+!!!!!$     norb_tot=norb_tot+orbs%norb_par(jproc)
+!!!!!$  end do
+!!!!!$  !reference orbital for process
+!!!!!$  orbs%isorb=norb_tot
+!!!!!$  do jproc=iproc,nproc-1
+!!!!!$     norb_tot=norb_tot+orbs%norb_par(jproc)
+!!!!!$  end do
+!!!!!$
+!!!!!$  if(norb_tot /= norb*orbs%nkpts) then
+!!!!!$     write(*,*)'ERROR: partition of orbitals incorrect, report bug.'
+!!!!!$     write(*,*)orbs%norb_par(:),norb*orbs%nkpts
+!!!!!$     stop
+!!!!!$  end if
+!!!!!$
+!!!!!$  !calculate the k-points related quantities
+!!!!!$  allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
+!!!!!$  call memocc(i_stat,mykpts,'mykpts',subname)
+!!!!!$
+!!!!!$  call parallel_repartition_per_kpoints(iproc,nproc,orbs%nkpts,norb,orbs%norb_par,&
+!!!!!$       orbs%nkptsp,mykpts,norb_par)
+!!!!!$  if (orbs%norb_par(iproc) >0) then
+!!!!!$     orbs%iskpts=mykpts(1)-1
+!!!!!$  else
+!!!!!$     orbs%iskpts=0
+!!!!!$  end if
+!!!!!$  i_all=-product(shape(mykpts))*kind(mykpts)
+!!!!!$  deallocate(mykpts,stat=i_stat)
+!!!!!$  call memocc(i_stat,i_all,'mykpts',subname)
+!!!
+!!!  !new system for k-point repartition
+!!!  call kpts_to_procs_via_obj(nproc,orbs%nkpts,norb,norb_par)
+!!!  !assign the values for norb_par and check the distribution
+!!!  norb_tot=0
+!!!  do jproc=0,nproc-1
+!!!     if (jproc==iproc) orbs%isorb=norb_tot
+!!!     do ikpt=1,orbs%nkpts
+!!!        orbs%norb_par(jproc,0)=orbs%norb_par(jproc,0)+norb_par(jproc,ikpt)
+!!!     end do
+!!!     norb_tot=norb_tot+orbs%norb_par(jproc,0)
+!!!  end do
+!!!
+!!!  if(norb_tot /= norb*orbs%nkpts) then
+!!!     write(*,*)'ERROR: partition of orbitals incorrect, report bug.'
+!!!     write(*,*)orbs%norb_par(:,0),norb*orbs%nkpts
+!!!     stop
+!!!  end if
+!!!
+!!!
+!!!  !allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)
+!!!  !call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
+!!!  !orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
+!!!
+!!!  !this array will be reconstructed in the orbitals_communicators routine
+!!!  i_all=-product(shape(norb_par))*kind(norb_par)
+!!!  deallocate(norb_par,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'norb_par',subname)
+!!!
+!!!  !assign the values of the orbitals data
+!!!  orbs%norb=norb
+!!!  orbs%norbp=orbs%norb_par(iproc,0)
+!!!  orbs%norbu=norbu
+!!!  orbs%norbd=norbd
+!!!
+!!!  ! Modify these values
+!!!  call repartitionOrbitals2(iproc, nproc, orbs%norb, orbs%norb_par, orbs%norbp, orbs%isorb)
+!!!
+!!!
+!!!  allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
+!!!  call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
+!!!
+!!!  !assign the k-point to the given orbital, counting one orbital after each other
+!!!  jorb=0
+!!!  do ikpt=1,orbs%nkpts
+!!!     do iorb=1,orbs%norb
+!!!        jorb=jorb+1 !this runs over norb*nkpts values
+!!!        if (jorb > orbs%isorb .and. jorb <= orbs%isorb+orbs%norbp) then
+!!!           orbs%iokpt(jorb-orbs%isorb)=ikpt
+!!!        end if
+!!!     end do
+!!!  end do
+!!!
+!!!  !allocate occupation number and spinsign
+!!!  !fill them in normal way
+!!!  allocate(orbs%occup(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+!!!  call memocc(i_stat,orbs%occup,'orbs%occup',subname)
+!!!  allocate(orbs%spinsgn(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+!!!  call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
+!!!  orbs%occup(1:orbs%norb*orbs%nkpts)=1.0_gp 
+!!!  do ikpt=1,orbs%nkpts
+!!!     do iorb=1,orbs%norbu
+!!!        orbs%spinsgn(iorb+(ikpt-1)*orbs%norb)=1.0_gp
+!!!     end do
+!!!     do iorb=1,orbs%norbd
+!!!        orbs%spinsgn(iorb+orbs%norbu+(ikpt-1)*orbs%norb)=-1.0_gp
+!!!     end do
+!!!  end do
+!!!
+!!!  !put a default value for the fermi energy
+!!!  orbs%efermi = UNINITIALIZED(orbs%efermi)
+!!!  !and also for the gap
+!!!  orbs%HLgap = UNINITIALIZED(orbs%HLgap)
+!!!
+!!!  ! allocate inwhichlocreg
+!!!
+!!!  allocate(orbs%inwhichlocreg(orbs%norb*orbs%nkpts),stat=i_stat)
+!!!  call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
+!!!  ! default for inwhichlocreg
+!!!  orbs%inwhichlocreg = 1
+!!!
+!!!  !nullify(orbs%inwhichlocregP)
+!!!
+!!!  !allocate the array which assign the k-point to processor in transposed version
+!!!  allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
+!!!  call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
+!!!
+!!!  !initialize the starting point of the potential for each orbital (to be removed?)
+!!!  allocate(orbs%ispot(orbs%norbp),stat=i_stat)
+!!!  call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
+!!!
+!!!
+!!!  ! Define two new arrays:
+!!!  ! - orbs%isorb_par is the same as orbs%isorb, but every process also knows
+!!!  !   the reference orbital of each other process.
+!!!  ! - orbs%onWhichMPI indicates on which MPI process a given orbital
+!!!  !   is located.
+!!!  allocate(orbs%isorb_par(0:nproc-1), stat=i_stat)
+!!!  call memocc(i_stat, orbs%isorb_par, 'orbs%isorb_par', subname)
+!!!  allocate(orbs%onWhichMPI(sum(orbs%norb_par(:,0))), stat=i_stat)
+!!!  call memocc(i_stat, orbs%onWhichMPI, 'orbs%onWhichMPI', subname)
+!!!  iiorb=0
+!!!  orbs%isorb_par=0
+!!!  do jproc=0,nproc-1
+!!!      do iorb=1,orbs%norb_par(jproc,0)
+!!!          iiorb=iiorb+1
+!!!          orbs%onWhichMPI(iiorb)=jproc
+!!!      end do
+!!!      if(iproc==jproc) then
+!!!          orbs%isorb_par(jproc)=orbs%isorb
+!!!      end if
+!!!  end do
+!!!  call MPI_Initialized(mpiflag,ierr)
+!!!  if(mpiflag /= 0 .and. nproc > 1) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+!!!
+!!!END SUBROUTINE orbitals_descriptors_forLinear
 
 
 !> Routine which assign to each processor the repartition of nobj*nkpts objects

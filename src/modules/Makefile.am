@@ -123,7 +123,9 @@ mpif.h:
 	echo "integer, parameter :: MPI_MAX_PROCESSOR_NAME=10, MPI_STATUS_SIZE=1,MPI_LAND=1" >> mpif.h &&\
         echo "integer, parameter :: MPI_REQUEST_NULL=1,MPI_STATUS_IGNORE=1" >> mpif.h &&\
         echo "integer, parameter :: mpi_tag_ub=1,mpi_address_kind=8,mpi_info_null=0" >> mpif.h &&\
+        echo "integer, parameter :: mpi_mode_noprecede=0" >> mpif.h &&\
         echo "real(kind=8), external :: mpi_wtime" >> mpif.h
+
 
 
 #dependencies

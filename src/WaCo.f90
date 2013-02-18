@@ -31,7 +31,7 @@ program WaCo
    real(gp) :: tel
    real(gp), dimension(3) :: shift,CM
    real(gp) :: dist,rad,sprdfact,sprddiff,enediff,sprdmult
-   integer :: iproc, nproc, nproctiming, i_stat, nelec, ierr, npsidim
+   integer :: iproc, nproc, nproctiming, i_stat, ierr, npsidim
    integer :: nvirtu,nvirtd,nrpts
    integer :: NeglectPoint, CNeglectPoint
    integer :: ncount0,ncount1,ncount_rate,ncount_max,iat,iformat
@@ -163,7 +163,7 @@ program WaCo
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf,nelec)
+   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
@@ -978,7 +978,7 @@ program WaCo
                  !                 Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
                  !                 Lzd%Glr%wfd%keyvglob,Lzd%Glr%wfd%keyglob,wann,Gnorm)
                 !END DEBUG
-                 call psi_to_locreg2(iproc, nproc, ldim, gdim, Lzd%Llr(iiwann), Lzd%Glr, wann, lwann)
+                 call psi_to_locreg2(iproc, ldim, gdim, Lzd%Llr(iiwann), Lzd%Glr, wann, lwann)
                 !DEBUG
                  !call wpdot_wrap(1,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%nvctr_f,Lzd%Llr(iiwann)%wfd%nseg_c,&
                  !                 Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%keyvglob,Lzd%Llr(iiwann)%wfd%keyglob,lwann,&
@@ -987,7 +987,7 @@ program WaCo
                  !                 Lnorm)
                  !print *,'Norm of wann function',iwann, 'is:',Gnorm, 'while the cutting yields:',Lnorm
                  !call to_zero(gdim,wann(1))
-                 !call Lpsi_to_global2(iproc, nproc, ldim, gdim, 1, 1, 1, Lzd%Glr,Lzd%Llr(iiwann), lwann(1), wann(1))
+                 !call Lpsi_to_global2(iproc, ldim, gdim, 1, 1, 1, Lzd%Glr,Lzd%Llr(iiwann), lwann(1), wann(1))
                  !Put it in interpolating scaling functions
                  !call daub_to_isf(Lzd%Glr,w,wann(1),wannr)
                  !call write_wannier_cube(ifile,trim(seedname)//'_test_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
@@ -1134,7 +1134,7 @@ program WaCo
 !!     !allocate(wann(gdim),stat=i_stat)
 !!     !call memocc(i_stat,lwann,'lwann',subname)
 !!     call to_zero(gdim,wann(1))
-!!     call Lpsi_to_global2(iproc, nproc, ldim, gdim, 1, 1, 1, Lzd%Glr, Lzd%Llr(ilr),&
+!!     call Lpsi_to_global2(iproc, ldim, gdim, 1, 1, 1, Lzd%Glr, Lzd%Llr(ilr),&
 !!          psi2(indL), wann(1))
 !!     indL = indL + ldim
 !!     !Put it in interpolating scaling functions
@@ -1231,7 +1231,7 @@ program WaCo
    !finalize memory counting
 !   call memocc(0,0,'count','stop')
  
-  call bigdft_finalize()
+  call bigdft_finalize(ierr)
 !!$
 !!$  ! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
 !!$  call MPI_BARRIER(MPI_COMM_WORLD,ierr)

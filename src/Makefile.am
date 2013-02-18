@@ -393,8 +393,11 @@ low_level = \
 	linear/communicatePotential.f90 \
 	linear/hpsiortho_linear.f90 \
 	linear/init_collective_comms.f90 \
-	linear/communications_p2p.f90 \
 	linear/optimize_coeffs.f90 \
+	linear/foe.f90 \
+	linear/chebyshev.f90 \
+	linear/communications_onesided.f90 \
+        linear/sparse_matrices.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \

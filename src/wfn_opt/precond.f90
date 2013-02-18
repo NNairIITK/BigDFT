@@ -289,7 +289,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
 
            else !normal preconditioner
               !case active only in the linear scaling case
-              if(confdatarr(iorb)%prefac > 0.0_gp)then
+              if(confdatarr(iorb)%prefac > 0.0_gp .or. confdatarr(iorb)%potorder > 0)then
               !   call yaml_map('Localizing preconditioner factor',confdatarr(iorb)%prefac)
                  call solvePrecondEquation(iproc,nproc,Lzd%Llr(ilr),ncplx,ncong,&
                       cprecr,&
@@ -1262,7 +1262,7 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
 
   ! coarse part
   !$omp parallel default(shared)&
-  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i)
+  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i1,i0,i)
   !$omp do !!!!schedule(static,1)
   do iseg=1,nseg_c
      jj=keyv_c(iseg)

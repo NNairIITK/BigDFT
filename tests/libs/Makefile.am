@@ -5,6 +5,10 @@ SUBDIRS = fft \
 	IO-wf \
 	yaml
 
+if USE_BLACS
+SUBDIRS += dsygv
+endif 
+
 if USE_CUDA_GPU
 SUBDIRS += CUDA
 endif

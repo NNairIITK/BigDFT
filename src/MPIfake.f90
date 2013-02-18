@@ -264,6 +264,16 @@ subroutine mpi_type_create_struct()
   stop 'MPIFAKE: mpi_type_create_structure'
 END SUBROUTINE  MPI_TYPE_CREATE_STRUCT
 
+subroutine mpi_type_vector()
+  implicit none
+  stop 'MPIFAKE: mpi_type_vector'
+END SUBROUTINE  MPI_TYPE_VECTOR
+
+subroutine mpi_type_create_hvector()
+  implicit none
+  stop 'MPIFAKE: mpi_type_create_hvector'
+END SUBROUTINE  MPI_TYPE_CREATE_HVECTOR
+
 subroutine mpi_type_commit()
   implicit none
   stop 'MPIFAKE: mpi_type_commit'
@@ -284,6 +294,20 @@ subroutine mpi_testall()
   stop 'MPIFAKE: mpi_testall'
 END SUBROUTINE  MPI_TESTALL
 
+subroutine mpi_info_create()
+  implicit none
+  stop 'MPIFAKE: mpi_info_create'
+END SUBROUTINE  MPI_INFO_CREATE
+
+subroutine mpi_info_set()
+  implicit none
+  stop 'MPIFAKE: mpi_info_set'
+END SUBROUTINE  MPI_INFO_SET
+
+subroutine mpi_info_free()
+  implicit none
+  stop 'MPIFAKE: mpi_info_free'
+END SUBROUTINE  MPI_INFO_FREE
 
 real(kind=8) function mpi_wtime()
   implicit none
