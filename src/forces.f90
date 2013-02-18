@@ -213,6 +213,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   end if
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz_ref,fxyz,fnoise)
+  if (iproc == 0) call write_forces(atoms,fxyz)
 
   energy=functional_ref
 
@@ -346,8 +347,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   
-  if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)
-  
+  !if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)
+   if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate Non Local forces',(nlpspd%nprojel > 0))
+
   if (atoms%geocode == 'P' .and. psolver_groupsize == nproc) then
      call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
 
@@ -357,7 +359,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 
   ! Add up all the force contributions
   if (nproc > 1) then
-     call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     !TD: fxyz(1,1) not used in case of no atoms
+     call mpiallred(fxyz,3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
        if (atoms%geocode == 'P') &
             call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm,ierr) !do not reduce erfstr
      call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
@@ -396,6 +399,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+  if (iproc == 0) call write_forces(atoms,fxyz)
 
   !volume element for local stress
   strtens(:,1)=strtens(:,1)/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)
@@ -450,6 +454,7 @@ end subroutine calculate_forces
 subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,n1i,n2i,n3p,i3s,nspin,n1,n2,n3
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -467,7 +472,7 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
   real(gp) :: spherical_gaussian_value,drhoc,drhov,drhodr2
 
   if (atoms%donlcc) then
-     if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate NLCC forces...'
+     !if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate NLCC forces...'
 
      if (nspin==1) then
         spinfac=2.0_gp
@@ -581,7 +586,8 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
         !print *,'iat,iproc',iat,iproc,frcx*hxh*hyh*hzh*spinfac*oneo4pi
      end do
 
-     if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
+     if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate NLCC forces',.true.)
+     !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   end if
 end subroutine rhocore_forces
 
@@ -591,6 +597,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   !Arguments---------
   type(atoms_data), intent(in) :: at
@@ -626,7 +633,8 @@ charge=charge+rho(ind)
      enddo
 charge=charge*hxh*hyh*hzh
 
-  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
+ !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
+  if (iproc == 0 .and. verbose > 1) call yaml_open_map('Calculate local forces',flow=.true.)
   forceleaked=0.d0
 
   !conditions for periodicity in the three directions
@@ -773,7 +781,13 @@ charge=charge*hxh*hyh*hzh
 !locstrten(1:3)=locstrten(1:3)+charge*psoffset/(hxh*hyh*hzh)/real(n1i*n2i*n3pi,kind=8)
 
   forceleaked=forceleaked*hxh*hyh*hzh
-  if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
+  !if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
+
+ !if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
+  if (iproc == 0 .and. verbose > 1) then
+     call yaml_map('Leaked force',trim(yaml_toa(forceleaked,fmt='(1pe12.5)')))
+     call yaml_close_map()
+  end if
 
 END SUBROUTINE local_forces
 
@@ -864,6 +878,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
      end do
   end do
 
+  ispsi=1 !to initialize the value in case of no projectors
   !look for the strategy of projectors application
   if (DistProjApply) then
      !apply the projectors on the fly for each k-point of the processor
@@ -888,13 +903,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
            jseg_f=1
 
            do idir=0,9
-!!$           mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-!!$           mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-!!$           jseg_c=nlpspd%nseg_p(2*iat-2)+1
-!!$           jseg_f=nlpspd%nseg_p(2*iat-1)+1
-!!$           mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-!!$           mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-
               ityp=at%iatype(iat)
               !calculate projectors
               istart_c=1
@@ -923,8 +931,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                                      wfd%keyvglob,wfd%keyglob,psi(ispsi),&
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                                     nlpspd%keyv_p(jseg_c),&
-!!$                                     nlpspd%keyg_p(1,jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),&
@@ -979,13 +985,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                          mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
                     jseg_c=1
                     jseg_f=1
-
-!!$                    mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-!!$                    mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-!!$                    jseg_c=nlpspd%nseg_p(2*iat-2)+1
-!!$                    jseg_f=nlpspd%nseg_p(2*iat-1)+1
-!!$                    mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-!!$                    mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
                     ityp=at%iatype(iat)
                     do l=1,4
                        do i=1,3
@@ -996,8 +995,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                                      wfd%keyvglob,wfd%keyglob,psi(ispsi),  &
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                                     nlpspd%keyv_p(jseg_c),&
-!!$                                     nlpspd%keyg_p(1,jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
@@ -1044,7 +1041,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
      do iorb=isorb,ieorb
         sab=0.0_gp
         ! loop over all projectors
-        call to_zero(3*at%nat,fxyz_orb(1,1))
+        call to_zero(3*at%nat,fxyz_orb)
         do ispinor=1,nspinor,ncplx
            jorb=jorb+1
            do iat=1,at%nat
@@ -3673,6 +3670,7 @@ END SUBROUTINE normalizevector
 subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc
   type(atoms_data), intent(in) :: at
@@ -3720,10 +3718,17 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
      !write( *,'(1x,a,1x,3(1x,1pe9.2))') &
      !  'Subtracting center-mass shift of',sumx,sumy,sumz
 !           write(*,'(1x,a)')'the sum of the forces is'
-           write(*,'(a,1pe16.8)')' average noise along x direction: ',sumx*sqrt(real(at%nat,gp))
-           write(*,'(a,1pe16.8)')' average noise along y direction: ',sumy*sqrt(real(at%nat,gp))
-           write(*,'(a,1pe16.8)')' average noise along z direction: ',sumz*sqrt(real(at%nat,gp))
-           write(*,'(a,1pe16.8)')' total average noise            : ',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%nat,gp))
+
+     call yaml_open_map('Average noise forces',flow=.true.)
+     call yaml_map('x',sumx*sqrt(real(at%nat,gp)),fmt='(1pe16.8)')
+     call yaml_map('y',sumy*sqrt(real(at%nat,gp)),fmt='(1pe16.8)')
+     call yaml_map('z',sumz*sqrt(real(at%nat,gp)),fmt='(1pe16.8)')
+     call yaml_map('total',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%nat,gp)),fmt='(1pe16.8)')
+     call yaml_close_map()
+     !     write(*,'(a,1pe16.8)')' average noise along x direction: ',sumx*sqrt(real(at%nat,gp))
+     !     write(*,'(a,1pe16.8)')' average noise along y direction: ',sumy*sqrt(real(at%nat,gp))
+     !     write(*,'(a,1pe16.8)')' average noise along z direction: ',sumz*sqrt(real(at%nat,gp))
+     !     write(*,'(a,1pe16.8)')' total average noise            : ',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%nat,gp))
 !!$
 !!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
 !!$     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
@@ -3767,9 +3772,19 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   enddo
 
   if (iproc==0) then
-     write(*,'(2(1x,a,1pe20.12))') 'clean forces norm (Ha/Bohr): maxval=', fmax2, ' fnrm2=', fnrm2
-     if (at%geocode /= 'P') &
-  &  write(*,'(2(1x,a,1pe20.12))') 'raw forces:                  maxval=', fmax1, ' fnrm2=', fnrm1
+     call yaml_open_map('Clean forces norm (Ha/Bohr)',flow=.true.)
+     call yaml_map('maxval', fmax2,fmt='(1pe20.12)')
+     call yaml_map('fnrm2',  fnrm2,fmt='(1pe20.12)')
+     call yaml_close_map()
+     if (at%geocode /= 'P') then
+        call yaml_open_map('Raw forces norm (Ha/Bohr)',flow=.true.)
+        call yaml_map('maxval', fmax1,fmt='(1pe20.12)')
+        call yaml_map('fnrm2',  fnrm1,fmt='(1pe20.12)')
+        call yaml_close_map()
+     end if
+     !write(*,'(2(1x,a,1pe20.12))') 'clean forces norm (Ha/Bohr): maxval=', fmax2, ' fnrm2=', fnrm2
+     !if (at%geocode /= 'P') &
+     !&  write(*,'(2(1x,a,1pe20.12))') 'raw forces:                  maxval=', fmax1, ' fnrm2=', fnrm1
   end if
 END SUBROUTINE clean_forces
 
@@ -3799,8 +3814,8 @@ subroutine symm_stress(dump,tens,symobj)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
 
-  if (dump) call yaml_map('Number of Symmetries',nsym,fmt='(i0)')
   !write(*,"(1x,A,I0,A)") "Symmetrize stress tensor with ", nsym, "symmetries."
+  !if (dump) call yaml_map('Number of Symmetries for stress symmetrization',nsym,fmt='(i0)')
 
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))
@@ -3847,6 +3862,7 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   use defs_basis
   use m_ab6_symmetry
   use module_types
+  use yaml_output
 
   implicit none
 
@@ -3866,8 +3882,8 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   call symmetry_get_matrices_p(at%sym%symObj, nsym, sym, transNon, symAfm, errno)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
-
-  if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
+ !if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
+  !if (iproc == 0) call yaml_map('Number of Symmetries for forces symmetrization',nsym,fmt='(i0)')
 
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))

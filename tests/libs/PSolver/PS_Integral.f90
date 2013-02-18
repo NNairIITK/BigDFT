@@ -287,6 +287,7 @@ stop
 
   !Allocations
   work      =f_malloc(bounds=(/-n_range .to. n_range /),id='work')
+print *,'test'
   kernel_scf=f_malloc(bounds=(/-n_range .to. n_range /),id='kernel_scf')
 
   !allocate(work(-n_range:n_range), stat=i_stat)

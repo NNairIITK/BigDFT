@@ -14,7 +14,7 @@ TESTDIRS = \
            testforces \
 	   IO-wf
 
-EXTRA_DIST = 
+EXTRA_DIST = MH_taskgroups
 
 if HAVE_ETSF_IO
 TESTDIRS += IO-wf-ETSF
@@ -87,7 +87,7 @@ H2O-slab.post-in:
 
 # Additional reference for geopt.mon test
 global.mon.out : test.minhop.out
-	cp -f global.mon $@
+	cp -f data/global.mon $@
 #	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy="5e-9" global.mon global.mon.ref | tee global.mon.report
 
 # Additional run rules.

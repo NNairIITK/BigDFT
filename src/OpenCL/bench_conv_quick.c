@@ -14,10 +14,10 @@
 
 #define MAX_N1 128
 #define MAX_N2 128
-#define MAX_N3 512
+#define MAX_N3 256
 #define N1_STEP 128
 #define N2_STEP 128
-#define N3_STEP 512
+#define N3_STEP 256
 #define N1_URANGE 0 
 #define N2_URANGE 0 
 #define N3_URANGE 0
@@ -35,8 +35,8 @@ int main(){
 
 
 
-  in = (double*) malloc(size*sizeof(double));
-  out = (double*) malloc(size*sizeof(double));
+  in = (double*) malloc(size*sizeof(double)*2);
+  out = (double*) malloc(size*sizeof(double)*2);
 
 
   ocl_create_gpu_context_(&context,&device_number);
@@ -44,11 +44,11 @@ int main(){
   ocl_create_command_queue_(&queue,&context);
   init_event_list_();
  
-  /*  cl_mem cmPinnedBufIn = clCreateBuffer(context->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, size*sizeof(double), NULL, NULL);
-    cl_mem cmPinnedBufOut = clCreateBuffer(context->context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, size*sizeof(double), NULL, NULL);
-  in = (double *)clEnqueueMapBuffer(queue->command_queue, cmPinnedBufIn, CL_TRUE, CL_MAP_WRITE, 0, size*sizeof(double), 0, NULL, NULL, NULL);
-  out = (double *)clEnqueueMapBuffer(queue->command_queue, cmPinnedBufOut, CL_TRUE, CL_MAP_READ, 0, size*sizeof(double), 0, NULL, NULL, NULL); */
-  init_random(in, size);
+  cl_mem cmPinnedBufIn = clCreateBuffer(context->context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, size*sizeof(double)*2, in, NULL);
+  cl_mem cmPinnedBufOut = clCreateBuffer(context->context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, size*sizeof(double)*2, out, NULL);
+  clEnqueueMapBuffer(queue->command_queue, cmPinnedBufIn, CL_TRUE, CL_MAP_WRITE, 0, size*sizeof(double)*2, 0, NULL, NULL, NULL);
+  clEnqueueMapBuffer(queue->command_queue, cmPinnedBufOut, CL_TRUE, CL_MAP_READ, 0, size*sizeof(double)*2, 0, NULL, NULL, NULL);
+  init_random(in, size*2);
 
   for( n1 = N1_STEP; n1 <= MAX_N1; n1 += N1_STEP ){
     for( un1 = n1 - N1_URANGE; un1 <= n1 + N1_URANGE; un1 += N1_USTEP){
@@ -62,7 +62,7 @@ int main(){
               nanosec_(&t1);
               printf("%lu usec\n",(t1-t0)/1000);
               nanosec_(&t0);
-              bench_magicfilter1d_straight(un1,un2,un3,in,out);
+              bench_magicfilter1d_straight(un1,un2,un3,in+size,out+size);
               nanosec_(&t1);
               printf("%lu usec\n",(t1-t0)/1000);
               nanosec_(&t0);
@@ -70,7 +70,7 @@ int main(){
               nanosec_(&t1);
               printf("%lu usec\n",(t1-t0)/1000);
               nanosec_(&t0);
-              bench_magicfiltergrow1d(un1,un2,un3,in,out);
+              bench_magicfiltergrow1d(un1,un2,un3,in+size,out+size);
               nanosec_(&t1);
               printf("%lu usec\n",(t1-t0)/1000);
               nanosec_(&t0);
@@ -78,7 +78,7 @@ int main(){
               nanosec_(&t1);
               printf("%lu usec\n",(t1-t0)/1000);
               nanosec_(&t0);
-              bench_kinetic1d(un1,un2,un3,in,out);
+              bench_kinetic1d(un1,un2,un3,in+size,out+size);
               nanosec_(&t1);
               printf("%lu usec\n",(t1-t0)/1000);
               nanosec_(&t0);
@@ -86,7 +86,7 @@ int main(){
               nanosec_(&t1);
               printf("%lu usec\n",(t1-t0)/1000);
               nanosec_(&t0);
-              bench_ana1d_block(un1,un2,un3,in,out);
+              bench_ana1d_block(un1,un2,un3,in+size,out+size);
               nanosec_(&t1);
               printf("%lu usec\n",(t1-t0)/1000);
               nanosec_(&t0);
@@ -94,7 +94,7 @@ int main(){
               nanosec_(&t1);
               printf("%lu usec\n",(t1-t0)/1000);
               nanosec_(&t0);
-              bench_syn1d(un1,un2,un3,in,out);
+              bench_syn1d(un1,un2,un3,in+size,out+size);
               nanosec_(&t1);
               printf("%lu usec\n",(t1-t0)/1000);
               nanosec_(&t0);
@@ -116,8 +116,8 @@ int main(){
     }
   }
 
-  //  ocl_release_mem_object_(&cmPinnedBufIn);
-  // ocl_release_mem_object_(&cmPinnedBufOut);
+//  ocl_release_mem_object_(&cmPinnedBufIn);
+//  ocl_release_mem_object_(&cmPinnedBufOut);
   print_event_list_();
   ocl_clean_command_queue_(&queue);
   ocl_clean_(&context);

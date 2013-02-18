@@ -25,7 +25,9 @@ subroutine init_acceleration_OCL(matacc,GPU)
   type(material_acceleration), intent(in) :: matacc
   type(GPU_pointers), intent(out) :: GPU
 
-  call ocl_create_gpu_context(GPU%context,GPU%ndevices)
+  call ocl_create_context(GPU%context, matacc%OCL_platform, matacc%OCL_devices, matacc%iacceleration,&
+                     GPU%ndevices)
+  !call ocl_create_gpu_context(GPU%context,GPU%ndevices)
   !call ocl_create_command_queue(GPU%queue,GPU%context)
   call ocl_build_programs(GPU%context)
   call ocl_create_command_queue_id(GPU%queue,GPU%context,GPU%id_proc)
@@ -154,7 +156,7 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
 
 
   !pin the memory of the orbitals energies
-  do iorb=1,orbs%norb
+  do iorb=1,orbs%norbp
      do ispinor=1,orbs%nspinor
         call ocl_pin_write_buffer_async(GPU%context,GPU%queue,8,GPU%ekin(ispinor,iorb),GPU%ekinpot_host(ispinor,iorb,1))
         call ocl_pin_write_buffer_async(GPU%context,GPU%queue,8,GPU%epot(ispinor,iorb),GPU%ekinpot_host(ispinor,iorb,2))
@@ -793,33 +795,49 @@ subroutine local_partial_density_OCL(orbs,&
              psi(1,iorb))
 
      call ocl_pin_read_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,psi(isf,iorb),&
-          GPU%psicf_host(1+(ispinor-1)*2,iorb_r))
+          GPU%psicf_host(2+(ispinor-1)*2,iorb_r))
      call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,&
           psi(isf,iorb))
 
-    hfac=orbs%kwgts(orbs%iokpt(iorb_r))*orbs%occup(orbs%isorb+iorb_r)/(hxh*hyh*hzh);
-    if (orbs%spinsgn(orbs%isorb+iorb_r) > 0.0) then
-       rhopot = GPU%rhopot_up
-    else
-       rhopot = GPU%rhopot_down
-    endif
-  !calculate the density
-   call ocl_locden_generic(GPU%queue, (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
-                          (/periodic(1),periodic(2),periodic(3)/),&
-                          hfac,&
-                          lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
-                          lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&
-                          GPU%psi_c,GPU%psi_f,&
-                          GPU%work1,GPU%work2,GPU%work3,&
-                          rhopot)
+     hfac=orbs%kwgts(orbs%iokpt(iorb_r))*orbs%occup(orbs%isorb+iorb_r)/(hxh*hyh*hzh);
+     if (orbs%spinsgn(orbs%isorb+iorb_r) > 0.0) then
+        rhopot = GPU%rhopot_up
+     else
+        rhopot = GPU%rhopot_down
+     endif
+     !calculate the density
+     call ocl_locden_generic(GPU%queue, (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
+          (/periodic(1),periodic(2),periodic(3)/),&
+          hfac,&
+          lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&
+          GPU%psi_c,GPU%psi_f,&
+          GPU%work1,GPU%work2,GPU%work3,&
+          rhopot)
+
   end do
+
+   do iorb=1,orbs%norbp
+     do ispinor=1,orbs%nspinor
+        call ocl_release_mem_object(GPU%psicf_host(1+(ispinor-1)*2,iorb))
+        call ocl_release_mem_object(GPU%psicf_host(2+(ispinor-1)*2,iorb))
+     end do
+  end do
+
+
   !copy back the results and leave the uncompressed wavefunctions on the card
 
   call ocl_pin_write_buffer_async(GPU%context,GPU%queue,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p,GPU%rhopot_up_host)
   call ocl_enqueue_read_buffer(GPU%queue,GPU%rhopot_up,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p)
   if( nspin == 2 ) then
-     call ocl_pin_write_buffer_async(GPU%context,GPU%queue,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p(1,1,1,2),GPU%rhopot_up_host)
+     call ocl_pin_write_buffer_async(GPU%context,GPU%queue,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p(1,1,1,2),GPU%rhopot_down_host)
     call ocl_enqueue_read_buffer(GPU%queue,GPU%rhopot_down,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p(1,1,1,2))
   endif
+
+  !free pinning information for potential
+  call ocl_release_mem_object(GPU%rhopot_up_host)
+  if (nspin == 2 ) call ocl_release_mem_object(GPU%rhopot_down_host)
+  
+  
 
 END SUBROUTINE local_partial_density_OCL

@@ -99,9 +99,17 @@ report:
 	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
 	   cat accel.perf >> $$file ; \
 	fi ; \
+	if test -f list_posinp; then \
+	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
+	fi; \
 	echo outdir ./ >> $$file ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
-	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
+	if test -f $$file.bak ; then \
+	   mv $$file.bak $$file ; else rm -f $$file ; \
+	fi ; \
+	if test -f list_posinp; then \
+	   cat log-* > log.yaml ; \
+	fi
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.geopt.mon.out: $(abs_top_builddir)/src/bigdft
@@ -140,7 +148,7 @@ report:
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.minhop.out: $(abs_top_builddir)/src/global
 	$(run_parallel) $(abs_top_builddir)/src/global > $@
-	mv log-mdinput.yaml log.yaml
+#	mv log-mdinput.yaml log.yaml
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.xabs.out: $(abs_top_builddir)/src/abscalc
@@ -195,17 +203,35 @@ in_message:
 	@if test -n "$(run_ocl)" ; then \
 	  echo "==============================================" ; \
 	  echo "Will generate a 'input.perf' file to force OCL" ; \
+	    if test -n "$(ocl_platform)" ; then \
+	      echo "Forcing use of $(ocl_platform)" ; \
+	    fi ; \
+	    if test -n "$(ocl_devices)" ; then \
+	      echo "Forcing use of $(ocl_devices)" ; \
+	    fi ; \
 	  echo "==============================================" ; \
 	fi
 
 $(INS): in_message
 	@dir=`basename $@ .in` ; \
-        if ! test x"$(srcdir)" = x"." ; then \
-          if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
-          for i in $(srcdir)/$$dir/* ; do cp -f $$i $$dir; done ; \
-        fi ; \
+	if ! test x"$(srcdir)" = x"." ; then \
+	if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
+	  for i in $(srcdir)/$$dir/* ; do cp -f $$i $$dir; done ; \
+	fi ; \
 	if test -n "$(accel_in_message)" -a -n "$(run_ocl)" ; then \
-	  echo "ACCEL OCLGPU" > $$dir/accel.perf ; \
+	  if test "$(run_ocl)" = "CPU" ; then \
+	    echo "ACCEL OCLCPU" > $$dir/accel.perf ; \
+	  elif test "$(run_ocl)" = "ACC" ; then \
+	    echo "ACCEL OCLACC" > $$dir/accel.perf ; \
+	  else \
+	    echo "ACCEL OCLGPU" > $$dir/accel.perf ; \
+	  fi ; \
+	  if test -n "$(ocl_platform)" ; then \
+	    echo "OCL_PLATFORM $(ocl_platform)" >> $$dir/accel.perf ; \
+	  fi ; \
+	  if test -n "$(ocl_devices)" ; then \
+	    echo "OCL_DEVICES $(ocl_devices)" >> $$dir/accel.perf ; \
+	  fi ; \
 	fi ; \
         cd $$dir && $(MAKE) -f ../Makefile $$dir".psp"; \
         $(MAKE) -f ../Makefile $$dir".post-in"; \
@@ -242,13 +268,13 @@ run_message:
 	touch $@
 
 
-%.diff: %.run
+%.diff	: %.run
 	@dir=`basename $@ .diff` ; \
         chks="$(srcdir)/$$dir/*.ref" ; \
 	for c in $$chks ; do $$DIFF $$c $$dir/$$(basename $$c .ref)".out";\
 	done ; \
         ychks="$(srcdir)/$$dir/*.ref.yaml" ; \
-	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed s/.out// | sed s/.xabs// | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
 	if test -n "$$name" ; then \
 	$$DIFF $$c $$dir/log-$$name.yaml;\
 	else \
@@ -264,7 +290,7 @@ run_message:
 	                     cp -vi $$dir/$$(basename $$c .ref)".out"  $$c;\
 	done ; \
         ychks="$(srcdir)/$$dir/*.ref.yaml" ; \
-	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed s/.out// | sed s/.xabs// | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
 	if test -n "$$name" ; then \
 	echo "Update reference with " $$dir/log-$$name.yaml; \
 	                     cp -vi $$dir/log-$$name.yaml $$c;\
@@ -353,6 +379,12 @@ oclrun: head_message $(mpirun_message)
 	@echo ""
 	@echo " Use the environment variable run_ocl"
 	@echo "     ex: export run_ocl='on' to use OpenCL acceleration"
+	@echo "     use run_ocl='CPU' or 'ACC' to force use of hardware"
+	@echo "     different than GPU"
+	@echo " and the environment variable ocl_platform"
+	@echo "     ex: export ocl_platform='NVIDIA'"
+	@echo " and the environment variable ocl_devices"
+	@echo "     ex: export ocl_devices='K20'"
 
 foot_message: $(mpirun_message) $(oclrun_message) head_message
 	@echo "========================================================="

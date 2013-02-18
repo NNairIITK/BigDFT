@@ -661,6 +661,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
    ikpt=orbs%iokpt(1)
    istart_ck=1
    ispsi_k=1
+   ispsi=1 !to initialize the value in case of no projectors
    loop_kpt: do
 
       call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)

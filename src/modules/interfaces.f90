@@ -144,26 +144,35 @@ module module_interfaces
          integer, intent(in) :: nproc
       END SUBROUTINE standard_inputfile_names
 
-      subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
+      subroutine bigdft_set_input(radical,posinp,rxyz,inputs,atoms)
          !n(c) use module_base
          use module_types
          implicit none
          character(len=*), intent(in) :: posinp
-         integer, intent(in) :: iproc
+         character(len=*),intent(in) :: radical
          type(input_variables), intent(inout) :: inputs
          type(atoms_data), intent(out) :: atoms
          real(gp), dimension(:,:), pointer :: rxyz
-      END SUBROUTINE read_input_variables
+       END SUBROUTINE bigdft_set_input
 
-      subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
+      subroutine read_input_parameters(iproc,inputs,dump)
+         !n(c) use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: iproc
+         type(input_variables), intent(inout) :: inputs
+         logical, intent(in) :: dump
+      END SUBROUTINE read_input_parameters
+  
+      subroutine read_input_parameters2(iproc,inputs,atoms,rxyz)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc
          type(input_variables), intent(inout) :: inputs
          type(atoms_data), intent(inout) :: atoms
-         real(gp), dimension(:,:), pointer :: rxyz
-      END SUBROUTINE read_input_parameters
+         real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+      END SUBROUTINE read_input_parameters2
 
       subroutine read_atomic_file(file,iproc,at,rxyz,status,comment,energy,fxyz)
          !n(c) use module_base
