@@ -1,35 +1,4 @@
-  #=================================== Daubechies Wavelets for DFT Pseudopotential Calculations
- Code logo:
-         TTTT         F       DDDDD
-        T    T               D
-       T     T        F     D
-       T    T         F     D        D
-       TTTTT          F     D         D
-       T    T         F     D         D
-       T     T        F     D         D
-       T      T       F     D         D
-       T     T     FFFF     D         D
-       T TTTT         F      D        D
-       T             F        D      D
-   TTTTTTTTT    FFFFF          DDDDDD
-     gggggg          iiiii    BBBBBBBBB
-    g      g        i             B
-   g        g      i         BBBB B
-   g         g     iiii     B     B
-   g         g     i       B      B
-   g         g     i        B     B
-   g         g     i         B    B
-   g         g     i          BBBBB
-    g        g     i         B    B
-             g     i        B     B
-            g               B    B
-       ggggg       i         BBBB
- Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.16
- Timestamp of this run                 : 2012-08-20 23:00:50.159
- Root process Hostname                 : athelas
 ---
-  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
  Code logo:
          TTTT         F       DDDDD
         T    T               D
@@ -57,13 +26,17 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.16
- Timestamp of this run                 : 2012-08-20 23:00:50.160
+ Version Number                        : 1.7-dev.23
+ Timestamp of this run                 : 2013-02-16 21:18:56.449
  Root process Hostname                 : athelas
+ Number of MPI tasks                   :  1
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
  #... (file:default.perf.. not present).................................Performance Options 
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
- #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU)                           
+ #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
+ #|OCL_platform                 Chosen OCL platform                                          
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -77,7 +50,7 @@
  #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
  #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
  #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
- #|tolsym -1.00E+00             Tolerance for symmetry detection                             
+ #|tolsym  1.00E-08             Tolerance for symmetry detection                             
  #|signaling F                  Expose calculation results on Network                        
  #|signalTimeout 0              Time out on startup for signal connection                    
  #|domain                       Domain to add to the hostname to find the IP                 
@@ -116,103 +89,5 @@
  #|NONE           SIC method: NONE, PZ, NK                                                   
  #|0.0            SIC downscaling parameter                                                  
  #|0.0            Reference occupation fref (NK case only)                                   
- #... (file:default.kpt)..................................Brillouin Zone Sampling Parameters
- #|manual         K-point sampling method                                                    
- #|1              Number of K-points                                                         
- #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
-  #--------------------------------------------------------------------------------------- |
- Data Writing directory                : ./
-  #----------------------------------------------------------------------- System Properties
- Properties of atoms in the system:
- - Symbol                              : N #---------------------------------- Type No.  01
-   No. of Electrons                    :  5
-   No. of Atoms                        :  2
-   Radii of active regions (AU):
-     Coarse                            :  1.37026
-     Fine                              :  0.25660
-     Coarse PSP                        :  0.50650
-     Source                            : Hard-Coded
-   Grid Spacing threshold (AU)         :  0.64
-   Pseudopotential type                : HGH-K
-   Local Pseudo Potential (HGH convention):
-     Rloc                              :  0.28918
-     Coefficients (c1 .. c4)           :  [ -12.23482,  1.76641,  0.00000,  0.00000 ]
-   NonLocal PSP Parameters:
-   - Channel (l)                       :  0
-     Rloc                              :  0.25660
-     h_ij matrix:
-     -  [  13.55224,  0.00000,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
-   No. of projectors                   :  1
-   PSP XC                              : "XC: Teter 93"
-  #---------------------------------------------------------------------- Occupation numbers
- Total Number of Electrons             :  10
- Spin treatment                        : Averaged
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  5
-   Orbitals No. 1- 5                   :  2.0000
-  #-------------------------------------------------------------------------- Atom Positions
- Atomic positions within the cell (Atomic and Grid Units):
- - N: {AU:  [  6.7500,  6.7500,  6.8215 ], GU:  [  15.000,  15.000,  15.159 ]} # 0001
- - N: {AU:  [  6.7500,  6.7500,  8.9285 ], GU:  [  15.000,  15.000,  19.841 ]} # 0002
- Rigid Shift Applied (AU)              :  [  6.7500,  6.7500,  6.8215 ]
- Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
- Sizes of the simulation domain:
-   AU                                  :  [  13.500,  13.500,  15.750 ]
-   Angstroem                           :  [  7.1439,  7.1439,  8.3345 ]
-   Grid Spacing Units                  :  [  30,  30,  35 ]
-   High resolution region boundaries (GU):
-     From                              :  [  11,  11,  11 ]
-     To                                :  [  19,  19,  24 ]
- High Res. box is treated separately   :  Yes
- Wavefunctions Descriptors, full simulation domain:
-   Coarse resolution grid:
-     No. of segments                   :  876
-     No. of points                     :  18172
-   Fine resolution grid:
-     No. of segments                   :  110
-     No. of points                     :  702
- filename: data/wavefunction-k001-NR.b0001                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
- wavefunctions need NO reformatting
- filename: data/wavefunction-k001-NR.b0002                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
- wavefunctions need NO reformatting
- filename: data/wavefunction-k001-NR.b0003                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
- wavefunctions need NO reformatting
- filename: data/wavefunction-k001-NR.b0004                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
- wavefunctions need NO reformatting
- filename: data/wavefunction-k001-NR.b0005                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
- wavefunctions need NO reformatting
-- READING WAVES TIME   0  5.300E-01  2.130E-01
- Proc           0  allocates psi to      115430
- Proc           0  treats orbital           1
- Proc           0  treats orbital           2
- Proc           0  treats orbital           3
- Proc           0  treats orbital           4
- Proc           0  treats orbital           5
- Proc           0  orbital           1  is of norm   0.99999999999976663     
- Proc           0  orbital           2  is of norm   0.99999999999984479     
- Proc           0  orbital           3  is of norm   0.99999999999984202     
- Proc           0  orbital           4  is of norm   0.99999999999987588     
- Proc           0  orbital           5  is of norm    1.0000000000001346     
- Proc           0  treats       115430 components of all orbitals.
- The overlap matrix is:
-(     1.0000000        0.22211872E-13    0.32298782E-13   -0.51146351E-13    0.51736698E-13)
-(    0.22211872E-13     1.0000000        0.33357214E-13   -0.29822568E-13   -0.19980353E-12)
-(    0.32298782E-13    0.33357214E-13     1.0000000        0.77695091E-13   -0.61405331E-13)
-(   -0.51146351E-13   -0.29822568E-13    0.77695091E-13     1.0000000       -0.33781927E-13)
-(    0.51736698E-13   -0.19980353E-12   -0.61405331E-13   -0.33781927E-13     1.0000000    )
- System has   9.9999988089986331      electrons.
- GPU acceleration                      :  No
- Total electronic charge               :  9.999998808999
- Poisson Kernel Initialization:
-   MPI tasks                           :  1
-   OpenMP threads per task             :  4
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge           -10.000000000000   0.000E+00
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  91,  91,  101 ]
-   MPI tasks                           :  1
- System pseudo energy is -0.40420051787994354      Ht.
+ Atomic input file not found.
+  Files looked for were 'input.yaml', 'input.ascii', 'input.xyz' and 'input'.

@@ -43,7 +43,7 @@ program BigDFT2Wannier
    real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:) !!,pvirt(:)
    real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
    real(wp), pointer :: pwork(:)!,sph_daub(:)
-   character(len=60) :: radical, filename
+   character(len=60) :: radical, filename, posinp,run_id
    logical :: perx, pery,perz, residentity,write_resid
    integer :: nx, ny, nz, nb, nb1, nk, inn
    real(kind=8) :: b1, b2, b3, r0x, r0y, r0z
@@ -56,7 +56,7 @@ program BigDFT2Wannier
    logical :: calc_only_A 
    real, dimension(3,3) :: real_latt, recip_latt
    integer :: n_kpts, n_nnkpts, n_excb, n_at, s
-   integer :: n_occ, n_virt, n_virt_tot
+   integer :: n_occ, n_virt, n_virt_tot,nconfig
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check
    real, allocatable, dimension (:,:) :: kpts
    real(kind=8), allocatable, dimension (:,:) :: ctr_proj, x_proj, y_proj, z_proj
@@ -67,22 +67,38 @@ program BigDFT2Wannier
    integer, allocatable, dimension (:) :: excb,ipiv
    integer, allocatable, dimension (:) :: virt_list, amnk_bands_sorted
    real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
+   integer, dimension(4) :: mpi_info
 
-   ! Start MPI in parallel version
-   !in the case of MPIfake libraries the number of processors is automatically adjusted
-   call MPI_INIT(ierr)
-   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+   !-finds the number of taskgroup size
+   !-initializes the mpi_environment for each group
+   !-decides the radical name for each run
+   call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
-   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+   !just for backward compatibility
+   iproc=mpi_info(1)
+   nproc=mpi_info(2)
 
-   call memocc_set_memory_limit(memorylimit)
+!!$   ! Start MPI in parallel version
+!!$   !in the case of MPIfake libraries the number of processors is automatically adjusted
+!!$   call MPI_INIT(ierr)
+!!$   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+!!$   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+!!$
+!!$   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+!!$
+!!$   call memocc_set_memory_limit(memorylimit)
 
-   ! Read a possible radical format argument.
-   call get_command_argument(1, value = radical, status = i_stat)
-   if (i_stat > 0) then
-      write(radical, "(A)") "input"
-   end if
+   if (nconfig < 0) stop 'runs-file not supported for BigDFT2Wannier executable'
+
+!!$   ! Read a possible radical format argument.
+!!$   call get_command_argument(1, value = radical, status = i_stat)
+!!$   if (i_stat > 0) then
+!!$      write(radical, "(A)") "input"
+!!$   end if
+
+  call bigdft_set_input(trim(run_id)//trim(bigdft_run_id_toa()),'posinp'//trim(bigdft_run_id_toa()),&
+       rxyz,input,atoms)
+
 
    if (input%verbosity > 2) then
       nproctiming=-nproc !timing in debug mode                                                                                                                                                                  
@@ -136,11 +152,13 @@ program BigDFT2Wannier
       stop
    end select
 
-   ! Initalise the variables for the calculation
-   call standard_inputfile_names(input,radical,nproc)
-   call read_input_variables(iproc,'posinp',input, atoms, rxyz)
-
-   if (iproc == 0) call print_general_parameters(nproc,input,atoms)
+!!$   posinp='posinp'
+!!$
+!!$   ! Initalise the variables for the calculation
+!!$   call standard_inputfile_names(input,radical,nproc)
+!!$   call read_input_variables(iproc,nproc,posinp,input, atoms, rxyz,1,radical,1)
+!!$
+!!$   if (iproc == 0) call print_general_parameters(nproc,input,atoms)
 
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
@@ -993,14 +1011,18 @@ call system_clock(ncount1,ncount_rate,ncount_max)
 tel=dble(ncount1-ncount0)/dble(ncount_rate)
 if (iproc == 0) &
    &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0 
-!finalize memory counting
-call memocc(0,0,'count','stop')
 
 
-! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
-call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!!$!finalize memory counting
+!!$call memocc(0,0,'count','stop')
 
-call MPI_FINALIZE(ierr)
+
+call bigdft_finalize()
+
+!!$! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
+!!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!!$
+!!$call MPI_FINALIZE(ierr)
 
 contains
 
@@ -1173,7 +1195,8 @@ subroutine final_deallocations()
   call deallocate_comms(commsb,subname) 
   !call deallocate_atoms_scf(atoms,subname)
   call deallocate_atoms(atoms,subname)
-  call free_input_variables(input)
+!  call free_input_variables(input)
+  call bigdft_free_input(input)
 
 END SUBROUTINE final_deallocations
 END PROGRAM BigDFT2Wannier

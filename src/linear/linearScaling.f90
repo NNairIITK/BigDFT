@@ -10,7 +10,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
   type(atoms_data),intent(inout) :: at
-  type(input_variables),intent(in) :: input
+  type(input_variables),intent(in) :: input ! need to hack to be inout for geopt changes
   real(8),dimension(3,at%nat),intent(inout) :: rxyz
   real(8),dimension(3,at%nat),intent(out) :: fpulay
   type(DFT_local_fields), intent(inout) :: denspot
@@ -421,7 +421,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call memocc(istat, iall, 'tmb%psit_f', subname)
       end if
 
-      call print_info()
+      call print_info(.false.)
 
       energyoldout=energy
 
@@ -436,6 +436,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   end do outerLoop
 
+
   ! Diagonalize the matrix for the FOE/direct min case to get the coefficients. Only necessary if
   ! the Pulay forces are to be calculated, or if we are printing eigenvalues for restart
   if ((input%lin%scf_mode==LINEAR_FOE.or.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION)& 
@@ -444,6 +445,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
            .true.,ldiis_coeff=ldiis_coeff)
   end if
+
+  ! print the final summary
+  call print_info(.true.)
 
   ! Deallocate everything that is not needed any more.
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call deallocateDIIS(ldiis_coeff)
@@ -581,7 +585,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 tmb%can_use_transposed=.false.
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
                 nit_highaccuracy=input%lin%nit_highaccuracy
-
+                !!input%lin%highaccuracy_conv_crit=1.d-8
                 call inputguessConfinement(iproc, nproc, at, input, &
                      KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                      rxyz, nlpspd, proj, GPU, KSwfn%orbs, tmb, denspot, rhopotold, energs)
@@ -595,7 +599,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
                 nit_highaccuracy=input%lin%nit_highaccuracy
-             else if (fnrm_pulay>1.d-10) then
+             else if (fnrm_pulay>1.d-10) then !1d-10
                 if (iproc==0) write(*,'(1x,a)') &
                      'The pulay forces are fairly large, so reoptimising basis with high accuracy only.'
                 nit_lowaccuracy=0
@@ -605,6 +609,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      'The pulay forces are fairly small, so not reoptimising basis.'
                     nit_lowaccuracy=0
                     nit_highaccuracy=0
+                    !!nit_highaccuracy=2
+                    !!input%lin%nItBasis_highaccuracy=2
+                    !!input%lin%nitSCCWhenFixed_highaccuracy=100
+                    !!input%lin%highaccuracy_conv_crit=1.d-8
              end if
           else
               ! Calculation of Pulay forces not possible, so always start with low accuracy
@@ -679,10 +687,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
     !> Print a short summary of some values calculated during the last iteration in the self
     !! consistency cycle.
-    subroutine print_info()
+    subroutine print_info(final)
       implicit none
 
       real(8) :: energyDiff, mean_conf
+      logical, intent(in) :: final
 
       energyDiff = energy - energyoldout
 
@@ -696,7 +705,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       end if
 
       ! Print out values related to two iterations of the outer loop.
-      if(iproc==0) then
+      if(iproc==0.and.(.not.final)) then
 
           !Before convergence
           write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
@@ -760,7 +769,30 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           end if
           write(*,'(3x,a,es14.6)') '> energy difference to last iteration:', energyDiff
           write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
-      end if
+      else if (iproc==0.and.final) then
+          !Before convergence
+          write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
+              energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
+          if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+             if (.not. lowaccur_converged) then
+                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
+                      'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
+                      energyDiff,'FINAL'
+             else
+                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
+                      'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
+                      energyDiff,'FINAL'
+             end if
+          else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+             if (.not. lowaccur_converged) then
+                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
+                      'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
+             else
+                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
+                      'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
+             end if
+          end if
+       end if
 
     end subroutine print_info
 

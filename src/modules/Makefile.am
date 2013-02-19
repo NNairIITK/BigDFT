@@ -69,7 +69,9 @@ module_DATA = $(mod_bigdft)
 include_HEADERS = $(bindings_headers)
 nodist_include_HEADERS = $(bindings_headers_nodist)
 
-EXTRA_DIST = configure.inc.in bigdft_cst.h.in
+DYN_INCLUDES = deallocate-inc.f90
+
+EXTRA_DIST = configure.inc.in bigdft_cst.h.in $(DYN_INCLUDES)
 
 AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
@@ -137,7 +139,7 @@ BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
 yaml_output.o : base.o dictionaries.o yaml_strings.o
-dynamic_memory.o: dictionaries.o yaml_output.o
+dynamic_memory.o: dictionaries.o yaml_output.o $(DYN_INCLUDES)
 dictionaries.o: yaml_strings.o
 
 

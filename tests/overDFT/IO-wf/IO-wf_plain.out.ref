@@ -1,4 +1,6 @@
  <BigDFT> log of the run will be written in logfile: ./log-plain.yaml
+ <BigDFT> Logfile already existing, move previous file in:
+   ./logfiles/log-plain.22:51:14.849.yaml
  1th wavefunction written
  1th wavefunction written
  1th wavefunction written
@@ -22,36 +24,33 @@
  6th wavefunction written
  6th wavefunction written
  6th wavefunction written
- 7th wavefunction written
  6th wavefunction written
  7th wavefunction written
  7th wavefunction written
- 8th wavefunction written
+ 7th wavefunction written
  7th wavefunction written
  8th wavefunction written
  8th wavefunction written
- 1th wavefunction written
- 1th wavefunction written
  8th wavefunction written
- 2th wavefunction written
+ 8th wavefunction written
+ 1th wavefunction written
+ 1th wavefunction written
+ 1th wavefunction written
  1th wavefunction written
  2th wavefunction written
- 1th wavefunction written
- 3th wavefunction written
+ 2th wavefunction written
+ 2th wavefunction written
  2th wavefunction written
  3th wavefunction written
- 2th wavefunction written
- 4th wavefunction written
+ 3th wavefunction written
+ 3th wavefunction written
  3th wavefunction written
  4th wavefunction written
- 3th wavefunction written
  4th wavefunction written
  4th wavefunction written
-- 
-  {Process:  1, Timing:  [  1.520E+00,  1.453E+00 ]}
+ 4th wavefunction written
  export wavefunction file: "data-plain-read/wavefunction-k002-DI.b0003" in .cube format
 ---
-  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
  Code logo:
          TTTT         F       DDDDD
         T    T               D
@@ -79,8 +78,8 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2012-12-28 00:10:05.180
+ Version Number                        : 1.7-dev.23
+ Timestamp of this run                 : 2013-02-11 22:51:34.240
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  0
  OpenMP parallelization                :  Yes
@@ -149,6 +148,28 @@
  #|0.0 0. 0.0                                                                                
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : data-plain-read/
+  #---------------------------------------------- Input Atomic System (file: plain-read.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  1
+   Number of atoms                     :  2
+   Types of atoms                      :  [ O ]
+   Boundary Conditions                 : Periodic #Code: P
+   Box Sizes (AU)                      :  [  8.50377E+00,  8.50377E+00,  8.50377E+00 ]
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------- Geometry optimization Input Parameters (file: plain-read.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
+  #------------------- K points description (Reduced and Brillouin zone coordinates, Weight)
+  #WARNING: symmetries have been disabled, k points are not irreductible.
+ K points:
+ -  {Rc:  [  0.0000,  0.0000,  0.0000 ], Bz:  [  0.0000,  0.0000,  0.0000 ], Wgt:  0.3333} # 0001
+ -  {Rc:  [  0.3333,  0.0000,  0.0000 ], Bz:  [  0.2463,  0.0000,  0.0000 ], Wgt:  0.6667} # 0002
   #---------------------------------------------- Input Atomic System (file: plain-read.xyz)
  Atomic System Properties:
    Number of atomic types              :  1

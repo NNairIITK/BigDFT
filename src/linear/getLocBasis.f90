@@ -1302,7 +1302,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
   ! Local variables
   integer :: ierr, istat, iall, ind, iorb, korb, kkorb, lorb, llorb, jorb, skipped, done, iseg, segn
   integer :: npts_per_proc, ind_start, ind_end, indc
-  real(kind=8), dimension(:,:), allocatable :: coeff_tmp, ovrlp_coeff, ovrlp_coeff2
+  real(kind=8), dimension(:,:), allocatable :: coeff_tmp, ovrlp_coeff, ovrlp_coeff2, coefftrans
   character(len=*),parameter:: subname='reorthonormalize_coeff'
   !integer :: iorb, jorb !DEBUG
   real(kind=8) :: tt!, tt2, tt3, ddot   !DEBUG
@@ -1311,10 +1311,11 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr) ! to check timings
   call timing(iproc,'renormCoefCom1','ON')
 
-  allocate(coeff_tmp(basis_orbs%norb,max(orbs%norb,1)), stat=istat)
-  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
   allocate(ovrlp_coeff(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
+
+  allocate(coeff_tmp(basis_orbs%norbp,max(orbs%norb,1)), stat=istat)
+  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
 
   if(iproc==0) then
       write(*,'(a)',advance='no') 'coeff renormalization...'
@@ -1332,7 +1333,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
               basis_orbs%norb, coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp, basis_orbs%norbp)
          call dgemm('t', 'n', orbs%norb, orbs%norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
               basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ovrlp_coeff, orbs%norb)
-     end if
+      end if
   else ! sparse - still less efficient than dense, also needs moving to a subroutine
 
      npts_per_proc = nint(real(basis_overlap%nvctr + basis_overlap%full_dim1,dp) / real(nproc*2,dp))
@@ -1397,10 +1398,66 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
   call memocc(istat,iall,'ovrlp_coeff',subname)
 
   ! Build the new linear combinations
-  call dgemm('n', 'n', basis_orbs%norb, orbs%norb, orbs%norb, 1.d0, coeff(1,1), basis_orbs%norb, &
-       ovrlp_coeff2(1,1), orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
+  !call dgemm('n', 'n', basis_orbs%norb, orbs%norb, orbs%norb, 1.d0, coeff(1,1), basis_orbs%norb, &
+  !     ovrlp_coeff2(1,1), orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
+  !call dcopy(basis_orbs%norb*orbs%norb,coeff_tmp(1,1),1,coeff(1,1),1)
+
+  ! Build the new linear combinations - all gather would be better, but allreduce easier for now
+
+  iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
+  deallocate(coeff_tmp,stat=istat)
+  call memocc(istat,iall,'coeff_tmp',subname)
+
+  allocate(coeff_tmp(basis_orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
+
+  call to_zero(basis_orbs%norb*orbs%norb, coeff_tmp(1,1))
+
+  if (orbs%norbp>0) then
+     call dgemm('n', 't', basis_orbs%norb, orbs%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), basis_orbs%norb, &
+          ovrlp_coeff2(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
+  end if
+
+  if (nproc>1) then
+      call mpiallred(coeff_tmp(1,1), basis_orbs%norb*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  end if
 
   call dcopy(basis_orbs%norb*orbs%norb,coeff_tmp(1,1),1,coeff(1,1),1)
+
+  !!iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
+  !!deallocate(coeff_tmp,stat=istat)
+  !!call memocc(istat,iall,'coeff_tmp',subname)
+
+  !!allocate(coeff_tmp(orbs%norb,basis_orbs%norbp), stat=istat)
+  !!call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
+
+  !!! need to transpose so we can allgather - NOT VERY ELEGANT
+  !!if (basis_orbs%norbp>0) then
+  !!    call dgemm('t', 't', orbs%norb, basis_orbs%norbp, orbs%norb, 1.d0, ovrlp_coeff2(1,1), orbs%norb, &
+  !!        coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp(1,1), orbs%norb)
+  !!end if
+
+  !!call dgemm('n', 'n', basis_orbs%norbp, orbs%norb, orbs%norb, 1.d0, coeff(1,1), basis_orbs%norb, &
+  !!     ovrlp_coeff2(1,1), orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norbp)
+
+  !!allocate(coefftrans(orbs%norb,basis_orbs%norb), stat=istat)
+  !!call memocc(istat, coefftrans, 'coefftrans', subname)
+
+  !!! gather together
+  !!if(nproc > 1) then
+  !!   call mpi_allgatherv(coeff_tmp(1,1), basis_orbs%norbp*orbs%norb, mpi_double_precision, coefftrans(1,1), &
+  !!      orbs%norb*basis_orbs%norb_par(:,0), orbs%norb*basis_orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  !!else
+  !!   call dcopy(basis_orbs%norbp*orbs%norb,coeff_tmp(1,1),1,coefftrans(1,1),1)
+  !!end if
+
+  !!! untranspose coeff
+  !!do iorb=1,orbs%norb
+  !!   do jorb=1,basis_orbs%norb
+  !!      coeff(jorb,iorb) = coefftrans(iorb,jorb)
+  !!   end do
+  !!end do
+
   call timing(iproc,'renormCoefCom2','OF')
 
   !!!DEBUG
@@ -1422,6 +1479,10 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
   !!end do
   !!! END DEBUG
 
+  !!iall=-product(shape(coefftrans))*kind(coefftrans)
+  !!deallocate(coefftrans,stat=istat)
+  !!call memocc(istat,iall,'coefftrans',subname)
+
   iall=-product(shape(ovrlp_coeff2))*kind(ovrlp_coeff2)
   deallocate(ovrlp_coeff2,stat=istat)
   call memocc(istat,iall,'ovrlp_coeff2',subname)
@@ -1429,7 +1490,6 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
   iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
   deallocate(coeff_tmp,stat=istat)
   call memocc(istat,iall,'coeff_tmp',subname)
-
 
 end subroutine reorthonormalize_coeff
 

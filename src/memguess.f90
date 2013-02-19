@@ -24,6 +24,7 @@ program memguess
    character(len=40) :: comment
    character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn
+   character(len=50) :: posinp
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.
    integer :: ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
@@ -309,11 +310,13 @@ program memguess
    !standard names
    call standard_inputfile_names(in, radical, 1)
 
+
    if (trim(radical) == "") then
-      call read_input_variables(0, "posinp", in, atoms, rxyz)
+      posinp='posinp'
    else
-      call read_input_variables(0, trim(radical), in, atoms, rxyz)
+      posinp=trim(radical)
    end if
+   call bigdft_set_input(radical, posinp,rxyz,in, atoms)
    !initialize memory counting
    !call memocc(0,0,'count','start')
 
@@ -611,6 +614,9 @@ program memguess
 
    ! De-allocations
    call deallocate_orbs(orbs,subname)
+
+   !remove the directory which has been created if it is possible
+   call deldir(in%dir_output,len(trim(in%dir_output)),ierror)
    call free_input_variables(in)  
 
    !finalize memory counting

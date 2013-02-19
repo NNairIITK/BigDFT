@@ -119,8 +119,8 @@ module timeData
        'deallocprec   ','Other         ' ,'Miscellaneous ' ,  &
        'large2small   ','Other         ' ,'Miscellaneous ' ,  &
        'small2large   ','Other         ' ,'Miscellaneous ' ,  &
-       'renormCoefCom1','Other         ' ,'Miscellaneous ' ,  &
-       'renormCoefCom2','Other         ' ,'Miscellaneous ' ,  &
+       'renormCoefCom1','Linear Algebra' ,'Miscellaneous ' ,  &
+       'renormCoefCom2','Linear Algebra' ,'Miscellaneous ' ,  &
        'renormCoefComm','Communications' ,'Miscellaneous ' ,  &
        'waitAllgatKern','Other         ' ,'Miscellaneous ' ,  &
        'UnBlockPot    ','Other         ' ,'Overlap comms ' ,  &

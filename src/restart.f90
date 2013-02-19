@@ -153,16 +153,16 @@ subroutine reformatmywaves(iproc,orbs,at,&
         call yaml_open_map('Reformatting for')
         !write(*,'(1x,a)') 'The wavefunctions need reformatting because:'
         if (hx /= hx_old .or. hy /= hy_old .or. hz /= hz_old) then 
-           call yaml_open_map('hgrid_old /= hgrid',flow=.true.)
+           call yaml_open_map('hgrid modified',flow=.true.)
               call yaml_map('hgrid_old', (/ hx_old,hy_old,hz_old /),fmt='(1pe20.12)')
               call yaml_map('hgrid', (/ hx,hy,hz /), fmt='(1pe20.12)')
            call yaml_close_map()
            !write(*,"(4x,a,6(1pe20.12))") 'hgrid_old /= hgrid  ',hx_old,hy_old,hz_old,hx,hy,hz
         else if (wfd_old%nvctr_c /= wfd%nvctr_c) then
-           call yaml_map('nvctr_c_old /= nvctr_c', (/ wfd_old%nvctr_c,wfd%nvctr_c /))
+           call yaml_map('nvctr_c modified', (/ wfd_old%nvctr_c,wfd%nvctr_c /))
            !write(*,"(4x,a,2i8)") 'nvctr_c_old /= nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
         else if (wfd_old%nvctr_f /= wfd%nvctr_f)  then
-           call yaml_map('nvctr_f_old /= nvctr_f', (/ wfd_old%nvctr_f,wfd%nvctr_f /))
+           call yaml_map('nvctr_f modified', (/ wfd_old%nvctr_f,wfd%nvctr_f /))
            !write(*,"(4x,a,2i8)") 'nvctr_f_old /= nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
         else if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 )  then  
            call yaml_map('Cell size has changed ', (/ n1_old,n1  , n2_old,n2 , n3_old,n3 /))
@@ -410,13 +410,15 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   call system_clock(ncount2,ncount_rate,ncount_max)
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
 
-  if (iproc == 0) call yaml_open_sequence('Reading Waves Time')
-  call yaml_sequence()
-  call yaml_open_map(flow=.true.)
+  if (iproc == 0) then 
+     call yaml_open_sequence('Reading Waves Time')
+     call yaml_sequence(advance='no')
+     call yaml_open_map(flow=.true.)
      call yaml_map('Process',iproc)
      call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
-  call yaml_close_map()
-  if (iproc == 0) call yaml_close_sequence()
+     call yaml_close_map()
+     call yaml_close_sequence()
+  end if
   !write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 END SUBROUTINE readmywaves
 
@@ -629,13 +631,15 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
      call cpu_time(tr1)
      call system_clock(ncount2,ncount_rate,ncount_max)
      tel=dble(ncount2-ncount1)/dble(ncount_rate)
-     if (iproc == 0) call yaml_open_sequence('Write Waves Time')
-     call yaml_sequence()
-     call yaml_open_map(flow=.true.)
+     if (iproc == 0) then
+        call yaml_open_sequence('Write Waves Time')
+        call yaml_sequence(advance='no')
+        call yaml_open_map(flow=.true.)
         call yaml_map('Process',iproc)
         call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
-     call yaml_close_map()
-     if (iproc == 0) call yaml_close_sequence()
+        call yaml_close_map()
+        call yaml_close_sequence()
+     end if
      !write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
      !write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
   end if
@@ -826,7 +830,7 @@ subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,
      enddo
   enddo
 
-  if (verbose >= 2) call yaml_map('Wavefunction written No.',iorb)
+  if (verbose >= 2 .and. bigdft_mpi%iproc==0) call yaml_map('Wavefunction written No.',iorb)
   !if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
 
 END SUBROUTINE writeonewave_linear
@@ -885,7 +889,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
           end if
      end do
   end do  
-  if (verbose >= 2) call yaml_map('Wavefunction coefficients written',.true.)
+  if (verbose >= 2 .and. bigdft_mpi%iproc==0) call yaml_map('Wavefunction coefficients written',.true.)
 
 END SUBROUTINE writeLinearCoefficients
 
@@ -971,13 +975,15 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz,p
      call cpu_time(tr1)
      call system_clock(ncount2,ncount_rate,ncount_max)
      tel=dble(ncount2-ncount1)/dble(ncount_rate)
-     if (iproc == 0) call yaml_open_sequence('Write Waves Time')
-     call yaml_sequence()
-     call yaml_open_map(flow=.true.)
+     if (iproc == 0) then
+        call yaml_open_sequence('Write Waves Time')
+        call yaml_sequence(advance='no')
+        call yaml_open_map(flow=.true.)
         call yaml_map('Process',iproc)
         call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
-     call yaml_close_map()
-     if (iproc == 0) call yaml_close_sequence()
+        call yaml_close_map()
+        call yaml_close_sequence()
+     end if
      !write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
      !write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
   end if
@@ -1019,7 +1025,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
   real(gp) :: tt,t1,t2,t3,t4,t5,t6,t7
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
-  !character(len=12) :: orbname
+  character(len=12) :: orbname
   !write(*,*) 'INSIDE readonewave'
 
   call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &
@@ -1034,14 +1040,20 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   pery=(at%geocode == 'P')
   perz=(at%geocode /= 'F')
 
-  tx=0.0_gp
-  ty=0.0_gp
-  tz=0.0_gp
-  do iat=1,at%nat
-     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
-     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
-     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
-  enddo
+  !tx=0.0_gp
+  !ty=0.0_gp
+  !tz=0.0_gp
+  !do iat=1,at%nat
+  !   tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+  !   ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+  !   tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+  !enddo
+
+  ! only care atom this tmb is on
+  iat=onwhichatom(iorb)
+  tx=mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+  ty=mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+  tz=mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2 
   displ=sqrt(tx+ty+tz)
 
   if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
@@ -1051,9 +1063,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      !if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
      call read_psi_compress(unitwf, useFormattedInput, nvctr_c_old, nvctr_f_old, psi, lstat, error)
      if (.not. lstat) call io_error(trim(error))
-
   else
-
      if (iproc == 0 .and. iorb == 1) then
         call yaml_map('Reformating Wavefunctions',.true.)
         !write(*,*) 'wavefunctions need reformatting'
@@ -1128,6 +1138,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   !write(orbname,*) iorb
   !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,lr,hx,hy,hz,rxyz,psi)
   ! END DEBUG 
+
 
 END SUBROUTINE readonewave_linear                                                     
 
@@ -1496,13 +1507,12 @@ subroutine readmywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz_ol
               call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
                    & orbs,iorb,ispinor,iorb_out)
            end if  
-         
+
            call readonewave_linear(99, (iformat == WF_FORMAT_PLAIN),iorb_out,iproc,&
                 Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,Lzd%hgrids(1),Lzd%hgrids(2),&
                 Lzd%hgrids(3),at,Lzd%Llr(ilr)%wfd,rxyz_old,rxyz,locrad,locregCenter,&
                 confPotOrder,confPotPrefac,psi(ind),orbs%eval(orbs%isorb+iorb),psifscf,&
                 orbs%onwhichatom,Lzd%Llr(ilr))
-
            close(99)
            ind = ind + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
         end do
@@ -1535,7 +1545,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz_ol
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
 
   if (iproc == 0) call yaml_open_sequence('Reading Waves Time')
-  call yaml_sequence()
+  call yaml_sequence(advance='no')
   call yaml_open_map(flow=.true.)
      call yaml_map('Process',iproc)
      call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
@@ -1664,20 +1674,25 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
      do iorb=1,orbs%norb
         if(iat == orbs%onwhichatom(iorb)) then
            ilr = ilr + 1
-           cxyz(1,ilr) = locregCenter(1,iorb)
-           cxyz(2,ilr) = locregCenter(2,iorb)
-           cxyz(3,ilr) = locregCenter(3,iorb)
+           cxyz(1,ilr) = rxyz(1,iat)
+           cxyz(2,ilr) = rxyz(2,iat)
+           cxyz(3,ilr) = rxyz(3,iat)
+
+!           cxyz(1,ilr) = locregCenter(1,iorb)
+!           cxyz(2,ilr) = locregCenter(2,iorb)
+!           cxyz(3,ilr) = locregCenter(3,iorb)
            lrad(ilr) = locrad(iorb)
+            orbs%inwhichlocreg(iorb)=ilr
         end if
      end do
   end do
   
+!  i_all = -product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
+!  deallocate(orbs%inwhichlocreg,stat=i_stat)
+!  call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
 
-  i_all = -product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
-  deallocate(orbs%inwhichlocreg,stat=i_stat)
-  call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
-  call assignToLocreg2(iproc, nproc, orbs%norb, orbs%norb_par, at%nat, Lzd%nlr, orbs%nspin, &
-       norbsperlocreg, cxyz, orbs%inwhichlocreg) 
+!  call assignToLocreg2(iproc, nproc, orbs%norb, orbs%norb_par, at%nat, Lzd%nlr, orbs%nspin, &
+!       norbsperlocreg, cxyz, orbs%inwhichlocreg) 
 
   ! Set calcbounds correctly
   calcbounds = .false.
@@ -1868,7 +1883,7 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
       tt=sqrt(tt)
       if (abs(tt-1.d0) > 1.d-8) then
          write(*,*)'wrong phi_old',iiorb,tt
-         stop 
+         !stop 
       end if
   end do
 

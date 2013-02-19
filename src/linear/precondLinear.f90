@@ -78,9 +78,6 @@ type(workarrays_quartic_convolutions):: work_conv
   call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal,&
        rxyzParab, potentialPrefac, confPotOrder, work_conv)
 
-
-
-
 !!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
 !!  write(*,*)'debug1',rmr_new
 
@@ -95,11 +92,11 @@ type(workarrays_quartic_convolutions):: work_conv
 
   do icong=1,ncong 
      !write(*,*)icong,rmr_new
-
      call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal,&
           rxyzParab, potentialPrefac, confPotOrder, work_conv)
 
      !in the complex case these objects are to be supposed real
+     ! 0/0 here!
      alpha=rmr_new/dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,b(1),1)
 
      call axpy(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),alpha,d(1),1,x(1),1)

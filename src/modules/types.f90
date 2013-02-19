@@ -26,6 +26,7 @@ module module_types
   integer, parameter :: BIGDFT_SUCCESS        = 0   !< No errors
   integer, parameter :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
   integer, parameter :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
+  integer, parameter :: BIGDFT_INVALID  = -12 !< Invalid entry
 
 
   !> Input wf parameters.
@@ -179,6 +180,7 @@ module module_types
      integer :: iacceleration
      integer :: Psolver_igpu !< acceleration of the Poisson solver
      character(len=11) :: OCL_platform
+     character(len=11) :: OCL_devices
   end type material_acceleration
 
 
@@ -277,6 +279,9 @@ module module_types
      !> number of taskgroups for the poisson solver
      !! works only if the number of MPI processes is a multiple of it
      integer :: PSolver_groupsize
+     
+     !> Global MPI group size (will be written in the mpi_environment)
+     ! integer :: mpi_groupsize 
   end type input_variables
 
   !> Contains all energy terms
@@ -758,6 +763,8 @@ module module_types
 !     integer :: mpi_comm
      type(mpi_environment) :: mpi_env
      integer :: igpu !< control the usage of the GPU
+     integer :: initCufftPlan
+     integer :: keepGPUmemory
   end type coulomb_operator
 
   !> Densities and potentials, and related metadata, needed for their creation/application
@@ -921,6 +928,7 @@ contains
     ma%iacceleration=0
     ma%Psolver_igpu=0
     ma%OCL_platform=repeat(' ',len(ma%OCL_platform))
+    ma%OCL_platform=repeat(' ',len(ma%OCL_devices))
   end function material_acceleration_null
 
   function pkernel_null() result(k)
@@ -1231,17 +1239,26 @@ END SUBROUTINE deallocate_orbs
 
 
 !> Allocate and nullify restart objects
-  subroutine init_restart_objects(iproc,matacc,atoms,rst,subname)
+  subroutine init_restart_objects(iproc,inputs,atoms,rst,subname)
     use module_base
     implicit none
     !Arguments
     character(len=*), intent(in) :: subname
     integer, intent(in) :: iproc
-    type(material_acceleration), intent(in) :: matacc
+    type(input_variables), intent(in) :: inputs
     type(atoms_data), intent(in) :: atoms
     type(restart_objects), intent(out) :: rst
     !local variables
     integer :: i_stat
+
+    ! Decide whether we use the cubic or the linear version
+    select case (inputs%inputpsiid)
+    case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
+         INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
+       rst%version = CUBIC_VERSION
+    case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
+       rst%version = LINEAR_VERSION
+    end select
 
     !allocate pointers
     allocate(rst%rxyz_new(3,atoms%nat+ndebug),stat=i_stat)
@@ -1270,7 +1287,9 @@ END SUBROUTINE deallocate_orbs
     nullify(rst%KSwfn%gbd%rxyz)
 
     !initialise the acceleration strategy if required
-    call init_material_acceleration(iproc,matacc,rst%GPU)
+    call init_material_acceleration(iproc,inputs%matacc,rst%GPU)
+
+
 
   END SUBROUTINE init_restart_objects
 
@@ -1283,6 +1302,11 @@ END SUBROUTINE deallocate_orbs
     type(restart_objects) :: rst
     !local variables
     integer :: i_all,i_stat,istep
+
+    if (rst%version == LINEAR_VERSION) then
+       call destroy_DFT_wavefunction(rst%tmb)
+       call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
+    end if
 
     call deallocate_locreg_descriptors(rst%KSwfn%Lzd%Glr,subname)
 

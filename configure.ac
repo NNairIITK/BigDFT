@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.22],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.23],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -1020,7 +1020,8 @@ Build:
   Devel. documentation:      $ac_have_doxygen / $ac_devel_doc
 
 Options:
-  Debug version:             $ac_use_debug		
+  Debug version:             $ac_use_debug
+  Max. Memory per task (GB): $MEMORY_LIMIT
   With MPI:                  $ac_use_mpi
    | include dir.:           $MPI_INCLUDE
    | linker flags:           $MPI_LDFLAGS

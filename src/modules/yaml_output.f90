@@ -34,7 +34,7 @@ module yaml_output
   integer, parameter :: tot_streams=10             !< Max total number of streams
   integer, parameter :: tab=5
 
-  integer :: active_streams=0  !< Number of active streams
+  integer :: active_streams=0  !< Number of active streams (stdout always active after init)
   integer :: default_stream=1  !< Id of the default stream
 
   !parameter of the document
@@ -56,14 +56,14 @@ module yaml_output
      integer :: iflowlevel=0            !< Levels of flowrite simoultaneously enabled
      integer :: ilast=0                 !< Last level with flow==.false.
      integer :: icommentline=0          !< Active if the line being written is a comment
-     integer, dimension(tot_max_record_length/tab) :: linetab   !< Value of the tabbing in the line
+     integer, dimension(tot_max_record_length/tab) :: linetab=0   !< Value of the tabbing in the line
      integer :: ievt_flow=0                                     !< Events which track is kept of in the flowrite
-     integer, dimension(tot_max_flow_events) :: flow_events     !< Set of events in the flow
+     integer, dimension(tot_max_flow_events) :: flow_events=0     !< Set of events in the flow
      type(dictionary), pointer :: dict_warning=>null()          !< dictionary of warnings emitted in the stream
   end type yaml_stream
 
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
-  integer, dimension(tot_streams) :: stream_units               
+  integer, dimension(tot_streams) :: stream_units=6 !default units unless otherwise specified               
                                                   
   interface yaml_map                              
      module procedure yaml_map,yaml_map_i,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
@@ -74,10 +74,40 @@ module yaml_output
   public :: yaml_sequence,yaml_open_sequence,yaml_close_sequence
   public :: yaml_comment,yaml_warning,yaml_toa,yaml_newline
   public :: yaml_set_stream,yaml_get_default_stream,yaml_set_default_stream,yaml_stream_attributes
+  public :: yaml_close_all_streams
   public :: yaml_date_and_time_toa,yaml_scalar,yaml_date_toa,yaml_dict_dump
 
 contains                                          
-                                                  
+          
+  !> Initialize the stream to default values
+  function stream_null() result(strm)
+    implicit none
+    type(yaml_stream) :: strm
+
+    strm%document_closed=.true.  
+    strm%pp_allowed=.true.
+    strm%unit=6
+    strm%max_record_length=tot_max_record_length
+    strm%flowrite=.false.        
+    strm%Wall=-1                 
+    strm%indent=1                
+    strm%indent_previous=0       
+    strm%indent_step=2           
+    strm%tabref=40               
+    strm%icursor=1               
+    strm%itab_active=0           
+    strm%itab=0                  
+    strm%ilevel=0                
+    strm%iflowlevel=0            
+    strm%ilast=0                 
+    strm%icommentline=0          
+    strm%linetab=0
+    strm%ievt_flow=0                                     
+    strm%flow_events=0
+    nullify(strm%dict_warning)
+  end function stream_null
+
+                                        
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if 
   !! The stream has not be initialized.
   subroutine yaml_set_default_stream(unit,ierr)
@@ -139,6 +169,9 @@ contains
     end do
     !assign the unit to the new stream
     active_streams=active_streams+1
+    !initalize the stream
+    streams(active_streams)=stream_null()
+    streams(active_streams)%unit=unt
     stream_units(active_streams)=unt
 
     ! set last opened stream as default stream
@@ -166,7 +199,6 @@ contains
     if (present(record_length)) then
        streams(active_streams)%max_record_length=record_length
     end if
-
   end subroutine yaml_set_stream
 
 
@@ -301,7 +333,7 @@ contains
     implicit none
     integer, optional, intent(in) :: unit  !< Stream Identity number
     !local variables
-    integer :: unt,strm
+    integer :: unt,strm,unit_prev
 
     unt=0
     if (present(unit)) unt=unit
@@ -316,9 +348,31 @@ contains
     end if
 
     !Initialize the stream, keeping the file unit
-    call init_stream(strm,streams(strm)%unit)
+    unit_prev=streams(strm)%unit
+    streams(strm)=stream_null()
+    streams(strm)%unit=unit_prev
 
   end subroutine yaml_release_document
+
+  subroutine yaml_close_all_streams()
+    implicit none
+    
+    !local variables
+    integer :: istream,unt,unts
+
+    do istream=1,active_streams
+       unt=stream_units(istream)
+       unts=streams(istream)%unit
+       if (unts /= unt) stop 'YAML close streams: unit inconsistency'
+       !close files which are not stdout
+       if (unt /= 6) close(unt)
+       !reset the stream information
+       stream_units(istream)=6
+       streams(istream)=stream_null()
+    end do
+    active_streams=1 !stdout is always kept active
+    default_stream=1
+  end subroutine yaml_close_all_streams
 
 
   !> Display a warning (yaml comment starting with '#WARNING: ')
@@ -689,7 +743,6 @@ contains
        call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING,istat=ierr)
     end if
     redo_line=ierr/=0
-    !print *,'ierr',ierr
     if (redo_line) then
        if (streams(strm)%flowrite) then
           call dump(streams(strm),towrite(1:msg_lgt_ck),advance=trim(adv),event=SCALAR)
@@ -834,6 +887,7 @@ contains
        call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
+
     !put the value
     if (present(fmt)) then
        call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
@@ -890,7 +944,7 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,unt
+    integer :: msg_lgt,strm,unt,nl,nu,tmp_lgt,i
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -900,6 +954,10 @@ contains
 
     adv='def' !default value
     if (present(advance)) adv=advance
+
+
+    nl=lbound(mapvalue,1)
+    nu=ubound(mapvalue,1)
 
     msg_lgt=0
     !put the message
@@ -911,6 +969,35 @@ contains
        call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
+
+    !check whether the final message will be too long or not
+    if (nu-nl > 0) then
+       !change strategy if the remaining space is too low
+       !template of an element
+       if (present(fmt)) then
+          tmp_lgt=len_trim(yaml_toa(mapvalue(nl),fmt=fmt))
+       else
+          tmp_lgt=len_trim(yaml_toa(mapvalue(nl)))
+       end if
+       tmp_lgt=tmp_lgt+3 !comma and spaces
+       tmp_lgt=tmp_lgt*(nu-nl)
+       if (max(streams(strm)%icursor+msg_lgt+1,streams(strm)%tabref)+tmp_lgt > &
+            streams(strm)%max_record_length) then
+          !implement the writing explicitly per element
+          call yaml_open_sequence(mapname,flow=.true.,unit=unt)
+          do i=nl,nu
+             if (present(fmt)) then
+                call yaml_sequence(trim(yaml_toa(mapvalue(i),fmt=fmt)),unit=unt)
+             else
+                call yaml_sequence(trim(yaml_toa(mapvalue(i))),unit=unt)
+             end if
+          end do
+          call yaml_close_sequence(unit=unt)
+          return
+       end if
+    end if
+
+
     !put the value
     if (present(fmt)) then
        call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
@@ -997,37 +1084,6 @@ contains
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map_iv
 
-
-  !> Initialize the stream by default with the specified fileunit
-  subroutine init_stream(strm,iunit)
-    implicit none
-    integer, intent(in) :: strm   !< Id stream
-    integer, intent(in) :: iunit  !< File unit
-
-    streams(strm)%document_closed=.true.  
-    streams(strm)%pp_allowed=.true.
-    streams(strm)%unit=iunit
-    streams(strm)%max_record_length=tot_max_record_length
-    streams(strm)%flowrite=.false.        
-    streams(strm)%Wall=-1                 
-    streams(strm)%indent=1                
-    streams(strm)%indent_previous=0       
-    streams(strm)%indent_step=2           
-    streams(strm)%tabref=40               
-    streams(strm)%icursor=1               
-    streams(strm)%itab_active=0           
-    streams(strm)%itab=0                  
-    streams(strm)%ilevel=0                
-    streams(strm)%iflowlevel=0            
-    streams(strm)%ilast=0                 
-    streams(strm)%icommentline=0          
-    streams(strm)%linetab=0
-    streams(strm)%ievt_flow=0                                     
-    streams(strm)%flow_events=0
-    streams(strm)%dict_warning=>null() 
-  end subroutine init_stream
-
-
   !> Get the stream, initialize if not already present (except if istat present)
   subroutine get_stream(unt,strm,istat)
     implicit none
@@ -1081,6 +1137,7 @@ contains
     logical :: ladv,change_line,reset_line,pretty_print,reset_tabbing,comma_postponed
     integer :: evt,indent_lgt,msg_lgt,shift_lgt,prefix_lgt
     integer :: towrite_lgt
+    character(len=1) :: anchor
     character(len=3) :: adv
     character(len=5) :: prefix
     character(len=stream%max_record_length) :: towrite
@@ -1158,6 +1215,8 @@ contains
           !comma has to be written afterwards, if there is a message
           !stream%flowrite=-1
           stream%flowrite=.true.
+          !added for pretty printing
+          reset_tabbing=.true.
        end if
 
     case(SEQUENCE_END)
@@ -1218,6 +1277,7 @@ contains
     case(MAPPING)
 
        pretty_print=.true. .and. stream%pp_allowed
+       anchor=':'
 
     case(SEQUENCE_ELEM)
 
@@ -1227,6 +1287,9 @@ contains
           call buffer_string(prefix,len(prefix),'- ',prefix_lgt)
        else
           if (msg_lgt>0) comma_postponed=.false.
+          !just added to change the line
+          pretty_print=.true. .and. stream%pp_allowed
+          anchor='.'
        end if
 
     case(SCALAR)
@@ -1249,7 +1312,7 @@ contains
 
     !adjust the towrite string to match with the closest tabular
     if (pretty_print) then
-       call pretty_printing(stream%flowrite,':',towrite,&
+       call pretty_printing(stream%flowrite,anchor,towrite,&
             stream%icursor,indent_lgt,prefix_lgt,&
             msg_lgt,stream%max_record_length,shift_lgt,change_line)
     end if

@@ -5,6 +5,7 @@
 import math
 import sys
 import os,copy,optparse
+import cProfile
 
 #path of the script
 path=os.path.dirname(sys.argv[0])
@@ -13,7 +14,7 @@ path=os.path.dirname(sys.argv[0])
 #  sys.path.insert(0,'/local/gigi/binaries/ifort-OMP-OCL-CUDA-gC/PyYAML-3.10/lib')
 
 import yaml
-from yaml_hl import *
+#from yaml_hl import *
 
 start_fail = "<fail>" #"\033[0;31m"
 start_fail_esc = "\033[0;31m "
@@ -190,7 +191,7 @@ def document_report(hostname,tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet)
   return results
 
 
-import yaml_hl
+#import yaml_hl
 
 class Pouet:
   def __init__(self):
@@ -217,6 +218,30 @@ def fatal_error(args,reports):
   #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
   sys.exit(1)
 
+def dict_dump(dict):
+  sys.stdout.write(yaml.dump(dict,default_flow_style=False,explicit_start=True))
+
+def document_analysis(doc):
+  #analyse the energy and the forces
+  try:
+    last=doc["Last Iteration"]
+    dict_dump(last["EKS"])
+  except:
+    last={}
+    print 'Last iteration absent'
+  try:
+    forces=doc["Geometry"]["Forces"]
+    dict_dump(forces[0])
+    #print forces["maxval"]
+  except:
+    forces={}
+    print 'forces not calculated'
+      
+    
+    
+
+
+
 if __name__ == "__main__":
   parser = parse_arguments()
   (args, argtmp) = parser.parse_args()
@@ -225,19 +250,29 @@ if __name__ == "__main__":
 #args=parse_arguments()
 
 #print args.ref,args.data,args.output
-datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
+#Profile.run('datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]')
+#gyi
+runfile = open(args.data, "r").read()
 try:
-  datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+    datas    = [a for a in yaml.load_all(runfile, Loader = yaml.Loader)]
+    #Profile.run('datas    = [a for a in yaml.load_all(open(args.data, "r").read())]')
+#for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader):
+#    print 'New Document'
+#    document_analysis(a)
+  
 except:
   datas = []
   reports = open(args.output, "w")
   fatal_error(args,reports)
 
-print 'test'
+ndocs=len(datas)
 
-run=datas[-1]
-
-#print run["Last Iteration"]
+print 'No. of Documents:',ndocs
+ddd
+for run in datas:
+  print 'New Document'
+  document_analysis(run)
 
 
 

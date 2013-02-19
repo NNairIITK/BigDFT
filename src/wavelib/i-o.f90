@@ -190,7 +190,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   end if
 
   !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
-  call compress(n1,n2,0,n1,0,n2,0,n3,  &
+  call compress_plain(n1,n2,0,n1,0,n2,0,n3,  &
        wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),   &
        wfd%nseg_f,wfd%nvctr_f,&
        wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
@@ -1014,13 +1014,15 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   logical :: cif1,cif2,cif3,perx,pery,perz
   integer :: i_stat,i_all,i1,i2,i3,j1,j2,j3,l1,l2,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
   real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold,mindist
-  real(wp) :: zr,yr,xr,ym1,y00,yp1
+  real(wp) :: zr,yr,xr,ym1,y00,yp1!,dnrm2
   real(wp), dimension(-1:1,-1:1) :: xya
   real(wp), dimension(-1:1) :: xa
   real(wp), dimension(:), allocatable :: ww,wwold
+  real(wp), dimension(:), allocatable :: x_phi, y_phi
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
-  real(wp), dimension(:,:,:), allocatable :: psifscfold
+  real(wp), dimension(:,:,:), allocatable :: psifscfold, psi_w, psi_w2
 !  integer :: iat
+  integer :: itype, nd, nrange
 
   !conditions for periodicity in the three directions
   perx=(at%geocode /= 'F')
@@ -1095,76 +1097,123 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
      hzh=.5_gp*hz
      hzh_old=.5_gp*hz_old
 
-     call razero((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf)
+!     call razero((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf)
+!     call vcopy((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf(1),1,psi_w(1),1)
+     !!! beginning of new reformatting routine.
+     !!! Only rigid translations are allowed for the moment
 
-     do i3=-nb3,2*n3+1+nb3
-        z=real(i3,gp)*hzh
-        do i2=-nb2,2*n2+1+nb2
-           y=real(i2,gp)*hyh
-           do i1=-nb1,2*n1+1+nb1
-              x=real(i1,gp)*hxh
+     !create the scaling function array
+     !use lots of points (to optimize one can determine how many points are needed at max)
+     itype=16
+     nd=2**20
 
-              xold=x-dx 
-              yold=y-dy
-              zold=z-dz
+     allocate(x_phi(0:nd+ndebug),stat=i_stat )
+     call memocc(i_stat,x_phi,'x_phi',subname)
+     allocate(y_phi(0:nd+ndebug) ,stat=i_stat )
+     call memocc(i_stat,y_phi,'y_phi',subname)
 
-              j1=nint((xold)/hxh_old)
-              cif1=(j1 >= -6 .and. j1 <= 2*n1_old+7) .or. perx
-              j2=nint((yold)/hyh_old)
-              cif2=(j2 >= -6 .and. j2 <= 2*n2_old+7) .or. pery
-              j3=nint((zold)/hzh_old)
-              cif3=(j3 >= -6 .and. j3 <= 2*n3_old+7) .or. perz
+    call my_scaling_function4b2B(itype,nd,nrange,x_phi,y_phi) 
+    if( abs(y_phi(nd/2)-1)>1.0e-10 ) then
+      stop " wrong scaling function 4b2B: not a centered one "
+    endif
 
-              ind=i1+nb1+1+(2*n1+2+2*nb1)*(i2+nb2)+&
-                   (2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(i3+nb3)
+    i_all=-product(shape(x_phi))*kind(x_phi)
+    deallocate(x_phi,stat=i_stat)
+    call memocc(i_stat,i_all,'x_phi',subname)
+
+    allocate(psi_w(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+    call memocc(i_stat,psi_w,'psi_w',subname)
+
+    allocate(psi_w2(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+    call memocc(i_stat,psi_w2,'psi_w2',subname)
+
+    call interpolate_and_transpose(hxh,dx/hxh,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
+         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
+
+    call interpolate_and_transpose(hyh,dy/hyh,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n1+2+2*nb1),&
+         (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2) 
+
+    call interpolate_and_transpose(hzh,dz/hzh,nd,nrange,y_phi,(2*n2+2+2*nb2)*(2*n1+2+2*nb1),&
+	 (2*n3_old+2+2*nb3),psi_w2,(2*n3+2+2*nb3),psifscf) 
+
+    i_all=-product(shape(psi_w))*kind(psi_w)
+    deallocate(psi_w,stat=i_stat)
+    call memocc(i_stat,i_all,'psi_w',subname)
+
+    i_all=-product(shape(psi_w2))*kind(psi_w2)
+    deallocate(psi_w2,stat=i_stat)
+    call memocc(i_stat,i_all,'psi_w2',subname)
+
+    i_all=-product(shape(y_phi))*kind(y_phi)
+    deallocate(y_phi,stat=i_stat)
+    call memocc(i_stat,i_all,'y_phi',subname)
+
+     !do i3=-nb3,2*n3+1+nb3
+     !   z=real(i3,gp)*hzh
+     !   do i2=-nb2,2*n2+1+nb2
+     !      y=real(i2,gp)*hyh
+     !      do i1=-nb1,2*n1+1+nb1
+     !         x=real(i1,gp)*hxh
+
+     !         xold=x-dx 
+     !         yold=y-dy
+     !         zold=z-dz
+
+     !         j1=nint((xold)/hxh_old)
+     !         cif1=(j1 >= -6 .and. j1 <= 2*n1_old+7) .or. perx
+     !         j2=nint((yold)/hyh_old)
+     !         cif2=(j2 >= -6 .and. j2 <= 2*n2_old+7) .or. pery
+     !         j3=nint((zold)/hzh_old)
+     !         cif3=(j3 >= -6 .and. j3 <= 2*n3_old+7) .or. perz
+
+     !         ind=i1+nb1+1+(2*n1+2+2*nb1)*(i2+nb2)+&
+     !              (2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(i3+nb3)
 
               
-              if (cif1 .and. cif2 .and. cif3) then 
-                 zr =real(((z-dz)-real(j3,gp)*hzh_old)/hzh_old,wp)
-                 do l2=-1,1
-                    do l1=-1,1
-                       !the modulo has no effect on free BC thanks to the
-                       !if statement above
-                       jj1=modulo(j1+l1+nb1,2*n1_old+1+2*nb1+1)-nb1
-                       jj2=modulo(j2+l2+nb2,2*n2_old+1+2*nb2+1)-nb2
-                       jj3a=modulo(j3-1+nb3,2*n3_old+1+2*nb3+1)-nb3
-                       jj3b=modulo(j3  +nb3,2*n3_old+1+2*nb3+1)-nb3
-                       jj3c=modulo(j3+1+nb3,2*n3_old+1+2*nb3+1)-nb3
+     !         if (cif1 .and. cif2 .and. cif3) then 
+     !            zr =real(((z-dz)-real(j3,gp)*hzh_old)/hzh_old,wp)
+     !            do l2=-1,1
+     !               do l1=-1,1
+     !                  !the modulo has no effect on free BC thanks to the
+     !                  !if statement above
+     !                  jj1=modulo(j1+l1+nb1,2*n1_old+1+2*nb1+1)-nb1
+     !                  jj2=modulo(j2+l2+nb2,2*n2_old+1+2*nb2+1)-nb2
+     !                  jj3a=modulo(j3-1+nb3,2*n3_old+1+2*nb3+1)-nb3
+     !                  jj3b=modulo(j3  +nb3,2*n3_old+1+2*nb3+1)-nb3
+     !                  jj3c=modulo(j3+1+nb3,2*n3_old+1+2*nb3+1)-nb3
                        
-                       ym1=psifscfold(jj1,jj2,jj3a)
-                       y00=psifscfold(jj1,jj2,jj3b)
-                       yp1=psifscfold(jj1,jj2,jj3c)
+     !                  ym1=psifscfold(jj1,jj2,jj3a)
+     !                  y00=psifscfold(jj1,jj2,jj3b)
+     !                  yp1=psifscfold(jj1,jj2,jj3c)
 
-                       xya(l1,l2)=ym1 + &
-                            (1.0_wp + zr)*(y00 - ym1 + zr*(.5_wp*ym1 - y00  + .5_wp*yp1))
-                    enddo
-                 enddo
+     !                  xya(l1,l2)=ym1 + &
+     !                       (1.0_wp + zr)*(y00 - ym1 + zr*(.5_wp*ym1 - y00  + .5_wp*yp1))
+     !               enddo
+     !            enddo
 
-                 yr = real(((y-dy)-real(j2,gp)*hyh_old)/hyh_old,wp)
-                 do l1=-1,1
-                    ym1=xya(l1,-1)
-                    y00=xya(l1,0)
-                    yp1=xya(l1,1)
-                    xa(l1)=ym1 + &
-                         (1.0_wp + yr)*(y00 - ym1 + yr*(.5_wp*ym1 - y00  + .5_wp*yp1))
-                 enddo
+     !            yr = real(((y-dy)-real(j2,gp)*hyh_old)/hyh_old,wp)
+     !            do l1=-1,1
+     !               ym1=xya(l1,-1)
+     !               y00=xya(l1,0)
+     !               yp1=xya(l1,1)
+     !               xa(l1)=ym1 + &
+     !                    (1.0_wp + yr)*(y00 - ym1 + yr*(.5_wp*ym1 - y00  + .5_wp*yp1))
+     !            enddo
 
-                 xr = real(((x-dx)-real(j1,gp)*hxh_old)/hxh_old,wp)
-                 ym1=xa(-1)
-                 y00=xa(0)
-                 yp1=xa(1)
-                 psifscf(ind)=ym1 + &
-                      (1.0_wp + xr)*(y00 - ym1 + xr*(.5_wp*ym1 - y00  + .5_wp*yp1))
+     !            xr = real(((x-dx)-real(j1,gp)*hxh_old)/hxh_old,wp)
+     !            ym1=xa(-1)
+     !            y00=xa(0)
+     !            yp1=xa(1)
+     !            psifscf(ind)=ym1 + &
+     !                 (1.0_wp + xr)*(y00 - ym1 + xr*(.5_wp*ym1 - y00  + .5_wp*yp1))
+     !         endif
 
-              endif
-
-           enddo
-        enddo
-     enddo
+     !      enddo
+     !   enddo
+     !enddo
   endif
 
-  !write(100+iproc,*) 'norm of psifscf ',dnrm2((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf,1)
-
+  !!print*, 'norm of psifscf ',dnrm2((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf,1)
   i_all=-product(shape(psifscfold))*kind(psifscfold)
   deallocate(psifscfold,stat=i_stat)
   call memocc(i_stat,i_all,'psifscfold',subname)
@@ -1181,14 +1230,16 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
      call analyse_per(n1,n2,n3,ww,psifscf,psig)
   end if
 
-  !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
-  call compress(n1,n2,0,n1,0,n2,0,n3,  &
+  !!print*, 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1),n1,n2,n3
+  call compress_plain(n1,n2,0,n1,0,n2,0,n3,  &
        wfd%nseg_c,wfd%nvctr_c,wfd%keyglob(1,1),wfd%keyvglob(1),   &
        wfd%nseg_f,wfd%nvctr_f,&
        wfd%keyglob(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
        wfd%keyvglob(wfd%nseg_c+min(1,wfd%nseg_f)),   &
        psig,psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)))
-  !write(100+iproc,*) 'norm of reformatted psi ',dnrm2(nvctr_c+7*nvctr_f,psi,1)
+  !!print*, 'norm of reformatted psi ',dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,psi,1),wfd%nvctr_c,wfd%nvctr_f
+  !!print*, 'norm of reformatted psic ',dnrm2(wfd%nvctr_c,psi,1)
+  !!print*, 'norm of reformatted psif ',dnrm2(wfd%nvctr_f*7,psi(wfd%nvctr_c+min(1,wfd%nvctr_f)),1)
 
   i_all=-product(shape(psig))*kind(psig)
   deallocate(psig,stat=i_stat)
@@ -1198,3 +1249,176 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   call memocc(i_stat,i_all,'ww',subname)
 
 END SUBROUTINE reformat_one_supportfunction
+
+!call the routine which performs the interpolation in each direction
+subroutine interpolate_and_transpose(h,t0,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
+ use module_base
+ implicit none
+ integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+ integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+ integer, intent(in) :: nin,nout !< sizes of the input and output array in interpolating direction
+ integer, intent(in) :: ndat !< size of the array in orthogonal directions
+ real(gp), intent(in) :: h !< grid spacing in the interpolating direction
+ real(gp), intent(in) :: t0 !< shift in the interpolating direction in grid spacing units
+ real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+ real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
+ real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
+ !local variables
+ character(len=*), parameter :: subname='interpolate_and_transpose'
+ integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me
+ real(gp) :: dt, tt
+ real(gp), dimension(:), allocatable :: shf !< shift filter
+
+ !assume for the moment that the grid spacing is constant
+	 
+ m_isf=nrange/2
+ !calculate the shift filter for the given t0
+ allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
+ call memocc(i_stat,shf,'shf',subname)
+
+ !number of points for a unit displacement
+ nunit=nphi/nrange 
+ !this should be number between -0.5 and 0.5
+ dt=t0-nint(t0)
+ !evaluate the shift
+ ish=nint(real(nunit,gp)*dt)
+
+!print *,'start interpolation',ish,real(nunit,gp)*dt,dt
+
+ if (ish<=0) then
+   shf(-m_isf)=0.0_gp
+ else
+   shf(-m_isf)=phi(ish)  
+ end if 
+ ipos=ish
+
+ do i=-m_isf+1,m_isf-1 !extremes excluded
+   !position of the shifted argument in the phi array
+   ipos=ipos+nunit
+   shf(i)=phi(ipos)  
+ end do
+
+ if (ish<=0) then
+   shf(m_isf)=phi(ipos+nunit)
+ else
+   shf(m_isf)=0.0_gp
+ end if 
+
+ !define the shift for output results
+ ish=nint(t0)
+
+!print *,'start interpolation',ish,t0,shf
+
+!do i=-m_isf,m_isf
+!write(104,*)i,shf(i)
+!end do
+
+ !apply the interpolating filter to the output
+ do j=1,ndat
+   psi_out(j,:)=0.0_gp
+   do i=1,nin
+     !here the boundary conditions have to be considered
+      tt=0.0_gp
+      ms=-min(m_isf,i-1)
+      me=min(m_isf,nin-i)
+      do l=ms,me
+         tt=tt+shf(l)*psi_in(i+l,j)
+      end do
+!      tt=h*tt
+      
+      if (i+ish > 0 .and. i+ish < nout) psi_out(j,i+ish)=tt
+	!if (i+ish > 0 .and. i+ish < nout)       write(102,*)i+ish,psi_out(j,i+ish)
+   end do
+ end do
+
+
+
+ i_all=-product(shape(shf))*kind(shf)
+ deallocate(shf,stat=i_stat)
+ call memocc(i_stat,i_all,'shf',subname)
+
+end subroutine interpolate_and_transpose
+
+subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
+   use module_base
+   implicit none
+   !Arguments
+   !Type of interpolating functions
+   integer, intent(in) :: itype
+   !Number of points: must be 2**nex
+   integer, intent(in) :: nd
+   integer, intent(out) :: nrange
+   real(kind=8), dimension(0:nd), intent(out) :: a,x
+   !Local variables
+   character(len=*), parameter :: subname='scaling_function4b2B'
+   real(kind=8), dimension(:), allocatable :: y
+   integer :: i,nt,ni,i_all,i_stat  
+
+   !Only itype=8,14,16,20,24,30,40,50,60,100
+   select case(itype)
+   case(8,14,16,20,24,30,40,50,60,100)
+      !O.K.
+   case default
+      print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
+      stop
+   end select
+   !!$  write(unit=*,fmt="(1x,a,i0,a)") &
+   !!$       "Use interpolating scaling functions of ",itype," order"
+
+   !Give the range of the scaling function
+   !from -itype to itype
+   ni=2*itype
+   nrange = ni
+   allocate(y(0:nd+ndebug),stat=i_stat)
+   call memocc(i_stat,y,'y',subname)
+
+   ! plot scaling function
+   call zero(nd+1,x)
+   call zero(nd+1,y)
+   nt=ni
+   x(nt/2)=1.d0
+   loop1: do
+      nt=2*nt
+      ! write(6,*) 'nd,nt',nd,nt
+      select case(itype)
+      case(8)
+         stop
+      case(14)
+         stop
+      case(16)
+         call back_trans_16(nd,nt,x,y)
+      case(20)
+         stop
+      case(24)
+         stop
+      case(30)
+         stop
+      case(40)
+         stop
+      case(50)
+         stop
+      case(60)
+         stop
+      case(100)
+         stop
+      end select
+
+      do i=0,nt-1
+         x(i)=y(i)
+      end do
+      if (nt.eq.nd) then
+         exit loop1
+      end if
+   end do loop1
+
+   !open (unit=1,file='scfunction',status='unknown')
+   do i=0,nd
+      a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-1.d0)
+      !write(1,*) a(i),x(i)
+   end do
+   !close(1)
+
+   i_all=-product(shape(y))*kind(y)
+   deallocate(y,stat=i_stat)
+   call memocc(i_stat,i_all,'y',subname)
+END SUBROUTINE my_scaling_function4b2B

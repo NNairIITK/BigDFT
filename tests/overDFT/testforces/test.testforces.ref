@@ -1,37 +1,4 @@
 ---
-  #=================================== Daubechies Wavelets for DFT Pseudopotential Calculations
- Code logo:
-         TTTT         F       DDDDD
-        T    T               D
-       T     T        F     D
-       T    T         F     D        D
-       TTTTT          F     D         D
-       T    T         F     D         D
-       T     T        F     D         D
-       T      T       F     D         D
-       T     T     FFFF     D         D
-       T TTTT         F      D        D
-       T             F        D      D
-   TTTTTTTTT    FFFFF          DDDDDD
-     gggggg          iiiii    BBBBBBBBB
-    g      g        i             B
-   g        g      i         BBBB B
-   g         g     iiii     B     B
-   g         g     i       B      B
-   g         g     i        B     B
-   g         g     i         B    B
-   g         g     i          BBBBB
-    g        g     i         B    B
-             g     i        B     B
-            g               B    B
-       ggggg       i         BBBB
- Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2012-12-28 00:07:51.840
- Root process Hostname                 : athelas
- Number of MPI tasks                   :  2
- OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  2
   #------------------------------------------------------------------------------------------- 
   #It performs the integration of the calculated forces over  5
   # random displacement (in the range [", -dx, ",",dx,"] a.u.)
@@ -42,9 +9,9 @@
   # 2) considering the forces over all atoms.
   #------------------------------------------------------------------------------------------- 
  <BigDFT> log of the run will be written in logfile: ./log.yaml
-
+ 
  Check correctness of forces
- Difference of total energies =  1.77238266416424040E-003
- Integral force*displacement =   1.82026666770039374E-003
- Difference =  -4.78840035361533488E-005
-
+ Difference of total energies =  1.772382663979499E-003
+ Integral force*displacement =   1.820266667700243E-003
+ Difference =  -4.788400372035539E-005
+ 
