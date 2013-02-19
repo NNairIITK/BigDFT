@@ -159,14 +159,15 @@ OCL_CONV = convolutions/interface_ocl_fake.f90
 endif
 
 if USE_DGEMMSY
-DGEMMSY_SOURCES = dgemmsy/interface_dgemmsy.f90 \
-		  dgemmsy/dgemmsy.c       dgemmsy/dgemmsy.h \
-		  dgemmsy/gemm_block_c.c  dgemmsy/gemm_block_c.h \
-		  dgemmsy/patterns.c      dgemmsy/patterns.h \
-		  dgemmsy/dgemmsy_utils.c dgemmsy/utils.h \
-		  dgemmsy/visitors.c      dgemmsy/visitors.h
+DGEMMSY_SOURCES = dgemmsy/interface_dgemmsy.f90
+DGEMMSY_CSOURCES = dgemmsy/dgemmsy.c       dgemmsy/dgemmsy.h \
+		   dgemmsy/gemm_block_c.c  dgemmsy/gemm_block_c.h \
+		   dgemmsy/patterns.c      dgemmsy/patterns.h \
+		   dgemmsy/dgemmsy_utils.c dgemmsy/utils.h \
+		   dgemmsy/visitors.c      dgemmsy/visitors.h
 else
 DGEMMSY_SOURCES = dgemmsy/interface_dgemmsy_fake.f90
+DGEMMSY_CSOURCES = 
 endif
 
 if USE_LIBXC
@@ -189,22 +190,23 @@ etsf_files = wavelib/etsf_fake.f90
 endif
 
 if BUILD_BINDINGS
-bindings_files = lib/bindings_api.h \
+bindings_files = lib/bindingsf.f90
+bindings_cfiles = lib/bindings_api.h \
 	lib/bindings.c lib/bindings.h \
 	lib/bindings_atoms.c \
 	lib/bindings_regions.c \
 	lib/bindings_wavefunctions.c \
 	lib/bindings_localfields.c \
 	lib/bindings_signals.c lib/bindings_signals.h \
-	lib/bindings_signals_inet.c \
-	lib/bindingsf.f90
+	lib/bindings_signals_inet.c
 else
 bindings_files = lib/bindingsf_fake.f90
+bindings_cfiles =
 endif
 
 EXTRA_DIST += lib/bindings_dbus.xml
 if HAVE_GDBUS
-bindings_files += lib/bindings_signals_dbus.c
+bindings_cfiles += lib/bindings_signals_dbus.c
 nodist_bindings_files = bindings_dbus.c bindings_dbus.h 
 
 bindings_dbus.h: bindings_dbus.c
@@ -406,13 +408,15 @@ low_level = \
 	linear/optimize_coeffs.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
-	$(OCL_SOURCES) \
 	$(getarg_files)
 
 # C objects
 c_level = posfiles.c \
 	init/atoms_yaml.c init/atoms_yaml.h \
-	$(CUDA_SOURCES)
+	$(bindings_cfiles) \
+	$(CUDA_SOURCES) \
+	$(OCL_SOURCES) \
+	$(DGEMMSY_CSOURCES)
 
 #	convolutions/convolut_ib_sse.c \ #to be verified, not working yet
 
