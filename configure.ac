@@ -138,6 +138,7 @@ if test x"$ac_build_dynamic" = x"yes" ; then
     AC_MSG_ERROR(["No available position-independent code flag, use --disable-bindings."])
   fi
   CFLAGS="$CFLAGS $ax_flag_pic"
+  CXXFLAGS="$CXXFLAGS $ax_flag_pic"
   FCFLAGS="$FCFLAGS $ax_flag_pic"
 fi
 AM_CONDITIONAL([BUILD_DYNAMIC_LIBS], [test "x$ac_build_dynamic" = "xyes"])
