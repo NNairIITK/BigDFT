@@ -22,6 +22,7 @@ Keys to ignore:
  - Reading Waves Time
  - Maxdiff*
  - Tolerances for this check
+ - Material acceleration
 
 Expected Test CPUtime: #
  C: #[expected, error]
@@ -32,7 +33,7 @@ Expected Test CPUtime: #
 SiH4:
  #due like that due to lack of functionality in fldiff, since energies field is updated
  Energies: &etol 4.6e-9
- Eion: &eion 2.2e-9
+ Eion: &eion 2.7e-9
  EH: *etol
  EXC: *etol
  Eion: *etol
@@ -74,6 +75,7 @@ GPU:
 
 NaCl:
  Epsilon: 2.1e-10
+# Mean L2 norm of gaussian-wavelet difference: 1.0e-5
 
 TiMix:
  Epsilon: 1.e-10
@@ -186,3 +188,9 @@ TDDFT:
 
 BigDFT2Wannier.b2w.ref.yaml:
   amnk_guess(nb): 5.0e-11
+
+cleanup:
+ Atomic Forces (Ha/Bohr): 1.5e-10
+ Average noise forces: 1.5e-10
+ Clean forces norm (Ha/Bohr): 1.6e-10
+ Raw forces norm (Ha/Bohr): 2.4e-10
