@@ -864,7 +864,7 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
            blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half, orbs)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, fake_name => overlapPowerMinusOneHalf_old
   implicit none
   
   ! Calling arguments
