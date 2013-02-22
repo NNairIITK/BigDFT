@@ -99,18 +99,20 @@ subroutine  MPI_BARRIER(MPI_COMM_WORLD,ierr)
   ierr=MPI_COMM_WORLD*0
 END SUBROUTINE MPI_BARRIER
 
-subroutine MPI_REDUCE()
-  implicit none
-END SUBROUTINE MPI_REDUCE
-
-subroutine  MPI_ALLREDUCE()
-  implicit none
-END SUBROUTINE MPI_ALLREDUCE
-
 
 ! These routines in serial version should not be called.
 ! A stop is added when necessary, otherwise for copying routines, the corresponding copy 
 ! is implemented whenever possible
+subroutine MPI_REDUCE()
+  implicit none
+  stop 'MPIFAKE: REDUCE'
+END SUBROUTINE MPI_REDUCE
+
+subroutine  MPI_ALLREDUCE()
+  implicit none
+  !stop 'MPIFAKE: ALLREDUCE' eliminated due to ABINIT module
+END SUBROUTINE MPI_ALLREDUCE
+
 subroutine  MPI_ALLGatherV()
   implicit none
   stop 'MPIFAKE: ALLGATHERV'
@@ -192,6 +194,11 @@ subroutine  mpi_error_string()
   stop 'MPIFAKE: mpi_error_string'
 END SUBROUTINE  MPI_ERROR_STRING
 
+subroutine  MPI_SCATTER()
+  implicit none
+  stop 'MPIFAKE: SCATTER'
+END SUBROUTINE  MPI_SCATTER
+
 subroutine  MPI_SCATTERV()
   implicit none
   stop 'MPIFAKE: SCATTERV'
@@ -257,6 +264,16 @@ subroutine mpi_type_create_struct()
   stop 'MPIFAKE: mpi_type_create_structure'
 END SUBROUTINE  MPI_TYPE_CREATE_STRUCT
 
+subroutine mpi_type_vector()
+  implicit none
+  stop 'MPIFAKE: mpi_type_vector'
+END SUBROUTINE  MPI_TYPE_VECTOR
+
+subroutine mpi_type_create_hvector()
+  implicit none
+  stop 'MPIFAKE: mpi_type_create_hvector'
+END SUBROUTINE  MPI_TYPE_CREATE_HVECTOR
+
 subroutine mpi_type_commit()
   implicit none
   stop 'MPIFAKE: mpi_type_commit'
@@ -277,6 +294,20 @@ subroutine mpi_testall()
   stop 'MPIFAKE: mpi_testall'
 END SUBROUTINE  MPI_TESTALL
 
+subroutine mpi_info_create()
+  implicit none
+  stop 'MPIFAKE: mpi_info_create'
+END SUBROUTINE  MPI_INFO_CREATE
+
+subroutine mpi_info_set()
+  implicit none
+  stop 'MPIFAKE: mpi_info_set'
+END SUBROUTINE  MPI_INFO_SET
+
+subroutine mpi_info_free()
+  implicit none
+  stop 'MPIFAKE: mpi_info_free'
+END SUBROUTINE  MPI_INFO_FREE
 
 real(kind=8) function mpi_wtime()
   implicit none

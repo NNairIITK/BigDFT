@@ -210,7 +210,7 @@ module module_private_api
        implicit none
        type(atoms_data), intent(in) :: atoms
        integer, intent(in) :: ityp
-       character, intent(out) :: name(20)
+       character(len=*), intent(out) :: name
        integer, intent(out) :: ln
      END SUBROUTINE atoms_copy_name
 

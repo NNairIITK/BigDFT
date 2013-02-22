@@ -65,6 +65,7 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
 
   !defining work arrays dimensions
   ncache=ncache_optimal
+
   !n3/2 if the dimension is real and isolated
   if (halffty) then
      n3dim=n3/2
@@ -978,7 +979,7 @@ subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,s
               j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
               j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
         !acerioni
-        write(14,*) i1,j1,i2,j2
+        !write(14,*) i1,j1,i2,j2
         !acerioni
               zw(1,i1,i2)=zw(1,i1,i2)*pot(j1,j2)
               zw(2,i1,i2)=zw(2,i1,i2)*pot(j1,j2)

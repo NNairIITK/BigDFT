@@ -167,12 +167,13 @@ nullify(Qvect,dumQvect)
   END SUBROUTINE EP_mat_mult
 
 
-  !> Allocate the wavefunctions in the transposed form, for lancsoz
+  !> Allocate the wavefunctions in the transposed form, for lanczos
   subroutine EP_free(iproc)
+     use yaml_output
      implicit none
      integer, intent(in) :: iproc
 
-     if (iproc == 0)  write(*,*) "DEALLOCATING"
+     if (iproc == 0)  call yaml_comment("DEALLOCATING")
 
      i_all=-product(shape(Qvect))*kind(Qvect)
      deallocate(Qvect,stat=i_stat)
@@ -305,7 +306,7 @@ nullify(Qvect,dumQvect)
      sumtot=0
 
      if(ha%nproc/=1) then
-        call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+        call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,bigdft_mpi%mpi_comm ,ierr )
      else
         sumtot=sump
      endif
@@ -404,7 +405,7 @@ nullify(Qvect,dumQvect)
      end if
 
      if(ha%nproc/=1) then
-        call MPI_Allreduce(ovrlp_local,ovrlp_global,ha%orbs%nkpts ,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+        call MPI_Allreduce(ovrlp_local,ovrlp_global,ha%orbs%nkpts ,mpidtypw, MPI_SUM,bigdft_mpi%mpi_comm ,ierr )
         do iorb = 1, ha%orbs%norbp !! this supposes norb=1 for chebychev
            scalari(iorb) = ovrlp_global(ha%orbs%iokpt(iorb ))
         end do
@@ -449,7 +450,7 @@ nullify(Qvect,dumQvect)
 
 
   if(ha%nproc/=1) then
-     call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+     call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,bigdft_mpi%mpi_comm ,ierr )
   else
      sumtot=sump
   endif
@@ -469,7 +470,7 @@ nullify(Qvect,dumQvect)
   !    sumtot=0
   !
   !    if(ha%nproc/=1) then
-  !       call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+  !       call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,bigdft_mpi%mpi_comm ,ierr )
   !    else
   !       sumtot=sump
   !    endif
@@ -614,7 +615,7 @@ nullify(Qvect,dumQvect)
      do volta=1,2
         call gemm('T','N', n , 1, EP_dim ,1.0_wp ,  Qvect(1,0)  , EP_dim ,Q(1) ,EP_dim , 0.0_wp , scals(0) ,  n )
         if(ha%nproc/=1) then
-           call MPI_Allreduce(scals(0) ,scalstot(0) , n ,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+           call MPI_Allreduce(scals(0) ,scalstot(0) , n ,mpidtypw, MPI_SUM,bigdft_mpi%mpi_comm ,ierr )
         else
            do i=0,n-1
               scalstot(i)=scals(i)
@@ -627,7 +628,7 @@ nullify(Qvect,dumQvect)
         if ( EP_doorthoocc) then
            call gemm('T','N', EP_norb , 1, EP_dim ,1.0_wp ,  occQvect(1)  , EP_dim ,Q(1) ,EP_dim , 0.0_wp , occscals(1) ,  EP_norb )
            if(ha%nproc/=1) then
-              call MPI_Allreduce(occscals(1) ,occscalstot(1) , EP_norb  ,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+              call MPI_Allreduce(occscals(1) ,occscalstot(1) , EP_norb  ,mpidtypw, MPI_SUM,bigdft_mpi%mpi_comm ,ierr )
            else
               do i=1,EP_norb
                  occscalstot(i)=occscals(i)
@@ -678,7 +679,7 @@ nullify(Qvect,dumQvect)
      ! in FFT_back, but then the code would be slower.
 
      !$omp parallel default (private) shared(z1,z3,kern_k1,kern_k2,kern_k3)&
-     !$omp & shared(n1b,n3f,inzee,n1,n2,n3)
+     !$omp & shared(n1b,n3f,inzee,n1,n2,n3,ene,gamma)
 
      ! i3=1: then z1 is contained in z3 
      !$omp do 
@@ -1345,6 +1346,7 @@ nullify(Qvect,dumQvect)
   subroutine gaussians_to_wavelets_nonorm(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wfn_gau,psi)
      use module_base
      use module_types
+     use gaussians
      implicit none
      character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc
@@ -1451,7 +1453,7 @@ nullify(Qvect,dumQvect)
 
      if (iproc==0)    call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
-     if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
+     !if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
      !renormalize the orbitals
      !calculate the deviation from 1 of the orbital norm
      normdev=0.0_dp
@@ -1475,7 +1477,7 @@ nullify(Qvect,dumQvect)
         end if
      end do
      if (nproc > 1) then
-        call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+        call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
      else
         normdev=tt
      end if

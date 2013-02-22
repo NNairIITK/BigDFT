@@ -129,10 +129,10 @@ subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
      call timing(iproc,'Un-TransComm  ','ON')
      if (present(outadd)) then
         call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-             outadd,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
+             outadd,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
      else
         call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-             psi,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
+             psi,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
      end if
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
@@ -184,7 +184,7 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
 
         !!call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
         !!     ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
-        call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, &
+        call Lpsi_to_global2(iproc, ldim, gdim, orbs%norbp, orbs%nspinor, &
              orbs%nspin, lzd%glr, lzd%llr(ilr), psi(psishift1), workarr(totshift))
         psishift1 = psishift1 + ldim
         totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
@@ -218,10 +218,10 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
      call timing(iproc,'Un-TransComm  ','ON')
      if (present(outadd)) then
         call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-             outadd,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
+             outadd,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
      else
         call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-             psi,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
+             psi,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
      end if
 
      call timing(iproc,'Un-TransComm  ','OF')
@@ -268,7 +268,7 @@ subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
      call timing(iproc,'Un-TransSwitch','OF')
      call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALLV(psi,comms%ncntt,comms%ndsplt,mpidtypw,  &
-          work,comms%ncntd,comms%ndspld,mpidtypw,MPI_COMM_WORLD,ierr)
+          work,comms%ncntd,comms%ndspld,mpidtypw,bigdft_mpi%mpi_comm,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
      if (present(outadd)) then
@@ -319,7 +319,7 @@ subroutine untranspose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
      call timing(iproc,'Un-TransSwitch','OF')
      call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALLV(psi,comms%ncntt,comms%ndsplt,mpidtypw,  &
-          work,comms%ncntd,comms%ndspld,mpidtypw,MPI_COMM_WORLD,ierr)
+          work,comms%ncntd,comms%ndspld,mpidtypw,bigdft_mpi%mpi_comm,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
      if (present(outadd)) then
@@ -348,9 +348,9 @@ subroutine untranspose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
         if(present(outadd)) then
-            call psi_to_locreg2(iproc, nproc, ldim, Gdim, Lzd%Llr(ilr), Lzd%Glr, psi(totshift), outadd(psishift1))
+            call psi_to_locreg2(iproc, ldim, Gdim, Lzd%Llr(ilr), Lzd%Glr, psi(totshift), outadd(psishift1))
         else
-            call psi_to_locreg2(iproc, nproc, ldim, Gdim, Lzd%Llr(ilr), Lzd%Glr, psi(totshift), workarr(psishift1))
+            call psi_to_locreg2(iproc, ldim, Gdim, Lzd%Llr(ilr), Lzd%Glr, psi(totshift), workarr(psishift1))
         end if
         psishift1 = psishift1 + ldim
         totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor

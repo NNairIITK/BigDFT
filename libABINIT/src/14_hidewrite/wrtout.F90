@@ -154,6 +154,7 @@ subroutine wrtout(unit,message,mode_paral)
      else
         write(*, "(I03,2x,A)") iproc, trim(message)
      end if
+     call MPI_BARRIER(MPI_COMM_WORLD, ierr)
   end if
 end subroutine wrtout
 !!***

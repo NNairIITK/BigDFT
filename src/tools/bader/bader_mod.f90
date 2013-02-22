@@ -635,9 +635,9 @@ MODULE bader_mod
       ELSE
          coeff = 1._q2/MAXVAL(ABS(gradrl))
          gradrl = coeff*gradrl
-         pm = p + ANINT(gradrl)
+         pm = p + NINT(gradrl)
          dr = dr + gradrl - ANINT(gradrl)
-         pm = pm + ANINT(dr)
+         pm = pm + NINT(dr)
          dr = dr - ANINT(dr)
       END IF
       bdr%known(p(1),p(2),p(3)) = 1

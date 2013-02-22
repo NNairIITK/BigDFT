@@ -10,17 +10,43 @@
 
 <p>From 2010, three laboratories are contributing: L_Sim (CEA), UNIBAS and ESRF.</p>
 
+<h2>Contributors (v1.7)</h2>
+<ul>
+<!-- Name          Initials Email                         Institution -->
+Max Amsler              MA  m.amsler@unibas.ch            Basel Universität, Switzerland
+Frédéric Bonnet         FB  Frederic.Bonnet@cea.fr        INAC, CEA-Grenoble, France
+Paul Boulanger          PB  Paul.Boulanger@cea.fr         INAC, CEA-Grenoble, France
+Damien Caliste          DC  Damien.Caliste@cea.fr         INAC, CEA-Grenoble, France
+Sandip De               SD  sandip.de@unibas.ch           Basel Universität, Switzerland
+Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France
+Ivan Duchemin           ID  Ivan.Duchemin@cea.fr          INAC, CEA-Grenoble, France
+Nazim Dugan             ND  nazim.dugan@unibas.ch         Basel Universität, Switzerland
+Luigi Genovese          LG  Luigi.Genovese@esrf.fr        INAC, CEA-Grenoble, France
+Stefan Goedecker        SG  Stefan.Goedecker@unibas.ch    Basel Universität, Switzerland
+Eduardo Machado-Charry  EM  Eduardo.Machado-charry@cea.fr INAC, CEA-Grenoble, France
+Alessandro Mirone       AM  Alessandro.Mirone@esrf.fr     ESRF, Grenoble, France
+Stephan Mohr            SM  Stephan.Mohr@unibas.ch        Basel Universität, Switzerland
+Normand Mousseau        NM  Normand.Mousseau@umontreal.ca University of Montreal, Canada
+Laura Ratcliff          LR  Laura.Ratcliff@cea.fr         INAC, CEA-Grenoble, France
+Ali Sadeghi             AS  ali.sadeghi@unibas.ch         Basel Universität, Switzerland
+Huan Tran               HT  huan.tran@unibas.ch           Basel Universität, Switzerland
+Brice Videau            BV  Brice.Videau@imag.fr          IMAG, Grenoble, France
+Alexander Willand       AW  A.Willand@unibas.ch           Basel Universität, Switzerland
+</ul>
+
+
 <h2>Contributors (v1.6)</h2>
 <ul>
 <!-- Name          Initials Email                         Institution -->
 Max Amsler              MA  m.amsler@unibas.ch            Basel Universität, Switzerland
+Paul Boulanger          PB  Paul.Boulanger@cea.fr         INAC, CEA-Grenoble, France
 Damien Caliste          DC  damien.caliste@cea.fr         INAC, CEA-Grenoble, France
 Sandip De               SD  sandip.de@unibas.ch           Basel Universität, Switzerland
 Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France
 Ivan Duchemin           ID  Ivan.Duchemin@cea.fr          INAC, CEA-Grenoble, France
 Nazim Dugan             ND  nazim.dugan@unibas.ch         Basel Universität, Switzerland
 Luigi Genovese          LG  Luigi.Genovese@esrf.fr        INAC, CEA-Grenoble, France
-Seyed Alireza Ghasemi   AG  Alireza.Ghasemi@unibas.ch     Basel Universität, Switzerland
+Seyed Alireza Ghasemi   AG  alirezagh76@gmail.com         Basel Universität, Switzerland
 Stefan Goedecker        SG  Stefan.Goedecker@unibas.ch    Basel Universität, Switzerland
 Eduardo Machado-Charry  EM  Eduardo.Machado-charry@cea.fr INAC, CEA-Grenoble, France
 Alessandro Mirone       AM  Alessandro.Mirone@esrf.fr     ESRF, Grenoble, France
@@ -44,7 +70,7 @@ Damien Caliste          DC  damien.caliste@cea.fr         INAC, CEA-Grenoble, Fr
 Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France
 Ivan Duchemin           ID  Ivan.Duchemin@cea.fr          INAC, CEA-Grenoble, France
 Luigi Genovese          LG  Luigi.Genovese@esrf.fr        INAC, CEA-Grenoble, France
-Seyed Alireza Ghasemi   AG  Alireza.Ghasemi@unibas.ch     Basel Universität, Switzerland
+Seyed Alireza Ghasemi   AG  alirezagh76@gmail.com         Basel Universität, Switzerland
 Stefan Goedecker        SG  Stefan.Goedecker@unibas.ch    Basel Universität, Switzerland
 Eduardo Machado-Charry  EM  Eduardo.Machado-charry@cea.fr INAC, CEA-Grenoble, France
 Alessandro Mirone       AM  Alessandro.Mirone@esrf.fr     ESRF, Grenoble, France
@@ -64,7 +90,7 @@ Max Amsler              MA  M.Amsler@unibas.ch            Basel Universität, Sw
 Damien Caliste          DC  Damien.Caliste@cea.fr         INAC, CEA-Grenoble, France
 Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France
 Luigi Genovese          LG  Luigi.Genovese@esrf.fr        ESRF, Grenoble, France
-Seyed Alireza Ghasemi   AG  Alireza.Ghasemi@unibas.ch     Basel Universität, Switzerland
+Seyed Alireza Ghasemi   AG  alirezagh76@gmail.com         Basel Universität, Switzerland
 Stefan Goedecker        SG  Stefan.Goedecker@unibas.ch    Basel Universität, Switzerland
 Eduardo Machado-Charry  EM  Eduardo.Machado-charry@cea.fr INAC, CEA-Grenoble, France
 Alessandro Mirone       AM  Alessandro.Mirone@esrf.fr     ESRF, Grenoble, France
@@ -83,7 +109,7 @@ Alexander Willand       AW  A.Willand@unibas.ch           Basel Universität, Sw
 Damien Caliste          DC  Damien.Caliste@cea.fr         INAC, CEA-Grenoble, France
 Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France
 Luigi Genovese          LG  Luigi.Genovese@esrf.fr        ESRF, Grenoble, France
-Alireza Ghasemi         AG  Alireza.Ghasemi@unibas.ch     Basel Universität, Switzerland
+Alireza Ghasemi         AG  alirezagh76@gmail.com         Basel Universität, Switzerland
 Stefan Goedecker        SG  Stefan.Goedecker@unibas.ch    Basel Universität, Switzerland
 Quintin Hill            QH  Quintin.Hill@soton.ac.uk      University of Southampton, United-Kingdom
 Alessandro Mirone       AM  Alessandro.Mirone@esrf.fr     ESRF, Grenoble, France
@@ -110,7 +136,7 @@ Matthieu Ospici         MO  Matthieu.Ospici@imag.fr       Bull, IMAG, CEA, Franc
 Anders Bergman          AB  Anders.Bergman@cea.fr         INAC, CEA-Grenoble, France
 Damien Caliste          DC  damien.caliste@cea.fr         INAC, CEA-Grenoble, France
 Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France
-Alireza Ghasemi         AG  alireza.ghasemi@unibas.ch     Basel Universität, Switzerland
+Alireza Ghasemi         AG  alirezagh76@gmail.com         Basel Universität, Switzerland
 Luigi Genovese          LG  Luigi.Genovese@gmail.com      ESRF, Grenoble, France
 Stefan Goedecker        SG  Stefan.Goedecker@unibas.ch    Basel Universität, Switzerland
 Alexey Neelov           AN  alexey.neelov@unibas.ch       Basel Universität, Switzerland
@@ -127,7 +153,7 @@ Anders Bergman           AB  Anders.Bergman@cea.fr        INAC, CEA-Grenoble, Fr
 Damien Caliste           DC  damien.caliste@cea.fr        INAC, CEA-Grenoble, France
 Thierry Deutsch          TD  Thierry.Deutsch@cea.fr       INAC, CEA-Grenoble, France
 Fritz Krüger             FK  fkr@numerik.uni-kiel.de      Kiel Universität, Germany
-Alireza Ghasemi          AG  alireza.ghasemi@unibas.ch    Basel Universität, Switzerland
+Alireza Ghasemi          AG  alirezagh76@gmail.com        Basel Universität, Switzerland
 Luigi Genovese           LG  Luigi.Genovese@gmail.com     ESRF, Grenoble, France
 Stefan Goedecker         SG  Stefan.Goedecker@unibas.ch   Basel Universität, Switzerland
 Xavier Gonze             XG  gonze@pcpm.ucl.ac.be         Université Catholique de Louvain, Belgium

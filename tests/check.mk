@@ -11,14 +11,16 @@
 #  make X.updateref: update the reference with the output (prompt the overwrite)
 
 if USE_MPI
-  mpirun_message=mpirun
+  mpirun_message = mpirun
 else
-  mpirun_message=
+  mpirun_message =
 endif
 if USE_OCL
 oclrun_message = oclrun
+accel_in_message = in_message
 else
 oclrun_message =
+accel_in_message =
 endif
 
 if BUILD_LIBYAML
@@ -53,17 +55,24 @@ PSPS = psppar.H \
        extra/psppar.H \
        Xabs/psppar.Fe
 
-INS = $(TESTDIRS:=.in)
-RUNS = $(TESTDIRS:=.run)
+ALLDIRS = $(EXTRA_TESTDIRS) $(TESTDIRS)
+
+INS = $(ALLDIRS:=.in)
+RUNS = $(ALLDIRS:=.run)
 CHECKS = $(TESTDIRS:=.check) $(TESTDIRS:=.yaml-check)
-DIFFS = $(TESTDIRS:=.diff)
-UPDATES = $(TESTDIRS:=.updateref)
+EXTRA_CHECKS = $(EXTRA_TESTDIRS:=.check) $(EXTRA_TESTDIRS:=.yaml-check)
+DIFFS = $(ALLDIRS:=.diff)
+UPDATES = $(ALLDIRS:=.updateref)
 FAILEDCHECKS = $(TESTDIRS:=.recheck)
-CLEANS = $(TESTDIRS:=.clean)
+CLEANS = $(ALLDIRS:=.clean)
+
+EXTRA_DIST += README $(ALLDIRS)
 
 in: $(INS)
 
 check: $(CHECKS) report
+
+complete-check: $(EXTRA_CHECKS) check
 
 diff: $(DIFFS)
 
@@ -84,19 +93,29 @@ report:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
-	@name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
 	if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
 	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
 	   cat accel.perf >> $$file ; \
 	fi ; \
+	if test -f list_posinp; then \
+	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
+	fi; \
 	echo outdir ./ >> $$file ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
-	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
+	if test -f $$file.bak ; then \
+	   mv $$file.bak $$file ; else rm -f $$file ; \
+	fi ; \
+	if test -f list_posinp; then \
+	   cat log-* > log.yaml ; \
+	fi
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.geopt.mon.out: $(abs_top_builddir)/src/bigdft
-	$(MAKE) -f ../Makefile $*.out.out && mv geopt.mon $@
+	name=`basename $@ .geopt.mon.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	if test -n "$$name" ; then datadir="data-"$$name ; else datadir="data" ; fi ; \
+	$(MAKE) -f ../Makefile $*.out.out && cp $$datadir/geopt.mon $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.dipole.dat.out: %.out.out
@@ -129,7 +148,7 @@ report:
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.minhop.out: $(abs_top_builddir)/src/global
 	$(run_parallel) $(abs_top_builddir)/src/global > $@
-	mv log-mdinput.yaml log.yaml
+#	mv log-mdinput.yaml log.yaml
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.xabs.out: $(abs_top_builddir)/src/abscalc
@@ -140,6 +159,10 @@ report:
 %.b2w.out: $(abs_top_builddir)/src/BigDFT2Wannier
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
 	$(run_parallel) $(abs_top_builddir)/src/BigDFT2Wannier $$name > $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
+%.testforces.out: $(abs_top_builddir)/src/test_forces
+	$(run_parallel) $(abs_top_builddir)/src/test_forces > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 
@@ -195,7 +218,7 @@ $(INS): in_message
 	if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
 	  for i in $(srcdir)/$$dir/* ; do cp -f $$i $$dir; done ; \
 	fi ; \
-	if test -n "$(run_ocl)" ; then \
+	if test -n "$(accel_in_message)" -a -n "$(run_ocl)" ; then \
 	  if test "$(run_ocl)" = "CPU" ; then \
 	    echo "ACCEL OCLCPU" > $$dir/accel.perf ; \
 	  elif test "$(run_ocl)" = "ACC" ; then \
@@ -245,13 +268,13 @@ run_message:
 	touch $@
 
 
-%.diff: %.run
+%.diff	: %.run
 	@dir=`basename $@ .diff` ; \
         chks="$(srcdir)/$$dir/*.ref" ; \
 	for c in $$chks ; do $$DIFF $$c $$dir/$$(basename $$c .ref)".out";\
 	done ; \
         ychks="$(srcdir)/$$dir/*.ref.yaml" ; \
-	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed s/.out// | sed s/.xabs// | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
 	if test -n "$$name" ; then \
 	$$DIFF $$c $$dir/log-$$name.yaml;\
 	else \
@@ -267,7 +290,7 @@ run_message:
 	                     cp -vi $$dir/$$(basename $$c .ref)".out"  $$c;\
 	done ; \
         ychks="$(srcdir)/$$dir/*.ref.yaml" ; \
-	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed s/.out// | sed s/.xabs// | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
 	if test -n "$$name" ; then \
 	echo "Update reference with " $$dir/log-$$name.yaml; \
 	                     cp -vi $$dir/log-$$name.yaml $$c;\
@@ -334,6 +357,8 @@ head_message:
 	@echo "  make in:           generate all input dirs."
 	@echo "  make failed-check: run check again on all directories"
 	@echo "                     with missing report or failed report."
+	@echo "  make complete-check: for developpers, makes long and"
+	@echo "                       extensive tests."
 	@echo "  make X.in:         generate input dir for directory X."
 	@echo "  make X.check:      generate a report for directory X"
 	@echo "                     (if not already existing)."

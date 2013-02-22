@@ -1,3 +1,13 @@
+!> @file
+!! Routines for handling the structure atoms_data 
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 !> Deallocate the structure atoms_data.
 subroutine deallocate_atoms(atoms,subname) 
   use module_base
@@ -128,6 +138,8 @@ subroutine deallocate_atoms(atoms,subname)
   call deallocate_symmetry(atoms%sym, subname)
 END SUBROUTINE deallocate_atoms
 
+
+!> Allocation of the arrays inside the structure atoms_data
 subroutine allocate_atoms_nat(atoms, nat, subname)
   use module_base
   use module_types
@@ -205,7 +217,8 @@ subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
   call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
 END SUBROUTINE allocate_atoms_ntypes
 
-!> Calculate symmetries and update
+
+!> Calculate the symmetries and update
 subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
   use module_base
   use module_types
@@ -272,6 +285,10 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
   end if
 END SUBROUTINE atoms_set_symmetries
 
+!> Add a displacement of atomic positions and put in the box
+!! @param atom    atoms_data structure
+!! @param rxyz    atomic positions
+!! @param randdis random displacement
 subroutine atoms_set_displacement(atoms, rxyz, randdis)
   use module_types
   implicit none
@@ -282,7 +299,7 @@ subroutine atoms_set_displacement(atoms, rxyz, randdis)
   integer :: iat
   real(gp) :: tt
   
-  ! Shake atoms if required.
+  !Shake atoms if required.
   if (randdis > 0.d0) then
      do iat=1,atoms%nat
         if (atoms%ifrztyp(iat) == 0) then
@@ -308,6 +325,7 @@ subroutine atoms_set_displacement(atoms, rxyz, randdis)
      end if
   end do
 END SUBROUTINE atoms_set_displacement
+
 
 !> Read atomic positions
 subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getLine)
@@ -433,9 +451,9 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getLine
   !convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     atoms%alat1=alat1d0/bohr2ang
-     atoms%alat2=alat2d0/bohr2ang
-     atoms%alat3=alat3d0/bohr2ang
+     atoms%alat1=alat1d0/Bohr_Ang
+     atoms%alat2=alat2d0/Bohr_Ang
+     atoms%alat3=alat3d0/Bohr_Ang
   else if  (atoms%units=='atomic' .or. atoms%units=='bohr'  .or.&
        atoms%units== 'atomicd0' .or. atoms%units== 'bohrd0') then
      atoms%alat1=alat1d0
@@ -512,7 +530,7 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getLine
      if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
         ! if Angstroem convert to Bohr
         do i=1,3 
-           rxyz(i,iat)=rxyz(i,iat)/bohr2ang
+           rxyz(i,iat)=rxyz(i,iat)/Bohr_Ang
         enddo
      else if (atoms%units == 'reduced') then 
         rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
@@ -535,9 +553,9 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getLine
         read(line,*,iostat=ierrsfx) symbol,fxyz(:,iat)
      end do
   end if
-
   !now that ntypes is determined allocate atoms%atomnames and copy the values
   call allocate_atoms_ntypes(atoms, ntyp, subname)
+
   atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
 END SUBROUTINE read_xyz_positions
 
@@ -679,9 +697,9 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
   !Convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     atoms%alat1 = atoms%alat1 / bohr2ang
-     atoms%alat2 = atoms%alat2 / bohr2ang
-     atoms%alat3 = atoms%alat3 / bohr2ang
+     atoms%alat1 = atoms%alat1 / Bohr_Ang
+     atoms%alat2 = atoms%alat2 / Bohr_Ang
+     atoms%alat3 = atoms%alat3 / Bohr_Ang
   endif
 
   ntyp=0
@@ -748,7 +766,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
         else if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
            ! if Angstroem convert to Bohr
            do j=1,3 
-              rxyz(j,iat)=rxyz(j,iat) / bohr2ang
+              rxyz(j,iat)=rxyz(j,iat) / Bohr_Ang
            enddo
         endif
         iat = iat + 1
@@ -839,9 +857,9 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
   !Convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem') then
      ! if Angstroem convert to Bohr
-     atoms%alat1 = atoms%alat1 / bohr2ang
-     atoms%alat2 = atoms%alat2 / bohr2ang
-     atoms%alat3 = atoms%alat3 / bohr2ang
+     atoms%alat1 = atoms%alat1 / Bohr_Ang
+     atoms%alat2 = atoms%alat2 / Bohr_Ang
+     atoms%alat3 = atoms%alat3 / Bohr_Ang
   endif
   if (angdeg(1) /= 90. .or. angdeg(2) /= 90. .or. angdeg(3) /= 90.) then
      write(*,*) 'Only orthorombic boxes are possible.'
@@ -880,9 +898,9 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
   end if
   do iat = 1, atoms%nat, 1
      if (units == 1) then
-        rxyz(1,iat)=rxyz(1,iat) / bohr2ang
-        rxyz(2,iat)=rxyz(2,iat) / bohr2ang
-        rxyz(3,iat)=rxyz(3,iat) / bohr2ang
+        rxyz(1,iat)=rxyz(1,iat) / Bohr_Ang
+        rxyz(2,iat)=rxyz(2,iat) / Bohr_Ang
+        rxyz(3,iat)=rxyz(3,iat) / Bohr_Ang
      endif
      if (units == 2) then !add treatment for reduced coordinates
         if (atoms%alat1 > 0.) rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp) * atoms%alat1
@@ -1076,15 +1094,19 @@ subroutine frozen_ftoi(frzchain,ifrztyp)
         
 END SUBROUTINE frozen_ftoi
 
+
 !> Check the position of atoms
 subroutine check_atoms_positions(iproc,atoms,rxyz)
   use module_base
   use module_types
+  use yaml_output
   implicit none
+  !Arguments
   integer, intent(in) :: iproc
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !local variables
+  integer, parameter :: iunit=9
   logical :: dowrite
   integer :: iat,nateq,jat,j
 
@@ -1094,21 +1116,26 @@ subroutine check_atoms_positions(iproc,atoms,rxyz)
         if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
              (rxyz(3,iat)-rxyz(3,jat))**2 ==0.0_gp) then
            nateq=nateq+1
-           write(*,'(1x,a,2(i0,a,a6,a))')'ERROR: atoms ',iat,&
-                ' (',trim(atoms%atomnames(atoms%iatype(iat))),') and ',&
-                jat,' (',trim(atoms%atomnames(atoms%iatype(jat))),&
-                ') have the same positions'
+           call yaml_warning('ERROR: atoms' // trim(yaml_toa(iat)) // ' (' // &
+                & trim(atoms%atomnames(atoms%iatype(iat))) // ') and ' // &
+                & trim(yaml_toa(jat)) // ' (' // trim(atoms%atomnames(atoms%iatype(jat))) // &
+                & ') have the same positions')
+           !write(*,'(1x,a,2(i0,a,a6,a))')'ERROR: atoms ',iat,&
+           !     ' (',trim(atoms%atomnames(atoms%iatype(iat))),') and ',&
+           !     jat,' (',trim(atoms%atomnames(atoms%iatype(jat))),&
+           !     ') have the same positions'
         end if
      end do
   end do
   if (nateq /= 0) then
      if (iproc == 0) then
-        write(*,'(1x,a)')'Control your posinp file, cannot proceed'
-        write(*,'(1x,a)',advance='no')&
-             'Writing tentative alternative positions in the file posinp_alt...'
-        open(unit=9,file='posinp_alt')
-        write(9,'(1x,a)')' ??? atomicd0'
-        write(9,*)
+        call yaml_warning('Control your posinp file, cannot proceed')
+        write(*,'(1x,a)',advance='no') 'Writing tentative alternative positions in the file posinp_alt...'
+        !write(*,'(1x,a)')'Control your posinp file, cannot proceed'
+        !write(*,'(1x,a)',advance='no') 'Writing tentative alternative positions in the file posinp_alt...'
+        open(unit=iunit,file='posinp_alt')
+        write(iunit,'(1x,a)')' ??? atomicd0'
+        write(iunit,*)
         do iat=1,atoms%nat
            dowrite=.true.
            do jat=iat+1,atoms%nat
@@ -1118,16 +1145,19 @@ subroutine check_atoms_positions(iproc,atoms,rxyz)
               end if
            end do
            if (dowrite) & 
-                write(9,'(a2,4x,3(1x,1pe21.14))')trim(atoms%atomnames(atoms%iatype(iat))),&
+                write(iunit,'(a2,4x,3(1x,1pe21.14))')trim(atoms%atomnames(atoms%iatype(iat))),&
                 (rxyz(j,iat),j=1,3)
         end do
-        close(9)
-        write(*,'(1x,a)')' done.'
-        write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
+        close(unit=iunit)
+        call yaml_map('Writing tentative alternative positions in the file posinp_alt',.true.)
+        call yaml_warning('Replace ??? in the file heading with the actual atoms number')               
+        !write(*,'(1x,a)')' done.'
+        !write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
      end if
      stop 'check_atoms_positions'
   end if
 END SUBROUTINE check_atoms_positions
+
 
 !>Write xyz atomic file.
 subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
@@ -1157,7 +1187,7 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
      zmax=max(rxyz(3,iat),zmax)
   enddo
   if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr2ang
+     factor=Bohr_Ang
      units='angstroemd0'
   else
      factor=1.0_gp
@@ -1241,7 +1271,7 @@ subroutine wtascii(iunit,energy,rxyz,atoms,comment)
   character(len=50) :: extra
   character(len=10) :: name
   integer :: iat,j
-  real(gp) :: xmax,ymax,zmax,factor
+  real(gp) :: xmax,ymax,zmax,factor(3)
 
   xmax=0.0_gp
   ymax=0.0_gp
@@ -1253,21 +1283,28 @@ subroutine wtascii(iunit,energy,rxyz,atoms,comment)
      zmax=max(rxyz(3,iat),zmax)
   enddo
   if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr2ang
+     factor=Bohr_Ang
   else
      factor=1.0_gp
   end if
 
   write(iunit, "(A,A)") "# BigDFT file - ", trim(comment)
-  write(iunit, "(3e24.17)") atoms%alat1*factor, 0.d0, atoms%alat2*factor
-  write(iunit, "(3e24.17)") 0.d0,               0.d0, atoms%alat3*factor
+  write(iunit, "(3e24.17)") atoms%alat1*factor(1), 0.d0, atoms%alat2*factor(2)
+  write(iunit, "(3e24.17)") 0.d0,                  0.d0, atoms%alat3*factor(3)
 
   write(iunit, "(A,A)") "#keyword: ", trim(atoms%units)
+  if (trim(atoms%units) == "reduced") write(iunit, "(A,A)") "#keyword: bohr"
   if (atoms%geocode == 'P') write(iunit, "(A)") "#keyword: periodic"
   if (atoms%geocode == 'S') write(iunit, "(A)") "#keyword: surface"
   if (atoms%geocode == 'F') write(iunit, "(A)") "#keyword: freeBC"
   if (energy /= 0.d0 .and. energy /= UNINITIALIZED(energy)) then
      write(iunit, "(A,e24.17,A)") "#metaData: totalEnergy= ", energy, " Ht"
+  end if
+
+  if (trim(atoms%units) == "reduced") then
+     if (atoms%geocode == 'P' .or. atoms%geocode == 'S') factor(1) = 1._gp / atoms%alat1
+     if (atoms%geocode == 'P') factor(2) = 1._gp / atoms%alat2
+     if (atoms%geocode == 'P' .or. atoms%geocode == 'S') factor(3) = 1._gp / atoms%alat3
   end if
 
   do iat=1,atoms%nat
@@ -1282,7 +1319,7 @@ subroutine wtascii(iunit,energy,rxyz,atoms,comment)
 
      call write_extra_info(extra,atoms%natpol(iat),atoms%ifrztyp(iat))     
 
-     write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor,j=1,3),symbol,extra
+     write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor(j),j=1,3),symbol,extra
   end do
 
 
@@ -1406,7 +1443,7 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
   Cell_Units: select case(trim(atoms%units))
   case('angstroem','angstroemd0')
      call yaml_map('Units','angstroem')
-     factor=bohr2ang
+     factor=Bohr_Ang
   case('atomic','atomicd0','bohr','bohrd0','reduced')
      call yaml_map('Units','bohr')
      factor=1.0_gp
@@ -1787,6 +1824,7 @@ subroutine atoms_get_aocc(atoms, aocc)
 END SUBROUTINE atoms_get_aocc
 
 
+!> get radii_cf values
 subroutine atoms_get_radii_cf(atoms, radii_cf)
   use module_types
   implicit none
@@ -1831,13 +1869,13 @@ subroutine atoms_copy_geometry_data(atoms, geocode, format, units)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
-  character, intent(out) :: geocode(1)
-  character, intent(out) :: format(5)
-  character, intent(out) :: units(20)
+  character(len = 1), intent(out) :: geocode
+  character(len = 5), intent(out) :: format
+  character(len = 20), intent(out) :: units
 
   write(geocode, "(A1)") atoms%geocode
-  write(format, "(5A1)") atoms%format
-  write(units, "(20A1)") atoms%units
+  write(format,  "(A5)") atoms%format
+  write(units,  "(A20)") atoms%units
 END SUBROUTINE atoms_copy_geometry_data
 
 
@@ -1860,17 +1898,19 @@ subroutine atoms_copy_name(atoms, ityp, name, ln)
   type(atoms_data), intent(in) :: atoms
   integer, intent(in) :: ityp
   character(len=1), dimension(20), intent(out) :: name
+!  character(len=*), intent(out) :: name
   integer, intent(out) :: ln
   !Local variables 
-  integer :: i
+  integer :: i,lname
 
+  lname = len(name)
   ln=min(len(trim(atoms%atomnames(ityp))),20)
   !print *,'lnt2',lnt
   do i = 1, ln, 1
-     name(i) = atoms%atomnames(ityp)(i:i)
+     name(i:i) = atoms%atomnames(ityp)(i:i)
   end do
-  do i = ln + 1, 20, 1
-     name(i) = ' '
+  do i = ln + 1, lname, 1
+     name(i:i) = ' '
   end do
 END SUBROUTINE atoms_copy_name
 

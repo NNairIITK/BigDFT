@@ -744,11 +744,14 @@ program conv_check_ocl
    call nanosec(tsc0)
    do itimes=1,ntimes
       call convolut_magic_t_per(n1bis-1,n2bis-1,n3bis-1,psi_k_in_a,psi_k_out_a)
+      !call convolut_magic_t_per(n1bis-1,n2bis-1,n3bis-1,psi_k_out_a,psi_cuda_k_out_a)
+ !     call convolut_magic_t_per_test(n1bis-1,n2bis-1,n3bis-1,psi_k_out_a,psi_cuda_k_out_a)
    end do
    call nanosec(tsc1)
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9
-
-
+!TEMP
+!   call compare_3D_results(n1bis, n2bis, n3bis, psi_k_IN_a, psi_cuda_k_out_a, maxdiff, 1d-9)
+!end TEMP
 !   write(*,'(a,i6,i6,i6)')'GPU Convolutions T 3D, dimensions:',n1bis,n2bis,n3bis
 
 
@@ -826,7 +829,7 @@ program conv_check_ocl
 
       call nanosec(tsc0)
       do itimes=1,ntimes
-         call convolut_kinetic_per_c(n1bis-1,n2bis-1,n3bis-1,(/0.1d0,.1d0,.1d0/),&
+         call convolut_kinetic_per_c(n1bis-1,n2bis-1,n3bis-1,(/0.1d0,0.1d0,0.1d0/),&
               psi_k_in_a,psi_k_out_a,1.d0)
       end do
       call nanosec(tsc1)
@@ -1398,10 +1401,16 @@ program conv_check_ocl
            CPUtime,GPUtime,n1*n2*n3,32,ntimes,maxdiff,1.d-9)
 
       !write(*,'(a,i6,i6)')'CPU Synthesis, dimensions:',n1,n2*n3
-
+ 
       call nanosec(tsc0)
-      do i=1,ntimes
+      do i=1,ntimes!*100
          call syn_rot_per(n1/2-1,n2*n3,psi_in,psi_out)
+         !call syn_rot_per_temp(n1/2,n2*n3,psi_in,psi_out)
+         !call syn_rot_per_simple(n1/2-1,n2*n3,psi_in,psi_out)
+         !call synthesis_per_u5(n1/2,n2*n3,psi_in,psi_out)
+         !call synthesis_per_u2(n1/2,n2*n3,psi_in,psi_out)
+         !call synthesis_per_u12(n1/2,n2*n3,psi_in,psi_out)
+         !call synthesis_per_u24(n1/2,n2*n3,psi_in,psi_out)
       end do
       call nanosec(tsc1)
 
@@ -1501,11 +1510,11 @@ program conv_check_ocl
       end do
 
 !      write(*,'(a,i6,i6)')'CPU Synthesis grow, dimensions:',n1-14,n2*n3
-
-
       call nanosec(tsc0)
-      do i=1,ntimes
+      do i=1,ntimes*100
          call syn_rot_grow((n1-14)/2-1,n2*n3,psi_out_t,psi_in_t)
+         !call synthesis_free((n1-14)/2,n2*n3,psi_out_t,psi_in_t)
+         !call synthesis_free_u4((n1-14)/2,n2*n3,psi_out_t,psi_in_t)
       end do
       call nanosec(tsc1)
 
@@ -1627,7 +1636,7 @@ program conv_check_ocl
    do i=1,nvctr_cf
       do j=1,7
          psi(nvctr_cf+7*(i-1)+j)=real(i,kind=8)+0.1d0*real(j,kind=8)
-         psi_l(nvctr_cf+7*(i-1)+j)=real(i,kind=4)+0.1d0*real(j,kind=4)
+         psi_l(nvctr_cf+7*(i-1)+j)=real(i,kind=4)+0.10*real(j,kind=4)
       end do
    end do
 
@@ -1696,7 +1705,7 @@ program conv_check_ocl
 
    call nanosec(tsc0)
    do i=1,ntimes
-      call compress(n1,n1,0,n1,0,n1,0,n1,nseg,nvctr_cf,keyg,keyv,  & 
+      call compress_plain(n1,n1,0,n1,0,n1,0,n1,nseg,nvctr_cf,keyg,keyv,  & 
       nseg,nvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1))
    end do
    call nanosec(tsc1)
@@ -2100,5 +2109,7 @@ program conv_check_ocl
       enddo
       !$omp end do
    END SUBROUTINE conv_kin_x
+
+!include 'syn.txt'
 
 END PROGRAM conv_check_ocl

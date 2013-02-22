@@ -173,6 +173,7 @@ if (ntimes /=0) then
    call get_gpu_data(size2,psi_cuda,psi_GPU)
    call cudafree(work_GPU)
    call cudafree(psi_GPU)
+   call cufftDestroy(plan);
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
@@ -223,6 +224,7 @@ if (ntimes /=0) then
 
    call cudafree(work_GPU)
    call cudafree(psi_GPU)
+   call cufftDestroy(plan);
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
@@ -262,6 +264,7 @@ if (ntimes /=0) then
 
    call cudafree(work_GPU)
    call cudafree(psi_GPU)
+   call cufftDestroy(plan);
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
@@ -278,7 +281,7 @@ ntimes=1
    ndim(3)=n3
 
    !calculate the kernel in parallel for each processor
-   pkernel=pkernel_init(0,1,1,0,'P',ndim,hgriddim,16)
+   pkernel=pkernel_init(.true.,0,1,0,'P',ndim,hgriddim,16)
    call pkernel_set(pkernel,verbose >1)
    !pkernel%igpu=0
    !call createKernel(0,1,'P',ndim,hgriddim,16,pkernel,(verbose > 1))
@@ -295,7 +298,7 @@ ntimes=1
 
 
    !here the GPU part
-   pkernel2=pkernel_init(0,1,1,1,'P',ndim,hgriddim,16)
+   pkernel2=pkernel_init(.true.,0,1,1,'P',ndim,hgriddim,16)
    call pkernel_set(pkernel2,verbose >1)
 
    !pkernel2%igpu=1
@@ -327,7 +330,7 @@ ntimes=1
    ndim(2)=n2/2
    ndim(3)=n3/2
 
-   pkernel=pkernel_init(0,1,1,0,'F',ndim,hgriddim,16)
+   pkernel=pkernel_init(.true.,0,1,0,'F',ndim,hgriddim,16)
    call pkernel_set(pkernel,verbose >1)
 
    !pkernel%igpu=0
@@ -345,7 +348,7 @@ print *,'ehartree',ehartree
 
 
    !here the GPU part
-   pkernel2=pkernel_init(0,1,1,1,'F',ndim,hgriddim,16)
+   pkernel2=pkernel_init(.true.,0,1,1,'F',ndim,hgriddim,16)
    call pkernel_set(pkernel2,verbose >1)
 
    !pkernel2%igpu=1
@@ -379,7 +382,7 @@ print *,'ehartree',ehartree
    ndim(2)=n2/2
    ndim(3)=n3
 
-   pkernel=pkernel_init(0,1,1,0,'S',ndim,hgriddim,16)
+   pkernel=pkernel_init(.true.,0,1,0,'S',ndim,hgriddim,16)
    call pkernel_set(pkernel,verbose >1)
 
    !pkernel%igpu=0
@@ -396,7 +399,7 @@ print *,'ehartree',ehartree
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
    !here the GPU part
-   pkernel2=pkernel_init(0,1,1,1,'S',ndim,hgriddim,16)
+   pkernel2=pkernel_init(.true.,0,1,1,'S',ndim,hgriddim,16)
    call pkernel_set(pkernel2,verbose >1)
 
 !!$   !pkernel2%igpu=1
@@ -428,7 +431,7 @@ print *,'ehartree',ehartree
    ndim(1)=n1/2
    ndim(2)=n2/2
    ndim(3)=n3
-   pkernel=pkernel_init(0,1,1,0,'W',ndim,hgriddim,16)
+   pkernel=pkernel_init(.true.,0,1,0,'W',ndim,hgriddim,16)
    call pkernel_set(pkernel,verbose >1)
 
 !!$  ! pkernel%igpu=0
@@ -445,7 +448,7 @@ print *,'ehartree',ehartree
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
    !here the GPU part
-   pkernel2=pkernel_init(0,1,1,1,'W',ndim,hgriddim,16)
+   pkernel2=pkernel_init(.true.,0,1,1,'W',ndim,hgriddim,16)
    call pkernel_set(pkernel2,verbose >1)
 
 !!$  ! pkernel2%igpu=1

@@ -15,7 +15,7 @@
 !!                   1 is the application of the exact exchange (which has to be precomputed and stored in the potential array)
 !!                   2 is the application of the Perdew-Zunger SIC
 !!                   3 is the application of the Non-Koopman's correction SIC
-subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
+subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
      ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
      dpbox,potential,comgp)
   use module_base
@@ -23,18 +23,17 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
   use module_interfaces, except_this_one => local_hamiltonian
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,nproc,ipotmethod,ixc
+  integer, intent(in) :: iproc,nproc,ipotmethod,ixc,npsidim_orbs
   real(gp), intent(in) :: hx,hy,hz,alphaSIC
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
-  real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi !this dimension will be modified
+  real(wp), dimension(npsidim_orbs), intent(in) :: psi !this dimension will be modified
   real(wp), dimension(:),pointer :: pot !< the potential, with the dimension compatible with the ipotmethod flag
   !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
-  real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+  real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
   type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
-
   type(denspot_distribution),intent(in),optional :: dpbox
   !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
   real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
@@ -42,7 +41,7 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb
+  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb,jproc,ierr
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
   type(workarr_locham) :: wrk_lh
@@ -71,7 +70,9 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
   ekin_sum=0.0_gp
   epot_sum=0.0_gp
   eSIC_DC=0.0_gp
-
+!!$do jproc=0,nproc-1
+!!$call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+!!$if (jproc==iproc) then
   !loop on the localisation regions (so to create one work array set per lr)
   loop_lr: do ilr=1,Lzd%nlr
     !check if this localisation region is used by one of the orbitals
@@ -102,14 +103,15 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
     ispsi=1
     loop_orbs: do iorb=1,orbs%norbp
       ilr_orb=orbs%inwhichlocreg(iorb+orbs%isorb)
-      if (.not.lzd%doHamAppl(ilr) .or. ilr_orb /= ilr) then
+      if (ilr_orb /= ilr) then
         ispsi=ispsi+&
              (Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor
         cycle loop_orbs
       end if
-        !print *,'iorb+orbs%isorb,BEFORE',iorb+orbs%isorb,&
-        !     sum(psi(ispsi:&
-        !     ispsi+(Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor-1))
+      
+!!$      print *,'iorb+orbs%isorb,BEFORE',iorb+orbs%isorb,&
+!!$                sum(psi(ispsi:&
+!!$                ispsi+(Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor-1))
 
         
       call daub_to_isf_locham(orbs%nspinor,Lzd%Llr(ilr),wrk_lh,psi(ispsi),psir(1,1))
@@ -137,8 +139,9 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
       call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
            pot(orbs%ispot(iorb)),psir(1,1),epot,confdata=confdatarr(iorb))
 
-      !this ispot has to be better defined inside denspot structure
-      !print *,'orbs, epot',orbs%isorb+iorb,epot
+!!$      !this ispot has to be better defined inside denspot structure
+!!$      print *,'orbs, epot',orbs%isorb+iorb,epot,orbs%ispot(iorb),&
+!!$           sum(pot(orbs%ispot(iorb):orbs%ispot(iorb):Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i-1))
    
       !ODP treatment (valid only for the nlr=1 case)
       if (ipotmethod==1) then !Exact Exchange
@@ -168,6 +171,10 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
  
       call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh,&
            psir(1,1),hpsi(ispsi),ekin)
+
+!!$      print *,'iorb+orbs%isorb,AFTER',iorb+orbs%isorb,&
+!!$                sum(hpsi(ispsi:&
+!!$                ispsi+(Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor-1))
     
       ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
       epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
@@ -175,6 +182,7 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
       ispsi=ispsi+&
            (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
       !print *,'iorb,epot',orbs%isorb+iorb,epot
+
     enddo loop_orbs
    
     !deallocations of work arrays
@@ -190,7 +198,8 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
     call deallocate_work_arrays_locham(Lzd%Llr(ilr),wrk_lh)
    
   end do loop_lr
-
+!!$end if
+!!$end do
 
 END SUBROUTINE local_hamiltonian
 
@@ -201,31 +210,33 @@ END SUBROUTINE local_hamiltonian
 !!                   1 is the application of the exact exchange (which has to be precomputed and stored in the potential array)
 !!                   2 is the application of the Perdew-Zunger SIC
 !!                   3 is the application of the Non-Koopman's correction SIC
-subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
-     ipotmethod,confdatarr,pot,psi,vpsi,pkernel,ixc,alphaSIC,epot_sum,evSIC)
+subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
+     ipotmethod,confdatarr,pot,psi,vpsi,pkernel,ixc,alphaSIC,epot_sum,evSIC,vpsi_noconf,econf_sum)
   use module_base
   use module_types
   use module_interfaces, except_this_one => psi_to_vlocpsi
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,ipotmethod,ixc
+  integer, intent(in) :: iproc,ipotmethod,ixc,npsidim_orbs
   real(gp), intent(in) :: alphaSIC
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
-  real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi !this dimension will be modified
+  real(wp), dimension(npsidim_orbs), intent(in) :: psi !this dimension will be modified
   real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
   real(gp), intent(out) :: epot_sum,evSIC
-  real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: vpsi
+  real(wp), dimension(npsidim_orbs), intent(inout) :: vpsi
   type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+  real(wp), dimension(npsidim_orbs), intent(inout),optional :: vpsi_noconf
+  real(gp),intent(out),optional :: econf_sum
   !local variables
   character(len=*), parameter :: subname='psi_to_vlocpsi'
   logical :: dosome
   integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb,nbox,nvctr,ispinor
   real(wp) :: exctXcoeff
-  real(gp) :: epot,eSICi,eSIC_DCi !n(c) etest
+  real(gp) :: epot,eSICi,eSIC_DCi,econf !n(c) etest
   type(workarr_sumrho) :: w
-  real(wp), dimension(:,:), allocatable :: psir,vsicpsir
+  real(wp), dimension(:,:), allocatable :: psir,vsicpsir,psir_noconf
 
   !some checks
   exctXcoeff=xc_exctXfac()
@@ -244,6 +255,9 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
 
   epot_sum=0.0_gp
   evSIC=0.0_gp
+  if (present(econf_sum)) then
+      econf_sum=0.0_gp
+  end if
 
   !loop on the localisation regions (so to create one work array set per lr)
   loop_lr: do ilr=1,Lzd%nlr
@@ -269,6 +283,11 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
      allocate(psir(nbox,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,psir,'psir',subname)
 
+     if (present(vpsi_noconf)) then
+         allocate(psir_noconf(nbox,orbs%nspinor+ndebug),stat=i_stat)
+         call memocc(i_stat,psir_noconf,'psir_noconf',subname)
+     end if
+
      call to_zero(nbox*orbs%nspinor,psir(1,1))
 
      ! wavefunction after application of the self-interaction potential
@@ -283,7 +302,7 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
   loop_orbs: do iorb=1,orbs%norbp
      ilr_orb=orbs%inwhichlocreg(iorb+orbs%isorb)
      nvctr=Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f
-     if (.not.lzd%doHamAppl(ilr) .or. ilr_orb /= ilr) then
+     if (ilr_orb /= ilr) then
         ispsi=ispsi+nvctr*orbs%nspinor
         cycle loop_orbs
      end if
@@ -318,8 +337,20 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
      end if
 
      !apply the potential to the psir wavefunction and calculate potential energy
-     call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
-          pot(orbs%ispot(iorb)),psir,epot,confdata=confdatarr(iorb))
+     if (present(vpsi_noconf)) then
+         if (.not.present(econf_sum)) then
+             stop 'ERROR: econf must be present when psir_noconf is present'
+         end if
+         call vcopy(nbox*orbs%nspinor, psir(1,1), 1, psir_noconf(1,1), 1)
+         call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
+              pot(orbs%ispot(iorb)),psir,epot,confdata=confdatarr(iorb),vpsir_noconf=psir_noconf,econf=econf)
+     else
+         call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
+              pot(orbs%ispot(iorb)),psir,epot,confdata=confdatarr(iorb))
+     end if
+     !!do i_stat=1,lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+     !!    write(1000+ilr_orb,*) orbs%ispot(iorb)+i_stat-1, pot(orbs%ispot(iorb)+i_stat-1)
+     !!end do
      !this ispot has to be better defined inside denspot structure
 
      !ODP treatment (valid only for the nlr=1 case)
@@ -344,9 +375,15 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
 
      do ispinor=1,orbs%nspinor
         call isf_to_daub(Lzd%Llr(ilr),w,psir(1,ispinor),vpsi(ispsi+nvctr*(ispinor-1)))
+        if (present(vpsi_noconf)) then
+            call isf_to_daub(Lzd%Llr(ilr),w,psir_noconf(1,ispinor),vpsi_noconf(ispsi+nvctr*(ispinor-1)))
+        end if
      end do
 
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
+     if (present(econf_sum)) then
+         econf_sum=econf_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*econf
+     end if
      ispsi=ispsi+nvctr*orbs%nspinor
   enddo loop_orbs
 
@@ -354,6 +391,11 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
+  if (present(vpsi_noconf)) then
+      i_all=-product(shape(psir_noconf))*kind(psir_noconf)
+      deallocate(psir_noconf,stat=i_stat)
+      call memocc(i_stat,i_all,'psir_noconf',subname)
+  end if
   if (ipotmethod == 2 .or. ipotmethod ==3) then
      i_all=-product(shape(vsicpsir))*kind(vsicpsir)
      deallocate(vsicpsir,stat=i_stat)
@@ -363,20 +405,21 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
 
 end do loop_lr
 
+
 END SUBROUTINE psi_to_vlocpsi
 
 
-subroutine psi_to_kinpsi(iproc,orbs,lzd,psi,hpsi,ekin_sum)
+subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
   use module_base
   use module_types
   use module_interfaces, except_this_one => psi_to_kinpsi
   implicit none
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc,npsidim_orbs
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
-  real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+  real(wp), dimension(npsidim_orbs), intent(in) :: psi
   real(gp), intent(out) :: ekin_sum
-  real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+  real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
 
   !local variables
   character(len=*), parameter :: subname='psi_to_kinpsi'
@@ -411,7 +454,7 @@ subroutine psi_to_kinpsi(iproc,orbs,lzd,psi,hpsi,ekin_sum)
     ispsi=1
     loop_orbs: do iorb=1,orbs%norbp
       ilr_orb=orbs%inwhichlocreg(iorb+orbs%isorb)
-      if (.not.lzd%doHamAppl(ilr) .or. ilr_orb /= ilr) then
+      if (ilr_orb /= ilr) then
         ispsi=ispsi+&
              (Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor
         cycle loop_orbs
@@ -425,7 +468,8 @@ subroutine psi_to_kinpsi(iproc,orbs,lzd,psi,hpsi,ekin_sum)
 
       !call isf_to_daub_kinetic(lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh,&
       !      psir(1,1),hpsi(ispsi),ekin)
-      call psi_to_tpsi(lzd%hgrids,(/kx,ky,kz/),orbs%nspinor,Lzd%Llr(ilr),psi(ispsi),wrk_lh,hpsi(ispsi),ekin)
+      call psi_to_tpsi(lzd%hgrids,orbs%kpts(1,orbs%iokpt(iorb)),orbs%nspinor,&
+           Lzd%Llr(ilr),psi(ispsi),wrk_lh,hpsi(ispsi),ekin)
    
       ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
 
@@ -449,7 +493,7 @@ end subroutine psi_to_kinpsi
 
 
 !> apply the potential to the psir wavefunction and calculate potential energy
-subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
+subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf,econf)
   use module_base
   use module_types
   use module_interfaces, except_this_one => psir_to_vpsi
@@ -460,6 +504,8 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout) :: vpsir
   real(gp), intent(out) :: epot
   type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout), optional :: vpsir_noconf !< wavefunction with  the potential without confinement applied
+  real(gp), intent(out),optional :: econf !< confinement energy
   !local variables
   integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
 
@@ -468,11 +514,20 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
 
   if (present(confdata) .and. confdata%potorder /=0) then
      if (lr%geocode == 'F') then
-        call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-             lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-             ishift,lr%d%n2,lr%d%n3,&
-             nspinor,npot,vpsir,pot,epot,&
-             confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r)
+        if (present(vpsir_noconf)) then
+            if (.not.present(econf)) stop 'ERROR: econf must be present when vpsir_noconf is present!'
+            call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 ishift,lr%d%n2,lr%d%n3,&
+                 nspinor,npot,vpsir,pot,epot,&
+                 confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r,psir_noconf=vpsir_noconf,econf=econf)
+        else
+            call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 ishift,lr%d%n2,lr%d%n3,&
+                 nspinor,npot,vpsir,pot,epot,&
+                 confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r)
+        end if
      else
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
@@ -694,7 +749,7 @@ END SUBROUTINE apply_potential
 !>   routine for applying the local potential
 !! Support the adding of a confining potential and the localisation region of the potential
 subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,npot,psir,pot,epot,&
-     confdata,ibyyzz_r) !optional
+     confdata,ibyyzz_r,psir_noconf,econf) !optional
   use module_base
   use module_types
   implicit none
@@ -702,19 +757,46 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
   real(wp), dimension(n1i,n2i,n3i,nspinor), intent(inout) :: psir !< real-space wfn in lr
   real(wp), dimension(n1ip,n2ip,n3ip,npot), intent(in) :: pot !< real-space pot in lrb
-  type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+  type(confpot_data), intent(in), optional, target :: confdata !< data for the confining potential
   integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
   real(gp), intent(out) :: epot
+  real(wp),dimension(n1i,n2i,n3i,nspinor),intent(inout),optional :: psir_noconf !< real-space wfn in lr where only the potential (without confinement) will be applied
+  real(gp), intent(out),optional :: econf
   !local variables
-  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42
-  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
-  real(gp) :: epot_p
+  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et,ii1,ii2,ii3
+  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt11_noconf,ttt,r2
+  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,pot1_noconf
+  real(gp) :: epot_p,econf_p,ierr
+  real(kind=8),dimension(:),pointer :: hh, rxyzConf
+  integer,dimension(:),pointer :: ioffset
+  real(kind=8),pointer :: prefac
+  integer,pointer :: potorder
+  real(kind=8),target :: zero_dble
+  integer,target :: zero_int
 
-  !write(*,*) 'present(confdata)', present(confdata)
-  !write(*,*) 'confdata%prefac, confdata%potorder', confdata%prefac, confdata%potorder
-  !write(*,*) 'n1ip*n2ip*n3ip', n1ip*n2ip*n3ip
+
+  zero_dble=0.d0
+  zero_int=0
+  if (present(confdata)) then
+      hh => confdata%hh
+      ioffset => confdata%ioffset
+      rxyzConf => confdata%rxyzConf
+      prefac => confdata%prefac
+      potorder => confdata%potorder
+  else
+     !these arrays are not deallocated!!!
+      allocate(hh(3), rxyzConf(3), ioffset(3))
+      hh=0.d0
+      ioffset=0
+      rxyzConf=0.d0
+      prefac => zero_dble
+      potorder => zero_int
+  end if
   epot=0.0_wp
+
+  if (present(econf)) then
+      econf=0.d0
+  end if
 
   !loop on wavefunction
   !calculate the limits in all the directions
@@ -729,10 +811,11 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
 
   !$omp parallel default(none)&
   !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
-  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)&
-  !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et)&
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,psir_noconf,econf)&
+  !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et,pot1_noconf,tt11_noconf,econf_p)&
   !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42)&
-  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4)
+  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ii1,ii2,ii3,ttt)
+
 
 !!$  !$omp parallel default(private)&
 !!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
@@ -740,6 +823,7 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   !case without bounds
 
   epot_p=0._gp
+  econf_p=0._gp
 
   !put to zero the external part of psir if the potential is more little than the wavefunction
   !first part of the array
@@ -881,17 +965,23 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
                  i1et=i1e
               end if
               !no need of setting up to zero values outside wavefunction bounds
-              !write(*,'(a,6i9)') 'i1st, i1et, i2s, i2e, i3s, i3e', i1st, i1et, i2s, i2e, i3s, i3e
               do i1=i1st,i1et
                  psir1=psir(i1,i2,i3,ispinor)
                  !the local potential is always real (npot=1) + confining term
-                 !!if(i1>n1ip) stop 'i1>n1ip'
-                 !!if(i2>n2ip) stop 'i2>n2ip'
-                 !!if(i3>n3ip) stop 'i3>n3ip'
-                 !write(200,*) pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1), cp(i1,i2,i3)
-                 pot1=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)+cp(i1,i2,i3)
-!print *,'cp',i1,i2,i3,cp(i1,i2,i3)
+                 ii1=i1-ishift(1)
+                 ii2=i2-ishift(2)
+                 ii3=i3-ishift(3)
+                 ttt=cp(i1,i2,i3)
+                 pot1=pot(ii1,ii2,ii3,1)+ttt
                  tt11=pot1*psir1
+                 if (present(psir_noconf)) then
+                     pot1_noconf=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)
+                     tt11_noconf=pot1_noconf*psir1
+                     psir_noconf(i1,i2,i3,ispinor) = tt11_noconf
+                 end if
+                 if (present(econf)) then
+                     econf_p=econf_p+real(ttt*psir1*psir1,wp)
+                 end if
 
                  epot_p=epot_p+real(tt11*psir1,wp)
                  psir(i1,i2,i3,ispinor)=tt11
@@ -901,12 +991,17 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
         !$omp end do
      end do
   end if
+
   
   !$omp critical
   epot=epot+epot_p
+  if (present(econf)) then
+      econf=econf+econf_p
+  end if
   !$omp end critical
   
   !$omp end parallel
+
 
 contains
   
@@ -918,12 +1013,10 @@ contains
     real(wp) :: r2
     !to be sure that the conditional is executed at compile time
     if (present(confdata)) then
-       r2=(confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1))**2 +&
-            (confdata%hh(2)*real(i2+confdata%ioffset(2),wp)-confdata%rxyzConf(2))**2 +&
-            (confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3))**2 
-       !if(r2>=81.d0) write(*,'(6i8,3es11.2,es13.4)') i1, i2, i3, confdata%ioffset(1), confdata%ioffset(2), confdata%ioffset(3), confdata%rxyzConf(1), confdata%rxyzConf(2), confdata%rxyzConf(3), r2 
-
-       cp=confdata%prefac*r2**(confdata%potorder/2)
+       r2=(hh(1)*real(i1+ioffset(1),wp)-rxyzConf(1))**2 +&
+            (hh(2)*real(i2+ioffset(2),wp)-rxyzConf(2))**2 +&
+            (hh(3)*real(i3+ioffset(3),wp)-rxyzConf(3))**2 
+       cp=prefac*r2**(potorder/2)
     else
        cp=0.0_wp
     end if
@@ -1140,6 +1233,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
      rxyz,hx,hy,hz,wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
@@ -1193,19 +1287,23 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
            ispsi=ispsi+(wfd%nvctr_c+7*wfd%nvctr_f)*nspinor
         end do
      end do
-     if (iproj /= nlpspd%nproj) stop 'incorrect number of projectors created'
+     if (iproj /= nlpspd%nproj) then
+        call yaml_warning('Incorrect number of projectors created')
+        stop
+     end if
      if (ieorb == orbs%norbp) exit loop_kpt
      ikpt=ikpt+1
      ispsi_k=ispsi
   end do loop_kpt
 
-  if (iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
-     if (nwarnings == 0) then
-     else
-        write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
-        write(*,'(1x,a)')'Some projectors may be too rough.'
-        write(*,'(1x,a,f6.3)')&
-             'Consider the possibility of reducing hgrid for having a more accurate run.'
+  if (nwarnings /= 0 .and. iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
+     call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
+     if (nwarnings /= 0) then
+        call yaml_newline()
+        call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
+        !write(*,'(1x,a,i0,a)') 'found ',nwarnings,' warnings.'
+        !write(*,'(1x,a)') 'Some projectors may be too rough.'
+        !write(*,'(1x,a,f6.3)') 'Consider the possibility of modifying hgrid and/or the localisation radii.'
      end if
   end if
 
@@ -1291,8 +1389,9 @@ subroutine build_hgh_hij_matrix(npspcode,psppar,hij)
   offdiagarr(1,2,3)=0.5_gp*sqrt(63._gp/143._gp)
   offdiagarr(2,2,3)=0.0_gp !never used
 
-  call to_zero(3*3*4,hij(1,1,1))
-  
+!  call to_zero(3*3*4,hij(1,1,1))
+  hij=0.0_gp
+
   do l=1,4
      !term for all npspcodes
      loop_diag: do i=1,3

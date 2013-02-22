@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>    Perform all the projection associated to local variables
+!> Perform all the projection associated to local variables
 subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
    use module_base
    use module_types
@@ -135,6 +135,8 @@ END SUBROUTINE local_analysis
 subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   use module_base
   use module_types
+  use gaussians
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
@@ -148,7 +150,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   integer :: ispinor,i
   real(wp) :: msum,rad,radnorm,r,sumch,mnrm
   real(wp), dimension(2) :: msumiat
-  real(wp), dimension(3) :: mi
+  real(wp), dimension(3) :: mi,mtot
   real(wp), dimension(:,:), allocatable :: mchg,magn
   
   !allocate both for spins up and down
@@ -223,19 +225,23 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
 
   !reduce the results
   if (nproc > 1) then
-     call mpiallred(mchg(1,1),2*G%ncoeff,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call mpiallred(magn(1,1),3*G%ncoeff,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(mchg(1,1),2*G%ncoeff,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     call mpiallred(magn(1,1),3*G%ncoeff,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   end if
 
   if (iproc == 0) then
      !write(*,'(1x,a)')repeat('-',48)//' Mulliken Charge Population Analysis'
      !write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) | Net Pol  |Gross Chg'
-     write(*,'(1x,a)')repeat('-',57)//' Mulliken Charge Population Analysis'
-     if (orbs%nspinor == 4) then
-        write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (Maj)| Chg (Min)  |Partial Chg| Mag Comp |  Net Chg'
-     else
-        write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg'
-     end if
+     !write(*,'(1x,a)')repeat('-',57)//' Mulliken Charge Population Analysis'
+     call yaml_comment('Mulliken Charge Population Analysis',hfill='-')
+     call yaml_open_sequence('Mulliken Charge Population Analysis')
+     call yaml_newline()
+
+     !if (orbs%nspinor == 4) then
+     !   !write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (Maj)| Chg (Min)  |Partial Chg| Mag Comp |  Net Chg'
+     !else
+     !   !write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg'
+     !end if
   end if
 
 !  do iorb=1,orbs%norbp  
@@ -252,9 +258,21 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   iexpo=1
   icoeff=1
   msum=0.0_wp
+  mtot(1)=0.0_wp
+  mtot(2)=0.0_wp
+  mtot(3)=0.0_wp
   do iat=1,G%nat
+     if (iproc ==0) then
+        call yaml_newline()
+        call yaml_comment('Atom No.'//adjustl(trim(yaml_toa(iat,fmt='(i4.4)'))))
+        call yaml_sequence(advance='no')
+        !     call yaml_open_map()!flow=.true.)
+     end if
      msumiat(1)=0.0_wp
      msumiat(2)=0.0_wp
+     mi(1)=0.0_wp
+     mi(2)=0.0_wp
+     mi(3)=0.0_wp
      nchannels=0
      sumch=0.0_gp
      do isat=1,G%nshell(iat)
@@ -276,23 +294,38 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
            msumiat(1)=msumiat(1)+mchg(icoeff,1)
            msumiat(2)=msumiat(2)+mchg(icoeff,2)
            if (iproc == 0) then
-              !write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),2(a,f8.5))')&
+              call yaml_open_map(trim(shname))!, flow=.true.)
+             !write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),2(a,f8.5))')&
               !     iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',&
               !     mchg(icoeff,1)-mchg(icoeff,2),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
               if (orbs%nspinor /= 4) then
-                 write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),3(a,f8.5))')&
-                      iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
-                      mchg(icoeff,1)-mchg(icoeff,2),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
+                    call yaml_map('Rad',rad,fmt='(f8.5)')
+                    call yaml_map('Chg (up,down)', mchg(icoeff,1:2), fmt='(f8.5)')
+                    call yaml_map('Partial Chg',sum(mchg(icoeff,1:2)),fmt='(f8.5)')
+                    call yaml_map('Mag Pol',mchg(icoeff,1)-mchg(icoeff,2),fmt='(f8.5)')
+                    call yaml_map('Net Chg',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2)),fmt='(f8.5)')
+                 !write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),3(a,f8.5))')&
+                 !     iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
+                 !     mchg(icoeff,1)-mchg(icoeff,2),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
               else
-                 write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),3(a,f8.5))')&
-                      iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
-                      magn(icoeff,1),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
-                 write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),3(a,f8.5))')&
-                      iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
-                      magn(icoeff,1),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
-                 write(*,'(t72,a,f8.5,a)')'| ', magn(icoeff,2),' | '
-                 write(*,'(t72,a,f8.5,a)')'| ', magn(icoeff,3),' | '
+                 mi(1)=mi(1)+magn(icoeff,1)
+                 mi(2)=mi(2)+magn(icoeff,2)
+                 mi(3)=mi(3)+magn(icoeff,3)
+                 !write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),3(a,f8.5))')&
+                 !     iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
+                 !     magn(icoeff,1),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
+                    call yaml_map('Rad',rad,fmt='(f8.5)')
+                    call yaml_map('Chg (Maj,Min)', mchg(icoeff,1:2), fmt='(f8.5)')
+                    call yaml_map('Partial Chg',sum(mchg(icoeff,1:2)),fmt='(f8.5)')
+                    call yaml_map('Mag Comp',magn(icoeff,1:3),fmt='(f8.5)')
+                    call yaml_map('Net Chg',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2)),fmt='(f8.5)')
+                 !write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),3(a,f8.5))')&
+                 !     iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
+                 !     magn(icoeff,1),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
+                 !write(*,'(t74,a,f8.5,a)')'| ', magn(icoeff,2),' | '
+                 !write(*,'(t74,a,f8.5,a)')'| ', magn(icoeff,3),' | '
               end if
+              call yaml_close_map()
            end if
            sumch=sumch+Gocc(icoeff)
            icoeff=icoeff+1
@@ -303,16 +336,52 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
      !     '  Center Quantities : ',&
      !     (msumiat(ispin),ispin=1,2),'  | ',msumiat(1)-msumiat(2),' | ',&
      !     sumch-(msumiat(1)+msumiat(2))
-     if (iproc == 0) write(*,'(15x,a,2("|",1x,f8.5,1x),3(a,f8.5))')&
-          '  Center Quantities : ',&
-          (msumiat(ispin),ispin=1,2),'  | ',msumiat(1)+msumiat(2),'  | ',msumiat(1)-msumiat(2),' | ',&
-          sumch-(msumiat(1)+msumiat(2))
+     if (iproc == 0) then
+        if (orbs%nspinor == 4) then
+           call yaml_comment('Chg (Maj)| Chg (Min)  |Partial Chg| Mag Comp |  Net Chg')
+        !   !write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (Maj)| Chg (Min)  |Partial Chg| Mag Comp |  Net Chg'
+        else
+           call yaml_comment('Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg')
+        !   !write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg'
+        end if
+        if (orbs%nspinor /= 4) then
+           call yaml_map('Center Quantities', &
+                & (/ msumiat(1),msumiat(2), msumiat(1)+msumiat(2), msumiat(1)-msumiat(2), &
+                & sumch-(msumiat(1)+msumiat(2)) /), fmt='(f7.4)')
+           !write(*,'(15x,a,2("|",1x,f8.5,1x),3(a,f8.5))')&
+           !     '  Center Quantities : ',&
+           !     (msumiat(ispin),ispin=1,2),'  | ',msumiat(1)+msumiat(2),'  | ',msumiat(1)-msumiat(2),' | ',&
+           !     sumch-(msumiat(1)+msumiat(2))
+        else
+           mtot(1)=mtot(1)+mi(1)
+           mtot(2)=mtot(2)+mi(2)
+           mtot(3)=mtot(3)+mi(3)
+           call yaml_map('Center Quantities', &
+                & (/ msumiat(1),msumiat(2), msumiat(1)+msumiat(2), mi(1), &
+                & sumch-(msumiat(1)+msumiat(2)), &
+                & mi(2), mi(3) /), fmt='(f7.4)')
+           !write(*,'(15x,a,2("|",1x,f8.5,1x),3(a,f8.5))')&
+           !     '  Center Quantities : ',&
+           !     (msumiat(ispin),ispin=1,2),'  | ',msumiat(1)+msumiat(2),'  | ', mi(1),' | ',&
+           !     sumch-(msumiat(1)+msumiat(2))
+           !write(*,'(t74,a,f8.5,a)')'| ', mi(2),' | '
+           !write(*,'(t74,a,f8.5,a)')'| ', mi(3),' | '
+        end if
+     end if
      msum=msum+msumiat(1)+msumiat(2)
-     if (iproc == 0) write(*,'(1x,a)')repeat('-',93)
+     !if (iproc == 0) write(*,'(1x,a)')repeat('-',93)
+ !    call yaml_close_map()
   end do
 
-  if (iproc == 0) write(*,'(13x,a,f21.12)')'    Total Charge considered on the centers: ',msum
-  
+  if (iproc==0)call yaml_close_sequence()
+
+  if (iproc == 0) then
+     call yaml_map('Total Charge considered on the centers',msum,fmt='(f21.12)')
+     if (orbs%nspinor==4) call yaml_map('Projected Magnetic density orientation',mtot,fmt='(f9.5)')
+     !write(*,'(8x,a,f21.12)')'    Total Charge considered on the centers: ',msum
+     !if (orbs%nspinor==4) write(*,'(7x,a,3(f9.5))')'    Projected Magnetic density orientation: ',mtot
+     
+  end if
   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
   i_all=-product(shape(mchg))*kind(mchg)
@@ -323,7 +392,6 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   deallocate(magn,stat=i_stat)
   call memocc(i_stat,i_all,'magn',subname)
 
-  
 END SUBROUTINE mulliken_charge_population
 
 
@@ -384,7 +452,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
 
       call MPI_GATHERV(work(1),(G%ncoeff+1)*orbs%norb_par(iproc,0),mpidtypw,&
          &   pdos(1,1),(G%ncoeff+1)*orbs%norb_par(:,0),(G%ncoeff+1)*norb_displ,mpidtypw,&
-         &   0,MPI_COMM_WORLD,ierr)
+         &   0,bigdft_mpi%mpi_comm,ierr)
 
       i_all=-product(shape(work))*kind(work)
       deallocate(work,stat=i_stat)
@@ -506,7 +574,8 @@ subroutine shell_name(l,m,name)
 
 END SUBROUTINE shell_name
 
-!>    Perform a total DOS output.
+
+!> Perform a total DOS output.
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
@@ -613,14 +682,14 @@ subroutine global_analysis(orbs,wf,occopt)
          end if
       end do
    end if
-  write(DOS, "(A)") "set samples 2500"
+   write(DOS, "(A)") "set samples 2500"
    write(DOS, "(A)") "set key bottom left"
    write(DOS, "(A)") 'set xlabel "Energy (eV)"'
-  write(DOS, "(A)") 'set ylabel "States per unit cell per eV"'
-  !write(DOS, "(A)") 'set ylabel "Electrons per unit cell per eV"'
-  write(DOS, "(A,F12.6,A,F12.6,A)") "set arrow from ", orbs%efermi*Ha_eV , &
+   write(DOS, "(A)") 'set ylabel "States per unit cell per eV"'
+   !write(DOS, "(A)") 'set ylabel "Electrons per unit cell per eV"'
+   write(DOS, "(A,F12.6,A,F12.6,A)") "set arrow from ", orbs%efermi*Ha_eV , &
        & ",graph 0.95 to ", orbs%efermi*Ha_eV , ",graph 0.05 lt 0"
-  write(DOS, "(A,F12.6,A)") "set label at  ", orbs%efermi*Ha_eV , &
+   write(DOS, "(A,F12.6,A)") "set label at  ", orbs%efermi*Ha_eV , &
        & ",graph 0.96  center 'E_f'"
    write(DOS, "(A,F12.8,A,F12.8,A)")  "plot [", minE-0.1*(maxE-minE) , &
       &   ":", maxE+0.1*(maxE-minE) , "] " // char(92)

@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>    Calculte the ionic contribution to the energy and the forces
+!> Calculte the ionic contribution to the energy and the forces
 subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,psoffset,n1,n2,n3,&
      & n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
@@ -16,6 +16,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   use module_types
   use Poisson_Solver
   use vdwcorrection
+  use yaml_output
   implicit none
   type(atoms_data), intent(in) :: at
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,dispersion
@@ -31,16 +32,17 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   character(len=*), parameter :: subname='IonicEnergyandForces'
   logical :: slowion=.false.
   logical :: perx,pery,perz,gox,goy,goz
-  integer :: iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
+  integer :: i,iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
   real(gp) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
   real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod
-  real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart
+  real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart,de
   !real(gp) :: Mz,cmassy
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
   real(gp), dimension(:,:), allocatable :: fewald,xred
+  real(gp), dimension(3) :: cc
 
   allocate(fion(3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fion,'fion',subname)
@@ -410,8 +412,8 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
 
      end do
 
-     if (pkernel%nproc > 1) then
-        call mpiallred(fion(1,1),3*at%nat,MPI_SUM,pkernel%mpi_comm,ierr)
+     if (pkernel%mpi_env%nproc > 1) then
+        call mpiallred(fion(1,1),3*at%nat,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
      end if
 
      !if (iproc ==0) print *,'eion',eion,psoffset,shortlength
@@ -419,20 +421,28 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   end if
 
   ! Add contribution from constant electric field to the forces
+  call center_of_charge(at,rxyz,cc)
   do iat=1,at%nat
      ityp=at%iatype(iat)
      charge=real(at%nelpsp(ityp),gp)
      fion(1:3,iat)=fion(1:3,iat)+(charge*elecfield(1:3))
      !ry=rxyz(2,iat) 
      !eion=eion-(charge*elecfield)*ry
-     eion=eion-charge*sum(elecfield(1:3)*rxyz(1:3,iat))
+     de=0.0_gp
+     do i=1,3
+        de=de+elecfield(i)*(rxyz(i,iat)-cc(i))
+     end do
+     !eion=eion-charge*sum(elecfield(1:3)*rxyz(1:3,iat))
+     eion=eion-charge*de
   enddo
 
   if (iproc == 0) then
      if(all(elecfield(1:3)==0._gp)) then 
-           write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
+     !      write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
+        call yaml_map('Ion-Ion interaction energy',eion,fmt='(1pe22.14)')
      else 
-           write(*,'(1x,a,1pe22.14)') 'ion-ion and ion-electric field interaction energy',eion
+     !      write(*,'(1x,a,1pe22.14)') 'ion-ion and ion-electric field interaction energy',eion
+        call yaml_map('Ion-electric field interaction energy',eion,fmt='(1pe22.14)')
      endif
   end if
 
@@ -440,6 +450,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   call vdwcorrection_calculate_energy(edisp,rxyz,at,dispersion,iproc)
   call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion) 
 END SUBROUTINE IonicEnergyandForces
+
 
 subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift, &
      & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset)
@@ -494,10 +505,13 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
      call memocc(i_stat,i_all,'counter_ions',subname)
   end if
 END SUBROUTINE createEffectiveIonicPotential
+
+
 subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
   use module_base
   use module_types
+  use yaml_output
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver
   implicit none
@@ -605,11 +619,11 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
   !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
 
-  if (pkernel%nproc > 1) then
+  if (pkernel%mpi_env%nproc > 1) then
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_comm,ierr)
+     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
 
      tt_tot=charges_mpi(1)
      rholeaked_tot=charges_mpi(2)
@@ -619,10 +633,12 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   end if
 
   if (verb) then
-     write(*,'(1x,a)')&
-          '----------------------------------------------------------- Ionic Potential Creation'
-     write(*,'(1x,a,f26.12,2x,1pe10.3)') &
-          'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
+     call yaml_comment('Ionic Potential Creation',hfill='-')
+     call yaml_map('Total ionic charge',tt_tot,fmt='(f26.12)')
+     if (rholeaked_tot /= 0.0_gp) call yaml_map('Leaked charge',rholeaked_tot,fmt='(1pe10.3)')
+     !write(*,'(1x,a)')&
+     !     '----------------------------------------------------------- Ionic Potential Creation'
+     !write(*,'(1x,a,f26.12,2x,1pe10.3)') 'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
      quiet = "no "
   else
      quiet = "yes"
@@ -633,15 +649,14 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      !here the value of the datacode must be kept fixed
      !n(c) nspin=1
 
-     !if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+     !if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_env%mpi_comm,ierr)
 
      call H_potential('D',pkernel,pot_ion,pot_ion,ehart,-psoffset,.false.,quiet=quiet)
 
      call timing(iproc,'CrtLocPot     ','ON')
      
      if (check_potion) then
-        if (iproc == 0) write(*,'(1x,a)',advance='no') &
-             'Check the ionic potential...'
+        !if (iproc == 0) write(*,'(1x,a)',advance='no') 'Check the ionic potential...'
           
         allocate(potion_corr(n1i*n2i*n3pi+ndebug),stat=i_stat)
         call memocc(i_stat,potion_corr,'potion_corr',subname)
@@ -679,9 +694,10 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
            end do
         end do
 
-        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_comm,ierr)
+        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm,ierr)
 
-        if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
+        if (iproc == 0) call yaml_map('Check the ionic potential',maxdiff,fmt='(1pe24.17)')
+        !if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
 
         stop
 
@@ -804,8 +820,9 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
           'Only normal constant electric field (Ex=Ez=0) is allowed for Surface BC.'
      stop
      end if
-     if (verb) write(*,'(1x,a,"(",es10.2,", ",es10.2,", ",es10.2,") ", a)') &
-          'Constant electric field ',elecfield(1:3),' Ha/Bohr'
+     if (verb) call yaml_map('Constant electric field (Ha/Bohr)',elecfield(1:3),fmt='(es10.2)')
+     !if (verb) write(*,'(1x,a,"(",es10.2,", ",es10.2,", ",es10.2,") ", a)') &
+     !     'Constant electric field ',elecfield(1:3),' Ha/Bohr'
 !or         'Parabolic confining potential: rprb=',elecfield,&
 !           ';  v_conf(r)= 1/(2*rprb**4) * r**2'
 
@@ -861,8 +878,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 END SUBROUTINE createIonicPotential
 
 
-!>   Determine the index in which the potential must be inserted, following the BC
-!!   Determine also whether the index is inside or outside the box for free BC
+!> Determine the index in which the potential must be inserted, following the BC
+!! Determine also whether the index is inside or outside the box for free BC
 subroutine ind_positions(periodic,i,n,j,go)
   implicit none
   logical, intent(in) :: periodic
@@ -968,12 +985,14 @@ subroutine ext_buffers(periodic,nl,nr)
 END SUBROUTINE ext_buffers
 
 
+!> Read and initialize counter-ions potentials (read psp files)
 subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
   use module_base
   use module_types
   use module_interfaces, except_this_one => CounterIonPotential
   use Poisson_Solver
+  use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n3pi,i3s
@@ -1105,11 +1124,11 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   tt=tt*hxh*hyh*hzh
   rholeaked=rholeaked*hxh*hyh*hzh
 
-  if (pkernel%nproc > 1) then
+  if (pkernel%mpi_env%nproc > 1) then
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_comm,ierr)
+     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
 
      tt_tot=charges_mpi(1)
      rholeaked_tot=charges_mpi(2)
@@ -1131,8 +1150,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      call timing(iproc,'CrtLocPot     ','ON')
      
      if (check_potion) then
-        if (iproc == 0) write(*,'(1x,a)',advance='no') &
-             'Check the ionic potential...'
+        !if (iproc == 0) write(*,'(1x,a)',advance='no') 'Check the ionic potential...'
           
         allocate(potion_corr(grid%n1i*grid%n2i*n3pi+ndebug),stat=i_stat)
         call memocc(i_stat,potion_corr,'potion_corr',subname)
@@ -1170,9 +1188,10 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
            end do
         end do
 
-        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_comm,ierr)
+        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm,ierr)
 
-        if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
+        if (iproc == 0) call yaml_map('Check the ionic potential',maxdiff,fmt='(1pe24.17)')
+        !if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
 
         stop
 

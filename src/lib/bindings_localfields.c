@@ -126,6 +126,8 @@ BigDFT_LocalFields* bigdft_localfields_new(const BigDFT_Lzd *lzd,
   BigDFT_LocalFields *localfields;
   double self;
   gchar SICapproach[4] = "NO  ", rho_commun[3] = "DBL";
+  guint verb = 0;
+  guint igroup, ngroup, iproc_grp, nproc_grp, mpi_comm;
 
 #ifdef HAVE_GLIB
   localfields = BIGDFT_LOCALFIELDS(g_object_new(BIGDFT_LOCALFIELDS_TYPE, NULL));
@@ -145,8 +147,16 @@ BigDFT_LocalFields* bigdft_localfields_new(const BigDFT_Lzd *lzd,
     (localfields->data, &localfields->rhov_is, localfields->h, localfields->ni,
      &localfields->psoffset);
 
+  FC_FUNC_(system_initkernels, SYSTEM_INITKERNELS)(&verb, &iproc, &nproc,
+                                                   &lzd->parent.parent.geocode,
+                                                   in->data, localfields->data, 1);
+  GET_ATTR_DBL(localfields, LOCALFIELDS, pkernel,    PKERNEL);
+  GET_ATTR_DBL(localfields, LOCALFIELDS, pkernelseq, PKERNELSEQ);
+  FC_FUNC_(kernel_get_comm, KERNEL_GET_COMM)(localfields->pkernel, &igroup,
+                                             &ngroup, &iproc_grp, &nproc_grp,
+                                             &mpi_comm);
   FC_FUNC_(denspot_communications, DENSPOT_COMMUNICATIONS)
-    (&iproc, &nproc, &in->ixc, &in->nspin, &lzd->parent.parent.geocode,
+    (&iproc_grp, &nproc_grp, &in->ixc, &in->nspin, &lzd->parent.parent.geocode,
      SICapproach, localfields->dpbox, 1, 4);
   FC_FUNC_(density_descriptors, DENSITY_DESCRIPTORS)(&iproc, &nproc, &in->nspin,
                                                      &in->crmult, &in->frmult,
@@ -216,17 +226,11 @@ void bigdft_localfields_free(BigDFT_LocalFields *denspot)
   g_free(denspot);
 #endif
 }
-void bigdft_localfields_create_poisson_kernels(BigDFT_LocalFields *localfields,
-                                               const BigDFT_Lzd *lzd,
-                                               const BigDFT_Inputs *in,
-                                               guint iproc, guint nproc)
+void bigdft_localfields_create_poisson_kernels(BigDFT_LocalFields *localfields)
 {
   guint verb = 0;
   
-  FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)
-    (&iproc, &nproc, &verb, &lzd->parent.parent.geocode,in->data, localfields->data, 1);
-  GET_ATTR_DBL(localfields, LOCALFIELDS, pkernel,    PKERNEL);
-  GET_ATTR_DBL(localfields, LOCALFIELDS, pkernelseq, PKERNELSEQ);
+  FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)(localfields->data, &verb);
 }
 void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
                                                    const BigDFT_Lzd *lzd,
@@ -243,3 +247,32 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
   
   bigdft_localfields_emit_v_ext(denspot);
 }
+#ifdef HAVE_GLIB
+/**
+ * bigdft_localfields_get_field:
+ * @denspot:
+ * @id:
+ *
+ * Returns: (transfer full) (element-type double):
+ */
+GArray* bigdft_localfields_get_field(BigDFT_LocalFields *denspot, BigDFT_DensPotIds id)
+{
+  GArray* arr;
+  guint nele;
+
+  nele = denspot->ni[0] * denspot->ni[1] * denspot->ni[2];
+  arr = g_array_sized_new(FALSE, FALSE, sizeof(double), nele);
+  arr = g_array_set_size(arr, nele);
+  switch (id)
+    {
+    case BIGDFT_DENSPOT_DENSITY:
+      memcpy(arr->data, denspot->rhov, sizeof(double) * nele);
+      break;
+    case BIGDFT_DENSPOT_V_EXT:
+      memcpy(arr->data, denspot->v_ext, sizeof(double) * nele);
+      break;
+    }
+  return arr;
+}
+#endif
+

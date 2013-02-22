@@ -39,7 +39,7 @@ subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
 !     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
 !   enddo
 !   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-!        MPI_MAX,MPI_COMM_WORLD,ierr)
+!        MPI_MAX,bigdft_mpi%mpi_comm,ierr)
 
 
   if (orbs%norbp >0) ikpt=orbs%iokpt(1)
@@ -138,14 +138,14 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr !< used in the linear scaling but also for the cubic case
   !local variables
   character(len=*), parameter :: subname='preconditionall2'
-  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,it,i_all,i_stat,ierr,jproc
+  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,i_all,i_stat,ierr,jproc
   real(wp) :: cprecr,scpr,evalmax,eval_zero,gnrm_orb
   real(gp) :: kx,ky,kz
 !!$  integer :: i_stat,i_all,ispinor,nbox
 !!$  real(gp) :: eh
 !!$  real(wp), dimension(:,:), allocatable :: hpsir
 !!$  type(coulomb_operator) :: kernel
-  real(wp), dimension(:,:), allocatable :: gnrm_per_orb
+!!$  real(wp), dimension(:,:), allocatable :: gnrm_per_orb
 !!$  type(workarr_sumrho) :: w
   integer, dimension(:,:), allocatable :: ncntdsp
   real(wp), dimension(:), allocatable :: gnrms,gnrmp
@@ -164,7 +164,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
 !     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
 !   enddo
 !   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-!        MPI_MAX,MPI_COMM_WORLD,ierr)
+!        MPI_MAX,bigdft_mpi%mpi_comm,ierr)
 
   !prepare the arrays for the 
   if (verbose >=3) then
@@ -261,10 +261,10 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
            !write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2,ilr
            gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         end if
-        if (verbose.ge.3) then
+        if (verbose >= 3) then
            gnrm_orb=gnrm_orb+scpr
            if (inds+ncplx-1==orbs%nspinor) gnrmp(iorb)=gnrm_orb
-           !write(*,*) 'iorb,gnrm,ilr',orbs%isorb+iorb,scpr,ilr,gnrm_orb
+           !write(*,*) 'iorb,gnrm,ilr',orbs%isorb+iorb,scpr,ilr,gnrm_orb,iproc
         end if
 
        if (scpr /= 0.0_wp) then
@@ -289,8 +289,8 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
 
            else !normal preconditioner
               !case active only in the linear scaling case
-              if(confdatarr(iorb)%prefac > 0.0_gp)then
-                 call yaml_map('Localizing preconditioner factor',confdatarr(iorb)%prefac)
+              if(confdatarr(iorb)%prefac > 0.0_gp .or. confdatarr(iorb)%potorder > 0)then
+              !   call yaml_map('Localizing preconditioner factor',confdatarr(iorb)%prefac)
                  call solvePrecondEquation(iproc,nproc,Lzd%Llr(ilr),ncplx,ncong,&
                       cprecr,&
                       hx,hy,hz,kx,ky,kz,hpsi(1+ist),&
@@ -308,7 +308,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
            end if
 
        end if
-       !print *,'iorb,gradient',iorb,scpr,nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1)!,eh
+!       print *,'iorb,gradient',iorb,scpr,nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1)!,eh
        ist = ist + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*ncplx
 !     print *,iorb,inds,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds,iorb),1,hpsi(1,inds,iorb),1)
 !     print *,iorb,inds+1,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds+1,iorb),1,hpsi(1,inds+1,iorb),1)
@@ -333,7 +333,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
      !root mpi task collects the data
      if (nproc > 1) then
         call MPI_GATHERV(gnrmp(1),orbs%norbp,mpidtypw,gnrms(1),ncntdsp(1,1),&
-             ncntdsp(1,2),mpidtypw,0,MPI_COMM_WORLD,ierr)
+             ncntdsp(1,2),mpidtypw,0,bigdft_mpi%mpi_comm,ierr)
      else
         call vcopy(orbs%norb*orbs%nkpts,gnrmp(1),1,gnrms(1),1)
      end if
@@ -410,7 +410,6 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
-
   call precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal)
 
   rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
@@ -426,7 +425,7 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 
 
   do icong=1,ncong 
-     !write(*,*)icong,rmr_new
+!     write(*,*)'hello',icong,rmr_new
 
      call precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal)! b:=Ad
 
@@ -1263,7 +1262,7 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
 
   ! coarse part
   !$omp parallel default(shared)&
-  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i)
+  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i1,i0,i)
   !$omp do !!!!schedule(static,1)
   do iseg=1,nseg_c
      jj=keyv_c(iseg)
@@ -1396,6 +1395,18 @@ END SUBROUTINE precond_proper
 
 !> Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !! hpsi is the right hand side on input and the solution on output
+!!
+!! The input guess consists of diagonal preconditioning of the original gradient.
+!! In contrast to older version, not only the wavelet part and the scfunction
+!! part are multiplied by different factors, but the scfunction part is 
+!! subjected to wavelet analysis with periodic boundaries. Then the wavelets
+!! on different scales are multiplied by different factors and backward wavelet 
+!! transformed to scaling functions.
+!!
+!! The new input guess is turned on if the parameter INGUESS_ON
+!! has value .TRUE.
+!! @warning
+!!  This routine is sensitive in OpenMP versus the number of threads.
 subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
@@ -1423,18 +1434,6 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   real(wp), dimension(:,:,:,:), allocatable :: xpsig_f,ypsig_f
   real(wp), dimension(:,:,:), allocatable :: xpsig_c,ypsig_c,x_f1,x_f2,x_f3
 
-
-  ! The input guess consists of diagonal preconditioning of the original gradient.
-  ! In contrast to older version, not only the wavelet part and the scfunction
-  ! part are multiplied by different factors, but the scfunction part is 
-  ! subjected to wavelet analysis with periodic boundaries. Then the wavelets
-  ! on different scales are multiplied by different factors and backward wavelet 
-  ! transformed to scaling functions.
-  !
-  ! The new input guess is turned on if the parameter INGUESS_ON
-  ! has value .TRUE.
-  ! 
-  
   allocate(rpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
   call memocc(i_stat,rpsi,'rpsi',subname)
   allocate(ppsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
@@ -1549,7 +1548,10 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
      alpha1=0.0_wp 
      alpha2=0.0_wp
- 
+
+     !!@warning
+     !!This section is very sensitive versus the number of threads
+
      !$omp parallel default(shared)&   !*
      !$omp private(i,aa1,aa2)
      aa1=0.0_wp

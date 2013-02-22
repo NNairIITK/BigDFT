@@ -1,5 +1,4 @@
 ---
-  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
  Code logo:
          TTTT         F       DDDDD
         T    T               D
@@ -25,15 +24,19 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.15
- Timestamp of this run                 : 2012-08-03 23:20:08.612
- Root process Hostname                 : athelas
+ Version Number                        : 1.7-dev.23
+ Timestamp of this run                 : 2013-02-03 18:12:34.748
+ Root process Hostname                 : localhost
+ Number of MPI tasks                   :  1
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  4
  #... (file:Xabsb2B.perf)................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
- #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU)                           
+ #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
+ #|OCL_platform                 Chosen OCL platform                                          
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -47,7 +50,7 @@
  #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
  #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
  #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
- #|tolsym -1.00E+00             Tolerance for symmetry detection                             
+ #|tolsym  1.00E-08             Tolerance for symmetry detection                             
  #|signaling F                  Expose calculation results on Network                        
  #|signalTimeout 0              Time out on startup for signal connection                    
  #|domain                       Domain to add to the hostname to find the IP                 
@@ -92,27 +95,58 @@
  #|0.0001 0.0000 0.0000  1.0 K-pt coords, K-pt weigth                                        
  #|0.4999 0.4999 0.4999  1.0 K-pt coords, K-pt weigth                                        
   #--------------------------------------------------------------------------------------- |
- Data Writing directory                : .//data-Xabsb2B/
+ Data Writing directory                : ./data-Xabsb2B/
+  #------------------------------------------------- Input Atomic System (file: Xabsb2B.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  1
+   Number of atoms                     :  1
+   Types of atoms                      :  [ Fe ]
+   Boundary Conditions                 : Periodic #Code: P
+   Box Sizes (AU)                      :  [  2.26767E+01,  2.26767E+01,  2.26767E+01 ]
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #---------------------------- Geometry optimization Input Parameters (file: Xabsb2B.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
+  #------------------- K points description (Reduced and Brillouin zone coordinates, Weight)
+  #WARNING: symmetries have been disabled, k points are not irreductible.
+ K points:
+ -  {Rc:  [  0.0001,  0.0000,  0.0000 ], Bz:  [  0.0000,  0.0000,  0.0000 ], Wgt:  0.5000} # 0001
+ -  {Rc:  [  0.4999,  0.4999,  0.4999 ], Bz:  [  0.1385,  0.1385,  0.1385 ], Wgt:  0.5000} # 0002
+ Material acceleration                 :  No #iproc=0
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
      XC ID                             :  &ixc  1
-     Name                              : "XC: Teter 93"
+     Exchange-Correlation reference    : "XC: Teter 93"
+     XC functional implementation      : ABINIT
+     Spin polarization                 :  No
  Basis set definition:
    Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
    Coarse and Fine Radii Multipliers   :  [  20.0,  9.0 ]
- Ground State Optimization:
+ Self-Consistent Cycle Parameters:
    Wavefunction:
      Gradient Norm Threshold           :  &gnrm_cv  2.0E-04
      CG Steps for Preconditioner       :  6
      DIIS History length               :  0
      Max. Wfn Iterations               :  &itermax  50
      Max. Subspace Diagonalizations    :  10
+     Input wavefunction policy         : LCAO # 0
+     Output wavefunction policy        : none # 0
+     Output grid policy                : none # 0
+     Output grid format                : text # 0
+     Virtual orbitals                  :  0
+     Number of plotted density orbitals:  0
    Density/Potential:
      Max. Iterations                   :  1
   #----------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
- - Symbol                              : Fe #--------------------------------- Type No.  01
+ - Symbol                              : Fe #Type No.  01
    No. of Electrons                    :  16
    No. of Atoms                        :  1
    Radii of active regions (AU):
@@ -122,7 +156,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.56
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.36000
      Coefficients (c1 .. c4)           :  [  5.39251, -0.03007,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -130,37 +164,37 @@
      Rloc                              :  0.26927
      h_ij matrix:
      -  [  10.19372,  2.64718,  0.00000 ]
-     -  [  2.64718, -6.83498, -0.00000 ]
-     -  [  0.00000, -0.00000,  0.00000 ]
+     -  [  2.64718, -6.83498,  0.00000 ]
+     -  [  0.00000,  0.00000,  0.00000 ]
    - Channel (l)                       :  1
      Rloc                              :  0.24769
      h_ij matrix:
      -  [  0.14561,  2.21217,  0.00000 ]
-     -  [  2.21217, -5.23495, -0.00000 ]
-     -  [  0.00000, -0.00000,  0.00000 ]
+     -  [  2.21217, -5.23495,  0.00000 ]
+     -  [  0.00000,  0.00000,  0.00000 ]
    - Channel (l)                       :  2
      Rloc                              :  0.22302
      h_ij matrix:
-     -  [ -12.02694, -0.00000,  0.00000 ]
-     -  [ -0.00000,  0.00000, -0.00000 ]
-     -  [  0.00000, -0.00000,  0.00000 ]
+     -  [ -12.02694,  0.00000,  0.00000 ]
+     -  [  0.00000,  0.00000,  0.00000 ]
+     -  [  0.00000,  0.00000,  0.00000 ]
    No. of projectors                   :  13
    PSP XC                              : "XC: Teter 93"
-  #---------------------------------------------------------------------- Occupation numbers
+  #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  16
  Spin treatment                        : Averaged
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  8
-   Orbitals No. 1- 8                   :  2.0000
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  8
-   Orbitals No. 1- 8                   :  2.0000
+ Total Number of Orbitals              :  8
+ Occupation numbers coming from        : System properties
+ Input Occupation Numbers:
+    #Kpt #0001  BZ coord. =  [  0.000028,  0.000000,  0.000000 ]
+ - Occupation Numbers: {Orbitals No. 1-8:  2.0000}
+    #Kpt #0002  BZ coord. =  [  0.138511,  0.138511,  0.138511 ]
+ - Occupation Numbers: {Orbitals No. 1-8:  2.0000}
   #-------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
  - Fe: {AU:  [  11.338,  11.338,  11.338 ], GU:  [  27.000,  27.000,  27.000 ]} # 0001
- Rigid Shift Applied (AU)              :  [ -0.0000, -0.0000, -0.0000 ]
+ Rigid Shift Applied (AU)              :  [  0.0000,  0.0000,  0.0000 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4199,  0.4199,  0.4199 ]
  Sizes of the simulation domain:
    AU                                  :  [  22.677,  22.677,  22.677 ]
@@ -177,6 +211,12 @@
    Fine resolution grid:
      No. of segments                   :  69
      No. of points                     :  461
+ Direct and transposed data repartition:
+   Process 0:
+     Orbitals and Components           :  [  2,  321382 ]
+     Distribution: [ #Orbitals: [From, To], Components: [From, To]
+       Kpt 0001: [Orbitals:  [  1,  1 ], Components:  [  1,  160691 ]], 
+       Kpt 0002: [Orbitals:  [  1,  1 ], Components:  [  1,  160691 ]]]
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  13
@@ -197,19 +237,30 @@
    Poisson Solver                      : 89.355
    Hamiltonian application             : 98.981
  Estimated Memory Peak (MB)            :  98
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  1
-   OpenMP threads per task             :  2
+   OpenMP threads per MPI task         :  4
  Poisson Kernel Creation:
    Boundary Conditions                 : Periodic
    Memory Requirements per MPI task:
      Density (MB)                      :  9.61
      Kernel (MB)                       :  1.27
      Full Grid Arrays (MB)             :  9.61
+ Ion-Ion interaction energy            : -1.59920646116928E+01
+  #---------------------------------------------------------------- Ionic Potential Creation
+ Total ionic charge                    : -16.000000000000
  Poisson Solver:
    BC                                  : Periodic
    Box                                 :  [  108,  108,  108 ]
    MPI tasks                           :  1
+ Direct and transposed data repartition:
+   Process 0:
+     Orbitals and Components           :  [  2,  321382 ]
+     Distribution: [ #Orbitals: [From, To], Components: [From, To]
+       Kpt 0001: [Orbitals:  [  1,  1 ], Components:  [  1,  160691 ]], 
+       Kpt 0002: [Orbitals:  [  1,  1 ], Components:  [  1,  160691 ]]]
+  #DEALLOCATING
  Memory Consumption Report:
    Tot. No. of Allocations  : 2589
    Tot. No. of Deallocations: 2589

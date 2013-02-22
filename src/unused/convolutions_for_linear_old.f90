@@ -755,7 +755,7 @@ end subroutine getFilterSextic
 !!!!        istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
 !!!!        iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
 !!!!
-!!!!        if (istart-iend.ge.4) then
+!!!!        if (iend-istart.ge.4) then
 !!!!           do i1=istart,iend-4,4
 !!!!              dyi0=0.0_wp
 !!!!              dyi1=0.0_wp
@@ -891,7 +891,7 @@ end subroutine getFilterSextic
 !!!!        istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
 !!!!        iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
 !!!!
-!!!!        if (istart-iend.ge.4) then
+!!!!        if (iend-istart.ge.4) then
 !!!!           do i2=istart,iend-4,4
 !!!!              dyi0=0.0_wp
 !!!!              dyi1=0.0_wp
@@ -1030,7 +1030,7 @@ end subroutine getFilterSextic
 !!!!        istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
 !!!!        iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
 !!!!
-!!!!        if (istart-iend.ge.4) then
+!!!!        if (iend-istart.ge.4) then
 !!!!           do i3=istart,iend-4,4
 !!!!              dyi0=0.0_wp
 !!!!              dyi1=0.0_wp
@@ -1586,7 +1586,7 @@ end subroutine getFilterSextic
 !!!        istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
 !!!        iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
 !!!
-!!!        if (istart-iend.ge.4) then
+!!!        if (iend-istart.ge.4) then
 !!!           do i1=istart,iend-4,4
 !!!              dyi0=0.0_wp
 !!!              dyi1=0.0_wp
@@ -1722,7 +1722,7 @@ end subroutine getFilterSextic
 !!!        istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
 !!!        iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
 !!!
-!!!        if (istart-iend.ge.4) then
+!!!        if (iend-istart.ge.4) then
 !!!           do i2=istart,iend-4,4
 !!!              dyi0=0.0_wp
 !!!              dyi1=0.0_wp
@@ -1861,7 +1861,7 @@ end subroutine getFilterSextic
 !!!        istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
 !!!        iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
 !!!
-!!!        if (istart-iend.ge.4) then
+!!!        if (iend-istart.ge.4) then
 !!!           do i3=istart,iend-4,4
 !!!              dyi0=0.0_wp
 !!!              dyi1=0.0_wp
@@ -2606,7 +2606,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
           istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
           iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
   
-          if (istart-iend.ge.4) then
+          if (iend-istart.ge.4) then
              do i1=istart,iend-4,4
                 dyi0=0.0_wp
                 dyi1=0.0_wp
@@ -2939,7 +2939,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
           istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
           iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
   
-          if (istart-iend.ge.4) then
+          if (iend-istart.ge.4) then
              do i2=istart,iend-4,4
                 dyi0=0.0_wp
                 dyi1=0.0_wp
@@ -3256,7 +3256,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
         istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
         iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i3=istart,iend-4,4
               dyi0=0.0_wp
               dyi1=0.0_wp
@@ -4227,7 +4227,7 @@ END SUBROUTINE ConvolQuartic4
 !!!!          istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
 !!!!          iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
 !!!!  
-!!!!          if (istart-iend.ge.4) then
+!!!!          if (iend-istart.ge.4) then
 !!!!             do i1=istart,iend-4,4
 !!!!                dyi0=0.0_wp
 !!!!                dyi1=0.0_wp
@@ -4685,7 +4685,7 @@ END SUBROUTINE ConvolQuartic4
 !!!!          istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
 !!!!          iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
 !!!!  
-!!!!          if (istart-iend.ge.4) then
+!!!!          if (iend-istart.ge.4) then
 !!!!             do i2=istart,iend-4,4
 !!!!                dyi0=0.0_wp
 !!!!                dyi1=0.0_wp
@@ -5125,7 +5125,7 @@ END SUBROUTINE ConvolQuartic4
 !!!!        istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
 !!!!        iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
 !!!!
-!!!!        if (istart-iend.ge.4) then
+!!!!        if (iend-istart.ge.4) then
 !!!!           do i3=istart,iend-4,4
 !!!!              dyi0=0.0_wp
 !!!!              dyi1=0.0_wp
@@ -6533,7 +6533,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
           istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
           iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
   
-          if (istart-iend.ge.4) then
+          if (iend-istart.ge.4) then
              do i1=istart,iend-4,4
                 dyi0=0.0_wp
                 dyi1=0.0_wp
@@ -7284,7 +7284,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
           istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
           iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
   
-          if (istart-iend.ge.4) then
+          if (iend-istart.ge.4) then
              do i2=istart,iend-4,4
                 dyi0=0.0_wp
                 dyi1=0.0_wp
@@ -7977,7 +7977,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
         istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
         iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i3=istart,iend-4,4
               dyi0=0.0_wp
               dyi1=0.0_wp
@@ -9185,7 +9185,7 @@ end do
         istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
         iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i1=istart,iend-4,4
               dyi0=0.0_wp
               dyi1=0.0_wp
@@ -9321,7 +9321,7 @@ end do
         istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
         iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i2=istart,iend-4,4
               dyi0=0.0_wp
               dyi1=0.0_wp
@@ -9460,7 +9460,7 @@ end do
         istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
         iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i3=istart,iend-4,4
               dyi0=0.0_wp
               dyi1=0.0_wp

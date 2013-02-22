@@ -72,11 +72,11 @@ endif
 
 # Additional sources.
 # ------------------
-#if USE_BLACS
-#BLACS_MODULES = 
-#else
+if USE_BLACS
+BLACS_MODULES = 
+else
 BLACS_MODULES = modules/blacs_fake.f90
-#endif
+endif
 
 EXTRA_DIST += CUDA/precond.cu \
 	CUDA/density.cu \
@@ -223,7 +223,7 @@ else
 minima_hopping_sources =
 endif
 global_SOURCES = # Should be global.f90, but see below.
-global_LDADD = @LIBS_DEPENDENCIES@
+global_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 # Hack to avoid global.f90 inclusion into make dist.
 am_global_OBJECTS = global.$(OBJEXT)
 global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
@@ -274,15 +274,19 @@ CONV_SOURCES += \
 #modules for types, interfaces and base variables
 modules_source = modules/base.f90 \
 	modules/defs.f90 \
+	modules/gaussians.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
 	modules/private_api.f90 \
 	modules/input.f90 \
+	modules/dictionaries.f90 \
+	modules/dynamic_memory.f90 \
 	modules/xc.f90 \
 	modules/op2p_module.f90 \
 	modules/BigDFT_API.f90 \
 	modules/vdwcorrection.f90 \
 	modules/yaml_output.f90 \
+	modules/yaml_strings.f90 \
 	$(CUDA_MODULES) \
 	$(LIBXC_MODULES) \
 	$(PS_MODULES) \
@@ -310,7 +314,8 @@ high_level = cluster.f90 \
 	scfloop_API.f90 \
 	esatto.f90 \
 	tddft.f90 \
-	output.f90
+	output.f90 \
+	external.f90
 
 #objects which can be compiled only with module_base
 low_level = \
@@ -328,10 +333,10 @@ low_level = \
 	init/gautowav.f90 \
 	init/eleconf.f90 \
 	init/pspconf.f90 \
-	init/locreg.f90 \
+	init/locreg_init.f90 \
 	init/sysprop.f90 \
 	init/wavefunctions.f90 \
-	init/gaussians.f90 \
+	init/gaussians_old.f90 \
 	init/wfn_init.f90 \
 	wfn_opt/precond.f90 \
 	wfn_opt/orthogonality.f90 \
@@ -377,7 +382,6 @@ low_level = \
 	linear/initAndUtils.f90 \
 	linear/sumrhoLinear.f90 \
 	linear/inputguessLinear.f90 \
-	linear/psitolocReg.f90 \
 	linear/orthonormality.f90 \
 	linear/orbitalOptimization.f90 \
 	linear/mixdiis.f90 \
@@ -389,8 +393,11 @@ low_level = \
 	linear/communicatePotential.f90 \
 	linear/hpsiortho_linear.f90 \
 	linear/init_collective_comms.f90 \
-	linear/communications_p2p.f90 \
 	linear/optimize_coeffs.f90 \
+	linear/foe.f90 \
+	linear/chebyshev.f90 \
+	linear/communications_onesided.f90 \
+        linear/sparse_matrices.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \
@@ -416,47 +423,47 @@ libbigdft_a_LIBADD = $(modules_objects)
 $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft.a libdft_common.a
 
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = @LIBS_DEPENDENCIES@
+bigdft_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 splsad_SOURCES = splinedsaddle.f90
-splsad_LDADD = @LIBS_DEPENDENCIES@
+splsad_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 #rism_SOURCES = rism.f90 rismlowlevel.f90
-#rism_LDADD = @LIBS_DEPENDENCIES@
+#rism_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 #sandbox_SOURCES = sandbox.f90
-#sandbox_LDADD = @LIBS_DEPENDENCIES@
+#sandbox_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 #oneatom_SOURCES = oneatom.f90
-#oneatom_LDADD = @LIBS_DEPENDENCIES@
+#oneatom_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
-BigDFT2Wannier_LDADD = @LIBS_DEPENDENCIES@
+BigDFT2Wannier_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 WaCo_SOURCES = WaCo.f90                                                                                                                                                                    
-WaCo_LDADD = @LIBS_DEPENDENCIES@
+WaCo_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 MDanalysis_SOURCES = distances.f90
-MDanalysis_LDADD = @LIBS_DEPENDENCIES@ 
+MDanalysis_LDADD = libbigdft.a @LIBS_DEPENDENCIES@ 
 
 abscalc_SOURCES = abscalc.f90
-abscalc_LDADD = @LIBS_DEPENDENCIES@
+abscalc_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = @LIBS_DEPENDENCIES@
+test_forces_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 NEB_SOURCES = NEB.f90
-NEB_LDADD = @LIBS_DEPENDENCIES@
+NEB_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 memguess_SOURCES = memguess.f90 MPIfake.f90
-memguess_LDADD = @LIBS_DEPENDENCIES@
+memguess_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = @LIBS_DEPENDENCIES@
+frequencies_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-bart_LDADD = art/libart.a @LIBS_DEPENDENCIES@
+bart_LDADD = art/libart.a libbigdft.a @LIBS_DEPENDENCIES@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* 
 
@@ -475,6 +482,8 @@ check:
 #dependencies
 $(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o distances.o global.o rism.o oneatom.o BigDFT2Wannier.o WaCo.o: $(mpi_include)  $(modules_objects)
 
+linear/convolutions_aux.o: linear/filterModule.o
+
 cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
 
 abscalc.o : esatto.o
@@ -483,4 +492,53 @@ lanczos.o : lanczos_base.o lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
+#initAndUtils.o: cleanup.o
+
 $(modules_objects) : $(mpi_include)
+
+
+# Introspection for Python bindings
+# ---------------------------------
+if WITH_GOBJECT_INTROSPECTION
+BUILT_GIRSOURCES = BigDFT-1.7.gir
+
+gir_DATA = $(BUILT_GIRSOURCES)
+typelibs_DATA = $(BUILT_GIRSOURCES:.gir=.typelib)
+
+libbigdft.so: $(modules_objects) $(libbigdft_a_OBJECTS)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -o $@ $^ @LIBS_SHORT_DEPS@
+
+$(gir_DATA): $(G_IR_SCANNER) libbigdft.so
+	$(G_IR_SCANNER) -v --warn-all \
+		--namespace BigDFT \
+		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ \
+		--symbol-prefix=f90 --identifier-prefix=f90_ \
+		--nsversion "1.7" \
+		--add-include-path=$(girdir) \
+		--include GObject-2.0 \
+		--include GLib-2.0 \
+		--include Gio-2.0 \
+		--output=$(gir_DATA) \
+	        --library=bigdft \
+		--no-libtool \
+		-DGLIB_MAJOR_VERSION=2 -L$(builddir) \
+		-I$(srcdir)/modules -I$(builddir)/modules \
+		$(srcdir)/modules/bigdft.h \
+		$(builddir)/modules/bigdft_cst.h \
+		$(srcdir)/lib/bindings.c \
+		$(srcdir)/lib/bindings_atoms.c \
+		$(srcdir)/lib/bindings_regions.c \
+		$(srcdir)/lib/bindings_localfields.c \
+		$(srcdir)/lib/bindings_wavefunctions.c \
+		$(srcdir)/lib/bindings_signals.c \
+		$(srcdir)/lib/bindings_signals_inet.c
+
+$(typelibs_DATA): $(gir_DATA) $(G_IR_COMPILER)
+	$(G_IR_COMPILER) \
+		--includedir=. \
+		--verbose \
+		-o $(typelibs_DATA) \
+		$(gir_DATA)
+
+CLEANFILES += $(gir_DATA) $(typelibs_DATA)
+endif

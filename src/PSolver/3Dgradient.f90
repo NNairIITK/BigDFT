@@ -1119,8 +1119,13 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
     call axpy(n1*n2*(n3grad+deltaleft),0.5_wp,rhocore(1,1,1,1),1,rhoinp(1,1,1,1),1)
     if (nspden==2) then
        if (n3grad /= n3) then
-          call axpy(n1*n2*(n3grad+deltaright),0.5_wp,rhocore(1,1,deltaleft+1,1),1,&
-               rhoinp(1,1,n3grad+deltaleft+1,1),1)
+          if (deltaright > 0) then
+             call axpy(n1*n2*(n3grad+deltaright),0.5_wp,rhocore(1,1,deltaleft+1,1),1,&
+                  rhoinp(1,1,n3grad+deltaleft+1,1),1)
+          else
+             call axpy(n1*n2*(n3grad+deltaright),0.5_wp,rhocore(1,1,deltaleft+1,1),1,&
+                  rhoinp(1,1,1,2),1)
+          end if
        else
           call axpy(n1*n2*n3,0.5_wp,rhocore(1,1,1,1),1,&
                rhoinp(1,1,1,2),1)

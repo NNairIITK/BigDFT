@@ -1369,7 +1369,7 @@ amu=180.9479d0
 
 case(74*1000+14)
 ! -----------------------         107
-! W           74          14     Symbol, Z, Zion
+   ! W           74          14     Symbol, Z, Zion
 symbol = "W"
 rcov=2.60d0
 rprb=5.20d0
@@ -1378,6 +1378,9 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(5,2)=4
 neleconf(6,0)=2
+neleconf(6,1)=1.d-18
+neleconf(6,2)=1.d-18
+neleconf(6,3)=1.d-18
 nsccode=12
 amu=183.85d0
 

@@ -365,7 +365,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
   ipsif=lr%wfd%nvctr_c+i_f
   isegf=lr%wfd%nseg_c+iseg_f
 
-    !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+    !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
   ekin=0.0_gp
   
   kstrten=0.0_wp
@@ -617,7 +617,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   iseg_f=min(1,lr%wfd%nseg_f)
 
   !call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
-  !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+  !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
   select case(lr%geocode)
   case('F')
      call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspinor,psir(1,1))
@@ -734,7 +734,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
   ipsif=lr%wfd%nvctr_c+i_f
   isegf=lr%wfd%nseg_c+iseg_f
 
-    !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+    !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
   ekin=0.0_gp
   
   kstrten=0.0_wp
@@ -1237,6 +1237,7 @@ END SUBROUTINE daub_to_isf
 !!   wavefunction in Daubechies form
 !!   does the job for all supported BC
 !!   Warning: the psir is destroyed for some BCs (slab and periodic)
+!!   Warning: psi must already be initialized (to zero) before entering this routine
 subroutine isf_to_daub(lr,w,psir,psi)
   !n(c) use module_base
   use module_types
@@ -1244,7 +1245,7 @@ subroutine isf_to_daub(lr,w,psir,psi)
   type(locreg_descriptors), intent(in) :: lr
   type(workarr_sumrho), intent(inout) :: w
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i), intent(inout) :: psir
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(out) :: psi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(inout) :: psi
   !local variables
   integer :: i,i_f,iseg_f,isegf,ipsif
   real(wp), dimension(0:3) :: scal

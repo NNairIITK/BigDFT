@@ -15,6 +15,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      proj,psi,output_denspot,ekin_sum,epot_sum,eproj_sum)
   use module_base
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => CalculateTailCorrection
   implicit none
   type(atoms_data), intent(in) :: at
@@ -84,17 +85,23 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   alatb2=real(nb2,kind=8)*hgrid 
   alatb3=real(nb3,kind=8)*hgrid
 
-  if (iproc.eq.0) then
-     write(*,'(1x,a)')&
-          '---------------------------------------------- Estimation of Finite-Size Corrections'
-     write(*,'(1x,a,f6.3,a)') &
-          'F-S Correction for an effective space of ',rbuf,' AU more around each external atom'
-     write(*,'(1x,a,i6,a)') &
-          '                  requires the adding of ',nbuf,' additional grid points around cell'
-     write(*,'(1x,a,19x,a)') &
-          '   Effective box size,   Atomic Units:','grid spacing units:'
-     write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
-          '            ',alatb1,alatb2,alatb3,nb1,nb2,nb3
+  if (iproc == 0) then
+     call yaml_comment('Finite-Size correction',hfill='-')
+     call yaml_open_map('Estimation of Finite-Size Corrections')
+     call yaml_map('Effective AU space more around each external atom',rbuf,fmt='(f6.3)')
+     call yaml_map('Adding grid points around cell',nbuf)
+     call yaml_map('Effective box size (AU)', (/ alatb1,alatb2,alatb3 /), fmt='(1pe12.5)')
+     call yaml_map('Grid spacing units', (/ nb1,nb2,nb3 /))
+     !write(*,'(1x,a)')&
+     !     '---------------------------------------------- Estimation of Finite-Size Corrections'
+     !write(*,'(1x,a,f6.3,a)') &
+     !     'F-S Correction for an effective space of ',rbuf,' AU more around each external atom'
+     !write(*,'(1x,a,i6,a)') &
+     !     '                  requires the adding of ',nbuf,' additional grid points around cell'
+     !write(*,'(1x,a,19x,a)') &
+     !     '   Effective box size,   Atomic Units:','grid spacing units:'
+     !write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
+     !     '            ',alatb1,alatb2,alatb3,nb1,nb2,nb3
   end if
 
 
@@ -132,10 +139,13 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   ! fine grid size (needed for creation of input wavefunction, preconditioning)
   nbfl1=Glr%d%nfl1+nbuf ; nbfl2=Glr%d%nfl2+nbuf ; nbfl3=Glr%d%nfl3+nbuf
   nbfu1=Glr%d%nfu1+nbuf ; nbfu2=Glr%d%nfu2+nbuf ; nbfu3=Glr%d%nfu3+nbuf
-  if (iproc.eq.0) then
-     write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
-          '  Extremes for the new high resolution grid points:',&
-          nbfl1,'<',nbfu1,nbfl2,'<',nbfu2,nbfl3,'<',nbfu3
+  if (iproc == 0) then
+     call yaml_map('Extremes for the new high resolution grid points', &
+          & (/ nbfl1, nbfu1, nbfl2,nbfu2,nbfl3,nbfu3 /))
+
+     !write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
+     !     '  Extremes for the new high resolution grid points:',&
+     !     nbfl1,'<',nbfu1,nbfl2,'<',nbfu2,nbfl3,'<',nbfu3
   endif
 
   ! change atom coordinates according to the enlarged box
@@ -198,9 +208,13 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
        radii_cf(1,1),crmult,hgrid,hgrid,hgrid,logrid_c)
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,nvctrb_c)
 
-  if (iproc.eq.0) then
-     write(*,'(2(1x,a,i10))') &
-          'Coarse resolution grid: Number of segments= ',nsegb_c,'points=',nvctrb_c
+  if (iproc == 0) then
+     call yaml_open_map('Coarse resolution grid',flow=.true.)
+     call yaml_map('Segments',nsegb_c)
+     call yaml_map('Points',nsegb_c)
+     call yaml_close_map()
+     !write(*,'(2(1x,a,i10))') &
+     !     'Coarse resolution grid: Number of segments= ',nsegb_c,'points=',nvctrb_c
      !write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have coarse segment, elements',nsegb_c,nvctrb_c
   end if
   call make_bounds(nb1,nb2,nb3,logrid_c,ibbyz_c,ibbxz_c,ibbxy_c)
@@ -209,18 +223,24 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   call fill_logrid('F',nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,0,at%nat,at%ntypes,at%iatype,txyz, & 
        radii_cf(1,2),frmult,hgrid,hgrid,hgrid,logrid_f)
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
-  if (iproc.eq.0) then
-     write(*,'(2(1x,a,i10))') &
-          '  Fine resolution grid: Number of segments= ',nsegb_f,'points=',nvctrb_f
+  if (iproc == 0) then
+     !Bug in yaml_output solved
+     call yaml_open_map('Fine resolution grid',flow=.true.)
+     call yaml_map('Segments',nsegb_f)
+     call yaml_map('Points',nsegb_f)
+     call yaml_close_map()
+     !write(*,'(2(1x,a,i10))') &
+     !     '  Fine resolution grid: Number of segments= ',nsegb_f,'points=',nvctrb_f
      !write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have fine   segment, elements',nsegb_f,7*nvctrb_f
   end if
   call make_bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
 
 ! Create the file grid.xyz to visualize the grid of functions
   if (iproc ==0 .and. output_denspot) then
-     write(*,'(1x,a)')&
-          'Writing the file describing the new atomic positions of the effective system'
-     open(unit=22,file='grid_tail.xyz',status='unknown')
+     call yaml_comment('Writing the file describing the new atomic positions of the effective system')
+     !write(*,'(1x,a)')&
+     !     'Writing the file describing the new atomic positions of the effective system'
+     open(unit=22,file='grid_tail.xyz',status='unknown') !here the output directory can be passed
      write(22,*) nvctrb_c+nvctrb_f,' atomic' 
      write(22,*)'complete simulation grid for the tail correction'
      do iat=1,at%nat
@@ -295,26 +315,28 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
 
   ! allocations for arrays holding the wavefunction
-  !if (iproc.eq.0) &
+  !if (iproc == 0) &
   !     write(*,'(1x,a,i0)') 'Allocate words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
   allocate(psib(nvctrb_c+7*nvctrb_f+ndebug),stat=i_stat)
   call memocc(i_stat,psib,'psib',subname)
   allocate(hpsib(nvctrb_c+7*nvctrb_f+ndebug),stat=i_stat)
   call memocc(i_stat,hpsib,'hpsib',subname)
-  !if (iproc.eq.0) write(*,*) 'Allocation done'
+  !if (iproc == 0) write(*,*) 'Allocation done'
 
   ! work arrays applylocpotkin
   allocate(psir((2*nb1+31)*(2*nb2+31)*(2*nb3+31)+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
 
-  if (iproc.eq.0) then
-     write(*,'(1x,a,i0)') &
-          'Wavefunction memory occupation in the extended grid (Bytes): ',&
-          (nvctrb_c+7*nvctrb_f)*8
-     write(*,'(1x,a,i0,a)') &
-          'Calculating tail corrections on ',orbs%norbp,' orbitals per processor.'
-     write(*,'(1x,a)',advance='no') &
-          '     orbitals are processed separately'
+  if (iproc == 0) then
+     call yaml_map('Wavefunction memory occupation in the extended grid (Bytes):',(nvctrb_c+7*nvctrb_f)*8)
+     call yaml_comment('Calculating tail corrections, orbitals are processed separately')
+     !write(*,'(1x,a,i0)') &
+     !     'Wavefunction memory occupation in the extended grid (Bytes): ',&
+     !     (nvctrb_c+7*nvctrb_f)*8
+     !write(*,'(1x,a,i0,a)') &
+     !     'Calculating tail corrections on ',orbs%norbp,' orbitals per processor.'
+     !write(*,'(1x,a)',advance='no') &
+     !     '     orbitals are processed separately'
   end if
 
   nw1=max(2*(nb3+1)*(2*nb1+31)*(2*nb2+31),&   ! shrink convention: nw1>nw2
@@ -362,12 +384,12 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
      !build the compressed wavefunction in the enlarged box
      call transform_fortail(n1,n2,n3,nb1,nb2,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
-          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),&
-          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1),  &
-          nsegb_c,nvctrb_c,keyg(1,1),keyv(1),nsegb_f,nvctrb_f,&
-          keyg(1,nsegb_c+1),keyv(nsegb_c+1),&
-          nbuf,psi(1,iorb),psi(Glr%wfd%nvctr_c+1,iorb),  & 
-          x_c,x_f,psib(1),psib(nvctrb_c+1))
+        & Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc,Glr%wfd%keyvloc,&
+        & Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1),  &
+        & nsegb_c,nvctrb_c,keyg,keyv,nsegb_f,nvctrb_f,&
+        & keyg(1,nsegb_c+1),keyv(nsegb_c+1),&
+        & nbuf,psi(1,iorb),psi(Glr%wfd%nvctr_c+1,iorb),  & 
+        & x_c,x_f,psib(1),psib(nvctrb_c+1))
 
      !write(*,*) 'transform_fortail finished',iproc,iorb
 
@@ -457,8 +479,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 !!!          iorb,ekin-ekin1,epot-epot1,eproj-eproj1,tt,sum_tail-1.d0
 
      if (iproc == 0) then
-        write(*,'(a)',advance='no') &
-             repeat('.',((iorb+orbs%isorb)*40)/orbs%norbp-((iorb-1)*40)/orbs%norbp)
+        !write(*,'(a)',advance='no') &
+        !     repeat('.',((iorb+orbs%isorb)*40)/orbs%norbp-((iorb-1)*40)/orbs%norbp)
      end if
      ekin_sum=ekin_sum+ekin*orbs%occup(iorb+orbs%isorb)
      epot_sum=epot_sum+epot*orbs%occup(iorb+orbs%isorb)
@@ -467,7 +489,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   end do
 
   if (iproc == 0) then
-     write(*,'(1x,a)')'done.'
+     !write(*,'(1x,a)')'done.'
   end if
   call deallocate_orbs(orbsb,subname)
 
@@ -593,7 +615,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   call memocc(i_stat,i_all,'ibbyyzz_r',subname)
 
   if (nproc > 1) then
-     !if (iproc.eq.0) then
+     !if (iproc == 0) then
      !   write(*,'(1x,a,f27.14)')'Tail calculation ended'
      !endif
      allocate(wrkallred(3,2+ndebug),stat=i_stat)
@@ -602,7 +624,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      wrkallred(2,2)=epot_sum 
      wrkallred(3,2)=eproj_sum 
      call MPI_ALLREDUCE(wrkallred(1,2),wrkallred(1,1),3,&
-          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+          MPI_DOUBLE_PRECISION,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
      ekin_sum=wrkallred(1,1) 
      epot_sum=wrkallred(2,1) 
      eproj_sum=wrkallred(3,1)

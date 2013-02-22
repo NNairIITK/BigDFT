@@ -24,9 +24,10 @@ program memguess
    character(len=40) :: comment
    character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn
+   character(len=50) :: posinp
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.
-   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
+   integer :: ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
    integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,nspin_ig,ng,ncount0,ncount1,ncount_max,ncount_rate
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
@@ -309,11 +310,13 @@ program memguess
    !standard names
    call standard_inputfile_names(in, radical, 1)
 
+
    if (trim(radical) == "") then
-      call read_input_variables(0, "posinp", in, atoms, rxyz)
+      posinp='posinp'
    else
-      call read_input_variables(0, trim(radical), in, atoms, rxyz)
+      posinp=trim(radical)
    end if
+   call bigdft_set_input(radical, posinp,rxyz,in, atoms)
    !initialize memory counting
    !call memocc(0,0,'count','start')
 
@@ -335,7 +338,7 @@ program memguess
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-   call system_properties(0,nproc,in,atoms,orbs,radii_cf,nelec)
+   call system_properties(0,nproc,in,atoms,orbs,radii_cf)
 
    if (optimise) then
       if (atoms%geocode =='F') then
@@ -349,8 +352,9 @@ program memguess
       !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
    end if
 
-   !in the case in which the number of orbitals is not "trivial" check whether they are too many
-   if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .or. .true.) then
+   !In the case in which the number of orbitals is not "trivial" check whether they are too many
+   !Always True! (TD)
+   !if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .or. .true.) then
       ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
       allocate(scorb(4,2,atoms%natsc+ndebug),stat=i_stat)
       call memocc(i_stat,scorb,'scorb',subname)
@@ -387,29 +391,32 @@ program memguess
       deallocate(norbsc_arr,stat=i_stat)
       call memocc(i_stat,i_all,'norbsc_arr',subname)
 
-      ! Check the maximum number of orbitals
-      if (in%nspin==1 .or. in%nspin==4) then
-         if (orbs%norb>norbe) then
-            write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',orbs%norb,&
-               &   ') must not be greater than the number of orbitals (',norbe,&
-               &   ') generated from the input guess.'
-            stop
-         end if
-      else if (in%nspin == 2) then
-         if (orbs%norbu > norbe) then
-            write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',orbs%norbu,&
-               &   ') must not be greater than the number of orbitals (',norbe,&
-               &   ') generated from the input guess.'
-            stop
-         end if
-         if (orbs%norbd > norbe) then
-            write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',orbs%norbd,&
-               &   ') must not be greater than the number of orbitals (',norbe,&
-               &   ') generated from the input guess.'
-            stop
+      if (in%inputpsiId /= INPUT_PSI_RANDOM) then
+         ! Check the maximum number of orbitals
+         if (in%nspin==1 .or. in%nspin==4) then
+            if (orbs%norb>norbe) then
+               write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',orbs%norb,&
+                  &   ') must not be greater than the number of orbitals (',norbe,&
+                  &   ') generated from the input guess.'
+               stop
+            end if
+         else if (in%nspin == 2) then
+            if (orbs%norbu > norbe) then
+               write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',orbs%norbu,&
+                  &   ') must not be greater than the number of orbitals (',norbe,&
+                  &   ') generated from the input guess.'
+               stop
+            end if
+            if (orbs%norbd > norbe) then
+               write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',orbs%norbd,&
+                  &   ') must not be greater than the number of orbitals (',norbe,&
+                  &   ') generated from the input guess.'
+               stop
+            end if
          end if
       end if
-   end if
+
+   !end if
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
@@ -607,6 +614,9 @@ program memguess
 
    ! De-allocations
    call deallocate_orbs(orbs,subname)
+
+   !remove the directory which has been created if it is possible
+   call deldir(in%dir_output,len(trim(in%dir_output)),ierror)
    call free_input_variables(in)  
 
    !finalize memory counting
@@ -1111,7 +1121,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
       allocate(pottmp(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug)),stat=i_stat)
       call memocc(i_stat,pottmp,'pottmp',subname)
       call dcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug),pot(1,1,1,1),1,pottmp(1),1)
-      call local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
+      call local_hamiltonian(iproc,nproc,orbs%npsidim_orbs,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
            fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
       i_all=-product(shape(pottmp))*kind(pottmp)
       deallocate(pottmp,stat=i_stat)
@@ -1368,7 +1378,6 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
    character(len=100) :: filename_start
    real(wp), allocatable, dimension(:) :: lpsi
    type(orbitals_data) :: lin_orbs
-   type(communications_arrays) :: comms
 
    allocate(rxyz_file(at%nat,3+ndebug),stat=i_stat)
    call memocc(i_stat,rxyz_file,'rxyz_file',subname)
@@ -1440,7 +1449,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
          open(unit=99,file=trim(filename),status='unknown')
       end if
 
-      !@ todo geocode should be passed in the localisation regions descriptors
+      !@todo geocode should be passed in the localisation regions descriptors
       if (in_name /= 'min') then
          call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,lr%d%n1,lr%d%n2,lr%d%n3, &
               & hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,psi(1,ispinor),eval_fake,psifscf)
@@ -1452,7 +1461,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
 
          call to_zero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi(1,1))
 
-         call Lpsi_to_global2(0,1,Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f, &
+         call Lpsi_to_global2(0,Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f, &
               lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,1,1,1,lr,Lzd%Llr(1),lpsi,psi)
 
          deallocate(lpsi)

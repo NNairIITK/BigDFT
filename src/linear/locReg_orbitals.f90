@@ -87,7 +87,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
          orbs%inWhichLocreg(jorb+orbs%isorb)=jat
       end if
   end do
-  call mpiallred(orbs%inWhichLocreg(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+  call mpiallred(orbs%inWhichLocreg(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
 
 ! Calculate the dimension of the total wavefunction
@@ -140,7 +140,6 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
   integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb
   integer,dimension(nlr),intent(in):: Localnorb
   integer,dimension(0:nproc-1),intent(in):: norb_par
-  !real(8),dimension(3,natom),intent(in):: rxyz
   real(8),dimension(3,nlr),intent(in):: rxyz
   integer,dimension(:),pointer, intent(out):: inwhichlocreg
 
@@ -148,6 +147,7 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
   integer:: iat, jproc, iiOrb, iorb, jorb, jat, iiat, i_stat, i_all
   character(len=*), parameter :: subname='assignToLocreg'
   logical,dimension(:),allocatable:: covered
+  real(kind=8), parameter :: tol=1.0d-6 
   real(8):: tt, dmin, minvalue, xmin, xmax, ymin, ymax, zmin, zmax
   integer:: iatxmin, iatxmax, iatymin, iatymax, iatzmin, iatzmax, idir
   real(8),dimension(3):: diff
@@ -201,19 +201,34 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
   diff(1)=xmax-xmin
   diff(2)=ymax-ymin
   diff(3)=zmax-zmin
-  if(maxloc(diff,1)==1) then
-      idir=1
-      iiat=iatxmin
-  else if(maxloc(diff,1)==2) then
-      idir=2
-      iiat=iatymin
-  else if(maxloc(diff,1)==3) then
-      idir=3
-      iiat=iatzmin
+  !First 4 ifs control if directions the same length to disambiguate (was random before)
+  !else, just choose the biggest
+  if(abs(diff(1)-diff(2)) < tol .and. diff(1) > diff(3)) then
+    idir=1
+    iiat=iatxmin
+  else if(abs(diff(1)-diff(3)) < tol .and. diff(1) > diff(2)) then
+    idir=1
+    iiat=iatxmin
+  else if(abs(diff(2)-diff(3)) < tol .and. diff(2) > diff(1)) then
+    idir=2
+    iiat=iatymin
+  else if(abs(diff(1)-diff(3)) < tol .and. abs(diff(2)-diff(3)) < tol) then
+    idir=1
+    iiat=iatxmin
   else
-      stop 'ERROR: not possible to determine the maximal extent'
+     if(maxloc(diff,1)==1) then
+         idir=1
+         iiat=iatxmin
+     else if(maxloc(diff,1)==2) then
+         idir=2
+         iiat=iatymin
+     else if(maxloc(diff,1)==3) then
+         idir=3
+         iiat=iatzmin
+     else
+         stop 'ERROR: not possible to determine the maximal extent'
+     end if
   end if
- 
 
   !! Determine the atom with lowest z coordinate
   !zmin=1.d100
@@ -292,4 +307,3 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
   call memocc(i_stat,i_all,'covered',subname)
 
 end subroutine assignToLocreg2
-

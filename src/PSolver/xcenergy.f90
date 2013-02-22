@@ -13,6 +13,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore) 
   !n(c) use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp 
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
@@ -71,7 +72,8 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   !close(unit=79)
 
  
-  if (iproc == 0) write(*,'(1x,a,f12.6)',advance='no')' analytic core charge: ',chc-chv
+  if (iproc == 0) call yaml_map('Analytic core charge',chc-chv,fmt='(f12.6)')
+  !if (iproc == 0) write(*,'(1x,a,f12.6)',advance='no')' analytic core charge: ',chc-chv
 
   !conditions for periodicity in the three directions
   perx=(atoms%geocode /= 'F')
@@ -358,12 +360,13 @@ call to_zero(6,wbstr(1))
   !quick return if no Semilocal XC potential is required (Hartree or Hartree-Fock)
   if (ixc == 0 .or. ixc == 100) then
      if (datacode == 'G') then
-        call to_zero(n01*n02*n03,potxc(1))
+        call to_zero(n01*n02*n03*nspin,potxc(1))
         !call dscal(n01*n02*n03,0.0_dp,potxc,1)
      else
-        call to_zero(n01*n02*nxc,potxc(1))
+        call to_zero(n01*n02*nxc*nspin,potxc(1))
         !call dscal(n01*n02*nxc,0.0_dp,potxc,1)
      end if
+     if (nspin == 2) call axpy(n01*n02*nxc,1.d0,rho(n01*n02*nxc+1),1,rho(1),1)
      exc=0.0_gp
      vxc=0.0_gp
      call timing(iproc,'Exchangecorr  ','OF')
@@ -681,17 +684,16 @@ call to_zero(6,wbstr(1))
      call memocc(i_stat,i_all,'dvxci',subname)
   end if
 
-  if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+  !if (iproc==0 .and. wrtmsg) write(*,'(a)')'done.'
 
 END SUBROUTINE XC_potential
 
 
-
-!>    Calculate the XC terms from the given density in a distributed way.
-!!    it assign also the proper part of the density to the zf array 
-!!    which will be used for the core of the FFT procedure.
-!!    Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
-!!    to the XC potential, or even ignored.
+!> Calculate the XC terms from the given density in a distributed way.
+!! it assign also the proper part of the density to the zf array 
+!! which will be used for the core of the FFT procedure.
+!! Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
+!! to the XC potential, or even ignored.
 !!
 !! SYNOPSIS
 !!    geocode  Indicates the boundary conditions (BC) of the problem:
@@ -736,7 +738,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
 
   implicit none
 
-  !Arguments----------------------
+  !Arguments
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,ixc,nspden
   integer, intent(in) :: nwbl,nwbr,order,ndvxc
@@ -916,7 +918,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   i_all=-product(shape(exci))*kind(exci)
   deallocate(exci,stat=i_stat)
   call memocc(i_stat,i_all,'exci',subname)
-!  call MPI_BARRIER(MPI_COMM_WORLD,i_stat)
+!  call MPI_BARRIER(bigdft_mpi%mpi_comm,i_stat)
 !stop
 END SUBROUTINE xc_energy_new
 

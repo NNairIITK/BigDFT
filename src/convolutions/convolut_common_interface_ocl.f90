@@ -46,7 +46,7 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   character(len=*), parameter :: subname='allocate_data_OCL'
-  integer :: n1b, n2b, n3b,i_stat
+  integer :: n1b, n2b, n3b, i_stat,iorb,ispinor
   integer, dimension(3) :: periodic
 
   if (geocode /= 'F') then
@@ -107,8 +107,6 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
     call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%rhopot_down)
   end if
 
-
-
   !allocate and copy the compression-decompression keys
   call ocl_create_read_buffer(GPU%context,wfd%nseg_c*4*2,GPU%keyg_c)
   call ocl_create_read_buffer(GPU%context,wfd%nseg_c*4,GPU%keyv_c)
@@ -145,6 +143,26 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
   allocate(GPU%epot(2,orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,GPU%epot,'epot',subname)
 
+  !allocate arrays for tracing  pinning of the memory
+  allocate(GPU%ekinpot_host(orbs%nspinor,orbs%norbp,2+ndebug),stat=i_stat)
+  call memocc(i_stat,GPU%ekinpot_host,'ekinpot_host',subname)
+
+  allocate(GPU%psicf_host(2*orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
+  call memocc(i_stat,GPU%psicf_host,'psicf_host',subname)
+  allocate(GPU%hpsicf_host(2*orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
+  call memocc(i_stat,GPU%hpsicf_host,'hpsicf_host',subname)
+  allocate(GPU%bprecond_host(2*orbs%nspinor+ndebug),stat=i_stat)
+  call memocc(i_stat,GPU%bprecond_host,'bprecond_host',subname)
+
+
+  !pin the memory of the orbitals energies
+  do iorb=1,orbs%norbp
+     do ispinor=1,orbs%nspinor
+        call ocl_pin_write_buffer_async(GPU%context,GPU%queue,8,GPU%ekin(ispinor,iorb),GPU%ekinpot_host(ispinor,iorb,1))
+        call ocl_pin_write_buffer_async(GPU%context,GPU%queue,8,GPU%epot(ispinor,iorb),GPU%ekinpot_host(ispinor,iorb,2))
+     end do
+  end do
+
   nullify(GPU%hpsi_ASYNC)
 
 END SUBROUTINE allocate_data_OCL
@@ -159,7 +177,7 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   character(len=*), parameter :: subname='free_gpu_OCL'
-  integer :: i_stat,i_all
+  integer :: i_stat,i_all,iorb,ispinor
 
   i_all=-product(shape(GPU%ekin))*kind(GPU%ekin)
   deallocate(GPU%ekin,stat=i_stat)
@@ -209,6 +227,29 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
   endif
 
   if(associated(GPU%hpsi_ASYNC)) nullify(GPU%hpsi_ASYNC)
+
+  !for pinning tracing
+  do iorb=1,orbs%norbp
+     do ispinor=1,orbs%nspinor
+        call ocl_release_mem_object(GPU%ekinpot_host(ispinor,iorb,1))
+        call ocl_release_mem_object(GPU%ekinpot_host(ispinor,iorb,2))
+     end do
+  end do
+
+  i_all=-product(shape(GPU%ekinpot_host))*kind(GPU%ekinpot_host)
+  deallocate(GPU%ekinpot_host,stat=i_stat)
+  call memocc(i_stat,i_all,'ekinpot_host',subname)
+  i_all=-product(shape(GPU%psicf_host))*kind(GPU%psicf_host)
+  deallocate(GPU%psicf_host,stat=i_stat)
+  call memocc(i_stat,i_all,'psicf_host',subname)
+  i_all=-product(shape(GPU%hpsicf_host))*kind(GPU%hpsicf_host)
+  deallocate(GPU%hpsicf_host,stat=i_stat)
+  call memocc(i_stat,i_all,'hpsicf_host',subname)
+  i_all=-product(shape(GPU%bprecond_host))*kind(GPU%bprecond_host)
+  deallocate(GPU%bprecond_host,stat=i_stat)
+  call memocc(i_stat,i_all,'bprecond_host',subname)
+
+
 
 END SUBROUTINE free_gpu_OCL
 
@@ -372,9 +413,14 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
     n3 = n3 + 2*7 + 15
   endif
 
-  call ocl_enqueue_write_buffer(GPU%queue,GPU%rhopot_up,n1*n2*n3*8,pot) 
+  !define the pinned adresses for the pinning of the interesting objects
+  call ocl_pin_read_buffer_async(GPU%context,GPU%queue,n1*n2*n3*8,pot,GPU%rhopot_up_host)
+  if( nspin == 2 ) &
+       call ocl_pin_read_buffer_async(GPU%context,GPU%queue,n1*n2*n3*8,pot(1,1,1,2),GPU%rhopot_down_host)
+
+  call ocl_enqueue_write_buffer_async(GPU%queue,GPU%rhopot_up,n1*n2*n3*8,pot) 
   if( nspin == 2 ) then
-    call ocl_enqueue_write_buffer(GPU%queue,GPU%rhopot_down,n1*n2*n3*8,pot(1,1,1,2)) 
+    call ocl_enqueue_write_buffer_async(GPU%queue,GPU%rhopot_down,n1*n2*n3*8,pot(1,1,1,2)) 
   end if
  
   if (lr%wfd%nvctr_f > 0) then
@@ -387,8 +433,8 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
   hgrids(2)=0.5_gp*hy
   hgrids(3)=0.5_gp*hz
 
-  epot_sum=0.0_gp
-  ekin_sum=0.0_gp
+!!$  epot_sum=0.0_gp
+!!$  ekin_sum=0.0_gp
 
   do iorb=1,orbs%norbp
 
@@ -402,13 +448,22 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
         stop 'ONLY FULL LOCHAM IS IMPLEMENTED!'
      end if
 
+     !pin the adresses of the wavefucntions
+     call ocl_pin_read_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,psi(1,iorb),GPU%psicf_host(1,iorb))
      call ocl_enqueue_write_buffer_async(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,&
-          psi(1,iorb)) 
+          psi(1,iorb))
+
+     call ocl_pin_read_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,psi(isf,iorb),GPU%psicf_host(2,iorb))
      call ocl_enqueue_write_buffer_async(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,&
           psi(isf,iorb))
      if (orbs%nspinor == 2) then
+        call ocl_pin_read_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,&
+             psi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+1,iorb),GPU%psicf_host(3,iorb))
        call ocl_enqueue_write_buffer_async(GPU%queue,GPU%psi_c_i,lr%wfd%nvctr_c*8,&
-            psi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+1,iorb)) 
+            psi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+1,iorb))
+
+       call ocl_pin_read_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,&
+            psi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+isf,iorb),GPU%psicf_host(4,iorb))
        call ocl_enqueue_write_buffer_async(GPU%queue,GPU%psi_f_i,7*lr%wfd%nvctr_f*8,&
             psi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+isf,iorb))
      end if
@@ -418,8 +473,8 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
           (/periodic(1),periodic(2),periodic(3)/),&
           hgrids,&
           (/orbs%kpts(1,orbs%iokpt(iorb)),orbs%kpts(2,orbs%iokpt(iorb)),orbs%kpts(3,orbs%iokpt(iorb))/),&
-          lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,& 
-          lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,& 
+          lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&
           GPU%psi_c,GPU%psi_f,&
           GPU%psi_c_i,GPU%psi_f_i,&
           rhopot,&
@@ -430,21 +485,30 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
           orbs%nspinor,&
           GPU%epot(1,iorb),GPU%ekin(1,iorb))
 
+     call ocl_pin_write_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,hpsi(1,iorb),GPU%hpsicf_host(1,iorb))
      call ocl_enqueue_read_buffer_async(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,hpsi(1,iorb))
+
+     call ocl_pin_write_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,hpsi(isf,iorb),GPU%hpsicf_host(2,iorb))
      call ocl_enqueue_read_buffer_async(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,hpsi(isf,iorb))
+
      if (orbs%nspinor == 2) then
+        call ocl_pin_write_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,&
+             hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+1,iorb),GPU%hpsicf_host(3,iorb))
        call ocl_enqueue_read_buffer_async(GPU%queue,GPU%psi_c_i,lr%wfd%nvctr_c*8,hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+1,iorb))
+
+       call ocl_pin_write_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,&
+            hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+isf,iorb),GPU%hpsicf_host(4,iorb))
        call ocl_enqueue_read_buffer_async(GPU%queue,GPU%psi_f_i,7*lr%wfd%nvctr_f*8,hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+isf,iorb))
      end if
-     
   end do
   if (.not. ASYNCconv) then
-     call ocl_finish(GPU%queue)
-     do iorb=1,orbs%norbp
-       ekin_sum = ekin_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*((GPU%ekin(1,iorb)+GPU%ekin(2,iorb))&
-                  - (GPU%epot(1,iorb)+GPU%epot(2,iorb)))
-       epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(GPU%epot(1,iorb)+GPU%epot(2,iorb))
-     end do
+!!$     call ocl_finish(GPU%queue)
+!!$     do iorb=1,orbs%norbp
+!!$       ekin_sum = ekin_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*((GPU%ekin(1,iorb)+GPU%ekin(2,iorb))&
+!!$                  - (GPU%epot(1,iorb)+GPU%epot(2,iorb)))
+!!$       epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(GPU%epot(1,iorb)+GPU%epot(2,iorb))
+!!$     end do
+     call finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
   endif
   
 END SUBROUTINE local_hamiltonian_OCL
@@ -458,16 +522,29 @@ subroutine finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
   real(gp), intent(out) :: ekin_sum,epot_sum
   type(GPU_pointers), intent(inout) :: GPU
 
-  integer :: iorb
+  integer :: iorb,ispinor
 
   call ocl_finish(GPU%queue)
-  ekin_sum=0
-  epot_sum=0
+  ekin_sum=0.0_gp
+  epot_sum=0.0_gp
   do iorb=1,orbs%norbp
     ekin_sum = ekin_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*((GPU%ekin(1,iorb)+GPU%ekin(2,iorb))&
                  - (GPU%epot(1,iorb)+GPU%epot(2,iorb)))
     epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(GPU%epot(1,iorb)+GPU%epot(2,iorb))
   end do
+
+  !free pinning information for wavefunctions
+  do iorb=1,orbs%norbp
+     do ispinor=1,orbs%nspinor
+        call ocl_release_mem_object(GPU%psicf_host(1+(ispinor-1)*2,iorb))
+        call ocl_release_mem_object(GPU%psicf_host(2+(ispinor-1)*2,iorb))
+        call ocl_release_mem_object(GPU%hpsicf_host(1+(ispinor-1)*2,iorb))
+        call ocl_release_mem_object(GPU%hpsicf_host(2+(ispinor-1)*2,iorb))
+     end do
+  end do
+  !free pinning information for potential
+  call ocl_release_mem_object(GPU%rhopot_up_host)
+  if (orbs%nspin == 2 ) call ocl_release_mem_object(GPU%rhopot_down_host)
 
 END SUBROUTINE finish_hamiltonian_OCL
 
@@ -484,7 +561,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
   character(len=*), parameter :: subname='preconditionall_OCL'
-  integer ::  iorb,jorb,i_stat,ncplx,i_all,inds,isf,ikpt
+  integer ::  iorb,jorb,i_stat,ncplx,i_all,inds,isf,ikpt,ispinor
   real(wp) :: scpr
   real(gp) :: cprecr,eval_zero,evalmax
   type(GPU_pointers), intent(inout) :: GPU
@@ -522,8 +599,20 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   end if
  
      !arrays for the CG procedure
-     allocate(b(orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%norbp+ndebug),stat=i_stat)
+!!$     allocate(b(orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%norbp+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,b,'b',subname)
+
+     allocate(b(orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1+ndebug),stat=i_stat)
      call memocc(i_stat,b,'b',subname)
+
+     call ocl_pin_read_buffer(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,b(1,1),GPU%bprecond_host(1))
+     call ocl_pin_read_buffer(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,b(isf,1),GPU%bprecond_host(2))
+     if(orbs%nspinor == 2) then
+        call ocl_pin_read_buffer(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,&
+             b(1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1),GPU%bprecond_host(3))
+        call ocl_pin_read_buffer(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,&
+             b(isf+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1),GPU%bprecond_host(4))
+     end if
 
      gnrm=0.0_dp
      gnrm_zero=0.0_dp
@@ -550,8 +639,8 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
        else
          ncplx=1
        end if
-       
-        call cprecr_from_eval(lr%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)          
+
+        call cprecr_from_eval(lr%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)
 
         do inds=1,orbs%nspinor,ncplx !the streams should be more if nspinor>1
            !the nrm2 function can be replaced here by ddot
@@ -563,34 +652,44 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
               gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
            end if
            call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,&
-                hpsi(1,inds,iorb),b(1,iorb))
-           
+                hpsi(1,inds,iorb),b(1,1))!iorb))
+
+           call ocl_pin_read_write_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,&
+                hpsi(1,inds,iorb),GPU%hpsicf_host(1,iorb))
            call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,&
                 hpsi(1,inds,iorb))
+
+           call ocl_pin_read_write_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,&
+                hpsi(isf,inds,iorb),GPU%hpsicf_host(2,iorb))
            call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,&
                 hpsi(isf,inds,iorb))
-           
+
            call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c_b,lr%wfd%nvctr_c*8,&
-                b(1,iorb))
+                b(1,1))!iorb))
            call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f_b,7*lr%wfd%nvctr_f*8,&
-                b(isf,iorb))
+                b(isf,1))!iorb))
 
            if(ncplx == 2) then
-             call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c_i,lr%wfd%nvctr_c*8,&
-                  hpsi(1,inds+1,iorb))
-             call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f_i,7*lr%wfd%nvctr_f*8,&
-                  hpsi(isf,inds+1,iorb))
-           
+              call ocl_pin_read_write_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,&
+                   hpsi(1,inds+1,iorb),GPU%hpsicf_host(3,iorb))
+              call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c_i,lr%wfd%nvctr_c*8,&
+                   hpsi(1,inds+1,iorb))
+
+              call ocl_pin_read_write_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,&
+                   hpsi(isf,inds+1,iorb),GPU%hpsicf_host(4,iorb))
+              call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f_i,7*lr%wfd%nvctr_f*8,&
+                   hpsi(isf,inds+1,iorb))
+
              call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c_b_i,lr%wfd%nvctr_c*8,&
-                  b(1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),iorb))
+                  b(1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1))!iorb))
              call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f_b_i,7*lr%wfd%nvctr_f*8,&
-                  b(isf+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),iorb))
-           endif 
+                  b(isf+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1))!iorb))
+           endif
            call ocl_preconditioner_generic_k(GPU%queue,&
                 (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
                 (/periodic(1),periodic(2),periodic(3)/),&
                 (/0.5_gp*hx,0.5_gp*hy,0.5_gp*hz/),&
-                (/orbs%kpts(1,orbs%iokpt(iorb)),orbs%kpts(2,orbs%iokpt(iorb)),orbs%kpts(3,orbs%iokpt(iorb))/),&    
+                (/orbs%kpts(1,orbs%iokpt(iorb)),orbs%kpts(2,orbs%iokpt(iorb)),orbs%kpts(3,orbs%iokpt(iorb))/),&
                 cprecr,&
                 ncong,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
@@ -605,8 +704,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
                 GPU%psi_c_d_i,GPU%psi_f_d_i,&
                 GPU%d,GPU%work1,GPU%work2,GPU%work3,&
                 GPU%d_i,GPU%work1_i,GPU%work2_i,GPU%work3_i,&
-                ncplx)
-           
+                ncplx,GPU%ekin) !buffer for scalars resulting from reductions
 
            call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,hpsi(1,inds,iorb))
            call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,hpsi(isf,inds,iorb))
@@ -620,8 +718,17 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
 
   call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
 
-     !end of dynamic repartition
- 
+  !end of dynamic repartition
+   do iorb=1,orbs%norbp
+     do ispinor=1,orbs%nspinor
+        call ocl_release_mem_object(GPU%hpsicf_host(1+(ispinor-1)*2,iorb))
+        call ocl_release_mem_object(GPU%hpsicf_host(2+(ispinor-1)*2,iorb))
+     end do
+  end do
+  do ispinor=1,orbs%nspinor
+     call ocl_release_mem_object(GPU%bprecond_host(1+(ispinor-1)*2))
+     call ocl_release_mem_object(GPU%bprecond_host(2+(ispinor-1)*2))
+  end do
 
   i_all=-product(shape(b))*kind(b)
   deallocate(b,stat=i_stat)
@@ -646,7 +753,7 @@ subroutine local_partial_density_OCL(orbs,&
   real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,nspin), intent(inout) :: rho_p
   type(GPU_pointers), intent(inout) :: GPU
   
-  integer:: iorb,iorb_r,isf
+  integer:: iorb,iorb_r,isf,ispinor
   real(gp) :: hfac
   integer, dimension(3) :: periodic
   real(kind=8) :: rhopot
@@ -680,36 +787,57 @@ subroutine local_partial_density_OCL(orbs,&
   !copy the wavefunctions on GPU
   do iorb=1,orbs%norbp*orbs%nspinor
      iorb_r = (iorb-1)/orbs%nspinor + 1
-     
-    call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,&
-             psi(1,iorb)) 
-    call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,&
-             psi(isf,iorb))
- 
-    hfac=orbs%kwgts(orbs%iokpt(iorb_r))*orbs%occup(orbs%isorb+iorb_r)/(hxh*hyh*hzh);
-    if (orbs%spinsgn(orbs%isorb+iorb_r) > 0.0) then
-       rhopot = GPU%rhopot_up
-    else
-       rhopot = GPU%rhopot_down
-    endif
-  !calculate the density
-   call ocl_locden_generic(GPU%queue, (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
-                          (/periodic(1),periodic(2),periodic(3)/),&
-                          hfac,&
-                          lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
-                          lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&
-                          GPU%psi_c,GPU%psi_f,&
-                          GPU%work1,GPU%work2,GPU%work3,&
-                          rhopot)
+     ispinor=iorb-orbs%nspinor*(iorb_r-1)
+     !print *,'here',iorb,iorb_r,ispinor
+     call ocl_pin_read_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,psi(1,iorb),&
+          GPU%psicf_host(1+(ispinor-1)*2,iorb_r))
+     call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,&
+             psi(1,iorb))
 
-  
+     call ocl_pin_read_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,psi(isf,iorb),&
+          GPU%psicf_host(2+(ispinor-1)*2,iorb_r))
+     call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,&
+          psi(isf,iorb))
+
+     hfac=orbs%kwgts(orbs%iokpt(iorb_r))*orbs%occup(orbs%isorb+iorb_r)/(hxh*hyh*hzh);
+     if (orbs%spinsgn(orbs%isorb+iorb_r) > 0.0) then
+        rhopot = GPU%rhopot_up
+     else
+        rhopot = GPU%rhopot_down
+     endif
+     !calculate the density
+     call ocl_locden_generic(GPU%queue, (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
+          (/periodic(1),periodic(2),periodic(3)/),&
+          hfac,&
+          lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&
+          GPU%psi_c,GPU%psi_f,&
+          GPU%work1,GPU%work2,GPU%work3,&
+          rhopot)
+
   end do
-  !copy back the results and leave the uncompressed wavefunctions on the card
-  
 
+   do iorb=1,orbs%norbp
+     do ispinor=1,orbs%nspinor
+        call ocl_release_mem_object(GPU%psicf_host(1+(ispinor-1)*2,iorb))
+        call ocl_release_mem_object(GPU%psicf_host(2+(ispinor-1)*2,iorb))
+     end do
+  end do
+
+
+  !copy back the results and leave the uncompressed wavefunctions on the card
+
+  call ocl_pin_write_buffer_async(GPU%context,GPU%queue,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p,GPU%rhopot_up_host)
   call ocl_enqueue_read_buffer(GPU%queue,GPU%rhopot_up,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p)
   if( nspin == 2 ) then
+     call ocl_pin_write_buffer_async(GPU%context,GPU%queue,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p(1,1,1,2),GPU%rhopot_down_host)
     call ocl_enqueue_read_buffer(GPU%queue,GPU%rhopot_down,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p(1,1,1,2))
   endif
+
+  !free pinning information for potential
+  call ocl_release_mem_object(GPU%rhopot_up_host)
+  if (nspin == 2 ) call ocl_release_mem_object(GPU%rhopot_down_host)
+  
+  
 
 END SUBROUTINE local_partial_density_OCL

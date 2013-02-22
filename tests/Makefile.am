@@ -1,5 +1,16 @@
 ## Process this file with automake to produce Makefile.in
 
+EXTRA_DIST = \
+	README \
+	fldiff.py \
+	fldiff_yaml.py \
+	report.py \
+	styles images \
+	yaml_hl.cfg \
+	yaml_hl.py \
+	parse_log.py \
+	tols-BigDFT.yaml
+
 SUBDIRS = \
 	  DFT \
 	  overDFT \
@@ -21,6 +32,8 @@ endif
 if BUILD_LIBYAML
 pyyaml_build = pyyaml_build
 pyyaml_clean = pyyaml_clean
+LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
+PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
 else
 pyyaml_build =
 pyyaml_clean =
@@ -61,14 +74,6 @@ oclrun: head_message $(mpirun_message)
 	@echo "     ex: export ocl_platform='NVIDIA'"
 	@echo "     and the environment variable ocl_devices"
 	@echo "     ex: export ocl_devices='K20'"
-
-EXTRA_DIST = \
-	README \
-	fldiff.py \
-	fldiff_yaml.py \
-	report.py \
-	styles images \
-	yaml_hl.cfg yaml_hl.py tols-BigDFT.yaml
 
 CLEANFILES =
 

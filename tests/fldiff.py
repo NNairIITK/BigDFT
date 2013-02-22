@@ -75,8 +75,6 @@ if len(args) != 2:
     sys.stderr.write("Error in arguments\n")
     usage()
 
-#Display the maximum discrepancy
-print max_discrepancy
 
 #Arguments
 file1 = args[0]
@@ -134,6 +132,8 @@ if bigdft:
             or "Timestamp" in line \
             or "Logfile already existing" in line \
 	    or "Gathering the potential" in line \
+            or "<BigDFT>" in line \
+            or "alpha" in line \
             or "wavefunctions need NO reformatting" in line 
 #	    or "GEOPT" in line
 elif neb:
@@ -161,8 +161,8 @@ elif psolver:
             or "for the array" in line
 else:
     def line_junk(line):
-        "Always False"
-        return False
+        "Always False except for Hostname"
+        return "Hostname" in line
 
 #Check the last line
 end_line = "Memory Consumption Report" 
@@ -279,8 +279,11 @@ t2.close()
 try:
     line = compare.next()
     EOF = False
+    #Display the maximum discrepancy
+    print max_discrepancy
 except StopIteration:
     #Nothing to compare
+    print 'Nothing to compare'
     EOF = True
 
 context_lines = None

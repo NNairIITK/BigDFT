@@ -11,7 +11,14 @@ TESTDIRS = C \
 	  TiMix \
 	  TiSmear \
 	  O2-Spin \
-	  ElectField 
+	  ElectField \
+	  ElectronGas \
+	  NLCC \
+	  taskgroups
+
+EXTRA_TESTDIRS =
+
+EXTRA_DIST = 
 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
@@ -24,11 +31,6 @@ else
 #OCL not implemented with spin=4 (Fehyb and Mn2)
   TESTDIRS += H Graphene FeHyb Mn2 SIC
 endif
-
-EXTRA_DIST = \
-	README \
-	$(TESTDIRS) \
-	GPU OCL 
 
 # Give here the pseudo-potentials used by each test.
 H.psp: psppar.H
@@ -79,7 +81,7 @@ SIC.post-in:
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 %.report.yaml: %.ref.yaml
-	@export PYTHONPATH=${PYTHONPATH} ; \
+	export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
 	tols=`basename $< .out.ref.yaml` ;\

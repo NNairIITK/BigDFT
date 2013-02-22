@@ -102,10 +102,10 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   real(dp) :: scal,ehartreeLOC,pot
   real(dp), dimension(6) :: strten
   real(dp), dimension(:,:,:), allocatable :: zf
+  real(dp), dimension(:), allocatable :: zf1
   integer, dimension(:,:), allocatable :: gather_arr
   integer, dimension(3) :: n
-  integer :: size1,switch_alg
-
+  integer :: size1,size2,switch_alg
 
   cudasolver=.false.
 
@@ -116,40 +116,41 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
      else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
         wrtmsg=.true.
      else
-        write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
+        call yaml_warning('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
+        !write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
         stop
      end if
   else
      wrtmsg=.true.
   end if
-  wrtmsg=wrtmsg .and. kernel%iproc_world==0
+  wrtmsg=wrtmsg .and. kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
   ! rewrite
   if (wrtmsg) call yaml_open_map('Poisson Solver')
 
-  call timing(kernel%iproc,'PSolv_comput  ','ON')
+  call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
   !calculate the dimensions wrt the geocode
   if (kernel%geocode == 'P') then
      if (wrtmsg) &
           call yaml_map('BC','Periodic')
      call P_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-          md1,md2,md3,nd1,nd2,nd3,kernel%nproc)
+          md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc)
   else if (kernel%geocode == 'S') then
      if (wrtmsg) &
           call yaml_map('BC','Surface')
      call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
           md1,md2,md3,nd1,nd2,nd3,&
-          kernel%nproc,kernel%igpu)
+          kernel%mpi_env%nproc,kernel%igpu)
   else if (kernel%geocode == 'F') then
      if (wrtmsg) &
           call yaml_map('BC','Free')
      call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
           md1,md2,md3,nd1,nd2,nd3,&
-          kernel%nproc,kernel%igpu)
+          kernel%mpi_env%nproc,kernel%igpu)
   else if (kernel%geocode == 'W') then
      if (wrtmsg) &
           call yaml_map('BC','Wires')
      call W_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-          md1,md2,md3,nd1,nd2,nd3,kernel%nproc,kernel%igpu)
+          md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu)
   else
      stop 'PSolver: geometry code not admitted'
   end if
@@ -158,7 +159,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
   if (wrtmsg) then
      call yaml_map('Box',kernel%ndims,fmt='(i5)')
-     call yaml_map('MPI tasks',kernel%nproc,fmt='(i5)')
+     call yaml_map('MPI tasks',kernel%mpi_env%nproc,fmt='(i5)')
      if (cudasolver) call yaml_map('GPU acceleration',.true.)
      call yaml_close_map()
      call yaml_newline()
@@ -170,25 +171,25 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   else if (kernel%geocode == 'S') then
      !only one power of hgrid 
      !factor of -4*pi for the definition of the Poisson equation
-     scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2*n3,dp)
+     scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2,dp)/real(n3,dp)
   else if (kernel%geocode == 'F' .or. kernel%geocode == 'H') then
      !hgrid=max(hx,hy,hz)
-     scal=product(kernel%hgrids)/real(n1*n2*n3,dp)
+     scal=product(kernel%hgrids)/real(n1*n2,dp)/real(n3,dp)
   else if (kernel%geocode == 'W') then
      !only one power of hgrid 
      !factor of -1/(2pi) already included in the kernel definition
-     scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2*n3,dp)
+     scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2,dp)/real(n3,dp)
   end if
   !here the case ncplx/= 1 should be added
 
   !array allocations
-  allocate(zf(md1,md3,md2/kernel%nproc+ndebug),stat=i_stat)
+  allocate(zf(md1,md3,md2/kernel%mpi_env%nproc+ndebug),stat=i_stat)
   call memocc(i_stat,zf,'zf',subname)
   !initalise to zero the zf array
-  call to_zero(md1*md3*md2/kernel%nproc,zf(1,1,1))
+  call to_zero(md1*md3*(md2/kernel%mpi_env%nproc),zf(1,1,1))
 
-  istart=kernel%iproc*(md2/kernel%nproc)
-  iend=min((kernel%iproc+1)*md2/kernel%nproc,m2)
+  istart=kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc)
+  iend=min((kernel%mpi_env%iproc+1)*md2/kernel%mpi_env%nproc,m2)
   if (istart <= m2-1) then
      nxc=iend-istart
   else
@@ -224,12 +225,12 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
   if (.not. cudasolver) then !CPU case
 
-     call timing(kernel%iproc,'PSolv_comput  ','OF')
-     call G_PoissonSolver(kernel%iproc,kernel%nproc,kernel%mpi_comm,kernel%geocode,1,&
+     call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
+     call G_PoissonSolver(kernel%mpi_env%iproc,kernel%mpi_env%nproc,kernel%mpi_env%mpi_comm,kernel%geocode,1,&
           n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,kernel%kernel,&
           zf(1,1,1),&
           scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
-     call timing(kernel%iproc,'PSolv_comput  ','ON')
+     call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
 
      !check for the presence of the stress tensor
      if (present(stress_tensor)) then
@@ -244,16 +245,74 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
      size1=md1*md2*md3! nproc always 1 kernel%ndims(1)*kernel%ndims(2)*kernel%ndims(3)
 
-     !fill the GPU memory 
+     if (kernel%keepGPUmemory == 0) then
+       size2=2*n1*n2*n3
+       call cudamalloc(size2,kernel%work1_GPU,i_stat)
+       if (i_stat /= 0) print *,'error cudamalloc',i_stat
+       call cudamalloc(size2,kernel%work2_GPU,i_stat)
+       if (i_stat /= 0) print *,'error cudamalloc',i_stat
+     endif
+
+   if (kernel%mpi_env%nproc > 1) then
+     allocate(zf1(md1*md3*md2),stat=i_stat)
+     call memocc(i_stat,zf1,'zf1',subname)
+
+     call mpi_gather(zf,size1/kernel%mpi_env%nproc,MPI_DOUBLE_PRECISION,zf1,size1/kernel%mpi_env%nproc, &
+          MPI_DOUBLE_PRECISION,0,kernel%mpi_env%mpi_comm,ierr)
+
+     if (kernel%mpi_env%iproc == 0) then
+      !fill the GPU memory
+
+      call reset_gpu_data(size1,zf1,kernel%work1_GPU)
+
+      switch_alg=0
+
+      if (kernel%initCufftPlan == 1) then
+        call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
+          kernel%k_GPU,switch_alg,kernel%geo,scal)
+      else
+        call cuda_3d_psolver_plangeneral(n,kernel%work1_GPU,kernel%work2_GPU, &
+          kernel%k_GPU,kernel%geo,scal)
+      endif
+
+      !take data from GPU
+      call get_gpu_data(size1,zf1,kernel%work1_GPU)
+      endif
+
+      call MPI_Scatter(zf1,size1/kernel%mpi_env%nproc,MPI_DOUBLE_PRECISION,zf,size1/kernel%mpi_env%nproc, &
+          MPI_DOUBLE_PRECISION,0,kernel%mpi_env%mpi_comm,ierr)
+
+      i_all=-product(shape(zf1))*kind(zf1)
+      deallocate(zf1,stat=i_stat)
+      call memocc(i_stat,i_all,'zf1',subname)
+
+   else
+
+
+     !fill the GPU memory
      call reset_gpu_data(size1,zf,kernel%work1_GPU)
 
      switch_alg=0
 
-     call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
+     if (kernel%initCufftPlan == 1) then
+        call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
           kernel%k_GPU,switch_alg,kernel%geo,scal)
+     else
+        call cuda_3d_psolver_plangeneral(n,kernel%work1_GPU,kernel%work2_GPU, &
+          kernel%k_GPU,kernel%geo,scal)
+     endif
+
 
      !take data from GPU
      call get_gpu_data(size1,zf,kernel%work1_GPU)
+ 
+
+   endif
+
+   if (kernel%keepGPUmemory == 0) then
+     call cudafree(kernel%work1_GPU)
+     call cudafree(kernel%work2_GPU)
+   endif
 
   endif
 
@@ -315,56 +374,59 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   deallocate(zf,stat=i_stat)
   call memocc(i_stat,i_all,'zf',subname)
 
-  call timing(kernel%iproc,'PSolv_comput  ','OF')
+  call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
 
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree
   eh=real(ehartreeLOC,gp)
-  if (kernel%nproc > 1) then
-     call timing(kernel%iproc,'PSolv_commun  ','ON')
+  if (kernel%mpi_env%nproc > 1) then
+     call timing(kernel%mpi_env%iproc,'PSolv_commun  ','ON')
 
      eh=ehartreeLOC
-     call mpiallred(eh,1,MPI_SUM,kernel%mpi_comm,ierr)
+     call mpiallred(eh,1,MPI_SUM,kernel%mpi_env%mpi_comm,ierr)
      !reduce also the value of the stress tensor
 
      if (present(stress_tensor)) then
-        call mpiallred(stress_tensor(1),6,MPI_SUM,kernel%mpi_comm,ierr)
+        call mpiallred(stress_tensor(1),6,MPI_SUM,kernel%mpi_env%mpi_comm,ierr)
      end if
 
-     call timing(kernel%iproc,'PSolv_commun  ','OF')
+     call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
 
      if (datacode == 'G') then
         !building the array of the data to be sent from each process
         !and the array of the displacement
 
-        call timing(kernel%iproc,'PSolv_comput  ','ON')
-        allocate(gather_arr(0:kernel%nproc-1,2+ndebug),stat=i_stat)
+        call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
+        allocate(gather_arr(0:kernel%mpi_env%nproc-1,2+ndebug),stat=i_stat)
         call memocc(i_stat,gather_arr,'gather_arr',subname)
-        do jproc=0,kernel%nproc-1
-           istart=min(jproc*(md2/kernel%nproc),m2-1)
-           jend=max(min(md2/kernel%nproc,m2-md2/kernel%nproc*jproc),0)
+        do jproc=0,kernel%mpi_env%nproc-1
+           istart=min(jproc*(md2/kernel%mpi_env%nproc),m2-1)
+           jend=max(min(md2/kernel%mpi_env%nproc,m2-md2/kernel%mpi_env%nproc*jproc),0)
            gather_arr(jproc,1)=m1*m3*jend
            gather_arr(jproc,2)=m1*m3*istart
         end do
 
         !gather all the results in the same rhopot array
-        istart=min(kernel%iproc*(md2/kernel%nproc),m2-1)
+        istart=min(kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc),m2-1)
 
-        call timing(kernel%iproc,'PSolv_comput  ','OF')
-        call timing(kernel%iproc,'PSolv_commun  ','ON')
+        call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
+        call timing(kernel%mpi_env%iproc,'PSolv_commun  ','ON')
         istden=1+kernel%ndims(1)*kernel%ndims(2)*istart
         istglo=1
-        call MPI_ALLGATHERV(rhopot(istden),gather_arr(kernel%iproc,1),mpidtypw,&
+!!$        call MPI_ALLGATHERV(rhopot(istden),gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
+!!$             rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
+!!$             kernel%mpi_env%mpi_comm,ierr)
+        call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
              rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
-             kernel%mpi_comm,ierr)
-        call timing(kernel%iproc,'PSolv_commun  ','OF')
-        call timing(kernel%iproc,'PSolv_comput  ','ON')
+             kernel%mpi_env%mpi_comm,ierr)
+        call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
+        call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
 
         i_all=-product(shape(gather_arr))*kind(gather_arr)
         deallocate(gather_arr,stat=i_stat)
         call memocc(i_stat,i_all,'gather_arr',subname)
 
-        call timing(kernel%iproc,'PSolv_comput  ','OF')
+        call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
 
      end if
   end if
@@ -459,6 +521,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin,&
      alpha,beta,gamma,quiet) !optional argument
   use module_base
+  use module_types
+  use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
@@ -492,14 +556,14 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   call timing(iproc,'Exchangecorr  ','ON')
 
-  !do not write anything on screen if quiet is set to yes
   if (present(quiet)) then
      if(quiet == 'yes' .or. quiet == 'YES') then
         wrtmsg=.false.
      else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
         wrtmsg=.true.
      else
-        write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
+        call yaml_warning('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
+        !write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
         stop
      end if
   else
@@ -523,29 +587,29 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
-     if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('periodic BC',n01,n02,n03,nproc,ixc)
+          !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          !'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'S') then
-     if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('surfaces BC',n01,n02,n03,nproc,ixc)
+          !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          !'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else if (geocode == 'F') then
-     if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('free BC',n01,n02,n03,nproc,ixc)
+          !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          !'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else if (geocode == 'W') then
-     if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('wires BC',n01,n02,n03,nproc,ixc)
+          !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          !'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else if (geocode == 'H') then
-     if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, Helmholtz Equation Solver, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('Helmholtz Equation Solver',n01,n02,n03,nproc,ixc)
+          !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          !'PSolver, Helmholtz Equation Solver, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else
      stop 'PSolver: geometry code not admitted'
@@ -689,7 +753,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      scal=-2.0_dp*hx*hy/real(n1*n2*n3,dp)
   end if
   !here the case ncplx/= 1 should be added
-  call G_PoissonSolver(iproc,nproc,MPI_COMM_WORLD,geocode,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,zf(1,1,1),&
+  call G_PoissonSolver(iproc,nproc,bigdft_mpi%mpi_comm,geocode,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,zf(1,1,1),&
        scal,hx,hy,hz,offset,strten)
   
   call timing(iproc,'PSolv_comput  ','ON')
@@ -795,7 +859,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      end if
   end if
   ehartreeLOC=ehartreeLOC*0.5_dp*hx*hy*hz
-  
+
   i_all=-product(shape(zf))*kind(zf)
   deallocate(zf,stat=i_stat)
   call memocc(i_stat,i_all,'zf',subname)
@@ -816,7 +880,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      energies_mpi(1)=ehartreeLOC
      energies_mpi(2)=eexcuLOC
      energies_mpi(3)=vexcuLOC
-     call MPI_ALLREDUCE(energies_mpi(1),energies_mpi(4),3,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call MPI_ALLREDUCE(energies_mpi(1),energies_mpi(4),3,mpidtypd,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
      eh=energies_mpi(4)
      exc=energies_mpi(5)
      vxc=energies_mpi(6)
@@ -852,14 +916,22 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               istden=istden+n01*n02*n03
               istglo=istglo+n01*n02*n03
            end if
-           call MPI_ALLGATHERV(rhopot(istden),gather_arr(iproc,1),mpidtypw,&
+!!$           call MPI_ALLGATHERV(rhopot(istden),gather_arr(iproc,1),mpidtypw,&
+!!$                rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
+!!$                bigdft_mpi%mpi_comm,ierr)
+           call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(iproc,1),mpidtypw,&
                 rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
-                MPI_COMM_WORLD,ierr)
+                bigdft_mpi%mpi_comm,ierr)
+
            !if it is the case gather also the results of the XC potential
            if (ixc /=0 .and. .not. sumpion) then
-              call MPI_ALLGATHERV(pot_ion(istden),gather_arr(iproc,1),&
+!!$              call MPI_ALLGATHERV(pot_ion(istden),gather_arr(iproc,1),&
+!!$                   mpidtypw,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
+!!$                   mpidtypw,bigdft_mpi%mpi_comm,ierr)
+              call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(iproc,1),&
                    mpidtypw,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
-                   mpidtypw,MPI_COMM_WORLD,ierr)
+                   mpidtypw,bigdft_mpi%mpi_comm,ierr)
+
            end if
         end do
         call timing(iproc,'PSolv_commun  ','OF')
@@ -880,7 +952,22 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
 
   if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
-  if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+  !if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+
+contains
+
+  subroutine PSolver_yaml(code,n01,n02,n03,nproc,ixc)
+     use yaml_output
+     implicit none
+     integer, intent(in) :: n01,n02,n03,nproc,ixc
+     character(len=*), intent(in) :: code
+     call yaml_open_map('PSolver',flow=.true.)
+        call yaml_map('Geometry',trim(code))
+        call yaml_map('dim',(/ n01,n02,n03 /))
+        call yaml_map('proc',nproc)
+        call yaml_map('ixc',ixc)
+     call yaml_close_map()
+  end subroutine PSolver_yaml
 
 END SUBROUTINE PSolver
 
