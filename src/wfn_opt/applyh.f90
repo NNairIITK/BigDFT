@@ -784,6 +784,7 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
       prefac => confdata%prefac
       potorder => confdata%potorder
   else
+     !these arrays are not deallocated!!!
       allocate(hh(3), rxyzConf(3), ioffset(3))
       hh=0.d0
       ioffset=0

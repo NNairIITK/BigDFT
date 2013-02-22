@@ -84,9 +84,9 @@ GEOPT-BFGS:
  Epsilon: 2.71e-10
 
 GEOPT-LBFGS: 
- Epsilon: 3.1e-10
+ Epsilon: 4.1e-10
  DIIS weights: 1.1e-5
-
+ 
 NaCl:
  Epsilon: 2.e-9
 
@@ -100,11 +100,13 @@ CH3-:
  D: 1.e-8
  Average CG stepsize in terms of betax: 5.1e-5
  Atomic Forces (Ha/Bohr): 1.7e-8
- Average noise forces: 1.4e-8
- Clean forces norm (Ha/Bohr): 1.7e-8
- Raw forces norm (Ha/Bohr): 2.1e-8
- Ion-Ion interaction energy: 1.2e-7
+ Average noise forces: 2.7e-8
+ Clean forces norm (Ha/Bohr): 1.1e-7
+ Raw forces norm (Ha/Bohr): 1.5e-7
+ Ion-Ion interaction energy: 3.8e-7
  FORCES norm(Ha/Bohr): 5.6e-9
+ Keys to ignore:
+ - b/b0
 
 scalability:
  Epsilon: 1.1e-10

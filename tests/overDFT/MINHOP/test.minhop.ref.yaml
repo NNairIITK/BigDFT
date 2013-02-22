@@ -14448,7 +14448,7 @@
    (MH) poslow files written           :  Yes
  (MH) nlminx collected by process 0    :  2
  (MH) Final results:
-   (MH) Total minima found             ::  2
+   (MH) Total minima found             :  2
    (MH) Number of accepted minima      :  1.00000000000000000E+00
    (MH) Write INTERmediate positions routine:
      (MH) poscur.xyz for  RESTART written:  Yes
