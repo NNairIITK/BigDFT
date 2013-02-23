@@ -2229,12 +2229,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
  
    else
  write(*,*) '*******************NEW_VERSION***************************'
-   call timing(iproc,'restart_rsp   ','ON')
-    call input_wf_memory_new(nproc, iproc, atoms, &
-         rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
-         rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-         KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs,KSwfn%lzd)
-     call timing(iproc,'restart_rsp   ','OF')
+  call timing(iproc,'restart_rsp   ','ON')
+   call input_wf_memory_new(nproc, iproc, atoms, &
+        rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
+        rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+        KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs,KSwfn%lzd)
+    call timing(iproc,'restart_rsp   ','OF')
 
   end if
 
@@ -2802,21 +2802,22 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                   s3d2 = (rxyz(3,k)-rxyz_old(3,k))*expfct*((rxyz_old(2,k)-y)/(radius**2))
                   s3d3 = (rxyz(3,k)-rxyz_old(3,k))*expfct*((rxyz_old(3,k)-z)/(radius**2))
 
-                  if(jacdet.eq.0) jacdet = 1.0
-
-                  s1d1 =  (s1d1*norm - s1_new*norm_1)/norm**2
+                  s1d1 =       (s1d1*norm - s1_new*norm_1)/norm**2
                   s1d2 =       (s1d2*norm - s1_new*norm_2)/norm**2
                   s1d3 =       (s1d3*norm - s1_new*norm_3)/norm**2
           
                   s2d1 =       (s2d1*norm - s2_new*norm_1)/norm**2
-                  s2d2 =  (s2d2*norm - s2_new*norm_2)/norm**2
+                  s2d2 =       (s2d2*norm - s2_new*norm_2)/norm**2
                   s2d3 =       (s2d3*norm - s2_new*norm_3)/norm**2
           
                   s3d1 =       (s3d1*norm - s3_new*norm_1)/norm**2
                   s3d2 =       (s3d2*norm - s3_new*norm_2)/norm**2
-                  s3d3 =  (s3d3*norm - s3_new*norm_3)/norm**2
-          
-                  jacdet = s1d1*s2d2*s3d3 + s1d2*s2d3*s3d1 + s1d3*s2d1*s3d2 - s1d3*s2d2*s3d1 - s1d2*s2d1*s3d3 - s1d1*s2d3*s3d2
+                  s3d3 =       (s3d3*norm - s3_new*norm_3)/norm**2
+         
+                  !jacdet modified due to different loop structure
+ 
+                  jacdet = s1d1*s2d2*s3d3 + s1d2*s2d3*s3d1 + s1d3*s2d1*s3d2 - s1d3*s2d2*s3d1 - s1d2*s2d1*s3d3 - s1d1*s2d3*s3d2 &
+                         &  + s1d1 + s2d2 + s3d3 +s1d1*s2d2+s3d3*s1d1+s3d3*s2d2 - s1d2*s2d1 - s3d2*s2d3 - s3d1*s1d3
                   
                   shift1(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,1) = s1_new + &
                   shift1(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,1)
