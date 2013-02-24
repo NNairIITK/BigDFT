@@ -1,47 +1,4 @@
-WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will be run on the current machine only.
- <BigDFT> Log of the run will be written in logfile: .//log.yaml
- --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
-   Atomic system                  Fixed positions           Additional data
- Bound. C.= S             | No fixed atom            | N. sym.   = disabled    
- N. types =     2         |                          | Sp. group = disabled    
- N. atoms =     3         |                          | Virt. orb.= none        
- Types    = 'O', 'H'      |                          | Plot dens.= none        
-                          |                          | Spin pol. = no          
- --- (file: input.kpt) ----------------------------------------------------- k-points
-        red. coordinates         weight       id        BZ coordinates
-   0.00000  0.00000  0.00000    1.00000        1   0.00000  0.00000  0.00000
- --- (file: input.geopt) ------------------------------------- Geopt Input Parameters
-       Generic param.              Geo. optim.                MD param.
-       Max. steps=      2 | Fluct. in forces=1.0E+00 |           ionmov=      8
-        algorithm=AB6MD   |   Max. in forces=0.0E+00 |            dtion=    10.
- random at.displ.=0.0E+00 |   steep. descent=2.0E+00 | start T= 100. stop T= 100.
- TODO: pretty printing!     1000.00000
- 
- Number of MPI processes 2
- Number of maximal OpenMP threads per MPI process 2
- No material acceleration (iproc=0)
- 
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
-   Geom. Code=    S   |   Box Sizes (Bohr) =  5.66918E+00  0.00000E+00  5.66918E+00
-   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
- Output grid policy=    2   (dens. + pot.) | Output grid format=     0         (text)
- Exchange-corr. ref.                                  (XC: Perdew, Burke & Ernzerhof)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy -1.52158930417117E+01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -8.000000000025   0.000E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   9.84115901E-07
- average noise along y direction:  -5.99733087E-04
- average noise along z direction:   3.09869784E-06
- total average noise            :   5.99741899E-04
- clean forces norm (Ha/Bohr): maxval=  4.865915086519E-02  fnrm2=  6.135513187099E-03
- raw forces:                  maxval=  4.879333098564E-02  fnrm2=  6.135872866874E-03
- Wavefunction Optimization Finished, exit signal=    0
-# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
- Begin of minimization using  AB6MD     
- # ENTERING Molecular Dynamics (ABINIT implementation)
+ <BigDFT> log of the run will be written in logfile: ./log.yaml
  
  MOLDYN STEP NUMBER    0  ------------------------------------------------------
   Rescaling or initializing velocities to initial temperature
@@ -53,99 +10,59 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
    1.37666549827748E+00  1.17336683536093E+00  2.83458918749038E+00
    4.29251310197620E+00  1.17336683536093E+00  2.83458918749038E+00
   Velocities (bohr/(atomic time unit))
-   7.02020017871825E-05  1.36362273681046E-04  8.39520226811905E-06
-   3.78373650657403E-04 -5.42083285007496E-04 -1.81022193119701E-04
-  -2.06924784906675E-04 -1.08329622165424E-04  1.88050944105133E-04
+   7.02020017871862E-05  1.36362273681049E-04  8.39520226810809E-06
+   3.78373650657405E-04 -5.42083285007516E-04 -1.81022193119708E-04
+  -2.06924784906668E-04 -1.08329622165447E-04  1.88050944105119E-04
   Cartesian forces (hart/bohr); max,rms= 4.49186E-02 2.61098E-02 (free atoms)
-  -1.96529880555424E-06 -3.74181152301601E-02 -4.84786336230059E-06
-  -4.49183521104275E-02  1.87089949770038E-02 -2.64895924084740E-07
-   4.49186128704926E-02  1.87091202531563E-02 -2.54342805705576E-07
+  -1.96529879458649E-06 -3.74181152301523E-02 -4.84786339427501E-06
+  -4.49183521104273E-02  1.87089949770002E-02 -2.64895925417008E-07
+   4.49186128704939E-02  1.87091202531521E-02 -2.54342808370112E-07
  
-  At the end of Moldyn step     0, ham=  8.58244797829731E-04 Ha.
+  At the end of Moldyn step     0, ham=  8.58244797829767E-04 Ha.
   At the end of Moldyn step     0, POT.En.=  0.00000000000000E+00 Ha.
-                                   KIN.En.=  8.58244797829731E-04 Ha.
-                               KIN+POT.En.=  8.58244797829731E-04 Ha.
+                                   KIN.En.=  8.58244797829767E-04 Ha.
+                               KIN+POT.En.=  8.58244797829767E-04 Ha.
  
  MOLDYN STEP NUMBER    1  ------------------------------------------------------
  SCFloop API, call force calculation step= 1
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
-   Geom. Code=    S   |   Box Sizes (Bohr) =  5.66918E+00  1.43500E+01  5.66918E+00
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    2   (dens. + pot.) | Output grid format=     0         (text)
- Exchange-corr. ref.                                  (XC: Perdew, Burke & Ernzerhof)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy -1.51917485891575E+01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -8.000000000025   0.000E+00
- The wavefunctions need reformatting because:                                 
-    nvctr_c_old /= nvctr_c   13151   13149
- Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:  -3.38795917E-05
- average noise along y direction:  -4.77295553E-04
- average noise along z direction:  -4.04481130E-06
- total average noise            :   4.78513565E-04
- clean forces norm (Ha/Bohr): maxval=  4.655460864164E-02  fnrm2=  5.462228885928E-03
- raw forces:                  maxval=  4.665996850383E-02  fnrm2=  5.462456696972E-03
   Nose-Hoover updated velocities (T_ask =      100.000 and T_eff =       97.223)
   Cartesian coordinates (bohr)
-   2.83529119098149E+00  1.42773282791090E-03  2.83467314544484E+00
+   2.83529119098149E+00  1.42773282791091E-03  2.83467314544484E+00
    1.38167148728955E+00  1.16743702966876E+00  2.83277902407147E+00
    4.28922154593509E+00  1.17177443995746E+00  2.83646965055713E+00
   Velocities (bohr/(atomic time unit))
-   7.04748439670505E-05  1.48319428649488E-04  8.39410116844796E-06
-   6.08378717931391E-04 -6.35595709716595E-04 -1.81303145056958E-04
-  -4.41221789557389E-04 -2.04571579098515E-04  1.88353627876350E-04
+   7.04748439670546E-05  1.48319428649496E-04  8.39410116844852E-06
+   6.08378717931398E-04 -6.35595709716654E-04 -1.81303145057044E-04
+  -4.41221789557394E-04 -2.04571579098579E-04  1.88353627876232E-04
   Cartesian forces (hart/bohr); max,rms= 4.30464E-02 2.46356E-02 (free atoms)
-   7.89515567336503E-04  3.48600727076342E-02 -3.95364775740426E-06
-   4.22568728773448E-02 -1.71780787953831E-02 -5.06110315985353E-05
-  -4.30463884446813E-02 -1.76819939122511E-02  5.45646793559396E-05
+   7.89515567337604E-04  3.48600727076488E-02 -3.95364772380150E-06
+   4.22568728773458E-02 -1.71780787953903E-02 -5.06110316131162E-05
+  -4.30463884446834E-02 -1.76819939122585E-02  5.45646793369177E-05
  
-  At the end of Moldyn step     1, ham= -1.71243742706472E+01 Ha.
+  At the end of Moldyn step     1, ham= -1.71243742706473E+01 Ha.
   At the end of Moldyn step     1, POT.En.= -1.71257595997293E+01 Ha.
-                                   KIN.En.=  1.38549063398148E-03 Ha.
-                               KIN+POT.En.= -1.71243741090953E+01 Ha.
+                                   KIN.En.=  1.38549063398162E-03 Ha.
+                               KIN+POT.En.= -1.71243741090954E+01 Ha.
  
  MOLDYN STEP NUMBER    2  ------------------------------------------------------
  SCFloop API, call force calculation step= 2
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
-   Geom. Code=    S   |   Box Sizes (Bohr) =  5.66918E+00  1.43500E+01  5.66918E+00
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    2   (dens. + pot.) | Output grid format=     0         (text)
- Exchange-corr. ref.                                  (XC: Perdew, Burke & Ernzerhof)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy -1.51677127094831E+01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -8.000000000025   0.000E+00
- The wavefunctions need reformatting because:                                 
-    nvctr_c_old /= nvctr_c   13149   13147
- Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:  -5.79366286E-05
- average noise along y direction:  -3.64163197E-04
- average noise along z direction:  -9.34802210E-06
- total average noise            :   3.68861590E-04
- clean forces norm (Ha/Bohr): maxval=  4.445394834843E-02  fnrm2=  4.824942500384E-03
- raw forces:                  maxval=  4.453309933462E-02  fnrm2=  4.825075115218E-03
   Nose-Hoover updated velocities (T_ask =      100.000 and T_eff =      147.019)
   Cartesian coordinates (bohr)
-   2.83599456452631E+00  2.85111885439581E-03  2.83475709068948E+00
+   2.83599456452631E+00  2.85111885439588E-03  2.83475709068948E+00
    1.38660515690252E+00  1.16154873105120E+00  2.83096742486608E+00
    4.28598087995182E+00  1.17020996496411E+00  2.83835164486270E+00
   Velocities (bohr/(atomic time unit))
-   7.10325123413714E-05  1.59375000720592E-04  8.39169371651097E-06
-   8.23626274265917E-04 -7.20550125027114E-04 -1.81888746779406E-04
-  -6.65361952484259E-04 -2.95154030105051E-04  1.88973021562672E-04
+   7.10325123413714E-05  1.59375000720598E-04  8.39169371654125E-06
+   8.23626274265956E-04 -7.20550125027170E-04 -1.81888746779743E-04
+  -6.65361952484229E-04 -2.95154030105096E-04  1.88973021562332E-04
   Cartesian forces (hart/bohr); max,rms= 4.11865E-02 2.31539E-02 (free atoms)
-   1.63297726757761E-03  3.22583635988092E-02 -6.24984004563937E-06
-   3.95535432317248E-02 -1.56133767434135E-02 -1.08649751584903E-04
-  -4.11865204993024E-02 -1.66449868553957E-02  1.14899591630543E-04
+   1.63297726756552E-03  3.22583635988054E-02 -6.24983995896795E-06
+   3.95535432317306E-02 -1.56133767434130E-02 -1.08649751630792E-04
+  -4.11865204992961E-02 -1.66449868553924E-02  1.14899591589760E-04
  
   At the end of Moldyn step     2, ham= -1.71241746530911E+01 Ha.
   At the end of Moldyn step     2, POT.En.= -1.71262696147866E+01 Ha.
-                                   KIN.En.=  2.09511465242214E-03 Ha.
+                                   KIN.En.=  2.09511465242229E-03 Ha.
                                KIN+POT.En.= -1.71241745001341E+01 Ha.
  Nb time steps     3
  step      1
@@ -153,39 +70,10 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  atom      2  2.42833336194356E-01  8.17677237185315E-02  5.00000000000000E-01
  atom      3  7.57166703542074E-01  8.17677237185315E-02  5.00000000000000E-01
  step      2
- atom      1  5.00123828083132E-01  9.94935768579024E-05  5.00014809545387E-01
+ atom      1  5.00123828083132E-01  9.94935768579034E-05  5.00014809545387E-01
  atom      2  2.43716354628590E-01  8.13544968410284E-02  4.99680700923629E-01
  atom      3  7.56586098060398E-01  8.16567553977323E-02  5.00331699400224E-01
  step      3
- atom      1  5.00247897833330E-01  1.98684240724447E-04  5.00029616848860E-01
+ atom      1  5.00247897833330E-01  1.98684240724451E-04  5.00029616848860E-01
  atom      2  2.44586616470190E-01  8.09441624425923E-02  4.99361148585430E-01
  atom      3  7.56014469198344E-01  8.15477327501122E-02  5.00663668899345E-01
-End of minimization using  AB6MD     
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
-   Geom. Code=    S   |   Box Sizes (Bohr) =  5.66918E+00  1.43500E+01  5.66918E+00
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    2   (dens. + pot.) | Output grid format=     0         (text)
- Exchange-corr. ref.                                  (XC: Perdew, Burke & Ernzerhof)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy -1.52158930417117E+01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -8.000000000025   0.000E+00
- The wavefunctions need reformatting because:                                 
-    nvctr_c_old /= nvctr_c   13147   13151
- Reformatting... done.
- writing external_potential     
- writing local_potential     
- ----------------------------------------------------------------- Forces Calculation
- writing electronic_density     
- writing hartree_potential     
- Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   3.54755261E-06
- average noise along y direction:  -5.41610796E-04
- average noise along z direction:   4.05017316E-06
- total average noise            :   5.41637558E-04
- clean forces norm (Ha/Bohr): maxval=  4.867369666246E-02  fnrm2=  6.143752483967E-03
- raw forces:                  maxval=  4.879499679744E-02  fnrm2=  6.144045826222E-03
- Final values of the Forces for each atom
-     1      O  7.14999E-06  3.74930E-02  6.53780E-06
-     2      H  4.49170E-02 -1.87446E-02 -1.49927E-07
-     3      H -4.49180E-02 -1.87483E-02  6.27230E-07

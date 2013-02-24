@@ -1,0 +1,3 @@
+ef_interpol_det  1.d-12
+ef_interpol_chargediff  1.d-3
+mixing_after_inputguess  T

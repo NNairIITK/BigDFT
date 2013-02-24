@@ -1,12 +1,10 @@
- Reading atomic input positions from file:../../../tests/NEB/start.xyz
- Reading atomic input positions from file:../../../tests/NEB/stop.xyz
 External computation of forces for replicas.
  type     = all
  job_name = triH
  n_images = 5
  n_nodes  = 4
- datadir  = /local/caliste/bigdft-tmp/tmp/tests/NEB
- workdir  = /local/caliste/bigdft-tmp/tmp/tests/NEB/.
+ datadir  = /local/binaries/gfortran-mpi-openmp-mkl/tests/overDFT/NEB
+ workdir  = /local/binaries/gfortran-mpi-openmp-mkl/tests/overDFT/NEB/.
 Current iter is 000.
 Start job 1.
 Job 1 finished (0/5).
@@ -23,8 +21,8 @@ External computation of forces for replicas.
  job_name = triH
  n_images = 5
  n_nodes  = 4
- datadir  = /local/caliste/bigdft-tmp/tmp/tests/NEB
- workdir  = /local/caliste/bigdft-tmp/tmp/tests/NEB/.
+ datadir  = /local/binaries/gfortran-mpi-openmp-mkl/tests/overDFT/NEB
+ workdir  = /local/binaries/gfortran-mpi-openmp-mkl/tests/overDFT/NEB/.
 Current iter is 000.
 Start job 2.
 Job 2 finished (0/3).
@@ -32,14 +30,14 @@ Start job 3.
 Job 3 finished (1/3).
 Start job 4.
 Job 4 finished (2/3).
- iteration:   1     E activation =  0.253096     error = 11.645007
+ iteration:   1     E activation =  0.253096     error = 11.644987
 External computation of forces for replicas.
  type     = free_only
  job_name = triH
  n_images = 5
  n_nodes  = 4
- datadir  = /local/caliste/bigdft-tmp/tmp/tests/NEB
- workdir  = /local/caliste/bigdft-tmp/tmp/tests/NEB/.
+ datadir  = /local/binaries/gfortran-mpi-openmp-mkl/tests/overDFT/NEB
+ workdir  = /local/binaries/gfortran-mpi-openmp-mkl/tests/overDFT/NEB/.
 Current iter is 000.
 Start job 2.
 Job 2 finished (0/3).
@@ -47,9 +45,9 @@ Start job 3.
 Job 3 finished (1/3).
 Start job 4.
 Job 4 finished (2/3).
- iteration:   2     E activation = -0.650111     error =  3.036414
- image:  1   Energy=      -54.74557692   Error= 0.00000
- image:  2   Energy=      -56.01222149   Error= 0.41427
- image:  3   Energy=      -55.39568819   Error= 3.03641
+ iteration:   2     E activation = -0.650111     error =  3.036425
+ image:  1   Energy=      -54.74557693   Error= 0.00000
+ image:  2   Energy=      -56.01222150   Error= 0.41427
+ image:  3   Energy=      -55.39568745   Error= 3.03643
  image:  4   Energy=      -56.01345078   Error= 0.98998
- image:  5   Energy=      -55.25921657   Error= 0.00000
+ image:  5   Energy=      -55.25921658   Error= 0.00000

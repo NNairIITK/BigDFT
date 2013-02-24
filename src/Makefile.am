@@ -286,6 +286,7 @@ modules_source = modules/base.f90 \
 	modules/BigDFT_API.f90 \
 	modules/vdwcorrection.f90 \
 	modules/yaml_output.f90 \
+	modules/yaml_strings.f90 \
 	$(CUDA_MODULES) \
 	$(LIBXC_MODULES) \
 	$(PS_MODULES) \
@@ -313,7 +314,8 @@ high_level = cluster.f90 \
 	scfloop_API.f90 \
 	esatto.f90 \
 	tddft.f90 \
-	output.f90
+	output.f90 \
+	external.f90
 
 #objects which can be compiled only with module_base
 low_level = \
@@ -391,8 +393,11 @@ low_level = \
 	linear/communicatePotential.f90 \
 	linear/hpsiortho_linear.f90 \
 	linear/init_collective_comms.f90 \
-	linear/communications_p2p.f90 \
 	linear/optimize_coeffs.f90 \
+	linear/foe.f90 \
+	linear/chebyshev.f90 \
+	linear/communications_onesided.f90 \
+        linear/sparse_matrices.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \
@@ -477,6 +482,8 @@ check:
 #dependencies
 $(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o distances.o global.o rism.o oneatom.o BigDFT2Wannier.o WaCo.o: $(mpi_include)  $(modules_objects)
 
+linear/convolutions_aux.o: linear/filterModule.o
+
 cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
 
 abscalc.o : esatto.o
@@ -484,6 +491,8 @@ abscalc.o : esatto.o
 lanczos.o : lanczos_base.o lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
+
+#initAndUtils.o: cleanup.o
 
 $(modules_objects) : $(mpi_include)
 

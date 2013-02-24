@@ -34,10 +34,11 @@ subroutine center_of_charge(at,rxyz,cc)
      cc(2)=cc(2)+ry*zatom
      cc(3)=cc(3)+rz*zatom
   end do
-
-  cc(1)=cc(1)/qtot
-  cc(2)=cc(2)/qtot
-  cc(3)=cc(3)/qtot
+  if (qtot /= 0.0_gp) then
+     cc(1)=cc(1)/qtot
+     cc(2)=cc(2)/qtot
+     cc(3)=cc(3)/qtot
+  end if
 END SUBROUTINE center_of_charge
 
 
@@ -385,7 +386,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
            write(6,10)
 
            do imulti = 1, 2*nmulti
-              write(6,30) imulti, ha2ev*omega(imulti),(2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+              write(6,30) imulti, Ha_eV*omega(imulti),(2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
 30            format(t2,i3,2x,f9.4,12x,1pe10.3) 
            end do
 
@@ -393,7 +394,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
            open(unit=9, file='td_spectra.txt')
            write(9,'(a4)')'2  #(results in eV)' 
            do imulti = 1, min(100,2*nmulti) 
-              write(9,'(f9.4,5x,1pe10.3)') ha2ev*omega(imulti), (2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+              write(9,'(f9.4,5x,1pe10.3)') Ha_eV*omega(imulti), (2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
            end do
            close(unit=9)
 
@@ -402,7 +403,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
            do imulti = 1,2*nmulti
               write(6,40)
 40            format('================================================')
-              write(6,50) imulti, ha2ev*omega(imulti) 
+              write(6,50) imulti, Ha_eV*omega(imulti) 
 50            format(i3,2x,'Transition energy',2x,f10.5,1x,'eV')  
               write(6,70)
 70            format('------------------------------------------------')
@@ -457,7 +458,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
         !print eigenvalues
         do imulti=1,nmulti
            if (iproc==0) print '(a,i6,2(f10.5),3(f10.5))','excitation energies: Ha, eV, dipoles:' , &
-           imulti,omega(imulti),omega(imulti)*ha2ev,fi(1,imulti),fi(2,imulti),fi(3,imulti)
+           imulti,omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti)
         end do
      end if
      

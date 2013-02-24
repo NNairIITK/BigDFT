@@ -40,8 +40,8 @@ int main(){
   ocl_create_command_queue_(&queue,&context);
   init_event_list_();
 
-  cl_mem cmPinnedBufIn = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, size*sizeof(cl_double), NULL, NULL);
-  cl_mem cmPinnedBufOut = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, size*sizeof(cl_double), NULL, NULL);
+  cl_mem cmPinnedBufIn = clCreateBuffer(context->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, size*sizeof(cl_double), NULL, NULL);
+  cl_mem cmPinnedBufOut = clCreateBuffer(context->context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, size*sizeof(cl_double), NULL, NULL);
   in = (cl_double *)clEnqueueMapBuffer(queue->command_queue, cmPinnedBufIn, CL_TRUE, CL_MAP_WRITE, 0, size*sizeof(cl_double), 0, NULL, NULL, NULL);
   out = (cl_double *)clEnqueueMapBuffer(queue->command_queue, cmPinnedBufOut, CL_TRUE, CL_MAP_READ, 0, size*sizeof(cl_double), 0, NULL, NULL, NULL);
 

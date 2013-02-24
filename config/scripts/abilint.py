@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 11/09/2012
+# Date: 04/12/2012
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -37,6 +37,7 @@
 #TODO
 #----
 # Add include files for dependencies
+# Pb with pre-processing (?)
 # The module ftfvw2 needs interfaces: Check if everything is correct
 # Add correct children to _xxx_ files.
 # Add children and parents to the files interfaces_xxx.F90.
@@ -421,7 +422,7 @@ def split_code(text):
 #Indent the Fortran code
 def indent_code(text,n=0):
     "Indent a Fortran code"
-    re_indented = re.compile("^[ \t]*(interface|function|subroutine)",re.IGNORECASE)
+    re_indented = re.compile("^[ \t]*(interface|function|((pure)?[ ]*subroutine))",re.IGNORECASE)
     re_end = re.compile("^[ \t]*end",re.IGNORECASE)
     new = ""
     for line in text.splitlines():
@@ -1134,7 +1135,7 @@ class Structure:
     #Comments and also preprocessing commands
     re_comment_match = re.compile("^([ \t]*(([!#].*)|[ ]*)\n)+")
     #Detect the beginning and the end of a block
-    re_sub_start = re.compile('^[ \t]*(module|program|recursive|subroutine|(([^!\'"\n]*?)function))',re.IGNORECASE)
+    re_sub_start = re.compile('^[ \t]*(module|program|(((pure|recursive)[ ]*)*subroutine)|(([^!\'"\n]*?)function))',re.IGNORECASE)
     re_sub_end   = re.compile('^[ \t]*end[ \t]*(function|module|program|subroutine|\n)',re.IGNORECASE)
     #
     def __init__(self,name=None,parent=None,message=None):
@@ -1812,7 +1813,7 @@ class Module(Code):
                 return (n_struct != 0)
             elif self.re_sub_start.match(line):
                 line_lower = line.lower()
-                if "subroutine" in line_lower or "recursive" in line_lower:
+                if "subroutine" in line_lower:
                     struct = Routine(parent=self,implicit=self.Implicit.dict)
                 else:
                     struct = Function(parent=self,implicit=self.Implicit.dict)
@@ -2301,7 +2302,7 @@ class Header_Routine(Code):
     "Header of a routine"
     #Detect the beginning of a block (program, subroutine, function)
     re_startblock = re.compile('(?P<header>[ \t]*' \
-        + '(?P<type>(program|(recursive)?[ ]*subroutine|(([^!\n]*?)function)))' \
+        + '(?P<type>(program|((pure|recursive)[ ]*)*subroutine|(([^!\n]*?)function)))' \
         + '[ ]*(?P<name>\w+)[ ]*(?P<arguments>[(][^)]*[)])?[^\n]*)\n', \
            re.MULTILINE+re.IGNORECASE)
     #In arguments, remove some characters
@@ -2342,7 +2343,7 @@ class Header_Routine(Code):
 class Header_Function(Header_Routine):
     "Header of a function"
     #Use to determine the variable in result statement for a function
-    re_result = re.compile('result[(](?P<result>[^)]+)[)]')
+    re_result = re.compile('result[ ]*[(](?P<result>[^)]+)[)]')
     def analyze(self,line,iter_code):
         "Analyze the header"
         Code.analyze(self)
@@ -2887,7 +2888,7 @@ class Declaration(Code):
                         text += " '%s'" % arg
                     text += "\n==Code"+"="*50+">\n%s" % self.code + "="*56+"<\n"
                     self.message.fatal( \
-                        text + "[%s/%s:%s] Argument {%s} is not declared\n" \
+                        text + "[%s/%s:%s] Argument '%s' is not declared\n" \
                         % (self.parent.dir,self.parent.file,self.parent.name,argument))
                 #Add in the dictionary of variables
                 self.dict_vars[argument_lower] = arg

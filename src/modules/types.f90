@@ -26,6 +26,7 @@ module module_types
   integer, parameter :: BIGDFT_SUCCESS        = 0   !< No errors
   integer, parameter :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
   integer, parameter :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
+  integer, parameter :: BIGDFT_INVALID  = -12 !< Invalid entry
 
 
   !> Input wf parameters.
@@ -76,26 +77,28 @@ module module_types
   !> Occupation parameters.
   integer, parameter :: SMEARING_DIST_ERF   = 1
   integer, parameter :: SMEARING_DIST_FERMI = 2
-  integer, parameter :: SMEARING_DIST_COLD1 = 3  !Marzari's cold smearing  with a=-.5634 (bumb minimization)
-  integer, parameter :: SMEARING_DIST_COLD2 = 4  !Marzari's cold smearing  with a=-.8165 (monotonic tail)
-  integer, parameter :: SMEARING_DIST_METPX = 5  !Methfessel and Paxton (same as COLD with a=0)
+  integer, parameter :: SMEARING_DIST_COLD1 = 3  !< Marzari's cold smearing  with a=-.5634 (bumb minimization)
+  integer, parameter :: SMEARING_DIST_COLD2 = 4  !< Marzari's cold smearing  with a=-.8165 (monotonic tail)
+  integer, parameter :: SMEARING_DIST_METPX = 5  !< Methfessel and Paxton (same as COLD with a=0)
   character(len = 11), dimension(5), parameter :: smearing_names = &
-       (/ "Error func.",&
-       "Fermi      ", &
-       "Cold (bumb)", &
-       "Cold (mono)",   &
-       "Meth.-Pax. " /)
+       (/ "Error func.", &
+          "Fermi      ", &
+          "Cold (bumb)", &
+          "Cold (mono)", &
+          "Meth.-Pax. " /)
 
   !> Target function for the optimization of the basis functions (linear scaling version)
   integer,parameter:: TARGET_FUNCTION_IS_TRACE=0
   integer,parameter:: TARGET_FUNCTION_IS_ENERGY=1
+  integer,parameter:: TARGET_FUNCTION_IS_HYBRID=2
   !!integer,parameter:: DECREASE_LINEAR=0
   !!integer,parameter:: DECREASE_ABRUPT=1
-  integer,parameter:: COMMUNICATION_COLLECTIVE=0
-  integer,parameter:: COMMUNICATION_P2P=1
+  !!integer,parameter:: COMMUNICATION_COLLECTIVE=0
+  !!integer,parameter:: COMMUNICATION_P2P=1
   integer,parameter:: LINEAR_DIRECT_MINIMIZATION=100
   integer,parameter:: LINEAR_MIXDENS_SIMPLE=101
   integer,parameter:: LINEAR_MIXPOT_SIMPLE=102
+  integer,parameter:: LINEAR_FOE=103
   
 
   !> Type used for the orthogonalisation parameter
@@ -119,7 +122,7 @@ module module_types
      !> iguessTol gives the tolerance to which the input guess will converged (maximal
      !! residue of all orbitals).
      real(gp):: iguessTol
-     integer:: methTransformOverlap, nItOrtho, blocksize_pdsyev, blocksize_pdgemm
+     integer:: methTransformOverlap, nItOrtho, blocksize_pdsyev, blocksize_pdgemm, nproc_pdsyev
   end type orthon_data
 
   type, public :: SIC_data
@@ -143,24 +146,24 @@ module module_types
 
   !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
-    integer:: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond
-    integer :: nItInguess, nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
-    integer:: mixHist_lowaccuracy, mixHist_highaccuracy
-    integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
-    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG
-    integer:: nit_lowaccuracy, nit_highaccuracy
-    integer:: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
-    integer:: communication_strategy_overlap
-    real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
-    real(8):: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, gnrm_mult
-    integer:: increase_locrad_after, plotBasisFunctions
-    real(8):: locrad_increase_amount
-    real(8):: lowaccuracy_conv_crit, convCritMix
-    real(8):: highaccuracy_conv_crit, support_functions_converged !lr408
-    real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
-    real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
-    integer,dimension(:),pointer:: norbsPerType
-    integer:: scf_mode
+    integer :: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond
+    integer :: nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
+    integer :: mixHist_lowaccuracy, mixHist_highaccuracy
+    integer :: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
+    integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
+    integer :: nit_lowaccuracy, nit_highaccuracy
+    integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
+    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
+    real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor, ef_interpol_det
+    integer :: plotBasisFunctions
+    real(kind=8) ::  fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
+    real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
+    real(kind=8) :: highaccuracy_conv_crit, support_functions_converged
+    real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff
+    real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
+    integer, dimension(:), pointer :: norbsPerType
+    integer :: scf_mode, nlevel_accuracy
+    logical :: calc_dipole, pulay_correction, mixing_after_inputguess
   end type linearInputParameters
 
   integer, parameter, public :: INPUT_IG_OFF  = 0
@@ -177,6 +180,7 @@ module module_types
      integer :: iacceleration
      integer :: Psolver_igpu !< acceleration of the Poisson solver
      character(len=11) :: OCL_platform
+     character(len=11) :: OCL_devices
   end type material_acceleration
 
 
@@ -186,7 +190,7 @@ module module_types
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
                            file_mix,file_sic,file_occnum,file_igpop,file_lin
      character(len=100) :: dir_output !< Strings of the directory which contains all data output files
-     character(len=100) :: run_name
+     character(len=100) :: run_name   !< Contains the prefix (by default input) used for input files as input.dft
      integer :: files                 !< Existing files.
      !miscellaneous variables
      logical :: gaussian_help
@@ -275,6 +279,9 @@ module module_types
      !> number of taskgroups for the poisson solver
      !! works only if the number of MPI processes is a multiple of it
      integer :: PSolver_groupsize
+     
+     !> Global MPI group size (will be written in the mpi_environment)
+     ! integer :: mpi_groupsize 
   end type input_variables
 
   !> Contains all energy terms
@@ -359,8 +366,8 @@ module module_types
      integer :: nsi1,nsi2,nsi3  !< starting point of locreg for interpolating grid
      integer :: Localnorb              !< number of orbitals contained in locreg
      integer,dimension(3) :: outofzone  !< vector of points outside of the zone outside Glr for periodic systems
-     real(8),dimension(3):: locregCenter !< center of the locreg 
-     real(8):: locrad !< cutoff radius of the localization region
+     real(kind=8),dimension(3):: locregCenter !< center of the locreg 
+     real(kind=8):: locrad !< cutoff radius of the localization region
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
@@ -482,9 +489,7 @@ module module_types
      integer :: norb          !< Total number of orbitals per k point
      integer :: norbp         !< Total number of orbitals for the given processors
      integer :: norbu,norbd,nspin,nspinor,isorb
-     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: nkpts,nkptsp,iskpts
-     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      real(gp) :: efermi,HLgap, eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
      integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom
@@ -492,6 +497,8 @@ module module_types
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
   end type orbitals_data
 
   !> Contains the information needed for communicating the wavefunctions
@@ -521,6 +528,13 @@ module module_types
      real(kind=8) :: psi_c_r_i,psi_f_r_i,psi_c_b_i,psi_f_b_i,psi_c_d_i,psi_f_d_i
      real(kind=8) :: keyg_c,keyg_f,keyv_c,keyv_f
      real(kind=8) :: context,queue
+     !host pointers to be freed
+     real(kind=8) :: rhopot_down_host, rhopot_up_host
+     real(kind=8), dimension(:,:,:), pointer :: ekinpot_host
+     real(kind=8), dimension(:,:), pointer :: psicf_host
+     real(kind=8), dimension(:,:), pointer :: hpsicf_host
+     real(kind=8), dimension(:), pointer :: bprecond_host
+
      real(gp), dimension(:,:), pointer :: ekin, epot !< values of the kinetic and potential energies to be passed to local_hamiltonian
      real(wp), dimension(:), pointer :: hpsi_ASYNC !<pointer to the wavefunction allocated in the case of asyncronous local_hamiltonian
   end type GPU_pointers
@@ -530,16 +544,10 @@ module module_types
      logical :: linear                         !< if true, use linear part of the code
      integer :: nlr                            !< Number of localization regions 
      integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
-!    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
      integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
-!     integer :: Lnprojel                       !< Total number of projector elements
      real(gp), dimension(3) :: hgrids          !<grid spacings of wavelet grid
-!     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
-     logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
      type(locreg_descriptors) :: Glr           !< Global region descriptors
-!    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
      type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
-    !!!real(8),dimension(:,:),pointer:: cutoffweight
   end type local_zone_descriptors
 
   !> Contains the work arrays needed for expressing wavefunction in real space
@@ -596,48 +604,62 @@ module module_types
      type(GPU_pointers), pointer :: GPU
      type(pcproj_data_type), pointer :: PPD
      type(pawproj_data_type), pointer :: PAWD
+     ! removed from orbs, not sure if needed here or not
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
   end type lanczos_args
 
 
   !> Contains all parameters needed for point to point communication
   type,public:: p2pComms
-    integer,dimension(:),pointer:: noverlaps, overlaps
-    real(8),dimension(:),pointer:: sendBuf, recvBuf
+    integer,dimension(:),pointer:: noverlaps
+    real(kind=8),dimension(:),pointer:: recvBuf
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: nsendBuf, nrecvBuf, nrecv, nsend
-    integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
-    integer,dimension(:,:),pointer:: requests
-    logical:: communication_complete, messages_posted
+    integer:: nrecvBuf, window
+    integer,dimension(:,:),pointer:: ise ! starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
+    integer,dimension(:,:),pointer:: mpi_datatypes
+    logical:: communication_complete
   end type p2pComms
 
-  !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
-  type,public:: overlapParameters
-      integer:: ndim_lphiovrlp, noverlapsmax, noverlapsmaxp, nsubmax
-      integer,dimension(:),pointer:: noverlaps !, indexExpand, indexExtract
+  type,public :: foe_data
+    integer,dimension(:),pointer :: kernel_nseg
+    integer,dimension(:,:,:),pointer :: kernel_segkeyg
+    real(kind=8) :: ef !< Fermi energy for FOE
+    real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
+    real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)
+    real(kind=8) :: fscale !< length scale for complementary error function (FOE)
+    real(kind=8) :: ef_interpol_det !<FOE: max determinant of cubic interpolation matrix
+    real(kind=8) :: ef_interpol_chargediff !<FOE: max charge difference for interpolation
+    real(kind=8) :: charge !total charge of the system
+  end type foe_data
+
+  type,public :: sparseMatrix
+      integer :: nvctr, nseg, full_dim1, full_dim2
+      integer,dimension(:),pointer:: noverlaps
       integer,dimension(:,:),pointer:: overlaps
-      integer,dimension(:,:),pointer:: indexInRecvBuf
-      integer,dimension(:,:),pointer:: indexInSendBuf
-      type(wavefunctions_descriptors),dimension(:,:),pointer:: wfd_overlap
-  end type overlapParameters
+      integer,dimension(:),pointer :: keyv, nsegline, istsegline
+      integer,dimension(:,:),pointer :: keyg
+      real(kind=8),dimension(:),pointer :: matrix_compr
+      real(kind=8),dimension(:,:),pointer :: matrix
+      integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
+  end type sparseMatrix
 
-  type,public:: matrixDescriptors
-      integer:: nvctr, nseg, nseglinemax
-      integer,dimension(:),pointer:: keyv, nsegline
-      integer,dimension(:,:),pointer:: keyg
-      integer,dimension(:,:,:),pointer:: keygline
-  end type matrixDescriptors
-
+  type,public :: linear_matrices !may not keep
+      type(sparseMatrix) :: ham, ovrlp, denskern, inv_ovrlp
+  end type linear_matrices
 
   type:: collective_comms
+    integer:: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f, nptsp_f, ndimpsi_f
     integer,dimension(:),pointer:: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
     integer,dimension(:),pointer:: isendbuf_c, iextract_c, iexpand_c, irecvbuf_c
     integer,dimension(:),pointer:: norb_per_gridpoint_c, indexrecvorbital_c
-    integer:: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f
     integer,dimension(:),pointer:: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
     integer,dimension(:),pointer:: isendbuf_f, iextract_f, iexpand_f, irecvbuf_f
     integer,dimension(:),pointer:: norb_per_gridpoint_f, indexrecvorbital_f
     integer,dimension(:),pointer:: isptsp_c, isptsp_f !<starting index of a given gridpoint (basically summation of norb_per_gridpoint_*)
-    integer:: nptsp_f, ndimpsi_f
+    real(kind=8),dimension(:),pointer :: psit_c, psit_f
+    integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
+    integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
   end type collective_comms
 
 
@@ -670,62 +692,22 @@ module module_types
   end type workarrays_quartic_convolutions
   
 
-  type:: linear_scaling_control_variables
-    integer:: nit_highaccuracy, nit_scc, mix_hist, info_basis_functions
-    real(8):: pnrm_out, alpha_mix
-    logical:: lowaccur_converged, exit_outer_loop, compare_outer_loop
-    logical:: enlarge_locreg
-    real(8),dimension(:),allocatable:: locrad
-  end type linear_scaling_control_variables
-
-
   type,public:: localizedDIISParameters
     integer:: is, isx, mis, DIISHistMax, DIISHistMin
     integer:: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
-    real(8),dimension(:),pointer:: phiHist, hphiHist
-    real(8),dimension(:,:,:),pointer:: mat
-    real(8):: trmin, trold, alphaSD, alphaDIIS
+    real(kind=8),dimension(:),pointer:: phiHist, hphiHist
+    real(kind=8):: alpha_coeff !step size for optimization of coefficients
+    real(kind=8),dimension(:,:,:),pointer:: mat
+    real(kind=8):: trmin, trold, alphaSD, alphaDIIS
     logical:: switchSD, immediateSwitchToSD, resetDIIS
   end type localizedDIISParameters
 
 
   type,public:: mixrhopotDIISParameters
     integer:: is, isx, mis
-    real(8),dimension(:),pointer:: rhopotHist, rhopotresHist
-    real(8),dimension(:,:),pointer:: mat
+    real(kind=8),dimension(:),pointer:: rhopotHist, rhopotresHist
+    real(kind=8),dimension(:,:),pointer:: mat
   end type mixrhopotDIISParameters
-
-
-  type,public:: basis_specifications
-    real(8):: conv_crit !<convergence criterion for the basis functions
-    integer:: target_function !<minimize trace or energy
-    integer:: meth_transform_overlap !<exact or Taylor approximation
-    integer:: nit_precond !<number of iterations for preconditioner
-    integer:: nit_basis_optimization !<number of iterations for optimization of phi
-    integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
-    real(8):: gnrm_mult !< energy differnce between to iterations in teh TMBs optimization mus be smaller than gnrm_mult*gnrm*ntmb
-  end type basis_specifications
-
-  type,public:: basis_performance_options
-    integer:: blocksize_pdgemm !<block size for pdgemm (scalapck)
-    integer:: blocksize_pdsyev !<block size for pdsyev (scalapck)
-    integer:: nproc_pdsyev !,number of processors used for pdsyev (scalapck)
-    integer:: communication_strategy_overlap
-  end type basis_performance_options
-
-  type,public:: wfn_metadata
-    integer:: nphi !<size of phi without derivative
-    integer:: ld_coeff !<leading dimension of coeff
-    real(8),dimension(:,:),pointer:: coeff !<expansion coefficients
-    real(8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
-    real(8),dimension(:,:),pointer:: density_kernel !<density kernel
-    type(basis_specifications):: bs !<contains parameters describing the basis functions
-    type(basis_performance_options):: bpo !<contains performance parameters
-    real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients
-    real(8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
-    integer:: it_coeff_opt !<counts the iterations of the optimization of the coefficients
-  end type wfn_metadata
-
 
   !> Contains the arguments needed for the diis procedure
   type, public :: diis_objects
@@ -742,16 +724,16 @@ module module_types
     integer :: confPotOrder                           !< The order of the algebraic expression for Confinement potential
     integer :: ncong                                  !< Number of CG iterations for the preconditioning equation
     logical, dimension(:), pointer :: withConfPot     !< Use confinement potentials
-    real(8), dimension(:), pointer :: potentialPrefac !< Prefactor for the potential: Prefac * f(r) 
+    real(kind=8), dimension(:), pointer :: potentialPrefac !< Prefactor for the potential: Prefac * f(r) 
   end type precond_data
 
   !> Information for the confining potential to be used in TMB scheme
   !! The potential is supposed to be defined as prefac*(r-rC)**potorder
   type, public :: confpot_data
-     integer :: potorder !< order of the confining potential
-     integer, dimension(3) :: ioffset !< offset for the coordinates of potential lr in global region
-     real(gp) :: prefac !< prefactor
-     real(gp), dimension(3) :: hh !< grid spacings in ISF grid
+     integer :: potorder                !< order of the confining potential
+     integer, dimension(3) :: ioffset   !< offset for the coordinates of potential lr in global region
+     real(gp) :: prefac                 !< prefactor
+     real(gp), dimension(3) :: hh       !< grid spacings in ISF grid
      real(gp), dimension(3) :: rxyzConf !< confining potential center in global coordinates
   end type confpot_data
 
@@ -781,6 +763,8 @@ module module_types
 !     integer :: mpi_comm
      type(mpi_environment) :: mpi_env
      integer :: igpu !< control the usage of the GPU
+     integer :: initCufftPlan
+     integer :: keepGPUmemory
   end type coulomb_operator
 
   !> Densities and potentials, and related metadata, needed for their creation/application
@@ -823,6 +807,17 @@ module module_types
   integer,parameter,public :: LINEAR_LOWACCURACY  = 101 !low accuracy after restart
   integer,parameter,public :: LINEAR_HIGHACCURACY = 102 !high accuracy after restart
 
+  !check if all comms are necessary here
+  type, public :: hamiltonian_descriptors
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+     type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
+     type(collective_comms):: collcom ! describes collective communication
+     	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
+        real(wp), dimension(:), pointer :: psi,psit_c,psit_f !< these should eventually be eliminated
+        logical:: can_use_transposed
+  end type hamiltonian_descriptors
+
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
@@ -833,26 +828,27 @@ module module_types
      type(gaussian_basis) :: gbd !<gaussian basis description, if associated
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
      !restart objects (consider to move them in rst structure)
-     type(old_wavefunction), dimension(:), pointer :: oldpsis !< previously calculated wfns
-     integer :: istep_history !< present step of wfn history
+     	type(old_wavefunction), dimension(:), pointer :: oldpsis !< previously calculated wfns
+     	integer :: istep_history !< present step of wfn history
      !data properties
      logical:: can_use_transposed !< true if the transposed quantities are allocated and can be used
      type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
      type(communications_arrays) :: comms !< communication objects for the cubic approach
-     type(diis_objects) :: diis
+     	type(diis_objects) :: diis
      type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
      type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
-     type(wfn_metadata) :: wfnmd !<specifications of the kind of wavefunction
-     type(p2pComms):: comon !<describing p2p communications for orthonormality
-     type(overlapParameters):: op !<describing the overlaps
-     type(p2pComms):: comgp !<describing p2p communications for distributing the potential
-     type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
-     type(p2pComms):: comsr !<describing the p2p communications for sumrho
-     type(matrixDescriptors):: mad !<describes the structure of the matrices
+     	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
      type(collective_comms):: collcom ! describes collective communication
+     type(collective_comms):: collcom_sr ! describes collective communication for the calculation of the charge density
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
+     	type(foe_data):: foe_obj !<describes the structure of the matrices
+        type(linear_matrices):: linmat
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+     type(hamiltonian_descriptors) :: ham_descr
+     real(kind=8),dimension(:,:),pointer:: coeff !<expansion coefficients
   end type DFT_wavefunction
 
   !> Flags for optimization loop id
@@ -932,6 +928,7 @@ contains
     ma%iacceleration=0
     ma%Psolver_igpu=0
     ma%OCL_platform=repeat(' ',len(ma%OCL_platform))
+    ma%OCL_platform=repeat(' ',len(ma%OCL_devices))
   end function material_acceleration_null
 
   function pkernel_null() result(k)
@@ -1033,7 +1030,6 @@ contains
     lzd%lintyp=0
     lzd%ndimpotisf=0
     lzd%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    nullify(lzd%doHamAppl)
     lzd%Glr=default_locreg()
     nullify(lzd%Llr)
   end function default_lzd
@@ -1241,18 +1237,28 @@ subroutine deallocate_orbs(orbs,subname)
 
 END SUBROUTINE deallocate_orbs
 
+
 !> Allocate and nullify restart objects
-  subroutine init_restart_objects(iproc,matacc,atoms,rst,subname)
+  subroutine init_restart_objects(iproc,inputs,atoms,rst,subname)
     use module_base
     implicit none
     !Arguments
     character(len=*), intent(in) :: subname
     integer, intent(in) :: iproc
-    type(material_acceleration), intent(in) :: matacc
+    type(input_variables), intent(in) :: inputs
     type(atoms_data), intent(in) :: atoms
     type(restart_objects), intent(out) :: rst
     !local variables
     integer :: i_stat
+
+    ! Decide whether we use the cubic or the linear version
+    select case (inputs%inputpsiid)
+    case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
+         INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
+       rst%version = CUBIC_VERSION
+    case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
+       rst%version = LINEAR_VERSION
+    end select
 
     !allocate pointers
     allocate(rst%rxyz_new(3,atoms%nat+ndebug),stat=i_stat)
@@ -1281,7 +1287,9 @@ END SUBROUTINE deallocate_orbs
     nullify(rst%KSwfn%gbd%rxyz)
 
     !initialise the acceleration strategy if required
-    call init_material_acceleration(iproc,matacc,rst%GPU)
+    call init_material_acceleration(iproc,inputs%matacc,rst%GPU)
+
+
 
   END SUBROUTINE init_restart_objects
 
@@ -1294,6 +1302,11 @@ END SUBROUTINE deallocate_orbs
     type(restart_objects) :: rst
     !local variables
     integer :: i_all,i_stat,istep
+
+    if (rst%version == LINEAR_VERSION) then
+       call destroy_DFT_wavefunction(rst%tmb)
+       call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
+    end if
 
     call deallocate_locreg_descriptors(rst%KSwfn%Lzd%Glr,subname)
 

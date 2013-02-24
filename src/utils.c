@@ -100,7 +100,8 @@ void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,
           *status = 0;
           lgCpy = ((*lgDir > *lgOut - 1)?*lgOut - 1:*lgDir);
           memcpy(out, dir, sizeof(char) * lgCpy);
-          out[lgCpy] = '/';
+          /* Add a '/' if not already present */
+          if (out[lgCpy-1] != '/') { out[lgCpy] = '/'; };
         }
       else
         *status = 1;
@@ -135,6 +136,16 @@ void FC_FUNC(delete, DELETE)(const char *f, int *lgF, int *status)
   *status = unlink(path);
   free(path);
 }
+
+void FC_FUNC(deldir, DELDIR)(const char *f, int *lgF, int *status)
+{
+  char *path;
+
+  path = strndup(f, (size_t)*lgF);
+  *status = rmdir(path);
+  free(path);
+}
+
 
 void FC_FUNC(movefile, MOVEFILE)(const char *oldfile, int *lgoldfile, const char *newfile, int *lgnewfile, int *status)
 {

@@ -823,7 +823,6 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
   ! Local variables
   integer:: iis1, iie1, i1
 
-  call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)
 
   if(associated(lzd%llr)) then  
@@ -853,7 +852,6 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
   ! Local variables
   integer:: iis1, iie1, i1
 
-  call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
 
   if(associated(lzd%llr)) then
      iis1=lbound(lzd%llr,1)
@@ -1055,114 +1053,67 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   ! Calling arguments
   type(p2pComms),intent(inout):: p2pcomm
   character(len=*),intent(in):: subname
+  
+  ! Local variables
+  integer :: is, ie, i, ierr
 
   call checkAndDeallocatePointer(p2pcomm%noverlaps, 'p2pcomm%noverlaps', subname)
-  call checkAndDeallocatePointer(p2pcomm%overlaps, 'p2pcomm%overlaps', subname)
-  call checkAndDeallocatePointer(p2pcomm%sendBuf, 'p2pcomm%sendBuf', subname)
   call checkAndDeallocatePointer(p2pcomm%recvBuf, 'p2pcomm%recvBuf', subname)
   call checkAndDeallocatePointer(p2pcomm%comarr, 'p2pcomm%comarr', subname)
-  call checkAndDeallocatePointer(p2pcomm%ise3, 'p2pcomm%ise3', subname)
-  call checkAndDeallocatePointer(p2pcomm%requests, 'p2pcomm%requests', subname)
+  call checkAndDeallocatePointer(p2pcomm%ise, 'p2pcomm%ise', subname)
+
+  if (associated(p2pcomm%mpi_datatypes)) then
+      is=lbound(p2pcomm%mpi_datatypes,2)
+      ie=ubound(p2pcomm%mpi_datatypes,2)
+      do i=is,ie
+          if (p2pcomm%mpi_datatypes(2,i)==1) then
+               call mpi_type_free(p2pcomm%mpi_datatypes(1,i), ierr)
+           end if
+      end do
+  end if
+  call checkAndDeallocatePointer(p2pcomm%mpi_datatypes, 'p2pcomm%mpi_datatypes', subname)
 
 end subroutine deallocate_p2pComms
 
-
-subroutine deallocate_overlapParameters(op, subname)
+subroutine deallocate_foe(foe_obj, subname)
   use module_base
   use module_types
   use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_overlapParameters
+  use module_interfaces, exceptThisOne => deallocate_foe
   implicit none
   
   ! Calling arguments
-  type(overlapParameters),intent(inout):: op
+  type(foe_data),intent(inout):: foe_obj
   character(len=*),intent(in):: subname
 
-  ! Local variables
-  integer:: iis1, iie1, iis2, iie2, i1, i2
+  call checkAndDeallocatePointer(foe_obj%kernel_nseg, 'foe_obj%kernel_nseg', subname)
+  call checkAndDeallocatePointer(foe_obj%kernel_segkeyg, 'foe_obj%kernel_segkeyg', subname)
 
-  call checkAndDeallocatePointer(op%noverlaps, 'op%noverlaps', subname)
-  call checkAndDeallocatePointer(op%overlaps, 'op%overlaps', subname)
-  call checkAndDeallocatePointer(op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
-  call checkAndDeallocatePointer(op%indexInSendBuf, 'op%indexInSendBuf', subname)
+end subroutine deallocate_foe
 
-
-if(associated(op%wfd_overlap)) then
-   iis1=lbound(op%wfd_overlap,1)
-   iie1=ubound(op%wfd_overlap,1)
-   iis2=lbound(op%wfd_overlap,2)
-   iie2=ubound(op%wfd_overlap,2)
-   do i2=iis2,iie2
-       do i1=iis1,iie1
-              call deallocate_wavefunctions_descriptors(op%wfd_overlap(i1,i2), subname)
-          end do
-      end do
-      deallocate(op%wfd_overlap)
-      nullify(op%wfd_overlap)
-  end if
-
-
-
-end subroutine deallocate_overlapParameters
-
-
-subroutine deallocate_matrixDescriptors(mad, subname)
+subroutine deallocate_sparseMatrix(sparsemat, subname)
   use module_base
   use module_types
   use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_matrixDescriptors
+  use module_interfaces, exceptThisOne => deallocate_sparseMatrix
   implicit none
   
   ! Calling arguments
-  type(matrixDescriptors),intent(inout):: mad
+  type(sparseMatrix),intent(inout):: sparsemat
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(mad%keyg, 'mad%keyg', subname)
-  call checkAndDeallocatePointer(mad%keyv, 'mad%keyv', subname)
-  !!call checkAndDeallocatePointer(mad%keygmatmul, 'mad%keygmatmul', subname)
-  !!call checkAndDeallocatePointer(mad%keyvmatmul, 'mad%keyvmatmul', subname)
-  call checkAndDeallocatePointer(mad%nsegline, 'mad%nsegline', subname)
-  call checkAndDeallocatePointer(mad%keygline, 'mad%keygline', subname)
+  call checkAndDeallocatePointer(sparseMat%keyg, 'sparseMat%keyg', subname)
+  call checkAndDeallocatePointer(sparseMat%keyv, 'sparseMat%keyv', subname)
+  call checkAndDeallocatePointer(sparseMat%nsegline, 'sparseMat%nsegline', subname)
+  call checkAndDeallocatePointer(sparseMat%istsegline, 'sparseMat%istsegline', subname)
+  call checkAndDeallocatePointer(sparseMat%noverlaps, 'sparseMat%noverlaps', subname)
+  call checkAndDeallocatePointer(sparseMat%overlaps, 'sparseMat%overlaps', subname)
+  call checkAndDeallocatePointer(sparseMat%matrix_compr, 'sparseMat%matrix_compr', subname)
+  call checkAndDeallocatePointer(sparseMat%matrix, 'sparseMat%matrix', subname)
+  call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed, 'sparseMat%matrixindex_in_compressed', subname)
+  call checkAndDeallocatePointer(sparseMat%orb_from_index, 'sparseMat%orb_from_index', subname)
 
-end subroutine deallocate_matrixDescriptors
-
-
-
-subroutine destroy_wfn_metadata(wfnmd)
-  use module_base
-  use module_types
-  use deallocatePointers
-  implicit none
-  
-  ! Calling arguments
-  type(wfn_metadata),intent(inout):: wfnmd
-
-  ! Local variables
-  integer:: istat, iall
-  character(len=*),parameter:: subname='destroy_wfn_metadata'
-
-  iall=-product(shape(wfnmd%coeff))*kind(wfnmd%coeff)
-  deallocate(wfnmd%coeff, stat=istat)
-  call memocc(istat, iall, 'wfnmd%coeff', subname)
-
-  iall=-product(shape(wfnmd%coeffp))*kind(wfnmd%coeffp)
-  deallocate(wfnmd%coeffp, stat=istat)
-  call memocc(istat, iall, 'wfnmd%coeffp', subname)
-
-  iall=-product(shape(wfnmd%density_kernel))*kind(wfnmd%density_kernel)
-  deallocate(wfnmd%density_kernel, stat=istat)
-  call memocc(istat, iall, 'wfnmd%density_kernel', subname)
-
-  iall=-product(shape(wfnmd%alpha_coeff))*kind(wfnmd%alpha_coeff)
-  deallocate(wfnmd%alpha_coeff, stat=istat)
-  call memocc(istat, iall, 'wfnmd%alpha_coeff', subname)
-
-  iall=-product(shape(wfnmd%grad_coeff_old))*kind(wfnmd%grad_coeff_old)
-  deallocate(wfnmd%grad_coeff_old, stat=istat)
-  call memocc(istat, iall, 'wfnmd%grad_coeff_old', subname)
-
-end subroutine destroy_wfn_metadata
-
+end subroutine deallocate_sparseMatrix
 
 
 
@@ -1189,6 +1140,8 @@ subroutine deallocate_collective_comms(collcom, subname)
   call checkAndDeallocatePointer(collcom%irecvbuf_c, 'collcom%irecvbuf_c', subname)
   call checkAndDeallocatePointer(collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
   call checkAndDeallocatePointer(collcom%indexrecvorbital_c, 'collcom%indexrecvorbital_c', subname)
+  call checkAndDeallocatePointer(collcom%isptsp_c, 'collcom%isptsp_c', subname)
+  call checkAndDeallocatePointer(collcom%psit_c, 'collcom%psit_c', subname)
   call checkAndDeallocatePointer(collcom%nsendcounts_f, 'collcom%nsendcounts_f', subname)
   call checkAndDeallocatePointer(collcom%nsenddspls_f, 'collcom%nsenddspls_f', subname)
   call checkAndDeallocatePointer(collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
@@ -1199,8 +1152,12 @@ subroutine deallocate_collective_comms(collcom, subname)
   call checkAndDeallocatePointer(collcom%irecvbuf_f, 'collcom%irecvbuf_f', subname)
   call checkAndDeallocatePointer(collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
   call checkAndDeallocatePointer(collcom%indexrecvorbital_f, 'collcom%indexrecvorbital_f', subname)
-  call checkAndDeallocatePointer(collcom%isptsp_c, 'collcom%isptsp_c', subname)
   call checkAndDeallocatePointer(collcom%isptsp_f, 'collcom%isptsp_f', subname)
+  call checkAndDeallocatePointer(collcom%psit_f, 'collcom%psit_f', subname)
+  call checkAndDeallocatePointer(collcom%nsendcounts_repartitionrho, 'collcom%nsendcounts_repartitionrho', subname)
+  call checkAndDeallocatePointer(collcom%nrecvcounts_repartitionrho, 'collcom%nrecvcounts_repartitionrho', subname)
+  call checkAndDeallocatePointer(collcom%nsenddspls_repartitionrho, 'collcom%nsenddspls_repartitionrho', subname)
+  call checkAndDeallocatePointer(collcom%nrecvdspls_repartitionrho, 'collcom%nrecvdspls_repartitionrho', subname)
 
 end subroutine deallocate_collective_comms
 

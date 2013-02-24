@@ -8,6 +8,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 module module_xc
 
   use module_base
@@ -15,6 +16,7 @@ module module_xc
   use libxc_funcs_m
   use xc_f90_lib_m
   use interfaces_56_xc
+  use yaml_output
 
   implicit none
 
@@ -213,10 +215,15 @@ contains
 
     ! Dump functional information
     call obj_get_name_(xc, message)
-    write(*,"(1x,a19,a65)") "Exchange-corr. ref.", "("//trim(message)//")"
+    !write(*,"(1x,a19,a65)") "Exchange-corr. ref.", "("//trim(message)//")"
+    call yaml_map('Exchange-Correlation reference','"'//trim(message)//'"')
     if (xc%kind == XC_ABINIT) then
-       write(*,"(1x,A84)") "XC functional provided by ABINIT."
+       call yaml_map('XC functional implementation','ABINIT')
+       !write(*,"(1x,A84)") "XC functional provided by ABINIT."
     else
+       call yaml_map('XC functional implementation','libXC')
+       call yaml_open_sequence('Reference Papers')
+       call yaml_sequence('"Comput. Phys. Commun. 183, 2272 (2012)"')
        do i = 1, 2
           if (xc%family(i) == 0) cycle
           
@@ -224,11 +231,13 @@ contains
           if (xc%id(i) > 0) then
              call xc_f90_info_refs(xc%funcs(i)%info,ii,str,message)
              do while (ii >= 0)
-                write(*,"(1x,a1,1x,a82)") "|", trim(message)
+                !write(*,"(1x,a1,1x,a82)") "|", trim(message)
+                call yaml_sequence('"'//trim(message)//'"')
                 call xc_f90_info_refs(xc%funcs(i)%info,ii,str,message)
              end do
           end if
        end do
+       call yaml_close_sequence()
     end if
   end subroutine xc_dump
 
