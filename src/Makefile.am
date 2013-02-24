@@ -59,7 +59,7 @@ PS_SOURCES =
 PS_MODULES =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo
+binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo NEB_images
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -424,6 +424,10 @@ $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft.a libdft_common.a
 
 bigdft_SOURCES = BigDFT.f90
 bigdft_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+
+NEB_images_SOURCES = BigDFT.f90
+NEB_images_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+
 
 splsad_SOURCES = splinedsaddle.f90
 splsad_LDADD = libbigdft.a @LIBS_DEPENDENCIES@

@@ -34,7 +34,7 @@ Expected Test CPUtime: #
 SiH4:
  #due like that due to lack of functionality in fldiff, since energies field is updated
  Energies: &etol 4.6e-9
- Eion: &eion 2.7e-9
+ Eion: &eion 3.2e-9
  EH: *etol
  EXC: *etol
  Eion: *etol
@@ -46,6 +46,8 @@ SiH4:
  Ion-Ion interaction energy: *eion
  Atomic Forces (Ha/Bohr): 2.e-9
  maxval: 2.e-9
+ Average noise forces: 1.5e-10
+ Average CG stepsize in terms of betax: 1.1e-5
 
 AgBulk:
  Grid Spacing threshold (AU): 1.e-2
@@ -86,7 +88,7 @@ GEOPT-LBFGS:
  
 NaCl:
  Epsilon: 2.e-9
- Mean L2 norm of gaussian-wavelet difference: 1.4e-5
+ Mean L2 norm of gaussian-wavelet difference: 2.4e-5
 
 NH3:
  Epsilon: 1.1e-10
@@ -96,13 +98,13 @@ CH3-:
  gnrm: 1.1e-5
  EKS: 7.84e-9
  D: 1.e-8
- Average CG stepsize in terms of betax: 5.1e-5
- Atomic Forces (Ha/Bohr): 1.7e-8
- Average noise forces: 2.7e-8
- Clean forces norm (Ha/Bohr): 1.1e-7
- Raw forces norm (Ha/Bohr): 1.5e-7
- Ion-Ion interaction energy: 3.8e-7
- FORCES norm(Ha/Bohr): 5.6e-9
+ Average CG stepsize in terms of betax: 1.6e-4
+ Atomic Forces (Ha/Bohr): 2.5e-7
+ Average noise forces: 2.9e-8
+ Clean forces norm (Ha/Bohr): 1.8e-7
+ Raw forces norm (Ha/Bohr): 2.1e-7
+ Ion-Ion interaction energy: 4.0e-7
+ FORCES norm(Ha/Bohr): 8.1e-9
  Keys to ignore:
  - b/b0
 
@@ -137,6 +139,7 @@ test.splsad.ref.yaml:
 test.minhop.ref.yaml:
   Keys to ignore:
     - (MH) cpu(hrs)
+    - WARNINGS
 
 test.testforces.ref.yaml:
  Epsilon: 1.2e-10
@@ -178,16 +181,25 @@ Davidson-SiH4:
 
 TDDFT:
   Epsilon: 1.1e-10
-  e_virtual: 4.9e-10
+  e_virtual: 1.3e-9
   Eigenvalues and eigenstate residue: 1.1e-7
   Epot: 1.1e-10
-  Gradient Norm: 1.3e-9
+  Gradient Norm: 3.1e-9
+  L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-7
 
 BigDFT2Wannier.b2w.ref.yaml:
-  amnk_guess(nb): 5.0e-11
+  amnk_guess(nb): 6.5e-11
 
 cleanup:
  Atomic Forces (Ha/Bohr): 1.5e-10
  Average noise forces: 1.5e-10
  Clean forces norm (Ha/Bohr): 1.6e-10
  Raw forces norm (Ha/Bohr): 2.4e-10
+
+directmin:
+ Patterns to ignore:
+ - Wavefunction written
+
+restartdisk_charge:
+ Patterns to ignore:
+ - Wavefunction written
