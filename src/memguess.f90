@@ -53,6 +53,8 @@ program memguess
    !! By Ali
    integer :: ierror
 
+   call f_malloc_set_status(memory_limit=0.e0)
+
    ! Get arguments
    !call getarg(1,tatonam)
    call get_command_argument(1, value = tatonam, status = istat)

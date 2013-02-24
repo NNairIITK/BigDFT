@@ -58,7 +58,7 @@ deltascf_write_neut.out.post-out:
 	  mixpotential.out*)          prec="1.e-9" ;; \
 	  onlyhigh.out*)              prec="1.1e-9" ;; \
 	  cleanup.out*)               prec="1.1e-8" ;; \
-	  fructose.out*)              prec="5.9e-7" ;; \
+	  fructose.out*)              prec="9.0e-7" ;; \
 	  geopt_diag.out*)            prec="2.e-9" ;; \
 	  geopt_foe.out*)             prec="2.81e-7" ;; \
 	  reformat_read.out*)         prec="1.e-9" ;; \

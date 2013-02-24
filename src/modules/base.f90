@@ -11,7 +11,8 @@
 !> Modules which contains the low level definitions, as well as some profiling procedures
 module module_base 
   use module_defs
-  use m_profiling
+  use dynamic_memory
+  !use m_profiling
 
   implicit none  
 end module module_base

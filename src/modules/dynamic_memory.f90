@@ -210,12 +210,12 @@ module dynamic_memory
     end subroutine f_malloc_routine_id
 
     !>initialize the library
-    subroutine f_malloc_set_status(memory_limit,output_level,logfile_name)
+    subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,unit)
       use yaml_output, only: yaml_date_and_time_toa
       implicit none
       character(len=*), intent(in), optional :: logfile_name
       real(kind=4), intent(in), optional :: memory_limit
-      integer, intent(in), optional :: output_level
+      integer, intent(in), optional :: output_level,unit
 
       if (.not. profile_initialized) then
          profile_initialized=.true.
@@ -224,9 +224,13 @@ module dynamic_memory
          call set(dict_global//'Timestamp of Profile initialization',trim(yaml_date_and_time_toa()))
       end if
       
-      if (present(memory_limit)) then
-         call memocc_set_memory_limit(memory_limit)
-      end if
+      if (present(memory_limit)) call memocc_set_memory_limit(memory_limit)
+
+      if (present(output_level)) call memocc_set_state(output_level)
+
+      if (present(unit)) call memocc_set_stdout(unit)
+
+      if (present(logfile_name)) call memocc_set_filename(logfile_name)
       
     end subroutine f_malloc_set_status
 

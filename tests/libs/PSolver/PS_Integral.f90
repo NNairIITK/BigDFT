@@ -189,8 +189,11 @@ nb3=0
     x=x+hx
   end do
   
-     allocate(x_phi(0:nd+ndebug),stat=i_stat )
-     call memocc(i_stat,x_phi,'x_phi',subname)
+!!$     allocate(x_phi(0:nd+ndebug),stat=i_stat )
+!!$     call memocc(i_stat,x_phi,'x_phi',subname)
+
+  x_phi=f_malloc(bounds=(/0.to.nd/),id='x_phi')
+
      allocate(y_phi(0:nd+ndebug) ,stat=i_stat )
      call memocc(i_stat,y_phi,'y_phi',subname)
 
@@ -212,9 +215,11 @@ end do
 !      stop " wrong scaling function 4b2B: not a centered one "
 !    endif
 
-    i_all=-product(shape(x_phi))*kind(x_phi)
-    deallocate(x_phi,stat=i_stat)
-    call memocc(i_stat,i_all,'x_phi',subname)
+    call f_free(x_phi)
+
+!    i_all=-product(shape(x_phi))*kind(x_phi)
+!    deallocate(x_phi,stat=i_stat)
+!    call memocc(i_stat,i_all,'x_phi',subname)
 
 !call interpolate_and_transpose(h,t0,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
 

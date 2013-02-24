@@ -34,7 +34,8 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   if (ierr /= MPI_SUCCESS) return
 
   !se the memory limit for the allocation library
-  call memocc_set_memory_limit(memorylimit)
+  call f_malloc_set_status(memory_limit=memorylimit)
+  !call memocc_set_memory_limit(memorylimit)
 
 
   call command_line_information(mpi_groupsize,posinp_file,radical,ierr)

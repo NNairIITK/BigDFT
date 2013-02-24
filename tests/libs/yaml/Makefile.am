@@ -20,7 +20,7 @@ yaml_test_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 CLEANFILES = yaml_test.out.yaml
 
 yaml_test.out.yaml: yaml_test
-	$(run_parallel) ./yaml_test > yaml_test.out.yaml
+	./yaml_test > yaml_test.out.yaml
 
 check: yaml_test.out.yaml
 	export PYTHONPATH=${PYTHONPATH} ; \

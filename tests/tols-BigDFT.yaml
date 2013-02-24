@@ -23,6 +23,7 @@ Keys to ignore:
  - Maxdiff*
  - Tolerances for this check
  - Material acceleration
+ - Number of OpenCL devices per node
 
 Expected Test CPUtime: #
  C: #[expected, error]
@@ -73,10 +74,6 @@ Mn2:
 GPU:
  EvXC: 1.1e-10
 
-NaCl:
- Epsilon: 2.1e-10
-# Mean L2 norm of gaussian-wavelet difference: 1.0e-5
-
 TiMix:
  Epsilon: 1.e-10
 
@@ -89,6 +86,7 @@ GEOPT-LBFGS:
  
 NaCl:
  Epsilon: 2.e-9
+ Mean L2 norm of gaussian-wavelet difference: 1.4e-5
 
 NH3:
  Epsilon: 1.1e-10
@@ -131,10 +129,6 @@ TiSmear:
 
 H2O-CP2K:
  Total energy with tail correction: 1.8e-11
-
-TDDFT:
- Epsilon: 1.1e-10
- Eigenvalues and eigenstate residue: 1.3e-6
 
 test.splsad.ref.yaml:
  Epsilon: 1.1e-10
@@ -183,10 +177,11 @@ Davidson-SiH4:
   Eigenvalues and eigenstate residue: 1.3e-10
 
 TDDFT:
-  e_virtual: 2.3e-10
+  Epsilon: 1.1e-10
+  e_virtual: 4.9e-10
   Eigenvalues and eigenstate residue: 1.1e-7
   Epot: 1.1e-10
-  Gradient Norm: 7.1e-10
+  Gradient Norm: 1.3e-9
 
 BigDFT2Wannier.b2w.ref.yaml:
   amnk_guess(nb): 5.0e-11
