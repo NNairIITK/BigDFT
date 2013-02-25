@@ -32,16 +32,17 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   character(len=*), parameter :: subname='IonicEnergyandForces'
   logical :: slowion=.false.
   logical :: perx,pery,perz,gox,goy,goz
-  integer :: iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
+  integer :: i,iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
   real(gp) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
   real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod
-  real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart
+  real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart,de
   !real(gp) :: Mz,cmassy
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
   real(gp), dimension(:,:), allocatable :: fewald,xred
+  real(gp), dimension(3) :: cc
 
   allocate(fion(3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fion,'fion',subname)
@@ -420,13 +421,19 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   end if
 
   ! Add contribution from constant electric field to the forces
+  call center_of_charge(at,rxyz,cc)
   do iat=1,at%nat
      ityp=at%iatype(iat)
      charge=real(at%nelpsp(ityp),gp)
      fion(1:3,iat)=fion(1:3,iat)+(charge*elecfield(1:3))
      !ry=rxyz(2,iat) 
      !eion=eion-(charge*elecfield)*ry
-     eion=eion-charge*sum(elecfield(1:3)*rxyz(1:3,iat))
+     de=0.0_gp
+     do i=1,3
+        de=de+elecfield(i)*(rxyz(i,iat)-cc(i))
+     end do
+     !eion=eion-charge*sum(elecfield(1:3)*rxyz(1:3,iat))
+     eion=eion-charge*de
   enddo
 
   if (iproc == 0) then

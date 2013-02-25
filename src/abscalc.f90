@@ -161,7 +161,7 @@ program abscalc_main
 
    deallocate(arr_posinp,arr_radical)
 
-   call bigdft_finalize()
+   call bigdft_finalize(ierr)
 
 !!$
 !!$   !No referenced by memocc!

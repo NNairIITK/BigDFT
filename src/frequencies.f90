@@ -456,7 +456,7 @@ program frequencies
 !!$
 !!$   call MPI_FINALIZE(ierr)
 
-   call bigdft_finalize()
+   call bigdft_finalize(ierr)
 
    contains
 

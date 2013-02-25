@@ -117,7 +117,7 @@ program BigDFT
 
    deallocate(arr_posinp,arr_radical)
 
-   call bigdft_finalize()
+   call bigdft_finalize(ierr)
 
 END PROGRAM BigDFT
 

@@ -1017,7 +1017,7 @@ if (iproc == 0) &
 !!$call memocc(0,0,'count','stop')
 
 
-call bigdft_finalize()
+call bigdft_finalize(ierr)
 
 !!$! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
 !!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)

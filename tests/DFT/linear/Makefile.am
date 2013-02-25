@@ -52,27 +52,28 @@ deltascf_write_neut.out.post-out:
         esac ; \
         case $* in \
 	  base.out*)                  prec="1.e-9" ;; \
-      large.out*)                 prec="5.e-10" ;; \
-      directmin.out*)             prec="1.1e-9" ;; \
+      large.out*)                     prec="5.e-10" ;; \
+      directmin.out*)                 prec="1.1e-9" ;; \
 	  standardnew.out*)           prec="2.e-10" ;; \
 	  mixpotential.out*)          prec="1.e-9" ;; \
 	  onlyhigh.out*)              prec="1.1e-9" ;; \
 	  cleanup.out*)               prec="1.1e-8" ;; \
-	  geopt_diag.out*)             prec="2.e-9" ;; \
-	  geopt_foe.out*)             prec="2.e-9" ;; \
-	  reformat_read.out*)             prec="1.e-9" ;; \
-	  deltascf_read_charge.out*)             prec="1.e-9" ;; \
+	  fructose.out*)              prec="5.9e-7" ;; \
+	  geopt_diag.out*)            prec="2.e-9" ;; \
+	  geopt_foe.out*)             prec="2.81e-7" ;; \
+	  reformat_read.out*)         prec="1.e-9" ;; \
+	  deltascf_read_charge.out*)  prec="1.e-9" ;; \
 	  water_dirmin.out*)          prec="1.e-8" ;; \
 	  water_mixdens.out*)         prec="1.1e-8" ;; \
 	  water_mixpot.out*)          prec="1.1e-8" ;; \
 	  water_foe.out*)             prec="1.e-8" ;; \
-	  molecule_dmin.out*)          prec="1.e-9" ;; \
+	  molecule_dmin.out*)         prec="1.e-9" ;; \
 	  molecule_dmix.out*)         prec="1.e-9" ;; \
-	  molecule_pmix.out*)          prec="1.1e-9" ;; \
-	  molecule_foe.out*)             prec="1.e-9" ;; \
+	  molecule_pmix.out*)         prec="1.1e-9" ;; \
+	  molecule_foe.out*)          prec="1.e-9" ;; \
 	  reformat_write.out*)        prec="3.e-10" ;; \
 	  paracetamol.out*)           prec="2.e-10" ;; \
-      *)                          prec="1.1e-10" ;; \
+      *)                              prec="1.1e-10" ;; \
       esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 

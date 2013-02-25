@@ -787,8 +787,8 @@ subroutine local_partial_density_OCL(orbs,&
   !copy the wavefunctions on GPU
   do iorb=1,orbs%norbp*orbs%nspinor
      iorb_r = (iorb-1)/orbs%nspinor + 1
-     ispinor=iorb-iorb_r+1
-
+     ispinor=iorb-orbs%nspinor*(iorb_r-1)
+     !print *,'here',iorb,iorb_r,ispinor
      call ocl_pin_read_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,psi(1,iorb),&
           GPU%psicf_host(1+(ispinor-1)*2,iorb_r))
      call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,&

@@ -200,7 +200,7 @@ enddo !loop over iconfig
 
   deallocate(arr_posinp,arr_radical)
 
-  call bigdft_finalize()
+  call bigdft_finalize(ierr)
 
 end program splined_saddle
 
