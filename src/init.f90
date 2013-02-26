@@ -2228,7 +2228,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call timing(iproc,'restart_wvl   ','OF')
  
    else
- write(*,*) '*******************NEW_VERSION***************************'
   call timing(iproc,'restart_rsp   ','ON')
    call input_wf_memory_new(nproc, iproc, atoms, &
         rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
@@ -2604,7 +2603,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 !  allocate(exp_z(atoms%nat),stat=i_stat)
 !  call memocc(i_stat,exp_z,'exp_z',subname)  
   
-  if(lzd_old%Glr%geocode == 'F')  call razero(nbox*npsir,psir_old)
+!  if(lzd_old%Glr%geocode == 'F')  call razero(nbox*npsir,psir_old)
 
   call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1)) 
   t1 = 0d0 ; t2 = 0d0 
@@ -2637,7 +2636,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
   xbox = nint(cutoff/hhx) ; ybox = nint(cutoff/hhy) ; zbox = nint(cutoff/hhz)
   
-  radius = sqrt(r1**2+r2**2+r3**2)
+  radius = 1/(r1**2+r2**2+r3**2)
   irange = int(atoms%nat/nproc) 
   istart = iproc*irange + 1
   iend = (iproc+1)*irange
@@ -2699,7 +2698,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                zz = zz - shift1(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,3)/&  
                &         shift1(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,4)  
 
-               distance = 0.5*(((xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2)/radius**2)
+               distance = 0.5*(((xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2)*radius)
                if(distance > cutoff) cycle
                expfct = ex(distance,cutoff) 
 
@@ -2768,7 +2767,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                   yz = yz - (s2+s22)/2.0
                   zz = zz - (s3+s33)/2.0
 
-                  distance = 0.5*(((xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2)/radius**2)
+                  distance = 0.5*(((xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2)*radius)
            
                   if(distance > cutoff ) cycle
 
@@ -2780,21 +2779,21 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                   s2_new = (rxyz(2,k) - rxyz_old(2,k))*expfct
                   s3_new = (rxyz(3,k) - rxyz_old(3,k))*expfct
 
-                  norm_1 =  expfct*((rxyz_old(1,k)-xz)/(radius**2))
-                  norm_2 =  expfct*((rxyz_old(2,k)-yz)/(radius**2))
-                  norm_3 =  expfct*((rxyz_old(3,k)-zz)/(radius**2))
+                  norm_1 =  expfct*((rxyz_old(1,k)-xz)*radius)
+                  norm_2 =  expfct*((rxyz_old(2,k)-yz)*radius)
+                  norm_3 =  expfct*((rxyz_old(3,k)-zz)*radius)
 
-                  s1d1 = (rxyz(1,k)-rxyz_old(1,k))*expfct*((rxyz_old(1,k)-xz)/(radius**2))
-                  s1d2 = (rxyz(1,k)-rxyz_old(1,k))*expfct*((rxyz_old(2,k)-yz)/(radius**2))
-                  s1d3 = (rxyz(1,k)-rxyz_old(1,k))*expfct*((rxyz_old(3,k)-zz)/(radius**2))
+                  s1d1 = (rxyz(1,k)-rxyz_old(1,k))*expfct*((rxyz_old(1,k)-xz)*radius)
+                  s1d2 = (rxyz(1,k)-rxyz_old(1,k))*expfct*((rxyz_old(2,k)-yz)*radius)
+                  s1d3 = (rxyz(1,k)-rxyz_old(1,k))*expfct*((rxyz_old(3,k)-zz)*radius)
                
-                  s2d1 = (rxyz(2,k)-rxyz_old(2,k))*expfct*((rxyz_old(1,k)-xz)/(radius**2))
-                  s2d2 = (rxyz(2,k)-rxyz_old(2,k))*expfct*((rxyz_old(2,k)-yz)/(radius**2))
-                  s2d3 = (rxyz(2,k)-rxyz_old(2,k))*expfct*((rxyz_old(3,k)-zz)/(radius**2))
+                  s2d1 = (rxyz(2,k)-rxyz_old(2,k))*expfct*((rxyz_old(1,k)-xz)*radius)
+                  s2d2 = (rxyz(2,k)-rxyz_old(2,k))*expfct*((rxyz_old(2,k)-yz)*radius)
+                  s2d3 = (rxyz(2,k)-rxyz_old(2,k))*expfct*((rxyz_old(3,k)-zz)*radius)
      
-                  s3d1 = (rxyz(3,k)-rxyz_old(3,k))*expfct*((rxyz_old(1,k)-xz)/(radius**2))
-                  s3d2 = (rxyz(3,k)-rxyz_old(3,k))*expfct*((rxyz_old(2,k)-yz)/(radius**2))
-                  s3d3 = (rxyz(3,k)-rxyz_old(3,k))*expfct*((rxyz_old(3,k)-zz)/(radius**2))
+                  s3d1 = (rxyz(3,k)-rxyz_old(3,k))*expfct*((rxyz_old(1,k)-xz)*radius)
+                  s3d2 = (rxyz(3,k)-rxyz_old(3,k))*expfct*((rxyz_old(2,k)-yz)*radius)
+                  s3d3 = (rxyz(3,k)-rxyz_old(3,k))*expfct*((rxyz_old(3,k)-zz)*radius)
 
                   s1d1 =       (s1d1*norm - s1_new*norm_1)/norm**2
                   s1d2 =       (s1d2*norm - s1_new*norm_2)/norm**2
@@ -3143,7 +3142,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
        t1 = MPI_WTIME()
  do iorb = 1,orbs%norbp
 
-!$OMP PARALLEL DO DEFAULT(PRIVATE) SHARED(shift1,shift2,hhx,hhy,hhz,hhx_old,hhy_old,hhz_old,lzd_old,lzd,atoms, &
+!$OMP PARALLEL DO DEFAULT(PRIVATE) SHARED(shift1,shiftjacdet,hhx,hhy,hhz,hhx_old,hhy_old,hhz_old,lzd_old,lzd,atoms, &
 !$OMP& psir_old,psir,rxyz_old,rxyz,iorb,radius,cutoff) 
   do i3 = 1, lzd%glr%d%n3i
     do i2 = 1, lzd%glr%d%n2i

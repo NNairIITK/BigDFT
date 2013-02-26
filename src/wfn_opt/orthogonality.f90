@@ -80,28 +80,28 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar)
 !end do
       end do
 
-             test = 0.d0 ; test_max = 0.d0 ; idx = 0.d0
-
-             do i = 1,orbs%norb**2
-
-                idx = i/orbs%norb
-
-
-                if((idx+1)-(i-idx*orbs%norb).eq.0) then
-                test = abs(ovrlp(i) - 1.d0)
-                else
-                test = abs(ovrlp(i) - 0.d0)
-                end if
-
-                !if(i.eq.1) test = abs(ovrlp(i)-1.d0)
-                if(i.eq.orbs%norb**2) test = abs(ovrlp(i)-1.d0)
-            
-
-                if(test.gt.test_max) test_max = test
-
-            end do
-
-            write(*,*) 'Ovrlp-Difference', test_max
+!             test = 0.d0 ; test_max = 0.d0 ; idx = 0.d0
+!
+!             do i = 1,orbs%norb**2
+!
+!                idx = i/orbs%norb
+!
+!
+!                if((idx+1)-(i-idx*orbs%norb).eq.0) then
+!                test = abs(ovrlp(i) - 1.d0)
+!                else
+!                test = abs(ovrlp(i) - 0.d0)
+!                end if
+!
+!                !if(i.eq.1) test = abs(ovrlp(i)-1.d0)
+!                if(i.eq.orbs%norb**2) test = abs(ovrlp(i)-1.d0)
+!            
+!
+!                if(test.gt.test_max) test_max = test
+!
+!            end do
+!
+ !           write(*,*) 'Ovrlp-Difference', test_max
 
 
              ! Deallocate the arrays.
