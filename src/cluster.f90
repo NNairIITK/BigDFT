@@ -505,6 +505,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      ! Treat the info code from the optimization routine.
      if (infocode == 2 .or. infocode == 3) then
         call deallocate_before_exiting
+        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds, subname)
         return
      end if
   else
