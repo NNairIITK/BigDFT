@@ -2606,13 +2606,19 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 !  if(lzd_old%Glr%geocode == 'F')  call razero(nbox*npsir,psir_old)
 
   call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1)) 
-  t1 = 0d0 ; t2 = 0d0 
-!  shift = 0.d0
-  shift1 = 0.d0
-  shift2 = 0.d0
-  shiftjacdet = 0d0
-  psir = 0.d0 
-  psir_old = 0.d0
+  call to_zero(lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*npsir*orbs%norbp,psir(1,1,1)) 
+  call to_zero(nbox*npsir*orbs%norbp,psir_old(1,1,1)) 
+
+
+  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, shift1(1,1))
+  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, shift2(1,1))
+  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, shiftjacdet(1))
+
+!  shift1 = 0.d0
+!  shift2 = 0.d0
+!  shiftjacdet = 0d0
+!  psir = 0.d0 
+!  psir_old = 0.d0
   ist=1
   loop_orbs: do iorb=1,orbs%norbp
         call daub_to_isf(Lzd_old%Glr,w,psi_old(ist),psir_old(1,1,iorb))
@@ -2655,7 +2661,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                 
                ii1 = i1 - 14 ; xz = ii1*hhx
                
-               distance = 0.5*(((xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2)/radius**2)
+               distance = 0.5*(((xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2)*radius)
                if(distance > cutoff) cycle
                expfct = ex(distance,cutoff) 
 
