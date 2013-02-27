@@ -2545,7 +2545,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   real(wp) :: s1d1,s1d2,s1d3,s2d1,s2d2,s2d3,s3d1,s3d2,s3d3,norm_1,norm_2,norm_3,norm,r1,r2,r3,radius,jacdet,x,y,z
   real(wp),dimension(-1:1) :: coeff,ipv,ipv2
 
-  real(wp) :: s1_new, s2_new, s3_new, s_dist, z_dist, dist1, dist2, xz,yz,zz
+  real(wp) :: s1_new, s2_new, s3_new, s_dist, z_dist, dist1, dist2, xz,yz,zz,recnormsqr
   real(wp) :: x_new, y_new, z_new,x_1,x_2,y_1,y_2,z_1,z_2,s_old,s_new
   real(4), dimension(:,:), allocatable :: shift,shift1,shift2
   real(4), dimension(:), allocatable :: shiftjacdet
@@ -2609,16 +2609,10 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   call to_zero(lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*npsir*orbs%norbp,psir(1,1,1)) 
   call to_zero(nbox*npsir*orbs%norbp,psir_old(1,1,1)) 
 
-
   call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, shift1(1,1))
   call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, shift2(1,1))
   call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, shiftjacdet(1))
 
-!  shift1 = 0.d0
-!  shift2 = 0.d0
-!  shiftjacdet = 0d0
-!  psir = 0.d0 
-!  psir_old = 0.d0
   ist=1
   loop_orbs: do iorb=1,orbs%norbp
         call daub_to_isf(Lzd_old%Glr,w,psi_old(ist),psir_old(1,1,iorb))
@@ -2631,7 +2625,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   hhx_old = 0.5*hx_old ; hhy_old = 0.5*hy_old ; hhz_old = 0.5*hz_old  
   hhx = 0.5*hx ; hhy = 0.5*hy ; hhz = 0.5*hz  
   s_old = 0d0
-  jacdet = 0.d0 ; expfct = 0.d0
+  jacdet = 0.d0 ; expfct = 0.d0 ; recnormsqr = 0d0
 
   !empirical settings...
  
@@ -2652,7 +2646,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
       gridx = nint(rxyz_old(1,k)/hhx_old)+14
       gridy = nint(rxyz_old(2,k)/hhy_old)+14
       gridz = nint(rxyz_old(3,k)/hhz_old)+14
-      
+    !$OMP PARALLEL DO DEFAULT(PRIVATE) SHARED(rxyz_old,rxyz,radius,cutoff,shift1,gridx,gridy,gridz,xbox,ybox,zbox, &
+    !$OMP& hhz,hhy,hhx,lzd,k)    
       do i3 = max(1, gridz-zbox), min(lzd%glr%d%n3i,gridz+zbox)
          ii3 = i3-14 ; zz = ii3*hhz
          do i2 = max(1,gridy-ybox), min(lzd%glr%d%n2i,gridy+ybox)
@@ -2677,6 +2672,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
             end do     
          end do
        end do
+    !$OMP END PARALLEL DO
   end do
 
  call MPIALLRED(shift1(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, MPI_SUM,bigdft_mpi%mpi_comm,ierr) 
@@ -2685,6 +2681,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
       gridy = nint(rxyz_old(2,k)/hhy_old)+14
       gridz = nint(rxyz_old(3,k)/hhz_old)+14
       
+    !$OMP PARALLEL DO DEFAULT(PRIVATE) SHARED(rxyz_old,rxyz,radius,cutoff,shift1,shift2,gridx,gridy,gridz,xbox,ybox,zbox, &
+    !$OMP& hhz,hhy,hhx,lzd,k)    
       do i3 = max(1, gridz-zbox), min(lzd%glr%d%n3i,gridz+zbox)
          do i2 = max(1,gridy-ybox), min(lzd%glr%d%n2i,gridy+ybox)
             do i1 = max(1,gridx-xbox), min(lzd%glr%d%n1i,gridx+xbox)
@@ -2720,6 +2718,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
             end do     
          end do
        end do
+      !$OMP END PARALLEL DO
   end do
  call MPIALLRED(shift2(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, MPI_SUM,bigdft_mpi%mpi_comm,ierr) 
 
@@ -2728,6 +2727,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
       gridy = nint(rxyz_old(2,k)/hhy_old)+14
       gridz = nint(rxyz_old(3,k)/hhz_old)+14
       
+    !$OMP PARALLEL DO DEFAULT(PRIVATE) SHARED(rxyz_old,rxyz,radius,cutoff,shift1,shift2,gridx,gridy,gridz,xbox,ybox,zbox, &
+    !$OMP& hhz,hhy,hhx,lzd,k,shiftjacdet)    
       do i3 = max(1, gridz-zbox), min(lzd%glr%d%n3i,gridz+zbox)
          do i2 = max(1,gridy-ybox), min(lzd%glr%d%n2i,gridy+ybox)
             do i1 = max(1,gridx-xbox), min(lzd%glr%d%n1i,gridx+xbox)
@@ -2769,9 +2770,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
                   jacdet =  shiftjacdet(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i)  
 
-                  xz = xz - (s1+s11)/2.0
-                  yz = yz - (s2+s22)/2.0
-                  zz = zz - (s3+s33)/2.0
+                  xz = xz - (s1+s11)*0.5
+                  yz = yz - (s2+s22)*0.5
+                  zz = zz - (s3+s33)*0.5
 
                   distance = 0.5*(((xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2)*radius)
            
@@ -2780,6 +2781,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                   expfct = ex(distance,cutoff)
 
                   norm = expfct
+                  recnormsqr = 1/norm**2
 
                   s1_new = (rxyz(1,k) - rxyz_old(1,k))*expfct
                   s2_new = (rxyz(2,k) - rxyz_old(2,k))*expfct
@@ -2801,17 +2803,17 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                   s3d2 = (rxyz(3,k)-rxyz_old(3,k))*expfct*((rxyz_old(2,k)-yz)*radius)
                   s3d3 = (rxyz(3,k)-rxyz_old(3,k))*expfct*((rxyz_old(3,k)-zz)*radius)
 
-                  s1d1 =       (s1d1*norm - s1_new*norm_1)/norm**2
-                  s1d2 =       (s1d2*norm - s1_new*norm_2)/norm**2
-                  s1d3 =       (s1d3*norm - s1_new*norm_3)/norm**2
+                  s1d1 =       (s1d1*norm - s1_new*norm_1)*recnormsqr
+                  s1d2 =       (s1d2*norm - s1_new*norm_2)*recnormsqr
+                  s1d3 =       (s1d3*norm - s1_new*norm_3)*recnormsqr
           
-                  s2d1 =       (s2d1*norm - s2_new*norm_1)/norm**2
-                  s2d2 =       (s2d2*norm - s2_new*norm_2)/norm**2
-                  s2d3 =       (s2d3*norm - s2_new*norm_3)/norm**2
+                  s2d1 =       (s2d1*norm - s2_new*norm_1)*recnormsqr
+                  s2d2 =       (s2d2*norm - s2_new*norm_2)*recnormsqr
+                  s2d3 =       (s2d3*norm - s2_new*norm_3)*recnormsqr
           
-                  s3d1 =       (s3d1*norm - s3_new*norm_1)/norm**2
-                  s3d2 =       (s3d2*norm - s3_new*norm_2)/norm**2
-                  s3d3 =       (s3d3*norm - s3_new*norm_3)/norm**2
+                  s3d1 =       (s3d1*norm - s3_new*norm_1)*recnormsqr
+                  s3d2 =       (s3d2*norm - s3_new*norm_2)*recnormsqr
+                  s3d3 =       (s3d3*norm - s3_new*norm_3)*recnormsqr
          
                   !jacdet modified due to different loop structure
  
@@ -2836,7 +2838,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                   end do
                end do
            end do
-   end do
+        !$OMP END PARALLEL DO 
+  end do
 
  call MPIALLRED(shift1(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, MPI_SUM,bigdft_mpi%mpi_comm,ierr) 
  call MPIALLRED(shiftjacdet(1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, MPI_SUM,bigdft_mpi%mpi_comm,ierr) 
