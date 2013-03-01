@@ -1266,6 +1266,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
   call reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
        tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+
   iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
   deallocate(tmb%linmat%ovrlp%matrix, stat=istat)
   call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix', subname)
@@ -1275,7 +1276,6 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
 
   call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
-
   call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
 
   iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)

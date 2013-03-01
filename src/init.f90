@@ -2475,7 +2475,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         overlap_calculated=.false.
      nullify(tmb%psit_c)                                                                
      nullify(tmb%psit_f)     
-    
+
      ! Will be coming back to this
      if (.true.) then                                                       
         call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &

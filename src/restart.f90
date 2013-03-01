@@ -894,6 +894,112 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
 END SUBROUTINE writeLinearCoefficients
 
 
+!write Hamiltonian, overlap and kernel matrices in tmb basis
+subroutine write_linear_matrices(iproc,filename,iformat,tmb)
+  use module_types
+  use module_base
+  use yaml_output
+  use module_interfaces, except_this_one => writeonewave
+  implicit none
+  integer, intent(in) :: iproc,iformat
+  character(len=*), intent(in) :: filename 
+  type(DFT_wavefunction), intent(inout) :: tmb
+
+  integer :: iorb, jorb, i_stat, i_all, iat, jat
+  character(len=*),parameter :: subname='write_linear_matrices'
+
+  if (iproc==0) then
+     if(iformat == WF_FORMAT_PLAIN) then
+        open(99, file=filename//'hamiltonian.bin', status='unknown',form='formatted')
+     else
+        open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
+     end if
+
+     allocate(tmb%linmat%ham%matrix(tmb%linmat%ham%full_dim1,tmb%linmat%ham%full_dim1), stat=i_stat)
+     call memocc(i_stat, tmb%linmat%ham%matrix, 'tmb%linmat%ham%matrix', subname)
+
+     call uncompressMatrix(iproc,tmb%linmat%ham)
+
+     do iorb=1,tmb%linmat%ham%full_dim1
+        iat=tmb%orbs%onwhichatom(iorb)
+        do jorb=1,tmb%linmat%ham%full_dim1
+           jat=tmb%orbs%onwhichatom(jorb)
+           if (iformat == WF_FORMAT_PLAIN) then
+              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham%matrix(iorb,jorb),iat,jat
+           else
+              write(99) iorb,jorb,tmb%linmat%ham%matrix(iorb,jorb),iat,jat
+           end if
+        end do
+     end do
+
+     i_all = -product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
+     deallocate(tmb%linmat%ham%matrix,stat=i_stat)
+     call memocc(i_stat,i_all,'tmb%linmat%ham%matrix',subname)
+
+     close(99)
+
+     if(iformat == WF_FORMAT_PLAIN) then
+        open(99, file=filename//'overlap.bin', status='unknown',form='formatted')
+     else
+        open(99, file=filename//'overlap.bin', status='unknown',form='unformatted')
+     end if
+
+     allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%full_dim1,tmb%linmat%ovrlp%full_dim1), stat=i_stat)
+     call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlpmatrix', subname)
+
+     call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+
+     do iorb=1,tmb%linmat%ovrlp%full_dim1
+        iat=tmb%orbs%onwhichatom(iorb)
+        do jorb=1,tmb%linmat%ovrlp%full_dim1
+           jat=tmb%orbs%onwhichatom(jorb)
+           if (iformat == WF_FORMAT_PLAIN) then
+              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp%matrix(iorb,jorb),iat,jat
+           else
+              write(99) iorb,jorb,tmb%linmat%ovrlp%matrix(iorb,jorb),iat,jat
+           end if
+        end do
+     end do
+
+     i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
+     deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
+     call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
+
+     close(99)
+
+     if(iformat == WF_FORMAT_PLAIN) then
+        open(99, file=filename//'density_kernel.bin', status='unknown',form='formatted')
+     else
+        open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
+     end if
+
+     allocate(tmb%linmat%denskern%matrix(tmb%linmat%denskern%full_dim1,tmb%linmat%denskern%full_dim1), stat=i_stat)
+     call memocc(i_stat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
+
+     call uncompressMatrix(iproc,tmb%linmat%denskern)
+
+     do iorb=1,tmb%linmat%denskern%full_dim1
+        iat=tmb%orbs%onwhichatom(iorb)
+        do jorb=1,tmb%linmat%denskern%full_dim1
+           jat=tmb%orbs%onwhichatom(jorb)
+           if (iformat == WF_FORMAT_PLAIN) then
+              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%denskern%matrix(iorb,jorb),iat,jat
+           else
+              write(99) iorb,jorb,tmb%linmat%denskern%matrix(iorb,jorb),iat,jat
+           end if
+        end do
+     end do
+
+     i_all = -product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
+     deallocate(tmb%linmat%denskern%matrix,stat=i_stat)
+     call memocc(i_stat,i_all,'tmb%linmat%denskern%matrix',subname)
+
+     close(99)
+
+  end if
+
+end subroutine write_linear_matrices
+
 !> Write all my wavefunctions in files by calling writeonewave
 subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz,psi,coeff)
   use module_types
@@ -993,7 +1099,7 @@ END SUBROUTINE writemywaves_linear
 
 subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      & hx,hy,hz,at,wfd,rxyz_old,rxyz,locrad,locregCenter,confPotOrder,&
-     & confPotprefac,psi,eval,psifscf,onwhichatom,lr)
+     & confPotprefac,psi,eval,psifscf,onwhichatom,lr,glr)
   use module_base
   use module_types
   use internal_io
@@ -1014,7 +1120,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
   real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
   integer, dimension(*), intent(in) :: onwhichatom
-  type(locreg_descriptors), intent(in) :: lr
+  type(locreg_descriptors), intent(in) :: lr, glr
 
   !local variables
   character(len=*), parameter :: subname='readonewave_linear'
@@ -1025,6 +1131,9 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
   real(gp) :: tt,t1,t2,t3,t4,t5,t6,t7
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
+
+  ! DEBUG
+  real(wp), dimension(:), allocatable :: gpsi
   character(len=12) :: orbname
   !write(*,*) 'INSIDE readonewave'
 
@@ -1057,7 +1166,8 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   displ=sqrt(tx+ty+tz)
 
   if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
-       n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
+       n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. &
+       lr%wfd%nvctr_c==nvctr_c_old .and. lr%wfd%nvctr_f==nvctr_f_old .and. displ <= 1.d-3) then
 
      if (iproc == 0) call yaml_map('Reformating Wavefunctions',.false.)
      !if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
@@ -1134,9 +1244,21 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
   endif
 
-  ! DEBUG
+  ! DEBUG - plot in global box
+  !allocate (gpsi(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f),stat=i_stat)
+  !call memocc(i_stat,gpsi,'gpsi',subname)
+
+  !call to_zero(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f,gpsi)
+  !call Lpsi_to_global2(iproc, lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, glr%wfd%nvctr_c+7*glr%wfd%nvctr_f, &
+  !     1, 1, 1, glr, lr, psi, gpsi)
+
   !write(orbname,*) iorb
-  !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,lr,hx,hy,hz,rxyz,psi)
+  !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,glr,hx,hy,hz,rxyz,gpsi)
+  !!call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,lr,hx,hy,hz,rxyz,psi)
+
+  !i_all=-product(shape(gpsi))*kind(gpsi)
+  !deallocate(gpsi,stat=i_stat)
+  !call memocc(i_stat,i_all,'gpsi',subname)
   ! END DEBUG 
 
 
@@ -1512,7 +1634,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz_ol
                 Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,Lzd%hgrids(1),Lzd%hgrids(2),&
                 Lzd%hgrids(3),at,Lzd%Llr(ilr)%wfd,rxyz_old,rxyz,locrad,locregCenter,&
                 confPotOrder,confPotPrefac,psi(ind),orbs%eval(orbs%isorb+iorb),psifscf,&
-                orbs%onwhichatom,Lzd%Llr(ilr))
+                orbs%onwhichatom,Lzd%Llr(ilr),Lzd%glr)
            close(99)
            ind = ind + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
         end do

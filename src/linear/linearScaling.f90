@@ -483,10 +483,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   deallocate(tmb%confdatarr, stat=istat)
 
 
-  !Write the linear wavefunctions to file if asked
+  !Write the linear wavefunctions to file if asked, also write Hamiltonian and overlap matrices
   if(input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
     call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
        max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,at,rxyz,tmb%psi,tmb%coeff)
+    call write_linear_matrices(iproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb)
   end if
 
   !DEBUG
