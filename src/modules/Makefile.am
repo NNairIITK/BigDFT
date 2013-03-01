@@ -129,7 +129,7 @@ mpif.h:
 
 
 #dependencies
-base.o: defs.o
+base.o: defs.o dynamic_memory.o
 gaussians.o : base.o
 types.o: base.o yaml_output.o gaussians.o
 input.o: base.o yaml_output.o
