@@ -100,7 +100,7 @@ GEOPT-LBFGS:
  
 NaCl:
  Epsilon: 2.e-9
- Mean L2 norm of gaussian-wavelet difference: 2.4e-5
+ Mean L2 norm of gaussian-wavelet difference: 4.5e-5
 
 NH3:
  Epsilon: 1.1e-10
