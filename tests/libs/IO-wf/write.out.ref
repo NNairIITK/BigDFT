@@ -318,8 +318,6 @@
               EH:  2.08466310406E+01,  EXC: -7.09509222749E+00, EvXC: -9.21108320163E+00, 
             Eion: -7.53895186698E+00}, 
  SCF criterion:  0}
- No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
         #-------------------------------------------- Eigenvalues and New Occupation Numbers
        Total magnetization             :  4.000000
        Orbitals: [
@@ -408,13 +406,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.5665E+02, -1.5381E+02, -9.3457E+01 ]
    norm(P)                             :  2.385965E+02
- Calculate local forces...done. Leaked force:  0.00000E+00
  Non Local forces calculated           :  Yes
- average noise along x direction:  -2.81392213E-04
- average noise along y direction:  -1.19218169E-04
- average noise along z direction:   4.76577028E-03
- total average noise            :   4.77555870E-03
- clean forces norm (Ha/Bohr): maxval=  4.846821384226E-01  fnrm2=  4.633456084398E-01
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
    -  [ -4.739406561775E-04, -4.863593150873E-07, -3.324444371278E-09 ]
@@ -427,7 +419,6 @@
  Timings for root process:
    CPU time (s)                        :  7.62
    Elapsed time (s)                    :  7.62
-  WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
      1      O -1.66399E-04 -7.10696E-05 -4.77942E-01
      2      O -2.31550E-04 -9.75304E-05  4.84682E-01

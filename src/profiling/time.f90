@@ -12,7 +12,7 @@
 module timeData
   use module_defs, only: mpi_environment, bigdft_mpi
   implicit none
-  integer, parameter :: ncat=103,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=116,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -69,6 +69,8 @@ module timeData
        'lovrlp_uncompr','Other         ' ,'insert zeros  ' ,  &
        'extract_orbs  ','Other         ' ,'copy to sendb ' ,  &
        'lovrlp^-1/2   ','Linear Algebra' ,'exact or appr ' ,  &
+       'lovrlp^-1/2old','Linear Algebra' ,'exact or appr ' ,  &
+       'lovrlp^-1/2com','Linear Algebra' ,'exact or appr ' ,  &
        'build_lincomb ','Linear Algebra' ,'many daxpy    ' ,  &
        'convolQuartic ','Convolutions  ' ,'No OpenCL     ' ,  &
        'p2pSumrho_wait','Communications' ,'mpi_test/wait ' ,  &
@@ -93,6 +95,7 @@ module timeData
        'init_inguess  ','Initialization' ,'Miscellaneous ' ,  &
        'init_matrCompr','Initialization' ,'Miscellaneous ' ,  &
        'init_collcomm ','Initialization' ,'Miscellaneous ' ,  &
+       'init_collco_sr','Initialization' ,'Miscellaneous ' ,  &
        'init_orbs_lin ','Initialization' ,'Miscellaneous ' ,  &
        'init_repart   ','Initialization' ,'Miscellaneous ' ,  &
        'initMatmulComp','Initialization' ,'Miscellaneous ' ,  &
@@ -116,8 +119,9 @@ module timeData
        'deallocprec   ','Other         ' ,'Miscellaneous ' ,  &
        'large2small   ','Other         ' ,'Miscellaneous ' ,  &
        'small2large   ','Other         ' ,'Miscellaneous ' ,  &
-       'renormCoefComp','Other         ' ,'Miscellaneous ' ,  &
-       'renormCoefComm','Other         ' ,'Miscellaneous ' ,  &
+       'renormCoefCom1','Linear Algebra' ,'Miscellaneous ' ,  &
+       'renormCoefCom2','Linear Algebra' ,'Miscellaneous ' ,  &
+       'renormCoefComm','Communications' ,'Miscellaneous ' ,  &
        'waitAllgatKern','Other         ' ,'Miscellaneous ' ,  &
        'UnBlockPot    ','Other         ' ,'Overlap comms ' ,  &
        'UnBlockDen    ','Other         ' ,'Overlap comms ' ,  &
@@ -125,6 +129,15 @@ module timeData
        'wfd_creation  ','Other         ' ,'Miscellaneous ' ,  & 
        'comm_llr      ','Communications' ,'Miscellaneous ' ,  &
        'AllocationProf','Other         ' ,'Allocate arrs ' ,  &
+       'dirmin_lagmat1','Linear Algebra' ,'allgatherv etc' ,  &
+       'dirmin_lagmat2','Linear Algebra' ,'allreduce etc ' ,  &
+       'dirmin_dgesv  ','Linear Algebra' ,'dgesv/pdgesv  ' ,  &
+       'dirmin_sddiis ','Linear Algebra' ,'allreduce etc ' ,  &
+       'chebyshev_comp','Linear Algebra' ,'matmul/matadd ' ,  &
+       'chebyshev_comm','Communications' ,'allreduce     ' ,  &
+       'chebyshev_coef','Other         ' ,'Miscellaneous ' ,  &
+       'FOE_auxiliary ','Other         ' ,'Miscellaneous ' ,  &
+       'compress_uncom','Other         ' ,'Miscellaneous ' ,  &
        'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat/))
   logical :: parallel,init,newfile,debugmode
   integer :: ncounters, ncaton,nproc = 0,nextra,ncat_stopped

@@ -152,6 +152,12 @@ subroutine cudafree()
    stop 'free'
  END SUBROUTINE cudafree
 
+subroutine cuFFTdestroy()
+   implicit none
+   stop 'FFTdestroy'
+ END SUBROUTINE cuFFTdestroy
+
+
 subroutine reset_gpu_data()
    implicit none
    stop 'reset'
@@ -170,5 +176,10 @@ subroutine cuda_3d_psolver_general_plan()
 
 subroutine cuda_3d_psolver_general()
    implicit none
-   stop 'GPUsolver'
+   stop 'GPUsolvergen'
  END SUBROUTINE cuda_3d_psolver_general
+
+subroutine cuda_3d_psolver_plangeneral()
+   implicit none
+   stop 'GPUsolverplan'
+ END SUBROUTINE cuda_3d_psolver_plangeneral

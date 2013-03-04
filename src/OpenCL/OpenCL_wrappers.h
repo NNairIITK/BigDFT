@@ -229,8 +229,10 @@ void FC_FUNC_(init_event_list,INIT_EVENT_LIST)();
 void FC_FUNC_(print_event_list,PRINT_EVENT_LIST)();
 /** Buids and create the OpenCL kernel int the given context. */
 void FC_FUNC_(ocl_build_programs,OCL_BUILD_PROGRAMS)(bigdft_context * context);
+/** Creates a context containing devices of the type specified from the chosen platform*/
+void FC_FUNC_(ocl_create_context,OCL_CREATE_CONTEXT)(bigdft_context * context, const char * platform, const char * devices, cl_int *device_type, cl_uint *device_number);
 /** Creates a context containing all GPUs from the default platform */
-void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(bigdft_context * context,cl_uint *device_number);
+void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(bigdft_context * context, cl_uint *device_number);
 /** Creates a context containing all CPUs from the default platform */
 void FC_FUNC_(ocl_create_cpu_context,OCL_CREATE_CPU_CONTEXT)(bigdft_context * context);
 /** Creates a OpenCL read only buffer.
@@ -1123,7 +1125,7 @@ void FC_FUNC_(ocl_preconditioner_generic_k,OCL_PRECONDITIONER_GENERIC_K)(bigdft_
                                           cl_mem *psi_c_d_i, cl_mem *psi_f_d_i,
                                           cl_mem *work1_r, cl_mem *work2_r, cl_mem *work3_r, cl_mem *work4_r,
                                           cl_mem *work1_i, cl_mem *work2_i, cl_mem *work3_i, cl_mem *work4_i,
-                                          cl_uint *nspinor);
+                                          cl_uint *nspinor, double *norm_sq_cf);
 
 void FC_FUNC_(ocl_isf_to_daub,OCL_ISF_TO_DAUB)(bigdft_command_queue *command_queue,
                                           cl_uint *dimensions,
@@ -1151,4 +1153,11 @@ void FC_FUNC_(fft3d_r_d,FFT3D_R_D)(bigdft_command_queue *command_queue, cl_uint 
 void FC_FUNC_(fft3d_r_c2r_d,FFT1D_R_C2R_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp);
 void FC_FUNC_(fft3d_k_r2c_d_generic,FFT1D_K_R2C_D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *psi,cl_mem *out,cl_mem *tmp,cl_mem *k);
 void FC_FUNC_(fft3d_r_c2r_d_generic,FFT1D_R_C2R_D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *psi,cl_mem *out,cl_mem *tmp);
+void FC_FUNC_(ocl_pin_read_write_buffer,OCL_PIN_READ_WRITE_BUFFER)(bigdft_context *context, bigdft_command_queue *command_queue, cl_uint *size, void *host_ptr, cl_mem *buff_ptr );
+void FC_FUNC_(ocl_pin_write_buffer,OCL_PIN_WRITE_BUFFER)(bigdft_context *context, bigdft_command_queue *command_queue, cl_uint *size, void *host_ptr, cl_mem *buff_ptr );
+void FC_FUNC_(ocl_pin_read_buffer,OCL_PIN_READ_BUFFER)(bigdft_context *context, bigdft_command_queue *command_queue, cl_uint *size, void *host_ptr, cl_mem *buff_ptr );
+void FC_FUNC_(ocl_pin_read_write_buffer_async,OCL_PIN_READ_WRITE_BUFFER_ASYNC)(bigdft_context *context, bigdft_command_queue *command_queue, cl_uint *size, void *host_ptr, cl_mem *buff_ptr );
+void FC_FUNC_(ocl_pin_write_buffer_async,OCL_PIN_WRITE_BUFFER_ASYNC)(bigdft_context *context, bigdft_command_queue *command_queue, cl_uint *size, void *host_ptr, cl_mem *buff_ptr );
+void FC_FUNC_(ocl_pin_read_buffer_async,OCL_PIN_READ_BUFFER_ASYNC)(bigdft_context *context, bigdft_command_queue *command_queue, cl_uint *size, void *host_ptr, cl_mem *buff_ptr );
+
 #endif

@@ -44,6 +44,8 @@ src/OpenCL/.deps
 src/CUDA/.deps
 src/modules/configure.inc
 libxc-1.1.0/libtool
+libxc-1.1.0/config.guess
+libxc-1.1.0/config.sub
 libxc-1.1.0/configure.bak
 libxc-1.1.0/m4/*
 libxc-1.1.0/ltmain.sh

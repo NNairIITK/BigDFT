@@ -244,6 +244,7 @@ END SUBROUTINE localize_projectors
 subroutine fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,idir
   real(gp), intent(in) :: hx,hy,hz
@@ -257,9 +258,8 @@ subroutine fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
   !n(c) integer, parameter :: nterm_max=20 !if GTH nterm_max=4
   integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt
 
-  if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0)&
-       write(*,'(1x,a)',advance='no') &
-       'Calculating wavelets expansion of projectors...'
+  !if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) &
+       !write(*,'(1x,a)',advance='no') 'Calculating wavelets expansion of projectors...'
   !warnings related to the projectors norm
   nwarnings=0
   !allocate these vectors up to the maximum size we can get
@@ -282,19 +282,25 @@ subroutine fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
         call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
              lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings)
      enddo
-     if (iproj /= nlpspd%nproj) stop 'incorrect number of projectors created'
+     if (iproj /= nlpspd%nproj) then
+        call yaml_warning('Incorrect number of projectors created')
+     end if
      ! projector part finished
   end do
-  if (istart_c-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp generation'
- 
-  if (iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
-     if (nwarnings == 0) then
-        write(*,'(1x,a)')'done.'
-     else
-        write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
-        write(*,'(1x,a)')'Some projectors may be too rough.'
-        write(*,'(1x,a,f6.3)')&
-             'Consider the possibility of modifying hgrid and/or the localisation radii.'
+
+  if (istart_c-1 /= nlpspd%nprojel) then
+     call yaml_warning('Incorrect once-and-for-all psp generation')
+     stop
+  end if
+
+  if (nwarnings /= 0 .and. iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
+     call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
+     if (nwarnings /= 0) then
+        call yaml_newline()
+        call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
+        !write(*,'(1x,a,i0,a)') 'found ',nwarnings,' warnings.'
+        !write(*,'(1x,a)') 'Some projectors may be too rough.'
+        !write(*,'(1x,a,f6.3)') 'Consider the possibility of modifying hgrid and/or the localisation radii.'
      end if
   end if
 
@@ -587,14 +593,18 @@ subroutine crtproj(geocode,nterm,lr, &
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
   integer :: ns1,ns2,ns3,n1,n2,n3
-  integer :: mvctr,i_all,i_stat,j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
+  integer :: i_all,i_stat,j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
+  integer :: mvctr1, mvctr2, mvctr3, mvctr4, mvctr5, mvctr6
   !integer :: counter !test
   real(wp) :: re_cmplx_prod,im_cmplx_prod
   real(gp) :: factor !n(c) err_norm
   real(wp), allocatable, dimension(:,:,:) :: work
   real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
   !Variables for OpenMP
-  !$ integer :: ithread,nthread
+  !$ integer :: ithread,nthread,ichunk
+  !$ integer :: omp_get_thread_num,omp_get_num_threads
+
+!!  integer :: ncount0,ncount_rate,ncount_max,ncount1,ncount2
 
   ! rename region boundaries
   ns1 = lr%ns1
@@ -604,8 +614,28 @@ subroutine crtproj(geocode,nterm,lr, &
   n2  = lr%d%n2
   n3  = lr%d%n3
 
-  allocate(work(0:nw,2,2+ndebug),stat=i_stat)  !always use complex value
-  call memocc(i_stat,work,'work',subname)
+!  allocate(work(0:nw,2,2+ndebug),stat=i_stat)  !always use complex value
+!  call memocc(i_stat,work,'work',subname)
+
+  !check that the number of elements of the projector is coherent
+  mvctr1=0
+  do iseg=1,mseg_c
+     mvctr1=mvctr1+keyg_p(2,iseg)-keyg_p(1,iseg)+1
+  end do
+  mvctr2=0
+  do iseg=mseg_c+1,mseg_c+mseg_f
+     mvctr2=mvctr2+keyg_p(2,iseg)-keyg_p(1,iseg)+1
+  end do
+  
+  if (mvctr1 /=  mvctr_c) then
+     write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr /= mvctr_c ',mvctr1,mvctr_c
+     stop
+  end if
+
+  if (mvctr2 /= mvctr_f) then
+     write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr /= mvctr_f ',mvctr2,mvctr_f
+     stop
+  end if
 
   allocate(wprojx(ncplx,0:n1,2,nterm+ndebug),stat=i_stat)
   call memocc(i_stat,wprojx,'wprojx',subname)
@@ -618,36 +648,65 @@ subroutine crtproj(geocode,nterm,lr, &
   perx=(geocode /= 'F')
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
+
+
   ! make sure that the coefficients returned by CALL GAUSS_TO_DAUB are zero outside [ml:mr] 
   !n(c) err_norm=0.0_gp 
-  do iterm=1,nterm
 
+!!  call system_clock(ncount0,ncount_rate,ncount_max)
+
+  !$omp parallel default(shared) private(iterm,work,ml1,mu1,ml2,mu2,ml3,mu3) &
+  !$omp private(ithread,ichunk,factor,n_gau)
+
+  !$omp critical
+    allocate(work(0:nw,2,2+ndebug),stat=i_stat)  !always use complex value
+    call memocc(i_stat,work,'work',subname)
+  !$omp end critical
+
+  !$ ithread=omp_get_thread_num()
+  !$ nthread=omp_get_num_threads() 
+  !$ ichunk=0
+  do iterm=1,nterm
+     !$ ichunk=ichunk+1
+     !$ if (mod(ichunk,nthread).eq.ithread) then
      factor=fac_arr(iterm)
      n_gau=lx(iterm) 
      call gauss_to_daub_k(hx,kx*hx,ncplx,factor,rx,gau_a,n_gau,ns1,n1,ml1,mu1,&
           wprojx(1,0,1,iterm),work,nw,perx) 
-     
+     !$ endif
+
+     !$ ichunk=ichunk+1
+     !$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=ly(iterm) 
      call gauss_to_daub_k(hy,ky*hy,ncplx,1.d0,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
           wprojy(1,0,1,iterm),work,nw,pery) 
+     !$ endif
 
+     !$ ichunk=ichunk+1
+     !$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=lz(iterm) 
      call gauss_to_daub_k(hz,kz*hz,ncplx,1.d0,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
           wprojz(1,0,1,iterm),work,nw,perz)
-
+     !$ endif
   end do
+  !$omp critical
+    i_all=-product(shape(work))*kind(work)
+    deallocate(work,stat=i_stat)
+    call memocc(i_stat,i_all,'work',subname)
+  !$omp end critical
+  !$omp end parallel
+
   !the filling of the projector should be different if ncplx==1 or 2
   !split such as to avoid intensive call to if statements
+!!  call system_clock(ncount1,ncount_rate,ncount_max)
+!!  write(20,*) 'TIMING1:', dble(ncount1-ncount0)/dble(ncount_rate)
 
-  !call system_clock(ncount0,ncount_rate,ncount_max)
   if (ncplx == 1) then
-
-     mvctr=0
-     !$omp parallel do default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
+     !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
      !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
-     !$omp schedule(static,50)&
-     !$omp reduction(+:mvctr)
+     !$omp shared(mvctr_f,mseg_f,nterm)
      ! coarse part
+     !$omp do
      do iseg=1,mseg_c
         jj=keyv_p(iseg)
         j0=keyg_p(1,iseg)
@@ -658,31 +717,17 @@ subroutine crtproj(geocode,nterm,lr, &
         i2=ii/(n1+1)
         i0=ii-i2*(n1+1)
         i1=i0+j1-j0
-        mvctr=mvctr+j1-j0+1
         do i=i0,i1
            ind_c=i-i0+jj
            proj(ind_c)=&
                 wprojx(1,i,1,1)*wprojy(1,i2,1,1)*wprojz(1,i3,1,1)
         enddo
      enddo
-     !$omp end parallel do
-
-     if (mvctr /=  mvctr_c) then
-        !!$  write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
-        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr /= mvctr_c ',mvctr,mvctr_c
-        stop
-     end if
-
-     mvctr=0
-     !$omp parallel do default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
-     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
-     !$omp shared(mvctr_f,mseg_f)&
-     !$omp schedule(static,50)&
-     !$omp reduction(+:mvctr)
+     !$omp enddo
 
      ! First term: fine projector components
-     ! fine part
-
+     ! fine part (beware of the behaviour with loop of zero size!)
+     !$omp do
      do iseg=mseg_c+1,mseg_c+mseg_f
         jj=keyv_p(iseg)
         j0=keyg_p(1,iseg)
@@ -693,7 +738,6 @@ subroutine crtproj(geocode,nterm,lr, &
         i2=ii/(n1+1)
         i0=ii-i2*(n1+1)
         i1=i0+j1-j0
-        mvctr=mvctr+j1-j0+1
         do i=i0,i1
            ind_f=mvctr_c+7*(i-i0+jj-1)
            proj(ind_f+1)=wprojx(1,i,2,1)*wprojy(1,i2,1,1)*wprojz(1,i3,1,1)
@@ -705,23 +749,12 @@ subroutine crtproj(geocode,nterm,lr, &
            proj(ind_f+7)=wprojx(1,i,2,1)*wprojy(1,i2,2,1)*wprojz(1,i3,2,1)
         enddo
      enddo
-     !$omp end parallel do
-
-     if (mvctr /= mvctr_f) then
-        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
-        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr /= mvctr_f ',mvctr,mvctr_f
-        stop 
-     end if
+     !$omp enddo
 
      if (nterm >= 2) then
-
-     !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
-     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
-     !$omp shared(mvctr_f,mseg_f,nterm)
-
         ! Other terms: coarse projector components
         ! coarse part
-        !$omp do schedule(static,50)
+        !$omp do 
         do iseg=1,mseg_c
            jj=keyv_p(iseg)
            j0=keyg_p(1,iseg)
@@ -743,7 +776,7 @@ subroutine crtproj(geocode,nterm,lr, &
         !$omp enddo
 
         ! Other terms: fine projector components
-        !$omp do schedule(static,50)
+        !$omp do
         do iseg=mseg_c+1,mseg_c+mseg_f
            jj=keyv_p(iseg)
            j0=keyg_p(1,iseg)
@@ -789,22 +822,17 @@ subroutine crtproj(geocode,nterm,lr, &
            end do
         end do
         !$omp enddo
-     !$omp end parallel
      end if
+     !$omp end parallel
 
   else if (ncplx == 2) then
-
-     mvctr=0
-     !$omp parallel do default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
+     !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
      !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
-     !$omp shared(nterm,mvctr_f,mseg_f)&
-     !$omp schedule(static,50)&
-     !$omp reduction(+:mvctr)
-
+     !$omp shared(nterm,mvctr_f,mseg_f)
      !part with real and imaginary part
      !modify the openMP statements such as to benefit from parallelisation
-
      ! coarse part
+     !$omp do
      do iseg=1,mseg_c
         jj=keyv_p(iseg)
         j0=keyg_p(1,iseg)
@@ -815,31 +843,17 @@ subroutine crtproj(geocode,nterm,lr, &
         i2=ii/(n1+1)
         i0=ii-i2*(n1+1)
         i1=i0+j1-j0
-        mvctr=mvctr+j1-j0+1
         do i=i0,i1
            ind_c=i-i0+jj
            proj(ind_c)=&
                 re_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
         enddo
      enddo
-     !$omp end parallel do
-
-     if (mvctr /=  mvctr_c) then
-        !!$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
-        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr /= mvctr_c ',mvctr,mvctr_c
-        stop
-     end if
-    
-
-     mvctr=0
-     !$omp parallel do default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
-     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
-     !$omp shared(nterm,mvctr_f,mseg_f)&
-     !$omp schedule(static,50)&
-     !$omp reduction(+:mvctr)
+     !$omp end do
 
      ! First term: fine projector components
      ! fine part
+     !$omp do 
      do iseg=mseg_c+1,mseg_c+mseg_f
         jj=keyv_p(iseg)
         j0=keyg_p(1,iseg)
@@ -852,7 +866,6 @@ subroutine crtproj(geocode,nterm,lr, &
         i1=i0+j1-j0
         do i=i0,i1
            ind_f=mvctr_c+7*(i-i0+jj-1)
-           mvctr=mvctr+1
            proj(ind_f+1)=re_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
            proj(ind_f+2)=re_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,2,1),wprojz(1,i3,1,1))
            proj(ind_f+3)=re_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,2,1),wprojz(1,i3,1,1))
@@ -862,23 +875,12 @@ subroutine crtproj(geocode,nterm,lr, &
            proj(ind_f+7)=re_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,2,1),wprojz(1,i3,2,1))
         enddo
      enddo
-     !$omp end parallel do
-
-     if (mvctr /= mvctr_f) then
-        !!$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
-        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr /= mvctr_f ',mvctr,mvctr_f
-        stop 
-     end if
+     !$omp end do
 
      if (nterm >= 2) then
-
-     !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
-     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
-     !$omp shared(nterm,mvctr_f,mseg_f)
-
         ! Other terms: coarse projector components
         ! coarse part
-        !$omp do schedule(static,50)
+        !$omp do 
         do iseg=1,mseg_c
            jj=keyv_p(iseg)
            j0=keyg_p(1,iseg)
@@ -899,9 +901,8 @@ subroutine crtproj(geocode,nterm,lr, &
         end do
         !$omp enddo
 
-
         ! Other terms: fine projector components
-        !$omp do schedule(static,50)
+        !$omp do 
         do iseg=mseg_c+1,mseg_c+mseg_f
            jj=keyv_p(iseg)
            j0=keyg_p(1,iseg)
@@ -933,18 +934,12 @@ subroutine crtproj(geocode,nterm,lr, &
            end do
         end do
         !$omp enddo
-        !$omp end parallel
      end if
-
-     mvctr=0
-     !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
-     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
-     !$omp shared(nterm,mvctr_f,mseg_f)&
-     !$omp reduction(+:mvctr)
 
      !now the imaginary part
      ! coarse part
-     !$omp do schedule(static,50)
+
+     !$omp do 
      do iseg=1,mseg_c
         jj=keyv_p(iseg)
         j0=keyg_p(1,iseg)
@@ -955,7 +950,6 @@ subroutine crtproj(geocode,nterm,lr, &
         i2=ii/(n1+1)
         i0=ii-i2*(n1+1)
         i1=i0+j1-j0
-         mvctr=mvctr+j1-j0+1
         do i=i0,i1
            ind_c=mvctr_c+7*mvctr_f+i-i0+jj
            proj(ind_c)=&
@@ -963,24 +957,10 @@ subroutine crtproj(geocode,nterm,lr, &
         enddo
      enddo
      !$omp enddo
-     !$omp end parallel
-     if (mvctr /=  mvctr_c) then
-        !!$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
-        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr /= mvctr_c ',mvctr,mvctr_c
-        stop
-     end if
-
-
-
-     mvctr=0
-     !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
-     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
-     !$omp shared(nterm,mvctr_f,mseg_f)&
-     !$omp reduction(+:mvctr)
-
+  
      ! First term: fine projector components
      ! fine part
-     !$omp do schedule(static,50)
+     !$omp do 
      do iseg=mseg_c+1,mseg_c+mseg_f
         jj=keyv_p(iseg)
         j0=keyg_p(1,iseg)
@@ -991,7 +971,6 @@ subroutine crtproj(geocode,nterm,lr, &
         i2=ii/(n1+1)
         i0=ii-i2*(n1+1)
         i1=i0+j1-j0
-        mvctr=mvctr+j1-j0+1
         !correction for xlf compiler bug
         ind_f=2*mvctr_c+7*mvctr_f+7*(jj-2)
         do i=i0,i1
@@ -1007,23 +986,11 @@ subroutine crtproj(geocode,nterm,lr, &
         enddo
      enddo
      !$omp enddo
-     !$omp end parallel
-
-     if (mvctr /= mvctr_f) then
-        !!$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
-        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr /= mvctr_f ',mvctr,mvctr_f
-        stop 
-     end if
 
      if (nterm >= 2) then
-
-        !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
-        !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
-        !$omp shared(nterm,mvctr_f,mseg_f)
-
         ! Other terms: coarse projector components
         ! coarse part
-        !$omp do schedule(static,50)
+        !$omp do
         do iseg=1,mseg_c
            jj=keyv_p(iseg)
            j0=keyg_p(1,iseg)
@@ -1045,7 +1012,7 @@ subroutine crtproj(geocode,nterm,lr, &
         !$omp enddo
 
         ! Other terms: fine projector components
-        !$omp do schedule(static,50)
+        !$omp do
         do iseg=mseg_c+1,mseg_c+mseg_f
            jj=keyv_p(iseg)
            j0=keyg_p(1,iseg)
@@ -1077,10 +1044,12 @@ subroutine crtproj(geocode,nterm,lr, &
            end do
         end do
         !$omp enddo
-     !$omp end parallel
      end if
+     !$omp end parallel
 
   end if
+!!  call system_clock(ncount2,ncount_rate,ncount_max)
+!!  write(20,*) 'TIMING2:', dble(ncount2-ncount1)/dble(ncount_rate)
 
   i_all=-product(shape(wprojx))*kind(wprojx)
   deallocate(wprojx,stat=i_stat)
@@ -1092,9 +1061,9 @@ subroutine crtproj(geocode,nterm,lr, &
   deallocate(wprojz,stat=i_stat)
   call memocc(i_stat,i_all,'wprojz',subname)
 
-  i_all=-product(shape(work))*kind(work)
-  deallocate(work,stat=i_stat)
-  call memocc(i_stat,i_all,'work',subname)
+!  i_all=-product(shape(work))*kind(work)
+!  deallocate(work,stat=i_stat)
+!  call memocc(i_stat,i_all,'work',subname)
 
 END SUBROUTINE crtproj
 

@@ -46,6 +46,8 @@ mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	YAML_OUTPUT.@MODULE_EXT@ \
 	DICTIONARIES.@MODULE_EXT@ \
 	DYNAMIC_MEMORY.@MODULE_EXT@
+	DYNAMIC_MEMORY.@MODULE_EXT@ \
+	VDWCORRECTION.@MODULE_EXT@
 else
 mod_bigdft = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -58,14 +60,18 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 	gaussians.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ \
 	yaml_output.@MODULE_EXT@ \
+	yaml_strings.@MODULE_EXT@ \
 	dictionaries.@MODULE_EXT@ \
-	dynamic_memory.@MODULE_EXT@
+	dynamic_memory.@MODULE_EXT@ \
+	vdwcorrection.@MODULE_EXT@
 endif
 module_DATA = $(mod_bigdft)
 include_HEADERS = $(bindings_headers)
 nodist_include_HEADERS = $(bindings_headers_nodist)
 
-EXTRA_DIST = configure.inc.in bigdft_cst.h.in
+DYN_INCLUDES = deallocate-inc.f90
+
+EXTRA_DIST = configure.inc.in bigdft_cst.h.in $(DYN_INCLUDES)
 
 AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
@@ -84,13 +90,14 @@ libmodules_a_SOURCES = base.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
+	yaml_strings.f90 \
 	yaml_output.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(GPUBLAS_INTERFACE) \
 	$(BLACS)
 
-CLEANFILES = mpif.h $(mod_bigdft) vdwcorrection.@MODULE_EXT@ yaml_strings.@MODULE_EXT@
+CLEANFILES = mpif.h $(mod_bigdft)
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
@@ -116,11 +123,13 @@ mpif.h:
 	echo "integer, parameter :: MPI_MAX_PROCESSOR_NAME=10, MPI_STATUS_SIZE=1,MPI_LAND=1" >> mpif.h &&\
         echo "integer, parameter :: MPI_REQUEST_NULL=1,MPI_STATUS_IGNORE=1" >> mpif.h &&\
         echo "integer, parameter :: mpi_tag_ub=1,mpi_address_kind=8,mpi_info_null=0" >> mpif.h &&\
+        echo "integer, parameter :: mpi_mode_noprecede=0" >> mpif.h &&\
         echo "real(kind=8), external :: mpi_wtime" >> mpif.h
 
 
+
 #dependencies
-base.o: defs.o
+base.o: defs.o dynamic_memory.o
 gaussians.o : base.o
 types.o: base.o yaml_output.o gaussians.o
 input.o: base.o yaml_output.o
@@ -129,8 +138,9 @@ op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
-yaml_output.o : base.o
-dynamic_memory.o: dictionaries.o
-dictionaries.o: yaml_output.o
+yaml_output.o : base.o dictionaries.o yaml_strings.o
+dynamic_memory.o: dictionaries.o yaml_output.o $(DYN_INCLUDES)
+dictionaries.o: yaml_strings.o
+
 
 $(mod_bigdft) : base.o types.o interfaces.o
