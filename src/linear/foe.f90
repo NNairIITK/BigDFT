@@ -942,8 +942,11 @@ real(kind=8) function determinant(n, mat)
 
     call dgetrf(n, n, mat_tmp, n, ipiv, info)
     if (info/=0) then
-        write(*,'(a,i0)') 'ERROR in dgetrf, info=',info
-        stop
+        if (iproc==0) then
+            write(*,'(a,i0)') 'ERROR in dgetrf, info=',info
+            write(*,'(a,i0)') 'Set the determinant to zero'
+        end if
+        return
     end if
 
     determinant=1.d0
