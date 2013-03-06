@@ -241,6 +241,7 @@ contains
                   call define_brother(dict%previous,dict%next) 
                   dict%previous%next => dict%next
                else
+                  nullify(dict%next%previous)
                   !the next should now become me
                   dict => dict%next
                end if

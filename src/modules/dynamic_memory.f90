@@ -53,15 +53,19 @@ module dynamic_memory
   end interface
 
   interface f_free
-     module procedure i1_all_free,d1_all_free,d2_all_free
+     module procedure i1_all_free,d1_all_free,d2_all_free,d1_all_free_multi
   end interface
 
   interface pad_with_nan
      module procedure i_padding,dp_padding,c_padding,l_padding,sp_padding,dp_padding2,dp_padding3
   end interface
 
+  interface f_malloc
+     module procedure f_malloc,f_malloc_simple,f_malloc_bounds
+  end interface
+
   public :: f_malloc_set_status,f_malloc_finalize
-  public :: f_malloc,f_free,f_malloc_routine_id
+  public :: f_malloc,f_free,f_malloc_routine_id,f_malloc_dump_status
   public :: assignment(=),operator(.to.)
 
   contains
@@ -93,6 +97,67 @@ module dynamic_memory
       end do
 
     end function malloc_information_all_null
+
+    !for rank-1 arrays
+    function f_malloc_simple(size,id,routine_id,try) result(m)
+      integer, intent(in) :: size
+      logical, intent(in), optional :: try
+      character(len=*), intent(in), optional :: id,routine_id
+      type(malloc_information_all) :: m
+      !local variables
+      integer :: lgt
+
+      m=malloc_information_all_null()
+      m%rank=1
+      m%shape(1)=size
+      m%ubounds(1)=m%shape(1)
+
+      if (present(id)) then
+         lgt=min(len(id),namelen)
+         m%array_id(1:lgt)=id(1:lgt)
+      end if
+      if (present(routine_id)) then
+         lgt=min(len(routine_id),namelen)
+         m%routine_id(1:lgt)=routine_id(1:lgt)
+         call f_malloc_routine_id(m%routine_id)
+      else
+         m%routine_id=present_routine
+      end if
+
+      if(present(try)) m%try=try
+
+    end function f_malloc_simple
+
+    !for rank-1 arrays
+    function f_malloc_bounds(bounds,id,routine_id,try) result(m)
+      type(array_bounds), intent(in) :: bounds
+      logical, intent(in), optional :: try
+      character(len=*), intent(in), optional :: id,routine_id
+      type(malloc_information_all) :: m
+      !local variables
+      integer :: lgt
+
+      m=malloc_information_all_null()
+      m%rank=1
+      m%lbounds(1)=bounds%nlow
+      m%ubounds(1)=bounds%nhigh
+      m%shape(1)=m%ubounds(1)-m%lbounds(1)+1
+
+      if (present(id)) then
+         lgt=min(len(id),namelen)
+         m%array_id(1:lgt)=id(1:lgt)
+      end if
+      if (present(routine_id)) then
+         lgt=min(len(routine_id),namelen)
+         m%routine_id(1:lgt)=routine_id(1:lgt)
+         call f_malloc_routine_id(m%routine_id)
+      else
+         m%routine_id=present_routine
+      end if
+
+      if(present(try)) m%try=try
+
+    end function f_malloc_bounds
 
 
     !define the allocation information for  arrays of different rank
@@ -241,7 +306,7 @@ module dynamic_memory
       integer :: unt
       !put the last values in the dictionary if not freed
       if (associated(dict_routine)) then
-         call yaml_get_default_stream(unt)
+         !call yaml_get_default_stream(unt)
          !call yaml_stream_attributes(unit=unt)
          call yaml_warning('Not all the arrays have been freed: memory leaks are possible')
          call prepend(dict_global,dict_routine)
@@ -310,6 +375,7 @@ module dynamic_memory
 
       call memocc(ierr,-int(ilsize),trim(arrayid),trim(routineid))
 
+      !the support for more routines is not yet ready
       call pop(dict_routine,trim(address))
       
     end subroutine profile_deallocation
@@ -379,101 +445,71 @@ module dynamic_memory
 
     end subroutine profile_allocation
 
-    function rank_is_ok(test,ref) result(ok)
-      integer, intent(in) :: test,ref
-      logical :: ok
-      ierror=SUCCESS
-      ok=test==ref
-      if (.not. ok) then
-         ierror=INVALID_RANK
-         lasterror='rank not valid'
-      end if
-    end function rank_is_ok
+!!$    function rank_is_ok(test,ref) result(ok)
+!!$      integer, intent(in) :: test,ref
+!!$      logical :: ok
+!!$      ierror=SUCCESS
+!!$      ok=test==ref
+!!$      if (.not. ok) then
+!!$         ierror=INVALID_RANK
+!!$         lasterror='rank not valid'
+!!$      end if
+!!$    end function rank_is_ok
 
+    subroutine f_malloc_dump_status()
+      use yaml_output
+      implicit none
+      call yaml_newline()
+      call yaml_map('Present routine',trim(present_routine))
+      call yaml_open_map('Routine dictionary')
+        call yaml_dict_dump(dict_routine)
+      call yaml_close_map()
+      call yaml_open_map('Global dictionary')
+        call yaml_dict_dump(dict_global)
+      call yaml_close_map()
+
+    end subroutine f_malloc_dump_status
 
     subroutine i1_all(array,m)
       implicit none
-      integer, dimension(:), allocatable, intent(inout) :: array
       type(malloc_information_all), intent(in) :: m
-      !local variables
-      integer :: ierr,npaddim
-      character(len=info_length) :: address
-!      call timing(0,'AllocationProf','IR') 
-      if (rank_is_ok(size(shape(array)),m%rank)) then
-         !fortran allocation
-         allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-         call pad_with_nan(array,m%rank,m%shape)
-         !profile the array allocation
-         call getaddress(array,address,len(address),ierr)
-         call profile_allocation(ierror,address,kind(array),m)
-      else
-         call check_for_errors(ierror,m%try)
-      end if
-!      call timing(0,'AllocationProf','RS') 
+      integer, dimension(:), allocatable, intent(inout) :: array
+
+      !allocate the array
+      allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
+
+      include 'allocate-inc.f90'
+
     end subroutine i1_all
 
     subroutine d1_all(array,m)
       implicit none
-      double precision, dimension(:), allocatable, intent(inout) :: array
       type(malloc_information_all), intent(in) :: m
-      !local variables
-      integer :: istat,ierr,npaddim
-      character(len=info_length) :: address
-!      call timing(0,'AllocationProf','IR') 
-      if (rank_is_ok(size(shape(array)),m%rank)) then
-         !fortran allocation
-         allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-         call pad_with_nan(array,m%rank,m%shape)
-         !profile the array allocation
-         call getaddress(array,address,len(address),ierr)
-         call profile_allocation(ierror,address,kind(array),m)
-      else
-         call check_for_errors(ierror,m%try)
-      end if
-!      call timing(0,'AllocationProf','RS') 
+      double precision, dimension(:), allocatable, intent(inout) :: array
+
+      !allocate the array
+      allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
+
+      include 'allocate-inc.f90'
     end subroutine d1_all
 
     subroutine d2_all(array,m)
       implicit none
-      double precision, dimension(:,:), allocatable, intent(inout) :: array
       type(malloc_information_all), intent(in) :: m
-      !local variables
-      integer :: istat,ierr,npaddim,i
-      character(len=info_length) :: address
-!      call timing(0,'AllocationProf','IR') 
-      if (rank_is_ok(size(shape(array)),m%rank)) then
-         !fortran allocation
-         allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
-         call pad_with_nan(array,m%rank,m%shape)
-         !profile the array allocation
-         call getaddress(array,address,len(address),ierr)
-         call profile_allocation(ierror,address,kind(array),m)
-      else
-         call check_for_errors(ierror,m%try)
-      end if
-!      call timing(0,'AllocationProf','RS') 
+      double precision, dimension(:,:), allocatable, intent(inout) :: array
+
+      allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
+      include 'allocate-inc.f90'
     end subroutine d2_all
 
     subroutine d3_all(array,m)
       implicit none
-      double precision, dimension(:,:,:), allocatable, intent(inout) :: array
       type(malloc_information_all), intent(in) :: m
-      !local variables
-      integer :: istat,ierr,npaddim
-      character(len=info_length) :: address
-!      call timing(0,'AllocationProf','IR') 
-      if (rank_is_ok(size(shape(array)),m%rank)) then
-         !fortran allocation
-         allocate(array(m%lbounds(1):m%ubounds(1),&
-              m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
-         call pad_with_nan(array,m%rank,m%shape)
-         !profile the array allocation
-         call getaddress(array,address,len(address),ierr)
-         call profile_allocation(ierror,address,kind(array),m)
-      else
-         call check_for_errors(ierror,m%try)
-      end if
-!      call timing(0,'AllocationProf','RS') 
+      double precision, dimension(:,:,:), allocatable, intent(inout) :: array
+
+      allocate(array(m%lbounds(1):m%ubounds(1),&
+           m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
+      include 'allocate-inc.f90'
     end subroutine d3_all
 
 
@@ -481,75 +517,52 @@ module dynamic_memory
       implicit none
       integer, dimension(:), allocatable, intent(inout) :: array
       include 'deallocate-inc.f90' 
-!!$      !local variables
-!!$      integer :: ierr
-!!$      character(len=info_length) :: address
-!!$      !local variables
-!!$      integer :: i_all
-!!$      integer(kind=8) :: ilsize
-!!$!      call timing(0,'AllocationProf','IR') 
-!!$      !profile the array allocation
-!!$      call getaddress(array,address,len(address),ierr)
-!!$      ilsize=int(product(shape(array))*kind(array),kind=8)
-!!$      !fortran deallocation
-!!$      deallocate(array,stat=ierror)
-!!$      !hopefully only address is necessary for the deallocation
-!!$      call profile_deallocation(ierror,ilsize,address)
-
-!!$  i_all=-product(shape(array))*kind(array)
-!!$  deallocate(array,stat=ierror)
-!!$  call memocc(ierror,i_all,'stuff','dosome')
-!      call timing(0,'AllocationProf','RS') 
     end subroutine i1_all_free
-
 
     subroutine d1_all_free(array)
       implicit none
       double precision, dimension(:), allocatable, intent(inout) :: array
       include 'deallocate-inc.f90' 
-!!$      !local variables
-!!$      integer :: istat,ierr
-!!$      character(len=info_length) :: address
-!!$      !local variables
-!!$      integer :: i_all
-!!$      integer(kind=8) :: ilsize
-!!$!      call timing(0,'AllocationProf','IR') 
-!!$      !profile the array allocation
-!!$      call getaddress(array,address,len(address),ierr)
-!!$      ilsize=int(product(shape(array))*kind(array),kind=8)
-!!$      !fortran deallocation
-!!$      deallocate(array,stat=ierror)
-!!$      !hopefully only address is necessary for the deallocation
-!!$      call profile_deallocation(ierror,ilsize,address)
-
-!!$  i_all=-product(shape(array))*kind(array)
-!!$  deallocate(array,stat=ierror)
-!!$  call memocc(ierror,i_all,'stuff','dosome')
-!      call timing(0,'AllocationProf','RS') 
     end subroutine d1_all_free
 
     subroutine d2_all_free(array)
       implicit none
       double precision, dimension(:,:), allocatable, intent(inout) :: array
       include 'deallocate-inc.f90' 
-!!$      !local variables
-!!$      integer :: istat,ierr
-!!$      character(len=info_length) :: address
-!!$      !local variables
-!!$      integer :: i_all
-!!$      integer(kind=8) :: ilsize
-!!$!      call timing(0,'AllocationProf','IR') 
-!!$      !profile the array allocation
-!!$      call getaddress(array,address,len(address),ierr)
-!!$      !here the size should be corrected with ndebug
-!!$      ilsize=int(product(shape(array))*kind(array),kind=8)
-!!$      !fortran deallocation
-!!$      deallocate(array,stat=ierror)
-!!$      !hopefully only address is necessary for the deallocation
-!!$      call profile_deallocation(ierror,ilsize,address)
-!!$!      call timing(0,'AllocationProf','RS') 
     end subroutine d2_all_free
 
+    subroutine d1_all_free_multi(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH)
+      implicit none
+      double precision, dimension(:), allocatable, intent(inout) :: arrayA
+      double precision, dimension(:), allocatable, intent(inout) :: arrayB
+      double precision, dimension(:), allocatable, optional, intent(inout) :: arrayC
+      double precision, dimension(:), allocatable, optional, intent(inout) :: arrayD
+      double precision, dimension(:), allocatable, optional, intent(inout) :: arrayE
+      double precision, dimension(:), allocatable, optional, intent(inout) :: arrayF
+      double precision, dimension(:), allocatable, optional, intent(inout) :: arrayG
+      double precision, dimension(:), allocatable, optional, intent(inout) :: arrayH
+
+      call d1_all_free(arrayA)
+      call d1_all_free(arrayB)
+      if (present(arrayC)) then
+         call d1_all_free(arrayC)
+      end if
+      if (present(arrayD)) then
+         call d1_all_free(arrayD)
+      end if
+      if (present(arrayE)) then
+         call d1_all_free(arrayE)
+      end if
+      if (present(arrayF)) then
+         call d1_all_free(arrayF)
+      end if
+      if (present(arrayG)) then
+         call d1_all_free(arrayG)
+      end if
+      if (present(arrayH)) then
+         call d1_all_free(arrayH)
+      end if
+    end subroutine d1_all_free_multi
 
 
     !!****f* ABINIT/d_nan

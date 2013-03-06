@@ -14,7 +14,7 @@ endif
 AM_FCFLAGS = -I$(top_builddir)/src/modules @MPI_INCLUDE@
 
 yaml_test_SOURCES = yaml_test.f90
-yaml_test_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+yaml_test_LDADD = @LIBS_DEPENDENCIES@ $(top_builddir)/src/libbigdft.a
 
 
 CLEANFILES = yaml_test.out.yaml

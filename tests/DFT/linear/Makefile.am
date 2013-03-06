@@ -71,6 +71,7 @@ deltascf_write_neut.out.post-out:
 	  molecule_dmix.out*)         prec="1.e-9" ;; \
 	  molecule_pmix.out*)         prec="1.1e-9" ;; \
 	  molecule_foe.out*)          prec="1.e-9" ;; \
+	  foe.out*)          prec="2.1e-10" ;; \
 	  reformat_write.out*)        prec="3.e-10" ;; \
 	  paracetamol.out*)           prec="2.e-10" ;; \
       *)                              prec="1.1e-10" ;; \

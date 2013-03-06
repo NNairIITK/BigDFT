@@ -69,7 +69,7 @@ module_DATA = $(mod_bigdft)
 include_HEADERS = $(bindings_headers)
 nodist_include_HEADERS = $(bindings_headers_nodist)
 
-DYN_INCLUDES = deallocate-inc.f90
+DYN_INCLUDES = deallocate-inc.f90 allocate-inc.f90
 
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in $(DYN_INCLUDES)
 

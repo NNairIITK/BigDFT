@@ -88,7 +88,7 @@ GEOPT-LBFGS:
  
 NaCl:
  Epsilon: 2.e-9
- Mean L2 norm of gaussian-wavelet difference: 2.4e-5
+ Mean L2 norm of gaussian-wavelet difference: 1.2e-4
 
 NH3:
  Epsilon: 1.1e-10
@@ -100,7 +100,7 @@ CH3-:
  D: 1.e-8
  Average CG stepsize in terms of betax: 1.6e-4
  Atomic Forces (Ha/Bohr): 2.5e-7
- Average noise forces: 2.9e-8
+ Average noise forces: 3.2e-8
  Clean forces norm (Ha/Bohr): 1.8e-7
  Raw forces norm (Ha/Bohr): 2.1e-7
  Ion-Ion interaction energy: 4.0e-7
@@ -137,6 +137,7 @@ test.splsad.ref.yaml:
  Electric Dipole Moment (Debye): 1.2e-8
 
 test.minhop.ref.yaml:
+  Energies: 1.1e-10
   Keys to ignore:
     - (MH) cpu(hrs)
     - WARNINGS
