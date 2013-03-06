@@ -36,7 +36,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
   call nullify_sparsematrix(inv_ovrlp_half)
-  call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, subname)
+  call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
   allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
   call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
 
@@ -164,9 +164,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   ! this is slight overkill for no orthoconstraint correction, think about going back to just matrices
   ! also isn't going to work unless denskern sparsity = lagmat sparsity...
   call nullify_sparsematrix(ovrlp_minus_one_lagmat)
-  call sparse_copy_pattern(linmat%denskern, ovrlp_minus_one_lagmat, subname)
+  call sparse_copy_pattern(linmat%denskern, ovrlp_minus_one_lagmat, iproc, subname)
   call nullify_sparsematrix(ovrlp_minus_one_lagmat_trans)
-  call sparse_copy_pattern(linmat%denskern, ovrlp_minus_one_lagmat_trans, subname)
+  call sparse_copy_pattern(linmat%denskern, ovrlp_minus_one_lagmat_trans, iproc, subname)
 
   if (correction_orthoconstraint==0) then
       allocate(ovrlp_minus_one_lagmat%matrix_compr(ovrlp_minus_one_lagmat%nvctr), stat=istat)
@@ -250,11 +250,11 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   end if
 
   call nullify_sparseMatrix(tmp_mat)
-  call sparse_copy_pattern(ovrlp_minus_one_lagmat,tmp_mat,subname)
+  call sparse_copy_pattern(ovrlp_minus_one_lagmat,tmp_mat,iproc,subname)
 
   allocate(tmp_mat%matrix_compr(tmp_mat%nvctr), stat=istat)
   call memocc(istat, tmp_mat%matrix_compr, 'tmp_mat%matrix_compr', subname)
-
+call timing(iproc,'misc','ON')
   do jorb=1,orbs%norb
      do iorb=1,orbs%norb
           ii_trans = ovrlp_minus_one_lagmat_trans%matrixindex_in_compressed(jorb, iorb)
@@ -264,7 +264,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
                -0.5d0*ovrlp_minus_one_lagmat_trans%matrix_compr(ii_trans)
       end do
   end do
-
+call timing(iproc,'misc','OF')
   call build_linear_combination_transposed(collcom, tmp_mat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
   call deallocate_sparseMatrix(tmp_mat, subname)
 
@@ -717,6 +717,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, comm, orbs, ovrlp
   logical,dimension(:),allocatable :: in_neighborhood
   character(len=*),parameter :: subname='overlap_power_minus_one_half_parallel'
 
+  call timing(iproc,'lovrlp^-1/2par','ON')
 
   allocate(in_neighborhood(orbs%norb), stat=istat)
   call memocc(istat, in_neighborhood, 'in_neighborhood', subname)
@@ -855,6 +856,8 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, comm, orbs, ovrlp
   !end if
   !call mpi_finalize(ind)
   !stop
+
+  call timing(iproc,'lovrlp^-1/2par','OF')
 
 end subroutine overlap_power_minus_one_half_parallel
 

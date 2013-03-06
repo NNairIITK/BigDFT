@@ -3240,6 +3240,8 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
   ! Local variables
   integer:: i0, ipt, ii, iiorb, i, ierr, iorb
 
+  call timing(iproc,'norm_trans','ON')
+
   call to_zero(orbs%norb, norm(1))
 
   !$omp parallel default(private) &
@@ -3317,6 +3319,8 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
   end do
 !$omp end do
 !$omp end parallel
+
+  call timing(iproc,'norm_trans','OF')
 
 end subroutine normalize_transposed
 

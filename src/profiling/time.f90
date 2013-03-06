@@ -12,7 +12,7 @@
 module timeData
   use module_defs, only: mpi_environment, bigdft_mpi
   implicit none
-  integer, parameter :: ncat=116,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=121,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -71,6 +71,7 @@ module timeData
        'lovrlp^-1/2   ','Linear Algebra' ,'exact or appr ' ,  &
        'lovrlp^-1/2old','Linear Algebra' ,'exact or appr ' ,  &
        'lovrlp^-1/2com','Linear Algebra' ,'exact or appr ' ,  &
+       'lovrlp^-1/2par','Linear Algebra' ,'exact or appr ' ,  &
        'build_lincomb ','Linear Algebra' ,'many daxpy    ' ,  &
        'convolQuartic ','Convolutions  ' ,'No OpenCL     ' ,  &
        'p2pSumrho_wait','Communications' ,'mpi_test/wait ' ,  &
@@ -137,7 +138,11 @@ module timeData
        'chebyshev_comm','Communications' ,'allreduce     ' ,  &
        'chebyshev_coef','Other         ' ,'Miscellaneous ' ,  &
        'FOE_auxiliary ','Other         ' ,'Miscellaneous ' ,  &
+       'FOE_init      ','Other         ' ,'Miscellaneous ' ,  &
        'compress_uncom','Other         ' ,'Miscellaneous ' ,  &
+       'norm_trans    ','Other         ' ,'Miscellaneous ' ,  &
+       'misc          ','Other         ' ,'Miscellaneous ' ,  &
+       'sparse_copy   ','Other         ' ,'Miscellaneous ' ,  &
        'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat/))
   logical :: parallel,init,newfile,debugmode
   integer :: ncounters, ncaton,nproc = 0,nextra,ncat_stopped

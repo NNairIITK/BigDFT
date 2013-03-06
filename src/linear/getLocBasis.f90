@@ -280,11 +280,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   else ! foe
 
       ! NOT ENTIRELY GENERAL HERE - assuming ovrlp is small and ham is large, converting ham to match ovrlp
+
+      call timing(iproc,'FOE_init','ON') !lr408t
       call nullify_sparsematrix(ham_small)
-      call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,subname)
+      call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
       allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
       call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
-
       iismall=0
       iseglarge=1
       do isegsmall=1,tmb%linmat%ovrlp%nseg
@@ -300,6 +301,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
               iseglarge=iseglarge+1
           end do
       end do
+      call timing(iproc,'FOE_init','OF') !lr408t
 
       tmprtr=0.d0
       call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, &
@@ -1027,7 +1029,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
   integer :: ist, istr, iorb, iiorb, ilr, istat, iall
   real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork
   type(workarr_sumrho) :: w
-  character(len=*),parameter :: subname='communicate_basis_for_density_collective'
+  character(len=*),parameter :: subname='comm_basis_for_dens_coll'
 
   call timing(iproc,'commbasis4dens','ON')
 
