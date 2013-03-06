@@ -574,7 +574,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
 
-             if (fnrm_pulay>1.d-10) then !1.d3 1.d-1
+             if (fnrm_pulay>1.d-1) then !1.d-10
                 if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
                                                    &Start over again with an AO input guess.'
                 if (associated(tmb%psit_c)) then
@@ -622,7 +622,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           else
               ! Calculation of Pulay forces not possible, so always start with low accuracy
               call to_zero(3*at%nat, fpulay(1,1))
-              nit_lowaccuracy=0!input%lin%nit_lowaccuracy!0
+              if (input%lin%scf_mode==LINEAR_FOE) then
+                 nit_lowaccuracy=input%lin%nit_lowaccuracy
+              else
+                 nit_lowaccuracy=0
+              end if
               nit_highaccuracy=input%lin%nit_highaccuracy
           end if
           if (input%lin%scf_mode==LINEAR_FOE .and. nit_lowaccuracy==0) then
