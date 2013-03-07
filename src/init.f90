@@ -2679,7 +2679,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                ii1 = i1 - 14 ; xz = ii1*hhx
                
                distance = 0.5*(((xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2)*radius)
-               if(distance > cutoff) cycle
+               if(distance >= cutoff) cycle
                expfct = ex(distance,cutoff) 
 
                s1 = (rxyz(1,k)-rxyz_old(1,k))*expfct
@@ -2843,9 +2843,11 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 !                   s33 =  shift2(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,3)/&  
 !                          shift2(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,4)  
 !                  end if
-                  norm = 1.0/shift1(i1+iy+iz,4)
-
-                  if(norm.eq.0d0) norm = 1d0  
+                  if(shift1(i1+iy+iz,4).eq.0d0) then
+                      norm = 1d0  
+                  else
+                      norm = 1.0/shift1(i1+iy+iz,4)
+                  end if
 
                   xz = xz - shift1(i1+iy+iz,1)*norm  
                   yz = yz - shift1(i1+iy+iz,2)*norm
@@ -3242,8 +3244,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
        t1 = MPI_WTIME()
  do iorb = 1,orbs%norbp
 
-!$OMP PARALLEL DO DEFAULT(PRIVATE) SHARED(shift,shiftjacdet,hhx,hhy,hhz,hhx_old,hhy_old,hhz_old,lzd_old,lzd,atoms, &
-!$OMP& psir_old,psir,rxyz_old,rxyz,iorb,radius,cutoff) 
+ !$OMP PARALLEL DO DEFAULT(PRIVATE) SHARED(shift,shiftjacdet,hhx,hhy,hhz,hhx_old,hhy_old,hhz_old,lzd_old,lzd,atoms, &
+ !$OMP& psir_old,psir,rxyz_old,rxyz,iorb,radius,cutoff) 
   do i3 = 1, lzd%glr%d%n3i
    iz = (i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i
     do i2 = 1, lzd%glr%d%n2i
@@ -3261,12 +3263,16 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
 
 	jacdet = jacdet + 1.0
-         if(norm .eq. 0d0 ) norm = 1d0
+         if(norm .eq. 0d0 ) then
+              norm = 1d0
+         else
+              norm = 1.0/norm
+         end if
 
-        if(i1.eq.15 .and. i2.eq.15 .and. i3.eq.15) write(444,*) s1,s2,s3,norm,jacdet
-         s1 = s1/norm
-         s2 = s2/norm
-         s3 = s3/norm
+!       if(i1.eq.15 .and. i2.eq.15 .and. i3.eq.15) write(444,*) s1,s2,s3,norm,jacdet
+         s1 = s1*norm
+         s2 = s2*norm
+         s3 = s3*norm
 
            k1 = (i1-14)*hhx 
            k2 = (i2-14)*hhy 
@@ -3351,8 +3357,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
        end do
       end do
      end do
-
-!$OMP END PARALLEL DO
+   !$OMP END PARALLEL DO
   end do
 t2 = MPI_WTIME()
  !write(123 ,*) 'interpolation', t2-t1
