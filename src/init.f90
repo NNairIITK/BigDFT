@@ -2553,7 +2553,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   real(wp) ,dimension(:),allocatable :: exp_y,exp_z
 !  real(wp) , dimension(:,:), allocatable :: exp_x
 
-  integer :: istart,irange,iend,rest,ierr, gridx,gridy,gridz,xbox,ybox,zbox,iy,iz
+  integer :: istart,irange,iend,rest,ierr, gridx,gridy,gridz,xbox,ybox,zbox,iy,iz 
   !do i = 1,atoms%nat
   !  write(345+iproc,*) rxyz(1,i) - rxyz_old(1,i)
   !  write(345+iproc,*) rxyz(2,i) - rxyz_old(2,i)
@@ -2582,17 +2582,17 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   allocate(psir(lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,npsir,orbs%norbp),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
 
-  allocate(shift(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,4),stat=i_stat)
+  allocate(shift(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,5),stat=i_stat)
   call memocc(i_stat,shift,'shift',subname)  
   
   allocate(shift1(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,4),stat=i_stat)
   call memocc(i_stat,shift1,'shift1',subname)  
   
-  allocate(shift2(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,4),stat=i_stat)
-  call memocc(i_stat,shift2,'shift2',subname)  
+!  allocate(shift2(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,4),stat=i_stat)
+!  call memocc(i_stat,shift2,'shift2',subname)  
   
-  allocate(shiftjacdet(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i),stat=i_stat)
-  call memocc(i_stat,shiftjacdet,'shiftjacdet',subname)  
+!  allocate(shiftjacdet(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i),stat=i_stat)
+!  call memocc(i_stat,shiftjacdet,'shiftjacdet',subname)  
   
 !  allocate(exp_x(atoms%nat,lzd%glr%d%n1i),stat=i_stat)
 !  call memocc(i_stat,exp_x,'exp_x',subname)  
@@ -2609,13 +2609,13 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   call to_zero(lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*npsir*orbs%norbp,psir(1,1,1)) 
   call to_zero(nbox*npsir*orbs%norbp,psir_old(1,1,1)) 
 
-  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, shift(1,1))
+  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, shift(1,1))
   call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, shift1(1,1))
-  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, shift2(1,1))
-  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, shiftjacdet(1))
+!  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, shift2(1,1))
+!  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, shiftjacdet(1))
 
   t2 = MPI_WTIME()
-  write(123,*) 'to_zero', t2-t1
+  !write(123 ,*) 'to_zero', t2-t1
   t1 = MPI_WTIME()
   ist=1
   loop_orbs: do iorb=1,orbs%norbp
@@ -2624,7 +2624,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   end do loop_orbs
   call deallocate_work_arrays_sumrho(w)
   t2 = MPI_WTIME()
-  write(123,*) 'daub_to_isf', t2-t1
+  !write(123 ,*) 'daub_to_isf', t2-t1
   t1 = MPI_WTIME()
   !Start Interpolation
 
@@ -2669,18 +2669,16 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
     !$OMP PARALLEL DO DEFAULT(PRIVATE) SHARED(rxyz_old,rxyz,radius,cutoff,shift1,gridx,gridy,gridz,xbox,ybox,zbox, &
     !$OMP& hhz,hhy,hhx,lzd,k)    
       do i3 = max(1, gridz-zbox), min(lzd%glr%d%n3i,gridz+zbox)
-         ii3 = i3-14 ; zz = (ii3*hhz -rxyz_old(3,k))**2
+         ii3 = i3-14 ; zz = ii3*hhz
          iz = (i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i
-
          do i2 = max(1,gridy-ybox), min(lzd%glr%d%n2i,gridy+ybox)
-            ii2 = i2 - 14 ; yz = (ii2*hhy - rxyz_old(2,k))**2
+            ii2 = i2 - 14 ; yz = ii2*hhy
             iy = (i2-1)*lzd%glr%d%n1i
-
             do i1 = max(1,gridx-xbox), min(lzd%glr%d%n1i,gridx+xbox)
                 
                ii1 = i1 - 14 ; xz = ii1*hhx
                
-               distance = 0.5*(((xz-rxyz_old(1,k))**2 + yz + zz)*radius)
+               distance = 0.5*(((xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2)*radius)
                if(distance > cutoff) cycle
                expfct = ex(distance,cutoff) 
 
@@ -2689,21 +2687,23 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                s3 = (rxyz(3,k)-rxyz_old(3,k))*expfct
                norm = expfct              
  
-               distance = 0.5*(((xz-s1-rxyz_old(1,k))**2+(ii2*hhy - s2 -rxyz_old(2,k))**2+&
-                        & (ii3*hhz-s3-rxyz_old(3,k))**2)*radius)
-             
+               distance = 0.5*(((xz-s1-rxyz_old(1,k))**2+(yz-s2-rxyz_old(2,k))**2+(zz-s3-rxyz_old(3,k))**2)*radius)
                expfct = ex(distance,cutoff) 
                
                s11 = (rxyz(1,k)-rxyz_old(1,k))*expfct
                s22 = (rxyz(2,k)-rxyz_old(2,k))*expfct
                s33 = (rxyz(3,k)-rxyz_old(3,k))*expfct
+
+               shift1(i1+iy+iz,4) = norm+expfct + &
+               & shift1(i1+iy+iz,4)  
+
                
-               shift1(i1+iy+iz,1) = (s1+s11)*0.5 / (norm+expfct) + &
-             & shift1(i1+iy+iz,1)  
-               shift1(i1+iy+iz,2) = (s2+s22)*0.5 / (norm+expfct) + &
-             & shift1(i1+iy+iz,2)  
-               shift1(i1+iy+iz,3) = (s3+s33)*0.5 / (norm+expfct) + &
-             & shift1(i1+iy+iz,3)  
+               shift1(i1+iy+iz,1) = (s1+s11)*0.5  + &
+               & shift1(i1+iy+iz,1)  
+               shift1(i1+iy+iz,2) = (s2+s22)*0.5  + &
+               & shift1(i1+iy+iz,2)  
+               shift1(i1+iy+iz,3) = (s3+s33)*0.5  + &
+               & shift1(i1+iy+iz,3)  
 
 
 !               shift1(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,1) = (rxyz(1,k)-rxyz_old(1,k))*expfct + & 
@@ -2724,9 +2724,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   t2 = MPI_WTIME()
   t3 = t2 -t1
   t4 = t3
- call MPIALLRED(t3,1,MPI_MIN,bigdft_mpi%mpi_comm,ierr)
- call MPIALLRED(t4,1,MPI_MAX,bigdft_mpi%mpi_comm,ierr)
-  write(123,*) 'min,max', t3,t4
+! call MPIALLRED(t3,1,MPI_MIN,bigdft_mpi%mpi_comm,ierr)
+! call MPIALLRED(t4,1,MPI_MAX,bigdft_mpi%mpi_comm,ierr)
+  !write(123 ,*) 'min,max', t3,t4
  call MPIALLRED(shift1(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, MPI_SUM,bigdft_mpi%mpi_comm,ierr) 
 !  t1 = MPI_WTIME()
 !  do k = istart,iend
@@ -2775,7 +2775,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 !  end do
 ! call MPIALLRED(shift2(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, MPI_SUM,bigdft_mpi%mpi_comm,ierr) 
 ! t2 = MPI_WTIME()
-! write(123,*) 'shift 2', t2-t1
+! !write(123 ,*) 'shift 2', t2-t1
   t1 = MPI_WTIME()
 !  where(shift1(:,4).ne.0)
 !    shift1(:,1)=shift1(:,1)/shift1(:,4)
@@ -2795,7 +2795,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 !
 !  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, shift1(1,1))
 !  t2 = MPI_WTIME()
-!  write(123,*) 'where statements', t2-t1
+!  !write(123 ,*) 'where statements', t2-t1
  t1 = MPI_WTIME()
  do k = istart,iend
       gridx = nint(rxyz_old(1,k)/hhx_old)+14
@@ -2805,10 +2805,10 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
     !$OMP PARALLEL DO DEFAULT(PRIVATE) SHARED(rxyz_old,rxyz,radius,cutoff,shift,shift1,shift2,gridx,gridy,gridz,xbox,ybox,zbox,&
     !$OMP& hhz,hhy,hhx,lzd,k,shiftjacdet)    
       do i3 = max(1, gridz-zbox), min(lzd%glr%d%n3i,gridz+zbox)
-         ii3 = i3-14 ; zz = (ii3*hhz -rxyz_old(3,k))**2
+         ii3 = i3 - 14 ; zz = ii3*hhz
          iz = (i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i
          do i2 = max(1,gridy-ybox), min(lzd%glr%d%n2i,gridy+ybox)
-            ii2 = i2 - 14 ; yz = (ii2*hhy - rxyz_old(2,k))**2
+            ii2 = i2 - 14 ; yz = ii2*hhy
             iy = (i2-1)*lzd%glr%d%n1i
             do i1 = max(1,gridx-xbox), min(lzd%glr%d%n1i,gridx+xbox)
                   norm_1 = 0d0 ; norm_2 = 0d0 ; norm_3 = 0d0 ; norm = 0d0
@@ -2819,8 +2819,6 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                   s3d1 = 0d0 ; s3d2 = 0d0 ; s3d3 = 0d0 
      
                   ii1 = i1 - 14 ; xz = ii1*hhx
-!                  ii2 = i2 - 14 ; yz = ii2*hhy
-!                  ii3 = i3 - 14 ; zz = ii3*hhz
 
 !                  if(shift1(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,4).ne.0d0) then 
 !
@@ -2834,7 +2832,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 !                          shift1(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,4)  
 !                  end if  
 !       
-!!	          if(shift2(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,4).ne.0d0) then 
+!	          if(shift2(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,4).ne.0d0) then 
 !
 !                   s11 =  shift2(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,1)/&  
 !                          shift2(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,4)  
@@ -2845,16 +2843,19 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 !                   s33 =  shift2(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,3)/&  
 !                          shift2(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,4)  
 !                  end if
+                  norm = 1.0/shift1(i1+iy+iz,4)
 
-                  xz = xz - shift1(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,1)  
-                  yz = yz - shift1(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,2)  
-                  zz = zz - shift1(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,3)  
+                  if(norm.eq.0d0) norm = 1d0  
+
+                  xz = xz - shift1(i1+iy+iz,1)*norm  
+                  yz = yz - shift1(i1+iy+iz,2)*norm
+                  zz = zz - shift1(i1+iy+iz,3)*norm 
                   
 !                  xz = xz - (s1+s11)*0.5 !shift2(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,1)  
 !                  yz = yz - (s2+s22)*0.5 !shift2(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,2)  
 !                  zz = zz - (s3+s33)*0.5 !shift2(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,3)  
 
-                  distance = 0.5*(((xz-rxyz_old(1,k))**2+yz+ zz)*radius)
+                  distance = 0.5*(((xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2)*radius)
            
                   if(distance >= cutoff ) cycle
 
@@ -2912,8 +2913,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                   shift(i1+iy+iz,4) = expfct + &
                   shift(i1+iy+iz,4)
                     
-                  shiftjacdet(i1+iy+iz) = jacdet + &
-                  shiftjacdet(i1+iy+iz)
+                  shift(i1+iy+iz,5) = jacdet + &
+                  shift(i1+iy+iz,5)
 
                   
 
@@ -2923,16 +2924,16 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
         !$OMP END PARALLEL DO 
   end do
 
-  write(123,*) 'jacdet', t2-t1
+  !write(123 ,*) 'jacdet', t2-t1
 
   t1 = MPI_WTIME()
- call MPIALLRED(shiftjacdet(1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, MPI_SUM,bigdft_mpi%mpi_comm,ierr) 
+! call MPIALLRED(shiftjacdet(1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, MPI_SUM,bigdft_mpi%mpi_comm,ierr) 
   t2 = MPI_WTIME()
-  write(123,*) 'allreduce shiftjacdet', t2-t1
+  !write(123 ,*) 'allreduce shiftjacdet', t2-t1
   t1 = MPI_WTIME()
- call MPIALLRED(shift(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*4, MPI_SUM,bigdft_mpi%mpi_comm,ierr) 
+ call MPIALLRED(shift(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, MPI_SUM,bigdft_mpi%mpi_comm,ierr) 
   t2 = MPI_WTIME()
-  write(123,*) 'allreduce shift1', t2-t1
+  !write(123 ,*) 'allreduce shift1', t2-t1
 
  
 
@@ -3093,7 +3094,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 !!          s2_new = s2_new/norm
 !!          s3_new = s3_new/norm
 !!         
-!!        !  if(i1 .eq. 10 .and. i2.eq.10 .and. i3.eq.10) write(123,*) m,s1_new+x_new-xz,s2_new+y_new-yz,s3_new+z_new-zz
+!!        !  if(i1 .eq. 10 .and. i2.eq.10 .and. i3.eq.10) !write(123 ,*) m,s1_new+x_new-xz,s2_new+y_new-yz,s3_new+z_new-zz
 !! 
 !!          if(abs(s1_new+x_new-xz) < 1d-5 .and. abs(s2_new+y_new-yz) < 1d-5 .and. abs(s3_new+z_new-zz) < 1d-5) exit loop_shift
 !!
@@ -3244,16 +3245,16 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 !$OMP PARALLEL DO DEFAULT(PRIVATE) SHARED(shift,shiftjacdet,hhx,hhy,hhz,hhx_old,hhy_old,hhz_old,lzd_old,lzd,atoms, &
 !$OMP& psir_old,psir,rxyz_old,rxyz,iorb,radius,cutoff) 
   do i3 = 1, lzd%glr%d%n3i
-     iz = (i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i
+   iz = (i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i
     do i2 = 1, lzd%glr%d%n2i
-      iy = (i2-1)*lzd%glr%d%n1i
+    iy = (i2-1)*lzd%glr%d%n1i
       do i1 = 1, lzd%glr%d%n1i
 
         s1 = shift(i1+iy+iz,1) 
         s2 = shift(i1+iy+iz,2) 
         s3 = shift(i1+iy+iz,3) 
         norm = shift(i1+iy+iz,4) 
-        jacdet = shiftjacdet(i1+iy+iz)
+        jacdet = shift(i1+iy+iz,5)
 !        dgrid1 = shift(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,5)
 !        dgrid2 = shift(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,6)
 !        dgrid3 = shift(i1+(i2-1)*lzd%glr%d%n1i+(i3-1)*lzd%glr%d%n2i*lzd%glr%d%n1i,7)
@@ -3262,6 +3263,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 	jacdet = jacdet + 1.0
          if(norm .eq. 0d0 ) norm = 1d0
 
+        if(i1.eq.15 .and. i2.eq.15 .and. i3.eq.15) write(444,*) s1,s2,s3,norm,jacdet
          s1 = s1/norm
          s2 = s2/norm
          s3 = s3/norm
@@ -3353,7 +3355,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 !$OMP END PARALLEL DO
   end do
 t2 = MPI_WTIME()
- write(123,*) 'interpolation', t2-t1
+ !write(123 ,*) 'interpolation', t2-t1
   t1 = MPI_WTIME()
   call initialize_work_arrays_sumrho(Lzd%Glr,w) 
  ! ISF to Daubechies
@@ -3368,7 +3370,7 @@ t2 = MPI_WTIME()
 
   call deallocate_work_arrays_sumrho(w)
   t2 = MPI_WTIME()
-  write(123,*) ' isf_to_daub', t2-t1
+  !write(123 ,*) ' isf_to_daub', t2-t1
   i_all = -product(shape(psir_old))*kind(psir_old)
   deallocate(psir_old,stat=i_stat)
   call memocc(i_stat,i_all, 'psir_old', subname)
@@ -3385,13 +3387,13 @@ t2 = MPI_WTIME()
   deallocate(shift1,stat=i_stat)
   call memocc(i_stat,i_all, 'shift1', subname)
 
-  i_all = -product(shape(shift2))*kind(shift2)
-  deallocate(shift2,stat=i_stat)
-  call memocc(i_stat,i_all, 'shift2', subname)
-
-  i_all = -product(shape(shiftjacdet))*kind(shiftjacdet)
-  deallocate(shiftjacdet,stat=i_stat)
-  call memocc(i_stat,i_all, 'shiftjacdet', subname)
+!  i_all = -product(shape(shift2))*kind(shift2)
+!  deallocate(shift2,stat=i_stat)
+!  call memocc(i_stat,i_all, 'shift2', subname)
+!
+!  i_all = -product(shape(shiftjacdet))*kind(shiftjacdet)
+!  deallocate(shiftjacdet,stat=i_stat)
+!  call memocc(i_stat,i_all, 'shiftjacdet', subname)
 
 
 !  i_all = -product(shape(exp_x))*kind(exp_x)
