@@ -48,7 +48,7 @@ program WaCo
    real(wp), allocatable :: ham(:,:,:),hamr(:,:,:)
    real(wp), allocatable :: diag(:,:),diagT(:)
    integer, dimension(:), pointer :: buf
-   character(len=60) :: radical, filename
+   character(len=60) :: radical, filename, posinp,run_id
    logical :: notocc, bondAna,Stereo,hamilAna,WannCon,linear,outformat
    integer, dimension(:), allocatable :: ConstList
    integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:), l(:), mr(:)
@@ -59,9 +59,11 @@ program WaCo
    integer :: n_occ, n_virt, n_virt_tot, nproj,nband_old,nkpt_old,iwann_out 
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity,write_resid
    integer, allocatable, dimension (:) :: virt_list
-   integer :: nbandCon
+   integer :: nbandCon,nconfig
    integer, dimension(:),allocatable :: bandlist
    logical :: idemp
+   integer, dimension(4) :: mpi_info
+
    ! ONLY FOR DEBUG
 !   real(gp) :: Gnorm, Lnorm
 !   integer :: indL,ilr
@@ -96,20 +98,34 @@ program WaCo
       end subroutine scalar_kmeans_diffIG
    end interface
 
-   ! Start MPI in parallel version
-   !in the case of MPIfake libraries the number of processors is automatically adjusted
-   call MPI_INIT(ierr)
-   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+   !-finds the number of taskgroup size
+   !-initializes the mpi_environment for each group
+   !-decides the radical name for each run
+   call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
-   call memocc_set_memory_limit(memorylimit)
+   !just for backward compatibility
+   iproc=mpi_info(1)
+   nproc=mpi_info(2)
 
-   ! Read a possible radical format argument.
-   call get_command_argument(1, value = radical, status = i_stat)
-   if (i_stat > 0) then
-      write(radical, "(A)") "input"
-   end if
+   if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
+
+  call bigdft_set_input(trim(run_id)//trim(bigdft_run_id_toa()),'posinp'//trim(bigdft_run_id_toa()),&
+       rxyz,input,atoms)
+
+!!$   ! Start MPI in parallel version
+!!$   !in the case of MPIfake libraries the number of processors is automatically adjusted
+!!$   call MPI_INIT(ierr)
+!!$   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+!!$   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+!!$   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+!!$
+!!$   call memocc_set_memory_limit(memorylimit)
+!!$
+!!$   ! Read a possible radical format argument.
+!!$   call get_command_argument(1, value = radical, status = i_stat)
+!!$   if (i_stat > 0) then
+!!$      write(radical, "(A)") "input"
+!!$   end if
 
    if (input%verbosity > 2) then
       nproctiming=-nproc !timing in debug mode                                                                                                                                                                 
@@ -126,7 +142,7 @@ program WaCo
    !###################################################################
    ! Read input files and initialise the variables for the wavefunctions
    !###################################################################
-   call standard_inputfile_names(input,radical,nproc)
+!!$   call standard_inputfile_names(input,radical,nproc)
 
    call Waco_input_variables(iproc,trim(radical)//'.waco',nband,nwann,bondAna,Stereo,hamilAna,WannCon,&
         outputype,nwannCon,refpos,units,sprdfact,sprddiff,enediff,outformat,linear,nbandCon,sprdmult)
@@ -139,9 +155,10 @@ program WaCo
 
    call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList,linear,nbandCon,bandlist) 
 
-   call read_input_variables(iproc,'posinp',input, atoms, rxyz)
-
-   if (iproc == 0) call print_general_parameters(nproc,input,atoms)
+!!$   posinp='posinp'
+!!$   call read_input_variables(iproc,nproc,posinp,input, atoms, rxyz,1,radical,i_stat)
+!!$
+!!$   if (iproc == 0) call print_general_parameters(nproc,input,atoms)
 
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
@@ -1281,7 +1298,8 @@ program WaCo
   call deallocate_orbs(orbs,subname)
   !call deallocate_atoms_scf(atoms,subname)
   call deallocate_atoms(atoms,subname)
-  call free_input_variables(input)
+!  call free_input_variables(input)
+  call bigdft_free_input(input)
 
   !#########################################################
   ! Ending timing and MPI
@@ -1295,12 +1313,14 @@ program WaCo
     call yaml_map('CPU time/ELAPSED time for root process ', (/ tel,real(tcpu1-tcpu0,kind=8) /),fmt='(f12.2)')
     !write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
    !finalize memory counting
-   call memocc(0,0,'count','stop')
+!   call memocc(0,0,'count','stop')
  
-  ! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
-  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
- 
-  call MPI_FINALIZE(ierr)
+  call bigdft_finalize()
+!!$
+!!$  ! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
+!!$  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!!$ 
+!!$  call MPI_FINALIZE(ierr)
 
 end program Waco
 

@@ -1,3 +1,172 @@
+!> Do all initialisation for all different files of BigDFT. 
+!! Set default values if not any.
+!! Initialize memocc
+!! @todo
+!!   Should be better for debug purpose to read input.perf before
+subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => bigdft_set_input
+  !use yaml_output
+  implicit none
+
+  !Arguments
+  character(len=*),intent(in) :: posinp
+  character(len=*),intent(in) :: radical
+  type(input_variables), intent(inout) :: in
+  type(atoms_data), intent(out) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz 
+  logical :: exist_list
+  integer :: group_size,ierr
+
+  ! initialize mpi environment (this shouldn't be done twice)
+!  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,nproc)
+  !standard names
+  call standard_inputfile_names(in,trim(radical), bigdft_mpi%nproc)
+
+  !call yaml_open_map('Representation of the input files')
+  ! Read all parameters and update atoms and rxyz.
+  call read_input_parameters(bigdft_mpi%iproc,in,.true.)
+
+  !call yaml_close_map()
+
+!!$  ! find out which input files will be used
+!!$  inquire(file="list_posinp",exist=exist_list)
+
+!!$  if (in%mpi_groupsize >0 .and. (.not. exist_list)) then
+!!$     group_size=in%mpi_groupsize
+!!$  else
+!!$     group_size=nproc
+!!$  endif
+!!$  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,group_size)
+!!$  !reset standard names (this should be avoided) 
+!!$  call standard_inputfile_names(in, radical, bigdft_mpi%nproc)
+
+  ! Read atomic file
+  call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms,rxyz)
+  call read_input_parameters2(bigdft_mpi%iproc,in,atoms,rxyz)
+
+  ! Read associated pseudo files.
+  call init_atomic_values((bigdft_mpi%iproc == 0), atoms, in%ixc)
+  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
+
+  ! Start the signaling loop in a thread if necessary.
+  if (in%signaling .and. bigdft_mpi%iproc == 0) then
+     call bigdft_signals_init(in%gmainloop, 2, in%domain, len(trim(in%domain)))
+     call bigdft_signals_start(in%gmainloop, in%signalTimeout)
+  end if
+
+  if (bigdft_mpi%iproc == 0) then
+     call print_general_parameters(bigdft_mpi%nproc,in,atoms)
+     !call write_input_parameters(inputs,atoms)
+  end if
+
+  !if other steps are supposed to be done leave the last_run to minus one
+  !otherwise put it to one
+  if (in%last_run == -1 .and. in%ncount_cluster_x <=1 .or. in%ncount_cluster_x <= 1) then
+     in%last_run = 1
+  end if
+
+END SUBROUTINE bigdft_set_input
+
+
+subroutine bigdft_free_input(in)
+  use module_base
+  use module_types
+  use yaml_output
+  type(input_variables), intent(inout) :: in
+  
+  call free_input_variables(in)
+  !finalize memory counting
+  call memocc(0,0,'count','stop')
+  !free all yaml_streams active
+  call yaml_close_all_streams()
+
+end subroutine bigdft_free_input
+
+subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
+  use module_types
+  implicit none
+  integer, intent(out) :: mpi_groupsize
+  character(len=*), intent(out) :: posinp_file !< file for list of radicals
+  character(len=*), intent(out) :: run_id !< file for radical name
+  integer, intent(out) :: ierr !< error code
+  !local variables
+  integer :: ncommands,icommands
+  character(len=256) :: command
+
+  ierr=BIGDFT_SUCCESS
+  posinp_file=repeat(' ',len(posinp_file))
+  run_id=repeat(' ',len(run_id))
+  mpi_groupsize=0
+  
+  !first see how many arguments are present
+  ncommands=COMMAND_ARGUMENT_COUNT()
+
+  !traditional scheme
+  if (ncommands == 0) then
+     run_id='input'
+  end if
+
+  do icommands=1,ncommands
+     command=repeat(' ',len(command))
+     call get_command_argument(icommands,value=command,status=ierr)
+     if (ierr /= 0) return
+     !print *,'test',ncommands,icommands,command
+     call find_command()
+     if (ierr /= 0) return
+  end do
+  
+
+contains
+
+  subroutine find_command()
+    implicit none
+    integer :: ipos
+    integer, external :: bigdft_error_ret
+
+    if (index(command,'--taskgroup-size=') > 0) then
+       if (mpi_groupsize /= 0) then
+          ierr=bigdft_error_ret(BIGDFT_INVALID,'taskgroup size specified twice')
+       end if
+       ipos=index(command,'=')
+       read(command(ipos+1:len(command)),*)mpi_groupsize
+    else if (index(command,'--run-id=') > 0) then
+       if (len_trim(run_id) > 0) then
+          ierr=bigdft_error_ret(BIGDFT_INVALID,'run_id specified twice')
+       end if
+       ipos=index(command,'=')
+       read(command(ipos+1:len(command)),*)run_id
+    else if (index(command,'--runs-file=') > 0) then
+       if (len_trim(posinp_file) > 0 .or. len_trim(run_id) >0) then
+          ierr=bigdft_error_ret(BIGDFT_INVALID,'posinp_file specified twice or run_id already known')
+       end if
+       ipos=index(command,'=')
+       read(command(ipos+1:len(command)),*)posinp_file
+    else if (index(command,'--') > 0 .and. icommands==1) then
+       !help screen
+       call help_screen()
+       stop
+    else if (icommands==1) then
+       read(command,*,iostat=ierr)run_id
+    else
+       call help_screen()
+       stop
+    end if
+  end subroutine find_command
+
+  subroutine help_screen()
+    write(*,*)' Usage of the command line instruction'
+    write(*,*)' --taskgroup-size=<mpi_groupsize>'
+    write(*,*)' --runs-file=<list_posinp filename>'
+    write(*,*)' --run-id=<name of the run>: it can be also specified as unique argument'
+    write(*,*)' --help : prints this help screen'
+  end subroutine help_screen
+
+
+end subroutine command_line_information
+
+
 !!> @file
 !!  Routines to read and print input variables
 !! @author
@@ -58,7 +227,7 @@ subroutine standard_inputfile_names(in, radical, nproc)
   if (trim(radical) == "input") then
         in%dir_output="data" // trim(bigdft_run_id_toa())
   else
-        in%dir_output="data-"//trim(radical)//trim(bigdft_run_id_toa())
+        in%dir_output="data-"//trim(radical)!//trim(bigdft_run_id_toa())
   end if
 
   in%files = INPUTS_NONE
@@ -69,50 +238,12 @@ subroutine standard_inputfile_names(in, radical, nproc)
 END SUBROUTINE standard_inputfile_names
 
 
-!> Do all initialisation for all different files of BigDFT. 
-!! Set default values if not any.
-!! Initialize memocc
-!! @todo
-!!   Should be better for debug purpose to read input.perf before
-subroutine read_input_variables(iproc,posinp,in,atoms,rxyz)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => read_input_variables
-  !use yaml_output
-  implicit none
-
-  !Arguments
-  character(len=*), intent(in) :: posinp
-  integer, intent(in) :: iproc
-  type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(out) :: atoms
-  real(gp), dimension(:,:), pointer :: rxyz
-
-  ! Read atomic file
-  call read_atomic_file(posinp,iproc,atoms,rxyz)
-
-  !call yaml_open_map('Representation of the input files')
-  ! Read all parameters and update atoms and rxyz.
-  call read_input_parameters(iproc,in, atoms, rxyz)
-
-  !call yaml_close_map()
-  ! Read associated pseudo files.
-  call init_atomic_values((iproc == 0), atoms, in%ixc)
-  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
-
-  ! Start the signaling loop in a thread if necessary.
-  if (in%signaling .and. iproc == 0) then
-     call bigdft_signals_init(in%gmainloop, 2, in%domain, len(trim(in%domain)))
-     call bigdft_signals_start(in%gmainloop, in%signalTimeout)
-  end if
-
-END SUBROUTINE read_input_variables
 
 
 !> Do initialisation for all different calculation parameters of BigDFT. 
 !! Set default values if not any. Atomic informations are updated  by
 !! symmetries if necessary and by geometry input parameters.
-subroutine read_input_parameters(iproc,in,atoms,rxyz)
+subroutine read_input_parameters(iproc,in,dump)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_parameters
@@ -123,36 +254,69 @@ subroutine read_input_parameters(iproc,in,atoms,rxyz)
   !Arguments
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(:,:), pointer :: rxyz
+  logical, intent(in) :: dump
   !Local variables
   integer :: ierr
-
   ! Default for inputs (should not be necessary if all the variables comes from the parsing)
   call default_input_variables(in)
   ! Read linear variables
   ! Parse all input files, independent from atoms.
-  call inputs_parse_params(in, iproc, .true.)
+  call inputs_parse_params(in, iproc, dump)
   if(in%inputpsiid==100 .or. in%inputpsiid==101 .or. in%inputpsiid==102) &
       DistProjApply=.true.
   if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) then
      !only on the fly calculation
      DistProjApply=.true.
   end if
+
+
+
+END SUBROUTINE read_input_parameters
+
+subroutine read_input_parameters2(iproc,in,atoms,rxyz)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => read_input_parameters2
+  use module_input
+  use yaml_strings
+  use yaml_output
+
+  implicit none
+
+  !Arguments
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: in
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+  !Local variables
+  integer :: ierr,ierror
+  integer :: iat1
+  real(gp) :: tt
+  !character(len=500) :: logfile,logfile_old,logfile_dir
+  !logical :: exists
+!print *,'hereAAA',associated(rxyz),iproc
   ! Shake atoms, if required.
   call atoms_set_displacement(atoms, rxyz, in%randdis)
+!!$  print *,'hello21',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
+!!$call mpi_barrier(mpi_comm_world,ierr)
 
   ! Update atoms with symmetry information
   call atoms_set_symmetries(atoms, rxyz, in%disableSym, in%symTol, in%elecfield)
+!!$  print *,'hello22',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
+!!$call mpi_barrier(mpi_comm_world,ierr)
 
   ! Parse input files depending on atoms.
   call inputs_parse_add(in, atoms, iproc, .true.)
+!!$
+!!$  print *,'hello23',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
+!!$call mpi_barrier(mpi_comm_world,ierr)
+
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
-  if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
-     if (iproc==0) call yaml_warning('GPU calculation allowed only in periodic boundary conditions')
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-  end if
+!  if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
+!     if (iproc==0) call yaml_warning('GPU calculation allowed only in periodic boundary conditions')
+!     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+!  end if
 
   ! Stop the code if it is trying to run GPU with spin=4
   if (in%nspin == 4 .and. (GPUconv .or. OCLconv)) then
@@ -176,7 +340,11 @@ subroutine read_input_parameters(iproc,in,atoms,rxyz)
   !check whether a directory name should be associated for the data storage
   call check_for_data_writing_directory(iproc,in)
 
-END SUBROUTINE read_input_parameters
+!!$  print *,'hello24',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
+!!$call mpi_barrier(mpi_comm_world,ierr)
+
+
+END SUBROUTINE read_input_parameters2
 
 
 !> Check the directory of data (create if not present)
@@ -1322,7 +1490,8 @@ subroutine perf_input_variables(iproc,dump,filename,in)
 
   call input_var("debug", .false., "Debug option", in%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", in%ncache_fft)
-  call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU ", "OCLCPU ", "OCLACC " /), &
+  call input_var("accel", 7, "NO     ", &
+       (/ "NO     ", "CUDAGPU", "OCLGPU ", "OCLCPU ", "OCLACC " /), &
        & "Acceleration", in%matacc%iacceleration)
 
   !determine desired OCL platform which is used for acceleration
@@ -1372,84 +1541,30 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   call input_var("psp_onfly", .true., &
        & "Calculate pseudopotential projectors on the fly",DistProjApply)
 
+!  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
   if (in%verbosity == 0 ) then
      call memocc_set_state(0)
   end if
-  logfile=repeat(' ',len(logfile))
-  logfile_old=repeat(' ',len(logfile_old))
-  logfile_dir=repeat(' ',len(logfile_dir))
-  !open the logfile if needed, and set stdout
-  if (trim(in%writing_directory) /= '.') then
-     !add the output directory in the directory name
-     if (iproc == 0) then
-        call getdir(in%writing_directory,&
-             len_trim(in%writing_directory),logfile,len(logfile),ierr)
-        if (ierr /= 0) then
-           write(*,*) "ERROR: cannot create writing directory '"&
-                //trim(in%writing_directory) // "'."
-           call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
-        end if
-     end if
-     call MPI_BCAST(logfile,len(logfile),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
-     lgt=min(len(in%writing_directory),len(logfile))
-     in%writing_directory(1:lgt)=logfile(1:lgt)
-     lgt=0
-     call buffer_string(in%dir_output,len(in%dir_output),&
-          trim(logfile),lgt,back=.true.)
-     if (iproc ==0) then
-        logfile=repeat(' ',len(logfile))
-        if (len_trim(in%run_name) >0) then
-           logfile='log-'//trim(in%run_name)//'.yaml'
-        else
-           logfile='log.yaml'
-        end if
-        !inquire for the existence of a logfile
-        call yaml_map('<BigDFT> log of the run will be written in logfile',&
-             trim(in%writing_directory)//trim(logfile))
-        inquire(file=trim(in%writing_directory)//trim(logfile),exist=exists)
-        if (exists) then
-           logfile_old=trim(in%writing_directory)//'logfiles'
-           call getdir(logfile_old,&
-                len_trim(logfile_old),logfile_dir,len(logfile_dir),ierr)
-           if (ierr /= 0) then
-              write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
-              call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
-           end if
-           logfile_old=trim(logfile_dir)//trim(logfile)
-           logfile=trim(in%writing_directory)//trim(logfile)
-           !change the name of the existing logfile
-           lgt=index(logfile_old,'.yaml')
-           call buffer_string(logfile_old,len(logfile_old),&
-                trim(adjustl(yaml_time_toa()))//'.yaml',lgt)
-           call movefile(trim(logfile),len_trim(logfile),trim(logfile_old),len_trim(logfile_old),ierr)
-           if (ierr /= 0) then
-              write(*,*) "ERROR: cannot move logfile '"//trim(logfile)
-              write(*,*) '                      into '//trim(logfile_old)// "'."
-              call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
-           end if
-           call yaml_map('<BigDFT> Logfile already existing, move previous file in',&
-                trim(logfile_old))
 
-        else
-           logfile=trim(in%writing_directory)//trim(logfile)
-        end if
-        !Create stream and logfile
-        call yaml_set_stream(unit=70,filename=trim(logfile),record_length=92)
-        call input_set_stdout(unit=70)
-        call memocc_set_stdout(unit=70)
-     end if
+  !here the logfile should be opened in the usual way, differentiating between 
+  ! logfiles in case of multiple taskgroups
+  if (trim(in%writing_directory) /= '.' .or. bigdft_mpi%ngroup > 1) then
+     call create_log_file(iproc,in)
   else
      !use stdout, do not crash if unit is present
      if (iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
   end if
+  !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
   if (iproc==0) then
      !start writing on logfile
      call yaml_new_document()
      !welcome screen
      if (dump) call print_logo()
   end if
-  call input_free((iproc == 0) .and. dump)
-    
+  !call input_free((iproc == 0) .and. dump)
+
+  call input_free(iproc==0)
+
   !Block size used for the orthonormalization
   in%orthpar%bsLow = blocks(1)
   in%orthpar%bsUp  = blocks(2)
@@ -1468,12 +1583,99 @@ subroutine perf_input_variables(iproc,dump,filename,in)
      else if(in%orthpar%bsLow<in%orthpar%bsUp) then
         write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',in%orthpar%bsLow,' and ',in%orthpar%bsUp
      else
-        write(*,'(1x,a)') "ERROR: invalid values of in%bsLow and in%bsUp. Change them in 'input.perf'!"
+        write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
         call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
      end if
      write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
   end if
 END SUBROUTINE perf_input_variables
+
+subroutine create_log_file(iproc,inputs)
+
+  use module_base
+  use module_types
+  use module_input
+  use yaml_strings
+  use yaml_output
+  implicit none
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: inputs
+  !local variables
+  integer ierr,blocks(2),ierror,lgt
+  logical :: exists
+  character(len=500) :: filename,logfile,logfile_old,logfile_dir
+
+  logfile=repeat(' ',len(logfile))
+  logfile_old=repeat(' ',len(logfile_old))
+  logfile_dir=repeat(' ',len(logfile_dir))
+  !open the logfile if needed, and set stdout
+  !if (trim(in%writing_directory) /= '.') then
+  if (.true.) then
+     !add the output directory in the directory name
+     if (iproc == 0 .and. trim(inputs%writing_directory) /= '.') then
+        call getdir(inputs%writing_directory,&
+             len_trim(inputs%writing_directory),logfile,len(logfile),ierr)
+        if (ierr /= 0) then
+           write(*,*) "ERROR: cannot create writing directory '"&
+                //trim(inputs%writing_directory) // "'."
+           call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+        end if
+     end if
+     call MPI_BCAST(logfile,len(logfile),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
+     lgt=min(len(inputs%writing_directory),len(logfile))
+     inputs%writing_directory(1:lgt)=logfile(1:lgt)
+     lgt=0
+     call buffer_string(inputs%dir_output,len(inputs%dir_output),&
+          trim(logfile),lgt,back=.true.)
+     if (iproc ==0) then
+        logfile=repeat(' ',len(logfile))
+        if (len_trim(inputs%run_name) >0) then
+!           logfile='log-'//trim(inputs%run_name)//trim(bigdft_run_id_toa())//'.yaml'
+           logfile='log-'//trim(inputs%run_name)//'.yaml'
+        else
+           logfile='log'//trim(bigdft_run_id_toa())//'.yaml'
+        end if
+        !inquire for the existence of a logfile
+        call yaml_map('<BigDFT> log of the run will be written in logfile',&
+             trim(inputs%writing_directory)//trim(logfile),unit=6)
+        inquire(file=trim(inputs%writing_directory)//trim(logfile),exist=exists)
+        if (exists) then
+           logfile_old=trim(inputs%writing_directory)//'logfiles'
+           call getdir(logfile_old,&
+                len_trim(logfile_old),logfile_dir,len(logfile_dir),ierr)
+           if (ierr /= 0) then
+              write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
+              call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+           end if
+           logfile_old=trim(logfile_dir)//trim(logfile)
+           logfile=trim(inputs%writing_directory)//trim(logfile)
+           !change the name of the existing logfile
+           lgt=index(logfile_old,'.yaml')
+           call buffer_string(logfile_old,len(logfile_old),&
+                trim(adjustl(yaml_time_toa()))//'.yaml',lgt)
+           call movefile(trim(logfile),len_trim(logfile),trim(logfile_old),len_trim(logfile_old),ierr)
+           if (ierr /= 0) then
+              write(*,*) "ERROR: cannot move logfile '"//trim(logfile)
+              write(*,*) '                      into '//trim(logfile_old)// "'."
+              call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+           end if
+           call yaml_map('<BigDFT> Logfile already existing, move previous file in',&
+                trim(logfile_old),unit=6)
+
+        else
+           logfile=trim(inputs%writing_directory)//trim(logfile)
+        end if
+        !Create stream and logfile
+        call yaml_set_stream(unit=70,filename=trim(logfile),record_length=92)
+        call input_set_stdout(unit=70)
+        call memocc_set_stdout(unit=70)
+     end if
+  else
+     !use stdout, do not crash if unit is present
+     if (iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
+  end if
+    
+END SUBROUTINE create_log_file
 
 
 !>  Free all dynamically allocated memory from the kpt input file.
@@ -1519,6 +1721,11 @@ subroutine free_input_variables(in)
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_input_variables'
   integer :: i_stat, i_all
+
+  if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) &
+       & call deallocateBasicArraysInput(in%lin)
+
+
   if (associated(in%qmass)) then
      i_all=-product(shape(in%qmass))*kind(in%qmass)
      deallocate(in%qmass,stat=i_stat)

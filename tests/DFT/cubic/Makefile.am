@@ -13,7 +13,8 @@ TESTDIRS = C \
 	  O2-Spin \
 	  ElectField \
 	  ElectronGas \
-	  NLCC
+	  NLCC \
+	  taskgroups
 
 EXTRA_TESTDIRS =
 

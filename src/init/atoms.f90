@@ -285,7 +285,6 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
   end if
 END SUBROUTINE atoms_set_symmetries
 
-
 !> Add a displacement of atomic positions and put in the box
 !! @param atom    atoms_data structure
 !! @param rxyz    atomic positions
@@ -300,7 +299,7 @@ subroutine atoms_set_displacement(atoms, rxyz, randdis)
   integer :: iat
   real(gp) :: tt
   
-  ! Shake atoms if required.
+  !Shake atoms if required.
   if (randdis > 0.d0) then
      do iat=1,atoms%nat
         if (atoms%ifrztyp(iat) == 0) then
@@ -554,9 +553,9 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getLine
         read(line,*,iostat=ierrsfx) symbol,fxyz(:,iat)
      end do
   end if
-
   !now that ntypes is determined allocate atoms%atomnames and copy the values
   call allocate_atoms_ntypes(atoms, ntyp, subname)
+
   atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
 END SUBROUTINE read_xyz_positions
 

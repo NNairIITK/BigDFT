@@ -65,6 +65,7 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
 
   !defining work arrays dimensions
   ncache=ncache_optimal
+
   !n3/2 if the dimension is real and isolated
   if (halffty) then
      n3dim=n3/2

@@ -9,7 +9,7 @@
 
 
 !> Compresses a psig wavefunction into psi_c,psi_f form
-subroutine compress(n1,n2,nl1,nu1,nl2,nu2,nl3,nu3, & 
+subroutine compress_plain(n1,n2,nl1,nu1,nl2,nu2,nl3,nu3, & 
      mseg_c,mvctr_c,keyg_c,keyv_c,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      psig,psi_c,psi_f)
@@ -71,7 +71,7 @@ subroutine compress(n1,n2,nl1,nu1,nl2,nu2,nl3,nu3, &
   !$omp enddo
   !$omp end parallel
 
-END SUBROUTINE compress
+END SUBROUTINE compress_plain
 
 
 !> Expands the compressed wavefunction in vector form (psi_c,psi_f) 

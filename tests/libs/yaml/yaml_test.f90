@@ -51,14 +51,21 @@ program yaml_test
    !Third document
    allocate(cv(0))
    allocate(iv(0))
-   allocate(dv(0))
+!this raises a bug for a vector which is too long
+   allocate(dv(11))
+dv=3.d0
    call yaml_new_document()
    call yaml_comment('Test 3')
    call yaml_comment('Check calling twice yaml_new_document')
    call yaml_new_document()
    call yaml_map('Vector of characters',cv)
    call yaml_map('Vector of integers',iv)
-   call yaml_map('Vector of real(kind=8)',dv)
+call yaml_open_sequence('Vector of double',flow=.true.)
+do i=1,size(dv)
+   call yaml_sequence(trim(yaml_toa(dv(i),fmt='(1pe12.5)')))
+end do
+call yaml_close_sequence()
+   call yaml_map('Vector of real(kind=8)',dv,fmt='(f3.0)')
    call yaml_close_sequence()
    deallocate(cv)
    allocate(cv(3))

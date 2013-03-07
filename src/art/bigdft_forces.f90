@@ -36,7 +36,7 @@ module bigdft_forces
    real(kind=8) :: gnrm_l
    real(kind=8) :: gnrm_h  ! For lanczos
 
-   public :: bigdft_init
+   public :: bigdft_init_art
    public :: calcforce_bigdft
    public :: mingeo
    public :: bigdft_finalise
@@ -118,9 +118,9 @@ module bigdft_forces
    END SUBROUTINE init_all_atoms
 
 
-   !> ART bigdft_init
+   !> ART bigdft_init_art
    !! Routine to initialize all BigDFT stuff
-   subroutine bigdft_init( nat, me_, nproc_, my_gnrm,passivate,total_nb_atoms )
+   subroutine bigdft_init_art( nat, me_, nproc_, my_gnrm,passivate,total_nb_atoms )
 
       implicit none
 
@@ -132,7 +132,7 @@ module bigdft_forces
       integer,      intent(in)  :: total_nb_atoms
 
       !Local variables
-      character(len=*), parameter :: subname='bigdft_init'
+      character(len=*), parameter :: subname='bigdft_init_art'
       real(gp), dimension(:,:), pointer     :: rxyz
       real(gp),dimension(3*total_nb_atoms) :: posquant
       integer :: natoms_calcul
@@ -155,7 +155,8 @@ module bigdft_forces
       !standard names
       call standard_inputfile_names(in,'input',nproc)
       ! Read inputs.
-      call read_input_parameters(me_, in, at, rxyz)
+      call read_input_parameters(me_, in,.true.)
+      call read_input_parameters2(me_, in, at, rxyz)
 
       call init_atomic_values((me_ == 0), at, in%ixc)
 
@@ -167,9 +168,9 @@ module bigdft_forces
          gnrm_h = my_gnrm
       end if
       ! The BigDFT restart structure.
-      call init_restart_objects(me, in%matacc, at, rst, subname)
+      call init_restart_objects(me, in, at, rst, subname)
 
-   END SUBROUTINE bigdft_init
+   END SUBROUTINE bigdft_init_art
 
    !> ART calcforce_bigdft
    !! Calculation of forces
@@ -227,8 +228,8 @@ module bigdft_forces
       else 
 
          if ( .not. initialised ) then
-            write(0,*) "No previous call to bigdft_init(). On strike, refuse to work."
-            write(*,*) "No previous call to bigdft_init(). On strike, refuse to work."
+            write(0,*) "No previous call to bigdft_init_art(). On strike, refuse to work."
+            write(*,*) "No previous call to bigdft_init_art(). On strike, refuse to work."
             stop
          end if
 
@@ -293,8 +294,8 @@ module bigdft_forces
       real(gp), allocatable :: xcart(:,:), fcart(:,:)
 
       if ( .not. initialised ) then
-         write(0,*) "No previous call to bigdft_init(). On strike, refuse to work."
-         write(*,*) "No previous call to bigdft_init(). On strike, refuse to work."
+         write(0,*) "No previous call to bigdft_init_art(). On strike, refuse to work."
+         write(*,*) "No previous call to bigdft_init_art(). On strike, refuse to work."
          stop
       end if
 

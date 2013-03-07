@@ -20,7 +20,8 @@ subroutine print_logo()
   integer :: nthreads
 !$ integer :: omp_get_max_threads
 
-  call yaml_comment('Daubechies Wavelets for DFT Pseudopotential Calculations',hfill='=')
+!  call yaml_comment('Daubechies Wavelets for DFT Pseudopotential Calculations',hfill='=')
+
 
   call yaml_open_map('Code logo')
   call yaml_scalar('      TTTT         F       DDDDD    ')     

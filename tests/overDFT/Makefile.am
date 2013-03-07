@@ -23,7 +23,7 @@ endif
 
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
-TESTDIRS += MINHOP
+TESTDIRS += MINHOP MH_taskgroups
 endif
 
 # Give here the pseudo-potentials used by each test.
@@ -87,7 +87,7 @@ H2O-slab.post-in:
 
 # Additional reference for geopt.mon test
 global.mon.out : test.minhop.out
-	cp -f global.mon $@
+	cp -f data/global.mon $@
 #	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy="5e-9" global.mon global.mon.ref | tee global.mon.report
 
 # Additional run rules.

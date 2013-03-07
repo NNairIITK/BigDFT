@@ -127,7 +127,7 @@ ntimes=1
    ndim(3)=n3
 
    !calculate the kernel in parallel for each processor
-   pkernel=pkernel_init(0,1,1,0,'P',ndim,hgriddim,16)
+   pkernel=pkernel_init(.false.,0,1,0,'P',ndim,hgriddim,16)
    call pkernel_set(pkernel,verbose >1)
 
    call nanosec(tsc0);
@@ -143,7 +143,7 @@ ntimes=1
 
 
    !here the FFTW part
-   pkernel2=pkernel_init(0,1,1,2,'P',ndim,hgriddim,16)
+   pkernel2=pkernel_init(.false.,0,1,2,'P',ndim,hgriddim,16)
    call pkernel_set(pkernel2,verbose >1)
 
    scal=1.0_dp/(real(n1,dp)*real(n2*n3,dp))
@@ -179,7 +179,7 @@ ntimes=1
    ndim(2)=n2/2
    ndim(3)=n3/2
 
-   pkernel=pkernel_init(0,1,1,0,'F',ndim,hgriddim,16)
+   pkernel=pkernel_init(.false.,0,1,0,'F',ndim,hgriddim,16)
    call pkernel_set(pkernel,verbose >1)
 
    call nanosec(tsc0);
@@ -194,7 +194,7 @@ ntimes=1
 
 
    !here the FFTW part
-   pkernel2=pkernel_init(0,1,1,2,'F',ndim,hgriddim,16)
+   pkernel2=pkernel_init(.false.,0,1,2,'F',ndim,hgriddim,16)
    call pkernel_set(pkernel2,verbose >1)
 
    scal=product(pkernel2%hgrids)/real(n1*n2*n3,dp)
@@ -235,7 +235,7 @@ ntimes=1
    ndim(2)=n2/2
    ndim(3)=n3
 
-   pkernel=pkernel_init(0,1,1,0,'S',ndim,hgriddim,16)
+   pkernel=pkernel_init(.false.,0,1,0,'S',ndim,hgriddim,16)
    call pkernel_set(pkernel,verbose >1)
 
    call nanosec(tsc0);
@@ -249,7 +249,7 @@ ntimes=1
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
    !here the FFTW part
-   pkernel2=pkernel_init(0,1,1,2,'S',ndim,hgriddim,16)
+   pkernel2=pkernel_init(.false.,0,1,2,'S',ndim,hgriddim,16)
    call pkernel_set(pkernel2,verbose >1)
  
    scal=-16.0_dp*atan(1.0_dp)*real(pkernel2%hgrids(2),dp)/real(n1*n2*n3,dp)
@@ -289,7 +289,7 @@ ntimes=1
    ndim(1)=n1/2
    ndim(2)=n2/2
    ndim(3)=n3
-   pkernel=pkernel_init(0,1,1,0,'W',ndim,hgriddim,16)
+   pkernel=pkernel_init(.false.,0,1,0,'W',ndim,hgriddim,16)
    call pkernel_set(pkernel,verbose >1)
 
    call nanosec(tsc0);
@@ -303,7 +303,7 @@ ntimes=1
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
    !here the FFTW part
-   pkernel2=pkernel_init(0,1,1,2,'W',ndim,hgriddim,16)
+   pkernel2=pkernel_init(.false.,0,1,2,'W',ndim,hgriddim,16)
    call pkernel_set(pkernel2,verbose >1)
    
    scal=-2.0_dp*pkernel2%hgrids(1)*pkernel2%hgrids(2)/real(n1*n2*n3,dp)

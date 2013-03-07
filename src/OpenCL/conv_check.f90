@@ -1705,7 +1705,7 @@ program conv_check_ocl
 
    call nanosec(tsc0)
    do i=1,ntimes
-      call compress(n1,n1,0,n1,0,n1,0,n1,nseg,nvctr_cf,keyg,keyv,  & 
+      call compress_plain(n1,n1,0,n1,0,n1,0,n1,nseg,nvctr_cf,keyg,keyv,  & 
       nseg,nvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1))
    end do
    call nanosec(tsc1)
