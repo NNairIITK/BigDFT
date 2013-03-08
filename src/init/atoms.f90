@@ -584,7 +584,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
   character(len=50) :: extra
   character(len=150) :: line
   logical :: lpsdbl, reduced, eof, forces
-  integer :: iat,ntyp,ityp,i,i_stat,j,nlines,istart,istop,count
+  integer :: iat,ntyp,ityp,i,i_stat,nlines,istart,istop,count
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3,alat4,alat5,alat6
 ! case for which the atomic positions are given whithin general precision
