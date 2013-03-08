@@ -3240,7 +3240,7 @@ module module_interfaces
        end subroutine improveOrbitals
 
        subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-                  lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, psidiff)
+                  lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff)
          use module_base
          use module_types
          implicit none
@@ -3252,6 +3252,7 @@ module module_interfaces
          real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: hpsi_small
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
+         logical, intent(in) :: ortho
        end subroutine hpsitopsi_linear
        
        subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)

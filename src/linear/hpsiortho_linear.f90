@@ -402,7 +402,7 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
-           lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, hpsi_small, psidiff)
+           lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi_linear
@@ -417,6 +417,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   real(kind=8),dimension(tmb%orbs%norbp),intent(inout) :: alpha, alphaDIIS
   real(kind=8),dimension(tmb%npsidim_orbs),intent(inout) :: hpsi_small
   real(kind=8),dimension(tmb%npsidim_orbs),optional,intent(out) :: psidiff
+  logical, intent(in) :: ortho
   
   ! Local variables
   integer :: istat, iall, i
@@ -457,7 +458,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       tmb%can_use_transposed=.false.
   end if
 
-  if(.not.ldiis%switchSD) then
+  if(.not.ldiis%switchSD.and.ortho) then
       if(iproc==0) then
            write(*,'(1x,a)',advance='no') 'Orthonormalization... '
       end if

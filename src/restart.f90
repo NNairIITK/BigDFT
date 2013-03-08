@@ -1503,7 +1503,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   !   tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
   !enddo
 
-  ! only care atom this tmb is on
+  ! only care about atom this tmb is on
   iat=onwhichatom(iorb)
   tx=mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
   ty=mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
@@ -1590,20 +1590,20 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   endif
 
   ! DEBUG - plot in global box
-  !allocate (gpsi(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f),stat=i_stat)
-  !call memocc(i_stat,gpsi,'gpsi',subname)
+  allocate (gpsi(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f),stat=i_stat)
+  call memocc(i_stat,gpsi,'gpsi',subname)
 
-  !call to_zero(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f,gpsi)
-  !call Lpsi_to_global2(iproc, lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, glr%wfd%nvctr_c+7*glr%wfd%nvctr_f, &
-  !     1, 1, 1, glr, lr, psi, gpsi)
+  call to_zero(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f,gpsi)
+  call Lpsi_to_global2(iproc, lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, glr%wfd%nvctr_c+7*glr%wfd%nvctr_f, &
+       1, 1, 1, glr, lr, psi, gpsi)
 
-  !write(orbname,*) iorb
-  !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,glr,hx,hy,hz,rxyz,gpsi)
-  !!call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,lr,hx,hy,hz,rxyz,psi)
+  write(orbname,*) iorb
+  call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,glr,hx,hy,hz,rxyz,gpsi)
+  !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,lr,hx,hy,hz,rxyz,psi)
 
-  !i_all=-product(shape(gpsi))*kind(gpsi)
-  !deallocate(gpsi,stat=i_stat)
-  !call memocc(i_stat,i_all,'gpsi',subname)
+  i_all=-product(shape(gpsi))*kind(gpsi)
+  deallocate(gpsi,stat=i_stat)
+  call memocc(i_stat,i_all,'gpsi',subname)
   ! END DEBUG 
 
 
