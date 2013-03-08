@@ -1647,7 +1647,7 @@ program conv_check_ocl
 
 !      write(*,'(a,i6,i6)')'CPU Synthesis grow, dimensions:',n1-14,n2*n3
       call nanosec(tsc0)
-      do i=1,ntimes*100
+      do i=1,ntimes
          call syn_rot_grow((n1-14)/2-1,n2*n3,psi_out_t,psi_in_t)
          !call synthesis_free((n1-14)/2,n2*n3,psi_out_t,psi_in_t)
          !call synthesis_free_u4((n1-14)/2,n2*n3,psi_out_t,psi_in_t)
