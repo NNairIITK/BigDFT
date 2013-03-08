@@ -941,3 +941,321 @@ subroutine getCommunArraysMatrixCompression(iproc, nproc, orbs, mad, sendcounts,
 
 end subroutine getCommunArraysMatrixCompression
   
+!!!subroutine initialize_comms_sumrho(iproc,nproc,nscatterarr,lzd,orbs,comsr)
+!!!  use module_base
+!!!  use module_types
+!!!  implicit none
+!!!  
+!!!  ! Calling arguments
+!!!  integer,intent(in) :: iproc,nproc
+!!!  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!!!  type(local_zone_descriptors),intent(in) :: lzd
+!!!  type(orbitals_data),intent(in) :: orbs
+!!!  type(p2pComms),intent(out) :: comsr
+!!!  
+!!!  ! Local variables
+!!!  integer :: istat,jproc,is,ie,ioverlap,i3s,i3e,ilr,iorb,is3ovrlp,n3ovrlp,iiproc,isend
+!!!  integer :: jlr, jorb, istr, tag
+!!!  integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,p2p_tag,istsource,ncount
+!!!  character(len=*),parameter :: subname='initialize_comms_sumrho'
+!!!
+!!!
+!!!  call timing(iproc,'init_commSumro','ON')
+!!!  
+!!!  ! Buffer sizes 
+!!!  call ext_buffers(lzd%Glr%geocode /= 'F',nbl1,nbr1)
+!!!  call ext_buffers(lzd%Glr%geocode == 'P',nbl2,nbr2)
+!!!  call ext_buffers(lzd%Glr%geocode /= 'F',nbl3,nbr3)
+!!!  
+!!!  ! First count the number of overlapping orbitals for each slice.
+!!!  allocate(comsr%noverlaps(0:nproc-1),stat=istat)
+!!!  call memocc(istat,comsr%noverlaps,'comsr%noverlaps',subname)
+!!!  isend=0
+!!!  do jproc=0,nproc-1
+!!!      is=nscatterarr(jproc,3) 
+!!!      ie=is+nscatterarr(jproc,1)-1
+!!!      ioverlap=0
+!!!      do iorb=1,orbs%norb
+!!!          ilr=orbs%inWhichLocreg(iorb)
+!!!          iiproc=orbs%onwhichmpi(iorb)
+!!!          i3s=lzd%Llr(ilr)%nsi3 
+!!!          i3e=i3s+lzd%Llr(ilr)%d%n3i-1
+!!!          if(i3s<=ie .and. i3e>=is) then
+!!!              ioverlap=ioverlap+1        
+!!!              if(iproc==iiproc) isend=isend+1
+!!!          end if
+!!!          !For periodicity
+!!!          if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+!!!            i3s = Lzd%Glr%nsi3
+!!!            i3e = mod(i3e-1,Lzd%Glr%d%n3i) + 1 + Lzd%Glr%nsi3
+!!!            if(i3s<=ie .and. i3e>=is) then
+!!!                ioverlap=ioverlap+1
+!!!                if(iproc==iiproc) isend=isend+1
+!!!            end if
+!!!          end if
+!!!      end do
+!!!      comsr%noverlaps(jproc)=ioverlap
+!!!  end do
+!!!  
+!!!  ! Do the initialization concerning the calculation of the charge density.
+!!!  allocate(comsr%overlaps(comsr%noverlaps(iproc)),stat=istat)
+!!!  call memocc(istat,comsr%overlaps,'comsr%overlaps',subname)
+!!!  
+!!!  allocate(comsr%comarr(6,maxval(comsr%noverlaps),0:nproc-1),stat=istat)
+!!!  call memocc(istat,comsr%comarr,'comsr%comarr',subname)
+!!!  allocate(comsr%ise3(comsr%noverlaps(iproc),2), stat=istat)
+!!!  call memocc(istat, comsr%ise3, 'comsr%ise3', subname)
+!!!  allocate(comsr%requests(max(comsr%noverlaps(iproc),isend),2),stat=istat)
+!!!  call memocc(istat,comsr%requests,'comsr%requests',subname)
+!!!  
+!!!  comsr%nrecvBuf=0
+!!!  do jproc=0,nproc-1
+!!!     is=nscatterarr(jproc,3)
+!!!     ie=is+nscatterarr(jproc,1)-1
+!!!     ioverlap=0
+!!!     istr=1
+!!!     do iorb=1,orbs%norb
+!!!        ilr=orbs%inWhichLocreg(iorb)
+!!!        i3s=lzd%Llr(ilr)%nsi3
+!!!        i3e=i3s+lzd%Llr(ilr)%d%n3i-1
+!!!        if(i3s<=ie .and. i3e>=is) then
+!!!           ioverlap=ioverlap+1
+!!!           !tag=tag+1
+!!!           tag=p2p_tag(jproc)
+!!!           is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
+!!!           n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
+!!!           is3ovrlp=is3ovrlp-lzd%Llr(ilr)%nsi3+1
+!!!           if(jproc == iproc) then
+!!!              comsr%ise3(ioverlap,1) = max(is,i3s) 
+!!!              comsr%ise3(ioverlap,2) = min(ie,i3e)
+!!!           end if
+!!!           istsource=1
+!!!           do jorb=orbs%isorb_par(orbs%onwhichmpi(iorb))+1,iorb-1
+!!!               jlr=orbs%inwhichlocreg(jorb)
+!!!               istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n3i
+!!!           end do
+!!!           jlr=orbs%inwhichlocreg(iorb)
+!!!           istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*(is3ovrlp-1)
+!!!           ncount=lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*n3ovrlp
+!!!           call setCommsParameters(orbs%onwhichmpi(iorb), jproc, istsource, istr, ncount, tag, comsr%comarr(1,ioverlap,jproc))
+!!!           if(iproc==jproc) then
+!!!              comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+!!!              comsr%overlaps(ioverlap)=iorb
+!!!           end if
+!!!           istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+!!!        end if
+!!!        !For periodicity
+!!!        if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+!!!           i3s = Lzd%Glr%nsi3
+!!!           i3e = mod(i3e-1,Lzd%Glr%d%n3i) + 1 + Lzd%Glr%nsi3
+!!!           if(i3s<=ie .and. i3e>=is) then
+!!!              ioverlap=ioverlap+1
+!!!              !tag=tag+1
+!!!              tag=p2p_tag(jproc)
+!!!              is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
+!!!              n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
+!!!              is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 
+!!!              if(jproc == iproc) then
+!!!                 comsr%ise3(ioverlap,1) = max(is,i3s) 
+!!!                 comsr%ise3(ioverlap,2) = min(ie,i3e)
+!!!              end if
+!!!              istsource=1
+!!!              do jorb=orbs%isorb_par(orbs%onwhichmpi(iorb))+1,iorb-1
+!!!                  jlr=orbs%inwhichlocreg(jorb)
+!!!                  istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n3i
+!!!              end do
+!!!              jlr=orbs%inwhichlocreg(iorb)
+!!!              istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*(is3ovrlp-1)
+!!!              ncount=lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*n3ovrlp
+!!!              call setCommsParameters(orbs%onwhichmpi(iorb), jproc, istsource, istr, ncount, tag, comsr%comarr(1,ioverlap,jproc))
+!!!              if(iproc==jproc) then
+!!!                 comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+!!!                 comsr%overlaps(ioverlap)=iorb
+!!!              end if
+!!!              istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+!!!           end if
+!!!           !For periodicity
+!!!           if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+!!!              i3s = Lzd%Glr%nsi3
+!!!              i3e = mod(i3e-1,Lzd%Glr%d%n3i) + 1 + Lzd%Glr%nsi3
+!!!              if(i3s<=ie .and. i3e>=is) then
+!!!                 ioverlap=ioverlap+1
+!!!                 !tag=tag+1
+!!!                 tag=p2p_tag(jproc)
+!!!                 is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
+!!!                 n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
+!!!                 is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 
+!!!                 if(jproc == iproc) then
+!!!                    comsr%ise3(ioverlap,1) = max(is,i3s) 
+!!!                    comsr%ise3(ioverlap,2) = min(ie,i3e)
+!!!                 end if
+!!!                 istsource=1
+!!!                 do jorb=orbs%isorb_par(orbs%onwhichmpi(iorb))+1,iorb-1
+!!!                     jlr=orbs%inwhichlocreg(jorb)
+!!!                     istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n3i
+!!!                 end do
+!!!                 jlr=orbs%inwhichlocreg(iorb)
+!!!                 istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*(is3ovrlp-1)
+!!!                 ncount=lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*n3ovrlp
+!!!                 call setCommsParameters(orbs%onwhichmpi(iorb), jproc, istsource, istr, ncount, tag, comsr%comarr(1,ioverlap,jproc))
+!!!                 if(iproc==jproc) then
+!!!                    comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+!!!                    comsr%overlaps(ioverlap)=iorb
+!!!                 end if
+!!!                 istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+!!!              end if
+!!!           end if
+!!!        end if
+!!!     end do
+!!!  end do
+!!!  
+!!!  ! To avoid allocations with size 0.
+!!!  comsr%nrecvbuf=max(comsr%nrecvbuf,1)
+!!!  
+!!!  
+!!!  
+!!!  ! Calculate the dimension of the wave function for each process.
+!!!  ! Do it for both the compressed ('npsidim') and for the uncompressed real space
+!!!  ! ('npsidimr') case.
+!!!  comsr%nsendBuf=0
+!!!  do iorb=1,orbs%norbp
+!!!      ilr=orbs%inWhichLocreg(orbs%isorb+iorb)
+!!!      comsr%nsendBuf=comsr%nsendBuf+lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i*orbs%nspinor
+!!!  end do
+!!!
+!!!  ! To indicate that no communication is going on.
+!!!  comsr%communication_complete=.true.
+!!!  comsr%messages_posted=.false.
+!!!
+!!!
+!!!  call timing(iproc,'init_commSumro','OF')
+!!!  
+!!!end subroutine initialize_comms_sumrho
+
+subroutine initCommsCompression(iproc, nproc, orbs, mad, mat, lmat, sendcounts, displs)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(orbs%norb**2),intent(in) :: mat
+  real(kind=8),dimension(mad%nvctr),intent(out) :: lmat
+  integer,dimension(0:nproc-1),intent(out) :: sendcounts, displs
+  
+  ! Local variables
+  integer :: iseg, jj, jorb, jjorb, jjproc, jjprocold, ncount
+  
+  sendcounts=0
+  displs=0
+  
+  jj=0
+  ncount=0
+  jjprocold=0
+  displs(0)=0
+  do iseg=1,mad%nseg
+      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          jj=jj+1
+          lmat(jj)=mat(jorb)
+          
+          ncount=ncount+1
+          jjorb=(jorb-1)/orbs%norb+1
+          jjproc=orbs%onWhichMPI(jjorb)
+          if(jjproc>jjprocold) then
+              ! This part of the matrix is calculated by a new MPI process.
+              sendcounts(jjproc-1)=ncount-1
+              displs(jjproc)=displs(jjproc-1)+sendcounts(jjproc-1)
+              ncount=1
+              jjprocold=jjproc
+          end if
+      end do
+  end do
+  sendcounts(nproc-1)=ncount
+  if(jj/=mad%nvctr) then
+      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix: jj/=mad%nvctr',jj,mad%nvctr
+      stop
+  end if
+
+  if(sum(sendcounts)/=mad%nvctr) then
+      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix2: sum(sendcounts)/=mad%nvctr',sum(sendcounts),mad%nvctr
+      stop
+  end if
+
+  
+end subroutine initCommsCompression
+
+
+subroutine getRow(norb, mad, rowX, row)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: norb, rowX
+  type(matrixDescriptors),intent(in) :: mad
+  integer,dimension(norb),intent(out) :: row
+  
+  ! Local variables
+  integer :: iseg, i, irow, icolumn
+  
+  row=0
+  
+  do iseg=1,mad%nseg
+      do i=mad%keyg(1,iseg),mad%keyg(2,iseg)
+      ! Get the row index of this element. Since the localization is symmetric, we can
+      ! assume row or column ordering with respect to the segments.
+          irow=(i-1)/norb+1
+          if(irow==rowX) then
+              ! Get the column index of this element.
+              icolumn=i-(irow-1)*norb
+              row(icolumn)=1
+          end if
+      end do
+  end do
+
+end subroutine getRow
+
+
+subroutine update_auxiliary_basis_function(subname, npsidim, lphi, lhphi, lphiold, lhphiold)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: npsidim
+  real(kind=8),dimension(:),pointer,intent(out) :: lphi, lhphi, lphiold, lhphiold
+  character(len=*),intent(in) :: subname
+
+  ! Local variables
+  integer :: istat, iall
+
+  iall=-product(shape(lphi))*kind(lphi)
+  deallocate(lphi, stat=istat)
+  call memocc(istat, iall, 'lphi', subname)
+  iall=-product(shape(lhphi))*kind(lhphi)
+  deallocate(lhphi, stat=istat)
+  call memocc(istat, iall, 'lhphi', subname)
+  iall=-product(shape(lphiold))*kind(lphiold)
+  deallocate(lphiold, stat=istat)
+  call memocc(istat, iall, 'lphiold', subname)
+  iall=-product(shape(lhphiold))*kind(lhphiold)
+  deallocate(lhphiold, stat=istat)
+  call memocc(istat, iall, 'lhphiold', subname)
+
+  allocate(lphi(npsidim), stat=istat)
+  call memocc(istat, lphi, 'lphi', subname)
+  allocate(lhphi(npsidim), stat=istat)
+  call memocc(istat, lhphi, 'lhphi', subname)
+  allocate(lphiold(npsidim), stat=istat)
+  call memocc(istat, lphiold, 'lphiold', subname)
+  allocate(lhphiold(npsidim), stat=istat)
+  call memocc(istat, lhphiold, 'lhphiold', subname)
+
+  call to_zero(npsidim, lphi(1))
+  call to_zero(npsidim, lhphi(1))
+  call to_zero(npsidim, lphiold(1))
+  call to_zero(npsidim, lhphiold(1))
+
+end subroutine update_auxiliary_basis_function
+

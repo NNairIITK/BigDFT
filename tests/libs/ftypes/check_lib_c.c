@@ -196,6 +196,8 @@ int main(int argc, char **argv)
 #ifdef HAVE_GLIB
   GMainLoop *loop;
 #endif
+  char memocc[] = "malloc.prc";
+  int memocc_ln = sizeof(memocc);
 
   int out_pipe[2], stdout_fileno_old;
 
@@ -212,6 +214,7 @@ int main(int argc, char **argv)
     Cout = fopen("output.C", "w");
 
   FC_FUNC_(memocc_verbose, MEMOCC_VERBOSE)();
+  FC_FUNC_(memocc_set_output, MEMOCC_SET_OUTPUT)(memocc, &memocc_ln, memocc_ln);
 
   fprintf(Cout, "Test BigDFT_Wf structure creation.\n");
   wf = bigdft_wf_new(100);
@@ -245,6 +248,7 @@ int main(int argc, char **argv)
   in = bigdft_inputs_new("test");
   fprintf(Cout, " base Ok\n");
   bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
+  fprintf(Cout, " symmetries Ok\n");
   bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));
   fprintf(Cout, " additional Ok\n");
   output_inputs(in);
@@ -346,6 +350,8 @@ int main(int argc, char **argv)
           denspot->h[0], denspot->h[1], denspot->h[2],
           denspot->rhov_is, denspot->psoffset);
   bigdft_localfields_create_poisson_kernels(denspot);
+
+  /* fflush(Cout); */
 
   /* Block here in a main loop. */
 #ifdef HAVE_GLIB
@@ -603,12 +609,15 @@ static void onPsiReady(BigDFT_Wf *wf, guint iter, gpointer data)
     }
   fprintf(Cout, " Band 4 has min partial density %g and max %g.\n", minDens, maxDens);
 
+  fprintf(Cout, " Dump psi if iter = 0 (%d).\n", iter);
   if (iter == 0)
     bigdft_wf_write_psi_compress(wf, "wave", BIGDFT_WF_FORMAT_PLAIN, psic, 1, 4, BIGDFT_SPIN_UP, size);
 
+  fprintf(Cout, " freeing.\n");
   g_free(psir);
   if (BIGDFT_ORBS(wf)->nspinor == 2)
     g_free(psii);
+  fprintf(Cout, " Signal done.\n");
 }
 static void onEksReady(BigDFT_Energs *energs, guint iter, gpointer data)
 {

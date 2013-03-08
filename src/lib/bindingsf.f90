@@ -10,6 +10,14 @@ subroutine memocc_verbose()
   call mstate(2)
 end subroutine memocc_verbose
 
+subroutine memocc_set_output(file, ln)
+  use m_profiling, only: mstate => memocc_set_filename
+  implicit none
+  integer, intent(in) :: ln
+  character(len = ln), intent(in) :: file
+  call mstate(file)
+end subroutine memocc_set_output
+
 subroutine f90_pointer_1D_init(pt_c, size_c)
   implicit none
   double precision, intent(in) :: pt_c

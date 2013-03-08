@@ -39,6 +39,11 @@ extern "C" void cudafree_(Real **d_data) {
   cudaFree(*d_data);
 }
 
+extern "C" void cufftdestroy_(cufftHandle *plan) {
+
+  cufftDestroy(*plan);
+}
+
 // set device memory
 extern "C" void reset_gpu_data_(int *size, Real* h_data, Real **d_data){
 
@@ -574,10 +579,11 @@ extern "C" void cuda_3d_psolver_general_plan_(int *N,
               NULL, 1, NZ, Transform, (NX/2+1)*NY) != CUFFT_SUCCESS)
       printf("Error creating plan\n");
 
- int nPrimeSize = 17;
+ *switch_alg = 0;
+
+ /*int nPrimeSize = 17;
  int primeSize[] = {92,104,116,124,136,148,152,164,172,184,188,204,208,220,228,232,248};
 
- *switch_alg = 0;
  for (int p=0; p<nPrimeSize; p++)
    if (NZ == primeSize[p]) {
      *switch_alg = 1;
@@ -593,7 +599,7 @@ extern "C" void cuda_3d_psolver_general_plan_(int *N,
  if(cufftPlanMany(plan+4,  1, n1d,
               inembed, NY, 1,
               onembed, NY, 1, Transform, NY) != CUFFT_SUCCESS)
-      printf("Error creating plan\n");
+      printf("Error creating plan\n");*/
 
 }
 
@@ -750,8 +756,161 @@ extern "C" void cuda_3d_psolver_general_(int *N,
    if (geo1==0) {
       spread_i<<<nblocks, NX/2>>>((Real*)dst, NX/2, (Real*)src, NX);
    }
-
-   //scale_kernel<<< nBlocks, nThreads >>> (NX/2+1,NY,NZ,(Real*)dst,scal); 
 }
 
 
+extern "C" void cuda_3d_psolver_plangeneral_(int *N,
+          Complex **d_data, Complex **d_data2, Real **d_kernel,
+          int *geo, Real *scal_p) {
+
+ cufftHandle plan;
+
+ int NX = N[0];
+ int NY = N[1];
+ int NZ = N[2];
+
+ Real scal = *scal_p;
+
+ int geo1 = geo[0];
+ int geo2 = geo[1];
+ int geo3 = geo[2];
+
+ int ysize=NY/2+geo2*NY/2;
+ int zsize=NZ/2+geo3*NZ/2;
+
+ // transpose kernel parameters
+ dim3 grid((NX/2+1+TILE_DIM-1)/TILE_DIM,(ysize*zsize+TILE_DIM-1)/TILE_DIM,1);
+ dim3 threads(TILE_DIM,TILE_DIM,1);
+
+ // spread kernel parameters
+ dim3 nblocks(zsize,ysize,1);
+
+ // multiply kernel paramters
+ int nThreads = NX/2+1;
+ dim3 nBlocks(NZ,NY,1);
+
+ Complex* dst = *d_data;
+ Complex* src = *d_data2;
+
+ int n1d[3]= {1, 1, 1};
+
+ n1d[0] = NX;
+ if(cufftPlanMany(&plan,  1, n1d,
+              NULL, 1, NX,
+              NULL, 1, NX, CUFFT_D2Z, ysize*zsize) != CUFFT_SUCCESS)
+      printf("Error creating plan 1\n");
+
+ // X transform 
+
+   if (geo1==0) {
+     src = *d_data;
+     dst = *d_data2;
+     spread<<<nblocks, NX>>>((Real*)src, NX/2, (Real*)dst, NX);
+   }
+
+   if( cufftExecD2Z(plan, (Real*)dst, src)!= CUFFT_SUCCESS){
+      printf("error in PSolver forward transform 1\n");
+   }
+
+   if (geo2==0) {
+     transpose_spread <<< grid, threads >>>(src, dst,NX/2+1,ysize*zsize,NY/2);
+   } else {
+     transpose <<< grid, threads >>>(src, dst,NX/2+1,ysize*zsize);
+   }
+
+   cufftDestroy(plan);
+
+   n1d[0] = NY;
+   if(cufftPlanMany(&plan,  1, n1d,
+              NULL, 1, NY,
+              NULL, 1, NY, Transform, (NX/2+1)*zsize) != CUFFT_SUCCESS)
+      printf("Error creating plan 2\n");
+
+   // Y transform
+   if( TransformExec(plan, dst, src, CUFFT_FORWARD)!= CUFFT_SUCCESS){
+      printf("error in PSolver forward transform 2\n");
+   }
+
+  // Z transform, on entire cube
+   grid.x = (NY+TILE_DIM-1)/TILE_DIM;
+   grid.y = ((NX/2+1)*zsize+TILE_DIM-1)/TILE_DIM;
+
+   if (geo3==0) {
+     transpose_spread <<< grid, threads >>>(src, dst,NY,(NX/2+1)*NZ/2,NZ/2);
+   } else {
+     transpose <<< grid, threads >>>(src, dst,NY,(NX/2+1)*NZ);
+   }
+
+   cufftDestroy(plan);
+   n1d[0] = NZ;
+   if(cufftPlanMany(&plan,  1, n1d,
+              NULL, 1, NZ,
+              NULL, 1, NZ, Transform, (NX/2+1)*NY) != CUFFT_SUCCESS)
+      printf("Error creating plan 3\n");
+
+   if( TransformExec(plan, dst, src, CUFFT_FORWARD)!= CUFFT_SUCCESS){
+      printf("error in PSolver forward transform 3\n");
+   }
+
+  // multiply with kernel
+
+  multiply_kernel <<< nBlocks, nThreads >>> (NX/2+1,NY,NZ,src,*d_kernel,scal);
+
+  // inverse transform
+
+  // Z transform, on entire cube 
+   if( TransformExec(plan, src, dst, CUFFT_INVERSE)!= CUFFT_SUCCESS){
+      printf("error in PSolver inverse transform 1\n");
+   }
+
+   grid.x = (zsize*(NX/2+1)+TILE_DIM-1)/TILE_DIM;
+   grid.y = (NY+TILE_DIM-1)/TILE_DIM;
+
+   if (geo3==0) {
+     transpose_spread_i <<< grid, threads >>>(dst,src,NZ/2*(NX/2+1),NY,NZ/2);
+   } else {
+     transpose <<< grid, threads >>>(dst, src,NZ*(NX/2+1),NY);
+   }
+
+  // Y transform
+
+   cufftDestroy(plan);
+   n1d[0] = NY;
+   if(cufftPlanMany(&plan,  1, n1d,
+              NULL, 1, NY,
+              NULL, 1, NY, Transform, (NX/2+1)*zsize) != CUFFT_SUCCESS)
+      printf("Error creating plan 4\n");
+
+   if( TransformExec(plan, src, dst, CUFFT_INVERSE)!= CUFFT_SUCCESS){
+      printf("error in PSolver inverse transform 2\n");
+   }
+
+   grid.x = (ysize*zsize+TILE_DIM-1)/TILE_DIM;
+   grid.y = (NX/2+1+TILE_DIM-1)/TILE_DIM;
+
+   if (geo2==0) {
+      transpose_spread_i <<< grid, threads >>>(dst, src,ysize*zsize,NX/2+1, NY/2);
+   } else
+      transpose <<< grid, threads >>>(dst, src,ysize*zsize,NX/2+1);
+
+   // X transform
+
+   cufftDestroy(plan);
+   n1d[0] = NX;
+   if(cufftPlanMany(&plan,  1, n1d,
+              NULL, 1, NX,
+              NULL, 1, NX, CUFFT_Z2D, ysize*zsize) != CUFFT_SUCCESS)
+      printf("Error creating plan 5\n");
+
+   if( cufftExecZ2D(plan, src, (Real*)dst)!= CUFFT_SUCCESS){
+      printf("error in PSolver inverse transform 3\n");
+   }
+
+   nblocks.x=zsize;
+   nblocks.y=ysize;
+   if (geo1==0) {
+      spread_i<<<nblocks, NX/2>>>((Real*)dst, NX/2, (Real*)src, NX);
+   }
+
+   cufftDestroy(plan);
+}

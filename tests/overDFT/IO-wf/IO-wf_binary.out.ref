@@ -1,115 +1,57 @@
- <BigDFT> Log of the run will be written in logfile: .//log-binary.yaml
- --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
-   Atomic system                  Fixed positions           Additional data
- Bound. C.= P             | No fixed atom            | N. sym.   = disabled    
- N. types =     1         |                          | Sp. group = disabled    
- N. atoms =     2         |                          | Virt. orb.= none        
- Types    = 'O'           |                          | Plot dens.= none        
-                          |                          | Spin pol. = collinear   
- --- (file: input.kpt) ----------------------------------------------------- k-points
- WARNING: symmetries have been disabled, k points are not irreductible.
-        red. coordinates         weight       id        BZ coordinates
-   0.00000  0.00000  0.00000    0.33333        1   0.00000  0.00000  0.00000
-   0.33333  0.00000  0.00000    0.66667        2   0.24629  0.00000  0.00000
- --- (file: input.geopt) ------------------------------------- Geopt Input Parameters
-       Generic param.              Geo. optim.                MD param.
-       Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
-        algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
- random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
-
- Number of MPI processes 2
- Number of maximal OpenMP threads per MPI process 2
- No material acceleration (iproc=0)
-
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- Polarisation=      4 |
-   Geom. Code=    P   |   Box Sizes (Bohr) =  8.50377E+00  8.50377E+00  8.50377E+00
-   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     2 (Fortran bin.)
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                  (XC: Perdew, Burke & Ernzerhof)
-                                                    XC functional provided by ABINIT.
- ----------------------------------------------Direct and transposed data repartition
- | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
- |    0 |      12     |------|------------||        19816  |------|-----------------|
- |      |             |   1  |    1-   12 ||               |   1  |       1-   19816|
- |    1 |      12     |------|------------||        19816  |------|-----------------|
- |      |             |   2  |    1-   12 ||               |   2  |       1-   19816|
- ion-ion interaction energy -7.53895186697576E+00
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge           -12.000000000000   0.000E+00
- ----------------------------------------------Direct and transposed data repartition
- | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
- |    0 |      16     |------|------------||        19816  |------|-----------------|
- |      |             |   1  |    1-   16 ||               |   1  |       1-   19816|
- |    1 |      16     |------|------------||        19816  |------|-----------------|
- |      |             |   2  |    1-   16 ||               |   2  |       1-   19816|
- No convergence within the allowed number of minimization steps
+WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will be run on the current machine only.
+ <BigDFT> log of the run will be written in logfile: ./log-binary.yaml
+ <BigDFT> Logfile already existing, move previous file in:
+   ./logfiles/log-binary.18:06:16.101.yaml
  1th wavefunction written
-  WARNING: Wavefunctions not converged after cycle           1
- Write wavefunctions to file: .//data-binary/wavefunction.*
+ 7th wavefunction written
  1th wavefunction written
- 1th wavefunction written
- 1th wavefunction written
- 2th wavefunction written
- 2th wavefunction written
- 2th wavefunction written
- 2th wavefunction written
- 3th wavefunction written
- 3th wavefunction written
- 3th wavefunction written
- 4th wavefunction written
- 3th wavefunction written
- 4th wavefunction written
- 4th wavefunction written
- 4th wavefunction written
- 5th wavefunction written
- 5th wavefunction written
- 5th wavefunction written
- 5th wavefunction written
- 6th wavefunction written
- 6th wavefunction written
- 6th wavefunction written
  7th wavefunction written
  7th wavefunction written
- 6th wavefunction written
  7th wavefunction written
- 8th wavefunction written
- 8th wavefunction written
- 7th wavefunction written
- 8th wavefunction written
  1th wavefunction written
  1th wavefunction written
  8th wavefunction written
+ 2th wavefunction written
+ 8th wavefunction written
+ 2th wavefunction written
+ 8th wavefunction written
+ 2th wavefunction written
+ 2th wavefunction written
+ 8th wavefunction written
  1th wavefunction written
- 2th wavefunction written
- 2th wavefunction written
+ 3th wavefunction written
+ 3th wavefunction written
  1th wavefunction written
+ 1th wavefunction written
+ 3th wavefunction written
+ 1th wavefunction written
+ 3th wavefunction written
+ 2th wavefunction written
+ 4th wavefunction written
+ 4th wavefunction written
+ 2th wavefunction written
+ 2th wavefunction written
+ 4th wavefunction written
+ 4th wavefunction written
  2th wavefunction written
  3th wavefunction written
+ 5th wavefunction written
+ 5th wavefunction written
  3th wavefunction written
- 2th wavefunction written
+ 3th wavefunction written
+ 5th wavefunction written
+ 5th wavefunction written
  3th wavefunction written
  4th wavefunction written
+ 6th wavefunction written
+ 6th wavefunction written
  4th wavefunction written
-- WRITE WAVES TIME   1  2.500E-01  1.580E-01
- 3th wavefunction written
  4th wavefunction written
+ 6th wavefunction written
+ 6th wavefunction written
  4th wavefunction written
-- WRITE WAVES TIME   0  2.500E-01  1.600E-01
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:  -2.81392213E-04
- average noise along y direction:  -1.19218169E-04
- average noise along z direction:   4.76577028E-03
- total average noise            :   4.77555870E-03
- clean forces norm (Ha/Bohr): maxval=  4.846821384220E-01  fnrm2=  4.633456084388E-01
-  WARNING: Self-consistent cycle did not meet convergence criteria
- Final values of the Forces for each atom
-     1      O -1.66399E-04 -7.10696E-05 -4.77942E-01
-     2      O -2.31550E-04 -9.75304E-05  4.84682E-01
  export wavefunction file: "data-binary-read/wavefunction-k002-DI.bin.b0003" in .cube format
 ---
-  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
  Code logo:
          TTTT         F       DDDDD
         T    T               D
@@ -135,16 +77,20 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.20
- Timestamp of this run                 : 2012-10-31 16:07:14.816
+ Version Number                        : 1.7-dev.24
+ Timestamp of this run                 : 2013-02-18 18:06:23.857
  Root process Hostname                 : localhost
+ Number of MPI tasks                   :  0
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  1
  #... (file:default.perf.. not present).................................Performance Options 
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
  #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
  #|OCL_platform                 Chosen OCL platform                                          
+ #|OCL_devices                  Chosen OCL devices                                           
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -165,6 +111,13 @@
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir .                     Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
+ #|pdsyev_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
+ #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
+ #|ef_interpol_det  1.00E-20    FOE: max determinant of cubic interpolation matrix           
+ #|ef_interpol_chargediff  1.00EFOE: max charge difference for interpolation                 
+ #|mixing_after_inputguess T    mixing step after linear input guess (T/F)                   
  #... (file:default.dft)..........................................DFT Calculation Parameters
  #|0.30 0.30 0.30  hx,hy,hz: grid spacing in the three directions                            
  #|6.0  8.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -204,52 +157,81 @@
  #|0.0 0. 0.0                                                                                
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : data-binary-read/
- --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
-   Atomic system                  Fixed positions           Additional data
- Bound. C.= P             | No fixed atom            | N. sym.   = disabled    
- N. types =     1         |                          | Sp. group = disabled    
- N. atoms =     2         |                          | Virt. orb.= none        
- Types    = 'O'           |                          | Plot dens.= none        
-                          |                          | Spin pol. = collinear   
- --- (file: input.kpt) ----------------------------------------------------- k-points
- WARNING: symmetries have been disabled, k points are not irreductible.
-        red. coordinates         weight       id        BZ coordinates
-   0.00000  0.00000  0.00000    0.33333        1   0.00000  0.00000  0.00000
-   0.33333  0.00000  0.00000    0.66667        2   0.24629  0.00000  0.00000
- --- (file: input.geopt) ------------------------------------- Geopt Input Parameters
-       Generic param.              Geo. optim.                MD param.
-       Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
-        algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
- random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
-
- Number of MPI processes 1
- Number of maximal OpenMP threads per MPI process 2
+  #--------------------------------------------- Input Atomic System (file: binary-read.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  1
+   Number of atoms                     :  2
+   Types of atoms                      :  [ O ]
+   Boundary Conditions                 : Periodic #Code: P
+   Box Sizes (AU)                      :  [  8.50377E+00,  8.50377E+00,  8.50377E+00 ]
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------ Geometry optimization Input Parameters (file: binary-read.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
+  #------------------- K points description (Reduced and Brillouin zone coordinates, Weight)
+  #WARNING: symmetries have been disabled, k points are not irreductible.
+ K points:
+ -  {Rc:  [  0.0000,  0.0000,  0.0000 ], Bz:  [  0.0000,  0.0000,  0.0000 ], Wgt:  0.3333} # 0001
+ -  {Rc:  [  0.3333,  0.0000,  0.0000 ], Bz:  [  0.2463,  0.0000,  0.0000 ], Wgt:  0.6667} # 0002
+  #--------------------------------------------- Input Atomic System (file: binary-read.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  1
+   Number of atoms                     :  2
+   Types of atoms                      :  [ O ]
+   Boundary Conditions                 : Periodic #Code: P
+   Box Sizes (AU)                      :  [  8.50377E+00,  8.50377E+00,  8.50377E+00 ]
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------ Geometry optimization Input Parameters (file: binary-read.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
+  #------------------- K points description (Reduced and Brillouin zone coordinates, Weight)
+  #WARNING: symmetries have been disabled, k points are not irreductible.
+ K points:
+ -  {Rc:  [  0.0000,  0.0000,  0.0000 ], Bz:  [  0.0000,  0.0000,  0.0000 ], Wgt:  0.3333} # 0001
+ -  {Rc:  [  0.3333,  0.0000,  0.0000 ], Bz:  [  0.2463,  0.0000,  0.0000 ], Wgt:  0.6667} # 0002
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
      XC ID                             :  &ixc  11
-     Name                              : "XC: Perdew, Burke & Ernzerhof"
+     Exchange-Correlation reference    : "XC: Perdew, Burke & Ernzerhof"
+     XC functional implementation      : ABINIT
+     Polarisation                      :  4
+     Spin polarization                 : collinear
  Basis set definition:
    Suggested Grid Spacings (a0)        :  [  0.30,  0.30,  0.30 ]
    Coarse and Fine Radii Multipliers   :  [  6.0,  8.0 ]
- Ground State Optimization:
+ Self-Consistent Cycle Parameters:
    Wavefunction:
      Gradient Norm Threshold           :  &gnrm_cv  1.0E-05
      CG Steps for Preconditioner       :  6
      DIIS History length               :  0
      Max. Wfn Iterations               :  &itermax  2
      Max. Subspace Diagonalizations    :  1
+     Input wavefunction policy         : wvl. on disk # 2
+     Output wavefunction policy        : none # 0
+     Output grid policy                : none # 0
+     Output grid format                : text # 0
+     Virtual orbitals                  :  0
+     Number of plotted density orbitals:  0
    Density/Potential:
      Max. Iterations                   :  1
- Polarisation=      4 |
-   Geom. Code=    P   |   Box Sizes (Bohr) =  8.50377E+00  8.50377E+00  8.50377E+00
-   Input wf. policy=    2 (wvl. on disk  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                  (XC: Perdew, Burke & Ernzerhof)
-                                                    XC functional provided by ABINIT.
+ Exchange-Correlation reference        : "XC: Perdew, Burke & Ernzerhof"
+ XC functional implementation          : ABINIT
   #----------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
- - Symbol                              : O #---------------------------------- Type No.  01
+ - Symbol                              : O #Type No.  01
    No. of Electrons                    :  6
    No. of Atoms                        :  2
    Radii of active regions (AU):
@@ -271,22 +253,21 @@
      -  [  0.00000,  0.00000,  0.00000 ]
    No. of projectors                   :  1
    PSP XC                              : "XC: Perdew, Burke & Ernzerhof"
-  #---------------------------------------------------------------------- Occupation numbers
+  #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  12
  Spin treatment                        : Collinear
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  12
-   Orbitals No. 1- 12                  :  1.0000
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  12
-   Orbitals No. 1- 12                  :  1.0000
+ Total Number of Orbitals              :  12
+ Occupation numbers coming from        : System properties
+ Input Occupation Numbers:
+    #Kpt #0001  BZ coord. =  [  0.000000,  0.000000,  0.000000 ]
+ - Occupation Numbers: {Orbitals No. 1-12:  1.0000}
+    #Kpt #0002  BZ coord. =  [  0.246290,  0.000000,  0.000000 ]
+ - Occupation Numbers: {Orbitals No. 1-12:  1.0000}
   #-------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
  - O: {AU:  [  0.0000,  0.0000,  0.0000 ], GU:  [  0.0000,  0.0000,  0.0000 ]} # 0001
  - O: {AU:  [  0.0000,  0.0000,  2.2828 ], GU:  [  0.0000,  0.0000,  8.0533 ]} # 0002
- Rigid Shift Applied (AU)              :  [ -0.0000, -0.0000, -0.0000 ]
+ Rigid Shift Applied (AU)              :  [  0.0000,  0.0000,  0.0000 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.2835,  0.2835,  0.2835 ]
  Sizes of the simulation domain:
@@ -304,12 +285,13 @@
    Fine resolution grid:
      No. of segments                   :  391
      No. of points                     :  1656
- ----------------------------------------------Direct and transposed data repartition
- | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
- |    0 |      24     |------|------------||        77184  |------|-----------------|
- |      |             |   1  |    1-   12 ||               |   1  |       1-   38592|
- |      |             |   2  |    1-   12 ||               |   2  |       1-   38592|
- Reading wavefunctions in BigDFT binary file format.
+ Direct and transposed data repartition:
+   Process 0:
+     Orbitals and Components           :  [  24,  77184 ]
+     Distribution: [ #Orbitals: [From, To], Components: [From, To]
+       Kpt 0001: [Orbitals:  [  1,  12 ], Components:  [  1,  38592 ]], 
+       Kpt 0002: [Orbitals:  [  1,  12 ], Components:  [  1,  38592 ]]]
+  #Reading wavefunctions in BigDFT binary file format.
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  2
@@ -338,4 +320,4 @@
       Peak Value (MB): 6
       for the array: ww
       in the routine: reformatonewave
- CPU time/ELAPSED time          0.52         0.66
+ CPU time/ELAPSED time          0.31         0.30

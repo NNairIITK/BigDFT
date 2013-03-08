@@ -14,9 +14,9 @@ python config/pspconf.py > src/init/psp.inc
 sed '/!!PSP_TABLE!!/r src/init/psp.inc' src/init/pspconf.in.f90 > src/init/pspconf.f90
 rm -f src/init/psp.inc
 echo "Autotoolize the libXC source tree."
-cd libxc-1.1.0; libtoolize; autoreconf; cd -
+cd libxc-1.1.0; libtoolize -fc; autoreconf -fi; cd -
 echo "Autotoolize the libyaml source tree."
-cd yaml-0.1.4; libtoolize -f; autoreconf -i; cd -
+cd yaml-0.1.4; libtoolize -fc; autoreconf -fi; cd -
 echo "Autotoolize the S_GPU source tree."
 cd S_GPU; ./autogen.sh; cd -
 

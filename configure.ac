@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.22],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.24],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -120,7 +120,36 @@ if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
 else
   have_glib=no
   have_gdbus=no
+  enable_introspection=no
 fi
+dnl Test for library building tools.
+if test x"$ac_build_dynamic" = x"yes" ; then
+  AX_FLAG_PIC()
+  if test -z "$ax_flag_pic" ; then
+    AC_MSG_WARN(["No available position-independent code flag, bindings disabled."])
+    ac_build_dynamic=no
+    ac_build_bindings=warn
+    have_glib=no
+    have_gdbus=no
+    enable_introspection=no
+  else
+    CFLAGS="$CFLAGS $ax_flag_pic"
+    CXXFLAGS="$CXXFLAGS $ax_flag_pic"
+    FCFLAGS="$FCFLAGS $ax_flag_pic"
+
+    eval "set x $ac_configure_args"
+    shift
+    ac_configure_args=
+    for ac_arg ; do
+      case $ac_arg in
+        CFLAGS=* | CXXFLAGS=* | FCFLAGS=*) ;;
+        *) ac_configure_args="$ac_configure_args '$ac_arg'"
+      esac
+    done
+    ac_configure_args="$ac_configure_args 'CFLAGS=$CFLAGS' 'CXXFLAGS=$CXXFLAGS' 'FCFLAGS=$FCFLAGS'"
+  fi
+fi
+AM_CONDITIONAL([BUILD_DYNAMIC_LIBS], [test "x$ac_build_dynamic" = "xyes"])
 AM_CONDITIONAL([WITH_GOBJECT_INTROSPECTION], [test "x$enable_introspection" = "xyes"])
 if test x"$have_glib" = x"yes" ; then
   AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
@@ -130,18 +159,6 @@ if test x"$have_gdbus" = x"yes" ; then
   AC_DEFINE([HAVE_GDBUS], [], [If set, we can use gdbus])
 fi
 AM_CONDITIONAL(HAVE_GDBUS, test "$have_gdbus" = "yes")
-
-dnl Test for library building tools.
-if test x"$ac_build_dynamic" = x"yes" ; then
-  AX_FLAG_PIC()
-  if test -z "$ax_flag_pic" ; then
-    AC_MSG_ERROR(["No available position-independent code flag, use --disable-bindings."])
-  fi
-  CFLAGS="$CFLAGS $ax_flag_pic"
-  CXXFLAGS="$CXXFLAGS $ax_flag_pic"
-  FCFLAGS="$FCFLAGS $ax_flag_pic"
-fi
-AM_CONDITIONAL([BUILD_DYNAMIC_LIBS], [test "x$ac_build_dynamic" = "xyes"])
 
 dnl Enable or not MPI.
 ac_use_mpi="yes"
@@ -1031,8 +1048,10 @@ tests/libs/xc/Makefile
 tests/libs/OpenCL/Makefile
 tests/libs/CUDA/Makefile
 tests/libs/IO-wf/Makefile
+tests/libs/dsygv/Makefile
 tests/libs/ftypes/Makefile
 tests/libs/psp/Makefile
+tests/libs/yaml/Makefile
 tests/DFT/Makefile
 tests/DFT/cubic/Makefile
 tests/DFT/linear/Makefile
@@ -1054,7 +1073,6 @@ if test x"$ac_build_libyaml" != x"skip" ; then
 fi
 
 AC_OUTPUT
-
 
 echo "
 BigDFT configure summary:
@@ -1080,7 +1098,8 @@ Build:
   Devel. documentation:      $ac_have_doxygen / $ac_devel_doc
 
 Options:
-  Debug version:             $ac_use_debug		
+  Debug version:             $ac_use_debug
+  Max. Memory per task (GB): $MEMORY_LIMIT
   With MPI:                  $ac_use_mpi
    | include dir.:           $MPI_INCLUDE
    | linker flags:           $MPI_LDFLAGS

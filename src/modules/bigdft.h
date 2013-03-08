@@ -365,7 +365,7 @@ struct _BigDFT_Orbs
 
   /* Private. */
   gboolean linear, withder;
-  void *data;
+  void *data, *lorbs;
   void *comm;
 };
 
@@ -433,8 +433,7 @@ BigDFT_Wf* bigdft_wf_new_from_fortran(void *obj, gboolean linear);
 void       bigdft_wf_free(BigDFT_Wf *wf);
 guint      bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc);
 void       bigdft_wf_init_linear_comm(BigDFT_Wf *wf, const BigDFT_LocalFields *denspot,
-                                      const BigDFT_Inputs *in, guint norb_cubic,
-                                      guint iproc, guint nproc);
+                                      const BigDFT_Inputs *in, guint iproc, guint nproc);
 void       bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                     BigDFT_Proj *proj, BigDFT_Energs *energs,
                                     guint iproc, guint nproc);

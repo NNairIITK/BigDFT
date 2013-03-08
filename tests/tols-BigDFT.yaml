@@ -7,13 +7,23 @@ Keys to ignore:
  - Timestamp of this run
  - MPI task*
  - Timings for root process
+ - Maximal OpenMP threads per MPI task
  - OpenMP threads per task
+ - OpenMP parallelization
  - Memory* 
  - Orbitals Repartition*
  - Rho Commun
  - Total number of components
  - GPU acceleration
  - High Res. box is treated separately
+ - Grid Spacing threshold (AU)
+ - Direct and transposed data repartition
+ - Write Waves Time
+ - Reading Waves Time
+ - Maxdiff*
+ - Tolerances for this check
+ - Material acceleration
+ - Number of OpenCL devices per node
 
 Expected Test CPUtime: #
  C: #[expected, error]
@@ -22,9 +32,22 @@ Expected Test CPUtime: #
 
 #Runs which update and override the default
 SiH4:
- Energies: 4.6e-9
- Eion: 4.6e-9
+ #due like that due to lack of functionality in fldiff, since energies field is updated
+ Energies: &etol 4.6e-9
+ Eion: &eion 3.2e-9
+ EH: *etol
+ EXC: *etol
+ Eion: *etol
+ Ekin: *etol
+ Enl: *etol
+ Epot: *etol
+ EvXC: *etol
  Epsilon: 1.4e-10
+ Ion-Ion interaction energy: *eion
+ Atomic Forces (Ha/Bohr): 2.e-9
+ maxval: 2.e-9
+ Average noise forces: 1.5e-10
+ Average CG stepsize in terms of betax: 1.1e-5
 
 AgBulk:
  Grid Spacing threshold (AU): 1.e-2
@@ -38,6 +61,7 @@ AgBulk:
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
+  - Calculating wavelets expansion of projectors, found warnings
 
 SiBulk:
  Residues per orbital: 8.0e-10
@@ -49,6 +73,8 @@ SiBulk:
   - Residues per orbital
 
 Mn2:
+ Keys to ignore:
+  - proc
  Epsilon: 2.e-10
  Ekin: 3.1e-10
 
@@ -58,9 +84,6 @@ GPU:
 Graphene:
  EH: 1.1e-10
 
-NaCl:
- Epsilon: 2.1e-10
-
 TiMix:
  Epsilon: 1.e-10
 
@@ -68,15 +91,16 @@ GEOPT-BFGS:
  Epsilon: 2.71e-10
 
 GEOPT-LBFGS: 
- Epsilon: 3.1e-10
+ Epsilon: 4.1e-10
  EH: 1.11e-9
  Epot: 3.3e-10
  Eion: 8.5e-10
  Enl: 6.5e-10
  DIIS weights: 1.1e-5
-
+ 
 NaCl:
  Epsilon: 2.e-9
+ Mean L2 norm of gaussian-wavelet difference: 4.5e-5
 
 NH3:
  Epsilon: 1.1e-10
@@ -86,6 +110,15 @@ CH3-:
  gnrm: 1.1e-5
  EKS: 7.84e-9
  D: 1.e-8
+ Average CG stepsize in terms of betax: 2.1e-4
+ Atomic Forces (Ha/Bohr): 2.5e-7
+ Average noise forces: 4.5e-8
+ Clean forces norm (Ha/Bohr): 1.8e-7
+ Raw forces norm (Ha/Bohr): 2.5e-7
+ Ion-Ion interaction energy: 5.5e-7
+ FORCES norm(Ha/Bohr): 8.1e-9
+ Keys to ignore:
+ - b/b0
 
 scalability:
  Epsilon: 1.1e-10
@@ -106,13 +139,19 @@ O2-Spin:
 
 TiSmear:
  Epsilon: 5.e-11
+ EKS: 5.5e-11
 
-TDDFT:
- Epsilon: 1.1e-10
+H2O-CP2K:
+ Total energy with tail correction: 1.8e-11
 
 test.splsad.ref.yaml:
  Epsilon: 1.1e-10
- Electric Dipole Moment (Debye): 1.e-8
+ Electric Dipole Moment (Debye): 1.2e-8
+
+test.minhop.ref.yaml:
+  Keys to ignore:
+    - (MH) cpu(hrs)
+    - WARNINGS
 
 test.testforces.ref.yaml:
  Epsilon: 1.2e-10
@@ -129,4 +168,50 @@ mixpotential:
 
 IO-wf_plain-read:
  Energies: 1.1e-10
- 
+
+scalability:
+ Energies: 1.e-9
+ EKS: 2.e-10
+ Total electronic charge: 1.4e-11
+
+NLCC: &NLCCs
+ Energies: 1.2e-10
+ EKS: 5.e-11
+
+#deepcopy of the above defined cases
+NLCC_free-O2: *NLCCs
+NLCC_free: *NLCCs
+NLCC_periodic-O2: *NLCCs
+
+taskgroups:
+  Energies: 1.1e-10
+  EKS: 5.3e-11
+
+Davidson-SiH4:
+  e_virtual: 1.2e-11
+  Eigenvalues and eigenstate residue: 1.3e-10
+
+TDDFT:
+  Epsilon: 1.1e-10
+  e_virtual: 1.3e-9
+  Eigenvalues and eigenstate residue: 1.1e-7
+  Epot: 1.1e-10
+  Gradient Norm: 3.1e-9
+  L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-7
+
+BigDFT2Wannier.b2w.ref.yaml:
+  amnk_guess(nb): 6.5e-11
+
+cleanup:
+ Atomic Forces (Ha/Bohr): 1.5e-10
+ Average noise forces: 1.5e-10
+ Clean forces norm (Ha/Bohr): 1.6e-10
+ Raw forces norm (Ha/Bohr): 2.4e-10
+
+directmin:
+ Patterns to ignore:
+ - Wavefunction written
+
+restartdisk_charge:
+ Patterns to ignore:
+ - Wavefunction written

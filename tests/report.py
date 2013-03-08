@@ -58,7 +58,7 @@ Exit = 0
 #Total time for the tests
 totime=0
 
-print "Final report ('passed' means all significant floats are correct):"
+print "Final report for writings in stdout ('passed' means all significant floats are correct):"
 for file in files:
     dir = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
@@ -69,6 +69,11 @@ for file in files:
         discrepancy = re_discrepancy.findall(line)
     except:
         discrepancy = False
+        try:
+            should_compare=open(file).readline()
+            empty_file=("Nothing to compare" in should_compare)
+        except:
+            empty_file=False
     if discrepancy:
         #If nan gives nan (not a number and all comparisons are false)
         diff = float(discrepancy[0][0])
@@ -104,9 +109,10 @@ for file in files:
             time = ""
         print "%s%-27s %-37s %s%s%s" % (start,dir,fic,state,time,end)
     else:
-        start = start_fail
-        state = "can not parse file.    failed"
-        print "%s%-27s %-37s %s%s" % (start,dir,fic,state,end)
+        if not empty_file:
+            start = start_fail
+            state = "can not parse file.    failed"
+            print "%s%-27s %-37s %s%s" % (start,dir,fic,state,end)
 
 print "Final report for yaml outputs: if succeeded %53s" % "max diff (significant epsilon)"
 for file in yaml_files:
@@ -146,6 +152,9 @@ totimes = totime-totimem*60-totimeh*3600
 p_time  = "%sh %sm %ss" % (totimeh,totimem,totimes)
 print 105*"-"
 print 63*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
-
+if Exit==0:
+    print "Test set succeeded!"
+else:
+    print "Test set failed, check the above report!"
 #Error code
 sys.exit(Exit)
