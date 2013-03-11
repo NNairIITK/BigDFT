@@ -326,6 +326,84 @@ void FC_FUNC_(ocl_create_read_buffer,OCL_CREATE_READ_BUFFER)(bigdft_context *con
     oclErrorCheck(ciErrNum,"Failed to create read buffer!");
 }
 
+void FC_FUNC_(ocl_create_read_buffer_host,OCL_CREATE_READ_BUFFER_HOST)(bigdft_context *context, cl_uint *size, void *host_ptr, cl_mem *buff_ptr ) {
+    cl_int ciErrNum = CL_SUCCESS;
+
+    *buff_ptr = clCreateBuffer( (*context)->context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, *size, host_ptr, &ciErrNum);
+
+#if DEBUG
+    printf("%s %s\n", __func__, __FILE__);
+    printf("contexte address: %p, memory address: %p, size: %lu\n",*context,*buff_ptr,(long unsigned)*size);
+#endif
+    oclErrorCheck(ciErrNum,"Failed to pin buffer!");
+}
+
+void FC_FUNC_(ocl_create_write_buffer_host,OCL_CREATE_WRITE_BUFFER_HOST)(bigdft_context *context, cl_uint *size, void *host_ptr, cl_mem *buff_ptr ) {
+    cl_int ciErrNum = CL_SUCCESS;
+
+    *buff_ptr = clCreateBuffer( (*context)->context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, *size, host_ptr, &ciErrNum);
+
+#if DEBUG
+    printf("%s %s\n", __func__, __FILE__);
+    printf("contexte address: %p, memory address: %p, size: %lu\n",*context,*buff_ptr,(long unsigned)*size);
+#endif
+    oclErrorCheck(ciErrNum,"Failed to pin buffer!");
+}
+
+void FC_FUNC_(ocl_create_read_write_buffer_host,OCL_CREATE_READ_WRITE_BUFFER_HOST)(bigdft_context *context, cl_uint *size, void *host_ptr, cl_mem *buff_ptr ) {
+    cl_int ciErrNum = CL_SUCCESS;
+
+    *buff_ptr = clCreateBuffer( (*context)->context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, *size, host_ptr, &ciErrNum);
+
+#if DEBUG
+    printf("%s %s\n", __func__, __FILE__);
+    printf("contexte address: %p, memory address: %p, size: %lu\n",*context,*buff_ptr,(long unsigned)*size);
+#endif
+    oclErrorCheck(ciErrNum,"Failed to pin buffer!");
+}
+
+void FC_FUNC_(ocl_map_read_buffer,OCL_MAP_READ_BUFFER)(bigdft_command_queue *command_queue, cl_mem *buff_ptr, cl_uint *offset, cl_uint *size) {
+    cl_int ciErrNum = CL_SUCCESS;
+    clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_TRUE, CL_MAP_READ , *offset, *size, 0, NULL, NULL, &ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to map pinned read buffer!");
+}
+
+void FC_FUNC_(ocl_map_write_buffer,OCL_MAP_WRITE_BUFFER)(bigdft_command_queue *command_queue, cl_mem *buff_ptr, cl_uint *offset, cl_uint *size) {
+    cl_int ciErrNum = CL_SUCCESS;
+    clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_TRUE, CL_MAP_WRITE , *offset, *size, 0, NULL, NULL, &ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to map pinned read buffer!");
+}
+
+void FC_FUNC_(ocl_map_read_write_buffer,OCL_MAP_READ_WRITE_BUFFER)(bigdft_command_queue *command_queue, cl_mem *buff_ptr, cl_uint *offset, cl_uint *size) {
+    cl_int ciErrNum = CL_SUCCESS;
+    clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE , *offset, *size, 0, NULL, NULL, &ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to map pinned read buffer!");
+}
+
+void FC_FUNC_(ocl_map_read_buffer_async,OCL_MAP_READ_BUFFER_ASYNC)(bigdft_command_queue *command_queue, cl_mem *buff_ptr, cl_uint *offset, cl_uint *size) {
+    cl_int ciErrNum = CL_SUCCESS;
+    clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_FALSE, CL_MAP_READ , *offset, *size, 0, NULL, NULL, &ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to map pinned read buffer!");
+}
+
+void FC_FUNC_(ocl_map_write_buffer_async,OCL_MAP_WRITE_BUFFER_ASYNC)(bigdft_command_queue *command_queue, cl_mem *buff_ptr, cl_uint *offset, cl_uint *size) {
+    cl_int ciErrNum = CL_SUCCESS;
+    clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_FALSE, CL_MAP_WRITE , *offset, *size, 0, NULL, NULL, &ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to map pinned read buffer!");
+}
+
+void FC_FUNC_(ocl_map_read_write_buffer_async,OCL_MAP_READ_WRITE_BUFFER_ASYNC)(bigdft_command_queue *command_queue, cl_mem *buff_ptr, cl_uint *offset, cl_uint *size) {
+    cl_int ciErrNum = CL_SUCCESS;
+    clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_FALSE, CL_MAP_READ | CL_MAP_WRITE , *offset, *size, 0, NULL, NULL, &ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to map pinned read buffer!");
+}
+
+void FC_FUNC_(ocl_unmap_mem_object,OCL_UNMAP_MEM_OBJECT)(bigdft_command_queue *command_queue, cl_mem *buff_ptr, void *host_ptr) {
+    cl_int ciErrNum = CL_SUCCESS;
+    clEnqueueUnmapMemObject((*command_queue)->command_queue, *buff_ptr, host_ptr, 0, NULL, NULL);
+    oclErrorCheck(ciErrNum,"Failed to unmap pinned buffer!");
+}
+
 void FC_FUNC_(ocl_pin_read_write_buffer,OCL_PIN_READ_WRITE_BUFFER)(bigdft_context *context, bigdft_command_queue *command_queue, cl_uint *size, void *host_ptr, cl_mem *buff_ptr ) {
     cl_int ciErrNum = CL_SUCCESS;
 
@@ -353,7 +431,7 @@ void FC_FUNC_(ocl_pin_write_buffer,OCL_PIN_WRITE_BUFFER)(bigdft_context *context
 #endif
     oclErrorCheck(ciErrNum,"Failed to pin write buffer!");
 
-    clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_TRUE, CL_MAP_WRITE , 0, *size, 0, NULL, NULL, &ciErrNum);
+    clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_TRUE, CL_MAP_READ , 0, *size, 0, NULL, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to map pinned write buffer!");
 
 }
@@ -369,7 +447,7 @@ void FC_FUNC_(ocl_pin_read_buffer,OCL_PIN_READ_BUFFER)(bigdft_context *context, 
 #endif
     oclErrorCheck(ciErrNum,"Failed to pin read buffer!");
 
-    clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_TRUE, CL_MAP_READ , 0, *size, 0, NULL, NULL, &ciErrNum);
+    clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_TRUE, CL_MAP_WRITE , 0, *size, 0, NULL, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to map pinned read buffer!");
 
 }
@@ -401,7 +479,7 @@ void FC_FUNC_(ocl_pin_write_buffer_async,OCL_PIN_WRITE_BUFFER_ASYNC)(bigdft_cont
 #endif
     oclErrorCheck(ciErrNum,"Failed to pin write buffer!");
 
-    clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_FALSE, CL_MAP_WRITE , 0, *size, 0, NULL, NULL, &ciErrNum);
+    clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_FALSE, CL_MAP_READ , 0, *size, 0, NULL, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to map pinned write buffer (async)!");
 
 }
@@ -417,7 +495,7 @@ void FC_FUNC_(ocl_pin_read_buffer_async,OCL_PIN_READ_BUFFER_ASYNC)(bigdft_contex
 #endif
     oclErrorCheck(ciErrNum,"Failed to pin read buffer!");
 
-    clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_FALSE, CL_MAP_READ , 0, *size, 0, NULL, NULL, &ciErrNum);
+    clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_FALSE, CL_MAP_WRITE, 0, *size, 0, NULL, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to map pinned read buffer (async)!");
 
 }
