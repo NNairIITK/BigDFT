@@ -54,7 +54,8 @@ for line in header.splitlines()[1:]:
       break
   c_mod = ""
   if tp[0].startswith("type"):
-    c_tp = "gpointer "
+    f_tp = re.match(r"^type\((?P<type>[^)]+)\)", tp[0]).group("type")
+    c_tp = "_%s *" % f_tp # "gpointer "
   elif (tp[0].startswith("real") or tp[0].startswith("double")) and "pointer" not in tp:
     c_tp = "double *"
   elif (tp[0].startswith("real") or tp[0].startswith("double")) and "pointer" in tp:

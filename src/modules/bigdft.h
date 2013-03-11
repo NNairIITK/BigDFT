@@ -88,8 +88,8 @@ struct _BigDFT_Atoms
   double energy;
 
   /* Private. */
-  void *data;
-  void *sym;
+  _atoms_data *data;
+  _symmetry_data *sym;
 };
 
 
@@ -156,7 +156,7 @@ struct _BigDFT_Inputs
 
   /* Private. */
   guint refCount;
-  void *data;
+  _input_variables *data;
 };
 
 typedef enum
@@ -229,9 +229,9 @@ struct _BigDFT_Locreg
   /* TODO: bindings to values... */
 
   /* Private. */
-  void *d;
-  void *wfd;
-  void *data;
+  _grid_dimensions *d;
+  _wavefunctions_descriptors *wfd;
+  _locreg_descriptors *data;
 };
 typedef enum
   {
@@ -301,7 +301,7 @@ struct _BigDFT_Lzd
   BigDFT_Locreg **Llr;
 
   /* Private. */
-  void *data;
+  _local_zone_descriptors *data;
 };
 BigDFT_Lzd* bigdft_lzd_new();
 BigDFT_Lzd* bigdft_lzd_new_with_fortran (void *fortran_lzd);
@@ -365,8 +365,8 @@ struct _BigDFT_Orbs
 
   /* Private. */
   gboolean linear, withder;
-  void *data, *lorbs;
-  void *comm;
+  _orbitals_data *data, *lorbs;
+  _communications_arrays *comm;
 };
 
 BigDFT_Orbs* bigdft_orbs_new (gboolean linear);
@@ -407,8 +407,8 @@ struct _BigDFT_Wf
   /* private. */
   int inputpsi;
   guint input_wf_format;
-  void *data;
-  void *data_lzd;
+  _DFT_wavefunction *data;
+  _local_zone_descriptors *data_lzd;
   void *diis;
 };
 typedef enum
@@ -508,7 +508,7 @@ struct _BigDFT_Proj
   f90_pointer_double proj;
 
   /* Private. */
-  void *nlpspd;
+  _nonlocal_psp_descriptors *nlpspd;
 };
 
 BigDFT_Proj* bigdft_proj_new (const BigDFT_Locreg *glr, const BigDFT_Orbs *orbs,
@@ -568,9 +568,9 @@ struct _BigDFT_LocalFields
 
   /* Private. */
   void *pkernel, *pkernelseq;
-  void *rhod;
-  void *dpbox;
-  void *data;
+  _rho_descriptors *rhod;
+  _denspot_distribution *dpbox;
+  _DFT_local_fields *data;
 };
 
 BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Lzd *lzd,
@@ -627,7 +627,7 @@ struct _BigDFT_Energs
   double strten[6];
 
   /* Private. */
-  void *data;
+  _energy_terms *data;
 };
 BigDFT_Energs* bigdft_energs_new();
 BigDFT_Energs* bigdft_energs_new_from_fortran(void *obj);
@@ -676,7 +676,7 @@ struct _BigDFT_OptLoop
   int iscf, infocode;
 
   /* Private. */
-  void *data;
+  _DFT_optimization_loop *data;
 };
 BigDFT_OptLoop* bigdft_optloop_new();
 BigDFT_OptLoop* bigdft_optloop_new_from_fortran(void *obj);
