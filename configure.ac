@@ -86,8 +86,8 @@ AC_ARG_ENABLE(dynamic-binaries, AS_HELP_STRING([--enable-dynamic-binaries],
               ac_build_dynamic=$enableval, ac_build_dynamic="no")
 
 dnl Look for GLib and friends for bindings.
-AC_ARG_ENABLE(bindings, AS_HELP_STRING([--disable-bindings], [Don't build C bindings (enabled by default).]),
-              ac_build_bindings=$enableval, ac_build_bindings="yes")
+AC_ARG_ENABLE(bindings, AS_HELP_STRING([--enable-bindings], [Build C bindings (disabled by default).]),
+              ac_build_bindings=$enableval, ac_build_bindings="no")
 if test x"$ac_build_bindings" = x"yes" ; then
   AX_FC_POINTER()
   if test $F90_1D_POINTER_SIZE = 0 ; then
