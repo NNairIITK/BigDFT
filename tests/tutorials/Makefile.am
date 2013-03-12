@@ -41,18 +41,23 @@ EXTRA_DIST = Figures \
      Wannier
 
 # Additional post-in commands
-H2O-bader.post-in :
-	cp -f input-all.dft input.dft
 # Remove HF.perf in case of acceleration
 N2.post-in :
 	rm -f input.perf
 
+if BUILD_DYNAMIC_LIBS
+bigdft_library = -L$(top_builddir)/src -lbigdft-1
+bigdft_library_rpath = -Wl,-rpath=$(abs_top_builddir)/src
+else
+bigdft_library = $(top_builddir)/src/libbigdft.a @LIBS_SHORT_DEPS@
+bigdft_library_rpath =
+endif
 
 # Additional rules for the dev tutorial.
 dev.check: dev/toy_model
 dev/toy_model toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90
 	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90 \
-			$(LDFLAGS) $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@ $(LIBS)
+			$(LDFLAGS) $(bigdft_library_rpath) $(bigdft_library) $(LIBS)
 toy_model.dat.out: dev-N2.out.out toy_model 
 	./toy_model > toy_model.dat.out
 dev.post-clean:

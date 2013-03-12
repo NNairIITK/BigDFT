@@ -23,7 +23,7 @@ if  version <= [2,5,0]:
 
 
 import yaml
-from yaml_hl import *
+#from yaml_hl import *
 
 start_fail = "<fail>" #"\033[0;31m"
 start_fail_esc = "\033[0;31m "
@@ -394,7 +394,8 @@ for i in range(len(references)):
                             default_flow_style=False,explicit_start=True))
   newreport.close()
   reports.write(open("report", "rb").read())
-  hl = YAMLHighlight(options)
+  Style = yaml_hl.Style
+  hl = yaml_hl.YAMLHighlight(options)
   hl.highlight()
   
 #create dictionary for the final report

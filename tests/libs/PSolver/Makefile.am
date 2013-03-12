@@ -38,17 +38,29 @@ endif
 
 AM_FCFLAGS = -I$(top_builddir)/src/modules -I$(top_builddir)/src/PSolver -I$(top_srcdir)/src/PSolver -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
 
+if BUILD_DYNAMIC_LIBS
+bigdft_library = -L$(top_builddir)/src -lbigdft-1
+bigdft_library_rpath = -Wl,-rpath=$(abs_top_builddir)/src
+else
+bigdft_library = $(top_builddir)/src/libbigdft.a @LIBS_SHORT_DEPS@
+bigdft_library_rpath =
+endif
+
 PS_Check_SOURCES = PS_Check.f90
-PS_Check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+PS_Check_LDADD = $(bigdft_library) @LINALG_LIBS@
+PS_Check_LDFLAGS = $(bigdft_library_rpath)
 
 PS_Program_SOURCES = PS_Program.f90
-PS_Program_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+PS_Program_LDADD = $(bigdft_library)
+PS_Program_LDFLAGS = $(bigdft_library_rpath)
 
 PS_Exercise_SOURCES = PS_Exercise.f90
-PS_Exercise_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+PS_Exercise_LDADD = $(bigdft_library)
+PS_Exercise_LDFLAGS = $(bigdft_library_rpath)
 
 PS_Integral_SOURCES = PS_Integral.f90 fisf.f90
-PS_Integral_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+PS_Integral_LDADD = $(bigdft_library) @LINALG_LIBS@
+PS_Integral_LDFLAGS = $(bigdft_library_rpath)
 
 
 CLEANFILES = malloc.prc time.prc PS_Check.out fldiff.report \

@@ -80,9 +80,14 @@ if test "$ar" = ":" ; then
   AC_MSG_ERROR(["No 'ar' program found."])
 fi
 
+dnl Produce dynamic excecutables.
+AC_ARG_ENABLE(dynamic-binaries, AS_HELP_STRING([--enable-dynamic-binaries],
+                                               [Build dynamically linked binaries (disabled by default).]),
+              ac_build_dynamic=$enableval, ac_build_dynamic="no")
+
 dnl Look for GLib and friends for bindings.
-AC_ARG_ENABLE(bindings, AS_HELP_STRING([--disable-bindings], [Don't build C bindings (enabled by default).]),
-              ac_build_bindings=$enableval, ac_build_bindings="yes")
+AC_ARG_ENABLE(bindings, AS_HELP_STRING([--enable-bindings], [Build C bindings (disabled by default).]),
+              ac_build_bindings=$enableval, ac_build_bindings="no")
 if test x"$ac_build_bindings" = x"yes" ; then
   AX_FC_POINTER()
   if test $F90_1D_POINTER_SIZE = 0 ; then
@@ -109,11 +114,42 @@ if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
     AC_SUBST(typelibsdir)
     AC_SUBST([G_IR_SCANNER], [$($PKG_CONFIG --variable=g_ir_scanner gobject-introspection-1.0)])
     AC_SUBST([G_IR_COMPILER], [$($PKG_CONFIG --variable=g_ir_compiler gobject-introspection-1.0)])
+    dnl Force dynamic library building.
+    ac_build_dynamic="yes"
   fi
 else
   have_glib=no
   have_gdbus=no
+  enable_introspection=no
 fi
+dnl Test for library building tools.
+if test x"$ac_build_dynamic" = x"yes" ; then
+  AX_FLAG_PIC()
+  if test -z "$ax_flag_pic" ; then
+    AC_MSG_WARN(["No available position-independent code flag, bindings disabled."])
+    ac_build_dynamic=no
+    ac_build_bindings=warn
+    have_glib=no
+    have_gdbus=no
+    enable_introspection=no
+  else
+    CFLAGS="$CFLAGS $ax_flag_pic"
+    CXXFLAGS="$CXXFLAGS $ax_flag_pic"
+    FCFLAGS="$FCFLAGS $ax_flag_pic"
+
+    eval "set x $ac_configure_args"
+    shift
+    ac_configure_args=
+    for ac_arg ; do
+      case $ac_arg in
+        CFLAGS=* | CXXFLAGS=* | FCFLAGS=*) ;;
+        *) ac_configure_args="$ac_configure_args '$ac_arg'"
+      esac
+    done
+    ac_configure_args="$ac_configure_args 'CFLAGS=$CFLAGS' 'CXXFLAGS=$CXXFLAGS' 'FCFLAGS=$FCFLAGS'"
+  fi
+fi
+AM_CONDITIONAL([BUILD_DYNAMIC_LIBS], [test "x$ac_build_dynamic" = "xyes"])
 AM_CONDITIONAL([WITH_GOBJECT_INTROSPECTION], [test "x$enable_introspection" = "xyes"])
 if test x"$have_glib" = x"yes" ; then
   AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
@@ -1037,7 +1073,6 @@ if test x"$ac_build_libyaml" != x"skip" ; then
 fi
 
 AC_OUTPUT
-
 
 echo "
 BigDFT configure summary:

@@ -71,7 +71,7 @@ nodist_include_HEADERS = $(bindings_headers_nodist)
 
 DYN_INCLUDES = deallocate-inc.f90
 
-EXTRA_DIST = configure.inc.in bigdft_cst.h.in $(DYN_INCLUDES)
+EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py $(DYN_INCLUDES)
 
 AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 

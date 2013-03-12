@@ -6,12 +6,12 @@
 #include <string.h>
 
 #include "bindings.h"
+#include "bindings_api.h"
 #include "bindings_dbus.h"
 
 /* Wavefunctions stuffs. */
 void onPsiReady(BigDFT_Wf *wf_, guint iter, gpointer data)
 {
-  guint i, j;
   BigdftDBusWf *wf = BIGDFT_DBUS_WF(data);
 
   bigdft_dbus_wf_set_ref_psi_ready(wf, bigdft_dbus_wf_get_n_psi_ready(wf));
@@ -137,9 +137,8 @@ gboolean onGetDenspot(BigdftDBusLocalFields *denspot,
                              BigDFT_DensPotIds kind, gpointer user_data)
 {
   BigDFT_LocalFields *localfields = BIGDFT_LOCALFIELDS(user_data);
-  guint size, iproc = 0;
+  guint size, iproc = 0, new;
   GVariant *data;
-  double *pot_work;
   f90_pointer_double tmp;
 
   /* We do a full_local_potential to gather all the data. */
@@ -147,10 +146,10 @@ gboolean onGetDenspot(BigdftDBusLocalFields *denspot,
   switch (kind)
     {
     case BIGDFT_DENSPOT_DENSITY:
-      FC_FUNC_(denspot_full_density, DENSPOT_FULL_DENSITY)(localfields->data, &tmp, &iproc);
+      FC_FUNC_(denspot_full_density, DENSPOT_FULL_DENSITY)(localfields->data, &tmp, (int*)&iproc, (int*)&new);
       break;
     case BIGDFT_DENSPOT_V_EXT:
-      FC_FUNC_(denspot_full_v_ext, DENSPOT_FULL_V_EXT)(localfields->data, &tmp, &iproc);
+      FC_FUNC_(denspot_full_v_ext, DENSPOT_FULL_V_EXT)(localfields->data, &tmp, (int*)&iproc, (int*)&new);
       break;
     }
   size = localfields->ni[0] * localfields->ni[1] * localfields->ni[2];
