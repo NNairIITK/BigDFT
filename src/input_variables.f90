@@ -1063,6 +1063,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
   use defs_basis
   use m_ab6_kpoints
   use module_input
+  use yaml_output
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
@@ -1111,15 +1112,27 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
   if (case_insensitive_equiv(trim(type),'auto')) then
      call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
           comment='Equivalent length of K-space resolution (Bohr)')
-     call kpoints_get_auto_k_grid(sym%symObj, in%nkpt, in%kpt, in%wkpt, &
-          & kptrlen, ierror)
-     if (ierror /= AB6_NO_ERROR) then
-        if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
-        stop
+     if (geocode == 'F') then
+        in%nkpt = 1
+        allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%kpt,'in%kpt',subname)
+        allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%wkpt,'in%wkpt',subname)
+        in%kpt = 0.
+        in%wkpt = 1.
+     else
+        call kpoints_get_auto_k_grid(sym%symObj, in%nkpt, in%kpt, in%wkpt, &
+             & kptrlen, ierror)
+        if (ierror /= AB6_NO_ERROR) then
+           if (iproc==0) &
+                & call yaml_warning("ERROR: cannot generate automatic k-point grid." // &
+                & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
+           stop
+        end if
+        !assumes that the allocation went through
+        call memocc(0,in%kpt,'in%kpt',subname)
+        call memocc(0,in%wkpt,'in%wkpt',subname)
      end if
-     !assumes that the allocation went through
-     call memocc(0,in%kpt,'in%kpt',subname)
-     call memocc(0,in%wkpt,'in%wkpt',subname)
   else if (case_insensitive_equiv(trim(type),'mpgrid')) then
      !take the points of Monckorst-pack grid
      call input_var(ngkpt(1),'1',ranges=(/1,10000/))
@@ -1127,29 +1140,47 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
      call input_var(ngkpt(3),'1',ranges=(/1,10000/), &
           & comment='No. of Monkhorst-Pack grid points')
      if (geocode == 'S') ngkpt(2) = 1
-     if (geocode == 'F') ngkpt = 1
      !shift
      call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
      !read the shifts
      shiftk=0.0_gp
-     
      do i=1,nshiftk
         call input_var(shiftk(1,i),'0.')
         call input_var(shiftk(2,i),'0.')
         call input_var(shiftk(3,i),'0.',comment=' ')
      end do
-     call kpoints_get_mp_k_grid(sym%symObj, in%nkpt, in%kpt, in%wkpt, &
-          & ngkpt, nshiftk, shiftk, ierror)
-     if (ierror /= AB6_NO_ERROR) then
-        if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
-        stop
+
+     !control whether we are giving k-points to Free BC
+     if (geocode == 'F') then
+        if (iproc==0 .and. (maxval(ngkpt) > 1 .or. maxval(abs(shiftk)) > 0.)) &
+             & call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
+        in%nkpt = 1
+        allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%kpt,'in%kpt',subname)
+        allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%wkpt,'in%wkpt',subname)
+        in%kpt = 0.
+        in%wkpt = 1.
+     else
+        call kpoints_get_mp_k_grid(sym%symObj, in%nkpt, in%kpt, in%wkpt, &
+             & ngkpt, nshiftk, shiftk, ierror)
+        if (ierror /= AB6_NO_ERROR) then
+           if (iproc==0) &
+                & call yaml_warning("ERROR: cannot generate MP k-point grid." // &
+                & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
+           stop
+        end if
+        !assumes that the allocation went through
+        call memocc(0,in%kpt,'in%kpt',subname)
+        call memocc(0,in%wkpt,'in%wkpt',subname)
      end if
-     !assumes that the allocation went through
-     call memocc(0,in%kpt,'in%kpt',subname)
-     call memocc(0,in%wkpt,'in%wkpt',subname)
   else if (case_insensitive_equiv(trim(type),'manual')) then
      call input_var(in%nkpt,'1',ranges=(/1,10000/),&
           comment='Number of K-points')
+     if (geocode == 'F' .and. in%nkpt > 1) then
+        if (iproc==0) call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
+        in%nkpt = 1
+     end if
      allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%kpt,'in%kpt',subname)
      allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
@@ -1164,9 +1195,12 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
         end if
         call input_var( in%kpt(3,i),'0.')
         call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weigth')
+        if (geocode == 'F') then
+           in%kpt = 0.
+           in%wkpt = 1.
+        end if
         norm=norm+in%wkpt(i)
      end do
-
      ! We normalise the weights.
      in%wkpt(:)=in%wkpt/norm
   end if
@@ -1174,7 +1208,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
   ! Now read the band structure definition. do it only if the file exists
   !nullify the kptv pointers
   nullify(in%kptv,in%nkptsv_group)
-  if (exists) then
+  if (exists .and. geocode /= 'F') then
      call input_var(type,'bands',exclusive=(/'bands'/),&
           comment='For doing band structure calculation',&
           input_iostat=ierror)
@@ -1254,13 +1288,6 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
   
   !Dump the input file
   call input_free((iproc == 0) .and. dump)
-
-  !control whether we are giving k-points to Free BC
-  if (geocode == 'F' .and. in%nkpt > 1 .and. minval(abs(in%kpt)) > 0) then
-     if (iproc==0) write(*,*)&
-          ' NONSENSE: Trying to use k-points with Free Boundary Conditions!'
-     stop
-  end if
 
   ! Convert reduced coordinates into BZ coordinates.
   alat_ = alat

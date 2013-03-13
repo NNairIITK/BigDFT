@@ -75,19 +75,20 @@ static void bigdft_inputs_dispose(BigDFT_Inputs *in)
 BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
 {
   BigDFT_Inputs *in;
-  int iproc = 0, len, dump = 0, nproc = 1;
+  int iproc = 0, len, nproc = 1;
+  int dump = 0;
 
   in = bigdft_inputs_init();
   FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data);
   if (naming && naming[0])
     {
       len = strlen(naming);
-      FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(in->data, &nproc, naming, &len);
+      FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(in->data, &nproc, naming, &len, len);
     }
   else
     {
       len = 0;
-      FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(in->data, &nproc, " ", &len);
+      FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(in->data, &nproc, " ", &len, 1);
     }
   FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(in->data, &iproc, &dump);
 
@@ -95,24 +96,25 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
   FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(in->data, in->h, in->h + 1, in->h + 2,
                                            &in->crmult, &in->frmult, &in->ixc,
                                            &in->ncharge, in->elecfield, &in->nspin,
-                                           &in->mpol, &in->gnrm_cv, &in->itermax,
-                                           &in->nrepmax, &in->ncong, &in->idsx,
+                                           &in->mpol, &in->gnrm_cv, (int*)&in->itermax,
+                                           (int*)&in->nrepmax, &in->ncong, (int*)&in->idsx,
                                            &in->dispersion, &in->inputPsiId,
                                            &in->output_wf_format, &in->output_grid,
                                            &in->rbuf, &in->ncongt, &in->norbv, &in->nvirt,
                                            &in->nplot, &in->disableSym);
-  FC_FUNC_(inputs_get_mix, INPUTS_GET_MIX)(in->data, &in->iscf, &in->itrpmax,
-                                           &in->norbsempty, (int*)(&in->occopt), &in->alphamix,
+  FC_FUNC_(inputs_get_mix, INPUTS_GET_MIX)(in->data, (int*)&in->iscf, (int*)&in->itrpmax,
+                                           (int*)&in->norbsempty, (int*)(&in->occopt),
+                                           &in->alphamix,
                                            &in->rpnrm_cv, &in->gnrm_startmix, &in->Tel,
                                            &in->alphadiis);
   FC_FUNC_(inputs_get_geopt, INPUTS_GET_GEOPT)(in->data, in->geopt_approach,
                                                &in->ncount_cluster_x, &in->frac_fluct,
                                                &in->forcemax, &in->randdis, &in->betax,
                                                &in->history, &in->ionmov, &in->dtion,
-                                               in->strtarget, &in->qmass);
+                                               in->strtarget, &in->qmass, 10);
   /* FC_FUNC_(inputs_get_sic, INPUTS_GET_SIC)(); */
   /* FC_FUNC_(inputs_get_tddft, INPUTS_GET_TDDFT)(); */
-  FC_FUNC_(inputs_get_perf, INPUTS_GET_PERF)(in->data, &in->linear);
+  FC_FUNC_(inputs_get_perf, INPUTS_GET_PERF)(in->data, (int*)&in->linear);
   
   return in;
 }
@@ -159,15 +161,6 @@ void bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms)
 /*******************************/
 /* BigDFT_Proj data structure. */
 /*******************************/
-void FC_FUNC_(proj_new, PROJ_NEW)(void *nlpspd);
-void FC_FUNC_(proj_free, PROJ_FREE)(void *nlpspd, f90_pointer_double *proj);
-void FC_FUNC(createprojectorsarrays, CREATEPROJECTORSARRAYS)
-    (int *iproc, const void *lr, double *rxyz, void *atoms,
-     void *orbs, double *radii, double *cpmult, double *fpmult, const double *h1,
-     const double *h2, const double *h3, void *nlpspd, f90_pointer_double *proj);
-void FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(void *nlpspd,
-                                                        guint *nproj, guint *nprojel);
-
 #ifdef HAVE_GLIB
 G_DEFINE_TYPE(BigDFT_Proj, bigdft_proj, G_TYPE_OBJECT)
 
@@ -234,8 +227,8 @@ BigDFT_Proj* bigdft_proj_new(const BigDFT_Locreg *glr, const BigDFT_Orbs *orbs, 
     (&iproc, glr->data, glr->parent.rxyz.data,
      glr->parent.data, orbs->data, &g_array_index(glr->radii, double, 0), &frmult, &frmult,
      glr->h, glr->h + 1, glr->h + 2, proj->nlpspd, &proj->proj);
-  FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(proj->nlpspd, &proj->nproj,
-                                                     &proj->nprojel);
+  FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(proj->nlpspd, (int*)&proj->nproj,
+                                                     (int*)&proj->nprojel);
 
   return proj;
 }
@@ -316,7 +309,7 @@ static void bigdft_energs_finalize(GObject *obj)
 BigDFT_Energs* bigdft_energs_new()
 {
   BigDFT_Energs *energs;
-  double self;
+  long self;
 
 #ifdef HAVE_GLIB
   energs = BIGDFT_ENERGS(g_object_new(BIGDFT_ENERGS_TYPE, NULL));
@@ -324,7 +317,7 @@ BigDFT_Energs* bigdft_energs_new()
   energs = g_malloc(sizeof(BigDFT_Energs));
   bigdft_energs_init(energs);
 #endif
-  self = *((double*)&energs);
+  self = *((long*)&energs);
   FC_FUNC_(energs_new, ENERGS_NEW)(&self, &energs->data);
 
   return energs;
@@ -510,7 +503,7 @@ static void bigdft_optloop_finalize(GObject *obj)
 BigDFT_OptLoop* bigdft_optloop_new()
 {
   BigDFT_OptLoop *optloop;
-  double self;
+  long self;
 
 #ifdef HAVE_GLIB
   optloop = BIGDFT_OPTLOOP(g_object_new(BIGDFT_OPTLOOP_TYPE, NULL));
@@ -518,13 +511,13 @@ BigDFT_OptLoop* bigdft_optloop_new()
   optloop = g_malloc(sizeof(BigDFT_OptLoop));
   bigdft_optloop_init(optloop);
 #endif
-  self = *((double*)&optloop);
+  self = *((long*)&optloop);
   FC_FUNC_(optloop_new, OPTLOOP_NEW)(&self, &optloop->data);
   FC_FUNC_(optloop_sync_data, OPTLOOP_SYNC_DATA)
     (optloop->data, &optloop->gnrm_cv, &optloop->rpnrm_cv, &optloop->gnrm_startmix,
      &optloop->gnrm, &optloop->rpnrm,
-     &optloop->itrpmax, &optloop->nrepmax, &optloop->itermax,
-     &optloop->itrp, &optloop->itrep, &optloop->iter,
+     (int*)&optloop->itrpmax, (int*)&optloop->nrepmax, (int*)&optloop->itermax,
+     (int*)&optloop->itrp, (int*)&optloop->itrep, (int*)&optloop->iter,
      &optloop->iscf, &optloop->infocode);
 
   return optloop;
@@ -613,8 +606,8 @@ void bigdft_optloop_copy_from_fortran(BigDFT_OptLoop *optloop)
   FC_FUNC_(optloop_copy_data, OPTLOOP_COPY_DATA)
     (optloop->data, &optloop->gnrm_cv, &optloop->rpnrm_cv, &optloop->gnrm_startmix,
      &optloop->gnrm, &optloop->rpnrm,
-     &optloop->itrpmax, &optloop->nrepmax, &optloop->itermax,
-     &optloop->itrp, &optloop->itrep, &optloop->iter,
+     (int*)&optloop->itrpmax, (int*)&optloop->nrepmax, (int*)&optloop->itermax,
+     (int*)&optloop->itrp, (int*)&optloop->itrep, (int*)&optloop->iter,
      &optloop->iscf, &optloop->infocode);
 }
 void bigdft_optloop_sync_to_fortran(BigDFT_OptLoop *optloop)
@@ -622,8 +615,8 @@ void bigdft_optloop_sync_to_fortran(BigDFT_OptLoop *optloop)
   FC_FUNC_(optloop_sync_data, OPTLOOP_SYNC_DATA)
     (optloop->data, &optloop->gnrm_cv, &optloop->rpnrm_cv, &optloop->gnrm_startmix,
      &optloop->gnrm, &optloop->rpnrm,
-     &optloop->itrpmax, &optloop->nrepmax, &optloop->itermax,
-     &optloop->itrp, &optloop->itrep, &optloop->iter,
+     (int*)&optloop->itrpmax, (int*)&optloop->nrepmax, (int*)&optloop->itermax,
+     (int*)&optloop->itrp, (int*)&optloop->itrep, (int*)&optloop->iter,
      &optloop->iscf, &optloop->infocode);
 
 #ifdef HAVE_GLIB
@@ -641,9 +634,10 @@ double bigdft_memory_get_peak(guint nproc, const BigDFT_Locreg *lr, const BigDFT
 {
   double peak;
 
-  FC_FUNC(memoryestimator, MEMORYESTIMATOR)(&nproc, &in->idsx, lr->data, &lr->parent.nat,
-                                            &orbs->norb, &orbs->nspinor, &orbs->nkpts,
-                                            &proj->nprojel, &orbs->nspin, &in->itrpmax,
-                                            &in->iscf, &peak);
+  FC_FUNC(memoryestimator, MEMORYESTIMATOR)((int*)&nproc, (int*)&in->idsx, lr->data,
+                                            (int*)&lr->parent.nat, (int*)&orbs->norb,
+                                            (int*)&orbs->nspinor, (int*)&orbs->nkpts,
+                                            (int*)&proj->nprojel, (int*)&orbs->nspin,
+                                            (int*)&in->itrpmax, (int*)&in->iscf, &peak);
   return peak;
 }

@@ -39,6 +39,26 @@
 #define F90_5D_POINTER_SHIFT @F90_5D_POINTER_SHIFT@
 #define F90_5D_POINTER_SIZE  @F90_5D_POINTER_SIZE@
 
+/* Internal types for Fortran datatypes. */
+typedef void _atoms_data;
+typedef void _communications_arrays;
+typedef void _coulomb_operator;
+typedef void _denspot_distribution;
+typedef void _DFT_local_fields;
+typedef void _DFT_optimization_loop;
+typedef void _DFT_wavefunction;
+typedef void _energy_terms;
+typedef void _GPU_pointers;
+typedef void _grid_dimensions;
+typedef void _input_variables;
+typedef void _local_zone_descriptors;
+typedef void _locreg_descriptors;
+typedef void _nonlocal_psp_descriptors;
+typedef void _orbitals_data;
+typedef void _rho_descriptors;
+typedef void _symmetry_data;
+typedef void _wavefunctions_descriptors;
+
 /***************************/
 /* Generic pointer arrays. */
 /***************************/

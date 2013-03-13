@@ -18,10 +18,10 @@ endif
 
 if USE_LIBXC
 LIBXC_MODULE =
-xc.o: base.o yaml_output.o
+xc.o: base.o
 else
 LIBXC_MODULE = libxc_fake.f90
-xc.o: base.o yaml_output.o libxc_fake.o
+xc.o: base.o libxc_fake.o
 endif
 
 if BUILD_BINDINGS
@@ -44,8 +44,8 @@ mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	GAUSSIANS.@MODULE_EXT@ \
 	BIGDFT_API.@MODULE_EXT@ \
 	YAML_OUTPUT.@MODULE_EXT@ \
-	YAML_STRINGS.@MODULE_EXT@ \
 	DICTIONARIES.@MODULE_EXT@ \
+	DYNAMIC_MEMORY.@MODULE_EXT@
 	DYNAMIC_MEMORY.@MODULE_EXT@ \
 	VDWCORRECTION.@MODULE_EXT@
 else
@@ -71,7 +71,7 @@ nodist_include_HEADERS = $(bindings_headers_nodist)
 
 DYN_INCLUDES = deallocate-inc.f90 allocate-inc.f90 f_malloc-inc.f90
 
-EXTRA_DIST = configure.inc.in bigdft_cst.h.in $(DYN_INCLUDES)
+EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py $(DYN_INCLUDES)
 
 AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 

@@ -119,7 +119,7 @@ for file in yaml_files:
     dirc = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
     dirfic = ("%-27s %-38s" % (dirc,fic)).strip()
-    documents=[a for a in yaml.load_all(open(file, "r"), Loader = yaml.CLoader)]
+    documents=[a for a in yaml.load_all(open(file, "r").read(), Loader = yaml.CLoader)]
     #find whether all the tests have passed (look at last part)
     try:
         discrepancy=documents[-1]["Test succeeded"]

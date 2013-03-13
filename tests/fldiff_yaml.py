@@ -23,7 +23,7 @@ if  version <= [2,5,0]:
 
 
 import yaml
-from yaml_hl import *
+#from yaml_hl import *
 
 start_fail = "<fail>" #"\033[0;31m"
 start_fail_esc = "\033[0;31m "
@@ -254,16 +254,16 @@ if __name__ == "__main__":
 
 #print args.ref,args.data,args.output
 #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
-references = [a for a in yaml.load_all(open(args.ref, "r"), Loader = yaml.CLoader)]
+references = [a for a in yaml.load_all(open(args.ref, "r").read(), Loader = yaml.CLoader)]
 try:
-  datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+  datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
 except:
   datas = []
   reports = open(args.output, "w")
   fatal_error(args,reports)
 
 if args.tols:
-    orig_tols = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)
+    orig_tols = yaml.load(open(args.tols, "r").read(), Loader = yaml.CLoader)
 else:
     orig_tols = dict()
 
@@ -394,7 +394,8 @@ for i in range(len(references)):
                             default_flow_style=False,explicit_start=True))
   newreport.close()
   reports.write(open("report", "rb").read())
-  hl = YAMLHighlight(options)
+  Style = yaml_hl.Style
+  hl = yaml_hl.YAMLHighlight(options)
   hl.highlight()
   
 #create dictionary for the final report

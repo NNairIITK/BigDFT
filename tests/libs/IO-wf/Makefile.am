@@ -36,13 +36,23 @@ report:
 
 check_PROGRAMS = check_lib $(bindings_bin)
 
+if BUILD_DYNAMIC_LIBS
+bigdft_library = -L$(top_builddir)/src -lbigdft-1
+bigdft_library_rpath = -Wl,-rpath=$(abs_top_builddir)/src
+else
+bigdft_library = $(top_builddir)/src/libbigdft.a @LIBS_SHORT_DEPS@
+bigdft_library_rpath =
+endif
+
 check_lib_SOURCES = check_lib.f90
 check_lib_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
-check_lib_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+check_lib_LDADD = $(bigdft_library)
+check_lib_LDFLAGS = $(bigdft_library_rpath)
 
 check_lib_c_SOURCES = check_lib_c.c
 check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules
-check_lib_c_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@ @FCLIBS@
+check_lib_c_LDADD = $(bigdft_library) @FCLIBS@
+check_lib_c_LDFLAGS = $(bigdft_library_rpath)
 
 clean-local: 
 	rm -rf data-*
@@ -75,12 +85,17 @@ clean.in:
 
 check_lib_c check_lib: $(top_builddir)/src/libbigdft.a
 
+if BUILD_DYNAMIC_LIBS
+LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/src
+endif
+
 #Check read and write by doing twice run
 write_etsf.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz write.dft 
 	$(MAKE) in
 	@cp write.dft etsf.dft
 	@cp input.kpt etsf.kpt
 	@cp posinp.xyz etsf.xyz
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft etsf > $@
 	@rm -f etsf.dft etsf.kpt etsf.xyz
 	$(MAKE) clean.in
@@ -91,6 +106,7 @@ write_plain.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz writ
 	@cp input.kpt plain.kpt
 	@cp posinp.xyz plain.xyz
 	sed -i "s/^0 3 0/0 1 0/g" plain.dft
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft plain > $@
 	@rm -f plain.dft plain.kpt plain.xyz
 	$(MAKE) clean.in
@@ -101,6 +117,7 @@ write_binary.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz wri
 	@cp input.kpt binary.kpt
 	@cp posinp.xyz binary.xyz
 	sed -i "s/^0 3 0/0 2 0/g" binary.dft
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft binary > $@
 	@rm -f binary.dft binary.kpt binary.xyz
 	$(MAKE) clean.in
@@ -111,6 +128,7 @@ read_etsf.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.d
 	@cp read.dft etsf.dft
 	@cp input.kpt etsf.kpt
 	@cp posinp.xyz etsf.xyz
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft etsf > $@
 	@rm -f etsf.dft etsf.kpt etsf.xyz
 	$(MAKE) clean.in
@@ -120,6 +138,7 @@ read_plain.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.
 	@cp read.dft plain.dft
 	@cp input.kpt plain.kpt
 	@cp posinp.xyz plain.xyz
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft plain > $@
 	@rm -f plain.dft plain.kpt plain.xyz
 	$(MAKE) clean.in
@@ -129,6 +148,7 @@ read_binary.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read
 	@cp read.dft binary.dft
 	@cp input.kpt binary.kpt
 	@cp posinp.xyz binary.xyz
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft binary > $@
 	@rm -f binary.dft binary.kpt binary.xyz
 	$(MAKE) clean.in
@@ -139,6 +159,7 @@ wf_etsf.cube: write_etsf.out $(top_builddir)/src/bigdft-tool $(PPFILES) input.kp
 	@cp read.dft etsf.dft
 	@cp input.kpt etsf.kpt
 	@cp posinp.xyz etsf.xyz
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(top_builddir)/src/bigdft-tool --name etsf -a export-wf data-etsf/wavefunction.etsf --i-band 3 --i-spin 2 --i-kpt 2 --i-complex 2 > exportwf_etsf.log
 	mv wavefunction-k002-DI.b0003.cube $@
 	@rm -f wavefunction-k002-DI.b0003_avg_*
@@ -150,6 +171,7 @@ wf_plain.cube: write_plain.out $(top_builddir)/src/bigdft-tool $(PPFILES) input.
 	@cp read.dft plain.dft
 	@cp input.kpt plain.kpt
 	@cp posinp.xyz plain.xyz
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(top_builddir)/src/bigdft-tool --name plain -a export-wf data-plain/wavefunction-k002-DI.b0003 > exportwf_plain.log
 	mv wavefunction-k002-DI.b0003.cube $@
 	@rm -f wavefunction-k002-DI.b0003_avg_*
@@ -161,6 +183,7 @@ wf_binary.cube: write_binary.out $(top_builddir)/src/bigdft-tool $(PPFILES) inpu
 	@cp read.dft binary.dft
 	@cp input.kpt binary.kpt
 	@cp posinp.xyz binary.xyz
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(top_builddir)/src/bigdft-tool --name binary -a export-wf data-binary/wavefunction-k002-DI.bin.b0003 > exportwf_binary.log
 	mv wavefunction-k002-DI.b0003.cube $@
 	@rm -f wavefunction-k002-DI.b0003_avg_*

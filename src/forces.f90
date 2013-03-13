@@ -303,12 +303,11 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
   real(wp), dimension(nsize_psi), intent(in) :: psi
   real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp,fpulay
   real(gp), intent(out) :: fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
-  type(DFT_wavefunction),intent(in),optional :: tmb
-  real(gp),dimension(3,atoms%nat),optional,intent(in) :: fpulay
+  type(DFT_wavefunction),intent(in) :: tmb
   !local variables
   integer :: ierr,iat,i,j
   real(gp) :: charge,ucvol
@@ -369,33 +368,13 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   !add to the forces the ionic and dispersion contribution 
   if (.not. experimental_modulebase_var_onlyfion) then !normal case
      do iat=1,atoms%nat
-        fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)
-        fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)
-        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
+        fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)+fpulay(1,iat)
+        fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)+fpulay(2,iat)
+        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)+fpulay(3,iat)
      enddo
   else
      call vcopy(3*atoms%nat,fion(1,1),1,fxyz(1,1),1)
   end if
-
-  ! Pulay correction if present
-  if (present(fpulay)) then
-      if (iproc==0) then
-          !!do iat=1,atoms%nat
-          !!    write(444,'(2es16.6)') fxyz(1,iat), fpulay(1,iat)
-          !!    write(444,'(2es16.6)') fxyz(2,iat), fpulay(2,iat)
-          !!    write(444,'(2es16.6)') fxyz(3,iat), fpulay(3,iat)
-          !!end do
-          !!write(444,'(a)') '============================================'
-      end if
-      !!write(*,*) 'WARNING: IGNORE PULAY FORCES'
-      do iat=1,atoms%nat
-          fxyz(1,iat) = fxyz(1,iat) + fpulay(1,iat)
-          fxyz(2,iat) = fxyz(2,iat) + fpulay(2,iat)
-          fxyz(3,iat) = fxyz(3,iat) + fpulay(3,iat)
-      end do
-  end if
-
-
 
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)

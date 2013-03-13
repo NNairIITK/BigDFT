@@ -80,9 +80,14 @@ if test "$ar" = ":" ; then
   AC_MSG_ERROR(["No 'ar' program found."])
 fi
 
+dnl Produce dynamic excecutables.
+AC_ARG_ENABLE(dynamic-binaries, AS_HELP_STRING([--enable-dynamic-binaries],
+                                               [Build dynamically linked binaries (disabled by default).]),
+              ac_build_dynamic=$enableval, ac_build_dynamic="no")
+
 dnl Look for GLib and friends for bindings.
-AC_ARG_ENABLE(bindings, AS_HELP_STRING([--disable-bindings], [Don't build C bindings (enabled by default).]),
-              ac_build_bindings=$enableval, ac_build_bindings="yes")
+AC_ARG_ENABLE(bindings, AS_HELP_STRING([--enable-bindings], [Build C bindings (disabled by default).]),
+              ac_build_bindings=$enableval, ac_build_bindings="no")
 if test x"$ac_build_bindings" = x"yes" ; then
   AX_FC_POINTER()
   if test $F90_1D_POINTER_SIZE = 0 ; then
@@ -109,11 +114,42 @@ if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
     AC_SUBST(typelibsdir)
     AC_SUBST([G_IR_SCANNER], [$($PKG_CONFIG --variable=g_ir_scanner gobject-introspection-1.0)])
     AC_SUBST([G_IR_COMPILER], [$($PKG_CONFIG --variable=g_ir_compiler gobject-introspection-1.0)])
+    dnl Force dynamic library building.
+    ac_build_dynamic="yes"
   fi
 else
   have_glib=no
   have_gdbus=no
+  enable_introspection=no
 fi
+dnl Test for library building tools.
+if test x"$ac_build_dynamic" = x"yes" ; then
+  AX_FLAG_PIC()
+  if test -z "$ax_flag_pic" ; then
+    AC_MSG_WARN(["No available position-independent code flag, bindings disabled."])
+    ac_build_dynamic=no
+    ac_build_bindings=warn
+    have_glib=no
+    have_gdbus=no
+    enable_introspection=no
+  else
+    CFLAGS="$CFLAGS $ax_flag_pic"
+    CXXFLAGS="$CXXFLAGS $ax_flag_pic"
+    FCFLAGS="$FCFLAGS $ax_flag_pic"
+
+    eval "set x $ac_configure_args"
+    shift
+    ac_configure_args=
+    for ac_arg ; do
+      case $ac_arg in
+        CFLAGS=* | CXXFLAGS=* | FCFLAGS=*) ;;
+        *) ac_configure_args="$ac_configure_args '$ac_arg'"
+      esac
+    done
+    ac_configure_args="$ac_configure_args 'CFLAGS=$CFLAGS' 'CXXFLAGS=$CXXFLAGS' 'FCFLAGS=$FCFLAGS'"
+  fi
+fi
+AM_CONDITIONAL([BUILD_DYNAMIC_LIBS], [test "x$ac_build_dynamic" = "xyes"])
 AM_CONDITIONAL([WITH_GOBJECT_INTROSPECTION], [test "x$enable_introspection" = "xyes"])
 if test x"$have_glib" = x"yes" ; then
   AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
@@ -720,40 +756,83 @@ fi
 dnl Test for Scalapack
 if test x"$withmpi" = x"yes" ; then
 dnl Test for blacs
-dnl Get the lapack library
-ac_blacs=yes
-AC_ARG_WITH(blacs, AS_HELP_STRING([--with-blacs], [Link with blacs library (default = no).]), ac_blacs=$withval, ac_blacs=yes)
+ac_blacs=-lblacs
+AC_ARG_WITH(blacs, AS_HELP_STRING([--with-blacs], [Link with blacs library (default = no).]), ac_blacs=$withval, ac_blacs=-lblacs)
 AC_ARG_WITH(blacs-path, AS_HELP_STRING([--with-blacs-path], [Give the path of the Blacs library (default = /usr/lib).]),
             ac_blacs_dir=$withval, ac_blacs_dir=)
 if test -n "$ac_blacs_dir" ; then
   LDFLAGS="$LDFLAGS -L$ac_blacs_dir"
 fi
 withblacs=no
-if test	x"$ac_blacs" = x"yes" ; then
-  ac_blacs=blacs
-fi
 if test "$ac_blacs" != "no" ; then
-  AC_CHECK_LIB($ac_blacs, blacs_get, withblacs=yes, withblacs=no,$LINALG_LIBS)
+  case $ac_blacs in
+    -l*)
+    AC_MSG_CHECKING([for blacs libraries])
+    AC_LANG_CONFTEST([AC_LANG_CALL([], [blacs_get])])
+    LIBS_SVG=$LIBS
+    for ac_lib in $ac_blacs '-lblacs -lblacsF77init' '-lblacs-openmpi' '-lblacs-openmpi -lblacsF77init-openmpi'; do
+      LIBS="$ac_lib $LIBS_SVG"
+      AC_LINK_IFELSE([], [ac_blacs=$ac_lib], [ac_blacs="no"])
+      if test x"$ac_blacs" != x"no" ; then
+        break
+      fi
+    done
+    rm conftest*
+    LIBS=$LIBS_SVG
+    AC_MSG_RESULT([$ac_blacs])
+    if test x"$ac_blacs" != x"no" ; then
+      withblacs=yes
+    else
+      withblacs=warn
+    fi
+    ;;
+    *)
+    AC_CHECK_LIB($ac_blacs, blacs_get, withblacs=yes, withblacs=warn,$LINALG_LIBS)
+    ac_blacs=-l$ac_blacs
+    ;;
+  esac
   if test "$withblacs" = "yes"; then
-    LINALG_LIBS="-l$ac_blacs $LINALG_LIBS"
+    LINALG_LIBS="$ac_blacs $LINALG_LIBS"
   fi
 fi
 dnl get the scalapack library
-ac_scalapack=yes
-AC_ARG_WITH(scalapack, AS_HELP_STRING([--with-scalapack], [Link with scalapack library (default = no).]), ac_scalapack=$withval, ac_scalapack=yes)
+ac_scalapack=-lscalapack
+AC_ARG_WITH(scalapack, AS_HELP_STRING([--with-scalapack], [Link with scalapack library (default = no).]), ac_scalapack=$withval, ac_scalapack=-lscalapack)
 AC_ARG_WITH(scalapack-path, AS_HELP_STRING([--with-scalapack-path], [Give the path of the Scalapack library (default = /usr/lib).]),
             ac_scalapack_dir=$withval, ac_scalapack_dir=)
 if test -n "$ac_scalapack_dir" ; then
   LDFLAGS="$LDFLAGS -L$ac_scalapack_dir"
 fi
 withscalapack=no
-if test	x"$ac_scalapack" = x"yes" ; then
-  ac_scalapack=scalapack
-fi
 if test "$ac_scalapack" != "no" ; then
-  AC_CHECK_LIB($ac_scalapack, pdsygvx, withscalapack=yes, withscalapack=warn,$LINALG_LIBS)
+  case $ac_scalapack in
+    -l*)
+    AC_MSG_CHECKING([for scalapack libraries])
+    AC_LANG_CONFTEST([AC_LANG_CALL([], [pdsygvx])])
+    LIBS_SVG=$LIBS
+    for ac_lib in $ac_scalapack '-lscalapack-openmpi'; do
+      LIBS="$ac_lib $LIBS_SVG"
+      AC_LINK_IFELSE([], [ac_scalapack=$ac_lib], [ac_scalapack="no"])
+      if test x"$ac_scalapack" != x"no" ; then
+        break
+      fi
+    done
+    rm conftest*
+    LIBS=$LIBS_SVG
+    AC_MSG_RESULT([$ac_scalapack])
+    if test x"$ac_scalapack" != x"no" ; then
+      withscalapack=yes
+    else
+      withscalapack=warn
+    fi
+    ;;
+    *)
+    AC_CHECK_LIB($ac_scalapack, pdsygvx, withscalapack=yes, withscalapack=warn,$LINALG_LIBS)
+    ac_scalapack=-l$ac_scalapack
+    ;;
+  esac
   if test "$withscalapack" = "yes"; then
-    LINALG_LIBS="-l$ac_scalapack $LINALG_LIBS"
+    LINALG_LIBS="$ac_scalapack $LINALG_LIBS"
   fi
 fi
    
@@ -994,7 +1073,6 @@ if test x"$ac_build_libyaml" != x"skip" ; then
 fi
 
 AC_OUTPUT
-
 
 echo "
 BigDFT configure summary:

@@ -3,7 +3,11 @@
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 
+#include <config.h>
+#undef HAVE_GDBUS
+
 #include "bigdft.h"
+
 
 #ifdef HAVE_GDBUS
 #include "bindings_dbus.h"
@@ -366,6 +370,8 @@ int main(int argc, const char **argv)
   BigDFT_OptLoop *optloop;
   BigDFT_SignalsClient *client;
   GArray *radii;
+  char memocc[] = "malloc.prc";
+  int memocc_ln = sizeof(memocc);
 
   /* GSource *source; */
 
@@ -374,6 +380,8 @@ int main(int argc, const char **argv)
 #if GLIB_MINOR_VERSION < 24
   g_thread_init(NULL);
 #endif
+
+  FC_FUNC_(memocc_set_output, MEMOCC_SET_OUTPUT)(memocc, &memocc_ln, memocc_ln);
 
   loop = g_main_loop_new (NULL, FALSE);
 

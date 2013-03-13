@@ -28,6 +28,10 @@ LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
 PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
 endif
 
+if BUILD_DYNAMIC_LIBS
+LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/src
+endif
+
 AM_FCFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/PSolver -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 PSPS = psppar.H \
@@ -89,6 +93,7 @@ report:
 	@if test $(MAKELEVEL) = 0 ; then	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ;python $(top_srcdir)/tests/report.py ; fi
 
 %.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(abs_top_builddir)/src/bigdft-tool -n 1 > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
@@ -103,6 +108,7 @@ report:
 	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
 	fi; \
 	echo outdir ./ >> $$file ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
 	if test -f $$file.bak ; then \
 	   mv $$file.bak $$file ; else rm -f $$file ; \
@@ -119,6 +125,7 @@ report:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.dipole.dat.out: %.out.out
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube > bader.out && mv dipole.dat $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
@@ -130,12 +137,14 @@ report:
 	   cat accel.perf >> $$file ; \
 	fi ; \
 	echo outdir ./ >> $$file ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(abs_top_builddir)/src/frequencies > $@
 	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi ;\
 	name=`basename $@ .freq.out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
 	rm -f triH.NEB.it*
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(abs_top_builddir)/src/NEB < input | tee $@
 	cat triH.NEB.0*/log.yaml > log.yaml
 	rm -rf triH.NEB.0*
@@ -143,25 +152,31 @@ report:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.splsad.out: $(abs_top_builddir)/src/splsad
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(abs_top_builddir)/src/splsad > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.minhop.out: $(abs_top_builddir)/src/global
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(abs_top_builddir)/src/global > $@
 #	mv log-mdinput.yaml log.yaml
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.xabs.out: $(abs_top_builddir)/src/abscalc
 	name=`basename $@ .xabs.out` ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(abs_top_builddir)/src/abscalc $$name > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.b2w.out: $(abs_top_builddir)/src/BigDFT2Wannier
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(abs_top_builddir)/src/BigDFT2Wannier $$name > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.testforces.out: $(abs_top_builddir)/src/test_forces
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(abs_top_builddir)/src/test_forces > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
@@ -179,7 +194,7 @@ $(PSPS):
 	          rm -f $i ; \
 	       fi ; \
 	   done ; \
-       rm -f *.out *.mon *.report default* *.prc; \
+       rm -f *.out *.mon *.report *.report.yaml default* *.prc; \
 	   rm -fr data data-*; rm -f accel.perf; \
 	   rm -f velocities.xyz pdos.dat td_spectra.txt ; \
 	   rm -f bfgs_eigenvalues.dat frequencies.res frequencies.xyz hessian.dat ; \

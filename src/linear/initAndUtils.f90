@@ -760,7 +760,7 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
   !end do
 
   call timing(iproc,'init_locregs  ','OF')
-  
+
   call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
        & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), at, lzd, orbs, &
        & lzd%glr, input%lin%locrad, 's')
