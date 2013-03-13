@@ -11,10 +11,10 @@ conv_check_fftw_LDADD = @LIBS_DEPENDENCIES@ -lfftw3 -lfftw3_threads
 else
 EXTRA_PROGRAMS = conv_check_fftw
 
-conv_check_fft_SOURCES = 
-conv_check_fft_LDADD = 
+conv_check_fft_SOURCES =
+conv_check_fft_LDADD =
 
-conv_check_fftw_SOURCES = 
+conv_check_fftw_SOURCES =
 conv_check_fftw_LDADD =
 
 endif
@@ -56,7 +56,6 @@ noinst_LIBRARIES = libpoissonsolver.a
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
-
 libpoissonsolver_a_SOURCES = Poisson_Solver.f90
 
 if CAPITALIZE
@@ -70,9 +69,9 @@ CLEANFILES = $(EXTRA_PROGRAMS) $(module_DATA)
 SUFFIXES = .cu
 
 NVCC = @NVCC@
-NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@ 
+NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@
 
-AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
+AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/
 
 #dependencies
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
@@ -90,4 +89,3 @@ conv_check_fftw.o: fftw.o
 
 .cpp.o:
 	icc -openmp -lfftw3 -lfftw3_threads -c $< -o $@
-        

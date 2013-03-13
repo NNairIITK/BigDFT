@@ -1033,6 +1033,57 @@ contains
     lzd%Glr=default_locreg()
     nullify(lzd%Llr)
   end function default_lzd
+ 
+  function symm_null() result(sym)
+     type(symmetry_data) :: sym
+     sym%symObj=-1
+     nullify(sym%irrzon)
+     nullify(sym%phnons)
+  end function symm_null
+
+  function atoms_null() result(at)
+     type(atoms_data) :: at
+     at%geocode='X'
+     at%format=repeat(' ',len(at%format))
+     at%units=repeat(' ',len(at%units))
+     at%nat=-1
+     at%ntypes=-1
+     at%natsc=-1
+     at%alat1=0.0_gp
+     at%alat2=0.0_gp
+     at%alat3=0.0_gp
+     at%donlcc=.false.
+     at%sym=symm_null()
+     at%iat_absorber=-1
+     nullify(at%atomnames)
+     nullify(at%iatype)
+     nullify(at%iasctype)
+     nullify(at%natpol)
+     nullify(at%nelpsp)
+     nullify(at%npspcode)
+     nullify(at%ixcpsp)
+     nullify(at%nzatom)
+     nullify(at%radii_cf)
+     nullify(at%ifrztyp)
+     nullify(at%amu)
+     nullify(at%aocc)
+     nullify(at%rloc)
+     nullify(at%psppar)
+     nullify(at%nlcc_ngv)
+     nullify(at%nlcc_ngc)
+     nullify(at%nlccpar)
+     nullify(at%ig_nlccpar)
+     nullify(at%paw_NofL)
+     nullify(at%paw_l)
+     nullify(at%paw_nofchannels)
+     nullify(at%paw_nofgaussians)
+     nullify(at%paw_Greal)
+     nullify(at%paw_Gimag)
+     nullify(at%paw_Gcoeffs)
+     nullify(at%paw_H_matrices)
+     nullify(at%paw_S_matrices)
+     nullify(at%paw_Sm1_matrices)
+  end function atoms_null
 
   function bigdft_run_id_toa()
     use yaml_output

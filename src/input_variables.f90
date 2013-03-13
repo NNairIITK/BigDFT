@@ -19,6 +19,8 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
   logical :: exist_list
   integer :: group_size,ierr
 
+  atoms=atoms_null()
+
   ! initialize mpi environment (this shouldn't be done twice)
 !  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,nproc)
   !standard names
@@ -296,11 +298,11 @@ subroutine read_input_parameters2(iproc,in,atoms,rxyz)
   real(gp) :: tt
   !character(len=500) :: logfile,logfile_old,logfile_dir
   !logical :: exists
-!print *,'hereAAA',associated(rxyz),iproc
+!!$  print *,'hereAAA',iproc
   ! Shake atoms, if required.
   call atoms_set_displacement(atoms, rxyz, in%randdis)
 !!$  print *,'hello21',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
-!!$call mpi_barrier(mpi_comm_world,ierr)
+  call mpi_barrier(mpi_comm_world,ierr)
 
   ! Update atoms with symmetry information
   call atoms_set_symmetries(atoms, rxyz, in%disableSym, in%symTol, in%elecfield)
@@ -311,7 +313,7 @@ subroutine read_input_parameters2(iproc,in,atoms,rxyz)
   call inputs_parse_add(in, atoms, iproc, .true.)
 !!$
 !!$  print *,'hello23',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
-!!$call mpi_barrier(mpi_comm_world,ierr)
+!!$  call mpi_barrier(mpi_comm_world,ierr)
 
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
@@ -343,7 +345,7 @@ subroutine read_input_parameters2(iproc,in,atoms,rxyz)
   call check_for_data_writing_directory(iproc,in)
 
 !!$  print *,'hello24',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
-!!$call mpi_barrier(mpi_comm_world,ierr)
+!!$  call mpi_barrier(mpi_comm_world,ierr)
 
 
 END SUBROUTINE read_input_parameters2
@@ -391,7 +393,7 @@ subroutine check_for_data_writing_directory(iproc,in)
            call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
         end if
      end if
-     call MPI_BCAST(dirname,128,MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
+     call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
      in%dir_output=dirname
      if (iproc==0) call yaml_map('Data Writing directory',trim(in%dir_output))
   else
@@ -2347,9 +2349,11 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
    call check_atoms_positions(iproc,atoms,rxyz)
 
    ! We delay the calculation of the symmetries.
-   atoms%sym%symObj = -1
-   nullify(atoms%sym%irrzon)
-   nullify(atoms%sym%phnons)
+!this should be already in the atoms_null routine
+   atoms%sym=symm_null()
+!   atoms%sym%symObj = -1
+!   nullify(atoms%sym%irrzon)
+!   nullify(atoms%sym%phnons)
 
    ! close open file.
    if (.not.archive .and. trim(atoms%format) /= "yaml") then

@@ -835,8 +835,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
   ! set npsidim_comp here too?!
   npsidim_comp=1
 
-  ! don't really want to keep this unless we do so right from the start, but for now keep it to avoid updating refs
-  orbs%eval=-.5d0
+!  ! don't really want to keep this unless we do so right from the start, but for now keep it to avoid updating refs
+!  orbs%eval=-.5d0
 
   call timing(iproc,'updatelocreg1','OF') 
 
@@ -1103,6 +1103,8 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz,
       locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
   end do
 
+  !temporary,  moved from update_locreg
+  tmb%orbs%eval=-0.5_gp
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, locregCenter, tmb%lzd%glr, &
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        at, input, KSwfn%orbs, tmb%orbs, tmb%ham_descr%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &

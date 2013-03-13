@@ -281,6 +281,7 @@ modules_source = modules/base.f90 \
 	modules/input.f90 \
 	modules/dictionaries.f90 \
 	modules/dynamic_memory.f90 \
+	modules/getadd.f90 \
 	modules/xc.f90 \
 	modules/op2p_module.f90 \
 	modules/BigDFT_API.f90 \

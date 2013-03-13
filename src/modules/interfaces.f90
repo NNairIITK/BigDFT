@@ -939,16 +939,16 @@ module module_interfaces
          real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp,orbs%nspinor), intent(inout) :: hpsi
       END SUBROUTINE preconditionall
 
-      subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,gnrm,gnrm_zero)
+      subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,confdatarr,gnrm,gnrm_zero)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc,nproc,ncong
+        integer, intent(in) :: iproc,nproc,ncong,npsidim
         real(gp), intent(in) :: hx,hy,hz
         type(local_zone_descriptors), intent(in) :: Lzd
         type(orbitals_data), intent(in) :: orbs
         real(dp), intent(out) :: gnrm,gnrm_zero
-        real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+        real(wp), dimension(npsidim), intent(inout) :: hpsi
         type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
       end subroutine preconditionall2
 
@@ -1801,7 +1801,7 @@ module module_interfaces
          integer, intent(in) :: iorb,ispinor,unitfile
          type(orbitals_data), intent(in) :: orbs
          integer, intent(out) :: iorb_out
-         integer,optional :: iiorb   
+         integer,intent(in),optional :: iiorb   
       END SUBROUTINE open_filename_of_iorb
 
       subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb)
@@ -1814,7 +1814,7 @@ module module_interfaces
          type(orbitals_data), intent(in) :: orbs
          character(len=*) :: filename_out
          integer, intent(out) :: iorb_out
-         integer,optional :: iiorb
+         integer,intent(in),optional :: iiorb
       END SUBROUTINE filename_of_iorb
 
       subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
@@ -2457,12 +2457,13 @@ module module_interfaces
        character(len=*),intent(in):: subname
      end subroutine copy_orbitals_data
 
-     subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, subname)
+     subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
        use module_base
        use module_types
        implicit none
        type(sparseMatrix),intent(in):: sparseMat_in
        type(sparseMatrix),intent(inout):: sparseMat_out
+       integer,intent(in):: iproc
        character(len=*),intent(in):: subname
     end subroutine sparse_copy_pattern
 

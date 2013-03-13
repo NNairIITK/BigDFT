@@ -313,6 +313,8 @@ program PS_Check
 
    call timing(pkernel%mpi_env%iproc +pkernel%mpi_env%igroup,'Serial','PR')
 
+   call f_malloc_dump_status()
+
 !!$   i_all=-product(shape(pkernel))*kind(pkernel)
 !!$   deallocate(pkernel,stat=i_stat)
 !!$   call memocc(i_stat,i_all,'pkernel',subname)

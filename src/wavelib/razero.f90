@@ -11,7 +11,7 @@ subroutine razero(n,x)
   implicit none
   !Arguments
   integer, intent(in) :: n
-  real(kind=8), intent(out) :: x(n)
+  double precision, dimension(n), intent(out) :: x
   !Local variables
   integer :: i
 !$ logical :: within_openmp,omp_in_parallel,omp_get_nested
@@ -27,9 +27,6 @@ subroutine razero(n,x)
 !$omp end parallel
 
 end subroutine razero
-
-
-
 
 !>   Set to zero an array x(n)
 subroutine razero_simple(n,x)

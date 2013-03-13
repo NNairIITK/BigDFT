@@ -69,7 +69,7 @@ module_DATA = $(mod_bigdft)
 include_HEADERS = $(bindings_headers)
 nodist_include_HEADERS = $(bindings_headers_nodist)
 
-DYN_INCLUDES = deallocate-inc.f90 allocate-inc.f90
+DYN_INCLUDES = deallocate-inc.f90 allocate-inc.f90 f_malloc-inc.f90
 
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in $(DYN_INCLUDES)
 
@@ -84,6 +84,7 @@ libmodules_a_SOURCES = base.f90 \
 	input.f90 \
 	dictionaries.f90 \
 	dynamic_memory.f90 \
+	getadd.f90 \
 	interfaces.f90 \
 	private_api.f90 \
 	xc.f90 \

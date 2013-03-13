@@ -3,7 +3,7 @@
 subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
   use module_base
   use module_types
-  use module_interfaces, fake_name=>initSparseMatrix
+  use module_interfaces, fake_name => initSparseMatrix
   implicit none
   
   ! Calling arguments
