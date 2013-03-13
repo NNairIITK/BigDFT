@@ -174,7 +174,7 @@ call yaml_close_sequence()
    !  call append(dictA,dictA2)
    call yaml_dict_dump(dictA)
    call dict_free(dictA)
-
+   call yaml_map('Ended',.true.)
    call f_malloc_set_status(memory_limit=0.e0)
    call f_malloc_routine_id('PS_Check')
 !!$
@@ -188,20 +188,20 @@ call yaml_close_sequence()
    !XC potential
    xc_pot=f_malloc(3*2,id='xc_pot')
 
-!   call f_malloc_dump_status()
-
+   call f_malloc_dump_status()
    extra_ref=f_malloc(3,id='extra_ref')
 
    rhopot=f_malloc(3*2,id='rhopot')
    call f_free(rhopot)
-
-   call f_free(density,potential,pot_ion,xc_pot,extra_ref)
+   call yaml_map('Ended1',.true.)
+   !call f_free(density,potential,pot_ion,xc_pot,extra_ref)
 !!$   call f_malloc_dump_status()
-!!$   call f_free(potential)
-!!$   call f_free(pot_ion)
-!!$   call f_malloc_dump_status()
-!!$   call f_free(xc_pot)
-!!$   call f_free(extra_ref)
-
+   call f_free(potential)
+   call yaml_map('Ended0',.true.)
+   call f_free(pot_ion)
+   call f_malloc_dump_status()
+   call f_free(xc_pot)
+   call f_free(extra_ref)
+   call yaml_map('Ended2',.true.)
    call f_malloc_finalize()
 end program yaml_test

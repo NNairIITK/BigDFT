@@ -60,7 +60,7 @@ module dictionaries
   end interface
 
   public :: operator(//), assignment(=)
-  public :: set,dict_init,dict_free,try,close_try,pop,append,prepend,find_key
+  public :: set,dict_init,dict_free,try,close_try,pop,append,prepend,find_key,length
   
 
 contains
@@ -163,7 +163,6 @@ contains
     end if
 
   end subroutine set_item
-
 
   recursive subroutine define_parent(dict,child)
     implicit none
@@ -270,6 +269,18 @@ contains
 
     end subroutine pop_dict_
   end subroutine pop_dict
+
+  function length(dict)
+    implicit none
+    type(dictionary), intent(in), pointer :: dict
+    integer :: length
+    
+    if (associated(dict)) then
+       length=dict%data%nitems
+    else
+       length=-1
+    end if
+  end function length
 
   subroutine pop_last(dict)
     implicit none
@@ -382,7 +393,9 @@ contains
     type(dictionary), intent(in), pointer :: dict !hidden inout
     character(len=*), intent(in) :: key
     type(dictionary), pointer :: dict_ptr
-
+    if (.not. associated(dict)) then
+       nullify(dict_ptr)
+    end if
 !TEST 
 if (.not. associated(dict%parent)) then
    dict_ptr =>  find_key(dict%child,key)
