@@ -102,6 +102,7 @@ call yaml_close_sequence()
    !alternative way of filling
    dict2 => dict//'First'
    call set(dict//'First'//'Three',3)
+   call set(dict2//'Threeb','3b')
 
    !print dictionary status
    call yaml_dict_dump(dict,flow=.true.)

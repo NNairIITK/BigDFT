@@ -1002,7 +1002,7 @@ contains
     nullify(b%ibyyzz_r)
   end function default_bounds
 
-  function default_locreg() result(lr)
+  function locreg_null() result(lr)
     type(locreg_descriptors) :: lr
 
     lr%geocode='F'
@@ -1021,7 +1021,7 @@ contains
     lr%locregCenter=(/0.0_gp,0.0_gp,0.0_gp/) 
     lr%locrad=0 
 
-  end function default_locreg
+  end function locreg_null
 
   function default_lzd() result(lzd)
     type(local_zone_descriptors) :: lzd
@@ -1030,7 +1030,7 @@ contains
     lzd%lintyp=0
     lzd%ndimpotisf=0
     lzd%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    lzd%Glr=default_locreg()
+    lzd%Glr=locreg_null()
     nullify(lzd%Llr)
   end function default_lzd
  

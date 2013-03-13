@@ -54,9 +54,10 @@ module dynamic_memory
   !global variables for initialization
   logical :: profile_initialized=.false.
   !dictionaries needed for profiling storage
-  type(dictionary), pointer :: dict_global,dict_routine
+  type(dictionary), pointer :: dict_global,dict_routine,dict_calling_sequence
+  type(dictionary), pointer :: dict_codepoint=>null() !save variable which says where we are in the code
   !global variable (can be stored in dictionaries)
-  logical :: routine_closed=.false.
+  logical :: routine_opened=.false.,routine_changed=.false.
   character(len=namelen) :: present_routine=repeat(' ',namelen)
 
   !parameters for defitions of internal dictionary
@@ -181,7 +182,6 @@ contains
 
   end function f_malloc_bounds
 
-
   !define the allocation information for  arrays of different rank
   function f_malloc(shape,id,routine_id,lbounds,ubounds,bounds,try) result(m)
     implicit none
@@ -288,7 +288,6 @@ contains
 
   end function f_malloc0_bounds
 
-
   !define the allocation information for  arrays of different rank
   function f_malloc0(shape,id,routine_id,lbounds,ubounds,bounds,try) result(m)
     implicit none
@@ -386,16 +385,29 @@ contains
     integer :: lgt
     if (trim(present_routine) /= trim(routine_id)) then
        if(len_trim(present_routine)/=0) then
-          routine_closed=.true.
+          routine_opened=.true.
        else
           !this means that we are at the initialization
           call dict_init(dict_routine)
+          !add this name in the calling sequence
+          !we should add a way to append the routine
+          !call set(dict_codepoint)
        end if
        present_routine=repeat(' ',namelen)
        lgt=min(len(routine_id),namelen)
        present_routine(1:lgt)=routine_id(1:lgt)
     end if
   end subroutine f_malloc_routine_id
+
+  !> close a previously opened routine
+  subroutine f_malloc_free_routine()
+    implicit none
+    if(len_trim(present_routine) ==0) then 
+       stop 'ERROR, routine not opened'
+    end if
+    call prepend(dict_global,dict_routine)
+    routine_opened=.false.
+  end subroutine f_malloc_free_routine
 
   !>initialize the library
   subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,unit)
@@ -408,8 +420,12 @@ contains
     if (.not. profile_initialized) then
        profile_initialized=.true.
        !initalize the dictionary with the allocation information
+       nullify(dict_routine)
        call dict_init(dict_global)
        call set(dict_global//'Timestamp of Profile initialization',trim(yaml_date_and_time_toa()))
+       call dict_init(dict_calling_sequence)
+       !in principle the calling sequence starts from the main
+       dict_codepoint => dict_calling_sequence//'Calling sequence of Main program'
     end if
 
     if (present(memory_limit)) call memocc_set_memory_limit(memory_limit)
@@ -443,7 +459,7 @@ contains
     call memocc_report()
     profile_initialized=.false.
     present_routine=repeat(' ',namelen)
-    routine_closed=.false.
+    routine_opened=.false.
   end subroutine f_malloc_finalize
 
   subroutine check_for_errors(ierror,try)
@@ -517,7 +533,7 @@ contains
 
     !finalize the routine
     !if (trim(present_routine) /= trim(m%routine_id)) then
-    if (routine_closed) then
+    if (.not. routine_opened) then
        !if (len_trim(present_routine)/=0) then
        call prepend(dict_global,dict_routine)
        !      present_routine=m%routine_id

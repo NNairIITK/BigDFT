@@ -316,7 +316,7 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    nlpspd%natoms=at%nat
    allocate(nlpspd%plr(at%nat),stat=i_stat)
    do iat=1,at%nat
-      nlpspd%plr(iat)=default_locreg() !< set in types
+      nlpspd%plr(iat)=locreg_null() !< set in types
    end do
 
   ! define the region dimensions
