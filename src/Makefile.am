@@ -48,7 +48,7 @@ EXTRA_DIST = \
 if BUILD_DYNAMIC_LIBS
 bigdft_dynamic_library = libbigdft-1.so.7.0.24
 bigdft_library = libbigdft-1.so.7
-bigdft_library_rpath = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
+bigdft_library_rpath = -Wl,-rpath=$(DESTDIR)$(dynlibdir) -Wl,-soname=$(bigdft_library)
 else
 bigdft_dynamic_library =
 bigdft_library = libbigdft.a @LIBS_SHORT_DEPS@
