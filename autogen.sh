@@ -13,6 +13,13 @@ echo "Generating PSP database."
 python config/pspconf.py > src/init/psp.inc
 sed '/!!PSP_TABLE!!/r src/init/psp.inc' src/init/pspconf.in.f90 > src/init/pspconf.f90
 rm -f src/init/psp.inc
+GDBUS_CODEGEN=`which gdbus-codegen`
+if test -n "$GDBUS_CODEGEN" ; then
+  echo "Generate Dbus bindings (obsolete)."
+  cd src/bindings
+  $GDBUS_CODEGEN --interface-prefix eu.etsf.bigdft.dbus. --generate-c-code bindings_dbus --c-namespace BigdftDBus --c-generate-object-manager bindings_dbus.xml
+  cd -
+fi
 echo "Autotoolize the libXC source tree."
 cd libxc-1.1.0; libtoolize -fc; autoreconf -fi; cd -
 echo "Autotoolize the libyaml source tree."
