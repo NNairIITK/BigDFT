@@ -527,6 +527,7 @@ module module_types
      real(kind=8) :: psi_c_r,psi_f_r,psi_c_b,psi_f_b,psi_c_d,psi_f_d
      real(kind=8) :: psi_c_r_i,psi_f_r_i,psi_c_b_i,psi_f_b_i,psi_c_d_i,psi_f_d_i
      real(kind=8) :: keyg_c,keyg_f,keyv_c,keyv_f
+     real(kind=8) :: keyg_c_host,keyg_f_host,keyv_c_host,keyv_f_host
      real(kind=8) :: context,queue
      !host pointers to be freed
      real(kind=8) :: rhopot_down_host, rhopot_up_host

@@ -11,7 +11,7 @@
 !> Test yaml output module
 program yaml_test
    use yaml_output
-   use dictionaries
+   use dictionaries, dict_char_len=> max_field_length
    use dynamic_memory
    implicit none
    logical :: fl
@@ -23,6 +23,7 @@ program yaml_test
    type(dictionary), pointer :: dict,dictA
    type(dictionary), pointer :: dict2,dictA2,dict_routine,dict_global,dict_array
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot,extra_ref
+   character(len=dict_char_len) :: routinename
    integer :: ival
 
    !First document
@@ -147,7 +148,6 @@ call yaml_close_sequence()
   call pop(dict,'Number of Groups')
   call yaml_map('Last pop done, still associated',associated(dict))
 
-
    call dict_init(dictA)
 
    call dict_init(dictA2)
@@ -175,6 +175,48 @@ call yaml_close_sequence()
    call yaml_dict_dump(dictA)
    call dict_free(dictA)
    call yaml_map('Ended',.true.)
+
+   !let used to imagine a routine-tree creation
+   nullify(dict2)
+   call dict_init(dictA)
+   dict2=>dictA//'Routine Tree'
+   call yaml_map('Length',dict_len(dict2))
+   call add(dict2,'Routine 0')
+   call add(dict2,'Routine A')
+   call add(dict2,'Routine B')
+   call add(dict2,'Routine C')
+   call add(dict2,'Routine D')
+   call yaml_dict_dump(dictA)
+
+   !now imagine that a new routine is created
+   ival=dict_len(dict2)-1
+   routinename=dict2//ival
+
+   call yaml_map('The routine which has to be converted is',trim(routinename))
+   
+   call pop(dict2,ival)
+
+   call yaml_dict_dump(dictA)
+
+   dictA2=>dict2//ival//'Subroutine A'
+
+   call yaml_dict_dump(dictA)
+   !end of opening a new routine
+
+   call add(dictA2,'SubRoutine 0')
+   call add(dictA2,'SubRoutine A')
+   call add(dictA2,'SubRoutine B')
+   call add(dictA2,'SubRoutine C')
+   call add(dictA2,'SubRoutine D')
+
+   call yaml_dict_dump(dictA)
+
+   !now the routine has to be closed
+   !we should jump at the upper level
+
+   call dict_free(dictA)
+stop
+
    call f_malloc_set_status(memory_limit=0.e0)
    call f_malloc_routine_id('PS_Check')
 !!$
@@ -193,7 +235,8 @@ call yaml_close_sequence()
 
    rhopot=f_malloc(3*2,id='rhopot')
    call f_free(rhopot)
-   call yaml_map('Ended1',.true.)
+   call yaml_map('Ended1, hic sunt leones',.true.)
+
    !call f_free(density,potential,pot_ion,xc_pot,extra_ref)
 !!$   call f_malloc_dump_status()
    call f_free(potential)

@@ -26,16 +26,16 @@ ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvct
 size_t length = nseg_c;\n\
 __global const uint * first;\n\
 __global const uint * middle;\n\
-size_t half;\n\
+size_t halfpos;\n\
 first = keyv_c;\n\
 do {\n\
-  half = length / 2;\n\
-  middle = first + half;\n\
+  halfpos = length / 2;\n\
+  middle = first + halfpos;\n\
   if( *middle-1 <= ig ) {\n\
     first = middle+1;\n\
-    length = length - half - 1;\n\
+    length = length - halfpos - 1;\n\
   } else {\n\
-    length = half;\n\
+    length = halfpos;\n\
   }\n\
 } while (length > 0);\n\
 first--;\n\
@@ -57,16 +57,16 @@ ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvct
 size_t length = nseg_f;\n\
 __global const uint * first;\n\
 __global const uint * middle;\n\
-size_t half;\n\
+size_t halfpos;\n\
 first = keyv_f;\n\
 do {\n\
-  half = length / 2;\n\
-  middle = first + half;\n\
+  halfpos = length / 2;\n\
+  middle = first + halfpos;\n\
   if( *middle-1 <= ig ) {\n\
     first = middle+1;\n\
-    length = length - half - 1;\n\
+    length = length - halfpos - 1;\n\
   } else {\n\
-    length = half;\n\
+    length = halfpos;\n\
   }\n\
 } while (length > 0);\n\
 first--;\n\
@@ -117,16 +117,16 @@ ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvct
 size_t length = nseg_c;\n\
 __global const uint * first;\n\
 __global const uint * middle;\n\
-size_t half;\n\
+size_t halfpos;\n\
 first = keyv_c;\n\
 do {\n\
-  half = length / 2;\n\
-  middle = first + half;\n\
+  halfpos = length / 2;\n\
+  middle = first + halfpos;\n\
   if( *middle-1 <= ig ) {\n\
     first = middle+1;\n\
-    length = length - half - 1;\n\
+    length = length - halfpos - 1;\n\
   } else {\n\
-    length = half;\n\
+    length = halfpos;\n\
   }\n\
 } while ( length > 0);\n\
 first--;\n\
@@ -159,16 +159,16 @@ ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvct
 size_t length = nseg_f;\n\
 __global const uint * first;\n\
 __global const uint * middle;\n\
-size_t half;\n\
+size_t halfpos;\n\
 first = keyv_f;\n\
 do {\n\
-  half = length / 2;\n\
-  middle = first + half;\n\
+  halfpos = length / 2;\n\
+  middle = first + halfpos;\n\
   if( *middle-1 <= ig ) {\n\
     first = middle+1;\n\
-    length = length - half - 1;\n\
+    length = length - halfpos - 1;\n\
   } else {\n\
-    length = half;\n\
+    length = halfpos;\n\
   }\n\
 } while (length > 0);\n\
 first--;\n\
@@ -222,16 +222,16 @@ ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvct
 size_t length = nseg_c;\n\
 __global const uint * first;\n\
 __global const uint * middle;\n\
-size_t half;\n\
+size_t halfpos;\n\
 first = keyv_c;\n\
 do {\n\
-  half = length / 2;\n\
-  middle = first + half;\n\
+  halfpos = length / 2;\n\
+  middle = first + halfpos;\n\
   if( *middle-1 <= ig ) {\n\
     first = middle+1;\n\
-    length = length - half - 1;\n\
+    length = length - halfpos - 1;\n\
   } else {\n\
-    length = half;\n\
+    length = halfpos;\n\
   }\n\
 } while ( length > 0);\n\
 first--;\n\
@@ -252,16 +252,16 @@ ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvct
 size_t length = nseg_c;\n\
 __global const uint * first;\n\
 __global const uint * middle;\n\
-size_t half;\n\
+size_t halfpos;\n\
 first = keyv_c;\n\
 do {\n\
-  half = length / 2;\n\
-  middle = first + half;\n\
+  halfpos = length / 2;\n\
+  middle = first + halfpos;\n\
   if( *middle-1 <= ig ) {\n\
     first = middle+1;\n\
-    length = length - half - 1;\n\
+    length = length - halfpos - 1;\n\
   } else {\n\
-    length = half;\n\
+    length = halfpos;\n\
   }\n\
 } while ( length > 0);\n\
 first--;\n\
@@ -284,16 +284,16 @@ ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvct
 size_t length = nseg_f;\n\
 __global const uint * first;\n\
 __global const uint * middle;\n\
-size_t half;\n\
+size_t halfpos;\n\
 first = keyv_f;\n\
 do {\n\
-  half = length / 2;\n\
-  middle = first + half;\n\
+  halfpos = length / 2;\n\
+  middle = first + halfpos;\n\
   if( *middle-1 <= ig ) {\n\
-    length = length - half - 1;\n\
+    length = length - halfpos - 1;\n\
     first = middle+1;\n\
   } else {\n\
-    length = half;\n\
+    length = halfpos;\n\
   }\n\
 } while ( length > 0);\n\
 first--;\n\
@@ -331,16 +331,16 @@ ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvct
 size_t length = nseg_f;\n\
 __global const uint * first;\n\
 __global const uint * middle;\n\
-size_t half;\n\
+size_t halfpos;\n\
 first = keyv_f;\n\
 do {\n\
-  half = length / 2;\n\
-  middle = first + half;\n\
+  halfpos = length / 2;\n\
+  middle = first + halfpos;\n\
   if( *middle-1 <= ig ) {\n\
-    length = length - half - 1;\n\
+    length = length - halfpos - 1;\n\
     first = middle+1;\n\
   } else {\n\
-    length = half;\n\
+    length = halfpos;\n\
   }\n\
 } while ( length > 0);\n\
 first--;\n\

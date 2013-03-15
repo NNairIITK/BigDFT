@@ -59,8 +59,13 @@ module dictionaries
      module procedure put_child,put_value,put_list,put_integer,put_real,put_double,put_long
   end interface
 
+  interface add
+     module procedure add_char!,add_dict,add_integer,add_real,add_double,add_long
+  end interface
+
+
   public :: operator(//), assignment(=)
-  public :: set,dict_init,dict_free,try,close_try,pop,append,prepend,find_key,length
+  public :: set,dict_init,dict_free,try,close_try,pop,append,prepend,find_key,dict_len,add
   
 
 contains
@@ -270,36 +275,67 @@ contains
     end subroutine pop_dict_
   end subroutine pop_dict
 
-  function length(dict)
+  !> assign the value to the  dictionary
+  subroutine add_char(dict,val)
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len=*), intent(in) :: val
+    !local variables
+    integer :: length,isize
+    
+    isize=dict_size(dict)
+    length=dict_len(dict)
+
+    if (isize > 0) stop 'ERROR, the dictionary is not a list, add not allowed'
+
+    if (length == -1) stop 'ERROR, the dictionary is not associated' !call dict_init(dict)
+
+    call set(dict//length,trim(val))
+
+  end subroutine add_char
+
+
+  function dict_len(dict)
     implicit none
     type(dictionary), intent(in), pointer :: dict
-    integer :: length
+    integer :: dict_len
     
     if (associated(dict)) then
-       length=dict%data%nitems
-    else
-       length=-1
-    end if
-  end function length
-
-  subroutine pop_last(dict)
-    implicit none
-    type(dictionary), intent(inout), pointer :: dict 
-    !local variables
-    integer :: nitems
-
-    nitems=dict%data%nitems
-    if (nitems > 0) then
-       call pop_item(dict,nitems-1)
-    else
-       if (exceptions) then
-          last_error=DICT_ITEM_NOT_VALID
+       if (associated(dict%parent)) then
+          dict_len=dict%data%nitems
        else
-          write(*,*)'ERROR: list empty, pop not possible'
-          stop
+          dict_len=dict%child%data%nitems
        end if
+    else
+       dict_len=-1
     end if
-  end subroutine pop_last
+  end function dict_len
+
+  function dict_size(dict)
+    implicit none
+    type(dictionary), intent(in), pointer :: dict
+    integer :: dict_size
+    
+    if (associated(dict)) then
+       if (associated(dict%parent)) then
+          dict_size=dict%data%nelems
+       else
+          dict_size=dict%child%data%nelems
+       end if
+    else
+       dict_size=-1
+    end if
+  end function dict_size
+
+!!$  function pop_last(dict)
+!!$    implicit none
+!!$    type(dictionary), intent(inout), pointer :: dict
+!!$    character(len=max_field_length) :: pop_last
+!!$    !local variables
+!!$    
+!!$    pop_last='ciao'
+!!$
+!!$  end function pop_last
   
   subroutine pop_item(dict,item)
     implicit none
@@ -395,12 +431,13 @@ contains
     type(dictionary), pointer :: dict_ptr
     if (.not. associated(dict)) then
        nullify(dict_ptr)
+       return
     end if
-!TEST 
-if (.not. associated(dict%parent)) then
-   dict_ptr =>  find_key(dict%child,key)
-   return
-end if
+    !TEST 
+    if (.not. associated(dict%parent)) then
+       dict_ptr =>  find_key(dict%child,key)
+       return
+    end if
 
 !    print *,'here',trim(key)
     !follow the chain, stop at  first occurence
