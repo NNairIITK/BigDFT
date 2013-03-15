@@ -229,7 +229,7 @@ $(bigdft_dynamic_library): $(libmain_a_OBJECTS) $(subs_static_library)
 	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) $(subs_static_library) @LIBS_SHORT_DEPS@
 	@chmod a+x $@
 
-$(bigdft_library): $(bigdft_dynamic_library)
+libbigdft-1.so.7: $(bigdft_dynamic_library)
 	ln -fs $^ $@
 	ln -fs $@ libbigdft-1.so
 
@@ -292,12 +292,6 @@ bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.*
 clean-local:
 	-rm -rf includes
-
-NVCC = @NVCC@
-NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@ 
-SUFFIXES = .cu
-.cu.o:
-	$(NVCC) $(NVCC_FLAGS) $(AM_CPPFLAGS) -c $< -o $@
 
 all: all-recursive
 	chmod ug+x bigdft-tool
