@@ -159,6 +159,7 @@ module bigdft_forces
       call read_input_parameters2(me_, in, at, rxyz)
 
       call init_atomic_values((me_ == 0), at, in%ixc)
+      call read_atomic_variables(at, trim(in%file_igpop),in%nspin)
 
       ! Transfer "at" data to ART variables.
       gnrm_l = in%gnrm_cv

@@ -10,6 +10,14 @@ subroutine memocc_verbose()
   call mstate(2)
 end subroutine memocc_verbose
 
+subroutine memocc_set_output(file, ln)
+  use m_profiling, only: mstate => memocc_set_filename
+  implicit none
+  integer, intent(in) :: ln
+  character(len = ln), intent(in) :: file
+  call mstate(file)
+end subroutine memocc_set_output
+
 subroutine f90_pointer_1D_init(pt_c, size_c)
   implicit none
   double precision, intent(in) :: pt_c
@@ -824,12 +832,13 @@ subroutine localfields_get_data(denspotd, rhod, dpbox)
   rhod => denspotd%rhod
   dpbox => denspotd%dpbox
 END SUBROUTINE localfields_get_data
-subroutine localfields_free(denspotd)
+subroutine localfields_free(denspotd, fion, fdisp)
   use module_types
   use Poisson_Solver
   use m_profiling
   implicit none
   type(DFT_local_fields), pointer :: denspotd
+  real(gp), dimension(:,:), pointer :: fion, fdisp
   
   character(len = *), parameter :: subname = "localfields_free"
   integer :: i_stat, i_all
@@ -869,6 +878,17 @@ subroutine localfields_free(denspotd)
   end if
 
   deallocate(denspotd)
+
+  if (associated(fion)) then
+     i_all=-product(shape(fion))*kind(fion)
+     deallocate(fion,stat=i_stat)
+     call memocc(i_stat,i_all,'fion',subname)
+  end if
+  if (associated(fdisp)) then
+     i_all=-product(shape(fdisp))*kind(fdisp)
+     deallocate(fdisp,stat=i_stat)
+     call memocc(i_stat,i_all,'fdisp',subname)
+  end if
 END SUBROUTINE localfields_free
 subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, ni, psoffset)
   use module_types

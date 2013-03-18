@@ -444,9 +444,6 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
                                                         gchar *domain, guint *ln)
 {
   BigDFT_Main *bmain;
-#ifdef G_THREADS_ENABLED
-  GThread *ld_thread;
-#endif
 #ifdef HAVE_GLIB
   GError *error;
   GResolver *dns;
@@ -468,7 +465,7 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
 #endif
   error = (GError*)0;
   bmain->loop = g_main_loop_new(NULL, FALSE);
-  ld_thread = g_thread_create(bigdft_main, (gpointer)bmain->loop, FALSE, &error);
+  g_thread_create(bigdft_main, (gpointer)bmain->loop, FALSE, &error);
 #endif
   bmain->wf = NULL;
   bmain->denspot = NULL;

@@ -18,10 +18,10 @@ endif
 
 if USE_LIBXC
 LIBXC_MODULE =
-xc.o: base.o yaml_output.o
+xc.o: base.o
 else
 LIBXC_MODULE = libxc_fake.f90
-xc.o: base.o yaml_output.o libxc_fake.o
+xc.o: base.o libxc_fake.o
 endif
 
 if BUILD_BINDINGS
@@ -44,8 +44,8 @@ mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	GAUSSIANS.@MODULE_EXT@ \
 	BIGDFT_API.@MODULE_EXT@ \
 	YAML_OUTPUT.@MODULE_EXT@ \
-	YAML_STRINGS.@MODULE_EXT@ \
 	DICTIONARIES.@MODULE_EXT@ \
+	DYNAMIC_MEMORY.@MODULE_EXT@
 	DYNAMIC_MEMORY.@MODULE_EXT@ \
 	VDWCORRECTION.@MODULE_EXT@
 else
@@ -69,7 +69,9 @@ module_DATA = $(mod_bigdft)
 include_HEADERS = $(bindings_headers)
 nodist_include_HEADERS = $(bindings_headers_nodist)
 
-EXTRA_DIST = configure.inc.in bigdft_cst.h.in
+DYN_INCLUDES = deallocate-inc.f90
+
+EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py $(DYN_INCLUDES)
 
 AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
@@ -121,11 +123,13 @@ mpif.h:
 	echo "integer, parameter :: MPI_MAX_PROCESSOR_NAME=10, MPI_STATUS_SIZE=1,MPI_LAND=1" >> mpif.h &&\
         echo "integer, parameter :: MPI_REQUEST_NULL=1,MPI_STATUS_IGNORE=1" >> mpif.h &&\
         echo "integer, parameter :: mpi_tag_ub=1,mpi_address_kind=8,mpi_info_null=0" >> mpif.h &&\
+        echo "integer, parameter :: mpi_mode_noprecede=0" >> mpif.h &&\
         echo "real(kind=8), external :: mpi_wtime" >> mpif.h
 
 
+
 #dependencies
-base.o: defs.o
+base.o: defs.o dynamic_memory.o
 gaussians.o : base.o
 types.o: base.o yaml_output.o gaussians.o
 input.o: base.o yaml_output.o
@@ -135,7 +139,7 @@ BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
 yaml_output.o : base.o dictionaries.o yaml_strings.o
-dynamic_memory.o: dictionaries.o yaml_output.o
+dynamic_memory.o: dictionaries.o yaml_output.o $(DYN_INCLUDES)
 dictionaries.o: yaml_strings.o
 
 

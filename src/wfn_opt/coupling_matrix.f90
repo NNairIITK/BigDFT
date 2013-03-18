@@ -34,10 +34,11 @@ subroutine center_of_charge(at,rxyz,cc)
      cc(2)=cc(2)+ry*zatom
      cc(3)=cc(3)+rz*zatom
   end do
-
-  cc(1)=cc(1)/qtot
-  cc(2)=cc(2)/qtot
-  cc(3)=cc(3)/qtot
+  if (qtot /= 0.0_gp) then
+     cc(1)=cc(1)/qtot
+     cc(2)=cc(2)/qtot
+     cc(3)=cc(3)/qtot
+  end if
 END SUBROUTINE center_of_charge
 
 

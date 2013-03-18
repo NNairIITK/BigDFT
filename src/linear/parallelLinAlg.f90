@@ -64,7 +64,8 @@ subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k
   ! Initialize the result c to zero. For processes participating in the calculation, 
   ! c will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) call to_zero(ldc*n, c(1,1))
+  !if(irow==-1) call to_zero(ldc*n, c(1,1))
+  if(irow==-1) call vscal(ldc*n,0.0_wp,c(1,1),1)
   
   ! Only execute this part if this process has a part of the matrix to work on. 
   processIf: if(irow/=-1) then
@@ -208,7 +209,8 @@ character(len=*),parameter :: subname='dgemm_parallel'
   ! Initialize the result c to zero. For processes participating in the calculation, 
   ! c will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) call to_zero(ldc*n, c(1,1))
+  !if(irow==-1) call to_zero(ldc*n, c(1,1))
+  if(irow==-1) call vscal(ldc*n,0.0_wp, c(1,1),1)
   
   ! Only execute this part if this process has a part of the matrix to work on. 
   processIf: if(irow/=-1) then
@@ -300,7 +302,8 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda, info
+  integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda
+  integer,intent(out) :: info
   character(len=1),intent(in) :: jobz, uplo
   real(kind=8),dimension(lda,n),intent(inout) :: a
   real(kind=8),dimension(n),intent(out) :: w
@@ -353,8 +356,8 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   ! For processes participating in the diagonalization, 
   ! it will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) call to_zero(lda*n, a(1,1))
-  
+  !if(irow==-1) call to_zero(lda*n, a(1,1))
+  if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)
   ! Everything that follows is only done if the current process is part of the grid.
   processIf: if(irow/=-1) then
       ! Determine the size of the matrix (lnrow x lncol):
@@ -394,9 +397,9 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
       ! workspace query
       lwork=-1
       liwork=-1
-      allocate(work(1), stat=istat)
+      allocate(work(100), stat=istat)
       call memocc(istat, work, 'work', subname)
-      allocate(iwork(1), stat=istat)
+      allocate(iwork(100), stat=istat)
       call memocc(istat, iwork, 'iwork', subname)
       call pdsyevx(jobz, 'a', 'l', n, la(1,1), 1, 1, desc_la, &
                     0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, w(1), &
@@ -493,7 +496,8 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, blocksize, nprocMax, comm, itype, n, lda, ldb, info
+  integer,intent(in) :: iproc, nproc, blocksize, nprocMax, comm, itype, n, lda, ldb
+  integer,intent(out) :: info
   character(len=1),intent(in) :: jobz, uplo
   real(kind=8),dimension(lda,n),intent(inout) :: a
   real(kind=8),dimension(ldb,n),intent(inout) :: b
@@ -548,8 +552,9 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
   ! For processes participating in the diagonalization, 
   ! it will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) call to_zero(lda*n, a(1,1))
-  
+  !if(irow==-1) call to_zero(lda*n, a(1,1))
+  if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)  
+
   ! Everything that follows is only done if the current process is part of the grid.
   processIf: if(irow/=-1) then
       ! Determine the size of the matrix (lnrow x lncol):
@@ -593,9 +598,9 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
       ! workspace query
       lwork=-1
       liwork=-1
-      allocate(work(1), stat=istat)
+      allocate(work(100), stat=istat)
       call memocc(istat, work, 'work', subname)
-      allocate(iwork(1), stat=istat)
+      allocate(iwork(100), stat=istat)
       call memocc(istat, iwork, 'iwork', subname)
       call pdsygvx(itype, jobz, 'a', uplo, n, la(1,1), 1, 1, desc_la, lb(1,1), 1, 1, &
                    desc_lb, 0.d0, 1.d0, 0, 1, -1.d0, nw_found, nw_computed, w(1), &
@@ -695,7 +700,8 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, blocksize, comm, n, nrhs, lda, ldb, info
+  integer,intent(in):: iproc, nproc, blocksize, comm, n, nrhs, lda, ldb
+  integer,intent(out):: info
   real(8),dimension(lda,n),intent(inout):: a
   real(8),dimension(ldb,nrhs),intent(inout):: b
   
@@ -746,7 +752,8 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
   ! For processes participating in the diagonalization, 
   ! it will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) call to_zero(ldb*nrhs, b(1,1))
+  !if(irow==-1) call to_zero(ldb*nrhs, b(1,1))
+  if(irow==-1) call vscal(ldb*nrhs,0.0_wp, b(1,1),1)
   
   ! Everything that follows is only done if the current process is part of the grid.
   processIf: if(irow/=-1) then
@@ -792,7 +799,8 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
 
   
       ! Gather together the result
-      call to_zero(ldb*nrhs, b(1,1))
+      !call to_zero(ldb*nrhs, b(1,1))
+      call vscal(ldb*nrhs,0.0_wp, b(1,1),1)
       do i=1,nrhs
           do j=1,n
               call pdelset2(b(j,i), lb(1,1), j, i, desc_lb, 0.d0)
@@ -875,7 +883,8 @@ subroutine dpotrf_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
   !!! c will be partially (only at the position that process was working on) overwritten with the result. 
   !!! At the end we can the make an allreduce to get the correct result on all processes.
   !!if(irow==-1) call to_zero(ldc*n, c(1,1))
-  if(irow==-1) call to_zero(lda*n, a(1,1))
+  !if(irow==-1) call to_zero(lda*n, a(1,1))
+  if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)
   
   ! Only execute this part if this process has a part of the matrix to work on. 
   processIf: if(irow/=-1) then
@@ -982,7 +991,8 @@ subroutine dpotri_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
   !!! Initialize the result c to zero. For processes participating in the calculation, 
   !!! c will be partially (only at the position that process was working on) overwritten with the result. 
   !!! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) call to_zero(lda*n, a(1,1))
+  !if(irow==-1) call to_zero(lda*n, a(1,1))
+  if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)
   
   ! Only execute this part if this process has a part of the matrix to work on. 
   processIf: if(irow/=-1) then

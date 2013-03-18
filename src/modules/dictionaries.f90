@@ -633,20 +633,22 @@ end if
   end subroutine get_value
 
   !> get the value from the  dictionary
+  !! This routine only works if the dictionary is associated
+  !! the problem is solved if any of the routines have the dict variable as a pointer
   subroutine get_dict(dictval,dict)
     implicit none
     type(dictionary), pointer, intent(out) :: dictval
-    type(dictionary), pointer, intent(in) :: dict
+    type(dictionary), target, intent(in) :: dict
 
     call check_key(dict)
     
     !if (associated(dict%child)) then
     !   dictval=>dict%child
-    if (associated(dict)) then
+!    if (associated(dict)) then
        dictval=>dict
-    else
-       nullify(dictval)
-    end if
+!    else
+!       nullify(dictval)
+!    end if
 
   end subroutine get_dict
 

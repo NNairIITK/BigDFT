@@ -1,53 +1,54 @@
+WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will be run on the current machine only.
  <BigDFT> log of the run will be written in logfile: ./log-binary.yaml
  <BigDFT> Logfile already existing, move previous file in:
-   ./logfiles/log-binary.22:50:27.727.yaml
+   ./logfiles/log-binary.18:06:16.101.yaml
  1th wavefunction written
- 1th wavefunction written
- 1th wavefunction written
- 1th wavefunction written
- 2th wavefunction written
- 2th wavefunction written
- 2th wavefunction written
- 2th wavefunction written
- 3th wavefunction written
- 3th wavefunction written
- 3th wavefunction written
- 3th wavefunction written
- 4th wavefunction written
- 4th wavefunction written
- 4th wavefunction written
- 4th wavefunction written
- 5th wavefunction written
- 5th wavefunction written
- 5th wavefunction written
- 6th wavefunction written
- 5th wavefunction written
- 6th wavefunction written
- 6th wavefunction written
  7th wavefunction written
- 6th wavefunction written
+ 1th wavefunction written
  7th wavefunction written
  7th wavefunction written
  7th wavefunction written
- 8th wavefunction written
- 8th wavefunction written
- 8th wavefunction written
- 8th wavefunction written
  1th wavefunction written
  1th wavefunction written
+ 8th wavefunction written
+ 2th wavefunction written
+ 8th wavefunction written
+ 2th wavefunction written
+ 8th wavefunction written
+ 2th wavefunction written
+ 2th wavefunction written
+ 8th wavefunction written
+ 1th wavefunction written
+ 3th wavefunction written
+ 3th wavefunction written
  1th wavefunction written
  1th wavefunction written
- 2th wavefunction written
- 2th wavefunction written
- 2th wavefunction written
- 2th wavefunction written
  3th wavefunction written
+ 1th wavefunction written
  3th wavefunction written
- 3th wavefunction written
- 3th wavefunction written
+ 2th wavefunction written
  4th wavefunction written
  4th wavefunction written
+ 2th wavefunction written
+ 2th wavefunction written
  4th wavefunction written
+ 4th wavefunction written
+ 2th wavefunction written
+ 3th wavefunction written
+ 5th wavefunction written
+ 5th wavefunction written
+ 3th wavefunction written
+ 3th wavefunction written
+ 5th wavefunction written
+ 5th wavefunction written
+ 3th wavefunction written
+ 4th wavefunction written
+ 6th wavefunction written
+ 6th wavefunction written
+ 4th wavefunction written
+ 4th wavefunction written
+ 6th wavefunction written
+ 6th wavefunction written
  4th wavefunction written
  export wavefunction file: "data-binary-read/wavefunction-k002-DI.bin.b0003" in .cube format
 ---
@@ -76,19 +77,20 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.23
- Timestamp of this run                 : 2013-02-11 22:50:45.925
+ Version Number                        : 1.7-dev.24
+ Timestamp of this run                 : 2013-02-18 18:06:23.857
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  0
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  2
+ Maximal OpenMP threads per MPI task   :  1
  #... (file:default.perf.. not present).................................Performance Options 
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
  #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
  #|OCL_platform                 Chosen OCL platform                                          
+ #|OCL_devices                  Chosen OCL devices                                           
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -109,6 +111,13 @@
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir .                     Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
+ #|pdsyev_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
+ #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
+ #|ef_interpol_det  1.00E-20    FOE: max determinant of cubic interpolation matrix           
+ #|ef_interpol_chargediff  1.00EFOE: max charge difference for interpolation                 
+ #|mixing_after_inputguess T    mixing step after linear input guess (T/F)                   
  #... (file:default.dft)..........................................DFT Calculation Parameters
  #|0.30 0.30 0.30  hx,hy,hz: grid spacing in the three directions                            
  #|6.0  8.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -258,7 +267,7 @@
  Atomic positions within the cell (Atomic and Grid Units):
  - O: {AU:  [  0.0000,  0.0000,  0.0000 ], GU:  [  0.0000,  0.0000,  0.0000 ]} # 0001
  - O: {AU:  [  0.0000,  0.0000,  2.2828 ], GU:  [  0.0000,  0.0000,  8.0533 ]} # 0002
- Rigid Shift Applied (AU)              :  [ -0.0000, -0.0000, -0.0000 ]
+ Rigid Shift Applied (AU)              :  [  0.0000,  0.0000,  0.0000 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.2835,  0.2835,  0.2835 ]
  Sizes of the simulation domain:
@@ -311,4 +320,4 @@
       Peak Value (MB): 6
       for the array: ww
       in the routine: reformatonewave
- CPU time/ELAPSED time          0.56         0.72
+ CPU time/ELAPSED time          0.31         0.30

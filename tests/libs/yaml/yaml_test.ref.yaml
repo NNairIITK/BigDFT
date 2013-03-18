@@ -13,10 +13,10 @@
   #Check calling twice yaml_new_document
  Vector of characters                  :  []
  Vector of integers                    :  []
- Vector of real(kind=8)                :  []
- #-------------------------------------------------------------------------- Check flow=.true.
- Open a sequence:
-   [ [  1,  2,  3 ],  [  1,  2,  3 ]]
+ Vector of double: [ 3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00, 
+                     3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00, 
+                     3.00000E+00]
+ Vector of real(kind=8): [ 3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.]
  Open a sequence: {Key: [ [  1,  2,  3 ],  [  1,  2,  3 ]]}
  Open a sequence: [ [  1,  2,  3 ],  [  1,  2,  3 ]]
 ---

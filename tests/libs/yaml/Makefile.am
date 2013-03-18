@@ -13,14 +13,23 @@ endif
 
 AM_FCFLAGS = -I$(top_builddir)/src/modules @MPI_INCLUDE@
 
+if BUILD_DYNAMIC_LIBS
+bigdft_library = -L$(top_builddir)/src -lbigdft-1
+bigdft_library_rpath = -Wl,-rpath=$(abs_top_builddir)/src
+else
+bigdft_library = $(top_builddir)/src/libbigdft.a @LIBS_SHORT_DEPS@
+bigdft_library_rpath =
+endif
+
 yaml_test_SOURCES = yaml_test.f90
-yaml_test_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+yaml_test_LDADD = $(bigdft_library)
+yaml_test_LDFLAGS = $(bigdft_library_rpath)
 
 
 CLEANFILES = yaml_test.out.yaml
 
 yaml_test.out.yaml: yaml_test
-	$(run_parallel) ./yaml_test > yaml_test.out.yaml
+	./yaml_test > yaml_test.out.yaml
 
 check: yaml_test.out.yaml
 	export PYTHONPATH=${PYTHONPATH} ; \

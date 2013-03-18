@@ -197,6 +197,7 @@ program test_forces
          if(ipath>1) then
             rxyz(:,:)=rxyz(:,:)+drxyz(:,:)
             inputs%inputPsiId=1
+            if(rst%version == LINEAR_VERSION)inputs%inputPsiId=101
          end if
 
          if (iproc == 0) then
@@ -269,7 +270,7 @@ enddo !loop over iconfig
 
    deallocate(arr_posinp,arr_radical)
 
-   call bigdft_finalize()
+   call bigdft_finalize(ierr)
 
 !!$   call MPI_FINALIZE(ierr)
 

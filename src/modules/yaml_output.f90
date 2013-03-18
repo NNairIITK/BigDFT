@@ -63,7 +63,7 @@ module yaml_output
   end type yaml_stream
 
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
-  integer, dimension(tot_streams) :: stream_units=6 !default units unles otherwise specified               
+  integer, dimension(tot_streams) :: stream_units=6 !default units unless otherwise specified               
                                                   
   interface yaml_map                              
      module procedure yaml_map,yaml_map_i,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv

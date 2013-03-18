@@ -6,9 +6,18 @@ EXTRA_DIST = psp.out.ref
 
 check_PROGRAMS = check_psp
 
+if BUILD_DYNAMIC_LIBS
+bigdft_library = -L$(top_builddir)/src -lbigdft-1
+bigdft_library_rpath = -Wl,-rpath=$(abs_top_builddir)/src
+else
+bigdft_library = $(top_builddir)/src/libbigdft.a @LIBS_SHORT_DEPS@
+bigdft_library_rpath =
+endif
+
 check_psp_SOURCES = check_psp.f90
 check_psp_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
-check_psp_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+check_psp_LDADD = $(bigdft_library)
+check_psp_LDFLAGS = $(bigdft_library_rpath)
 
 CLEANFILES = psp.out psp.report
 

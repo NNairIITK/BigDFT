@@ -1,5 +1,4 @@
 ---
-  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
  Code logo:
          TTTT         F       DDDDD
         T    T               D
@@ -27,17 +26,18 @@
        ggggg       i         BBBB
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-01-15 14:40:15.176
- Root process Hostname                 : localhost
- Number of MPI tasks                   :  1
+ Version Number                        : 1.7-dev.24
+ Timestamp of this run                 : 2013-02-18 16:24:00.862
+ Root process Hostname                 : badiane
+ Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  4
+ Maximal OpenMP threads per MPI task   :  1
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
  #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
  #|OCL_platform                 Chosen OCL platform                                          
+ #|OCL_devices                  Chosen OCL devices                                           
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -58,6 +58,13 @@
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
+ #|pdsyev_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
+ #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
+ #|ef_interpol_det  1.00E-20    FOE: max determinant of cubic interpolation matrix           
+ #|ef_interpol_chargediff  1.00EFOE: max charge difference for interpolation                 
+ #|mixing_after_inputguess F    mixing step after linear input guess (T/F)                   
  #... (file:input.dft)............................................DFT Calculation Parameters
  #|0.50 0.50 0.50  hx,hy,hz: grid spacing in the three directions                            
  #|4.0  4.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -95,26 +102,32 @@
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
  #... (file:input.lin).....................................................Linear Parameters
- #|1 2            iterations with low accuracy, high accuracy                                
- #|2 2            iterations to optimize the basis functions for low accuracy and high accura
- #|5.d-3  1.d-3   convergence criterion for low and high accuracy                            
- #|2.d-5          gnrm multiplier                                                            
- #|3  0  1.d0  1.d-DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for 
- #|8              number of iterations in the preconditioner                                 
- #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
- #|1  1           max number of process uses for pdsyev/pdsygv, pdgemm                       
- #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
+ #|2              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
+ #|1              outer loop iterations (low, high)                                          
+ #|2              basis iterations (low, high)                                               
+ #|3              kernel iterations (low, high)                                              
+ #|3              DIIS history for basis (low, high)                                         
+ #|0              DIIS history for kernel (low, high)                                        
+ #|.5d0     .     density mixing parameter (low, high)                                       
+ #|1.d-11   1.d-1 outer loop convergence (low, high)                                         
+ #|5.d-3    1.d   basis convergence (low, high)                                              
+ #|1.d0     5.    multiplier to (exit one TMB optimization, fix TMB completely). Only used fo
+ #|0.5d0          factor to reduce the confinement. Only used for hybrid mode.               
+ #|1.d-13   1.d-1 kernel convergence (low, high)                                             
+ #|1.d-11         convergence criterion on density to fix TMBS                               
  #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
- #|0  3  .5d0  1.d-1low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in
- #|0  4  .5d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
- #|1.d-13         convergence criterion for the kernel optimization                          
- #|1.d-11         convergence criterion for the support functions to be fixed                
- #|0              Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|O 4 1.0d-4 0.0d0 5.0 5.0  Atom name, number of basis functions per atom, prefactor for con
- #|H 1 1.0d-4 0.0d0 5.0 5.0  Atom name, number of basis functions per atom, prefactor for con
+ #|1.d0     1.    initial step size for basis optimization (DIIS, SD)                        
+ #|-0.5d0   0.5d  lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted a
+ #|8              number of iterations in the preconditioner                                 
+ #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
+ #|5.d-2          fscale: length scale over which complementary error function decays from 1 
+ #|0  T           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|O 4 1.0d-4 0.0d0 5.0 5.0 20.d0  Atom name, number of basis functions per atom, prefactor f
+ #|H 1 1.0d-4 0.0d0 5.0 5.0 20.d0  Atom name, number of basis functions per atom, prefactor f
+ # ==== WARNING: the following lines have not been processed by the parser ====
+ #|                                                                                          
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data/
- Material acceleration                 :  No #iproc=0
   #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
    Number of atomic types              :  2
@@ -131,6 +144,7 @@
    Fluctuation in forces               :  1.0E+00
    Maximum in forces                   :  0.0E+00
    Steepest descent step               :  4.0E+00
+ Material acceleration                 :  No #iproc=0
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
@@ -216,14 +230,21 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  1
-   OpenMP threads per MPI task         :  4
+   MPI tasks                           :  4
+   OpenMP threads per MPI task         :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  4.84
-     Kernel (MB)                       :  5.02
+     Density (MB)                      :  1.21
+     Kernel (MB)                       :  1.28
      Full Grid Arrays (MB)             :  4.47
+     Load Balancing of calculations:
+       Density:
+         MPI tasks 0- 3                : 100%
+       Kernel:
+         MPI tasks 0- 2                : 100%
+         MPI task 3                    :  86%
+       Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  535
@@ -234,11 +255,13 @@
   #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
+ Orbitals Repartition:
+   MPI tasks  0- 3                     :  1
  Total Number of Orbitals              :  4
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-4:  2.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 299 KB 256 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 74 KB 832 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -248,25 +271,35 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
    Single orbital                      : 0.75 #   (Number of Components: 9576)
-   All (distributed) orbitals          : 0.599 #  (Number of Orbitals per MPI task: 4)
-   Wavefunction storage size           : 6.440 #  (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 0.225 #  (Number of Orbitals per MPI task: 1)
+   Wavefunction storage size           : 1.697 #  (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.17
    Full Uncompressed (ISF) grid        : 4.479
    Workspaces storage size             : 0.297
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 55.182
-   Density Construction                : 32.605
-   Poisson Solver                      : 50.227
-   Hamiltonian application             : 32.795
- Estimated Memory Peak (MB)            :  55
+   Kernel calculation                  : 24.684
+   Density Construction                : 17.707
+   Poisson Solver                      : 17.543
+   Hamiltonian application             : 17.897
+ Estimated Memory Peak (MB)            :  24
   #WARNING: Do not call check_communications in the linear scaling version!
+ Checking Compression/Uncompression of sparse matrices:
+   Tolerances for this check           :  1.00000001335143196E-10
+   Maxdiff for compress                :  0.00000000000000000E+00
+   Maxdiff for uncompress              :  0.00000000000000000E+00
+   Tolerances for this check           :  1.00000001335143196E-10
+   Maxdiff for compress                :  0.00000000000000000E+00
+   Maxdiff for uncompress              :  0.00000000000000000E+00
+   Tolerances for this check           :  1.00000001335143196E-10
+   Maxdiff for compress                :  0.00000000000000000E+00
+   Maxdiff for uncompress              :  0.00000000000000000E+00
  Ion-Ion interaction energy            :  6.88446996418391E+00
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000027255083
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  4
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  6
@@ -275,129 +308,102 @@
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
    Wavelet conversion succeeded        :  Yes
    Deviation from normalization        :  5.23E-03
-   GPU acceleration                    :  No
-   Total electronic charge             :  7.999970352587
    Poisson Solver:
      BC                                : Free
      Box                               :  [  85,  83,  83 ]
-     MPI tasks                         :  1
-   Calculate density kernel            :  Yes
- Calculate density kernel              :  Yes
- Calculating charge density            :  Yes
- Calculation finished. TOTAL CHARGE    :  7.999976583766E+00
+     MPI tasks                         :  4
+   Poisson Solver:
+     BC                                : Free
+     Box                               :  [  85,  83,  83 ]
+     MPI tasks                         :  4
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  2499,  13 ]
+ 
+   Maxdiff for transpose (checksum)    :  1.09139364212751389E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  2307,  13 ]
+ 
+   Maxdiff for transpose (checksum)    :  2.91038304567337036E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
- Calculate density kernel              :  Yes
- Calculating charge density            :  Yes
- Calculation finished. TOTAL CHARGE    :  7.999978489980E+00
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
- Calculate density kernel              :  Yes
- Calculating charge density            :  Yes
- Calculation finished. TOTAL CHARGE    :  7.999978483229E+00
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
- Calculate density kernel              :  Yes
- Calculate density kernel              :  Yes
- Calculating charge density            :  Yes
- Calculation finished. TOTAL CHARGE    :  7.999978487097E+00
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
- Calculate density kernel              :  Yes
- Calculating charge density            :  Yes
- Calculation finished. TOTAL CHARGE    :  7.999978488506E+00
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
- Calculate density kernel              :  Yes
- Calculating charge density            :  Yes
- Calculation finished. TOTAL CHARGE    :  7.999978489151E+00
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
- Calculate density kernel              :  Yes
- Calculating charge density            :  Yes
- Calculation finished. TOTAL CHARGE    :  7.999978489458E+00
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
- Calculate density kernel              :  Yes
- Calculate density kernel              :  Yes
- Calculating charge density            :  Yes
- Calculation finished. TOTAL CHARGE    :  7.999978490284E+00
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
- Calculate density kernel              :  Yes
- Calculating charge density            :  Yes
- Calculation finished. TOTAL CHARGE    :  7.999978490223E+00
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
- Calculate density kernel              :  Yes
- Calculating charge density            :  Yes
- Calculation finished. TOTAL CHARGE    :  7.999978490258E+00
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
- Calculate density kernel              :  Yes
- Calculating charge density            :  Yes
- Calculation finished. TOTAL CHARGE    :  7.999978490271E+00
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
- Calculate density kernel              :  Yes
- Calculating charge density            :  Yes
- Calculation finished. TOTAL CHARGE    :  7.999978490271E+00
+   MPI tasks                           :  4
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  4
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.0595E-01,  2.5717E-01,  2.8335E-01 ]
-   norm(P)                             :  6.343545E-01
+   P vector                            :  [ -6.1697E-01,  3.4884E-01,  3.8168E-01 ]
+   norm(P)                             :  8.049974E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.2860E+00,  6.5366E-01,  7.2021E-01 ]
-   norm(P)                             :  1.612368E+00
+   P vector                            :  [ -1.5682E+00,  8.8668E-01,  9.7013E-01 ]
+   norm(P)                             :  2.046099E+00
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x:  2.53327793E-01, y: -1.76354594E-02, z: -3.91946758E-02, 
-                    total:  2.56947860E-01}
- Clean forces norm (Ha/Bohr): {maxval:  2.696732883940E-01, fnrm2:  1.157148896770E-01}
- Raw forces norm (Ha/Bohr): {maxval:  4.295637977437E-01, fnrm2:  1.867856901874E-01}
+ Average noise forces: {x:  1.81627853E-01, y:  2.49290264E-02, z:  1.39157119E-02, 
+                    total:  1.83858044E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  2.104908260363E-01, fnrm2:  7.423338717255E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  3.317449328210E-01, fnrm2:  1.132394120630E-01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [  2.608998119301E-01, -4.323761544708E-02, -5.277763938024E-02 ]} # 0001
- -  {H:  [ -1.874347062525E-01,  2.618909850604E-02,  3.320996049852E-02 ]} # 0002
- -  {H:  [ -7.346510567761E-02,  1.704851694103E-02,  1.956767888172E-02 ]} # 0003
+ -  {O:  [  2.100634595313E-01, -4.045120951187E-03, -1.278154183617E-02 ]} # 0001
+ -  {H:  [ -1.669767463086E-01,  5.602724005790E-03,  1.246531260986E-02 ]} # 0002
+ -  {H:  [ -4.308671322265E-02, -1.557603054603E-03,  3.162292263126E-04 ]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  10.02
-   Elapsed time (s)                    :  2.52
+   CPU time (s)                        :  2.79
+   Elapsed time (s)                    :  2.85
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 8806
-   Tot. No. of Deallocations: 8806
+   Tot. No. of Allocations  : 4052
+   Tot. No. of Deallocations: 4052
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 165
-      for the array: psir
-      in the routine: psi_to_vlocpsi
+      Peak Value (MB): 81
+      for the array: wz
+      in the routine: gaussians_to_wavelets_orb

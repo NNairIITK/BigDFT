@@ -2,11 +2,13 @@
 
 # Main targets.
 # ------------
+dynlibdir       = $(libdir)
 bin_PROGRAMS    = $(binaries_sources)
 noinst_PROGRAMS = $(local_binaries)
 bin_SCRIPTS     = $(scripts_sources)
 lib_LIBRARIES   = $(lib_bigdft)
 module_DATA     = $(mod_bigdft)
+dynlib_DATA     = $(bigdft_dynamic_library)
 
 # Sub-directories.
 # ---------------
@@ -43,6 +45,15 @@ EXTRA_DIST = \
 
 # Build targets, binaries and libraries.
 # -------------
+if BUILD_DYNAMIC_LIBS
+bigdft_dynamic_library = libbigdft-1.so.7.0.24
+bigdft_library = libbigdft-1.so.7
+bigdft_library_rpath = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
+else
+bigdft_dynamic_library =
+bigdft_library = libbigdft.a @LIBS_SHORT_DEPS@
+bigdft_library_rpath =
+endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft.a libdft_common.a
 PS_SOURCES = PSolver/Build_Kernel.f90 \
@@ -59,7 +70,7 @@ PS_SOURCES =
 PS_MODULES =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo
+binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo NEB_images
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -148,14 +159,15 @@ OCL_CONV = convolutions/interface_ocl_fake.f90
 endif
 
 if USE_DGEMMSY
-DGEMMSY_SOURCES = dgemmsy/interface_dgemmsy.f90 \
-		  dgemmsy/dgemmsy.c       dgemmsy/dgemmsy.h \
-		  dgemmsy/gemm_block_c.c  dgemmsy/gemm_block_c.h \
-		  dgemmsy/patterns.c      dgemmsy/patterns.h \
-		  dgemmsy/dgemmsy_utils.c dgemmsy/utils.h \
-		  dgemmsy/visitors.c      dgemmsy/visitors.h
+DGEMMSY_SOURCES = dgemmsy/interface_dgemmsy.f90
+DGEMMSY_CSOURCES = dgemmsy/dgemmsy.c       dgemmsy/dgemmsy.h \
+		   dgemmsy/gemm_block_c.c  dgemmsy/gemm_block_c.h \
+		   dgemmsy/patterns.c      dgemmsy/patterns.h \
+		   dgemmsy/dgemmsy_utils.c dgemmsy/utils.h \
+		   dgemmsy/visitors.c      dgemmsy/visitors.h
 else
 DGEMMSY_SOURCES = dgemmsy/interface_dgemmsy_fake.f90
+DGEMMSY_CSOURCES = 
 endif
 
 if USE_LIBXC
@@ -178,22 +190,23 @@ etsf_files = wavelib/etsf_fake.f90
 endif
 
 if BUILD_BINDINGS
-bindings_files = lib/bindings_api.h \
+bindings_files = lib/bindingsf.f90
+bindings_cfiles = lib/bindings_api.h \
 	lib/bindings.c lib/bindings.h \
 	lib/bindings_atoms.c \
 	lib/bindings_regions.c \
 	lib/bindings_wavefunctions.c \
 	lib/bindings_localfields.c \
 	lib/bindings_signals.c lib/bindings_signals.h \
-	lib/bindings_signals_inet.c \
-	lib/bindingsf.f90
+	lib/bindings_signals_inet.c
 else
 bindings_files = lib/bindingsf_fake.f90
+bindings_cfiles =
 endif
 
 EXTRA_DIST += lib/bindings_dbus.xml
 if HAVE_GDBUS
-bindings_files += lib/bindings_signals_dbus.c
+bindings_cfiles += lib/bindings_signals_dbus.c
 nodist_bindings_files = bindings_dbus.c bindings_dbus.h 
 
 bindings_dbus.h: bindings_dbus.c
@@ -223,7 +236,7 @@ else
 minima_hopping_sources =
 endif
 global_SOURCES = # Should be global.f90, but see below.
-global_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+global_LDADD = $(bigdft_library) @LINALG_LIBS@
 # Hack to avoid global.f90 inclusion into make dist.
 am_global_OBJECTS = global.$(OBJEXT)
 global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
@@ -393,17 +406,22 @@ low_level = \
 	linear/communicatePotential.f90 \
 	linear/hpsiortho_linear.f90 \
 	linear/init_collective_comms.f90 \
-	linear/communications_p2p.f90 \
 	linear/optimize_coeffs.f90 \
+	linear/foe.f90 \
+	linear/chebyshev.f90 \
+	linear/communications_onesided.f90 \
+        linear/sparse_matrices.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
-	$(OCL_SOURCES) \
 	$(getarg_files)
 
 # C objects
 c_level = posfiles.c \
 	init/atoms_yaml.c init/atoms_yaml.h \
-	$(CUDA_SOURCES)
+	$(bindings_cfiles) \
+	$(CUDA_SOURCES) \
+	$(OCL_SOURCES) \
+	$(DGEMMSY_CSOURCES)
 
 #	convolutions/convolut_ib_sse.c \ #to be verified, not working yet
 
@@ -416,53 +434,85 @@ libbigdft_a_SOURCES = \
 	$(low_level) \
 	$(high_level)
 nodist_libbigdft_a_SOURCES = $(nodist_bindings_files)
-libbigdft_a_LIBADD = $(modules_objects) 
-$(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft.a libdft_common.a
+libbigdft_a_LIBADD = $(modules_objects)
+
+$(bigdft_dynamic_library): $(modules_objects) $(libbigdft_a_OBJECTS)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -o $@ $^ @LIBS_SHORT_DEPS@
+	@chmod a+x $@
+
+libbigdft-1.so.7: $(bigdft_dynamic_library)
+	ln -fs $^ $@
+	ln -fs $@ libbigdft-1.so
+
+install-data-hook:
+	if test -n "$(bigdft_dynamic_library)" ; then \
+	  cd $(DESTDIR)$(dynlibdir) ; \
+	  chmod a+x $(bigdft_dynamic_library) ; \
+	  ln -fs $(bigdft_dynamic_library) $(bigdft_library) ; \
+	  ln -fs $(bigdft_library) libbigdft-1.so ; \
+	fi
+
+#obsolete dependency $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft.a libdft_common.a
 
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+bigdft_LDADD = $(bigdft_library)
+bigdft_LDFLAGS = $(bigdft_library_rpath)
+
+NEB_images_SOURCES = BigDFT.f90
+NEB_images_LDADD = $(bigdft_library)
+NEB_images_LDFLAGS = $(bigdft_library_rpath)
 
 splsad_SOURCES = splinedsaddle.f90
-splsad_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+splsad_LDADD = $(bigdft_library) @LINALG_LIBS@
+splsad_LDFLAGS = $(bigdft_library_rpath)
 
 #rism_SOURCES = rism.f90 rismlowlevel.f90
-#rism_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+#rism_LDADD = $(bigdft_library)
 
 #sandbox_SOURCES = sandbox.f90
-#sandbox_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+#sandbox_LDADD = $(bigdft_library)
 
 #oneatom_SOURCES = oneatom.f90
-#oneatom_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+#oneatom_LDADD = $(bigdft_library)
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
-BigDFT2Wannier_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+BigDFT2Wannier_LDADD = $(bigdft_library) @LINALG_LIBS@
+BigDFT2Wannier_LDFLAGS = $(bigdft_library_rpath)
 
-WaCo_SOURCES = WaCo.f90                                                                                                                                                                    
-WaCo_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+WaCo_SOURCES = WaCo.f90
+WaCo_LDADD = $(bigdft_library) @LINALG_LIBS@
+WaCo_LDFLAGS = $(bigdft_library_rpath)
 
 MDanalysis_SOURCES = distances.f90
-MDanalysis_LDADD = libbigdft.a @LIBS_DEPENDENCIES@ 
+MDanalysis_LDADD = $(bigdft_library)
+MDanalysis_LDFLAGS = $(bigdft_library_rpath)
 
 abscalc_SOURCES = abscalc.f90
-abscalc_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+abscalc_LDADD = $(bigdft_library) @LINALG_LIBS@
+abscalc_LDFLAGS = $(bigdft_library_rpath)
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+test_forces_LDADD = $(bigdft_library)
+test_forces_LDFLAGS = $(bigdft_library_rpath)
 
 NEB_SOURCES = NEB.f90
-NEB_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+NEB_LDADD = $(bigdft_library)
+NEB_LDFLAGS = $(bigdft_library_rpath)
 
 memguess_SOURCES = memguess.f90 MPIfake.f90
-memguess_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+memguess_LDADD = $(bigdft_library) @LINALG_LIBS@
+memguess_LDFLAGS = $(bigdft_library_rpath)
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
+frequencies_LDADD = $(bigdft_library) @LINALG_LIBS@
+frequencies_LDFLAGS = $(bigdft_library_rpath)
 
 bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-bart_LDADD = art/libart.a libbigdft.a @LIBS_DEPENDENCIES@
+bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
+bart_LDFLAGS = $(bigdft_library_rpath)
 
-CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* 
+CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.*
 
 NVCC = @NVCC@
 NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@ 
@@ -502,10 +552,7 @@ BUILT_GIRSOURCES = BigDFT-1.7.gir
 gir_DATA = $(BUILT_GIRSOURCES)
 typelibs_DATA = $(BUILT_GIRSOURCES:.gir=.typelib)
 
-libbigdft.so: $(modules_objects) $(libbigdft_a_OBJECTS)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -o $@ $^ @LIBS_SHORT_DEPS@
-
-$(gir_DATA): $(G_IR_SCANNER) libbigdft.so
+$(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 	$(G_IR_SCANNER) -v --warn-all \
 		--namespace BigDFT \
 		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ \
@@ -516,7 +563,7 @@ $(gir_DATA): $(G_IR_SCANNER) libbigdft.so
 		--include GLib-2.0 \
 		--include Gio-2.0 \
 		--output=$(gir_DATA) \
-	        --library=bigdft \
+	        --library=bigdft-1 \
 		--no-libtool \
 		-DGLIB_MAJOR_VERSION=2 -L$(builddir) \
 		-I$(srcdir)/modules -I$(builddir)/modules \

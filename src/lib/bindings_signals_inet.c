@@ -6,7 +6,7 @@
 #include <string.h>
 
 #include "bindings.h"
-
+#include "bindings_api.h"
 
 #define PACKET_SIZE 4096
 
@@ -161,7 +161,7 @@ static void onOptLoop(BigDFT_OptLoop *optloop, BigDFT_Energs *energs,
                  (const void*)((char*)(&optloop_) + sizeof(GObject)),
                  sizeof(BigDFT_OptLoop) - sizeof(GObject) - sizeof(gpointer));
           bigdft_optloop_sync_to_fortran(optloop);
-          FC_FUNC_(optloop_bcast, OPTLOOP_BCAST)(optloop->data, &iproc);
+          FC_FUNC_(optloop_bcast, OPTLOOP_BCAST)(optloop->data, (int*)&iproc);
           break;
         default:
           g_warning("Server: wrong client answer after optloop emission.");
@@ -335,11 +335,11 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
         {
         case BIGDFT_DENSPOT_DENSITY:
           FC_FUNC_(denspot_full_density, DENSPOT_FULL_DENSITY)(localfields->data,
-                                                                   &tmp, &iproc, &new);
+                                                               &tmp, (int*)&iproc, (int*)&new);
           break;
         case BIGDFT_DENSPOT_V_EXT:
           FC_FUNC_(denspot_full_v_ext, DENSPOT_FULL_V_EXT)(localfields->data,
-                                                               &tmp, &iproc, &new);
+                                                           &tmp, (int*)&iproc, (int*)&new);
           break;
         }
 

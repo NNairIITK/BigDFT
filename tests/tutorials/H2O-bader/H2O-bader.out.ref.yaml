@@ -1,5 +1,4 @@
 ---
-  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
  Code logo:
          TTTT         F       DDDDD
         T    T               D
@@ -27,13 +26,17 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.15
- Timestamp of this run                 : 2012-08-04 10:05:15.140
+ Version Number                        : 1.7-dev.23
+ Timestamp of this run                 : 2013-02-16 19:34:48.140
  Root process Hostname                 : athelas
+ Number of MPI tasks                   :  2
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
- #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU)                           
+ #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
+ #|OCL_platform                 Chosen OCL platform                                          
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -47,7 +50,7 @@
  #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
  #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
  #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
- #|tolsym -1.00E+00             Tolerance for symmetry detection                             
+ #|tolsym  1.00E-08             Tolerance for symmetry detection                             
  #|signaling F                  Expose calculation results on Network                        
  #|signalTimeout 0              Time out on startup for signal connection                    
  #|domain                       Domain to add to the hostname to find the IP                 
@@ -91,22 +94,47 @@
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
   #--------------------------------------------------------------------------------------- |
- Data Writing directory                : .//data/
+ Data Writing directory                : ./data/
+  #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  2
+   Number of atoms                     :  3
+   Types of atoms                      :  [ H, O ]
+   Boundary Conditions                 : Free #Code: F
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
+ Material acceleration                 :  No #iproc=0
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
      XC ID                             :  &ixc  1
-     Name                              : "XC: Teter 93"
+     Exchange-Correlation reference    : "XC: Teter 93"
+     XC functional implementation      : ABINIT
+     Spin polarization                 :  No
  Basis set definition:
    Suggested Grid Spacings (a0)        :  [  0.20,  0.20,  0.20 ]
    Coarse and Fine Radii Multipliers   :  [  5.0,  8.0 ]
- Ground State Optimization:
+ Self-Consistent Cycle Parameters:
    Wavefunction:
      Gradient Norm Threshold           :  &gnrm_cv  1.0E-04
      CG Steps for Preconditioner       :  6
      DIIS History length               :  6
      Max. Wfn Iterations               :  &itermax  50
      Max. Subspace Diagonalizations    :  10
+     Input wavefunction policy         : LCAO # 0
+     Output wavefunction policy        : none # 0
+     Output grid policy                : density # 1
+     Output grid format                : text # 0
+     Virtual orbitals                  :  0
+     Number of plotted density orbitals:  0
    Density/Potential:
      Max. Iterations                   :  1
  Post Optimization Parameters:
@@ -114,7 +142,7 @@
      Scheduled                         :  No
   #----------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
- - Symbol                              : H #---------------------------------- Type No.  01
+ - Symbol                              : H #Type No.  01
    No. of Electrons                    :  1
    No. of Atoms                        :  2
    Radii of active regions (AU):
@@ -129,7 +157,7 @@
      Coefficients (c1 .. c4)           :  [ -4.18024,  0.72508,  0.00000,  0.00000 ]
    No. of projectors                   :  0
    PSP XC                              : "XC: Teter 93"
- - Symbol                              : O #---------------------------------- Type No.  02
+ - Symbol                              : O #Type No.  02
    No. of Electrons                    :  6
    No. of Atoms                        :  1
    Radii of active regions (AU):
@@ -157,6 +185,7 @@
  - O: {AU:  [  7.3000,  8.4153,  8.7003 ], GU:  [  36.500,  42.077,  43.501 ]} # 0002
  - H: {AU:  [  7.3000,  7.2997,  10.157 ], GU:  [  36.500,  36.498,  50.784 ]} # 0003
  Rigid Shift Applied (AU)              :  [  7.3000,  7.0419,  4.9206 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.2000,  0.2000,  0.2000 ]
  Sizes of the simulation domain:
    AU                                  :  [  14.600,  14.600,  17.400 ]
@@ -166,9 +195,10 @@
      From                              :  [  28,  29,  29 ]
      To                                :  [  45,  50,  58 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   OpenMP threads per MPI task         :  2
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  5260
@@ -176,49 +206,61 @@
    Fine resolution grid:
      No. of segments                   :  492
      No. of points                     :  5916
-  #---------------------------------------------------------------------- Occupation numbers
+  #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
  Orbitals Repartition:
    MPI tasks  0- 1                     :  2
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  4
-   Orbitals No. 1- 4                   :  2.0000
+ Total Number of Orbitals              :  4
+ Occupation numbers coming from        : System properties
+ Input Occupation Numbers:
+ - Occupation Numbers: {Orbitals No. 1-4:  2.0000}
  Wavefunctions memory occupation for root MPI process:  4 MB 699 KB 512 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
    Total number of components          :  50462
    Percent of zero components          :  36
+ Ion-Ion interaction energy            :  6.88387411480373E+00
+  #---------------------------------------------------------------- Ionic Potential Creation
+ Total ionic charge                    : -8.000000000000
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  177,  177,  205 ]
    MPI tasks                           :  2
- Input Hamiltonian: { #------------------------------- Atomic Orbitals of PSP wavefunctions
- Total No. of Atomic Input Orbitals:  6, 
- Inputguess Orbitals Repartition: {MPI tasks  0- 1:  3}, 
- Deviation from normalization:  4.33E-06, 
- EKS: -1.67829888878906104E+01, 
- Accuracy estimation for this run: {Energy:  1.54E-04, Convergence Criterion:  3.86E-05}}
+  #----------------------------------- Wavefunctions from PSP Atomic Orbitals initialization
+ Input Hamiltonian:
+   Total No. of Atomic Input Orbitals  :  6
+   Inputguess Orbitals Repartition:
+     MPI tasks  0- 1                   :  3
+   Deviation from normalization        :  4.33E-06
+   EKS                                 : -1.67829888878906104E+01
+   Accuracy estimation for this run:
+     Energy                            :  1.54E-04
+     Convergence Criterion             :  3.86E-05
+  #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -1.70163611904896541E+01, gnrm:  2.56E-01, D: -2.33E-01}
+       -  {iter:  1, EKS: -1.70163611904896612E+01, gnrm:  2.56E-01, D: -2.33E-01}
        -  {iter:  2, EKS: -1.71614731752955478E+01, gnrm:  1.34E-01, D: -1.45E-01}
        -  {iter:  3, EKS: -1.71784547881768290E+01, gnrm:  5.52E-02, D: -1.70E-02}
        -  {iter:  4, EKS: -1.71824315285985563E+01, gnrm:  2.95E-02, D: -3.98E-03}
        -  {iter:  5, EKS: -1.71829067301343628E+01, gnrm:  1.23E-02, D: -4.75E-04}
-       -  {iter:  6, EKS: -1.71830267506898977E+01, gnrm:  6.11E-03, D: -1.20E-04}
+       -  {iter:  6, EKS: -1.71830267506899048E+01, gnrm:  6.11E-03, D: -1.20E-04}
        -  {iter:  7, EKS: -1.71830686215434341E+01, gnrm:  3.40E-03, D: -4.19E-05}
-       -  {iter:  8, EKS: -1.71830832906663744E+01, gnrm:  2.00E-03, D: -1.47E-05}
+       -  {iter:  8, EKS: -1.71830832906663673E+01, gnrm:  2.00E-03, D: -1.47E-05}
        -  {iter:  9, EKS: -1.71830876689392511E+01, gnrm:  1.23E-03, D: -4.38E-06}
        -  {iter:  10, EKS: -1.71830884012721583E+01, gnrm:  4.90E-04, D: -7.32E-07}
        -  {iter:  11, EKS: -1.71830887003671293E+01, gnrm:  2.11E-04, D: -2.99E-07}
        -  {iter:  12, EKS: -1.71830887999843540E+01, gnrm:  1.58E-04, D: -9.96E-08}
        -  {iter:  13, EKS: -1.71830888204855299E+01, gnrm:  6.63E-05, D: -2.05E-08}
-       -  {iter:  14, EKS: -1.71830888253869247E+01, gnrm:  6.63E-05, D: -4.90E-09}
+       -  &FINAL001  {iter:  14, EKS: -1.71830888253869247E+01, gnrm:  6.63E-05, 
+                         D: -4.90E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  4.12E-31
+ Last Iteration                        : *FINAL001
+  #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  177,  177,  205 ]
@@ -229,12 +271,71 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -6.7835E-04, -1.8465E+00, -5.3065E-04 ]
    norm(P)                             :  1.846502E+00
+ Writing electronic density in file    : electronic_density
+ Average noise forces: {x:  4.81443555E-06, y: -1.75643359E-04, z:  3.14601130E-06, 
+                    total:  1.75737491E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  2.917500454516E-04, fnrm2:  1.331233091681E-07}
+ Raw forces norm (Ha/Bohr): {maxval:  2.527894501711E-04, fnrm2:  1.640593694649E-07}
+  #--------------------------------------------------------------------------- Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {H:  [  7.305659170068E-21, -1.452535607594E-04,  5.296960049494E-05 ]} # 0001
+ -  {O:  [  6.064424577731E-21,  2.917457664309E-04, -1.580123608065E-06 ]} # 0002
+ -  {H:  [  7.199780051662E-21, -1.464922056716E-04, -5.138947688688E-05 ]} # 0003
+  #----------------------------------------------------- Mulliken Charge Population Analysis
+ Mulliken Charge Population Analysis:
+    #Atom No.0001
+ - s:
+     Rad                               :  0.88189
+     Chg (up,down)                     :  [  0.28516,  0.28516 ]
+     Partial Chg                       :  0.57031
+     Mag Pol                           :  0.00000
+     Net Chg                           :  0.42969
+    #Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg
+   Center Quantities                   :  [  0.2852,  0.2852,  0.5703,  0.0000,  0.4297 ]
+    #Atom No.0002
+ - s:
+     Rad                               :  0.46227
+     Chg (up,down)                     :  [  0.91603,  0.91603 ]
+     Partial Chg                       :  1.83207
+     Mag Pol                           :  0.00000
+     Net Chg                           :  0.16793
+   px:
+     Rad                               :  0.31490
+     Chg (up,down)                     :  [  0.98456,  0.98456 ]
+     Partial Chg                       :  1.96911
+     Mag Pol                           :  0.00000
+     Net Chg                           : -0.63578
+   py:
+     Rad                               :  0.31490
+     Chg (up,down)                     :  [  0.81913,  0.81913 ]
+     Partial Chg                       :  1.63825
+     Mag Pol                           :  0.00000
+     Net Chg                           : -0.30492
+   pz:
+     Rad                               :  0.31490
+     Chg (up,down)                     :  [  0.67762,  0.67762 ]
+     Partial Chg                       :  1.35525
+     Mag Pol                           :  0.00000
+     Net Chg                           : -0.02191
+    #Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg
+   Center Quantities                   :  [  3.3973,  3.3973,  6.7947,  0.0000, -0.7947 ]
+    #Atom No.0003
+ - s:
+     Rad                               :  0.88189
+     Chg (up,down)                     :  [  0.28515,  0.28515 ]
+     Partial Chg                       :  0.57031
+     Mag Pol                           :  0.00000
+     Net Chg                           :  0.42969
+    #Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg
+   Center Quantities                   :  [  0.2852,  0.2852,  0.5703,  0.0000,  0.4297 ]
+ Total Charge considered on the centers:  7.935293708894
+  #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  195.81
-   Elapsed time (s)                    :  119.52
+   CPU time (s)                        :  188.29
+   Elapsed time (s)                    :  108.83
  Memory Consumption Report:
-   Tot. No. of Allocations  : 2457
-   Tot. No. of Deallocations: 2457
+   Tot. No. of Allocations  : 2490
+   Tot. No. of Deallocations: 2490
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 411

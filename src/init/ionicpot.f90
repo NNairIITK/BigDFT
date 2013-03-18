@@ -9,18 +9,18 @@
 
 
 !> Calculte the ionic contribution to the energy and the forces
-subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
-     & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,psoffset,n1,n2,n3,&
-     & n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
+     & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,n1,n2,n3,&
+     & pot_ion,pkernel,psoffset)
   use module_base
   use module_types
   use Poisson_Solver
   use vdwcorrection
   use yaml_output
   implicit none
+  type(denspot_distribution), intent(in) :: dpbox
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,dispersion
-  real(gp), intent(in) :: hxh,hyh,hzh
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,dispersion
   real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
@@ -32,21 +32,34 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   character(len=*), parameter :: subname='IonicEnergyandForces'
   logical :: slowion=.false.
   logical :: perx,pery,perz,gox,goy,goz
-  integer :: iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
+  integer :: n1i,n2i,n3i,i3s,n3pi
+  integer :: i,iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
   real(gp) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
+  real(gp) :: hxh,hyh,hzh
   real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod
-  real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart
+  real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart,de
   !real(gp) :: Mz,cmassy
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
   real(gp), dimension(:,:), allocatable :: fewald,xred
+  real(gp), dimension(3) :: cc
 
   allocate(fion(3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fion,'fion',subname)
   allocate(fdisp(3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fdisp,'fdisp',subname)
+
+  ! Aliasing
+  hxh = dpbox%hgrids(1)
+  hyh = dpbox%hgrids(2)
+  hzh = dpbox%hgrids(3)
+  n1i = dpbox%ndims(1)
+  n2i = dpbox%ndims(2)
+  n3i = dpbox%ndims(3)
+  i3s = dpbox%i3s+dpbox%i3xcsh
+  n3pi = dpbox%n3pi
 
   pi=4.d0*datan(1.d0)
   psoffset=0.0_gp
@@ -420,13 +433,19 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   end if
 
   ! Add contribution from constant electric field to the forces
+  call center_of_charge(at,rxyz,cc)
   do iat=1,at%nat
      ityp=at%iatype(iat)
      charge=real(at%nelpsp(ityp),gp)
      fion(1:3,iat)=fion(1:3,iat)+(charge*elecfield(1:3))
      !ry=rxyz(2,iat) 
      !eion=eion-(charge*elecfield)*ry
-     eion=eion-charge*sum(elecfield(1:3)*rxyz(1:3,iat))
+     de=0.0_gp
+     do i=1,3
+        de=de+elecfield(i)*(rxyz(i,iat)-cc(i))
+     end do
+     !eion=eion-charge*sum(elecfield(1:3)*rxyz(1:3,iat))
+     eion=eion-charge*de
   enddo
 
   if (iproc == 0) then

@@ -1,23 +1,16 @@
+WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will be run on the current machine only.
  <BigDFT> log of the run will be written in logfile: ./log-binary-read.yaml
  <BigDFT> Logfile already existing, move previous file in:
-   ./logfiles/log-binary-read.22:50:46.532.yaml
+   ./logfiles/log-binary-read.18:06:24.980.yaml
  wavefunctions need reformatting
  because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
  because nvctr_c_old /= nvctr_c       13824       27000
  because nvctr_f_old /= nvctr_f         856        1656
- because cell size has changed          23          29          23          29          23          29
+ because cell size has changed          23          29          23          29
+          23          29
  wavefunctions need reformatting
  because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
  because nvctr_c_old /= nvctr_c       13824       27000
  because nvctr_f_old /= nvctr_f         856        1656
- because cell size has changed          23          29          23          29          23          29
- wavefunctions need reformatting
- because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c       13824       27000
- because nvctr_f_old /= nvctr_f         856        1656
- because cell size has changed          23          29          23          29          23          29
- wavefunctions need reformatting
- because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c       13824       27000
- because nvctr_f_old /= nvctr_f         856        1656
- because cell size has changed          23          29          23          29          23          29
+ because cell size has changed          23          29          23          29
+          23          29

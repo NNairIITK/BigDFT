@@ -29,7 +29,7 @@ program BigDFT2Wannier
    type(workarr_sumrho) :: w
    type(communications_arrays), target :: comms, commsp,commsv,commsb
    integer, parameter :: WF_FORMAT_CUBE = 4
-   integer :: iproc, nproc, nproctiming, i_stat, nelec, ind, ierr, npsidim, npsidim2
+   integer :: iproc, nproc, nproctiming, i_stat, ind, ierr, npsidim, npsidim2
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3,iformat,info
    integer :: ncount0,ncount1,ncount_rate,ncount_max,nbr1,nbr2,nbr3,shft,wshft,lwork
    real :: tcpu0,tcpu1
@@ -163,7 +163,7 @@ program BigDFT2Wannier
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf,nelec)
+   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
@@ -1017,7 +1017,7 @@ if (iproc == 0) &
 !!$call memocc(0,0,'count','stop')
 
 
-call bigdft_finalize()
+call bigdft_finalize(ierr)
 
 !!$! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
 !!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)

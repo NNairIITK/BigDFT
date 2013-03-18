@@ -161,7 +161,7 @@ program abscalc_main
 
    deallocate(arr_posinp,arr_radical)
 
-   call bigdft_finalize()
+   call bigdft_finalize(ierr)
 
 !!$
 !!$   !No referenced by memocc!
@@ -344,7 +344,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    character(len=3) :: PSquiet
    integer :: ixc,ncong,idsx,ncongt,nspin,itermax
    integer :: nvirt!,nsym
-   integer :: nelec,ndegree_ip,j,n1,n2,n3
+   integer :: ndegree_ip,j,n1,n2,n3
 !   integer :: n3d,n3p,n3pi,i3xcsh,i3s
    integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
    integer :: iat,i_all,i_stat,ierr,inputpsi
@@ -501,7 +501,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       PSquiet='YES'
    end if
 
-   call system_properties(iproc,nproc,in,atoms,orbsAO,radii_cf,nelec)
+   call system_properties(iproc,nproc,in,atoms,orbsAO,radii_cf)
 
    call nullify_locreg_descriptors(Lzd%Glr)
 
@@ -655,9 +655,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call timing(iproc,'CrtPcProjects ','OF')
    endif
 
-   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,&
+   call IonicEnergyandForces(iproc,nproc,dpcom,atoms,in%elecfield,rxyz,&
         energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
-        psoffset,n1,n2,n3,n1i,n2i,n3i,dpcom%i3s+dpcom%i3xcsh,dpcom%n3pi,pot_ion,pkernel)
+        n1,n2,n3,pot_ion,pkernel,psoffset)
 
    call createIonicPotential(atoms%geocode,iproc,nproc, (iproc == 0), atoms,rxyz,hxh,hyh,hzh,&
         in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
