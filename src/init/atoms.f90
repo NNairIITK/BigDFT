@@ -584,7 +584,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
   character(len=50) :: extra
   character(len=150) :: line
   logical :: lpsdbl, reduced, eof, forces
-  integer :: iat,ntyp,ityp,i,i_stat,j,nlines,istart,istop,count
+  integer :: iat,ntyp,ityp,i,i_stat,nlines,istart,istop,count
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3,alat4,alat5,alat6
 ! case for which the atomic positions are given whithin general precision
@@ -729,11 +729,17 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
            rxyz(2,iat)=real(ry,gp)
            rxyz(3,iat)=real(rz,gp)
         end if
+        if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
+           ! if Angstroem convert to Bohr
+           rxyz(1,iat)=rxyz(1,iat) / Bohr_Ang
+           rxyz(2,iat)=rxyz(2,iat) / Bohr_Ang
+           rxyz(3,iat)=rxyz(3,iat) / Bohr_Ang
+        end if
 
         if (reduced) then !add treatment for reduced coordinates
-           rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
-           rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
-           rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
+           rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)*atoms%alat1
+           rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)*atoms%alat2
+           rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)*atoms%alat3
         else if (atoms%geocode == 'P') then
            rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
            rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
@@ -759,16 +765,6 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
         atoms%iatype(iat)=ntyp
 200     continue
 
-        if (reduced) then
-           rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
-           rxyz(2,iat)=rxyz(2,iat)*atoms%alat2
-           rxyz(3,iat)=rxyz(3,iat)*atoms%alat3
-        else if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
-           ! if Angstroem convert to Bohr
-           do j=1,3 
-              rxyz(j,iat)=rxyz(j,iat) / Bohr_Ang
-           enddo
-        endif
         iat = iat + 1
      end if
   enddo

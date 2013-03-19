@@ -295,7 +295,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
-          nit_precond,hpsi_tmp,tmb%confdatarr,gnrm,gnrm_zero)
+          nit_precond,tmb%npsidim_orbs,hpsi_tmp,tmb%confdatarr,gnrm,gnrm_zero)
 
      ! temporarily turn confining potential off...
      allocate(prefac(tmb%orbs%norbp),stat=istat)
@@ -304,7 +304,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      tmb%confdatarr(:)%prefac=0.0d0
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
-          nit_precond,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero) ! prefac should be zero
+          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero) ! prefac should be zero
      call daxpy(tmb%npsidim_orbs, 1.d0, hpsi_tmp(1), 1, hpsi_small(1), 1)
      ! ...revert back to correct value
      tmb%confdatarr(:)%prefac=prefac
@@ -321,7 +321,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   else
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
-          nit_precond,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero)
+          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero)
    end if
 
   !sum over all the partial residues

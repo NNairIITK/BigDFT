@@ -441,15 +441,15 @@ module module_interfaces
 
        END SUBROUTINE applyPAWprojectors
 
-       subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
-            & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,psoffset,n1,n2,n3,&
-            & n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+       subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
+            & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,n1,n2,n3,&
+            & pot_ion,pkernel,psoffset)
          use module_base
          use module_types
          implicit none
+         type(denspot_distribution), intent(in) :: dpbox
          type(atoms_data), intent(in) :: at
-         integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,dispersion
-         real(gp), intent(in) :: hxh,hyh,hzh
+         integer, intent(in) :: iproc,nproc,n1,n2,n3,dispersion
          real(gp), dimension(3), intent(in) :: elecfield
          real(gp), dimension(3,at%nat), intent(in) :: rxyz
          type(coulomb_operator), intent(in) :: pkernel
@@ -790,6 +790,36 @@ module module_interfaces
         logical, optional :: opt_keeppsit
       END SUBROUTINE last_orthon
 
+      subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
+           & fxyz, fnoise, fion, fdisp, fpulay, &
+           & strten, pressure, ewaldstr, xcstr, &
+           & GPU, energs, denspot, atoms, rxyz, nlpspd, proj, &
+           & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole)
+        use module_base
+        use module_types
+
+        implicit none
+
+        type(DFT_wavefunction), intent(in) :: KSwfn
+        type(DFT_wavefunction), intent(inout) :: tmb
+        type(GPU_pointers), intent(inout) :: GPU
+        type(energy_terms), intent(in) :: energs
+        type(DFT_local_fields), intent(inout) :: denspot
+        type(atoms_data), intent(in) :: atoms
+        type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
+        real(kind=8), dimension(:), pointer :: proj
+        logical, intent(in) :: refill_proj, calculate_dipole, linear
+        integer, intent(in) :: output_denspot, iproc, nproc
+        character(len = *), intent(in) :: dir_output
+        character(len = *), intent(in) :: gridformat
+        real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
+        real(gp), dimension(3, atoms%nat), intent(in) :: fdisp, fion, fpulay
+        real(dp), dimension(6), intent(in) :: ewaldstr, xcstr
+        real(gp), intent(out) :: fnoise, pressure
+        real(gp), dimension(6), intent(out) :: strten
+        real(gp), dimension(3, atoms%nat), intent(out) :: fxyz
+      END SUBROUTINE kswfn_post_treatments
+
       subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
            refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
            ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
@@ -808,12 +838,11 @@ module module_interfaces
         real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
         real(wp), dimension(nsize_psi), intent(in) :: psi
         real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
-        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp
+        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp,fpulay
         real(gp), intent(out) :: fnoise,pressure
         real(gp), dimension(6), intent(out) :: strten
         real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
         type(DFT_wavefunction),intent(in),optional :: tmb
-        real(gp),dimension(3,atoms%nat),optional,intent(in) :: fpulay
       END SUBROUTINE calculate_forces
       
       subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
@@ -939,16 +968,16 @@ module module_interfaces
          real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp,orbs%nspinor), intent(inout) :: hpsi
       END SUBROUTINE preconditionall
 
-      subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,gnrm,gnrm_zero)
+      subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,confdatarr,gnrm,gnrm_zero)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc,nproc,ncong
+        integer, intent(in) :: iproc,nproc,ncong,npsidim
         real(gp), intent(in) :: hx,hy,hz
         type(local_zone_descriptors), intent(in) :: Lzd
         type(orbitals_data), intent(in) :: orbs
         real(dp), intent(out) :: gnrm,gnrm_zero
-        real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+        real(wp), dimension(npsidim), intent(inout) :: hpsi
         type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
       end subroutine preconditionall2
 

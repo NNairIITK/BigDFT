@@ -1315,7 +1315,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      !switch between the global and delocalized preconditioner
      call preconditionall2(iproc,nproc,wfn%orbs,wfn%Lzd,&
           wfn%Lzd%hgrids(1),wfn%Lzd%hgrids(2),wfn%Lzd%hgrids(3),&
-          ncong,wfn%hpsi,wfn%confdatarr,gnrm,gnrm_zero)
+          ncong,wfn%orbs%npsidim_orbs,wfn%hpsi,wfn%confdatarr,gnrm,gnrm_zero)
      if(.false.) then
         call preconditionall(wfn%orbs,wfn%Lzd%Glr,&
              wfn%Lzd%hgrids(1),wfn%Lzd%hgrids(2),wfn%Lzd%hgrids(3),&

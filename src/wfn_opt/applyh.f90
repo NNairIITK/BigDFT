@@ -767,6 +767,8 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt11_noconf,ttt,r2
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,pot1_noconf
   real(gp) :: epot_p,econf_p,ierr
+  !real(gp), dimension(3) :: hh,rxyzconf
+  !integer, dimension(3) :: ioffset
   real(kind=8),dimension(:),pointer :: hh, rxyzConf
   integer,dimension(:),pointer :: ioffset
   real(kind=8),pointer :: prefac
@@ -1002,7 +1004,9 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   
   !$omp end parallel
 
-
+  if (.not. present(confdata)) then
+     deallocate(hh,ioffset,rxyzConf)
+  end if
 contains
   
   !inline the definition of the confining potential

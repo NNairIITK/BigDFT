@@ -46,6 +46,7 @@ program PS_Check
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
    call f_malloc_set_status(memory_limit=0.e0)
+   call f_malloc_routine_id('PS_Check')
 
    bigdft_mpi%mpi_comm=MPI_COMM_WORLD !workaround to be removed
 
@@ -127,21 +128,30 @@ program PS_Check
 
    !Allocations, considering also spin density
    !Density
-   allocate(density(n01*n02*n03*2+ndebug),stat=i_stat)
-   call memocc(i_stat,density,'density',subname)
+   density=f_malloc(n01*n02*n03*2,id='density')
    !Density then potential
-   allocate(potential(n01*n02*n03+ndebug),stat=i_stat)
-   call memocc(i_stat,potential,'potential',subname)
+   potential=f_malloc(n01*n02*n03,id='potential')
    !ionic potential
-   allocate(pot_ion(n01*n02*n03+ndebug),stat=i_stat)
-   call memocc(i_stat,pot_ion,'pot_ion',subname)
+   pot_ion=f_malloc(n01*n02*n03,id='pot_ion')
    !XC potential
-   allocate(xc_pot(n01*n02*n03*2+ndebug),stat=i_stat)
-   call memocc(i_stat,xc_pot,'xc_pot',subname)
+   xc_pot=f_malloc(n01*n02*n03*2,id='xc_pot')
 
-   !XC potential
-   allocate(extra_ref(n01*n02*n03+ndebug),stat=i_stat)
-   call memocc(i_stat,extra_ref,'extra_ref',subname)
+   extra_ref=f_malloc(n01*n02*n03,id='extra_ref')
+
+!!$   allocate(density(n01*n02*n03*2+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,density,'density',subname)
+!!$   !Density then potential
+!!$   allocate(potential(n01*n02*n03+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,potential,'potential',subname)
+!!$   !ionic potential
+!!$   allocate(pot_ion(n01*n02*n03+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,pot_ion,'pot_ion',subname)
+!!$   !XC potential
+!!$   allocate(xc_pot(n01*n02*n03*2+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,xc_pot,'xc_pot',subname)
+!!$
+!!$   allocate(extra_ref(n01*n02*n03+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,extra_ref,'extra_ref',subname)
 
 
    nullify(rhocore)
@@ -161,8 +171,9 @@ program PS_Check
       !write(unit=*,fmt="(1x,a,i0)")  '===================== nspden:  ',ispden
       !then assign the value of the analytic density and the potential
       !allocate the rhopot also for complex routines
-      allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
-      call memocc(i_stat,rhopot,'rhopot',subname)
+      rhopot=f_malloc(n01*n02*n03*2,id='rhopot')
+!!$      allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
+!!$      call memocc(i_stat,rhopot,'rhopot',subname)
 
       call test_functions(geocode,ixc,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,&
       density,potential,rhopot,pot_ion,offset)
@@ -196,9 +207,10 @@ program PS_Check
       extra_ref=potential
 
       !now the parallel calculation part
-      i_all=-product(shape(rhopot))*kind(rhopot)
-      deallocate(rhopot,stat=i_stat)
-      call memocc(i_stat,i_all,'rhopot',subname)
+      call f_free(rhopot)
+!!$      i_all=-product(shape(rhopot))*kind(rhopot)
+!!$      deallocate(rhopot,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'rhopot',subname)
 
       call compare_with_reference(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
       offset,ehartree,eexcu,vexcu,&
@@ -245,7 +257,7 @@ program PS_Check
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0)call yaml_close_map()
    end if
 
-   call timing(pkernel%mpi_env%iproc +pkernel%mpi_env%igroup,'Parallel','PR')
+   call timing(pkernel%mpi_env%mpi_comm,'Parallel','PR')
    call pkernel_free(pkernel,subname)
 
    if (pkernel%mpi_env%nproc == 1 .and.pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 )&
@@ -253,9 +265,10 @@ program PS_Check
 
    !do not do the sequential calculation if it has been already done
    if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 .and. pkernel%mpi_env%nproc > 1 ) then
-     call yaml_open_map('Monoprocess run')
-    allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
-    call memocc(i_stat,rhopot,'rhopot',subname)
+      call yaml_open_map('Monoprocess run')
+      rhopot=f_malloc(n01*n02*n03*2,id='rhopot')
+!!$      allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
+!!$      call memocc(i_stat,rhopot,'rhopot',subname)
 
      do ispden = 1, 2 
        if (ixc < 0) then
@@ -290,38 +303,41 @@ program PS_Check
        if (ixc == 0) exit
        call xc_end()    
      enddo
-     i_all=-product(shape(rhopot))*kind(rhopot)
-     deallocate(rhopot,stat=i_stat)
-     call memocc(i_stat,i_all,'rhopot',subname)
+     call f_free(rhopot)
+!!$     i_all=-product(shape(rhopot))*kind(rhopot)
+!!$     deallocate(rhopot,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'rhopot',subname)
 
      call yaml_close_map()
    endif
 
-   call timing(pkernel%mpi_env%iproc +pkernel%mpi_env%igroup,'Serial','PR')
+   call timing(pkernel%mpi_env%mpi_comm,'Serial','PR')
+
+   !call f_malloc_dump_status()
 
 !!$   i_all=-product(shape(pkernel))*kind(pkernel)
 !!$   deallocate(pkernel,stat=i_stat)
 !!$   call memocc(i_stat,i_all,'pkernel',subname)
+   call f_free(density,potential,pot_ion,xc_pot,extra_ref)
+
+!!$   i_all=-product(shape(density))*kind(density)
+!!$   deallocate(density,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'density',subname)
+!!$   i_all=-product(shape(potential))*kind(potential)
+!!$   deallocate(potential,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'potential',subname)
+!!$   i_all=-product(shape(pot_ion))*kind(pot_ion)
+!!$   deallocate(pot_ion,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'pot_ion',subname)
+!!$   i_all=-product(shape(xc_pot))*kind(xc_pot)
+!!$   deallocate(xc_pot,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'xc_pot',subname)
+!!$   i_all=-product(shape(extra_ref))*kind(extra_ref)
+!!$   deallocate(extra_ref,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'extra_ref',subname)
 
 
-   i_all=-product(shape(density))*kind(density)
-   deallocate(density,stat=i_stat)
-   call memocc(i_stat,i_all,'density',subname)
-   i_all=-product(shape(potential))*kind(potential)
-   deallocate(potential,stat=i_stat)
-   call memocc(i_stat,i_all,'potential',subname)
-   i_all=-product(shape(pot_ion))*kind(pot_ion)
-   deallocate(pot_ion,stat=i_stat)
-   call memocc(i_stat,i_all,'pot_ion',subname)
-   i_all=-product(shape(xc_pot))*kind(xc_pot)
-   deallocate(xc_pot,stat=i_stat)
-   call memocc(i_stat,i_all,'xc_pot',subname)
-   i_all=-product(shape(extra_ref))*kind(extra_ref)
-   deallocate(extra_ref,stat=i_stat)
-   call memocc(i_stat,i_all,'extra_ref',subname)
-
-
-   call timing(pkernel%mpi_env%iproc +pkernel%mpi_env%igroup,'              ','RE')
+   call timing(pkernel%mpi_env%mpi_comm,'              ','RE')
 
    !Final timing
    call cpu_time(tcpu1)
@@ -335,9 +351,15 @@ program PS_Check
    end if
    !call yaml_stream_attributes()
    !&   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', pkernel%iproc,tel,tcpu1-tcpu0
-
-   !finalize memory counting
-   call memocc(0,0,'count','stop')
+   
+   call f_malloc_free_routine()
+   call f_malloc_finalize()
+   if (iproc==0) then
+      call yaml_release_document()
+      call yaml_close_all_streams()
+   end if
+!!$   !finalize memory counting
+!!$   call memocc(0,0,'count','stop')
 
    call MPI_FINALIZE(ierr)
 
@@ -362,6 +384,8 @@ program PS_Check
       integer :: n3d,n3p,n3pi,i3xcsh,i3s,i3sd,i3,i2,i1,istden,istpot,isp,i
       real(kind=8) :: ehartree
       real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
+      
+      call f_malloc_routine_id(subname)
 
 !      offset=0.d0
 
@@ -394,8 +418,10 @@ program PS_Check
       end if
 
       !input poisson solver, complex distribution
-      allocate(rhopot(n01,n02,n3d,2+ndebug),stat=i_stat)
-      call memocc(i_stat,rhopot,'rhopot',subname)
+      rhopot=f_malloc((/n01,n02,n3d,2/),id='rhopot')
+
+      !allocate(rhopot(n01,n02,n3d,2+ndebug),stat=i_stat)
+      !call memocc(i_stat,rhopot,'rhopot',subname)
 
       !do isp=1,2
       isp=1
@@ -441,11 +467,12 @@ program PS_Check
 
       ! write(unit=*,fmt="(1x,a,1pe20.12)")'Energy diff:',ehref-ehartree
 
-
-      i_all=-product(shape(rhopot))*kind(rhopot)
-      deallocate(rhopot,stat=i_stat)
-      call memocc(i_stat,i_all,'rhopot',subname)
-
+      call f_free(rhopot)
+!!$      i_all=-product(shape(rhopot))*kind(rhopot)
+!!$      deallocate(rhopot,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'rhopot',subname)
+      call f_malloc_free_routine()
+    
    END SUBROUTINE compare_cplx_calculations
 
    subroutine compare_with_reference(iproc,nproc,geocode,distcode,n01,n02,n03,&
@@ -473,6 +500,9 @@ program PS_Check
       real(kind=8), dimension(:), pointer :: xc_temp
       real(dp), dimension(6) :: xcstr
       real(dp), dimension(:,:,:,:), pointer :: rhocore
+
+      call f_malloc_routine_id(subname)
+
       nullify(rhocore)
 
       call PS_dim4allocation(geocode,distcode,pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,n01,n02,n03,ixc,&
@@ -491,14 +521,21 @@ program PS_Check
       istpoti=n01*n02*(i3s+i3xcsh-1)+1
 
       !test arrays for comparison
-      allocate(test(n01*n02*n03*nspden+ndebug),stat=i_stat)
-      call memocc(i_stat,test,'test',subname)
+      test=f_malloc(n01*n02*n03*nspden,id='test')
       !XC potential
-      allocate(test_xc(n01*n02*n03*nspden+ndebug),stat=i_stat)
-      call memocc(i_stat,test_xc,'test_xc',subname)
+      test_xc=f_malloc(n01*n02*n03*nspden,id='test_xc')
       !input poisson solver
-      allocate(rhopot(n01,n02,n3d,nspden+ndebug),stat=i_stat)
-      call memocc(i_stat,rhopot,'rhopot',subname)
+      rhopot=f_malloc((/n01,n02,n3d,nspden/),id='rhopot')
+
+!!$      !test arrays for comparison
+!!$      allocate(test(n01*n02*n03*nspden+ndebug),stat=i_stat)
+!!$      call memocc(i_stat,test,'test',subname)
+!!$      !XC potential
+!!$      allocate(test_xc(n01*n02*n03*nspden+ndebug),stat=i_stat)
+!!$      call memocc(i_stat,test_xc,'test_xc',subname)
+!!$      !input poisson solver
+!!$      allocate(rhopot(n01,n02,n3d,nspden+ndebug),stat=i_stat)
+!!$      call memocc(i_stat,rhopot,'rhopot',subname)
     
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) &
            write(message,'(1x,a,1x,i0,1x,a,1x,i0)') geocode,ixc,distcode,nspden
@@ -604,9 +641,10 @@ program PS_Check
       end do
 
       if (nspden == 2 .and. distcode == 'D') then
-         i_all=-product(shape(xc_temp))*kind(xc_temp)
-         deallocate(xc_temp,stat=i_stat)
-         call memocc(i_stat,i_all,'xc_temp',subname)
+         call f_free(xc_temp)
+!!$         i_all=-product(shape(xc_temp))*kind(xc_temp)
+!!$         deallocate(xc_temp,stat=i_stat)
+!!$         call memocc(i_stat,i_all,'xc_temp',subname)
       end if
 
       call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,ixc,hx,hy,hz,&
@@ -646,17 +684,22 @@ program PS_Check
 !!$      'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
       
 
-      i_all=-product(shape(test))*kind(test)
-      deallocate(test,stat=i_stat)
-      call memocc(i_stat,i_all,'test',subname)
-      i_all=-product(shape(test_xc))*kind(test_xc)
-      deallocate(test_xc,stat=i_stat)
-      call memocc(i_stat,i_all,'test_xc',subname)
+      call f_free(test)
+      call f_free(test_xc)
+      call f_free(rhopot)
 
-      i_all=-product(shape(rhopot))*kind(rhopot)
-      deallocate(rhopot,stat=i_stat)
-      call memocc(i_stat,i_all,'rhopot',subname)
+!!$      i_all=-product(shape(test))*kind(test)
+!!$      deallocate(test,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'test',subname)
+!!$      i_all=-product(shape(test_xc))*kind(test_xc)
+!!$      deallocate(test_xc,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'test_xc',subname)
+!!$
+!!$      i_all=-product(shape(rhopot))*kind(rhopot)
+!!$      deallocate(rhopot,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'rhopot',subname)
 
+      call f_malloc_free_routine()
 
    END SUBROUTINE compare_with_reference
 

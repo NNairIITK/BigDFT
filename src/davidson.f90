@@ -2051,19 +2051,23 @@ subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
       return
       stop 'HL gap with Band structure not implemented yet'
    end if
-
    !depending on nspin
    orbs%HLgap=UNINITIALIZED(orbs%HLgap)
    if (orbs%nspin==1) then
+      ikpt=1
+       orbs%HLgap=orbsv%eval(1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)
       !the minimum wrt all the k-points
-      do ikpt=1,orbs%nkpts
+      do ikpt=2,orbs%nkpts
          orbs%HLgap=min(orbs%HLgap,orbsv%eval(1+(ikpt-1)*orbsv%norb)&
-            &   -orbs%eval(orbs%norb+(ikpt-1)*orbs%norb))
+              -orbs%eval(orbs%norb+(ikpt-1)*orbs%norb))
       end do
    else if (orbs%nspin==2) then
-      do ikpt=1,orbs%nkpts
+      ikpt=1
+      orbs%HLgap=min(orbsv%eval(1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
+           orbsv%eval(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbd+orbs%norbu+(ikpt-1)*orbs%norb))
+      do ikpt=2,orbs%nkpts
          orbs%HLgap=min(orbs%HLgap,orbsv%eval(1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
-            &   orbsv%eval(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbd+orbs%norbu+(ikpt-1)*orbs%norb))
+              orbsv%eval(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbd+orbs%norbu+(ikpt-1)*orbs%norb))
       end do
    end if
 

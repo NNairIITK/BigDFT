@@ -333,7 +333,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               interpol_vector(2)=interpol_vector(3)
               interpol_vector(3)=interpol_vector(4)
           end if
-          ii=min(it_solver,4)
+          !LG: if it_solver==0 this index comes out of bounds!
+          ii=max(min(it_solver,4),1)
           interpol_matrix(ii,1)=foe_obj%ef**3
           interpol_matrix(ii,2)=foe_obj%ef**2
           interpol_matrix(ii,3)=foe_obj%ef
@@ -518,6 +519,7 @@ end subroutine foe
 ! Calculates chebychev expansion of fermi distribution.
 ! Taken from numerical receipes: press et al
 subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
+  use module_base, pi => pi_param
   implicit none
   
   ! Calling arguments
@@ -529,7 +531,7 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
   integer :: k, j
   real(kind=8) :: bma, bpa, y, arg, fac, tt, erfcc
   real(kind=8),dimension(5000) :: cf
-  real(kind=8),parameter :: pi=4.d0*atan(1.d0)
+  !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
 
   if (n>5000) stop 'chebft'
   bma=0.5d0*(b-a)
@@ -559,6 +561,7 @@ end subroutine chebft
 ! Calculates chebychev expansion of fermi distribution.
 ! Taken from numerical receipes: press et al
 subroutine chebft2(a,b,n,cc)
+  use module_base, pi => pi_param
   implicit none
 
   ! Calling arguments
@@ -568,7 +571,7 @@ subroutine chebft2(a,b,n,cc)
 
   ! Local variables
   integer :: k, j
-  real(kind=8),parameter :: pi=4.d0*atan(1.d0)
+  !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
   real(kind=8) :: tt, y, arg, fac, bma, bpa
   real(kind=8),dimension(5000) :: cf
 

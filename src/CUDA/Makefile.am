@@ -1,4 +1,35 @@
-EXTRA_DIST = Makefile.standalone
+# To be installed:
+noinst_LIBRARIES = libCUDA.a
+
+# Code source.
+EXTRA_DIST = Makefile.standalone \
+	precond.cu \
+	density.cu \
+	anasyn.cu \
+	locpot.cu locpot.h \
+	kinetic.cu kinetic.h \
+	compress.cu
+if USE_CUDA_GPU
+sources = binding_s_gpu.c \
+	commonDef.cpp commonDef.h \
+	fortran.c \
+	cudafct.cu \
+	locham.cu \
+	kernels_anasyn.hcu \
+	kernels_locpot.hcu \
+	kernels_kinetic.hcu \
+	kernels_compress.hcu \
+	GPUparameters.h \
+	structDef_anasyn.h \
+	structDef_locpot.h \
+	structDef_kinetic.h \
+	check_cuda.h \
+	read_conf_exception.h \
+	cpp_utils.h
+else
+sources = cublas_fake.f90
+endif
+libCUDA_a_SOURCES = $(sources)
 
 # Not used anymore, to be removed
 #INC_CUDA = -I@LIB_CUTIL_PATH@
@@ -10,12 +41,18 @@ NVCC = @NVCC@
 NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@ 
 SUFFIXES = .cu
 
-CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
+CLEANFILES = fort.1 fort.98 *linkinfo
 
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I../includes @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
+AM_LDFLAGS = -L$(top_builddir)/src
+if BUILD_DYNAMIC_LIBS
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+else
+LIBS += @LIBS_SHORT_DEPS@
+endif
 
 conv_check_SOURCES = conv_check.f90 timing.c
-conv_check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+conv_check_LDADD = -lbigdft-1
 
 #GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
 #GPUham_LDFLAGS =

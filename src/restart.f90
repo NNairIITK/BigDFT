@@ -2122,7 +2122,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
 
   allocate(Lzd%Llr(Lzd%nlr),stat=i_stat)
   do ilr=1,lzd%nlr
-     lzd%Llr(ilr)=default_locreg()
+     lzd%Llr(ilr)=locreg_null()
   end do
 
   allocate(cxyz(3,Lzd%nlr),stat=i_stat)

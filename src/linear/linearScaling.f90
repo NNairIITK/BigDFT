@@ -518,7 +518,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   call deallocate_local_arrays()
 
-  call timing(iproc,'WFN_OPT','PR')
+  call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
 
   contains
 
@@ -950,6 +950,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
         locregCenter(:,ilr)=lzd_tmp%llr(ilr)%locregCenter
      end do
 
+     !temporary,  moved from update_locreg
+     tmb%orbs%eval=-0.5_gp
      call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, locregCenter, lzd_tmp%glr, .false., &
           denspot%dpbox%nscatterarr, hx, hy, hz, at, input, KSwfn%orbs, tmb%orbs, tmb%lzd, tmb%npsidim_orbs, tmb%npsidim_comp, &
           tmb%comgp, tmb%collcom, tmb%foe_obj, tmb%collcom_sr)

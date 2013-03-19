@@ -13,9 +13,15 @@ CLEANFILES = test-dsygv.out\
 	interfaces.@MODULE_EXT@ INTERFACES.@MODULE_EXT@
 
 AM_FCFLAGS = -I$(top_builddir)/src/modules -I$(top_builddir)/src/ @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ 
+AM_LDFLAGS = -L$(top_builddir)/src
+if BUILD_DYNAMIC_LIBS
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+else
+LIBS += @LIBS_SHORT_DEPS@
+endif
 
 test_SOURCES = interfaces.f90 init.f90 wrappers.f90 test.f90
-test_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+test_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 check: test-dsygv.report
 

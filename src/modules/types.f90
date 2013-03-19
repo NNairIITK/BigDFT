@@ -527,6 +527,7 @@ module module_types
      real(kind=8) :: psi_c_r,psi_f_r,psi_c_b,psi_f_b,psi_c_d,psi_f_d
      real(kind=8) :: psi_c_r_i,psi_f_r_i,psi_c_b_i,psi_f_b_i,psi_c_d_i,psi_f_d_i
      real(kind=8) :: keyg_c,keyg_f,keyv_c,keyv_f
+     real(kind=8) :: keyg_c_host,keyg_f_host,keyv_c_host,keyv_f_host
      real(kind=8) :: context,queue
      !host pointers to be freed
      real(kind=8) :: rhopot_down_host, rhopot_up_host
@@ -1002,7 +1003,7 @@ contains
     nullify(b%ibyyzz_r)
   end function default_bounds
 
-  function default_locreg() result(lr)
+  function locreg_null() result(lr)
     type(locreg_descriptors) :: lr
 
     lr%geocode='F'
@@ -1021,7 +1022,7 @@ contains
     lr%locregCenter=(/0.0_gp,0.0_gp,0.0_gp/) 
     lr%locrad=0 
 
-  end function default_locreg
+  end function locreg_null
 
   function default_lzd() result(lzd)
     type(local_zone_descriptors) :: lzd
@@ -1030,7 +1031,7 @@ contains
     lzd%lintyp=0
     lzd%ndimpotisf=0
     lzd%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    lzd%Glr=default_locreg()
+    lzd%Glr=locreg_null()
     nullify(lzd%Llr)
   end function default_lzd
  
