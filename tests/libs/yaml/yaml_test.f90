@@ -28,6 +28,8 @@ program yaml_test
 
    !First document
    call yaml_new_document()
+   call yaml_comment('Yaml Output Module Test',hfill='~')
+
    call yaml_open_map("Test")
       call yaml_map("Short sentence",.true.)
 !      call yaml_stream_attributes(iflowlevel=i,ilevel=l,ilast=j,indent=d,flowrite=fl,indent_previous=ip,icursor=ic)
@@ -88,7 +90,7 @@ call yaml_close_sequence()
    deallocate(iv)
    deallocate(dv)
 
-   print *,'Dictionary test'
+   call yaml_comment('Fortran Dictionary Test',hfill='~')
 
    call dict_init(dict)
 
@@ -173,78 +175,205 @@ call yaml_close_sequence()
    !  call push(dict2,'Element')
    !  call append(dictA,dictA2)
    call yaml_dict_dump(dictA)
+
+   call yaml_comment('Prepend dictionary example',hfill='~')
+   
+   call yaml_open_map('Dict A')
+   call yaml_dict_dump(dictA)
+   call yaml_close_map()
+   call dict_init(dict2)
+   call set(dict2//'Test1'//'Toto',5)
+   call set(dict2//'Test1'//'Titi',6)
+   call set(dict2//'Test2'//'Toto',4)
+   call set(dict2//'Test2'//'Titi',2)
+
+
+   call yaml_open_map('Dict 2')
+   call yaml_dict_dump(dict2)
+   call yaml_close_map()
+
+   call prepend(dictA,dict2)
+
+   call yaml_open_map('Prepended')
+   call yaml_dict_dump(dictA)
+   call yaml_close_map()
+   
+!   call dict_free(dict2)
    call dict_free(dictA)
-   call yaml_map('Ended',.true.)
+
+ !  stop
+
+   call yaml_comment('Routine-Tree creation example',hfill='~')
 
    !let used to imagine a routine-tree creation
    nullify(dict2)
    call dict_init(dictA)
    dict2=>dictA//'Routine Tree'
-   call yaml_map('Length',dict_len(dict2))
-   call add(dict2,'Routine 0')
-   call add(dict2,'Routine A')
-   call add(dict2,'Routine B')
-   call add(dict2,'Routine C')
-   call add(dict2,'Routine D')
-   call yaml_dict_dump(dictA)
+!   call yaml_map('Length',dict_len(dict2))
+   call add_routine(dict2,'Routine 0')
+   call close_routine(dict2,'Routine 0')
+   call add_routine(dict2,'Routine A')
+   call close_routine(dict2,'Routine A')
+   call add_routine(dict2,'Routine B')
+   call close_routine(dict2,'Routine B')
+   call add_routine(dict2,'Routine C')
+   call close_routine(dict2,'Routine C')
+   call add_routine(dict2,'Routine D')
 
-   !now imagine that a new routine is created
-   ival=dict_len(dict2)-1
-   routinename=dict2//ival
+   call open_routine(dict2)
+   call add_routine(dict2,'SubCase 1')
+   call close_routine(dict2,'SubCase 1')
 
-   call yaml_map('The routine which has to be converted is',trim(routinename))
+   call add_routine(dict2,'Subcase 2')
+   call open_routine(dict2)
+   call add_routine(dict2,'SubSubCase1')
+   call close_routine(dict2,'SubSubCase1')
+
+   call close_routine(dict2,'SubSubCase1')
    
-   call pop(dict2,ival)
+!   call close_routine(dict2)
+   call add_routine(dict2,'SubCase 3')
+   call close_routine(dict2,'SubCase 3')
+   call close_routine(dict2,'SubCase 3')
 
+   call add_routine(dict2,'Routine E')
+   call close_routine(dict2,'Routine E')
+
+   call add_routine(dict2,'Routine F')
+
+!   call yaml_comment('Look Below',hfill='v')
+   call yaml_open_map('Test Case before implementation')
    call yaml_dict_dump(dictA)
-
-   dictA2=>dict2//ival//'Subroutine A'
-
-   call yaml_dict_dump(dictA)
-   !end of opening a new routine
-
-   call add(dictA2,'SubRoutine 0')
-   call add(dictA2,'SubRoutine A')
-   call add(dictA2,'SubRoutine B')
-   call add(dictA2,'SubRoutine C')
-   call add(dictA2,'SubRoutine D')
-
-   call yaml_dict_dump(dictA)
-
-   !now the routine has to be closed
-   !we should jump at the upper level
+   call yaml_close_map()
+!   call yaml_comment('Look above',hfill='^')
 
    call dict_free(dictA)
-stop
 
    call f_malloc_set_status(memory_limit=0.e0)
    call f_malloc_routine_id('PS_Check')
-!!$
-!!$   !Allocations, considering also spin density
+
+   call f_malloc_routine_id('Routine 0')
    !Density
    density=f_malloc(3*2,id='density')
    !Density then potential
-   potential=f_malloc(3,id='potential')
+   potential=f_malloc0(3,id='potential')
+
+   call f_malloc_free_routine()
+   call f_malloc_routine_id('Routine A')
+   call f_malloc_free_routine()
+
+!   call f_malloc_dump_status()
+
+   call f_malloc_routine_id('Routine D')
+    call f_malloc_routine_id('SubCase 1')
+    call f_malloc_free_routine()
+    call f_malloc_routine_id('Subcase 2')
+      call f_malloc_routine_id('SubSubcase1')
+      call f_malloc_free_routine()
+    call f_malloc_free_routine()
+    call f_malloc_routine_id('SubCase 3')
+    call f_malloc_free_routine()
+   call f_malloc_free_routine()
+   call f_malloc_routine_id('Routine E')
+   call f_free(density)
+   call f_malloc_free_routine()
+   call f_malloc_routine_id('Routine F')
+   call f_malloc_free_routine()
+! call f_malloc_dump_status()
+!!$
+!!$   !Allocations, considering also spin density
    !ionic potential
    pot_ion=f_malloc(3,id='pot_ion')
    !XC potential
    xc_pot=f_malloc(3*2,id='xc_pot')
 
-   call f_malloc_dump_status()
+!   call f_malloc_dump_status()
    extra_ref=f_malloc(3,id='extra_ref')
 
    rhopot=f_malloc(3*2,id='rhopot')
    call f_free(rhopot)
-   call yaml_map('Ended1, hic sunt leones',.true.)
 
    !call f_free(density,potential,pot_ion,xc_pot,extra_ref)
 !!$   call f_malloc_dump_status()
-   call f_free(potential)
-   call yaml_map('Ended0',.true.)
+
    call f_free(pot_ion)
-   call f_malloc_dump_status()
+
    call f_free(xc_pot)
+   call f_malloc_dump_status()
    call f_free(extra_ref)
-   call yaml_map('Ended2',.true.)
+!   call yaml_open_map('Last')
+!   call f_malloc_dump_status()
+!   call yaml_close_map()
+   call f_malloc_free_routine()
    call f_malloc_finalize()
+
+   contains
+
+     subroutine open_routine(dict)
+       implicit none
+       type(dictionary), pointer :: dict
+       !local variables
+       integer :: ival
+       type(dictionary), pointer :: dict_tmp
+      
+       !now imagine that a new routine is created
+       ival=dict_len(dict)-1
+       routinename=dict//ival
+
+       !call yaml_map('The routine which has to be converted is',trim(routinename))
+
+       call pop(dict,ival)
+
+       dict_tmp=>dict//ival//trim(routinename)
+       dict => dict_tmp
+       nullify(dict_tmp)
+
+     end subroutine open_routine
+
+     subroutine close_routine(dict,name)
+       implicit none
+       type(dictionary), pointer :: dict
+       character(len=*), intent(in), optional :: name
+       !local variables
+       logical :: jump_up
+       integer :: ival
+       type(dictionary), pointer :: dict_tmp
+       
+       if (.not. associated(dict)) stop 'ERROR, routine not associated' 
+
+!       call yaml_map('Key of the dictionary',trim(dict%data%key))
+
+       if (present(name)) then
+          !jump_up=(trim(dict%data%key) /= trim(name))
+          jump_up=(trim(routinename) /= trim(name))
+       else
+          jump_up=.true.
+       end if
+          
+!       call yaml_map('Would like to jump up',jump_up)
+       if (jump_up) then
+          !now the routine has to be closed
+          !we should jump at the upper level
+          dict_tmp=>dict%parent 
+          if (associated(dict_tmp%parent)) then
+             nullify(dict)
+             !this might be null if we are at the topmost level
+             dict=>dict_tmp%parent
+          end if
+          nullify(dict_tmp)
+       end if
+
+       routinename=repeat(' ',len(routinename))
+     end subroutine close_routine
+
+     subroutine add_routine(dict,name)
+       implicit none
+       type(dictionary), pointer :: dict
+       character(len=*), intent(in) :: name
+
+       routinename=trim(name)
+       call add(dict,trim(name))
+
+     end subroutine add_routine
+
 end program yaml_test

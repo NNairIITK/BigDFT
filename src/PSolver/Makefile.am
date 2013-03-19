@@ -1,26 +1,34 @@
-if USE_CUDA_GPU
-EXTRA_PROGRAMS = conv_check_fft
+# To be installed:
+noinst_LIBRARIES = libPSolver.a
+module_DATA = $(modules)
 
-conv_check_fft_SOURCES = conv_check_fft.f90
-conv_check_fft_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
-
-conv_check_fftw_SOURCES = conv_check_fftw.f90 \
-	fftw.cpp
-conv_check_fftw_LDADD = @LIBS_DEPENDENCIES@ -lfftw3 -lfftw3_threads
-
+# Code source.
+if BUILD_LIB_BIGDFT
+PS_SOURCES = Build_Kernel.f90 \
+	xcenergy.f90 \
+	3Dgradient.f90 \
+	scaling_function.f90 \
+	PSolver_Base_new.f90 \
+	wofz.f90
 else
-EXTRA_PROGRAMS = conv_check_fftw
+PS_SOURCES =
+endif
+if USE_CUDA_GPU
+CUDA_SOURCES = cufft.cu
+else
+CUDA_SOURCES =
+endif
+SOURCES_MOD = PSolver_Main.f90 createKernel.f90
+libPSolver_a_SOURCES = $(PS_SOURCES) $(CUDA_SOURCES) Poisson_Solver.f90
 
-conv_check_fft_SOURCES =
-conv_check_fft_LDADD =
-
-conv_check_fftw_SOURCES =
-conv_check_fftw_LDADD =
-
+# Modules.
+if CAPITALIZE
+modules = POISSON_SOLVER.@MODULE_EXT@
+else
+modules = poisson_solver.@MODULE_EXT@
 endif
 
-## Process this file with automake to produce Makefile.in
-
+CLEANFILES = $(modules)
 EXTRA_DIST = gaussfit_wires.inc\
 	lazy_16.inc\
 	lazy_40.inc\
@@ -43,45 +51,41 @@ EXTRA_DIST = gaussfit_wires.inc\
 	lazy_30.inc\
 	lazy_8.inc\
 	lazy_ISF_16_2048.preinc\
-	lazy_ISF_40_2048.inc\
-	perfdata.inc\
-	createKernel.f90 \
-	PSolver_Main.f90
+	lazy_ISF_40_2048.inc \
+	perfdata.inc \
+	$(SOURCES_MOD)
 
-
-SOURCES_MOD = PSolver_Main.f90 \
-	createKernel.f90
-
-noinst_LIBRARIES = libpoissonsolver.a
-
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-
-libpoissonsolver_a_SOURCES = Poisson_Solver.f90
-
-if CAPITALIZE
-module_DATA = POISSON_SOLVER.@MODULE_EXT@
+# Build targets.
+if USE_CUDA_GPU
+CONV_CHECK = conv_check_fft
 else
-module_DATA = poisson_solver.@MODULE_EXT@
+CONV_CHECK = conv_check_fftw
 endif
+EXTRA_PROGRAMS = $(CONV_CHECK)
+conv_check_fft_SOURCES = conv_check_fft.f90
+conv_check_fft_LDADD = -lbigdft-1
+conv_check_fftw_SOURCES = conv_check_fftw.f90 fftw.cpp
+conv_check_fftw_LDADD = @LIBS_SHORT_DEPS@ -lfftw3 -lfftw3_threads
 
-CLEANFILES = $(EXTRA_PROGRAMS) $(module_DATA)
+AM_FCFLAGS = -I../includes -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ @MPI_INCLUDE@
+AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
+AM_LDFLAGS = -L$(top_builddir)/src
+if BUILD_DYNAMIC_LIBS
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+else
+LIBS += @LIBS_SHORT_DEPS@
+endif
 
 SUFFIXES = .cu
 
 NVCC = @NVCC@
 NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@
 
-AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/
-
 #dependencies
-poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
-
+$(modules): $(libPSolver_a_OBJECTS)
 Poisson_Solver.o: ../modules/base.o ../modules/xc.o $(SOURCES_MOD)
-
-Build_Kernel.o: fft3d.o
-
+xcenergy.o: Poisson_Solver.o
 conv_check_fft.o: cufft.o
-
 conv_check_fftw.o: fftw.o
 
 .cu.o:
@@ -89,3 +93,11 @@ conv_check_fftw.o: fftw.o
 
 .cpp.o:
 	icc -openmp -lfftw3 -lfftw3_threads -c $< -o $@
+
+# Copy modules in a common include directory.
+all: all-am insmod
+insmod: $(modules)
+	test -e "../includes" || $(INSTALL) -d -m 755 ../includes
+	for mod in "$(modules)" ; do \
+	  $(INSTALL) -m 644  $$mod ../includes ; \
+	done

@@ -65,7 +65,7 @@ module dictionaries
 
 
   public :: operator(//), assignment(=)
-  public :: set,dict_init,dict_free,try,close_try,pop,append,prepend,find_key,dict_len,add
+  public :: set,dict_init,dict_free,try,close_try,pop,append,prepend,find_key,dict_len,add,dict_key
   
 
 contains
@@ -134,6 +134,20 @@ contains
     end if
 
   end subroutine check_value
+
+  function dict_key(dict)
+    type(dictionary), pointer :: dict
+    character(len=max_field_length) :: dict_key
+    
+    dict_key=repeat(' ',len(dict_key))
+
+    if (.not. associated(dict)) return
+    
+    call check_key(dict)
+
+    dict_key=dict%data%key
+
+  end function dict_key
 
   subroutine check_conversion(ierror)
     implicit none
@@ -327,15 +341,24 @@ contains
     end if
   end function dict_size
 
-!!$  function pop_last(dict)
-!!$    implicit none
-!!$    type(dictionary), intent(inout), pointer :: dict
-!!$    character(len=max_field_length) :: pop_last
-!!$    !local variables
-!!$    
-!!$    pop_last='ciao'
-!!$
-!!$  end function pop_last
+  subroutine pop_last(dict)
+    implicit none
+    type(dictionary), intent(inout), pointer :: dict 
+    !local variables
+    integer :: nitems
+
+    nitems=dict_len(dict)
+    if (nitems > 0) then
+       call pop_item(dict,nitems-1)
+    else
+       if (exceptions) then
+          last_error=DICT_ITEM_NOT_VALID
+       else
+          write(*,*)'ERROR: list empty, pop not possible'
+          stop
+       end if
+    end if
+  end subroutine pop_last
   
   subroutine pop_item(dict,item)
     implicit none
@@ -628,6 +651,7 @@ contains
     else if (.not. associated(dict%parent)) then
        call prepend(dict%child,brother)
     else if (.not. associated(brother%parent)) then
+       call define_parent(dict%parent,brother%child)
        call prepend(dict,brother%child)
        nullify(brother%child)
        call dict_free(brother)

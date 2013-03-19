@@ -1,4 +1,4 @@
-  call timing(0,'Init to Zero  ','IR') 
+!  call timing(0,'Init to Zero  ','IR') 
   !then perform all the checks and profile the allocation procedure
   if (size(shape(array))==m%rank) then
       call metadata_address(array,iadd)
@@ -20,7 +20,7 @@
      deallocate(array,stat=ierror)
      call check_for_errors(ierror,m%try)
   end if
-  call timing(0,'Init to Zero  ','RS') 
+!  call timing(0,'Init to Zero  ','RS') 
 contains 
 
   subroutine profile(iadd)

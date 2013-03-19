@@ -518,7 +518,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   call deallocate_local_arrays()
 
-  call timing(iproc,'WFN_OPT','PR')
+  call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
 
   contains
 

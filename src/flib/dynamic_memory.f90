@@ -57,8 +57,9 @@ module dynamic_memory
   type(dictionary), pointer :: dict_global,dict_routine,dict_calling_sequence
   type(dictionary), pointer :: dict_codepoint=>null() !save variable which says where we are in the code
   !global variable (can be stored in dictionaries)
-  logical :: routine_opened=.false.,routine_changed=.false.
+  logical :: routine_opened=.false.
   character(len=namelen) :: present_routine=repeat(' ',namelen)
+!  character(len=namelen) :: last_opened_routine=repeat(' ',namelen)
 
   !parameters for defitions of internal dictionary
   character(len=*), parameter :: arrayid='Array Id'
@@ -83,7 +84,7 @@ module dynamic_memory
   end type array_bounds
 
   interface assignment(=)
-     module procedure i1_all,d1_all,d2_all,d3_all
+     module procedure i1_all,d1_all,d2_all,d3_all,d4_all
   end interface
 
   interface operator(.to.)
@@ -91,7 +92,7 @@ module dynamic_memory
   end interface
 
   interface f_free
-     module procedure i1_all_free,d1_all_free,d2_all_free,d1_all_free_multi
+     module procedure i1_all_free,d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free
   end interface
 
   interface pad_with_nan
@@ -110,8 +111,8 @@ module dynamic_memory
      module procedure f_malloc0,f_malloc0_simple,f_malloc0_bounds
   end interface
 
-  public :: f_malloc_set_status,f_malloc_finalize
-  public :: f_malloc,f_malloc0,f_free,f_malloc_routine_id,f_malloc_dump_status
+  public :: f_malloc_set_status,f_malloc_finalize,f_malloc_dump_status
+  public :: f_malloc,f_malloc0,f_free,f_malloc_routine_id,f_malloc_free_routine
   public :: assignment(=),operator(.to.)
 
 contains
@@ -378,36 +379,111 @@ contains
 
   end function last_f_malloc_error
 
+  !> this routine adds the corresponding subprogram name to the dictionary
+  !! and prepend the dictionary to the global info dictionary
+  !! if it is called more than once for the same name it has no effect
   subroutine f_malloc_routine_id(routine_id)
     implicit none
     character(len=*), intent(in) :: routine_id
     !local variables
     integer :: lgt
     if (trim(present_routine) /= trim(routine_id)) then
-       if(len_trim(present_routine)/=0) then
-          routine_opened=.true.
-       else
-          !this means that we are at the initialization
-          call dict_init(dict_routine)
-          !add this name in the calling sequence
-          !we should add a way to append the routine
-          !call set(dict_codepoint)
+       if(associated(dict_routine)) then
+          call prepend(dict_global,dict_routine)
+          nullify(dict_routine)
        end if
+       !this means that the previous routine has not been closed
+       if (routine_opened) then
+          call open_routine(dict_codepoint)
+!          last_opened_routine=present_routine
+       end if
+       routine_opened=.true.
+       call add(dict_codepoint,trim(routine_id))
+
        present_routine=repeat(' ',namelen)
        lgt=min(len(routine_id),namelen)
        present_routine(1:lgt)=routine_id(1:lgt)
+
     end if
   end subroutine f_malloc_routine_id
 
   !> close a previously opened routine
   subroutine f_malloc_free_routine()
+!    use yaml_output
     implicit none
-    if(len_trim(present_routine) ==0) then 
-       stop 'ERROR, routine not opened'
+    if (associated(dict_routine)) then
+       call prepend(dict_global,dict_routine)
+       nullify(dict_routine)
     end if
-    call prepend(dict_global,dict_routine)
+    call close_routine(dict_codepoint,.not. routine_opened)!trim(dict_key(dict_codepoint)))
+!!$    call yaml_open_map('Codepoint after closing')
+!!$    call yaml_map('Potential Reference Routine',trim(dict_key(dict_codepoint)))
+!!$      call yaml_dict_dump(dict_codepoint)
+!!$    call yaml_close_map()
+    present_routine=trim(dict_key(dict_codepoint))
+    !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
     routine_opened=.false.
   end subroutine f_malloc_free_routine
+
+  subroutine open_routine(dict)
+    implicit none
+    type(dictionary), pointer :: dict
+    !local variables
+    integer :: ival
+    character(len=info_length) :: routinename
+    type(dictionary), pointer :: dict_tmp
+
+    !now imagine that a new routine is created
+    ival=dict_len(dict)-1
+    routinename=dict//ival
+
+    !call yaml_map('The routine which has to be converted is',trim(routinename))
+
+    call pop(dict,ival)
+
+    dict_tmp=>dict//ival//trim(routinename)
+    dict => dict_tmp
+    nullify(dict_tmp)
+
+  end subroutine open_routine
+
+  subroutine close_routine(dict,jump_up)
+!    use yaml_output
+    implicit none
+    type(dictionary), pointer :: dict
+    logical, intent(in) :: jump_up
+    !character(len=*), intent(in) :: name
+    !local variables
+
+    integer :: ival
+    type(dictionary), pointer :: dict_tmp
+
+    if (.not. associated(dict)) stop 'ERROR, routine not associated' 
+
+!!$    !jump_up=(trim(present_routine) /= trim(name))
+!!$    jump_up=(trim(last_opened_routine) /= trim(name))
+!!$
+!!$    call yaml_open_map('Test of the example')
+!!$    call yaml_map('Name',trim(name))
+!!$    call yaml_map('Last opened routine',trim(last_opened_routine))
+!!$    call yaml_map('Present Routine',present_routine)
+!!$    call yaml_map('Willing to jump up',jump_up)
+!!$    call yaml_close_map()
+
+    if (jump_up) then
+       !now the routine has to be closed
+       !we should jump at the upper level
+       dict_tmp=>dict%parent 
+       if (associated(dict_tmp%parent)) then
+          nullify(dict)
+          !this might be null if we are at the topmost level
+          dict=>dict_tmp%parent
+       end if
+       nullify(dict_tmp)
+    end if
+
+  end subroutine close_routine
+
 
   !>initialize the library
   subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,unit)
@@ -447,15 +523,21 @@ contains
     if (associated(dict_routine)) then
        !call yaml_get_default_stream(unt)
        !call yaml_stream_attributes(unit=unt)
-       call yaml_warning('Not all the arrays have been freed: memory leaks are possible')
+       !call yaml_warning('Not all the arrays have been freed: memory leaks are possible')
        call prepend(dict_global,dict_routine)
+       nullify(dict_routine)
        !      end if
        !      if (.false.) then !residual memory to be defined
-       call yaml_open_map('Addresses not being deallocated')
-       call yaml_dict_dump(dict_global)
-       call yaml_close_map()
     end if
+    call yaml_open_map('Status of the memory at finalization')
+    call yaml_dict_dump(dict_global)
+    call yaml_close_map()
     call dict_free(dict_global)
+!    call yaml_open_map('Calling sequence')
+    call yaml_dict_dump(dict_calling_sequence)
+!    call yaml_close_map()
+    call dict_free(dict_calling_sequence)
+    
     call memocc_report()
     profile_initialized=.false.
     present_routine=repeat(' ',namelen)
@@ -481,9 +563,12 @@ contains
           write(*,*)'(de)allocation error, exiting. Error code:',ierror
           write(*,*)'last error:',lasterror
           call yaml_get_default_stream(unt)
-          call yaml_open_map('Status of the routine before exiting')
-          call yaml_dict_dump(dict_routine)
-          call yaml_close_map()
+          if (associated(dict_routine)) then
+             call yaml_open_map('Status of the routine before exiting')
+             call yaml_dict_dump(dict_routine)
+             call yaml_close_map()
+          end if
+          call yaml_dict_dump(dict_calling_sequence)
           stop
        end if
     end if
@@ -492,30 +577,52 @@ contains
 
   !> use the adress of the allocated pointer to profile the deallocation
   subroutine profile_deallocation(ierr,ilsize,address)
-    use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump
+    use yaml_output!, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_map
     implicit none
     integer, intent(in) :: ierr
     integer(kind=8), intent(in) :: ilsize
     character(len=*), intent(in) :: address
     !local variables
+    logical :: use_global
     character(len=namelen) :: array_id,routine_id
     integer(kind=8) :: jlsize
-    type(dictionary), pointer :: dict_add
+    type(dictionary), pointer :: dict_add!,dict_tmp
 
     call check_for_errors(ierr,.false.)
     !search in the dictionaries the address
     dict_add=>find_key(dict_routine,trim(address))
-    if (.not. associated(dict_add)) dict_add=>find_key(dict_global,trim(address))
-    if (.not. associated(dict_add)) stop 'profile deallocations: address not present'
+    if (.not. associated(dict_add)) then
+       dict_add=>find_key(dict_global,trim(address))
+       if (.not. associated(dict_add)) then
+          stop 'profile deallocations: address not present'
+       else
+          use_global=.true.
+       end if
+    else
+       use_global=.false.
+    end if
     !the global dictionary should be used instead
     array_id=dict_add//arrayid
     routine_id=dict_add//routineid
     jlsize=dict_add//sizeid
 
-    call memocc(ierr,-int(ilsize),trim(arrayid),trim(routineid))
+    call memocc(ierr,-int(ilsize),trim(array_id),trim(routine_id))
+!!$    call yaml_map('Deallocating',trim(array_id))
+!!$    call yaml_map('Use global',use_global)
+!!$    call yaml_map('Associated global',associated(dict_global))
+    if (use_global) then
+       call yaml_dict_dump(dict_global)
+       call pop(dict_global,trim(address))
+    else
+       call pop(dict_routine,trim(address))
+    end if
 
-    !the support for more routines is not yet ready
-    call pop(dict_routine,trim(address))
+
+
+!!$    call yaml_comment('Test',hfill='-')
+!!$!    call yaml_map('Associated',associated(dict_tmp))
+!!$    call yaml_map('Associated routine',associated(dict_routine))
+!!$    !call yaml_dict_dump(dict_tmp)
 
   end subroutine profile_deallocation
 
@@ -531,13 +638,7 @@ contains
     integer(kind=8) :: ilsize
     type(dictionary), pointer :: dict_tmp
 
-    !finalize the routine
-    !if (trim(present_routine) /= trim(m%routine_id)) then
-    if (.not. routine_opened) then
-       !if (len_trim(present_routine)/=0) then
-       call prepend(dict_global,dict_routine)
-       !      present_routine=m%routine_id
-       !end if
+    if (.not. associated(dict_routine)) then
        call dict_init(dict_routine)
     end if
     !size
@@ -573,10 +674,14 @@ contains
     use yaml_output
     implicit none
     call yaml_newline()
-    call yaml_map('Present routine',trim(present_routine))
-    call yaml_open_map('Routine dictionary')
-    call yaml_dict_dump(dict_routine)
-    call yaml_close_map()
+!    call yaml_map('Present routine',trim(present_routine))
+!    call yaml_open_map(Routine dictionary')
+    call yaml_dict_dump(dict_calling_sequence)
+    if (associated(dict_routine)) then
+       call yaml_open_map('Routine dictionary')
+       call yaml_dict_dump(dict_routine)
+       call yaml_close_map()
+    end if
     call yaml_open_map('Global dictionary')
     call yaml_dict_dump(dict_global)
     call yaml_close_map()
@@ -650,6 +755,19 @@ contains
     include 'allocate-inc.f90'
   end subroutine d3_all
 
+  subroutine d4_all(array,m)
+    use metadata_interfaces, metadata_address => get_dp4
+    implicit none
+    type(malloc_information_all), intent(in) :: m
+    double precision, dimension(:,:,:,:), allocatable, intent(inout) :: array
+    !local variables
+    integer(kind=8) :: iadd
+
+    allocate(array(m%lbounds(1):m%ubounds(1),&
+         m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3),&
+         m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
+    include 'allocate-inc.f90'
+  end subroutine d4_all
 
   subroutine i1_all_free(array)
     implicit none
@@ -668,6 +786,18 @@ contains
     double precision, dimension(:,:), allocatable, intent(inout) :: array
     include 'deallocate-inc.f90' 
   end subroutine d2_all_free
+
+  subroutine d3_all_free(array)
+    implicit none
+    double precision, dimension(:,:,:), allocatable, intent(inout) :: array
+    include 'deallocate-inc.f90' 
+  end subroutine d3_all_free
+
+  subroutine d4_all_free(array)
+    implicit none
+    double precision, dimension(:,:,:,:), allocatable, intent(inout) :: array
+    include 'deallocate-inc.f90' 
+  end subroutine d4_all_free
 
   subroutine d1_all_free_multi(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH)
     implicit none

@@ -500,7 +500,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   hz_old=KSwfn%Lzd%hgrids(3)
 
   !end of the initialization part
-  call timing(iproc,'INIT','PR')
+  call timing(bigdft_mpi%mpi_comm,'INIT','PR')
 
   !start the optimization
   energs%eexctX=0.0_gp
@@ -1171,8 +1171,8 @@ contains
     call memocc(i_stat,i_all,'proj',subname)
 
     !end of wavefunction minimisation
-    call timing(iproc,'LAST','PR')
-    call timing(iproc,'              ','RE')
+    call timing(bigdft_mpi%mpi_comm,'LAST','PR')
+    call timing(bigdft_mpi%mpi_comm,'              ','RE')
     call cpu_time(tcpu1)
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
@@ -1343,7 +1343,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
 
            !stop the partial timing counter if necessary
-           if (endloop .and. opt%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
+           if (endloop .and. opt%itrpmax==1) call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
            !logical flag for the self-consistent potential
            scpot=(opt%iscf > SCF_KIND_DIRECT_MINIMIZATION .and. opt%iter==1 .and. opt%itrep==1) .or. & !mixing to be done
                 (opt%iscf <= SCF_KIND_DIRECT_MINIMIZATION)!direct minimisation
@@ -1535,7 +1535,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
         !stop the partial timing counter if necessary
         if (endlooprp) then
-           call timing(iproc,'WFN_OPT','PR')
+           call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
            exit rhopot_loop
         end if
 
