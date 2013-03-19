@@ -17,6 +17,8 @@ Keys to ignore:
  - GPU acceleration
  - High Res. box is treated separately
  - Grid Spacing threshold (AU)
+ - Direct and transposed data repartition
+ - Write Waves Time
  - Reading Waves Time
  - Maxdiff*
  - Tolerances for this check
@@ -30,7 +32,7 @@ Expected Test CPUtime: #
 
 #Runs which update and override the default
 SiH4:
- #due like that due to lack of functionality in fldiff, since energies field is updated
+ #due to lack of functionality in fldiff, since energies field is updated
  Energies: &etol 4.6e-9
  Eion: &eion 3.2e-9
  EH: *etol
@@ -98,7 +100,7 @@ GEOPT-LBFGS:
  
 NaCl:
  Epsilon: 2.e-9
- Mean L2 norm of gaussian-wavelet difference: 4.5e-5
+ Mean L2 norm of gaussian-wavelet difference: 6.8e-5
 
 NH3:
  Epsilon: 1.1e-10
@@ -188,6 +190,10 @@ NLCC_periodic-O2: *NLCCs
 taskgroups:
   Energies: 1.1e-10
   EKS: 5.3e-11
+  P vector: 1.1e-10
+
+base:
+  norm(P): 1.1e-9
 
 Davidson-SiH4:
   e_virtual: 1.2e-11
