@@ -28,6 +28,7 @@ module yaml_strings
 
   public ::  yaml_toa, buffer_string, align_message, shiftstr
   private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_length
+
 contains
 
   !> Add a buffer to a string and increase its length

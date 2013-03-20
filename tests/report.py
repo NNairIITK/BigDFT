@@ -104,15 +104,17 @@ for file in files:
         time = re_time.findall(line)
         if time:
             totime += float(time[0])
-            time = "%10ss" % time[0]
+            time = "%8ss" % time[0]
         else:
             time = ""
-        print "%s%-27s %-37s %s%s%s" % (start,dir,fic,state,time,end)
+        name = "%s%-27s %-38s" % (start,dir,fic)
+        print "%-74s%s%s%s" % (name.strip(),state,time,end)
     else:
         if not empty_file:
             start = start_fail
             state = "can not parse file.    failed"
-            print "%s%-27s %-37s %s%s" % (start,dir,fic,state,end)
+            name = "%s%-27s %-38s" % (start,dir,fic)
+            print "%-74s%s%s%s" % (name.strip(),state,time,end)
 
 print "Final report for yaml outputs: if succeeded %53s" % "max diff (significant epsilon)"
 for file in yaml_files:
