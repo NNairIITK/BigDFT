@@ -131,10 +131,12 @@ if bigdft:
             or "Communication overlap ratio" in line \
             or "Timestamp" in line \
             or "Logfile already existing" in line \
-	    or "Gathering the potential" in line \
+	        or "Gathering the potential" in line \
             or "<BigDFT>" in line \
             or "alpha" in line \
-            or "wavefunctions need NO reformatting" in line 
+            or "wavefunctions need NO reformatting" in line \
+            or "WARNING:" in line \
+            or "/logfiles/" in line
 #	    or "GEOPT" in line
 elif neb:
     # Test if the line should not be compared (NEB output)
