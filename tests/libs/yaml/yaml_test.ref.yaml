@@ -1,27 +1,17 @@
 ---
- Test 1:
+ Test:
    Short sentence                      :  Yes
    Foo: {one:  1, two:  2}
    toto: {one:  1, two:  2}
 ---
- Test 2:
-   I have a very long sentence in order to test if yaml_output fails to print that:  No
+ Test:
+   I have a very long sentence in order to test if yaml_output fails to print that:  Yes
    Foo: {one:  1, two:  2}
    toto: {one:  1, two:  2}
 ---
-  #Test 3
-  #Check calling twice yaml_new_document
  Vector of characters                  :  []
  Vector of integers                    :  []
  Vector of double: [ 3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00, 
                      3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00, 
                      3.00000E+00]
  Vector of real(kind=8): [ 3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.]
- Open a sequence: {Key: [ [  1,  2,  3 ],  [  1,  2,  3 ]]}
- Open a sequence: [ [  1,  2,  3 ],  [  1,  2,  3 ]]
----
-  #This a document with a sequence and not a map
-- One
--  [  1,  2,  3 ]
--  {Example: Test, Two: Test}
--  [ 1, Two, 1.0]
