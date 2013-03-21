@@ -4389,14 +4389,14 @@ module module_interfaces
 
    subroutine input_wf_memory_new(nproc,iproc, atoms, &
            rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
-           rxyz,hx,hy,hz,d,wfd,psi,orbs,lzd)
+           rxyz,hx,hy,hz,d,wfd,psi,orbs,lzd,displ)
   use module_defs
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3, atoms%nat), intent(in) :: rxyz, rxyz_old
-  real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old
+  real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old,displ
   type(grid_dimensions), intent(in) :: d, d_old
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
