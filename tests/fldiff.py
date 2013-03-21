@@ -250,8 +250,10 @@ if bigdft or psolver:
     time = None
 #Open 2 temporary files
 t1 = tempfile.NamedTemporaryFile()
+nl_t1 = 0
 for line in original1:
     if not line_junk(line):
+        nl_t1 += 1
         t1.write(line)
     else:
         #Only for BigDFT and PSolver
@@ -266,10 +268,13 @@ for line in original1:
             if "Remaining Memory" in line:
                 memory = int(line.split()[-1])
 t1.flush()
+
 t2 = tempfile.NamedTemporaryFile()
+nl_t2 = 0
 for line in original2:
     if not line_junk(line):
         t2.write(line)
+        nl_t2 += 1
 t2.flush()
 
 #Generate comparison using the unix diff command
@@ -432,6 +437,9 @@ else:
 if (bigdft or psolver) and time != None:
     print "%sMax discrepancy %s: %s (%s%s) -- time %7.2f%s " % \
         (start,context_discrepancy,maximum,message,max_discrepancy,time,end)
+elif nl_t1 == 0 and nl_t2 == 0:
+    #No lines in the output as waited
+    print "%sNo output as reference%s" % (start,end)
 else:
     print "%sMax discrepancy %s: %s (%s%s)%s" % \
         (start,context_discrepancy,maximum,message,max_discrepancy,end)

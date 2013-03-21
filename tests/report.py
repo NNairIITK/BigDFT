@@ -69,9 +69,10 @@ for file in files:
         discrepancy = re_discrepancy.findall(line)
     except:
         discrepancy = False
+    if not discrepancy:
         try:
-            should_compare=open(file).readline()
-            empty_file=("Nothing to compare" in should_compare)
+            should_compare=open(file).read()
+            empty_file=("No output as reference" in should_compare)
         except:
             empty_file=False
     if discrepancy:
