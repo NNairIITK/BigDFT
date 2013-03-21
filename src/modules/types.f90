@@ -636,8 +636,6 @@ module module_types
 
   type,public :: sparseMatrix
       integer :: nvctr, nseg, full_dim1, full_dim2
-      integer,dimension(:),pointer:: noverlaps
-      integer,dimension(:,:),pointer:: overlaps
       integer,dimension(:),pointer :: keyv, nsegline, istsegline
       integer,dimension(:,:),pointer :: keyg
       real(kind=8),dimension(:),pointer :: matrix_compr

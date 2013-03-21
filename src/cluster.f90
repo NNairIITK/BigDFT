@@ -715,7 +715,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            calculate_dipole = in%lin%calc_dipole
         end if
         output_denspot = in%output_denspot
-        calculate_dipole = .true.
      else
         output_denspot = -1
         calculate_dipole = .false.

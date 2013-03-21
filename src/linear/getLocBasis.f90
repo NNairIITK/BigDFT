@@ -1131,7 +1131,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
   ! This is done by comparing the current value with diisLIN%energy_min, which is
   ! the minimal value of the trace so far.
   !if(iproc==0) write(*,*) 'trH, ldiis%trmin', trH, ldiis%trmin
-  if(trH<=ldiis%trmin .and. .not.ldiis%resetDIIS) then
+  if(trH<=ldiis%trmin+1.d-12*abs(ldiis%trmin) .and. .not.ldiis%resetDIIS) then !1.d-12 is here to tolerate some noise...
       ! Everything ok
       ldiis%trmin=trH
       ldiis%switchSD=.false.

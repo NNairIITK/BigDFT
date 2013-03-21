@@ -789,7 +789,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   type(locreg_descriptors) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(inout) :: psi
+  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(in) :: psi
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten

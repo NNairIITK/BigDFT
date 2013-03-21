@@ -842,7 +842,7 @@ module module_interfaces
         real(gp), intent(out) :: fnoise,pressure
         real(gp), dimension(6), intent(out) :: strten
         real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
-        type(DFT_wavefunction),intent(in),optional :: tmb
+        type(DFT_wavefunction),intent(in) :: tmb
       END SUBROUTINE calculate_forces
       
       subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
