@@ -36,7 +36,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8),dimension(tmb%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
 
   ! Local variables
-  integer :: iorb, jorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, iseg, jjorb, i
+  integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
+  !integer :: iseg, jorb
   real(kind=8) :: ddot, tt, eval_zero
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f

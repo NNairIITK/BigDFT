@@ -1022,12 +1022,13 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
   !local variables
   character(len=*), parameter :: subname='reformatonesupportfunction'
-  logical :: cif1,cif2,cif3,perx,pery,perz
-  integer :: i_stat,i_all,i1,i2,i3,j1,j2,j3,l1,l2,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
-  real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold,mindist
-  real(wp) :: zr,yr,xr,ym1,y00,yp1!,dnrm2
-  real(wp), dimension(-1:1,-1:1) :: xya
-  real(wp), dimension(-1:1) :: xa
+  logical :: perx,pery,perz
+  integer :: i_stat,i_all,nb1,nb2,nb3
+  !integer :: cif1,cif2,cif3,ind,j1,j2,j3,i1,i2,i3,l1,l2,jj1,jj2,jj3a,jj3b,jj3c
+  real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,dx,dy,dz,mindist
+  !real(wp) :: x,y,z,yr,xr,ym1,y00,yp1,dnrm2,zr,xold,yold,zold
+  !real(wp), dimension(-1:1,-1:1) :: xya
+  !real(wp), dimension(-1:1) :: xa
   real(wp), dimension(:), allocatable :: ww,wwold
   real(wp), dimension(:), allocatable :: x_phi, y_phi
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
@@ -1145,7 +1146,7 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
          (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2) 
 
     call interpolate_and_transpose(hzh,dz/hzh,nd,nrange,y_phi,(2*n2+2+2*nb2)*(2*n1+2+2*nb1),&
-	 (2*n3_old+2+2*nb3),psi_w2,(2*n3+2+2*nb3),psifscf) 
+         (2*n3_old+2+2*nb3),psi_w2,(2*n3+2+2*nb3),psifscf) 
 
     i_all=-product(shape(psi_w))*kind(psi_w)
     deallocate(psi_w,stat=i_stat)

@@ -440,8 +440,8 @@ contains
 
     !Beginning of the message
     lstart=1
-    !Length of the message to write
-    lmsg=len(message)
+    !Length of the message to write (without blank characters)
+    lmsg=len_trim(message)
 
     !Split the message if too long
     do
@@ -456,7 +456,7 @@ contains
        end if
 
        !Detect the last character of the message
-       lend=len(message(lstart:))
+       lend=len_trim(message(lstart:))
        if (lend+msg_lgt > streams(strm)%max_record_length) then
           !We have an error from buffer_string so we split it!
           !-1 to be less and -2 for the character '#'

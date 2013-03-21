@@ -44,7 +44,7 @@ program test_xc
      end if
 !!$     if (funcs(ifunc) < 0) then
 !!$        call test(funcs(ifunc), exc, dt, option = XC_LIBXC)
-!!$        write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F7.5,1x,A)") &
+!!$        write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F10.5,1x,A)") &
 !!$             & "ixc = ", funcs(ifunc), "nosp = ", exc(1), "|", "scol = ", &
 !!$             & exc(2), "time = ", dt, "s"
 !!$     end if
@@ -64,7 +64,7 @@ program test_xc
      do ifunc = 1, n_funcs, 1
         if (ixc_prev * funcs(ifunc) > 0 .or. (ixc_prev < 0 .and. funcs(ifunc) > 0)) &
              & write(*,"(1x,A,A,A)") repeat("-", 41), "+", repeat("-", 44)
-        write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F7.5,1x,A)") &
+        write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F10.5,1x,A)") &
              & "ixc = ", funcs(ifunc), "nosp = ", exc(1, ifunc), "|", "scol = ", &
              & exc(2, ifunc), "time = ", dt(ifunc), "s"
         ixc_prev = funcs(ifunc)

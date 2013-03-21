@@ -34,8 +34,8 @@ contains
   !> Add a buffer to a string and increase its length
   subroutine buffer_string(string,string_lgt,buffer,string_pos,back,istat)
     implicit none
-    character(len=string_lgt), intent(inout) :: string  !< String towrite
     integer, intent(in) :: string_lgt                   !< Length of the string towrite
+    character(len=string_lgt), intent(inout) :: string  !< String towrite
     integer, intent(inout) :: string_pos                !< Position to add buffer into string and for the next.
     character(len=*), intent(in) :: buffer              !< Buffer to add
     logical, optional, intent(in) :: back               !< Add string from the end

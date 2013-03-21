@@ -95,8 +95,10 @@ program yaml_test
    call yaml_open_map('Map')
    call yaml_map('One',1)
    call yaml_comment('No blank characters'//repeat('x',500))
+   !Check a message with blank characters
+   call yaml_comment(repeat(' ',200))
    call yaml_comment(repeat('y',200),hfill='-')
-   call yaml_comment(repeat('y',200),tabbing=5,hfill='-')
+   call yaml_comment(repeat('y',200),tabbing=9,hfill='-')
    call yaml_close_map()
    call yaml_comment('Now we test dictionaries inside yaml.')
    !Test a dictionary
