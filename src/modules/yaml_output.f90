@@ -57,9 +57,9 @@ module yaml_output
      integer :: ilast=0                 !< Last level with flow==.false.
      integer :: icommentline=0          !< Active if the line being written is a comment
      integer, dimension(tot_max_record_length/tab) :: linetab=0   !< Value of the tabbing in the line
-     integer :: ievt_flow=0                                     !< Events which track is kept of in the flowrite
+     integer :: ievt_flow=0                                       !< Events which track is kept of in the flowrite
      integer, dimension(tot_max_flow_events) :: flow_events=0     !< Set of events in the flow
-     type(dictionary), pointer :: dict_warning=>null()          !< dictionary of warnings emitted in the stream
+     type(dictionary), pointer :: dict_warning=>null()            !< dictionary of warnings emitted in the stream
   end type yaml_stream
 
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
@@ -413,14 +413,17 @@ contains
 
 
   !> Write a yaml comment (#......)
+  !! Split the comment if too long
   subroutine yaml_comment(message,advance,unit,hfill,tabbing)
     implicit none
-    character(len=1), optional, intent(in) :: hfill
-    character(len=*), intent(in) :: message
-    integer, optional, intent(in) :: unit,tabbing
-    character(len=*), intent(in), optional :: advance
-    !local variables
+    character(len=*), intent(in) :: message           !< The given comment (without #)
+    character(len=*), optional, intent(in) :: advance !< Advance or not
+    integer, optional, intent(in) :: unit             !< Unit of the stream (by default unit=0)
+    character(len=1), optional, intent(in) :: hfill   !< If present fill the line with the given character
+    integer, optional, intent(in) :: tabbing          !< Number of space for tabbing
+    !Local variables
     integer :: unt,strm,msg_lgt,tb,ipos
+    integer :: lstart,lend,lmsg,lspace,hmax
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -435,26 +438,54 @@ contains
        adv='yes'
     end if
 
-    ipos=max(streams(strm)%icursor,streams(strm)%indent)
+    !Beginning of the message
+    lstart=1
+    !Length of the message to write
+    lmsg=len(message)
 
-    msg_lgt=0
-    if (present(tabbing)) then
-       tb=max(tabbing-ipos-1,1)
-       call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
-       ipos=ipos+tb
-    end if
+    !Split the message if too long
+    do
+       !Position of the cursor
+       ipos=max(streams(strm)%icursor,streams(strm)%indent)
 
-    call buffer_string(towrite,len(towrite),trim(message),msg_lgt)
+       msg_lgt=0
+       if (present(tabbing)) then
+          tb=max(tabbing-ipos-1,1)
+          call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
+          ipos=ipos+tb
+       end if
 
-    if (present(hfill)) then
-       call dump(streams(strm),&
-            repeat(hfill,&
-            max(streams(strm)%max_record_length-ipos-&
-            len_trim(message)-3,0))//' '//towrite(1:msg_lgt),&
-            advance=adv,event=COMMENT)
-    else
-       call dump(streams(strm),towrite(1:msg_lgt),advance=adv,event=COMMENT)
-    end if
+       !Detect the last character of the message
+       lend=len(message(lstart:))
+       if (lend+msg_lgt > streams(strm)%max_record_length) then
+          !We have an error from buffer_string so we split it!
+          !-1 to be less and -2 for the character '#'
+          lend=streams(strm)%max_record_length-msg_lgt-2
+          !We are looking for the first ' ' from the end
+          lspace=index(message(lstart:lstart+lend-1),' ',back=.true.)
+          if (lspace /= 0) then
+             lend = lspace
+          end if
+       end if
+       call buffer_string(towrite,len(towrite),message(lstart:lstart+lend-1),msg_lgt)
+
+       !Check if possible to hfill
+       hmax = max(streams(strm)%max_record_length-ipos-len_trim(message)-3,0)
+       if (present(hfill) .and. hmax > 0) then
+          !Fill with the given character and dump
+          call dump(streams(strm),repeat(hfill,hmax)//' '//towrite(1:msg_lgt),advance=adv,event=COMMENT)
+       else
+          !Dump the string towrite into the stream
+          call dump(streams(strm),towrite(1:msg_lgt),advance=adv,event=COMMENT)
+       end if
+
+       !Check if all the message is written
+       !So we start from iend+1
+       lstart=lstart+lend
+       if (lstart>lmsg) then
+          exit
+       end if
+    end do
 
   end subroutine yaml_comment
 
@@ -1201,6 +1232,7 @@ contains
 
     !set module variables according to the event
     select case(evt)
+
     case(SEQUENCE_START)
 
        if (.not.stream%flowrite) then
@@ -1269,6 +1301,7 @@ contains
        else
           reset_line=.true.
        end if
+
     case(MAPPING)
 
        pretty_print=.true. .and. stream%pp_allowed
@@ -1290,6 +1323,7 @@ contains
     case(SCALAR)
 
     case(NEWLINE)
+
        if (stream%flowrite) then
           !print *,'NEWLINE:',stream%flowrite
           change_line=.true.
@@ -1668,68 +1702,68 @@ contains
     stream%indent=max(stream%indent-stream%indent_step,0) !to prevent bugs
   end subroutine close_indent_level
 
-   subroutine yaml_dict_dump(dict,flow)
   !> Dump a dictionary
-    implicit none
-    type(dictionary), intent(in) :: dict   !< Dictionary to dump
-    logical, intent(in), optional :: flow  !< if .true. inline
-    !local variables
-    logical :: flowrite
-      character(len=3) :: adv
+  subroutine yaml_dict_dump(dict,flow)
+   implicit none
+   type(dictionary), intent(in) :: dict   !< Dictionary to dump
+   logical, intent(in), optional :: flow  !< if .true. inline
+   !local variables
+   logical :: flowrite
+     character(len=3) :: adv
 
-    flowrite=.false.
-    if (present(flow)) flowrite=flow
+   flowrite=.false.
+   if (present(flow)) flowrite=flow
 
-      !TEST (the first dictionary has no key)
-      !if (.not. associated(dict%parent)) then
-      if (associated(dict%child)) then
-         call yaml_dict_dump_(dict%child,flowrite)
-      else
-         if (flowrite) then
-            adv='no '
-         else
-            adv='yes'
+     !TEST (the first dictionary has no key)
+     !if (.not. associated(dict%parent)) then
+     if (associated(dict%child)) then
+        call yaml_dict_dump_(dict%child,flowrite)
+     else
+        if (flowrite) then
+           adv='no '
+        else
+           adv='yes'
+        end if
+        call yaml_scalar(dict%data%value,advance=adv)
+     end if
+
+   contains
+     recursive subroutine yaml_dict_dump_(dict,flowrite)
+         implicit none
+         type(dictionary), intent(in) :: dict
+         logical, intent(in) :: flowrite
+
+         if (associated(dict%child)) then
+            !see whether the child is a list or not
+            !print *trim(dict%data%key),dict%data%nitems
+            if (dict%data%nitems > 0) then
+               call yaml_open_sequence(trim(dict%data%key),flow=flowrite)
+               call yaml_dict_dump_(dict%child,flowrite)
+               call yaml_close_sequence()
+            else
+               if (dict%data%item >= 0) then
+                  call yaml_sequence(advance='no')
+                  call yaml_dict_dump_(dict%child,flowrite)
+               else
+                  call yaml_open_map(trim(dict%data%key),flow=flowrite)
+                  !call yaml_map('No. of Elems',dict%data%nelems)
+                  call yaml_dict_dump_(dict%child,flowrite)
+                  call yaml_close_map()
+               end if
+            end if
+         else 
+            !print *,'ciao',dict%key,len_trim(dict%key),'key',dict%value,flowrite
+            if (dict%data%item >= 0) then
+               call yaml_sequence(trim(dict%data%value))
+            else
+               call yaml_map(trim(dict%data%key),trim(dict%data%value))
+            end if
          end if
-         call yaml_scalar(dict%data%value,advance=adv)
-      end if
+         if (associated(dict%next)) then
+            call yaml_dict_dump_(dict%next,flowrite)
+         end if
 
-    contains
-      recursive subroutine yaml_dict_dump_(dict,flowrite)
-          implicit none
-          type(dictionary), intent(in) :: dict
-          logical, intent(in) :: flowrite
-
-          if (associated(dict%child)) then
-             !see whether the child is a list or not
-             !print *trim(dict%data%key),dict%data%nitems
-             if (dict%data%nitems > 0) then
-                call yaml_open_sequence(trim(dict%data%key),flow=flowrite)
-                call yaml_dict_dump_(dict%child,flowrite)
-                call yaml_close_sequence()
-             else
-                if (dict%data%item >= 0) then
-                   call yaml_sequence(advance='no')
-                   call yaml_dict_dump_(dict%child,flowrite)
-                else
-                   call yaml_open_map(trim(dict%data%key),flow=flowrite)
-                   !call yaml_map('No. of Elems',dict%data%nelems)
-                   call yaml_dict_dump_(dict%child,flowrite)
-                   call yaml_close_map()
-                end if
-             end if
-          else 
-             !print *,'ciao',dict%key,len(trim(dict%key)),'key',dict%value,flowrite
-             if (dict%data%item >= 0) then
-                call yaml_sequence(trim(dict%data%value))
-             else
-                call yaml_map(trim(dict%data%key),trim(dict%data%value))
-             end if
-          end if
-          if (associated(dict%next)) then
-             call yaml_dict_dump_(dict%next,flowrite)
-          end if
-
-        end subroutine yaml_dict_dump_
-      end subroutine yaml_dict_dump
+       end subroutine yaml_dict_dump_
+  end subroutine yaml_dict_dump
 
 end module yaml_output
