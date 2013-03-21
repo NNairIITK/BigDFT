@@ -278,14 +278,14 @@ compare = iter(commands.getoutput("diff -b -d %s %s" %(t1.name,t2.name)).splitli
 t1.close()
 t2.close()
 
+print max_discrepancy
 try:
     line = compare.next()
     EOF = False
     #Display the maximum discrepancy
-    print max_discrepancy
 except StopIteration:
     #Nothing to compare
-    print 'Nothing to compare'
+    print '%sNothing to compare (all lines are identical)%s' % (start_success,end),
     EOF = True
 
 context_lines = None

@@ -114,7 +114,7 @@ for file in files:
             start = start_fail
             state = "can not parse file.    failed"
             name = "%s%-27s %-38s" % (start,dir,fic)
-            print "%-74s%s%s%s" % (name.strip(),state,time,end)
+            print "%-74s%s%s" % (name.strip(),state,end)
 
 print "Final report for yaml outputs: if succeeded %53s" % "max diff (significant epsilon)"
 for file in yaml_files:
