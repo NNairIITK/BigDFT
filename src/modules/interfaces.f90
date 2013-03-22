@@ -1988,7 +1988,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,&
         GPU,infoCoeff,ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,&
-        communicate_phi_for_lsumrho,calculate_ham,ldiis_coeff)
+        communicate_phi_for_lsumrho,calculate_ham,ham_small,ldiis_coeff)
       use module_base
       use module_types
       implicit none
@@ -2009,6 +2009,7 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout) :: tmb
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       logical,intent(in) :: calculate_ham
+      type(sparseMatrix), intent(inout) :: ham_small ! foe only, not otherwise allocated
       type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
     end subroutine get_coeff
 

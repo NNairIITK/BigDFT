@@ -43,6 +43,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   logical :: lowaccur_converged, exit_outer_loop
   real(8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
+  type(sparseMatrix) :: ham_small
+  integer :: isegsmall, iseglarge, iismall, iilarge, is, ie
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -77,6 +79,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ldiis_coeff_hist=input%lin%mixHist_lowaccuracy
   reduce_conf=.false.
   ldiis_coeff_changed = .false.
+
+  call nullify_sparsematrix(ham_small) ! nullify anyway
+
+  if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
+     call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
+     allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
+     call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
+  end if
 
   ! Allocate the communication arrays for the calculation of the charge density.
 
@@ -170,16 +180,24 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                at, input, rxyz, KSwfn, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
 
+          if (locreg_increased .and. input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
+             call deallocate_sparsematrix(ham_small,subname)
+             call nullify_sparsematrix(ham_small) ! nullify anyway
+             call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
+             allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
+             call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
+          end if
+
           if (target_function==TARGET_FUNCTION_IS_HYBRID) then
               if (iproc==0) write(*,*) 'WARNING: COMMENTED THESE LINES'
           else
-              ! Calculate a new kernel since the old compressed one has changed its shape due to the locrads
-              ! being different for low and high accuracy.
-              update_phi=.true.
-              tmb%can_use_transposed=.false.   !check if this is set properly!
-              call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                   .true.,ldiis_coeff=ldiis_coeff)
+             ! Calculate a new kernel since the old compressed one has changed its shape due to the locrads
+             ! being different for low and high accuracy.
+             update_phi=.true.
+             tmb%can_use_transposed=.false.   !check if this is set properly!
+             call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                  infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                  .true.,ham_small,ldiis_coeff=ldiis_coeff)
           end if
 
           ! Some special treatement if we are in the high accuracy part
@@ -319,6 +337,32 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            end do
        end if
 
+      if (can_use_ham .and. input%lin%scf_mode==LINEAR_FOE) then ! copy ham to ham_small here already as it won't be changing
+        ! NOT ENTIRELY GENERAL HERE - assuming ovrlp is small and ham is large, converting ham to match ovrlp
+
+         call timing(iproc,'FOE_init','ON') !lr408t
+
+         iismall=0
+         iseglarge=1
+         do isegsmall=1,tmb%linmat%ovrlp%nseg
+            do
+               is=max(tmb%linmat%ovrlp%keyg(1,isegsmall),tmb%linmat%ham%keyg(1,iseglarge))
+               ie=min(tmb%linmat%ovrlp%keyg(2,isegsmall),tmb%linmat%ham%keyg(2,iseglarge))
+               iilarge=tmb%linmat%ham%keyv(iseglarge)-tmb%linmat%ham%keyg(1,iseglarge)
+               do i=is,ie
+                  iismall=iismall+1
+                  ham_small%matrix_compr(iismall)=tmb%linmat%ham%matrix_compr(iilarge+i)
+               end do
+               if (ie>=is) exit
+               iseglarge=iseglarge+1
+            end do
+         end do
+
+         call timing(iproc,'FOE_init','OF') !lr408t
+
+      end if
+
+
       ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
       kernel_loop : do it_scc=1,nit_scc
 
@@ -328,11 +372,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
               call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                   .false.,ldiis_coeff=ldiis_coeff)
+                   .false.,ham_small,ldiis_coeff=ldiis_coeff)
           else
               call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                   .true.,ldiis_coeff=ldiis_coeff)
+                   .true.,ham_small,ldiis_coeff=ldiis_coeff)
           end if
 
           ! Since we do not update the basis functions anymore in this loop
@@ -445,10 +489,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! the Pulay forces are to be calculated, or if we are printing eigenvalues for restart
   if ((input%lin%scf_mode==LINEAR_FOE.or.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION)& 
        .and. (input%lin%pulay_correction.or.input%lin%plotBasisFunctions /= WF_FORMAT_NONE)) then
-      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
+
+       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
-           .true.,ldiis_coeff=ldiis_coeff)
+           .true.,ham_small,ldiis_coeff=ldiis_coeff)
   end if
+
+
+  if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
+     call deallocate_sparsematrix(ham_small,subname)
+  end if
+
 
   ! print the final summary
   call print_info(.true.)

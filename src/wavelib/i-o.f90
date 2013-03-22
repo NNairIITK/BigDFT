@@ -1339,6 +1339,100 @@ subroutine interpolate_and_transpose(h,t0,nphi,nrange,phi,ndat,nin,psi_in,nout,p
 
 end subroutine interpolate_and_transpose
 
+
+!call the routine which performs the interpolation in each direction
+subroutine morph_and_transpose(h,t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
+ use module_base
+ implicit none
+ integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+ integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+ integer, intent(in) :: nin,nout !< sizes of the input and output array in interpolating direction
+ integer, intent(in) :: ndat !< size of the array in orthogonal directions
+ real(gp), intent(in) :: h !< grid spacing in the interpolating direction
+ real(gp), dimension(nin,ndat), intent(in) :: t0_field !< field of shifts to be applied for each point in grid spacing units
+ real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+ real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
+ real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
+ !local variables
+ character(len=*), parameter :: subname='interpolate_and_transpose'
+ integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me,k
+ real(gp) :: dt, tt, t0_l
+ real(gp), dimension(:), allocatable :: shf !< shift filter
+
+ !assume for the moment that the grid spacing is constant
+	 
+ m_isf=nrange/2
+ !calculate the shift filter for the given t0
+ allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
+ call memocc(i_stat,shf,'shf',subname)
+
+ !number of points for a unit displacement
+ nunit=nphi/nrange 
+
+!print *,'start interpolation',ish,t0,shf
+
+!do i=-m_isf,m_isf
+!write(104,*)i,shf(i)
+!end do
+
+ !apply the interpolating filter to the output
+ do j=1,ndat
+   psi_out(j,:)=0.0_gp
+   do i=1,nin
+
+     !determine the local shif which has to be applied
+     !this should be number between -0.5 and 0.5
+     t0_l=t0_field(i,j)
+     dt=t0_l-nint(t0_l)
+     !evaluate the shift
+     ish=nint(real(nunit,gp)*dt)
+
+     if (ish<=0) then
+      shf(-m_isf)=0.0_gp
+     else
+      shf(-m_isf)=phi(ish)  
+     end if 
+     ipos=ish
+
+     do k=-m_isf+1,m_isf-1 !extremes excluded
+      !position of the shifted argument in the phi array
+      ipos=ipos+nunit
+      shf(k)=phi(ipos)  
+     end do
+
+     if (ish<=0) then
+      shf(m_isf)=phi(ipos+nunit)
+     else
+      shf(m_isf)=0.0_gp
+     end if 
+
+     !define the shift for output results
+     ish=nint(t0_l)
+
+
+     !here the boundary conditions have to be considered
+      tt=0.0_gp
+      ms=-min(m_isf,i-1)
+      me=min(m_isf,nin-i)
+      do l=ms,me
+         tt=tt+shf(l)*psi_in(i+l,j)
+      end do
+!      tt=h*tt
+      
+      if (i+ish > 0 .and. i+ish < nout) psi_out(j,i+ish)=tt
+	!if (i+ish > 0 .and. i+ish < nout)       write(102,*)i+ish,psi_out(j,i+ish)
+   end do
+ end do
+
+
+
+ i_all=-product(shape(shf))*kind(shf)
+ deallocate(shf,stat=i_stat)
+ call memocc(i_stat,i_all,'shf',subname)
+
+end subroutine morph_and_transpose
+
+
 subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
    use module_base
    implicit none

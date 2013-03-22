@@ -41,7 +41,7 @@ AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
 else
-LIBS += @LIBS_SHORT_DEPS@
+LIBS += @LIBS_SHORT_DEPS@ -lrt
 endif
 
 PS_Check_SOURCES = PS_Check.f90

@@ -44,7 +44,7 @@ program PS_Integral
   integer :: n1,n1_old,n2,n2_old,n3,n3_old,nb1,nb2,nb3,itype,nd,i_all,nrange
   real(dp) :: hx,x,hy,y,hz,z,dy,dz,xgauss,ygauss
   real(dp), dimension(:), allocatable :: x_phi, y_phi
-  real(dp), dimension(:,:,:), allocatable :: psifscf,psifscfold,psi_w,psi_w2
+  real(dp), dimension(:,:,:), allocatable :: psifscf,psifscfold,psi_w,psi_w2,dx_field
   real(dp), external :: lr_gauss
 
   call f_malloc_set_status(memory_limit=0.e0)
@@ -134,7 +134,7 @@ print *,'here'
 
 !testing interpolate
 hx=0.2
-dx=0.0
+dx=1.0
 hy=0.2
 dy=0.0!-0.44
 hz=0.2
@@ -152,42 +152,49 @@ nb3=0
      itype=16
      nd=2**20
 
-!1d
-!   allocate(psifscfold(-nb1:2*n1_old+1+nb1,1,1+ndebug),stat=i_stat)
-!   call memocc(i_stat,psifscfold,'psifscfold',subname)
-!   allocate(psi_w(-nb1:2*n1+1+nb1,1,1+ndebug),stat=i_stat)
-!   call memocc(i_stat,psi_w,'psi_w',subname)
-!   allocate(psifscf(-nb1:2*n1+1+nb1,1,1+ndebug),stat=i_stat)
-!   call memocc(i_stat,psifscf,'psifscf',subname)
+allocate(dx_field(-nb1:2*n1_old+1+nb1,1,1+ndebug),stat=i_stat)
 
-   allocate(psifscfold(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+dx_field=dx/hx
+
+
+!1d
+   allocate(psifscfold(-nb1:2*n1_old+1+nb1,1,1+ndebug),stat=i_stat)
    call memocc(i_stat,psifscfold,'psifscfold',subname)
-   allocate(psi_w(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+   allocate(psi_w(-nb1:2*n1+1+nb1,1,1+ndebug),stat=i_stat)
    call memocc(i_stat,psi_w,'psi_w',subname)
-   allocate(psi_w2(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_w2,'psi_w2',subname)
-   allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
+   allocate(psifscf(-nb1:2*n1+1+nb1,1,1+ndebug),stat=i_stat)
    call memocc(i_stat,psifscf,'psifscf',subname)
+
+!   allocate(psifscfold(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+!   call memocc(i_stat,psifscfold,'psifscfold',subname)
+!   allocate(psi_w(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+!   call memocc(i_stat,psi_w,'psi_w',subname)
+!   allocate(psi_w2(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+!   call memocc(i_stat,psi_w2,'psi_w2',subname)
+!   allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
+!   call memocc(i_stat,psifscf,'psifscf',subname)
 
   ! fill psifscfold with a gaussian
   x=0.d0
   do i=0,2*n1_old+1
     y=0.d0
-    xgauss=lr_gauss(x,1.3d0,1.4d0)
-    do j=0,2*n2_old+1
+    xgauss=lr_gauss(x,1.7d0,1.4d0)
+    do j=1,1!0,2*n2_old+1
        z=0.d0
        ygauss=lr_gauss(y,1.5d0,1.8d0)
-       do k=1,2*n3_old+1
-          psifscfold(i,j,k)=xgauss*ygauss*lr_gauss(z,1.4d0,2.1d0)
-          write(100,*) x,y,z,psifscfold(i,j,k)
+       do k=1,1!1,2*n3_old+1
+          psifscfold(i,j,k)=xgauss!*ygauss*lr_gauss(z,1.4d0,2.1d0)
+dx_field(i,j,k) = x!lr_gauss(x,1.7d0,1.4d0)
+          write(100,*) x,y,z,psifscfold(i,j,k),dx_field(i,j,k)
           z=z+hz
        end do
-       write(100,*) ''
+       !write(100,*) ''
        y=y+hy
     end do
-    write(100,*) ''
+    !write(100,*) ''
     x=x+hx
   end do
+
   
 !!$     allocate(x_phi(0:nd+ndebug),stat=i_stat )
 !!$     call memocc(i_stat,x_phi,'x_phi',subname)
@@ -226,6 +233,31 @@ end do
 !1d
 !call my_interpolate_and_transpose(hx,dx/hx,nd,nrange,y_phi,1,&
 !         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psifscf)
+
+
+
+    call my_morph_and_transpose(hx,dx_field/hx,nd,nrange,y_phi,1,&
+         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
+
+
+  x=0.d0
+  do i=0,2*n1+1
+    y=0.d0
+    do j=1,1!0,2*n2+1
+       z=0.d0
+       do k=1,1!1,2*n3+1
+          write(101,*) x,y,z,psi_w(i,j,k)
+          z=z+hz
+       end do
+       y=y+hy
+    end do
+    x=x+hx
+  end do
+
+deallocate(dx_field)
+
+stop
+
 
 print*,'interpolating first dimension...'
     call my_interpolate_and_transpose(hx,dx/hx,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
@@ -1546,4 +1578,112 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
    deallocate(y,stat=i_stat)
    call memocc(i_stat,i_all,'y',subname)
 END SUBROUTINE scaling_function4b2B
+
+
+!call the routine which performs the interpolation in each direction
+subroutine my_morph_and_transpose(h,t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
+ use module_base
+ implicit none
+ integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+ integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+ integer, intent(in) :: nin,nout !< sizes of the input and output array in interpolating direction
+ integer, intent(in) :: ndat !< size of the array in orthogonal directions
+ real(gp), intent(in) :: h !< grid spacing in the interpolating direction
+ real(gp), dimension(nin,ndat), intent(in) :: t0_field !< field of shifts to be applied for each point in grid spacing units
+ real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+ real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
+ real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
+ !local variables
+ character(len=*), parameter :: subname='my_morph_and_transpose'
+ integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me,k
+ real(gp) :: dt, tt, t0_l
+ real(gp), dimension(:), allocatable :: shf !< shift filter
+
+ !assume for the moment that the grid spacing is constant
+	 
+ m_isf=nrange/2
+ !calculate the shift filter for the given t0
+ allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
+ call memocc(i_stat,shf,'shf',subname)
+
+ !number of points for a unit displacement
+ nunit=nphi/nrange 
+
+!print *,'start interpolation',ish,t0,shf
+
+!do i=-m_isf,m_isf
+!write(104,*)i,shf(i)
+!end do
+
+ !apply the interpolating filter to the output
+ do j=1,ndat
+   psi_out(j,:)=0.0_gp
+do i=1,nout
+
+find_trans: do l=1,nin
+     k=l+t0_field(l,j)
+     if (k > i) exit find_trans
+end do find_trans
+     
+print*,i,l,k
+
+end do
+
+end do
+stop
+
+do !
+
+   do i=1,nin
+     !determine the local shift which has to be applied
+     !this should be number between -0.5 and 0.5
+     t0_l=t0_field(i,j)
+     dt=t0_l-nint(t0_l)
+     !evaluate the shift
+     ish=nint(real(nunit,gp)*dt)
+
+     if (ish<=0) then
+       shf(-m_isf)=0.0_gp
+     else
+       shf(-m_isf)=phi(ish)  
+     end if 
+     ipos=ish
+
+     do l=-m_isf+1,m_isf-1 !extremes excluded
+       !position of the shifted argument in the phi array
+       ipos=ipos+nunit
+       shf(l)=phi(ipos)  
+     end do
+
+     if (ish<=0) then
+       shf(m_isf)=phi(ipos+nunit)
+     else
+       shf(m_isf)=0.0_gp
+     end if 
+
+     !define the shift for output results
+     ish=nint(t0_l)
+
+
+     !here the boundary conditions have to be considered
+      tt=0.0_gp
+      ms=-min(m_isf,i-1)
+      me=min(m_isf,nin-i)
+      do l=ms,me
+         tt=tt+shf(l)*psi_in(i+l,j)
+      end do
+!      tt=h*tt
+print*,'i,t0_l,nint(t0_l),i+ish,nout,tt',i,t0_l,nint(t0_l),i+ish,nout,tt   
+      if (i+ish > 0 .and. i+ish < nout) psi_out(j,i+ish)=tt
+	if (i+ish > 0 .and. i+ish < nout)       write(102,*)i+ish,psi_out(j,i+ish)
+   end do
+ end do
+
+
+
+ i_all=-product(shape(shf))*kind(shf)
+ deallocate(shf,stat=i_stat)
+ call memocc(i_stat,i_all,'shf',subname)
+
+end subroutine my_morph_and_transpose
 

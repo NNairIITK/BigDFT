@@ -55,6 +55,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(kind=8) :: neleconf(nmax,0:lmax)                                        
   integer :: nsccode,mxpl,mxchg
   type(mixrhopotDIISParameters) :: mixdiis
+  type(sparseMatrix) :: ham_small ! for FOE
 
   call nullify_orbitals_data(orbs_gauss)
 
@@ -251,12 +252,24 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%denskern, &
        tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
 
+  call nullify_sparsematrix(ham_small) ! nullify anyway
+
   if (input%lin%scf_mode==LINEAR_FOE) then
+
+      call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
+      allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
+      call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
+
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.)
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small)
+
+      if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
+         call deallocate_sparsematrix(ham_small,subname)
+      end if
+
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.)
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small)
   end if
 
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
