@@ -189,7 +189,7 @@ NLCC_periodic-O2: *NLCCs
 
 taskgroups:
   Energies: 1.1e-10
-  EKS: 5.3e-11
+  EKS: 1.1e-10
   P vector: 1.1e-10
 
 base:

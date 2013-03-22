@@ -1636,14 +1636,15 @@ END SUBROUTINE deallocate_orbs
   END SUBROUTINE deallocate_bounds
 
 
-  !> todo: remove this function.
+  !> Deallocate lr (obsolete)
+  !! @todo Remove this function.
   subroutine deallocate_lr(lr,subname)
     use module_base
     character(len=*), intent(in) :: subname
     type(locreg_descriptors) :: lr
 !    integer :: i_all,i_stat
 
-    write(0,*) "TODO, remove me"
+    write(0,*) "deallocate_lr: TODO, remove me"
     
     call deallocate_wfd(lr%wfd,subname)
 

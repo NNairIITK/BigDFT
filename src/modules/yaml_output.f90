@@ -11,28 +11,28 @@ module yaml_output
   use yaml_strings
   use dictionaries
   implicit none
-  private 
+  private
 
   !> Yaml events for dump routine
-  integer, parameter :: NONE           = -1000
-  integer, parameter :: DOCUMENT_START = -1001
-  integer, parameter :: DOCUMENT_END   = -1002
-  integer, parameter :: MAPPING_START  = -1003
-  integer, parameter :: MAPPING_END    = -1004
-  integer, parameter :: SEQUENCE_START = -1005
-  integer, parameter :: SEQUENCE_END   = -1006
-  integer, parameter :: SCALAR         = -1007
-  integer, parameter :: COMMENT        = -1008
-  integer, parameter :: MAPPING        = -1009
-  integer, parameter :: SEQUENCE_ELEM  = -1010
-  integer, parameter :: NEWLINE        = -1011
-  integer, parameter :: COMMA_TO_BE_PUT= 10
-  integer, parameter :: STREAM_ALREADY_PRESENT=-1
+  integer, parameter :: NONE                   = -1000
+  integer, parameter :: DOCUMENT_START         = -1001
+  integer, parameter :: DOCUMENT_END           = -1002
+  integer, parameter :: MAPPING_START          = -1003
+  integer, parameter :: MAPPING_END            = -1004
+  integer, parameter :: SEQUENCE_START         = -1005
+  integer, parameter :: SEQUENCE_END           = -1006
+  integer, parameter :: SCALAR                 = -1007
+  integer, parameter :: COMMENT                = -1008
+  integer, parameter :: MAPPING                = -1009
+  integer, parameter :: SEQUENCE_ELEM          = -1010
+  integer, parameter :: NEWLINE                = -1011
+  integer, parameter :: COMMA_TO_BE_PUT        =  10
+  integer, parameter :: STREAM_ALREADY_PRESENT = -1
 
   integer, parameter :: tot_max_record_length=95   !< Max record length by default
   integer, parameter :: tot_max_flow_events=500    !< Max flow events
   integer, parameter :: tot_streams=10             !< Max total number of streams
-  integer, parameter :: tab=5
+  integer, parameter :: tab=5                      !< Default number for tabbing
 
   integer :: active_streams=0  !< Number of active streams (stdout always active after init)
   integer :: default_stream=1  !< Id of the default stream
@@ -48,9 +48,9 @@ module yaml_output
      integer :: indent=1                !< Blank spaces indentations for Yaml output level identification
      integer :: indent_previous=0       !< Indent level prior to flow writing
      integer :: indent_step=2           !< Indentation level
-     integer :: tabref=40               !< position of tabular in scalar assignment (single column output)
-     integer :: icursor=1               !< running position of the cursor on the line
-     integer :: itab_active=0           !< number of active tabbings for the line in flowrite
+     integer :: tabref=40               !< Position of tabular in scalar assignment (single column output)
+     integer :: icursor=1               !< Running position of the cursor on the line
+     integer :: itab_active=0           !< Number of active tabbings for the line in flowrite
      integer :: itab=0                  !< Tabbing to have a look on
      integer :: ilevel=0                !< Number of opened levels
      integer :: iflowlevel=0            !< Levels of flowrite simoultaneously enabled
@@ -59,56 +59,58 @@ module yaml_output
      integer, dimension(tot_max_record_length/tab) :: linetab=0   !< Value of the tabbing in the line
      integer :: ievt_flow=0                                       !< Events which track is kept of in the flowrite
      integer, dimension(tot_max_flow_events) :: flow_events=0     !< Set of events in the flow
-     type(dictionary), pointer :: dict_warning=>null()            !< dictionary of warnings emitted in the stream
+     type(dictionary), pointer :: dict_warning=>null()            !< Dictionary of warnings emitted in the stream
   end type yaml_stream
 
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
-  integer, dimension(tot_streams) :: stream_units=6 !default units unless otherwise specified               
-                                                  
-  interface yaml_map                              
+  integer, dimension(tot_streams) :: stream_units=6             !< Default units unless otherwise specified
+
+  interface yaml_map
      module procedure yaml_map,yaml_map_i,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
-  end interface                                   
-                                                  
+  end interface
+
   public :: yaml_new_document,yaml_release_document
-  public :: yaml_map,yaml_open_map,yaml_close_map 
+  public :: yaml_map,yaml_open_map,yaml_close_map
   public :: yaml_sequence,yaml_open_sequence,yaml_close_sequence
   public :: yaml_comment,yaml_warning,yaml_toa,yaml_newline
   public :: yaml_set_stream,yaml_get_default_stream,yaml_set_default_stream,yaml_stream_attributes
   public :: yaml_close_all_streams
   public :: yaml_date_and_time_toa,yaml_scalar,yaml_date_toa,yaml_dict_dump
 
-contains                                          
-          
+
+contains
+
+
   !> Initialize the stream to default values
   function stream_null() result(strm)
     implicit none
     type(yaml_stream) :: strm
 
-    strm%document_closed=.true.  
+    strm%document_closed=.true.
     strm%pp_allowed=.true.
     strm%unit=6
     strm%max_record_length=tot_max_record_length
-    strm%flowrite=.false.        
-    strm%Wall=-1                 
-    strm%indent=1                
-    strm%indent_previous=0       
-    strm%indent_step=2           
-    strm%tabref=40               
-    strm%icursor=1               
-    strm%itab_active=0           
-    strm%itab=0                  
-    strm%ilevel=0                
-    strm%iflowlevel=0            
-    strm%ilast=0                 
-    strm%icommentline=0          
+    strm%flowrite=.false.
+    strm%Wall=-1
+    strm%indent=1
+    strm%indent_previous=0
+    strm%indent_step=2
+    strm%tabref=40
+    strm%icursor=1
+    strm%itab_active=0
+    strm%itab=0
+    strm%ilevel=0
+    strm%iflowlevel=0
+    strm%ilast=0
+    strm%icommentline=0
     strm%linetab=0
-    strm%ievt_flow=0                                     
+    strm%ievt_flow=0
     strm%flow_events=0
     nullify(strm%dict_warning)
   end function stream_null
 
-                                        
-  !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if 
+
+  !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.
   subroutine yaml_set_default_stream(unit,ierr)
     implicit none
@@ -209,7 +211,7 @@ contains
        record_length)
     implicit none
     integer, intent(in) , optional :: unit          !< File unit to display
-    integer, intent(in) , optional :: stream_unit   !< Stream Id 
+    integer, intent(in) , optional :: stream_unit   !< Stream Id
     logical, intent(out), optional :: flowrite
     integer, intent(out), optional :: icursor,itab_active
     integer, intent(out), optional :: iflowlevel,ilevel,ilast
@@ -354,9 +356,11 @@ contains
 
   end subroutine yaml_release_document
 
+
+  !> Close all the streams
   subroutine yaml_close_all_streams()
     implicit none
-    
+
     !local variables
     integer :: istream,unt,unts
 
@@ -525,7 +529,7 @@ contains
   end subroutine yaml_scalar
 
 
-  !> Open a yaml map (dictionary) 
+  !> Open a yaml map (dictionary)
   subroutine yaml_open_map(mapname,label,flow,unit)
     implicit none
     integer, optional, intent(in) :: unit
@@ -683,7 +687,7 @@ contains
   end subroutine yaml_close_sequence
 
 
-  !> Add a new line in the flow 
+  !> Add a new line in the flow
   !! This routine has a effect only if a flow writing is active
   subroutine yaml_newline(unit)
     implicit none
@@ -707,7 +711,7 @@ contains
     implicit none
     integer, optional, intent(in) :: unit
     character(len=*), optional, intent(in) :: label,seqvalue,advance
-    !local variables 
+    !local variables
     integer :: msg_lgt,unt,strm
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
@@ -1286,7 +1290,7 @@ contains
              call buffer_string(prefix,len(prefix),'}',prefix_lgt,back=.true.)
              !flowrite=-1
              reset_line=.true.
-          else 
+          else
              call buffer_string(prefix,len(prefix),'}',prefix_lgt)
           end if
           reset_line=ladv
@@ -1370,7 +1374,7 @@ contains
              istat=-1
              return
           else
-             !crop the writing 
+             !crop the writing
              towrite_lgt=stream%max_record_length
              !stop 'ERROR (dump): writing exceeds record size'
           end if
@@ -1434,7 +1438,7 @@ contains
       !print *, 'there',tabeff,itab,ianchor_pos,shift_lgt,msg_lgt,prefix_lgt,indent_lgt,icursor
       !see if the line enters
       if (icursor+msg_lgt+prefix_lgt+indent_lgt+shift_lgt >= max_lgt) then
-         !restart again 
+         !restart again
          change_line=.true.
          !reset newly created tab
          if (stream%itab==stream%itab_active .and. stream%itab > 1)&
@@ -1465,7 +1469,7 @@ contains
          !first check that the tabbing is already done, otherwise add another tab
          if (stream%itab < stream%itab_active) then
             !realign the value to the tabbing
-            do 
+            do
                if (ianchor_pos <= stream%linetab(stream%itab) .or. &
                     stream%itab==stream%itab_active) exit
                stream%itab=modulo(stream%itab,tot_max_record_length/tab)+1
@@ -1496,7 +1500,7 @@ contains
       if (.not.stream%flowrite .and. stream%icursor==1) then
          indent_value=stream%indent!max(stream%indent,0) !to prevent bugs
       !if first time in the flow recuperate the saved indent
-      else if (stream%icursor==1 .and. stream%iflowlevel==1 & 
+      else if (stream%icursor==1 .and. stream%iflowlevel==1 &
            .and. stream%ievt_flow==0) then
          indent_value=stream%indent_previous
       else
@@ -1513,7 +1517,7 @@ contains
 !      else
 !         indent_value=stream%indent_previous
 !      end if
-      
+
     end function indent_value
 
     !> Decide whether comma has to be put
@@ -1530,7 +1534,7 @@ contains
          if (.not. put_comma .and. comma_potentially_needed(evt)) then
             !print *,'event'
             !control whether there is a ending flow
-            !if (stream%iflowlevel > 1 .and. 
+            !if (stream%iflowlevel > 1 .and.
          end if
       end if
       !in any case the comma should not be put before a endflow
@@ -1545,7 +1549,7 @@ contains
     implicit none
     integer, intent(in) :: evt
     logical flow_is_starting
-    
+
     flow_is_starting=(evt==MAPPING_START .or. evt == SEQUENCE_START)
 
   end function flow_is_starting
@@ -1572,7 +1576,7 @@ contains
                      evt==SCALAR         .or. &
                      evt==COMMENT        .or. &
                      evt==SEQUENCE_ELEM  .or. &
-                     evt==NEWLINE 
+                     evt==NEWLINE
   end function comma_not_needed
 
 
@@ -1623,7 +1627,7 @@ contains
     stream%itab_active=0
     stream%itab=0
     !all needed commas are placed in the previous line
-  end subroutine carriage_return  
+  end subroutine carriage_return
 
 
   !> Open a level
@@ -1751,7 +1755,7 @@ contains
                   call yaml_close_map()
                end if
             end if
-         else 
+         else
             !print *,'ciao',dict%key,len_trim(dict%key),'key',dict%value,flowrite
             if (dict%data%item >= 0) then
                call yaml_sequence(trim(dict%data%value))

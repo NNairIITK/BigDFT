@@ -500,7 +500,7 @@ subroutine compress_matrix_for_allreduce(iproc,sparsemat)
 
   ! Local variables
   integer :: jj, irow, jcol
-  !$ integer :: jseg, jorb
+  !!!$ integer :: jseg, jorb
 
   call timing(iproc,'compress_uncom','ON')
 
@@ -541,7 +541,7 @@ subroutine uncompressMatrix(iproc,sparsemat)
   
   ! Local variables
   integer :: ii, irow, jcol
-  !$ integer :: iseg, jorb
+  !!!$ integer :: iseg, jorb
 
   call timing(iproc,'compress_uncom','ON')
 

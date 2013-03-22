@@ -529,7 +529,7 @@ check:
 #dependencies
 $(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o distances.o global.o rism.o oneatom.o BigDFT2Wannier.o WaCo.o: $(mpi_include)  $(modules_objects)
 
-linear/convolutions_aux.o: linear/filterModule.o
+linear/convolutions_aux.o: filterModule.o
 
 cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
 

@@ -1540,7 +1540,8 @@ subroutine perf_input_variables(iproc,dump,filename,in)
      in%matacc%OCL_devices(i:i)=achar(0)
   end do
 
-  call input_var("blas", .false., "CUBLAS acceleration", GPUblas) !@TODO to relocate
+  !!@TODO to relocate
+  call input_var("blas", .false., "CUBLAS acceleration", GPUblas)
   call input_var("projrad", 15.0d0, &
        & "Radius of the projector as a function of the maxrad", in%projrad)
   call input_var("exctxpar", "OP2P", &
