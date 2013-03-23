@@ -5,7 +5,6 @@
   if (present(routine_id)) then
      lgt=min(len(routine_id),namelen)
      m%routine_id(1:lgt)=routine_id(1:lgt)
-     call f_malloc_routine_id(m%routine_id)
   else
      m%routine_id=present_routine
   end if

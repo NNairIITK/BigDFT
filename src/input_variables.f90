@@ -1725,7 +1725,7 @@ subroutine create_log_file(iproc,inputs)
               write(*,*) '                      into '//trim(logfile_old)// "'."
               call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
            end if
-           call yaml_map('<BigDFT> Logfile already existing, move previous file in',&
+           call yaml_map('<BigDFT> Logfile existing, renamed into',&
                 trim(logfile_old),unit=6)
 
         else

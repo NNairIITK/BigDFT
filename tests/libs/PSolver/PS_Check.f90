@@ -586,8 +586,9 @@ program PS_Check
       end do
 
       if (nspden == 2 .and. distcode == 'D') then
-         allocate(xc_temp(n01*n02*n3p*nspden+ndebug),stat=i_stat)
-         call memocc(i_stat,xc_temp,'xc_temp',subname)
+         xc_temp=f_malloc_ptr(n01*n02*n3p*nspden,id='xc_temp')
+!!$         allocate(xc_temp(n01*n02*n3p*nspden+ndebug),stat=i_stat)
+!!$         call memocc(i_stat,xc_temp,'xc_temp',subname)
          !toggle the components of xc_pot in the distributed case
          do i=1,n01*n02*n3p
             xc_temp(i)=xc_pot(i+istpot-1)
@@ -641,7 +642,7 @@ program PS_Check
       end do
 
       if (nspden == 2 .and. distcode == 'D') then
-         call f_free(xc_temp)
+         call f_free_ptr(xc_temp)
 !!$         i_all=-product(shape(xc_temp))*kind(xc_temp)
 !!$         deallocate(xc_temp,stat=i_stat)
 !!$         call memocc(i_stat,i_all,'xc_temp',subname)

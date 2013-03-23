@@ -52,6 +52,7 @@ else
 LIBS += @LIBS_SHORT_DEPS@
 endif
 
+
 # Additional rules for the dev tutorial.
 dev.check: dev/toy_model
 dev/toy_model toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90

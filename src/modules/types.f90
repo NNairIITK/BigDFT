@@ -634,12 +634,22 @@ module module_types
     real(kind=8) :: charge !total charge of the system
   end type foe_data
 
+!!$  type, public ::sparseMatrix_metadata
+!!$     integer :: nvctr, nseg, full_dim1, full_dim2
+!!$     integer,dimension(:),pointer:: noverlaps
+!!$     integer,dimension(:,:),pointer:: overlaps
+!!$     integer,dimension(:),pointer :: keyv, nsegline, istsegline
+!!$     integer,dimension(:,:),pointer :: keyg
+!!$     integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
+!!$  end type sparseMatrix_metadata
+
   type,public :: sparseMatrix
       integer :: nvctr, nseg, full_dim1, full_dim2
       integer,dimension(:),pointer:: noverlaps
       integer,dimension(:,:),pointer:: overlaps
       integer,dimension(:),pointer :: keyv, nsegline, istsegline
       integer,dimension(:,:),pointer :: keyg
+      !type(sparseMatrix_metadata), pointer :: pattern
       real(kind=8),dimension(:),pointer :: matrix_compr
       real(kind=8),dimension(:,:),pointer :: matrix
       integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index

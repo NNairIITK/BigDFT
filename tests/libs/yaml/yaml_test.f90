@@ -299,7 +299,7 @@ call yaml_close_sequence()
    call f_free(pot_ion)
 
    call f_free(xc_pot)
-   call f_malloc_dump_status()
+!   call f_malloc_dump_status()
    call f_free(extra_ref)
 !   call yaml_open_map('Last')
 !   call f_malloc_dump_status()
