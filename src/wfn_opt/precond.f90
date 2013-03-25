@@ -123,18 +123,18 @@ END SUBROUTINE preconditionall
 
 
 ! Generalized for the Linearscaling code
-subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,gnrm,gnrm_zero)
+subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,confdatarr,gnrm,gnrm_zero)
   use module_base
   use module_types
   use Poisson_Solver
   use yaml_output
   implicit none
-  integer, intent(in) :: iproc,nproc,ncong
+  integer, intent(in) :: iproc,nproc,ncong,npsidim
   real(gp), intent(in) :: hx,hy,hz
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data), intent(in) :: orbs
   real(dp), intent(out) :: gnrm,gnrm_zero
-  real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+  real(wp), dimension(npsidim), intent(inout) :: hpsi
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr !< used in the linear scaling but also for the cubic case
   !local variables
   character(len=*), parameter :: subname='preconditionall2'

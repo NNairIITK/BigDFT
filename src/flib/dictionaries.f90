@@ -59,8 +59,13 @@ module dictionaries
      module procedure put_child,put_value,put_list,put_integer,put_real,put_double,put_long
   end interface
 
+  interface add
+     module procedure add_char!,add_dict,add_integer,add_real,add_double,add_long
+  end interface
+
+
   public :: operator(//), assignment(=)
-  public :: set,dict_init,dict_free,try,close_try,pop,append,prepend,find_key
+  public :: set,dict_init,dict_free,try,close_try,pop,append,prepend,find_key,dict_len,add,dict_key
   
 
 contains
@@ -130,6 +135,20 @@ contains
 
   end subroutine check_value
 
+  function dict_key(dict)
+    type(dictionary), pointer :: dict
+    character(len=max_field_length) :: dict_key
+    
+    dict_key=repeat(' ',len(dict_key))
+
+    if (.not. associated(dict)) return
+    
+    call check_key(dict)
+
+    dict_key=dict%data%key
+
+  end function dict_key
+
   subroutine check_conversion(ierror)
     implicit none
     integer, intent(in) :: ierror
@@ -163,7 +182,6 @@ contains
     end if
 
   end subroutine set_item
-
 
   recursive subroutine define_parent(dict,child)
     implicit none
@@ -241,6 +259,7 @@ contains
                   call define_brother(dict%previous,dict%next) 
                   dict%previous%next => dict%next
                else
+                  nullify(dict%next%previous)
                   !the next should now become me
                   dict => dict%next
                end if
@@ -270,13 +289,65 @@ contains
     end subroutine pop_dict_
   end subroutine pop_dict
 
+  !> assign the value to the  dictionary
+  subroutine add_char(dict,val)
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len=*), intent(in) :: val
+    !local variables
+    integer :: length,isize
+    
+    isize=dict_size(dict)
+    length=dict_len(dict)
+
+    if (isize > 0) stop 'ERROR, the dictionary is not a list, add not allowed'
+
+    if (length == -1) stop 'ERROR, the dictionary is not associated' !call dict_init(dict)
+
+    call set(dict//length,trim(val))
+
+  end subroutine add_char
+
+
+  function dict_len(dict)
+    implicit none
+    type(dictionary), intent(in), pointer :: dict
+    integer :: dict_len
+    
+    if (associated(dict)) then
+       if (associated(dict%parent)) then
+          dict_len=dict%data%nitems
+       else
+          dict_len=dict%child%data%nitems
+       end if
+    else
+       dict_len=-1
+    end if
+  end function dict_len
+
+  function dict_size(dict)
+    implicit none
+    type(dictionary), intent(in), pointer :: dict
+    integer :: dict_size
+    
+    if (associated(dict)) then
+       if (associated(dict%parent)) then
+          dict_size=dict%data%nelems
+       else
+          dict_size=dict%child%data%nelems
+       end if
+    else
+       dict_size=-1
+    end if
+  end function dict_size
+
   subroutine pop_last(dict)
     implicit none
     type(dictionary), intent(inout), pointer :: dict 
     !local variables
     integer :: nitems
 
-    nitems=dict%data%nitems
+    nitems=dict_len(dict)
     if (nitems > 0) then
        call pop_item(dict,nitems-1)
     else
@@ -381,12 +452,15 @@ contains
     type(dictionary), intent(in), pointer :: dict !hidden inout
     character(len=*), intent(in) :: key
     type(dictionary), pointer :: dict_ptr
-
-!TEST 
-if (.not. associated(dict%parent)) then
-   dict_ptr =>  find_key(dict%child,key)
-   return
-end if
+    if (.not. associated(dict)) then
+       nullify(dict_ptr)
+       return
+    end if
+    !TEST 
+    if (.not. associated(dict%parent)) then
+       dict_ptr =>  find_key(dict%child,key)
+       return
+    end if
 
 !    print *,'here',trim(key)
     !follow the chain, stop at  first occurence
@@ -577,6 +651,7 @@ end if
     else if (.not. associated(dict%parent)) then
        call prepend(dict%child,brother)
     else if (.not. associated(brother%parent)) then
+       call define_parent(dict%parent,brother%child)
        call prepend(dict,brother%child)
        nullify(brother%child)
        call dict_free(brother)

@@ -527,6 +527,7 @@ module module_types
      real(kind=8) :: psi_c_r,psi_f_r,psi_c_b,psi_f_b,psi_c_d,psi_f_d
      real(kind=8) :: psi_c_r_i,psi_f_r_i,psi_c_b_i,psi_f_b_i,psi_c_d_i,psi_f_d_i
      real(kind=8) :: keyg_c,keyg_f,keyv_c,keyv_f
+     real(kind=8) :: keyg_c_host,keyg_f_host,keyv_c_host,keyv_f_host
      real(kind=8) :: context,queue
      !host pointers to be freed
      real(kind=8) :: rhopot_down_host, rhopot_up_host
@@ -633,12 +634,22 @@ module module_types
     real(kind=8) :: charge !total charge of the system
   end type foe_data
 
+!!$  type, public ::sparseMatrix_metadata
+!!$     integer :: nvctr, nseg, full_dim1, full_dim2
+!!$     integer,dimension(:),pointer:: noverlaps
+!!$     integer,dimension(:,:),pointer:: overlaps
+!!$     integer,dimension(:),pointer :: keyv, nsegline, istsegline
+!!$     integer,dimension(:,:),pointer :: keyg
+!!$     integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
+!!$  end type sparseMatrix_metadata
+
   type,public :: sparseMatrix
       integer :: nvctr, nseg, full_dim1, full_dim2
       integer,dimension(:),pointer:: noverlaps
       integer,dimension(:,:),pointer:: overlaps
       integer,dimension(:),pointer :: keyv, nsegline, istsegline
       integer,dimension(:,:),pointer :: keyg
+      !type(sparseMatrix_metadata), pointer :: pattern
       real(kind=8),dimension(:),pointer :: matrix_compr
       real(kind=8),dimension(:,:),pointer :: matrix
       integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
@@ -1002,7 +1013,7 @@ contains
     nullify(b%ibyyzz_r)
   end function default_bounds
 
-  function default_locreg() result(lr)
+  function locreg_null() result(lr)
     type(locreg_descriptors) :: lr
 
     lr%geocode='F'
@@ -1021,7 +1032,7 @@ contains
     lr%locregCenter=(/0.0_gp,0.0_gp,0.0_gp/) 
     lr%locrad=0 
 
-  end function default_locreg
+  end function locreg_null
 
   function default_lzd() result(lzd)
     type(local_zone_descriptors) :: lzd
@@ -1030,9 +1041,60 @@ contains
     lzd%lintyp=0
     lzd%ndimpotisf=0
     lzd%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    lzd%Glr=default_locreg()
+    lzd%Glr=locreg_null()
     nullify(lzd%Llr)
   end function default_lzd
+ 
+  function symm_null() result(sym)
+     type(symmetry_data) :: sym
+     sym%symObj=-1
+     nullify(sym%irrzon)
+     nullify(sym%phnons)
+  end function symm_null
+
+  function atoms_null() result(at)
+     type(atoms_data) :: at
+     at%geocode='X'
+     at%format=repeat(' ',len(at%format))
+     at%units=repeat(' ',len(at%units))
+     at%nat=-1
+     at%ntypes=-1
+     at%natsc=-1
+     at%alat1=0.0_gp
+     at%alat2=0.0_gp
+     at%alat3=0.0_gp
+     at%donlcc=.false.
+     at%sym=symm_null()
+     at%iat_absorber=-1
+     nullify(at%atomnames)
+     nullify(at%iatype)
+     nullify(at%iasctype)
+     nullify(at%natpol)
+     nullify(at%nelpsp)
+     nullify(at%npspcode)
+     nullify(at%ixcpsp)
+     nullify(at%nzatom)
+     nullify(at%radii_cf)
+     nullify(at%ifrztyp)
+     nullify(at%amu)
+     nullify(at%aocc)
+     nullify(at%rloc)
+     nullify(at%psppar)
+     nullify(at%nlcc_ngv)
+     nullify(at%nlcc_ngc)
+     nullify(at%nlccpar)
+     nullify(at%ig_nlccpar)
+     nullify(at%paw_NofL)
+     nullify(at%paw_l)
+     nullify(at%paw_nofchannels)
+     nullify(at%paw_nofgaussians)
+     nullify(at%paw_Greal)
+     nullify(at%paw_Gimag)
+     nullify(at%paw_Gcoeffs)
+     nullify(at%paw_H_matrices)
+     nullify(at%paw_S_matrices)
+     nullify(at%paw_Sm1_matrices)
+  end function atoms_null
 
   function bigdft_run_id_toa()
     use yaml_output

@@ -29,7 +29,7 @@ src/frequencies
 src/oneatom
 src/rism
 src/splsad
-src/lib/bindings_dbus.*
+src/bindings/bindings_dbus.*
 src/tools/analyze_georelax
 src/tools/fermi
 src/tools/matchrotation

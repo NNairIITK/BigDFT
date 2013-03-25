@@ -84,6 +84,7 @@ program test_forces
 
    if (iproc==0) then
 !!$         !start a new document in the beginning of the output, if the document is closed before
+      call yaml_set_stream(record_length=95,istat=ierr)
       call yaml_new_document()
 !!$         call print_logo()
       call yaml_comment('',hfill='-')

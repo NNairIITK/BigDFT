@@ -1069,7 +1069,7 @@ end subroutine copy_local_zone_descriptors
 
 
 !only copying sparsity pattern here, not copying whole matrix
-subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, subname)
+subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
   use module_base
   use module_types
   use module_interfaces, except_this_one => sparse_copy_pattern
@@ -1078,10 +1078,13 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, subname)
   ! Calling arguments
   type(sparseMatrix),intent(in):: sparseMat_in
   type(sparseMatrix),intent(inout):: sparseMat_out
+  integer, intent(in) :: iproc
   character(len=*),intent(in):: subname
 
   ! Local variables
   integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+
+  call timing(iproc,'sparse_copy','ON')
 
   sparsemat_out%nvctr = sparsemat_in%nvctr
   sparsemat_out%nseg = sparsemat_in%nseg
@@ -1226,6 +1229,8 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, subname)
         end do
      end do
   end if
+
+  call timing(iproc,'sparse_copy','OF')
 
 end subroutine sparse_copy_pattern
 

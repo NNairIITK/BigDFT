@@ -10,9 +10,9 @@
 
 !>    Contains variables used a timing for BigDFT
 module timeData
-  use module_defs, only: mpi_environment, bigdft_mpi
+!  use module_defs, only: mpi_environment, bigdft_mpi
   implicit none
-  integer, parameter :: ncat=116,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=121,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -71,6 +71,7 @@ module timeData
        'lovrlp^-1/2   ','Linear Algebra' ,'exact or appr ' ,  &
        'lovrlp^-1/2old','Linear Algebra' ,'exact or appr ' ,  &
        'lovrlp^-1/2com','Linear Algebra' ,'exact or appr ' ,  &
+       'lovrlp^-1/2par','Linear Algebra' ,'exact or appr ' ,  &
        'build_lincomb ','Linear Algebra' ,'many daxpy    ' ,  &
        'convolQuartic ','Convolutions  ' ,'No OpenCL     ' ,  &
        'p2pSumrho_wait','Communications' ,'mpi_test/wait ' ,  &
@@ -137,7 +138,11 @@ module timeData
        'chebyshev_comm','Communications' ,'allreduce     ' ,  &
        'chebyshev_coef','Other         ' ,'Miscellaneous ' ,  &
        'FOE_auxiliary ','Other         ' ,'Miscellaneous ' ,  &
+       'FOE_init      ','Other         ' ,'Miscellaneous ' ,  &
        'compress_uncom','Other         ' ,'Miscellaneous ' ,  &
+       'norm_trans    ','Other         ' ,'Miscellaneous ' ,  &
+       'misc          ','Other         ' ,'Miscellaneous ' ,  &
+       'sparse_copy   ','Other         ' ,'Miscellaneous ' ,  &
        'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat/))
   logical :: parallel,init,newfile,debugmode
   integer :: ncounters, ncaton,nproc = 0,nextra,ncat_stopped
@@ -150,11 +155,11 @@ module timeData
 
   contains
 
-    subroutine sum_results(iproc,message)
+    subroutine sum_results(iproc,mpi_comm,message)
       implicit none
       include 'mpif.h'
       character(len=*), intent(in) :: message
-      integer, intent(in) :: iproc
+      integer, intent(in) :: iproc,mpi_comm
       !local variables
       integer :: i,ierr,j,icls,icat,jproc,iextra
 
@@ -168,7 +173,7 @@ module timeData
 
       if (parallel) then 
          call MPI_GATHER(timesum,ncat+1,MPI_DOUBLE_PRECISION,&
-              timeall,ncat+1,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,ierr)
+              timeall,ncat+1,MPI_DOUBLE_PRECISION,0,mpi_comm,ierr)
       else
          do i=1,ncat+1
             timeall(i,0)=timesum(i)
@@ -318,7 +323,7 @@ subroutine timing(iproc,category,action)
   character(len=2), intent(in) :: action      ! possibilities: INitialize, ON, OFf, REsults
   !Local variables
   logical :: catfound
-  integer :: i,ierr,ii
+  integer :: i,ierr,ii,iproc_true
   integer :: nthreads,jproc,namelen
   integer(kind=8) :: itns
   !cputime routine gives a real
@@ -368,6 +373,8 @@ subroutine timing(iproc,category,action)
         print *, 'ERROR: TIMING IS INITIALIZED BEFORE PARTIAL RESULTS'
         stop 
      endif
+     !here iproc is the communicator
+     call MPI_COMM_RANK(iproc,iproc_true,ierr)
      ncounters=ncounters+1
      if (ncounters > ncat) then
         print *, 'It is not allowed to have more partial counters that categories; ncat=',ncat
@@ -378,7 +385,7 @@ subroutine timing(iproc,category,action)
      !total time elapsed in the category
      timesum(ncat+1)=real(itns,kind=8)*1.d-9-time0
      pctimes(ncounters)=timesum(ncat+1)
-     call sum_results(iproc,pcnames(ncounters))
+     call sum_results(iproc_true,iproc,pcnames(ncounters))
      !reset all timings
      time0=real(itns,kind=8)*1.d-9
      do i=1,ncat
@@ -390,14 +397,16 @@ subroutine timing(iproc,category,action)
         print *, 'TIMING IS INITIALIZED BEFORE RESULTS'
         stop 
      endif
+     !here iproc is the communicator
+     call MPI_COMM_RANK(iproc,iproc_true,ierr)
 
      if (ncounters == 0) then !no partial counters selected
         timesum(ncat+1)=real(itns,kind=8)*1.d-9-time0
-        call sum_results(iproc,'ALL')
+        call sum_results(iproc_true,iproc,'ALL')
      else !consider only the results of the partial counters
         if (parallel) then 
            call MPI_GATHER(pctimes,ncounters,MPI_DOUBLE_PRECISION,&
-                timecnt,ncounters,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,ierr)
+                timecnt,ncounters,MPI_DOUBLE_PRECISION,0,iproc,ierr)
            if (debugmode) then
               !initalise nodenames
               do jproc=0,nproc-1
@@ -409,7 +418,7 @@ subroutine timing(iproc,category,action)
               !gather the result between all the process
               call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
                    nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
-                   bigdft_mpi%mpi_comm,ierr)
+                   iproc,ierr)
            end if
 
         else
@@ -461,7 +470,7 @@ subroutine timing(iproc,category,action)
      if (.not. catfound) then
         print *, 'ACTION  ',action
         write(*,*) 'category, action',category, action
-        call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+        call mpi_barrier(MPI_COMM_WORLD, ierr)
         stop 'TIMING CATEGORY NOT DEFINED'
      end if
 

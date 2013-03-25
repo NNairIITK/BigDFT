@@ -2379,6 +2379,7 @@ end subroutine fixfrag_posvel
 
 
 subroutine fixfrag_posvel_slab(iproc,nat,rcov,pos,vel,option)
+use BigDFT_API, only: bigdft_utils_flush
 !This subroutine points the velocities towards the surface if an atom is too far away from the surface with surface boundary conditions
 !
 implicit none
@@ -2459,7 +2460,9 @@ if (option.eq.2) then
              write(1000+iproc,*) "#MH velocity made negative for atom",iat,pos(:,iat)
          endif
     enddo
-             flush(1000+iproc) 
+    !for some compilers flush is a statement, for other it is a routine
+    !flush(1000+iproc) 
+    call bigdft_utils_flush(unit=1000+iproc)
 
 else if (option.eq.1) then
 1000 continue

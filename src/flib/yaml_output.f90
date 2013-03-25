@@ -1126,11 +1126,13 @@ contains
     integer, optional, intent(out) :: istat
     !local variables
     logical :: stream_found
-    integer :: istream,prev_def
+    integer :: istream,prev_def,ierr
 
     if (present(istat)) istat=0
 
     if (unt==0) then
+       !if there are no active streams activate them (to circumvent g95 bug)
+       if (active_streams==0) call yaml_set_stream(record_length=92,istat=ierr)
        strm=default_stream
     else
        !it is assumed that the unit exists

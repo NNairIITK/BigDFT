@@ -80,8 +80,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   ! Allocate the communication arrays for the calculation of the charge density.
 
-  call timing(iproc,'linscalinit','OF') !lr408t
-
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then  
      call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
      call allocate_DIIS_coeff(tmb, ldiis_coeff)
@@ -93,6 +91,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   nullify(tmb%psit_f)
   !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
 
+  call timing(iproc,'linscalinit','OF') !lr408t
+
   ! now done in inputguess
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
   !call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%denskern, &
@@ -100,6 +100,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   ! Check the quality of the input guess
   call check_inputguess()
+
+  call timing(iproc,'linscalinit','ON') !lr408t
 
   if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
       call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
@@ -118,6 +120,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   call check_communications_locreg(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,tmb%ham_descr%collcom, &
        tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
   if (iproc ==0) call yaml_close_map()
+
+  call timing(iproc,'linscalinit','OF') !lr408t
 
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration, with istart=0
   istart = min(1,nit_lowaccuracy)
@@ -483,10 +487,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   deallocate(tmb%confdatarr, stat=istat)
 
 
-  !Write the linear wavefunctions to file if asked
+  !Write the linear wavefunctions to file if asked, also write Hamiltonian and overlap matrices
   if(input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
     call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
        max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,at,rxyz,tmb%psi,tmb%coeff)
+    call write_linear_matrices(iproc,nproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb,input,at,rxyz)
   end if
 
   !DEBUG
@@ -513,7 +518,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   call deallocate_local_arrays()
 
-  call timing(iproc,'WFN_OPT','PR')
+  call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
 
   contains
 
@@ -569,7 +574,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
 
-             if (fnrm_pulay>1.d-1) then !1.d3 1.d-1
+             if (fnrm_pulay>1.d-1) then !1.d-10
                 if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
                                                    &Start over again with an AO input guess.'
                 if (associated(tmb%psit_c)) then
@@ -617,7 +622,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           else
               ! Calculation of Pulay forces not possible, so always start with low accuracy
               call to_zero(3*at%nat, fpulay(1,1))
-              nit_lowaccuracy=input%lin%nit_lowaccuracy!0
+              if (input%lin%scf_mode==LINEAR_FOE) then
+                 nit_lowaccuracy=input%lin%nit_lowaccuracy
+              else
+                 nit_lowaccuracy=0
+              end if
               nit_highaccuracy=input%lin%nit_highaccuracy
           end if
           if (input%lin%scf_mode==LINEAR_FOE .and. nit_lowaccuracy==0) then
@@ -941,6 +950,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
         locregCenter(:,ilr)=lzd_tmp%llr(ilr)%locregCenter
      end do
 
+     !temporary,  moved from update_locreg
+     tmb%orbs%eval=-0.5_gp
      call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, locregCenter, lzd_tmp%glr, .false., &
           denspot%dpbox%nscatterarr, hx, hy, hz, at, input, KSwfn%orbs, tmb%orbs, tmb%lzd, tmb%npsidim_orbs, tmb%npsidim_comp, &
           tmb%comgp, tmb%collcom, tmb%foe_obj, tmb%collcom_sr)
@@ -1180,8 +1191,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   do jdir = 1, 3
     call nullify_sparsematrix(dovrlp(jdir))
     call nullify_sparsematrix(dham(jdir))
-    call sparse_copy_pattern(tmb%linmat%ham,dovrlp(jdir),subname) 
-    call sparse_copy_pattern(tmb%linmat%ham,dham(jdir),subname)
+    call sparse_copy_pattern(tmb%linmat%ham,dovrlp(jdir),iproc,subname) 
+    call sparse_copy_pattern(tmb%linmat%ham,dham(jdir),iproc,subname)
     allocate(dham(jdir)%matrix_compr(dham(jdir)%nvctr), stat=istat)
     call memocc(istat, dham(jdir)%matrix_compr, 'dham%matrix_compr', subname)
     allocate(dovrlp(jdir)%matrix_compr(dovrlp(jdir)%nvctr), stat=istat)
