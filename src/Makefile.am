@@ -214,6 +214,8 @@ libmain_a_SOURCES = \
 	$(low_level) \
 	$(high_level)
 
+libbigdft_1_a_SOURCES =
+
 libbigdft-1.a: $(libmain_a_OBJECTS) $(subs_static_library)
 	test -e "tmp-libbigdft" || $(INSTALL) -d -m 755 tmp-libbigdft
 	cd tmp-libbigdft ; \

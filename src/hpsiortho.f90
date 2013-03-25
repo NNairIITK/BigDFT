@@ -2103,6 +2103,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    use module_base
    use module_types
    use module_interfaces, except_this_one => check_communications
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
@@ -2182,7 +2183,10 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    end do
 
    abort = .false.
-   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
+   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp) .and. maxdiff < 1.e-6_wp) then
+      call yaml_warning('Transposition error of'//&
+           trim(yaml_toa(maxdiff,fmt='(1pe15.7)'))//', check whether results are meaningful!')
+   else if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
       write(*,*)'ERROR: process',iproc,'does not transpose wavefunctions correctly!'
       write(*,*)'       found an error of',maxdiff,'cannot continue.'
       write(*,*)'       data are written in the file transerror.log, exiting...'
@@ -2259,7 +2263,10 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    end do
 
    abort = .false.
-   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
+   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp) .and. maxdiff < 1.e-6_wp) then
+      call yaml_warning('Inverse transposition error of'//&
+           trim(yaml_toa(maxdiff,fmt='(1pe15.7)'))//', check whether results are meaningful!')
+   else if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
       write(*,*)'ERROR: process',iproc,'does not untranspose wavefunctions correctly!'
       write(*,*)'       found an error of',maxdiff,'cannot continue.'
       write(*,*)'       data are written in the file transerror.log, exiting...'

@@ -387,7 +387,7 @@ subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)
   integer,dimension(4,nout),intent(in) :: onedimindices
   real(kind=8),intent(in) :: a
   real(kind=8),dimension(norb,norbp),intent(in) :: x
-  real(kind=8),dimension(norb,norbp),intent(out) :: y
+  real(kind=8),dimension(norb,norbp),intent(inout) :: y
 
   ! Local variables
   integer :: i, jorb, iorb

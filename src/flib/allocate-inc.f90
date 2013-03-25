@@ -1,18 +1,9 @@
 !  call timing(0,'Init to Zero  ','IR') 
   !then perform all the checks and profile the allocation procedure
   if (size(shape(array))==m%rank) then
-      call metadata_address(array,iadd)
-      call pad_array(array,m%put_to_zero,m%shape,ndebug)
-
-!!$     if (m%rank ==1) then
-!!$        call pad_array(array,m%put_to_zero,m%shape(1),m%shape(1)+ndebug)
-!!$     else
-!!$        call pad_array(array,m%put_to_zero,&
-!!$             product(m%shape(1:m%rank)),&
-!!$             product(m%shape(1:m%rank-1))*(m%shape(m%rank)+ndebug))
-!!$     end if
-     !if (ndebug /=0) call pad_with_nan(array,m%rank,m%shape)
+     call pad_array(array,m%put_to_zero,m%shape,ndebug)
      !profile the array allocation
+     call metadata_address(array,iadd)
      call profile(iadd)
      ierror=SUCCESS
   else
@@ -35,8 +26,6 @@ contains
     
     !write the address of the first element in the address string
     call getaddress(array,address,len(address),ierr)
-
-    !call profile_allocation(ierror,iadd,address,kind(array),m)
 
     !size
     sizeof=kind(array)

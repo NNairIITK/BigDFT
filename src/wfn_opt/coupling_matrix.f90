@@ -386,7 +386,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
            write(6,10)
 
            do imulti = 1, 2*nmulti
-              write(6,30) imulti, Ha_eV*omega(imulti),(2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+              write(6,30) imulti, Ha_eV*omega(imulti),omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
 30            format(t2,i3,2x,f9.4,12x,1pe10.3) 
            end do
 
@@ -394,7 +394,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
            open(unit=9, file='td_spectra.txt')
            write(9,'(a4)')'2  #(results in eV)' 
            do imulti = 1, min(100,2*nmulti) 
-              write(9,'(f9.4,5x,1pe10.3)') Ha_eV*omega(imulti), (2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+              write(9,'(f9.4,5x,1pe10.3)') Ha_eV*omega(imulti),omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
            end do
            close(unit=9)
 

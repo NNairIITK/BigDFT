@@ -842,7 +842,7 @@ module module_interfaces
         real(gp), intent(out) :: fnoise,pressure
         real(gp), dimension(6), intent(out) :: strten
         real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
-        type(DFT_wavefunction),intent(in),optional :: tmb
+        type(DFT_wavefunction),intent(in) :: tmb
       END SUBROUTINE calculate_forces
       
       subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
@@ -4366,7 +4366,7 @@ module module_interfaces
           integer,dimension(4,nout),intent(in) :: onedimindices
           real(kind=8),intent(in) :: a
           real(kind=8),dimension(norb,norbp),intent(in) :: x
-          real(kind=8),dimension(norb,norbp),intent(out) :: y
+          real(kind=8),dimension(norb,norbp),intent(inout) :: y
         end subroutine axpy_kernel_vectors
 
         subroutine axbyz_kernel_vectors(norbp, norb, nout, onedimindices, a, x, b, y, z)
