@@ -10,10 +10,10 @@
  !==================================!
  ! Reading input.inter header done  !
  !==================================!
-
-
+ 
+ 
  <BigDFT> log of the run will be written in logfile: ./log.yaml
- <BigDFT> Logfile already existing, move previous file in: ./logfiles/log.00:07:47.015.yaml
+ <BigDFT> Logfile already existing, move previous file in: ./logfiles/log.17:03:24.652.yaml
  !==================================!
  !     Reading .nnkp integers :     !
  !==================================!
@@ -22,8 +22,8 @@
  !==================================!
  !   Reading .nnkp integers  done   !
  !==================================!
-
-
+ 
+ 
  !==================================!
  !       Reading .nnkp file :       !
  !==================================!
@@ -36,12 +36,9 @@
  !==================================!
  !     Reading .nnkp file done      !
  !==================================!
-
-
- wavefunctions need NO reformatting
-- 
-  {Process:  1, Timing:  [  5.000E-02,  2.400E-02 ]}
-
+ 
+ 
+ 
 These are the virtual bands to use to construct the actual Amn and Mmn matrices :
 Band    sqrt(amnk_guess)=
    1       0.451392
@@ -49,16 +46,13 @@ Band    sqrt(amnk_guess)=
  ! Calculating amnk=<virt|sph_har>  !
  !     in pre-check mode done       !
  !==================================!
-
-
+ 
+ 
  !==================================!
  ! Writing an input.inter file done !
  !==================================!
-
-
- wavefunctions need NO reformatting
-- 
-  {Process:  1, Timing:  [  1.000E-02,  1.200E-02 ]}
+ 
+ 
  !==================================!
  !  Calculating amnk=<psi|sph_har>  !
  !==================================!
@@ -69,29 +63,29 @@ Band      sqrt(amnk_tot)=
  !  Calculating amnk=<psi|sph_har>  !
  !               done               !
  !==================================!
-
-
+ 
+ 
  !==================================!
  !     Writing a .amn file done     !
  !==================================!
-
-
+ 
+ 
  !==================================!
  !   Calculating mmnk=<psi|psi> :   !
  !==================================!
  The values of sqrt(mmnk_tot) check the normalization in each band.
  They must tend to their lower limit value, which is equal to 1 :
-
+ 
 k-point coordinates :   1    0    0
 Band    sqrt(mmnk_tot)=
    1       0.927770
    2       0.789551
-
+ 
 k-point coordinates :   0    1    0
 Band    sqrt(mmnk_tot)=
    1       0.927770
    2       0.789551
-
+ 
 k-point coordinates :   0    0    1
 Band    sqrt(mmnk_tot)=
    1       0.975045
@@ -99,21 +93,19 @@ Band    sqrt(mmnk_tot)=
  !==================================!
  ! Calculating mmnk=<psi|psi> done  !
  !==================================!
-
-
+ 
+ 
  !==================================!
  !     Writing a .mmn file done     !
  !==================================!
-
-
- wavefunctions need NO reformatting
- wavefunctions need NO reformatting
+ 
+ 
  !==================================!
  !      Writing a UNKnk.s file      !
  !==================================!
  !==================================!
  !    Writing a UNKnk.s file done   !
  !==================================!
-
-
- CPU time/ELAPSED time for root process     0         4.47         5.30
+ 
+ 
+ CPU time/ELAPSED time for root process     0         2.94         6.22

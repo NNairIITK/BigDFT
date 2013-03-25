@@ -1,7 +1,7 @@
 !> @file
 !!  Define the fortran types
 !! @author
-!!    Copyright (C) 2008-2011 BigDFT group (LG)
+!!    Copyright (C) 2008-2013 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -824,9 +824,9 @@ module module_types
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
      type(collective_comms):: collcom ! describes collective communication
-     	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
-        real(wp), dimension(:), pointer :: psi,psit_c,psit_f !< these should eventually be eliminated
-        logical:: can_use_transposed
+     type(p2pComms):: comgp           !<describing p2p communications for distributing the potential
+     real(wp), dimension(:), pointer :: psi,psit_c,psit_f !< these should eventually be eliminated
+     logical:: can_use_transposed
   end type hamiltonian_descriptors
 
   !> The wavefunction which have to be considered at the DFT level
@@ -839,23 +839,23 @@ module module_types
      type(gaussian_basis) :: gbd !<gaussian basis description, if associated
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
      !restart objects (consider to move them in rst structure)
-     	type(old_wavefunction), dimension(:), pointer :: oldpsis !< previously calculated wfns
-     	integer :: istep_history !< present step of wfn history
+     type(old_wavefunction), dimension(:), pointer :: oldpsis !< previously calculated wfns
+     integer :: istep_history !< present step of wfn history
      !data properties
      logical:: can_use_transposed !< true if the transposed quantities are allocated and can be used
      type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
      type(communications_arrays) :: comms !< communication objects for the cubic approach
-     	type(diis_objects) :: diis
+     type(diis_objects) :: diis
      type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
      type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
-     	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
+     type(p2pComms):: comgp !<describing p2p communications for distributing the potential
      type(collective_comms):: collcom ! describes collective communication
      type(collective_comms):: collcom_sr ! describes collective communication for the calculation of the charge density
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
-     	type(foe_data):: foe_obj !<describes the structure of the matrices
-        type(linear_matrices):: linmat
+     type(foe_data):: foe_obj        !<describes the structure of the matrices for the linear method foe
+     type(linear_matrices):: linmat
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(hamiltonian_descriptors) :: ham_descr
@@ -1698,14 +1698,15 @@ END SUBROUTINE deallocate_orbs
   END SUBROUTINE deallocate_bounds
 
 
-  !> todo: remove this function.
+  !> Deallocate lr (obsolete)
+  !! @todo Remove this function.
   subroutine deallocate_lr(lr,subname)
     use module_base
     character(len=*), intent(in) :: subname
     type(locreg_descriptors) :: lr
 !    integer :: i_all,i_stat
 
-    write(0,*) "TODO, remove me"
+    write(0,*) "deallocate_lr: TODO, remove me"
     
     call deallocate_wfd(lr%wfd,subname)
 

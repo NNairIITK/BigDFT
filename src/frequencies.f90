@@ -59,47 +59,12 @@ program frequencies
    real(gp), dimension(:,:,:), allocatable :: forces
    real(gp), dimension(3) :: freq_step
    real(gp), dimension(6) :: strten
-   character(len=60) :: radical,posinp
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
    real(gp) :: tel
    real :: tcpu0,tcpu1
-   integer :: k,km,ii,jj,ik,imoves,order,n_order,istat,ncount0,ncount1,ncount_rate,ncount_max
+   integer :: k,km,ii,jj,ik,imoves,order,n_order,ncount0,ncount1,ncount_rate,ncount_max
    logical :: exists
    integer, dimension(4) :: mpi_info
-!!$   ! Start MPI in parallel version
-!!$   !in the case of MPIfake libraries the number of processors is automatically adjusted
-!!$   call MPI_INIT(ierr)
-!!$   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-!!$   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-!!$ 
-!!$   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
-!!$
-!!$   call memocc_set_memory_limit(memorylimit)
-!!$
-!!$   ! Read a possible radical format argument.
-!!$   call get_command_argument(1, value = radical, status = istat)
-!!$   if (istat > 0) then
-!!$      write(radical, "(A)") "input"
-!!$   end if
-!!$
-!!$   !open unit for yaml output
-!!$   if (istat > 0) then
-!!$      if (bigdft_mpi%iproc ==0) call yaml_set_stream(unit=70,filename='log.yaml')
-!!$   else
-!!$      if (bigdft_mpi%iproc ==0) call yaml_set_stream(unit=70,filename='log-'//trim(radical)//'.yaml')
-!!$   end if
-!  if (bigdft_mpi%iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
-
-   ! Welcome screen
-!   if (bigdft_mpi%iproc == 0) call print_logo()
-
-   ! Initialize memory counting
-   !call memocc(0,bigdft_mpi%iproc,'count','start')
-
-!!$   !standard names
-!!$   call standard_inputfile_names(inputs,radical,nproc)
-!!$   posinp="posinp"
-!!$   call read_input_variables(iproc,nproc,posinp, inputs, atoms, rxyz,1,radical,istat)
 
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group

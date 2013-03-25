@@ -718,6 +718,7 @@ subroutine inputs_parse_params(in, iproc, dump)
   end if
 end subroutine inputs_parse_params
 
+
 subroutine inputs_parse_add(in, atoms, iproc, dump)
   use module_types
   implicit none

@@ -1,3 +1,14 @@
+!> @file
+!! Manage dynamic memory allocation
+!! @author
+!!    Copyright (C) 2007-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module used to manage memory allocations and de-allocations
 module metadata_interfaces
   implicit none
 

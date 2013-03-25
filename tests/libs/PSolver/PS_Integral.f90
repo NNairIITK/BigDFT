@@ -1,7 +1,7 @@
 !> @file
 !!  Use integral form for Poisson solver
 !! @author
-!!    Copyright (c) 2010-2011 BigDFT group
+!!    Copyright (c) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -19,7 +19,7 @@ program PS_Integral
   implicit none
   integer :: n_points, n_range, n_scf, itype_scf
   integer, dimension(1:7) :: n_points_list = 0
-  real(dp) :: hgrid, dx, t0, t1
+  real(dp) :: hgrid, dx!, t0, t1
   real(dp), dimension(7) :: pgauss
   real(dp), dimension(:), allocatable :: x_scf
   real(dp), dimension(:), allocatable :: y_scf
@@ -34,8 +34,8 @@ program PS_Integral
   !local variables
   character(len=*), parameter :: subname='PS_Integral'
   real(dp), parameter :: p0_ref = 1.0_dp
-  integer :: n_iter,i_kern,i,i_stat,j,k
-  real(dp) :: p0_cell,p0gauss,absci,kern,moment
+  integer :: i,i_stat,j,k!,n_iter,_kern
+  !real(dp) :: p0_cell,p0gauss,absci,kern,moment
   character(len=64) :: chain
   !character(len=*) :: chain
   logical :: timings_switch = .false. 
@@ -129,28 +129,28 @@ program PS_Integral
 
   n_range=2*itype_scf  
 
-print *,'here'
+  print *,'here'
 
 
-!testing interpolate
-hx=0.2
-dx=0.0
-hy=0.2
-dy=0.0!-0.44
-hz=0.2
-dz=0.0!0.55
-n1_old=8
-n1=8
-n2_old=10
-n2=10
-n3_old=8
-n3=8
-nb1=0
-nb2=0
-nb3=0
+  !testing interpolate
+  hx=0.2
+  dx=0.0
+  hy=0.2
+  dy=0.0!-0.44
+  hz=0.2
+  dz=0.0!0.55
+  n1_old=8
+  n1=8
+  n2_old=10
+  n2=10
+  n3_old=8
+  n3=8
+  nb1=0
+  nb2=0
+  nb3=0
 
-     itype=16
-     nd=2**20
+  itype=16
+  nd=2**20
 
 !1d
 !   allocate(psifscfold(-nb1:2*n1_old+1+nb1,1,1+ndebug),stat=i_stat)
@@ -160,14 +160,14 @@ nb3=0
 !   allocate(psifscf(-nb1:2*n1+1+nb1,1,1+ndebug),stat=i_stat)
 !   call memocc(i_stat,psifscf,'psifscf',subname)
 
-   allocate(psifscfold(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
-   call memocc(i_stat,psifscfold,'psifscfold',subname)
-   allocate(psi_w(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_w,'psi_w',subname)
-   allocate(psi_w2(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_w2,'psi_w2',subname)
-   allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
-   call memocc(i_stat,psifscf,'psifscf',subname)
+  allocate(psifscfold(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,psifscfold,'psifscfold',subname)
+  allocate(psi_w(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,psi_w,'psi_w',subname)
+  allocate(psi_w2(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,psi_w2,'psi_w2',subname)
+  allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,psifscf,'psifscf',subname)
 
   ! fill psifscfold with a gaussian
   x=0.d0
@@ -194,28 +194,28 @@ nb3=0
 
   x_phi=f_malloc(bounds=(/0.to.nd/),id='x_phi')
 
-     allocate(y_phi(0:nd+ndebug) ,stat=i_stat )
-     call memocc(i_stat,y_phi,'y_phi',subname)
+  allocate(y_phi(0:nd+ndebug) ,stat=i_stat )
+  call memocc(i_stat,y_phi,'y_phi',subname)
 
-     print *, " scaling function for interpolation "
+  print *, " scaling function for interpolation "
 
 !    call scaling_function(itype,nd,nrange,x_phi,y_phi) 
 !cut the size of the array to exclude points outside support
 
 !    if( abs(y_phi(nd/2)-1)>1.0e-10 ) then
-do i=0,nd
-write(17,*)i,x_phi(i),y_phi(i)
-end do
-   !call scaling_function4b2B(itype,nd,nrange,x_phi,y_phi)
-   call my_scaling_function4b2B(itype,nd,nrange,x_phi,y_phi)  
-do i=0,nd
-write(18,*)i,x_phi(i),y_phi(i)
-end do
+  do i=0,nd
+    write(17,*)i,x_phi(i),y_phi(i)
+  end do
+  !call scaling_function4b2B(itype,nd,nrange,x_phi,y_phi)
+  call my_scaling_function4b2B(itype,nd,nrange,x_phi,y_phi)  
+  do i=0,nd
+    write(18,*)i,x_phi(i),y_phi(i)
+  end do
 
 !      stop " wrong scaling function 4b2B: not a centered one "
 !    endif
 
-    call f_free(x_phi)
+  call f_free(x_phi)
 
 !    i_all=-product(shape(x_phi))*kind(x_phi)
 !    deallocate(x_phi,stat=i_stat)
@@ -224,24 +224,24 @@ end do
 !call interpolate_and_transpose(h,t0,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
 
 !1d
-!call my_interpolate_and_transpose(hx,dx/hx,nd,nrange,y_phi,1,&
+!call my_interpolate_and_transpose(dx/hx,nd,nrange,y_phi,1,&
 !         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psifscf)
 
-print*,'interpolating first dimension...'
-    call my_interpolate_and_transpose(hx,dx/hx,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
+  print *,'interpolating first dimension...'
+  call my_interpolate_and_transpose(dx/hx,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
          (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
 
-print*,'...interpolating second dimension...'
-    call my_interpolate_and_transpose(hy,dy/hy,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n1+2+2*nb1),&
+  print *,'...interpolating second dimension...'
+  call my_interpolate_and_transpose(dy/hy,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n1+2+2*nb1),&
          (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2) 
 
-print*,'...interpolating third dimension...'
-    call my_interpolate_and_transpose(hz,dz/hz,nd,nrange,y_phi,(2*n2+2+2*nb2)*(2*n1+2+2*nb1),&
-	 (2*n3_old+2+2*nb3),psi_w2,(2*n3+2+2*nb3),psifscf) 
+  print *,'...interpolating third dimension...'
+  call my_interpolate_and_transpose(dz/hz,nd,nrange,y_phi,(2*n2+2+2*nb2)*(2*n1+2+2*nb1),&
+    (2*n3_old+2+2*nb3),psi_w2,(2*n3+2+2*nb3),psifscf) 
 
-print*,'done'
+  print *,'done'
 
-   !print psifscf to check
+  !print psifscf to check
   !x=0.d0
   !do i=0,2*n1+1
   !  write(101,*) x,psifscf(i,1,1)
@@ -262,37 +262,35 @@ print*,'done'
     x=x+hx
   end do
 
-    i_all=-product(shape(psifscf))*kind(psifscf)
-    deallocate(psifscf,stat=i_stat)
-    call memocc(i_stat,i_all,'psifscf',subname)
+  i_all=-product(shape(psifscf))*kind(psifscf)
+  deallocate(psifscf,stat=i_stat)
+  call memocc(i_stat,i_all,'psifscf',subname)
 
 
 
-    i_all=-product(shape(psifscfold))*kind(psifscfold)
-    deallocate(psifscfold,stat=i_stat)
-    call memocc(i_stat,i_all,'psifscfold',subname)
+  i_all=-product(shape(psifscfold))*kind(psifscfold)
+  deallocate(psifscfold,stat=i_stat)
+  call memocc(i_stat,i_all,'psifscfold',subname)
 
-    i_all=-product(shape(psi_w2))*kind(psi_w2)
-    deallocate(psi_w2,stat=i_stat)
-    call memocc(i_stat,i_all,'psi_w2',subname)
+  i_all=-product(shape(psi_w2))*kind(psi_w2)
+  deallocate(psi_w2,stat=i_stat)
+  call memocc(i_stat,i_all,'psi_w2',subname)
 
-    i_all=-product(shape(psi_w))*kind(psi_w)
-    deallocate(psi_w,stat=i_stat)
-    call memocc(i_stat,i_all,'psi_w',subname)
+  i_all=-product(shape(psi_w))*kind(psi_w)
+  deallocate(psi_w,stat=i_stat)
+  call memocc(i_stat,i_all,'psi_w',subname)
 
-    i_all=-product(shape(y_phi))*kind(y_phi)
-    deallocate(y_phi,stat=i_stat)
-    call memocc(i_stat,i_all,'y_phi',subname)
+  i_all=-product(shape(y_phi))*kind(y_phi)
+  deallocate(y_phi,stat=i_stat)
+  call memocc(i_stat,i_all,'y_phi',subname)
 
-stop
-!end testing interpolate
-
-
+  stop
+  !end testing interpolate
 
 
   !Allocations
   work      =f_malloc(bounds=(/-n_range .to. n_range /),id='work')
-print *,'test'
+  print *,'test'
   kernel_scf=f_malloc(bounds=(/-n_range .to. n_range /),id='kernel_scf')
 
   !allocate(work(-n_range:n_range), stat=i_stat)
@@ -400,11 +398,11 @@ print *,'test'
 !!$     end do
 
      
-     call f_free(x_scf)
-     call f_free(y_scf)
-     call f_free(gaussian)
-     !deallocate(x_scf, stat = i_stat)
-     !deallocate(y_scf, stat = i_stat)
+   call f_free(x_scf)
+   call f_free(y_scf)
+   call f_free(gaussian)
+   !deallocate(x_scf, stat = i_stat)
+   !deallocate(y_scf, stat = i_stat)
 
   end do
 
@@ -651,7 +649,6 @@ function lr_gauss(x,shift,shrink)
 end function lr_gauss
 
 
-
 !> takes a Gaussian of exponent pgauss an center x0 and discretize it on a grid of size 1 in units of sqrt(0.5*[pgauss])
 !! f(x)=fac*exp(-pgauss*(x-x0)**2)
 subroutine discretize_gaussian(nrange,fac,pgauss,x0,hgrid,filename)
@@ -743,14 +740,12 @@ subroutine discretize_gaussian(nrange,fac,pgauss,x0,hgrid,filename)
      close(unit=200+j)
   end do
 
-
-
   deallocate(f_i,f_phi_i,f_phi_i2)
 
 end subroutine discretize_gaussian
 
-!write a routine which performs the integration of a function on a given grid
 
+!> Write a routine which performs the integration of a function on a given grid
 subroutine my_gauss_conv_scf(itype_scf,pgauss,x0,hgrid,dx,n_range,n_scf,x_scf,y_scf,kernel_scf,work)
   use module_base
   implicit none
@@ -817,9 +812,6 @@ subroutine my_gauss_conv_scf(itype_scf,pgauss,x0,hgrid,dx,n_range,n_scf,x_scf,y_
 END SUBROUTINE my_gauss_conv_scf
 
 
-!! ********************************************* !!
-
-
 !> Here alpha corresponds to sqrt(alpha) in mathematica
 !! the final result is fwork(j+m)-fwork(j-m)
 subroutine my_analytic_integral(alpha,x0,ntot,m,fwork,fISF,argument_nf)
@@ -838,16 +830,13 @@ subroutine my_analytic_integral(alpha,x0,ntot,m,fwork,fISF,argument_nf)
   integer :: j,q,jz
   real(dp) :: if,r1,r2,res,ypm,ymm,erfcpm,erfcmm,factor,re,ro,factorend
 
-
   !write(*,*) fISF(1000), fISF16(1000)
-
 
   !  if(present(argument_nf)) then 
   nf=argument_nf
   !  else
   !     nf = 64 ! "default value"
   !  endif
-
 
   flag=.false.
   factor=pi/real(2*m,dp)/alpha
@@ -934,7 +923,6 @@ END SUBROUTINE my_analytic_integral
 ! write(54, *) ' '
 
 
-
 ! do j = 1,7
 !    ! Convergence test for my_analytic_integral
 !    do i = 1,7
@@ -970,8 +958,10 @@ END SUBROUTINE my_analytic_integral
 ! end do
 
 ! close(54)
-!> needed to calculate the integral of a ISF with a Gaussian
-!this is exp(-y**2) W(x + i y), with x=(pi q)/(2m alpha) and y= (jm+t) alpha
+
+
+!> Needed to calculate the integral of a ISF with a Gaussian
+!! this is exp(-y**2) W(x + i y), with x=(pi q)/(2m alpha) and y= (jm+t) alpha
 subroutine GcplxInt(alpha,m,q,jm,t,u,v,flag)
   use module_base
   implicit none
@@ -986,7 +976,7 @@ subroutine GcplxInt(alpha,m,q,jm,t,u,v,flag)
   logical :: a,b
   integer :: j,n,i,kapn,nu,np1,multiple
   real(dp) :: xabs,yabs,x,y,qrho,xquad,yquad,xsum,ysum,xaux,u1,v1,u2,v2,daux,h,qlambda,h2
-  real(dp) :: rx,ry,sx,sy,tx,ty,c,w1,xabsq,xi,yi,fac,yquadmod,tt
+  real(dp) :: rx,ry,sx,sy,tx,ty,c,w1,xabsq,xi,yi,fac,yquadmod!,tt
 
   flag = .false.
 
@@ -998,7 +988,6 @@ subroutine GcplxInt(alpha,m,q,jm,t,u,v,flag)
   yabs = dabs(yi)
   x    = xabs/6.3_dp
   y    = yabs/4.4_dp
-
 
 !     the following if-statement protects
 !     qrho = (x**2 + y**2) against overflow
@@ -1130,7 +1119,6 @@ subroutine GcplxInt(alpha,m,q,jm,t,u,v,flag)
 
   end if
 
-
   !
   !  evaluation of w(z) in the other quadrants
   !
@@ -1200,7 +1188,6 @@ subroutine GcplxInt2(alpha,m,q,p,t,u,v,flag)
   yabs = dabs(yi)
   x    = xabs/6.3_dp
   y    = yabs/4.4_dp
-
 
 !     the following if-statement protects
 !     qrho = (x**2 + y**2) against overflow
@@ -1331,7 +1318,6 @@ subroutine GcplxInt2(alpha,m,q,p,t,u,v,flag)
 
   end if
 
-
   !
   !  evaluation of w(z) in the other quadrants
   !
@@ -1374,18 +1360,18 @@ subroutine GcplxInt2(alpha,m,q,p,t,u,v,flag)
   end if
 END SUBROUTINE GcplxInt2
 
-!call the routine which performs the interpolation in each direction
-subroutine my_interpolate_and_transpose(h,t0,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
+
+!> Call the routine which performs the interpolation in each direction
+subroutine my_interpolate_and_transpose(t0,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
  use module_base
  implicit none
- integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
- integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
- integer, intent(in) :: nin,nout !< sizes of the input and output array in interpolating direction
- integer, intent(in) :: ndat !< size of the array in orthogonal directions
- real(gp), intent(in) :: h !< grid spacing in the interpolating direction
- real(gp), intent(in) :: t0 !< shift in the interpolating direction in grid spacing units
- real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
- real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
+ integer, intent(in) :: nphi      !< number of sampling points of the ISF function (multiple of nrange)
+ integer, intent(in) :: nrange    !< extension of the ISF domain in dimensionless units (even number)
+ integer, intent(in) :: nin,nout  !< sizes of the input and output array in interpolating direction
+ integer, intent(in) :: ndat      !< size of the array in orthogonal directions
+ real(gp), intent(in) :: t0       !< shift in the interpolating direction in grid spacing units
+ real(gp), dimension(nphi), intent(in) :: phi           !< interpolating scaling function array
+ real(gp), dimension(nin,ndat), intent(in) :: psi_in    !< input wavefunction psifscf
  real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
  !local variables
  character(len=*), parameter :: subname='interpolate_and_transpose'
@@ -1394,7 +1380,7 @@ subroutine my_interpolate_and_transpose(h,t0,nphi,nrange,phi,ndat,nin,psi_in,nou
  real(gp), dimension(:), allocatable :: shf !< shift filter
 
  !assume for the moment that the grid spacing is constant
-	 
+
  m_isf=nrange/2
  !calculate the shift filter for the given t0
  allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
@@ -1462,6 +1448,7 @@ end do
  call memocc(i_stat,i_all,'shf',subname)
 
 end subroutine my_interpolate_and_transpose
+
 
 subroutine scaling_function4b2B(itype,nd,nrange,a,x)
    use module_base
@@ -1546,4 +1533,3 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
    deallocate(y,stat=i_stat)
    call memocc(i_stat,i_all,'y',subname)
 END SUBROUTINE scaling_function4b2B
-

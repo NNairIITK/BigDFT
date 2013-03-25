@@ -301,7 +301,7 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
-linear/convolutions_aux.o: linear/filterModule.o
+linear/convolutions_aux.o: filterModule.o
 
 cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
 

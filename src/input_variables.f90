@@ -1,3 +1,13 @@
+!!> @file
+!!  Routines to read and print input variables
+!! @author
+!!    Copyright (C) 2007-2013 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 !> Do all initialisation for all different files of BigDFT. 
 !! Set default values if not any.
 !! Initialize memocc
@@ -16,8 +26,9 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
   type(input_variables), intent(inout) :: in
   type(atoms_data), intent(out) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz 
-  logical :: exist_list
-  integer :: group_size,ierr
+
+!!$  logical :: exist_list
+!!$  integer :: group_size,ierr
 
   atoms=atoms_null()
 
@@ -171,16 +182,6 @@ contains
 end subroutine command_line_information
 
 
-!!> @file
-!!  Routines to read and print input variables
-!! @author
-!!    Copyright (C) 2007-2011 BigDFT group 
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-
-
 !> Set and check the input file
 subroutine set_inputfile(filename, radical, ext)
   implicit none
@@ -242,8 +243,6 @@ subroutine standard_inputfile_names(in, radical, nproc)
 END SUBROUTINE standard_inputfile_names
 
 
-
-
 !> Do initialisation for all different calculation parameters of BigDFT. 
 !! Set default values if not any. Atomic informations are updated  by
 !! symmetries if necessary and by geometry input parameters.
@@ -260,7 +259,6 @@ subroutine read_input_parameters(iproc,in,dump)
   type(input_variables), intent(inout) :: in
   logical, intent(in) :: dump
   !Local variables
-  integer :: ierr
   ! Default for inputs (should not be necessary if all the variables comes from the parsing)
   call default_input_variables(in)
   ! Read linear variables
@@ -273,9 +271,8 @@ subroutine read_input_parameters(iproc,in,dump)
      DistProjApply=.true.
   end if
 
-
-
 END SUBROUTINE read_input_parameters
+
 
 subroutine read_input_parameters2(iproc,in,atoms,rxyz)
   use module_base
@@ -293,9 +290,8 @@ subroutine read_input_parameters2(iproc,in,atoms,rxyz)
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
   !Local variables
-  integer :: ierr,ierror
-  integer :: iat1
-  real(gp) :: tt
+  integer :: ierr
+!!$  integer :: ierror
   !character(len=500) :: logfile,logfile_old,logfile_dir
   !logical :: exists
 !!$  print *,'hereAAA',iproc
@@ -1517,8 +1513,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   !local variables
   !n(c) character(len=*), parameter :: subname='perf_input_variables'
   logical :: exists
-  integer :: ierr,blocks(2),lgt,ierror,ipos,i
-  character(len=500) :: logfile,logfile_old,logfile_dir
+  integer :: ierr,blocks(2),ipos,i
 
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) in%files = in%files + INPUTS_PERF
@@ -1547,7 +1542,8 @@ subroutine perf_input_variables(iproc,dump,filename,in)
      in%matacc%OCL_devices(i:i)=achar(0)
   end do
 
-  call input_var("blas", .false., "CUBLAS acceleration", GPUblas) !@TODO to relocate
+  !!@TODO to relocate
+  call input_var("blas", .false., "CUBLAS acceleration", GPUblas)
   call input_var("projrad", 15.0d0, &
        & "Radius of the projector as a function of the maxrad", in%projrad)
   call input_var("exctxpar", "OP2P", &
@@ -1656,6 +1652,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   end if
 END SUBROUTINE perf_input_variables
 
+
 subroutine create_log_file(iproc,inputs)
 
   use module_base
@@ -1663,13 +1660,14 @@ subroutine create_log_file(iproc,inputs)
   use module_input
   use yaml_strings
   use yaml_output
+
   implicit none
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: inputs
   !local variables
-  integer ierr,blocks(2),ierror,lgt
+  integer :: ierr,ierror,lgt
   logical :: exists
-  character(len=500) :: filename,logfile,logfile_old,logfile_dir
+  character(len=500) :: logfile,logfile_old,logfile_dir
 
   logfile=repeat(' ',len(logfile))
   logfile_old=repeat(' ',len(logfile_old))

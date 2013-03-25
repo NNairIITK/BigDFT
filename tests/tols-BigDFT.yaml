@@ -32,7 +32,7 @@ Expected Test CPUtime: #
 
 #Runs which update and override the default
 SiH4:
- #due like that due to lack of functionality in fldiff, since energies field is updated
+ #due to lack of functionality in fldiff, since energies field is updated
  Energies: &etol 4.6e-9
  Eion: &eion 3.2e-9
  EH: *etol
@@ -138,7 +138,7 @@ O2-Spin:
  Epsilon: 1.1e-10
 
 TiSmear:
- Epsilon: 5.e-11
+ EKS: 5.5e-11
  EKS: 5.5e-11
 
 H2O-CP2K:
@@ -161,6 +161,9 @@ H2O-bader:
  Epsilon: 3.0e-11
  EKS: 6.0e-11
 
+H2O-CP2K:
+ Total energy with tail correction: 1.8e-11
+
 N2:
  Epsilon: 1.2e-10
 
@@ -178,6 +181,7 @@ scalability:
 NLCC: &NLCCs
  Energies: 1.2e-10
  EKS: 5.e-11
+ Total electronic charge: 1.2e-11
 
 #deepcopy of the above defined cases
 NLCC_free-O2: *NLCCs
@@ -186,7 +190,11 @@ NLCC_periodic-O2: *NLCCs
 
 taskgroups:
   Energies: 1.1e-10
-  EKS: 5.3e-11
+  EKS: 1.1e-10
+  P vector: 1.1e-10
+
+base:
+  norm(P): 1.1e-9
 
 Davidson-SiH4:
   e_virtual: 1.2e-11

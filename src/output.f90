@@ -83,7 +83,7 @@ subroutine print_general_parameters(nproc,in,atoms)
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
 
-  integer :: nSym, ierr, ityp, iat, i, lg
+  integer :: nSym, ierr, iat, i
   integer :: sym(3, 3, AB6_MAX_SYMMETRIES)
   integer :: symAfm(AB6_MAX_SYMMETRIES)
   real(gp) :: transNon(3, AB6_MAX_SYMMETRIES)
@@ -93,6 +93,7 @@ subroutine print_general_parameters(nproc,in,atoms)
   integer :: spaceGroupId, pointGroupMagn
   !integer, parameter :: maxLen = 50, width = 24
   !character(len = width), dimension(maxLen) :: at, fixed, add
+  !integer :: ityp,lg
   character(len = 11) :: potden
   character(len = 12) :: dos
 
@@ -430,8 +431,6 @@ subroutine print_dft_parameters(in,atoms)
   implicit none
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
-  !local variables
-  character(len=500) :: name_xc
 
   call yaml_comment('Input parameters',hfill='-')
 
