@@ -96,6 +96,8 @@ subroutine bigdft_free_input(in)
 
 end subroutine bigdft_free_input
 
+
+!> Read the options in the command line using get_command statement
 subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
   use module_types
   implicit none
