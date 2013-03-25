@@ -133,14 +133,14 @@ print *,'here'
 
 
 !testing interpolate
-hx=0.2
+hx=0.1
 dx=1.0
 hy=0.2
 dy=0.0!-0.44
 hz=0.2
 dz=0.0!0.55
-n1_old=8
-n1=8
+n1_old=32
+n1=32
 n2_old=10
 n2=10
 n3_old=8
@@ -184,7 +184,7 @@ dx_field=dx/hx
        ygauss=lr_gauss(y,1.5d0,1.8d0)
        do k=1,1!1,2*n3_old+1
           psifscfold(i,j,k)=xgauss!*ygauss*lr_gauss(z,1.4d0,2.1d0)
-dx_field(i,j,k) = x!lr_gauss(x,1.7d0,1.4d0)
+dx_field(i,j,k) = lr_gauss(x,1.7d0,1.4d0)
           write(100,*) x,y,z,psifscfold(i,j,k),dx_field(i,j,k)
           z=z+hz
        end do
@@ -1595,8 +1595,8 @@ subroutine my_morph_and_transpose(h,t0_field,nphi,nrange,phi,ndat,nin,psi_in,nou
  real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
  !local variables
  character(len=*), parameter :: subname='my_morph_and_transpose'
- integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me,k
- real(gp) :: dt, tt, t0_l
+ integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me,k2,k1
+ real(gp) :: dt, tt, t0_l, tt2, ksh1, ksh2, k, kold
  real(gp), dimension(:), allocatable :: shf !< shift filter
 
  !assume for the moment that the grid spacing is constant
@@ -1620,20 +1620,135 @@ subroutine my_morph_and_transpose(h,t0_field,nphi,nrange,phi,ndat,nin,psi_in,nou
    psi_out(j,:)=0.0_gp
 do i=1,nout
 
+kold=-1000
 find_trans: do l=1,nin
      k=l+t0_field(l,j)
      if (k > i) exit find_trans
+     kold=k
 end do find_trans
-     
-print*,i,l,k
+    
+
+if (l>=nin) l=nin
+
+!print*,i,l,k,kold
+! want to use either l or l-1 to give us point i - pick closest
+     !if (abs(k-i) <= abs(kold-i)) then
+     !   ksh1=k-i
+     !   ksh2=kold-i
+     !   k1=l
+     !   k2=l-1
+     !   if (k2==0) k2=1
+     !else
+        ksh1=kold-i
+        ksh2=k-i
+        k1=l-1
+        k2=l
+        if (k1==0) k1=1
+     !end if
+
+
+!print*,i,k
+     t0_l=t0_field(k1,j)
+     dt=t0_l-nint(t0_l)
+     !evaluate the shift
+     ish=nint(real(nunit,gp)*dt)
+
+     if (ish<=0) then
+       shf(-m_isf)=0.0_gp
+     else
+       shf(-m_isf)=phi(ish)  
+     end if 
+     ipos=ish
+
+     do l=-m_isf+1,m_isf-1 !extremes excluded
+       !position of the shifted argument in the phi array
+       ipos=ipos+nunit
+       shf(l)=phi(ipos)  
+     end do
+
+     if (ish<=0) then
+       shf(m_isf)=phi(ipos+nunit)
+     else
+       shf(m_isf)=0.0_gp
+     end if 
+
+     !define the shift for output results
+     !ish=nint(t0_l)
+     ish=0
+
+     !here the boundary conditions have to be considered
+      tt=0.0_gp
+      ms=-min(m_isf,k1-1)
+      me=min(m_isf,nin-k1)
+      do l=ms,me
+         tt=tt+shf(l)*psi_in(k1+l,j)
+      end do
+
+if (ksh1/=0.0_gp .and. k1/=k2) then !otherwise already have exactly on point
+     t0_l=t0_field(k2,j)
+     dt=t0_l-nint(t0_l)
+     !evaluate the shift
+     ish=nint(real(nunit,gp)*dt)
+
+     if (ish<=0) then
+       shf(-m_isf)=0.0_gp
+     else
+       shf(-m_isf)=phi(ish)  
+     end if 
+     ipos=ish
+
+     do l=-m_isf+1,m_isf-1 !extremes excluded
+       !position of the shifted argument in the phi array
+       ipos=ipos+nunit
+       shf(l)=phi(ipos)  
+     end do
+
+     if (ish<=0) then
+       shf(m_isf)=phi(ipos+nunit)
+     else
+       shf(m_isf)=0.0_gp
+     end if 
+
+     !define the shift for output results
+     !ish=nint(t0_l)
+     ish=0
+
+     !here the boundary conditions have to be considered
+      tt2=0.0_gp
+      ms=-min(m_isf,k2-1)
+      me=min(m_isf,nin-k2)
+      do l=ms,me
+         tt2=tt2+shf(l)*psi_in(k2+l,j)
+      end do
+else
+tt2=0.0_gp
+ksh2=1
+ksh1=0
+end if
+
+
+
+print*,'i,k1,k2,ksh1,ksh2,tt,tt2,psi',i,k1,k2,ksh1,ksh2,tt,tt2,(abs(ksh2)*tt+abs(ksh1)*tt2)/(abs(ksh1)+abs(ksh2)) !t0_l,nint(t0_l),
+      if (i+ish > 0 .and. i+ish < nout) psi_out(j,i)=(abs(ksh2)*tt+abs(ksh1)*tt2)/(abs(ksh1)+abs(ksh2))
+	if (i+ish > 0 .and. i+ish < nout)       write(102,*)i,psi_out(j,i)
+
+
 
 end do
 
 end do
-stop
 
-do !
 
+
+ i_all=-product(shape(shf))*kind(shf)
+ deallocate(shf,stat=i_stat)
+ call memocc(i_stat,i_all,'shf',subname)
+return
+
+
+
+ do j=1,ndat
+   psi_out(j,:)=0.0_gp
    do i=1,nin
      !determine the local shift which has to be applied
      !this should be number between -0.5 and 0.5

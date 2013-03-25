@@ -9,7 +9,7 @@
 
 
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_orbs, &
-           orbs, lzd, ovrlp, inv_ovrlp, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
+           orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
@@ -20,7 +20,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
   type(sparseMatrix),intent(inout) :: ovrlp
-  type(sparseMatrix),intent(in) :: inv_ovrlp ! just using structure for now
+  type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
   type(collective_comms),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
   real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
@@ -30,13 +30,13 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   ! Local variables
   integer :: it, istat, iall, iorb, jorb
   real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm
-  type(sparseMatrix) :: inv_ovrlp_half
+  !type(sparseMatrix) :: inv_ovrlp_half
   character(len=*),parameter :: subname='orthonormalizeLocalized'
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
-  call nullify_sparsematrix(inv_ovrlp_half)
-  call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
+  !call nullify_sparsematrix(inv_ovrlp_half)
+  !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
   allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
   call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
 
@@ -124,7 +124,10 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
       call memocc(istat, iall, 'psittemp_f', subname)
   end do
 
-  call deallocate_sparseMatrix(inv_ovrlp_half, subname)
+  !call deallocate_sparseMatrix(inv_ovrlp_half, subname)
+  iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
+  deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
+  call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
 
 end subroutine orthonormalizeLocalized
 
@@ -155,7 +158,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   ! Local variables
   integer :: istat, iall, iorb, jorb, ii, ii_trans
-  type(SparseMatrix) :: tmp_mat
+  !type(SparseMatrix) :: tmp_mat
+  real(kind=8),dimension(:),allocatable :: tmp_mat_compr, lagmat_tmp_compr
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
 
   ! removed option for correction orthoconstrain for now
@@ -185,26 +189,49 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
 
-  call nullify_sparseMatrix(tmp_mat)
-  call sparse_copy_pattern(lagmat,tmp_mat,iproc,subname)
-  allocate(tmp_mat%matrix_compr(tmp_mat%nvctr), stat=istat)
-  call memocc(istat, tmp_mat%matrix_compr, 'tmp_mat%matrix_compr', subname)
+  !call nullify_sparseMatrix(tmp_mat)
+  !call sparse_copy_pattern(lagmat,tmp_mat,iproc,subname)
+  !allocate(tmp_mat%matrix_compr(tmp_mat%nvctr), stat=istat)
+  !call memocc(istat, tmp_mat%matrix_compr, 'tmp_mat%matrix_compr', subname)
+
+  allocate(tmp_mat_compr(lagmat%nvctr), stat=istat) ! save cf doing sparsecopy
+  call memocc(istat, tmp_mat_compr, 'tmp_mat_compr', subname)
 call timing(iproc,'misc','ON')
   do jorb=1,orbs%norb
      do iorb=1,orbs%norb
           ii_trans = lagmat%matrixindex_in_compressed(jorb, iorb)
           ii = lagmat%matrixindex_in_compressed(iorb, jorb)
           if (ii==0.or.ii_trans==0) cycle
-          tmp_mat%matrix_compr(ii)=-0.5d0*lagmat%matrix_compr(ii) &
+          tmp_mat_compr(ii)=-0.5d0*lagmat%matrix_compr(ii) &
                -0.5d0*lagmat%matrix_compr(ii_trans)
+          !tmp_mat%matrix_compr(ii)=-0.5d0*lagmat%matrix_compr(ii) &
+          !     -0.5d0*lagmat%matrix_compr(ii_trans)
       end do
   end do
+
+  allocate(lagmat_tmp_compr(lagmat%nvctr), stat=istat) ! save cf doing sparsecopy
+  call memocc(istat, lagmat_tmp_compr, 'lagmat_tmp_compr', subname)
+
+  call vcopy(lagmat%nvctr,lagmat%matrix_compr(1),1,lagmat_tmp_compr(1),1) ! need to keep a copy
+  call vcopy(lagmat%nvctr,tmp_mat_compr(1),1,lagmat%matrix_compr(1),1)
+
+  iall=-product(shape(tmp_mat_compr))*kind(tmp_mat_compr)
+  deallocate(tmp_mat_compr, stat=istat)
+  call memocc(istat, iall, 'tmp_mat_compr', subname)
+
 call timing(iproc,'misc','OF')
-  call build_linear_combination_transposed(collcom, tmp_mat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
-  call deallocate_sparseMatrix(tmp_mat, subname)
+  call build_linear_combination_transposed(collcom, lagmat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+  !call build_linear_combination_transposed(collcom, tmp_mat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+
+  call vcopy(lagmat%nvctr,lagmat_tmp_compr(1),1,lagmat%matrix_compr(1),1)
+
+  iall=-product(shape(lagmat_tmp_compr))*kind(lagmat_tmp_compr)
+  deallocate(lagmat_tmp_compr, stat=istat)
+  call memocc(istat, iall, 'lagmat_tmp_compr', subname)
+
+  !call deallocate_sparseMatrix(tmp_mat, subname)
 
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
-
 
   overlap_calculated=.false.
 

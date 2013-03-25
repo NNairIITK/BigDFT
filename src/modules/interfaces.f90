@@ -2281,7 +2281,7 @@ module module_interfaces
      end subroutine setCommsParameters
      
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_orbs, &
-                orbs, lzd, ovrlp, inv_ovrlp, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
+                orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
        use module_base
        use module_types
        implicit none
@@ -2289,7 +2289,7 @@ module module_interfaces
        type(orbitals_data),intent(in):: orbs
        type(local_zone_descriptors),intent(in):: lzd
        type(sparseMatrix),intent(inout):: ovrlp
-       type(sparseMatrix),intent(in):: inv_ovrlp
+       type(sparseMatrix),intent(inout):: inv_ovrlp_half
        type(collective_comms),intent(in):: collcom
        type(orthon_data),intent(in):: orthpar
        real(8),dimension(npsidim_orbs), intent(inout) :: lphi
