@@ -65,17 +65,20 @@ module yaml_output
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
   integer, dimension(tot_streams) :: stream_units=6             !< Default units unless otherwise specified
 
+  !> Generic routine
   interface yaml_map
      module procedure yaml_map,yaml_map_i,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
   end interface
 
+  !! Public routines (API of the module)
   public :: yaml_new_document,yaml_release_document
   public :: yaml_map,yaml_open_map,yaml_close_map
   public :: yaml_sequence,yaml_open_sequence,yaml_close_sequence
-  public :: yaml_comment,yaml_warning,yaml_toa,yaml_newline
-  public :: yaml_set_stream,yaml_get_default_stream,yaml_set_default_stream,yaml_stream_attributes
-  public :: yaml_close_all_streams
-  public :: yaml_date_and_time_toa,yaml_scalar,yaml_date_toa,yaml_dict_dump
+  public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
+  public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa
+  public :: yaml_set_stream,yaml_set_default_stream
+  public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
+  public :: yaml_dict_dump
 
 
 contains
@@ -1156,13 +1159,15 @@ contains
   end subroutine get_stream
 
 
+  !> This routine is the key of the module, handling the events and
+  !! writing into the stream.
   subroutine dump(stream,message,advance,event,istat)
     implicit none
-    type(yaml_stream), intent(inout) :: stream
-    character(len=*), intent(in) :: message
-    character(len=*), intent(in), optional :: advance
-    integer, intent(in), optional :: event
-    integer, intent(out), optional :: istat
+    type(yaml_stream), intent(inout) :: stream          !< Stream to handle
+    character(len=*), intent(in) :: message             !< Mesage to dump
+    character(len=*), intent(in), optional :: advance   !< Advance option
+    integer, intent(in), optional :: event              !< Event to handle
+    integer, intent(out), optional :: istat             !< Status error
     !local variables
     logical :: ladv,change_line,reset_line,pretty_print,reset_tabbing,comma_postponed
     integer :: evt,indent_lgt,msg_lgt,shift_lgt,prefix_lgt
