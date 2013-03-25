@@ -391,7 +391,7 @@ subroutine check_for_data_writing_directory(iproc,in)
            call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
         end if
      end if
-     call MPI_BCAST(dirname,128,MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
+     call MPI_BCAST(dirname,100,MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
      in%dir_output=dirname
      if (iproc==0) call yaml_map('Data Writing directory',trim(in%dir_output))
   else
