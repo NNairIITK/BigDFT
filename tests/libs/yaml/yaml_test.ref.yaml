@@ -1,4 +1,5 @@
 ---
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Yaml Output Module Test
  Test:
    Short sentence                      :  Yes
    Foo: {one:  1, two:  2}
@@ -36,9 +37,124 @@
     #     yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
     #     yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
     #     yyyyyyyyyyyyyyyyyyyyyyyy
+---
   #Now we test dictionaries inside yaml.
  toto                                  : 1
  titi                                  : 1.00000000000000000E+00
  tutu: [1, 2]
  List: [a: 0, 4, 1.000000000E+00]
  New key: {Example: 4}
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Fortran Dictionary Test
+ Number of Groups                      : 1
+ First: {One: 1, Two: 2, Three: 3, Threeb: 3b}
+ After pop:
+   Number of Groups                    : 1
+   First:
+     Three                             : 3
+     Threeb                            : 3b
+     Four                              : 4
+ Complete pop:
+   Number of Groups                    : 1
+ Key found                             :  No
+ Second try, Key found                 :  Yes
+ Value found                           :  1
+ Alternative way                       :  2
+ Dictionary associated before last pop :  Yes
+ Last pop done, still associated       :  No
+ Stack:
+ - 5
+ - 4
+ - 2
+ - Test1:
+     Toto                              : 5
+     Titi                              : 6
+ Stack2:
+ - 1
+ - 2
+ - 3
+ Stack:
+ - 5
+ - 4
+ Stack2:
+ - 1
+ - 2
+ - 3
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Prepend dictionary example
+ Dict A:
+   Stack:
+   - 5
+   - 4
+   Stack2:
+   - 1
+   - 2
+   - 3
+ Dict 2:
+   Test1:
+     Toto                              : 5
+     Titi                              : 6
+   Test2:
+     Toto                              : 4
+     Titi                              : 2
+ Prepended:
+   Test1:
+     Toto                              : 5
+     Titi                              : 6
+   Test2:
+     Toto                              : 4
+     Titi                              : 2
+   Stack:
+   - 5
+   - 4
+   Stack2:
+   - 1
+   - 2
+   - 3
+---
+  #Sandbox
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Routine-Tree creation example
+ Test Case before implementation:
+   Routine Tree:
+   - Routine 0
+   - Routine A
+   - Routine B
+   - Routine C
+   - Routine D:
+     - SubCase 1
+     - Subcase 2:
+       - SubSubCase1
+     - SubCase 3
+   - Routine E
+   - Routine F
+ (de)allocation error exiting:
+   Error code                          :  1
+   Last error                          : Fortran (de)allocation problem
+ Status of the routine before exiting:
+   pot_ion:
+     Array Id                          : pot_ion
+     Size (Bytes)                      : 24
+     Allocating Routine Id             : PS_Check
+     Address of metadata               : 35720240
+     Address                           : 0x2210c30
+   xc_pot:
+     Array Id                          : xc_pot
+     Size (Bytes)                      : 48
+     Allocating Routine Id             : PS_Check
+     Address of metadata               : 35720304
+     Address                           : 0x2210c70
+   extra_ref:
+     Array Id                          : extra_ref
+     Size (Bytes)                      : 24
+     Allocating Routine Id             : PS_Check
+     Address of metadata               : 35720272
+     Address                           : 0x2210c50
+ Calling sequence of Main program:
+ - PS_Check:
+   - Routine 0
+   - Routine A
+   - Routine D:
+     - SubCase 1
+     - Subcase 2:
+       - SubSubcase1
+     - SubCase 3
+   - Routine E
+   - Routine F

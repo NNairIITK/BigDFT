@@ -29,6 +29,10 @@ Expected Test CPUtime: #
  C: #[expected, error]
   athelas: [ 6.0, 1.0 ]
 
+yaml_test:
+ Keys to ignore:
+   - Error code
+   - Address*
 
 #Runs which update and override the default
 SiH4:

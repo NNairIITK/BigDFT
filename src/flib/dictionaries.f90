@@ -1,7 +1,7 @@
 !> @file
 !!  Module defining a dictionary
 !! @author Luigi Genovese
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -16,7 +16,7 @@ module dictionaries
 
   integer, parameter, public :: max_field_length = 256
 
-  !> error codes
+  !> Error codes
   integer, parameter :: DICT_SUCCESS=0
   integer, parameter :: DICT_KEY_ABSENT=1
   integer, parameter :: DICT_VALUE_ABSENT=2
@@ -27,7 +27,7 @@ module dictionaries
   integer :: last_error = DICT_SUCCESS
 
   type, public :: storage
-     integer :: item !< Id of the item associated to the list
+     integer :: item   !< Id of the item associated to the list
      integer :: nitems !< No. of items in the list
      integer :: nelems !< No. of items in the dictionary
      character(len=max_field_length) :: key
@@ -289,7 +289,7 @@ contains
     end subroutine pop_dict_
   end subroutine pop_dict
 
-  !> assign the value to the  dictionary
+  !> assign the value to the dictionary
   subroutine add_char(dict,val)
     implicit none
     type(dictionary), pointer :: dict
@@ -575,7 +575,7 @@ contains
 
   end function get_list_ptr
 !
-  !> assign a child to the  dictionary
+  !> assign a child to the dictionary
   recursive subroutine put_child(dict,subd)
     implicit none
     type(dictionary), pointer :: dict
@@ -664,7 +664,7 @@ contains
     end if
   end subroutine prepend
 
-  !> assign the value to the  dictionary
+  !> assign the value to the dictionary
   subroutine put_value(dict,val)
     implicit none
     type(dictionary), pointer :: dict
@@ -678,7 +678,7 @@ contains
 
   end subroutine put_value
 
-  !> assign the value to the  dictionary (to be rewritten)
+  !> assign the value to the dictionary (to be rewritten)
   subroutine put_list(dict,list)!,nitems)
     implicit none
     type(dictionary), pointer :: dict
@@ -694,7 +694,7 @@ contains
 
   end subroutine put_list
 
-  !> get the value from the  dictionary
+  !> get the value from the dictionary
   subroutine get_value(val,dict)
     implicit none
     character(len=*), intent(out) :: val
@@ -707,7 +707,7 @@ contains
 
   end subroutine get_value
 
-  !> get the value from the  dictionary
+  !> get the value from the dictionary
   !! This routine only works if the dictionary is associated
   !! the problem is solved if any of the routines have the dict variable as a pointer
   subroutine get_dict(dictval,dict)
@@ -940,7 +940,7 @@ contains
   end subroutine get_double
 
 
-  !> assign the value to the  dictionary
+  !> assign the value to the dictionary
   subroutine put_integer(dict,ival,fmt)
     use yaml_strings, only:yaml_toa
     implicit none
@@ -956,7 +956,7 @@ contains
 
   end subroutine put_integer
 
-  !> assign the value to the  dictionary
+  !> assign the value to the dictionary
   subroutine put_double(dict,dval,fmt)
     use yaml_strings, only:yaml_toa
     implicit none
@@ -972,7 +972,7 @@ contains
 
   end subroutine put_double
 
-  !> assign the value to the  dictionary
+  !> assign the value to the dictionary
   subroutine put_real(dict,rval,fmt)
     use yaml_strings, only:yaml_toa
     implicit none
@@ -988,7 +988,7 @@ contains
 
   end subroutine put_real
 
-  !> assign the value to the  dictionary
+  !> assign the value to the dictionary
   subroutine put_long(dict,ilval,fmt)
     use yaml_strings, only:yaml_toa
     implicit none

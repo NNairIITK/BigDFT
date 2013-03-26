@@ -65,10 +65,10 @@ void FC_FUNC(getaddress, GETADDRESS)(void *ptr,char *address, int *lgaddress,
   memset(address,' ', sizeof(char) * (*lgaddress));
 
   lgt=sprintf(buff,"%p",(void*)ptr);
-  if (lgt <= *lgaddress)
+  if (lgt < *lgaddress)
     {
       *status = 0;
-      lgt=sprintf(address,"%p",(void*)ptr);
+      memcpy(address, buff, sizeof(char) * lgt);
     }
   else
     *status = 1;

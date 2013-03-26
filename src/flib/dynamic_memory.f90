@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module used to manage memory allocations and de-allocations
+!> Module used by the module to manage the memory allocations
 module metadata_interfaces
   implicit none
 
@@ -112,7 +112,6 @@ contains
 
   end subroutine pad_dp4
 
-
   subroutine pad_double(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
@@ -193,45 +192,37 @@ contains
     end do
   end subroutine pad_character
 
-  !!****f* ABINIT/d_nan
-  !! FUNCTION
-  !!   Function which specify NaN according to IEEE specifications
-  !! SOURCE
-  !!
-function d_nan()
- implicit none
- double precision :: d_nan
- !local variables
- double precision :: dnan
- integer, dimension(2) :: inan
- equivalence (dnan, inan)
- ! This first assignment is for big-endian machines
- inan(1) = 2147483647
- ! The second assignment is for little-endian machines
- inan(2) = 2147483647
- d_nan = dnan
-end function d_nan
-!!***
+  !> Function which specify NaN according to IEEE specifications
+  function d_nan()
+   implicit none
+   double precision :: d_nan
+   !local variables
+   double precision :: dnan
+   integer, dimension(2) :: inan
+   equivalence (dnan, inan)
+   ! This first assignment is for big-endian machines
+   inan(1) = 2147483647
+   ! The second assignment is for little-endian machines
+   inan(2) = 2147483647
+   d_nan = dnan
+  end function d_nan
 
-!!****f* ABINIT/r_nan
-!! FUNCTION
-!!   Function which specify NaN according to IEEE specifications
-!! SOURCE
-!!
-function r_nan()
- implicit none
- real :: r_nan
- !local variables
- real :: rnan
- integer :: inan
- equivalence (rnan, inan)
- inan = 2147483647
- r_nan = rnan
-end function r_nan
-!!***
+  !> Function which specify NaN according to IEEE specifications
+  function r_nan()
+   implicit none
+   real :: r_nan
+   !local variables
+   real :: rnan
+   integer :: inan
+   equivalence (rnan, inan)
+   inan = 2147483647
+   r_nan = rnan
+  end function r_nan
 
 end module metadata_interfaces
 
+
+!> Module used to manage memory allocations and de-allocations
 module dynamic_memory
   use m_profiling, except => ndebug, and=> d_nan, also=> r_nan
   use dictionaries, info_length => max_field_length
@@ -820,6 +811,7 @@ contains
 
   end function f_malloc0_ptr
 
+  
   function last_f_malloc_error(error_string) result(ierr)
     implicit none
     integer :: ierr
@@ -841,7 +833,8 @@ contains
 
   end function last_f_malloc_error
 
-  !> this routine adds the corresponding subprogram name to the dictionary
+
+  !> This routine adds the corresponding subprogram name to the dictionary
   !! and prepend the dictionary to the global info dictionary
   !! if it is called more than once for the same name it has no effect
   subroutine f_malloc_routine_id(routine_id)
@@ -869,7 +862,8 @@ contains
     end if
   end subroutine f_malloc_routine_id
 
-  !> close a previously opened routine
+
+  !> Close a previously opened routine
   subroutine f_malloc_free_routine()
 !    use yaml_output
     implicit none
@@ -886,6 +880,7 @@ contains
     !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
     routine_opened=.false.
   end subroutine f_malloc_free_routine
+
 
   subroutine open_routine(dict)
     implicit none
@@ -908,6 +903,7 @@ contains
     nullify(dict_tmp)
 
   end subroutine open_routine
+
 
   subroutine close_routine(dict,jump_up)
 !    use yaml_output
@@ -976,6 +972,8 @@ contains
 
   end subroutine f_malloc_set_status
 
+
+  !> Finalize f_malloc (Display status)
   subroutine f_malloc_finalize()
     use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
     implicit none
@@ -1006,8 +1004,10 @@ contains
     routine_opened=.false.
   end subroutine f_malloc_finalize
 
+
+  !> Check error of allocations or deallocations
   subroutine check_for_errors(ierror,try)
-    use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
+    use yaml_output!, only: yaml_warning,yaml_open_map,yaml_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
     implicit none
     logical, intent(in) :: try
     integer, intent(in) :: ierror
@@ -1022,12 +1022,17 @@ contains
        if (try) then
           return
        else
-          write(*,*)'(de)allocation error, exiting. Error code:',ierror
-          write(*,*)'last error:',lasterror
+          call yaml_open_map('(de)allocation error exiting')
+             call yaml_map('Error code',ierror)
+             call yaml_map('Last error',lasterror)
+          call yaml_close_map()
+          !write(*,*)'(de)allocation error, exiting. Error code:',ierror
+          !write(*,*)'last error:',lasterror
           call yaml_get_default_stream(unt)
           if (associated(dict_routine)) then
              call yaml_open_map('Status of the routine before exiting')
-             call yaml_dict_dump(dict_routine)
+             !call yaml_dict_dump(dict_routine)
+             call yaml_dict_routine()
              call yaml_close_map()
           end if
           call yaml_dict_dump(dict_calling_sequence)
@@ -1037,7 +1042,30 @@ contains
 
   end subroutine check_for_errors
 
-  !> use the adress of the allocated pointer to profile the deallocation
+
+  !> Dump all allocations
+  subroutine yaml_dict_routine()
+     use yaml_output
+     implicit none
+     type(dictionary), pointer :: dict_ptr
+     character(len=256) :: array_id
+     dict_ptr => dict_routine%child
+     do
+        if (associated(dict_ptr)) then
+           array_id = dict_ptr//'Array Id'
+           call yaml_open_map(trim(array_id))
+           call yaml_dict_dump(dict_ptr)
+           call yaml_map('Address',dict_ptr%data%key)
+           call yaml_close_map()
+           dict_ptr=>dict_ptr%next
+        else
+           exit
+        end if
+     end do
+  end subroutine yaml_dict_routine
+
+
+  !> Use the adress of the allocated pointer to profile the deallocation
   subroutine profile_deallocation(ierr,ilsize,address)
     use yaml_output!, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_map
     implicit none
@@ -1078,8 +1106,6 @@ contains
     else
        call pop(dict_routine,trim(address))
     end if
-
-
 
 !!$    call yaml_comment('Test',hfill='-')
 !!$!    call yaml_map('Associated',associated(dict_tmp))
