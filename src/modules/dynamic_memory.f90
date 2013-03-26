@@ -1,3 +1,14 @@
+!> @file
+!! Manage dynamic memory allocation
+!! @author
+!!    Copyright (C) 2007-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module used to manage memory allocations and de-allocations
 module dynamic_memory
   use m_profiling, except => ndebug, and=> d_nan, also=> r_nan
   use dictionaries, info_length => max_field_length
@@ -396,7 +407,7 @@ module dynamic_memory
       integer, dimension(:), allocatable, intent(inout) :: array
       type(malloc_information_all), intent(in) :: m
       !local variables
-      integer :: ierr,npaddim
+      integer :: ierr
       character(len=info_length) :: address
 !      call timing(0,'AllocationProf','IR') 
       if (rank_is_ok(size(shape(array)),m%rank)) then
@@ -417,7 +428,7 @@ module dynamic_memory
       double precision, dimension(:), allocatable, intent(inout) :: array
       type(malloc_information_all), intent(in) :: m
       !local variables
-      integer :: istat,ierr,npaddim
+      integer :: ierr
       character(len=info_length) :: address
 !      call timing(0,'AllocationProf','IR') 
       if (rank_is_ok(size(shape(array)),m%rank)) then
@@ -438,7 +449,7 @@ module dynamic_memory
       double precision, dimension(:,:), allocatable, intent(inout) :: array
       type(malloc_information_all), intent(in) :: m
       !local variables
-      integer :: istat,ierr,npaddim,i
+      integer :: ierr
       character(len=info_length) :: address
 !      call timing(0,'AllocationProf','IR') 
       if (rank_is_ok(size(shape(array)),m%rank)) then
@@ -459,7 +470,7 @@ module dynamic_memory
       double precision, dimension(:,:,:), allocatable, intent(inout) :: array
       type(malloc_information_all), intent(in) :: m
       !local variables
-      integer :: istat,ierr,npaddim
+      integer :: ierr
       character(len=info_length) :: address
 !      call timing(0,'AllocationProf','IR') 
       if (rank_is_ok(size(shape(array)),m%rank)) then
@@ -551,12 +562,7 @@ module dynamic_memory
     end subroutine d2_all_free
 
 
-
-    !!****f* ABINIT/d_nan
-    !! FUNCTION
-    !!   Function which specify NaN according to IEEE specifications
-    !! SOURCE
-    !!
+    !> Function which specify NaN according to IEEE specifications
     function d_nan()
       implicit none
       double precision :: d_nan

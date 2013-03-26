@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to handle projectors
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group 
+!!    Copyright (C) 2010-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -594,7 +594,7 @@ subroutine crtproj(geocode,nterm,lr, &
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
   integer :: ns1,ns2,ns3,n1,n2,n3
   integer :: i_all,i_stat,j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
-  integer :: mvctr1, mvctr2, mvctr3, mvctr4, mvctr5, mvctr6
+  integer :: mvctr1, mvctr2
   !integer :: counter !test
   real(wp) :: re_cmplx_prod,im_cmplx_prod
   real(gp) :: factor !n(c) err_norm

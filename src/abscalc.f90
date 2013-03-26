@@ -20,17 +20,18 @@ program abscalc_main
    character(len=*), parameter :: subname='abscalc_main'
    integer :: iproc,nproc,i_stat,i_all,ierr,infocode
    real(gp) :: etot
-   logical :: exist_list
+!!$   logical :: exist_list
    !input variables
    type(atoms_data) :: atoms
    type(input_variables) :: inputs
    type(restart_objects) :: rst
    character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
-   character(len=60) :: filename,run_id
+   character(len=60) :: run_id
+!!$   character(len=60) :: filename
    ! atomic coordinates, forces
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
-   integer :: iconfig,nconfig,istat,igroup,ngroups
+   integer :: iconfig,nconfig,igroup,ngroups
    integer, dimension(4) :: mpi_info
    logical :: exists
 
@@ -46,40 +47,6 @@ program abscalc_main
    igroup=mpi_info(3)
    !number of groups
    ngroups=mpi_info(4)
-
-
-!!$   ! Start MPI in parallel version
-!!$   !in the case of MPIfake libraries the number of processors is automatically adjusted
-!!$   call MPI_INIT(ierr)
-!!$   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-!!$   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-!!$
-!!$   ! Read a possible radical format argument.
-!!$   call get_command_argument(1, value = radical, status = istat)
-!!$   if (istat > 0) then
-!!$      write(radical, "(A)") "input"
-!!$   end if
-!!$
-!!$   ! find out which input files will be used
-!!$   inquire(file="list_posinp",exist=exist_list)
-!!$   if (exist_list) then
-!!$      open(54,file="list_posinp")
-!!$      read(54,*) nconfig
-!!$      if (nconfig > 0) then
-!!$         !allocation not referenced since memocc count not initialised
-!!$         allocate(arr_posinp(1:nconfig))
-!!$         do iconfig=1,nconfig
-!!$            read(54,*) arr_posinp(iconfig)
-!!$         enddo
-!!$      else
-!!$         nconfig=1
-!!$         allocate(arr_posinp(1:1))
-!!$      endif
-!!$   else
-!!$      nconfig=1
-!!$      allocate(arr_posinp(1:1))
-!!$   endif
-
 
    !allocate arrays of run ids
    allocate(arr_radical(abs(nconfig)))

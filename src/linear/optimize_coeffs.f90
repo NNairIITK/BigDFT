@@ -24,11 +24,11 @@ subroutine optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   real(8),intent(out):: fnrm
 
   ! Local variables
-  integer:: iorb, jorb, korb, lorb, istat, iall, info, iiorb, ierr, ind, indh, indo, kkorb
-  integer :: npts_per_proc, ind_start, ind_end, indc, iseg, segn
+  integer:: iorb, jorb, istat, iall, info, iiorb, ierr!, ind, indh, indo, kkorb, korb, lorb
+  !integer :: segn,npts_per_proc,  indc, ind_start, ind_end, iseg
   real(8),dimension(:,:),allocatable:: rhs, coeffp, sk, skh, skhp !gradp, lagmat, ovrlp_tmp, ovrlp_coeff
   integer,dimension(:),allocatable:: ipiv
-  real(8) :: tt, ddot, tt2
+  real(8) :: tt, ddot!, tt2
   logical :: dense
   character(len=*),parameter:: subname='optimize_coeffs'
 
@@ -279,8 +279,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
 
   ! Local variables
   integer:: iorb, jorb, korb, lorb, istat, iall, info, iiorb, ierr, ind, indh, indo, kkorb
-  integer :: npts_per_proc, ind_start, ind_end, indc, iseg, segn
-  real(8),dimension(:,:),allocatable:: lagmat, rhs, ovrlp_coeff, gradp, coeffp !, ovrlp_tmp
+  integer :: npts_per_proc, ind_start, ind_end, indc!, iseg, segn
+  real(8),dimension(:,:),allocatable:: lagmat, rhs, gradp, coeffp !, ovrlp_coeff, ovrlp_tmp
   integer,dimension(:),allocatable:: ipiv
   real(8):: tt, ddot, tt2
   character(len=*),parameter:: subname='optimize_coeffs'
@@ -990,7 +990,7 @@ subroutine allocate_DIIS_coeff(tmb, ldiis)
   type(localizedDIISParameters),intent(inout):: ldiis
   
   ! Local variables
-  integer:: iorb, ii, istat
+  integer:: ii, istat
   character(len=*),parameter:: subname='allocate_DIIS_coeff'
 
   allocate(ldiis%mat(ldiis%isx,ldiis%isx,tmb%orbs%norbp),stat=istat)

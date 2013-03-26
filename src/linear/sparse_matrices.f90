@@ -1,5 +1,14 @@
-!currently assuming square matrices
+!> @file
+!!  Linear version: Handle Sparse Matrices
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 
+ 
+!> Currently assuming square matrices
 subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
   use module_base
   use module_types
@@ -490,7 +499,8 @@ subroutine compress_matrix_for_allreduce(iproc,sparsemat)
   type(sparseMatrix),intent(inout) :: sparsemat
 
   ! Local variables
-  integer :: jj, iseg, jorb, irow, jcol
+  integer :: jj, irow, jcol
+  !!!$ integer :: jseg, jorb
 
   call timing(iproc,'compress_uncom','ON')
 
@@ -530,7 +540,8 @@ subroutine uncompressMatrix(iproc,sparsemat)
   type(sparseMatrix), intent(inout) :: sparsemat
   
   ! Local variables
-  integer :: iseg, ii, jorb, irow, jcol
+  integer :: ii, irow, jcol
+  !!!$ integer :: iseg, jorb
 
   call timing(iproc,'compress_uncom','ON')
 

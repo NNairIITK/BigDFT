@@ -52,15 +52,15 @@ deltascf_write_neut.out.post-out:
         esac ; \
         case $* in \
 	  base.out*)                  prec="1.e-9" ;; \
-      large.out*)                     prec="5.e-10" ;; \
-      directmin.out*)                 prec="1.1e-9" ;; \
+      large.out*)                 prec="5.e-10" ;; \
+      directmin.out*)             prec="1.1e-9" ;; \
 	  standardnew.out*)           prec="2.e-10" ;; \
 	  mixpotential.out*)          prec="1.e-9" ;; \
 	  onlyhigh.out*)              prec="1.1e-9" ;; \
 	  cleanup.out*)               prec="1.1e-8" ;; \
 	  fructose.out*)              prec="9.0e-7" ;; \
 	  geopt_diag.out*)            prec="2.e-9" ;; \
-	  geopt_foe.out*)             prec="7.3e-7" ;; \
+	  geopt_foe.out*)             prec="9.2e-7" ;; \
 	  reformat_read.out*)         prec="1.e-9" ;; \
 	  deltascf_read_charge.out*)  prec="1.e-9" ;; \
 	  water_dirmin.out*)          prec="1.e-8" ;; \
@@ -70,10 +70,11 @@ deltascf_write_neut.out.post-out:
 	  molecule_dmin.out*)         prec="1.e-9" ;; \
 	  molecule_dmix.out*)         prec="1.e-9" ;; \
 	  molecule_pmix.out*)         prec="1.1e-9" ;; \
-	  molecule_foe.out*)          prec="1.e-9" ;; \
+	  molecule_foe.out*)          prec="1.1e-9" ;; \
+	  foe.out*)                   prec="2.1e-10" ;; \
 	  reformat_write.out*)        prec="3.e-10" ;; \
 	  paracetamol.out*)           prec="2.e-10" ;; \
-      *)                              prec="1.1e-10" ;; \
+      *)                          prec="1.1e-10" ;; \
       esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
