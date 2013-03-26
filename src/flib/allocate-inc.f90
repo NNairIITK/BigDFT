@@ -1,3 +1,13 @@
+!> @file
+!! Include fortran file for allocation template
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 !  call timing(0,'Init to Zero  ','IR') 
   !then perform all the checks and profile the allocation procedure
   if (size(shape(array))==m%rank) then

@@ -17,10 +17,10 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   use BigDFT_API
   implicit none
   integer, dimension(4), intent(out) :: mpi_info !< first entry: id of MPI task in the groups,
-  !! second entry: number of MPI tasks, third: id of group, fourth: total number of taskgroups
-  integer, intent(out) :: nconfig !<if negative, run_is is a list_posinp, otherwise comes from the taskgroups
-  character(len=*), intent(out) :: run_id !< radical of the taskgroups or list_posinp name
-  integer, intent(out) :: ierr  !< error code
+                                                 !! 2nd: number of MPI tasks, third: id of group, fourth: total number of taskgroups
+  integer, intent(out) :: nconfig                !< if negative, run_is is a list_posinp, otherwise comes from the taskgroups
+  character(len=*), intent(out) :: run_id        !< radical of the taskgroups or list_posinp name
+  integer, intent(out) :: ierr                   !< error code
   !local variables
   logical :: exist_list
   integer :: iproc,nproc,nconfig_file,mpi_groupsize

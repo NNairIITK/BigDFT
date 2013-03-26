@@ -1,7 +1,7 @@
 !> @file
 !!  Module defining a dictionary
 !! @author Luigi Genovese
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -16,7 +16,7 @@ module dictionaries
 
   integer, parameter, public :: max_field_length = 256
 
-  !> error codes
+  !> Error codes
   integer, parameter :: DICT_SUCCESS=0
   integer, parameter :: DICT_KEY_ABSENT=1
   integer, parameter :: DICT_VALUE_ABSENT=2
@@ -27,14 +27,14 @@ module dictionaries
   integer :: last_error = DICT_SUCCESS
 
   type, public :: storage
-     integer :: item !< Id of the item associated to the list
+     integer :: item   !< Id of the item associated to the list
      integer :: nitems !< No. of items in the list
      integer :: nelems !< No. of items in the dictionary
      character(len=max_field_length) :: key
      character(len=max_field_length) :: value
   end type storage
 
-  !> structure of the dictionary element
+  !> structure of the dictionary element (this internal structure is private)
   type, public :: dictionary
      type(storage) :: data
      type(dictionary), pointer :: parent,next,child,previous
@@ -64,8 +64,12 @@ module dictionaries
   end interface
 
 
+  !> Public routines
   public :: operator(//), assignment(=)
-  public :: set,dict_init,dict_free,try,close_try,pop,append,prepend,find_key,dict_len,add,dict_key
+  public :: set,dict_init,dict_free,pop,append,prepend,add
+  !Handle exceptions
+  public :: try,close_try,try_error
+  public :: find_key,dict_len,dict_key,dict_next,has_key
   
 
 contains
@@ -89,6 +93,8 @@ contains
     ierr = last_error
   end function try_error
 
+
+  !> Test if keys are present
   function no_key(dict)
     implicit none
     type(dictionary), intent(in) :: dict
@@ -105,6 +111,7 @@ contains
     no_value=len(trim(dict%data%value)) == 0 .and. .not. associated(dict%child)
   end function no_value
 
+  !> Check if the key is present
   subroutine check_key(dict)
     implicit none
     type(dictionary), intent(in) :: dict
@@ -120,6 +127,8 @@ contains
 
   end subroutine check_key
 
+
+  !> Check if there is a value
   subroutine check_value(dict)
     implicit none
     type(dictionary), intent(in) :: dict
@@ -289,7 +298,7 @@ contains
     end subroutine pop_dict_
   end subroutine pop_dict
 
-  !> assign the value to the  dictionary
+  !> assign the value to the dictionary
   subroutine add_char(dict,val)
     implicit none
     type(dictionary), pointer :: dict
@@ -325,6 +334,7 @@ contains
     end if
   end function dict_len
 
+
   function dict_size(dict)
     implicit none
     type(dictionary), intent(in), pointer :: dict
@@ -340,6 +350,23 @@ contains
        dict_size=-1
     end if
   end function dict_size
+
+
+  function dict_next(dict)
+    implicit none
+    type(dictionary), intent(in), pointer :: dict
+    type(dictionary), pointer :: dict_next
+    
+    if (associated(dict)) then
+       if (associated(dict%parent)) then
+          dict_next=>dict%next
+       else
+          dict_next=>dict%child
+       end if
+    else
+       nullify(dict_next)
+    end if
+  end function dict_next
 
   subroutine pop_last(dict)
     implicit none
@@ -444,8 +471,8 @@ contains
     end if
   end function get_ptr
   
- !> Retrieve the pointer to the dictionary which has this key.
-  !! If the key does not exists, create it in the next chain 
+  !> Retrieve the pointer to the dictionary which has this key.
+  !! If the key does not exists, search for it in the next chain 
   !! Key Must be already present 
   recursive function find_key(dict,key) result (dict_ptr)
     implicit none
@@ -459,10 +486,11 @@ contains
     !TEST 
     if (.not. associated(dict%parent)) then
        dict_ptr =>  find_key(dict%child,key)
+       !print *,'parent'
        return
     end if
 
-!    print *,'here',trim(key)
+    !print *,'here ',trim(key),', key ',trim(dict%data%key)
     !follow the chain, stop at  first occurence
     if (trim(dict%data%key) == trim(key)) then
        dict_ptr => dict
@@ -473,6 +501,48 @@ contains
     end if
 
   end function find_key
+
+  !> Search in the dictionary if some of the child has the given
+  !! If the key does not exists, search for it in the next chain 
+  !! Key Must be already present 
+  !! 
+  function has_key(dict,key)
+    implicit none
+    type(dictionary), intent(in), pointer :: dict 
+    character(len=*), intent(in) :: key
+    logical :: has_key
+
+    if (.not. associated(dict)) then
+       has_key=.false.
+       return
+    end if
+
+    has_key=has_key_(dict%child,key)
+  
+  contains
+
+    recursive function has_key_(dict,key) result(has)
+    implicit none
+    type(dictionary), intent(in), pointer :: dict 
+    character(len=*), intent(in) :: key
+    logical :: has
+    if (.not. associated(dict)) then
+       has=.false.
+       return
+    end if
+
+    !print *,'here ',trim(key),', key ',trim(dict%data%key)
+    !follow the chain, stop at  first occurence
+    if (trim(dict%data%key) == trim(key)) then
+       has=.true.
+    else if (associated(dict%next)) then
+       has=has_key_(dict%next,key)
+    else 
+       has=.false.
+    end if
+
+  end function has_key_
+end function has_key
 
   !> Retrieve the pointer to the dictionary which has this key.
   !! If the key does not exists, create it in the next chain 
@@ -575,7 +645,7 @@ contains
 
   end function get_list_ptr
 !
-  !> assign a child to the  dictionary
+  !> assign a child to the dictionary
   recursive subroutine put_child(dict,subd)
     implicit none
     type(dictionary), pointer :: dict
@@ -664,7 +734,8 @@ contains
     end if
   end subroutine prepend
 
-  !> assign the value to the  dictionary
+
+  !> assign the value to the dictionary
   subroutine put_value(dict,val)
     implicit none
     type(dictionary), pointer :: dict
@@ -678,7 +749,8 @@ contains
 
   end subroutine put_value
 
-  !> assign the value to the  dictionary (to be rewritten)
+  
+  !> assign the value to the dictionary (to be rewritten)
   subroutine put_list(dict,list)!,nitems)
     implicit none
     type(dictionary), pointer :: dict
@@ -694,7 +766,7 @@ contains
 
   end subroutine put_list
 
-  !> get the value from the  dictionary
+  !> get the value from the dictionary
   subroutine get_value(val,dict)
     implicit none
     character(len=*), intent(out) :: val
@@ -707,7 +779,8 @@ contains
 
   end subroutine get_value
 
-  !> get the value from the  dictionary
+
+  !> get the value from the dictionary
   !! This routine only works if the dictionary is associated
   !! the problem is solved if any of the routines have the dict variable as a pointer
   subroutine get_dict(dictval,dict)
@@ -940,7 +1013,7 @@ contains
   end subroutine get_double
 
 
-  !> assign the value to the  dictionary
+  !> assign the value to the dictionary
   subroutine put_integer(dict,ival,fmt)
     use yaml_strings, only:yaml_toa
     implicit none
@@ -956,7 +1029,7 @@ contains
 
   end subroutine put_integer
 
-  !> assign the value to the  dictionary
+  !> assign the value to the dictionary
   subroutine put_double(dict,dval,fmt)
     use yaml_strings, only:yaml_toa
     implicit none
@@ -972,7 +1045,7 @@ contains
 
   end subroutine put_double
 
-  !> assign the value to the  dictionary
+  !> assign the value to the dictionary
   subroutine put_real(dict,rval,fmt)
     use yaml_strings, only:yaml_toa
     implicit none
@@ -988,7 +1061,7 @@ contains
 
   end subroutine put_real
 
-  !> assign the value to the  dictionary
+  !> assign the value to the dictionary
   subroutine put_long(dict,ilval,fmt)
     use yaml_strings, only:yaml_toa
     implicit none

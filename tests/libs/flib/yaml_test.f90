@@ -22,10 +22,11 @@ program yaml_test
    type(dictionary), pointer :: dict1,dict2,dict3
 
    type(dictionary), pointer :: dict,dictA
-   type(dictionary), pointer :: dictA2,dict_routine,dict_global,dict_array
+   type(dictionary), pointer :: dictA2
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot,extra_ref
    character(len=dict_char_len) :: routinename
    integer :: ival
+
 
    !First document
    call yaml_new_document()
@@ -52,6 +53,7 @@ program yaml_test
    call yaml_close_map()
    call yaml_release_document()
 
+
    !Second document
    call yaml_new_document()
    call yaml_open_map("Test")
@@ -68,6 +70,7 @@ program yaml_test
       call yaml_close_map()
    call yaml_close_map()
    call yaml_release_document()
+
 
    !Third document
    allocate(cv(0))
@@ -91,6 +94,7 @@ program yaml_test
    deallocate(iv)
    deallocate(dv)
 
+
    !Fourth document
    allocate(dv(5))
    dv=1.d0
@@ -109,6 +113,12 @@ program yaml_test
    call yaml_comment(repeat('y',200),hfill='-')
    call yaml_comment(repeat('y',200),tabbing=9,hfill='-')
    call yaml_close_map()
+   call yaml_release_document()
+   deallocate(dv)
+
+
+   !Fifth document
+   call yaml_new_document()
    call yaml_comment('Now we test dictionaries inside yaml.')
    !Test a dictionary
    call dict_init(dict1)
@@ -125,7 +135,6 @@ program yaml_test
    call set(dict3//'Example',4)
    call yaml_dict_dump(dict1,flow=.true.)
    call yaml_release_document()
-   deallocate(dv)
    call dict_free(dict1)
    call yaml_comment('Fortran Dictionary Test',hfill='~')
 
@@ -224,7 +233,6 @@ program yaml_test
    call set(dict2//'Test2'//'Toto',4)
    call set(dict2//'Test2'//'Titi',2)
 
-
    call yaml_open_map('Dict 2')
    call yaml_dict_dump(dict2)
    call yaml_close_map()
@@ -240,6 +248,12 @@ program yaml_test
 
  !  stop
 
+   call yaml_release_document()
+
+
+   !SandBox
+   call yaml_new_document()
+   call yaml_comment('Sandbox')
    call yaml_comment('Routine-Tree creation example',hfill='~')
 
    !let used to imagine a routine-tree creation
@@ -277,8 +291,8 @@ program yaml_test
    call close_routine(dict2,'Routine E')
 
    call add_routine(dict2,'Routine F')
-
 !   call yaml_comment('Look Below',hfill='v')
+
    call yaml_open_map('Test Case before implementation')
    call yaml_dict_dump(dictA)
    call yaml_close_map()
@@ -330,11 +344,11 @@ program yaml_test
    rhopot=f_malloc(3*2,id='rhopot')
    call f_free(rhopot)
 
-   !call f_free(density,potential,pot_ion,xc_pot,extra_ref)
+!   call f_free(density,potential,pot_ion,xc_pot,extra_ref)
 !!$   call f_malloc_dump_status()
 
    call f_free(pot_ion)
-
+   call f_free(potential)
    call f_free(xc_pot)
 !   call f_malloc_dump_status()
    call f_free(extra_ref)
@@ -373,7 +387,6 @@ program yaml_test
        character(len=*), intent(in), optional :: name
        !local variables
        logical :: jump_up
-       integer :: ival
        type(dictionary), pointer :: dict_tmp
        
        if (.not. associated(dict)) stop 'ERROR, routine not associated' 

@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module used to manage memory allocations and de-allocations
+!> Module used by the module to manage the memory allocations
 module metadata_interfaces
   implicit none
 
@@ -112,7 +112,6 @@ contains
 
   end subroutine pad_dp4
 
-
   subroutine pad_double(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
@@ -193,45 +192,37 @@ contains
     end do
   end subroutine pad_character
 
-  !!****f* ABINIT/d_nan
-  !! FUNCTION
-  !!   Function which specify NaN according to IEEE specifications
-  !! SOURCE
-  !!
-function d_nan()
- implicit none
- double precision :: d_nan
- !local variables
- double precision :: dnan
- integer, dimension(2) :: inan
- equivalence (dnan, inan)
- ! This first assignment is for big-endian machines
- inan(1) = 2147483647
- ! The second assignment is for little-endian machines
- inan(2) = 2147483647
- d_nan = dnan
-end function d_nan
-!!***
+  !> Function which specify NaN according to IEEE specifications
+  function d_nan()
+   implicit none
+   double precision :: d_nan
+   !local variables
+   double precision :: dnan
+   integer, dimension(2) :: inan
+   equivalence (dnan, inan)
+   ! This first assignment is for big-endian machines
+   inan(1) = 2147483647
+   ! The second assignment is for little-endian machines
+   inan(2) = 2147483647
+   d_nan = dnan
+  end function d_nan
 
-!!****f* ABINIT/r_nan
-!! FUNCTION
-!!   Function which specify NaN according to IEEE specifications
-!! SOURCE
-!!
-function r_nan()
- implicit none
- real :: r_nan
- !local variables
- real :: rnan
- integer :: inan
- equivalence (rnan, inan)
- inan = 2147483647
- r_nan = rnan
-end function r_nan
-!!***
+  !> Function which specify NaN according to IEEE specifications
+  function r_nan()
+   implicit none
+   real :: r_nan
+   !local variables
+   real :: rnan
+   integer :: inan
+   equivalence (rnan, inan)
+   inan = 2147483647
+   r_nan = rnan
+  end function r_nan
 
 end module metadata_interfaces
 
+
+!> Module used to manage memory allocations and de-allocations
 module dynamic_memory
   use m_profiling, except => ndebug, and=> d_nan, also=> r_nan
   use dictionaries, info_length => max_field_length
@@ -820,6 +811,7 @@ contains
 
   end function f_malloc0_ptr
 
+  
   function last_f_malloc_error(error_string) result(ierr)
     implicit none
     integer :: ierr
@@ -841,7 +833,8 @@ contains
 
   end function last_f_malloc_error
 
-  !> this routine adds the corresponding subprogram name to the dictionary
+
+  !> This routine adds the corresponding subprogram name to the dictionary
   !! and prepend the dictionary to the global info dictionary
   !! if it is called more than once for the same name it has no effect
   subroutine f_malloc_routine_id(routine_id)
@@ -869,7 +862,8 @@ contains
     end if
   end subroutine f_malloc_routine_id
 
-  !> close a previously opened routine
+
+  !> Close a previously opened routine
   subroutine f_malloc_free_routine()
 !    use yaml_output
     implicit none
@@ -886,6 +880,7 @@ contains
     !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
     routine_opened=.false.
   end subroutine f_malloc_free_routine
+
 
   subroutine open_routine(dict)
     implicit none
@@ -909,6 +904,7 @@ contains
 
   end subroutine open_routine
 
+
   subroutine close_routine(dict,jump_up)
 !    use yaml_output
     implicit none
@@ -917,7 +913,7 @@ contains
     !character(len=*), intent(in) :: name
     !local variables
 
-    integer :: ival
+    !integer :: ival
     type(dictionary), pointer :: dict_tmp
 
     if (.not. associated(dict)) stop 'ERROR, routine not associated' 
@@ -976,11 +972,13 @@ contains
 
   end subroutine f_malloc_set_status
 
+
+  !> Finalize f_malloc (Display status)
   subroutine f_malloc_finalize()
     use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
     implicit none
     !local variables
-    integer :: unt
+    !integer :: unt
     !put the last values in the dictionary if not freed
     if (associated(dict_routine)) then
        !call yaml_get_default_stream(unt)
@@ -992,7 +990,8 @@ contains
        !      if (.false.) then !residual memory to be defined
     end if
     call yaml_open_map('Status of the memory at finalization')
-    call yaml_dict_dump(dict_global)
+    !call yaml_dict_dump(dict_global)
+    call dump_leaked_memory(dict_global)
     call yaml_close_map()
     call dict_free(dict_global)
 !    call yaml_open_map('Calling sequence')
@@ -1006,8 +1005,10 @@ contains
     routine_opened=.false.
   end subroutine f_malloc_finalize
 
+
+  !> Check error of allocations or deallocations
   subroutine check_for_errors(ierror,try)
-    use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
+    use yaml_output!, only: yaml_warning,yaml_open_map,yaml_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
     implicit none
     logical, intent(in) :: try
     integer, intent(in) :: ierror
@@ -1022,12 +1023,17 @@ contains
        if (try) then
           return
        else
-          write(*,*)'(de)allocation error, exiting. Error code:',ierror
-          write(*,*)'last error:',lasterror
+          call yaml_open_map('(de)allocation error exiting')
+             call yaml_map('Error code',ierror)
+             call yaml_map('Last error',lasterror)
+          call yaml_close_map()
+          !write(*,*)'(de)allocation error, exiting. Error code:',ierror
+          !write(*,*)'last error:',lasterror
           call yaml_get_default_stream(unt)
           if (associated(dict_routine)) then
              call yaml_open_map('Status of the routine before exiting')
-             call yaml_dict_dump(dict_routine)
+             !call yaml_dict_dump(dict_routine)
+             call dump_leaked_memory(dict_routine)
              call yaml_close_map()
           end if
           call yaml_dict_dump(dict_calling_sequence)
@@ -1037,7 +1043,45 @@ contains
 
   end subroutine check_for_errors
 
-  !> use the adress of the allocated pointer to profile the deallocation
+
+  !> Dump all allocations
+  subroutine dump_leaked_memory(dict)
+     use yaml_output
+     implicit none
+     type(dictionary), pointer, intent(in) :: dict
+     !Local variables
+     type(dictionary), pointer :: dict_ptr, dict_tmp
+     character(len=256) :: array_id
+     dict_ptr => dict_next(dict)
+     do while(associated(dict_ptr))
+!!$        call yaml_map('Key has been found',has_key(dict_ptr,trim(arrayid)))
+!!$        call try()
+!!$        array_id = dict_ptr//arrayid
+!!$        call close_try()
+        if (has_key(dict_ptr,trim(arrayid))) then
+           array_id = dict_ptr//arrayid
+           call yaml_open_map(trim(array_id))
+           call yaml_dict_dump(dict_ptr)
+           call yaml_map('Address',trim(dict_key(dict_ptr)))
+           call yaml_close_map()
+        else
+           call yaml_open_map(trim(dict_key(dict_ptr)))
+           call yaml_dict_dump(dict_ptr)
+           call yaml_close_map()
+        end if
+!!$           PRINT *,'ERROR',TRY_ERROR()
+!!$           call yaml_map('key',dict_key(dict_ptr))
+!!$           print *,'nelems: ',dict_ptr%data%nelems
+!!$           print *,'key: "',trim(dict_ptr%data%key),'"'
+!!$           print *,'value: "',trim(dict_ptr%data%value),'"'
+!!$           call yaml_dict_dump(dict_ptr%parent)
+!!$           print *,'aa'
+        dict_ptr=>dict_next(dict_ptr)
+     end do
+  end subroutine dump_leaked_memory
+
+
+  !> Use the adress of the allocated pointer to profile the deallocation
   subroutine profile_deallocation(ierr,ilsize,address)
     use yaml_output!, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_map
     implicit none
@@ -1078,8 +1122,6 @@ contains
     else
        call pop(dict_routine,trim(address))
     end if
-
-
 
 !!$    call yaml_comment('Test',hfill='-')
 !!$!    call yaml_map('Associated',associated(dict_tmp))
@@ -1141,11 +1183,12 @@ contains
     call yaml_dict_dump(dict_calling_sequence)
     if (associated(dict_routine)) then
        call yaml_open_map('Routine dictionary')
-       call yaml_dict_dump(dict_routine)
+       call dump_leaked_memory(dict_routine)
        call yaml_close_map()
     end if
     call yaml_open_map('Global dictionary')
-    call yaml_dict_dump(dict_global)
+    !call yaml_dict_dump(dict_global)
+    call dump_leaked_memory(dict_global)
     call yaml_close_map()
 
   end subroutine f_malloc_dump_status
