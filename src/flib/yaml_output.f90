@@ -2,11 +2,14 @@
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markeup Language (ML for Human)
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
+!> Define routines used to write yaml
 module yaml_output
   use yaml_strings
   use dictionaries

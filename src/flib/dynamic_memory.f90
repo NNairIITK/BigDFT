@@ -990,7 +990,8 @@ contains
        !      if (.false.) then !residual memory to be defined
     end if
     call yaml_open_map('Status of the memory at finalization')
-    call yaml_dict_dump(dict_global)
+    !call yaml_dict_dump(dict_global)
+    call dump_leaked_memory(dict_global)
     call yaml_close_map()
     call dict_free(dict_global)
 !    call yaml_open_map('Calling sequence')
@@ -1032,7 +1033,7 @@ contains
           if (associated(dict_routine)) then
              call yaml_open_map('Status of the routine before exiting')
              !call yaml_dict_dump(dict_routine)
-             call yaml_dict_routine()
+             call dump_leaked_memory(dict_routine)
              call yaml_close_map()
           end if
           call yaml_dict_dump(dict_calling_sequence)
@@ -1044,25 +1045,35 @@ contains
 
 
   !> Dump all allocations
-  subroutine yaml_dict_routine()
+  subroutine dump_leaked_memory(dict)
      use yaml_output
      implicit none
-     type(dictionary), pointer :: dict_ptr
+     type(dictionary), pointer, intent(in) :: dict
+     !Local variables
+     type(dictionary), pointer :: dict_ptr, dict_tmp
      character(len=256) :: array_id
-     dict_ptr => dict_routine%child
-     do
-        if (associated(dict_ptr)) then
-           array_id = dict_ptr//'Array Id'
+     dict_ptr => dict_next(dict)
+     do while(associated(dict_ptr))
+        call try()
+        array_id = dict_ptr//arrayid
+        call close_try()
+        if (try_error() == 0) then
            call yaml_open_map(trim(array_id))
            call yaml_dict_dump(dict_ptr)
-           call yaml_map('Address',dict_ptr%data%key)
+           call yaml_map('Address',trim(dict_key(dict_ptr)))
            call yaml_close_map()
-           dict_ptr=>dict_ptr%next
         else
-           exit
+           PRINT *,'ERROR',TRY_ERROR()
+           call yaml_map('key',dict_key(dict_ptr))
+           print *,'nelems: ',dict_ptr%data%nelems
+           print *,'key: "',trim(dict_ptr%data%key),'"'
+           print *,'value: "',trim(dict_ptr%data%value),'"'
+           call yaml_dict_dump(dict_ptr%parent)
+           print *,'aa'
         end if
+        dict_ptr=>dict_next(dict_ptr)
      end do
-  end subroutine yaml_dict_routine
+  end subroutine dump_leaked_memory
 
 
   !> Use the adress of the allocated pointer to profile the deallocation
@@ -1167,11 +1178,12 @@ contains
     call yaml_dict_dump(dict_calling_sequence)
     if (associated(dict_routine)) then
        call yaml_open_map('Routine dictionary')
-       call yaml_dict_dump(dict_routine)
+       call dump_leaked_memory(dict_routine)
        call yaml_close_map()
     end if
     call yaml_open_map('Global dictionary')
-    call yaml_dict_dump(dict_global)
+    !call yaml_dict_dump(dict_global)
+    call dump_leaked_memory(dict_global)
     call yaml_close_map()
 
   end subroutine f_malloc_dump_status

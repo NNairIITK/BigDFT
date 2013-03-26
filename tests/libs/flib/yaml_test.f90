@@ -344,7 +344,7 @@ program yaml_test
    rhopot=f_malloc(3*2,id='rhopot')
    call f_free(rhopot)
 
-   call f_free(density,potential,pot_ion,xc_pot,extra_ref)
+!   call f_free(density,potential,pot_ion,xc_pot,extra_ref)
 !!$   call f_malloc_dump_status()
 
    call f_free(pot_ion)

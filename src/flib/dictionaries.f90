@@ -34,7 +34,7 @@ module dictionaries
      character(len=max_field_length) :: value
   end type storage
 
-  !> structure of the dictionary element
+  !> structure of the dictionary element (this internal structure is private)
   type, public :: dictionary
      type(storage) :: data
      type(dictionary), pointer :: parent,next,child,previous
@@ -64,8 +64,12 @@ module dictionaries
   end interface
 
 
+  !> Public routines
   public :: operator(//), assignment(=)
-  public :: set,dict_init,dict_free,try,close_try,pop,append,prepend,find_key,dict_len,add,dict_key
+  public :: set,dict_init,dict_free,pop,append,prepend,add
+  !Handle exceptions
+  public :: try,close_try,try_error
+  public :: find_key,dict_len,dict_key,dict_next
   
 
 contains
@@ -89,6 +93,8 @@ contains
     ierr = last_error
   end function try_error
 
+
+  !> Test if keys are present
   function no_key(dict)
     implicit none
     type(dictionary), intent(in) :: dict
@@ -105,6 +111,7 @@ contains
     no_value=len(trim(dict%data%value)) == 0 .and. .not. associated(dict%child)
   end function no_value
 
+  !> Check if the key is present
   subroutine check_key(dict)
     implicit none
     type(dictionary), intent(in) :: dict
@@ -120,6 +127,8 @@ contains
 
   end subroutine check_key
 
+
+  !> Check if there is a value
   subroutine check_value(dict)
     implicit none
     type(dictionary), intent(in) :: dict
@@ -325,6 +334,7 @@ contains
     end if
   end function dict_len
 
+
   function dict_size(dict)
     implicit none
     type(dictionary), intent(in), pointer :: dict
@@ -340,6 +350,23 @@ contains
        dict_size=-1
     end if
   end function dict_size
+
+
+  function dict_next(dict)
+    implicit none
+    type(dictionary), intent(in), pointer :: dict
+    type(dictionary), pointer :: dict_next
+    
+    if (associated(dict)) then
+       if (associated(dict%parent)) then
+          dict_next=>dict%next
+       else
+          dict_next=>dict%child
+       end if
+    else
+       nullify(dict_next)
+    end if
+  end function dict_next
 
   subroutine pop_last(dict)
     implicit none
@@ -664,6 +691,7 @@ contains
     end if
   end subroutine prepend
 
+
   !> assign the value to the dictionary
   subroutine put_value(dict,val)
     implicit none
@@ -678,6 +706,7 @@ contains
 
   end subroutine put_value
 
+  
   !> assign the value to the dictionary (to be rewritten)
   subroutine put_list(dict,list)!,nitems)
     implicit none
@@ -706,6 +735,7 @@ contains
     call get_field(dict%data%value,val)
 
   end subroutine get_value
+
 
   !> get the value from the dictionary
   !! This routine only works if the dictionary is associated
