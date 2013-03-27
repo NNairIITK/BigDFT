@@ -54,7 +54,7 @@ def compare(data, ref, tols = None, always_fails = False):
   if data is None:
     return (True, None)
   elif type(ref) == type({}):
-#for a floating point the reference is set for all the lower levels    
+    #for a floating point the reference is set for all the lower levels    
     if type(tols) == type(1.0e-1):
       neweps=tols
       tols={}

@@ -357,7 +357,8 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   !local variables
   character(len=*), parameter :: subname='subspace_diagonalisation'
   integer :: i_stat,i_all,ierr,info,iorb,n_lp,n_rp,npsiw,isorb,ise,jorb,ncplx
-  integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
+  integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
+  !integer :: istart
   real(wp) :: occ,asymm
   real(gp), dimension(2) :: aij,aji
   integer, dimension(:,:), allocatable :: ndim_ovrlp

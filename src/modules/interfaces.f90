@@ -4368,7 +4368,7 @@ module module_interfaces
           integer,dimension(4,nout),intent(in) :: onedimindices
           real(kind=8),intent(in) :: a
           real(kind=8),dimension(norb,norbp),intent(in) :: x
-          real(kind=8),dimension(norb,norbp),intent(out) :: y
+          real(kind=8),dimension(norb,norbp),intent(inout) :: y
         end subroutine axpy_kernel_vectors
 
         subroutine axbyz_kernel_vectors(norbp, norb, nout, onedimindices, a, x, b, y, z)

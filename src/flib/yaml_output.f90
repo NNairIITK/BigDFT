@@ -2,37 +2,40 @@
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markeup Language (ML for Human)
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
+!> Define routines used to write yaml
 module yaml_output
   use yaml_strings
   use dictionaries
   implicit none
-  private 
+  private
 
   !> Yaml events for dump routine
-  integer, parameter :: NONE           = -1000
-  integer, parameter :: DOCUMENT_START = -1001
-  integer, parameter :: DOCUMENT_END   = -1002
-  integer, parameter :: MAPPING_START  = -1003
-  integer, parameter :: MAPPING_END    = -1004
-  integer, parameter :: SEQUENCE_START = -1005
-  integer, parameter :: SEQUENCE_END   = -1006
-  integer, parameter :: SCALAR         = -1007
-  integer, parameter :: COMMENT        = -1008
-  integer, parameter :: MAPPING        = -1009
-  integer, parameter :: SEQUENCE_ELEM  = -1010
-  integer, parameter :: NEWLINE        = -1011
-  integer, parameter :: COMMA_TO_BE_PUT= 10
-  integer, parameter :: STREAM_ALREADY_PRESENT=-1
+  integer, parameter :: NONE                   = -1000
+  integer, parameter :: DOCUMENT_START         = -1001
+  integer, parameter :: DOCUMENT_END           = -1002
+  integer, parameter :: MAPPING_START          = -1003
+  integer, parameter :: MAPPING_END            = -1004
+  integer, parameter :: SEQUENCE_START         = -1005
+  integer, parameter :: SEQUENCE_END           = -1006
+  integer, parameter :: SCALAR                 = -1007
+  integer, parameter :: COMMENT                = -1008
+  integer, parameter :: MAPPING                = -1009
+  integer, parameter :: SEQUENCE_ELEM          = -1010
+  integer, parameter :: NEWLINE                = -1011
+  integer, parameter :: COMMA_TO_BE_PUT        =  10
+  integer, parameter :: STREAM_ALREADY_PRESENT = -1
 
   integer, parameter :: tot_max_record_length=95   !< Max record length by default
   integer, parameter :: tot_max_flow_events=500    !< Max flow events
   integer, parameter :: tot_streams=10             !< Max total number of streams
-  integer, parameter :: tab=5
+  integer, parameter :: tab=5                      !< Default number for tabbing
 
   integer :: active_streams=0  !< Number of active streams (stdout always active after init)
   integer :: default_stream=1  !< Id of the default stream
@@ -48,67 +51,72 @@ module yaml_output
      integer :: indent=1                !< Blank spaces indentations for Yaml output level identification
      integer :: indent_previous=0       !< Indent level prior to flow writing
      integer :: indent_step=2           !< Indentation level
-     integer :: tabref=40               !< position of tabular in scalar assignment (single column output)
-     integer :: icursor=1               !< running position of the cursor on the line
-     integer :: itab_active=0           !< number of active tabbings for the line in flowrite
+     integer :: tabref=40               !< Position of tabular in scalar assignment (single column output)
+     integer :: icursor=1               !< Running position of the cursor on the line
+     integer :: itab_active=0           !< Number of active tabbings for the line in flowrite
      integer :: itab=0                  !< Tabbing to have a look on
      integer :: ilevel=0                !< Number of opened levels
      integer :: iflowlevel=0            !< Levels of flowrite simoultaneously enabled
      integer :: ilast=0                 !< Last level with flow==.false.
      integer :: icommentline=0          !< Active if the line being written is a comment
      integer, dimension(tot_max_record_length/tab) :: linetab=0   !< Value of the tabbing in the line
-     integer :: ievt_flow=0                                     !< Events which track is kept of in the flowrite
+     integer :: ievt_flow=0                                       !< Events which track is kept of in the flowrite
      integer, dimension(tot_max_flow_events) :: flow_events=0     !< Set of events in the flow
-     type(dictionary), pointer :: dict_warning=>null()          !< dictionary of warnings emitted in the stream
+     type(dictionary), pointer :: dict_warning=>null()            !< Dictionary of warnings emitted in the stream
   end type yaml_stream
 
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
-  integer, dimension(tot_streams) :: stream_units=6 !default units unless otherwise specified               
-                                                  
-  interface yaml_map                              
-     module procedure yaml_map,yaml_map_i,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
-  end interface                                   
-                                                  
-  public :: yaml_new_document,yaml_release_document
-  public :: yaml_map,yaml_open_map,yaml_close_map 
-  public :: yaml_sequence,yaml_open_sequence,yaml_close_sequence
-  public :: yaml_comment,yaml_warning,yaml_toa,yaml_newline
-  public :: yaml_set_stream,yaml_get_default_stream,yaml_set_default_stream,yaml_stream_attributes
-  public :: yaml_close_all_streams
-  public :: yaml_date_and_time_toa,yaml_scalar,yaml_date_toa,yaml_dict_dump
+  integer, dimension(tot_streams) :: stream_units=6             !< Default units unless otherwise specified
 
-contains                                          
-          
+  !> Generic routine
+  interface yaml_map
+     module procedure yaml_map,yaml_map_i,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
+  end interface
+
+  !! Public routines (API of the module)
+  public :: yaml_new_document,yaml_release_document
+  public :: yaml_map,yaml_open_map,yaml_close_map
+  public :: yaml_sequence,yaml_open_sequence,yaml_close_sequence
+  public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
+  public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa
+  public :: yaml_set_stream,yaml_set_default_stream
+  public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
+  public :: yaml_dict_dump
+
+
+contains
+
+
   !> Initialize the stream to default values
   function stream_null() result(strm)
     implicit none
     type(yaml_stream) :: strm
 
-    strm%document_closed=.true.  
+    strm%document_closed=.true.
     strm%pp_allowed=.true.
     strm%unit=6
     strm%max_record_length=tot_max_record_length
-    strm%flowrite=.false.        
-    strm%Wall=-1                 
-    strm%indent=1                
-    strm%indent_previous=0       
-    strm%indent_step=2           
-    strm%tabref=40               
-    strm%icursor=1               
-    strm%itab_active=0           
-    strm%itab=0                  
-    strm%ilevel=0                
-    strm%iflowlevel=0            
-    strm%ilast=0                 
-    strm%icommentline=0          
+    strm%flowrite=.false.
+    strm%Wall=-1
+    strm%indent=1
+    strm%indent_previous=0
+    strm%indent_step=2
+    strm%tabref=40
+    strm%icursor=1
+    strm%itab_active=0
+    strm%itab=0
+    strm%ilevel=0
+    strm%iflowlevel=0
+    strm%ilast=0
+    strm%icommentline=0
     strm%linetab=0
-    strm%ievt_flow=0                                     
+    strm%ievt_flow=0
     strm%flow_events=0
     nullify(strm%dict_warning)
   end function stream_null
 
-                                        
-  !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if 
+
+  !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.
   subroutine yaml_set_default_stream(unit,ierr)
     implicit none
@@ -209,7 +217,7 @@ contains
        record_length)
     implicit none
     integer, intent(in) , optional :: unit          !< File unit to display
-    integer, intent(in) , optional :: stream_unit   !< Stream Id 
+    integer, intent(in) , optional :: stream_unit   !< Stream Id
     logical, intent(out), optional :: flowrite
     integer, intent(out), optional :: icursor,itab_active
     integer, intent(out), optional :: iflowlevel,ilevel,ilast
@@ -354,9 +362,11 @@ contains
 
   end subroutine yaml_release_document
 
+
+  !> Close all the streams
   subroutine yaml_close_all_streams()
     implicit none
-    
+
     !local variables
     integer :: istream,unt,unts
 
@@ -412,14 +422,18 @@ contains
   end subroutine yaml_warning
 
 
+  !> Write a yaml comment (#......)
+  !! Split the comment if too long
   subroutine yaml_comment(message,advance,unit,hfill,tabbing)
     implicit none
-    character(len=1), optional, intent(in) :: hfill
-    character(len=*), intent(in) :: message
-    integer, optional, intent(in) :: unit,tabbing
-    character(len=*), intent(in), optional :: advance
-    !local variables
+    character(len=*), intent(in) :: message           !< The given comment (without #)
+    character(len=*), optional, intent(in) :: advance !< Advance or not
+    integer, optional, intent(in) :: unit             !< Unit of the stream (by default unit=0)
+    character(len=1), optional, intent(in) :: hfill   !< If present fill the line with the given character
+    integer, optional, intent(in) :: tabbing          !< Number of space for tabbing
+    !Local variables
     integer :: unt,strm,msg_lgt,tb,ipos
+    integer :: lstart,lend,lmsg,lspace,hmax
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -434,26 +448,54 @@ contains
        adv='yes'
     end if
 
-    ipos=max(streams(strm)%icursor,streams(strm)%indent)
+    !Beginning of the message
+    lstart=1
+    !Length of the message to write (without blank characters)
+    lmsg=len_trim(message)
 
-    msg_lgt=0
-    if (present(tabbing)) then
-       tb=max(tabbing-ipos-1,1)
-       call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
-       ipos=ipos+tb
-    end if
+    !Split the message if too long
+    do
+       !Position of the cursor
+       ipos=max(streams(strm)%icursor,streams(strm)%indent)
 
-    call buffer_string(towrite,len(towrite),trim(message),msg_lgt)
+       msg_lgt=0
+       if (present(tabbing)) then
+          tb=max(tabbing-ipos-1,1)
+          call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
+          ipos=ipos+tb
+       end if
 
-    if (present(hfill)) then
-       call dump(streams(strm),&
-            repeat(hfill,&
-            max(streams(strm)%max_record_length-ipos-&
-            len_trim(message)-3,0))//' '//towrite(1:msg_lgt),&
-            advance=adv,event=COMMENT)
-    else
-       call dump(streams(strm),towrite(1:msg_lgt),advance=adv,event=COMMENT)
-    end if
+       !Detect the last character of the message
+       lend=len_trim(message(lstart:))
+       if (lend+msg_lgt > streams(strm)%max_record_length) then
+          !We have an error from buffer_string so we split it!
+          !-1 to be less and -2 for the character '#'
+          lend=streams(strm)%max_record_length-msg_lgt-2
+          !We are looking for the first ' ' from the end
+          lspace=index(message(lstart:lstart+lend-1),' ',back=.true.)
+          if (lspace /= 0) then
+             lend = lspace
+          end if
+       end if
+       call buffer_string(towrite,len(towrite),message(lstart:lstart+lend-1),msg_lgt)
+
+       !Check if possible to hfill
+       hmax = max(streams(strm)%max_record_length-ipos-len_trim(message)-3,0)
+       if (present(hfill) .and. hmax > 0) then
+          !Fill with the given character and dump
+          call dump(streams(strm),repeat(hfill,hmax)//' '//towrite(1:msg_lgt),advance=adv,event=COMMENT)
+       else
+          !Dump the string towrite into the stream
+          call dump(streams(strm),towrite(1:msg_lgt),advance=adv,event=COMMENT)
+       end if
+
+       !Check if all the message is written
+       !So we start from iend+1
+       lstart=lstart+lend
+       if (lstart>lmsg) then
+          exit
+       end if
+    end do
 
   end subroutine yaml_comment
 
@@ -493,9 +535,8 @@ contains
   end subroutine yaml_scalar
 
 
-  !> Open a yaml map (dictionary) 
+  !> Open a yaml map (dictionary)
   subroutine yaml_open_map(mapname,label,flow,unit)
-    use yaml_strings
     implicit none
     integer, optional, intent(in) :: unit
     character(len=*), optional, intent(in) :: mapname
@@ -623,6 +664,7 @@ contains
   end subroutine yaml_open_sequence
 
 
+  !> Close a yaml sequence
   subroutine yaml_close_sequence(advance,unit)
     implicit none
     character(len=*), optional, intent(in) :: advance
@@ -651,7 +693,7 @@ contains
   end subroutine yaml_close_sequence
 
 
-  !> Add a new line in the flow 
+  !> Add a new line in the flow
   !! This routine has a effect only if a flow writing is active
   subroutine yaml_newline(unit)
     implicit none
@@ -670,12 +712,12 @@ contains
   end subroutine yaml_newline
 
 
+  !> Write directly a yaml sequence
   subroutine yaml_sequence(seqvalue,label,advance,unit)
-    use yaml_strings
     implicit none
     integer, optional, intent(in) :: unit
     character(len=*), optional, intent(in) :: label,seqvalue,advance
-    !local variables 
+    !local variables
     integer :: msg_lgt,unt,strm
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
@@ -683,7 +725,6 @@ contains
     unt=0
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
-
 
     adv='def' !default value
     if (present(advance)) adv=advance
@@ -704,7 +745,6 @@ contains
 
   !> Do a yaml map
   subroutine yaml_map(mapname,mapvalue,label,advance,unit)
-    use yaml_strings
     implicit none
     character(len=*), intent(in) :: mapname             !< key
     character(len=*), intent(in) :: mapvalue            !< value
@@ -779,8 +819,8 @@ contains
 
   end subroutine yaml_map
 
+
   subroutine yaml_map_i(mapname,mapvalue,label,advance,unit,fmt)
-    use yaml_strings
     implicit none
     character(len=*), intent(in) :: mapname
     integer, intent(in) :: mapvalue
@@ -819,7 +859,6 @@ contains
 
 
   subroutine yaml_map_f(mapname,mapvalue,label,advance,unit,fmt)
-    use yaml_strings
     implicit none
     character(len=*), intent(in) :: mapname
     real, intent(in) :: mapvalue
@@ -833,7 +872,6 @@ contains
     unt=0
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
-
 
     adv='def' !default value
     if (present(advance)) adv=advance
@@ -857,8 +895,8 @@ contains
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map_f
 
+
   subroutine yaml_map_d(mapname,mapvalue,label,advance,unit,fmt)
-    use yaml_strings
     implicit none
     character(len=*), intent(in) :: mapname
     real(kind=8), intent(in) :: mapvalue
@@ -897,8 +935,8 @@ contains
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map_d
 
+
   subroutine yaml_map_l(mapname,mapvalue,label,advance,unit,fmt)
-    use yaml_strings
     implicit none
     character(len=*), intent(in) :: mapname
     logical,  intent(in) :: mapvalue
@@ -936,8 +974,8 @@ contains
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map_l
 
+
   subroutine yaml_map_dv(mapname,mapvalue,label,advance,unit,fmt)
-    use yaml_strings
     implicit none
     character(len=*), intent(in) :: mapname
     real(kind=8), dimension(:), intent(in) :: mapvalue
@@ -954,7 +992,6 @@ contains
 
     adv='def' !default value
     if (present(advance)) adv=advance
-
 
     nl=lbound(mapvalue,1)
     nu=ubound(mapvalue,1)
@@ -997,7 +1034,6 @@ contains
        end if
     end if
 
-
     !put the value
     if (present(fmt)) then
        call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
@@ -1007,9 +1043,9 @@ contains
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map_dv
 
+
   !> Character vector
   subroutine yaml_map_cv(mapname,mapvalue,label,advance,unit,fmt)
-    use yaml_strings
     implicit none
     character(len=*), intent(in) :: mapname
     character(len=*), dimension(:), intent(in) :: mapvalue
@@ -1046,8 +1082,8 @@ contains
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map_cv
 
+
   subroutine yaml_map_iv(mapname,mapvalue,label,advance,unit,fmt)
-    use yaml_strings
     implicit none
     character(len=*), intent(in) :: mapname
     integer, dimension(:), intent(in) :: mapvalue
@@ -1083,6 +1119,7 @@ contains
     end if
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map_iv
+
 
   !> Get the stream, initialize if not already present (except if istat present)
   subroutine get_stream(unt,strm,istat)
@@ -1127,14 +1164,15 @@ contains
   end subroutine get_stream
 
 
+  !> This routine is the key of the module, handling the events and
+  !! writing into the stream.
   subroutine dump(stream,message,advance,event,istat)
-    use yaml_strings
     implicit none
-    type(yaml_stream), intent(inout) :: stream
-    character(len=*), intent(in) :: message
-    character(len=*), intent(in), optional :: advance
-    integer, intent(in), optional :: event
-    integer, intent(out), optional :: istat
+    type(yaml_stream), intent(inout) :: stream          !< Stream to handle
+    character(len=*), intent(in) :: message             !< Mesage to dump
+    character(len=*), intent(in), optional :: advance   !< Advance option
+    integer, intent(in), optional :: event              !< Event to handle
+    integer, intent(out), optional :: istat             !< Status error
     !local variables
     logical :: ladv,change_line,reset_line,pretty_print,reset_tabbing,comma_postponed
     integer :: evt,indent_lgt,msg_lgt,shift_lgt,prefix_lgt
@@ -1176,7 +1214,7 @@ contains
 
     !possible indentation (depending of the event) and of the cursor
     indent_lgt=indent_value(stream,evt)
-!    write(*,fmt='(a,i0,a)',advance="no") '(lgt ',indent_lgt,')'
+    !write(*,fmt='(a,i0,a)',advance="no") '(lgt ',indent_lgt,')'
 
     !calculate the number of objects to be written before
     !these objects should go to the active line in case of a new line
@@ -1208,6 +1246,7 @@ contains
 
     !set module variables according to the event
     select case(evt)
+
     case(SEQUENCE_START)
 
        if (.not.stream%flowrite) then
@@ -1261,7 +1300,7 @@ contains
              call buffer_string(prefix,len(prefix),'}',prefix_lgt,back=.true.)
              !flowrite=-1
              reset_line=.true.
-          else 
+          else
              call buffer_string(prefix,len(prefix),'}',prefix_lgt)
           end if
           reset_line=ladv
@@ -1276,6 +1315,7 @@ contains
        else
           reset_line=.true.
        end if
+
     case(MAPPING)
 
        pretty_print=.true. .and. stream%pp_allowed
@@ -1297,6 +1337,7 @@ contains
     case(SCALAR)
 
     case(NEWLINE)
+
        if (stream%flowrite) then
           !print *,'NEWLINE:',stream%flowrite
           change_line=.true.
@@ -1343,12 +1384,12 @@ contains
              istat=-1
              return
           else
-             !crop the writing 
+             !crop the writing
              towrite_lgt=stream%max_record_length
              !stop 'ERROR (dump): writing exceeds record size'
           end if
        else
-!          write(*,fmt='(a,i0,a)',advance="no") '(indent_lgt ',indent_lgt,')'
+          !write(*,fmt='(a,i0,a)',advance="no") '(indent_lgt ',indent_lgt,')'
           write(stream%unit,'(a)',advance=trim(adv))repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
        end if
     end if
@@ -1385,7 +1426,6 @@ contains
 
     subroutine pretty_printing(rigid,anchor,message,icursor,&
          indent_lgt,prefix_lgt,msg_lgt,max_lgt,shift_lgt,change_line)
-      use yaml_strings
       implicit none
       logical, intent(in) :: rigid
       integer, intent(in) :: icursor,prefix_lgt,msg_lgt,max_lgt
@@ -1408,7 +1448,7 @@ contains
       !print *, 'there',tabeff,itab,ianchor_pos,shift_lgt,msg_lgt,prefix_lgt,indent_lgt,icursor
       !see if the line enters
       if (icursor+msg_lgt+prefix_lgt+indent_lgt+shift_lgt >= max_lgt) then
-         !restart again 
+         !restart again
          change_line=.true.
          !reset newly created tab
          if (stream%itab==stream%itab_active .and. stream%itab > 1)&
@@ -1439,7 +1479,7 @@ contains
          !first check that the tabbing is already done, otherwise add another tab
          if (stream%itab < stream%itab_active) then
             !realign the value to the tabbing
-            do 
+            do
                if (ianchor_pos <= stream%linetab(stream%itab) .or. &
                     stream%itab==stream%itab_active) exit
                stream%itab=modulo(stream%itab,tot_max_record_length/tab)+1
@@ -1470,7 +1510,7 @@ contains
       if (.not.stream%flowrite .and. stream%icursor==1) then
          indent_value=stream%indent!max(stream%indent,0) !to prevent bugs
       !if first time in the flow recuperate the saved indent
-      else if (stream%icursor==1 .and. stream%iflowlevel==1 & 
+      else if (stream%icursor==1 .and. stream%iflowlevel==1 &
            .and. stream%ievt_flow==0) then
          indent_value=stream%indent_previous
       else
@@ -1487,7 +1527,7 @@ contains
 !      else
 !         indent_value=stream%indent_previous
 !      end if
-      
+
     end function indent_value
 
     !> Decide whether comma has to be put
@@ -1504,7 +1544,7 @@ contains
          if (.not. put_comma .and. comma_potentially_needed(evt)) then
             !print *,'event'
             !control whether there is a ending flow
-            !if (stream%iflowlevel > 1 .and. 
+            !if (stream%iflowlevel > 1 .and.
          end if
       end if
       !in any case the comma should not be put before a endflow
@@ -1514,14 +1554,16 @@ contains
 
   end subroutine dump
 
+
   function flow_is_starting(evt)
     implicit none
     integer, intent(in) :: evt
     logical flow_is_starting
-    
+
     flow_is_starting=(evt==MAPPING_START .or. evt == SEQUENCE_START)
 
   end function flow_is_starting
+
 
   function flow_is_ending(evt)
     implicit none
@@ -1531,6 +1573,7 @@ contains
     flow_is_ending=(evt==MAPPING_END .or. evt == SEQUENCE_END)
 
   end function flow_is_ending
+
 
   function comma_not_needed(evt)
     implicit none
@@ -1543,8 +1586,9 @@ contains
                      evt==SCALAR         .or. &
                      evt==COMMENT        .or. &
                      evt==SEQUENCE_ELEM  .or. &
-                     evt==NEWLINE 
+                     evt==NEWLINE
   end function comma_not_needed
+
 
   function comma_potentially_needed(evt)
     implicit none
@@ -1593,7 +1637,7 @@ contains
     stream%itab_active=0
     stream%itab=0
     !all needed commas are placed in the previous line
-  end subroutine carriage_return  
+  end subroutine carriage_return
 
 
   !> Open a level
@@ -1672,69 +1716,68 @@ contains
     stream%indent=max(stream%indent-stream%indent_step,0) !to prevent bugs
   end subroutine close_indent_level
 
-   subroutine yaml_dict_dump(dict,flow)
   !> Dump a dictionary
-    use dictionaries
-    implicit none
-    type(dictionary), intent(in) :: dict   !< Dictionary to dump
-    logical, intent(in), optional :: flow  !< if .true. inline
-    !local variables
-    logical :: flowrite
-      character(len=3) :: adv
+  subroutine yaml_dict_dump(dict,flow)
+   implicit none
+   type(dictionary), intent(in) :: dict   !< Dictionary to dump
+   logical, intent(in), optional :: flow  !< if .true. inline
+   !local variables
+   logical :: flowrite
+     character(len=3) :: adv
 
-    flowrite=.false.
-    if (present(flow)) flowrite=flow
+   flowrite=.false.
+   if (present(flow)) flowrite=flow
 
-      !TEST (the first dictionary has no key)
-      !if (.not. associated(dict%parent)) then
-      if (associated(dict%child)) then
-         call yaml_dict_dump_(dict%child,flowrite)
-      else
-         if (flowrite) then
-            adv='no '
+     !TEST (the first dictionary has no key)
+     !if (.not. associated(dict%parent)) then
+     if (associated(dict%child)) then
+        call yaml_dict_dump_(dict%child,flowrite)
+     else
+        if (flowrite) then
+           adv='no '
+        else
+           adv='yes'
+        end if
+        call yaml_scalar(dict%data%value,advance=adv)
+     end if
+
+   contains
+     recursive subroutine yaml_dict_dump_(dict,flowrite)
+         implicit none
+         type(dictionary), intent(in) :: dict
+         logical, intent(in) :: flowrite
+
+         if (associated(dict%child)) then
+            !see whether the child is a list or not
+            !print *trim(dict%data%key),dict%data%nitems
+            if (dict%data%nitems > 0) then
+               call yaml_open_sequence(trim(dict%data%key),flow=flowrite)
+               call yaml_dict_dump_(dict%child,flowrite)
+               call yaml_close_sequence()
+            else
+               if (dict%data%item >= 0) then
+                  call yaml_sequence(advance='no')
+                  call yaml_dict_dump_(dict%child,flowrite)
+               else
+                  call yaml_open_map(trim(dict%data%key),flow=flowrite)
+                  !call yaml_map('No. of Elems',dict%data%nelems)
+                  call yaml_dict_dump_(dict%child,flowrite)
+                  call yaml_close_map()
+               end if
+            end if
          else
-            adv='yes'
+            !print *,'ciao',dict%key,len_trim(dict%key),'key',dict%value,flowrite
+            if (dict%data%item >= 0) then
+               call yaml_sequence(trim(dict%data%value))
+            else
+               call yaml_map(trim(dict%data%key),trim(dict%data%value))
+            end if
          end if
-         call yaml_scalar(dict%data%value,advance=adv)
-      end if
+         if (associated(dict%next)) then
+            call yaml_dict_dump_(dict%next,flowrite)
+         end if
 
-    contains
-      recursive subroutine yaml_dict_dump_(dict,flowrite)
-          use dictionaries
-          implicit none
-          type(dictionary), intent(in) :: dict
-          logical, intent(in) :: flowrite
+       end subroutine yaml_dict_dump_
+  end subroutine yaml_dict_dump
 
-          if (associated(dict%child)) then
-             !see whether the child is a list or not
-             !print *trim(dict%data%key),dict%data%nitems
-             if (dict%data%nitems > 0) then
-                call yaml_open_sequence(trim(dict%data%key),flow=flowrite)
-                call yaml_dict_dump_(dict%child,flowrite)
-                call yaml_close_sequence()
-             else
-                if (dict%data%item >= 0) then
-                   call yaml_sequence(advance='no')
-                   call yaml_dict_dump_(dict%child,flowrite)
-                else
-                   call yaml_open_map(trim(dict%data%key),flow=flowrite)
-                   !call yaml_map('No. of Elems',dict%data%nelems)
-                   call yaml_dict_dump_(dict%child,flowrite)
-                   call yaml_close_map()
-                end if
-             end if
-          else 
-             !print *,'ciao',dict%key,len(trim(dict%key)),'key',dict%value,flowrite
-             if (dict%data%item >= 0) then
-                call yaml_sequence(trim(dict%data%value))
-             else
-                call yaml_map(trim(dict%data%key),trim(dict%data%value))
-             end if
-          end if
-          if (associated(dict%next)) then
-             call yaml_dict_dump_(dict%next,flowrite)
-          end if
-
-        end subroutine yaml_dict_dump_
-      end subroutine yaml_dict_dump
 end module yaml_output

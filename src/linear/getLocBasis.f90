@@ -1,6 +1,7 @@
 !> @file
+!! Linear version: Handle local basis set
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -1292,7 +1293,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
 
 end subroutine reconstruct_kernel
 
-!!!!!!!! passing sparse ovrlp, but for now assuming ovrlp%matrix will be allocated if using dense
+!> Passing sparse ovrlp, but for now assuming ovrlp%matrix will be allocated if using dense
 subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
            basis_overlap, coeff)
   use module_base
@@ -1308,9 +1309,9 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
   type(sparseMatrix),intent(in) :: basis_overlap
   real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
   ! Local variables
-  integer :: ierr, istat, iall, ind, iorb, korb, kkorb, lorb, llorb, jorb, skipped, done, iseg, segn
+  integer :: ierr, istat, iall, ind, iorb, korb, llorb, jorb
   integer :: npts_per_proc, ind_start, ind_end, indc
-  real(kind=8), dimension(:,:), allocatable :: coeff_tmp, ovrlp_coeff, ovrlp_coeff2, coefftrans
+  real(kind=8), dimension(:,:), allocatable :: coeff_tmp, ovrlp_coeff, ovrlp_coeff2!, coefftrans
   character(len=*),parameter:: subname='reorthonormalize_coeff'
   !integer :: iorb, jorb !DEBUG
   real(kind=8) :: tt!, tt2, tt3, ddot   !DEBUG

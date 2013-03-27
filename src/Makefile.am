@@ -215,6 +215,8 @@ libmain_a_SOURCES = \
 	$(high_level)
 libbigdft_1_a_SOURCES =
 
+libbigdft_1_a_SOURCES =
+
 libbigdft-1.a: $(libmain_a_OBJECTS) $(subs_static_library)
 	test -e "tmp-libbigdft" || $(INSTALL) -d -m 755 tmp-libbigdft
 	cd tmp-libbigdft ; \
@@ -300,7 +302,7 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
-linear/convolutions_aux.o: linear/filterModule.o
+linear/convolutions_aux.o: filterModule.o
 
 cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
 

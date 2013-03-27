@@ -1,10 +1,17 @@
-!include file for deallocation template
+!> @file
+!! Include fortran file for deallocation template
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
 
   !local variables
-  integer :: istat,ierr
+  integer :: ierr
   character(len=info_length) :: address
   !local variables
-  integer :: i_all
   integer(kind=8) :: ilsize
   !      call timing(0,'AllocationProf','IR') 
   !profile the array allocation

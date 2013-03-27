@@ -32,7 +32,8 @@ if BUILD_DYNAMIC_LIBS
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/src
 endif
 
-AM_FCFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/PSolver -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/src/includes -I$(top_builddir)/src/PSolver -I$(top_srcdir)/src/PSolver -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
+#AM_FCFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/PSolver -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 PSPS = psppar.H \
        psppar.C \
@@ -93,12 +94,13 @@ report:
 	@if test $(MAKELEVEL) = 0 ; then	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ;python $(top_srcdir)/tests/report.py ; fi
 
 %.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	@export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	echo "$(abs_top_builddir)/src/bigdft-tool -n 1 > $@"; \
 	$(abs_top_builddir)/src/bigdft-tool -n 1 > $@
-	name=`basename $@ .out` ; \
+	@name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
-	name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	@name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
 	if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
 	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
@@ -109,6 +111,7 @@ report:
 	fi; \
 	echo outdir ./ >> $$file ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@" ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
 	if test -f $$file.bak ; then \
 	   mv $$file.bak $$file ; else rm -f $$file ; \
@@ -116,7 +119,7 @@ report:
 	if test -f list_posinp; then \
 	   cat log-* > log.yaml ; \
 	fi
-	name=`basename $@ .out` ; \
+	@name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.geopt.mon.out: $(abs_top_builddir)/src/bigdft
 	name=`basename $@ .geopt.mon.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
@@ -130,7 +133,7 @@ report:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.freq.out: $(abs_top_builddir)/src/frequencies
-	name=`basename $@ .freq.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	@name=`basename $@ .freq.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
 	if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
 	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
@@ -138,6 +141,7 @@ report:
 	fi ; \
 	echo outdir ./ >> $$file ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	echo "Running $(run_parallel) $(abs_top_builddir)/src/frequencies > $@" ; \
 	$(run_parallel) $(abs_top_builddir)/src/frequencies > $@
 	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi ;\
 	name=`basename $@ .freq.out` ; \
@@ -284,18 +288,24 @@ run_message:
 
 
 %.diff	: %.run
-	@dir=`basename $@ .diff` ; \
-        chks="$(srcdir)/$$dir/*.ref" ; \
-	for c in $$chks ; do $$DIFF $$c $$dir/$$(basename $$c .ref)".out";\
-	done ; \
-        ychks="$(srcdir)/$$dir/*.ref.yaml" ; \
-	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed s/.out// | sed s/.xabs// | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
-	if test -n "$$name" ; then \
-	$$DIFF $$c $$dir/log-$$name.yaml;\
-	else \
-	$$DIFF $$c $$dir/log.yaml;\
-	fi ;\
-	done ; \
+	@if test -z "$$DIFF" ; then echo "The environment variable DIFF is missing!"; else \
+			dir=`basename $@ .diff` ; \
+				chks="$(srcdir)/$$dir/*.ref" ; \
+			for c in $$chks ; do \
+			    echo "$$DIFF $$c $$dir/$$(basename $$c .ref).out"; \
+				$$DIFF $$c $$dir/$$(basename $$c .ref)".out"; \
+			done ; \
+				ychks="$(srcdir)/$$dir/*.ref.yaml" ; \
+			for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed s/.out// | sed s/.xabs// | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+			if test -n "$$name" ; then \
+			echo "$$DIFF $$c $$dir/log-$$name.yaml" ; \
+			$$DIFF $$c $$dir/log-$$name.yaml; \
+			else \
+			echo "$$DIFF $$c $$dir/log.yaml" ; \
+			$$DIFF $$c $$dir/log.yaml; \
+			fi ;\
+			done ; \
+    fi ; \
 	touch $@
 
 %.updateref: #%.run %.diff
@@ -366,22 +376,20 @@ all:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) foot_message ; fi
 
 head_message:
-	@echo "========================================================="
+	@echo "=============================================================================="
 	@echo " This is a directory for tests. Beside the 'make check'"
 	@echo " one can use the following commands:"
 	@echo "  make in:           generate all input dirs."
 	@echo "  make failed-check: run check again on all directories"
 	@echo "                     with missing report or failed report."
-	@echo "  make complete-check: for developpers, makes long and"
-	@echo "                       extensive tests."
+	@echo "  make complete-check: for developpers, makes long and extensive tests."
 	@echo "  make X.in:         generate input dir for directory X."
 	@echo "  make X.check:      generate a report for directory X"
 	@echo "                     (if not already existing)."
-	@echo "  make X.recheck:    force the creation of the report in"
-	@echo "                     directory X."
-	@echo "  make X.clean:      clean the given directroy X."
-	@echo "  make X.diff:       make the difference between output"
-	@echo "                     and the reference (with DIFF envvar)"
+	@echo "  make X.recheck:    force the creation of the report in directory X."
+	@echo "  make X.clean:      clean the given directory X."
+	@echo "  make X.diff:       make the difference between output and the reference"
+	@echo "                     (with the environment variable DIFF)"
 	@echo "  make X.updateref   update the reference with the output"
 	@echo "                     (prompt the overwrite)"	
 
@@ -394,13 +402,11 @@ oclrun: head_message $(mpirun_message)
 	@echo ""
 	@echo " Use the environment variable run_ocl"
 	@echo "     ex: export run_ocl='on' to use OpenCL acceleration"
-	@echo "     use run_ocl='CPU' or 'ACC' to force use of hardware"
-	@echo "     different than GPU"
-	@echo " and the environment variable ocl_platform"
+	@echo "     use run_ocl='CPU' or 'ACC' to force use of hardware different than GPU"
+	@echo " and the environment variables ocl_platform and ocl_devices"
 	@echo "     ex: export ocl_platform='NVIDIA'"
-	@echo " and the environment variable ocl_devices"
 	@echo "     ex: export ocl_devices='K20'"
 
 foot_message: $(mpirun_message) $(oclrun_message) head_message
-	@echo "========================================================="
+	@echo "=============================================================================="
 

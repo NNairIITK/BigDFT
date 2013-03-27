@@ -1476,10 +1476,9 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
   real(gp) :: tt,t1,t2,t3,t4,t5,t6,t7
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
-
+  !character(len=12) :: orbname
   ! DEBUG
   real(wp), dimension(:), allocatable :: gpsi
-  character(len=12) :: orbname
   !write(*,*) 'INSIDE readonewave'
 
   call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &
@@ -2039,7 +2038,8 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   !Local variables
   character(len=*), parameter :: subname='initialize_linear_from_file'
   character(len =256) :: error
-  logical :: lstat, consistent, perx, pery, perz
+  logical :: lstat, consistent
+!  logical :: perx, pery, perz
   integer :: ilr, ierr, iorb_old, iorb, ispinor, iorb_out, n1_old, n2_old, n3_old
   integer :: i_stat, i_all,confPotOrder, confPotOrder_old, onwhichatom_tmp, iat
 ! integer :: jorb

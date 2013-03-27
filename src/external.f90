@@ -5,25 +5,25 @@
 !! No interface should be required to manipulate these routines
 !! Non-intrinsic objects should be mapped to addresses which have to be manipulated
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
 !> Routine which initalizes the BigDFT environment
-!! 
 subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   use BigDFT_API
   implicit none
   integer, dimension(4), intent(out) :: mpi_info !< first entry: id of MPI task in the groups,
-  !! second entry: number of MPI tasks, third: id of group, fourth: total number of taskgroups
-  integer, intent(out) :: nconfig !<if negative, run_is is a list_posinp, otherwise comes from the taskgroups
-  character(len=*), intent(out) :: run_id !< radical of the taskgroups or list_posinp name
-  integer, intent(out) :: ierr  !< error code
+                                                 !! 2nd: number of MPI tasks, third: id of group, fourth: total number of taskgroups
+  integer, intent(out) :: nconfig                !< if negative, run_is is a list_posinp, otherwise comes from the taskgroups
+  character(len=*), intent(out) :: run_id        !< radical of the taskgroups or list_posinp name
+  integer, intent(out) :: ierr                   !< error code
   !local variables
   logical :: exist_list
-  integer :: iproc,nproc,ngroup_size,nconfig_file,mpi_groupsize
+  integer :: iproc,nproc,nconfig_file,mpi_groupsize
   character(len=60) :: posinp_file,radical
 
   !initalize the global mpi environment
@@ -71,6 +71,7 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
 
 end subroutine bigdft_init
 
+
 subroutine bigdft_finalize(ierr)
   use BigDFT_API
   implicit none
@@ -84,6 +85,7 @@ subroutine bigdft_finalize(ierr)
    call MPI_FINALIZE(ierr)
 
 end subroutine bigdft_finalize
+
 
 subroutine bigdft_get_run_ids(nconfig,run_id,arr_radical,arr_posinp,ierr)
   use BigDFT_API
@@ -150,6 +152,7 @@ subroutine bigdft_get_run_ids(nconfig,run_id,arr_radical,arr_posinp,ierr)
   end if
 
 end subroutine bigdft_get_run_ids
+
 
 function bigdft_error_ret(err_signal,err_message) result (ierr)
   implicit none

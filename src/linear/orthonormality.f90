@@ -28,7 +28,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   logical,intent(inout) :: can_use_transposed
 
   ! Local variables
-  integer :: it, istat, iall, iorb, jorb
+  integer :: it, istat, iall!, iorb, jorb
   real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm
   !type(sparseMatrix) :: inv_ovrlp_half
   character(len=*),parameter :: subname='orthonormalizeLocalized'
@@ -615,7 +615,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   type(sparseMatrix),intent(inout) :: inv_ovrlp_half
 
   ! Local variables
-  integer :: lwork, istat, iall, iorb, jorb, info, iseg, iiorb, jjorb, ii, ii_inv
+  integer :: lwork, istat, iall, iorb, jorb, info, iiorb, jjorb, ii, ii_inv!, iseg
   character(len=*),parameter :: subname='overlapPowerMinusOneHalf'
   real(kind=8),dimension(:),allocatable :: eval, work
   real(kind=8),dimension(:,:,:),allocatable :: tempArr

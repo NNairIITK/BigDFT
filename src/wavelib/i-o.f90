@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to reformat wavefunctions
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group 
+!!    Copyright (C) 2010-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -562,6 +562,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   use module_base
   use module_types
   use internal_io
+  use yaml_output
   implicit none
   logical, intent(in) :: useFormattedInput
   integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3
@@ -608,23 +609,31 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
 
      !if (iproc == 0) write(*,*) 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
-     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
+     if (iproc == 0) call yaml_map('Need to reformat wavefunctions',.false.)
+     !if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
      call read_psi_compress(unitwf, useFormattedInput, wfd%nvctr_c, wfd%nvctr_f, psi, lstat, error)
      if (.not. lstat) call io_error(trim(error))
 
   else
 
      if (iproc == 0 .and. iorb == 1) then
-        write(*,*) 'wavefunctions need reformatting'
-        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,"(1x,A,6F14.10)") &
-             'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
-        if (nvctr_c_old /= wfd%nvctr_c) write(*,*) 'because nvctr_c_old /= nvctr_c',&
-             nvctr_c_old,wfd%nvctr_c
-        if (nvctr_f_old /= wfd%nvctr_f) write(*,*) 'because nvctr_f_old /= nvctr_f',&
-             nvctr_f_old,wfd%nvctr_f
+        call yaml_map('Need to reformat wavefunctions',.false.)
+        !write(*,*) 'wavefunctions need reformatting'
+        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) &
+           & call yaml_comment('because hgrid_old /= hgrid' // &
+             & trim(yaml_toa((/ hx_old,hy_old,hz_old,hx,hy,hz /), fmt='(f14.10)')))
+           ! & write(*,"(1x,A,6F14.10)") 'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
+        if (nvctr_c_old /= wfd%nvctr_c) &
+           & call yaml_comment('because nvctr_c_old /= nvctr_c' // trim(yaml_toa((/ nvctr_c_old,wfd%nvctr_c /))))
+           ! & write(*,*) 'because nvctr_c_old /= nvctr_c', nvctr_c_old,wfd%nvctr_c
+        if (nvctr_f_old /= wfd%nvctr_f) &
+           & call yaml_comment('because nvctr_f_old /= nvctr_f' // trim(yaml_toa((/ nvctr_f_old,wfd%nvctr_f /))))
+           ! & write(*,*) 'because nvctr_f_old /= nvctr_f', nvctr_f_old,wfd%nvctr_f
         if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
-             write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
-        if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
+           call yaml_comment('because cell size has changed' // trim(yaml_toa((/ n1_old,n1,n2_old,n2,n3_old,n3 /))))
+           ! & write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
+        if (displ > 1.d-3 ) call yaml_comment('large displacement of molecule' // trim(yaml_toa(displ)))
+        !if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
      end if
 
      allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
@@ -894,6 +903,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
      nseg_f,nvctr_f,keyg_f,keyv_f, & 
      psi_c,psi_f,eval)
   use module_base
+  use yaml_output
   implicit none
   logical, intent(in) :: useFormattedOutput
   integer, intent(inout) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f
@@ -978,7 +988,8 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
      enddo
   enddo
 
-  if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
+  if (verbose >= 2) call yaml_comment(trim(yaml_toa(iorb)) //'th wavefunction written')
+  !if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
 
 END SUBROUTINE writeonewave
 
@@ -1011,12 +1022,13 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
   !local variables
   character(len=*), parameter :: subname='reformatonesupportfunction'
-  logical :: cif1,cif2,cif3,perx,pery,perz
-  integer :: i_stat,i_all,i1,i2,i3,j1,j2,j3,l1,l2,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
-  real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold,mindist
-  real(wp) :: zr,yr,xr,ym1,y00,yp1!,dnrm2
-  real(wp), dimension(-1:1,-1:1) :: xya
-  real(wp), dimension(-1:1) :: xa
+  logical :: perx,pery,perz
+  integer :: i_stat,i_all,nb1,nb2,nb3
+  !integer :: cif1,cif2,cif3,ind,j1,j2,j3,i1,i2,i3,l1,l2,jj1,jj2,jj3a,jj3b,jj3c
+  real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,dx,dy,dz,mindist
+  !real(wp) :: x,y,z,yr,xr,ym1,y00,yp1,dnrm2,zr,xold,yold,zold
+  !real(wp), dimension(-1:1,-1:1) :: xya
+  !real(wp), dimension(-1:1) :: xa
   real(wp), dimension(:), allocatable :: ww,wwold
   real(wp), dimension(:), allocatable :: x_phi, y_phi
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
@@ -1134,7 +1146,7 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
          (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2) 
 
     call interpolate_and_transpose(hzh,dz/hzh,nd,nrange,y_phi,(2*n2+2+2*nb2)*(2*n1+2+2*nb1),&
-	 (2*n3_old+2+2*nb3),psi_w2,(2*n3+2+2*nb3),psifscf) 
+         (2*n3_old+2+2*nb3),psi_w2,(2*n3+2+2*nb3),psifscf) 
 
     i_all=-product(shape(psi_w))*kind(psi_w)
     deallocate(psi_w,stat=i_stat)

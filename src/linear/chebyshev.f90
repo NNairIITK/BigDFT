@@ -1,4 +1,14 @@
-!again assuming all matrices have same sparsity, still some tidying to be done
+!> @file
+!!  Linear version: Define Chebyshev polynomials
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+ 
+!> Again assuming all matrices have same sparsity, still some tidying to be done
 subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_compr, &
            ovrlp_compr, calculate_SHS, SHS, fermi, penalty_ev)
   use module_base
@@ -18,13 +28,13 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_
   real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
   real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
   ! Local variables
-  integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr,i,j, nseq, nmaxsegk, nmaxvalk
+  integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr, nseq, nmaxsegk, nmaxvalk
   integer :: isegstart, isegend, iseg, ii, jjorb, nout
   character(len=*),parameter :: subname='chebyshev_clean'
   real(8), dimension(:,:,:), allocatable :: vectors
   real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq, SHS_seq
   real(kind=8),dimension(:,:),allocatable :: matrix
-  real(kind=8) :: tt1, tt2, time1,time2 , tt, time_to_zero, time_vcopy, time_sparsemm, time_axpy, time_axbyz, time_copykernel
+  real(kind=8) :: tt
   integer,dimension(:,:,:),allocatable :: istindexarr
   integer,dimension(:),allocatable :: ivectorindex
   integer,parameter :: one=1, three=3
@@ -32,7 +42,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_
   integer,dimension(:,:),pointer :: onedimindices
 
   call timing(iproc, 'chebyshev_comp', 'ON')
-
 
   norb = orbs%norb
   norbp = orbs%norbp
@@ -387,7 +396,7 @@ subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)
   integer,dimension(4,nout),intent(in) :: onedimindices
   real(kind=8),intent(in) :: a
   real(kind=8),dimension(norb,norbp),intent(in) :: x
-  real(kind=8),dimension(norb,norbp),intent(out) :: y
+  real(kind=8),dimension(norb,norbp),intent(inout) :: y
 
   ! Local variables
   integer :: i, jorb, iorb
