@@ -2651,7 +2651,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
       nvalelec =  atoms%nelpsp(atoms%iatype(k))
       call eleconf(nzatom, nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
       
-      radius = 1.0/(3.0*rcov**2)
+      radius = 1.0/(3*rcov**2)
       cutoff = 4*rcov
  
       xbox = nint(cutoff/hhx) ; ybox = nint(cutoff/hhy) ; zbox = nint(cutoff/hhz)
