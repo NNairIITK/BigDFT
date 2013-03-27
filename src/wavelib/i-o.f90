@@ -1339,9 +1339,8 @@ subroutine interpolate_and_transpose(h,t0,nphi,nrange,phi,ndat,nin,psi_in,nout,p
 
 end subroutine interpolate_and_transpose
 
-
 !call the routine which performs the interpolation in each direction
-subroutine morph_and_transpose(h,t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
+subroutine my_morph_and_transpose(h,t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
  use module_base
  implicit none
  integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
@@ -1354,14 +1353,18 @@ subroutine morph_and_transpose(h,t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,p
  real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
  real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
  !local variables
- character(len=*), parameter :: subname='interpolate_and_transpose'
- integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me,k
- real(gp) :: dt, tt, t0_l
+ character(len=*), parameter :: subname='my_morph_and_transpose'
+ real(gp), parameter  :: tol=1.e-14_gp
+ integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me,k2,k1
+ real(gp) :: dt,tt,t0_l,ksh1,ksh2,k,kold,alpha,diff
  real(gp), dimension(:), allocatable :: shf !< shift filter
 
  !assume for the moment that the grid spacing is constant
-	 
+ !call f_malloc_routine_id(subname)
  m_isf=nrange/2
+
+ !shf=f_malloc(bounds=(/-m_isf .to. m_isf/),id='shf')
+
  !calculate the shift filter for the given t0
  allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
  call memocc(i_stat,shf,'shf',subname)
@@ -1369,68 +1372,107 @@ subroutine morph_and_transpose(h,t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,p
  !number of points for a unit displacement
  nunit=nphi/nrange 
 
-!print *,'start interpolation',ish,t0,shf
-
-!do i=-m_isf,m_isf
-!write(104,*)i,shf(i)
-!end do
 
  !apply the interpolating filter to the output
  do j=1,ndat
-   psi_out(j,:)=0.0_gp
-   do i=1,nin
+    psi_out(j,:)=0.0_gp
+    do i=1,nout
 
-     !determine the local shif which has to be applied
-     !this should be number between -0.5 and 0.5
-     t0_l=t0_field(i,j)
-     dt=t0_l-nint(t0_l)
-     !evaluate the shift
-     ish=nint(real(nunit,gp)*dt)
+       kold=-1000.0_gp
+       find_trans: do l=1,nin
+          k=real(l,gp)+t0_field(l,j)
+          if (k-real(i,gp) > tol) exit find_trans
+          kold=k
+       end do find_trans
 
-     if (ish<=0) then
-      shf(-m_isf)=0.0_gp
-     else
-      shf(-m_isf)=phi(ish)  
-     end if 
-     ipos=ish
+       ! want to use either l or l-1 to give us point i - pick closest
+       if (k-real(i,gp) < -kold+real(i,gp)) then
+          ksh1=k-real(i,gp)
+          ksh2=-kold+real(i,gp)
+          k1=l
+          k2=l-1
+          if (k2==0) then
+             k2=1
+             ksh2=ksh1
+          end if
+          if (k1==nin+1) then
+             k1=nin
+             ksh1=ksh2
+          end if
+       else
+          ksh1=-kold+real(i,gp)
+          ksh2=k-real(i,gp)
+          k1=l-1
+          k2=l
+          if (k1==0) then
+             k1=1
+             ksh1=ksh2
+          end if
+          if (k2==nin+1) then
+             k2=nin
+             ksh2=ksh1
+          end if
+       end if
 
-     do k=-m_isf+1,m_isf-1 !extremes excluded
-      !position of the shifted argument in the phi array
-      ipos=ipos+nunit
-      shf(k)=phi(ipos)  
-     end do
+       if (ksh1==0.0_gp .or. k1==k2) then !otherwise already have exactly on point
+          ksh2=1.0_gp
+          ksh1=0.0_gp
+       end if 
 
-     if (ish<=0) then
-      shf(m_isf)=phi(ipos+nunit)
-     else
-      shf(m_isf)=0.0_gp
-     end if 
+       alpha=ksh2/(ksh1+ksh2)
 
-     !define the shift for output results
-     ish=nint(t0_l)
+       t0_l=alpha*t0_field(k1,j)+(1.0_gp-alpha)*t0_field(k2,j)
 
+       dt=t0_l-nint(t0_l)
+   
+       diff=real(i,gp)-(k1+t0_l)   
 
-     !here the boundary conditions have to be considered
-      tt=0.0_gp
-      ms=-min(m_isf,i-1)
-      me=min(m_isf,nin-i)
-      do l=ms,me
-         tt=tt+shf(l)*psi_in(i+l,j)
-      end do
-!      tt=h*tt
-      
-      if (i+ish > 0 .and. i+ish < nout) psi_out(j,i+ish)=tt
-	!if (i+ish > 0 .and. i+ish < nout)       write(102,*)i+ish,psi_out(j,i+ish)
-   end do
+       if (abs(diff - dt) < abs(diff+dt)) dt=-dt
+
+       !evaluate the shift
+       ish=nint(real(nunit,gp)*dt)
+
+       if (ish<=0) then
+          shf(-m_isf)=0.0_gp
+       else
+          shf(-m_isf)=phi(ish)  
+       end if 
+       ipos=ish
+
+       do l=-m_isf+1,m_isf-1 !extremes excluded
+          !position of the shifted argument in the phi array
+          ipos=ipos+nunit
+          shf(l)=phi(ipos)  
+       end do
+
+       if (ish<=0) then
+          shf(m_isf)=phi(ipos+nunit)
+       else
+          shf(m_isf)=0.0_gp
+       end if 
+
+       !here the boundary conditions have to be considered
+       tt=0.0_gp
+       ms=-min(m_isf,k1-1)
+       me=min(m_isf,nin-k1)
+       do l=ms,me
+          tt=tt+shf(l)*psi_in(k1+l,j)
+       end do
+
+       if (i > 0 .and. i < nout) psi_out(j,i)=tt
+
+    end do
+
  end do
 
-
+! call f_free(shf)
+! call f_malloc_free_routine()
 
  i_all=-product(shape(shf))*kind(shf)
  deallocate(shf,stat=i_stat)
  call memocc(i_stat,i_all,'shf',subname)
 
-end subroutine morph_and_transpose
+end subroutine my_morph_and_transpose
 
 
 subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
