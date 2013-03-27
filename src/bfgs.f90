@@ -515,7 +515,8 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
     work(mf:mf-1+nr)=f(1:nr)
     work(mx:mx-1+nr)=x(1:nr)
     alpha=min(alphamax,alpha*1.1d0)
-    x(1:nr)=x(1:nr)+alpha*work(iw3:iw3-1+nr)
+   x(1:nr)=x(1:nr)+alpha*work(iw3:iw3-1+nr)
+   ! x(6) = x(6) - 0.25
 end subroutine bfgs_reza
 
 
