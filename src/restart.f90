@@ -1502,7 +1502,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   !   tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
   !enddo
 
-  ! only care atom this tmb is on
+  ! only care about atom this tmb is on
   iat=onwhichatom(iorb)
   tx=mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
   ty=mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2

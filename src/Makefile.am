@@ -213,6 +213,7 @@ libmain_a_SOURCES = \
 	$(c_level) \
 	$(low_level) \
 	$(high_level)
+libbigdft_1_a_SOURCES =
 
 libbigdft_1_a_SOURCES =
 

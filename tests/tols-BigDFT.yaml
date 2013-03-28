@@ -4,7 +4,6 @@ Default tolerances:
  
 Keys to ignore:
  - Code logo
- - Timestamp of this run
  - MPI task*
  - Timings for root process
  - Maximal OpenMP threads per MPI task
@@ -24,6 +23,8 @@ Keys to ignore:
  - Tolerances for this check
  - Material acceleration
  - Number of OpenCL devices per node
+Patterns to ignore:
+ - Timestamp
 
 Expected Test CPUtime: #
  C: #[expected, error]
