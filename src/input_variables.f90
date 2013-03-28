@@ -434,6 +434,7 @@ subroutine default_input_variables(in)
   ! Default for lin.
   nullify(in%lin%potentialPrefac_lowaccuracy)
   nullify(in%lin%potentialPrefac_highaccuracy)
+  nullify(in%lin%potentialPrefac_ao)
   nullify(in%lin%norbsPerType)
   nullify(in%lin%locrad)
   nullify(in%lin%locrad_lowaccuracy)
@@ -833,7 +834,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   logical :: found
   character(len=20):: atomname
   integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
-  real(gp):: ppl, pph, lrl, lrh, kco
+  real(gp):: ppao, ppl, pph, lrl, lrh, kco
   real(gp),dimension(atoms%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
 
   !Linear input parameters
@@ -944,6 +945,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
         itype = itype + 1
      end if
      call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
+     call input_var(ppao,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
@@ -956,6 +958,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
            found=.true.
            parametersSpecified(jtype)=.true.
            in%lin%norbsPerType(jtype)=npt
+           in%lin%potentialPrefac_ao(jtype)=ppao
            in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
            in%lin%potentialPrefac_highaccuracy(jtype)=pph
            locradType(jtype)=lrl

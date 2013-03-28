@@ -1476,7 +1476,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
   real(gp) :: tt,t1,t2,t3,t4,t5,t6,t7
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
-  !character(len=12) :: orbname
+  character(len=12) :: orbname
   ! DEBUG
   real(wp), dimension(:), allocatable :: gpsi
   !write(*,*) 'INSIDE readonewave'
@@ -1598,7 +1598,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
   !write(orbname,*) iorb
   !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,glr,hx,hy,hz,rxyz,gpsi)
-  !!call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,lr,hx,hy,hz,rxyz,psi)
+  !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,lr,hx,hy,hz,rxyz,psi)
 
   !i_all=-product(shape(gpsi))*kind(gpsi)
   !deallocate(gpsi,stat=i_stat)
