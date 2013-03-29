@@ -139,10 +139,10 @@ hy=0.1
   dy=0.0!-0.44
   hz=0.2
   dz=0.0!0.55
-n1_old=32
-n1=32
-n2_old=32
-n2=32
+n1_old=22
+n1=22
+n2_old=22
+n2=22
   n3_old=8
   n3=8
   nb1=0
@@ -181,16 +181,17 @@ dx_field=dx/hx
   x=-n1_old*hx!0.d0
   do i=0,2*n1_old+1
     y=-n2_old*hy!0.d0
-    xgauss=lr_gauss(x,0.7d0,0.7d0)!lr_gauss(x,1.7d0,1.4d0)
+    xgauss=lr_gauss(x,0.0d0,0.7d0)!lr_gauss(x,1.7d0,1.4d0)
     do j=0,2*n2_old+1
        z=0.d0
        !ygauss=lr_gauss(y,0.0d0,0.7d0)
        ygauss=lr_gauss(y,-0.3d0,1.4d0)
        do k=1,1!1,2*n3_old+1
-          psifscfold(j,i,k)=xgauss*ygauss!*lr_gauss(z,1.4d0,2.1d0)
-theta=30.0_gp*(4.0_gp*atan(1.d0)/180.0_gp) !in degrees(converted)
-dx_field(i,j,k) =x*cos(theta)-y*sin(theta)-x !theta*y!
-dy_field(i,j,k) =x*sin(theta)+y*cos(theta)-y!
+          psifscfold(j,i,k)=xgauss!*ygauss!*lr_gauss(z,1.4d0,2.1d0)
+theta=35.0_gp*(4.0_gp*atan(1.d0)/180.0_gp) !in degrees(converted)
+dx_field(i,j,k) =x*cos(theta)-y*sin(theta)-x
+!dy_field(i,j,k) =x*sin(theta)+y*cos(theta)-y
+dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
           !write(100,*) x,y,z,psifscfold(i,j,k),dx_field(i,j,k),dy_field(i,j,k)!,psifscf(i,j,k)
           z=z+hz
        end do
@@ -325,7 +326,7 @@ dy_field(i,j,k) =x*sin(theta)+y*cos(theta)-y!
 
 
 !print*,'...interpolating second dimension...'
-    call my_morph_and_transpose(hy,psifscf/hy,nd,nrange,y_phi,(2*n1+2+2*nb1),&
+    call my_morph_and_transpose(hy,dy_field/hy,nd,nrange,y_phi,(2*n1+2+2*nb1),&
          (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2)
 
   x=-n1_old*hx!0.d0
@@ -1730,7 +1731,7 @@ END SUBROUTINE scaling_function4b2B
 
 
 !call the routine which performs the interpolation in each direction
-subroutine my_morph_and_transpose(h,t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
+subroutine morph_and_transpose(h,t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
  use module_base
  implicit none
  integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
@@ -1908,4 +1909,4 @@ end do
  deallocate(shf,stat=i_stat)
  call memocc(i_stat,i_all,'shf',subname)
 
-end subroutine my_morph_and_transpose
+end subroutine morph_and_transpose
