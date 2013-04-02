@@ -60,7 +60,7 @@ module dictionaries
   end interface
 
   interface add
-     module procedure add_char!,add_dict,add_integer,add_real,add_double,add_long
+     module procedure add_char,add_dict!,add_integer,add_real,add_double,add_long
   end interface
 
 
@@ -69,7 +69,7 @@ module dictionaries
   public :: set,dict_init,dict_free,pop,append,prepend,add
   !Handle exceptions
   public :: try,close_try,try_error
-  public :: find_key,dict_len,dict_key,dict_next,has_key
+  public :: find_key,dict_len,dict_key,dict_next,has_key,dict_size
   
 
 contains
@@ -317,6 +317,25 @@ contains
 
   end subroutine add_char
 
+  !> assign the value to the dictionary
+  subroutine add_dict(dict,dict_item)
+    implicit none
+    type(dictionary), pointer :: dict
+    type(dictionary), pointer :: dict_item
+    !local variables
+    integer :: length,isize
+    
+    isize=dict_size(dict)
+    length=dict_len(dict)
+
+    if (isize > 0) stop 'ERROR, the dictionary is not a list, add not allowed'
+
+    if (length == -1) stop 'ERROR, the dictionary is not associated' !call dict_init(dict)
+
+    call set(dict//length,dict_item)
+
+  end subroutine add_dict
+
 
   function dict_len(dict)
     implicit none
@@ -324,11 +343,11 @@ contains
     integer :: dict_len
     
     if (associated(dict)) then
-       if (associated(dict%parent)) then
+!       if (associated(dict%parent)) then
           dict_len=dict%data%nitems
-       else
-          dict_len=dict%child%data%nitems
-       end if
+!       else
+!          dict_len=dict%child%data%nitems
+!       end if
     else
        dict_len=-1
     end if
@@ -341,11 +360,11 @@ contains
     integer :: dict_size
     
     if (associated(dict)) then
-       if (associated(dict%parent)) then
+!       if (associated(dict%parent)) then
           dict_size=dict%data%nelems
-       else
-          dict_size=dict%child%data%nelems
-       end if
+!       else
+!          dict_size=dict%child%data%nelems
+!       end if
     else
        dict_size=-1
     end if

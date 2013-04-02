@@ -1319,13 +1319,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            if (iproc == 0) then 
               !yaml output
-              !print *,'test',endloop,opt%nrepmax,opt%itrep,opt%itrpmax,endlooprp,&
-              !     (((endloop .and. opt%nrepmax==1) .or. (endloop .and. opt%itrep == opt%nrepmax))&
-              !     .and. opt%itrpmax==1) .or.&
-              !     (endloop .and. opt%itrpmax >1 .and. endlooprp) 
-              !if ( (((endloop .and. opt%nrepmax==1) .or. (endloop .and. opt%itrep == opt%nrepmax))&
               if (endloop .and. (opt%itrpmax==1 .or. opt%itrpmax >1 .and. endlooprp)) then
-                 !print *,'test',endloop,opt%nrepmax,opt%itrep,opt%itrpmax
                  call yaml_sequence(label='FINAL'//trim(adjustl(yaml_toa(opt%itrep,fmt='(i3.3)'))),advance='no')
               else if (endloop .and. opt%itrep == opt%nrepmax) then
                  call yaml_sequence(label='final'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i4.4)'))),&
@@ -1382,20 +1376,10 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if (inputpsi == INPUT_PSI_LCAO) then
               if ((opt%gnrm > 4.d0 .and. KSwfn%orbs%norbu /= KSwfn%orbs%norbd) .or. &
                    &   (KSwfn%orbs%norbu == KSwfn%orbs%norbd .and. opt%gnrm > 10.d0)) then
-                 !if (iproc == 0) then
-                    !call yaml_warning('The norm of the residue is too large also with input wavefunctions.')
-                    !write( *,'(1x,a)')&
-                    !     &   'ERROR: the norm of the residue is too large also with input wavefunctions.'
-                 !end if
                  opt%infocode=3
               end if
            else if (inputpsi == INPUT_PSI_MEMORY_WVL) then
               if (opt%gnrm > 1.d0) then
-                 !if (iproc == 0) then
-                    !call yaml_warning('The norm of the residue is too large, need to recalculate input wavefunctions')
-                    !write( *,'(1x,a)')&
-                    !     &   'The norm of the residue is too large, need to recalculate input wavefunctions'
-                 !end if
                  opt%infocode=2
               end if
            end if
@@ -1408,11 +1392,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            ! Emergency exit case
            if (opt%infocode == 2 .or. opt%infocode == 3) then
               if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-              !call kswfn_free_scf_data(KSwfn, (nproc > 1))
-              !if (opt%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-              !   call ab6_mixing_deallocate(denspot%mix)
-              !   deallocate(denspot%mix)
-              !end if
               !>todo: change this return into a clean out of the routine, so the YAML is clean.
               if (iproc==0) then
                  !call yaml_close_map()
@@ -1476,6 +1455,11 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
              !&   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
         end if
         call last_orthon(iproc,nproc,opt%iter,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
+
+!!$        !EXPERIMENTAL
+!!$        !check if after convergence the integral equation associated with Helmholtz' Green function is satisfied
+!!$        !note: valid only for negative-energy eigenstates
+!!$        call integral_equation(iproc,nproc,atoms,KSwfn,denspot%dpbox%ngatherarr,denspot%rhov,GPU,proj,nlpspd,rxyz)
 
         !exit if the opt%infocode is correct
         if (opt%infocode /= 0) then

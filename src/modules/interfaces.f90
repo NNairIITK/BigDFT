@@ -4616,6 +4616,20 @@ module module_interfaces
           type(orbitals_data), optional, intent(in) :: orbs
         end subroutine overlapPowerMinusOneHalf_old
 
+        subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GPU,proj,nlpspd,rxyz)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc,nproc
+          type(atoms_data), intent(in) :: atoms
+          type(DFT_wavefunction), intent(in) :: wfn
+          type(GPU_pointers), intent(inout) :: GPU
+          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+          integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+          real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+          real(dp), dimension(:), pointer :: local_potential
+        end subroutine integral_equation
    end interface
 
 END MODULE module_interfaces

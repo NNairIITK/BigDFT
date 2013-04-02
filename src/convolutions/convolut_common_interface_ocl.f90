@@ -46,8 +46,11 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   character(len=*), parameter :: subname='allocate_data_OCL'
+  logical, parameter :: pin=.false.
   integer :: n1b, n2b, n3b, i_stat,iorb,ispinor
   integer, dimension(3) :: periodic
+
+  call f_routine_id(subname)
 
   if (geocode /= 'F') then
     periodic(1) = 1
@@ -112,19 +115,19 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
   call ocl_create_read_buffer(GPU%context,wfd%nseg_c*4,GPU%keyv_c)
   call ocl_create_read_buffer(GPU%context,wfd%nseg_f*4*2,GPU%keyg_f)
   call ocl_create_read_buffer(GPU%context,wfd%nseg_f*4,GPU%keyv_f)
-  call ocl_pin_read_buffer_async(GPU%context,GPU%queue,wfd%nseg_c*4*2,wfd%keygloc,GPU%keyg_c_host)
-  call ocl_pin_read_buffer_async(GPU%context,GPU%queue,wfd%nseg_c*4,wfd%keyvloc,GPU%keyv_c_host)
+  if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,wfd%nseg_c*4*2,wfd%keygloc,GPU%keyg_c_host)
+  if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,wfd%nseg_c*4,wfd%keyvloc,GPU%keyv_c_host)
   call ocl_enqueue_write_buffer(GPU%queue,GPU%keyg_c,wfd%nseg_c*2*4,wfd%keygloc)
   call ocl_enqueue_write_buffer(GPU%queue,GPU%keyv_c,wfd%nseg_c*4,wfd%keyvloc)
-  call ocl_release_mem_object(GPU%keyg_c_host)
-  call ocl_release_mem_object(GPU%keyv_c_host)
+  if (pin) call ocl_release_mem_object(GPU%keyg_c_host)
+  if (pin) call ocl_release_mem_object(GPU%keyv_c_host)
   if (wfd%nseg_f > 0) then
-    call ocl_pin_read_buffer_async(GPU%context,GPU%queue,wfd%nseg_f*4*2,wfd%keygloc(1,wfd%nseg_c+1),GPU%keyg_f_host)
-    call ocl_pin_read_buffer_async(GPU%context,GPU%queue,wfd%nseg_f*4,wfd%keyvloc(wfd%nseg_c+1),GPU%keyv_f_host)
-    call ocl_enqueue_write_buffer(GPU%queue,GPU%keyg_f,wfd%nseg_f*2*4,wfd%keygloc(1,wfd%nseg_c+1))
-    call ocl_enqueue_write_buffer(GPU%queue,GPU%keyv_f,wfd%nseg_f*4,wfd%keyvloc(wfd%nseg_c+1))
-    call ocl_release_mem_object(GPU%keyg_f_host)
-    call ocl_release_mem_object(GPU%keyv_f_host)
+     if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,wfd%nseg_f*4*2,wfd%keygloc(1,wfd%nseg_c+1),GPU%keyg_f_host)
+     if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,wfd%nseg_f*4,wfd%keyvloc(wfd%nseg_c+1),GPU%keyv_f_host)
+     call ocl_enqueue_write_buffer(GPU%queue,GPU%keyg_f,wfd%nseg_f*2*4,wfd%keygloc(1,wfd%nseg_c+1))
+     call ocl_enqueue_write_buffer(GPU%queue,GPU%keyv_f,wfd%nseg_f*4,wfd%keyvloc(wfd%nseg_c+1))
+     if (pin) call ocl_release_mem_object(GPU%keyg_f_host)
+     if (pin) call ocl_release_mem_object(GPU%keyv_f_host)
   end if
 
   !for preconditioner
@@ -145,33 +148,44 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
   !full_locham stategy (always true for the moment)
   GPU%full_locham=.true.
 
-  allocate(GPU%ekin(2,orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU%ekin,'ekin',subname)
+  GPU%ekin=f_malloc_ptr((/2,orbs%norbp/),id='ekin')
+  GPU%epot=f_malloc_ptr((/2,orbs%norbp/),id='epot')
+  if (pin) then
+     GPU%ekinpot_host=f_malloc_ptr((/orbs%nspinor,orbs%norbp,2/),id='ekinpot_host')
+     GPU%psicf_host=f_malloc_ptr((/2*orbs%nspinor,orbs%norbp/),id='psicf_host')
+     GPU%hpsicf_host=f_malloc_ptr((/2*orbs%nspinor,orbs%norbp/),id='hpsicf_host')
+     GPU%bprecond_host=f_malloc_ptr(2*orbs%nspinor,id='bprecond_host')
+  end if
 
-  allocate(GPU%epot(2,orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU%epot,'epot',subname)
+!!$  allocate(GPU%ekin(2,orbs%norbp+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,GPU%ekin,'ekin',subname)
+!!$  allocate(GPU%epot(2,orbs%norbp+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,GPU%epot,'epot',subname)
 
-  !allocate arrays for tracing  pinning of the memory
-  allocate(GPU%ekinpot_host(orbs%nspinor,orbs%norbp,2+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU%ekinpot_host,'ekinpot_host',subname)
-
-  allocate(GPU%psicf_host(2*orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU%psicf_host,'psicf_host',subname)
-  allocate(GPU%hpsicf_host(2*orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU%hpsicf_host,'hpsicf_host',subname)
-  allocate(GPU%bprecond_host(2*orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU%bprecond_host,'bprecond_host',subname)
-
+!!$  !allocate arrays for tracing  pinning of the memory
+!!$  allocate(GPU%ekinpot_host(orbs%nspinor,orbs%norbp,2+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,GPU%ekinpot_host,'ekinpot_host',subname)
+!!$
+!!$  allocate(GPU%psicf_host(2*orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,GPU%psicf_host,'psicf_host',subname)
+!!$  allocate(GPU%hpsicf_host(2*orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,GPU%hpsicf_host,'hpsicf_host',subname)
+!!$  allocate(GPU%bprecond_host(2*orbs%nspinor+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,GPU%bprecond_host,'bprecond_host',subname)
 
   !pin the memory of the orbitals energies
-  do iorb=1,orbs%norbp
-     do ispinor=1,orbs%nspinor
-        call ocl_pin_write_buffer_async(GPU%context,GPU%queue,8,GPU%ekin(ispinor,iorb),GPU%ekinpot_host(ispinor,iorb,1))
-        call ocl_pin_write_buffer_async(GPU%context,GPU%queue,8,GPU%epot(ispinor,iorb),GPU%ekinpot_host(ispinor,iorb,2))
+  if (pin) then
+     do iorb=1,orbs%norbp
+        do ispinor=1,orbs%nspinor
+           call ocl_pin_write_buffer_async(GPU%context,GPU%queue,8,GPU%ekin(ispinor,iorb),GPU%ekinpot_host(ispinor,iorb,1))
+           call ocl_pin_write_buffer_async(GPU%context,GPU%queue,8,GPU%epot(ispinor,iorb),GPU%ekinpot_host(ispinor,iorb,2))
+        end do
      end do
-  end do
+  end if
 
   nullify(GPU%hpsi_ASYNC)
+
+  call f_release_routine()
 
 END SUBROUTINE allocate_data_OCL
 
@@ -185,15 +199,19 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   character(len=*), parameter :: subname='free_gpu_OCL'
+  logical, parameter :: pin=.false.
   integer :: i_stat,i_all,iorb,ispinor
 
-  i_all=-product(shape(GPU%ekin))*kind(GPU%ekin)
-  deallocate(GPU%ekin,stat=i_stat)
-  call memocc(i_stat,i_all,'ekin',subname)
+  call f_free_ptr(GPU%ekin)
+  call f_free_ptr(GPU%epot)
 
-  i_all=-product(shape(GPU%epot))*kind(GPU%epot)
-  deallocate(GPU%epot,stat=i_stat)
-  call memocc(i_stat,i_all,'epot',subname)
+!!$  i_all=-product(shape(GPU%ekin))*kind(GPU%ekin)
+!!$  deallocate(GPU%ekin,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'ekin',subname)
+!!$
+!!$  i_all=-product(shape(GPU%epot))*kind(GPU%epot)
+!!$  deallocate(GPU%epot,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'epot',subname)
 
 
   call ocl_release_mem_object(GPU%d)
@@ -236,27 +254,32 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
 
   if(associated(GPU%hpsi_ASYNC)) nullify(GPU%hpsi_ASYNC)
 
-  !for pinning tracing
-  do iorb=1,orbs%norbp
-     do ispinor=1,orbs%nspinor
-        call ocl_release_mem_object(GPU%ekinpot_host(ispinor,iorb,1))
-        call ocl_release_mem_object(GPU%ekinpot_host(ispinor,iorb,2))
+  if (pin) then
+     !for pinning tracing
+     do iorb=1,orbs%norbp
+        do ispinor=1,orbs%nspinor
+           call ocl_release_mem_object(GPU%ekinpot_host(ispinor,iorb,1))
+           call ocl_release_mem_object(GPU%ekinpot_host(ispinor,iorb,2))
+        end do
      end do
-  end do
+     call f_free_ptr(GPU%ekinpot_host)
+     call f_free_ptr(GPU%psicf_host)
+     call f_free_ptr(GPU%hpsicf_host)
+     call f_free_ptr(GPU%bprecond_host)
 
-  i_all=-product(shape(GPU%ekinpot_host))*kind(GPU%ekinpot_host)
-  deallocate(GPU%ekinpot_host,stat=i_stat)
-  call memocc(i_stat,i_all,'ekinpot_host',subname)
-  i_all=-product(shape(GPU%psicf_host))*kind(GPU%psicf_host)
-  deallocate(GPU%psicf_host,stat=i_stat)
-  call memocc(i_stat,i_all,'psicf_host',subname)
-  i_all=-product(shape(GPU%hpsicf_host))*kind(GPU%hpsicf_host)
-  deallocate(GPU%hpsicf_host,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsicf_host',subname)
-  i_all=-product(shape(GPU%bprecond_host))*kind(GPU%bprecond_host)
-  deallocate(GPU%bprecond_host,stat=i_stat)
-  call memocc(i_stat,i_all,'bprecond_host',subname)
-
+!!$  i_all=-product(shape(GPU%ekinpot_host))*kind(GPU%ekinpot_host)
+!!$  deallocate(GPU%ekinpot_host,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'ekinpot_host',subname)
+!!$  i_all=-product(shape(GPU%psicf_host))*kind(GPU%psicf_host)
+!!$  deallocate(GPU%psicf_host,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'psicf_host',subname)
+!!$  i_all=-product(shape(GPU%hpsicf_host))*kind(GPU%hpsicf_host)
+!!$  deallocate(GPU%hpsicf_host,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'hpsicf_host',subname)
+!!$  i_all=-product(shape(GPU%bprecond_host))*kind(GPU%bprecond_host)
+!!$  deallocate(GPU%bprecond_host,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'bprecond_host',subname)
+  end if
 
 
 END SUBROUTINE free_gpu_OCL
@@ -384,6 +407,7 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_OCL'
+  logical, parameter :: pin=.false.
   integer :: iorb,isf
   real(gp), dimension(3) :: hgrids
   integer, dimension(3) :: periodic
@@ -423,13 +447,13 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
 
   !define the pinned adresses for the pinning of the interesting objects
 
-  call ocl_pin_read_buffer_async(GPU%context,GPU%queue,n1*n2*n3*8,pot,GPU%rhopot_up_host)
+  if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,n1*n2*n3*8,pot,GPU%rhopot_up_host)
   call ocl_enqueue_write_buffer_async(GPU%queue,GPU%rhopot_up,n1*n2*n3*8,pot) 
-  call ocl_release_mem_object(GPU%rhopot_up_host)
+  if (pin) call ocl_release_mem_object(GPU%rhopot_up_host)
   if( nspin == 2 ) then
-    call ocl_pin_read_buffer_async(GPU%context,GPU%queue,n1*n2*n3*8,pot(1,1,1,2),GPU%rhopot_down_host)
-    call ocl_enqueue_write_buffer_async(GPU%queue,GPU%rhopot_down,n1*n2*n3*8,pot(1,1,1,2)) 
-    call ocl_release_mem_object(GPU%rhopot_down_host)
+     if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,n1*n2*n3*8,pot(1,1,1,2),GPU%rhopot_down_host)
+     call ocl_enqueue_write_buffer_async(GPU%queue,GPU%rhopot_down,n1*n2*n3*8,pot(1,1,1,2)) 
+     if (pin) call ocl_release_mem_object(GPU%rhopot_down_host)
   end if
  
   if (lr%wfd%nvctr_f > 0) then
@@ -449,7 +473,7 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
      end if
   enddo
 
-  call ocl_create_write_buffer_host( GPU%context, &
+  if (pin) call ocl_create_write_buffer_host( GPU%context, &
        orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8, hpsi, GPU%hpsicf_host(1,1) ); 
  
 !  call ocl_create_read_buffer_host( GPU%context, &
@@ -468,39 +492,39 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
      end if
 
      !pin the adresses of the wavefucntions
-     call ocl_pin_read_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,psi(1,iorb),GPU%psicf_host(1,iorb))
+     if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,psi(1,iorb),GPU%psicf_host(1,iorb))
 !     call ocl_map_write_buffer_async(GPU%queue, GPU%psicf_host(1,1), &
 !          (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8*(iorb-1)*orbs%nspinor, lr%wfd%nvctr_c*8);
      call ocl_enqueue_write_buffer_async(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,&
           psi(1,iorb))
 !     call ocl_unmap_mem_object(GPU%queue, GPU%psicf_host(1,1), psi(1,iorb))
-     call ocl_release_mem_object(GPU%psicf_host(1,iorb))
+     if (pin) call ocl_release_mem_object(GPU%psicf_host(1,iorb))
 
-     call ocl_pin_read_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,psi(isf,iorb),GPU%psicf_host(2,iorb))
+     if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,psi(isf,iorb),GPU%psicf_host(2,iorb))
 !     call ocl_map_write_buffer_async(GPU%queue, GPU%psicf_host(1,1), &
 !          (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8*(iorb-1)*orbs%nspinor+lr%wfd%nvctr_c*8, 7*lr%wfd%nvctr_f*8);
      call ocl_enqueue_write_buffer_async(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,&
           psi(isf,iorb))
 !     call ocl_unmap_mem_object(GPU%queue, GPU%psicf_host(1,1), psi(isf,iorb))
-     call ocl_release_mem_object(GPU%psicf_host(2,iorb))
+     if (pin) call ocl_release_mem_object(GPU%psicf_host(2,iorb))
      if (orbs%nspinor == 2) then
-       call ocl_pin_read_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,&
+        if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,&
              psi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+1,iorb),GPU%psicf_host(3,iorb))
 !       call ocl_map_write_buffer_async(GPU%queue, GPU%psicf_host(1,1), &
 !            (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8*((iorb-1)*orbs%nspinor+1), lr%wfd%nvctr_c*8);
        call ocl_enqueue_write_buffer_async(GPU%queue,GPU%psi_c_i,lr%wfd%nvctr_c*8,&
             psi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+1,iorb))
 !       call ocl_unmap_mem_object(GPU%queue, GPU%psicf_host(1,1), psi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+1,iorb))
-       call ocl_release_mem_object(GPU%psicf_host(3,iorb))
+       if (pin) call ocl_release_mem_object(GPU%psicf_host(3,iorb))
 
-       call ocl_pin_read_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,&
+       if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,&
             psi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+isf,iorb),GPU%psicf_host(4,iorb))
 !       call ocl_map_write_buffer_async(GPU%queue, GPU%psicf_host(1,1), &
 !            (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8*((iorb-1)*orbs%nspinor+1)+lr%wfd%nvctr_c*8, 7*lr%wfd%nvctr_f*8);
        call ocl_enqueue_write_buffer_async(GPU%queue,GPU%psi_f_i,7*lr%wfd%nvctr_f*8,&
             psi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+isf,iorb))
 !       call ocl_unmap_mem_object(GPU%queue, GPU%psicf_host(1,1), psi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+isf,iorb))
-       call ocl_release_mem_object(GPU%psicf_host(4,iorb))
+       if (pin) call ocl_release_mem_object(GPU%psicf_host(4,iorb))
      end if
      !calculate the local hamiltonian
      !WARNING: the difference between full_locham and normal locham is inside
@@ -521,44 +545,38 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
           GPU%epot(1,iorb),GPU%ekin(1,iorb))
 
 !     call ocl_pin_write_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,hpsi(1,iorb),GPU%hpsicf_host(1,iorb))
-     call ocl_map_read_buffer_async(GPU%queue, GPU%hpsicf_host(1,1), &
+     if (pin) call ocl_map_read_buffer_async(GPU%queue, GPU%hpsicf_host(1,1), &
           (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8*(iorb-1)*orbs%nspinor, lr%wfd%nvctr_c*8);
      call ocl_enqueue_read_buffer_async(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,hpsi(1,iorb))
-     call ocl_unmap_mem_object(GPU%queue, GPU%hpsicf_host(1,1), hpsi(1,iorb))
+     if (pin) call ocl_unmap_mem_object(GPU%queue, GPU%hpsicf_host(1,1), hpsi(1,iorb))
 !     call ocl_release_mem_object(GPU%hpsicf_host(1,iorb))
 !     call ocl_pin_write_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,hpsi(isf,iorb),GPU%hpsicf_host(2,iorb))
-     call ocl_map_read_buffer_async(GPU%queue, GPU%hpsicf_host(1,1), &
+     if (pin) call ocl_map_read_buffer_async(GPU%queue, GPU%hpsicf_host(1,1), &
           (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8*(iorb-1)*orbs%nspinor+lr%wfd%nvctr_c*8, 7*lr%wfd%nvctr_f*8);
      call ocl_enqueue_read_buffer_async(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,hpsi(isf,iorb))
-     call ocl_unmap_mem_object(GPU%queue, GPU%hpsicf_host(1,1), hpsi(isf,iorb))
+     if (pin) call ocl_unmap_mem_object(GPU%queue, GPU%hpsicf_host(1,1), hpsi(isf,iorb))
 !     call ocl_release_mem_object(GPU%hpsicf_host(2,iorb))
 
      if (orbs%nspinor == 2) then
 !       call ocl_pin_write_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,&
 !             hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+1,iorb),GPU%hpsicf_host(3,iorb))
-       call ocl_map_read_buffer_async(GPU%queue, GPU%hpsicf_host(1,1), &
+        if (pin) call ocl_map_read_buffer_async(GPU%queue, GPU%hpsicf_host(1,1), &
             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8*((iorb-1)*orbs%nspinor+1), lr%wfd%nvctr_c*8);
        call ocl_enqueue_read_buffer_async(GPU%queue,GPU%psi_c_i,lr%wfd%nvctr_c*8,hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+1,iorb))
-       call ocl_unmap_mem_object(GPU%queue, GPU%hpsicf_host(1,1), hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+1,iorb))
+       if (pin) call ocl_unmap_mem_object(GPU%queue, GPU%hpsicf_host(1,1), hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+1,iorb))
 !       call ocl_release_mem_object(GPU%hpsicf_host(3,iorb))
 !       call ocl_pin_write_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,&
 !            hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+isf,iorb),GPU%hpsicf_host(4,iorb))
-       call ocl_map_read_buffer_async(GPU%queue, GPU%hpsicf_host(1,1), &
+       if (pin) call ocl_map_read_buffer_async(GPU%queue, GPU%hpsicf_host(1,1), &
             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8*((iorb-1)*orbs%nspinor+1)+lr%wfd%nvctr_c*8, 7*lr%wfd%nvctr_f*8);
        call ocl_enqueue_read_buffer_async(GPU%queue,GPU%psi_f_i,7*lr%wfd%nvctr_f*8,hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+isf,iorb))
-       call ocl_unmap_mem_object(GPU%queue, GPU%hpsicf_host(1,1), hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+isf,iorb))
+       if (pin) call ocl_unmap_mem_object(GPU%queue, GPU%hpsicf_host(1,1), hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+isf,iorb))
 !       call ocl_release_mem_object(GPU%hpsicf_host(4,iorb))
      end if
   end do
 !  call ocl_release_mem_object(GPU%psicf_host(1,1))
-  call ocl_release_mem_object(GPU%hpsicf_host(1,1))
+  if (pin) call ocl_release_mem_object(GPU%hpsicf_host(1,1))
   if (.not. ASYNCconv) then
-!!$     call ocl_finish(GPU%queue)
-!!$     do iorb=1,orbs%norbp
-!!$       ekin_sum = ekin_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*((GPU%ekin(1,iorb)+GPU%ekin(2,iorb))&
-!!$                  - (GPU%epot(1,iorb)+GPU%epot(2,iorb)))
-!!$       epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(GPU%epot(1,iorb)+GPU%epot(2,iorb))
-!!$     end do
      call finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
   endif
   
@@ -610,6 +628,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
   character(len=*), parameter :: subname='preconditionall_OCL'
+  logical, parameter :: pin=.false.
   integer ::  iorb,jorb,i_stat,ncplx,i_all,inds,isf,ikpt,ispinor
   real(wp) :: scpr
   real(gp) :: cprecr,eval_zero,evalmax
@@ -623,6 +642,8 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   !the eval array contains all the values
   !take the max for all k-points
   !one may think to take the max per k-point
+
+  call f_routine_id(subname)
   
   if (lr%geocode /= 'F') then
     periodic(1) = 1
@@ -650,10 +671,12 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
      !arrays for the CG procedure
 !!$     allocate(b(orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%norbp+ndebug),stat=i_stat)
 !!$     call memocc(i_stat,b,'b',subname)
+  b=f_malloc((/orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1/),id='b')
 
-     allocate(b(orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1+ndebug),stat=i_stat)
-     call memocc(i_stat,b,'b',subname)
+!!$     allocate(b(orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,b,'b',subname)
 
+  if (pin) then
      call ocl_pin_read_buffer(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,b(1,1),GPU%bprecond_host(1))
      call ocl_pin_read_buffer(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,b(isf,1),GPU%bprecond_host(2))
      if(orbs%nspinor == 2) then
@@ -662,7 +685,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
         call ocl_pin_read_buffer(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,&
              b(isf+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1),GPU%bprecond_host(4))
      end if
-
+  end if
 
      gnrm=0.0_dp
      gnrm_zero=0.0_dp
@@ -706,7 +729,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
            call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,&
                 hpsi(1,inds,iorb),b(1,1))!iorb))
 
-           call ocl_pin_read_write_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,&
+           if (pin) call ocl_pin_read_write_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,&
                 hpsi(1,inds,iorb),GPU%hpsicf_host(1,iorb))
 !           call ocl_map_read_write_buffer_async(GPU%queue, GPU%hpsicf_host(1,1), &
 !                8*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*(iorb-1)+&
@@ -714,7 +737,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
            call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,&
                 hpsi(1,inds,iorb))
 
-           call ocl_pin_read_write_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,&
+           if (pin) call ocl_pin_read_write_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,&
                 hpsi(isf,inds,iorb),GPU%hpsicf_host(2,iorb))
 !           call ocl_map_read_write_buffer_async(GPU%queue, GPU%hpsicf_host(1,1), &
 !                8*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*(iorb-1)+&
@@ -728,7 +751,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
                 b(isf,1))!iorb))
 
            if(ncplx == 2) then
-              call ocl_pin_read_write_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,&
+              if (pin) call ocl_pin_read_write_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,&
                    hpsi(1,inds+1,iorb),GPU%hpsicf_host(3,iorb))
 !              call ocl_map_read_write_buffer_async(GPU%queue, GPU%hpsicf_host(1,1), &
 !                8*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*(iorb-1)+&
@@ -736,7 +759,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
               call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c_i,lr%wfd%nvctr_c*8,&
                    hpsi(1,inds+1,iorb))
 
-              call ocl_pin_read_write_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,&
+              if (pin) call ocl_pin_read_write_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,&
                    hpsi(isf,inds+1,iorb),GPU%hpsicf_host(4,iorb))
 !              call ocl_map_read_write_buffer_async(GPU%queue, GPU%hpsicf_host(1,1), &
 !                8*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*(iorb-1)+&
@@ -751,7 +774,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
            endif
            call ocl_preconditioner_generic_k(GPU%queue,&
                 (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
-                (/periodic(1),periodic(2),periodic(3)/),&
+                periodic,&
                 (/0.5_gp*hx,0.5_gp*hy,0.5_gp*hz/),&
                 (/orbs%kpts(1,orbs%iokpt(iorb)),orbs%kpts(2,orbs%iokpt(iorb)),orbs%kpts(3,orbs%iokpt(iorb))/),&
                 cprecr,&
@@ -772,34 +795,39 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
 
            call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,hpsi(1,inds,iorb))
 !           call ocl_unmap_mem_object(GPU%queue, GPU%hpsicf_host(1,1), hpsi(1,inds,iorb))
-           call ocl_release_mem_object(GPU%hpsicf_host(1,iorb))
+           if (pin) call ocl_release_mem_object(GPU%hpsicf_host(1,iorb))
            call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,hpsi(isf,inds,iorb))
 !           call ocl_unmap_mem_object(GPU%queue, GPU%hpsicf_host(1,1), hpsi(isf,inds,iorb))
-           call ocl_release_mem_object(GPU%hpsicf_host(2,iorb))
+           if (pin)  call ocl_release_mem_object(GPU%hpsicf_host(2,iorb))
            if ( ncplx == 2 ) then
              call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_c_i,lr%wfd%nvctr_c*8,hpsi(1,inds+1,iorb))
 !             call ocl_unmap_mem_object(GPU%queue, GPU%hpsicf_host(1,1), hpsi(1,inds+1,iorb))
-             call ocl_release_mem_object(GPU%hpsicf_host(3,iorb))
+             if (pin) call ocl_release_mem_object(GPU%hpsicf_host(3,iorb))
              call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_f_i,7*lr%wfd%nvctr_f*8,hpsi(isf,inds+1,iorb))
 !             call ocl_unmap_mem_object(GPU%queue, GPU%hpsicf_host(1,1), hpsi(isf,inds+1,iorb))
-             call ocl_release_mem_object(GPU%hpsicf_host(4,iorb))
+             if (pin) call ocl_release_mem_object(GPU%hpsicf_host(4,iorb))
            endif
 
         end do
      end do
 
-
-  do ispinor=1,orbs%nspinor
-     call ocl_release_mem_object(GPU%bprecond_host(1+(ispinor-1)*2))
-     call ocl_release_mem_object(GPU%bprecond_host(2+(ispinor-1)*2))
-  end do
+     if (pin) then
+        do ispinor=1,orbs%nspinor
+           call ocl_release_mem_object(GPU%bprecond_host(1+(ispinor-1)*2))
+           call ocl_release_mem_object(GPU%bprecond_host(2+(ispinor-1)*2))
+        end do
+     end if
 
 !  call ocl_release_mem_object(GPU%hpsicf_host(1,1))
-  call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
+     call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
+     
+!!$  i_all=-product(shape(b))*kind(b)
+!!$  deallocate(b,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'b',subname)
 
-  i_all=-product(shape(b))*kind(b)
-  deallocate(b,stat=i_stat)
-  call memocc(i_stat,i_all,'b',subname)
+  call f_free(b)
+
+  call f_release_routine()
 
 END SUBROUTINE preconditionall_OCL
 
@@ -819,7 +847,8 @@ subroutine local_partial_density_OCL(orbs,&
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
   real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,nspin), intent(inout) :: rho_p
   type(GPU_pointers), intent(inout) :: GPU
-  
+  !local variables
+  logical, parameter :: pin=.false.
   integer:: iorb,iorb_r,isf,ispinor
   real(gp) :: hfac
   integer, dimension(3) :: periodic
@@ -851,7 +880,7 @@ subroutine local_partial_density_OCL(orbs,&
   if ( nspin == 2 ) then
     call set_d(GPU%queue, lr%d%n1i*lr%d%n2i*lr%d%n3i , 1.d-20,  GPU%rhopot_down)
   end if
-  call ocl_create_read_buffer_host( GPU%context, &
+  if (pin) call ocl_create_read_buffer_host( GPU%context, &
        orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8, psi, GPU%psicf_host(1,1) );  
   !copy the wavefunctions on GPU
   do iorb=1,orbs%norbp*orbs%nspinor
@@ -860,20 +889,20 @@ subroutine local_partial_density_OCL(orbs,&
      !print *,'here',iorb,iorb_r,ispinor
 !     call ocl_pin_read_buffer_async(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,psi(1,iorb),&
 !          GPU%psicf_host(1+(ispinor-1)*2,iorb_r))
-     call ocl_map_write_buffer_async(GPU%queue, GPU%psicf_host(1,1), &
+     if (pin) call ocl_map_write_buffer_async(GPU%queue, GPU%psicf_host(1,1), &
           (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8*(iorb-1), lr%wfd%nvctr_c*8);
      call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,&
           psi(1,iorb))
-     call ocl_unmap_mem_object(GPU%queue, GPU%psicf_host(1,1), psi(1,iorb))
+     if (pin) call ocl_unmap_mem_object(GPU%queue, GPU%psicf_host(1,1), psi(1,iorb))
 !     call ocl_release_mem_object(GPU%psicf_host(1+(ispinor-1)*2,iorb_r))
 
 !     call ocl_pin_read_buffer_async(GPU%context,GPU%queue,7*lr%wfd%nvctr_f*8,psi(isf,iorb),&
 !          GPU%psicf_host(2+(ispinor-1)*2,iorb_r))
-     call ocl_map_write_buffer_async(GPU%queue, GPU%psicf_host(1,1), &
+     if (pin) call ocl_map_write_buffer_async(GPU%queue, GPU%psicf_host(1,1), &
           (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8*(iorb-1)+lr%wfd%nvctr_c*8, 7*lr%wfd%nvctr_f*8);
      call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,&
           psi(isf,iorb))
-     call ocl_unmap_mem_object(GPU%queue, GPU%psicf_host(1,1), psi(isf,iorb))
+     if (pin) call ocl_unmap_mem_object(GPU%queue, GPU%psicf_host(1,1), psi(isf,iorb))
 !     call ocl_release_mem_object(GPU%psicf_host(2+(ispinor-1)*2,iorb_r))
 
      hfac=orbs%kwgts(orbs%iokpt(iorb_r))*orbs%occup(orbs%isorb+iorb_r)/(hxh*hyh*hzh);
@@ -884,7 +913,7 @@ subroutine local_partial_density_OCL(orbs,&
      endif
      !calculate the density
      call ocl_locden_generic(GPU%queue, (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
-          (/periodic(1),periodic(2),periodic(3)/),&
+          periodic,&
           hfac,&
           lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
           lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&
@@ -895,19 +924,17 @@ subroutine local_partial_density_OCL(orbs,&
   end do
 
   !copy back the results and leave the uncompressed wavefunctions on the card
-
-  call ocl_pin_write_buffer_async(GPU%context,GPU%queue,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p,GPU%rhopot_up_host)
+  
+  if (pin) call ocl_pin_write_buffer_async(GPU%context,GPU%queue,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p,GPU%rhopot_up_host)
   call ocl_enqueue_read_buffer(GPU%queue,GPU%rhopot_up,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p)
-  call ocl_release_mem_object(GPU%rhopot_up_host)
+  if (pin) call ocl_release_mem_object(GPU%rhopot_up_host)
   if( nspin == 2 ) then
-    call ocl_pin_write_buffer_async(GPU%context,GPU%queue,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p(1,1,1,2),GPU%rhopot_down_host)
+     if (pin) call ocl_pin_write_buffer_async(GPU%context,GPU%queue,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p(1,1,1,2),GPU%rhopot_down_host)
     call ocl_enqueue_read_buffer(GPU%queue,GPU%rhopot_down,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p(1,1,1,2))
-    call ocl_release_mem_object(GPU%rhopot_down_host)
+    if (pin) call ocl_release_mem_object(GPU%rhopot_down_host)
   endif
 
   !free pinning information for potential
-  call ocl_release_mem_object(GPU%psicf_host(1,1))
-  
-  
+  if (pin) call ocl_release_mem_object(GPU%psicf_host(1,1))
 
 END SUBROUTINE local_partial_density_OCL

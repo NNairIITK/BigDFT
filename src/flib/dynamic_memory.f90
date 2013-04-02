@@ -47,13 +47,26 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine get_dp1_ptr
 
+     subroutine get_dp2_ptr(array,iadd)
+       implicit none
+       double precision, dimension(:,:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine get_dp2_ptr
+
+     subroutine get_dp3_ptr(array,iadd)
+       implicit none
+       double precision, dimension(:,:,:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine get_dp3_ptr
+
   end interface
 
 interface pad_array
   module procedure pad_i1,pad_dp1,pad_dp2,pad_dp3,pad_dp4
 end interface
 
-public :: pad_array,get_i1,get_dp1,get_dp2,get_dp3,get_dp4,get_dp1_ptr
+public :: pad_array,get_i1,get_dp1,get_dp2,get_dp3,get_dp4
+public :: get_dp1_ptr,get_dp2_ptr,get_dp3_ptr
 
 contains
 
@@ -291,7 +304,7 @@ module dynamic_memory
 
   interface assignment(=)
      module procedure i1_all,d1_all,d2_all,d3_all,d4_all
-     module procedure d1_ptr
+     module procedure d1_ptr,d2_ptr,d3_ptr
   end interface
 
   interface operator(.to.)
@@ -303,7 +316,7 @@ module dynamic_memory
   end interface
 
   interface f_free_ptr
-     module procedure d1_ptr_free
+     module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free
   end interface
 
 
@@ -328,8 +341,8 @@ module dynamic_memory
   end interface
 
 
-  public :: f_malloc_set_status,f_malloc_finalize,f_malloc_dump_status
-  public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_free,f_free_ptr,f_malloc_routine_id,f_malloc_free_routine
+  public :: f_set_status,f_finalize,f_malloc_dump_status
+  public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_free,f_free_ptr,f_routine_id,f_release_routine
   public :: assignment(=),operator(.to.)
 
 contains
@@ -837,7 +850,7 @@ contains
   !> This routine adds the corresponding subprogram name to the dictionary
   !! and prepend the dictionary to the global info dictionary
   !! if it is called more than once for the same name it has no effect
-  subroutine f_malloc_routine_id(routine_id)
+  subroutine f_routine_id(routine_id)
     implicit none
     character(len=*), intent(in) :: routine_id
     !local variables
@@ -860,11 +873,11 @@ contains
        present_routine(1:lgt)=routine_id(1:lgt)
 
     end if
-  end subroutine f_malloc_routine_id
+  end subroutine f_routine_id
 
 
   !> Close a previously opened routine
-  subroutine f_malloc_free_routine()
+  subroutine f_release_routine()
 !    use yaml_output
     implicit none
     if (associated(dict_routine)) then
@@ -879,8 +892,8 @@ contains
     present_routine=trim(dict_key(dict_codepoint))
     !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
     routine_opened=.false.
-  end subroutine f_malloc_free_routine
-
+  end subroutine f_release_routine
+  
 
   subroutine open_routine(dict)
     implicit none
@@ -944,7 +957,7 @@ contains
 
 
   !>initialize the library
-  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,unit)
+  subroutine f_set_status(memory_limit,output_level,logfile_name,unit)
     use yaml_output, only: yaml_date_and_time_toa
     implicit none
     character(len=*), intent(in), optional :: logfile_name
@@ -970,11 +983,11 @@ contains
 
     if (present(logfile_name)) call memocc_set_filename(logfile_name)
 
-  end subroutine f_malloc_set_status
+  end subroutine f_set_status
 
 
   !> Finalize f_malloc (Display status)
-  subroutine f_malloc_finalize()
+  subroutine f_finalize()
     use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
     implicit none
     !local variables
@@ -1003,7 +1016,7 @@ contains
     profile_initialized=.false.
     present_routine=repeat(' ',namelen)
     routine_opened=.false.
-  end subroutine f_malloc_finalize
+  end subroutine f_finalize
 
 
   !> Check error of allocations or deallocations
@@ -1345,11 +1358,55 @@ contains
     include 'allocate-inc.f90'
   end subroutine d1_ptr
 
+  subroutine d2_ptr(array,m)
+    use metadata_interfaces, metadata_address => get_dp2_ptr
+    implicit none
+    type(malloc_information_ptr), intent(in) :: m
+    double precision, dimension(:,:), pointer, intent(inout) :: array
+    !local variables
+    integer(kind=8) :: iadd
+
+    !allocate the array
+    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
+
+    include 'allocate-inc.f90'
+  end subroutine d2_ptr
+
+  subroutine d3_ptr(array,m)
+    use metadata_interfaces, metadata_address => get_dp3_ptr
+    implicit none
+    type(malloc_information_ptr), intent(in) :: m
+    double precision, dimension(:,:,:), pointer, intent(inout) :: array
+    !local variables
+    integer(kind=8) :: iadd
+
+    !allocate the array
+    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
+         m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
+
+    include 'allocate-inc.f90'
+  end subroutine d3_ptr
+
   subroutine d1_ptr_free(array)
     implicit none
     double precision, dimension(:), pointer, intent(inout) :: array
     include 'deallocate-inc.f90'
     nullify(array)
   end subroutine d1_ptr_free
+
+  subroutine d2_ptr_free(array)
+    implicit none
+    double precision, dimension(:,:), pointer, intent(inout) :: array
+    include 'deallocate-inc.f90'
+    nullify(array)
+  end subroutine d2_ptr_free
+
+  subroutine d3_ptr_free(array)
+    implicit none
+    double precision, dimension(:,:,:), pointer, intent(inout) :: array
+    include 'deallocate-inc.f90'
+    nullify(array)
+  end subroutine d3_ptr_free
+
 
 end module dynamic_memory

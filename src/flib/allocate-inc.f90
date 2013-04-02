@@ -19,8 +19,8 @@
   else
      ierror=INVALID_RANK
      lasterror='rank not valid'
-     deallocate(array,stat=ierror)
      call check_for_errors(ierror,m%try)
+     if (m%try) deallocate(array,stat=ierror)
   end if
 !  call timing(0,'Init to Zero  ','RS') 
 contains 

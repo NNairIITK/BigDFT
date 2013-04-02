@@ -134,8 +134,33 @@ program yaml_test
    dict3=> dict1//'New key'
    call set(dict3//'Example',4)
    call yaml_dict_dump(dict1,flow=.true.)
+
+   !test length functions of dictianries
+   call yaml_map('List length',dict_len(dict1//'List'))
+   call yaml_map('Dictionary size',dict_size(dict1))
+
    call yaml_release_document()
    call dict_free(dict1)
+
+   !testing add
+   call dict_init(dict)
+!   call set(dict//0,1)
+!   call set(dict//1,2)
+!   call set(dict//2,3)
+   call add(dict,'1')
+   call add(dict,'2')
+   call add(dict,'3')
+   call yaml_dict_dump(dict,flow=.true.)
+   call yaml_map('Dictionary length',dict_len(dict))
+   call yaml_map('Dictionary size',dict_size(dict))
+   print *,'nelem',dict%data%nelems
+   print *,'nitems',dict%data%nitems
+
+   call dict_free(dict)
+   
+
+stop
+
    call yaml_comment('Fortran Dictionary Test',hfill='~')
 
    call dict_init(dict)
