@@ -246,6 +246,7 @@ module module_types
      character(len = 64) :: domain !< Domain to get the IP from hostname.
      character(len=500) :: writing_directory !< absolute path of the local directory to write the data on
      double precision :: gmainloop !< Internal C pointer on the signaling structure.
+     integer :: inguess_geopt !< 0= Wavelet input guess, 1 = real space input guess 
 
      !orthogonalisation data
      type(orthon_data) :: orthpar

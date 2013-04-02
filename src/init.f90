@@ -2219,7 +2219,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
     displ=sqrt(tx+ty+tz)
     
 
-   if(displ.eq.0d0) then
+   if(displ.eq.0d0 .or. in%inguess_geopt == 0) then
   
    call timing(iproc,'restart_wvl   ','ON')
    call input_wf_memory(iproc, atoms, &
@@ -2228,7 +2228,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs)
    call timing(iproc,'restart_wvl   ','OF')
 
-   else
+   else if(in%inguess_geopt == 1) then
   
    call timing(iproc,'restart_rsp   ','ON')
    call input_wf_memory_new(nproc, iproc, atoms, &
@@ -2237,8 +2237,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
       KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs,KSwfn%lzd,displ)
    call timing(iproc,'restart_rsp   ','OF')
 
+  else
+    stop 'Wrong value of inguess_geopt in input.perf'
   end if
-
 
     if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
           call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
