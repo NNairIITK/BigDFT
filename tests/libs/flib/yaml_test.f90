@@ -348,7 +348,7 @@ program yaml_test
 !!$   call f_malloc_dump_status()
 
    call f_free(pot_ion)
-
+   call f_free(potential)
    call f_free(xc_pot)
 !   call f_malloc_dump_status()
    call f_free(extra_ref)

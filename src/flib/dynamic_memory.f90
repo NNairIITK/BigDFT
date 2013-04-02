@@ -230,62 +230,60 @@ module dynamic_memory
 
   private 
 
-  !> length of the character variables
-  integer, parameter :: namelen=32
-  !> length of error string
-  integer, parameter :: error_string_len=80
-  !> size of debug parameters
-  integer, parameter :: ndebug=0
+  integer, parameter :: namelen=32          !< length of the character variables
+  integer, parameter :: error_string_len=80 !< length of error string
+  integer, parameter :: ndebug=0            !< size of debug parameters
   !> errorcodes
   character(len=error_string_len) :: lasterror=repeat(' ',len(lasterror))
   integer, parameter :: SUCCESS                = 0
   integer, parameter :: INVALID_RANK           = -1979
   integer :: ierror=SUCCESS
 
-  !global variables for initialization
-  logical :: profile_initialized=.false.
-  !dictionaries needed for profiling storage
-  type(dictionary), pointer :: dict_global,dict_routine,dict_calling_sequence
-  type(dictionary), pointer :: dict_codepoint=>null() !save variable which says where we are in the code
-  !global variable (can be stored in dictionaries)
-  logical :: routine_opened=.false.
+  logical :: profile_initialized=.false.  !< global variables for initialization
+  !>dictionaries needed for profiling storage
+  type(dictionary), pointer :: dict_global
+  type(dictionary), pointer :: dict_routine           
+  type(dictionary), pointer :: dict_calling_sequence
+  type(dictionary), pointer :: dict_codepoint=>null() !< save variable which says where we are in the code
+  logical :: routine_opened=.false.                   !< global variable (can be stored in dictionaries)
   character(len=namelen) :: present_routine=repeat(' ',namelen)
 !  character(len=namelen) :: last_opened_routine=repeat(' ',namelen)
 
-  !parameters for defitions of internal dictionary
+  !> parameters for defitions of internal dictionary
   character(len=*), parameter :: arrayid='Array Id'
   character(len=*), parameter :: routineid='Allocating Routine Id'
   character(len=*), parameter :: sizeid='Size (Bytes)'
   character(len=*), parameter :: metadatadd='Address of metadata'
+  character(len=*), parameter :: processid='Process Id'
 
   !> Structure needed to allocate an allocatable array
   type, public :: malloc_information_all
-     logical :: pin !< flag to control the pinning of the address
-     logical :: try !<raise an exception
+     logical :: pin         !< flag to control the pinning of the address
+     logical :: try         !< raise an exception
      logical :: put_to_zero !<initialize to zero after allocation
-     integer :: rank !< rank of the array
+     integer :: rank        !< rank of the array
      integer, dimension(7) :: shape,lbounds,ubounds
-     integer(kind=8) :: metadata_add !<physical address of the fortran metadata
-     character(len=namelen) :: array_id !< label the array
+     integer(kind=8) :: metadata_add      !<physical address of the fortran metadata
+     character(len=namelen) :: array_id   !< label the array
      character(len=namelen) :: routine_id !<label the routine
   end type malloc_information_all
 
   !> Structure needed to allocate a pointer
   type, public :: malloc_information_ptr
-     logical :: ptr !< just to make the structures different, to see if needed
-     logical :: pin !< flag to control the pinning of the address
-     logical :: try !<raise an exception
+     logical :: ptr         !< just to make the structures different, to see if needed
+     logical :: pin         !< flag to control the pinning of the address
+     logical :: try         !<raise an exception
      logical :: put_to_zero !<initialize to zero after allocation
-     integer :: rank !< rank of the pointer
+     integer :: rank        !< rank of the pointer
      integer, dimension(7) :: shape,lbounds,ubounds
-     integer(kind=8) :: metadata_add !<physical address of the fortran metadata
-     character(len=namelen) :: array_id !< label the array
+     integer(kind=8) :: metadata_add      !<physical address of the fortran metadata
+     character(len=namelen) :: array_id   !< label the array
      character(len=namelen) :: routine_id !<label the routine
   end type malloc_information_ptr
 
 
   type, public :: array_bounds
-     integer :: nlow !<lower bounds
+     integer :: nlow  !<lower bounds
      integer :: nhigh !<higher bounds
   end type array_bounds
 
@@ -328,8 +326,11 @@ module dynamic_memory
   end interface
 
 
+  !> Public routines
   public :: f_malloc_set_status,f_malloc_finalize,f_malloc_dump_status
-  public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_free,f_free_ptr,f_malloc_routine_id,f_malloc_free_routine
+  public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr
+  public :: f_free,f_free_ptr
+  public :: f_malloc_routine_id,f_malloc_free_routine
   public :: assignment(=),operator(.to.)
 
 contains
@@ -491,7 +492,8 @@ contains
 
   end function f_malloc
 
-  !for rank-1 arrays
+
+  !>for rank-1 arrays
   function f_malloc0_simple(size,id,routine_id,try) result(m)
     integer, intent(in) :: size
     logical, intent(in), optional :: try
@@ -510,7 +512,8 @@ contains
 
   end function f_malloc0_simple
 
-  !for rank-1 arrays
+
+  !>for rank-1 arrays
   function f_malloc0_bounds(bounds,id,routine_id,try) result(m)
     type(array_bounds), intent(in) :: bounds
     logical, intent(in), optional :: try
@@ -530,7 +533,7 @@ contains
 
   end function f_malloc0_bounds
 
-  !define the allocation information for  arrays of different rank
+  !> define the allocation information for  arrays of different rank
   function f_malloc0(shape,id,routine_id,lbounds,ubounds,bounds,try) result(m)
     implicit none
     integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
@@ -599,7 +602,7 @@ contains
 
   end function f_malloc0
 
-  !for rank-1 arrays
+  !> for rank-1 arrays
   function f_malloc_ptr_simple(size,id,routine_id,try) result(m)
     integer, intent(in) :: size
     logical, intent(in), optional :: try
@@ -943,13 +946,17 @@ contains
   end subroutine close_routine
 
 
-  !>initialize the library
-  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,unit)
+  !> Initialize the library
+  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,unit,iproc)
     use yaml_output, only: yaml_date_and_time_toa
     implicit none
-    character(len=*), intent(in), optional :: logfile_name
-    real(kind=4), intent(in), optional :: memory_limit
-    integer, intent(in), optional :: output_level,unit
+    !Arguments
+    character(len=*), intent(in), optional :: logfile_name   !< Name of the logfile
+    real(kind=4), intent(in), optional :: memory_limit       !< Memory limit
+    integer, intent(in), optional :: output_level            !< Level of output for memocc
+                                                             !! 0 no file, 1 light, 2 full
+    integer, intent(in), optional :: unit                    !< Indicate file unit for the output
+    integer, intent(in), optional :: iproc                   !< Process Id (used to dump, by default one 0)
 
     if (.not. profile_initialized) then
        profile_initialized=.true.
@@ -957,6 +964,8 @@ contains
        nullify(dict_routine)
        call dict_init(dict_global)
        call set(dict_global//'Timestamp of Profile initialization',trim(yaml_date_and_time_toa()))
+       !Process Id (used to dump)
+       call set(dict_global//processid,0)
        call dict_init(dict_calling_sequence)
        !in principle the calling sequence starts from the main
        dict_codepoint => dict_calling_sequence//'Calling sequence of Main program'
@@ -969,15 +978,22 @@ contains
     if (present(unit)) call memocc_set_stdout(unit)
 
     if (present(logfile_name)) call memocc_set_filename(logfile_name)
+       
+    if (present(iproc)) call set(dict_global//processid,iproc)
 
   end subroutine f_malloc_set_status
 
 
   !> Finalize f_malloc (Display status)
-  subroutine f_malloc_finalize()
+  subroutine f_malloc_finalize(dump)
     use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
     implicit none
+    !Arguments
+    logical, intent(in), optional :: dump !< Dump always information, 
+                                          !! otherwise only for Process Id == 0 and errors
     !local variables
+    integer :: pid
+    logical :: dump_status
     !integer :: unt
     !put the last values in the dictionary if not freed
     if (associated(dict_routine)) then
@@ -989,17 +1005,33 @@ contains
        !      end if
        !      if (.false.) then !residual memory to be defined
     end if
-    call yaml_open_map('Status of the memory at finalization')
-    !call yaml_dict_dump(dict_global)
-    call dump_leaked_memory(dict_global)
-    call yaml_close_map()
-    call dict_free(dict_global)
-!    call yaml_open_map('Calling sequence')
-    call yaml_dict_dump(dict_calling_sequence)
-!    call yaml_close_map()
-    call dict_free(dict_calling_sequence)
-    
-    call memocc_report()
+
+    if (present(dump)) then
+       dump_status=.true.
+    else 
+       pid = dict_global//processid
+       if (pid == 0) then
+          dump_status=.true.
+       else
+          dump_status=.false.
+       end if
+       !Print if error
+       if (dict_size(dict_global) == 2) dump_status=.false.
+       print *,'dict_size',dict_size(dict_global)
+    end if
+    if (dump_status) then
+       call yaml_open_map('Status of the memory at finalization')
+       !call yaml_dict_dump(dict_global)
+       call dump_leaked_memory(dict_global)
+       call yaml_close_map()
+       call dict_free(dict_global)
+   !    call yaml_open_map('Calling sequence')
+   !    call yaml_dict_dump(dict_calling_sequence)
+   !    call yaml_close_map()
+       call dict_free(dict_calling_sequence)
+       
+       call memocc_report()
+    end if
     profile_initialized=.false.
     present_routine=repeat(' ',namelen)
     routine_opened=.false.
@@ -1054,29 +1086,34 @@ contains
      character(len=256) :: array_id
      dict_ptr => dict_next(dict)
      do while(associated(dict_ptr))
-        call try()
-        array_id = dict_ptr//arrayid
-        call close_try()
-        if (try_error() == 0) then
+!!$        call yaml_map('Key has been found',has_key(dict_ptr,trim(arrayid)))
+!!$        call try()
+!!$        array_id = dict_ptr//arrayid
+!!$        call close_try()
+        if (has_key(dict_ptr,trim(arrayid))) then
+           array_id = dict_ptr//arrayid
            call yaml_open_map(trim(array_id))
            call yaml_dict_dump(dict_ptr)
            call yaml_map('Address',trim(dict_key(dict_ptr)))
            call yaml_close_map()
         else
-           PRINT *,'ERROR',TRY_ERROR()
-           call yaml_map('key',dict_key(dict_ptr))
-           print *,'nelems: ',dict_ptr%data%nelems
-           print *,'key: "',trim(dict_ptr%data%key),'"'
-           print *,'value: "',trim(dict_ptr%data%value),'"'
-           call yaml_dict_dump(dict_ptr%parent)
-           print *,'aa'
+           call yaml_open_map(trim(dict_key(dict_ptr)))
+           call yaml_dict_dump(dict_ptr)
+           call yaml_close_map()
         end if
+!!$           PRINT *,'ERROR',TRY_ERROR()
+!!$           call yaml_map('key',dict_key(dict_ptr))
+!!$           print *,'nelems: ',dict_ptr%data%nelems
+!!$           print *,'key: "',trim(dict_ptr%data%key),'"'
+!!$           print *,'value: "',trim(dict_ptr%data%value),'"'
+!!$           call yaml_dict_dump(dict_ptr%parent)
+!!$           print *,'aa'
         dict_ptr=>dict_next(dict_ptr)
      end do
   end subroutine dump_leaked_memory
 
 
-  !> Use the adress of the allocated pointer to profile the deallocation
+  !> Use the address of the allocated pointer to profile the deallocation
   subroutine profile_deallocation(ierr,ilsize,address)
     use yaml_output!, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_map
     implicit none

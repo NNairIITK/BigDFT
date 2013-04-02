@@ -69,7 +69,7 @@ module dictionaries
   public :: set,dict_init,dict_free,pop,append,prepend,add
   !Handle exceptions
   public :: try,close_try,try_error
-  public :: find_key,dict_len,dict_key,dict_next
+  public :: find_key,dict_len,dict_size,dict_key,dict_next,has_key
   
 
 contains
@@ -252,7 +252,7 @@ contains
       type(dictionary), pointer :: dict_first !<in case of first occurrence
 
       if (associated(dict)) then
-         !follow the chain, stop at  first occurence
+         !follow the chain, stop at the first occurence
          if (trim(dict%data%key) == trim(key)) then
             !          print *,'here',trim(key),associated(dict%next)
             if (associated(dict%parent)) then
@@ -318,6 +318,7 @@ contains
   end subroutine add_char
 
 
+  !> return the length of the list
   function dict_len(dict)
     implicit none
     type(dictionary), intent(in), pointer :: dict
@@ -335,6 +336,7 @@ contains
   end function dict_len
 
 
+  !> return the length of the dictionary
   function dict_size(dict)
     implicit none
     type(dictionary), intent(in), pointer :: dict
@@ -414,7 +416,7 @@ contains
 
       if (associated(dict)) then
 !         print *,dict%data%item,trim(dict%data%key)
-         !follow the chain, stop at  first occurence
+         !follow the chain, stop at the first occurence
          if (dict%data%item == item) then
             if (associated(dict%parent)) then
                dict%parent%data%nitems=dict%parent%data%nitems-1
@@ -471,8 +473,8 @@ contains
     end if
   end function get_ptr
   
- !> Retrieve the pointer to the dictionary which has this key.
-  !! If the key does not exists, create it in the next chain 
+  !> Retrieve the pointer to the dictionary which has this key.
+  !! If the key does not exists, search for it in the next chain 
   !! Key Must be already present 
   recursive function find_key(dict,key) result (dict_ptr)
     implicit none
@@ -485,12 +487,13 @@ contains
     end if
     !TEST 
     if (.not. associated(dict%parent)) then
-       dict_ptr =>  find_key(dict%child,key)
+       dict_ptr => find_key(dict%child,key)
+       !print *,'parent'
        return
     end if
 
-!    print *,'here',trim(key)
-    !follow the chain, stop at  first occurence
+    !print *,'here ',trim(key),', key ',trim(dict%data%key)
+    !follow the chain, stop at the first occurence
     if (trim(dict%data%key) == trim(key)) then
        dict_ptr => dict
     else if (associated(dict%next)) then
@@ -500,6 +503,48 @@ contains
     end if
 
   end function find_key
+
+  !> Search in the dictionary if some of the child has the given
+  !! If the key does not exists, search for it in the next chain 
+  !! Key Must be already present 
+  !! 
+  function has_key(dict,key)
+    implicit none
+    type(dictionary), intent(in), pointer :: dict 
+    character(len=*), intent(in) :: key
+    logical :: has_key
+
+    if (.not. associated(dict)) then
+       has_key=.false.
+       return
+    end if
+
+    has_key=has_key_(dict%child,key)
+  
+  contains
+
+    recursive function has_key_(dict,key) result(has)
+    implicit none
+    type(dictionary), intent(in), pointer :: dict 
+    character(len=*), intent(in) :: key
+    logical :: has
+    if (.not. associated(dict)) then
+       has=.false.
+       return
+    end if
+
+    !print *,'here ',trim(key),', key ',trim(dict%data%key)
+    !follow the chain, stop at the first occurence
+    if (trim(dict%data%key) == trim(key)) then
+       has=.true.
+    else if (associated(dict%next)) then
+       has=has_key_(dict%next,key)
+    else 
+       has=.false.
+    end if
+
+  end function has_key_
+end function has_key
 
   !> Retrieve the pointer to the dictionary which has this key.
   !! If the key does not exists, create it in the next chain 
@@ -511,7 +556,7 @@ contains
     type(dictionary), pointer :: dict_ptr
 
 !    print *,'here',trim(key)
-    !follow the chain, stop at  first occurence
+    !follow the chain, stop at the first occurence
     if (trim(dict%data%key) == trim(key)) then
        dict_ptr => dict
     else if (associated(dict%next)) then
@@ -811,17 +856,19 @@ contains
 
   end subroutine dict_init
   
-  pure subroutine set_elem(dict,key)
+  subroutine set_elem(dict,key)
     implicit none
     type(dictionary), pointer :: dict !!TO BE VERIFIED
     character(len=*), intent(in) :: key
 
+    print *,'set_elem in ',trim(key),dict%data%nelems,dict%parent%data%nelems
     call set_field(trim(key),dict%data%key)
     if (associated(dict%parent)) then
        dict%parent%data%nelems=dict%parent%data%nelems+1
     else
        dict%data%nelems=dict%data%nelems+1
     end if
+    print *,'set_elem out ',trim(key),dict%data%nelems,dict%parent%data%nelems
 
   end subroutine set_elem
 
