@@ -2273,7 +2273,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
   !local variables
   character(len = *), parameter :: subname = "input_wf"
-  integer :: i_stat, nspin, i_all, iorb, jorb
+  integer :: i_stat, nspin, i_all
   type(gaussian_basis) :: Gvirt
   real(wp), allocatable, dimension(:) :: norm
   logical :: overlap_calculated

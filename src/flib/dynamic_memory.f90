@@ -1082,7 +1082,7 @@ contains
      implicit none
      type(dictionary), pointer, intent(in) :: dict
      !Local variables
-     type(dictionary), pointer :: dict_ptr, dict_tmp
+     type(dictionary), pointer :: dict_ptr!, dict_tmp
      character(len=256) :: array_id
      dict_ptr => dict_next(dict)
      do while(associated(dict_ptr))
