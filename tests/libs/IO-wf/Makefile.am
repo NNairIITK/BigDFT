@@ -80,8 +80,6 @@ clean.in:
 	  done ; \
         fi
 
-check_lib_c check_lib: $(top_builddir)/src/libbigdft.a
-
 if BUILD_DYNAMIC_LIBS
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/src
 endif
