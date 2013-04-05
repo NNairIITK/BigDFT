@@ -46,6 +46,13 @@ subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,
 !Each atomic configuration
 select case(nzatom*1000+nvalelec)
 
+!case(0)
+!symbol = "G"
+!rcov=0.75d0
+!rprb=1.21d0
+!ehomo=-0.233471d0
+!amu=0.d0
+
 case(1*1000+1)
 ! --------------------           1
 ! H            1           1     Symbol, Z, Zion

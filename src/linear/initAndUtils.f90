@@ -988,7 +988,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_p2pComms(wfn%comgp, subname)
   call deallocate_foe(wfn%foe_obj, subname)
   call deallocate_sparseMatrix(wfn%linmat%denskern, subname)
-  !call deallocate_sparseMatrix(wfn%linmat%inv_ovrlp, subname)
+  call deallocate_sparseMatrix(wfn%linmat%inv_ovrlp, subname)
   call deallocate_sparseMatrix(wfn%linmat%ovrlp, subname)
   call deallocate_sparseMatrix(wfn%linmat%ham, subname)
 

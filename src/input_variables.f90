@@ -918,9 +918,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%fscale,'1.d-2',ranges=(/0.d0,1.d0/),comment=comments)
 
   !plot basis functions: true or false
-  comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; &
-           &calculate dipole ; pulay correction'
-  call input_var(in%lin%plotBasisFunctions,'0')
+  comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
+           'calculate dipole ; pulay correction'
+  call input_var(in%lin%plotBasisFunctions,'0',ranges=(/0,3/))
   call input_var(in%lin%calc_dipole,'F')
   call input_var(in%lin%pulay_correction,'T',comment=comments)
   
@@ -929,8 +929,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call allocateBasicArraysInputLin(in%lin, atoms%ntypes)
   
   ! Now read in the parameters specific for each atom type.
-  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, &
-              &localization radius, kernel cutoff'
+  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential,'//&
+             'localization radius, kernel cutoff'
   parametersSpecified=.false.
   itype = 1
   do

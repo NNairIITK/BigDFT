@@ -6,6 +6,8 @@ EXTRA_DIST = psp.out.ref
 
 check_PROGRAMS = check_psp
 
+AM_FCFLAGS = -I$(top_builddir)/src/includes -I$(top_builddir)/src/flib -I$(top_builddir)/src/modules @MPI_INCLUDE@ @LIBABINIT_INCLUDE@
+
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
@@ -14,7 +16,7 @@ LIBS += @LIBS_SHORT_DEPS@
 endif
 
 check_psp_SOURCES = check_psp.f90
-check_psp_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
+check_psp_FCFLAGS = -I$(top_builddir)/src/includes -I$(top_builddir)/src/flib -I$(top_builddir)/src/modules -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
 check_psp_LDADD = -lbigdft-1
 
 CLEANFILES = psp.out psp.report
