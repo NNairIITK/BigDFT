@@ -35,7 +35,7 @@ libCUDA_a_SOURCES = $(sources)
 #INC_CUDA = -I@LIB_CUTIL_PATH@
 EXTRA_PROGRAMS = conv_check
 
-AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_a_PATH@/include/ @LIBSGPU_INCLUDE@
+AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ @LIBSGPU_INCLUDE@
 
 NVCC = @NVCC@
 NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@ 
