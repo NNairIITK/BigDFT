@@ -19,7 +19,6 @@ program yaml_test
 
    integer(kind=8), dimension(2) :: testarr
    !First document
-
   
    call yaml_new_document()
    call yaml_comment('Yaml Output Module Test',hfill='~')

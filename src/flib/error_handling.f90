@@ -200,7 +200,7 @@ contains
     end if
   end function f_err_raise
 
-  !> clean the dictioanry of present errors
+  !> clean the dictionary of present errors
   subroutine f_err_clean()
     implicit none
     call dict_free(dict_present_error)
@@ -242,21 +242,8 @@ contains
     !use metadata_interfaces
     implicit none
     integer(kind=8), intent(in) :: callback,callback_data
-    !integer(kind=8) :: iloc
-    !integer :: ierr
-    !character(len=dict_msg_len) :: address
-
-!!$    !write the address of the first element in the address string
-!!$    call getaddress(customized_abort,address,len(address),ierr)
-!!$    print *,ierr,'add routine: ',trim(address),' toi: ',address_toi(trim(adjustl(address)))
-
-    !iloc=f_loc(customized_abort)
-    !call getaddress(iloc,address,len(address),ierr)
-    !print *,ierr,'add iloc: ',trim(address),' toi: ',address_toi(trim(adjustl(address)))
 
     if (callback_data /=0 .and. callback /=0) then
-!!$       call customized_abort()
-!!$       call call_external(customized_abort,advanced_customized_abort_data)
        call call_external_c_fromadd(callback) !for the moment data are ignored
     else if (callback /=0) then
        call call_external_c_fromadd(callback)
@@ -264,7 +251,7 @@ contains
        stop
     end if
 
-  end subroutine err_abort
+ end subroutine err_abort
 
   !> Defines the error routine which have to be used
   subroutine err_set_callback_simple(callback)

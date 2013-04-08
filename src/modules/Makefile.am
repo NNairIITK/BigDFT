@@ -111,10 +111,10 @@ mpif.h:
 #dependencies
 $(modules): $(libmodules_a_OBJECTS)
 base.o: defs.o ../flib/dynamic_memory.o
-gaussians.o: base.o
 types.o: base.o gaussians.o
 input.o: base.o 
 interfaces.o: base.o types.o xc.o
+gaussians.o: base.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o

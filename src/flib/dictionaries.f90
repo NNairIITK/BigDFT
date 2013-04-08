@@ -228,16 +228,12 @@ contains
     character(len=*), intent(in) :: key
     
     !check if we are at the first level
-!TEST    if (associated(dict%parent)) then
-       call pop_dict_(dict%child,key)
-       !if it is the last the dictionary should be empty
-       if (.not. associated(dict%parent) .and. .not. associated(dict%child)) then
-          call dict_free(dict)
-       end if
+    call pop_dict_(dict%child,key)
+    !if it is the last the dictionary should be empty
+    if (.not. associated(dict%parent) .and. .not. associated(dict%child)) then
+       call dict_free(dict)
+    end if
 
-!TEST    else
-!TEST       call pop_dict_(dict,key)
-!TEST    end if
   contains
     !> Eliminate a key from a dictionary if it exists
     recursive subroutine pop_dict_(dict,key)

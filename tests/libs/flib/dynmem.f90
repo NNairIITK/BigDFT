@@ -7,7 +7,7 @@ subroutine test_dynamic_memory()
    real(kind=8), dimension(:), pointer :: extra_ref
 
    call yaml_comment('Routine-Tree creation example',hfill='~')
-   call dynmem_sandbox()
+   !call dynmem_sandbox()
 
    call f_set_status(memory_limit=0.e0)
    call f_routine(id='PS_Check')
@@ -19,7 +19,7 @@ subroutine test_dynamic_memory()
    potential=f_malloc0(3,id='potential')
 
    call f_release_routine()
-
+!!$
    call f_routine(id='Routine A')
    call f_release_routine()
 
@@ -48,9 +48,9 @@ subroutine test_dynamic_memory()
    call f_routine(id='Routine F')
    call f_release_routine()
    ! call f_malloc_dump_status()
-!!$
-!!$   !Allocations, considering also spin density
-   !ionic potential
+
+   !Allocations, considering also spin density
+!!$   !ionic potential
    pot_ion=f_malloc(0,id='pot_ion')
    !XC potential
    xc_pot=f_malloc(3*2,id='xc_pot')
@@ -59,20 +59,22 @@ subroutine test_dynamic_memory()
    extra_ref=f_malloc_ptr(0,id='extra_ref')
 
    rhopot=f_malloc(3*2,id='rhopot')
+    call f_malloc_dump_status()
    call f_free(rhopot)
-
-   !   call f_free(density,potential,pot_ion,xc_pot,extra_ref)
-   call f_malloc_dump_status()
-   !stop
+!!$
+!!$   !   call f_free(density,potential,pot_ion,xc_pot,extra_ref)
+!!$!   call f_malloc_dump_status()
+!!$   !stop
    call f_free(pot_ion)
    call f_free(potential)
    call f_free(xc_pot)
    !   call f_malloc_dump_status()
    call f_free_ptr(extra_ref)
-   !   call yaml_open_map('Last')
-   !   call f_malloc_dump_status()
-   !   call yaml_close_map()
+!!$   !   call yaml_open_map('Last')
+!!$   !   call f_malloc_dump_status()
+!!$   !   call yaml_close_map()
    call f_release_routine()
+
    call f_finalize()
 
 

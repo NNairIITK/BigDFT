@@ -599,6 +599,7 @@ contains
 
   end function f_malloc
 
+
   !>for rank-1 arrays
   function f_malloc0_simple(size,id,routine_id,try) result(m)
     implicit none
@@ -1169,13 +1170,14 @@ contains
        call dump_leaked_memory(dict_global)
        call yaml_close_map()
     end if
-    call dict_free(dict_global)
+       call dict_free(dict_global)
     !    call yaml_open_map('Calling sequence')
     !    call yaml_dict_dump(dict_calling_sequence)
     !    call yaml_close_map()
-    call dict_free(dict_calling_sequence)
+       call dict_free(dict_calling_sequence)
 
-    call memocc_report()
+       call memocc_report()
+!    end if
     profile_initialized=.false.
     present_routine=repeat(' ',namelen)
     routine_opened=.false.
@@ -1227,7 +1229,7 @@ contains
      implicit none
      type(dictionary), pointer, intent(in) :: dict
      !Local variables
-     type(dictionary), pointer :: dict_ptr, dict_tmp
+     type(dictionary), pointer :: dict_ptr!, dict_tmp
      character(len=256) :: array_id
      dict_ptr => dict_next(dict)
      do while(associated(dict_ptr))
