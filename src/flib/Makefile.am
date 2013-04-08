@@ -18,13 +18,14 @@ getarg_files =
 else
 getarg_files = get_command_argument_fake.f90
 endif
-libflib_a_SOURCES = dictionaries.f90 yaml_strings.f90 utils.c \
-	yaml_output.f90 dynamic_memory.f90 getadd.f90 razero.f90 error_handling.f90 \
+libflib_a_SOURCES = dictionaries.f90 yaml_strings.f90 utils.c utilsadd.c \
+	yaml_output.f90 dynamic_memory.f90 razero.f90 getadd.f90 error_handling.f90 \
 	$(flush_files) $(mpi_source) $(getarg_files)
 
-DYN_INCLUDES = deallocate-inc.f90 allocate-inc.f90 f_malloc-inc.f90
+DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 f_malloc-inc.f90
+YAML_INCLUDES = yaml_map-inc.f90
 
-EXTRA_DIST = $(DYN_INCLUDES)
+EXTRA_DIST = $(DYN_INCLUDES) $(YAML_INCLUDES)
 
 # Module files.
 if CAPITALIZE
@@ -46,7 +47,7 @@ AM_FCFLAGS = @LIBABINIT_INCLUDE@
 # Dependencies
 $(modules): $(libflib_a_OBJECTS)
 dictionaries.o: yaml_strings.o
-yaml_output.o : dictionaries.o
+yaml_output.o : dictionaries.o $(YAML_INCLUDES)
 error_handling.o: dictionaries.o yaml_output.o
 dynamic_memory.o: yaml_strings.o yaml_output.o $(DYN_INCLUDES)
 

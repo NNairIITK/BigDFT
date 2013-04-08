@@ -26,15 +26,15 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   integer :: iproc,nproc,nconfig_file,mpi_groupsize
   character(len=60) :: posinp_file,radical
 
-  !initalize the global mpi environment
+  !Initalize the global mpi environment
   call bigdft_mpi_init(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
   if (ierr /= MPI_SUCCESS) return
 
-  !se the memory limit for the allocation library
-  call f_set_status(memory_limit=memorylimit)
+  !set the memory limit for the allocation library
+  call f_set_status(memory_limit=memorylimit,iproc=iproc)
   !call memocc_set_memory_limit(memorylimit)
 
 

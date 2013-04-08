@@ -497,10 +497,7 @@ void FC_FUNC_(ocl_pin_read_buffer_async,OCL_PIN_READ_BUFFER_ASYNC)(bigdft_contex
 
     clEnqueueMapBuffer((*command_queue)->command_queue, *buff_ptr, CL_FALSE, CL_MAP_WRITE, 0, *size, 0, NULL, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to map pinned read buffer (async)!");
-
 }
-
-
 
 void FC_FUNC_(ocl_create_read_write_buffer,OCL_CREATE_READ_WRITE_BUFFER)(bigdft_context *context, cl_uint *size, cl_mem *buff_ptr) {
     cl_int ciErrNum = CL_SUCCESS;

@@ -26,6 +26,9 @@ Keys to ignore:
 Patterns to ignore:
  - Timestamp
 
+Patterns to ignore:
+ - Timestamp
+
 Expected Test CPUtime: #
  C: #[expected, error]
   athelas: [ 6.0, 1.0 ]
@@ -141,6 +144,9 @@ Li+:
 
 O2-Spin:
  Epsilon: 1.1e-10
+
+H2-spin:
+  Total energy with tail correction: 1.2e-11
 
 TiSmear:
  EKS: 5.5e-11

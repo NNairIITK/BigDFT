@@ -2716,7 +2716,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   type(workarr_sumrho) :: w
   real(wp), dimension(:), allocatable :: vpsi,vpsir
 
-  call f_routine_id('helmholtz_equation')
+  call f_routine(id='helmholtz_equation')
 
   !first, apply the potential operator to the wavefunction
   vpsi=f_malloc0(wfn%orbs%npsidim_orbs,id='vpsi')

@@ -125,36 +125,16 @@
      - SubCase 3
    - Routine E
    - Routine F
- (de)allocation error exiting:
-   Error code                          :  1
-   Last error                          : Fortran (de)allocation problem
- Status of the routine before exiting:
-   pot_ion:
-     Array Id                          : pot_ion
-     Size (Bytes)                      : 24
-     Allocating Routine Id             : PS_Check
-     Address of metadata               : 35720240
-     Address                           : 0x2210c30
-   xc_pot:
-     Array Id                          : xc_pot
-     Size (Bytes)                      : 48
-     Allocating Routine Id             : PS_Check
-     Address of metadata               : 35720304
-     Address                           : 0x2210c70
-   extra_ref:
-     Array Id                          : extra_ref
-     Size (Bytes)                      : 24
-     Allocating Routine Id             : PS_Check
-     Address of metadata               : 35720272
-     Address                           : 0x2210c50
- Calling sequence of Main program:
- - PS_Check:
-   - Routine 0
-   - Routine A
-   - Routine D:
-     - SubCase 1
-     - Subcase 2:
-       - SubSubcase1
-     - SubCase 3
-   - Routine E
-   - Routine F
+ Status of the memory at finalization:
+   Timestamp of Profile initialization:
+     2013-03-27 14:27:54.232
+   Process Id:
+     0
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 6
+   Tot. No. of Deallocations: 6
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 0
+      for the array: rhopot
+      in the routine: PS_Check

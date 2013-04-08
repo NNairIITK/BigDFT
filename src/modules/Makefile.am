@@ -110,8 +110,8 @@ mpif.h:
 
 #dependencies
 $(modules): $(libmodules_a_OBJECTS)
-base.o: defs.o 
-gaussians.o : base.o
+base.o: defs.o ../flib/dynamic_memory.o
+gaussians.o: base.o
 types.o: base.o gaussians.o
 input.o: base.o 
 interfaces.o: base.o types.o xc.o

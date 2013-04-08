@@ -25,7 +25,7 @@ else
 mpi_source = $(top_srcdir)/src/flib/MPIfake.f90
 endif
 
-yaml_test_SOURCES = yaml_test.f90 $(mpi_source)
+yaml_test_SOURCES = yaml_test.f90 errs.f90 yamlout.f90 dicts.f90 dynmem.f90 $(mpi_source)
 #yaml_test_LDADD = -lbigdft-1
 
 CLEANFILES = yaml_test.out.yaml
