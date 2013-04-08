@@ -856,19 +856,17 @@ end function has_key
 
   end subroutine dict_init
   
-  subroutine set_elem(dict,key)
+  pure subroutine set_elem(dict,key)
     implicit none
     type(dictionary), pointer :: dict !!TO BE VERIFIED
     character(len=*), intent(in) :: key
 
-    print *,'set_elem in ',trim(key),dict%data%nelems,dict%parent%data%nelems
     call set_field(trim(key),dict%data%key)
     if (associated(dict%parent)) then
        dict%parent%data%nelems=dict%parent%data%nelems+1
     else
        dict%data%nelems=dict%data%nelems+1
     end if
-    print *,'set_elem out ',trim(key),dict%data%nelems,dict%parent%data%nelems
 
   end subroutine set_elem
 
