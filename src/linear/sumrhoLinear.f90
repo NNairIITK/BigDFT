@@ -930,7 +930,7 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   ! Local variables
   integer :: i3, ii, i2, i1, ipt, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr, i
   real(8) :: tt, weight_check
-  logical :: fast
+  !logical :: fast
 
 
 !!t1=mpi_wtime()

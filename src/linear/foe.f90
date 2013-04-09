@@ -17,12 +17,12 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   real(kind=8),intent(out) :: ebs
 
   ! Local variables
-  integer :: npl, istat, iall, iorb, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver
+  integer :: npl, istat, iall, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver!, iorb
   integer :: isegstart, isegend, iismall, iseglarge, isegsmall, is, ie, iilarge
   integer,parameter :: nplx=5000
   real(kind=8),dimension(:,:),allocatable :: cc, fermip
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
-  real(kind=8) :: anoise, scale_factor, shift_value, charge, sumn, sumnder, charge_diff, ef_interpol
+  real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol!, charge
   real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant
   logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS
   character(len=*),parameter :: subname='foe'
@@ -591,9 +591,7 @@ subroutine chder(a,b,c,cder,n)
 end subroutine chder
 
 
-
-
-! determine noise level
+!> Determine noise level
 subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   implicit none
   
@@ -604,9 +602,7 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   real(kind=8),intent(out) :: anoise
   
   ! Local variables
-  integer :: i
   real(kind=8) :: fact, dist, ddx, cent, tt, x, chebev
-  
   
   fact=1.d0
   dist=(fact*evhigh-fact*evlow)
@@ -629,13 +625,12 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   end do
   anoise=2.d0*tt
 
-
 end subroutine evnoise
 
 
 
-! Calculates the error function complement with an error of less than 1.2E-7
-  function erfcc(x)
+!> Calculates the error function complement with an error of less than 1.2E-7
+function erfcc(x)
   implicit none
 
   ! Calling arguments
@@ -655,8 +650,7 @@ end subroutine evnoise
 end function erfcc
 
 
-
-!  evaluates chebychev expansion
+!> Evaluates chebychev expansion
 function chebev(a,b,m,x,cc)
   implicit none
   

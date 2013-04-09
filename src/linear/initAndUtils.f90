@@ -203,6 +203,7 @@ function megabytes(bytes)
   
 end function megabytes
 
+
 subroutine init_foe(iproc, nproc, lzd, at, input, orbs_KS, orbs, foe_obj, reset)
   use module_base
   use module_types
@@ -218,7 +219,7 @@ subroutine init_foe(iproc, nproc, lzd, at, input, orbs_KS, orbs, foe_obj, reset)
   logical, intent(in) :: reset
   
   ! Local variables
-  integer :: iorb, jorb, iiorb, jjorb, istat, iseg, ilr, jlr
+  integer :: iorb, iiorb, jjorb, istat, iseg, ilr, jlr
   integer :: iwa, jwa, itype, jtype, ierr, iall
   logical :: seg_started
   real(kind=8) :: tt, cut
@@ -802,7 +803,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
 
   
   ! Local variables
-  integer :: iorb, istat, ilr, npsidim, i, ii
+  integer :: iorb, ilr, npsidim
   character(len=*),parameter :: subname='update_locreg'
 
   call timing(iproc,'updatelocreg1','ON') 

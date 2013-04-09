@@ -28,17 +28,18 @@ module yaml_strings
 
   public ::  yaml_toa, buffer_string, align_message, shiftstr
   private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_length
+
 contains
 
   !> Add a buffer to a string and increase its length
   subroutine buffer_string(string,string_lgt,buffer,string_pos,back,istat)
     implicit none
-    integer, intent(in) :: string_lgt
-    integer, intent(inout) :: string_pos
-    character(len=*), intent(in) :: buffer
-    character(len=string_lgt), intent(inout) :: string
-    logical, optional, intent(in) :: back
-    integer, optional, intent(out) :: istat
+    integer, intent(in) :: string_lgt                   !< Length of the string towrite
+    character(len=string_lgt), intent(inout) :: string  !< String towrite
+    integer, intent(inout) :: string_pos                !< Position to add buffer into string and for the next.
+    character(len=*), intent(in) :: buffer              !< Buffer to add
+    logical, optional, intent(in) :: back               !< Add string from the end
+    integer, optional, intent(out) :: istat             !< Error status (if present otherwise stops if error)
     !local variables
     integer :: lgt_add
 
@@ -231,7 +232,7 @@ contains
     yaml_ltoa=repeat(' ',max_value_length)
 
     if (present(fmt)) then
-       write(yaml_ltoa,fmt)l
+       write(yaml_ltoa,fmt) l
     else
        if (l) then
           write(yaml_ltoa,'(a3)')'Yes'
@@ -287,6 +288,8 @@ contains
     yaml_dvtoa=yaml_adjust(yaml_dvtoa)
 
   end function yaml_dvtoa
+
+
   !> Convert vector of double complex to character
   function yaml_zvtoa(dz,fmt)
     implicit none
@@ -325,7 +328,6 @@ contains
     yaml_zvtoa=yaml_adjust(yaml_zvtoa)
 
   end function yaml_zvtoa
-
 
 
   !> Convert vector of integer to character
@@ -397,7 +399,11 @@ contains
        yaml_cvtoa(1:2)='[ '
        pos=3
        do i=nl,nu
-          tmp=trim(cv(i))
+          if (present(fmt)) then
+             write(tmp,fmt=fmt) trim(cv(i))
+          else
+             tmp=trim(cv(i))
+          end if
           length=len(trim(tmp))-1
           if (pos+length > max_value_length) exit
           yaml_cvtoa(pos:pos+length)=tmp(1:length+1)
