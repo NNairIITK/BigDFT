@@ -116,7 +116,7 @@ CH3-:
  Clean forces norm (Ha/Bohr): 1.8e-7
  Raw forces norm (Ha/Bohr): 2.5e-7
  Ion-Ion interaction energy: 5.5e-7
- FORCES norm(Ha/Bohr): 8.1e-9
+ FORCES norm(Ha/Bohr): 8.3e-9
  Keys to ignore:
  - b/b0
 
@@ -136,6 +136,12 @@ Li+:
 
 O2-Spin:
  Epsilon: 1.1e-10
+
+H2-spin:
+ Estimation of Finite-Size Corrections:
+  Corrected Energies:
+   Epot: 2.1e-11
+  Total energy with tail correction: 1.51e-11
 
 TiSmear:
  Epsilon: 5.e-11
@@ -188,7 +194,7 @@ taskgroups:
   EKS: 5.3e-11
 
 Davidson-SiH4:
-  e_virtual: 1.2e-11
+  e_virtual: 1.7e-11
   Eigenvalues and eigenstate residue: 1.3e-10
 
 TDDFT:
