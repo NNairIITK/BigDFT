@@ -36,7 +36,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nB,nKB,nMB,i_stat,i_all,ii,iat,iatyp,iorb
+  integer :: nB,nKB,nMB,ii,iat,iorb,iatyp!,i_stat,i_all
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old
@@ -691,7 +691,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   integer :: ispol,ichg,ichgsum,norbe,norbat,nspin
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
-  character(len=60) :: radical
+  character(len=100) :: radical
 
 
   !calculate number of electrons and orbitals

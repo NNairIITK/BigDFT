@@ -666,7 +666,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   character(len=*), parameter :: subname='LDiagHam'
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
-  integer :: ikptp,ikpt,nvctrp,iorb,Gdim,jproc
+  integer :: ikptp,ikpt,nvctrp,iorb,Gdim!,jproc
   integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx,idum=0
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
   real(kind=4) :: tt,builtin_rand
@@ -1111,8 +1111,8 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
    real(wp), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
    real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,hpsi
    !local variables
-   integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx,jproc,ierr
-   integer :: iorb,jorb
+   integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx!,ierr,jproc
+   !integer :: iorb,jorb
    !WARNING: here nspin=1 for nspinor=4
    if(nspinor == 1) then
       ncplx=1
@@ -1200,7 +1200,7 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
    !n(c) character(len=25) :: gapstring
    !n(c) character(len=64) :: message
    integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,i,ncplx !n(c) iorb, ncomp, ndegen
-   integer :: norbj,jiorb,jjorb,ihs,ispin,norbij,norbu_ig,jproc !n(c) nwrtmsg
+   integer :: norbj,jiorb,jjorb,ihs,ispin,norbij,norbu_ig !,jproc n(c) nwrtmsg
    !n(c) real(wp), dimension(2) :: preval
    real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
    !n(c) real(gp) :: HLIGgap

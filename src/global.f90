@@ -1,7 +1,7 @@
 !> @file
 !!  Minima hopping program
 !! @author
-!!    Copyright (C) 2008-2011 UNIBAS
+!!    Copyright (C) 2008-2013 UNIBAS
 !!    This file is not freely distributed.
 !!    A licence is necessary from UNIBAS
 !!    New modified version 17th Nov 2009 Sandip De
@@ -38,13 +38,12 @@ program MINHOP
   character(len=41) :: filename
   character(len=4) :: fn4
   character(len=5) :: fn5
-  character(len=16) :: fn16
   character(len=17) :: fn17
   character(len=50) :: comment
   real(gp), dimension(6) :: strten
 !  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
-  integer :: group_size,base_group,grp,temp_comm,nconfig
-  integer, dimension(1000) :: group_list
+  integer :: nconfig
+  !integer :: group_size
   integer, dimension(4) :: mpi_info
 
   call bigdft_init(mpi_info,nconfig,run_id,ierr)
@@ -2407,13 +2406,13 @@ logical ,dimension(nat) :: onsurface
 
 ! occupied space= nonzero
     do iat=1,nat
-        ic=nint((pos(2,iat)-ymin)*4.d0)  ! ygrid spacing=.25
-         ib=2.0d0*rcov(iat)*4.d0
-         if (ic-ib.lt.-100) stop "#MH error fixfrag_slab -100"
-         if (ic+ib.gt.1000) stop "#MH error fixfrag_slab 1000"
-         do i=ic-ib,ic+ib
-         ygrid(i)=ygrid(i)+1
-         enddo
+       ic=nint((pos(2,iat)-ymin)*4.d0)  ! ygrid spacing=.25
+       ib=nint(2.0d0*rcov(iat)*4.d0)
+       if (ic-ib.lt.-100) stop "#MH error fixfrag_slab -100"
+       if (ic+ib.gt.1000) stop "#MH error fixfrag_slab 1000"
+       do i=ic-ib,ic+ib
+          ygrid(i)=ygrid(i)+1
+       enddo
     enddo
 
 ! find center of slab

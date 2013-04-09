@@ -1,7 +1,7 @@
 !> @file
 !!  Partial DOS analysis routines
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -53,7 +53,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
 
 
    !call read_system_variables('input.occup',iproc,inc,atc,radii_cf_fake,nelec,&
-  !     norb,norbu,norbd,iunit)
+   !     norb,norbu,norbd,iunit)
 
    !shift the positions with the same value of the original positions
    !  do iat=1,atc%nat
@@ -576,20 +576,13 @@ END SUBROUTINE shell_name
 
 
 !> Perform a total DOS output.
-!! @author
-!!    Copyright (C) 2007-2011 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
 subroutine global_analysis(orbs,wf,occopt)
    use module_base
    use module_types
    implicit none
    type(orbitals_data), intent(in) :: orbs
    real(gp), intent(in) :: wf
-  integer , intent(in) :: occopt
+   integer , intent(in) :: occopt
 
    integer, parameter :: DOS = 123456
    integer :: ikpt, iorb, index, i
@@ -614,18 +607,18 @@ subroutine global_analysis(orbs,wf,occopt)
    write(DOS, "(A)") '# set output "dos.png"'
    write(DOS, "(A)")
    write(DOS, "(A)") "# This is the smearing value used in the calculation."
-  write(DOS, "(A,F12.8,A)") "w = ", wf*Ha_eV,"  # eV"
+   write(DOS, "(A,F12.8,A)") "w = ", wf*Ha_eV,"  # eV"
   !write(DOS, "(A,F12.8,A)") "T = ", wf*Ha_K," K"
    write(DOS, "(A)")
    write(DOS, "(A)") "# This is the smearing function used in the calculation."
-  if (occopt == SMEARING_DIST_FERMI) then
-     write(DOS, "(A,F6.4,A,F12.6,A)") 'set title "Density of states, Fermi-Dirac smearing w = ', &
+   if (occopt == SMEARING_DIST_FERMI) then
+     write(DOS, "(A,F7.4,A,F12.6,A)") 'set title "Density of states, Fermi-Dirac smearing w = ', &
           & wf*Ha_eV, 'eV, E_f = ', orbs%efermi*Ha_eV , 'eV"'
      write(DOS, "(A)") "f(eb,E)  = 1 / (1 + exp((eb-E)/w))"
      write(DOS, "(A)") "df(eb,E) = 1 / (2 + exp((eb-E)/w) + exp((E-eb)/w)) / w"
    !elseif (occopt == SMEARING_DIST_ERF) then  
    else  ! to be changed for cold smearing and ... 
-     write(DOS, "(A,F6.4,A,F12.6,A)") 'set title "Density of states, erf smearing w = ', &
+     write(DOS, "(A,F7.4,A,F12.6,A)") 'set title "Density of states, erf smearing w = ', &
           & wf*Ha_eV, 'eV,  E_f = ', orbs%efermi*Ha_eV , 'eV"'
      write(DOS, "(A)") "f(eb,E)  = 0.5 * (1 - erf((E - eb) / w))"
      write(DOS, "(A)") "df(eb,E) = exp(-((E - eb) / w) ** 2) / w / sqrt(pi)"

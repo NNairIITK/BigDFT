@@ -433,7 +433,7 @@ subroutine davidson(iproc,nproc,in,at,&
    real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
    !v, that is psivirt, is transposed on input and direct on output
    !local variables
-   character(len=*), parameter :: subname='davidson',print_precise='1pe22.14',print_rough='1pe12.4 '
+   character(len=*), parameter :: subname='davidson',print_precise='1pe20.12',print_rough='1pe12.4 '
    character(len=8) :: prteigu,prteigd !format for eigenvalues printing
    logical :: msg,exctX,occorbs !extended output
    integer :: nrhodim,i3rho_add !n(c) occnorb, occnorbu, occnorbd
@@ -1144,45 +1144,43 @@ subroutine davidson(iproc,nproc,in,at,&
                &   hamovr(ish1),v(ispsi:),g(ispsi),hv(ispsi))
 
             ispsi=ispsi+nvctrp*norb*nspinor
-
-            if(msg .or. (iproc==0 .and. ikpt == 1)) then
-               call yaml_open_sequence('Eigenvalues and eigenstate residue')
-               !write(*,'(1x,a)')'done. Eigenvalues, gnrm'
-               if (nspin ==1) then
-                  do iorb=1,orbsv%norb
-                     !show the eigenvalue in full form only if it has reached convergence
-                     if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
-                        prteigu=print_precise
-                     else
-                        prteigu=print_rough
-                     end if
-                     call yaml_sequence(trim(yaml_toa((/ e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)) /),fmt='('//prteigu//')')))
-                     !write(*,'(1x,i5,'//prteigu//',1pe9.2)')iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2))
-                  end do
-                  call yaml_close_sequence()
-               else if (ispin == 2) then
-                  do iorb=1,min(orbsv%norbu,orbsv%norbd) !they should be equal
-                     if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
-                        prteigu=print_precise
-                     else
-                        prteigu=print_rough
-                     end if
-                     if (sqrt(e(iorb+orbsv%norbu,ikpt,2)) <= in%gnrm_cv) then
-                        prteigd=print_precise
-                     else
-                        prteigd=print_rough
-                     end if
-                     call yaml_sequence(trim(yaml_toa((/ &
-                          & e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)), &
-                          & e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2)) /),fmt='('//prteigu//')')))
-                     !write(*,'(1x,i5,'//prteigu//',1pe9.2,t50,'//prteigd//',1pe9.2)')&
-                     !   &   iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)),e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2))
-                  end do
-                  call yaml_close_sequence()
-               end if
-            end if
-
          end do
+
+         if(msg .or. (iproc==0 .and. ikpt == 1)) then
+            call yaml_open_sequence('Eigenvalues and eigenstate residue')
+            !write(*,'(1x,a)')'done. Eigenvalues, gnrm'
+            if (nspin ==1) then
+               do iorb=1,orbsv%norb
+                  !show the eigenvalue in full form only if it has reached convergence
+                  if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
+                     prteigu=print_precise
+                  else
+                     prteigu=print_rough
+                  end if
+                  call yaml_sequence(trim(yaml_toa((/ e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)) /),fmt='('//prteigu//')')))
+                  !write(*,'(1x,i5,'//prteigu//',1pe9.2)')iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2))
+               end do
+            else if (nspin == 2) then
+               do iorb=1,min(orbsv%norbu,orbsv%norbd) !they should be equal
+                  if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
+                     prteigu=print_precise
+                  else
+                     prteigu=print_rough
+                  end if
+                  if (sqrt(e(iorb+orbsv%norbu,ikpt,2)) <= in%gnrm_cv) then
+                     prteigd=print_precise
+                  else
+                     prteigd=print_rough
+                  end if
+                  call yaml_sequence(trim(yaml_toa((/ &
+                       & e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)), &
+                       & e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2)) /),fmt='('//prteigu//')')))
+                  !write(*,'(1x,i5,'//prteigu//',1pe9.2,t50,'//prteigd//',1pe9.2)')&
+                  !   &   iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)),e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2))
+               end do
+            end if
+            call yaml_close_sequence()
+         end if
 
       end do
 
@@ -2053,17 +2051,21 @@ subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
       return
       stop 'HL gap with Band structure not implemented yet'
    end if
-
    !depending on nspin
    orbs%HLgap=UNINITIALIZED(orbs%HLgap)
    if (orbs%nspin==1) then
+      ikpt=1
+       orbs%HLgap=orbsv%eval(1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)
       !the minimum wrt all the k-points
-      do ikpt=1,orbs%nkpts
+      do ikpt=2,orbs%nkpts
          orbs%HLgap=min(orbs%HLgap,orbsv%eval(1+(ikpt-1)*orbsv%norb)&
             &   -orbs%eval(orbs%norb+(ikpt-1)*orbs%norb))
       end do
    else if (orbs%nspin==2) then
-      do ikpt=1,orbs%nkpts
+      ikpt=1
+        orbs%HLgap=min(orbsv%eval(1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
+            &   orbsv%eval(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbd+orbs%norbu+(ikpt-1)*orbs%norb))
+      do ikpt=2,orbs%nkpts
          orbs%HLgap=min(orbs%HLgap,orbsv%eval(1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
             &   orbsv%eval(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbd+orbs%norbu+(ikpt-1)*orbs%norb))
       end do
