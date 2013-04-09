@@ -47,9 +47,9 @@ program PS_Integral
   real(dp), dimension(:,:,:), allocatable :: psifscf,psifscfold,psi_w,psi_w2,dx_field,dy_field
   real(dp), external :: lr_gauss
 
-  call f_malloc_set_status(memory_limit=0.e0)
+  call f_set_status(memory_limit=0.e0)
 
-  call f_malloc_routine_id(subname)
+  call f_routine(id=subname)
 !!$  include 'lazy_ISF_8_2048.inc'
 !!$  include 'lazy_ISF_14_2048.inc'
 !!$  include 'lazy_ISF_16_2048.inc'
@@ -139,10 +139,10 @@ hy=0.1
   dy=0.0!-0.44
   hz=0.2
   dz=0.0!0.55
-n1_old=32
-n1=32
-n2_old=32
-n2=32
+n1_old=22
+n1=22
+n2_old=22
+n2=22
   n3_old=8
   n3=8
   nb1=0
@@ -181,16 +181,17 @@ dx_field=dx/hx
   x=-n1_old*hx!0.d0
   do i=0,2*n1_old+1
     y=-n2_old*hy!0.d0
-    xgauss=lr_gauss(x,0.7d0,0.7d0)!lr_gauss(x,1.7d0,1.4d0)
+    xgauss=lr_gauss(x,0.0d0,0.7d0)!lr_gauss(x,1.7d0,1.4d0)
     do j=0,2*n2_old+1
        z=0.d0
        !ygauss=lr_gauss(y,0.0d0,0.7d0)
        ygauss=lr_gauss(y,-0.3d0,1.4d0)
        do k=1,1!1,2*n3_old+1
-          psifscfold(j,i,k)=xgauss*ygauss!*lr_gauss(z,1.4d0,2.1d0)
-theta=30.0_gp*(4.0_gp*atan(1.d0)/180.0_gp) !in degrees(converted)
-dx_field(i,j,k) =x*cos(theta)-y*sin(theta)-x !theta*y!
-dy_field(i,j,k) =x*sin(theta)+y*cos(theta)-y!
+          psifscfold(j,i,k)=xgauss!*ygauss!*lr_gauss(z,1.4d0,2.1d0)
+theta=35.0_gp*(4.0_gp*atan(1.d0)/180.0_gp) !in degrees(converted)
+dx_field(i,j,k) =x*cos(theta)-y*sin(theta)-x
+!dy_field(i,j,k) =x*sin(theta)+y*cos(theta)-y
+dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
           !write(100,*) x,y,z,psifscfold(i,j,k),dx_field(i,j,k),dy_field(i,j,k)!,psifscf(i,j,k)
           z=z+hz
        end do
@@ -325,7 +326,7 @@ dy_field(i,j,k) =x*sin(theta)+y*cos(theta)-y!
 
 
 !print*,'...interpolating second dimension...'
-    call my_morph_and_transpose(hy,psifscf/hy,nd,nrange,y_phi,(2*n1+2+2*nb1),&
+    call my_morph_and_transpose(hy,dy_field/hy,nd,nrange,y_phi,(2*n1+2+2*nb1),&
          (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2)
 
   x=-n1_old*hx!0.d0
