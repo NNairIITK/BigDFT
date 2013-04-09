@@ -4,7 +4,7 @@ subroutine test_error_handling()
   implicit none
   !local variables
   integer :: ival,err1,ERR_TOTO,ERR_TITI
-  external :: abort_toto,abort_titi
+  external :: abort_toto,abort_titi,abort1,abort2
 
   call yaml_comment('Error Handling Module Test',hfill='~')
    
