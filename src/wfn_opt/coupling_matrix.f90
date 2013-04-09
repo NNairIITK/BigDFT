@@ -1,11 +1,11 @@
 !> @file
 !!  Routines related to coupling matrix (TD-DFT Casida's formalism)
 !! @author
-!!    Copyright (C) 2009-2011 BigDFT group 
+!!    Copyright (C) 2009-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 subroutine center_of_charge(at,rxyz,cc)
   use module_base
@@ -17,7 +17,7 @@ subroutine center_of_charge(at,rxyz,cc)
   !local variables
   integer :: iat,ityp
   real(gp) :: zatom,rx,ry,rz,qtot
-  
+
   cc(1)=0.0_gp
   cc(2)=0.0_gp
   cc(3)=0.0_gp
@@ -27,8 +27,8 @@ subroutine center_of_charge(at,rxyz,cc)
      zatom=real(at%nelpsp(ityp),gp)
      qtot=qtot+zatom
      !coordinates of the center
-     rx=rxyz(1,iat) 
-     ry=rxyz(2,iat) 
+     rx=rxyz(1,iat)
+     ry=rxyz(2,iat)
      rz=rxyz(3,iat)
      cc(1)=cc(1)+rx*zatom
      cc(2)=cc(2)+ry*zatom
@@ -59,7 +59,6 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   real(wp), dimension(lr%d%n1i*lr%d%n2i*n3p*orbsocc%norb), intent(in) :: psirocc
   real(wp), dimension(lr%d%n1i*lr%d%n2i*n3p*orbsvirt%norb), intent(in) :: psivirtr
   real(wp), dimension(lr%d%n1i,lr%d%n2i,n3p,max((nspin*(nspin+1))/2,2)), intent(in) :: dvxcdrho
-  
   type(coulomb_operator) :: pkernel
   !local variables
   character(len=*), parameter :: subname='coupling_matrix_prelim'
@@ -219,14 +218,14 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
            if (nspin ==1) then
               Kaux(ik,jk)=K(ik,jk)
            end if
-                     
+
         end if
         !add the XC contribution
-          
+
         !map the spin couples to the index of dvxcdrho, in the abinit convention
         if (dofxc) then
            index=ispin+jspin-1
-           
+
            do i3p=1,n3p
               do i2=1,lr%d%n2i
                  do i1=1,lr%d%n1i
@@ -236,7 +235,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
                  end do
               end do
            end do
-           
+
            !calculate the spin off-diagonal term for nspin==1
            if (nspin ==1) then
               index=2
@@ -260,7 +259,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
            Kaux(ik,jk)=Kaux(ik,jk)*(2.0_wp*sqrt(orbsvirt%eval(iorba)-orbsocc%eval(iorbi))*&
                 sqrt(orbsvirt%eval(jorba)-orbsocc%eval(jorbi)))**ntda
         end if
-        
+
      end do loop_j
   end do loop_i
 
@@ -390,9 +389,10 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 
            do imulti = 1, 2*nmulti
               call yaml_sequence(trim(yaml_toa((/ Ha_eV*omega(imulti),&
-                   & (2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2) /), fmt='(1pe10.3)')),advance='no')
+                    omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2) /),&
+                    fmt='(1pe10.3)')),advance='no')
               call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
-              !write(6,30) imulti, Ha_eV*omega(imulti),(2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+              !write(6,30) imulti, Ha_eV*omega(imulti),omega(imulti)*(2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
 !30            format(t2,i3,2x,f9.4,12x,1pe10.3) 
            end do
            call yaml_close_sequence()
@@ -401,7 +401,8 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
            open(unit=9, file='td_spectra.txt')
            write(9,'(a4)')'2  #(results in eV)' 
            do imulti = 1, min(100,2*nmulti) 
-              write(9,'(f9.4,5x,1pe10.3)') Ha_eV*omega(imulti), (2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+              write(9,'(f9.4,5x,1pe10.3)') Ha_eV*omega(imulti),&
+                   omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
            end do
            close(unit=9)
 

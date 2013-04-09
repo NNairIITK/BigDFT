@@ -316,7 +316,7 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    nlpspd%natoms=at%nat
    allocate(nlpspd%plr(at%nat),stat=i_stat)
    do iat=1,at%nat
-      nlpspd%plr(iat)=default_locreg() !< set in types
+      nlpspd%plr(iat)=locreg_null() !< set in types
    end do
 
   ! define the region dimensions
@@ -1565,6 +1565,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, ilr_old
   logical:: overlap_calculated
+  real(wp), allocatable, dimension(:) :: norm
   character(len=*),parameter:: subname='input_memory_linear'
 
   ! Determine size of phi_old and phi
@@ -1630,12 +1631,36 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
   !!write(*,*) 'after deallocate, iproc', iproc
 
+   ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
+
+   tmb%can_use_transposed=.true.
+   overlap_calculated=.false.
+   allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=i_stat)
+   call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
+
+   allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=i_stat)
+   call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
+
+   call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+        tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+
+   ! normalize psi
+   allocate(norm(tmb%orbs%norb), stat=i_stat)
+   call memocc(i_stat, norm, 'norm', subname)
+
+   call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
+
+   i_all = -product(shape(norm))*kind(norm)
+   deallocate(norm,stat=i_stat)
+   call memocc(i_stat,i_all,'norm',subname)
+
+
   ! Update the kernel
   if (input%lin%scf_mode/=LINEAR_FOE) then
-      tmb%can_use_transposed=.false.
-      overlap_calculated = .false.
-      nullify(tmb%psit_c)
-      nullify(tmb%psit_f)
+      !tmb%can_use_transposed=.false.
+      !overlap_calculated = .false.
+      !nullify(tmb%psit_c)
+      !nullify(tmb%psit_f)
       call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
            KSwfn%orbs, tmb, overlap_calculated)
       i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
@@ -2248,8 +2273,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
   !local variables
   character(len = *), parameter :: subname = "input_wf"
-  integer :: i_stat, nspin, i_all, iorb, jorb
+  integer :: i_stat, nspin, i_all
   type(gaussian_basis) :: Gvirt
+  real(wp), allocatable, dimension(:) :: norm
   logical :: overlap_calculated
 
   !determine the orthogonality parameters
@@ -2470,44 +2496,44 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
           & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
           & atoms,rxyz_old,rxyz,tmb%psi,tmb%coeff)
+ 
+     ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
+     !nullify(tmb%psit_c)                                                                
+     !nullify(tmb%psit_f)  
 
-        tmb%can_use_transposed=.false.
-        overlap_calculated=.false.
-     nullify(tmb%psit_c)                                                                
-     nullify(tmb%psit_f)     
-    
-     ! Will be coming back to this
-     if (.true.) then                                                       
-        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-             KSwfn%orbs, tmb, overlap_calculated)     
-        !call calculate_density_kernel(iproc, nproc, .true., &
-        !      KSwfn%orbs, tmb%orbs, tmb%coeff, density_kernel)
-        i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
-        deallocate(tmb%psit_c,stat=i_stat)                                                 
-        call memocc(i_stat,i_all,'tmb%psit_c',subname)                                     
-        i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)                               
-        deallocate(tmb%psit_f,stat=i_stat)                                                 
-        call memocc(i_stat,i_all,'tmb%psit_f',subname)     
-     else !DEBUG LR
-        allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
-        call memocc(i_stat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
-        call calculate_density_kernel(iproc, nproc, .true., &
-              KSwfn%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
+     tmb%can_use_transposed=.true.
+     overlap_calculated=.false.
+     allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=i_stat)
+     call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
 
-        open(11)
-        do iorb=1,tmb%orbs%norb
-          do jorb=1,tmb%orbs%norb
-             write(11,*) iorb,jorb,tmb%linmat%denskern%matrix(iorb,jorb)
-          end do
-        end do
-        close(11)
+     allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=i_stat)
+     call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
 
-        call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
+     call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+          tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
 
-        i_all = -product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
-        deallocate(tmb%linmat%denskern%matrix,stat=i_stat)
-        call memocc(i_stat,i_all,'tmb%linmat%denskern%matrix',subname)
-     end if
+     ! normalize psi
+     allocate(norm(tmb%orbs%norb), stat=i_stat)
+     call memocc(i_stat, norm, 'norm', subname)
+
+     call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
+
+     i_all = -product(shape(norm))*kind(norm)
+     deallocate(norm,stat=i_stat)
+     call memocc(i_stat,i_all,'norm',subname)
+                                                    
+     call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+          KSwfn%orbs, tmb, overlap_calculated)     
+
+     tmb%can_use_transposed=.false. ! - do we really need to deallocate here?
+
+     i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
+     deallocate(tmb%psit_c,stat=i_stat)                                                 
+     call memocc(i_stat,i_all,'tmb%psit_c',subname)                                     
+     i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)                               
+     deallocate(tmb%psit_f,stat=i_stat)                                                 
+     call memocc(i_stat,i_all,'tmb%psit_f',subname)     
+
 
      ! Now need to calculate the charge density and the potential related to this inputguess
      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &

@@ -29,7 +29,7 @@ EXTRA_DIST = \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
 	init/pspconf.in.f90 \
-	NEB_driver.sh 
+	NEB_driver.sh
 
 # Build targets, binaries and libraries.
 # -------------
@@ -63,9 +63,9 @@ local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
 else
-binaries_sources = 
+binaries_sources =
 local_binaries =
-scripts_sources = 
+scripts_sources =
 sub_dirs_bin =
 endif
 
@@ -168,11 +168,10 @@ low_level = \
 	wavelib/plotting.f90 \
 	wavelib/i-o.f90 \
 	wavelib/un-compress.f90 \
-	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
-	profiling/time.f90 \
 	profiling/memoryestimator.f90 \
+	profiling/time.f90 \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
 	linear/filterModule.f90 \
@@ -204,7 +203,7 @@ low_level = \
 	linear/foe.f90 \
 	linear/chebyshev.f90 \
 	linear/communications_onesided.f90 \
-        linear/sparse_matrices.f90
+	linear/sparse_matrices.f90
 
 # C objects
 c_level = posfiles.c \
@@ -214,6 +213,7 @@ libmain_a_SOURCES = \
 	$(c_level) \
 	$(low_level) \
 	$(high_level)
+
 libbigdft_1_a_SOURCES =
 
 libbigdft-1.a: $(libmain_a_OBJECTS) $(subs_static_library)
@@ -332,7 +332,7 @@ $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 		--include GLib-2.0 \
 		--include Gio-2.0 \
 		--output=$(gir_DATA) \
-	        --library=bigdft-1 \
+		--library=bigdft-1 \
 		--no-libtool \
 		-DGLIB_MAJOR_VERSION=2 -L$(builddir) \
 		-I$(srcdir)/modules -I$(builddir)/modules \

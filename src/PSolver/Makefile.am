@@ -64,7 +64,6 @@ endif
 EXTRA_PROGRAMS = $(CONV_CHECK)
 conv_check_fft_SOURCES = conv_check_fft.f90
 conv_check_fft_LDADD = -lbigdft-1
-
 conv_check_fftw_SOURCES = conv_check_fftw.f90 fftw.cpp
 conv_check_fftw_LDADD = @LIBS_SHORT_DEPS@ -lfftw3 -lfftw3_threads
 
@@ -80,7 +79,7 @@ endif
 SUFFIXES = .cu
 
 NVCC = @NVCC@
-NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@ 
+NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@
 
 #dependencies
 $(modules): $(libPSolver_a_OBJECTS)

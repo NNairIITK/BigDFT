@@ -2,11 +2,14 @@
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markeup Language (ML for Human)
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
+!> Define routines used to write yaml
 module yaml_output
   use yaml_strings
   use dictionaries
@@ -65,17 +68,20 @@ module yaml_output
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
   integer, dimension(tot_streams) :: stream_units=6             !< Default units unless otherwise specified
 
+  !> Generic routine
   interface yaml_map
-     module procedure yaml_map,yaml_map_i,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
+     module procedure yaml_map,yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
   end interface
 
+  !! Public routines (API of the module)
   public :: yaml_new_document,yaml_release_document
   public :: yaml_map,yaml_open_map,yaml_close_map
   public :: yaml_sequence,yaml_open_sequence,yaml_close_sequence
-  public :: yaml_comment,yaml_warning,yaml_toa,yaml_newline
-  public :: yaml_set_stream,yaml_get_default_stream,yaml_set_default_stream,yaml_stream_attributes
-  public :: yaml_close_all_streams
-  public :: yaml_date_and_time_toa,yaml_scalar,yaml_date_toa,yaml_dict_dump
+  public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
+  public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa
+  public :: yaml_set_stream,yaml_set_default_stream
+  public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
+  public :: yaml_dict_dump
 
 
 contains
@@ -813,161 +819,35 @@ contains
 
   end subroutine yaml_map
 
+  subroutine yaml_map_li(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    integer(kind=8), intent(in) :: mapvalue
+    include 'yaml_map-inc.f90'
+  end subroutine yaml_map_li
 
   subroutine yaml_map_i(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    character(len=*), intent(in) :: mapname
     integer, intent(in) :: mapvalue
-    character(len=*), optional, intent(in) :: label,advance,fmt
-    integer, optional, intent(in) :: unit
-    !local variables
-    integer :: msg_lgt,strm,unt
-    character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
-
-    unt=0
-    if (present(unit)) unt=unit
-    call get_stream(unt,strm)
-
-    adv='def' !default value
-    if (present(advance)) adv=advance
-
-    msg_lgt=0
-    !put the message
-    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-    !put the semicolon
-    call buffer_string(towrite,len(towrite),': ',msg_lgt)
-    !put the optional name
-    if (present(label)) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
-    end if
-    !put the value
-    if (present(fmt)) then
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
-    else
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-    end if
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
+    include 'yaml_map-inc.f90'
   end subroutine yaml_map_i
-
 
   subroutine yaml_map_f(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    character(len=*), intent(in) :: mapname
     real, intent(in) :: mapvalue
-    character(len=*), optional, intent(in) :: label,advance,fmt
-    integer, optional, intent(in) :: unit
-    !local variables
-    integer :: msg_lgt,strm,unt
-    character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
-
-    unt=0
-    if (present(unit)) unt=unit
-    call get_stream(unt,strm)
-
-    adv='def' !default value
-    if (present(advance)) adv=advance
-
-    msg_lgt=0
-    !put the message
-    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-    !put the semicolon
-    call buffer_string(towrite,len(towrite),': ',msg_lgt)
-    !put the optional name
-    if (present(label)) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
-    end if
-    !put the value
-    if (present(fmt)) then
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
-    else
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-    end if
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
+    include 'yaml_map-inc.f90'
   end subroutine yaml_map_f
-
 
   subroutine yaml_map_d(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    character(len=*), intent(in) :: mapname
     real(kind=8), intent(in) :: mapvalue
-    character(len=*), optional, intent(in) :: label,advance,fmt
-    integer, optional, intent(in) :: unit
-    !local variables
-    integer :: msg_lgt,strm,unt
-    character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
-
-    unt=0
-    if (present(unit)) unt=unit
-    call get_stream(unt,strm)
-
-
-    adv='def' !default value
-    if (present(advance)) adv=advance
-
-    msg_lgt=0
-    !put the message
-    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-    !put the semicolon
-    call buffer_string(towrite,len(towrite),': ',msg_lgt)
-    !put the optional name
-    if (present(label)) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
-    end if
-
-    !put the value
-    if (present(fmt)) then
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
-    else
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-    end if
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
+    include 'yaml_map-inc.f90'
   end subroutine yaml_map_d
-
 
   subroutine yaml_map_l(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    character(len=*), intent(in) :: mapname
     logical,  intent(in) :: mapvalue
-    character(len=*), optional, intent(in) :: label,advance,fmt
-    integer, optional, intent(in) :: unit
-    !local variables
-    integer :: msg_lgt,strm,unt
-    character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
-
-    unt=0
-    if (present(unit)) unt=unit
-    call get_stream(unt,strm)
-
-
-    adv='def' !default value
-    if (present(advance)) adv=advance
-
-    msg_lgt=0
-    !put the message
-    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-    !put the semicolon
-    call buffer_string(towrite,len(towrite),': ',msg_lgt)
-    !put the optional name
-    if (present(label)) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
-    end if
-    !put the value
-    if (present(fmt)) then
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
-    else
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-    end if
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
+    include 'yaml_map-inc.f90'
   end subroutine yaml_map_l
-
 
   subroutine yaml_map_dv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
@@ -1123,11 +1003,13 @@ contains
     integer, optional, intent(out) :: istat
     !local variables
     logical :: stream_found
-    integer :: istream,prev_def
+    integer :: istream,prev_def,ierr
 
     if (present(istat)) istat=0
 
     if (unt==0) then
+       !if there are no active streams activate them (to circumvent g95 bug)
+       if (active_streams==0) call yaml_set_stream(record_length=92,istat=ierr)
        strm=default_stream
     else
        !it is assumed that the unit exists
@@ -1156,13 +1038,15 @@ contains
   end subroutine get_stream
 
 
+  !> This routine is the key of the module, handling the events and
+  !! writing into the stream.
   subroutine dump(stream,message,advance,event,istat)
     implicit none
-    type(yaml_stream), intent(inout) :: stream
-    character(len=*), intent(in) :: message
-    character(len=*), intent(in), optional :: advance
-    integer, intent(in), optional :: event
-    integer, intent(out), optional :: istat
+    type(yaml_stream), intent(inout) :: stream          !< Stream to handle
+    character(len=*), intent(in) :: message             !< Mesage to dump
+    character(len=*), intent(in), optional :: advance   !< Advance option
+    integer, intent(in), optional :: event              !< Event to handle
+    integer, intent(out), optional :: istat             !< Status error
     !local variables
     logical :: ladv,change_line,reset_line,pretty_print,reset_tabbing,comma_postponed
     integer :: evt,indent_lgt,msg_lgt,shift_lgt,prefix_lgt

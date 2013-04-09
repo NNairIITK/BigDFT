@@ -998,7 +998,7 @@ program BigDFT2Wannier
       call timing(iproc,'Input_comput  ','OF')
 
 
-call timing(iproc,'             ','RE')
+call timing(bigdft_mpi%mpi_comm,'             ','RE')
 
 call cpu_time(tcpu1)
 call system_clock(ncount1,ncount_rate,ncount_max)

@@ -38,18 +38,15 @@ libmodules_a_SOURCES = base.f90 \
 	gaussians.f90 \
 	types.f90 \
 	input.f90 \
-	dynamic_memory.f90 \
 	interfaces.f90 \
 	private_api.f90 \
 	xc.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
-	yaml_output.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS)
-DYN_INCLUDES = deallocate-inc.f90
 
 # Modules
 if CAPITALIZE
@@ -63,9 +60,6 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_INPUT.@MODULE_EXT@ \
 	GAUSSIANS.@MODULE_EXT@ \
 	BIGDFT_API.@MODULE_EXT@ \
-	YAML_OUTPUT.@MODULE_EXT@ \
-	DYNAMIC_MEMORY.@MODULE_EXT@
-	DYNAMIC_MEMORY.@MODULE_EXT@ \
 	VDWCORRECTION.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
@@ -78,12 +72,11 @@ modules = module_base.@MODULE_EXT@ \
 	module_input.@MODULE_EXT@ \
 	gaussians.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ \
-	yaml_output.@MODULE_EXT@ \
-	dynamic_memory.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@
 endif
 
-EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py $(DYN_INCLUDES)
+
+EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py
 CLEANFILES = mpif.h $(modules)
 
 AM_FCFLAGS = -I. -I$(srcdir) -I../includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
@@ -117,17 +110,15 @@ mpif.h:
 
 #dependencies
 $(modules): $(libmodules_a_OBJECTS)
-base.o: defs.o dynamic_memory.o
-gaussians.o : base.o
-types.o: base.o yaml_output.o gaussians.o
-input.o: base.o yaml_output.o
+base.o: defs.o ../flib/dynamic_memory.o
+types.o: base.o gaussians.o
+input.o: base.o 
 interfaces.o: base.o types.o xc.o
+gaussians.o: base.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
-yaml_output.o : ../flib/yaml_strings.o
-dynamic_memory.o: ../flib/yaml_strings.o yaml_output.o $(DYN_INCLUDES)
 
 # Copy modules in a common include directory.
 all: all-am insmod

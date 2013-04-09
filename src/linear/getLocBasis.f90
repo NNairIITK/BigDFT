@@ -9,7 +9,7 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    calculate_ham,ldiis_coeff)
+    calculate_ham,ham_small,ldiis_coeff)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -32,6 +32,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(DFT_wavefunction),intent(inout) :: tmb
   logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
   logical,intent(in) :: calculate_ham
+  type(sparseMatrix), intent(inout) :: ham_small ! for foe only
   type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
   ! Local variables 
@@ -41,7 +42,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   type(energy_terms) :: energs
-  type(sparseMatrix) :: ham_small
+
   character(len=*),parameter :: subname='get_coeff'
   real(kind=8) :: tmprtr
 
@@ -157,6 +158,29 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       iall=-product(shape(hpsit_f))*kind(hpsit_f)
       deallocate(hpsit_f, stat=istat)
       call memocc(istat, iall, 'hpsit_f', subname)
+
+
+      if (scf_mode==LINEAR_FOE) then
+         ! NOT ENTIRELY GENERAL HERE - assuming ovrlp is small and ham is large, converting ham to match ovrlp
+         call timing(iproc,'FOE_init','ON') !lr408t
+         iismall=0
+         iseglarge=1
+         do isegsmall=1,tmb%linmat%ovrlp%nseg
+            do
+               is=max(tmb%linmat%ovrlp%keyg(1,isegsmall),tmb%linmat%ham%keyg(1,iseglarge))
+               ie=min(tmb%linmat%ovrlp%keyg(2,isegsmall),tmb%linmat%ham%keyg(2,iseglarge))
+               iilarge=tmb%linmat%ham%keyv(iseglarge)-tmb%linmat%ham%keyg(1,iseglarge)
+               do i=is,ie
+                  iismall=iismall+1
+                  ham_small%matrix_compr(iismall)=tmb%linmat%ham%matrix_compr(iilarge+i)
+               end do
+               if (ie>=is) exit
+               iseglarge=iseglarge+1
+            end do
+         end do
+         call timing(iproc,'FOE_init','OF') !lr408t
+      end if
+
   else
       if(iproc==0) write(*,*) 'No Hamiltonian application required.'
   end if
@@ -246,7 +270,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       deallocate(tmb%linmat%denskern%matrix, stat=istat)
       call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
 
-
+      call timing(iproc,'getlocbasinit','ON') !lr408t
       ! Calculate the band structure energy 
       ebs=0.d0
       do iorb=1,tmb%orbs%norb
@@ -257,6 +281,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
             ebs = ebs + tmb%linmat%denskern%matrix_compr(ind_denskern)*tmb%linmat%ham%matrix_compr(ind_ham)
          end do
       end do
+      call timing(iproc,'getlocbasinit','OF') !lr408t
 
       ! Calculate the KS eigenvalues - needed for Pulay - could take advantage of compression here as above?
       !call to_zero(orbs%norb, orbs%eval(1))
@@ -280,35 +305,11 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   else ! foe
 
-      ! NOT ENTIRELY GENERAL HERE - assuming ovrlp is small and ham is large, converting ham to match ovrlp
-      call nullify_sparsematrix(ham_small)
-      call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,subname)
-      allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
-      call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
-
-      iismall=0
-      iseglarge=1
-      do isegsmall=1,tmb%linmat%ovrlp%nseg
-          do
-              is=max(tmb%linmat%ovrlp%keyg(1,isegsmall),tmb%linmat%ham%keyg(1,iseglarge))
-              ie=min(tmb%linmat%ovrlp%keyg(2,isegsmall),tmb%linmat%ham%keyg(2,iseglarge))
-              iilarge=tmb%linmat%ham%keyv(iseglarge)-tmb%linmat%ham%keyg(1,iseglarge)
-              do i=is,ie
-                  iismall=iismall+1
-                  ham_small%matrix_compr(iismall)=tmb%linmat%ham%matrix_compr(iilarge+i)
-              end do
-              if (ie>=is) exit
-              iseglarge=iseglarge+1
-          end do
-      end do
-
       tmprtr=0.d0
       call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, &
            tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%linmat%denskern, ebs)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
-
-      call deallocate_sparsematrix(ham_small,subname)
 
   end if
 
@@ -363,7 +364,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: hpsi_noprecond
   real(kind=8),dimension(:,:),allocatable :: coeff_old
-  logical :: energy_increased, overlap_calculated
+  logical :: energy_increased, overlap_calculated, ortho
   character(len=*),parameter :: subname='getLocalizedBasis'
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
@@ -392,6 +393,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   overlap_calculated=.false.
   it=0
   it_tot=0
+  ortho=.true.
   call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
   call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
        tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
@@ -534,7 +536,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           ! print info here anyway for debugging
           if (iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
           it, fnrm, fnrmMax, trH, ediff,noise
-          if(it_tot<3*nit_basis) cycle
+          if (it_tot<2*nit_basis) then ! just in case the step size is the problem
+             cycle
+          else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
+             if (iproc==0) write(*,'(a)') 'Energy increasing, switching off orthonormalization of tmbs'
+             ortho=.false.
+             alpha=alpha*5.0d0/3.0d0 ! increase alpha to make up for decrease from previous iteration
+          end if
       end if 
 
 
@@ -584,10 +592,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, psidiff)
+              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff)
       else
          call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small)
+              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho)
       end if
 
 
@@ -1028,7 +1036,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
   integer :: ist, istr, iorb, iiorb, ilr, istat, iall
   real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork
   type(workarr_sumrho) :: w
-  character(len=*),parameter :: subname='communicate_basis_for_density_collective'
+  character(len=*),parameter :: subname='comm_basis_for_dens_coll'
 
   call timing(iproc,'commbasis4dens','ON')
 
@@ -1123,7 +1131,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
   ! This is done by comparing the current value with diisLIN%energy_min, which is
   ! the minimal value of the trace so far.
   !if(iproc==0) write(*,*) 'trH, ldiis%trmin', trH, ldiis%trmin
-  if(trH<=ldiis%trmin .and. .not.ldiis%resetDIIS) then
+  if(trH<=ldiis%trmin+1.d-12*abs(ldiis%trmin) .and. .not.ldiis%resetDIIS) then !1.d-12 is here to tolerate some noise...
       ! Everything ok
       ldiis%trmin=trH
       ldiis%switchSD=.false.
@@ -1267,6 +1275,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
   call reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
        tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+
   iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
   deallocate(tmb%linmat%ovrlp%matrix, stat=istat)
   call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix', subname)
@@ -1276,7 +1285,6 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
 
   call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
-
   call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
 
   iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)

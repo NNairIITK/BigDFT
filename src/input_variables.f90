@@ -30,6 +30,8 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
 !!$  logical :: exist_list
 !!$  integer :: group_size,ierr
 
+  atoms=atoms_null()
+
   ! initialize mpi environment (this shouldn't be done twice)
 !  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,nproc)
   !standard names
@@ -88,7 +90,7 @@ subroutine bigdft_free_input(in)
   type(input_variables), intent(inout) :: in
   
   call free_input_variables(in)
-  call f_malloc_finalize()
+  call f_finalize()
   !finalize memory counting
   !call memocc(0,0,'count','stop')
   !free all yaml_streams active
@@ -96,6 +98,8 @@ subroutine bigdft_free_input(in)
 
 end subroutine bigdft_free_input
 
+
+!> Read the options in the command line using get_command statement
 subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
   use module_types
   implicit none
@@ -292,11 +296,11 @@ subroutine read_input_parameters2(iproc,in,atoms,rxyz)
 !!$  integer :: ierror
   !character(len=500) :: logfile,logfile_old,logfile_dir
   !logical :: exists
-!print *,'hereAAA',associated(rxyz),iproc
+!!$  print *,'hereAAA',iproc
   ! Shake atoms, if required.
   call atoms_set_displacement(atoms, rxyz, in%randdis)
 !!$  print *,'hello21',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
-!!$call mpi_barrier(mpi_comm_world,ierr)
+  call mpi_barrier(mpi_comm_world,ierr)
 
   ! Update atoms with symmetry information
   call atoms_set_symmetries(atoms, rxyz, in%disableSym, in%symTol, in%elecfield)
@@ -307,7 +311,7 @@ subroutine read_input_parameters2(iproc,in,atoms,rxyz)
   call inputs_parse_add(in, atoms, iproc, .true.)
 !!$
 !!$  print *,'hello23',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
-!!$call mpi_barrier(mpi_comm_world,ierr)
+!!$  call mpi_barrier(mpi_comm_world,ierr)
 
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
@@ -339,7 +343,7 @@ subroutine read_input_parameters2(iproc,in,atoms,rxyz)
   call check_for_data_writing_directory(iproc,in)
 
 !!$  print *,'hello24',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
-!!$call mpi_barrier(mpi_comm_world,ierr)
+!!$  call mpi_barrier(mpi_comm_world,ierr)
 
 
 END SUBROUTINE read_input_parameters2
@@ -387,7 +391,7 @@ subroutine check_for_data_writing_directory(iproc,in)
            call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
         end if
      end if
-     call MPI_BCAST(dirname,100,MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
+     call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
      in%dir_output=dirname
      if (iproc==0) call yaml_map('Data Writing directory',trim(in%dir_output))
   else
@@ -430,6 +434,7 @@ subroutine default_input_variables(in)
   ! Default for lin.
   nullify(in%lin%potentialPrefac_lowaccuracy)
   nullify(in%lin%potentialPrefac_highaccuracy)
+  nullify(in%lin%potentialPrefac_ao)
   nullify(in%lin%norbsPerType)
   nullify(in%lin%locrad)
   nullify(in%lin%locrad_lowaccuracy)
@@ -829,7 +834,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   logical :: found
   character(len=20):: atomname
   integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
-  real(gp):: ppl, pph, lrl, lrh, kco
+  real(gp):: ppao, ppl, pph, lrl, lrh, kco
   real(gp),dimension(atoms%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
 
   !Linear input parameters
@@ -914,9 +919,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%fscale,'1.d-2',ranges=(/0.d0,1.d0/),comment=comments)
 
   !plot basis functions: true or false
-  comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; &
-           &calculate dipole ; pulay correction'
-  call input_var(in%lin%plotBasisFunctions,'0')
+  comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
+           'calculate dipole ; pulay correction'
+  call input_var(in%lin%plotBasisFunctions,'0',ranges=(/0,3/))
   call input_var(in%lin%calc_dipole,'F')
   call input_var(in%lin%pulay_correction,'T',comment=comments)
   
@@ -925,8 +930,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call allocateBasicArraysInputLin(in%lin, atoms%ntypes)
   
   ! Now read in the parameters specific for each atom type.
-  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, &
-              &localization radius, kernel cutoff'
+  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential,'//&
+             'localization radius, kernel cutoff'
   parametersSpecified=.false.
   itype = 1
   do
@@ -940,6 +945,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
         itype = itype + 1
      end if
      call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
+     call input_var(ppao,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
@@ -952,6 +958,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
            found=.true.
            parametersSpecified(jtype)=.true.
            in%lin%norbsPerType(jtype)=npt
+           in%lin%potentialPrefac_ao(jtype)=ppao
            in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
            in%lin%potentialPrefac_highaccuracy(jtype)=pph
            locradType(jtype)=lrl
@@ -1601,7 +1608,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
 
 !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
   if (in%verbosity == 0 ) then
-     call f_malloc_set_status(output_level=0)
+     call f_set_status(output_level=0)
      !call memocc_set_state(0)
   end if
 
@@ -1630,7 +1637,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   
   ! Set performance variables
   if (.not. in%debug) then
-     call f_malloc_set_status(output_level=1)
+     call f_set_status(output_level=1)
      !call memocc_set_state(1)
   end if
   call set_cache_size(in%ncache_fft)
@@ -1721,7 +1728,7 @@ subroutine create_log_file(iproc,inputs)
               write(*,*) '                      into '//trim(logfile_old)// "'."
               call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
            end if
-           call yaml_map('<BigDFT> Logfile already existing, move previous file in',&
+           call yaml_map('<BigDFT> Logfile existing, renamed into',&
                 trim(logfile_old),unit=6)
 
         else
@@ -1732,7 +1739,7 @@ subroutine create_log_file(iproc,inputs)
         !create that only if the stream is not already present, otherwise print a warning
         if (ierr == 0) then
            call input_set_stdout(unit=70)
-           call f_malloc_set_status(unit=70,logfile_name=trim(inputs%dir_output)//'malloc.prc')
+           call f_set_status(unit=70,logfile_name=trim(inputs%dir_output)//'malloc.prc')
            !call memocc_set_stdout(unit=70)
         else
            call yaml_warning('Logfile '//trim(logfile)//' cannot be created, stream already present. Ignoring...')
@@ -2372,9 +2379,11 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
    call check_atoms_positions(iproc,atoms,rxyz)
 
    ! We delay the calculation of the symmetries.
-   atoms%sym%symObj = -1
-   nullify(atoms%sym%irrzon)
-   nullify(atoms%sym%phnons)
+!this should be already in the atoms_null routine
+   atoms%sym=symm_null()
+!   atoms%sym%symObj = -1
+!   nullify(atoms%sym%irrzon)
+!   nullify(atoms%sym%phnons)
 
    ! close open file.
    if (.not.archive .and. trim(atoms%format) /= "yaml") then

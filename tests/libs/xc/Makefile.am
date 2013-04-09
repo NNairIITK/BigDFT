@@ -8,7 +8,7 @@ CLEANFILES = xc.out xc.tmp.* xc.report
 
 check_PROGRAMS = test_xc
 
-AM_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ 
+AM_FCFLAGS = -I$(top_builddir)/src/includes -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src

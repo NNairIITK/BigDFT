@@ -548,6 +548,7 @@ contains
 
     !loop on each shell (intensive calculation)
     wvfnct=0.0_gp
+    psi=0.0_gp
     do iat=1,G%nat
        r(1)=G%rxyz(1,iat)
        r(2)=G%rxyz(2,iat)
