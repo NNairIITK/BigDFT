@@ -133,9 +133,9 @@ if test x"$ac_build_dynamic" = x"yes" ; then
     have_gdbus=no
     enable_introspection=no
   else
-    CFLAGS="$CFLAGS $ax_flag_pic"
-    CXXFLAGS="$CXXFLAGS $ax_flag_pic"
-    FCFLAGS="$FCFLAGS $ax_flag_pic"
+    case $CFLAGS   in *"$ax_flag_pic"*) ;; *) CFLAGS="$CFLAGS $ax_flag_pic";; esac
+    case $CXXFLAGS in *"$ax_flag_pic"*) ;; *) CXXFLAGS="$CXXFLAGS $ax_flag_pic";; esac
+    case $FCFLAGS  in *"$ax_flag_pic"*) ;; *) FCFLAGS="$FCFLAGS $ax_flag_pic";; esac
 
     eval "set x $ac_configure_args"
     shift
@@ -676,8 +676,6 @@ AC_MSG_RESULT([$ac_build_bin_cluster])
 
 
 dnl ---------------------------------------
-dnl Test the linking part only if required.
-if test "$ac_build_bin_cluster" = "yes" ; then
 
 dnl Substitute Lapack and Blas by another specific library
 withlinalg=no
@@ -839,18 +837,19 @@ fi
 fi #end $withmpi = yes
 
 fi #end $withlinalg = no
-
-dnl Fallbacks for linear algebra libraries
-if [ test $withlinalg = "no" && test $withblas = "no" ] ; then
-  AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
-fi
-if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
-  AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation. Linalg: $LINALG_LIBS"])
-fi
 AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
-
-fi # End of the if library compilation
 AM_CONDITIONAL(USE_BLACS, test x"$withscalapack" = x"yes")
+
+dnl Error on the linking part only if required.
+if test "$ac_build_bin_cluster" = "yes" ; then
+  if [ test $withlinalg = "no" && test $withblas = "no" ] ; then
+    AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
+  fi
+  if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
+    AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation. Linalg: $LINALG_LIBS"])
+  fi
+fi # End of the if library compilation
+
 
 dnl Test the libXC library
 ac_internal_libxc="yes"

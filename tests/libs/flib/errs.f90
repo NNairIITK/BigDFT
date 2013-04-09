@@ -10,7 +10,7 @@ subroutine test_error_handling()
    
   call f_err_initialize()
   
-  call f_err_set_callback(abort_toto)
+  call f_err_set_callback(abort1)
   
   call f_err_define(err_name='ERR_TOTO',err_msg='test1',err_id=ERR_TOTO,callback=abort_toto)
   call f_err_define(err_name='ERR_TITI',err_msg='test2',err_id=ERR_TITI,callback=abort_titi)
@@ -19,7 +19,7 @@ subroutine test_error_handling()
   
   call yaml_map("Callback done, errcode",ERR_TOTO)
   !call yaml_comment("HERE1")
-  call f_err_set_callback(abort_titi)
+  call f_err_set_callback(abort2)
   !call yaml_comment("HERE2")
   call yaml_map("Callback done",f_err_raise(.true.,err_id=ERR_TITI))
   !call yaml_comment("HERE3")
