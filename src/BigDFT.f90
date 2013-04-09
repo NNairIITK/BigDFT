@@ -19,179 +19,105 @@ program BigDFT
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
 
    character(len=*), parameter :: subname='BigDFT' !< Used by memocc routine (timing)
-   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
+   integer :: iproc,nproc,i_stat,i_all,ierr,infocode
    integer :: ncount_bigdft
-   real(gp) :: etot,sumx,sumy,sumz,fnoise
+   real(gp) :: etot,fnoise
    logical :: exist_list
    !input variables
    type(atoms_data) :: atoms
    type(input_variables) :: inputs
    type(restart_objects) :: rst
-   character(len=50), dimension(:), allocatable :: arr_posinp
-   character(len=60) :: filename, radical
+   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
+   character(len=60) :: filename, radical,run_id
    ! atomic coordinates, forces, strten
+   !information for mpi_initalization
+   integer, dimension(4) :: mpi_info
    real(gp), dimension(6) :: strten
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
-   integer :: iconfig,nconfig,istat
+   integer :: iconfig,nconfig,istat,group_size,ngroups,igroup
 
-   ! Start MPI in parallel version
-   !in the case of MPIfake libraries the number of processors is automatically adjusted
-   call bigdft_mpi_init(ierr)
-   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+   !-finds the number of taskgroup size
+   !-initializes the mpi_environment for each group
+   !-decides the radical name for each run
+   call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
-   call memocc_set_memory_limit(memorylimit)
+   !just for backward compatibility
+   iproc=mpi_info(1)
+   nproc=mpi_info(2)
 
+   igroup=mpi_info(3)
+   !number of groups
+   ngroups=mpi_info(4)
 
+  
+   !allocate arrays of run ids
+   allocate(arr_radical(abs(nconfig)))
+   allocate(arr_posinp(abs(nconfig)))
+
+   !here we call  a routine which
    ! Read a possible radical format argument.
-   call get_command_argument(1, value = radical, status = istat)
-   if (istat > 0) then
-      write(radical, "(A)") "input"   
-   end if
-   !open unit for yaml output
-!!$   if (istat > 0) then
-!!$      if (iproc ==0) call yaml_set_stream(unit=70,filename='log.yaml')
-!!$   else
-!!$      if (iproc ==0) call yaml_set_stream(unit=70,filename='log-'//trim(radical)//'.yaml')
-!!$   end if
-   if (iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
+   call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
 
-   ! find out which input files will be used
-   inquire(file="list_posinp",exist=exist_list)
-   if (exist_list) then
-      open(54,file="list_posinp")
-      read(54,*) nconfig
-      if (nconfig > 0) then 
-         !allocation not referenced since memocc count not initialised
-         allocate(arr_posinp(1:nconfig))
+   do iconfig=1,abs(nconfig)
+      if (modulo(iconfig-1,ngroups)==igroup) then
+         !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
+         ! Read all input files. This should be the sole routine which is called to initialize the run.
 
-         do iconfig=1,nconfig
-            read(54,*) arr_posinp(iconfig)
-         enddo
-      else
-         !normal case
-         nconfig=1
-         allocate(arr_posinp(1:1))
-         if (istat > 0) then
-            arr_posinp(1)='posinp'
-         else
-            arr_posinp(1)=trim(radical)
+         call bigdft_set_input(arr_radical(iconfig),arr_posinp(iconfig),rxyz,inputs,atoms)
+
+         !here we should define a routine to extract the number of atoms and the positions, and allocate forces array
+
+         allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
+         call memocc(i_stat,fxyz,'fxyz',subname)
+         call init_restart_objects(bigdft_mpi%iproc,inputs,atoms,rst,subname)
+
+         call call_bigdft(bigdft_mpi%nproc,bigdft_mpi%iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
+
+         if (inputs%ncount_cluster_x > 1) then
+            filename=trim(inputs%dir_output)//'geopt.mon'
+            open(unit=16,file=filename,status='unknown',position='append')
+            if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
+            if (iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
+            !if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+            ! geometry optimization
+            call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,rxyz,atoms,fxyz,strten,etot,rst,inputs,ncount_bigdft)
+            close(16)
          end if
-      endif
-      close(54)
-   else
-      nconfig=1
-      allocate(arr_posinp(1:1))
-         if (istat > 0) then
-            arr_posinp(1)='posinp'
-         else
-            arr_posinp(1)=trim(radical)
+
+         !if there is a last run to be performed do it now before stopping
+         if (inputs%last_run == -1) then
+            inputs%last_run = 1
+            call call_bigdft(bigdft_mpi%nproc,bigdft_mpi%iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
          end if
-   end if
 
-   do iconfig=1,nconfig
-      !welcome screen
-      if (iproc==0) call print_logo()
+         if (inputs%ncount_cluster_x > 1) then
+            filename=trim('final_'//trim(arr_posinp(iconfig)))
+            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
+         else
+            filename=trim('forces_'//trim(arr_posinp(iconfig)))
+            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'Geometry + metaData forces',forces=fxyz)
+         end if
 
-      ! Read all input files.
-      !standard names
-      call standard_inputfile_names(inputs, radical, nproc)
-      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
-      if (iproc == 0) then
-         call print_general_parameters(nproc,inputs,atoms)
-         !call write_input_parameters(inputs,atoms)
+         i_all=-product(shape(rxyz))*kind(rxyz)
+         deallocate(rxyz,stat=i_stat)
+         call memocc(i_stat,i_all,'rxyz',subname)
+         i_all=-product(shape(fxyz))*kind(fxyz)
+         deallocate(fxyz,stat=i_stat)
+         call memocc(i_stat,i_all,'fxyz',subname)
+
+         call free_restart_objects(rst,subname)
+
+         call deallocate_atoms(atoms,subname) 
+
+         call bigdft_free_input(inputs)
+
       end if
-
-      !initialize memory counting
-      !call memocc(0,iproc,'count','start')
-
-      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
-      call memocc(i_stat,fxyz,'fxyz',subname)
-
-      call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
-
-      !if other steps are supposed to be done leave the last_run to minus one
-      !otherwise put it to one
-      if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1 .or. inputs%ncount_cluster_x <= 1) then
-         inputs%last_run = 1
-      end if
-
-      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
-
-
-      if (inputs%ncount_cluster_x > 1) then
-         open(unit=16,file='geopt.mon',status='unknown',position='append')
-         if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
-         if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
-         ! geometry optimization
-         call geopt(nproc,iproc,rxyz,atoms,fxyz,strten,etot,rst,inputs,ncount_bigdft)
-         close(16)
-      end if
-
-      !if there is a last run to be performed do it now before stopping
-      if (inputs%last_run == -1) then
-         inputs%last_run = 1
-         call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
-      end if
-
-      if (inputs%ncount_cluster_x > 1) then
-         filename=trim('final_'//trim(arr_posinp(iconfig)))
-         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
-      else
-         filename=trim('forces_'//trim(arr_posinp(iconfig)))
-         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'Geometry + metaData forces',forces=fxyz)
-      end if
-
-      if (iproc == 0) then
-         sumx=0.d0
-         sumy=0.d0
-         sumz=0.d0
-         write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
-         do iat=1,atoms%nat
-            write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-            iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
-            sumx=sumx+fxyz(1,iat)
-            sumy=sumy+fxyz(2,iat)
-            sumz=sumz+fxyz(3,iat)
-         enddo
-         !$$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-         !$$           write(*,'(1x,a)')'the sum of the forces is'
-         !$$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-         !$$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-         !$$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-         !$$        end if
-      endif
-
-      call deallocate_atoms(atoms,subname) 
-
-!      call deallocate_lr(rst%Lzd%Glr,subname)    
-!      call deallocate_local_zone_descriptors(rst%Lzd, subname)
-      if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &
-           & call deallocateBasicArraysInput(inputs%lin)
-
-      call free_restart_objects(rst,subname)
-
-      i_all=-product(shape(rxyz))*kind(rxyz)
-      deallocate(rxyz,stat=i_stat)
-      call memocc(i_stat,i_all,'rxyz',subname)
-      i_all=-product(shape(fxyz))*kind(fxyz)
-      deallocate(fxyz,stat=i_stat)
-      call memocc(i_stat,i_all,'fxyz',subname)
-
-      call free_input_variables(inputs)
-
-      !finalize memory counting
-      call memocc(0,0,'count','stop')
-
    enddo !loop over iconfig
 
-   deallocate(arr_posinp)
+   deallocate(arr_posinp,arr_radical)
 
-   !wait all processes before finalisation
-   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-
-   call MPI_FINALIZE(ierr)
+   call bigdft_finalize(ierr)
 
 END PROGRAM BigDFT
 

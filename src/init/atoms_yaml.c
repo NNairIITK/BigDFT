@@ -1017,8 +1017,8 @@ PosinpList* posinp_yaml_parse(const char *filename, char **message)
 
   return list;
 }
-void FC_FUNC_(posinp_yaml_parse, POSINP_YAML_PARSE)(PosinpList **self,
-                                                    const char *filename, unsigned int *ln)
+void FC_FUNC_(f90_posinp_yaml_parse, F90_POSINP_YAML_PARSE)(PosinpList **self,
+                                                            const char *filename, unsigned int *ln)
 {
   char *name;
 
@@ -1042,12 +1042,12 @@ void posinp_yaml_free_list(PosinpList *lst)
       free(tmp);
     }
 }
-void FC_FUNC_(posinp_yaml_free_list, POSINP_YAML_FREE_LIST)(PosinpList **self)
+void FC_FUNC_(f90_posinp_yaml_free_list, F90_POSINP_YAML_FREE_LIST)(PosinpList **self)
 {
   posinp_yaml_free_list(*self);
 }
 
-void FC_FUNC_(posinp_yaml_get_cell, POSINP_YAML_GET_CELL)(PosinpList **self, unsigned int *i,
+void FC_FUNC_(f90_posinp_yaml_get_cell, F90_POSINP_YAML_GET_CELL)(PosinpList **self, unsigned int *i,
                                                           unsigned int *BC, unsigned int *Units,
                                                           double acell[3], double angdeg[3])
 {
@@ -1077,7 +1077,7 @@ void FC_FUNC_(posinp_yaml_get_cell, POSINP_YAML_GET_CELL)(PosinpList **self, uns
     }
 
 }
-void FC_FUNC_(posinp_yaml_get_dims, POSINP_YAML_GET_DIMS)(PosinpList **self, unsigned int *i,
+void FC_FUNC_(f90_posinp_yaml_get_dims, F90_POSINP_YAML_GET_DIMS)(PosinpList **self, unsigned int *i,
                                                           unsigned int *nat, unsigned int *ntypes)
 {
   PosinpList *lst;
@@ -1093,7 +1093,7 @@ void FC_FUNC_(posinp_yaml_get_dims, POSINP_YAML_GET_DIMS)(PosinpList **self, uns
       *ntypes = lst->data->ntypes;
     }
 }
-void FC_FUNC_(posinp_yaml_get_atoms, POSINP_YAML_GET_ATOMS)(PosinpList **self, unsigned int *i,
+void FC_FUNC_(f90_posinp_yaml_get_atoms, F90_POSINP_YAML_GET_ATOMS)(PosinpList **self, unsigned int *i,
                                                             unsigned int *units, double *rxyz, 
                                                             unsigned int *iatype, unsigned int *ifrztyp,
                                                             int *igspin, int *igchg)
@@ -1117,7 +1117,7 @@ void FC_FUNC_(posinp_yaml_get_atoms, POSINP_YAML_GET_ATOMS)(PosinpList **self, u
 	iatype[j] += 1;
     }
 }
-void FC_FUNC_(posinp_yaml_get_atomname, POSINP_YAML_GET_ATOMNAME)(PosinpList **self, unsigned int *i,
+void FC_FUNC_(f90_posinp_yaml_get_atomname, F90_POSINP_YAML_GET_ATOMNAME)(PosinpList **self, unsigned int *i,
                                                                   unsigned int *ityp, char name[20])
 {
   PosinpList *lst;
@@ -1134,7 +1134,7 @@ void FC_FUNC_(posinp_yaml_get_atomname, POSINP_YAML_GET_ATOMNAME)(PosinpList **s
       memcpy(name, lst->data->atomnames[*ityp], sizeof(char) * ((ln > 20)?20:ln));
     }
 }
-void FC_FUNC_(posinp_yaml_has_forces, POSINP_YAML_HAS_FORCES)(PosinpList **self, unsigned int *i,
+void FC_FUNC_(f90_posinp_yaml_has_forces, F90_POSINP_YAML_HAS_FORCES)(PosinpList **self, unsigned int *i,
                                                               unsigned int *has_forces)
 {
   PosinpList *lst;
@@ -1147,7 +1147,7 @@ void FC_FUNC_(posinp_yaml_has_forces, POSINP_YAML_HAS_FORCES)(PosinpList **self,
   if (lst)
     *has_forces = (lst->data->fxyz != (double*)0);
 }
-void FC_FUNC_(posinp_yaml_get_forces, POSINP_YAML_GET_FORCES)(PosinpList **self, unsigned int *i,
+void FC_FUNC_(f90_posinp_yaml_get_forces, F90_POSINP_YAML_GET_FORCES)(PosinpList **self, unsigned int *i,
                                                               unsigned int *units, double *fnrm,
                                                               double *maxval, double *fxyz)
 {
@@ -1167,7 +1167,7 @@ void FC_FUNC_(posinp_yaml_get_forces, POSINP_YAML_GET_FORCES)(PosinpList **self,
       *maxval = lst->data->maxval;
     }
 }
-void FC_FUNC_(posinp_yaml_get_properties, POSINP_YAML_GET_PROPERTIES)
+void FC_FUNC_(f90_posinp_yaml_get_properties, F90_POSINP_YAML_GET_PROPERTIES)
      (PosinpList **self, unsigned int *i, unsigned int *eunits, double *energy,
       double *gnrm, int *converged)
 {
@@ -1186,7 +1186,7 @@ void FC_FUNC_(posinp_yaml_get_properties, POSINP_YAML_GET_PROPERTIES)
       *gnrm      = lst->data->gnrm_wfn;
     }
 }
-void FC_FUNC_(posinp_yaml_get_comment, POSINP_YAML_GET_COMMENT)
+void FC_FUNC_(f90_posinp_yaml_get_comment, F90_POSINP_YAML_GET_COMMENT)
      (PosinpList **self, unsigned int *i, char *comment, unsigned int *len)
 {
   PosinpList *lst;

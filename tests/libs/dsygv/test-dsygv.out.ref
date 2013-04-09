@@ -1,0 +1,52 @@
+ number of MPI processes: 8
+ number of OpenMP threads: 1
+ >>> reading parameters from file input.dat <<<
+ matrix size: 256
+ scalapack block size: 64
+ =============================================================
+ LAPACK: sum of eigenvalues  1.088535861E+02,  time=4.4321E-02
+ =============================================================
+scalapack will use 8 processes.
+calculation is done on process grid with dimension 4 x 2.
+ ================================================================
+ SCALAPACK: sum of eigenvalues  1.088535861E+02,  time=5.1322E-02
+ ================================================================
+ number of MPI processes: 8
+ number of OpenMP threads: 1
+ >>> reading parameters from file input.dat <<<
+ matrix size: 512
+ scalapack block size: 128
+ =============================================================
+ LAPACK: sum of eigenvalues  2.080336888E+02,  time=2.7373E-01
+ =============================================================
+scalapack will use 8 processes.
+calculation is done on process grid with dimension 4 x 2.
+ ================================================================
+ SCALAPACK: sum of eigenvalues  2.080336888E+02,  time=3.7191E-01
+ ================================================================
+ number of MPI processes: 8
+ number of OpenMP threads: 1
+ >>> reading parameters from file input.dat <<<
+ matrix size: 1024
+ scalapack block size: 256
+ =============================================================
+ LAPACK: sum of eigenvalues  4.156436958E+02,  time=2.2217E+00
+ =============================================================
+scalapack will use 8 processes.
+calculation is done on process grid with dimension 4 x 2.
+ ================================================================
+ SCALAPACK: sum of eigenvalues  4.156436958E+02,  time=2.3464E+00
+ ================================================================
+ number of MPI processes: 8
+ number of OpenMP threads: 1
+ >>> reading parameters from file input.dat <<<
+ matrix size: 2048
+ scalapack block size: 512
+ =============================================================
+ LAPACK: sum of eigenvalues  8.544548374E+02,  time=1.9944E+01
+ =============================================================
+scalapack will use 8 processes.
+calculation is done on process grid with dimension 4 x 2.
+ ================================================================
+ SCALAPACK: sum of eigenvalues  8.544548374E+02,  time=2.2587E+01
+ ================================================================

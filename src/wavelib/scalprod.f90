@@ -101,7 +101,7 @@ subroutine wscal_wrap(mvctr_c,mvctr_f,scal,psi)
   implicit none
   integer, intent(in) :: mvctr_c,mvctr_f
   real(wp), intent(in) :: scal
-  real(wp), dimension(mvctr_c+7*mvctr_f), intent(in) :: psi
+  real(wp), dimension(mvctr_c+7*mvctr_f), intent(inout) :: psi
   !local variables
   integer :: i_f
 
@@ -466,7 +466,7 @@ subroutine wpdot_4(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -681,7 +681,7 @@ subroutine wpdot_5(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -904,7 +904,7 @@ subroutine wpdot_8(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f8
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -1158,7 +1158,7 @@ subroutine wpdot_13(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12,bpsi_f13
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -1458,7 +1458,7 @@ subroutine wpdot_14(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12,bpsi_f13,bpsi_f14
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -1769,7 +1769,7 @@ subroutine wpdot_18(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f15,bpsi_f16,bpsi_f17,bpsi_f18
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -2118,7 +2118,7 @@ subroutine wpdot_19(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f15,bpsi_f16,bpsi_f17,bpsi_f18,bpsi_f19
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -2476,7 +2476,7 @@ subroutine wpdot_20(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f15,bpsi_f16,bpsi_f17,bpsi_f18,bpsi_f19,bpsi_f20
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -2844,7 +2844,7 @@ subroutine wpdot_22(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f21,bpsi_f22
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -3226,7 +3226,6 @@ subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi, 
   iaseg_f=min(maseg_f,1)
   ibseg_f=min(mbseg_f,1)
 
-
   do ia=1,ncplx
      do ib=1,ncplx
         call wpdot(mavctr_c,mavctr_f,maseg_c,maseg_f,&
@@ -3278,7 +3277,7 @@ subroutine wpdot(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f
   real(dp), intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,iboff,length,i,ja0,ja1
   real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -3316,14 +3315,17 @@ subroutine wpdot(  &
 !$omp do schedule(static)
    do ibseg=1,mbseg_c
      jbj=keybv_c(ibseg)
-     jb0=keybg_c(1,ibseg) !starting point of projector segment
+!     jb0=keybg_c(1,ibseg) !starting point of projector segment
+     jb0=max(keybg_c(1,ibseg),keyag_c_lin(1))
      jb1=keybg_c(2,ibseg) !ending point of projector segment
-!     print *,'huntenter',ibseg,jb0,jb1
+     iboff = max(jb0-keybg_c(1,ibseg),0)
+     !print *,'huntenter',ibseg,jb0,jb1
  
      !find the starting point of the wavefunction segment
      !warning: hunt is assuming that the variable is always found
      !if it is not, iaseg0 is put to maseg + 1 so that the loop is disabled
-     call hunt1(.true.,keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
+!     call hunt1(.true.,keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
+     call hunt1(.true.,keyag_c_lin,maseg_c,jb0,iaseg0)
      if (iaseg0==0) then  !segment not belonging to the wavefunctions, go further
         iaseg0=1
         cycle     
@@ -3343,9 +3345,9 @@ subroutine wpdot(  &
 
         jaj=keyav_c(iaseg0)
         do i=0,length
-           scpr0=scpr0+real(apsi_c(jaj+iaoff+i),dp)*real(bpsi_c(jbj+i),dp)
+           scpr0=scpr0+real(apsi_c(jaj+iaoff+i),dp)*real(bpsi_c(jbj+i+iboff),dp)
         enddo
- !       print *,'length',length,ibseg,scpr0,iaseg0,ja1,jb1
+       !print *,'length',length,ibseg,scpr0,iaseg0,ja1,jb1
 
         !print *,'ibseg,mbseg_c,iaseg0,maseg_c',ibseg,mbseg_c,iaseg0,maseg_c
         !print '(a,6(i8),1pe25.17)','ja0,ja1t,ja1,jb0,jb1',&
@@ -3371,10 +3373,13 @@ iaseg0=1
 !$omp do schedule(static)
    do ibseg=1,mbseg_f
      jbj=keybv_f(ibseg)
-     jb0=keybg_f(1,ibseg)
+     !jb0=keybg_f(1,ibseg)
+     jb0=max(keybg_f(1,ibseg),keyag_f_lin(1))
      jb1=keybg_f(2,ibseg)
+     iboff = max(jb0-keybg_f(1,ibseg),0)
 !    print *,'huntenter',ibseg,jb0,jb1
-     call hunt1(.true.,keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
+     !call hunt1(.true.,keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
+     call hunt1(.true.,keyag_f_lin,maseg_f,jb0,iaseg0)
      if (iaseg0==0) then  !segment not belonging to the wavefunctions, go further
         iaseg0=1
         cycle     
@@ -3390,13 +3395,13 @@ iaseg0=1
 
         jaj=keyav_f(iaseg0)
         do i=0,length
-           scpr1=scpr1+real(apsi_f(1,jaj+iaoff+i),dp)*real(bpsi_f(1,jbj+i),dp)
-           scpr2=scpr2+real(apsi_f(2,jaj+iaoff+i),dp)*real(bpsi_f(2,jbj+i),dp)
-           scpr3=scpr3+real(apsi_f(3,jaj+iaoff+i),dp)*real(bpsi_f(3,jbj+i),dp)
-           scpr4=scpr4+real(apsi_f(4,jaj+iaoff+i),dp)*real(bpsi_f(4,jbj+i),dp)
-           scpr5=scpr5+real(apsi_f(5,jaj+iaoff+i),dp)*real(bpsi_f(5,jbj+i),dp)
-           scpr6=scpr6+real(apsi_f(6,jaj+iaoff+i),dp)*real(bpsi_f(6,jbj+i),dp)
-           scpr7=scpr7+real(apsi_f(7,jaj+iaoff+i),dp)*real(bpsi_f(7,jbj+i),dp)
+           scpr1=scpr1+real(apsi_f(1,jaj+iaoff+i),dp)*real(bpsi_f(1,jbj+i+iboff),dp)
+           scpr2=scpr2+real(apsi_f(2,jaj+iaoff+i),dp)*real(bpsi_f(2,jbj+i+iboff),dp)
+           scpr3=scpr3+real(apsi_f(3,jaj+iaoff+i),dp)*real(bpsi_f(3,jbj+i+iboff),dp)
+           scpr4=scpr4+real(apsi_f(4,jaj+iaoff+i),dp)*real(bpsi_f(4,jbj+i+iboff),dp)
+           scpr5=scpr5+real(apsi_f(5,jaj+iaoff+i),dp)*real(bpsi_f(5,jbj+i+iboff),dp)
+           scpr6=scpr6+real(apsi_f(6,jaj+iaoff+i),dp)*real(bpsi_f(6,jbj+i+iboff),dp)
+           scpr7=scpr7+real(apsi_f(7,jaj+iaoff+i),dp)*real(bpsi_f(7,jbj+i+iboff),dp)
         enddo
  !       print *,'length',length,ibseg,scpr1,iaseg0,ja1,jb1
         if ((ja1<=jb1 .and. length>=0) .or. iaseg0==maseg_f) exit nonconvex_loop_f !segment is finished  

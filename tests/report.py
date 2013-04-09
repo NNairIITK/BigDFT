@@ -2,13 +2,14 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 25/10/2011
+# Date: 11/09/2012
 #----------------------------------------------------------------------------
 
 import fnmatch
 import os
 import re
 import sys
+import yaml
 
 #Regular expressions
 re_discrepancy = re.compile("Max [dD]iscrepancy[^:]*:[ ]+([^ ]+)[ ]+\(([^ ]+)")
@@ -20,11 +21,24 @@ def callback(pattern,dirname,names):
         if fnmatch.fnmatch(name,pattern):
             files.append(os.path.join(dirname,name))
 
+def yaml_callback(pattern,dirname,names):
+    "Return the files given by the pattern"
+    for name in names:
+        if fnmatch.fnmatch(name,pattern):
+            yaml_files.append(os.path.join(dirname,name))
+
+
 #List of files
 files = []
 os.path.walk(".",callback,"*.report")
 #Sort files
 files.sort()
+
+#List of files (yaml case)
+yaml_files = []
+os.path.walk(".",yaml_callback,"*.report.yaml")
+#Sort files
+yaml_files.sort()
 
 #Check if the output is a tty to print in colour
 if sys.stdout.isatty():
@@ -44,7 +58,7 @@ Exit = 0
 #Total time for the tests
 totime=0
 
-print "Final report ('passed' means all significant floats are correct):"
+print "Final report for writings in stdout ('passed' means all significant floats are correct):"
 for file in files:
     dir = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
@@ -55,16 +69,25 @@ for file in files:
         discrepancy = re_discrepancy.findall(line)
     except:
         discrepancy = False
+        try:
+            should_compare=open(file).readline()
+            empty_file=("Nothing to compare" in should_compare)
+        except:
+            empty_file=False
     if discrepancy:
         #If nan gives nan (not a number and all comparisons are false)
         diff = float(discrepancy[0][0])
         if diff < max_discrepancy:
-            #Three cases: 
+            #Four cases: 
             if discrepancy[0][1] == "failed-memory":
                 #The test is OK but the memory remaining is not 0
                 start = start_fail
                 state = "remaining memory != 0B failed"
                 Exit = 1
+            elif discrepancy[0][1] == "passed":
+                #passed: significant numbers (more than 5 digits) are < max_discrepancy
+                start = start_pass
+                state = "%7.1e < (%7.1e)    passed" % (diff,max_discrepancy)
             elif discrepancy[0][1] == "passed":
                 #passed: significant numbers (more than 5 digits) are < max_discrepancy
                 start = start_pass
@@ -81,22 +104,57 @@ for file in files:
         time = re_time.findall(line)
         if time:
             totime += float(time[0])
-            time = "%8ss" % time[0]
+            time = "%10ss" % time[0]
         else:
             time = ""
-        print "%s%-27s %-29s %s%s%s" % (start,dir,fic,state,time,end)
+        print "%s%-27s %-37s %s%s%s" % (start,dir,fic,state,time,end)
     else:
+        if not empty_file:
+            start = start_fail
+            state = "can not parse file.    failed"
+            print "%s%-27s %-37s %s%s" % (start,dir,fic,state,end)
+
+print "Final report for yaml outputs: if succeeded %53s" % "max diff (significant epsilon)"
+for file in yaml_files:
+    dirc = os.path.normpath(os.path.dirname(file))
+    fic = "(%s)" % os.path.basename(file)
+    dirfic = ("%-27s %-38s" % (dirc,fic)).strip()
+    documents=[a for a in yaml.load_all(open(file, "r").read(), Loader = yaml.CLoader)]
+    #find whether all the tests have passed (look at last part)
+    try:
+        discrepancy=documents[-1]["Test succeeded"]
+        #test failes
+        if not discrepancy:
+            Exit = 1
+            start = start_fail
+            state = "Failed: %s %7.1e > %7.1e " % \
+                    (documents[-1]["Failure reason"],documents[-1]["Maximum discrepancy"], \
+                     documents[-1]["Maximum tolerance applied"])
+        else:
+            start = start_success
+            state = "Succeeded: %7.1e (%7.1e) " % \
+                    (documents[-1]["Maximum discrepancy"], \
+                     documents[-1]["Maximum tolerance applied"])
+        #Test if time is present
+        time = documents[-1]["Seconds needed for the test"]
+        totime += time
+        print "%s%-66s %s%8.2fs%s" % (start,dirfic,state,time,end)
+    except:
         start = start_fail
         state = "can not parse file.    failed"
-        print "%s%-27s %-29s %s%s" % (start,dir,fic,state,end)
+        print "%s%-66s %s%s" % (start,dirfic,state,end)
+
 
 #Hours, minutes and seconds
 totimeh = int(totime/3600)
 totimem = int(totime-totimeh*3600)/60
 totimes = totime-totimem*60-totimeh*3600
 p_time  = "%sh %sm %ss" % (totimeh,totimem,totimes)
-print 96*"-"
-print 54*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
-
+print 105*"-"
+print 63*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
+if Exit==0:
+    print "Test set succeeded!"
+else:
+    print "Test set failed, check the above report!"
 #Error code
 sys.exit(Exit)

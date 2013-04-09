@@ -13,8 +13,8 @@
 !!  Indicate correct formulae for entropy
 
 
-!>  Calculate vibrational frequencies by frozen phonon approximation.
-!!  Use a file 'frequencies.res' to restart calculations.
+!> Calculate vibrational frequencies by frozen phonon approximation.
+!! Use a file 'frequencies.res' to restart calculations.
 program frequencies
 
    use module_base
@@ -34,8 +34,9 @@ program frequencies
    character(len=4) :: cc
    !File unit
    integer, parameter :: u_hessian=20
-   integer :: iproc,nproc,iat,jat,i,j,i_stat,i_all,ierr,infocode,ity
+   integer :: iproc,nproc,iat,jat,i,j,i_stat,i_all,ierr,infocode,ity,nconfig
    real(gp) :: etot,alat,dd,rmass,fnoise
+   character(len=60) :: run_id
    !Input variables
    type(atoms_data) :: atoms
    type(input_variables) :: inputs
@@ -58,53 +59,71 @@ program frequencies
    real(gp), dimension(:,:,:), allocatable :: forces
    real(gp), dimension(3) :: freq_step
    real(gp), dimension(6) :: strten
-   character(len=60) :: radical
+   character(len=60) :: radical,posinp
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
    real(gp) :: tel
    real :: tcpu0,tcpu1
    integer :: k,km,ii,jj,ik,imoves,order,n_order,istat,ncount0,ncount1,ncount_rate,ncount_max
    logical :: exists
-
-   ! Start MPI in parallel version
-   !in the case of MPIfake libraries the number of processors is automatically adjusted
-   call MPI_INIT(ierr)
-   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-
-   call memocc_set_memory_limit(memorylimit)
-
-   ! Read a possible radical format argument.
-   call get_command_argument(1, value = radical, status = istat)
-   if (istat > 0) then
-      write(radical, "(A)") "input"
-   end if
-
+   integer, dimension(4) :: mpi_info
+!!$   ! Start MPI in parallel version
+!!$   !in the case of MPIfake libraries the number of processors is automatically adjusted
+!!$   call MPI_INIT(ierr)
+!!$   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+!!$   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+!!$ 
+!!$   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+!!$
+!!$   call memocc_set_memory_limit(memorylimit)
+!!$
+!!$   ! Read a possible radical format argument.
+!!$   call get_command_argument(1, value = radical, status = istat)
+!!$   if (istat > 0) then
+!!$      write(radical, "(A)") "input"
+!!$   end if
+!!$
 !!$   !open unit for yaml output
 !!$   if (istat > 0) then
-!!$      if (iproc ==0) call yaml_set_stream(unit=70,filename='log.yaml')
+!!$      if (bigdft_mpi%iproc ==0) call yaml_set_stream(unit=70,filename='log.yaml')
 !!$   else
-!!$      if (iproc ==0) call yaml_set_stream(unit=70,filename='log-'//trim(radical)//'.yaml')
+!!$      if (bigdft_mpi%iproc ==0) call yaml_set_stream(unit=70,filename='log-'//trim(radical)//'.yaml')
 !!$   end if
-  if (iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
+!  if (bigdft_mpi%iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
 
    ! Welcome screen
-   if (iproc == 0) call print_logo()
+!   if (bigdft_mpi%iproc == 0) call print_logo()
 
    ! Initialize memory counting
-   !call memocc(0,iproc,'count','start')
+   !call memocc(0,bigdft_mpi%iproc,'count','start')
 
-   !standard names
-   call standard_inputfile_names(inputs,radical,nproc)
-   call read_input_variables(iproc, "posinp", inputs, atoms, rxyz)
+!!$   !standard names
+!!$   call standard_inputfile_names(inputs,radical,nproc)
+!!$   posinp="posinp"
+!!$   call read_input_variables(iproc,nproc,posinp, inputs, atoms, rxyz,1,radical,istat)
+
+   !-finds the number of taskgroup size
+   !-initializes the mpi_environment for each group
+   !-decides the radical name for each run
+   call bigdft_init(mpi_info,nconfig,run_id,ierr)
+
+   !just for backward compatibility
+   iproc=mpi_info(1)
+   nproc=mpi_info(2)
+
+   if (nconfig < 0) stop 'runs-file not supported for frequencies executable'
+
+   !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
+   ! Read all input files. This should be the sole routine which is called to initialize the run.
+   call bigdft_set_input(trim(run_id),'posinp',rxyz,inputs,atoms)
 
    ! Read all input files.
    inquire(file="input.freq",exist=exists)
    if (.not. exists) then
-      if (iproc == 0) write(*,*)'ERROR: need file input.freq for vibrational frequencies calculations.'
+      if (bigdft_mpi%iproc == 0) write(*,*)'ERROR: need file input.freq for vibrational frequencies calculations.'
       if(nproc/=0)   call MPI_FINALIZE(ierr)
       stop
    end if
-   call frequencies_input_variables_new(iproc,.true.,'input.freq',inputs)
+   call frequencies_input_variables_new(bigdft_mpi%iproc,.true.,'input.freq',inputs)
 
    !Order of the finite difference scheme
    order = inputs%freq_order
@@ -153,12 +172,12 @@ program frequencies
    freq_step(2) = inputs%freq_alpha*inputs%hy
    freq_step(3) = inputs%freq_alpha*inputs%hz
 
-   call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
+   call init_restart_objects(bigdft_mpi%iproc,inputs,atoms,rst,subname)
 
    !Initialize the moves using a restart file if present
    call frequencies_read_restart(atoms%nat,n_order,imoves,moves,energies,forces,freq_step,atoms%amu,etot)
    !Message
-   if (iproc == 0) then
+   if (bigdft_mpi%iproc == 0) then
       write(*,'(1x,a,i0,a,i0,a)') '=F=> There are ', imoves, ' moves already calculated over ', &
          &   n_order*3*atoms%nat,' frequencies.'
       write(*,*)
@@ -169,31 +188,24 @@ program frequencies
       fxyz = forces(:,1,0)
       infocode=0
    else
-      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
-      call frequencies_write_restart(iproc,0,0,0,rxyz,etot,fxyz,&
+      call call_bigdft(nproc,bigdft_mpi%iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
+      call frequencies_write_restart(bigdft_mpi%iproc,0,0,0,rxyz,etot,fxyz,&
          &   n_order=n_order,freq_step=freq_step,amu=atoms%amu)
       moves(:,0) = .true.
       call restart_inputs(inputs)
    end if
 
-   if (iproc == 0) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
-
-   if (iproc == 0) then
-      write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
-      do iat=1,atoms%nat
-         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-            &   iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(i+3*(iat-1)),i=1,3)
-      end do
-   end if
-
-   if (iproc == 0) then
+   if (bigdft_mpi%iproc == 0) then
+      write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+      !Print atomic forces
+      !call write_forces(atoms,fxyz)
       !This file contains the hessian for post-processing: it is regenerated each time.
       open(unit=u_hessian,file='hessian.dat',status="unknown")
       write(u_hessian,'(a,3(1pe20.10))') '#step=',freq_step(:)
       write(u_hessian,'(a,100(1pe20.10))') '#--',etot,fxyz
    end if
 
-   if (iproc == 0) then
+   if (bigdft_mpi%iproc == 0) then
       write(*,*)
       write(*,'(1x,a,59("="))') '=Frequencies calculation '
    end if
@@ -201,7 +213,7 @@ program frequencies
    do iat=1,atoms%nat
 
       if (atoms%ifrztyp(iat) == 1) then
-         if (iproc == 0) write(*,"(1x,a,i0,a)") '=F:The atom ',iat,' is frozen.'
+         if (bigdft_mpi%iproc == 0) write(*,"(1x,a,i0,a)") '=F:The atom ',iat,' is frozen.'
          cycle
       end if
 
@@ -232,7 +244,7 @@ program frequencies
             dd=real(k,gp)*freq_step(i)
             !We copy atomic positions
             rpos=rxyz
-            if (iproc == 0) then
+            if (bigdft_mpi%iproc == 0) then
                write(*,"(1x,a,i0,a,a,a,1pe20.10,a)") &
                   &   '=F Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
             end if
@@ -243,9 +255,9 @@ program frequencies
             else
                rpos(i,iat)=rxyz(i,iat)+dd
             end if
-            call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot,fpos(:,km),strten,fnoise,&
+            call call_bigdft(nproc,bigdft_mpi%iproc,atoms,rpos,inputs,etot,fpos(:,km),strten,fnoise,&
                  rst,infocode)
-            call frequencies_write_restart(iproc,km,i,iat,rpos,etot,fpos(:,km))
+            call frequencies_write_restart(bigdft_mpi%iproc,km,i,iat,rpos,etot,fpos(:,km))
             moves(km,ii) = .true.
             call restart_inputs(inputs)
          end do
@@ -271,7 +283,7 @@ program frequencies
                !end if
             end do
          end do
-         if (iproc == 0) write(u_hessian,'(i0,1x,i0,1x,100(1pe20.10))') i,iat,hessian(:,ii)
+         if (bigdft_mpi%iproc == 0) write(u_hessian,'(i0,1x,i0,1x,100(1pe20.10))') i,iat,hessian(:,ii)
       end do
    end do
 
@@ -315,7 +327,7 @@ program frequencies
    end do
    call sort_dp(3*atoms%nat,sort_work,iperm,tol_freq)
 
-   if (iproc == 0) then
+   if (bigdft_mpi%iproc == 0) then
       write(*,*)
       write(*,'(1x,a,81("="))') '=F '
       write(*,*)
@@ -376,12 +388,12 @@ program frequencies
          &   '=F: Total energy        =', total_energy,'Hartree at ',Temperature,'K'
    end if
 
-   !Deallocations
-   call deallocate_atoms(atoms,subname)
-
-
-!   call deallocate_local_zone_descriptors(rst%Lzd, subname)
-   call free_restart_objects(rst,subname)
+!!$   !Deallocations
+!!$   call deallocate_atoms(atoms,subname)
+!!$
+!!$
+!!$!   call deallocate_local_zone_descriptors(rst%Lzd, subname)
+!!$   call free_restart_objects(rst,subname)
 
    i_all=-product(shape(rxyz))*kind(rxyz)
    deallocate(rxyz,stat=i_stat)
@@ -423,19 +435,28 @@ program frequencies
    deallocate(forces,stat=i_stat)
    call memocc(i_stat,i_all,'forces',subname)
 
-   call free_input_variables(inputs)
+   call free_restart_objects(rst,subname)
+
+   call deallocate_atoms(atoms,subname) 
+
+   call bigdft_free_input(inputs)
+
+
+!!$   call free_input_variables(inputs)
 
    !Final timing
    call cpu_time(tcpu1)
    call system_clock(ncount1,ncount_rate,ncount_max)
    tel=real(ncount1-ncount0,kind=gp)/real(ncount_rate,kind=gp)
-   if (iproc == 0) &
-      &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') '=F: CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
+   if (bigdft_mpi%iproc == 0) &
+      &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') '=F: CPU time/ELAPSED time for root process ', bigdft_mpi%iproc,tel,tcpu1-tcpu0
 
-   !Finalize memory counting
-   call memocc(0,0,'count','stop')
+!!$   !Finalize memory counting
+!!$   call memocc(0,0,'count','stop')
+!!$
+!!$   call MPI_FINALIZE(ierr)
 
-   call MPI_FINALIZE(ierr)
+   call bigdft_finalize(ierr)
 
    contains
 
@@ -490,14 +511,14 @@ program frequencies
       imoves=0
       moves = .false.
       !Test if the file does exist.
-      if (iproc == 0) then
+      if (bigdft_mpi%iproc == 0) then
          write(*,freq_form) 'Check if the file "frequencies.res" is present.'
       end if
       inquire(file='frequencies.res', exist=exists)
       if (.not.exists) then
          !There is no restart file.
          call razero(n_order*(3*nat+1),energies(1,0))
-         if (iproc == 0) write(*,freq_form) 'No "frequencies.res" file present.'
+         if (bigdft_mpi%iproc == 0) write(*,freq_form) 'No "frequencies.res" file present.'
          return
       end if
 
@@ -513,7 +534,7 @@ program frequencies
       read(unit=iunit,iostat=ierror) i_order,steps,amu
       if (ierror /= 0) then
          !Read error, we clean the file.
-         if (iproc == 0) then
+         if (bigdft_mpi%iproc == 0) then
             close(unit=iunit)
             write(*,freq_form) 'Erase the file "frequencies.res".'
             open(unit=iunit,file='frequencies.res',status='old',form='unformatted')
@@ -525,11 +546,11 @@ program frequencies
          if (steps(1) /= freq_step(1) .or. &
             &   steps(2) /= freq_step(2) .or. &
          steps(3) /= freq_step(3)) then
-         if (iproc == 0) write(*,freq_form) 'The step to calculate frequencies is not the same: stop.'
+         if (bigdft_mpi%iproc == 0) write(*,freq_form) 'The step to calculate frequencies is not the same: stop.'
          stop
       end if
       if (i_order > n_order) then
-         if (iproc == 0) then 
+         if (bigdft_mpi%iproc == 0) then 
             write(*,freq_form) 'The number of points per direction is bigger in the "frequencies.res" file.'
             write(*,freq_form) 'Increase the order of the finite difference scheme'
          end if
@@ -540,9 +561,9 @@ program frequencies
    read(unit=iunit,iostat=ierror) iat,etot,rxyz,fxyz
    if (ierror /= 0 .or. iat /= 0) then
       !Read error, we assume that it is not calculated
-      if (iproc == 0) write(*,freq_form) 'The reference state is not calculated in "frequencies.res" file.'
+      if (bigdft_mpi%iproc == 0) write(*,freq_form) 'The reference state is not calculated in "frequencies.res" file.'
    else
-      if (iproc == 0) write(*,freq_form) 'The reference state is already calculated.'
+      if (bigdft_mpi%iproc == 0) write(*,freq_form) 'The reference state is already calculated.'
       energies(:,0) = etot
       forces(:,1,0) = fxyz
       moves(:,0) = .true.

@@ -14,23 +14,24 @@ program WaCo
    use module_types
    use module_interfaces, except_this_one => writeonewave
    use Poisson_Solver
+   use yaml_output
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
-   type(orbitals_data) :: orbs,orbsw,orbsv,wannorbs
+   type(orbitals_data) :: orbs,orbsw,orbsv
    type(atoms_data) :: atoms
    type(input_variables) :: input
    type(workarr_sumrho) :: w
-   type(communications_arrays), target :: commsw, wanncomms
+   type(communications_arrays), target :: commsw
    type(local_zone_descriptors) :: Lzd   !debug only
-   integer :: ilr,iiband,ldim,gdim  !debug only
+   integer :: iiband,ldim,gdim  !debug only
    logical, dimension(:),allocatable :: calcbounds !Debug only
    real(gp), parameter :: b2a=0.5291772108_dp
    real :: tcpu0,tcpu1
    real(gp) :: tel
    real(gp), dimension(3) :: shift,CM
    real(gp) :: dist,rad,sprdfact,sprddiff,enediff,sprdmult
-   integer :: iproc, nproc, nproctiming, i_stat, nelec, ierr, npsidim
+   integer :: iproc, nproc, nproctiming, i_stat, ierr, npsidim
    integer :: nvirtu,nvirtd,nrpts
    integer :: NeglectPoint, CNeglectPoint
    integer :: ncount0,ncount1,ncount_rate,ncount_max,iat,iformat
@@ -43,11 +44,11 @@ program WaCo
    real(gp), dimension(:,:), pointer :: rxyz, rxyz_old, cxyz,rxyz_wann
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), allocatable :: sprd(:), locrad(:), eigen(:,:), proj(:,:), projC(:,:),distw(:),charge(:),prodw(:),wannocc(:)
-   real(wp), allocatable :: psi(:,:),psi2(:),wann(:),wannr(:),lwann(:)
+   real(wp), allocatable :: psi(:,:),wann(:),wannr(:),lwann(:)
    real(wp), allocatable :: ham(:,:,:),hamr(:,:,:)
    real(wp), allocatable :: diag(:,:),diagT(:)
    integer, dimension(:), pointer :: buf
-   character(len=60) :: radical, filename
+   character(len=60) :: radical, filename, posinp,run_id
    logical :: notocc, bondAna,Stereo,hamilAna,WannCon,linear,outformat
    integer, dimension(:), allocatable :: ConstList
    integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:), l(:), mr(:)
@@ -56,24 +57,30 @@ program WaCo
    integer :: i, j, k, i_all
    character(len=16) :: seedname
    integer :: n_occ, n_virt, n_virt_tot, nproj,nband_old,nkpt_old,iwann_out 
-   logical :: w_unk, w_sph, w_ang, w_rad, pre_check
+   logical :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity,write_resid
    integer, allocatable, dimension (:) :: virt_list
-   integer :: nbandCon
+   integer :: nbandCon,nconfig
    integer, dimension(:),allocatable :: bandlist
-   logical :: file_exist,idemp
+   logical :: idemp
+   integer, dimension(4) :: mpi_info
+
    ! ONLY FOR DEBUG
-   real(gp) :: Gnorm, Lnorm
-   integer :: indL   !debug only
-   real(kind=8),dimension(:,:),allocatable :: coeff !debug only 
+!   real(gp) :: Gnorm, Lnorm
+!   integer :: indL,ilr
+!   real(kind=8),dimension(:,:),allocatable :: coeff
+!   type(orbitals_data) :: wannorbs
+!   type(communications_arrays), target :: wanncomms
+!   real(wp), allocatable :: psi2(:)
 !   real(gp),allocatable :: cxyz2(:,:) !debug only
 !   integer, allocatable :: list(:)    !debug only
    interface
-      subroutine read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
+      subroutine read_inter_header(iproc,seedname, filetype,residentity,write_resid, n_occ, pre_check,&
+                 n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
         implicit none
         integer, intent(in) :: iproc
         character, intent(out) :: seedname*16, filetype*4
         integer, intent(out) :: n_occ, n_virt, n_virt_tot
-        logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check
+        logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity,write_resid
       end subroutine read_inter_header
       subroutine read_inter_list(iproc,n_virt, virt_list)
         implicit none
@@ -91,19 +98,34 @@ program WaCo
       end subroutine scalar_kmeans_diffIG
    end interface
 
-   ! Start MPI in parallel version
-   !in the case of MPIfake libraries the number of processors is automatically adjusted
-   call MPI_INIT(ierr)
-   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+   !-finds the number of taskgroup size
+   !-initializes the mpi_environment for each group
+   !-decides the radical name for each run
+   call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
-   call memocc_set_memory_limit(memorylimit)
+   !just for backward compatibility
+   iproc=mpi_info(1)
+   nproc=mpi_info(2)
 
-   ! Read a possible radical format argument.
-   call get_command_argument(1, value = radical, status = i_stat)
-   if (i_stat > 0) then
-      write(radical, "(A)") "input"
-   end if
+   if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
+
+  call bigdft_set_input(trim(run_id)//trim(bigdft_run_id_toa()),'posinp'//trim(bigdft_run_id_toa()),&
+       rxyz,input,atoms)
+
+!!$   ! Start MPI in parallel version
+!!$   !in the case of MPIfake libraries the number of processors is automatically adjusted
+!!$   call MPI_INIT(ierr)
+!!$   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+!!$   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+!!$   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+!!$
+!!$   call memocc_set_memory_limit(memorylimit)
+!!$
+!!$   ! Read a possible radical format argument.
+!!$   call get_command_argument(1, value = radical, status = i_stat)
+!!$   if (i_stat > 0) then
+!!$      write(radical, "(A)") "input"
+!!$   end if
 
    if (input%verbosity > 2) then
       nproctiming=-nproc !timing in debug mode                                                                                                                                                                 
@@ -120,7 +142,7 @@ program WaCo
    !###################################################################
    ! Read input files and initialise the variables for the wavefunctions
    !###################################################################
-   call standard_inputfile_names(input,radical,nproc)
+!!$   call standard_inputfile_names(input,radical,nproc)
 
    call Waco_input_variables(iproc,trim(radical)//'.waco',nband,nwann,bondAna,Stereo,hamilAna,WannCon,&
         outputype,nwannCon,refpos,units,sprdfact,sprddiff,enediff,outformat,linear,nbandCon,sprdmult)
@@ -133,23 +155,24 @@ program WaCo
 
    call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList,linear,nbandCon,bandlist) 
 
-   call read_input_variables(iproc,'posinp',input, atoms, rxyz)
-
-   if (iproc == 0) call print_general_parameters(nproc,input,atoms)
+!!$   posinp='posinp'
+!!$   call read_input_variables(iproc,nproc,posinp,input, atoms, rxyz,1,radical,i_stat)
+!!$
+!!$   if (iproc == 0) call print_general_parameters(nproc,input,atoms)
 
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf,nelec)
+   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
    call system_size(iproc,atoms,rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
         Glr,shift)
    
-   box(1) = Glr%d%n1*input%hx * b2a
-   box(2) = Glr%d%n2*input%hy * b2a
-   box(3) = Glr%d%n3*input%hz * b2a
+   box(1) = atoms%alat1*b2a !Glr%d%n1*input%hx * b2a
+   box(2) = atoms%alat2*b2a !Glr%d%n2*input%hy * b2a
+   box(3) = atoms%alat3*b2a !Glr%d%n3*input%hz * b2a
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
@@ -164,7 +187,8 @@ program WaCo
    ! Read Other files
    !#################################################################
    !input.inter
-   call read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
+   call read_inter_header(iproc,seedname, filetype,residentity,write_resid, n_occ, pre_check,&
+        n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
    allocate(virt_list(n_virt),stat=i_stat)
    call memocc(i_stat,virt_list,'virt_list',subname)
    if (n_virt .ne. 0) then
@@ -297,7 +321,6 @@ program WaCo
          iat = 0
          do i = 1, atoms%nat
             call get_mindist(Glr%geocode,rxyz_wann(1,i),cxyz(1,iwann),box,dist)
-            !dist = (rxyz_wann(1,i)-cxyz(1,iwann))**2 + (rxyz_wann(2,i)-cxyz(2,iwann))**2 + (rxyz_wann(3,i)-cxyz(3,iwann))**2
             if (dist**2 <= sprdfact * sprd(iwann)) then    !for normal distribution: 1=68%, 1.64=80%, 3=94%
                ncenters(iwann) = ncenters(iwann) +1
                iat = iat +1
@@ -771,7 +794,7 @@ program WaCo
        call memocc(i_stat,calcbounds,'calcbounds',subname)
        calcbounds =.false.  
        call determine_locregSphere_parallel(iproc,nproc,nwannCon,cxyz,locrad,Lzd%hgrids(1),&
-               Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds) 
+               Lzd%hgrids(2),Lzd%hgrids(3),atoms,orbs,Lzd%Glr,Lzd%Llr,calcbounds) 
      end if
 
 
@@ -796,7 +819,8 @@ program WaCo
      case ("BIN","bin")
         iformat = WF_FORMAT_BINARY
      case default
-        if (iproc == 0) write(*,*)' WARNING: Missing specification of wavefunction files'
+        !if (iproc == 0) write(*,*)' WARNING: Missing specification of wavefunction files'
+        call yaml_warning('Missing specification of wavefunction files')
         stop
      end select
 
@@ -937,12 +961,12 @@ program WaCo
               i_all = -product(shape(orbsw%iokpt))*kind(orbsw%iokpt)
               deallocate(orbsw%iokpt,stat=i_stat)
               call memocc(i_stat,i_all,'orbsw%iokpt',subname)
-              allocate(orbsw%iokpt(orbs%norb),stat=i_stat)
+              allocate(orbsw%iokpt(nwannCon),stat=i_stat)
               call memocc(i_stat,orbsw%iokpt,'orbsw%iokpt',subname)
               orbsw%iokpt=1
-              call open_filename_of_iorb(ifile,.not.outformat,'minBasis',orbsw,iiwann,1,iwann_out)
-              !open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
               if(hamilana .and. linear) then
+                 print *,'iokpt',iiwann,orbsw%iokpt(iiwann),iwann,orbsw%iokpt(iwann)
+                 call open_filename_of_iorb(ifile,.not.outformat,'minBasis',orbsw,iiwann,1,iwann_out)
                  ldim = Lzd%Llr(iiwann)%wfd%nvctr_c+7*Lzd%Llr(iiwann)%wfd%nvctr_f
                  gdim = Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
                  allocate(lwann(ldim),stat=i_stat)
@@ -954,7 +978,7 @@ program WaCo
                  !                 Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
                  !                 Lzd%Glr%wfd%keyvglob,Lzd%Glr%wfd%keyglob,wann,Gnorm)
                 !END DEBUG
-                 call psi_to_locreg2(iproc, nproc, ldim, gdim, Lzd%Llr(iiwann), Lzd%Glr, wann, lwann)
+                 call psi_to_locreg2(iproc, ldim, gdim, Lzd%Llr(iiwann), Lzd%Glr, wann, lwann)
                 !DEBUG
                  !call wpdot_wrap(1,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%nvctr_f,Lzd%Llr(iiwann)%wfd%nseg_c,&
                  !                 Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%keyvglob,Lzd%Llr(iiwann)%wfd%keyglob,lwann,&
@@ -963,14 +987,14 @@ program WaCo
                  !                 Lnorm)
                  !print *,'Norm of wann function',iwann, 'is:',Gnorm, 'while the cutting yields:',Lnorm
                  !call to_zero(gdim,wann(1))
-                 !call Lpsi_to_global2(iproc, nproc, ldim, gdim, 1, 1, 1, Lzd%Glr,Lzd%Llr(iiwann), lwann(1), wann(1))
+                 !call Lpsi_to_global2(iproc, ldim, gdim, 1, 1, 1, Lzd%Glr,Lzd%Llr(iiwann), lwann(1), wann(1))
                  !Put it in interpolating scaling functions
                  !call daub_to_isf(Lzd%Glr,w,wann(1),wannr)
                  !call write_wannier_cube(ifile,trim(seedname)//'_test_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
                  !stop 
                 !END DEBUG
                  call writeonewave_linear(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz, &
-                   (/cxyz(1,iwann),cxyz(2,iwann),cxyz(3,iwann) /),locrad(iwann),input%lin%confPotOrder,0.0d0,atoms%nat,rxyz,  & 
+                   (/cxyz(1,iwann),cxyz(2,iwann),cxyz(3,iwann) /),locrad(iwann),4,0.0d0,atoms%nat,rxyz,  & 
                    Lzd%Llr(iiwann)%wfd%nseg_c,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%keyglob(1,1),&
                    Lzd%Llr(iiwann)%wfd%keyvglob(1),Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%nvctr_f,&
                    Lzd%Llr(iiwann)%wfd%keyglob(1,Lzd%Llr(iiwann)%wfd%nseg_c+1),&
@@ -980,6 +1004,8 @@ program WaCo
                   deallocate(lwann,stat=i_stat)
                   call memocc(i_stat,i_all,'lwann',subname)
               else if(hamilana) then
+                ! open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
+                 call open_filename_of_iorb(ifile,.not.outformat,trim(seedname),orbsw,iwann,1,iwann_out)
                  call writeonewave(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,&
                    atoms%nat,rxyz,  & 
                    Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
@@ -1108,7 +1134,7 @@ program WaCo
 !!     !allocate(wann(gdim),stat=i_stat)
 !!     !call memocc(i_stat,lwann,'lwann',subname)
 !!     call to_zero(gdim,wann(1))
-!!     call Lpsi_to_global2(iproc, nproc, ldim, gdim, 1, 1, 1, Lzd%Glr, Lzd%Llr(ilr),&
+!!     call Lpsi_to_global2(iproc, ldim, gdim, 1, 1, 1, Lzd%Glr, Lzd%Llr(ilr),&
 !!          psi2(indL), wann(1))
 !!     indL = indL + ldim
 !!     !Put it in interpolating scaling functions
@@ -1189,7 +1215,8 @@ program WaCo
   call deallocate_orbs(orbs,subname)
   !call deallocate_atoms_scf(atoms,subname)
   call deallocate_atoms(atoms,subname)
-  call free_input_variables(input)
+!  call free_input_variables(input)
+  call bigdft_free_input(input)
 
   !#########################################################
   ! Ending timing and MPI
@@ -1202,12 +1229,14 @@ program WaCo
   if (iproc == 0) &
     write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
    !finalize memory counting
-   call memocc(0,0,'count','stop')
+!   call memocc(0,0,'count','stop')
  
-  ! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
-  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
- 
-  call MPI_FINALIZE(ierr)
+  call bigdft_finalize(ierr)
+!!$
+!!$  ! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
+!!$  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!!$ 
+!!$  call MPI_FINALIZE(ierr)
 
 end program Waco
 
@@ -1350,7 +1379,8 @@ subroutine read_inter_list(iproc,n_virt, virt_list)
 END SUBROUTINE read_inter_list
 
 
-subroutine read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
+subroutine read_inter_header(iproc,seedname, filetype,residentity,write_resid, n_occ, pre_check,&
+           n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
 
    ! This routine reads the first lines of a .inter file
 
@@ -1360,7 +1390,7 @@ subroutine read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_
    integer, intent(in) :: iproc
    character, intent(out) :: seedname*16, filetype*4
    integer, intent(out) :: n_occ, n_virt, n_virt_tot
-   logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check
+   logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check, residentity, write_resid
 
    ! Local variables
    character :: char1*1, char2*1, char3*1, char4*1
@@ -1400,19 +1430,33 @@ subroutine read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_
    if(iproc==0)write(*,*) 'file type : ', filetype
 
    ! Third line
-   read(11,*) n_occ
+   read(11,*) char1, char2, n_occ
    if(iproc==0)write(*,'(A30,I4)') 'Number of occupied orbitals :', n_occ
+   if(char1=='T') then
+     residentity = .true.
+     if(iproc==0) write(*,*) 'Will use resolution of the identity to construct virtual states'
+   else
+     residentity = .false.
+   end if
+   if(residentity .and. char2=='T')then
+     write_resid = .true.
+     if(iproc==0) write(*,*) 'The constructed virtual states will be written to file.'
+   else
+     write_resid = .false.
+   end if
 
    ! Fourth line
    read(11,*) char1, n_virt_tot, n_virt
-   if (char1=='T') then
+   if (char1=='T' .and. .not. residentity) then
       pre_check=.true.
       if(iproc==0)write(*,*) 'Pre-check before calculating Amnk and Mmnk matrices'
       if(iproc==0)write(*,'(A38,I4)') 'Total number of unnocupied orbitals :', n_virt_tot
-   else
+   else if(.not. residentity)then
       pre_check=.false.
       if(iproc==0)write(*,*) 'Calculation of Amnk and Mmnk matrices'
       if(iproc==0)write(*,'(A39,I4)') 'Number of chosen unnocupied orbitals :', n_virt
+   else
+      if(iproc==0)write(*,*) 'Calculation of Amnk and Mmnk matrices'
    end if
 
    ! Fifth line
@@ -2509,7 +2553,7 @@ integer, intent(in) :: nproj, nband, nkpt
 real(gp),dimension(nband,nproj), intent(out) :: amn
 !Local variables
 logical :: file_exist
-integer :: int1, int2, int3, int4, nk, np, nb
+integer :: int2, int3, int4, nk, np, nb
 integer :: ierr
 real(gp) :: r1
 
@@ -2822,6 +2866,7 @@ integer :: i,j
       write(*,*) '!==================================!'
    end if
 END SUBROUTINE read_spread_file
+
 
 subroutine get_mindist(geocode,rxyz,cxyz,box,distw)
    use module_types

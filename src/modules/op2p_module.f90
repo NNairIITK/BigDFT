@@ -20,13 +20,13 @@ module overlap_point_to_point
    type OP2P_descriptors
       logical :: forsymop !< descriptor for symmetric operation
       integer :: ngroup,nsteps_max,ngroupp_max,ncomponents_max,ncomponents_results_max,iprocref
-      integer, dimension(:), pointer :: ngroupp         !<= number of groups which belongs to each processor
-      integer, dimension(:), pointer :: nprocgr         !<= number of processors which belongs to each group
-      integer, dimension(:,:), pointer :: igrpr         !<= groups which are associated to each processor
-      integer, dimension(:,:,:), pointer :: nvctr_par   !<= number of elements per group, for objects and results
-      integer, dimension(:,:,:), pointer :: ioffp_group !<= global and local offsets of each group on the processor
-      integer, dimension(:,:,:,:), pointer :: iprocpm1  !<= ascending and descending order for processors in the same group
-      integer, dimension(:,:,:,:), pointer :: communication_schedule !<= processes to send and receive at each step
+      integer, dimension(:), pointer :: ngroupp         !< number of groups which belongs to each processor
+      integer, dimension(:), pointer :: nprocgr         !< number of processors which belongs to each group
+      integer, dimension(:,:), pointer :: igrpr         !< groups which are associated to each processor
+      integer, dimension(:,:,:), pointer :: nvctr_par   !< number of elements per group, for objects and results
+      integer, dimension(:,:,:), pointer :: ioffp_group !< global and local offsets of each group on the processor
+      integer, dimension(:,:,:,:), pointer :: iprocpm1  !< ascending and descending order for processors in the same group
+      integer, dimension(:,:,:,:), pointer :: communication_schedule !< processes to send and receive at each step
    end type OP2P_descriptors
 
    contains
@@ -38,9 +38,9 @@ module overlap_point_to_point
    !objects_repartition(:) <= distribution of the objects among processors
    subroutine initialize_OP2P_descriptors(symop,iproc,nproc,nobjects,objects_attributes,objects_repartition,OP2P)
       implicit none
-      logical, intent(in) :: symop
+      logical, intent(in) :: symop !< defines whether the operator will be symmetric 
       integer, intent(in) :: iproc,nproc,nobjects
-      integer, dimension(0:nproc-1), intent(in) :: objects_repartition
+      integer, dimension(0:nproc-1), intent(in) :: objects_repartition !< the sum is the number of objects
       integer, dimension(nobjects,3), intent(in) :: objects_attributes
       type(OP2P_descriptors), intent(out) :: OP2P
       !local variables
@@ -191,7 +191,7 @@ module overlap_point_to_point
       else
          OP2P%nsteps_max=(nprocgr_max-1)
       end if
-
+      !print *,'nsteps',OP2P%nsteps_max
       !determine the array of the groups which are of interest for this processor
       allocate(OP2P%igrpr(OP2P%ngroupp_max,0:nproc-1+ndebug),stat=i_stat)
       call memocc(i_stat,OP2P%igrpr,'OP2P%igrpr',subname)
@@ -251,26 +251,36 @@ module overlap_point_to_point
             if (OP2P%nprocgr(OP2P%igrpr(igroup,jproc)) > 1) then
                do istep=0,nstepsm1
                   !define the arrays for send-receive of data
-                  OP2P%communication_schedule(1,istep,igroup,jproc)=OP2P%iprocpm1(2,istep,igroup,jproc)
-                  OP2P%communication_schedule(2,istep,igroup,jproc)=OP2P%iprocpm1(2,istep+1,igroup,jproc)
+                  OP2P%communication_schedule(1,istep,igroup,jproc)=&
+                       OP2P%iprocpm1(2,istep,igroup,jproc)
+                  OP2P%communication_schedule(2,istep,igroup,jproc)=&
+                       OP2P%iprocpm1(2,istep+1,igroup,jproc)
                   if (istep > 0) then
-                     OP2P%communication_schedule(3,istep,igroup,jproc)=OP2P%iprocpm1(2,istep,igroup,jproc)
-                     OP2P%communication_schedule(4,istep,igroup,jproc)=OP2P%iprocpm1(1,istep,igroup,jproc)
+                     OP2P%communication_schedule(3,istep,igroup,jproc)=&
+                          OP2P%iprocpm1(2,istep,igroup,jproc)
+                     OP2P%communication_schedule(4,istep,igroup,jproc)=&
+                          OP2P%iprocpm1(1,istep,igroup,jproc)
                   end if
                end do
                if (OP2P%forsymop) then
                   istep=nstepsm1+1
                   !the last step behaves differently if the group number is odd or even
                   if (modulo(OP2P%nprocgr(OP2P%igrpr(igroup,jproc)),2) == 0) then
-                     OP2P%communication_schedule(1,istep,igroup,jproc)=OP2P%iprocpm1(2,istep,igroup,jproc)
-                     OP2P%communication_schedule(2,istep,igroup,jproc)=OP2P%iprocpm1(2,istep+1,igroup,jproc)
+                     OP2P%communication_schedule(1,istep,igroup,jproc)=&
+                          OP2P%iprocpm1(2,istep,igroup,jproc)
+                     OP2P%communication_schedule(2,istep,igroup,jproc)=&
+                          OP2P%iprocpm1(2,istep+1,igroup,jproc)
                      if (istep > 0) then
-                        OP2P%communication_schedule(3,istep,igroup,jproc)=OP2P%iprocpm1(2,istep,igroup,jproc)
-                        OP2P%communication_schedule(4,istep,igroup,jproc)=OP2P%iprocpm1(1,istep,igroup,jproc)
+                        OP2P%communication_schedule(3,istep,igroup,jproc)=&
+                             OP2P%iprocpm1(2,istep,igroup,jproc)
+                        OP2P%communication_schedule(4,istep,igroup,jproc)=&
+                             OP2P%iprocpm1(1,istep,igroup,jproc)
                      end if
                   else
-                     OP2P%communication_schedule(3,istep,igroup,jproc)=OP2P%iprocpm1(2,istep,igroup,jproc)
-                     OP2P%communication_schedule(4,istep,igroup,jproc)=OP2P%iprocpm1(1,istep,igroup,jproc)
+                     OP2P%communication_schedule(3,istep,igroup,jproc)=&
+                          OP2P%iprocpm1(2,istep,igroup,jproc)
+                     OP2P%communication_schedule(4,istep,igroup,jproc)=&
+                          OP2P%iprocpm1(1,istep,igroup,jproc)
                   end if
                end if
             end if
@@ -370,7 +380,7 @@ module overlap_point_to_point
 
       integer, intent(in) :: iproc,nproc
       type(OP2P_descriptors), intent(in) :: OP2P
-      real(kind=8), dimension(*), intent(inout) :: objects_data !< the dimension of the initial objects is not specified
+      real(kind=8), dimension(*), intent(in) :: objects_data !< the dimension of the initial objects is not specified
       real(kind=8), dimension(*), intent(out) :: results_data
       optional :: send_op,receive_op,wait_op
 
@@ -382,6 +392,8 @@ module overlap_point_to_point
       integer :: isorb,jsorb,iorbs,jorbs,norbi,norbj,jproc,istart,jproc_to_send,jproc_to_recv,nelems_to_send,nelems_to_recv
       integer, dimension(:,:), allocatable :: mpireq
       real(kind=8), dimension(:,:,:), allocatable :: sendreceive_buffer,restemp_buffer
+
+      !print *,'entering',iproc,OP2P%ngroupp(iproc)
 
       !quick return if the number of groups is zero here
       if (OP2P%ngroupp(iproc) == 0) return
@@ -403,7 +415,7 @@ module overlap_point_to_point
       irnow_results=1
       ncommsstep_results=0
       do istep=0,OP2P%nsteps_max
-         !print *,'istep,iproc',istep,iproc,nsteps_max
+         !print *,'istep,iproc',istep,iproc,OP2P%nsteps_max
          irnow=3-isnow
          ncommsstep=0
          !sending receiving data
@@ -454,7 +466,7 @@ module overlap_point_to_point
                end if
             end if
          end do
-         !print *,'starting',iproc,istep,ncommsstep,nsteps_max
+         !print *,'starting',iproc,istep,ncommsstep,OP2P%nsteps_max
          !at this point the first pool of data should have been sent
          !the operation can be performed
          do igroup=1,OP2P%ngroupp(iproc)
@@ -667,7 +679,7 @@ module overlap_point_to_point
       !print '(3(a,i4),i4)','NON_BLOCKING RECV, from',isendproc,' to',irecvproc,', step, elems:',istep,ncount
 
       call MPI_IRECV(recvbuf,ncount,MPI_DOUBLE_PRECISION,isendproc,&
-         &   itag,MPI_COMM_WORLD,irequest,ierr)
+         &   itag,bigdft_mpi%mpi_comm,irequest,ierr)
 
       !output error signal
       if (ierr /=0) then
@@ -688,7 +700,7 @@ module overlap_point_to_point
       !print '(3(a,i4),i4)','NON_BLOCKING SEND, from',isendproc,' to',irecvproc,', step, elems:',istep,ncount
 
       call MPI_ISEND(sendbuf,ncount,MPI_DOUBLE_PRECISION,irecvproc,&
-         &   itag,MPI_COMM_WORLD,irequest,ierr)
+         &   itag,bigdft_mpi%mpi_comm,irequest,ierr)
 
       !output error signal
       if (ierr /=0) then

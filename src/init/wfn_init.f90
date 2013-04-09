@@ -19,6 +19,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
    use module_base
    use module_types
    use module_interfaces
+  use yaml_output
    implicit none
    integer, intent(in) :: iproc,nproc,natsc,nspin
    real(gp), intent(in) :: etol
@@ -68,8 +69,9 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
       if (natsc > 0) then
          if (nspin == 2) then
             if (sum(norbsc_arr(1:natsc,1)) /= sum(norbsc_arr(1:natsc,2))) then
-               write(*,'(1x,a)')&
-                  &   'ERROR (DiagHam): The number of semicore orbitals must be the same for both spins'
+               call yaml_warning('(Gaussian_DiagHam) The number of semicore orbitals must be the same for both spins')
+               !write(*,'(1x,a)')&
+               !   &   'ERROR (Gaussian_DiagHam): The number of semicore orbitals must be the same for both spins'
                stop
             end if
          end if
@@ -118,8 +120,8 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
    allocate(hamovr(nspin*ndim_hamovr,2+ndebug),stat=i_stat)
    call memocc(i_stat,hamovr,'hamovr',subname)
 
-   if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
-      &   'Overlap Matrix...'
+   if (iproc.eq.0) call yaml_comment('Overlap Matrix...')
+   !if (iproc.eq.0) write(*,'(1x,a)',advance='no') 'Overlap Matrix...'
 
    call overlap_and_gather(iproc,nproc,mpirequests,G%ncoeff,natsc,nspin,ndim_hamovr,orbse,&
       &   norbsc_arr,psigau,hpsigau,hamovr)
@@ -257,13 +259,14 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
       orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
    use module_base
    use module_types
+   use yaml_output
    use module_interfaces, except_this_one => DiagHam
    implicit none
    integer, intent(in) :: iproc,nproc,natsc,nspin
    type(wavefunctions_descriptors), intent(in) :: wfd
    type(communications_arrays), target, intent(in) :: comms
    type(orbitals_data), target, intent(inout) :: orbs
-   type(orthon_data), intent(in) :: orthpar
+   type(orthon_data), intent(inout) :: orthpar
    real(wp), dimension(*), intent(out) :: passmat !< passage matrix for building the eigenvectors (the size depends of the optional arguments)
    real(wp), dimension(:), pointer :: psi,hpsi,psit
    !optional arguments
@@ -276,26 +279,22 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
    !local variables
    character(len=*), parameter :: subname='DiagHam'
    !n(c) real(kind=8), parameter :: eps_mach=1.d-12
-  logical :: semicore,minimal,linear_nosemicore
+  logical :: semicore,minimal
    integer :: ikptp,ikpt,nvctrp
    integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx
    integer :: norbtot,natsceff,norbsc,ndh1,ispin,npsidim,nspinor,ispsi,ispsie,ispsiv !n(c) nvctr
    real(gp) :: tolerance
    type(orbitals_data), pointer :: orbsu
    type(communications_arrays), pointer :: commu
-   type(paw_objects)::paw
    integer, dimension(:,:), allocatable :: norbgrp
    real(wp), dimension(:,:,:), allocatable :: hamovr
    real(wp), dimension(:), pointer :: psiw
 
-   paw%usepaw=0 !Not using PAW
-   call nullify_paw_objects(paw)
-
    !performs some check of the arguments
    if (present(orbse) .neqv. present(commse)) then
       !if (iproc ==0) 
-      write(*,'(1x,a)')&
-         &   'ERROR (DiagHam): the variables orbse and commse must be present at the same time'
+      call yaml_warning('(DiagHam) The variables orbse and commse must be present at the same time')
+      !write(*,'(1x,a)') 'ERROR (DiagHam): the variables orbse and commse must be present at the same time'
       stop
    else
       minimal=present(orbse)
@@ -374,8 +373,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
       if (natsc > 0) then
          if (nspin == 2) then
             if (sum(norbsc_arr(1:natsc,1)) /= sum(norbsc_arr(1:natsc,2))) then
-               write(*,'(1x,a)')&
-                  &   'ERROR (DiagHam): The number of semicore orbitals must be the same for both spins'
+               call yaml_warning('(DiagHam) The number of semicore orbitals must be the same for both spins')
+               !write(*,'(1x,a)') 'ERROR (DiagHam): The number of semicore orbitals must be the same for both spins'
                stop
             end if
          end if
@@ -419,8 +418,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
    !initialise hamovr
    call razero(nspin*ndim_hamovr*2*orbsu%nkpts,hamovr)
 
-   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
-      &   'Overlap Matrix...'
+   if (iproc == 0 .and. verbose > 1) call yaml_comment('Overlap Matrix...')
+   !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no') 'Overlap Matrix...'
 
    !after having applied the hamiltonian to all the atomic orbitals
    !we split the semicore orbitals from the valence ones
@@ -454,7 +453,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
    if (nproc > 1) then
       !reduce the overlap matrix between all the processors
       call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbsu%nkpts,&
-         &   MPI_SUM,MPI_COMM_WORLD,ierr)
+         &   MPI_SUM,bigdft_mpi%mpi_comm,ierr)
    end if
 
 ! DEBUG
@@ -479,7 +478,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
    ! There are two possibilities to generate the input guess
    differentInputGuess: if(.not. orthpar%directDiag) then
-      if(iproc==0) write(*,'(1x,a)') 'Iterative diagonalization...'
+      if(iproc==0) call yaml_comment('Iterative diagonalization...')
+      !if(iproc==0) write(*,'(1x,a)') 'Iterative diagonalization...'
 
       if(present(orbsv)) then
          write(*,'(a)') 'ERROR: Virtual orbitals cannot be handled with the iterative input guess at the moment.'
@@ -505,7 +505,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
             &   orbsu%eval((ikpt-1)*orbsu%norb+1)) !changed from orbs
 
          !assign the value for the orbital
-         call vcopy(orbs%norbu,orbsu%eval((ikpt-1)*orbsu%norb+1),1,orbs%eval((ikpt-1)*orbs%norb+1),1)
+         call vcopy(orbs%norbu,orbsu%eval((ikpt-1)*orbsu%norb+1),1,&
+              orbs%eval((ikpt-1)*orbs%norb+1),1)
          if (orbs%norbd >0) then
             call vcopy(orbs%norbd,orbsu%eval((ikpt-1)*orbsu%norb+orbsu%norbu+1),1,orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+1),1)
          end if
@@ -520,9 +521,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
       !broadcast values for k-points 
       call broadcast_kpt_objects(nproc, orbsu%nkpts, orbsu%norb, &
-         &   orbsu%eval(1), orbsu%ikptproc)
-
-      
+           orbsu%eval(1), orbsu%ikptproc)
 
       if (iproc ==0) then 
          call write_ig_eigenvectors(tolerance,orbsu,nspin,orbs%norb,orbs%norbu,orbs%norbd)
@@ -575,7 +574,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
       end do
 
       !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
-      if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
+      !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
 
       if(present(psivirt)) then
          if (orbsv%norb == 0) then
@@ -653,7 +652,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   type(local_zone_descriptors) :: Lzde       !> Informtation about the locregs for LIG
   type(communications_arrays), target, intent(in) :: comms
   type(orbitals_data), target, intent(inout) :: orbs
-  type(orthon_data),intent(in):: orthpar 
+  type(orthon_data),intent(inout):: orthpar 
   real(wp), dimension(*), intent(out) :: passmat !< passage matrix for building the eigenvectors (the size depends of the optional arguments)
   real(wp), dimension(:), pointer :: psi,hpsi,psit
   !optional arguments
@@ -666,9 +665,9 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   !local variables
   character(len=*), parameter :: subname='LDiagHam'
   real(kind=8), parameter :: eps_mach=1.d-12
-  logical :: semicore,minimal,linear_nosemicore
-  integer :: ikptp,ikpt,nvctrp,ilr,psishift1,ldim,totshift,iorb,Gdim
-  integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx,idum
+  logical :: semicore,minimal
+  integer :: ikptp,ikpt,nvctrp,iorb,Gdim,jproc
+  integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx,idum=0
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
   real(kind=4) :: tt,builtin_rand
   real(gp) :: tolerance
@@ -813,7 +812,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   !initialise hamovr
   call razero(nspin*ndim_hamovr*2*orbsu%nkpts,hamovr)
 
-  if (iproc == 0 .and. verbose > 1) call yaml_open_map('IG Overlap Matrices')
+  if (iproc == 0 .and. verbose > 1) call yaml_open_map('Input Guess Overlap Matrices',flow=.true.)
   !     'Overlap Matrix...'
 
 
@@ -851,8 +850,16 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   if (nproc > 1) then
      !reduce the overlap matrix between all the processors
      call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbsu%nkpts,&
-          MPI_SUM,MPI_COMM_WORLD,ierr)
+          MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   end if
+
+!!$  do jproc=0,bigdft_mpi%nproc-1
+!!$     call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+!!$     if (jproc==bigdft_mpi%iproc) then
+!!$        print '(a,150(1pe13.5))','hamovr,iproc',hamovr
+!!$     end if
+!!$  end do
+
 
 ! DEBUG
 !  if(iproc == 0) then
@@ -928,6 +935,20 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      call broadcast_kpt_objects(nproc, orbsu%nkpts, orbsu%norb, &
           & orbsu%eval(1), orbsu%ikptproc)
 
+     if (minimal) then
+        !clean the array of the IG occupation
+        call to_zero(orbse%norb*orbse%nkpts,orbse%occup(1))
+        !put the actual values on it
+        do ikpt=1,orbs%nkpts
+           call dcopy(orbs%norbu,orbs%occup((ikpt-1)*orbs%norb+1),1,&
+                orbse%occup((ikpt-1)*orbse%norb+1),1)
+           if (orbs%norbd > 0) then
+              call dcopy(orbs%norbd,orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+1),1,&
+                   orbse%occup((ikpt-1)*orbse%norb+orbse%norbu+1),1)
+           end if
+        end do
+     end if
+
      !here the value of the IG occupation numbers can be calculated
      if (iscf > SCF_KIND_DIRECT_MINIMIZATION .or. Tel > 0.0_gp) then
 
@@ -939,11 +960,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
         !correct the occupation numbers wrt fermi level
         call evaltoocc(iproc,nproc,.false.,Tel,orbsu,occopt)
-     else if (minimal) then
-        !clean the array of the IG occupation
-        call to_zero(orbse%norb*orbse%nkpts,orbse%occup(1))
-        !put the actual values on it
-        call dcopy(orbs%norb*orbs%nkpts,orbs%occup(1),1,orbse%occup(1),1)
+
      end if
 
      if (iproc ==0) then 
@@ -1060,6 +1077,20 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
 
+!!$!here the checksum of the wavefunction can be extracted
+!!$do jproc=0,bigdft_mpi%nproc-1
+!!$   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+!!$   if (jproc==bigdft_mpi%iproc) then
+!!$      ispsi=1
+!!$      nvctr=Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
+!!$      do iorb=1,orbs%norbp
+!!$         write(*,'(i4,100(1pe10.2))')iorb+orbs%isorb,sum(psi(ispsi:ispsi+nvctr-1))
+!!$         ispsi=ispsi+nvctr
+!!$      end do
+!!$   end if
+!!$end do
+
+
   if (nproc == 1 .and. minimal) then
      nullify(psit)
   end if
@@ -1080,9 +1111,8 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
    real(wp), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
    real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,hpsi
    !local variables
-   integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx
-     integer :: iorb, jorb, icplx
-
+   integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx,jproc,ierr
+   integer :: iorb,jorb
    !WARNING: here nspin=1 for nspinor=4
    if(nspinor == 1) then
       ncplx=1
@@ -1131,17 +1161,23 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
 !!$               close(17)
 !!$               close(18)
 !!$                 stop
-
-         !print out the passage matrix (valid for one k-point only and ncplx=1)
-!!$         print *,'HAMILTONIAN' 
+!!$if (i==natsc+1) then
+!!$do jproc=0,bigdft_mpi%nproc-1
+!!$   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+!!$   if (jproc==bigdft_mpi%iproc) then
+!!$         !print out the passage matrix (valid for one k-point only and ncplx=1)
+!!$         print *,'HAMILTONIAN',jproc,ispin 
 !!$         do iorb=1,norbi
-!!$            write(*,'(i6,100(1pe16.7))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),1),jorb=1,norbi)
+!!$            write(*,'(i4,100(1pe10.2))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),1),jorb=1,norbi)
 !!$         end do
-!!$         print *,'OVERLAP' 
+!!$         print *,'OVERLAP',jproc,ispin 
 !!$         do iorb=1,norbi
-!!$            write(*,'(i6,100(1pe16.7))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),2),jorb=1,norbi)
+!!$            write(*,'(i4,100(1pe10.2))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),2),jorb=1,norbi)
 !!$       end do
+!!$    end if
+!!$ end do
 !!$stop 
+!!$end if
          iorbst=iorbst+norbi
          imatrst=imatrst+ncplx*norbi**2
       end do
@@ -1164,7 +1200,7 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
    !n(c) character(len=25) :: gapstring
    !n(c) character(len=64) :: message
    integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,i,ncplx !n(c) iorb, ncomp, ndegen
-   integer :: norbj,jiorb,jjorb,ihs,ispin,norbij,norbu_ig !n(c) nwrtmsg
+   integer :: norbj,jiorb,jjorb,ihs,ispin,norbij,norbu_ig,jproc !n(c) nwrtmsg
    !n(c) real(wp), dimension(2) :: preval
    real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
    !n(c) real(gp) :: HLIGgap
@@ -1270,18 +1306,26 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
 !!$     print *,norbi,ncomp,ncplx,imatrst
 !!$     !write the matrices on a file
 !!$     !open(12)
-!!$     do jjorb=1,8!norbi
-      !!$        !   do jiorb=1,norbi
-      !!$        !      write(12,'(1x,2(i0,1x),200(1pe24.17,1x))')jjorb,jiorb,&
-!!$        !           hamovr(jjorb+norbi*(jiorb-1),1),hamovr(jjorb+norbi*(jiorb-1),2)
-      !!$        !   end do
-      !!$        !end do
-      !!$        !close(12)
-!!$        open(33+2*(i-1)+100*iproc)
-!!$        write(33+2*(i-1)+100*iproc,'(2000(1pe10.2))')&
-            !!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,8*ncomp*ncplx)
-!!$        !                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,norbi*ncomp*ncplx)
+!!$do jproc=0,bigdft_mpi%nproc-1
+!!$call MPI_BARRIER(bigdft_mpi%mpi_comm,i_stat)
+!!$if (jproc==bigdft_mpi%iproc) then
+!!$  print *,'PASSAGE MATRIX',jproc
+!!$     do jjorb=1,norbi
+        !   do jiorb=1,norbi
+        !      write(12,'(1x,2(i0,1x),200(1pe24.17,1x))')jjorb,jiorb,&
+        !           hamovr(jjorb+norbi*(jiorb-1),1),hamovr(jjorb+norbi*(jiorb-1),2)
+        !   end do
+        !end do
+        !close(12)
+        !open(33+2*(i-1)+100*iproc)
+        !write(33+2*(i-1)+100*iproc,'(2000(1pe10.2))')&
+        !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,8*ncomp*ncplx)
+        !                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,norbi*ncomp*ncplx)
+!!$        write(*,'(1x,2(i6),2000(1pe10.2))')jjorb,jiorb,(hamovr(jjorb+norbi*(jiorb-1),1),jiorb=1,norbi)
+!!$
 !!$     end do
+!!$  end if
+!!$end do
 !!$     close(33+2*(i-1)+100*iproc)
 !!$     open(34+2*(i-1)+100*iproc)
 !!$     do jjorb=1,8!norbi
@@ -1346,14 +1390,14 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
    real(wp), dimension(nvctrp*nspinore,norbe), intent(in) :: psi
    real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: ppsit
    real(wp), dimension(*), intent(out) :: passmat !< passage matrix between ppsit and psi (the size depends of the complex arguments)
-   integer, dimension(2), intent(in), optional :: nvirte
+   integer, dimension(2), intent(in), optional :: nvirte 
    real(wp), dimension(*), optional :: psivirt
    !Local variables
    !n(c) character(len=*), parameter :: subname='build_eigenvectors'
    !n(c) integer, parameter :: iunit=1978
    integer :: ispin,iorbst,iorbst2,imatrst,norbsc,norbi,norbj
    integer :: ncplx,ncomp,i,ispsiv
-   integer:: j,iproc,ispm
+   integer:: iproc,ispm
 
 !  if(iproc==0) then
 !      do j=1,size(hamovr)
@@ -1475,6 +1519,7 @@ END SUBROUTINE build_eigenvectors
 subroutine psitospi(iproc,nproc,norbe,norbep, &
       &   nvctr_c,nvctr_f,nat,nspin,spinsgne,otoa,psi)
    use module_base
+   use yaml_output
    implicit none
    !Arguments
    integer, intent(in) :: norbe,norbep,iproc,nproc,nat,nspin
@@ -1498,9 +1543,8 @@ subroutine psitospi(iproc,nproc,norbe,norbep, &
    !n(c) iorbsc(2)=norbe
    !n(c) iorbv(2)=norbsc+norbe
 
-   if (iproc ==0) then
-      write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
-   end if
+   !if (iproc ==0) write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
+   if (iproc ==0) call yaml_map('Transforming AIO to spinors',.true.)
 
    nvctr=nvctr_c+7*nvctr_f
 
@@ -1547,9 +1591,7 @@ subroutine psitospi(iproc,nproc,norbe,norbep, &
    deallocate(mom,stat=i_stat)
    call memocc(i_stat,i_all,'mom',subname)
 
-   if (iproc ==0) then
-      write(*,'(1x,a)')'done.'
-   end if
+   !if (iproc ==0) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE psitospi
 
@@ -1586,6 +1628,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       &   psiGuessWavelet, orthpar, nspin, nspinor, sizePsi, comms, natsc, ndim_hamovr, norbsc)
    use module_base
    use module_types
+  use yaml_output
    implicit none
 
    ! Calling arguments
@@ -1756,7 +1799,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          norbpArrSimul=0
          norbpArrSimulLoc=0
          if(iproc<nprocSubu+nprocSubd) norbpArrSimulLoc(iproc)=norbpArr(iproc)
-         call mpi_allreduce(norbpArrSimulLoc(0), norbpArrSimul(0), nprocSubu+nprocSubd, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+         call mpi_allreduce(norbpArrSimulLoc(0), norbpArrSimul(0), nprocSubu+nprocSubd,&
+              mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
          i_all=-product(shape(norbpArrSimulLoc))*kind(norbpArrSimulLoc)
          deallocate(norbpArrSimulLoc, stat=i_stat)
          call memocc(i_stat, i_all, 'norbpArrSimulLoc', subname)
@@ -1860,10 +1904,10 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                &   nprocSub-1,' treat ',iiSave,' orbitals.'
 
             ! Send some information to root process to ensure that they are printed in the correct order.
-            if(iproc==nprocSubu) call mpi_send(kkSave, 1, mpi_integer, 0, 1, mpi_comm_world, ierr)
-            if(iproc==nprocSubu) call mpi_send(iiSave, 1, mpi_integer, 0, 2, mpi_comm_world, ierr)
-            if(iproc==0) call mpi_recv(kkSave, 1, mpi_integer, nprocSubu, 1, mpi_comm_world, stat, ierr)
-            if(iproc==0) call mpi_recv(iiSave, 1, mpi_integer, nprocSubu, 2, mpi_comm_world, stat, ierr)
+            if(iproc==nprocSubu) call mpi_send(kkSave, 1, mpi_integer, 0, 1, bigdft_mpi%mpi_comm, ierr)
+            if(iproc==nprocSubu) call mpi_send(iiSave, 1, mpi_integer, 0, 2, bigdft_mpi%mpi_comm, ierr)
+            if(iproc==0) call mpi_recv(kkSave, 1, mpi_integer, nprocSubu, 1, bigdft_mpi%mpi_comm, stat, ierr)
+            if(iproc==0) call mpi_recv(iiSave, 1, mpi_integer, nprocSubu, 2, bigdft_mpi%mpi_comm, stat, ierr)
             if(iproc==0 .and. kkSave/=0) write(*,'(5x,a,6(i0,a))') 'down orbitals: Processes from ',&
                &   nprocSubu,' to ',nprocSubu+kkSave-1,' treat ',iiSave+1,' orbitals, processes from ',&
                &   nprocSubu+kkSave,' to ',nprocSubu+nprocSubd-1,' treat ',iiSave,' orbitals.'
@@ -1911,9 +1955,9 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
             newID(iorb)=iorb
          end do
          ! Create the new communicator newComm.
-         call mpi_comm_group(mpi_comm_world, wholeGroup, ierr)
+         call mpi_comm_group(bigdft_mpi%mpi_comm, wholeGroup, ierr)
          call mpi_group_incl(wholeGroup, nprocSub, newID, newGroup, ierr)
-         call mpi_comm_create(mpi_comm_world, newGroup, newComm, ierr)
+         call mpi_comm_create(bigdft_mpi%mpi_comm, newGroup, newComm, ierr)
       else
          allocate(newIDu(0:nprocSubu-1), stat=i_stat)
          call memocc(i_stat, newIDu, 'newIDu', subname)
@@ -1924,17 +1968,17 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
             newIDu(iorb)=iorb
          end do
          ! Create the new communicator newCommu.
-         call mpi_comm_group(mpi_comm_world, wholeGroup, ierr)
+         call mpi_comm_group(bigdft_mpi%mpi_comm, wholeGroup, ierr)
          call mpi_group_incl(wholeGroup, nprocSubu, newIDu, newGroupu, ierr)
-         call mpi_comm_create(mpi_comm_world, newGroupu, newCommu, ierr)
+         call mpi_comm_create(bigdft_mpi%mpi_comm, newGroupu, newCommu, ierr)
          ! Assign the IDs of the processes handling the down orbitals to newIDd
          do iorb=0,nprocSubd-1
             newIDd(iorb)=nprocSubu+iorb
          end do
          ! Create the new communicator newCommd.
-         call mpi_comm_group(mpi_comm_world, wholeGroup, ierr)
+         call mpi_comm_group(bigdft_mpi%mpi_comm, wholeGroup, ierr)
          call mpi_group_incl(wholeGroup, nprocSubd, newIDd, newGroupd, ierr)
-         call mpi_comm_create(mpi_comm_world, newGroupd, newCommd, ierr)
+         call mpi_comm_create(bigdft_mpi%mpi_comm, newGroupd, newCommd, ierr)
       end if
 
 
@@ -1956,8 +2000,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       end if
       if(simul) then
          ! Send some information to root process to ensure that they are printed in the correct order.
-         if(iproc==nprocSubu) call mpi_send(norbtotPad, 1, mpi_integer, 0, 1, mpi_comm_world, ierr)
-         if(iproc==0) call mpi_recv(norbtotPad, 1, mpi_integer, nprocSubu, 1, mpi_comm_world, stat, ierr)
+         if(iproc==nprocSubu) call mpi_send(norbtotPad, 1, mpi_integer, 0, 1, bigdft_mpi%mpi_comm, ierr)
+         if(iproc==0) call mpi_recv(norbtotPad, 1, mpi_integer, nprocSubu, 1, bigdft_mpi%mpi_comm, stat, ierr)
       end if
       if(.not. simul) then
          if((simul .and. iproc==0) .or. (.not. simul .and. ispin==2 .and. iproc==0))&
@@ -1968,7 +2012,6 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
             &   write(*,'(3x,a,i0,a)') &
             &   'down orbitals: padding the orbitals with ',norbtotPad-norbtot,' zeros.'
       end if
-
 
 
       ! Allocate the reamaining arrays.
@@ -2079,7 +2122,6 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          end if
 
 
-
          ! NorbtotpArr gives the number of non-zero atomic orbitals that each process has when the wavefunction 
          ! is transposed. The total number (including zeros) would be given by norbtotPad/nprocSub.
          if(.not.simul .or. (0<=iproc .and. iproc<nprocSubu)) then
@@ -2166,8 +2208,6 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          end do
 
 
-
-
          ! Calculate the matrix product overlapPad*psiGuessP=overlapPsiGuessP.
          do ikpt=1,kp
             if(nspinor==1) then
@@ -2192,7 +2232,6 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                &   psiGuessP(1,1,ispin), overlapPsiGuessP(1,1,ispin), newComm, orthpar, &
                &   orbs, nprocSubu, nspinor, blocksize, blocksizeSmall)
          end if
-
 
 
          ! Improve the input guess for the orbitals. To do this, calculate for each orbital the gradient g which is given as
@@ -2339,16 +2378,16 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
          ! Write a warning in case no convergence was reached within the allowed number of iterations.
          if(.not. success) then
-            if(iproc==0) write(*,'(a,i0,a,es9.3)') 'WARNING: no convergence after ',itermax,&
-               &   ' iterations. gradientMax=',gradientMax(1)
+            if(iproc==0) call yaml_warning('No convergence after' // trim(yaml_toa(itermax)) // &
+               & ' iterations. gradientMax=' // trim(yaml_toa(gradientMax(1),fmt='(es9.3)')))
+            !if(iproc==0) write(*,'(a,i0,a,es9.3)') 'WARNING: no convergence after ',itermax,&
+            !   &   ' iterations. gradientMax=',gradientMax(1)
          end if
 
       end if processIf
 
-
-
       ! Here the processes that are not involved in the input guess wait for the other processes.
-      call mpi_barrier(mpi_comm_world, ierr)
+      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
 
       ! Allocate the arrays needed for distributing the eigenvectors and eigenvalues to all processes.
@@ -2391,7 +2430,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
             call timing(iproc, 'Input_comput', 'OF')
             call timing(iproc, 'Input_commun', 'ON')
             call mpi_allgatherv(rayleigh(1), norbpArr(iproc), mpi_double_precision, orbs%eval(ist), &
-               &   recvcounts, rdispls, mpi_double_precision, mpi_comm_world, ierr)
+               &   recvcounts, rdispls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
             call timing(iproc, 'Input_commun', 'OF')
             call timing(iproc, 'Input_comput', 'ON')
             ii=ii+norb/orbs%nkpts
@@ -2399,7 +2438,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
             call timing(iproc, 'Input_comput', 'OF')
             call timing(iproc, 'Input_commun', 'ON')
             call mpi_allgatherv(rayleigh(1), norbpArrSimul(iproc), mpi_double_precision, orbs%eval(1), &
-               &   recvcounts, rdispls, mpi_double_precision, mpi_comm_world, ierr)
+               &   recvcounts, rdispls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
             call timing(iproc, 'Input_commun', 'OF')
             call timing(iproc, 'Input_comput', 'ON')
             ii=ii+norb/orbs%nkpts
@@ -2449,14 +2488,14 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
             call timing(iproc, 'Input_comput', 'OF')
             call timing(iproc, 'Input_commun', 'ON')
             call mpi_allgatherv(psiGuessPTrunc(1,1,ispin), norbtot*nspinor*norbpArr(iproc), mpi_double_precision, &
-               &   psiGuess(1,1,ispin), recvcounts, rdispls, mpi_double_precision, mpi_comm_world, ierr)
+               &   psiGuess(1,1,ispin), recvcounts, rdispls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
             call timing(iproc, 'Input_commun', 'OF')
             call timing(iproc, 'Input_comput', 'ON')
          else
             call timing(iproc, 'Input_comput', 'OF')
             call timing(iproc, 'Input_commun', 'ON')
             call mpi_allgatherv(psiGuessPTrunc(1,1,ispin), norbtot*nspinor*norbpArrSimul(iproc), mpi_double_precision, &
-               &   psiGuess(1,1,1), recvcounts, rdispls, mpi_double_precision, mpi_comm_world, ierr)
+               &   psiGuess(1,1,1), recvcounts, rdispls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
             call timing(iproc, 'Input_commun', 'OF')
             call timing(iproc, 'Input_comput', 'ON')
          end if
@@ -2467,8 +2506,6 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       i_all=-product(shape(psiGuessPTrunc))*kind(psiGuessPTrunc)
       deallocate(psiGuessPTrunc, stat=i_stat)
       call memocc(i_stat, i_all, 'psiGuessPTrunc', subname)
-
-
 
       ! Transform the eigenvectors to the wavelet basis.
       ! These are the starting indices of the vectors: istpsi is the starting vector for psi
@@ -2482,12 +2519,12 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       ishift=0
       ishift2=0
 
+      !if(.not. simul) then
+      !   if(iproc==0) write(*,'(5x,a)',advance='no') 'Transforming to wavelet basis... '
+      !else
+      !   if(iproc==0) write(*,'(3x,a)',advance='no') 'Transforming to wavelet basis... '
+      !end if
 
-      if(.not. simul) then
-         if(iproc==0) write(*,'(5x,a)',advance='no') 'Transforming to wavelet basis... '
-      else
-         if(iproc==0) write(*,'(3x,a)',advance='no') 'Transforming to wavelet basis... '
-      end if
       ! First make a loop over the k points handled by this process.
       do ikptp=1,orbs%nkptsp
          ! ikpt is the index of the k point.
@@ -2559,7 +2596,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          if(ispin==2) istpsit=istpsit+nvctrp*norb/orbs%nkpts*orbs%nspinor
       end do
 
-      if(iproc==0) write(*,'(a)') 'done.'
+      if(iproc==0) call yaml_map('Transforming to wavelet basis',.true.)
+      !if(iproc==0) write(*,'(a)') 'done.'
 
    end do spinLoop
 
@@ -2591,7 +2629,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
    ! Now treat the semicore orbitals, if there are any.
    semicoreIf: if(natsc>0) then
-      if(iproc==0) write(*,'(3x,a)',advance='no') 'Generating input guess for semicore orbitals...'
+      !if(iproc==0) write(*,'(3x,a)',advance='no') 'Generating input guess for semicore orbitals...'
 
       if(nspinor == 1) then
          ncplx=1
@@ -2635,7 +2673,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                call memocc(i_stat, work, 'work', subname)
                call dsygv(1, 'v', 'u', norbi, hamovr(imatrst,1,1,ikpt), norbi, hamovr(imatrst,1,2,ikpt), &
                   &   norbi, evale(ist), work(1), -1, info)
-               lwork=work(1)
+               lwork = int(work(1))
                i_all=-product(shape(work))*kind(work)
                deallocate(work, stat=i_stat)
                call memocc(i_stat, i_all, 'work', subname)
@@ -2656,8 +2694,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                if (nspin==2) then
                   ! norbj is the number of down orbitals.
                   norbj=norbscArr(iat,2)
+
                   call dsygv(1, 'v', 'u', norbj, hamovr(imatrst,2,1,ikpt), &
                      &   norbj, hamovr(imatrst,2,2,ikpt), norbj, evale(ist), work(1), lwork, info)
+
+
                   if(info/=0) write(*,'(a,i0)') 'ERROR in dsygv, info=',info
                   ist=ist+norbj
                   i_all=-product(shape(work))*kind(work)
@@ -2674,7 +2715,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                call memocc(i_stat, rwork, 'rwork', subname)
                call zhegv(1, 'v', 'u', norbi, hamovr(imatrst,1,1,ikpt), norbi, hamovr(imatrst,1,2,ikpt), &
                   &   norbi, evale(ist), work(1), -1, work(1), info)
-               lwork=work(1)
+               lwork = int(work(1))
                i_all=-product(shape(work))*kind(work)
                deallocate(work, stat=i_stat)
                call memocc(i_stat, i_all, 'work', subname)
@@ -2795,7 +2836,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       end do
       call timing(iproc, 'Input_comput', 'OF')
       call timing(iproc, 'Input_commun', 'ON')
-      call mpi_allreduce(kpArr(1,0,2), kparr(1,0,1), orbs%nkpts*nproc, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+      call mpi_allreduce(kpArr(1,0,2), kparr(1,0,1), orbs%nkpts*nproc, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       call timing(iproc, 'Input_commun', 'OF')
       call timing(iproc, 'Input_comput', 'ON')
 
@@ -2827,13 +2868,14 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          ! Send the orbitals to all processes.
          call timing(iproc, 'Input_comput', 'OF')
          call timing(iproc, 'Input_commun', 'ON')
-         call mpi_bcast(sceval(ist2), norbsc*nspin, mpi_double_precision, jproc, mpi_comm_world, ierr)
+         call mpi_bcast(sceval(ist2), norbsc*nspin, mpi_double_precision, jproc, bigdft_mpi%mpi_comm, ierr)
          call timing(iproc, 'Input_commun', 'OF')
          call timing(iproc, 'Input_comput', 'ON')
          ist2=ist2+norbsc*nspin
       end do
 
-      if(iproc==0) write(*,'(a)') ' done.'
+      if(iproc==0) call yaml_map('Generating input guess for semicore orbitals',.true.)
+      !if(iproc==0) write(*,'(a)') ' done.'
 
    end if semicoreIf
 
@@ -3123,6 +3165,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 END SUBROUTINE inputguessParallel
 
 
+
+
 !>  This subroutine orthonormalizes the orbitals psi in a parallel way. To do so, it first transposes the orbitals to all
 !!  processors using mpi_alltoallv. The orthonomalization is then done in this data layout using a combination of blockwise Gram-Schmidt
 !!  and Cholesky orthonomalization. At the end the vectors are again untransposed.
@@ -3165,7 +3209,7 @@ subroutine orthonormalizePsi(iproc, nproc, norbtot, norb, norbp, norbpArr,&
    real(kind=8), dimension(norbtot*norbp*nspinor),intent(in):: overlapPsi
    real(kind=8), dimension(norbtot*norbp*nspinor),intent(in out):: psi
    type(orthon_data), intent(in):: orthpar
-   type(orbitals_data), intent(in out) :: orbs
+   type(orbitals_data), intent(in) :: orbs
 
    ! Local variables
    integer:: i, j, iorb, iblock, jblock, ii, jj, ist, jst, iter, iter2, gcd,&

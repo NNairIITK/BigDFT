@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 07/02/2012
+# Date: 04/12/2012
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -37,6 +37,7 @@
 #TODO
 #----
 # Add include files for dependencies
+# Pb with pre-processing (?)
 # The module ftfvw2 needs interfaces: Check if everything is correct
 # Add correct children to _xxx_ files.
 # Add children and parents to the files interfaces_xxx.F90.
@@ -250,23 +251,16 @@ def split_variables(string):
             for c in it:
                 #Check if inside an array (/
                 if c == "(":
-                    declaration += c
-                    c = it.next()
-                    if c == "/":
-                        #Inside: waiting for /)
+                    par = 1
+                    while par:
                         declaration += c
                         c = it.next()
-                        while True:
-                            declaration += c
-                            c = it.next()
-                            if c == "/":
-                                #Check if )
-                                declaration += c
-                                c = it.next()
-                                if c == ")":
-                                    declaration +=c
-                                    #Out
-                                    break
+                        if c == "(":
+                            par += 1
+                        elif c == ")":
+                            par -= 1
+                    declaration += c
+                    continue
                 if c == '"' or c == "'":
                     #Iterate up to the last quote
                     quote = c
@@ -354,7 +348,11 @@ def split_code(text):
                             statement.append(word[:-2])
                         word = '.'
                         char = 'eq'
+                    elif char == 's':
+                        #We assume that this is the format es (as 3es)
+                        char += word
                     else:
+                        sys.stdout.write('text=%s\n' % text)
                         sys.stdout.write('statement=%s\n' % statement)
                         sys.stdout.write('word=%s, char=%s\n' % (word,char))
                         sys.stdout.write('Error in split_code\n')
@@ -408,6 +406,8 @@ def split_code(text):
             #Remove
             pass
         else:
+            #Check if continuation and remove it because it is & at the beginning of a line
+            continuation = False
             if char == '.':
                 ll = statement[-1]
                 if ll in logical and statement[-2] == '.':
@@ -422,7 +422,7 @@ def split_code(text):
 #Indent the Fortran code
 def indent_code(text,n=0):
     "Indent a Fortran code"
-    re_indented = re.compile("^[ \t]*(interface|function|subroutine)",re.IGNORECASE)
+    re_indented = re.compile("^[ \t]*(interface|function|((pure)?[ ]*subroutine))",re.IGNORECASE)
     re_end = re.compile("^[ \t]*end",re.IGNORECASE)
     new = ""
     for line in text.splitlines():
@@ -455,7 +455,7 @@ def build_declaration(dict_vars):
     for (order,name) in arguments:
         arg = dict_vars[name]
         (decl,var) = dict_vars[name].build_declaration()
-        if len(line) > 80 or decl != type:
+        if len(line) > 80 or (decl != "type" and decl != "interface"):
             if line:
                 declaration += line+"\n"
             if decl == "interface":
@@ -475,9 +475,6 @@ def build_declaration(dict_vars):
     type = ""
     for (order,name) in locals:
         (decl,var) = dict_vars[name].build_declaration()
-        if decl == "subroutine":
-            print "subroutine",var,"stop"
-            sys.exit(1)
         if len(line) > 80 or  decl != type:
             if line:
                 declaration += line+"\n"
@@ -1138,7 +1135,7 @@ class Structure:
     #Comments and also preprocessing commands
     re_comment_match = re.compile("^([ \t]*(([!#].*)|[ ]*)\n)+")
     #Detect the beginning and the end of a block
-    re_sub_start = re.compile('^[ \t]*(module|program|recursive|subroutine|(([^!\'"\n]*?)function))',re.IGNORECASE)
+    re_sub_start = re.compile('^[ \t]*(module|program|(((pure|recursive)[ ]*)*subroutine)|(([^!\'"\n]*?)function))',re.IGNORECASE)
     re_sub_end   = re.compile('^[ \t]*end[ \t]*(function|module|program|subroutine|\n)',re.IGNORECASE)
     #
     def __init__(self,name=None,parent=None,message=None):
@@ -1175,7 +1172,6 @@ class Structure:
             self.message.fatal("The structure %s is already analyzed" % self.name) 
     #Ancestry (debugging)
     def ancestry(self,n):
-        print n,self.name,repr(self)
         if self.parent:
             self.parent.ancestry(n+1)
     #Backup
@@ -1817,7 +1813,7 @@ class Module(Code):
                 return (n_struct != 0)
             elif self.re_sub_start.match(line):
                 line_lower = line.lower()
-                if "subroutine" in line_lower or "recursive" in line_lower:
+                if "subroutine" in line_lower:
                     struct = Routine(parent=self,implicit=self.Implicit.dict)
                 else:
                     struct = Function(parent=self,implicit=self.Implicit.dict)
@@ -1859,8 +1855,8 @@ class Module(Code):
                 a.analyze_variables(project)
                 self.Declaration.dict_vars.update(a.Declaration.dict_vars)
             else:
-                self.message.warning("[%s/%s:%s] The module '%s' is missing!" \
-                    % (self.dir,self.file,self.name,a))
+                self.message.error("[%s/%s:%s] The module '%s' is missing!" \
+                    % (self.dir,self.file,self.name,module))
     #
     def dependencies(self,project):
         "Build the dependencies from the list of use"
@@ -2010,7 +2006,7 @@ class Routine(Module):
         "Build declaration for routine declared in an interface"
         if isinstance(self.parent,Fortran_Interface):
             self.ancestry(0)
-            return self.__str__()
+            return ("interface",self.__str__())
     #
     def cache_save(self):
          "Save some information for the cache"
@@ -2306,7 +2302,7 @@ class Header_Routine(Code):
     "Header of a routine"
     #Detect the beginning of a block (program, subroutine, function)
     re_startblock = re.compile('(?P<header>[ \t]*' \
-        + '(?P<type>(program|(recursive)?[ ]*subroutine|(([^!\n]*?)function)))' \
+        + '(?P<type>(program|((pure|recursive)[ ]*)*subroutine|(([^!\n]*?)function)))' \
         + '[ ]*(?P<name>\w+)[ ]*(?P<arguments>[(][^)]*[)])?[^\n]*)\n', \
            re.MULTILINE+re.IGNORECASE)
     #In arguments, remove some characters
@@ -2347,7 +2343,7 @@ class Header_Routine(Code):
 class Header_Function(Header_Routine):
     "Header of a function"
     #Use to determine the variable in result statement for a function
-    re_result = re.compile('result[(](?P<result>[^)]+)[)]')
+    re_result = re.compile('result[ ]*[(](?P<result>[^)]+)[)]')
     def analyze(self,line,iter_code):
         "Analyze the header"
         Code.analyze(self)
@@ -2628,8 +2624,11 @@ class Declaration(Code):
         self.includes = list()
         #True if all variables are private by default
         self.private = False
-        #True if all variables are public by default
-        self.public = True
+        #True if all variables are public by default for module
+        if hasattr(self.parent,"is_module"):
+            self.public = self.parent.is_module
+        else:
+            self.public = False
     #
     #Add functions in the declaration
     def add_functions(self,functions):
@@ -2755,6 +2754,7 @@ class Declaration(Code):
                     self.dict_vars.update(interface.analyze(line,iter_code,dict_implicit,project))
                     continue
                 #Remove '\n'
+                line = self.re_comment.sub('',line).lstrip()
                 code.append(line[:-1])
                 while self.re_continuation.search(line):
                     null_line = True
@@ -2888,7 +2888,7 @@ class Declaration(Code):
                         text += " '%s'" % arg
                     text += "\n==Code"+"="*50+">\n%s" % self.code + "="*56+"<\n"
                     self.message.fatal( \
-                        text + "[%s/%s:%s] Argument {%s} is not declared\n" \
+                        text + "[%s/%s:%s] Argument '%s' is not declared\n" \
                         % (self.parent.dir,self.parent.file,self.parent.name,argument))
                 #Add in the dictionary of variables
                 self.dict_vars[argument_lower] = arg
@@ -3080,7 +3080,13 @@ class Execution(Code):
                     else:
                         if in_call:
                             #Check if xxx= (should be better to have also reserved words)
-                            next = iter_line.next()
+                            try:
+                                next = iter_line.next()
+                            except:
+                                print in_call
+                                print code
+                                print line
+                                sys.exit(1)
                             if next == "=":
                                 #Do not add
                                 continue
@@ -3871,6 +3877,7 @@ fftw3_file = """
 integer, parameter :: fftw_estimate = 64
 integer, parameter :: fftw_forward = -1
 """
+
 #Include files given by abilint
 bigdft_include = { "mpif.h": mpif_file,
                    "fftw3.f": fftw3_file}
@@ -3903,7 +3910,7 @@ def rank_dir(dir):
 
 
 #Routines excluded in the graph
-graph_excluded = [ "MPI_INIT", "MPI_COMM_RANK", "MPI_COMM_SIZE", "memocc", "leave_new", "wrtout" ]
+graph_excluded = [ "MPI_INIT", "MPI_COMM_RANK", "MPI_COMM_SIZE" ]
 #Add intrinsic routines
 graph_excluded.extend(intrinsic_routines)
 
@@ -3973,14 +3980,15 @@ if __name__ == "__main__":
     if NEW == OLD:
         bigdft.cache_load(NEW)
     #Analyze the project.
-    bigdft.analyze_all(exclude="interfaces_")
+    #bigdft.analyze_all(exclude="interfaces_")
+    bigdft.analyze_all()
     #Set the called routines
     bigdft.set_children_parents()
     if lint:
         #Analyze the interdependencies between directories
         bigdft.analyze_directories()
         #Unused routines
-        bigdft.unused_routines()
+        #bigdft.unused_routines()
         #Analyze all the comments in order to detect the robodoc structure
         bigdft.analyze_comments(edition=edition)
         #Analyze the code (body)

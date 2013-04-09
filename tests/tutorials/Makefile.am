@@ -5,13 +5,17 @@
 TESTDIRS = CH4 \
 	  CH3- \
 	  H2O-slab \
-	  N2 \
 	  H2O-bader \
 	  scalability \
 	  dev
 
-EXTRA_DIST = $(TESTDIRS) \
-     Figures \
+if USE_OCL
+  TESTDIRS +=
+else
+  TESTDIRS += N2
+endif
+
+EXTRA_DIST = Figures \
      H1A_first_run.html \
      H1B_grid_cv.html \
      H1C_basic_surfaces.html \
@@ -37,17 +41,23 @@ EXTRA_DIST = $(TESTDIRS) \
      Wannier
 
 # Additional post-in commands
-H2O-bader.post-in :
-	cp -f input-all.dft input.dft
 # Remove HF.perf in case of acceleration
 N2.post-in :
 	rm -f input.perf
 
+if BUILD_DYNAMIC_LIBS
+bigdft_library = -L$(top_builddir)/src -lbigdft-1
+bigdft_library_rpath = -Wl,-rpath=$(abs_top_builddir)/src
+else
+bigdft_library = $(top_builddir)/src/libbigdft.a @LIBS_SHORT_DEPS@
+bigdft_library_rpath =
+endif
 
 # Additional rules for the dev tutorial.
 dev.check: dev/toy_model
 dev/toy_model toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90
-	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90 $(LDFLAGS) @LIBS_DEPENDENCIES@ $(LIBS)
+	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90 \
+			$(LDFLAGS) $(bigdft_library_rpath) $(bigdft_library) $(LIBS)
 toy_model.dat.out: dev-N2.out.out toy_model 
 	./toy_model > toy_model.dat.out
 dev.post-clean:
@@ -65,5 +75,14 @@ dev.post-clean:
           *) prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
+
+%.report.yaml: %.ref.yaml
+	@export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	tols=`basename $< .out.ref.yaml` ;\
+	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ;\
+	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
+		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
 
 include $(srcdir)/../check.mk

@@ -282,7 +282,6 @@ subroutine Convolkinetic(n1,n2,n3, &
 
   !$omp do schedule(static,1)
 !  !$omp parallel do collapse(2)
-
   do i3=0,n3
      do i2=0,n2
         if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -319,7 +318,7 @@ subroutine Convolkinetic(n1,n2,n3, &
         istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
         iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i1=istart,iend-4,4
               dyi0=0.0_wp
               dyi1=0.0_wp
@@ -421,7 +420,7 @@ subroutine Convolkinetic(n1,n2,n3, &
         istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
         iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i2=istart,iend-4,4
               dyi0=0.0_wp
               dyi1=0.0_wp
@@ -525,7 +524,7 @@ subroutine Convolkinetic(n1,n2,n3, &
         istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
         iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i3=istart,iend-4,4
               dyi0=0.0_wp
               dyi1=0.0_wp
@@ -542,7 +541,7 @@ subroutine Convolkinetic(n1,n2,n3, &
               y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
               y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
            enddo
-           istart=i2
+           istart=i3
         endif
 
         do i3=istart,iend
@@ -1222,7 +1221,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
         istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
         iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i1=istart,iend-4,4
               dyi0=0._wp
               dyi1=0._wp
@@ -1342,7 +1341,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
         istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
         iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i2=istart,iend-4,4
               dyi0=0._wp
               dyi1=0._wp
@@ -1465,7 +1464,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
         istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
         iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i3=istart,iend-4,4
               dyi0=0._wp
               dyi1=0._wp
@@ -1487,7 +1486,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
               ekinp=ekinp+dyi2*x_c(i1,i2,i3+2)
               ekinp=ekinp+dyi3*x_c(i1,i2,i3+3)
            enddo
-           istart=i2
+           istart=i3
         endif
 
         do i3=istart,iend

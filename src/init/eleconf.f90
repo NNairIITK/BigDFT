@@ -1369,7 +1369,7 @@ amu=180.9479d0
 
 case(74*1000+14)
 ! -----------------------         107
-! W           74          14     Symbol, Z, Zion
+   ! W           74          14     Symbol, Z, Zion
 symbol = "W"
 rcov=2.60d0
 rprb=5.20d0
@@ -1378,6 +1378,9 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(5,2)=4
 neleconf(6,0)=2
+neleconf(6,1)=1.d-18
+neleconf(6,2)=1.d-18
+neleconf(6,3)=1.d-18
 nsccode=12
 amu=183.85d0
 
@@ -1626,7 +1629,7 @@ end select
   do l=0,lmax
      do n=1,nmax
         !write(111,*) l,n,neleconf(n,l)
-        if ( neleconf(n,l) /= 0 ) nsum = nsum + neleconf(n,l)
+        if ( neleconf(n,l) /= 0 ) nsum = nsum + int(neleconf(n,l))
      end do
   end do
   if (nsum /= nvalelec) then
@@ -1656,7 +1659,7 @@ end select
   do l=0,lmax
      do i=1,nmax
         if (neleconf(i,l) /= 0 .and. neleconf(i,l) /= 2*(2*l+1)) then
-           mxpl=mxpl+(  (2*l+1) - abs( (2*l+1)- neleconf(i,l)) ) 
+           mxpl = mxpl + (  (2*l+1) - abs( (2*l+1)- int(neleconf(i,l))) ) 
         end if
      end do
   end do

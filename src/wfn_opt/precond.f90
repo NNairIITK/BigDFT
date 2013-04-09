@@ -39,7 +39,7 @@ subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
 !     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
 !   enddo
 !   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-!        MPI_MAX,MPI_COMM_WORLD,ierr)
+!        MPI_MAX,bigdft_mpi%mpi_comm,ierr)
 
 
   if (orbs%norbp >0) ikpt=orbs%iokpt(1)
@@ -82,6 +82,8 @@ subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
            !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
            gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         end if
+        !write(*,*) 'preconditionall: verbosity ',verbose
+!           write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
 
        if (scpr /= 0.0_wp) then
 
@@ -121,9 +123,11 @@ END SUBROUTINE preconditionall
 
 
 ! Generalized for the Linearscaling code
-subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,gnrm,gnrm_zero)
   use module_base
   use module_types
+  use Poisson_Solver
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc,ncong
   real(gp), intent(in) :: hx,hy,hz
@@ -131,10 +135,21 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
   type(orbitals_data), intent(in) :: orbs
   real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+  type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr !< used in the linear scaling but also for the cubic case
   !local variables
-  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr
-  real(wp) :: cprecr,scpr,evalmax,eval_zero
+  character(len=*), parameter :: subname='preconditionall2'
+  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,i_all,i_stat,ierr,jproc
+  real(wp) :: cprecr,scpr,evalmax,eval_zero,gnrm_orb
   real(gp) :: kx,ky,kz
+!!$  integer :: i_stat,i_all,ispinor,nbox
+!!$  real(gp) :: eh
+!!$  real(wp), dimension(:,:), allocatable :: hpsir
+!!$  type(coulomb_operator) :: kernel
+!!$  real(wp), dimension(:,:), allocatable :: gnrm_per_orb
+!!$  type(workarr_sumrho) :: w
+  integer, dimension(:,:), allocatable :: ncntdsp
+  real(wp), dimension(:), allocatable :: gnrms,gnrmp
+
 
   ! Preconditions all orbitals belonging to iproc
   !and calculate the norm of the residue
@@ -149,8 +164,15 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
 !     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
 !   enddo
 !   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-!        MPI_MAX,MPI_COMM_WORLD,ierr)
+!        MPI_MAX,bigdft_mpi%mpi_comm,ierr)
 
+  !prepare the arrays for the 
+  if (verbose >=3) then
+     allocate(gnrmp(max(orbs%norbp,1)+ndebug),stat=i_stat)
+     call memocc(i_stat,gnrmp,'gnrmp',subname)
+  end if
+  
+  !if (iproc.eq. 0 .and. verbose.ge.3) write(*,*) ' '
   ist = 0
   if (orbs%norbp >0) ikpt=orbs%iokpt(1)
   do iorb=1,orbs%norbp
@@ -183,6 +205,52 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
         ncplx=1
      end if
 
+!!$     !helmholtz-based preconditioning
+!!$     call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
+!!$     !box elements size
+!!$     nbox=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
+!!$
+!!$     ! Wavefunction in real space
+!!$     allocate(hpsir(nbox,orbs%nspinor+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,hpsir,'hpsir',subname)
+!!$     call to_zero(nbox*orbs%nspinor,hpsir(1,1))
+!!$
+!!$     !case for helmholtz-based preconditioning
+!!$     do ispinor=1,orbs%nspinor
+!!$
+!!$        call daub_to_isf(Lzd%Llr(ilr),w,hpsi(1+ist),hpsir(1,ispinor))
+!!$
+!!$        !the nrm2 function can be replaced here by ddot
+!!$        scpr=nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1)
+!!$        if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
+!!$           gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+!!$        else
+!!$           !write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2,ilr
+!!$           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+!!$        end if
+!!$
+!!$          call cprecr_from_eval(Lzd%Llr(ilr)%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)
+!!$          !sequential kernel
+!!$          call createKernel(0,1,Lzd%Llr(ilr)%geocode,&
+!!$               (/Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i/),&
+!!$               Lzd%hgrids,16,kernel,.true.,1.0_gp)!sqrt(2.0_gp*cprecr))
+!!$
+!!$          !apply it to the gradient to smooth it
+!!$          call H_potential('D',kernel,hpsir(1,ispinor),hpsir(1,1),eh,0.d0,.false.)
+!!$
+!!$          !convert the gradient back to the locreg
+!!$          call isf_to_daub(Lzd%Llr(ilr),w,hpsir(1,ispinor),hpsi(1+ist))
+!!$          call vscal(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),1.0_gp/(16.0_gp*atan(1.0_gp)),hpsi(1+ist),1)
+!!$          print *,'iorb,gradient',iorb,scpr,nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1),eh
+!!$          ist=ist+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)
+!!$
+!!$     end do
+!!$     call deallocate_work_arrays_sumrho(w)
+!!$     i_all=-product(shape(hpsir))*kind(hpsir)
+!!$     deallocate(hpsir,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'hpsir',subname)
+!!$
+     gnrm_orb=0.0_wp
      do inds=1,orbs%nspinor,ncplx
 
         !the nrm2 function can be replaced here by ddot
@@ -192,6 +260,11 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
         else
            !write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2,ilr
            gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        end if
+        if (verbose >= 3) then
+           gnrm_orb=gnrm_orb+scpr
+           if (inds+ncplx-1==orbs%nspinor) gnrmp(iorb)=gnrm_orb
+           !write(*,*) 'iorb,gnrm,ilr',orbs%isorb+iorb,scpr,ilr,gnrm_orb,iproc
         end if
 
        if (scpr /= 0.0_wp) then
@@ -215,7 +288,16 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
               end select
 
            else !normal preconditioner
-              if(.false.)then
+              !case active only in the linear scaling case
+              if(confdatarr(iorb)%prefac > 0.0_gp .or. confdatarr(iorb)%potorder > 0)then
+              !   call yaml_map('Localizing preconditioner factor',confdatarr(iorb)%prefac)
+                 call solvePrecondEquation(iproc,nproc,Lzd%Llr(ilr),ncplx,ncong,&
+                      cprecr,&
+                      hx,hy,hz,kx,ky,kz,hpsi(1+ist),&
+                      Lzd%Llr(ilr)%locregCenter, orbs,&
+                      confdatarr(iorb)%prefac,&
+                      confdatarr(iorb)%potorder)
+
 !                 call solvePrecondEquation(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
 !                   hx,hy,hz,kx,ky,kz,hpsi(1+ist), rxyz(1,ilr), orbs,&                         !here should change rxyz to be center of Locreg
 !                   potentialPrefac(ilr), confPotOrder, 1)                         ! should depend on locreg not atom type? 'it' is commented in lower routines, so put 1
@@ -226,11 +308,52 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
            end if
 
        end if
+!       print *,'iorb,gradient',iorb,scpr,nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1)!,eh
        ist = ist + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*ncplx
 !     print *,iorb,inds,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds,iorb),1,hpsi(1,inds,iorb),1)
 !     print *,iorb,inds+1,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds+1,iorb),1,hpsi(1,inds+1,iorb),1)
-     end do
+    end do
+
   enddo
+
+  !gather the results of the gnrm per orbital in the case of high verbosity
+  if (verbose >= 3) then
+     allocate(gnrms(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+     call memocc(i_stat,gnrms,'gnrms',subname)
+     !prepare displacements arrays
+     allocate(ncntdsp(nproc,2+ndebug),stat=i_stat)
+     call memocc(i_stat,ncntdsp,'ncntdsp',subname)
+     ncntdsp(1,2)=0
+     ncntdsp(1,1)=orbs%norb_par(0,0)
+     do jproc=1,nproc-1
+        ncntdsp(jproc+1,2)=ncntdsp(jproc,2)+ncntdsp(jproc,1)
+        ncntdsp(jproc+1,1)=orbs%norb_par(jproc,0)
+     end do
+     call to_zero(orbs%norb*orbs%nkpts,gnrms(1))
+     !root mpi task collects the data
+     if (nproc > 1) then
+        call MPI_GATHERV(gnrmp(1),orbs%norbp,mpidtypw,gnrms(1),ncntdsp(1,1),&
+             ncntdsp(1,2),mpidtypw,0,bigdft_mpi%mpi_comm,ierr)
+     else
+        call vcopy(orbs%norb*orbs%nkpts,gnrmp(1),1,gnrms(1),1)
+     end if
+
+     !if (iproc ==0) print *,'ciao',gnrmp,orbs%nspinor
+
+     !write the values per orbitals
+     if (iproc ==0) call write_gnrms(orbs%nkpts,orbs%norb,gnrms)
+
+
+     i_all=-product(shape(ncntdsp))*kind(ncntdsp)
+     deallocate(ncntdsp,stat=i_stat)
+     call memocc(i_stat,i_all,'ncntdsp',subname)
+     i_all=-product(shape(gnrms))*kind(gnrms)
+     deallocate(gnrms,stat=i_stat)
+     call memocc(i_stat,i_all,'gnrms',subname)
+     i_all=-product(shape(gnrmp))*kind(gnrmp)
+     deallocate(gnrmp,stat=i_stat)
+     call memocc(i_stat,i_all,'gnrmp',subname)
+  end if
 
 END SUBROUTINE preconditionall2
 
@@ -284,12 +407,13 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
   call memocc(i_stat,d,'d',subname)
 
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
+
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
   call precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal)
 
-!!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
-!!  write(*,*)'debug1',rmr_new
+  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
+  !write(*,*)'debug1',rmr_new
 
   !this operation should be rewritten in a better way
   r=b-d ! r=b-Ax
@@ -301,7 +425,7 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 
 
   do icong=1,ncong 
-     !write(*,*)icong,rmr_new
+!     write(*,*)'hello',icong,rmr_new
 
      call precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal)! b:=Ad
 
@@ -318,12 +442,15 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
      call calculate_rmr_new(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,r,b,rmr_new)
 
      beta=rmr_new/rmr_old
-
+!print *,'beta.icong',icong,beta
      d=b+beta*d
     
   enddo
 
   call finalise_precond_residue(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,x)
+
+  !write(*,*)'debug2',dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),x(1),1,x(1),1)
+
 
   i_all=-product(shape(b))*kind(b)
   deallocate(b,stat=i_stat)
@@ -464,17 +591,19 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
      end do
 
      !initalize to zero the work arrays, probably not needed
-     call razero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
-          w%x_f1)
-     call razero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
-          w%x_f2)
-     call razero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
-          w%x_f3)
-     call razero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1),w%xpsig_c)
-     call razero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),w%xpsig_f)
+     call to_zero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%x_f1(1))
+     call to_zero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%x_f2(1))
+     call to_zero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%x_f3(1))
+     call to_zero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1),w%xpsig_c(0,0,0))
+     call to_zero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%xpsig_f(1,lr%d%nfl1,lr%d%nfl2,lr%d%nfl3))
 
-     call razero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1),w%ypsig_c)
-     call razero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),w%ypsig_f)
+     call to_zero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1),w%ypsig_c(0,0,0))
+     call to_zero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%ypsig_f(1,lr%d%nfl1,lr%d%nfl2,lr%d%nfl3))
 
   else if (lr%geocode == 'P') then
 
@@ -1133,7 +1262,7 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
 
   ! coarse part
   !$omp parallel default(shared)&
-  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i)
+  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i1,i0,i)
   !$omp do !!!!schedule(static,1)
   do iseg=1,nseg_c
      jj=keyv_c(iseg)
@@ -1266,6 +1395,18 @@ END SUBROUTINE precond_proper
 
 !> Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !! hpsi is the right hand side on input and the solution on output
+!!
+!! The input guess consists of diagonal preconditioning of the original gradient.
+!! In contrast to older version, not only the wavelet part and the scfunction
+!! part are multiplied by different factors, but the scfunction part is 
+!! subjected to wavelet analysis with periodic boundaries. Then the wavelets
+!! on different scales are multiplied by different factors and backward wavelet 
+!! transformed to scaling functions.
+!!
+!! The new input guess is turned on if the parameter INGUESS_ON
+!! has value .TRUE.
+!! @warning
+!!  This routine is sensitive in OpenMP versus the number of threads.
 subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
@@ -1293,18 +1434,6 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   real(wp), dimension(:,:,:,:), allocatable :: xpsig_f,ypsig_f
   real(wp), dimension(:,:,:), allocatable :: xpsig_c,ypsig_c,x_f1,x_f2,x_f3
 
-
-  ! The input guess consists of diagonal preconditioning of the original gradient.
-  ! In contrast to older version, not only the wavelet part and the scfunction
-  ! part are multiplied by different factors, but the scfunction part is 
-  ! subjected to wavelet analysis with periodic boundaries. Then the wavelets
-  ! on different scales are multiplied by different factors and backward wavelet 
-  ! transformed to scaling functions.
-  !
-  ! The new input guess is turned on if the parameter INGUESS_ON
-  ! has value .TRUE.
-  ! 
-  
   allocate(rpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
   call memocc(i_stat,rpsi,'rpsi',subname)
   allocate(ppsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
@@ -1366,15 +1495,15 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   call memocc(i_stat,x_f3,'x_f3',subname)
   
   !initalize to zero the work arrays, probably not needed
-  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1)
-  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f2)
-  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f3)
+  call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1(nfl1,nfl2,nfl3))
+  call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f2(nfl2,nfl1,nfl3))
+  call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f3(nfl3,nfl1,nfl2))
 
-  call razero((n1+1)*(n2+1)*(n3+1),xpsig_c)
-  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),xpsig_f)
+  call to_zero((n1+1)*(n2+1)*(n3+1),xpsig_c(0,0,0))
+  call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),xpsig_f(1,nfl1,nfl2,nfl3))
 
-  call razero((n1+1)*(n2+1)*(n3+1),ypsig_c)
-  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),ypsig_f)
+  call to_zero((n1+1)*(n2+1)*(n3+1),ypsig_c(0,0,0))
+  call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),ypsig_f(1,nfl1,nfl2,nfl3))
   
   call calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
@@ -1419,7 +1548,10 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
      alpha1=0.0_wp 
      alpha2=0.0_wp
- 
+
+     !!@warning
+     !!This section is very sensitive versus the number of threads
+
      !$omp parallel default(shared)&   !*
      !$omp private(i,aa1,aa2)
      aa1=0.0_wp

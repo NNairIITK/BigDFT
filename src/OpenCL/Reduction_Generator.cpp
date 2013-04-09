@@ -20,6 +20,12 @@ static void generate_header(std::stringstream &program){
 
 static void generate_reductionKernel(std::stringstream &program,struct bigdft_device_infos * infos){
   size_t max_wgs = infos->MAX_WORK_GROUP_SIZE;
+  cl_device_type device_type = infos->DEVICE_TYPE;
+  size_t cutoff;
+  if( infos->DEVICE_TYPE == CL_DEVICE_TYPE_CPU )
+    cutoff = 4;
+  else
+    cutoff = 64;
   program<<"__kernel void reductionKernel_d( uint n, __global const double *x, __global double *y, __local volatile double *tmp ) {\n\
   //get our position in the local buffer\n\
   size_t i = get_local_id(0);\n\
@@ -43,22 +49,24 @@ static void generate_reductionKernel(std::stringstream &program,struct bigdft_de
     program<<"  if( i<"<<max_wgs<<" )\n\
     tmp[i] = tmp[i] + tmp[i+"<<max_wgs<<"];\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n";
-  } while(max_wgs >= 64);
-  program<<"  if( i<16 )\n\
-    tmp[i] = tmp[i] + tmp[i+16];\n\
-  if( i<8 )\n\
-    tmp[i] = tmp[i] + tmp[i+8];\n\
-  if( i<4 )\n\
-    tmp[i] = tmp[i] + tmp[i+4];\n\
-  if( i<2 )\n\
-    tmp[i] = tmp[i] + tmp[i+2];\n\
-  if( i==0 )\n\
+  } while(max_wgs >= cutoff);
+  while(max_wgs >= 4) {
+    max_wgs /= 2;
+    program<<"  if( i<"<<max_wgs<<" )\n\
+    tmp[i] = tmp[i] + tmp[i+"<<max_wgs<<"];\n";
+  }
+  program<<"  if( i==0 )\n\
     y[get_group_id(0)] = tmp[0]+tmp[1];\n\
 }\n";
 }
 
 static void generate_reduction_dotKernel(std::stringstream &program,struct bigdft_device_infos * infos){
   size_t max_wgs = infos->MAX_WORK_GROUP_SIZE;
+  size_t cutoff;
+  if( infos->DEVICE_TYPE == CL_DEVICE_TYPE_CPU )
+    cutoff = 4;
+  else
+    cutoff = 64;
   program<<"__kernel void reduction_dotKernel_d( uint n, __global const double *x, __global double *y, __local volatile double *tmp ) {\n\
   size_t i = get_local_id(0);\n\
   size_t g = get_group_id(0)*"<<max_wgs*2<<"+i;\n\
@@ -81,23 +89,25 @@ static void generate_reduction_dotKernel(std::stringstream &program,struct bigdf
     program<<"  if( i<"<<max_wgs<<" )\n\
     tmp[i] = tmp[i] + tmp[i+"<<max_wgs<<"];\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n";
-  } while(max_wgs >= 64);
-  program<<"  if( i<16 )\n\
-    tmp[i] = tmp[i] + tmp[i+16];\n\
-  if( i<8 )\n\
-    tmp[i] = tmp[i] + tmp[i+8];\n\
-  if( i<4 )\n\
-    tmp[i] = tmp[i] + tmp[i+4];\n\
-  if( i<2 )\n\
-    tmp[i] = tmp[i] + tmp[i+2];\n\
-  if( i==0 )\n\
+  } while(max_wgs >= cutoff);
+  while(max_wgs >= 4) {
+    max_wgs /= 2;
+    program<<"  if( i<"<<max_wgs<<" )\n\
+    tmp[i] = tmp[i] + tmp[i+"<<max_wgs<<"];\n";
+  }
+  program<<"  if( i==0 )\n\
     y[get_group_id(0)] = tmp[0]+tmp[1];\n\
 }\n";
 }
 
 static void generate_dotKernel(std::stringstream &program,struct bigdft_device_infos * infos){
   size_t max_wgs = infos->MAX_WORK_GROUP_SIZE;
-  program<<"__kernel void dotKernel_d( uint n, __global const double *x, __global double *y, __global double *z, __local volatile double *tmp ) {\n\
+  size_t cutoff;
+  if( infos->DEVICE_TYPE == CL_DEVICE_TYPE_CPU )
+    cutoff = 4;
+  else
+    cutoff = 64;
+  program<<"__kernel void dotKernel_d( uint n, __global const double *x, __global const double *y, __global double *z, __local volatile double *tmp ) {\n\
   size_t i = get_local_id(0);\n\
   size_t g = get_group_id(0)*"<<max_wgs*2<<"+i;\n\
   if(g<n)\n\
@@ -116,16 +126,13 @@ static void generate_dotKernel(std::stringstream &program,struct bigdft_device_i
     program<<"  if( i<"<<max_wgs<<" )\n\
     tmp[i] = tmp[i] + tmp[i+"<<max_wgs<<"];\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n";
-  } while(max_wgs >= 64);
-  program<<"  if( i<16 )\n\
-    tmp[i] = tmp[i] + tmp[i+16];\n\
-  if( i<8 )\n\
-    tmp[i] = tmp[i] + tmp[i+8];\n\
-  if( i<4 )\n\
-    tmp[i] = tmp[i] + tmp[i+4];\n\
-  if( i<2 )\n\
-    tmp[i] = tmp[i] + tmp[i+2];\n\
-  if( i==0 )\n\
+  } while(max_wgs >= cutoff);
+  while(max_wgs >= 4) {
+    max_wgs /= 2;
+    program<<"  if( i<"<<max_wgs<<" )\n\
+    tmp[i] = tmp[i] + tmp[i+"<<max_wgs<<"];\n";
+  }
+  program<<"  if( i==0 )\n\
     z[get_group_id(0)] = tmp[0]+tmp[1];\n\
 }\n";
 }

@@ -30,14 +30,15 @@
 
     ! Save values for memocc.
 #if defined DEBUG_MODE
-!    integer, parameter :: ndebug = 5
-    integer, parameter :: ndebug = 0
+    integer, parameter :: ndebug = 5
 #else
     integer, parameter :: ndebug = 0
 #endif
     real :: memorylimit = 0.e0
     logical :: meminit = .false.
     integer, parameter :: mallocFile = 98
+    character(len=256) :: filename=repeat(' ',256)
+    integer :: stdout=6
     type(memstat), save :: memloc,memtot
     integer :: memalloc,memdealloc,memproc = 0
     !Debug option for memocc, set in the input file
@@ -57,6 +58,8 @@
     public :: ndebug
     public :: memocc
     public :: memocc_set_state
+    public :: memocc_set_stdout
+    public :: memocc_set_filename
     public :: memocc_set_memory_limit
     public :: memocc_report
     public :: d_nan,r_nan
@@ -72,8 +75,9 @@
       integer, intent(in) :: istatus
       !local variable
       integer :: istat_del
-      if (istatus > malloc_level)then
-         write(7,*) 'WARNING: malloc_level can be only downgraded, ignoring'
+      if (istatus > malloc_level) then
+         !here we should replace by yaml_warning
+         !write(7,*) 'WARNING: malloc_level can be only downgraded, ignoring'
          return
       end if
 
@@ -84,8 +88,8 @@
       if (istatus == 1 .and. memproc==0) then 
          !clean the file situation (delete the previously existing file)
          close(unit=mallocFile)                        
-         call delete('malloc.prc',len('malloc.prc'),istat_del)
-         open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
+         !call delete(trim(filename),len(trim(filename)),istat_del)
+         open(unit=mallocFile,file=trim(filename),status='unknown',action='write')
       end if
 
       if (istatus == 0 .and. memproc==0) then
@@ -93,17 +97,29 @@
          close(unit=mallocFile)
          !open(unit=mallocFile,file='malloc.prc',status='replace')
          !close(unit=mallocFile)
-         call delete('malloc.prc',len('malloc.prc'),istat_del)
+         call delete(trim(filename),len(trim(filename)),istat_del)
       end if
     end subroutine memocc_set_state
-
 
     subroutine memocc_set_memory_limit(limit)
       real, intent(in) :: limit
 
       memorylimit = limit
+      filename=repeat(' ',len(filename))
+      filename='malloc.prc'
     end subroutine memocc_set_memory_limit
 
+    subroutine memocc_set_filename(file)
+      character(len=*), intent(in) :: file
+      !local variables
+      integer :: ipos
+
+      ipos=min(len(trim(file)),len(filename))
+      filename=repeat(' ',len(filename))
+      filename(1:ipos)=file(1:ipos)
+      
+    end subroutine memocc_set_filename
+    
     subroutine memocc_report()
       call memocc(0,0,'count', 'stop')
     end subroutine memocc_report
@@ -122,7 +138,7 @@
     end subroutine memocc_variables_init
 
     subroutine memocc_open_file()
-      open(unit=mallocFile,file='malloc.prc',status='unknown')
+      open(unit=mallocFile,file=trim(filename),status='unknown')
       !if (memdebug) then
          write(mallocFile,'(a,t40,a,t70,4(1x,a12))')&
               '(Data in KB) Routine','Array name    ',&
@@ -134,6 +150,13 @@
       !end if
     end subroutine memocc_open_file
 
+    subroutine memocc_set_stdout(unit)
+      implicit none
+      integer, intent(in) :: unit
+
+      stdout=unit
+
+    end subroutine memocc_set_stdout
 
 
     !!****f* ABINIT/memory_occupation
@@ -198,6 +221,9 @@
 
          !open the writing file for the root process
          if (memproc == 0 .and. malloc_level > 0) then
+            if (len(trim(filename))==0) then
+               filename='malloc.prc'
+            end if
             call memocc_open_file()
          end if
          meminit = .true.
@@ -215,20 +241,21 @@
                     (memtot%peak+memloc%peak-memloc%memory)/int(1024,kind=8)
                close(unit=mallocFile)
             end if
-            write(*,'(1x,a)')&
-                 '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
-            write(*,'(1x,2(i0,a,1x),i0)')&
-                 memalloc,' allocations and',memdealloc,' deallocations, remaining memory(B):',&
-                 memtot%memory
-            write(*,'(1x,a,i0,a)') 'memory occupation peak: ',memtot%peak/int(1048576,kind=8),' MB'
-            write(*,'(4(1x,a))') 'for the array ',trim(memtot%array),&
-                 'in the routine',trim(memtot%routine)
+	    !write it in Yaml Format without yaml module
+            write(stdout,'(1x,a)')'Memory Consumption Report:'
+            write(stdout,'(1x,a,i0)')'  Tot. No. of Allocations  : ',memalloc
+            write(stdout,'(1x,a,i0)')'  Tot. No. of Deallocations: ',memdealloc
+            write(stdout,'(1x,a,i0)')'  Remaining Memory (B)     : ',memtot%memory
+            write(stdout,'(1x,a)')   '  Memory occupation: '
+            write(stdout,'(1x,a,i0)')'     Peak Value (MB): ',memtot%peak/int(1048576,kind=8)
+            write(stdout,'(1x,a)')   '     for the array: '//trim(memtot%array)       
+            write(stdout,'(1x,a)')   '     in the routine: '//trim(memtot%routine)       
             !here we can add a routine which open the malloc.prc file in case of some 
             !memory allocation problem, and which eliminates it for a successful run
             if (malloc_level == 1 .and. memalloc == memdealloc .and. memtot%memory==int(0,kind=8)) then
                !open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
                !remove file should be put here
-               call delete('malloc.prc',len('malloc.prc'),istat_del)
+               call delete(trim(filename),len(trim(filename)),istat_del)
 
                !write(unit=mallocFile,fmt='()',advance='no')
                !close(unit=mallocFile)
@@ -321,15 +348,14 @@
     !! SOURCE
     !!
     subroutine memory_malloc_check(nalloc,ndealloc)
-
-
       implicit none
       !Arguments
       integer, intent(in) :: nalloc,ndealloc
       !Local variables
       if (malloc_level==2 .and. nalloc /= ndealloc) then
          write(*,*) &
-              "Use the python script 'memcheck.py' in utils/scripts to check 'malloc.prc' file"
+              "Use the python script 'memcheck.py' in utils/scripts to check"//&
+              trim(filename)//" file"
       end if
     END SUBROUTINE memory_malloc_check
     !!***
@@ -413,7 +439,7 @@
       !local variables
       integer :: i
       do i=1,npaddim*ndebug
-         array(nstart+i)= r_nan() !this function is in profiling/timem.f90
+         array(nstart+i)= int(r_nan()) !this function is in profiling/timem.f90
       end do
     end subroutine i_padding
 

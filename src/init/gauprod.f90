@@ -45,7 +45,7 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
 END SUBROUTINE restart_from_gaussians
 
 
-!>   Read information for gaussian basis set (from CP2K) or for restarting
+!> Read information for gaussian basis set (from CP2K) or for restarting
 subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
   use module_base
   use module_types
@@ -168,7 +168,7 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
      end do
 
      call MPI_GATHERV(coeffs,gatherarr(iproc,1),mpidtypw,gaupsi,gatherarr(0,1),gatherarr(0,2),&
-          mpidtypw,0,MPI_COMM_WORLD,ierr)
+          mpidtypw,0,bigdft_mpi%mpi_comm,ierr)
 
      i_all=-product(shape(gatherarr))*kind(gatherarr)
      deallocate(gatherarr,stat=i_stat)
@@ -207,14 +207,13 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
 END SUBROUTINE write_gaussian_information
 
 
-
-!>   gaussian section
-!!   Create gaussian structure from input guess pseudo wavefunctions
-!!
+!> Create gaussian structure from input guess pseudo wavefunctions
 subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes, &
      iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg)
   use module_base
   use module_types
+  use yaml_output
+  use module_interfaces, except_this_one => gaussian_pswf_basis
   implicit none
   logical, intent(in) :: enlargerprb
   integer, intent(in) :: iproc,nspin,ng
@@ -353,10 +352,9 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
      call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
      if (ityx > ntypesx) then
         if (iproc == 0 .and. verbose > 1) then
-           write(*,'(1x,a,a6,a)')&
-                'Generation of input wavefunction data for atom ',&
-                trim(at%atomnames(ityp)),&
-                ':'
+           call yaml_map('Generation of input wavefunction data for atom ', trim(at%atomnames(ityp)))
+           !write(*,'(1x,a,a6,a)') 'Generation of input wavefunction data for atom ',&
+           !     & trim(at%atomnames(ityp)),':'
            call print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,&
                 at%aocc(1,iat),at%iasctype(iat))
         end if
@@ -385,7 +383,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
 
 
         ntypesx=ntypesx+1
-        if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
+        !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
      end if
 
      do l=1,4
@@ -825,6 +823,7 @@ END SUBROUTINE gaussian_psp_basis
 subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
   use module_base
   use module_types
+  use gaussians
   implicit none
   integer, intent(in) :: iproc,nproc,norb,norbp
   type(gaussian_basis), intent(in) :: G
@@ -856,7 +855,7 @@ subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
      end do
 
      call MPI_ALLGATHERV(coeffs,gatherarr(iproc,1),mpidtypw,gaupsi,gatherarr(0,1),gatherarr(0,2),&
-          mpidtypw,MPI_COMM_WORLD,ierr)
+          mpidtypw,bigdft_mpi%mpi_comm,ierr)
 
      i_all=-product(shape(gatherarr))*kind(gatherarr)
      deallocate(gatherarr,stat=i_stat)
@@ -917,111 +916,6 @@ subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
 END SUBROUTINE gaussian_orthogonality
 
 
-
-!>
-!!
-!!
-subroutine dual_gaussian_coefficients(norbp,G,coeffs)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: norbp
-  type(gaussian_basis), intent(in) :: G
-  real(gp), dimension(G%ncoeff,norbp), intent(inout) :: coeffs !warning: the precision here should be wp
-  !local variables
-  character(len=*), parameter :: subname='dual_gaussian_coefficients'
-  integer :: nwork,info,i_stat,i_all
-  integer, dimension(:), allocatable :: iwork
-  real(gp), dimension(:), allocatable :: ovrlp,work
-  
-  allocate(iwork(G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,iwork,'iwork',subname)
-  allocate(ovrlp(G%ncoeff*G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,ovrlp,'ovrlp',subname)
-
-  !temporary allocation of the work array, workspace query in dsysv
-  allocate(work(100+ndebug),stat=i_stat)
-  call memocc(i_stat,work,'work',subname)
-
-  if (norbp > 0) then
-     call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
-          G%ncoeff,work(1),-1,info)
-  end if
-  nwork=work(1)
-
-  i_all=-product(shape(work))*kind(work)
-  deallocate(work,stat=i_stat)
-  call memocc(i_stat,i_all,'work',subname)
-  allocate(work(nwork+ndebug),stat=i_stat)
-  call memocc(i_stat,work,'work',subname)
-  
-  call gaussian_overlap(G,G,ovrlp)
-
-!!  !overlap matrix, print it for convenience
-!!  do icoeff=1,G%ncoeff
-!!     write(30,'(1x,200(1pe12.3))')&
-!!          (ovrlp(jcoeff+(icoeff-1)*G%ncoeff),jcoeff=1,G%ncoeff)
-!!  end do
-
-  if (norbp > 0) then
-     call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
-          G%ncoeff,work,nwork,info)
-  end if
-
-  i_all=-product(shape(iwork))*kind(iwork)
-  deallocate(iwork,stat=i_stat)
-  call memocc(i_stat,i_all,'iwork',subname)
-  i_all=-product(shape(work))*kind(work)
-  deallocate(work,stat=i_stat)
-  call memocc(i_stat,i_all,'work',subname)
-  i_all=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ovrlp',subname)
-
-!!!  do iorb=1,norbp
-!!!     print *,'iorb, dual,coeffs',iorb,coeffs(:,iorb)
-!!!  end do
-  
-END SUBROUTINE dual_gaussian_coefficients
-
-
-
-!>   Normalize a given atomic shell following the angular momentum
-!!
-!!
-subroutine normalize_shell(ng,l,expo,coeff)
-  use module_base
-  implicit none
-  integer, intent(in) :: ng,l
-  real(gp), dimension(ng), intent(in) :: expo
-  real(gp), dimension(ng), intent(inout) :: coeff
-  !local variables
-  integer :: i,j
-  real(gp) :: norm,tt,e1,ex,c1,c2,gauint0
-
-  norm=0.d0
-  do i=1,ng
-     e1=expo(i)
-     c1=coeff(i)
-     do j=1,ng
-        ex=expo(j)+e1
-        c2=coeff(j)
-        tt=gauint0(ex,2*l+2)
-        norm=norm+c1*tt*c2
-     end do
-  end do
-  norm=sqrt(0.5_gp*norm)
-  norm=1.0_gp/norm
-  do i=1,ng
-     coeff(i)=coeff(i)*norm
-  end do
-
-  !print *,'l=',l,'norm=',norm
-
-END SUBROUTINE normalize_shell
-
-
-
 !>   Calculates @f$\int_0^\infty \exp^{-a*x^2} x^l dx@f$
 !!
 !!
@@ -1050,329 +944,6 @@ function gauinth(a,l)
   gauinth=prefac*tt
   
 END FUNCTION gauinth
-
-
-
-!>   Calculates a dot product between two differents gaussians times spherical harmonics
-!!   valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
-!!   to be rearranged when only some of them is zero
-!!
-!!
-subroutine gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
-  use module_base
-  implicit none
-  integer, intent(in) :: l1,l2,m1,m2,niw,nrw 
-  real(gp), intent(in) :: a1,a2,dx,dy,dz
-  integer, dimension(niw) :: iw !work array of the exponents of the two polynomials
-  real(gp), dimension(nrw) :: rw !work array of the polynomials coefficients 
-  real(gp), intent(out) :: ovrlp
-  !local variables
-  integer, parameter :: nx=3
-  integer :: n1,n2,i1,i2,px,py,pz,qx,qy,qz
-  real(gp) :: fx,fy,fz,fa,fb,govrlp
-
-  !calculates the number of different couples
-  call calc_coeff_inguess(l1,m1,nx,n1,&
-       iw(1),iw(nx+1),iw(2*nx+1),rw(1))
-  call calc_coeff_inguess(l2,m2,nx,n2,&
-       iw(3*nx+1),iw(4*nx+1),iw(5*nx+1),rw(n1+1))
-  ovrlp=0.d0
-  do i2=1,n2
-     qx=iw(3*nx+i2)
-     qy=iw(4*nx+i2)
-     qz=iw(5*nx+i2)
-     fb=rw(n1+i2)
-     do i1=1,n1
-        px=iw(i1)
-        py=iw(nx+i1)
-        pz=iw(2*nx+i1)
-        fa=rw(i1)
-
-        fx=govrlp(a1,a2,dx,px,qx)
-        fy=govrlp(a1,a2,dy,py,qy)
-        fz=govrlp(a1,a2,dz,pz,qz)
-
-        ovrlp=ovrlp+fa*fb*fx*fy*fz
-        !print *,i1,i2,fx,fy,fz,fa,fb
-     end do
-  end do
- 
-END SUBROUTINE gprod
-
-
-
-!>   Kinetic overlap between gaussians, based on cartesian coordinates
-!!   calculates a dot product between two differents gaussians times spherical harmonics
-!!   valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
-!!   to be rearranged when only some of them is zero
-!!
-subroutine kinprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
-  use module_base
-  implicit none
-  integer, intent(in) :: l1,l2,m1,m2,niw,nrw 
-  real(gp), intent(in) :: a1,a2,dx,dy,dz
-  integer, dimension(niw) :: iw !work array of the exponents of the two polynomials
-  real(gp), dimension(nrw) :: rw !work array of the polynomials coefficients 
-  real(gp), intent(out) :: ovrlp
-  !local variables
-  integer, parameter :: nx=3
-  integer :: n1,n2,i1,i2,px,py,pz,qx,qy,qz
-  real(gp) :: fx,fy,fz,fa,fb,govrlp,kinovrlp,d2fx,d2fy,d2fz
-
-  !calculates the number of different couples
-  call calc_coeff_inguess(l1,m1,nx,n1,&
-       iw(1),iw(nx+1),iw(2*nx+1),rw(1))
-  call calc_coeff_inguess(l2,m2,nx,n2,&
-       iw(3*nx+1),iw(4*nx+1),iw(5*nx+1),rw(n1+1))
-  ovrlp=0.d0
-  do i2=1,n2
-     qx=iw(3*nx+i2)
-     qy=iw(4*nx+i2)
-     qz=iw(5*nx+i2)
-     fb=rw(n1+i2)
-     do i1=1,n1
-        px=iw(i1)
-        py=iw(nx+i1)
-        pz=iw(2*nx+i1)
-        fa=rw(i1)
-
-        fx=govrlp(a1,a2,dx,px,qx)
-        fy=govrlp(a1,a2,dy,py,qy)
-        fz=govrlp(a1,a2,dz,pz,qz)
-
-        d2fx=kinovrlp(a1,a2,dx,px,qx)
-        d2fy=kinovrlp(a1,a2,dy,py,qy)
-        d2fz=kinovrlp(a1,a2,dz,pz,qz)
-
-        ovrlp=ovrlp-0.5_gp*fa*fb*(d2fx*fy*fz+fx*d2fy*fz+fx*fy*d2fz)
-        !print *,i1,i2,fx,fy,fz,fa,fb
-     end do
-  end do
- 
-END SUBROUTINE kinprod
-
-
-!>   Calculates @f$\int d^2/dx^2(\exp^{-a1*x^2} x^l1) \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
-!!   in terms of the govrlp function below
-function kinovrlp(a1,a2,d,l1,l2)
-  use module_base
-  implicit none
-  integer, intent(in) :: l1,l2
-  real(gp), intent(in) :: a1,a2,d
-  real(gp) :: kinovrlp
-  !local variables
-  real(gp) :: govrlp,fac,ovrlp
-
-  !case l1+2
-  fac=4._gp*a1**2
-  ovrlp=govrlp(a1,a2,d,l1+2,l2)
-  kinovrlp=fac*ovrlp
-  !case l1
-  fac=2._gp*a1*real(2*l1+1,gp)
-  ovrlp=govrlp(a1,a2,d,l1,l2)
-  kinovrlp=kinovrlp-fac*ovrlp
-  !case l1-2 (if applicable)
-  if (l1 >=2) then
-     fac=real(l1*(l1-1),gp)
-     ovrlp=govrlp(a1,a2,d,l1-2,l2)
-     kinovrlp=kinovrlp+fac*ovrlp
-  end if
-END FUNCTION kinovrlp
-
-
-
-!>   Calculates @f$\int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
-!!   Uses gauint0 if d==0
-!!
-function govrlp(a1,a2,d,l1,l2)
-  use module_base
-  implicit none
-  integer, intent(in) :: l1,l2
-  real(gp), intent(in) :: a1,a2,d
-  real(gp) :: govrlp
-  !local variables
-  integer :: p
-  real(gp) :: prefac,rfac,stot,aeff,ceff,tt,fsum,gauint,gauint0
-
-  !quick check
-  if (d==0.0_gp) then
-     govrlp=gauint0(a1+a2,l1+l2)
-     return
-  end if
-
-  !build the prefactor
-  prefac=a1+a2
-  prefac=a2/prefac
-  prefac=a1*prefac
-  prefac=-d**2*prefac
-  prefac=dexp(prefac)
-
-  !build the effective exponent and coefficients
-  aeff=a1+a2
-  ceff=a2*d
-  ceff=ceff/aeff
-
-  !build the first term in the sum
-  stot=(-d)**l2
-  stot=gauint(aeff,ceff,l1)*stot
-
-  !perform the sum
-  do p=1,l2/2
-     tt=rfac(1,p)
-     fsum=rfac(l2-p+1,l2)
-     fsum=fsum/tt
-     tt=(-d)**(l2-p)
-     fsum=fsum*tt
-     tt=gauint(aeff,ceff,l1+p)
-     fsum=fsum*tt
-     stot=stot+fsum
-  end do
-  do p=l2/2+1,l2
-     tt=rfac(1,l2-p)
-     fsum=rfac(p+1,l2)
-     fsum=fsum/tt
-     tt=(-d)**(l2-p)
-     fsum=fsum*tt
-     tt=gauint(aeff,ceff,l1+p)
-     fsum=fsum*tt
-     stot=stot+fsum
-  end do
-
-  !final result
-  govrlp=prefac*stot
-END FUNCTION govrlp
-
-
-
-!>   Calculates @f$\int \exp^{-a*(x-c)^2} x^l dx@f$
-!!   this works ONLY when c/=0.d0
-!!
-!!
-function gauint(a,c,l)
-  use module_base
-  implicit none
-  integer, intent(in) :: l
-  real(gp), intent(in) :: a,c
-  real(gp) :: gauint
-  !local variables
-  real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
-  integer :: p
-  real(gp) :: rfac,prefac,stot,fsum,tt,firstprod
-
-  !quick check
-  !if (c==0.0_gp) then
-  !   stop 'gauint0 should be called'
-  !end if
-
-  !build the prefactor
-  prefac=sqrt(a)
-  prefac=1.d0/prefac
-  prefac=gammaonehalf*prefac
-
-  !the first term of the sum is one
-  !but we have to multiply for the prefactor
-  stot=c**l
-
-  !if (c==0.0_gp .and. l==0) then
-  !   do p=0,20
-  !      print *,'stot,p',stot,a,p,gauint0(a,p)
-  !   end do
-  !end if
-
-  !calculate the sum
-  do p=1,l/4
-     tt=rfac(p+1,2*p)
-     fsum=rfac(l-2*p+1,l)
-     fsum=fsum/tt
-     tt=firstprod(p)
-     fsum=fsum*tt
-     tt=c**(l-2*p)
-     tt=tt/a**p
-     fsum=fsum*tt
-     stot=stot+fsum
-  end do
-  do p=l/4+1,l/3
-     tt=rfac(p+1,l-2*p)
-     fsum=rfac(2*p+1,l)
-     fsum=fsum/tt
-     tt=firstprod(p)
-     fsum=fsum*tt
-     tt=c**(l-2*p)
-     tt=tt/a**p
-     fsum=fsum*tt
-     stot=stot+fsum
-  end do
-  do p=l/3+1,l/2
-     tt=rfac(l-2*p+1,p)
-     fsum=rfac(2*p+1,l)
-     fsum=fsum*tt
-     tt=firstprod(p)
-     fsum=fsum*tt
-     tt=c**(l-2*p)
-     tt=tt/a**p
-     fsum=fsum*tt
-     stot=stot+fsum
-  end do
-
-  !final result
-  gauint=stot*prefac
-  
-END FUNCTION gauint
-
-
-
-!>   Calculates @f$\int \exp^{-a*x^2} x^l dx@f$
-!!   this works for all l
-!!
-!!
-function gauint0(a,l)
-  use module_base
-  implicit none
-  integer, intent(in) :: l
-  real(gp), intent(in) :: a
-  real(gp) :: gauint0
-  !local variables
-  real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
-  integer :: p
-  real(gp) :: xfac,prefac,tt
-  !build the prefactor
-  prefac=sqrt(a)
-  prefac=1.d0/prefac
-  prefac=gammaonehalf*prefac**(l+1)
-
-  p=l/2
-  if (2*p < l) then
-     gauint0=0.0_gp
-     return
-  end if
-  tt=xfac(1,p,-0.5d0)
-  !final result
-  gauint0=prefac*tt
-  
-END FUNCTION gauint0
-
-
-
-!>
-!!
-!!
-function firstprod(p)
-  use module_base
-  implicit none
-  integer, intent(in) :: p
-  real(gp) :: firstprod
-  !local variables
-  integer :: i
-  real(gp) :: tt
-  firstprod=1.0_gp
-  do i=1,p
-     tt=real(2*i,gp)
-     tt=1.0_gp/tt
-     tt=1.0_gp-tt
-     firstprod=firstprod*tt
-  end do
-END FUNCTION firstprod
-
 
 
 !>
@@ -1417,135 +988,135 @@ END FUNCTION xfac
 
 
 !End of the interesting part
-
-
-!>   The same function but with integer factorials (valid ONLY if l<=18)
-!!   not a visible improvement in speed with respect to the analogous real
-!!
-!!
-function gauinti(a,c,l)
-  use module_base
-  implicit none
-  integer, intent(in) :: l
-  real(gp), intent(in) :: a,c
-  real(gp) :: gauinti
-  !local variables
-  real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
-  integer :: p,ifac
-  real(gp) :: prefac,xsum,stot,fsum,tt,firstprod
-  !build the prefactor
-  prefac=sqrt(a)
-  prefac=c**l/prefac
-  prefac=gammaonehalf*prefac
-
-  !object in the sum
-  xsum=a*c**2
-  xsum=1.d0/xsum
-
-  !the first term of the sum is one
-  stot=1.d0
-
-  !calculate the sum
-  do p=1,l/4
-     tt=real(ifac(p+1,2*p),gp)
-     fsum=real(ifac(l-2*p+1,l),gp)
-     fsum=fsum/tt
-     tt=firstprod(p)
-     fsum=fsum*tt
-     fsum=fsum*xsum**p
-     stot=stot+fsum
-  end do
-  do p=l/4+1,l/3
-     tt=real(ifac(p+1,l-2*p),gp)
-     fsum=real(ifac(2*p+1,l),gp)
-     fsum=fsum/tt
-     tt=firstprod(p)
-     fsum=fsum*tt
-     fsum=fsum*xsum**p
-     stot=stot+fsum
-  end do
-  do p=l/3+1,l/2
-     tt=real(ifac(l-2*p+1,p),gp)
-     fsum=real(ifac(2*p+1,l),gp)
-     fsum=fsum*tt
-     tt=firstprod(p)
-     fsum=fsum*tt
-     fsum=fsum*xsum**p
-     stot=stot+fsum
-  end do
-
-  !final result
-  gauinti=stot*prefac
-  
-END FUNCTION gauinti
-
-
-
-!>   Valid if p<l/4 AND p/=0
-!!
-!!
-function secondprod1(p,l)
-  use module_base
-  implicit none
-  integer, intent(in) :: p,l
-  real(gp) :: secondprod1
-  !local variables
-  !integer :: i
-  real(gp) :: tt,part1,rfac
-  part1=rfac(p+1,2*p)
-  !divide by the last value
-  part1=real(l,gp)/part1
-  tt=rfac(l-2*p+1,l-1)
-!!!  part1=1.d0
-!!!  do i=p+1,2*p !in the second case the bound must be changed here
-!!!     tt=real(i,gp)
-!!!     part1=part1*tt
-!!!  end do
-  secondprod1=tt*part1
-END FUNCTION secondprod1
-
-
-
-!>   Valid if p>=l/4 AND p<l/3
-!!
-!!
-function secondprod2(p,l)
-  use module_base
-  implicit none
-  integer, intent(in) :: p,l
-  real(gp) :: secondprod2
-  !local variables
-  !integer :: i
-  real(gp) :: tt,part1,rfac
-  part1=rfac(p+1,l-2*p)
-  !divide by the last value
-  part1=real(l,gp)/part1
-  tt=rfac(2*p+1,l-1)
-!!!  part1=1.d0
-!!!  do i=p+1,2*p !in the second case the bound must be changed here
-!!!     tt=real(i,gp)
-!!!     part1=part1*tt
-!!!  end do
-  secondprod2=tt*part1
-END FUNCTION secondprod2
-
-
-
-!>   Integer version of factorial
-!!
-!!
-function ifac(is,ie)
-  implicit none
-  integer, intent(in) :: is,ie
-  integer :: ifac
-  !local variables
-  integer :: i
-  ifac=1
-  do i=is,ie
-     ifac=ifac*i
-  end do
-END FUNCTION ifac
-
+!!$
+!!$
+!!$!>   The same function but with integer factorials (valid ONLY if l<=18)
+!!$!!   not a visible improvement in speed with respect to the analogous real
+!!$!!
+!!$!!
+!!$function gauinti(a,c,l)
+!!$  use module_base
+!!$  implicit none
+!!$  integer, intent(in) :: l
+!!$  real(gp), intent(in) :: a,c
+!!$  real(gp) :: gauinti
+!!$  !local variables
+!!$  real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
+!!$  integer :: p,ifac
+!!$  real(gp) :: prefac,xsum,stot,fsum,tt,firstprod
+!!$  !build the prefactor
+!!$  prefac=sqrt(a)
+!!$  prefac=c**l/prefac
+!!$  prefac=gammaonehalf*prefac
+!!$
+!!$  !object in the sum
+!!$  xsum=a*c**2
+!!$  xsum=1.d0/xsum
+!!$
+!!$  !the first term of the sum is one
+!!$  stot=1.d0
+!!$
+!!$  !calculate the sum
+!!$  do p=1,l/4
+!!$     tt=real(ifac(p+1,2*p),gp)
+!!$     fsum=real(ifac(l-2*p+1,l),gp)
+!!$     fsum=fsum/tt
+!!$     tt=firstprod(p)
+!!$     fsum=fsum*tt
+!!$     fsum=fsum*xsum**p
+!!$     stot=stot+fsum
+!!$  end do
+!!$  do p=l/4+1,l/3
+!!$     tt=real(ifac(p+1,l-2*p),gp)
+!!$     fsum=real(ifac(2*p+1,l),gp)
+!!$     fsum=fsum/tt
+!!$     tt=firstprod(p)
+!!$     fsum=fsum*tt
+!!$     fsum=fsum*xsum**p
+!!$     stot=stot+fsum
+!!$  end do
+!!$  do p=l/3+1,l/2
+!!$     tt=real(ifac(l-2*p+1,p),gp)
+!!$     fsum=real(ifac(2*p+1,l),gp)
+!!$     fsum=fsum*tt
+!!$     tt=firstprod(p)
+!!$     fsum=fsum*tt
+!!$     fsum=fsum*xsum**p
+!!$     stot=stot+fsum
+!!$  end do
+!!$
+!!$  !final result
+!!$  gauinti=stot*prefac
+!!$  
+!!$END FUNCTION gauinti
+!!$
+!!$
+!!$
+!!$!>   Valid if p<l/4 AND p/=0
+!!$!!
+!!$!!
+!!$function secondprod1(p,l)
+!!$  use module_base
+!!$  implicit none
+!!$  integer, intent(in) :: p,l
+!!$  real(gp) :: secondprod1
+!!$  !local variables
+!!$  !integer :: i
+!!$  real(gp) :: tt,part1,rfac
+!!$  part1=rfac(p+1,2*p)
+!!$  !divide by the last value
+!!$  part1=real(l,gp)/part1
+!!$  tt=rfac(l-2*p+1,l-1)
+!!$!!!  part1=1.d0
+!!$!!!  do i=p+1,2*p !in the second case the bound must be changed here
+!!$!!!     tt=real(i,gp)
+!!$!!!     part1=part1*tt
+!!$!!!  end do
+!!$  secondprod1=tt*part1
+!!$END FUNCTION secondprod1
+!!$
+!!$
+!!$
+!!$!>   Valid if p>=l/4 AND p<l/3
+!!$!!
+!!$!!
+!!$function secondprod2(p,l)
+!!$  use module_base
+!!$  implicit none
+!!$  integer, intent(in) :: p,l
+!!$  real(gp) :: secondprod2
+!!$  !local variables
+!!$  !integer :: i
+!!$  real(gp) :: tt,part1,rfac
+!!$  part1=rfac(p+1,l-2*p)
+!!$  !divide by the last value
+!!$  part1=real(l,gp)/part1
+!!$  tt=rfac(2*p+1,l-1)
+!!$!!!  part1=1.d0
+!!$!!!  do i=p+1,2*p !in the second case the bound must be changed here
+!!$!!!     tt=real(i,gp)
+!!$!!!     part1=part1*tt
+!!$!!!  end do
+!!$  secondprod2=tt*part1
+!!$END FUNCTION secondprod2
+!!$
+!!$
+!!$
+!!$!>   Integer version of factorial
+!!$!!
+!!$!!
+!!$function ifac(is,ie)
+!!$  implicit none
+!!$  integer, intent(in) :: is,ie
+!!$  integer :: ifac
+!!$  !local variables
+!!$  integer :: i
+!!$  ifac=1
+!!$  do i=is,ie
+!!$     ifac=ifac*i
+!!$  end do
+!!$END FUNCTION ifac
+!!$
 
 
 !>   Calculate the projection of norb wavefunctions on a gaussian basis set
@@ -1587,6 +1158,7 @@ subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam
      nshltot,nexpo,ncoeff,hx,hy,hz,wfd,psi,coeffs)
   use module_base
   use module_types
+  use gaussians
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: n1,n2,n3,nat,nshltot,nexpo,ncoeff
@@ -1621,26 +1193,71 @@ subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam
   
 END SUBROUTINE orbital_projection
 
-
-
 !>
 !!
 !!
-subroutine gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
+subroutine dual_gaussian_coefficients(norbp,G,coeffs)
+  use module_base, only: ndebug,gp,memocc
+  use gaussians
   implicit none
-  integer, intent(in) :: iexpo,icoeff,ishell,nexpo,ncoeff,nshltot
-  !check of the dimensions
-  if (iexpo /= nexpo+1) then
-     write(*,*)' ERROR: nexpo+1 <> iexpo',nexpo,iexpo
-     stop
-  else if (icoeff /= ncoeff+1) then
-     write(*,*)' ERROR: ncoeff+1 <> icoeff',ncoeff,icoeff
-     stop
-  else if (ishell /= nshltot) then
-     write(*,*)' ERROR: nshltot <> ishell',nshltot,ishell
-     stop
+  integer, intent(in) :: norbp
+  type(gaussian_basis), intent(in) :: G
+  real(gp), dimension(G%ncoeff,norbp), intent(inout) :: coeffs !warning: the precision here should be wp
+  !local variables
+  character(len=*), parameter :: subname='dual_gaussian_coefficients'
+  integer :: nwork,info,i_stat,i_all
+  integer, dimension(:), allocatable :: iwork
+  real(gp), dimension(:), allocatable :: ovrlp,work
+
+  allocate(iwork(G%ncoeff+ndebug),stat=i_stat)
+  call memocc(i_stat,iwork,'iwork',subname)
+  allocate(ovrlp(G%ncoeff*G%ncoeff+ndebug),stat=i_stat)
+  call memocc(i_stat,ovrlp,'ovrlp',subname)
+
+  !temporary allocation of the work array, workspace query in dsysv
+  allocate(work(100+ndebug),stat=i_stat)
+  call memocc(i_stat,work,'work',subname)
+
+  if (norbp > 0) then
+     call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
+          G%ncoeff,work(1),-1,info)
   end if
-END SUBROUTINE gaudim_check
+  nwork=int(work(1))
+
+  i_all=-product(shape(work))*kind(work)
+  deallocate(work,stat=i_stat)
+  call memocc(i_stat,i_all,'work',subname)
+  allocate(work(nwork+ndebug),stat=i_stat)
+  call memocc(i_stat,work,'work',subname)
+
+  call gaussian_overlap(G,G,ovrlp)
+
+  !!  !overlap matrix, print it for convenience
+  !!  do icoeff=1,G%ncoeff
+  !!     write(30,'(1x,200(1pe12.3))')&
+  !!          (ovrlp(jcoeff+(icoeff-1)*G%ncoeff),jcoeff=1,G%ncoeff)
+  !!  end do
+
+  if (norbp > 0) then
+     call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
+          G%ncoeff,work,nwork,info)
+  end if
+
+  i_all=-product(shape(iwork))*kind(iwork)
+  deallocate(iwork,stat=i_stat)
+  call memocc(i_stat,i_all,'iwork',subname)
+  i_all=-product(shape(work))*kind(work)
+  deallocate(work,stat=i_stat)
+  call memocc(i_stat,i_all,'work',subname)
+  i_all=-product(shape(ovrlp))*kind(ovrlp)
+  deallocate(ovrlp,stat=i_stat)
+  call memocc(i_stat,i_all,'ovrlp',subname)
+
+!!!  do iorb=1,norbp
+!!!     print *,'iorb, dual,coeffs',iorb,coeffs(:,iorb)
+!!!  end do
+
+END SUBROUTINE dual_gaussian_coefficients
 
 
 
@@ -1673,9 +1290,11 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
      call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 
      call wavetogau(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiat,&
-          rxyz(1),rxyz(2),rxyz(3),hx,hy,hz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),&
-          wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),&
-          psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)),coeffs(m))
+        & rxyz(1),rxyz(2),rxyz(3),hx,hy,hz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc,wfd%keyvloc,&
+        & wfd%nseg_f,wfd%nvctr_f,&
+        & wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
+        & wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),&
+        & psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)),coeffs(m))
 
      !print '(a,2(i4),5(1pe12.5))','l,m,rxyz,coeffs(m)',l,m,rxyz(:),coeffs(m)
   end do
@@ -1686,10 +1305,7 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
 END SUBROUTINE lsh_projection
 
 
-
 !>
-!!
-!!
 subroutine lsh_rotation(l,theta,phi,coeffs)
   use module_base
   implicit none
@@ -1732,15 +1348,12 @@ subroutine lsh_rotation(l,theta,phi,coeffs)
 END SUBROUTINE lsh_rotation
 
 
-
 !>   Calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
 !!   @f$\int dx dy dz 
 !!             \sum_i=1..ntp fac_arr(i) {
 !!                  \sum_j=1..nterm psiat(j) [exp(-r^2/(2*(xp(j)^2)))] 
 !!                      *((x-rx)^lx(i) *(y-ry)^ly(i) * (z-rz)^lz(i) ))} psi(x,y,z)@f$
 !!   Expressed in Daubechies Basis in the arrays psi_c, psi_f
-!!
-!!
 subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hx,hy,hz, & 
      nseg_c,mvctr_c,keyg_c,keyv_c,nseg_f,mvctr_f,keyg_f,keyv_f,psi_c,psi_f,overlap)
   use module_base
@@ -1865,10 +1478,7 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
 END SUBROUTINE wavetogau
 
 
-
 !>   Coefficients of the rotation matrix
-!!
-!!
 subroutine rotation_matrix(l,t,p,hrot)
   use module_base
   implicit none

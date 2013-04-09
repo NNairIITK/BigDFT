@@ -24,9 +24,10 @@ program memguess
    character(len=40) :: comment
    character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn
+   character(len=50) :: posinp
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.
-   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
+   integer :: ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
    integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,nspin_ig,ng,ncount0,ncount1,ncount_max,ncount_rate
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
@@ -39,7 +40,6 @@ program memguess
    type(nonlocal_psp_descriptors) :: nlpspd
    type(gaussian_basis) :: G !basis for davidson IG
    type(denspot_distribution) :: dpbox
-   type(gaussian_basis),dimension(:),allocatable :: proj_G !dummy here
    real(gp), dimension(3) :: shift
    logical, dimension(:,:,:), allocatable :: logrid
    integer, dimension(:,:), allocatable :: norbsc_arr
@@ -50,7 +50,10 @@ program memguess
    logical, dimension(:,:,:), allocatable :: scorb
    real(kind=8), dimension(:), allocatable :: locrad
    real(gp), dimension(:), pointer :: gbd_occ
-   integer :: ierror,iatyp
+   !! By Ali
+   integer :: ierror
+
+   call f_malloc_set_status(memory_limit=0.e0)
 
    ! Get arguments
    !call getarg(1,tatonam)
@@ -308,11 +311,14 @@ program memguess
 
    !standard names
    call standard_inputfile_names(in, radical, 1)
+
+
    if (trim(radical) == "") then
-      call read_input_variables(0, "posinp", in, atoms, rxyz)
+      posinp='posinp'
    else
-      call read_input_variables(0, trim(radical), in, atoms, rxyz)
+      posinp=trim(radical)
    end if
+   call bigdft_set_input(radical, posinp,rxyz,in, atoms)
    !initialize memory counting
    !call memocc(0,0,'count','start')
 
@@ -326,9 +332,6 @@ program memguess
    call print_dft_parameters(in,atoms)
    call xc_dump()
 
-   write(*,'(1x,a)')&
-      &   '------------------------------------------------------------------ System Properties'
-
    !Time initialization
    call cpu_time(tcpu0)
    call system_clock(ncount0,ncount_rate,ncount_max)
@@ -337,7 +340,7 @@ program memguess
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-   call system_properties(0,nproc,in,atoms,orbs,radii_cf,nelec)
+   call system_properties(0,nproc,in,atoms,orbs,radii_cf)
 
    if (optimise) then
       if (atoms%geocode =='F') then
@@ -351,8 +354,9 @@ program memguess
       !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
    end if
 
-   !in the case in which the number of orbitals is not "trivial" check whether they are too many
-   if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .or. .true.) then
+   !In the case in which the number of orbitals is not "trivial" check whether they are too many
+   !Always True! (TD)
+   !if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .or. .true.) then
       ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
       allocate(scorb(4,2,atoms%natsc+ndebug),stat=i_stat)
       call memocc(i_stat,scorb,'scorb',subname)
@@ -389,29 +393,32 @@ program memguess
       deallocate(norbsc_arr,stat=i_stat)
       call memocc(i_stat,i_all,'norbsc_arr',subname)
 
-      ! Check the maximum number of orbitals
-      if (in%nspin==1 .or. in%nspin==4) then
-         if (orbs%norb>norbe) then
-            write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',orbs%norb,&
-               &   ') must not be greater than the number of orbitals (',norbe,&
-               &   ') generated from the input guess.'
-            stop
-         end if
-      else if (in%nspin == 2) then
-         if (orbs%norbu > norbe) then
-            write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',orbs%norbu,&
-               &   ') must not be greater than the number of orbitals (',norbe,&
-               &   ') generated from the input guess.'
-            stop
-         end if
-         if (orbs%norbd > norbe) then
-            write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',orbs%norbd,&
-               &   ') must not be greater than the number of orbitals (',norbe,&
-               &   ') generated from the input guess.'
-            stop
+      if (in%inputpsiId /= INPUT_PSI_RANDOM) then
+         ! Check the maximum number of orbitals
+         if (in%nspin==1 .or. in%nspin==4) then
+            if (orbs%norb>norbe) then
+               write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',orbs%norb,&
+                  &   ') must not be greater than the number of orbitals (',norbe,&
+                  &   ') generated from the input guess.'
+               stop
+            end if
+         else if (in%nspin == 2) then
+            if (orbs%norbu > norbe) then
+               write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',orbs%norbu,&
+                  &   ') must not be greater than the number of orbitals (',norbe,&
+                  &   ') generated from the input guess.'
+               stop
+            end if
+            if (orbs%norbd > norbe) then
+               write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',orbs%norbd,&
+                  &   ') must not be greater than the number of orbitals (',norbe,&
+                  &   ') generated from the input guess.'
+               stop
+            end if
          end if
       end if
-   end if
+
+   !end if
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
@@ -487,7 +494,7 @@ program memguess
       orbstst%npsidim_comp=1
 
 
-      call compare_cpu_gpu_hamiltonian(0,1,in%iacceleration,atoms,&
+      call compare_cpu_gpu_hamiltonian(0,1,in%matacc,atoms,&
            orbstst,nspin,in%ncong,in%ixc,&
            Lzd,hx,hy,hz,rxyz,ntimes)
 
@@ -516,16 +523,9 @@ program memguess
    allocate(logrid(0:Lzd%Glr%d%n1,0:Lzd%Glr%d%n2,0:Lzd%Glr%d%n3+ndebug),stat=i_stat)
    call memocc(i_stat,logrid,'logrid',subname)
 
-   !proj_G only used for PAW. It is a dummy variable here.
-   allocate(proj_G(atoms%ntypes))
-   do iatyp=1,atoms%ntypes
-      call nullify_gaussian_basis(proj_G(iatyp))
-   end do
-
    call localize_projectors(0,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,hx,hy,hz,&
       &   in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,orbs,nlpspd)
    deallocate(nlpspd%plr)
-   deallocate(proj_G)
    !allocations for arrays holding the data descriptors
 !!$   !just for modularity
 !!$   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
@@ -616,6 +616,9 @@ program memguess
 
    ! De-allocations
    call deallocate_orbs(orbs,subname)
+
+   !remove the directory which has been created if it is possible
+   call deldir(in%dir_output,len(trim(in%dir_output)),ierror)
    call free_input_variables(in)  
 
    !finalize memory counting
@@ -886,7 +889,7 @@ subroutine calc_vol(geocode,nat,rxyz,vol)
 END SUBROUTINE calc_vol
 
 
-subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
+subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
      nspin,ixc,ncong,Lzd,hx,hy,hz,rxyz,ntimes)
    use module_base
    use module_types
@@ -895,8 +898,9 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    use module_xc
 
    implicit none
-   integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes,iacceleration
+   integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
    real(gp), intent(in) :: hx,hy,hz
+   type(material_acceleration), intent(in) :: matacc
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(inout) :: orbs
    type(local_zone_descriptors), intent(inout) :: Lzd
@@ -915,17 +919,18 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    type(GPU_pointers) :: GPU
    integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
    real(wp), dimension(:,:,:,:), allocatable :: pot,rho
+   real(wp), dimension(:), pointer:: pottmp
    real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
    real(wp), dimension(:,:,:), allocatable :: overlap
    real(wp), dimension(:), pointer :: gbd_occ
-   real(wp), dimension(:), pointer :: fake_pkernelSIC
+   type(coulomb_operator) :: fake_pkernelSIC
    type(confpot_data), dimension(orbs%norbp) :: confdatarr
 
    call default_confinement_data(confdatarr,orbs%norbp)
 
 
    !nullify pkernelSIC pointer
-   nullify(fake_pkernelSIC)
+   nullify(fake_pkernelSIC%kernel)
 
    !nullify the G%rxyz pointer
    nullify(G%rxyz)
@@ -1017,7 +1022,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    !allocate the necessary objects on the GPU
    !set initialisation of GPU part 
    !initialise the acceleration strategy if required
-   call init_material_acceleration(iproc,iacceleration,GPU)
+   call init_material_acceleration(iproc,matacc,GPU)
 
    if (GPUconv .eqv. OCLconv) stop 'ERROR: One (and only one) acceleration should be present with GPUtest'
 
@@ -1115,7 +1120,14 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    !take timings
    call nanosec(itsc0)
    do j=1,ntimes
-      call local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,0,confdatarr,pot,psi,hpsi,fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+      allocate(pottmp(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug)),stat=i_stat)
+      call memocc(i_stat,pottmp,'pottmp',subname)
+      call dcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug),pot(1,1,1,1),1,pottmp(1),1)
+      call local_hamiltonian(iproc,nproc,orbs%npsidim_orbs,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
+           fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+      i_all=-product(shape(pottmp))*kind(pottmp)
+      deallocate(pottmp,stat=i_stat)
+      call memocc(i_stat,i_all,'pottmp',subname)
    end do
    call nanosec(itsc1)
    CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
@@ -1339,6 +1351,7 @@ END SUBROUTINE compare_data_and_gflops
 subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispinor)
    use module_base
    use module_types
+   use module_interfaces
    implicit none
    integer, intent(inout) :: iorbp, ispinor
    real(gp), intent(in) :: hx,hy,hz
@@ -1401,18 +1414,12 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       if (code == "I") ispinor = 2
 
 
+
       i = index(filename, "/",back=.true.)+1
       read(filename(i:i+3),*) in_name ! lr408
 
       if (in_name == 'min') then
          ! Create orbs data structure.
-         !call read_orbital_variables(0,1,(iproc == 0),in,atoms,lin_orbs,nelec)
-         !allocate communications arrays (allocate it before Projectors because of the definition
-         !of iskpts and nkptsp)
-
-         !lin_orbs%isorb = 0
-
-         !call orbitals_communicators(0,1,Lzd%Glr,lin_orbs,comms) 
          call nullify_orbitals_data(lin_orbs)
          call copy_orbitals_data(orbs, lin_orbs, subname)
 
@@ -1431,6 +1438,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
          read(filename(1:i),*) filename_start
          filename_start = trim(filename_start)//"/minBasis"
 
+         print*,'Initialize linear'
          call initialize_linear_from_file(0,1,filename_start,WF_FORMAT_BINARY,&
               Lzd,lin_orbs,at,rxyz,orblist)
 
@@ -1443,7 +1451,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
          open(unit=99,file=trim(filename),status='unknown')
       end if
 
-      !@ todo geocode should be passed in the localisation regions descriptors
+      !@todo geocode should be passed in the localisation regions descriptors
       if (in_name /= 'min') then
          call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,lr%d%n1,lr%d%n2,lr%d%n3, &
               & hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,psi(1,ispinor),eval_fake,psifscf)
@@ -1455,9 +1463,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
 
          call to_zero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi(1,1))
 
-
-
-         call Lpsi_to_global2(0,1,Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f, &
+         call Lpsi_to_global2(0,Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f, &
               lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,1,1,1,lr,Lzd%Llr(1),lpsi,psi)
 
          deallocate(lpsi)

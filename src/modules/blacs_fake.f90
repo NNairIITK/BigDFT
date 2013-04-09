@@ -1,4 +1,4 @@
-!> @file 
+!! @file 
 !! Fake routines for blacs/scalapack
 !! @author 
 !!    Copyright (C) 2010-2011 BigDFT group
@@ -62,3 +62,22 @@ integer function numroc()
   stop 'FAKE NUMROC'
 end function numroc
 
+subroutine pdgesv()
+  implicit none
+  stop 'FAKE PDGESV'
+END SUBROUTINE pdgesv
+
+subroutine pdpotrf()
+  implicit none
+  stop 'FAKE PDPOTRF'
+END SUBROUTINE pdpotrf
+
+subroutine pdpotri()
+  implicit none
+  stop 'FAKE PDPOTRI'
+END SUBROUTINE pdpotri
+
+subroutine blacs_gridexit()
+  implicit none
+  stop 'FAKE BLACS_GRIDEXIT'
+END SUBROUTINE blacs_gridexit

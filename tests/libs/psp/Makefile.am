@@ -6,9 +6,18 @@ EXTRA_DIST = psp.out.ref
 
 check_PROGRAMS = check_psp
 
+if BUILD_DYNAMIC_LIBS
+bigdft_library = -L$(top_builddir)/src -lbigdft-1
+bigdft_library_rpath = -Wl,-rpath=$(abs_top_builddir)/src
+else
+bigdft_library = $(top_builddir)/src/libbigdft.a @LIBS_SHORT_DEPS@
+bigdft_library_rpath =
+endif
+
 check_psp_SOURCES = check_psp.f90
 check_psp_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
-check_psp_LDADD = @LIBS_DEPENDENCIES@
+check_psp_LDADD = $(bigdft_library)
+check_psp_LDFLAGS = $(bigdft_library_rpath)
 
 CLEANFILES = psp.out psp.report
 
@@ -23,12 +32,12 @@ psp.out: check_psp
 	for psp in $(top_srcdir)/utils/PSPfiles/Krach-LDA/*-q* ; do \
 	  ./check_psp $$psp >> lda.out ; \
 	done
-	@lang=C sort -k5 -g lda.out >> $@
+	@LANG=C sort -k5 -g lda.out >> $@
 	@rm -f lda.out
 	echo "test PBE" >> $@
 	@rm -f pbe.out
 	for psp in $(top_srcdir)/utils/PSPfiles/Krach-PBE/*-q* ; do \
 	  ./check_psp $$psp >> pbe.out ; \
 	done
-	@lang=C sort -k5 -g pbe.out >> $@
+	@LANG=C sort -k5 -g pbe.out >> $@
 	@rm -f pbe.out

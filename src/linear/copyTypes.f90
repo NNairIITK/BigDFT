@@ -1,3 +1,44 @@
+!> @file
+!! Copy the different type used by linear version
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+!currently incomplete - need to add comms arrays etc
+subroutine copy_tmbs(tmbin, tmbout, subname)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  type(DFT_wavefunction), intent(in) :: tmbin
+  type(DFT_wavefunction), intent(out) :: tmbout
+  character(len=*),intent(in):: subname
+
+  call nullify_orbitals_data(tmbout%orbs)
+  call copy_orbitals_data(tmbin%orbs, tmbout%orbs, subname)
+  call nullify_local_zone_descriptors(tmbout%lzd)
+  call copy_old_supportfunctions(tmbin%orbs,tmbin%lzd,tmbin%psi,tmbout%lzd,tmbout%psi)
+
+  if (associated(tmbin%coeff)) then !(in%lin%scf_mode/=LINEAR_FOE) then ! should move this check to copy_old_coeffs
+      call copy_old_coefficients(tmbin%orbs%norb, tmbin%coeff, tmbout%coeff)
+  else
+      nullify(tmbout%coeff)
+  end if
+
+  ! should technically copy these across as well but not needed for restart and will eventually be removing wfnmd as a type
+  nullify(tmbout%linmat%denskern%matrix_compr)
+
+  ! should also copy/nullify p2pcomms etc
+
+  !call copy_old_inwhichlocreg(tmbin%orbs%norb, tmbin%orbs%inwhichlocreg, tmbout%orbs%inwhichlocreg, &
+  !     tmbin%orbs%onwhichatom, tmbout%orbs%onwhichatom)
+
+end subroutine copy_tmbs
+
 subroutine copy_locreg_descriptors(glrin, glrout, subname)
   use module_base
   use module_types
@@ -6,11 +47,10 @@ subroutine copy_locreg_descriptors(glrin, glrout, subname)
   
   ! Calling arguments
   type(locreg_descriptors),intent(in):: glrin
-  type(locreg_descriptors),intent(out):: glrout
+  type(locreg_descriptors),intent(inout):: glrout
   character(len=*),intent(in):: subname
   
   ! Local variables
-  integer:: iis, iie, istat, i, iall
   
   glrout%geocode = glrin%geocode
   glrout%hybrid_on = glrin%hybrid_on
@@ -29,21 +69,6 @@ subroutine copy_locreg_descriptors(glrin, glrout, subname)
   glrout%outofzone(1) = glrin%outofzone(1)
   glrout%outofzone(2) = glrin%outofzone(2)
   glrout%outofzone(3) = glrin%outofzone(3)
-  
-!  if(associated(glrout%projflg)) then
-!     iall=-product(shape(glrout%projflg))*kind(glrout%projflg)
-!     deallocate(glrout%projflg, stat=istat)
-!     call memocc(istat, iall, 'glrout%projflg', subname)
-!  end if
-!  if(associated(glrin%projflg)) then
-!      iis=lbound(glrin%projflg,1)
-!      iie=ubound(glrin%projflg,1)
-!      allocate(glrout%projflg(iis:iie), stat=istat)
-!      call memocc(istat, glrout%projflg, 'glrout%projflg', subname)
-!      do i=iis,iie
-!          glrout%projflg(i) = glrin%projflg(i)
-!      end do
-!  end if
   
   call copy_grid_dimensions(glrin%d, glrout%d)
   call copy_wavefunctions_descriptors(glrin%wfd, glrout%wfd, subname)
@@ -88,7 +113,7 @@ subroutine copy_wavefunctions_descriptors(wfdin, wfdout, subname)
   
   ! Calling arguments
   type(wavefunctions_descriptors),intent(in):: wfdin
-  type(wavefunctions_descriptors),intent(out):: wfdout
+  type(wavefunctions_descriptors),intent(inout):: wfdout
   character(len=*),intent(in):: subname
   
   ! Local variables
@@ -183,7 +208,7 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
   ! Calling arguments
   character(len=1),intent(in) :: geocode
   type(convolutions_bounds),intent(in):: boundsin
-  type(convolutions_bounds),intent(out):: boundsout
+  type(convolutions_bounds),intent(inout):: boundsout
   character(len=*),intent(in):: subname
   
   ! Local variables
@@ -230,7 +255,7 @@ implicit none
 ! Calling arguments
 character(len=1),intent(in) :: geocode 
 type(kinetic_bounds),intent(in):: kbin
-type(kinetic_bounds),intent(out):: kbout
+type(kinetic_bounds),intent(inout):: kbout
 character(len=*),intent(in):: subname
 
 ! Local variables
@@ -394,7 +419,7 @@ implicit none
 ! Calling arguments
 character(len=1), intent(in) :: geocode
 type(shrink_bounds),intent(in):: sbin
-type(shrink_bounds),intent(out):: sbout
+type(shrink_bounds),intent(inout):: sbout
 character(len=*),intent(in):: subname
 
 ! Local variables
@@ -535,7 +560,7 @@ implicit none
 ! Calling arguments
 character(len=1),intent(in) :: geocode
 type(grow_bounds),intent(in):: gbin
-type(grow_bounds),intent(out):: gbout
+type(grow_bounds),intent(inout):: gbout
 character(len=*),intent(in):: subname
 
 ! Local variables
@@ -677,7 +702,7 @@ subroutine copy_nonlocal_psp_descriptors(nlpspin, nlpspout, subname)
   character(len=*),intent(in):: subname
 
   ! Local variables
-  integer:: iis1,iie1,iis2,iie2,iis3,iie3,i1,i2,i3,istat,iall,iat
+  integer:: istat,iat
 
 
   nlpspout%nproj = nlpspin%nproj
@@ -734,108 +759,6 @@ subroutine copy_nonlocal_psp_descriptors(nlpspin, nlpspout, subname)
   
 
 
-!!$  if(associated(nlpspout%nvctr_p)) then
-!!$     iall=-product(shape(nlpspout%nvctr_p))*kind(nlpspout%nvctr_p)
-!!$     deallocate(nlpspout%nvctr_p, stat=istat)
-!!$     call memocc(istat, iall, 'nlpspout%nvctr_p', subname)
-!!$  end if
-!!$  iis1=lbound(nlpspin%nvctr_p,1)
-!!$  iie1=ubound(nlpspin%nvctr_p,1)
-!!$  allocate(nlpspout%nvctr_p(iis1:iie1), stat=istat)
-!!$  call memocc(istat, nlpspout%nvctr_p, 'nlpspout%nvctr_p', subname)
-!!$  do i1=iis1,iie1
-!!$     nlpspout%nvctr_p(i1) = nlpspin%nvctr_p(i1)
-!!$  end do
-!!$
-!!$
-!!$  if(associated(nlpspout%nseg_p)) then
-!!$     iall=-product(shape(nlpspout%nseg_p))*kind(nlpspout%nseg_p)
-!!$     deallocate(nlpspout%nseg_p, stat=istat)
-!!$     call memocc(istat, iall, 'nlpspout%nseg_p', subname)
-!!$  end if
-!!$  iis1=lbound(nlpspin%nseg_p,1)
-!!$  iie1=ubound(nlpspin%nseg_p,1)
-!!$  allocate(nlpspout%nseg_p(iis1:iie1), stat=istat)
-!!$  call memocc(istat, nlpspout%nseg_p, 'nlpspout%nseg_p', subname)
-!!$  do i1=iis1,iie1
-!!$     nlpspout%nseg_p(i1) = nlpspin%nseg_p(i1)
-!!$  end do
-!!$
-!!$
-!!$  if(associated(nlpspout%keyv_p)) then
-!!$     iall=-product(shape(nlpspout%keyv_p))*kind(nlpspout%keyv_p)
-!!$     deallocate(nlpspout%keyv_p, stat=istat)
-!!$     call memocc(istat, iall, 'nlpspout%keyv_p', subname)
-!!$  end if
-!!$  iis1=lbound(nlpspin%keyv_p,1)
-!!$  iie1=ubound(nlpspin%keyv_p,1)
-!!$  allocate(nlpspout%keyv_p(iis1:iie1), stat=istat)
-!!$  call memocc(istat, nlpspout%keyv_p, 'nlpspout%keyv_p', subname)
-!!$  do i1=iis1,iie1
-!!$     nlpspout%keyv_p(i1) = nlpspin%keyv_p(i1)
-!!$  end do
-!!$
-!!$
-!!$  if(associated(nlpspout%keyg_p)) then
-!!$     iall=-product(shape(nlpspout%keyg_p))*kind(nlpspout%keyg_p)
-!!$     deallocate(nlpspout%keyg_p, stat=istat)
-!!$     call memocc(istat, iall, 'nlpspout%keyg_p', subname)
-!!$  end if
-!!$  iis1=lbound(nlpspin%keyg_p,1)
-!!$  iie1=ubound(nlpspin%keyg_p,1)
-!!$  iis2=lbound(nlpspin%keyg_p,2)
-!!$  iie2=ubound(nlpspin%keyg_p,2)
-!!$  allocate(nlpspout%keyg_p(iis1:iie1,iis2:iie2), stat=istat)
-!!$  call memocc(istat, nlpspin%keyg_p, 'nlpspin%keyg_p', subname)
-!!$  do i2=iis2,iie2
-!!$     do i1=iis1,iie1
-!!$        nlpspout%keyg_p(i1,i2) = nlpspin%keyg_p(i1,i2)
-!!$     end do
-!!$  end do
-!!$
-!!$
-!!$  if(associated(nlpspout%nboxp_c)) then
-!!$     iall=-product(shape(nlpspout%nboxp_c))*kind(nlpspout%nboxp_c)
-!!$     deallocate(nlpspout%nboxp_c, stat=istat)
-!!$     call memocc(istat, iall, 'nlpspout%nboxp_c', subname)
-!!$  end if
-!!$  iis1=lbound(nlpspin%nboxp_c,1)
-!!$  iie1=ubound(nlpspin%nboxp_c,1)
-!!$  iis2=lbound(nlpspin%nboxp_c,2)
-!!$  iie2=ubound(nlpspin%nboxp_c,2)
-!!$  iis3=lbound(nlpspin%nboxp_c,3)
-!!$  iie3=ubound(nlpspin%nboxp_c,3)
-!!$  allocate(nlpspout%nboxp_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-!!$  call memocc(istat, nlpspout%nboxp_c, 'nlpspout%nboxp_c', subname)
-!!$  do i3=iis3,iie3
-!!$     do i2=iis2,iie2
-!!$        do i1=iis1,iie1
-!!$           nlpspout%nboxp_c(i1,i2,i3) = nlpspin%nboxp_c(i1,i2,i3)
-!!$        end do
-!!$     end do
-!!$  end do
-!!$
-!!$
-!!$  if(associated(nlpspout%nboxp_f)) then
-!!$     iall=-product(shape(nlpspout%nboxp_f))*kind(nlpspout%nboxp_f)
-!!$     deallocate(nlpspout%nboxp_f, stat=istat)
-!!$     call memocc(istat, iall, 'nlpspout%nboxp_f', subname)
-!!$  end if
-!!$  iis1=lbound(nlpspin%nboxp_f,1)
-!!$  iie1=ubound(nlpspin%nboxp_f,1)
-!!$  iis2=lbound(nlpspin%nboxp_f,2)
-!!$  iie2=ubound(nlpspin%nboxp_f,2)
-!!$  iis3=lbound(nlpspin%nboxp_f,3)
-!!$  iie3=ubound(nlpspin%nboxp_f,3)
-!!$  allocate(nlpspout%nboxp_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-!!$  call memocc(istat, nlpspout%nboxp_f, 'nlpspout%nboxp_f', subname)
-!!$  do i3=iis3,iie3
-!!$     do i2=iis2,iie2
-!!$        do i1=iis1,iie1
-!!$           nlpspout%nboxp_f(i1,i2,i3) = nlpspin%nboxp_f(i1,i2,i3)
-!!$        end do
-!!$     end do
-!!$  end do
 
 
 end subroutine copy_nonlocal_psp_descriptors
@@ -849,7 +772,7 @@ implicit none
 
 ! Calling arguments
 type(orbitals_data),intent(in):: orbsin
-type(orbitals_data),intent(out):: orbsout
+type(orbitals_data),intent(inout):: orbsout
 character(len=*),intent(in):: subname
 
 ! Local variables
@@ -1081,31 +1004,6 @@ end if
 end subroutine copy_orbitals_data
 
 
-subroutine copy_basis_specifications(bsin, bsout, subname)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(basis_specifications),intent(in):: bsin
-  type(basis_specifications),intent(out):: bsout
-  character(len=*),intent(in):: subname
-  
-  
-  bsout%update_phi=bsin%update_phi
-  bsout%use_derivative_basis=bsin%use_derivative_basis
-  bsout%communicate_phi_for_lsumrho=bsin%communicate_phi_for_lsumrho
-  bsout%conv_crit=bsin%conv_crit
-  bsout%locreg_enlargement=bsin%locreg_enlargement
-  bsout%target_function=bsin%target_function
-  bsout%meth_transform_overlap=bsin%meth_transform_overlap
-  bsout%nit_precond=bsin%nit_precond
-  bsout%nit_basis_optimization=bsin%nit_basis_optimization
-  bsout%nit_unitary_loop=bsin%nit_unitary_loop
-  bsout%confinement_decrease_mode=bsin%confinement_decrease_mode
-
-end subroutine copy_basis_specifications
-
 subroutine copy_orthon_data(odin, odout, subname)
   use module_base
   use module_types
@@ -1126,28 +1024,9 @@ subroutine copy_orthon_data(odin, odout, subname)
   odout%nItOrtho=odin%nItOrtho
   odout%blocksize_pdsyev=odin%blocksize_pdsyev
   odout%blocksize_pdgemm=odin%blocksize_pdgemm
+  odout%nproc_pdsyev=odin%nproc_pdsyev
 
 end subroutine copy_orthon_data
-
-
-
-subroutine copy_basis_performance_options(bpoin, bpoout, subname)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(basis_performance_options),intent(in):: bpoin
-  type(basis_performance_options),intent(out):: bpoout
-  character(len=*),intent(in):: subname
-  
-  
-  bpoout%blocksize_pdgemm=bpoin%blocksize_pdgemm
-  bpoout%blocksize_pdsyev=bpoin%blocksize_pdsyev
-  bpoout%nproc_pdsyev=bpoin%nproc_pdsyev
-  bpoout%communication_strategy_overlap=bpoin%communication_strategy_overlap
-  
-end subroutine copy_basis_performance_options
 
 
 subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
@@ -1158,32 +1037,17 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
 
   ! Calling arguments
   type(local_zone_descriptors),intent(in):: lzd_in
-  type(local_zone_descriptors),intent(out):: lzd_out
+  type(local_zone_descriptors),intent(inout):: lzd_out
   character(len=*),intent(in):: subname
 
   ! Local variables
-  integer:: istat, iall, i1, iis1, iie1
+  integer:: istat, i1, iis1, iie1
 
   lzd_out%linear=lzd_in%linear
   lzd_out%nlr=lzd_in%nlr
   lzd_out%lintyp=lzd_in%lintyp
   lzd_out%ndimpotisf=lzd_in%ndimpotisf
   lzd_out%hgrids(:)=lzd_in%hgrids(:)
-
-  if(associated(lzd_out%doHamAppl)) then
-      iall=-product(shape(lzd_out%doHamAppl))*kind(lzd_out%doHamAppl)
-      deallocate(lzd_out%doHamAppl, stat=istat)
-      call memocc(istat, iall, 'lzd_out%doHamAppl', subname)
-  end if
-  if(associated(lzd_in%doHamAppl)) then
-      iis1=lbound(lzd_in%doHamAppl,1)
-      iie1=ubound(lzd_in%doHamAppl,1)
-      allocate(lzd_out%doHamAppl(iis1:iie1), stat=istat)
-      call memocc(istat, lzd_out%doHamAppl, 'lzd_out%doHamAppl', subname)
-      do i1=iis1,iie1
-          lzd_out%doHamAppl(i1) = lzd_in%doHamAppl(i1)
-      end do
-  end if
 
   call nullify_locreg_descriptors(lzd_out%glr)
   call copy_locreg_descriptors(lzd_in%glr, lzd_out%glr, subname)
@@ -1201,5 +1065,169 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
       end do
   end if
 
-
 end subroutine copy_local_zone_descriptors
+
+
+!only copying sparsity pattern here, not copying whole matrix
+subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, subname)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => sparse_copy_pattern
+  implicit none
+
+  ! Calling arguments
+  type(sparseMatrix),intent(in):: sparseMat_in
+  type(sparseMatrix),intent(inout):: sparseMat_out
+  character(len=*),intent(in):: subname
+
+  ! Local variables
+  integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+
+  sparsemat_out%nvctr = sparsemat_in%nvctr
+  sparsemat_out%nseg = sparsemat_in%nseg
+  sparsemat_out%full_dim1 = sparsemat_in%full_dim1
+  sparsemat_out%full_dim2 = sparsemat_in%full_dim2
+
+  nullify(sparsemat_out%matrix)
+  nullify(sparsemat_out%matrix_compr)
+
+  if(associated(sparsemat_out%noverlaps)) then
+     iall=-product(shape(sparsemat_out%noverlaps))*kind(sparsemat_out%noverlaps)
+     deallocate(sparsemat_out%noverlaps, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%noverlaps', subname)
+  end if
+  if(associated(sparsemat_in%noverlaps)) then
+     iis1=lbound(sparsemat_in%noverlaps,1)
+     iie1=ubound(sparsemat_in%noverlaps,1)
+     allocate(sparsemat_out%noverlaps(iis1:iie1), stat=istat)
+     call memocc(istat, sparsemat_out%noverlaps, 'sparsemat_out%noverlaps', subname)
+     do i1=iis1,iie1
+        sparsemat_out%noverlaps(i1) = sparsemat_in%noverlaps(i1)
+     end do
+  end if
+ 
+  if(associated(sparsemat_out%overlaps)) then
+     iall=-product(shape(sparsemat_out%overlaps))*kind(sparsemat_out%overlaps)
+     deallocate(sparsemat_out%overlaps, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%overlaps', subname)
+  end if
+  if(associated(sparsemat_in%overlaps)) then
+     iis1=lbound(sparsemat_in%overlaps,1)
+     iie1=ubound(sparsemat_in%overlaps,1)
+     iis2=lbound(sparsemat_in%overlaps,2)
+     iie2=ubound(sparsemat_in%overlaps,2)
+     allocate(sparsemat_out%overlaps(iis1:iie1,iis2:iie2), stat=istat)
+     call memocc(istat, sparsemat_out%overlaps, 'sparsemat_out%overlaps', subname)
+     do i1=iis1,iie1
+        do i2 = iis2,iie2
+           sparsemat_out%overlaps(i1,i2) = sparsemat_in%overlaps(i1,i2)
+        end do
+     end do
+  end if
+
+  if(associated(sparsemat_out%keyv)) then
+     iall=-product(shape(sparsemat_out%keyv))*kind(sparsemat_out%keyv)
+     deallocate(sparsemat_out%keyv, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%keyv', subname)
+  end if
+  if(associated(sparsemat_in%keyv)) then
+     iis1=lbound(sparsemat_in%keyv,1)
+     iie1=ubound(sparsemat_in%keyv,1)
+     allocate(sparsemat_out%keyv(iis1:iie1), stat=istat)
+     call memocc(istat, sparsemat_out%keyv, 'sparsemat_out%keyv', subname)
+     do i1=iis1,iie1
+        sparsemat_out%keyv(i1) = sparsemat_in%keyv(i1)
+     end do
+  end if
+
+  if(associated(sparsemat_out%nsegline)) then
+     iall=-product(shape(sparsemat_out%nsegline))*kind(sparsemat_out%nsegline)
+     deallocate(sparsemat_out%nsegline, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%nsegline', subname)
+  end if
+  if(associated(sparsemat_in%nsegline)) then
+     iis1=lbound(sparsemat_in%nsegline,1)
+     iie1=ubound(sparsemat_in%nsegline,1)
+     allocate(sparsemat_out%nsegline(iis1:iie1), stat=istat)
+     call memocc(istat, sparsemat_out%nsegline, 'sparsemat_out%nsegline', subname)
+     do i1=iis1,iie1
+        sparsemat_out%nsegline(i1) = sparsemat_in%nsegline(i1)
+     end do
+  end if
+
+  if(associated(sparsemat_out%istsegline)) then
+     iall=-product(shape(sparsemat_out%istsegline))*kind(sparsemat_out%istsegline)
+     deallocate(sparsemat_out%istsegline, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%istsegline', subname)
+  end if
+  if(associated(sparsemat_in%istsegline)) then
+     iis1=lbound(sparsemat_in%istsegline,1)
+     iie1=ubound(sparsemat_in%istsegline,1)
+     allocate(sparsemat_out%istsegline(iis1:iie1), stat=istat)
+     call memocc(istat, sparsemat_out%istsegline, 'sparsemat_out%istsegline', subname)
+     do i1=iis1,iie1
+        sparsemat_out%istsegline(i1) = sparsemat_in%istsegline(i1)
+     end do
+  end if
+
+  if(associated(sparsemat_out%keyg)) then
+     iall=-product(shape(sparsemat_out%keyg))*kind(sparsemat_out%keyg)
+     deallocate(sparsemat_out%keyg, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%keyg', subname)
+  end if
+  if(associated(sparsemat_in%keyg)) then
+     iis1=lbound(sparsemat_in%keyg,1)
+     iie1=ubound(sparsemat_in%keyg,1)
+     iis2=lbound(sparsemat_in%keyg,2)
+     iie2=ubound(sparsemat_in%keyg,2)
+     allocate(sparsemat_out%keyg(iis1:iie1,iis2:iie2), stat=istat)
+     call memocc(istat, sparsemat_out%keyg, 'sparsemat_out%keyg', subname)
+     do i1=iis1,iie1
+        do i2 = iis2,iie2
+           sparsemat_out%keyg(i1,i2) = sparsemat_in%keyg(i1,i2)
+        end do
+     end do
+  end if
+
+  if(associated(sparsemat_out%matrixindex_in_compressed)) then
+     iall=-product(shape(sparsemat_out%matrixindex_in_compressed))*kind(sparsemat_out%matrixindex_in_compressed)
+     deallocate(sparsemat_out%matrixindex_in_compressed, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%matrixindex_in_compressed', subname)
+  end if
+  if(associated(sparsemat_in%matrixindex_in_compressed)) then
+     iis1=lbound(sparsemat_in%matrixindex_in_compressed,1)
+     iie1=ubound(sparsemat_in%matrixindex_in_compressed,1)
+     iis2=lbound(sparsemat_in%matrixindex_in_compressed,2)
+     iie2=ubound(sparsemat_in%matrixindex_in_compressed,2)
+     allocate(sparsemat_out%matrixindex_in_compressed(iis1:iie1,iis2:iie2), stat=istat)
+     call memocc(istat, sparsemat_out%matrixindex_in_compressed, 'sparsemat_out%matrixindex_in_compressed', subname)
+     do i1=iis1,iie1
+        do i2 = iis2,iie2
+           sparsemat_out%matrixindex_in_compressed(i1,i2) = sparsemat_in%matrixindex_in_compressed(i1,i2)
+        end do
+     end do
+  end if
+
+  if(associated(sparsemat_out%orb_from_index)) then
+     iall=-product(shape(sparsemat_out%orb_from_index))*kind(sparsemat_out%orb_from_index)
+     deallocate(sparsemat_out%orb_from_index, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%orb_from_index', subname)
+  end if
+  if(associated(sparsemat_in%orb_from_index)) then
+     iis1=lbound(sparsemat_in%orb_from_index,1)
+     iie1=ubound(sparsemat_in%orb_from_index,1)
+     iis2=lbound(sparsemat_in%orb_from_index,2)
+     iie2=ubound(sparsemat_in%orb_from_index,2)
+     allocate(sparsemat_out%orb_from_index(iis1:iie1,iis2:iie2), stat=istat)
+     call memocc(istat, sparsemat_out%orb_from_index, 'sparsemat_out%orb_from_index', subname)
+     do i1=iis1,iie1
+        do i2 = iis2,iie2
+           sparsemat_out%orb_from_index(i1,i2) = sparsemat_in%orb_from_index(i1,i2)
+        end do
+     end do
+  end if
+
+end subroutine sparse_copy_pattern
+
+
+

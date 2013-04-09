@@ -13,6 +13,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore) 
   !n(c) use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp 
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
@@ -21,11 +22,12 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   !local variables
   !n(c) character(len=*), parameter :: subname='calc_rhocore'
   real(gp), parameter :: oneo4pi=.079577471545947_wp
-  logical :: gox,goy,goz,perx,pery,perz
+  logical :: gox,goy,perx,pery,perz
   integer :: ig,ngv,ngc,isx,isy,isz,iex,iey,iez
   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,ilcc,islcc
   integer :: i1,i2,i3,j1,j2,j3,ind
-  real(gp) :: x,y,z,r2,rhov,rhoc,chv,chc,charge_from_gaussians,spherical_gaussian_value
+  real(gp) :: x,y,z,r2,rhov,rhoc,chv,chc
+  real(gp) :: charge_from_gaussians,spherical_gaussian_value
   real(gp) :: drhoc,drhov,drhodr2
   !real(gp), dimension(:), allocatable :: rhovxp,rhocxp
   !real(gp), dimension(:,:), allocatable :: rhovc,rhocc
@@ -70,7 +72,8 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   !close(unit=79)
 
  
-  if (iproc == 0) write(*,'(1x,a,f12.6)',advance='no')' analytic core charge: ',chc-chv
+  if (iproc == 0) call yaml_map('Analytic core charge',chc-chv,fmt='(f12.6)')
+  !if (iproc == 0) write(*,'(1x,a,f12.6)',advance='no')' analytic core charge: ',chc-chv
 
   !conditions for periodicity in the three directions
   perx=(atoms%geocode /= 'F')
@@ -181,7 +184,8 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   
 END SUBROUTINE calc_rhocore_iat
 
-!> Calculate the core charge describe by a sum of spherical harmonics of s-channel with 
+
+!> Calculate the core charge described by a sum of spherical harmonics of s-channel with 
 !! principal quantum number increased with a given exponent.
 !! the principal quantum numbers admitted are from 1 to 4
 function charge_from_gaussians(expo,rhoc)
@@ -195,6 +199,7 @@ function charge_from_gaussians(expo,rhoc)
        15.0_gp*rhoc(3)*expo**7+105.0_gp*rhoc(4)*expo**9
 
 end function charge_from_gaussians
+
 
 !> Calculate the value of the gaussian described by a sum of spherical harmonics of s-channel with 
 !! principal quantum number increased with a given exponent.
@@ -266,7 +271,7 @@ end function spherical_gaussian_value
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
-subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx,hy,hz,&
      rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho,rhohat)
   use module_base
   use Poisson_Solver
@@ -275,15 +280,15 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
-  integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
+  integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin,mpi_comm
   real(gp), intent(in) :: hx,hy,hz
   real(gp), intent(out) :: exc,vxc
   real(dp), dimension(*), intent(inout) :: rho
   real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
   real(wp), dimension(*), intent(out) :: potxc
-  real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
-  real(wp), dimension(:,:,:,:), optional :: rhohat
   real(dp), dimension(6), intent(out) :: xcstr
+  real(dp), dimension(:,:,:,:), target, intent(out), optional :: dvxcdrho
+  real(wp), dimension(:,:,:,:), optional :: rhohat
   !local variables
   character(len=*), parameter :: subname='XC_potential'
   logical :: wrtmsg
@@ -293,11 +298,11 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer :: i1,i2,i3,istart,iend,iwarn,i3start,jend,jproc
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
   integer :: ndvxc,order
-  real(dp),parameter:: tol14=0.00000000000001_dp
+  !real(dp),parameter:: tol14=0.00000000000001_dp
   real(dp),parameter:: tol20=0.0000000000000000000001_dp
-  real(dp) :: eexcuLOC,vexcuLOC,vexcuRC,fact
+  real(dp) :: eexcuLOC,vexcuLOC,vexcuRC
   integer, dimension(:,:), allocatable :: gather_arr
-  real(dp), dimension(:), allocatable :: rho_G,work
+  real(dp), dimension(:), allocatable :: rho_G
   real(dp), dimension(:,:,:,:,:), allocatable :: gradient
   real(dp), dimension(:,:,:,:), allocatable :: vxci
   real(gp), dimension(:), allocatable :: energies_mpi
@@ -319,17 +324,17 @@ call to_zero(6,wbstr(1))
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
-     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else if (geocode == 'F') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else if (geocode == 'W') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
-     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else
      stop 'XC potential: geometry code not admitted'
   end if
@@ -358,12 +363,13 @@ call to_zero(6,wbstr(1))
   !quick return if no Semilocal XC potential is required (Hartree or Hartree-Fock)
   if (ixc == 0 .or. ixc == 100) then
      if (datacode == 'G') then
-        call to_zero(n01*n02*n03,potxc(1))
+        call to_zero(n01*n02*n03*nspin,potxc(1))
         !call dscal(n01*n02*n03,0.0_dp,potxc,1)
      else
-        call to_zero(n01*n02*nxc,potxc(1))
+        call to_zero(n01*n02*nxc*nspin,potxc(1))
         !call dscal(n01*n02*nxc,0.0_dp,potxc,1)
      end if
+     if (nspin == 2) call axpy(n01*n02*nxc,1.d0,rho(n01*n02*nxc+1),1,rho(1),1)
      exc=0.0_gp
      vxc=0.0_gp
      call timing(iproc,'Exchangecorr  ','OF')
@@ -483,18 +489,6 @@ call to_zero(6,wbstr(1))
                 rho(1+n01*n02*(i3start-1)+m1*m3*nxt),1)
         end if
      end if
-!     !substract rhohat from density
-!     if (present(rhohat)) then
-!        if (datacode=='G' .and. (i3start <=0 .or. i3start+nxt-1 > n03 )) then
-!           call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,1),1,rho_G(1),1)
-!           if (nspin==2) call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,2),1,&
-!                rho_G(1+m1*m3*nxt),1)
-!        else
-!           call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,1),1,rho(1+n01*n02*(i3start-1)),1)
-!           if (nspin==2) call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,2),1,&
-!                rho(1+n01*n02*(i3start-1)+m1*m3*nxt),1)
-!        end if
-!     end if
   end if
 
 
@@ -599,14 +593,14 @@ call to_zero(6,wbstr(1))
 
      energies_mpi(1)=eexcuLOC
      energies_mpi(2)=vexcuLOC
-     call mpiallred(energies_mpi(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(energies_mpi(1),2,MPI_SUM,mpi_comm,ierr)
      exc=energies_mpi(1)
      vxc=energies_mpi(2)
 
 !XC-stress term
   if (geocode == 'P') then
      xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
-     call mpiallred(wbstr(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(wbstr(1),6,MPI_SUM,mpi_comm,ierr)
      wbstr=wbstr/real(n01*n02*n03,dp)
      xcstr(:)=xcstr(:)+wbstr(:)
   end if
@@ -631,6 +625,7 @@ call to_zero(6,wbstr(1))
            jend=max(min(md2/nproc,m2-md2/nproc*jproc),0)
            gather_arr(jproc,1)=m1*m3*jend
            gather_arr(jproc,2)=m1*m3*istart
+           !print *,'TOINSPECT',iproc,jproc,istart,jend,istart+jend,m2
         end do
 
         !gather all the results in the same rho array
@@ -647,7 +642,7 @@ call to_zero(6,wbstr(1))
            end if
            call MPI_ALLGATHERV(vxci(1,1,nxcl,ispin),gather_arr(iproc,1),mpidtypw,&
                 potxc(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
-                MPI_COMM_WORLD,ierr)
+                mpi_comm,ierr)
         end do
         call timing(iproc,'PSolv_commun  ','OF')
         call timing(iproc,'PSolv_comput  ','ON')
@@ -683,7 +678,7 @@ call to_zero(6,wbstr(1))
      call memocc(i_stat,i_all,'dvxci',subname)
   end if
 
-  if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+  !if (iproc==0 .and. wrtmsg) write(*,'(a)')'done.'
 
 contains
 subroutine substract_from_vexcu(rhoin)
@@ -757,11 +752,12 @@ end subroutine add_to_vexcu
 
 END SUBROUTINE XC_potential
 
-!>    Calculate the XC terms from the given density in a distributed way.
-!!    it assign also the proper part of the density to the zf array 
-!!    which will be used for the core of the FFT procedure.
-!!    Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
-!!    to the XC potential, or even ignored.
+
+!> Calculate the XC terms from the given density in a distributed way.
+!! it assign also the proper part of the density to the zf array 
+!! which will be used for the core of the FFT procedure.
+!! Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
+!! to the XC potential, or even ignored.
 !!
 !! SYNOPSIS
 !!    geocode  Indicates the boundary conditions (BC) of the problem:
@@ -806,7 +802,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
 
   implicit none
 
-  !Arguments----------------------
+  !Arguments
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,ixc,nspden
   integer, intent(in) :: nwbl,nwbr,order,ndvxc
@@ -986,7 +982,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   i_all=-product(shape(exci))*kind(exci)
   deallocate(exci,stat=i_stat)
   call memocc(i_stat,i_all,'exci',subname)
-!  call MPI_BARRIER(MPI_COMM_WORLD,i_stat)
+!  call MPI_BARRIER(bigdft_mpi%mpi_comm,i_stat)
 !stop
 END SUBROUTINE xc_energy_new
 
@@ -1616,4 +1612,3 @@ if (nsp==1) wbstr=wbstr*2._gp
 !write(*,*) wbstress(4:6)
 
 end subroutine wb_stress
-

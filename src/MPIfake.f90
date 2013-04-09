@@ -68,7 +68,7 @@ subroutine mpi_test(request,flag,MPI_Status)
   integer, intent(in) :: request
   integer, intent(out) :: flag
   integer, intent(out) :: MPI_Status
-  flag = 1
+  flag = 1 + 0*request
   MPI_Status = 1
 end subroutine mpi_test
 
@@ -76,7 +76,7 @@ subroutine mpi_wait(request,MPI_Status)
   implicit none
   integer, intent(in) :: request
   integer, intent(out) :: MPI_Status
-  MPI_Status = 1
+  MPI_Status = 1 + 0*request
 end subroutine mpi_wait
 
 
@@ -99,18 +99,20 @@ subroutine  MPI_BARRIER(MPI_COMM_WORLD,ierr)
   ierr=MPI_COMM_WORLD*0
 END SUBROUTINE MPI_BARRIER
 
-subroutine MPI_REDUCE()
-  implicit none
-END SUBROUTINE MPI_REDUCE
-
-subroutine  MPI_ALLREDUCE()
-  implicit none
-END SUBROUTINE MPI_ALLREDUCE
-
 
 ! These routines in serial version should not be called.
 ! A stop is added when necessary, otherwise for copying routines, the corresponding copy 
 ! is implemented whenever possible
+subroutine MPI_REDUCE()
+  implicit none
+  stop 'MPIFAKE: REDUCE'
+END SUBROUTINE MPI_REDUCE
+
+subroutine  MPI_ALLREDUCE()
+  implicit none
+  !stop 'MPIFAKE: ALLREDUCE' eliminated due to ABINIT module
+END SUBROUTINE MPI_ALLREDUCE
+
 subroutine  MPI_ALLGatherV()
   implicit none
   stop 'MPIFAKE: ALLGATHERV'
@@ -177,15 +179,25 @@ subroutine  MPI_WAITALL()
   stop 'MPIFAKE: WAITALL'
 END SUBROUTINE  MPI_WAITALL
 
-subroutine MPI_GET_PROCESSOR_NAME()
+subroutine MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
   implicit none
-  stop 'MPIFAKE: MPI_GET_PROCESSOR_NAME'
+  integer, intent(out) :: namelen,ierr
+  character(len=*), intent(inout) :: nodename_local
+  ierr=0
+  namelen=9
+  nodename_local(1:9)='localhost'
+  nodename_local(10:len(nodename_local))=repeat(' ',max(len(nodename_local)-10,0))
 END SUBROUTINE  MPI_GET_PROCESSOR_NAME
 
 subroutine  mpi_error_string()
   implicit none
   stop 'MPIFAKE: mpi_error_string'
 END SUBROUTINE  MPI_ERROR_STRING
+
+subroutine  MPI_SCATTER()
+  implicit none
+  stop 'MPIFAKE: SCATTER'
+END SUBROUTINE  MPI_SCATTER
 
 subroutine  MPI_SCATTERV()
   implicit none
@@ -222,6 +234,80 @@ subroutine mpi_rsend()
   stop 'MPIFAKE: mpi_rsend'
 END SUBROUTINE  MPI_RSEND
 
+subroutine mpi_win_free()
+  implicit none
+  stop 'MPIFAKE: mpi_win_free'
+END SUBROUTINE  MPI_WIN_FREE
+
+subroutine mpi_win_fence()
+  implicit none
+  stop 'MPIFAKE: mpi_win_fence'
+END SUBROUTINE  MPI_WIN_FENCE
+
+subroutine mpi_win_create()
+  implicit none
+  stop 'MPIFAKE: mpi_win_create'
+END SUBROUTINE  MPI_WIN_CREATE
+
+subroutine mpi_get()
+  implicit none
+  stop 'MPIFAKE: mpi_get'
+END SUBROUTINE  MPI_GET
+
+subroutine mpi_get_address()
+  implicit none
+  stop 'MPIFAKE: mpi_get_address'
+END SUBROUTINE  MPI_GET_ADDRESS
+
+subroutine mpi_type_create_struct()
+  implicit none
+  stop 'MPIFAKE: mpi_type_create_structure'
+END SUBROUTINE  MPI_TYPE_CREATE_STRUCT
+
+subroutine mpi_type_vector()
+  implicit none
+  stop 'MPIFAKE: mpi_type_vector'
+END SUBROUTINE  MPI_TYPE_VECTOR
+
+subroutine mpi_type_create_hvector()
+  implicit none
+  stop 'MPIFAKE: mpi_type_create_hvector'
+END SUBROUTINE  MPI_TYPE_CREATE_HVECTOR
+
+subroutine mpi_type_commit()
+  implicit none
+  stop 'MPIFAKE: mpi_type_commit'
+END SUBROUTINE  MPI_TYPE_COMMIT
+
+subroutine mpi_type_contiguous()
+  implicit none
+  stop 'MPIFAKE: mpi_type_contiguous'
+END SUBROUTINE  MPI_TYPE_CONTIGUOUS
+
+subroutine mpi_type_free()
+  implicit none
+  stop 'MPIFAKE: mpi_type_free'
+END SUBROUTINE  MPI_TYPE_FREE
+
+subroutine mpi_testall()
+  implicit none
+  stop 'MPIFAKE: mpi_testall'
+END SUBROUTINE  MPI_TESTALL
+
+subroutine mpi_info_create()
+  implicit none
+  stop 'MPIFAKE: mpi_info_create'
+END SUBROUTINE  MPI_INFO_CREATE
+
+subroutine mpi_info_set()
+  implicit none
+  stop 'MPIFAKE: mpi_info_set'
+END SUBROUTINE  MPI_INFO_SET
+
+subroutine mpi_info_free()
+  implicit none
+  stop 'MPIFAKE: mpi_info_free'
+END SUBROUTINE  MPI_INFO_FREE
 
 real(kind=8) function mpi_wtime()
   implicit none
@@ -229,3 +315,4 @@ real(kind=8) function mpi_wtime()
   call nanosec(itns)
   mpi_wtime=real(itns,kind=8)*1.d-9
 end function mpi_wtime
+

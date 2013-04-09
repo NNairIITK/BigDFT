@@ -12,6 +12,7 @@
 subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
@@ -46,16 +47,17 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
      !print *,'iproc,iorb,orbdiff',iorb,orbdiff
   end do
 
+  !! @todo MPI_REDUCE call not safe for serial version
   if (nproc > 1) then
-     call MPI_REDUCE(maxdiffp,maxdiff,1,mpidtypw,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(maxdiffp,maxdiff,1,mpidtypw,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
   else
      maxdiff=maxdiffp
   end if
 
-  if (iproc == 0) then
-     write(*,'(1x,a,1pe12.4)')'Mean L2 norm of gaussian-wavelet difference:',&
-          sqrt(maxdiff/real(orbs%norb,wp))
-  end if
+  if (iproc == 0) call yaml_map('Mean L2 norm of gaussian-wavelet difference', &
+     & trim(yaml_toa(sqrt(maxdiff/real(orbs%norb,wp)),fmt='(1pe12.4)')))
+  !   write(*,'(1x,a,1pe12.4)')'Mean L2 norm of gaussian-wavelet difference:',&
+  !        sqrt(maxdiff/real(orbs%norb,wp))
   i_all=-product(shape(workpsi))*kind(workpsi)
   deallocate(workpsi,stat=i_stat)
   call memocc(i_stat,i_all,'workpsi',subname)
@@ -68,6 +70,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
      CP2K,wfn_cp2k)
   use module_base
   use module_types
+  use gaussians
+  use yaml_output
   implicit none
   character(len=*), intent(in) :: basisfile,orbitalfile
   integer, intent(in) :: iproc,nat,ntypes
@@ -92,8 +96,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   real(gp), dimension(:,:,:), allocatable :: contcoeff,expo
   real(wp), dimension(:,:,:,:), allocatable :: cimu
 
-  if (iproc==0) write(*,'(1x,a)',advance='no')&
-       'Reading Basis Set information and wavefunctions coefficients...'
+  if (iproc==0) call yaml_comment('Reading Basis Set information and wavefunctions coefficients')
+  !if (iproc==0) write(*,'(1x,a)',advance='no') 'Reading Basis Set information and wavefunctions coefficients...'
 
   ngx=0
   nbx=0
@@ -324,9 +328,10 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
               ishell=ishell+1
               if (ishell > nshell(iatype(iat))) then
                  !if (iproc==0) 
-                    write(*,'(1x,a,i0,a)')&
-                      'Problem in the gaucoeff.dat file, the number of shells of atom ',iat ,&
-                      ' is incoherent'
+                 call yaml_warning('Problem in the gaucoeff.dat file, the number of shells of atom' // &
+                      & trim(yaml_toa(iat)) // ' is incoherent')
+                 !write(*,'(1x,a,i0,a)') 'Problem in the gaucoeff.dat file, the number of shells of atom ',iat ,&
+                 !  ' is incoherent'
                  stop
               end if
            end if
@@ -354,8 +359,9 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
            nend=nst+ipar-1
            if (jat/=nat) then
               !if (iproc==0)
-                    write(*,'(1x,a,i0,a)')&
-                   'Problem in the gaucoeff.dat file, only ',iat ,' atoms processed'
+              call yaml_warning('Problem in the gaucoeff.dat file, only ' // trim(yaml_toa(iat)) // &
+                   & ' atoms processed')
+              !write(*,'(1x,a,i0,a)') 'Problem in the gaucoeff.dat file, only ',iat ,' atoms processed'
               stop
            else
               cycle store_coeff
@@ -414,9 +420,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   deallocate(cimu,stat=i_stat)
   call memocc(i_stat,i_all,'cimu',subname)
 
-  if (iproc==0) then
-     write(*,'(1x,a)')'done.'
-  end if
+  !if (iproc==0) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE parse_cp2k_files
 
@@ -425,6 +429,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   use module_base
   use module_types
   use yaml_output
+  use gaussians
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc
@@ -559,7 +564,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
      end if
   end do
   if (nproc > 1) then
-     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
   else
      normdev=tt
   end if
@@ -644,7 +649,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
   !renormalize the orbitals
   !calculate the deviation from 1 of the orbital norm
   if (nproc > 1) then
-     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
   else
      normdev=tt
   end if
@@ -661,6 +666,7 @@ END SUBROUTINE gaussians_to_wavelets_new
 subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   use module_base
   use module_types
+  use gaussians
   implicit none
   integer, intent(in) :: ncplx
   real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
@@ -745,20 +751,20 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
                     !print *,iat,ig,i,fac_arr(i),wfn_gau(icoeff),G%xp(1,iexpo+ig-1)
                     gau_a=G%xp(1,iexpo+ig-1)
                     n_gau=lx(i)
-                    !print *,'x',gau_a,nterm,ncplx,kx,ky,kz,ml1,mu1,lr%d%n1
                     call gauss_to_daub_k(hx,kx*hx,ncplx,1,ncplx,fac_arr(i),rx,gau_a,n_gau,&
                          lr%ns1,lr%d%n1,ml1,mu1,&
                          wx(1,0,1,iterm),work,nw,perx) 
+                    !print *,'x',gau_a,nterm,ncplx,kx,ky,kz,ml1,mu1,lr%d%n1
                     n_gau=ly(i)
-                    !print *,'y',ml2,mu2,lr%d%n2
                     call gauss_to_daub_k(hy,ky*hy,ncplx,1,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
                          lr%ns2,lr%d%n2,ml2,mu2,&
                          wy(1,0,1,iterm),work,nw,pery) 
+                    !print *,'y',ml2,mu2,lr%d%n2
                     n_gau=lz(i) 
-                    !print *,'z',ml3,mu3,lr%d%n3
                     call gauss_to_daub_k(hz,kz*hz,ncplx,1,ncplx,G%psiat(:,iexpo+ig-1),rz,gau_a,n_gau,&
                          lr%ns3,lr%d%n3,ml3,mu3,&
                          wz(1,0,1,iterm),work,nw,perz)
+                    !print *,'z',ml3,mu3,lr%d%n3
                     iterm=iterm+1
                  end do
               end do
@@ -799,6 +805,7 @@ END SUBROUTINE gaussians_to_wavelets_orb
 subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi, cutoff)
   use module_base
   use module_types
+  use gaussians
   implicit none
   integer, intent(in) :: ncplx
   real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
@@ -974,10 +981,7 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
   deallocate(work,stat=i_stat)
   call memocc(i_stat,i_all,'work',subname)
 
-
-
 END SUBROUTINE gaussians_c_to_wavelets_orb
-
 
 
 !> Accumulate 3d wavefunction in complex form from a tensor produc decomposition
@@ -985,6 +989,7 @@ END SUBROUTINE gaussians_c_to_wavelets_orb
 subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: ncplx,nterm
   type(locreg_descriptors), intent(in) :: lr
@@ -1025,7 +1030,8 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      end do
 
      if (nvctr /=  lr%wfd%nvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_c ',nvctr,lr%wfd%nvctr_c
+        call yaml_warning(' ERROR: nvctr /= nvctr_c ' // trim(yaml_toa(nvctr)) // trim(yaml_toa(lr%wfd%nvctr_c)))
+        !write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_c ',nvctr,lr%wfd%nvctr_c
         stop
      end if
      !!$  end if
@@ -1057,7 +1063,8 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         end do
      end do
      if (nvctr /= lr%wfd%nvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_f ',nvctr,lr%wfd%nvctr_f
+        call yaml_warning(' ERROR: nvctr /= nvctr_f ' // trim(yaml_toa(nvctr)) // trim(yaml_toa(lr%wfd%nvctr_f)))
+        !write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_f ',nvctr,lr%wfd%nvctr_f
         stop 
      end if
      !!$  end if
@@ -1082,7 +1089,8 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         end do
      end do
      if (nvctr /=  lr%wfd%nvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_c ',nvctr,lr%wfd%nvctr_c
+        call yaml_warning(' ERROR: nvctr /= nvctr_c ' // trim(yaml_toa(nvctr)) // trim(yaml_toa(lr%wfd%nvctr_c)))
+        !write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_c ',nvctr,lr%wfd%nvctr_c
         stop
      end if
      !!$  end if
@@ -1114,7 +1122,8 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         end do
      end do
      if (nvctr /= lr%wfd%nvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_f ',nvctr,lr%wfd%nvctr_f
+        call yaml_warning(' ERROR: nvctr /= nvctr_f ' // trim(yaml_toa(nvctr)) // trim(yaml_toa(lr%wfd%nvctr_f)))
+        !write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_f ',nvctr,lr%wfd%nvctr_f
         stop 
      end if
      !!$  end if
@@ -1232,6 +1241,7 @@ END FUNCTION im_im_cmplx_prod
 subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: nterm, ncplx
   type(locreg_descriptors), intent(in) :: lr
@@ -1239,8 +1249,6 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
   real(wp), dimension(2,ncplx,0:lr%d%n2,2,nterm), intent(in) :: wy
   real(wp), dimension(2,ncplx,0:lr%d%n3,2,nterm), intent(in) :: wz
   real(wp) :: cossinfacts(2,nterm)
-
-
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: psi
   !local variables
   integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
@@ -1264,7 +1272,8 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
         end do
      end do
      if (nvctr /=  lr%wfd%nvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
+        call yaml_warning(' ERROR: nvctr >< nvctr_c ' // trim(yaml_toa(nvctr)) // trim(yaml_toa(lr%wfd%nvctr_c)))
+        !write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
         stop
      end if
      !!$  end if
@@ -1296,7 +1305,8 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
         end do
      end do
      if (nvctr /= lr%wfd%nvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
+        call yaml_warning(' ERROR: nvctr >< nvctr_f ' // trim(yaml_toa(nvctr)) // trim(yaml_toa(lr%wfd%nvctr_f)))
+        !write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
         stop 
      end if
      !!$  end if
@@ -1373,7 +1383,8 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
 
      end do
      if (nvctr /=  lr%wfd%nvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
+        call yaml_warning(' ERROR: nvctr >< nvctr_c ' // trim(yaml_toa(nvctr)) // trim(yaml_toa(lr%wfd%nvctr_c)))
+        !write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
         stop
      end if
      !!$  end if
@@ -1427,7 +1438,8 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
 
      end do
      if (nvctr /= lr%wfd%nvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
+        call yaml_warning(' ERROR: nvctr >< nvctr_f ' // trim(yaml_toa(nvctr)) // trim(yaml_toa(lr%wfd%nvctr_f)))
+        !write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
         stop 
      end if
      !!$  end if
@@ -1640,7 +1652,7 @@ END SUBROUTINE segments_to_grid
 !!!     end if
 !!!  end do
 !!!  if (nproc > 1) then
-!!!     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+!!!     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
 !!!  else
 !!!     normdev=tt
 !!!  end if
@@ -1732,7 +1744,7 @@ END SUBROUTINE segments_to_grid
 !!!     charges_mpi(1)=tt
 !!!     charges_mpi(2)=rholeaked
 !!!     call MPI_ALLREDUCE(charges_mpi(1),charges_mpi(3),2,MPI_double_precision,  &
-!!!          MPI_SUM,MPI_COMM_WORLD,ierr)
+!!!          MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 !!!     tt_tot=charges_mpi(3)
 !!!     rholeaked_tot=charges_mpi(4)
 !!!  else
@@ -1752,6 +1764,9 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,rxyz,hx,hy,hz,psi) !n(c) occup (arg:l-5)
   use module_base
+  use module_types
+  use gaussians
+  use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: norb,norbp,iproc,nproc,nat,ntypes
@@ -1787,8 +1802,8 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   real(wp), dimension(:,:,:,:), allocatable :: cimu
 
 
-  if (iproc==0) write(*,'(1x,a)',advance='no')&
-       'Reading Basis Set information and wavefunctions coefficients...'
+  !if (iproc==0) write(*,'(1x,a)',advance='no')&
+  !     'Reading Basis Set information and wavefunctions coefficients...'
 
   ngx=0
   nbx=0
@@ -1898,7 +1913,6 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      end do
   end do
 
-
 !!!  !print the found values
 !!!  do ityp=1,ntypes
 !!!     do ishell=1,nshell(ityp)
@@ -1948,7 +1962,6 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
 !!!  
 !!!END SUBROUTINE basis_ovrlp
 
-
   mmax=2*lmax+1
   !now read the coefficients of the gaussian converged orbitals
   open(unit=36,file='gaucoeff.dat',action='read')
@@ -1994,9 +2007,10 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
               ishell=ishell+1
               if (ishell > nshell(iatype(iat))) then
                  !if (iproc==0) 
-                  write(*,'(1x,a,i0,a)')&
-                      'Problem in the gaucoeff.dat file, the number of shells of atom ',iat ,&
-                      ' is incoherent'
+                 call yaml_warning('Problem in the gaucoeff.dat file, the number of shells of atom ' // &
+                      & trim(yaml_toa(iat)) // ' is incoherent')
+                 !write(*,'(1x,a,i0,a)')&
+                 !     'Problem in the gaucoeff.dat file, the number of shells of atom ',iat ,' is incoherent'
                  stop
               end if
            end if
@@ -2024,8 +2038,8 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
            nend=nst+ipar-1
            if (jat/=nat) then
               !if (iproc==0) 
-                   write(*,'(1x,a,i0,a)')&
-                   'Problem in the gaucoeff.dat file, only ',iat ,' atoms processed'
+              call yaml_warning('Problem in the gaucoeff.dat file, only ' // trim(yaml_toa(iat)) // ' atoms processed')
+              !write(*,'(1x,a,i0,a)') 'Problem in the gaucoeff.dat file, only ',iat ,' atoms processed'
               stop
            else
               cycle store_coeff
@@ -2057,8 +2071,9 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   !now apply this basis set information to construct the wavelets wavefunctions
 
   if (iproc==0) then
-     write(*,'(1x,a)')'done.'
-     write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
+     call yaml_map('Reading Basis Set information and wavefunctions coefficients',.true.)
+     !write(*,'(1x,a)')'done.'
+     !write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
   end if
 
   allocate(psiatn(ngx+ndebug),stat=i_stat)
@@ -2116,12 +2131,14 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
            end do
         end do
      end do
-     if (iproc == 0) then
-        write(*,'(a)',advance='no') &
-             repeat('.',(iat*40)/nat-((iat-1)*40)/nat)
-     end if
+     !if (iproc == 0) then
+     !   write(*,'(a)',advance='no') &
+     !        repeat('.',(iat*40)/nat-((iat-1)*40)/nat)
+     !end if
   end do
-  if (iproc ==0 ) write(*,'(1x,a)')'done.'
+  call yaml_map('Writing wavefunctions in wavelet form ',.true.)
+  !if (iproc ==0 ) write(*,'(1x,a)')'done.'
+
   !renormalize the orbitals
   !calculate the deviation from 1 of the orbital norm
   normdev=0.0_dp
@@ -2136,12 +2153,13 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      end if
   end do
   if (nproc > 1) then
-     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
   else
      normdev=tt
   end if
-  if (iproc ==0 ) write(*,'(1x,a,1pe12.2)')&
-       'Deviation from normalization of the imported orbitals',normdev
+
+  if (iproc ==0 ) call yaml_map('Deviation from normalization of the imported orbitals',normdev,fmt='(1pe12.2)')
+  !if (iproc ==0 ) write(*,'(1x,a,1pe12.2)') 'Deviation from normalization of the imported orbitals',normdev
 
   !now we have to evaluate the eigenvalues of this hamiltonian
 

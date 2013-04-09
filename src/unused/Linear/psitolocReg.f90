@@ -1028,3 +1028,268 @@
 !!$
 !!$END SUBROUTINE index_of_psi_to_locreg2
 
+!!subroutine local_overlap_matrices(norbe,norb1,norb2,nvctrp,nspin,nspinor,ndim_hamovr,hamovr,psi,psi2,hpsi,&
+!!                                  iorbst,iorbst2,imatrst)
+!!  use module_base
+!!  implicit none
+!!  integer, intent(in) :: norbe          ! total number of orbitals for overlap region
+!!  integer, intent(in) :: norb1          ! number of orbitals in first locreg
+!!  integer, intent(in) :: norb2          ! number of orbitals in second locreg
+!!  integer, intent(in) :: nvctrp,ndim_hamovr,nspin,nspinor
+!!  integer, intent(in) :: iorbst,iorbst2
+!!  integer, intent(inout) :: imatrst
+!!  real(wp), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
+!!  real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,psi2,hpsi
+!!  !local variables
+!!  integer :: ispin,ncomp,ncplx
+!!  !WARNING: here nspin=1 for nspinor=4
+!!  if(nspinor == 1) then
+!!     ncplx=1
+!!  elseif(nspinor == 2) then
+!!     ncplx=2
+!!     ncomp=1
+!!  else if (nspinor == 4) then
+!!     ncplx=2
+!!     ncomp=2
+!!  end if
+!!
+!!     if (nspinor ==1) then
+!!        call gemm('T','N',norb1,norb2,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
+!!             hpsi(1,iorbst2),max(1,nvctrp),&
+!!             0.0_wp,hamovr(imatrst,1),norb1)
+!!        !here probably dsyrk can be used
+!!        call gemm('T','N',norb1,norb2,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
+!!             psi2(1,iorbst2),max(1,nvctrp),0.0_wp,hamovr(imatrst,2),norb1)
+!!     else
+!!        call c_gemm('C','N',norb1,norb2,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&
+!!             max(1,ncomp*nvctrp),hpsi(1,iorbst2),max(1,ncomp*nvctrp),&
+!!             (0.0_wp,0.0_wp),hamovr(imatrst,1),norb1)
+!!        !here probably zherk can be used
+!!        call c_gemm('C','N',norb2,norb1,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&
+!!             max(1,ncomp*nvctrp),psi2(1,iorbst2),max(1,ncomp*nvctrp),&
+!!             (0.0_wp,0.0_wp),hamovr(imatrst,2),norb1)
+!!     end if
+!!
+!!     imatrst =imatrst+ncplx*norb1*norb2
+!!
+!!END SUBROUTINE local_overlap_matrices
+
+
+
+!!!> "Inserts" a quantity which is stored in the localized region into the glocal region.
+!!!!        
+!!!! @warning
+!!!!    The quantity must not be stored in a compressed form. The output (rho) must be initialized to zero
+!!!!    before entering this subroutine.
+!!subroutine local_to_global_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3s,i3e)
+!!
+!! use module_base
+!! use module_types
+!! 
+!! implicit none
+!!
+!!! Arguments
+!! type(locreg_descriptors),intent(in) :: Llr   ! Local localization region
+!! type(locreg_descriptors),intent(in) :: Glr   ! Global localization region
+!! integer, intent(in) :: size_rho  ! size of rho array
+!! integer, intent(in) :: size_Lrho ! size of Lrho array
+!! integer, intent(in) :: nspin  !number of spins
+!! real(wp),dimension(size_rho),intent(out) :: rho  ! quantity in global region
+!! real(wp),dimension(size_Lrho),intent(in) :: Lrho ! piece of quantity in local region
+!! integer,intent(in):: i3s, i3e ! starting and ending indices on z direction (related to distribution of rho when parallel)
+!!
+!!! Local variable
+!! integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
+!! integer :: indSmall, indSpin, indLarge ! indexes for the arrays
+!! 
+!!! Cut out a piece of the quantity (rho) from the global region (rho) and
+!!! store it in a local region (Lrho).
+!! indSmall=0
+!! indSpin=0
+!! do ispin=1,nspin
+!!     do ii3=i3s,i3e
+!!         i3 = mod(ii3-1,Glr%d%n3i)+1
+!!         do ii2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
+!!             i2 = mod(ii2-1,Glr%d%n2i)+1
+!!             do ii1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
+!!                 i1=mod(ii1-1,Glr%d%n1i)+1
+!!                 ! indSmall is the index in the local localization region
+!!                 indSmall=indSmall+1
+!!                 if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&               !DON'T NEED ANYMORE: This initializes the buffers of locreg to zeros if outside the simulation box.
+!!                     i3 <= Glr%d%n3i .and. i2 <= Glr%d%n2i .and. i1 <= Glr%d%n1i) then           !Should use periodic image instead... MUST FIX THIS.
+!!                    ! indLarge is the index in the global localization region. 
+!!                    indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
+!!                    !Lrho(indSmall)=rho(indLarge+indSpin)
+!!                    rho(indLarge+indSpin)=Lrho(indSmall)
+!!                 else
+!!                    rho(indLarge+indSpin)= 0.0_wp
+!!                 end if
+!!             end do
+!!         end do
+!!     end do
+!!     indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
+!! end do
+!!
+!!END SUBROUTINE local_to_global_parallel
+
+
+
+
+!> Tranform wavefunction between localisation region and the global region
+!! @warning 
+!!     Psi must be initialized to zero before entering this routine. Each Lpsi is added to the corresponding place in Global.
+!!     Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
+!!subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
+!!
+!!  use module_base
+!!  use module_types
+!!
+!! implicit none
+!!
+!!  ! Subroutine Scalar Arguments
+!!  integer :: Gdim          ! dimension of psi 
+!!  integer :: Ldim          ! dimension of lpsi
+!!  integer :: norb          ! number of orbitals
+!!  integer :: nspinor       ! number of spinors
+!!  integer :: nspin         ! number of spins 
+!!  integer :: shift         ! shift to correct place in locreg
+!!  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+!!  type(locreg_descriptors), intent(in) :: Llr  ! Localization grid descriptors 
+!!  
+!!  !Subroutine Array Arguments
+!!  real(wp),dimension(Gdim),intent(inout) :: psi       !Wavefunction (compressed format)
+!!  real(wp),dimension(Ldim),intent(in) :: lpsi         !Wavefunction in localization region
+!!  
+!!  !local variables
+!!  integer :: igrid,isegloc,isegG,ix!,iorbs
+!!  integer :: lmin,lmax,Gmin,Gmax
+!!  integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
+!!  integer :: offset      ! gives the difference between the starting point of Lseg and Gseg
+!!  integer :: length      ! Length of the overlap between Lseg and Gseg
+!!  integer :: lincrement  ! Increment for writing orbitals in loc_psi
+!!  integer :: Gincrement  ! Increment for reading orbitals in psi
+!!  integer :: nseg        ! total number of segments in Llr
+!!  integer, allocatable :: keymask(:,:)  ! shift for every segment of Llr (with respect to Glr)
+!!  character(len=*), parameter :: subname='Lpsi_to_global'
+!!  integer :: i_stat,i_all
+!!  integer :: start,Gstart,Lindex
+!!  integer :: lfinc,Gfinc,spinshift,Gindex!,ispin
+!!
+!!! Define integers
+!!  nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
+!!  lincrement = Llr%wfd%nvctr_c + 7*Llr%wfd%nvctr_f
+!!  Gincrement = Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
+!!  icheck = 0
+!!  spinshift = Gdim / nspin                  !MUST CHANGE THIS
+!! 
+!!! Get the keymask: shift for every segment of Llr (with respect to Glr)
+!!  allocate(keymask(2,nseg),stat=i_stat)
+!!  call memocc(i_stat,keymask,'keymask',subname)
+!!
+!!  call shift_locreg_indexes(Glr,Llr,keymask,nseg)
+!!
+!!!####################################################
+!!! Do coarse region
+!!!####################################################
+!!  do isegloc = 1,Llr%wfd%nseg_c
+!!     lmin = keymask(1,isegloc)
+!!     lmax = keymask(2,isegloc)
+!!! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
+!!     do isegG = 1,Glr%wfd%nseg_c
+!!        Gmin = Glr%wfd%keygloc(1,isegG)
+!!        Gmax = Glr%wfd%keygloc(2,isegG)
+!!        ! For each segment in Llr check if there is a collision with the segment in Glr
+!!        ! if not, cycle
+!!        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
+!!
+!!        ! Define the offset between the two segments
+!!        offset = lmin - Gmin
+!!        if(offset < 0) then
+!!           offset = 0
+!!        end if
+!!
+!!        ! Define the length of the two segments
+!!        length = min(lmax,Gmax)-max(lmin,Gmin)
+!!
+!!        !Find the common elements and write them to the new global wavefunction
+!!        ! WARNING: index goes from 0 to length because it is the offset of the element
+!!        do ix = 0,length
+!!           icheck = icheck + 1
+!!           ! loop over the orbitals
+!!!           do iorbs=1,norb*nspinor
+!!!              do ispin=1,nspin
+!!!                 Gindex = Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+shift+spinshift*(ispin-1)
+!!!                 Lindex = icheck+lincrement*(iorbs-1)+lincrement*norb*(ispin-1)
+!!                 Gindex = Glr%wfd%keyvloc(isegG)+offset+ix+shift!+spinshift*(ispin-1)
+!!                 Lindex = icheck!+lincrement*norb*(ispin-1)
+!!                 psi(Gindex) = psi(Gindex) + lpsi(Lindex)
+!!!              end do
+!!!           end do
+!!        end do
+!!     end do
+!!  end do
+!!! Check if the number of elements in loc_psi is valid
+!!  if(icheck .ne. Llr%wfd%nvctr_c) then
+!!    write(*,*)'There is an error in Lpsi_to_global: number of coarse points used',icheck
+!!    write(*,*)'is not equal to the number of coarse points in the region',Llr%wfd%nvctr_c
+!!  end if
+!!
+!!!##############################################################
+!!! Now do fine region
+!!!##############################################################
+!!
+!!  icheck = 0
+!!  start = Llr%wfd%nvctr_c
+!!  Gstart = Glr%wfd%nvctr_c
+!!  lfinc  = Llr%wfd%nvctr_f
+!!  Gfinc = Glr%wfd%nvctr_f
+!!
+!!  do isegloc = Llr%wfd%nseg_c+1,nseg
+!!     lmin = keymask(1,isegloc)
+!!     lmax = keymask(2,isegloc)
+!!
+!!! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
+!!     do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
+!!
+!!        Gmin = Glr%wfd%keygloc(1,isegG)
+!!        Gmax = Glr%wfd%keygloc(2,isegG)
+!!
+!!        ! For each segment in Llr check if there is a collision with the segment in Glr
+!!        ! if not, cycle
+!!        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
+!!
+!!        offset = lmin - Gmin
+!!        if(offset < 0) offset = 0
+!!
+!!        length = min(lmax,Gmax)-max(lmin,Gmin)
+!!
+!!        !Find the common elements and write them to the new global wavefunction
+!!        ! WARNING: index goes from 0 to length because it is the offset of the element
+!!        do ix = 0,length
+!!           icheck = icheck + 1
+!!           do igrid=0,6
+!!!              do iorbs=1,norb*nspinor
+!!!                do ispin = 1, nspin
+!!!                   Gindex = Gstart+Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+igrid*Gfinc+&
+!!!                            shift + spinshift*(ispin-1)
+!!!                   Lindex = start+icheck+lincrement*(iorbs-1)+igrid*lfinc + lincrement*norb*(ispin-1) 
+!!                   Gindex=Gstart+Glr%wfd%keyvloc(isegG)+offset+ix+igrid*Gfinc+shift!+spinshift*(ispin-1)
+!!                   Lindex=start+icheck+igrid*lfinc !+ lincrement*norb*(ispin-1)
+!!                   psi(Gindex) = psi(Gindex) + lpsi(Lindex)
+!!!                end do
+!!!              end do
+!!           end do
+!!        end do
+!!     end do
+!!  end do
+!! ! Check if the number of elements in loc_psi is valid
+!!  if(icheck .ne. Llr%wfd%nvctr_f) then
+!!    write(*,*)'There is an error in Lpsi_to_global: number of fine points used',icheck
+!!    write(*,*)'is not equal to the number of fine points in the region',Llr%wfd%nvctr_f
+!!  end if
+!!
+!!  i_all=-product(shape(keymask))*kind(keymask)
+!!  deallocate(keymask,stat=i_stat)
+!!  call memocc(i_stat,i_all,'keymask',subname)
+!!
+!!END SUBROUTINE Lpsi_to_global

@@ -1,7 +1,16 @@
+!> @file
+!! Localization Region to orbitals
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
-!============================================================================
-!WARNING: assignToLocreg does not take into account the Kpts yet !!
-!============================================================================
+
+
+!> assignToLocreg does not take into account the Kpts yet !!
+!! @warning assignToLocreg does not take into account the Kpts yet !!
 subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   use module_base
   use module_types
@@ -12,11 +21,11 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   type(orbitals_data),intent(inout):: orbs
   type(local_zone_descriptors) :: Lzd
   ! Local variables
-  integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsctot,orbsc,ispin
-  integer :: iat,ind,i_all,noncoll,Lnorb,dimtot,ilr,npsidim,ierr
+  integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsc!,ispin
+  integer :: ind,i_all,noncoll,Lnorb,ilr,ierr!,dimtot,iat,npsidim
   character(len=*), parameter :: subname='assignToLocreg'
   integer, dimension(:), allocatable :: Localnorb
-  integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
+  integer, parameter :: lmax=3,noccmax=2,nelecmax=32
   integer, dimension(lmax+1) :: nmoments
   real(gp), dimension(noccmax,lmax) :: occup              !dummy variable
 
@@ -78,7 +87,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
          orbs%inWhichLocreg(jorb+orbs%isorb)=jat
       end if
   end do
-  call mpiallred(orbs%inWhichLocreg(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+  call mpiallred(orbs%inWhichLocreg(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
 
 ! Calculate the dimension of the total wavefunction
@@ -131,7 +140,6 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
   integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb
   integer,dimension(nlr),intent(in):: Localnorb
   integer,dimension(0:nproc-1),intent(in):: norb_par
-  !real(8),dimension(3,natom),intent(in):: rxyz
   real(8),dimension(3,nlr),intent(in):: rxyz
   integer,dimension(:),pointer, intent(out):: inwhichlocreg
 
@@ -139,6 +147,7 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
   integer:: iat, jproc, iiOrb, iorb, jorb, jat, iiat, i_stat, i_all
   character(len=*), parameter :: subname='assignToLocreg'
   logical,dimension(:),allocatable:: covered
+  real(kind=8), parameter :: tol=1.0d-6 
   real(8):: tt, dmin, minvalue, xmin, xmax, ymin, ymax, zmin, zmax
   integer:: iatxmin, iatxmax, iatymin, iatymax, iatzmin, iatzmax, idir
   real(8),dimension(3):: diff
@@ -192,19 +201,34 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
   diff(1)=xmax-xmin
   diff(2)=ymax-ymin
   diff(3)=zmax-zmin
-  if(maxloc(diff,1)==1) then
-      idir=1
-      iiat=iatxmin
-  else if(maxloc(diff,1)==2) then
-      idir=2
-      iiat=iatymin
-  else if(maxloc(diff,1)==3) then
-      idir=3
-      iiat=iatzmin
+  !First 4 ifs control if directions the same length to disambiguate (was random before)
+  !else, just choose the biggest
+  if(abs(diff(1)-diff(2)) < tol .and. diff(1) > diff(3)) then
+    idir=1
+    iiat=iatxmin
+  else if(abs(diff(1)-diff(3)) < tol .and. diff(1) > diff(2)) then
+    idir=1
+    iiat=iatxmin
+  else if(abs(diff(2)-diff(3)) < tol .and. diff(2) > diff(1)) then
+    idir=2
+    iiat=iatymin
+  else if(abs(diff(1)-diff(3)) < tol .and. abs(diff(2)-diff(3)) < tol) then
+    idir=1
+    iiat=iatxmin
   else
-      stop 'ERROR: not possible to determine the maximal extent'
+     if(maxloc(diff,1)==1) then
+         idir=1
+         iiat=iatxmin
+     else if(maxloc(diff,1)==2) then
+         idir=2
+         iiat=iatymin
+     else if(maxloc(diff,1)==3) then
+         idir=3
+         iiat=iatzmin
+     else
+         stop 'ERROR: not possible to determine the maximal extent'
+     end if
   end if
- 
 
   !! Determine the atom with lowest z coordinate
   !zmin=1.d100
@@ -275,9 +299,6 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
       end if
       jorb=jorb+1
       iiOrb=iiOrb+1
-      !if(iproc==jproc) orbse%inWhichLocregp(jorb)=jat
-      !orbse%inWhichLocreg(iorb)=jat
-      !if(iproc==0) write(*,'(a,2i8,es16.8,i8,20l3)') 'iproc, iorb, minvalue, iiat, covered', iproc, iorb, minvalue, iiat, covered
       inWhichLocreg(iorb)=iiat
   end do
 
@@ -285,125 +306,4 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
   deallocate(covered,stat=i_stat)
   call memocc(i_stat,i_all,'covered',subname)
 
-  !write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocreg', iproc, orbse%inWhichLocreg
-  !write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocregp', iproc, orbse%inWhichLocregp
-
-
-
-!!!! OLD VERSION #################################################################
-!!  !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
-!!  allocate(orbse%inWhichLocreg(orbse%norb),stat=i_stat)
-!!  call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
-!!  !allocate(orbse%inWhichLocregp(orbse%norbp),stat=i_stat)
-!!  !call memocc(i_stat,orbse%inWhichLocregp,'orbse%inWhichLocregp',subname)
-!!  allocate(covered(natom), stat=i_stat)
-!!  call memocc(i_stat, covered, 'covered', subname)
-!! 
-!!
-!!  ! Determine the atom with lowest z coordinate
-!!  zmin=1.d100
-!!      do iat=1,natom
-!!      if(rxyz(3,iat)<zmin) then
-!!          zmin=rxyz(3,iat)
-!!          iiat=iat
-!!      end if
-!!  end do
-!!
-!!  ! There are four counters:
-!!  !   jproc: indicates which MPI process is handling the basis function which is being treated
-!!  !   jat: counts the atom numbers
-!!  !   jorb: counts the orbitals handled by a given process
-!!  !   iiOrb: counts the number of orbitals for a given atom thas has already been assigned
-!!  jproc=0
-!!  !jat=iiat
-!!  jat=1
-!!  jorb=0
-!!  iiOrb=0
-!!
-!!  covered=.false.
-!!
-!!  do iorb=1,orbse%norb
-!!
-!!      ! Switch to the next MPI process if the numbers of orbitals for a given
-!!      ! MPI process is reached.
-!!      if(jorb==orbse%norb_par(jproc,0)) then
-!!          jproc=jproc+1
-!!          jorb=0
-!!      end if
-!!
-!!      ! Switch to the next atom if the number of basis functions for this atom is reached.
-!!      if(iiOrb==Localnorb(jat)) then
-!!          iiOrb=0
-!!          !jat=jat+1
-!!          ! Determine the nearest atom which has not been covered yet.
-!!          covered(jat)=.true.
-!!          dmin=1.d100
-!!          do iat=1,natom
-!!              if(covered(iat)) cycle
-!!              tt = (rxyz(1,iat)-rxyz(1,jat))**2 + (rxyz(2,iat)-rxyz(2,jat))**2 + (rxyz(3,iat)-rxyz(3,jat))**2
-!!              if(tt<dmin) then
-!!                  iiat=iat
-!!                  dmin=tt
-!!              end if
-!!          end do
-!!          !jat=iiat
-!!          jat=jat+1
-!!      end if
-!!      if(jat > natom) then
-!!        jat = 1
-!!      end if
-!!      jorb=jorb+1
-!!      iiOrb=iiOrb+1
-!!      !if(iproc==jproc) orbse%inWhichLocregp(jorb)=jat
-!!      orbse%inWhichLocreg(iorb)=jat
-!!  end do
-!!
-!!  i_all=-product(shape(covered))*kind(covered)
-!!  deallocate(covered,stat=i_stat)
-!!  call memocc(i_stat,i_all,'covered',subname)
-!!
-!!  !write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocreg', iproc, orbse%inWhichLocreg
-!!  !write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocregp', iproc, orbse%inWhichLocregp
-
 end subroutine assignToLocreg2
-
-subroutine orbital_ordering_by_locreg(ilr,iproc,isorb_par,nproc,norb,norbp,nlr,norb_par,inwhichlocreg,orbs)
-  use module_base
-  use module_types
-
-  implicit none
-  integer, intent(in) :: ilr                                     ! number of this locreg
-  integer, intent(in) :: iproc                                   ! number of this process
-  integer, intent(in) :: nproc                                   ! number of processes
-  integer, intent(in) :: norbp                                   ! number of orbitals on this processor
-  integer, intent(in) :: nlr                                     ! number of localization regions
-  integer, intent(in) :: norb                                    ! total number of orbitals
-  integer, dimension(nproc), intent(in) :: isorb_par             ! reference orbital for the processes
-  integer, dimension(nproc), intent(in) :: norb_par              ! number of orbitals on this processor
-  integer, dimension(norbp,nproc),intent(in) :: inwhichlocreg    ! mapping of the orbitals on this processor to the locregs
-  type(orbitals_data), intent(inout) :: orbs                     ! Local orbitals_data types
-  ! local variables
-  character(len=*), parameter :: subname='orbital_ordering_by_locreg'
-  integer :: jproc,ii
-  integer :: iorb,i_stat
-
-  ! Allocate inWhichLocreg
-  allocate(orbs%inWhichLocreg(norb),stat=i_stat)
-  call memocc(i_stat,orbs%inWhichLocreg,'orbs%inWhichLocreg',subname)
-
-  iorb = 0
-     do jproc=1,nproc
-        do ii=1,norb_par(jproc)
-           if (inwhichlocreg(ii,jproc) .ne. ilr) cycle
-           iorb = iorb + 1
-           orbs%inWhichLocreg(iorb) = ii+isorb_par(jproc)
-        end do
-     end do
-
-  if(iorb .ne. norb) then
-    write(*,'(a,i4,a,i4)') 'Error in orbital_ordering_by_locreg: iorb=',iorb,'is not equal to norb=',norb
-  end if
-
-end subroutine orbital_ordering_by_locreg
-
-

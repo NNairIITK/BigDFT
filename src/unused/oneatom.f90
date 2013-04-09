@@ -13,6 +13,7 @@
 program oneatom
   use BigDFT_API
   use Poisson_Solver
+  use gaussians, only: gaussian_basis
   implicit none
   character(len=*), parameter :: subname='oneatom'
   logical :: dokernel=.false.
@@ -133,7 +134,7 @@ program oneatom
   if (dokernel) then
      ndegree_ip=16 !default value 
      call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,&
-          pkernel,.true.)
+          pkernel,.true.,0)
   else
      nullify(pkernel)
   end if
@@ -246,8 +247,6 @@ program oneatom
 
      call total_energies(energs, iter, iproc)
      energy=energs%eKS
-          
-
 
      !check for convergence or whether max. numb. of iterations exceeded
      if (endloop) then 

@@ -9,7 +9,7 @@
 
 
 !> Compresses a psig wavefunction into psi_c,psi_f form
-subroutine compress(n1,n2,nl1,nu1,nl2,nu2,nl3,nu3, & 
+subroutine compress_plain(n1,n2,nl1,nu1,nl2,nu2,nl3,nu3, & 
      mseg_c,mvctr_c,keyg_c,keyv_c,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      psig,psi_c,psi_f)
@@ -71,7 +71,7 @@ subroutine compress(n1,n2,nl1,nu1,nl2,nu2,nl3,nu3, &
   !$omp enddo
   !$omp end parallel
 
-END SUBROUTINE compress
+END SUBROUTINE compress_plain
 
 
 !> Expands the compressed wavefunction in vector form (psi_c,psi_f) 
@@ -730,7 +730,7 @@ subroutine uncompress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal) &
   !$omp shared(psifscf)
   
-  call omp_razero(8*(n1+1)*(n2+1)*(n3+1),psifscf)
+  call razero(8*(n1+1)*(n2+1)*(n3+1),psifscf)
 
   ! coarse part
   !$omp do
@@ -802,10 +802,10 @@ subroutine uncompress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
+  call to_zero(8*(n1+1)*(n2+1)*(n3+1),psig(0,1,0,1,0,1))
+
   !$omp parallel default(private) &
   !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal)
-  
-  call omp_razero(8*(n1+1)*(n2+1)*(n3+1),psig)
 
   ! coarse part
   !$omp do
@@ -1725,7 +1725,7 @@ subroutine uncompress_per_f_short(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
-        x_c(i,i2,i3)       =psi_c(i-i0+jj)
+        x_c(i,i2,i3) = psi_c(i-i0+jj)
      enddo
   enddo
 
@@ -1753,6 +1753,7 @@ subroutine uncompress_per_f_short(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   enddo
 
 END SUBROUTINE uncompress_per_f_short
+
 
 !> Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
 !! note that psig should be put to zero outside segment regions

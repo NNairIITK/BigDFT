@@ -758,19 +758,8 @@ EOF
   LIBS="pttest.o $LIBS $FCLIBS"
   AC_FC_FUNC([pt_test])
   AC_FC_FUNC([inqPt])
-  AC_RUN_IFELSE([
+  AC_RUN_IFELSE([AC_LANG_PROGRAM([
 #include <stdio.h>
-
-int main(int argc, const char **argv)
-{
-  unsigned size, shift;
-
-  $pt_test(&shift, &size);
-  if (shift > size)
-    return 1;
-  fprintf(stdout, "%d %d\n", shift, size);
-  return 0;
-}
 
 void $inqPt(void **pt1, void **pt2, double *start1, int *shift, int *size)
 {
@@ -779,14 +768,19 @@ void $inqPt(void **pt1, void **pt2, double *start1, int *shift, int *size)
   for (i = 0; i < 20 && pt1[[i]] != (void*)start1; i++);
   *shift = (int)i;
   *size = (int)(((long)pt2 - (long)pt1) / sizeof(void*));
-}
-], [ax_fc_run=`./conftest$EXEEXT`],
+}],
+[unsigned size, shift;
+
+  $pt_test(&shift, &size);
+  if (shift > size)
+    return 1;
+  fprintf(stdout, "%d %d\n", shift, size);])], [ax_fc_run=`./conftest$EXEEXT`],
  [AC_MSG_WARN([C compiler cannot link Fortran and C or cannot find the pointer shift value.])
   ax_fc_run="0 0"],
  [AC_MSG_WARN([Cross compiling, cannot test pointer length, using Gfortran values.])
   ax_fc_run="0 $[5]"])
   LIBS="$LIBS_SVG"
-  rm -f pttest.o
+  rm -f pttest.*
 
   AC_LANG_POP(C)
 

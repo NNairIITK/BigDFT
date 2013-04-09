@@ -7,7 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!>   Geometry optimization, parametrisation routine.
+!> Geometry optimization, parametrisation routine.
 subroutine geopt_init()
   use minpar
   implicit none
@@ -31,21 +31,22 @@ subroutine geopt_init()
 END SUBROUTINE geopt_init
 
 
-!>   Geometry optimization, parametrisation routine.
-subroutine geopt_set_verbosity(verbosity_)
+!> Geometry optimization, parametrisation routine.
+subroutine geopt_set_verbosity(verb)
   use minpar
   implicit none
   !Arguments
-  integer, intent(in) :: verbosity_
-  parmin%verbosity = verbosity_
+  integer, intent(in) :: verb
+  parmin%verbosity = verb
 END SUBROUTINE geopt_set_verbosity
 
 
-!>   Geometry optimization
+!> Geometry optimization
 subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
   use module_base
   use module_interfaces, except_this_one => geopt
   use module_types
+  use yaml_output
   use minpar
   implicit none
   integer, intent(in) :: nproc,iproc
@@ -61,18 +62,20 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
   logical :: fail
   integer :: ibfgs
   character(len=6) :: outfile, fmt
-  character*5 fn4
-  character*40 comment
+  character(len=5) :: fn4
+  character(len=40) :: comment
   !-------------------------------------------
 
+  !Geometry Initialization
   call geopt_init()
-  if (iproc ==0 .and. parmin%verbosity > 0)  write(16,'(a)')  & 
+
+  if (iproc == 0 .and. parmin%verbosity > 0)  write(16,'(a)')  & 
      '# Geometry optimization log file, grep for GEOPT for consistent output'
-  if (iproc ==0 .and. parmin%verbosity > 0) write(16,'(a)')  & 
+  if (iproc == 0 .and. parmin%verbosity > 0) write(16,'(a)')  & 
       '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
 
-  if (iproc ==0 .and. parmin%verbosity > 0) write(* ,'(a)') & 
-      '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
+  !if (iproc ==0 .and. parmin%verbosity > 0) write(* ,'(a)') & 
+  !    '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
 
   !assign the geometry optimisation method
   parmin%approach=in%geopt_approach
@@ -89,22 +92,30 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
      write(fn4,fmt) ncount_bigdft
      write(comment,'(a)')'INITIAL CONFIGURATION '
      call write_atomic_file(trim(in%dir_output)//trim(outfile)//'_'//trim(fn4),epot,pos,at,trim(comment),forces=fxyz)
-     write(*,'(a,1x,a)') ' Begin of minimization using ',parmin%approach
+     call yaml_new_document()
+     call yaml_comment('Geometry minimization using ' // trim(parmin%approach),hfill='-')
+     call yaml_map('Begin of minimization using ',parmin%approach)
+     !write(*,'(a,1x,a)') ' Begin of minimization using ',parmin%approach
   end if
 
-  if (trim(parmin%approach)=='LBFGS') then
+  select case(trim(parmin%approach))
+
+  case('LBFGS')
+  !if (trim(parmin%approach)=='LBFGS') then
   
      ibfgs=0
-86   ibfgs=ibfgs+1
-     if (iproc ==0) write(*,*) '# ENTERING LBFGS,ibfgs',ibfgs
+86   continue
+     ibfgs=ibfgs+1
+     if (iproc ==0) call yaml_map('ENTERING LBFGS,ibfgs',ibfgs)
+     !if (iproc ==0) write(*,*) '# ENTERING LBFGS,ibfgs',ibfgs
      call lbfgsdriver(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
      if (fail .and. ibfgs .lt. 5) goto 86
 
      if (fail) then
-        if (iproc ==0) write(*,*) '# ENTERING CG after LBFGS failure'
+        if (iproc ==0) call yaml_map('ENTERING CG after LBFGS failure,ibfgs',ibfgs)
+        !if (iproc ==0) write(*,*) '# ENTERING CG after LBFGS failure'
         call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
      end if
-
 
 !  if(trim(parmin%approach)=='LBFGS') then
 !
@@ -117,50 +128,69 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
 !        call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
 !     end if
 !
-  else if(trim(parmin%approach)=='BFGS' .or. trim(parmin%approach)=='PBFGS') then
+  case('BFGS','PBFGS')
+  !else if(trim(parmin%approach)=='BFGS' .or. trim(parmin%approach)=='PBFGS') then
      call bfgsdriver(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft)
-  else if(trim(parmin%approach)=='SDCG') then
 
-     if (iproc ==0) write(*,*) '# ENTERING CG'
+  case('SDCG')
+  !else if(trim(parmin%approach)=='SDCG') then
+     if (iproc ==0) call yaml_map('ENTERING CG',ncount_bigdft)
+     !if (iproc ==0) write(*,*) '# ENTERING CG'
+!     call yaml_open_map('Geometry optimization')
      call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
+!     call yaml_close_map()
 
-  else if(trim(parmin%approach)=='VSSD') then
- 
-     if (iproc ==0) write(*,*) '# ENTERING VSSD'
+  case('VSSD')
+  !else if(trim(parmin%approach)=='VSSD') then
+     if (iproc ==0) call yaml_map('ENTERING VSSD',ncount_bigdft)
+     !if (iproc ==0) write(*,*) '# ENTERING VSSD'
      call vstepsd(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
 
-  else if(trim(parmin%approach)=='FIRE') then
-
-     if (iproc ==0) write(*,*) '# ENTERING FIRE'
+  case('FIRE')
+  !else if(trim(parmin%approach)=='FIRE') then
+     if (iproc ==0) call yaml_map('ENTERING FIRE',ncount_bigdft)
+     !if (iproc ==0) write(*,*) '# ENTERING FIRE'
      call fire(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft,fail)
 
-  else if(trim(parmin%approach)=='DIIS') then
- 
-     if (iproc ==0) write(*,*) '# ENTERING DIIS'
+  case('DIIS')   
+  !else if(trim(parmin%approach)=='DIIS') then
+     if (iproc ==0) call yaml_map('ENTERING DIIS',ncount_bigdft)
+     !if (iproc ==0) write(*,*) '# ENTERING DIIS'
      call rundiis(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
 
-  else if(trim(parmin%approach)=='AB6MD') then
-
-     if (iproc ==0) write(*,*) '# ENTERING Molecular Dynamic (ABINIT implementation)'
+  case('AB6MD')
+  !else if(trim(parmin%approach)=='AB6MD') then
+     if (iproc ==0) call yaml_map('ENTERING Molecular Dynamics (ABINIT implementation)',ncount_bigdft)
+     !if (iproc ==0) write(*,*) '# ENTERING Molecular Dynamics (ABINIT implementation)'
      call ab6md(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
 
-  else
-     write(*,*) 'ERROR: geometry optimization method undefined, exiting...',trim(parmin%approach)
-     stop 
-  endif
-  if (iproc==0) write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
+  case default
+  !else
+     call yaml_warning('ERROR: geometry optimization method undefined (' // trim(parmin%approach) &
+          & // '), exiting...')
+     !write(*,*) 'ERROR: geometry optimization method undefined, exiting...',trim(parmin%approach)
+     stop
+
+  end select
+  !endif
+
+  if (iproc==0) call yaml_map('End of minimization using ',parmin%approach)
+  !if (iproc==0) write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
 
   if (iproc==0) call finaliseCompress()
 
 END SUBROUTINE geopt
 
-!>  Molecular Dynamics
+
+!> Molecular Dynamics
 subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
   use scfloop_API
   use ab6_moldyn
+!  use module_interfaces, only: memocc
   implicit none
+  !Arguments
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(atoms_data), intent(inout) :: at
@@ -168,16 +198,20 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   type(restart_objects), intent(inout) :: rst
   real(gp), intent(inout) :: epot
   real(gp), dimension(3*at%nat), intent(inout) :: x
-  logical, intent(out) :: fail
   real(gp), dimension(3*at%nat), intent(inout) :: f
-  !local variables
-  !n(c) character(len=*), parameter :: subname='ab6md'
+  logical, intent(out) :: fail
+  !Local variables
+  character(len=*), parameter :: subname='ab6md'
   ! 1 atomic mass unit, in electronic mass
   real(gp), parameter :: amu2emass=1.660538782d-27/9.10938215d-31
-  integer :: nxfh, iat, idim, iexit
-  integer, allocatable :: iatfix(:,:)
-  real(gp) :: acell(3), rprim(3,3), symrel(3,3,1)
-  real(gp), allocatable :: xfhist(:,:,:,:), amass(:), vel(:,:), xred(:,:), fred(:,:)
+  integer, allocatable, dimension(:,:) :: iatfix
+  real(gp), allocatable, dimension(:,:,:,:) :: xfhist
+  real(gp), allocatable, dimension(:,:) :: vel, xred, fred
+  real(gp), allocatable, dimension(:) :: amass
+  real(gp), dimension(3) :: acell
+  real(gp), dimension(3,3) :: rprim
+  real(gp), dimension(3,3,1) :: symrel
+  integer :: nxfh, iat, idim, iexit, i_stat,i_all
 
   ! We save pointers on data used to call bigdft() routine.
   if (ncount_bigdft == 0) then
@@ -185,12 +219,19 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   end if
 
   ! Prepare the objects used by ABINIT.
-  allocate(amass(at%nat))
+  allocate(amass(at%nat),stat=i_stat)
+  call memocc(i_stat,amass,'amass',subname)
   allocate(xfhist(3, at%nat + 4, 2, in%ncount_cluster_x+1))
-  allocate(vel(3, at%nat))
-  allocate(xred(3, at%nat))
-  allocate(iatfix(3, at%nat))
-  allocate(fred(3, at%nat))
+  call memocc(i_stat,xfhist,'xfhist',subname)
+  allocate(vel(3, at%nat),stat=i_stat)
+  call memocc(i_stat,vel,'vel',subname)
+  allocate(xred(3, at%nat),stat=i_stat)
+  call memocc(i_stat,xred,'xred',subname)
+  allocate(iatfix(3, at%nat),stat=i_stat)
+  call memocc(i_stat,iatfix,'iatfix',subname)
+  allocate(fred(3, at%nat),stat=i_stat)
+  call memocc(i_stat,fred,'fred',subname)
+
   nxfh = 0
   !acell = (/ at%alat1, at%alat2, at%alat3 /)
   acell(1)=at%alat1
@@ -210,17 +251,18 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         xred(idim, iat) = x((iat - 1) * 3 + idim) / acell(idim)
         fred(idim, iat) = - f((iat - 1) * 3 + idim) / acell(idim)
      end do
-     if (at%ifrztyp(iat) == 0) then
+     select case(at%ifrztyp(iat))
+     case(0)
         iatfix(:, iat) = 0
-     else if (at%ifrztyp(iat) == 1) then
+     case(1)
         iatfix(:, iat) = 1
-     else if (at%ifrztyp(iat) == 2) then
+     case(2)
         iatfix(:, iat) = 0
         iatfix(2, iat) = 1
-     else if (at%ifrztyp(iat) == 3) then
+     case(3)
         iatfix(:, iat) = 1
         iatfix(2, iat) = 0
-     end if
+     end select
   end do
 
   !read the velocities from input file, if present
@@ -243,12 +285,25 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      end do
   end do
 
-  deallocate(fred)
-  deallocate(iatfix)
-  deallocate(xred)
-  deallocate(vel)
-  deallocate(amass)
-  deallocate(xfhist)
+  !De-Allocations
+  i_all=-product(shape(fred))*kind(fred)
+  deallocate(fred,stat=i_stat)
+  call memocc(i_stat,i_all,'fred',subname)
+  i_all=-product(shape(iatfix))*kind(iatfix)
+  deallocate(iatfix,stat=i_stat)
+  call memocc(i_stat,i_all,'iatfix',subname)
+  i_all=-product(shape(xred))*kind(xred)
+  deallocate(xred,stat=i_stat)
+  call memocc(i_stat,i_all,'xred',subname)
+  i_all=-product(shape(vel))*kind(vel)
+  deallocate(vel,stat=i_stat)
+  call memocc(i_stat,i_all,'vel',subname)
+  i_all=-product(shape(amass))*kind(amass)
+  deallocate(amass,stat=i_stat)
+  call memocc(i_stat,i_all,'amass',subname)
+  i_all=-product(shape(xfhist))*kind(xfhist)
+  deallocate(xfhist,stat=i_stat)
+  call memocc(i_stat,i_all,'xfhist',subname)
 
   fail = (iexit == 0)
 END SUBROUTINE ab6md
@@ -272,6 +327,7 @@ subroutine timeleft(tt)
   call cpu_time(tcpu)
   tt=timelimit-real(tcpu,gp)/3600._gp ! in hours
 END SUBROUTINE timeleft
+
 
 subroutine convcheck(fmax,fluctfrac_fluct,forcemax,check) !n(c) fnrm (arg:1)
   use module_base
@@ -313,6 +369,7 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,nat)
   fnrm=dot(3*nat,ff(1,1),1,ff(1,1),1)
 END SUBROUTINE fnrmandforcemax
 
+
 subroutine fnrmandforcemax_old(ff,fnrm,fmax,at)
   use module_base
   use module_types
@@ -323,28 +380,16 @@ subroutine fnrmandforcemax_old(ff,fnrm,fmax,at)
   real(gp):: t1,t2,t3
   integer:: iat
 
-!!!  t1=0._gp 
-!!!  t2=0._gp 
-!!!  t3=0._gp
   fmax=0._gp
   do iat=1,at%nat
      call frozen_alpha(at%ifrztyp(iat),1,ff(1,iat)**2,t1)
      call frozen_alpha(at%ifrztyp(iat),2,ff(2,iat)**2,t2)
      call frozen_alpha(at%ifrztyp(iat),3,ff(3,iat)**2,t3)
      fmax=max(fmax,sqrt(t1+t2+t3))
-!!!     if (at%ifrztyp(iat) == 0) then
-!!!        t1=t1+ff(1,iat)**2 
-!!!        t2=t2+ff(2,iat)**2 
-!!!        t3=t3+ff(3,iat)**2
-        !in general fmax is measured with the inf norm
-!!!     fmax=max(fmax,sqrt(ff(1,iat)**2+ff(2,iat)**2+ff(3,iat)**2))
-        !fmax=max(fmax,abs(ff(1,iat)),abs(ff(2,iat)),abs(ff(3,iat)))
-!!!     end if
   enddo
 
-  !this is the norm of the forces of non-blocked atoms
+  !This is the norm of the forces of non-blocked atoms
   call atomic_dot(at,ff,ff,fnrm)
-!!!  fnrm=t1+t2+t3
 END SUBROUTINE fnrmandforcemax_old
 
 
@@ -418,9 +463,9 @@ subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
 END SUBROUTINE transforce_forfluct
 
 
-!>  DIIS relax. Original source from ART from N. Mousseau.
-!!  Adaptations to BigDFT by D. Caliste.
-!!  WARNING: strten not minimized here
+!> DIIS relax. Original source from ART from N. Mousseau.
+!! Adaptations to BigDFT by D. Caliste.
+!! WARNING: strten not minimized here
 subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -464,7 +509,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   call memocc(i_stat,product_matrix,'product_matrix',subname)
 
 
-  !zet to zero the arrays
+  ! Set to zero the arrays
   call razero(in%history**2,product_matrix)
   call razero(in%history*at%nat*3,previous_forces)
   call razero(in%history*at%nat*3,previous_pos)
@@ -572,9 +617,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      ncount_bigdft=ncount_bigdft+1
 
      call fnrmandforcemax(f,fnrm,fmax,at%nat)
-
      if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
-
      call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
 
      if (iproc==0) then 
@@ -588,7 +631,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         call write_atomic_file(trim(in%dir_output)//'posout_'//fn4,epot,x,at,trim(comment),forces=f)
      endif
 
-     if(check.gt.5)then
+     if(check > 5)then
         if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct
         if (iproc==0) write(16,*) 'DIIS converged'
         exit
@@ -618,7 +661,8 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   fail = (ncount_bigdft>in%ncount_cluster_x-1)
 END SUBROUTINE rundiis
 
-!! Implementation of the damped MD based geometry optimizer FIRE, PRL 97, 170201 (2006)
+
+!> Implementation of the damped MD based geometry optimizer FIRE, PRL 97, 170201 (2006)
 !! The MD-Integrator is the common velocity verlet, all masses are equal to 1.d0
 !! Implemented in August 2010, Maximilian Amsler, Basel University 
 !! Suggestion for maximal timestep as tmax=2*pi*sqrt(alphaVSSD)*1.2d-1
@@ -628,6 +672,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   use module_types
   use module_interfaces
   use minpar
+  use yaml_output
 
   implicit none
   integer, intent(in) :: nproc,iproc
@@ -656,14 +701,14 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   real(gp):: epred,eprev,anoise !n(c) ecur
   integer:: Nmin,nstep,it
 
+  fluct=0.0_gp
   check=0
-!Set FIRE parameters
+  ! Set FIRE parameters
   Nmin=5
   finc=1.1_gp
   fdec=0.5_gp
   alphastart=0.25_gp
   anoise=1.e-8_gp
-
 
   alpha=alphastart
   falpha=0.99_gp
@@ -680,7 +725,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   mass=1.0_gp
   !n(c) ecur=etot
   epred=etot
-
+  eprev=0.0_gp
 
   Big_loop: do it=1,in%ncount_cluster_x-1
      do iat=1,3*at%nat
@@ -705,27 +750,44 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
         call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,epred,pospred,at,trim(comment),forces=fpred)
      endif
      if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
-     if (iproc==0.and.parmin%verbosity > 0) & 
+
+     if (iproc==0.and.parmin%verbosity > 0) then
          write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),  & 
-         &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
-         &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
-         &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
-     if (iproc==0.and.parmin%verbosity > 0) & 
-         write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2), & 
-         &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
-         &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
-         &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P 
-         eprev=epred
-     if (iproc==0.and.parmin%verbosity > 0) write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
-                             'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
+         & 2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
+         & ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
+         & "alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
+
+         call yaml_open_map('Geometry')
+            call yaml_map('Ncount_BigDFT',ncount_bigdft)
+            call yaml_map('Geometry step',it)
+            call yaml_map('Geometry Method','GEOPT_FIRE')
+            call yaml_map('epred',(/ epred,epred-eprev /),fmt='(1pe21.14)')
+            call geometry_output(fmax,fnrm,fluct)
+            call yaml_map('Alpha', alpha, fmt='(es7.2e1)')
+            call yaml_map('dt',dt, fmt='(es7.2e1)')
+            call yaml_map('vnrm',sqrt(vnrm), fmt='(es8.2)')
+            call yaml_map('nstep',nstep, fmt='(es9.2)')
+            call yaml_map('P',P, fmt='(es9.2)')
+            call geometry_output(fmax,fnrm,fluct)
+         call yaml_close_map()
+         !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2), & 
+         !& 2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
+         !& ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
+         !& "alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P 
+         !eprev=epred
+     end if
+
+     eprev=epred
+
      call convcheck(fmax,fluct*in%frac_fluct, in%forcemax,check) !n(m)
      if (ncount_bigdft >= in%ncount_cluster_x-1) then
          !Too many iterations
          exit Big_loop
      end if
 
-     if(check.gt.5) then
-        if(iproc==0)  write(16,'(a,i0,a)') "   FIRE converged in ",it," iterations"
+     if(check > 5) then
+        if(iproc==0)  call yaml_map('Iterations when FIRE converged',it)
+        !if(iproc==0)  write(16,'(a,i0,a)') "   FIRE converged in ",it," iterations"
         !Exit from the loop (the calculation is finished).
         exit Big_loop
      endif
@@ -745,7 +807,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
 !  velcur(:)=(1.0_gp-alpha)*velpred(:)+fpred(:)*min(alpha*vnrm/fnrm,2.0_gp*in%betax)!alpha*fpred(:)/fnrm*vnrm
 !Original FIRE velocitiy update
      velcur(:)=(1.0_gp-alpha)*velpred(:)+alpha*fpred(:)/fnrm*vnrm
-     if(P.gt.-anoise*vnrm .and. nstep.gt.Nmin) then
+     if(P > -anoise*vnrm .and. nstep > Nmin) then
         dt=min(dt*finc,dtmax)
 !        alpha=max(alpha*falpha,0.1_gp) !Limit the decrease of alpha
         alpha=alpha*falpha
@@ -759,8 +821,6 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
 
      !if (iproc==0) write(10,*) epred, vnrm*0.5d0
    end do Big_loop
-
-
         
 ! Output the final energy, atomic positions and forces
    etot = epred
@@ -770,4 +830,18 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
 END SUBROUTINE fire
 
 
-
+!> Display geometry quantities
+subroutine geometry_output(fmax,fnrm,fluct)
+   use module_base
+   use yaml_output
+   implicit none
+   real(gp), intent(in) :: fmax    !< Maximal absolute value of atomic forces
+   real(gp), intent(in) :: fnrm    !< Norm of atomic forces
+   real(gp), intent(in) :: fluct   !< Fluctuation of atomic forces
+   !write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
+   call yaml_open_map('FORCES norm(Ha/Bohr)',flow=.true.)
+      call yaml_map(' maxval',fmax,fmt='(1pe14.5)')
+      call yaml_map('fnrm2',fnrm,fmt='(1pe14.5)')
+      call yaml_map('fluct',fluct,fmt='(1pe14.5)')
+   call yaml_close_map()
+end subroutine geometry_output

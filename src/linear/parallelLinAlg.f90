@@ -1,24 +1,35 @@
-!! ATTENTION: This works only if the matrices have the same sizes for all processes!!
+!> @file
+!! Wavefunction put into a localisation region
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> @warning
+!! This works only if the matrices have the same sizes for all processes!!
 subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
-use module_base
-implicit none
+  use module_base
+  implicit none
 
-! Calling arguments
-integer,intent(in):: iproc, nproc, blocksize, comm, m, n, k, lda, ldb, ldc
-character(len=1),intent(in):: transa, transb
-real(8),intent(in):: alpha, beta
-real(8),dimension(lda,k),intent(in):: a
-real(8),dimension(ldb,n),intent(in):: b
-real(8),dimension(ldc,n),intent(out):: c
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, blocksize, comm, m, n, k, lda, ldb, ldc
+  character(len=1),intent(in) :: transa, transb
+  real(kind=8),intent(in) :: alpha, beta
+  real(kind=8),dimension(lda,k),intent(in) :: a
+  real(kind=8),dimension(ldb,n),intent(in) :: b
+  real(kind=8),dimension(ldc,n),intent(out) :: c
 
-! Local variables
-integer:: ierr, i, j, istat, iall, ii, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
-integer:: context, irow, icol, numroc, lnrow, lncol, info
-integer:: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
-real(8):: tt1, tt2
-real(8),dimension(:,:),allocatable:: la, lb, lc
-integer,dimension(9):: desc_lc, desc_la, desc_lb
-character(len=*),parameter:: subname='dgemm_parallel'
+  ! Local variables
+  integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
+  integer :: context, irow, icol, numroc, info
+  integer :: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
+  real(kind=8) :: tt1, tt2
+  real(kind=8),dimension(:,:),allocatable :: la, lb, lc
+  integer,dimension(9) :: desc_lc, desc_la, desc_lb
+  character(len=*),parameter :: subname='dgemm_parallel'
 
   ! Block size for scalapack
   mbrow=blocksize
@@ -53,7 +64,8 @@ character(len=*),parameter:: subname='dgemm_parallel'
   ! Initialize the result c to zero. For processes participating in the calculation, 
   ! c will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) c=0.d0
+  !if(irow==-1) call to_zero(ldc*n, c(1,1))
+  if(irow==-1) call vscal(ldc*n,0.0_wp,c(1,1),1)
   
   ! Only execute this part if this process has a part of the matrix to work on. 
   processIf: if(irow/=-1) then
@@ -124,6 +136,8 @@ character(len=*),parameter:: subname='dgemm_parallel'
       iall=-product(shape(lc))*kind(lc)
       deallocate(lc, stat=istat)
       call memocc(istat, iall, 'lc', subname)
+
+      call blacs_gridexit(context)
   
   end if processIf
   
@@ -131,6 +145,7 @@ character(len=*),parameter:: subname='dgemm_parallel'
   ! Gather the result on all processes.
   call mpiallred(c(1,1), m*n, mpi_sum, comm, ierr)
 
+  !call blacs_exit(0)
 
 end subroutine dgemm_parallel
 
@@ -144,21 +159,21 @@ use module_base
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, blocksize, comm, m, n, lda, ldb, ldc
-character(len=1),intent(in):: side, uplo
-real(8),intent(in):: alpha, beta
-real(8),dimension(lda,m),intent(in):: a
-real(8),dimension(ldb,n),intent(in):: b
-real(8),dimension(ldc,n),intent(out):: c
+integer,intent(in) :: iproc, nproc, blocksize, comm, m, n, lda, ldb, ldc
+character(len=1),intent(in) :: side, uplo
+real(kind=8),intent(in) :: alpha, beta
+real(kind=8),dimension(lda,m),intent(in) :: a
+real(kind=8),dimension(ldb,n),intent(in) :: b
+real(kind=8),dimension(ldc,n),intent(out) :: c
 
 ! Local variables
-integer:: ierr, i, j, istat, iall, ii, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
-integer:: context, irow, icol, numroc, lnrow, lncol, info
-integer:: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
-real(8):: tt1, tt2
-real(8),dimension(:,:),allocatable:: la, lb, lc
-integer,dimension(9):: desc_lc, desc_la, desc_lb
-character(len=*),parameter:: subname='dgemm_parallel'
+integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
+integer :: context, irow, icol, numroc, info
+integer :: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
+real(kind=8) :: tt1, tt2
+real(kind=8),dimension(:,:),allocatable :: la, lb, lc
+integer,dimension(9) :: desc_lc, desc_la, desc_lb
+character(len=*),parameter :: subname='dgemm_parallel'
 
 
   ! Block size for scalapack
@@ -194,7 +209,8 @@ character(len=*),parameter:: subname='dgemm_parallel'
   ! Initialize the result c to zero. For processes participating in the calculation, 
   ! c will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) c=0.d0
+  !if(irow==-1) call to_zero(ldc*n, c(1,1))
+  if(irow==-1) call vscal(ldc*n,0.0_wp, c(1,1),1)
   
   ! Only execute this part if this process has a part of the matrix to work on. 
   processIf: if(irow/=-1) then
@@ -265,6 +281,8 @@ character(len=*),parameter:: subname='dgemm_parallel'
       iall=-product(shape(lc))*kind(lc)
       deallocate(lc, stat=istat)
       call memocc(istat, iall, 'lc', subname)
+
+      call blacs_gridexit(context)
   
   end if processIf
   
@@ -273,9 +291,9 @@ character(len=*),parameter:: subname='dgemm_parallel'
   call mpiallred(c(1,1), m*n, mpi_sum, comm, ierr)
 
 
+  !call blacs_exit(0)
+
 end subroutine dsymm_parallel
-
-
 
 
 subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, w, info)
@@ -284,20 +302,21 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, blocksize, comm, n, lda, info
-  character(len=1),intent(in):: jobz, uplo
-  real(8),dimension(lda,n),intent(inout):: a
-  real(8),dimension(n),intent(out):: w
+  integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda
+  integer,intent(out) :: info
+  character(len=1),intent(in) :: jobz, uplo
+  real(kind=8),dimension(lda,n),intent(inout) :: a
+  real(kind=8),dimension(n),intent(out) :: w
   
   ! Local variables
-  integer:: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
-  integer:: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, neval_found, neval_computed
-  real(8):: tt1, tt2
-  real(8),dimension(:,:),allocatable:: la, lz
-  real(8),dimension(:),allocatable:: work, gap
-  integer,dimension(9):: desc_lz, desc_la
-  integer,dimension(:),allocatable:: iwork, ifail, icluster
-  character(len=*),parameter:: subname='dsyev_parallel'
+  integer :: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
+  integer :: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, neval_found, neval_computed
+  real(kind=8) :: tt1, tt2
+  real(kind=8),dimension(:,:),allocatable :: la, lz
+  real(kind=8),dimension(:),allocatable :: work, gap
+  integer,dimension(9) :: desc_lz, desc_la
+  integer,dimension(:),allocatable :: iwork, ifail, icluster
+  character(len=*),parameter :: subname='dsyev_parallel'
   
   
   
@@ -337,14 +356,14 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   ! For processes participating in the diagonalization, 
   ! it will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) a=0.d0
-  
+  !if(irow==-1) call to_zero(lda*n, a(1,1))
+  if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)
   ! Everything that follows is only done if the current process is part of the grid.
   processIf: if(irow/=-1) then
       ! Determine the size of the matrix (lnrow x lncol):
       lnrow = max(numroc(n, mbrow, irow, 0, nprocrow),1)
       lncol = max(numroc(n, mbcol, icol, 0, nproccol),1)
-      write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local matrix of size ',lnrow,' x ',lncol
+      !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local matrix of size ',lnrow,' x ',lncol
   
       ! Initialize descriptor arrays.
       call descinit(desc_la, n, n, mbrow, mbcol, 0, 0, context, lnrow, info)
@@ -378,9 +397,9 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
       ! workspace query
       lwork=-1
       liwork=-1
-      allocate(work(1), stat=istat)
+      allocate(work(100), stat=istat)
       call memocc(istat, work, 'work', subname)
-      allocate(iwork(1), stat=istat)
+      allocate(iwork(100), stat=istat)
       call memocc(istat, iwork, 'iwork', subname)
       call pdsyevx(jobz, 'a', 'l', n, la(1,1), 1, 1, desc_la, &
                     0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, w(1), &
@@ -448,6 +467,8 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
       iall=-product(shape(gap))*kind(gap)
       deallocate(gap, stat=istat)
       call memocc(istat, iall, 'gap', subname)
+
+      call blacs_gridexit(context)
   
   end if processIF
   
@@ -461,6 +482,7 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
       call mpi_bcast(info, 1, mpi_integer, 0, comm, ierr)
   end if
 
+  !call blacs_exit(0)
 
 end subroutine dsyev_parallel
 
@@ -474,21 +496,22 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, blocksize, nprocMax, comm, itype, n, lda, ldb, info
-  character(len=1),intent(in):: jobz, uplo
-  real(8),dimension(lda,n),intent(inout):: a
-  real(8),dimension(ldb,n),intent(inout):: b
-  real(8),dimension(n),intent(out):: w
+  integer,intent(in) :: iproc, nproc, blocksize, nprocMax, comm, itype, n, lda, ldb
+  integer,intent(out) :: info
+  character(len=1),intent(in) :: jobz, uplo
+  real(kind=8),dimension(lda,n),intent(inout) :: a
+  real(kind=8),dimension(ldb,n),intent(inout) :: b
+  real(kind=8),dimension(n),intent(out) :: w
   
   ! Local variables
-  integer:: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
-  integer:: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, nw_found, nw_computed
-  real(8):: tt1, tt2
-  real(8),dimension(:,:),allocatable:: la, lb, lz
-  real(8),dimension(:),allocatable:: work, gap
-  integer,dimension(9):: desc_lz, desc_la, desc_lb
-  integer,dimension(:),allocatable:: iwork, ifail, icluster
-  character(len=*),parameter:: subname='dsygv_parallel'
+  integer :: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
+  integer :: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, nw_found, nw_computed
+  real(kind=8) :: tt1, tt2
+  real(kind=8),dimension(:,:),allocatable :: la, lb, lz
+  real(kind=8),dimension(:),allocatable :: work, gap
+  integer,dimension(9) :: desc_lz, desc_la, desc_lb
+  integer,dimension(:),allocatable :: iwork, ifail, icluster
+  character(len=*),parameter :: subname='dsygv_parallel'
   
  call timing(iproc,'diagonal_par  ','ON') 
   
@@ -529,14 +552,15 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
   ! For processes participating in the diagonalization, 
   ! it will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) a=0.d0
-  
+  !if(irow==-1) call to_zero(lda*n, a(1,1))
+  if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)  
+
   ! Everything that follows is only done if the current process is part of the grid.
   processIf: if(irow/=-1) then
       ! Determine the size of the matrix (lnrow x lncol):
       lnrow = max(numroc(n, mbrow, irow, 0, nprocrow),1)
       lncol = max(numroc(n, mbcol, icol, 0, nproccol),1)
-      write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local matrix of size ',lnrow,' x ',lncol
+      !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local matrix of size ',lnrow,' x ',lncol
   
       ! Initialize descriptor arrays.
       call descinit(desc_la, n, n, mbrow, mbcol, 0, 0, context, lnrow, info)
@@ -574,9 +598,9 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
       ! workspace query
       lwork=-1
       liwork=-1
-      allocate(work(1), stat=istat)
+      allocate(work(100), stat=istat)
       call memocc(istat, work, 'work', subname)
-      allocate(iwork(1), stat=istat)
+      allocate(iwork(100), stat=istat)
       call memocc(istat, iwork, 'iwork', subname)
       call pdsygvx(itype, jobz, 'a', uplo, n, la(1,1), 1, 1, desc_la, lb(1,1), 1, 1, &
                    desc_lb, 0.d0, 1.d0, 0, 1, -1.d0, nw_found, nw_computed, w(1), &
@@ -646,19 +670,379 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
       iall=-product(shape(gap))*kind(gap)
       deallocate(gap, stat=istat)
       call memocc(istat, iall, 'gap', subname)
+
+      call blacs_gridexit(context)
   
   end if processIF
   
   ! Gather the eigenvectors on all processes.
-  call mpiallred(a(1,1), n**2, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(a(1,1), n**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   
   ! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
   ! diagonalized the matrix and therefore have the eigenvalues.
   if(nproc_scalapack/=nproc) then
-      call mpi_bcast(w(1), n, mpi_double_precision, 0, mpi_comm_world, ierr)
-      call mpi_bcast(info, 1, mpi_integer, 0, mpi_comm_world, ierr)
+      call mpi_bcast(w(1), n, mpi_double_precision, 0, bigdft_mpi%mpi_comm, ierr)
+      call mpi_bcast(info, 1, mpi_integer, 0, bigdft_mpi%mpi_comm, ierr)
   end if
+
+ !call blacs_exit(0)
 
  call timing(iproc,'diagonal_par  ','OF') 
 
 end subroutine dsygv_parallel
+
+
+
+
+subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb, info)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, blocksize, comm, n, nrhs, lda, ldb
+  integer,intent(out):: info
+  real(8),dimension(lda,n),intent(inout):: a
+  real(8),dimension(ldb,nrhs),intent(inout):: b
+  
+  ! Local variables
+  integer:: ierr, mbrow, mbcol, i, j, istat, ii1, ii2, nproc_scalapack, iall
+  integer:: nprocrow, nproccol, context, irow, icol, lnrow_a, lncol_a, lnrow_b, lncol_b, numroc
+  real(8):: tt1, tt2
+  real(8),dimension(:,:),allocatable:: la, lb
+  integer,dimension(9):: desc_lb, desc_la
+  integer,dimension(:),allocatable:: ipiv
+  character(len=*),parameter:: subname='dgsev_parallel'
+  
+  
+  
+  ! Block size for scalapack
+  mbrow=blocksize
+  mbcol=blocksize
+  
+  ! Number of processes that will be involved in the calculation
+  tt1=dble(n)/dble(mbrow)
+  tt2=dble(n)/dble(mbcol)
+  ii1=ceiling(tt1)
+  ii2=ceiling(tt2)
+  nproc_scalapack = min(ii1*ii2,nproc)
+  !nproc_scalapack = nproc
+  if(iproc==0) write(*,'(a,i0,a)') 'scalapack will use ',nproc_scalapack,' processes.'
+  
+  ! process grid: number of processes per row and column
+  tt1=sqrt(dble(nproc_scalapack))
+  ii1=ceiling(tt1)
+  do i=ii1,nproc_scalapack
+      if(mod(nproc_scalapack,i)==0) then
+          nprocrow=i
+          exit
+      end if
+  end do
+  nproccol=nproc_scalapack/nprocrow
+  if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+
+  
+  ! Initialize blacs context
+  call blacs_get(-1, 0, context)
+  call blacs_gridinit(context, 'r', nprocrow, nproccol)
+  call blacs_gridinfo(context,nprocrow, nproccol, irow, icol)
+  !write(*,*) 'iproc, irow, icol', iproc, irow, icol
+  
+  ! Initialize the matrix mat to zero for processes that don't do the calculation.
+  ! For processes participating in the diagonalization, 
+  ! it will be partially (only at the position that process was working on) overwritten with the result. 
+  ! At the end we can the make an allreduce to get the correct result on all processes.
+  !if(irow==-1) call to_zero(ldb*nrhs, b(1,1))
+  if(irow==-1) call vscal(ldb*nrhs,0.0_wp, b(1,1),1)
+  
+  ! Everything that follows is only done if the current process is part of the grid.
+  processIf: if(irow/=-1) then
+      ! Determine the size of the matrix (lnrow x lncol):
+      lnrow_a = max(numroc(n, mbrow, irow, 0, nprocrow),1)
+      lncol_a = max(numroc(n, mbcol, icol, 0, nproccol),1)
+      !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local matrix of size ',lnrow_a,' x ',lncol_a
+      lnrow_b = max(numroc(n, mbrow, irow, 0, nprocrow),1)
+      lncol_b = max(numroc(nrhs, mbcol, icol, 0, nproccol),1)
+      !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local rhs of size ',lnrow_b,' x ',lncol_b
+  
+      ! Initialize descriptor arrays.
+      call descinit(desc_la, n, n, mbrow, mbcol, 0, 0, context, lnrow_a, info)
+      call descinit(desc_lb, n, nrhs, mbrow, mbcol, 0, 0, context, lnrow_b, info)
+  
+      ! Allocate the local arrays
+      allocate(la(lnrow_a,lncol_a), stat=istat)
+      call memocc(istat, la, 'la', subname)
+      allocate(lb(lnrow_b,lncol_b), stat=istat)
+      call memocc(istat, lb, 'lb', subname)
+  
+      ! Copy the global array mat to the local array lmat.
+      ! The same for loverlap and overlap, respectively.
+      do i=1,n
+          do j=1,n
+              call pdelset(la(1,1), j, i, desc_la, a(j,i))
+          end do
+      end do
+      do i=1,nrhs
+          do j=1,n
+              call pdelset(lb(1,1), j, i, desc_lb, b(j,i))
+          end do
+      end do
+  
+  
+      ! Solve the linear system of equations.
+      allocate(ipiv(lnrow_b+n), stat=istat)
+      call memocc(istat, ipiv, 'ipiv', subname)
+      call pdgesv(n, nrhs, la(1,1), 1, 1, desc_la, ipiv(1), lb(1,1), 1, 1, desc_lb, info)
+      iall=-product(shape(ipiv))*kind(ipiv)
+      deallocate(ipiv, stat=istat)
+      call memocc(istat, iall, 'ipiv', subname)
+
+  
+      ! Gather together the result
+      !call to_zero(ldb*nrhs, b(1,1))
+      call vscal(ldb*nrhs,0.0_wp, b(1,1),1)
+      do i=1,nrhs
+          do j=1,n
+              call pdelset2(b(j,i), lb(1,1), j, i, desc_lb, 0.d0)
+          end do
+      end do
+  
+  
+      iall=-product(shape(la))*kind(la)
+      deallocate(la, stat=istat)
+      call memocc(istat, iall, 'la', subname)
+  
+      iall=-product(shape(lb))*kind(lb)
+      deallocate(lb, stat=istat)
+      call memocc(istat, iall, 'lb', subname)
+
+      call blacs_gridexit(context)
+  
+  end if processIF
+
+  
+  ! Gather the result on all processes
+  call mpiallred(b(1,1), n*nrhs, mpi_sum, comm, ierr)
+  
+  !call blacs_exit(0)
+
+end subroutine dgesv_parallel
+
+
+
+
+subroutine dpotrf_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda
+  character(len=1),intent(in) :: uplo
+  real(kind=8),dimension(lda,n),intent(inout) :: a
+
+  ! Local variables
+  integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
+  integer :: context, irow, icol, numroc, info
+  integer :: lnrow_a, lncol_a
+  real(kind=8) :: tt1, tt2
+  real(kind=8),dimension(:,:),allocatable :: la
+  integer,dimension(9) :: desc_la
+  character(len=*),parameter :: subname='dpotrf_parallel'
+
+  ! Block size for scalapack
+  mbrow=blocksize
+  mbcol=blocksize
+  
+  ! Number of processes that will be involved in the calculation
+  tt1=dble(n)/dble(mbrow)
+  tt2=dble(n)/dble(mbcol)
+  ii1=ceiling(tt1)
+  ii2=ceiling(tt2)
+  nproc_scalapack = min(ii1*ii2,nproc)
+  !if(iproc==0) write(*,'(a,i0,a)') 'scalapack will use ',nproc_scalapack,' processes.'
+  
+  ! process grid: number of processes per row and column
+  tt1=sqrt(dble(nproc_scalapack))
+  ii1=ceiling(tt1)
+  do i=ii1,nproc_scalapack
+      if(mod(nproc_scalapack,i)==0) then
+          nprocrow=i
+          exit
+      end if
+  end do
+  nproccol=nproc_scalapack/nprocrow
+  if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+  
+  
+  ! Initialize blacs context,
+  call blacs_get(-1, 0, context)
+  call blacs_gridinit(context, 'r', nprocrow, nproccol )
+  call blacs_gridinfo(context,nprocrow, nproccol, irow, icol)
+  
+  !!! Initialize the result c to zero. For processes participating in the calculation, 
+  !!! c will be partially (only at the position that process was working on) overwritten with the result. 
+  !!! At the end we can the make an allreduce to get the correct result on all processes.
+  !!if(irow==-1) call to_zero(ldc*n, c(1,1))
+  !if(irow==-1) call to_zero(lda*n, a(1,1))
+  if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)
+  
+  ! Only execute this part if this process has a part of the matrix to work on. 
+  processIf: if(irow/=-1) then
+
+      ! Determine the size of the local matrix la (lnrow_a x lncol_a):
+      lnrow_a = max(numroc(n, mbrow, irow, 0, nprocrow),1)
+      lncol_a = max(numroc(n, mbcol, icol, 0, nproccol),1)
+      !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local a of size ',lnrow_a,' x ',lncol_a
+
+  
+      ! Initialize descriptor arrays.
+      call descinit(desc_la, n, n, mbrow, mbcol, 0, 0, context, lnrow_a, info)
+  
+      ! Allocate the local arrays
+      allocate(la(lnrow_a,lncol_a), stat=istat)
+      call memocc(istat, la, 'la', subname)
+  
+      ! Copy the global array a to the local array la.
+      ! The same for b and lb, cpectively.
+      do i=1,n
+          do j=1,n
+              call pdelset(la(1,1), j, i, desc_la, a(j,i))
+          end do
+      end do
+  
+  
+      ! Do the cholseky factorization
+      call pdpotrf(uplo, n, la, 1, 1, desc_la, info)
+  
+  
+      ! Put the local result la to the global result a.
+      do i=1,n
+          do j=1,n
+              call pdelset2(a(j,i), la(1,1), j, i, desc_la, 0.d0)
+          end do
+      end do
+  
+      ! Deallocate the local arrays.
+      iall=-product(shape(la))*kind(la)
+      deallocate(la, stat=istat)
+      call memocc(istat, iall, 'la', subname)
+
+      call blacs_gridexit(context)
+  
+  end if processIf
+  
+  
+  ! Gather the result on all processes.
+  call mpiallred(a(1,1), n*n, mpi_sum, comm, ierr)
+
+  !call blacs_exit(0)
+
+end subroutine dpotrf_parallel
+
+
+subroutine dpotri_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda
+  character(len=1),intent(in) :: uplo
+  real(kind=8),dimension(lda,n),intent(inout) :: a
+
+  ! Local variables
+  integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
+  integer :: context, irow, icol, numroc, info
+  integer :: lnrow_a, lncol_a
+  real(kind=8) :: tt1, tt2
+  real(kind=8),dimension(:,:),allocatable :: la
+  integer,dimension(9) :: desc_la
+  character(len=*),parameter :: subname='dpotrf_parallel'
+
+  ! Block size for scalapack
+  mbrow=blocksize
+  mbcol=blocksize
+  
+  ! Number of processes that will be involved in the calculation
+  tt1=dble(n)/dble(mbrow)
+  tt2=dble(n)/dble(mbcol)
+  ii1=ceiling(tt1)
+  ii2=ceiling(tt2)
+  nproc_scalapack = min(ii1*ii2,nproc)
+  !if(iproc==0) write(*,'(a,i0,a)') 'scalapack will use ',nproc_scalapack,' processes.'
+  
+  ! process grid: number of processes per row and column
+  tt1=sqrt(dble(nproc_scalapack))
+  ii1=ceiling(tt1)
+  do i=ii1,nproc_scalapack
+      if(mod(nproc_scalapack,i)==0) then
+          nprocrow=i
+          exit
+      end if
+  end do
+  nproccol=nproc_scalapack/nprocrow
+  if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+  
+  
+  ! Initialize blacs context,
+  call blacs_get(-1, 0, context)
+  call blacs_gridinit(context, 'r', nprocrow, nproccol )
+  call blacs_gridinfo(context,nprocrow, nproccol, irow, icol)
+  
+  !!! Initialize the result c to zero. For processes participating in the calculation, 
+  !!! c will be partially (only at the position that process was working on) overwritten with the result. 
+  !!! At the end we can the make an allreduce to get the correct result on all processes.
+  !if(irow==-1) call to_zero(lda*n, a(1,1))
+  if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)
+  
+  ! Only execute this part if this process has a part of the matrix to work on. 
+  processIf: if(irow/=-1) then
+
+      ! Determine the size of the local matrix la (lnrow_a x lncol_a):
+      lnrow_a = max(numroc(n, mbrow, irow, 0, nprocrow),1)
+      lncol_a = max(numroc(n, mbcol, icol, 0, nproccol),1)
+      !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local a of size ',lnrow_a,' x ',lncol_a
+
+  
+      ! Initialize descriptor arrays.
+      call descinit(desc_la, n, n, mbrow, mbcol, 0, 0, context, lnrow_a, info)
+  
+      ! Allocate the local arrays
+      allocate(la(lnrow_a,lncol_a), stat=istat)
+      call memocc(istat, la, 'la', subname)
+  
+      ! Copy the global array a to the local array la.
+      ! The same for b and lb, cpectively.
+      do i=1,n
+          do j=1,n
+              call pdelset(la(1,1), j, i, desc_la, a(j,i))
+          end do
+      end do
+  
+  
+      ! Calculate the inverse, using the cholesky factorization stored in a.
+      call pdpotri(uplo, n, la, 1, 1, desc_la, info)
+  
+  
+      ! Put the local result la to the global result a.
+      do i=1,n
+          do j=1,n
+              call pdelset2(a(j,i), la(1,1), j, i, desc_la, 0.d0)
+          end do
+      end do
+  
+      ! Deallocate the local arrays.
+      iall=-product(shape(la))*kind(la)
+      deallocate(la, stat=istat)
+      call memocc(istat, iall, 'la', subname)
+
+      call blacs_gridexit(context)
+  
+  end if processIf
+  
+  
+  ! Gather the result on all processes.
+  call mpiallred(a(1,1), n*n, mpi_sum, comm, ierr)
+
+  !call blacs_exit(0)
+
+end subroutine dpotri_parallel

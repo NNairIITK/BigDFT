@@ -56,6 +56,27 @@ void FC_FUNC(nanosec,NANOSEC)(unsigned long long int * t){
   *t += time.tv_nsec;
 }
 
+void FC_FUNC(getaddress, GETADDRESS)(void *ptr,char *address, int *lgaddress,
+			     int* status)
+{
+  char buff[50]; //test buffer to check the length
+  int lgt,lgCpy;
+
+  memset(address,' ', sizeof(char) * (*lgaddress));
+
+  lgt=sprintf(buff,"%p",(void*)ptr);
+  if (lgt <= *lgaddress)
+    {
+      *status = 0;
+      lgt=sprintf(address,"%p",(void*)ptr);
+    }
+  else
+    *status = 1;
+  return;
+
+  //printf("\n test address = %p %d; \n", (void*)ptr,lgt);
+  //return;
+}
 
 void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,
                              char *out, int *lgOut,
@@ -79,7 +100,8 @@ void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,
           *status = 0;
           lgCpy = ((*lgDir > *lgOut - 1)?*lgOut - 1:*lgDir);
           memcpy(out, dir, sizeof(char) * lgCpy);
-          out[lgCpy] = '/';
+          /* Add a '/' if not already present */
+          if (out[lgCpy-1] != '/') { out[lgCpy] = '/'; };
         }
       else
         *status = 1;
@@ -114,6 +136,16 @@ void FC_FUNC(delete, DELETE)(const char *f, int *lgF, int *status)
   *status = unlink(path);
   free(path);
 }
+
+void FC_FUNC(deldir, DELDIR)(const char *f, int *lgF, int *status)
+{
+  char *path;
+
+  path = strndup(f, (size_t)*lgF);
+  *status = rmdir(path);
+  free(path);
+}
+
 
 void FC_FUNC(movefile, MOVEFILE)(const char *oldfile, int *lgoldfile, const char *newfile, int *lgnewfile, int *status)
 {

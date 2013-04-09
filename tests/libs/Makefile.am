@@ -2,7 +2,12 @@ SUBDIRS = fft \
 	PSolver \
 	OP2P \
 	psp \
-	IO-wf
+	IO-wf \
+	yaml
+
+if USE_BLACS
+SUBDIRS += dsygv
+endif 
 
 if USE_CUDA_GPU
 SUBDIRS += CUDA
@@ -20,5 +25,15 @@ if HAVE_GLIB
 SUBDIRS += ftypes
 endif
 
-check, report:
-	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
+if BUILD_LIBYAML
+LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
+PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
+endif
+
+check:
+	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
+
+report: 
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	python $(top_srcdir)/tests/report.py

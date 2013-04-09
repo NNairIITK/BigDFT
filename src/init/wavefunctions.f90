@@ -1,5 +1,16 @@
+!> @file
+!!  Routines related to the definition of the wavefunctions
+!! @author
+!!    Copyright (C) 2010-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 !> Define the descriptors of the orbitals from a given norb
 !! It uses the cubic strategy for partitioning the orbitals
+!! @param basedist   optional argument indicating the base orbitals distribution to start from
 subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,&
      orbs,simple,basedist)
   use module_base
@@ -14,9 +25,12 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedist !> optional argument indicating the base orbitals distribution to start from
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,norb_base,iiorb
+  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,norb_base,iiorb,mpiflag
   logical, dimension(:), allocatable :: GPU_for_orbs
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
+
+  !eTS value, updated in evaltocc
+  orbs%eTS=0.0_gp
 
   allocate(orbs%norb_par(0:nproc-1,0:nkpt+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
@@ -50,7 +64,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
      
      if (nproc > 1) then
         call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
-             MPI_COMM_WORLD,ierr)
+             bigdft_mpi%mpi_comm,ierr)
      else
         GPU_for_orbs(0)=GPUconv
      end if
@@ -141,6 +155,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%norbu=norbu
   orbs%norbd=norbd
 
+
  ! Modify these values
   if (simple) then
      call repartitionOrbitals2(iproc,nproc,orbs%norb,orbs%norb_par,&
@@ -223,11 +238,13 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
           orbs%isorb_par(jproc)=orbs%isorb
       end if
   end do
-  !call MPI_Initialized(mpiflag,ierr)
-  if(nproc >1) &!mpiflag /= 0) 
-       call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,mpi_comm_world,ierr)
+  !this mpiflag is added to make memguess working
+  call MPI_Initialized(mpiflag,ierr)
+  if(nproc >1 .and. mpiflag /= 0) &
+       call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,bigdft_mpi%mpi_comm,ierr)
 
 END SUBROUTINE orbitals_descriptors
+
 
 !> Partition the orbitals between processors to ensure load balancing
 !! the criterion will depend on GPU computation
@@ -320,7 +337,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
 
   if (nproc > 1 .and. .not. GPUshare) then
      call MPI_ALLGATHER(GPUblas,1,MPI_LOGICAL,GPU_for_comp(0),1,MPI_LOGICAL,&
-          MPI_COMM_WORLD,ierr)
+          bigdft_mpi%mpi_comm,ierr)
   else
      GPU_for_comp(0)=GPUblas
   end if
@@ -382,7 +399,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
         write(*,*)'ERROR for nproc,nkpts,norb,nvctr',nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
         call print_distribution_schemes(6,nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
      end if
-     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+     call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
      stop
   end if
 
@@ -444,7 +461,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
   end if
 
   !print *,iproc,orbs%nkptsp,orbs%norbp,orbs%norb,orbs%nkpts
-  !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+  !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
   !call MPI_FINALIZE(ierr)
   !stop
   !check that for any processor the orbital k-point repartition is contained into the components
@@ -479,7 +496,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
      if (.not. yesorb .and. orbs%norbp /= 0) then
         write(*,*)' ERROR: processor ', iproc,' kpt ',ikpt,&
              ' not found in the orbital distribution'
-        call MPI_ABORT(MPI_COMM_WORLD, ierr)
+        call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
      end if
   end do kpt_components
 
@@ -492,7 +509,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
      if (.not. yescomp) then
         write(*,*)' ERROR: processor ', iproc,' kpt,',ikpt,&
              'not found in the component distribution'
-        call MPI_ABORT(MPI_COMM_WORLD, ierr)
+        call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
      end if
   end do kpt_orbitals
 
@@ -581,6 +598,7 @@ END SUBROUTINE orbitals_communicators
 
 
 subroutine repartitionOrbitals(iproc,nproc,norb,norb_par,norbp,isorb_par,isorb,onWhichMPI)
+  use module_types
   use module_base
   implicit none
   
@@ -626,8 +644,7 @@ subroutine repartitionOrbitals(iproc,nproc,norb,norb_par,norbp,isorb_par,isorb,o
   end do
   !call MPI_Initialized(mpiflag,ierr)
   if(nproc >1) &!mpiflag /= 0) 
-       call mpiallred(isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
-
+       call mpiallred(isorb_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 end subroutine repartitionOrbitals
 
@@ -674,7 +691,8 @@ subroutine lzd_set_hgrids(Lzd, hgrids)
   real(gp), intent(in) :: hgrids(3)
   !initial values
   Lzd%hgrids = hgrids
-end subroutine lzd_set_hgrids
+END SUBROUTINE lzd_set_hgrids
+
 
 subroutine inputs_parse_params(in, iproc, dump)
   use module_types
@@ -713,6 +731,6 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
        & (/ atoms%alat1, atoms%alat2, atoms%alat3 /))
 
   ! Linear scaling (if given)
-  call lin_input_variables_new(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR .or. &
-       & in%inputPsiId == INPUT_PSI_MEMORY_LINEAR), trim(in%file_lin),in,atoms)
+  call lin_input_variables_new(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
+       & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
 end subroutine inputs_parse_add

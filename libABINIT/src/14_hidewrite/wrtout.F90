@@ -147,13 +147,14 @@ subroutine wrtout(unit,message,mode_paral)
 
   integer :: ierr, iproc
 
-  if (unit == ab_out) then
+  if (unit == ab_out .or. index(message, "ERROR") > 0) then
      call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
      if (trim(mode_paral) == "COLL") then
         if (iproc == 0) write(*, "(1x,A)") trim(message)
      else
         write(*, "(I03,2x,A)") iproc, trim(message)
      end if
+     call MPI_BARRIER(MPI_COMM_WORLD, ierr)
   end if
 end subroutine wrtout
 !!***

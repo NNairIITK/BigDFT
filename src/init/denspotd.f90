@@ -15,9 +15,15 @@ subroutine initialize_DFT_local_fields(denspot)
   type(DFT_local_fields), intent(inout) :: denspot
 
   denspot%rhov_is = EMPTY
-  nullify(denspot%rho_C,denspot%V_ext,denspot%Vloc_KS,denspot%rho_psi)
-  nullify(denspot%V_XC,denspot%pkernel,denspot%pkernelseq)
-  nullify(denspot%f_XC,denspot%rho_work,denspot%pot_work,denspot%rhov)
+  nullify(denspot%rho_C)
+  nullify(denspot%V_ext)
+  nullify(denspot%Vloc_KS)
+  nullify(denspot%rho_psi)
+  nullify(denspot%V_XC)
+  nullify(denspot%f_XC)
+  nullify(denspot%rho_work)
+  nullify(denspot%pot_work)
+  nullify(denspot%rhov)
 
   denspot%psoffset=0.0_gp
 
@@ -27,35 +33,24 @@ subroutine initialize_DFT_local_fields(denspot)
      denspot%PSquiet='YES'
   end if
 
+  call initialize_coulomb_operator(denspot%pkernel)
+  call initialize_coulomb_operator(denspot%pkernelseq)
   call initialize_rho_descriptors(denspot%rhod)
-  call initialize_denspot_distribution(denspot%dpbox)
+  denspot%dpbox=dpbox_null()
 
   nullify(denspot%mix)
 end subroutine initialize_DFT_local_fields
 
-subroutine initialize_denspot_distribution(dpbox)
+subroutine initialize_coulomb_operator(kernel)
   use module_base
   use module_types
   implicit none
-  type(denspot_distribution), intent(out) :: dpbox
-  !local variables
-  integer :: i
+  type(coulomb_operator), intent(out) :: kernel
   
-  dpbox%n3d      =uninitialized(dpbox%n3d)      
-  dpbox%n3p      =uninitialized(dpbox%n3p)      
-  dpbox%n3pi     =uninitialized(dpbox%n3pi)     
-  dpbox%i3xcsh   =uninitialized(dpbox%i3xcsh)   
-  dpbox%i3s      =uninitialized(dpbox%i3s)      
-  dpbox%nrhodim  =uninitialized(dpbox%nrhodim)  
-  dpbox%i3rho_add=uninitialized(dpbox%i3rho_add)
-  do i=1,3
-     dpbox%hgrids(i)=uninitialized(dpbox%hgrids(i))
-     dpbox%ndims(i)=uninitialized(dpbox%ndims(i))
-  end do
+  nullify(kernel%kernel)
 
-  nullify(dpbox%nscatterarr,dpbox%ngatherarr)
   
-end subroutine initialize_denspot_distribution
+end subroutine initialize_coulomb_operator
 
 subroutine initialize_rho_descriptors(rhod)
   use module_base
@@ -75,6 +70,64 @@ subroutine initialize_rho_descriptors(rhod)
 
 end subroutine initialize_rho_descriptors
 
+subroutine dpbox_set(dpbox,Lzd,iproc,nproc,mpi_comm,in,geocode)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc,mpi_comm
+  character(len=1), intent(in) :: geocode
+  type(input_variables), intent(in) :: in 
+  type(local_zone_descriptors), intent(in) :: Lzd
+  type(denspot_distribution), intent(out) :: dpbox
+
+  dpbox=dpbox_null()
+
+  call dpbox_set_box(dpbox,Lzd)
+
+  call mpi_environment_set(dpbox%mpi_env,iproc,nproc,mpi_comm,in%PSolver_groupsize)
+
+  call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,in%ixc,in%nspin,geocode,in%SIC%approach,dpbox)
+
+end subroutine dpbox_set
+
+subroutine dpbox_free(dpbox,subname)
+  use module_base
+  use module_types
+  implicit none
+  type(denspot_distribution), intent(inout) :: dpbox
+  character(len = *), intent(in) :: subname
+  integer :: i_stat, i_all
+
+  if (associated(dpbox%nscatterarr)) then
+     i_all=-product(shape(dpbox%nscatterarr))*kind(dpbox%nscatterarr)
+     deallocate(dpbox%nscatterarr,stat=i_stat)
+     call memocc(i_stat,i_all,'nscatterarr',subname)
+  end if
+
+  if (associated(dpbox%ngatherarr)) then
+     i_all=-product(shape(dpbox%ngatherarr))*kind(dpbox%ngatherarr)
+     deallocate(dpbox%ngatherarr,stat=i_stat)
+     call memocc(i_stat,i_all,'ngatherarr',subname)
+  end if
+
+  call mpi_environment_free(dpbox%mpi_env)
+
+  dpbox=dpbox_null()
+
+END SUBROUTINE dpbox_free
+
+subroutine mpi_environment_free(mpi_env)
+  use module_base
+  implicit none
+  type(mpi_environment), intent(inout) :: mpi_env
+  !local variables
+  integer :: ierr
+
+  if (mpi_env%ngroup > 1) call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
+
+end subroutine mpi_environment_free
+
+
 subroutine dpbox_set_box(dpbox,Lzd)
   use module_base
   use module_types
@@ -88,7 +141,46 @@ subroutine dpbox_set_box(dpbox,Lzd)
   dpbox%ndims(1)=Lzd%Glr%d%n1i
   dpbox%ndims(2)=Lzd%Glr%d%n2i
   dpbox%ndims(3)=Lzd%Glr%d%n3i
+
 end subroutine dpbox_set_box
+
+
+!> Set the MPI environment (i.e. taskgroup or MPI communicator)
+!! @param mpi_env   MPI environment (out)
+!! @param iproc     proc id
+!! @param nproc     total number of MPI processes
+!! @param mpi_comm  global MPI_communicator
+!! @param groupsize Number of MPI processes by (task)group
+!!                  if 0 one taskgroup (MPI_COMM_WORLD)
+subroutine mpi_environment_set(mpi_env,iproc,nproc,mpi_comm,groupsize)
+  use module_base
+  use yaml_output
+  implicit none
+  integer, intent(in) :: iproc,nproc,mpi_comm,groupsize
+  type(mpi_environment), intent(out) :: mpi_env
+
+  mpi_env=mpi_environment_null()
+
+  mpi_env%igroup=0
+  mpi_env%ngroup=1
+  mpi_env%iproc=iproc
+  mpi_env%nproc=nproc
+  mpi_env%mpi_comm=mpi_comm
+
+  if (nproc >1 .and. groupsize > 0) then
+     if (nproc >1 .and. groupsize < nproc .and. mod(nproc,groupsize)==0) then
+        mpi_env%igroup=iproc/groupsize
+        mpi_env%ngroup=nproc/groupsize
+        mpi_env%iproc=mod(iproc,groupsize)
+        mpi_env%nproc=groupsize
+        call create_group_comm(mpi_comm,nproc,mpi_env%igroup,mpi_env%nproc,mpi_env%mpi_comm)
+        if (iproc == 0) then
+           call yaml_map('Total No. of Taskgroups created',nproc/mpi_env%nproc)
+        end if
+     end if
+  end if
+end subroutine mpi_environment_set
+
 
 !>todo: remove n1i and n2i
 subroutine denspot_set_history(denspot, iscf, nspin, &
@@ -140,17 +232,10 @@ subroutine denspot_communications(iproc,nproc,ixc,nspin,geocode,SICapproach,dpbo
   use module_types
   use module_interfaces, except_this_one => denspot_communications
   implicit none
-  integer, intent(in) :: iproc, nproc,ixc,nspin
-!  type(grid_dimensions), intent(in) :: grid
-!  real(gp), intent(in) :: hxh, hyh, hzh
-!  type(input_variables), intent(in) :: in
+  integer, intent(in) :: ixc,nspin,iproc,nproc
   character(len=1), intent(in) :: geocode
   character(len=4), intent(in) :: SICapproach
-!  type(atoms_data), intent(in) :: atoms
-!  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-!  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(denspot_distribution), intent(inout) :: dpbox
-!  type(rho_descriptors), intent(out) :: rhod
   !local variables
   character(len = *), parameter :: subname = 'denspot_communications' 
   integer :: i_stat
@@ -163,18 +248,11 @@ subroutine denspot_communications(iproc,nproc,ixc,nspin,geocode,SICapproach,dpbo
   allocate(dpbox%nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
   call memocc(i_stat,dpbox%nscatterarr,'nscatterarr',subname)
   !allocate array for the communications of the potential
-  allocate(dpbox%ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
+  !also used for the density
+  allocate(dpbox%ngatherarr(0:nproc-1,3+ndebug),stat=i_stat)
   call memocc(i_stat,dpbox%ngatherarr,'ngatherarr',subname)
 
   call dpbox_repartition(iproc,nproc,geocode,'D',ixc,dpbox)
-
-!!$  !create the descriptors for the density and the potential
-!!$  !these descriptors should take into account the localisation regions
-!!$  call createDensPotDescriptors(iproc,nproc,atoms,grid,hxh,hyh,hzh, &
-!!$       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',in%ixc,in%rho_commun, &
-!!$       dpbox%n3d,dpbox%n3p,&
-!!$       dpbox%n3pi,dpbox%i3xcsh,dpbox%i3s, &
-!!$       dpbox%nscatterarr,dpbox%ngatherarr,rhod)
 
   !Allocate Charge density / Potential in real space
   !here the full_density treatment should be put
@@ -229,7 +307,7 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
         new = 1
         
         ! Ask to gather density to other procs.
-        call MPI_BCAST(0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(0, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
 
      if (denspot%dpbox%ndimrhopot > 0) then
@@ -242,12 +320,12 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
            call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
                 nslice,mpidtypd,rho_full(denspot%dpbox%ndimgrid * (irhodim - 1) + 1),&
                 denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
-                mpidtypd,0,MPI_COMM_WORLD,ierr)
+                mpidtypd,0,bigdft_mpi%mpi_comm,ierr)
         else
            call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
                 nslice,mpidtypd,rho_full(1),&
                 denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
-                mpidtypd,0,MPI_COMM_WORLD,ierr)
+                mpidtypd,0,bigdft_mpi%mpi_comm,ierr)
         end if
      end do
   else
@@ -276,12 +354,12 @@ subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
         new = 1
       
         ! Ask to gather density to other procs.
-        call MPI_BCAST(1, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(1, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
 
      call MPI_GATHERV(denspot%v_ext(1,1,1,1),max(denspot%dpbox%ndimpot, 1),&
           mpidtypd,pot_full(1),denspot%dpbox%ngatherarr(0,1),&
-          denspot%dpbox%ngatherarr(0,2),mpidtypd,0,MPI_COMM_WORLD,ierr)
+          denspot%dpbox%ngatherarr(0,2),mpidtypd,0,bigdft_mpi%mpi_comm,ierr)
   else
      pot_full => denspot%rhov
   end if
@@ -319,11 +397,11 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
         message = SIGNAL_DONE
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
   else
      do
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
         if (message == SIGNAL_DONE) then
            exit
         else if (message == SIGNAL_DENSITY) then
@@ -371,11 +449,11 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
         message = SIGNAL_DONE
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
   else
      do
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
         if (message == SIGNAL_DONE) then
            exit
         else
@@ -395,7 +473,7 @@ END SUBROUTINE denspot_emit_v_ext
 subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => allocateRhoPot
+  use module_interfaces, fake_name => allocateRhoPot
   use m_ab6_mixing
   implicit none
   integer, intent(in) :: iproc,nspin
@@ -498,6 +576,8 @@ subroutine dpbox_repartition(iproc,nproc,geocode,datacode,ixc,dpbox)
 
   dpbox%ngatherarr(:,1)=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%nscatterarr(:,2)
   dpbox%ngatherarr(:,2)=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%nscatterarr(:,3)
+  !for the density
+  dpbox%ngatherarr(:,3)=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%nscatterarr(:,1)
 
 end subroutine dpbox_repartition
 
@@ -518,6 +598,7 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   use module_base
   use module_types
   use module_xc
+  use module_interfaces, except_this_one_A => density_descriptors
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: crmult,frmult
@@ -527,27 +608,58 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(rho_descriptors), intent(out) :: rhodsc
+  !local variables
+
+  if (.not.xc_isgga()) then
+     rhodsc%icomm=1
+  else
+     rhodsc%icomm=0
+  endif
+
+  !decide rho communication strategy
+  !old way
+  !override the  default
+  if (rho_commun=='DBL') then
+     rhodsc%icomm=0
+  else if (rho_commun == 'RSC') then
+     rhodsc%icomm=1
+  else if (rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1)) then
+     rhodsc%icomm=2
+  end if
   
+!!$  !recent way
+!!$  if ((atoms%geocode.eq.'F') .and. (nproc > 1)) then
+!!$     rhodsc%icomm=2
+!!$  end if
+!!$  !override the  default
+!!$  if (rho_commun=='DBL') then
+!!$     rhodsc%icomm=0
+!!$  else if (rho_commun == 'RSC') then
+!!$     rhodsc%icomm=1
+!!$  end if
+
+  !in the case of taskgroups the RSC scheme should be overrided
+  if (rhodsc%icomm==1 .and. size(dpbox%nscatterarr,1) < nproc) then
+     if (atoms%geocode.eq.'F') then
+        rhodsc%icomm=2
+     else
+        rhodsc%icomm=0
+     end if
+  end if
   !write (*,*) 'hxh,hyh,hzh',hgrids(1),hgrids(2),hgrids(3)
   !create rhopot descriptors
   !allocate rho_descriptors if the density repartition is activated
-  !decide rho communication strategy
-  if (rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1) .and. xc_isgga()) then
+
+  if (rhodsc%icomm==2) then !rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1)) then! .and. xc_isgga()) then
      call rho_segkey(iproc,atoms,rxyz,crmult,frmult,radii_cf,&
           dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),&
           dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),nspin,rhodsc,.false.)
-     rhodsc%icomm=2
   else
      !nullify rhodsc pointers
      nullify(rhodsc%spkey)
      nullify(rhodsc%dpkey)
      nullify(rhodsc%cseg_b)
      nullify(rhodsc%fseg_b)
-     if (.not.xc_isgga()) then
-        rhodsc%icomm=1
-     else
-        rhodsc%icomm=0
-     endif
   end if
   
   !calculate dimensions of the complete array to be allocated before the reduction procedure
@@ -556,7 +668,7 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   else
      rhodsc%nrhotot=dpbox%ndims(3)
   end if
-  
+ 
 end subroutine density_descriptors
 
 
@@ -587,6 +699,7 @@ subroutine default_confinement_data(confdatarr,norbp)
 
   end do
 end subroutine default_confinement_data
+
 
 subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
            confpotorder,potentialprefac,Lzd,confinementCenter)
@@ -628,8 +741,8 @@ contains
 
     subroutine geocode_buffers(geocode,nl1,nl2,nl3)
       implicit none
-      integer, intent(in) :: nl1,nl2,nl3
       character(len=1), intent(in) :: geocode
+      integer, intent(out) :: nl1,nl2,nl3
       !local variables
       logical :: perx,pery,perz
       integer :: nr1,nr2,nr3
@@ -651,6 +764,7 @@ end subroutine define_confinement_data
 !> Print the distribution schemes
 subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
   use module_base
+  use yaml_output
   implicit none
   !Arguments
   integer, intent(in) :: nproc,nkpts,unit
@@ -658,69 +772,96 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
   !local variables
   integer :: jproc,ikpt,norbp,isorb,ieorb,isko,ieko,nvctrp,ispsi,iepsi,iekc,iskc
   integer :: iko,ikc,nko,nkc
+  integer :: indentlevel
 
-  write(unit,'(1x,a,a)')repeat('-',46),'Direct and transposed data repartition'
-  write(unit,'(1x,8(a))')'| proc |',' N. Orbitals | K-pt |  Orbitals  ',&
-       '|| N. Components | K-pt |    Components   |'
-  do jproc=0,nproc-1
-     call start_end_distribution(nproc,nkpts,jproc,norb_par,isko,ieko,norbp)
-     call start_end_distribution(nproc,nkpts,jproc,nvctr_par,iskc,iekc,nvctrp)
-     iko=isko
-     ikc=iskc
-     nko=ieko-isko+1
-     nkc=iekc-iskc+1
-     !print total number of orbitals and components
-     write(unit,'(1x,a,i4,a,i8,a,i13,a)')'| ',jproc,' |',norbp,&
-          repeat(' ',5)//'|'//repeat('-',6)//'|'//repeat('-',12)//'||',&
-          nvctrp,&
-          repeat(' ',2)//'|'//repeat('-',6)//'|'//repeat('-',17)//'|'
-     !change the values to zero if there is no orbital
-     do ikpt=1,min(nko,nkc)
-        call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
-        call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
-        if (norbp/=0) then
-           write(unit,'(a,i4,a,i5,a,i5,a,i4,a,i8,a,i8,a)')&
-                ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
-                iko,'  |',isorb,'-',ieorb,&
-                ' ||'//repeat(' ',15)//'|',&
-                ikc,'  |',ispsi,'-',iepsi,'|'
-        else
-           write(unit,'(a,i4,a,i5,a,i5,a,i4,a,i8,a,i8,a)')&
-                ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
-                0,'  |',0,'-',-1,&
-                ' ||'//repeat(' ',15)//'|',&
-                ikc,'  |',ispsi,'-',iepsi,'|'
-        end if
-        iko=iko+1
-        ikc=ikc+1
-     end do
-     if (nko > nkc) then
-        do ikpt=nkc+1,nko
-           if (norbp/=0) then
-              call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
-              write(unit,'(a,i4,a,i5,a,i5,2a)') &
-                   & ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
-                   & iko,'  |',isorb,'-',ieorb, ' ||'//repeat(' ',15)//'|',&
-                   & '      |                 |'
-           else
-              write(unit,'(a,i4,a,i5,a,i5,2a)') &
-                   & ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
-                   & 0,'  |',0,'-',-1, ' ||'//repeat(' ',15)//'|',&
-                   & '      |                 |'
+  call yaml_open_sequence('Direct and transposed data repartition')
+     !write(unit,'(1x,a,a)')repeat('-',46),'Direct and transposed data repartition'
+     !write(unit,'(1x,8(a))')'| proc |',' N. Orbitals | K-pt |  Orbitals  ',&
+     !     '|| N. Components | K-pt |    Components   |'
+     do jproc=0,nproc-1
+        call start_end_distribution(nproc,nkpts,jproc,norb_par,isko,ieko,norbp)
+        call start_end_distribution(nproc,nkpts,jproc,nvctr_par,iskc,iekc,nvctrp)
+        iko=isko
+        ikc=iskc
+        nko=ieko-isko+1
+        nkc=iekc-iskc+1
+        !print total number of orbitals and components
+        call yaml_open_map('Process'//trim(yaml_toa(jproc)))
+           call yaml_map('Orbitals and Components', (/ norbp, nvctrp /))
+           !write(unit,'(1x,a,i4,a,i8,a,i13,a)')'| ',jproc,' |',norbp,&
+           !     repeat(' ',5)//'|'//repeat('-',6)//'|'//repeat('-',12)//'||',&
+           !     nvctrp,&
+           !     repeat(' ',2)//'|'//repeat('-',6)//'|'//repeat('-',17)//'|'
+           !change the values to zero if there is no orbital
+           if (norbp /= 0) then
+              call yaml_stream_attributes(indent=indentlevel)
+              call yaml_open_sequence('Distribution',flow=.true.)
+              call yaml_comment('Orbitals: [From, To], Components: [From, To]')
+                 call yaml_newline()
+                 do ikpt=1,min(nko,nkc)
+                    call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
+                    call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
+                    call yaml_newline()
+                    call yaml_open_sequence(repeat(' ', max(indentlevel+1,0)) // &
+                         & "Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
+                       call yaml_map("Orbitals",(/ isorb, ieorb /),fmt='(i5)')
+                       call yaml_map("Components",(/ ispsi, iepsi /),fmt='(i8)')
+                    call yaml_close_sequence()
+                    !if (norbp/=0) then
+                    !   write(unit,'(a,i4,a,i5,a,i5,a,i4,a,i8,a,i8,a)')&
+                    !        ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
+                    !        iko,'  |',isorb,'-',ieorb,&
+                    !        ' ||'//repeat(' ',15)//'|',&
+                    !        ikc,'  |',ispsi,'-',iepsi,'|'
+                    !else
+                    !   write(unit,'(a,i4,a,i5,a,i5,a,i4,a,i8,a,i8,a)')&
+                    !        ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
+                    !        0,'  |',0,'-',-1,&
+                    !        ' ||'//repeat(' ',15)//'|',&
+                    !        ikc,'  |',ispsi,'-',iepsi,'|'
+                    !end if
+                    iko=iko+1
+                    ikc=ikc+1
+                 end do
+                 if (nko > nkc) then
+                    do ikpt=nkc+1,nko
+                       !if (norbp/=0) then
+                       call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
+                       call yaml_open_sequence("Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
+                       call yaml_map("Orbitals",(/ isorb, ieorb /),fmt='(i5)')
+                       call yaml_close_sequence()
+                       call yaml_newline()
+                       !write(unit,'(a,i4,a,i5,a,i5,2a)') &
+                       !     & ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
+                       !     & iko,'  |',isorb,'-',ieorb, ' ||'//repeat(' ',15)//'|',&
+                       !     & '      |                 |'
+                       !else
+                       !   write(unit,'(a,i4,a,i5,a,i5,2a)') &
+                       !        & ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
+                       !        & 0,'  |',0,'-',-1, ' ||'//repeat(' ',15)//'|',&
+                       !        & '      |                 |'
+                       !end if
+                       iko=iko+1
+                    end do
+                 else if (nkc > nko) then
+                    do ikpt=nko+1,nkc
+                       call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
+                       call yaml_open_sequence("Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
+                       call yaml_map("Components",(/ ispsi, iepsi /),fmt='(i8)')
+                       call yaml_close_sequence()
+                       call yaml_newline()
+                       !write(unit,'(a,i4,a,i8,a,i8,a)')&
+                       !     ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|'//repeat(' ',4)//'  |'//&
+                       !     repeat(' ',12)//'||'//repeat(' ',15)//'|',&
+                       !     ikc,'  |',ispsi,'-',iepsi,'|'
+                       !ikc=ikc+1
+                    end do
+                 end if
+              call yaml_close_sequence()
            end if
-           iko=iko+1
-        end do
-     else if (nkc > nko) then
-        do ikpt=nko+1,nkc
-           call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
-           write(unit,'(a,i4,a,i8,a,i8,a)')&
-                ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|'//repeat(' ',4)//'  |'//&
-                repeat(' ',12)//'||'//repeat(' ',15)//'|',&
-                ikc,'  |',ispsi,'-',iepsi,'|'
-           ikc=ikc+1
-        end do
-     end if
-  end do
+        call yaml_close_map() ! for Process jproc
+     end do
+  call yaml_close_sequence()  ! for Data distribution
   
 END SUBROUTINE print_distribution_schemes
 

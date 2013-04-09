@@ -10,6 +10,14 @@ subroutine memocc_verbose()
   call mstate(2)
 end subroutine memocc_verbose
 
+subroutine memocc_set_output(file, ln)
+  use m_profiling, only: mstate => memocc_set_filename
+  implicit none
+  integer, intent(in) :: ln
+  character(len = ln), intent(in) :: file
+  call mstate(file)
+end subroutine memocc_set_output
+
 subroutine f90_pointer_1D_init(pt_c, size_c)
   implicit none
   double precision, intent(in) :: pt_c
@@ -126,17 +134,18 @@ subroutine close_file(unitwf)
   close(unit = unitwf)
 END SUBROUTINE close_file
 
-subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
-  use Poisson_Solver, only: ck => createKernel
-  implicit none
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
-  real(kind=8), intent(in) :: hx,hy,hz
-  real(kind=8), pointer :: kernel(:)
-  logical, intent(in) :: wrtmsg
-
-  call ck(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
-end subroutine createKernel
+!!$subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
+!!$  use module_types, only
+!!$  use Poisson_Solver, only: ck => createKernel
+!!$  implicit none
+!!$  character(len=1), intent(in) :: geocode
+!!$  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
+!!$  real(kind=8), intent(in) :: hx,hy,hz
+!!$  real(kind=8), pointer :: kernel(:)
+!!$  logical, intent(in) :: wrtmsg
+!!$
+!!$  call ck(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
+!!$end subroutine createKernel
 
 subroutine deallocate_double_1D(array)
   use module_base
@@ -577,7 +586,7 @@ subroutine inputs_get_linear(linear, inputPsiId)
   integer, intent(in) :: inputPsiId
 
   linear = 0
-  if (inputPsiId == INPUT_PSI_LINEAR .or. inputPsiId == INPUT_PSI_MEMORY_LINEAR) linear = 1
+  if (inputPsiId == INPUT_PSI_LINEAR_AO .or. inputPsiId == INPUT_PSI_DISK_LINEAR) linear = 1
 END SUBROUTINE inputs_get_linear
 subroutine inputs_check_psi_id(inputpsi, input_wf_format, dir_output, ln, orbs, lorbs, iproc, nproc)
   use module_types
@@ -788,6 +797,18 @@ subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
   nprojel = nlpspd%nprojel
 END SUBROUTINE proj_get_dimensions
 
+subroutine kernel_get_comm(pkernel, igroup, ngroup, iproc_grp, &
+     & nproc_grp, mpi_comm)
+  use module_types
+  implicit none
+  type(coulomb_operator), intent(in) :: pkernel
+  integer, intent(out) :: igroup, ngroup, iproc_grp, nproc_grp, mpi_comm
+  igroup = pkernel%mpi_env%igroup
+  ngroup = pkernel%mpi_env%ngroup
+  iproc_grp = pkernel%mpi_env%iproc
+  nproc_grp = pkernel%mpi_env%nproc
+  mpi_comm = pkernel%mpi_env%mpi_comm
+end subroutine kernel_get_comm
 subroutine localfields_new(self, denspotd, rhod, dpbox)
   use module_types
   implicit none
@@ -811,35 +832,32 @@ subroutine localfields_get_data(denspotd, rhod, dpbox)
   rhod => denspotd%rhod
   dpbox => denspotd%dpbox
 END SUBROUTINE localfields_get_data
-subroutine localfields_free(denspotd)
+subroutine localfields_free(denspotd, fion, fdisp)
   use module_types
+  use Poisson_Solver
   use m_profiling
   implicit none
   type(DFT_local_fields), pointer :: denspotd
+  real(gp), dimension(:,:), pointer :: fion, fdisp
   
   character(len = *), parameter :: subname = "localfields_free"
   integer :: i_stat, i_all
 
   call deallocate_rho_descriptors(denspotd%rhod, subname)
-  call deallocate_denspot_distribution(denspotd%dpbox, subname)
+  call dpbox_free(denspotd%dpbox, subname)
   
   if (associated(denspotd%V_ext)) then
      i_all=-product(shape(denspotd%V_ext))*kind(denspotd%V_ext)
      deallocate(denspotd%V_ext,stat=i_stat)
      call memocc(i_stat,i_all,'denspotd%V_ext',subname)
   end if
-
-!!$  if (associated(denspotd%pkernelseq)) then
-!!$     i_all=-product(shape(denspotd%pkernelseq))*kind(denspotd%pkernelseq)
-!!$     deallocate(denspotd%pkernelseq,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'kernelseq',subname)
-!!$  end if
-
-  if (associated(denspotd%pkernel)) then
-     i_all=-product(shape(denspotd%pkernel))*kind(denspotd%pkernel)
-     deallocate(denspotd%pkernel,stat=i_stat)
-     call memocc(i_stat,i_all,'kernel',subname)
+  
+  if (associated(denspotd%pkernelseq%kernel,target=denspotd%pkernel%kernel)) then
+     nullify(denspotd%pkernelseq%kernel)
+  else if (associated(denspotd%pkernelseq%kernel)) then
+     call pkernel_free(denspotd%pkernelseq,subname)
   end if
+  call pkernel_free(denspotd%pkernel,subname)
 
   if (associated(denspotd%rhov)) then
      i_all=-product(shape(denspotd%rhov))*kind(denspotd%rhov)
@@ -860,6 +878,17 @@ subroutine localfields_free(denspotd)
   end if
 
   deallocate(denspotd)
+
+  if (associated(fion)) then
+     i_all=-product(shape(fion))*kind(fion)
+     deallocate(fion,stat=i_stat)
+     call memocc(i_stat,i_all,'fion',subname)
+  end if
+  if (associated(fdisp)) then
+     i_all=-product(shape(fdisp))*kind(fdisp)
+     deallocate(fdisp,stat=i_stat)
+     call memocc(i_stat,i_all,'fdisp',subname)
+  end if
 END SUBROUTINE localfields_free
 subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, ni, psoffset)
   use module_types
@@ -901,16 +930,16 @@ END SUBROUTINE localfields_get_v_xc
 subroutine localfields_get_pkernel(denspot, pkernel)
   use module_types
   implicit none
-  type(DFT_local_fields), intent(in) :: denspot
-  real(dp), dimension(:), pointer :: pkernel
+  type(DFT_local_fields), intent(in), target :: denspot
+  type(coulomb_operator), pointer :: pkernel
 
   pkernel => denspot%pkernel
 END SUBROUTINE localfields_get_pkernel
 subroutine localfields_get_pkernelseq(denspot, pkernelseq)
   use module_types
   implicit none
-  type(DFT_local_fields), intent(in) :: denspot
-  real(dp), dimension(:), pointer :: pkernelseq
+  type(DFT_local_fields), intent(in), target :: denspot
+  type(coulomb_operator), pointer :: pkernelseq
 
   pkernelseq => denspot%pkernelseq
 END SUBROUTINE localfields_get_pkernelseq
@@ -1230,7 +1259,7 @@ subroutine optloop_emit_iter(optloop, id, energs, iproc, nproc)
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
         message = SIGNAL_DONE
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
   else
      message = SIGNAL_WAIT
@@ -1238,7 +1267,7 @@ subroutine optloop_emit_iter(optloop, id, energs, iproc, nproc)
         if (message == SIGNAL_DONE) then
            exit
         end if
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
         
         if (message >= 0) then
            ! sync values from proc 0.
@@ -1268,10 +1297,10 @@ subroutine optloop_bcast(optloop, iproc)
      rData(2) = optloop%rpnrm_cv
      rData(3) = optloop%gnrm_startmix
 
-     call MPI_BCAST(0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+     call MPI_BCAST(0, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
   end if
-  call MPI_BCAST(iData, 4, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-  call MPI_BCAST(rData, 3, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
+  call MPI_BCAST(iData, 4, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+  call MPI_BCAST(rData, 3, MPI_DOUBLE_PRECISION, 0, bigdft_mpi%mpi_comm, ierr)
   if (iproc /= 0) then
      optloop%iscf = iData(1)
      optloop%itrpmax = iData(2)

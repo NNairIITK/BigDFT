@@ -14,7 +14,8 @@ program art90
 
   use defs 
   use random 
-  use lanczos_defs, only: projection, LANCZOS_MIN 
+  use lanczos_defs, only: projection, LANCZOS_MIN
+  use module_defs, only: mpi_environment, bigdft_mpi
   implicit None
 
   integer :: ierror, ierr
@@ -37,7 +38,8 @@ program art90
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-                                      ! If restartfile exists, then we restart.
+  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)  
+                                    ! If restartfile exists, then we restart.
   inquire ( file = restartfile, exist = restart )
   if ( restart ) & 
      & call restart_states( state_restart, ievent_restart, iter_restart, atp )

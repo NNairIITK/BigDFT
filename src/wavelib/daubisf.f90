@@ -77,13 +77,13 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
      call memocc(i_stat,w%x_f3,'x_f3',subname)
 
      !initialisation of the work arrays
-     call razero(w%nxf1*nspinor,w%x_f1)
-     call razero(w%nxf2*nspinor,w%x_f2)
-     call razero(w%nxf3*nspinor,w%x_f3)
-     call razero(w%nxc*nspinor,w%x_c)
-     call razero(w%nxf*nspinor,w%x_f)
-     call razero(w%nyc*nspinor,w%y_c)
-     call razero(w%nyf*nspinor,w%y_f)
+     call to_zero(w%nxf1*nspinor,w%x_f1(1,1))
+     call to_zero(w%nxf2*nspinor,w%x_f2(1,1))
+     call to_zero(w%nxf3*nspinor,w%x_f3(1,1))
+     call to_zero(w%nxc*nspinor,w%x_c(1,1))
+     call to_zero(w%nxf*nspinor,w%x_f(1,1))
+     call to_zero(w%nyc*nspinor,w%y_c(1,1))
+     call to_zero(w%nyf*nspinor,w%y_f(1,1))
 
 !!        call razero(w%nw1*nspinor,w%w1)
 !!        call razero(w%nw2*nspinor,w%w2)
@@ -328,11 +328,273 @@ subroutine deallocate_work_arrays_locham(lr,w)
   
 END SUBROUTINE deallocate_work_arrays_locham
 
+subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nspinor
+  real(gp), dimension(3), intent(in) :: hgrids,kptv
+  type(locreg_descriptors), intent(in) :: lr
+  type(workarr_locham), intent(inout) :: w
+  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psi
+  real(gp), intent(out) :: ekin
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
+  real(wp), dimension(6), optional :: k_strten
+  !Local variables
+  logical :: usekpts
+  integer :: idx,i,i_f,iseg_f,ipsif,isegf
+  real(gp) :: ekino
+  real(wp), dimension(0:3) :: scal
+  real(gp), dimension(3) :: hgridh
+  real(wp), dimension(6) :: kstrten,kstrteno
 
-!> Transforms a wavefunction written in Daubechies basis into a 
-!! real space wavefunction in interpolating scaling functions on a finer grid
-!! does the job for all supported BC. Saves the results on the work arrays
-!! which are reused in the isf_to_daub_kinetic routine
+
+  !control whether the k points are to be used
+  !real k-point different from Gamma still not implemented
+  usekpts = nrm2(3,kptv(1),1) > 0.0_gp .or. nspinor == 2
+
+  hgridh=.5_gp*hgrids
+
+  do i=0,3
+     scal(i)=1.0_wp
+  enddo
+
+  !starting point for the fine degrees, to avoid boundary problems
+  i_f=min(1,lr%wfd%nvctr_f)
+  iseg_f=min(1,lr%wfd%nseg_f)
+  ipsif=lr%wfd%nvctr_c+i_f
+  isegf=lr%wfd%nseg_c+iseg_f
+
+    !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
+  ekin=0.0_gp
+  
+  kstrten=0.0_wp
+  select case(lr%geocode)
+  case('F')
+
+     !here kpoints cannot be used (for the moment, to be activated for the 
+     !localisation region scheme
+     if (usekpts) stop 'K points not allowed for Free BC locham'
+
+     do idx=1,nspinor
+        call uncompress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  & 
+             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+             lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),  & 
+             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+             lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
+             scal,psi(1,idx),psi(ipsif,idx),  &
+             w%x_c(1,idx),w%x_f(1,idx),&
+             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
+
+        call to_zero(w%nyc,w%y_c(1,idx))
+        call to_zero(w%nyf,w%y_f(1,idx))
+
+        call ConvolkineticT(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+             hgrids(1),&        !here the grid spacings are supposed to be equal
+             lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
+             lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f, &
+             w%x_c(1,idx),w%x_f(1,idx),&
+             w%y_c(1,idx),w%y_f(1,idx),ekino, &
+             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
+        ekin=ekin+ekino
+
+        !new compression routine in standard form
+        call compress_and_accumulate_standard(lr%d,lr%wfd,&
+             lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+             lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+             w%y_c(1,idx),w%y_f(1,idx),&
+             hpsi(1,idx),hpsi(ipsif,idx))
+
+     end do
+
+  case('S')
+
+     if (usekpts) then
+        !first calculate the proper arrays then transpose them before passing to the
+        !proper routine
+        do idx=1,nspinor
+           call uncompress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
+                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
+                psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
+        end do
+
+        !Transposition of the work arrays (use y_c as workspace)
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
+             w%x_c,w%y_c,.true.)
+        call to_zero(nspinor*w%nyc,w%y_c(1,1))
+
+        ! compute the kinetic part and add  it to psi_out
+        ! the kinetic energy is calculated at the same time
+        ! do this thing for both components of the spinors
+        do idx=1,nspinor,2
+           call convolut_kinetic_slab_T_k(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
+                hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino,kptv(1),kptv(2),kptv(3))
+        ekin=ekin+ekino        
+        end do
+
+        !re-Transposition of the work arrays (use x_c as workspace)
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
+             w%y_c,w%x_c,.false.)
+
+        do idx=1,nspinor
+           !new compression routine in mixed form
+           call analyse_slab_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                w%y_c(1,idx),w%x_c(1,idx))
+           call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                w%x_c(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+
+        end do
+        
+     else
+        do idx=1,nspinor
+           call uncompress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
+                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
+                psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
+
+           call to_zero(w%nyc,w%y_c(1,idx))
+           ! compute the kinetic part and add  it to psi_out
+           ! the kinetic energy is calculated at the same time
+           call convolut_kinetic_slab_T(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
+                hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
+           ekin=ekin+ekino
+
+           !new compression routine in mixed form
+           call analyse_slab_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                w%y_c(1,idx),w%x_c(1,idx))
+           call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                w%x_c(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+        end do
+     end if
+
+  case('P')
+     
+     if (lr%hybrid_on) then
+
+        !here kpoints cannot be used, such BC are used in general to mimic the Free BC
+        if (usekpts) stop 'K points not allowed for hybrid BC locham'
+
+        !here the grid spacing is not halved
+        hgridh=hgrids
+        do idx=1,nspinor
+           call uncompress_per_f(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
+                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
+                psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%x_f(1,idx),&
+                w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),&
+                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3)
+
+           call to_zero(w%nyc,w%y_c(1,idx))
+           call to_zero(w%nyf,w%y_f(1,idx))
+
+           call convolut_kinetic_hyb_T(lr%d%n1,lr%d%n2,lr%d%n3, &
+                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+                hgridh,w%x_c(1,idx),w%x_f(1,idx),w%y_c(1,idx),w%y_f(1,idx),kstrteno,&
+                w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),lr%bounds%kb%ibyz_f,&
+                lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f)
+            kstrten=kstrten+kstrteno
+            !ekin=ekin+ekino
+
+            call compress_and_accumulate_standard(lr%d,lr%wfd,&
+                 lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                 lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                 w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+
+        end do
+     else
+
+        if (usekpts) then
+
+           do idx=1,nspinor
+              call uncompress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                   lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
+                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                   lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
+                   psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
+           end do
+
+           !Transposition of the work arrays (use psir as workspace)
+           call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                w%x_c,w%y_c,.true.)
+
+           call to_zero(nspinor*w%nyc,w%y_c(1,1))
+
+           ! compute the kinetic part and add  it to psi_out
+           ! the kinetic energy is calculated at the same time
+           do idx=1,nspinor,2
+              !print *,'AAA',2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,hgridh
+              
+              call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                   hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
+              kstrten=kstrten+kstrteno
+              !ekin=ekin+ekino
+           end do
+
+           !Transposition of the work arrays (use psir as workspace)
+           call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                w%y_c,w%x_c,.false.)
+
+           do idx=1,nspinor
+
+              call analyse_per_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                   w%y_c(1,idx),w%x_c(1,idx))
+              call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                 lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                 lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                 w%x_c(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+
+           end do
+        else
+           !first calculate the proper arrays then transpose them before passing to the
+           !proper routine
+           do idx=1,nspinor
+              call uncompress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                   lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
+                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                   lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
+                   psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
+
+              call to_zero(w%nyc,w%y_c(1,idx))
+              ! compute the kinetic part and add  it to psi_out
+              ! the kinetic energy is calculated at the same time
+              call convolut_kinetic_per_t(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                   hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno)
+              kstrten=kstrten+kstrteno
+
+              call analyse_per_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                   w%y_c(1,idx),w%x_c(1,idx))
+              call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                   lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                   lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                   w%x_c(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+
+           end do
+        end if
+
+     end if
+     ekin=ekin+kstrten(1)+kstrten(2)+kstrten(3)
+     if (present(k_strten)) k_strten=kstrten 
+
+  end select
+
+END SUBROUTINE psi_to_tpsi
+
+
 subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   use module_base
   use module_types
@@ -355,7 +617,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   iseg_f=min(1,lr%wfd%nseg_f)
 
   !call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
-  !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+  !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
   select case(lr%geocode)
   case('F')
      call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspinor,psir(1,1))
@@ -433,7 +695,6 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   
 END SUBROUTINE daub_to_isf_locham
 
-
 subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_strten)
   !use module_base
   use module_types
@@ -473,7 +734,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
   ipsif=lr%wfd%nvctr_c+i_f
   isegf=lr%wfd%nseg_c+iseg_f
 
-    !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+    !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
   ekin=0.0_gp
   
   kstrten=0.0_wp
@@ -713,6 +974,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
   end select
 
 END SUBROUTINE isf_to_daub_kinetic
+
 
 subroutine initialize_work_arrays_sumrho(lr,w)
   use module_base
@@ -975,6 +1237,7 @@ END SUBROUTINE daub_to_isf
 !!   wavefunction in Daubechies form
 !!   does the job for all supported BC
 !!   Warning: the psir is destroyed for some BCs (slab and periodic)
+!!   Warning: psi must already be initialized (to zero) before entering this routine
 subroutine isf_to_daub(lr,w,psir,psi)
   !n(c) use module_base
   use module_types
@@ -982,7 +1245,7 @@ subroutine isf_to_daub(lr,w,psir,psi)
   type(locreg_descriptors), intent(in) :: lr
   type(workarr_sumrho), intent(inout) :: w
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i), intent(inout) :: psir
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(out) :: psi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(inout) :: psi
   !local variables
   integer :: i,i_f,iseg_f,isegf,ipsif
   real(wp), dimension(0:3) :: scal

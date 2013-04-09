@@ -56,13 +56,13 @@ subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n
 
      call MPI_ALLGATHERV(rho(1,1),n1i*n2i*n3p,&
           mpidtypd,pot_ion(1,1),ngatherarr(0,1),&
-          ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+          ngatherarr(0,2),mpidtypd,bigdft_mpi%mpi_comm,ierr)
 
      !case for npspin==2
      if (nspin==2) then
         call MPI_ALLGATHERV(rho(1,2),n1i*n2i*n3p,&
              mpidtypd,pot_ion(1,2),ngatherarr(0,1),&
-             ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+             ngatherarr(0,2),mpidtypd,bigdft_mpi%mpi_comm,ierr)
      end if
 
   else
@@ -439,13 +439,13 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
 
      call MPI_ALLGATHERV(rho(1,1),box%ndimpot,&
           mpidtypd,pot_ion(1,1),box%ngatherarr(0,1),&
-          box%ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+          box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
 
      !case for npspin==2
      if (nspin==2) then
         call MPI_ALLGATHERV(rho(1,2),box%ndimpot,&
              mpidtypd,pot_ion(1,2),box%ngatherarr(0,1),&
-             box%ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+             box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
      end if
 
   else
@@ -682,6 +682,7 @@ END SUBROUTINE plot_wf
 !! nscatterarr array
 subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,n2i,n3i,n3p,nspin,hxh,hyh,hzh,pot)
   use module_base
+  use module_types
   use module_interfaces
   implicit none
   integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,nspin
@@ -707,7 +708,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
      else
         write(*,*)'ERROR (to be documented): some of the parameters do not coincide'
         write(*,*)hxh,hyh,hzh,hxt,hyt,hzt,nspin,nspint,n1i,n2i,n3i,n1t,n2t,n3t
-        call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+        call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
      end if
   else
      allocate(pot_from_disk(1,1,1,nspin+ndebug),stat=i_stat)
@@ -719,7 +720,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
         call MPI_SCATTERV(pot_from_disk(1,1,1,ispin),&
              ngatherarr(0,1),ngatherarr(0,2),mpidtypd, &
              pot(1,1,1,ispin),&
-             n1i*n2i*n3p,mpidtypd,0,MPI_COMM_WORLD,ierr)
+             n1i*n2i*n3p,mpidtypd,0,bigdft_mpi%mpi_comm,ierr)
      end do
   else
      call vcopy(n1i*n2i*n3i*nspin,pot_from_disk(1,1,1,1),1,pot(1,1,1,1),1)
@@ -995,24 +996,30 @@ END SUBROUTINE read_cube_field
 
 !> Calculate the dipole of a Field given in the rho array.
 !! The parallel distribution used is the one of the potential
-subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
-   hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
+subroutine calc_dipole(box,nspin,at,rxyz,rho)
   use module_base
   use module_types
+  use yaml_output
   implicit none
-  integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nspin,nproc
-  real(gp), intent(in) :: hxh,hyh,hzh
+  integer, intent(in) :: nspin
+  type(denspot_distribution), intent(in) :: box
   type(atoms_data), intent(in) :: at
-  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(dp), dimension(n1i,n2i,max(n3p, 1),nspin), target, intent(in) :: rho
+  real(dp), dimension(box%ndims(1),box%ndims(2),max(box%n3p, 1),nspin), target, intent(in) :: rho
   character(len=*), parameter :: subname='calc_dipole'
-  integer :: i_all,i_stat,ierr
-  real(gp) :: dipole_el(3) , dipole_cores(3), tmpdip(3),q,qtot
-  integer  :: iat,i1,i2,i3,nbx,nby,nbz, nl1,nl2,nl3, ispin
-  real(dp), dimension(:,:,:,:), pointer :: ele_rho,rho_buf
+  integer :: i_all,i_stat,ierr,n3p,nc1,nc2,nc3
+  real(gp) :: q,qtot
+  integer  :: iat,i1,i2,i3, nl1,nl2,nl3, ispin,n1i,n2i,n3i
+  real(gp), dimension(3) :: dipole_el,dipole_cores,tmpdip
+  real(dp), dimension(:,:,:,:), pointer :: ele_rho
+!!$  real(dp), dimension(:,:,:,:), pointer :: rho_buf
   
-  if (nproc > 1) then
+  n1i=box%ndims(1)
+  n2i=box%ndims(2)
+  n3i=box%ndims(3)
+  n3p=box%n3p
+
+  if (box%mpi_env%nproc > 1) then
      !allocate full density in pot_ion array
      allocate(ele_rho(n1i,n2i,n3i,nspin),stat=i_stat)
      call memocc(i_stat,ele_rho,'ele_rho',subname)
@@ -1032,8 +1039,8 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
 
      do ispin=1,nspin
         call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
-             mpidtypd,ele_rho(1,1,1,ispin),ngatherarr(0,1),&
-             ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+             mpidtypd,ele_rho(1,1,1,ispin),box%ngatherarr(0,1),&
+             box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
      end do
 
   else
@@ -1043,21 +1050,21 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
   if (at%geocode /= 'F') then
      nl1=1
      nl3=1
-     nbx = 1
-     nbz = 1
+     nc1=n1i
+     nc3=n3i
   else
      nl1=15
      nl3=15
-     nbx = 0
-     nbz = 0
+     nc1=n1i-31
+     nc3=n3i-31
   end if
   !value of the buffer in the y direction
   if (at%geocode == 'P') then
      nl2=1
-     nby = 1
+     nc2=n2i
   else
      nl2=15
-     nby = 0
+     nc2=n2i-31
   end if
 
   qtot=0.d0
@@ -1068,31 +1075,42 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
 
   dipole_el   (1:3)=0_gp
   do ispin=1,nspin
-     do i1=0,2*(n1+nbx) - 1
-        do i2=0,2*(n2+nby) - 1
-           do i3=0,2*(n3+nbz) - 1
+     do i3=0,nc3 - 1
+        do i2=0,nc2 - 1
+           do i1=0,nc1 - 1
               !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
               !q= ( ele_rho(ind,ispin) ) * hxh*hyh*hzh 
-              q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * hxh*hyh*hzh 
+              q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(box%hgrids)
               qtot=qtot+q
-              dipole_el(1)=dipole_el(1)+ q* at%alat1/real(2*(n1+nbx),dp)*i1 
-              dipole_el(2)=dipole_el(2)+ q* at%alat2/real(2*(n2+nby),dp)*i2
-              dipole_el(3)=dipole_el(3)+ q* at%alat3/real(2*(n3+nbz),dp)*i3
+              dipole_el(1)=dipole_el(1)+ q* at%alat1/real(nc1,dp)*i1 
+              dipole_el(2)=dipole_el(2)+ q* at%alat2/real(nc2,dp)*i2
+              dipole_el(3)=dipole_el(3)+ q* at%alat3/real(nc3,dp)*i3
            end do
         end do
      end do
 
   end do
 
-  if(iproc==0) then
+  if(box%mpi_env%iproc + box%mpi_env%igroup==0) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
-     write(*,'(1x,a)')repeat('-',61)//' Electric Dipole Moment'
      tmpdip=dipole_cores+dipole_el
-     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (AU)       ", "(Px,Py,Pz)= " , tmpdip(1:3)  
+     call yaml_open_map('Electric Dipole Moment (AU)')
+       call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
+       call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
+     call yaml_close_map()
      tmpdip=tmpdip/0.393430307_gp  ! au2debye              
-     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (Debye)    ", "(Px,Py,Pz)= " , tmpdip(1:3) 
-96   format (a8,Es14.6 ,a,a,3ES13.4)
+     call yaml_open_map('Electric Dipole Moment (Debye)')
+       call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
+       call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
+     call yaml_close_map()
+
+!!$     write(*,'(1x,a)')repeat('-',61)//' Electric Dipole Moment'
+
+!!$     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (AU)       ", "(Px,Py,Pz)= " , tmpdip(1:3)  
+!!$     tmpdip=tmpdip/0.393430307_gp  ! au2debye              
+!!$     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (Debye)    ", "(Px,Py,Pz)= " , tmpdip(1:3) 
+!!$96   format (a8,Es14.6 ,a,a,3ES13.4)
      !     write(*,'(a)') "  ================= Dipole moment in e.a0    (0.39343 e.a0 = 1 Debye) ================"  ! or [Debye] 
      !     write(*,97) "    Px " ,"     Py ","     Pz ","   |P| " 
      !     write(*,98) "electronic charge: ", dipole_el(1:3) , sqrt(sum(dipole_el**2))
@@ -1103,7 +1121,7 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
 
   endif
 
-  if (nproc > 1) then
+  if (box%mpi_env%nproc > 1) then
      i_all=-product(shape(ele_rho))*kind(ele_rho)
      deallocate(ele_rho,stat=i_stat)
      call memocc(i_stat,i_all,'ele_rho',subname)

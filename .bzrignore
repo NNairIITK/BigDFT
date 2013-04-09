@@ -13,6 +13,7 @@ config.h.in
 stamp-h1
 mpif.h
 time.prc
+debian
 src/lib/fft/fft_check
 src/parameters.h
 src/cluster
@@ -43,6 +44,8 @@ src/OpenCL/.deps
 src/CUDA/.deps
 src/modules/configure.inc
 libxc-1.1.0/libtool
+libxc-1.1.0/config.guess
+libxc-1.1.0/config.sub
 libxc-1.1.0/configure.bak
 libxc-1.1.0/m4/*
 libxc-1.1.0/ltmain.sh
@@ -57,13 +60,15 @@ libxc-1.1.0/testsuite/.deps/
 libxc-1.1.0/testsuite/.libs
 libxc-1.1.0/testsuite/xc-consistency
 libxc-1.1.0/testsuite/xc-get_data
-yaml-0.1.4/config/ltmain.sh
+yaml-0.1.4/config/*
+yaml-0.1.4/m4/*
 src/CUDA/S_GPU/.deps/
 src/CUDA/S_GPU/src/.deps/
 src/CUDA/S_GPU/src/.dirstamp
 tests/*/*.in
 tests/*/*.check
 tests/*/*/wavefunction.*
+tests/*/*/wave-*
 tests/*/*/*.out
 tests/*/*/*.ascii
 tests/*/*/*.memguess

@@ -365,3 +365,897 @@
 
 
 
+!!subroutine initCompressedMatmul(iproc, nproc, norb, mad)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  integer,intent(in):: iproc, nproc, norb
+!!  type(matrixDescriptors),intent(inout):: mad
+!!  
+!!  ! Local variables
+!!  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg
+!!  logical:: segment
+!!  integer,dimension(:),allocatable:: row, column
+!!  character(len=*),parameter:: subname='initCompressedMatmul'
+!!  
+!!  
+!!  allocate(row(norb), stat=istat)
+!!  call memocc(istat, row, 'row', subname)
+!!  allocate(column(norb), stat=istat)
+!!  call memocc(istat, column, 'column', subname)
+!!  
+!!  
+!!  segment=.false.
+!!  mad%nsegmatmul=0
+!!  mad%nvctrmatmul=0
+!!  do iorb=1,norb
+!!      do jorb=1,norb
+!!          ! Get an array of this line and column indicating whether
+!!          ! there are nonzero numbers at these positions. Since the localization
+!!          ! within the matrix is symmetric, we can use both time the same subroutine.
+!!          call getRow(norb, mad, iorb, row) 
+!!          call getRow(norb, mad, jorb, column) 
+!!          !!if(iproc==0) write(*,'(a,i4,4x,100i4)') 'iorb, row', iorb, row
+!!          !!if(iproc==0) write(*,'(a,i4,4x,100i4)') 'jorb, row', jorb, column
+!!          ii=0
+!!          do j=1,norb
+!!              ii=ii+row(j)*column(j)
+!!          end do
+!!          if(ii>0) then
+!!              ! This entry of the matrix will be different from zero.
+!!              mad%nvctrmatmul=mad%nvctrmatmul+1
+!!              if(.not. segment) then
+!!                  ! This is the start of a new segment
+!!                  segment=.true.
+!!                  mad%nsegmatmul=mad%nsegmatmul+1
+!!              end if
+!!          else
+!!              if(segment) then
+!!                  ! We reached the end of a segment
+!!                  segment=.false.
+!!              end if
+!!          end if
+!!      end do
+!!  end do
+!!  
+!!  allocate(mad%keygmatmul(2,mad%nsegmatmul), stat=istat)
+!!  allocate(mad%keyvmatmul(mad%nsegmatmul), stat=istat)
+!!  
+!!  ! Now fill the descriptors.
+!!  segment=.false.
+!!  ij=0
+!!  iseg=0
+!!  do iorb=1,norb
+!!      do jorb=1,norb
+!!          ij=ij+1
+!!          ! Get an array of this line and column indicating whether
+!!          ! there are nonzero numbers at these positions. Since the localization
+!!          ! within the matrix is symmetric, we can use both time the same subroutine.
+!!          call getRow(norb, mad, iorb, row) 
+!!          call getRow(norb, mad, jorb, column) 
+!!          ii=0
+!!          do j=1,norb
+!!              ii=ii+row(j)*column(j)
+!!          end do
+!!          if(ii>0) then
+!!              ! This entry of the matrix will be different from zero.
+!!              if(.not. segment) then
+!!                  ! This is the start of a new segment
+!!                  segment=.true.
+!!                  iseg=iseg+1
+!!                  mad%keygmatmul(1,iseg)=ij
+!!              end if
+!!              mad%keyvmatmul(iseg)=mad%keyvmatmul(iseg)+1
+!!          else
+!!              if(segment) then
+!!                  ! We reached the end of a segment
+!!                  segment=.false.
+!!                  mad%keygmatmul(2,iseg)=ij-1
+!!              end if
+!!          end if
+!!      end do
+!!  end do
+!!
+!!  ! Close the last segment if required.
+!!  if(segment) then
+!!      mad%keygmatmul(2,iseg)=ij
+!!  end if
+!!  
+!!  
+!!  iall=-product(shape(row))*kind(row)
+!!  deallocate(row, stat=istat)
+!!  call memocc(istat, iall, 'row', subname)
+!!  iall=-product(shape(column))*kind(column)
+!!  deallocate(column, stat=istat)
+!!  call memocc(istat, iall, 'column', subname)
+!!
+!!end subroutine initCompressedMatmul
+
+
+
+!!!subroutine initCompressedMatmul2(norb, nseg, keyg, nsegmatmul, keygmatmul, keyvmatmul)
+!!!  use module_base
+!!!  use module_types
+!!!  implicit none
+!!!
+!!!  ! Calling arguments
+!!!  integer,intent(in):: norb, nseg
+!!!  integer,dimension(2,nseg),intent(in):: keyg
+!!!  integer,intent(out):: nsegmatmul
+!!!  integer,dimension(:,:),pointer,intent(out):: keygmatmul
+!!!  integer,dimension(:),pointer,intent(out):: keyvmatmul
+!!!
+!!!  ! Local variables
+!!!  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i
+!!!  logical:: segment
+!!!  character(len=*),parameter:: subname='initCompressedMatmul2'
+!!!  real(8),dimension(:),allocatable:: mat1, mat2, mat3
+!!!
+!!!
+!!!
+!!!  allocate(mat1(norb**2), stat=istat)
+!!!  call memocc(istat, mat1, 'mat1', subname)
+!!!  allocate(mat2(norb**2), stat=istat)
+!!!  call memocc(istat, mat2, 'mat2', subname)
+!!!  allocate(mat3(norb**2), stat=istat)
+!!!  call memocc(istat, mat2, 'mat2', subname)
+!!!
+!!!  mat1=0.d0
+!!!  mat2=0.d0
+!!!  do iseg=1,nseg
+!!!      do i=keyg(1,iseg),keyg(2,iseg)
+!!!          ! the localization region is "symmetric"
+!!!          mat1(i)=1.d0
+!!!          mat2(i)=1.d0
+!!!      end do
+!!!  end do
+!!!
+!!!  call dgemm('n', 'n', norb, norb, norb, 1.d0, mat1, norb, mat2, norb, 0.d0, mat3, norb)
+!!!
+!!!  segment=.false.
+!!!  nsegmatmul=0
+!!!  do iorb=1,norb**2
+!!!      if(mat3(iorb)>0.d0) then
+!!!          ! This entry of the matrix will be different from zero.
+!!!          if(.not. segment) then
+!!!              ! This is the start of a new segment
+!!!              segment=.true.
+!!!              nsegmatmul=nsegmatmul+1
+!!!          end if
+!!!      else
+!!!          if(segment) then
+!!!              ! We reached the end of a segment
+!!!              segment=.false.
+!!!          end if
+!!!      end if
+!!!  end do
+!!!
+!!!
+!!!  allocate(keygmatmul(2,nsegmatmul), stat=istat)
+!!!  call memocc(istat, keygmatmul, 'keygmatmul', subname)
+!!!  allocate(keyvmatmul(nsegmatmul), stat=istat)
+!!!  call memocc(istat, keyvmatmul, 'keyvmatmul', subname)
+!!!  keyvmatmul=0
+!!!  ! Now fill the descriptors.
+!!!  segment=.false.
+!!!  ij=0
+!!!  iseg=0
+!!!  do iorb=1,norb**2
+!!!      ij=iorb
+!!!      if(mat3(iorb)>0.d0) then
+!!!          ! This entry of the matrix will be different from zero.
+!!!          if(.not. segment) then
+!!!              ! This is the start of a new segment
+!!!              segment=.true.
+!!!              iseg=iseg+1
+!!!              keygmatmul(1,iseg)=ij
+!!!          end if
+!!!          keyvmatmul(iseg)=keyvmatmul(iseg)+1
+!!!      else
+!!!          if(segment) then
+!!!              ! We reached the end of a segment
+!!!              segment=.false.
+!!!              keygmatmul(2,iseg)=ij-1
+!!!          end if
+!!!      end if
+!!!  end do
+!!!  ! Close the last segment if required.
+!!!  if(segment) then
+!!!      keygmatmul(2,iseg)=ij
+!!!  end if
+!!!
+!!!
+!!!iall=-product(shape(mat1))*kind(mat1)
+!!!deallocate(mat1, stat=istat)
+!!!call memocc(istat, iall, 'mat1', subname)
+!!!iall=-product(shape(mat2))*kind(mat2)
+!!!deallocate(mat2, stat=istat)
+!!!call memocc(istat, iall, 'mat2', subname)
+!!!iall=-product(shape(mat3))*kind(mat3)
+!!!deallocate(mat3, stat=istat)
+!!!call memocc(istat, iall, 'mat3', subname)
+!!!
+!!!
+!!!end subroutine initCompressedMatmul2
+
+
+
+!!subroutine initCompressedMatmul3(iproc, norb, mad)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in):: iproc, norb
+!!  type(matrixDescriptors),intent(inout):: mad
+!!
+!!  ! Local variables
+!!  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i
+!!  logical:: segment
+!!  character(len=*),parameter:: subname='initCompressedMatmul3'
+!!  real(8),dimension(:),allocatable:: mat1, mat2, mat3
+!!
+!!  call timing(iproc,'initMatmulComp','ON')
+!!
+!!  allocate(mat1(norb**2), stat=istat)
+!!  call memocc(istat, mat1, 'mat1', subname)
+!!  allocate(mat2(norb**2), stat=istat)
+!!  call memocc(istat, mat2, 'mat2', subname)
+!!  allocate(mat3(norb**2), stat=istat)
+!!  call memocc(istat, mat2, 'mat2', subname)
+!!
+!!  call to_zero(norb**2, mat1(1))
+!!  call to_zero(norb**2, mat2(1))
+!!  do iseg=1,mad%nseg
+!!      do i=mad%keyg(1,iseg),mad%keyg(2,iseg)
+!!          ! the localization region is "symmetric"
+!!          mat1(i)=1.d0
+!!          mat2(i)=1.d0
+!!      end do
+!!  end do
+!!
+!!  call dgemm('n', 'n', norb, norb, norb, 1.d0, mat1, norb, mat2, norb, 0.d0, mat3, norb)
+!!
+!!  segment=.false.
+!!  mad%nsegmatmul=0
+!!  do iorb=1,norb**2
+!!      if(mat3(iorb)>0.d0) then
+!!          ! This entry of the matrix will be different from zero.
+!!          if(.not. segment) then
+!!              ! This is the start of a new segment
+!!              segment=.true.
+!!              mad%nsegmatmul=mad%nsegmatmul+1
+!!          end if
+!!      else
+!!          if(segment) then
+!!              ! We reached the end of a segment
+!!              segment=.false.
+!!          end if
+!!      end if
+!!  end do
+!!
+!!
+!!  allocate(mad%keygmatmul(2,mad%nsegmatmul), stat=istat)
+!!  call memocc(istat, mad%keygmatmul, 'mad%keygmatmul', subname)
+!!  allocate(mad%keyvmatmul(mad%nsegmatmul), stat=istat)
+!!  call memocc(istat, mad%keyvmatmul, 'mad%keyvmatmul', subname)
+!!  mad%keyvmatmul=0
+!!  ! Now fill the descriptors.
+!!  segment=.false.
+!!  ij=0
+!!  iseg=0
+!!  do iorb=1,norb**2
+!!      ij=iorb
+!!      if(mat3(iorb)>0.d0) then
+!!          ! This entry of the matrix will be different from zero.
+!!          if(.not. segment) then
+!!              ! This is the start of a new segment
+!!              segment=.true.
+!!              iseg=iseg+1
+!!              mad%keygmatmul(1,iseg)=ij
+!!          end if
+!!          mad%keyvmatmul(iseg)=mad%keyvmatmul(iseg)+1
+!!      else
+!!          if(segment) then
+!!              ! We reached the end of a segment
+!!              segment=.false.
+!!              mad%keygmatmul(2,iseg)=ij-1
+!!          end if
+!!      end if
+!!  end do
+!!  ! Close the last segment if required.
+!!  if(segment) then
+!!      mad%keygmatmul(2,iseg)=ij
+!!  end if
+!!
+!!
+!!iall=-product(shape(mat1))*kind(mat1)
+!!deallocate(mat1, stat=istat)
+!!call memocc(istat, iall, 'mat1', subname)
+!!iall=-product(shape(mat2))*kind(mat2)
+!!deallocate(mat2, stat=istat)
+!!call memocc(istat, iall, 'mat2', subname)
+!!iall=-product(shape(mat3))*kind(mat3)
+!!deallocate(mat3, stat=istat)
+!!call memocc(istat, iall, 'mat3', subname)
+!!
+!!call timing(iproc,'initMatmulComp','OF')
+!!
+!!end subroutine initCompressedMatmul3
+
+
+
+!!subroutine initCollectiveComms(iproc, nproc, lzd, input, orbs, collcomms)
+!!use module_base
+!!use module_types
+!!implicit none
+!!
+!!! Calling arguments
+!!integer,intent(in):: iproc, nproc
+!!type(local_zone_descriptors),intent(in):: lzd
+!!type(input_variables),intent(in):: input
+!!type(orbitals_data),intent(inout):: orbs
+!!type(collectiveComms),intent(out):: collcomms
+!!
+!!! Local variables
+!!integer:: iorb, ilr, kproc, jproc, ii, ncount, iiorb, istat, gdim, ldim, ist
+!!integer:: n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3, ind, i, is, ie
+!!integer:: transform_index, iseg, offset, iall
+!!integer,dimension(:),allocatable:: work_int
+!!character(len=*),parameter:: subname='initCollectiveComms'
+!!integer:: ii1s, ii1e, ii5s, ii5e, i1, i5
+!!logical:: stop1, stop5
+!!
+!!! Allocate all arrays
+!!allocate(collComms%nvctr_par(orbs%norb,0:nproc-1), stat=istat)
+!!call memocc(istat, collComms%nvctr_par, 'collComms%nvctr_par', subname)
+!!
+!!allocate(collComms%sendcnts(0:nproc-1), stat=istat)
+!!call memocc(istat, collComms%sendcnts, 'collComms%sendcnts', subname)
+!!
+!!allocate(collComms%senddspls(0:nproc-1), stat=istat)
+!!call memocc(istat, collComms%senddspls, 'collComms%senddspls', subname)
+!!
+!!allocate(collComms%recvcnts(0:nproc-1), stat=istat)
+!!call memocc(istat, collComms%recvcnts, 'collComms%recvcnts', subname)
+!!
+!!allocate(collComms%recvdspls(0:nproc-1), stat=istat)
+!!call memocc(istat, collComms%recvdspls, 'collComms%recvdspls', subname)
+!!
+!!
+!!! Distribute the orbitals among the processes.
+!!do iorb=1,orbs%norb
+!!    ilr=orbs%inwhichlocreg(iorb)
+!!    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+!!    ! All processes get ii elements
+!!    ii=ncount/nproc
+!!    do jproc=0,nproc-1
+!!        collComms%nvctr_par(iorb,jproc)=ii
+!!    end do
+!!    ! Process from 0 to kproc get one additional element
+!!    kproc=mod(ncount,nproc)-1
+!!    do jproc=0,kproc
+!!        collComms%nvctr_par(iorb,jproc)=collComms%nvctr_par(iorb,jproc)+1
+!!    end do
+!!    !write(*,'(a,3i6,i12)') 'iorb, iproc, ncount, collComms%nvctr_par(iorb,iproc)', iorb, iproc, ncount, collComms%nvctr_par(iorb,iproc)
+!!end do
+!!
+!!! Determine the amount of data that has has to be sent to each process
+!!collComms%sendcnts=0
+!!do jproc=0,nproc-1
+!!    do iorb=1,orbs%norbp
+!!        iiorb=orbs%isorb+iorb
+!!        collComms%sendcnts(jproc) = collComms%sendcnts(jproc) + collComms%nvctr_par(iiorb,jproc)
+!!    end do
+!!    !write(*,'(a,2i6,i12)') 'jproc, iproc, collComms%sendcnts(jproc)', jproc, iproc, collComms%sendcnts(jproc)
+!!end do
+!!
+!!! Determine the displacements for the send operation
+!!collComms%senddspls(0)=0
+!!do jproc=1,nproc-1
+!!    collComms%senddspls(jproc) = collComms%senddspls(jproc-1) + collComms%sendcnts(jproc-1)
+!!    !write(*,'(a,2i6,i12)') 'jproc, iproc, collComms%senddspls(jproc)', jproc, iproc, collComms%senddspls(jproc)
+!!end do
+!!
+!!! Determine the amount of data that each process receives
+!!collComms%recvcnts=0
+!!do jproc=0,nproc-1
+!!    do iorb=1,orbs%norb_par(jproc,0)
+!!        iiorb=orbs%isorb_par(jproc)+iorb
+!!        collComms%recvcnts(jproc) = collComms%recvcnts(jproc) + collComms%nvctr_par(iiorb,iproc)
+!!    end do
+!!    !write(*,'(a,2i6,i12)') 'jproc, iproc, collComms%recvcnts(jproc)', jproc, iproc, collComms%recvcnts(jproc)
+!!end do
+!!
+!!! Determine the displacements for the receive operation
+!!collComms%recvdspls(0)=0
+!!do jproc=1,nproc-1
+!!   collComms%recvdspls(jproc) = collComms%recvdspls(jproc-1) + collComms%recvcnts(jproc-1)
+!!    !write(*,'(a,2i6,i12)') 'jproc, iproc, collComms%recvdspls(jproc)', jproc, iproc, collComms%recvdspls(jproc)
+!!end do
+!!
+!!! Modify orbs%npsidim, if required
+!!ii=0
+!!do jproc=0,nproc-1
+!!    ii=ii+collComms%recvcnts(jproc)
+!!end do
+!!!orbs%npsidim=max(orbs%npsidim,ii)
+!!orbs%npsidim_orbs = max(orbs%npsidim_orbs,ii) 
+!!orbs%npsidim_comp = max(orbs%npsidim_comp,ii)
+!!
+!!
+!!ii1s=0
+!!ii5s=0
+!!ii1e=0
+!!ii5e=0
+!!
+!!! Get the global indices of all elements
+!!allocate(collComms%indexarray(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
+!!call memocc(istat, collComms%indexarray, 'collComms%indexarray', subname)
+!!ist=1
+!!ind=1
+!!do iorb=1,orbs%norbp
+!!    iiorb=orbs%isorb+iorb
+!!    ilr=orbs%inwhichlocreg(iiorb)
+!!    ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+!!    !!!gdim=lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
+!!    !!!call index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, &
+!!    !!!     lzd%glr, lzd%llr(ilr), collComms%indexarray(ist))
+!!    n1l=lzd%llr(ilr)%d%n1
+!!    n2l=lzd%llr(ilr)%d%n2
+!!    n3l=lzd%llr(ilr)%d%n3
+!!    n1g=lzd%glr%d%n1
+!!    n2g=lzd%glr%d%n2
+!!    n3g=lzd%glr%d%n3
+!!    !write(*,'(a,i8,6i9)') 'ilr, n1l, n2l, n3l, n1g, n2g, n3g', ilr, n1l, n2l, n3l, n1g, n2g, n3g
+!!    nshift1=lzd%llr(ilr)%ns1-lzd%glr%ns1
+!!    nshift2=lzd%llr(ilr)%ns2-lzd%glr%ns2
+!!    nshift3=lzd%llr(ilr)%ns3-lzd%glr%ns3
+!!
+!!    if(iiorb==1) then
+!!        ii1s=ind
+!!    else if(iiorb==5) then
+!!        ii5s=ind
+!!    end if
+!!    do iseg=1,lzd%llr(ilr)%wfd%nseg_c
+!!        is=lzd%llr(ilr)%wfd%keygloc(1,iseg)
+!!        ie=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+!!        !write(800+iiorb,'(a,i9,3i12,6i7)') 'ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, nshift2, nshift3', &
+!!        !      ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, nshift2, nshift3
+!!        do i=is,ie
+!!            collComms%indexarray(ind)=transform_index(i, n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3)
+!!            !!!! DEBUG !!
+!!            !!collComms%indexarray(ind)=iiorb
+!!            !!!! DEBUG !!
+!!            !!write(900+iiorb,'(a,i9,3i12,6i7,i10)') 'ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, &
+!!            !!    &nshift2, nshift3, collComms%indexarray(ind)', &
+!!            !!    ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, nshift2, nshift3, collComms%indexarray(ind)
+!!            ind=ind+1
+!!        end do
+!!    end do
+!!    !if(iiorb==1) then
+!!    !    ii1e=ind-1
+!!    !else if(iiorb==5) then
+!!    !    ii5e=ind-1
+!!    !end if
+!!
+!!
+!!    offset=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
+!!    do iseg=1,lzd%llr(ilr)%wfd%nseg_f
+!!        is=lzd%llr(ilr)%wfd%keygloc(1,iseg+lzd%llr(ilr)%wfd%nseg_c)
+!!        ie=lzd%llr(ilr)%wfd%keygloc(2,iseg+lzd%llr(ilr)%wfd%nseg_c)
+!!        do i=is,ie
+!!            ii=transform_index(i, n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3)
+!!
+!!            collComms%indexarray(ind  ) = offset + 7*(ii-1)+1
+!!            collComms%indexarray(ind+1) = offset + 7*(ii-1)+2
+!!            collComms%indexarray(ind+2) = offset + 7*(ii-1)+3
+!!            collComms%indexarray(ind+3) = offset + 7*(ii-1)+4
+!!            collComms%indexarray(ind+4) = offset + 7*(ii-1)+5
+!!            collComms%indexarray(ind+5) = offset + 7*(ii-1)+6
+!!            collComms%indexarray(ind+6) = offset + 7*(ii-1)+7
+!!            ind=ind+7
+!!        end do
+!!    end do
+!!    if(iiorb==1) then
+!!        ii1e=ind-1
+!!    else if(iiorb==5) then
+!!        ii5e=ind-1
+!!    end if
+!!
+!!    !do istat=0,ldim-1
+!!    !    write(200+iproc,*) ist+istat, collComms%indexarray(ist+istat)
+!!    !end do
+!!
+!!    ist=ist+ldim
+!!end do
+!!
+!!
+!!!! ATTENTION: This will not work for nproc=1, so comment it.
+!!!! As a consequence, the transposition will not work correctly.
+!!
+!!!!! Transpose the index array
+!!!!allocate(work_int(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
+!!!!call memocc(istat, work_int, 'work_int', subname)
+!!!!call transpose_linear_int(iproc, 0, nproc-1, orbs, collComms, collComms%indexarray, mpi_comm_world, work_int)
+!!!!iall=-product(shape(work_int))*kind(work_int)
+!!!!deallocate(work_int, stat=istat)
+!!!!call memocc(istat, iall, 'work_int', subname)
+!!
+!!
+!!
+!!end subroutine initCollectiveComms
+
+
+
+! This subroutine is VERY similar to compressMatrix2...
+subroutine getCommunArraysMatrixCompression(iproc, nproc, orbs, mad, sendcounts, displs)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(matrixDescriptors),intent(in) :: mad
+  integer,dimension(0:nproc-1),intent(out) :: sendcounts, displs
+  
+  ! Local variables
+  integer :: iseg, jj, jorb, jjorb, jjproc, jjprocold, ncount
+  
+  sendcounts=0
+  displs=0
+  
+  jj=0
+  ncount=0
+  jjprocold=0
+  displs(0)=0
+  do iseg=1,mad%nseg
+      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          jj=jj+1
+          ncount=ncount+1
+          jjorb=(jorb-1)/orbs%norb+1
+          jjproc=orbs%onWhichMPI(jjorb)
+          if(jjproc>jjprocold) then
+              ! This part of the matrix is calculated by a new MPI process.
+              sendcounts(jjproc-1)=ncount-1
+              displs(jjproc)=displs(jjproc-1)+sendcounts(jjproc-1)
+              ncount=1
+              jjprocold=jjproc
+          end if
+      end do
+  end do
+  !sendcounts(nproc-1)=ncount
+  sendcounts(jjproc)=ncount !last process
+  if(jj/=mad%nvctr) then
+      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix: jj/=mad%nvctr',jj,mad%nvctr
+      stop
+  end if
+
+  if(sum(sendcounts)/=mad%nvctr) then
+      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix2: sum(sendcounts)/=mad%nvctr',sum(sendcounts),mad%nvctr
+      stop
+  end if
+
+end subroutine getCommunArraysMatrixCompression
+  
+!!!subroutine initialize_comms_sumrho(iproc,nproc,nscatterarr,lzd,orbs,comsr)
+!!!  use module_base
+!!!  use module_types
+!!!  implicit none
+!!!  
+!!!  ! Calling arguments
+!!!  integer,intent(in) :: iproc,nproc
+!!!  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!!!  type(local_zone_descriptors),intent(in) :: lzd
+!!!  type(orbitals_data),intent(in) :: orbs
+!!!  type(p2pComms),intent(out) :: comsr
+!!!  
+!!!  ! Local variables
+!!!  integer :: istat,jproc,is,ie,ioverlap,i3s,i3e,ilr,iorb,is3ovrlp,n3ovrlp,iiproc,isend
+!!!  integer :: jlr, jorb, istr, tag
+!!!  integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,p2p_tag,istsource,ncount
+!!!  character(len=*),parameter :: subname='initialize_comms_sumrho'
+!!!
+!!!
+!!!  call timing(iproc,'init_commSumro','ON')
+!!!  
+!!!  ! Buffer sizes 
+!!!  call ext_buffers(lzd%Glr%geocode /= 'F',nbl1,nbr1)
+!!!  call ext_buffers(lzd%Glr%geocode == 'P',nbl2,nbr2)
+!!!  call ext_buffers(lzd%Glr%geocode /= 'F',nbl3,nbr3)
+!!!  
+!!!  ! First count the number of overlapping orbitals for each slice.
+!!!  allocate(comsr%noverlaps(0:nproc-1),stat=istat)
+!!!  call memocc(istat,comsr%noverlaps,'comsr%noverlaps',subname)
+!!!  isend=0
+!!!  do jproc=0,nproc-1
+!!!      is=nscatterarr(jproc,3) 
+!!!      ie=is+nscatterarr(jproc,1)-1
+!!!      ioverlap=0
+!!!      do iorb=1,orbs%norb
+!!!          ilr=orbs%inWhichLocreg(iorb)
+!!!          iiproc=orbs%onwhichmpi(iorb)
+!!!          i3s=lzd%Llr(ilr)%nsi3 
+!!!          i3e=i3s+lzd%Llr(ilr)%d%n3i-1
+!!!          if(i3s<=ie .and. i3e>=is) then
+!!!              ioverlap=ioverlap+1        
+!!!              if(iproc==iiproc) isend=isend+1
+!!!          end if
+!!!          !For periodicity
+!!!          if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+!!!            i3s = Lzd%Glr%nsi3
+!!!            i3e = mod(i3e-1,Lzd%Glr%d%n3i) + 1 + Lzd%Glr%nsi3
+!!!            if(i3s<=ie .and. i3e>=is) then
+!!!                ioverlap=ioverlap+1
+!!!                if(iproc==iiproc) isend=isend+1
+!!!            end if
+!!!          end if
+!!!      end do
+!!!      comsr%noverlaps(jproc)=ioverlap
+!!!  end do
+!!!  
+!!!  ! Do the initialization concerning the calculation of the charge density.
+!!!  allocate(comsr%overlaps(comsr%noverlaps(iproc)),stat=istat)
+!!!  call memocc(istat,comsr%overlaps,'comsr%overlaps',subname)
+!!!  
+!!!  allocate(comsr%comarr(6,maxval(comsr%noverlaps),0:nproc-1),stat=istat)
+!!!  call memocc(istat,comsr%comarr,'comsr%comarr',subname)
+!!!  allocate(comsr%ise3(comsr%noverlaps(iproc),2), stat=istat)
+!!!  call memocc(istat, comsr%ise3, 'comsr%ise3', subname)
+!!!  allocate(comsr%requests(max(comsr%noverlaps(iproc),isend),2),stat=istat)
+!!!  call memocc(istat,comsr%requests,'comsr%requests',subname)
+!!!  
+!!!  comsr%nrecvBuf=0
+!!!  do jproc=0,nproc-1
+!!!     is=nscatterarr(jproc,3)
+!!!     ie=is+nscatterarr(jproc,1)-1
+!!!     ioverlap=0
+!!!     istr=1
+!!!     do iorb=1,orbs%norb
+!!!        ilr=orbs%inWhichLocreg(iorb)
+!!!        i3s=lzd%Llr(ilr)%nsi3
+!!!        i3e=i3s+lzd%Llr(ilr)%d%n3i-1
+!!!        if(i3s<=ie .and. i3e>=is) then
+!!!           ioverlap=ioverlap+1
+!!!           !tag=tag+1
+!!!           tag=p2p_tag(jproc)
+!!!           is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
+!!!           n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
+!!!           is3ovrlp=is3ovrlp-lzd%Llr(ilr)%nsi3+1
+!!!           if(jproc == iproc) then
+!!!              comsr%ise3(ioverlap,1) = max(is,i3s) 
+!!!              comsr%ise3(ioverlap,2) = min(ie,i3e)
+!!!           end if
+!!!           istsource=1
+!!!           do jorb=orbs%isorb_par(orbs%onwhichmpi(iorb))+1,iorb-1
+!!!               jlr=orbs%inwhichlocreg(jorb)
+!!!               istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n3i
+!!!           end do
+!!!           jlr=orbs%inwhichlocreg(iorb)
+!!!           istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*(is3ovrlp-1)
+!!!           ncount=lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*n3ovrlp
+!!!           call setCommsParameters(orbs%onwhichmpi(iorb), jproc, istsource, istr, ncount, tag, comsr%comarr(1,ioverlap,jproc))
+!!!           if(iproc==jproc) then
+!!!              comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+!!!              comsr%overlaps(ioverlap)=iorb
+!!!           end if
+!!!           istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+!!!        end if
+!!!        !For periodicity
+!!!        if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+!!!           i3s = Lzd%Glr%nsi3
+!!!           i3e = mod(i3e-1,Lzd%Glr%d%n3i) + 1 + Lzd%Glr%nsi3
+!!!           if(i3s<=ie .and. i3e>=is) then
+!!!              ioverlap=ioverlap+1
+!!!              !tag=tag+1
+!!!              tag=p2p_tag(jproc)
+!!!              is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
+!!!              n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
+!!!              is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 
+!!!              if(jproc == iproc) then
+!!!                 comsr%ise3(ioverlap,1) = max(is,i3s) 
+!!!                 comsr%ise3(ioverlap,2) = min(ie,i3e)
+!!!              end if
+!!!              istsource=1
+!!!              do jorb=orbs%isorb_par(orbs%onwhichmpi(iorb))+1,iorb-1
+!!!                  jlr=orbs%inwhichlocreg(jorb)
+!!!                  istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n3i
+!!!              end do
+!!!              jlr=orbs%inwhichlocreg(iorb)
+!!!              istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*(is3ovrlp-1)
+!!!              ncount=lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*n3ovrlp
+!!!              call setCommsParameters(orbs%onwhichmpi(iorb), jproc, istsource, istr, ncount, tag, comsr%comarr(1,ioverlap,jproc))
+!!!              if(iproc==jproc) then
+!!!                 comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+!!!                 comsr%overlaps(ioverlap)=iorb
+!!!              end if
+!!!              istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+!!!           end if
+!!!           !For periodicity
+!!!           if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+!!!              i3s = Lzd%Glr%nsi3
+!!!              i3e = mod(i3e-1,Lzd%Glr%d%n3i) + 1 + Lzd%Glr%nsi3
+!!!              if(i3s<=ie .and. i3e>=is) then
+!!!                 ioverlap=ioverlap+1
+!!!                 !tag=tag+1
+!!!                 tag=p2p_tag(jproc)
+!!!                 is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
+!!!                 n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
+!!!                 is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 
+!!!                 if(jproc == iproc) then
+!!!                    comsr%ise3(ioverlap,1) = max(is,i3s) 
+!!!                    comsr%ise3(ioverlap,2) = min(ie,i3e)
+!!!                 end if
+!!!                 istsource=1
+!!!                 do jorb=orbs%isorb_par(orbs%onwhichmpi(iorb))+1,iorb-1
+!!!                     jlr=orbs%inwhichlocreg(jorb)
+!!!                     istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n3i
+!!!                 end do
+!!!                 jlr=orbs%inwhichlocreg(iorb)
+!!!                 istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*(is3ovrlp-1)
+!!!                 ncount=lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*n3ovrlp
+!!!                 call setCommsParameters(orbs%onwhichmpi(iorb), jproc, istsource, istr, ncount, tag, comsr%comarr(1,ioverlap,jproc))
+!!!                 if(iproc==jproc) then
+!!!                    comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+!!!                    comsr%overlaps(ioverlap)=iorb
+!!!                 end if
+!!!                 istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+!!!              end if
+!!!           end if
+!!!        end if
+!!!     end do
+!!!  end do
+!!!  
+!!!  ! To avoid allocations with size 0.
+!!!  comsr%nrecvbuf=max(comsr%nrecvbuf,1)
+!!!  
+!!!  
+!!!  
+!!!  ! Calculate the dimension of the wave function for each process.
+!!!  ! Do it for both the compressed ('npsidim') and for the uncompressed real space
+!!!  ! ('npsidimr') case.
+!!!  comsr%nsendBuf=0
+!!!  do iorb=1,orbs%norbp
+!!!      ilr=orbs%inWhichLocreg(orbs%isorb+iorb)
+!!!      comsr%nsendBuf=comsr%nsendBuf+lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i*orbs%nspinor
+!!!  end do
+!!!
+!!!  ! To indicate that no communication is going on.
+!!!  comsr%communication_complete=.true.
+!!!  comsr%messages_posted=.false.
+!!!
+!!!
+!!!  call timing(iproc,'init_commSumro','OF')
+!!!  
+!!!end subroutine initialize_comms_sumrho
+
+subroutine initCommsCompression(iproc, nproc, orbs, mad, mat, lmat, sendcounts, displs)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(orbs%norb**2),intent(in) :: mat
+  real(kind=8),dimension(mad%nvctr),intent(out) :: lmat
+  integer,dimension(0:nproc-1),intent(out) :: sendcounts, displs
+  
+  ! Local variables
+  integer :: iseg, jj, jorb, jjorb, jjproc, jjprocold, ncount
+  
+  sendcounts=0
+  displs=0
+  
+  jj=0
+  ncount=0
+  jjprocold=0
+  displs(0)=0
+  do iseg=1,mad%nseg
+      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          jj=jj+1
+          lmat(jj)=mat(jorb)
+          
+          ncount=ncount+1
+          jjorb=(jorb-1)/orbs%norb+1
+          jjproc=orbs%onWhichMPI(jjorb)
+          if(jjproc>jjprocold) then
+              ! This part of the matrix is calculated by a new MPI process.
+              sendcounts(jjproc-1)=ncount-1
+              displs(jjproc)=displs(jjproc-1)+sendcounts(jjproc-1)
+              ncount=1
+              jjprocold=jjproc
+          end if
+      end do
+  end do
+  sendcounts(nproc-1)=ncount
+  if(jj/=mad%nvctr) then
+      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix: jj/=mad%nvctr',jj,mad%nvctr
+      stop
+  end if
+
+  if(sum(sendcounts)/=mad%nvctr) then
+      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix2: sum(sendcounts)/=mad%nvctr',sum(sendcounts),mad%nvctr
+      stop
+  end if
+
+  
+end subroutine initCommsCompression
+
+
+subroutine getRow(norb, mad, rowX, row)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: norb, rowX
+  type(matrixDescriptors),intent(in) :: mad
+  integer,dimension(norb),intent(out) :: row
+  
+  ! Local variables
+  integer :: iseg, i, irow, icolumn
+  
+  row=0
+  
+  do iseg=1,mad%nseg
+      do i=mad%keyg(1,iseg),mad%keyg(2,iseg)
+      ! Get the row index of this element. Since the localization is symmetric, we can
+      ! assume row or column ordering with respect to the segments.
+          irow=(i-1)/norb+1
+          if(irow==rowX) then
+              ! Get the column index of this element.
+              icolumn=i-(irow-1)*norb
+              row(icolumn)=1
+          end if
+      end do
+  end do
+
+end subroutine getRow
+
+
+subroutine update_auxiliary_basis_function(subname, npsidim, lphi, lhphi, lphiold, lhphiold)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: npsidim
+  real(kind=8),dimension(:),pointer,intent(out) :: lphi, lhphi, lphiold, lhphiold
+  character(len=*),intent(in) :: subname
+
+  ! Local variables
+  integer :: istat, iall
+
+  iall=-product(shape(lphi))*kind(lphi)
+  deallocate(lphi, stat=istat)
+  call memocc(istat, iall, 'lphi', subname)
+  iall=-product(shape(lhphi))*kind(lhphi)
+  deallocate(lhphi, stat=istat)
+  call memocc(istat, iall, 'lhphi', subname)
+  iall=-product(shape(lphiold))*kind(lphiold)
+  deallocate(lphiold, stat=istat)
+  call memocc(istat, iall, 'lphiold', subname)
+  iall=-product(shape(lhphiold))*kind(lhphiold)
+  deallocate(lhphiold, stat=istat)
+  call memocc(istat, iall, 'lhphiold', subname)
+
+  allocate(lphi(npsidim), stat=istat)
+  call memocc(istat, lphi, 'lphi', subname)
+  allocate(lhphi(npsidim), stat=istat)
+  call memocc(istat, lhphi, 'lhphi', subname)
+  allocate(lphiold(npsidim), stat=istat)
+  call memocc(istat, lphiold, 'lphiold', subname)
+  allocate(lhphiold(npsidim), stat=istat)
+  call memocc(istat, lhphiold, 'lhphiold', subname)
+
+  call to_zero(npsidim, lphi(1))
+  call to_zero(npsidim, lhphi(1))
+  call to_zero(npsidim, lphiold(1))
+  call to_zero(npsidim, lhphiold(1))
+
+end subroutine update_auxiliary_basis_function
+
