@@ -60,7 +60,7 @@ void FC_FUNC(getaddress, GETADDRESS)(void *ptr,char *address, int *lgaddress,
 			     int* status)
 {
   char buff[50]; //test buffer to check the length
-  int lgt,lgCpy;
+  int lgt;
 
   memset(address,' ', sizeof(char) * (*lgaddress));
 
