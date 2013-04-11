@@ -4616,6 +4616,46 @@ module module_interfaces
           type(orbitals_data), optional, intent(in) :: orbs
         end subroutine overlapPowerMinusOneHalf_old
 
+        subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
+                   orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
+                   lphi, psit_c, psit_f, can_use_transposed)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
+          type(orbitals_data),intent(in) :: orbs
+          type(atoms_data),intent(in) :: at
+          integer,dimension(at%ntypes),intent(in) :: minorbs_type, maxorbs_type
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(sparseMatrix),intent(inout) :: ovrlp
+          type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+          type(collective_comms),intent(in) :: collcom
+          type(orthon_data),intent(in) :: orthpar
+          real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
+          real(kind=8),dimension(:),pointer :: psit_c, psit_f
+          logical,intent(inout) :: can_use_transposed
+        end subroutine orthonormalize_subset
+
+        subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
+                   orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
+                   lphi, psit_c, psit_f, can_use_transposed)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
+          type(orbitals_data),intent(in) :: orbs
+          type(atoms_data),intent(in) :: at
+          integer,dimension(at%ntypes),intent(in) :: minorbs_type, maxorbs_type
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(sparseMatrix),intent(inout) :: ovrlp
+          type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+          type(collective_comms),intent(in) :: collcom
+          type(orthon_data),intent(in) :: orthpar
+          real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
+          real(kind=8),dimension(:),pointer :: psit_c, psit_f
+          logical,intent(inout) :: can_use_transposed
+        end subroutine gramschmidt_subset
+
    end interface
 
 END MODULE module_interfaces

@@ -42,10 +42,11 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
-  integer, dimension(:),allocatable :: norbsPerAt, mapping, inversemapping
-  logical,dimension(:),allocatable :: covered
+  integer, dimension(:),allocatable :: norbsPerAt, mapping, inversemapping, minorbs_type, maxorbs_type
+  logical,dimension(:),allocatable :: covered, type_covered
+  real(kind=8),dimension(:,:),allocatable :: aocc
   integer, parameter :: nmax=6,lmax=3
-  integer :: ist,jorb,iadd,ii,jj,ityp
+  integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
   integer :: jlr,iiorb
   integer :: infoCoeff
   type(orbitals_data) :: orbs_gauss
@@ -56,6 +57,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   integer :: nsccode,mxpl,mxchg
   type(mixrhopotDIISParameters) :: mixdiis
   type(sparseMatrix) :: ham_small ! for FOE
+  logical :: finished
 
   call nullify_orbitals_data(orbs_gauss)
 
@@ -82,6 +84,11 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   else
      nspin_ig=input%nspin
   end if
+
+  ! Keep the natural occupations
+  allocate(aocc(32,at%nat),stat=istat)
+  call memocc(istat,aocc,'aocc',subname)
+  call vcopy(32*at%nat, at%aocc(1,1), 1, aocc(1,1), 1)
 
   ! Determine how many atomic orbitals we have. Maybe we have to increase this number to more than
   ! its 'natural' value.
@@ -248,9 +255,76 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
 
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
-  if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
-  call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
-       tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+!! COMMENTED AS A TEST ######################################################################
+!!  if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+!!  call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
+!!       tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+
+    if(iproc==0) write(*,*) 'calling generalized orthonormalization'
+    allocate(maxorbs_type(at%ntypes),stat=istat)
+    call memocc(istat,maxorbs_type,'maxorbs_type',subname)
+    allocate(minorbs_type(at%ntypes),stat=istat)
+    call memocc(istat,minorbs_type,'minorbs_type',subname)
+    allocate(type_covered(at%ntypes),stat=istat)
+    call memocc(istat,type_covered,'type_covered',subname)
+    minorbs_type(1:at%ntypes)=0
+    iortho=0
+    ortho_loop: do
+        finished=.true.
+        type_covered=.false.
+        do iat=1,at%nat
+            itype=at%iatype(iat)
+            if (type_covered(itype)) cycle
+            type_covered(itype)=.true.
+            jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
+                 5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
+            maxorbs_type(itype)=jj
+            if (jj<input%lin%norbsPerType(at%iatype(iat))) then
+                finished=.false.
+                if (ceiling(aocc(1,iat))==0) then
+                    aocc(1,iat)=1.d0
+                else if (ceiling(aocc(3,iat))==0) then
+                    aocc(3,iat)=1.d0
+                else if (ceiling(aocc(7,iat))==0) then
+                    aocc(7,iat)=1.d0
+                else if (ceiling(aocc(13,iat))==0) then
+                    aocc(13,iat)=1.d0
+                end if
+            end if
+        end do
+        if (iortho>0) then
+            call gramschmidt_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
+                 tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, &
+                 tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+        end if
+        call orthonormalize_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
+             tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, &
+             tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+        if (finished) exit ortho_loop
+        iortho=iortho+1
+        minorbs_type(1:at%ntypes)=maxorbs_type(1:at%ntypes)+1
+    end do ortho_loop
+    iall=-product(shape(maxorbs_type))*kind(maxorbs_type)
+    deallocate(maxorbs_type,stat=istat)
+    call memocc(istat, iall,'maxorbs_type',subname)
+    iall=-product(shape(minorbs_type))*kind(minorbs_type)
+    deallocate(minorbs_type,stat=istat)
+    call memocc(istat, iall,'minorbs_type',subname)
+    iall=-product(shape(aocc))*kind(aocc)
+    deallocate(aocc,stat=istat)
+    call memocc(istat, iall,'aocc',subname)
+    iall=-product(shape(type_covered))*kind(type_covered)
+    deallocate(type_covered,stat=istat)
+    call memocc(istat, iall,'type_covered',subname)
+
+  !!call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
+  !!     tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+  !!call mpi_finalize(istat)
+  !!stop
+
+
+!! ##########################################################################################
+
 
   call nullify_sparsematrix(ham_small) ! nullify anyway
 
@@ -271,6 +345,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small)
   end if
+
 
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
@@ -296,6 +371,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
           denspot, mixdiis, rhopotold, pnrm)
   end if
+
 
   if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
       call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
