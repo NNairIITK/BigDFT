@@ -1450,8 +1450,9 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
           do jorb=1,orbs%norb
               jat=orbs%onwhichatom(jorb)
               jcount_norb(jat)=jcount_norb(jat)+1
-              if (jcount_norb(jat)<minorbs_type(at%iatype(jat)) .or. &
-                  jcount_norb(jat)>maxorbs_type(at%iatype(jat))) then
+              !!if (jcount_norb(jat)<minorbs_type(at%iatype(jat)) .or. &
+              !!    jcount_norb(jat)>maxorbs_type(at%iatype(jat))) then
+              if (jcount_norb(jat)<minorbs_type(at%iatype(jat))) then
                   jout=.true.
               else
                   jout=.false.
