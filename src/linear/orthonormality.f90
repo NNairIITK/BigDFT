@@ -1267,7 +1267,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
               ii=ovrlp%matrixindex_in_compressed(jorb,iorb)
               !!if (iproc==0) write(444,'(a,2i7,2x,2i7,3x,2l4,3x,3i6)') 'iorb, jorb, iat, jat, iout, jout, icount_norb(iat), minorbs_type(at%iatype(iat)), maxorbs_type(at%iatype(iat))', &
               !!                                                         iorb, jorb, iat, jat, iout, jout, icount_norb(iat), minorbs_type(at%iatype(iat)), maxorbs_type(at%iatype(iat))
-              if (iout .or. jout) then
+              if (ii/=0 .and. (iout .or. jout)) then
                   if (jorb==iorb) then
                       ovrlp%matrix_compr(ii)=1.d0
                   else
@@ -1318,7 +1318,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
                   jout=.false.
               end if
               ii=ovrlp%matrixindex_in_compressed(jorb,iorb)
-              if (iout .or. jout) then
+              if (ii/=0 .and. (iout .or. jout)) then
                   if (jorb==iorb) then
                       ovrlp%matrix_compr(ii)=1.d0
                   else
@@ -1458,13 +1458,15 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
                   jout=.false.
               end if
               ii=ovrlp%matrixindex_in_compressed(jorb,iorb)
-              if (iout) then
-                  ovrlp%matrix_compr(ii)=0.d0
-              else
-                  if (jout) then
-                      ovrlp%matrix_compr(ii)=-ovrlp%matrix_compr(ii)
-                  else
+              if (ii/=0) then
+                  if (iout) then
                       ovrlp%matrix_compr(ii)=0.d0
+                  else
+                      if (jout) then
+                          ovrlp%matrix_compr(ii)=-ovrlp%matrix_compr(ii)
+                      else
+                          ovrlp%matrix_compr(ii)=0.d0
+                      end if
                   end if
               end if
               !!if (iout .or. jout) then
