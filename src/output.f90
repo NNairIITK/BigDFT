@@ -18,7 +18,7 @@ subroutine print_logo()
   integer :: namelen,ierr
   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   integer :: nthreads
-  integer, parameter :: ln = 256
+  integer, parameter :: ln = 1024
   character(len = ln), dimension(4) :: buf
 !$ integer :: omp_get_max_threads
 

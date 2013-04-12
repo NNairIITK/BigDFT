@@ -809,7 +809,7 @@ contains
           call buffer_string(towrite,len(towrite),mapvalue(istr:istr+icut-1),msg_lgt)
           if (streams(strm)%flowrite .and. .not. cut) call buffer_string(towrite,len(towrite),',',msg_lgt)
           call dump(streams(strm),towrite(1:msg_lgt),advance='yes',event=SCALAR)
-          istr=icut
+          istr=istr-1+icut
           icut=len_trim(mapvalue)-istr+1
           !print *,'icut',istr,icut,mapvalue(istr:istr+icut-1),cut,istr+icut-1,len_trim(mapvalue)
           msg_lgt=0
