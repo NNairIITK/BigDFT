@@ -2,6 +2,9 @@
 
 #include <config.h>
 
+/* Configure arguments. */
+static char ARGS[] = "@CONFIG_ARGS@";
+
 /* Compilers. */
 static char CC[]  = "@CC@";
 static char FC[]  = "@FC@";
@@ -20,6 +23,16 @@ static char LIBS[]      = "@LIBS@";
 static char LIBS_DEPS[] = "@LIBS_SHORT_DEPS@";
 
 #define TRUNCATED "(...)"
+
+void FC_FUNC(bigdft_config_get_user_args, BIGDFT_CONFIG_GET_USER_ARGS)
+     (char *args, unsigned int *ln, int args_ln)
+{
+  memset(args, ' ', sizeof(char) * *ln);
+  if (sizeof(ARGS) < *ln)
+    memcpy(args, ARGS, sizeof(ARGS));
+  else if (*ln > sizeof(TRUNCATED))
+    memcpy(args, TRUNCATED, sizeof(TRUNCATED));
+}
 
 void FC_FUNC(bigdft_config_get_compilers, BIGDFT_CONFIG_GET_COMPILERS)
      (char *cc, char *fc, char *cxx, unsigned int *ln, int cc_ln, int fc_ln, int cxx_ln)
