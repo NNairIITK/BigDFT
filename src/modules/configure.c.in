@@ -1,0 +1,34 @@
+#include <config.h>
+
+/* Compilers. */
+static char CC[]  = "@CC@";
+static char FC[]  = "@FC@";
+static char CXX[] = "@CXX@";
+
+/* Compiler flags. */
+static char CFLAGS[]   = "@CFLAGS@";
+static char FCFLAGS[]  = "@FCFLAGS@";
+static char CXXFLAGS[] = "@CXXFLAGS@";
+static char CPPFLAGS[] = "@CPPFLAGS@";
+
+/* Linker stuff. */
+static char LD[]        = "@LD@";
+static char LDFLAGS[]   = "@LDFLAGS@";
+static char LIBS[]      = "@LIBS@";
+static char LIBS_DEPS[] = "@LIBS_SHORT_DEPS@";
+
+void FC_FUNC(bigdft_config_get_compilers, BIGDFT_CONFIG_GET_COMPILERS)
+     (char *cc, char *fc, char *cxx, unsigned int *ln, int cc_ln, int cc_fc, int cc_cxx)
+{
+  memset(cc, ' ', sizeof(char) * *ln);
+  if (sizeof(CC) < *ln)
+    memcpy(cc, CC, sizeof(CC));
+
+  memset(fc, ' ', sizeof(char) * *ln);
+  if (sizeof(FC) < *ln)
+    memcpy(fc, FC, sizeof(FC));
+
+  memset(cxx, ' ', sizeof(char) * *ln);
+  if (sizeof(CXX) < *ln)
+    memcpy(cxx, CXX, sizeof(CXX));
+}

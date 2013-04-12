@@ -46,7 +46,8 @@ libmodules_a_SOURCES = base.f90 \
 	vdwcorrection.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
-	$(BLACS)
+	$(BLACS) \
+	configure.c
 
 # Modules
 if CAPITALIZE
