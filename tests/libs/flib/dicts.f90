@@ -159,6 +159,8 @@ subroutine test_dictionaries1()
    call yaml_dict_dump(dict2)
    call yaml_close_map()
 
+   call yaml_map('Keys of first dict',dict_keys(dictA))
+   call yaml_map('Keys of second dict',dict_keys(dict2))
 
 
    call prepend(dictA,dict2)
@@ -167,6 +169,8 @@ subroutine test_dictionaries1()
    call yaml_dict_dump(dictA)
    call yaml_close_map()
    
+   call yaml_map('Keys of prepended dict',dict_keys(dictA))
+
    call dict_free(dictA)
 
  end subroutine test_dictionaries1

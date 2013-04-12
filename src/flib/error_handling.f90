@@ -33,22 +33,28 @@ module error_handling
   integer(kind=8) :: callback_add=0
   integer(kind=8) :: callback_data_add=0
 
+  integer(kind=8), external :: f_loc
+  external :: f_err_severe
+
   interface f_err_set_callback
      module procedure err_set_callback_simple,err_set_callback_advanced
   end interface
 
-  public :: f_err_initialize,f_err_finalize,f_err_set_callback,f_err_unset_callback,f_err_define,f_err_check,f_err_raise
+  public :: f_err_initialize,f_err_finalize
+  public :: f_err_set_callback,f_err_unset_callback,f_err_define,f_err_check,f_err_raise,f_err_clean
+  public :: f_err_severe
+  public :: f_loc
 
 contains
 
-  function f_loc(routine)
-    implicit none
-    external :: routine
-    integer(kind=8) :: f_loc
-
-    call getlongaddress(routine,f_loc)
-
-  end function f_loc
+!!$  function f_loc(routine)
+!!$    implicit none
+!!$    external :: routine
+!!$    integer(kind=8) :: f_loc
+!!$
+!!$    call getlongaddress(routine,f_loc)
+!!$
+!!$  end function f_loc
 
   !> initialize module
   subroutine f_err_initialize()
@@ -123,7 +129,7 @@ contains
           jerr=dict_present_error//ierr
           name=dict_key(dict_errors//jerr)
           if (trim(name)==trim(err_name)) then
-             f_err_check=.true. 
+             f_err_check=.true.
              exit
           end if
        end do
@@ -132,12 +138,12 @@ contains
        do ierr=0,nerr-1
           jerr=dict_present_error//ierr
           if (jerr==err_id) then
-             f_err_check=.true. 
+             f_err_check=.true.
              exit
           end if
        end do
     end if
-       
+
   end function f_err_check
 
   function f_err_raise(condition,err_id,err_name,err_msg,err_action,callback,callback_data)
@@ -214,14 +220,15 @@ contains
     integer, intent(in) :: err_id
     !local variables
     integer(kind=8) :: clbk_add,clbk_data_add
+    character(len=dict_msg_len), dimension(1) :: keys
     type(dictionary), pointer :: dict_tmp
 
-    !call yaml_dict_dump(dict_present_error)
-    !print *,'err_id',err_id
-    !call yaml_dict_dump(dict_errors)
-    !print *,'test'
     dict_tmp=>dict_errors//err_id
+
+    !that is how it should be called
+    if (dict_size(dict_tmp) <= size(keys)) keys=dict_keys(dict_tmp)
     call yaml_dict_dump(dict_tmp)
+    dict_tmp=>dict_tmp//trim(keys(1))
     if (has_key(dict_tmp,errclbk)) then
        clbk_add=dict_tmp//errclbk
        if (has_key(dict_tmp,errclbkadd)) then
@@ -279,5 +286,6 @@ contains
     callback_add=0
     callback_data_add=0
   end subroutine f_err_unset_callback
+
 
 end module error_handling

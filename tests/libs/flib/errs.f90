@@ -8,17 +8,28 @@ subroutine test_error_handling()
 
   call yaml_comment('Error Handling Module Test',hfill='~')
    
+!!$  print *,'address',f_loc(abort1)
+!!$  print *,'address',f_loc(ival)
+
+
   call f_err_initialize()
   
   call f_err_set_callback(abort1)
   
-  call f_err_define(err_name='ERR_TOTO',err_msg='test1',err_id=ERR_TOTO,callback=abort_toto)
-  call f_err_define(err_name='ERR_TITI',err_msg='test2',err_id=ERR_TITI,callback=abort_titi)
-  
+  call f_err_define(err_name='ERR_TOTO',&
+       err_msg='This is the error message for the error of kind 1 and it is written extensively'//&
+       ' on purpose to see whether yaml module prints it',&
+       err_action='For this error, contact the routine developer at mail at univ dot gov',&
+       err_id=ERR_TOTO,callback=abort_toto)
+
+  call f_err_define(err_name='ERR_TITI',err_msg='test2',err_id=ERR_TITI,&
+       callback=abort_titi,callback_data=f_loc(ival))
+ 
   if (f_err_raise(condition=.true.,err_id=ERR_TOTO)) continue ! return
   
   call yaml_map("Callback done, errcode",ERR_TOTO)
   !call yaml_comment("HERE1")
+  call f_err_clean()
   call f_err_set_callback(abort2)
   !call yaml_comment("HERE2")
   call yaml_map("Callback done",f_err_raise(.true.,err_id=ERR_TITI))

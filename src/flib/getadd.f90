@@ -87,3 +87,21 @@ subroutine call_external_f(routine)!,args)
 !     call routine(args)
 !  end if
 end subroutine call_external_f
+
+!> function which identify the address of the scalar object
+!! associated to a unknown quantity
+function f_loc(routine)
+  implicit none
+  external :: routine
+  integer(kind=8) :: f_loc
+
+  call getlongaddress(routine,f_loc)
+
+end function f_loc
+
+!> Callback routine for severe errors
+subroutine f_err_severe()
+  implicit none
+  stop 'Severe error, cannot proceed'
+end subroutine f_err_severe
+

@@ -827,7 +827,7 @@ print*,'interpolating first dimension...'
   deallocate(analytic_vs_naive, stat=i_stat)
   deallocate(timings, stat=i_stat)
 
-  call f_malloc_finalize()
+  call f_finalize()
 
 end program PS_Integral
 

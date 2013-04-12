@@ -22,14 +22,31 @@ module yaml_strings
   character(len=*), parameter :: yaml_dble_fmt = '(1pe25.17)' !< Default format for integer
 
   interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
-     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,&
-          yaml_ztoa,yaml_zvtoa
+     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa
+     module procedure yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,yaml_ztoa,yaml_zvtoa
   end interface
 
   public ::  yaml_toa, buffer_string, align_message, shiftstr
-  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_length
+  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa
+  private :: yaml_dvtoa,yaml_ivtoa,max_value_length
 
 contains
+
+  !write the strings as they were written by write
+  pure subroutine string_assignment(stra,strb)
+    implicit none
+    character(len=*), intent(out) :: stra
+    character(len=*), intent(in) :: strb
+    !local variables
+    integer :: i
+
+    stra=repeat(' ',len(stra))
+    
+    do i=1,min(len(stra),len(strb))
+       stra(i:i)=strb(i:i)
+    end do
+    
+  end subroutine string_assignment
 
   !> Add a buffer to a string and increase its length
   subroutine buffer_string(string,string_lgt,buffer,string_pos,back,istat)
