@@ -1023,6 +1023,7 @@ src/flib/Makefile
 src/modules/Makefile
 src/modules/bigdft_cst.h
 src/modules/configure.inc
+src/modules/configure.c
 src/convolutions/Makefile
 src/lib/Makefile
 src/PSolver/Makefile

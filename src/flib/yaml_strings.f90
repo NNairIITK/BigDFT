@@ -18,11 +18,12 @@ module yaml_strings
   integer :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
 
   character(len=*), parameter :: yaml_int_fmt  = '(i0)'       !< Default format for integer
-  character(len=*), parameter :: yaml_real_fmt = '(1pe17.9)' !< Default format for integer
-  character(len=*), parameter :: yaml_dble_fmt = '(1pe25.17)' !< Default format for integer
+  character(len=*), parameter :: yaml_real_fmt = '(1pe17.9)' !< Default format for single
+  character(len=*), parameter :: yaml_dble_fmt = '(1pe25.17)' !< Default format for double
+  character(len=*), parameter :: yaml_char_fmt = '(a)' !< Default format for strings
 
   interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
-     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa
+     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_ctoa
      module procedure yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,yaml_ztoa,yaml_zvtoa
   end interface
 
@@ -197,6 +198,27 @@ contains
     yaml_dtoa=yaml_adjust(yaml_dtoa)
 
   end function yaml_dtoa
+
+  !> character to character, only for genericity
+  function yaml_ctoa(d,fmt)
+    implicit none
+    character(len=*), intent(in) :: d
+    character(len=max_value_length) :: yaml_ctoa
+    character(len=*), optional, intent(in) :: fmt
+
+!    yaml_ctoa=repeat(' ',max_value_length)
+
+    yaml_ctoa(1:max_value_length)=d
+
+!!$    if (present(fmt)) then
+!!$       write(yaml_ctoa,fmt) d
+!!$    else
+!!$       write(yaml_ctoa,yaml_char_fmt) d
+!!$    end if
+!!$    yaml_ctoa=yaml_adjust(yaml_ctoa)
+
+  end function yaml_ctoa
+
 
   !> Convert double complex to character
   !! use python notation for yaml complex
