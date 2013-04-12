@@ -68,7 +68,7 @@ module dictionaries
   public :: set,dict_init,dict_free,pop,append,prepend,add
   !Handle exceptions
   public :: try,close_try,try_error
-  public :: find_key,dict_len,dict_size,dict_key,dict_next,has_key
+  public :: find_key,dict_len,dict_size,dict_key,dict_next,has_key,dict_keys
   
 
 contains
@@ -349,7 +349,7 @@ contains
 
 
   !> return the length of the list
-  function dict_len(dict)
+  pure function dict_len(dict)
     implicit none
     type(dictionary), intent(in), pointer :: dict
     integer :: dict_len
@@ -367,7 +367,7 @@ contains
 
 
   !> return the length of the dictionary
-  function dict_size(dict)
+  pure function dict_size(dict)
     implicit none
     type(dictionary), intent(in), pointer :: dict
     integer :: dict_size
@@ -577,6 +577,45 @@ contains
     end if
 
   end function find_key
+
+!!$  subroutine dict_assign_keys_arrays(keys,dictkeys)
+!!$    implicit none
+!!$    character(len=*), dimension(:), intent(out) :: keys
+!!$    character(len=max_field_length), dimension(:), intent(in) :: dictkeys
+!!$    !local variables
+!!$    integer :: i
+!!$    
+!!$    if (size(dictkeys) > size(keys)) then
+!!$       do i=1,size(keys)
+!!$          keys(i)=repeat(' ',len(keys(i)))
+!!$       end do
+!!$       stop 'the size of the array is not enough'
+!!$    else
+!!$       do i=1,size(dictkeys)
+!!$          keys(i)(1:len(keys(i)))=dictkeys(i)
+!!$       end do
+!!$    end if
+!!$  end subroutine dict_assign_keys_arrays
+  
+  function dict_keys(dict)
+    implicit none
+    type(dictionary), intent(in) :: dict !<the dictionary must be associated
+    character(len=max_field_length), dimension(dict%data%nelems) :: dict_keys
+    !local variables
+    integer :: ikey
+    type(dictionary), pointer :: dict_tmp
+
+    !if (associated(dict)) then
+       ikey=0
+       dict_tmp=>dict%child
+       do while(associated(dict_tmp))
+          ikey=ikey+1
+          dict_keys(ikey)=dict_key(dict_tmp)
+          dict_tmp=>dict_tmp%next
+       end do
+    !end if
+
+  end function dict_keys
 
   !> Search in the dictionary if some of the child has the given
   !! If the key does not exists, search for it in the next chain 

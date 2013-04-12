@@ -32,17 +32,21 @@ if CAPITALIZE
 modules = YAML_STRINGS.@MODULE_EXT@ \
 	DICTIONARIES.@MODULE_EXT@ \
 	YAML_OUTPUT.@MODULE_EXT@ \
+	ERROR_HANDLING.@MODULE_EXT@ \
+	METADATA_INTERFACES.@MODULE_EXT@ \
 	DYNAMIC_MEMORY.@MODULE_EXT@
 else
 modules = yaml_strings.@MODULE_EXT@ \
 	dictionaries.@MODULE_EXT@ \
 	yaml_output.@MODULE_EXT@ \
+	metadata_interfaces.@MODULE_EXT@ \
+	error_handling.@MODULE_EXT@ \
 	dynamic_memory.@MODULE_EXT@
 endif
 
 CLEANFILES = $(modules)
 
-AM_FCFLAGS = @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I$(srcdir) @LIBABINIT_INCLUDE@
 
 # Dependencies
 $(modules): $(libflib_a_OBJECTS)

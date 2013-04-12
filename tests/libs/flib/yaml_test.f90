@@ -20,26 +20,26 @@ program yaml_test
    integer(kind=8), dimension(2) :: testarr
    !First document
   
-   call yaml_new_document()
-   call yaml_comment('Yaml Output Module Test',hfill='~')
-   call test_yaml_output1()
-   call yaml_release_document()
-
-   !Second document
-   call yaml_new_document()
-    call test_yaml_output2()
-   call yaml_release_document()
-   !Third document
-   call yaml_new_document()
-   !Check calling twice yaml_new_document
-   call yaml_new_document()
-    call test_yaml_output_sequences1()
-   call yaml_release_document()
-
-   !Fourth document
-   call yaml_new_document()
-    call test_yaml_output_sequences2()
-   call yaml_release_document()
+!!$   call yaml_new_document()
+!!$   call yaml_comment('Yaml Output Module Test',hfill='~')
+!!$   call test_yaml_output1()
+!!$   call yaml_release_document()
+!!$
+!!$   !Second document
+!!$   call yaml_new_document()
+!!$    call test_yaml_output2()
+!!$   call yaml_release_document()
+!!$   !Third document
+!!$   call yaml_new_document()
+!!$   !Check calling twice yaml_new_document
+!!$   call yaml_new_document()
+!!$    call test_yaml_output_sequences1()
+!!$   call yaml_release_document()
+!!$
+!!$   !Fourth document
+!!$   call yaml_new_document()
+!!$    call test_yaml_output_sequences2()
+!!$   call yaml_release_document()
 
    !Fourth-B document, to be moved
    call yaml_new_document()
@@ -54,9 +54,9 @@ program yaml_test
 
    call test_dictionaries1()
    call yaml_release_document()
-
-   call yaml_new_document()
-    call test_dynamic_memory()
-   call yaml_release_document()
+!!$
+!!$   call yaml_new_document()
+!!$    call test_dynamic_memory()
+!!$   call yaml_release_document()
 
 end program yaml_test

@@ -18,6 +18,8 @@ subroutine print_logo()
   integer :: namelen,ierr
   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   integer :: nthreads
+  integer, parameter :: ln = 256
+  character(len = ln), dimension(4) :: buf
 !$ integer :: omp_get_max_threads
 
 !  call yaml_comment('Daubechies Wavelets for DFT Pseudopotential Calculations',hfill='=')
@@ -65,6 +67,25 @@ subroutine print_logo()
   if (nthreads > 0) then
      call yaml_map('Maximal OpenMP threads per MPI task',nthreads)
   endif
+
+  call yaml_open_map("Compilation options")
+  call bigdft_config_get_compilers(buf(1), buf(2), buf(3), ln)
+  call yaml_map("Compilers (CC, FC, CXX)", buf(1:3))
+  call yaml_open_map("Compiler flags")
+  call bigdft_config_get_compiler_flags(buf(1), buf(2), buf(3), buf(4), ln)
+  call yaml_map("CFLAGS",   buf(1))
+  call yaml_map("FCFLAGS",  buf(2))
+  call yaml_map("CXXFLAGS", buf(3))
+  call yaml_map("CPPFLAGS", buf(4))
+  call yaml_close_map()
+  call yaml_open_map("Linker")
+  call bigdft_config_get_linker(buf(1), buf(2), buf(3), buf(4), ln)
+  call yaml_map("LD",   buf(1))
+  call yaml_map("LDFLAGS",  buf(2))
+  call yaml_map("LIBS", buf(3))
+  call yaml_map("Full linking options", buf(4))
+  call yaml_close_map()
+  call yaml_close_map()
 
 END SUBROUTINE print_logo
 
