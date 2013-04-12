@@ -753,7 +753,7 @@ contains
     integer, optional, intent(in) :: unit               !< unit for strem
     !local variables
     logical :: cut,redo_line
-    integer :: msg_lgt,strm,unt,icut,istr,ierr,msg_lgt_ck
+    integer :: msg_lgt,strm,unt,icut,istr,ierr,msg_lgt_ck,idbg
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -798,8 +798,10 @@ contains
        istr=1
        cut=.true.
        msg_lgt=0
+       idbg=0
        cut_line: do while(cut)
-          !print *,'hereOUTPU',cut,icut
+          idbg=idbg+1
+!          print *,'hereOUTPU',cut,icut
        !verify where the message can be cut
           cut=.false.
           cut_message :do while(icut > streams(strm)%max_record_length - max(streams(strm)%icursor,streams(strm)%indent))
@@ -807,12 +809,14 @@ contains
              cut=.true.
           end do cut_message
           call buffer_string(towrite,len(towrite),mapvalue(istr:istr+icut-1),msg_lgt)
-          if (streams(strm)%flowrite .and. .not. cut) call buffer_string(towrite,len(towrite),',',msg_lgt)
+          if (streams(strm)%flowrite .and. .not. cut) &
+               call buffer_string(towrite,len(towrite),',',msg_lgt)
           call dump(streams(strm),towrite(1:msg_lgt),advance='yes',event=SCALAR)
-          istr=icut
+          istr=istr-1+icut
           icut=len_trim(mapvalue)-istr+1
-          !print *,'icut',istr,icut,mapvalue(istr:istr+icut-1),cut,istr+icut-1,len_trim(mapvalue)
+!          print *,'icut',istr,icut,mapvalue(istr:istr+icut-1),cut,istr+icut-1,len_trim(mapvalue)
           msg_lgt=0
+         if (idbg==1000) exit cut_line !to avoid infinite loops
        end do cut_line
        if (.not.streams(strm)%flowrite) call yaml_close_map(unit=unt)
     end if

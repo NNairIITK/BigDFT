@@ -41,6 +41,12 @@ subroutine test_yaml_output2()
       call yaml_map("one",1)
       call yaml_map("two",2)
       call yaml_close_map()
+      !another long sentence minimcking the configure output
+      call yaml_map('Build Configure line','$(top_builddir)/src/flib/libflib.a '//&
+           '-labinit -lxc   -lOpenCL -lm -lstdc++ -letsf_io_utils -letsf_io -lnetcdff -lnetcdf '//&
+           '-lscalapack-openmpi -lblacs-openmpi -lblacsF77init-openmpi -llapack '//&
+           '-lblas -larchive   -lyaml -pthread -lgthread-2.0 -lrt -lgio-2.0 '//&
+           '-lgobject-2.0 -lglib-2.0   -lgio-2.0 -lgobject-2.0 -lglib-2.0    ')
    call yaml_close_map()
 
 end subroutine test_yaml_output2
