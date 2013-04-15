@@ -41,6 +41,17 @@ program yaml_test
     call test_yaml_output_sequences2()
    call yaml_release_document()
 
+   !Fourth-A document
+   call yaml_new_document()
+   call yaml_invoice_example()
+   call yaml_release_document()
+
+   !Fourth-A2 document
+   call yaml_new_document()
+   call yaml_invoice_example_with_dictionaries()
+   call yaml_release_document()
+
+
    !Fourth-B document, to be moved
    call yaml_new_document()
     call test_error_handling()
@@ -50,8 +61,8 @@ program yaml_test
    call yaml_new_document()
     call test_dictionaries0()
    call yaml_release_document()
-   !new document missing on purpose
 
+   call yaml_new_document()
    call test_dictionaries1()
    call yaml_release_document()
 

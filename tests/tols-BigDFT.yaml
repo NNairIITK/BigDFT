@@ -37,6 +37,7 @@ yaml_test:
  Keys to ignore:
    - Error code
    - Address*
+   - date
 
 #Runs which update and override the default
 SiH4:

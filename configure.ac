@@ -101,6 +101,10 @@ AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
 if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
   PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [have_glib=yes], [have_glib=no])
   PKG_CHECK_MODULES(GDBUS, gio-2.0 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
+  dnl Merge GLIB_LIBS and GDBUS_LIBS if GDBUS is available.
+  if test "$have_gdbus" = "yes" ; then
+    GLIB_LIBS=$GDBUS_LIBS
+  fi
   PKG_CHECK_MODULES([GOBJECT_INTROSPECTION],
                     [gobject-introspection-1.0 >= 0.9],
                     [enable_introspection=yes],
@@ -984,7 +988,7 @@ dnl Agregate all flags.
 LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 
 dnl Agregate all the optional libs.
-LIBS_SHORT_DEPS="\$(top_builddir)/src/flib/libflib.a $LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $GDBUS_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_SHORT_DEPS="\$(top_builddir)/src/flib/libflib.a $LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 
 dnl Test for the documentation.
@@ -1010,6 +1014,8 @@ fi
 AC_SUBST(moduledir)
 docdir="${docdir}"
 AC_SUBST(docdir)
+
+AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
@@ -1133,7 +1139,7 @@ Options:
    | C flags:                $LIB_YAML_CFLAGS
    | linked libraries:       $LIB_YAML_LIBS
   With GLib and co.:         $have_glib
-   | linked libraries:       $GDBUS_LIBS $GLIB_LIBS
+   | linked libraries:       $GLIB_LIBS
 
 Installation paths:
   Source code location:      ${srcdir}
