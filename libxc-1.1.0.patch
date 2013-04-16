@@ -1,56 +1,6 @@
-=== modified file 'libxc-1.1.0/src/gga_x_pbe.c'
---- libxc-1.1.0/src/gga_x_pbe.c	2011-07-01 16:01:25 +0000
-+++ libxc-1.1.0/src/gga_x_pbe.c	2011-07-06 08:15:23 +0000
-@@ -61,12 +61,12 @@
-   };
- 
-   static const FLOAT mu[13] = {
--    0.066725*M_PI*M_PI/3.0, /* PBE: mu = beta*pi^2/3, beta = 0.066725 */
--    0.066725*M_PI*M_PI/3.0, /* PBE rev: as PBE */
-+    0.2195149727645171, /* PBE: mu = beta*pi^2/3, beta = 0.066725 */
-+    0.2195149727645171, /* PBE rev: as PBE */
-     10.0/81.0,              /* PBE sol */
-     0.23214,                /* xPBE */
-     0.046*M_PI*M_PI/3.0,    /* PBE_JSJR */
--    0.066725*M_PI*M_PI/3.0, /* PBEK1_VDW: as PBE */
-+    0.2195149727645171, /* PBEK1_VDW: as PBE */
-     10.0/81.0,              /* RGE2      */
-     0.260,                  /* APBE (X)  */
-     0.23889,                /* APBE (K)  */
-
-=== modified file 'libxc-1.1.0/src/util.h'
---- libxc-1.1.0/src/util.h	2011-07-01 16:01:25 +0000
-+++ libxc-1.1.0/src/util.h	2011-07-04 14:21:20 +0000
-@@ -70,9 +70,9 @@
- #define D3FZETA(x)     (-(8.0/27.0)/FZETAFACTOR)* \
-   (ABS(x)==1.0 ? (FLT_MAX) : (pow(1.0 + (x), -5.0/3.0) - pow(1.0 - (x), -5.0/3.0)))
- 
--#define MIN_DENS             5.0e-13
--#define MIN_GRAD             5.0e-13
--#define MIN_TAU              5.0e-13
-+#define MIN_DENS             1.0e-20
-+#define MIN_GRAD             1.0e-20
-+#define MIN_TAU              1.0e-20
- 
- #include "xc.h"
-
-=== modified file 'libxc-1.1.0/m4/fc_integer.m4'
---- libxc-1.1.0/m4/fc_integer.m4	2011-07-01 16:01:25 +0000
-+++ libxc-1.1.0/m4/fc_integer.m4	2011-08-01 15:20:19 +0000
-@@ -46,6 +46,9 @@
-   if AC_TRY_EVAL(ac_try); then
-     ac_try=""
-     ac_fcintegersize=`./intsizetest.x`;
-+    if test -z "$ac_fcintegersize" ; then
-+      ac_fcintegersize=4
-+    fi
-   else
-     echo "configure: failed program was:" >&AC_FD_CC
-     cat intsizetest.f90 >&AC_FD_CC
-
-=== modified file 'libxc-1.1.0/src/Makefile.am'
---- libxc-1.1.0/src/Makefile.am	2011-07-12 10:03:50 +0000
-+++ libxc-1.1.0/src/Makefile.am	2011-08-02 08:45:36 +0000
+=== modified file 'libxc-2.0.x/src/Makefile.am'
+--- libxc-2.0.x/src/Makefile.am	2011-07-12 10:03:50 +0000
++++ libxc-2.0.x/src/Makefile.am	2011-08-02 08:45:36 +0000
 @@ -125,23 +125,23 @@
  xc_funcs.h libxc_funcs.f90: get_funcs.pl
  	$(srcdir)/get_funcs.pl $(srcdir) $(top_builddir)
