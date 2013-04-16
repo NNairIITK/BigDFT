@@ -382,7 +382,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           !!if (iproc==0) write(*,'(a,i6,2es16.6)') 'it_solver, abs(sumn-charge), foe_obj%ef_interpol_chargediff', it_solver, abs(sumn-foe_obj%charge), foe_obj%ef_interpol_chargediff
           !!if (iproc==0) write(*,'(a,5es16.6)') 'efarr(1), efarr(2), sumnarr(1), sumnarr(2), charge', efarr(1), efarr(2), sumnarr(1), sumnarr(2), foe_obj%charge
           if (it_solver>=4 .and.  abs(sumn-foe_obj%charge)<foe_obj%ef_interpol_chargediff) then
-              det=determinant(4,interpol_matrix)
+              det=determinant(4,interpol_matrix,iproc)
               if (iproc==0) write(*,'(1x,a,2es10.2)') 'determinant of interpolation matrix, limit:', &
                                                      det, foe_obj%ef_interpol_det
               if(abs(det)>foe_obj%ef_interpol_det) then
@@ -922,12 +922,13 @@ end subroutine get_roots_of_cubic_polynomial
 
 
 
-real(kind=8) function determinant(n, mat)
+real(kind=8) function determinant(n, mat,iproc)
     implicit none
 
     ! Calling arguments
     integer,intent(in) :: n
     real(kind=8),dimension(n,n),intent(in) :: mat
+    integer,intent(in) :: iproc
 
     ! Local variables
     integer :: i, info
@@ -939,8 +940,9 @@ real(kind=8) function determinant(n, mat)
 
     call dgetrf(n, n, mat_tmp, n, ipiv, info)
     if (info/=0) then
-        write(*,'(a,i0)') 'ERROR in dgetrf, info=',info
-        stop
+        if (iproc==0) write(*,'(a,i0,a)') 'ERROR in dgetrf, info=',info,'. Set determinant to zero.'
+        determinant=0
+        return
     end if
 
     determinant=1.d0
