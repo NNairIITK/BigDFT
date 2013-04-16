@@ -90,7 +90,7 @@ def compare_seq(seq, ref, tols, always_fails = False):
   global failed_checks
   if tols is not None:
     for i in range(len(ref)):
-      print 'here',ref[i],seq[i],tols[0]
+      #print 'here',ref[i],seq[i],tols[0]
       (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails)
 # Add to the tolerance dictionary a failed result      
       if failed:
