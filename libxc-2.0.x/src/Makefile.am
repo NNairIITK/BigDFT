@@ -133,7 +133,7 @@ $(LIBFUNCMOD): libxc_la-libxc_funcs.lo
 $(XCLIBMODS): libxc_la-libxc.lo
 
 libxc_la-libxc.lo: libxc.f90 $(LIBFUNCMOD)
-	$(LIBTOOL)  --tag=FC $(libxc_la_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $FC) $(AM_FCFLAGS) $(FCFLAGS) -c -o libxc_la-libxc.lo $(FCFLAGS_f90) `test -f 'libxc.f90' || echo '$(srcdir)/'`libxc.f90
+	$(LIBTOOL)  --tag=FC $(libxc_la_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(FC) $(AM_FCFLAGS) $(FCFLAGS) -c -o libxc_la-libxc.lo $(FCFLAGS_f90) `test -f 'libxc.f90' || echo '$(srcdir)/'`libxc.f90
 
 libxc_la-libxc_s.lo: libxc_s.f90 $(LIBFUNCMOD)
 	$(LIBTOOL)  --tag=FC $(libxc_la_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(FC) $(AM_FCFLAGS) $(FCFLAGS) -c -o libxc_la-libxc_s.lo $(FCFLAGS_f90) `test -f 'libxc_s.f90' || echo '$(srcdir)/'`libxc_s.f90
