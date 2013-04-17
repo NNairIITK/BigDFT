@@ -78,7 +78,7 @@ module yaml_output
   public :: yaml_map,yaml_open_map,yaml_close_map
   public :: yaml_sequence,yaml_open_sequence,yaml_close_sequence
   public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
-  public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa
+  public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa,yaml_time_toa
   public :: yaml_set_stream,yaml_set_default_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump
@@ -864,47 +864,12 @@ contains
     include 'yaml_map-arr-inc.f90'
   end subroutine yaml_map_dv
 
-
   !> Character vector
   subroutine yaml_map_cv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
     character(len=*), dimension(:), intent(in) :: mapvalue
     include 'yaml_map-arr-inc.f90'
-!!$    character(len=*), intent(in) :: mapname
-!!$
-!!$    character(len=*), optional, intent(in) :: label,advance,fmt
-!!$    integer, optional, intent(in) :: unit
-!!$    !local variables
-!!$    integer :: msg_lgt,strm,unt
-!!$    character(len=3) :: adv
-!!$    character(len=tot_max_record_length) :: towrite
-!!$
-!!$    unt=0
-!!$    if (present(unit)) unt=unit
-!!$    call get_stream(unt,strm)
-!!$
-!!$    adv='def' !default value
-!!$    if (present(advance)) adv=advance
-!!$
-!!$    msg_lgt=0
-!!$    !put the message
-!!$    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-!!$    !put the semicolon
-!!$    call buffer_string(towrite,len(towrite),': ',msg_lgt)
-!!$    !put the optional name
-!!$    if (present(label)) then
-!!$       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-!!$       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
-!!$    end if
-!!$    !put the value
-!!$    if (present(fmt)) then
-!!$       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-!!$    else
-!!$       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-!!$    end if
-!!$    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map_cv
-
 
   subroutine yaml_map_iv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
@@ -997,7 +962,8 @@ contains
     integer, intent(in), optional :: event              !< Event to handle
     integer, intent(out), optional :: istat             !< Status error
     !local variables
-    logical :: ladv,change_line,reset_line,pretty_print,reset_tabbing,comma_postponed
+    logical :: ladv,change_line,reset_line,pretty_print
+    logical :: reset_tabbing,comma_postponed,extra_line
     integer :: evt,indent_lgt,msg_lgt,shift_lgt,prefix_lgt
     integer :: towrite_lgt
     character(len=1) :: anchor
@@ -1189,14 +1155,19 @@ contains
     end if
 
     !standard writing,
-    !print *,'change_line',change_line,'prefix',prefix_lgt,msg_lgt,shift_lgt
+    !if (change_line) print *,'change_line',change_line,'prefix',prefix_lgt,msg_lgt,shift_lgt
+    extra_line=.false.
     if (change_line) then
        !first write prefix, if needed
        if (prefix_lgt>0) then
           write(stream%unit,'(a)')prefix(1:prefix_lgt)
        else if (msg_lgt >0 .or. evt == NEWLINE) then
-          !change line
-          write(stream%unit,*)
+          !change line, only if istat is not present
+          if (.not. present(istat)) then
+             write(stream%unit,*)
+          else
+             extra_line=.true.
+          end if
        end if
        stream%icursor=1
        towrite_lgt=msg_lgt+shift_lgt
@@ -1218,6 +1189,7 @@ contains
              !stop 'ERROR (dump): writing exceeds record size'
           end if
        else
+          if (extra_line) write(stream%unit,*)
           !write(*,fmt='(a,i0,a)',advance="no") '(indent_lgt ',indent_lgt,')'
           write(stream%unit,'(a)',advance=trim(adv))repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
        end if
@@ -1269,13 +1241,18 @@ contains
       change_line=.false.
       iscpos=index(message,anchor)
       shift_lgt=0
-      if (iscpos==0) return !no anchor, no pretty printing
+
+      !alternative strategy, anchor to the first position
+      !if (iscpos==0) return !no anchor, no pretty printing
+
       ianchor_pos=icursor+prefix_lgt+indent_lgt+iscpos-1
       call closest_tab(ianchor_pos,tabeff)
       !first attempt to see if the line enters
       shift_lgt=tabeff-ianchor_pos
-      !print *, 'there',tabeff,itab,ianchor_pos,shift_lgt,msg_lgt,prefix_lgt,indent_lgt,icursor
+      !print *, 'there',shift_lgt,msg_lgt,prefix_lgt,indent_lgt,icursor,max_lgt
+      !print *,'condition',icursor+msg_lgt+prefix_lgt+indent_lgt+shift_lgt >= max_lgt
       !see if the line enters
+      
       if (icursor+msg_lgt+prefix_lgt+indent_lgt+shift_lgt >= max_lgt) then
          !restart again
          change_line=.true.

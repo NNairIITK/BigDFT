@@ -4,7 +4,7 @@
   character(len=*), optional, intent(in) :: label,advance,fmt
   integer, optional, intent(in) :: unit
   !local variables
-  integer :: msg_lgt,strm,unt,nl,nu,tmp_lgt,i,il
+  integer :: msg_lgt,strm,unt,nl,nu,tmp_lgt,i,il,icursor
   character(len=3) :: adv
   character(len=tot_max_record_length) :: towrite
 
@@ -43,13 +43,15 @@
         tmp_lgt=tmp_lgt+3 !comma and spaces
      end do
      !     tmp_lgt=tmp_lgt*(nu-nl)
-!     print *,'debug',max(streams(strm)%icursor+msg_lgt+1,streams(strm)%tabref)+tmp_lgt,&
-!          streams(strm)%max_record_length
+     !print *,'debug',max(streams(strm)%icursor+msg_lgt+1,streams(strm)%tabref)+tmp_lgt,&
+     !     streams(strm)%max_record_length
      if (max(streams(strm)%icursor+msg_lgt+1,streams(strm)%tabref)+tmp_lgt > &
           streams(strm)%max_record_length) then
         !implement the writing explicitly per element
         call yaml_open_sequence(mapname,flow=.true.,unit=unt)
         do i=nl,nu
+         call yaml_stream_attributes(icursor=icursor)
+         !print *,'i,icursor',i,icursor
            if (present(fmt)) then
               call yaml_sequence(trim(yaml_toa(mapvalue(i),fmt=fmt)),unit=unt)
            else

@@ -266,10 +266,10 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
 !         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psifscf)
 
   print *,'interpolating first dimension...'
-    call my_morph_and_transpose(hx,dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
+    call my_morph_and_transpose(dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
          (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
 
-    call my_morph_and_transpose(hx,dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
+    call my_morph_and_transpose(dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
          (2*n1_old+2+2*nb1),dy_field,(2*n1+2+2*nb1),psifscf)
 
 
@@ -326,7 +326,7 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
 
 
 !print*,'...interpolating second dimension...'
-    call my_morph_and_transpose(hy,dy_field/hy,nd,nrange,y_phi,(2*n1+2+2*nb1),&
+    call my_morph_and_transpose(dy_field/hy,nd,nrange,y_phi,(2*n1+2+2*nb1),&
          (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2)
 
   x=-n1_old*hx!0.d0

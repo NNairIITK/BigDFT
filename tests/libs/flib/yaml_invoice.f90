@@ -39,7 +39,7 @@ subroutine yaml_invoice_example()
     call yaml_close_sequence()
     !final part
     call yaml_map('tax',251.42,fmt='(f6.2)')
-    call yaml_map('total',4443.52,fmt='(f8.2)')
+    call yaml_map('total',4443.52,fmt='(f6.2)') !wrong format on purpose
     call yaml_map('comments','Late afternoon is best. Backup contact is Nancy Billsmer @ 338-4338.')
 
       !call yaml_close_map()
@@ -50,6 +50,7 @@ subroutine yaml_invoice_example_with_dictionaries()
   use yaml_output
   use dictionaries
   implicit none
+  real(kind=8) :: price
   type(dictionary), pointer :: dict,dict_tmp,dictA,dictA2
 
   call yaml_comment('Yaml Invoice Example, using dictionaries',hfill='-')
@@ -86,7 +87,8 @@ subroutine yaml_invoice_example_with_dictionaries()
   call set(dict_tmp//'quantity',1)
   call set(dict_tmp//'description','Super Hoop')
   call set(dict_tmp//'price',2392.00)
-
+  price=dict_tmp//'price'
+  call yaml_map('Retrieve the price value',price)
   call add(dict//'Product',dict_tmp)
 
   call set(dict//'Tax',251.42)
