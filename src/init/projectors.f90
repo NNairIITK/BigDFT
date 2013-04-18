@@ -1137,7 +1137,7 @@ subroutine crtproj(geocode,nterm,lr, &
      !$omp end parallel
 
   else if (ncplx_w==2) then
-     !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
+     !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2,ncplx_k) &
      !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
      !$omp shared(nterm,mvctr_f,mseg_f)
      !part with real and imaginary part
