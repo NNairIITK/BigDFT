@@ -139,6 +139,10 @@ Li+:
 O2-Spin:
  Epsilon: 1.1e-10
 
+H2-spin:
+ Epot: 2.1e-11
+ Total energy with tail correction: 1.51e-11
+
 TiSmear:
  Epsilon: 5.e-11
  EKS: 5.5e-11
@@ -198,7 +202,7 @@ base:
   norm(P): 1.1e-9
 
 Davidson-SiH4:
-  e_virtual: 1.2e-11
+  e_virtual: 1.7e-11
   Eigenvalues and eigenstate residue: 1.3e-10
 
 TDDFT:
