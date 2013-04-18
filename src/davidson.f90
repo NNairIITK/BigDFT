@@ -1,4 +1,5 @@
 !> @file
+!       Set to zero:
 !!  Routines to do diagonalisation with Davidson algorithm
 !! @author
 !!    Copyright (C) 2007-2012 BigDFT group
@@ -25,7 +26,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    type(denspot_distribution), intent(in) :: dpcom
    type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in), target :: rhopot
    type(GPU_pointers), intent(inout) :: GPU
@@ -296,7 +297,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       !control the previous value of idsx_actual
       idsx_actual_before=VTwfn%diis%idsx
 
-      call hpsitopsi(iproc,nproc,iter,in%idsx,VTwfn)
+      call hpsitopsi(iproc,nproc,iter,in%idsx,VTwfn,at,nlpspd)
+
 
       if (occorbs) then
          !if this is true the transposition for psivirt which is done in hpsitopsi
@@ -423,7 +425,7 @@ subroutine davidson(iproc,nproc,in,at,&
    type(communications_arrays), intent(in) :: comms, commsv
    type(denspot_distribution), intent(in) :: dpcom
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in) :: rhopot
    type(orbitals_data), intent(inout) :: orbsv

@@ -59,6 +59,7 @@ libabinit_a_SOURCES = \
 	18_timing/timab.F90 \
 	18_memory/m_profiling.F90 \
 	28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \
+        28_numeric_noabirule/m_splines.F90 \
 	28_numeric_noabirule/sort_dp.F90 \
 	28_numeric_noabirule/sort_int.F90 \
 	28_numeric_noabirule/uniformrandom.F90 \
@@ -142,6 +143,7 @@ libabinit_a_SOURCES = \
 	56_xc/interfaces_56_xc.F90 \
 	56_xc/drivexc.F90 \
 	56_xc/invcb.F90 \
+	56_xc/mkdenpos.F90 \
 	56_xc/m_libxc_functionals.F90 \
 	56_xc/size_dvxc.F90 \
 	56_xc/xchcth.F90 \

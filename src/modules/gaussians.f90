@@ -32,10 +32,11 @@ module gaussians
      integer :: ncoeff !< number of total basis elements
      integer :: nshltot !< total number of shells (m quantum number ignored) 
      integer :: nexpo !< number of exponents (sum of the contractions)
+     integer :: ncplx !< number of complex comp. (real or complex gaussians)
      !storage units
      integer, dimension(:), pointer :: nshell !< number of shells for any of the centers
      integer, dimension(:), pointer :: ndoc,nam !< degree of contraction, angular momentum of any shell
-     real(gp), dimension(:), pointer :: xp,psiat !<factors and values of the exponents (complex numbers are allowed)
+     real(gp), dimension(:,:), pointer :: xp,psiat !<factors and values of the exponents (complex numbers are allowed)
      real(gp), dimension(:,:), pointer :: rxyz !<positions of the centers
   end type gaussian_basis
 
@@ -125,8 +126,8 @@ contains
     call memocc(i_stat,G%sd,'G%sd',subname)
 
     do iexpo=1,G%nexpo
-       G%sd(EXPO_,iexpo)=0.5_gp/Gold%xp(iexpo)**2
-       G%sd(COEFF_,iexpo)=Gold%psiat(iexpo)
+       G%sd(EXPO_,iexpo)=0.5_gp/Gold%xp(1,iexpo)**2
+       G%sd(COEFF_,iexpo)=Gold%psiat(1,iexpo)
     end do
 
   end subroutine gaussian_basis_convert
@@ -306,8 +307,8 @@ contains
                       jovrlp=jovrlp+1
                       !if ((jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) .or. &
                       !     A%ncoeff /= B%ncoeff ) then
-                      call gbasovrlp(A%xp(iexpo:),A%psiat(iexpo:),&
-                           B%xp(jexpo:),B%psiat(jexpo:),&
+                      call gbasovrlp(A%xp(1,iexpo:),A%psiat(1,iexpo:),&
+                           B%xp(1,jexpo:),B%psiat(1,jexpo:),&
                            ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
                            niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                       !end if
@@ -386,8 +387,8 @@ contains
                       jovrlp=jovrlp+1
                       if (jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff .or. &
                            A%ncoeff /= B%ncoeff ) then
-                         call kineticovrlp(A%xp(iexpo:),A%psiat(iexpo:),&
-                              B%xp(jexpo:),B%psiat(jexpo:),&
+                         call kineticovrlp(A%xp(1,iexpo:),A%psiat(1,iexpo:),&
+                              B%xp(1,jexpo:),B%psiat(1,jexpo:),&
                               ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
                               niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                       end if

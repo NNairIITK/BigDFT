@@ -647,6 +647,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
    !assign shell IDs and count the number of exponents and coefficients
    !also calculate the wavefunctions 
+   G%ncplx=1 !2 only for PAW and projectors
    G%nexpo=0
    G%ncoeff=0
    ishell=0
@@ -725,10 +726,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    call razero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
 
    !allocate and assign the exponents and the coefficients
-   allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
+   allocate(G%psiat(G%ncplx,G%nexpo+ndebug),stat=i_stat)
    call memocc(i_stat,G%psiat,'G%psiat',subname)
 
-   allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
+   allocate(G%xp(G%ncplx,G%nexpo+ndebug),stat=i_stat)
    call memocc(i_stat,G%xp,'G%xp',subname)
 
    allocate(psiatn(ng+ndebug),stat=i_stat)
@@ -809,8 +810,8 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
             call atomkin(l-1,ng,xp(1,ityx),psiat(1,ictotpsi,ityx),psiatn,ek)
             do ig=1,G%ndoc(ishell)
                iexpo=iexpo+1
-               G%psiat(iexpo)=psiatn(ig)
-               G%xp(iexpo)=xp(ig,ityx)
+               G%psiat(1,iexpo)=psiatn(ig)
+               G%xp(1,iexpo)=xp(ig,ityx)
             end do
 
             do ispin=1,nspin
@@ -1287,7 +1288,8 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
       i_all=-product(shape(ofdcoef))*kind(ofdcoef)
       deallocate(ofdcoef,stat=i_stat)
       call memocc(i_stat,i_all,'ofdcoef',subname)
-   else if (npspcode == 10) then !HGH-K case
+   else if (npspcode == 10 .or. npspcode == 7 ) then !HGH-K case
+! For PAW this is just the initial guess
       do l=1,lpx+1
          hsep(1,l)=psppar(l,1) !h11
          hsep(2,l)=psppar(l,4) !h12

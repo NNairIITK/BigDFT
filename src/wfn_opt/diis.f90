@@ -967,7 +967,6 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
   deallocate(adsw,stat=i_stat)
   call memocc(i_stat,i_all,'adsw',subname)
 
-
 END SUBROUTINE diisstp
 
 !> compute a dot product of two single precision vectors 
