@@ -319,7 +319,7 @@ program PSolver_Program
 !!$  deallocate(karray,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'karray',subname)
 
-  call timing(iproc,'              ','RE')
+  call timing(karray%mpi_env%mpi_comm,'              ','RE')
 
   if (.not. onlykernel) then
 
@@ -379,7 +379,7 @@ program PSolver_Program
 !!$     deallocate(karray,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'karray',subname)
 
-     call timing(iproc,'              ','RE')
+     call timing(karray%mpi_env%mpi_comm,'              ','RE')
 
      if (.not. onlykernel) then
         !Maximum difference

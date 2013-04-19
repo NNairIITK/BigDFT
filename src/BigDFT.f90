@@ -1,7 +1,7 @@
 !> @file
 !! BigDFT package performing ab initio calculation based on wavelets
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -22,20 +22,19 @@ program BigDFT
    integer :: iproc,nproc,i_stat,i_all,ierr,infocode
    integer :: ncount_bigdft
    real(gp) :: etot,fnoise
-   logical :: exist_list
    !input variables
    type(atoms_data) :: atoms
    type(input_variables) :: inputs
    type(restart_objects) :: rst
    character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
-   character(len=60) :: filename, radical,run_id
+   character(len=60) :: filename, run_id
    ! atomic coordinates, forces, strten
    !information for mpi_initalization
    integer, dimension(4) :: mpi_info
    real(gp), dimension(6) :: strten
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
-   integer :: iconfig,nconfig,istat,group_size,ngroups,igroup
+   integer :: iconfig,nconfig,ngroups,igroup
 
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
@@ -117,7 +116,7 @@ program BigDFT
 
    deallocate(arr_posinp,arr_radical)
 
-   call bigdft_finalize()
+   call bigdft_finalize(ierr)
 
 END PROGRAM BigDFT
 

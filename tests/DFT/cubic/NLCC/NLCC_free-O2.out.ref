@@ -1,3 +1,2 @@
+WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will be run on the current machine only.
  <BigDFT> log of the run will be written in logfile: ./log-free-O2.yaml
- <BigDFT> Logfile already existing, move previous file in:
-   ./logfiles/log-free-O2.10:52:55.295.yaml

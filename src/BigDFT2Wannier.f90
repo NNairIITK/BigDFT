@@ -1,7 +1,7 @@
 !> @file
 !!   Interface between BigDFT and Wannier90
 !! @author
-!!   Copyright (C) 2010-2011 BigDFT group 
+!!   Copyright (C) 2010-2013 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -43,7 +43,7 @@ program BigDFT2Wannier
    real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:) !!,pvirt(:)
    real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
    real(wp), pointer :: pwork(:)!,sph_daub(:)
-   character(len=60) :: radical, filename, posinp,run_id
+   character(len=60) :: filename, run_id
    logical :: perx, pery,perz, residentity,write_resid
    integer :: nx, ny, nz, nb, nb1, nk, inn
    real(kind=8) :: b1, b2, b3, r0x, r0y, r0z
@@ -89,12 +89,6 @@ program BigDFT2Wannier
 !!$   call memocc_set_memory_limit(memorylimit)
 
    if (nconfig < 0) stop 'runs-file not supported for BigDFT2Wannier executable'
-
-!!$   ! Read a possible radical format argument.
-!!$   call get_command_argument(1, value = radical, status = i_stat)
-!!$   if (i_stat > 0) then
-!!$      write(radical, "(A)") "input"
-!!$   end if
 
   call bigdft_set_input(trim(run_id)//trim(bigdft_run_id_toa()),'posinp'//trim(bigdft_run_id_toa()),&
        rxyz,input,atoms)
@@ -1004,7 +998,7 @@ program BigDFT2Wannier
       call timing(iproc,'Input_comput  ','OF')
 
 
-call timing(iproc,'             ','RE')
+call timing(bigdft_mpi%mpi_comm,'             ','RE')
 
 call cpu_time(tcpu1)
 call system_clock(ncount1,ncount_rate,ncount_max)
@@ -1017,7 +1011,7 @@ if (iproc == 0) &
 !!$call memocc(0,0,'count','stop')
 
 
-call bigdft_finalize()
+call bigdft_finalize(ierr)
 
 !!$! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
 !!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)

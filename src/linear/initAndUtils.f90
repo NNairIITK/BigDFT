@@ -23,6 +23,9 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
   allocate(lin%norbsPerType(ntypes), stat=istat)
   call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
 
+  allocate(lin%potentialPrefac_ao(ntypes), stat=istat)
+  call memocc(istat, lin%potentialPrefac_ao, 'lin%potentialPrefac_ao', subname)
+
   allocate(lin%potentialPrefac_lowaccuracy(ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
 
@@ -49,6 +52,12 @@ subroutine deallocateBasicArraysInput(lin)
   integer :: i_stat,i_all
   character(len=*),parameter :: subname='deallocateBasicArrays'
  
+  if(associated(lin%potentialPrefac_ao)) then
+    i_all = -product(shape(lin%potentialPrefac_ao))*kind(lin%potentialPrefac_ao)
+    deallocate(lin%potentialPrefac_ao,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%potentialPrefac_ao',subname)
+    nullify(lin%potentialPrefac_ao)
+  end if 
   if(associated(lin%potentialPrefac_lowaccuracy)) then
     i_all = -product(shape(lin%potentialPrefac_lowaccuracy))*kind(lin%potentialPrefac_lowaccuracy)
     deallocate(lin%potentialPrefac_lowaccuracy,stat=i_stat)
@@ -139,7 +148,7 @@ subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, at, lzd, orbs, Glr, 
   allocate(lzd%Llr(lzd%nlr),stat=istat)
   
   do ilr=1,lzd%nlr
-     lzd%Llr(ilr)=default_locreg()
+     lzd%Llr(ilr)=locreg_null()
   end do
   
   allocate(calculateBounds(lzd%nlr), stat=istat)
@@ -203,6 +212,7 @@ function megabytes(bytes)
   
 end function megabytes
 
+
 subroutine init_foe(iproc, nproc, lzd, at, input, orbs_KS, orbs, foe_obj, reset)
   use module_base
   use module_types
@@ -218,7 +228,7 @@ subroutine init_foe(iproc, nproc, lzd, at, input, orbs_KS, orbs, foe_obj, reset)
   logical, intent(in) :: reset
   
   ! Local variables
-  integer :: iorb, jorb, iiorb, jjorb, istat, iseg, ilr, jlr
+  integer :: iorb, iiorb, jjorb, istat, iseg, ilr, jlr
   integer :: iwa, jwa, itype, jtype, ierr, iall
   logical :: seg_started
   real(kind=8) :: tt, cut
@@ -335,7 +345,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
   logical :: linear
-  integer :: iat,ityp,nspin_ig,i_all,i_stat
+  integer :: iat,ityp,nspin_ig,i_all,i_stat,ilr
   real(gp), dimension(:), allocatable :: locrad
   logical,dimension(:),allocatable :: calculateBounds
 
@@ -376,6 +386,9 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
 
   if(linType /= INPUT_IG_TMO) then
      allocate(Lzd%Llr(Lzd%nlr+ndebug))
+     do ilr=1,Lzd%nlr
+        Lzd%Llr(ilr)=locreg_null()
+     end do
      !for now, always true because we want to calculate the hamiltonians for all locregs
      if(.not. Lzd%linear) then
         Lzd%lintyp = 0
@@ -757,7 +770,7 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
   !end do
 
   call timing(iproc,'init_locregs  ','OF')
-  
+
   call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
        & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), at, lzd, orbs, &
        & lzd%glr, input%lin%locrad, 's')
@@ -802,7 +815,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
 
   
   ! Local variables
-  integer :: iorb, istat, ilr, npsidim, i, ii
+  integer :: iorb, ilr, npsidim
   character(len=*),parameter :: subname='update_locreg'
 
   call timing(iproc,'updatelocreg1','ON') 
@@ -835,8 +848,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
   ! set npsidim_comp here too?!
   npsidim_comp=1
 
-  ! don't really want to keep this unless we do so right from the start, but for now keep it to avoid updating refs
-  orbs%eval=-.5d0
+!  ! don't really want to keep this unless we do so right from the start, but for now keep it to avoid updating refs
+!  orbs%eval=-.5d0
 
   call timing(iproc,'updatelocreg1','OF') 
 
@@ -984,7 +997,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_p2pComms(wfn%comgp, subname)
   call deallocate_foe(wfn%foe_obj, subname)
   call deallocate_sparseMatrix(wfn%linmat%denskern, subname)
-  !call deallocate_sparseMatrix(wfn%linmat%inv_ovrlp, subname)
+  call deallocate_sparseMatrix(wfn%linmat%inv_ovrlp, subname)
   call deallocate_sparseMatrix(wfn%linmat%ovrlp, subname)
   call deallocate_sparseMatrix(wfn%linmat%ham, subname)
 
@@ -1103,6 +1116,8 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz,
       locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
   end do
 
+  !temporary,  moved from update_locreg
+  tmb%orbs%eval=-0.5_gp
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, locregCenter, tmb%lzd%glr, &
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        at, input, KSwfn%orbs, tmb%orbs, tmb%ham_descr%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &

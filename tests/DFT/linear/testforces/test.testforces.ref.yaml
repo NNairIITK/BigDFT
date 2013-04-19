@@ -1,4 +1,4 @@
-  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
+---
  Code logo:
          TTTT         F       DDDDD
         T    T               D
@@ -26,8 +26,8 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-01-28 17:21:58.621
+ Version Number                        : 1.7-dev.25
+ Timestamp of this run                 : 2013-03-28 16:14:47.194
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
@@ -36,6 +36,7 @@
  #|fftcache 8192                Cache size for the FFT                                       
  #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
  #|OCL_platform                 Chosen OCL platform                                          
+ #|OCL_devices                  Chosen OCL devices                                           
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -120,12 +121,28 @@
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
  #|0  T           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|O 4 1.2d-3 0.0d-4 8.0 8.0  20.d0 Atom name, number of basis functions per atom, prefactor 
- #|H 1 1.2d-3 0.0d-4 8.0 8.0  20.d0 Atom name, number of basis functions per atom, prefactor 
+ #|O 4 1.2d-3 1.2d-3 0.0d-4 8.0 8.0  20.d0 Atom name, number of basis functions per atom, pre
+ #|H 1 1.2d-3 1.2d-3 0.0d-4 8.0 8.0  20.d0 Atom name, number of basis functions per atom, pre
  # ==== WARNING: the following lines have not been processed by the parser ====
  #|                                                                                          
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data/
+  #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  2
+   Number of atoms                     :  3
+   Types of atoms                      :  [ O, H ]
+   Boundary Conditions                 : Free #Code: F
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
  Material acceleration                 :  No #iproc=0
   #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
@@ -595,11 +612,21 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.3691E+00,  8.6111E-01,  8.8933E-01 ]
    norm(P)                             :  1.845803E+00
- Non Local forces calculated           :  Yes
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x:  2.94488796E-04, y:  1.14956685E-03, z:  1.10708975E-03, 
+                    total:  1.62292184E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  1.877875933963E-05, fnrm2:  6.886983000500E-10}
+ Raw forces norm (Ha/Bohr): {maxval:  1.224296283518E-03, fnrm2:  3.374177606655E-06}
+  #--------------------------------------------------------------------------- Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {O:  [ -8.399463128895E-06,  2.783435330067E-06,  3.042845303353E-06 ]} # 0001
+ -  {H:  [  1.611490190083E-05,  7.266481337242E-06,  6.336401821052E-06 ]} # 0002
+ -  {H:  [ -7.715438771933E-06, -1.004991666731E-05, -9.379247124405E-06 ]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  29.89
-   Elapsed time (s)                    :  30.01
+   CPU time (s)                        :  27.62
+   Elapsed time (s)                    :  27.73
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -609,9 +636,9 @@
  Path integral                         : -8.85498E-08
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -8.399463130471E-06,  2.783435331915E-06,  3.042845305203E-06 ]} # 0001
- -  {H:  [  1.611490190151E-05,  7.266481336597E-06,  6.336401820401E-06 ]} # 0002
- -  {H:  [ -7.715438771043E-06, -1.004991666851E-05, -9.379247125604E-06 ]} # 0003
+ -  {O:  [ -8.399463128895E-06,  2.783435330067E-06,  3.042845303353E-06 ]} # 0001
+ -  {H:  [  1.611490190083E-05,  7.266481337242E-06,  6.336401821052E-06 ]} # 0002
+ -  {H:  [ -7.715438771933E-06, -1.004991666731E-05, -9.379247124405E-06 ]} # 0003
   #----------------------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
    Number of atomic types              :  2
@@ -1087,11 +1114,21 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.3801E+00,  8.5389E-01,  8.7761E-01 ]
    norm(P)                             :  1.845030E+00
- Non Local forces calculated           :  Yes
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x:  2.50870040E-04, y:  1.21004050E-03, z:  1.32360568E-03, 
+                    total:  1.81081909E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  1.067513528877E-02, fnrm2:  2.293658266362E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  1.193524861222E-02, fnrm2:  2.335471982049E-04}
+  #------------------------------------------------------------------------------ Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {O:  [ -2.614548692138E-03, -7.508757630269E-03, -7.123286279510E-03 ]} # 0001
+ -  {H:  [  1.307577382258E-03, -1.394747460914E-04, -1.869476080907E-04 ]} # 0002
+ -  {H:  [  1.306971309880E-03,  7.648232376360E-03,  7.310233887600E-03 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  28.82
-   Elapsed time (s)                    :  28.99
+   CPU time (s)                        :  28.31
+   Elapsed time (s)                    :  28.95
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1101,9 +1138,9 @@
  Path integral                         :  2.92194E-04
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -2.614548692144E-03, -7.508757630268E-03, -7.123286279508E-03 ]} # 0001
- -  {H:  [  1.307577382262E-03, -1.394747460920E-04, -1.869476080915E-04 ]} # 0002
- -  {H:  [  1.306971309882E-03,  7.648232376360E-03,  7.310233887600E-03 ]} # 0003
+ -  {O:  [ -2.614548692138E-03, -7.508757630269E-03, -7.123286279510E-03 ]} # 0001
+ -  {H:  [  1.307577382258E-03, -1.394747460914E-04, -1.869476080907E-04 ]} # 0002
+ -  {H:  [  1.306971309880E-03,  7.648232376360E-03,  7.310233887600E-03 ]} # 0003
   #----------------------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
    Number of atomic types              :  2
@@ -1571,11 +1608,21 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.3912E+00,  8.4666E-01,  8.6581E-01 ]
    norm(P)                             :  1.844453E+00
- Non Local forces calculated           :  Yes
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x:  1.65937194E-04, y:  1.17979828E-03, z:  1.40674251E-03, 
+                    total:  1.84347054E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  2.228076154823E-02, fnrm2:  9.979906543000E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  2.351827717952E-02, fnrm2:  1.002327942127E-03}
+  #------------------------------------------------------------------------------ Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {O:  [ -5.220759894357E-03, -1.572787918044E-02, -1.489328096089E-02 ]} # 0001
+ -  {H:  [  2.647435979247E-03, -2.558084893078E-04, -3.469077325761E-04 ]} # 0002
+ -  {H:  [  2.573323915110E-03,  1.598368766975E-02,  1.524018869347E-02 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  32.11
-   Elapsed time (s)                    :  32.25
+   CPU time (s)                        :  28.69
+   Elapsed time (s)                    :  28.78
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1585,8 +1632,8 @@
  Path integral                         :  5.96355E-04
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -5.220759894358E-03, -1.572787918044E-02, -1.489328096089E-02 ]} # 0001
- -  {H:  [  2.647435979248E-03, -2.558084893079E-04, -3.469077325762E-04 ]} # 0002
+ -  {O:  [ -5.220759894357E-03, -1.572787918044E-02, -1.489328096089E-02 ]} # 0001
+ -  {H:  [  2.647435979247E-03, -2.558084893078E-04, -3.469077325761E-04 ]} # 0002
  -  {H:  [  2.573323915110E-03,  1.598368766975E-02,  1.524018869347E-02 ]} # 0003
   #----------------------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
@@ -2059,11 +2106,21 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.4024E+00,  8.3941E-01,  8.5394E-01 ]
    norm(P)                             :  1.844084E+00
- Non Local forces calculated           :  Yes
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x:  7.09053577E-05, y:  1.09298829E-03, z:  1.34739761E-03, 
+                    total:  1.73641335E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  3.483941850610E-02, fnrm2:  2.437012809858E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  3.593903593687E-02, fnrm2:  2.440847546015E-03}
+  #------------------------------------------------------------------------------ Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {O:  [ -7.785292864096E-03, -2.467983116478E-02, -2.332552744401E-02 ]} # 0001
+ -  {H:  [  4.011834515012E-03, -3.430087562011E-04, -4.738263250171E-04 ]} # 0002
+ -  {H:  [  3.773458349084E-03,  2.502283992098E-02,  2.379935376903E-02 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  27.87
-   Elapsed time (s)                    :  27.96
+   CPU time (s)                        :  29.24
+   Elapsed time (s)                    :  29.36
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2073,9 +2130,9 @@
  Path integral                         :  1.54466E-03
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -7.785292864094E-03, -2.467983116478E-02, -2.332552744401E-02 ]} # 0001
- -  {H:  [  4.011834515009E-03, -3.430087562021E-04, -4.738263250180E-04 ]} # 0002
- -  {H:  [  3.773458349085E-03,  2.502283992098E-02,  2.379935376903E-02 ]} # 0003
+ -  {O:  [ -7.785292864096E-03, -2.467983116478E-02, -2.332552744401E-02 ]} # 0001
+ -  {H:  [  4.011834515012E-03, -3.430087562011E-04, -4.738263250171E-04 ]} # 0002
+ -  {H:  [  3.773458349084E-03,  2.502283992098E-02,  2.379935376903E-02 ]} # 0003
   #----------------------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
    Number of atomic types              :  2
@@ -2547,11 +2604,21 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.4136E+00,  8.3214E-01,  8.4196E-01 ]
    norm(P)                             :  1.843844E+00
- Non Local forces calculated           :  Yes
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x: -9.81261744E-05, y:  8.75087011E-04, z:  1.12738592E-03, 
+                    total:  1.43052614E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  4.847972221931E-02, fnrm2:  4.711783663542E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  4.924763208347E-02, fnrm2:  4.714346403406E-03}
+  #------------------------------------------------------------------------------ Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {O:  [ -1.035716016078E-02, -3.445364610602E-02, -3.249552230487E-02 ]} # 0001
+ -  {H:  [  5.457763234843E-03, -3.941046884208E-04, -5.630744669706E-04 ]} # 0002
+ -  {H:  [  4.899396925939E-03,  3.484775079444E-02,  3.305859677184E-02 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  27.91
-   Elapsed time (s)                    :  28.00
+   CPU time (s)                        :  29.71
+   Elapsed time (s)                    :  29.83
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2561,12 +2628,16 @@
  Path integral                         :  1.87343E-03
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -1.035716016079E-02, -3.445364610600E-02, -3.249552230485E-02 ]} # 0001
- -  {H:  [  5.457763234842E-03, -3.941046884265E-04, -5.630744669760E-04 ]} # 0002
- -  {H:  [  4.899396925946E-03,  3.484775079443E-02,  3.305859677183E-02 ]} # 0003
+ -  {O:  [ -1.035716016078E-02, -3.445364610602E-02, -3.249552230487E-02 ]} # 0001
+ -  {H:  [  5.457763234843E-03, -3.941046884208E-04, -5.630744669706E-04 ]} # 0002
+ -  {H:  [  4.899396925939E-03,  3.484775079444E-02,  3.305859677184E-02 ]} # 0003
+ Status of the memory at finalization:
+   Timestamp of Profile initialization:
+     2013-03-28 16:14:47.193
+ Calling sequence of Main program      : 
  Memory Consumption Report:
-   Tot. No. of Allocations  : 73028
-   Tot. No. of Deallocations: 73028
+   Tot. No. of Allocations  : 65918
+   Tot. No. of Deallocations: 65918
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 131

@@ -2,7 +2,7 @@
 
 init_jobs()
 {
-    echo "log"
+    echo "log.yaml"
 }
 
 finalise_jobs()
@@ -89,7 +89,7 @@ run_job()
     if test -z "$run_parallel" ; then
 	(%%abs_top_builddir%%/src/bigdft > log.yaml; echo "#NEB: job done" >> log.yaml)&
     else
-	$run_parallel %%abs_top_builddir%%/src/bigdft > log.yaml
+	eval $run_parallel %%abs_top_builddir%%/src/bigdft > log.yaml
 	echo "#NEB: job done" >> log.yaml
     fi
 }

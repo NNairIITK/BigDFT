@@ -1,5 +1,4 @@
 ---
-  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
  Code logo:
          TTTT         F       DDDDD
         T    T               D
@@ -27,8 +26,8 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-01-28 17:18:27.950
+ Version Number                        : 1.7-dev.25
+ Timestamp of this run                 : 2013-03-28 16:11:50.793
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
@@ -37,6 +36,7 @@
  #|fftcache 8192                Cache size for the FFT                                       
  #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
  #|OCL_platform                 Chosen OCL platform                                          
+ #|OCL_devices                  Chosen OCL devices                                           
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -78,7 +78,7 @@
  #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
  #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
  #|T              disable the symmetry detection                                             
- #... (file:default.mix)...................................................Mixing Parameters
+ #... (file:default.mix.. not present)....................................Mixing Parameters 
  #|0              Mixing parameters                                                          
  #|1              Maximum number of diagonalisation iterations                               
  #|1.e-4          Stop criterion on the residue of potential or density                      
@@ -90,13 +90,13 @@
  #|1.d0  0.       fract_fluct,forcemax                                                       
  #|0.d0           random displacement amplitude                                              
  #|1.d0           Stepsize for the geometry optimisation                                     
- #... (file:default.tddft).................................................TD-DFT Parameters
+ #... (file:default.tddft.. not present)..................................TD-DFT Parameters 
  #|NONE           TDDFT Method                                                               
- #... (file:default.sic)......................................................SIC Parameters
+ #... (file:default.sic.. not present).......................................SIC Parameters 
  #|NONE           SIC method: NONE, PZ, NK                                                   
  #|0.0            SIC downscaling parameter                                                  
  #|0.0            Reference occupation fref (NK case only)                                   
- #... (file:default.kpt)..................................Brillouin Zone Sampling Parameters
+ #... (file:default.kpt.. not present)...................Brillouin Zone Sampling Parameters 
  #|manual         K-point sampling method                                                    
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
@@ -121,13 +121,12 @@
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
  #|0  T           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|O 4 1.2d-3 0.0d-4 8.0 8.0 20.d0  Atom name, number of basis functions per atom, prefactor 
- #|H 1 1.2d-3 0.0d-4 8.0 8.0 20.d0  Atom name, number of basis functions per atom, prefactor 
+ #|O 4 1.2d-3 1.2d-3 0.0d-4 8.0 8.0 20.d0  Atom name, number of basis functions per atom, pre
+ #|H 1 1.2d-3 1.2d-3 0.0d-4 8.0 8.0 20.d0  Atom name, number of basis functions per atom, pre
  # ==== WARNING: the following lines have not been processed by the parser ====
  #|                                                                                          
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-diag/
- Material acceleration                 :  No #iproc=0
   #---------------------------------------------------- Input Atomic System (file: diag.xyz)
  Atomic System Properties:
    Number of atomic types              :  2
@@ -144,6 +143,7 @@
    Fluctuation in forces               :  1.0E+00
    Maximum in forces                   :  0.0E+00
    Steepest descent step               :  1.0E+00
+ Material acceleration                 :  No #iproc=0
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
@@ -591,11 +591,21 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  6
- Non Local forces calculated           :  Yes
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x: -6.29994400E-04, y: -8.40587578E-04, z:  5.72505013E-04, 
+                    total:  1.19634544E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  7.009417842277E-02, fnrm2:  8.953960316164E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  6.961152724324E-02, fnrm2:  8.957766970882E-03}
+  #--------------------------------------------------------------------------- Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {O:  [  5.016334278449E-02,  3.619001956314E-02,  3.297143268754E-02 ]} # 0001
+ -  {H:  [ -4.863067333067E-02, -7.023883202509E-03, -5.763802546133E-03 ]} # 0002
+ -  {H:  [ -1.532669453820E-03, -2.916613636063E-02, -2.720763014140E-02 ]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  24.08
-   Elapsed time (s)                    :  24.16
+   CPU time (s)                        :  26.97
+   Elapsed time (s)                    :  27.07
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -791,11 +801,21 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  6
- Non Local forces calculated           :  Yes
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x: -6.31231086E-04, y: -8.40152768E-04, z:  5.72670694E-04, 
+                    total:  1.19677111E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  7.009445394113E-02, fnrm2:  8.954031733795E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  6.961138051977E-02, fnrm2:  8.957838678925E-03}
+  #------------------------------------------------------------------------------ Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {O:  [  5.016290752447E-02,  3.619063040344E-02,  3.297201014494E-02 ]} # 0001
+ -  {H:  [ -4.863062848108E-02, -7.024223195876E-03, -5.764120733508E-03 ]} # 0002
+ -  {H:  [ -1.532279043386E-03, -2.916640720756E-02, -2.720788941143E-02 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  2.02
-   Elapsed time (s)                    :  2.03
+   CPU time (s)                        :  2.06
+   Elapsed time (s)                    :  2.07
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -959,7 +979,7 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
- Ion-Ion interaction energy            :  6.83629762987936E+00
+ Ion-Ion interaction energy            :  6.83629762987941E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000000009579
  Poisson Solver:
@@ -1263,11 +1283,21 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  6
- Non Local forces calculated           :  Yes
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x:  2.23989665E-03, y:  3.24609198E-03, z:  2.98800710E-03, 
+                    total:  4.94797298E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  1.212244097603E-02, fnrm2:  2.416183113094E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  1.225177265641E-02, fnrm2:  2.742864238494E-04}
+  #------------------------------------------------------------------------------ Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {O:  [ -1.109726383718E-02,  3.474378438010E-03,  3.425347429783E-03 ]} # 0001
+ -  {H:  [  8.620549904005E-03, -9.263084921253E-04, -1.005732006268E-03 ]} # 0002
+ -  {H:  [  2.476713933178E-03, -2.548069945885E-03, -2.419615423515E-03 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  24.83
-   Elapsed time (s)                    :  25.26
+   CPU time (s)                        :  26.93
+   Elapsed time (s)                    :  27.58
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1276,7 +1306,7 @@
    Ncount_BigDFT                       :  2
    Iteration                           :  2
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.71780848696594E+01, -4.19699761633652E-03 ]
+   etot                                :  [ -1.71780848696594E+01, -4.19699761634362E-03 ]
    Forces                              :  [  1.21E-02,  1.55E-02,  1.95E-03,  1.95E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -1431,7 +1461,7 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
- Ion-Ion interaction energy            :  6.88242932265509E+00
+ Ion-Ion interaction energy            :  6.88242932265503E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000000008829
  Poisson Solver:
@@ -1735,11 +1765,21 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  6
- Non Local forces calculated           :  Yes
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x:  2.37349792E-03, y:  3.31984195E-03, z:  2.67168865E-03, 
+                    total:  4.87778261E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  3.036533462856E-03, fnrm2:  1.753252667699E-05}
+ Raw forces norm (Ha/Bohr): {maxval:  5.337892152491E-03, fnrm2:  4.919707025612E-05}
+  #------------------------------------------------------------------------------ Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {O:  [ -2.119839541057E-03,  1.571725047517E-03,  1.502163828024E-03 ]} # 0001
+ -  {H:  [  8.700692781730E-05, -1.488804568699E-03, -1.391530832472E-03 ]} # 0002
+ -  {H:  [  2.032832613239E-03, -8.292047881771E-05, -1.106329955528E-04 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  24.47
-   Elapsed time (s)                    :  24.55
+   CPU time (s)                        :  27.23
+   Elapsed time (s)                    :  27.58
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1748,7 +1788,7 @@
    Ncount_BigDFT                       :  3
    Iteration                           :  3
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.71782172209405E+01, -1.32351281070697E-04 ]
+   etot                                :  [ -1.71782172209405E+01, -1.32351281077803E-04 ]
    Forces                              :  [  3.04E-03,  4.19E-03,  2.53E-03,  2.53E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -1903,7 +1943,7 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
- Ion-Ion interaction energy            :  6.88826973932643E+00
+ Ion-Ion interaction energy            :  6.88826973932642E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000000009216
  Poisson Solver:
@@ -2207,11 +2247,21 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  6
- Non Local forces calculated           :  Yes
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x:  2.32308884E-03, y:  3.36304379E-03, z:  2.52464202E-03, 
+                    total:  4.80422966E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  1.943887199369E-03, fnrm2:  9.841125026818E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  4.348151932202E-03, fnrm2:  4.063436706685E-05}
+  #------------------------------------------------------------------------------ Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {O:  [ -1.273720973944E-03,  7.130869016409E-04,  6.866234699205E-04 ]} # 0001
+ -  {H:  [ -4.965059500192E-04, -1.314321055386E-03, -1.219081518894E-03 ]} # 0002
+ -  {H:  [  1.770226923963E-03,  6.012341537452E-04,  5.324580489737E-04 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  24.33
-   Elapsed time (s)                    :  24.41
+   CPU time (s)                        :  26.09
+   Elapsed time (s)                    :  26.18
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2220,15 +2270,19 @@
    Ncount_BigDFT                       :  4
    Iteration                           :  4
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.71782292884452E+01, -1.20675047021734E-05 ]
+   etot                                :  [ -1.71782292884452E+01, -1.20675046986207E-05 ]
    Forces                              :  [  1.94E-03,  3.14E-03,  2.99E-03,  2.99E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  1
    FORCES norm(Ha/Bohr): { maxval:  1.94389E-03, fnrm2:  9.84113E-06, fluct:  2.98738E-03}
  End of minimization using             : SDCG
+ Status of the memory at finalization:
+   Timestamp of Profile initialization:
+     2013-03-28 16:11:50.791
+ Calling sequence of Main program      : 
  Memory Consumption Report:
-   Tot. No. of Allocations  : 60546
-   Tot. No. of Deallocations: 60546
+   Tot. No. of Allocations  : 54766
+   Tot. No. of Deallocations: 54766
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 122

@@ -1,7 +1,5 @@
  <BigDFT> log of the run will be written in logfile: ./log-write.yaml
- <BigDFT> Logfile already existing, move previous file in:
-   ./logfiles/log-write.22:52:08.460.yaml
-- WRITING WAVES TIME (T)  1.130E+00  1.114E+00
+- WRITING WAVES TIME (T)  1.170E+00  1.077E+00
  export wavefunction file: "data-read/wavefunction.etsf" in .cube format
 ---
  Code logo:
@@ -31,8 +29,8 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.23
- Timestamp of this run                 : 2013-02-11 22:52:27.660
+ Version Number                        : 1.7-dev.24
+ Timestamp of this run                 : 2013-02-24 12:22:55.109
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  0
  OpenMP parallelization                :  Yes
@@ -42,6 +40,7 @@
  #|fftcache 8192                Cache size for the FFT                                       
  #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
  #|OCL_platform                 Chosen OCL platform                                          
+ #|OCL_devices                  Chosen OCL devices                                           
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -62,6 +61,13 @@
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir .                     Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
+ #|pdsyev_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
+ #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
+ #|ef_interpol_det  1.00E-20    FOE: max determinant of cubic interpolation matrix           
+ #|ef_interpol_chargediff  1.00EFOE: max charge difference for interpolation                 
+ #|mixing_after_inputguess T    mixing step after linear input guess (T/F)                   
  #... (file:default.dft)..........................................DFT Calculation Parameters
  #|0.30 0.30 0.30  hx,hy,hz: grid spacing in the three directions                            
  #|6.0  8.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -269,4 +275,4 @@
       Peak Value (MB): 6
       for the array: ww
       in the routine: reformatonewave
- CPU time/ELAPSED time          0.91         1.28
+ CPU time/ELAPSED time          0.83         1.21

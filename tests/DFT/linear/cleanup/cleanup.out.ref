@@ -20,6 +20,7 @@ V3prb    5.4876E-02
  Processes from 0 to 5 treat 1 inguess orbitals 
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   7.999970352587E+00
+ calling orthonormalizeLocalized (exact)
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -38,15 +39,16 @@ Calculating charge density... done.
  ------------------------------------------------------------- Input guess generated.
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
- calling orthonormalizeLocalized (exact)
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.540229E-01    1.935505E-01    4.501938E-02
  iter, fnrm, fnrmMax, trace, diff     1  7.5512218E-01  8.3146325E-01   -15.7704945558  -1.5770E+01
  DIIS informations: history length=3, consecutive failures=0, total failures=0
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.864927E-02    7.660109E-02    2.407058E-01
  iter, fnrm, fnrmMax, trace, diff     2  2.1802134E-01  2.4232260E-01   -16.4695103511  -6.9902E-01
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   2.1802134E-01  2.4232260E-01    -16.4695104
@@ -144,11 +146,13 @@ Calculating charge density... done.
  calculate density kernel...  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    9.263802E-02    1.327478E-01    2.437940E-01
  iter, fnrm, fnrmMax, ebs, diff     1  2.5165614E-01  2.8220762E-01   -16.9484198063  -1.1779E+00
  SD informations: mean alpha=1.000E-04, max alpha=1.000E-04, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    9.266079E-02    1.330378E-01    2.441719E-01
  iter, fnrm, fnrmMax, ebs, diff     2  2.5149220E-01  2.8216572E-01   -16.9485016654  -8.1859E-05
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   2.5149220E-01  2.8216572E-01    -16.9485017
@@ -254,11 +258,13 @@ Calculating charge density... done.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    9.220841E-02    1.315187E-01    2.451130E-01
  iter, fnrm, fnrmMax, ebs, diff     1  2.5039548E-01  2.8078410E-01   -16.9482213574   1.9845E-04
  SD informations: mean alpha=1.100E-04, max alpha=1.100E-04, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    9.220337E-02    1.315156E-01    2.451543E-01
  iter, fnrm, fnrmMax, ebs, diff     2  2.5036754E-01  2.8074514E-01   -16.9482366236  -1.5266E-05
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   2.5036754E-01  2.8074514E-01    -16.9482366
@@ -361,6 +367,8 @@ Calculating charge density... done.
      FINAL values: it, Delta DENS, energy   3    5.62E-09   -1.69482356914896997E+01
    > energy difference to last iteration: -1.132043E-05
  ############################################################################################
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.263552800931E+00  2.081664866866E+01 -4.015492573572E+00 -5.262883747082E+00  0.000000000000E+00  6.884469964184E+00  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   3   2.08E-08   -1.69482356914896997E+01    0.0000E+00   FINAL
  WARNING: commented correction_locrad!
 iat, fpulay    1   -1.574613E-01    7.366116E-02    8.119914E-02
 iat, fpulay    2    1.116513E-02    2.862952E-03    1.800986E-03
@@ -368,10 +376,23 @@ iat, fpulay    3    3.994656E-03   -1.682927E-02   -1.926677E-02
  done.
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   7.999979971546E+00
- Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.81627853E-01
- average noise along y direction:   2.49290264E-02
- average noise along z direction:   1.39157120E-02
- total average noise            :   1.83858044E-01
- clean forces norm (Ha/Bohr): maxval=  2.104908259654E-01  fnrm2=  7.423338712992E-02
- raw forces:                  maxval=  3.317449327157E-01  fnrm2=  1.132394119958E-01
+ Status of the memory at finalization:
+   Timestamp of Profile initialization:
+     2013-03-28 16:07:18.542
+ Calling sequence of Main program      : 
+ Status of the memory at finalization:
+   Timestamp of Profile initialization:
+     2013-03-28 16:07:18.542
+ Calling sequence of Main program      : 
+ Status of the memory at finalization:
+   Timestamp of Profile initialization:
+     2013-03-28 16:07:18.543
+ Calling sequence of Main program      : 
+ Status of the memory at finalization:
+   Timestamp of Profile initialization:
+     2013-03-28 16:07:18.543
+ Calling sequence of Main program      : 
+ Status of the memory at finalization:
+   Timestamp of Profile initialization:
+     2013-03-28 16:07:18.542
+ Calling sequence of Main program      : 

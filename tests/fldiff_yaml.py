@@ -23,7 +23,7 @@ if  version <= [2,5,0]:
 
 
 import yaml
-from yaml_hl import *
+#from yaml_hl import *
 
 start_fail = "<fail>" #"\033[0;31m"
 start_fail_esc = "\033[0;31m "
@@ -54,7 +54,7 @@ def compare(data, ref, tols = None, always_fails = False):
   if data is None:
     return (True, None)
   elif type(ref) == type({}):
-#for a floating point the reference is set for all the lower levels    
+    #for a floating point the reference is set for all the lower levels    
     if type(tols) == type(1.0e-1):
       neweps=tols
       tols={}
@@ -80,6 +80,7 @@ def compare_seq(seq, ref, tols, always_fails = False):
   global failed_checks
   if tols is not None:
     for i in range(len(ref)):
+#      print 'here',ref[i],seq[i],tols[0]
       (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails)
 # Add to the tolerance dictionary a failed result      
       if failed:
@@ -152,7 +153,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
   global failed_checks,discrepancy,biggest_tol
   failed = always_fails
   ret = (failed, None)
-#  print scl,ref,tols
+  #print scl,ref,tols
 #eliminate the character variables
   if type(ref) == type(""):
     if not(scl == ref):
@@ -164,7 +165,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
       failed = not(math.fabs(scl - ref) <= tols) 
     discrepancy=max(discrepancy,math.fabs(scl - ref))
 #    if (discrepancy > 1.85e-9):
-#      print 'test',scl,ref,tols,discrepancy
+#    print 'test',scl,ref,tols,discrepancy,failed
 #      sys.exit(1)
     if not(failed):
       if tols is None:
@@ -176,7 +177,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
       if tols is not None:
         biggest_tol=max(biggest_tol,math.fabs(tols))
   if failed:
-#    print 'here',scl,ref,tols,discrepancy
+#    print 'hereAAA',scl,ref,tols,discrepancy
     failed_checks +=1
   return ret
 
@@ -253,16 +254,16 @@ if __name__ == "__main__":
 
 #print args.ref,args.data,args.output
 #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
-references = [a for a in yaml.load_all(open(args.ref, "r"), Loader = yaml.CLoader)]
+references = [a for a in yaml.load_all(open(args.ref, "r").read(), Loader = yaml.CLoader)]
 try:
-  datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+  datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
 except:
   datas = []
   reports = open(args.output, "w")
   fatal_error(args,reports)
 
 if args.tols:
-    orig_tols = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)
+    orig_tols = yaml.load(open(args.tols, "r").read(), Loader = yaml.CLoader)
 else:
     orig_tols = dict()
 
@@ -393,7 +394,8 @@ for i in range(len(references)):
                             default_flow_style=False,explicit_start=True))
   newreport.close()
   reports.write(open("report", "rb").read())
-  hl = YAMLHighlight(options)
+  Style = yaml_hl.Style
+  hl = yaml_hl.YAMLHighlight(options)
   hl.highlight()
   
 #create dictionary for the final report

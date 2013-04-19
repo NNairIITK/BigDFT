@@ -204,7 +204,6 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
   !array is refilled always the same way
   !zw=0.0_dp
   !call razero(4*(ncache/4),zw)
-
   !different loop if halfft or not (output part)
 
   maxIter = min(md2 /nproc, n2dim - iproc *(md2 /nproc))

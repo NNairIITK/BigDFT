@@ -1,7 +1,7 @@
 !> @file 
 !!   Routines to test atomic forces
 !! @author
-!!   Copyright (C) 2005-2011 BigDFT group 
+!!   Copyright (C) 2005-2013 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -15,7 +15,7 @@
 !! difference of the energy between the final and the initial 
 !! position
 !! @warning
-!!    Date: 10/07; THIS PROGRAM MUST BE COMPLETELY CHANGED
+!!    Date: 10/07: THIS PROGRAM MUST BE COMPLETELY CHANGED
 !!    Date: Feb 2011:  This program was modified and updated by Ali Sadeghi
 program test_forces
 
@@ -27,9 +27,9 @@ program test_forces
 
    implicit none
    character(len=*), parameter :: subname='test_forces'
-   integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode,istat
+   integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode!,istat
    real(gp) :: etot,fnoise
-   logical :: exist_list
+   !logical :: exist_list
    !input variables
    type(atoms_data) :: atoms
    type(input_variables) :: inputs
@@ -46,7 +46,7 @@ program test_forces
    !parameter (dx=1.d-2 , npath=2*16+1)  ! npath = 2*n+1 where n=2,4,6,8,...
    parameter (dx=1.d-2 , npath=5)
    real(gp) :: simpson(1:npath)
-   character(len=60) :: radical
+   !character(len=60) :: radical
    real(gp), dimension(6) :: strten
    integer, dimension(4) :: mpi_info
 
@@ -84,6 +84,7 @@ program test_forces
 
    if (iproc==0) then
 !!$         !start a new document in the beginning of the output, if the document is closed before
+      call yaml_set_stream(record_length=95,istat=ierr)
       call yaml_new_document()
 !!$         call print_logo()
       call yaml_comment('',hfill='-')
@@ -114,46 +115,8 @@ program test_forces
    do iconfig=1,abs(nconfig)
       if (modulo(iconfig-1,ngroups)==igroup) then
 
-!!$   ! Start MPI in parallel version
-!!$   !in the case of MPIfake libraries the number of processors is automatically adjusted
-!!$   call MPI_INIT(ierr)
-!!$   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-!!$   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-!!$   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
-!!$
-!!$   call memocc_set_memory_limit(memorylimit)
-!!$
-!!$   ! Read a possible radical format argument.
-!!$   call get_command_argument(1, value = radical, status = istat)
-!!$   if (istat > 0) then
-!!$      write(radical, "(A)") "input"
-!!$   end if
-!!$
-!!$   ! find out which input files will be used
-!!$   inquire(file="list_posinp",exist=exist_list)
-!!$   if (exist_list) then
-!!$      open(54,file="list_posinp")
-!!$      read(54,*) nconfig
-!!$      if (nconfig > 0) then
-!!$         !allocation not referenced since memocc count not initialised
-!!$         allocate(arr_posinp(1:nconfig))
-!!$         do iconfig=1,nconfig
-!!$            read(54,*) arr_posinp(iconfig)
-!!$         enddo
-!!$      else
-!!$         nconfig=1
-!!$         allocate(arr_posinp(1:1))
-!!$      endif
-!!$   else
-!!$      nconfig=1
-!!$      allocate(arr_posinp(1:1))
-!!$   endif
-!!$
-!!$   do iconfig=1,nconfig
-      !welcome screen
-
       ! Read all input files.
-         call bigdft_set_input(arr_radical(iconfig),arr_posinp(iconfig),rxyz,inputs,atoms)
+      call bigdft_set_input(arr_radical(iconfig),arr_posinp(iconfig),rxyz,inputs,atoms)
          
 
 !!$      !standard names
@@ -270,7 +233,7 @@ enddo !loop over iconfig
 
    deallocate(arr_posinp,arr_radical)
 
-   call bigdft_finalize()
+   call bigdft_finalize(ierr)
 
 !!$   call MPI_FINALIZE(ierr)
 

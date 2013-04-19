@@ -35,7 +35,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nB,nKB,nMB,i_stat,i_all,ii,iat,iorb
+  integer :: nB,nKB,nMB,ii,iat,iorb!,i_stat,i_all
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old
@@ -682,7 +682,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   integer :: ispol,ichg,ichgsum,norbe,norbat,nspin
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
-  character(len=60) :: radical
+  character(len=100) :: radical
 
 
   !calculate number of electrons and orbitals
@@ -922,7 +922,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
      else
         radical = in%run_name
      end if
-     call yaml_map('Total Number of Orbitals',norb,fmt='(i8)')
+     if (verb) call yaml_map('Total Number of Orbitals',norb,fmt='(i8)')
      if (verb) then
         if (iunit /= 0) then
            call yaml_map('Occupation numbers coming from', trim(radical) // '.occ')
@@ -932,16 +932,16 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
      end if
   end if
   !assign to each k-point the same occupation number
-  if (iproc==0) call yaml_open_sequence('Input Occupation Numbers')
+  if (verb .and. iproc==0) call yaml_open_sequence('Input Occupation Numbers')
   do ikpts=1,orbs%nkpts
-     if (iproc == 0 .and. atoms%geocode /= 'F') then
+     if (verb .and. iproc == 0 .and. atoms%geocode /= 'F') then
         call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpts,fmt='(i4.4)'))) // ' BZ coord. = ' // &
         & trim(yaml_toa(orbs%kpts(:, ikpts),fmt='(f12.6)')))
      end if
      call occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
-  if (iproc == 0) call yaml_close_sequence()
+  if (verb .and. iproc == 0) call yaml_close_sequence()
 end subroutine read_orbital_variables
 
 

@@ -718,11 +718,12 @@ subroutine inputs_parse_params(in, iproc, dump)
   end if
 end subroutine inputs_parse_params
 
+
 subroutine inputs_parse_add(in, atoms, iproc, dump)
   use module_types
   implicit none
   type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(in) :: atoms
+  type(atoms_data), intent(inout) :: atoms
   integer, intent(in) :: iproc
   logical, intent(in) :: dump
 
@@ -734,3 +735,5 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
   call lin_input_variables_new(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
        & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
 end subroutine inputs_parse_add
+
+

@@ -83,7 +83,7 @@ MODULE chgcar_mod
     ALLOCATE(ions%r_dir(ions%nions,3),ions%r_car(ions%nions,3))
     READ(100,*) !GH: read Direct line
     DO i=1,ions%nions
-      READ(100,'(3(2X,1F8.6))') ions%r_dir(i,:)
+      READ(100,'(3(2X,1F9.6))') ions%r_dir(i,:)
       CALL matrix_vector(ions%dir2car,ions%r_dir(i,:),ions%r_car(i,:))
     END DO
     READ(100,*) 
@@ -167,10 +167,10 @@ MODULE chgcar_mod
     END IF
     WRITE(100,'(110I4)') ions%num_ion
     WRITE(100,*)'Direct'
-    WRITE(100,'(3(2X,1F8.6))') (ions%r_dir(i,:) , i=1,ions%nions)
+    WRITE(100,'(3(2X,1F9.6))') (ions%r_dir(i,:) , i=1,ions%nions)
     WRITE(100,*)
     WRITE(100,*) chg%npts(1),chg%npts(2),chg%npts(3)
-    WRITE(100,'(5(1X,E17.11))') (((chg%rho(n1,n2,n3), &
+    WRITE(100,'(5(1X,E18.11))') (((chg%rho(n1,n2,n3), &
     &  n1=1,chg%npts(1)),n2=1,chg%npts(2)),n3=1,chg%npts(3))
     CLOSE(100)
 

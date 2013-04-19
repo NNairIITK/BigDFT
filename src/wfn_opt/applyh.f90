@@ -41,7 +41,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb,jproc,ierr
+  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb!,jproc,ierr
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
   type(workarr_locham) :: wrk_lh
@@ -764,9 +764,11 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   real(gp), intent(out),optional :: econf
   !local variables
   integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et,ii1,ii2,ii3
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt11_noconf,ttt,r2
+  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt11_noconf,ttt!,r2
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,pot1_noconf
-  real(gp) :: epot_p,econf_p,ierr
+  real(gp) :: epot_p,econf_p!,ierr
+  !real(gp), dimension(3) :: hh,rxyzconf
+  !integer, dimension(3) :: ioffset
   real(kind=8),dimension(:),pointer :: hh, rxyzConf
   integer,dimension(:),pointer :: ioffset
   real(kind=8),pointer :: prefac
@@ -784,6 +786,7 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
       prefac => confdata%prefac
       potorder => confdata%potorder
   else
+     !these arrays are not deallocated!!!
       allocate(hh(3), rxyzConf(3), ioffset(3))
       hh=0.d0
       ioffset=0
@@ -1001,7 +1004,9 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   
   !$omp end parallel
 
-
+  if (.not. present(confdata)) then
+     deallocate(hh,ioffset,rxyzConf)
+  end if
 contains
   
   !inline the definition of the confining potential

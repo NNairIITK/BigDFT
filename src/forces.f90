@@ -303,12 +303,11 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
   real(wp), dimension(nsize_psi), intent(in) :: psi
   real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp,fpulay
   real(gp), intent(out) :: fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
-  type(DFT_wavefunction),intent(in),optional :: tmb
-  real(gp),dimension(3,atoms%nat),optional,intent(in) :: fpulay
+  type(DFT_wavefunction),intent(in) :: tmb
   !local variables
   integer :: ierr,iat,i,j
   real(gp) :: charge,ucvol
@@ -369,33 +368,13 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   !add to the forces the ionic and dispersion contribution 
   if (.not. experimental_modulebase_var_onlyfion) then !normal case
      do iat=1,atoms%nat
-        fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)
-        fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)
-        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
+        fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)+fpulay(1,iat)
+        fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)+fpulay(2,iat)
+        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)+fpulay(3,iat)
      enddo
   else
      call vcopy(3*atoms%nat,fion(1,1),1,fxyz(1,1),1)
   end if
-
-  ! Pulay correction if present
-  if (present(fpulay)) then
-      if (iproc==0) then
-          !!do iat=1,atoms%nat
-          !!    write(444,'(2es16.6)') fxyz(1,iat), fpulay(1,iat)
-          !!    write(444,'(2es16.6)') fxyz(2,iat), fpulay(2,iat)
-          !!    write(444,'(2es16.6)') fxyz(3,iat), fpulay(3,iat)
-          !!end do
-          !!write(444,'(a)') '============================================'
-      end if
-      !!write(*,*) 'WARNING: IGNORE PULAY FORCES'
-      do iat=1,atoms%nat
-          fxyz(1,iat) = fxyz(1,iat) + fpulay(1,iat)
-          fxyz(2,iat) = fxyz(2,iat) + fpulay(2,iat)
-          fxyz(3,iat) = fxyz(3,iat) + fpulay(3,iat)
-      end do
-  end if
-
-
 
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
@@ -810,7 +789,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   type(locreg_descriptors) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(inout) :: psi
+  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(in) :: psi
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
@@ -819,7 +798,8 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   integer :: istart_c,iproj,iat,ityp,i,j,l,m
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
-  real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac,strc,Enl,vol
+  real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,strc,Enl,vol
+  real(gp) :: orbfac
   integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
@@ -4185,7 +4165,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   integer :: istart_c,iproj,iat,ityp,i,j,l,m,iorbout,iiorb,ilr
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,ind,iseg,jjorb
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
-  real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac,strc,Enl,vol
+  real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,Enl,vol
+  !real(gp) :: orbfac,strc
   integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb,jproc,ii,ist,ierr,iiat
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb

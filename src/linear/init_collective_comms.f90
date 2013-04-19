@@ -687,7 +687,7 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
       istartend_c(2,nproc-1)=lzd%glr%wfd%nvctr_c
 
       if(iproc==nproc-1) then
-          nvalp_c=ttt
+          nvalp_c=nint(ttt)
           weightp_c=tt2
           iendp_seg_c=lzd%glr%wfd%nseg_c
       end if
@@ -785,7 +785,7 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
       end do
       istartend_f(2,nproc-1)=lzd%glr%wfd%nvctr_f
       if(iproc==nproc-1) then
-          nvalp_f=ttt
+          nvalp_f=nint(ttt)
           weightp_f=tt2
           iendp_seg_f=iend
       end if
@@ -1061,7 +1061,7 @@ subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, 
                   icheck_c = icheck_c + 1
                   iipt=jj-istartend_c(1,iproc)+i-i0+1
                   npgp_c = nint(sqrt(weight_c(i,i2,i3)))
-                  iiorb_c=iiorb_c+weight_c(i,i2,i3)
+                  iiorb_c=iiorb_c+nint(weight_c(i,i2,i3))
                   norb_per_gridpoint_c(iipt)=npgp_c
               end if
           end do
@@ -1097,7 +1097,7 @@ subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, 
                   iipt=jj-istartend_f(1,iproc)+i-i0+1
                   npgp_f=0
                   npgp_f = nint(sqrt(weight_f(i,i2,i3)))
-                  iiorb_f=iiorb_f+weight_f(i,i2,i3)
+                  iiorb_f=iiorb_f+nint(weight_f(i,i2,i3))
                   norb_per_gridpoint_f(iipt)=npgp_f
               end if
           end do
@@ -3240,6 +3240,8 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
   ! Local variables
   integer:: i0, ipt, ii, iiorb, i, ierr, iorb
 
+  call timing(iproc,'norm_trans','ON')
+
   call to_zero(orbs%norb, norm(1))
 
   !$omp parallel default(private) &
@@ -3284,6 +3286,7 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
   end if
 
   do iorb=1,orbs%norb
+!print *,'herefpe',norm(iorb),iorb
      norm(iorb)=1.d0/sqrt(norm(iorb))
   end do
 
@@ -3317,6 +3320,8 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
   end do
 !$omp end do
 !$omp end parallel
+
+  call timing(iproc,'norm_trans','OF')
 
 end subroutine normalize_transposed
 

@@ -1,7 +1,7 @@
 !> @file
-!! Contains routines for the executable splined_saddle
+!! Contains routines for the executable splined_saddle (search of saddle point)
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group (AG)
+!!    Copyright (C) 2010-2013 BigDFT group (AG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -21,7 +21,7 @@ program splined_saddle
   integer :: iproc,nproc,i_stat,i_all,ierr,infocode
   integer :: ncount_bigdft
   real(gp) :: etot,fnoise
-  logical :: exist_list
+!!$ logical :: exist_list
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
@@ -32,7 +32,7 @@ program splined_saddle
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
-  integer :: iconfig,nconfig,istat
+  integer :: iconfig,nconfig!,istat
   real(gp), dimension(:,:), allocatable :: ratsp,fatsp 
   real(gp), dimension(6) :: strten
   integer, dimension(4) :: mpi_info
@@ -200,7 +200,7 @@ enddo !loop over iconfig
 
   deallocate(arr_posinp,arr_radical)
 
-  call bigdft_finalize()
+  call bigdft_finalize(ierr)
 
 end program splined_saddle
 

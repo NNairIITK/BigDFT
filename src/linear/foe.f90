@@ -17,7 +17,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   real(kind=8),intent(out) :: ebs
 
   ! Local variables
-  integer :: npl, istat, iall, iorb, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver
+  integer :: npl, istat, iall, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver!, iorb
   integer :: isegstart, isegend, iismall, iseglarge, isegsmall, is, ie, iilarge
   integer,parameter :: nplx=5000
   real(kind=8),dimension(:,:),allocatable :: cc, fermip
@@ -333,7 +333,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               interpol_vector(2)=interpol_vector(3)
               interpol_vector(3)=interpol_vector(4)
           end if
-          ii=min(it_solver,4)
+          !LG: if it_solver==0 this index comes out of bounds!
+          ii=max(min(it_solver,4),1)
           interpol_matrix(ii,1)=foe_obj%ef**3
           interpol_matrix(ii,2)=foe_obj%ef**2
           interpol_matrix(ii,3)=foe_obj%ef
@@ -518,6 +519,7 @@ end subroutine foe
 ! Calculates chebychev expansion of fermi distribution.
 ! Taken from numerical receipes: press et al
 subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
+  use module_base, pi => pi_param
   implicit none
   
   ! Calling arguments
@@ -529,7 +531,7 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
   integer :: k, j
   real(kind=8) :: bma, bpa, y, arg, fac, tt, erfcc
   real(kind=8),dimension(5000) :: cf
-  real(kind=8),parameter :: pi=4.d0*atan(1.d0)
+  !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
 
   if (n>5000) stop 'chebft'
   bma=0.5d0*(b-a)
@@ -559,6 +561,7 @@ end subroutine chebft
 ! Calculates chebychev expansion of fermi distribution.
 ! Taken from numerical receipes: press et al
 subroutine chebft2(a,b,n,cc)
+  use module_base, pi => pi_param
   implicit none
 
   ! Calling arguments
@@ -568,7 +571,7 @@ subroutine chebft2(a,b,n,cc)
 
   ! Local variables
   integer :: k, j
-  real(kind=8),parameter :: pi=4.d0*atan(1.d0)
+  !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
   real(kind=8) :: tt, y, arg, fac, bma, bpa
   real(kind=8),dimension(5000) :: cf
 
@@ -623,9 +626,7 @@ subroutine chder(a,b,c,cder,n)
 end subroutine chder
 
 
-
-
-! determine noise level
+!> Determine noise level
 subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   implicit none
   
@@ -636,9 +637,7 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   real(kind=8),intent(out) :: anoise
   
   ! Local variables
-  integer :: i
   real(kind=8) :: fact, dist, ddx, cent, tt, x, chebev
-  
   
   fact=1.d0
   dist=(fact*evhigh-fact*evlow)
@@ -661,13 +660,12 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   end do
   anoise=2.d0*tt
 
-
 end subroutine evnoise
 
 
 
-! Calculates the error function complement with an error of less than 1.2E-7
-  function erfcc(x)
+!> Calculates the error function complement with an error of less than 1.2E-7
+function erfcc(x)
   implicit none
 
   ! Calling arguments
@@ -687,8 +685,7 @@ end subroutine evnoise
 end function erfcc
 
 
-
-!  evaluates chebychev expansion
+!> Evaluates chebychev expansion
 function chebev(a,b,m,x,cc)
   implicit none
   
@@ -931,6 +928,7 @@ real(kind=8) function determinant(iproc, n, mat)
     ! Calling arguments
     integer,intent(in) :: iproc, n
     real(kind=8),dimension(n,n),intent(in) :: mat
+    integer,intent(in) :: iproc
 
     ! Local variables
     integer :: i, info
@@ -942,10 +940,8 @@ real(kind=8) function determinant(iproc, n, mat)
 
     call dgetrf(n, n, mat_tmp, n, ipiv, info)
     if (info/=0) then
-        if (iproc==0) then
-            write(*,'(a,i0)') 'ERROR in dgetrf, info=',info
-            write(*,'(a,i0)') 'Set the determinant to zero'
-        end if
+        if (iproc==0) write(*,'(a,i0,a)') 'ERROR in dgetrf, info=',info,'. Set determinant to zero.'
+        determinant=0
         return
     end if
 

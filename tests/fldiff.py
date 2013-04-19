@@ -131,9 +131,13 @@ if bigdft:
             or "Communication overlap ratio" in line \
             or "Timestamp" in line \
             or "Logfile already existing" in line \
-	    or "Gathering the potential" in line \
+	        or "Gathering the potential" in line \
             or "<BigDFT>" in line \
-            or "wavefunctions need NO reformatting" in line 
+            or "logfiles" in line \
+            or "alpha" in line \
+            or "wavefunctions need NO reformatting" in line \
+            or "WARNING:" in line \
+            or "/logfiles/" in line
 #	    or "GEOPT" in line
 elif neb:
     # Test if the line should not be compared (NEB output)
@@ -247,8 +251,10 @@ if bigdft or psolver:
     time = None
 #Open 2 temporary files
 t1 = tempfile.NamedTemporaryFile()
+nl_t1 = 0
 for line in original1:
     if not line_junk(line):
+        nl_t1 += 1
         t1.write(line)
     else:
         #Only for BigDFT and PSolver
@@ -263,10 +269,13 @@ for line in original1:
             if "Remaining Memory" in line:
                 memory = int(line.split()[-1])
 t1.flush()
+
 t2 = tempfile.NamedTemporaryFile()
+nl_t2 = 0
 for line in original2:
     if not line_junk(line):
         t2.write(line)
+        nl_t2 += 1
 t2.flush()
 
 #Generate comparison using the unix diff command
@@ -275,14 +284,14 @@ compare = iter(commands.getoutput("diff -b -d %s %s" %(t1.name,t2.name)).splitli
 t1.close()
 t2.close()
 
+print max_discrepancy
 try:
     line = compare.next()
     EOF = False
     #Display the maximum discrepancy
-    print max_discrepancy
 except StopIteration:
     #Nothing to compare
-    print 'Nothing to compare'
+    print '%sNothing to compare (all lines are identical)%s' % (start_success,end),
     EOF = True
 
 context_lines = None
@@ -429,6 +438,9 @@ else:
 if (bigdft or psolver) and time != None:
     print "%sMax discrepancy %s: %s (%s%s) -- time %7.2f%s " % \
         (start,context_discrepancy,maximum,message,max_discrepancy,time,end)
+elif nl_t1 == 0 and nl_t2 == 0:
+    #No lines in the output as waited
+    print "%sNo output as reference%s" % (start,end)
 else:
     print "%sMax discrepancy %s: %s (%s%s)%s" % \
         (start,context_discrepancy,maximum,message,max_discrepancy,end)
