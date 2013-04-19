@@ -23,7 +23,7 @@ libflib_a_SOURCES = dictionaries.f90 yaml_strings.f90 utils.c utilsadd.c \
 	error_handling.f90 \
 	$(flush_files) $(mpi_source) $(getarg_files)
 
-DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 f_malloc-inc.f90
+DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 f_malloc-inc.f90 f_malloc-extra-inc.f90
 YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90
 STRINGS_INCLUDES = yaml_toa-inc.f90
 

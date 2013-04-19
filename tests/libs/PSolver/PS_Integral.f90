@@ -423,7 +423,7 @@ stop
 
 
 print*,'interpolating first dimension...'
-    call my_interpolate_and_transpose(hx,dx/hx,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
+    call my_interpolate_and_transpose(dx/hx,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
          (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
 
   print *,'...interpolating second dimension...'

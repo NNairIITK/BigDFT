@@ -80,6 +80,9 @@ if test "$ar" = ":" ; then
   AC_MSG_ERROR(["No 'ar' program found."])
 fi
 
+dnl Search for pkg-config
+PKG_PROG_PKG_CONFIG()
+
 dnl Produce dynamic excecutables.
 AC_ARG_ENABLE(dynamic-binaries, AS_HELP_STRING([--enable-dynamic-binaries],
                                                [Build dynamically linked binaries (disabled by default).]),

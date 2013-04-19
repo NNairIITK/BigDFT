@@ -237,7 +237,8 @@ program MINHOP
       close(864)
   endif
 
-  call  ha_trans(atoms%nat,pos)
+  call ha_trans(atoms%nat,pos)
+
   call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,pos,atoms,ff,strten,e_pos,rst,inputs_opt,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
   count_bfgs=count_bfgs+ncount_bigdft
