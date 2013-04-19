@@ -928,7 +928,6 @@ real(kind=8) function determinant(iproc, n, mat)
     ! Calling arguments
     integer,intent(in) :: iproc, n
     real(kind=8),dimension(n,n),intent(in) :: mat
-    integer,intent(in) :: iproc
 
     ! Local variables
     integer :: i, info
