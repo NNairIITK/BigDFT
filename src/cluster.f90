@@ -62,29 +62,30 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   !put a barrier for all the processes
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
   call f_routine(id=subname)
-  !check that the positions are identical for all the processes
-  rxyz_glob=f_malloc((/3,atoms%nat,nproc/),id='rxyz_glob')
-  
-  !gather the results for all the processors
-  call MPI_GATHER(rxyz0,3*atoms%nat,mpidtypg,&
-       rxyz_glob,3*atoms%nat,mpidtypg,0,bigdft_mpi%mpi_comm,ierr)
-  if (iproc==0) then
-     maxdiff=0.0_gp
-     do jproc=2,nproc
-        do iat=1,atoms%nat
-           do i=1,3
-              maxdiff=max(maxdiff,&
-                   abs(rxyz_glob(i,iat,jproc)-rxyz0(i,iat)))
+  if (nproc > 1) then
+     !check that the positions are identical for all the processes
+     rxyz_glob=f_malloc((/3,atoms%nat,nproc/),id='rxyz_glob')
+     
+     !gather the results for all the processors
+     call MPI_GATHER(rxyz0,3*atoms%nat,mpidtypg,&
+          rxyz_glob,3*atoms%nat,mpidtypg,0,bigdft_mpi%mpi_comm,ierr)
+     if (iproc==0) then
+        maxdiff=0.0_gp
+        do jproc=2,nproc
+           do iat=1,atoms%nat
+              do i=1,3
+                 maxdiff=max(maxdiff,&
+                      abs(rxyz_glob(i,iat,jproc)-rxyz0(i,iat)))
+              end do
            end do
         end do
-     end do
-     if (maxdiff > epsilon(1.0_gp)) &
-          call yaml_warning('The input positions are not Bitwise identical! ('//&
-          'the difference is '//trim(yaml_toa(maxdiff))//' )')
-  end if
-  
-  call f_free(rxyz_glob)
+        if (maxdiff > epsilon(1.0_gp)) &
+             call yaml_warning('The input positions are not Bitwise identical! '//&
+             '(the difference is '//trim(yaml_toa(maxdiff))//' )')
+     end if
 
+     call f_free(rxyz_glob)
+  end if
   !fill the rxyz array with the positions
   !wrap the atoms in the periodic directions when needed
   do iat=1,atoms%nat
