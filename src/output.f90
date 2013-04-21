@@ -60,13 +60,22 @@ subroutine print_logo()
   call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
   if (ierr ==0) call yaml_map('Root process Hostname',trim(nodename_local))
   call yaml_map('Number of MPI tasks',bigdft_mpi%nproc)
-
+  
   nthreads = 0
 !$  nthreads=omp_get_max_threads()
   call yaml_map('OpenMP parallelization',nthreads>0)
   if (nthreads > 0) then
      call yaml_map('Maximal OpenMP threads per MPI task',nthreads)
   endif
+
+END SUBROUTINE print_logo
+
+subroutine print_configure_options()
+  use yaml_output
+  implicit none
+  integer, parameter :: ln = 1024
+  character(len = ln), dimension(4) :: buf
+
   call yaml_comment('Code compiling options',hfill='-')
   call yaml_open_map("Compilation options")
   call bigdft_config_get_user_args(buf(1), ln)
@@ -90,7 +99,7 @@ subroutine print_logo()
  
  call yaml_close_map()
 
-END SUBROUTINE print_logo
+end subroutine print_configure_options
 
 
 !> Print all general parameters

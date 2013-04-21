@@ -30,49 +30,31 @@
                g     i        B     B
               g               B    B
          ggggg       i         BBBB
- 
+
    Reference Paper                     : The Journal of Chemical Physics 129, 014109 (2008)
    Version Number                      : 1.7-dev.26
-   Timestamp of this run               : 2013-04-16 12:28:26.531
-   Root process Hostname               : localhost
-   Number of MPI tasks                 :  1
+   Timestamp of this run               : 2013-04-21 21:21:06.748
+   Root process Hostname               : athelas
+   Number of MPI tasks                 :  2
    OpenMP parallelization              :  Yes
-   Maximal OpenMP threads per MPI task :  4
-    #---------------------------------------------------------------- Code compiling options
-   Compilation options:
-     Configure arguments:
-       " 'FC=/opt/intel/bin/ifort' 'FCFLAGS=-O2 -openmp' 
-        '--with-ext-linalg=-Wl,--start-group  
-        /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.a 
-        /opt/intel/mkl/lib/intel64/libmkl_intel_thread.a 
-        /opt/intel/mkl/lib/intel64/libmkl_core.a -Wl,--end-group -openmp -lpthread' 
-        '--with-ext-linalg-path=-L/opt/intel/mkl/lib/intel64' '--with-blas=no' 
-        '--with-lapack=no' '--enable-dgemmsy' '--enable-minima-hopping' '--disable-mpi' 
-        'CC=icc' 'CFLAGS=-O2 -openmp' 'CCLD=icc'"
-     Compilers (CC, FC, CXX)           :  [ icc, /opt/intel/bin/ifort, g++ ]
-     Compiler flags:
-       CFLAGS                          : -O2 -openmp
-       FCFLAGS                         : -O2 -openmp
-       CXXFLAGS                        : -g -O2
-       CPPFLAGS                        : 
+   Maximal OpenMP threads per MPI task :  2
    ----> you can grep this file for (MH) to see Minima Hopping output
     (MH) NOTE: this version reads nspin, mpol from input.dat
- 
  Reference Paper:
    The Journal of Chemical Physics 120 (21): 9911-7 (2004)
  <BigDFT> log of the run will be written in logfile: ./log.yaml
 SD FINISHED because ncount_bigdft > ncount_cluster_x     0     7     5
 SD FINISHED because ncount_bigdft > ncount_cluster_x     0     9     5
 (MH) fingerprint  0.967E+00 0.973E+00 0.106E+01
-(MH) fingerprint  0.677E+00 0.755E+00 0.157E+01
-(MH) enarr   1-0.11306258931687239E+02 0.96728511314592514E+00 0.97269108553714034E+00
-(MH) e_wpos,k_e_wpos -0.11504328597070721E+02  0
+(MH) fingerprint  0.721E+00 0.902E+00 0.138E+01
+(MH) enarr   1-0.11306270611924152E+02 0.96725066349874556E+00 0.97271146977322576E+00
+(MH) e_wpos,k_e_wpos -0.11535116051924771E+02  0
  (MH) k bounds            1           1
- (MH)  k,d           1  0.360557167757990     
-(MH)    wfp 0.677E+00 0.755E+00 0.157E+01
+ (MH)  k,d           1  0.23544265813394294     
+(MH)    wfp 0.721E+00 0.902E+00 0.138E+01
 (MH) fp_arr 0.967E+00 0.973E+00 0.106E+01
  (MH)  newmin  T
   ----------------------------------------------------
    -----   INSERT -----------
-(MH) fingerprint   1 0.677E+00 0.755E+00 0.157E+01
+(MH) fingerprint   1 0.721E+00 0.902E+00 0.138E+01
 (MH) fingerprint   2 0.967E+00 0.973E+00 0.106E+01

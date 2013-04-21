@@ -25,9 +25,7 @@ Keys to ignore:
  - Number of OpenCL devices per node
 Patterns to ignore:
  - Timestamp
-
-Patterns to ignore:
- - Timestamp
+ - memory
 
 Expected Test CPUtime: #
  C: #[expected, error]
@@ -168,10 +166,25 @@ test.splsad.ref.yaml:
  Electric Dipole Moment (Debye): 1.2e-8
 
 test.minhop.ref.yaml:
-  Energies: 1.1e-10
-  Keys to ignore:
-    - (MH) cpu(hrs)
-    - WARNINGS
+ Energies: &etol1 6.0e-9
+ Eion: &eion1 4.1e-11
+ EH: *etol1
+ EXC: *etol1
+ Ekin: *etol1
+ Enl: *etol1
+ Epot: *etol1
+ EvXC: *etol1
+ EKS: 9.7e-10
+ Ion-Ion interaction energy: *eion1
+ fluct: 1.2e-9
+ maxval: 7.1e-11
+ Atomic Forces (Ha/Bohr): 2.0e-11
+ Average noise forces: 1.0e-10
+ etot: 1.6e-11
+ Orbitals: 6.1e-9
+ Keys to ignore:
+   - (MH) cpu(hrs)
+   - WARNINGS
 
 test.testforces.ref.yaml:
  Epsilon: 1.2e-10

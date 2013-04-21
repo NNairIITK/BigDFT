@@ -993,7 +993,8 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     enddo
     eps_vxyz=sqrt(svxyz)
     if(iproc == 0) call yaml_map('(MH)  eps_vxyz=',eps_vxyz)
-
+    !if(iproc == 0) call yaml_map('(MH)  vxyz_test=',vxyz)
+    !stop
     do it=1,nsoften
        
        wpos=rxyz+vxyz
@@ -1207,7 +1208,8 @@ END SUBROUTINE velnorm
 
 !> create a random displacement vector without translational and angular moment
 subroutine randdist(nat,rxyz,vxyz)
-  use module_base
+  use BigDFT_API !,only: gp !module_base
+  use yaml_output
   implicit none
   integer, intent(in) :: nat
   real(gp), dimension(3*nat), intent(in) :: rxyz
@@ -1220,10 +1222,14 @@ subroutine randdist(nat,rxyz,vxyz)
      !add built-in random number generator
      tt=builtin_rand(idum)
      vxyz(i)=real(tt-.5,gp)*3.e-1_gp
+     !if (bigdft_mpi%iproc==0) print *,i,idum,vxyz(i)
   end do
 
   call elim_moment(nat,vxyz)
+  !if (bigdft_mpi%iproc==0) call yaml_map('After mom',vxyz,unit=6)
   call elim_torque_reza(nat,rxyz,vxyz)
+  !if (bigdft_mpi%iproc==0) call yaml_map('After torque',vxyz,unit=6)
+
 END SUBROUTINE randdist
 
 
@@ -2791,61 +2797,133 @@ END subroutine hunt_orig
 
 
 
-subroutine ha_trans(nat,pos)
-   implicit real*8 (a-h,o-z)
-   parameter(lwork=100)
-   dimension pos(3,nat),pos_s(3)
-   dimension theta(3,3),theta_e(3),work(lwork)
-        
-! positions relative to center of mass
+ subroutine ha_trans(nat,pos)
+   use BigDFT_API, only:gp
+   use yaml_output
+   !implicit real*8 (a-h,o-z)
+   implicit none
+   integer, intent(in) :: nat
+   real(gp), dimension(3,nat), intent(inout) :: pos
+   !local variables
+   integer, parameter :: lwork=100
+   integer :: iat,i,info,j
+   real(gp) :: haratio,p1,p2,p3
+   integer, dimension(3) :: ipiv
+   real(gp), dimension(3) :: pos_s,theta_e,maxt
+   real(gp), dimension(lwork) :: work
+   real(gp), dimension(3,3) :: theta
+   !dimension pos(3,nat),pos_s(3)
+   ! dimension theta(3,3),theta_e(3),work(lwork)
+
+   ! positions relative to center of mass
    pos_s(1)=0.d0
    pos_s(2)=0.d0
    pos_s(3)=0.d0
    do iat=1,nat
-        pos_s(1)=pos_s(1)+pos(1,iat)
-        pos_s(2)=pos_s(2)+pos(2,iat)
-        pos_s(3)=pos_s(3)+pos(3,iat)
+      pos_s(1)=pos_s(1)+pos(1,iat)
+      pos_s(2)=pos_s(2)+pos(2,iat)
+      pos_s(3)=pos_s(3)+pos(3,iat)
    enddo
-   pos_s(1)=pos_s(1)/nat
-   pos_s(2)=pos_s(2)/nat
-   pos_s(3)=pos_s(3)/nat  
+   pos_s(1)=pos_s(1)/real(nat,gp)
+   pos_s(2)=pos_s(2)/real(nat,gp)
+   pos_s(3)=pos_s(3)/real(nat,gp)  
 
    do iat=1,nat
-        pos(1,iat)=pos(1,iat)-pos_s(1)
-        pos(2,iat)=pos(2,iat)-pos_s(2)        
-        pos(3,iat)=pos(3,iat)-pos_s(3)
+      pos(1,iat)=pos(1,iat)-pos_s(1)
+      pos(2,iat)=pos(2,iat)-pos_s(2)        
+      pos(3,iat)=pos(3,iat)-pos_s(3)
    enddo
 
-! Calculate inertia tensor theta
-   do 10,j=1,3
-   do 10,i=1,3
-10 theta(i,j)=0.d0
+   ! Calculate inertia tensor theta
+   theta=0.0_gp
+!!$   do 10,j=1,3
+!!$   do 10,i=1,3
+!!$10 theta(i,j)=0.d0
+
    do iat=1,nat
-        theta(1,1)=theta(1,1) + pos(2,iat)*pos(2,iat) + &  
-                                pos(3,iat)*pos(3,iat)
-        theta(2,2)=theta(2,2) + pos(1,iat)*pos(1,iat) + &  
-                                pos(3,iat)*pos(3,iat)
-        theta(3,3)=theta(3,3) + pos(1,iat)*pos(1,iat) + &   
-                                pos(2,iat)*pos(2,iat)
+      theta(1,1)=theta(1,1) + pos(2,iat)*pos(2,iat) + &  
+           pos(3,iat)*pos(3,iat)
+      theta(2,2)=theta(2,2) + pos(1,iat)*pos(1,iat) + &  
+           pos(3,iat)*pos(3,iat)
+      theta(3,3)=theta(3,3) + pos(1,iat)*pos(1,iat) + &   
+           pos(2,iat)*pos(2,iat)
 
-        theta(1,2)=theta(1,2) - pos(1,iat)*pos(2,iat)
-        theta(1,3)=theta(1,3) - pos(1,iat)*pos(3,iat)
-        theta(2,3)=theta(2,3) - pos(2,iat)*pos(3,iat)
-        theta(2,1)=theta(1,2)
-        theta(3,1)=theta(1,3)
-        theta(3,2)=theta(2,3)
+      theta(1,2)=theta(1,2) - pos(1,iat)*pos(2,iat)
+      theta(1,3)=theta(1,3) - pos(1,iat)*pos(3,iat)
+      theta(2,3)=theta(2,3) - pos(2,iat)*pos(3,iat)
+      theta(2,1)=theta(1,2)
+      theta(3,1)=theta(1,3)
+      theta(3,2)=theta(2,3)
    enddo
-! diagonalize theta
+   ! diagonalize theta
    call DSYEV('V','U',3,theta(1,1),3,theta_e(1),work(1),lwork,info)        
    haratio=theta_e(3)/theta_e(1)
- 
+
+   !choose the sign of the eigenvector such that the component with the 
+   ! maximum value should be positive
+!!$   maxt=0.0_gp
+!!$   do j=1,3
+!!$      do i=1,3
+!!$         if ( abs(maxt(j)) - abs(theta(i,j)) < 1.e-10_gp)then
+!!$            maxt(j)=theta(i,j)
+!!$         end if
+!!$      end do
+!!$      if (maxt(j) < 0.0_gp) then
+!!$         theta(:,j)=-theta(:,j)
+!!$      end if
+!!$   end do
+   !then choose a well-defined ordering for the modifications
+   do j=1,3
+      ipiv(j)=j
+      maxt(j)=theta(3,j)+1.e3_gp*theta(2,j)+1.e6_gp*theta(1,j)
+      if (maxt(j) < 0.0_gp) then
+         theta(:,j)=-theta(:,j)
+         maxt(j)=-maxt(j)
+      end if
+   end do
+   if (maxt(1) <= maxt(2)) then
+      if (maxt(2) > maxt(3)) then
+         if (maxt(1) > maxt(3)) then
+            !worst case, 3<1<2
+            ipiv(1)=3
+            ipiv(2)=1
+            ipiv(3)=2
+         else
+            ! 1<3<2
+            ipiv(2)=3
+            ipiv(3)=2
+         end if
+      end if
+   else
+      if (maxt(1) > maxt(3)) then
+         if (maxt(2) < maxt(3)) then
+            !other worst case 2<3<1
+            ipiv(1)=2
+            ipiv(2)=3
+            ipiv(3)=1
+         else
+            !  1>3<2, but 2<1 => 3<2<1
+            ipiv(1)=3
+            ipiv(3)=1
+         end if
+      else
+         !2<1 and 3>1 => 2<1<3
+         ipiv(1)=2
+         ipiv(2)=1
+      end if
+   end if
+
    do iat=1,nat
-        p1=pos(1,iat)
-        p2=pos(2,iat)
-        p3=pos(3,iat)
-        pos(1,iat) = theta(1,1)*p1+ theta(2,1)*p2+ theta(3,1)*p3
-        pos(2,iat) = theta(1,2)*p1+ theta(2,2)*p2+ theta(3,2)*p3
-        pos(3,iat) = theta(1,3)*p1+ theta(2,3)*p2+ theta(3,3)*p3
+      p1=pos(1,iat)
+      p2=pos(2,iat)
+      p3=pos(3,iat)
+      pos(1,iat) = theta(1,ipiv(1))*p1+ theta(2,ipiv(1))*p2+ theta(3,ipiv(1))*p3
+      pos(2,iat) = theta(1,ipiv(2))*p1+ theta(2,ipiv(2))*p2+ theta(3,ipiv(2))*p3
+      pos(3,iat) = theta(1,ipiv(3))*p1+ theta(2,ipiv(3))*p2+ theta(3,ipiv(3))*p3
    enddo
 
+!!$   do j=1,3
+!!$      call yaml_map('Thetaj',theta(:,j))
+!!$   end do
+!!$   stop
 END SUBROUTINE ha_trans

@@ -102,7 +102,7 @@ subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itr
   end if
 
   call yaml_comment('Estimation of Memory Consumption',hfill='-')
-  call yaml_open_map('Accumulated memory requirements during principal run stages (MiB.KiB)')
+  call yaml_open_map('Memory requirements for principal quantities (MiB.KiB)')
     call yaml_map('Subspace Matrix',trim(MibdotKib(real(norb,kind=8)**2)),advance='no')
       call yaml_comment('(Number of Orbitals:'//trim(yaml_toa(norb))//')',tabbing=50)
     call yaml_map('Single orbital',trim(MibdotKib(omemwf)),advance='no')
@@ -174,7 +174,7 @@ subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itr
   !estimation of the memory peak
   peakmem=max(tmemker,tmemden,tmemps,tmemha)
 
-  call yaml_open_map('Memory requirements for principal code sections (MiB.KiB)')
+  call yaml_open_map('Accumulated memory requirements during principal run stages (MiB.KiB)')
      call yaml_map('Kernel calculation',trim(MibdotKib(tmemker)))
      call yaml_map('Density Construction',trim(MibdotKib(tmemden)))
      call yaml_map('Poisson Solver',trim(MibdotKib(tmemps)))
