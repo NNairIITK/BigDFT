@@ -1627,9 +1627,9 @@ subroutine perf_input_variables(iproc,dump,filename,in)
      !welcome screen
      if (dump) call print_logo()
   end if
-  call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
+  if (bigdft_mpi%nproc >1) call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
   if (iproc ==0 .and. dump) then
-     call yaml_map('MPI tasks of root process node',nproc_node)
+     if (bigdft_mpi%nproc >1) call yaml_map('MPI tasks of root process node',nproc_node)
      call print_configure_options()
   end if
   !call input_free((iproc == 0) .and. dump)
