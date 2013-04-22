@@ -274,7 +274,7 @@ end function spherical_gaussian_value
 subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx,hy,hz,&
      rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho,rhohat)
   use module_base
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_interfaces, fake_name => XC_potential
   use module_xc
   implicit none

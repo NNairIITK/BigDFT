@@ -1775,7 +1775,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    use module_base
    use module_interfaces, except_this_one => input_wf_diag
    use module_types
-   use Poisson_Solver
+   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use libxc_functionals
    use yaml_output
    use gaussians

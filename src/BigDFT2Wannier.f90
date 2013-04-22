@@ -12,7 +12,7 @@
 program BigDFT2Wannier
 
    use BigDFT_API
-   use Poisson_Solver
+   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use module_interfaces
    use yaml_output
    implicit none
@@ -2255,7 +2255,7 @@ END SUBROUTINE write_mmn
 subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt_list,nx,ny,nz,nk,s,iformat)
 
    use BigDFT_API
-   use Poisson_Solver
+   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    implicit none
    ! I/O variables
    type(locreg_descriptors), intent(in) :: Glr

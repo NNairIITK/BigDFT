@@ -217,7 +217,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   use module_base
   use module_types
   use module_interfaces
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
 !  use vdwcorrection
   use m_ab6_mixing
@@ -1626,7 +1626,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => kswfn_post_treatments
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
 
   implicit none

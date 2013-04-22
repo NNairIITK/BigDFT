@@ -85,7 +85,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   use module_types
   use module_xc
   use yaml_output
-  use poisson_solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
@@ -622,7 +622,7 @@ END SUBROUTINE PSolver
 subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
   use module_base
-  use poisson_solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode

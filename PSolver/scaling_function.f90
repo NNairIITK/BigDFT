@@ -11,7 +11,8 @@
 !>   Calculate the values of a scaling function in real uniform grid
 subroutine scaling_function(itype,nd,nrange,a,x)
 
-  use module_base
+  use Poisson_Solver, only: dp
+  use m_profiling
   implicit none
   !Arguments
   !Type of interpolating functions
@@ -99,7 +100,8 @@ END SUBROUTINE scaling_function
 !>   Calculate the values of the wavelet function in a real uniform mesh.
 subroutine wavelet_function(itype,nd,a,x)
 
-  use module_base
+  use Poisson_Solver, only: dp
+  use m_profiling
   implicit none
   !Arguments
   !Type of the interpolating scaling function

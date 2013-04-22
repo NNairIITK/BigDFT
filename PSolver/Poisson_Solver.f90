@@ -66,9 +66,9 @@ module Poisson_Solver
   private
 
   ! General precision, density and the potential types
-  integer, parameter :: gp=kind(1.0d0)  !< general-type precision
-  integer, parameter :: dp=kind(1.0d0)  !< density-type precision
-  integer, parameter :: wp=kind(1.0d0)  !< potential-type precision
+  integer, parameter, public :: gp=kind(1.0d0)  !< general-type precision
+  integer, parameter, public :: dp=kind(1.0d0)  !< density-type precision
+  integer, parameter, public :: wp=kind(1.0d0)  !< potential-type precision
   ! Associated MPI precisions.
   integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
   integer, parameter :: mpidtypd=MPI_DOUBLE_PRECISION
@@ -128,5 +128,4 @@ contains
 
   include 'PSolver_Main.f90'
   include 'createKernel.f90'
-
 end module Poisson_Solver

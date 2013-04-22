@@ -15,7 +15,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
   use module_types
   use module_interfaces, exceptThisOne => local_partial_densityLinear
   use module_xc
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   logical, intent(in) :: rsflag
   integer, intent(in) :: nproc

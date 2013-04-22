@@ -19,7 +19,8 @@
 !!   @param iproc,nproc        Number of process, number of processes
 !!   @param karray             output array
 subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc,mu0_screening,alpha,beta,gamma)
-  use module_base
+  use Poisson_Solver, only: dp
+  use m_profiling
   implicit none
   !Arguments
   integer, intent(in) :: n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc
@@ -263,7 +264,7 @@ END SUBROUTINE Periodic_Kernel
 !>  Calculate the fourier transform
 !!  Suppose the output symmetric and real
 subroutine fourtrans_isf(n,ftisf)
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
   integer, intent(in) :: n
   real(dp), dimension(0:n), intent(out) :: ftisf
@@ -313,7 +314,7 @@ END SUBROUTINE fourtrans_isf
 
 !>   Transform the wavelet filters
 subroutine fourtrans(p,htp)
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
   real(dp), intent(in) :: p
   real(dp), intent(out) :: htp
@@ -348,9 +349,9 @@ END SUBROUTINE fourtrans
 !!   @param iproc,nproc        Number of process, number of processes
 !!   @param karray             output array
 subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
-     h1,h2,h3,itype_scf,karray,mu0_screening,alpha,beta,gamma)
-  
-  use module_base
+     h1,h2,h3,itype_scf,karray,mu0_screening,alpha,beta,gamma)  
+  use Poisson_Solver, only: dp
+  use wrapper_mpi
 
   implicit none
   include 'perfdata.inc'
@@ -824,7 +825,8 @@ END SUBROUTINE Surfaces_Kernel
 
 
 subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g_mu)
-  use module_base
+  use Poisson_Solver, only: dp
+  use m_profiling
   implicit none
   real(dp), parameter :: mu_max=0.2_dp
   integer, intent(in) :: n,n_scf,intorder,itype_scf
@@ -961,7 +963,7 @@ END SUBROUTINE calculates_green_opt
 
 
 subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
   integer, intent(in) :: n,n_scf,intorder
   real(dp), intent(in) :: hres
@@ -1088,7 +1090,8 @@ END SUBROUTINE indices
 !!    Different calculation of the gaussian times ISF integral, LG, Dec 2009
 subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
      hx,hy,hz,itype_scf,iproc,nproc,karray,mu0_screening)
- use module_base
+  use Poisson_Solver, only: dp, gp
+  use m_profiling
  implicit none
  !Arguments
  integer, intent(in) :: n01, n02, n03, nfft1, nfft2, nfft3, n1k, n2k, n3k, itype_scf, iproc, nproc
@@ -1349,7 +1352,7 @@ END SUBROUTINE Free_Kernel
 
 
 subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,fwork,fftwork,kffts)
-  use module_base
+  use Poisson_Solver, only: dp
   !n(c) use module_fft_sg
   implicit none
   integer, intent(in) :: itype_scf,n1,n2,n3,nk1,nk2,nk3,n_range
@@ -1709,7 +1712,7 @@ END SUBROUTINE gauconv_ffts
 
 
 subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,kernel_scf,work)
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
   integer, intent(in) :: n_range,n_scf,itype_scf
   real(dp), intent(in) :: pgauss,hgrid,dx
@@ -1762,7 +1765,7 @@ END SUBROUTINE gauss_conv_scf
 
 
 subroutine inserthalf(n1,n3,lot,nfft,i1,zf,zw)
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
   integer, intent(in) :: n1,n3,lot,nfft,i1
   real(dp), dimension(n1/2+1,n3/2+1), intent(in) :: zf
@@ -1810,7 +1813,8 @@ END SUBROUTINE inserthalf
 !! Author:S
 !!    S. Goedecker, L. Genovese
 subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,mpi_comm,nproc,iproc,zf,zr)
-  use module_base
+  use Poisson_Solver, only: dp
+  use wrapper_mpi
   implicit none
   include 'perfdata.inc'
   !Arguments
@@ -2080,7 +2084,7 @@ END SUBROUTINE kernelfft
 
 
 subroutine realcopy(lot,nfft,n2,nk1,nk2,zin,zout)
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
   integer, intent(in) :: nfft,lot,n2,nk1,nk2
   real(dp), dimension(2,lot,n2), intent(in) :: zin
@@ -2098,7 +2102,7 @@ END SUBROUTINE realcopy
 
 
 subroutine switchPS(nfft,n2,lot,n1,lzt,zt,zw)
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
 !Arguments
   integer, intent(in) :: nfft,n2,lot,n1,lzt
@@ -2117,7 +2121,7 @@ END SUBROUTINE switchPS
 
 
 subroutine mpiswitchPS(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
 !Arguments
   integer, intent(in) :: j3,nfft,lot,n1,nd2,nd3,nproc
@@ -2148,7 +2152,7 @@ END SUBROUTINE mpiswitchPS
 !> The conversion from d0 to dp type should be finished
 subroutine gequad(p,w,urange,drange,acc)
  
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
 
 !Arguments
@@ -2344,7 +2348,7 @@ subroutine gequad(p,w,urange,drange,acc)
 END SUBROUTINE gequad
 
 subroutine fill_halfft(nreal,n1,n_range,nfft,kernelreal,halfft)
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
   integer, intent(in) :: n1,n_range,nfft,nreal
   real(dp), dimension(nreal,nfft), intent(in) :: kernelreal
@@ -2370,7 +2374,7 @@ subroutine fill_halfft(nreal,n1,n_range,nfft,kernelreal,halfft)
 END SUBROUTINE fill_halfft
 
 subroutine copyreal(n1,nk1,nfft,halfft,kernelfour)
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
   integer, intent(in) :: n1,nk1,nfft
   real(dp), dimension(2,n1,nfft), intent(in) :: halfft
@@ -2405,7 +2409,8 @@ END SUBROUTINE copyreal
 !!   @param itype_scf          Order of the scaling function
 !!   @param karray             output array
 subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,mu0_screening)
-  use module_base
+  use Poisson_Solver, only: dp
+  use m_profiling
   implicit none
   !Arguments
   integer, intent(in) :: n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc
@@ -2747,7 +2752,7 @@ END SUBROUTINE Wires_Kernel
 !> The conversion from d0 to dp type should be finished
 subroutine Yukawa_gequad(p,w,urange,drange,acc)
  
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
 
 !Arguments

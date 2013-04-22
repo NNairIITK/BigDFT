@@ -44,7 +44,7 @@ modules = yaml_strings.@MODULE_EXT@ \
 	dynamic_memory.@MODULE_EXT@
 endif
 
-CLEANFILES = $(modules)
+CLEANFILES = $(modules) *.@MODULE_EXT@
 
 AM_FCFLAGS = -I$(srcdir) @LIBABINIT_INCLUDE@
 

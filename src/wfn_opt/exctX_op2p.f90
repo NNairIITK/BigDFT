@@ -56,7 +56,7 @@ contains
      dpsir_i,dpsir_j)
     use module_base
     use module_types
-    use Poisson_Solver
+    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
     implicit none
     logical, intent(in) :: remote_result
     integer, intent(in) :: istep,iproc,igroup,isorb,jsorb,iorbs,jorbs,norbi,norbj

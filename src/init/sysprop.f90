@@ -211,7 +211,7 @@ END SUBROUTINE system_initialization
 subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   use module_types
   use module_xc
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   logical, intent(in) :: verb
   integer, intent(in) :: iproc, nproc
@@ -237,7 +237,7 @@ END SUBROUTINE system_initKernels
 
 subroutine system_createKernels(denspot, verb)
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   logical, intent(in) :: verb
   type(DFT_local_fields), intent(inout) :: denspot

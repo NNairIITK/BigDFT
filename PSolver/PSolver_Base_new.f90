@@ -12,7 +12,9 @@
 !!  General version, for each boundary condition
 subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,&
              scal,hx,hy,hz,offset,strten)
-  use module_base
+  use Poisson_Solver, only: dp, gp
+  use wrapper_mpi
+  use m_profiling
   implicit none
   !to be preprocessed
   include 'perfdata.inc'
@@ -581,7 +583,7 @@ END SUBROUTINE G_PoissonSolver
 !> General routine, takes into account the free boundary conditions
 subroutine G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
      n1,n1dim,md2,nd3,nproc,zmpi1,zw)
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
   !Arguments
   integer, intent(in) :: j3,nfft,lot,n1,md2,nd3,nproc,n1dim
@@ -627,7 +629,7 @@ END SUBROUTINE G_mpiswitch_upcorn
 
 
 subroutine G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt,zw)
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
   integer, intent(in) :: nfft,n2,lot,n1,lzt,n2dim
   real(dp), dimension(2,lzt,n1), intent(in) :: zt
@@ -871,7 +873,7 @@ END SUBROUTINE unscramble_P
 !! Author:S
 !!    S. Goedecker, L. Genovese
 subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,scal,strten)
-  use module_base
+  use Poisson_Solver, only: dp, gp
   implicit none
   !Argments
   integer, intent(in) :: nd1,nd2,n1,n2,n3,lot,nfft,jS,j3

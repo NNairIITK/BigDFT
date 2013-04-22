@@ -216,7 +216,7 @@ END SUBROUTINE WOFZ
 
 !the same function as above multiplied by exp(-yi**2), to protect against overflows
 subroutine wofz_mod(alpha,m,q,jm,u,v,flag)
-  use module_base
+  use Poisson_Solver, only: dp
   implicit none
   real(dp), intent(in) :: alpha
   integer, intent(in) :: q,m,jm

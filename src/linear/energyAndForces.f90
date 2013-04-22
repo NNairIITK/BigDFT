@@ -15,7 +15,7 @@ subroutine updatePotential(ixc,nspin,denspot,ehart,eexcu,vexcu)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => updatePotential
-use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
 implicit none
 
 ! Calling arguments
