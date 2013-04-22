@@ -80,7 +80,7 @@ endif
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py
 CLEANFILES = mpif.h $(modules)
 
-AM_FCFLAGS = -I. -I$(srcdir) -I../includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
@@ -111,7 +111,7 @@ mpif.h:
 
 #dependencies
 $(modules): $(libmodules_a_OBJECTS)
-base.o: defs.o ../flib/dynamic_memory.o
+base.o: defs.o $(top_builddir)/flib/dynamic_memory.o
 types.o: base.o gaussians.o
 input.o: base.o 
 interfaces.o: base.o types.o xc.o
@@ -124,8 +124,8 @@ private_api.o: base.o types.o interfaces.o
 # Copy modules in a common include directory.
 all: all-am insmod
 insmod: $(modules) $(mpi_include)
-	test -e "../includes" || $(INSTALL) -d -m 755 ../includes
+	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \
-	  $(INSTALL) -m 644  $$mod ../includes ; \
+	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \
 	done
-	test -z "$(mpi_include)" || $(INSTALL) -m 644 mpif.h ../includes
+	test -z "$(mpi_include)" || $(INSTALL) -m 644 mpif.h $(top_builddir)/includes

@@ -991,7 +991,7 @@ dnl Agregate all flags.
 LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 
 dnl Agregate all the optional libs.
-LIBS_SHORT_DEPS="\$(top_builddir)/src/flib/libflib.a $LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_SHORT_DEPS="\$(top_builddir)/flib/libflib.a $LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 
 dnl Test for the documentation.
@@ -1026,9 +1026,9 @@ Makefile
 bigdft.pc
 libABINIT/src/Makefile
 config/Doxyfile
+flib/Makefile
 src/bigdft-tool
 src/Makefile
-src/flib/Makefile
 src/modules/Makefile
 src/modules/bigdft_cst.h
 src/modules/configure.inc

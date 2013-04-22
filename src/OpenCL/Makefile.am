@@ -43,7 +43,7 @@ EXTRA_PROGRAMS = conv_check \
 	bench_zgemm \
 	stream_check
 
-AM_FCFLAGS = -I../includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ -I. -I$(srcdir)
+AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ -I. -I$(srcdir)
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
 AM_CFLAGS = -Wall -Wno-deprecated-declarations
 AM_CXXFLAGS = -Wall -Wno-deprecated-declarations

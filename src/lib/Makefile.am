@@ -21,7 +21,7 @@ liblib_a_SOURCES = $(DGEMMSY_SOURCES) \
 # Dependencies
 $(modules): $(liblib_a_OBJECTS)
 
-AM_FCFLAGS = -I../includes @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
 
 # Module files.
@@ -35,7 +35,7 @@ CLEANFILES = $(modules)
 # Copy modules in a common include directory.
 all: all-am insmod
 insmod: $(modules)
-	test -e "../includes" || $(INSTALL) -d -m 755 ../includes
+	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \
-	  $(INSTALL) -m 644  $$mod ../includes ; \
+	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \
 	done

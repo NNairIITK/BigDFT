@@ -43,7 +43,7 @@ SUFFIXES = .cu
 
 CLEANFILES = fort.1 fort.98 *linkinfo
 
-AM_FCFLAGS = -I../includes @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src

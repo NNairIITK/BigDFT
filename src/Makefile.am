@@ -12,8 +12,7 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 
 # Sub-directories.
 # ---------------
-SUBDIRS = flib \
-	modules \
+SUBDIRS = modules \
 	convolutions \
 	lib \
 	PSolver \
@@ -97,7 +96,7 @@ am_global_OBJECTS = global.$(OBJEXT)
 global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
-AM_FCFLAGS = -I. -Iincludes -I$(srcdir)/wavelib -I$(srcdir)/PSolver \
+AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib -I$(srcdir)/PSolver \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
 	@MPI_INCLUDE@
@@ -280,19 +279,17 @@ test_forces_LDADD = $(bigdft_library)
 NEB_SOURCES = NEB.f90
 NEB_LDADD = $(bigdft_library)
 
-memguess_SOURCES = memguess.f90 flib/MPIfake.f90
+memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/MPIfake.f90
 memguess_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90
 frequencies_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 bart_SOURCES = art.f90
-bart_FCFLAGS = -I. -Iart -Iincludes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.*
-clean-local:
-	-rm -rf includes
 
 all: all-recursive
 	chmod ug+x bigdft-tool

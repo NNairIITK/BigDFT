@@ -25,9 +25,11 @@ if BUILD_LIBYAML
 SUBDIRS += yaml-0.1.4
 endif
 
-SUBDIRS += src \
-	   doc \
-	   utils
+SUBDIRS += \
+	flib \
+	src \
+	doc \
+	utils
 
 if BUILD_BINARIES_PSEUDO
 SUBDIRS += pseudo
@@ -44,3 +46,6 @@ endif
 
 check report:
 	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ;python $(top_srcdir)/tests/report.py
+
+clean-local:
+	-rm -rf includes

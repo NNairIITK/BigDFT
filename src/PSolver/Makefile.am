@@ -67,7 +67,7 @@ conv_check_fft_LDADD = -lbigdft-1
 conv_check_fftw_SOURCES = conv_check_fftw.f90 fftw.cpp
 conv_check_fftw_LDADD = @LIBS_SHORT_DEPS@ -lfftw3 -lfftw3_threads
 
-AM_FCFLAGS = -I../includes -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ @MPI_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ @MPI_INCLUDE@
 AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
@@ -97,7 +97,7 @@ conv_check_fftw.o: fftw.o
 # Copy modules in a common include directory.
 all: all-am insmod
 insmod: $(modules)
-	test -e "../includes" || $(INSTALL) -d -m 755 ../includes
+	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \
-	  $(INSTALL) -m 644  $$mod ../includes ; \
+	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \
 	done

@@ -16,7 +16,7 @@ EXTRA_DIST = conv_check.awk tols.yaml OpenCL.ref.yaml
 
 CLEANFILES = fort.1 conv_check.out.yaml OpenCL.report.yaml report
 
-AM_FCFLAGS = -I$(top_builddir)/src/includes @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ 
+AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ 
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
 AM_CFLAGS = -Wall -Werror
 AM_LDFLAGS = -L$(top_builddir)/src

@@ -3143,7 +3143,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   type(GPU_pointers), intent(inout) :: GPU
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(dp), dimension(:), pointer :: local_potential
   !local variables
