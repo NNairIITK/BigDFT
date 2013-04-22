@@ -1027,6 +1027,7 @@ bigdft.pc
 libABINIT/src/Makefile
 config/Doxyfile
 flib/Makefile
+wrappers/Makefile
 src/bigdft-tool
 src/Makefile
 src/modules/Makefile

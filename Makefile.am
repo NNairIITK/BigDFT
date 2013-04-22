@@ -27,6 +27,7 @@ endif
 
 SUBDIRS += \
 	flib \
+	wrappers \
 	src \
 	doc \
 	utils

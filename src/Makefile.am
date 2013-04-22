@@ -12,10 +12,11 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 
 # Sub-directories.
 # ---------------
-SUBDIRS = modules \
+SUBDIRS = \
+	PSolver \
+	modules \
 	convolutions \
 	lib \
-	PSolver \
 	$(sub_dirs_libconfig) \
 	CUDA \
 	OpenCL \
@@ -49,7 +50,7 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a @LIBS_SHORT_DEPS@
+bigdft_library = libbigdft-1.a $(top_builddir)/wrappers/libwrappers.a @LIBS_SHORT_DEPS@
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft-1.a
@@ -170,7 +171,6 @@ low_level = \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
 	profiling/memoryestimator.f90 \
-	profiling/time.f90 \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
 	linear/filterModule.f90 \
@@ -226,7 +226,7 @@ libbigdft-1.a: $(libmain_a_OBJECTS) $(subs_static_library)
 	rm -rf tmp-libbigdft
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) $(subs_static_library)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) $(subs_static_library) @LIBS_SHORT_DEPS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) $(subs_static_library) $(top_builddir)/wrappers/libwrappers.a @LIBS_SHORT_DEPS@
 	@chmod a+x $@
 
 libbigdft-1.so.7: $(bigdft_dynamic_library)

@@ -27,7 +27,7 @@ sources = binding_s_gpu.c \
 	read_conf_exception.h \
 	cpp_utils.h
 else
-sources = cublas_fake.f90
+sources =
 endif
 libCUDA_a_SOURCES = $(sources)
 

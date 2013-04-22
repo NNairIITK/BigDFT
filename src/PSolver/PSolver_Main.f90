@@ -257,8 +257,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
      allocate(zf1(md1*md3*md2),stat=i_stat)
      call memocc(i_stat,zf1,'zf1',subname)
 
-     call mpi_gather(zf,size1/kernel%mpi_env%nproc,MPI_DOUBLE_PRECISION,zf1,size1/kernel%mpi_env%nproc, &
-          MPI_DOUBLE_PRECISION,0,kernel%mpi_env%mpi_comm,ierr)
+     call mpi_gather(zf,size1/kernel%mpi_env%nproc,mpidtypd,zf1,size1/kernel%mpi_env%nproc, &
+          mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
 
      if (kernel%mpi_env%iproc == 0) then
       !fill the GPU memory
@@ -279,8 +279,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call get_gpu_data(size1,zf1,kernel%work1_GPU)
       endif
 
-      call MPI_Scatter(zf1,size1/kernel%mpi_env%nproc,MPI_DOUBLE_PRECISION,zf,size1/kernel%mpi_env%nproc, &
-          MPI_DOUBLE_PRECISION,0,kernel%mpi_env%mpi_comm,ierr)
+      call MPI_Scatter(zf1,size1/kernel%mpi_env%nproc,mpidtypd,zf,size1/kernel%mpi_env%nproc, &
+           mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
 
       i_all=-product(shape(zf1))*kind(zf1)
       deallocate(zf1,stat=i_stat)

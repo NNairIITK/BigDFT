@@ -53,14 +53,49 @@
 !!    the XC part in the PSolver routine
 !!    Search for
 !!
-module Poisson_Solver
 
-  use module_base
-  use module_types, only: coulomb_operator
+module Poisson_Solver
+  use wrapper_linalg
+  use wrapper_MPI
+  ! TO BE REMOVED with f_malloc
+  use m_profiling
+  ! TO BE REMOVED with f_malloc
 
   implicit none
 
   private
+
+  ! General precision, density and the potential types
+  integer, parameter :: gp=kind(1.0d0)  !< general-type precision
+  integer, parameter :: dp=kind(1.0d0)  !< density-type precision
+  integer, parameter :: wp=kind(1.0d0)  !< potential-type precision
+  ! Associated MPI precisions.
+  integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
+  integer, parameter :: mpidtypd=MPI_DOUBLE_PRECISION
+  integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION
+
+  !> Defines the fundamental structure for the kernel
+  type, public :: coulomb_operator
+     !variables with physical meaning
+     integer :: itype_scf !< order of the ISF family to be used
+     real(gp) :: mu !< inverse screening length for the Helmholtz Eq. (Poisson Eq. -> mu=0)
+     character(len=1) :: geocode !< Code for the boundary conditions
+     integer, dimension(3) :: ndims !< dimension of the box of the density
+     real(gp), dimension(3) :: hgrids !<grid spacings in each direction
+     real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
+     real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
+     real(dp) :: work1_GPU,work2_GPU,k_GPU
+     integer, dimension(5) :: plan
+     integer, dimension(3) :: geo
+     !variables with computational meaning
+!     integer :: iproc_world !iproc in the general communicator
+!     integer :: iproc,nproc
+!     integer :: mpi_comm
+     type(mpi_environment) :: mpi_env
+     integer :: igpu !< control the usage of the GPU
+     integer :: initCufftPlan
+     integer :: keepGPUmemory
+  end type coulomb_operator
 
   !calculate the allocation dimensions
   public :: PS_dim4allocation
@@ -72,6 +107,24 @@ module Poisson_Solver
   public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions, W_FFT_dimensions, xc_dimensions
 
 contains
+
+  function pkernel_null() result(k)
+    type(coulomb_operator) :: k
+    k%itype_scf=0
+    k%geocode='F'
+    k%mu=0.0_gp
+    k%ndims=(/0,0,0/)
+    k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
+    k%angrad=(/0.0_gp,0.0_gp,0.0_gp/)
+    nullify(k%kernel)
+    k%work1_GPU=0.d0
+    k%work2_GPU=0.d0
+    k%k_GPU=0.d0
+    k%plan=(/0,0,0,0,0/)
+    k%geo=(/0,0,0/)
+    k%mpi_env=mpi_environment_null()
+    k%igpu=0
+  end function pkernel_null
 
   include 'PSolver_Main.f90'
   include 'createKernel.f90'

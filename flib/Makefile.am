@@ -19,7 +19,7 @@ else
 getarg_files = get_command_argument_fake.f90
 endif
 libflib_a_SOURCES = dictionaries.f90 yaml_strings.f90 utils.c utilsadd.c \
-	yaml_output.f90 dynamic_memory.f90 razero.f90 getadd.f90 error_handling.f90 \
+	yaml_output.f90 dynamic_memory.f90 razero.f90 getadd.f90 error_handling.f90 time.f90 \
 	$(flush_files) $(mpi_source) $(getarg_files)
 
 DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 f_malloc-inc.f90

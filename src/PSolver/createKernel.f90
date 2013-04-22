@@ -13,10 +13,8 @@
 !! @param nproc  proc number
 function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      mu0_screening,angrad,mpi_env,taskgroup_size) result(kernel)
-  use module_base
 !! @param iproc  proc id
 !! @param nproc  proc number
-  use module_types
   use yaml_output
   implicit none
   logical, intent(in) :: verb
@@ -102,7 +100,6 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
 end function pkernel_init
 
 subroutine pkernel_free(kernel,subname)
-  use module_base
   implicit none
   character(len=*), intent(in) :: subname
   type(coulomb_operator), intent(inout) :: kernel
@@ -175,7 +172,6 @@ end subroutine pkernel_free
 !!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
 !!    declaration.
 subroutine pkernel_set(kernel,wrtmsg) !optional arguments
-  use module_base, only: ndebug
   use yaml_output
   implicit none
   logical, intent(in) :: wrtmsg

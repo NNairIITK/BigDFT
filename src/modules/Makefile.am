@@ -34,7 +34,7 @@ bindings_headers_nodist =
 endif
 
 libmodules_a_SOURCES = base.f90 \
-	defs.F90 \
+	defs.f90 \
 	gaussians.f90 \
 	types.f90 \
 	input.f90 \

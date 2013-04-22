@@ -68,7 +68,7 @@ conv_check_fft_LDADD = -lbigdft-1
 conv_check_fftw_SOURCES = conv_check_fftw.f90 fftw.cpp
 conv_check_fftw_LDADD = @LIBS_SHORT_DEPS@ -lfftw3 -lfftw3_threads
 
-AM_FCFLAGS = -I$(top_builddir)/includes -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ @MPI_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir) -I$(top_builddir)/includes -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ @MPI_INCLUDE@
 AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
@@ -84,7 +84,7 @@ NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@
 
 #dependencies
 $(modules): $(libPSolver_a_OBJECTS)
-Poisson_Solver.o: ../modules/base.o ../modules/xc.o $(SOURCES_MOD)
+Poisson_Solver.o: $(SOURCES_MOD)
 xcenergy.o: Poisson_Solver.o
 conv_check_fft.o: cufft.o
 conv_check_fftw.o: fftw.o
