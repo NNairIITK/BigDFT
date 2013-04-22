@@ -126,7 +126,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
         !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_den)&
         !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
         if (wfn%orbs%npsidim_orbs > 0) call to_zero(wfn%orbs%npsidim_orbs,wfn%hpsi(1))
-        if(atoms%npspcode(1)==7) then 
+        if(any(atoms%npspcode == 7)) then 
           call to_zero(wfn%orbs%npsidim_orbs,paw%spsi(1))
           call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
                proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,energs%eproj,proj_G,paw)
@@ -332,7 +332,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      if (wfn%orbs%npsidim_orbs >0) then 
       call to_zero(wfn%orbs%npsidim_orbs,wfn%hpsi(1))
      end if
-     if(atoms%npspcode(1)==7) then
+     if(any(atoms%npspcode == 7)) then
        call to_zero(wfn%orbs%npsidim_orbs,paw%spsi(1))
        call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
             proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,energs%eproj,proj_G,paw)
@@ -435,7 +435,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
     stop 'HamiltonianApplication, argument error'
  end if
 
- if(at%npspcode(1)==7) then
+ if(any(at%npspcode == 7)) then
   call NonLocalHamiltonianApplication(iproc,at,orbs%npsidim_orbs,orbs,rxyz,&
        proj,Lzd,nlpspd,psi,hpsi,energs%eproj,proj_G,paw)
  else
@@ -705,7 +705,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
 
    nwarnings=0
 
-   if(at%npspcode(1)==7) then  
+   if(any(at%npspcode == 7)) then  
    !initialize to zero in PAW case
      if(.not. present(paw) .or. .not. present(proj_G)) then
        stop 'NonLocalHamiltonianApplication: proj_G or paw are not present'
@@ -757,7 +757,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
 
                ! Now create the projector
                istart_c=1
-               if(at%npspcode(1)==7) then
+               if(any(at%npspcode == 7)) then
                  call atom_projector_paw(ikpt,iat,0,istart_c,iproj,&
                       nlpspd%nprojel,&
                       Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),rxyz(1,iat),at,orbs,&
@@ -779,7 +779,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                      cycle
                   end if
                   istart_c=1
-                  if(at%npspcode(1)==7) then
+                  if(any(at%npspcode == 7)) then
                      call apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,&
                           nlpspd%nprojel,&
                           at,orbs,Lzd%Llr(ilr)%wfd,nlpspd%plr(iat),&
@@ -827,7 +827,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                   !check if the atom intersect with the given localisation region
                   call check_overlap(Lzd%Llr(ilr), nlpspd%plr(iat), Lzd%Glr, overlap)
                   if(.not. overlap) stop 'ERROR all atoms should be in global'
-                  if(at%npspcode(1)==7) then
+                  if(any(at%npspcode == 7)) then
                      call apply_atproj_iorb_paw(iat,iorb,istart_c,&
                           nlpspd%nprojel,&
                           at,orbs,Lzd%Llr(ilr)%wfd,nlpspd%plr(iat),&
@@ -1544,7 +1544,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    integer :: jorb,iat
    !end debug
 
-   if(at%npspcode(1)==7) then
+   if(any(at%npspcode == 7)) then
      if( (.not. present(paw)) .or. &
 &        (.not. present(proj_G)) .or. &
 &        (.not. present(eproj_sum)) .or. &
@@ -1583,7 +1583,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
   
    !Update spsi, since psi has changed
    !Pending: make this with the transposed wavefunctions:
-   if(at%npspcode(1)==7) then
+   if(any(at%npspcode == 7)) then
      !retranspose psit
      call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         &   wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
@@ -1610,17 +1610,17 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
       call yaml_map('Orthogonalization Method',wfn%orthpar%methortho,fmt='(i3)')
    end if
 
-   if(at%npspcode(1)==7) then
+   if(any(at%npspcode == 7)) then
      call orthogonalize(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%orthpar,paw)
    else
      call orthogonalize(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%orthpar)
    end if
 
    !call checkortho_p(iproc,nproc,norb,nvctrp,psit)
-   if(at%npspcode(1)==7) call checkortho_paw(iproc,wfn%orbs%norb*wfn%orbs%nspinor,&
+   if(any(at%npspcode == 7)) call checkortho_paw(iproc,wfn%orbs%norb*wfn%orbs%nspinor,&
      wfn%comms%nvctr_par(iproc,0),wfn%psit,paw%spsi)
    !debug: 
-   if(at%npspcode(1)==7) then
+   if(any(at%npspcode == 7)) then
      write(*,*)'hpsiortho, l1478 erase me:'
      do iat=1,paw%natom 
        do jorb=1,wfn%orbs%norbu

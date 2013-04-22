@@ -597,7 +597,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !       Calculate Ionic Density
 !       using HGH parameters.
 !       Eq. 1.104, T. Deutsch and L. Genovese, JDN. 12, 2011
-        if( at%npspcode(ityp) .ne.7) then
+        if( .not. any(at%npspcode == 7) ) then
 
            do i3=isz,iez
               z=real(i3,kind=8)*hzh-rz

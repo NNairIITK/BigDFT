@@ -77,6 +77,7 @@ Mn2:
   - proc
  Epsilon: 2.e-10
  Ekin: 3.1e-10
+ Average noise forces: 3.4e-10
 
 GPU:
  EvXC: 1.1e-10
@@ -108,15 +109,16 @@ NH3:
 CH3-:
  Epsilon: 5.1e-9
  gnrm: 1.1e-5
- EKS: 7.84e-9
+ EKS: 1.6e-8
  D: 1.e-8
- Average CG stepsize in terms of betax: 2.1e-4
- Atomic Forces (Ha/Bohr): 2.5e-7
- Average noise forces: 4.5e-8
- Clean forces norm (Ha/Bohr): 1.8e-7
- Raw forces norm (Ha/Bohr): 2.5e-7
- Ion-Ion interaction energy: 5.5e-7
- FORCES norm(Ha/Bohr): 8.1e-9
+ Average CG stepsize in terms of betax: 3.4e-4
+ Atomic Forces (Ha/Bohr): 4.0e-7
+ Average noise forces: 5.2e-8
+ Clean forces norm (Ha/Bohr): 3.6e-7
+ Raw forces norm (Ha/Bohr): 4.0e-7
+ Ion-Ion interaction energy: 3.0e-6
+ FORCES norm(Ha/Bohr): 1.1e-6
+ Forces: 1.1e-7
  Keys to ignore:
  - b/b0
 
@@ -136,6 +138,10 @@ Li+:
 
 O2-Spin:
  Epsilon: 1.1e-10
+
+H2-spin:
+ Epot: 2.1e-11
+ Total energy with tail correction: 1.51e-11
 
 TiSmear:
  Epsilon: 5.e-11
@@ -196,7 +202,7 @@ base:
   norm(P): 1.1e-9
 
 Davidson-SiH4:
-  e_virtual: 1.2e-11
+  e_virtual: 1.7e-11
   Eigenvalues and eigenstate residue: 1.3e-10
 
 TDDFT:
@@ -208,7 +214,7 @@ TDDFT:
   L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-7
 
 BigDFT2Wannier.b2w.ref.yaml:
-  amnk_guess(nb): 6.5e-11
+  amnk_guess(nb): 8.01e-11
 
 cleanup:
  Atomic Forces (Ha/Bohr): 1.5e-10
