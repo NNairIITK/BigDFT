@@ -60,7 +60,7 @@ subroutine print_logo()
   call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
   if (ierr ==0) call yaml_map('Root process Hostname',trim(nodename_local))
   call yaml_map('Number of MPI tasks',bigdft_mpi%nproc)
-
+  
   nthreads = 0
 !$  nthreads=omp_get_max_threads()
   call yaml_map('OpenMP parallelization',nthreads>0)
@@ -68,28 +68,38 @@ subroutine print_logo()
      call yaml_map('Maximal OpenMP threads per MPI task',nthreads)
   endif
 
+END SUBROUTINE print_logo
+
+subroutine print_configure_options()
+  use yaml_output
+  implicit none
+  integer, parameter :: ln = 1024
+  character(len = ln), dimension(4) :: buf
+
+  call yaml_comment('Code compiling options',hfill='-')
   call yaml_open_map("Compilation options")
   call bigdft_config_get_user_args(buf(1), ln)
-  call yaml_map("Configure arguments", trim(buf(1)))
+  call yaml_map("Configure arguments", '"'//trim(buf(1))//'"')
   call bigdft_config_get_compilers(buf(1), buf(2), buf(3), ln)
   call yaml_map("Compilers (CC, FC, CXX)", buf(1:3))
-  call yaml_open_map("Compiler flags")
   call bigdft_config_get_compiler_flags(buf(1), buf(2), buf(3), buf(4), ln)
-  call yaml_map("CFLAGS",   trim(buf(1)))
-  call yaml_map("FCFLAGS",  trim(buf(2)))
-  call yaml_map("CXXFLAGS", trim(buf(3)))
-  call yaml_map("CPPFLAGS", trim(buf(4)))
+  call yaml_open_map("Compiler flags")
+   call yaml_map("CFLAGS",   trim(buf(1)))
+   call yaml_map("FCFLAGS",  trim(buf(2)))
+   call yaml_map("CXXFLAGS", trim(buf(3)))
+   call yaml_map("CPPFLAGS", trim(buf(4)))
   call yaml_close_map()
-  call yaml_open_map("Linker")
-  call bigdft_config_get_linker(buf(1), buf(2), buf(3), buf(4), ln)
-  call yaml_map("LD",      trim(buf(1)))
-  call yaml_map("LDFLAGS", trim(buf(2)))
-  call yaml_map("LIBS",    trim(buf(3)))
-  call yaml_map("Full linking options", trim(buf(4)))
-  call yaml_close_map()
-  call yaml_close_map()
+!!$  call bigdft_config_get_linker(buf(1), buf(2), buf(3), buf(4), ln)
+!!$  call yaml_open_map("Linker")
+!!$   call yaml_map("LD",      trim(buf(1)))
+!!$   call yaml_map("LDFLAGS", trim(buf(2)))
+!!$   call yaml_map("LIBS",    trim(buf(3)))
+!!$   call yaml_map("Full linking options", trim(buf(4)))
+!!$  call yaml_close_map()
+ 
+ call yaml_close_map()
 
-END SUBROUTINE print_logo
+end subroutine print_configure_options
 
 
 !> Print all general parameters
