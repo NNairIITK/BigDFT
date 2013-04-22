@@ -46,7 +46,8 @@ libmodules_a_SOURCES = base.f90 \
 	vdwcorrection.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
-	$(BLACS)
+	$(BLACS) \
+	configure.c
 
 # Modules
 if CAPITALIZE
@@ -110,11 +111,11 @@ mpif.h:
 
 #dependencies
 $(modules): $(libmodules_a_OBJECTS)
-base.o: defs.o 
-gaussians.o : base.o
+base.o: defs.o ../flib/dynamic_memory.o
 types.o: base.o gaussians.o
 input.o: base.o 
 interfaces.o: base.o types.o xc.o
+gaussians.o: base.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o

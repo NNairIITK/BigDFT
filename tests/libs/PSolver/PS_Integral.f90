@@ -47,9 +47,9 @@ program PS_Integral
   real(dp), dimension(:,:,:), allocatable :: psifscf,psifscfold,psi_w,psi_w2,dx_field,dy_field
   real(dp), external :: lr_gauss
 
-  call f_malloc_set_status(memory_limit=0.e0)
+  call f_set_status(memory_limit=0.e0)
 
-  call f_malloc_routine_id(subname)
+  call f_routine(id=subname)
 !!$  include 'lazy_ISF_8_2048.inc'
 !!$  include 'lazy_ISF_14_2048.inc'
 !!$  include 'lazy_ISF_16_2048.inc'
@@ -266,10 +266,10 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
 !         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psifscf)
 
   print *,'interpolating first dimension...'
-    call my_morph_and_transpose(hx,dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
+    call my_morph_and_transpose(dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
          (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
 
-    call my_morph_and_transpose(hx,dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
+    call my_morph_and_transpose(dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
          (2*n1_old+2+2*nb1),dy_field,(2*n1+2+2*nb1),psifscf)
 
 
@@ -326,7 +326,7 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
 
 
 !print*,'...interpolating second dimension...'
-    call my_morph_and_transpose(hy,dy_field/hy,nd,nrange,y_phi,(2*n1+2+2*nb1),&
+    call my_morph_and_transpose(dy_field/hy,nd,nrange,y_phi,(2*n1+2+2*nb1),&
          (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2)
 
   x=-n1_old*hx!0.d0
@@ -423,7 +423,7 @@ stop
 
 
 print*,'interpolating first dimension...'
-    call my_interpolate_and_transpose(hx,dx/hx,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
+    call my_interpolate_and_transpose(dx/hx,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
          (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
 
   print *,'...interpolating second dimension...'
@@ -827,7 +827,7 @@ print*,'interpolating first dimension...'
   deallocate(analytic_vs_naive, stat=i_stat)
   deallocate(timings, stat=i_stat)
 
-  call f_malloc_finalize()
+  call f_finalize()
 
 end program PS_Integral
 
@@ -1729,184 +1729,184 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
    call memocc(i_stat,i_all,'y',subname)
 END SUBROUTINE scaling_function4b2B
 
-
-!call the routine which performs the interpolation in each direction
-subroutine morph_and_transpose(h,t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
- use module_base
- implicit none
- integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
- integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
- integer, intent(in) :: nin,nout !< sizes of the input and output array in interpolating direction
- integer, intent(in) :: ndat !< size of the array in orthogonal directions
- real(gp), intent(in) :: h !< grid spacing in the interpolating direction
- real(gp), dimension(nin,ndat), intent(in) :: t0_field !< field of shifts to be applied for each point in grid spacing units
- real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
- real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
- real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
- !local variables
- character(len=*), parameter :: subname='my_morph_and_transpose'
- real(gp), parameter  :: tol=1.e-14_gp
- integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me,k2,k1
- real(gp) :: dt, tt, t0_l, tt2, ksh1, ksh2, k, kold, alpha,diff
- real(gp), dimension(:), allocatable :: shf !< shift filter
-
- !assume for the moment that the grid spacing is constant
- !call f_malloc_routine_id(subname)
- m_isf=nrange/2
-
- !shf=f_malloc(bounds=(/-m_isf .to. m_isf/),id='shf')
-
- !calculate the shift filter for the given t0
- allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
- call memocc(i_stat,shf,'shf',subname)
-
- !number of points for a unit displacement
- nunit=nphi/nrange 
-
-!print *,'start interpolation',ish,t0,shf
-
-!do i=-m_isf,m_isf
-!write(104,*)i,shf(i)
-!end do
-
- !apply the interpolating filter to the output
- do j=1,ndat
-   psi_out(j,:)=0.0_gp
-do i=1,nout
-
-kold=-1000.0_gp
-find_trans: do l=1,nin
-     k=real(l,gp)+t0_field(l,j)
-     if (k-real(i,gp) > tol) exit find_trans
-     kold=k
-end do find_trans
-    
-!idist=k-kold
-
-!if (idist > 1) then
- !  print *,k,kold,l,t0_field(l,j)
-  ! stop 'idist'
-
-!if (l>=nin) l=nin
-
-!print*,i,l,k,kold
-! want to use either l or l-1 to give us point i - pick closest
-     if (k-real(i,gp) < -kold+real(i,gp)) then
-        ksh1=k-real(i,gp)
-        ksh2=-kold+real(i,gp)
-        k1=l
-        k2=l-1
-        !if (k2==0) k2=1
-
-        if (k2==0) then
-           k2=1
-           ksh2=ksh1
-        end if
-        if (k1==nin+1) then
-           k1=nin
-           ksh1=ksh2
-        end if
-     else
-        ksh1=-kold+real(i,gp)
-        ksh2=k-real(i,gp)
-        k1=l-1
-        k2=l
-        if (k1==0) then
-           k1=1
-           ksh1=ksh2
-        end if
-        if (k2==nin+1) then
-           k2=nin
-           ksh2=ksh1
-        end if
-     end if
-
-
-!print*,i,k
-!print*,ksh1,ksh2,ksh1+ksh2
-
-if (ksh1==0.0_gp .or. k1==k2) then !otherwise already have exactly on point
-tt2=0.0_gp
-ksh2=1
-ksh1=0
-end if 
-
-    alpha=ksh2/(ksh1+ksh2)
-!alpha=1.0_gp
-     t0_l=alpha*t0_field(k1,j)+(1.0_gp-alpha)*t0_field(k2,j)
-
-   !    t0_l=t0_field(k1,j)-ksh2
-
-!   if (abs(t0_l) > 1.0_gp) then
-!     dt=t0_l-nint(t0_l*(2.0_gp))/2
-!else
-   dt=t0_l-nint(t0_l)
-   
-   diff=real(i,gp)-(k1+t0_l)   
-
-   if (abs(diff - dt) < abs(diff+dt)) dt=-dt
-   !dt=-real(i,gp)+(k1+t0_l)
-!end if
-!     if (k2<k1.and.t0_field(k1,j)<0) dt=-dt
-!     if (k2>k1.and.t0_field(k2,j)<0) dt=-dt
-
-   !   if (abs(dt) > 0.5d
-
-     !evaluate the shift
-     ish=nint(real(nunit,gp)*dt)
-
-     if (ish<=0) then
-       shf(-m_isf)=0.0_gp
-     else
-       shf(-m_isf)=phi(ish)  
-     end if 
-     ipos=ish
-
-     print *,'j',j,'start',k1,'shift',t0_l,'end',i,'dt',dt,'difference',real(i,gp)-(k1+t0_l)
-
-     do l=-m_isf+1,m_isf-1 !extremes excluded
-       !position of the shifted argument in the phi array
-       ipos=ipos+nunit
-       shf(l)=phi(ipos)  
-     end do
-
-     if (ish<=0) then
-       shf(m_isf)=phi(ipos+nunit)
-     else
-       shf(m_isf)=0.0_gp
-     end if 
-
-     !define the shift for output results
-     !ish=nint(t0_l)
-     !ish=0
-
-     !here the boundary conditions have to be considered
-      tt=0.0_gp
-      ms=-min(m_isf,k1-1)
-      me=min(m_isf,nin-k1)
-      do l=ms,me
-         tt=tt+shf(l)*psi_in(k1+l,j)
-      end do
-
-
-
-!print '(a,3i4,4(1pe15.7),4i4)','i,k1,k2,ksh1,ksh2,dt,t0_l,nint(t0_l),j',i,k1,k2,ksh1,ksh2,dt,t0_l,nint(t0_l),j,&
-!     nint(t0_l*2.0_gp),nint(t0_l*2.0_gp)/2 !,tt2,(abs(ksh2)*tt+abs(ksh1)*tt2)/(abs(ksh1)+abs(ksh2))
-write(104,*) i,j,k1,k2,ksh1,ksh2,tt,t0_l,nint(t0_l)!+sign(t0_l,1.0_gp)*1.0_gp*epsilon(1.0_gp))
-      if (i > 0 .and. i < nout) psi_out(j,i)=tt!=(abs(ksh2)*tt+abs(ksh1)*tt2)/(abs(ksh1)+abs(ksh2))
-	if (i > 0 .and. i < nout)       write(102,*)i,psi_out(j,i)
-
-
-
-end do
-
-end do
-
-! call f_free(shf)
-! call f_malloc_free_routine()
-
- i_all=-product(shape(shf))*kind(shf)
- deallocate(shf,stat=i_stat)
- call memocc(i_stat,i_all,'shf',subname)
-
-end subroutine morph_and_transpose
+!!$
+!!$!call the routine which performs the interpolation in each direction
+!!$subroutine my_morph_and_transpose(h,t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
+!!$ use module_base
+!!$ implicit none
+!!$ integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+!!$ integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+!!$ integer, intent(in) :: nin,nout !< sizes of the input and output array in interpolating direction
+!!$ integer, intent(in) :: ndat !< size of the array in orthogonal directions
+!!$ real(gp), intent(in) :: h !< grid spacing in the interpolating direction
+!!$ real(gp), dimension(nin,ndat), intent(in) :: t0_field !< field of shifts to be applied for each point in grid spacing units
+!!$ real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+!!$ real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
+!!$ real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
+!!$ !local variables
+!!$ character(len=*), parameter :: subname='my_morph_and_transpose'
+!!$ real(gp), parameter  :: tol=1.e-14_gp
+!!$ integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me,k2,k1
+!!$ real(gp) :: dt, tt, t0_l, tt2, ksh1, ksh2, k, kold, alpha,diff
+!!$ real(gp), dimension(:), allocatable :: shf !< shift filter
+!!$
+!!$ !assume for the moment that the grid spacing is constant
+!!$ !call f_malloc_routine_id(subname)
+!!$ m_isf=nrange/2
+!!$
+!!$ !shf=f_malloc(bounds=(/-m_isf .to. m_isf/),id='shf')
+!!$
+!!$ !calculate the shift filter for the given t0
+!!$ allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
+!!$ call memocc(i_stat,shf,'shf',subname)
+!!$
+!!$ !number of points for a unit displacement
+!!$ nunit=nphi/nrange 
+!!$
+!!$!print *,'start interpolation',ish,t0,shf
+!!$
+!!$!do i=-m_isf,m_isf
+!!$!write(104,*)i,shf(i)
+!!$!end do
+!!$
+!!$ !apply the interpolating filter to the output
+!!$ do j=1,ndat
+!!$   psi_out(j,:)=0.0_gp
+!!$do i=1,nout
+!!$
+!!$kold=-1000.0_gp
+!!$find_trans: do l=1,nin
+!!$     k=real(l,gp)+t0_field(l,j)
+!!$     if (k-real(i,gp) > tol) exit find_trans
+!!$     kold=k
+!!$end do find_trans
+!!$    
+!!$!idist=k-kold
+!!$
+!!$!if (idist > 1) then
+!!$ !  print *,k,kold,l,t0_field(l,j)
+!!$  ! stop 'idist'
+!!$
+!!$!if (l>=nin) l=nin
+!!$
+!!$!print*,i,l,k,kold
+!!$! want to use either l or l-1 to give us point i - pick closest
+!!$     if (k-real(i,gp) < -kold+real(i,gp)) then
+!!$        ksh1=k-real(i,gp)
+!!$        ksh2=-kold+real(i,gp)
+!!$        k1=l
+!!$        k2=l-1
+!!$        !if (k2==0) k2=1
+!!$
+!!$        if (k2==0) then
+!!$           k2=1
+!!$           ksh2=ksh1
+!!$        end if
+!!$        if (k1==nin+1) then
+!!$           k1=nin
+!!$           ksh1=ksh2
+!!$        end if
+!!$     else
+!!$        ksh1=-kold+real(i,gp)
+!!$        ksh2=k-real(i,gp)
+!!$        k1=l-1
+!!$        k2=l
+!!$        if (k1==0) then
+!!$           k1=1
+!!$           ksh1=ksh2
+!!$        end if
+!!$        if (k2==nin+1) then
+!!$           k2=nin
+!!$           ksh2=ksh1
+!!$        end if
+!!$     end if
+!!$
+!!$
+!!$!print*,i,k
+!!$!print*,ksh1,ksh2,ksh1+ksh2
+!!$
+!!$if (ksh1==0.0_gp .or. k1==k2) then !otherwise already have exactly on point
+!!$tt2=0.0_gp
+!!$ksh2=1
+!!$ksh1=0
+!!$end if 
+!!$
+!!$    alpha=ksh2/(ksh1+ksh2)
+!!$!alpha=1.0_gp
+!!$     t0_l=alpha*t0_field(k1,j)+(1.0_gp-alpha)*t0_field(k2,j)
+!!$
+!!$   !    t0_l=t0_field(k1,j)-ksh2
+!!$
+!!$!   if (abs(t0_l) > 1.0_gp) then
+!!$!     dt=t0_l-nint(t0_l*(2.0_gp))/2
+!!$!else
+!!$   dt=t0_l-nint(t0_l)
+!!$   
+!!$   diff=real(i,gp)-(k1+t0_l)   
+!!$
+!!$   if (abs(diff - dt) < abs(diff+dt)) dt=-dt
+!!$   !dt=-real(i,gp)+(k1+t0_l)
+!!$!end if
+!!$!     if (k2<k1.and.t0_field(k1,j)<0) dt=-dt
+!!$!     if (k2>k1.and.t0_field(k2,j)<0) dt=-dt
+!!$
+!!$   !   if (abs(dt) > 0.5d
+!!$
+!!$     !evaluate the shift
+!!$     ish=nint(real(nunit,gp)*dt)
+!!$
+!!$     if (ish<=0) then
+!!$       shf(-m_isf)=0.0_gp
+!!$     else
+!!$       shf(-m_isf)=phi(ish)  
+!!$     end if 
+!!$     ipos=ish
+!!$
+!!$     print *,'j',j,'start',k1,'shift',t0_l,'end',i,'dt',dt,'difference',real(i,gp)-(k1+t0_l)
+!!$
+!!$     do l=-m_isf+1,m_isf-1 !extremes excluded
+!!$       !position of the shifted argument in the phi array
+!!$       ipos=ipos+nunit
+!!$       shf(l)=phi(ipos)  
+!!$     end do
+!!$
+!!$     if (ish<=0) then
+!!$       shf(m_isf)=phi(ipos+nunit)
+!!$     else
+!!$       shf(m_isf)=0.0_gp
+!!$     end if 
+!!$
+!!$     !define the shift for output results
+!!$     !ish=nint(t0_l)
+!!$     !ish=0
+!!$
+!!$     !here the boundary conditions have to be considered
+!!$      tt=0.0_gp
+!!$      ms=-min(m_isf,k1-1)
+!!$      me=min(m_isf,nin-k1)
+!!$      do l=ms,me
+!!$         tt=tt+shf(l)*psi_in(k1+l,j)
+!!$      end do
+!!$
+!!$
+!!$
+!!$!print '(a,3i4,4(1pe15.7),4i4)','i,k1,k2,ksh1,ksh2,dt,t0_l,nint(t0_l),j',i,k1,k2,ksh1,ksh2,dt,t0_l,nint(t0_l),j,&
+!!$!     nint(t0_l*2.0_gp),nint(t0_l*2.0_gp)/2 !,tt2,(abs(ksh2)*tt+abs(ksh1)*tt2)/(abs(ksh1)+abs(ksh2))
+!!$write(104,*) i,j,k1,k2,ksh1,ksh2,tt,t0_l,nint(t0_l)!+sign(t0_l,1.0_gp)*1.0_gp*epsilon(1.0_gp))
+!!$      if (i > 0 .and. i < nout) psi_out(j,i)=tt!=(abs(ksh2)*tt+abs(ksh1)*tt2)/(abs(ksh1)+abs(ksh2))
+!!$	if (i > 0 .and. i < nout)       write(102,*)i,psi_out(j,i)
+!!$
+!!$
+!!$
+!!$end do
+!!$
+!!$end do
+!!$
+!!$! call f_free(shf)
+!!$! call f_malloc_free_routine()
+!!$
+!!$ i_all=-product(shape(shf))*kind(shf)
+!!$ deallocate(shf,stat=i_stat)
+!!$ call memocc(i_stat,i_all,'shf',subname)
+!!$
+!!$end subroutine my_morph_and_transpose

@@ -26,11 +26,21 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.25
- Timestamp of this run                 : 2013-04-19 11:17:40.118
+ Version Number                        : 1.7-dev.26
+ Timestamp of this run                 : 2013-04-22 10:33:36.424
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
+ MPI tasks of root process node        :  6
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments                 : " 'FC=mpif90' '--disable-bindings'"
+   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
+   Compiler flags:
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -g -O2
+     CXXFLAGS                          : -g -O2
+     CPPFLAGS                          : 
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -339,7 +349,7 @@
    Nonlocal Pseudopotential Arrays     : 0.39
    Full Uncompressed (ISF) grid        : 15.533
    Workspaces storage size             : 1.597
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 52.838
    Density Construction                : 100.669
    Poisson Solver                      : 83.444
@@ -383,12 +393,12 @@
      MPI tasks                         :  6
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  13563,  303 ]
-
+   Tolerances for this check: [ 6.36855564058489162E-07,  1.17683640610266593E-14]
    Maxdiff for transpose (checksum)    :  2.32830643653869629E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  13976,  343 ]
-
+   Tolerances for this check: [ 2.33838892010972885E-06,  1.17683640610266593E-14]
    Maxdiff for transpose (checksum)    :  9.31322574615478516E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
@@ -744,40 +754,36 @@
  Raw forces norm (Ha/Bohr): {maxval:  7.970899101555E-02, fnrm2:  9.268976246201E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -7.284731204998E-03,  1.556614957129E-03,  4.460824939770E-03 ]} # 0001
- -  {C:  [  6.133728887690E-03,  5.050623050226E-03,  1.222482798525E-02 ]} # 0002
- -  {C:  [  3.196380442296E-03,  1.325873946639E-03, -1.188023285817E-04 ]} # 0003
- -  {C:  [  3.928239933684E-03,  9.719546847601E-04, -6.695988047519E-03 ]} # 0004
- -  {C:  [ -7.896375620820E-03, -6.061552162128E-03, -1.472262512110E-02 ]} # 0005
- -  {C:  [ -4.792688063313E-03, -2.498857958170E-03, -2.906474386492E-03 ]} # 0006
- -  {H:  [ -9.105486766351E-03, -5.581146863284E-03,  1.062611645278E-04 ]} # 0007
- -  {N:  [ -7.412422761254E-03,  1.858444219298E-03, -2.124055371187E-04 ]} # 0008
- -  {H:  [  3.566168712698E-03, -3.132371457099E-03, -2.841643963624E-03 ]} # 0009
- -  {H:  [  1.963488882202E-04, -3.539618664134E-03, -9.723211801399E-03 ]} # 0010
- -  {O:  [  3.145996064379E-02, -5.422294819534E-04, -1.992599838728E-03 ]} # 0011
- -  {H:  [ -1.160770982166E-02, -5.906422792370E-03, -6.009587961534E-03 ]} # 0012
- -  {H:  [  3.467939787440E-03, -5.409963625979E-03, -4.656198305514E-03 ]} # 0013
- -  {C:  [  6.137949535967E-03, -4.064700691033E-03, -6.671757782220E-04 ]} # 0014
- -  {C:  [ -4.300996511444E-03, -3.323662991973E-03, -7.358464439332E-03 ]} # 0015
- -  {O:  [  1.840240443265E-02,  4.382866786848E-02,  5.216887629779E-02 ]} # 0016
- -  {H:  [ -2.177239696521E-03,  8.355685978608E-04, -3.727972179729E-03 ]} # 0017
- -  {H:  [ -4.479454160472E-04, -7.332515876188E-03, -1.292620408549E-03 ]} # 0018
- -  {H:  [ -9.671123112493E-03, -3.101610957345E-03,  1.511062397344E-04 ]} # 0019
- -  {H:  [ -1.179240228954E-02, -4.933093802736E-03, -6.186126529629E-03 ]} # 0020
+ -  {C: [-7.284731204998E-03,  1.556614957129E-03,  4.460824939770E-03]} # 0001
+ -  {C: [ 6.133728887690E-03,  5.050623050226E-03,  1.222482798525E-02]} # 0002
+ -  {C: [ 3.196380442296E-03,  1.325873946639E-03, -1.188023285817E-04]} # 0003
+ -  {C: [ 3.928239933684E-03,  9.719546847601E-04, -6.695988047519E-03]} # 0004
+ -  {C: [-7.896375620820E-03, -6.061552162128E-03, -1.472262512110E-02]} # 0005
+ -  {C: [-4.792688063313E-03, -2.498857958170E-03, -2.906474386492E-03]} # 0006
+ -  {H: [-9.105486766351E-03, -5.581146863284E-03,  1.062611645278E-04]} # 0007
+ -  {N: [-7.412422761254E-03,  1.858444219298E-03, -2.124055371187E-04]} # 0008
+ -  {H: [ 3.566168712698E-03, -3.132371457099E-03, -2.841643963624E-03]} # 0009
+ -  {H: [ 1.963488882202E-04, -3.539618664134E-03, -9.723211801399E-03]} # 0010
+ -  {O: [ 3.145996064379E-02, -5.422294819534E-04, -1.992599838728E-03]} # 0011
+ -  {H: [-1.160770982166E-02, -5.906422792370E-03, -6.009587961534E-03]} # 0012
+ -  {H: [ 3.467939787440E-03, -5.409963625979E-03, -4.656198305514E-03]} # 0013
+ -  {C: [ 6.137949535967E-03, -4.064700691033E-03, -6.671757782220E-04]} # 0014
+ -  {C: [-4.300996511444E-03, -3.323662991973E-03, -7.358464439332E-03]} # 0015
+ -  {O: [ 1.840240443265E-02,  4.382866786848E-02,  5.216887629779E-02]} # 0016
+ -  {H: [-2.177239696521E-03,  8.355685978608E-04, -3.727972179729E-03]} # 0017
+ -  {H: [-4.479454160472E-04, -7.332515876188E-03, -1.292620408549E-03]} # 0018
+ -  {H: [-9.671123112493E-03, -3.101610957345E-03,  1.511062397344E-04]} # 0019
+ -  {H: [-1.179240228954E-02, -4.933093802736E-03, -6.186126529629E-03]} # 0020
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  170.24
-   Elapsed time (s)                    :  172.26
+   CPU time (s)                        :  169.22
+   Elapsed time (s)                    :  170.43
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-04-19 11:17:40.116
- Calling sequence of Main program      : 
  Memory Consumption Report:
-   Tot. No. of Allocations  : 131056
-   Tot. No. of Deallocations: 131056
+   Tot. No. of Allocations  : 131058
+   Tot. No. of Deallocations: 131058
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 241

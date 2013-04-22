@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.25],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.26],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -80,6 +80,9 @@ if test "$ar" = ":" ; then
   AC_MSG_ERROR(["No 'ar' program found."])
 fi
 
+dnl Search for pkg-config
+PKG_PROG_PKG_CONFIG()
+
 dnl Produce dynamic excecutables.
 AC_ARG_ENABLE(dynamic-binaries, AS_HELP_STRING([--enable-dynamic-binaries],
                                                [Build dynamically linked binaries (disabled by default).]),
@@ -101,6 +104,10 @@ AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
 if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
   PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [have_glib=yes], [have_glib=no])
   PKG_CHECK_MODULES(GDBUS, gio-2.0 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
+  dnl Merge GLIB_LIBS and GDBUS_LIBS if GDBUS is available.
+  if test "$have_gdbus" = "yes" ; then
+    GLIB_LIBS=$GDBUS_LIBS
+  fi
   PKG_CHECK_MODULES([GOBJECT_INTROSPECTION],
                     [gobject-introspection-1.0 >= 0.9],
                     [enable_introspection=yes],
@@ -133,9 +140,9 @@ if test x"$ac_build_dynamic" = x"yes" ; then
     have_gdbus=no
     enable_introspection=no
   else
-    CFLAGS="$CFLAGS $ax_flag_pic"
-    CXXFLAGS="$CXXFLAGS $ax_flag_pic"
-    FCFLAGS="$FCFLAGS $ax_flag_pic"
+    case $CFLAGS   in *"$ax_flag_pic"*) ;; *) CFLAGS="$CFLAGS $ax_flag_pic";; esac
+    case $CXXFLAGS in *"$ax_flag_pic"*) ;; *) CXXFLAGS="$CXXFLAGS $ax_flag_pic";; esac
+    case $FCFLAGS  in *"$ax_flag_pic"*) ;; *) FCFLAGS="$FCFLAGS $ax_flag_pic";; esac
 
     eval "set x $ac_configure_args"
     shift
@@ -676,8 +683,6 @@ AC_MSG_RESULT([$ac_build_bin_cluster])
 
 
 dnl ---------------------------------------
-dnl Test the linking part only if required.
-if test "$ac_build_bin_cluster" = "yes" ; then
 
 dnl Substitute Lapack and Blas by another specific library
 withlinalg=no
@@ -839,18 +844,19 @@ fi
 fi #end $withmpi = yes
 
 fi #end $withlinalg = no
-
-dnl Fallbacks for linear algebra libraries
-if [ test $withlinalg = "no" && test $withblas = "no" ] ; then
-  AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
-fi
-if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
-  AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation. Linalg: $LINALG_LIBS"])
-fi
 AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
-
-fi # End of the if library compilation
 AM_CONDITIONAL(USE_BLACS, test x"$withscalapack" = x"yes")
+
+dnl Error on the linking part only if required.
+if test "$ac_build_bin_cluster" = "yes" ; then
+  if [ test $withlinalg = "no" && test $withblas = "no" ] ; then
+    AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
+  fi
+  if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
+    AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation. Linalg: $LINALG_LIBS"])
+  fi
+fi # End of the if library compilation
+
 
 dnl Test the libXC library
 ac_internal_libxc="yes"
@@ -985,7 +991,7 @@ dnl Agregate all flags.
 LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 
 dnl Agregate all the optional libs.
-LIBS_SHORT_DEPS="\$(top_builddir)/src/flib/libflib.a $LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $GDBUS_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_SHORT_DEPS="\$(top_builddir)/src/flib/libflib.a $LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 
 dnl Test for the documentation.
@@ -1012,6 +1018,8 @@ AC_SUBST(moduledir)
 docdir="${docdir}"
 AC_SUBST(docdir)
 
+AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
+
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
@@ -1024,6 +1032,7 @@ src/flib/Makefile
 src/modules/Makefile
 src/modules/bigdft_cst.h
 src/modules/configure.inc
+src/modules/configure.c
 src/convolutions/Makefile
 src/lib/Makefile
 src/PSolver/Makefile
@@ -1133,7 +1142,7 @@ Options:
    | C flags:                $LIB_YAML_CFLAGS
    | linked libraries:       $LIB_YAML_LIBS
   With GLib and co.:         $have_glib
-   | linked libraries:       $GDBUS_LIBS $GLIB_LIBS
+   | linked libraries:       $GLIB_LIBS
 
 Installation paths:
   Source code location:      ${srcdir}

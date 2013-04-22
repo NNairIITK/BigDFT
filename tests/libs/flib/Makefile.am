@@ -11,7 +11,7 @@ LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
 PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
 endif
 
-AM_FCFLAGS = -I$(top_builddir)/src/includes -I$(top_builddir)/src/flib -I$(top_builddir)/src/modules @MPI_INCLUDE@ @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/src/includes -I$(top_builddir)/src/flib @MPI_INCLUDE@ @LIBABINIT_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
@@ -25,7 +25,7 @@ else
 mpi_source = $(top_srcdir)/src/flib/MPIfake.f90
 endif
 
-yaml_test_SOURCES = yaml_test.f90 $(mpi_source)
+yaml_test_SOURCES = yaml_test.f90 errs.f90 yamlout.f90 dicts.f90 dynmem.f90 yaml_invoice.f90 $(mpi_source)
 #yaml_test_LDADD = -lbigdft-1
 
 CLEANFILES = yaml_test.out.yaml

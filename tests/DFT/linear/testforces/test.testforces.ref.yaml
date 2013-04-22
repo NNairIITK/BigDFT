@@ -26,11 +26,21 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.25
- Timestamp of this run                 : 2013-03-28 16:14:47.194
+ Version Number                        : 1.7-dev.26
+ Timestamp of this run                 : 2013-04-22 09:56:09.623
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
+ MPI tasks of root process node        :  6
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments                 : " 'FC=mpif90' '--disable-bindings'"
+   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
+   Compiler flags:
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -g -O2
+     CXXFLAGS                          : -g -O2
+     CPPFLAGS                          : 
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -291,7 +301,7 @@
    Nonlocal Pseudopotential Arrays     : 0.51
    Full Uncompressed (ISF) grid        : 11.825
    Workspaces storage size             : 0.964
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 44.583
    Density Construction                : 46.979
    Poisson Solver                      : 36.331
@@ -333,12 +343,12 @@
      MPI tasks                         :  6
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  6555,  108 ]
-
+   Tolerances for this check: [ 3.74270004997040440E-06,  1.33226762955018785E-15]
    Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  6479,  108 ]
-
+   Tolerances for this check: [ 4.30850005752464460E-06,  1.33226762955018785E-15]
    Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
@@ -620,13 +630,13 @@
  Raw forces norm (Ha/Bohr): {maxval:  1.224296283518E-03, fnrm2:  3.374177606655E-06}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -8.399463128895E-06,  2.783435330067E-06,  3.042845303353E-06 ]} # 0001
- -  {H:  [  1.611490190083E-05,  7.266481337242E-06,  6.336401821052E-06 ]} # 0002
- -  {H:  [ -7.715438771933E-06, -1.004991666731E-05, -9.379247124405E-06 ]} # 0003
+ -  {O: [-8.399463128895E-06,  2.783435330067E-06,  3.042845303353E-06]} # 0001
+ -  {H: [ 1.611490190083E-05,  7.266481337242E-06,  6.336401821052E-06]} # 0002
+ -  {H: [-7.715438771933E-06, -1.004991666731E-05, -9.379247124405E-06]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  27.62
-   Elapsed time (s)                    :  27.73
+   CPU time (s)                        :  29.64
+   Elapsed time (s)                    :  29.74
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -636,9 +646,9 @@
  Path integral                         : -8.85498E-08
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -8.399463128895E-06,  2.783435330067E-06,  3.042845303353E-06 ]} # 0001
- -  {H:  [  1.611490190083E-05,  7.266481337242E-06,  6.336401821052E-06 ]} # 0002
- -  {H:  [ -7.715438771933E-06, -1.004991666731E-05, -9.379247124405E-06 ]} # 0003
+ -  {O: [-8.399463128895E-06,  2.783435330067E-06,  3.042845303353E-06]} # 0001
+ -  {H: [ 1.611490190083E-05,  7.266481337242E-06,  6.336401821052E-06]} # 0002
+ -  {H: [-7.715438771933E-06, -1.004991666731E-05, -9.379247124405E-06]} # 0003
   #----------------------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
    Number of atomic types              :  2
@@ -787,7 +797,7 @@
    Nonlocal Pseudopotential Arrays     : 0.51
    Full Uncompressed (ISF) grid        : 11.825
    Workspaces storage size             : 0.964
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 44.583
    Density Construction                : 46.971
    Poisson Solver                      : 36.323
@@ -1122,13 +1132,13 @@
  Raw forces norm (Ha/Bohr): {maxval:  1.193524861222E-02, fnrm2:  2.335471982049E-04}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -2.614548692138E-03, -7.508757630269E-03, -7.123286279510E-03 ]} # 0001
- -  {H:  [  1.307577382258E-03, -1.394747460914E-04, -1.869476080907E-04 ]} # 0002
- -  {H:  [  1.306971309880E-03,  7.648232376360E-03,  7.310233887600E-03 ]} # 0003
+ -  {O: [-2.614548692138E-03, -7.508757630269E-03, -7.123286279510E-03]} # 0001
+ -  {H: [ 1.307577382258E-03, -1.394747460914E-04, -1.869476080907E-04]} # 0002
+ -  {H: [ 1.306971309880E-03,  7.648232376360E-03,  7.310233887600E-03]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  28.31
-   Elapsed time (s)                    :  28.95
+   CPU time (s)                        :  32.39
+   Elapsed time (s)                    :  32.84
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1138,9 +1148,9 @@
  Path integral                         :  2.92194E-04
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -2.614548692138E-03, -7.508757630269E-03, -7.123286279510E-03 ]} # 0001
- -  {H:  [  1.307577382258E-03, -1.394747460914E-04, -1.869476080907E-04 ]} # 0002
- -  {H:  [  1.306971309880E-03,  7.648232376360E-03,  7.310233887600E-03 ]} # 0003
+ -  {O: [-2.614548692138E-03, -7.508757630269E-03, -7.123286279510E-03]} # 0001
+ -  {H: [ 1.307577382258E-03, -1.394747460914E-04, -1.869476080907E-04]} # 0002
+ -  {H: [ 1.306971309880E-03,  7.648232376360E-03,  7.310233887600E-03]} # 0003
   #----------------------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
    Number of atomic types              :  2
@@ -1289,7 +1299,7 @@
    Nonlocal Pseudopotential Arrays     : 0.51
    Full Uncompressed (ISF) grid        : 11.825
    Workspaces storage size             : 0.964
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 44.583
    Density Construction                : 46.956
    Poisson Solver                      : 36.308
@@ -1616,13 +1626,13 @@
  Raw forces norm (Ha/Bohr): {maxval:  2.351827717952E-02, fnrm2:  1.002327942127E-03}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -5.220759894357E-03, -1.572787918044E-02, -1.489328096089E-02 ]} # 0001
- -  {H:  [  2.647435979247E-03, -2.558084893078E-04, -3.469077325761E-04 ]} # 0002
- -  {H:  [  2.573323915110E-03,  1.598368766975E-02,  1.524018869347E-02 ]} # 0003
+ -  {O: [-5.220759894357E-03, -1.572787918044E-02, -1.489328096089E-02]} # 0001
+ -  {H: [ 2.647435979247E-03, -2.558084893078E-04, -3.469077325761E-04]} # 0002
+ -  {H: [ 2.573323915110E-03,  1.598368766975E-02,  1.524018869347E-02]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  28.69
-   Elapsed time (s)                    :  28.78
+   CPU time (s)                        :  30.65
+   Elapsed time (s)                    :  30.75
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1632,9 +1642,9 @@
  Path integral                         :  5.96355E-04
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -5.220759894357E-03, -1.572787918044E-02, -1.489328096089E-02 ]} # 0001
- -  {H:  [  2.647435979247E-03, -2.558084893078E-04, -3.469077325761E-04 ]} # 0002
- -  {H:  [  2.573323915110E-03,  1.598368766975E-02,  1.524018869347E-02 ]} # 0003
+ -  {O: [-5.220759894357E-03, -1.572787918044E-02, -1.489328096089E-02]} # 0001
+ -  {H: [ 2.647435979247E-03, -2.558084893078E-04, -3.469077325761E-04]} # 0002
+ -  {H: [ 2.573323915110E-03,  1.598368766975E-02,  1.524018869347E-02]} # 0003
   #----------------------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
    Number of atomic types              :  2
@@ -1783,7 +1793,7 @@
    Nonlocal Pseudopotential Arrays     : 0.50
    Full Uncompressed (ISF) grid        : 11.825
    Workspaces storage size             : 0.964
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 44.583
    Density Construction                : 46.944
    Poisson Solver                      : 36.296
@@ -2114,13 +2124,13 @@
  Raw forces norm (Ha/Bohr): {maxval:  3.593903593687E-02, fnrm2:  2.440847546015E-03}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -7.785292864096E-03, -2.467983116478E-02, -2.332552744401E-02 ]} # 0001
- -  {H:  [  4.011834515012E-03, -3.430087562011E-04, -4.738263250171E-04 ]} # 0002
- -  {H:  [  3.773458349084E-03,  2.502283992098E-02,  2.379935376903E-02 ]} # 0003
+ -  {O: [-7.785292864096E-03, -2.467983116478E-02, -2.332552744401E-02]} # 0001
+ -  {H: [ 4.011834515012E-03, -3.430087562011E-04, -4.738263250171E-04]} # 0002
+ -  {H: [ 3.773458349084E-03,  2.502283992098E-02,  2.379935376903E-02]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  29.24
-   Elapsed time (s)                    :  29.36
+   CPU time (s)                        :  31.25
+   Elapsed time (s)                    :  31.34
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2130,9 +2140,9 @@
  Path integral                         :  1.54466E-03
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -7.785292864096E-03, -2.467983116478E-02, -2.332552744401E-02 ]} # 0001
- -  {H:  [  4.011834515012E-03, -3.430087562011E-04, -4.738263250171E-04 ]} # 0002
- -  {H:  [  3.773458349084E-03,  2.502283992098E-02,  2.379935376903E-02 ]} # 0003
+ -  {O: [-7.785292864096E-03, -2.467983116478E-02, -2.332552744401E-02]} # 0001
+ -  {H: [ 4.011834515012E-03, -3.430087562011E-04, -4.738263250171E-04]} # 0002
+ -  {H: [ 3.773458349084E-03,  2.502283992098E-02,  2.379935376903E-02]} # 0003
   #----------------------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
    Number of atomic types              :  2
@@ -2281,7 +2291,7 @@
    Nonlocal Pseudopotential Arrays     : 0.50
    Full Uncompressed (ISF) grid        : 11.825
    Workspaces storage size             : 0.964
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 44.583
    Density Construction                : 46.933
    Poisson Solver                      : 36.285
@@ -2612,13 +2622,13 @@
  Raw forces norm (Ha/Bohr): {maxval:  4.924763208347E-02, fnrm2:  4.714346403406E-03}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -1.035716016078E-02, -3.445364610602E-02, -3.249552230487E-02 ]} # 0001
- -  {H:  [  5.457763234843E-03, -3.941046884208E-04, -5.630744669706E-04 ]} # 0002
- -  {H:  [  4.899396925939E-03,  3.484775079444E-02,  3.305859677184E-02 ]} # 0003
+ -  {O: [-1.035716016078E-02, -3.445364610602E-02, -3.249552230487E-02]} # 0001
+ -  {H: [ 5.457763234843E-03, -3.941046884208E-04, -5.630744669706E-04]} # 0002
+ -  {H: [ 4.899396925939E-03,  3.484775079444E-02,  3.305859677184E-02]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  29.71
-   Elapsed time (s)                    :  29.83
+   CPU time (s)                        :  31.23
+   Elapsed time (s)                    :  31.34
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2628,16 +2638,12 @@
  Path integral                         :  1.87343E-03
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -1.035716016078E-02, -3.445364610602E-02, -3.249552230487E-02 ]} # 0001
- -  {H:  [  5.457763234843E-03, -3.941046884208E-04, -5.630744669706E-04 ]} # 0002
- -  {H:  [  4.899396925939E-03,  3.484775079444E-02,  3.305859677184E-02 ]} # 0003
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:14:47.193
- Calling sequence of Main program      : 
+ -  {O: [-1.035716016078E-02, -3.445364610602E-02, -3.249552230487E-02]} # 0001
+ -  {H: [ 5.457763234843E-03, -3.941046884208E-04, -5.630744669706E-04]} # 0002
+ -  {H: [ 4.899396925939E-03,  3.484775079444E-02,  3.305859677184E-02]} # 0003
  Memory Consumption Report:
-   Tot. No. of Allocations  : 65918
-   Tot. No. of Deallocations: 65918
+   Tot. No. of Allocations  : 65948
+   Tot. No. of Deallocations: 65948
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 131

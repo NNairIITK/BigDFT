@@ -135,6 +135,7 @@ subroutine copy_wavefunctions_descriptors(wfdin, wfdout, subname)
       iie1=ubound(wfdin%keygloc,1)
       iis2=lbound(wfdin%keygloc,2)
       iie2=ubound(wfdin%keygloc,2)
+      
       allocate(wfdout%keygloc(iis1:iie1,iis2:iie2), stat=istat)
       call memocc(istat, wfdout%keygloc, 'wfdout%keygloc', subname)
       do i2=iis2,iie2

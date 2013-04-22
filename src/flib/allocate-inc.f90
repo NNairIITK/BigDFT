@@ -14,13 +14,14 @@
      call pad_array(array,m%put_to_zero,m%shape,ndebug)
      !profile the array allocation
      call metadata_address(array,iadd)
+
      call profile(iadd)
      ierror=SUCCESS
   else
      ierror=INVALID_RANK
      lasterror='rank not valid'
-     deallocate(array,stat=ierror)
      call check_for_errors(ierror,m%try)
+     if (m%try) deallocate(array,stat=ierror)
   end if
 !  call timing(0,'Init to Zero  ','RS') 
 contains 
@@ -39,9 +40,10 @@ contains
 
     !size
     sizeof=kind(array)
-    do i=1,m%rank
-       ilsize=int(sizeof*m%shape(i),kind=8)
-    end do
+    ilsize=int(sizeof*product(m%shape(1:m%rank)),kind=8)
+    !do i=1,m%rank
+    !   ilsize=int(sizeof*m%shape(i),kind=8)
+    !end do
 
     !create the dictionary array
     if (.not. associated(dict_routine)) then
@@ -53,9 +55,11 @@ contains
     call set(dict_tmp//arrayid,trim(m%array_id))
     call set(dict_tmp//sizeid,ilsize)
     call set(dict_tmp//routineid,trim(m%routine_id))
-    call set(dict_tmp//metadatadd,iadd)
+    !call set(dict_tmp//metadatadd,iadd)
+    call set(dict_tmp//firstadd,trim(address))
 
-    call set(dict_routine//trim(address),dict_tmp)
+    !call set(dict_routine//trim(address),dict_tmp)
+    call set(dict_routine//trim(long_toa(iadd)),dict_tmp)
 
     call check_for_errors(ierror,m%try)
     call memocc(ierror,product(m%shape(1:m%rank))*sizeof,m%array_id,m%routine_id)

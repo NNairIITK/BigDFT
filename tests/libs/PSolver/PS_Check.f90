@@ -45,8 +45,8 @@ program PS_Check
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-   call f_malloc_set_status(memory_limit=0.e0)
-   call f_malloc_routine_id('PS_Check')
+   call f_set_status(memory_limit=0.e0,iproc=iproc)
+   call f_routine(id='PS_Check')
 
    bigdft_mpi%mpi_comm=MPI_COMM_WORLD !workaround to be removed
 
@@ -352,8 +352,8 @@ program PS_Check
    !call yaml_stream_attributes()
    !&   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', pkernel%iproc,tel,tcpu1-tcpu0
    
-   call f_malloc_free_routine()
-   call f_malloc_finalize()
+   call f_release_routine()
+   call f_finalize()
    if (iproc==0) then
       call yaml_release_document()
       call yaml_close_all_streams()
@@ -385,7 +385,7 @@ program PS_Check
       real(kind=8) :: ehartree
       real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
       
-      call f_malloc_routine_id(subname)
+      call f_routine(id=subname)
 
 !      offset=0.d0
 
@@ -471,7 +471,7 @@ program PS_Check
 !!$      i_all=-product(shape(rhopot))*kind(rhopot)
 !!$      deallocate(rhopot,stat=i_stat)
 !!$      call memocc(i_stat,i_all,'rhopot',subname)
-      call f_malloc_free_routine()
+      call f_release_routine()
     
    END SUBROUTINE compare_cplx_calculations
 
@@ -501,7 +501,7 @@ program PS_Check
       real(dp), dimension(6) :: xcstr
       real(dp), dimension(:,:,:,:), pointer :: rhocore
 
-      call f_malloc_routine_id(subname)
+      call f_routine(id=subname)
 
       nullify(rhocore)
 
@@ -700,7 +700,7 @@ program PS_Check
 !!$      deallocate(rhopot,stat=i_stat)
 !!$      call memocc(i_stat,i_all,'rhopot',subname)
 
-      call f_malloc_free_routine()
+      call f_release_routine()
 
    END SUBROUTINE compare_with_reference
 

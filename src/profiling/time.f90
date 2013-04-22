@@ -427,7 +427,7 @@ subroutine timing(iproc,category,action)
            end do
         endif
           
-        if (iproc == 0) then
+        if (iproc_true == 0) then
            open(unit=60,file=trim(filename_time),status='unknown',position='append')
            write(60,'(a,t14,a)')'SUMMARY:','   #     % ,  Time (s)'
 

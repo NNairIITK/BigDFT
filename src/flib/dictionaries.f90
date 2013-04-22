@@ -41,12 +41,11 @@ module dictionaries
   end type dictionary
 
   !> operators in the dictionary
-!  interface operator(/)
-! TEST     module procedure get_dict_ptr,get_item_ptr
-!     module procedure get_child_ptr,get_list_ptr
-!  end interface
   interface operator(//)
      module procedure get_child_ptr,get_list_ptr
+  end interface
+  interface operator(.index.)
+     module procedure find_index
   end interface
   interface assignment(=)
      module procedure get_value,get_integer,get_real,get_double,get_long,get_dict
@@ -60,16 +59,16 @@ module dictionaries
   end interface
 
   interface add
-     module procedure add_char!,add_dict,add_integer,add_real,add_double,add_long
+     module procedure add_char,add_dict,add_integer!,add_real,add_double,add_long
   end interface
 
 
   !> Public routines
-  public :: operator(//), assignment(=)
+  public :: operator(//),operator(.index.),assignment(=)
   public :: set,dict_init,dict_free,pop,append,prepend,add
   !Handle exceptions
   public :: try,close_try,try_error
-  public :: find_key,dict_len,dict_key,dict_next,has_key
+  public :: find_key,dict_len,dict_size,dict_key,dict_next,has_key,dict_keys
   
 
 contains
@@ -95,7 +94,7 @@ contains
 
 
   !> Test if keys are present
-  function no_key(dict)
+  pure function no_key(dict)
     implicit none
     type(dictionary), intent(in) :: dict
     logical :: no_key
@@ -103,7 +102,7 @@ contains
     no_key=(len(trim(dict%data%key)) == 0 .and. dict%data%item == -1) .and. associated(dict%parent)
   end function no_key
 
-  function no_value(dict)
+  pure function no_value(dict)
     implicit none
     type(dictionary), intent(in) :: dict
     logical :: no_value
@@ -127,7 +126,6 @@ contains
 
   end subroutine check_key
 
-
   !> Check if there is a value
   subroutine check_value(dict)
     implicit none
@@ -144,17 +142,16 @@ contains
 
   end subroutine check_value
 
-  function dict_key(dict)
-    type(dictionary), pointer :: dict
+  pure function dict_key(dict)
+    type(dictionary), pointer, intent(in) :: dict
     character(len=max_field_length) :: dict_key
     
-    dict_key=repeat(' ',len(dict_key))
-
-    if (.not. associated(dict)) return
-    
-    call check_key(dict)
-
-    dict_key=dict%data%key
+    if (associated(dict)) then 
+       !call check_key(dict)
+       dict_key=dict%data%key
+    else
+       dict_key=repeat(' ',len(dict_key))
+    end if
 
   end function dict_key
 
@@ -225,23 +222,18 @@ contains
 
   end subroutine reset_next
 
-
   subroutine pop_dict(dict,key)
     implicit none
     type(dictionary), intent(inout), pointer :: dict 
     character(len=*), intent(in) :: key
     
     !check if we are at the first level
-!TEST    if (associated(dict%parent)) then
-       call pop_dict_(dict%child,key)
-       !if it is the last the dictionary should be empty
-       if (.not. associated(dict%parent) .and. .not. associated(dict%child)) then
-          call dict_free(dict)
-       end if
+    call pop_dict_(dict%child,key)
+    !if it is the last the dictionary should be empty
+    if (.not. associated(dict%parent) .and. .not. associated(dict%child)) then
+       call dict_free(dict)
+    end if
 
-!TEST    else
-!TEST       call pop_dict_(dict,key)
-!TEST    end if
   contains
     !> Eliminate a key from a dictionary if it exists
     recursive subroutine pop_dict_(dict,key)
@@ -252,7 +244,7 @@ contains
       type(dictionary), pointer :: dict_first !<in case of first occurrence
 
       if (associated(dict)) then
-         !follow the chain, stop at  first occurence
+         !follow the chain, stop at the first occurence
          if (trim(dict%data%key) == trim(key)) then
             !          print *,'here',trim(key),associated(dict%next)
             if (associated(dict%parent)) then
@@ -317,44 +309,83 @@ contains
 
   end subroutine add_char
 
+  !> assign the value to the dictionary
+  subroutine add_dict(dict,dict_item)
+    implicit none
+    type(dictionary), pointer :: dict
+    type(dictionary), pointer :: dict_item
+    !local variables
+    integer :: length,isize
+    
+    isize=dict_size(dict)
+    length=dict_len(dict)
 
-  function dict_len(dict)
+    if (isize > 0) stop 'ERROR, the dictionary is not a list, add not allowed'
+
+    if (length == -1) stop 'ERROR, the dictionary is not associated' !call dict_init(dict)
+
+    call set(dict//length,dict_item)
+
+  end subroutine add_dict
+
+  !> assign the value to the dictionary
+  subroutine add_integer(dict,val)
+    implicit none
+    type(dictionary), pointer :: dict
+    integer, intent(in) :: val
+    !local variables
+    integer :: length,isize
+    
+    isize=dict_size(dict)
+    length=dict_len(dict)
+
+    if (isize > 0) stop 'ERROR, the dictionary is not a list, add not allowed'
+
+    if (length == -1) stop 'ERROR, the dictionary is not associated' !call dict_init(dict)
+
+    call set(dict//length,val)
+
+  end subroutine add_integer
+
+
+  !> return the length of the list
+  pure function dict_len(dict)
     implicit none
     type(dictionary), intent(in), pointer :: dict
     integer :: dict_len
     
     if (associated(dict)) then
-       if (associated(dict%parent)) then
+!       if (associated(dict%parent)) then
           dict_len=dict%data%nitems
-       else
-          dict_len=dict%child%data%nitems
-       end if
+!       else
+!          dict_len=dict%child%data%nitems
+!       end if
     else
        dict_len=-1
     end if
   end function dict_len
 
 
-  function dict_size(dict)
+  !> return the length of the dictionary
+  pure function dict_size(dict)
     implicit none
     type(dictionary), intent(in), pointer :: dict
     integer :: dict_size
     
     if (associated(dict)) then
-       if (associated(dict%parent)) then
+!       if (associated(dict%parent)) then
           dict_size=dict%data%nelems
-       else
-          dict_size=dict%child%data%nelems
-       end if
+!       else
+!          dict_size=dict%child%data%nelems
+!       end if
     else
        dict_size=-1
     end if
   end function dict_size
 
-
   function dict_next(dict)
     implicit none
-    type(dictionary), intent(in), pointer :: dict
+    type(dictionary), pointer, intent(in) :: dict
     type(dictionary), pointer :: dict_next
     
     if (associated(dict)) then
@@ -367,6 +398,51 @@ contains
        nullify(dict_next)
     end if
   end function dict_next
+
+  pure function name_is(dict,name)
+    implicit none
+    type(dictionary), pointer, intent(in) :: dict
+    character(len=*), intent(in) :: name
+    logical :: name_is
+
+    if (no_key(dict)) then
+       name_is=(trim(name) == trim(dict%data%value))
+    else if (no_value(dict)) then
+       name_is=(trim(name) == trim(dict%data%key))
+    else
+       name_is=.false.
+    end if
+
+  end function name_is
+
+  !> returns the position of the name in the dictionary
+  !! returns 0 if the dictionary is nullified or the name is absent
+  function find_index(dict,name)
+    implicit none
+    type(dictionary), pointer, intent(in) :: dict
+    character(len=*), intent(in) :: name
+    integer :: find_index
+    !local variables
+    logical :: found
+    integer :: ind
+    type(dictionary), pointer :: dict_tmp
+    character(len=max_field_length) :: name_tmp
+
+    find_index=0
+    ind=0
+    if (associated(dict)) then
+       dict_tmp=>dict_next(dict)
+       loop_find: do while(associated(dict_tmp))
+          ind=ind+1
+          if (name_is(dict_tmp,name)) then
+             find_index=ind
+             exit loop_find
+          end if
+          dict_tmp=>dict_next(dict_tmp)
+       end do loop_find
+    end if
+
+  end function find_index
 
   subroutine pop_last(dict)
     implicit none
@@ -414,7 +490,7 @@ contains
 
       if (associated(dict)) then
 !         print *,dict%data%item,trim(dict%data%key)
-         !follow the chain, stop at  first occurence
+         !follow the chain, stop at the first occurence
          if (dict%data%item == item) then
             if (associated(dict%parent)) then
                dict%parent%data%nitems=dict%parent%data%nitems-1
@@ -485,13 +561,13 @@ contains
     end if
     !TEST 
     if (.not. associated(dict%parent)) then
-       dict_ptr =>  find_key(dict%child,key)
+       dict_ptr => find_key(dict%child,key)
        !print *,'parent'
        return
     end if
 
     !print *,'here ',trim(key),', key ',trim(dict%data%key)
-    !follow the chain, stop at  first occurence
+    !follow the chain, stop at the first occurence
     if (trim(dict%data%key) == trim(key)) then
        dict_ptr => dict
     else if (associated(dict%next)) then
@@ -501,6 +577,45 @@ contains
     end if
 
   end function find_key
+
+!!$  subroutine dict_assign_keys_arrays(keys,dictkeys)
+!!$    implicit none
+!!$    character(len=*), dimension(:), intent(out) :: keys
+!!$    character(len=max_field_length), dimension(:), intent(in) :: dictkeys
+!!$    !local variables
+!!$    integer :: i
+!!$    
+!!$    if (size(dictkeys) > size(keys)) then
+!!$       do i=1,size(keys)
+!!$          keys(i)=repeat(' ',len(keys(i)))
+!!$       end do
+!!$       stop 'the size of the array is not enough'
+!!$    else
+!!$       do i=1,size(dictkeys)
+!!$          keys(i)(1:len(keys(i)))=dictkeys(i)
+!!$       end do
+!!$    end if
+!!$  end subroutine dict_assign_keys_arrays
+  
+  function dict_keys(dict)
+    implicit none
+    type(dictionary), intent(in) :: dict !<the dictionary must be associated
+    character(len=max_field_length), dimension(dict%data%nelems) :: dict_keys
+    !local variables
+    integer :: ikey
+    type(dictionary), pointer :: dict_tmp
+
+    !if (associated(dict)) then
+       ikey=0
+       dict_tmp=>dict%child
+       do while(associated(dict_tmp))
+          ikey=ikey+1
+          dict_keys(ikey)=dict_key(dict_tmp)
+          dict_tmp=>dict_tmp%next
+       end do
+    !end if
+
+  end function dict_keys
 
   !> Search in the dictionary if some of the child has the given
   !! If the key does not exists, search for it in the next chain 
@@ -522,27 +637,27 @@ contains
   contains
 
     recursive function has_key_(dict,key) result(has)
-    implicit none
-    type(dictionary), intent(in), pointer :: dict 
-    character(len=*), intent(in) :: key
-    logical :: has
-    if (.not. associated(dict)) then
-       has=.false.
-       return
-    end if
+      implicit none
+      type(dictionary), intent(in), pointer :: dict 
+      character(len=*), intent(in) :: key
+      logical :: has
+      if (.not. associated(dict)) then
+         has=.false.
+         return
+      end if
 
-    !print *,'here ',trim(key),', key ',trim(dict%data%key)
-    !follow the chain, stop at  first occurence
-    if (trim(dict%data%key) == trim(key)) then
-       has=.true.
-    else if (associated(dict%next)) then
-       has=has_key_(dict%next,key)
-    else 
-       has=.false.
-    end if
+      !print *,'here ',trim(key),', key ',trim(dict%data%key)
+      !follow the chain, stop at the first occurence
+      if (trim(dict%data%key) == trim(key)) then
+         has=.true.
+      else if (associated(dict%next)) then
+         has=has_key_(dict%next,key)
+      else 
+         has=.false.
+      end if
 
-  end function has_key_
-end function has_key
+    end function has_key_
+  end function has_key
 
   !> Retrieve the pointer to the dictionary which has this key.
   !! If the key does not exists, create it in the next chain 
@@ -554,7 +669,7 @@ end function has_key
     type(dictionary), pointer :: dict_ptr
 
 !    print *,'here',trim(key)
-    !follow the chain, stop at  first occurence
+    !follow the chain, stop at the first occurence
     if (trim(dict%data%key) == trim(key)) then
        dict_ptr => dict
     else if (associated(dict%next)) then
@@ -697,7 +812,8 @@ end function has_key
     else
        dict%next=>brother
        call define_brother(dict,dict%next)
-       dict%data%nelems=dict%data%nelems+brother%data%nelems
+       dict%parent%data%nelems=dict%parent%data%nelems+brother%parent%data%nelems
+       !print *,'appending',dict%parent%data%nelems,dict%data%nelems,brother%data%nelems,brother%parent%data%nelems
     end if
   end subroutine append
 
@@ -734,7 +850,6 @@ end function has_key
     end if
   end subroutine prepend
 
-
   !> assign the value to the dictionary
   subroutine put_value(dict,val)
     implicit none
@@ -748,7 +863,6 @@ end function has_key
     call set_field(val,dict%data%value)
 
   end subroutine put_value
-
   
   !> assign the value to the dictionary (to be rewritten)
   subroutine put_list(dict,list)!,nitems)
@@ -778,7 +892,6 @@ end function has_key
     call get_field(dict%data%value,val)
 
   end subroutine get_value
-
 
   !> get the value from the dictionary
   !! This routine only works if the dictionary is associated
@@ -854,17 +967,19 @@ end function has_key
 
   end subroutine dict_init
   
-  pure subroutine set_elem(dict,key)
+  subroutine set_elem(dict,key)
     implicit none
     type(dictionary), pointer :: dict !!TO BE VERIFIED
     character(len=*), intent(in) :: key
 
+    !print *,'set_elem in ',trim(key),dict%data%nelems,dict%parent%data%nelems
     call set_field(trim(key),dict%data%key)
     if (associated(dict%parent)) then
        dict%parent%data%nelems=dict%parent%data%nelems+1
     else
        dict%data%nelems=dict%data%nelems+1
     end if
+    !print *,'set_elem out ',trim(key),dict%data%nelems,dict%parent%data%nelems
 
   end subroutine set_elem
 
@@ -887,8 +1002,8 @@ end function has_key
 
   pure subroutine get_field(input,output)
     implicit none
-    character(len=max_field_length), intent(in) :: input !intent eliminated
-    character(len=*), intent(out) :: output !intent eliminated
+    character(len=max_field_length), intent(in) :: input
+    character(len=*), intent(out) :: output
     !local variables
     integer :: ipos,i
 
@@ -1022,9 +1137,9 @@ end function has_key
     character(len=*), optional, intent(in) :: fmt
 
     if (present(fmt)) then
-       call put_value(dict,adjustl(trim(yaml_toa(ival,fmt=fmt))))
+       call put_value(dict,trim(adjustl(yaml_toa(ival,fmt=fmt))))
     else
-       call put_value(dict,adjustl(trim(yaml_toa(ival))))
+       call put_value(dict,trim(adjustl(yaml_toa(ival))))
     end if
 
   end subroutine put_integer

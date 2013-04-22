@@ -1054,12 +1054,13 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, input, rxyz, ovrlp)
   ! Local variables
   logical :: reformat,perx,pery,perz
   integer :: iorb,i_stat,i_all,jj,j0,j1,iseg,nb1,nb2,nb3,jstart,jstart_tmp
-  integer :: iiorb,ilr,iiat,i,i0,i1,i2,i3,iat,ii,isti,istj,j,jorb,jjorb,iis1,iie1
-  integer :: n1,n2,n3,ierr,idir,ncount,ilr_tmp,iiat_tmp,ndim_tmp,ndim,norb_tmp
-  real(gp) :: tx,ty,tz,displ,mindist,tt,ddot
+  integer :: iiorb,ilr,iiat,i,i0,i1,i2,i3,iat,ii,j,iis1,iie1!,isti,istj,jorb,jjorb
+  integer :: n1,n2,n3,ilr_tmp,iiat_tmp,ndim_tmp,ndim,norb_tmp!,ierr
+  real(gp) :: tx,ty,tz,displ,mindist!,ddot
   real(wp), dimension(:,:,:), allocatable :: phifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
-  real(wp), dimension(:), allocatable :: psi_tmp, psit_c_tmp, psit_f_tmp, psi_all, norm
+  real(wp), dimension(:), allocatable :: psi_tmp, psit_c_tmp, psit_f_tmp, norm
+  !real(wp), dimension(:), allocatable :: psi_all
   real(gp),dimension(:,:), allocatable :: rxyz_tmp
   integer, dimension(0:5) :: reformat_reason
   type(collective_comms) :: collcom_tmp
@@ -1478,7 +1479,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
   !character(len=12) :: orbname
   ! DEBUG
-  real(wp), dimension(:), allocatable :: gpsi
+  !real(wp), dimension(:), allocatable :: gpsi
   !write(*,*) 'INSIDE readonewave'
 
   call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &

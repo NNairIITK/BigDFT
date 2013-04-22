@@ -26,11 +26,27 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.25
- Timestamp of this run                 : 2013-03-28 16:07:18.544
- Root process Hostname                 : moutarde
- Number of MPI tasks                   :  6
- OpenMP parallelization                :  No
+ Version Number                        : 1.7-dev.26
+ Timestamp of this run                 : 2013-04-15 14:43:55.243
+ Root process Hostname                 : athelas
+ Number of MPI tasks                   :  2
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments:
+     " 'FC=mpif90' 'FCFLAGS=-O2 -fopenmp' '--enable-dgemmsy' '--with-etsf-io' 
+      '--with-etsf-io-path=/opt' '--enable-minima-hopping' 
+      '--with-ext-linalg=-Wl,--start-group  /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.a 
+      /opt/intel/mkl/lib/intel64/libmkl_sequential.a 
+      /opt/intel/mkl/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread 
+      -lscalapack-openmpi -lblacs-openmpi -lblacsCinit-openmpi -lblacsF77init-openmpi'"
+   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
+   Compiler flags:
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -O2 -fopenmp
+     CXXFLAGS                          : -g -O2
+     CPPFLAGS                          : 
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -229,19 +245,20 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  6
+   MPI tasks                           :  2
+   OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  0.81
-     Kernel (MB)                       :  0.87
+     Density (MB)                      :  2.42
+     Kernel (MB)                       :  2.51
      Full Grid Arrays (MB)             :  4.47
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 5                : 100%
+         MPI tasks 0- 1                : 100%
        Kernel:
-         MPI tasks 0- 4                : 100%
-         MPI task 5                    :  67%
+         MPI tasks 0- 0                : 100%
+         MPI task 1                    :  98%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -254,13 +271,12 @@
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 3                     :  1
-   MPI tasks  4- 5                     :  0
+   MPI tasks  0- 1                     :  2
  Total Number of Orbitals              :  4
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-4:  2.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 74 KB 832 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 149 KB 640 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -270,17 +286,17 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
    Single orbital                      : 0.75 #   (Number of Components: 9576)
-   All (distributed) orbitals          : 0.225 #  (Number of Orbitals per MPI task: 1)
-   Wavefunction storage size           : 1.697 #  (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 0.449 #  (Number of Orbitals per MPI task: 2)
+   Wavefunction storage size           : 3.370 #  (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.17
    Full Uncompressed (ISF) grid        : 4.479
    Workspaces storage size             : 0.297
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 16.839
-   Density Construction                : 16.68
-   Poisson Solver                      : 12.278
-   Hamiltonian application             : 16.258
- Estimated Memory Peak (MB)            :  16
+   Kernel calculation                  : 48.220
+   Density Construction                : 24.250
+   Poisson Solver                      : 34.1008
+   Hamiltonian application             : 24.440
+ Estimated Memory Peak (MB)            :  48
   #WARNING: Do not call check_communications in the linear scaling version!
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -298,7 +314,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  2
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  6
@@ -310,70 +326,70 @@
    Poisson Solver:
      BC                                : Free
      Box                               :  [  85,  83,  83 ]
-     MPI tasks                         :  6
+     MPI tasks                         :  2
    Poisson Solver:
      BC                                : Free
      Box                               :  [  85,  83,  83 ]
-     MPI tasks                         :  6
+     MPI tasks                         :  2
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  1913,  11 ]
-
+   Number of coarse and fine DoF (MasterMPI task):  [  4170,  26 ]
+   Tolerances for this check: [ 4.51200006024166100E-07,  1.33226762955018785E-15]
    Maxdiff for transpose (checksum)    :  1.09139364212751389E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  1551,  11 ]
-
-   Maxdiff for transpose (checksum)    :  2.91038304567337036E-11
+   Number of coarse and fine DoF (MasterMPI task):  [  4630,  26 ]
+   Tolerances for this check: [ 9.57600012785331245E-07,  1.33226762955018785E-15]
+   Maxdiff for transpose (checksum)    :  2.18278728425502777E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  2
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  2
  Electric Dipole Moment (AU):
    P vector                            :  [ -6.1697E-01,  3.4884E-01,  3.8168E-01 ]
    norm(P)                             :  8.049974E-01
@@ -384,29 +400,25 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.81627853E-01, y:  2.49290264E-02, z:  1.39157120E-02, 
                     total:  1.83858044E-01}
- Clean forces norm (Ha/Bohr): {maxval:  2.104908259654E-01, fnrm2:  7.423338712992E-02}
- Raw forces norm (Ha/Bohr): {maxval:  3.317449327157E-01, fnrm2:  1.132394119958E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  2.104908258859E-01, fnrm2:  7.423338707468E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  3.317449325815E-01, fnrm2:  1.132394119056E-01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [  2.100634594631E-01, -4.045120915890E-03, -1.278154179920E-02 ]} # 0001
- -  {H:  [ -1.669767462850E-01,  5.602723976450E-03,  1.246531258053E-02 ]} # 0002
- -  {H:  [ -4.308671317815E-02, -1.557603060560E-03,  3.162292186797E-04 ]} # 0003
+ -  {O: [ 2.100634593839E-01, -4.045120912213E-03, -1.278154179231E-02]} # 0001
+ -  {H: [-1.669767462257E-01,  5.602723971127E-03,  1.246531257288E-02]} # 0002
+ -  {H: [-4.308671315817E-02, -1.557603058915E-03,  3.162292194245E-04]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  2.25
-   Elapsed time (s)                    :  2.26
+   CPU time (s)                        :  10.68
+   Elapsed time (s)                    :  5.66
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:07:18.542
- Calling sequence of Main program      : 
  Memory Consumption Report:
-   Tot. No. of Allocations  : 2892
-   Tot. No. of Deallocations: 2892
+   Tot. No. of Allocations  : 4812
+   Tot. No. of Deallocations: 4812
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 72
+      Peak Value (MB): 100
       for the array: wz
       in the routine: gaussians_to_wavelets_orb

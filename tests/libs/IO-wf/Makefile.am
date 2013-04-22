@@ -46,7 +46,7 @@ endif
 AM_FCFLAGS = -I$(top_builddir)/src/includes -I$(top_builddir)/src/PSolver -I$(top_srcdir)/src/PSolver -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
 
 check_lib_SOURCES = check_lib.f90
-check_lib_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
+check_lib_FCFLAGS = -I$(top_builddir)/src/ -I$(top_builddir)/src/includes  -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
 check_lib_LDADD = -lbigdft-1
 
 check_lib_c_SOURCES = check_lib_c.c
@@ -81,8 +81,6 @@ clean.in:
 	    rm -f $$i ; \
 	  done ; \
         fi
-
-check_lib_c check_lib: $(top_builddir)/src/libbigdft-1.a
 
 if BUILD_DYNAMIC_LIBS
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/src

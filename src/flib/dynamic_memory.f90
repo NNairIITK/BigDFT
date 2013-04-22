@@ -14,38 +14,58 @@ module metadata_interfaces
 
   private
 
+
+  integer, parameter :: longsize=20 !<could be lower
+  character(len=*), parameter :: fmtlong='(i20)' !< conversion of long integer
+
   interface
-     subroutine get_i1(array,iadd)
+     subroutine geti1(array,iadd)
        implicit none
        integer, dimension(:), allocatable, intent(in) :: array
        integer(kind=8), intent(out) :: iadd
-     end subroutine get_i1
-     subroutine get_dp1(array,iadd)
+     end subroutine geti1
+
+     subroutine getdp1(array,iadd)
        implicit none
        double precision, dimension(:), allocatable, intent(in) :: array
        integer(kind=8), intent(out) :: iadd
-     end subroutine get_dp1
-     subroutine get_dp2(array,iadd)
+     end subroutine getdp1
+
+     subroutine getdp2(array,iadd)
        implicit none
        double precision, dimension(:,:), allocatable, intent(in) :: array
        integer(kind=8), intent(out) :: iadd
-     end subroutine get_dp2
-     subroutine get_dp3(array,iadd)
+     end subroutine getdp2
+
+     subroutine getdp3(array,iadd)
        implicit none
        double precision, dimension(:,:,:), allocatable, intent(in) :: array
        integer(kind=8), intent(out) :: iadd
-     end subroutine get_dp3
-     subroutine get_dp4(array,iadd)
+     end subroutine getdp3
+
+     subroutine getdp4(array,iadd)
        implicit none
        double precision, dimension(:,:,:,:), allocatable, intent(in) :: array
        integer(kind=8), intent(out) :: iadd
-     end subroutine get_dp4
+     end subroutine getdp4
 
-     subroutine get_dp1_ptr(array,iadd)
+     subroutine getdp1ptr(array,iadd)
        implicit none
        double precision, dimension(:), pointer, intent(in) :: array
        integer(kind=8), intent(out) :: iadd
-     end subroutine get_dp1_ptr
+     end subroutine getdp1ptr
+
+     subroutine getdp2ptr(array,iadd)
+       implicit none
+       double precision, dimension(:,:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getdp2ptr
+
+     subroutine getdp3ptr(array,iadd)
+       implicit none
+       double precision, dimension(:,:,:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getdp3ptr
 
   end interface
 
@@ -53,7 +73,9 @@ interface pad_array
   module procedure pad_i1,pad_dp1,pad_dp2,pad_dp3,pad_dp4
 end interface
 
-public :: pad_array,get_i1,get_dp1,get_dp2,get_dp3,get_dp4,get_dp1_ptr
+public :: pad_array,geti1,getdp1,getdp2,getdp3,getdp4!,getlongaddress
+public :: getdp1ptr,getdp2ptr,getdp3ptr
+public :: address_toi,long_toa
 
 contains
 
@@ -219,6 +241,79 @@ contains
    r_nan = rnan
   end function r_nan
 
+  function exa_toi(a)
+    character(len=1), intent(in) :: a
+    integer :: exa_toi
+    select case(a)
+    case('0')
+       exa_toi=0
+    case('1')
+       exa_toi=1
+    case('2')
+       exa_toi=2
+    case('3')
+       exa_toi=3
+    case('4')
+       exa_toi=4
+    case('5')
+       exa_toi=5
+    case('6')
+       exa_toi=6
+    case('7')
+       exa_toi=7
+    case('8')
+       exa_toi=8
+    case('9')
+       exa_toi=9
+    case('a')
+       exa_toi=10
+    case('b')
+       exa_toi=11
+    case('c')
+       exa_toi=12
+    case('d')
+       exa_toi=13
+    case('e')
+       exa_toi=14
+    case('f')
+       exa_toi=15
+    case default
+       !raise an error
+       print *,'a: ',a
+       stop 'undefined value'
+    end select
+    
+  end function exa_toi
+
+  function address_toi(address)
+    character(len=*), intent(in) ::  address
+    integer(kind=8) :: address_toi
+    !local variables
+    integer :: i,l
+    integer(kind=8) :: j
+    character(len=1) :: a
+
+    l=len_trim(address)
+    address_toi=0
+    do i=l-2,1,-1
+       a=address(i+2:i+2)
+       j=int(16**(l-2-i),kind=8)*int(exa_toi(a),kind=8)
+       !print *,'i,a',i,a,exa_toi(a)
+       address_toi=address_toi+j
+    end do
+    
+  end function address_toi
+
+  function long_toa(iadd)
+    use yaml_strings
+    implicit none 
+    integer(kind=8), intent(in) :: iadd
+    character(len=longsize) :: long_toa
+    
+    long_toa=adjustl(yaml_toa(iadd,fmt=fmtlong))
+
+  end function long_toa
+
 end module metadata_interfaces
 
 
@@ -230,68 +325,67 @@ module dynamic_memory
 
   private 
 
-  !> length of the character variables
-  integer, parameter :: namelen=32
-  !> length of error string
-  integer, parameter :: error_string_len=80
-  !> size of debug parameters
-  integer, parameter :: ndebug=0
+  integer, parameter :: namelen=32          !< length of the character variables
+  integer, parameter :: error_string_len=80 !< length of error string
+  integer, parameter :: ndebug=0            !< size of debug parameters
   !> errorcodes
   character(len=error_string_len) :: lasterror=repeat(' ',len(lasterror))
   integer, parameter :: SUCCESS                = 0
   integer, parameter :: INVALID_RANK           = -1979
   integer :: ierror=SUCCESS
 
-  !global variables for initialization
-  logical :: profile_initialized=.false.
-  !dictionaries needed for profiling storage
-  type(dictionary), pointer :: dict_global,dict_routine,dict_calling_sequence
-  type(dictionary), pointer :: dict_codepoint=>null() !save variable which says where we are in the code
-  !global variable (can be stored in dictionaries)
-  logical :: routine_opened=.false.
+  logical :: profile_initialized=.false.  !< global variables for initialization
+  !>dictionaries needed for profiling storage
+  type(dictionary), pointer :: dict_global
+  type(dictionary), pointer :: dict_routine           
+  type(dictionary), pointer :: dict_calling_sequence
+  type(dictionary), pointer :: dict_codepoint=>null() !< save variable which says where we are in the code
+  logical :: routine_opened=.false.                   !< global variable (can be stored in dictionaries)
   character(len=namelen) :: present_routine=repeat(' ',namelen)
 !  character(len=namelen) :: last_opened_routine=repeat(' ',namelen)
 
-  !parameters for defitions of internal dictionary
+  !> parameters for defitions of internal dictionary
   character(len=*), parameter :: arrayid='Array Id'
   character(len=*), parameter :: routineid='Allocating Routine Id'
   character(len=*), parameter :: sizeid='Size (Bytes)'
   character(len=*), parameter :: metadatadd='Address of metadata'
+  character(len=*), parameter :: firstadd='Address of first element'
+  character(len=*), parameter :: processid='Process Id'
 
   !> Structure needed to allocate an allocatable array
   type, public :: malloc_information_all
-     logical :: pin !< flag to control the pinning of the address
-     logical :: try !<raise an exception
+     logical :: pin         !< flag to control the pinning of the address
+     logical :: try         !< raise an exception
      logical :: put_to_zero !<initialize to zero after allocation
-     integer :: rank !< rank of the array
+     integer :: rank        !< rank of the array
      integer, dimension(7) :: shape,lbounds,ubounds
-     integer(kind=8) :: metadata_add !<physical address of the fortran metadata
-     character(len=namelen) :: array_id !< label the array
+     integer(kind=8) :: metadata_add      !<physical address of the fortran metadata
+     character(len=namelen) :: array_id   !< label the array
      character(len=namelen) :: routine_id !<label the routine
   end type malloc_information_all
 
   !> Structure needed to allocate a pointer
   type, public :: malloc_information_ptr
-     logical :: ptr !< just to make the structures different, to see if needed
-     logical :: pin !< flag to control the pinning of the address
-     logical :: try !<raise an exception
+     logical :: ptr         !< just to make the structures different, to see if needed
+     logical :: pin         !< flag to control the pinning of the address
+     logical :: try         !<raise an exception
      logical :: put_to_zero !<initialize to zero after allocation
-     integer :: rank !< rank of the pointer
+     integer :: rank        !< rank of the pointer
      integer, dimension(7) :: shape,lbounds,ubounds
-     integer(kind=8) :: metadata_add !<physical address of the fortran metadata
-     character(len=namelen) :: array_id !< label the array
+     integer(kind=8) :: metadata_add      !<physical address of the fortran metadata
+     character(len=namelen) :: array_id   !< label the array
      character(len=namelen) :: routine_id !<label the routine
   end type malloc_information_ptr
 
 
   type, public :: array_bounds
-     integer :: nlow !<lower bounds
+     integer :: nlow  !<lower bounds
      integer :: nhigh !<higher bounds
   end type array_bounds
 
   interface assignment(=)
      module procedure i1_all,d1_all,d2_all,d3_all,d4_all
-     module procedure d1_ptr
+     module procedure d1_ptr,d2_ptr,d3_ptr
   end interface
 
   interface operator(.to.)
@@ -303,7 +397,7 @@ module dynamic_memory
   end interface
 
   interface f_free_ptr
-     module procedure d1_ptr_free
+     module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free
   end interface
 
 
@@ -312,24 +406,26 @@ module dynamic_memory
 !!$  end interface
 
   interface f_malloc
-     module procedure f_malloc,f_malloc_simple,f_malloc_bounds
+     module procedure f_malloc,f_malloc_simple,f_malloc_bounds,f_malloc_bound
   end interface
 
   interface f_malloc0
-     module procedure f_malloc0,f_malloc0_simple,f_malloc0_bounds
+     module procedure f_malloc0,f_malloc0_simple,f_malloc0_bounds,f_malloc0_bound
   end interface
 
   interface f_malloc_ptr
-     module procedure f_malloc_ptr,f_malloc_ptr_simple,f_malloc_ptr_bounds
+     module procedure f_malloc_ptr,f_malloc_ptr_simple,f_malloc_ptr_bounds,f_malloc_ptr_bound
   end interface
 
   interface f_malloc0_ptr
-     module procedure f_malloc0_ptr,f_malloc0_ptr_simple,f_malloc0_ptr_bounds
+     module procedure f_malloc0_ptr,f_malloc0_ptr_simple,f_malloc0_ptr_bounds,f_malloc0_ptr_bound
   end interface
 
 
-  public :: f_malloc_set_status,f_malloc_finalize,f_malloc_dump_status
-  public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_free,f_free_ptr,f_malloc_routine_id,f_malloc_free_routine
+  !> Public routines
+  public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_malloc_dump_status
+  public :: f_free,f_free_ptr
+  public :: f_routine,f_release_routine,f_set_status,f_finalize
   public :: assignment(=),operator(.to.)
 
 contains
@@ -406,7 +502,7 @@ contains
   end function f_malloc_simple
 
   !for rank-1 arrays
-  function f_malloc_bounds(bounds,id,routine_id,try) result(m)
+  function f_malloc_bound(bounds,id,routine_id,try) result(m)
     type(array_bounds), intent(in) :: bounds
     logical, intent(in), optional :: try
     character(len=*), intent(in), optional :: id,routine_id
@@ -422,77 +518,51 @@ contains
 
     include 'f_malloc-inc.f90'
 
-  end function f_malloc_bounds
+  end function f_malloc_bound
 
   !define the allocation information for  arrays of different rank
-  function f_malloc(shape,id,routine_id,lbounds,ubounds,bounds,try) result(m)
+  function f_malloc_bounds(bounds,id,routine_id,try) result(m)
     implicit none
-    integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
+    type(array_bounds), dimension(:), intent(in) :: bounds
     logical, intent(in), optional :: try
     character(len=*), intent(in), optional :: id,routine_id
-    type(array_bounds), dimension(:), optional :: bounds
     type(malloc_information_all) :: m
     !local variables
     integer :: lgt,i
     m=malloc_information_all_null()
-    !guess the rank
-    m%rank=0
-
-    if (present(bounds)) then
-       m%rank=size(bounds)
-       do i=1,m%rank
-          m%lbounds(i)=bounds(i)%nlow
-          m%ubounds(i)=bounds(i)%nhigh
-          m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
+    
+    m%rank=size(bounds)
+    do i=1,m%rank
+       m%lbounds(i)=bounds(i)%nlow
+       m%ubounds(i)=bounds(i)%nhigh
+       m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
        end do
-    end if
 
-    if (present(lbounds)) then
-       m%rank=size(lbounds)
-       m%lbounds(1:m%rank)=lbounds
-    end if
+    include 'f_malloc-inc.f90'
 
-    if (present(shape)) then
-       if (m%rank == 0) then
-          m%rank=size(shape)
-       else if (m%rank/=size(shape)) then
-          stop 'ERROR, f_malloc: shape not conformal with lbounds'
-       end if
-       m%shape(1:m%rank)=shape
-       do i=1,m%rank
-          m%ubounds(i)=m%lbounds(i)+m%shape(i)-1
-       end do
-       if (present(ubounds)) then
-          if (m%rank/=size(ubounds)) stop &
-               'ERROR, f_malloc: shape not conformal with ubounds'
-          do i=1,m%rank
-             if (m%ubounds(i) /=ubounds(i)) stop &
-                  'ERROR, f_malloc: ubounds not conformal with shape and lbounds'
-          end do
-       end if
-    else
-       if (present(ubounds)) then
-          if (m%rank == 0) then
-             m%rank=size(shape)
-          else if (m%rank/=size(ubounds)) then
-             stop 'ERROR, f_malloc: ubounds not conformal with lbounds or shape'
-          end if
-          m%ubounds(1:m%rank)=ubounds
-          do i=1,m%rank
-             m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
-          end do
-       else
-          if (.not. present(bounds)) stop &
-               'ERROR, f_malloc: at least shape or ubounds should be defined'
-       end if
-    end if
+  end function f_malloc_bounds
 
+
+  !define the allocation information for  arrays of different rank
+  function f_malloc(shape,id,routine_id,lbounds,ubounds,try) result(m)
+    implicit none
+    integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
+    logical, intent(in), optional :: try
+    character(len=*), intent(in), optional :: id,routine_id
+    type(malloc_information_all) :: m
+    !local variables
+    integer :: lgt,i
+    m=malloc_information_all_null()
+
+    include 'f_malloc-extra-inc.f90'
     include 'f_malloc-inc.f90'
 
   end function f_malloc
 
-  !for rank-1 arrays
+
+  !>for rank-1 arrays
   function f_malloc0_simple(size,id,routine_id,try) result(m)
+    implicit none
     integer, intent(in) :: size
     logical, intent(in), optional :: try
     character(len=*), intent(in), optional :: id,routine_id
@@ -510,8 +580,9 @@ contains
 
   end function f_malloc0_simple
 
-  !for rank-1 arrays
-  function f_malloc0_bounds(bounds,id,routine_id,try) result(m)
+  !>for rank-1 arrays
+  function f_malloc0_bound(bounds,id,routine_id,try) result(m)
+    implicit none
     type(array_bounds), intent(in) :: bounds
     logical, intent(in), optional :: try
     character(len=*), intent(in), optional :: id,routine_id
@@ -528,78 +599,50 @@ contains
 
     include 'f_malloc-inc.f90'
 
-  end function f_malloc0_bounds
+  end function f_malloc0_bound
 
-  !define the allocation information for  arrays of different rank
-  function f_malloc0(shape,id,routine_id,lbounds,ubounds,bounds,try) result(m)
+  function f_malloc0_bounds(bounds,id,routine_id,try) result(m)
     implicit none
-    integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
+    type(array_bounds), dimension(:), intent(in) :: bounds
     logical, intent(in), optional :: try
     character(len=*), intent(in), optional :: id,routine_id
-    type(array_bounds), dimension(:), optional :: bounds
     type(malloc_information_all) :: m
     !local variables
     integer :: lgt,i
     m=malloc_information_all_null()
 
     m%put_to_zero=.true.
-    !guess the rank
-    m%rank=0
 
-    if (present(bounds)) then
-       m%rank=size(bounds)
-       do i=1,m%rank
-          m%lbounds(i)=bounds(i)%nlow
-          m%ubounds(i)=bounds(i)%nhigh
-          m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
-       end do
-    end if
+    m%rank=size(bounds)
+    do i=1,m%rank
+       m%lbounds(i)=bounds(i)%nlow
+       m%ubounds(i)=bounds(i)%nhigh
+       m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
+    end do
 
-    if (present(lbounds)) then
-       m%rank=size(lbounds)
-       m%lbounds(1:m%rank)=lbounds
-    end if
+    include 'f_malloc-inc.f90'
 
-    if (present(shape)) then
-       if (m%rank == 0) then
-          m%rank=size(shape)
-       else if (m%rank/=size(shape)) then
-          stop 'ERROR, f_malloc0: shape not conformal with lbounds'
-       end if
-       m%shape(1:m%rank)=shape
-       do i=1,m%rank
-          m%ubounds(i)=m%lbounds(i)+m%shape(i)-1
-       end do
-       if (present(ubounds)) then
-          if (m%rank/=size(ubounds)) stop &
-               'ERROR, f_malloc0: shape not conformal with ubounds'
-          do i=1,m%rank
-             if (m%ubounds(i) /=ubounds(i)) stop &
-                  'ERROR, f_malloc0: ubounds not conformal with shape and lbounds'
-          end do
-       end if
-    else
-       if (present(ubounds)) then
-          if (m%rank == 0) then
-             m%rank=size(shape)
-          else if (m%rank/=size(ubounds)) then
-             stop 'ERROR, f_malloc0: ubounds not conformal with lbounds or shape'
-          end if
-          m%ubounds(1:m%rank)=ubounds
-          do i=1,m%rank
-             m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
-          end do
-       else
-          if (.not. present(bounds)) stop &
-               'ERROR, f_malloc0: at least shape or ubounds should be defined'
-       end if
-    end if
+  end function f_malloc0_bounds
 
+  !> define the allocation information for  arrays of different rank
+  function f_malloc0(shape,id,routine_id,lbounds,ubounds,try) result(m)
+    implicit none
+    integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
+    logical, intent(in), optional :: try
+    character(len=*), intent(in), optional :: id,routine_id
+    type(malloc_information_all) :: m
+    !local variables
+    integer :: lgt,i
+    m=malloc_information_all_null()
+
+    m%put_to_zero=.true.
+
+    include 'f_malloc-extra-inc.f90'
     include 'f_malloc-inc.f90'
 
   end function f_malloc0
 
-  !for rank-1 arrays
+  !> for rank-1 arrays
   function f_malloc_ptr_simple(size,id,routine_id,try) result(m)
     integer, intent(in) :: size
     logical, intent(in), optional :: try
@@ -618,7 +661,7 @@ contains
   end function f_malloc_ptr_simple
 
   !for rank-1 arrays
-  function f_malloc_ptr_bounds(bounds,id,routine_id,try) result(m)
+  function f_malloc_ptr_bound(bounds,id,routine_id,try) result(m)
     type(array_bounds), intent(in) :: bounds
     logical, intent(in), optional :: try
     character(len=*), intent(in), optional :: id,routine_id
@@ -634,71 +677,43 @@ contains
 
     include 'f_malloc-inc.f90'
 
-  end function f_malloc_ptr_bounds
+  end function f_malloc_ptr_bound
 
-  !define the allocation information for  arrays of different rank
-  function f_malloc_ptr(shape,id,routine_id,lbounds,ubounds,bounds,try) result(m)
+    !define the allocation information for  arrays of different rank
+  function f_malloc_ptr_bounds(bounds,id,routine_id,try) result(m)
     implicit none
-    integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
+    type(array_bounds), dimension(:), intent(in) :: bounds
     logical, intent(in), optional :: try
     character(len=*), intent(in), optional :: id,routine_id
-    type(array_bounds), dimension(:), optional :: bounds
     type(malloc_information_ptr) :: m
     !local variables
     integer :: lgt,i
     m=malloc_information_ptr_null()
-    !guess the rank
-    m%rank=0
+    
+    m%rank=size(bounds)
+    do i=1,m%rank
+       m%lbounds(i)=bounds(i)%nlow
+       m%ubounds(i)=bounds(i)%nhigh
+       m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
+    end do
 
-    if (present(bounds)) then
-       m%rank=size(bounds)
-       do i=1,m%rank
-          m%lbounds(i)=bounds(i)%nlow
-          m%ubounds(i)=bounds(i)%nhigh
-          m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
-       end do
-    end if
+    include 'f_malloc-inc.f90'
 
-    if (present(lbounds)) then
-       m%rank=size(lbounds)
-       m%lbounds(1:m%rank)=lbounds
-    end if
+  end function f_malloc_ptr_bounds
 
-    if (present(shape)) then
-       if (m%rank == 0) then
-          m%rank=size(shape)
-       else if (m%rank/=size(shape)) then
-          stop 'ERROR, f_malloc: shape not conformal with lbounds'
-       end if
-       m%shape(1:m%rank)=shape
-       do i=1,m%rank
-          m%ubounds(i)=m%lbounds(i)+m%shape(i)-1
-       end do
-       if (present(ubounds)) then
-          if (m%rank/=size(ubounds)) stop &
-               'ERROR, f_malloc: shape not conformal with ubounds'
-          do i=1,m%rank
-             if (m%ubounds(i) /=ubounds(i)) stop &
-                  'ERROR, f_malloc: ubounds not conformal with shape and lbounds'
-          end do
-       end if
-    else
-       if (present(ubounds)) then
-          if (m%rank == 0) then
-             m%rank=size(shape)
-          else if (m%rank/=size(ubounds)) then
-             stop 'ERROR, f_malloc: ubounds not conformal with lbounds or shape'
-          end if
-          m%ubounds(1:m%rank)=ubounds
-          do i=1,m%rank
-             m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
-          end do
-       else
-          if (.not. present(bounds)) stop &
-               'ERROR, f_malloc: at least shape or ubounds should be defined'
-       end if
-    end if
 
+  !define the allocation information for  arrays of different rank
+  function f_malloc_ptr(shape,id,routine_id,lbounds,ubounds,try) result(m)
+    implicit none
+    integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
+    logical, intent(in), optional :: try
+    character(len=*), intent(in), optional :: id,routine_id
+    type(malloc_information_ptr) :: m
+    !local variables
+    integer :: lgt,i
+    m=malloc_information_ptr_null()
+
+    include 'f_malloc-extra-inc.f90'
     include 'f_malloc-inc.f90'
 
   end function f_malloc_ptr
@@ -723,7 +738,7 @@ contains
   end function f_malloc0_ptr_simple
 
   !for rank-1 arrays
-  function f_malloc0_ptr_bounds(bounds,id,routine_id,try) result(m)
+  function f_malloc0_ptr_bound(bounds,id,routine_id,try) result(m)
     type(array_bounds), intent(in) :: bounds
     logical, intent(in), optional :: try
     character(len=*), intent(in), optional :: id,routine_id
@@ -740,77 +755,48 @@ contains
 
     include 'f_malloc-inc.f90'
 
-  end function f_malloc0_ptr_bounds
+  end function f_malloc0_ptr_bound
 
   !define the allocation information for  arrays of different rank
-  function f_malloc0_ptr(shape,id,routine_id,lbounds,ubounds,bounds,try) result(m)
+  function f_malloc0_ptr_bounds(bounds,id,routine_id,try) result(m)
     implicit none
-    integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
+    type(array_bounds), dimension(:), intent(in) :: bounds
     logical, intent(in), optional :: try
     character(len=*), intent(in), optional :: id,routine_id
-    type(array_bounds), dimension(:), optional :: bounds
     type(malloc_information_ptr) :: m
     !local variables
     integer :: lgt,i
     m=malloc_information_ptr_null()
 
     m%put_to_zero=.true.
-    !guess the rank
-    m%rank=0
-
-    if (present(bounds)) then
-       m%rank=size(bounds)
-       do i=1,m%rank
-          m%lbounds(i)=bounds(i)%nlow
-          m%ubounds(i)=bounds(i)%nhigh
-          m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
-       end do
-    end if
-
-    if (present(lbounds)) then
-       m%rank=size(lbounds)
-       m%lbounds(1:m%rank)=lbounds
-    end if
-
-    if (present(shape)) then
-       if (m%rank == 0) then
-          m%rank=size(shape)
-       else if (m%rank/=size(shape)) then
-          stop 'ERROR, f_malloc0: shape not conformal with lbounds'
-       end if
-       m%shape(1:m%rank)=shape
-       do i=1,m%rank
-          m%ubounds(i)=m%lbounds(i)+m%shape(i)-1
-       end do
-       if (present(ubounds)) then
-          if (m%rank/=size(ubounds)) stop &
-               'ERROR, f_malloc0: shape not conformal with ubounds'
-          do i=1,m%rank
-             if (m%ubounds(i) /=ubounds(i)) stop &
-                  'ERROR, f_malloc0: ubounds not conformal with shape and lbounds'
-          end do
-       end if
-    else
-       if (present(ubounds)) then
-          if (m%rank == 0) then
-             m%rank=size(shape)
-          else if (m%rank/=size(ubounds)) then
-             stop 'ERROR, f_malloc0: ubounds not conformal with lbounds or shape'
-          end if
-          m%ubounds(1:m%rank)=ubounds
-          do i=1,m%rank
-             m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
-          end do
-       else
-          if (.not. present(bounds)) stop &
-               'ERROR, f_malloc0: at least shape or ubounds should be defined'
-       end if
-    end if
+    m%rank=size(bounds)
+    do i=1,m%rank
+       m%lbounds(i)=bounds(i)%nlow
+       m%ubounds(i)=bounds(i)%nhigh
+       m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
+    end do
 
     include 'f_malloc-inc.f90'
 
-  end function f_malloc0_ptr
+  end function f_malloc0_ptr_bounds
 
+
+  !define the allocation information for  arrays of different rank
+  function f_malloc0_ptr(shape,id,routine_id,lbounds,ubounds,try) result(m)
+    implicit none
+    integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
+    logical, intent(in), optional :: try
+    character(len=*), intent(in), optional :: id,routine_id
+    type(malloc_information_ptr) :: m
+    !local variables
+    integer :: lgt,i
+    m=malloc_information_ptr_null()
+    m%put_to_zero=.true.
+
+    include 'f_malloc-extra-inc.f90'
+    include 'f_malloc-inc.f90'
+
+  end function f_malloc0_ptr
   
   function last_f_malloc_error(error_string) result(ierr)
     implicit none
@@ -833,16 +819,18 @@ contains
 
   end function last_f_malloc_error
 
-
   !> This routine adds the corresponding subprogram name to the dictionary
   !! and prepend the dictionary to the global info dictionary
   !! if it is called more than once for the same name it has no effect
-  subroutine f_malloc_routine_id(routine_id)
+  subroutine f_routine(id)
     implicit none
-    character(len=*), intent(in) :: routine_id
+    character(len=*), intent(in), optional :: id
     !local variables
     integer :: lgt
-    if (trim(present_routine) /= trim(routine_id)) then
+
+    if (.not. present(id)) return !no effect
+
+    if (trim(present_routine) /= trim(id)) then
        if(associated(dict_routine)) then
           call prepend(dict_global,dict_routine)
           nullify(dict_routine)
@@ -853,18 +841,17 @@ contains
 !          last_opened_routine=present_routine
        end if
        routine_opened=.true.
-       call add(dict_codepoint,trim(routine_id))
+       call add(dict_codepoint,trim(id))
 
        present_routine=repeat(' ',namelen)
-       lgt=min(len(routine_id),namelen)
-       present_routine(1:lgt)=routine_id(1:lgt)
+       lgt=min(len(id),namelen)
+       present_routine(1:lgt)=id(1:lgt)
 
     end if
-  end subroutine f_malloc_routine_id
-
+  end subroutine f_routine
 
   !> Close a previously opened routine
-  subroutine f_malloc_free_routine()
+  subroutine f_release_routine()
 !    use yaml_output
     implicit none
     if (associated(dict_routine)) then
@@ -879,8 +866,8 @@ contains
     present_routine=trim(dict_key(dict_codepoint))
     !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
     routine_opened=.false.
-  end subroutine f_malloc_free_routine
-
+  end subroutine f_release_routine
+  
 
   subroutine open_routine(dict)
     implicit none
@@ -903,7 +890,6 @@ contains
     nullify(dict_tmp)
 
   end subroutine open_routine
-
 
   subroutine close_routine(dict,jump_up)
 !    use yaml_output
@@ -943,13 +929,17 @@ contains
   end subroutine close_routine
 
 
-  !>initialize the library
-  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,unit)
+  !> Initialize the library
+  subroutine f_set_status(memory_limit,output_level,logfile_name,unit,iproc)
     use yaml_output, only: yaml_date_and_time_toa
     implicit none
-    character(len=*), intent(in), optional :: logfile_name
-    real(kind=4), intent(in), optional :: memory_limit
-    integer, intent(in), optional :: output_level,unit
+    !Arguments
+    character(len=*), intent(in), optional :: logfile_name   !< Name of the logfile
+    real(kind=4), intent(in), optional :: memory_limit       !< Memory limit
+    integer, intent(in), optional :: output_level            !< Level of output for memocc
+                                                             !! 0 no file, 1 light, 2 full
+    integer, intent(in), optional :: unit                    !< Indicate file unit for the output
+    integer, intent(in), optional :: iproc                   !< Process Id (used to dump, by default one 0)
 
     if (.not. profile_initialized) then
        profile_initialized=.true.
@@ -957,6 +947,8 @@ contains
        nullify(dict_routine)
        call dict_init(dict_global)
        call set(dict_global//'Timestamp of Profile initialization',trim(yaml_date_and_time_toa()))
+       !Process Id (used to dump)
+       call set(dict_global//processid,0)
        call dict_init(dict_calling_sequence)
        !in principle the calling sequence starts from the main
        dict_codepoint => dict_calling_sequence//'Calling sequence of Main program'
@@ -969,15 +961,22 @@ contains
     if (present(unit)) call memocc_set_stdout(unit)
 
     if (present(logfile_name)) call memocc_set_filename(logfile_name)
+       
+    if (present(iproc)) call set(dict_global//processid,iproc)
+  end subroutine f_set_status
 
-  end subroutine f_malloc_set_status
 
 
   !> Finalize f_malloc (Display status)
-  subroutine f_malloc_finalize()
+  subroutine f_finalize(dump)
     use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
     implicit none
+    !Arguments
+    logical, intent(in), optional :: dump !< Dump always information, 
+                                          !! otherwise only for Process Id == 0 and errors
     !local variables
+    integer :: pid
+    logical :: dump_status
     !integer :: unt
     !put the last values in the dictionary if not freed
     if (associated(dict_routine)) then
@@ -989,21 +988,39 @@ contains
        !      end if
        !      if (.false.) then !residual memory to be defined
     end if
-    call yaml_open_map('Status of the memory at finalization')
-    !call yaml_dict_dump(dict_global)
-    call dump_leaked_memory(dict_global)
-    call yaml_close_map()
-    call dict_free(dict_global)
-!    call yaml_open_map('Calling sequence')
-    call yaml_dict_dump(dict_calling_sequence)
-!    call yaml_close_map()
-    call dict_free(dict_calling_sequence)
-    
-    call memocc_report()
+
+    if (present(dump)) then
+       dump_status=.true.
+    else 
+       pid = dict_global//processid
+       if (pid == 0) then
+          dump_status=.true.
+       else
+          dump_status=.false.
+       end if
+       !Print if error
+       if (dict_size(dict_global) == 2) dump_status=.false.
+       !print *,'dict_size',dict_size(dict_global)
+       !print *,'dict_len',dict_len(dict_global)
+    end if
+    if (dump_status) then
+       call yaml_open_map('Status of the memory at finalization')
+       !call yaml_dict_dump(dict_global)
+       call dump_leaked_memory(dict_global)
+       call yaml_close_map()
+    end if
+       call dict_free(dict_global)
+    !    call yaml_open_map('Calling sequence')
+    !    call yaml_dict_dump(dict_calling_sequence)
+    !    call yaml_close_map()
+       call dict_free(dict_calling_sequence)
+
+       call memocc_report()
+!    end if
     profile_initialized=.false.
     present_routine=repeat(' ',namelen)
     routine_opened=.false.
-  end subroutine f_malloc_finalize
+  end subroutine f_finalize
 
 
   !> Check error of allocations or deallocations
@@ -1046,11 +1063,12 @@ contains
 
   !> Dump all allocations
   subroutine dump_leaked_memory(dict)
+    use metadata_interfaces, only: address_toi
      use yaml_output
      implicit none
      type(dictionary), pointer, intent(in) :: dict
      !Local variables
-     type(dictionary), pointer :: dict_ptr, dict_tmp
+     type(dictionary), pointer :: dict_ptr!, dict_tmp
      character(len=256) :: array_id
      dict_ptr => dict_next(dict)
      do while(associated(dict_ptr))
@@ -1062,7 +1080,9 @@ contains
            array_id = dict_ptr//arrayid
            call yaml_open_map(trim(array_id))
            call yaml_dict_dump(dict_ptr)
-           call yaml_map('Address',trim(dict_key(dict_ptr)))
+           call yaml_map(metadatadd,trim(dict_key(dict_ptr)))
+!!$           call yaml_map('Long integer conversion',&
+!!$                address_toi(trim(adjustl(dict_key(dict_ptr)))))
            call yaml_close_map()
         else
            call yaml_open_map(trim(dict_key(dict_ptr)))
@@ -1081,7 +1101,7 @@ contains
   end subroutine dump_leaked_memory
 
 
-  !> Use the adress of the allocated pointer to profile the deallocation
+  !> Use the address of the allocated pointer to profile the deallocation
   subroutine profile_deallocation(ierr,ilsize,address)
     use yaml_output!, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_map
     implicit none
@@ -1100,6 +1120,9 @@ contains
     if (.not. associated(dict_add)) then
        dict_add=>find_key(dict_global,trim(address))
        if (.not. associated(dict_add)) then
+          print *,'address:',trim(address)
+          call f_malloc_dump_status()
+          call yaml_dict_dump(dict_calling_sequence)
           stop 'profile deallocations: address not present'
        else
           use_global=.true.
@@ -1177,6 +1200,8 @@ contains
   subroutine f_malloc_dump_status()
     use yaml_output
     implicit none
+!!$    if (associated(dict_routine)) call yaml_dict_dump(dict_routine)
+!!$    call yaml_dict_dump(dict_global)
     call yaml_newline()
 !    call yaml_map('Present routine',trim(present_routine))
 !    call yaml_open_map(Routine dictionary')
@@ -1194,42 +1219,47 @@ contains
   end subroutine f_malloc_dump_status
 
   subroutine i1_all(array,m)
-          use metadata_interfaces, metadata_address => get_i1
+    use metadata_interfaces, metadata_address => geti1
     implicit none
     type(malloc_information_all), intent(in) :: m
     integer, dimension(:), allocatable, intent(inout) :: array
     !local variables
     integer(kind=8) :: iadd
-!!$    interface
-!!$       subroutine getlongaddress(array,iadd)
-!!$         implicit none
-!!$         integer, dimension(:), allocatable, intent(in) :: array
-!!$         integer(kind=8), intent(out) :: iadd
-!!$       end subroutine getlongaddress
-!!$    end interface
     !allocate the array
     allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-
     include 'allocate-inc.f90'
-
   end subroutine i1_all
 
+  subroutine i1_all_free(array)
+    use metadata_interfaces, metadata_address => geti1
+    implicit none
+    integer, dimension(:), allocatable, intent(inout) :: array
+    include 'deallocate-inc.f90' 
+  end subroutine i1_all_free
+
+
   subroutine d1_all(array,m)
-    use metadata_interfaces, metadata_address => get_dp1
+    use metadata_interfaces, metadata_address => getdp1
     implicit none
     type(malloc_information_all), intent(in) :: m
     double precision, dimension(:), allocatable, intent(inout) :: array
     !local variables
     integer(kind=8) :: iadd
-
     !allocate the array
     allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-
     include 'allocate-inc.f90'
   end subroutine d1_all
 
+  subroutine d1_all_free(array)
+    use metadata_interfaces, metadata_address => getdp1
+    implicit none
+    double precision, dimension(:), allocatable, intent(inout) :: array
+    include 'deallocate-inc.f90' 
+  end subroutine d1_all_free
+
+
   subroutine d2_all(array,m)
-    use metadata_interfaces, metadata_address => get_dp2
+    use metadata_interfaces, metadata_address => getdp2
     implicit none
     type(malloc_information_all), intent(in) :: m
     double precision, dimension(:,:), allocatable, intent(inout) :: array
@@ -1240,8 +1270,16 @@ contains
     include 'allocate-inc.f90'
   end subroutine d2_all
 
+  subroutine d2_all_free(array)
+    use metadata_interfaces, metadata_address => getdp2
+    implicit none
+    double precision, dimension(:,:), allocatable, intent(inout) :: array
+    include 'deallocate-inc.f90' 
+  end subroutine d2_all_free
+
+
   subroutine d3_all(array,m)
-    use metadata_interfaces, metadata_address => get_dp3
+    use metadata_interfaces, metadata_address => getdp3
     implicit none
     type(malloc_information_all), intent(in) :: m
     double precision, dimension(:,:,:), allocatable, intent(inout) :: array
@@ -1253,8 +1291,16 @@ contains
     include 'allocate-inc.f90'
   end subroutine d3_all
 
+  subroutine d3_all_free(array)
+    use metadata_interfaces, metadata_address => getdp3
+    implicit none
+    double precision, dimension(:,:,:), allocatable, intent(inout) :: array
+    include 'deallocate-inc.f90' 
+  end subroutine d3_all_free
+
+
   subroutine d4_all(array,m)
-    use metadata_interfaces, metadata_address => get_dp4
+    use metadata_interfaces, metadata_address => getdp4
     implicit none
     type(malloc_information_all), intent(in) :: m
     double precision, dimension(:,:,:,:), allocatable, intent(inout) :: array
@@ -1267,31 +1313,8 @@ contains
     include 'allocate-inc.f90'
   end subroutine d4_all
 
-  subroutine i1_all_free(array)
-    implicit none
-    integer, dimension(:), allocatable, intent(inout) :: array
-    include 'deallocate-inc.f90' 
-  end subroutine i1_all_free
-
-  subroutine d1_all_free(array)
-    implicit none
-    double precision, dimension(:), allocatable, intent(inout) :: array
-    include 'deallocate-inc.f90' 
-  end subroutine d1_all_free
-
-  subroutine d2_all_free(array)
-    implicit none
-    double precision, dimension(:,:), allocatable, intent(inout) :: array
-    include 'deallocate-inc.f90' 
-  end subroutine d2_all_free
-
-  subroutine d3_all_free(array)
-    implicit none
-    double precision, dimension(:,:,:), allocatable, intent(inout) :: array
-    include 'deallocate-inc.f90' 
-  end subroutine d3_all_free
-
   subroutine d4_all_free(array)
+    use metadata_interfaces, metadata_address => getdp4
     implicit none
     double precision, dimension(:,:,:,:), allocatable, intent(inout) :: array
     include 'deallocate-inc.f90' 
@@ -1332,7 +1355,7 @@ contains
 
   !pointers
   subroutine d1_ptr(array,m)
-    use metadata_interfaces, metadata_address => get_dp1_ptr
+    use metadata_interfaces, metadata_address => getdp1ptr
     implicit none
     type(malloc_information_ptr), intent(in) :: m
     double precision, dimension(:), pointer, intent(inout) :: array
@@ -1346,10 +1369,55 @@ contains
   end subroutine d1_ptr
 
   subroutine d1_ptr_free(array)
+    use metadata_interfaces, metadata_address => getdp1ptr
     implicit none
     double precision, dimension(:), pointer, intent(inout) :: array
     include 'deallocate-inc.f90'
     nullify(array)
   end subroutine d1_ptr_free
+
+
+  subroutine d2_ptr(array,m)
+    use metadata_interfaces, metadata_address => getdp2ptr
+    implicit none
+    type(malloc_information_ptr), intent(in) :: m
+    double precision, dimension(:,:), pointer, intent(inout) :: array
+    !local variables
+    integer(kind=8) :: iadd
+    !allocate the array
+    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
+
+    include 'allocate-inc.f90'
+  end subroutine d2_ptr
+
+  subroutine d2_ptr_free(array)
+    use metadata_interfaces, metadata_address => getdp2ptr
+    implicit none
+    double precision, dimension(:,:), pointer, intent(inout) :: array
+    include 'deallocate-inc.f90'
+    nullify(array)
+  end subroutine d2_ptr_free
+
+  subroutine d3_ptr(array,m)
+    use metadata_interfaces, metadata_address => getdp3ptr
+    implicit none
+    type(malloc_information_ptr), intent(in) :: m
+    double precision, dimension(:,:,:), pointer, intent(inout) :: array
+    !local variables
+    integer(kind=8) :: iadd
+    !allocate the array
+    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
+         m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
+    include 'allocate-inc.f90'
+  end subroutine d3_ptr
+
+  subroutine d3_ptr_free(array)
+    use metadata_interfaces, metadata_address => getdp3ptr
+    implicit none
+    double precision, dimension(:,:,:), pointer, intent(inout) :: array
+    include 'deallocate-inc.f90'
+    nullify(array)
+  end subroutine d3_ptr_free
+
 
 end module dynamic_memory

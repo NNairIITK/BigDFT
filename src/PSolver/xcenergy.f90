@@ -18,7 +18,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp 
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
-  real(dp), dimension(n1i*n2i*n3d,0:3), intent(inout) :: rhocore
+  real(dp), dimension(n1i*n2i*n3d,0:9), intent(inout) :: rhocore
   !local variables
   !n(c) character(len=*), parameter :: subname='calc_rhocore'
   real(gp), parameter :: oneo4pi=.079577471545947_wp
@@ -156,6 +156,13 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                        rhocore(ind,1)=rhocore(ind,1)+x*drhodr2*oneo4pi
                        rhocore(ind,2)=rhocore(ind,2)+y*drhodr2*oneo4pi
                        rhocore(ind,3)=rhocore(ind,3)+z*drhodr2*oneo4pi
+!stress components
+                       rhocore(ind,4)=rhocore(ind,4)+x*x*drhodr2*oneo4pi
+                       rhocore(ind,5)=rhocore(ind,5)+y*y*drhodr2*oneo4pi
+                       rhocore(ind,6)=rhocore(ind,6)+z*z*drhodr2*oneo4pi
+                       rhocore(ind,7)=rhocore(ind,7)+y*z*drhodr2*oneo4pi
+                       rhocore(ind,8)=rhocore(ind,8)+x*z*drhodr2*oneo4pi
+                       rhocore(ind,9)=rhocore(ind,9)+x*y*drhodr2*oneo4pi
 
 !!$                 !print out the result, to see what happens
 !!$                 if (z==0.0_gp .and. y==0.0_gp) then
@@ -304,11 +311,12 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx
   real(dp), dimension(:,:,:,:), allocatable :: vxci
   real(gp), dimension(:), allocatable :: energies_mpi
   real(dp), dimension(:,:,:,:), pointer :: dvxci
-  real(dp), dimension(6) :: wbstr
+  real(dp), dimension(6) :: wbstr, rhocstr
   call timing(iproc,'Exchangecorr  ','ON')
 
 call to_zero(6,xcstr(1))
 call to_zero(6,wbstr(1))
+call to_zero(6,rhocstr(1))
 
   wrtmsg=.false.
   !calculate the dimensions wrt the geocode
@@ -605,10 +613,17 @@ call to_zero(6,wbstr(1))
 
 !XC-stress term
   if (geocode == 'P') then
+
+        if (associated(rhocore)) then
+        call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
+        call mpiallred(rhocstr(1),6,MPI_SUM,mpi_comm,ierr)
+        rhocstr=rhocstr/real(n01*n02*n03,dp)
+        end if
+
      xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
      call mpiallred(wbstr(1),6,MPI_SUM,mpi_comm,ierr)
      wbstr=wbstr/real(n01*n02*n03,dp)
-     xcstr(:)=xcstr(:)+wbstr(:)
+     xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
   end if
      i_all=-product(shape(energies_mpi))*kind(energies_mpi)
      deallocate(energies_mpi,stat=i_stat)
@@ -667,9 +682,13 @@ call to_zero(6,wbstr(1))
 
 !XC-stress term
    if (geocode == 'P') then
+        if (associated(rhocore)) then
+        call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
+        rhocstr=rhocstr/real(n01*n02*n03,dp)
+        end if
     xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
     wbstr=wbstr/real(n01*n02*n03,dp)
-    xcstr(:)=xcstr(:)+wbstr(:)
+    xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
    end if
 
   end if
@@ -1523,7 +1542,7 @@ subroutine wb_stress(n1,n2,n3,n3eff,wbl,nsp,f_i,gradient,wbstr)
  integer :: i1,i2,i3,isp
 
 wbstr=0._dp
-!seq: 11 22 33 12 13 23
+!seq: 11 22 33 23 13 12
 do isp=1,nsp
            do i3=wbl,n3eff+wbl-1
               do i2=1,n2
@@ -1548,3 +1567,35 @@ if (nsp==1) wbstr=wbstr*2._gp
 !write(*,*) wbstress(4:6)
 
 end subroutine wb_stress
+
+subroutine calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
+ use module_base
+ implicit none
+ real(dp),dimension(6),intent(out) :: rhocstr
+ integer,intent(in) :: nxc,nxt,m1,m3,i3xcsh_fake,nspin
+ real(wp), dimension(m1,m3,nxt,10), intent(in) :: rhocore
+ real(wp), dimension(m1*m3*nxc*nspin), intent(in) :: potxc
+ integer :: i,i1,i2,i3,isp
+
+rhocstr=0._dp
+!seq: 11 22 33 23 13 12
+
+do isp=0,nspin-1
+     do i3=1,nxc
+        do i2=1,m3
+           do i1=1,m1
+              i=i1+(i2-1)*m1+(i3-1)*m1*m3
+rhocstr(1)=rhocstr(1)+rhocore(i1,i2,i3+i3xcsh_fake,5)*potxc(i+m1*m3*nxc*isp)
+rhocstr(2)=rhocstr(2)+rhocore(i1,i2,i3+i3xcsh_fake,6)*potxc(i+m1*m3*nxc*isp)
+rhocstr(3)=rhocstr(3)+rhocore(i1,i2,i3+i3xcsh_fake,7)*potxc(i+m1*m3*nxc*isp)
+rhocstr(4)=rhocstr(4)+rhocore(i1,i2,i3+i3xcsh_fake,8)*potxc(i+m1*m3*nxc*isp)
+rhocstr(5)=rhocstr(5)+rhocore(i1,i2,i3+i3xcsh_fake,9)*potxc(i+m1*m3*nxc*isp)
+rhocstr(6)=rhocstr(6)+rhocore(i1,i2,i3+i3xcsh_fake,10)*potxc(i+m1*m3*nxc*isp)
+           end do
+        end do
+     end do
+end do
+
+if (nspin==1) rhocstr(:)=rhocstr(:)*2._gp
+
+end subroutine calc_rhocstr
