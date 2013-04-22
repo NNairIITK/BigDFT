@@ -140,8 +140,10 @@ O2-Spin:
  Epsilon: 1.1e-10
 
 H2-spin:
- Epot: 2.1e-11
- Total energy with tail correction: 1.51e-11
+ Estimation of Finite-Size Corrections:
+  Corrected Energies:
+   Epot: 2.1e-11
+  Total energy with tail correction: 1.51e-11
 
 TiSmear:
  Epsilon: 5.e-11
