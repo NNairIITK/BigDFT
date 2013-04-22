@@ -16,9 +16,14 @@ endif
 if USE_CUDA_GPU
 CUBLAS_SOURCES = 
 else
-CUBLAS_SOURCES = cublas_fake.f90
+CUBLAS_SOURCES = cublas_fake.f90 interface_cuda_fake.f90
 endif
-libwrappers_a_SOURCES = $(DGEMMSY_SOURCES) $(CUBLAS_SOURCES) \
+if USE_OCL
+OCL_SOURCES =
+else
+OCL_SOURCES = interface_ocl_fake.f90
+endif
+libwrappers_a_SOURCES = $(DGEMMSY_SOURCES) $(CUBLAS_SOURCES) $(OCL_SOURCES) \
 	fft/fft2d.f90 \
 	fft/fft3d.f90 \
 	linalg.f90 \

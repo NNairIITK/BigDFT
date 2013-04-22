@@ -1028,6 +1028,7 @@ libABINIT/src/Makefile
 config/Doxyfile
 flib/Makefile
 wrappers/Makefile
+PSolver/Makefile
 src/bigdft-tool
 src/Makefile
 src/modules/Makefile

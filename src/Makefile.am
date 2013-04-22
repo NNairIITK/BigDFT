@@ -13,10 +13,10 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 # Sub-directories.
 # ---------------
 SUBDIRS = \
-	PSolver \
 	modules \
 	convolutions \
 	lib \
+	PSolver \
 	$(sub_dirs_libconfig) \
 	CUDA \
 	OpenCL \
@@ -38,7 +38,7 @@ noinst_LIBRARIES = libmain.a
 subs_static_library = modules/libmodules.a \
 	CUDA/libCUDA.a \
 	convolutions/libconvolutions.a \
-	PSolver/libPSolver.a \
+	PSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
 	lib/liblib.a \
 	bindings/libbindings.a
@@ -50,7 +50,7 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a $(top_builddir)/wrappers/libwrappers.a @LIBS_SHORT_DEPS@
+bigdft_library = libbigdft-1.a $(top_builddir)/PSolver/libPSolver.a $(top_builddir)/wrappers/libwrappers.a @LIBS_SHORT_DEPS@
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft-1.a
@@ -97,7 +97,7 @@ am_global_OBJECTS = global.$(OBJEXT)
 global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
-AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib -I$(srcdir)/PSolver \
+AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
 	@MPI_INCLUDE@
@@ -226,7 +226,7 @@ libbigdft-1.a: $(libmain_a_OBJECTS) $(subs_static_library)
 	rm -rf tmp-libbigdft
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) $(subs_static_library)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) $(subs_static_library) $(top_builddir)/wrappers/libwrappers.a @LIBS_SHORT_DEPS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) $(subs_static_library) $(top_builddir)/PSolver/libPSolver.a $(top_builddir)/wrappers/libwrappers.a @LIBS_SHORT_DEPS@
 	@chmod a+x $@
 
 libbigdft-1.so.7: $(bigdft_dynamic_library)
@@ -271,6 +271,10 @@ MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = $(bigdft_library)
 
 abscalc_SOURCES = abscalc.f90
+abscalc_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib -I$(top_srcdir)/PSolver \
+	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
+	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
+	@MPI_INCLUDE@
 abscalc_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90

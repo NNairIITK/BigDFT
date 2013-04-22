@@ -5,12 +5,12 @@ noinst_LIBRARIES = libconvolutions.a
 if USE_CUDA_GPU
 CUDA_CONV = convolut_common_interface_cuda.f90
 else
-CUDA_CONV = interface_cuda_fake.f90
+CUDA_CONV =
 endif
 if USE_OCL
 OCL_CONV = convolut_common_interface_ocl.f90
 else
-OCL_CONV = interface_ocl_fake.f90
+OCL_CONV =
 endif
 if USE_OPTI_CONVOLUT
 CONV_SOURCES = combined_shrink_optim.f90 \

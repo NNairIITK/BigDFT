@@ -28,6 +28,7 @@ endif
 SUBDIRS += \
 	flib \
 	wrappers \
+	PSolver \
 	src \
 	doc \
 	utils
