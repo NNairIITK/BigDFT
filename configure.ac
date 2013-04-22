@@ -80,6 +80,9 @@ if test "$ar" = ":" ; then
   AC_MSG_ERROR(["No 'ar' program found."])
 fi
 
+dnl Search for pkg-config
+PKG_PROG_PKG_CONFIG()
+
 dnl Produce dynamic excecutables.
 AC_ARG_ENABLE(dynamic-binaries, AS_HELP_STRING([--enable-dynamic-binaries],
                                                [Build dynamically linked binaries (disabled by default).]),
@@ -868,10 +871,10 @@ if test x"$ac_use_libxc" = x"yes" ; then
   if test "$ac_internal_libxc" = "yes" ; then
     ac_build_libxc="yes"
     ac_use_libxc="yes"
-    ac_libxc_dir="$top_builddir"/libxc-1.1.0/src
-    AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-1.1.0/src)
-    AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-1.1.0/src)
-    LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-1.1.0/src/.libs"
+    ac_libxc_dir="$top_builddir"/libxc-2.0.x/src
+    AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-2.0.x/src)
+    AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-2.0.x/src)
+    LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-2.0.x/src/.libs"
     LIBXC_LIBS="-lxc"
   else
     if test -n "$ac_libxc_dir" ; then
@@ -1070,7 +1073,7 @@ tests/tutorials/Makefile
 # Call libXC ./configure script recursively.
 # Call S_GPU ./configure script recursively.
 if test x"$ac_build_libxc" != x"skip" ; then
-   AC_CONFIG_SUBDIRS([libxc-1.1.0])
+   AC_CONFIG_SUBDIRS([libxc-2.0.x])
 fi
 if test x"$ac_build_libsgpu" != x"skip" ; then
    AC_CONFIG_SUBDIRS([S_GPU])

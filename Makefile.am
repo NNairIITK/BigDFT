@@ -10,7 +10,7 @@ pkgconfig_DATA = bigdft.pc
 SUBDIRS =
 
 if BUILD_LIBXC
-SUBDIRS += libxc-1.1.0
+SUBDIRS += libxc-2.0.x
 endif
 
 if BUILD_LIBABINIT
