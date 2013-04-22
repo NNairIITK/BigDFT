@@ -84,7 +84,10 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   real(wp), dimension(:,:,:), allocatable :: e,eg,e_tmp,eg_tmp
   real(wp), dimension(:), pointer :: psiw,psirocc,pot
   real(wp), dimension(:), allocatable :: ALPHAR,ALPHAI,BETA,VR,VL
+  type(paw_objects) ::paw !dummy herem, only used for PAW
   
+  paw%usepaw=0 !Not using PAW
+  call nullify_paw_objects(paw)
   
   !logical flag which control to othogonalise wrt the occupied orbitals or not
   if (orbs%nkpts /= orbsv%nkpts) then

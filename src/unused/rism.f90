@@ -726,6 +726,7 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   call memocc(i_stat,G%nam,'G%nam',subname)
 
   !assign shell IDs and count the number of exponents and coefficients
+  G%ncplx=1
   G%nexpo=0
   G%ncoeff=0
   ishell=0
@@ -742,9 +743,9 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   end do
 
   !allocate and assign the exponents and the coefficients
-  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
+  allocate(G%xp(G%ncplx,G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%xp,'G%xp',subname)
-  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
+  allocate(G%psiat(G%ncplx,G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%psiat,'G%psiat',subname)
 
   ishell=0
@@ -754,8 +755,8 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
         if (l==1) then
            ishell=ishell+1
            iexpo=iexpo+1
-           G%psiat(iexpo)=-oneo2pi3halves/radii(iat)**3
-           G%xp(iexpo)=radii(iat)
+           G%psiat(1,iexpo)=-oneo2pi3halves/radii(iat)**3
+           G%xp(1,iexpo)=radii(iat)
         end if
      end do
   end do
