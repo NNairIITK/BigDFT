@@ -704,23 +704,3 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.492529E-02    4.337793E-02    1.755496E
    itoutH, Delta DENSOUT, energy, energyDiff   4   2.54E-08   -1.76340385944423588E+02    0.0000E+00   FINAL
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.139999983238E+02
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:32:13.822
- Calling sequence of Main program      : 
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:32:13.822
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:32:13.822
- Calling sequence of Main program      : 
- Calling sequence of Main program      : 
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:32:13.822
-     2013-03-28 16:32:13.822
- Calling sequence of Main program      : 
- Calling sequence of Main program      : 
