@@ -67,9 +67,7 @@ module Poisson_Solver
   !routine that creates the kernel
   public :: pkernel_init, pkernel_set, pkernel_free
   !calculate the poisson solver
-  public :: PSolver
-  !wrapper to the poisson solver for allowing non-collinear densities
-  public :: PSolverNC , H_potential 
+  public :: H_potential 
   !calculate the allocation dimensions
   public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions, W_FFT_dimensions, xc_dimensions
 

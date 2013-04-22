@@ -9,6 +9,7 @@ PS_SOURCES = Build_Kernel.f90 \
 	3Dgradient.f90 \
 	scaling_function.f90 \
 	PSolver_Base_new.f90 \
+	psolvernc.f90 \
 	wofz.f90
 else
 PS_SOURCES =

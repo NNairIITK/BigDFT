@@ -356,7 +356,7 @@ call to_zero(6,wbstr(1))
   istart=iproc*(md2/nproc)
   iend=min((iproc+1)*md2/nproc,m2)
 
-  call xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
+  call xc_dimensions(geocode,xc_isgga(),(ixc/=13),istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
   nwb=nxcl+nxc+nxcr-2
   nxt=nwbr+nwb+nwbl
 

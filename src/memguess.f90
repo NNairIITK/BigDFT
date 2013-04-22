@@ -930,7 +930,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
 
    call default_confinement_data(confdatarr,orbs%norbp)
 
-
    !nullify pkernelSIC pointer
    nullify(fake_pkernelSIC%kernel)
 
@@ -988,7 +987,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
 
    !normally nproc=1
    do jproc=0,nproc-1
-      call PS_dim4allocation(at%geocode,'D',jproc,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,&
+      call PS_dim4allocation(at%geocode,'D',jproc,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,xc_isgga(),(ixc/=13),&
          &   n3d,n3p,n3pi,i3xcsh,i3s)
       nscatterarr(jproc,1)=n3d
       nscatterarr(jproc,2)=n3p

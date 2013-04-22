@@ -551,7 +551,7 @@ subroutine dpbox_repartition(iproc,nproc,geocode,datacode,ixc,dpbox)
   if (datacode == 'D') then
      do jproc=0,nproc-1
         call PS_dim4allocation(geocode,datacode,jproc,nproc,&
-             dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),ixc,&
+             dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),xc_isgga(),(ixc/=13),&
              n3d,n3p,n3pi,i3xcsh,i3s)
         dpbox%nscatterarr(jproc,1)=n3d            !number of planes for the density
         dpbox%nscatterarr(jproc,2)=n3p            !number of planes for the potential
