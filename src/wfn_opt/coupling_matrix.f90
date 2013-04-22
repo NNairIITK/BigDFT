@@ -480,29 +480,30 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
         call memocc(i_stat,work,'work',subname)
 
 
-        call DSYEV('V','U',nmulti,K,nmulti,omega,work,lwork,info)
-        if (info /= 0) then
-           call yaml_warning('Error, DSYEV' // trim(yaml_toa(info)))
-           !write(*,*) 'error, DSYEV',info
-        end if
-
-        !transition dipoles
-        call gemm('N','N',3,ndipoles,ndipoles,1.0_wp,dipoles(1,1),3,&
-             K(1,1),ndipoles,0.0_wp,fi(1,1),3)
-
-        !print eigenvalues
-        if (iproc == 0) then
-           call yaml_open_sequence('Excitation energies (Ha, eV, dipoles)')
-           do imulti=1,nmulti
-              call yaml_sequence( trim(yaml_toa( &
-                 & (/ omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti) /),fmt='(f10.5)')),&
-                 & advance='no')
-              call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
-              !print '(a,i6,2(f10.5),3(f10.5))','excitation energies: Ha, eV, dipoles:' , &
-              !imulti,omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti)
-           end do
-           call yaml_close_sequence()
-        end if
+        !this second part is not needed
+!!$        call DSYEV('V','U',nmulti,K,nmulti,omega,work,lwork,info)
+!!$        if (info /= 0) then
+!!$           call yaml_warning('Error, DSYEV' // trim(yaml_toa(info)))
+!!$           !write(*,*) 'error, DSYEV',info
+!!$        end if
+!!$
+!!$        !transition dipoles
+!!$        call gemm('N','N',3,ndipoles,ndipoles,1.0_wp,dipoles(1,1),3,&
+!!$             K(1,1),ndipoles,0.0_wp,fi(1,1),3)
+!!$
+!!$        !print eigenvalues
+!!$        if (iproc == 0) then
+!!$           call yaml_open_sequence('Excitation energies (Ha, eV, dipoles)')
+!!$           do imulti=1,nmulti
+!!$              call yaml_sequence( trim(yaml_toa( &
+!!$                 & (/ omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti) /),fmt='(f10.5)')),&
+!!$                 & advance='no')
+!!$              call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
+!!$              !print '(a,i6,2(f10.5),3(f10.5))','excitation energies: Ha, eV, dipoles:' , &
+!!$              !imulti,omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti)
+!!$           end do
+!!$           call yaml_close_sequence()
+!!$        end if
          
      end if
      

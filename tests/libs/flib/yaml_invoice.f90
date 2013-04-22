@@ -39,7 +39,7 @@ subroutine yaml_invoice_example()
     call yaml_close_sequence()
     !final part
     call yaml_map('tax',251.42,fmt='(f6.2)')
-    call yaml_map('total',4443.52,fmt='(f6.2)') !wrong format on purpose
+    call yaml_map('total',4443.52d0,fmt='(f6.2)') !wrong format on purpose
     call yaml_map('comments','Late afternoon is best. Backup contact is Nancy Billsmer @ 338-4338.')
 
       !call yaml_close_map()
