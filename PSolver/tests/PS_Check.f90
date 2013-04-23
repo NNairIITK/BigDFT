@@ -54,7 +54,7 @@ program PS_Check
       call yaml_new_document()
 
       call yaml_map('Reference Paper','The Journal of Chemical Physics 137, 134108 (2012)')
-      call yaml_map('Version Number',package_version)
+      call yaml_map('Version Number', "PSolver " // trim(PS_getVersion()))
       call yaml_map('Timestamp of this run',yaml_date_and_time_toa())
       call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
       if (ierr ==0) call yaml_map('Root process Hostname',trim(nodename_local))

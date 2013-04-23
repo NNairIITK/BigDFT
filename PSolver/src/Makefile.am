@@ -71,6 +71,7 @@ EXTRA_DIST = \
 	lazy_ISF_60_2048.inc\
 	lazy_ISF_100_2048.inc\
 	perfdata.inc \
+	configure.inc.in \
 	$(SOURCES_MOD)
 
 # Build targets.
@@ -118,7 +119,7 @@ install-data-hook:
 
 #dependencies
 $(modules): $(libPSolver_1_a_OBJECTS)
-Poisson_Solver.o: $(SOURCES_MOD)
+Poisson_Solver.o: $(SOURCES_MOD) configure.inc
 conv_check_fft.o: cufft.o
 conv_check_fftw.o: fftw.o
 wofz.o Build_Kernel.o scaling_function.o PSolver_Base_new.o: Poisson_Solver.o

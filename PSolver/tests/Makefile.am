@@ -31,12 +31,12 @@ endif
 AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_srcdir)/PSolver/src -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/PSolver/src
 if BUILD_LIB_BIGDFT
-LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/libflib.a @LIBS_SHORT_DEPS@ -lrt
+LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LIBS_SHORT_DEPS@ -lrt
 else
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/PSolver/src
 else
-LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/libflib.a @LIBS_SHORT_DEPS@ -lrt
+LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LIBS_SHORT_DEPS@ -lrt
 endif
 endif
 

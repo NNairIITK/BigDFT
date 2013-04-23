@@ -1039,6 +1039,7 @@ flib/src/Makefile
 flib/tests/Makefile
 wrappers/Makefile
 PSolver/Makefile
+PSolver/src/configure.inc
 PSolver/src/Makefile
 PSolver/tests/Makefile
 src/bigdft-tool

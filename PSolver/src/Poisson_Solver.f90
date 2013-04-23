@@ -74,6 +74,8 @@ module Poisson_Solver
   integer, parameter :: mpidtypd=MPI_DOUBLE_PRECISION
   integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION
 
+  include 'configure.inc'
+
   !> Defines the fundamental structure for the kernel
   type, public :: coulomb_operator
      !variables with physical meaning
@@ -98,7 +100,7 @@ module Poisson_Solver
   end type coulomb_operator
 
   !calculate the allocation dimensions
-  public :: PS_dim4allocation
+  public :: PS_dim4allocation, PS_getVersion
   !routine that creates the kernel
   public :: pkernel_init, pkernel_set, pkernel_free
   !calculate the poisson solver
@@ -125,6 +127,12 @@ contains
     k%mpi_env=mpi_environment_null()
     k%igpu=0
   end function pkernel_null
+
+  function PS_getVersion() result(str)
+    character(len = 128) :: str
+
+    write(str, "(A)") package_version
+  end function PS_getVersion
 
   include 'PSolver_Main.f90'
   include 'createKernel.f90'
