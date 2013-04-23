@@ -42,8 +42,9 @@ subs_static_library = \
 	PSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
 	lib/liblib.a \
-	bindings/libbindings.a \
-	$(top_builddir)/PSolver/libPSolver.a \
+	bindings/libbindings.a
+out_static_library =  \
+	$(top_builddir)/PSolver/src/libPSolver-1.a \
 	$(top_builddir)/wrappers/libwrappers.a \
 	$(top_builddir)/flib/libflib.a
 if BUILD_DYNAMIC_LIBS
@@ -54,7 +55,7 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a $(top_builddir)/PSolver/libPSolver.a $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/libflib.a @LIBS_SHORT_DEPS@
+bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft-1.a
@@ -219,18 +220,18 @@ libmain_a_SOURCES = \
 
 libbigdft_1_a_SOURCES =
 
-libbigdft-1.a: $(libmain_a_OBJECTS) $(subs_static_library)
+libbigdft-1.a: $(libmain_a_OBJECTS) $(subs_static_library) $(out_static_library)
 	test -e "tmp-libbigdft" || $(INSTALL) -d -m 755 tmp-libbigdft
 	cd tmp-libbigdft ; \
-	for lib in $(subs_static_library) ; do \
+	for lib in $(subs_static_library) $(out_static_library); do \
 	  $(AR) x ../$$lib ; \
 	done
 	$(AR) $(ARFLAGS) $@ $(libmain_a_OBJECTS) tmp-libbigdft/*
 	$(RANLIB) $@
 	rm -rf tmp-libbigdft
 
-$(bigdft_dynamic_library): $(libmain_a_OBJECTS) $(subs_static_library)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) $(subs_static_library) @LIBS_SHORT_DEPS@
+$(bigdft_dynamic_library): $(libmain_a_OBJECTS) $(subs_static_library) $(out_static_library)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $^ @LIBS_SHORT_DEPS@
 	@chmod a+x $@
 
 libbigdft-1.so.7: $(bigdft_dynamic_library)

@@ -8,13 +8,10 @@
 !!    For the list of contributors, see ~/AUTHORS 
 program PS_Integral
 
-  use module_base
-  use module_types
-  use module_interfaces
-  use module_xc
   use Poisson_Solver
   use yaml_output
   use dynamic_memory
+  use m_profiling
 
   implicit none
   integer :: n_points, n_range, n_scf, itype_scf

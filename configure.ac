@@ -1029,6 +1029,8 @@ config/Doxyfile
 flib/Makefile
 wrappers/Makefile
 PSolver/Makefile
+PSolver/src/Makefile
+PSolver/tests/Makefile
 src/bigdft-tool
 src/Makefile
 src/modules/Makefile
@@ -1055,7 +1057,6 @@ tests/Makefile
 tests/libs/Makefile
 tests/libs/fft/Makefile
 tests/libs/flib/Makefile
-tests/libs/PSolver/Makefile
 tests/libs/OP2P/Makefile
 tests/libs/xc/Makefile
 tests/libs/OpenCL/Makefile

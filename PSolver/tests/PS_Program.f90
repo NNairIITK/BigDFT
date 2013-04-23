@@ -10,11 +10,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 program PSolver_Program
-
-  use module_base
-  use module_types
   use Poisson_Solver
-
+  use wrapper_mpi
   implicit none
   !include 'mpif.h'
   !Order of interpolating scaling function
@@ -235,7 +232,7 @@ program PSolver_Program
      end if
 
      !dimension needed for allocations
-     call PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,n3d,n3p,n3pi,i3xcsh,i3s)
+     call PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,(ixc>10),.false.,n3d,n3p,n3pi,i3xcsh,i3s)
 
      !dimension for comparison in the global or distributed poisson solver
      if (datacode == 'G') then
