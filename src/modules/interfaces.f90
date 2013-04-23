@@ -3609,15 +3609,15 @@ module module_interfaces
        end subroutine initialize_linear_from_file
 
        subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
-       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat, &
-       & locrad, locregCenter, confPotOrder, confPotprefac, onwhichatom)
+       & ns1_old, ns2_old, ns3_old, hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, &
+       & rxyz_old, nat, locrad, locregCenter, confPotOrder, confPotprefac, onwhichatom)
          use module_base
          use module_types
          implicit none
          integer, intent(in) :: unitwf
          logical, intent(in) :: formatted
          integer, intent(out) :: iorb_old
-         integer, intent(out) :: n1_old, n2_old, n3_old
+         integer, intent(out) :: n1_old, n2_old, n3_old, ns1_old, ns2_old, ns3_old
          real(gp), intent(out) :: hx_old, hy_old, hz_old
          logical, intent(out) :: lstat
          real(wp), intent(out) :: eval
@@ -3701,20 +3701,17 @@ module module_interfaces
           character(len=*),intent(in):: subname
         end subroutine copy_local_zone_descriptors
 
-        subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2_old, n3_old, &
-            & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
+        subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, &
+            & lstat, error, rxyz_old, nat)
          use module_base
          use module_types
          implicit none
          integer, intent(in) :: unitwf
          logical, intent(in) :: formatted
          integer, intent(out) :: norb_old, ntmb_old
-         integer, intent(out) :: n1_old, n2_old, n3_old
-         real(gp), intent(out) :: hx_old, hy_old, hz_old
          logical, intent(out) :: lstat
          character(len =256), intent(out) :: error
          ! Optional arguments
-         integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
          integer, intent(in), optional :: nat
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
         end subroutine io_read_descr_coeff
@@ -4069,11 +4066,11 @@ module module_interfaces
         end subroutine copy_old_inwhichlocreg
 
         subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,& !n(c) iproc (arg:1)
-             rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
+             ns1_old,ns2_old,ns3_old,rxyz_old,psigold,hx,hy,hz,n1,n2,n3,ns1,ns2,ns3,rxyz,psifscf,psi)
           use module_base
           use module_types
           implicit none
-          integer, intent(in) :: iiat,n1_old,n2_old,n3_old,n1,n2,n3  !n(c) iproc
+          integer, intent(in) :: iiat,n1_old,n2_old,n3_old,ns1_old,ns2_old,ns3_old,n1,n2,n3,ns1,ns2,ns3  !n(c) iproc
           real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
           type(wavefunctions_descriptors), intent(in) :: wfd
           type(atoms_data), intent(in) :: at
