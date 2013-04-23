@@ -1,5 +1,4 @@
 SUBDIRS = fft \
-	flib \
 	xcPSolver \
 	OP2P \
 	psp \

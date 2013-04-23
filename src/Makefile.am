@@ -48,8 +48,8 @@ out_static_library =  \
 	$(top_builddir)/wrappers/libwrappers.a \
 	$(top_builddir)/flib/libflib.a
 if BUILD_DYNAMIC_LIBS
-bigdft_dynamic_library = libbigdft-1.so.7.0.24
-bigdft_soname_library = libbigdft-1.so.7
+bigdft_dynamic_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
+bigdft_soname_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 bigdft_library = $(bigdft_soname_library)
 AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
@@ -276,7 +276,7 @@ MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = $(bigdft_library)
 
 abscalc_SOURCES = abscalc.f90
-abscalc_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib -I$(top_srcdir)/PSolver \
+abscalc_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib -I$(top_srcdir)/PSolver/src \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
 	@MPI_INCLUDE@
@@ -288,7 +288,7 @@ test_forces_LDADD = $(bigdft_library)
 NEB_SOURCES = NEB.f90
 NEB_LDADD = $(bigdft_library)
 
-memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/MPIfake.f90
+memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/src/MPIfake.f90
 memguess_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90

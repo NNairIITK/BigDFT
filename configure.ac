@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.26],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.27],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -20,6 +20,14 @@ AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
 AM_INIT_AUTOMAKE(-Wno-portability)
+
+dnl Versioning
+BIGDFT_MAJOR_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f1)
+BIGDFT_MINOR_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f2 | cut -d'-' -f1)
+BIGDFT_MICRO_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f3)
+AC_SUBST(BIGDFT_MAJOR_VERSION)
+AC_SUBST(BIGDFT_MINOR_VERSION)
+AC_SUBST(BIGDFT_MICRO_VERSION)
 
 dnl This is a hack for usage inside ABINIT.
 dnl if test -n "$FCFLAGS" ; then
@@ -1027,6 +1035,8 @@ bigdft.pc
 libABINIT/src/Makefile
 config/Doxyfile
 flib/Makefile
+flib/src/Makefile
+flib/tests/Makefile
 wrappers/Makefile
 PSolver/Makefile
 PSolver/src/Makefile
@@ -1056,7 +1066,6 @@ doc/Makefile
 tests/Makefile
 tests/libs/Makefile
 tests/libs/fft/Makefile
-tests/libs/flib/Makefile
 tests/libs/OP2P/Makefile
 tests/libs/xc/Makefile
 tests/libs/xcPSolver/Makefile

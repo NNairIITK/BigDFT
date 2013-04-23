@@ -111,7 +111,7 @@ mpif.h:
 
 #dependencies
 $(modules): $(libmodules_a_OBJECTS)
-base.o: defs.o $(top_builddir)/flib/dynamic_memory.o
+base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o
 types.o: base.o gaussians.o
 input.o: base.o 
 interfaces.o: base.o types.o xc.o

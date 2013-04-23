@@ -6,11 +6,11 @@ EXTRA_DIST = fft_check.out.ref fft_cache.gnuplot fft_cache.py
 
 check_PROGRAMS = fft_check fft_cache
 
-fft_check_SOURCES = fft_check.f90 $(top_srcdir)/src/lib/fft/fft3d.f90 $(mpi_source)
+fft_check_SOURCES = fft_check.f90 $(top_srcdir)/wrappers/fft/fft3d.f90 $(mpi_source)
 fft_check_LDFLAGS =
 fft_check_LDADD = @LINALG_LIBS@
 
-fft_cache_SOURCES = fft_cache.f90 $(top_srcdir)/src/lib/fft/fft3d.f90 $(mpi_source)
+fft_cache_SOURCES = fft_cache.f90 $(top_srcdir)/wrappers/fft/fft3d.f90 $(mpi_source)
 fft_cache_LDFLAGS =
 fft_cache_LDADD = @LINALG_LIBS@
 

@@ -6,8 +6,8 @@ module_DATA      = $(modules)
 dynlib_DATA      = $(psolver_dynlib)
 
 # Static or dynamic library
-psolver_dynamic_library = libPSolver-1.so.7.0.24
-psolver_library_soname  = libPSolver-1.so.7
+psolver_dynamic_library = libPSolver-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
+psolver_library_soname  = libPSolver-1.so.@BIGDFT_MINOR_VERSION@
 
 # We install a PSolver library only if BigDFT is deactivated.
 if BUILD_LIB_BIGDFT
@@ -81,7 +81,7 @@ CONV_CHECK = conv_check_fftw
 endif
 EXTRA_PROGRAMS = $(CONV_CHECK)
 conv_check_fft_SOURCES = conv_check_fft.f90
-conv_check_fft_LDADD = libPSolver.a $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/libflib.a @LIBS_SHORT_DEPS@
+conv_check_fft_LDADD = libPSolver.a $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LIBS_SHORT_DEPS@
 conv_check_fftw_SOURCES = conv_check_fftw.f90 fftw.cpp
 conv_check_fftw_LDADD = @LIBS_SHORT_DEPS@ -lfftw3 -lfftw3_threads
 
@@ -101,7 +101,7 @@ NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@
 
 # Dynamic library building
 $(psolver_dynamic_library): $(libPSolver_1_a_OBJECTS)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) -o $@ $^ $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/libflib.a @LIBS_SHORT_DEPS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) -o $@ $^ $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LIBS_SHORT_DEPS@
 	@chmod a+x $@
 
 $(psolver_library_soname): $(psolver_dynamic_library)
