@@ -5,6 +5,7 @@ module_DATA = $(modules)
 # Code source.
 if BUILD_LIB_BIGDFT
 PS_SOURCES = xcenergy.f90 \
+	3Dgradient.f90 \
 	psolvernc.f90
 else
 PS_SOURCES =

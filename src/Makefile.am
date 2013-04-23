@@ -50,7 +50,7 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a $(top_builddir)/PSolver/libPSolver.a $(top_builddir)/wrappers/libwrappers.a @LIBS_SHORT_DEPS@
+bigdft_library = libbigdft-1.a $(top_builddir)/PSolver/libPSolver.a $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/libflib.a @LIBS_SHORT_DEPS@
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft-1.a
@@ -226,7 +226,7 @@ libbigdft-1.a: $(libmain_a_OBJECTS) $(subs_static_library)
 	rm -rf tmp-libbigdft
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) $(subs_static_library)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) $(subs_static_library) $(top_builddir)/PSolver/libPSolver.a $(top_builddir)/wrappers/libwrappers.a @LIBS_SHORT_DEPS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) $(subs_static_library) $(top_builddir)/PSolver/libPSolver.a $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/libflib.a @LIBS_SHORT_DEPS@
 	@chmod a+x $@
 
 libbigdft-1.so.7: $(bigdft_dynamic_library)

@@ -10,7 +10,9 @@ pkgconfig_DATA = bigdft.pc
 SUBDIRS =
 
 if BUILD_LIBXC
+if BUILD_LIB_BIGDFT
 SUBDIRS += libxc-2.0.x
+endif
 endif
 
 if BUILD_LIBABINIT
@@ -18,7 +20,9 @@ SUBDIRS += libABINIT/src
 endif
 
 if BUILD_LIBSGPU
+if BUILD_LIB_BIGDFT
 SUBDIRS += S_GPU
+endif
 endif
 
 if BUILD_LIBYAML
@@ -28,8 +32,13 @@ endif
 SUBDIRS += \
 	flib \
 	wrappers \
-	PSolver \
-	src \
+	PSolver
+
+if BUILD_LIB_BIGDFT
+SUBDIRS += src
+endif
+
+SUBDIRS += \
 	doc \
 	utils
 
