@@ -11,8 +11,9 @@ LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
 PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
 endif
 
+AM_FCFLAGS = -I../src
 AM_LDFLAGS = -L$(top_builddir)/flib/src
-LIBS += -lflib @LIBS_SHORT_DEPS@
+LIBS += -lflib @LIBS_SHORT_DEPS@ -lrt
 
 if USE_MPI
 mpi_source =
@@ -21,7 +22,7 @@ mpi_source = $(top_srcdir)/flib/src/MPIfake.f90
 endif
 
 yaml_test_SOURCES = yaml_test.f90 errs.f90 yamlout.f90 dicts.f90 dynmem.f90 $(mpi_source)
-#yaml_test_LDADD = -lbigdft-1
+#yaml_test_LDADD = -lrt
 
 CLEANFILES = yaml_test.out.yaml fldiff.report.yaml
 
