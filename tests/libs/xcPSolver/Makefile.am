@@ -1,68 +1,32 @@
 ## Process this file with automake to produce Makefile.in
 
-OTHERS = PS_Check.f90 \
-	PS_Program.f90 \
-	PS_Exercise.f90 \
-	PS_Integral.f90 \
-	fisf.f90 \
-	bench.csh \
-	acc_F.20-100.ref \
-	acc_S-128.20-100.ref \
-	acc_P.20-100.ref \
-	README \
-	INSTALL \
-	COPYING \
-	SUBDIRS \
-	TODO \
-	$(EXERCISE)
+EXTRA_DIST = PS_Check.ref.yaml tols.yaml
 
-EXERCISE = Exercise/plot.gnuplot \
-	Exercise/PS_Exercise.tex \
-	Exercise/accF.pdf \
-	Exercise/accS.pdf \
-	Exercise/fandg.pdf \
-	Exercise/PvsF.pdf \
-	Exercise/rhoSpotS.pdf \
-	Exercise/accP.pdf \
-	Exercise/emepot.pdf \
-	Exercise/rhoFpotF.pdf
-
-EXTRA_DIST = PS_Check.ref.yaml tols.yaml $(OTHERS)
-
-check_PROGRAMS = PS_Check PS_Program PS_Exercise PS_Integral
+check_PROGRAMS = PS_Check PS_Integral
 
 if BUILD_LIBYAML
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
 PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
 endif
 
-AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_srcdir)/PSolver/src -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
-AM_LDFLAGS = -L$(top_builddir)/PSolver/src
+AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
+AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/PSolver/src
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
 else
 LIBS += @LIBS_SHORT_DEPS@ -lrt
 endif
 
 PS_Check_SOURCES = PS_Check.f90
-PS_Check_LDADD = -lPSolver-1 @LINALG_LIBS@
-
-PS_Program_SOURCES = PS_Program.f90
-PS_Program_LDADD = -lPSolver-1
-
-PS_Exercise_SOURCES = PS_Exercise.f90
-PS_Exercise_LDADD = -lPSolver-1
+PS_Check_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 PS_Integral_SOURCES = PS_Integral.f90 fisf.f90
-PS_Integral_LDADD = -lPSolver-1 @LINALG_LIBS@
+PS_Integral_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 
-CLEANFILES = malloc.prc time.prc PS_Check.out fldiff.report \
-	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@ \
-	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@ \
-	module_base.@MODULE_EXT@
+CLEANFILES = PS_Check.out.yaml fldiff.report.yaml
 
-PS_Check.out.yaml: PS_Check PS_Program PS_Exercise 
+PS_Check.out.yaml: PS_Check
 	$(run_parallel) ./PS_Check 57 48 63  0 F  > PS_Check.out.yaml
 	$(run_parallel) ./PS_Check 57 48 63  1 F >> PS_Check.out.yaml
 	$(run_parallel) ./PS_Check 57 48 63 11 F >> PS_Check.out.yaml

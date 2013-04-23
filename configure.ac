@@ -1059,6 +1059,7 @@ tests/libs/fft/Makefile
 tests/libs/flib/Makefile
 tests/libs/OP2P/Makefile
 tests/libs/xc/Makefile
+tests/libs/xcPSolver/Makefile
 tests/libs/OpenCL/Makefile
 tests/libs/CUDA/Makefile
 tests/libs/IO-wf/Makefile

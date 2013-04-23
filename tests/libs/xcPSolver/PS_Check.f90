@@ -8,8 +8,10 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 program PS_Check
-  use wrapper_mpi
-   use Poisson_Solver
+   use module_base
+   use module_xc
+   use module_interfaces
+   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use yaml_output
 
    implicit none
@@ -36,7 +38,6 @@ program PS_Check
    real(wp), dimension(:,:,:,:), pointer :: rhocore
    real(dp), dimension(6) :: xcstr
    real(dp), dimension(3) :: hgrids
-   type(mpi_environment) :: bigdft_mpi
 
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
@@ -399,7 +400,7 @@ program PS_Check
       end if
 
 
-      call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,0,&
+      call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,.false.,.false.,&
       n3d,n3p,n3pi,i3xcsh,i3s)
 
       !starting point of the three-dimensional arrays
@@ -500,7 +501,7 @@ program PS_Check
 
       nullify(rhocore)
 
-      call PS_dim4allocation(geocode,distcode,pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,n01,n02,n03,ixc,&
+      call PS_dim4allocation(geocode,distcode,pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,n01,n02,n03,xc_isgga(), (ixc /= 13),&
       n3d,n3p,n3pi,i3xcsh,i3s)
 
       !starting point of the three-dimensional arrays
