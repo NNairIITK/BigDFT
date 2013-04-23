@@ -1,6 +1,6 @@
 program wvl
 
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use BigDFT_API
   use dynamic_memory
   
@@ -31,14 +31,11 @@ program wvl
   real(wp), dimension(:,:), pointer :: ovrlp
   real(dp), dimension(:,:), pointer :: rho_p
   integer, dimension(:,:,:), allocatable :: irrzon
-  integer, dimension(:), allocatable :: i1test
   real(dp), dimension(:,:,:), allocatable :: phnons
   type(coulomb_operator) :: pkernel
   !temporary variables
-  integer(kind=8) :: itns
   integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
-  character(len=100) :: address,posinp_name
 
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
