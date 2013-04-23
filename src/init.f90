@@ -2217,7 +2217,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      tz=tz+mindist(perz,atoms%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
     enddo
     displ=sqrt(tx+ty+tz)
-    
 
    if(displ.eq.0d0 .or. in%inguess_geopt == 0) then
   
@@ -2618,9 +2617,10 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
       nvalelec =  atoms%nelpsp(atoms%iatype(k))
       call eleconf(nzatom, nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
       
-      radius = 1.0/(rcov**2)
+      radius = 1.0/((rcov)**2)
       cutoff = 3*rcov
-       
+      
+
       !dimensions for box around atom 
       xbox = nint(cutoff/hhx) ; ybox = nint(cutoff/hhy) ; zbox = nint(cutoff/hhz)
   
@@ -2645,11 +2645,13 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                s2d1 = 0d0 ; s2d2 = 0d0 ; s2d3 = 0d0
                s3d1 = 0d0 ; s3d2 = 0d0 ; s3d3 = 0d0 
                
-               distance = 0.5*(((xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2)*radius)
-               
+               distance = sqrt((xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2)
                if(distance > cutoff) cycle
                
-               expfct = ex(distance,cutoff) 
+               exp_val = 0.5*(distance**2)*radius
+               exp_cutoff = 0.5*(cutoff**2)*radius
+               
+               expfct = ex(exp_val, exp_cutoff) 
 
                norm = expfct
                recnormsqr = 1/expfct**2
@@ -2721,15 +2723,16 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
           jacdet = shift(i1+iy+iz,5)
 	
          jacdet = jacdet + 1.0
-         if(norm .eq. 0d0 ) norm = 1d0
+
+         if(norm.eq.0d0) norm = 1d0
 
          s1 = s1/norm
          s2 = s2/norm
          s3 = s3/norm
 
-         k1 = (i1-14)*hhx 
-         k2 = (i2-14)*hhy 
-         k3 = (i3-14)*hhz 
+         k1 = (i1-14)*hhx_old 
+         k2 = (i2-14)*hhy_old 
+         k3 = (i3-14)*hhz_old 
 
          x = k1 - s1
          y = k2 - s2

@@ -27,7 +27,7 @@ program BigDFT
    type(atoms_data) :: atoms
    type(input_variables) :: inputs
    type(restart_objects) :: rst
-   character(len=50), dimension(:), allocatable :: arr_posinp
+   character(len=50), dimension(:), allocatable :: arr_posinp,arr_posinp2
    character(len=60) :: filename, radical
    ! atomic coordinates, forces, strten
    real(gp), dimension(6) :: strten
@@ -66,9 +66,12 @@ program BigDFT
       if (nconfig > 0) then 
          !allocation not referenced since memocc count not initialised
          allocate(arr_posinp(1:nconfig))
+         allocate(arr_posinp2(1:nconfig))
 
          do iconfig=1,nconfig
-            read(54,*) arr_posinp(iconfig)
+            read(54,*) filename
+            arr_posinp2(iconfig) = trim(filename) 
+            arr_posinp(iconfig) = trim(filename)//'.xyz' 
          enddo
       else
          !normal case
@@ -92,6 +95,8 @@ program BigDFT
    end if
 
    do iconfig=1,nconfig
+      
+      write(radical, "(A)") trim(arr_posinp2(iconfig))   
 
       ! Read all input files.
       !standard names
@@ -203,6 +208,7 @@ program BigDFT
    enddo !loop over iconfig
 
    deallocate(arr_posinp)
+   deallocate(arr_posinp2)
 
    call mpi_environment_free(bigdft_mpi)
    !wait all processes before finalisation
