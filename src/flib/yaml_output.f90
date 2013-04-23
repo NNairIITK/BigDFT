@@ -2,11 +2,14 @@
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markeup Language (ML for Human)
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
+!> Define routines used to write yaml
 module yaml_output
   use yaml_strings
   use dictionaries
@@ -65,17 +68,20 @@ module yaml_output
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
   integer, dimension(tot_streams) :: stream_units=6             !< Default units unless otherwise specified
 
+  !> Generic routine
   interface yaml_map
-     module procedure yaml_map,yaml_map_i,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
+     module procedure yaml_map,yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
   end interface
 
+  !! Public routines (API of the module)
   public :: yaml_new_document,yaml_release_document
   public :: yaml_map,yaml_open_map,yaml_close_map
   public :: yaml_sequence,yaml_open_sequence,yaml_close_sequence
-  public :: yaml_comment,yaml_warning,yaml_toa,yaml_newline
-  public :: yaml_set_stream,yaml_get_default_stream,yaml_set_default_stream,yaml_stream_attributes
-  public :: yaml_close_all_streams
-  public :: yaml_date_and_time_toa,yaml_scalar,yaml_date_toa,yaml_dict_dump
+  public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
+  public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa,yaml_time_toa
+  public :: yaml_set_stream,yaml_set_default_stream
+  public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
+  public :: yaml_dict_dump
 
 
 contains
@@ -747,7 +753,7 @@ contains
     integer, optional, intent(in) :: unit               !< unit for strem
     !local variables
     logical :: cut,redo_line
-    integer :: msg_lgt,strm,unt,icut,istr,ierr,msg_lgt_ck
+    integer :: msg_lgt,strm,unt,icut,istr,ierr,msg_lgt_ck,idbg
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -772,12 +778,16 @@ contains
 
     !while putting the message verify that the string is not too long
     msg_lgt_ck=msg_lgt
+    !print *, 'here'
     call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt,istat=ierr)
+!   print *, 'here2',ierr
     if (ierr ==0) then
        call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING,istat=ierr)
     end if
+!    print *, 'here2b',ierr
     redo_line=ierr/=0
     if (redo_line) then
+!       print *, 'here3',ierr
        if (streams(strm)%flowrite) then
           call dump(streams(strm),towrite(1:msg_lgt_ck),advance=trim(adv),event=SCALAR)
        else
@@ -792,290 +802,74 @@ contains
        istr=1
        cut=.true.
        msg_lgt=0
+       idbg=0
        cut_line: do while(cut)
-          !print *,'hereOUTPU',cut,icut
+          idbg=idbg+1
+!          print *,'hereOUTPU',cut,icut,idbg
        !verify where the message can be cut
           cut=.false.
-          cut_message :do while(icut > streams(strm)%max_record_length - max(streams(strm)%icursor,streams(strm)%indent))
+          cut_message :do while(icut > streams(strm)%max_record_length - &
+               max(streams(strm)%icursor,streams(strm)%indent))
              icut=index(trim((mapvalue(istr:istr+icut-1))),' ',back=.true.)
              cut=.true.
           end do cut_message
           call buffer_string(towrite,len(towrite),mapvalue(istr:istr+icut-1),msg_lgt)
-          if (streams(strm)%flowrite .and. .not. cut) call buffer_string(towrite,len(towrite),',',msg_lgt)
+          if (streams(strm)%flowrite .and. .not. cut) &
+               call buffer_string(towrite,len(towrite),',',msg_lgt)
           call dump(streams(strm),towrite(1:msg_lgt),advance='yes',event=SCALAR)
-          istr=icut
+          istr=istr-1+icut
           icut=len_trim(mapvalue)-istr+1
-          !print *,'icut',istr,icut,mapvalue(istr:istr+icut-1),cut,istr+icut-1,len_trim(mapvalue)
+!          print *,'icut',istr,icut,mapvalue(istr:istr+icut-1),cut,istr+icut-1,len_trim(mapvalue)
           msg_lgt=0
+         if (idbg==1000) exit cut_line !to avoid infinite loops
        end do cut_line
        if (.not.streams(strm)%flowrite) call yaml_close_map(unit=unt)
     end if
 
   end subroutine yaml_map
 
+  subroutine yaml_map_li(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    integer(kind=8), intent(in) :: mapvalue
+    include 'yaml_map-inc.f90'
+  end subroutine yaml_map_li
 
   subroutine yaml_map_i(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    character(len=*), intent(in) :: mapname
     integer, intent(in) :: mapvalue
-    character(len=*), optional, intent(in) :: label,advance,fmt
-    integer, optional, intent(in) :: unit
-    !local variables
-    integer :: msg_lgt,strm,unt
-    character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
-
-    unt=0
-    if (present(unit)) unt=unit
-    call get_stream(unt,strm)
-
-    adv='def' !default value
-    if (present(advance)) adv=advance
-
-    msg_lgt=0
-    !put the message
-    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-    !put the semicolon
-    call buffer_string(towrite,len(towrite),': ',msg_lgt)
-    !put the optional name
-    if (present(label)) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
-    end if
-    !put the value
-    if (present(fmt)) then
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
-    else
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-    end if
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
+    include 'yaml_map-inc.f90'
   end subroutine yaml_map_i
-
 
   subroutine yaml_map_f(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    character(len=*), intent(in) :: mapname
     real, intent(in) :: mapvalue
-    character(len=*), optional, intent(in) :: label,advance,fmt
-    integer, optional, intent(in) :: unit
-    !local variables
-    integer :: msg_lgt,strm,unt
-    character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
-
-    unt=0
-    if (present(unit)) unt=unit
-    call get_stream(unt,strm)
-
-    adv='def' !default value
-    if (present(advance)) adv=advance
-
-    msg_lgt=0
-    !put the message
-    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-    !put the semicolon
-    call buffer_string(towrite,len(towrite),': ',msg_lgt)
-    !put the optional name
-    if (present(label)) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
-    end if
-    !put the value
-    if (present(fmt)) then
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
-    else
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-    end if
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
+    include 'yaml_map-inc.f90'
   end subroutine yaml_map_f
-
 
   subroutine yaml_map_d(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    character(len=*), intent(in) :: mapname
     real(kind=8), intent(in) :: mapvalue
-    character(len=*), optional, intent(in) :: label,advance,fmt
-    integer, optional, intent(in) :: unit
-    !local variables
-    integer :: msg_lgt,strm,unt
-    character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
-
-    unt=0
-    if (present(unit)) unt=unit
-    call get_stream(unt,strm)
-
-
-    adv='def' !default value
-    if (present(advance)) adv=advance
-
-    msg_lgt=0
-    !put the message
-    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-    !put the semicolon
-    call buffer_string(towrite,len(towrite),': ',msg_lgt)
-    !put the optional name
-    if (present(label)) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
-    end if
-
-    !put the value
-    if (present(fmt)) then
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
-    else
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-    end if
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
+    include 'yaml_map-inc.f90'
   end subroutine yaml_map_d
-
 
   subroutine yaml_map_l(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    character(len=*), intent(in) :: mapname
     logical,  intent(in) :: mapvalue
-    character(len=*), optional, intent(in) :: label,advance,fmt
-    integer, optional, intent(in) :: unit
-    !local variables
-    integer :: msg_lgt,strm,unt
-    character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
-
-    unt=0
-    if (present(unit)) unt=unit
-    call get_stream(unt,strm)
-
-
-    adv='def' !default value
-    if (present(advance)) adv=advance
-
-    msg_lgt=0
-    !put the message
-    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-    !put the semicolon
-    call buffer_string(towrite,len(towrite),': ',msg_lgt)
-    !put the optional name
-    if (present(label)) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
-    end if
-    !put the value
-    if (present(fmt)) then
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
-    else
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-    end if
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
+    include 'yaml_map-inc.f90'
   end subroutine yaml_map_l
-
 
   subroutine yaml_map_dv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    character(len=*), intent(in) :: mapname
     real(kind=8), dimension(:), intent(in) :: mapvalue
-    character(len=*), optional, intent(in) :: label,advance,fmt
-    integer, optional, intent(in) :: unit
-    !local variables
-    integer :: msg_lgt,strm,unt,nl,nu,tmp_lgt,i
-    character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
-
-    unt=0
-    if (present(unit)) unt=unit
-    call get_stream(unt,strm)
-
-    adv='def' !default value
-    if (present(advance)) adv=advance
-
-    nl=lbound(mapvalue,1)
-    nu=ubound(mapvalue,1)
-
-    msg_lgt=0
-    !put the message
-    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-    !put the semicolon
-    call buffer_string(towrite,len(towrite),': ',msg_lgt)
-    !put the optional name
-    if (present(label)) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
-    end if
-
-    !check whether the final message will be too long or not
-    if (nu-nl > 0) then
-       !change strategy if the remaining space is too low
-       !template of an element
-       if (present(fmt)) then
-          tmp_lgt=len_trim(yaml_toa(mapvalue(nl),fmt=fmt))
-       else
-          tmp_lgt=len_trim(yaml_toa(mapvalue(nl)))
-       end if
-       tmp_lgt=tmp_lgt+3 !comma and spaces
-       tmp_lgt=tmp_lgt*(nu-nl)
-       if (max(streams(strm)%icursor+msg_lgt+1,streams(strm)%tabref)+tmp_lgt > &
-            streams(strm)%max_record_length) then
-          !implement the writing explicitly per element
-          call yaml_open_sequence(mapname,flow=.true.,unit=unt)
-          do i=nl,nu
-             if (present(fmt)) then
-                call yaml_sequence(trim(yaml_toa(mapvalue(i),fmt=fmt)),unit=unt)
-             else
-                call yaml_sequence(trim(yaml_toa(mapvalue(i))),unit=unt)
-             end if
-          end do
-          call yaml_close_sequence(unit=unt)
-          return
-       end if
-    end if
-
-    !put the value
-    if (present(fmt)) then
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
-    else
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-    end if
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
+    include 'yaml_map-arr-inc.f90'
   end subroutine yaml_map_dv
-
 
   !> Character vector
   subroutine yaml_map_cv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    character(len=*), intent(in) :: mapname
     character(len=*), dimension(:), intent(in) :: mapvalue
-    character(len=*), optional, intent(in) :: label,advance,fmt
-    integer, optional, intent(in) :: unit
-    !local variables
-    integer :: msg_lgt,strm,unt
-    character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
-
-    unt=0
-    if (present(unit)) unt=unit
-    call get_stream(unt,strm)
-
-    adv='def' !default value
-    if (present(advance)) adv=advance
-
-    msg_lgt=0
-    !put the message
-    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-    !put the semicolon
-    call buffer_string(towrite,len(towrite),': ',msg_lgt)
-    !put the optional name
-    if (present(label)) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
-    end if
-    !put the value
-    if (present(fmt)) then
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-    else
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-    end if
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
+    include 'yaml_map-arr-inc.f90'
   end subroutine yaml_map_cv
-
 
   subroutine yaml_map_iv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
@@ -1123,11 +917,13 @@ contains
     integer, optional, intent(out) :: istat
     !local variables
     logical :: stream_found
-    integer :: istream,prev_def
+    integer :: istream,prev_def,ierr
 
     if (present(istat)) istat=0
 
     if (unt==0) then
+       !if there are no active streams activate them (to circumvent g95 bug)
+       if (active_streams==0) call yaml_set_stream(record_length=92,istat=ierr)
        strm=default_stream
     else
        !it is assumed that the unit exists
@@ -1156,15 +952,18 @@ contains
   end subroutine get_stream
 
 
+  !> This routine is the key of the module, handling the events and
+  !! writing into the stream.
   subroutine dump(stream,message,advance,event,istat)
     implicit none
-    type(yaml_stream), intent(inout) :: stream
-    character(len=*), intent(in) :: message
-    character(len=*), intent(in), optional :: advance
-    integer, intent(in), optional :: event
-    integer, intent(out), optional :: istat
+    type(yaml_stream), intent(inout) :: stream          !< Stream to handle
+    character(len=*), intent(in) :: message             !< Mesage to dump
+    character(len=*), intent(in), optional :: advance   !< Advance option
+    integer, intent(in), optional :: event              !< Event to handle
+    integer, intent(out), optional :: istat             !< Status error
     !local variables
-    logical :: ladv,change_line,reset_line,pretty_print,reset_tabbing,comma_postponed
+    logical :: ladv,change_line,reset_line,pretty_print
+    logical :: reset_tabbing,comma_postponed,extra_line
     integer :: evt,indent_lgt,msg_lgt,shift_lgt,prefix_lgt
     integer :: towrite_lgt
     character(len=1) :: anchor
@@ -1213,9 +1012,14 @@ contains
     towrite=repeat(' ',len(towrite))
     msg_lgt=0
     !a empty message is not written
-    if (len_trim(message) > 0) &
-         call buffer_string(towrite,len(towrite),message,msg_lgt)
-
+!    print *,'thisone'
+    if (.not. present(istat)) then
+       if (len_trim(message) > 0) &
+            call buffer_string(towrite,len(towrite),message,msg_lgt)
+    else
+       call buffer_string(towrite,len(towrite),message,msg_lgt,istat=istat)
+    end if
+!    print *,'not really'
     prefix_lgt=0
     !initialize it
     prefix=repeat(' ',len(prefix))
@@ -1351,13 +1155,19 @@ contains
     end if
 
     !standard writing,
+    !if (change_line) print *,'change_line',change_line,'prefix',prefix_lgt,msg_lgt,shift_lgt
+    extra_line=.false.
     if (change_line) then
        !first write prefix, if needed
        if (prefix_lgt>0) then
           write(stream%unit,'(a)')prefix(1:prefix_lgt)
        else if (msg_lgt >0 .or. evt == NEWLINE) then
-          !change line
-          write(stream%unit,*)
+          !change line, only if istat is not present
+          if (.not. present(istat)) then
+             write(stream%unit,*)
+          else
+             extra_line=.true.
+          end if
        end if
        stream%icursor=1
        towrite_lgt=msg_lgt+shift_lgt
@@ -1379,6 +1189,7 @@ contains
              !stop 'ERROR (dump): writing exceeds record size'
           end if
        else
+          if (extra_line) write(stream%unit,*)
           !write(*,fmt='(a,i0,a)',advance="no") '(indent_lgt ',indent_lgt,')'
           write(stream%unit,'(a)',advance=trim(adv))repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
        end if
@@ -1430,13 +1241,18 @@ contains
       change_line=.false.
       iscpos=index(message,anchor)
       shift_lgt=0
-      if (iscpos==0) return !no anchor, no pretty printing
+
+      !alternative strategy, anchor to the first position
+      !if (iscpos==0) return !no anchor, no pretty printing
+
       ianchor_pos=icursor+prefix_lgt+indent_lgt+iscpos-1
       call closest_tab(ianchor_pos,tabeff)
       !first attempt to see if the line enters
       shift_lgt=tabeff-ianchor_pos
-      !print *, 'there',tabeff,itab,ianchor_pos,shift_lgt,msg_lgt,prefix_lgt,indent_lgt,icursor
+      !print *, 'there',shift_lgt,msg_lgt,prefix_lgt,indent_lgt,icursor,max_lgt
+      !print *,'condition',icursor+msg_lgt+prefix_lgt+indent_lgt+shift_lgt >= max_lgt
       !see if the line enters
+      
       if (icursor+msg_lgt+prefix_lgt+indent_lgt+shift_lgt >= max_lgt) then
          !restart again
          change_line=.true.

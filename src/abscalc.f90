@@ -1394,8 +1394,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call xc_end()
 
       !end of wavefunction minimisation
-      call timing(iproc,'LAST','PR')
-      call timing(iproc,'              ','RE')
+      call timing(bigdft_mpi%mpi_comm,'LAST','PR')
+      call timing(bigdft_mpi%mpi_comm,'              ','RE')
       call cpu_time(tcpu1)
       call system_clock(ncount1,ncount_rate,ncount_max)
       tel=dble(ncount1-ncount0)/dble(ncount_rate)

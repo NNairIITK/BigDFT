@@ -12,7 +12,7 @@
 subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
   use module_base
   use module_types
-  use module_interfaces, fake_name=>initSparseMatrix
+  use module_interfaces, fake_name => initSparseMatrix
   implicit none
   
   ! Calling arguments
@@ -26,12 +26,14 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
   integer :: nseglinemax, iall
   integer :: compressed_index
   integer,dimension(:,:,:),pointer:: keygline
+  integer,dimension(:),pointer:: noverlaps
+  integer,dimension(:,:),pointer:: overlaps
   character(len=*),parameter :: subname='initSparseMatrix'
   
   call timing(iproc,'init_matrCompr','ON')
 
   call nullify_sparsematrix(sparsemat)
-  call initCommsOrtho(iproc, nproc, lzd, orbs, 's', sparsemat%noverlaps, sparsemat%overlaps)
+  call initCommsOrtho(iproc, nproc, lzd, orbs, 's', noverlaps, overlaps)
 
   sparsemat%full_dim1=orbs%norb
   sparsemat%full_dim2=orbs%norb
@@ -50,8 +52,8 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
           iiorb=orbs%isorb_par(jproc)+iorb
           ilr=orbs%inWhichLocreg(iiorb)
           ijorb=(iiorb-1)*orbs%norb
-          do jorb=1,sparsemat%noverlaps(iiorb)
-              jjorb=sparsemat%overlaps(jorb,iiorb)+ijorb
+          do jorb=1,noverlaps(iiorb)
+              jjorb=overlaps(jorb,iiorb)+ijorb
               if(jjorb==jjorbold+1 .and. jorb/=1) then
                   ! There was no zero element in between, i.e. we are in the same segment.
                   jjorbold=jjorb
@@ -117,8 +119,8 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
           iiorb=orbs%isorb_par(jproc)+iorb
           ilr=orbs%inWhichLocreg(iiorb)
           ijorb=(iiorb-1)*orbs%norb
-          do jorb=1,sparsemat%noverlaps(iiorb)
-              jjorb=sparsemat%overlaps(jorb,iiorb)+ijorb
+          do jorb=1,noverlaps(iiorb)
+              jjorb=overlaps(jorb,iiorb)+ijorb
               if(jjorb==jjorbold+1 .and. jorb/=1) then
                   ! There was no zero element in between, i.e. we are in the same segment.
 
@@ -171,6 +173,14 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
   iall=-product(shape(keygline))*kind(keygline)
   deallocate(keygline, stat=istat)
   call memocc(istat, iall, 'keygline', subname)
+
+  iall=-product(shape(noverlaps))*kind(noverlaps)
+  deallocate(noverlaps, stat=istat)
+  call memocc(istat, iall, 'noverlaps', subname)
+
+  iall=-product(shape(overlaps))*kind(overlaps)
+  deallocate(overlaps, stat=istat)
+  call memocc(istat, iall, 'overlaps', subname)
 
   ! initialize sparsemat%matrixindex_in_compressed
   allocate(sparsemat%matrixindex_in_compressed(orbs%norb,orbs%norb), stat=istat)

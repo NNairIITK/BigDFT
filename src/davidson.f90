@@ -2,7 +2,7 @@
 !       Set to zero:
 !!  Routines to do diagonalisation with Davidson algorithm
 !! @author
-!!    Copyright (C) 2007-2012 BigDFT group
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -686,7 +686,8 @@ subroutine davidson(iproc,nproc,in,at,&
          !e(:,1,1) = <psi|H|psi> / <psi|psi>
          e(iorb,ikpt,1)=e(iorb,ikpt,1)/e(iorb,ikpt,2)
          if (iproc == 0) then
-            call yaml_sequence(trim(yaml_toa((/ 1.0_gp-e(iorb,ikpt,2),e(iorb,ikpt,1) /),fmt='(1pe13.6)')))
+            call yaml_sequence(trim(yaml_toa((/ 1.0_gp-e(iorb,ikpt,2),e(iorb,ikpt,1) /),fmt='(1pe13.6)')),&
+                               advance='no')
             !call yaml_map('Orbitals',&
             !     ,advance='no')
             call yaml_comment(trim(yaml_toa(iorb,fmt='(i4.4)')))
@@ -1157,7 +1158,9 @@ subroutine davidson(iproc,nproc,in,at,&
                   else
                      prteigu=print_rough
                   end if
-                  call yaml_sequence(trim(yaml_toa((/ e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)) /),fmt='('//prteigu//')')))
+                     call yaml_sequence(trim(yaml_toa((/ e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)) /),fmt='('//prteigu//')')),&
+                          advance='no')
+                     call yaml_comment(trim(yaml_toa(iorb,fmt='(i4.4)')))
                   !write(*,'(1x,i5,'//prteigu//',1pe9.2)')iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2))
                end do
             else if (nspin == 2) then
@@ -1174,7 +1177,9 @@ subroutine davidson(iproc,nproc,in,at,&
                   end if
                   call yaml_sequence(trim(yaml_toa((/ &
                        & e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)), &
-                       & e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2)) /),fmt='('//prteigu//')')))
+                          & e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2)) /),fmt='('//prteigu//')')),&
+                          advance='no')
+                     call yaml_comment(trim(yaml_toa(iorb,fmt='(i4.4)')))
                   !write(*,'(1x,i5,'//prteigu//',1pe9.2,t50,'//prteigd//',1pe9.2)')&
                   !   &   iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)),e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2))
                end do
@@ -2059,15 +2064,15 @@ subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
       !the minimum wrt all the k-points
       do ikpt=2,orbs%nkpts
          orbs%HLgap=min(orbs%HLgap,orbsv%eval(1+(ikpt-1)*orbsv%norb)&
-            &   -orbs%eval(orbs%norb+(ikpt-1)*orbs%norb))
+              -orbs%eval(orbs%norb+(ikpt-1)*orbs%norb))
       end do
    else if (orbs%nspin==2) then
       ikpt=1
-        orbs%HLgap=min(orbsv%eval(1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
-            &   orbsv%eval(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbd+orbs%norbu+(ikpt-1)*orbs%norb))
+      orbs%HLgap=min(orbsv%eval(1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
+           orbsv%eval(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbd+orbs%norbu+(ikpt-1)*orbs%norb))
       do ikpt=2,orbs%nkpts
          orbs%HLgap=min(orbs%HLgap,orbsv%eval(1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
-            &   orbsv%eval(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbd+orbs%norbu+(ikpt-1)*orbs%norb))
+              orbsv%eval(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbd+orbs%norbu+(ikpt-1)*orbs%norb))
       end do
    end if
 

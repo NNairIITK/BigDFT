@@ -353,8 +353,9 @@
       integer, intent(in) :: nalloc,ndealloc
       !Local variables
       if (malloc_level==2 .and. nalloc /= ndealloc) then
+         !Use # to be yaml compliant (is a comment in yaml)
          write(*,*) &
-              "Use the python script 'memcheck.py' in utils/scripts to check"//&
+              "#Use the python script 'memcheck.py' in utils/scripts to check"//&
               trim(filename)//" file"
       end if
     END SUBROUTINE memory_malloc_check

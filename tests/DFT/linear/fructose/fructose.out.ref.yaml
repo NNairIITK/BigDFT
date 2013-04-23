@@ -24,14 +24,29 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
- 
+
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.24
- Timestamp of this run                 : 2013-02-18 16:33:56.711
- Root process Hostname                 : badiane
- Number of MPI tasks                   :  4
+ Version Number                        : 1.7-dev.26
+ Timestamp of this run                 : 2013-04-15 15:04:02.541
+ Root process Hostname                 : athelas
+ Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  1
+ Maximal OpenMP threads per MPI task   :  2
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments:
+     " 'FC=mpif90' 'FCFLAGS=-O2 -fopenmp' '--enable-dgemmsy' '--with-etsf-io' 
+      '--with-etsf-io-path=/opt' '--enable-minima-hopping' 
+      '--with-ext-linalg=-Wl,--start-group  /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.a 
+      /opt/intel/mkl/lib/intel64/libmkl_sequential.a 
+      /opt/intel/mkl/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread 
+      -lscalapack-openmpi -lblacs-openmpi -lblacsCinit-openmpi -lblacsF77init-openmpi'"
+   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
+   Compiler flags:
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -O2 -fopenmp
+     CXXFLAGS                          : -g -O2
+     CPPFLAGS                          : 
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -124,9 +139,9 @@
  #|1  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|3.d-2          fscale: length scale over which complementary error function decays from 1 
  #|0  F           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|C  4 1.4d-1 0.0d-2 3.2 3.2 8.d0 Atom name, number of basis functions per atom, prefactor f
- #|O  4 1.4d-1 0.0d-2 3.2 3.2 8.d0 Atom name, number of basis functions per atom, prefactor f
- #|H  1 1.4d-1 0.0d-2 3.2 3.2 8.d0 Atom name, number of basis functions per atom, prefactor f
+ #|C  4 1.4d-1 1.4d-1 0.0d-2 3.2 3.2 8.d0 Atom name, number of basis functions per atom, pref
+ #|O  4 1.4d-1 1.4d-1 0.0d-2 3.2 3.2 8.d0 Atom name, number of basis functions per atom, pref
+ #|H  1 1.4d-1 1.4d-1 0.0d-2 3.2 3.2 8.d0 Atom name, number of basis functions per atom, pref
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data/
   #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
@@ -274,20 +289,20 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
-   OpenMP threads per MPI task         :  1
+   MPI tasks                           :  2
+   OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  3.89
-     Kernel (MB)                       :  3.98
+     Density (MB)                      :  7.79
+     Kernel (MB)                       :  7.97
      Full Grid Arrays (MB)             :  14.83
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 3                : 100%
+         MPI tasks 0- 1                : 100%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  97%
+         MPI tasks 0- 0                : 100%
+         MPI task 1                    :  98%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -300,12 +315,12 @@
  Total Number of Electrons             :  72
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 3                     :  9
+   MPI tasks  0- 1                     :  18
  Total Number of Orbitals              :  36
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-36:  2.0000}
- Wavefunctions memory occupation for root MPI process:  3 MB 1015 KB 128 B
+ Wavefunctions memory occupation for root MPI process:  7 MB 1005 KB 992 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  12
@@ -315,17 +330,17 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.2 #    (Number of Orbitals: 36)
    Single orbital                      : 0.455 #  (Number of Components: 58125)
-   All (distributed) orbitals          : 11.998 # (Number of Orbitals per MPI task: 9)
-   Wavefunction storage size           : 91.820 # (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 23.970 # (Number of Orbitals per MPI task: 18)
+   Wavefunction storage size           : 183.610 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.39
    Full Uncompressed (ISF) grid        : 14.851
    Workspaces storage size             : 1.503
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 76.342
-   Density Construction                : 146.1008
-   Poisson Solver                      : 142.589
-   Hamiltonian application             : 149.129
- Estimated Memory Peak (MB)            :  149
+   Kernel calculation                  : 152.684
+   Density Construction                : 254.487
+   Poisson Solver                      : 285.110
+   Hamiltonian application             : 256.633
+ Estimated Memory Peak (MB)            :  285
   #WARNING: Do not call check_communications in the linear scaling version!
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -339,11 +354,11 @@
    Maxdiff for uncompress              :  0.00000000000000000E+00
  Ion-Ion interaction energy            :  4.60424925840373E+02
   #---------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -71.999999033643
+ Total ionic charge                    : -71.999999033642
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  60
@@ -356,178 +371,178 @@
    Poisson Solver:
      BC                                : Free
      Box                               :  [  135,  121,  119 ]
-     MPI tasks                         :  4
+     MPI tasks                         :  2
    Poisson Solver:
      BC                                : Free
      Box                               :  [  135,  121,  119 ]
-     MPI tasks                         :  4
+     MPI tasks                         :  2
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  17742,  419 ]
- 
-   Maxdiff for transpose (checksum)    :  1.01863406598567963E-10
+   Number of coarse and fine DoF (MasterMPI task):  [  24488,  624 ]
+   Tolerances for this check: [ 2.87873337176854581E-07,  1.33226762955018785E-14]
+   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  16401,  411 ]
- 
+   Number of coarse and fine DoF (MasterMPI task):  [  24834,  719 ]
+   Tolerances for this check: [ 1.93695002586105613E-06,  1.33226762955018785E-14]
    Maxdiff for transpose (checksum)    :  6.98491930961608887E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  5.50438295E-02, y:  6.70160231E-02, z:  6.18786092E-02, 
                     total:  1.06536063E-01}
- Clean forces norm (Ha/Bohr): {maxval:  1.374446035983E-01, fnrm2:  1.070950795450E-01}
- Raw forces norm (Ha/Bohr): {maxval:  1.650188850432E-01, fnrm2:  1.199247154429E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  1.374446035988E-01, fnrm2:  1.070950795463E-01}
+ Raw forces norm (Ha/Bohr): {maxval:  1.650188850433E-01, fnrm2:  1.199247154441E-01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -1.535751776688E-02, -2.661458857073E-02, -2.525991986114E-02 ]} # 0001
- -  {C:  [ -1.244543884262E-02, -9.365210927036E-03,  1.104775045540E-02 ]} # 0002
- -  {C:  [  1.311570675221E-02, -2.016549393752E-02,  1.064137860958E-02 ]} # 0003
- -  {C:  [  3.002143043961E-02,  3.272254520638E-02, -3.827433401978E-02 ]} # 0004
- -  {O:  [  5.080125884218E-02, -2.067599785222E-02,  8.213848966663E-02 ]} # 0005
- -  {C:  [ -1.811409020714E-02,  6.873259750044E-03, -7.223184428168E-03 ]} # 0006
- -  {O:  [  3.613476010624E-02,  3.380419543627E-02,  8.601408999268E-02 ]} # 0007
- -  {O:  [  6.641588996719E-02,  1.972794506041E-02,  5.608945135278E-02 ]} # 0008
- -  {O:  [  3.502446256597E-02,  1.156020868044E-01, -6.835055914055E-03 ]} # 0009
- -  {C:  [  3.327734984176E-02,  1.568057280958E-02, -5.547815818204E-02 ]} # 0010
- -  {O:  [ -3.292117435687E-02, -2.728642330279E-02,  4.861993271233E-04 ]} # 0011
- -  {O:  [ -4.335315867348E-03,  7.412833232166E-02,  1.156599085328E-01 ]} # 0012
- -  {H:  [  2.031962211317E-02, -7.294317541896E-03, -1.643499959133E-02 ]} # 0013
- -  {H:  [ -1.924387657971E-02, -4.360849854092E-02, -1.507926675508E-02 ]} # 0014
- -  {H:  [ -1.715331779671E-02, -1.435049750057E-02,  2.965788120520E-03 ]} # 0015
- -  {H:  [ -6.596474433538E-03,  1.215637888384E-02,  7.835894566494E-03 ]} # 0016
- -  {H:  [ -5.745283961471E-03, -3.531653300777E-02, -2.862042815207E-02 ]} # 0017
- -  {H:  [  5.179630855874E-03, -4.965253500162E-03, -7.741886220319E-03 ]} # 0018
- -  {H:  [ -5.938741805833E-03,  1.972240827422E-02, -2.259935175009E-03 ]} # 0019
- -  {H:  [ -1.425243021656E-02, -2.486029770147E-02, -1.411557545656E-02 ]} # 0020
- -  {H:  [  6.497323173306E-03, -2.661845291660E-02, -2.485733614822E-02 ]} # 0021
- -  {H:  [ -8.874970733258E-02,  1.339204711776E-02, -4.437465341773E-02 ]} # 0022
- -  {H:  [ -5.386230881156E-03,  5.813187647476E-03, -4.689349929753E-02 ]} # 0023
- -  {H:  [ -5.054783460910E-02, -8.850139401235E-02, -3.943071800502E-02 ]} # 0024
+ -  {C: [-1.535751776561E-02, -2.661458857079E-02, -2.525991986156E-02]} # 0001
+ -  {C: [-1.244543884193E-02, -9.365210926856E-03,  1.104775045499E-02]} # 0002
+ -  {C: [ 1.311570675242E-02, -2.016549393721E-02,  1.064137860884E-02]} # 0003
+ -  {C: [ 3.002143044373E-02,  3.272254520483E-02, -3.827433402329E-02]} # 0004
+ -  {O: [ 5.080125884253E-02, -2.067599785160E-02,  8.213848966612E-02]} # 0005
+ -  {C: [-1.811409020664E-02,  6.873259749521E-03, -7.223184427845E-03]} # 0006
+ -  {O: [ 3.613476010283E-02,  3.380419543720E-02,  8.601408999478E-02]} # 0007
+ -  {O: [ 6.641588996658E-02,  1.972794506056E-02,  5.608945135337E-02]} # 0008
+ -  {O: [ 3.502446256561E-02,  1.156020868045E-01, -6.835055913792E-03]} # 0009
+ -  {C: [ 3.327734984380E-02,  1.568057281127E-02, -5.547815818420E-02]} # 0010
+ -  {O: [-3.292117435763E-02, -2.728642330342E-02,  4.861993287202E-04]} # 0011
+ -  {O: [-4.335315868615E-03,  7.412833232097E-02,  1.156599085338E-01]} # 0012
+ -  {H: [ 2.031962211316E-02, -7.294317542019E-03, -1.643499959138E-02]} # 0013
+ -  {H: [-1.924387657988E-02, -4.360849854110E-02, -1.507926675496E-02]} # 0014
+ -  {H: [-1.715331779668E-02, -1.435049750079E-02,  2.965788120602E-03]} # 0015
+ -  {H: [-6.596474433591E-03,  1.215637888391E-02,  7.835894566648E-03]} # 0016
+ -  {H: [-5.745283961728E-03, -3.531653300789E-02, -2.862042815194E-02]} # 0017
+ -  {H: [ 5.179630855464E-03, -4.965253500217E-03, -7.741886220377E-03]} # 0018
+ -  {H: [-5.938741806043E-03,  1.972240827442E-02, -2.259935174788E-03]} # 0019
+ -  {H: [-1.425243021682E-02, -2.486029770126E-02, -1.411557545619E-02]} # 0020
+ -  {H: [ 6.497323173085E-03, -2.661845291676E-02, -2.485733614792E-02]} # 0021
+ -  {H: [-8.874970733314E-02,  1.339204711790E-02, -4.437465341761E-02]} # 0022
+ -  {H: [-5.386230881507E-03,  5.813187647548E-03, -4.689349929728E-02]} # 0023
+ -  {H: [-5.054783460941E-02, -8.850139401272E-02, -3.943071800476E-02]} # 0024
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  67.54
-   Elapsed time (s)                    :  68.10
+   CPU time (s)                        :  317.76
+   Elapsed time (s)                    :  169.19
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 109085
-   Tot. No. of Deallocations: 109085
+   Tot. No. of Allocations  : 224955
+   Tot. No. of Deallocations: 224955
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 255
-      for the array: psir_noconf
-      in the routine: psi_to_vlocpsi
+      Peak Value (MB): 464
+      for the array: nrecvdspls
+      in the routine: transpose_communicate_psi

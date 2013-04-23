@@ -2114,26 +2114,12 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
            PAWD%paw_nlpspd%plr(natpaw)%d%n2=nu2-nl2
            PAWD%paw_nlpspd%plr(natpaw)%d%n3=nu3-nl3
 
-
-!!$           PAWD%paw_nlpspd%nboxp_c(1,1,natpaw)=nl1
-!!$           PAWD%paw_nlpspd%nboxp_c(1,2,natpaw)=nl2       
-!!$           PAWD%paw_nlpspd%nboxp_c(1,3,natpaw)=nl3       
-!!$
-!!$           PAWD%paw_nlpspd%nboxp_c(2,1,natpaw)=nu1
-!!$           PAWD%paw_nlpspd%nboxp_c(2,2,natpaw)=nu2
-!!$           PAWD%paw_nlpspd%nboxp_c(2,3,natpaw)=nu3
-
            call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
                 at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),cpmult,hx,hy,hz,logrid)
            call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
 
            PAWD%paw_nlpspd%plr(natpaw)%wfd%nseg_c=mseg
            PAWD%paw_nlpspd%plr(natpaw)%wfd%nvctr_c=mvctr
-
-!!$           PAWD%paw_nlpspd%nseg_p (2*natpaw-1)=&
-!!$                PAWD%paw_nlpspd%nseg_p (2*natpaw-2) + mseg
-!!$           PAWD%paw_nlpspd%nvctr_p(2*natpaw-1)=&
-!!$                PAWD%paw_nlpspd%nvctr_p(2*natpaw-2) + mvctr
 
            istart=istart+mvctr*mproj
 
@@ -2159,16 +2145,6 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
                 PAWD%paw_nlpspd%plr(natpaw)%ns2
            PAWD%paw_nlpspd%plr(natpaw)%d%nfu3=nu3-&
                 PAWD%paw_nlpspd%plr(natpaw)%ns3
-           
-
-
-!!$           PAWD%paw_nlpspd%nboxp_f(1,1,natpaw)=nl1
-!!$           PAWD%paw_nlpspd%nboxp_f(1,2,natpaw)=nl2
-!!$           PAWD%paw_nlpspd%nboxp_f(1,3,natpaw)=nl3
-!!$
-!!$           PAWD%paw_nlpspd%nboxp_f(2,1,natpaw)=nu1
-!!$           PAWD%paw_nlpspd%nboxp_f(2,2,natpaw)=nu2
-!!$           PAWD%paw_nlpspd%nboxp_f(2,3,natpaw)=nu3
 
            call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
                 at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
@@ -2176,11 +2152,6 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
            !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr, fine  projectors ',mseg,mvctr
            PAWD%paw_nlpspd%plr(natpaw)%wfd%nseg_f=mseg
            PAWD%paw_nlpspd%plr(natpaw)%wfd%nvctr_f=mvctr
-
-!!$           PAWD%paw_nlpspd%nseg_p (2*natpaw)=&
-!!$                PAWD%paw_nlpspd%nseg_p (2*natpaw-1) + mseg
-!!$           PAWD%paw_nlpspd%nvctr_p(2*natpaw)=&
-!!$                PAWD%paw_nlpspd%nvctr_p(2*natpaw-1) + mvctr
 
            istart=istart+7*mvctr*mproj
            nprojelat=nprojelat+7*mvctr*mproj
@@ -2196,12 +2167,6 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
            PAWD%paw_nlpspd%plr(natpaw)%wfd%nseg_f=0
            PAWD%paw_nlpspd%plr(natpaw)%wfd%nvctr_f=0
 
-
-!!$           PAWD%paw_nlpspd%nseg_p(2*natpaw-1)=PAWD%paw_nlpspd%nseg_p(2*natpaw-2) 
-!!$           PAWD%paw_nlpspd%nvctr_p(2*natpaw-1)=PAWD%paw_nlpspd%nvctr_p(2*natpaw-2) 
-!!$           PAWD%paw_nlpspd%nseg_p(2*natpaw)=PAWD%paw_nlpspd%nseg_p(2*natpaw-1) 
-!!$           PAWD%paw_nlpspd%nvctr_p(2*natpaw)=PAWD%paw_nlpspd%nvctr_p(2*natpaw-1) 
-
            !! the following is necessary to the creati of preconditioning projectors
 
            ! coarse grid quantities
@@ -2215,15 +2180,6 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
            PAWD%paw_nlpspd%plr(natpaw)%d%n1=nu1-nl1
            PAWD%paw_nlpspd%plr(natpaw)%d%n2=nu2-nl2
            PAWD%paw_nlpspd%plr(natpaw)%d%n3=nu3-nl3
-
-
-!!$           PAWD%paw_nlpspd%nboxp_c(1,1,natpaw)=nl1
-!!$           PAWD%paw_nlpspd%nboxp_c(1,2,natpaw)=nl2       
-!!$           PAWD%paw_nlpspd%nboxp_c(1,3,natpaw)=nl3       
-!!$
-!!$           PAWD%paw_nlpspd%nboxp_c(2,1,natpaw)=nu1
-!!$           PAWD%paw_nlpspd%nboxp_c(2,2,natpaw)=nu2
-!!$           PAWD%paw_nlpspd%nboxp_c(2,3,natpaw)=nu3
 
            ! fine grid quantities
            call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
@@ -2241,15 +2197,6 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
                 PAWD%paw_nlpspd%plr(natpaw)%ns2
            PAWD%paw_nlpspd%plr(natpaw)%d%nfu3=nu3-&
                 PAWD%paw_nlpspd%plr(natpaw)%ns3
-
-
-!!$           PAWD%paw_nlpspd%nboxp_f(1,1,natpaw)=nl1
-!!$           PAWD%paw_nlpspd%nboxp_f(1,2,natpaw)=nl2
-!!$           PAWD%paw_nlpspd%nboxp_f(1,3,natpaw)=nl3
-!!$
-!!$           PAWD%paw_nlpspd%nboxp_f(2,1,natpaw)=nu1
-!!$           PAWD%paw_nlpspd%nboxp_f(2,2,natpaw)=nu2
-!!$           PAWD%paw_nlpspd%nboxp_f(2,3,natpaw)=nu3
 
         endif
      endif

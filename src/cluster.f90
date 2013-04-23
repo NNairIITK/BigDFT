@@ -29,7 +29,9 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
   logical :: exists
-  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep
+  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep,i,jproc
+  real(gp) :: maxdiff
+  real(gp), dimension(:,:,:), allocatable :: rxyz_glob
 
   !temporary interface
   interface
@@ -59,10 +61,31 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
 
   !put a barrier for all the processes
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+  call f_routine(id=subname)
+  if (nproc > 1) then
+     !check that the positions are identical for all the processes
+     rxyz_glob=f_malloc((/3,atoms%nat,nproc/),id='rxyz_glob')
+     
+     !gather the results for all the processors
+     call MPI_GATHER(rxyz0,3*atoms%nat,mpidtypg,&
+          rxyz_glob,3*atoms%nat,mpidtypg,0,bigdft_mpi%mpi_comm,ierr)
+     if (iproc==0) then
+        maxdiff=0.0_gp
+        do jproc=2,nproc
+           do iat=1,atoms%nat
+              do i=1,3
+                 maxdiff=max(maxdiff,&
+                      abs(rxyz_glob(i,iat,jproc)-rxyz0(i,iat)))
+              end do
+           end do
+        end do
+        if (maxdiff > epsilon(1.0_gp)) &
+             call yaml_warning('The input positions are not Bitwise identical! '//&
+             '(the difference is '//trim(yaml_toa(maxdiff))//' )')
+     end if
 
-  !check that the positions are identical for all the processes
-  
-
+     call f_free(rxyz_glob)
+  end if
   !fill the rxyz array with the positions
   !wrap the atoms in the periodic directions when needed
   do iat=1,atoms%nat
@@ -188,7 +211,9 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   in%inputPsiId=inputPsiId_orig
 
   !put a barrier for all the processes
+  call f_release_routine()
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+
 
 END SUBROUTINE call_bigdft
 
@@ -416,10 +441,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
      !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
      call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%denskern)
+     call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
+     call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
 
      if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of sparse matrices')
      call check_matrix_compression(iproc,tmb%linmat%ham)
      call check_matrix_compression(iproc,tmb%linmat%ovrlp)
+     !call check_matrix_compression(iproc,tmb%linmat%inv_ovrlp) ! same as denskern for now so won't check
      call check_matrix_compression(iproc,tmb%linmat%denskern)
      if (iproc ==0) call yaml_close_map()
 
@@ -428,6 +456,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
      allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
+     !allocate(tmb%linmat%inv_ovrlp%matrix_compr(tmb%linmat%inv_ovrlp%nvctr), stat=i_stat) ! only allocate when needed, unlike others
+     !call memocc(i_stat, tmb%linmat%inv_ovrlp%matrix_compr, 'tmb%linmat%inv_ovrlp%matrix_compr', subname)
      allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
 
@@ -513,7 +543,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   hz_old=KSwfn%Lzd%hgrids(3)
 
   !end of the initialization part
-  call timing(iproc,'INIT','PR')
+  call timing(bigdft_mpi%mpi_comm,'INIT','PR')
 
   !start the optimization
   energs%eexctX=0.0_gp
@@ -728,7 +758,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            calculate_dipole = in%lin%calc_dipole
         end if
         output_denspot = in%output_denspot
-        calculate_dipole = .true.
      else
         output_denspot = -1
         calculate_dipole = .false.
@@ -1184,8 +1213,8 @@ contains
     call memocc(i_stat,i_all,'proj',subname)
 
     !end of wavefunction minimisation
-    call timing(iproc,'LAST','PR')
-    call timing(iproc,'              ','RE')
+    call timing(bigdft_mpi%mpi_comm,'LAST','PR')
+    call timing(bigdft_mpi%mpi_comm,'              ','RE')
     call cpu_time(tcpu1)
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
@@ -1328,13 +1357,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            if (iproc == 0) then 
               !yaml output
-              !print *,'test',endloop,opt%nrepmax,opt%itrep,opt%itrpmax,endlooprp,&
-              !     (((endloop .and. opt%nrepmax==1) .or. (endloop .and. opt%itrep == opt%nrepmax))&
-              !     .and. opt%itrpmax==1) .or.&
-              !     (endloop .and. opt%itrpmax >1 .and. endlooprp) 
-              !if ( (((endloop .and. opt%nrepmax==1) .or. (endloop .and. opt%itrep == opt%nrepmax))&
               if (endloop .and. (opt%itrpmax==1 .or. opt%itrpmax >1 .and. endlooprp)) then
-                 !print *,'test',endloop,opt%nrepmax,opt%itrep,opt%itrpmax
                  call yaml_sequence(label='FINAL'//trim(adjustl(yaml_toa(opt%itrep,fmt='(i3.3)'))),advance='no')
               else if (endloop .and. opt%itrep == opt%nrepmax) then
                  call yaml_sequence(label='final'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i4.4)'))),&
@@ -1356,7 +1379,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
 
            !stop the partial timing counter if necessary
-           if (endloop .and. opt%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
+           if (endloop .and. opt%itrpmax==1) call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
            !logical flag for the self-consistent potential
            scpot=(opt%iscf > SCF_KIND_DIRECT_MINIMIZATION .and. opt%iter==1 .and. opt%itrep==1) .or. & !mixing to be done
                 (opt%iscf <= SCF_KIND_DIRECT_MINIMIZATION)!direct minimisation
@@ -1391,20 +1414,10 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if (inputpsi == INPUT_PSI_LCAO) then
               if ((opt%gnrm > 4.d0 .and. KSwfn%orbs%norbu /= KSwfn%orbs%norbd) .or. &
                    &   (KSwfn%orbs%norbu == KSwfn%orbs%norbd .and. opt%gnrm > 10.d0)) then
-                 !if (iproc == 0) then
-                    !call yaml_warning('The norm of the residue is too large also with input wavefunctions.')
-                    !write( *,'(1x,a)')&
-                    !     &   'ERROR: the norm of the residue is too large also with input wavefunctions.'
-                 !end if
                  opt%infocode=3
               end if
            else if (inputpsi == INPUT_PSI_MEMORY_WVL) then
               if (opt%gnrm > 1.d0) then
-                 !if (iproc == 0) then
-                    !call yaml_warning('The norm of the residue is too large, need to recalculate input wavefunctions')
-                    !write( *,'(1x,a)')&
-                    !     &   'The norm of the residue is too large, need to recalculate input wavefunctions'
-                 !end if
                  opt%infocode=2
               end if
            end if
@@ -1417,11 +1430,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            ! Emergency exit case
            if (opt%infocode == 2 .or. opt%infocode == 3) then
               if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-              !call kswfn_free_scf_data(KSwfn, (nproc > 1))
-              !if (opt%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-              !   call ab6_mixing_deallocate(denspot%mix)
-              !   deallocate(denspot%mix)
-              !end if
               !>todo: change this return into a clean out of the routine, so the YAML is clean.
               if (iproc==0) then
                  !call yaml_close_map()
@@ -1486,6 +1494,11 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
         end if
         call last_orthon(iproc,nproc,opt%iter,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
 
+!!$        !EXPERIMENTAL
+!!$        !check if after convergence the integral equation associated with Helmholtz' Green function is satisfied
+!!$        !note: valid only for negative-energy eigenstates
+!!$        call integral_equation(iproc,nproc,atoms,KSwfn,denspot%dpbox%ngatherarr,denspot%rhov,GPU,proj,nlpspd,rxyz)
+
         !exit if the opt%infocode is correct
         if (opt%infocode /= 0) then
            if(iproc==0) then
@@ -1548,7 +1561,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
         !stop the partial timing counter if necessary
         if (endlooprp) then
-           call timing(iproc,'WFN_OPT','PR')
+           call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
            exit rhopot_loop
         end if
 

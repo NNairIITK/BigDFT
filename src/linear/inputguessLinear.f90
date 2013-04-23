@@ -55,6 +55,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(kind=8) :: neleconf(nmax,0:lmax)                                        
   integer :: nsccode,mxpl,mxchg
   type(mixrhopotDIISParameters) :: mixdiis
+  type(sparseMatrix) :: ham_small ! for FOE
 
   call nullify_orbitals_data(orbs_gauss)
 
@@ -159,18 +160,18 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          if(iproc==0) write(*,'(3a,es10.2)') 'WARNING: locrad for atom type ',trim(symbol), &
                       ' is too small; minimal value is ',4.d0*rprb
      end if
-     if(input%lin%potentialPrefac_lowaccuracy(ityp)>0.d0) then
-         x0=(70.d0/input%lin%potentialPrefac_lowaccuracy(ityp))**.25d0
+     if(input%lin%potentialPrefac_ao(ityp)>0.d0) then
+         x0=(70.d0/input%lin%potentialPrefac_ao(ityp))**.25d0
          if(iproc==0) write(*,'(a,a,2es11.2,es12.3)') 'type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)', &
                       trim(symbol),4.d0*rprb, x0, input%lin%locrad_type(ityp)
-         V3prb=input%lin%potentialPrefac_lowaccuracy(ityp)*(4.d0*rprb)**4
+         V3prb=input%lin%potentialPrefac_ao(ityp)*(4.d0*rprb)**4
          if(iproc==0) write(*,'(a,es14.4)') 'V3prb',V3prb
      end if
   end do
 
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        at%nat, norbsPerAt, mapping, &
-       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_lowaccuracy)
+       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_ao)
 
   ! Take inwhichlocreg from tmb (otherwise there might be problems after the restart...
   !do iorb=1,tmb%orbs%norb
@@ -248,15 +249,27 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
   if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
-  call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%denskern, &
+  call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
        tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
 
+  call nullify_sparsematrix(ham_small) ! nullify anyway
+
   if (input%lin%scf_mode==LINEAR_FOE) then
+
+      call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
+      allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
+      call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
+
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.)
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small)
+
+      if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
+         call deallocate_sparsematrix(ham_small,subname)
+      end if
+
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.)
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small)
   end if
 
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &

@@ -33,7 +33,7 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  3.442615081894E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
        Original              :  1.128379167096E+000
@@ -189,7 +189,7 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  3.442615081894E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
        Original              :  1.128379167096E+000
@@ -239,7 +239,7 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  3.442615081894E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
        Original              :  1.128379167096E+000
@@ -424,7 +424,7 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  3.442615081894E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
        Original              :  1.128379167096E+000
@@ -474,7 +474,7 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  3.442615081894E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
        Original              :  1.128379167096E+000
@@ -659,7 +659,7 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  3.442615081894E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
        Original              :  1.128379167096E+000
@@ -709,7 +709,7 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  3.442615081894E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
        Original              :  1.128379167096E+000
@@ -767,14 +767,14 @@
          Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  9.072182518019E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -5.551115123126E-17
          Exc                 :  5.218048215738E-15
          EVxc                : -4.592083932910E-03
        COMPLETE:
          Difference in Inf. Norm:  9.072182518019E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  20,  24,  5 ]
          Result              :  6.944730265653E-01
          Original            :  6.037512013851E-001
@@ -787,14 +787,14 @@
          Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  9.072182518019E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -5.551115123126E-17
          Exc                 :  5.218048215738E-15
          EVxc                : -4.592083932910E-03
        COMPLETE:
          Difference in Inf. Norm:  9.072182518019E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  20,  24,  5 ]
          Result              :  6.944730265653E-01
          Original            :  6.037512013851E-001
@@ -1155,14 +1155,14 @@
          Difference in Inf. Norm:  8.526512829121E-14
        XCCOMPLETE:
          Difference in Inf. Norm:  1.003155752059E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -1.164153218269E-10
          Exc                 :  2.692104317248E-10
          EVxc                :  6.111804395914E-10
        COMPLETE:
          Difference in Inf. Norm:  1.003155753665E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  33,  33,  33 ]
          Result              : -2.516637573546E+02
          Original            : -2.516637673861E+002
@@ -1175,14 +1175,14 @@
          Difference in Inf. Norm:  8.526512829121E-14
        XCCOMPLETE:
          Difference in Inf. Norm:  1.003155752059E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -1.164153218269E-10
          Exc                 :  2.692104317248E-10
          EVxc                :  6.111804395914E-10
        COMPLETE:
          Difference in Inf. Norm:  1.003155753665E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  33,  33,  33 ]
          Result              : -2.516637573546E+02
          Original            : -2.516637673861E+002
@@ -1391,14 +1391,14 @@
          Difference in Inf. Norm:  8.526512829121E-14
        XCCOMPLETE:
          Difference in Inf. Norm:  1.055322925300E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -1.164153218269E-10
          Exc                 :  3.856257535517E-10
          EVxc                : -8.294591680169E-10
        COMPLETE:
          Difference in Inf. Norm:  1.055322925936E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  33,  33,  33 ]
          Result              : -2.515332967863E+02
          Original            : -2.515333073395E+002
@@ -1411,14 +1411,14 @@
          Difference in Inf. Norm:  8.526512829121E-14
        XCCOMPLETE:
          Difference in Inf. Norm:  1.055322925300E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -1.164153218269E-10
          Exc                 :  3.856257535517E-10
          EVxc                : -8.294591680169E-10
        COMPLETE:
          Difference in Inf. Norm:  1.055322925936E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  33,  33,  33 ]
          Result              : -2.515332967863E+02
          Original            : -2.515333073395E+002
@@ -1627,14 +1627,14 @@
          Difference in Inf. Norm:  8.526512829121E-14
        XCCOMPLETE:
          Difference in Inf. Norm:  3.731918346741E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -1.164153218269E-10
          Exc                 :  1.600710675120E-10
          EVxc                :  2.080727889581E+00
        COMPLETE:
          Difference in Inf. Norm:  3.731918346742E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  33,  33,  32 ]
          Result              : -2.515139446031E+02
          Original            : -2.515512637866E+002
@@ -1647,14 +1647,14 @@
          Difference in Inf. Norm:  8.526512829121E-14
        XCCOMPLETE:
          Difference in Inf. Norm:  3.731918346741E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -1.164153218269E-10
          Exc                 :  1.600710675120E-10
          EVxc                :  2.080727889581E+00
        COMPLETE:
          Difference in Inf. Norm:  3.731918346742E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  33,  33,  32 ]
          Result              : -2.515139446031E+02
          Original            : -2.515512637866E+002
@@ -1755,7 +1755,7 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  5.449597508646E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  58,  25 ]
        Result                : -1.455736585414E-06
        Original              : -1.455191625663E-006
@@ -1910,7 +1910,7 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  1.626803254288E-02
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  63,  25 ]
        Result                : -3.502258425375E+02
        Original              : -3.502421105701E+002
@@ -1960,7 +1960,7 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  1.626803253987E-02
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  63,  25 ]
        Result                : -3.502258425375E+02
        Original              : -3.502421105701E+002
@@ -2018,14 +2018,14 @@
          Difference in Inf. Norm:  3.240074875066E-12
        XCCOMPLETE:
          Difference in Inf. Norm:  1.003155752059E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -2.444721758366E-09
          Exc                 :  2.501110429876E-12
          EVxc                : -1.136868377216E-11
        COMPLETE:
          Difference in Inf. Norm:  1.003155909984E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  1,  33,  25 ]
          Result              : -1.909312523862E+02
          Original            : -1.909312624178E+002
@@ -2038,14 +2038,14 @@
          Difference in Inf. Norm:  3.240074875066E-12
        XCCOMPLETE:
          Difference in Inf. Norm:  1.003155752059E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -2.444721758366E-09
          Exc                 :  2.501110429876E-12
          EVxc                : -1.136868377216E-11
        COMPLETE:
          Difference in Inf. Norm:  1.003155909984E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  1,  33,  25 ]
          Result              : -1.909312523862E+02
          Original            : -1.909312624178E+002
@@ -2148,7 +2148,7 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  1.626803254288E-02
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  63,  25 ]
        Result                : -3.502258425375E+02
        Original              : -3.502421105701E+002
@@ -2198,7 +2198,7 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  1.626803253987E-02
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  63,  25 ]
        Result                : -3.502258425375E+02
        Original              : -3.502421105701E+002
@@ -2256,14 +2256,14 @@
          Difference in Inf. Norm:  3.240074875066E-12
        XCCOMPLETE:
          Difference in Inf. Norm:  9.944759721412E-06
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -2.444721758366E-09
          Exc                 :  2.239630703116E-11
          EVxc                : -7.730704965070E-12
        COMPLETE:
          Difference in Inf. Norm:  9.944761302449E-06
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  1,  33,  25 ]
          Result              : -1.909356502192E+02
          Original            : -1.909356601640E+002
@@ -2276,14 +2276,14 @@
          Difference in Inf. Norm:  3.240074875066E-12
        XCCOMPLETE:
          Difference in Inf. Norm:  9.944759721412E-06
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -2.444721758366E-09
          Exc                 :  2.239630703116E-11
          EVxc                : -7.730704965070E-12
        COMPLETE:
          Difference in Inf. Norm:  9.944761302449E-06
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  1,  33,  25 ]
          Result              : -1.909356502192E+02
          Original            : -1.909356601640E+002
@@ -2386,7 +2386,7 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  1.626803254288E-02
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  63,  25 ]
        Result                : -3.502258425375E+02
        Original              : -3.502421105701E+002
@@ -2436,7 +2436,7 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  1.626803253987E-02
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  63,  25 ]
        Result                : -3.502258425375E+02
        Original              : -3.502421105701E+002
@@ -2494,14 +2494,14 @@
          Difference in Inf. Norm:  3.240074875066E-12
        XCCOMPLETE:
          Difference in Inf. Norm:  2.998369471048E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -2.444721758366E-09
          Exc                 :  4.206412995700E-12
          EVxc                :  2.070323630876E-01
        COMPLETE:
          Difference in Inf. Norm:  2.998369471197E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  1,  32,  25 ]
          Result              : -1.909096382415E+02
          Original            : -1.909396219363E+002
@@ -2514,14 +2514,14 @@
          Difference in Inf. Norm:  3.240074875066E-12
        XCCOMPLETE:
          Difference in Inf. Norm:  2.998369471048E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -2.444721758366E-09
          Exc                 :  4.206412995700E-12
          EVxc                :  2.070323630876E-01
        COMPLETE:
          Difference in Inf. Norm:  2.998369471197E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  1,  32,  25 ]
          Result              : -1.909096382415E+02
          Original            : -1.909396219363E+002

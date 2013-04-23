@@ -42,14 +42,14 @@ program PS_Integral
   real(dp), dimension(0:2048) :: fISF
 
   integer :: n1,n1_old,n2,n2_old,n3,n3_old,nb1,nb2,nb3,itype,nd,i_all,nrange
-  real(dp) :: hx,x,hy,y,hz,z,dy,dz,xgauss,ygauss
+  real(dp) :: hx,x,hy,y,hz,z,dy,dz,xgauss,ygauss,theta,sum,sum2,sumx,sumx2,sumy,sumy2,xmin,xmax,ymin,ymax
   real(dp), dimension(:), allocatable :: x_phi, y_phi
-  real(dp), dimension(:,:,:), allocatable :: psifscf,psifscfold,psi_w,psi_w2
+  real(dp), dimension(:,:,:), allocatable :: psifscf,psifscfold,psi_w,psi_w2,dx_field,dy_field
   real(dp), external :: lr_gauss
 
-  call f_malloc_set_status(memory_limit=0.e0)
+  call f_set_status(memory_limit=0.e0)
 
-  call f_malloc_routine_id(subname)
+  call f_routine(id=subname)
 !!$  include 'lazy_ISF_8_2048.inc'
 !!$  include 'lazy_ISF_14_2048.inc'
 !!$  include 'lazy_ISF_16_2048.inc'
@@ -133,16 +133,16 @@ program PS_Integral
 
 
   !testing interpolate
-  hx=0.2
-  dx=0.0
-  hy=0.2
+hx=0.1
+dx=1.0
+hy=0.1
   dy=0.0!-0.44
   hz=0.2
   dz=0.0!0.55
-  n1_old=8
-  n1=8
-  n2_old=10
-  n2=10
+n1_old=22
+n1=22
+n2_old=22
+n2=22
   n3_old=8
   n3=8
   nb1=0
@@ -152,41 +152,79 @@ program PS_Integral
   itype=16
   nd=2**20
 
-!1d
-!   allocate(psifscfold(-nb1:2*n1_old+1+nb1,1,1+ndebug),stat=i_stat)
-!   call memocc(i_stat,psifscfold,'psifscfold',subname)
-!   allocate(psi_w(-nb1:2*n1+1+nb1,1,1+ndebug),stat=i_stat)
-!   call memocc(i_stat,psi_w,'psi_w',subname)
-!   allocate(psifscf(-nb1:2*n1+1+nb1,1,1+ndebug),stat=i_stat)
-!   call memocc(i_stat,psifscf,'psifscf',subname)
+allocate(dx_field(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,1+ndebug),stat=i_stat)
+allocate(dy_field(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,1+ndebug),stat=i_stat)
 
-  allocate(psifscfold(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+dx_field=dx/hx
+
+
+!1d
+   allocate(psifscfold(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,1+ndebug),stat=i_stat)
   call memocc(i_stat,psifscfold,'psifscfold',subname)
-  allocate(psi_w(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+   allocate(psi_w(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,1+ndebug),stat=i_stat)
   call memocc(i_stat,psi_w,'psi_w',subname)
-  allocate(psi_w2(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
-  call memocc(i_stat,psi_w2,'psi_w2',subname)
-  allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
+   allocate(psi_w2(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,1+ndebug),stat=i_stat)
+   call memocc(i_stat,psi_w,'psi_w',subname)
+   allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,1+ndebug),stat=i_stat)
   call memocc(i_stat,psifscf,'psifscf',subname)
 
+!   allocate(psifscfold(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+!   call memocc(i_stat,psifscfold,'psifscfold',subname)
+!   allocate(psi_w(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+!   call memocc(i_stat,psi_w,'psi_w',subname)
+!   allocate(psi_w2(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+!   call memocc(i_stat,psi_w2,'psi_w2',subname)
+!   allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
+!   call memocc(i_stat,psifscf,'psifscf',subname)
+
   ! fill psifscfold with a gaussian
-  x=0.d0
+  x=-n1_old*hx!0.d0
   do i=0,2*n1_old+1
-    y=0.d0
-    xgauss=lr_gauss(x,1.3d0,1.4d0)
+    y=-n2_old*hy!0.d0
+    xgauss=lr_gauss(x,0.0d0,0.7d0)!lr_gauss(x,1.7d0,1.4d0)
     do j=0,2*n2_old+1
        z=0.d0
-       ygauss=lr_gauss(y,1.5d0,1.8d0)
-       do k=1,2*n3_old+1
-          psifscfold(i,j,k)=xgauss*ygauss*lr_gauss(z,1.4d0,2.1d0)
-          write(100,*) x,y,z,psifscfold(i,j,k)
+       !ygauss=lr_gauss(y,0.0d0,0.7d0)
+       ygauss=lr_gauss(y,-0.3d0,1.4d0)
+       do k=1,1!1,2*n3_old+1
+          psifscfold(j,i,k)=xgauss!*ygauss!*lr_gauss(z,1.4d0,2.1d0)
+theta=35.0_gp*(4.0_gp*atan(1.d0)/180.0_gp) !in degrees(converted)
+dx_field(i,j,k) =x*cos(theta)-y*sin(theta)-x
+!dy_field(i,j,k) =x*sin(theta)+y*cos(theta)-y
+dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
+          !write(100,*) x,y,z,psifscfold(i,j,k),dx_field(i,j,k),dy_field(i,j,k)!,psifscf(i,j,k)
           z=z+hz
        end do
-       write(100,*) ''
+       !!write(100,*) ''
        y=y+hy
     end do
-    write(100,*) ''
+    !write(100,*) ''
     x=x+hx
+  end do
+
+  ! make an empty border
+  do i=0,2*n1_old+1
+     psifscfold(i,0,1) = 0.0_gp
+     psifscfold(i,2*n2_old,1) = 0.0_gp
+     psifscfold(i,2*n2_old+1,1) = 0.0_gp
+     dy_field(i,0,1) = 0.0_gp
+     dy_field(i,2*n2_old,1) = 0.0_gp
+     dy_field(i,2*n2_old+1,1) = 0.0_gp
+     dx_field(i,0,1) = 0.0_gp
+     dx_field(i,2*n2_old,1) = 0.0_gp
+     dx_field(i,2*n2_old+1,1) = 0.0_gp
+  end do
+
+  do j=0,2*n2_old+1
+     psifscfold(0,j,1) = 0.0_gp
+     psifscfold(2*n1_old,j,1) = 0.0_gp
+     psifscfold(2*n1_old+1,j,1) = 0.0_gp
+     dy_field(0,j,1) = 0.0_gp
+     dy_field(2*n1_old,j,1) = 0.0_gp
+     dy_field(2*n1_old+1,j,1) = 0.0_gp
+     dx_field(0,j,1) = 0.0_gp
+     dx_field(2*n1_old,j,1) = 0.0_gp
+     dx_field(2*n1_old+1,j,1) = 0.0_gp
   end do
   
 !!$     allocate(x_phi(0:nd+ndebug),stat=i_stat )
@@ -228,7 +266,164 @@ program PS_Integral
 !         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psifscf)
 
   print *,'interpolating first dimension...'
-  call my_interpolate_and_transpose(dx/hx,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
+    call my_morph_and_transpose(dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
+         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
+
+    call my_morph_and_transpose(dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
+         (2*n1_old+2+2*nb1),dy_field,(2*n1+2+2*nb1),psifscf)
+
+
+  ! make an empty border
+  do j=0,2*n2_old+1
+     psi_w(j,0,1) = 0.0_gp
+     psi_w(j,2*n1_old,1) = 0.0_gp
+     psi_w(j,2*n1_old+1,1) = 0.0_gp
+     psifscf(j,0,1) = 0.0_gp
+     psifscf(j,2*n1_old,1) = 0.0_gp
+     psifscf(j,2*n1_old+1,1) = 0.0_gp
+  end do
+
+  do i=0,2*n1_old+1
+     psi_w(0,i,1) = 0.0_gp
+     psi_w(2*n2_old,i,1) = 0.0_gp
+     psi_w(2*n2_old+1,i,1) = 0.0_gp
+     psifscf(0,i,1) = 0.0_gp
+     psifscf(2*n2_old,i,1) = 0.0_gp
+     psifscf(2*n2_old+1,i,1) = 0.0_gp
+  end do
+
+  x=-n1_old*hx!0.d0
+  do i=0,2*n1+1
+    y=-n2_old*hy!0.d0
+    do j=0,2*n2+1
+       z=0.d0
+       do k=1,1!1,2*n3+1
+          write(103,*) x,y,z,psi_w(j,i,k)
+          z=z+hz
+       end do
+       y=y+hy
+    end do
+    write(103,*) ''
+    x=x+hx
+  end do
+
+  x=-n1_old*hx!0.d0
+  do i=0,2*n1_old+1
+    y=-n2_old*hy!0.d0
+    do j=0,2*n2_old+1
+       z=0.d0
+       do k=1,1!1,2*n3_old+1
+          write(100,*) x,y,z,psifscfold(i,j,k),dx_field(i,j,k),psifscf(j,i,k),dy_field(j,i,k)
+          z=z+hz
+       end do
+       !write(100,*) ''
+       y=y+hy
+    end do
+    write(100,*) ''
+    x=x+hx
+  end do
+
+
+
+!print*,'...interpolating second dimension...'
+    call my_morph_and_transpose(dy_field/hy,nd,nrange,y_phi,(2*n1+2+2*nb1),&
+         (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2)
+
+  x=-n1_old*hx!0.d0
+  do i=0,2*n1+1
+    y=-n2_old*hy!0.d0
+    do j=0,2*n2+1
+       z=0.d0
+       do k=1,1!1,2*n3+1
+          write(101,*) x,y,z,psi_w2(i,j,k)
+          z=z+hz
+       end do
+       y=y+hy
+    end do
+    x=x+hx
+  end do
+
+deallocate(dy_field)
+deallocate(dx_field)
+
+
+  ! original norm
+  sum=0.d0
+  sum2=0.d0
+  sumx=0.d0
+  sumx2=0.d0
+  sumy=0.d0
+  sumy2=0.d0
+  z=0.d0
+  k=1
+  xmin=-n1_old*hx
+  xmax=-n1_old*hx+(2*n1_old)*hx
+  ymin=-n2_old*hy
+  ymax=-n2_old*hx+(2*n2_old)*hy
+
+!ignore last rows so that we have a properly symmetric grid
+  sum = sum+psifscfold(0,0,k)+psifscfold(2*n1_old,0,k)+psifscfold(2*n1_old,2*n2_old,k)+psifscfold(0,2*n2_old,k)
+  sum2 = sum2+psi_w2(0,0,k)+psi_w2(2*n1_old,0,k)+psi_w2(2*n1_old,2*n2_old,k)+psi_w2(0,2*n2_old,k)
+  sumx = sumx+xmin*psifscfold(0,0,k)+xmax*psifscfold(2*n1_old,0,k)&
+     +xmax*psifscfold(2*n1_old,2*n2_old,k)+xmin*psifscfold(0,2*n2_old,k)
+  sumx2 = sumx2+xmin*psi_w2(0,0,k)+xmax*psi_w2(2*n1_old,0,k)+xmax*psi_w2(2*n1_old,2*n2_old,k)+xmin*psi_w2(0,2*n2_old,k)
+  sumy = sumy+ymin*psifscfold(0,0,k)+ymin*psifscfold(2*n1_old,0,k)&
+     +ymax*psifscfold(2*n1_old,2*n2_old,k)+ymax*psifscfold(0,2*n2_old,k)
+  sumy2 = sumy2+ymin*psi_w2(0,0,k)+ymin*psi_w2(2*n1_old,0,k)+ymax*psi_w2(2*n1_old,2*n2_old,k)+ymax*psi_w2(0,2*n2_old,k)
+print*,sumx,xmin,xmax,psifscfold(0,0,k),psifscfold(2*n1_old,0,k),psifscfold(2*n1_old,2*n2_old,k),psifscfold(0,2*n2_old,k)
+  x=-n1_old*hx+hx
+  do i=1,2*n1_old-1
+    sum = sum+2.0d0*(psifscfold(i,0,k)+psifscfold(i,2*n2_old,k))
+    sum2 = sum2+2.0d0*(psi_w2(i,0,k)+psi_w2(i,2*n2_old,k))
+    sumx = sumx+2.0d0*x*(psifscfold(i,0,k)+psifscfold(i,2*n2_old,k))
+    sumx2 = sumx2+2.0d0*x*(psi_w2(i,0,k)+psi_w2(i,2*n2_old,k))
+    sumy = sumy+2.0d0*(ymin*psifscfold(i,0,k)+ymax*psifscfold(i,2*n2_old,k))
+    sumy2 = sumy2+2.0d0*(ymin*psi_w2(i,0,k)+ymax*psi_w2(i,2*n2_old,k))
+    x=x+hx
+  end do
+
+  y=-n2_old*hx+hx
+  do j=1,2*n2_old-1
+    sum = sum+2.0d0*(psifscfold(0,j,k)+psifscfold(2*n1_old,j,k))
+    sum2 = sum2+2.0d0*(psi_w2(0,j,k)+psi_w2(2*n1_old,j,k))
+    sumx = sumx+2.0d0*(xmin*psifscfold(0,j,k)+xmax*psifscfold(2*n1_old,j,k))
+    sumx2 = sumx2+2.0d0*(xmin*psi_w2(0,j,k)+xmax*psi_w2(2*n1_old,j,k))
+    sumy = sumy+2.0d0*y*(psifscfold(0,j,k)+psifscfold(2*n1_old,j,k))
+    sumy2 = sumy2+2.0d0*y*(psi_w2(0,j,k)+psi_w2(2*n1_old,j,k))
+    y=y+hy
+  end do
+
+  x=-n1_old*hx+hx
+  do i=1,2*n1_old-1
+    y=-n2_old*hy+hy
+    do j=1,2*n2_old-1
+       sum = sum + 4.0d0*psifscfold(i,j,k)
+       sum2 = sum2 + 4.0d0*psi_w2(i,j,k)
+       sumx = sumx + 4.0d0*x*psifscfold(i,j,k)
+       sumx2 = sumx2 + 4.0d0*x*psi_w2(i,j,k)
+       sumy = sumy + 4.0d0*y*psifscfold(i,j,k)
+       sumy2 = sumy2 + 4.0d0*y*psi_w2(i,j,k)
+       y=y+hy
+    end do
+    x=x+hx
+  end do
+
+  sum=sum*0.25d0*hx*hy
+  sum2=sum2*0.25d0*hx*hy
+  sumx=sumx*0.25d0*hx*hy
+  sumx2=sumx2*0.25d0*hx*hy
+  sumy=sumy*0.25d0*hx*hy
+  sumy2=sumy2*0.25d0*hx*hy
+
+  print*,'norm in',sum,'norm out',sum2
+  print*,'x in',sumx,'x out',sumx2,'y in',sumy,'y out',sumy2,'x/y in',sumx/sumy,'x/y out',sumx2/sumy2
+
+
+stop
+
+
+print*,'interpolating first dimension...'
+    call my_interpolate_and_transpose(dx/hx,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
          (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
 
   print *,'...interpolating second dimension...'
@@ -632,7 +827,7 @@ program PS_Integral
   deallocate(analytic_vs_naive, stat=i_stat)
   deallocate(timings, stat=i_stat)
 
-  call f_malloc_finalize()
+  call f_finalize()
 
 end program PS_Integral
 
@@ -1533,3 +1728,185 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
    deallocate(y,stat=i_stat)
    call memocc(i_stat,i_all,'y',subname)
 END SUBROUTINE scaling_function4b2B
+
+!!$
+!!$!call the routine which performs the interpolation in each direction
+!!$subroutine my_morph_and_transpose(h,t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
+!!$ use module_base
+!!$ implicit none
+!!$ integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+!!$ integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+!!$ integer, intent(in) :: nin,nout !< sizes of the input and output array in interpolating direction
+!!$ integer, intent(in) :: ndat !< size of the array in orthogonal directions
+!!$ real(gp), intent(in) :: h !< grid spacing in the interpolating direction
+!!$ real(gp), dimension(nin,ndat), intent(in) :: t0_field !< field of shifts to be applied for each point in grid spacing units
+!!$ real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+!!$ real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
+!!$ real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
+!!$ !local variables
+!!$ character(len=*), parameter :: subname='my_morph_and_transpose'
+!!$ real(gp), parameter  :: tol=1.e-14_gp
+!!$ integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me,k2,k1
+!!$ real(gp) :: dt, tt, t0_l, tt2, ksh1, ksh2, k, kold, alpha,diff
+!!$ real(gp), dimension(:), allocatable :: shf !< shift filter
+!!$
+!!$ !assume for the moment that the grid spacing is constant
+!!$ !call f_malloc_routine_id(subname)
+!!$ m_isf=nrange/2
+!!$
+!!$ !shf=f_malloc(bounds=(/-m_isf .to. m_isf/),id='shf')
+!!$
+!!$ !calculate the shift filter for the given t0
+!!$ allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
+!!$ call memocc(i_stat,shf,'shf',subname)
+!!$
+!!$ !number of points for a unit displacement
+!!$ nunit=nphi/nrange 
+!!$
+!!$!print *,'start interpolation',ish,t0,shf
+!!$
+!!$!do i=-m_isf,m_isf
+!!$!write(104,*)i,shf(i)
+!!$!end do
+!!$
+!!$ !apply the interpolating filter to the output
+!!$ do j=1,ndat
+!!$   psi_out(j,:)=0.0_gp
+!!$do i=1,nout
+!!$
+!!$kold=-1000.0_gp
+!!$find_trans: do l=1,nin
+!!$     k=real(l,gp)+t0_field(l,j)
+!!$     if (k-real(i,gp) > tol) exit find_trans
+!!$     kold=k
+!!$end do find_trans
+!!$    
+!!$!idist=k-kold
+!!$
+!!$!if (idist > 1) then
+!!$ !  print *,k,kold,l,t0_field(l,j)
+!!$  ! stop 'idist'
+!!$
+!!$!if (l>=nin) l=nin
+!!$
+!!$!print*,i,l,k,kold
+!!$! want to use either l or l-1 to give us point i - pick closest
+!!$     if (k-real(i,gp) < -kold+real(i,gp)) then
+!!$        ksh1=k-real(i,gp)
+!!$        ksh2=-kold+real(i,gp)
+!!$        k1=l
+!!$        k2=l-1
+!!$        !if (k2==0) k2=1
+!!$
+!!$        if (k2==0) then
+!!$           k2=1
+!!$           ksh2=ksh1
+!!$        end if
+!!$        if (k1==nin+1) then
+!!$           k1=nin
+!!$           ksh1=ksh2
+!!$        end if
+!!$     else
+!!$        ksh1=-kold+real(i,gp)
+!!$        ksh2=k-real(i,gp)
+!!$        k1=l-1
+!!$        k2=l
+!!$        if (k1==0) then
+!!$           k1=1
+!!$           ksh1=ksh2
+!!$        end if
+!!$        if (k2==nin+1) then
+!!$           k2=nin
+!!$           ksh2=ksh1
+!!$        end if
+!!$     end if
+!!$
+!!$
+!!$!print*,i,k
+!!$!print*,ksh1,ksh2,ksh1+ksh2
+!!$
+!!$if (ksh1==0.0_gp .or. k1==k2) then !otherwise already have exactly on point
+!!$tt2=0.0_gp
+!!$ksh2=1
+!!$ksh1=0
+!!$end if 
+!!$
+!!$    alpha=ksh2/(ksh1+ksh2)
+!!$!alpha=1.0_gp
+!!$     t0_l=alpha*t0_field(k1,j)+(1.0_gp-alpha)*t0_field(k2,j)
+!!$
+!!$   !    t0_l=t0_field(k1,j)-ksh2
+!!$
+!!$!   if (abs(t0_l) > 1.0_gp) then
+!!$!     dt=t0_l-nint(t0_l*(2.0_gp))/2
+!!$!else
+!!$   dt=t0_l-nint(t0_l)
+!!$   
+!!$   diff=real(i,gp)-(k1+t0_l)   
+!!$
+!!$   if (abs(diff - dt) < abs(diff+dt)) dt=-dt
+!!$   !dt=-real(i,gp)+(k1+t0_l)
+!!$!end if
+!!$!     if (k2<k1.and.t0_field(k1,j)<0) dt=-dt
+!!$!     if (k2>k1.and.t0_field(k2,j)<0) dt=-dt
+!!$
+!!$   !   if (abs(dt) > 0.5d
+!!$
+!!$     !evaluate the shift
+!!$     ish=nint(real(nunit,gp)*dt)
+!!$
+!!$     if (ish<=0) then
+!!$       shf(-m_isf)=0.0_gp
+!!$     else
+!!$       shf(-m_isf)=phi(ish)  
+!!$     end if 
+!!$     ipos=ish
+!!$
+!!$     print *,'j',j,'start',k1,'shift',t0_l,'end',i,'dt',dt,'difference',real(i,gp)-(k1+t0_l)
+!!$
+!!$     do l=-m_isf+1,m_isf-1 !extremes excluded
+!!$       !position of the shifted argument in the phi array
+!!$       ipos=ipos+nunit
+!!$       shf(l)=phi(ipos)  
+!!$     end do
+!!$
+!!$     if (ish<=0) then
+!!$       shf(m_isf)=phi(ipos+nunit)
+!!$     else
+!!$       shf(m_isf)=0.0_gp
+!!$     end if 
+!!$
+!!$     !define the shift for output results
+!!$     !ish=nint(t0_l)
+!!$     !ish=0
+!!$
+!!$     !here the boundary conditions have to be considered
+!!$      tt=0.0_gp
+!!$      ms=-min(m_isf,k1-1)
+!!$      me=min(m_isf,nin-k1)
+!!$      do l=ms,me
+!!$         tt=tt+shf(l)*psi_in(k1+l,j)
+!!$      end do
+!!$
+!!$
+!!$
+!!$!print '(a,3i4,4(1pe15.7),4i4)','i,k1,k2,ksh1,ksh2,dt,t0_l,nint(t0_l),j',i,k1,k2,ksh1,ksh2,dt,t0_l,nint(t0_l),j,&
+!!$!     nint(t0_l*2.0_gp),nint(t0_l*2.0_gp)/2 !,tt2,(abs(ksh2)*tt+abs(ksh1)*tt2)/(abs(ksh1)+abs(ksh2))
+!!$write(104,*) i,j,k1,k2,ksh1,ksh2,tt,t0_l,nint(t0_l)!+sign(t0_l,1.0_gp)*1.0_gp*epsilon(1.0_gp))
+!!$      if (i > 0 .and. i < nout) psi_out(j,i)=tt!=(abs(ksh2)*tt+abs(ksh1)*tt2)/(abs(ksh1)+abs(ksh2))
+!!$	if (i > 0 .and. i < nout)       write(102,*)i,psi_out(j,i)
+!!$
+!!$
+!!$
+!!$end do
+!!$
+!!$end do
+!!$
+!!$! call f_free(shf)
+!!$! call f_malloc_free_routine()
+!!$
+!!$ i_all=-product(shape(shf))*kind(shf)
+!!$ deallocate(shf,stat=i_stat)
+!!$ call memocc(i_stat,i_all,'shf',subname)
+!!$
+!!$end subroutine my_morph_and_transpose

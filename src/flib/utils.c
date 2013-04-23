@@ -60,15 +60,15 @@ void FC_FUNC(getaddress, GETADDRESS)(void *ptr,char *address, int *lgaddress,
 			     int* status)
 {
   char buff[50]; //test buffer to check the length
-  int lgt,lgCpy;
+  int lgt;
 
   memset(address,' ', sizeof(char) * (*lgaddress));
 
   lgt=sprintf(buff,"%p",(void*)ptr);
-  if (lgt <= *lgaddress)
+  if (lgt < *lgaddress)
     {
       *status = 0;
-      lgt=sprintf(address,"%p",(void*)ptr);
+      memcpy(address, buff, sizeof(char) * lgt);
     }
   else
     *status = 1;
@@ -76,6 +76,14 @@ void FC_FUNC(getaddress, GETADDRESS)(void *ptr,char *address, int *lgaddress,
 
   //printf("\n test address = %p %d; \n", (void*)ptr,lgt);
   //return;
+}
+
+void FC_FUNC(getlongaddress, GETLONGADDRESS)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  //printf("\n test long address = %p %lli\n", (void*)ptr,*address);
+  return;
 }
 
 void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,

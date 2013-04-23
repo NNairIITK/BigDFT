@@ -444,7 +444,8 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   !local variables
   character(len=*), parameter :: subname='subspace_diagonalisation'
   integer :: i_stat,i_all,ierr,info,iorb,n_lp,n_rp,npsiw,isorb,ise,jorb,ncplx
-  integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
+  integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
+  !integer :: istart
   real(wp) :: occ,asymm
   real(gp), dimension(2) :: aij,aji
   integer, dimension(:,:), allocatable :: ndim_ovrlp
@@ -598,9 +599,9 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
                        if (norbs == 2*norb) then
                           ncplx=2
                           call yaml_sequence(trim(yaml_toa(&
-                               dcmplx(&
+                               cmplx(&
                                hamks(ndim_ovrlp(ispin,ikpt-1)+1+(jorb-1)*ncplx+(iorb-1)*norbs),&
-                               hamks(ndim_ovrlp(ispin,ikpt-1)+2+(jorb-1)*ncplx+(iorb-1)*norbs)),&
+                               hamks(ndim_ovrlp(ispin,ikpt-1)+2+(jorb-1)*ncplx+(iorb-1)*norbs),kind=8),&
                                fmt='(1pe9.2)')))
                        else         
                           call yaml_sequence(trim(yaml_toa(hamks(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs),&

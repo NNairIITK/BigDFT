@@ -22,9 +22,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   integer,parameter :: nplx=5000
   real(kind=8),dimension(:,:),allocatable :: cc, fermip
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
-  real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol!, charge
-  real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant
-  logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS
+  real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol
+  real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old
+  logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
   real(kind=8),dimension(:),allocatable :: hamscal_compr, ovrlpeff_compr, SHS
@@ -40,10 +40,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   ! initialization
   interpol_solution = 0.d0
 
-  !!charge=0.d0
-  !!do iorb=1,orbs%norb
-  !!     charge=charge+orbs%occup(iorb)
-  !!end do
 
 
   allocate(penalty_ev(orbs%norb,orbs%norbp,2), stat=istat)
@@ -136,6 +132,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           evlow_old=foe_obj%evlow
           evhigh_old=foe_obj%evhigh
 
+          !!foe_obj%ef = foe_obj%evlow+1.d-4*it
 
           ! Determine the degree of the polynomial
           npl=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/foe_obj%fscale)
@@ -254,6 +251,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           end if
 
 
+
           ! Make sure that the bounds for the bisection are negative and positive
           charge_diff = sumn-foe_obj%charge
           if (adjust_lower_bound) then
@@ -298,6 +296,32 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
           it_solver=it_solver+1
 
+          ! Check whether the system behaves reasonably.
+          interpolation_possible=.true.
+          if (it>1) then
+              if (foe_obj%ef>ef_old .and. sumn<sumn_old) then
+                  if (iproc==0) then
+                      write(*,'(1x,a)') 'WARNING: Fermi energy was raised, but the trace still decreased!'
+                      write(*,'(1x,a)') 'Cubic interpolation not possible under this circumstances.'
+                  end if
+                  interpolation_possible=.false.
+              end if
+              if (foe_obj%ef<ef_old .and. sumn>sumn_old) then
+                  if (iproc==0) then
+                      write(*,'(1x,a)') 'WARNING: Fermi energy was lowered, but the trace still increased!'
+                      write(*,'(1x,a)') 'Cubic interpolation not possible under this circumstances.'
+                  end if
+                  interpolation_possible=.false.
+              end if
+          end if
+          if (.not.interpolation_possible) then
+              ! Set the history for the interpolation to zero.
+              it_solver=0
+          end if
+
+          ef_old=foe_obj%ef
+          sumn_old=sumn
+
           ! Shift up the old results.
           if (it_solver>4) then
               do i=1,4
@@ -309,7 +333,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               interpol_vector(2)=interpol_vector(3)
               interpol_vector(3)=interpol_vector(4)
           end if
-          ii=min(it_solver,4)
+          !LG: if it_solver==0 this index comes out of bounds!
+          ii=max(min(it_solver,4),1)
           interpol_matrix(ii,1)=foe_obj%ef**3
           interpol_matrix(ii,2)=foe_obj%ef**2
           interpol_matrix(ii,3)=foe_obj%ef
@@ -325,11 +350,17 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   tmp_matrix(i,3)=interpol_matrix(i,3)
                   tmp_matrix(i,4)=interpol_matrix(i,4)
               end do
+              !!if (iproc==0) then
+              !!    do i=1,ii
+              !!        write(*,'(4es14.6,5x,es14.6)') tmp_matrix(i,1:4), interpol_solution(i)
+              !!    end do
+              !!end if
 
               call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
               if (info/=0) then
                  if (iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
               end if
+              !!if (iproc==0) write(*,'(a,4es14.7)') 'interpol_solution(1:4)',interpol_solution(1:4)
 
 
               call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
@@ -348,7 +379,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
 
           ! Calculate the new Fermi energy.
-          if (it_solver>=4 .and. abs(sumn-foe_obj%charge)<foe_obj%ef_interpol_chargediff) then
+          !!if (iproc==0) write(*,'(a,i6,2es16.6)') 'it_solver, abs(sumn-charge), foe_obj%ef_interpol_chargediff', it_solver, abs(sumn-foe_obj%charge), foe_obj%ef_interpol_chargediff
+          !!if (iproc==0) write(*,'(a,5es16.6)') 'efarr(1), efarr(2), sumnarr(1), sumnarr(2), charge', efarr(1), efarr(2), sumnarr(1), sumnarr(2), foe_obj%charge
+          if (it_solver>=4 .and.  abs(sumn-foe_obj%charge)<foe_obj%ef_interpol_chargediff) then
               det=determinant(4,interpol_matrix)
               if (iproc==0) write(*,'(1x,a,2es10.2)') 'determinant of interpolation matrix, limit:', &
                                                      det, foe_obj%ef_interpol_det
@@ -486,6 +519,7 @@ end subroutine foe
 ! Calculates chebychev expansion of fermi distribution.
 ! Taken from numerical receipes: press et al
 subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
+  use module_base, pi => pi_param
   implicit none
   
   ! Calling arguments
@@ -497,7 +531,7 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
   integer :: k, j
   real(kind=8) :: bma, bpa, y, arg, fac, tt, erfcc
   real(kind=8),dimension(5000) :: cf
-  real(kind=8),parameter :: pi=4.d0*atan(1.d0)
+  !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
 
   if (n>5000) stop 'chebft'
   bma=0.5d0*(b-a)
@@ -527,6 +561,7 @@ end subroutine chebft
 ! Calculates chebychev expansion of fermi distribution.
 ! Taken from numerical receipes: press et al
 subroutine chebft2(a,b,n,cc)
+  use module_base, pi => pi_param
   implicit none
 
   ! Calling arguments
@@ -536,7 +571,7 @@ subroutine chebft2(a,b,n,cc)
 
   ! Local variables
   integer :: k, j
-  real(kind=8),parameter :: pi=4.d0*atan(1.d0)
+  !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
   real(kind=8) :: tt, y, arg, fac, bma, bpa
   real(kind=8),dimension(5000) :: cf
 

@@ -36,23 +36,22 @@ report:
 
 check_PROGRAMS = check_lib $(bindings_bin)
 
+AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
-bigdft_library = -L$(top_builddir)/src -lbigdft-1
-bigdft_library_rpath = -Wl,-rpath=$(abs_top_builddir)/src
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
 else
-bigdft_library = $(top_builddir)/src/libbigdft.a @LIBS_SHORT_DEPS@
-bigdft_library_rpath =
+LIBS += @LIBS_SHORT_DEPS@
 endif
 
+AM_FCFLAGS = -I$(top_builddir)/src/includes -I$(top_builddir)/src/PSolver -I$(top_srcdir)/src/PSolver -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
+
 check_lib_SOURCES = check_lib.f90
-check_lib_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
-check_lib_LDADD = $(bigdft_library)
-check_lib_LDFLAGS = $(bigdft_library_rpath)
+check_lib_FCFLAGS = -I$(top_builddir)/src/ -I$(top_builddir)/src/includes  -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
+check_lib_LDADD = -lbigdft-1
 
 check_lib_c_SOURCES = check_lib_c.c
 check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules
-check_lib_c_LDADD = $(bigdft_library) @FCLIBS@
-check_lib_c_LDFLAGS = $(bigdft_library_rpath)
+check_lib_c_LDADD = -lbigdft-1 @FCLIBS@
 
 clean-local: 
 	rm -rf data-*
