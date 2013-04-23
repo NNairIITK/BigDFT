@@ -15,7 +15,6 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 SUBDIRS = \
 	modules \
 	convolutions \
-	lib \
 	PSolver \
 	$(sub_dirs_libconfig) \
 	CUDA \
@@ -41,12 +40,11 @@ subs_static_library = \
 	convolutions/libconvolutions.a \
 	PSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
-	lib/liblib.a \
 	bindings/libbindings.a
 out_static_library =  \
 	$(top_builddir)/PSolver/src/libPSolver-1.a \
 	$(top_builddir)/wrappers/libwrappers.a \
-	$(top_builddir)/flib/libflib.a
+	$(top_builddir)/flib/src/libflib.a
 if BUILD_DYNAMIC_LIBS
 bigdft_dynamic_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
 bigdft_soname_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@
@@ -119,6 +117,7 @@ high_level = cluster.f90 \
 	forces.f90 \
 	tail.f90 \
 	restart.f90 \
+	lbfgs.f90 \
 	geometry.f90 \
 	davidson.f90 \
 	ConstrainedDavidson.f90 \
@@ -316,6 +315,8 @@ abscalc.o : esatto.o
 lanczos.o : lanczos_base.o lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
+
+geometry.o bfgs.o sdcg.o: lbfgs.o
 
 #initAndUtils.o: cleanup.o
 

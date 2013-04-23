@@ -10,6 +10,7 @@
 
 !>  Fake routine when gemmsy_double is not activated
 subroutine gemmsy_double(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,y,ldy)
+  use wrapper_linalg
   implicit none
   character(len=1), intent (in) :: transa, transb
   integer, intent(in) :: m, n, k, lda, ldb, ldy
