@@ -374,7 +374,11 @@ subroutine timing(iproc,category,action)
         stop 
      endif
      !here iproc is the communicator
-     call MPI_COMM_RANK(iproc,iproc_true,ierr)
+     if (parallel) then
+        call MPI_COMM_RANK(iproc,iproc_true,ierr)
+     else
+        iproc_true = 0
+     end if
      ncounters=ncounters+1
      if (ncounters > ncat) then
         print *, 'It is not allowed to have more partial counters that categories; ncat=',ncat
@@ -398,7 +402,11 @@ subroutine timing(iproc,category,action)
         stop 
      endif
      !here iproc is the communicator
-     call MPI_COMM_RANK(iproc,iproc_true,ierr)
+     if (parallel) then
+        call MPI_COMM_RANK(iproc,iproc_true,ierr)
+     else
+        iproc_true = 0
+     end if
 
      if (ncounters == 0) then !no partial counters selected
         timesum(ncat+1)=real(itns,kind=8)*1.d-9-time0

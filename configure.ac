@@ -111,7 +111,7 @@ AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
             ac_use_glib=$withval, ac_use_glib="yes")
 if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
   PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [have_glib=yes], [have_glib=no])
-  PKG_CHECK_MODULES(GDBUS, gio-2.0 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
+  PKG_CHECK_MODULES(GDBUS, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
   dnl Merge GLIB_LIBS and GDBUS_LIBS if GDBUS is available.
   if test "$have_gdbus" = "yes" ; then
     GLIB_LIBS=$GDBUS_LIBS

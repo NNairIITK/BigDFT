@@ -215,6 +215,7 @@ BigDFT_Proj* bigdft_proj_new(const BigDFT_Locreg *glr, const BigDFT_Orbs *orbs, 
 {
   BigDFT_Proj *proj;
   int iproc = 1;
+  _gaussian_basis *gauss;
 
 #ifdef HAVE_GLIB
   proj = BIGDFT_PROJ(g_object_new(BIGDFT_PROJ_TYPE, NULL));
@@ -226,7 +227,7 @@ BigDFT_Proj* bigdft_proj_new(const BigDFT_Locreg *glr, const BigDFT_Orbs *orbs, 
   FC_FUNC(createprojectorsarrays, CREATEPROJECTORSARRAYS)
     (&iproc, glr->data, glr->parent.rxyz.data,
      glr->parent.data, orbs->data, &g_array_index(glr->radii, double, 0), &frmult, &frmult,
-     glr->h, glr->h + 1, glr->h + 2, proj->nlpspd, &proj->proj);
+     glr->h, glr->h + 1, glr->h + 2, proj->nlpspd, gauss, &proj->proj);
   FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(proj->nlpspd, (int*)&proj->nproj,
                                                      (int*)&proj->nprojel);
 

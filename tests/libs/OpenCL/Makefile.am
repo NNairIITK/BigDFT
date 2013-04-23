@@ -27,11 +27,11 @@ LIBS += @LIBS_SHORT_DEPS@
 endif
 
 conv_check_SOURCES = $(top_srcdir)/src/OpenCL/conv_check.f90 
-conv_check_LDADD = -lbigdft-1
+conv_check_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 conv_check.out.yaml: conv_check
 	echo 76 92 130 2 > fort.1
-	./conv_check > $@
+	-./conv_check > $@
 
 OpenCL.report.yaml: conv_check.out.yaml
 	export PYTHONPATH=${PYTHONPATH} ; \
