@@ -12,11 +12,12 @@
 !! Conceived only for isolated Boundary Conditions, no SIC correction
 subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      Glr,nlpspd,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
-     proj,psi,output_denspot,ekin_sum,epot_sum,eproj_sum)
+     proj,psi,output_denspot,ekin_sum,epot_sum,eproj_sum,proj_G,paw)
   use module_base
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => CalculateTailCorrection
+  use gaussians, only: gaussian_basis
   implicit none
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -31,6 +32,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
+  type(gaussian_basis),optional,intent(in),dimension(at%ntypes)::proj_G
+  type(paw_objects),optional,intent(inout)::paw
   !local variables
   type(locreg_descriptors) :: lr
   character(len=*), parameter :: subname='CalculateTailCorrection'
@@ -416,10 +419,19 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         !write(*,'(a,3i3,2f12.8)') 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin
 
         if (DistProjApply) then
-           call applyprojectorsonthefly(0,orbsb,at,lr,&
-                txyz,hgrid,hgrid,hgrid,wfdb,nlpspd,proj,psib,hpsib,eproj)
+           if(any(at%npspcode == 7)) then
+             call applyprojectorsonthefly(0,orbsb,at,lr,&
+                  txyz,hgrid,hgrid,hgrid,wfdb,nlpspd,proj,psib,hpsib,eproj,proj_G,paw)
+           else
+             call applyprojectorsonthefly(0,orbsb,at,lr,&
+                  txyz,hgrid,hgrid,hgrid,wfdb,nlpspd,proj,psib,hpsib,eproj)
+           end if
            !only the wavefunction descriptors must change
         else
+           if(any(at%npspcode == 7)) then
+             write(*,*)'WVL+PAW: applyprojectorsone not yet implemented'
+             stop
+           end if
            call applyprojectorsone(at%ntypes,at%nat,at%iatype,&
                 at%psppar,at%npspcode, &
                 nlpspd%nprojel,nlpspd%nproj,proj,nlpspd,&

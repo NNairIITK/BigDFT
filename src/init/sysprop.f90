@@ -16,6 +16,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   use module_types
   use module_interfaces, fake_name => system_initialization
   use module_xc
+  use gaussians, only: gaussian_basis
   use vdwcorrection
   use yaml_output
   implicit none
@@ -35,10 +36,18 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nB,nKB,nMB,ii,iat,iorb!,i_stat,i_all
+  integer :: nB,nKB,nMB,ii,iat,iorb,iatyp!,i_stat,i_all
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old
+  !Note proj_G should be filled for PAW:
+  type(gaussian_basis),dimension(atoms%nat)::proj_G
+
+  !nullify dummy variables only used for PAW:
+  do iatyp=1,atoms%ntypes
+    call nullify_gaussian_basis(proj_G(iatyp))
+  end do
+
 
   ! Dump XC functionals (done now in output.f90)
   !if (iproc == 0) call xc_dump()
@@ -117,7 +126,6 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
      end if
   end if
 
-
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
@@ -165,7 +173,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
-       radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),nlpspd,proj)
+       radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
+       Lzd%hgrids(3),nlpspd,proj_G,proj)
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way
   if (iproc==0 .and. verbose > 0) then
@@ -892,7 +901,6 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
      nspinor=1
   end if
 
-
   call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,in%nspin,nspinor,&
        in%nkpt,in%kpt,in%wkpt,orbs,.false.)
 
@@ -943,7 +951,6 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   end do
   if (verb .and. iproc == 0) call yaml_close_sequence()
 end subroutine read_orbital_variables
-
 
 subroutine read_atomic_variables(atoms, fileocc, nspin)
   use module_base

@@ -429,6 +429,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   if (atoms%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
 end subroutine calculate_forces
 
+
 !> calculate the contribution to the forces given by the core density charge
 subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
   use module_base
@@ -778,6 +779,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
      orbs,nlpspd,proj,wfd,psi,fsep,refill,strten)
   use module_base
   use module_types
+  use gaussians, only: gaussian_basis
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
@@ -795,7 +797,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
   character(len=*), parameter :: subname='nonlocal_forces'
-  integer :: istart_c,iproj,iat,ityp,i,j,l,m
+  integer :: istart_c,iproj,iat,ityp,i,j,l,m,iatyp
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,strc,Enl,vol
@@ -805,8 +807,14 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
   real(gp), dimension(6) :: sab
+  type(gaussian_basis),dimension(at%ntypes)::proj_G
 
   call to_zero(6,strten(1)) 
+  
+  !nullify PAW objects
+  do iatyp=1,at%ntypes
+    call nullify_gaussian_basis(proj_G(iatyp))
+  end do
 
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
@@ -888,7 +896,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
               istart_c=1
               call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
                    lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),&
-                   proj,nwarnings)
+                   proj,nwarnings,proj_G)
               !!do i_all=1,nlpspd%nprojel
               !!    write(850+iat,*) i_all, proj(i_all)
               !!end do
@@ -3830,10 +3838,11 @@ subroutine symm_stress(dump,tens,symobj)
   tens(5)=symtens(1,3)
   tens(6)=symtens(1,2)
 
-!  if (iproc == 0 .and. verbose > 2) then
-!     write(*,*) '=== SYMMETRISED ==='
-!     write(*,*) tens(:)
-!  end if
+ !  if (iproc == 0 .and. verbose > 2) then
+ !     write(*,*) '=== SYMMETRISED ==='
+ !     write(*,*) tens(:)
+ !  end if
+
 
 end subroutine symm_stress
 

@@ -83,11 +83,13 @@ Mn2:
  Keys to ignore:
   - proc
  Epsilon: 2.e-10
- Ekin: 3.1e-10
  Enl: 2.1e-10
- Atomic Forces (Ha/Bohr): 2.3e-10
- Average noise forces: 3.2e-10
- Clean forces norm (Ha/Bohr): 2.3e-10
+ Ekin: 3.1e-10
+ Average noise forces: 3.4e-10
+ Atomic Forces (Ha/Bohr):
+  - Mn: 2.3e-10
+ Clean forces norm (Ha/Bohr):
+  maxval: 2.3e-10
 
 GPU:
  EvXC: 1.1e-10
@@ -119,15 +121,16 @@ NH3:
 CH3-:
  Epsilon: 5.1e-9
  gnrm: 1.1e-5
- EKS: 7.84e-9
+ EKS: 1.6e-8
  D: 1.e-8
- Average CG stepsize in terms of betax: 3.1e-4
- Atomic Forces (Ha/Bohr): 2.5e-7
- Average noise forces: 4.5e-8
- Clean forces norm (Ha/Bohr): 1.8e-7
- Raw forces norm (Ha/Bohr): 2.5e-7
- Ion-Ion interaction energy: 5.5e-7
- FORCES norm(Ha/Bohr): 8.3e-9
+ Average CG stepsize in terms of betax: 3.4e-4
+ Atomic Forces (Ha/Bohr): 4.0e-7
+ Average noise forces: 5.3e-8
+ Clean forces norm (Ha/Bohr): 3.6e-7
+ Raw forces norm (Ha/Bohr): 4.0e-7
+ Ion-Ion interaction energy: 3.0e-6
+ FORCES norm(Ha/Bohr): 1.1e-6
+ Forces: 1.1e-7
  Keys to ignore:
  - b/b0
 
@@ -180,7 +183,7 @@ test.minhop.ref.yaml:
  maxval: 7.1e-11
  Atomic Forces (Ha/Bohr): 2.0e-11
  Average noise forces: 1.0e-10
- etot: 1.6e-11
+ etot: 1.8e-11
  Orbitals: 6.1e-9
  Keys to ignore:
    - (MH) cpu(hrs)
@@ -244,7 +247,7 @@ BigDFT2Wannier.b2w.ref.yaml:
   amnk_guess(nb): 1.31e-10
 
 cleanup:
- Atomic Forces (Ha/Bohr): 1.5e-10
+ Atomic Forces (Ha/Bohr): 2.41e-10
  Average noise forces: 1.5e-10
  Clean forces norm (Ha/Bohr): 1.6e-10
  Raw forces norm (Ha/Bohr): 2.4e-10

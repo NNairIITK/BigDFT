@@ -13,6 +13,7 @@
 program oneatom
   use BigDFT_API
   use Poisson_Solver
+  use gaussians, only: gaussian_basis
   implicit none
   character(len=*), parameter :: subname='oneatom'
   logical :: dokernel=.false.
@@ -20,6 +21,7 @@ program oneatom
   integer :: n1i,n2i,n3i,iproc,nproc,i_stat,i_all,nelec
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ndegree_ip
   integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter,istat
+  integer :: iatyp
   real(gp) :: hxh,hyh,hzh
   real(gp) :: tt,gnrm !n(c) gnrm_zero,alpha
   real(gp) :: energy,energy_min,scprsum !n(c) energy_old
@@ -35,6 +37,8 @@ program oneatom
   type(diis_objects) :: diis
   type(rho_descriptors)  :: rhodsc
   type(energy_terms) :: energs
+  type(gaussian_basis),dimension(:),allocatable::proj_G
+  type(paw_objects)::paw
   character(len=4) :: itername
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -73,6 +77,15 @@ program oneatom
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
+! Nullify paw objects:
+  allocate(proj_G(atoms%ntypes),stat=i_stat)
+  !call memocc(i_stat,proj_G,'proj_G',subname)
+  do iatyp=1,atoms%ntypes
+     call nullify_gaussian_basis(proj_G(iatyp))
+  end do
+  paw%usepaw=0 !Not using PAW
+  call nullify_paw_objects(paw)
+
   call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
   ! Determine size alat of overall simulation cell and shift atom positions
@@ -99,7 +112,7 @@ program oneatom
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,Glr,rxyz,atoms,orbs,&
-       radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,nlpspd,proj)
+       radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,nlpspd,proj_G,proj)
   call timing(iproc,'CrtProjectors ','OF')
 
   !allocate communications arrays
@@ -284,6 +297,10 @@ program oneatom
   !     comms,psi,hpsi,psit,evsum)
   
   call deallocate_diis_objects(diis,subname)
+
+  !i_all=-product(shape(proj_G))*kind(proj_G)
+  deallocate(proj_G,stat=i_stat)
+  !call memocc(i_stat,i_all,'proj_G',subname)
 
   if (nproc > 1) then
      i_all=-product(shape(psit))*kind(psit)
