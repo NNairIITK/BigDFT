@@ -34,14 +34,18 @@ EXTRA_DIST = \
 # Build targets, binaries and libraries.
 # -------------
 noinst_LIBRARIES = libmain.a
-# put all subs except flib/libflib.a
-subs_static_library = modules/libmodules.a \
+# put all subs
+subs_static_library = \
+	modules/libmodules.a \
 	CUDA/libCUDA.a \
 	convolutions/libconvolutions.a \
 	PSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
 	lib/liblib.a \
-	bindings/libbindings.a
+	bindings/libbindings.a \
+	$(top_builddir)/PSolver/libPSolver.a \
+	$(top_builddir)/wrappers/libwrappers.a \
+	$(top_builddir)/flib/libflib.a
 if BUILD_DYNAMIC_LIBS
 bigdft_dynamic_library = libbigdft-1.so.7.0.24
 bigdft_soname_library = libbigdft-1.so.7
@@ -226,7 +230,7 @@ libbigdft-1.a: $(libmain_a_OBJECTS) $(subs_static_library)
 	rm -rf tmp-libbigdft
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) $(subs_static_library)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) $(subs_static_library) $(top_builddir)/PSolver/libPSolver.a $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/libflib.a @LIBS_SHORT_DEPS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) $(subs_static_library) @LIBS_SHORT_DEPS@
 	@chmod a+x $@
 
 libbigdft-1.so.7: $(bigdft_dynamic_library)
