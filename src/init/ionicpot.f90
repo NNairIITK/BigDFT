@@ -460,6 +460,12 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
   ! Add empiric correction for Van der Waals forces and energy.
   call vdwcorrection_calculate_energy(edisp,rxyz,at,dispersion,iproc)
+  if (iproc == 0) then
+!!$     write(*,'(1x,a, e12.5,1x,a)') &
+!!$          'Dispersion Correction Energy: ', dispersion_energy, 'Hartree'
+     call yaml_map('Dispersion Correction Energy (Ha)',edisp,fmt='(1pe22.14)')
+  end if
+
   call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion) 
 END SUBROUTINE IonicEnergyandForces
 

@@ -506,7 +506,8 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   in%idsx = min(in%idsx, in%itermax)
 
   !dispersion parameter
-  call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
+  call input_var(in%dispersion,'0',ranges=(/0,5/),&
+       comment='dispersion correction potential (values 1,2,3,4,5), 0=none')
     
   ! Now the variables which are to be used only for the last run
   call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,13,100,101,102/),input_iostat=ierror)
