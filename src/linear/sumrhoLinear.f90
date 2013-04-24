@@ -91,7 +91,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      spinval=orbs%spinsgn(iorb)
 
      !this shoudl have aleady been defined
-     if (.not. Lzd%Llr(ilr)%hybrid_on) stop 'ERROR, ilr not initialized'
+     if (Lzd%Llr(ilr)%hybrid_on) stop 'ERROR, ilr not initialized'
      !Lzd%Llr(ilr)%hybrid_on=.false.
 
      if (hfac /= 0.d0) then

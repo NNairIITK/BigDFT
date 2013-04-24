@@ -1518,7 +1518,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   !local variables
   !n(c) character(len=*), parameter :: subname='perf_input_variables'
   logical :: exists
-  integer :: ierr,blocks(2),ipos,i
+  integer :: ierr,blocks(2),ipos,i,iproc_node,nproc_node
 
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) in%files = in%files + INPUTS_PERF
@@ -1626,6 +1626,11 @@ subroutine perf_input_variables(iproc,dump,filename,in)
      call yaml_new_document()
      !welcome screen
      if (dump) call print_logo()
+  end if
+  if (bigdft_mpi%nproc >1) call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
+  if (iproc ==0 .and. dump) then
+     if (bigdft_mpi%nproc >1) call yaml_map('MPI tasks of root process node',nproc_node)
+     call print_configure_options()
   end if
   !call input_free((iproc == 0) .and. dump)
 

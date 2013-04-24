@@ -1655,6 +1655,9 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
    call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
 
+   call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+        tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
+
    i_all = -product(shape(norm))*kind(norm)
    deallocate(norm,stat=i_stat)
    call memocc(i_stat,i_all,'norm',subname)
@@ -2629,6 +2632,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call memocc(i_stat, norm, 'norm', subname)
 
      call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
+
+     call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+          tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
 
      i_all = -product(shape(norm))*kind(norm)
      deallocate(norm,stat=i_stat)

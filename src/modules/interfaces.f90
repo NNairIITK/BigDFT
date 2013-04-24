@@ -740,7 +740,7 @@ module module_interfaces
         type(orbitals_data),  intent(in) :: orbs
         type(local_zone_descriptors), intent(in) :: Lzd
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd 
-        real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
         real(gp), dimension(3,at%nat), intent(in) :: rxyz
         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi

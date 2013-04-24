@@ -28,6 +28,8 @@ end subroutine test_yaml_output1
 subroutine test_yaml_output2()
   use yaml_output
   implicit none
+  !local variables
+  integer :: i
 
   call yaml_open_map("Test")
     call yaml_map("I have a very long sentence in order to test if yaml_output fails to print that",.true.)
@@ -41,8 +43,16 @@ subroutine test_yaml_output2()
       call yaml_map("one",1)
       call yaml_map("two",2)
       call yaml_close_map()
-   call yaml_close_map()
+      !another long sentence minimcking the configure output
+      call yaml_map('Build Configure line','$(top_builddir)/src/flib/libflib.a '//&
+           '-labinit -lxc   -lOpenCL -lm -lstdc++ -letsf_io_utils -letsf_io -lnetcdff -lnetcdf '//&
+           '-lscalapack-openmpi -lblacs-openmpi -lblacsF77init-openmpi -llapack '//&
+           '-lblas -larchive   -lyaml -pthread -lgthread-2.0 -lrt -lgio-2.0 '//&
+           '-lgobject-2.0 -lglib-2.0   -lgio-2.0 -lgobject-2.0 -lglib-2.0    ')
 
+      call yaml_map('Long string array',(/('compiler',i=1,10)/))
+   call yaml_close_map()
+!stop
 end subroutine test_yaml_output2
 
 subroutine test_yaml_output_sequences1()
@@ -54,6 +64,7 @@ subroutine test_yaml_output_sequences1()
   integer, dimension(:), allocatable :: iv
   real(kind=8), dimension(:), allocatable :: dv
   
+  
   allocate(cv(0))
   allocate(iv(0))
   !This raises a bug for a vector which is too long
@@ -62,6 +73,11 @@ subroutine test_yaml_output_sequences1()
 
    call yaml_map('Vector of characters',cv)
    call yaml_map('Vector of integers',iv)
+   !call yaml_stream_attributes()
+   call yaml_open_map('Is it OK?',flow=.true.)
+   call yaml_map('Maybe',.true.)
+   call yaml_map('Maybe',.false.)
+   call yaml_close_map(advance='yes')
    call yaml_open_sequence('Vector of double',flow=.true.)
       do i=1,size(dv)
          call yaml_sequence(trim(yaml_toa(dv(i),fmt='(1pe12.5)')))
@@ -72,7 +88,7 @@ subroutine test_yaml_output_sequences1()
    deallocate(cv)
    deallocate(iv)
    deallocate(dv)
-  
+
 end subroutine test_yaml_output_sequences1
 
 subroutine test_yaml_output_sequences2()

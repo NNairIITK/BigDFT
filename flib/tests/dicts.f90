@@ -47,7 +47,15 @@ subroutine test_dictionaries1()
    call add(dict,'1')
    call add(dict,'2')
    call add(dict,'3')
+   call yaml_open_map('List')
    call yaml_dict_dump(dict,flow=.true.)
+   call yaml_close_map()
+!after this call the document has to finish
+   call yaml_release_document()
+
+   call yaml_new_document()
+
+   
    call yaml_map('Dictionary length',dict_len(dict))
    call yaml_map('Dictionary size',dict_size(dict))
 
