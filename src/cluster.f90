@@ -61,11 +61,10 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
 
   !put a barrier for all the processes
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-  !call f_routine(id=subname)
+  call f_routine(id=subname)
   if (nproc > 1) then
      !check that the positions are identical for all the processes
-     !rxyz_glob=f_malloc((/3,atoms%nat,nproc/),id='rxyz_glob')
-     allocate(rxyz_glob(3,atoms%nat,nproc))
+     rxyz_glob=f_malloc((/3,atoms%nat,nproc/),id='rxyz_glob')
      
      !gather the results for all the processors
      call MPI_GATHER(rxyz0,3*atoms%nat,mpidtypg,&
@@ -85,8 +84,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
              '(the difference is '//trim(yaml_toa(maxdiff))//' )')
      end if
 
-     !call f_free(rxyz_glob)
-     deallocate(rxyz_glob)
+     call f_free(rxyz_glob)
   end if
   !fill the rxyz array with the positions
   !wrap the atoms in the periodic directions when needed
@@ -213,7 +211,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   in%inputPsiId=inputPsiId_orig
 
   !put a barrier for all the processes
-  !call f_release_routine()
+  call f_release_routine()
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 
 

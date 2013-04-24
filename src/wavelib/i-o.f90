@@ -1632,51 +1632,51 @@ subroutine define_rotations(da,newz,theta,hgrids_old,ndims_old,&
 
  end subroutine define_rotations
 
-!!$subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,theta,hgrids_old,ndims_old,f_old,&
-!!$     hgrids_new,ndims_new,f_new)
-!!$  use module_base
-!!$  implicit none
-!!$  integer, intent(in) :: n_phi,nrange_phi !< number of points of ISF array and real-space range
-!!$  real(gp), intent(in) :: theta !< rotation wrt newzeta vector
-!!$  real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
-!!$  real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
-!!$  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
-!!$  integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
-!!$  real(gp), dimension(n_phi), intent(in) :: phi_ISF
-!!$  real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
-!!$  real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
-!!$  !local variables
-!!$  real(gp), dimension(:,:), allocatable :: dx,dy,dz
-!!$  real(gp), dimension(:,:,:), allocatable :: work,work2
-!!$  
-!!$  call f_routine(id='field_rototranslation')
-!!$  
-!!$  dx=f_malloc((/ndims_old(1),ndims_old(2)*ndims_old(3)/),id='dx')
-!!$  dy=f_malloc((/ndims_old(2),ndims_new(1)*ndims_old(3)/),id='dy')
-!!$  dz=f_malloc((/ndims_old(3),ndims_new(1)*ndims_new(2)/),id='dz')
-!!$  work =f_malloc(shape(dy),id='work')
-!!$  work2=f_malloc(shape(dz),id='work2')
-!!$
-!!$  
-!!$  call define_rotations(da,newz,theta,hgrids_old,ndims_old,&
-!!$       hgrids_new,ndims_new,dx,dy,dz)
-!!$  
-!!$  !perform interpolation
-!!$  call my_morph_and_transpose(dx,n_phi,nrange_phi,phi_ISF,ndims_old(2)*ndims_old(3),&
-!!$         ndims_old(1),f_old,ndims_new(1),work)
-!!$  
-!!$  call my_morph_and_transpose(dy,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_old(3),&
-!!$         ndims_old(2),work,ndims_new(2),work2)
-!!$
-!!$  call my_morph_and_transpose(dz,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_new(2),&
-!!$         ndims_old(3),work2,ndims_new(3),f_new)
-!!$  
-!!$  call f_free(dx)
-!!$  call f_free(dy)
-!!$  call f_free(dz)
-!!$  call f_free(work)
-!!$  call f_free(work2)
-!!$
-!!$  call f_release_routine()
-!!$end subroutine field_rototranslation
+subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,theta,hgrids_old,ndims_old,f_old,&
+     hgrids_new,ndims_new,f_new)
+  use module_base
+  implicit none
+  integer, intent(in) :: n_phi,nrange_phi !< number of points of ISF array and real-space range
+  real(gp), intent(in) :: theta !< rotation wrt newzeta vector
+  real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
+  real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
+  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
+  integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
+  real(gp), dimension(n_phi), intent(in) :: phi_ISF
+  real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
+  real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
+  !local variables
+  real(gp), dimension(:,:), allocatable :: dx,dy,dz
+  real(gp), dimension(:,:,:), allocatable :: work,work2
+  
+  call f_routine(id='field_rototranslation')
+  
+  dx=f_malloc((/ndims_old(1),ndims_old(2)*ndims_old(3)/),id='dx')
+  dy=f_malloc((/ndims_old(2),ndims_new(1)*ndims_old(3)/),id='dy')
+  dz=f_malloc((/ndims_old(3),ndims_new(1)*ndims_new(2)/),id='dz')
+  work =f_malloc(shape(dy),id='work')
+  work2=f_malloc(shape(dz),id='work2')
+
+  
+  call define_rotations(da,newz,theta,hgrids_old,ndims_old,&
+       hgrids_new,ndims_new,dx,dy,dz)
+  
+  !perform interpolation
+  call my_morph_and_transpose(dx,n_phi,nrange_phi,phi_ISF,ndims_old(2)*ndims_old(3),&
+         ndims_old(1),f_old,ndims_new(1),work)
+  
+  call my_morph_and_transpose(dy,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_old(3),&
+         ndims_old(2),work,ndims_new(2),work2)
+
+  call my_morph_and_transpose(dz,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_new(2),&
+         ndims_old(3),work2,ndims_new(3),f_new)
+  
+  call f_free(dx)
+  call f_free(dy)
+  call f_free(dz)
+  call f_free(work)
+  call f_free(work2)
+
+  call f_release_routine()
+end subroutine field_rototranslation
  
