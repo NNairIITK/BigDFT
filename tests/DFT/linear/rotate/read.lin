@@ -1,17 +1,17 @@
 2                                number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
-0        1                       outer loop iterations (low, high)
+0        2                       outer loop iterations (low, high)
 2        2                       basis iterations (low, high)
-3        3                       kernel iterations (low, high)
+3        4                       kernel iterations (low, high)
 0        0                       DIIS history for basis (low, high)
 0        0                       DIIS history for kernel (low, high)
 .3d0     .3d0                    density mixing parameter (low, high)
-1.d-11   1.d-7                   outer loop convergence (low, high)
+1.d-9    1.d-10                  outer loop convergence (low, high)
 5.d-5    1.d-5                   basis convergence (low, high)
 1.d0     5.d-2                   multiplier to (exit one TMB optimization, fix TMB completely). Only used for hybrid mode
 0.5d0                            factor to reduce the confinement. Only used for hybrid mode.
-1.d-13   1.d-13                  kernel convergence (low, high)
+1.d-14   1.d-14                  kernel convergence (low, high)
 1.d-11                           convergence criterion on density to fix TMBS
-101                              mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (foe)
+100                              mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (foe)
 1.d0     1.d-1                   initial step size for basis optimization (DIIS, SD)
 -0.5d0   0.5d0                   lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small
 4                                number of iterations in the preconditioner
