@@ -133,6 +133,7 @@ if bigdft:
             or "Logfile already existing" in line \
 	        or "Gathering the potential" in line \
             or "<BigDFT>" in line \
+            or "logfiles" in line \
             or "alpha" in line \
             or "wavefunctions need NO reformatting" in line \
             or "WARNING:" in line \

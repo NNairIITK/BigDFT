@@ -4,7 +4,6 @@ Default tolerances:
  
 Keys to ignore:
  - Code logo
- - Timestamp of this run
  - MPI task*
  - Timings for root process
  - Maximal OpenMP threads per MPI task
@@ -24,11 +23,19 @@ Keys to ignore:
  - Tolerances for this check
  - Material acceleration
  - Number of OpenCL devices per node
+Patterns to ignore:
+ - Timestamp
+ - memory
 
 Expected Test CPUtime: #
  C: #[expected, error]
   athelas: [ 6.0, 1.0 ]
 
+yaml_test:
+ Keys to ignore:
+   - Error code
+   - Address*
+   - date
 
 #Runs which update and override the default
 SiH4:
@@ -76,8 +83,13 @@ Mn2:
  Keys to ignore:
   - proc
  Epsilon: 2.e-10
+ Enl: 3.1e-10
  Ekin: 3.1e-10
  Average noise forces: 3.4e-10
+ Atomic Forces (Ha/Bohr):
+  - Mn: 2.5e-10
+ Clean forces norm (Ha/Bohr):
+  maxval: 2.5e-10
 
 GPU:
  EvXC: 1.1e-10
@@ -113,7 +125,7 @@ CH3-:
  D: 1.e-8
  Average CG stepsize in terms of betax: 3.4e-4
  Atomic Forces (Ha/Bohr): 4.0e-7
- Average noise forces: 5.2e-8
+ Average noise forces: 5.3e-8
  Clean forces norm (Ha/Bohr): 3.6e-7
  Raw forces norm (Ha/Bohr): 4.0e-7
  Ion-Ion interaction energy: 3.0e-6
@@ -140,8 +152,10 @@ O2-Spin:
  Epsilon: 1.1e-10
 
 H2-spin:
- Epot: 2.1e-11
- Total energy with tail correction: 1.51e-11
+ Estimation of Finite-Size Corrections:
+  Corrected Energies:
+   Epot: 2.1e-11
+  Total energy with tail correction: 1.51e-11
 
 TiSmear:
  Epsilon: 5.e-11
@@ -155,9 +169,25 @@ test.splsad.ref.yaml:
  Electric Dipole Moment (Debye): 1.2e-8
 
 test.minhop.ref.yaml:
-  Keys to ignore:
-    - (MH) cpu(hrs)
-    - WARNINGS
+ Energies: &etol1 6.0e-9
+ Eion: &eion1 4.1e-11
+ EH: *etol1
+ EXC: *etol1
+ Ekin: *etol1
+ Enl: *etol1
+ Epot: *etol1
+ EvXC: *etol1
+ EKS: 9.7e-10
+ Ion-Ion interaction energy: *eion1
+ fluct: 1.2e-9
+ maxval: 7.1e-11
+ Atomic Forces (Ha/Bohr): 2.0e-11
+ Average noise forces: 1.0e-10
+ etot: 1.8e-11
+ Orbitals: 6.1e-9
+ Keys to ignore:
+   - (MH) cpu(hrs)
+   - WARNINGS
 
 test.testforces.ref.yaml:
  Epsilon: 1.2e-10
@@ -214,10 +244,10 @@ TDDFT:
   L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-7
 
 BigDFT2Wannier.b2w.ref.yaml:
-  amnk_guess(nb): 8.01e-11
+  amnk_guess(nb): 1.31e-10
 
 cleanup:
- Atomic Forces (Ha/Bohr): 1.5e-10
+ Atomic Forces (Ha/Bohr): 2.41e-10
  Average noise forces: 1.5e-10
  Clean forces norm (Ha/Bohr): 1.6e-10
  Raw forces norm (Ha/Bohr): 2.4e-10

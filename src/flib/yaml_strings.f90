@@ -15,21 +15,83 @@ module yaml_strings
 
   implicit none
 
+  private
+
   integer :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
 
   character(len=*), parameter :: yaml_int_fmt  = '(i0)'       !< Default format for integer
-  character(len=*), parameter :: yaml_real_fmt = '(1pe17.9)' !< Default format for integer
-  character(len=*), parameter :: yaml_dble_fmt = '(1pe25.17)' !< Default format for integer
+  character(len=*), parameter :: yaml_real_fmt = '(1pe17.9)' !< Default format for single
+  character(len=*), parameter :: yaml_dble_fmt = '(1pg26.17e3)'!'(1pe25.17)' !< Default format for double
+  character(len=*), parameter :: yaml_char_fmt = '(a)' !< Default format for strings
 
   interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
-     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,&
-          yaml_ztoa,yaml_zvtoa
+     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_ctoa
+     module procedure yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,yaml_ztoa,yaml_zvtoa
   end interface
 
-  public ::  yaml_toa, buffer_string, align_message, shiftstr
-  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_length
+  interface cnv_fmt
+     module procedure fmt_i,fmt_r,fmt_d,fmt_a,fmt_li
+  end interface
+
+  public ::  yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
+  public :: yaml_date_and_time_toa,yaml_time_toa
+  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa
+  private :: yaml_dvtoa,yaml_ivtoa,max_value_length
+  
 
 contains
+
+  function fmt_li(data)
+    implicit none
+    integer(kind=8), intent(in) :: data
+    character(len=len(yaml_int_fmt)) :: fmt_li
+    fmt_li=yaml_int_fmt
+  end function fmt_li
+
+  function fmt_i(data)
+    implicit none
+    integer, intent(in) :: data
+    character(len=len(yaml_int_fmt)) :: fmt_i
+    fmt_i=yaml_int_fmt
+  end function fmt_i
+
+  function fmt_r(data)
+    implicit none
+    real, intent(in) :: data
+    character(len=len(yaml_real_fmt)) :: fmt_r
+    fmt_r=yaml_real_fmt
+  end function fmt_r
+
+  function fmt_d(data)
+    implicit none
+    double precision, intent(in) :: data
+    character(len=len(yaml_dble_fmt)) :: fmt_d
+    fmt_d=yaml_dble_fmt
+  end function fmt_d
+
+  function fmt_a(data)
+    implicit none
+    character(len=*), intent(in) :: data
+    character(len=len(yaml_char_fmt)) :: fmt_a
+    fmt_a=yaml_char_fmt
+  end function fmt_a
+
+
+  !write the strings as they were written by write
+  pure subroutine string_assignment(stra,strb)
+    implicit none
+    character(len=*), intent(out) :: stra
+    character(len=*), intent(in) :: strb
+    !local variables
+    integer :: i
+
+    stra=repeat(' ',len(stra))
+    
+    do i=1,min(len(stra),len(strb))
+       stra(i:i)=strb(i:i)
+    end do
+    
+  end subroutine string_assignment
 
   !> Add a buffer to a string and increase its length
   subroutine buffer_string(string,string_lgt,buffer,string_pos,back,istat)
@@ -106,80 +168,44 @@ contains
 
   end subroutine align_message
 
-
   !> Convert integer to character
-  function yaml_itoa(i,fmt)
+  function yaml_itoa(data,fmt) result(str)
     implicit none
-    integer, intent(in) :: i
-    character(len=max_value_length) :: yaml_itoa
-    character(len=*), optional, intent(in) :: fmt
-
-    yaml_itoa=repeat(' ',max_value_length)
-    if (present(fmt)) then
-       write(yaml_itoa,fmt) i
-    else
-       write(yaml_itoa,yaml_int_fmt) i
-    end if
-
-    yaml_itoa=yaml_adjust(yaml_itoa)
-
+    integer, intent(in) :: data
+    include 'yaml_toa-inc.f90'
   end function yaml_itoa
 
-
   !> Convert longinteger to character
-  function yaml_litoa(i,fmt)
+  function yaml_litoa(data,fmt) result(str)
     implicit none
-    integer(kind=8), intent(in) :: i
-    character(len=max_value_length) :: yaml_litoa
-    character(len=*), optional, intent(in) :: fmt
-
-    yaml_litoa=repeat(' ',max_value_length)
-    if (present(fmt)) then
-       write(yaml_litoa,fmt) i
-    else
-       write(yaml_litoa,yaml_int_fmt) i
-    end if
-
-    yaml_litoa=yaml_adjust(yaml_litoa)
-
+    integer(kind=8), intent(in) :: data
+    include 'yaml_toa-inc.f90'
   end function yaml_litoa
 
-
   !> Convert float to character
-  function yaml_ftoa(f,fmt)
+  function yaml_ftoa(data,fmt) result(str)
     implicit none
-    real, intent(in) :: f
-    character(len=max_value_length) :: yaml_ftoa
-    character(len=*), optional, intent(in) :: fmt
-
-    yaml_ftoa=repeat(' ',max_value_length)
-    if (present(fmt)) then
-       write(yaml_ftoa,fmt) f
-    else
-       write(yaml_ftoa,yaml_real_fmt) f
-    end if
-
-    yaml_ftoa=yaml_adjust(yaml_ftoa)
-
+    real, intent(in) :: data
+    include 'yaml_toa-inc.f90'
   end function yaml_ftoa
 
-
   !> Convert double to character
-  function yaml_dtoa(d,fmt)
+  function yaml_dtoa(data,fmt) result(str)
     implicit none
-    real(kind=8), intent(in) :: d
-    character(len=max_value_length) :: yaml_dtoa
+    real(kind=8), intent(in) :: data
+    include 'yaml_toa-inc.f90'
+  end function yaml_dtoa
+
+  !> character to character, only for genericity
+  function yaml_ctoa(d,fmt)
+    implicit none
+    character(len=*), intent(in) :: d
+    character(len=max_value_length) :: yaml_ctoa
     character(len=*), optional, intent(in) :: fmt
 
-    yaml_dtoa=repeat(' ',max_value_length)
-    if (present(fmt)) then
-       write(yaml_dtoa,fmt) d
-    else
-       write(yaml_dtoa,yaml_dble_fmt) d
-    end if
-    yaml_dtoa=yaml_adjust(yaml_dtoa)
+    yaml_ctoa(1:max_value_length)=d
 
-  end function yaml_dtoa
+  end function yaml_ctoa
 
   !> Convert double complex to character
   !! use python notation for yaml complex
@@ -197,6 +223,7 @@ contains
 
     yaml_ztoa=repeat(' ',max_value_length)
     ztmp=z
+    zeta=transfer(ztmp,zeta)
     zr=yaml_ztoa
     zi=yaml_ztoa
 
@@ -328,7 +355,6 @@ contains
     yaml_zvtoa=yaml_adjust(yaml_zvtoa)
 
   end function yaml_zvtoa
-
 
   !> Convert vector of integer to character
   function yaml_ivtoa(iv,fmt)

@@ -17,25 +17,25 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   use BigDFT_API
   implicit none
   integer, dimension(4), intent(out) :: mpi_info !< first entry: id of MPI task in the groups,
-  !! second entry: number of MPI tasks, third: id of group, fourth: total number of taskgroups
-  integer, intent(out) :: nconfig !<if negative, run_is is a list_posinp, otherwise comes from the taskgroups
-  character(len=*), intent(out) :: run_id !< radical of the taskgroups or list_posinp name
-  integer, intent(out) :: ierr  !< error code
+                                                 !! 2nd: number of MPI tasks, third: id of group, fourth: total number of taskgroups
+  integer, intent(out) :: nconfig                !< if negative, run_is is a list_posinp, otherwise comes from the taskgroups
+  character(len=*), intent(out) :: run_id        !< radical of the taskgroups or list_posinp name
+  integer, intent(out) :: ierr                   !< error code
   !local variables
   logical :: exist_list
   integer :: iproc,nproc,nconfig_file,mpi_groupsize
   character(len=60) :: posinp_file,radical
 
-  !initalize the global mpi environment
+  !Initalize the global mpi environment
   call bigdft_mpi_init(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
   if (ierr /= MPI_SUCCESS) return
 
-  !se the memory limit for the allocation library
-  call f_malloc_set_status(memory_limit=memorylimit)
-  !call memocc_set_memory_limit(memorylimit)
+  !set the memory limit for the allocation library
+  !call f_set_status(memory_limit=memorylimit,iproc=iproc)
+  call memocc_set_memory_limit(memorylimit)
 
 
   call command_line_information(mpi_groupsize,posinp_file,radical,ierr)

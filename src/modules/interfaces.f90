@@ -740,7 +740,7 @@ module module_interfaces
         type(orbitals_data),  intent(in) :: orbs
         type(local_zone_descriptors), intent(in) :: Lzd
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd 
-        real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
         real(gp), dimension(3,at%nat), intent(in) :: rxyz
         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
@@ -864,7 +864,7 @@ module module_interfaces
         real(gp), intent(out) :: fnoise,pressure
         real(gp), dimension(6), intent(out) :: strten
         real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
-        type(DFT_wavefunction),intent(in),optional :: tmb
+        type(DFT_wavefunction),intent(in) :: tmb
       END SUBROUTINE calculate_forces
       
       subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
@@ -993,16 +993,16 @@ module module_interfaces
          real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp,orbs%nspinor), intent(inout) :: hpsi
       END SUBROUTINE preconditionall
 
-      subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,gnrm,gnrm_zero)
+      subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,confdatarr,gnrm,gnrm_zero)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc,nproc,ncong
+        integer, intent(in) :: iproc,nproc,ncong,npsidim
         real(gp), intent(in) :: hx,hy,hz
         type(local_zone_descriptors), intent(in) :: Lzd
         type(orbitals_data), intent(in) :: orbs
         real(dp), intent(out) :: gnrm,gnrm_zero
-        real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+        real(wp), dimension(npsidim), intent(inout) :: hpsi
         type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
       end subroutine preconditionall2
 
@@ -1874,7 +1874,7 @@ module module_interfaces
          integer, intent(in) :: iorb,ispinor,unitfile
          type(orbitals_data), intent(in) :: orbs
          integer, intent(out) :: iorb_out
-         integer,optional :: iiorb   
+         integer,intent(in),optional :: iiorb   
       END SUBROUTINE open_filename_of_iorb
 
       subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb)
@@ -1887,7 +1887,7 @@ module module_interfaces
          type(orbitals_data), intent(in) :: orbs
          character(len=*) :: filename_out
          integer, intent(out) :: iorb_out
-         integer,optional :: iiorb
+         integer,intent(in),optional :: iiorb
       END SUBROUTINE filename_of_iorb
 
       subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
@@ -2032,7 +2032,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,&
         GPU,infoCoeff,ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,&
-        communicate_phi_for_lsumrho,calculate_ham,ldiis_coeff)
+        communicate_phi_for_lsumrho,calculate_ham,ham_small,ldiis_coeff)
       use module_base
       use module_types
       implicit none
@@ -2053,6 +2053,7 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout) :: tmb
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       logical,intent(in) :: calculate_ham
+      type(sparseMatrix), intent(inout) :: ham_small ! foe only, not otherwise allocated
       type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
     end subroutine get_coeff
 
@@ -2324,7 +2325,7 @@ module module_interfaces
      end subroutine setCommsParameters
      
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_orbs, &
-                orbs, lzd, ovrlp, inv_ovrlp, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
+                orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
        use module_base
        use module_types
        implicit none
@@ -2332,7 +2333,7 @@ module module_interfaces
        type(orbitals_data),intent(in):: orbs
        type(local_zone_descriptors),intent(in):: lzd
        type(sparseMatrix),intent(inout):: ovrlp
-       type(sparseMatrix),intent(in):: inv_ovrlp
+       type(sparseMatrix),intent(inout):: inv_ovrlp_half
        type(collective_comms),intent(in):: collcom
        type(orthon_data),intent(in):: orthpar
        real(8),dimension(npsidim_orbs), intent(inout) :: lphi
@@ -2530,12 +2531,13 @@ module module_interfaces
        character(len=*),intent(in):: subname
      end subroutine copy_orbitals_data
 
-     subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, subname)
+     subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
        use module_base
        use module_types
        implicit none
        type(sparseMatrix),intent(in):: sparseMat_in
        type(sparseMatrix),intent(inout):: sparseMat_out
+       integer,intent(in):: iproc
        character(len=*),intent(in):: subname
     end subroutine sparse_copy_pattern
 
@@ -3348,7 +3350,7 @@ module module_interfaces
        end subroutine improveOrbitals
 
        subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-                  lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, psidiff)
+                  lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff)
          use module_base
          use module_types
          implicit none
@@ -3360,6 +3362,7 @@ module module_interfaces
          real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: hpsi_small
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
+         logical, intent(in) :: ortho
        end subroutine hpsitopsi_linear
        
        subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
@@ -4519,7 +4522,7 @@ module module_interfaces
           integer,dimension(4,nout),intent(in) :: onedimindices
           real(kind=8),intent(in) :: a
           real(kind=8),dimension(norb,norbp),intent(in) :: x
-          real(kind=8),dimension(norb,norbp),intent(out) :: y
+          real(kind=8),dimension(norb,norbp),intent(inout) :: y
         end subroutine axpy_kernel_vectors
 
         subroutine axbyz_kernel_vectors(norbp, norb, nout, onedimindices, a, x, b, y, z)
@@ -4767,6 +4770,20 @@ module module_interfaces
           type(orbitals_data), optional, intent(in) :: orbs
         end subroutine overlapPowerMinusOneHalf_old
 
+        subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GPU,proj,nlpspd,rxyz)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc,nproc
+          type(atoms_data), intent(in) :: atoms
+          type(DFT_wavefunction), intent(in) :: wfn
+          type(GPU_pointers), intent(inout) :: GPU
+          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+          integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+          real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+          real(dp), dimension(:), pointer :: local_potential
+        end subroutine integral_equation
    end interface
 
 END MODULE module_interfaces

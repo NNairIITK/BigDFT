@@ -1133,6 +1133,12 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
     deallocate(x_phi,stat=i_stat)
     call memocc(i_stat,i_all,'x_phi',subname)
 
+!!$    !to be tested
+!!$    call field_rototranslation(nd,nrange,y_phi,(/dx,dy,dz/),(/0.0_gp,0.0_gp,1.0_gp/),0.d0,&
+!!$         (/hxh_old,hyh_old,hzh_old/),(/(2*n1_old+2+2*nb1),(2*n2_old+2+2*nb2),(2*n3_old+2+2*nb3)/),psifscfold,&
+!!$         (/hxh,hyh,hzh/),(/(2*n1+2+2*nb1),(2*n2+2+2*nb2),(2*n3+2+2*nb3)/),psifscf)
+
+
     allocate(psi_w(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
     call memocc(i_stat,psi_w,'psi_w',subname)
 
@@ -1351,6 +1357,142 @@ subroutine interpolate_and_transpose(h,t0,nphi,nrange,phi,ndat,nin,psi_in,nout,p
 
 end subroutine interpolate_and_transpose
 
+!call the routine which performs the interpolation in each direction
+subroutine my_morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
+ use module_base
+ implicit none
+ integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+ integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+ integer, intent(in) :: nin,nout !< sizes of the input and output array in interpolating direction
+ integer, intent(in) :: ndat !< size of the array in orthogonal directions
+! real(gp), intent(in) :: h !< grid spacing in the interpolating direction
+ real(gp), dimension(nin,ndat), intent(in) :: t0_field !< field of shifts to be applied for each point in grid spacing units
+ real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+ real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
+ real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
+ !local variables
+ character(len=*), parameter :: subname='my_morph_and_transpose'
+ real(gp), parameter  :: tol=1.e-14_gp
+ integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me,k2,k1
+ real(gp) :: dt,tt,t0_l,ksh1,ksh2,k,kold,alpha,diff
+ real(gp), dimension(:), allocatable :: shf !< shift filter
+
+ !assume for the moment that the grid spacing is constant
+ !call f_malloc_routine_id(subname)
+ m_isf=nrange/2
+
+ !shf=f_malloc(bounds=(/-m_isf .to. m_isf/),id='shf')
+
+ !calculate the shift filter for the given t0
+ allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
+ call memocc(i_stat,shf,'shf',subname)
+
+ !number of points for a unit displacement
+ nunit=nphi/nrange 
+
+
+ !apply the interpolating filter to the output
+ do j=1,ndat
+    psi_out(j,:)=0.0_gp
+    do i=1,nout
+
+       kold=-1000.0_gp
+       find_trans: do l=1,nin
+          k=real(l,gp)+t0_field(l,j)
+          if (k-real(i,gp) > tol) exit find_trans
+          kold=k
+       end do find_trans
+
+       ! want to use either l or l-1 to give us point i - pick closest
+       if (k-real(i,gp) < -kold+real(i,gp)) then
+          ksh1=k-real(i,gp)
+          ksh2=-kold+real(i,gp)
+          k1=l
+          k2=l-1
+          if (k2==0) then
+             k2=1
+             ksh2=ksh1
+          end if
+          if (k1==nin+1) then
+             k1=nin
+             ksh1=ksh2
+          end if
+       else
+          ksh1=-kold+real(i,gp)
+          ksh2=k-real(i,gp)
+          k1=l-1
+          k2=l
+          if (k1==0) then
+             k1=1
+             ksh1=ksh2
+          end if
+          if (k2==nin+1) then
+             k2=nin
+             ksh2=ksh1
+          end if
+       end if
+
+       if (ksh1==0.0_gp .or. k1==k2) then !otherwise already have exactly on point
+          ksh2=1.0_gp
+          ksh1=0.0_gp
+       end if 
+
+       alpha=ksh2/(ksh1+ksh2)
+
+       t0_l=alpha*t0_field(k1,j)+(1.0_gp-alpha)*t0_field(k2,j)
+
+       dt=t0_l-nint(t0_l)
+   
+       diff=real(i,gp)-(k1+t0_l)   
+
+       if (abs(diff - dt) < abs(diff+dt)) dt=-dt
+
+       !evaluate the shift
+       ish=nint(real(nunit,gp)*dt)
+
+       if (ish<=0) then
+          shf(-m_isf)=0.0_gp
+       else
+          shf(-m_isf)=phi(ish)  
+       end if 
+       ipos=ish
+
+       do l=-m_isf+1,m_isf-1 !extremes excluded
+          !position of the shifted argument in the phi array
+          ipos=ipos+nunit
+          shf(l)=phi(ipos)  
+       end do
+
+       if (ish<=0) then
+          shf(m_isf)=phi(ipos+nunit)
+       else
+          shf(m_isf)=0.0_gp
+       end if 
+
+       !here the boundary conditions have to be considered
+       tt=0.0_gp
+       ms=-min(m_isf,k1-1)
+       me=min(m_isf,nin-k1)
+       do l=ms,me
+          tt=tt+shf(l)*psi_in(k1+l,j)
+       end do
+
+       if (i > 0 .and. i < nout) psi_out(j,i)=tt
+
+    end do
+
+ end do
+
+! call f_free(shf)
+! call f_malloc_free_routine()
+
+ i_all=-product(shape(shf))*kind(shf)
+ deallocate(shf,stat=i_stat)
+ call memocc(i_stat,i_all,'shf',subname)
+
+end subroutine my_morph_and_transpose
+
+
 subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
    use module_base
    implicit none
@@ -1434,3 +1576,107 @@ subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
    deallocate(y,stat=i_stat)
    call memocc(i_stat,i_all,'y',subname)
 END SUBROUTINE my_scaling_function4b2B
+
+subroutine define_rotations(da,newz,theta,hgrids_old,ndims_old,&
+     hgrids_new,ndims_new,dx,dy,dz)
+  use module_base
+  implicit none
+  real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
+  real(gp), intent(in) :: theta !< rotation wrt newzeta vector
+  real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
+  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
+  integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
+  real(gp), dimension(ndims_old(1),ndims_old(2)*ndims_old(3)), intent(out) :: dx !<first deformation
+  real(gp), dimension(ndims_old(2),ndims_new(1)*ndims_old(3)), intent(out) :: dy !<second deformation
+  real(gp), dimension(ndims_old(3),ndims_new(1)*ndims_new(2)), intent(out) :: dz !<third deformation
+  !local variables
+  integer :: i,j,k
+  real(gp) :: x,y,z
+  real(gp), dimension(3) :: boxc_old,boxc_new
+
+  !2-dimensional case for the moment: newzeta=0,0,1 and da=0
+  
+  !calcualte the center of the boxes
+  boxc_old=0.5_gp*hgrids_old*(ndims_old-1)
+  boxc_new=0.5_gp*hgrids_new*(ndims_new-1)
+
+  z=-boxc_old(3)
+  do k=1,ndims_old(3)
+     y=-boxc_old(2)
+     do j=1,ndims_old(2)
+        x=-boxc_old(1)
+        do i=1,ndims_old(1)
+           dx(i,j+(k-1)*ndims_old(2))=x*cos(theta)-y*sin(theta)-x !to be updated (DIVIDE BY H!)
+           x=x+hgrids_old(1)
+        end do
+        !fill the second vector
+        x=-boxc_new(1)
+        do i=1,ndims_new(1)
+           dy(j,k+(i-1)*ndims_old(3))=((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x !to be updated (DIVIDE BY H!)
+           x=x+hgrids_new(1)
+        end do
+        y=y+hgrids_old(2)
+      end do
+      !fill the third vector
+     y=-boxc_new(2)
+     do j=1,ndims_new(2)
+        x=-boxc_new(1)
+        do i=1,ndims_new(1)
+           dz(k,i+(j-1)*ndims_new(1))=((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x !to be updated (DIVIDE BY H!)
+           x=x+hgrids_new(1)
+        end do
+        y=y+hgrids_new(2)
+     end do
+     z=z+hgrids_old(3)
+   end do
+
+ end subroutine define_rotations
+
+!!$subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,theta,hgrids_old,ndims_old,f_old,&
+!!$     hgrids_new,ndims_new,f_new)
+!!$  use module_base
+!!$  implicit none
+!!$  integer, intent(in) :: n_phi,nrange_phi !< number of points of ISF array and real-space range
+!!$  real(gp), intent(in) :: theta !< rotation wrt newzeta vector
+!!$  real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
+!!$  real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
+!!$  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
+!!$  integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
+!!$  real(gp), dimension(n_phi), intent(in) :: phi_ISF
+!!$  real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
+!!$  real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
+!!$  !local variables
+!!$  real(gp), dimension(:,:), allocatable :: dx,dy,dz
+!!$  real(gp), dimension(:,:,:), allocatable :: work,work2
+!!$  
+!!$  call f_routine(id='field_rototranslation')
+!!$  
+!!$  dx=f_malloc((/ndims_old(1),ndims_old(2)*ndims_old(3)/),id='dx')
+!!$  dy=f_malloc((/ndims_old(2),ndims_new(1)*ndims_old(3)/),id='dy')
+!!$  dz=f_malloc((/ndims_old(3),ndims_new(1)*ndims_new(2)/),id='dz')
+!!$  work =f_malloc(shape(dy),id='work')
+!!$  work2=f_malloc(shape(dz),id='work2')
+!!$
+!!$  
+!!$  call define_rotations(da,newz,theta,hgrids_old,ndims_old,&
+!!$       hgrids_new,ndims_new,dx,dy,dz)
+!!$  
+!!$  !perform interpolation
+!!$  call my_morph_and_transpose(dx,n_phi,nrange_phi,phi_ISF,ndims_old(2)*ndims_old(3),&
+!!$         ndims_old(1),f_old,ndims_new(1),work)
+!!$  
+!!$  call my_morph_and_transpose(dy,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_old(3),&
+!!$         ndims_old(2),work,ndims_new(2),work2)
+!!$
+!!$  call my_morph_and_transpose(dz,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_new(2),&
+!!$         ndims_old(3),work2,ndims_new(3),f_new)
+!!$  
+!!$  call f_free(dx)
+!!$  call f_free(dy)
+!!$  call f_free(dz)
+!!$  call f_free(work)
+!!$  call f_free(work2)
+!!$
+!!$  call f_release_routine()
+!!$end subroutine field_rototranslation
+ 

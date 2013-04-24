@@ -53,7 +53,7 @@ program memguess
    !! By Ali
    integer :: ierror
 
-   call f_malloc_set_status(memory_limit=0.e0)
+   !call f_set_status(memory_limit=0.e0)
 
    ! Get arguments
    !call getarg(1,tatonam)
@@ -633,6 +633,8 @@ program memguess
    if (.not. disable_deprecation) then
       call deprecation_message()
    end if
+
+   !call f_finalize()
 
 END PROGRAM memguess
 

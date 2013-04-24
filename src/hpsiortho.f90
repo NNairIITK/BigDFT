@@ -1419,6 +1419,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      !     &   'done,  preconditioning...'
   end if
 
+
   !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
   !switch between CPU and GPU treatment
@@ -1435,12 +1436,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      !switch between the global and delocalized preconditioner
      call preconditionall2(iproc,nproc,wfn%orbs,wfn%Lzd,&
           wfn%Lzd%hgrids(1),wfn%Lzd%hgrids(2),wfn%Lzd%hgrids(3),&
-          ncong,wfn%hpsi,wfn%confdatarr,gnrm,gnrm_zero)
-     if(.false.) then
-        call preconditionall(wfn%orbs,wfn%Lzd%Glr,&
-             wfn%Lzd%hgrids(1),wfn%Lzd%hgrids(2),wfn%Lzd%hgrids(3),&
-             ncong,wfn%hpsi,gnrm,gnrm_zero)
-     end if
+          ncong,wfn%orbs%npsidim_orbs,wfn%hpsi,wfn%confdatarr,gnrm,gnrm_zero)
   end if
 
   call timing(iproc,'Precondition  ','OF')
@@ -2436,6 +2432,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    use module_base
    use module_types
    use module_interfaces, except_this_one => check_communications
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
@@ -2515,7 +2512,10 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    end do
 
    abort = .false.
-   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
+   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp) .and. maxdiff < 1.e-6_wp) then
+      call yaml_warning('Transposition error of'//&
+           trim(yaml_toa(maxdiff,fmt='(1pe15.7)'))//', check whether results are meaningful!')
+   else if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
       write(*,*)'ERROR: process',iproc,'does not transpose wavefunctions correctly!'
       write(*,*)'       found an error of',maxdiff,'cannot continue.'
       write(*,*)'       data are written in the file transerror.log, exiting...'
@@ -2592,7 +2592,10 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    end do
 
    abort = .false.
-   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
+   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp) .and. maxdiff < 1.e-6_wp) then
+      call yaml_warning('Inverse transposition error of'//&
+           trim(yaml_toa(maxdiff,fmt='(1pe15.7)'))//', check whether results are meaningful!')
+   else if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
       write(*,*)'ERROR: process',iproc,'does not untranspose wavefunctions correctly!'
       write(*,*)'       found an error of',maxdiff,'cannot continue.'
       write(*,*)'       data are written in the file transerror.log, exiting...'
@@ -3126,3 +3129,105 @@ END SUBROUTINE broadcast_kpt_objects
 !!
 !!
 !!end subroutine minimize_by_orthogonal_transformation
+
+!!$subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GPU,proj,nlpspd,rxyz)
+!!$  use module_base
+!!$  use module_types
+!!$  use module_interfaces, fake_name => integral_equation
+!!$  use Poisson_Solver
+!!$  use yaml_output
+!!$  implicit none
+!!$  integer, intent(in) :: iproc,nproc
+!!$  type(atoms_data), intent(in) :: atoms
+!!$  type(DFT_wavefunction), intent(in) :: wfn
+!!$  type(GPU_pointers), intent(inout) :: GPU
+!!$  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+!!$  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+!!$  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+!!$  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+!!$  real(dp), dimension(:), pointer :: local_potential
+!!$  !local variables
+!!$  integer :: iorb,nbox,ilr,ist
+!!$  real(gp) :: eh_fake,eks
+!!$  type(energy_terms) :: energs_tmp
+!!$  type(coulomb_operator) :: G_Helmholtz
+!!$  type(workarr_sumrho) :: w
+!!$  real(wp), dimension(:), allocatable :: vpsi,vpsir
+!!$
+!!$  !call f_routine(id='helmholtz_equation')
+!!$
+!!$  !first, apply the potential operator to the wavefunction
+!!$  vpsi=f_malloc0(wfn%orbs%npsidim_orbs,id='vpsi')
+!!$
+!!$  call LocalHamiltonianApplication(iproc,nproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,&
+!!$       wfn%Lzd,wfn%confdatarr,ngatherarr,local_potential,wfn%psi,vpsi,&
+!!$       energs_tmp,wfn%SIC,GPU,2) !potential only
+!!$
+!!$  call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
+!!$       proj,wfn%Lzd,nlpspd,wfn%psi,vpsi,energs_tmp%eproj)
+!!$
+!!$  !now vpsi is a wavefunction array in orbitals parallelization scheme which is associated to Vpsi
+!!$  !rescale it to match with the Green's function treatment
+!!$  call vscal(wfn%orbs%npsidim_orbs,-0.5_gp/pi_param,vpsi(1),1)
+!!$
+!!$  !helmholtz-based preconditioning
+!!$  ilr=1 !for the moment only cubic version
+!!$  call initialize_work_arrays_sumrho(wfn%Lzd%Llr(ilr),w)
+!!$  !box elements size
+!!$  nbox=wfn%Lzd%Llr(ilr)%d%n1i*wfn%Lzd%Llr(ilr)%d%n2i*wfn%Lzd%Llr(ilr)%d%n3i
+!!$
+!!$  ! Wavefunction in real space
+!!$  vpsir=f_malloc0(nbox,id='vpsir')
+!!$
+!!$  !case for helmholtz-based preconditioning
+!!$  ist=0
+!!$  do iorb=1,wfn%orbs%norbp*wfn%orbs%nspinor
+!!$     ilr = wfn%orbs%inwhichlocreg(iorb+wfn%orbs%isorb)
+!!$     !entering
+!!$     eks=wfn%orbs%eval(iorb+wfn%orbs%isorb)
+!!$     print *,'iorb,initial',iorb,nrm2(wfn%Lzd%Llr(ilr)%wfd%nvctr_c+7*wfn%Lzd%Llr(ilr)%wfd%nvctr_f,wfn%psi(1+ist),1)
+!!$
+!!$     !call plot_wf('psi'//trim(adjustl(yaml_toa(iorb))),1,atoms,1.0_gp,wfn%Lzd%llr(ilr),&
+!!$     !     wfn%Lzd%hgrids(1),wfn%Lzd%hgrids(2),wfn%Lzd%hgrids(3),rxyz,wfn%psi(1+ist:))
+!!$
+!!$!     call axpy(wfn%Lzd%Llr(ilr)%wfd%nvctr_c+7*wfn%Lzd%Llr(ilr)%wfd%nvctr_f,-eks,wfn%psi(1+ist),1,vpsi(1+ist),1)
+!!$
+!!$     call plot_wf('Vpsi'//trim(adjustl(yaml_toa(iorb))),1,atoms,1.0_gp,wfn%Lzd%llr(ilr),&
+!!$          wfn%Lzd%hgrids(1),wfn%Lzd%hgrids(2),wfn%Lzd%hgrids(3),rxyz,vpsi(1+ist))
+!!$
+!!$
+!!$     call daub_to_isf(wfn%Lzd%Llr(ilr),w,vpsi(1+ist),vpsir(1))
+!!$
+!!$     !sequential kernel
+!!$
+!!$
+!!$     G_Helmholtz=pkernel_init(.false.,0,1,0,wfn%Lzd%Llr(ilr)%geocode,&
+!!$          (/wfn%Lzd%Llr(ilr)%d%n1i,wfn%Lzd%Llr(ilr)%d%n2i,wfn%Lzd%Llr(ilr)%d%n3i/),&
+!!$          0.5_gp*wfn%Lzd%hgrids,16,mu0_screening=sqrt(2.0_gp*abs(eks)))
+!!$
+!!$     call pkernel_set(G_Helmholtz,.true.)
+!!$
+!!$     !apply it to the gradient to smooth it
+!!$     call H_potential('D',G_Helmholtz,vpsir(1),vpsir(1),eh_fake,0.d0,.false.)
+!!$
+!!$     !convert the gradient back to the locreg
+!!$     call isf_to_daub(wfn%Lzd%Llr(ilr),w,vpsir(1),vpsi(1+ist))
+!!$!     call vscal(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),1.0_gp/(16.0_gp*atan(1.0_gp)),hpsi(1+ist),1)
+!!$     print *,'iorb,gradient',iorb,nrm2(wfn%Lzd%Llr(ilr)%wfd%nvctr_c+7*wfn%Lzd%Llr(ilr)%wfd%nvctr_f,vpsi(1+ist),1),eh_fake
+!!$     !call plot_wf('GVpsi'//trim(adjustl(yaml_toa(iorb))),1,atoms,1.0_gp,wfn%Lzd%llr(ilr),&
+!!$     !     wfn%Lzd%hgrids(1),wfn%Lzd%hgrids(2),wfn%Lzd%hgrids(3),rxyz,vpsi(1+ist:))
+!!$
+!!$
+!!$     ist=ist+(wfn%Lzd%Llr(ilr)%wfd%nvctr_c+7*wfn%Lzd%Llr(ilr)%wfd%nvctr_f)
+!!$
+!!$     call pkernel_free(G_Helmholtz,'helmholtz_equation')
+!!$
+!!$  end do
+!!$  call deallocate_work_arrays_sumrho(w)
+!!$
+!!$  call f_free(vpsi)
+!!$  call f_free(vpsir)
+!!$
+!!$  !call f_release_routine()
+!!$
+!!$end subroutine integral_equation

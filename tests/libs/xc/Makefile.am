@@ -8,19 +8,16 @@ CLEANFILES = xc.out xc.tmp.* xc.report
 
 check_PROGRAMS = test_xc
 
+AM_FCFLAGS = -I$(top_builddir)/src/includes -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ 
+AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
-bigdft_library = -L$(top_builddir)/src -lbigdft-1
-bigdft_library_rpath = -Wl,-rpath=$(abs_top_builddir)/src
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
 else
-bigdft_library = $(top_builddir)/src/libbigdft.a @LIBS_SHORT_DEPS@
-bigdft_library_rpath =
+LIBS += @LIBS_SHORT_DEPS@
 endif
 
 test_xc_SOURCES = test_xc.f90 
-test_xc_LDADD = $(bigdft_library)
-test_xc_LDFLAGS = $(bigdft_library_rpath)
-
-AM_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ 
+test_xc_LDADD = -lbigdft-1
 
 xc.out: test_xc
 	$(run_parallel) ./test_xc > xc.out
