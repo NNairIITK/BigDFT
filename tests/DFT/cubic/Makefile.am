@@ -14,8 +14,8 @@ TESTDIRS = C \
 	  ElectField \
 	  ElectronGas \
 	  NLCC \
-	  taskgroups \
-	  CH4-D3
+	  taskgroups
+#	  CH4-D3 to be added later
 
 EXTRA_TESTDIRS =
 
