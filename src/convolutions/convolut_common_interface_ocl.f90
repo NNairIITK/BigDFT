@@ -148,32 +148,30 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
   !full_locham stategy (always true for the moment)
   GPU%full_locham=.true.
 
-!!$  GPU%ekin=f_malloc_ptr((/2,orbs%norbp/),id='ekin')
-!!$  GPU%epot=f_malloc_ptr((/2,orbs%norbp/),id='epot')
-!!$  if (pin) then
-!!$     GPU%ekinpot_host=f_malloc_ptr((/orbs%nspinor,orbs%norbp,2/),id='ekinpot_host')
-!!$     GPU%psicf_host=f_malloc_ptr((/2*orbs%nspinor,orbs%norbp/),id='psicf_host')
-!!$     GPU%hpsicf_host=f_malloc_ptr((/2*orbs%nspinor,orbs%norbp/),id='hpsicf_host')
-!!$     GPU%bprecond_host=f_malloc_ptr(2*orbs%nspinor,id='bprecond_host')
-!!$  end if
-
-  allocate(GPU%ekin(2,orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU%ekin,'ekin',subname)
-  allocate(GPU%epot(2,orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU%epot,'epot',subname)
-
-  !allocate arrays for tracing  pinning of the memory
-  allocate(GPU%ekinpot_host(orbs%nspinor,orbs%norbp,2+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU%ekinpot_host,'ekinpot_host',subname)
-
+  GPU%ekin=f_malloc_ptr((/2,orbs%norbp/),id='ekin')
+  GPU%epot=f_malloc_ptr((/2,orbs%norbp/),id='epot')
   if (pin) then
-     allocate(GPU%psicf_host(2*orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
-     call memocc(i_stat,GPU%psicf_host,'psicf_host',subname)
-     allocate(GPU%hpsicf_host(2*orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
-     call memocc(i_stat,GPU%hpsicf_host,'hpsicf_host',subname)
-     allocate(GPU%bprecond_host(2*orbs%nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,GPU%bprecond_host,'bprecond_host',subname)
+     GPU%ekinpot_host=f_malloc_ptr((/orbs%nspinor,orbs%norbp,2/),id='ekinpot_host')
+     GPU%psicf_host=f_malloc_ptr((/2*orbs%nspinor,orbs%norbp/),id='psicf_host')
+     GPU%hpsicf_host=f_malloc_ptr((/2*orbs%nspinor,orbs%norbp/),id='hpsicf_host')
+     GPU%bprecond_host=f_malloc_ptr(2*orbs%nspinor,id='bprecond_host')
   end if
+
+!!$  allocate(GPU%ekin(2,orbs%norbp+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,GPU%ekin,'ekin',subname)
+!!$  allocate(GPU%epot(2,orbs%norbp+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,GPU%epot,'epot',subname)
+
+!!$  !allocate arrays for tracing  pinning of the memory
+!!$  allocate(GPU%ekinpot_host(orbs%nspinor,orbs%norbp,2+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,GPU%ekinpot_host,'ekinpot_host',subname)
+!!$
+!!$  allocate(GPU%psicf_host(2*orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,GPU%psicf_host,'psicf_host',subname)
+!!$  allocate(GPU%hpsicf_host(2*orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,GPU%hpsicf_host,'hpsicf_host',subname)
+!!$  allocate(GPU%bprecond_host(2*orbs%nspinor+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,GPU%bprecond_host,'bprecond_host',subname)
 
   !pin the memory of the orbitals energies
   if (pin) then
@@ -204,16 +202,16 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
   logical, parameter :: pin=.true.
   integer :: i_stat,i_all,iorb,ispinor
 
-!!$  call f_free_ptr(GPU%ekin)
-!!$  call f_free_ptr(GPU%epot)
+  call f_free_ptr(GPU%ekin)
+  call f_free_ptr(GPU%epot)
 
-  i_all=-product(shape(GPU%ekin))*kind(GPU%ekin)
-  deallocate(GPU%ekin,stat=i_stat)
-  call memocc(i_stat,i_all,'ekin',subname)
-
-  i_all=-product(shape(GPU%epot))*kind(GPU%epot)
-  deallocate(GPU%epot,stat=i_stat)
-  call memocc(i_stat,i_all,'epot',subname)
+!!$  i_all=-product(shape(GPU%ekin))*kind(GPU%ekin)
+!!$  deallocate(GPU%ekin,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'ekin',subname)
+!!$
+!!$  i_all=-product(shape(GPU%epot))*kind(GPU%epot)
+!!$  deallocate(GPU%epot,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'epot',subname)
 
 
   call ocl_release_mem_object(GPU%d)
@@ -264,23 +262,23 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
            call ocl_release_mem_object(GPU%ekinpot_host(ispinor,iorb,2))
         end do
      end do
-!!$     call f_free_ptr(GPU%ekinpot_host)
-!!$     call f_free_ptr(GPU%psicf_host)
-!!$     call f_free_ptr(GPU%hpsicf_host)
-!!$     call f_free_ptr(GPU%bprecond_host)
-!!$
-     i_all=-product(shape(GPU%ekinpot_host))*kind(GPU%ekinpot_host)
-     deallocate(GPU%ekinpot_host,stat=i_stat)
-     call memocc(i_stat,i_all,'ekinpot_host',subname)
-     i_all=-product(shape(GPU%psicf_host))*kind(GPU%psicf_host)
-     deallocate(GPU%psicf_host,stat=i_stat)
-     call memocc(i_stat,i_all,'psicf_host',subname)
-     i_all=-product(shape(GPU%hpsicf_host))*kind(GPU%hpsicf_host)
-     deallocate(GPU%hpsicf_host,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsicf_host',subname)
-     i_all=-product(shape(GPU%bprecond_host))*kind(GPU%bprecond_host)
-     deallocate(GPU%bprecond_host,stat=i_stat)
-     call memocc(i_stat,i_all,'bprecond_host',subname)
+     call f_free_ptr(GPU%ekinpot_host)
+     call f_free_ptr(GPU%psicf_host)
+     call f_free_ptr(GPU%hpsicf_host)
+     call f_free_ptr(GPU%bprecond_host)
+
+!!$  i_all=-product(shape(GPU%ekinpot_host))*kind(GPU%ekinpot_host)
+!!$  deallocate(GPU%ekinpot_host,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'ekinpot_host',subname)
+!!$  i_all=-product(shape(GPU%psicf_host))*kind(GPU%psicf_host)
+!!$  deallocate(GPU%psicf_host,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'psicf_host',subname)
+!!$  i_all=-product(shape(GPU%hpsicf_host))*kind(GPU%hpsicf_host)
+!!$  deallocate(GPU%hpsicf_host,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'hpsicf_host',subname)
+!!$  i_all=-product(shape(GPU%bprecond_host))*kind(GPU%bprecond_host)
+!!$  deallocate(GPU%bprecond_host,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'bprecond_host',subname)
   end if
 
 
@@ -645,7 +643,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   !take the max for all k-points
   !one may think to take the max per k-point
 
-  !call f_routine(id=subname)
+  call f_routine(id=subname)
 
   if (lr%geocode /= 'F') then
     periodic(1) = 1
@@ -673,10 +671,10 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
      !arrays for the CG procedure
 !!$     allocate(b(orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%norbp+ndebug),stat=i_stat)
 !!$     call memocc(i_stat,b,'b',subname)
-!!$  b=f_malloc((/orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1/),id='b')
+  b=f_malloc((/orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1/),id='b')
 
-     allocate(b(orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1+ndebug),stat=i_stat)
-     call memocc(i_stat,b,'b',subname)
+!!$     allocate(b(orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,b,'b',subname)
 
   if (pin) then
      call ocl_pin_read_buffer(GPU%context,GPU%queue,lr%wfd%nvctr_c*8,b(1,1),GPU%bprecond_host(1))
@@ -883,13 +881,13 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
 
      call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
 
-  i_all=-product(shape(b))*kind(b)
-  deallocate(b,stat=i_stat)
-  call memocc(i_stat,i_all,'b',subname)
+!!$  i_all=-product(shape(b))*kind(b)
+!!$  deallocate(b,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'b',subname)
 
-!!$  call f_free(b)
+  call f_free(b)
 
-  !call f_release_routine()
+  call f_release_routine()
 
 END SUBROUTINE preconditionall_OCL
 
