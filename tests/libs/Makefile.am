@@ -1,9 +1,9 @@
 SUBDIRS = fft \
-	flib \
 	PSolver \
 	OP2P \
 	psp \
 	IO-wf
+#	flib \ currently out
 
 if USE_BLACS
 SUBDIRS += dsygv
