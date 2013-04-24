@@ -2171,6 +2171,24 @@ END SUBROUTINE deallocate_orbs
     end if
   END SUBROUTINE deallocate_pcproj_data
 
+  !nullify hamiltonian_descriptors
+  subroutine nullify_hamiltonian_descriptors(hamd)
+    type(hamiltonian_descriptors),intent(inout)::hamd
+    call nullify_local_zone_descriptors(hamd%lzd)
+    call nullify_collective_comms(hamd%collcom)
+    call nullify_p2pcomms(hamd%comgp)
+    nullify(hamd%psi)
+    nullify(hamd%psit_c)
+    nullify(hamd%psit_f)
+  END SUBROUTINE nullify_hamiltonian_descriptors
+
+  !> nullify foe_data
+  subroutine nullify_foe_data(foe)
+    type(foe_data),intent(inout)::foe
+    nullify(foe%kernel_nseg)
+    nullify(foe%kernel_segkeyg)
+  END SUBROUTINE nullify_foe_data
+
 subroutine nullify_DFT_local_fields(denspot)
   implicit none
   type(DFT_local_fields),intent(out)::denspot
@@ -2192,6 +2210,58 @@ subroutine nullify_DFT_local_fields(denspot)
   
 end subroutine nullify_DFT_local_fields
 
+subroutine copy_coulomb_operator(coul1,coul2,subname)
+  implicit none
+  type(coulomb_operator),intent(in)::coul1
+  type(coulomb_operator),intent(out)::coul2
+  character(len=*), intent(in) :: subname
+  !local variables
+  integer :: i_all,i_stat
+
+  if(associated(coul2%kernel)) then
+    i_all=-product(shape(coul2%kernel))*kind(coul2%kernel)
+    deallocate(coul2%kernel,stat=i_stat)
+    call memocc(i_stat,i_all,'coul%kernel',subname)
+  end if
+  coul2%kernel   =>coul1%kernel
+  coul2%itype_scf= coul1%itype_scf
+  coul2%mu       = coul1%mu
+  coul2%geocode  = coul1%geocode
+  coul2%ndims    = coul1%ndims
+  coul2%hgrids   = coul1%hgrids
+  coul2%angrad   = coul1%angrad
+  coul2%work1_GPU= coul1%work1_GPU
+  coul2%work2_GPU= coul1%work2_GPU
+  coul2%k_GPU    = coul1%k_GPU
+  coul2%plan     = coul1%plan
+  coul2%geo      = coul1%geo
+  coul2%igpu     = coul1%igpu
+  coul2%initCufftPlan=coul1%initCufftPlan
+  coul2%keepGPUmemory=coul1%keepGPUmemory
+! mpi_env:
+  coul2%mpi_env%mpi_comm = coul1%mpi_env%mpi_comm
+  coul2%mpi_env%iproc    = coul1%mpi_env%iproc
+  coul2%mpi_env%nproc    = coul1%mpi_env%nproc
+  coul2%mpi_env%igroup   = coul1%mpi_env%igroup
+  coul2%mpi_env%ngroup   = coul1%mpi_env%ngroup
+
+end subroutine copy_coulomb_operator
+
+subroutine deallocate_coulomb_operator(coul_op,subname)
+  implicit none
+  type(coulomb_operator),intent(out)::coul_op
+  character(len=*), intent(in) :: subname
+  !local variables
+  integer :: i_all,i_stat
+
+  if(associated(coul_op%kernel)) then
+    i_all=-product(shape(coul_op%kernel))*kind(coul_op%kernel)
+    deallocate(coul_op%kernel,stat=i_stat)
+    call memocc(i_stat,i_all,'coul_op%kernel',subname)
+  end if
+  call nullify_coulomb_operator(coul_op)
+end subroutine deallocate_coulomb_operator
+
 subroutine nullify_coulomb_operator(coul_op)
   implicit none
   type(coulomb_operator),intent(out)::coul_op
@@ -2205,6 +2275,27 @@ subroutine nullify_denspot_distribution(dpbox)
   nullify(dpbox%nscatterarr)
   nullify(dpbox%ngatherarr)
 end subroutine nullify_denspot_distribution
+
+subroutine deallocate_denspot_distribution(dpbox,subname)
+  implicit none
+  character(len=*), intent(in) :: subname
+  type(denspot_distribution),intent(out)::dpbox
+  !local variables
+  integer :: i_all,i_stat
+  
+  if(associated(dpbox%nscatterarr)) then
+    i_all=-product(shape(dpbox%nscatterarr))*kind(dpbox%nscatterarr)
+    deallocate(dpbox%nscatterarr,stat=i_stat)
+    call memocc(i_stat,i_all,'nscatterarr',subname)
+  end if
+  if(associated(dpbox%ngatherarr)) then
+    i_all=-product(shape(dpbox%ngatherarr))*kind(dpbox%ngatherarr)
+    deallocate(dpbox%ngatherarr,stat=i_stat)
+    call memocc(i_stat,i_all,'ngatherarr',subname)
+  end if
+
+end subroutine deallocate_denspot_distribution
+
 
 subroutine nullify_rho_descriptors(rhod)
   implicit none
