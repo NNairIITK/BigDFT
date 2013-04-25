@@ -56,8 +56,10 @@ typedef void _locreg_descriptors;
 typedef void _nonlocal_psp_descriptors;
 typedef void _orbitals_data;
 typedef void _rho_descriptors;
+typedef void _rholoc_objects;
 typedef void _symmetry_data;
 typedef void _wavefunctions_descriptors;
+typedef void _gaussian_basis;
 
 /***************************/
 /* Generic pointer arrays. */

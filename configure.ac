@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.26],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.28],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -20,6 +20,14 @@ AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
 AM_INIT_AUTOMAKE(-Wno-portability)
+
+dnl Versioning
+BIGDFT_MAJOR_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f1)
+BIGDFT_MINOR_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f2 | cut -d'-' -f1)
+BIGDFT_MICRO_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f3)
+AC_SUBST(BIGDFT_MAJOR_VERSION)
+AC_SUBST(BIGDFT_MINOR_VERSION)
+AC_SUBST(BIGDFT_MICRO_VERSION)
 
 dnl This is a hack for usage inside ABINIT.
 dnl if test -n "$FCFLAGS" ; then
@@ -84,8 +92,8 @@ dnl Search for pkg-config
 PKG_PROG_PKG_CONFIG()
 
 dnl Produce dynamic excecutables.
-AC_ARG_ENABLE(dynamic-binaries, AS_HELP_STRING([--enable-dynamic-binaries],
-                                               [Build dynamically linked binaries (disabled by default).]),
+AC_ARG_ENABLE(dynamic-libraries, AS_HELP_STRING([--enable-dynamic-libraries],
+                                               [Build dynamical libraries (disabled by default).]),
               ac_build_dynamic=$enableval, ac_build_dynamic="no")
 
 dnl Look for GLib and friends for bindings.
@@ -103,7 +111,7 @@ AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
             ac_use_glib=$withval, ac_use_glib="yes")
 if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
   PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [have_glib=yes], [have_glib=no])
-  PKG_CHECK_MODULES(GDBUS, gio-2.0 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
+  PKG_CHECK_MODULES(GDBUS, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
   dnl Merge GLIB_LIBS and GDBUS_LIBS if GDBUS is available.
   if test "$have_gdbus" = "yes" ; then
     GLIB_LIBS=$GDBUS_LIBS
@@ -862,7 +870,7 @@ dnl Test the libXC library
 ac_internal_libxc="yes"
 ac_use_libxc="no"
 ac_build_libxc="no"
-AC_ARG_WITH(libxc, AS_HELP_STRING([--without-libxc], [Do not link with libXC library (default = yes).]), ac_use_libxc=$enableval, ac_use_libxc="yes")
+AC_ARG_WITH(libxc, AS_HELP_STRING([--without-libxc], [Do not link with libXC library (default = yes).]), ac_use_libxc=$enableval, ac_use_libxc=$ac_build_lib_BigDFT)
 AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), ac_internal_libxc=$enableval, ac_internal_libxc="yes")
 AC_ARG_WITH(libxc-path, AS_HELP_STRING([--with-libxc-path], [Give the path for an external libXC library, lib and module files (default = None).]),
             ac_libxc_dir=$withval, ac_libxc_dir=)
@@ -871,10 +879,10 @@ if test x"$ac_use_libxc" = x"yes" ; then
   if test "$ac_internal_libxc" = "yes" ; then
     ac_build_libxc="yes"
     ac_use_libxc="yes"
-    ac_libxc_dir="$top_builddir"/libxc-1.1.0/src
-    AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-1.1.0/src)
-    AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-1.1.0/src)
-    LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-1.1.0/src/.libs"
+    ac_libxc_dir="$top_builddir"/libxc-2.0.x/src
+    AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-2.0.x/src)
+    AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-2.0.x/src)
+    LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-2.0.x/src/.libs"
     LIBXC_LIBS="-lxc"
   else
     if test -n "$ac_libxc_dir" ; then
@@ -991,7 +999,7 @@ dnl Agregate all flags.
 LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 
 dnl Agregate all the optional libs.
-LIBS_SHORT_DEPS="\$(top_builddir)/src/flib/libflib.a $LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_SHORT_DEPS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 
 dnl Test for the documentation.
@@ -1026,15 +1034,21 @@ Makefile
 bigdft.pc
 libABINIT/src/Makefile
 config/Doxyfile
+flib/Makefile
+flib/src/Makefile
+flib/tests/Makefile
+wrappers/Makefile
+PSolver/Makefile
+PSolver/src/configure.inc
+PSolver/src/Makefile
+PSolver/tests/Makefile
 src/bigdft-tool
 src/Makefile
-src/flib/Makefile
 src/modules/Makefile
 src/modules/bigdft_cst.h
 src/modules/configure.inc
 src/modules/configure.c
 src/convolutions/Makefile
-src/lib/Makefile
 src/PSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
@@ -1052,10 +1066,9 @@ doc/Makefile
 tests/Makefile
 tests/libs/Makefile
 tests/libs/fft/Makefile
-tests/libs/flib/Makefile
-tests/libs/PSolver/Makefile
 tests/libs/OP2P/Makefile
 tests/libs/xc/Makefile
+tests/libs/xcPSolver/Makefile
 tests/libs/OpenCL/Makefile
 tests/libs/CUDA/Makefile
 tests/libs/IO-wf/Makefile
@@ -1073,7 +1086,7 @@ tests/tutorials/Makefile
 # Call libXC ./configure script recursively.
 # Call S_GPU ./configure script recursively.
 if test x"$ac_build_libxc" != x"skip" ; then
-   AC_CONFIG_SUBDIRS([libxc-1.1.0])
+   AC_CONFIG_SUBDIRS([libxc-2.0.x])
 fi
 if test x"$ac_build_libsgpu" != x"skip" ; then
    AC_CONFIG_SUBDIRS([S_GPU])

@@ -14,7 +14,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      & pot_ion,pkernel,psoffset)
   use module_base
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use vdwcorrection
   use yaml_output
   implicit none
@@ -533,7 +533,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   use module_types
   use yaml_output
 !  use module_interfaces, except_this_one => createIonicPotential
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
@@ -1157,7 +1157,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use module_base
   use module_types
   use module_interfaces, except_this_one => CounterIonPotential
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode

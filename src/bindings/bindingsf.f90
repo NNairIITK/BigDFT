@@ -834,7 +834,7 @@ subroutine localfields_get_data(denspotd, rhod, dpbox)
 END SUBROUTINE localfields_get_data
 subroutine localfields_free(denspotd, fion, fdisp)
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use m_profiling
   implicit none
   type(DFT_local_fields), pointer :: denspotd

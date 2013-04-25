@@ -280,7 +280,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_base
    use module_types
    use module_interfaces
-   use Poisson_Solver
+   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use module_xc
    use vdwcorrection
    use esatto
@@ -1600,7 +1600,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    use module_base
    use module_interfaces, except_this_one => extract_potential_for_spectra
    use module_types
-   use Poisson_Solver
+   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use libxc_functionals
    implicit none
    !Arguments
