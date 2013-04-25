@@ -4,14 +4,14 @@ module_DATA = $(modules)
 
 # Source code.
 if USE_DGEMMSY
-DGEMMSY_SOURCES = dgemmsy/interface_dgemmsy.f90 \
+DGEMMSY_SOURCES = interface_dgemmsy.f90 \
 	dgemmsy/dgemmsy.c       dgemmsy/dgemmsy.h \
 	dgemmsy/gemm_block_c.c  dgemmsy/gemm_block_c.h \
 	dgemmsy/patterns.c      dgemmsy/patterns.h \
 	dgemmsy/dgemmsy_utils.c dgemmsy/utils.h \
 	dgemmsy/visitors.c      dgemmsy/visitors.h
 else
-DGEMMSY_SOURCES = dgemmsy/interface_dgemmsy_fake.f90
+DGEMMSY_SOURCES = interface_dgemmsy_fake.f90
 endif
 if USE_CUDA_GPU
 CUBLAS_SOURCES = 
@@ -31,6 +31,7 @@ libwrappers_a_SOURCES = $(DGEMMSY_SOURCES) $(CUBLAS_SOURCES) $(OCL_SOURCES) \
 
 # Dependencies
 $(modules): $(libwrappers_a_OBJECTS)
+interface_cuda_fake.o: wrapper_linalg.o
 
 AM_FCFLAGS = -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
