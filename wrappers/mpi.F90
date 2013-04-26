@@ -140,60 +140,6 @@ contains
 
   end subroutine create_group_comm
 
-  subroutine bigdft_mpi_init(ierr)
-    implicit none
-    integer, intent(out) :: ierr
-#ifdef HAVE_MPI_INIT_THREAD
-    integer :: provided
-    call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
-    if (ierr /= MPI_SUCCESS) then
-       write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
-    else if (provided < MPI_THREAD_FUNNELED) then
-       !write(*,*)'WARNING: MPI_THREAD_FUNNELED not supported!',provided,ierr
-       !call MPI_INIT(ierr)
-    else
-       mpi_thread_funneled_is_supported=.true.
-    endif
-#else
-    call MPI_INIT(ierr)      
-    if (ierr /= MPI_SUCCESS) then
-       write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
-    end if
-#endif
-  end subroutine bigdft_mpi_init
-
-  !> Activates the nesting for UNBLOCK_COMMS performance case
-  subroutine bigdft_open_nesting(num_threads)
-    implicit none
-    integer, intent(in) :: num_threads
-#ifdef HAVE_MPI_INIT_THREAD
-    !$ call OMP_SET_NESTED(.true.) 
-    !$ call OMP_SET_MAX_ACTIVE_LEVELS(2)
-    !$ call OMP_SET_NUM_THREADS(num_threads)
-#else
-    integer :: ierr,idummy
-    write(*,*)'BigDFT_open_nesting is not active!'
-    call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
-    idummy=num_threads
-#endif
-  end subroutine bigdft_open_nesting
-
-  !> Activates the nesting for UNBLOCK_COMMS performance case
-  subroutine bigdft_close_nesting(num_threads)
-    implicit none
-    integer, intent(in) :: num_threads
-#ifdef HAVE_MPI_INIT_THREAD
-    !$ call OMP_SET_MAX_ACTIVE_LEVELS(1) !redundant
-    !$ call OMP_SET_NESTED(.false.) 
-    !$ call OMP_SET_NUM_THREADS(num_threads)
-#else 
-    integer :: ierr,idummy
-    write(*,*)'BigDFT_close_nesting is not active!'
-    call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
-    idummy=num_threads
-#endif
-  end subroutine bigdft_close_nesting
-
   !interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)
     implicit none
@@ -389,3 +335,60 @@ contains
   end subroutine mpiallred_log
 
 end module wrapper_MPI
+
+subroutine bigdft_mpi_init(ierr)
+  use wrapper_mpi
+  implicit none
+  integer, intent(out) :: ierr
+#ifdef HAVE_MPI_INIT_THREAD
+  integer :: provided
+  call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
+  if (ierr /= MPI_SUCCESS) then
+     write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
+  else if (provided < MPI_THREAD_FUNNELED) then
+     !write(*,*)'WARNING: MPI_THREAD_FUNNELED not supported!',provided,ierr
+     !call MPI_INIT(ierr)
+  else
+     mpi_thread_funneled_is_supported=.true.
+  endif
+#else
+  call MPI_INIT(ierr)      
+  if (ierr /= MPI_SUCCESS) then
+     write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
+  end if
+#endif
+end subroutine bigdft_mpi_init
+
+!> Activates the nesting for UNBLOCK_COMMS performance case
+subroutine bigdft_open_nesting(num_threads)
+  use wrapper_mpi
+  implicit none
+  integer, intent(in) :: num_threads
+#ifdef HAVE_MPI_INIT_THREAD
+  !$ call OMP_SET_NESTED(.true.) 
+  !$ call OMP_SET_MAX_ACTIVE_LEVELS(2)
+  !$ call OMP_SET_NUM_THREADS(num_threads)
+#else
+  integer :: ierr,idummy
+  write(*,*)'BigDFT_open_nesting is not active!'
+  call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+  idummy=num_threads
+#endif
+end subroutine bigdft_open_nesting
+
+!> Activates the nesting for UNBLOCK_COMMS performance case
+subroutine bigdft_close_nesting(num_threads)
+  use wrapper_mpi
+  implicit none
+  integer, intent(in) :: num_threads
+#ifdef HAVE_MPI_INIT_THREAD
+  !$ call OMP_SET_MAX_ACTIVE_LEVELS(1) !redundant
+  !$ call OMP_SET_NESTED(.false.) 
+  !$ call OMP_SET_NUM_THREADS(num_threads)
+#else 
+  integer :: ierr,idummy
+  write(*,*)'BigDFT_close_nesting is not active!'
+  call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+  idummy=num_threads
+#endif
+end subroutine bigdft_close_nesting

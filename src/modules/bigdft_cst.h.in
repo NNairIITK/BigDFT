@@ -60,6 +60,7 @@ typedef void _rholoc_objects;
 typedef void _symmetry_data;
 typedef void _wavefunctions_descriptors;
 typedef void _gaussian_basis;
+typedef void _restart_objects;
 
 /***************************/
 /* Generic pointer arrays. */

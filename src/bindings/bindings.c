@@ -389,6 +389,112 @@ void bigdft_energs_emit(BigDFT_Energs *energs, guint istep, BigDFT_EnergsIds kin
 }
 
 /*********************************/
+/* BigDFT_Restart data structure */
+/*********************************/
+#ifdef HAVE_GLIB
+G_DEFINE_TYPE(BigDFT_Restart, bigdft_restart, G_TYPE_OBJECT)
+
+static void bigdft_restart_dispose(GObject *restart);
+static void bigdft_restart_finalize(GObject *restart);
+
+static void bigdft_restart_class_init(BigDFT_RestartClass *klass)
+{
+  /* Connect the overloading methods. */
+  G_OBJECT_CLASS(klass)->dispose      = bigdft_restart_dispose;
+  G_OBJECT_CLASS(klass)->finalize     = bigdft_restart_finalize;
+  /* G_OBJECT_CLASS(klass)->set_property = visu_data_set_property; */
+  /* G_OBJECT_CLASS(klass)->get_property = visu_data_get_property; */
+}
+#endif
+
+static void bigdft_restart_init(BigDFT_Restart *obj)
+{
+#ifdef HAVE_GLIB
+  memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Restart) - sizeof(GObject));
+#else
+  memset(obj, 0, sizeof(BigDFT_Restart));
+#endif
+}
+static void bigdft_restart_dispose(GObject *obj)
+{
+#ifdef HAVE_GLIB
+  BigDFT_Restart *restart = BIGDFT_RESTART(obj);
+
+  if (restart->dispose_has_run)
+    return;
+  restart->dispose_has_run = TRUE;
+
+  /* Chain up to the parent class */
+  G_OBJECT_CLASS(bigdft_restart_parent_class)->dispose(obj);
+#endif
+}
+static void bigdft_restart_finalize(GObject *obj)
+{
+  BigDFT_Restart *restart = BIGDFT_RESTART(obj);
+
+  if (restart->data)
+    FC_FUNC_(rst_free, RST_FREE)(&restart->data);
+
+#ifdef HAVE_GLIB
+  G_OBJECT_CLASS(bigdft_restart_parent_class)->finalize(obj);
+#endif
+}
+BigDFT_Restart* bigdft_restart_new(BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint iproc)
+{
+  BigDFT_Restart *restart;
+  long self;
+
+#ifdef HAVE_GLIB
+  restart = BIGDFT_RESTART(g_object_new(BIGDFT_RESTART_TYPE, NULL));
+#else
+  restart = g_malloc(sizeof(BigDFT_Restart));
+  bigdft_restart_init(restart);
+#endif
+  self = *((long*)&restart);
+  FC_FUNC_(rst_new, RST_NEW)(&self, &restart->data);
+  FC_FUNC_(rst_init, RST_INIT)(restart->data, &iproc, atoms->data, in->data);
+
+  return restart;
+}
+void FC_FUNC_(restart_new_wrapper, RESTART_NEW_WRAPPER)(double *self, void *obj)
+{
+  BigDFT_Restart *restart;
+
+  restart = bigdft_restart_new_from_fortran(obj);
+  *self = *((double*)&restart);
+}
+BigDFT_Restart* bigdft_restart_new_from_fortran(void *obj)
+{
+  BigDFT_Restart *restart;
+
+#ifdef HAVE_GLIB
+  restart = BIGDFT_RESTART(g_object_new(BIGDFT_RESTART_TYPE, NULL));
+#else
+  restart = g_malloc(sizeof(BigDFT_Restart));
+  bigdft_restart_init(restart);
+#endif
+  restart->data = obj;
+
+  return restart;
+}
+void FC_FUNC_(restart_free_wrapper, RESTART_FREE_WRAPPER)(gpointer *obj)
+{
+  BigDFT_Restart *restart = BIGDFT_RESTART(*obj);
+
+  restart->data = (gpointer)0;
+  bigdft_restart_free(restart);
+}
+void bigdft_restart_free(BigDFT_Restart *restart)
+{
+#ifdef HAVE_GLIB
+  g_object_unref(G_OBJECT(restart));
+#else
+  bigdft_restart_finalize(restart);
+  g_free(restart);
+#endif
+}
+
+/*********************************/
 /* BigDFT_OptLoop data structure */
 /*********************************/
 #ifdef HAVE_GLIB
@@ -641,4 +747,96 @@ double bigdft_memory_get_peak(guint nproc, const BigDFT_Locreg *lr, const BigDFT
                                             (int*)&proj->nprojel, (int*)&orbs->nspin,
                                             (int*)&in->itrpmax, (int*)&in->iscf, &peak);
   return peak;
+}
+
+/**
+ * bigdft_init:
+ * @mpi_iproc: (out):
+ * @mpi_nproc: (out):
+ * @mpi_igroup: (out):
+ * @mpi_ngroup: (out):
+ * @mpi_groupsize: 0 to use all MPI resources.
+ *
+ * Setup MPI and other variables.
+ *
+ * Returns: 
+ **/
+int bigdft_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mpi_ngroup,
+                guint mpi_groupsize)
+{
+  int ierr;
+  int info[4];
+
+  FC_FUNC_(bigdft_mpi_init, BIGDFT_MPI_INIT)(&ierr);
+  FC_FUNC_(bigdft_init_mpi_env, BIGDFT_INIT_MPI_ENV)(info, &mpi_groupsize, &ierr);
+  if (mpi_iproc)
+    *mpi_iproc = (guint)info[0];
+  if (mpi_nproc)
+    *mpi_nproc = (guint)info[1];
+  if (mpi_igroup)
+    *mpi_igroup = (guint)info[2];
+  if (mpi_ngroup)
+    *mpi_ngroup = (guint)info[3];
+
+  return ierr;
+}
+int bigdft_finalize()
+{
+  int ierr;
+
+  FC_FUNC_(bigdft_finalize, BIGDFT_FINALIZE)(&ierr);
+  return ierr;
+}
+/**
+ * bigdft_set_input:
+ * @radical: 
+ * @posinp: 
+ * @atoms: (out) (transfer full):
+ *
+ * Pouet.
+ *
+ * Returns: (transfer full):
+ **/
+BigDFT_Inputs* bigdft_set_input(const gchar *radical, const gchar *posinp, BigDFT_Atoms **atoms)
+{
+  BigDFT_Atoms *at;
+  BigDFT_Inputs *in;
+
+  at = bigdft_atoms_new();
+  in = bigdft_inputs_init();
+  FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data);
+  FC_FUNC_(bigdft_set_input, BIGDFT_SET_INPUT)(radical, posinp, &at->rxyz,
+                                               in->data, at->data, strlen(radical), strlen(posinp));
+
+  bigdft_atoms_copy_from_fortran(at);
+  *atoms = at;
+  return in;
+}
+
+/**
+ * bigdft_eval_forces:
+ * @atoms: 
+ * @in: 
+ * @rst:
+ * @iproc: 
+ * @nproc: 
+ *
+ * Pouet again.
+ *
+ * Returns: (transfer full):
+ **/
+BigDFT_Energs* bigdft_eval_forces(BigDFT_Atoms *atoms, BigDFT_Inputs *in, BigDFT_Restart *rst,
+                                  guint iproc, guint nproc)
+{
+  int infocode;
+  BigDFT_Energs *en;
+  
+
+  en = bigdft_energs_new();  
+  en->fxyz = g_malloc(sizeof(double) * atoms->nat * 3); 
+  FC_FUNC_(call_bigdft, CALL_BIGDFT)(&nproc, &iproc, atoms->data, atoms->rxyz.data, in->data,
+                                     &en->etot, en->fxyz, en->strten, &en->fnoise, rst->data,
+                                     &infocode);
+  
+  return en;
 }
