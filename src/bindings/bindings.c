@@ -434,6 +434,8 @@ static void bigdft_restart_finalize(GObject *obj)
 
   if (restart->data)
     FC_FUNC_(rst_free, RST_FREE)(&restart->data);
+  if (restart->in)
+    bigdft_inputs_unref(restart->in);
 
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_restart_parent_class)->finalize(obj);
@@ -453,6 +455,9 @@ BigDFT_Restart* bigdft_restart_new(BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint
   self = *((long*)&restart);
   FC_FUNC_(rst_new, RST_NEW)(&self, &restart->data);
   FC_FUNC_(rst_init, RST_INIT)(restart->data, &iproc, atoms->data, in->data);
+  restart->inputPsiId = BIGDFT_RESTART_LCAO;
+  restart->in = in;
+  bigdft_inputs_ref(in);
 
   return restart;
 }
@@ -492,6 +497,13 @@ void bigdft_restart_free(BigDFT_Restart *restart)
   bigdft_restart_finalize(restart);
   g_free(restart);
 #endif
+}
+void bigdft_restart_set(BigDFT_Restart *restart, BigDFT_RestartIds id)
+{
+  int inputPsiId[] = {0, 1};
+
+  restart->inputPsiId = id;
+  FC_FUNC_(inputs_set_restart, INPUTS_SET_RESTART)(restart->in->data, inputPsiId + id);
 }
 
 /*********************************/
@@ -832,11 +844,16 @@ BigDFT_Energs* bigdft_eval_forces(BigDFT_Atoms *atoms, BigDFT_Inputs *in, BigDFT
   BigDFT_Energs *en;
   
 
-  en = bigdft_energs_new();  
+  en = bigdft_energs_new();
+  en->nat = atoms->nat;
   en->fxyz = g_malloc(sizeof(double) * atoms->nat * 3); 
   FC_FUNC_(call_bigdft, CALL_BIGDFT)(&nproc, &iproc, atoms->data, atoms->rxyz.data, in->data,
                                      &en->etot, en->fxyz, en->strten, &en->fnoise, rst->data,
                                      &infocode);
+  FC_FUNC_(energs_copy_data, ENERGS_COPY_DATA)
+    (en->data, &en->eh, &en->exc, &en->evxc, &en->eion, &en->edisp,
+     &en->ekin, &en->epot, &en->eproj, &en->eexctX, &en->ebs, &en->eKS,
+     &en->trH, &en->evsum, &en->evsic);
   
   return en;
 }

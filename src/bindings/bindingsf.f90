@@ -600,6 +600,14 @@ subroutine inputs_check_psi_id(inputpsi, input_wf_format, dir_output, ln, orbs, 
 
   call input_check_psi_id(inputpsi, input_wf_format, trim(dir_output), orbs, lorbs, iproc, nproc)
 END SUBROUTINE inputs_check_psi_id
+subroutine inputs_set_restart(in, id)
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+  integer, intent(in) :: id
+
+  in%inputPsiId = id
+end subroutine inputs_set_restart
 
 subroutine orbs_new(orbs)
   use module_types

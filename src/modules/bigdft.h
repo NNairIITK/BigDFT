@@ -648,6 +648,12 @@ void           bigdft_energs_emit(BigDFT_Energs *energs, guint istep,
 /********************************/
 /* BigDFT_Restart data structure */
 /********************************/
+typedef enum
+  {
+    BIGDFT_RESTART_LCAO,
+    BIGDFT_RESTART_WVL_MEMORY
+  } BigDFT_RestartIds;
+
 #ifdef GLIB_MAJOR_VERSION
 #define BIGDFT_RESTART_TYPE    (bigdft_restart_get_type())
 #define BIGDFT_RESTART(obj)                                               \
@@ -668,13 +674,16 @@ struct _BigDFT_Restart
   GObject parent;
   gboolean dispose_has_run;
 #endif
+  BigDFT_RestartIds inputPsiId;
 
-  /* To be removed later. */
+  /* Private. */
+  BigDFT_Inputs *in;
   _restart_objects *data;
 };
 BigDFT_Restart* bigdft_restart_new(BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint iproc);
 BigDFT_Restart* bigdft_restart_new_from_fortran(void *obj);
 void            bigdft_restart_free(BigDFT_Restart *restart);
+void            bigdft_restart_set(BigDFT_Restart *restart, BigDFT_RestartIds id);
 
 /*********************************/
 /* BigDFT_OptLoop data structure */

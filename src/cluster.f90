@@ -214,7 +214,6 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   call f_release_routine()
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 
-
 END SUBROUTINE call_bigdft
 
 
