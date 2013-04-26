@@ -1220,11 +1220,9 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, input, rxyz, ovrlp)
           !write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
    
           call reformat_one_supportfunction(iiat,displ,tmb%lzd%llr(ilr_tmp)%wfd,at,&
-               tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3), & !n(m)
-               n1,n2,n3,tmb%lzd%llr(ilr)%ns1,tmb%lzd%llr(ilr)%ns2,tmb%lzd%llr(ilr)%ns3,rxyz,phigold,&
-               tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
-               n1,n2,n3,tmb%lzd%llr(ilr_tmp)%ns1,tmb%lzd%llr(ilr_tmp)%ns2,tmb%lzd%llr(ilr_tmp)%ns3,rxyz_tmp,&
-               phifscf,psi_tmp(jstart_tmp))
+               tmb%lzd%hgrids,(/n1,n2,n3/),(/tmb%lzd%llr(ilr)%ns1,tmb%lzd%llr(ilr)%ns2,tmb%lzd%llr(ilr)%ns3/),rxyz,phigold,&
+               tmb%lzd%hgrids,(/n1,n2,n3/),(/tmb%lzd%llr(ilr_tmp)%ns1,tmb%lzd%llr(ilr_tmp)%ns2,tmb%lzd%llr(ilr_tmp)%ns3/),&
+               rxyz_tmp,phifscf,psi_tmp(jstart_tmp))
 
           jstart_tmp=jstart_tmp+tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c+7*tmb%lzd%llr(ilr_tmp)%wfd%nvctr_f
    
@@ -1444,8 +1442,8 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz,p
 END SUBROUTINE writemywaves_linear
 
 
-subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,ns1,ns2,ns3,&
-     & hx,hy,hz,at,wfd,rxyz_old,rxyz,locrad,locregCenter,confPotOrder,&
+subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
+     & hgrids,at,wfd,rxyz_old,rxyz,locrad,locregCenter,confPotOrder,&
      & confPotprefac,psi,eval,psifscf,onwhichatom,lr,glr)
   use module_base
   use module_types
@@ -1454,10 +1452,11 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,ns1,n
   use yaml_output
   implicit none
   logical, intent(in) :: useFormattedInput
-  integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3,ns1,ns2,ns3
+  integer, intent(in) :: unitwf,iorb,iproc
+  integer, dimension(3), intent(in) :: n,ns
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(atoms_data), intent(in) :: at
-  real(gp), intent(in) :: hx,hy,hz
+  real(gp), dimension(3), intent(in) :: hgrids
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   integer, intent(out) :: confPotOrder
   real(gp), intent(out) :: locrad, confPotprefac
@@ -1473,9 +1472,11 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,ns1,n
   character(len=*), parameter :: subname='readonewave_linear'
   character(len = 256) :: error
   logical :: perx,pery,perz,lstat
-  integer :: iorb_old,n1_old,n2_old,n3_old,iat,nvctr_c_old,nvctr_f_old,i_all,iiat
-  integer :: i1,i2,i3,iel,i_stat,onwhichatom_tmp,ns1_old,ns2_old,ns3_old
-  real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
+  integer :: iorb_old,iat,nvctr_c_old,nvctr_f_old,i_all,iiat
+  integer :: i1,i2,i3,iel,i_stat,onwhichatom_tmp
+  integer, dimension(3) :: ns_old,n_old
+  real(gp) :: tx,ty,tz,displ,mindist
+  real(gp), dimension(3) :: hgrids_old
   real(gp) :: tt,t1,t2,t3,t4,t5,t6,t7
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
   ! DEBUG
@@ -1483,8 +1484,8 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,ns1,n
   real(wp), dimension(:), allocatable :: gpsi
   !write(*,*) 'INSIDE readonewave'
 
-  call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &
-       & ns1_old, ns2_old, ns3_old, hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, &
+  call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n_old(1), n_old(2), n_old(3), &
+       & ns_old(1), ns_old(2), ns_old(3), hgrids_old, lstat, error, nvctr_c_old, nvctr_f_old, &
        & rxyz_old, at%nat,locrad, locregCenter, confPotOrder, confPotprefac, onwhichatom_tmp)
 
   if (.not. lstat) call io_error(trim(error))
@@ -1511,8 +1512,8 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,ns1,n
   tz=mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2 
   displ=sqrt(tx+ty+tz)
 
-  if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
-       n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. &
+  if (hgrids_old(1) == hgrids(1) .and. hgrids_old(2) == hgrids(2) .and. hgrids_old(3) == hgrids(3) .and.&
+       n_old(1) == n(1)  .and. n_old(2) == n(2) .and. n_old(3) == n(3) .and. &
        lr%wfd%nvctr_c==nvctr_c_old .and. lr%wfd%nvctr_f==nvctr_f_old .and. displ <= 1.d-3) then
 
      if (iproc == 0) call yaml_map('Reformating Wavefunctions',.false.)
@@ -1524,14 +1525,14 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,ns1,n
         call yaml_map('Reformating Wavefunctions',.true.)
         !write(*,*) 'wavefunctions need reformatting'
         call yaml_open_map('Reformatting for')
-        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) then
+        if (hgrids_old(1) /= hgrids(1) .or. hgrids_old(2) /= hgrids(2) .or. hgrids_old(3) /= hgrids(3)) then
            call yaml_open_map('hgrid_old /= hgrid',flow=.true.)
-              call yaml_map('hgrid_old', (/ hx_old,hy_old,hz_old /),fmt='(1pe20.12)')
-              call yaml_map('hgrid', (/ hx,hy,hz /), fmt='(1pe20.12)')
+              call yaml_map('hgrid_old', hgrids_old,fmt='(1pe20.12)')
+              call yaml_map('hgrid', hgrids, fmt='(1pe20.12)')
            call yaml_close_map()
            !write(*,"(1x,A,6F14.10)") 'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
-        else if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) then
-           call yaml_map('Cell size has changed ', (/ n1_old,n1  , n2_old,n2 , n3_old,n3 /))
+        else if (n_old(1) /= n(1)  .or. n_old(2) /= n(2) .or. n_old(3) /= n(3) ) then
+           call yaml_map('Cell size has changed ', (/ n_old(1),n(1)  , n_old(2),n(2) , n_old(3),n(3) /))
            !write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
         else if (displ > 1.d-3 ) then
            call yaml_map('Large displacement of the molecule',displ, fmt='(1pe19.12)')
@@ -1546,10 +1547,10 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,ns1,n
 !     stop 
 !needs fixing below
      ! also need to add derivative functions, which needs orbs and lzd
-     allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
+     allocate(psigold(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2+ndebug),stat=i_stat)
      call memocc(i_stat,psigold,'psigold',subname)
 
-     call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+     call razero(8*(n_old(1)+1)*(n_old(2)+1)*(n_old(3)+1),psigold)
      do iel=1,nvctr_c_old
         if (useFormattedInput) then
            read(unitwf,*) i1,i2,i3,tt
@@ -1580,9 +1581,8 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,ns1,n
      iiat=onwhichatom(iorb)
 
      !call reformat_one_supportfunction here to be consistent with cubic
-     call reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old, & !n(m)
-          n1_old,n2_old,n3_old,ns1_old,ns2_old,ns3_old,rxyz_old,psigold,hx,hy,hz,&
-          n1,n2,n3,ns1,ns2,ns3,rxyz,psifscf,psi)
+     call reformat_one_supportfunction(iiat,displ,wfd,at,hgrids_old, & !n(m)
+          n_old,ns_old,rxyz_old,psigold,hgrids,n,ns,rxyz,psifscf,psi)
 
      i_all=-product(shape(psigold))*kind(psigold)
      deallocate(psigold,stat=i_stat)
@@ -1599,7 +1599,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,ns1,n
        1, 1, 1, glr, lr, psi, gpsi)
 
   write(orbname,*) iorb
-  call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,glr,hx,hy,hz,rxyz,gpsi)
+  call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,glr,hgrids(1),hgrids(2),hgrids(3),rxyz,gpsi)
   !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,lr,hx,hy,hz,rxyz,psi)
 
   i_all=-product(shape(gpsi))*kind(gpsi)
@@ -1612,7 +1612,7 @@ END SUBROUTINE readonewave_linear
 
 
 subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
-       & ns1_old, ns2_old, ns3_old, hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, &
+       & ns1_old, ns2_old, ns3_old, hgrids_old, lstat, error, nvctr_c_old, nvctr_f_old, &
        & rxyz_old, nat, locrad, locregCenter, confPotOrder, confPotprefac,onwhichatom)
     use module_base
     use module_types
@@ -1624,7 +1624,7 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
     logical, intent(in) :: formatted
     integer, intent(out) :: iorb_old
     integer, intent(out) :: n1_old, n2_old, n3_old, ns1_old, ns2_old, ns3_old
-    real(gp), intent(out) :: hx_old, hy_old, hz_old
+    real(gp), dimension(3), intent(out) :: hgrids_old
     logical, intent(out) :: lstat
     real(wp), intent(out) :: eval
     integer, intent(out) :: confPotOrder
@@ -1646,7 +1646,7 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
        read(unitwf,*,iostat=i_stat) iorb_old,eval
        if (i_stat /= 0) return
 
-       read(unitwf,*,iostat=i_stat) hx_old,hy_old,hz_old
+       read(unitwf,*,iostat=i_stat) hgrids_old(1),hgrids_old(2),hgrids_old(3)
        if (i_stat /= 0) return
 
        read(unitwf,*,iostat=i_stat) n1_old,n2_old,n3_old
@@ -1691,7 +1691,7 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
        read(unitwf,iostat=i_stat) iorb_old,eval
        if (i_stat /= 0) return
 
-       read(unitwf,iostat=i_stat) hx_old,hy_old,hz_old
+       read(unitwf,iostat=i_stat) hgrids_old(1),hgrids_old(2),hgrids_old(3)
        if (i_stat /= 0) return
        read(unitwf,iostat=i_stat) n1_old,n2_old,n3_old
        if (i_stat /= 0) return
@@ -1952,8 +1952,9 @@ subroutine readmywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz_ol
            end if  
 
            call readonewave_linear(99, (iformat == WF_FORMAT_PLAIN),iorb_out,iproc,&
-                Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3,Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3,&
-                Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,Lzd%Llr(ilr)%wfd,rxyz_old,rxyz,locrad,locregCenter,&
+                (/Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3/),&
+                (/Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3/),&
+                Lzd%hgrids,at,Lzd%Llr(ilr)%wfd,rxyz_old,rxyz,locrad,locregCenter,&
                 confPotOrder,confPotPrefac,psi(ind),orbs%eval(orbs%isorb+iorb),psifscf,&
                 orbs%onwhichatom,Lzd%Llr(ilr),Lzd%glr)
            close(99)
@@ -2020,7 +2021,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   integer :: ilr, ierr, iorb_old, iorb, ispinor, iorb_out, n1_old, n2_old, n3_old, ns1_old, ns2_old, ns3_old
   integer :: i_stat, i_all,confPotOrder, confPotOrder_old, onwhichatom_tmp, iat
 ! integer :: jorb
-  real(gp) :: hx_old, hy_old, hz_old
+  real(gp), dimension(3) :: hgrids_old
 ! real(gp) :: mindist
   real(kind=8) :: eval
 !  real(kind=8) :: dx,dy,dz,dist,eval
@@ -2059,7 +2060,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
            end if    
 
            call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n1_old, n2_old, n3_old, &
-                & ns1_old, ns2_old, ns3_old, hx_old, hy_old, hz_old, lstat, error, nvctr_c(iorb+orbs%isorb), &
+                & ns1_old, ns2_old, ns3_old, hgrids_old, lstat, error, nvctr_c(iorb+orbs%isorb), &
                 & nvctr_f(iorb+orbs%isorb),rxyz_old, at%nat, locrad(iorb+orbs%isorb), locregCenter(1,iorb+orbs%isorb), &
                 & confPotOrder, confPotprefac(iorb+orbs%isorb), onwhichatom_tmp)
 
@@ -2659,9 +2660,8 @@ subroutine reformat_supportfunctions(iproc,at,&
           !!     n1_old,n2_old,n3_old,rxyz_old,phigold,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
           !!     n1,n2,n3,rxyz,phifscf,phi(jstart))
           call reformat_one_supportfunction(iiat,displ,tmb%lzd%llr(ilr)%wfd,at,&
-               tmb_old%lzd%hgrids(1),tmb_old%lzd%hgrids(2),tmb_old%lzd%hgrids(3), & !n(m)
-               n1_old,n2_old,n3_old,ns1_old,ns2_old,ns3_old,rxyz_old,phigold,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),&
-               tmb%lzd%hgrids(3),n1,n2,n3,ns1,ns2,ns3,rxyz,phifscf,tmb%psi(jstart))
+               tmb_old%lzd%hgrids,(/n1_old,n2_old,n3_old/),(/ns1_old,ns2_old,ns3_old/),&
+               rxyz_old,phigold,tmb%lzd%hgrids,(/n1,n2,n3/),(/ns1,ns2,ns3/),rxyz,phifscf,tmb%psi(jstart))
 
           jstart=jstart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
    

@@ -3689,7 +3689,7 @@ module module_interfaces
        end subroutine initialize_linear_from_file
 
        subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
-       & ns1_old, ns2_old, ns3_old, hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, &
+       & ns1_old, ns2_old, ns3_old, hgrids_old, lstat, error, nvctr_c_old, nvctr_f_old, &
        & rxyz_old, nat, locrad, locregCenter, confPotOrder, confPotprefac, onwhichatom)
          use module_base
          use module_types
@@ -3698,7 +3698,7 @@ module module_interfaces
          logical, intent(in) :: formatted
          integer, intent(out) :: iorb_old
          integer, intent(out) :: n1_old, n2_old, n3_old, ns1_old, ns2_old, ns3_old
-         real(gp), intent(out) :: hx_old, hy_old, hz_old
+         real(gp), dimension(3), intent(out) :: hgrids_old
          logical, intent(out) :: lstat
          real(wp), intent(out) :: eval
          integer, intent(out) :: confPotOrder
@@ -4219,17 +4219,19 @@ module module_interfaces
           integer,dimension(:),pointer:: inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old
         end subroutine copy_old_inwhichlocreg
 
-        subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,& !n(c) iproc (arg:1)
-             ns1_old,ns2_old,ns3_old,rxyz_old,psigold,hx,hy,hz,n1,n2,n3,ns1,ns2,ns3,rxyz,psifscf,psi)
+        subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hgrids_old,n_old,& !n(c) iproc (arg:1)
+             ns_old,rxyz_old,psigold,hgrids,n,ns,rxyz,psifscf,psi)
           use module_base
           use module_types
           implicit none
-          integer, intent(in) :: iiat,n1_old,n2_old,n3_old,ns1_old,ns2_old,ns3_old,n1,n2,n3,ns1,ns2,ns3  !n(c) iproc
-          real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
+          integer, intent(in) :: iiat!n(c) iproc
+          integer, dimension(3), intent(in) :: n_old,ns_old,n,ns
+          real(gp), intent(in) :: displ
+          real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
           type(wavefunctions_descriptors), intent(in) :: wfd
           type(atoms_data), intent(in) :: at
           real(gp), dimension(3,at%nat), intent(in) :: rxyz_old,rxyz
-          real(wp), dimension(0:n1_old,2,0:n2_old,2,0:n3_old,2), intent(in) :: psigold
+          real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
           real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
           real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
         end subroutine reformat_one_supportfunction
