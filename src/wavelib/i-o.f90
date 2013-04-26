@@ -1025,8 +1025,10 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   logical :: perx,pery,perz
   integer :: i_stat,i_all,nb1,nb2,nb3
   !integer :: cif1,cif2,cif3,ind,j1,j2,j3,i1,i2,i3,l1,l2,jj1,jj2,jj3a,jj3b,jj3c
-  real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,dx,dy,dz,mindist
+  real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,dx,dy,dz,mindist,theta
+  real(gp), dimension(3) :: centre,centre_old,centre_new,newz
   !real(wp) :: x,y,z,yr,xr,ym1,y00,yp1,dnrm2,zr,xold,yold,zold
+  real(wp) :: dnrm2
   !real(wp), dimension(-1:1,-1:1) :: xya
   !real(wp), dimension(-1:1) :: xa
   real(wp), dimension(:), allocatable :: ww,wwold
@@ -1035,6 +1037,7 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   real(wp), dimension(:,:,:), allocatable :: psifscfold, psi_w, psi_w2
 !  integer :: iat
   integer :: itype, nd, nrange
+  real(gp), dimension(3) :: rprime
 
   !conditions for periodicity in the three directions
   perx=(at%geocode /= 'F')
@@ -1064,44 +1067,76 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   deallocate(wwold,stat=i_stat)
   call memocc(i_stat,i_all,'wwold',subname)
 
-  !write(*,*) iproc,' displ ',displ
+if (.false.) then
+    !to be tested
+    newz=(/0.0_gp,0.0_gp,1.0_gp/)
+    theta=30.d0*(4.0_gp*atan(1.d0)/180.0_gp)
+    centre_old(1)=7.7700_gp
+    centre_old(2)=8.1900_gp
+    centre_old(3)=7.7700_gp
+
+    centre_new(1)=7.7700_gp
+    centre_new(2)=7.7700_gp
+    centre_new(3)=7.7700_gp
+
+    ! centre of rotation with respect to start of box
+    centre_old(1)=mindist(perx,at%alat1,(centre_old(1)),(hx_old*(ns1_old-0.5_dp*(nb1)))) !center of read
+    centre_old(2)=mindist(pery,at%alat2,(centre_old(2)),(hy_old*(ns2_old-0.5_dp*(nb2))))
+    centre_old(3)=mindist(perz,at%alat3,(centre_old(3)),(hz_old*(ns3_old-0.5_dp*(nb3))))
+
+    centre_new(1)=mindist(perx,at%alat1,(centre_new(1)),(hx*(ns1-0.5_dp*(nb1)))) !center of read
+    centre_new(2)=mindist(pery,at%alat2,(centre_new(3)),(hy*(ns2-0.5_dp*(nb2))))
+    centre_new(3)=mindist(perz,at%alat3,(centre_new(3)),(hz*(ns3-0.5_dp*(nb3))))
+
+else
+
+    theta=-30.d0*(4.0_gp*atan(1.d0)/180.0_gp)
+
+if (.false.) then
+    newz=(/0.0_gp,0.0_gp,1.0_gp/)
+    centre_old(1)=23.520_gp*0.5_gp!15.54_gp*0.5_gp
+    centre_old(2)=23.100_gp*0.5_gp!23.520_gp*0.5_gp
+    centre_old(3)=15.54_gp*0.5_gp!23.100_gp*0.5_gp
+    
+    centre_new(1)=23.100_gp*0.5_gp!15.54_gp*0.5_gp
+    centre_new(2)=23.520_gp*0.5_gp!23.100_gp*0.5_gp
+    centre_new(3)=15.54_gp*0.5_gp!23.520_gp*0.5_gp
+else
+    newz=(/1.0_gp,0.0_gp,0.0_gp/)
+    centre_old(1)=15.54_gp*0.5_gp
+    centre_old(2)=23.520_gp*0.5_gp
+    centre_old(3)=23.100_gp*0.5_gp
+    
+    centre_new(1)=15.54_gp*0.5_gp
+    centre_new(2)=23.100_gp*0.5_gp
+    centre_new(3)=23.520_gp*0.5_gp
+end if
+
+
+    centre_old(1)=mindist(perx,at%alat1,(centre_old(1)),(hx_old*(ns1_old-0.5_dp*(nb1)))) !center of read
+    centre_old(2)=mindist(pery,at%alat2,(centre_old(2)),(hy_old*(ns2_old-0.5_dp*(nb2))))
+    centre_old(3)=mindist(perz,at%alat3,(centre_old(3)),(hz_old*(ns3_old-0.5_dp*(nb3))))
+
+    centre_new(1)=mindist(perx,at%alat1,(centre_new(1)),(hx*(ns1-0.5_dp*(nb1)))) !center of read
+    centre_new(2)=mindist(pery,at%alat2,(centre_new(2)),(hy*(ns2-0.5_dp*(nb2))))
+    centre_new(3)=mindist(perz,at%alat3,(centre_new(3)),(hz*(ns3-0.5_dp*(nb3))))
+
+end if
+
   if (hx == hx_old .and. hy == hy_old .and. hz == hz_old .and. &
        n1_old==n1 .and. n2_old==n2 .and. n3_old==n3 .and. &
        displ<= 1.d-2) then
-     !write(*,*) ' orbital just copied'
      call dcopy((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscfold(-nb1,-nb2,-nb3),1,&
           psifscf(1),1)
-!!$     do i3=-nb3,2*n3+1+nb3
-!!$        do i2=-nb2,2*n2+1+nb2
-!!$           do i1=-nb1,2*n1+1+nb1
-!!$              ind=i1+nb1+1+(2*n1+2+2*nb1)*(i2+nb2)+&
-!!$                   (2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(i3+nb3)
-!!$              psifscf(ind)=psifscfold(i1,i2,i3)
-!!$           enddo
-!!$        enddo
-!!$     enddo
-     
   else
 
-     !!dx=0.0_gp
-     !!dy=0.0_gp 
-     !!dz=0.0_gp
      !Calculate the shift of the atom
      !Take into account the modulo operation which should be done for non-isolated BC
-     dx=mindist(perx,at%alat1,(rxyz(1,iiat)-hx*ns1),(rxyz_old(1,iiat)-hx_old*ns1_old))
-     dy=mindist(pery,at%alat2,(rxyz(2,iiat)-hy*ns2),(rxyz_old(2,iiat)-hy_old*ns2_old))
-     dz=mindist(perz,at%alat3,(rxyz(3,iiat)-hz*ns3),(rxyz_old(3,iiat)-hz_old*ns3_old))
-     !!do iat=1,at%nat 
-     !!   dx=dx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))
-     !!   dy=dy+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))
-     !!   dz=dz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))
-     !!enddo
-     !!dx=dx/real(at%nat,gp)
-     !!dy=dy/real(at%nat,gp)
-     !!dz=dz/real(at%nat,gp)
+     dx=(centre_new(1))-(centre_old(1))
+     dy=(centre_new(2))-(centre_old(2))
+     dz=(centre_new(3))-(centre_old(3))
      
      ! transform to new structure    
-     !if (iproc==0) write(*,*) iproc,' orbital fully transformed'
      hxh=.5_gp*hx
      hxh_old=.5_gp*hx_old
      hyh=.5_gp*hy
@@ -1109,8 +1144,6 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
      hzh=.5_gp*hz
      hzh_old=.5_gp*hz_old
 
-!     call razero((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf)
-!     call vcopy((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf(1),1,psi_w(1),1)
      !!! beginning of new reformatting routine.
      !!! Only rigid translations are allowed for the moment
 
@@ -1134,11 +1167,10 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
     call memocc(i_stat,i_all,'x_phi',subname)
 
 if (.true.) then
-    !to be tested
-    call field_rototranslation(nd,nrange,y_phi,(/dx,dy,dz/),(/0.0_gp,0.0_gp,1.0_gp/),0.d0,&
+
+    call field_rototranslation(nd,nrange,y_phi,(/dx,dy,dz/),newz,centre_old,centre_new,theta,&
          (/hxh_old,hyh_old,hzh_old/),(/(2*n1_old+2+2*nb1),(2*n2_old+2+2*nb2),(2*n3_old+2+2*nb3)/),psifscfold,&
          (/hxh,hyh,hzh/),(/(2*n1+2+2*nb1),(2*n2+2+2*nb2),(2*n3+2+2*nb3)/),psifscf)
-
 else
     allocate(psi_w(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
     call memocc(i_stat,psi_w,'psi_w',subname)
@@ -1232,7 +1264,7 @@ end if
      !enddo
   endif
 
-  !!print*, 'norm of psifscf ',dnrm2((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf,1)
+  print*, 'norm of psifscf ',dnrm2((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf,1)
   i_all=-product(shape(psifscfold))*kind(psifscfold)
   deallocate(psifscfold,stat=i_stat)
   call memocc(i_stat,i_all,'psifscfold',subname)
@@ -1249,14 +1281,14 @@ end if
      call analyse_per(n1,n2,n3,ww,psifscf,psig)
   end if
 
-  !!print*, 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1),n1,n2,n3
+  print*, 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1),n1,n2,n3
   call compress_plain(n1,n2,0,n1,0,n2,0,n3,  &
        wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),   &
        wfd%nseg_f,wfd%nvctr_f,&
        wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
        wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),   &
        psig,psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)))
-  !!print*, 'norm of reformatted psi ',dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,psi,1),wfd%nvctr_c,wfd%nvctr_f
+  print*, 'norm of reformatted psi ',dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,psi,1),wfd%nvctr_c,wfd%nvctr_f
   !!print*, 'norm of reformatted psic ',dnrm2(wfd%nvctr_c,psi,1)
   !!print*, 'norm of reformatted psif ',dnrm2(wfd%nvctr_f*7,psi(wfd%nvctr_c+min(1,wfd%nvctr_f)),1)
 
@@ -1578,13 +1610,14 @@ subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
    call memocc(i_stat,i_all,'y',subname)
 END SUBROUTINE my_scaling_function4b2B
 
-subroutine define_rotations(da,newz,theta,hgrids_old,ndims_old,&
+subroutine define_rotations(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
      hgrids_new,ndims_new,dx,dy,dz)
   use module_base
   implicit none
   real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
   real(gp), intent(in) :: theta !< rotation wrt newzeta vector
   real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
+  real(gp), dimension(3), intent(in) :: centre_old,centre_new !<centre of rotation (the coordinates are zero at these points)
   real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
   integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
   real(gp), dimension(ndims_old(1),ndims_old(2)*ndims_old(3)), intent(out) :: dx !<first deformation
@@ -1592,14 +1625,25 @@ subroutine define_rotations(da,newz,theta,hgrids_old,ndims_old,&
   real(gp), dimension(ndims_old(3),ndims_new(1)*ndims_new(2)), intent(out) :: dz !<third deformation
   !local variables
   integer :: i,j,k
-  real(gp) :: x,y,z
+  real(gp) :: x,y,z,cost,sint,onemc,dotp
   real(gp), dimension(3) :: boxc_old,boxc_new
 
-  !2-dimensional case for the moment: newzeta=0,0,1 and da=0
-  
-  !calcualte the center of the boxes
+  !calculate the center of the boxes
   boxc_old=0.5_gp*hgrids_old*(ndims_old-1)
   boxc_new=0.5_gp*hgrids_new*(ndims_new-1)
+print*,'boxc_old',boxc_old,ndims_old
+  boxc_old=centre_old
+  boxc_new=centre_new
+
+print*,'boxc',boxc_old,ndims_old
+print*,'aaaa',-centre_old+0.5_gp*hgrids_old*(ndims_old)
+print*,'baaa',-centre_new+0.5_gp*hgrids_new*(ndims_new)
+  !boxc_new=boxc_old ! difference taken into account in shifts
+
+  !save recalculation
+  sint=sin(theta)
+  cost=cos(theta)
+  onemc=1.0_gp-cost
 
   z=-boxc_old(3)
   do k=1,ndims_old(3)
@@ -1607,13 +1651,19 @@ subroutine define_rotations(da,newz,theta,hgrids_old,ndims_old,&
      do j=1,ndims_old(2)
         x=-boxc_old(1)
         do i=1,ndims_old(1)
-           dx(i,j+(k-1)*ndims_old(2))=da(1)/hgrids_old(1)!x*cos(theta)-y*sin(theta)-x !to be updated (DIVIDE BY H!)
+           dotp=newz(1)*x+newz(2)*y+newz(3)*z
+           dx(i,j+(k-1)*ndims_old(2)) = ( da(1) - x + dotp*newz(1) - cost*(-x + dotp*newz(1)) &
+                                      + sint*(z*newz(2) - y*newz(3)) ) / hgrids_old(1)
            x=x+hgrids_old(1)
         end do
         !fill the second vector
         x=-boxc_new(1)
         do i=1,ndims_new(1)
-           dy(j,k+(i-1)*ndims_old(3))=da(2)/hgrids_old(1)!((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x !to be updated (DIVIDE BY H!)
+           dy(j,k+(i-1)*ndims_old(3)) = ( da(2) -y + y*(cost + onemc*newz(2)**2) + z*(-(sint*newz(1)) &
+                                      + onemc*newz(2)*newz(3)) -  ((onemc*newz(1)*newz(2) &
+                                      + sint*newz(3))*(-x  + sint*(z*newz(2) - y*newz(3)) &
+                                      + onemc*newz(1)*(y*newz(2) + z*newz(3)))) &
+                                      / (cost + onemc*newz(1)**2) ) / hgrids_old(2)
            x=x+hgrids_new(1)
         end do
         y=y+hgrids_old(2)
@@ -1623,7 +1673,11 @@ subroutine define_rotations(da,newz,theta,hgrids_old,ndims_old,&
      do j=1,ndims_new(2)
         x=-boxc_new(1)
         do i=1,ndims_new(1)
-           dz(k,i+(j-1)*ndims_new(1))=da(3)/hgrids_old(1)!((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x !to be updated (DIVIDE BY H!)
+           dz(k,i+(j-1)*ndims_new(1)) = ( da(3) - z - sint*x*newz(2) + onemc*x*newz(1)*newz(3) + z*(cost + onemc*newz(3)**2) &
+                                      + ((sint*newz(1) + onemc*newz(2)*newz(3))*(y + sint*(z*newz(1) &
+                                      - x*newz(3)) + onemc*(-x*newz(1)*newz(2) &
+                                      + z*newz(2)*newz(3) - y*(newz(2)**2 + newz(3)**2)))) &
+                                      / (cost + onemc*newz(3)**2) ) / hgrids_old(3)
            x=x+hgrids_new(1)
         end do
         y=y+hgrids_new(2)
@@ -1633,7 +1687,7 @@ subroutine define_rotations(da,newz,theta,hgrids_old,ndims_old,&
 
  end subroutine define_rotations
 
-subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,theta,hgrids_old,ndims_old,f_old,&
+subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,f_old,&
      hgrids_new,ndims_new,f_new)
   use module_base
   implicit none
@@ -1641,6 +1695,7 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,theta,hgrids_o
   real(gp), intent(in) :: theta !< rotation wrt newzeta vector
   real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
   real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
+  real(gp), dimension(3), intent(in) :: centre_old,centre_new !<centre of rotation
   real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
   integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
   real(gp), dimension(n_phi), intent(in) :: phi_ISF
@@ -1659,7 +1714,7 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,theta,hgrids_o
   work2=f_malloc(shape(dz),id='work2')
 
   
-  call define_rotations(da,newz,theta,hgrids_old,ndims_old,&
+  call define_rotations(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
        hgrids_new,ndims_new,dx,dy,dz)
   
   !perform interpolation
@@ -1681,3 +1736,27 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,theta,hgrids_o
   call f_release_routine()
 end subroutine field_rototranslation
  
+!> Express the coordinates of a vector into a rotated reference frame
+subroutine rotate_vector(newz,theta,vec,vecn)
+   use module_base
+   implicit none
+   real(gp), intent(in) :: theta
+   real(gp), dimension(3), intent(in) :: newz,vec
+   real(gp), dimension(3), intent(out) :: vecn
+   !local variables
+   real(gp) :: sint,cost,onemc,x,y,z
+
+   !save recalculation
+   sint=sin(theta)
+   cost=cos(theta)
+   onemc=1.0_gp-cost
+   x=vec(1)
+   y=vec(2)
+   z=vec(3)
+
+   vecn(1)=x*(cost + onemc*newz(1)**2) + y*(onemc*newz(1)*newz(2) - sint*newz(3)) + z*(sint*newz(2) + onemc*newz(1)*newz(3))
+   vecn(2)=y*(cost + onemc*newz(2)**2) + x*(onemc*newz(1)*newz(2) + sint*newz(3)) + z*(-(sint*newz(1)) + onemc*newz(2)*newz(3))
+   vecn(3)=z*(cost + onemc*newz(3)**2) + x*(onemc*newz(1)*newz(3) - sint*newz(2)) + y*(sint*newz(1) + onemc*newz(2)*newz(3))
+
+end subroutine
+
