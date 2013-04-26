@@ -1,8 +1,13 @@
 SUBDIRS = fft \
+	flib \
 	PSolver \
 	OP2P \
 	psp \
 	IO-wf
+
+if USE_BLACS
+SUBDIRS += dsygv
+endif 
 
 if USE_CUDA_GPU
 SUBDIRS += CUDA

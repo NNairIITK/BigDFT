@@ -25,15 +25,16 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.17
- Timestamp of this run                 : 2012-08-29 01:36:20.686
- Root process Hostname                 : localhost
+ Version Number                        : 1.7-dev.19
+ Timestamp of this run                 : 2012-11-03 14:57:32.684
+ Root process Hostname                 : coba2.pcpm.ucl.ac.be
  #... (file:default.perf.. not present).................................Performance Options 
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
- #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU)                           
+ #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
+ #|OCL_platform                 Chosen OCL platform                                          
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -47,7 +48,7 @@
  #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
  #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
  #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
- #|tolsym -1.00E+00             Tolerance for symmetry detection                             
+ #|tolsym  1.00E-08             Tolerance for symmetry detection                             
  #|signaling F                  Expose calculation results on Network                        
  #|signalTimeout 0              Time out on startup for signal connection                    
  #|domain                       Domain to add to the hostname to find the IP                 
@@ -110,11 +111,11 @@
        Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
-
- Number of MPI processes 1
+ 
+ Number of MPI processes 4
  MPI process does not use OpenMP
  No material acceleration (iproc=0)
-
+ 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -151,7 +152,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.53
    Pseudopotential type                : HGH-K
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.24455
      Coefficients (c1 .. c4)           :  [ -16.66721,  2.48731,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -167,7 +168,8 @@
  Atomic positions within the cell (Atomic and Grid Units):
  - O: {AU:  [  0.0000,  0.0000,  0.0000 ], GU:  [  0.0000,  0.0000,  0.0000 ]} # 0001
  - O: {AU:  [  0.0000,  0.0000,  2.2828 ], GU:  [  0.0000,  0.0000,  6.4427 ]} # 0002
- Rigid Shift Applied (AU)              :  [ -0.0000, -0.0000, -0.0000 ]
+ Rigid Shift Applied (AU)              :  [  0.0000,  0.0000,  0.0000 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.3543,  0.3543,  0.3543 ]
  Sizes of the simulation domain:
    AU                                  :  [  8.5038,  8.5038,  8.5038 ]
@@ -177,14 +179,22 @@
      From                              :  [  0,  0,  0 ]
      To                                :  [  23,  23,  23 ]
  High Res. box is treated separately   :  No
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  1
+   MPI tasks                           :  4
  Poisson Kernel Creation:
    Boundary Conditions                 : Periodic
    Memory Requirements per MPI task:
-     Density (MB)                      :  0.84
-     Kernel (MB)                       :  0.12
+     Density (MB)                      :  0.21
+     Kernel (MB)                       :  0.03
      Full Grid Arrays (MB)             :  0.84
+     Load Balancing of calculations:
+       Density:
+         MPI tasks 0- 3                : 100%
+       Kernel:
+         MPI tasks 0- 2                : 100%
+         MPI task 3                    :  57%
+       Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  576
@@ -195,6 +205,8 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  12
  Spin treatment                        : Collinear
+ Orbitals Repartition:
+   MPI tasks  0- 3                     :  6
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  12
@@ -205,52 +217,64 @@
    Orbitals No. 1- 12                  :  1.0000
  ----------------------------------------------Direct and transposed data repartition
  | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
- |    0 |      24     |------|------------||        39632  |------|-----------------|
- |      |             |   1  |    1-   12 ||               |   1  |       1-   19816|
- |      |             |   2  |    1-   12 ||               |   2  |       1-   19816|
- Wavefunctions memory occupation for root MPI process:  7 MB 263 KB 0 B
+ |    0 |       6     |------|------------||         9908  |------|-----------------|
+ |      |             |   1  |    1-    6 ||               |   1  |       1-    9908|
+ |    1 |       6     |------|------------||         9908  |------|-----------------|
+ |      |             |   1  |    7-   12 ||               |   1  |    9909-   19816|
+ |    2 |       6     |------|------------||         9908  |------|-----------------|
+ |      |             |   2  |    1-    6 ||               |   2  |       1-    9908|
+ |    3 |       6     |------|------------||         9908  |------|-----------------|
+ |      |             |   2  |    7-   12 ||               |   2  |    9909-   19816|
+ Wavefunctions memory occupation for root MPI process:  1 MB 833 KB 768 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  2
-   Total number of components          :  13360
+   Total number of components          :  6680
    Percent of zero components          :  0
   #-------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 12)
    Single orbital                      : 0.310 #  (Number of Components: 19816)
-   All (distributed) orbitals          : 14.526 # (Number of Orbitals per MPI task: 24)
-   Wavefunction storage size           : 14.526 # (DIIS/SD workspaces included)
-   Nonlocal Pseudopotential Arrays     : 0.105
+   All (distributed) orbitals          : 5.454 #  (Number of Orbitals per MPI task: 6)
+   Wavefunction storage size           : 5.454 #  (DIIS/SD workspaces included)
+   Nonlocal Pseudopotential Arrays     : 0.53
    Full Uncompressed (ISF) grid        : 1.704
    Workspaces storage size             : 0.216
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 1.319
-   Density Construction                : 22.337
-   Poisson Solver                      : 28.241
-   Hamiltonian application             : 26.561
- Estimated Memory Peak (MB)            :  28
+   Kernel calculation                  : 0.650
+   Density Construction                : 11.12
+   Poisson Solver                      : 10.604
+   Hamiltonian application             : 15.236
+ Estimated Memory Peak (MB)            :  15
  ion-ion interaction energy -7.53895186697576E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -12.000000000000   0.000E+00
  Poisson Solver:
    BC                                  : Periodic
    Box                                 :  [  48,  48,  48 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  4
  Input Hamiltonian: { #------------------------------- Atomic Orbitals of PSP wavefunctions
  Total No. of Atomic Input Orbitals:  16, 
+ Inputguess Orbitals Repartition: {MPI tasks  0- 3:  8}, 
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 1.00,  1.00], p: [ 1.00,  1.00,  1.00,  1/3,  1/3,  1/3]}}], 
  ----------------------------------------------Direct and transposed data repartition
  | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
- |    0 |      32     |------|------------||        39632  |------|-----------------|
- |      |             |   1  |    1-   16 ||               |   1  |       1-   19816|
- |      |             |   2  |    1-   16 ||               |   2  |       1-   19816|
+ |    0 |       8     |------|------------||         9908  |------|-----------------|
+ |      |             |   1  |    1-    8 ||               |   1  |       1-    9908|
+ |    1 |       8     |------|------------||         9908  |------|-----------------|
+ |      |             |   1  |    9-   16 ||               |   1  |    9909-   19816|
+ |    2 |       8     |------|------------||         9908  |------|-----------------|
+ |      |             |   2  |    1-    8 ||               |   2  |       1-    9908|
+ |    3 |       8     |------|------------||         9908  |------|-----------------|
+ |      |             |   2  |    9-   16 ||               |   2  |    9909-   19816|
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  5.20E-03, 
-             GPU acceleration:  No, Total electronic charge:  11.999999344210, 
- Poisson Solver: {BC: Periodic, Box:  [  48,  48,  48 ], MPI tasks:  1}, 
- Energies: {Ekin:  2.38568191900E+01, Epot: -3.30380927139E+01, Enl:  2.79817343756E+00, 
+             GPU acceleration:  No, Rho Commun: ALLRED, 
+      Total electronic charge:  11.999999344210, 
+ Poisson Solver: {BC: Periodic, Box:  [  48,  48,  48 ], MPI tasks:  4}, 
+ Energies: {Ekin:  2.38568191900E+01, Epot: -3.30380927139E+01, Enl:  2.79817343755E+00, 
               EH:  2.02044854640E+01,  EXC: -6.88908378753E+00, EvXC: -8.95086618468E+00}, 
- EKS: -3.20647550202282190E+01, 
+ EKS: -3.20647550202284961E+01, 
  IG Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}, 
   #-------------------------------------------------- Eigenvalues and New Occupation Numbers
  Total magnetization:  4.000000, Orbitals: [
@@ -278,24 +302,22 @@
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
- GPU acceleration:  No, Total electronic charge:  11.999999267066, 
- Poisson Solver: {BC: Periodic, Box:  [  48,  48,  48 ], MPI tasks:  1}, 
+ GPU acceleration:  No, Rho Commun: ALLRED, Total electronic charge:  11.999999267066, 
+ Poisson Solver: {BC: Periodic, Box:  [  48,  48,  48 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  2.58842246387E+01, Epot: -3.40009627344E+01, Enl:  2.63593900719E+00, 
               EH:  2.02930930728E+01,  EXC: -7.03180785282E+00, EvXC: -9.12864729385E+00}, 
- iter:  1, EKS: -3.12160045872817946E+01, gnrm:  2.80E-01, D:  8.49E-01, 
+ iter:  1, EKS: -3.12160045872817129E+01, gnrm:  2.80E-01, D:  8.49E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
-       -  &FINAL  { #-------------------------------------------------------------- iter: 2
- GPU acceleration:  No, Total electronic charge:  11.999999453999, 
- Poisson Solver: {BC: Periodic, Box:  [  48,  48,  48 ], MPI tasks:  1}, 
+       -  &FINAL001  { #----------------------------------------------------------- iter: 2
+ GPU acceleration:  No, Rho Commun: ALLRED, Total electronic charge:  11.999999453999, 
+ Poisson Solver: {BC: Periodic, Box:  [  48,  48,  48 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, 
- iter:  2, EKS: -3.13343723620764720E+01, gnrm:  2.80E-01, D: -1.18E-01,  #FINAL
+ iter:  2, EKS: -3.13343723620771151E+01, gnrm:  2.80E-01, D: -1.18E-01,  #FINAL
  Energies: {Ekin:  2.58311951051E+01, Epot: -3.36861624128E+01, Enl:  2.79018687907E+00, 
-              EH:  2.08466310406E+01,  EXC: -7.09509222749E+00, EvXC: -9.21108320164E+00, 
+              EH:  2.08466310406E+01,  EXC: -7.09509222749E+00, EvXC: -9.21108320163E+00, 
             Eion: -7.53895186698E+00}, 
  SCF criterion:  0}
- No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle 1
         #-------------------------------------------- Eigenvalues and New Occupation Numbers
        Total magnetization             :  4.000000
        Orbitals: [
@@ -318,144 +340,93 @@
  {e: -1.410341E-01, f:  1.000, s:  1, k:  2},  # 00007
  {e:  2.994430E-01, f:  1.000, s:  1, k:  2}] # 00008
  Write wavefunctions to file: data-binary/wavefunction.*
- filename: data-binary/wavefunction-k001-UR.bin.b0001                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 1th wavefunction written
- filename: data-binary/wavefunction-k001-UI.bin.b0001                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 1th wavefunction written
- filename: data-binary/wavefunction-k001-UR.bin.b0002                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 2th wavefunction written
- filename: data-binary/wavefunction-k001-UI.bin.b0002                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 2th wavefunction written
- filename: data-binary/wavefunction-k001-UR.bin.b0003                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 3th wavefunction written
- filename: data-binary/wavefunction-k001-UI.bin.b0003                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 3th wavefunction written
- filename: data-binary/wavefunction-k001-UR.bin.b0004                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 4th wavefunction written
- filename: data-binary/wavefunction-k001-UI.bin.b0004                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 4th wavefunction written
- filename: data-binary/wavefunction-k001-UR.bin.b0005                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 5th wavefunction written
- filename: data-binary/wavefunction-k001-UI.bin.b0005                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 5th wavefunction written
- filename: data-binary/wavefunction-k001-UR.bin.b0006                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 6th wavefunction written
- filename: data-binary/wavefunction-k001-UI.bin.b0006                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 6th wavefunction written
- filename: data-binary/wavefunction-k001-UR.bin.b0007                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
  7th wavefunction written
- filename: data-binary/wavefunction-k001-UI.bin.b0007                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+ 1th wavefunction written
  7th wavefunction written
- filename: data-binary/wavefunction-k001-UR.bin.b0008                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+ 1th wavefunction written
+ 7th wavefunction written
+ 7th wavefunction written
+ 1th wavefunction written
+ 1th wavefunction written
  8th wavefunction written
- filename: data-binary/wavefunction-k001-UI.bin.b0008                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+ 2th wavefunction written
  8th wavefunction written
- filename: data-binary/wavefunction-k001-DR.bin.b0001                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 1th wavefunction written
- filename: data-binary/wavefunction-k001-DI.bin.b0001                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 1th wavefunction written
- filename: data-binary/wavefunction-k001-DR.bin.b0002                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
  2th wavefunction written
- filename: data-binary/wavefunction-k001-DI.bin.b0002                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+ 8th wavefunction written
+ 8th wavefunction written
  2th wavefunction written
- filename: data-binary/wavefunction-k001-DR.bin.b0003                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 3th wavefunction written
- filename: data-binary/wavefunction-k001-DI.bin.b0003                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 3th wavefunction written
- filename: data-binary/wavefunction-k001-DR.bin.b0004                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 4th wavefunction written
- filename: data-binary/wavefunction-k001-DI.bin.b0004                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 4th wavefunction written
- filename: data-binary/wavefunction-k002-UR.bin.b0001                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+ 2th wavefunction written
  1th wavefunction written
- filename: data-binary/wavefunction-k002-UI.bin.b0001                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
  1th wavefunction written
- filename: data-binary/wavefunction-k002-UR.bin.b0002                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 2th wavefunction written
- filename: data-binary/wavefunction-k002-UI.bin.b0002                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 2th wavefunction written
- filename: data-binary/wavefunction-k002-UR.bin.b0003                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
  3th wavefunction written
- filename: data-binary/wavefunction-k002-UI.bin.b0003                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
  3th wavefunction written
- filename: data-binary/wavefunction-k002-UR.bin.b0004                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+ 1th wavefunction written
+ 3th wavefunction written
+ 1th wavefunction written
+ 3th wavefunction written
+ 2th wavefunction written
+ 2th wavefunction written
  4th wavefunction written
- filename: data-binary/wavefunction-k002-UI.bin.b0004                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
  4th wavefunction written
- filename: data-binary/wavefunction-k002-UR.bin.b0005                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+ 2th wavefunction written
+ 2th wavefunction written
+ 4th wavefunction written
+ 4th wavefunction written
+ 3th wavefunction written
+ 3th wavefunction written
  5th wavefunction written
- filename: data-binary/wavefunction-k002-UI.bin.b0005                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
  5th wavefunction written
- filename: data-binary/wavefunction-k002-UR.bin.b0006                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 6th wavefunction written
- filename: data-binary/wavefunction-k002-UI.bin.b0006                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 6th wavefunction written
- filename: data-binary/wavefunction-k002-UR.bin.b0007                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 7th wavefunction written
- filename: data-binary/wavefunction-k002-UI.bin.b0007                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 7th wavefunction written
- filename: data-binary/wavefunction-k002-UR.bin.b0008                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 8th wavefunction written
- filename: data-binary/wavefunction-k002-UI.bin.b0008                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 8th wavefunction written
- filename: data-binary/wavefunction-k002-DR.bin.b0001                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 1th wavefunction written
- filename: data-binary/wavefunction-k002-DI.bin.b0001                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 1th wavefunction written
- filename: data-binary/wavefunction-k002-DR.bin.b0002                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 2th wavefunction written
- filename: data-binary/wavefunction-k002-DI.bin.b0002                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
- 2th wavefunction written
- filename: data-binary/wavefunction-k002-DR.bin.b0003                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
  3th wavefunction written
- filename: data-binary/wavefunction-k002-DI.bin.b0003                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+ 5th wavefunction written
+ 5th wavefunction written
  3th wavefunction written
- filename: data-binary/wavefunction-k002-DR.bin.b0004                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
  4th wavefunction written
- filename: data-binary/wavefunction-k002-DI.bin.b0004                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+ 6th wavefunction written
+ 6th wavefunction written
  4th wavefunction written
-- WRITE WAVES TIME   0  1.700E-01  1.738E-01
+ 4th wavefunction written
+- WRITE WAVES TIME   1  4.619E-01  4.616E-01
+ 6th wavefunction written
+- WRITE WAVES TIME   0  4.629E-01  4.641E-01
  ----------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
+ 4th wavefunction written
+- WRITE WAVES TIME   3  4.689E-01  4.700E-01
+ 6th wavefunction written
+- WRITE WAVES TIME   2  4.699E-01  4.709E-01
+ Rho Commun                            : RED_SCT
  Total electronic charge               :  11.999999453999
  Poisson Solver:
    BC                                  : Periodic
    Box                                 :  [  48,  48,  48 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  4
  Electric Dipole Moment (AU):
    P vector                            :  [ -6.1630E+01, -6.0512E+01, -3.6769E+01 ]
    norm(P)                             :  9.387111E+01
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.5665E+02, -1.5381E+02, -9.3457E+01 ]
    norm(P)                             :  2.385965E+02
- Calculate local forces...done. Leaked force:  0.00000E+00
  Non Local forces calculated           :  Yes
- average noise along x direction:  -2.81392213E-04
- average noise along y direction:  -1.19218169E-04
- average noise along z direction:   4.76577028E-03
- total average noise            :   4.77555870E-03
- clean forces norm (Ha/Bohr): maxval=  4.846821384229E-01  fnrm2=  4.633456084400E-01
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [ -4.739406561775E-04, -4.863593143215E-07, -3.324444376061E-09 ]
-   -  [ -4.863593143215E-07, -2.109450790446E-04, -1.555582885469E-09 ]
-   -  [ -3.324444376061E-09, -1.555582885469E-09, -3.457292927748E-03 ]
+   -  [ -4.739406561775E-04, -4.863593150873E-07, -3.324444371278E-09 ]
+   -  [ -4.863593150873E-07, -2.109450790453E-04, -1.555582887716E-09 ]
+   -  [ -3.324444371278E-09, -1.555582887716E-09, -3.457292927750E-03 ]
    Pressure:
-     Ha/Bohr^3                         : -1.38072622099004E-03
+     Ha/Bohr^3                         : -1.38072622099083E-03
      GPa                               : -40.6224
-     PV (Ha)                           : -0.84906651780215
+     PV (Ha)                           : -0.84906651780264
  Timings for root process:
-   CPU time (s)                        :  97.01
-   Elapsed time (s)                    :  97.45
-  WARNING: Self-consistent cycle did not meet convergence criteria
+   CPU time (s)                        :  7.62
+   Elapsed time (s)                    :  7.62
  Final values of the Forces for each atom
      1      O -1.66399E-04 -7.10696E-05 -4.77942E-01
      2      O -2.31550E-04 -9.75304E-05  4.84682E-01
  Memory Consumption Report:
-   Tot. No. of Allocations  : 860
-   Tot. No. of Deallocations: 860
+   Tot. No. of Allocations  : 537
+   Tot. No. of Deallocations: 537
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 66
+      Peak Value (MB): 56
       for the array: wz
       in the routine: gaussians_to_wavelets_orb

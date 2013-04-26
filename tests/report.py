@@ -58,7 +58,7 @@ Exit = 0
 #Total time for the tests
 totime=0
 
-print "Final report ('passed' means all significant floats are correct):"
+print "Final report for writings in stdout ('passed' means all significant floats are correct):"
 for file in files:
     dir = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
@@ -69,6 +69,12 @@ for file in files:
         discrepancy = re_discrepancy.findall(line)
     except:
         discrepancy = False
+    if not discrepancy:
+        try:
+            should_compare=open(file).read()
+            empty_file=("No output as reference" in should_compare)
+        except:
+            empty_file=False
     if discrepancy:
         #If nan gives nan (not a number and all comparisons are false)
         diff = float(discrepancy[0][0])
@@ -99,20 +105,24 @@ for file in files:
         time = re_time.findall(line)
         if time:
             totime += float(time[0])
-            time = "%10ss" % time[0]
+            time = "%8ss" % time[0]
         else:
             time = ""
-        print "%s%-27s %-32s %s%s%s" % (start,dir,fic,state,time,end)
+        name = "%s%-27s %-38s" % (start,dir,fic)
+        print "%-74s%s%s%s" % (name.strip(),state,time,end)
     else:
-        start = start_fail
-        state = "can not parse file.    failed"
-        print "%s%-27s %-32s %s%s" % (start,dir,fic,state,end)
+        if not empty_file:
+            start = start_fail
+            state = "can not parse file.    failed"
+            name = "%s%-27s %-38s" % (start,dir,fic)
+            print "%-74s%s%s" % (name.strip(),state,end)
 
-print "Final report for yaml outputs: if succeeded %45s" % "max diff (significant epsilon)"
+print "Final report for yaml outputs: if succeeded %53s" % "max diff (significant epsilon)"
 for file in yaml_files:
-    dir = os.path.normpath(os.path.dirname(file))
+    dirc = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
-    documents=[a for a in yaml.load_all(open(file, "r"), Loader = yaml.CLoader)]
+    dirfic = ("%-27s %-38s" % (dirc,fic)).strip()
+    documents=[a for a in yaml.load_all(open(file, "r").read(), Loader = yaml.CLoader)]
     #find whether all the tests have passed (look at last part)
     try:
         discrepancy=documents[-1]["Test succeeded"]
@@ -120,9 +130,10 @@ for file in yaml_files:
         if not discrepancy:
             Exit = 1
             start = start_fail
-            state = "Failed: %s %7.1e > %7.1e " % \
-                    (documents[-1]["Failure reason"],documents[-1]["Maximum discrepancy"], \
-                     documents[-1]["Maximum tolerance applied"])
+            state = "Failed:    %7.1e > %7.1e (%s)" % \
+                    (documents[-1]["Maximum discrepancy"], \
+                     documents[-1]["Maximum tolerance applied"], \
+                     documents[-1]["Failure reason"])
         else:
             start = start_success
             state = "Succeeded: %7.1e (%7.1e) " % \
@@ -131,12 +142,11 @@ for file in yaml_files:
         #Test if time is present
         time = documents[-1]["Seconds needed for the test"]
         totime += time
-        time = "%8ss" % time
-        print "%s%-27s %-33s %s%s%s" % (start,dir,fic,state,time,end)
+        print "%s%-66s %s%8.2fs%s" % (start,dirfic,state,time,end)
     except:
         start = start_fail
-        state = "can not parse file.    failed"
-        print "%s%-27s %-33s %s%s" % (start,dir,fic,state,end)
+        state = "Failed: Can not parse file!"
+        print "%s%-66s %s%s" % (start,dirfic,state,end)
 
 
 #Hours, minutes and seconds
@@ -144,8 +154,11 @@ totimeh = int(totime/3600)
 totimem = int(totime-totimeh*3600)/60
 totimes = totime-totimem*60-totimeh*3600
 p_time  = "%sh %sm %ss" % (totimeh,totimem,totimes)
-print 100*"-"
-print 58*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
-
+print 105*"-"
+print 63*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
+if Exit==0:
+    print "Test set succeeded!"
+else:
+    print "Test set failed, check the above report!"
 #Error code
 sys.exit(Exit)

@@ -167,12 +167,13 @@ nullify(Qvect,dumQvect)
   END SUBROUTINE EP_mat_mult
 
 
-  !> Allocate the wavefunctions in the transposed form, for lancsoz
+  !> Allocate the wavefunctions in the transposed form, for lanczos
   subroutine EP_free(iproc)
+     use yaml_output
      implicit none
      integer, intent(in) :: iproc
 
-     if (iproc == 0)  write(*,*) "DEALLOCATING"
+     if (iproc == 0)  call yaml_comment("DEALLOCATING")
 
      i_all=-product(shape(Qvect))*kind(Qvect)
      deallocate(Qvect,stat=i_stat)
@@ -678,7 +679,7 @@ nullify(Qvect,dumQvect)
      ! in FFT_back, but then the code would be slower.
 
      !$omp parallel default (private) shared(z1,z3,kern_k1,kern_k2,kern_k3)&
-     !$omp & shared(n1b,n3f,inzee,n1,n2,n3)
+     !$omp & shared(n1b,n3f,inzee,n1,n2,n3,ene,gamma)
 
      ! i3=1: then z1 is contained in z3 
      !$omp do 
@@ -1345,6 +1346,7 @@ nullify(Qvect,dumQvect)
   subroutine gaussians_to_wavelets_nonorm(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wfn_gau,psi)
      use module_base
      use module_types
+     use gaussians
      implicit none
      character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc
@@ -1451,7 +1453,7 @@ nullify(Qvect,dumQvect)
 
      if (iproc==0)    call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
-     if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
+     !if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
      !renormalize the orbitals
      !calculate the deviation from 1 of the orbital norm
      normdev=0.0_dp

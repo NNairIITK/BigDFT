@@ -8,7 +8,6 @@ subroutine nullifyInputLinparameters(lin)
   type(linearInputParameters),intent(inout):: lin
 
   nullify(lin%locrad)
-  nullify(lin%potentialPrefac)
   nullify(lin%potentialPrefac_lowaccuracy)
   nullify(lin%potentialPrefac_highaccuracy)
   nullify(lin%norbsPerType)
@@ -26,54 +25,49 @@ subroutine nullify_p2pComms(p2pcomm)
   type(p2pComms),intent(inout):: p2pcomm
 
   nullify(p2pcomm%noverlaps)
-  nullify(p2pcomm%overlaps)
-  nullify(p2pcomm%sendBuf)
   nullify(p2pcomm%recvBuf)
   nullify(p2pcomm%comarr)
-  nullify(p2pcomm%ise3)
-  nullify(p2pcomm%requests)
+  nullify(p2pcomm%ise)
+  nullify(p2pcomm%mpi_datatypes)
 
 end subroutine nullify_p2pComms
 
 
 
-subroutine nullify_overlapParameters(op)
+subroutine nullify_foe(foe_obj)
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => nullify_overlapParameters
+  use module_interfaces, exceptThisOne => nullify_foe
   implicit none
 
   ! Calling argument
-  type(overlapParameters),intent(out):: op
+  type(foe_data),intent(out):: foe_obj
 
-  nullify(op%noverlaps)
-  nullify(op%overlaps)
-  nullify(op%indexInRecvBuf)
-  nullify(op%indexInSendBuf)
-  nullify(op%wfd_overlap)
+  nullify(foe_obj%kernel_nseg)
+  nullify(foe_obj%kernel_segkeyg)
 
-end subroutine nullify_overlapParameters
+end subroutine nullify_foe
 
 
-
-
-subroutine nullify_matrixDescriptors(mad)
+subroutine nullify_sparsematrix(sparsemat)
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => nullify_matrixDescriptors
+  use module_interfaces, exceptThisOne => nullify_sparseMatrix
   implicit none
 
   ! Calling argument
-  type(matrixDescriptors),intent(out):: mad
+  type(sparseMatrix),intent(out):: sparsemat
 
-  nullify(mad%keyv)
-  !!nullify(mad%keyvmatmul)
-  nullify(mad%nsegline)
-  nullify(mad%keyg)
-  !!nullify(mad%keygmatmul)
-  nullify(mad%keygline)
+  nullify(sparsemat%keyv)
+  nullify(sparsemat%nsegline)
+  nullify(sparsemat%keyg)
+  nullify(sparsemat%istsegline)
+  nullify(sparsemat%matrix)
+  nullify(sparsemat%matrix_compr)
+  nullify(sparsemat%matrixindex_in_compressed)
+  nullify(sparsemat%orb_from_index)
 
-end subroutine nullify_matrixDescriptors
+end subroutine nullify_sparsematrix
 
 
 
@@ -88,7 +82,6 @@ subroutine nullify_local_zone_descriptors(lzd)
  
   call nullify_locreg_descriptors(lzd%glr)
   nullify(lzd%llr)
-  nullify(lzd%doHamAppl)
  
 end subroutine nullify_local_zone_descriptors
 
@@ -263,6 +256,8 @@ subroutine nullify_collective_comms(collcom)
   nullify(collcom%irecvbuf_c)
   nullify(collcom%norb_per_gridpoint_c)
   nullify(collcom%indexrecvorbital_c)
+  nullify(collcom%isptsp_c)
+  nullify(collcom%psit_c)
   nullify(collcom%nsendcounts_f)
   nullify(collcom%nsenddspls_f)
   nullify(collcom%nrecvcounts_f)
@@ -273,5 +268,11 @@ subroutine nullify_collective_comms(collcom)
   nullify(collcom%irecvbuf_f)
   nullify(collcom%norb_per_gridpoint_f)
   nullify(collcom%indexrecvorbital_f)
+  nullify(collcom%isptsp_f)
+  nullify(collcom%psit_f)
+  nullify(collcom%nsendcounts_repartitionrho)
+  nullify(collcom%nrecvcounts_repartitionrho)
+  nullify(collcom%nsenddspls_repartitionrho)
+  nullify(collcom%nrecvdspls_repartitionrho)
 
 end subroutine nullify_collective_comms

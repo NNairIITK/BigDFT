@@ -1,17 +1,23 @@
-2  1                   iterations with low accuracy, high accuracy ; factor for reducing the potential prefactor
-8  20                  iterations to optimize the basis functions for low accuracy and high accuracy
-4.d-5 4.d-5            convergence criterion for low and high accuracy
-2.d-5   2   4          gnrm multiplier, nsatur inner loop, nsatur outer loop
-8  8  1.d0  1.d-1      DIIS history for low and high accuracy, step size for DIIS, step size for SD
-5                      number of iterations in the preconditioner
--8   -8  0             block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
-1  1                   max number of process uses for pdsyev/pdsygv, pdgemm
-0  1                   0-> exact Loewdin, 1-> taylor expansion ; correction for non-orthogonality (0) or no correction (1)
-101                    mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing)
-0  12  .5d0  1.d-11    low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, mixing parameter, convergence criterion
-0  12  .5d0  1.d-11    high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, mixing parameter, convergence criterion
-1.d-13                 convergence criterion for the kernel optimization
-1.d-11                 convergence criterion to fix the TMBs
-0                      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
-Si 4 1.0d-3 1.d-4 18.0 18.0     number of basis functions per atom, prefactor for confinement potential, localization radius
-H  1 1.0d-3 1.d-4 18.0 18.0     number of basis functions per atom, prefactor for confinement potential, localization radius
+2                                number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
+2        1                       outer loop iterations (low, high)
+8        20                      basis iterations (low, high)
+12       12 	                 kernel iterations (low, high)
+8        8                       DIIS history for basis (low, high)
+0        0                       DIIS history for kernel (low, high)
+.5d0     .5d0                    density mixing parameter (low, high)
+1.d-11   1.d-11                  outer loop convergence (low, high)
+4.d-5    4.d-5                   basis convergence (low, high)
+1.d0     5.d-2                   multiplier to (exit one TMB optimization, fix TMB completely). Only used for hybrid mode
+0.5d0                            factor to reduce the confinement. Only used for hybrid mode.
+1.d-13   1.d-13                  kernel convergence (low, high)
+1.d-11                           convergence criterion on density to fix TMBS
+101                              mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (foe)
+1.d0     1.d-1                   initial step size for basis optimization (DIIS, SD)
+-0.5d0   0.5d0                   lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small
+5                                number of iterations in the preconditioner
+0  1                             0-> exact Loewdin, 1-> taylor expansion ; in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
+5.d-2                            fscale: length scale over which complementary error function decays from 1 to 0
+0  T  T                          output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; pulay correction
+Si 4 1.0d-3 1.0d-3 1.d-4 18.0 18.0 20.d0    number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+H  1 1.0d-3 1.0d-3 1.d-4 18.0 18.0 20.d0    number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+

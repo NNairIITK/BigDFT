@@ -102,6 +102,99 @@ subroutine syn_rot_per(n,ndat,x,y)
 
   enddo
 
+  !first changement
+  do i=0,n-1
+     do l=-4,3
+        so=so+ch(2*l+1)*x(i-1-l,j)+cg(2*l+1)*x(n+i-1-l  ,j)
+        se=se+ch(2*(l+1))*x(i-1-l,j)+cg(2*(l+1))*x(n+i-1-l,j)
+     end do
+     y(j,2*(i-1)+1)=so
+     y(j,2*i  )=se
+  end do
+ 
+
+  !second changement
+  i=0
+     do l=-4,3
+        so=so+ch(2*l+1)*x(i-1-l,j)+cg(2*l+1)*x(n+i-1-l  ,j)
+        se=se+ch(2*(l+1))*x(i-1-l,j)+cg(2*(l+1))*x(n+i-1-l,j)
+     end do
+  y(j,2*n-1)=so
+  y(j,0  )=se
+
+  do i=1,n-1
+     do l=-4,3
+        so=so+ch(2*l+1)*x(i-1-l,j)+cg(2*l+1)*x(n+i-1-l  ,j)
+        se=se+ch(2*(l+1))*x(i-1-l,j)+cg(2*(l+1))*x(n+i-1-l,j)
+     end do
+     y(j,2*(i-1)+1)=so
+     y(j,2*i  )=se
+  end do
+
+  !third changement
+  i=0
+     do l=-4,3
+        so=so+ch(2*l+1)*x(i-1-l,j)+cg(2*l+1)*x(n+i-1-l  ,j)
+        se=se+ch(2*(l+1))*x(i-1-l,j)+cg(2*(l+1))*x(n+i-1-l,j)
+     end do
+  y(j,2*n-1)=so
+  y(j,0  )=se
+
+  do i=0,n-2
+     do l=-4,3
+        so=so+ch(2*l+1)*x(i-l,j)+cg(2*l+1)*x(n+i-l  ,j)
+        se=se+ch(2*(l+1))*x(i-l,j)+cg(2*(l+1))*x(n+i-l,j)
+     end do
+     y(j,2*i+1)=so
+     y(j,2*i+2)=se
+  end do
+
+  !filter order
+  do l=-3,4
+     so=so+ch(-2*l+1)*x(i-1+l,j)+cg(-2*l+1)*x(n+i-1+l  ,j)
+     se=se+ch(2*(-l+1))*x(i-1+l,j)+cg(2*(-l+1))*x(n+i-1+l,j)
+  end do
+
+
+  !fourth changement
+  i=0
+     do l=-3,4
+        so=so+ch(-2*l+1)*x(i-1+l,j)+cg(-2*l+1)*x(n+i-1+l  ,j)
+        se=se+ch(2*(-l+1))*x(i-1+l,j)+cg(2*(-l+1))*x(n+i-1+l,j)
+     end do
+  y(j,2*n-1)=so
+  y(j,0  )=se
+
+  do i=0,n-2
+     do l=-3,4
+        so=so+ch(-2*l+1)*x(i+l,j)+cg(-2*l+1)*x(n+i+l  ,j)
+        se=se+ch(2*(-l+1))*x(i+l,j)+cg(2*(-l+1))*x(n+i+l,j)
+     end do
+     y(j,2*i+1)=so
+     y(j,2*i+2)=se
+  end do
+
+  !fifth changement
+  i=0
+     do l=-3,4
+        k=modulo(i-1+l,n)
+        so=so+ch(-2*l+1)*x(k,j)+cg(-2*l+1)*x(n+k  ,j)
+        se=se+ch(2*(-l+1))*x(k,j)+cg(2*(-l+1))*x(n+k,j)
+     end do
+  y(j,2*n-1)=so
+  y(j,0  )=se
+
+  do i=0,n-2
+     do l=-3,4
+        k=modulo(i+l,n)
+        so=so+ch(-2*l+1)*x(k,j)+cg(-2*l+1)*x(n+k ,j)
+        se=se+ch(2*(-l+1))*x(k,j)+cg(2*(-l+1))*x(n+k,j)
+     end do
+     y(j,2*i+1)=so
+     y(j,2*i+2)=se
+  end do
+
+
 END SUBROUTINE syn_rot_per
 
 subroutine convrot_n_per(n1,ndat,x,y)

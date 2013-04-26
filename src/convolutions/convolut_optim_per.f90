@@ -304,6 +304,216 @@ subroutine syn_rot_per(n,ndat,x,y)
 END SUBROUTINE syn_rot_per
 
 
+subroutine syn_rot_per_temp(n,ndat,x,y)
+  use module_base
+  implicit none
+  integer, intent(in) :: n,ndat
+  real(wp), dimension(0:2*n-1,ndat), intent(in) :: x
+  real(wp), dimension(ndat,0:2*n-1), intent(out) :: y
+  !local variables
+  integer :: i,j,k,l
+  real(wp) :: so,se
+  !       Daubechy S16
+  real(wp), dimension(-6:9), parameter :: ch=(/&
+                                    0.0018899503327676891843_wp, &
+       -0.00030292051472413308126_wp,-0.014952258337062199118_wp, &
+       0.0038087520138944894631_wp, 0.049137179673730286787_wp, &
+       -0.027219029917103486322_wp, -0.051945838107881800736_wp, &
+       0.36444189483617893676_wp, 0.77718575169962802862_wp, &
+       0.48135965125905339159_wp, -0.061273359067811077843_wp, &
+       -0.14329423835127266284_wp, 0.0076074873249766081919_wp, &
+       0.031695087811525991431_wp, -0.00054213233180001068935_wp, &
+       -0.0033824159510050025955_wp/)
+  real(wp), dimension(-6:9), parameter :: cg=(/&
+                                    -0.0033824159510050025955_wp, & 
+       0.00054213233180001068935_wp, 0.031695087811525991431_wp, & 
+       -0.0076074873249766081919_wp, -0.14329423835127266284_wp, & 
+       0.061273359067811077843_wp, 0.48135965125905339159_wp,  & 
+       -0.77718575169962802862_wp,0.36444189483617893676_wp, &
+       0.051945838107881800736_wp,-0.027219029917103486322_wp, &
+       -0.049137179673730286787_wp,0.0038087520138944894631_wp, &
+       0.014952258337062199118_wp,-0.00030292051472413308126_wp, &
+       -0.0018899503327676891843_wp  /)
+  
+  do j=1,ndat
+
+!!$     so=0.0_wp
+!!$     se=0.0_wp
+!!$     do l=-3,4
+!!$        k=modulo(n-1+l,n)
+!!$       ! se=se+ch(2*l)*x(k,j)+cg(2*l)*x(n+k,j)
+!!$       ! so=so+ch(2*l+1)*x(k,j)+cg(2*l+1)*x(n+k,j)
+!!$
+!!$        se=se+ch(2*l)*x(k,j)+ch(l*-2+3)*x(n+k,j)
+!!$        so=so+ch(2*l+1)*x(k,j)-ch(-2*l+2)*x(n+k,j)
+!!$
+!!$     end do
+!!$     y(j,2*n-1)=so
+!!$     y(j,0)=se
+!!$
+!!$     do i=0,n-2
+!!$        so=0.0_wp
+!!$        se=0.0_wp
+!!$        do l=-3,4
+!!$           k=modulo(i+l,n)
+!!$           !se=se+ch(2*l)*x(k,j)+cg(2*l)*x(n+k,j)
+!!$           !so=so+ch(2*l+1)*x(k,j)+cg(2*l+1)*x(n+k,j)
+!!$
+!!$        se=se+ch(2*l)*x(k,j)+ch(-2*l+3)*x(n+k,j)
+!!$        so=so+ch(2*l+1)*x(k,j)-ch(-2*l+2)*x(n+k,j)
+!!$
+!!$        end do
+!!$        y(j,2*i+1)=so
+!!$        y(j,2*i+2)=se
+!!$     end do
+
+     so=0.0_wp
+     se=0.0_wp
+     do l=-3,4
+        k=modulo(n-1+l,n)
+        se=se+ch(2*l)*x(k,j)+ch(-2*l+3)*x(n+k,j)
+        so=so+ch(2*l+1)*x(k,j)-ch(-2*l+2)*x(n+k,j)
+
+     end do
+     y(j,2*n-1)=so
+     y(j,0)=se
+
+     do i=0,2
+        so=0.0_wp
+        se=0.0_wp
+        do l=-3,4
+           k=modulo(i+l,n)
+           se=se+ch(2*l)*x(k,j)+ch(-2*l+3)*x(n+k,j)
+           so=so+ch(2*l+1)*x(k,j)-ch(-2*l+2)*x(n+k,j)
+
+        end do
+        y(j,2*i+1)=so
+        y(j,2*i+2)=se
+     end do
+     do i=3,n-5
+        so=0.0_wp
+        se=0.0_wp
+        do l=-3,4
+           k=i+l
+           se=se+ch(2*l)*x(k,j)+ch(-2*l+3)*x(n+k,j)
+           so=so+ch(2*l+1)*x(k,j)-ch(-2*l+2)*x(n+k,j)
+        end do
+        y(j,2*i+1)=so
+        y(j,2*i+2)=se
+     end do
+     do i=n-5,n-2
+        so=0.0_wp
+        se=0.0_wp
+        do l=-3,4
+           k=modulo(i+l,n)
+           se=se+ch(2*l)*x(k,j)+ch(-2*l+3)*x(n+k,j)
+           so=so+ch(2*l+1)*x(k,j)-ch(-2*l+2)*x(n+k,j)
+
+        end do
+        y(j,2*i+1)=so
+        y(j,2*i+2)=se
+     end do
+  end do
+
+END SUBROUTINE syn_rot_per_temp
+
+subroutine syn_rot_per_simple(n,ndat,x,y)
+  use module_base
+  implicit none
+  integer, intent(in) :: n,ndat
+  real(wp), dimension(0:2*n+1,ndat), intent(in) :: x
+  real(wp), dimension(ndat,0:2*n+1), intent(out) :: y
+  !local variables
+  integer :: i,j,k,l
+  real(wp) :: so,se
+  real(wp), dimension(-8:9) :: ch,cg
+  !       Daubechy S16
+  data ch  /  0.e0_wp , -0.0033824159510050025955_wp, & 
+       -0.00054213233180001068935_wp, 0.031695087811525991431_wp, & 
+       0.0076074873249766081919_wp, -0.14329423835127266284_wp, & 
+       -0.061273359067811077843_wp, 0.48135965125905339159_wp,  & 
+       0.77718575169962802862_wp,0.36444189483617893676_wp, &
+       -0.051945838107881800736_wp,-0.027219029917103486322_wp, &
+       0.049137179673730286787_wp,0.0038087520138944894631_wp, &
+       -0.014952258337062199118_wp,-0.00030292051472413308126_wp, &
+       0.0018899503327676891843_wp , 0.e0_wp /
+  data cg  / 0.e0_wp , -0.0018899503327676891843_wp, &
+       -0.00030292051472413308126_wp, 0.014952258337062199118_wp, &
+       0.0038087520138944894631_wp, -0.049137179673730286787_wp, &
+       -0.027219029917103486322_wp, 0.051945838107881800736_wp, &
+       0.36444189483617893676_wp, -0.77718575169962802862_wp, &
+       0.48135965125905339159_wp, 0.061273359067811077843_wp, &
+       -0.14329423835127266284_wp, -0.0076074873249766081919_wp, &
+       0.031695087811525991431_wp, 0.00054213233180001068935_wp, &
+       -0.0033824159510050025955_wp , 0.e0_wp /
+
+  do j=1,ndat
+
+     do i=0,n
+        se=0.e0_wp
+        so=0.e0_wp
+        do l=-4,4
+           k=modulo(i-l,n+1)
+           se=se+ch(2*l  )*x(  k,j)+cg(2*l  )*x(n+1+k  ,j)
+           so=so+ch(2*l+1)*x(  k,j)+cg(2*l+1)*x(n+1+k  ,j)
+        enddo
+        y(j,2*i  )=se
+        y(j,2*i+1)=so
+     enddo
+
+  enddo
+
+END SUBROUTINE syn_rot_per_simple
+
+subroutine ana_rot_per_simple(n,ndat,x,y)
+  use module_base
+  implicit none
+  integer, intent(in) :: n,ndat
+  real(wp), dimension(0:2*n+1,ndat), intent(in) :: x
+  real(wp), dimension(ndat,0:2*n+1), intent(out) :: y
+  !local variables
+  integer :: i,j,k,l
+  real(wp) :: ci,di
+  real(wp), dimension(-7:8) :: ch,cg
+  !       Daubechy S16
+  data ch  /  -0.0033824159510050025955_wp, & 
+       -0.00054213233180001068935_wp, 0.031695087811525991431_wp, & 
+       0.0076074873249766081919_wp, -0.14329423835127266284_wp, & 
+       -0.061273359067811077843_wp, 0.48135965125905339159_wp,  & 
+       0.77718575169962802862_wp,0.36444189483617893676_wp, &
+       -0.051945838107881800736_wp,-0.027219029917103486322_wp, &
+       0.049137179673730286787_wp,0.0038087520138944894631_wp, &
+       -0.014952258337062199118_wp,-0.00030292051472413308126_wp, &
+       0.0018899503327676891843_wp /
+  data cg  / -0.0018899503327676891843_wp, &
+       -0.00030292051472413308126_wp, 0.014952258337062199118_wp, &
+       0.0038087520138944894631_wp, -0.049137179673730286787_wp, &
+       -0.027219029917103486322_wp, 0.051945838107881800736_wp, &
+        0.36444189483617893676_wp, -0.77718575169962802862_wp, &
+       0.48135965125905339159_wp, 0.061273359067811077843_wp, &
+       -0.14329423835127266284_wp, -0.0076074873249766081919_wp, &
+       0.031695087811525991431_wp, 0.00054213233180001068935_wp, &
+       -0.0033824159510050025955_wp  /
+
+  do j=1,ndat
+
+     do i=0,n
+        ci=0.e0_wp
+        di=0.e0_wp
+        do l=-7,8
+           k=modulo(l+2*i,2*n+2)
+            ci=ci+ch(l)*x(k    ,j)
+            di=di+cg(l)*x(k    ,j)
+        enddo
+        y(j,i)=ci
+        y(j,n+1+i)=di
+     enddo
+
+  enddo
+END SUBROUTINE ana_rot_per_simple
+
+
+
 subroutine convrot_n_per(n1,ndat,x,y)
   use module_base
   implicit none
@@ -552,6 +762,129 @@ subroutine convrot_t_per(n1,ndat,x,y)
 !write(*,*) 'elapsed time on comb',(iend_test-istart_test)/(1.d0*count_rate_test)
 
 END SUBROUTINE convrot_t_per
+
+
+subroutine convrot_t_per_test(n1,ndat,x,y)
+  use module_base
+  implicit none
+
+!dee
+!  integer :: iend_test,count_rate_test,count_max_test,istart_test
+
+  integer,parameter::lowfil=-7,lupfil=8
+  !  dimension x(lowfil:n1+lupfil,ndat),y(ndat,0:n1)
+  integer, intent(in) :: n1,ndat
+  real(wp), dimension(0:n1,ndat), intent(in) :: x
+  real(wp), dimension(ndat,0:n1), intent(out) :: y
+  ! the filtered output data structure has shrunk by the filter length
+
+  !          THE MAGIC FILTER FOR DAUBECHIES-16
+  real(wp) :: fil(lowfil:lupfil)
+  DATA fil / &
+       2.72734492911979659657715313017228D-6,&
+       -0.5185986881173432922848639136911487D-4,&
+       0.49443227688689919192282259476750972D-3,&
+       -0.344128144493493857280881509686821861D-2,&
+       0.1337263414854794752733423467013220997D-1,&
+       -0.2103025160930381434955489412839065067D-1,&
+       -0.604895289196983516002834636D-1,&
+       0.9940415697834003993178616713D0,&
+       0.612625895831207982195380597D-1,&
+       0.2373821463724942397566389712597274535D-1,&
+       -0.942047030201080385922711540948195075D-2,&
+       0.174723713672993903449447812749852942D-2,&
+       -0.30158038132690463167163703826169879D-3,&
+       0.8762984476210559564689161894116397D-4,&
+       -0.1290557201342060969516786758559028D-4,&
+       8.4334247333529341094733325815816D-7 /
+
+  integer :: i,j,l,k
+  integer :: mod_arr(lowfil:n1+lupfil)   
+  real(wp) :: fill,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12,tt
+
+  call fill_mod_arr(mod_arr,lowfil,n1+lupfil,n1+1)
+
+!dee
+!call system_clock(istart_test,count_rate_test,count_max_test)
+
+!$omp parallel default (private) shared(x,y,fil,ndat,n1,mod_arr)
+!$omp do 
+  do j=0,ndat/12-1
+
+     do i=0,n1
+
+        tt1=0.e0_wp
+        tt2=0.e0_wp
+        tt3=0.e0_wp
+        tt4=0.e0_wp
+        tt5=0.e0_wp
+        tt6=0.e0_wp
+        tt7=0.e0_wp
+        tt8=0.e0_wp
+        tt9 =0.e0_wp
+        tt10=0.e0_wp
+        tt11=0.e0_wp
+        tt12=0.e0_wp
+
+        do l=lowfil,lupfil
+           k=mod_arr(i+l)   
+           fill=fil(l)
+
+           tt1=tt1+x(  k,j*12+1)*fill
+           tt2=tt2+x(  k,j*12+2)*fill
+           tt3=tt3+x(  k,j*12+3)*fill
+           tt4=tt4+x(  k,j*12+4)*fill
+           tt5=tt5+x(  k,j*12+5)*fill
+           tt6=tt6+x(  k,j*12+6)*fill
+           tt7=tt7+x(  k,j*12+7)*fill
+           tt8=tt8+x(  k,j*12+8)*fill
+
+           tt9 =tt9 +x(  k,j*12+9 )*fill
+           tt10=tt10+x(  k,j*12+10)*fill
+           tt11=tt11+x(  k,j*12+11)*fill
+           tt12=tt12+x(  k,j*12+12)*fill
+        end do
+        y(j*12+1,i)=tt1
+        y(j*12+2,i)=tt2
+        y(j*12+3,i)=tt3
+        y(j*12+4,i)=tt4
+        y(j*12+5,i)=tt5
+        y(j*12+6,i)=tt6
+        y(j*12+7,i)=tt7
+        y(j*12+8,i)=tt8
+
+        y(j*12+9 ,i)=tt9 
+        y(j*12+10,i)=tt10
+        y(j*12+11,i)=tt11
+        y(j*12+12,i)=tt12
+
+     end do
+  end do
+
+  !$omp end do
+
+  !$omp do
+  do j=(ndat/12)*12+1,ndat
+     do i=0,n1
+
+        tt=0.e0_wp
+        do l=lowfil,lupfil
+           k=mod_arr(i+l)   
+           tt=tt+x(  k,j)*fil(l)
+        end do
+        y(j,i)=tt
+
+     end do
+  end do
+  !$omp end do
+
+  !$omp end parallel
+
+!dee
+!call system_clock(iend_test,count_rate_test,count_max_test)
+!write(*,*) 'elapsed time on comb',(iend_test-istart_test)/(1.d0*count_rate_test)
+
+END SUBROUTINE convrot_t_per_test
 
 
 !> Applies the kinetic energy operator onto x to get y. Works for periodic BC

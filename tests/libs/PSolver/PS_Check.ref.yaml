@@ -1,37 +1,42 @@
 ---
+ Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
+ Version Number              : 1.7-dev.21
+ Timestamp of this run       : 2012-11-20 21:04:15.209
+ Root process Hostname       : athelas
  Boundary Conditions         : Isolated
  Multiprocessor run: &MPIrun
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
-     MPI tasks               :  4
+     Total No. of Taskgroups created:  2
+     MPI tasks               :  2
      OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Free
      Memory Requirements per MPI task:
-       Density (MB)          :  0.35
-       Kernel (MB)           :  0.39
+       Density (MB)          :  0.70
+       Kernel (MB)           :  0.74
        Full Grid Arrays (MB) :  1.32
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  94%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  97%
          Kernel:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  77%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  96%
          Complete LB per task: 1/3 LB_density + 2/3 LB_kernel
    Number of Spins           :  1 #---------------------------------------------- nspden: 1
    Poisson Solver:
      BC                      : Free
      Box                     :  [  57,  48,  63 ]
-     MPI tasks               :  4
+     MPI tasks               :  2
    Energies: {Hartree:  3.989422803955E-01}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  3.442615081894E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
-       Original              :  1.128379167096E+00
+       Original              :  1.128379167096E+000
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -43,7 +48,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              :  1.212023455656E-01
-         Original            :  1.212023455656E-01
+         Original            :  1.212023455656E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -59,7 +64,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              :  1.212023455656E-01
-         Original            :  1.212023455656E-01
+         Original            :  1.212023455656E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -70,12 +75,12 @@
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                :  1.212023455656E-01
-       Original              :  1.212023455656E-01
+       Original              :  1.212023455656E-001
      CPLXIMAG:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                :  1.212023455656E-01
-       Original              :  1.212023455656E-01
+       Original              :  1.212023455656E-001
      Energy differences:
        Hartree               :  0.000000000000E+00
    Distributed data:
@@ -83,12 +88,12 @@
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                :  1.212023455656E-01
-       Original              :  1.212023455656E-01
+       Original              :  1.212023455656E-001
      CPLXIMAG:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                :  1.212023455656E-01
-       Original              :  1.212023455656E-01
+       Original              :  1.212023455656E-001
      Energy differences:
        Hartree               :  0.000000000000E+00
  Monoprocess run:
@@ -106,87 +111,88 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             : -5.551115123126E-17
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  28,  24,  31 ]
-         Result              :  1.128379166751E+00
-         Original            :  1.128379167096E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  1.212023455656E-01
+         Original            :  1.212023455656E-001
        Energy differences:
          Hartree             : -5.551115123126E-17
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             : -5.551115123126E-17
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  28,  24,  31 ]
-         Result              :  1.128379166751E+00
-         Original            :  1.128379167096E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  1.212023455656E-01
+         Original            :  1.212023455656E-001
        Energy differences:
          Hartree             : -5.551115123126E-17
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
  Timings for root process:
-   CPU time (s)              :  0.50
-   Elapsed time (s)          :  0.50
+   CPU time (s)              :  1.15
+   Elapsed time (s)          :  1.16
  Memory Consumption Report:
-   Tot. No. of Allocations  : 458
-   Tot. No. of Deallocations: 458
+   Tot. No. of Allocations  : 460
+   Tot. No. of Deallocations: 460
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 22
+      Peak Value (MB): 24
       for the array: cosinarr
       in the routine: G_Poisson_Solver
 ---
+ Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
+ Version Number              : 1.7-dev.21
+ Timestamp of this run       : 2012-11-20 21:04:18.422
+ Root process Hostname       : athelas
  Boundary Conditions         : Isolated
  Exchange and Correlation approximation tested:  1
  Multiprocessor run: &MPIrun
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
-     MPI tasks               :  4
+     Total No. of Taskgroups created:  2
+     MPI tasks               :  2
      OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Free
      Memory Requirements per MPI task:
-       Density (MB)          :  0.35
-       Kernel (MB)           :  0.39
+       Density (MB)          :  0.70
+       Kernel (MB)           :  0.74
        Full Grid Arrays (MB) :  1.32
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  94%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  97%
          Kernel:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  77%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  96%
          Complete LB per task: 1/3 LB_density + 2/3 LB_kernel
    Number of Spins           :  1 #---------------------------------------------- nspden: 1
    Poisson Solver:
      BC                      : Free
      Box                     :  [  57,  48,  63 ]
-     MPI tasks               :  4
+     MPI tasks               :  2
    Energies: {Hartree:  3.989422803955E-01, Exc: -3.175268521803E-01, 
                  EVxc: -4.144744900528E-01}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  3.442615081894E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
-       Original              :  1.128379167096E+00
+       Original              :  1.128379167096E+000
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -197,10 +203,10 @@
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  2.220446049250E-16
-         Max. diff coordinates:  [  49,  20,  7 ]
-         Result              :  1.150365596089E+00
-         Original            :  1.150365596089E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384685435E-01
+         Original            :  6.510384685435E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -215,10 +221,10 @@
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  2.220446049250E-16
-         Max. diff coordinates:  [  49,  20,  7 ]
-         Result              :  1.150365596089E+00
-         Original            :  1.150365596089E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384685435E-01
+         Original            :  6.510384685435E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -227,16 +233,16 @@
    Poisson Solver:
      BC                      : Free
      Box                     :  [  57,  48,  63 ]
-     MPI tasks               :  4
+     MPI tasks               :  2
    Energies: {Hartree:  3.989422803955E-01, Exc: -3.175268521803E-01, 
                  EVxc: -4.144744900527E-01}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  3.442615081894E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
-       Original              :  1.128379167096E+00
+       Original              :  1.128379167096E+000
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -247,10 +253,10 @@
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  2.220446049250E-16
-         Max. diff coordinates:  [  49,  20,  7 ]
-         Result              :  1.150365596089E+00
-         Original            :  1.150365596089E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384685435E-01
+         Original            :  6.510384685435E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -265,10 +271,10 @@
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  2.220446049250E-16
-         Max. diff coordinates:  [  49,  20,  7 ]
-         Result              :  1.150365596089E+00
-         Original            :  1.150365596089E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384685435E-01
+         Original            :  6.510384685435E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -288,44 +294,40 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
-         Difference in Inf. Norm:  1.985233470127E-23
+         Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -1.032507412901E-14
-         EVxc                : -1.759703494031E-14
+         Exc                 :  5.107025913276E-15
+         EVxc                :  9.436895709314E-16
        COMPLETE:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  28,  24,  31 ]
-         Result              :  1.409478876154E+00
-         Original            :  1.409478876498E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384685435E-01
+         Original            :  6.510384685435E-001
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -1.032507412901E-14
-         EVxc                : -1.759703494031E-14
+         Exc                 :  5.107025913276E-15
+         EVxc                :  9.436895709314E-16
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
-         Difference in Inf. Norm:  1.985233470127E-23
+         Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -1.032507412901E-14
-         EVxc                : -1.759703494031E-14
+         Exc                 :  5.107025913276E-15
+         EVxc                :  9.436895709314E-16
        COMPLETE:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  28,  24,  31 ]
-         Result              :  1.409478876154E+00
-         Original            :  1.409478876498E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384685435E-01
+         Original            :  6.510384685435E-001
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -1.032507412901E-14
-         EVxc                : -1.759703494031E-14
+         Exc                 :  5.107025913276E-15
+         EVxc                :  9.436895709314E-16
    Number of Spins           :  2
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
@@ -340,91 +342,92 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
-         Difference in Inf. Norm:  1.985233470127E-23
+         Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -5.184741524999E-14
-         EVxc                : -8.065770273902E-14
+         Exc                 : -3.641531520771E-14
+         EVxc                : -6.211697822778E-14
        COMPLETE:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  28,  24,  31 ]
-         Result              :  1.409478876154E+00
-         Original            :  1.409478876498E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384685435E-01
+         Original            :  6.510384685435E-001
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -5.184741524999E-14
-         EVxc                : -8.065770273902E-14
+         Exc                 : -3.641531520771E-14
+         EVxc                : -6.211697822778E-14
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
-         Difference in Inf. Norm:  1.985233470127E-23
+         Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -5.184741524999E-14
-         EVxc                : -8.065770273902E-14
+         Exc                 : -3.641531520771E-14
+         EVxc                : -6.211697822778E-14
        COMPLETE:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  28,  24,  31 ]
-         Result              :  1.409478876154E+00
-         Original            :  1.409478876498E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384685435E-01
+         Original            :  6.510384685435E-001
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -5.184741524999E-14
-         EVxc                : -8.065770273902E-14
+         Exc                 : -3.641531520771E-14
+         EVxc                : -6.211697822778E-14
  Timings for root process:
-   CPU time (s)              :  0.97
-   Elapsed time (s)          :  0.97
+   CPU time (s)              :  2.08
+   Elapsed time (s)          :  2.39
  Memory Consumption Report:
-   Tot. No. of Allocations  : 749
-   Tot. No. of Deallocations: 749
+   Tot. No. of Allocations  : 751
+   Tot. No. of Deallocations: 751
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 29
+      Peak Value (MB): 30
       for the array: cosinarr
       in the routine: G_Poisson_Solver
 ---
+ Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
+ Version Number              : 1.7-dev.21
+ Timestamp of this run       : 2012-11-20 21:04:21.867
+ Root process Hostname       : athelas
  Boundary Conditions         : Isolated
  Exchange and Correlation approximation tested:  11
  Multiprocessor run: &MPIrun
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
-     MPI tasks               :  4
+     Total No. of Taskgroups created:  2
+     MPI tasks               :  2
      OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Free
      Memory Requirements per MPI task:
-       Density (MB)          :  0.35
-       Kernel (MB)           :  0.39
+       Density (MB)          :  0.70
+       Kernel (MB)           :  0.74
        Full Grid Arrays (MB) :  1.32
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  94%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  97%
          Kernel:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  77%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  96%
          Complete LB per task: 1/3 LB_density + 2/3 LB_kernel
    Number of Spins           :  1 #---------------------------------------------- nspden: 1
    Poisson Solver:
      BC                      : Free
      Box                     :  [  57,  48,  63 ]
-     MPI tasks               :  4
+     MPI tasks               :  2
    Energies: {Hartree:  3.989422803955E-01, Exc: -3.363455254940E-01, 
                  EVxc: -4.318324152021E-01}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  3.442615081894E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
-       Original              :  1.128379167096E+00
+       Original              :  1.128379167096E+000
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -435,10 +438,10 @@
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  2.220446049250E-16
-         Max. diff coordinates:  [  22,  13,  1 ]
-         Result              :  1.026509786197E+00
-         Original            :  1.026509786197E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384672722E-01
+         Original            :  6.510384672722E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -453,10 +456,10 @@
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  2.220446049250E-16
-         Max. diff coordinates:  [  22,  13,  1 ]
-         Result              :  1.026509786197E+00
-         Original            :  1.026509786197E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384672722E-01
+         Original            :  6.510384672722E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -465,16 +468,16 @@
    Poisson Solver:
      BC                      : Free
      Box                     :  [  57,  48,  63 ]
-     MPI tasks               :  4
+     MPI tasks               :  2
    Energies: {Hartree:  3.989422803955E-01, Exc: -3.363455254940E-01, 
                  EVxc: -4.318324152021E-01}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  3.442615081894E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
-       Original              :  1.128379167096E+00
+       Original              :  1.128379167096E+000
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -485,10 +488,10 @@
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  2.220446049250E-16
-         Max. diff coordinates:  [  40,  35,  1 ]
-         Result              :  1.139802812444E+00
-         Original            :  1.139802812444E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384672722E-01
+         Original            :  6.510384672722E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -503,10 +506,10 @@
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  2.220446049250E-16
-         Max. diff coordinates:  [  40,  35,  1 ]
-         Result              :  1.139802812444E+00
-         Original            :  1.139802812444E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384672722E-01
+         Original            :  6.510384672722E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -526,44 +529,40 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  3.330669073875E-16
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -1.604272270583E-14
-         EVxc                : -3.075317778212E-14
+         Exc                 :  4.218847493576E-15
+         EVxc                : -1.371125435412E-14
        COMPLETE:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  28,  24,  31 ]
-         Result              :  1.409030402218E+00
-         Original            :  1.409030402562E+00
+         Difference in Inf. Norm:  4.440892098501E-16
+         Max. diff coordinates:  [  28,  23,  28 ]
+         Result              :  1.356127945928E+00
+         Original            :  1.356127945928E+000
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -1.604272270583E-14
-         EVxc                : -3.075317778212E-14
+         Exc                 :  4.218847493576E-15
+         EVxc                : -1.371125435412E-14
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  3.330669073875E-16
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -1.604272270583E-14
-         EVxc                : -3.075317778212E-14
+         Exc                 :  4.218847493576E-15
+         EVxc                : -1.371125435412E-14
        COMPLETE:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  28,  24,  31 ]
-         Result              :  1.409030402218E+00
-         Original            :  1.409030402562E+00
+         Difference in Inf. Norm:  4.440892098501E-16
+         Max. diff coordinates:  [  28,  23,  28 ]
+         Result              :  1.356127945928E+00
+         Original            :  1.356127945928E+000
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -1.604272270583E-14
-         EVxc                : -3.075317778212E-14
+         Exc                 :  4.218847493576E-15
+         EVxc                : -1.371125435412E-14
    Number of Spins           :  2
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
@@ -578,91 +577,92 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -5.090372567906E-14
-         EVxc                : -7.732703366514E-14
+         Exc                 : -3.064215547965E-14
+         EVxc                : -6.028511023715E-14
        COMPLETE:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  28,  24,  31 ]
-         Result              :  1.409030402218E+00
-         Original            :  1.409030402562E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384672722E-01
+         Original            :  6.510384672722E-001
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -5.090372567906E-14
-         EVxc                : -7.732703366514E-14
+         Exc                 : -3.064215547965E-14
+         EVxc                : -6.028511023715E-14
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -5.090372567906E-14
-         EVxc                : -7.732703366514E-14
+         Exc                 : -3.064215547965E-14
+         EVxc                : -6.028511023715E-14
        COMPLETE:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  28,  24,  31 ]
-         Result              :  1.409030402218E+00
-         Original            :  1.409030402562E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384672722E-01
+         Original            :  6.510384672722E-001
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -5.090372567906E-14
-         EVxc                : -7.732703366514E-14
+         Exc                 : -3.064215547965E-14
+         EVxc                : -6.028511023715E-14
  Timings for root process:
-   CPU time (s)              :  1.75
-   Elapsed time (s)          :  1.76
+   CPU time (s)              :  3.74
+   Elapsed time (s)          :  3.75
  Memory Consumption Report:
-   Tot. No. of Allocations  : 785
-   Tot. No. of Deallocations: 785
+   Tot. No. of Allocations  : 787
+   Tot. No. of Deallocations: 787
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 54
+      Peak Value (MB): 55
       for the array: f_i
       in the routine: vxcpostprocessing
 ---
+ Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
+ Version Number              : 1.7-dev.21
+ Timestamp of this run       : 2012-11-20 21:04:26.680
+ Root process Hostname       : athelas
  Boundary Conditions         : Isolated
  Exchange and Correlation approximation tested:  13
  Multiprocessor run: &MPIrun
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
-     MPI tasks               :  4
+     Total No. of Taskgroups created:  2
+     MPI tasks               :  2
      OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Free
      Memory Requirements per MPI task:
-       Density (MB)          :  0.35
-       Kernel (MB)           :  0.39
+       Density (MB)          :  0.70
+       Kernel (MB)           :  0.74
        Full Grid Arrays (MB) :  1.32
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  94%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  97%
          Kernel:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  77%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  96%
          Complete LB per task: 1/3 LB_density + 2/3 LB_kernel
    Number of Spins           :  1 #---------------------------------------------- nspden: 1
    Poisson Solver:
      BC                      : Free
      Box                     :  [  57,  48,  63 ]
-     MPI tasks               :  4
+     MPI tasks               :  2
    Energies: {Hartree:  3.989422803955E-01, Exc: -3.177880430657E-01, 
                  EVxc: -5.501171932419E-01}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  3.442615081894E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
-       Original              :  1.128379167096E+00
+       Original              :  1.128379167096E+000
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -673,10 +673,10 @@
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  2.220446049250E-16
-         Max. diff coordinates:  [  2,  18,  3 ]
-         Result              :  1.144564409924E+00
-         Original            :  1.144564409924E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384672722E-01
+         Original            :  6.510384672722E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -691,10 +691,10 @@
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  2.220446049250E-16
-         Max. diff coordinates:  [  2,  18,  3 ]
-         Result              :  1.144564409924E+00
-         Original            :  1.144564409924E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384672722E-01
+         Original            :  6.510384672722E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -703,16 +703,16 @@
    Poisson Solver:
      BC                      : Free
      Box                     :  [  57,  48,  63 ]
-     MPI tasks               :  4
-   Energies: {Hartree:  3.989422803955E-01, Exc: -3.177880430657E-01, 
+     MPI tasks               :  2
+   Energies: {Hartree:  3.989422803955E-01, Exc: -3.177880430656E-01, 
                  EVxc: -5.547092771748E-01}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  3.442615081894E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
-       Original              :  1.128379167096E+00
+       Original              :  1.128379167096E+000
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -723,10 +723,10 @@
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  2.220446049250E-16
-         Max. diff coordinates:  [  52,  37,  3 ]
-         Result              :  1.149110533763E+00
-         Original            :  1.149110533763E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384672722E-01
+         Original            :  6.510384672722E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -741,10 +741,10 @@
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  2.220446049250E-16
-         Max. diff coordinates:  [  52,  37,  3 ]
-         Result              :  1.149110533763E+00
-         Original            :  1.149110533763E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384672722E-01
+         Original            :  6.510384672722E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -764,46 +764,44 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  9.072182518019E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -1.498801083244E-14
-         EVxc                : -4.592083932932E-03
+         Exc                 :  5.218048215738E-15
+         EVxc                : -4.592083932910E-03
        COMPLETE:
-         Difference in Inf. Norm:  9.072182516643E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  36,  24,  57 ]
-         Result              :  1.152636097938E+00
-         Original            :  1.061914272772E+00
+         Difference in Inf. Norm:  9.072182518019E-02
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
+         Max. diff coordinates:  [  20,  24,  5 ]
+         Result              :  6.944730265653E-01
+         Original            :  6.037512013851E-001
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -1.498801083244E-14
-         EVxc                : -4.592083932932E-03
+         Exc                 :  5.218048215738E-15
+         EVxc                : -4.592083932910E-03
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  9.072182518019E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -1.498801083244E-14
-         EVxc                : -4.592083932932E-03
+         Exc                 :  5.218048215738E-15
+         EVxc                : -4.592083932910E-03
        COMPLETE:
-         Difference in Inf. Norm:  9.072182516643E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  36,  24,  57 ]
-         Result              :  1.152636097938E+00
-         Original            :  1.061914272772E+00
+         Difference in Inf. Norm:  9.072182518019E-02
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
+         Max. diff coordinates:  [  20,  24,  5 ]
+         Result              :  6.944730265653E-01
+         Original            :  6.037512013851E-001
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -1.498801083244E-14
-         EVxc                : -4.592083932932E-03
+         Exc                 :  5.218048215738E-15
+         EVxc                : -4.592083932910E-03
    Number of Spins           :  2
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
@@ -818,87 +816,88 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
-         Difference in Inf. Norm:  1.985233470127E-23
+         Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -3.697042672002E-14
-         EVxc                : -8.215650382226E-14
+         Exc                 : -1.676436767184E-14
+         EVxc                : -6.039613253961E-14
        COMPLETE:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  28,  24,  31 ]
-         Result              :  1.409034337658E+00
-         Original            :  1.409034338002E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384672722E-01
+         Original            :  6.510384672722E-001
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -3.697042672002E-14
-         EVxc                : -8.215650382226E-14
+         Exc                 : -1.676436767184E-14
+         EVxc                : -6.039613253961E-14
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
-         Difference in Inf. Norm:  1.985233470127E-23
+         Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -3.697042672002E-14
-         EVxc                : -8.215650382226E-14
+         Exc                 : -1.676436767184E-14
+         EVxc                : -6.039613253961E-14
        COMPLETE:
-         Difference in Inf. Norm:  3.442615081894E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  28,  24,  31 ]
-         Result              :  1.409034337658E+00
-         Original            :  1.409034338002E+00
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  6.510384672722E-01
+         Original            :  6.510384672722E-001
        Energy differences:
          Hartree             : -5.551115123126E-17
-         Exc                 : -3.697042672002E-14
-         EVxc                : -8.215650382226E-14
+         Exc                 : -1.676436767184E-14
+         EVxc                : -6.039613253961E-14
  Timings for root process:
-   CPU time (s)              :  1.70
-   Elapsed time (s)          :  1.70
+   CPU time (s)              :  3.55
+   Elapsed time (s)          :  3.56
  Memory Consumption Report:
-   Tot. No. of Allocations  : 767
-   Tot. No. of Deallocations: 767
+   Tot. No. of Allocations  : 769
+   Tot. No. of Deallocations: 769
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 46
+      Peak Value (MB): 47
       for the array: exci
       in the routine: xc_energy
 ---
+ Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
+ Version Number              : 1.7-dev.21
+ Timestamp of this run       : 2012-11-20 21:04:31.291
+ Root process Hostname       : athelas
  Boundary Conditions         : Periodic
  Multiprocessor run: &MPIrun
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
-     MPI tasks               :  4
+     Total No. of Taskgroups created:  2
+     MPI tasks               :  2
      OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Periodic
      Memory Requirements per MPI task:
-       Density (MB)          :  0.50
-       Kernel (MB)           :  0.07
+       Density (MB)          :  1.00
+       Kernel (MB)           :  0.14
        Full Grid Arrays (MB) :  2.00
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 3    : 100%
+           MPI tasks 0- 1    : 100%
          Kernel:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  67%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  94%
          Complete LB per task: 1/3 LB_density + 2/3 LB_kernel
    Number of Spins           :  1 #---------------------------------------------- nspden: 1
    Poisson Solver:
      BC                      : Periodic
      Box                     :  [  64,  64,  64 ]
-     MPI tasks               :  4
+     MPI tasks               :  2
    Energies: {Hartree:  3.075484915324E+04}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  9.890754881781E-12
        Max. diff coordinates :  [  28,  28,  38 ]
        Result                : -1.771130164828E+02
-       Original              : -1.771130164828E+02
+       Original              : -1.771130164828E+002
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -910,7 +909,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -6.256427529162E-01
-         Original            : -6.256427529162E-01
+         Original            : -6.256427529162E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -926,7 +925,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -6.256427529162E-01
-         Original            : -6.256427529162E-01
+         Original            : -6.256427529162E-001
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -937,12 +936,12 @@
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                : -6.256427529162E-01
-       Original              : -6.256427529162E-01
+       Original              : -6.256427529162E-001
      CPLXIMAG:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                : -6.256427529162E-01
-       Original              : -6.256427529162E-01
+       Original              : -6.256427529162E-001
      Energy differences:
        Hartree               :  0.000000000000E+00
    Distributed data:
@@ -950,12 +949,12 @@
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                : -6.256427529162E-01
-       Original              : -6.256427529162E-01
+       Original              : -6.256427529162E-001
      CPLXIMAG:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                : -6.256427529162E-01
-       Original              : -6.256427529162E-01
+       Original              : -6.256427529162E-001
      Energy differences:
        Hartree               :  0.000000000000E+00
  Monoprocess run:
@@ -973,73 +972,78 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  9.890754881781E-12
+         Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             :  3.637978807092E-12
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  9.890754881781E-12
-         Max. diff coordinates:  [  28,  28,  38 ]
-         Result              : -1.771130164828E+02
-         Original            : -1.771130164828E+02
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              : -6.256427529162E-01
+         Original            : -6.256427529162E-001
        Energy differences:
          Hartree             :  3.637978807092E-12
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  9.890754881781E-12
+         Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             :  3.637978807092E-12
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  9.890754881781E-12
-         Max. diff coordinates:  [  28,  28,  38 ]
-         Result              : -1.771130164828E+02
-         Original            : -1.771130164828E+02
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              : -6.256427529162E-01
+         Original            : -6.256427529162E-001
        Energy differences:
          Hartree             :  3.637978807092E-12
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
  Timings for root process:
-   CPU time (s)              :  0.29
-   Elapsed time (s)          :  0.29
+   CPU time (s)              :  0.62
+   Elapsed time (s)          :  0.62
  Memory Consumption Report:
-   Tot. No. of Allocations  : 263
-   Tot. No. of Deallocations: 263
+   Tot. No. of Allocations  : 265
+   Tot. No. of Deallocations: 265
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 26
+      Peak Value (MB): 28
       for the array: zmpi2
       in the routine: G_Poisson_Solver
 ---
+ Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
+ Version Number              : 1.7-dev.21
+ Timestamp of this run       : 2012-11-20 21:04:32.970
+ Root process Hostname       : athelas
  Boundary Conditions         : Periodic
  Exchange and Correlation approximation tested:  1
  Multiprocessor run: &MPIrun
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
-     MPI tasks               :  4
+     Total No. of Taskgroups created:  2
+     MPI tasks               :  2
      OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Periodic
      Memory Requirements per MPI task:
-       Density (MB)          :  0.50
-       Kernel (MB)           :  0.07
+       Density (MB)          :  1.00
+       Kernel (MB)           :  0.14
        Full Grid Arrays (MB) :  2.00
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 3    : 100%
+           MPI tasks 0- 1    : 100%
          Kernel:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  67%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  94%
          Complete LB per task: 1/3 LB_density + 2/3 LB_kernel
    Number of Spins           :  1 #---------------------------------------------- nspden: 1
    Poisson Solver:
      BC                      : Periodic
      Box                     :  [  64,  64,  64 ]
-     MPI tasks               :  4
+     MPI tasks               :  2
    Energies: {Hartree: -2.725736510833E+05, Exc: -5.303130376677E+04, 
                  EVxc: -7.013474104202E+04}
    Comparison with a reference run:
@@ -1047,7 +1051,7 @@
        Difference in Inf. Norm:  9.890754881781E-12
        Max. diff coordinates :  [  28,  38,  28 ]
        Result                : -1.771130164828E+02
-       Original              : -1.771130164828E+02
+       Original              : -1.771130164828E+002
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -1061,7 +1065,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.040491570907E+00
-         Original            : -3.040491570907E+00
+         Original            : -3.040491570907E+000
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1079,7 +1083,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.040491570907E+00
-         Original            : -3.040491570907E+00
+         Original            : -3.040491570907E+000
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1088,7 +1092,7 @@
    Poisson Solver:
      BC                      : Periodic
      Box                     :  [  64,  64,  64 ]
-     MPI tasks               :  4
+     MPI tasks               :  2
    Energies: {Hartree: -2.725736510833E+05, Exc: -5.303130376677E+04, 
                  EVxc: -7.013474104202E+04}
    Comparison with a reference run:
@@ -1096,7 +1100,7 @@
        Difference in Inf. Norm:  9.890754881781E-12
        Max. diff coordinates :  [  28,  28,  38 ]
        Result                : -1.771130164828E+02
-       Original              : -1.771130164828E+02
+       Original              : -1.771130164828E+002
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -1110,7 +1114,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.040491570907E+00
-         Original            : -3.040491570907E+00
+         Original            : -3.040491570907E+000
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1128,7 +1132,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.040491570907E+00
-         Original            : -3.040491570907E+00
+         Original            : -3.040491570907E+000
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1148,44 +1152,44 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  9.890754881781E-12
+         Difference in Inf. Norm:  8.526512829121E-14
        XCCOMPLETE:
          Difference in Inf. Norm:  1.003155752059E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
-         Hartree             : -2.328306436539E-10
-         Exc                 :  6.475602276623E-10
-         EVxc                : -2.139131538570E-09
+         Hartree             : -1.164153218269E-10
+         Exc                 :  2.692104317248E-10
+         EVxc                :  6.111804395914E-10
        COMPLETE:
-         Difference in Inf. Norm:  1.003156486945E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  1.003155753665E-05
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  33,  33,  33 ]
          Result              : -2.516637573546E+02
-         Original            : -2.516637673861E+02
+         Original            : -2.516637673861E+002
        Energy differences:
-         Hartree             : -2.328306436539E-10
-         Exc                 :  6.475602276623E-10
-         EVxc                : -2.139131538570E-09
+         Hartree             : -1.164153218269E-10
+         Exc                 :  2.692104317248E-10
+         EVxc                :  6.111804395914E-10
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  9.890754881781E-12
+         Difference in Inf. Norm:  8.526512829121E-14
        XCCOMPLETE:
          Difference in Inf. Norm:  1.003155752059E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
-         Hartree             : -2.328306436539E-10
-         Exc                 :  6.475602276623E-10
-         EVxc                : -2.139131538570E-09
+         Hartree             : -1.164153218269E-10
+         Exc                 :  2.692104317248E-10
+         EVxc                :  6.111804395914E-10
        COMPLETE:
-         Difference in Inf. Norm:  1.003156486945E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  1.003155753665E-05
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  33,  33,  33 ]
          Result              : -2.516637573546E+02
-         Original            : -2.516637673861E+02
+         Original            : -2.516637673861E+002
        Energy differences:
-         Hartree             : -2.328306436539E-10
-         Exc                 :  6.475602276623E-10
-         EVxc                : -2.139131538570E-09
+         Hartree             : -1.164153218269E-10
+         Exc                 :  2.692104317248E-10
+         EVxc                :  6.111804395914E-10
    Number of Spins           :  2
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
@@ -1200,85 +1204,90 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  9.890754881781E-12
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
-         Difference in Inf. Norm:  2.664535259100E-15
+         Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
-         Hartree             :  0.000000000000E+00
-         Exc                 :  3.499735612422E-09
-         EVxc                : -7.566995918751E-10
+         Hartree             :  1.164153218269E-10
+         Exc                 :  3.121385816485E-09
+         EVxc                :  1.993612386286E-09
        COMPLETE:
-         Difference in Inf. Norm:  9.890754881781E-12
-         Max. diff coordinates:  [  28,  28,  38 ]
-         Result              : -1.790825413810E+02
-         Original            : -1.790825413809E+02
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              : -3.040491570907E+00
+         Original            : -3.040491570907E+000
        Energy differences:
-         Hartree             :  0.000000000000E+00
-         Exc                 :  3.499735612422E-09
-         EVxc                : -7.566995918751E-10
+         Hartree             :  1.164153218269E-10
+         Exc                 :  3.121385816485E-09
+         EVxc                :  1.993612386286E-09
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  9.890754881781E-12
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
-         Difference in Inf. Norm:  2.664535259100E-15
+         Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
-         Hartree             :  0.000000000000E+00
-         Exc                 :  3.499735612422E-09
-         EVxc                : -7.566995918751E-10
+         Hartree             :  1.164153218269E-10
+         Exc                 :  3.121385816485E-09
+         EVxc                :  1.993612386286E-09
        COMPLETE:
-         Difference in Inf. Norm:  9.890754881781E-12
-         Max. diff coordinates:  [  28,  28,  38 ]
-         Result              : -1.790825413810E+02
-         Original            : -1.790825413809E+02
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              : -3.040491570907E+00
+         Original            : -3.040491570907E+000
        Energy differences:
-         Hartree             :  0.000000000000E+00
-         Exc                 :  3.499735612422E-09
-         EVxc                : -7.566995918751E-10
+         Hartree             :  1.164153218269E-10
+         Exc                 :  3.121385816485E-09
+         EVxc                :  1.993612386286E-09
  Timings for root process:
-   CPU time (s)              :  0.74
-   Elapsed time (s)          :  0.75
+   CPU time (s)              :  1.65
+   Elapsed time (s)          :  1.66
  Memory Consumption Report:
-   Tot. No. of Allocations  : 458
-   Tot. No. of Deallocations: 458
+   Tot. No. of Allocations  : 460
+   Tot. No. of Deallocations: 460
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 38
+      Peak Value (MB): 40
       for the array: exci
       in the routine: xc_energy
 ---
+ Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
+ Version Number              : 1.7-dev.21
+ Timestamp of this run       : 2012-11-20 21:04:35.682
+ Root process Hostname       : athelas
  Boundary Conditions         : Periodic
  Exchange and Correlation approximation tested:  11
  Multiprocessor run: &MPIrun
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
-     MPI tasks               :  4
+     Total No. of Taskgroups created:  2
+     MPI tasks               :  2
      OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Periodic
      Memory Requirements per MPI task:
-       Density (MB)          :  0.50
-       Kernel (MB)           :  0.07
+       Density (MB)          :  1.00
+       Kernel (MB)           :  0.14
        Full Grid Arrays (MB) :  2.00
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 3    : 100%
+           MPI tasks 0- 1    : 100%
          Kernel:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  67%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  94%
          Complete LB per task: 1/3 LB_density + 2/3 LB_kernel
    Number of Spins           :  1 #---------------------------------------------- nspden: 1
    Poisson Solver:
      BC                      : Periodic
      Box                     :  [  64,  64,  64 ]
-     MPI tasks               :  4
-   Energies: {Hartree: -2.725736510833E+05, Exc: -5.299096079562E+04, 
+     MPI tasks               :  2
+   Energies: {Hartree: -2.725736510833E+05, Exc: -5.299096079563E+04, 
                  EVxc: -7.008860213448E+04}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  9.890754881781E-12
        Max. diff coordinates :  [  28,  38,  28 ]
        Result                : -1.771130164828E+02
-       Original              : -1.771130164828E+02
+       Original              : -1.771130164828E+002
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -1292,7 +1301,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.038546182672E+00
-         Original            : -3.038546182672E+00
+         Original            : -3.038546182672E+000
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1310,7 +1319,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.038546182672E+00
-         Original            : -3.038546182672E+00
+         Original            : -3.038546182672E+000
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1319,7 +1328,7 @@
    Poisson Solver:
      BC                      : Periodic
      Box                     :  [  64,  64,  64 ]
-     MPI tasks               :  4
+     MPI tasks               :  2
    Energies: {Hartree: -2.725736510833E+05, Exc: -5.299096079562E+04, 
                  EVxc: -7.008860213448E+04}
    Comparison with a reference run:
@@ -1327,7 +1336,7 @@
        Difference in Inf. Norm:  9.890754881781E-12
        Max. diff coordinates :  [  28,  28,  38 ]
        Result                : -1.771130164828E+02
-       Original              : -1.771130164828E+02
+       Original              : -1.771130164828E+002
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -1341,7 +1350,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.038546182672E+00
-         Original            : -3.038546182672E+00
+         Original            : -3.038546182672E+000
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1359,7 +1368,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.038546182672E+00
-         Original            : -3.038546182672E+00
+         Original            : -3.038546182672E+000
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1379,44 +1388,44 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  9.890754881781E-12
+         Difference in Inf. Norm:  8.526512829121E-14
        XCCOMPLETE:
          Difference in Inf. Norm:  1.055322925300E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
-         Hartree             : -2.328306436539E-10
-         Exc                 : -2.117303665727E-09
-         EVxc                : -2.328306436539E-09
+         Hartree             : -1.164153218269E-10
+         Exc                 :  3.856257535517E-10
+         EVxc                : -8.294591680169E-10
        COMPLETE:
-         Difference in Inf. Norm:  1.055323659216E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  1.055322925936E-05
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  33,  33,  33 ]
          Result              : -2.515332967863E+02
-         Original            : -2.515333073395E+02
+         Original            : -2.515333073395E+002
        Energy differences:
-         Hartree             : -2.328306436539E-10
-         Exc                 : -2.117303665727E-09
-         EVxc                : -2.328306436539E-09
+         Hartree             : -1.164153218269E-10
+         Exc                 :  3.856257535517E-10
+         EVxc                : -8.294591680169E-10
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  9.890754881781E-12
+         Difference in Inf. Norm:  8.526512829121E-14
        XCCOMPLETE:
          Difference in Inf. Norm:  1.055322925300E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
-         Hartree             : -2.328306436539E-10
-         Exc                 : -2.117303665727E-09
-         EVxc                : -2.328306436539E-09
+         Hartree             : -1.164153218269E-10
+         Exc                 :  3.856257535517E-10
+         EVxc                : -8.294591680169E-10
        COMPLETE:
-         Difference in Inf. Norm:  1.055323659216E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  1.055322925936E-05
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  33,  33,  33 ]
          Result              : -2.515332967863E+02
-         Original            : -2.515333073395E+02
+         Original            : -2.515333073395E+002
        Energy differences:
-         Hartree             : -2.328306436539E-10
-         Exc                 : -2.117303665727E-09
-         EVxc                : -2.328306436539E-09
+         Hartree             : -1.164153218269E-10
+         Exc                 :  3.856257535517E-10
+         EVxc                : -8.294591680169E-10
    Number of Spins           :  2
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
@@ -1431,77 +1440,82 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  9.890754881781E-12
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  1.332267629550E-15
        Energy differences:
-         Hartree             :  0.000000000000E+00
-         Exc                 : -5.529727786779E-09
-         EVxc                :  3.070454113185E-09
+         Hartree             :  1.164153218269E-10
+         Exc                 : -3.026798367500E-09
+         EVxc                :  4.569301381707E-09
        COMPLETE:
-         Difference in Inf. Norm:  9.890754881781E-12
-         Max. diff coordinates:  [  28,  28,  38 ]
-         Result              : -1.790810389432E+02
-         Original            : -1.790810389432E+02
+         Difference in Inf. Norm:  1.332267629550E-15
+         Max. diff coordinates:  [  6,  1,  1 ]
+         Result              : -2.984214452485E+00
+         Original            : -2.984214452485E+000
        Energy differences:
-         Hartree             :  0.000000000000E+00
-         Exc                 : -5.529727786779E-09
-         EVxc                :  3.070454113185E-09
+         Hartree             :  1.164153218269E-10
+         Exc                 : -3.026798367500E-09
+         EVxc                :  4.569301381707E-09
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  9.890754881781E-12
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  1.332267629550E-15
        Energy differences:
-         Hartree             :  0.000000000000E+00
-         Exc                 : -5.529727786779E-09
-         EVxc                :  3.070454113185E-09
+         Hartree             :  1.164153218269E-10
+         Exc                 : -3.026798367500E-09
+         EVxc                :  4.569301381707E-09
        COMPLETE:
-         Difference in Inf. Norm:  9.890754881781E-12
-         Max. diff coordinates:  [  28,  28,  38 ]
-         Result              : -1.790810389432E+02
-         Original            : -1.790810389432E+02
+         Difference in Inf. Norm:  1.332267629550E-15
+         Max. diff coordinates:  [  6,  1,  1 ]
+         Result              : -2.984214452485E+00
+         Original            : -2.984214452485E+000
        Energy differences:
-         Hartree             :  0.000000000000E+00
-         Exc                 : -5.529727786779E-09
-         EVxc                :  3.070454113185E-09
+         Hartree             :  1.164153218269E-10
+         Exc                 : -3.026798367500E-09
+         EVxc                :  4.569301381707E-09
  Timings for root process:
-   CPU time (s)              :  2.02
-   Elapsed time (s)          :  2.10
+   CPU time (s)              :  4.24
+   Elapsed time (s)          :  4.27
  Memory Consumption Report:
-   Tot. No. of Allocations  : 497
-   Tot. No. of Deallocations: 497
+   Tot. No. of Allocations  : 499
+   Tot. No. of Deallocations: 499
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 80
+      Peak Value (MB): 82
       for the array: f_i
       in the routine: vxcpostprocessing
 ---
+ Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
+ Version Number              : 1.7-dev.21
+ Timestamp of this run       : 2012-11-20 21:04:42.008
+ Root process Hostname       : athelas
  Boundary Conditions         : Periodic
  Exchange and Correlation approximation tested:  13
  Multiprocessor run: &MPIrun
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
-     MPI tasks               :  4
+     Total No. of Taskgroups created:  2
+     MPI tasks               :  2
      OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Periodic
      Memory Requirements per MPI task:
-       Density (MB)          :  0.50
-       Kernel (MB)           :  0.07
+       Density (MB)          :  1.00
+       Kernel (MB)           :  0.14
        Full Grid Arrays (MB) :  2.00
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 3    : 100%
+           MPI tasks 0- 1    : 100%
          Kernel:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  67%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  94%
          Complete LB per task: 1/3 LB_density + 2/3 LB_kernel
    Number of Spins           :  1 #---------------------------------------------- nspden: 1
    Poisson Solver:
      BC                      : Periodic
      Box                     :  [  64,  64,  64 ]
-     MPI tasks               :  4
+     MPI tasks               :  2
    Energies: {Hartree: -2.725736510833E+05, Exc: -5.299087747574E+04, 
                  EVxc: -7.010040423117E+04}
    Comparison with a reference run:
@@ -1509,7 +1523,7 @@
        Difference in Inf. Norm:  9.890754881781E-12
        Max. diff coordinates :  [  28,  38,  28 ]
        Result                : -1.771130164828E+02
-       Original              : -1.771130164828E+02
+       Original              : -1.771130164828E+002
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -1523,7 +1537,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.038546182594E+00
-         Original            : -3.038546182594E+00
+         Original            : -3.038546182594E+000
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1541,7 +1555,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.038546182594E+00
-         Original            : -3.038546182594E+00
+         Original            : -3.038546182594E+000
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1550,15 +1564,15 @@
    Poisson Solver:
      BC                      : Periodic
      Box                     :  [  64,  64,  64 ]
-     MPI tasks               :  4
-   Energies: {Hartree: -2.725736510833E+05, Exc: -5.299087747575E+04, 
+     MPI tasks               :  2
+   Energies: {Hartree: -2.725736510833E+05, Exc: -5.299087747574E+04, 
                  EVxc: -7.009832350328E+04}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  9.890754881781E-12
        Max. diff coordinates :  [  28,  28,  38 ]
        Result                : -1.771130164828E+02
-       Original              : -1.771130164828E+02
+       Original              : -1.771130164828E+002
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -1572,7 +1586,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.038546182594E+00
-         Original            : -3.038546182594E+00
+         Original            : -3.038546182594E+000
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1590,7 +1604,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.038546182594E+00
-         Original            : -3.038546182594E+00
+         Original            : -3.038546182594E+000
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1610,44 +1624,44 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  9.890754881781E-12
+         Difference in Inf. Norm:  8.526512829121E-14
        XCCOMPLETE:
          Difference in Inf. Norm:  3.731918346741E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
-         Hartree             : -2.328306436539E-10
-         Exc                 : -5.507899913937E-09
-         EVxc                :  2.080727892040E+00
+         Hartree             : -1.164153218269E-10
+         Exc                 :  1.600710675120E-10
+         EVxc                :  2.080727889581E+00
        COMPLETE:
-         Difference in Inf. Norm:  3.731918347410E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  3.731918346742E-02
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  33,  33,  32 ]
          Result              : -2.515139446031E+02
-         Original            : -2.515512637866E+02
+         Original            : -2.515512637866E+002
        Energy differences:
-         Hartree             : -2.328306436539E-10
-         Exc                 : -5.507899913937E-09
-         EVxc                :  2.080727892040E+00
+         Hartree             : -1.164153218269E-10
+         Exc                 :  1.600710675120E-10
+         EVxc                :  2.080727889581E+00
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  9.890754881781E-12
+         Difference in Inf. Norm:  8.526512829121E-14
        XCCOMPLETE:
          Difference in Inf. Norm:  3.731918346741E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
-         Hartree             : -2.328306436539E-10
-         Exc                 : -5.507899913937E-09
-         EVxc                :  2.080727892040E+00
+         Hartree             : -1.164153218269E-10
+         Exc                 :  1.600710675120E-10
+         EVxc                :  2.080727889581E+00
        COMPLETE:
-         Difference in Inf. Norm:  3.731918347410E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  3.731918346742E-02
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
          Max. diff coordinates:  [  33,  33,  32 ]
          Result              : -2.515139446031E+02
-         Original            : -2.515512637866E+02
+         Original            : -2.515512637866E+002
        Energy differences:
-         Hartree             : -2.328306436539E-10
-         Exc                 : -5.507899913937E-09
-         EVxc                :  2.080727892040E+00
+         Hartree             : -1.164153218269E-10
+         Exc                 :  1.600710675120E-10
+         EVxc                :  2.080727889581E+00
    Number of Spins           :  2
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
@@ -1662,84 +1676,89 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  9.890754881781E-12
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
-         Difference in Inf. Norm:  3.108624468950E-15
+         Difference in Inf. Norm:  1.332267629550E-15
        Energy differences:
-         Hartree             :  0.000000000000E+00
-         Exc                 : -8.381903171539E-09
-         EVxc                :  1.236912794411E-09
+         Hartree             :  1.164153218269E-10
+         Exc                 : -2.713932190090E-09
+         EVxc                : -1.222360879183E-09
        COMPLETE:
-         Difference in Inf. Norm:  9.890754881781E-12
-         Max. diff coordinates:  [  28,  28,  38 ]
-         Result              : -1.791039606857E+02
-         Original            : -1.791039606857E+02
+         Difference in Inf. Norm:  1.776356839400E-15
+         Max. diff coordinates:  [  1,  1,  33 ]
+         Result              : -6.659430279328E+00
+         Original            : -6.659430279328E+000
        Energy differences:
-         Hartree             :  0.000000000000E+00
-         Exc                 : -8.381903171539E-09
-         EVxc                :  1.236912794411E-09
+         Hartree             :  1.164153218269E-10
+         Exc                 : -2.713932190090E-09
+         EVxc                : -1.222360879183E-09
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  9.890754881781E-12
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
-         Difference in Inf. Norm:  3.108624468950E-15
+         Difference in Inf. Norm:  1.332267629550E-15
        Energy differences:
-         Hartree             :  0.000000000000E+00
-         Exc                 : -8.381903171539E-09
-         EVxc                :  1.236912794411E-09
+         Hartree             :  1.164153218269E-10
+         Exc                 : -2.713932190090E-09
+         EVxc                : -1.222360879183E-09
        COMPLETE:
-         Difference in Inf. Norm:  9.890754881781E-12
-         Max. diff coordinates:  [  28,  28,  38 ]
-         Result              : -1.791039606857E+02
-         Original            : -1.791039606857E+02
+         Difference in Inf. Norm:  1.776356839400E-15
+         Max. diff coordinates:  [  1,  1,  33 ]
+         Result              : -6.659430279328E+00
+         Original            : -6.659430279328E+000
        Energy differences:
-         Hartree             :  0.000000000000E+00
-         Exc                 : -8.381903171539E-09
-         EVxc                :  1.236912794411E-09
+         Hartree             :  1.164153218269E-10
+         Exc                 : -2.713932190090E-09
+         EVxc                : -1.222360879183E-09
  Timings for root process:
-   CPU time (s)              :  1.86
-   Elapsed time (s)          :  1.86
+   CPU time (s)              :  3.67
+   Elapsed time (s)          :  3.68
  Memory Consumption Report:
-   Tot. No. of Allocations  : 479
-   Tot. No. of Deallocations: 479
+   Tot. No. of Allocations  : 481
+   Tot. No. of Deallocations: 481
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 68
+      Peak Value (MB): 70
       for the array: exci
       in the routine: xc_energy
 ---
+ Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
+ Version Number              : 1.7-dev.21
+ Timestamp of this run       : 2012-11-20 21:04:46.738
+ Root process Hostname       : athelas
  Boundary Conditions         : Surface
  Multiprocessor run: &MPIrun
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
-     MPI tasks               :  4
+     Total No. of Taskgroups created:  2
+     MPI tasks               :  2
      OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Surface
      Memory Requirements per MPI task:
-       Density (MB)          :  0.19
-       Kernel (MB)           :  0.05
+       Density (MB)          :  0.38
+       Kernel (MB)           :  0.10
        Full Grid Arrays (MB) :  0.75
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 3    : 100%
+           MPI tasks 0- 1    : 100%
          Kernel:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  82%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  97%
          Complete LB per task: 1/3 LB_density + 2/3 LB_kernel
    Number of Spins           :  1 #---------------------------------------------- nspden: 1
    Poisson Solver:
      BC                      : Surface
      Box                     :  [  32,  64,  48 ]
-     MPI tasks               :  4
+     MPI tasks               :  2
    Energies: {Hartree:  2.969431884210E+01}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  5.449597508646E-10
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  58,  25 ]
        Result                : -1.455736585414E-06
-       Original              : -1.455191625663E-06
+       Original              : -1.455191625663E-006
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -1751,7 +1770,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              :  3.577078001238E-11
-         Original            :  3.577078001238E-11
+         Original            :  3.577078001238E-011
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1767,7 +1786,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              :  3.577078001238E-11
-         Original            :  3.577078001238E-11
+         Original            :  3.577078001238E-011
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1778,12 +1797,12 @@
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                :  3.577078001238E-11
-       Original              :  3.577078001238E-11
+       Original              :  3.577078001238E-011
      CPLXIMAG:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                :  3.577078001238E-11
-       Original              :  3.577078001238E-11
+       Original              :  3.577078001238E-011
      Energy differences:
        Hartree               :  0.000000000000E+00
    Distributed data:
@@ -1791,12 +1810,12 @@
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                :  3.577078001238E-11
-       Original              :  3.577078001238E-11
+       Original              :  3.577078001238E-011
      CPLXIMAG:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                :  3.577078001238E-11
-       Original              :  3.577078001238E-11
+       Original              :  3.577078001238E-011
      Energy differences:
        Hartree               :  0.000000000000E+00
  Monoprocess run:
@@ -1814,86 +1833,87 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  5.449597508646E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  5.449597508646E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  1,  58,  25 ]
-         Result              : -1.455736585414E-06
-         Original            : -1.455191625663E-06
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  3.577078001238E-11
+         Original            :  3.577078001238E-011
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  5.449597508646E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
        COMPLETE:
-         Difference in Inf. Norm:  5.449597508646E-10
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  1,  58,  25 ]
-         Result              : -1.455736585414E-06
-         Original            : -1.455191625663E-06
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              :  3.577078001238E-11
+         Original            :  3.577078001238E-011
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
          EVxc                :  0.000000000000E+00
  Timings for root process:
-   CPU time (s)              :  0.17
-   Elapsed time (s)          :  0.17
+   CPU time (s)              :  0.37
+   Elapsed time (s)          :  0.38
  Memory Consumption Report:
-   Tot. No. of Allocations  : 1378
-   Tot. No. of Deallocations: 1378
+   Tot. No. of Allocations  : 1584
+   Tot. No. of Deallocations: 1584
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 10
+      Peak Value (MB): 11
       for the array: cosinarr
       in the routine: G_Poisson_Solver
 ---
+ Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
+ Version Number              : 1.7-dev.21
+ Timestamp of this run       : 2012-11-20 21:04:48.172
+ Root process Hostname       : athelas
  Boundary Conditions         : Surface
  Exchange and Correlation approximation tested:  1
  Multiprocessor run: &MPIrun
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
-     MPI tasks               :  4
+     Total No. of Taskgroups created:  2
+     MPI tasks               :  2
      OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Surface
      Memory Requirements per MPI task:
-       Density (MB)          :  0.19
-       Kernel (MB)           :  0.05
+       Density (MB)          :  0.38
+       Kernel (MB)           :  0.10
        Full Grid Arrays (MB) :  0.75
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 3    : 100%
+           MPI tasks 0- 1    : 100%
          Kernel:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  82%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  97%
          Complete LB per task: 1/3 LB_density + 2/3 LB_kernel
    Number of Spins           :  1 #---------------------------------------------- nspden: 1
    Poisson Solver:
      BC                      : Surface
      Box                     :  [  32,  64,  48 ]
-     MPI tasks               :  4
+     MPI tasks               :  2
    Energies: {Hartree: -1.433189036352E+05, Exc: -9.950230668165E+02, 
                  EVxc: -1.308724746241E+03}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  1.626803254288E-02
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  63,  25 ]
        Result                : -3.502258425375E+02
-       Original              : -3.502421105701E+02
+       Original              : -3.502421105701E+002
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -1907,7 +1927,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.619311514106E+02
-         Original            : -3.619311514106E+02
+         Original            : -3.619311514106E+002
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1925,7 +1945,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.619311514106E+02
-         Original            : -3.619311514106E+02
+         Original            : -3.619311514106E+002
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1934,16 +1954,16 @@
    Poisson Solver:
      BC                      : Surface
      Box                     :  [  32,  64,  48 ]
-     MPI tasks               :  4
+     MPI tasks               :  2
    Energies: {Hartree: -1.433189036352E+05, Exc: -9.950230668165E+02, 
                  EVxc: -1.308724746241E+03}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  1.626803253987E-02
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  63,  25 ]
        Result                : -3.502258425375E+02
-       Original              : -3.502421105701E+02
+       Original              : -3.502421105701E+002
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -1957,7 +1977,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.619311514106E+02
-         Original            : -3.619311514106E+02
+         Original            : -3.619311514106E+002
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1975,7 +1995,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.619311514106E+02
-         Original            : -3.619311514106E+02
+         Original            : -3.619311514106E+002
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -1995,46 +2015,44 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  1.626803254288E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  3.240074875066E-12
        XCCOMPLETE:
          Difference in Inf. Norm:  1.003155752059E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -2.444721758366E-09
-         Exc                 :  1.432454155292E-11
-         EVxc                : -4.138200893067E-10
+         Exc                 :  2.501110429876E-12
+         EVxc                : -1.136868377216E-11
        COMPLETE:
-         Difference in Inf. Norm:  1.626803254288E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  1,  63,  25 ]
-         Result              : -3.503577633857E+02
-         Original            : -3.503740314183E+02
+         Difference in Inf. Norm:  1.003155909984E-05
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
+         Max. diff coordinates:  [  1,  33,  25 ]
+         Result              : -1.909312523862E+02
+         Original            : -1.909312624178E+002
        Energy differences:
          Hartree             : -2.444721758366E-09
-         Exc                 :  1.432454155292E-11
-         EVxc                : -4.138200893067E-10
+         Exc                 :  2.501110429876E-12
+         EVxc                : -1.136868377216E-11
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  1.626803254288E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  3.240074875066E-12
        XCCOMPLETE:
          Difference in Inf. Norm:  1.003155752059E-05
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -2.444721758366E-09
-         Exc                 :  1.432454155292E-11
-         EVxc                : -4.138200893067E-10
+         Exc                 :  2.501110429876E-12
+         EVxc                : -1.136868377216E-11
        COMPLETE:
-         Difference in Inf. Norm:  1.626803254288E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  1,  63,  25 ]
-         Result              : -3.503577633857E+02
-         Original            : -3.503740314183E+02
+         Difference in Inf. Norm:  1.003155909984E-05
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
+         Max. diff coordinates:  [  1,  33,  25 ]
+         Result              : -1.909312523862E+02
+         Original            : -1.909312624178E+002
        Energy differences:
          Hartree             : -2.444721758366E-09
-         Exc                 :  1.432454155292E-11
-         EVxc                : -4.138200893067E-10
+         Exc                 :  2.501110429876E-12
+         EVxc                : -1.136868377216E-11
    Number of Spins           :  2
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
@@ -2049,90 +2067,91 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  1.626803253987E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  4.440892098501E-16
        Energy differences:
          Hartree             : -5.820766091347E-11
-         Exc                 :  1.205080479849E-11
-         EVxc                :  3.988134267274E-10
+         Exc                 :  2.273736754432E-13
+         EVxc                :  8.012648322619E-10
        COMPLETE:
-         Difference in Inf. Norm:  1.626803253987E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  1,  63,  25 ]
-         Result              : -3.503577633857E+02
-         Original            : -3.503740314183E+02
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              : -3.619311514106E+02
+         Original            : -3.619311514106E+002
        Energy differences:
          Hartree             : -5.820766091347E-11
-         Exc                 :  1.205080479849E-11
-         EVxc                :  3.988134267274E-10
+         Exc                 :  2.273736754432E-13
+         EVxc                :  8.012648322619E-10
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  1.626803253987E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  4.440892098501E-16
        Energy differences:
          Hartree             : -5.820766091347E-11
-         Exc                 :  1.205080479849E-11
-         EVxc                :  3.988134267274E-10
+         Exc                 :  2.273736754432E-13
+         EVxc                :  8.012648322619E-10
        COMPLETE:
-         Difference in Inf. Norm:  1.626803253987E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  1,  63,  25 ]
-         Result              : -3.503577633857E+02
-         Original            : -3.503740314183E+02
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              : -3.619311514106E+02
+         Original            : -3.619311514106E+002
        Energy differences:
          Hartree             : -5.820766091347E-11
-         Exc                 :  1.205080479849E-11
-         EVxc                :  3.988134267274E-10
+         Exc                 :  2.273736754432E-13
+         EVxc                :  8.012648322619E-10
  Timings for root process:
-   CPU time (s)              :  0.41
-   Elapsed time (s)          :  0.41
+   CPU time (s)              :  0.78
+   Elapsed time (s)          :  0.78
  Memory Consumption Report:
-   Tot. No. of Allocations  : 2435
-   Tot. No. of Deallocations: 2435
+   Tot. No. of Allocations  : 2641
+   Tot. No. of Deallocations: 2641
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 14
+      Peak Value (MB): 15
       for the array: cosinarr
       in the routine: G_Poisson_Solver
 ---
+ Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
+ Version Number              : 1.7-dev.21
+ Timestamp of this run       : 2012-11-20 21:04:50.005
+ Root process Hostname       : athelas
  Boundary Conditions         : Surface
  Exchange and Correlation approximation tested:  11
  Multiprocessor run: &MPIrun
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
-     MPI tasks               :  4
+     Total No. of Taskgroups created:  2
+     MPI tasks               :  2
      OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Surface
      Memory Requirements per MPI task:
-       Density (MB)          :  0.19
-       Kernel (MB)           :  0.05
+       Density (MB)          :  0.38
+       Kernel (MB)           :  0.10
        Full Grid Arrays (MB) :  0.75
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 3    : 100%
+           MPI tasks 0- 1    : 100%
          Kernel:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  82%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  97%
          Complete LB per task: 1/3 LB_density + 2/3 LB_kernel
    Number of Spins           :  1 #---------------------------------------------- nspden: 1
    Poisson Solver:
      BC                      : Surface
      Box                     :  [  32,  64,  48 ]
-     MPI tasks               :  4
-   Energies: {Hartree: -1.433189036352E+05, Exc: -9.950785949620E+02, 
-                 EVxc: -1.308225078334E+03}
+     MPI tasks               :  2
+   Energies: {Hartree: -1.433189036352E+05, Exc: -9.950785949618E+02, 
+                 EVxc: -1.308225078333E+03}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  1.626803254288E-02
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  63,  25 ]
        Result                : -3.502258425375E+02
-       Original              : -3.502421105701E+02
+       Original              : -3.502421105701E+002
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -2146,7 +2165,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.619307139091E+02
-         Original            : -3.619307139091E+02
+         Original            : -3.619307139091E+002
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -2164,7 +2183,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.619307139091E+02
-         Original            : -3.619307139091E+02
+         Original            : -3.619307139091E+002
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -2173,16 +2192,16 @@
    Poisson Solver:
      BC                      : Surface
      Box                     :  [  32,  64,  48 ]
-     MPI tasks               :  4
-   Energies: {Hartree: -1.433189036352E+05, Exc: -9.950785949619E+02, 
+     MPI tasks               :  2
+   Energies: {Hartree: -1.433189036352E+05, Exc: -9.950785949617E+02, 
                  EVxc: -1.308225078333E+03}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  1.626803253987E-02
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  63,  25 ]
        Result                : -3.502258425375E+02
-       Original              : -3.502421105701E+02
+       Original              : -3.502421105701E+002
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -2196,7 +2215,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.619307139092E+02
-         Original            : -3.619307139092E+02
+         Original            : -3.619307139092E+002
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -2214,7 +2233,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.619307139092E+02
-         Original            : -3.619307139092E+02
+         Original            : -3.619307139092E+002
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -2234,46 +2253,44 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  1.626803254288E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  3.240074875066E-12
        XCCOMPLETE:
          Difference in Inf. Norm:  9.944759721412E-06
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -2.444721758366E-09
-         Exc                 : -1.588205122971E-10
-         EVxc                : -1.321041054325E-10
+         Exc                 :  2.239630703116E-11
+         EVxc                : -7.730704965070E-12
        COMPLETE:
-         Difference in Inf. Norm:  1.626803254288E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  1,  63,  25 ]
-         Result              : -3.503573258843E+02
-         Original            : -3.503735939168E+02
+         Difference in Inf. Norm:  9.944761302449E-06
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
+         Max. diff coordinates:  [  1,  33,  25 ]
+         Result              : -1.909356502192E+02
+         Original            : -1.909356601640E+002
        Energy differences:
          Hartree             : -2.444721758366E-09
-         Exc                 : -1.588205122971E-10
-         EVxc                : -1.321041054325E-10
+         Exc                 :  2.239630703116E-11
+         EVxc                : -7.730704965070E-12
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  1.626803254288E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  3.240074875066E-12
        XCCOMPLETE:
          Difference in Inf. Norm:  9.944759721412E-06
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -2.444721758366E-09
-         Exc                 : -1.588205122971E-10
-         EVxc                : -1.321041054325E-10
+         Exc                 :  2.239630703116E-11
+         EVxc                : -7.730704965070E-12
        COMPLETE:
-         Difference in Inf. Norm:  1.626803254288E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  1,  63,  25 ]
-         Result              : -3.503573258843E+02
-         Original            : -3.503735939168E+02
+         Difference in Inf. Norm:  9.944761302449E-06
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
+         Max. diff coordinates:  [  1,  33,  25 ]
+         Result              : -1.909356502192E+02
+         Original            : -1.909356601640E+002
        Energy differences:
          Hartree             : -2.444721758366E-09
-         Exc                 : -1.588205122971E-10
-         EVxc                : -1.321041054325E-10
+         Exc                 :  2.239630703116E-11
+         EVxc                : -7.730704965070E-12
    Number of Spins           :  2
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
@@ -2288,90 +2305,91 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  1.626803253987E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             : -5.820766091347E-11
-         Exc                 :  3.767581802094E-10
-         EVxc                :  8.744791557547E-10
+         Exc                 :  5.579749995377E-10
+         EVxc                :  9.988525562221E-10
        COMPLETE:
-         Difference in Inf. Norm:  1.626803253987E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  1,  63,  25 ]
-         Result              : -3.503573258843E+02
-         Original            : -3.503735939168E+02
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              : -3.619307139092E+02
+         Original            : -3.619307139092E+002
        Energy differences:
          Hartree             : -5.820766091347E-11
-         Exc                 :  3.767581802094E-10
-         EVxc                :  8.744791557547E-10
+         Exc                 :  5.579749995377E-10
+         EVxc                :  9.988525562221E-10
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  1.626803253987E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             : -5.820766091347E-11
-         Exc                 :  3.767581802094E-10
-         EVxc                :  8.744791557547E-10
+         Exc                 :  5.579749995377E-10
+         EVxc                :  9.988525562221E-10
        COMPLETE:
-         Difference in Inf. Norm:  1.626803253987E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  1,  63,  25 ]
-         Result              : -3.503573258843E+02
-         Original            : -3.503735939168E+02
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              : -3.619307139092E+02
+         Original            : -3.619307139092E+002
        Energy differences:
          Hartree             : -5.820766091347E-11
-         Exc                 :  3.767581802094E-10
-         EVxc                :  8.744791557547E-10
+         Exc                 :  5.579749995377E-10
+         EVxc                :  9.988525562221E-10
  Timings for root process:
-   CPU time (s)              :  0.90
-   Elapsed time (s)          :  0.96
+   CPU time (s)              :  1.83
+   Elapsed time (s)          :  1.85
  Memory Consumption Report:
-   Tot. No. of Allocations  : 2474
-   Tot. No. of Deallocations: 2474
+   Tot. No. of Allocations  : 2680
+   Tot. No. of Deallocations: 2680
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 30
       for the array: f_i
       in the routine: vxcpostprocessing
 ---
+ Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
+ Version Number              : 1.7-dev.21
+ Timestamp of this run       : 2012-11-20 21:04:52.907
+ Root process Hostname       : athelas
  Boundary Conditions         : Surface
  Exchange and Correlation approximation tested:  13
  Multiprocessor run: &MPIrun
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
-     MPI tasks               :  4
+     Total No. of Taskgroups created:  2
+     MPI tasks               :  2
      OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Surface
      Memory Requirements per MPI task:
-       Density (MB)          :  0.19
-       Kernel (MB)           :  0.05
+       Density (MB)          :  0.38
+       Kernel (MB)           :  0.10
        Full Grid Arrays (MB) :  0.75
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 3    : 100%
+           MPI tasks 0- 1    : 100%
          Kernel:
-           MPI tasks 0- 2    : 100%
-           MPI task 3        :  82%
+           MPI tasks 0- 0    : 100%
+           MPI task 1        :  97%
          Complete LB per task: 1/3 LB_density + 2/3 LB_kernel
    Number of Spins           :  1 #---------------------------------------------- nspden: 1
    Poisson Solver:
      BC                      : Surface
      Box                     :  [  32,  64,  48 ]
-     MPI tasks               :  4
-   Energies: {Hartree: -1.433189036352E+05, Exc: -9.950534710275E+02, 
+     MPI tasks               :  2
+   Energies: {Hartree: -1.433189036352E+05, Exc: -9.950534710273E+02, 
                  EVxc: -1.309787756300E+03}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  1.626803254288E-02
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  63,  25 ]
        Result                : -3.502258425375E+02
-       Original              : -3.502421105701E+02
+       Original              : -3.502421105701E+002
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -2385,7 +2403,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.619307139091E+02
-         Original            : -3.619307139091E+02
+         Original            : -3.619307139091E+002
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -2403,7 +2421,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.619307139091E+02
-         Original            : -3.619307139091E+02
+         Original            : -3.619307139091E+002
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -2412,16 +2430,16 @@
    Poisson Solver:
      BC                      : Surface
      Box                     :  [  32,  64,  48 ]
-     MPI tasks               :  4
-   Energies: {Hartree: -1.433189036352E+05, Exc: -9.950534710273E+02, 
+     MPI tasks               :  2
+   Energies: {Hartree: -1.433189036352E+05, Exc: -9.950534710272E+02, 
                  EVxc: -1.309580723937E+03}
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  1.626803253987E-02
-        #WARNING:Calculation possibly wrong, check if the diff is meaningful
+        #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  63,  25 ]
        Result                : -3.502258425375E+02
-       Original              : -3.502421105701E+02
+       Original              : -3.502421105701E+002
      Global data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
@@ -2435,7 +2453,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.619307139092E+02
-         Original            : -3.619307139092E+02
+         Original            : -3.619307139092E+002
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -2453,7 +2471,7 @@
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -3.619307139092E+02
-         Original            : -3.619307139092E+02
+         Original            : -3.619307139092E+002
        Energy differences:
          Hartree             :  0.000000000000E+00
          Exc                 :  0.000000000000E+00
@@ -2473,46 +2491,44 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  1.626803254288E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  3.240074875066E-12
        XCCOMPLETE:
          Difference in Inf. Norm:  2.998369471048E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -2.444721758366E-09
-         Exc                 : -1.621174305910E-10
-         EVxc                :  2.070323629675E-01
+         Exc                 :  4.206412995700E-12
+         EVxc                :  2.070323630876E-01
        COMPLETE:
-         Difference in Inf. Norm:  4.491875553123E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  1,  34,  25 ]
-         Result              : -1.912575552299E+02
-         Original            : -1.913024739854E+02
+         Difference in Inf. Norm:  2.998369471197E-02
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
+         Max. diff coordinates:  [  1,  32,  25 ]
+         Result              : -1.909096382415E+02
+         Original            : -1.909396219363E+002
        Energy differences:
          Hartree             : -2.444721758366E-09
-         Exc                 : -1.621174305910E-10
-         EVxc                :  2.070323629675E-01
+         Exc                 :  4.206412995700E-12
+         EVxc                :  2.070323630876E-01
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  1.626803254288E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  3.240074875066E-12
        XCCOMPLETE:
          Difference in Inf. Norm:  2.998369471048E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Energy differences:
          Hartree             : -2.444721758366E-09
-         Exc                 : -1.621174305910E-10
-         EVxc                :  2.070323629675E-01
+         Exc                 :  4.206412995700E-12
+         EVxc                :  2.070323630876E-01
        COMPLETE:
-         Difference in Inf. Norm:  4.491875553123E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  1,  34,  25 ]
-         Result              : -1.912575552299E+02
-         Original            : -1.913024739854E+02
+         Difference in Inf. Norm:  2.998369471197E-02
+          #WARNING: Calculation possibly wrong, check if the diff is meaningful
+         Max. diff coordinates:  [  1,  32,  25 ]
+         Result              : -1.909096382415E+02
+         Original            : -1.909396219363E+002
        Energy differences:
          Hartree             : -2.444721758366E-09
-         Exc                 : -1.621174305910E-10
-         EVxc                :  2.070323629675E-01
+         Exc                 :  4.206412995700E-12
+         EVxc                :  2.070323630876E-01
    Number of Spins           :  2
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
@@ -2527,52 +2543,48 @@
    Comparison with a reference run:
      Global data:
        ANACOMPLET:
-         Difference in Inf. Norm:  1.626803253987E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             : -5.820766091347E-11
-         Exc                 :  4.002913556178E-10
-         EVxc                :  7.835296855774E-10
+         Exc                 :  5.666151992045E-10
+         EVxc                :  9.035829862114E-10
        COMPLETE:
-         Difference in Inf. Norm:  1.626803253987E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  1,  63,  25 ]
-         Result              : -3.503573258843E+02
-         Original            : -3.503735939168E+02
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              : -3.619307139092E+02
+         Original            : -3.619307139092E+002
        Energy differences:
          Hartree             : -5.820766091347E-11
-         Exc                 :  4.002913556178E-10
-         EVxc                :  7.835296855774E-10
+         Exc                 :  5.666151992045E-10
+         EVxc                :  9.035829862114E-10
      Distributed data:
        ANACOMPLET:
-         Difference in Inf. Norm:  1.626803253987E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
+         Difference in Inf. Norm:  0.000000000000E+00
        XCCOMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             : -5.820766091347E-11
-         Exc                 :  4.002913556178E-10
-         EVxc                :  7.835296855774E-10
+         Exc                 :  5.666151992045E-10
+         EVxc                :  9.035829862114E-10
        COMPLETE:
-         Difference in Inf. Norm:  1.626803253987E-02
-          #WARNING:Calculation possibly wrong, check if the diff is meaningful
-         Max. diff coordinates:  [  1,  63,  25 ]
-         Result              : -3.503573258843E+02
-         Original            : -3.503735939168E+02
+         Difference in Inf. Norm:  0.000000000000E+00
+         Max. diff coordinates:  [  1,  1,  1 ]
+         Result              : -3.619307139092E+02
+         Original            : -3.619307139092E+002
        Energy differences:
          Hartree             : -5.820766091347E-11
-         Exc                 :  4.002913556178E-10
-         EVxc                :  7.835296855774E-10
+         Exc                 :  5.666151992045E-10
+         EVxc                :  9.035829862114E-10
  Timings for root process:
-   CPU time (s)              :  0.78
-   Elapsed time (s)          :  0.78
+   CPU time (s)              :  1.81
+   Elapsed time (s)          :  1.82
  Memory Consumption Report:
-   Tot. No. of Allocations  : 2456
-   Tot. No. of Deallocations: 2456
+   Tot. No. of Allocations  : 2662
+   Tot. No. of Deallocations: 2662
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 25
+      Peak Value (MB): 26
       for the array: exci
       in the routine: xc_energy

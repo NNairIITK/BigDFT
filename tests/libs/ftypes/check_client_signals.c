@@ -3,7 +3,11 @@
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 
+#include <config.h>
+#undef HAVE_GDBUS
+
 #include "bigdft.h"
+
 
 #ifdef HAVE_GDBUS
 #include "bindings_dbus.h"
@@ -119,7 +123,7 @@ static void onDenspotReceived(GObject *obj, GAsyncResult *res, gpointer user_dat
   guint i, size, kind;
   const double *vals;
   double charge;
-  BigDFT_LocReg *glr = BIGDFT_LOCREG(BIGDFT_WF(user_data)->lzd);
+  BigDFT_Locreg *glr = BIGDFT_LOCREG(BIGDFT_WF(user_data)->lzd);
 
   error = (GError*)0;
   if (!bigdft_dbus_local_fields_call_get_denspot_finish(BIGDFT_DBUS_LOCAL_FIELDS(obj),
@@ -155,7 +159,7 @@ static void onDenspotReady(BigdftDBusLocalFields *denspot, guint iter,
   guint i, size/* , kind */;
   const double *vals;
   double charge;
-  BigDFT_LocReg *glr = BIGDFT_LOCREG(BIGDFT_WF(user_data)->lzd);
+  BigDFT_Locreg *glr = BIGDFT_LOCREG(BIGDFT_WF(user_data)->lzd);
 
   g_print("Callback for 'dens-pot-ready' signal at iter %d for denspot %d.\n", iter, kind);
   /* Pulling data as a test. */
@@ -280,7 +284,7 @@ static void onPsiReady(BigDFT_Wf *wf, guint iter, GArray *psic, BigDFT_PsiId ips
   double *psir, *psii;
   guint i, n;
   double minDens, maxDens, norm;
-  BigDFT_LocReg *lr;
+  BigDFT_Locreg *lr;
 
   if (ipsi != BIGDFT_PSI)
     return;
@@ -365,7 +369,9 @@ int main(int argc, const char **argv)
   BigDFT_Energs *energs;
   BigDFT_OptLoop *optloop;
   BigDFT_SignalsClient *client;
-  double *radii;
+  GArray *radii;
+  char memocc[] = "malloc.prc";
+  int memocc_ln = sizeof(memocc);
 
   /* GSource *source; */
 
@@ -374,6 +380,8 @@ int main(int argc, const char **argv)
 #if GLIB_MINOR_VERSION < 24
   g_thread_init(NULL);
 #endif
+
+  FC_FUNC_(memocc_set_output, MEMOCC_SET_OUTPUT)(memocc, &memocc_ln, memocc_ln);
 
   loop = g_main_loop_new (NULL, FALSE);
 
@@ -395,7 +403,7 @@ int main(int argc, const char **argv)
   bigdft_atoms_set_psp(BIGDFT_ATOMS(wf->lzd), in->ixc, in->nspin, (const gchar*)0);
   radii = bigdft_atoms_get_radii(BIGDFT_ATOMS(wf->lzd), in->crmult, in->frmult, 0.);
   bigdft_locreg_set_radii(BIGDFT_LOCREG(wf->lzd), radii);
-  g_free(radii);
+  g_array_unref(radii);
   bigdft_locreg_set_size(BIGDFT_LOCREG(wf->lzd), in->h, in->crmult, in->frmult);
   bigdft_lzd_init_d(wf->lzd);
   bigdft_locreg_init_wfd(BIGDFT_LOCREG(wf->lzd));

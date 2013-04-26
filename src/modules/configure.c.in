@@ -1,0 +1,116 @@
+#include <string.h>
+
+#include <config.h>
+
+/* Configure arguments. */
+static char ARGS[] = "@CONFIG_ARGS@";
+
+/* Compilers. */
+static char CC[]  = "@CC@";
+static char FC[]  = "@FC@";
+static char CXX[] = "@CXX@";
+
+/* Compiler flags. */
+static char CFLAGS[]   = "@CFLAGS@";
+static char FCFLAGS[]  = "@FCFLAGS@";
+static char CXXFLAGS[] = "@CXXFLAGS@";
+static char CPPFLAGS[] = "@CPPFLAGS@";
+
+/* Linker stuff. */
+static char LD[]        = "@LD@";
+static char LDFLAGS[]   = "@LDFLAGS@";
+static char LIBS[]      = "@LIBS@";
+static char LIBS_DEPS[] = "@LIBS_SHORT_DEPS@";
+
+#define TRUNCATED "(...)"
+
+
+void FC_FUNC(bigdft_config_get_user_args, BIGDFT_CONFIG_GET_USER_ARGS)
+     (char *args, unsigned int *ln, int args_ln)
+{
+  memset(args, ' ', sizeof(char) * *ln);
+  if (sizeof(ARGS) <= *ln)
+    memcpy(args, ARGS, sizeof(ARGS)-1);
+  else if (*ln > sizeof(TRUNCATED))
+    memcpy(args, TRUNCATED, sizeof(TRUNCATED)-1);
+}
+
+void FC_FUNC(bigdft_config_get_compilers, BIGDFT_CONFIG_GET_COMPILERS)
+     (char *cc, char *fc, char *cxx, unsigned int *ln, int cc_ln, int fc_ln, int cxx_ln)
+{
+  memset(cc, ' ', sizeof(char) * *ln);
+  if (sizeof(CC) <= *ln)
+    memcpy(cc, CC, sizeof(CC)-1);
+  else if (*ln > sizeof(TRUNCATED))
+    memcpy(cc, TRUNCATED, sizeof(TRUNCATED)-1);
+
+  memset(fc, ' ', sizeof(char) * *ln);
+  if (sizeof(FC) <= *ln)
+    memcpy(fc, FC, sizeof(FC) - 1);
+  else if (*ln > sizeof(TRUNCATED))
+    memcpy(fc, TRUNCATED, sizeof(TRUNCATED) - 1);
+
+  memset(cxx, ' ', sizeof(char) * *ln);
+  if (sizeof(CXX) <= *ln)
+    memcpy(cxx, CXX, sizeof(CXX) - 1);
+  else if (*ln > sizeof(TRUNCATED))
+    memcpy(cxx, TRUNCATED, sizeof(TRUNCATED) - 1);
+}
+
+void FC_FUNC(bigdft_config_get_compiler_flags, BIGDFT_CONFIG_GET_COMPILER_FLAGS)
+     (char *cflags, char *fcflags, char *cxxflags, char *cppflags, unsigned int *ln,
+      int c_ln, int fc_ln, int cxx_ln, int cpp_ln)
+{
+  memset(cflags, ' ', sizeof(char) * *ln);
+  if (sizeof(CFLAGS) <= *ln)
+    memcpy(cflags, CFLAGS, sizeof(CFLAGS) - 1);
+  else if (*ln > sizeof(TRUNCATED))
+    memcpy(cflags, TRUNCATED, sizeof(TRUNCATED) - 1);
+
+  memset(fcflags, ' ', sizeof(char) * *ln);
+  if (sizeof(FCFLAGS) <= *ln)
+    memcpy(fcflags, FCFLAGS, sizeof(FCFLAGS) - 1);
+  else if (*ln > sizeof(TRUNCATED))
+    memcpy(fcflags, TRUNCATED, sizeof(TRUNCATED) - 1);
+
+  memset(cxxflags, ' ', sizeof(char) * *ln);
+  if (sizeof(CXXFLAGS) <= *ln)
+    memcpy(cxxflags, CXXFLAGS, sizeof(CXXFLAGS) - 1);
+  else if (*ln > sizeof(TRUNCATED))
+    memcpy(cxxflags, TRUNCATED, sizeof(TRUNCATED) - 1);
+
+  memset(cppflags, ' ', sizeof(char) * *ln);
+  if (sizeof(CPPFLAGS) <= *ln)
+    memcpy(cppflags, CPPFLAGS, sizeof(CPPFLAGS) - 1);
+  else if (*ln > sizeof(TRUNCATED))
+    memcpy(cppflags, TRUNCATED, sizeof(TRUNCATED) - 1);
+}
+
+void FC_FUNC(bigdft_config_get_linker, BIGDFT_CONFIG_GET_LINKER)
+     (char *ld, char *ldflags, char *libs, char *libs_deps, unsigned int *ln,
+      int ld_ln, int ldflags_ln, int libs_ln, int libs_deps_ln)
+{
+  memset(ld, ' ', sizeof(char) * *ln);
+  if (sizeof(LD) <= *ln)
+    memcpy(ld, LD, sizeof(LD) - 1);
+  else if (*ln > sizeof(TRUNCATED))
+    memcpy(ld, TRUNCATED, sizeof(TRUNCATED) - 1);
+
+  memset(ldflags, ' ', sizeof(char) * *ln);
+  if (sizeof(LDFLAGS) <= *ln)
+    memcpy(ldflags, LDFLAGS, sizeof(LDFLAGS) - 1);
+  else if (*ln > sizeof(TRUNCATED))
+    memcpy(ldflags, TRUNCATED, sizeof(TRUNCATED) - 1);
+
+  memset(libs, ' ', sizeof(char) * *ln);
+  if (sizeof(LIBS) <= *ln)
+    memcpy(libs, LIBS, sizeof(LIBS) - 1);
+  else if (*ln > sizeof(TRUNCATED))
+    memcpy(libs, TRUNCATED, sizeof(TRUNCATED) - 1);
+
+  memset(libs_deps, ' ', sizeof(char) * *ln);
+  if (sizeof(LIBS_DEPS) <= *ln)
+    memcpy(libs_deps, LIBS_DEPS, sizeof(LIBS_DEPS) - 1);
+  else if (*ln > sizeof(TRUNCATED))
+    memcpy(libs_deps, TRUNCATED, sizeof(TRUNCATED) - 1);
+}

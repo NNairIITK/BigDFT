@@ -1,7 +1,7 @@
 !> @file
-!! Contains routines for the executable splined_saddle
+!! Contains routines for the executable splined_saddle (search of saddle point)
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group (AG)
+!!    Copyright (C) 2010-2013 BigDFT group (AG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -18,90 +18,106 @@ program splined_saddle
   use yaml_output
   implicit none
   character(len=*), parameter :: subname='BigDFT'
-  integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
+  integer :: iproc,nproc,i_stat,i_all,ierr,infocode
   integer :: ncount_bigdft
-  real(gp) :: etot,sumx,sumy,sumz,fnoise
-  logical :: exist_list
+  real(gp) :: etot,fnoise
+!!$ logical :: exist_list
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(restart_objects) :: rst
-  character(len=50), dimension(:), allocatable :: arr_posinp
-  character(len=60) :: radical
+  character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
+  character(len=60) :: run_id
   !character(len=60) :: filename
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
-  integer :: iconfig,nconfig,istat
+  integer :: iconfig,nconfig!,istat
   real(gp), dimension(:,:), allocatable :: ratsp,fatsp 
   real(gp), dimension(6) :: strten
+  integer, dimension(4) :: mpi_info
   !include 'mpif.h' !non-BigDFT
 
-  ! Start MPI in parallel version
-  !in the case of MPIfake libraries the number of processors is automatically adjusted
-  call MPI_INIT(ierr)
-  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
-
-  call memocc_set_memory_limit(memorylimit)
-
-  ! Read a possible radical format argument.
-  call get_command_argument(1, value = radical, status = istat)
-  if (istat > 0) then
-     write(radical, "(A)") "input"
-  end if
-
-!!$  !open unit for yaml output
+!!$  ! Start MPI in parallel version
+!!$  !in the case of MPIfake libraries the number of processors is automatically adjusted
+!!$  call MPI_INIT(ierr)
+!!$  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+!!$  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+!!$
+!!$  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+!!$
+!!$  call memocc_set_memory_limit(memorylimit)
+!!$
+!!$  ! Read a possible radical format argument.
+!!$  call get_command_argument(1, value = radical, status = istat)
 !!$  if (istat > 0) then
-!!$     if (iproc ==0) call yaml_set_stream(unit=70,filename='log.yaml')
-!!$  else
-!!$     if (iproc ==0) call yaml_set_stream(unit=70,filename='log-'//trim(radical)//'.yaml')
+!!$     write(radical, "(A)") "input"
 !!$  end if
-  if (iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
+!!$
+!!$  if (iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
+!!$
+!!$!
+!!$!    call system("echo $HOSTNAME")
+!!$!
+!!$  ! find out which input files will be used
+!!$  inquire(file="list_posinp",exist=exist_list)
+!!$  if (exist_list) then
+!!$     open(54,file="list_posinp")
+!!$     read(54,*) nconfig
+!!$     if (nconfig > 0) then 
+!!$        !allocation not referenced since memocc count not initialised
+!!$        allocate(arr_posinp(1:nconfig))
+!!$
+!!$        do iconfig=1,nconfig
+!!$           read(54,*) arr_posinp(iconfig)
+!!$        enddo
+!!$     else
+!!$        nconfig=1
+!!$        allocate(arr_posinp(1:1))
+!!$     endif
+!!$     close(54)
+!!$  else
+!!$     nconfig=1
+!!$     allocate(arr_posinp(1:1))
+!!$  end if
 
-!
-!    call system("echo $HOSTNAME")
-!
-  ! find out which input files will be used
-  inquire(file="list_posinp",exist=exist_list)
-  if (exist_list) then
-     open(54,file="list_posinp")
-     read(54,*) nconfig
-     if (nconfig > 0) then 
-        !allocation not referenced since memocc count not initialised
-        allocate(arr_posinp(1:nconfig))
+  !-finds the number of taskgroup size
+  !-initializes the mpi_environment for each group
+  !-decides the radical name for each run
+  call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
-        do iconfig=1,nconfig
-           read(54,*) arr_posinp(iconfig)
-        enddo
-     else
-        nconfig=1
-        allocate(arr_posinp(1:1))
-        arr_posinp(1)='posinp'
-     endif
-     close(54)
-  else
-     nconfig=1
-     allocate(arr_posinp(1:1))
-     arr_posinp(1)='posinp'
-  end if
+  !just for backward compatibility
+  iproc=mpi_info(1)
+  nproc=mpi_info(2)
 
-  do iconfig=1,nconfig
 
-     !welcome screen
-!     if (iproc==0) call print_logo()
+   !allocate arrays of run ids
+  allocate(arr_radical(abs(nconfig)))
+  allocate(arr_posinp(abs(nconfig)))
+   
+  !here we call  a routine which
+  ! Read a possible radical format argument.
+  call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
+  
+  do iconfig=1,abs(nconfig)
+      if (modulo(iconfig-1,mpi_info(4))==mpi_info(3)) then
 
-     ! Read all input files.
-     !standard names
-     call standard_inputfile_names(inputs,radical,nproc)
-     call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
-     !-----------------------------------------------------------
-     !-----------------------------------------------------------
-     if (iproc == 0) then
-        call print_general_parameters(nproc,inputs,atoms)
-     end if
+         ! Read all input files. This should be the sole routine which is called to initialize the run.
+         call bigdft_set_input(arr_radical(iconfig),arr_posinp(iconfig),rxyz,inputs,atoms)
+
+!!$     !welcome screen
+!!$!     if (iproc==0) call print_logo()
+!!$
+!!$     ! Read all input files.
+!!$     !standard names
+!!$     call standard_inputfile_names(inputs,radical,nproc)
+!!$     call read_input_variables(iproc,nproc,arr_posinp(iconfig),inputs, atoms, rxyz,nconfig,radical,istat)
+!!$     !-----------------------------------------------------------
+!!$     !-----------------------------------------------------------
+!!$     if (iproc == 0) then
+!!$        call print_general_parameters(nproc,inputs,atoms)
+!!$     end if
 
      open(unit=16,file=trim(inputs%dir_output)//'geopt.mon',status='unknown',position='append')
      if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
@@ -113,7 +129,7 @@ program splined_saddle
      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz,'fxyz',subname)
 
-     call init_restart_objects(iproc,inputs%matacc,atoms,rst,subname)
+     call init_restart_objects(iproc,inputs,atoms,rst,subname)
 
      !if other steps are supposed to be done leave the last_run to minus one
      !otherwise put it to one
@@ -123,7 +139,6 @@ program splined_saddle
      end if
  
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
-
 
      if (inputs%ncount_cluster_x > -1) then
         if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
@@ -149,33 +164,7 @@ program splined_saddle
      end if
 
 
-     if (iproc == 0) then
-        sumx=0.d0
-        sumy=0.d0
-        sumz=0.d0
-        write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
-        do iat=1,atoms%nat
-           write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-                iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
-           sumx=sumx+fxyz(1,iat)
-           sumy=sumy+fxyz(2,iat)
-           sumz=sumz+fxyz(3,iat)
-        enddo
-!!$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-!!$           write(*,'(1x,a)')'the sum of the forces is'
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-!!$        end if
-     endif
-
-     call deallocate_atoms(atoms,subname) 
-
-!     call deallocate_local_zone_descriptors(rst%Lzd, subname) 
-     if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &
-          & call deallocateBasicArraysInput(inputs%lin)
-
-     call free_restart_objects(rst,subname)
+     if (iproc == 0) call write_forces(atoms,fxyz)
 
      i_all=-product(shape(rxyz))*kind(rxyz)
      deallocate(rxyz,stat=i_stat)
@@ -184,17 +173,34 @@ program splined_saddle
      deallocate(fxyz,stat=i_stat)
      call memocc(i_stat,i_all,'fxyz',subname)
 
-     call free_input_variables(inputs)
-     !-----------------------------------------------------------
 
-     !finalize memory counting
-     call memocc(0,0,'count','stop')
+     call free_restart_objects(rst,subname)
 
-  enddo !loop over iconfig
+     call deallocate_atoms(atoms,subname) 
 
-  deallocate(arr_posinp)
+     call bigdft_free_input(inputs)
 
-  call MPI_FINALIZE(ierr)
+!!$
+!!$     call deallocate_atoms(atoms,subname) 
+!!$
+!!$!     call deallocate_local_zone_descriptors(rst%Lzd, subname) 
+!!$     if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &
+!!$          & call deallocateBasicArraysInput(inputs%lin)
+!!$
+!!$     call free_restart_objects(rst,subname)
+!!$
+!!$
+!!$     call free_input_variables(inputs)
+!!$     !-----------------------------------------------------------
+!!$
+!!$     !finalize memory counting
+!!$     call memocc(0,0,'count','stop')
+  end if
+enddo !loop over iconfig
+
+  deallocate(arr_posinp,arr_radical)
+
+  call bigdft_finalize(ierr)
 
 end program splined_saddle
 

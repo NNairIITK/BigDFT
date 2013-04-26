@@ -66,6 +66,9 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   !gpu acceleration
   kernel%igpu=igpu  
 
+  kernel%initCufftPlan = 0
+  kernel%keepGPUmemory = 1
+
   if (iproc == 0 .and. verb) then 
      if (mu0t==0.0_gp) then 
         call yaml_comment('Kernel Initialization',hfill='-')
@@ -76,7 +79,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      end if
   end if
   
-  !import the mpi_environemnt if present
+  !import the mpi_environment if present
   if (present(mpi_env)) then
      kernel%mpi_env=mpi_env
   else
@@ -91,7 +94,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   if (kernel%mpi_env%iproc == 0 .and. kernel%mpi_env%igroup == 0 .and. verb) then
      !$ nthreads = omp_get_max_threads()
      call yaml_map('MPI tasks',kernel%mpi_env%nproc)
-     if (nthreads /=0) call yaml_map('OpenMP threads per task',nthreads)
+     if (nthreads /=0) call yaml_map('OpenMP threads per MPI task',nthreads)
      if (kernel%igpu==1) call yaml_map('Kernel copied on GPU',.true.)
      call yaml_close_map() !kernel
   end if
@@ -115,9 +118,17 @@ subroutine pkernel_free(kernel,subname)
   !free GPU data
   if (kernel%igpu == 1) then
     if (kernel%mpi_env%iproc == 0) then
-     call cudafree(kernel%work1_GPU)
-     call cudafree(kernel%work2_GPU)
+     if (kernel%keepGPUmemory == 1) then
+       call cudafree(kernel%work1_GPU)
+       call cudafree(kernel%work2_GPU)
+     endif
      call cudafree(kernel%k_GPU)
+     if (kernel%initCufftPlan == 1) then
+       call cufftDestroy(kernel%plan(1))
+       call cufftDestroy(kernel%plan(2))
+       call cufftDestroy(kernel%plan(3))
+       call cufftDestroy(kernel%plan(4))
+     endif
     endif
   end if
   
@@ -261,7 +272,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      if (kernel%igpu == 2) then
        allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
      else
-       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+       !allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+       allocate(kernel%kernel(nd1*nd2*(nd3/kernelnproc)+ndebug),stat=i_stat)
      endif
 
      call memocc(i_stat,kernel%kernel,'kernel',subname)
@@ -286,7 +298,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      if (kernel%igpu == 2) then
        allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
      else
-       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+       allocate(kernel%kernel(nd1*nd2*(nd3/kernelnproc)+ndebug),stat=i_stat)
      endif
 
      call Wires_Kernel(kernel%mpi_env%iproc,kernelnproc,&
@@ -380,10 +392,12 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
    if (kernel%mpi_env%iproc == 0) then
     if (kernel%igpu == 1) then
-      call cudamalloc(size2,kernel%work1_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
-      call cudamalloc(size2,kernel%work2_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (kernel%keepGPUmemory == 1) then
+        call cudamalloc(size2,kernel%work1_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(size2,kernel%work2_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      endif
       call cudamalloc(sizek,kernel%k_GPU,i_stat)
       if (i_stat /= 0) print *,'error cudamalloc',i_stat
     endif
@@ -434,12 +448,15 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
     if (kernel%igpu == 1) then 
       call reset_gpu_data((n1/2+1)*n2*n3,pkernel2,kernel%k_GPU)
 
+      if (dump) call yaml_map('Kernel Copied on GPU',.true.)
+
       n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
       n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
       n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
 
-      call cuda_3d_psolver_general_plan(n,kernel%plan,switch_alg,kernel%geo)
-     if (dump) call yaml_map('Kernel Copied on GPU',.true.)
+      if (kernel%initCufftPlan == 1) then
+        call cuda_3d_psolver_general_plan(n,kernel%plan,switch_alg,kernel%geo)
+      endif
     endif
 
     i_all=-product(shape(pkernel2))*kind(pkernel2)

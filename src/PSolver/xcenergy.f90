@@ -13,11 +13,12 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore) 
   !n(c) use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp 
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
-  real(dp), dimension(n1i*n2i*n3d,0:3), intent(inout) :: rhocore
+  real(dp), dimension(n1i*n2i*n3d,0:9), intent(inout) :: rhocore
   !local variables
   !n(c) character(len=*), parameter :: subname='calc_rhocore'
   real(gp), parameter :: oneo4pi=.079577471545947_wp
@@ -71,7 +72,8 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   !close(unit=79)
 
  
-  if (iproc == 0) write(*,'(1x,a,f12.6)',advance='no')' analytic core charge: ',chc-chv
+  if (iproc == 0) call yaml_map('Analytic core charge',chc-chv,fmt='(f12.6)')
+  !if (iproc == 0) write(*,'(1x,a,f12.6)',advance='no')' analytic core charge: ',chc-chv
 
   !conditions for periodicity in the three directions
   perx=(atoms%geocode /= 'F')
@@ -140,9 +142,9 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                           ilcc=ilcc+1
                           !arg=r2/rhocxp(ig)**2
                           rhoc=rhoc+&
-                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(:,ilcc),0)
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),0)
                           drhoc=drhoc+&
-                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(:,ilcc),1)
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
                           !(rhocc(ig,1)+r2*rhocc(ig,2)+r2**2*rhocc(ig,3)+r2**3*rhocc(ig,4))*&
                           !     exp(-0.5_gp*arg)
                        end do
@@ -154,6 +156,13 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                        rhocore(ind,1)=rhocore(ind,1)+x*drhodr2*oneo4pi
                        rhocore(ind,2)=rhocore(ind,2)+y*drhodr2*oneo4pi
                        rhocore(ind,3)=rhocore(ind,3)+z*drhodr2*oneo4pi
+!stress components
+                       rhocore(ind,4)=rhocore(ind,4)+x*x*drhodr2*oneo4pi
+                       rhocore(ind,5)=rhocore(ind,5)+y*y*drhodr2*oneo4pi
+                       rhocore(ind,6)=rhocore(ind,6)+z*z*drhodr2*oneo4pi
+                       rhocore(ind,7)=rhocore(ind,7)+y*z*drhodr2*oneo4pi
+                       rhocore(ind,8)=rhocore(ind,8)+x*z*drhodr2*oneo4pi
+                       rhocore(ind,9)=rhocore(ind,9)+x*y*drhodr2*oneo4pi
 
 !!$                 !print out the result, to see what happens
 !!$                 if (z==0.0_gp .and. y==0.0_gp) then
@@ -302,11 +311,12 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx
   real(dp), dimension(:,:,:,:), allocatable :: vxci
   real(gp), dimension(:), allocatable :: energies_mpi
   real(dp), dimension(:,:,:,:), pointer :: dvxci
-  real(dp), dimension(6) :: wbstr
+  real(dp), dimension(6) :: wbstr, rhocstr
   call timing(iproc,'Exchangecorr  ','ON')
 
 call to_zero(6,xcstr(1))
 call to_zero(6,wbstr(1))
+call to_zero(6,rhocstr(1))
 
   wrtmsg=.false.
   !calculate the dimensions wrt the geocode
@@ -358,12 +368,13 @@ call to_zero(6,wbstr(1))
   !quick return if no Semilocal XC potential is required (Hartree or Hartree-Fock)
   if (ixc == 0 .or. ixc == 100) then
      if (datacode == 'G') then
-        call to_zero(n01*n02*n03,potxc(1))
+        call to_zero(n01*n02*n03*nspin,potxc(1))
         !call dscal(n01*n02*n03,0.0_dp,potxc,1)
      else
-        call to_zero(n01*n02*nxc,potxc(1))
+        call to_zero(n01*n02*nxc*nspin,potxc(1))
         !call dscal(n01*n02*nxc,0.0_dp,potxc,1)
      end if
+     if (nspin == 2) call axpy(n01*n02*nxc,1.d0,rho(n01*n02*nxc+1),1,rho(1),1)
      exc=0.0_gp
      vxc=0.0_gp
      call timing(iproc,'Exchangecorr  ','OF')
@@ -602,10 +613,17 @@ call to_zero(6,wbstr(1))
 
 !XC-stress term
   if (geocode == 'P') then
+
+        if (associated(rhocore)) then
+        call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
+        call mpiallred(rhocstr(1),6,MPI_SUM,mpi_comm,ierr)
+        rhocstr=rhocstr/real(n01*n02*n03,dp)
+        end if
+
      xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
      call mpiallred(wbstr(1),6,MPI_SUM,mpi_comm,ierr)
      wbstr=wbstr/real(n01*n02*n03,dp)
-     xcstr(:)=xcstr(:)+wbstr(:)
+     xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
   end if
      i_all=-product(shape(energies_mpi))*kind(energies_mpi)
      deallocate(energies_mpi,stat=i_stat)
@@ -664,9 +682,13 @@ call to_zero(6,wbstr(1))
 
 !XC-stress term
    if (geocode == 'P') then
+        if (associated(rhocore)) then
+        call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
+        rhocstr=rhocstr/real(n01*n02*n03,dp)
+        end if
     xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
     wbstr=wbstr/real(n01*n02*n03,dp)
-    xcstr(:)=xcstr(:)+wbstr(:)
+    xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
    end if
 
   end if
@@ -681,17 +703,16 @@ call to_zero(6,wbstr(1))
      call memocc(i_stat,i_all,'dvxci',subname)
   end if
 
-  if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+  !if (iproc==0 .and. wrtmsg) write(*,'(a)')'done.'
 
 END SUBROUTINE XC_potential
 
 
-
-!>    Calculate the XC terms from the given density in a distributed way.
-!!    it assign also the proper part of the density to the zf array 
-!!    which will be used for the core of the FFT procedure.
-!!    Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
-!!    to the XC potential, or even ignored.
+!> Calculate the XC terms from the given density in a distributed way.
+!! it assign also the proper part of the density to the zf array 
+!! which will be used for the core of the FFT procedure.
+!! Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
+!! to the XC potential, or even ignored.
 !!
 !! SYNOPSIS
 !!    geocode  Indicates the boundary conditions (BC) of the problem:
@@ -736,7 +757,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
 
   implicit none
 
-  !Arguments----------------------
+  !Arguments
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,ixc,nspden
   integer, intent(in) :: nwbl,nwbr,order,ndvxc
@@ -1521,7 +1542,7 @@ subroutine wb_stress(n1,n2,n3,n3eff,wbl,nsp,f_i,gradient,wbstr)
  integer :: i1,i2,i3,isp
 
 wbstr=0._dp
-!seq: 11 22 33 12 13 23
+!seq: 11 22 33 23 13 12
 do isp=1,nsp
            do i3=wbl,n3eff+wbl-1
               do i2=1,n2
@@ -1546,3 +1567,35 @@ if (nsp==1) wbstr=wbstr*2._gp
 !write(*,*) wbstress(4:6)
 
 end subroutine wb_stress
+
+subroutine calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
+ use module_base
+ implicit none
+ real(dp),dimension(6),intent(out) :: rhocstr
+ integer,intent(in) :: nxc,nxt,m1,m3,i3xcsh_fake,nspin
+ real(wp), dimension(m1,m3,nxt,10), intent(in) :: rhocore
+ real(wp), dimension(m1*m3*nxc*nspin), intent(in) :: potxc
+ integer :: i,i1,i2,i3,isp
+
+rhocstr=0._dp
+!seq: 11 22 33 23 13 12
+
+do isp=0,nspin-1
+     do i3=1,nxc
+        do i2=1,m3
+           do i1=1,m1
+              i=i1+(i2-1)*m1+(i3-1)*m1*m3
+rhocstr(1)=rhocstr(1)+rhocore(i1,i2,i3+i3xcsh_fake,5)*potxc(i+m1*m3*nxc*isp)
+rhocstr(2)=rhocstr(2)+rhocore(i1,i2,i3+i3xcsh_fake,6)*potxc(i+m1*m3*nxc*isp)
+rhocstr(3)=rhocstr(3)+rhocore(i1,i2,i3+i3xcsh_fake,7)*potxc(i+m1*m3*nxc*isp)
+rhocstr(4)=rhocstr(4)+rhocore(i1,i2,i3+i3xcsh_fake,8)*potxc(i+m1*m3*nxc*isp)
+rhocstr(5)=rhocstr(5)+rhocore(i1,i2,i3+i3xcsh_fake,9)*potxc(i+m1*m3*nxc*isp)
+rhocstr(6)=rhocstr(6)+rhocore(i1,i2,i3+i3xcsh_fake,10)*potxc(i+m1*m3*nxc*isp)
+           end do
+        end do
+     end do
+end do
+
+if (nspin==1) rhocstr(:)=rhocstr(:)*2._gp
+
+end subroutine calc_rhocstr

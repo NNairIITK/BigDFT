@@ -2,7 +2,7 @@
      ================= -->
 
 <!--
-     Copyright (C) 2008-2012 BigDFT Group
+     Copyright (C) 2008-2013 BigDFT Group
 
      This file is part of BigDFT.
 
@@ -22,32 +22,14 @@
      Boston, MA 02111-1307, USA.
 -->
 
-<p>BigDFT is a <a href="http://en.wikipedia.org/wiki/Density_functional_theory" class="external">DFT</a> 
-  massively parallel electronic structure code using a wavelet basis set.
-  It was developed in an <a href="Project/index.html">European program</a>.
-  Wavelets form a real space basis set distributed on an adaptive mesh (two
-  levels of resolution in  our implementation). <a href="http://www.abinit.org/Psps/?text=../Psps/LDA_GTH/lda" class="external">GTH</a> or
-  <a href="http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/Goedecker/abinit/pbe/"
-     class="external">HGH</a> pseudopotentials are used to remove the core electrons.
-  Thanks to our Poisson solver based on a Green function formalism,  
-  periodic systems, surfaces and isolated systems can be simulated with  
-  the proper boundary conditions.</p>
-
-<p>BigDFT is a <a class="external" href="http://www.gnu.org/licenses/gpl.html">
-    GPL</a> software, go to the <a href="download.html">download page</a> to
-  obtain it and read the <a href="install.html">installation page</a>.
-
-<p>A <a href="BigDFT-manual.pdf"><img src="images/pdf-icon.png" class="icon" />
-    manual</a> and some <a href="tutorials.html">tutorials</a> are also available.
-  BigDFT is shipped with several built-in tests providing extensive
-  examples of input files and capabilities.</p>
-
-<p>The code BigDFT is available in
-  <a href="http://www.abinit.org" class="external">ABINIT</a>, 
-  v5.5 and higher but can also be downloaded in a standalone version from
-  <a href="http://inac.cea.fr/L_Sim/BigDFT">this website</a>. The Poisson
-  solver can also be downloaded and used independently. The
-  Poisson solver is integrated in 
-  <a href="http://www.abinit.org">ABINIT</a>, 
-  <a href="http://www.tddft.org/programs/octopus/wiki">Octopus</a> and
-  <a href="http://cp2k.berlios.de">CP2K</a>.</p>
+<!-- This file is written in the MediaWiki syntax, to be published on
+     http://bigdft.org -->
+BigDFT is a [//en.wikipedia.org/wiki/Density_functional_theory DFT] 
+massively parallel electronic structure code ([//www.gnu.org/licenses/gpl.html GPL] license) using a wavelet basis set.
+Wavelets form a real space basis set distributed on an adaptive mesh (two
+levels of resolution in  our implementation). [//www.abinit.org/Psps/?text=../Psps/LDA_GTH/lda GTH] or
+[//cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/Goedecker/abinit/pbe/ HGH]
+pseudopotentials are used to remove the core electrons.
+Thanks to our Poisson solver based on a Green function formalism,  
+periodic systems, surfaces and isolated systems can be simulated with  
+the proper boundary conditions.

@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.19],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.26],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -80,9 +80,14 @@ if test "$ar" = ":" ; then
   AC_MSG_ERROR(["No 'ar' program found."])
 fi
 
+dnl Produce dynamic excecutables.
+AC_ARG_ENABLE(dynamic-binaries, AS_HELP_STRING([--enable-dynamic-binaries],
+                                               [Build dynamically linked binaries (disabled by default).]),
+              ac_build_dynamic=$enableval, ac_build_dynamic="no")
+
 dnl Look for GLib and friends for bindings.
-AC_ARG_ENABLE(bindings, AS_HELP_STRING([--disable-bindings], [Don't build C bindings (enabled by default).]),
-              ac_build_bindings=$enableval, ac_build_bindings="yes")
+AC_ARG_ENABLE(bindings, AS_HELP_STRING([--enable-bindings], [Build C bindings (disabled by default).]),
+              ac_build_bindings=$enableval, ac_build_bindings="no")
 if test x"$ac_build_bindings" = x"yes" ; then
   AX_FC_POINTER()
   if test $F90_1D_POINTER_SIZE = 0 ; then
@@ -96,10 +101,60 @@ AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
 if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
   PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [have_glib=yes], [have_glib=no])
   PKG_CHECK_MODULES(GDBUS, gio-2.0 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
+  dnl Merge GLIB_LIBS and GDBUS_LIBS if GDBUS is available.
+  if test "$have_gdbus" = "yes" ; then
+    GLIB_LIBS=$GDBUS_LIBS
+  fi
+  PKG_CHECK_MODULES([GOBJECT_INTROSPECTION],
+                    [gobject-introspection-1.0 >= 0.9],
+                    [enable_introspection=yes],
+                    [enable_introspection=no])
+  if test "x$enable_introspection" = "xyes" ; then
+    dnl girdir=$($PKG_CONFIG --variable=girdir gobject-introspection-1.0)
+    dnl typelibsdir=$($PKG_CONFIG --variable=typelibdir gobject-introspection-1.0)
+    girdir="$datadir/gir-1.0"
+    typelibsdir="$libdir/girepository-1.0"
+    AC_SUBST(girdir)
+    AC_SUBST(typelibsdir)
+    AC_SUBST([G_IR_SCANNER], [$($PKG_CONFIG --variable=g_ir_scanner gobject-introspection-1.0)])
+    AC_SUBST([G_IR_COMPILER], [$($PKG_CONFIG --variable=g_ir_compiler gobject-introspection-1.0)])
+    dnl Force dynamic library building.
+    ac_build_dynamic="yes"
+  fi
 else
   have_glib=no
   have_gdbus=no
+  enable_introspection=no
 fi
+dnl Test for library building tools.
+if test x"$ac_build_dynamic" = x"yes" ; then
+  AX_FLAG_PIC()
+  if test -z "$ax_flag_pic" ; then
+    AC_MSG_WARN(["No available position-independent code flag, bindings disabled."])
+    ac_build_dynamic=no
+    ac_build_bindings=warn
+    have_glib=no
+    have_gdbus=no
+    enable_introspection=no
+  else
+    case $CFLAGS   in *"$ax_flag_pic"*) ;; *) CFLAGS="$CFLAGS $ax_flag_pic";; esac
+    case $CXXFLAGS in *"$ax_flag_pic"*) ;; *) CXXFLAGS="$CXXFLAGS $ax_flag_pic";; esac
+    case $FCFLAGS  in *"$ax_flag_pic"*) ;; *) FCFLAGS="$FCFLAGS $ax_flag_pic";; esac
+
+    eval "set x $ac_configure_args"
+    shift
+    ac_configure_args=
+    for ac_arg ; do
+      case $ac_arg in
+        CFLAGS=* | CXXFLAGS=* | FCFLAGS=*) ;;
+        *) ac_configure_args="$ac_configure_args '$ac_arg'"
+      esac
+    done
+    ac_configure_args="$ac_configure_args 'CFLAGS=$CFLAGS' 'CXXFLAGS=$CXXFLAGS' 'FCFLAGS=$FCFLAGS'"
+  fi
+fi
+AM_CONDITIONAL([BUILD_DYNAMIC_LIBS], [test "x$ac_build_dynamic" = "xyes"])
+AM_CONDITIONAL([WITH_GOBJECT_INTROSPECTION], [test "x$enable_introspection" = "xyes"])
 if test x"$have_glib" = x"yes" ; then
   AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
 fi
@@ -437,6 +492,20 @@ if test x"$ac_use_ocl" = "xyes" ; then
 fi
 AM_CONDITIONAL(USE_OCL, test "$ac_use_ocl" = "yes")
 
+dnl Use the OpenCL support
+ac_use_mic="no"
+AC_ARG_ENABLE(intel-mic, AS_HELP_STRING([--enable-intel-mic], [Use MIC implementation for GPU convolutions (disabled by default).]),
+                         ac_use_mic=$enableval, ac_use_mic="no")
+AC_MSG_CHECKING([for Intel MIC support])
+AC_MSG_RESULT([$ac_use_mic])
+AC_ARG_WITH(intel-mic-libs, AS_HELP_STRING([--with-intel-mic-libs], [Link MIC executable with the following addional libraries (default = empty).]), ac_mic_libs=$withval, ac_mic_libs=no)
+if test x"$ac_use_mic" = "xyes" ; then
+  if test x"$ac_mic_libs" != "xno" ; then
+    LDFLAGS_MIC="-offload-option,mic,ld,\"$ac_mic_libs\""
+  fi
+fi
+AM_CONDITIONAL(USE_MIC, test "$ac_use_mic" = "yes")
+
 dnl Use ETSF_IO
 ac_use_etsfio=no
 AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio=no)
@@ -611,8 +680,6 @@ AC_MSG_RESULT([$ac_build_bin_cluster])
 
 
 dnl ---------------------------------------
-dnl Test the linking part only if required.
-if test "$ac_build_bin_cluster" = "yes" ; then
 
 dnl Substitute Lapack and Blas by another specific library
 withlinalg=no
@@ -691,58 +758,102 @@ fi
 dnl Test for Scalapack
 if test x"$withmpi" = x"yes" ; then
 dnl Test for blacs
-dnl Get the lapack library
-ac_blacs=no
-AC_ARG_WITH(blacs, AS_HELP_STRING([--with-blacs], [Link with blacs library (default = no).]), ac_blacs=$withval, ac_blacs=no)
+ac_blacs=-lblacs
+AC_ARG_WITH(blacs, AS_HELP_STRING([--with-blacs], [Link with blacs library (default = no).]), ac_blacs=$withval, ac_blacs=-lblacs)
 AC_ARG_WITH(blacs-path, AS_HELP_STRING([--with-blacs-path], [Give the path of the Blacs library (default = /usr/lib).]),
             ac_blacs_dir=$withval, ac_blacs_dir=)
 if test -n "$ac_blacs_dir" ; then
   LDFLAGS="$LDFLAGS -L$ac_blacs_dir"
 fi
 withblacs=no
-if test	x"$ac_blacs" = x"yes" ; then
-  ac_blacs=blacs
-fi
 if test "$ac_blacs" != "no" ; then
-  AC_CHECK_LIB($ac_blacs, blacs_get, withblacs=yes, withblacs=no,$LINALG_LIBS)
+  case $ac_blacs in
+    -l*)
+    AC_MSG_CHECKING([for blacs libraries])
+    AC_LANG_CONFTEST([AC_LANG_CALL([], [blacs_get])])
+    LIBS_SVG=$LIBS
+    for ac_lib in $ac_blacs '-lblacs -lblacsF77init' '-lblacs-openmpi' '-lblacs-openmpi -lblacsF77init-openmpi'; do
+      LIBS="$ac_lib $LIBS_SVG"
+      AC_LINK_IFELSE([], [ac_blacs=$ac_lib], [ac_blacs="no"])
+      if test x"$ac_blacs" != x"no" ; then
+        break
+      fi
+    done
+    rm conftest*
+    LIBS=$LIBS_SVG
+    AC_MSG_RESULT([$ac_blacs])
+    if test x"$ac_blacs" != x"no" ; then
+      withblacs=yes
+    else
+      withblacs=warn
+    fi
+    ;;
+    *)
+    AC_CHECK_LIB($ac_blacs, blacs_get, withblacs=yes, withblacs=warn,$LINALG_LIBS)
+    ac_blacs=-l$ac_blacs
+    ;;
+  esac
   if test "$withblacs" = "yes"; then
-    LINALG_LIBS="-l$ac_blacs $LINALG_LIBS"
+    LINALG_LIBS="$ac_blacs $LINALG_LIBS"
   fi
 fi
 dnl get the scalapack library
-ac_scalapack=no
-AC_ARG_WITH(scalapack, AS_HELP_STRING([--with-scalapack], [Link with scalapack library (default = no).]), ac_scalapack=$withval, ac_scalapack=no)
+ac_scalapack=-lscalapack
+AC_ARG_WITH(scalapack, AS_HELP_STRING([--with-scalapack], [Link with scalapack library (default = no).]), ac_scalapack=$withval, ac_scalapack=-lscalapack)
 AC_ARG_WITH(scalapack-path, AS_HELP_STRING([--with-scalapack-path], [Give the path of the Scalapack library (default = /usr/lib).]),
             ac_scalapack_dir=$withval, ac_scalapack_dir=)
 if test -n "$ac_scalapack_dir" ; then
   LDFLAGS="$LDFLAGS -L$ac_scalapack_dir"
 fi
 withscalapack=no
-if test	x"$ac_scalapack" = x"yes" ; then
-  ac_scalapack=scalapack
-fi
-if test "$scalapack" != "no" ; then
-  AC_CHECK_LIB($ac_scalapack, pdsygvx, withscalapack=yes, withscalapack=warn,$LINALG_LIBS)
+if test "$ac_scalapack" != "no" ; then
+  case $ac_scalapack in
+    -l*)
+    AC_MSG_CHECKING([for scalapack libraries])
+    AC_LANG_CONFTEST([AC_LANG_CALL([], [pdsygvx])])
+    LIBS_SVG=$LIBS
+    for ac_lib in $ac_scalapack '-lscalapack-openmpi'; do
+      LIBS="$ac_lib $LIBS_SVG"
+      AC_LINK_IFELSE([], [ac_scalapack=$ac_lib], [ac_scalapack="no"])
+      if test x"$ac_scalapack" != x"no" ; then
+        break
+      fi
+    done
+    rm conftest*
+    LIBS=$LIBS_SVG
+    AC_MSG_RESULT([$ac_scalapack])
+    if test x"$ac_scalapack" != x"no" ; then
+      withscalapack=yes
+    else
+      withscalapack=warn
+    fi
+    ;;
+    *)
+    AC_CHECK_LIB($ac_scalapack, pdsygvx, withscalapack=yes, withscalapack=warn,$LINALG_LIBS)
+    ac_scalapack=-l$ac_scalapack
+    ;;
+  esac
   if test "$withscalapack" = "yes"; then
-    LINALG_LIBS="-l$ac_scalapack $LINALG_LIBS"
+    LINALG_LIBS="$ac_scalapack $LINALG_LIBS"
   fi
 fi
    
 fi #end $withmpi = yes
 
 fi #end $withlinalg = no
-
-dnl Fallbacks for linear algebra libraries
-if [ test $withlinalg = "no" && test $withblas = "no" ] ; then
-  AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
-fi
-if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
-  AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation. Linalg: $LINALG_LIBS"])
-fi
 AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
-
-fi # End of the if library compilation
 AM_CONDITIONAL(USE_BLACS, test x"$withscalapack" = x"yes")
+
+dnl Error on the linking part only if required.
+if test "$ac_build_bin_cluster" = "yes" ; then
+  if [ test $withlinalg = "no" && test $withblas = "no" ] ; then
+    AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
+  fi
+  if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
+    AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation. Linalg: $LINALG_LIBS"])
+  fi
+fi # End of the if library compilation
+
 
 dnl Test the libXC library
 ac_internal_libxc="yes"
@@ -873,11 +984,12 @@ AC_CHECK_LIB([rt], [clock_gettime])
 AC_CHECK_FUNCS([clock_gettime])
 AC_LANG_POP(C)
 
-dnl Agregate all the optional libs.
-dnl We always add rt library. To be tested later if necessary.
-LIBS_DEPENDENCIES="$LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $GDBUS_LIBS $MPI_LDFLAGS $MPI_LIBS"
-AC_SUBST(LIBS_DEPENDENCIES, [$LIBS_DEPENDENCIES])
+dnl Agregate all flags.
+LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 
+dnl Agregate all the optional libs.
+LIBS_SHORT_DEPS="\$(top_builddir)/src/flib/libflib.a $LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
+AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 
 dnl Test for the documentation.
 AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes], [no])
@@ -903,6 +1015,8 @@ AC_SUBST(moduledir)
 docdir="${docdir}"
 AC_SUBST(docdir)
 
+AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
+
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
@@ -911,13 +1025,18 @@ libABINIT/src/Makefile
 config/Doxyfile
 src/bigdft-tool
 src/Makefile
+src/flib/Makefile
 src/modules/Makefile
 src/modules/bigdft_cst.h
 src/modules/configure.inc
+src/modules/configure.c
+src/convolutions/Makefile
+src/lib/Makefile
 src/PSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
 src/convolutions-c/Makefile
+src/bindings/Makefile
 src/art/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
@@ -930,12 +1049,14 @@ doc/Makefile
 tests/Makefile
 tests/libs/Makefile
 tests/libs/fft/Makefile
+tests/libs/flib/Makefile
 tests/libs/PSolver/Makefile
 tests/libs/OP2P/Makefile
 tests/libs/xc/Makefile
 tests/libs/OpenCL/Makefile
 tests/libs/CUDA/Makefile
 tests/libs/IO-wf/Makefile
+tests/libs/dsygv/Makefile
 tests/libs/ftypes/Makefile
 tests/libs/psp/Makefile
 tests/DFT/Makefile
@@ -959,7 +1080,6 @@ if test x"$ac_build_libyaml" != x"skip" ; then
 fi
 
 AC_OUTPUT
-
 
 echo "
 BigDFT configure summary:
@@ -985,7 +1105,8 @@ Build:
   Devel. documentation:      $ac_have_doxygen / $ac_devel_doc
 
 Options:
-  Debug version:             $ac_use_debug		
+  Debug version:             $ac_use_debug
+  Max. Memory per task (GB): $MEMORY_LIMIT
   With MPI:                  $ac_use_mpi
    | include dir.:           $MPI_INCLUDE
    | linker flags:           $MPI_LDFLAGS
@@ -997,6 +1118,7 @@ Options:
    | NVidia Cuda Compiler:   $NVCC
    | Cuda flags:             $CUDA_FLAGS
   With OpenCL support:       $ac_use_ocl
+  With Intel MIC support:    $ac_use_mic
   With dgemmsy support:      $ac_use_dgemmsy
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
@@ -1017,7 +1139,7 @@ Options:
    | C flags:                $LIB_YAML_CFLAGS
    | linked libraries:       $LIB_YAML_LIBS
   With GLib and co.:         $have_glib
-   | linked libraries:       $GDBUS_LIBS $GLIB_LIBS
+   | linked libraries:       $GLIB_LIBS
 
 Installation paths:
   Source code location:      ${srcdir}

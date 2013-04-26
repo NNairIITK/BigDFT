@@ -14,16 +14,21 @@ CLEANFILES = op2p_check.out kpts_check.out\
 	overlap_point_to_point.@MODULE_EXT@ OVERLAP_POINT_TO_POINT.@MODULE_EXT@
 
 AM_FCFLAGS = -I$(top_builddir)/src/modules -I$(top_builddir)/src/ @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ 
+AM_LDFLAGS = -L$(top_builddir)/src
+if BUILD_DYNAMIC_LIBS
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+else
+LIBS += @LIBS_SHORT_DEPS@
+endif
 
 op2p_check_SOURCES = mpi_layer.f90 example.f90 
-op2p_check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+op2p_check_LDADD = -lbigdft-1
 
 kpts_check_SOURCES = kpts_check.f90
-kpts_check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+kpts_check_LDADD = -lbigdft-1
 
 mpi_check_SOURCES = mpi_check.f90
-mpi_check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
-
+mpi_check_LDADD = -lbigdft-1
 
 
 op2p_check.out: op2p_check

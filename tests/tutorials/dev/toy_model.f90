@@ -2,6 +2,7 @@ program wvl
 
   use Poisson_Solver
   use BigDFT_API
+  use dynamic_memory
   
   implicit none
 
@@ -19,7 +20,7 @@ program wvl
   type(denspot_distribution)           :: dpcom
   type(GPU_pointers)                   :: GPU
   
-  integer :: i, j, ierr, iproc, nproc, nelec
+  integer :: i, j, ierr, iproc, nproc ,nconfig
   real(dp) :: nrm, epot_sum
   real(gp) :: psoffset
   real(gp), allocatable :: radii_cf(:,:)
@@ -30,28 +31,43 @@ program wvl
   real(wp), dimension(:,:), pointer :: ovrlp
   real(dp), dimension(:,:), pointer :: rho_p
   integer, dimension(:,:,:), allocatable :: irrzon
+  integer, dimension(:), allocatable :: i1test
   real(dp), dimension(:,:,:), allocatable :: phnons
   type(coulomb_operator) :: pkernel
+  !temporary variables
+  integer(kind=8) :: itns
+  integer, dimension(4) :: mpi_info
+  character(len=60) :: run_id
+  character(len=100) :: address,posinp_name
 
-  ! Start MPI in parallel version
-  call MPI_INIT(ierr)
-  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+   !-finds the number of taskgroup size
+   !-initializes the mpi_environment for each group
+   !-decides the radical name for each run
+   call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
-  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+   !just for backward compatibility
+   iproc=mpi_info(1)
+   nproc=mpi_info(2)
+   call bigdft_set_input('posinp','input',rxyz,inputs,atoms)
 
-  if (iproc==0) call print_logo()
+!!$  ! Start MPI in parallel version
+!!$  call MPI_INIT(ierr)
+!!$  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+!!$  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+!!$
+!!$  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+!!$
+!!$  if (iproc==0) call print_logo()
+!!$
+!!$  ! Setup names for input and output files.
+!!$  call standard_inputfile_names(inputs, "toy",nproc)
+!!$  ! Read all input stuff, variables and atomic coordinates and pseudo.
+!!$  !the arguments of this routine should be changed
+!!$  posinp_name='posinp'
+!!$  call read_input_variables(iproc,nproc,posinp_name,inputs, atoms, rxyz,1,'input',0)
 
-  ! Setup names for input and output files.
-  call standard_inputfile_names(inputs, "toy",nproc)
-  ! Read all input stuff, variables and atomic coordinates and pseudo.
-  call read_input_variables(iproc,"posinp",inputs, atoms, rxyz)
-
-
-  ! Setting up the size of the calculation (description of the box and
-  !  calculation area).
   allocate(radii_cf(atoms%ntypes,3))
-  call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf,nelec)
+  call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf)
   
   call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/)) 
   call system_size(iproc,atoms,rxyz,radii_cf,inputs%crmult,inputs%frmult, &
@@ -66,11 +82,7 @@ program wvl
   call check_linear_and_create_Lzd(iproc,nproc,inputs%linear,Lzd,atoms,orbs,inputs%nspin,rxyz)
 
   !grid spacings and box of the density
-  call dpbox_set_box(dpcom,Lzd)
-  !complete dpbox initialization
-  call denspot_communications(iproc,nproc,inputs%ixc,inputs%nspin,&
-       atoms%geocode,inputs%SIC%approach,dpcom)
-
+  call dpbox_set(dpcom,Lzd,iproc,nproc,MPI_COMM_WORLD,inputs,atoms%geocode)
 
   ! Read wavefunctions from disk and store them in psi.
   allocate(orbs%eval(orbs%norb*orbs%nkpts))
@@ -85,7 +97,7 @@ program wvl
 
   ! Some analysis.
   write(*,*) "Proc", iproc, " allocates psi to",max(orbs%npsidim_orbs,orbs%npsidim_comp)
-  call flush(6)
+  call bigdft_utils_flush(unit=6)
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !-------------------------!
@@ -103,7 +115,7 @@ program wvl
      write(*,*) "Proc", iproc, " orbital", orbs%isorb + i, " is of norm ", nrm
   end do
 
-  call flush(6)
+  call bigdft_utils_flush(unit=6)
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !---------------------------!
@@ -145,7 +157,7 @@ program wvl
   call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi, work=w)
   deallocate(w)
 
-  call flush(6)
+  call bigdft_utils_flush(unit=6)
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !-------------------------!
