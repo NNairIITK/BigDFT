@@ -1027,8 +1027,8 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hgrids_old,n_old,& !n(
   logical, dimension(3) :: per
   integer :: i_stat,i_all
   integer, dimension(3) :: nb
-  real(gp) :: dx,dy,dz,mindist,theta
-  real(gp), dimension(3) :: hgridsh,hgridsh_old
+  real(gp) :: mindist,theta
+  real(gp), dimension(3) :: hgridsh,hgridsh_old,da
   real(gp), dimension(3) :: centre,centre_old,centre_new,newz
   !!real(wp) :: dnrm2
   real(wp), dimension(:), allocatable :: ww,wwold
@@ -1121,9 +1121,9 @@ end if
 
      !Calculate the shift of the atom
      !Take into account the modulo operation which should be done for non-isolated BC
-     dx=mindist(per(1),at%alat1,centre_new(1),centre_old(1))
-     dy=mindist(per(2),at%alat2,centre_new(2),centre_old(2))
-     dz=mindist(per(3),at%alat3,centre_new(3),centre_old(3))
+     da(1)=mindist(per(1),at%alat1,centre_new(1),centre_old(1))
+     da(2)=mindist(per(2),at%alat2,centre_new(2),centre_old(2))
+     da(3)=mindist(per(3),at%alat3,centre_new(3),centre_old(3))
      
      ! transform to new structure    
      hgridsh=.5_gp*hgrids
@@ -1148,7 +1148,7 @@ end if
      deallocate(x_phi,stat=i_stat)
      call memocc(i_stat,i_all,'x_phi',subname)
 
-     call field_rototranslation(nd,nrange,y_phi,(/dx,dy,dz/),newz,centre_old,centre_new,theta,&
+     call field_rototranslation(nd,nrange,y_phi,da,newz,centre_old,centre_new,theta,&
           hgridsh_old,(2*n_old+2+2*nb),psifscfold,hgridsh,(2*n+2+2*nb),psifscf)
 
      i_all=-product(shape(y_phi))*kind(y_phi)

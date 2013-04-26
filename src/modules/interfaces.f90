@@ -3688,8 +3688,8 @@ module module_interfaces
          integer, dimension(orbs%norb), optional :: orblist
        end subroutine initialize_linear_from_file
 
-       subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
-       & ns1_old, ns2_old, ns3_old, hgrids_old, lstat, error, nvctr_c_old, nvctr_f_old, &
+       subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old, &
+       & ns_old, hgrids_old, lstat, error, nvctr_c_old, nvctr_f_old, &
        & rxyz_old, nat, locrad, locregCenter, confPotOrder, confPotprefac, onwhichatom)
          use module_base
          use module_types
@@ -3697,7 +3697,7 @@ module module_interfaces
          integer, intent(in) :: unitwf
          logical, intent(in) :: formatted
          integer, intent(out) :: iorb_old
-         integer, intent(out) :: n1_old, n2_old, n3_old, ns1_old, ns2_old, ns3_old
+         integer, dimension(3), intent(out) :: n_old, ns_old
          real(gp), dimension(3), intent(out) :: hgrids_old
          logical, intent(out) :: lstat
          real(wp), intent(out) :: eval
