@@ -21,7 +21,7 @@
 !! Waals energy correction as a sum of damped London potentials.
 module vdwcorrection
 
-  use module_base, only: GP
+  use module_base, only: gp,f_malloc_ptr,f_free_ptr,assignment(=)
 
   implicit none
 
@@ -50,13 +50,19 @@ module vdwcorrection
      REAL(kind=GP), DIMENSION(109) :: NEFF
      !vama: Scale facfor for radii values
      REAL(kind=GP):: RADSCALE
-     !vama: function parameters
+     !vama: function parameters, to be transformed as pointers
      REAL(kind=GP):: S6, S8, SR6, SR8, ALPHA
-     REAL(kind=GP), DIMENSION(MAX_ELEM) :: QATOM
-     REAL(kind=GP), DIMENSION(MAX_ELEM) :: cov_table
-     integer, DIMENSION(MAX_ELEM)       :: MAXCN
-     REAL(kind=GP), DIMENSION(MAX_ELEM,MAX_ELEM) :: R0AB
-     REAL(kind=GP), DIMENSION(MAX_ELEM,MAX_ELEM,MAX_CN,MAX_CN,3) :: C6AB
+!!$     REAL(kind=GP), DIMENSION(MAX_ELEM) :: QATOM
+!!$     REAL(kind=GP), DIMENSION(MAX_ELEM) :: cov_table
+!!$     integer, DIMENSION(MAX_ELEM)       :: MAXCN
+!!$     REAL(kind=GP), DIMENSION(MAX_ELEM,MAX_ELEM) :: R0AB
+!!$     REAL(kind=GP), DIMENSION(MAX_ELEM,MAX_ELEM,MAX_CN,MAX_CN,3) :: C6AB
+     !to be allocated only for the Grimme's D3 correction calculation
+     real(gp), dimension(:), pointer :: qatom
+     real(gp), dimension(:), pointer :: cov_table
+     integer, dimension(:), pointer       :: maxcn
+     real(gp), dimension(:,:), pointer :: r0ab
+     real(gp), dimension(:,:,:,:,:), pointer :: c6ab
   END TYPE VDWPARAMETERS
 
   !> Van der Waals corrections.
@@ -65,6 +71,7 @@ module vdwcorrection
   integer, parameter, public :: VDW_DAMP_WU_YANG_1 = 2
   integer, parameter, public :: VDW_DAMP_WU_YANG_2 = 3
   integer, parameter, public :: VDW_DAMP_GRIMME_D2 = 4
+  integer, parameter, public :: VDW_DAMP_GRIMME_D3 = 5
   character(len = 34), dimension(6), parameter :: vdw_correction_names = &
        & (/ "none                              ",   &
        &    "Damp from Elstner                 ",   &    
@@ -74,6 +81,7 @@ module vdwcorrection
        &    "Damp from Grimme D3               " /)
 
   public :: vdwcorrection_initializeparams
+  public :: vdwcorrection_freeparams
   public :: vdwcorrection_calculate_energy
   public :: vdwcorrection_calculate_forces
   public :: vdwcorrection_warnings
@@ -856,7 +864,20 @@ contains
        enddo
 
     elseif ( dispersion == 5 ) then
+      
+       !allocate memory space for the parameters
+!!$     REAL(kind=GP), DIMENSION(MAX_ELEM) :: QATOM
+!!$     REAL(kind=GP), DIMENSION(MAX_ELEM) :: cov_table
+!!$     integer, DIMENSION(MAX_ELEM)       :: MAXCN
+!!$     REAL(kind=GP), DIMENSION(MAX_ELEM,MAX_ELEM) :: R0AB
+!!$     REAL(kind=GP), DIMENSION(MAX_ELEM,MAX_ELEM,MAX_CN,MAX_CN,3) :: C6AB
+       vdwparams%qatom=f_malloc_ptr(max_elem,id='qatom')
+       vdwparams%cov_table=f_malloc_ptr(max_elem,id='cov_table')
+       vdwparams%maxcn=f_malloc_ptr(max_elem,id='maxcn')
+       vdwparams%r0ab=f_malloc_ptr((/max_elem,max_elem/),id='r0ab')
+       vdwparams%c6ab=f_malloc_ptr((/max_elem,max_elem,max_cn,max_cn,3/),id='c6ab')
 ! vama: added
+
 !! VDW_DAMP_GRIMME_D3
        call init_cov_rad_d3
        call init_r0ab_d3
@@ -870,13 +891,13 @@ contains
        vdwparams%sr8=1.0000_GP
 !!s6,s8,sr6,sr8
        select case (ixc)
-       case(11)            ! pbe
+       case(11,-101130)            ! pbe
           vdwparams%sr6 = 1.217_GP
           vdwparams%s8  = 0.722_GP
        case(14)            ! revpbe
           vdwparams%sr6 = 0.923
           vdwparams%s8 = 1.010
-       case(-406000)       ! pbe0
+       case(-406)       ! pbe0
           vdwparams%sr6 = 1.278_GP
           vdwparams%s8  = 0.928_GP
        case(-170000)       ! b97-d
@@ -885,10 +906,10 @@ contains
        case(-106132)       ! b-p
           vdwparams%sr6 = 1.139_GP
           vdwparams%s8  = 1.683_GP
-       case(-416000)       ! b-lyp
+       case(-416)       ! b-lyp
           vdwparams%sr6 = 1.094_GP
           vdwparams%s8  = 1.682_GP
-       case(-402000)       ! b3-lyp
+       case(-402)       ! b3-lyp
           vdwparams%sr6 = 1.261_GP
           vdwparams%s8  = 1.703_GP
        case(-202231)       ! tpss
@@ -902,6 +923,19 @@ contains
     endif
 
   END SUBROUTINE vdwcorrection_initializeparams
+
+  !> Free the parameters of the module
+  !! this routine is useful only for the D3 correction
+  subroutine vdwcorrection_freeparams()
+    implicit none
+    
+    if (associated(vdwparams%qatom)) call f_free_ptr(vdwparams%qatom)
+    if (associated(vdwparams%cov_table)) call f_free_ptr(vdwparams%cov_table)
+    if (associated(vdwparams%maxcn)) call f_free_ptr(vdwparams%maxcn)
+    if (associated(vdwparams%r0ab)) call f_free_ptr(vdwparams%r0ab)
+    if (associated(vdwparams%c6ab)) call f_free_ptr(vdwparams%c6ab)
+
+  end subroutine vdwcorrection_freeparams
 
 
   !< This subroutine calculates the dispersion correction to the total energy.                                                    !
@@ -1279,8 +1313,7 @@ contains
 
 
   END SUBROUTINE vdwcorrection_calculate_forces
-
-
+  
   !< This subroutine warns about the use of unoptimised or unavailable dispersion parameters.
   !! @author
   ! Written by Quintin Hill on 13/02/2009.

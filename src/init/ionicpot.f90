@@ -466,7 +466,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      call yaml_map('Dispersion Correction Energy (Ha)',edisp,fmt='(1pe22.14)')
   end if
 
-  call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion) 
+  call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion)
+  call vdwcorrection_freeparams() !not necessary anymore
 END SUBROUTINE IonicEnergyandForces
 
 

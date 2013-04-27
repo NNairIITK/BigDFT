@@ -67,14 +67,32 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine getdp3ptr
 
+     subroutine getdp4ptr(array,iadd)
+       implicit none
+       double precision, dimension(:,:,:,:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getdp4ptr
+
+     subroutine getdp5ptr(array,iadd)
+       implicit none
+       double precision, dimension(:,:,:,:,:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getdp5ptr
+
+     subroutine geti1ptr(array,iadd)
+       implicit none
+       integer, dimension(:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine geti1ptr
+
   end interface
 
 interface pad_array
-  module procedure pad_i1,pad_dp1,pad_dp2,pad_dp3,pad_dp4
+  module procedure pad_i1,pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5
 end interface
 
 public :: pad_array,geti1,getdp1,getdp2,getdp3,getdp4!,getlongaddress
-public :: getdp1ptr,getdp2ptr,getdp3ptr
+public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,geti1ptr
 public :: address_toi,long_toa
 
 contains
@@ -108,7 +126,7 @@ contains
     integer, dimension(2), intent(in) :: shp
     double precision, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
     
-    call pad_double(array,init_to_zero,product(shp),product(shp(1:1))*shp(2)+ndebug)
+    call pad_double(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
 
   end subroutine pad_dp2
 
@@ -119,7 +137,7 @@ contains
     integer, dimension(3), intent(in) :: shp
     double precision, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
     
-    call pad_double(array,init_to_zero,product(shp),product(shp(1:2))*shp(3)+ndebug)
+    call pad_double(array,init_to_zero,product(shp),product(shp(1:2))*(shp(3)+ndebug))
 
   end subroutine pad_dp3
 
@@ -130,9 +148,21 @@ contains
     integer, dimension(4), intent(in) :: shp
     double precision, dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
     
-    call pad_double(array,init_to_zero,product(shp),product(shp(1:3))*shp(4)+ndebug)
+    call pad_double(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
 
   end subroutine pad_dp4
+
+  subroutine pad_dp5(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(5), intent(in) :: shp
+    double precision, dimension(shp(1),shp(2),shp(3),shp(4),shp(5)+ndebug), intent(out) :: array
+    
+    call pad_double(array,init_to_zero,product(shp),product(shp(1:4))*(shp(5)+ndebug))
+
+  end subroutine pad_dp5
+
 
   subroutine pad_double(array,init,ndim_tot,ndim_extra)
     implicit none
@@ -385,7 +415,8 @@ module dynamic_memory
 
   interface assignment(=)
      module procedure i1_all,d1_all,d2_all,d3_all,d4_all
-     module procedure d1_ptr,d2_ptr,d3_ptr
+     module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
+     module procedure i1_ptr
   end interface
 
   interface operator(.to.)
@@ -397,7 +428,8 @@ module dynamic_memory
   end interface
 
   interface f_free_ptr
-     module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free
+     module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free
+     module procedure i1_ptr_free
   end interface
 
 
@@ -965,8 +997,6 @@ contains
     if (present(iproc)) call set(dict_global//processid,iproc)
   end subroutine f_set_status
 
-
-
   !> Finalize f_malloc (Display status)
   subroutine f_finalize(dump)
     use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
@@ -1376,6 +1406,28 @@ contains
     nullify(array)
   end subroutine d1_ptr_free
 
+  subroutine i1_ptr(array,m)
+    use metadata_interfaces, metadata_address => geti1ptr
+    implicit none
+    type(malloc_information_ptr), intent(in) :: m
+    integer, dimension(:), pointer, intent(inout) :: array
+    !local variables
+    integer(kind=8) :: iadd
+
+    !allocate the array
+    allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
+
+    include 'allocate-inc.f90'
+  end subroutine i1_ptr
+
+  subroutine i1_ptr_free(array)
+    use metadata_interfaces, metadata_address => geti1ptr
+    implicit none
+    integer, dimension(:), pointer, intent(inout) :: array
+    include 'deallocate-inc.f90'
+    nullify(array)
+  end subroutine i1_ptr_free
+
 
   subroutine d2_ptr(array,m)
     use metadata_interfaces, metadata_address => getdp2ptr
@@ -1418,6 +1470,49 @@ contains
     include 'deallocate-inc.f90'
     nullify(array)
   end subroutine d3_ptr_free
+
+  subroutine d4_ptr(array,m)
+    use metadata_interfaces, metadata_address => getdp4ptr
+    implicit none
+    type(malloc_information_ptr), intent(in) :: m
+    double precision, dimension(:,:,:,:), pointer, intent(inout) :: array
+    !local variables
+    integer(kind=8) :: iadd
+    !allocate the array
+    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
+         m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
+    include 'allocate-inc.f90'
+  end subroutine d4_ptr
+
+  subroutine d4_ptr_free(array)
+    use metadata_interfaces, metadata_address => getdp4ptr
+    implicit none
+    double precision, dimension(:,:,:,:), pointer, intent(inout) :: array
+    include 'deallocate-inc.f90'
+    nullify(array)
+  end subroutine d4_ptr_free
+
+  subroutine d5_ptr(array,m)
+    use metadata_interfaces, metadata_address => getdp5ptr
+    implicit none
+    type(malloc_information_ptr), intent(in) :: m
+    double precision, dimension(:,:,:,:,:), pointer, intent(inout) :: array
+    !local variables
+    integer(kind=8) :: iadd
+    !allocate the array
+    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
+         m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4),&
+         m%lbounds(5):m%ubounds(5)+ndebug),stat=ierror)
+    include 'allocate-inc.f90'
+  end subroutine d5_ptr
+
+  subroutine d5_ptr_free(array)
+    use metadata_interfaces, metadata_address => getdp5ptr
+    implicit none
+    double precision, dimension(:,:,:,:,:), pointer, intent(inout) :: array
+    include 'deallocate-inc.f90'
+    nullify(array)
+  end subroutine d5_ptr_free
 
 
 end module dynamic_memory

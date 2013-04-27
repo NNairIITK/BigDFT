@@ -109,3 +109,24 @@ void FC_FUNC(getdp3ptr, GETDP3PTR)(void *ptr,long long int *address)
   *address = (long long int)ptr;
   return;
 }
+
+void FC_FUNC(getdp4ptr, GETDP4PTR)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
+void FC_FUNC(getdp5ptr, GETDP5PTR)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
+void FC_FUNC(geti1ptr, GETI1PTR)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
