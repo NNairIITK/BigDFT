@@ -3,11 +3,11 @@ vpath %.h ../modules
 EXTRA_DIST = README \
 	bart.sh
 
-if USE_MPI
-mpi_include =
-else
-mpi_include = mpif.h
-endif
+#if USE_MPI
+#mpi_include =
+#else
+#mpi_include = mpif.h
+#endif
 
 art_source = \
 	defs.f90 \
@@ -41,7 +41,7 @@ restart.o: defs.o
 
 utils.o: defs.o
 
-defs.o : $(mpi_include)
+#defs.o : $(mpi_include)
 
 art.o: defs.o random.o art_lanczos.o
 
