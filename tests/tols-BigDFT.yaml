@@ -210,6 +210,7 @@ IO-wf_plain-read:
 
 CH4-D3:
  EH: 1.1e-10
+ Ion-Ion interaction energy: 1.7e-11
 
 scalability:
  Energies: 1.e-9

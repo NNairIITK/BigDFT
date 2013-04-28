@@ -9338,29 +9338,29 @@ contains
          88.70300_gp,  260.34680_gp,  286.11790_gp,  391.12500_gp,  455.28540_gp/)
     
 
-!!$    !this line can be used as a test for the c6ab function
-!!$    !redo the same loop to verify that the values can be entered differently
-!!$    idata=1
-!!$    il=0
-!!$    jl=0
-!!$      do iline=1,nlines
-!!$         if (jl==il) then
-!!$            jl=1
-!!$            il=il+1
-!!$         else
-!!$            jl=jl+1
-!!$         end if
-!!$         iat=vdwparams%ivalues(il)
-!!$         jat=vdwparams%ivalues(jl)
-!!$         !vdwparams%ivalues has to be used now
-!!$         call limit(iat,jat,iadr,jadr)
+    !this line can be used as a test for the c6ab function
+    !redo the same loop to verify that the values can be entered differently
+    idata=1
+    il=0
+    jl=0
+      do iline=1,nlines
+         if (jl==il) then
+            jl=1
+            il=il+1
+         else
+            jl=jl+1
+         end if
+         iat=vdwparams%ivalues(il)
+         jat=vdwparams%ivalues(jl)
+         !vdwparams%ivalues has to be used now
+         call limit(iat,jat,iadr,jadr)
 !!$         !check the associations for defining an alternative function
 !!$         if (iat+(iadr-1)*100 /= vdwparams%ivalues(find_il(iat,iadr))) stop 'ival'
 !!$         if (jat+(jadr-1)*100 /= vdwparams%ivalues(find_il(jat,jadr))) stop 'jval'
-!!$         
-!!$         vdwparams%maxcn(iat)=max(vdwparams%maxcn(iat),iadr)
-!!$         vdwparams%maxcn(jat)=max(vdwparams%maxcn(jat),jadr)
-!!$         
+         
+         vdwparams%maxcn(iat)=max(vdwparams%maxcn(iat),iadr)
+         vdwparams%maxcn(jat)=max(vdwparams%maxcn(jat),jadr)
+         
 !!$         vdwparams%c6ab(iat,jat,iadr,jadr,1)=vdwparams%coeffs(iline)
 !!$         if (iline /= find_iline(iat,jat,iadr,jadr) ) stop 'iline'
 !!$         vdwparams%c6ab(iat,jat,iadr,jadr,2)=vdwparams%rvalues(il)
@@ -9376,8 +9376,8 @@ contains
 !!$         if (vdwparams_c6ab(jat,iat,jadr,iadr,1)/=vdwparams%coeffs(iline)) stop 'jcoeff'
 !!$         if (vdwparams_c6ab(jat,iat,jadr,iadr,2)/=vdwparams%rvalues(jl)) stop 'jval2'
 !!$         if (vdwparams_c6ab(jat,iat,jadr,iadr,3)/=vdwparams%rvalues(il)) stop 'jval3'
-!!$       idata=(iline*5)+1
-!!$    enddo
+       idata=(iline*5)+1
+    enddo
 !!$stop
   END SUBROUTINE init_c6_params_d3
 
