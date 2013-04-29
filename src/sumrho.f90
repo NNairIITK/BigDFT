@@ -15,7 +15,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,
   use module_base
   use module_types
   use module_interfaces, fake_name => density_and_hpot
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   type(denspot_distribution), intent(in) :: dpbox
   type(rho_descriptors),intent(inout) :: rhodsc

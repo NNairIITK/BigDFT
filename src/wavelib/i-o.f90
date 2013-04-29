@@ -1007,36 +1007,37 @@ END SUBROUTINE writeonewave
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
  
-subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hgrids_old,n_old,& !n(c) iproc (arg:1)
-     ns_old,rxyz_old,psigold,hgrids,n,ns,rxyz,psifscf,psi)
+subroutine reformat_one_supportfunction(wfd,at,hgrids_old,n_old,ns_old,rxyz_old,psigold,& 
+     hgrids,n,ns,rxyz,centre_old,centre_new,newz,theta,psi)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iiat  !n(c) iproc
   integer, dimension(3), intent(in) :: n,n_old,ns,ns_old
-  real(gp), intent(in) :: displ
   real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), intent(in) :: rxyz_old,rxyz
+  real(gp), dimension(3), intent(inout) :: centre_old,centre_new,newz
+  real(gp), intent(in) :: theta
   real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
-  real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
+
   !local variables
   character(len=*), parameter :: subname='reformatonesupportfunction'
   logical, dimension(3) :: per
   integer :: i_stat,i_all
   integer, dimension(3) :: nb
-  real(gp) :: mindist,theta
+  real(gp) :: mindist
   real(gp), dimension(3) :: hgridsh,hgridsh_old,da
-  real(gp), dimension(3) :: centre,centre_old,centre_new,newz
+  real(gp), dimension(3) :: centre
   !!real(wp) :: dnrm2
   real(wp), dimension(:), allocatable :: ww,wwold
   real(wp), dimension(:), allocatable :: x_phi, y_phi
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
-  real(wp), dimension(:,:,:), allocatable :: psifscfold, psi_w, psi_w2
+  real(wp), dimension(:,:,:), allocatable :: psifscfold, psifscf, psi_w, psi_w2
   integer :: itype, nd, nrange
   real(gp), dimension(3) :: rprime
+
 
   !conditions for periodicity in the three directions
   per(1)=(at%geocode /= 'F')
@@ -1049,6 +1050,8 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hgrids_old,n_old,& !n(
   call ext_buffers_coarse(per(2),nb(2))
   call ext_buffers_coarse(per(3),nb(3))
 
+  allocate(psifscf(-nb(1):2*n(1)+1+nb(1),-nb(2):2*n(2)+1+nb(2),-nb(3):2*n(3)+1+nb(3)+ndebug),stat=i_stat)
+  call memocc(i_stat,psifscf,'psifscf',subname)
   allocate(psifscfold(-nb(1):2*n_old(1)+1+nb(1),-nb(2):2*n_old(2)+1+nb(2),-nb(3):2*n_old(3)+1+nb(3)+ndebug),stat=i_stat)
   call memocc(i_stat,psifscfold,'psifscfold',subname)
   allocate(wwold((2*n_old(1)+2+2*nb(1))*(2*n_old(2)+2+2*nb(2))*(2*n_old(3)+2+2*nb(3))+ndebug),stat=i_stat)
@@ -1066,48 +1069,13 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hgrids_old,n_old,& !n(
   deallocate(wwold,stat=i_stat)
   call memocc(i_stat,i_all,'wwold',subname)
 
-if (.false.) then !CO2
-    !to be tested
-    newz=(/0.0_gp,0.0_gp,1.0_gp/)
-    theta=30.d0*(4.0_gp*atan(1.d0)/180.0_gp)
-    centre_old(1)=7.7700_gp
-    centre_old(2)=8.1900_gp
-    centre_old(3)=7.7700_gp
-
-    centre_new(1)=7.7700_gp
-    centre_new(2)=7.7700_gp
-    centre_new(3)=7.7700_gp
-
-else !benzene
-    theta=-30.d0*(4.0_gp*atan(1.d0)/180.0_gp)
-if (.false.) then
-    newz=(/0.0_gp,0.0_gp,1.0_gp/)
-    centre_old(1)=23.520_gp*0.5_gp!15.54_gp*0.5_gp
-    centre_old(2)=23.100_gp*0.5_gp!23.520_gp*0.5_gp
-    centre_old(3)=15.54_gp*0.5_gp!23.100_gp*0.5_gp
-    
-    centre_new(1)=23.100_gp*0.5_gp!15.54_gp*0.5_gp
-    centre_new(2)=23.520_gp*0.5_gp!23.100_gp*0.5_gp
-    centre_new(3)=15.54_gp*0.5_gp!23.520_gp*0.5_gp
-else
-    newz=(/1.0_gp,0.0_gp,0.0_gp/)
-    centre_old(1)=15.54_gp*0.5_gp
-    centre_old(2)=23.520_gp*0.5_gp
-    centre_old(3)=23.100_gp*0.5_gp
-    
-    centre_new(1)=15.54_gp*0.5_gp
-    centre_new(2)=23.100_gp*0.5_gp
-    centre_new(3)=23.520_gp*0.5_gp
-end if
-
-end if
-
   !decide if we need to reformat or not
   if (hgrids(1) == hgrids_old(1) .and. hgrids(2) == hgrids_old(2) .and. hgrids(3) == hgrids_old(3) .and. &
        n_old(1)==n(1) .and. n_old(2)==n(2) .and. n_old(3)==n(3) .and. &
-       displ<= 1.d-2) then
+       centre_new(1)==centre_old(1) .and. centre_new(2)==centre_old(2) .and. centre_new(3)==centre_old(3) &
+       .and. theta==0.0_gp) then
      call dcopy((2*n(1)+2+2*nb(1))*(2*n(2)+2+2*nb(2))*(2*n(3)+2+2*nb(3)),psifscfold(-nb(1),-nb(2),-nb(3)),1,&
-          psifscf(1),1)
+          psifscf(1,1,1),1)
   else
 
      ! centre of rotation with respect to start of box
@@ -1115,7 +1083,7 @@ end if
      centre_old(2)=mindist(per(2),at%alat2,centre_old(2),hgrids_old(2)*(ns_old(2)-0.5_dp*nb(2)))
      centre_old(3)=mindist(per(3),at%alat3,centre_old(3),hgrids_old(3)*(ns_old(3)-0.5_dp*nb(3)))
 
-     centre_new(1)=mindist(per(1),at%alat1,centre_new(1),hgrids(1)*(ns(1)-0.5_dp*nb(1))) !center of read
+     centre_new(1)=mindist(per(1),at%alat1,centre_new(1),hgrids(1)*(ns(1)-0.5_dp*nb(1))) !center of new
      centre_new(2)=mindist(per(2),at%alat2,centre_new(2),hgrids(2)*(ns(2)-0.5_dp*nb(2)))
      centre_new(3)=mindist(per(3),at%alat3,centre_new(3),hgrids(3)*(ns(3)-0.5_dp*nb(3)))
 
@@ -1173,6 +1141,10 @@ end if
   else if (at%geocode == 'P') then
      call analyse_per(n(1),n(2),n(3),ww,psifscf,psig)
   end if
+
+  i_all=-product(shape(psifscf))*kind(psifscf)
+  deallocate(psifscf,stat=i_stat)
+  call memocc(i_stat,i_all,'psifscf',subname)
 
   !!print*, 'norm new psig ',dnrm2(8*(n(1)+1)*(n(2)+1)*(n(3)+1),psig,1),n(1),n(2),n(3)
   call compress_plain(n(1),n(2),0,n(1),0,n(2),0,n(3),  &

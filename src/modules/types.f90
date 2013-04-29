@@ -16,6 +16,7 @@ module module_types
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
        bigdft_mpi,ndebug,memocc,vcopy
   use gaussians, only: gaussian_basis
+  use Poisson_Solver, only: coulomb_operator
   implicit none
 
   !> Constants to determine between cubic version and linear version
@@ -763,29 +764,6 @@ module module_types
      real(gp), dimension(:,:), pointer :: rxyz !<atomic positions of the step
   end type old_wavefunction
 
-    !> Defines the fundamental structure for the kernel
-  type, public :: coulomb_operator
-     !variables with physical meaning
-     integer :: itype_scf !< order of the ISF family to be used
-     real(gp) :: mu !< inverse screening length for the Helmholtz Eq. (Poisson Eq. -> mu=0)
-     character(len=1) :: geocode !< Code for the boundary conditions
-     integer, dimension(3) :: ndims !< dimension of the box of the density
-     real(gp), dimension(3) :: hgrids !<grid spacings in each direction
-     real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
-     real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
-     real(dp) :: work1_GPU,work2_GPU,k_GPU
-     integer, dimension(5) :: plan
-     integer, dimension(3) :: geo
-     !variables with computational meaning
-!     integer :: iproc_world !iproc in the general communicator
-!     integer :: iproc,nproc
-!     integer :: mpi_comm
-     type(mpi_environment) :: mpi_env
-     integer :: igpu !< control the usage of the GPU
-     integer :: initCufftPlan
-     integer :: keepGPUmemory
-  end type coulomb_operator
-
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
   type, public :: DFT_local_fields
@@ -1136,24 +1114,6 @@ contains
     ma%OCL_platform=repeat(' ',len(ma%OCL_platform))
     ma%OCL_platform=repeat(' ',len(ma%OCL_devices))
   end function material_acceleration_null
-
-  function pkernel_null() result(k)
-    type(coulomb_operator) :: k
-    k%itype_scf=0
-    k%geocode='F'
-    k%mu=0.0_gp
-    k%ndims=(/0,0,0/)
-    k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    k%angrad=(/0.0_gp,0.0_gp,0.0_gp/)
-    nullify(k%kernel)
-    k%work1_GPU=0.d0
-    k%work2_GPU=0.d0
-    k%k_GPU=0.d0
-    k%plan=(/0,0,0,0,0/)
-    k%geo=(/0,0,0/)
-    k%mpi_env=mpi_environment_null()
-    k%igpu=0
-  end function pkernel_null
 
   function default_grid() result(g)
     type(grid_dimensions) :: g

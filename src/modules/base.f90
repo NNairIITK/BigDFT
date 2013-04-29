@@ -10,6 +10,8 @@
 
 !> Modules which contains the low level definitions, as well as some profiling procedures
 module module_base 
+  use wrapper_linalg
+  use wrapper_MPI
   use module_defs
   use dynamic_memory
   !use m_profiling

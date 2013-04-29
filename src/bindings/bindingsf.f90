@@ -458,7 +458,8 @@ subroutine inputs_free(in)
   implicit none
   type(input_variables), pointer :: in
 
-  call free_input_variables(in)
+  !call free_input_variables(in)
+  call bigdft_free_input(in)
   deallocate(in)
 end subroutine inputs_free
 subroutine inputs_set_radical(in, nproc, rad, ln)
@@ -834,7 +835,7 @@ subroutine localfields_get_data(denspotd, rhod, dpbox)
 END SUBROUTINE localfields_get_data
 subroutine localfields_free(denspotd, fion, fdisp)
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use m_profiling
   implicit none
   type(DFT_local_fields), pointer :: denspotd
@@ -1312,3 +1313,31 @@ subroutine optloop_bcast(optloop, iproc)
      optloop%gnrm_startmix = rData(3)
   end if
 END SUBROUTINE optloop_bcast
+
+subroutine rst_new(self, rst)
+  use module_types
+  implicit none
+  integer(kind = 8), intent(in) :: self
+  type(restart_objects), pointer :: rst
+
+  allocate(rst)
+  !rst%c_obj = self
+END SUBROUTINE rst_new
+subroutine rst_free(rst)
+  use module_types
+  implicit none
+  type(restart_objects), pointer :: rst
+
+  call free_restart_objects(rst,"rst_free")
+  deallocate(rst)
+END SUBROUTINE rst_free
+subroutine rst_init(rst, iproc, atoms, inputs)
+  use module_types
+  implicit none
+  type(restart_objects), intent(out) :: rst
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(in) :: atoms
+  type(input_variables), intent(in) :: inputs
+  
+  call init_restart_objects(iproc, inputs, atoms, rst, "rst_init")
+end subroutine rst_init

@@ -13,7 +13,7 @@ program WaCo
    use module_base
    use module_types
    use module_interfaces, except_this_one => writeonewave
-   use Poisson_Solver
+   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use yaml_output
    implicit none
    character :: filetype*4,outputype*4
@@ -2037,7 +2037,7 @@ end subroutine init_random_seed
 
 subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, normal, dcp)
    use BigDFT_API
-   use Poisson_Solver
+   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use module_interfaces
    implicit none
    integer, intent(in) :: mode        ! 0= atomic projection, 1=wannier projection

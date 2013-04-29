@@ -10,7 +10,9 @@ pkgconfig_DATA = bigdft.pc
 SUBDIRS =
 
 if BUILD_LIBXC
-SUBDIRS += libxc-1.1.0
+if BUILD_LIB_BIGDFT
+SUBDIRS += libxc-2.0.x
+endif
 endif
 
 if BUILD_LIBABINIT
@@ -18,16 +20,27 @@ SUBDIRS += libABINIT/src
 endif
 
 if BUILD_LIBSGPU
+if BUILD_LIB_BIGDFT
 SUBDIRS += S_GPU
+endif
 endif
 
 if BUILD_LIBYAML
 SUBDIRS += yaml-0.1.4
 endif
 
-SUBDIRS += src \
-	   doc \
-	   utils
+SUBDIRS += \
+	flib \
+	wrappers \
+	PSolver
+
+if BUILD_LIB_BIGDFT
+SUBDIRS += src
+endif
+
+SUBDIRS += \
+	doc \
+	utils
 
 if BUILD_BINARIES_PSEUDO
 SUBDIRS += pseudo
@@ -44,3 +57,6 @@ endif
 
 check report:
 	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ;python $(top_srcdir)/tests/report.py
+
+clean-local:
+	-rm -rf includes

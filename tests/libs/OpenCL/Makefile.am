@@ -16,7 +16,7 @@ EXTRA_DIST = conv_check.awk tols.yaml OpenCL.ref.yaml
 
 CLEANFILES = fort.1 conv_check.out.yaml OpenCL.report.yaml report
 
-AM_FCFLAGS = -I$(top_builddir)/src/includes @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ 
+AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ 
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
 AM_CFLAGS = -Wall -Werror
 AM_LDFLAGS = -L$(top_builddir)/src
@@ -27,11 +27,11 @@ LIBS += @LIBS_SHORT_DEPS@
 endif
 
 conv_check_SOURCES = $(top_srcdir)/src/OpenCL/conv_check.f90 
-conv_check_LDADD = -lbigdft-1
+conv_check_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 conv_check.out.yaml: conv_check
 	echo 76 92 130 2 > fort.1
-	./conv_check > $@
+	-./conv_check > $@
 
 OpenCL.report.yaml: conv_check.out.yaml
 	export PYTHONPATH=${PYTHONPATH} ; \

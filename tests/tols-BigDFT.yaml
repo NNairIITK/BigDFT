@@ -83,13 +83,13 @@ Mn2:
  Keys to ignore:
   - proc
  Epsilon: 2.e-10
- Enl: 2.1e-10
+ Enl: 3.1e-10
  Ekin: 3.1e-10
  Average noise forces: 3.4e-10
  Atomic Forces (Ha/Bohr):
-  - Mn: 2.3e-10
+  - Mn: 2.5e-10
  Clean forces norm (Ha/Bohr):
-  maxval: 2.3e-10
+  maxval: 2.5e-10
 
 GPU:
  EvXC: 1.1e-10
@@ -207,6 +207,10 @@ mixpotential:
 
 IO-wf_plain-read:
  Energies: 1.1e-10
+
+CH4-D3:
+ EH: 1.1e-10
+ Ion-Ion interaction energy: 1.7e-11
 
 scalability:
  Energies: 1.e-9

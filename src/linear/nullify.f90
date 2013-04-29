@@ -70,6 +70,24 @@ subroutine nullify_sparsematrix(sparsemat)
 end subroutine nullify_sparsematrix
 
 
+!pure function local_zone_descriptors_null result(lzd)
+!  implicit none
+!  type(local_zone_descriptors) :: lzd
+! 
+!  lzd%glr=locreg_descriptors_null
+!  nullify(lzd%llr) 
+!end function local_zone_descriptors_null
+
+!pure function locreg_descriptors_null result(lr)
+!  implicit none
+!
+!  type(locreg_descriptors) :: lr
+!
+!  call nullify_wavefunctions_descriptors(lr%wfd)
+!  call nullify_convolutions_bounds(lr%bounds)
+!
+!end function locreg_descriptors_null
+
 
 subroutine nullify_local_zone_descriptors(lzd)
   use module_base
@@ -85,6 +103,20 @@ subroutine nullify_local_zone_descriptors(lzd)
  
 end subroutine nullify_local_zone_descriptors
 
+
+subroutine nullify_locreg_descriptors(lr)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_locreg_descriptors
+  implicit none
+
+  ! Calling arguments
+  type(locreg_descriptors),intent(out):: lr
+
+  call nullify_wavefunctions_descriptors(lr%wfd)
+  call nullify_convolutions_bounds(lr%bounds)
+
+end subroutine nullify_locreg_descriptors
 
 
 subroutine nullify_orbitals_data(orbs)
@@ -130,20 +162,6 @@ subroutine nullify_communications_arrays(comms)
   
 end subroutine nullify_communications_arrays
 
-
-subroutine nullify_locreg_descriptors(lr)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_locreg_descriptors
-  implicit none
-
-  ! Calling arguments
-  type(locreg_descriptors),intent(out):: lr
-
-  call nullify_wavefunctions_descriptors(lr%wfd)
-  call nullify_convolutions_bounds(lr%bounds)
-
-end subroutine nullify_locreg_descriptors
 
 
 subroutine nullify_wavefunctions_descriptors(wfd)

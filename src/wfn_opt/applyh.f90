@@ -1298,7 +1298,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
            istart_c=1
            if(at%npspcode(iatype)==7) then
            !    PAW case:
-              call apply_atproj_iorb_paw(iat,iorb,nlpspd%nprojel,&
+              call apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nlpspd%nprojel,&
                    at,orbs,wfd,nlpspd%plr(iat),proj,&
                    psi(ispsi),hpsi(ispsi),eproj_sum,proj_G(iatype),paw)
            else

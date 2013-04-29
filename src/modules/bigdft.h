@@ -18,6 +18,10 @@ G_BEGIN_DECLS
 
 #include <bigdft_cst.h>
 
+int bigdft_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mpi_ngroup,
+                guint mpi_groupsize);
+int bigdft_finalize();
+
 typedef struct _BigDFT_Atoms BigDFT_Atoms;
 typedef struct _BigDFT_Lzd BigDFT_Lzd;
 typedef struct _BigDFT_Orbs BigDFT_Orbs;
@@ -25,6 +29,7 @@ typedef struct _BigDFT_Proj BigDFT_Proj;
 typedef struct _BigDFT_LocalFields BigDFT_LocalFields;
 typedef struct _BigDFT_Energs BigDFT_Energs;
 typedef struct _BigDFT_OptLoop BigDFT_OptLoop;
+typedef struct _BigDFT_Restart BigDFT_Restart;
 
 typedef enum
   {
@@ -179,6 +184,10 @@ void           bigdft_inputs_free            (BigDFT_Inputs *in);
 BigDFT_Inputs* bigdft_inputs_ref             (BigDFT_Inputs *in);
 void           bigdft_inputs_unref           (BigDFT_Inputs *in);
 void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms);
+
+BigDFT_Inputs* bigdft_set_input(const gchar *radical, const gchar *posinp, BigDFT_Atoms **atoms);
+BigDFT_Energs* bigdft_eval_forces(BigDFT_Atoms *atoms, BigDFT_Inputs *in, BigDFT_Restart *rst,
+                                  guint iproc, guint nproc);
 
 /*********************************/
 /* BigDFT_Locreg data structure. */
@@ -618,6 +627,7 @@ struct _BigDFT_Energs
 
   /* Binded values. */
   double eh, exc, evxc, eion, edisp, ekin, epot, eproj, eexctX, ebs, eKS, trH, evsum, evsic;
+  double etot;
 
   /* Storage of forces and stress. */
   guint nat;
@@ -634,6 +644,37 @@ BigDFT_Energs* bigdft_energs_new_from_fortran(void *obj);
 void           bigdft_energs_free(BigDFT_Energs *energs);
 void           bigdft_energs_emit(BigDFT_Energs *energs, guint istep,
                                   BigDFT_EnergsIds kind);
+
+/********************************/
+/* BigDFT_Restart data structure */
+/********************************/
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_RESTART_TYPE    (bigdft_restart_get_type())
+#define BIGDFT_RESTART(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_RESTART_TYPE, BigDFT_Restart))
+typedef struct _BigDFT_RestartClass BigDFT_RestartClass;
+struct _BigDFT_RestartClass
+{
+  GObjectClass parent;
+};
+GType bigdft_restart_get_type(void);
+#else
+#define BIGDFT_RESTART_TYPE    (999)
+#define BIGDFT_RESTART(obj)    ((BigDFT_Restart*)obj)
+#endif
+struct _BigDFT_Restart
+{
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+  gboolean dispose_has_run;
+#endif
+
+  /* To be removed later. */
+  _restart_objects *data;
+};
+BigDFT_Restart* bigdft_restart_new(BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint iproc);
+BigDFT_Restart* bigdft_restart_new_from_fortran(void *obj);
+void            bigdft_restart_free(BigDFT_Restart *restart);
 
 /*********************************/
 /* BigDFT_OptLoop data structure */

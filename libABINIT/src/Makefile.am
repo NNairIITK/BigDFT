@@ -30,7 +30,9 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 lib_LIBRARIES = libabinit.a
 
 if USE_LIBXC
+if BUILD_LIB_BIGDFT
 LIBXC_DEFS = -DHAVE_LIBXC
+endif
 else
 LIBXC_DEFS =
 endif

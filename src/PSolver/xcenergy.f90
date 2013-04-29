@@ -281,7 +281,7 @@ end function spherical_gaussian_value
 subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx,hy,hz,&
      rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho,rhohat)
   use module_base
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_interfaces, fake_name => XC_potential
   use module_xc
   implicit none
@@ -364,7 +364,7 @@ call to_zero(6,rhocstr(1))
   istart=iproc*(md2/nproc)
   iend=min((iproc+1)*md2/nproc,m2)
 
-  call xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
+  call xc_dimensions(geocode,xc_isgga(),(ixc/=13),istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
   nwb=nxcl+nxc+nxcr-2
   nxt=nwbr+nwb+nwbl
 

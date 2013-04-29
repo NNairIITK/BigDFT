@@ -116,18 +116,6 @@ subroutine dpbox_free(dpbox,subname)
 
 END SUBROUTINE dpbox_free
 
-subroutine mpi_environment_free(mpi_env)
-  use module_base
-  implicit none
-  type(mpi_environment), intent(inout) :: mpi_env
-  !local variables
-  integer :: ierr
-
-  if (mpi_env%ngroup > 1) call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
-
-end subroutine mpi_environment_free
-
-
 subroutine dpbox_set_box(dpbox,Lzd)
   use module_base
   use module_types
@@ -143,43 +131,6 @@ subroutine dpbox_set_box(dpbox,Lzd)
   dpbox%ndims(3)=Lzd%Glr%d%n3i
 
 end subroutine dpbox_set_box
-
-
-!> Set the MPI environment (i.e. taskgroup or MPI communicator)
-!! @param mpi_env   MPI environment (out)
-!! @param iproc     proc id
-!! @param nproc     total number of MPI processes
-!! @param mpi_comm  global MPI_communicator
-!! @param groupsize Number of MPI processes by (task)group
-!!                  if 0 one taskgroup (MPI_COMM_WORLD)
-subroutine mpi_environment_set(mpi_env,iproc,nproc,mpi_comm,groupsize)
-  use module_base
-  use yaml_output
-  implicit none
-  integer, intent(in) :: iproc,nproc,mpi_comm,groupsize
-  type(mpi_environment), intent(out) :: mpi_env
-
-  mpi_env=mpi_environment_null()
-
-  mpi_env%igroup=0
-  mpi_env%ngroup=1
-  mpi_env%iproc=iproc
-  mpi_env%nproc=nproc
-  mpi_env%mpi_comm=mpi_comm
-
-  if (nproc >1 .and. groupsize > 0) then
-     if (nproc >1 .and. groupsize < nproc .and. mod(nproc,groupsize)==0) then
-        mpi_env%igroup=iproc/groupsize
-        mpi_env%ngroup=nproc/groupsize
-        mpi_env%iproc=mod(iproc,groupsize)
-        mpi_env%nproc=groupsize
-        call create_group_comm(mpi_comm,nproc,mpi_env%igroup,mpi_env%nproc,mpi_env%mpi_comm)
-        if (iproc == 0) then
-           call yaml_map('Total No. of Taskgroups created',nproc/mpi_env%nproc)
-        end if
-     end if
-  end if
-end subroutine mpi_environment_set
 
 
 !>todo: remove n1i and n2i
@@ -551,7 +502,7 @@ subroutine dpbox_repartition(iproc,nproc,geocode,datacode,ixc,dpbox)
   if (datacode == 'D') then
      do jproc=0,nproc-1
         call PS_dim4allocation(geocode,datacode,jproc,nproc,&
-             dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),ixc,&
+             dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),xc_isgga(),(ixc/=13),&
              n3d,n3p,n3pi,i3xcsh,i3s)
         dpbox%nscatterarr(jproc,1)=n3d            !number of planes for the density
         dpbox%nscatterarr(jproc,2)=n3p            !number of planes for the potential

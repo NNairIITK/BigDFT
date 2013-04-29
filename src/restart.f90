@@ -996,6 +996,9 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,input,at,rxyz)
 
   end if
 
+!problem with code below, don't do for now
+return
+
   ! calculate 'onsite' overlap matrix as well
 
   allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%full_dim1,tmb%linmat%ovrlp%full_dim1), stat=i_stat)
@@ -1048,11 +1051,11 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, input, rxyz, ovrlp)
 
   ! Local variables
   logical :: reformat,perx,pery,perz
-  integer :: iorb,i_stat,i_all,jj,j0,j1,iseg,nb1,nb2,nb3,jstart,jstart_tmp
+  integer :: iorb,i_stat,i_all,jj,j0,j1,iseg,nb1,nb2,nb3,jstart,jstart_tmp,n1_tmp,n2_tmp,n3_tmp
   integer :: iiorb,ilr,iiat,i,i0,i1,i2,i3,iat,ii,j,iis1,iie1!,isti,istj,jorb,jjorb
-  integer :: n1,n2,n3,ilr_tmp,iiat_tmp,ndim_tmp,ndim,norb_tmp,ns1,ns2,ns3!,ierr
-  real(gp) :: tx,ty,tz,displ,mindist!,ddot
-  real(wp), dimension(:,:,:), allocatable :: phifscf
+  integer :: n1,n2,n3,ilr_tmp,iiat_tmp,ndim_tmp,ndim,norb_tmp,ns1,ns2,ns3,ns1_tmp,ns2_tmp,ns3_tmp!,ierr
+  real(gp) :: tx,ty,tz,displ,mindist,theta!,ddot
+  real(gp), dimension(3) :: centre_old, centre_new, newz
   real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
   real(wp), dimension(:), allocatable :: psi_tmp, psit_c_tmp, psit_f_tmp, norm
   !real(wp), dimension(:), allocatable :: psi_all
@@ -1123,9 +1126,17 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, input, rxyz, ovrlp)
       n2=tmb%lzd%Llr(ilr)%d%n2
       n3=tmb%lzd%Llr(ilr)%d%n3
 
+      n1_tmp=tmb%lzd%Llr(ilr_tmp)%d%n1
+      n2_tmp=tmb%lzd%Llr(ilr_tmp)%d%n2
+      n3_tmp=tmb%lzd%Llr(ilr_tmp)%d%n3
+
       ns1=tmb%lzd%Llr(ilr)%ns1
       ns2=tmb%lzd%Llr(ilr)%ns2
       ns3=tmb%lzd%Llr(ilr)%ns3
+
+      ns1_tmp=tmb%lzd%Llr(ilr_tmp)%ns1
+      ns2_tmp=tmb%lzd%Llr(ilr_tmp)%ns2
+      ns3_tmp=tmb%lzd%Llr(ilr_tmp)%ns3
 
       !reformatting criterion
       if (tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c  == tmb%lzd%llr(ilr)%wfd%nvctr_c .and. &
@@ -1167,10 +1178,6 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, input, rxyz, ovrlp)
           end do
    
       else
-   
-          allocate(phifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
-          call memocc(i_stat,phifscf,'phifscf',subname)
-
           allocate(phigold(0:n1,2,0:n2,2,0:n3,2+ndebug),stat=i_stat)
           call memocc(i_stat,phigold,'phigold',subname)
    
@@ -1218,17 +1225,16 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, input, rxyz, ovrlp)
    
           !write(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
           !write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
-   
-          call reformat_one_supportfunction(iiat,displ,tmb%lzd%llr(ilr_tmp)%wfd,at,&
-               tmb%lzd%hgrids,(/n1,n2,n3/),(/tmb%lzd%llr(ilr)%ns1,tmb%lzd%llr(ilr)%ns2,tmb%lzd%llr(ilr)%ns3/),rxyz,phigold,&
-               tmb%lzd%hgrids,(/n1,n2,n3/),(/tmb%lzd%llr(ilr_tmp)%ns1,tmb%lzd%llr(ilr_tmp)%ns2,tmb%lzd%llr(ilr_tmp)%ns3/),&
-               rxyz_tmp,phifscf,psi_tmp(jstart_tmp))
+          theta=0.d0*(4.0_gp*atan(1.d0)/180.0_gp)
+          newz=(/1.0_gp,0.0_gp,0.0_gp/)
+          centre_old(:)=rxyz(:,iiat)
+          centre_new(:)=rxyz(:,iiat_tmp)
+          call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp)%wfd,at,&
+               tmb%lzd%hgrids,(/n1,n2,n3/),(/ns1,ns2,ns3/),rxyz,phigold,&
+               tmb%lzd%hgrids,(/n1_tmp,n2_tmp,n3_tmp/),(/ns1_tmp,ns2_tmp,ns3_tmp/),&
+               rxyz_tmp,centre_old,centre_new,newz,theta,psi_tmp(jstart_tmp))
 
           jstart_tmp=jstart_tmp+tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c+7*tmb%lzd%llr(ilr_tmp)%wfd%nvctr_f
-   
-          i_all=-product(shape(phifscf))*kind(phifscf)
-          deallocate(phifscf,stat=i_stat)
-          call memocc(i_stat,i_all,'phifscf',subname)
    
           i_all=-product(shape(phigold))*kind(phigold)
           deallocate(phigold,stat=i_stat)
@@ -1444,7 +1450,7 @@ END SUBROUTINE writemywaves_linear
 
 subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
      & hgrids,at,wfd,rxyz_old,rxyz,locrad,locregCenter,confPotOrder,&
-     & confPotprefac,psi,eval,psifscf,onwhichatom,lr,glr)
+     & confPotprefac,psi,eval,onwhichatom,lr,glr)
   use module_base
   use module_types
   use internal_io
@@ -1464,7 +1470,6 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   real(gp), dimension(3), intent(out) :: locregCenter
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
-  real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
   integer, dimension(*), intent(in) :: onwhichatom
   type(locreg_descriptors), intent(in) :: lr, glr
 
@@ -1475,8 +1480,8 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   integer :: iorb_old,iat,nvctr_c_old,nvctr_f_old,i_all,iiat
   integer :: i1,i2,i3,iel,i_stat,onwhichatom_tmp
   integer, dimension(3) :: ns_old,n_old
-  real(gp) :: tx,ty,tz,displ,mindist
-  real(gp), dimension(3) :: hgrids_old
+  real(gp) :: tx,ty,tz,displ,mindist,theta
+  real(gp), dimension(3) :: hgrids_old, centre_old, centre_new, newz
   real(gp) :: tt,t1,t2,t3,t4,t5,t6,t7
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
   ! DEBUG
@@ -1579,9 +1584,14 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
      !onwhichatom(iorb) = onwhichatom_tmp
      iiat=onwhichatom(iorb)
 
+     theta=0.d0*(4.0_gp*atan(1.d0)/180.0_gp)
+     newz=(/1.0_gp,0.0_gp,0.0_gp/)
+     centre_old(:)=rxyz_old(:,iiat)
+     centre_new(:)=rxyz(:,iiat)
+
      !call reformat_one_supportfunction here to be consistent with cubic
-     call reformat_one_supportfunction(iiat,displ,wfd,at,hgrids_old, & !n(m)
-          n_old,ns_old,rxyz_old,psigold,hgrids,n,ns,rxyz,psifscf,psi)
+     call reformat_one_supportfunction(wfd,at,hgrids_old,n_old,ns_old, & !n(m)
+          rxyz_old,psigold,hgrids,n,ns,rxyz,centre_old,centre_new,newz,theta,psi)
 
      i_all=-product(shape(psigold))*kind(psigold)
      deallocate(psigold,stat=i_stat)
@@ -1895,14 +1905,13 @@ subroutine readmywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz_ol
   !Local variables
   character(len=*), parameter :: subname='readmywaves_linear'
   integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2
-  integer :: iorb_out,ispinor,ilr,ind,nb1,nb2,nb3,n1,n2,n3
+  integer :: iorb_out,ispinor,ilr,ind
   integer :: confPotOrder
   real(gp) :: locrad, confPotprefac
   real(gp), dimension(3) :: locregCenter
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
-  logical :: perx, pery, perz
   !integer, dimension(orbs%norb) :: orblist2
 
   call cpu_time(tr0)
@@ -1919,27 +1928,9 @@ subroutine readmywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz_ol
      !call read_waves_etsf(iproc,filename // ".etsf",orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      !     wfd,psi)
   else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
-     !conditions for periodicity in the three directions
-     perx=(at%geocode /= 'F')
-     pery=(at%geocode == 'P')
-     perz=(at%geocode /= 'F')
-
-     !buffers related to periodicity
-     !WARNING: the boundary conditions are not assumed to change between new and old
-     call ext_buffers_coarse(perx,nb1)
-     call ext_buffers_coarse(pery,nb2)
-     call ext_buffers_coarse(perz,nb3)
-
      ind = 1
      do iorb=1,orbs%norbp!*orbs%nspinor
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-        n1 = Lzd%Llr(ilr)%d%n1
-        n2 = Lzd%Llr(ilr)%d%n2
-        n3 = Lzd%Llr(ilr)%d%n3
-        allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
-        call memocc(i_stat,psifscf,'psifscf',subname)
-        !allocate(psifscf(1,1,1+ndebug),stat=i_stat)
-        !call memocc(i_stat,psifscf,'psifscf',subname)
 
         do ispinor=1,orbs%nspinor
            if(present(orblist)) then
@@ -1954,16 +1945,11 @@ subroutine readmywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz_ol
                 (/Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3/),&
                 (/Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3/),&
                 Lzd%hgrids,at,Lzd%Llr(ilr)%wfd,rxyz_old,rxyz,locrad,locregCenter,&
-                confPotOrder,confPotPrefac,psi(ind),orbs%eval(orbs%isorb+iorb),psifscf,&
+                confPotOrder,confPotPrefac,psi(ind),orbs%eval(orbs%isorb+iorb),&
                 orbs%onwhichatom,Lzd%Llr(ilr),Lzd%glr)
            close(99)
            ind = ind + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
         end do
-
-        i_all=-product(shape(psifscf))*kind(psifscf)
-        deallocate(psifscf,stat=i_stat)
-        call memocc(i_stat,i_all,'psifscf',subname)
-
      end do
 
      !Open the coefficient file 
@@ -2397,8 +2383,7 @@ END SUBROUTINE copy_old_inwhichlocreg
 
 !> Reformat wavefunctions if the mesh have changed (in a restart)
 !could also tidy here a bit more, e.g. get rid of ndim_old as an argument
-subroutine reformat_supportfunctions(iproc,at,&
-           rxyz_old,ndim_old,rxyz,tmb,tmb_old)
+subroutine reformat_supportfunctions(iproc,at,rxyz_old,ndim_old,rxyz,tmb,tmb_old)
   use module_base
   use module_types
   implicit none
@@ -2412,8 +2397,8 @@ subroutine reformat_supportfunctions(iproc,at,&
   integer :: iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3,jstart,jstart_old,iiorb,ilr,iiat
   integer:: ierr,idir,jstart_old_der,ncount,ilr_old
   integer, dimension(3) :: ns_old,ns,n_old,n
-  real(gp) :: tx,ty,tz,displ,mindist,tt
-  real(wp), dimension(:,:,:), allocatable :: phifscf
+  real(gp), dimension(3) :: centre_old,centre_new,newz
+  real(gp) :: tx,ty,tz,displ,mindist,tt,theta
   real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
   real(wp), dimension(:), allocatable :: phi_old_der
   integer, dimension(0:5) :: reformat_reason
@@ -2493,7 +2478,6 @@ subroutine reformat_supportfunctions(iproc,at,&
       n(1)=tmb%lzd%Llr(ilr)%d%n1
       n(2)=tmb%lzd%Llr(ilr)%d%n2
       n(3)=tmb%lzd%Llr(ilr)%d%n3
-
       ns_old(1)=tmb_old%lzd%Llr(ilr)%ns1
       ns_old(2)=tmb_old%lzd%Llr(ilr)%ns2
       ns_old(3)=tmb_old%lzd%Llr(ilr)%ns3
@@ -2501,13 +2485,12 @@ subroutine reformat_supportfunctions(iproc,at,&
       ns(2)=tmb%lzd%Llr(ilr)%ns2
       ns(3)=tmb%lzd%Llr(ilr)%ns3
 
-
       !reformatting criterion
       if (tmb%lzd%hgrids(1) == tmb_old%lzd%hgrids(1) .and. tmb%lzd%hgrids(2) == tmb_old%lzd%hgrids(2) &
             .and. tmb%lzd%hgrids(3) == tmb_old%lzd%hgrids(3) .and. &
             tmb_old%lzd%llr(ilr_old)%wfd%nvctr_c  == tmb%lzd%llr(ilr)%wfd%nvctr_c .and. &
             tmb_old%lzd%llr(ilr_old)%wfd%nvctr_f == tmb%lzd%llr(ilr)%wfd%nvctr_f .and.&
-            n_old(1)  == n(1)  .and. n_old(2) == n(2) .and. n_old(3) == n(3)  .and.  displ <  1.d-3  ) then
+            n_old(1)==n(1)  .and. n_old(2)==n(2) .and. n_old(3)==n(3)  .and.  displ <  1.d-3  ) then
           reformat_reason(0) = reformat_reason(0) + 1
           reformat=.false.
           !if (iproc==0) then
@@ -2596,10 +2579,6 @@ subroutine reformat_supportfunctions(iproc,at,&
           end do
    
       else
-   
-          allocate(phifscf(-nb1:2*n(1)+1+nb1,-nb2:2*n(2)+1+nb2,-nb3:2*n(3)+1+nb3+ndebug),stat=i_stat)
-          call memocc(i_stat,phifscf,'phifscf',subname)
-
           allocate(phigold(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2+ndebug),stat=i_stat)
           call memocc(i_stat,phigold,'phigold',subname)
    
@@ -2659,14 +2638,16 @@ subroutine reformat_supportfunctions(iproc,at,&
           !!call reformatonewave(displ,tmb%lzd%llr(ilr)%wfd,at,tmb_old%lzd%hgrids(1),tmb_old%lzd%hgrids(2),tmb_old%lzd%hgrids(3), & !n(m)
           !!     n1_old,n2_old,n3_old,rxyz_old,phigold,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
           !!     n1,n2,n3,rxyz,phifscf,phi(jstart))
-          call reformat_one_supportfunction(iiat,displ,tmb%lzd%llr(ilr)%wfd,at,tmb_old%lzd%hgrids,&
-               n_old,ns_old,rxyz_old,phigold,tmb%lzd%hgrids,n,ns,rxyz,phifscf,tmb%psi(jstart))
+
+          theta=0.d0*(4.0_gp*atan(1.d0)/180.0_gp)
+          newz=(/1.0_gp,0.0_gp,0.0_gp/)
+          centre_old(:)=rxyz_old(:,iiat)
+          centre_new(:)=rxyz(:,iiat)
+
+          call reformat_one_supportfunction(tmb%lzd%llr(ilr)%wfd,at,tmb_old%lzd%hgrids,n_old,ns_old,&
+               rxyz_old,phigold,tmb%lzd%hgrids,n,ns,rxyz,centre_old,centre_new,newz,theta,tmb%psi(jstart))
 
           jstart=jstart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-   
-          i_all=-product(shape(phifscf))*kind(phifscf)
-          deallocate(phifscf,stat=i_stat)
-          call memocc(i_stat,i_all,'phifscf',subname)
    
           i_all=-product(shape(phigold))*kind(phigold)
           deallocate(phigold,stat=i_stat)

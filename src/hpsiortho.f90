@@ -17,7 +17,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   use module_base
   use module_types
   use module_interfaces, fake_name => psitohpsi
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use m_ab6_mixing
   use yaml_output
   use gaussians, only: gaussian_basis
@@ -3134,7 +3134,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   use module_base
   use module_types
   use module_interfaces, fake_name => integral_equation
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
@@ -3143,7 +3143,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   type(GPU_pointers), intent(inout) :: GPU
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(dp), dimension(:), pointer :: local_potential
   !local variables

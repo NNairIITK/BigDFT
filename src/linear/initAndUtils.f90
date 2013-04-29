@@ -481,7 +481,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
   logical :: linear
-  integer :: iat,ityp,nspin_ig,i_all,i_stat
+  integer :: iat,ityp,nspin_ig,i_all,i_stat,ilr
   real(gp), dimension(:), allocatable :: locrad
   logical,dimension(:),allocatable :: calculateBounds
 
@@ -530,6 +530,9 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
 
   if(linearmode /= INPUT_IG_TMO) then
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
+     do ilr=1,Lzd%nlr
+        Lzd%Llr(ilr)=locreg_null()
+     end do
      !for now, always true because we want to calculate the hamiltonians for all locregs
 
      if(.not. Lzd%linear) then
