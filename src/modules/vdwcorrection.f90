@@ -2377,13 +2377,11 @@ contains
       do iline=1,MAX_ELEM
          vdwparams%maxcn(iline)=0
       enddo
-!
 
     !enter the simplified values for the parameters
     do idata=1,ntot_values
        vdwparams%ivalues(idata)=idata
     end do
-
     vdwparams%ivalues( 95)=101
     vdwparams%ivalues( 96)=103
     vdwparams%ivalues( 97)=104
@@ -2556,307 +2554,156 @@ contains
     vdwparams%rvalues(101)= 0.99250_gp
     vdwparams%rvalues(102)= 0.99820_gp
     vdwparams%rvalues(103)= 0.96840_gp
-
     vdwparams%rvalues(104)= 0.96280_gp
-
     vdwparams%rvalues(105)= 0.96480_gp
-
     vdwparams%rvalues(106)= 0.95070_gp
-
     vdwparams%rvalues(107)= 0.99470_gp
-
     vdwparams%rvalues(108)= 0.99480_gp
-
     vdwparams%rvalues(109)= 0.99720_gp
-
     vdwparams%rvalues(110)= 0.97670_gp
-
     vdwparams%rvalues(111)= 0.98310_gp
-
     vdwparams%rvalues(112)= 1.86270_gp
-
     vdwparams%rvalues(113)= 1.82990_gp
-
     vdwparams%rvalues(114)= 1.91380_gp
-
     vdwparams%rvalues(115)= 1.82690_gp
-
     vdwparams%rvalues(116)= 1.64060_gp
-
     vdwparams%rvalues(117)= 1.64830_gp
-
     vdwparams%rvalues(118)= 1.71490_gp
-
     vdwparams%rvalues(119)= 1.79370_gp
-
     vdwparams%rvalues(120)= 0.95760_gp
-
     vdwparams%rvalues(121)= 1.94190_gp
-
     vdwparams%rvalues(122)= 0.96010_gp
-
     vdwparams%rvalues(123)= 0.94340_gp
-
     vdwparams%rvalues(124)= 0.98890_gp
-
     vdwparams%rvalues(125)= 0.99010_gp
-
     vdwparams%rvalues(126)= 0.99740_gp
-
     vdwparams%rvalues(127)= 0.97380_gp
-
     vdwparams%rvalues(128)= 0.98010_gp
-
     vdwparams%rvalues(129)= 1.91530_gp
-
     vdwparams%rvalues(130)= 1.93550_gp
-
     vdwparams%rvalues(131)= 1.95450_gp
-
     vdwparams%rvalues(132)= 1.94200_gp
-
     vdwparams%rvalues(133)= 1.66820_gp
-
     vdwparams%rvalues(134)= 1.85840_gp
-
     vdwparams%rvalues(135)= 1.90030_gp
-
     vdwparams%rvalues(136)= 1.86300_gp
-
     vdwparams%rvalues(137)= 0.96790_gp
-
     vdwparams%rvalues(138)= 1.95390_gp
-
     vdwparams%rvalues(139)= 0.96330_gp
-
     vdwparams%rvalues(140)= 0.95140_gp
-
     vdwparams%rvalues(141)= 0.97490_gp
-
     vdwparams%rvalues(142)= 0.98110_gp
-
     vdwparams%rvalues(143)= 0.99680_gp
-
     vdwparams%rvalues(144)= 0.99090_gp
-
     vdwparams%rvalues(145)= 0.97970_gp
-
     vdwparams%rvalues(146)= 1.93730_gp
-
     vdwparams%rvalues(147)= 2.94250_gp
-
     vdwparams%rvalues(148)= 2.94550_gp
-
     vdwparams%rvalues(149)= 2.94130_gp
-
     vdwparams%rvalues(150)= 2.93000_gp
-
     vdwparams%rvalues(151)= 1.82860_gp
-
     vdwparams%rvalues(152)= 2.87320_gp
-
     vdwparams%rvalues(153)= 2.90860_gp
-
     vdwparams%rvalues(154)= 2.89650_gp
-
     vdwparams%rvalues(155)= 2.92420_gp
-
     vdwparams%rvalues(156)= 2.92820_gp
-
     vdwparams%rvalues(157)= 2.92460_gp
-
     vdwparams%rvalues(158)= 2.84820_gp
-
     vdwparams%rvalues(159)= 2.92190_gp
-
     vdwparams%rvalues(160)= 1.92540_gp
-
     vdwparams%rvalues(161)= 1.94590_gp
-
     vdwparams%rvalues(162)= 1.92920_gp
-
     vdwparams%rvalues(163)= 1.81040_gp
-
     vdwparams%rvalues(164)= 1.88580_gp
-
     vdwparams%rvalues(165)= 1.86480_gp
-
     vdwparams%rvalues(166)= 1.91880_gp
-
     vdwparams%rvalues(167)= 0.98460_gp
-
     vdwparams%rvalues(168)= 1.98960_gp
-
     vdwparams%rvalues(169)= 0.92670_gp
-
     vdwparams%rvalues(170)= 0.93830_gp
-
     vdwparams%rvalues(171)= 0.98200_gp
-
     vdwparams%rvalues(172)= 0.98150_gp
-
     vdwparams%rvalues(173)= 0.99540_gp
-
     vdwparams%rvalues(174)= 0.97050_gp
-
     vdwparams%rvalues(175)= 0.96620_gp
-
     vdwparams%rvalues(176)= 2.90700_gp
-
     vdwparams%rvalues(177)= 2.88440_gp
-
     vdwparams%rvalues(178)= 2.87380_gp
-
     vdwparams%rvalues(179)= 2.88780_gp
-
     vdwparams%rvalues(180)= 2.90950_gp
-
     vdwparams%rvalues(181)= 1.92090_gp
-
     vdwparams%rvalues(182)= 1.96970_gp
-
     vdwparams%rvalues(183)= 1.94410_gp
-
     vdwparams%rvalues(184)= 1.99850_gp
-
     vdwparams%rvalues(185)= 2.01430_gp
-
     vdwparams%rvalues(186)= 1.98870_gp
-
     vdwparams%rvalues(187)= 1.94960_gp
-
     vdwparams%rvalues(188)= 1.93110_gp
-
     vdwparams%rvalues(189)= 1.94350_gp
-
     vdwparams%rvalues(190)= 2.01020_gp
-
     vdwparams%rvalues(191)= 1.99030_gp
-
     vdwparams%rvalues(192)= 1.93490_gp
-
     vdwparams%rvalues(193)= 2.89990_gp
-
     vdwparams%rvalues(194)= 3.86750_gp
-
     vdwparams%rvalues(195)= 2.91100_gp
-
     vdwparams%rvalues(196)=10.61910_gp
-
     vdwparams%rvalues(197)= 9.88490_gp
-
     vdwparams%rvalues(198)= 9.13760_gp
-
     vdwparams%rvalues(199)= 2.92630_gp
-
     vdwparams%rvalues(200)= 6.54580_gp
-
     vdwparams%rvalues(201)= 1.93150_gp
-
     vdwparams%rvalues(202)= 1.94470_gp
-
     vdwparams%rvalues(203)= 1.97930_gp
-
     vdwparams%rvalues(204)= 1.98120_gp
-
     vdwparams%rvalues(205)= 1.91430_gp
-
     vdwparams%rvalues(206)= 2.89030_gp
-
     vdwparams%rvalues(207)= 3.91060_gp
-
     vdwparams%rvalues(208)= 2.92250_gp
-
     vdwparams%rvalues(209)=11.05560_gp
-
     vdwparams%rvalues(210)= 9.54020_gp
-
     vdwparams%rvalues(211)= 8.88950_gp
-
     vdwparams%rvalues(212)= 2.96960_gp
-
     vdwparams%rvalues(213)= 5.70950_gp
-
     vdwparams%rvalues(214)= 1.93780_gp
-
     vdwparams%rvalues(215)= 1.95050_gp
-
     vdwparams%rvalues(216)= 1.95230_gp
-
     vdwparams%rvalues(217)= 1.96390_gp
-
     vdwparams%rvalues(218)= 1.84670_gp
-
     vdwparams%rvalues(219)= 2.91750_gp
-
     vdwparams%rvalues(220)= 3.88400_gp
-
     vdwparams%rvalues(221)= 2.89880_gp
-
     vdwparams%rvalues(222)=10.91530_gp
-
     vdwparams%rvalues(223)= 9.80540_gp
-
     vdwparams%rvalues(224)= 9.15270_gp
-
     vdwparams%rvalues(225)= 2.94240_gp
-
     vdwparams%rvalues(226)= 6.66690_gp
-
     vdwparams%rvalues(227)= 1.93020_gp
-
     vdwparams%rvalues(228)= 1.93560_gp
-
     vdwparams%rvalues(229)= 1.96550_gp
-
     vdwparams%rvalues(230)= 1.96390_gp
-
     vdwparams%rvalues(231)= 1.80750_gp
-
     vdwparams%rvalues(232)= 2.91280_gp
-
     vdwparams%rvalues(233)= 2.99870_gp
-
     vdwparams%rvalues(234)= 2.99030_gp
-
     vdwparams%rvalues(235)= 2.91460_gp
-
     vdwparams%rvalues(236)= 2.94070_gp
-
     vdwparams%rvalues(237)= 2.98590_gp
-
     vdwparams%rvalues(238)= 7.77850_gp
-
     vdwparams%rvalues(239)= 6.29180_gp
-
     vdwparams%rvalues(240)= 2.92330_gp
-
     vdwparams%rvalues(241)= 2.91860_gp
-
     vdwparams%rvalues(242)= 2.97090_gp
-
     vdwparams%rvalues(243)= 2.93530_gp
-
     vdwparams%rvalues(244)= 2.92590_gp
-
     vdwparams%rvalues(245)= 2.93150_gp
-
     vdwparams%rvalues(246)= 2.94200_gp
-
     vdwparams%rvalues(247)= 2.90810_gp
-
     vdwparams%rvalues(248)= 2.95000_gp
-
     vdwparams%rvalues(249)= 4.58560_gp
-
     vdwparams%rvalues(250)= 3.98440_gp
-
     vdwparams%rvalues(251)= 3.86770_gp
-
     vdwparams%rvalues(252)= 3.89720_gp
-
     vdwparams%rvalues(253)= 3.91230_gp
-
     vdwparams%rvalues(254)= 3.90980_gp
 
     vdwparams%coeffs(    1:  100)=(/    3.02670_gp,    2.08350_gp,    1.55830_gp,   38.94480_gp,   22.15080_gp,&

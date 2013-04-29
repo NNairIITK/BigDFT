@@ -25,7 +25,7 @@ module error_handling
   character(len=*), parameter :: errunspec='UNSPECIFIED'
   character(len=*), parameter :: errundef='UNKNOWN'
 
-  integer :: ERR_GENERIC,ERR_SUCCESS
+  integer :: ERR_GENERIC,ERR_SUCCESS,ERR_NOT_DEFINED
 
   type(dictionary), pointer :: dict_errors=>null() !< the global dictionaries of possible errors, nullified if not initialized
   type(dictionary), pointer :: dict_present_error=>null() !< local pointer of present error, nullified if success
@@ -66,6 +66,8 @@ contains
     !initialize the dictionary with the generic case
     call f_err_define('SUCCESS','Operation has succeeded',ERR_SUCCESS,err_action='No action')
     call f_err_define('GENERIC_ERROR',errunspec,ERR_GENERIC,err_action=errundef)
+    call f_err_define('ERR_NOT_DEFINED','The error id or name is invalid',ERR_NOT_DEFINED,&
+         err_action='Control if the err id exists')
   end subroutine f_err_initialize
 
   subroutine f_err_finalize()
@@ -213,7 +215,7 @@ contains
     call dict_init(dict_present_error)
   end subroutine f_err_clean
 
-  !> routine which makes the system crash if there is a problem and cpontinues in case of a exception raised
+  !> routine which makes the system crash if there is a problem and continues in case of a exception raised
   subroutine err_exception(err_id)
     use yaml_output, only: yaml_dict_dump
     implicit none

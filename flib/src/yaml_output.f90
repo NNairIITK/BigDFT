@@ -1381,7 +1381,7 @@ contains
   end function flow_is_ending
 
 
-  function comma_not_needed(evt)
+  pure function comma_not_needed(evt)
     implicit none
     integer, intent(in) :: evt
     logical :: comma_not_needed
@@ -1396,7 +1396,7 @@ contains
   end function comma_not_needed
 
 
-  function comma_potentially_needed(evt)
+  pure function comma_potentially_needed(evt)
     implicit none
     integer, intent(in) :: evt
     logical :: comma_potentially_needed
