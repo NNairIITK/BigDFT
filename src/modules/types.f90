@@ -882,13 +882,21 @@ module module_types
   !!  for post-treatment
   type, public :: restart_objects
      integer :: version !< 0=cubic, 100=linear
-     integer :: n1,n2,n3
+     integer :: n1,n2,n3,nat
      real(gp) :: hx_old,hy_old,hz_old
      real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
      type(DFT_wavefunction) :: KSwfn !< Kohn-Sham wavefunctions
      type(DFT_wavefunction) :: tmb !<support functions for linear scaling
      type(GPU_pointers) :: GPU 
   end type restart_objects
+
+  !> Public container to be used with call_bigdft().
+  type, public :: run_objects
+     real(gp), dimension(:,:), pointer :: rxyz
+     type(input_variables), pointer    :: inputs
+     type(atoms_data), pointer         :: atoms
+     type(restart_objects), pointer    :: rst
+  end type run_objects
 
 !> type paw_ij_objects
 
@@ -1452,10 +1460,9 @@ subroutine deallocate_orbs(orbs,subname)
        call memocc(i_stat,i_all,'orbs%ispot',subname)
     end if
 
-END SUBROUTINE deallocate_orbs
+  END SUBROUTINE deallocate_orbs
 
-
-!> Allocate and nullify restart objects
+  !> All in one routine to initialise and set-up restart objects.
   subroutine init_restart_objects(iproc,inputs,atoms,rst,subname)
     use module_base
     implicit none
@@ -1465,23 +1472,27 @@ END SUBROUTINE deallocate_orbs
     type(input_variables), intent(in) :: inputs
     type(atoms_data), intent(in) :: atoms
     type(restart_objects), intent(out) :: rst
-    !local variables
-    integer :: i_stat
+
+    call restart_objects_new(rst)
+    call restart_objects_set_mode(rst, inputs%inputpsiid)
+    call restart_objects_set_nat(rst, atoms%nat, subname)
+    call restart_objects_set_mat_acc(rst, iproc, inputs%matacc)
+  END SUBROUTINE init_restart_objects
+
+  !> Allocate and nullify restart objects
+  subroutine restart_objects_new(rst)
+    use module_base
+    implicit none
+    !Arguments
+    type(restart_objects), intent(out) :: rst
 
     ! Decide whether we use the cubic or the linear version
-    select case (inputs%inputpsiid)
-    case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
-         INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
-       rst%version = CUBIC_VERSION
-    case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
-       rst%version = LINEAR_VERSION
-    end select
+    rst%version = UNINITIALIZED(CUBIC_VERSION)
 
     !allocate pointers
-    allocate(rst%rxyz_new(3,atoms%nat+ndebug),stat=i_stat)
-    call memocc(i_stat,rst%rxyz_new,'rxyz_new',subname)
-    allocate(rst%rxyz_old(3,atoms%nat+ndebug),stat=i_stat)
-    call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
+    rst%nat = 0
+    nullify(rst%rxyz_new)
+    nullify(rst%rxyz_old)
 
     !nullify unallocated pointers
     rst%KSwfn%c_obj = 0
@@ -1502,14 +1513,59 @@ END SUBROUTINE deallocate_orbs
     nullify(rst%KSwfn%gbd%xp)
     nullify(rst%KSwfn%gbd%psiat)
     nullify(rst%KSwfn%gbd%rxyz)
+  END SUBROUTINE restart_objects_new
 
+  subroutine restart_objects_set_mode(rst, inputpsiid)
+    implicit none
+    type(restart_objects), intent(inout) :: rst
+    integer, intent(in) :: inputpsiid
+
+    select case (inputpsiid)
+    case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
+         INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
+       rst%version = CUBIC_VERSION
+    case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
+       rst%version = LINEAR_VERSION
+    end select
+  END SUBROUTINE restart_objects_set_mode
+
+  subroutine restart_objects_set_nat(rst, nat, subname)
+    use module_base
+    implicit none
+    !Arguments
+    character(len=*), intent(in) :: subname
+    integer, intent(in) :: nat
+    type(restart_objects), intent(inout) :: rst
+    !local variables
+    integer :: i_all,i_stat
+
+    if (associated(rst%rxyz_old)) then
+       i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
+       deallocate(rst%rxyz_old,stat=i_stat)
+       call memocc(i_stat,i_all,'rxyz_old',subname)
+    end if
+    if (associated(rst%rxyz_new)) then
+       i_all=-product(shape(rst%rxyz_new))*kind(rst%rxyz_new)
+       deallocate(rst%rxyz_new,stat=i_stat)
+       call memocc(i_stat,i_all,'rxyz_new',subname)
+    end if
+
+    rst%nat = nat
+    allocate(rst%rxyz_new(3,nat+ndebug),stat=i_stat)
+    call memocc(i_stat,rst%rxyz_new,'rxyz_new',subname)
+    allocate(rst%rxyz_old(3,nat+ndebug),stat=i_stat)
+    call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
+  END SUBROUTINE restart_objects_set_nat
+
+  subroutine restart_objects_set_mat_acc(rst, iproc, matacc)
+    implicit none
+    !Arguments
+    type(restart_objects), intent(inout) :: rst
+    integer, intent(in) :: iproc
+    type(material_acceleration), intent(in) :: matacc
     !initialise the acceleration strategy if required
-    call init_material_acceleration(iproc,inputs%matacc,rst%GPU)
-
-
-
-  END SUBROUTINE init_restart_objects
-
+    call init_material_acceleration(iproc,matacc,rst%GPU)
+  END SUBROUTINE restart_objects_set_mat_acc
 
 !>  De-Allocate restart_objects
   subroutine free_restart_objects(rst,subname)
@@ -1539,12 +1595,6 @@ END SUBROUTINE deallocate_orbs
        call memocc(i_stat,i_all,'eval',subname)
     end if
 
-    if (associated(rst%rxyz_old)) then
-       i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
-       deallocate(rst%rxyz_old,stat=i_stat)
-       call memocc(i_stat,i_all,'rxyz_old',subname)
-    end if
-
     if (associated(rst%KSwfn%oldpsis)) then
        do istep=0,product(shape(rst%KSwfn%oldpsis))-1
           call old_wavefunction_free(rst%KSwfn%oldpsis(istep),subname)
@@ -1553,6 +1603,11 @@ END SUBROUTINE deallocate_orbs
     end if
 
 
+    if (associated(rst%rxyz_old)) then
+       i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
+       deallocate(rst%rxyz_old,stat=i_stat)
+       call memocc(i_stat,i_all,'rxyz_old',subname)
+    end if
     if (associated(rst%rxyz_new)) then
        i_all=-product(shape(rst%rxyz_new))*kind(rst%rxyz_new)
        deallocate(rst%rxyz_new,stat=i_stat)

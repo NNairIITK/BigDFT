@@ -17,7 +17,7 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
   use module_base
   use module_types
   use module_interfaces, except_this_one => bigdft_set_input
-  !use yaml_output
+  use yaml_output
   implicit none
 
   !Arguments
@@ -28,7 +28,7 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
   real(gp), dimension(:,:), pointer :: rxyz 
 
 !!$  logical :: exist_list
-!!$  integer :: group_size,ierr
+  integer :: ierr
 
   atoms=atoms_null()
 
@@ -36,11 +36,12 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
 !  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,nproc)
   !standard names
   call standard_inputfile_names(in,trim(radical), bigdft_mpi%nproc)
+  ! Default for inputs (should not be necessary if all the variables comes from the parsing)
+  call default_input_variables(in)
 
   !call yaml_open_map('Representation of the input files')
-  ! Read all parameters and update atoms and rxyz.
-  call read_input_parameters(bigdft_mpi%iproc,in,.true.)
-
+  ! Parse all input files, independent from atoms.
+  call inputs_parse_params(in, bigdft_mpi%iproc, .true.)
   !call yaml_close_map()
 
 !!$  ! find out which input files will be used
@@ -57,7 +58,17 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
 
   ! Read atomic file
   call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms,rxyz)
-  call read_input_parameters2(bigdft_mpi%iproc,in,atoms,rxyz)
+  ! Shake atoms, if required.
+  call atoms_set_displacement(atoms, rxyz, in%randdis)
+  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+  ! Update atoms with symmetry information
+  call atoms_set_symmetries(atoms, rxyz, in%disableSym, in%symTol, in%elecfield)
+
+  ! Parse input files depending on atoms.
+  call inputs_parse_add(in, atoms, bigdft_mpi%iproc, .true.)
+
+!!$  print *,'hello24',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
+!!$  call mpi_barrier(mpi_comm_world,ierr)
 
   ! Read associated pseudo files.
   call init_atomic_values((bigdft_mpi%iproc == 0), atoms, in%ixc)
@@ -243,111 +254,6 @@ subroutine standard_inputfile_names(in, radical, nproc)
   ! presence, we put a barrier here.
   if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
 END SUBROUTINE standard_inputfile_names
-
-
-!> Do initialisation for all different calculation parameters of BigDFT. 
-!! Set default values if not any. Atomic informations are updated  by
-!! symmetries if necessary and by geometry input parameters.
-subroutine read_input_parameters(iproc,in,dump)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => read_input_parameters
-  use yaml_output
-
-  implicit none
-
-  !Arguments
-  integer, intent(in) :: iproc
-  type(input_variables), intent(inout) :: in
-  logical, intent(in) :: dump
-  !Local variables
-  ! Default for inputs (should not be necessary if all the variables comes from the parsing)
-  call default_input_variables(in)
-  ! Read linear variables
-  ! Parse all input files, independent from atoms.
-  call inputs_parse_params(in, iproc, dump)
-  if(in%inputpsiid==100 .or. in%inputpsiid==101 .or. in%inputpsiid==102) &
-      DistProjApply=.true.
-  if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) then
-     !only on the fly calculation
-     DistProjApply=.true.
-  end if
-
-END SUBROUTINE read_input_parameters
-
-
-subroutine read_input_parameters2(iproc,in,atoms,rxyz)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => read_input_parameters2
-  use module_input
-  use yaml_strings
-  use yaml_output
-
-  implicit none
-
-  !Arguments
-  integer, intent(in) :: iproc
-  type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-  !Local variables
-  integer :: ierr
-!!$  integer :: ierror
-  !character(len=500) :: logfile,logfile_old,logfile_dir
-  !logical :: exists
-!!$  print *,'hereAAA',iproc
-  ! Shake atoms, if required.
-  call atoms_set_displacement(atoms, rxyz, in%randdis)
-!!$  print *,'hello21',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
-  call mpi_barrier(mpi_comm_world,ierr)
-
-  ! Update atoms with symmetry information
-  call atoms_set_symmetries(atoms, rxyz, in%disableSym, in%symTol, in%elecfield)
-!!$  print *,'hello22',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
-!!$call mpi_barrier(mpi_comm_world,ierr)
-
-  ! Parse input files depending on atoms.
-  call inputs_parse_add(in, atoms, iproc, .true.)
-!!$
-!!$  print *,'hello23',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
-!!$  call mpi_barrier(mpi_comm_world,ierr)
-
-
-  ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
-!  if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
-!     if (iproc==0) call yaml_warning('GPU calculation allowed only in periodic boundary conditions')
-!     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-!  end if
-
-  ! Stop the code if it is trying to run GPU with spin=4
-  if (in%nspin == 4 .and. (GPUconv .or. OCLconv)) then
-     if (iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-  end if
-
-!!$  ! Stop code for unproper input variables combination.
-!!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%geocode == 'S') then
-!!$     if (iproc==0) then
-!!$        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
-!!$        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
-!!$     end if
-!!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-!!$  end if
-  if (in%nkpt > 1 .and. in%gaussian_help) then
-     if (iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-  end if
-
-  !check whether a directory name should be associated for the data storage
-  call check_for_data_writing_directory(iproc,in)
-
-!!$  print *,'hello24',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
-!!$  call mpi_barrier(mpi_comm_world,ierr)
-
-
-END SUBROUTINE read_input_parameters2
-
 
 !> Check the directory of data (create if not present)
 subroutine check_for_data_writing_directory(iproc,in)
@@ -2381,7 +2287,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
    end if
 
    !control atom positions
-   call check_atoms_positions(iproc,atoms,rxyz)
+   call check_atoms_positions(atoms,rxyz,(iproc == 0))
 
    ! We delay the calculation of the symmetries.
 !this should be already in the atoms_null routine
@@ -2427,25 +2333,33 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   real(gp), dimension(3,atoms%nat), intent(in), optional :: forces
   !local variables
   character(len = 15) :: arFile
+  integer :: iunit
 
-  open(unit=9,file=trim(filename)//'.'//trim(atoms%format))
+  if (trim(filename) == "stdout") then
+     iunit = 6
+  else
+     open(unit=9,file=trim(filename)//'.'//trim(atoms%format))
+     iunit = 9
+  end if
   if (atoms%format == "xyz") then
-     call wtxyz(9,energy,rxyz,atoms,comment)
+     call wtxyz(iunit,energy,rxyz,atoms,comment)
      if (present(forces)) call wtxyz_forces(9,forces,atoms)
   else if (atoms%format == "ascii") then
-     call wtascii(9,energy,rxyz,atoms,comment)
+     call wtascii(iunit,energy,rxyz,atoms,comment)
      if (present(forces)) call wtascii_forces(9,forces,atoms)
   else if (atoms%format == 'yaml') then
      if (present(forces)) then
-        call wtyaml(9,energy,rxyz,atoms,comment,.true.,forces)
+        call wtyaml(iunit,energy,rxyz,atoms,comment,.true.,forces)
      else
-        call wtyaml(9,energy,rxyz,atoms,comment,.false.,rxyz)
+        call wtyaml(iunit,energy,rxyz,atoms,comment,.false.,rxyz)
      end if
   else
      write(*,*) "Error, unknown file format."
      stop
   end if
-  close(unit=9)
+  if (trim(filename) /= "stdout") then
+     close(unit=9)
+  end if
 
   ! Add to archive
   if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
@@ -2908,7 +2822,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   enddo
 
   !control atom positions
-  call check_atoms_positions(iproc,atoms,rxyz)
+  call check_atoms_positions(atoms,rxyz,(iproc == 0))
 
   ! We delay the calculation of the symmetries.
   atoms%sym%symObj = -1

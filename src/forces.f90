@@ -378,6 +378,10 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+
+  ! Apply symmetries when needed
+  if (atoms%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
+
   if (iproc == 0) call write_forces(atoms,fxyz)
 
   !volume element for local stress
@@ -424,9 +428,6 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 !!$     write(77,'(a30,3(1x,e10.3))') 'translat. force total pot ',sumx,sumy,sumz
 !!$     write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
 !!$  endif
-
-  ! Apply symmetries when needed
-  if (atoms%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
 end subroutine calculate_forces
 
 

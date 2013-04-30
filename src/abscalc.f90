@@ -22,15 +22,12 @@ program abscalc_main
    real(gp) :: etot
 !!$   logical :: exist_list
    !input variables
-   type(atoms_data) :: atoms
-   type(input_variables) :: inputs
-   type(restart_objects) :: rst
+   type(run_objects) :: runObj
    character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
    character(len=60) :: run_id
 !!$   character(len=60) :: filename
    ! atomic coordinates, forces
    real(gp), dimension(:,:), allocatable :: fxyz
-   real(gp), dimension(:,:), pointer :: rxyz
    integer :: iconfig,nconfig,igroup,ngroups
    integer, dimension(4) :: mpi_info
    logical :: exists
@@ -61,8 +58,8 @@ program abscalc_main
 
          !Welcome screen
          !if (iproc==0) call print_logo()
-
-         call bigdft_set_input(arr_radical(iconfig),arr_posinp(iconfig),rxyz,inputs,atoms)
+         call run_objects_init(runObj)
+         call run_objects_set_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
 
 !!$
 !!$      ! Read all input files.
@@ -83,8 +80,8 @@ program abscalc_main
          if(nproc/=0)   call MPI_FINALIZE(ierr)
          stop
       end if
-      call abscalc_input_variables(iproc,trim(run_id)//".abscalc",inputs)
-      if( inputs%iat_absorber <1 .or. inputs%iat_absorber > atoms%nat) then
+      call abscalc_input_variables(iproc,trim(run_id)//".abscalc",runObj%inputs)
+      if( runObj%inputs%iat_absorber <1 .or. runObj%inputs%iat_absorber > runObj%atoms%nat) then
          if (iproc == 0) write(*,*)'ERROR: inputs%iat_absorber  must .ge. 1 and .le. number_of_atoms '
          if(nproc/=0)   call MPI_FINALIZE(ierr)
          stop
@@ -92,31 +89,23 @@ program abscalc_main
 
 
       !Allocations
-      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
+      allocate(fxyz(3,runObj%atoms%nat+ndebug),stat=i_stat)
       call memocc(i_stat,fxyz,'fxyz',subname)
 
-      call init_restart_objects(iproc,inputs,atoms,rst,subname)
-
-      call call_abscalc(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
+      call call_abscalc(nproc,iproc,runObj%atoms,runObj%rxyz,runObj%inputs,etot,fxyz,runObj%rst,infocode)
 
       ! if (iproc == 0) call write_forces(atoms,fxyz)
 
       !De-allocations
-      call deallocate_abscalc_input(inputs, subname)
-      call deallocate_atoms(atoms,subname) 
+      call deallocate_abscalc_input(runObj%inputs, subname)
 !      call deallocate_local_zone_descriptors(rst%Lzd, subname)
 
-      call free_restart_objects(rst,subname)
 
-      i_all=-product(shape(rxyz))*kind(rxyz)
-      deallocate(rxyz,stat=i_stat)
-      call memocc(i_stat,i_all,'rxyz',subname)
       i_all=-product(shape(fxyz))*kind(fxyz)
       deallocate(fxyz,stat=i_stat)
       call memocc(i_stat,i_all,'fxyz',subname)
 
-
-      call bigdft_free_input(inputs)
+      call run_objects_free(runObj)
 !!$      call free_input_variables(inputs)
 !!$
 !!$      !finalize memory counting
@@ -156,7 +145,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
    real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
    !local variables
-   character(len=*), parameter :: subname='call_bigdft'
+   character(len=*), parameter :: subname='call_abscalc'
    character(len=40) :: comment
    integer :: i_stat,i_all,ierr,inputPsiId_orig,icycle
 

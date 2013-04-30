@@ -42,34 +42,28 @@ module module_interfaces
 
    interface
 
-      subroutine call_bigdft(nproc,iproc,atoms,rxyz,in,energy,fxyz,strten,fnoise,rst,infocode)
+      subroutine call_bigdft(runObj,nproc,iproc,energy,fxyz,strten,fnoise,infocode)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
-         type(input_variables),intent(inout) :: in
-         type(atoms_data), intent(inout) :: atoms
-         type(restart_objects), intent(inout) :: rst
+         type(run_objects), intent(inout) :: runObj
          integer, intent(inout) :: infocode
          real(gp), intent(out) :: energy,fnoise
-         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
          real(gp), dimension(6), intent(out) :: strten
-         real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+         real(gp), dimension(3,runObj%atoms%nat), intent(out) :: fxyz
       END SUBROUTINE call_bigdft
 
-      subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
+      subroutine geopt(runObj,nproc,iproc,fxyz,strten,epot,ncount_bigdft)
         use module_base
         use module_types
         implicit none
+        type(run_objects), intent(inout) :: runObj
         integer, intent(in) :: nproc,iproc
-        type(atoms_data), intent(inout) :: at
-        type(input_variables), intent(inout) :: in
-        type(restart_objects), intent(inout) :: rst
         real(gp), intent(inout) :: epot
         integer, intent(inout) :: ncount_bigdft
-        real(gp), dimension(3*at%nat), intent(inout) :: pos
         real(gp), dimension(6), intent(inout) :: strten
-        real(gp), dimension(3*at%nat), intent(inout) :: fxyz
+        real(gp), dimension(3*runObj%atoms%nat), intent(inout) :: fxyz
       END SUBROUTINE geopt
 
       subroutine kswfn_optimization_loop(iproc, nproc, o, &
@@ -146,34 +140,15 @@ module module_interfaces
       END SUBROUTINE standard_inputfile_names
 
       subroutine bigdft_set_input(radical,posinp,rxyz,inputs,atoms)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: posinp
-         character(len=*),intent(in) :: radical
-         type(input_variables), intent(inout) :: inputs
-         type(atoms_data), intent(out) :: atoms
-         real(gp), dimension(:,:), pointer :: rxyz
-       END SUBROUTINE bigdft_set_input
-
-      subroutine read_input_parameters(iproc,inputs,dump)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc
-         type(input_variables), intent(inout) :: inputs
-         logical, intent(in) :: dump
-      END SUBROUTINE read_input_parameters
-  
-      subroutine read_input_parameters2(iproc,inputs,atoms,rxyz)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc
-         type(input_variables), intent(inout) :: inputs
-         type(atoms_data), intent(inout) :: atoms
-         real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-      END SUBROUTINE read_input_parameters2
+        !n(c) use module_base
+        use module_types
+        implicit none
+        character(len=*), intent(in) :: posinp
+        character(len=*),intent(in) :: radical
+        type(input_variables), intent(inout) :: inputs
+        type(atoms_data), intent(out) :: atoms
+        real(gp), dimension(:,:), pointer :: rxyz
+      END SUBROUTINE bigdft_set_input
 
       subroutine read_atomic_file(file,iproc,at,rxyz,status,comment,energy,fxyz)
          !n(c) use module_base
@@ -200,6 +175,14 @@ module module_interfaces
          type(atoms_data), intent(inout) :: at
          real(gp), dimension(:,:), pointer :: rxyz
       END SUBROUTINE initialize_atomic_file
+
+      subroutine atoms_set_n_atoms(atoms, rxyz, nat)
+        use module_types
+        implicit none
+        type(atoms_data), intent(inout) :: atoms
+        real(gp), dimension(:,:), pointer :: rxyz
+        integer, intent(in) :: nat
+      end subroutine atoms_set_n_atoms
 
       subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment_,energy_,fxyz_,getLine)
          !n(c) use module_base

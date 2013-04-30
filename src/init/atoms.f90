@@ -7,6 +7,54 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+! Init and free routines
+!> Allocate a new atoms_data type, for bindings.
+subroutine atoms_new(atoms, sym)
+  use module_types
+  implicit none
+  type(atoms_data), pointer :: atoms
+  type(symmetry_data), pointer :: sym
+  
+  allocate(atoms)
+  sym => atoms%sym
+  call atoms_nullify(atoms)
+END SUBROUTINE atoms_new
+!> Free an allocated atoms_data type.
+subroutine atoms_free(atoms)
+  use module_types
+  implicit none
+  type(atoms_data), pointer :: atoms
+  
+  call deallocate_atoms(atoms, "atoms_free")
+  deallocate(atoms)
+END SUBROUTINE atoms_free
+
+!> Nullify a new atoms_data type.
+subroutine atoms_nullify(atoms)
+  use module_types
+  implicit none
+  type(atoms_data), intent(out) :: atoms
+
+  atoms%geocode = "F"
+  atoms%units = "bohr"
+  atoms%format = "none"
+  atoms%nat = -1
+  atoms%ntypes = -1
+  atoms%sym%symObj = -1
+  nullify(atoms%sym%irrzon)
+  nullify(atoms%sym%phnons)
+  nullify(atoms%nlccpar)
+  nullify(atoms%paw_l)
+  nullify(atoms%paw_NofL)
+  nullify(atoms%paw_nofchannels)
+  nullify(atoms%paw_nofgaussians)
+  nullify(atoms%paw_Greal)
+  nullify(atoms%paw_Gimag)
+  nullify(atoms%paw_Gcoeffs)
+  nullify(atoms%paw_H_matrices)
+  nullify(atoms%paw_S_matrices)
+  nullify(atoms%paw_Sm1_matrices)
+end subroutine atoms_nullify
 
 !> Deallocate the structure atoms_data.
 subroutine deallocate_atoms(atoms,subname) 
@@ -140,15 +188,16 @@ END SUBROUTINE deallocate_atoms
 
 
 !> Allocation of the arrays inside the structure atoms_data
-subroutine allocate_atoms_nat(atoms, nat, subname)
-  use module_base
+subroutine atoms_set_n_atoms(atoms, rxyz, nat)
   use module_types
+  use m_profiling
   implicit none
   type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
   integer, intent(in) :: nat
-  character(len = *), intent(in) :: subname
-  !local variables
-  integer :: i_stat
+
+  character(len = *), parameter :: subname = "atoms_set_n_atoms"
+  integer :: i, i_stat
   integer, parameter :: nelecmax=32
 
   atoms%nat = nat
@@ -175,16 +224,21 @@ subroutine allocate_atoms_nat(atoms, nat, subname)
 
   allocate(atoms%aocc(nelecmax,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
-END SUBROUTINE allocate_atoms_nat
 
-subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
+  atoms%iatype = (/ (i, i=1,nat) /)
+
+  allocate(rxyz(3, atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz,'rxyz', subname)
+END SUBROUTINE atoms_set_n_atoms
+
+subroutine atoms_set_n_types(atoms, ntypes)
   use module_base
   use module_types
   implicit none
   type(atoms_data), intent(inout) :: atoms
   integer, intent(in) :: ntypes
-  character(len = *), intent(in) :: subname
   !local variables
+  character(len = *), parameter :: subname = "atoms_set_n_types"
   integer :: i_stat
 
   atoms%ntypes = ntypes
@@ -215,7 +269,7 @@ subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
   ! Parameters for Linear input guess
   allocate(atoms%rloc(atoms%ntypes,3),stat=i_stat)
   call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
-END SUBROUTINE allocate_atoms_ntypes
+END SUBROUTINE atoms_set_n_types
 
 
 !> Calculate the symmetries and update
@@ -331,6 +385,7 @@ END SUBROUTINE atoms_set_displacement
 subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getLine)
   use module_base
   use module_types
+  use module_interfaces, only: atoms_set_n_atoms
   implicit none
   integer, intent(in) :: iproc,ifile
   type(atoms_data), intent(inout) :: atoms
@@ -382,9 +437,7 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getLine
      write(comment, "(A)") line(i:)
   end if
 
-  allocate(rxyz(3,iat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz,'rxyz',subname)
-  call allocate_atoms_nat(atoms, iat, subname)
+  call atoms_set_n_atoms(atoms, rxyz, iat)
 
   !controls if the positions are provided with machine precision
   if (atoms%units == 'angstroemd0' .or. atoms%units== 'atomicd0' .or. &
@@ -554,7 +607,7 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getLine
      end do
   end if
   !now that ntypes is determined allocate atoms%atomnames and copy the values
-  call allocate_atoms_ntypes(atoms, ntyp, subname)
+  call atoms_set_n_types(atoms, ntyp)
 
   atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
 END SUBROUTINE read_xyz_positions
@@ -563,6 +616,7 @@ END SUBROUTINE read_xyz_positions
 subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getline)
   use module_base
   use module_types
+  use module_interfaces, only: atoms_set_n_atoms
   implicit none
   integer, intent(in) :: iproc,ifile
   type(atoms_data), intent(inout) :: atoms
@@ -651,9 +705,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
      end if
   end do
 
-  allocate(rxyz(3,iat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz,'rxyz',subname)
-  call allocate_atoms_nat(atoms, iat, subname)
+  call atoms_set_n_atoms(atoms, rxyz, iat)
 
   !controls if the positions are provided within machine precision
   if (index(atoms%units, 'd0') > 0 .or. reduced) then
@@ -808,13 +860,14 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
   end if
 
   !now that ntypes is determined copy the values
-  call allocate_atoms_ntypes(atoms, ntyp, subname)
+  call atoms_set_n_types(atoms, ntyp)
   atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
 END SUBROUTINE read_ascii_positions
 
 subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
   use module_base
   use module_types
+  use module_interfaces, only: atoms_set_n_atoms
   implicit none
   character(len = *), intent(in) :: filename
   type(atoms_data), intent(inout) :: atoms
@@ -880,9 +933,7 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
      return
   end if
 
-  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz,'rxyz',subname)
-  call allocate_atoms_nat(atoms, atoms%nat, subname)
+  call atoms_set_n_atoms(atoms, rxyz, atoms%nat)
   allocate(igspin(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,igspin,'igspin',subname)
   allocate(igchrg(atoms%nat+ndebug),stat=i_stat)
@@ -920,7 +971,7 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
      atoms%natpol(iat) = 1000 * igchrg(iat) + nsgn * 100 + igspin(iat)
   end do
 
-  call allocate_atoms_ntypes(atoms, atoms%ntypes, subname)
+  call atoms_set_n_types(atoms, atoms%ntypes)
   do i = 1, atoms%ntypes, 1
      call f90_posinp_yaml_get_atomname(lst, 0, i - 1, atoms%atomnames(i))
   end do
@@ -1092,13 +1143,13 @@ END SUBROUTINE frozen_ftoi
 
 
 !> Check the position of atoms
-subroutine check_atoms_positions(iproc,atoms,rxyz)
+subroutine check_atoms_positions(atoms,rxyz,simplify)
   use module_base
   use module_types
   use yaml_output
   implicit none
   !Arguments
-  integer, intent(in) :: iproc
+  logical, intent(in) :: simplify
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !local variables
@@ -1124,7 +1175,7 @@ subroutine check_atoms_positions(iproc,atoms,rxyz)
      end do
   end do
   if (nateq /= 0) then
-     if (iproc == 0) then
+     if (simplify) then
         call yaml_warning('Control your posinp file, cannot proceed')
         write(*,'(1x,a)',advance='no') 'Writing tentative alternative positions in the file posinp_alt...'
         !write(*,'(1x,a)')'Control your posinp file, cannot proceed'
@@ -1565,36 +1616,6 @@ END SUBROUTINE charge_and_spol
 
 
 
-! Init routine for bindings
-!> Allocate a new atoms_data type, for bindings.
-subroutine atoms_new(atoms, sym)
-  use module_types
-  implicit none
-  type(atoms_data), pointer :: atoms
-  type(symmetry_data), pointer :: sym
-  
-  allocate(atoms)
-  atoms%geocode = "F"
-  atoms%units = "bohr"
-  atoms%format = "none"
-  atoms%nat = -1
-  atoms%ntypes = -1
-  atoms%sym%symObj = -1
-  nullify(atoms%sym%irrzon)
-  nullify(atoms%sym%phnons)
-  sym => atoms%sym
-  nullify(atoms%nlccpar)
-  nullify(atoms%paw_l)
-  nullify(atoms%paw_NofL)
-  nullify(atoms%paw_nofchannels)
-  nullify(atoms%paw_nofgaussians)
-  nullify(atoms%paw_Greal)
-  nullify(atoms%paw_Gimag)
-  nullify(atoms%paw_Gcoeffs)
-  nullify(atoms%paw_H_matrices)
-  nullify(atoms%paw_S_matrices)
-  nullify(atoms%paw_Sm1_matrices)
-END SUBROUTINE atoms_new
 subroutine atoms_set_from_file(lstat, atoms, rxyz, filename, ln)
    use module_base
    use module_types
@@ -1617,23 +1638,33 @@ subroutine atoms_set_from_file(lstat, atoms, rxyz, filename, ln)
    lstat = .true.
    call read_atomic_file(trim(filename_), 0, atoms, rxyz, status)
    lstat = (status == 0)
- END SUBROUTINE atoms_set_from_file
+END SUBROUTINE atoms_set_from_file
+subroutine atoms_write(atoms, filename, filelen, rxyz, forces, energy, comment, ln)
+  use module_types
+  use module_interfaces, only: write_atomic_file
+  implicit none
+  integer, intent(in) :: ln, filelen
+  character(len = ln), intent(in) :: comment
+  character(len = filelen), intent(in) :: filename
+  type(atoms_data), intent(in) :: atoms
+  real(gp), intent(in) :: energy
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(:,:), pointer :: forces
+
+  if (associated(forces)) then
+     call write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
+  else
+     call write_atomic_file(filename,energy,rxyz,atoms,comment)
+  end if
+END SUBROUTINE atoms_write
 !> Deallocate a new atoms_data type, for bindings.
 subroutine atoms_empty(atoms)
   use module_types
   implicit none
   type(atoms_data), intent(inout) :: atoms
 
-  call deallocate_atoms(atoms, "atoms_free")
+  call deallocate_atoms(atoms, "atoms_empty")
 END SUBROUTINE atoms_empty
-subroutine atoms_free(atoms)
-  use module_types
-  implicit none
-  type(atoms_data), pointer :: atoms
-  
-  call deallocate_atoms(atoms, "atoms_free")
-  deallocate(atoms)
-END SUBROUTINE atoms_free
 
 ! Set routines for bindings
 subroutine atoms_read_variables(atoms, nspin, occup, ln)
@@ -1654,29 +1685,6 @@ subroutine atoms_read_variables(atoms, nspin, occup, ln)
 
   call read_atomic_variables(atoms, trim(filename_), nspin)
 END SUBROUTINE atoms_read_variables
-subroutine atoms_set_n_atoms(atoms, rxyz, nat)
-  use module_types
-  use m_profiling
-  implicit none
-  type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(:,:), pointer :: rxyz
-  integer, intent(in) :: nat
-
-  integer :: i, i_stat
-
-  call allocate_atoms_nat(atoms, nat, "atoms_set_n_atoms")
-  atoms%iatype = (/ (i, i=1,nat) /)
-  allocate(rxyz(3, atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz,'rxyz',"atoms_set_n_atoms")
-END SUBROUTINE atoms_set_n_atoms
-subroutine atoms_set_n_types(atoms, ntypes)
-  use module_types
-  implicit none
-  type(atoms_data), intent(inout) :: atoms
-  integer, intent(in) :: ntypes
-
-  call allocate_atoms_ntypes(atoms, ntypes, "atoms_set_n_types")
-END SUBROUTINE atoms_set_n_types
 subroutine atoms_set_name(atoms, ityp, name)
   use module_types
   implicit none
@@ -1921,50 +1929,6 @@ subroutine atoms_copy_alat(atoms, alat1, alat2, alat3)
   alat2 = atoms%alat2
   alat3 = atoms%alat3
 END SUBROUTINE atoms_copy_alat
-subroutine atoms_write(atoms, filename, filelen, rxyz, forces, energy, comment, ln)
-  use module_types
-  implicit none
-  integer, intent(in) :: ln, filelen
-  character, intent(in) :: comment(ln)
-  character, intent(in) :: filename(filelen)
-  type(atoms_data), intent(in) :: atoms
-  real(gp), intent(in) :: energy
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  real(gp), dimension(:,:), pointer :: forces
-
-  integer :: iunit, i
-  character(len = 1024) :: comment_, filename_
-
-  write(filename_, "(A)") " "
-  do i = 1, filelen
-     write(filename_(i:i), "(A1)") filename(i)
-  end do
-  if (trim(filename_) == "stdout") then
-     iunit = 6
-  else
-     open(unit=9,file=trim(filename_)//'.'//trim(atoms%format))
-     iunit = 9
-  end if
-  write(comment_, "(A)") " "
-  do i = 1, ln
-     write(comment_(i:i), "(A1)") comment(i)
-  end do
-
-  if (trim(atoms%format) == "xyz") then
-     call wtxyz(iunit,energy,rxyz,atoms,comment_)
-     if (associated(forces)) call wtxyz_forces(iunit,forces,atoms)
-  else if (trim(atoms%format) == "ascii") then
-     call wtascii(iunit,energy,rxyz,atoms,comment_)
-     if (associated(forces)) call wtascii_forces(iunit,forces,atoms)
-  else
-     write(*,*) "Error, unknown file format."
-     stop
-  end if
-
-  if (trim(filename_) /= "stdout") then
-     close(unit=9)
-  end if
-END SUBROUTINE atoms_write
 
 subroutine symmetry_set_irreductible_zone(sym, geocode, n1i, n2i, n3i, nspin)
   use module_base

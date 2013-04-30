@@ -696,11 +696,15 @@ END SUBROUTINE lzd_set_hgrids
 
 subroutine inputs_parse_params(in, iproc, dump)
   use module_types
+  use module_defs
   use module_xc
+  use yaml_output
   implicit none
   type(input_variables), intent(inout) :: in
   integer, intent(in) :: iproc
   logical, intent(in) :: dump
+
+  integer :: ierr
 
   ! Parse all values independant from atoms.
   call perf_input_variables(iproc,dump,trim(in%file_perf),in)
@@ -716,16 +720,32 @@ subroutine inputs_parse_params(in, iproc, dump)
   else
      call xc_init(in%ixc, XC_ABINIT, in%nspin)
   end if
+
+  if(in%inputpsiid==100 .or. in%inputpsiid==101 .or. in%inputpsiid==102) &
+      DistProjApply=.true.
+  if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) then
+     !only on the fly calculation
+     DistProjApply=.true.
+  end if
+
+  ! Stop the code if it is trying to run GPU with spin=4
+  if (in%nspin == 4 .and. (GPUconv .or. OCLconv)) then
+     if (iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+  end if
 end subroutine inputs_parse_params
 
 
 subroutine inputs_parse_add(in, atoms, iproc, dump)
   use module_types
+  use yaml_output
   implicit none
   type(input_variables), intent(inout) :: in
   type(atoms_data), intent(inout) :: atoms
   integer, intent(in) :: iproc
   logical, intent(in) :: dump
+
+  integer :: ierr
 
   ! Read k-points input variables (if given)
   call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,atoms%sym,atoms%geocode, &
@@ -734,6 +754,22 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
   ! Linear scaling (if given)
   call lin_input_variables_new(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
        & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
+
+!!$  ! Stop code for unproper input variables combination.
+!!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%geocode == 'S') then
+!!$     if (iproc==0) then
+!!$        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
+!!$        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
+!!$     end if
+!!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+!!$  end if
+  if (in%nkpt > 1 .and. in%gaussian_help) then
+     if (iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+  end if
+
+  !check whether a directory name should be associated for the data storage
+  call check_for_data_writing_directory(iproc,in)
 end subroutine inputs_parse_add
 
 

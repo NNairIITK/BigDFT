@@ -9,21 +9,18 @@
  
 
 !> Routine to use BigDFT as a blackbox
-subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,infocode)
+subroutine call_bigdft(runObj,nproc,iproc,energy,fxyz,strten,fnoise,infocode)
   use module_base
   use module_types
   use module_interfaces, except_this_one => call_bigdft
   use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
-  type(input_variables),intent(inout) :: in
-  type(atoms_data), intent(inout) :: atoms
-  type(restart_objects), intent(inout) :: rst
+  type(run_objects) ,intent(inout) :: runObj
   integer, intent(inout) :: infocode
   real(gp), intent(out) :: energy,fnoise
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz0
   real(gp), dimension(6), intent(out) :: strten
-  real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+  real(gp), dimension(3,runObj%atoms%nat), intent(out) :: fxyz
 
   !local variables
   character(len=*), parameter :: subname='call_bigdft'
@@ -64,18 +61,18 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   call f_routine(id=subname)
   if (nproc > 1) then
      !check that the positions are identical for all the processes
-     rxyz_glob=f_malloc((/3,atoms%nat,nproc/),id='rxyz_glob')
+     rxyz_glob=f_malloc((/3,runObj%atoms%nat,nproc/),id='rxyz_glob')
      
      !gather the results for all the processors
-     call MPI_GATHER(rxyz0,3*atoms%nat,mpidtypg,&
-          rxyz_glob,3*atoms%nat,mpidtypg,0,bigdft_mpi%mpi_comm,ierr)
+     call MPI_GATHER(runObj%rxyz,3*runObj%atoms%nat,mpidtypg,&
+          rxyz_glob,3*runObj%atoms%nat,mpidtypg,0,bigdft_mpi%mpi_comm,ierr)
      if (iproc==0) then
         maxdiff=0.0_gp
         do jproc=2,nproc
-           do iat=1,atoms%nat
+           do iat=1,runObj%atoms%nat
               do i=1,3
                  maxdiff=max(maxdiff,&
-                      abs(rxyz_glob(i,iat,jproc)-rxyz0(i,iat)))
+                      abs(rxyz_glob(i,iat,jproc)-runObj%rxyz(i,iat)))
               end do
            end do
         end do
@@ -88,112 +85,112 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   end if
   !fill the rxyz array with the positions
   !wrap the atoms in the periodic directions when needed
-  do iat=1,atoms%nat
-     if (atoms%geocode == 'P') then
-        rst%rxyz_new(1,iat)=modulo(rxyz0(1,iat),atoms%alat1)
-        rst%rxyz_new(2,iat)=modulo(rxyz0(2,iat),atoms%alat2)
-        rst%rxyz_new(3,iat)=modulo(rxyz0(3,iat),atoms%alat3)
-     else if (atoms%geocode == 'S') then
-        rst%rxyz_new(1,iat)=modulo(rxyz0(1,iat),atoms%alat1)
-        rst%rxyz_new(2,iat)=rxyz0(2,iat)
-        rst%rxyz_new(3,iat)=modulo(rxyz0(3,iat),atoms%alat3)
-     else if (atoms%geocode == 'F') then
-        rst%rxyz_new(1,iat)=rxyz0(1,iat)
-        rst%rxyz_new(2,iat)=rxyz0(2,iat)
-        rst%rxyz_new(3,iat)=rxyz0(3,iat)
+  do iat=1,runObj%atoms%nat
+     if (runObj%atoms%geocode == 'P') then
+        runObj%rst%rxyz_new(1,iat)=modulo(runObj%rxyz(1,iat),runObj%atoms%alat1)
+        runObj%rst%rxyz_new(2,iat)=modulo(runObj%rxyz(2,iat),runObj%atoms%alat2)
+        runObj%rst%rxyz_new(3,iat)=modulo(runObj%rxyz(3,iat),runObj%atoms%alat3)
+     else if (runObj%atoms%geocode == 'S') then
+        runObj%rst%rxyz_new(1,iat)=modulo(runObj%rxyz(1,iat),runObj%atoms%alat1)
+        runObj%rst%rxyz_new(2,iat)=runObj%rxyz(2,iat)
+        runObj%rst%rxyz_new(3,iat)=modulo(runObj%rxyz(3,iat),runObj%atoms%alat3)
+     else if (runObj%atoms%geocode == 'F') then
+        runObj%rst%rxyz_new(1,iat)=runObj%rxyz(1,iat)
+        runObj%rst%rxyz_new(2,iat)=runObj%rxyz(2,iat)
+        runObj%rst%rxyz_new(3,iat)=runObj%rxyz(3,iat)
      end if
   end do
 
   !assign the verbosity of the output
   !the verbose variables is defined in module_base
-  verbose=in%verbosity
+  verbose=runObj%inputs%verbosity
 
   ! Use the restart for the linear scaling version... probably to be modified.
-  if(in%inputPsiId==1) then
-      if (rst%version == LINEAR_VERSION) then
-          in%inputPsiId=101
-          do iorb=1,rst%tmb%orbs%norb
-              if (in%lin%locrad_lowaccuracy(iorb) /=  in%lin%locrad_highaccuracy(iorb))then
+  if(runObj%inputs%inputPsiId==1) then
+      if (runObj%rst%version == LINEAR_VERSION) then
+          runObj%inputs%inputPsiId=101
+          do iorb=1,runObj%rst%tmb%orbs%norb
+              if (runObj%inputs%lin%locrad_lowaccuracy(iorb) /=  runObj%inputs%lin%locrad_highaccuracy(iorb))then
                   stop 'ERROR: at the moment the radii for low and high accuracy must be the same &
                         &when using the linear restart!'
               end if
           end do
       end if
   end if
-  inputPsiId_orig=in%inputPsiId
+  inputPsiId_orig=runObj%inputs%inputPsiId
 
 
   loop_cluster: do
      !allocate history container if it has not been done
-     if (in%wfn_history > 1  .and. .not. associated(rst%KSwfn%oldpsis)) then
-        allocate(rst%KSwfn%oldpsis(0:in%wfn_history+1))
-        rst%KSwfn%istep_history=0
-        do istep=0,in%wfn_history+1
-          rst%KSwfn%oldpsis(istep)=old_wavefunction_null() 
+     if (runObj%inputs%wfn_history > 1  .and. .not. associated(runObj%rst%KSwfn%oldpsis)) then
+        allocate(runObj%rst%KSwfn%oldpsis(0:runObj%inputs%wfn_history+1))
+        runObj%rst%KSwfn%istep_history=0
+        do istep=0,runObj%inputs%wfn_history+1
+          runObj%rst%KSwfn%oldpsis(istep)=old_wavefunction_null() 
         end do
      end if
 
-     if (in%inputPsiId == 0 .and. associated(rst%KSwfn%psi)) then
-        i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
-        deallocate(rst%KSwfn%psi,stat=i_stat)
+     if (runObj%inputs%inputPsiId == 0 .and. associated(runObj%rst%KSwfn%psi)) then
+        i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
+        deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
-        i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
-        deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
+        i_all=-product(shape(runObj%rst%KSwfn%orbs%eval))*kind(runObj%rst%KSwfn%orbs%eval)
+        deallocate(runObj%rst%KSwfn%orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
 
-        call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd,subname)
+        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd,subname)
      end if
      !experimental, finite difference method for calculating forces on particular quantities
      inquire(file='input.finite_difference_forces',exist=exists)
      if (exists) then
-        in%last_run=1 !do the last_run things nonetheless
-        in%inputPsiId=0 !the first run always restart from IG
+        runObj%inputs%last_run=1 !do the last_run things nonetheless
+        runObj%inputs%inputPsiId=0 !the first run always restart from IG
         !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
      end if
-     call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz,strten,fnoise,&
-          rst%KSwfn,rst%tmb,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
-          rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
+     call cluster(nproc,iproc,runObj%atoms,runObj%rst%rxyz_new,energy,fxyz,strten,fnoise,&
+          runObj%rst%KSwfn,runObj%rst%tmb,&!psi,runObj%rst%Lzd,runObj%rst%gaucoeffs,runObj%rst%gbd,runObj%rst%orbs,&
+          runObj%rst%rxyz_old,runObj%rst%hx_old,runObj%rst%hy_old,runObj%rst%hz_old,runObj%inputs,runObj%rst%GPU,infocode)
      if (exists) then
-        call forces_via_finite_differences(iproc,nproc,atoms,in,energy,fxyz,fnoise,rst,infocode)
+        call forces_via_finite_differences(iproc,nproc,runObj%atoms,runObj%inputs,energy,fxyz,fnoise,runObj%rst,infocode)
      end if
 
-     if (in%inputPsiId==1 .and. infocode==2) then
-        if (in%gaussian_help) then
-           in%inputPsiId=11
+     if (runObj%inputs%inputPsiId==1 .and. infocode==2) then
+        if (runObj%inputs%gaussian_help) then
+           runObj%inputs%inputPsiId=11
         else
-           in%inputPsiId=0
+           runObj%inputs%inputPsiId=0
         end if
-     else if (in%inputPsiId==101 .and. infocode==2) then
+     else if (runObj%inputs%inputPsiId==101 .and. infocode==2) then
          ! problems after restart for linear version
-         in%inputPsiId=100
-     else if ((in%inputPsiId==1 .or. in%inputPsiId==0) .and. infocode==1) then
-        !in%inputPsiId=0 !better to diagonalise than to restart an input guess
-        in%inputPsiId=1
+         runObj%inputs%inputPsiId=100
+     else if ((runObj%inputs%inputPsiId==1 .or. runObj%inputs%inputPsiId==0) .and. infocode==1) then
+        !runObj%inputs%inputPsiId=0 !better to diagonalise than to restart an input guess
+        runObj%inputs%inputPsiId=1
         !if (iproc==0) then
         !   call yaml_warning('Self-consistent cycle did not meet convergence criteria')
         !   write(*,*)&
         !        &   ' WARNING: Self-consistent cycle did not meet convergence criteria'
         !end if
         exit loop_cluster
-     else if (in%inputPsiId == 0 .and. infocode==3) then
+     else if (runObj%inputs%inputPsiId == 0 .and. infocode==3) then
         if (iproc == 0) then
            write( *,'(1x,a)')'Convergence error, cannot proceed.'
            write( *,'(1x,a)')' writing positions in file posfail.xyz then exiting'
            write(comment,'(a)')'UNCONVERGED WF '
            !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
 
-           call write_atomic_file("posfail",energy,rst%rxyz_new,atoms,trim(comment))
+           call write_atomic_file("posfail",energy,runObj%rst%rxyz_new,runObj%atoms,trim(comment))
 
         end if
 
-        i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
-        deallocate(rst%KSwfn%psi,stat=i_stat)
+        i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
+        deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
-        i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
-        deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
+        i_all=-product(shape(runObj%rst%KSwfn%orbs%eval))*kind(runObj%rst%KSwfn%orbs%eval)
+        deallocate(runObj%rst%KSwfn%orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
 
-        call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd,subname)
+        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd,subname)
 
         !finalize memory counting (there are still at least positions and the forces allocated)
         call memocc(0,0,'count','stop')
@@ -208,7 +205,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   end do loop_cluster
 
   !preserve the previous value
-  in%inputPsiId=inputPsiId_orig
+  runObj%inputs%inputPsiId=inputPsiId_orig
 
   !put a barrier for all the processes
   call f_release_routine()
@@ -216,6 +213,80 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
 
 END SUBROUTINE call_bigdft
 
+!> Routines to handle the argument objects of call_bigdft().
+subroutine run_objects_init(runObj)
+  use module_types
+  implicit none
+  type(run_objects), intent(out) :: runObj
+
+  nullify(runObj%rxyz)
+  nullify(runObj%inputs)
+  nullify(runObj%atoms)
+  nullify(runObj%rst)
+END SUBROUTINE run_objects_init
+
+subroutine run_objects_free(runObj, subname)
+  use module_types
+  use module_base
+  use yaml_output
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+  character(len = *), intent(in) :: subname
+  integer :: i_stat, i_all
+
+  if (associated(runObj%rxyz)) then
+     i_all=-product(shape(runObj%rxyz))*kind(runObj%rxyz)
+     deallocate(runObj%rxyz,stat=i_stat)
+     call memocc(i_stat,i_all,'rxyz',subname)
+  end if
+  if (associated(runObj%rst)) then
+     call free_restart_objects(runObj%rst,subname)
+     deallocate(runObj%rst)
+  end if
+  if (associated(runObj%atoms)) then
+     call deallocate_atoms(runObj%atoms,subname) 
+     deallocate(runObj%atoms)
+  end if
+  if (associated(runObj%inputs)) then
+     call free_input_variables(runObj%inputs)
+     deallocate(runObj%inputs)
+  end if
+  call f_finalize()
+  call yaml_close_all_streams()
+END SUBROUTINE run_objects_free
+
+subroutine run_objects_set_from_files(runObj, radical, posinp)
+  use module_interfaces
+  use module_types
+  implicit none
+  type(run_objects), intent(out) :: runObj
+  character(len = *), intent(in) :: radical, posinp
+
+  call run_objects_init(runObj)
+  allocate(runObj%atoms)
+  allocate(runObj%inputs)
+  call bigdft_set_input(radical,posinp,runObj%rxyz,runObj%inputs,runObj%atoms)
+
+  allocate(runObj%rst)
+  call restart_objects_new(runObj%rst)
+  call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
+  call restart_objects_set_nat(runObj%rst, runObj%atoms%nat, "run_objects_set_from_files")
+  call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
+END SUBROUTINE run_objects_set_from_files
+
+subroutine run_objects_set(runObj, inputs, atoms, rst)
+  use module_types
+  implicit none
+  type(run_objects), intent(out) :: runObj
+  type(input_variables), intent(in), target :: inputs
+  type(atoms_data), intent(in), target :: atoms
+  type(restart_objects), intent(in), target :: rst
+
+  call run_objects_init(runObj)
+  runObj%atoms  => atoms
+  runObj%inputs => inputs
+  runObj%rst    => rst
+END SUBROUTINE run_objects_set
 
 !>  Main routine which does self-consistent loop.
 !!  Does not parse input file and no geometry optimization.

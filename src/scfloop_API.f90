@@ -20,24 +20,18 @@ module scfloop_API
   ! Storage of required variables for a SCF loop calculation.
   logical :: scfloop_initialised = .false.
   integer :: scfloop_nproc, itime_shift_for_restart
-  type(atoms_data), pointer :: scfloop_at
-  type(input_variables), pointer :: scfloop_in
-  type(restart_objects), pointer :: scfloop_rst
+  type(run_objects), pointer :: scfloop_obj
 
   public :: scfloop_init
 !!!  public :: scfloop_finalise
 contains
 
-  subroutine scfloop_init(nproc_, at_, in_, rst_)
-    integer, intent(in) :: nproc_
-    type(atoms_data), intent(in), target :: at_
-    type(input_variables), intent(in), target :: in_
-    type(restart_objects), intent(in), target :: rst_
+  subroutine scfloop_init(nproc, obj)
+    integer, intent(in) :: nproc
+    type(run_objects), intent(in), target :: obj
 
-    scfloop_nproc = nproc_
-    scfloop_at => at_
-    scfloop_in => in_
-    scfloop_rst => rst_
+    scfloop_nproc = nproc
+    scfloop_obj => obj
 
     scfloop_initialised = .true.
   END SUBROUTINE scfloop_init
@@ -62,11 +56,10 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   real(dp), intent(out) :: fcart(3, natom), grad(3, natom)
 
   character(len=*), parameter :: subname='scfloop_main'
-  integer :: infocode, i, i_stat, i_all,j
+  integer :: infocode, i, j
   real(gp) :: fnoise
   real(dp) :: favg(3)
   real(gp), dimension(6) :: strten
-  real(dp), allocatable :: xcart(:,:)
 
   if (.not. scfloop_initialised) then
      write(0,*) "No previous call to scfloop_init(). On strike, refuse to work."
@@ -79,17 +72,15 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   end if
 
   ! We transfer acell into at
-  scfloop_at%alat1 = acell(1)
-  scfloop_at%alat2 = rprimd(2,2)
-  scfloop_at%alat3 = acell(3)
+  scfloop_obj%atoms%alat1 = acell(1)
+  scfloop_obj%atoms%alat2 = rprimd(2,2)
+  scfloop_obj%atoms%alat3 = acell(3)
 
-  scfloop_in%inputPsiId=1
+  scfloop_obj%inputs%inputPsiId=1
   ! need to transform xred into xcart
-  allocate(xcart(3, scfloop_at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,xcart,'xcart',subname)
-  do i = 1, scfloop_at%nat, 1
+  do i = 1, scfloop_obj%atoms%nat, 1
      do j=1,3
-        xcart(j,i)=modulo(xred(j,i),1._gp)*acell(j)
+        scfloop_obj%rxyz(j,i)=modulo(xred(j,i),1._gp)*acell(j)
      end do
   end do
 
@@ -97,23 +88,19 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
 !!$  write(100+me,*)xcart
 !!$  close(100+me)
 
-  scfloop_in%inputPsiId = 1
-  call call_bigdft(scfloop_nproc,me,scfloop_at,xcart,scfloop_in,epot,grad,strten,fnoise,scfloop_rst,infocode)
+  scfloop_obj%inputs%inputPsiId = 1
+  call call_bigdft(scfloop_obj,scfloop_nproc,me,epot,grad,strten,fnoise,infocode)
 
   ! need to transform the forces into reduced ones.
   favg(:) = real(0, dp)
-  do i = 1, scfloop_at%nat, 1
+  do i = 1, scfloop_obj%atoms%nat, 1
      fcart(:, i) = grad(:, i)
      favg(:) = favg(:) + fcart(:, i) / real(natom, dp)
      grad(:, i) = -grad(:, i) / acell(:)
   end do
-  do i = 1, scfloop_at%nat, 1
+  do i = 1, scfloop_obj%atoms%nat, 1
      fcart(:, i) = fcart(:, i) - favg(:)
   end do
-
-  i_all=-product(shape(xcart))*kind(xcart)
-  deallocate(xcart,stat=i_stat)
-  call memocc(i_stat,i_all,'xcart',subname)
 END SUBROUTINE scfloop_main
 
 
@@ -143,12 +130,12 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
 
   fnrm = real(0, dp)
   ! need to transform xred into xcart
-  allocate(xcart(3, scfloop_at%nat+ndebug),stat=i_stat)
+  allocate(xcart(3, scfloop_obj%atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,xcart,'xcart',subname)
-  allocate(fcart(3, scfloop_at%nat+ndebug),stat=i_stat)
+  allocate(fcart(3, scfloop_obj%atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fcart,'fcart',subname)
 
-  do i = 1, scfloop_at%nat
+  do i = 1, scfloop_obj%atoms%nat
      xcart(:, i) = xred(:, i) * acell(:)
      fnrm = fnrm + real(fred(1, i) * acell(1) * fred(1, i) * acell(1) + &
           & fred(2, i) * acell(2) * fred(2, i) * acell(2) + &
@@ -158,11 +145,12 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
 
   write(fn5,'(i5.5)') itime+itime_shift_for_restart
   write(comment,'(a,1pe10.3)')'AB6MD:fnrm= ', sqrt(fnrm)
-  call write_atomic_file(trim(scfloop_in%dir_output)//'posmd_'//fn5, epot + ekin, xcart, scfloop_at, trim(comment),forces=fcart)
+  call write_atomic_file(trim(scfloop_obj%inputs%dir_output)//'posmd_'//fn5, &
+       & epot + ekin, xcart, scfloop_obj%atoms, trim(comment),forces=fcart)
 
   !write velocities
   write(comment,'(a,i6.6)')'Timestep= ',itime+itime_shift_for_restart
-  call wtvel('velocities.xyz',vel,scfloop_at,comment)
+  call wtvel('velocities.xyz',vel,scfloop_obj%atoms,comment)
 
   i_all=-product(shape(xcart))*kind(xcart)
   deallocate(xcart,stat=i_stat)

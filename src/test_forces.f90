@@ -31,15 +31,13 @@ program test_forces
    real(gp) :: etot,fnoise
    !logical :: exist_list
    !input variables
-   type(atoms_data) :: atoms
-   type(input_variables) :: inputs
-   type(restart_objects) :: rst
+   type(run_objects) :: runObj
    character(len=60), parameter :: filename="list_posinp"
    character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
    character(len=60) :: run_id
    ! atomic coordinates, forces
    real(gp), dimension(:,:), allocatable :: fxyz
-   real(gp), dimension(:,:), pointer :: rxyz,drxyz
+   real(gp), dimension(:,:), pointer :: drxyz
    integer :: iconfig,nconfig,igroup,ngroups
    integer :: ipath,npath
    real(gp):: dx,etot0,path,fdr
@@ -115,9 +113,9 @@ program test_forces
    do iconfig=1,abs(nconfig)
       if (modulo(iconfig-1,ngroups)==igroup) then
 
-      ! Read all input files.
-      call bigdft_set_input(arr_radical(iconfig),arr_posinp(iconfig),rxyz,inputs,atoms)
-         
+         call run_objects_init(runObj)
+         ! Read all input files.
+         call run_objects_set_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
 
 !!$      !standard names
 !!$      call standard_inputfile_names(inputs,radical,nproc)
@@ -127,27 +125,26 @@ program test_forces
       !initialize memory counting
       !call memocc(0,iproc,'count','start')
 
-      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
+      allocate(fxyz(3,runObj%atoms%nat+ndebug),stat=i_stat)
       call memocc(i_stat,fxyz,'fxyz',subname)
 
-      call init_restart_objects(iproc,inputs,atoms,rst,subname)
-
       !     if (iproc == 0) then
-      !       call print_general_parameters(nproc,inputs,atoms)
+      !       call print_general_parameters(nproc,inputs,runObj%atoms)
       !    end if
 
       !if other steps are supposed to be done leave the last_run to minus one
       !otherwise put it to one
-      if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1 .or. inputs%ncount_cluster_x <= 1) then
-         inputs%last_run = 1
+      if (runObj%inputs%last_run == -1 .and. runObj%inputs%ncount_cluster_x <=1 .or. &
+           & runObj%inputs%ncount_cluster_x <= 1) then
+         runObj%inputs%last_run = 1
       end if
 
       ! path integral   
       path=0.d0
       !calculate the displacement at each integration step
       !(use sin instead of random numbers)
-      allocate(drxyz(1:3,1:atoms%nat))
-      do iat=1,atoms%nat
+      allocate(drxyz(1:3,1:runObj%atoms%nat))
+      do iat=1,runObj%atoms%nat
          drxyz(1,iat)=dx*sin(iat+.2d0)   
          drxyz(2,iat)=dx*sin(iat+.4d0)  
          drxyz(3,iat)=dx*sin(iat+.7d0)  
@@ -158,16 +155,16 @@ program test_forces
 
          !update atomic positions alog the path
          if(ipath>1) then
-            rxyz(:,:)=rxyz(:,:)+drxyz(:,:)
-            inputs%inputPsiId=1
-            if(rst%version == LINEAR_VERSION)inputs%inputPsiId=101
+            runObj%rxyz(:,:)=runObj%rxyz(:,:)+drxyz(:,:)
+            runObj%inputs%inputPsiId=1
+            if(runObj%rst%version == LINEAR_VERSION) runObj%inputs%inputPsiId=101
          end if
 
          if (iproc == 0) then
-            call print_general_parameters(nproc,inputs,atoms) ! to know the new positions
+            call print_general_parameters(nproc,runObj%inputs,runObj%atoms) ! to know the new positions
          end if
 
-         call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
+         call call_bigdft(runObj, nproc,iproc,etot,fxyz,strten,fnoise,infocode)
          !        inputs%inputPsiId=0   ! change PsiId to 0 if you want to  generate a new Psi and not use the found one
 
          if (iproc == 0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
@@ -177,7 +174,7 @@ program test_forces
          !   do one step of the path integration
          if (iproc == 0) then
             !integrate forces*displacement
-            !fdr=sum(fxyz(1:3,1:atoms%nat)*drxyz(1:3,1:atoms%nat))
+            !fdr=sum(fxyz(1:3,1:runObj%atoms%nat)*drxyz(1:3,1:runObj%atoms%nat))
             fdr=sum(fxyz(:,:)*drxyz(:,:))
             path=path-simpson(ipath)*fdr
             call yaml_map('Path iteration',ipath)
@@ -186,25 +183,17 @@ program test_forces
             !write(*,"('path iter:',i3,'   -F.dr=',e13.5,'    path integral=',e13.5 )") ipath,-fdr, path 
             
             !Print atomic forces
-            call write_forces(atoms,fxyz)
+            call write_forces(runObj%atoms,fxyz)
          end if
       end do !loop over ipath
 
       deallocate(drxyz)
 
-      i_all=-product(shape(rxyz))*kind(rxyz)
-      deallocate(rxyz,stat=i_stat)
-      call memocc(i_stat,i_all,'rxyz',subname)
       i_all=-product(shape(fxyz))*kind(fxyz)
       deallocate(fxyz,stat=i_stat)
       call memocc(i_stat,i_all,'fxyz',subname)
 
-
-      call free_restart_objects(rst,subname)
-
-      call deallocate_atoms(atoms,subname) 
-
-      call bigdft_free_input(inputs)
+      call run_objects_free(runObj, subname)
 
 !!$      if (inputs%inputPsiId==INPUT_PSI_LINEAR_AO .or. inputs%inputPsiId==INPUT_PSI_MEMORY_LINEAR &
 !!$          .or. inputs%inputPsiId==INPUT_PSI_DISK_LINEAR) then

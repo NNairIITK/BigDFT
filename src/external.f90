@@ -32,7 +32,7 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
 
   call command_line_information(mpi_groupsize,posinp_file,radical,ierr)
 
-  call bigdft_init_mpi_env(mpi_groupsize, ierr)
+  call bigdft_init_mpi_env(mpi_info, mpi_groupsize, ierr)
 
   !minimum number of different configurations dictated by ngroups
   nconfig=bigdft_mpi%ngroup

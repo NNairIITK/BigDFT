@@ -28,9 +28,8 @@ module bigdft_forces
    logical :: initialised = .false.
    logical :: first_time  = .True.
    integer :: nproc, me
-   type(atoms_data) :: at, atoms_all !at are the quantum atoms
-   type(input_variables) :: in
-   type(restart_objects) :: rst
+   type(run_objects) :: runObj
+   type(atoms_data) :: atoms_all !at are the quantum atoms
    real(gp), parameter :: ht2ev = 27.2113834_gp
 
    real(kind=8) :: gnrm_l
@@ -133,7 +132,6 @@ module bigdft_forces
 
       !Local variables
       character(len=*), parameter :: subname='bigdft_init_art'
-      real(gp), dimension(:,:), pointer     :: rxyz
       real(gp),dimension(3*total_nb_atoms) :: posquant
       integer :: natoms_calcul
       !_______________________
@@ -141,35 +139,44 @@ module bigdft_forces
       me = me_
       nproc = nproc_
 
+      call run_objects_init(runObj)
       if (nat .eq. total_nb_atoms .and. .not. passivate) then 
          ! we just reread all atoms
-         call read_atomic_file("posinp",me_,at,rxyz)
+         call read_atomic_file("posinp",me_,runObj%atoms,runObj%rxyz)
       else 
          !uses the big object to prepare. everything should
          ! be alright in the object exept the length
          call prepare_quantum_atoms_Si(atoms_all,posquant,natoms_calcul)
          !we just copy it in a smaller vect
-         call copy_atoms_object(atoms_all,at,rxyz,natoms_calcul,total_nb_atoms,posquant)
-         call initialize_atomic_file(me_,at,rxyz)
+         call copy_atoms_object(atoms_all,runObj%atoms,runObj%rxyz,natoms_calcul,total_nb_atoms,posquant)
+         call initialize_atomic_file(me_,runObj%atoms,runObj%rxyz)
       endif
       !standard names
-      call standard_inputfile_names(in,'input',nproc)
+      call standard_inputfile_names(runObj%inputs,'input',nproc)
       ! Read inputs.
-      call read_input_parameters(me_, in,.true.)
-      call read_input_parameters2(me_, in, at, rxyz)
+      call default_input_variables(runObj%inputs)
+      call inputs_parse_params(runObj%inputs, me_, .true.)
+      ! Shake atoms, if required.
+      call atoms_set_displacement(runObj%atoms, runObj%rxyz, runObj%inputs%randdis)
+      ! Update atoms with symmetry information
+      call atoms_set_symmetries(runObj%atoms, runObj%rxyz, runObj%inputs%disableSym, &
+           & runObj%inputs%symTol, runObj%inputs%elecfield)
 
-      call init_atomic_values((me_ == 0), at, in%ixc)
-      call read_atomic_variables(at, trim(in%file_igpop),in%nspin)
+      ! Parse input files depending on atoms.
+      call inputs_parse_add(runObj%inputs, runObj%atoms, me_, .true.)
+
+      call init_atomic_values((me_ == 0), runObj%atoms, runObj%inputs%ixc)
+      call read_atomic_variables(runObj%atoms, trim(runObj%inputs%file_igpop),runObj%inputs%nspin)
 
       ! Transfer "at" data to ART variables.
-      gnrm_l = in%gnrm_cv
+      gnrm_l = runObj%inputs%gnrm_cv
       if ( my_gnrm == 1.0d0 ) then 
-         gnrm_h = in%gnrm_cv 
+         gnrm_h = runObj%inputs%gnrm_cv 
       else
          gnrm_h = my_gnrm
       end if
       ! The BigDFT restart structure.
-      call init_restart_objects(me, in, at, rst, subname)
+      call init_restart_objects(me, runObj%inputs, runObj%atoms, runObj%rst, subname)
 
    END SUBROUTINE bigdft_init_art
 
@@ -181,8 +188,8 @@ module bigdft_forces
 
       !Arguments
 
-      real(kind=8), intent(in),  dimension(3*at%nat), target :: posa
-      real(kind=8), intent(out), dimension(3*at%nat), target :: forca
+      real(kind=8), intent(in),  dimension(3*runObj%atoms%nat), target :: posa
+      real(kind=8), intent(out), dimension(3*runObj%atoms%nat), target :: forca
       real(kind=8), dimension(3), intent(inout)           :: boxl
       real(kind=8), intent(out)                           :: energy
       integer,      intent(inout)                         :: evalf_number
@@ -192,36 +199,35 @@ module bigdft_forces
       integer  :: infocode, i, ierror 
       real(gp) :: fnoise
       real(gp), dimension(6) :: strten
-      real(gp), allocatable :: xcart(:,:), fcart(:,:)
+      real(gp), allocatable :: fcart(:,:)
       !_______________________
 
       if ( conv ) then                    ! Convergence criterion for the wavefunction optimization
-         in%gnrm_cv = gnrm_h              ! in Lanczos procedure.              
+         runObj%inputs%gnrm_cv = gnrm_h              ! in Lanczos procedure.              
       else 
-         in%gnrm_cv = gnrm_l                                    
+         runObj%inputs%gnrm_cv = gnrm_l                                    
       end if
       ! We transfer acell into 'at'
-      at%alat1 = boxl(1)/Bohr_Ang
-      at%alat2 = boxl(2)/Bohr_Ang
-      at%alat3 = boxl(3)/Bohr_Ang
+      runObj%atoms%alat1 = boxl(1)/Bohr_Ang
+      runObj%atoms%alat2 = boxl(2)/Bohr_Ang
+      runObj%atoms%alat3 = boxl(3)/Bohr_Ang
       ! Need to transform posa into xcart
       ! 1D -> 2D array
-      allocate(xcart(3, at%nat))
-      do i = 1, at%nat, 1
-         xcart(:, i) = (/ posa(i), posa(at%nat + i), posa(2 * at%nat + i) /) / Bohr_Ang
+      do i = 1, runObj%atoms%nat, 1
+         runObj%rxyz(:, i) = (/ posa(i), posa(runObj%atoms%nat + i), posa(2 * runObj%atoms%nat + i) /) / Bohr_Ang
       end do
 
-      allocate(fcart(3, at%nat))
+      allocate(fcart(3, runObj%atoms%nat))
 
       if ( first_time ) then              ! This is done by default at the beginning.
 
 
-         in%inputPsiId = 0
+         runObj%inputs%inputPsiId = 0
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft( nproc, me, at, xcart, in, energy, fcart,strten, fnoise, rst, infocode )
+         call call_bigdft(runObj, nproc, me, energy, fcart,strten, fnoise, infocode )
          evalf_number = evalf_number + 1
 
-         in%inputPsiId = 1
+         runObj%inputs%inputPsiId = 1
          initialised   = .true.
          first_time    = .False.
          new_wf        = .False.
@@ -236,41 +242,40 @@ module bigdft_forces
 
          if ( new_wf ) then               ! if true,  we do not use the previously 
             ! calculated wave function.
-            in%inputPsiId = 0
+            runObj%inputs%inputPsiId = 0
          else 
-            in%inputPsiId = 1
+            runObj%inputs%inputPsiId = 1
          end if
 
          ! Get into BigDFT
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft( nproc, me, at, xcart, in, energy, fcart,strten,fnoise, rst, infocode )
+         call call_bigdft(runObj, nproc, me, energy, fcart,strten,fnoise, infocode )
          evalf_number = evalf_number + 1
 
       end if
       ! Energy in eV 
       energy = energy * ht2ev
       ! box in ang
-      boxl(1) = at%alat1 * Bohr_Ang
-      boxl(2) = at%alat2 * Bohr_Ang
-      boxl(3) = at%alat3 * Bohr_Ang
+      boxl(1) = runObj%atoms%alat1 * Bohr_Ang
+      boxl(2) = runObj%atoms%alat2 * Bohr_Ang
+      boxl(3) = runObj%atoms%alat3 * Bohr_Ang
 
       ! zero forces for blocked atoms:
       ! This was already done in clean_forces (forces.f90).
       ! But, up to now, ART only works with totally frozen atoms
       ! ( i.e "f" ). Therefore, this is a safe action.
-      do i = 1, at%nat, 1
-         if ( at%ifrztyp(i) /= 0  .or. in_system(i) /= 0 ) fcart(:,i) = 0.0d0 
+      do i = 1, runObj%atoms%nat, 1
+         if ( runObj%atoms%ifrztyp(i) /= 0  .or. in_system(i) /= 0 ) fcart(:,i) = 0.0d0 
       end do 
 
-      call center_f( fcart, at%nat )         ! We remove the net force over our free atomos.
+      call center_f( fcart, runObj%atoms%nat )         ! We remove the net force over our free atomos.
 
-      do i = 1, at%nat, 1                    ! Forces into ev/ang and in 1D array.
-         forca( i )              = fcart(1, i) * ht2ev / Bohr_Ang
-         forca( at%nat + i )     = fcart(2, i) * ht2ev / Bohr_Ang
-         forca( 2 * at%nat + i ) = fcart(3, i) * ht2ev / Bohr_Ang
+      do i = 1, runObj%atoms%nat, 1                    ! Forces into ev/ang and in 1D array.
+         forca( i )                        = fcart(1, i) * ht2ev / Bohr_Ang
+         forca( runObj%atoms%nat + i )     = fcart(2, i) * ht2ev / Bohr_Ang
+         forca( 2 * runObj%atoms%nat + i ) = fcart(3, i) * ht2ev / Bohr_Ang
       end do
 
-      deallocate(xcart)
       deallocate(fcart)
 
    END SUBROUTINE calcforce_bigdft
@@ -292,7 +297,7 @@ module bigdft_forces
       !Local variables
       integer :: i, ierror, ncount_bigdft
       real(gp), dimension(6) :: strten
-      real(gp), allocatable :: xcart(:,:), fcart(:,:)
+      real(gp), allocatable :: fcart(:,:)
 
       if ( .not. initialised ) then
          write(0,*) "No previous call to bigdft_init_art(). On strike, refuse to work."
@@ -303,41 +308,39 @@ module bigdft_forces
       success = .True.                    ! success will be .False. if:
       !ncount_bigdft > in%ncount_cluster_x-1
 
-      in%gnrm_cv = gnrm_l                 ! For relaxation, we use always the default value in input.dft
+      runObj%inputs%gnrm_cv = gnrm_l                 ! For relaxation, we use always the default value in input.dft
 
-      at%alat1 = boxl(1)/Bohr_Ang
-      at%alat2 = boxl(2)/Bohr_Ang
-      at%alat3 = boxl(3)/Bohr_Ang
+      runObj%atoms%alat1 = boxl(1)/Bohr_Ang
+      runObj%atoms%alat2 = boxl(2)/Bohr_Ang
+      runObj%atoms%alat3 = boxl(3)/Bohr_Ang
       ! Need to transform posa into xcart
       ! 1D -> 2D array
-      allocate(xcart(3, at%nat))
-      do i = 1, at%nat, 1
-         xcart(:, i) = (/ posa(i), posa(at%nat + i), posa(2 * at%nat + i) /) / Bohr_Ang
+      do i = 1, runObj%atoms%nat, 1
+         runObj%rxyz(:, i) = (/ posa(i), posa(runObj%atoms%nat + i), posa(2 * runObj%atoms%nat + i) /) / Bohr_Ang
       end do
 
-      allocate(fcart(3, at%nat))
-      do i = 1, at%nat, 1
-         fcart(:, i) = (/ forca(i), forca(at%nat + i), forca(2 * at%nat + i) /) * Bohr_Ang / ht2ev
+      allocate(fcart(3, runObj%atoms%nat))
+      do i = 1, runObj%atoms%nat, 1
+         fcart(:, i) = (/ forca(i), forca(runObj%atoms%nat + i), forca(2 * runObj%atoms%nat + i) /) * Bohr_Ang / ht2ev
       end do
 
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
-      call geopt( nproc, me, xcart, at, fcart, strten,total_energy, rst, in, ncount_bigdft )
+      call geopt(runObj, nproc, me, fcart, strten,total_energy, ncount_bigdft )
       evalf_number = evalf_number + ncount_bigdft 
-      if (ncount_bigdft > in%ncount_cluster_x-1) success = .False.
+      if (ncount_bigdft > runObj%inputs%ncount_cluster_x-1) success = .False.
 
       total_energy = total_energy * ht2ev
       ! box in ang
-      boxl(1) = at%alat1 * Bohr_Ang
-      boxl(2) = at%alat2 * Bohr_Ang
-      boxl(3) = at%alat3 * Bohr_Ang
+      boxl(1) = runObj%atoms%alat1 * Bohr_Ang
+      boxl(2) = runObj%atoms%alat2 * Bohr_Ang
+      boxl(3) = runObj%atoms%alat3 * Bohr_Ang
       ! Positions into ang.
-      do i = 1, at%nat, 1
-         posa(i)              = xcart(1, i) * Bohr_Ang
-         posa(at%nat + i)     = xcart(2, i) * Bohr_Ang
-         posa(2 * at%nat + i) = xcart(3, i) * Bohr_Ang
+      do i = 1, runObj%atoms%nat, 1
+         posa(i)                        = runObj%rxyz(1, i) * Bohr_Ang
+         posa(runObj%atoms%nat + i)     = runObj%rxyz(2, i) * Bohr_Ang
+         posa(2 * runObj%atoms%nat + i) = runObj%rxyz(3, i) * Bohr_Ang
       end do
 
-      deallocate(xcart)
       deallocate(fcart)
 
    END SUBROUTINE mingeo
@@ -345,19 +348,11 @@ module bigdft_forces
 
    !> Routine to finalise all BigDFT stuff
    subroutine bigdft_finalise ( )
-
       implicit none
-
       !Local variable
       character(len=*), parameter :: subname='bigdft_finalise'
-      ! Warning: for what this ??
-      call free_restart_objects ( rst, subname )
-      ! Warning, there is this note of Damian :
-      ! To be completed
-      ! but what ??? 
 
-      call memocc( 0, 0, 'count', 'stop' )  ! finalize memory counting.
-
+      call run_objects_free(runObj, subname)
    END SUBROUTINE bigdft_finalise
 
    !> Removes the net force taking into account the blocked atoms
@@ -376,7 +371,7 @@ module bigdft_forces
       logical, dimension(natoms) :: mask
 
       ! degrees of freedom 
-      mask = at%ifrztyp .eq. 0 .and. in_system .eq. 0
+      mask = runObj%atoms%ifrztyp .eq. 0 .and. in_system .eq. 0
       natoms_f = count(mask)
 
       xtotal = 0.0d0
@@ -616,31 +611,30 @@ module bigdft_forces
       real(gp)     :: fnoise
       real(gp)     ::  fmax, fnrm
       real(gp), dimension(6) :: strten
-      real(gp), allocatable :: xcart(:,:), fcart(:,:)
+      real(gp), allocatable :: fcart(:,:)
       !_______________________
 
-      in%inputPsiId = 0 
-      in%gnrm_cv = gnrm_l 
+      runObj%inputs%inputPsiId = 0 
+      runObj%inputs%gnrm_cv = gnrm_l 
       ! We transfer acell into 'at'
-      at%alat1 = boxl(1)/Bohr_Ang
-      at%alat2 = boxl(2)/Bohr_Ang
-      at%alat3 = boxl(3)/Bohr_Ang
+      runObj%atoms%alat1 = boxl(1)/Bohr_Ang
+      runObj%atoms%alat2 = boxl(2)/Bohr_Ang
+      runObj%atoms%alat3 = boxl(3)/Bohr_Ang
 
-      allocate(xcart(3, at%nat))
-      do i = 1, at%nat, 1
-         xcart(:, i) = (/ posa(i), posa(at%nat + i), posa(2 * at%nat + i) /) / Bohr_Ang
+      do i = 1, runObj%atoms%nat, 1
+         runObj%rxyz(:, i) = (/ posa(i), posa(runObj%atoms%nat + i), posa(2 * runObj%atoms%nat + i) /) / Bohr_Ang
       end do
 
-      allocate(fcart(3, at%nat))
+      allocate(fcart(3, runObj%atoms%nat))
 
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
-      call call_bigdft( nproc, me, at, xcart, in, energy, fcart,strten,fnoise, rst, infocode )
+      call call_bigdft(runObj, nproc, me, energy, fcart,strten,fnoise, infocode )
       evalf_number = evalf_number + 1
-      in%inputPsiId = 1
+      runObj%inputs%inputPsiId = 1
 
-      call fnrmandforcemax(fcart,fnrm,fmax, at%nat)
+      call fnrmandforcemax(fcart,fnrm,fmax, runObj%atoms%nat)
 
-      if ( fmax > in%forcemax ) then
+      if ( fmax > runObj%inputs%forcemax ) then
 
          if ( iproc == 0 ) then
             write(*,*) 'BART:check_force_clean_wf'
@@ -648,32 +642,31 @@ module bigdft_forces
          end if
 
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call geopt( nproc, me, xcart, at, fcart, strten,total_energy, rst, in, ncount_bigdft )
+         call geopt(runObj, nproc, me, fcart, strten,total_energy, ncount_bigdft )
          evalf_number = evalf_number + ncount_bigdft 
-         if (ncount_bigdft > in%ncount_cluster_x-1) success = .False.
+         if (ncount_bigdft > runObj%inputs%ncount_cluster_x-1) success = .False.
 
          ! and we clean again here
-         in%inputPsiId = 0 
+         runObj%inputs%inputPsiId = 0 
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft( nproc, me, at, xcart, in, energy, fcart,strten, fnoise, rst, infocode )
+         call call_bigdft(runObj, nproc, me, energy, fcart,strten, fnoise, infocode )
          evalf_number = evalf_number + 1
-         in%inputPsiId = 1
+         runObj%inputs%inputPsiId = 1
 
          total_energy = total_energy * ht2ev
          ! box in ang
-         boxl(1) = at%alat1 * Bohr_Ang
-         boxl(2) = at%alat2 * Bohr_Ang
-         boxl(3) = at%alat3 * Bohr_Ang
+         boxl(1) = runObj%atoms%alat1 * Bohr_Ang
+         boxl(2) = runObj%atoms%alat2 * Bohr_Ang
+         boxl(3) = runObj%atoms%alat3 * Bohr_Ang
          ! Positions into ang.
-         do i = 1, at%nat, 1
-            posa(i)              = xcart(1, i) * Bohr_Ang
-            posa(at%nat + i)     = xcart(2, i) * Bohr_Ang
-            posa(2 * at%nat + i) = xcart(3, i) * Bohr_Ang
+         do i = 1, runObj%atoms%nat, 1
+            posa(i)                        = runObj%rxyz(1, i) * Bohr_Ang
+            posa(runObj%atoms%nat + i)     = runObj%rxyz(2, i) * Bohr_Ang
+            posa(2 * runObj%atoms%nat + i) = runObj%rxyz(3, i) * Bohr_Ang
          end do
 
       end if 
 
-      deallocate(xcart)
       deallocate(fcart)
 
    END SUBROUTINE check_force_clean_wf
