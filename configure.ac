@@ -96,20 +96,19 @@ AC_ARG_ENABLE(dynamic-libraries, AS_HELP_STRING([--enable-dynamic-libraries],
                                                [Build dynamical libraries (disabled by default).]),
               ac_build_dynamic=$enableval, ac_build_dynamic="no")
 
+dnl Basics for minimal bindings.
+AX_FC_POINTER()
+
 dnl Look for GLib and friends for bindings.
 AC_ARG_ENABLE(bindings, AS_HELP_STRING([--enable-bindings], [Build C bindings (disabled by default).]),
               ac_build_bindings=$enableval, ac_build_bindings="no")
-if test x"$ac_build_bindings" = x"yes" ; then
-  AX_FC_POINTER()
-  if test $F90_1D_POINTER_SIZE = 0 ; then
-    ac_build_bindings="warn"
-  fi
+if test x"$ac_build_bindings" = x"yes" -a $F90_1D_POINTER_SIZE = 0 ; then
+  ac_build_bindings="warn"
 fi
-AM_CONDITIONAL(BUILD_BINDINGS, test "$ac_build_bindings" = "yes")
 AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
                      [Build GObject bindings (default is yes).]),
             ac_use_glib=$withval, ac_use_glib="yes")
-if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
+if test x"$ac_use_glib" = x"yes"; then
   PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [have_glib=yes], [have_glib=no])
   PKG_CHECK_MODULES(GDBUS, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
   dnl Merge GLIB_LIBS and GDBUS_LIBS if GDBUS is available.
@@ -168,12 +167,29 @@ AM_CONDITIONAL([BUILD_DYNAMIC_LIBS], [test "x$ac_build_dynamic" = "xyes"])
 AM_CONDITIONAL([WITH_GOBJECT_INTROSPECTION], [test "x$enable_introspection" = "xyes"])
 if test x"$have_glib" = x"yes" ; then
   AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
+  AC_SUBST([GLIB_TRUE], [""])
+  AC_SUBST([GLIB_END_TRUE], [""])
+  AC_SUBST([GLIB_FALSE], ["/*"])
+  AC_SUBST([GLIB_END_FALSE], ["*/"])
+else
+  AC_SUBST([GLIB_TRUE], ["/*"])
+  AC_SUBST([GLIB_END_TRUE], ["*/"])
+  AC_SUBST([GLIB_FALSE], [""])
+  AC_SUBST([GLIB_END_FALSE], [""])
 fi
 AM_CONDITIONAL(HAVE_GLIB, test "$have_glib" = "yes")
 if test x"$have_gdbus" = x"yes" ; then
   AC_DEFINE([HAVE_GDBUS], [], [If set, we can use gdbus])
 fi
 AM_CONDITIONAL(HAVE_GDBUS, test "$have_gdbus" = "yes")
+AM_CONDITIONAL(BUILD_BINDINGS, test "$ac_build_bindings" = "yes")
+if test x"$ac_build_bindings" = x"yes" ; then
+  AC_SUBST([BUILD_BINDINGS_START], [""])
+  AC_SUBST([BUILD_BINDINGS_END], [""])
+else
+  AC_SUBST([BUILD_BINDINGS_START], ["/*"])
+  AC_SUBST([BUILD_BINDINGS_END], ["*/"])
+fi
 
 dnl Enable or not MPI.
 ac_use_mpi="yes"

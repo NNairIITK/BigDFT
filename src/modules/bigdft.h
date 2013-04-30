@@ -11,34 +11,16 @@
 #ifndef BIGDFT_H
 #define BIGDFT_H
 
-#ifdef GLIB_MAJOR_VERSION
-#include <glib-object.h>
-G_BEGIN_DECLS
-#endif
-
 #include <bigdft_cst.h>
 
+G_BEGIN_DECLS
+
+/*****************************************************/
+/* Basics definitions with possibly no GLib support. */
+/*****************************************************/
 int bigdft_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mpi_ngroup,
                 guint mpi_groupsize);
 int bigdft_finalize();
-
-typedef struct _BigDFT_Atoms BigDFT_Atoms;
-typedef struct _BigDFT_Lzd BigDFT_Lzd;
-typedef struct _BigDFT_Orbs BigDFT_Orbs;
-typedef struct _BigDFT_Proj BigDFT_Proj;
-typedef struct _BigDFT_LocalFields BigDFT_LocalFields;
-typedef struct _BigDFT_Energs BigDFT_Energs;
-typedef struct _BigDFT_OptLoop BigDFT_OptLoop;
-typedef struct _BigDFT_Restart BigDFT_Restart;
-
-typedef enum
-  {
-    BIGDFT_WF_FORMAT_NONE,
-    BIGDFT_WF_FORMAT_PLAIN,
-    BIGDFT_WF_FORMAT_BINARY,
-    BIGDFT_WF_FORMAT_ETSF
-  } BigDFT_WfFileFormats;
-
 /********************************/
 /* BigDFT_Atoms data structure. */
 /********************************/
@@ -65,8 +47,10 @@ GType bigdft_atoms_get_type(void);
 #define BIGDFT_ATOMS_TYPE    (999)
 #define BIGDFT_ATOMS(obj)    ((BigDFT_Atoms*)obj)
 #endif
+typedef struct _BigDFT_Atoms BigDFT_Atoms;
 struct _BigDFT_Atoms
 {
+  /* Object management. */
 #ifdef GLIB_MAJOR_VERSION
   GObject parent;
   gboolean dispose_has_run;
@@ -96,8 +80,7 @@ struct _BigDFT_Atoms
   _atoms_data *data;
   _symmetry_data *sym;
 };
-
-
+/********************************/
 BigDFT_Atoms* bigdft_atoms_new();
 BigDFT_Atoms* bigdft_atoms_new_from_file     (const gchar *filename);
 void          bigdft_atoms_free              (BigDFT_Atoms *atoms);
@@ -116,10 +99,24 @@ GArray*       bigdft_atoms_get_radii         (const BigDFT_Atoms *atoms, double 
 void          bigdft_atoms_write             (const BigDFT_Atoms *atoms,
                                               const gchar *filename);
 gchar*        bigdft_atoms_get_extra_as_label(const BigDFT_Atoms *atoms, guint iat);
+/********************************/
 
 /*********************************/
 /* BigDFT_Inputs data structure. */
 /*********************************/
+typedef enum
+  {
+    BIGDFT_INPUTS_NONE   = 0,
+    BIGDFT_INPUTS_DFT    = 1,
+    BIGDFT_INPUTS_GEOPT  = 2,
+    BIGDFT_INPUTS_PERF   = 4,
+    BIGDFT_INPUTS_KPT    = 8,
+    BIGDFT_INPUTS_MIX   = 16,
+    BIGDFT_INPUTS_TDDFT = 32,
+    BIGDFT_INPUTS_SIC   = 64,
+    BIGDFT_INPUTS_FREQ = 128,
+    BIGDFT_INPUTS_LIN  = 256
+  } BigDFT_InputsFiles;
 typedef enum
   {
     SMEARING_DIST_ERF   = 1,
@@ -128,7 +125,6 @@ typedef enum
     SMEARING_DIST_COLD2 = 4,
     SMEARING_DIST_METPX = 5
   } BigDFT_Smearing;
-
 typedef struct _BigDFT_Inputs BigDFT_Inputs;
 struct _BigDFT_Inputs
 {
@@ -156,38 +152,140 @@ struct _BigDFT_Inputs
   double strtarget[6];
   f90_pointer_double qmass;
 
-  /* PERF file variables (partial. */
+  /* PERF file variables (partial). */
   guint linear;
 
   /* Private. */
   guint refCount;
   _input_variables *data;
 };
+/*********************************/
+#ifdef GLIB_MAJOR_VERSION
+GType          bigdft_inputs_get_type        (void);
+#endif
+BigDFT_Inputs* bigdft_inputs_ref             (BigDFT_Inputs *in);
+void           bigdft_inputs_unref           (BigDFT_Inputs *in);
+BigDFT_Inputs* bigdft_inputs_new             (const gchar *naming);
+void           bigdft_inputs_free            (BigDFT_Inputs *in);
+void           bigdft_inputs_parse           (BigDFT_Inputs *in);
+void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms);
+/*********************************/
+
+/********************************/
+/* BigDFT_Energs data structure */
+/********************************/
+typedef enum
+  {
+    BIGDFT_ENERGS_EKS
+  } BigDFT_EnergsIds;
+
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_ENERGS_TYPE    (bigdft_energs_get_type())
+#define BIGDFT_ENERGS(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_ENERGS_TYPE, BigDFT_Energs))
+typedef struct _BigDFT_EnergsClass BigDFT_EnergsClass;
+struct _BigDFT_EnergsClass
+{
+  GObjectClass parent;
+};
+GType bigdft_energs_get_type(void);
+#else
+#define BIGDFT_ENERGS_TYPE    (999)
+#define BIGDFT_ENERGS(obj)    ((BigDFT_Energs*)obj)
+#endif
+typedef struct _BigDFT_Energs BigDFT_Energs;
+struct _BigDFT_Energs
+{
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+  gboolean dispose_has_run;
+#endif
+
+  /* Binded values. */
+  double eh, exc, evxc, eion, edisp, ekin, epot, eproj, eexctX, ebs, eKS, trH, evsum, evsic;
+  double etot;
+
+  /* Storage of forces and stress. */
+  guint nat;
+  double fnoise;
+  double *fxyz;
+  double pressure;
+  double strten[6];
+
+  /* Private. */
+  _energy_terms *data;
+};
+/********************************/
+BigDFT_Energs* bigdft_energs_new();
+BigDFT_Energs* bigdft_energs_new_from_fortran(void *obj);
+void           bigdft_energs_free(BigDFT_Energs *energs);
+void           bigdft_energs_emit(BigDFT_Energs *energs, guint istep,
+                                  BigDFT_EnergsIds kind);
+/********************************/
+
+/*********************************/
+/* BigDFT_Restart data structure */
+/*********************************/
+typedef enum
+  {
+    BIGDFT_RESTART_LCAO,
+    BIGDFT_RESTART_WVL_MEMORY
+  } BigDFT_RestartModes;
+
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_RESTART_TYPE    (bigdft_restart_get_type())
+#define BIGDFT_RESTART(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_RESTART_TYPE, BigDFT_Restart))
+typedef struct _BigDFT_RestartClass BigDFT_RestartClass;
+struct _BigDFT_RestartClass
+{
+  GObjectClass parent;
+};
+GType bigdft_restart_get_type(void);
+#else
+#define BIGDFT_RESTART_TYPE    (999)
+#define BIGDFT_RESTART(obj)    ((BigDFT_Restart*)obj)
+#endif
+typedef struct _BigDFT_Restart BigDFT_Restart;
+struct _BigDFT_Restart
+{
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+  gboolean dispose_has_run;
+#endif
+  BigDFT_RestartModes inputPsiId;
+
+  /* Private. */
+  BigDFT_Inputs *in;
+  _restart_objects *data;
+};
+/*********************************/
+BigDFT_Restart* bigdft_restart_new(BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint iproc);
+BigDFT_Restart* bigdft_restart_new_from_fortran(void *obj);
+void            bigdft_restart_free(BigDFT_Restart *restart);
+void            bigdft_restart_set_mode(BigDFT_Restart *restart, BigDFT_RestartModes id);
+/*********************************/
+
+BigDFT_Inputs* bigdft_run_set_input(const gchar *radical, const gchar *posinp, BigDFT_Atoms **atoms);
+BigDFT_Energs* bigdft_run_run(BigDFT_Atoms *atoms, BigDFT_Inputs *in, BigDFT_Restart *rst,
+                              guint iproc, guint nproc);
+
+
+/* Additional bindings (available only with GObject. */
+#ifdef _BIGDFT_BUILD_FULL_BINDINGS_
+typedef struct _BigDFT_Lzd BigDFT_Lzd;
+typedef struct _BigDFT_Orbs BigDFT_Orbs;
+typedef struct _BigDFT_Proj BigDFT_Proj;
+typedef struct _BigDFT_LocalFields BigDFT_LocalFields;
+typedef struct _BigDFT_OptLoop BigDFT_OptLoop;
 
 typedef enum
   {
-    BIGDFT_INPUTS_NONE   = 0,
-    BIGDFT_INPUTS_DFT    = 1,
-    BIGDFT_INPUTS_GEOPT  = 2,
-    BIGDFT_INPUTS_PERF   = 4,
-    BIGDFT_INPUTS_KPT    = 8,
-    BIGDFT_INPUTS_MIX   = 16,
-    BIGDFT_INPUTS_TDDFT = 32,
-    BIGDFT_INPUTS_SIC   = 64,
-    BIGDFT_INPUTS_FREQ = 128,
-    BIGDFT_INPUTS_LIN  = 256
-  } BigDFT_InputsFiles;
-
-GType          bigdft_inputs_get_type        (void);
-BigDFT_Inputs* bigdft_inputs_new             (const gchar *naming);
-void           bigdft_inputs_free            (BigDFT_Inputs *in);
-BigDFT_Inputs* bigdft_inputs_ref             (BigDFT_Inputs *in);
-void           bigdft_inputs_unref           (BigDFT_Inputs *in);
-void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms);
-
-BigDFT_Inputs* bigdft_set_input(const gchar *radical, const gchar *posinp, BigDFT_Atoms **atoms);
-BigDFT_Energs* bigdft_eval_forces(BigDFT_Atoms *atoms, BigDFT_Inputs *in, BigDFT_Restart *rst,
-                                  guint iproc, guint nproc);
+    BIGDFT_WF_FORMAT_NONE,
+    BIGDFT_WF_FORMAT_PLAIN,
+    BIGDFT_WF_FORMAT_BINARY,
+    BIGDFT_WF_FORMAT_ETSF
+  } BigDFT_WfFileFormats;
 
 /*********************************/
 /* BigDFT_Locreg data structure. */
@@ -596,94 +694,6 @@ void bigdft_localfields_emit_rhov(BigDFT_LocalFields *denspot, guint istep);
 void bigdft_localfields_emit_v_ext(BigDFT_LocalFields *denspot);
 GArray* bigdft_localfields_get_field(BigDFT_LocalFields *denspot, BigDFT_DensPotIds id);
 
-/********************************/
-/* BigDFT_Energs data structure */
-/********************************/
-typedef enum
-  {
-    BIGDFT_ENERGS_EKS
-  } BigDFT_EnergsIds;
-
-#ifdef GLIB_MAJOR_VERSION
-#define BIGDFT_ENERGS_TYPE    (bigdft_energs_get_type())
-#define BIGDFT_ENERGS(obj)                                               \
-  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_ENERGS_TYPE, BigDFT_Energs))
-typedef struct _BigDFT_EnergsClass BigDFT_EnergsClass;
-struct _BigDFT_EnergsClass
-{
-  GObjectClass parent;
-};
-GType bigdft_energs_get_type(void);
-#else
-#define BIGDFT_ENERGS_TYPE    (999)
-#define BIGDFT_ENERGS(obj)    ((BigDFT_Energs*)obj)
-#endif
-struct _BigDFT_Energs
-{
-#ifdef GLIB_MAJOR_VERSION
-  GObject parent;
-  gboolean dispose_has_run;
-#endif
-
-  /* Binded values. */
-  double eh, exc, evxc, eion, edisp, ekin, epot, eproj, eexctX, ebs, eKS, trH, evsum, evsic;
-  double etot;
-
-  /* Storage of forces and stress. */
-  guint nat;
-  double fnoise;
-  double *fxyz;
-  double pressure;
-  double strten[6];
-
-  /* Private. */
-  _energy_terms *data;
-};
-BigDFT_Energs* bigdft_energs_new();
-BigDFT_Energs* bigdft_energs_new_from_fortran(void *obj);
-void           bigdft_energs_free(BigDFT_Energs *energs);
-void           bigdft_energs_emit(BigDFT_Energs *energs, guint istep,
-                                  BigDFT_EnergsIds kind);
-
-/********************************/
-/* BigDFT_Restart data structure */
-/********************************/
-typedef enum
-  {
-    BIGDFT_RESTART_LCAO,
-    BIGDFT_RESTART_WVL_MEMORY
-  } BigDFT_RestartIds;
-
-#ifdef GLIB_MAJOR_VERSION
-#define BIGDFT_RESTART_TYPE    (bigdft_restart_get_type())
-#define BIGDFT_RESTART(obj)                                               \
-  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_RESTART_TYPE, BigDFT_Restart))
-typedef struct _BigDFT_RestartClass BigDFT_RestartClass;
-struct _BigDFT_RestartClass
-{
-  GObjectClass parent;
-};
-GType bigdft_restart_get_type(void);
-#else
-#define BIGDFT_RESTART_TYPE    (999)
-#define BIGDFT_RESTART(obj)    ((BigDFT_Restart*)obj)
-#endif
-struct _BigDFT_Restart
-{
-#ifdef GLIB_MAJOR_VERSION
-  GObject parent;
-  gboolean dispose_has_run;
-#endif
-  BigDFT_RestartIds inputPsiId;
-
-  /* Private. */
-  BigDFT_Inputs *in;
-  _restart_objects *data;
-};
-BigDFT_Restart* bigdft_restart_new(BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint iproc);
-BigDFT_Restart* bigdft_restart_new_from_fortran(void *obj);
-void            bigdft_restart_free(BigDFT_Restart *restart);
-void            bigdft_restart_set(BigDFT_Restart *restart, BigDFT_RestartIds id);
 
 /*********************************/
 /* BigDFT_OptLoop data structure */
@@ -736,7 +746,6 @@ void            bigdft_optloop_sync_to_fortran(BigDFT_OptLoop *optloop);
 void            bigdft_optloop_emit(BigDFT_OptLoop *optloop, BigDFT_OptLoopIds kind,
                                     BigDFT_Energs *energs);
 
-
 /******************/
 /* Miscellaneous. */
 /******************/
@@ -778,9 +787,7 @@ void bigdft_free_wave_to_isf(f90_pointer_double_4D *psiscf);
 gboolean bigdft_read_wave_descr(const gchar *filename, int *norbu,
                                 int *norbd, int *nkpt, int *nspinor,
                                 int *iorb, int *ispin, int *ikpt, int *ispinor);
-
-#ifdef GLIB_MAJOR_VERSION
+#endif
+#endif
 G_END_DECLS
-#endif
 
-#endif

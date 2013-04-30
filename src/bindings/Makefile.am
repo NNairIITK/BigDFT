@@ -3,23 +3,22 @@ noinst_LIBRARIES = libbindings.a
 
 # Source code.
 if BUILD_BINDINGS
-bindings_files = bindingsf.f90 \
-	bindings_api.h \
-	bindings.c bindings.h \
-	bindings_atoms.c \
+bindings_files = bindings.c \
 	bindings_regions.c \
 	bindings_wavefunctions.c \
 	bindings_localfields.c \
 	bindings_signals.c bindings_signals.h \
 	bindings_signals_inet.c
-else
-bindings_files = bindingsf_fake.f90
-endif
 if HAVE_GDBUS
 bindings_files += bindings_signals_dbus.c
 nodist_bindings_files = bindings_dbus.c bindings_dbus.h 
 endif
-libbindings_a_SOURCES = $(bindings_files)
+else
+bindings_files = bindingsf_fake.f90
+endif
+libbindings_a_SOURCES = bindingsf.f90 bindings_api.h bindings.h \
+	wrappers.c wrapper_inputs.c wrapper_run.c \
+	wrapper_atoms.c $(bindings_files)
 nodist_libbindings_a_SOURCES = $(nodist_bindings_files)
 
 EXTRA_DIST = bindings_dbus.xml

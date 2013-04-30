@@ -462,21 +462,15 @@ subroutine inputs_free(in)
   call bigdft_free_input(in)
   deallocate(in)
 end subroutine inputs_free
-subroutine inputs_set_radical(in, nproc, rad, ln)
+subroutine inputs_set_radical(in, rad, ln)
   use module_types
+  use wrapper_mpi
   implicit none
   type(input_variables), intent(inout) :: in
-  integer, intent(in) :: ln, nproc
-  character, intent(in) :: rad(ln)
+  integer, intent(in) :: ln
+  character(ln), intent(in) :: rad
 
-  character(len = 1024) :: rad_
-  integer :: i
-
-  write(rad_, "(A)") " "
-  do i = 1, ln
-     write(rad_(i:i), "(A1)") rad(i)
-  end do
-  call standard_inputfile_names(in, rad_, nproc)
+  call standard_inputfile_names(in, rad, bigdft_mpi%nproc)
 end subroutine inputs_set_radical
 
 subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspin, mpol, &

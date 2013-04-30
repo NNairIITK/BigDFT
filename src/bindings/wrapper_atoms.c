@@ -1,10 +1,5 @@
 #include <config.h>
 
-#ifdef HAVE_GLIB
-#include <glib-object.h>
-#include <gio/gio.h>
-#endif
-
 #include "bigdft.h"
 #include "bindings.h"
 #include "bindings_api.h"
@@ -66,9 +61,9 @@ static void bigdft_atoms_init(BigDFT_Atoms *obj)
 #endif
   F90_2D_POINTER_INIT(&obj->rxyz);
 }
+#ifdef HAVE_GLIB
 static void bigdft_atoms_dispose(GObject *obj)
 {
-#ifdef HAVE_GLIB
   BigDFT_Atoms *atoms = BIGDFT_ATOMS(obj);
 
   if (atoms->dispose_has_run)
@@ -77,8 +72,8 @@ static void bigdft_atoms_dispose(GObject *obj)
 
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_atoms_parent_class)->dispose(obj);
-#endif
 }
+#endif
 static void bigdft_atoms_finalize(GObject *obj)
 {
   BigDFT_Atoms *atoms = BIGDFT_ATOMS(obj);
