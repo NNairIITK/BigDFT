@@ -32,6 +32,7 @@ libwrappers_a_SOURCES = $(DGEMMSY_SOURCES) $(CUBLAS_SOURCES) $(OCL_SOURCES) \
 # Dependencies
 $(modules): $(libwrappers_a_OBJECTS)
 interface_cuda_fake.o: linalg.o
+interface_dgemmsy_fake.o: linalg.o
 
 AM_FCFLAGS = -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
