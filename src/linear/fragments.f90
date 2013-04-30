@@ -1,0 +1,190 @@
+!> Define important structures and methods to manipulate embedding systems
+module fragments
+  use module_base, only: gp,wp
+  use dynamic_memory
+  implicit none
+
+  private
+
+  interface operator(*)
+     module procedure transform_fragment
+  end interface
+
+  !> information about the basis set metadata shared between cubic and ASF approaches
+  type, public :: minimal_orbitals_data
+     integer :: norb          !< Total number of orbitals per k point
+     integer :: norbp         !< Total number of orbitals for the given processors
+     integer :: isorb         !< Total number of orbitals for the given processors
+     integer, dimension(:), pointer :: inwhichlocreg,onwhichatom !< associate the basis centers
+     integer, dimension(:), pointer :: isorb_par,ispot
+     integer, dimension(:,:), pointer :: norb_par
+  end type minimal_orbitals_data
+
+  type, public :: fragment_basis
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+     type(local_zone_descriptors) :: Lzd
+     type(minimal_orbitals_data) :: forbs
+     real(wp), dimension(:), pointer :: psi
+  end type fragment_basis
+
+  !> Defines the minimal information to identify a system building block
+  type, public :: system_fragment
+     integer :: nat_frg !< atoms effectively belonging to the fragment
+     integer :: nat_env !< environment atoms which complete fragment specifications
+     integer :: ntypes  !< Number of atom types (including system and env)
+     integer, dimension(:), pointer :: iatype  !< Type of the atoms (dimension nat_frag+nat_env)
+     real(gp), dimension(:,:), pointer :: rxyz_frg !< position of atoms in fragment (AU), external reference frame
+     real(gp), dimension(:,:), pointer :: rxyz_env !< position of atoms in environment (AU), external reference frame
+     character(len=20), dimension(:), pointer :: atomnames !< Name of type of atoms
+     type(fragment_basis), pointer :: frag_basis !< fragment basis, associated only if coherent with positions
+  end type system_fragment
+
+  !> Contains the rotation and translation (possibly deformation) which have to be applied to a given fragment
+  type, public :: fragment_transformation
+     real(gp), dimension(3) :: dr !< translation of fragment center
+     real(gp), dimension(3) :: rot_center !< center of rotation in original coordinates (might be fragment center or not)
+     real(gp), dimension(3) :: rot_axis !< unit rotation axis (should have modulus one)
+     real(gp) :: theta !< angle of rotation 
+  end type fragment_transformation
+
+  public operator(*)
+
+contains
+
+  pure function minimal_orbitals_data_null() result(forbs)
+    implicit none
+    type(minimal_orbitals_data) :: forbs
+
+    forbs%norb=0
+    forbs%norbp=0
+    forbs%isorb=0
+    nullify(forbs%inwhichlocreg)
+    nullify(forbs%onwhichatom)
+    nullify(forbs%isorb_par)
+    nullify(forbs%ispot)
+    nullify(forbs%norb_par)
+  end function minimal_orbitals_data_null
+
+  pure function fragment_null() result(frag)
+    implicit none
+    type(system_fragment) :: frag
+    frag%nat_frg=0
+    frag%nat_env=0
+    nullify(frag%rxyz_frg)
+    nullify(frag%rxyz_env)
+  end function fragment_null
+
+  pure function fragment_basis_null() result(basis)
+    implicit none
+    type(fragment_basis) :: basis
+
+    basis%npsidim_orbs=0
+    basis%npsidim_comp=0
+    call nullify_local_zone_descriptors()
+    !basis%lzd=local_zone_descriptors_null()
+    basis%forbs=minimal_orbitals_data_null()
+    nullify(basis%psi)
+  end function fragment_null
+
+  subroutine minimal_orbitals_data_free() result(forbs)
+    implicit none
+    type(minimal_orbitals_data), intent(inout) :: forbs
+
+    if (associated(forbs%inwhichlocreg)) call f_free_ptr(forbs%inwhichlocreg)
+    if (associated(forbs%onwhichatom)) call f_free_ptr(forbs%onwhichatom)
+    if (associated(forbs%isorb_par)) call f_free_ptr(forbs%isorb_par)
+    if (associated(forbs%ispot)) call f_free_ptr(forbs%ispot)
+    if (associated(forbs%norb_par)) call f_free_ptr(forbs%norb_par)
+    forbs=minimal_orbitals_data_null()
+  end subroutine minimal_orbitals_data_free
+
+  subroutine fragment_basis_free(basis)
+    implicit none
+    type(fragment_basis), intent(inout) :: basis
+    character(len=256) :: subname  
+
+    subname='fragment_basis_free'
+    call deallocate_local_zone_descriptors(basis%lzd,subname)
+    call minimal_orbitals_data_free(basis%forbs)
+    if (associated(basis%psi)) call f_free_ptr(basis%psi)
+    basis=fragment_basis_null()
+  end subroutine fragment_free
+
+  subroutine fragment_free(frag)
+    implicit none
+    type(system_fragment), intent(inout) :: frag
+  
+    if (associated(frag%rxyz_frg)) call f_free_ptr(frag%rxyz_frg)
+    if (associated(frag%rxyz_env)) call f_free_ptr(frag%rxyz_env)
+    frag=fragment_null()
+  end subroutine fragment_free
+
+  pure function frg_center(frag)
+    implicit none
+    type(system_fragment), intent(in) :: frag
+    real(gp), dimension(3) :: frg_center
+    !local variables
+    integer :: iat
+    
+    frg_center=0.0_gp
+    do iat=1,frag%nat_frg
+       frg_center=frg_center+frag%rxyz_frg(:,iat)
+    end do
+    frg_center=frg_center/real(frag%nat_frg,gp)
+
+  end function frg_center
+
+  pure function transform_fragment(trans,frag) result(frag_new)
+    implicit none
+    type(fragment_transformation), intent(in) :: trans
+    type(system_fragment), intent(in) :: frag
+    type(system_fragment) :: frag_new
+
+    frag_new=fragment_null()
+
+  end function transform_fragment
+
+  pure function transform_fragment_basis(trans,basis) result(basis_new)
+    implicit none
+    type(fragment_transformation), intent(in) :: trans
+    type(fragment_basis), intent(in) :: basis
+    type(fragment_basis) :: basis_new
+
+    basis_new=fragment_basis_null()
+
+    ! minimal_orbitals_data should remain the same
+  ! want to have defined new lzd already?  in which case not a pure function...
+
+  !   integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+  !   integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+  !   type(local_zone_descriptors) :: Lzd
+  !   type(minimal_orbitals_data) :: forbs
+  !   real(wp), dimension(:), pointer :: psi
+
+  end transform_fragment_basis(trans,basis) 
+
+end module fragments
+
+!newfrg=trans*frag
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

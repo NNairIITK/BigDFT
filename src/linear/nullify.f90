@@ -69,56 +69,6 @@ subroutine nullify_sparsematrix(sparsemat)
 
 end subroutine nullify_sparsematrix
 
-
-!pure function local_zone_descriptors_null result(lzd)
-!  implicit none
-!  type(local_zone_descriptors) :: lzd
-! 
-!  lzd%glr=locreg_descriptors_null
-!  nullify(lzd%llr) 
-!end function local_zone_descriptors_null
-
-!pure function locreg_descriptors_null result(lr)
-!  implicit none
-!
-!  type(locreg_descriptors) :: lr
-!
-!  call nullify_wavefunctions_descriptors(lr%wfd)
-!  call nullify_convolutions_bounds(lr%bounds)
-!
-!end function locreg_descriptors_null
-
-
-subroutine nullify_local_zone_descriptors(lzd)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_local_zone_descriptors
-  implicit none
-
-  ! Calling arguments
-  type(local_zone_descriptors),intent(out):: lzd
- 
-  call nullify_locreg_descriptors(lzd%glr)
-  nullify(lzd%llr)
- 
-end subroutine nullify_local_zone_descriptors
-
-
-subroutine nullify_locreg_descriptors(lr)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_locreg_descriptors
-  implicit none
-
-  ! Calling arguments
-  type(locreg_descriptors),intent(out):: lr
-
-  call nullify_wavefunctions_descriptors(lr%wfd)
-  call nullify_convolutions_bounds(lr%bounds)
-
-end subroutine nullify_locreg_descriptors
-
-
 subroutine nullify_orbitals_data(orbs)
   use module_base
   use module_types
@@ -163,6 +113,110 @@ subroutine nullify_communications_arrays(comms)
 end subroutine nullify_communications_arrays
 
 
+!pure function local_zone_descriptors_null() result(lzd)
+!  implicit none
+!  type(local_zone_descriptors) :: lzd
+! 
+!  lzd%glr=locreg_descriptors_null()
+!  nullify(lzd%llr) 
+!end function local_zone_descriptors_null
+!
+!pure function locreg_descriptors_null() result(lr)
+!  implicit none
+!
+!  type(locreg_descriptors) :: lr
+!
+!  lr%wfd=wavefunctions_descriptors_null()
+!  lr%bounds=convolutions_bounds_null()
+!end function locreg_descriptors_null
+!
+!pure function wavefunctions_descriptors_null() result(wfd)
+!  implicit none
+!
+!  type(wavefunctions_descriptors) :: wfd
+!
+!  nullify(wfd%keygloc)
+!  nullify(wfd%keyglob)
+!  nullify(wfd%keyvloc)
+!  nullify(wfd%keyvglob)
+!end function wavefunctions_descriptors_null
+!
+!pure function convolutions_bounds_null() result(bounds)
+!  implicit none
+!
+!  type(convolutions_bounds) :: bounds
+!
+!  bounds%kb=kinetic_bounds_null()
+!  bounds%sb=call shrink_bounds_null()
+!  bounds%gb=call grow_bounds_null()
+!  nullify(bounds%ibyyzz_r)
+!end function convolutions_bounds_null
+!
+!pure function kinetic_bounds_null() result(kb)
+!  implicit none
+!
+!  type(kinetic_bounds) :: kb
+!
+!  nullify(kb%ibyz_c)
+!  nullify(kb%ibxz_c)
+!  nullify(kb%ibxy_c)
+!  nullify(kb%ibyz_f)
+!  nullify(kb%ibxz_f)
+!  nullify(kb%ibxy_f)
+!end function kinetic_bounds_null
+!
+!pure function shrink_bounds_null() result(sb)
+!  implicit none
+!
+!  type(shrink_bounds) :: sb
+!
+!  nullify(sb%ibzzx_c)
+!  nullify(sb%ibyyzz_c)
+!  nullify(sb%ibxy_ff)
+!  nullify(sb%ibzzx_f)
+!  nullify(sb%ibyyzz_f)
+!end function shrink_bounds_null
+
+!pure function grow_bounds_null() result(gb)
+!  implicit none
+!
+!  type(grow_bounds) :: gb
+!
+!  nullify(gb%ibzxx_c)
+!  nullify(gb%ibxxyy_c)
+!  nullify(gb%ibyz_ff)
+!  nullify(gb%ibzxx_f)
+!  nullify(gb%ibxxyy_f)
+!end function grow_bounds_null
+
+!!! replace calls to these routines with functions defined above
+subroutine nullify_local_zone_descriptors(lzd)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_local_zone_descriptors
+  implicit none
+
+  ! Calling arguments
+  type(local_zone_descriptors),intent(out):: lzd
+ 
+  call nullify_locreg_descriptors(lzd%glr)
+  nullify(lzd%llr)
+ 
+end subroutine nullify_local_zone_descriptors
+
+subroutine nullify_locreg_descriptors(lr)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_locreg_descriptors
+  implicit none
+
+  ! Calling arguments
+  type(locreg_descriptors),intent(out):: lr
+
+  call nullify_wavefunctions_descriptors(lr%wfd)
+  call nullify_convolutions_bounds(lr%bounds)
+
+end subroutine nullify_locreg_descriptors
 
 subroutine nullify_wavefunctions_descriptors(wfd)
   use module_base
@@ -179,7 +233,6 @@ subroutine nullify_wavefunctions_descriptors(wfd)
 
 end subroutine nullify_wavefunctions_descriptors
 
-
 subroutine nullify_convolutions_bounds(bounds)
   use module_base
   use module_types
@@ -195,8 +248,6 @@ subroutine nullify_convolutions_bounds(bounds)
   nullify(bounds%ibyyzz_r)
 
 end subroutine nullify_convolutions_bounds
-
-
 
 subroutine nullify_kinetic_bounds(kb)
   use module_base
@@ -215,8 +266,6 @@ subroutine nullify_kinetic_bounds(kb)
 
 end subroutine nullify_kinetic_bounds
 
-
-
 subroutine nullify_shrink_bounds(sb)
   use module_base
   use module_types
@@ -232,8 +281,6 @@ subroutine nullify_shrink_bounds(sb)
   nullify(sb%ibyyzz_f)
 
 end subroutine nullify_shrink_bounds
-
-
 
 subroutine nullify_grow_bounds(gb)
   use module_base
@@ -251,7 +298,7 @@ subroutine nullify_grow_bounds(gb)
 
 end subroutine nullify_grow_bounds
 
-
+!!! replace calls to these routines with functions defined above
 
 
 

@@ -1995,16 +1995,16 @@ sparsity:  0.00%
    - number of coarse grid points has changed: 6
    - number of fine grid points has changed: 6
    - box size has changed: 0
-   - molecule was shifted: 6
+   - molecule was shifted: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   7.999999350610E+00
+   Calculation finished. TOTAL CHARGE =   7.999999350962E+00
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
-iat, fpulay    1    6.572384E-02    1.048554E-01    1.464634E-01
-iat, fpulay    2   -3.253958E-03   -2.905181E-04   -4.580284E-04
-iat, fpulay    3   -3.591539E-03   -1.093043E-02   -1.104738E-02
+iat, fpulay    1    7.487461E-02    9.651340E-02    1.380292E-01
+iat, fpulay    2   -5.557312E-03   -1.709791E-03   -1.837719E-03
+iat, fpulay    3   -2.480702E-03   -8.916682E-03   -9.083748E-03
  done.
- fnrm_pulay  0.11110220005583342     
+ fnrm_pulay  0.10673715410656982     
  The pulay force is too large after the restart. Start over again with an AO input guess.
 WARNING: locrad for atom type O is too small; minimal value is   1.10E+01
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)O   1.10E+01   1.55E+01   8.000E+00
@@ -3977,7 +3977,7 @@ sparsity:  0.00%
    - number of coarse grid points has changed: 6
    - number of fine grid points has changed: 6
    - box size has changed: 0
-   - molecule was shifted: 6
+   - molecule was shifted: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   7.999999343597E+00
  ************************************************************************************
@@ -5917,16 +5917,16 @@ sparsity:  0.00%
    - number of coarse grid points has changed: 6
    - number of fine grid points has changed: 6
    - box size has changed: 0
-   - molecule was shifted: 6
+   - molecule was shifted: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   7.999999335346E+00
+   Calculation finished. TOTAL CHARGE =   7.999999335707E+00
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
-iat, fpulay    1    6.529570E-02    1.053775E-01    1.469200E-01
-iat, fpulay    2   -3.315865E-03   -3.167748E-04   -4.902848E-04
-iat, fpulay    3   -3.371233E-03   -1.071131E-02   -1.078951E-02
+iat, fpulay    1    7.478155E-02    9.748948E-02    1.389966E-01
+iat, fpulay    2   -5.641715E-03   -1.760915E-03   -1.896863E-03
+iat, fpulay    3   -2.354796E-03   -8.836791E-03   -8.968488E-03
  done.
- fnrm_pulay  0.11136619219382553     
+ fnrm_pulay  0.10742305369863742     
  The pulay force is too large after the restart. Start over again with an AO input guess.
 WARNING: locrad for atom type O is too small; minimal value is   1.10E+01
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)O   1.10E+01   1.55E+01   8.000E+00
@@ -7893,7 +7893,7 @@ sparsity:  0.00%
    - number of coarse grid points has changed: 6
    - number of fine grid points has changed: 6
    - box size has changed: 0
-   - molecule was shifted: 6
+   - molecule was shifted: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   7.999999329236E+00
  ************************************************************************************

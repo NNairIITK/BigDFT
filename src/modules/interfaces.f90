@@ -4219,17 +4219,16 @@ module module_interfaces
           integer,dimension(:),pointer:: inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old
         end subroutine copy_old_inwhichlocreg
 
-        subroutine reformat_one_supportfunction(wfd,at,hgrids_old,n_old,& !n(c) iproc (arg:1)
-             ns_old,rxyz_old,psigold,hgrids,n,ns,rxyz,centre_old,centre_new,newz,theta,psi)
+        subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,& !n(c) iproc (arg:1)
+             psigold,hgrids,n,centre_old,centre_new,da,newz,theta,psi)
           use module_base
           use module_types
           implicit none
-          integer, dimension(3), intent(in) :: n_old,ns_old,n,ns
+          integer, dimension(3), intent(in) :: n_old,n
           real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
           type(wavefunctions_descriptors), intent(in) :: wfd
-          type(atoms_data), intent(in) :: at
-          real(gp), dimension(3,at%nat), intent(in) :: rxyz_old,rxyz
-          real(gp), dimension(3), intent(inout) :: centre_old,centre_new,newz
+          character(len=1), intent(in) :: geocode
+          real(gp), dimension(3), intent(in) :: centre_old,centre_new,newz,da
           real(gp), intent(in) :: theta
           real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
           real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi

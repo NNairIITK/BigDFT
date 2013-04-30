@@ -300,7 +300,6 @@ contains
     integer, intent(in), optional :: nat
     real(gp), dimension(:,:), intent(out), optional :: rxyz_old
 
-    character(len = *), parameter :: subname = "io_read_descr"
     integer :: i, iat, i_stat, nat_
     real(gp) :: rxyz(3)
 
@@ -995,9 +994,6 @@ END SUBROUTINE writeonewave
 
 
 
-
-
-
 !> @file
 !!  Routine to reformat one support function (linear scaling). Adapted version of reformatonewave.
 !! @author
@@ -1007,17 +1003,16 @@ END SUBROUTINE writeonewave
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
  
-subroutine reformat_one_supportfunction(wfd,at,hgrids_old,n_old,ns_old,rxyz_old,psigold,& 
-     hgrids,n,ns,rxyz,centre_old,centre_new,newz,theta,psi)
+subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,& 
+     hgrids,n,centre_old,centre_new,da,newz,theta,psi)
   use module_base
   use module_types
   implicit none
-  integer, dimension(3), intent(in) :: n,n_old,ns,ns_old
+  integer, dimension(3), intent(in) :: n,n_old
   real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
   type(wavefunctions_descriptors), intent(in) :: wfd
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz_old,rxyz
-  real(gp), dimension(3), intent(inout) :: centre_old,centre_new,newz
+  character(len=1), intent(in) :: geocode
+  real(gp), dimension(3), intent(in) :: centre_old,centre_new,newz,da
   real(gp), intent(in) :: theta
   real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
@@ -1027,22 +1022,19 @@ subroutine reformat_one_supportfunction(wfd,at,hgrids_old,n_old,ns_old,rxyz_old,
   logical, dimension(3) :: per
   integer :: i_stat,i_all
   integer, dimension(3) :: nb
-  real(gp) :: mindist
-  real(gp), dimension(3) :: hgridsh,hgridsh_old,da
-  real(gp), dimension(3) :: centre
+  real(gp), dimension(3) :: hgridsh,hgridsh_old
   !!real(wp) :: dnrm2
   real(wp), dimension(:), allocatable :: ww,wwold
   real(wp), dimension(:), allocatable :: x_phi, y_phi
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
-  real(wp), dimension(:,:,:), allocatable :: psifscfold, psifscf, psi_w, psi_w2
+  real(wp), dimension(:,:,:), allocatable :: psifscfold, psifscf
   integer :: itype, nd, nrange
-  real(gp), dimension(3) :: rprime
 
 
   !conditions for periodicity in the three directions
-  per(1)=(at%geocode /= 'F')
-  per(2)=(at%geocode == 'P')
-  per(3)=(at%geocode /= 'F')
+  per(1)=(geocode /= 'F')
+  per(2)=(geocode == 'P')
+  per(3)=(geocode /= 'F')
 
   !buffers related to periodicity
   !WARNING: the boundary conditions are not assumed to change between new and old
@@ -1057,11 +1049,11 @@ subroutine reformat_one_supportfunction(wfd,at,hgrids_old,n_old,ns_old,rxyz_old,
   allocate(wwold((2*n_old(1)+2+2*nb(1))*(2*n_old(2)+2+2*nb(2))*(2*n_old(3)+2+2*nb(3))+ndebug),stat=i_stat)
   call memocc(i_stat,wwold,'wwold',subname)
 
-  if (at%geocode=='F') then
+  if (geocode=='F') then
      call synthese_grow(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold) 
-  else if (at%geocode=='S') then     
+  else if (geocode=='S') then     
      call synthese_slab(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold) 
-  else if (at%geocode=='P') then     
+  else if (geocode=='P') then     
      call synthese_per(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold) 
   end if
 
@@ -1069,61 +1061,35 @@ subroutine reformat_one_supportfunction(wfd,at,hgrids_old,n_old,ns_old,rxyz_old,
   deallocate(wwold,stat=i_stat)
   call memocc(i_stat,i_all,'wwold',subname)
 
-  !decide if we need to reformat or not
-  if (hgrids(1) == hgrids_old(1) .and. hgrids(2) == hgrids_old(2) .and. hgrids(3) == hgrids_old(3) .and. &
-       n_old(1)==n(1) .and. n_old(2)==n(2) .and. n_old(3)==n(3) .and. &
-       centre_new(1)==centre_old(1) .and. centre_new(2)==centre_old(2) .and. centre_new(3)==centre_old(3) &
-       .and. theta==0.0_gp) then
-     call dcopy((2*n(1)+2+2*nb(1))*(2*n(2)+2+2*nb(2))*(2*n(3)+2+2*nb(3)),psifscfold(-nb(1),-nb(2),-nb(3)),1,&
-          psifscf(1,1,1),1)
-  else
+  ! transform to new structure    
+  hgridsh=.5_gp*hgrids
+  hgridsh_old=.5_gp*hgrids_old
 
-     ! centre of rotation with respect to start of box
-     centre_old(1)=mindist(per(1),at%alat1,centre_old(1),hgrids_old(1)*(ns_old(1)-0.5_dp*nb(1))) !center of read
-     centre_old(2)=mindist(per(2),at%alat2,centre_old(2),hgrids_old(2)*(ns_old(2)-0.5_dp*nb(2)))
-     centre_old(3)=mindist(per(3),at%alat3,centre_old(3),hgrids_old(3)*(ns_old(3)-0.5_dp*nb(3)))
+  !create the scaling function array
+  !use lots of points (to optimize one can determine how many points are needed at max)
+  itype=16
+  nd=2**20
 
-     centre_new(1)=mindist(per(1),at%alat1,centre_new(1),hgrids(1)*(ns(1)-0.5_dp*nb(1))) !center of new
-     centre_new(2)=mindist(per(2),at%alat2,centre_new(2),hgrids(2)*(ns(2)-0.5_dp*nb(2)))
-     centre_new(3)=mindist(per(3),at%alat3,centre_new(3),hgrids(3)*(ns(3)-0.5_dp*nb(3)))
+  allocate(x_phi(0:nd+ndebug),stat=i_stat )
+  call memocc(i_stat,x_phi,'x_phi',subname)
+  allocate(y_phi(0:nd+ndebug) ,stat=i_stat )
+  call memocc(i_stat,y_phi,'y_phi',subname)
 
-     !Calculate the shift of the atom
-     !Take into account the modulo operation which should be done for non-isolated BC
-     da(1)=mindist(per(1),at%alat1,centre_new(1),centre_old(1))
-     da(2)=mindist(per(2),at%alat2,centre_new(2),centre_old(2))
-     da(3)=mindist(per(3),at%alat3,centre_new(3),centre_old(3))
-     
-     ! transform to new structure    
-     hgridsh=.5_gp*hgrids
-     hgridsh_old=.5_gp*hgrids_old
-
-     !create the scaling function array
-     !use lots of points (to optimize one can determine how many points are needed at max)
-     itype=16
-     nd=2**20
-
-     allocate(x_phi(0:nd+ndebug),stat=i_stat )
-     call memocc(i_stat,x_phi,'x_phi',subname)
-     allocate(y_phi(0:nd+ndebug) ,stat=i_stat )
-     call memocc(i_stat,y_phi,'y_phi',subname)
-
-     call my_scaling_function4b2B(itype,nd,nrange,x_phi,y_phi) 
-     if( abs(y_phi(nd/2)-1)>1.0e-10 ) then
-        stop " wrong scaling function 4b2B: not a centered one "
-     endif
-
-     i_all=-product(shape(x_phi))*kind(x_phi)
-     deallocate(x_phi,stat=i_stat)
-     call memocc(i_stat,i_all,'x_phi',subname)
-
-     call field_rototranslation(nd,nrange,y_phi,da,newz,centre_old,centre_new,theta,&
-          hgridsh_old,(2*n_old+2+2*nb),psifscfold,hgridsh,(2*n+2+2*nb),psifscf)
-
-     i_all=-product(shape(y_phi))*kind(y_phi)
-     deallocate(y_phi,stat=i_stat)
-     call memocc(i_stat,i_all,'y_phi',subname)
-
+  call my_scaling_function4b2B(itype,nd,nrange,x_phi,y_phi) 
+  if( abs(y_phi(nd/2)-1)>1.0e-10 ) then
+     stop " wrong scaling function 4b2B: not a centered one "
   endif
+
+  i_all=-product(shape(x_phi))*kind(x_phi)
+  deallocate(x_phi,stat=i_stat)
+  call memocc(i_stat,i_all,'x_phi',subname)
+
+  call field_rototranslation(nd,nrange,y_phi,da,newz,centre_old,centre_new,theta,&
+       hgridsh_old,(2*n_old+2+2*nb),psifscfold,hgridsh,(2*n+2+2*nb),psifscf)
+
+  i_all=-product(shape(y_phi))*kind(y_phi)
+  deallocate(y_phi,stat=i_stat)
+  call memocc(i_stat,i_all,'y_phi',subname)
 
   !!print*, 'norm of psifscf ',dnrm2((2*n(1)+16)*(2*n(2)+16)*(2*n(3)+16),psifscf,1)
   i_all=-product(shape(psifscfold))*kind(psifscfold)
@@ -1134,11 +1100,11 @@ subroutine reformat_one_supportfunction(wfd,at,hgrids_old,n_old,ns_old,rxyz_old,
   allocate(ww((2*n(1)+2+2*nb(1))*(2*n(2)+2+2*nb(2))*(2*n(3)+2+2*nb(3))+ndebug),stat=i_stat)
   call memocc(i_stat,ww,'ww',subname)
 
-  if (at%geocode=='F') then
+  if (geocode=='F') then
      call analyse_shrink(n(1),n(2),n(3),ww,psifscf,psig)
-  else if (at%geocode == 'S') then
+  else if (geocode == 'S') then
      call analyse_slab(n(1),n(2),n(3),ww,psifscf,psig)
-  else if (at%geocode == 'P') then
+  else if (geocode == 'P') then
      call analyse_per(n(1),n(2),n(3),ww,psifscf,psig)
   end if
 
