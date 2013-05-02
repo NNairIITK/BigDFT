@@ -53,6 +53,80 @@ module fragments
 
 contains
 
+  ! for reference fragments call init_fragment(frag,input%frag%frag_info(i,1),input%frag%frag_info(i,2),NTYPES,rxyz,&
+  !                                            atomnames,iatype)
+  ! rxyz, atomnames and iatype should come from the file fragmenti.xyz
+
+  subroutine init_fragment(frag,nat_frg,nat_env,ntypes,rxyz,atomnames,iatype) ! switch this to pure if possible
+    use module_types
+    implicit none
+    type(system_fragment), intent(inout) :: frag
+    integer, intent(in) :: nat_frg, nat_env, ntypes
+    real(gp), dimension(3,nat_frg+nat_env), intent(in) :: rxyz ! array containing positions of fragment atoms then environment atoms
+    character(len=20), dimension(ntypes), intent(in) :: atomnames
+    integer, dimension(nat_frg+nat_env), intent(in) :: iatype
+
+    ! local variables
+    integer :: iat
+
+    ! nullify fragment
+    frag=fragment_null()
+
+    ! set basic integers
+    frag%nat_frg=nat_frg
+    frag%nat_env=nat_env
+    frag%ntypes=ntypes
+
+    ! allocate iatype, atomnames and rxyzs
+    call fragment_allocate(frag)
+
+    ! fill iatype, atomnames and rxyzs
+    do iat=1,frag%nat_frg
+       frag%rxyz_frg(:,iat)=rxyz(:,iat)
+    end do
+    
+    do iat=frag%nat_frg+1,frag%nat_env
+       frag%rxyz_env(:,iat)=rxyz(:,iat)
+    end do
+
+    frag%atomnames=atomnames
+    frag%iatype=iatype
+    
+    ! nullify fragment basis
+    frag%frag_basis=fragment_basis_null()
+
+    ! allocate/initialize fragment basis...
+    !currently orbitals are initialized via initAndUtils/init_orbitals_data_for_linear
+    !which calls wavefunctions/orbitals_descriptors to assign parallel bits and superfluous stuff
+    !and locreg_orbitals/assignToLocreg2 to give inwhichlocreg and onwhichatom - but we should really take onwhichatom from file?!
+
+    !here we don't want to allocate psi yet, as for system fragments this won't be necessary, 
+    !for reference fragments this can be done when it's filled (already nullified in fragment_basis_null)
+
+    !for lzd do we want one for ref frags, one for whole system and one for system fragments or some kind of pointing?
+    !need to think more about what should be replaced, not just what should be added in the way of initialization
+
+  !type, public :: minimal_orbitals_data
+  !   integer :: norb          !< Total number of orbitals per k point
+  !   integer :: norbp         !< Total number of orbitals for the given processors
+  !   integer :: isorb         !< Total number of orbitals for the given processors
+  !   integer, dimension(:), pointer :: inwhichlocreg,onwhichatom !< associate the basis centers
+  !   integer, dimension(:), pointer :: isorb_par,ispot
+  !   integer, dimension(:,:), pointer :: norb_par
+
+  !type, public :: fragment_basis
+  !   integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+  !   integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+  !   type(local_zone_descriptors) :: Lzd
+  !   type(minimal_orbitals_data) :: forbs
+
+
+  end subroutine init_fragment
+
+
+
+
+
   pure function minimal_orbitals_data_null() result(forbs)
     implicit none
     type(minimal_orbitals_data) :: forbs

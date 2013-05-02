@@ -2607,6 +2607,16 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !    stop 'INPUT_PSI_DISK_LINEAR not allowed with LINEAR_FOE!'
      !end if
 
+
+     ! do some extra initialization if this is a fragment calculation
+     if (in%lin%fragment_calculation) then
+        ! want to initialize array of system_fragments for both reference and current system, including fragment_basis
+        ! this requires information from input.frag, rxyz and atom types etc.
+        ! for reference fragments, may have multiple directories and need to call readmywaves for each fragment
+        ! BUT rxyz_old and rxyz won't have same number of atoms, don't necessarily want to reformat yet...
+
+     end if
+
      ! By reading the basis functions and coefficients from file
      call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
           & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &

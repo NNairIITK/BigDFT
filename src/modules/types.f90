@@ -144,6 +144,7 @@ module module_types
   integer, parameter, public :: INPUTS_SIC   =  64
   integer, parameter, public :: INPUTS_FREQ  = 128
   integer, parameter, public :: INPUTS_LIN   = 256
+  integer, parameter, public :: INPUTS_FRAG  = 512
 
   !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
@@ -164,8 +165,15 @@ module module_types
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
     integer, dimension(:), pointer :: norbsPerType
     integer :: scf_mode, nlevel_accuracy
-    logical :: calc_dipole, pulay_correction, mixing_after_inputguess
+    logical :: calc_dipole, pulay_correction, mixing_after_inputguess, fragment_calculation
   end type linearInputParameters
+
+  type,public:: fragmentInputParameters
+    integer :: nfrag_ref, nfrag
+    integer, dimension(:), pointer :: frag_index ! array matching system fragments to reference fragments
+    integer, dimension(:,:), pointer :: frag_info !array giving number of atoms in fragment and environment for reference fragments
+  end type fragmentInputParameters
+
 
   integer, parameter, public :: INPUT_IG_OFF  = 0
   integer, parameter, public :: INPUT_IG_LIG  = 1
@@ -189,7 +197,7 @@ module module_types
   type, public :: input_variables
      !strings of the input files
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
-                           file_mix,file_sic,file_occnum,file_igpop,file_lin
+                           file_mix,file_sic,file_occnum,file_igpop,file_lin,file_frag
      character(len=100) :: dir_output !< Strings of the directory which contains all data output files
      character(len=100) :: run_name   !< Contains the prefix (by default input) used for input files as input.dft
      integer :: files                 !< Existing files.
@@ -261,6 +269,9 @@ module module_types
   
      !linear scaling data
      type(linearInputParameters) :: lin
+
+     !fragment data
+     type(fragmentInputParameters) :: frag
 
      !acceleration parameters
      type(material_acceleration) :: matacc
