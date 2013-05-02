@@ -12,7 +12,7 @@
 subroutine scaling_function(itype,nd,nrange,a,x)
 
   use Poisson_Solver, only: dp
-  use m_profiling
+  use memory_profiling
   implicit none
   !Arguments
   !Type of interpolating functions
@@ -101,7 +101,7 @@ END SUBROUTINE scaling_function
 subroutine wavelet_function(itype,nd,a,x)
 
   use Poisson_Solver, only: dp
-  use m_profiling
+  use memory_profiling
   implicit none
   !Arguments
   !Type of the interpolating scaling function

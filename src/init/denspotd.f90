@@ -238,7 +238,7 @@ end subroutine denspot_set_rhov_status
 subroutine denspot_full_density(denspot, rho_full, iproc, new)
   use module_base
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(DFT_local_fields), intent(in) :: denspot
   integer, intent(in) :: iproc
@@ -286,7 +286,7 @@ END SUBROUTINE denspot_full_density
 subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
   use module_base
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(DFT_local_fields), intent(in) :: denspot
   integer, intent(in) :: iproc

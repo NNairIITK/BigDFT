@@ -349,7 +349,8 @@ end module metadata_interfaces
 
 !> Module used to manage memory allocations and de-allocations
 module dynamic_memory
-  use m_profiling, except => ndebug, and=> d_nan, also=> r_nan
+  !use m_profiling, except => ndebug, and=> d_nan, also=> r_nan
+  use memory_profiling, except => ndebug
   use dictionaries, info_length => max_field_length
   implicit none
 

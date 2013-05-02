@@ -58,7 +58,8 @@ module Poisson_Solver
   use wrapper_linalg
   use wrapper_MPI
   ! TO BE REMOVED with f_malloc
-  use m_profiling
+  use memory_profiling
+  !use m_profiling
   ! TO BE REMOVED with f_malloc
 
   implicit none

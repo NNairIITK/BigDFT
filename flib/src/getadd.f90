@@ -100,8 +100,8 @@ function f_loc(routine)
 end function f_loc
 
 !> Callback routine for severe errors
-subroutine f_err_severe()
+subroutine f_err_severe_internal()
   implicit none
   stop 'Severe error, cannot proceed'
-end subroutine f_err_severe
+end subroutine f_err_severe_internal
 

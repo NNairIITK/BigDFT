@@ -3,7 +3,7 @@ subroutine test_error_handling()
   use error_handling
   implicit none
   !local variables
-  integer :: ival,err1,ERR_TOTO,ERR_TITI
+  integer :: ival,err1,ERR_TOTO,ERR_TITI,ERR_GRAVE
   external :: abort_toto,abort_titi,abort1,abort2
 
   call yaml_comment('Error Handling Module Test',hfill='~')
@@ -15,6 +15,7 @@ subroutine test_error_handling()
   call f_err_initialize()
   
   call f_err_set_callback(abort1)
+  call f_err_severe_override(abort_titi)
   
   call f_err_define(err_name='ERR_TOTO',&
        err_msg='This is the error message for the error of kind 1 and it is written extensively'//&
@@ -24,6 +25,9 @@ subroutine test_error_handling()
 
   call f_err_define(err_name='ERR_TITI',err_msg='test2',err_id=ERR_TITI,&
        callback=abort_titi,callback_data=f_loc(ival))
+
+  call f_err_define(err_name='ERR_GRAVE',err_msg='test2',err_id=ERR_GRAVE,&
+       callback=f_err_severe)
  
   if (f_err_raise(condition=.true.,err_id=ERR_TOTO)) continue ! return
   

@@ -20,7 +20,7 @@
 !!   @param karray             output array
 subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc,mu0_screening,alpha,beta,gamma)
   use Poisson_Solver, only: dp
-  use m_profiling
+  use memory_profiling
   implicit none
   !Arguments
   integer, intent(in) :: n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc
@@ -826,7 +826,7 @@ END SUBROUTINE Surfaces_Kernel
 
 subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g_mu)
   use Poisson_Solver, only: dp
-  use m_profiling
+  use memory_profiling
   implicit none
   real(dp), parameter :: mu_max=0.2_dp
   integer, intent(in) :: n,n_scf,intorder,itype_scf
@@ -1091,7 +1091,7 @@ END SUBROUTINE indices
 subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
      hx,hy,hz,itype_scf,iproc,nproc,karray,mu0_screening)
   use Poisson_Solver, only: dp, gp
-  use m_profiling
+  use memory_profiling
  implicit none
  !Arguments
  integer, intent(in) :: n01, n02, n03, nfft1, nfft2, nfft3, n1k, n2k, n3k, itype_scf, iproc, nproc
@@ -2410,7 +2410,7 @@ END SUBROUTINE copyreal
 !!   @param karray             output array
 subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,mu0_screening)
   use Poisson_Solver, only: dp
-  use m_profiling
+  use memory_profiling
   implicit none
   !Arguments
   integer, intent(in) :: n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc

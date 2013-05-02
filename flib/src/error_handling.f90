@@ -30,11 +30,13 @@ module error_handling
   type(dictionary), pointer :: dict_errors=>null() !< the global dictionaries of possible errors, nullified if not initialized
   type(dictionary), pointer :: dict_present_error=>null() !< local pointer of present error, nullified if success
 
+  !address of the generic callback functions, valid for errors with non-specific callbacks
   integer(kind=8) :: callback_add=0
   integer(kind=8) :: callback_data_add=0
+  !address of the overrided severe error
+  integer(kind=8) :: severe_callback_add=0
 
   integer(kind=8), external :: f_loc
-  external :: f_err_severe
 
   interface f_err_set_callback
      module procedure err_set_callback_simple,err_set_callback_advanced
@@ -42,19 +44,10 @@ module error_handling
 
   public :: f_err_initialize,f_err_finalize
   public :: f_err_set_callback,f_err_unset_callback,f_err_define,f_err_check,f_err_raise,f_err_clean
-  public :: f_err_severe
+  public :: f_err_severe,f_err_severe_override,f_err_severe_restore
   public :: f_loc
 
 contains
-
-!!$  function f_loc(routine)
-!!$    implicit none
-!!$    external :: routine
-!!$    integer(kind=8) :: f_loc
-!!$
-!!$    call getlongaddress(routine,f_loc)
-!!$
-!!$  end function f_loc
 
   !> initialize module
   subroutine f_err_initialize()
@@ -113,41 +106,79 @@ contains
 
   end subroutine f_err_define
 
+  function get_error(err_id,err_name)
+    integer, intent(in), optional :: err_id !< the code of the error to be checked for
+    character(len=*), intent(in), optional :: err_name !name of the error to search
+    integer :: get_error
+    !local variables
+    integer :: nerr,ierr,jerr
+    character(len=dict_msg_len) :: name
+    
+    get_error=0
+    nerr=dict_len(dict_present_error)
+    if (present(err_name)) then
+       do ierr=0,nerr-1
+          !this one can be substituted by the values of the dictionary
+          jerr=dict_present_error//ierr
+          name=dict_key(dict_errors//jerr)
+          if (trim(name)==trim(err_name)) then
+             get_error=1 !name
+             exit
+          end if
+       end do
+    else if (present(err_id)) then
+       do ierr=0,nerr-1
+          jerr=dict_present_error//ierr
+          if (jerr==err_id) then
+             get_error=2
+             exit
+          end if
+       end do
+    end if
+    
+  end function get_error
+
   !> this function returns true if a generic error has been raised  !! in case of specified errors, it returns true if an error of this kind has been raised
   function f_err_check(err_id,err_name)
     implicit none
     integer, intent(in), optional :: err_id !< the code of the error to be checked for
     character(len=*), intent(in), optional :: err_name !name of the error to search
     logical :: f_err_check
-    !local variables
-    integer :: ierr,nerr,jerr
-    character(len=dict_msg_len) :: name
+!!$    !local variables
+!!$    integer :: ierr,nerr,jerr
+!!$    character(len=dict_msg_len) :: name
+    include 'get_err-inc.f90'
+
+    f_err_check = (dict_len(dict_present_error) .or. get_error/=0)
 
     nerr=dict_len(dict_present_error)
     f_err_check=nerr/=0
-    if (present(err_name)) then
-       f_err_check=.false.
-       do ierr=0,nerr-1
-          jerr=dict_present_error//ierr
-          name=dict_key(dict_errors//jerr)
-          if (trim(name)==trim(err_name)) then
-             f_err_check=.true.
-             exit
-          end if
-       end do
-    else if (present(err_id)) then
-       f_err_check=.false.
-       do ierr=0,nerr-1
-          jerr=dict_present_error//ierr
-          if (jerr==err_id) then
-             f_err_check=.true.
-             exit
-          end if
-       end do
-    end if
+!!$    if (present(err_name)) then
+!!$       f_err_check=.false.
+!!$       do ierr=0,nerr-1
+!!$          !this one can be substituted by the values of the dictionary
+!!$          jerr=dict_present_error//ierr
+!!$          name=dict_key(dict_errors//jerr)
+!!$          if (trim(name)==trim(err_name)) then
+!!$             f_err_check=.true.
+!!$             exit
+!!$          end if
+!!$       end do
+!!$    else if (present(err_id)) then
+!!$       f_err_check=.false.
+!!$       do ierr=0,nerr-1
+!!$          jerr=dict_present_error//ierr
+!!$          if (jerr==err_id) then
+!!$             f_err_check=.true.
+!!$             exit
+!!$          end if
+!!$       end do
+!!$    end if
 
   end function f_err_check
 
+  !> this routine should be generalized to allow the possiblity of addin customized message at the 
+  !! raise of the error. Also customized callback should be allowed
   function f_err_raise(condition,err_id,err_name,err_msg,err_action,callback,callback_data)
     implicit none
     logical, intent(in) :: condition !< the condition which raise the error
@@ -289,5 +320,26 @@ contains
     callback_data_add=0
   end subroutine f_err_unset_callback
 
+  subroutine f_err_severe_override(callback)
+    implicit none
+    external :: callback
+    
+    severe_callback_add=f_loc(callback)
+  end subroutine f_err_severe_override
+
+  subroutine f_err_severe_restore()
+    implicit none
+    severe_callback_add=0
+  end subroutine f_err_severe_restore
+
+  !>wrapper for severe errors, the can be desactivated
+  subroutine f_err_severe()
+    implicit none
+    if (severe_callback_add == 0) then
+       call f_err_severe_internal()
+    else
+       call call_external_c_fromadd(severe_callback_add)
+    end if
+  end subroutine f_err_severe
 
 end module error_handling
