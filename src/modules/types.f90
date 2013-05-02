@@ -1502,6 +1502,7 @@ subroutine deallocate_orbs(orbs,subname)
     nullify(rst%KSwfn%gaucoeffs)
     nullify(rst%KSwfn%oldpsis)
 
+    rst%KSwfn%Lzd%Glr = locreg_null()
     nullify(rst%KSwfn%Lzd%Glr%wfd%keyglob)
     nullify(rst%KSwfn%Lzd%Glr%wfd%keygloc)
     nullify(rst%KSwfn%Lzd%Glr%wfd%keyvloc)

@@ -6,13 +6,44 @@
 
 #include <string.h>
 
+static void _inputs_sync(BigDFT_Inputs *in)
+{
+  FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
+  FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(in->data, in->h, in->h + 1, in->h + 2,
+                                           &in->crmult, &in->frmult, &in->ixc,
+                                           &in->ncharge, in->elecfield, &in->nspin,
+                                           &in->mpol, &in->gnrm_cv, (int*)&in->itermax,
+                                           (int*)&in->nrepmax, &in->ncong, (int*)&in->idsx,
+                                           &in->dispersion, &in->inputPsiId,
+                                           &in->output_wf_format, &in->output_grid,
+                                           &in->rbuf, &in->ncongt, &in->norbv, &in->nvirt,
+                                           &in->nplot, &in->disableSym);
+  FC_FUNC_(inputs_get_mix, INPUTS_GET_MIX)(in->data, (int*)&in->iscf, (int*)&in->itrpmax,
+                                           (int*)&in->norbsempty, (int*)(&in->occopt),
+                                           &in->alphamix,
+                                           &in->rpnrm_cv, &in->gnrm_startmix, &in->Tel,
+                                           &in->alphadiis);
+  FC_FUNC_(inputs_get_geopt, INPUTS_GET_GEOPT)(in->data, in->geopt_approach,
+                                               &in->ncount_cluster_x, &in->frac_fluct,
+                                               &in->forcemax, &in->randdis, &in->betax,
+                                               &in->history, &in->ionmov, &in->dtion,
+                                               in->strtarget, &in->qmass, 10);
+  /* FC_FUNC_(inputs_get_sic, INPUTS_GET_SIC)(); */
+  /* FC_FUNC_(inputs_get_tddft, INPUTS_GET_TDDFT)(); */
+  FC_FUNC_(inputs_get_perf, INPUTS_GET_PERF)(in->data, (int*)&in->linear);
+}
+static void _inputs_sync_add(BigDFT_Inputs *in)
+{
+  FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
+  /* FC_FUNC_(inputs_get_kpt, INPUTS_GET_KPT)(); */
+}
+
 static BigDFT_Inputs* bigdft_inputs_init()
 {
   BigDFT_Inputs *in;
 
   in = g_malloc(sizeof(BigDFT_Inputs));
   memset(in, 0, sizeof(BigDFT_Inputs));
-  FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data);
   in->refCount = 1;
   F90_1D_POINTER_INIT(&in->qmass);
 
@@ -38,6 +69,7 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
   int len;
 
   in = bigdft_inputs_init();
+  FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data);
   if (naming && naming[0])
     {
       len = strlen(naming);
@@ -49,6 +81,18 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
       FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(in->data, " ", &len, 1);
     }
   
+  return in;
+}
+BigDFT_Inputs* bigdft_inputs_new_from_fortran(_input_variables *inputs)
+{
+  BigDFT_Inputs *in;
+
+  in = bigdft_inputs_init();
+  in->data = inputs;
+
+  _inputs_sync(in);
+  _inputs_sync_add(in);
+
   return in;
 }
 void bigdft_inputs_free(BigDFT_Inputs *in)
@@ -79,44 +123,19 @@ GType bigdft_inputs_get_type(void)
   return g_define_type_id;
 }
 #endif
-void bigdft_inputs_parse(BigDFT_Inputs *in)
+void bigdft_inputs_parse(BigDFT_Inputs *in, guint iproc)
 {
-  int iproc = 0, dump = 0;
+  int dump = 0;
 
-  FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(in->data, &iproc, &dump);
-
-  FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
-  FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(in->data, in->h, in->h + 1, in->h + 2,
-                                           &in->crmult, &in->frmult, &in->ixc,
-                                           &in->ncharge, in->elecfield, &in->nspin,
-                                           &in->mpol, &in->gnrm_cv, (int*)&in->itermax,
-                                           (int*)&in->nrepmax, &in->ncong, (int*)&in->idsx,
-                                           &in->dispersion, &in->inputPsiId,
-                                           &in->output_wf_format, &in->output_grid,
-                                           &in->rbuf, &in->ncongt, &in->norbv, &in->nvirt,
-                                           &in->nplot, &in->disableSym);
-  FC_FUNC_(inputs_get_mix, INPUTS_GET_MIX)(in->data, (int*)&in->iscf, (int*)&in->itrpmax,
-                                           (int*)&in->norbsempty, (int*)(&in->occopt),
-                                           &in->alphamix,
-                                           &in->rpnrm_cv, &in->gnrm_startmix, &in->Tel,
-                                           &in->alphadiis);
-  FC_FUNC_(inputs_get_geopt, INPUTS_GET_GEOPT)(in->data, in->geopt_approach,
-                                               &in->ncount_cluster_x, &in->frac_fluct,
-                                               &in->forcemax, &in->randdis, &in->betax,
-                                               &in->history, &in->ionmov, &in->dtion,
-                                               in->strtarget, &in->qmass, 10);
-  /* FC_FUNC_(inputs_get_sic, INPUTS_GET_SIC)(); */
-  /* FC_FUNC_(inputs_get_tddft, INPUTS_GET_TDDFT)(); */
-  FC_FUNC_(inputs_get_perf, INPUTS_GET_PERF)(in->data, (int*)&in->linear);
+  FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(in->data, (int*)&iproc, &dump);
+  _inputs_sync(in);
 }
-void bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms)
+void bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms, guint iproc)
 {
-  int iproc = 0, dump = 0;
+  int dump = 0;
 
-  FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(in->data, atoms->data, &iproc, &dump);
-  FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
-
-  /* FC_FUNC_(inputs_get_kpt, INPUTS_GET_KPT)(); */
+  FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(in->data, atoms->data, (int*)&iproc, &dump);
+  _inputs_sync_add(in);
 }
 
 /**

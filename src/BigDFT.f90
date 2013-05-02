@@ -62,7 +62,6 @@ program BigDFT
       if (modulo(iconfig-1,ngroups)==igroup) then
          !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
          ! Read all input files. This should be the sole routine which is called to initialize the run.
-         call run_objects_init(runObj)
          call run_objects_set_from_files(runObj, arr_radical(iconfig), arr_posinp(iconfig))
 
          !here we should define a routine to extract the number of atoms and the positions, and allocate forces array

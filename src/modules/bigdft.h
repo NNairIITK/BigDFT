@@ -167,8 +167,8 @@ BigDFT_Inputs* bigdft_inputs_ref             (BigDFT_Inputs *in);
 void           bigdft_inputs_unref           (BigDFT_Inputs *in);
 BigDFT_Inputs* bigdft_inputs_new             (const gchar *naming);
 void           bigdft_inputs_free            (BigDFT_Inputs *in);
-void           bigdft_inputs_parse           (BigDFT_Inputs *in);
-void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms);
+void           bigdft_inputs_parse           (BigDFT_Inputs *in, guint iproc);
+void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms, guint iproc);
 /*********************************/
 
 /********************************/
@@ -217,7 +217,6 @@ struct _BigDFT_Energs
 };
 /********************************/
 BigDFT_Energs* bigdft_energs_new();
-BigDFT_Energs* bigdft_energs_new_from_fortran(void *obj);
 void           bigdft_energs_free(BigDFT_Energs *energs);
 void           bigdft_energs_emit(BigDFT_Energs *energs, guint istep,
                                   BigDFT_EnergsIds kind);
@@ -260,15 +259,51 @@ struct _BigDFT_Restart
   _restart_objects *data;
 };
 /*********************************/
-BigDFT_Restart* bigdft_restart_new(BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint iproc);
-BigDFT_Restart* bigdft_restart_new_from_fortran(void *obj);
-void            bigdft_restart_free(BigDFT_Restart *restart);
-void            bigdft_restart_set_mode(BigDFT_Restart *restart, BigDFT_RestartModes id);
+BigDFT_Restart* bigdft_restart_new             (BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint iproc);
+void            bigdft_restart_free            (BigDFT_Restart *restart);
+void            bigdft_restart_set_mode        (BigDFT_Restart *restart, BigDFT_RestartModes id);
 /*********************************/
 
-BigDFT_Inputs* bigdft_run_set_input(const gchar *radical, const gchar *posinp, BigDFT_Atoms **atoms);
-BigDFT_Energs* bigdft_run_run(BigDFT_Atoms *atoms, BigDFT_Inputs *in, BigDFT_Restart *rst,
-                              guint iproc, guint nproc);
+/*********************************/
+/* BigDFT_Run data structure */
+/*********************************/
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_RUN_TYPE    (bigdft_run_get_type())
+#define BIGDFT_RUN(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_RUN_TYPE, BigDFT_Run))
+typedef struct _BigDFT_RunClass BigDFT_RunClass;
+struct _BigDFT_RunClass
+{
+  GObjectClass parent;
+};
+GType bigdft_run_get_type(void);
+#else
+#define BIGDFT_RUN_TYPE    (999)
+#define BIGDFT_RUN(obj)    ((BigDFT_Run*)obj)
+#endif
+typedef struct _BigDFT_Run BigDFT_Run;
+struct _BigDFT_Run
+{
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+  gboolean dispose_has_run;
+#endif
+  BigDFT_Atoms   *atoms;
+  BigDFT_Inputs  *inputs;
+  BigDFT_Restart *restart;
+
+  /* Private. */
+  _run_objects *data;
+};
+/*********************************/
+BigDFT_Run*    bigdft_run_new();
+BigDFT_Run*    bigdft_run_new_from_files(const gchar *radical, const gchar *posinp);
+void           bigdft_run_set_inputs    (BigDFT_Run *run, BigDFT_Inputs *inputs);
+void           bigdft_run_set_atoms     (BigDFT_Run *run, BigDFT_Atoms *atoms);
+void           bigdft_run_set_restart   (BigDFT_Run *run, BigDFT_Restart *rst);
+void           bigdft_run_free          (BigDFT_Run *run);
+BigDFT_Energs* bigdft_run_calculate     (BigDFT_Run *run, guint iproc, guint nproc);
+/*********************************/
 
 
 /* Additional bindings (available only with GObject. */

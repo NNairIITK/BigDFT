@@ -219,7 +219,7 @@ BigDFT_Restart* bigdft_restart_new(BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint
 #endif
   self = *((long*)&restart);
   FC_FUNC_(rst_new, RST_NEW)(&self, &restart->data);
-  FC_FUNC_(rst_init, RST_INIT)(restart->data, &iproc, atoms->data, in->data);
+  FC_FUNC_(rst_init, RST_INIT)(restart->data, (int*)&iproc, atoms->data, in->data);
   restart->inputPsiId = BIGDFT_RESTART_LCAO;
   restart->in = in;
   bigdft_inputs_ref(in);
@@ -233,7 +233,7 @@ void FC_FUNC_(restart_new_wrapper, RESTART_NEW_WRAPPER)(double *self, void *obj)
   restart = bigdft_restart_new_from_fortran(obj);
   *self = *((double*)&restart);
 }
-BigDFT_Restart* bigdft_restart_new_from_fortran(void *obj)
+BigDFT_Restart* bigdft_restart_new_from_fortran(_restart_objects *obj)
 {
   BigDFT_Restart *restart;
 
@@ -271,8 +271,150 @@ void bigdft_restart_set_mode(BigDFT_Restart *restart, BigDFT_RestartModes id)
   FC_FUNC_(inputs_set_restart, INPUTS_SET_RESTART)(restart->in->data, inputPsiId + id);
 }
 
+/*****************************/
+/* BigDFT_Run data structure */
+/*****************************/
+#ifdef HAVE_GLIB
+G_DEFINE_TYPE(BigDFT_Run, bigdft_run, G_TYPE_OBJECT)
+
+static void bigdft_run_dispose(GObject *run);
+static void bigdft_run_finalize(GObject *run);
+
+static void bigdft_run_class_init(BigDFT_RunClass *klass)
+{
+  /* Connect the overloading methods. */
+  G_OBJECT_CLASS(klass)->dispose      = bigdft_run_dispose;
+  G_OBJECT_CLASS(klass)->finalize     = bigdft_run_finalize;
+  /* G_OBJECT_CLASS(klass)->set_property = visu_data_set_property; */
+  /* G_OBJECT_CLASS(klass)->get_property = visu_data_get_property; */
+}
+#endif
+
+static void bigdft_run_init(BigDFT_Run *obj)
+{
+#ifdef HAVE_GLIB
+  memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Run) - sizeof(GObject));
+#else
+  memset(obj, 0, sizeof(BigDFT_Run));
+#endif
+}
+#ifdef HAVE_GLIB
+static void bigdft_run_dispose(GObject *obj)
+{
+  BigDFT_Run *run = BIGDFT_RUN(obj);
+
+  if (run->dispose_has_run)
+    return;
+  run->dispose_has_run = TRUE;
+
+  /* Chain up to the parent class */
+  G_OBJECT_CLASS(bigdft_run_parent_class)->dispose(obj);
+}
+#endif
+static void bigdft_run_finalize(GObject *obj)
+{
+  BigDFT_Run *run = BIGDFT_RUN(obj);
+
+  bigdft_inputs_unref(run->inputs);
+  bigdft_atoms_free(run->atoms);
+  bigdft_restart_free(run->restart);
+
+  if (run->data)
+    FC_FUNC_(run_objects_destroy, RUN_OBJECTS_DESTROY)(&run->data);
+
+#ifdef HAVE_GLIB
+  G_OBJECT_CLASS(bigdft_run_parent_class)->finalize(obj);
+#endif
+}
+BigDFT_Run* bigdft_run_new()
+{
+  BigDFT_Run *run;
+  /* long self; */
+
+#ifdef HAVE_GLIB
+  run = BIGDFT_RUN(g_object_new(BIGDFT_RUN_TYPE, NULL));
+#else
+  run = g_malloc(sizeof(BigDFT_Run));
+  bigdft_run_init(run);
+#endif
+  /* self = *((long*)&run); */
+  FC_FUNC_(run_objects_new, RUN_OBJECTS_NEW)(&run->data);
+
+  return run;
+}
+BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
+{
+  BigDFT_Run *run;
+  _atoms_data *atoms;
+  _input_variables *inputs;
+  _restart_objects *rst;
+  f90_pointer_double_2D rxyz;
+
+#ifdef HAVE_GLIB
+  run = BIGDFT_RUN(g_object_new(BIGDFT_RUN_TYPE, NULL));
+#else
+  run = g_malloc(sizeof(BigDFT_Run));
+  bigdft_run_init(run);
+#endif
+  FC_FUNC_(run_objects_new, RUN_OBJECTS_NEW)(&run->data);
+
+  /* Call the creation routine of Frantran. */
+  FC_FUNC_(run_objects_set_from_files, RUN_OBJECTS_SET_FROM_FILES)
+    (run->data, radical, posinp, strlen(radical), strlen(posinp));
+
+  /* Create C wrappers for Fortran objects. */
+  F90_2D_POINTER_INIT(&rxyz);
+  FC_FUNC_(run_objects_get, RUN_OBJECTS_GET)(run->data, &inputs, &atoms, &rst, &rxyz);
+  run->inputs = bigdft_inputs_new_from_fortran(inputs);
+  run->atoms  = bigdft_atoms_new_from_fortran(atoms, &rxyz);
+  run->restart = bigdft_restart_new_from_fortran(rst);
+  run->restart->in = run->inputs;
+  bigdft_inputs_ref(run->inputs);
+
+  return run;
+}
+/* void FC_FUNC_(run_new_wrapper, RUN_NEW_WRAPPER)(double *self, void *obj) */
+/* { */
+/*   BigDFT_Run *run; */
+
+/*   run = bigdft_run_new_from_fortran(obj); */
+/*   *self = *((double*)&run); */
+/* } */
+/* BigDFT_Run* bigdft_run_new_from_fortran(void *obj) */
+/* { */
+/*   BigDFT_Run *run; */
+
+/* #ifdef HAVE_GLIB */
+/*   run = BIGDFT_RUN(g_object_new(BIGDFT_RUN_TYPE, NULL)); */
+/* #else */
+/*   run = g_malloc(sizeof(BigDFT_Run)); */
+/*   bigdft_run_init(run); */
+/* #endif */
+/*   run->data = obj; */
+
+/*   return run; */
+/* } */
+/* void FC_FUNC_(run_free_wrapper, RUN_FREE_WRAPPER)(gpointer *obj) */
+/* { */
+/*   BigDFT_Run *run = BIGDFT_RUN(*obj); */
+
+/*   run->data = (gpointer)0; */
+/*   bigdft_run_free(run); */
+/* } */
+void bigdft_run_free(BigDFT_Run *run)
+{
+#ifdef HAVE_GLIB
+  g_object_unref(G_OBJECT(run));
+#else
+  bigdft_run_finalize(run);
+  g_free(run);
+#endif
+}
+void           bigdft_run_set_inputs    (BigDFT_Run *run, BigDFT_Inputs *inputs);
+void           bigdft_run_set_atoms     (BigDFT_Run *run, BigDFT_Atoms *atoms);
+void           bigdft_run_set_restart   (BigDFT_Run *run, BigDFT_Restart *rst);
 /**
- * bigdft_run_run:
+ * bigdft_run_calculate:
  * @atoms: 
  * @in: 
  * @rst:
@@ -283,18 +425,16 @@ void bigdft_restart_set_mode(BigDFT_Restart *restart, BigDFT_RestartModes id)
  *
  * Returns: (transfer full):
  **/
-BigDFT_Energs* bigdft_run_run(BigDFT_Atoms *atoms, BigDFT_Inputs *in, BigDFT_Restart *rst,
-                              guint iproc, guint nproc)
+BigDFT_Energs* bigdft_run_calculate(BigDFT_Run *run, guint iproc, guint nproc)
 {
   int infocode;
   BigDFT_Energs *en;
-  
 
   en = bigdft_energs_new();
-  en->nat = atoms->nat;
-  en->fxyz = g_malloc(sizeof(double) * atoms->nat * 3); 
-  FC_FUNC_(call_bigdft, CALL_BIGDFT)(&nproc, &iproc, atoms->data, atoms->rxyz.data, in->data,
-                                     &en->etot, en->fxyz, en->strten, &en->fnoise, rst->data,
+  en->nat = run->atoms->nat;
+  en->fxyz = g_malloc(sizeof(double) * run->atoms->nat * 3);
+  FC_FUNC_(call_bigdft, CALL_BIGDFT)(run->data, (int*)&nproc, (int*)&iproc,
+                                     &en->etot, en->fxyz, en->strten, &en->fnoise,
                                      &infocode);
   FC_FUNC_(energs_copy_data, ENERGS_COPY_DATA)
     (en->data, &en->eh, &en->exc, &en->evxc, &en->eion, &en->edisp,

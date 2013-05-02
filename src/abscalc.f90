@@ -58,7 +58,6 @@ program abscalc_main
 
          !Welcome screen
          !if (iproc==0) call print_logo()
-         call run_objects_init(runObj)
          call run_objects_set_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
 
 !!$

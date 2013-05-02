@@ -113,7 +113,6 @@ program test_forces
    do iconfig=1,abs(nconfig)
       if (modulo(iconfig-1,ngroups)==igroup) then
 
-         call run_objects_init(runObj)
          ! Read all input files.
          call run_objects_set_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
 

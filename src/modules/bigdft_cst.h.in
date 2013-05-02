@@ -58,6 +58,7 @@ typedef void _atoms_data;
 typedef void _symmetry_data;
 typedef void _input_variables;
 typedef void _restart_objects;
+typedef void _run_objects;
 /* Advanced types, used for full bindings. */
 typedef void _communications_arrays;
 typedef void _coulomb_operator;

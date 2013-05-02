@@ -139,7 +139,9 @@ module bigdft_forces
       me = me_
       nproc = nproc_
 
-      call run_objects_init(runObj)
+      allocate(runObj%atoms)
+      runObj%atoms = atoms_null()
+      allocate(runObj%inputs)
       if (nat .eq. total_nb_atoms .and. .not. passivate) then 
          ! we just reread all atoms
          call read_atomic_file("posinp",me_,runObj%atoms,runObj%rxyz)
@@ -176,6 +178,7 @@ module bigdft_forces
          gnrm_h = my_gnrm
       end if
       ! The BigDFT restart structure.
+      allocate(runObj%rst)
       call init_restart_objects(me, runObj%inputs, runObj%atoms, runObj%rst, subname)
 
    END SUBROUTINE bigdft_init_art

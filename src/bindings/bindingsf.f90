@@ -458,8 +458,7 @@ subroutine inputs_free(in)
   implicit none
   type(input_variables), pointer :: in
 
-  !call free_input_variables(in)
-  call bigdft_free_input(in)
+  call free_input_variables(in)
   deallocate(in)
 end subroutine inputs_free
 subroutine inputs_set_radical(in, rad, ln)
@@ -1343,3 +1342,40 @@ subroutine rst_init(rst, iproc, atoms, inputs)
   
   call init_restart_objects(iproc, inputs, atoms, rst, "rst_init")
 end subroutine rst_init
+
+subroutine run_objects_new(runObj)
+  use module_types
+  implicit none
+  type(run_objects), pointer :: runObj
+
+  allocate(runObj)
+  call run_objects_init(runObj)
+END SUBROUTINE run_objects_new
+subroutine run_objects_destroy(runObj)
+  use module_types
+  use module_base
+  use yaml_output
+  implicit none
+  type(run_objects), pointer :: runObj
+
+  ! We don't do it here, we just destroy the container,
+  !  The caller is responsible to free public attributes.
+  !call run_objects_free(runObj)
+  call f_finalize()
+  call yaml_close_all_streams()
+  deallocate(runObj)
+end subroutine run_objects_destroy
+subroutine run_objects_get(runObj, inputs, atoms, rst, rxyz)
+  use module_types
+  implicit none
+  type(run_objects), intent(in) :: runObj
+  type(input_variables), pointer :: inputs
+  type(atoms_data), pointer :: atoms
+  type(restart_objects), pointer :: rst
+  real(gp), dimension(:,:), pointer :: rxyz
+
+  inputs => runObj%inputs
+  atoms => runObj%atoms
+  rst => runObj%rst
+  rxyz => runObj%rxyz
+END SUBROUTINE run_objects_get

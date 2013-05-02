@@ -123,6 +123,24 @@ BigDFT_Atoms* bigdft_atoms_new()
 
   return atoms;
 }
+BigDFT_Atoms* bigdft_atoms_new_from_fortran(_atoms_data *at, f90_pointer_double_2D *rxyz)
+{
+  BigDFT_Atoms *atoms;
+
+#ifdef HAVE_GLIB
+  atoms = BIGDFT_ATOMS(g_object_new(BIGDFT_ATOMS_TYPE, NULL));
+#else
+  atoms = g_malloc(sizeof(BigDFT_Atoms));
+  bigdft_atoms_init(atoms);
+#endif
+  atoms->data = at;
+  FC_FUNC_(atoms_get, ATOMS_get)(atoms->data, &atoms->sym);
+  bigdft_atoms_copy_from_fortran(atoms);
+  if (rxyz)
+    memcpy(&atoms->rxyz, rxyz, sizeof(f90_pointer_double_2D));
+
+  return atoms;
+}
 void bigdft_atoms_free(BigDFT_Atoms *atoms)
 {
 #ifdef HAVE_GLIB

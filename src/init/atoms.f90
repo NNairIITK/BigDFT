@@ -1712,6 +1712,14 @@ subroutine atoms_sync(atoms, alat1, alat2, alat3, geocode, format, units)
 END SUBROUTINE atoms_sync
 
 ! Accessors for bindings.
+subroutine atoms_get(atoms, symObj)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in), target :: atoms
+  type(symmetry_data), pointer :: symObj
+
+  symObj => atoms%sym
+END SUBROUTINE atoms_get
 subroutine atoms_copy_nat(atoms, nat)
   use module_types
   implicit none
