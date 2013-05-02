@@ -1,10 +1,5 @@
- <BigDFT> Log of the run will be written in logfile: .//log-XabsCheb.yaml
- No material acceleration (iproc=0)
- 
+ <BigDFT> log of the run will be written in logfile: ./log-XabsCheb.yaml
  ===================== BigDFT XANE calculation =============== inputPsiId= 0
-   Geom. Code=    P   |   Box Sizes (Bohr) =  2.26767E+01  2.26767E+01  2.26767E+01
-   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   allocate ionic potential 
  ------------------------------------------------------------ PSP Projectors Creation
@@ -14,13 +9,10 @@
  Total number of projectors =                   24
  Total number of components =               167280
  Percent of zero components =                   18
- ion-ion interaction energy -1.59920646116928E+01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge           -16.000000000000   0.000E+00
  ------------------------------------------------------- Input Wavefunctions Creation
   going to calculate spectra 
   IN ROUTINE  chebychev  
- weigths    1.00000000000000     
+ weigths    1.0000000000000000     
  LB_nproc=            1
  USING PTILDES TO BUILD INITIAL WAVE
   EP_initialize_start    OK 
@@ -68,23 +60,16 @@ new cheb coeffs     -0.2064742286D-03     0.2062370230D-03
   done 
 new cheb coeffs     -0.1838438448D-03     0.1577791737D-03
  coefficients from Chebychev 
-   40 1.8347331808298776E+02 5.3215820427215225E-03
+   40 1.8347331808298776E+02 5.3215820427215243E-03
  ... 
--3.4837660500441903E-05
- 8.1637444238539148E-05
--9.1369199557739473E-05
- 5.4007870347120342E-05
- 1.9793062809562176E-05
--1.0419947600781663E-04
- 1.7222531886090559E-04
--2.0647422859561108E-04
- 2.0623702304369473E-04
--1.8384384484423357E-04
- DEALLOCATING
- CPU time/ELAPSED time for root process     0        10.78        14.97
- Final values of the Forces for each atom
-     1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
- the sum of the forces is
-      x direction     0.00000000E+00
-      y direction     0.00000000E+00
-      z direction     0.00000000E+00
+-3.4837660500140278E-05
+ 8.1637444238221260E-05
+-9.1369199557377566E-05
+ 5.4007870346717778E-05
+ 1.9793062809988701E-05
+-1.0419947600823578E-04
+ 1.7222531886127140E-04
+-2.0647422859589580E-04
+ 2.0623702304387948E-04
+-1.8384384484432725E-04
+ CPU time/ELAPSED time for root process     0        19.97        24.87

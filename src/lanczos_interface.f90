@@ -167,12 +167,13 @@ nullify(Qvect,dumQvect)
   END SUBROUTINE EP_mat_mult
 
 
-  !> Allocate the wavefunctions in the transposed form, for lancsoz
+  !> Allocate the wavefunctions in the transposed form, for lanczos
   subroutine EP_free(iproc)
+     use yaml_output
      implicit none
      integer, intent(in) :: iproc
 
-     if (iproc == 0)  write(*,*) "DEALLOCATING"
+     if (iproc == 0)  call yaml_comment("DEALLOCATING")
 
      i_all=-product(shape(Qvect))*kind(Qvect)
      deallocate(Qvect,stat=i_stat)
@@ -512,6 +513,7 @@ nullify(Qvect,dumQvect)
         !!end if
      else
         STOP " ha%at%paw_NofL(ha%at%iatype(ha%in_iat_absorber )).gt.0  is false" 
+        !!$       Note G%psiat and G%xp have now 2 dimenstions.
         !!$       call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%Lzd%Glr%geocode,ha%orbs,ha%Lzd%Glr%d,&
         !!$            ha%hx,ha%hy,ha%hz,ha%Lzd%Glr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
      endif
@@ -678,7 +680,7 @@ nullify(Qvect,dumQvect)
      ! in FFT_back, but then the code would be slower.
 
      !$omp parallel default (private) shared(z1,z3,kern_k1,kern_k2,kern_k3)&
-     !$omp & shared(n1b,n3f,inzee,n1,n2,n3)
+     !$omp & shared(n1b,n3f,inzee,n1,n2,n3,ene,gamma)
 
      ! i3=1: then z1 is contained in z3 
      !$omp do 
@@ -988,13 +990,15 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_Moltiplica4spectra(p,i, ene, gamma)
      use module_interfaces
+     use gaussians, only: gaussian_basis
      !Arguments
      implicit none
      integer, intent(in) :: p,i
      real(gp) :: ene, gamma
      !Local variables
-     integer :: k
+     integer :: k,iatyp
      type(confpot_data), dimension(ha%orbs%norbp) :: confdatarr
+     type(gaussian_basis),dimension(ha%at%ntypes)::proj_G
 
      if( ha%nproc > 1) then
         if(i>=0) then
@@ -1022,7 +1026,6 @@ nullify(Qvect,dumQvect)
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
           ha%energs,ha%SIC,ha%GPU)
-
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
      call vcopy(EP_dim_tot,wrk(1),1,Qvect_tmp(1),1)
@@ -1421,7 +1424,7 @@ nullify(Qvect,dumQvect)
               end do loop_calc
               if (maycalc) then
                  call crtonewave(geocode,grid%n1,grid%n2,grid%n3,ng,nterm,lx,ly,lz,fac_arr,&
-                    &   G%xp(iexpo),G%psiat(iexpo),&
+                    &   G%xp(1,iexpo),G%psiat(1,iexpo),&
                     &   rx,ry,rz,hx,hy,hz,&
                     &   0,grid%n1,0,grid%n2,0,grid%n3,&
                     &   grid%nfl1,grid%nfu1,grid%nfl2,grid%nfu2,grid%nfl3,grid%nfu3,  & 
@@ -1452,7 +1455,7 @@ nullify(Qvect,dumQvect)
 
      if (iproc==0)    call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
-     if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
+     !if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
      !renormalize the orbitals
      !calculate the deviation from 1 of the orbital norm
      normdev=0.0_dp
@@ -1629,7 +1632,6 @@ END MODULE lanczos_interface
 subroutine applyPAWprojectors(orbs,at,&
       &   hx,hy,hz,Glr,PAWD,psi,hpsi,  paw_matrix, dosuperposition , &
       &   sup_iatom, sup_l, sup_arraym)
-
    use module_base
    use module_types
    use module_interfaces, except_this_one => applyPAWprojectors
@@ -1886,6 +1888,7 @@ subroutine applyPAWprojectors(orbs,at,&
                   else
                      istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*mproj*ncplx
                   endif
+
                end if
             end do
 

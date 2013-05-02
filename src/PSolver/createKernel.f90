@@ -94,7 +94,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   if (kernel%mpi_env%iproc == 0 .and. kernel%mpi_env%igroup == 0 .and. verb) then
      !$ nthreads = omp_get_max_threads()
      call yaml_map('MPI tasks',kernel%mpi_env%nproc)
-     if (nthreads /=0) call yaml_map('OpenMP threads per task',nthreads)
+     if (nthreads /=0) call yaml_map('OpenMP threads per MPI task',nthreads)
      if (kernel%igpu==1) call yaml_map('Kernel copied on GPU',.true.)
      call yaml_close_map() !kernel
   end if
@@ -333,7 +333,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      if (kernel%igpu == 2) then
        allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
      else
-       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+       !allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+       allocate(kernel%kernel(nd1*nd2*(nd3/kernelnproc)+ndebug),stat=i_stat)
      endif
 
      call memocc(i_stat,kernel%kernel,'kernel',subname)

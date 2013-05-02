@@ -12,7 +12,13 @@ TESTDIRS = C \
 	  TiSmear \
 	  O2-Spin \
 	  ElectField \
-	  ElectronGas
+	  ElectronGas \
+	  NLCC \
+	  taskgroups
+
+EXTRA_TESTDIRS =
+
+EXTRA_DIST = 
 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
@@ -25,11 +31,6 @@ else
 #OCL not implemented with spin=4 (Fehyb and Mn2)
   TESTDIRS += H Graphene FeHyb Mn2 SIC
 endif
-
-EXTRA_DIST = \
-	README \
-	$(TESTDIRS) \
-	GPU OCL 
 
 # Give here the pseudo-potentials used by each test.
 H.psp: psppar.H
@@ -67,24 +68,18 @@ SIC.post-in:
           *) mode="";; \
         esac ; \
         case $* in \
-          Ca2.out*)             prec="4.e-10" ;; \
-          NaCl.out*)            prec="2.e-9" ;; \
-          SiBulk.out*)          prec="2.e-7" ;; \
-          AgBulk.out*)          prec="6.e-8" ;; \
-          SiH4.out*)            prec="5.e-9" ;; \
-	  SIC*.out*)            prec="1.e-9" ;; \
-	  Mn2.out*)             prec="5.e-10" ;; \
-          ElecField.out*)       prec="1.e-9" ;; \
           *)                    prec="1.1e-10" ;; \
         esac ; \
+    echo "python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*.out $<" ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 %.report.yaml: %.ref.yaml
-	export PYTHONPATH=${PYTHONPATH} ; \
+	@export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
 	tols=`basename $< .out.ref.yaml` ;\
 	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ;\
+	echo "python $(abs_top_srcdir)/tests/fldiff_yaml.py -r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@" ; \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
 		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
 

@@ -1,12 +1,5 @@
- <BigDFT> Log of the run will be written in logfile: .//log-InputGenPot.yaml
- <BigDFT> Logfile already existing, move previous file in:
-   .//logfiles/log-InputGenPot.16:40:41.435.yaml
- No material acceleration (iproc=0)
-
+ <BigDFT> log of the run will be written in logfile: ./log-InputGenPot.yaml
  ===================== BigDFT XANE calculation =============== inputPsiId= 0
-   Geom. Code=    P   |   Box Sizes (Bohr) =  1.88973E+01  1.88973E+01  1.88973E+01
-   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
- Output grid policy=    2   (dens. + pot.) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   allocate ionic potential 
  ------------------------------------------------------------ PSP Projectors Creation
@@ -16,9 +9,6 @@
  Total number of projectors =                   24
  Total number of components =               202320
  Percent of zero components =                   18
- ion-ion interaction energy -1.91782160558320E+01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge           -16.000000000000   0.000E+00
  ------------------------------------------------------- Input Wavefunctions Creation
  writing local_potential
   going to calculate spectra 
@@ -83,11 +73,4 @@ new cheb coeffs     -0.1895564970D-03     0.1932759295D-03
 -9.1516622652610931E-05
  1.5478109862586647E-04
 -1.8955649700646139E-04
- DEALLOCATING
- CPU time/ELAPSED time for root process     0        21.29        25.33
- Final values of the Forces for each atom
-     1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
- the sum of the forces is
-      x direction     0.00000000E+00
-      y direction     0.00000000E+00
-      z direction     0.00000000E+00
+ CPU time/ELAPSED time for root process     0        21.12        25.32

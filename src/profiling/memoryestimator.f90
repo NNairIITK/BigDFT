@@ -174,7 +174,7 @@ subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itr
   !estimation of the memory peak
   peakmem=max(tmemker,tmemden,tmemps,tmemha)
 
-  call yaml_open_map('Memory requirements for principal code sections (MiB.KiB)')
+  call yaml_open_map('Accumulated memory requirements during principal run stages (MiB.KiB)')
      call yaml_map('Kernel calculation',trim(MibdotKib(tmemker)))
      call yaml_map('Density Construction',trim(MibdotKib(tmemden)))
      call yaml_map('Poisson Solver',trim(MibdotKib(tmemps)))

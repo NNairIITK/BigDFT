@@ -93,7 +93,7 @@ for ((count=${min};count<=${max};count++)) ; do
 	mkdir $dir
     fi
     # Empty the working directory.
-    rm -f $dir/OK $dir/FAILED
+    rm -f $dir/OK $dir/FAILED $dir/FAILURES
     if [ ! -f $dir/RESTART ] ; then
         touch $dir/START
     fi
@@ -152,7 +152,17 @@ while [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; do
 		touch FAILED
 	    fi
 	    if test x"$res" == x"3" ; then
-		touch START
+                if [ ! -f FAILURES ] ; then
+                    echo -n "1" > FAILURES
+                else
+                    echo -n $((`cat FAILURES` + 1)) > FAILURES
+                fi
+                if test -f FAILURES -a `cat FAILURES` -gt 3 ; then
+		    jobs_done=$(($jobs_done + 1))
+		    touch FAILED
+                else
+		    touch START
+                fi
 	    fi
 	fi
 

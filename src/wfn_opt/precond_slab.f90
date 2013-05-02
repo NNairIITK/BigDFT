@@ -461,7 +461,7 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   ! hit the fourier transform of x with the kernel
 
   !$omp parallel default(none) & 
-  !$omp private (b,ab,i3,i1,j,i,ct,info) &
+  !$omp private (b,ab,i3,i1,i2,j,i,ct,info) &
   !$omp shared (n1,n2,n3,zx,fil,kd,ldb,ldab,nrhs,n,c,kern_k1,kern_k3)
   allocate(ab(ldab,n),b(0:n2,2))
   !$omp do schedule(static,1)

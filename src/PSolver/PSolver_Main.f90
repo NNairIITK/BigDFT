@@ -106,7 +106,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   integer, dimension(:,:), allocatable :: gather_arr
   integer, dimension(3) :: n
   integer :: size1,size2,switch_alg
-  integer :: n3pr1,n3pr2
 
   cudasolver=.false.
 
@@ -117,7 +116,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
      else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
         wrtmsg=.true.
      else
-        write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
+        call yaml_warning('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
+        !write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
         stop
      end if
   else
@@ -171,14 +171,14 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   else if (kernel%geocode == 'S') then
      !only one power of hgrid 
      !factor of -4*pi for the definition of the Poisson equation
-     scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2*n3,dp)
+     scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2,dp)/real(n3,dp)
   else if (kernel%geocode == 'F' .or. kernel%geocode == 'H') then
      !hgrid=max(hx,hy,hz)
-     scal=product(kernel%hgrids)/real(n1*n2*n3,dp)
+     scal=product(kernel%hgrids)/real(n1*n2,dp)/real(n3,dp)
   else if (kernel%geocode == 'W') then
      !only one power of hgrid 
      !factor of -1/(2pi) already included in the kernel definition
-     scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2*n3,dp)
+     scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2,dp)/real(n3,dp)
   end if
   !here the case ncplx/= 1 should be added
 
@@ -186,7 +186,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   allocate(zf(md1,md3,2*md2/kernel%mpi_env%nproc+ndebug),stat=i_stat)
   call memocc(i_stat,zf,'zf',subname)
   !initalise to zero the zf array
-  call to_zero(md1*md3*md2/kernel%mpi_env%nproc,zf(1,1,1))
+  call to_zero(md1*md3*(md2/kernel%mpi_env%nproc),zf(1,1,1))
 
   istart=kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc)
   iend=min((kernel%mpi_env%iproc+1)*md2/kernel%mpi_env%nproc,m2)
@@ -288,6 +288,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
    else
 
+
      !fill the GPU memory
      call reset_gpu_data(size1,zf,kernel%work1_GPU)
 
@@ -305,6 +306,12 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
      !take data from GPU
      call get_gpu_data(size1,zf,kernel%work1_GPU)
  
+
+   endif
+
+   if (kernel%keepGPUmemory == 0) then
+     call cudafree(kernel%work1_GPU)
+     call cudafree(kernel%work2_GPU)
    endif
 
    if (kernel%keepGPUmemory == 0) then
@@ -520,6 +527,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      alpha,beta,gamma,quiet) !optional argument
   use module_base
   use module_types
+  use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
@@ -553,14 +561,14 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   call timing(iproc,'Exchangecorr  ','ON')
 
-  !do not write anything on screen if quiet is set to yes
   if (present(quiet)) then
      if(quiet == 'yes' .or. quiet == 'YES') then
         wrtmsg=.false.
      else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
         wrtmsg=.true.
      else
-        write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
+        call yaml_warning('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
+        !write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
         stop
      end if
   else
@@ -584,29 +592,29 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
-     if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('periodic BC',n01,n02,n03,nproc,ixc)
+          !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          !'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'S') then
-     if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('surfaces BC',n01,n02,n03,nproc,ixc)
+          !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          !'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else if (geocode == 'F') then
-     if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('free BC',n01,n02,n03,nproc,ixc)
+          !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          !'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else if (geocode == 'W') then
-     if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('wires BC',n01,n02,n03,nproc,ixc)
+          !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          !'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else if (geocode == 'H') then
-     if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, Helmholtz Equation Solver, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('Helmholtz Equation Solver',n01,n02,n03,nproc,ixc)
+          !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          !'PSolver, Helmholtz Equation Solver, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else
      stop 'PSolver: geometry code not admitted'
@@ -949,7 +957,22 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
 
   if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
-  if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+  !if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+
+contains
+
+  subroutine PSolver_yaml(code,n01,n02,n03,nproc,ixc)
+     use yaml_output
+     implicit none
+     integer, intent(in) :: n01,n02,n03,nproc,ixc
+     character(len=*), intent(in) :: code
+     call yaml_open_map('PSolver',flow=.true.)
+        call yaml_map('Geometry',trim(code))
+        call yaml_map('dim',(/ n01,n02,n03 /))
+        call yaml_map('proc',nproc)
+        call yaml_map('ixc',ixc)
+     call yaml_close_map()
+  end subroutine PSolver_yaml
 
 END SUBROUTINE PSolver
 

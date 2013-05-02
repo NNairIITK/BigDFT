@@ -28,7 +28,7 @@ art_source = \
         bayes.f90 \
         read_parameters.f90
 
-AM_FCFLAGS = -I. -I$(srcdir) -I../modules @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) -I../includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 CLEANFILES = *.@MODULE_EXT@
 

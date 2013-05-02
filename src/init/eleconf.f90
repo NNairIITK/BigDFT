@@ -241,6 +241,7 @@ rcov=2.65d0
 rprb=5.30d0
 ehomo=-0.175427d0
 neleconf(3,0)=2
+neleconf(3,1)=1.d-18
 amu=24.3050d0
 
 case(12*1000+10)
@@ -515,9 +516,10 @@ rprb=5.00d0
 ehomo=-0.197978d0
 neleconf(3,0)=2
 neleconf(3,1)=6
-neleconf(3,2)=6
-neleconf(4,0)=2
-nsccode=12
+neleconf(3,2)=7
+neleconf(4,0)=1
+neleconf(4,1)=1.d-18
+!nsccode=12
 amu=55.847d0
 
 case(26*1000+8)
@@ -527,8 +529,10 @@ symbol = "Fe"
 rcov=2.50d0
 rprb=5.00d0
 ehomo=-0.197978d0
-neleconf(3,2)=6
-neleconf(4,0)=2
+neleconf(3,2)=8
+neleconf(4,0)=1.d-18
+neleconf(4,1)=1.d-18
+neleconf(4,2)=1.d-18
 amu=55.847d0
 
 case(27*1000+17)
@@ -1372,13 +1376,14 @@ case(74*1000+14)
 ! W           74          14     Symbol, Z, Zion
 symbol = "W"
 rcov=2.60d0
-rprb=5.20d0
+rprb=1.0d0*5.20d0
 ehomo=-0.181413d0
 neleconf(5,0)=2
 neleconf(5,1)=6
-neleconf(5,2)=4
-neleconf(6,0)=2
-nsccode=12
+neleconf(5,2)=6
+neleconf(6,0)=1.d-18
+neleconf(6,1)=1.d-18
+!nsccode=12
 amu=183.85d0
 
 case(74*1000+6)
@@ -1487,10 +1492,10 @@ rprb=5.20d0
 ehomo=-0.161308d0
 neleconf(5,0)=2
 neleconf(5,1)=6
-neleconf(5,2)=8
-neleconf(6,0)=1
-neleconf(6,1)=1
-nsccode=12
+neleconf(5,2)=10
+neleconf(6,0)=1.d-18
+neleconf(6,1)=1.d-18
+!nsccode=12
 amu=195.08d0
 
 case(79*1000+11)
@@ -1502,7 +1507,9 @@ rprb=5.40d0
 ehomo=-0.162334d0
 neleconf(5,2)=10
 neleconf(6,0)=1
-nsccode=3
+neleconf(6,1)=1.d-18
+!neleconf(6,2)=1.d-18
+!nsccode=3
 amu=196.96654d0
 
 case(79*1000+1)
@@ -1627,6 +1634,7 @@ end select
      do n=1,nmax
         !write(111,*) l,n,neleconf(n,l)
         if ( neleconf(n,l) /= 0 ) nsum = nsum + int(neleconf(n,l))
+!        write(*,'(i3,i3,e12.5,i4,i5,i5)') l,n,neleconf(n,l),int(neleconf(n,l)),nsum,nvalelec
      end do
   end do
   if (nsum /= nvalelec) then

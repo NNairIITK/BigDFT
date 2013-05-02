@@ -15,6 +15,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   use module_types
   use Poisson_Solver
   use module_xc
+  use yaml_output
 
   implicit none
   character(len=1), intent(in) :: geocode
@@ -196,8 +197,10 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
               ncall=ncall+1
               if (iproc == 0 .and. verbose > 1) then
                  !write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
-                 write(*,'(1x,a,i3,a2)')'Exact exchange calculation:',&
-                      nint(real(ncall,gp)/real(orbs%norbu*(orbs%norbu+1)/2+orbs%norbd*(orbs%norbd+1)/2,gp)*100.0_gp),'% '
+                 call yaml_comment('Exact exchange calculation: ' // trim(yaml_toa( nint(real(ncall,gp)/ &
+                 &    real(orbs%norbu*(orbs%norbu+1)/2+orbs%norbd*(orbs%norbd+1)/2,gp)*100.0_gp),fmt='(i3)')) // '%')
+                 !write(*,'(1x,a,i3,a2)')'Exact exchange calculation:',&
+                 !     nint(real(ncall,gp)/real(orbs%norbu*(orbs%norbu+1)/2+orbs%norbd*(orbs%norbd+1)/2,gp)*100.0_gp),'% '
               end if
               
               call H_potential('D',pkernel,rp_ij(1,1,1,igran),rp_ij,ehart,0.0_dp,.false.,&
@@ -270,7 +273,8 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   !the exact exchange energy is half the Hartree energy (which already has another half)
   eexctX=-exctXfac*eexctX
 
-  if (iproc == 0) write(*,'(1x,a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
+  if (iproc == 0) call yaml_map('Exact Exchange Energy',eexctX,fmt='(1pe18.1)')
+  !if (iproc == 0) write(*,'(1x,a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
 
   !assign the potential for each function
   if (nproc > 1) then
@@ -419,14 +423,15 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
 END SUBROUTINE prepare_psirocc
 
 
-!>   Calculate the exact exchange potential only on virtual orbitals
-!!   by knowing the occupied orbitals and their distribution
-!!   both sets of orbitals are to be 
+!> Calculate the exact exchange potential only on virtual orbitals
+!! by knowing the occupied orbitals and their distribution
+!! both sets of orbitals are to be 
 subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,n3parr,n3p,&
      hxh,hyh,hzh,pkernel,psirocc,psivirt,psirvirt)
   use module_base
   use module_types
   use Poisson_Solver
+  use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n3p,nspin
@@ -598,7 +603,8 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
 
               !partial exchange term for each partial density
               if (iproc == 0 .and. verbose > 1) then
-                 write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
+                 call yaml_map('Exact exchange calculation (spin, orbitals)', (/ispin,iorb,jorb /))
+                 !write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
               end if
 
               call H_potential('D',pkernel,rp_ij(1,1,1,igran),rp_ij,ehart,0.0_dp,.false.,&
@@ -689,15 +695,16 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
 END SUBROUTINE exact_exchange_potential_virt
 
 
-!>   Calculate the exact exchange potential on occupied orbitals
-!!   within the symmetric round-robin scheme
-!!   the psi is already given in the real-space form
+!> Calculate the exact exchange potential on occupied orbitals
+!! within the symmetric round-robin scheme
+!! the psi is already given in the real-space form
 subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
      hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
   use module_base
   use module_types
   use Poisson_Solver
   use module_xc
+  use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,nspin
@@ -1168,8 +1175,10 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
                     ncalls=ncalls+1                    
                     !Poisson solver in sequential
                     if (iproc == iprocref .and. verbose > 1) then
-                          write(*,'(1x,a,i3,a2)')'Exact exchange calculation: ',&
-                               nint(real(ncalls,gp)/real(ncalltot,gp)*100.0_gp),' %'
+                          call yaml_comment('Exact exchange calculation: ' // trim(yaml_toa( &
+                               nint(real(ncalls,gp)/real(ncalltot,gp)*100.0_gp),fmt='(i3)')) //'%')
+                          !write(*,'(1x,a,i3,a2)')'Exact exchange calculation: ',&
+                          !     nint(real(ncalls,gp)/real(ncalltot,gp)*100.0_gp),' %'
                        !write(*,'(1x,a,2(1x,i5))')'Exact exchange calculation: ',ncalls,ncalltot
                        !write(*,*)'Exact exchange calculation: spin, orbitals:',igrpr(igroup),iorb,jorb
                     end if
@@ -1299,7 +1308,9 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   !the exact exchange energy is half the Hartree energy (which already has another half)
   eexctX=-exctXfac*eexctX
   
-  if (iproc == 0) write(*,'(1x,a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
+  if (iproc == 0) call yaml_map('Exact Exchange Energy',eexctX,fmt='(1pe18.11)')
+  !if (iproc == 0) write(*,'(1x,a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
+
   !close(100+iproc)
   i_all=-product(shape(nvctr_par))*kind(nvctr_par)
   deallocate(nvctr_par,stat=i_stat)
@@ -1350,6 +1361,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   !call timing(iproc,'Exchangecorr  ','OF')
 
 END SUBROUTINE exact_exchange_potential_round
+
 
 !!$!> BigDFT/exact_exchange_potential_round
 !!$!! :

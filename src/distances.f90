@@ -352,7 +352,7 @@ contains
        do i=1,nat
           iatype(i)=atoms%iatype(i)
        enddo
-       factor=atoms%alat1 * bohr2ang
+       factor=atoms%alat1 * Bohr_Ang
 
        deallocate(rxyz)
        call deallocate_atoms(atoms, "box_features")

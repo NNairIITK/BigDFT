@@ -54,6 +54,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   use module_types
   use module_interfaces, except_this_one => constrained_davidson
   use module_xc
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: nvirt
@@ -83,7 +84,10 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   real(wp), dimension(:,:,:), allocatable :: e,eg,e_tmp,eg_tmp
   real(wp), dimension(:), pointer :: psiw,psirocc,pot
   real(wp), dimension(:), allocatable :: ALPHAR,ALPHAI,BETA,VR,VL
+  type(paw_objects) ::paw !dummy herem, only used for PAW
   
+  paw%usepaw=0 !Not using PAW
+  call nullify_paw_objects(paw)
   
   !logical flag which control to othogonalise wrt the occupied orbitals or not
   if (orbs%nkpts /= orbsv%nkpts) then
@@ -270,7 +274,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   ! inform
   !
-  if(iproc==0)write(*,'(1x,a)',advance="no")"done."
+  !if(iproc==0)write(*,'(1x,a)',advance="no")"done."
   !
   ! End orthogonality cycle: 
   ! ****************************************
@@ -335,7 +339,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   ! inform
   ! 
-  if(iproc==0)write(*,'(1x,a)')"done."
+  !if(iproc==0)write(*,'(1x,a)')"done."
   !
   ! Hamiltonian application:
   ! ****************************************
@@ -518,15 +522,23 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      ! compute maximum gradient
      !
      gnrm=0._dp
-     if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
+     if(msg) call yaml_open_sequence('Squared norm of the (nvirt) gradients')
+     !if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
      ! loop on kpoints
      do ikpt=1,orbsv%nkpts
         ! single spin case
-        if(msg)write(*,'(1x,a)')'done. Eigenvalues, gnrm'
+        !if(msg)write(*,'(1x,a)')'done. Eigenvalues, gnrm'
+        if (iproc==0) call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
+             & trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
         if (nspin == 1) then
            do iorb=1,orbsv%norb!nvirt
               !to understand whether the sqrt should be placed or not
-              if(iproc==0)write(*,'(1x,i5,1pe22.14,1pe9.2)')iorb,e(iorb,ikpt,1),(e(iorb,ikpt,2))
+              !if(iproc==0)write(*,'(1x,i5,1pe22.14,1pe9.2)')iorb,e(iorb,ikpt,1),(e(iorb,ikpt,2))
+              if (iproc ==0) then
+                 call yaml_sequence(advance='no')
+                 call yaml_map('Orbitals',(/ e(iorb,ikpt,1),e(iorb,ikpt,2) /), fmt='(1pe22.14)',advance='no')
+                 call yaml_comment(trim(yaml_toa(iorb,fmt='(i4.4)'))) 
+              end if
               !if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
               tt=real(e(iorb,ikpt,2),dp)!*orbsv%kwgts(ikpt)
               if (iorb <= nvirt) gnrm=max(gnrm,tt)
@@ -645,7 +657,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! inform
      !
-     if(iproc==0)write(*,'(1x,a)')"done."
+     !if(iproc==0)write(*,'(1x,a)')"done."
      !
      if ( iproc==0 .and. diff_max>1.0E-12_gp ) then
         print *,'WARNING: Important asymmetry of subspace expansion found:',diff_max
@@ -806,7 +818,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! inform
      !
-     if(iproc==0)write(*,'(1x,a)')"done."
+     !if(iproc==0)write(*,'(1x,a)')"done."
      !
      ! End orthogonality cycle: 
      ! ****************************************
@@ -827,7 +839,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
      !     nlpspd,proj,Lzd%Glr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
      !     pkernel,orbs,psirocc)
-     if(iproc==0)write(*,'(1x,a)')"done."
+     !if(iproc==0)write(*,'(1x,a)')"done."
      ! 
      !transpose  v and hv
      !
@@ -917,9 +929,9 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
 
 
   ! inform
-  if(iter <=in%itermax) then
-     if(iproc==0)write(*,'(1x,a,i3,a)')&
-          "Davidson's method: Convergence after ",iter-1,' iterations.'
+  if (iter <=in%itermax) then
+     if(iproc==0) call yaml_map('Iteration for Davidson convergence',iter-1)
+     !if(iproc==0) write(*,'(1x,a,i3,a)') "Davidson's method: Convergence after ",iter-1,' iterations.'
   end if
 
 
@@ -1154,6 +1166,3 @@ subroutine Davidson_constrained_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr
   enddo
 
 END SUBROUTINE Davidson_constrained_subspace_hamovr
-
-
-

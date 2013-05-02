@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to reformat wavefunctions
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group 
+!!    Copyright (C) 2010-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -190,7 +190,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   end if
 
   !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
-  call compress(n1,n2,0,n1,0,n2,0,n3,  &
+  call compress_plain(n1,n2,0,n1,0,n2,0,n3,  &
        wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),   &
        wfd%nseg_f,wfd%nvctr_f,&
        wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
@@ -562,6 +562,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   use module_base
   use module_types
   use internal_io
+  use yaml_output
   implicit none
   logical, intent(in) :: useFormattedInput
   integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3
@@ -608,23 +609,31 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
 
      !if (iproc == 0) write(*,*) 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
-     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
+     if (iproc == 0) call yaml_map('Need to reformat wavefunctions',.false.)
+     !if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
      call read_psi_compress(unitwf, useFormattedInput, wfd%nvctr_c, wfd%nvctr_f, psi, lstat, error)
      if (.not. lstat) call io_error(trim(error))
 
   else
 
      if (iproc == 0 .and. iorb == 1) then
-        write(*,*) 'wavefunctions need reformatting'
-        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,"(1x,A,6F14.10)") &
-             'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
-        if (nvctr_c_old /= wfd%nvctr_c) write(*,*) 'because nvctr_c_old /= nvctr_c',&
-             nvctr_c_old,wfd%nvctr_c
-        if (nvctr_f_old /= wfd%nvctr_f) write(*,*) 'because nvctr_f_old /= nvctr_f',&
-             nvctr_f_old,wfd%nvctr_f
+        call yaml_map('Need to reformat wavefunctions',.false.)
+        !write(*,*) 'wavefunctions need reformatting'
+        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) &
+           & call yaml_comment('because hgrid_old /= hgrid' // &
+             & trim(yaml_toa((/ hx_old,hy_old,hz_old,hx,hy,hz /), fmt='(f14.10)')))
+           ! & write(*,"(1x,A,6F14.10)") 'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
+        if (nvctr_c_old /= wfd%nvctr_c) &
+           & call yaml_comment('because nvctr_c_old /= nvctr_c' // trim(yaml_toa((/ nvctr_c_old,wfd%nvctr_c /))))
+           ! & write(*,*) 'because nvctr_c_old /= nvctr_c', nvctr_c_old,wfd%nvctr_c
+        if (nvctr_f_old /= wfd%nvctr_f) &
+           & call yaml_comment('because nvctr_f_old /= nvctr_f' // trim(yaml_toa((/ nvctr_f_old,wfd%nvctr_f /))))
+           ! & write(*,*) 'because nvctr_f_old /= nvctr_f', nvctr_f_old,wfd%nvctr_f
         if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
-             write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
-        if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
+           call yaml_comment('because cell size has changed' // trim(yaml_toa((/ n1_old,n1,n2_old,n2,n3_old,n3 /))))
+           ! & write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
+        if (displ > 1.d-3 ) call yaml_comment('large displacement of molecule' // trim(yaml_toa(displ)))
+        !if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
      end if
 
      allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
@@ -894,6 +903,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
      nseg_f,nvctr_f,keyg_f,keyv_f, & 
      psi_c,psi_f,eval)
   use module_base
+  use yaml_output
   implicit none
   logical, intent(in) :: useFormattedOutput
   integer, intent(inout) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f
@@ -978,7 +988,8 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
      enddo
   enddo
 
-  if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
+  if (verbose >= 2) call yaml_comment(trim(yaml_toa(iorb)) //'th wavefunction written')
+  !if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
 
 END SUBROUTINE writeonewave
 
@@ -1010,16 +1021,20 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
   real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
   !local variables
-  character(len=*), parameter :: subname='reformatonewave'
-  logical :: cif1,cif2,cif3,perx,pery,perz
-  integer :: i_stat,i_all,i1,i2,i3,j1,j2,j3,l1,l2,iat,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
-  real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold,mindist
-  real(wp) :: zr,yr,xr,ym1,y00,yp1
-  real(wp), dimension(-1:1,-1:1) :: xya
-  real(wp), dimension(-1:1) :: xa
+  character(len=*), parameter :: subname='reformatonesupportfunction'
+  logical :: perx,pery,perz
+  integer :: i_stat,i_all,nb1,nb2,nb3
+  !integer :: cif1,cif2,cif3,ind,j1,j2,j3,i1,i2,i3,l1,l2,jj1,jj2,jj3a,jj3b,jj3c
+  real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,dx,dy,dz,mindist
+  !real(wp) :: x,y,z,yr,xr,ym1,y00,yp1,dnrm2,zr,xold,yold,zold
+  !real(wp), dimension(-1:1,-1:1) :: xya
+  !real(wp), dimension(-1:1) :: xa
   real(wp), dimension(:), allocatable :: ww,wwold
+  real(wp), dimension(:), allocatable :: x_phi, y_phi
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
-  real(wp), dimension(:,:,:), allocatable :: psifscfold
+  real(wp), dimension(:,:,:), allocatable :: psifscfold, psi_w, psi_w2
+!  integer :: iat
+  integer :: itype, nd, nrange
 
   !conditions for periodicity in the three directions
   perx=(at%geocode /= 'F')
@@ -1048,12 +1063,12 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   i_all=-product(shape(wwold))*kind(wwold)
   deallocate(wwold,stat=i_stat)
   call memocc(i_stat,i_all,'wwold',subname)
-  
+
   !write(*,*) iproc,' displ ',displ
   if (hx == hx_old .and. hy == hy_old .and. hz == hz_old .and. &
        n1_old==n1 .and. n2_old==n2 .and. n3_old==n3 .and. &
        displ<= 1.d-2) then
-     !if (iproc==0) write(*,*) iproc,' orbital just copied'
+     !write(*,*) ' orbital just copied'
      call dcopy((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscfold(-nb1,-nb2,-nb3),1,&
           psifscf(1),1)
 !!$     do i3=-nb3,2*n3+1+nb3
@@ -1094,77 +1109,129 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
      hzh=.5_gp*hz
      hzh_old=.5_gp*hz_old
 
-     call razero((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf)
+!     call razero((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf)
+!     call vcopy((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf(1),1,psi_w(1),1)
+     !!! beginning of new reformatting routine.
+     !!! Only rigid translations are allowed for the moment
 
-     do i3=-nb3,2*n3+1+nb3
-        z=real(i3,gp)*hzh
-        do i2=-nb2,2*n2+1+nb2
-           y=real(i2,gp)*hyh
-           do i1=-nb1,2*n1+1+nb1
-              x=real(i1,gp)*hxh
+     !create the scaling function array
+     !use lots of points (to optimize one can determine how many points are needed at max)
+     itype=16
+     nd=2**20
 
-              xold=x-dx 
-              yold=y-dy
-              zold=z-dz
+     allocate(x_phi(0:nd+ndebug),stat=i_stat )
+     call memocc(i_stat,x_phi,'x_phi',subname)
+     allocate(y_phi(0:nd+ndebug) ,stat=i_stat )
+     call memocc(i_stat,y_phi,'y_phi',subname)
 
-              j1=nint((xold)/hxh_old)
-              cif1=(j1 >= -6 .and. j1 <= 2*n1_old+7) .or. perx
-              j2=nint((yold)/hyh_old)
-              cif2=(j2 >= -6 .and. j2 <= 2*n2_old+7) .or. pery
-              j3=nint((zold)/hzh_old)
-              cif3=(j3 >= -6 .and. j3 <= 2*n3_old+7) .or. perz
+    call my_scaling_function4b2B(itype,nd,nrange,x_phi,y_phi) 
+    if( abs(y_phi(nd/2)-1)>1.0e-10 ) then
+      stop " wrong scaling function 4b2B: not a centered one "
+    endif
 
-              ind=i1+nb1+1+(2*n1+2+2*nb1)*(i2+nb2)+&
-                   (2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(i3+nb3)
+    i_all=-product(shape(x_phi))*kind(x_phi)
+    deallocate(x_phi,stat=i_stat)
+    call memocc(i_stat,i_all,'x_phi',subname)
+
+!!$    !to be tested
+!!$    call field_rototranslation(nd,nrange,y_phi,(/dx,dy,dz/),(/0.0_gp,0.0_gp,1.0_gp/),0.d0,&
+!!$         (/hxh_old,hyh_old,hzh_old/),(/(2*n1_old+2+2*nb1),(2*n2_old+2+2*nb2),(2*n3_old+2+2*nb3)/),psifscfold,&
+!!$         (/hxh,hyh,hzh/),(/(2*n1+2+2*nb1),(2*n2+2+2*nb2),(2*n3+2+2*nb3)/),psifscf)
+
+
+    allocate(psi_w(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+    call memocc(i_stat,psi_w,'psi_w',subname)
+
+    allocate(psi_w2(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+    call memocc(i_stat,psi_w2,'psi_w2',subname)
+
+    call interpolate_and_transpose(hxh,dx/hxh,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
+         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
+
+    call interpolate_and_transpose(hyh,dy/hyh,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n1+2+2*nb1),&
+         (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2) 
+
+    call interpolate_and_transpose(hzh,dz/hzh,nd,nrange,y_phi,(2*n2+2+2*nb2)*(2*n1+2+2*nb1),&
+         (2*n3_old+2+2*nb3),psi_w2,(2*n3+2+2*nb3),psifscf) 
+
+    i_all=-product(shape(psi_w))*kind(psi_w)
+    deallocate(psi_w,stat=i_stat)
+    call memocc(i_stat,i_all,'psi_w',subname)
+
+    i_all=-product(shape(psi_w2))*kind(psi_w2)
+    deallocate(psi_w2,stat=i_stat)
+    call memocc(i_stat,i_all,'psi_w2',subname)
+
+    i_all=-product(shape(y_phi))*kind(y_phi)
+    deallocate(y_phi,stat=i_stat)
+    call memocc(i_stat,i_all,'y_phi',subname)
+
+     !do i3=-nb3,2*n3+1+nb3
+     !   z=real(i3,gp)*hzh
+     !   do i2=-nb2,2*n2+1+nb2
+     !      y=real(i2,gp)*hyh
+     !      do i1=-nb1,2*n1+1+nb1
+     !         x=real(i1,gp)*hxh
+
+     !         xold=x-dx 
+     !         yold=y-dy
+     !         zold=z-dz
+
+     !         j1=nint((xold)/hxh_old)
+     !         cif1=(j1 >= -6 .and. j1 <= 2*n1_old+7) .or. perx
+     !         j2=nint((yold)/hyh_old)
+     !         cif2=(j2 >= -6 .and. j2 <= 2*n2_old+7) .or. pery
+     !         j3=nint((zold)/hzh_old)
+     !         cif3=(j3 >= -6 .and. j3 <= 2*n3_old+7) .or. perz
+
+     !         ind=i1+nb1+1+(2*n1+2+2*nb1)*(i2+nb2)+&
+     !              (2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(i3+nb3)
 
               
-              if (cif1 .and. cif2 .and. cif3) then 
-                 zr =real(((z-dz)-real(j3,gp)*hzh_old)/hzh_old,wp)
-                 do l2=-1,1
-                    do l1=-1,1
-                       !the modulo has no effect on free BC thanks to the
-                       !if statement above
-                       jj1=modulo(j1+l1+nb1,2*n1_old+1+2*nb1+1)-nb1
-                       jj2=modulo(j2+l2+nb2,2*n2_old+1+2*nb2+1)-nb2
-                       jj3a=modulo(j3-1+nb3,2*n3_old+1+2*nb3+1)-nb3
-                       jj3b=modulo(j3  +nb3,2*n3_old+1+2*nb3+1)-nb3
-                       jj3c=modulo(j3+1+nb3,2*n3_old+1+2*nb3+1)-nb3
+     !         if (cif1 .and. cif2 .and. cif3) then 
+     !            zr =real(((z-dz)-real(j3,gp)*hzh_old)/hzh_old,wp)
+     !            do l2=-1,1
+     !               do l1=-1,1
+     !                  !the modulo has no effect on free BC thanks to the
+     !                  !if statement above
+     !                  jj1=modulo(j1+l1+nb1,2*n1_old+1+2*nb1+1)-nb1
+     !                  jj2=modulo(j2+l2+nb2,2*n2_old+1+2*nb2+1)-nb2
+     !                  jj3a=modulo(j3-1+nb3,2*n3_old+1+2*nb3+1)-nb3
+     !                  jj3b=modulo(j3  +nb3,2*n3_old+1+2*nb3+1)-nb3
+     !                  jj3c=modulo(j3+1+nb3,2*n3_old+1+2*nb3+1)-nb3
                        
+     !                  ym1=psifscfold(jj1,jj2,jj3a)
+     !                  y00=psifscfold(jj1,jj2,jj3b)
+     !                  yp1=psifscfold(jj1,jj2,jj3c)
 
-                       ym1=psifscfold(jj1,jj2,jj3a)
-                       y00=psifscfold(jj1,jj2,jj3b)
-                       yp1=psifscfold(jj1,jj2,jj3c)
+     !                  xya(l1,l2)=ym1 + &
+     !                       (1.0_wp + zr)*(y00 - ym1 + zr*(.5_wp*ym1 - y00  + .5_wp*yp1))
+     !               enddo
+     !            enddo
 
-                       xya(l1,l2)=ym1 + &
-                            (1.0_wp + zr)*(y00 - ym1 + zr*(.5_wp*ym1 - y00  + .5_wp*yp1))
-                    enddo
-                 enddo
+     !            yr = real(((y-dy)-real(j2,gp)*hyh_old)/hyh_old,wp)
+     !            do l1=-1,1
+     !               ym1=xya(l1,-1)
+     !               y00=xya(l1,0)
+     !               yp1=xya(l1,1)
+     !               xa(l1)=ym1 + &
+     !                    (1.0_wp + yr)*(y00 - ym1 + yr*(.5_wp*ym1 - y00  + .5_wp*yp1))
+     !            enddo
 
-                 yr = real(((y-dy)-real(j2,gp)*hyh_old)/hyh_old,wp)
-                 do l1=-1,1
-                    ym1=xya(l1,-1)
-                    y00=xya(l1,0)
-                    yp1=xya(l1,1)
-                    xa(l1)=ym1 + &
-                         (1.0_wp + yr)*(y00 - ym1 + yr*(.5_wp*ym1 - y00  + .5_wp*yp1))
-                 enddo
+     !            xr = real(((x-dx)-real(j1,gp)*hxh_old)/hxh_old,wp)
+     !            ym1=xa(-1)
+     !            y00=xa(0)
+     !            yp1=xa(1)
+     !            psifscf(ind)=ym1 + &
+     !                 (1.0_wp + xr)*(y00 - ym1 + xr*(.5_wp*ym1 - y00  + .5_wp*yp1))
+     !         endif
 
-                 xr = real(((x-dx)-real(j1,gp)*hxh_old)/hxh_old,wp)
-                 ym1=xa(-1)
-                 y00=xa(0)
-                 yp1=xa(1)
-                 psifscf(ind)=ym1 + &
-                      (1.0_wp + xr)*(y00 - ym1 + xr*(.5_wp*ym1 - y00  + .5_wp*yp1))
-
-              endif
-
-           enddo
-        enddo
-     enddo
+     !      enddo
+     !   enddo
+     !enddo
   endif
 
-  !write(100+iproc,*) 'norm of psifscf ',dnrm2((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf,1)
-
+  !!print*, 'norm of psifscf ',dnrm2((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf,1)
   i_all=-product(shape(psifscfold))*kind(psifscfold)
   deallocate(psifscfold,stat=i_stat)
   call memocc(i_stat,i_all,'psifscfold',subname)
@@ -1181,15 +1248,16 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
      call analyse_per(n1,n2,n3,ww,psifscf,psig)
   end if
 
-  !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
-  call compress(n1,n2,0,n1,0,n2,0,n3,  &
-       wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),   &
+  !!print*, 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1),n1,n2,n3
+  call compress_plain(n1,n2,0,n1,0,n2,0,n3,  &
+       wfd%nseg_c,wfd%nvctr_c,wfd%keyglob(1,1),wfd%keyvglob(1),   &
        wfd%nseg_f,wfd%nvctr_f,&
-       wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
-       wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),   &
+       wfd%keyglob(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
+       wfd%keyvglob(wfd%nseg_c+min(1,wfd%nseg_f)),   &
        psig,psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)))
-
-  !write(100+iproc,*) 'norm of reformatted psi ',dnrm2(nvctr_c+7*nvctr_f,psi,1)
+  !!print*, 'norm of reformatted psi ',dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,psi,1),wfd%nvctr_c,wfd%nvctr_f
+  !!print*, 'norm of reformatted psic ',dnrm2(wfd%nvctr_c,psi,1)
+  !!print*, 'norm of reformatted psif ',dnrm2(wfd%nvctr_f*7,psi(wfd%nvctr_c+min(1,wfd%nvctr_f)),1)
 
   i_all=-product(shape(psig))*kind(psig)
   deallocate(psig,stat=i_stat)
@@ -1199,3 +1267,416 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   call memocc(i_stat,i_all,'ww',subname)
 
 END SUBROUTINE reformat_one_supportfunction
+
+!call the routine which performs the interpolation in each direction
+subroutine interpolate_and_transpose(h,t0,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
+ use module_base
+ implicit none
+ integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+ integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+ integer, intent(in) :: nin,nout !< sizes of the input and output array in interpolating direction
+ integer, intent(in) :: ndat !< size of the array in orthogonal directions
+ real(gp), intent(in) :: h !< grid spacing in the interpolating direction
+ real(gp), intent(in) :: t0 !< shift in the interpolating direction in grid spacing units
+ real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+ real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
+ real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
+ !local variables
+ character(len=*), parameter :: subname='interpolate_and_transpose'
+ integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me
+ real(gp) :: dt, tt
+ real(gp), dimension(:), allocatable :: shf !< shift filter
+
+ !assume for the moment that the grid spacing is constant
+	 
+ m_isf=nrange/2
+ !calculate the shift filter for the given t0
+ allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
+ call memocc(i_stat,shf,'shf',subname)
+
+ !number of points for a unit displacement
+ nunit=nphi/nrange 
+ !this should be number between -0.5 and 0.5
+ dt=t0-nint(t0)
+ !evaluate the shift
+ ish=nint(real(nunit,gp)*dt)
+
+!print *,'start interpolation',ish,real(nunit,gp)*dt,dt
+
+ if (ish<=0) then
+   shf(-m_isf)=0.0_gp
+ else
+   shf(-m_isf)=phi(ish)  
+ end if 
+ ipos=ish
+
+ do i=-m_isf+1,m_isf-1 !extremes excluded
+   !position of the shifted argument in the phi array
+   ipos=ipos+nunit
+   shf(i)=phi(ipos)  
+ end do
+
+ if (ish<=0) then
+   shf(m_isf)=phi(ipos+nunit)
+ else
+   shf(m_isf)=0.0_gp
+ end if 
+
+ !define the shift for output results
+ ish=nint(t0)
+
+!print *,'start interpolation',ish,t0,shf
+
+!do i=-m_isf,m_isf
+!write(104,*)i,shf(i)
+!end do
+
+ !apply the interpolating filter to the output
+ do j=1,ndat
+   psi_out(j,:)=0.0_gp
+   do i=1,nin
+     !here the boundary conditions have to be considered
+      tt=0.0_gp
+      ms=-min(m_isf,i-1)
+      me=min(m_isf,nin-i)
+      do l=ms,me
+         tt=tt+shf(l)*psi_in(i+l,j)
+      end do
+!      tt=h*tt
+      
+      if (i+ish > 0 .and. i+ish < nout) psi_out(j,i+ish)=tt
+	!if (i+ish > 0 .and. i+ish < nout)       write(102,*)i+ish,psi_out(j,i+ish)
+   end do
+ end do
+
+
+
+ i_all=-product(shape(shf))*kind(shf)
+ deallocate(shf,stat=i_stat)
+ call memocc(i_stat,i_all,'shf',subname)
+
+end subroutine interpolate_and_transpose
+
+!call the routine which performs the interpolation in each direction
+subroutine my_morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
+ use module_base
+ implicit none
+ integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+ integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+ integer, intent(in) :: nin,nout !< sizes of the input and output array in interpolating direction
+ integer, intent(in) :: ndat !< size of the array in orthogonal directions
+! real(gp), intent(in) :: h !< grid spacing in the interpolating direction
+ real(gp), dimension(nin,ndat), intent(in) :: t0_field !< field of shifts to be applied for each point in grid spacing units
+ real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+ real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
+ real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
+ !local variables
+ character(len=*), parameter :: subname='my_morph_and_transpose'
+ real(gp), parameter  :: tol=1.e-14_gp
+ integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me,k2,k1
+ real(gp) :: dt,tt,t0_l,ksh1,ksh2,k,kold,alpha,diff
+ real(gp), dimension(:), allocatable :: shf !< shift filter
+
+ !assume for the moment that the grid spacing is constant
+ !call f_malloc_routine_id(subname)
+ m_isf=nrange/2
+
+ !shf=f_malloc(bounds=(/-m_isf .to. m_isf/),id='shf')
+
+ !calculate the shift filter for the given t0
+ allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
+ call memocc(i_stat,shf,'shf',subname)
+
+ !number of points for a unit displacement
+ nunit=nphi/nrange 
+
+
+ !apply the interpolating filter to the output
+ do j=1,ndat
+    psi_out(j,:)=0.0_gp
+    do i=1,nout
+
+       kold=-1000.0_gp
+       find_trans: do l=1,nin
+          k=real(l,gp)+t0_field(l,j)
+          if (k-real(i,gp) > tol) exit find_trans
+          kold=k
+       end do find_trans
+
+       ! want to use either l or l-1 to give us point i - pick closest
+       if (k-real(i,gp) < -kold+real(i,gp)) then
+          ksh1=k-real(i,gp)
+          ksh2=-kold+real(i,gp)
+          k1=l
+          k2=l-1
+          if (k2==0) then
+             k2=1
+             ksh2=ksh1
+          end if
+          if (k1==nin+1) then
+             k1=nin
+             ksh1=ksh2
+          end if
+       else
+          ksh1=-kold+real(i,gp)
+          ksh2=k-real(i,gp)
+          k1=l-1
+          k2=l
+          if (k1==0) then
+             k1=1
+             ksh1=ksh2
+          end if
+          if (k2==nin+1) then
+             k2=nin
+             ksh2=ksh1
+          end if
+       end if
+
+       if (ksh1==0.0_gp .or. k1==k2) then !otherwise already have exactly on point
+          ksh2=1.0_gp
+          ksh1=0.0_gp
+       end if 
+
+       alpha=ksh2/(ksh1+ksh2)
+
+       t0_l=alpha*t0_field(k1,j)+(1.0_gp-alpha)*t0_field(k2,j)
+
+       dt=t0_l-nint(t0_l)
+   
+       diff=real(i,gp)-(k1+t0_l)   
+
+       if (abs(diff - dt) < abs(diff+dt)) dt=-dt
+
+       !evaluate the shift
+       ish=nint(real(nunit,gp)*dt)
+
+       if (ish<=0) then
+          shf(-m_isf)=0.0_gp
+       else
+          shf(-m_isf)=phi(ish)  
+       end if 
+       ipos=ish
+
+       do l=-m_isf+1,m_isf-1 !extremes excluded
+          !position of the shifted argument in the phi array
+          ipos=ipos+nunit
+          shf(l)=phi(ipos)  
+       end do
+
+       if (ish<=0) then
+          shf(m_isf)=phi(ipos+nunit)
+       else
+          shf(m_isf)=0.0_gp
+       end if 
+
+       !here the boundary conditions have to be considered
+       tt=0.0_gp
+       ms=-min(m_isf,k1-1)
+       me=min(m_isf,nin-k1)
+       do l=ms,me
+          tt=tt+shf(l)*psi_in(k1+l,j)
+       end do
+
+       if (i > 0 .and. i < nout) psi_out(j,i)=tt
+
+    end do
+
+ end do
+
+! call f_free(shf)
+! call f_malloc_free_routine()
+
+ i_all=-product(shape(shf))*kind(shf)
+ deallocate(shf,stat=i_stat)
+ call memocc(i_stat,i_all,'shf',subname)
+
+end subroutine my_morph_and_transpose
+
+
+subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
+   use module_base
+   implicit none
+   !Arguments
+   !Type of interpolating functions
+   integer, intent(in) :: itype
+   !Number of points: must be 2**nex
+   integer, intent(in) :: nd
+   integer, intent(out) :: nrange
+   real(kind=8), dimension(0:nd), intent(out) :: a,x
+   !Local variables
+   character(len=*), parameter :: subname='scaling_function4b2B'
+   real(kind=8), dimension(:), allocatable :: y
+   integer :: i,nt,ni,i_all,i_stat  
+
+   !Only itype=8,14,16,20,24,30,40,50,60,100
+   select case(itype)
+   case(8,14,16,20,24,30,40,50,60,100)
+      !O.K.
+   case default
+      print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
+      stop
+   end select
+   !!$  write(unit=*,fmt="(1x,a,i0,a)") &
+   !!$       "Use interpolating scaling functions of ",itype," order"
+
+   !Give the range of the scaling function
+   !from -itype to itype
+   ni=2*itype
+   nrange = ni
+   allocate(y(0:nd+ndebug),stat=i_stat)
+   call memocc(i_stat,y,'y',subname)
+
+   ! plot scaling function
+   call zero(nd+1,x)
+   call zero(nd+1,y)
+   nt=ni
+   x(nt/2)=1.d0
+   loop1: do
+      nt=2*nt
+      ! write(6,*) 'nd,nt',nd,nt
+      select case(itype)
+      case(8)
+         stop
+      case(14)
+         stop
+      case(16)
+         call back_trans_16(nd,nt,x,y)
+      case(20)
+         stop
+      case(24)
+         stop
+      case(30)
+         stop
+      case(40)
+         stop
+      case(50)
+         stop
+      case(60)
+         stop
+      case(100)
+         stop
+      end select
+
+      do i=0,nt-1
+         x(i)=y(i)
+      end do
+      if (nt.eq.nd) then
+         exit loop1
+      end if
+   end do loop1
+
+   !open (unit=1,file='scfunction',status='unknown')
+   do i=0,nd
+      a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-1.d0)
+      !write(1,*) a(i),x(i)
+   end do
+   !close(1)
+
+   i_all=-product(shape(y))*kind(y)
+   deallocate(y,stat=i_stat)
+   call memocc(i_stat,i_all,'y',subname)
+END SUBROUTINE my_scaling_function4b2B
+
+subroutine define_rotations(da,newz,theta,hgrids_old,ndims_old,&
+     hgrids_new,ndims_new,dx,dy,dz)
+  use module_base
+  implicit none
+  real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
+  real(gp), intent(in) :: theta !< rotation wrt newzeta vector
+  real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
+  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
+  integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
+  real(gp), dimension(ndims_old(1),ndims_old(2)*ndims_old(3)), intent(out) :: dx !<first deformation
+  real(gp), dimension(ndims_old(2),ndims_new(1)*ndims_old(3)), intent(out) :: dy !<second deformation
+  real(gp), dimension(ndims_old(3),ndims_new(1)*ndims_new(2)), intent(out) :: dz !<third deformation
+  !local variables
+  integer :: i,j,k
+  real(gp) :: x,y,z
+  real(gp), dimension(3) :: boxc_old,boxc_new
+
+  !2-dimensional case for the moment: newzeta=0,0,1 and da=0
+  
+  !calcualte the center of the boxes
+  boxc_old=0.5_gp*hgrids_old*(ndims_old-1)
+  boxc_new=0.5_gp*hgrids_new*(ndims_new-1)
+
+  z=-boxc_old(3)
+  do k=1,ndims_old(3)
+     y=-boxc_old(2)
+     do j=1,ndims_old(2)
+        x=-boxc_old(1)
+        do i=1,ndims_old(1)
+           dx(i,j+(k-1)*ndims_old(2))=x*cos(theta)-y*sin(theta)-x !to be updated (DIVIDE BY H!)
+           x=x+hgrids_old(1)
+        end do
+        !fill the second vector
+        x=-boxc_new(1)
+        do i=1,ndims_new(1)
+           dy(j,k+(i-1)*ndims_old(3))=((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x !to be updated (DIVIDE BY H!)
+           x=x+hgrids_new(1)
+        end do
+        y=y+hgrids_old(2)
+      end do
+      !fill the third vector
+     y=-boxc_new(2)
+     do j=1,ndims_new(2)
+        x=-boxc_new(1)
+        do i=1,ndims_new(1)
+           dz(k,i+(j-1)*ndims_new(1))=((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x !to be updated (DIVIDE BY H!)
+           x=x+hgrids_new(1)
+        end do
+        y=y+hgrids_new(2)
+     end do
+     z=z+hgrids_old(3)
+   end do
+
+ end subroutine define_rotations
+
+!!$subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,theta,hgrids_old,ndims_old,f_old,&
+!!$     hgrids_new,ndims_new,f_new)
+!!$  use module_base
+!!$  implicit none
+!!$  integer, intent(in) :: n_phi,nrange_phi !< number of points of ISF array and real-space range
+!!$  real(gp), intent(in) :: theta !< rotation wrt newzeta vector
+!!$  real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
+!!$  real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
+!!$  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
+!!$  integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
+!!$  real(gp), dimension(n_phi), intent(in) :: phi_ISF
+!!$  real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
+!!$  real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
+!!$  !local variables
+!!$  real(gp), dimension(:,:), allocatable :: dx,dy,dz
+!!$  real(gp), dimension(:,:,:), allocatable :: work,work2
+!!$  
+!!$  call f_routine(id='field_rototranslation')
+!!$  
+!!$  dx=f_malloc((/ndims_old(1),ndims_old(2)*ndims_old(3)/),id='dx')
+!!$  dy=f_malloc((/ndims_old(2),ndims_new(1)*ndims_old(3)/),id='dy')
+!!$  dz=f_malloc((/ndims_old(3),ndims_new(1)*ndims_new(2)/),id='dz')
+!!$  work =f_malloc(shape(dy),id='work')
+!!$  work2=f_malloc(shape(dz),id='work2')
+!!$
+!!$  
+!!$  call define_rotations(da,newz,theta,hgrids_old,ndims_old,&
+!!$       hgrids_new,ndims_new,dx,dy,dz)
+!!$  
+!!$  !perform interpolation
+!!$  call my_morph_and_transpose(dx,n_phi,nrange_phi,phi_ISF,ndims_old(2)*ndims_old(3),&
+!!$         ndims_old(1),f_old,ndims_new(1),work)
+!!$  
+!!$  call my_morph_and_transpose(dy,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_old(3),&
+!!$         ndims_old(2),work,ndims_new(2),work2)
+!!$
+!!$  call my_morph_and_transpose(dz,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_new(2),&
+!!$         ndims_old(3),work2,ndims_new(3),f_new)
+!!$  
+!!$  call f_free(dx)
+!!$  call f_free(dy)
+!!$  call f_free(dz)
+!!$  call f_free(work)
+!!$  call f_free(work2)
+!!$
+!!$  call f_release_routine()
+!!$end subroutine field_rototranslation
+ 

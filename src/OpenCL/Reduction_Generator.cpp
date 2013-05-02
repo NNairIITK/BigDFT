@@ -107,7 +107,7 @@ static void generate_dotKernel(std::stringstream &program,struct bigdft_device_i
     cutoff = 4;
   else
     cutoff = 64;
-  program<<"__kernel void dotKernel_d( uint n, __global const double *x, __global double *y, __global double *z, __local volatile double *tmp ) {\n\
+  program<<"__kernel void dotKernel_d( uint n, __global const double *x, __global const double *y, __global double *z, __local volatile double *tmp ) {\n\
   size_t i = get_local_id(0);\n\
   size_t g = get_group_id(0)*"<<max_wgs*2<<"+i;\n\
   if(g<n)\n\

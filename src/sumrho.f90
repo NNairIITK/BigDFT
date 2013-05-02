@@ -69,15 +69,10 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,
   if (symObj%symObj >= 0 .and. pkernel%geocode=='P') &
        call symm_stress((dpbox%mpi_env%iproc+dpbox%mpi_env%igroup==0),hstrten,symObj%symObj)
 
-end subroutine density_and_hpot
-
+END SUBROUTINE density_and_hpot
 
 
 !> Calculates the charge density by summing the square of all orbitals
-!! Input: 
-!!   @param psi
-!! Output: 
-!!   @param rho
 subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
    use module_base
    use module_types
@@ -119,7 +114,8 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
    end if
 
    if (associated(rho_p)) then
-      stop 'ERROR(sumrho): rho_p already associated, exiting...'
+      call yaml_warning('(sumrho) rho_p already associated, exiting...')
+      stop
    end if
    !print *,'here',Lzd%linear,present(mapping),dpbox%iproc_world
    !write(*,*) 'iproc,rhoarray dim', iproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,nspinn+ndebug
@@ -439,6 +435,9 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
          !sum for complex function case, npsir=1 in that case
          do oidx=0,ncomplex
 
+!!$      print *,'iorb+orbs%isorb,SUMRHO',iorb+orbs%isorb,&
+!!$                sum(psi(:,1,iorb))
+
             do sidx=1,npsir
                call daub_to_isf(lr,w,psi(1,oidx+sidx,iorb),psir(1,sidx))
             end do
@@ -489,6 +488,7 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
       &   hfac,nscatterarr,spinsgn,psir,rho_p)
    use module_base
    use module_types
+   use yaml_output
    implicit none
    logical, intent(in) :: rsflag
    integer, intent(in) :: nproc,n1i,n2i,n3i,nrhotot,nspinn,npsir
@@ -580,7 +580,9 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
    !$omp end parallel
 
    if (i3sg /= nrhotot) then
-      write(*,'(1x,a,i0,1x,i0)')'ERROR: problem with rho_p: i3s,nrhotot,',i3sg,nrhotot
+      call yaml_warning('Problem with rho_p, i3s=' // trim(yaml_toa(i3sg)) // &
+           & 'nrhotot=' // trim(yaml_toa(nrhotot)))
+      !write(*,'(1x,a,i0,1x,i0)')'ERROR: problem with rho_p: i3s,nrhotot,',i3sg,nrhotot
       stop
    end if
 
@@ -592,6 +594,7 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
       &   ibyyzz_r) 
    use module_base
    use module_types
+   use yaml_output
    implicit none
    logical, intent(in) :: rsflag
    integer, intent(in) :: nproc,n1i,n2i,n3i,nrhotot,nspinn,npsir
@@ -693,7 +696,9 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
    !$omp end parallel
 
    if (i3sg /= nrhotot) then
-      write(*,'(1x,a,i0,1x,i0)')'ERROR: problem with rho_p: i3s,nrhotot,',i3sg,nrhotot
+      call yaml_warning('Problem with rho_p, i3s=' // trim(yaml_toa(i3sg)) // &
+           & 'nrhotot=' // trim(yaml_toa(nrhotot)))
+      !write(*,'(1x,a,i0,1x,i0)')'ERROR: problem with rho_p: i3s,nrhotot,',i3sg,nrhotot
       stop
    end if
 
@@ -933,21 +938,15 @@ END SUBROUTINE symmetrise_density
 
 
 !> Compress the electronic density
-!! INPUT  
-!!        @param rho_p: the partial rho array of the current proc
-!!        @param spkey,dpkey: keys for coarse and fine regions
-!! OUTPUT 
-!!        @param sprho_comp, dprho_comp: compressed arrays of rho in single and double 
-!!        @param precision
 subroutine compress_rho(rho_p,ndimgrid,nspin,rhodsc,sprho_comp,dprho_comp)
    use module_base
    use module_types
    implicit none
    type(rho_descriptors),intent(in) :: rhodsc
    integer,intent(in) :: nspin,ndimgrid
-   real(gp),dimension(ndimgrid,nspin),intent(in) :: rho_p
-   real(gp),dimension(rhodsc%dp_size,nspin),intent(out) :: dprho_comp
-   real(kind=4),dimension(rhodsc%sp_size,nspin),intent(out) :: sprho_comp
+   real(gp),dimension(ndimgrid,nspin),intent(in) :: rho_p                 !< the partial rho array of the current proc
+   real(gp),dimension(rhodsc%dp_size,nspin),intent(out) :: dprho_comp     !< compressed arrays of rho in double 
+   real(kind=4),dimension(rhodsc%sp_size,nspin),intent(out) :: sprho_comp !< compressed arrays of rho in single 
    integer :: irho,jrho,iseg,ispin
 
    do ispin=1,nspin
@@ -1436,10 +1435,10 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
             &   rhodsc%dp_size*nspin
          write(1001,*) 'Total number of data points                         :',&
             &   n1i*n2i*n3i*nspin
-         write(1001,'(1X,A,1X,F4.2)') &
+         write(1001,'(1X,A,1X,F5.2)') &
             &   'Estimated compression ratio, number of data points  :',&
             &   real(rhodsc%sp_size*nspin  +rhodsc%dp_size*nspin)/(n1i*n2i*n3i*nspin)
-         write(1001,'(1X,A,1X,F4.2)') &
+         write(1001,'(1X,A,1X,F5.2)') &
             &   'Estimated compression ratio, data volume to be sent :',&
             &   real(rhodsc%sp_size*nspin/2+rhodsc%dp_size*nspin)/(n1i*n2i*n3i*nspin)
          write(1001,*) ''

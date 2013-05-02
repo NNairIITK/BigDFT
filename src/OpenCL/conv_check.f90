@@ -38,8 +38,11 @@ program conv_check_ocl
    real(kind=8), dimension(:,:,:,:), allocatable :: psi_cuda_k_in_a,psi_cuda_k_out_a 
    real(kind=4), dimension(:,:,:), allocatable :: psi_cuda_l,v_cuda_l !temporary in view of wp 
    real(kind=8) :: ekinGPUd
+   real(kind=8) :: ekinGPUd_host
    real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU !pointer to the GPU  memory addresses (with norb=1)
+   real(kind=8) :: psi_GPU_host,v_GPU_host,work_GPU_host,work2_GPU_host !pointer to the GPU  memory addresses (with norb=1)
    real(kind=8) :: psi_c_GPU, psi_f_GPU, keyg_GPU, keyv_GPU
+   real(kind=8) :: psi_c_GPU_host, psi_f_GPU_host, keyg_GPU_host, keyv_GPU_host
    real(kind=8) :: context,queue
    !n(c) integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
    !n(c) integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
@@ -47,6 +50,8 @@ program conv_check_ocl
    real(kind=8), dimension(lowfilK:lupfilK) :: fil
    integer(kind=8) :: tsc0, tsc1
    character(len=500) :: field
+   CHARACTER*1 zero
+   zero = CHAR(0)
 
    field=repeat(' ',len(field))
 
@@ -67,6 +72,7 @@ program conv_check_ocl
    end if
 
    call yaml_new_document()
+!   call ocl_create_context(context, "NVIDIA"//zero, "K20"//zero, 1, device_number)
 
    call ocl_create_gpu_context(context,device_number)
    call ocl_build_programs(context)
@@ -170,6 +176,8 @@ program conv_check_ocl
 
 !   write(*,'(a,i10)')'GPU FLOPS double Benchmark, dimension:',n1*n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,psi_cuda,psi_GPU_host)
    call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda)
@@ -184,6 +192,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n2*n3*8, psi_cuda)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time('GPU FLOPS double Benchmark',(/n1*n2*n3/),&
@@ -191,6 +201,8 @@ program conv_check_ocl
 
 !   write(*,'(a,i10)')'GPU MOPS double Benchmark, dimension:',n1*n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,psi_cuda,psi_GPU_host)
    call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda)
@@ -205,6 +217,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n2*n3*8, psi_cuda)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time('GPU MOPS double Benchmark',(/n1*n2*n3/),&
@@ -212,6 +226,8 @@ program conv_check_ocl
 
 !   write(*,'(a,i10,i10)')'GPU transpose FLOPS double Benchmark, dimension:',n1,n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,psi_cuda,psi_GPU_host)
    call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda)
@@ -226,6 +242,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n2*n3*8, psi_cuda)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time('GPU transpose FLOPS double Benchmark',(/n1,n2*n3/),&
@@ -233,6 +251,8 @@ program conv_check_ocl
 
 !   write(*,'(a,i10,i10)')'GPU notranspose FLOPS double Benchmark, dimension:',n1,n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,psi_cuda,psi_GPU_host)
    call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda)
@@ -247,6 +267,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n2*n3*8, psi_cuda)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time('GPU notranspose FLOPS double Benchmark',(/n1,n2*n3/),&
@@ -254,6 +276,8 @@ program conv_check_ocl
 
 !   write(*,'(a,i10,i10)')'GPU copy FLOPS double Benchmark, dimension:',n1,n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,psi_cuda,psi_GPU_host)
    call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda)
@@ -268,6 +292,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n2*n3*8, psi_cuda)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time('GPU copy FLOPS double Benchmark',(/n1,n2*n3/),&
@@ -288,6 +314,8 @@ program conv_check_ocl
 
    !write(field,'(a,i6,i6)')'Convolutions, dimensions:',n1,n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,psi_cuda,psi_GPU_host)
    call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda)
@@ -302,6 +330,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n2*n3*8, psi_cuda)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -313,6 +343,8 @@ program conv_check_ocl
 
    !write(field,'(a,i6,i6)')'Convolutions (straight), dimensions:',n1,n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda_str,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,psi_cuda_str,psi_GPU_host)
    call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda_str)
@@ -327,6 +359,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n2*n3*8, psi_cuda_str)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -338,6 +372,8 @@ program conv_check_ocl
 !   field=repeat(' ',len(field))
 !   write(field,'(a,i6)')'Convolutions (block)'
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,psi_cuda,psi_GPU_host)
    call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda)
@@ -352,6 +388,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n2*n3*8, psi_cuda)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -373,6 +411,8 @@ program conv_check_ocl
 
 !   write(*,'(a,i6,i6)')'GPU Convolutions T, dimensions:',n1,n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,psi_cuda,psi_GPU_host)
    call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda)
@@ -388,6 +428,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n2*n3*8, psi_cuda)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -415,6 +457,8 @@ program conv_check_ocl
 
 !   write(*,'(a,i6,i6,i6)')'GPU GEMM, dimensions:',n1,n1,n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda_str,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1*n1*8,psi_cuda_gemm,psi_GPU_host)
    call ocl_create_write_buffer(context, n1*n1*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda_str)
@@ -429,6 +473,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n1*8, psi_cuda_gemm)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -463,6 +509,8 @@ program conv_check_ocl
 
 !   write(*,'(a,i6,i6,i6)')'GPU GEMM (block), dimensions:',n1,n1,n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda_str,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1*n1*8,psi_cuda_gemm,psi_GPU_host)
    call ocl_create_write_buffer(context, n1*n1*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda_str)
@@ -477,6 +525,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n1*8, psi_cuda_gemm)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -488,6 +538,8 @@ program conv_check_ocl
 
 !   write(*,'(a,i6,i6,i6)')'GPU GEMMSY, dimensions:',n1,n1,n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda_str,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1*n1*8,psi_cuda_gemm,psi_GPU_host)
    call ocl_create_write_buffer(context, n1*n1*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda_str)
@@ -502,6 +554,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n1*8, psi_cuda_gemm)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -524,6 +578,8 @@ program conv_check_ocl
 
 !   write(*,'(a,i6,i6,i6)')'GPU ZGEMM, dimensions:',n1/2,n1/2,n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,(n1/2)*n2*n3*8*2,v_cuda_str,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,(n1/2)*(n1/2)*8*2,psi_cuda_gemm,psi_GPU_host)
    call ocl_create_read_write_buffer(context, (n1/2)*(n1/2)*8*2, psi_GPU)
    call ocl_create_read_buffer(context, (n1/2)*n2*n3*8*2, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, (n1/2)*n2*n3*8*2, v_cuda_str)
@@ -540,6 +596,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, (n1/2)*(n1/2)*8*2, psi_cuda_gemm)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -561,6 +619,8 @@ program conv_check_ocl
 
 !   write(*,'(a,i8)')'GPU Reduction, dimensions:',n1*n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda,psi_GPU_host)
+   call ocl_pin_write_buffer_async(context, queue, 8, ekinGPUd, ekinGPUd_host)
    call ocl_create_read_buffer(context, n1*n2*n3*8, psi_GPU)
    call ocl_create_read_write_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_create_read_write_buffer(context, n1*n2*n3*8, work2_GPU)
@@ -576,6 +636,8 @@ program conv_check_ocl
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
    call ocl_release_mem_object(work2_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(ekinGPUd_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -596,6 +658,8 @@ program conv_check_ocl
 
 !   write(*,'(a,i8)')'GPU Reduction Dot, dimensions:',n1*n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda,psi_GPU_host)
+   call ocl_pin_write_buffer_async(context, queue, 8, ekinGPUd, ekinGPUd_host)
    call ocl_create_read_buffer(context, n1*n2*n3*8, psi_GPU)
    call ocl_create_read_write_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_create_read_write_buffer(context, n1*n2*n3*8, work2_GPU)
@@ -611,6 +675,8 @@ program conv_check_ocl
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
    call ocl_release_mem_object(work2_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(ekinGPUd_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -687,6 +753,8 @@ program conv_check_ocl
 !   write(*,'(a,i6,i6,i6)')'GPU Convolutions 3D (block), dimensions:',n1bis,n2bis,n3bis
 
 
+   call ocl_pin_read_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_in_a,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_out_a,psi_GPU_host)
    call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, psi_GPU)
    call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work_GPU)
    call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work2_GPU)
@@ -703,6 +771,8 @@ program conv_check_ocl
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
    call ocl_release_mem_object(work2_GPU)
+   call ocl_release_mem_object(work_GPU_host)
+   call ocl_release_mem_object(psi_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -715,6 +785,8 @@ program conv_check_ocl
 !   write(*,'(a,i6,i6,i6)')'GPU Convolutions 3D (straight), dimensions:',n1bis,n2bis,n3bis
 
 
+   call ocl_pin_read_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_in_a,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_out_a,psi_GPU_host)
    call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, psi_GPU)
    call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work_GPU)
    call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work2_GPU)
@@ -731,6 +803,8 @@ program conv_check_ocl
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
    call ocl_release_mem_object(work2_GPU)
+   call ocl_release_mem_object(work_GPU_host)
+   call ocl_release_mem_object(psi_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -744,14 +818,19 @@ program conv_check_ocl
    call nanosec(tsc0)
    do itimes=1,ntimes
       call convolut_magic_t_per(n1bis-1,n2bis-1,n3bis-1,psi_k_in_a,psi_k_out_a)
+      !call convolut_magic_t_per(n1bis-1,n2bis-1,n3bis-1,psi_k_out_a,psi_cuda_k_out_a)
+ !     call convolut_magic_t_per_test(n1bis-1,n2bis-1,n3bis-1,psi_k_out_a,psi_cuda_k_out_a)
    end do
    call nanosec(tsc1)
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9
-
-
+!TEMP
+!   call compare_3D_results(n1bis, n2bis, n3bis, psi_k_IN_a, psi_cuda_k_out_a, maxdiff, 1d-9)
+!end TEMP
 !   write(*,'(a,i6,i6,i6)')'GPU Convolutions T 3D, dimensions:',n1bis,n2bis,n3bis
 
 
+   call ocl_pin_read_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_in_a,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_out_a,psi_GPU_host)
    call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, psi_GPU)
    call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work_GPU)
    call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work2_GPU)
@@ -768,6 +847,8 @@ program conv_check_ocl
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
    call ocl_release_mem_object(work2_GPU)
+   call ocl_release_mem_object(work_GPU_host)
+   call ocl_release_mem_object(psi_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -793,6 +874,9 @@ program conv_check_ocl
 
       !write(*,'(a,i6,i6,i6)')'GPU Potential, dimensions:',n1bis,n2bis,n3bis
 
+      call ocl_pin_read_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_in_a,work_GPU_host)
+      call ocl_pin_write_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_out_a,psi_GPU_host)
+      call ocl_pin_read_buffer_async(context,queue,n1bis*n2bis*n3bis*8,pot_a,v_GPU_host)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, psi_GPU)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work_GPU)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work2_GPU)
@@ -812,6 +896,9 @@ program conv_check_ocl
       call ocl_release_mem_object(work_GPU)
       call ocl_release_mem_object(work2_GPU)
       call ocl_release_mem_object(v_GPU)
+      call ocl_release_mem_object(work_GPU_host)
+      call ocl_release_mem_object(psi_GPU_host)
+      call ocl_release_mem_object(v_GPU_host)
 
       GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -837,6 +924,9 @@ program conv_check_ocl
 
       !pot_a = 0.d0
 
+      call ocl_pin_read_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_in_a,work_GPU_host)
+      call ocl_pin_write_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_out_a,v_GPU_host)
+      call ocl_pin_write_buffer_async(context,queue,n1bis*n2bis*n3bis*8,pot_a,work2_GPU_host)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, psi_GPU)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work_GPU)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work2_GPU)
@@ -862,6 +952,9 @@ program conv_check_ocl
       call ocl_release_mem_object(v_GPU)
       call ocl_release_mem_object(psi_c_GPU)
       call ocl_release_mem_object(psi_f_GPU)
+      call ocl_release_mem_object(v_GPU_host)
+      call ocl_release_mem_object(work_GPU_host)
+      call ocl_release_mem_object(work2_GPU_host)
 
       GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -931,6 +1024,8 @@ program conv_check_ocl
 !  write(*,'(a,i6,i6)')'GPU Convolutions shrink, dimensions:',n1-15,n2*n3
 
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda_s,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,(n1-15)*n2*n3*8,psi_cuda_s,psi_GPU_host)
    call ocl_create_write_buffer(context, (n1-15)*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda_s)
@@ -945,6 +1040,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, (n1-15)*n2*n3*8, psi_cuda_s)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -971,6 +1068,8 @@ program conv_check_ocl
 
 !   write(*,'(a,i6,i6)')'GPU Convolutions grow, dimensions:',n1-15,n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,(n1-15)*n2*n3*8,psi_cuda_t,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,v_cuda_t,psi_GPU_host)
    call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, (n1-15)*n2*n3*8, work_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, (n1-15)*n2*n3*8, psi_cuda_t)
@@ -985,6 +1084,8 @@ program conv_check_ocl
    call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n2*n3*8, v_cuda_t)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -1072,6 +1173,9 @@ program conv_check_ocl
 !   write(*,'(a,i6,i6,i6)')'GPU Kinetic k 3D, dimensions:',n1bis,n2bis,n3bis
 
 
+   call ocl_pin_read_buffer_async(context,queue,2*n1bis*n2bis*n3bis*8,psi_cuda_k_in,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,2*n1bis*n2bis*n3bis*8,psi_cuda_k_out,psi_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,2*n1bis*n2bis*n3bis*8,psi_cuda_k_in_bis,work2_GPU_host)
    call ocl_create_read_write_buffer(context, 2*n1bis*n2bis*n3bis*8, psi_GPU)
    call ocl_create_read_write_buffer(context, 2*n1bis*n2bis*n3bis*8, work_GPU)
    call ocl_create_read_write_buffer(context, 2*n1bis*n2bis*n3bis*8, work2_GPU)
@@ -1092,6 +1196,9 @@ program conv_check_ocl
    call ocl_release_mem_object(work_GPU)
    call ocl_release_mem_object(work2_GPU)
    call ocl_release_mem_object(v_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
+   call ocl_release_mem_object(work2_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -1147,6 +1254,8 @@ program conv_check_ocl
 
 !   write(*,'(a,i6,i6)')'GPU Kinetic, dimensions:',n1,n2*n3
 
+   call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda,work_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,psi_cuda,psi_GPU_host)
    call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_create_write_buffer(context, n1*n2*n3*8, work2_GPU)
@@ -1166,6 +1275,8 @@ program conv_check_ocl
    call ocl_release_mem_object(work_GPU)
    call ocl_release_mem_object(work2_GPU)
    call ocl_release_mem_object(v_GPU)
+   call ocl_release_mem_object(psi_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -1218,6 +1329,8 @@ program conv_check_ocl
 
 !      write(*,'(a,i6,i6,i6)')'GPU Analysis 3D, dimensions:',n1bis,n2bis,n3bis
 
+      call ocl_pin_read_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_in_a,work_GPU_host)
+      call ocl_pin_write_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_out_a,psi_GPU_host)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, psi_GPU)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work_GPU)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work2_GPU)
@@ -1234,6 +1347,8 @@ program conv_check_ocl
       call ocl_release_mem_object(psi_GPU)
       call ocl_release_mem_object(work_GPU)
       call ocl_release_mem_object(work2_GPU)
+      call ocl_release_mem_object(psi_GPU_host)
+      call ocl_release_mem_object(work_GPU_host)
 
       GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -1245,6 +1360,8 @@ program conv_check_ocl
 
 !      write(*,'(a,i6,i6,i6)')'GPU Analysis 3D (block), dimensions:',n1bis,n2bis,n3bis
 
+      call ocl_pin_read_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_in_a,work_GPU_host)
+      call ocl_pin_write_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_out_a,psi_GPU_host)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, psi_GPU)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work_GPU)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work2_GPU)
@@ -1261,6 +1378,8 @@ program conv_check_ocl
       call ocl_release_mem_object(psi_GPU)
       call ocl_release_mem_object(work_GPU)
       call ocl_release_mem_object(work2_GPU)
+      call ocl_release_mem_object(psi_GPU_host)
+      call ocl_release_mem_object(work_GPU_host)
 
       GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -1298,6 +1417,8 @@ program conv_check_ocl
 
 !      write(*,'(a,i6,i6,i6)')'GPU Synthesis 3D, dimensions:',n1bis,n2bis,n3bis
 
+      call ocl_pin_read_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_in_a,work_GPU_host)
+      call ocl_pin_write_buffer_async(context,queue,n1bis*n2bis*n3bis*8,psi_cuda_k_out_a,psi_GPU_host)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, psi_GPU)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work_GPU)
       call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work2_GPU)
@@ -1314,6 +1435,8 @@ program conv_check_ocl
       call ocl_release_mem_object(psi_GPU)
       call ocl_release_mem_object(work_GPU)
       call ocl_release_mem_object(work2_GPU)
+      call ocl_release_mem_object(psi_GPU_host)
+      call ocl_release_mem_object(work_GPU_host)
 
       GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -1350,6 +1473,8 @@ program conv_check_ocl
 
  !     write(*,'(a,i6,i6)')'GPU Analysis, dimensions:',n1,n2*n3
 
+      call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda,work_GPU_host)
+      call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,psi_cuda,psi_GPU_host)
       call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
       call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
       call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda)
@@ -1364,6 +1489,8 @@ program conv_check_ocl
       call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n2*n3*8, psi_cuda)
       call ocl_release_mem_object(psi_GPU)
       call ocl_release_mem_object(work_GPU)
+      call ocl_release_mem_object(psi_GPU_host)
+      call ocl_release_mem_object(work_GPU_host)
 
       GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -1375,6 +1502,8 @@ program conv_check_ocl
 
 !      write(*,'(a,i6,i6)')'GPU Analysis (block), dimensions:',n1,n2*n3
 
+      call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda,work_GPU_host)
+      call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,psi_cuda,psi_GPU_host)
       call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
       call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
       call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda)
@@ -1389,6 +1518,8 @@ program conv_check_ocl
       call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n2*n3*8, psi_cuda)
       call ocl_release_mem_object(psi_GPU)
       call ocl_release_mem_object(work_GPU)
+      call ocl_release_mem_object(psi_GPU_host)
+      call ocl_release_mem_object(work_GPU_host)
 
       GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -1400,11 +1531,11 @@ program conv_check_ocl
       !write(*,'(a,i6,i6)')'CPU Synthesis, dimensions:',n1,n2*n3
  
       call nanosec(tsc0)
-      do i=1,ntimes*100
-         !call syn_rot_per(n1/2-1,n2*n3,psi_in,psi_out)
+      do i=1,ntimes!*100
+         call syn_rot_per(n1/2-1,n2*n3,psi_in,psi_out)
          !call syn_rot_per_temp(n1/2,n2*n3,psi_in,psi_out)
          !call syn_rot_per_simple(n1/2-1,n2*n3,psi_in,psi_out)
-         call synthesis_per_u5(n1/2,n2*n3,psi_in,psi_out)
+         !call synthesis_per_u5(n1/2,n2*n3,psi_in,psi_out)
          !call synthesis_per_u2(n1/2,n2*n3,psi_in,psi_out)
          !call synthesis_per_u12(n1/2,n2*n3,psi_in,psi_out)
          !call synthesis_per_u24(n1/2,n2*n3,psi_in,psi_out)
@@ -1415,6 +1546,8 @@ program conv_check_ocl
 
       !write(*,'(a,i6,i6)')'GPU Synthesis, dimensions:',n1,n2*n3
 
+      call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda,work_GPU_host)
+      call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,psi_cuda,psi_GPU_host)
       call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
       call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
       call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, v_cuda)
@@ -1429,6 +1562,8 @@ program conv_check_ocl
       call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n2*n3*8, psi_cuda)
       call ocl_release_mem_object(psi_GPU)
       call ocl_release_mem_object(work_GPU)
+      call ocl_release_mem_object(psi_GPU_host)
+      call ocl_release_mem_object(work_GPU_host)
 
       GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -1477,6 +1612,8 @@ program conv_check_ocl
 
 !      write(*,'(a,i6,i6)')'GPU Analysis shrink, dimensions:',n1-14,n2*n3
 
+      call ocl_pin_read_buffer_async(context,queue,n1*n2*n3*8,v_cuda_s,work_GPU_host)
+      call ocl_pin_write_buffer_async(context,queue,(n1-14)*n2*n3*8,psi_cuda_s,psi_GPU_host)
       call ocl_create_write_buffer(context, (n1-14)*n2*n3*8, psi_GPU)
       call ocl_create_read_buffer(context, (n1)*n2*n3*8, work_GPU)
       call ocl_enqueue_write_buffer(queue, work_GPU, (n1)*n2*n3*8, v_cuda_s)
@@ -1491,6 +1628,8 @@ program conv_check_ocl
       call ocl_enqueue_read_buffer(queue, psi_GPU, (n1-14)*n2*n3*8, psi_cuda_s)
       call ocl_release_mem_object(psi_GPU)
       call ocl_release_mem_object(work_GPU)
+      call ocl_release_mem_object(psi_GPU_host)
+      call ocl_release_mem_object(work_GPU_host)
 
       GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -1508,10 +1647,10 @@ program conv_check_ocl
 
 !      write(*,'(a,i6,i6)')'CPU Synthesis grow, dimensions:',n1-14,n2*n3
       call nanosec(tsc0)
-      do i=1,ntimes*100
-         !call syn_rot_grow((n1-14)/2-1,n2*n3,psi_out_t,psi_in_t)
+      do i=1,ntimes
+         call syn_rot_grow((n1-14)/2-1,n2*n3,psi_out_t,psi_in_t)
          !call synthesis_free((n1-14)/2,n2*n3,psi_out_t,psi_in_t)
-         call synthesis_free_u4((n1-14)/2,n2*n3,psi_out_t,psi_in_t)
+         !call synthesis_free_u4((n1-14)/2,n2*n3,psi_out_t,psi_in_t)
       end do
       call nanosec(tsc1)
 
@@ -1520,6 +1659,8 @@ program conv_check_ocl
 
 !      write(*,'(a,i6,i6)')'GPU Synthesis grow, dimensions:',n1-14,n2*n3
 
+      call ocl_pin_read_buffer_async(context,queue,(n1-14)*n2*n3*8,psi_cuda_t,work_GPU_host)
+      call ocl_pin_write_buffer_async(context,queue,n1*n2*n3*8,v_cuda_t,psi_GPU_host)
       call ocl_create_write_buffer(context, n1*n2*n3*8, psi_GPU)
       call ocl_create_read_buffer(context, (n1-14)*n2*n3*8, work_GPU)
       call ocl_enqueue_write_buffer(queue, work_GPU, (n1-14)*n2*n3*8, psi_cuda_t)
@@ -1664,6 +1805,11 @@ program conv_check_ocl
 
 !  write(*,'(a,3(i6))')'GPU Uncompress, dimensions:',n1,n1,n1
 
+   call ocl_pin_read_buffer_async(context,queue,nvctr_cf*8,psi,psi_c_GPU_host)
+   call ocl_pin_read_buffer_async(context,queue,7*nvctr_cf*8,psi(nvctr_cf+1),psi_f_GPU_host)
+   call ocl_pin_read_buffer_async(context,queue,nseg*2*4,keyg,keyg_GPU_host)
+   call ocl_pin_read_buffer_async(context,queue,nseg*4,keyv,keyv_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,(2*n1+2)*(2*n1+2)*(2*n1+2)*8,psi_cuda,work_GPU_host)
    call ocl_create_read_buffer(context, nvctr_cf*8, psi_c_GPU)
    call ocl_create_read_buffer(context, 7*nvctr_cf*8, psi_f_GPU)
    call ocl_create_read_buffer(context, nseg*4*2, keyg_GPU)
@@ -1690,6 +1836,11 @@ program conv_check_ocl
    call ocl_release_mem_object(keyg_GPU)
    call ocl_release_mem_object(keyv_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_c_GPU_host)
+   call ocl_release_mem_object(psi_f_GPU_host)
+   call ocl_release_mem_object(keyg_GPU_host)
+   call ocl_release_mem_object(keyv_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -1702,7 +1853,7 @@ program conv_check_ocl
 
    call nanosec(tsc0)
    do i=1,ntimes
-      call compress(n1,n1,0,n1,0,n1,0,n1,nseg,nvctr_cf,keyg,keyv,  & 
+      call compress_plain(n1,n1,0,n1,0,n1,0,n1,nseg,nvctr_cf,keyg,keyv,  & 
       nseg,nvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1))
    end do
    call nanosec(tsc1)
@@ -1712,6 +1863,11 @@ program conv_check_ocl
 
 !   write(*,'(a,3(i6))')'GPU Compress, dimensions:',n1,n1,n1
 
+   call ocl_pin_write_buffer_async(context,queue,nvctr_cf*8,psi_d,psi_c_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,7*nvctr_cf*8,psi_d(nvctr_cf+1),psi_f_GPU_host)
+   call ocl_pin_read_buffer_async(context,queue,nseg*2*4,keyg,keyg_GPU_host)
+   call ocl_pin_read_buffer_async(context,queue,nseg*4,keyv,keyv_GPU_host)
+   call ocl_pin_read_buffer_async(context,queue,(2*n1+2)*(2*n1+2)*(2*n1+2)*8,psi_cuda,work_GPU_host)
    call ocl_create_write_buffer(context, nvctr_cf*8, psi_c_GPU)
    call ocl_create_write_buffer(context, 7*nvctr_cf*8, psi_f_GPU)
    call ocl_create_read_buffer(context, nseg*8*2, keyg_GPU)
@@ -1738,6 +1894,11 @@ program conv_check_ocl
    call ocl_release_mem_object(keyg_GPU)
    call ocl_release_mem_object(keyv_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_c_GPU_host)
+   call ocl_release_mem_object(psi_f_GPU_host)
+   call ocl_release_mem_object(keyg_GPU_host)
+   call ocl_release_mem_object(keyv_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -1760,6 +1921,11 @@ program conv_check_ocl
 
 !   write(*,'(a,3(i6))')'GPU Uncompress Scal, dimensions:',n1,n1,n1
 
+   call ocl_pin_read_buffer_async(context,queue,nvctr_cf*8,psi,psi_c_GPU_host)
+   call ocl_pin_read_buffer_async(context,queue,7*nvctr_cf*8,psi(nvctr_cf+1),psi_f_GPU_host)
+   call ocl_pin_read_buffer_async(context,queue,nseg*2*4,keyg,keyg_GPU_host)
+   call ocl_pin_read_buffer_async(context,queue,nseg*4,keyv,keyv_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,(2*n1+2)*(2*n1+2)*(2*n1+2)*8,psi_cuda,work_GPU_host)
    call ocl_create_read_buffer(context, nvctr_cf*8, psi_c_GPU)
    call ocl_create_read_buffer(context, 7*nvctr_cf*8, psi_f_GPU)
    call ocl_create_read_buffer(context, nseg*4*2, keyg_GPU)
@@ -1786,6 +1952,11 @@ program conv_check_ocl
    call ocl_release_mem_object(keyg_GPU)
    call ocl_release_mem_object(keyv_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_c_GPU_host)
+   call ocl_release_mem_object(psi_f_GPU_host)
+   call ocl_release_mem_object(keyg_GPU_host)
+   call ocl_release_mem_object(keyv_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -1808,6 +1979,11 @@ program conv_check_ocl
 
 !   write(*,'(a,3(i6))')'GPU Compress Scal, dimensions:',n1,n1,n1
 
+   call ocl_pin_write_buffer_async(context,queue,nvctr_cf*8,psi_d,psi_c_GPU_host)
+   call ocl_pin_write_buffer_async(context,queue,7*nvctr_cf*8,psi_d(nvctr_cf+1),psi_f_GPU_host)
+   call ocl_pin_read_buffer_async(context,queue,nseg*2*4,keyg,keyg_GPU_host)
+   call ocl_pin_read_buffer_async(context,queue,nseg*4,keyv,keyv_GPU_host)
+   call ocl_pin_read_buffer_async(context,queue,(2*n1+2)*(2*n1+2)*(2*n1+2)*8,psi_cuda,work_GPU_host)
    call ocl_create_write_buffer(context, nvctr_cf*8, psi_c_GPU)
    call ocl_create_write_buffer(context, 7*nvctr_cf*8, psi_f_GPU)
    call ocl_create_read_buffer(context, nseg*8*2, keyg_GPU)
@@ -1834,6 +2010,11 @@ program conv_check_ocl
    call ocl_release_mem_object(keyg_GPU)
    call ocl_release_mem_object(keyv_GPU)
    call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(psi_c_GPU_host)
+   call ocl_release_mem_object(psi_f_GPU_host)
+   call ocl_release_mem_object(keyg_GPU_host)
+   call ocl_release_mem_object(keyv_GPU_host)
+   call ocl_release_mem_object(work_GPU_host)
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -2107,6 +2288,6 @@ program conv_check_ocl
       !$omp end do
    END SUBROUTINE conv_kin_x
 
-include 'syn.txt'
+!include 'syn.txt'
 
 END PROGRAM conv_check_ocl

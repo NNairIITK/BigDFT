@@ -492,7 +492,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
 
   !the HalFFT must be performed only in the third dimension,
   !and nker3=n3/2+1, hence
-  if (ncache <= (nker3-1)*4) ncache=nker3-1*4
+  if (ncache <= (nker3-1)*4) ncache=(nker3-1)*4
 
   !enlarge the second dimension of the kernel to be compatible with nproc
   nact2=nker2

@@ -27,7 +27,7 @@ program memguess
    character(len=50) :: posinp
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.
-   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
+   integer :: ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
    integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,nspin_ig,ng,ncount0,ncount1,ncount_max,ncount_rate
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
@@ -52,6 +52,8 @@ program memguess
    real(gp), dimension(:), pointer :: gbd_occ
    !! By Ali
    integer :: ierror
+
+   !call f_set_status(memory_limit=0.e0)
 
    ! Get arguments
    !call getarg(1,tatonam)
@@ -316,7 +318,7 @@ program memguess
    else
       posinp=trim(radical)
    end if
-   call read_input_variables(0,1, posinp, in, atoms, rxyz,1,radical,istat)
+   call bigdft_set_input(radical, posinp,rxyz,in, atoms)
    !initialize memory counting
    !call memocc(0,0,'count','start')
 
@@ -338,7 +340,7 @@ program memguess
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-   call system_properties(0,nproc,in,atoms,orbs,radii_cf,nelec)
+   call system_properties(0,nproc,in,atoms,orbs,radii_cf)
 
    if (optimise) then
       if (atoms%geocode =='F') then
@@ -354,7 +356,7 @@ program memguess
 
    !In the case in which the number of orbitals is not "trivial" check whether they are too many
    !Always True! (TD)
-   if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .or. .true.) then
+   !if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .or. .true.) then
       ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
       allocate(scorb(4,2,atoms%natsc+ndebug),stat=i_stat)
       call memocc(i_stat,scorb,'scorb',subname)
@@ -416,7 +418,7 @@ program memguess
          end if
       end if
 
-   end if
+   !end if
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
@@ -614,6 +616,9 @@ program memguess
 
    ! De-allocations
    call deallocate_orbs(orbs,subname)
+
+   !remove the directory which has been created if it is possible
+   call deldir(in%dir_output,len(trim(in%dir_output)),ierror)
    call free_input_variables(in)  
 
    !finalize memory counting
@@ -628,6 +633,8 @@ program memguess
    if (.not. disable_deprecation) then
       call deprecation_message()
    end if
+
+   !call f_finalize()
 
 END PROGRAM memguess
 
@@ -1118,7 +1125,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
       allocate(pottmp(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug)),stat=i_stat)
       call memocc(i_stat,pottmp,'pottmp',subname)
       call dcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug),pot(1,1,1,1),1,pottmp(1),1)
-      call local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
+      call local_hamiltonian(iproc,nproc,orbs%npsidim_orbs,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
            fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
       i_all=-product(shape(pottmp))*kind(pottmp)
       deallocate(pottmp,stat=i_stat)
@@ -1458,7 +1465,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
 
          call to_zero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi(1,1))
 
-         call Lpsi_to_global2(0,1,Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f, &
+         call Lpsi_to_global2(0,Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f, &
               lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,1,1,1,lr,Lzd%Llr(1),lpsi,psi)
 
          deallocate(lpsi)

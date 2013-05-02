@@ -12,7 +12,7 @@
 !! Spherical harmonics are used in the cartesian form
 module gaussians
 
-  use module_base, only:gp,memocc,ndebug
+  use module_base, only: gp,memocc,ndebug
 
   private
 
@@ -22,16 +22,21 @@ module gaussians
   integer, parameter :: NTERM_MAX_KINETIC=190 !<maximum number of terms for the considered shells in the case of laplacian
   integer, parameter :: L_MAX=3 !< maximum number of angular momentum considered
 
+  integer :: itype_scf=0 !< type of the interpolating SCF, 0= data unallocated
+  integer :: n_scf=-1    !< number of points of the allocated data
+  real(gp), dimension(:), allocatable :: scf_data !< values for the interpolating scaling functions points
+
   !> Structures of basis of gaussian functions
   type, public :: gaussian_basis
      integer :: nat  !< number of centers
      integer :: ncoeff !< number of total basis elements
      integer :: nshltot !< total number of shells (m quantum number ignored) 
      integer :: nexpo !< number of exponents (sum of the contractions)
+     integer :: ncplx !< number of complex comp. (real or complex gaussians)
      !storage units
      integer, dimension(:), pointer :: nshell !< number of shells for any of the centers
      integer, dimension(:), pointer :: ndoc,nam !< degree of contraction, angular momentum of any shell
-     real(gp), dimension(:), pointer :: xp,psiat !<factors and values of the exponents (complex numbers are allowed)
+     real(gp), dimension(:,:), pointer :: xp,psiat !<factors and values of the exponents (complex numbers are allowed)
      real(gp), dimension(:,:), pointer :: rxyz !<positions of the centers
   end type gaussian_basis
 
@@ -49,7 +54,8 @@ module gaussians
      real(gp), dimension(:,:), pointer :: rxyz !<positions of the centers
   end type gaussian_basis_new
 
-  public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap
+  public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap,gauint0
+  public :: initialize_real_space_conversion,finalize_real_space_conversion,scfdotf
 
 contains
 
@@ -120,8 +126,8 @@ contains
     call memocc(i_stat,G%sd,'G%sd',subname)
 
     do iexpo=1,G%nexpo
-       G%sd(EXPO_,iexpo)=0.5_gp/Gold%xp(iexpo)**2
-       G%sd(COEFF_,iexpo)=Gold%psiat(iexpo)
+       G%sd(EXPO_,iexpo)=0.5_gp/Gold%xp(1,iexpo)**2
+       G%sd(COEFF_,iexpo)=Gold%psiat(1,iexpo)
     end do
 
   end subroutine gaussian_basis_convert
@@ -156,6 +162,93 @@ contains
 
   end subroutine gaussian_basis_free
 
+  !> Prepare the array for the evaluation with the interpolating Scaling Functions
+  subroutine initialize_real_space_conversion(npoints,isf_m)
+    implicit none
+    integer, intent(in), optional :: npoints,isf_m
+    !local variables
+    character(len=*), parameter :: subname='initialize_real_space_conversion'
+    integer :: i_stat,n_range,i_all
+    real(gp), dimension(:), allocatable :: x_scf !< to be removed in a future implementation
+
+    itype_scf=16
+    if (present(isf_m)) itype_scf=isf_m
+
+    n_scf=2*itype_scf*(2**6)
+    if (present(npoints)) n_scf=2*itype_scf*npoints
+
+    !allocations for scaling function data array
+    allocate(x_scf(0:n_scf),stat=i_stat)
+    call memocc(i_stat,x_scf,'x_scf',subname)
+
+    allocate(scf_data(0:n_scf),stat=i_stat)
+    call memocc(i_stat,scf_data,'scf_data',subname)
+
+    !Build the scaling function external routine coming from Poisson Solver. To be customized accordingly
+    call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_data)
+
+    i_all=-product(shape(x_scf))*kind(x_scf)
+    deallocate(x_scf,stat=i_stat)
+    call memocc(i_stat,i_all,'x_scf',subname)
+
+  end subroutine initialize_real_space_conversion
+
+  subroutine finalize_real_space_conversion(subname)
+    implicit none
+    character(len=*), intent(in) :: subname
+    !local variables
+    integer :: i_stat,i_all
+
+    itype_scf=0
+    n_scf=-1
+    i_all=-product(shape(scf_data))*kind(scf_data)
+    deallocate(scf_data,stat=i_stat)
+    call memocc(i_stat,i_all,'scf_data',subname)
+
+  end subroutine finalize_real_space_conversion
+
+  !> this function calculates the scalar product between a ISF and a 
+  !input function, which is a gaussian times a power centered
+  ! here pure specifier is redundant
+  ! we should add here the threshold from which the 
+  ! normal function can be evaluated
+  elemental pure function scfdotf(j,hgrid,pgauss,x0,pow) result(gint)
+    implicit none
+    integer, intent(in) :: j !<value of the input result in the hgrid reference
+    integer, intent(in) :: pow
+    real(gp), intent(in) :: hgrid,pgauss,x0
+    real(gp) :: gint
+    !local variables
+    integer :: i
+    real(gp) :: x,absci,fabsci,dx
+    gint=0.0_gp
+
+    !Step grid for the integration
+    dx = real(2*itype_scf,gp)/real(n_scf,gp)
+    !starting point for the x coordinate for integration
+    x  = real(j-itype_scf+1,gp)-dx
+
+    !the loop can be unrolled to maximize performances
+    do i=0,n_scf
+       x=x+dx
+       absci = x*hgrid - x0
+       !here evaluate the function
+       if (pow/=0) then
+          fabsci=absci**pow
+       else
+          fabsci=1.0_gp
+       end if
+       absci = -pgauss*absci*absci
+       fabsci=fabsci*dexp(absci)
+       !calculate the integral
+       gint=gint+scf_data(i)*fabsci
+!       print *,'test',i,scf_data(i),fabsci,pgauss,pow,absci
+    end do
+    gint=gint*dx
+
+  end function scfdotf
+
+
   !>   Overlap matrix between two different basis structures
   subroutine gaussian_overlap(A,B,ovrlp)
     implicit none
@@ -182,6 +275,7 @@ contains
 
     return
 
+    !deprecated version, not used
     iovrlp=0
     ishell=0
     iexpo=1
@@ -213,8 +307,8 @@ contains
                       jovrlp=jovrlp+1
                       !if ((jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) .or. &
                       !     A%ncoeff /= B%ncoeff ) then
-                      call gbasovrlp(A%xp(iexpo:),A%psiat(iexpo:),&
-                           B%xp(jexpo:),B%psiat(jexpo:),&
+                      call gbasovrlp(A%xp(1,iexpo:),A%psiat(1,iexpo:),&
+                           B%xp(1,jexpo:),B%psiat(1,jexpo:),&
                            ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
                            niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                       !end if
@@ -293,8 +387,8 @@ contains
                       jovrlp=jovrlp+1
                       if (jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff .or. &
                            A%ncoeff /= B%ncoeff ) then
-                         call kineticovrlp(A%xp(iexpo:),A%psiat(iexpo:),&
-                              B%xp(jexpo:),B%psiat(jexpo:),&
+                         call kineticovrlp(A%xp(1,iexpo:),A%psiat(1,iexpo:),&
+                              B%xp(1,jexpo:),B%psiat(1,jexpo:),&
                               ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
                               niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                       end if
@@ -428,6 +522,71 @@ contains
     end do
 
   END SUBROUTINE gprod
+
+  !>evaluate the wavefunction for a given grid mesh
+  !TO BE verified and optimized
+  subroutine wavefunction(j1,j2,j3,G,h1,h2,h3,coeff,wvfnct)
+    implicit none
+    integer, intent(in) :: j1,j2,j3
+    real(gp), intent(in) :: h1,h2,h3
+    type(gaussian_basis_new), intent(in) :: G
+    real(gp), dimension(G%ncoeff), intent(in) :: coeff
+    real(gp), intent(out) :: wvfnct
+    !local variables
+    integer :: iovrlp,ishell,iexpo,icoeff,iat,isat,ng,l,n,m,i
+    integer :: itpd,ntpdsh,ig
+    real(gp) :: s,d,wfn,f,psi
+
+    integer, dimension(2*L_MAX+1) :: ntpd
+    integer, dimension(3,NTERM_MAX_OVERLAP) :: pow
+    real(gp), dimension(NTERM_MAX_OVERLAP) :: ftpd
+    real(gp), dimension(3) :: r
+
+    iovrlp=0
+    ishell=0
+    iexpo=1
+    icoeff=1
+
+    !loop on each shell (intensive calculation)
+    wvfnct=0.0_gp
+    psi=0.0_gp
+    do iat=1,G%nat
+       r(1)=G%rxyz(1,iat)
+       r(2)=G%rxyz(2,iat)
+       r(3)=G%rxyz(3,iat)
+       do isat=1,G%nshell(iat)
+          ishell=ishell+1
+          ng=G%shid(DOC_,ishell)
+          l=G%shid(L_,ishell)
+          n=G%shid(N_,ishell)
+          call tensor_product_decomposition(n,l,ntpdsh,ntpd,pow,ftpd)
+          itpd=1
+          !evaluate the wavefunction shell by shell
+          do m=1,2*l+1
+             !here the entire array should be extracted
+             iovrlp=iovrlp+1
+             do ig=0,ng-1
+                s=G%sd(EXPO_,ig+iexpo)
+                d=G%sd(COEFF_,ig+iexpo)
+                wfn=0.0_gp
+                do i=0,ntpd(m)-1
+                   f=  scfdotf(j1,h1,s,r(1),pow(1,i+itpd))
+                   f=f*scfdotf(j2,h2,s,r(2),pow(2,i+itpd))
+                   f=f*scfdotf(j3,h3,s,r(3),pow(3,i+itpd))
+                   wfn=wfn+ftpd(i+itpd)*f
+                end do
+                psi=psi+d*wfn
+             end do
+             itpd=itpd+ntpd(m)
+             wvfnct=wvfnct+coeff(iovrlp)*psi
+          end do
+          iexpo=iexpo+ng
+          icoeff=icoeff+2*l+1
+       end do
+    end do
+    call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
+
+  end subroutine wavefunction
 
 
   !>   Overlap matrix between two different basis structures
@@ -571,7 +730,21 @@ contains
     end do
   end function gdot
 
-  !perform the gaussian product for all the terms in the shell
+!!$  !>calculate the density kernel matrix between two shells for a set of spatial points
+!!$  pure subroutine density_kernel_shell
+!!$    integer, intent(in) :: l1,l2 !<angular momenta of the shell
+!!$    integer, intent(in) :: ntpdsh1,ntpdsh2 !<total number of shell tpd
+!!$    real(gp), dimension(NSD_), intent(in) :: sd1,sd2 !<exponents and coefficient
+!!$    integer, dimension(2*l1+1), intent(in) :: ntpd1 !<number of terms
+!!$    integer, dimension(2*l2+1), intent(in) :: ntpd2 !<number of terms
+!!$    integer, dimension(3,ntpdsh1), intent(in) :: pws1 !<exponents
+!!$    integer, dimension(3,ntpdsh2), intent(in) :: pws2 !<exponents
+!!$    real(gp), dimension(ntpdsh1), intent(in) :: ftpd1 !<factors of tpd, first shell
+!!$    real(gp), dimension(ntpdsh2), intent(in) :: ftpd2 !<factors of tpd, second shell
+!!$
+!!$  end subroutine density_kernel_shell
+
+  !>performs the gaussian product for all the terms in the shell
   pure subroutine gdot_shell(sd1,l1,ntpdsh1,ntpd1,pws1,ftpd1,&
        sd2,l2,ntpdsh2,ntpd2,pws2,ftpd2,dr,overlap)
     implicit none
@@ -582,8 +755,8 @@ contains
     integer, dimension(2*l2+1), intent(in) :: ntpd2 !<number of terms
     integer, dimension(3,ntpdsh1), intent(in) :: pws1 !<exponents
     integer, dimension(3,ntpdsh2), intent(in) :: pws2 !<exponents
-    real(gp), dimension(ntpdsh1), intent(in) :: ftpd1
-    real(gp), dimension(ntpdsh2), intent(in) :: ftpd2
+    real(gp), dimension(ntpdsh1), intent(in) :: ftpd1 !<factors of tpd, first shell
+    real(gp), dimension(ntpdsh2), intent(in) :: ftpd2 !<factors of tpd, second shell
     real(gp), dimension(3), intent(in) :: dr !<separations between basis functions
     real(gp), dimension(2*l1+1,2*l2+1), intent(inout) :: overlap !<overlap of the shell
     !local variables
@@ -614,15 +787,15 @@ contains
 
   end subroutine gdot_shell
 
-  !>   Overlap matrix between two different basis structures
-  !!   laplacian is applied to the first one
+  !> Overlap matrix between two different basis structures
+  !! laplacian is applied to the first one
   subroutine kinetic(A,B,ovrlp)
     implicit none
     type(gaussian_basis_new), intent(in) :: A,B
     real(gp), dimension(A%ncoeff,B%ncoeff), intent(out) :: ovrlp
     !local variables
     integer :: ishell,iexpo,icoeff,iat,jat,isat,jsat,jshell
-    integer :: iovrlp,jovrlp,jcoeff,jexpo,igA,igB,ioverlap
+    integer :: iovrlp,jovrlp,jcoeff,jexpo,igA,igB
     integer :: ngA,ngB,lA,lB,mA,mB,nA,nB,ntpdshA,ntpdshB
     integer, dimension(2*L_MAX+1) :: ntpdA,ntpdB
     integer, dimension(3,NTERM_MAX_KINETIC) :: powA

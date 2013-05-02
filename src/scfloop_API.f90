@@ -266,7 +266,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
      if (units=='angstroem' .or. units=='angstroemd0') then
         ! if Angstroem convert to Bohr
         do i=1,3 
-           vxyz(i,iat)=vxyz(i,iat)/bohr2ang
+           vxyz(i,iat)=vxyz(i,iat)/Bohr_Ang
         enddo
      else if (units == 'reduced') then 
         vxyz(1,iat)=vxyz(1,iat)*atoms%alat1
@@ -295,7 +295,7 @@ subroutine wtvel(filename,vxyz,atoms,comment)
 
   open(unit=iunit,file=trim(filename),status='unknown',action='write')
   if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr2ang
+     factor=Bohr_Ang
      units='angstroemd0'
   else
      factor=1.0_gp

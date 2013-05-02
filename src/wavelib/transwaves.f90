@@ -184,7 +184,7 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
 
         !!call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
         !!     ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
-        call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, &
+        call Lpsi_to_global2(iproc, ldim, gdim, orbs%norbp, orbs%nspinor, &
              orbs%nspin, lzd%glr, lzd%llr(ilr), psi(psishift1), workarr(totshift))
         psishift1 = psishift1 + ldim
         totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
@@ -348,9 +348,9 @@ subroutine untranspose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
         if(present(outadd)) then
-            call psi_to_locreg2(iproc, nproc, ldim, Gdim, Lzd%Llr(ilr), Lzd%Glr, psi(totshift), outadd(psishift1))
+            call psi_to_locreg2(iproc, ldim, Gdim, Lzd%Llr(ilr), Lzd%Glr, psi(totshift), outadd(psishift1))
         else
-            call psi_to_locreg2(iproc, nproc, ldim, Gdim, Lzd%Llr(ilr), Lzd%Glr, psi(totshift), workarr(psishift1))
+            call psi_to_locreg2(iproc, ldim, Gdim, Lzd%Llr(ilr), Lzd%Glr, psi(totshift), workarr(psishift1))
         end if
         psishift1 = psishift1 + ldim
         totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor

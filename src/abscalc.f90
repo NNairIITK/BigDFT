@@ -18,77 +18,72 @@ program abscalc_main
 
    implicit none
    character(len=*), parameter :: subname='abscalc_main'
-   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
-   real(gp) :: etot,sumx,sumy,sumz
-   logical :: exist_list
+   integer :: iproc,nproc,i_stat,i_all,ierr,infocode
+   real(gp) :: etot
+!!$   logical :: exist_list
    !input variables
    type(atoms_data) :: atoms
    type(input_variables) :: inputs
    type(restart_objects) :: rst
-   character(len=50), dimension(:), allocatable :: arr_posinp
-   character(len=60) :: radical
+   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
+   character(len=60) :: run_id
+!!$   character(len=60) :: filename
    ! atomic coordinates, forces
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
-   integer :: iconfig,nconfig,istat
+   integer :: iconfig,nconfig,igroup,ngroups
+   integer, dimension(4) :: mpi_info
    logical :: exists
 
-   ! Start MPI in parallel version
-   !in the case of MPIfake libraries the number of processors is automatically adjusted
-   call MPI_INIT(ierr)
-   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+   !-finds the number of taskgroup size
+   !-initializes the mpi_environment for each group
+   !-decides the radical name for each run
+   call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
+   !just for backward compatibility
+   iproc=mpi_info(1)
+   nproc=mpi_info(2)
+
+   igroup=mpi_info(3)
+   !number of groups
+   ngroups=mpi_info(4)
+
+   !allocate arrays of run ids
+   allocate(arr_radical(abs(nconfig)))
+   allocate(arr_posinp(abs(nconfig)))
+
+   !here we call  a routine which
    ! Read a possible radical format argument.
-   call get_command_argument(1, value = radical, status = istat)
-   if (istat > 0) then
-      write(radical, "(A)") "input"
-   end if
+   call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
 
-   ! find out which input files will be used
-   inquire(file="list_posinp",exist=exist_list)
-   if (exist_list) then
-      open(54,file="list_posinp")
-      read(54,*) nconfig
-      if (nconfig > 0) then
-         !allocation not referenced since memocc count not initialised
-         allocate(arr_posinp(1:nconfig))
-         do iconfig=1,nconfig
-            read(54,*) arr_posinp(iconfig)
-         enddo
-      else
-         nconfig=1
-         allocate(arr_posinp(1:1))
-      endif
-   else
-      nconfig=1
-      allocate(arr_posinp(1:1))
-   endif
+   do iconfig=1,abs(nconfig)
+      if (modulo(iconfig-1,ngroups)==igroup) then
 
-   do iconfig=1,nconfig
+         !Welcome screen
+         !if (iproc==0) call print_logo()
 
-      !Welcome screen
-      !if (iproc==0) call print_logo()
+         call bigdft_set_input(arr_radical(iconfig),arr_posinp(iconfig),rxyz,inputs,atoms)
 
-      ! Read all input files.
-      !standard names
-      call standard_inputfile_names(inputs,radical,nproc)
-      call read_input_variables(iproc,nproc,arr_posinp(iconfig),inputs, atoms, rxyz,nconfig,radical,istat)
+!!$
+!!$      ! Read all input files.
+!!$      !standard names
+!!$      call standard_inputfile_names(inputs,radical,nproc)
+!!$      call read_input_variables(iproc,nproc,arr_posinp(iconfig),inputs, atoms, rxyz,nconfig,radical,istat)
+!!$
+!!$      !Initialize memory counting
+!!$      !call memocc(0,iproc,'count','start')
+!!$
+!!$      !Read absorption-calculation input variables
+!!$      !inquire for the needed file 
+!!$      !if not present, set default (no absorption calculation)
 
-      !Initialize memory counting
-      !call memocc(0,iproc,'count','start')
-
-      !Read absorption-calculation input variables
-      !inquire for the needed file 
-      !if not present, set default (no absorption calculation)
-
-      inquire(file=trim(radical)//".abscalc",exist=exists)
+      inquire(file=trim(run_id)//".abscalc",exist=exists)
       if (.not. exists) then
          if (iproc == 0) write(*,*) 'ERROR: need file input.abscalc for x-ray absorber treatment.'
          if(nproc/=0)   call MPI_FINALIZE(ierr)
          stop
       end if
-      call abscalc_input_variables(iproc,trim(radical)//".abscalc",inputs)
+      call abscalc_input_variables(iproc,trim(run_id)//".abscalc",inputs)
       if( inputs%iat_absorber <1 .or. inputs%iat_absorber > atoms%nat) then
          if (iproc == 0) write(*,*)'ERROR: inputs%iat_absorber  must .ge. 1 and .le. number_of_atoms '
          if(nproc/=0)   call MPI_FINALIZE(ierr)
@@ -100,29 +95,11 @@ program abscalc_main
       allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
       call memocc(i_stat,fxyz,'fxyz',subname)
 
-      call init_restart_objects(iproc,inputs%matacc,atoms,rst,subname)
+      call init_restart_objects(iproc,inputs,atoms,rst,subname)
 
       call call_abscalc(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
 
-      if (iproc == 0) then
-         sumx=0.d0
-         sumy=0.d0
-         sumz=0.d0
-         write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
-         do iat=1,atoms%nat
-            write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-               &   iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
-            sumx=sumx+fxyz(1,iat)
-            sumy=sumy+fxyz(2,iat)
-            sumz=sumz+fxyz(3,iat)
-         enddo
-         if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-            write(*,'(1x,a)')'the sum of the forces is'
-            write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-            write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-            write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-         end if
-      endif
+      ! if (iproc == 0) call write_forces(atoms,fxyz)
 
       !De-allocations
       call deallocate_abscalc_input(inputs, subname)
@@ -138,20 +115,26 @@ program abscalc_main
       deallocate(fxyz,stat=i_stat)
       call memocc(i_stat,i_all,'fxyz',subname)
 
-      call free_input_variables(inputs)
 
-      !finalize memory counting
-      call memocc(0,0,'count','stop')
+      call bigdft_free_input(inputs)
+!!$      call free_input_variables(inputs)
+!!$
+!!$      !finalize memory counting
+!!$      call memocc(0,0,'count','stop')
 
       !     call sg_end()
-
+   end if
    enddo !loop over iconfig
 
+   deallocate(arr_posinp,arr_radical)
 
-   !No referenced by memocc!
-   deallocate(arr_posinp)
+   call bigdft_finalize(ierr)
 
-   call MPI_FINALIZE(ierr)
+!!$
+!!$   !No referenced by memocc!
+!!$   deallocate(arr_posinp)
+!!$
+!!$   call MPI_FINALIZE(ierr)
 
 END PROGRAM abscalc_main
 
@@ -291,16 +274,7 @@ END SUBROUTINE call_abscalc
 
 
 !>   Absorption (XANES) calculation
-!!   @param psi should be freed after use outside of the routine.
-!!   @param infocode -> encloses some information about the status of the run
-!!          - 0 run succesfully succeded
-!!          - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
-!!               forces may be meaningless   
-!!          - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
-!!               the second iteration OR grnm 1st >2.
-!!               Input wavefunctions need to be recalculated. Routine exits.
-!!          - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-!!
+!!   @warning psi should be freed after use outside of the routine.
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
      psi,Lzd,orbsAO,hx_old,hy_old,hz_old,in,GPU,infocode)
    use module_base
@@ -322,15 +296,22 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    type(orbitals_data), intent(inout) :: orbsAO
    type(GPU_pointers), intent(inout) :: GPU
    real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
-   integer, intent(out) :: infocode
    real(wp), dimension(:), pointer :: psi
+   integer, intent(out) :: infocode        !< encloses some information about the status of the run
+!!                         - 0 run successfully succeded
+!!                         - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
+!!                             forces may be meaningless   
+!!                         - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
+!!                             the second iteration OR grnm 1st >2.
+!!                             Input wavefunctions need to be recalculated. Routine exits.
+!!                         - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
    !local variables
    type(orbitals_data) :: orbs
    character(len=*), parameter :: subname='abscalc'
    character(len=3) :: PSquiet
    integer :: ixc,ncong,idsx,ncongt,nspin,itermax
    integer :: nvirt!,nsym
-   integer :: nelec,ndegree_ip,j,n1,n2,n3
+   integer :: ndegree_ip,j,n1,n2,n3
 !   integer :: n3d,n3p,n3pi,i3xcsh,i3s
    integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
    integer :: iat,i_all,i_stat,ierr,inputpsi
@@ -415,6 +396,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !! to apply paw projectors
    type(PAWproj_data_type) ::PAWD
 
+   !fow wvl+PAW
+   integer::iatyp
+   type(rholoc_objects)::rholoc_tmp
+   type(gaussian_basis),dimension(atoms%ntypes)::proj_tmp
+
 
    if (in%potshortcut==0) then
       if(nproc>1) call MPI_Finalize(ierr)
@@ -487,7 +473,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       PSquiet='YES'
    end if
 
-   call system_properties(iproc,nproc,in,atoms,orbsAO,radii_cf,nelec)
+   call system_properties(iproc,nproc,in,atoms,orbsAO,radii_cf)
 
    call nullify_locreg_descriptors(Lzd%Glr)
 
@@ -531,8 +517,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,orbs,.false.)
    call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
+   !nullify dummy variables only used for PAW:
+   do iatyp=1,atoms%ntypes
+     call nullify_gaussian_basis(proj_tmp(iatyp))
+   end do
+
+
    call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
-        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_tmp,proj)
 
    call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
 
@@ -641,12 +633,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call timing(iproc,'CrtPcProjects ','OF')
    endif
 
-   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,&
+   call IonicEnergyandForces(iproc,nproc,dpcom,atoms,in%elecfield,rxyz,&
         energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
-        psoffset,n1,n2,n3,n1i,n2i,n3i,dpcom%i3s+dpcom%i3xcsh,dpcom%n3pi,pot_ion,pkernel)
+        n1,n2,n3,pot_ion,pkernel,psoffset)
 
    call createIonicPotential(atoms%geocode,iproc,nproc, (iproc == 0), atoms,rxyz,hxh,hyh,hzh,&
-        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,&
+        rholoc_tmp)
 
 
    !Allocate Charge density, Potential in real space
@@ -1401,8 +1394,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call xc_end()
 
       !end of wavefunction minimisation
-      call timing(iproc,'LAST','PR')
-      call timing(iproc,'              ','RE')
+      call timing(bigdft_mpi%mpi_comm,'LAST','PR')
+      call timing(bigdft_mpi%mpi_comm,'              ','RE')
       call cpu_time(tcpu1)
       call system_clock(ncount1,ncount_rate,ncount_max)
       tel=dble(ncount1-ncount0)/dble(ncount_rate)
@@ -1428,16 +1421,13 @@ END SUBROUTINE zero4b2B
 
 
 !> Backward wavelet transform
-!! @param nd length of data set
-!! @param nt length of data in data set to be transformed
-!! @param m filter length (m has to be even!)
-!! @param x input data, y output data
 subroutine back_trans_14_4b2B(nd,nt,x,y)
    implicit none
    !Arguments
-   integer, intent(in) :: nd,nt
-   real(kind=8), intent(in) :: x(0:nd-1)
-   real(kind=8), intent(out) :: y(0:nd-1)
+   integer, intent(in) :: nd                !< length of data set                          
+   integer, intent(in) :: nt                !< length of data in data set to be transformed
+   real(kind=8), intent(in) :: x(0:nd-1)    !< input data,
+   real(kind=8), intent(out) :: y(0:nd-1)   !< output data
    !Local variables
    integer :: i,j,ind
 

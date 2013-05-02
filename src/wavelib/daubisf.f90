@@ -168,8 +168,6 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
 
 END SUBROUTINE initialize_work_arrays_locham
 
-
-
 !>
 !!
 !!
@@ -1237,6 +1235,7 @@ END SUBROUTINE daub_to_isf
 !!   wavefunction in Daubechies form
 !!   does the job for all supported BC
 !!   Warning: the psir is destroyed for some BCs (slab and periodic)
+!!   Warning: psi must already be initialized (to zero) before entering this routine
 subroutine isf_to_daub(lr,w,psir,psi)
   !n(c) use module_base
   use module_types
@@ -1244,7 +1243,7 @@ subroutine isf_to_daub(lr,w,psir,psi)
   type(locreg_descriptors), intent(in) :: lr
   type(workarr_sumrho), intent(inout) :: w
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i), intent(inout) :: psir
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(out) :: psi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(inout) :: psi
   !local variables
   integer :: i,i_f,iseg_f,isegf,ipsif
   real(wp), dimension(0:3) :: scal

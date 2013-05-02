@@ -1,7 +1,7 @@
 !> @file
 !!   Interface between BigDFT and Wannier90
 !! @author
-!!   Copyright (C) 2010-2011 BigDFT group 
+!!   Copyright (C) 2010-2013 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -14,6 +14,7 @@ program BigDFT2Wannier
    use BigDFT_API
    use Poisson_Solver
    use module_interfaces
+   use yaml_output
    implicit none
    character :: filetype*4
    !etsf
@@ -28,7 +29,7 @@ program BigDFT2Wannier
    type(workarr_sumrho) :: w
    type(communications_arrays), target :: comms, commsp,commsv,commsb
    integer, parameter :: WF_FORMAT_CUBE = 4
-   integer :: iproc, nproc, nproctiming, i_stat, nelec, ind, ierr, npsidim, npsidim2
+   integer :: iproc, nproc, nproctiming, i_stat, ind, ierr, npsidim, npsidim2
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3,iformat,info
    integer :: ncount0,ncount1,ncount_rate,ncount_max,nbr1,nbr2,nbr3,shft,wshft,lwork
    real :: tcpu0,tcpu1
@@ -42,7 +43,7 @@ program BigDFT2Wannier
    real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:) !!,pvirt(:)
    real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
    real(wp), pointer :: pwork(:)!,sph_daub(:)
-   character(len=60) :: radical, filename, posinp
+   character(len=60) :: filename, run_id
    logical :: perx, pery,perz, residentity,write_resid
    integer :: nx, ny, nz, nb, nb1, nk, inn
    real(kind=8) :: b1, b2, b3, r0x, r0y, r0z
@@ -55,7 +56,7 @@ program BigDFT2Wannier
    logical :: calc_only_A 
    real, dimension(3,3) :: real_latt, recip_latt
    integer :: n_kpts, n_nnkpts, n_excb, n_at, s
-   integer :: n_occ, n_virt, n_virt_tot
+   integer :: n_occ, n_virt, n_virt_tot,nconfig
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check
    real, allocatable, dimension (:,:) :: kpts
    real(kind=8), allocatable, dimension (:,:) :: ctr_proj, x_proj, y_proj, z_proj
@@ -66,22 +67,32 @@ program BigDFT2Wannier
    integer, allocatable, dimension (:) :: excb,ipiv
    integer, allocatable, dimension (:) :: virt_list, amnk_bands_sorted
    real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
+   integer, dimension(4) :: mpi_info
 
-   ! Start MPI in parallel version
-   !in the case of MPIfake libraries the number of processors is automatically adjusted
-   call MPI_INIT(ierr)
-   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+   !-finds the number of taskgroup size
+   !-initializes the mpi_environment for each group
+   !-decides the radical name for each run
+   call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
-   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+   !just for backward compatibility
+   iproc=mpi_info(1)
+   nproc=mpi_info(2)
 
-   call memocc_set_memory_limit(memorylimit)
+!!$   ! Start MPI in parallel version
+!!$   !in the case of MPIfake libraries the number of processors is automatically adjusted
+!!$   call MPI_INIT(ierr)
+!!$   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+!!$   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+!!$
+!!$   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+!!$
+!!$   call memocc_set_memory_limit(memorylimit)
 
-   ! Read a possible radical format argument.
-   call get_command_argument(1, value = radical, status = i_stat)
-   if (i_stat > 0) then
-      write(radical, "(A)") "input"
-   end if
+   if (nconfig < 0) stop 'runs-file not supported for BigDFT2Wannier executable'
+
+  call bigdft_set_input(trim(run_id)//trim(bigdft_run_id_toa()),'posinp'//trim(bigdft_run_id_toa()),&
+       rxyz,input,atoms)
+
 
    if (input%verbosity > 2) then
       nproctiming=-nproc !timing in debug mode                                                                                                                                                                  
@@ -101,10 +112,14 @@ program BigDFT2Wannier
 
    if(n_virt_tot < n_virt) then
       if (iproc == 0) then
-         write(*,'(A,1x,I4)') 'ERROR: total number of virtual states :',n_virt_tot
-         write(*,'(A,1x,I4)') 'smaller than number of desired states:',n_virt
-         write(*,'(A)') 'CORRECTION: Increase total number of virtual states'
-         write(*,'(A)') 'or decrease the number of desired states'
+         call yaml_warning('The total number of virtual states,' // trim(yaml_toa(n_virt_tot)))
+         call yaml_comment('is smaller than number of desired states' // trim(yaml_toa(n_virt)))
+         call yaml_comment('CORRECTION: Increase total number of virtual states')
+         call yaml_comment('or decrease the number of desired states')
+         !write(*,'(A,1x,I4)') 'ERROR: total number of virtual states :',n_virt_tot
+         !write(*,'(A,1x,I4)') 'smaller than number of desired states:',n_virt
+         !write(*,'(A)') 'CORRECTION: Increase total number of virtual states'
+         !write(*,'(A)') 'or decrease the number of desired states'
       end if
       call mpi_finalize(ierr)
       stop
@@ -120,27 +135,29 @@ program BigDFT2Wannier
    case ("FORM",'form')
       iformat = WF_FORMAT_PLAIN
    case ("cube","CUBE")
-      if(iproc==0) write(*,*)'Cube files are no longer implemented. TO DO!'
+      if(iproc==0) call yaml_warning('Cube files are no longer implemented. TO DO!')
+      !if(iproc==0) write(*,*)'Cube files are no longer implemented. TO DO!'
       iformat = WF_FORMAT_CUBE
       call mpi_finalize(ierr)
       stop
    case default
-      if (iproc == 0) write(*,*)' WARNING: Missing specification of wavefunction files'
+      if (iproc == 0) call yaml_warning('Missing specification of wavefunction files')
+      !if (iproc == 0) write(*,*)' WARNING: Missing specification of wavefunction files'
       stop
    end select
 
-   posinp='posinp'
-
-   ! Initalise the variables for the calculation
-   call standard_inputfile_names(input,radical,nproc)
-   call read_input_variables(iproc,nproc,posinp,input, atoms, rxyz,1,radical,1)
-
-   if (iproc == 0) call print_general_parameters(nproc,input,atoms)
+!!$   posinp='posinp'
+!!$
+!!$   ! Initalise the variables for the calculation
+!!$   call standard_inputfile_names(input,radical,nproc)
+!!$   call read_input_variables(iproc,nproc,posinp,input, atoms, rxyz,1,radical,1)
+!!$
+!!$   if (iproc == 0) call print_general_parameters(nproc,input,atoms)
 
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf,nelec)
+   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
@@ -200,10 +217,14 @@ program BigDFT2Wannier
       ortho = z_proj(np,1)*x_proj(np,1) + z_proj(np,2)*x_proj(np,2) + z_proj(np,3)*x_proj(np,3)
       if(abs(znorm - 1.d0) > eps6 .or. abs(znorm - 1.d0) > eps6 .or. abs(ortho) > eps6) then
          if(iproc == 0) then
-            write(*,'(A)') 'Checkorthonormality of z_proj and x_proj:'
-            write(*,'(A,e9.7)') 'z norm: ',znorm
-            write(*,'(A,e9.7)') 'x norm: ',xnorm
-            write(*,'(A,e9.7)') 'x dot z: ',ortho
+            call yaml_warning('Check orthonormality of z_proj and x_proj:')
+            call yaml_comment('z norm: ',trim(yaml_toa(znorm,fmt='(e9.7)')))
+            call yaml_comment('x norm: ',trim(yaml_toa(xnorm,fmt='(e9.7)')))
+            call yaml_comment('x dot z: ',trim(yaml_toa(ortho,fmt='(e9.7)')))
+            !write(*,'(a)') 'check orthonormality of z_proj and x_proj:'
+            !write(*,'(a,e9.7)') 'z norm: ',znorm
+            !write(*,'(a,e9.7)') 'x norm: ',xnorm
+            !write(*,'(a,e9.7)') 'x dot z: ',ortho
             stop
          end if
       end if
@@ -284,13 +305,17 @@ program BigDFT2Wannier
          call memocc(i_stat,sph_daub,'sph_daub',subname)
          call to_zero(npsidim2,sph_daub(1))
 
-         ! Begining of the algorithm to compute the scalar product in order to find the best unoccupied orbitals to use to compute the actual Amnk matrix :
+         ! Begining of the algorithm to compute the scalar product in order to find the best unoccupied orbitals
+         ! to use to compute the actual Amnk matrix :
          if (iproc==0) then
-            write(*,*) '!==================================!'
-            write(*,*) '! Calculating amnk=<virt|sph_har>  !'
-            write(*,*) '!       in pre-check mode :        !'
-            write(*,*) '!==================================!'
-            write(*,'(A12,4x,A15)') 'Virtual band', 'amnk_guess(nb)='
+            call yaml_comment('',hfill='=')
+            call yaml_comment('Calculating amnk=<virt|sph_har> in pre-check mode')
+            call yaml_comment('',hfill='=')
+            !write(*,*) '!==================================!'
+            !write(*,*) '! Calculating amnk=<virt|sph_har>  !'
+            !write(*,*) '!       in pre-check mode :        !'
+            !write(*,*) '!==================================!'
+            !write(*,'(A12,4x,A15)') 'Virtual band', 'amnk_guess(nb)='
          end if
 
          !calculate buffer shifts
@@ -399,7 +424,11 @@ program BigDFT2Wannier
                   amnk_guess(nb)= amnk_guess(nb) + amnk(nb,np)*amnk(nb,j)*overlap_proj(np,j)
                end do
             end do
-            if (iproc==0) write(*,'(I4,11x,F12.6)') nb, sqrt(amnk_guess(nb))
+            if (iproc==0) then
+               call yaml_map('Virtual band',nb)
+               call yaml_map('amnk_guess(nb)',sqrt(amnk_guess(nb)))
+            end if
+            !if (iproc==0) write(*,'(I4,11x,F12.6)') nb, sqrt(amnk_guess(nb))
          end do
 
          ! Choice of the unoccupied orbitals to calculate the Amnk matrix
@@ -969,21 +998,25 @@ program BigDFT2Wannier
       call timing(iproc,'Input_comput  ','OF')
 
 
-call timing(iproc,'             ','RE')
+call timing(bigdft_mpi%mpi_comm,'             ','RE')
 
 call cpu_time(tcpu1)
 call system_clock(ncount1,ncount_rate,ncount_max)
 tel=dble(ncount1-ncount0)/dble(ncount_rate)
 if (iproc == 0) &
    &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0 
-!finalize memory counting
-call memocc(0,0,'count','stop')
 
 
-! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
-call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!!$!finalize memory counting
+!!$call memocc(0,0,'count','stop')
 
-call MPI_FINALIZE(ierr)
+
+call bigdft_finalize(ierr)
+
+!!$! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
+!!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!!$
+!!$call MPI_FINALIZE(ierr)
 
 contains
 
@@ -1156,7 +1189,8 @@ subroutine final_deallocations()
   call deallocate_comms(commsb,subname) 
   !call deallocate_atoms_scf(atoms,subname)
   call deallocate_atoms(atoms,subname)
-  call free_input_variables(input)
+!  call free_input_variables(input)
+  call bigdft_free_input(input)
 
 END SUBROUTINE final_deallocations
 END PROGRAM BigDFT2Wannier

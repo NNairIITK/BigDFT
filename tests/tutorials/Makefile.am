@@ -15,8 +15,7 @@ else
   TESTDIRS += N2
 endif
 
-EXTRA_DIST = $(TESTDIRS) \
-     Figures \
+EXTRA_DIST = Figures \
      H1A_first_run.html \
      H1B_grid_cv.html \
      H1C_basic_surfaces.html \
@@ -42,18 +41,23 @@ EXTRA_DIST = $(TESTDIRS) \
      Wannier
 
 # Additional post-in commands
-H2O-bader.post-in :
-	cp -f input-all.dft input.dft
 # Remove HF.perf in case of acceleration
 N2.post-in :
 	rm -f input.perf
+
+AM_LDFLAGS = -L$(top_builddir)/src
+if BUILD_DYNAMIC_LIBS
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+else
+LIBS += @LIBS_SHORT_DEPS@
+endif
 
 
 # Additional rules for the dev tutorial.
 dev.check: dev/toy_model
 dev/toy_model toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90
 	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90 \
-			$(LDFLAGS) $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@ $(LIBS)
+			$(AM_LDFLAGS) $(LDFLAGS) -lbigdft-1 $(LIBS)
 toy_model.dat.out: dev-N2.out.out toy_model 
 	./toy_model > toy_model.dat.out
 dev.post-clean:

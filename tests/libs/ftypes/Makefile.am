@@ -4,18 +4,29 @@ SUBDIRS =
 
 check_PROGRAMS = check_lib_c check_client_signals
 
+AM_LDFLAGS = -L$(top_builddir)/src
+if BUILD_DYNAMIC_LIBS
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+else
+LIBS += @LIBS_SHORT_DEPS@
+endif
+
 check_lib_c_SOURCES = check_lib_c.c
 check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules @GLIB_CFLAGS@
-check_lib_c_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@ @FCLIBS@
+check_lib_c_LDADD = -lbigdft-1 @FCLIBS@ @GLIB_LIBS@
 
 check_client_signals_SOURCES = check_client_signals.c
 check_client_signals_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_srcdir)/src/lib -I$(top_builddir)/src/modules @GLIB_CFLAGS@
-check_client_signals_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@ @FCLIBS@
+check_client_signals_LDADD = -lbigdft-1 @FCLIBS@ @GLIB_LIBS@
 
 EXTRA_DIST = bindings.out.ref signals.out.ref posinp.ascii test.dft
 CLEANFILES = bindings.out bindings.report output.ascii default.* forces_test.ascii test.perf signals.out signals.report time.yaml
 
 check: bindings.report signals.report
+
+if BUILD_DYNAMIC_LIBS
+LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/src
+endif
 
 #check_lib_c: $(top_builddir)/src/libbigdft.a
 
@@ -40,6 +51,7 @@ signals.out: check_client_signals posinp.ascii $(srcdir)/test.dft
         fi
 	@echo "signaling T" > test.perf
 	@echo "signalTimeout 15" >> test.perf
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft test > server.log &
 	sleep 3s; ./check_client_signals > $@
 	@if ! test x"$(srcdir)" = x"." ; then \

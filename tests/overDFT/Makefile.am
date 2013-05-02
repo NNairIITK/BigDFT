@@ -14,6 +14,8 @@ TESTDIRS = \
            testforces \
 	   IO-wf
 
+EXTRA_DIST = MH_taskgroups
+
 if HAVE_ETSF_IO
 TESTDIRS += IO-wf-ETSF
 endif
@@ -23,11 +25,6 @@ endif
 if USE_MINIMA_HOPPING
 TESTDIRS += MINHOP
 endif
-
-
-EXTRA_DIST = \
-        $(TESTDIRS) \
-	MINHOP
 
 # Give here the pseudo-potentials used by each test.
 H2-freq.psp: psppar.H
@@ -90,7 +87,7 @@ H2O-slab.post-in:
 
 # Additional reference for geopt.mon test
 global.mon.out : test.minhop.out
-	cp -f global.mon $@
+	cp -f data/global.mon $@
 #	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy="5e-9" global.mon global.mon.ref | tee global.mon.report
 
 # Additional run rules.
@@ -100,16 +97,19 @@ InputGenPot.xabs.post-out:
 
 #introduce specific targets for export-wavefunctions
 IO-wf_plain.cube: 
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(abs_top_builddir)/src/bigdft-tool --name plain-read -a export-wf data-plain-read/wavefunction-k002-DI.b0003 >> IO-wf_plain.out.out
 	mv wavefunction-k002-DI.b0003.cube wf_plain.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
 IO-wf_binary.cube: 
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(abs_top_builddir)/src/bigdft-tool --name binary-read -a export-wf data-binary-read/wavefunction-k002-DI.bin.b0003 >> IO-wf_binary.out.out
 	mv wavefunction-k002-DI.b0003.cube wf_binary.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
 IO-wf_ETSF.cube: 
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(abs_top_builddir)/src/bigdft-tool --name read -a export-wf data-read/wavefunction.etsf --i-band 3 --i-spin 2 --i-kpt 2 --i-complex 2 >> IO-wf-ETSF_write.out.out
 	mv wavefunction-k002-DI.b0003.cube wf_etsf.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*

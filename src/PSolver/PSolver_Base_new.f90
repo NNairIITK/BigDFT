@@ -189,7 +189,8 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
 
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
 
-  !$omp parallel sections default(shared)
+  !$omp parallel sections default(shared)&
+  !$omp private(j)
   !$omp section
     call ctrig_sg(n3dim,ntrig,btrig3,after3,before3,now3,1,ic3)
     do j = 1, n3dim
@@ -236,7 +237,6 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
   !array is refilled always the same way
   !zw=0.0_dp
   !call razero(4*(ncache/4),zw)
-
   !different loop if halfft or not (output part)
 
   maxIter = min(md2 /nproc, n2dim - iproc *(md2 /nproc))
@@ -244,7 +244,7 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
   if (n3pr1 > 1) allocate( zt_t(2,lzt/n3pr1, n1p+ndebug), stat=i_stat )
 
 !$omp parallel default(shared)&
-  !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp, zw, zt) &
+  !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp, zw, zt,j2,i1,i) &
   !$omp firstprivate(lot, maxIter)
 !  !$omp firstprivate(before3, now3, after3)
   
