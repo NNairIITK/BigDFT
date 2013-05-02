@@ -1132,97 +1132,9 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 
 END SUBROUTINE reformat_one_supportfunction
 
-!call the routine which performs the interpolation in each direction
-subroutine interpolate_and_transpose(h,t0,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
- use module_base
- implicit none
- integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
- integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
- integer, intent(in) :: nin,nout !< sizes of the input and output array in interpolating direction
- integer, intent(in) :: ndat !< size of the array in orthogonal directions
- real(gp), intent(in) :: h !< grid spacing in the interpolating direction
- real(gp), intent(in) :: t0 !< shift in the interpolating direction in grid spacing units
- real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
- real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
- real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
- !local variables
- character(len=*), parameter :: subname='interpolate_and_transpose'
- integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me
- real(gp) :: dt, tt
- real(gp), dimension(:), allocatable :: shf !< shift filter
-
- !assume for the moment that the grid spacing is constant
-	 
- m_isf=nrange/2
- !calculate the shift filter for the given t0
- allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
- call memocc(i_stat,shf,'shf',subname)
-
- !number of points for a unit displacement
- nunit=nphi/nrange 
- !this should be number between -0.5 and 0.5
- dt=t0-nint(t0)
- !evaluate the shift
- ish=nint(real(nunit,gp)*dt)
-
-!print *,'start interpolation',ish,real(nunit,gp)*dt,dt
-
- if (ish<=0) then
-   shf(-m_isf)=0.0_gp
- else
-   shf(-m_isf)=phi(ish)  
- end if 
- ipos=ish
-
- do i=-m_isf+1,m_isf-1 !extremes excluded
-   !position of the shifted argument in the phi array
-   ipos=ipos+nunit
-   shf(i)=phi(ipos)  
- end do
-
- if (ish<=0) then
-   shf(m_isf)=phi(ipos+nunit)
- else
-   shf(m_isf)=0.0_gp
- end if 
-
- !define the shift for output results
- ish=nint(t0)
-
-!print *,'start interpolation',ish,t0,shf
-
-!do i=-m_isf,m_isf
-!write(104,*)i,shf(i)
-!end do
-
- !apply the interpolating filter to the output
- do j=1,ndat
-   psi_out(j,:)=0.0_gp
-   do i=1,nin
-     !here the boundary conditions have to be considered
-      tt=0.0_gp
-      ms=-min(m_isf,i-1)
-      me=min(m_isf,nin-i)
-      do l=ms,me
-         tt=tt+shf(l)*psi_in(i+l,j)
-      end do
-!      tt=h*tt
-      
-      if (i+ish > 0 .and. i+ish < nout) psi_out(j,i+ish)=tt
-	!if (i+ish > 0 .and. i+ish < nout)       write(102,*)i+ish,psi_out(j,i+ish)
-   end do
- end do
-
-
-
- i_all=-product(shape(shf))*kind(shf)
- deallocate(shf,stat=i_stat)
- call memocc(i_stat,i_all,'shf',subname)
-
-end subroutine interpolate_and_transpose
 
 !call the routine which performs the interpolation in each direction
-subroutine my_morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
+subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
  use module_base
  implicit none
  integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
@@ -1235,7 +1147,7 @@ subroutine my_morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,
  real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
  real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
  !local variables
- character(len=*), parameter :: subname='my_morph_and_transpose'
+ character(len=*), parameter :: subname='morph_and_transpose'
  real(gp), parameter  :: tol=1.e-14_gp
  integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me,k2,k1
  real(gp) :: dt,tt,t0_l,ksh1,ksh2,k,kold,alpha,diff
@@ -1354,7 +1266,7 @@ subroutine my_morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,
  deallocate(shf,stat=i_stat)
  call memocc(i_stat,i_all,'shf',subname)
 
-end subroutine my_morph_and_transpose
+end subroutine morph_and_transpose
 
 
 subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
@@ -1536,13 +1448,13 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,cen
        hgrids_new,ndims_new,dx,dy,dz)
   
   !perform interpolation
-  call my_morph_and_transpose(dx,n_phi,nrange_phi,phi_ISF,ndims_old(2)*ndims_old(3),&
+  call morph_and_transpose(dx,n_phi,nrange_phi,phi_ISF,ndims_old(2)*ndims_old(3),&
          ndims_old(1),f_old,ndims_new(1),work)
   
-  call my_morph_and_transpose(dy,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_old(3),&
+  call morph_and_transpose(dy,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_old(3),&
          ndims_old(2),work,ndims_new(2),work2)
 
-  call my_morph_and_transpose(dz,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_new(2),&
+  call morph_and_transpose(dz,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_new(2),&
          ndims_old(3),work2,ndims_new(3),f_new)
   
   call f_free(dx)
@@ -1554,27 +1466,5 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,cen
   call f_release_routine()
 end subroutine field_rototranslation
  
-!> Express the coordinates of a vector into a rotated reference frame
-subroutine rotate_vector(newz,theta,vec,vecn)
-   use module_base
-   implicit none
-   real(gp), intent(in) :: theta
-   real(gp), dimension(3), intent(in) :: newz,vec
-   real(gp), dimension(3), intent(out) :: vecn
-   !local variables
-   real(gp) :: sint,cost,onemc,x,y,z
 
-   !save recalculation
-   sint=sin(theta)
-   cost=cos(theta)
-   onemc=1.0_gp-cost
-   x=vec(1)
-   y=vec(2)
-   z=vec(3)
-
-   vecn(1)=x*(cost + onemc*newz(1)**2) + y*(onemc*newz(1)*newz(2) - sint*newz(3)) + z*(sint*newz(2) + onemc*newz(1)*newz(3))
-   vecn(2)=y*(cost + onemc*newz(2)**2) + x*(onemc*newz(1)*newz(2) + sint*newz(3)) + z*(-(sint*newz(1)) + onemc*newz(2)*newz(3))
-   vecn(3)=z*(cost + onemc*newz(3)**2) + x*(onemc*newz(1)*newz(3) - sint*newz(2)) + y*(sint*newz(1) + onemc*newz(2)*newz(3))
-
-end subroutine
 

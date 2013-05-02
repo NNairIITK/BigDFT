@@ -12,11 +12,19 @@ sparsity:  0.00%
 total elements: 3600
 non-zero elements: 3600
 sparsity:  0.00%
--  {Process:  3, Timing:  [  4.233E+01,  4.312E+01 ]}
--  {Process:  1, Timing:  [  4.259E+01,  4.375E+01 ]}
--  {Process:  4, Timing:  [  4.273E+01,  4.392E+01 ]}
--  {Process:  2, Timing:  [  4.310E+01,  4.406E+01 ]}
--  {Process:  5, Timing:  [  4.335E+01,  4.439E+01 ]}
+ Overview of the reformatting (several categories may apply):
+   - No reformatting required: 0
+   - Grid spacing has changed: 0
+   - Number of coarse grid points has changed: 6
+   - Number of fine grid points has changed: 6
+   - Box size has changed: 2
+   - Molecule was shifted: 6
+   - Molecule was rotated: 0
+-  {Process:  5-  {-  {, Timing:  [  4.228E+01,  4.318E+01 ]}
+-  {Process:  1Process:  4Process:  2, Timing:  [  4.237E+01,  4.317E+01 ]}
+, Timing:  [  4.219E+01,  4.318E+01 ]}
+, Timing:  [  4.263E+01,  4.316E+01 ]}
+-  {Process:  3, Timing:  [  4.214E+01,  4.316E+01 ]}
 coeff renormalization... calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.999999879558E+01
  ************************************************************************************
@@ -187,12 +195,13 @@ total elements: 3600
 non-zero elements: 3600
 sparsity:  0.00%
  Overview of the reformatting (several categories may apply):
-   - No reformating required: 60
+   - No reformatting required: 60
    - Grid spacing has changed: 0
-   - number of coarse grid points has changed: 0
-   - number of fine grid points has changed: 0
-   - box size has changed: 0
-   - molecule was shifted: 0
+   - Number of coarse grid points has changed: 0
+   - Number of fine grid points has changed: 0
+   - Box size has changed: 0
+   - Molecule was shifted: 0
+   - Molecule was rotated: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.999999910921E+01
  ************************************************************************************
@@ -363,12 +372,13 @@ total elements: 3600
 non-zero elements: 3600
 sparsity:  0.00%
  Overview of the reformatting (several categories may apply):
-   - No reformating required: 0
+   - No reformatting required: 0
    - Grid spacing has changed: 0
-   - number of coarse grid points has changed: 60
-   - number of fine grid points has changed: 60
-   - box size has changed: 0
-   - molecule was shifted: 60
+   - Number of coarse grid points has changed: 60
+   - Number of fine grid points has changed: 60
+   - Box size has changed: 37
+   - Molecule was shifted: 60
+   - Molecule was rotated: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.999999881152E+01
  ************************************************************************************
@@ -539,12 +549,13 @@ total elements: 3600
 non-zero elements: 3600
 sparsity:  0.00%
  Overview of the reformatting (several categories may apply):
-   - No reformating required: 0
+   - No reformatting required: 0
    - Grid spacing has changed: 0
-   - number of coarse grid points has changed: 60
-   - number of fine grid points has changed: 56
-   - box size has changed: 0
-   - molecule was shifted: 60
+   - Number of coarse grid points has changed: 60
+   - Number of fine grid points has changed: 56
+   - Box size has changed: 29
+   - Molecule was shifted: 60
+   - Molecule was rotated: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.999999868934E+01
  ************************************************************************************
@@ -715,12 +726,13 @@ total elements: 3600
 non-zero elements: 3600
 sparsity:  0.00%
  Overview of the reformatting (several categories may apply):
-   - No reformating required: 0
+   - No reformatting required: 0
    - Grid spacing has changed: 0
-   - number of coarse grid points has changed: 60
-   - number of fine grid points has changed: 60
-   - box size has changed: 0
-   - molecule was shifted: 60
+   - Number of coarse grid points has changed: 60
+   - Number of fine grid points has changed: 60
+   - Box size has changed: 27
+   - Molecule was shifted: 60
+   - Molecule was rotated: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.999997582004E+01
  ************************************************************************************

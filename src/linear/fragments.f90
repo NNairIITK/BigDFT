@@ -1,6 +1,7 @@
 !> Define important structures and methods to manipulate embedding systems
 module fragments
   use module_base, only: gp,wp
+  use module_types
   use dynamic_memory
   implicit none
 
@@ -69,6 +70,7 @@ contains
   pure function fragment_null() result(frag)
     implicit none
     type(system_fragment) :: frag
+
     frag%nat_frg=0
     frag%nat_env=0
     nullify(frag%rxyz_frg)
@@ -81,13 +83,12 @@ contains
 
     basis%npsidim_orbs=0
     basis%npsidim_comp=0
-    call nullify_local_zone_descriptors()
-    !basis%lzd=local_zone_descriptors_null()
+    basis%lzd=local_zone_descriptors_null()
     basis%forbs=minimal_orbitals_data_null()
     nullify(basis%psi)
-  end function fragment_null
+  end function fragment_basis_null
 
-  subroutine minimal_orbitals_data_free() result(forbs)
+  subroutine minimal_orbitals_data_free(forbs)
     implicit none
     type(minimal_orbitals_data), intent(inout) :: forbs
 
@@ -109,7 +110,7 @@ contains
     call minimal_orbitals_data_free(basis%forbs)
     if (associated(basis%psi)) call f_free_ptr(basis%psi)
     basis=fragment_basis_null()
-  end subroutine fragment_free
+  end subroutine fragment_basis_free
 
   subroutine fragment_free(frag)
     implicit none
@@ -119,6 +120,22 @@ contains
     if (associated(frag%rxyz_env)) call f_free_ptr(frag%rxyz_env)
     frag=fragment_null()
   end subroutine fragment_free
+
+  subroutine fragment_allocate(frag)
+    implicit none
+    type(system_fragment), intent(inout) :: frag
+  
+    call f_routine(id='fragment_allocate')
+
+    frag%iatype=f_malloc_ptr(frag%nat_frg+frag%nat_env,id='frag%iatype')
+    !frag%atomnames=f_malloc_ptr(frag%ntypes,id='frag%atomnames') ! fmalloc objection to character here
+    frag%rxyz_frg=f_malloc_ptr((/3,frag%nat_frg/),id='frag%rxyz_frg')
+    frag%rxyz_env=f_malloc_ptr((/3,frag%nat_env/),id='frag%rxyz_env')
+
+    call f_release_routine()
+
+  end subroutine fragment_allocate
+
 
   pure function frg_center(frag)
     implicit none
@@ -135,34 +152,86 @@ contains
 
   end function frg_center
 
-  pure function transform_fragment(trans,frag) result(frag_new)
+  function transform_fragment(trans,frag) result(frag_new)
     implicit none
     type(fragment_transformation), intent(in) :: trans
     type(system_fragment), intent(in) :: frag
     type(system_fragment) :: frag_new
 
+    ! local variables
+    integer :: iat
+
     frag_new=fragment_null()
+    frag_new%nat_frg=frag%nat_frg
+    frag_new%nat_env=frag%nat_env
+    frag_new%ntypes=frag%ntypes
+
+    ! allocate arrays here, leave fragment_basis nullified
+    call fragment_allocate(frag_new)
+
+    ! do fragment first, then environment
+    do iat=1,frag%nat_frg
+       frag_new%rxyz_frg(:,iat)=rotate_vector(trans%rot_axis,trans%theta,frag%rxyz_frg(:,iat)-trans%rot_center(:))
+       frag_new%rxyz_frg(:,iat)=frag_new%rxyz_frg(:,iat)+trans%rot_center(:)+trans%dr(:)
+    end do
+
+    do iat=1,frag%nat_env
+       frag_new%rxyz_env(:,iat)=rotate_vector(trans%rot_axis,trans%theta,frag%rxyz_env(:,iat)-trans%rot_center(:))
+       frag_new%rxyz_env(:,iat)=frag_new%rxyz_env(:,iat)+trans%rot_center(:)+trans%dr(:)
+    end do
+
+    ! to complete should copy across iatype and atomnames but only using as a check to see how effective trans is
 
   end function transform_fragment
 
-  pure function transform_fragment_basis(trans,basis) result(basis_new)
-    implicit none
-    type(fragment_transformation), intent(in) :: trans
-    type(fragment_basis), intent(in) :: basis
-    type(fragment_basis) :: basis_new
 
-    basis_new=fragment_basis_null()
 
-    ! minimal_orbitals_data should remain the same
-  ! want to have defined new lzd already?  in which case not a pure function...
+  !> Express the coordinates of a vector into a rotated reference frame
+  pure function rotate_vector(newz,theta,vec) result(vecn)
+     use module_base
+     implicit none
+     real(gp), intent(in) :: theta
+     real(gp), dimension(3), intent(in) :: newz,vec
+     real(gp), dimension(3) :: vecn
+     !local variables
+     real(gp) :: sint,cost,onemc,x,y,z
 
-  !   integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
-  !   integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
-  !   type(local_zone_descriptors) :: Lzd
-  !   type(minimal_orbitals_data) :: forbs
-  !   real(wp), dimension(:), pointer :: psi
+     !save recalculation
+     sint=sin(theta)
+     cost=cos(theta)
+     onemc=1.0_gp-cost
+     x=vec(1)
+     y=vec(2)
+     z=vec(3)
 
-  end transform_fragment_basis(trans,basis) 
+     vecn(1)=x*(cost + onemc*newz(1)**2) + y*(onemc*newz(1)*newz(2) - sint*newz(3)) &
+          + z*(sint*newz(2) + onemc*newz(1)*newz(3))
+     vecn(2)=y*(cost + onemc*newz(2)**2) + x*(onemc*newz(1)*newz(2) + sint*newz(3)) &
+          + z*(-(sint*newz(1)) + onemc*newz(2)*newz(3))
+     vecn(3)=z*(cost + onemc*newz(3)**2) + x*(onemc*newz(1)*newz(3) - sint*newz(2)) &
+          + y*(sint*newz(1) + onemc*newz(2)*newz(3))
+
+  end function rotate_vector
+
+  !pure function transform_fragment_basis(trans,basis) result(basis_new)
+  !  implicit none
+  !  type(fragment_transformation), intent(in) :: trans
+  !  type(fragment_basis), intent(in) :: basis
+  !  type(fragment_basis) :: basis_new
+
+  !  basis_new=fragment_basis_null()
+
+  !  ! minimal_orbitals_data should remain the same
+  !! want to have defined new lzd already?  in which case not a pure function...
+
+  !!   integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+  !!   integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+  !!   type(local_zone_descriptors) :: Lzd
+  !!   type(minimal_orbitals_data) :: forbs
+  !!   real(wp), dimension(:), pointer :: psi
+
+  !end function transform_fragment_basis
+
 
 end module fragments
 

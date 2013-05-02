@@ -15,12 +15,12 @@ EXTRA_TESTDIRS = water \
                  molecule \
                  deltascf \
                  reformat \
-		         paracetamol \
-               rotate \
-               rotate2 \
-               rotate3 \
-               shift
-#paracetamol move temporary
+		         paracetamol
+#               rotate \
+#               rotate2 \
+#               rotate3 \
+#               shift
+
 
 EXTRA_DIST = 
 

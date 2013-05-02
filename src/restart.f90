@@ -2128,7 +2128,7 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
           tt=tt+real(phi(ind1),kind=8)**2
       end do
       tt=sqrt(tt)
-      if (abs(tt-1.d0) > 1.d-8) then
+      if (abs(tt-1.d0) > 1.d-3) then
          write(*,*)'wrong phi_old',iiorb,tt
          !stop 
       end if
