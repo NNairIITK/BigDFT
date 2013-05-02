@@ -179,7 +179,58 @@ subroutine mpi_environment_set(mpi_env,iproc,nproc,mpi_comm,groupsize)
         end if
      end if
   end if
+
 end subroutine mpi_environment_set
+
+!!! PSolver n1-n2 plane mpi partitioning !!! 
+
+subroutine mpi_environment_set2(mpi_env,iproc,nproc,mpi_comm,groupsize)
+  use module_base
+  use yaml_output
+  implicit none
+  integer, intent(in) :: iproc,nproc,mpi_comm,groupsize
+  type(mpi_environment), intent(out) :: mpi_env
+
+  mpi_env=mpi_environment_null()
+
+  mpi_env%mpi_comm=mpi_comm
+
+  mpi_env%igroup=iproc/groupsize
+  mpi_env%ngroup=nproc/groupsize
+  mpi_env%iproc=mod(iproc,groupsize)
+  mpi_env%nproc=groupsize
+  call create_group_comm(mpi_comm,nproc,mpi_env%igroup,mpi_env%nproc,mpi_env%mpi_comm)
+  if (iproc == 0) then
+      call yaml_map('Total No. of Taskgroups created',nproc/mpi_env%nproc)
+  end if
+
+end subroutine mpi_environment_set2
+
+
+subroutine mpi_environment_set1(mpi_env,iproc,nproc,mpi_comm,groupsize,ngroup)
+  use module_base
+  use yaml_output
+  implicit none
+  integer, intent(in) :: iproc,nproc,mpi_comm,groupsize,ngroup
+  type(mpi_environment), intent(out) :: mpi_env
+
+  mpi_env=mpi_environment_null()
+
+  mpi_env%igroup=-1
+
+  mpi_env%ngroup=ngroup
+  if (iproc < groupsize*ngroup) mpi_env%igroup=mod(iproc,ngroup)
+  mpi_env%iproc=iproc/ngroup
+  mpi_env%nproc=groupsize
+  mpi_env%mpi_comm=mpi_comm
+  call create_group_comm1(mpi_comm,nproc,mpi_env%igroup,ngroup,mpi_env%nproc,mpi_env%mpi_comm)
+  if (iproc == 0) then
+    call yaml_map('Total No. of Taskgroups created',ngroup)
+  end if
+
+end subroutine mpi_environment_set1
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 !>todo: remove n1i and n2i

@@ -784,6 +784,8 @@ module module_types
 !     integer :: mpi_comm
      type(mpi_environment) :: mpi_env
      integer :: igpu !< control the usage of the GPU
+     integer :: initCufftPlan
+     integer :: keepGPUmemory
   end type coulomb_operator
 
   !> Densities and potentials, and related metadata, needed for their creation/application
@@ -1285,6 +1287,8 @@ END SUBROUTINE deallocate_orbs
 
     !initialise the acceleration strategy if required
     call init_material_acceleration(iproc,matacc,rst%GPU)
+
+    md2plus=.false.
 
   END SUBROUTINE init_restart_objects
 

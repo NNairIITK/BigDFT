@@ -66,6 +66,9 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   !gpu acceleration
   kernel%igpu=igpu  
 
+  kernel%initCufftPlan = 0
+  kernel%keepGPUmemory = 1
+
   if (iproc == 0 .and. verb) then 
      if (mu0t==0.0_gp) then 
         call yaml_comment('Kernel Initialization',hfill='-')
@@ -115,9 +118,17 @@ subroutine pkernel_free(kernel,subname)
   !free GPU data
   if (kernel%igpu == 1) then
     if (kernel%mpi_env%iproc == 0) then
-     call cudafree(kernel%work1_GPU)
-     call cudafree(kernel%work2_GPU)
+     if (kernel%keepGPUmemory == 1) then
+       call cudafree(kernel%work1_GPU)
+       call cudafree(kernel%work2_GPU)
+     endif
      call cudafree(kernel%k_GPU)
+     if (kernel%initCufftPlan == 1) then
+       call cufftDestroy(kernel%plan(1))
+       call cufftDestroy(kernel%plan(2))
+       call cufftDestroy(kernel%plan(3))
+       call cufftDestroy(kernel%plan(4))
+     endif
     endif
   end if
   
@@ -178,6 +189,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   real(kind=8) :: alphat,betat,gammat,mu0t
   real(kind=8), dimension(:), allocatable :: pkernel2
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,i_all,kernelnproc
+  integer :: n3pr1,n3pr2,n3pr2_reduced
   integer,dimension(3) :: n
 
   call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
@@ -216,9 +228,39 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      endif
      call memocc(i_stat,kernel%kernel,'kernel',subname)
 
+     !!! PSolver n1-n2 plane mpi partitioning !!!   
+
+     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
+       n3pr1=kernel%mpi_env%nproc/(n3/2+1)
+       n3pr2=n3/2+1
+       md2plus=.false.
+       if ((md2/kernel%mpi_env%nproc)*n3pr1*n3pr2 < n2) then
+           md2plus=.true.
+       endif
+
+       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) print*,'PSolver n1-n2 plane mpi partitioning activated:',n3pr1,'x',n3pr2
+       !$omp master
+       if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
+                                             kernel%mpi_env%mpi_comm,n3pr1,n3pr2)
+       !$omp end master
+       !$omp barrier
+     else
+       n3pr1=1
+       n3pr2=kernel%mpi_env%nproc
+     endif
+
+     !$omp master
+     call mpi_environment_set2(part_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc,kernel%mpi_env%mpi_comm,n3pr2)
+     !$omp end master
+     !$omp barrier
+
+     ! n3pr1, n3pr2 are sent to Free_Kernel subroutine below
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
      call Periodic_Kernel(n1,n2,n3,nd1,nd2,nd3,&
           kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
-          kernel%itype_scf,kernel%kernel,kernel%mpi_env%iproc,kernelnproc,mu0t,alphat,betat,gammat)
+          kernel%itype_scf,kernel%kernel,kernel%mpi_env%iproc,kernelnproc,mu0t,alphat,betat,gammat,n3pr2,n3pr1)
 
      nlimd=n2
      nlimk=n3/2+1
@@ -239,10 +281,40 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      endif
      call memocc(i_stat,kernel%kernel,'kernel',subname)
 
+     !!! PSolver n1-n2 plane mpi partitioning !!!   
+
+     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
+       n3pr1=kernel%mpi_env%nproc/(n3/2+1)
+       n3pr2=n3/2+1
+       md2plus=.false.
+       if ((md2/kernel%mpi_env%nproc)*n3pr1*n3pr2 < n2) then
+           md2plus=.true.
+       endif
+
+       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) print*,'PSolver n1-n2 plane mpi partitioning activated:',n3pr1,'x',n3pr2
+       !$omp master
+       if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
+                                             kernel%mpi_env%mpi_comm,n3pr1,n3pr2)
+       !$omp end master
+       !$omp barrier
+     else
+       n3pr1=1
+       n3pr2=kernel%mpi_env%nproc
+     endif
+
+     !$omp master
+     call mpi_environment_set2(part_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc,kernel%mpi_env%mpi_comm,n3pr2)
+     !$omp end master
+     !$omp barrier
+
+     ! n3pr1, n3pr2 are sent to Free_Kernel subroutine below
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
      !the kernel must be built and scattered to all the processes
      call Surfaces_Kernel(kernel%mpi_env%iproc,kernelnproc,kernel%mpi_env%mpi_comm,n1,n2,n3,m3,nd1,nd2,nd3,&
           kernel%hgrids(1),kernel%hgrids(3),kernel%hgrids(2),&
-          kernel%itype_scf,kernel%kernel,mu0t,alphat,betat,gammat)
+          kernel%itype_scf,kernel%kernel,mu0t,alphat,betat,gammat,n3pr2,n3pr1)
 
      !last plane calculated for the density and the kernel
      nlimd=n2
@@ -257,7 +329,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      !Build the Kernel
      call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
           md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu)
-  
+ 
      if (kernel%igpu == 2) then
        allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
      else
@@ -266,10 +338,39 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
      call memocc(i_stat,kernel%kernel,'kernel',subname)
 
+     !!! PSolver n1-n2 plane mpi partitioning !!!   
+ 
+     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
+       n3pr1=kernel%mpi_env%nproc/(n3/2+1)
+       n3pr2=n3/2+1
+       md2plus=.false.
+       if ((md2/kernel%mpi_env%nproc)*n3pr1*n3pr2 < n2/2) then
+           md2plus=.true.
+       endif
+
+       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) print*,'PSolver n1-n2 plane mpi partitioning activated:',n3pr1,'x',n3pr2
+       !$omp master
+       if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
+                                             kernel%mpi_env%mpi_comm,n3pr1,n3pr2)
+       !$omp end master
+       !$omp barrier
+     else
+       n3pr1=1
+       n3pr2=kernel%mpi_env%nproc
+     endif
+
+     !$omp master
+     call mpi_environment_set2(part_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc,kernel%mpi_env%mpi_comm,n3pr2)
+     !$omp end master
+     !$omp barrier
+
+     ! n3pr1, n3pr2 are sent to Free_Kernel subroutine below
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
      !the kernel must be built and scattered to all the processes
      call Free_Kernel(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
           n1,n2,n3,nd1,nd2,nd3,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
-          kernel%itype_scf,kernel%mpi_env%iproc,kernelnproc,kernel%kernel,mu0t)
+          kernel%itype_scf,kernel%mpi_env%iproc,kernelnproc,kernel%kernel,mu0t,n3pr2,n3pr1)
 
      !last plane calculated for the density and the kernel
      nlimd=n2/2
@@ -288,6 +389,35 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      else
        allocate(kernel%kernel(nd1*nd2*(nd3/kernelnproc)+ndebug),stat=i_stat)
      endif
+
+     !!! PSolver n1-n2 plane mpi partitioning !!!   
+
+     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
+       n3pr1=kernel%mpi_env%nproc/(n3/2+1)
+       n3pr2=n3/2+1
+       md2plus=.false.
+       if ((md2/kernel%mpi_env%nproc)*n3pr1*n3pr2 < n2) then
+           md2plus=.true.
+       endif
+
+       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) print*,'PSolver n1-n2 plane mpi partitioning activated:',n3pr1,'x',n3pr2
+       !$omp master
+       if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
+                                             kernel%mpi_env%mpi_comm,n3pr1,n3pr2)
+       !$omp end master
+       !$omp barrier
+     else
+       n3pr1=1
+       n3pr2=kernel%mpi_env%nproc
+     endif
+
+     !$omp master
+     call mpi_environment_set2(part_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc,kernel%mpi_env%mpi_comm,n3pr2)
+     !$omp end master
+     !$omp barrier
+
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
      call Wires_Kernel(kernel%mpi_env%iproc,kernelnproc,&
           kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
@@ -380,10 +510,12 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
    if (kernel%mpi_env%iproc == 0) then
     if (kernel%igpu == 1) then
-      call cudamalloc(size2,kernel%work1_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
-      call cudamalloc(size2,kernel%work2_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (kernel%keepGPUmemory == 1) then
+        call cudamalloc(size2,kernel%work1_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(size2,kernel%work2_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      endif
       call cudamalloc(sizek,kernel%k_GPU,i_stat)
       if (i_stat /= 0) print *,'error cudamalloc',i_stat
     endif
@@ -434,12 +566,15 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
     if (kernel%igpu == 1) then 
       call reset_gpu_data((n1/2+1)*n2*n3,pkernel2,kernel%k_GPU)
 
+      if (dump) call yaml_map('Kernel Copied on GPU',.true.)
+
       n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
       n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
       n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
 
-      call cuda_3d_psolver_general_plan(n,kernel%plan,switch_alg,kernel%geo)
-     if (dump) call yaml_map('Kernel Copied on GPU',.true.)
+      if (kernel%initCufftPlan == 1) then
+        call cuda_3d_psolver_general_plan(n,kernel%plan,switch_alg,kernel%geo)
+      endif
     endif
 
     i_all=-product(shape(pkernel2))*kind(pkernel2)

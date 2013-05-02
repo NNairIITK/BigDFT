@@ -200,6 +200,10 @@ module module_defs
   end type mpi_environment
 
   type(mpi_environment) :: bigdft_mpi
+  type(mpi_environment) :: inplane_mpi
+  type(mpi_environment) :: part_mpi
+
+  logical :: md2plus
 
   contains
 

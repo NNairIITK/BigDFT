@@ -105,7 +105,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   real(dp), dimension(:), allocatable :: zf1
   integer, dimension(:,:), allocatable :: gather_arr
   integer, dimension(3) :: n
-  integer :: size1,switch_alg
+  integer :: size1,size2,switch_alg
+  integer :: n3pr1,n3pr2
 
   cudasolver=.false.
 
@@ -182,7 +183,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   !here the case ncplx/= 1 should be added
 
   !array allocations
-  allocate(zf(md1,md3,md2/kernel%mpi_env%nproc+ndebug),stat=i_stat)
+  allocate(zf(md1,md3,2*md2/kernel%mpi_env%nproc+ndebug),stat=i_stat)
   call memocc(i_stat,zf,'zf',subname)
   !initalise to zero the zf array
   call to_zero(md1*md3*md2/kernel%mpi_env%nproc,zf(1,1,1))
@@ -244,6 +245,14 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
      size1=md1*md2*md3! nproc always 1 kernel%ndims(1)*kernel%ndims(2)*kernel%ndims(3)
 
+     if (kernel%keepGPUmemory == 0) then
+       size2=2*n1*n2*n3
+       call cudamalloc(size2,kernel%work1_GPU,i_stat)
+       if (i_stat /= 0) print *,'error cudamalloc',i_stat
+       call cudamalloc(size2,kernel%work2_GPU,i_stat)
+       if (i_stat /= 0) print *,'error cudamalloc',i_stat
+     endif
+
    if (kernel%mpi_env%nproc > 1) then
      allocate(zf1(md1*md3*md2),stat=i_stat)
      call memocc(i_stat,zf1,'zf1',subname)
@@ -258,8 +267,13 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
       switch_alg=0
 
-      call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
+      if (kernel%initCufftPlan == 1) then
+        call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
           kernel%k_GPU,switch_alg,kernel%geo,scal)
+      else
+        call cuda_3d_psolver_plangeneral(n,kernel%work1_GPU,kernel%work2_GPU, &
+          kernel%k_GPU,kernel%geo,scal)
+      endif
 
       !take data from GPU
       call get_gpu_data(size1,zf1,kernel%work1_GPU)
@@ -279,12 +293,23 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
      switch_alg=0
 
-     call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
+     if (kernel%initCufftPlan == 1) then
+        call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
           kernel%k_GPU,switch_alg,kernel%geo,scal)
+     else
+        call cuda_3d_psolver_plangeneral(n,kernel%work1_GPU,kernel%work2_GPU, &
+          kernel%k_GPU,kernel%geo,scal)
+     endif
+
 
      !take data from GPU
      call get_gpu_data(size1,zf,kernel%work1_GPU)
  
+   endif
+
+   if (kernel%keepGPUmemory == 0) then
+     call cudafree(kernel%work1_GPU)
+     call cudafree(kernel%work2_GPU)
    endif
 
   endif
@@ -1185,17 +1210,46 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
   !n(c) integer, parameter :: nordgr=4
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
   integer :: istart,iend,nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr
+  integer :: n3pr1,n3pr2
 
 
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+      if (nproc>2*(n3/2+1)-1) then
+       n3pr1=nproc/(n3/2+1)
+       n3pr2=n3/2+1
+       if ((md2/nproc)*n3pr1*n3pr2 < n2) then
+          md2=(md2/nproc+1)*nproc
+       endif
+     endif
   else if (geocode == 'S') then
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     if (nproc>2*(n3/2+1)-1) then
+       n3pr1=nproc/(n3/2+1)
+       n3pr2=n3/2+1
+       if ((md2/nproc)*n3pr1*n3pr2 < n2) then
+          md2=(md2/nproc+1)*nproc
+       endif
+     endif
   else if (geocode == 'F' .or. geocode == 'H') then
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     if (nproc>2*(n3/2+1)-1) then
+       n3pr1=nproc/(n3/2+1)
+       n3pr2=n3/2+1
+       if ((md2/nproc)*n3pr1*n3pr2 < n2/2) then
+          md2=(md2/nproc+1)*nproc 
+       endif
+     endif
   else if (geocode == 'W') then
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     if (nproc>2*(n3/2+1)-1) then
+       n3pr1=nproc/(n3/2+1)
+       n3pr2=n3/2+1
+       if ((md2/nproc)*n3pr1*n3pr2 < n2) then
+          md2=(md2/nproc+1)*nproc
+       endif
+     endif
   else
      write(*,*) geocode
      stop 'PS_dim4allocation: geometry code not admitted'
@@ -1355,6 +1409,7 @@ END SUBROUTINE xc_dimensions
 !!    October 2006
 !!
 subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+ use module_defs, only: md2plus
  implicit none
  integer, intent(in) :: n01,n02,n03,nproc
  integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
@@ -1409,6 +1464,8 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  end do
 !    goto 151
  !endif
+ 
+ if (md2plus) md2=(md2/nproc+1)*nproc
 
  !dimensions of the kernel, 1/8 of the total volume,
  !compatible with nproc
@@ -1519,6 +1576,7 @@ subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
     !endif
  end do
 
+ if (md2plus) md2=(md2/nproc+1)*nproc
 
  !dimensions of the kernel, 1/8 of the total volume,
  !compatible with nproc
@@ -1625,6 +1683,7 @@ subroutine W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
     !endif
  end do
 
+ if (md2plus) md2=(md2/nproc+1)*nproc
 
  !dimensions of the kernel, 1/8 of the total volume,
  !compatible with nproc
@@ -1673,6 +1732,7 @@ END SUBROUTINE W_FFT_dimensions
 !!    February 2006
 !!
 subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu)
+ use module_defs, only: md2plus
  implicit none
  integer, intent(in) :: n01,n02,n03,nproc,gpu
  integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
@@ -1728,6 +1788,8 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
    !goto 151
    !endif
  end do
+
+ if (md2plus) md2=(md2/nproc+1)*nproc
 
  !dimensions of the kernel, 1/8 of the total volume,
  !compatible with nproc
