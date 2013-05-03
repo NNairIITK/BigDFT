@@ -239,6 +239,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
        endif
 
        if (kernel%mpi_env%iproc==0 .and. n3pr1>1) print*,'PSolver n1-n2 plane mpi partitioning activated:',n3pr1,'x',n3pr2
+
        !$omp master
        if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
                                              kernel%mpi_env%mpi_comm,n3pr1,n3pr2)
@@ -292,6 +293,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
        endif
 
        if (kernel%mpi_env%iproc==0 .and. n3pr1>1) print*,'PSolver n1-n2 plane mpi partitioning activated:',n3pr1,'x',n3pr2
+
        !$omp master
        if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
                                              kernel%mpi_env%mpi_comm,n3pr1,n3pr2)
@@ -350,6 +352,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
        endif
 
        if (kernel%mpi_env%iproc==0 .and. n3pr1>1) print*,'PSolver n1-n2 plane mpi partitioning activated:',n3pr1,'x',n3pr2
+
        !$omp master
        if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
                                              kernel%mpi_env%mpi_comm,n3pr1,n3pr2)
@@ -402,6 +405,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
        endif
 
        if (kernel%mpi_env%iproc==0 .and. n3pr1>1) print*,'PSolver n1-n2 plane mpi partitioning activated:',n3pr1,'x',n3pr2
+
        !$omp master
        if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
                                              kernel%mpi_env%mpi_comm,n3pr1,n3pr2)

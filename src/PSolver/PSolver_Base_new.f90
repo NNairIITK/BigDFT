@@ -48,9 +48,8 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
   !integer :: ncount0,ncount1,ncount_max,ncount_rate
 
   integer :: maxIter
-  integer :: mpt,a1,a2,a3,a4,a5,nnn,n3pr1,n3pr2,j1start,n1p,nExtraPer
+  integer :: n3pr1,n3pr2,j1start,n1p,n2dimp
   integer, dimension(10) :: status
-  logical :: checktag,n2dimPart
 
   !Initialize stress tensor no matter of the BC
   !call to_zero(6,strten(1))
@@ -124,10 +123,12 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
 
   if (n3pr1>1) then
    lzt=(md2/nproc)*n3pr1*n3pr2
+   n2dimp=lzt
   else
    lzt=n2dim
    if (mod(n2dim,2) == 0) lzt=lzt+1
    if (mod(n2dim,4) == 0) lzt=lzt+1 !maybe this is useless
+   n2dimp=n2dim
   endif
 
   !if (iproc==0) print*,'psolver param',md1,md2,md3,nd1,nd2,nd3,n1dim,n2dim,n3dim,n1,n2,n3
@@ -175,7 +176,7 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
   !call memocc(i_stat,zw,'zw',subname)
   !allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
   !call memocc(i_stat,zt,'zt',subname)
-  allocate(zmpi2(2,n1dim,md2/nproc,nd3+ndebug),stat=i_stat)
+  allocate(zmpi2(2,n1,md2/nproc,nd3+ndebug),stat=i_stat)
   call memocc(i_stat,zmpi2,'zmpi2',subname)
   !also for complex input this should be eliminated
   if (halffty) then
@@ -183,7 +184,7 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
      call memocc(i_stat,cosinarr,'cosinarr',subname)
   end if
   if (nproc > 1) then
-     allocate(zmpi1(2,n1dim,md2/nproc,nd3/nproc,n3pr2+ndebug),stat=i_stat)
+     allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,n3pr2+ndebug),stat=i_stat)
      call memocc(i_stat,zmpi1,'zmpi1',subname)
   end if
 
@@ -230,7 +231,6 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
      stop
   endif
 
-  
 
   !put to zero the zw array
   !this should not be done at each time since the
@@ -346,8 +346,8 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
              stop
           endif
 
-          do j=1,lzt/n3pr1,lot
-           nfft=min(j+(lot-1), lzt/n3pr1) -j +1
+          do j=1,n2dimp/n3pr1,lot
+           nfft=min(j+(lot-1), n2dimp/n3pr1) -j +1
 
              !reverse index ordering, leaving the planes to be transformed at the end
              !input: I1,J2,j3,Jp2,(jp3)
@@ -468,8 +468,8 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
           endif
 
           lot=ncache/(4*n1)
-          do j=1,lzt/n3pr1,lot
-           nfft=min(j+(lot-1),lzt/n3pr1)-j+1
+          do j=1,n2dimp/n3pr1,lot
+           nfft=min(j+(lot-1),n2dimp/n3pr1)-j+1
 
             !performing FFT
              i=1
