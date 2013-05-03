@@ -2614,6 +2614,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         ! this requires information from input.frag, rxyz and atom types etc.
         ! for reference fragments, may have multiple directories and need to call readmywaves for each fragment
         ! BUT rxyz_old and rxyz won't have same number of atoms, don't necessarily want to reformat yet...
+        ! actually read rxyz from fragmenti.xyz - it's possible one folder of tmbs etc will contain more than one fragment
+        ! so this is the most general method
+        ! bigger question of where to initialize orbs/lzd... - lzd_init_llr and initialize_linear_from file could maybe be better unified?!
+        ! also need to call init_fragment for both reference and system fragments...
+        ! call init_fragment(frag,input%frag%frag_info(i,1),input%frag%frag_info(i,2),NTYPES,rxyz,&
+        !                    atomnames,iatype)
 
      end if
 

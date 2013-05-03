@@ -92,8 +92,6 @@ contains
     frag%atomnames=atomnames
     frag%iatype=iatype
     
-    ! nullify fragment basis
-    frag%frag_basis=fragment_basis_null()
 
     ! allocate/initialize fragment basis...
     !currently orbitals are initialized via initAndUtils/init_orbitals_data_for_linear
@@ -106,19 +104,19 @@ contains
     !for lzd do we want one for ref frags, one for whole system and one for system fragments or some kind of pointing?
     !need to think more about what should be replaced, not just what should be added in the way of initialization
 
-  !type, public :: minimal_orbitals_data
-  !   integer :: norb          !< Total number of orbitals per k point
-  !   integer :: norbp         !< Total number of orbitals for the given processors
-  !   integer :: isorb         !< Total number of orbitals for the given processors
-  !   integer, dimension(:), pointer :: inwhichlocreg,onwhichatom !< associate the basis centers
-  !   integer, dimension(:), pointer :: isorb_par,ispot
-  !   integer, dimension(:,:), pointer :: norb_par
+    !type, public :: minimal_orbitals_data
+    !   integer :: norb          !< Total number of orbitals per k point
+    !   integer :: norbp         !< Total number of orbitals for the given processors
+    !   integer :: isorb         !< Total number of orbitals for the given processors
+    !   integer, dimension(:), pointer :: inwhichlocreg,onwhichatom !< associate the basis centers
+    !   integer, dimension(:), pointer :: isorb_par,ispot
+    !   integer, dimension(:,:), pointer :: norb_par
 
-  !type, public :: fragment_basis
-  !   integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
-  !   integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
-  !   type(local_zone_descriptors) :: Lzd
-  !   type(minimal_orbitals_data) :: forbs
+    !type, public :: fragment_basis
+    !   integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+    !   integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+    !   type(local_zone_descriptors) :: Lzd
+    !   type(minimal_orbitals_data) :: forbs
 
 
   end subroutine init_fragment
@@ -149,6 +147,10 @@ contains
     frag%nat_env=0
     nullify(frag%rxyz_frg)
     nullify(frag%rxyz_env)
+
+    ! nullify fragment basis
+    frag%frag_basis=fragment_basis_null()
+
   end function fragment_null
 
   pure function fragment_basis_null() result(basis)
