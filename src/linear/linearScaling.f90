@@ -349,7 +349,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           ! CDFT: need to pass V*w_ab to get_coeff so that it can be added to H_ab and the correct KS eqn can therefore be solved
           ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
           ! CDFT: all this will be in some extra CDFT loop
-          cdft_loop : do
+          !cdft_loop : do
 
              ! If the hamiltonian is available do not recalculate it
              ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
@@ -374,7 +374,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! CDFT: exit when W is converged wrt both V and rho
 
-          end do cdft_loop
+          !end do cdft_loop
           ! CDFT: end of CDFT loop to find V which correctly imposes constraint and corresponding density
 
 
