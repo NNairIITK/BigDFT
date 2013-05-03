@@ -924,7 +924,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   
 
   call input_free((iproc == 0) .and. dump)
-
 END SUBROUTINE lin_input_variables_new
 
 

@@ -706,8 +706,10 @@ subroutine inputs_parse_params(in, iproc, dump)
 
   integer :: ierr
 
-  ! Parse all values independant from atoms.
+  ! This file is peculiar, it initialize yaml output
+  ! and has some unique info like the material acceleration...
   call perf_input_variables(iproc,dump,trim(in%file_perf),in)
+  ! Parse all values independant from atoms.
   call dft_input_variables_new(iproc,dump,trim(in%file_dft),in)
   call mix_input_variables_new(iproc,dump,trim(in%file_mix),in)
   call geopt_input_variables_new(iproc,dump,trim(in%file_geopt),in)

@@ -38,8 +38,8 @@ subroutine atoms_nullify(atoms)
   atoms%geocode = "F"
   atoms%units = "bohr"
   atoms%format = "none"
-  atoms%nat = -1
-  atoms%ntypes = -1
+  atoms%nat = 0
+  atoms%ntypes = 0
   atoms%sym%symObj = -1
   nullify(atoms%sym%irrzon)
   nullify(atoms%sym%phnons)
@@ -197,7 +197,7 @@ subroutine atoms_set_n_atoms(atoms, rxyz, nat)
   integer, intent(in) :: nat
 
   character(len = *), parameter :: subname = "atoms_set_n_atoms"
-  integer :: i, i_stat
+  integer :: i_stat
   integer, parameter :: nelecmax=32
 
   atoms%nat = nat
@@ -225,10 +225,11 @@ subroutine atoms_set_n_atoms(atoms, rxyz, nat)
   allocate(atoms%aocc(nelecmax,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
 
-  atoms%iatype = (/ (i, i=1,nat) /)
+  atoms%iatype = 1
 
   allocate(rxyz(3, atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz,'rxyz', subname)
+  rxyz = 0.
 END SUBROUTINE atoms_set_n_atoms
 
 subroutine atoms_set_n_types(atoms, ntypes)
@@ -239,13 +240,16 @@ subroutine atoms_set_n_types(atoms, ntypes)
   integer, intent(in) :: ntypes
   !local variables
   character(len = *), parameter :: subname = "atoms_set_n_types"
-  integer :: i_stat
+  integer :: i, i_stat
 
   atoms%ntypes = ntypes
 
   ! Allocate geometry related stuff.
   allocate(atoms%atomnames(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%atomnames,'atoms%atomnames',subname)
+  do i = 1, atoms%ntypes, 1
+     write(atoms%atomnames(i), "(A)") " "
+  end do
 
   ! Allocate pseudo related stuff.
   ! store PSP parameters, modified to accept both GTH and HGHs pseudopotential types
@@ -1915,15 +1919,17 @@ subroutine atoms_copy_name(atoms, ityp, name, ln)
   !Local variables 
   integer :: i,lname
 
-  lname = len(name)
-  ln=min(len(trim(atoms%atomnames(ityp))),20)
-  !print *,'lnt2',lnt
-  do i = 1, ln, 1
-     name(i:i) = atoms%atomnames(ityp)(i:i)
-  end do
-  do i = ln + 1, lname, 1
-     name(i:i) = ' '
-  end do
+  if (atoms%ntypes > 0) then
+     lname = len(name)
+     ln=min(len(trim(atoms%atomnames(ityp))),20)
+     !print *,'lnt2',lnt
+     do i = 1, ln, 1
+        name(i:i) = atoms%atomnames(ityp)(i:i)
+     end do
+     do i = ln + 1, lname, 1
+        name(i:i) = ' '
+     end do
+  end if
 END SUBROUTINE atoms_copy_name
 
 

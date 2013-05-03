@@ -46,6 +46,7 @@ static BigDFT_Inputs* bigdft_inputs_init()
   memset(in, 0, sizeof(BigDFT_Inputs));
   in->refCount = 1;
   F90_1D_POINTER_INIT(&in->qmass);
+  in->files = BIGDFT_INPUTS_UNPARSED;
 
   return in;
 }
@@ -58,12 +59,13 @@ static void bigdft_inputs_dispose(BigDFT_Inputs *in)
 /**
  * bigdft_inputs_new:
  * @naming: (allow-none): a naming scheme, or none.
+ * @iproc:
  *
  * Create a new #BigDFT_Inputs structure, issuing into default values.
  * 
  * Returns: (transfer full): a new structure.
  */
-BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
+BigDFT_Inputs* bigdft_inputs_new(const gchar *naming, guint iproc)
 {
   BigDFT_Inputs *in;
   int len;
@@ -73,12 +75,12 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
   if (naming && naming[0])
     {
       len = strlen(naming);
-      FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(in->data, naming, &len, len);
+      FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, naming, (int*)&iproc, len);
     }
   else
     {
       len = 1;
-      FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(in->data, " ", &len, 1);
+      FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, " ", (int*)&iproc, 1);
     }
   
   return in;

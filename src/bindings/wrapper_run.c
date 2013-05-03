@@ -373,6 +373,56 @@ BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
 
   return run;
 }
+/**
+ * bigdft_run_new_from_objects:
+ * @inputs: 
+ * @atoms: 
+ * @rst: (allow-none):
+ * @iproc: 
+ *
+ * Pouet.
+ *
+ * Returns: (transfer full):
+ **/
+BigDFT_Run* bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inputs,
+                                        BigDFT_Restart *rst, guint iproc)
+{
+  BigDFT_Run *run;
+
+#ifdef HAVE_GLIB
+  run = BIGDFT_RUN(g_object_new(BIGDFT_RUN_TYPE, NULL));
+#else
+  run = g_malloc(sizeof(BigDFT_Run));
+  bigdft_run_init(run);
+#endif
+  FC_FUNC_(run_objects_new, RUN_OBJECTS_NEW)(&run->data);
+
+  /* If inputs has parsed its files, we do it now. */
+  if (inputs->files == BIGDFT_INPUTS_UNPARSED)
+    {
+      bigdft_inputs_parse(inputs, iproc);
+      bigdft_inputs_parse_additional(inputs, atoms, iproc);
+      bigdft_atoms_set_psp(atoms, inputs->ixc, inputs->nspin, NULL);
+    }
+  /* If no restart, we create it from atoms and inputs. */
+  if (!rst)
+    rst = bigdft_restart_new(atoms, inputs, iproc);
+  else
+    g_object_ref(rst);
+  /* We associate atoms and inputs. */
+  run->inputs = inputs;
+  bigdft_inputs_ref(run->inputs);
+  run->atoms = atoms;
+  g_object_ref(run->atoms);
+  run->restart = rst;
+  FC_FUNC_(run_objects_set, RUN_OBJECTS_SET)(run->data, inputs->data, atoms->data, rst->data);
+  FC_FUNC_(run_objects_set_rxyz, RUN_OBJECTS_SET_RXYZ)(run->data, &atoms->rxyz);
+
+  return run;
+}
+void bigdft_run_set_atoms(BigDFT_Run *run, BigDFT_Atoms *atoms);
+void bigdft_run_set_restart(BigDFT_Run *run, BigDFT_Restart *rst);
+
 /* void FC_FUNC_(run_new_wrapper, RUN_NEW_WRAPPER)(double *self, void *obj) */
 /* { */
 /*   BigDFT_Run *run; */
@@ -410,14 +460,9 @@ void bigdft_run_free(BigDFT_Run *run)
   g_free(run);
 #endif
 }
-void           bigdft_run_set_inputs    (BigDFT_Run *run, BigDFT_Inputs *inputs);
-void           bigdft_run_set_atoms     (BigDFT_Run *run, BigDFT_Atoms *atoms);
-void           bigdft_run_set_restart   (BigDFT_Run *run, BigDFT_Restart *rst);
 /**
  * bigdft_run_calculate:
- * @atoms: 
- * @in: 
- * @rst:
+ * @run: 
  * @iproc: 
  * @nproc: 
  *
@@ -442,4 +487,44 @@ BigDFT_Energs* bigdft_run_calculate(BigDFT_Run *run, guint iproc, guint nproc)
      &en->trH, &en->evsum, &en->evsic);
   
   return en;
+}
+
+/**
+ * bigdft_run_get_atoms:
+ * @run: 
+ *
+ * Pouet.
+ *
+ * Returns: (transfer full):
+ **/
+BigDFT_Atoms* bigdft_run_get_atoms(BigDFT_Run *run)
+{
+  g_object_ref(run->atoms);
+  return run->atoms;
+}
+/**
+ * bigdft_run_get_inputs:
+ * @run: 
+ *
+ * Pouet.
+ *
+ * Returns: (transfer full):
+ **/
+BigDFT_Inputs* bigdft_run_get_inputs(BigDFT_Run *run)
+{
+  bigdft_inputs_ref(run->inputs);
+  return run->inputs;
+}
+/**
+ * bigdft_run_get_restart:
+ * @run: 
+ *
+ * Pouet.
+ *
+ * Returns: (transfer full):
+ **/
+BigDFT_Restart* bigdft_run_get_restart(BigDFT_Run *run)
+{
+  g_object_ref(run->restart);
+  return run->restart;
 }

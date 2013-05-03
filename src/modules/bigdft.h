@@ -84,21 +84,23 @@ struct _BigDFT_Atoms
 BigDFT_Atoms* bigdft_atoms_new();
 BigDFT_Atoms* bigdft_atoms_new_from_file     (const gchar *filename);
 void          bigdft_atoms_free              (BigDFT_Atoms *atoms);
+void          bigdft_atoms_set_types         (BigDFT_Atoms *atoms, const gchar **names);
 void          bigdft_atoms_set_n_atoms       (BigDFT_Atoms *atoms, guint nat);
-void          bigdft_atoms_set_n_types       (BigDFT_Atoms *atoms, guint ntypes);
+void          bigdft_atoms_set_geometry      (BigDFT_Atoms *atoms, gchar geocode,
+                                              double alat[3], const gchar *units);
 gboolean      bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gchar *filename);
 void          bigdft_atoms_set_psp           (BigDFT_Atoms *atoms, int ixc,
                                               guint nspin, const gchar *occup);
 void          bigdft_atoms_set_symmetries    (BigDFT_Atoms *atoms, gboolean active,
                                               double tol, double elecfield[3]);
 void          bigdft_atoms_set_displacement  (BigDFT_Atoms *atoms, double randdis);
-void          bigdft_atoms_sync              (BigDFT_Atoms *atoms);
 void          bigdft_atoms_copy_from_fortran (BigDFT_Atoms *atoms);
 GArray*       bigdft_atoms_get_radii         (const BigDFT_Atoms *atoms, double crmult,
                                               double frmult, double projrad);
 void          bigdft_atoms_write             (const BigDFT_Atoms *atoms,
                                               const gchar *filename);
 gchar*        bigdft_atoms_get_extra_as_label(const BigDFT_Atoms *atoms, guint iat);
+guint bigdft_atoms_get_count(BigDFT_Atoms *atoms);
 /********************************/
 
 /*********************************/
@@ -115,7 +117,8 @@ typedef enum
     BIGDFT_INPUTS_TDDFT = 32,
     BIGDFT_INPUTS_SIC   = 64,
     BIGDFT_INPUTS_FREQ = 128,
-    BIGDFT_INPUTS_LIN  = 256
+    BIGDFT_INPUTS_LIN  = 256,
+    BIGDFT_INPUTS_UNPARSED = 65536
   } BigDFT_InputsFiles;
 typedef enum
   {
@@ -165,7 +168,7 @@ GType          bigdft_inputs_get_type        (void);
 #endif
 BigDFT_Inputs* bigdft_inputs_ref             (BigDFT_Inputs *in);
 void           bigdft_inputs_unref           (BigDFT_Inputs *in);
-BigDFT_Inputs* bigdft_inputs_new             (const gchar *naming);
+BigDFT_Inputs* bigdft_inputs_new             (const gchar *naming, guint iproc);
 void           bigdft_inputs_free            (BigDFT_Inputs *in);
 void           bigdft_inputs_parse           (BigDFT_Inputs *in, guint iproc);
 void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms, guint iproc);
@@ -296,13 +299,14 @@ struct _BigDFT_Run
   _run_objects *data;
 };
 /*********************************/
-BigDFT_Run*    bigdft_run_new();
-BigDFT_Run*    bigdft_run_new_from_files(const gchar *radical, const gchar *posinp);
-void           bigdft_run_set_inputs    (BigDFT_Run *run, BigDFT_Inputs *inputs);
-void           bigdft_run_set_atoms     (BigDFT_Run *run, BigDFT_Atoms *atoms);
-void           bigdft_run_set_restart   (BigDFT_Run *run, BigDFT_Restart *rst);
-void           bigdft_run_free          (BigDFT_Run *run);
-BigDFT_Energs* bigdft_run_calculate     (BigDFT_Run *run, guint iproc, guint nproc);
+BigDFT_Run*     bigdft_run_new();
+BigDFT_Run*     bigdft_run_new_from_files  (const gchar *radical, const gchar *posinp);
+BigDFT_Run*     bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inputs,
+                                            BigDFT_Restart *rst, guint iproc);
+BigDFT_Energs*  bigdft_run_calculate       (BigDFT_Run *run, guint iproc, guint nproc);
+BigDFT_Atoms*   bigdft_run_get_atoms       (BigDFT_Run *run);
+BigDFT_Inputs*  bigdft_run_get_inputs      (BigDFT_Run *run);
+BigDFT_Restart* bigdft_run_get_restart     (BigDFT_Run *run);
 /*********************************/
 
 

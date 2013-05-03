@@ -461,16 +461,15 @@ subroutine inputs_free(in)
   call free_input_variables(in)
   deallocate(in)
 end subroutine inputs_free
-subroutine inputs_set_radical(in, rad, ln)
+subroutine inputs_read_perf(in, iproc, dump)
   use module_types
-  use wrapper_mpi
   implicit none
   type(input_variables), intent(inout) :: in
-  integer, intent(in) :: ln
-  character(ln), intent(in) :: rad
+  integer, intent(in) :: iproc
+  logical, intent(in) :: dump
 
-  call standard_inputfile_names(in, rad, bigdft_mpi%nproc)
-end subroutine inputs_set_radical
+  call perf_input_variables(iproc,dump,trim(in%file_perf),in)
+END SUBROUTINE inputs_read_perf
 
 subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspin, mpol, &
      & gnrm, itermax, nrepmax, ncong, idsx, dispcorr, inpsi, outpsi, outgrid, &
@@ -1379,3 +1378,11 @@ subroutine run_objects_get(runObj, inputs, atoms, rst, rxyz)
   rst => runObj%rst
   rxyz => runObj%rxyz
 END SUBROUTINE run_objects_get
+subroutine run_objects_set_rxyz(runObj, rxyz)
+  use module_types
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+  real(gp), dimension(:,:), pointer :: rxyz
+
+  runObj%rxyz => rxyz
+END SUBROUTINE run_objects_set_rxyz
