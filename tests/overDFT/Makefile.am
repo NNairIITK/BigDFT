@@ -1,5 +1,6 @@
 # Give here the list of existing tests
 TESTDIRS = \
+	   GEOPT-all \
 	   GEOPT-BFGS \
 	   GEOPT-LBFGS \
 	   NH3 \
