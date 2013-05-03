@@ -898,6 +898,15 @@ module module_types
      type(restart_objects), pointer    :: rst
   end type run_objects
 
+  !> Used to store results of a DFT calculation.
+  type, public :: DFT_global_output
+     real(gp) :: energy, fnoise, pressure
+     type(energy_terms) :: energs
+     integer :: fdim                           !< Dimension of allocated forces (second dimension)
+     real(gp), dimension(:,:), pointer :: fxyz
+     real(gp), dimension(6) :: strten
+  end type DFT_global_output
+
 !> type paw_ij_objects
 
  type paw_ij_objects
@@ -2393,7 +2402,6 @@ subroutine nullify_paw_ij_objects(paw_ij)
   type(paw_ij_objects), intent(inout)::paw_ij
 
   nullify(paw_ij%dij) 
-
 end subroutine nullify_paw_ij_objects
 
 subroutine nullify_cprj_objects(cprj)
@@ -2419,6 +2427,38 @@ subroutine nullify_gaussian_basis(G)
   nullify(G%rxyz)
 
 END SUBROUTINE nullify_gaussian_basis
+
+subroutine nullify_global_output(outs)
+  implicit none
+  type(DFT_global_output), intent(out) :: outs
+
+  outs%fdim      = 0
+  nullify(outs%fxyz)
+  outs%energy    = UNINITIALIZED(1.0_gp)
+  outs%fnoise    = UNINITIALIZED(1.0_gp)
+  outs%pressure  = UNINITIALIZED(1.0_gp)
+  outs%strten(:) = UNINITIALIZED(1.0_gp)
+END SUBROUTINE nullify_global_output
+
+subroutine init_global_output(outs, nat)
+  use module_base
+  implicit none
+  type(DFT_global_output), intent(out) :: outs
+  integer, intent(in) :: nat
+
+  call nullify_global_output(outs)
+  outs%fdim = nat
+  outs%fxyz = f_malloc_ptr((/ 3, outs%fdim /), id='outs%fxyz')
+  outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
+END SUBROUTINE init_global_output
+
+subroutine deallocate_global_output(outs)
+  use module_base
+  implicit none
+  type(DFT_global_output), intent(inout) :: outs
+
+  if (associated(outs%fxyz)) call f_free_ptr(outs%fxyz)
+END SUBROUTINE deallocate_global_output
 
 !cprj_clean will be obsolete with the PAW library
 !this is cprj_free in abinit.

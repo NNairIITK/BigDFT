@@ -9,18 +9,16 @@
  
 
 !> Routine to use BigDFT as a blackbox
-subroutine call_bigdft(runObj,nproc,iproc,energy,fxyz,strten,fnoise,infocode)
+subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   use module_base
   use module_types
   use module_interfaces, except_this_one => call_bigdft
   use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
-  type(run_objects) ,intent(inout) :: runObj
+  type(run_objects), intent(inout) :: runObj
+  type(DFT_global_output), intent(inout) :: outs
   integer, intent(inout) :: infocode
-  real(gp), intent(out) :: energy,fnoise
-  real(gp), dimension(6), intent(out) :: strten
-  real(gp), dimension(3,runObj%atoms%nat), intent(out) :: fxyz
 
   !local variables
   character(len=*), parameter :: subname='call_bigdft'
@@ -32,7 +30,7 @@ subroutine call_bigdft(runObj,nproc,iproc,energy,fxyz,strten,fnoise,infocode)
 
   !temporary interface
   interface
-     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
+     subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,pressure,&
           KSwfn,tmb,&!psi,Lzd,gaucoeffs,gbd,orbs,
           rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
@@ -48,7 +46,8 @@ subroutine call_bigdft(runObj,nproc,iproc,energy,fxyz,strten,fnoise,infocode)
        !type(orbitals_data), intent(inout) :: orbs
        type(GPU_pointers), intent(inout) :: GPU
        type(DFT_wavefunction), intent(inout) :: KSwfn,tmb
-       real(gp), intent(out) :: energy,fnoise
+       type(energy_terms), intent(out), target :: energs
+       real(gp), intent(out) :: energy,fnoise,pressure
        real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
        real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
        real(gp), dimension(6), intent(out) :: strten
@@ -59,6 +58,7 @@ subroutine call_bigdft(runObj,nproc,iproc,energy,fxyz,strten,fnoise,infocode)
   !put a barrier for all the processes
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
   call f_routine(id=subname)
+
   if (nproc > 1) then
      !check that the positions are identical for all the processes
      rxyz_glob=f_malloc((/3,runObj%atoms%nat,nproc/),id='rxyz_glob')
@@ -147,11 +147,13 @@ subroutine call_bigdft(runObj,nproc,iproc,energy,fxyz,strten,fnoise,infocode)
         runObj%inputs%inputPsiId=0 !the first run always restart from IG
         !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
      end if
-     call cluster(nproc,iproc,runObj%atoms,runObj%rst%rxyz_new,energy,fxyz,strten,fnoise,&
+     call cluster(nproc,iproc,runObj%atoms,runObj%rst%rxyz_new, &
+          & outs%energy, outs%energs, outs%fxyz, outs%strten, outs%fnoise, outs%pressure,&
           runObj%rst%KSwfn,runObj%rst%tmb,&!psi,runObj%rst%Lzd,runObj%rst%gaucoeffs,runObj%rst%gbd,runObj%rst%orbs,&
           runObj%rst%rxyz_old,runObj%rst%hx_old,runObj%rst%hy_old,runObj%rst%hz_old,runObj%inputs,runObj%rst%GPU,infocode)
      if (exists) then
-        call forces_via_finite_differences(iproc,nproc,runObj%atoms,runObj%inputs,energy,fxyz,fnoise,runObj%rst,infocode)
+        call forces_via_finite_differences(iproc,nproc,runObj%atoms,runObj%inputs, &
+             & outs%energy,outs%fxyz,outs%fnoise,runObj%rst,infocode)
      end if
 
      if (runObj%inputs%inputPsiId==1 .and. infocode==2) then
@@ -179,7 +181,7 @@ subroutine call_bigdft(runObj,nproc,iproc,energy,fxyz,strten,fnoise,infocode)
            write(comment,'(a)')'UNCONVERGED WF '
            !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
 
-           call write_atomic_file("posfail",energy,runObj%rst%rxyz_new,runObj%atoms,trim(comment))
+           call write_atomic_file("posfail",outs%energy,runObj%rst%rxyz_new,runObj%atoms,trim(comment))
 
         end if
 
@@ -306,9 +308,8 @@ END SUBROUTINE run_objects_set
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!           - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
-     KSwfn,tmb,&
-     rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
+subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,pressure,&
+     KSwfn,tmb,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
   use module_types
   use module_interfaces
@@ -328,7 +329,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
   real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
   integer, intent(out) :: infocode
-  real(gp), intent(out) :: energy,fnoise
+  type(energy_terms), intent(out), target :: energs ! Target attribute is mandatory for C wrappers
+  real(gp), intent(out) :: energy,fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
   !local variables
@@ -343,8 +345,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   integer :: iat,i_all,i_stat,ierr,inputpsi,igroup,ikpt,nproctiming
   real :: tcpu0,tcpu1
   real(kind=8) :: tel
-  type(energy_terms), target :: energs ! Target attribute is mandatory for C wrappers
-  real(gp) :: pressure
   type(grid_dimensions) :: d_old
   type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd

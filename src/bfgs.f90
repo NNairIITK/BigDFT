@@ -9,7 +9,7 @@
 
 
 !> BFGS driver routine
-subroutine bfgsdriver(runObj,nproc,iproc,fxyz,epot,ncount_bigdft)
+subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
     !n(c) use module_base
     use module_types
     use module_interfaces
@@ -20,18 +20,16 @@ subroutine bfgsdriver(runObj,nproc,iproc,fxyz,epot,ncount_bigdft)
     integer, intent(in) :: nproc,iproc
     integer, intent(inout) :: ncount_bigdft
     type(run_objects), intent(inout) :: runObj
-    real(gp), intent(inout) :: epot
-    real(gp), dimension(3*runObj%atoms%nat), intent(inout) :: fxyz
+    type(DFT_global_output), intent(out) :: outs
     !Local variables
     character(len=*), parameter :: subname='bfgs'
-    real(gp) :: fluct=0.0_gp,fnrm,fmax,fnoise
+    real(gp) :: fluct=0.0_gp,fnrm,fmax
     integer :: infocode,i,ixyz,iat,i_stat,icall,icheck,i_all
     character(len=4) :: fn4
     character(len=40) :: comment
     logical :: move_this_coordinate
     integer :: nr
     integer :: nwork
-    real(gp), dimension(6) :: strten
     real(gp), allocatable, dimension(:) :: x,f,work
     !character(len=4) :: fn4
     !character(len=40) :: comment
@@ -66,14 +64,14 @@ subroutine bfgsdriver(runObj,nproc,iproc,fxyz,epot,ncount_bigdft)
         !    call atomic_copymoving_forward(atoms,n,f(1,ip),nr,fa(1,ip))
         !enddo
         !if(icall/=0) then
-            call call_bigdft(runObj,nproc,iproc,epot,fxyz,strten,fnoise,infocode)
+            call call_bigdft(runObj,outs,nproc,iproc,infocode)
             ncount_bigdft=ncount_bigdft+1
         !endif
-        call atomic_copymoving_forward(runObj%atoms,3*runObj%atoms%nat,fxyz,nr,f)
+        call atomic_copymoving_forward(runObj%atoms,3*runObj%atoms%nat,outs%fxyz,nr,f)
         call atomic_copymoving_forward(runObj%atoms,3*runObj%atoms%nat,runObj%rxyz,nr,x)
 
-        call fnrmandforcemax(fxyz,fnrm,fmax,runObj%atoms%nat)
-        if(fmax<3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
+        call fnrmandforcemax(outs%fxyz,fnrm,fmax,runObj%atoms%nat)
+        if(fmax<3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
         call convcheck(fmax,fluct*runObj%inputs%frac_fluct,runObj%inputs%forcemax,icheck) !n(m)
 
         !if(iproc==0) write(*,*) 'ICHECK ',icheck
@@ -87,10 +85,10 @@ subroutine bfgsdriver(runObj,nproc,iproc,fxyz,epot,ncount_bigdft)
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
            call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & epot,runObj%rxyz,runObj%atoms,trim(comment),forces=fxyz)
+                & outs%energy,runObj%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
         endif
 
-        call bfgs_reza(iproc,runObj%inputs%dir_output,nr,x,epot,f,nwork,work,&
+        call bfgs_reza(iproc,runObj%inputs%dir_output,nr,x,outs%energy,f,nwork,work,&
              & runObj%inputs%betax,sqrt(fnrm),fmax,ncount_bigdft,&
              & fluct*runObj%inputs%frac_fluct,fluct,runObj%atoms)
         !x(1:nr)=x(1:nr)+1.d-2*f(1:nr)
@@ -101,7 +99,7 @@ subroutine bfgsdriver(runObj,nproc,iproc,fxyz,epot,ncount_bigdft)
               write(fn4,'(i4.4)') ncount_bigdft
               write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
               call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                   & epot,runObj%rxyz,runObj%atoms,trim(comment),forces=fxyz)
+                   & outs%energy,runObj%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
            endif
         endif
         !if(ncount_bigdft>in%ncount_cluster_x-1)
@@ -112,6 +110,7 @@ subroutine bfgsdriver(runObj,nproc,iproc,fxyz,epot,ncount_bigdft)
         if(parmin%iflag<=0) exit
         icall=icall+1
         if(icall>runObj%inputs%ncount_cluster_x) exit
+        call deallocate_global_output(outs)
     enddo
 
     !De-Allocations
@@ -566,7 +565,7 @@ END SUBROUTINE bfgs_reza
 !> Driver for the LBFGS routine found on the Nocedal Homepage
 !! The subroutines have only been modified slightly, so a VIMDIFF will show all modifications!
 !! This is helpfull when we are looking for the source of problems during BFGS runs
-subroutine lbfgsdriver(runObj,nproc,iproc,fxyz,etot,ncount_bigdft,fail) 
+subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail) 
   use module_base
   use module_types
   use module_interfaces
@@ -578,12 +577,11 @@ subroutine lbfgsdriver(runObj,nproc,iproc,fxyz,etot,ncount_bigdft,fail)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
-  real(gp), intent(inout) :: etot
+  type(DFT_global_output), intent(out) :: outs
   logical, intent(out) :: fail
-  real(gp), dimension(3*runObj%atoms%nat), intent(out) :: fxyz
 
   !n(c) real(gp), dimension(3*runObj%atoms%nat):: txyz, sxyz
-  real(gp) :: fluct,fnrm, fnoise
+  real(gp) :: fluct,fnrm
   real(gp) :: fmax
 !  logical :: check
   integer :: check
@@ -597,7 +595,6 @@ subroutine lbfgsdriver(runObj,nproc,iproc,fxyz,etot,ncount_bigdft,fail)
   integer ::  NWORK
   real(gp),allocatable:: X(:),G(:),DIAG(:),W(:)
   real(gp):: F,TEPS!,XTOL > L,,STPMIN,STPMAX
-  real(gp), dimension(6) :: strten
   real(gp), dimension(3,runObj%atoms%nat) :: rxyz0,rxyzwrite
   integer ::  IPRINT(2),IFLAG,ICALL,M
   character(len=*), parameter :: subname='lbfgs'
@@ -620,12 +617,11 @@ subroutine lbfgsdriver(runObj,nproc,iproc,fxyz,etot,ncount_bigdft,fail)
   if (iproc==0) call yaml_map('Maximum number of SD steps used in the beginning',nitsd)
   !if (iproc==0) write(*,*) 'Maximum number of SD steps used in the beginning: ',nitsd
 
-  call steepdes(nproc,iproc,runObj%atoms,runObj%rxyz,etot,fxyz,runObj%rst,ncount_bigdft,fnrm,fnoise,runObj%inputs,&
-       fnormmax_sw,nitsd,fluct)
-  etotprev=etot
+  call steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,fnormmax_sw,nitsd,fluct)
+  etotprev=outs%energy
   rxyz0=runObj%rxyz     !Save initial positions, since the unconstrained degrees of freedom will be updated upon them
   rxyzwrite=runObj%rxyz
-  call fnrmandforcemax(fxyz,fnrm,fmax,runObj%atoms%nat)
+  call fnrmandforcemax(outs%fxyz,fnrm,fmax,runObj%atoms%nat)
   !call fnrmandforcemax(fxyz,fnrm,fmax,at)
   !check if the convergence is reached after SD
   call convcheck(fmax,fluct*runObj%inputs%frac_fluct,runObj%inputs%forcemax,check) !n(m)
@@ -667,7 +663,7 @@ subroutine lbfgsdriver(runObj,nproc,iproc,fxyz,etot,ncount_bigdft,fail)
   M=parmin%MSAVE
   IPRINT(1)= 1
   IPRINT(2)= 0
-  F=etot
+  F=outs%energy
 !  We do not wish to provide the diagonal matrices Hk0, and 
 !  therefore set DIAGCO to FALSE.
 
@@ -682,26 +678,27 @@ subroutine lbfgsdriver(runObj,nproc,iproc,fxyz,etot,ncount_bigdft,fail)
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
         call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-             & etot,runObj%rxyz,runObj%atoms,trim(comment),forces=fxyz)
+             & outs%energy,runObj%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
      endif
      parmin%IWRITE=.false.
   endif
 
   rxyzwrite=runObj%rxyz
 
-  if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
+  if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
 
   if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) then
      write(16,'(I5,1x,I5,2x,a11,1x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)')&
-        &  ncount_bigdft,ICALL,"GEOPT_LBFGS",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct&
-        &  ,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
+        & ncount_bigdft,ICALL,"GEOPT_LBFGS",outs%energy,outs%energy-etotprev, &
+        & fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct, &
+        & "BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
   end if
   if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) then
      call yaml_open_map('Geometry')
         call yaml_map('Ncount_BigDFT',ncount_bigdft)
         call yaml_map('ICALL',ICALL)
         call yaml_map('Geometry Method','GEOPT_LBFGS')
-        call yaml_map('etot',(/ etot,etot-etotprev /),fmt='(1pe21.14)')
+        call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
         call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
         call yaml_map('BFGS-it',parmin%finstep)
         call yaml_map('Alpha', parmin%alpha, fmt='(1pe8.2e1)')
@@ -718,7 +715,7 @@ subroutine lbfgsdriver(runObj,nproc,iproc,fxyz,etot,ncount_bigdft,fail)
      !                'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
   end if
 
-  etotprev=etot
+  etotprev=outs%energy
 
   call convcheck(fmax,fluct*runObj%inputs%frac_fluct, runObj%inputs%forcemax,check) !n(m)
   if (ncount_bigdft >= runObj%inputs%ncount_cluster_x) goto 50
@@ -731,7 +728,7 @@ subroutine lbfgsdriver(runObj,nproc,iproc,fxyz,etot,ncount_bigdft,fail)
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
         call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-             & etot,runObj%rxyz,runObj%atoms,trim(comment),forces=fxyz)
+             & outs%energy,runObj%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
      endif
      goto 100
   endif
@@ -744,15 +741,15 @@ subroutine lbfgsdriver(runObj,nproc,iproc,fxyz,etot,ncount_bigdft,fail)
 !  call atomic_axpy(at,txyz,alpha,sxyz,rxyz)
   runObj%inputs%inputPsiId=1
 !  if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,rst,infocode)
-  if(ICALL.ne.0) call call_bigdft(runObj,nproc,iproc,F,fxyz,strten,fnoise,infocode)
+  if(ICALL.ne.0) call call_bigdft(runObj,outs,nproc,iproc,infocode)
   if(ICALL.ne.0) ncount_bigdft=ncount_bigdft+1
-  call atomic_copymoving_forward(runObj%atoms,n,fxyz,nr,G)
-  etot=F
+  call atomic_copymoving_forward(runObj%atoms,n,outs%fxyz,nr,G)
+  outs%energy=F
   G=-G
-  call fnrmandforcemax(fxyz,fnrm,fmax,runObj%atoms%nat)
+  call fnrmandforcemax(outs%fxyz,fnrm,fmax,runObj%atoms%nat)
 !  call fnrmandforcemax(fxyz,fnrm,fmax,at)
 
-  CALL LBFGS(IPROC,runObj%INputs,PARMIN,N,M,X,F,G,DIAG,IPRINT,TEPS,W,IFLAG)
+  CALL LBFGS(IPROC,runObj%INputs,PARMIN,N,M,X,outs%energy,G,DIAG,IPRINT,TEPS,W,IFLAG)
   IF(IFLAG.LE.0) GO TO 50
   ICALL=ICALL + 1
 ! We allow at most the given number of evaluations of F and G
@@ -761,6 +758,7 @@ subroutine lbfgsdriver(runObj,nproc,iproc,fxyz,etot,ncount_bigdft,fail)
   endif
   close(16)
   open(unit=16,file=trim(runObj%inputs%dir_output)//'geopt.mon',status='unknown',position='append')
+  if(ICALL > 1) call deallocate_global_output(outs)
   GO TO 20
 50 CONTINUE
        if (iproc==0) call yaml_warning('Error in BFGS, switching to SD and CG')

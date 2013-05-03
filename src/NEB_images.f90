@@ -14,18 +14,16 @@ program NEB_images
    use BigDFT_API
 
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
-   integer :: iproc,nproc,i_stat,i_all,ierr,infocode
+   integer :: iproc,nproc,ierr,infocode
    integer :: ncount_bigdft
-   real(gp) :: etot,fnoise
    !input variables
    type(run_objects) :: runObj
+   !output variables
+   type(DFT_global_output) :: outs
    character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
    character(len=60) :: run_id
-   ! atomic coordinates, forces, strten
    !information for mpi_initalization
    integer, dimension(4) :: mpi_info
-   real(gp), dimension(6) :: strten
-   real(gp), dimension(:,:), allocatable :: fxyz
    integer :: iconfig,nconfig,istat,group_size,ngroups,igroup
 
    !-finds the number of taskgroup size
@@ -53,31 +51,23 @@ program NEB_images
          !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
          ! Read all input files. This should be the sole routine which is called to initialize the run.
          call run_objects_set_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
+         call init_global_output(outs, runObj%atoms%nat)
+         call call_bigdft(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 
-         !here we should define a routine to extract the number of atoms and the positions, and allocate forces array
-
-         allocate(fxyz(3,runObj%atoms%nat+ndebug),stat=i_stat)
-         call memocc(i_stat,fxyz,'fxyz',subname)
-
-         call call_bigdft(runObj,bigdft_mpi%nproc,bigdft_mpi%iproc,etot,fxyz,strten,fnoise,infocode)
-
-
-         call call_bigdft(runObj,bigdft_mpi%nproc,bigdft_mpi%iproc,etot,fxyz,strten,fnoise,infocode)
+         call call_bigdft(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 
          if (runObj%inputs%ncount_cluster_x > 1) then
             filename=trim('final_'//trim(arr_posinp(iconfig)))
-            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,etot,&
-                 & runObj%rxyz,runObj%atoms,'FINAL CONFIGURATION',forces=fxyz)
+            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,&
+                 & runObj%rxyz,runObj%atoms,'FINAL CONFIGURATION',forces=outs%fxyz)
          else
             filename=trim('forces_'//trim(arr_posinp(iconfig)))
-            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,etot,&
-                 & runObj%rxyz,runObj%atoms,'Geometry + metaData forces',forces=fxyz)
+            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,&
+                 & runObj%rxyz,runObj%atoms,'Geometry + metaData forces',forces=outs%fxyz)
          end if
 
-         i_all=-product(shape(fxyz))*kind(fxyz)
-         deallocate(fxyz,stat=i_stat)
-         call memocc(i_stat,i_all,'fxyz',subname)
-
+         ! Deallocations.
+         call deallocate_global_output(outs)
          call run_objects_free(runObj)
 
       end if

@@ -804,28 +804,28 @@ MODULE NEB_routines
       IMPLICIT NONE
      
       ALLOCATE( pos( dim , num_of_images ) )
-      
+
       IF ( algorithm <= 3 ) THEN
-        
-  ALLOCATE( delta_pos( dim , num_of_images ) )
-      
+
+         ALLOCATE( delta_pos( dim , num_of_images ) )
+
       ELSE
-      
-        ALLOCATE( vel( dim , num_of_images ) )     
-  
+
+         ALLOCATE( vel( dim , num_of_images ) )     
+
       END IF
-      
+
       ALLOCATE( grad( dim , num_of_images ) )
       ALLOCATE( PES_gradient( dim , num_of_images ) )          
-      
+
       IF ( algorithm <= 3 ) THEN
-             
-        ALLOCATE( old_grad( dim , num_of_images ) )    
-  
-      END IF    
+
+         ALLOCATE( old_grad( dim , num_of_images ) )    
+
+      END IF
 
       ALLOCATE( fix_atom( dim ) )
-      
+
       ALLOCATE( norm_grad( num_of_images ) )
 
       ALLOCATE( V( num_of_images ) )
@@ -836,7 +836,7 @@ MODULE NEB_routines
       ALLOCATE( elastic_gradient( dim ) )
 
       IF ( algorithm <= 3 ) ALLOCATE( conj_dir_i( dim ) )           
-      
+
             
     END SUBROUTINE dyn_allocation     
 
@@ -1074,26 +1074,26 @@ MODULE NEB_routines
 
       elastic_const_loop: DO i = 2, num_of_images 
 
-        IF ( i < num_of_images ) THEN
+         IF ( i < num_of_images ) THEN
 
-          Ei = MAX( MAX( V(i) , V(i-1) ) , MAX( V(i) , V(i+1) ) )
+            Ei = MAX( MAX( V(i) , V(i-1) ) , MAX( V(i) , V(i+1) ) )
 
-        ELSE
-  
-          Ei = MAX( V(i) , V(i-1) )  
-  
-  END IF
+         ELSE
 
-        IF ( Ei > Eref ) THEN
+            Ei = MAX( V(i) , V(i-1) )  
 
-          k(i) = k_max - delta_k * ( ( Emax - Ei ) / ( Emax - Eref ) )
+         END IF
 
-        ELSE
+         IF ( Ei > Eref ) THEN
 
-          k(i) = k_min
+            k(i) = k_max - delta_k * ( ( Emax - Ei ) / ( Emax - Eref ) )
 
-        END IF
- 
+         ELSE
+
+            k(i) = k_min
+
+         END IF
+
       END DO elastic_const_loop
 
       IF ( ALGORITHM <= 3 ) old_grad = grad

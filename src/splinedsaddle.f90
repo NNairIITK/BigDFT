@@ -18,20 +18,18 @@ program splined_saddle
   use yaml_output
   implicit none
   character(len=*), parameter :: subname='BigDFT'
-  integer :: iproc,nproc,i_stat,i_all,ierr,infocode
+  integer :: iproc,nproc,ierr,infocode
   integer :: ncount_bigdft
-  real(gp) :: etot,fnoise
 !!$ logical :: exist_list
-  !input variables
+  !input/output variables
   type(run_objects) :: runObj
+  type(DFT_global_output) :: outs
   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
   character(len=60) :: run_id
   !character(len=60) :: filename
   ! atomic coordinates, forces
-  real(gp), dimension(:,:), allocatable :: fxyz
   integer :: iconfig,nconfig!,istat
   real(gp), dimension(:,:), allocatable :: ratsp,fatsp 
-  real(gp), dimension(6) :: strten
   integer, dimension(4) :: mpi_info
   !include 'mpif.h' !non-BigDFT
 
@@ -102,6 +100,7 @@ program splined_saddle
 
          ! Read all input files. This should be the sole routine which is called to initialize the run.
          call run_objects_set_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
+         call init_global_output(outs, runObj%atoms%nat)
 
 !!$     !welcome screen
 !!$!     if (iproc==0) call print_logo()
@@ -123,9 +122,6 @@ program splined_saddle
      !initialize memory counting
      !call memocc(0,iproc,'count','start')
 
-     allocate(fxyz(3,runObj%atoms%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,fxyz,'fxyz',subname)
-
      !if other steps are supposed to be done leave the last_run to minus one
      !otherwise put it to one
      !if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1) then
@@ -133,16 +129,16 @@ program splined_saddle
         runObj%inputs%last_run = 1
      end if
  
-     call call_bigdft(runObj, nproc,iproc,etot,fxyz,strten,fnoise,infocode)
+     call call_bigdft(runObj, outs, nproc,iproc,infocode)
 
      if (runObj%inputs%ncount_cluster_x > -1) then
         if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
         
         allocate(ratsp(3,runObj%atoms%nat),fatsp(3,runObj%atoms%nat))
         ratsp(1:3,1:runObj%atoms%nat)=runObj%rxyz(1:3,1:runObj%atoms%nat)
-        fatsp(1:3,1:runObj%atoms%nat)=fxyz(1:3,1:runObj%atoms%nat)
-        etot=etot
-        call givemesaddle(etot,ratsp,fatsp,16,nproc,iproc,runObj%atoms,runObj%rst,runObj%inputs,ncount_bigdft)
+        fatsp(1:3,1:runObj%atoms%nat)=outs%fxyz(1:3,1:runObj%atoms%nat)
+        outs%energy=outs%energy
+        call givemesaddle(outs%energy,ratsp,fatsp,16,nproc,iproc,runObj%atoms,runObj%rst,runObj%inputs,ncount_bigdft)
         close(16)
         deallocate(ratsp,fatsp)
 
@@ -155,16 +151,12 @@ program splined_saddle
      !if there is a last run to be performed do it now before stopping
      if (runObj%inputs%last_run == -1) then
         runObj%inputs%last_run = 1
-        call call_bigdft(runObj, nproc,iproc,etot,fxyz,strten,fnoise,infocode)
+        call call_bigdft(runObj, outs, nproc,iproc,infocode)
      end if
 
+     if (iproc == 0) call write_forces(runObj%atoms,outs%fxyz)
 
-     if (iproc == 0) call write_forces(runObj%atoms,fxyz)
-
-     i_all=-product(shape(fxyz))*kind(fxyz)
-     deallocate(fxyz,stat=i_stat)
-     call memocc(i_stat,i_all,'fxyz',subname)
-
+     call deallocate_global_output(outs)
      call run_objects_free(runObj, subname)
 
 !!$
@@ -327,24 +319,24 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     type(input_variables), intent(inout) :: inputs
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
-    real(kind=8), allocatable::fends(:,:)
     real(gp), dimension(:,:), allocatable :: rxyz_2
-    real(gp), dimension(:,:), allocatable :: x,f,xneb,fneb,rxyz_tmp,x_t
+    real(gp), dimension(:,:), allocatable :: x,f,xneb,rxyz_tmp,x_t
+    !type(DFT_global_output), dimension(:), allocatable :: outs
     integer :: np,np_neb,np_t,iat,ifile
     type(parameterminimization_sp)::parmin_neb,parmin
-    real(gp) ::epot_sp,ratsp(3,atoms%nat),fatsp(3,atoms%nat),fnoise
+    real(gp) ::epot_sp,ratsp(3,atoms%nat),fatsp(3,atoms%nat)
     character(len=20) :: tatonam
     integer::n,nr,istat,infocode,ixyz,i,mm1,mm2,mm3
     real(kind=8)::fnrm,fnrm1,fnrm2,tt1,tt2,tt3,time1,time2
     type(parametersplinedsaddle)::pnow
     type(input_variables), target :: ll_inputs
     type(run_objects) :: ll_runObj, runObj
+    type(DFT_global_output), dimension(2) :: outends
     !character(50)::ssm
     character(len=20)::filename
     logical::move_this_coordinate
     character(40)::comment
     integer, parameter::ndeb1=0,ndeb2=0
-    real(gp), dimension(6) :: strten
     !---------------------------------------------------------------------------
     !pnow%ncount=1
     !pnow%ncount_ll=0
@@ -392,14 +384,12 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     call dmemocc(n*(np+1),n*(np+1+ndeb2),x,'x')
     allocate(xneb(n,0:np_neb+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating xneb'
     call dmemocc(n*(np_neb+1),n*(np_neb+1+ndeb2),xneb,'xneb')
-    allocate(fneb(n,0:np_neb+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating fneb'
-    call dmemocc(n*(np_neb+1),n*(np_neb+1+ndeb2),fneb,'fneb')
-    allocate(fends(n,2+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating fends.'
-    call dmemocc(n*(2),n*(2+ndeb2),fends,'fends')
     allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
     call dmemocc(3*(atoms%nat),3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
     allocate(ll_runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating ll_runObj%rxyz.'
     call dmemocc(3*(atoms%nat),3*(atoms%nat+ndeb1),ll_runObj%rxyz,'runObj%rxyz')
+    call init_global_output(outends(1), atoms%nat)
+    call init_global_output(outends(2), atoms%nat)
     !if(iproc==0) write(*,*) 'ALIREZA-01'
     !---------------------------------------------------------------------------
     if(trim(pnow%runstat)=='restart') then
@@ -446,23 +436,21 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     if(iproc==0) call writepathway(n,np,x,'pathinp.xyz',atoms)
     if(iproc==0) write(*,*) 'ALIREZA-02'
     !---------------------------------------------------------------------------
-    do iat=1,atoms%nat
-        fends(3*iat-2,1)=fatsp(1,iat)
-        fends(3*iat-1,1)=fatsp(2,iat)
-        fends(3*iat-0,1)=fatsp(3,iat)
-    enddo
+    call vcopy(n, fatsp(1,1), 1, outends(1)%fxyz(1,1), 1)
     pnow%exends_b(1)=epot_sp
-    call atomic_dot(atoms,fends(1,1),fends(1,1),fnrm1)
+    call atomic_dot(atoms,outends(1)%fxyz(1,1),outends(1)%fxyz(1,1),fnrm1)
     fnrm1=sqrt(fnrm1)
     call vcopy(n, x(1,np), 1, runObj%rxyz(1,1), 1)
     !if(iproc==0) write(*,*) 'ALIREZA-03'
     call cpu_time(time1)
-    call call_bigdft(runObj,nproc,iproc,pnow%exends_b(2),fends(1,2),strten,fnoise,infocode)
+    call call_bigdft(runObj,outends(2),nproc,iproc,infocode)
+    pnow%exends_b(2)=outends(2)%energy
     call cpu_time(time2)
     ncount_bigdft=ncount_bigdft+1
     pnow%ncount=2
     pnow%time=2.d0*(time2-time1)
-    call atomic_dot(atoms,fends(1,2),fends(1,2),fnrm2);fnrm2=sqrt(fnrm2)
+    call atomic_dot(atoms,outends(2)%fxyz(1,1),outends(2)%fxyz(1,1),fnrm2)
+    fnrm2=sqrt(fnrm2)
     !if(iproc==0) write(*,*) 'ALIREZA-04'
     if(iproc==0) then
         write(pnow%ifile,'(a,4e24.15)') 'ENDs: epot1,fnrm1,epot2,fnrm2 ', &
@@ -474,14 +462,16 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     if(trim(pnow%hybrid)=='yes') then
        call vcopy(n, x(1,0), 1, ll_runObj%rxyz(1,1), 1)
        call cpu_time(time1)
-       call call_bigdft(ll_runObj,nproc,iproc,pnow%exends(1),fends(1,1),strten,fnoise,infocode)
+       call call_bigdft(ll_runObj,outends(1),nproc,iproc,infocode)
+       pnow%exends(1) = outends(1)%energy
        call cpu_time(time2)
        ncount_bigdft=ncount_bigdft+1
        pnow%ncount_ll=1
        pnow%time_ll=pnow%time_ll+(time2-time1)
        call vcopy(n, x(1,np), 1, ll_runObj%rxyz(1,1), 1)
        call cpu_time(time1)
-       call call_bigdft(ll_runObj,nproc,iproc,pnow%exends(2),fends(1,2),strten,fnoise,infocode)
+       call call_bigdft(ll_runObj,outends(2),nproc,iproc,infocode)
+       pnow%exends(2) = outends(2)%energy
        call cpu_time(time2)
        ncount_bigdft=ncount_bigdft+1
        pnow%ncount_ll=pnow%ncount_ll+1
@@ -504,7 +494,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         parmin_neb%fnrmtolsatur=1.d-4 !5.d-2
         pnow%ex(0)=pnow%exends(1)
         pnow%ex(np_neb)=pnow%exends(2)
-        call neb(n,nr,np_neb,xneb,fneb,parmin_neb,pnow, &
+        call neb(n,nr,np_neb,xneb,parmin_neb,pnow, &
             nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)  
         call finalminimize(parmin_neb)
         call change_np(n,np_neb,xneb,atoms,np,x)
@@ -512,7 +502,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     !------------------------------------------------------
     if(trim(pnow%pickbestanchorpoints)=='yes') then
         !call pickbestanchors(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
-        call pickbestanchors2(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
+        call pickbestanchors2(n,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     endif
     !call improvepeak(n,nr,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     !------------------------------------------------------
@@ -526,7 +516,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     parmin%alphamin=1.d-1*parmin%alphax
     parmin%alphamax=3.d0*parmin%alphax
     call initminimize(parmin)
-    call splinedsaddle(n,nr,np,x,epot_sp,f,ratsp,parmin,fends,pnow, & 
+    call splinedsaddle(n,nr,np,x,epot_sp,f,ratsp,parmin,outends,pnow, & 
         nproc,iproc,atoms,rst,inputs,ll_inputs,ncount_bigdft,fatsp)  
     endif
     if(iproc==0) call writepathway(n,np,x,'pathout.xyz',atoms)
@@ -557,13 +547,13 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
      !-----------------------------------------------------------
     deallocate(f,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating f'
     deallocate(x,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating x'
-    deallocate(fneb,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating fneb'
     deallocate(xneb,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating xneb'
     deallocate(rxyz_2,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating rxyz_2'
     deallocate(rxyz_tmp,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating rxyz_tmp'
-    deallocate(fends,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating fends.'
     deallocate(runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating runObj%rxyz.'
     deallocate(ll_runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating ll_runObj%rxyz.'
+    call deallocate_global_output(outends(1))
+    call deallocate_global_output(outends(2))
 end subroutine givemesaddle
 
 
@@ -614,7 +604,7 @@ subroutine change_np(n,np1,x1,atoms,np2,x2)
 end subroutine change_np
 
 
-subroutine improvepeak(n,nr,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
+subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces
     use module_types
@@ -622,17 +612,18 @@ subroutine improvepeak(n,nr,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     !use energyandforces, only:calenergyforces
     implicit none
     integer::n,nr,np,i,ip,istat,npv,nproc,iproc,mp,lp,iat,ixyz,iter,ncount_bigdft,infocode
-    real(kind=8)::x(n,0:np),fends(n,2),time1,time2 !,f(n,0:np),calnorm
-    real(kind=8)::ed_tt,edd_tt,tarr(100),diff,proj,epot,fnrm,fnoise !n(c) dt
-    real(kind=8), allocatable::xt(:),ft(:)
+    type(DFT_global_output), dimension(2), intent(in) :: outends
+    real(kind=8)::x(n,0:np),time1,time2 !,f(n,0:np),calnorm
+    real(kind=8)::ed_tt,edd_tt,tarr(100),diff,proj,fnrm !n(c) dt
+    real(kind=8), allocatable::xt(:)
     type(atoms_data), intent(inout) :: atoms
     type(input_variables), intent(inout) :: ll_inputs
     type(restart_objects), intent(inout) :: rst
     type(parametersplinedsaddle)::pnow,pold
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
-    real(gp), dimension(6) :: strten
     logical::move_this_coordinate
     type(run_objects) :: runObj
+    type(DFT_global_output) :: outs
 
     if(mod(np+pnow%ns2,2)==0) then
         npv=np+pnow%ns2+4
@@ -641,11 +632,10 @@ subroutine improvepeak(n,nr,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     endif
     allocate(xt(n+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating xt.'
     call dmemocc(n,n+ndeb1,xt,'xt')
-    allocate(ft(n+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating ft.'
-    call dmemocc(n,n+ndeb1,ft,'ft')
+    call init_global_output(outs, n / 3)
     call equalarclengthparametrization(atoms,n,np,x,pnow%s,pnow%h)
     call factor_cubic(np,pnow%h,pnow%e1,pnow%e2)
-    call fill_ex_exd(0,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,rst,ll_inputs,&
+    call fill_ex_exd(0,n,np,x,outends,npv,pnow,pold,xt,outs%fxyz,nproc,iproc,atoms,rst,ll_inputs,&
          ncount_bigdft)
     !call guessinitialtmax_hermite(npv,pnow)
     call guessinitialtmax_cubic(npv,pnow)
@@ -683,17 +673,17 @@ subroutine improvepeak(n,nr,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
         !call calenergyforces(n,x(1,lp),epot,ft)
         call cpu_time(time1)
         call vcopy(n, x(1,lp), 1, runObj%rxyz(1,1), 1)
-        call call_bigdft(runObj,nproc,iproc,epot,ft,strten,fnoise,infocode)
+        call call_bigdft(runObj,outs,nproc,iproc,infocode)
         call cpu_time(time2)
         ncount_bigdft=ncount_bigdft+1
         pnow%ncount_ll=pnow%ncount_ll+1
         pnow%time_ll=pnow%time_ll+(time2-time1)
         !fnrm=DNRM2(2,ft,1)
-        call atomic_dot(atoms,ft,ft,fnrm);fnrm=sqrt(fnrm)
+        call atomic_dot(atoms,outs%fxyz(1,1),outs%fxyz(1,1),fnrm);fnrm=sqrt(fnrm)
         xt(1:n)=x(1:n,lp)-x(1:n,mp)
         call normalizevector2(nr,xt)
         !proj=DDOT(nr,ft,1,xt,1)
-        call atomic_dot(atoms,ft,xt,proj)
+        call atomic_dot(atoms,outs%fxyz(1,1),xt,proj)
         if(iproc==0) then
             write(*,*) 'REZA ',x(1,3),x(2,3)
             write(*,*) 'proj ',proj,sqrt(fnrm**2-proj**2)
@@ -702,18 +692,20 @@ subroutine improvepeak(n,nr,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
             iat=(i-1)/3+1
             ixyz=mod(i-1,3)+1
             if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
-                ft(i)=ft(i)-proj*xt(i) !-1.d0*xt(i)
-                x(i,lp)=x(i,lp)+1.d-1*ft(i)
+               !ft(i)=ft(i)-proj*xt(i) !-1.d0*xt(i)
+               outs%fxyz(ixyz, iat) = outs%fxyz(ixyz, iat) - proj * xt(i)
+               !x(i,lp)=x(i,lp)+1.d-1*ft(i)
+               x(i,lp)=x(i,lp)+1.d-1*outs%fxyz(ixyz, iat)
             endif
         enddo
     enddo
     deallocate(runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating runObj%rxyz.'
     deallocate(xt,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating xt.'
-    deallocate(ft,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating ft.'
+    call deallocate_global_output(outs)
 end subroutine improvepeak
 
 
-subroutine pickbestanchors2(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
+subroutine pickbestanchors2(n,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces
     use module_types
@@ -721,7 +713,8 @@ subroutine pickbestanchors2(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
     !use energyandforces, only:calenergyforces
     implicit none
     integer::n,np,i,ip,istat,npv,nproc,iproc,mp,ncount_bigdft,ixyz,iat,icycle,ncycle
-    real(kind=8)::x(n,0:np),fends(n,2) !,f(n,0:np),calnorm
+    type(DFT_global_output), dimension(2), intent(in) :: outends
+    real(kind=8)::x(n,0:np) !,f(n,0:np),calnorm
     type(atoms_data), intent(inout) :: atoms
     type(input_variables), intent(inout) :: ll_inputs
     type(restart_objects), intent(inout) :: rst
@@ -743,7 +736,7 @@ subroutine pickbestanchors2(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
     call dmemocc(n,n+ndeb1,ft,'ft')
     call equalarclengthparametrization(atoms,n,np,x,pnow%s,pnow%h)
     call factor_cubic(np,pnow%h,pnow%e1,pnow%e2)
-    call fill_ex_exd(0,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
+    call fill_ex_exd(0,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     !call guessinitialtmax_hermite(npv,pnow)
     !-------------------------------------------------------------
     pold=pnow
@@ -852,7 +845,7 @@ subroutine pickbestanchors2(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
 end subroutine pickbestanchors2
 
 
-subroutine pickbestanchors(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
+subroutine pickbestanchors(n,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces
     use module_types
@@ -860,7 +853,8 @@ subroutine pickbestanchors(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
     !use energyandforces, only:calenergyforces
     implicit none
     integer::n,np,i,ip,istat,npv,nproc,iproc,mp,ncount_bigdft,ixyz,iat
-    real(kind=8)::x(n,0:np),fends(n,2) !,f(n,0:np),calnorm
+    type(DFT_global_output), dimension(2), intent(in) :: outends
+    real(kind=8)::x(n,0:np) !,f(n,0:np),calnorm
     type(atoms_data), intent(inout) :: atoms
     type(input_variables), intent(inout) :: ll_inputs
     type(restart_objects), intent(inout) :: rst
@@ -880,7 +874,7 @@ subroutine pickbestanchors(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
     call dmemocc(n,n+ndeb1,ft,'ft')
     call equalarclengthparametrization(atoms,n,np,x,pnow%s,pnow%h)
     call factor_cubic(np,pnow%h,pnow%e1,pnow%e2)
-    call fill_ex_exd(0,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
+    call fill_ex_exd(0,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     !call fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,rst,inputs,ncount_bigdft)
     call guessinitialtmax_hermite(npv,pnow)
     !call calindex(np,pnow%s,8.8165d-01,ip)
@@ -1065,7 +1059,7 @@ subroutine readinputsplsad(iproc,np,np_neb,parmin,parmin_neb,pnow)
 end subroutine readinputsplsad
 
 
-subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
+subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces
     use module_types
@@ -1078,12 +1072,14 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
     integer::n,nr,np,ip,icall,istat,it,nwork,nra
-    real(kind=8)::x(n,0:np),f(n,0:np)
+    real(kind=8)::x(n,0:np)
     real(kind=8)::fnrm,fspmax,fnrmtot
     real(kind=8), allocatable::work(:)
     real(kind=8), allocatable::xa(:,:),fa(:,:)
     type(parameterminimization_sp)::parmin
     type(parametersplinedsaddle)::pnow !n(c) pold
+    type(DFT_global_output), dimension(1:np - 1) :: outs
+    
     integer, parameter::ndeb1=0,ndeb2=0
     !logical::move_this_coordinate
     parmin%converged=.false.
@@ -1104,6 +1100,7 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
     call dmemocc(nr*(np-1),nr*(np-1+ndeb2),fa,'fa')
     if(istat/=0) stop 'ERROR: failure allocating xa or fa.'
     do ip=1,np-1
+       call init_global_output(outs(ip), atoms%nat)
         call atomic_copymoving_forward(atoms,n,x(1,ip),nr,xa(1,ip))
     enddo
     !xa(1:nr,1:np-1)=x(1:nr,1:np-1)
@@ -1118,9 +1115,11 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
         parmin%sdminimum=.true.
         icall=0
         do it=1,parmin%maxforcecall
-            call nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
-            call calmaxforcecomponentanchors(atoms,np,f(1,1),fnrm,fspmax)
-            fa(1:nr,1:np-1)=f(1:nr,1:np-1)
+            call nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
+            call calmaxforcecomponentanchors(atoms,np,outs,fnrm,fspmax)
+            do ip = 1, np - 1, 1
+               call vcopy(n, outs(ip)%fxyz(1,1), 1, fa(1,ip), 1)
+            end do
             call checkconvergence(parmin,fspmax)
             !call sdminimum(atoms,iproc,n,np,nr*(np-1),xa,fa,fnrmtot,parmin,nwork,work)
             call sdminimum(iproc,nr*(np-1),nr*(np-1),xa,fa,fnrmtot,parmin,nwork,work)
@@ -1146,9 +1145,11 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
         parmin%diisminimum=.false.
         icall=0
         do it=1,parmin%maxforcecall
-            call nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
-            call calmaxforcecomponentanchors(atoms,np,f(1,1),fnrm,fspmax)
-            fa(1:nr,1:np-1)=f(1:nr,1:np-1)
+            call nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
+            call calmaxforcecomponentanchors(atoms,np,outs,fnrm,fspmax)
+            do ip = 1, np - 1, 1
+               call vcopy(n, outs(ip)%fxyz(1,1), 1, fa(1,ip), 1)
+            end do
             call checkconvergence(parmin,fspmax)
             if(it==4) then
                 parmin%sdsaturated=.true.
@@ -1218,14 +1219,14 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
         do it=1,parmin%maxforcecall
             !call calvmaxanchorforces(icall,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,fatsp, &
             !    nproc,iproc,atoms,rst,inputs,ll_inputs,ncount_bigdft)
-            call nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
+            call nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
             !call calmaxforcecomponentsub(atoms,fatsp,fspnrm,fspmax)
             !call reportcalvmaxanchorforces(iproc,icall,n,np,x,etmax,fspnrm,fspmax,pnow,atoms,ncount_bigdft)
             !call checkconvergence(parmin,fspmax)
             do ip=1,np-1
-                call atomic_copymoving_forward(atoms,n,f(1,ip),nr,fa(1,ip))
+                call atomic_copymoving_forward(atoms,n,outs(ip)%fxyz,nr,fa(1,ip))
             enddo
-            call calmaxforcecomponentanchors(atoms,np,f(1,1),fnrm,fspmax)
+            call calmaxforcecomponentanchors(atoms,np,outs,fnrm,fspmax)
             call checkconvergence(parmin,fspmax)
             call bfgs_splsad(iproc,nr*(np-1),xa,fnrmtot,fa,nwork,work,parmin)
             do ip=1,np-1
@@ -1255,7 +1256,7 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
             !call calenergyforces(iproc,n,x,f,epot)
             !call calvmaxanchorforces(icall,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,fatsp, &
             !    parmin,nproc,iproc,atoms,rst,inputs,ll_inputs,ncount_bigdft)
-            call nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
+            call nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
             !fa(1:nr,1:np-1)=f(1:nr,1:np-1)
             !!if(iproc==0 .and. it==1) then
             !if(iproc==0) then
@@ -1283,9 +1284,9 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
             !call reportcalvmaxanchorforces(iproc,icall,n,np,x,etmax,fspnrm,fspmax,pnow,atoms,ncount_bigdft)
             !call checkconvergence(parmin,fspmax)
             do ip=1,np-1
-                call atomic_copymoving_forward(atoms,n,f(1,ip),nr,fa(1,ip))
+                call atomic_copymoving_forward(atoms,n,outs(ip)%fxyz,nr,fa(1,ip))
             enddo
-            call calmaxforcecomponentanchors(atoms,np,f(1,1),fnrm,fspmax)
+            call calmaxforcecomponentanchors(atoms,np,outs,fnrm,fspmax)
             call checkconvergence(parmin,fspmax)
             call fire_splsad(iproc,nr*(np-1),xa,fnrmtot,fa,work,parmin)
             do ip=1,np-1
@@ -1304,6 +1305,9 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
     endif
     !-------------------------------------------------------------------------------------
     deallocate(xa,fa,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating xa or fa.'
+    do ip=1,np-1
+       call deallocate_global_output(outs(ip))
+    enddo
     if(iproc==0) then
     write(pnow%ifile,'(a,1x,a)') 'end of minimization_sp using ',parmin%approach
     write(*         ,'(a,1x,a)') 'end of minimization_sp using ',parmin%approach
@@ -1372,12 +1376,13 @@ subroutine calmaxforcecomponentsub(atoms,f,fnrm,fspmax)
 end subroutine calmaxforcecomponentsub
 
 
-subroutine calmaxforcecomponentanchors(atoms,np,f,fnrm,fspmax)
+subroutine calmaxforcecomponentanchors(atoms,np,outs,fnrm,fspmax)
     use module_types
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::np,i,ip,iat,ixyz
-    real(kind=8)::f(3*atoms%nat,1:np-1),fnrm,fspmax
+    real(kind=8)::fnrm,fspmax
+    type(DFT_global_output), dimension(1:np-1), intent(in) :: outs
     logical::move_this_coordinate
     fspmax=0.d0
     fnrm=0.d0
@@ -1386,8 +1391,8 @@ subroutine calmaxforcecomponentanchors(atoms,np,f,fnrm,fspmax)
         ixyz=mod(i-1,3)+1
         if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
             do ip=1,np-1
-                fnrm=fnrm+f(i,ip)**2
-                fspmax=max(fspmax,abs(f(i,ip)))
+                fnrm=fnrm+outs(ip)%fxyz(ixyz,iat)**2
+                fspmax=max(fspmax,abs(outs(ip)%fxyz(ixyz,iat)))
             enddo
         endif
     enddo
@@ -1410,7 +1415,7 @@ end subroutine calmaxforcecomponentanchors
 !end subroutine testwrite
 
 
-subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
+subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces
     use module_types
@@ -1422,13 +1427,13 @@ subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
     integer::n,np,i,ip,istat,infocode
-    real(kind=8)::x(n,0:np),f(n,0:np),fnoise
+    type(DFT_global_output), dimension(0:np), intent(inout) :: outs
+    real(kind=8)::x(n,0:np)
     real(kind=8)::tt,t1,t2,springcons,fnrmtot,time1,time2,fnrmarr(99),fspmaxarr(99)!,DNRM2
     real(kind=8), allocatable::tang(:,:)
     type(parametersplinedsaddle)::pnow
     logical::move_this_coordinate
     integer::iat,ixyz,mp
-    real(gp), dimension(6) :: strten
     integer, parameter::ndeb1=0,ndeb2=0
     type(run_objects) :: runObj
 
@@ -1437,15 +1442,16 @@ subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount
     allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
     call dmemocc(3*atoms%nat,3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
     call run_objects_set(runObj, ll_inputs, atoms, rst)
-    do ip=1,np-1 
+    do ip=1,np-1
         call vcopy(n, x(1,ip), 1, runObj%rxyz(1,1), 1)
         call cpu_time(time1)
-        call call_bigdft(runObj,nproc,iproc,pnow%ex(ip),f(1,ip),strten,fnoise,infocode)
+        call call_bigdft(runObj,outs(ip),nproc,iproc,infocode)
+        pnow%ex(ip) = outs(ip)%energy
         call cpu_time(time2)
         ncount_bigdft=ncount_bigdft+1
         pnow%ncount_ll=pnow%ncount_ll+1
         pnow%time_ll=pnow%time_ll+(time2-time1)
-        call calmaxforcecomponentanchors(atoms,2,f(1,ip),fnrmarr(ip),fspmaxarr(ip))
+        call calmaxforcecomponentanchors(atoms,2,outs(ip:ip),fnrmarr(ip),fspmaxarr(ip))
         !fnrmarr(ip)=DNRM2(n,f(1,ip),1) !HERE
     enddo
     deallocate(runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating runObj%rxyz.'
@@ -1470,7 +1476,7 @@ subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount
     endif
     fnrmtot=0.d0
     do ip=1,np-1
-        call atomic_dot(atoms,f(1,ip),tang(1,ip),tt)
+        call atomic_dot(atoms,outs(ip)%fxyz(1,1),tang(1,ip),tt)
         tt=-tt
         t1=0.d0;t2=0.d0
         do i=1,n
@@ -1491,17 +1497,17 @@ subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount
             iat=(i-1)/3+1
             ixyz=mod(i-1,3)+1
             if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
-                f(i,ip)=f(i,ip)+tt*tang(i,ip)
+               outs(ip)%fxyz(ixyz, iat) = outs(ip)%fxyz(ixyz, iat) + tt * tang(i,ip)
             endif
         enddo
-        call atomic_dot(atoms,f(1,ip),f(1,ip),tt);tt=sqrt(tt)
+        call atomic_dot(atoms,outs(ip)%fxyz(1,1),outs(ip)%fxyz(1,1),tt);tt=sqrt(tt)
         fnrmtot=fnrmtot+tt
     enddo
     deallocate(tang,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating tang.'
 end subroutine nebforce
 
 
-subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc, &
+subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,outends,pnow,nproc, &
     iproc,atoms,rst,inputs,ll_inputs,ncount_bigdft,fatsp)
     use module_base
     use module_interfaces
@@ -1514,8 +1520,9 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc, &
     type(input_variables), intent(inout) :: inputs,ll_inputs
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
+    type(DFT_global_output), dimension(2), intent(in) :: outends
     integer::n,nr,np,i,ip,icall,istat,it,nwork,nra
-    real(kind=8)::x(n,0:np),f(n,0:np),fends(n,2),etmax,xtmax(n),fatsp(n)
+    real(kind=8)::x(n,0:np),f(n,0:np),etmax,xtmax(n),fatsp(n)
     real(kind=8)::fspmax,fspnrm,barrier1,barrier2
     real(kind=8), allocatable::work(:)
     real(kind=8), allocatable::xa(:,:),fa(:,:),xold(:,:) !,fsp(:)
@@ -1557,7 +1564,7 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc, &
         parmin%iflag=0
         icall=0
         do it=1,parmin%maxforcecall
-            call calvmaxanchorforces(icall,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,fatsp, &
+            call calvmaxanchorforces(icall,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold,fatsp, &
                 nproc,iproc,atoms,rst,inputs,ll_inputs,ncount_bigdft)
             call calmaxforcecomponentsub(atoms,fatsp,fspnrm,fspmax)
             call reportcalvmaxanchorforces(iproc,icall,n,np,x,etmax,fspnrm,fspmax,pnow,atoms,ncount_bigdft)
@@ -1593,7 +1600,7 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc, &
         parmin%iflag=0
         icall=0
         do it=1,parmin%maxforcecall
-            call calvmaxanchorforces(icall,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold, &
+            call calvmaxanchorforces(icall,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold, &
                 fatsp,nproc,iproc,atoms,rst,inputs,ll_inputs,ncount_bigdft)
             call calmaxforcecomponentsub(atoms,fatsp,fspnrm,fspmax)
             call reportcalvmaxanchorforces(iproc,icall,n,np,x,etmax,fspnrm,fspmax,pnow,atoms,ncount_bigdft)
@@ -1664,7 +1671,7 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc, &
         call dmemocc(nwork,nwork+ndeb1,work,'work')
         icall=0
         do it=1,parmin%maxforcecall
-            call calvmaxanchorforces(icall,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,fatsp, &
+            call calvmaxanchorforces(icall,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold,fatsp, &
                 nproc,iproc,atoms,rst,inputs,ll_inputs,ncount_bigdft)
             call calmaxforcecomponentsub(atoms,fatsp,fspnrm,fspmax)
             call reportcalvmaxanchorforces(iproc,icall,n,np,x,etmax,fspnrm,fspmax,pnow,atoms,ncount_bigdft)
@@ -1699,7 +1706,7 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc, &
         call dmemocc(nwork,nwork+ndeb1,work,'work')
         icall=0
         do it=1,parmin%maxforcecall
-            call calvmaxanchorforces(icall,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,fatsp, &
+            call calvmaxanchorforces(icall,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold,fatsp, &
                 nproc,iproc,atoms,rst,inputs,ll_inputs,ncount_bigdft)
             call calmaxforcecomponentsub(atoms,fatsp,fspnrm,fspmax)
             call reportcalvmaxanchorforces(iproc,icall,n,np,x,etmax,fspnrm,fspmax,pnow,atoms,ncount_bigdft)
@@ -1731,7 +1738,7 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc, &
         icall=0
         do it=1,parmin%maxforcecall
             !call calenergyforces(iproc,n,x,f,epot)
-            call calvmaxanchorforces(icall,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,fatsp, &
+            call calvmaxanchorforces(icall,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold,fatsp, &
                 nproc,iproc,atoms,rst,inputs,ll_inputs,ncount_bigdft)
             !if(iproc==0 .and. it==1) then
             if(iproc==0) then
@@ -2139,19 +2146,18 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
     integer::n,np,i,ip,istat,infocode,mp
-    real(kind=8)::x(n,0:np),f(n,0:np),fnoise,epotarr(0:100)
+    real(kind=8)::x(n,0:np),f(n,0:np),epotarr(0:100)
     type(parametersplinedsaddle)::pnow
     real(kind=8)::tt,fnrm,fnrmmax,time1,time2
-    real(kind=8), allocatable::tang(:,:),f_t(:,:)
+    real(kind=8), allocatable::tang(:,:)
     logical::move_this_coordinate
     integer::iat,ixyz
-    real(gp), dimension(6) :: strten
     integer, parameter::ndeb1=0,ndeb2=0
     type(run_objects) :: runObj
+    type(DFT_global_output), dimension(0:np) :: outs
+
     allocate(tang(n,0:np+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
     call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
-    allocate(f_t(n,0:np+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating f_t.'
-    call dmemocc(n*(np+1),n*(np+1+ndeb2),f_t,'f_t')
     allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
     call dmemocc(3*atoms%nat,3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
     call run_objects_set(runObj, ll_inputs, atoms, rst)
@@ -2167,9 +2173,11 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     if(mp==-1) stop 'ERROR: in perpendicularforce mp==-1'
     !do ip=1,np-1
     do ip=mp,mp
+       call init_global_output(outs(ip), atoms%nat)
         call vcopy(n, x(1,ip), 1, runObj%rxyz(1,1), 1)
         call cpu_time(time1)
-        call call_bigdft(runObj,nproc,iproc,epotarr(ip),f_t(1,ip),strten,fnoise,infocode)
+        call call_bigdft(runObj,outs(ip),nproc,iproc,infocode)
+        epotarr(ip) = outs(ip)%energy
         call cpu_time(time2)
         ncount_bigdft=ncount_bigdft+1
         pnow%ncount_ll=pnow%ncount_ll+1
@@ -2181,22 +2189,22 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     call caltangentupwind(n,np,x,epotarr,tang)
     !do ip=1,np-1
     do ip=mp,mp
-        call atomic_dot(atoms,f_t(1,ip),tang(1,ip),tt)
+        call atomic_dot(atoms,outs(ip)%fxyz(1,1),tang(1,ip),tt)
         tt=-tt
         do i=1,n
             iat=(i-1)/3+1
             ixyz=mod(i-1,3)+1
             if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
-                f(i,ip)=f(i,ip)+1.d-1*(f_t(i,ip)+tt*tang(i,ip))
+                f(i,ip)=f(i,ip)+1.d-1*(outs(ip)%fxyz(ixyz,iat)+tt*tang(i,ip))
             endif
         enddo
+        call deallocate_global_output(outs(ip))
     enddo
-    deallocate(f_t,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating f_t.'
     deallocate(tang,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating tang.'
 end subroutine perpendicularforce
 
 
-subroutine calvmaxanchorforces(istep,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,ftmax, &
+subroutine calvmaxanchorforces(istep,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold,ftmax, &
     nproc,iproc,atoms,rst,inputs,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces
@@ -2209,16 +2217,17 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,f
     type(input_variables), intent(inout) :: inputs,ll_inputs
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
+    type(DFT_global_output), dimension(2), intent(in) :: outends
     integer::n,np,mp,i,ip,j,infocode
-    real(kind=8)::x(n,0:np),xold(n,0:np),fends(n,2),f(n,0:np),xtmax(n),ftmax(n)
+    real(kind=8)::x(n,0:np),xold(n,0:np),f(n,0:np),xtmax(n),ftmax(n)
     integer::istat,istep
     type(parametersplinedsaddle)::pnow,pold
     !type(parameterminimization_sp)::parmin
-    real(kind=8)::etmax,tt,fnoise,time1,time2
-    real(gp), dimension(6) :: strten
+    real(kind=8)::etmax,tt,time1,time2
     real(kind=8), allocatable::dd(:,:,:)
     integer, parameter::ndeb2=0 !n(c) ndeb1
     type(run_objects) :: runObj
+    type(DFT_global_output) :: outs
     !----------------------------------------
     allocate(dd(n,n,np-1+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating dd.'
     if(istep==0) xold(1:n,0:np)=x(1:n,0:np)
@@ -2226,18 +2235,22 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,f
     call equalarclengthparametrization(atoms,n,np,x,pnow%s,pnow%h)
     call factor_cubic(np,pnow%h,pnow%e1,pnow%e2)
     !call caltmax(n,np,x,etmax,xtmax,ftmax,pnow,pold)
-    call caltmax2(istep,n,np,x,xold,fends,etmax,xtmax,ftmax,pnow,pold,nproc,iproc,&
+    call caltmax2(istep,n,np,x,xold,outends,etmax,xtmax,ftmax,pnow,pold,nproc,iproc,&
         atoms,rst,ll_inputs,ncount_bigdft)
     if(trim(pnow%hybrid)=='yes') then
        allocate(runObj%rxyz(3,atoms%nat),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
        call dmemocc(3*atoms%nat,3*atoms%nat,runObj%rxyz,'runObj%rxyz')
        call run_objects_set(runObj, inputs, atoms, rst)
+       call init_global_output(outs, atoms%nat)
        call vcopy(n, xtmax(1), 1, runObj%rxyz(1,1), 1)
        inputs%inputPsiId=0
        call cpu_time(time1)
-       call call_bigdft(runObj,nproc,iproc,etmax,ftmax,strten,fnoise,infocode)
+       call call_bigdft(runObj,outs,nproc,iproc,infocode)
+       etmax = outs%energy
        call cpu_time(time2)
+       call vcopy(n, outs%fxyz(1,1), 1, ftmax(1), 1)
        deallocate(runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating runObj%rxyz.'
+       call deallocate_global_output(outs)
        ncount_bigdft=ncount_bigdft+1
        pnow%ncount=pnow%ncount+1
        pnow%time=pnow%time+(time2-time1)
@@ -2380,7 +2393,7 @@ end subroutine checkpathway
 !end subroutine caltmax
 
 
-subroutine caltmax2(istep,n,np,x,xold,fends,epot,xt,ft,pnow,pold,nproc,iproc,atoms, &
+subroutine caltmax2(istep,n,np,x,xold,outends,epot,xt,ft,pnow,pold,nproc,iproc,atoms, &
         rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces
@@ -2392,10 +2405,11 @@ subroutine caltmax2(istep,n,np,x,xold,fends,epot,xt,ft,pnow,pold,nproc,iproc,ato
     type(input_variables), intent(inout) :: ll_inputs
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
+    type(DFT_global_output), dimension(2), intent(in) :: outends
     integer::istep,n,np,ip,mp,mpv,iter,npv,ipv,ibad,ibadold
     character(len=20)::filename
     character(len=3)::fn
-    real(kind=8)::x(n,0:np),xold(n,0:np),fends(n,2),xt(n),ft(n)
+    real(kind=8)::x(n,0:np),xold(n,0:np),xt(n),ft(n)
     type(parametersplinedsaddle)::pnow,pold
     real(kind=8)::epot,alpha,oneisideal,vdold,vdtol
     !n(c) character(32), parameter::frt =  '(3i5,e24.15,e15.6,e13.5,4e12.4)'
@@ -2427,7 +2441,7 @@ subroutine caltmax2(istep,n,np,x,xold,fends,epot,xt,ft,pnow,pold,nproc,iproc,ato
 !1358 continue
     !if(istep<3 .or. pnow%do_fill_ex_exd .or. pold%npv>np+pnow%ns2) then
     if(istep<1 .or. pnow%do_fill_ex_exd) then
-        call fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms, &
+        call fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atoms, &
             rst,ll_inputs,ncount_bigdft)
         !call guessinitialtmax_quintic(npv,pnow,iproc) !non-BigDFT
         !call guessinitialtmax_hermite(npv,pnow)
@@ -2861,7 +2875,7 @@ subroutine calvquintic(iproc,istep,npv,pnow,mpv,vq,vdq,vddq)
 end subroutine calvquintic
 
 
-subroutine fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
+subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces
     use module_types
@@ -2872,22 +2886,24 @@ subroutine fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,
     type(input_variables), intent(inout) :: ll_inputs
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
+    type(DFT_global_output), dimension(2), intent(in) :: outends
     integer::istep,n,np,ip,mp,istat,i,npv,infocode
-    real(kind=8)::x(n,0:np),fends(n,2),xt(n),ft(n) !n(c) dt
+    real(kind=8)::x(n,0:np),xt(n),ft(n) !n(c) dt
     type(parametersplinedsaddle)::pnow,pold
-    real(kind=8)::t1,tt,fnoise,time1,time2
+    real(kind=8)::t1,tt,time1,time2
     real(kind=8), allocatable::tang(:)
     logical::move_this_coordinate
     integer::iat,ixyz
-    real(gp), dimension(6) :: strten
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
     type(run_objects) :: runObj
+    type(DFT_global_output) :: outs
 
     allocate(tang(n+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
     call dmemocc(n,n+ndeb1,tang,'tang')
     allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
     call dmemocc(3*atoms%nat,3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
     call run_objects_set(runObj, ll_inputs, atoms, rst)
+    call init_global_output(outs, atoms%nat)
     pnow%ex(0)=pnow%exends(1)
     pnow%ex(npv)=pnow%exends(2)
     !test points along path will be distributed uniformly except one which is 
@@ -2986,19 +3002,21 @@ subroutine fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,
         !    tang(i)=0.d0
         !enddo
         if(ip==0) then
-            call atomic_dot(atoms,fends(1,1),tang,tt)
+            call atomic_dot(atoms,outends(1)%fxyz(1,1),tang,tt)
             pnow%exd(ip)=-tt
             !pnow%exd(ip)=-mydot(n,fends(1,1),tang) 
         elseif(ip==npv) then
-            call atomic_dot(atoms,fends(1,2),tang,tt)
+            call atomic_dot(atoms,outends(2)%fxyz(1,1),tang,tt)
             pnow%exd(ip)=-tt
             !pnow%exd(ip)=-mydot(n,fends(1,2),tang) 
         else
             !call calenergyforces(n,xt,pnow%ex(ip),ft)
            call vcopy(n, xt(1), 1, runObj%rxyz(1,1), 1)
             call cpu_time(time1)
-            call call_bigdft(runObj,nproc,iproc,pnow%ex(ip),ft,strten,fnoise,infocode)
+            call call_bigdft(runObj,outs,nproc,iproc,infocode)
+            pnow%ex(ip) = outs%energy
             call cpu_time(time2)
+            call vcopy(n, outs%fxyz(1,1), 1, ft(1), 1)
             ncount_bigdft=ncount_bigdft+1
             pnow%ncount_ll=pnow%ncount_ll+1
             pnow%time_ll=pnow%time_ll+(time2-time1)
@@ -3009,6 +3027,7 @@ subroutine fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,
     enddo
     deallocate(runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating runObj%rxyz.'
     deallocate(tang,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating tang.'
+    call deallocate_global_output(outs)
 end subroutine fill_ex_exd
 
 subroutine estimate_sv(iproc,istep,np,npv,pnow,pold)
@@ -3947,13 +3966,13 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     integer, intent(inout) :: ncount_bigdft
     integer::n,np,mp,i,istat,infocode
     type(parametersplinedsaddle)::pnow
-    real(kind=8)::tt,ett,x(n,0:np),epot,xt(n),ft(n),t1,fnoise,time1,time2
+    real(kind=8)::tt,ett,x(n,0:np),epot,xt(n),ft(n),t1,time1,time2
     real(kind=8), allocatable::tang(:)
     logical::move_this_coordinate
     integer::ixyz,iat
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
-    real(gp), dimension(6) :: strten
     type(run_objects) :: runObj
+    type(DFT_global_output) :: outs
     allocate(tang(n+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
     call dmemocc(n,n+ndeb1,tang,'tang')
     do i=1,n
@@ -3976,10 +3995,13 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
     call dmemocc(3*atoms%nat,3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
     call run_objects_set(runObj, ll_inputs, atoms, rst)
+    call init_global_output(outs, atoms%nat)
     call vcopy(n, xt(1), 1, runObj%rxyz(1,1), 1)
     call cpu_time(time1)
-    call call_bigdft(runObj,nproc,iproc,epot,ft,strten,fnoise,infocode)
+    call call_bigdft(runObj,outs,nproc,iproc,infocode)
+    epot = outs%energy
     call cpu_time(time2)
+    call vcopy(n, outs%fxyz(1,1), 1, ft(1), 1)
     ncount_bigdft=ncount_bigdft+1
     pnow%ncount_ll=pnow%ncount_ll+1
     pnow%time_ll=pnow%time_ll+(time2-time1)
@@ -3988,6 +4010,7 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     !write(*,'(a20,2f24.15,e24.15)') 'inside: tt,epot,ett',tt,epot,ett
     deallocate(runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating runObj%rxyz.'
     deallocate(tang,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating tang.'
+    call deallocate_global_output(outs)
 end subroutine func
 
 

@@ -42,16 +42,14 @@ module module_interfaces
 
    interface
 
-      subroutine call_bigdft(runObj,nproc,iproc,energy,fxyz,strten,fnoise,infocode)
+      subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
          type(run_objects), intent(inout) :: runObj
+         type(DFT_global_output), intent(out) :: outs
          integer, intent(inout) :: infocode
-         real(gp), intent(out) :: energy,fnoise
-         real(gp), dimension(6), intent(out) :: strten
-         real(gp), dimension(3,runObj%atoms%nat), intent(out) :: fxyz
       END SUBROUTINE call_bigdft
 
       subroutine geopt(runObj,nproc,iproc,fxyz,strten,epot,ncount_bigdft)

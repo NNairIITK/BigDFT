@@ -42,7 +42,7 @@ END SUBROUTINE geopt_set_verbosity
 
 
 !> Geometry optimization
-subroutine geopt(runObj,nproc,iproc,fxyz,strten,epot,ncount_bigdft)
+subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   use module_base
   use module_interfaces, except_this_one => geopt
   use module_types
@@ -50,11 +50,9 @@ subroutine geopt(runObj,nproc,iproc,fxyz,strten,epot,ncount_bigdft)
   use minpar
   implicit none
   type(run_objects), intent(inout) :: runObj
+  type(DFT_global_output), intent(out) :: outs
   integer, intent(in) :: nproc,iproc
-  real(gp), intent(inout) :: epot
   integer, intent(inout) :: ncount_bigdft
-  real(gp), dimension(6), intent(inout) :: strten
-  real(gp), dimension(3*runObj%atoms%nat), intent(inout) :: fxyz
   !local variables
   logical :: fail
   integer :: ibfgs
@@ -77,9 +75,9 @@ subroutine geopt(runObj,nproc,iproc,fxyz,strten,epot,ncount_bigdft)
   !assign the geometry optimisation method
   parmin%approach=runObj%inputs%geopt_approach
 
-  strten=0 !not used for the moment
+  outs%strten=0 !not used for the moment
 
-  epot=0.d0
+  outs%energy=0.d0
   ncount_bigdft=0
   if (iproc == 0) then
      outfile = 'posout'
@@ -89,7 +87,7 @@ subroutine geopt(runObj,nproc,iproc,fxyz,strten,epot,ncount_bigdft)
      write(fn4,fmt) ncount_bigdft
      write(comment,'(a)')'INITIAL CONFIGURATION '
      call write_atomic_file(trim(runObj%inputs%dir_output)//trim(outfile)//'_'//trim(fn4),&
-          & epot,runObj%rxyz,runObj%atoms,trim(comment),forces=fxyz)
+          & outs%energy,runObj%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
      call yaml_new_document()
      call yaml_comment('Geometry minimization using ' // trim(parmin%approach),hfill='-')
      call yaml_map('Begin of minimization using ',parmin%approach)
@@ -102,65 +100,66 @@ subroutine geopt(runObj,nproc,iproc,fxyz,strten,epot,ncount_bigdft)
   !if (trim(parmin%approach)=='LBFGS') then
   
      ibfgs=0
-86   continue
-     ibfgs=ibfgs+1
-     if (iproc ==0) call yaml_map('ENTERING LBFGS,ibfgs',ibfgs)
-     !if (iproc ==0) write(*,*) '# ENTERING LBFGS,ibfgs',ibfgs
-     call lbfgsdriver(runObj,nproc,iproc,fxyz,epot,ncount_bigdft,fail)
-     if (fail .and. ibfgs .lt. 5) goto 86
+     do
+        ibfgs=ibfgs+1
+        if (iproc ==0) call yaml_map('ENTERING LBFGS,ibfgs',ibfgs)
+        call lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
+        if (.not. fail .or. ibfgs .ge. 5) exit
+        call deallocate_global_output(outs)
+     end do
 
      if (fail) then
         if (iproc ==0) call yaml_map('ENTERING CG after LBFGS failure,ibfgs',ibfgs)
         !if (iproc ==0) write(*,*) '# ENTERING CG after LBFGS failure'
-        call conjgrad(runObj,nproc,iproc,epot,fxyz,ncount_bigdft)
+        call conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
      end if
 
 !  if(trim(parmin%approach)=='LBFGS') then
 !
 !     if (iproc ==0) write(*,*) '# ENTERING BFGS'
 !
-!     call bfgs(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
+!     call bfgs(nproc,iproc,pos,fxyz,outs%energy,at,rst,in,ncount_bigdft,fail)
 !
 !     if (fail) then 
 !        if (iproc ==0) write(*,*) '# ENTERING CG after BFGS failure'
-!        call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
+!        call conjgrad(nproc,iproc,pos,at,outs%energy,fxyz,rst,in,ncount_bigdft)
 !     end if
 !
   case('BFGS','PBFGS')
   !else if(trim(parmin%approach)=='BFGS' .or. trim(parmin%approach)=='PBFGS') then
-     call bfgsdriver(runObj,nproc,iproc,fxyz,epot,ncount_bigdft)
+     call bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
 
   case('SDCG')
   !else if(trim(parmin%approach)=='SDCG') then
      if (iproc ==0) call yaml_map('ENTERING CG',ncount_bigdft)
      !if (iproc ==0) write(*,*) '# ENTERING CG'
 !     call yaml_open_map('Geometry optimization')
-     call conjgrad(runObj,nproc,iproc,epot,fxyz,ncount_bigdft)
+     call conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
 !     call yaml_close_map()
 
   case('VSSD')
   !else if(trim(parmin%approach)=='VSSD') then
      if (iproc ==0) call yaml_map('ENTERING VSSD',ncount_bigdft)
      !if (iproc ==0) write(*,*) '# ENTERING VSSD'
-     call vstepsd(runObj,nproc,iproc,epot,fxyz,ncount_bigdft)
+     call vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
 
   case('FIRE')
   !else if(trim(parmin%approach)=='FIRE') then
      if (iproc ==0) call yaml_map('ENTERING FIRE',ncount_bigdft)
      !if (iproc ==0) write(*,*) '# ENTERING FIRE'
-     call fire(runObj,nproc,iproc,epot,fxyz,ncount_bigdft,fail)
+     call fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
   case('DIIS')   
   !else if(trim(parmin%approach)=='DIIS') then
      if (iproc ==0) call yaml_map('ENTERING DIIS',ncount_bigdft)
      !if (iproc ==0) write(*,*) '# ENTERING DIIS'
-     call rundiis(runObj,nproc,iproc,fxyz,epot,ncount_bigdft,fail)
+     call rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
   case('AB6MD')
   !else if(trim(parmin%approach)=='AB6MD') then
      if (iproc ==0) call yaml_map('ENTERING Molecular Dynamics (ABINIT implementation)',ncount_bigdft)
      !if (iproc ==0) write(*,*) '# ENTERING Molecular Dynamics (ABINIT implementation)'
-     call ab6md(runObj,nproc,iproc,fxyz,epot,ncount_bigdft,fail)
+     call ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
   case default
   !else
@@ -181,7 +180,7 @@ END SUBROUTINE geopt
 
 
 !> Molecular Dynamics
-subroutine ab6md(runObj,nproc,iproc,f,epot,ncount_bigdft,fail)
+subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   use module_base
   use module_types
   use scfloop_API
@@ -192,8 +191,7 @@ subroutine ab6md(runObj,nproc,iproc,f,epot,ncount_bigdft,fail)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
-  real(gp), intent(inout) :: epot
-  real(gp), dimension(3*runObj%atoms%nat), intent(inout) :: f
+  type(DFT_global_output), intent(inout) :: outs
   logical, intent(out) :: fail
   !Local variables
   character(len=*), parameter :: subname='ab6md'
@@ -244,7 +242,7 @@ subroutine ab6md(runObj,nproc,iproc,f,epot,ncount_bigdft,fail)
      amass(iat) = amu2emass * runObj%atoms%amu(runObj%atoms%iatype(iat))
      do idim = 1, 3
         xred(idim, iat) = runObj%rxyz(idim, iat) / acell(idim)
-        fred(idim, iat) = - f((iat - 1) * 3 + idim) / acell(idim)
+        fred(idim, iat) = - outs%fxyz(idim, iat) / acell(idim)
      end do
      select case(runObj%atoms%ifrztyp(iat))
      case(0)
@@ -267,7 +265,7 @@ subroutine ab6md(runObj,nproc,iproc,f,epot,ncount_bigdft,fail)
   ! Call the ABINIT routine.
   ! currently, we force optcell == 0
   call moldyn(acell, amass, iproc, runObj%inputs%ncount_cluster_x+1, nxfh, runObj%atoms%nat, &
-       & rprim, epot, iexit, &
+       & rprim, outs%energy, iexit, &
        & 0, runObj%inputs%ionmov, runObj%inputs%ncount_cluster_x, runObj%inputs%dtion, runObj%inputs%noseinert, &
        & runObj%inputs%mditemp, runObj%inputs%mdftemp, runObj%inputs%friction, runObj%inputs%mdwall, runObj%inputs%nnos, &
        & runObj%inputs%qmass, runObj%inputs%bmass, runObj%inputs%vmass, iatfix, runObj%inputs%strtarget, &
@@ -275,9 +273,9 @@ subroutine ab6md(runObj,nproc,iproc,f,epot,ncount_bigdft,fail)
        & 1, symrel, vel, xfhist, fred, xred)
 
   do iat = 1, runObj%atoms%nat, 1
-     do idim = 1, 3, 1
-        f(idim + 3 * (iat - 1)) = fred(idim, iat) * acell(idim)
-     end do
+     outs%fxyz(1, iat) = fred(1, iat) * acell(1)
+     outs%fxyz(2, iat) = fred(2, iat) * acell(2)
+     outs%fxyz(3, iat) = fred(3, iat) * acell(3)
   end do
 
   !De-Allocations
@@ -461,7 +459,7 @@ END SUBROUTINE transforce_forfluct
 !> DIIS relax. Original source from ART from N. Mousseau.
 !! Adaptations to BigDFT by D. Caliste.
 !! WARNING: strten not minimized here
-subroutine rundiis(runObj,nproc,iproc,f,epot,ncount_bigdft,fail)
+subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   use module_base
   use module_types
   use module_interfaces
@@ -469,17 +467,15 @@ subroutine rundiis(runObj,nproc,iproc,f,epot,ncount_bigdft,fail)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
-  real(gp), intent(inout) :: epot
+  type(DFT_global_output), intent(inout) :: outs
   logical, intent(out) :: fail
-  real(gp), dimension(3,runObj%atoms%nat), intent(inout) :: f
   !local variables
   character(len=*), parameter :: subname='rundiis'
-  real(gp), dimension(6) :: strten
   real(gp), dimension(:,:,:), allocatable  :: previous_forces
   real(gp), dimension(:,:,:), allocatable  :: previous_pos
   real(gp), dimension(:,:), allocatable :: product_matrix
   integer :: lter, maxter, i, i_err, n, nrhs, lwork, infocode, j, i_stat, i_all
-  real(gp) :: fluct, fmax, fnrm,fnoise,etotprev
+  real(gp) :: fluct, fmax, fnrm,etotprev
   character(len = 4) :: fn4
   character(len = 40) :: comment
   ! Local variables for Lapack.
@@ -507,10 +503,10 @@ subroutine rundiis(runObj,nproc,iproc,f,epot,ncount_bigdft,fail)
   call razero(runObj%inputs%history*runObj%atoms%nat*3,previous_pos)
 
   ! We set the first step and move to the second
-  call vcopy(3 * runObj%atoms%nat, f(1,1), 1, previous_forces(1,1,1), 1)
+  call vcopy(3 * runObj%atoms%nat, outs%fxyz (1,1), 1, previous_forces(1,1,1), 1)
   call vcopy(3 * runObj%atoms%nat, runObj%rxyz(1,1), 1, previous_pos(1,1,1), 1)
   
-  call axpy(3 * runObj%atoms%nat, runObj%inputs%betax, f(1,1), 1, runObj%rxyz(1,1), 1)
+  call axpy(3 * runObj%atoms%nat, runObj%inputs%betax, outs%fxyz(1,1), 1, runObj%rxyz(1,1), 1)
 !!$  !always better to use the atomic_* routines to move atoms
 !!$  !it performs modulo operation as well as constrained search
 !!$  call atomic_axpy(at,x,runObj%inputs%betax,f,x)
@@ -542,12 +538,12 @@ subroutine rundiis(runObj,nproc,iproc,f,epot,ncount_bigdft,fail)
 
      ! we first add the force to the previous_force vector and the
      ! position to the previous_pos vector
-     previous_forces(maxter,:,:) = f(:,:)
+     call vcopy(3 * runObj%atoms%nat, outs%fxyz(1,1), 1, previous_forces(maxter,1,1), 1)
      call vcopy(3 * runObj%atoms%nat, runObj%rxyz(1,1), 1, previous_pos(maxter,1,1), 1)
 
      ! And we add the scalar products to the matrix
      do i = 1, maxter
-        product_matrix(i,maxter) = dot(3 * runObj%atoms%nat,previous_forces(i,1,1),1,f(1,1),1)
+        product_matrix(i,maxter) = dot(3 * runObj%atoms%nat,previous_forces(i,1,1),1,outs%fxyz(1,1),1)
         product_matrix(maxter,i) = product_matrix(i,maxter)
      end do
 
@@ -594,9 +590,9 @@ subroutine rundiis(runObj,nproc,iproc,f,epot,ncount_bigdft,fail)
      call memocc(i_stat,i_all,'solution',subname)
 
      runObj%inputs%inputPsiId=1
-     etotprev=epot
+     etotprev=outs%energy
 
-     call call_bigdft(runObj,nproc,iproc,epot,f,strten,fnoise,infocode)
+     call call_bigdft(runObj,outs,nproc,iproc,infocode)
 
 !!$     if (iproc == 0) then
 !!$        call transforce(at,f,sumx,sumy,sumz)
@@ -607,20 +603,21 @@ subroutine rundiis(runObj,nproc,iproc,f,epot,ncount_bigdft,fail)
 
      ncount_bigdft=ncount_bigdft+1
 
-     call fnrmandforcemax(f,fnrm,fmax,runObj%atoms%nat)
-     if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
+     call fnrmandforcemax(outs%fxyz,fnrm,fmax,runObj%atoms%nat)
+     if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
      call convcheck(fmax,fluct*runObj%inputs%frac_fluct,runObj%inputs%forcemax,check) !n(m)
 
      if (iproc==0) then 
         write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,es11.3,3(1pe10.2),2x,i3)')  & 
-          ncount_bigdft,lter,"GEOPT_DIIS",epot,epot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,check
+          ncount_bigdft,lter,"GEOPT_DIIS",outs%energy,outs%energy-etotprev, &
+          & fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,check
 
 !        write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=', &
 !             & fmax,'fnrm=',    fnrm    ,'fluct=', fluct
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'DIIS:fnrm= ',sqrt(fnrm)
         call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-             & epot,runObj%rxyz,runObj%atoms,trim(comment),forces=f)
+             & outs%energy,runObj%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
      endif
 
      if(check > 5)then
@@ -636,7 +633,7 @@ subroutine rundiis(runObj,nproc,iproc,f,epot,ncount_bigdft,fail)
       exit
      endif
 
-     call axpy(3 * runObj%atoms%nat, runObj%inputs%betax, f(1,1), 1, runObj%rxyz(1,1), 1)
+     call axpy(3 * runObj%atoms%nat, runObj%inputs%betax, outs%fxyz(1,1), 1, runObj%rxyz(1,1), 1)
   end do
 
   i_all=-product(shape(previous_forces))*kind(previous_forces)
@@ -658,7 +655,7 @@ END SUBROUTINE rundiis
 !! Implemented in August 2010, Maximilian Amsler, Basel University 
 !! Suggestion for maximal timestep as tmax=2*pi*sqrt(alphaVSSD)*1.2d-1
 !! Choose the initial timestep as tinit=tmax*0.5d0
-subroutine fire(runObj,nproc,iproc,etot,fxyz,ncount_bigdft,fail) 
+subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail) 
   use module_base
   use module_types
   use module_interfaces
@@ -669,17 +666,15 @@ subroutine fire(runObj,nproc,iproc,etot,fxyz,ncount_bigdft,fail)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
-  real(gp), intent(inout) :: etot
+  type(DFT_global_output), intent(inout) :: outs
   logical, intent(inout) :: fail
-  real(gp), dimension(3*runObj%atoms%nat), intent(inout) :: fxyz
 
-  real(gp) :: fluct,fnrm,  fnoise
+  real(gp) :: fluct,fnrm
   real(gp) :: fmax,vmax
   integer :: check
   integer :: infocode,iat
   character(len=4) :: fn4
   character(len=40) :: comment
-  real(gp), dimension(6) :: strten
 
   !n(c) character(len=*), parameter :: subname='fire'
 
@@ -688,7 +683,7 @@ subroutine fire(runObj,nproc,iproc,etot,fxyz,ncount_bigdft,fail)
   real(gp):: velcur(3*runObj%atoms%nat), velpred(3*runObj%atoms%nat),poscur(3*runObj%atoms%nat),&
        & pospred(3*runObj%atoms%nat),fcur(3*runObj%atoms%nat),fpred(3*runObj%atoms%nat),&
        & mass(3*runObj%atoms%nat)
-  real(gp):: epred,eprev,anoise !n(c) ecur
+  real(gp):: eprev,anoise !n(c) ecur
   integer:: Nmin,nstep,it
 
   fluct=0.0_gp
@@ -711,10 +706,9 @@ subroutine fire(runObj,nproc,iproc,etot,fxyz,ncount_bigdft,fail)
   fnrm=1.e10_gp
   velcur=0.0_gp
   call vcopy(3*runObj%atoms%nat, runObj%rxyz(1,1), 1, poscur(1), 1)
-  fcur=fxyz
+  call vcopy(3*runObj%atoms%nat, outs%fxyz(1,1), 1, fcur(1), 1)
   mass=1.0_gp
   !n(c) ecur=etot
-  epred=etot
   eprev=0.0_gp
 
   Big_loop: do it=1,runObj%inputs%ncount_cluster_x-1
@@ -724,7 +718,8 @@ subroutine fire(runObj,nproc,iproc,etot,fxyz,ncount_bigdft,fail)
 
      runObj%inputs%inputPsiId=1
      call vcopy(3 * runObj%atoms%nat, pospred(1), 1, runObj%rxyz(1,1), 1)
-     call call_bigdft(runObj,nproc,iproc,epred,fpred,strten,fnoise,infocode)
+     call call_bigdft(runObj,outs,nproc,iproc,infocode)
+     call vcopy(3 * runObj%atoms%nat, fpred(1), 1, outs%fxyz(1,1), 1)
      ncount_bigdft=ncount_bigdft+1
      call fnrmandforcemax(fpred,fnrm,fmax,runObj%atoms%nat)
    !  call convcheck(fmax,fluct*runObj%inputs%frac_fluct,runObj%inputs%forcemax,check) !n(m)
@@ -739,21 +734,21 @@ subroutine fire(runObj,nproc,iproc,etot,fxyz,ncount_bigdft,fail)
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'FIRE:fnrm= ',sqrt(fnrm)
         call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4,&
-             & epred,pospred,runObj%atoms,trim(comment),forces=fpred)
+             & outs%energy,pospred,runObj%atoms,trim(comment),forces=fpred)
      endif
-     if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
+     if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
 
      if (iproc==0.and.parmin%verbosity > 0) then
          write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),  & 
          & 2x,a6,es8.2e1,2x,a3,es8.2e1,2x,a6,es9.2,2x,a6,I5,2x,a2,es9.2)') &
-         & ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct, &
+         & ncount_bigdft,it,"GEOPT_FIRE",outs%energy,outs%energy-eprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct, &
          & "alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
 
          call yaml_open_map('Geometry')
             call yaml_map('Ncount_BigDFT',ncount_bigdft)
             call yaml_map('Geometry step',it)
             call yaml_map('Geometry Method','GEOPT_FIRE')
-            call yaml_map('epred',(/ epred,epred-eprev /),fmt='(1pe21.14)')
+            call yaml_map('epred',(/ outs%energy,outs%energy-eprev /),fmt='(1pe21.14)')
             call geometry_output(fmax,fnrm,fluct)
             call yaml_map('Alpha', alpha, fmt='(es7.2e1)')
             call yaml_map('dt',dt, fmt='(es7.2e1)')
@@ -769,7 +764,7 @@ subroutine fire(runObj,nproc,iproc,etot,fxyz,ncount_bigdft,fail)
          !eprev=epred
      end if
 
-     eprev=epred
+     eprev=outs%energy
 
      call convcheck(fmax,fluct*runObj%inputs%frac_fluct, runObj%inputs%forcemax,check) !n(m)
      if (ncount_bigdft >= runObj%inputs%ncount_cluster_x-1) then
@@ -815,9 +810,8 @@ subroutine fire(runObj,nproc,iproc,etot,fxyz,ncount_bigdft,fail)
    end do Big_loop
         
 ! Output the final energy, atomic positions and forces
-   etot = epred
    call vcopy(3*runObj%atoms%nat, pospred(1), 1, runObj%rxyz(1,1), 1)
-   fxyz = fpred
+   call vcopy(3*runObj%atoms%nat, fpred(1), 1, outs%fxyz(1,1), 1)
 
 END SUBROUTINE fire
 

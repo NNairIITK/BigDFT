@@ -53,13 +53,13 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   real(dp), intent(out) :: epot
   real(dp), intent(in) :: acell(3)
   real(dp), intent(in) :: rprimd(3,3), xred(3,natom)
-  real(dp), intent(out) :: fcart(3, natom), grad(3, natom)
+  real(dp), intent(out) :: grad(3, natom)
+  real(dp), intent(out), target :: fcart(3, natom)
 
   character(len=*), parameter :: subname='scfloop_main'
   integer :: infocode, i, j
-  real(gp) :: fnoise
   real(dp) :: favg(3)
-  real(gp), dimension(6) :: strten
+  type(DFT_global_output) :: outs
 
   if (.not. scfloop_initialised) then
      write(0,*) "No previous call to scfloop_init(). On strike, refuse to work."
@@ -87,16 +87,18 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
 !!$  open(100+me)
 !!$  write(100+me,*)xcart
 !!$  close(100+me)
-
+  outs%fxyz => fcart
   scfloop_obj%inputs%inputPsiId = 1
-  call call_bigdft(scfloop_obj,scfloop_nproc,me,epot,grad,strten,fnoise,infocode)
+  call call_bigdft(scfloop_obj,outs,scfloop_nproc,me,infocode)
+  epot = outs%energy
+  nullify(outs%fxyz)
+  call deallocate_global_output(outs)
 
   ! need to transform the forces into reduced ones.
   favg(:) = real(0, dp)
   do i = 1, scfloop_obj%atoms%nat, 1
-     fcart(:, i) = grad(:, i)
      favg(:) = favg(:) + fcart(:, i) / real(natom, dp)
-     grad(:, i) = -grad(:, i) / acell(:)
+     grad(:, i) = -fcart(:, i) / acell(:)
   end do
   do i = 1, scfloop_obj%atoms%nat, 1
      fcart(:, i) = fcart(:, i) - favg(:)

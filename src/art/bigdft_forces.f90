@@ -200,9 +200,7 @@ module bigdft_forces
 
       !Local variables
       integer  :: infocode, i, ierror 
-      real(gp) :: fnoise
-      real(gp), dimension(6) :: strten
-      real(gp), allocatable :: fcart(:,:)
+      type(DFT_global_output) :: outs
       !_______________________
 
       if ( conv ) then                    ! Convergence criterion for the wavefunction optimization
@@ -220,14 +218,14 @@ module bigdft_forces
          runObj%rxyz(:, i) = (/ posa(i), posa(runObj%atoms%nat + i), posa(2 * runObj%atoms%nat + i) /) / Bohr_Ang
       end do
 
-      allocate(fcart(3, runObj%atoms%nat))
+      call init_global_output(outs, runObj%atoms%nat)
 
       if ( first_time ) then              ! This is done by default at the beginning.
 
 
          runObj%inputs%inputPsiId = 0
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft(runObj, nproc, me, energy, fcart,strten, fnoise, infocode )
+         call call_bigdft(runObj, outs, nproc, me, infocode )
          evalf_number = evalf_number + 1
 
          runObj%inputs%inputPsiId = 1
@@ -252,12 +250,12 @@ module bigdft_forces
 
          ! Get into BigDFT
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft(runObj, nproc, me, energy, fcart,strten,fnoise, infocode )
+         call call_bigdft(runObj, outs, nproc, me, infocode )
          evalf_number = evalf_number + 1
 
       end if
       ! Energy in eV 
-      energy = energy * ht2ev
+      energy = outs%energy * ht2ev
       ! box in ang
       boxl(1) = runObj%atoms%alat1 * Bohr_Ang
       boxl(2) = runObj%atoms%alat2 * Bohr_Ang
@@ -268,18 +266,18 @@ module bigdft_forces
       ! But, up to now, ART only works with totally frozen atoms
       ! ( i.e "f" ). Therefore, this is a safe action.
       do i = 1, runObj%atoms%nat, 1
-         if ( runObj%atoms%ifrztyp(i) /= 0  .or. in_system(i) /= 0 ) fcart(:,i) = 0.0d0 
+         if ( runObj%atoms%ifrztyp(i) /= 0  .or. in_system(i) /= 0 ) outs%fxyz(:,i) = 0.0d0 
       end do 
 
-      call center_f( fcart, runObj%atoms%nat )         ! We remove the net force over our free atomos.
+      call center_f( outs%fxyz, runObj%atoms%nat )     ! We remove the net force over our free atomos.
 
       do i = 1, runObj%atoms%nat, 1                    ! Forces into ev/ang and in 1D array.
-         forca( i )                        = fcart(1, i) * ht2ev / Bohr_Ang
-         forca( runObj%atoms%nat + i )     = fcart(2, i) * ht2ev / Bohr_Ang
-         forca( 2 * runObj%atoms%nat + i ) = fcart(3, i) * ht2ev / Bohr_Ang
+         forca( i )                        = outs%fxyz(1, i) * ht2ev / Bohr_Ang
+         forca( runObj%atoms%nat + i )     = outs%fxyz(2, i) * ht2ev / Bohr_Ang
+         forca( 2 * runObj%atoms%nat + i ) = outs%fxyz(3, i) * ht2ev / Bohr_Ang
       end do
 
-      deallocate(fcart)
+      call deallocate_global_output(outs)
 
    END SUBROUTINE calcforce_bigdft
 
@@ -610,11 +608,8 @@ module bigdft_forces
 
       !Local variables
       integer      :: infocode, i, ierror, ncount_bigdft 
-      real(kind=8) :: energy
-      real(gp)     :: fnoise
+      type(DFT_global_output) :: outs
       real(gp)     ::  fmax, fnrm
-      real(gp), dimension(6) :: strten
-      real(gp), allocatable :: fcart(:,:)
       !_______________________
 
       runObj%inputs%inputPsiId = 0 
@@ -628,14 +623,12 @@ module bigdft_forces
          runObj%rxyz(:, i) = (/ posa(i), posa(runObj%atoms%nat + i), posa(2 * runObj%atoms%nat + i) /) / Bohr_Ang
       end do
 
-      allocate(fcart(3, runObj%atoms%nat))
-
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
-      call call_bigdft(runObj, nproc, me, energy, fcart,strten,fnoise, infocode )
+      call call_bigdft(runObj, outs, nproc, me, infocode )
       evalf_number = evalf_number + 1
       runObj%inputs%inputPsiId = 1
 
-      call fnrmandforcemax(fcart,fnrm,fmax, runObj%atoms%nat)
+      call fnrmandforcemax(outs%fxyz,fnrm,fmax, runObj%atoms%nat)
 
       if ( fmax > runObj%inputs%forcemax ) then
 
@@ -645,14 +638,14 @@ module bigdft_forces
          end if
 
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call geopt(runObj, nproc, me, fcart, strten,total_energy, ncount_bigdft )
+         call geopt(runObj, nproc, me, outs%fxyz, outs%strten,total_energy, ncount_bigdft )
          evalf_number = evalf_number + ncount_bigdft 
          if (ncount_bigdft > runObj%inputs%ncount_cluster_x-1) success = .False.
 
          ! and we clean again here
          runObj%inputs%inputPsiId = 0 
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft(runObj, nproc, me, energy, fcart,strten, fnoise, infocode )
+         call call_bigdft(runObj, outs, nproc, me, infocode )
          evalf_number = evalf_number + 1
          runObj%inputs%inputPsiId = 1
 
@@ -670,7 +663,7 @@ module bigdft_forces
 
       end if 
 
-      deallocate(fcart)
+      call deallocate_global_output(outs)
 
    END SUBROUTINE check_force_clean_wf
 

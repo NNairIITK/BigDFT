@@ -9,7 +9,7 @@
 
 
 !>  Conjugate gradient method
-subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
+subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
   use module_base
   use module_types
   use module_interfaces
@@ -18,17 +18,15 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
   implicit none
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
-  real(gp), intent(inout) :: etot
   type(run_objects), intent(inout) :: runObj
-  real(gp), dimension(3,runObj%atoms%nat), intent(out) :: fxyz
+  type(DFT_global_output), intent(inout) :: outs
   !local variables
-  real(gp) ::fnoise
+  type(DFT_global_output) :: l_outs
   character(len=*), parameter :: subname='conjgrad'  
   integer :: nfail,it,iat,i_all,i_stat,infocode, nitsd
   real(gp) :: anoise,fluct,avbeta,avnum,fnrm,etotprev,beta0,beta
-  real(gp) :: y0,y1,tt,oben1,oben2,oben,unten,rlambda,tetot,fmax,tmp!,eprev
-  real(gp), dimension(6) :: strten
-  real(gp), dimension(:,:), allocatable :: tpos,gpf,hh
+  real(gp) :: y0,y1,tt,oben1,oben2,oben,unten,rlambda,fmax,tmp!,eprev
+  real(gp), dimension(:,:), allocatable :: tpos,hh
 !  logical::check
   integer :: check
   character(len=4) :: fn4
@@ -37,10 +35,9 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
   check=0
   allocate(tpos(3,runObj%atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,tpos,'tpos',subname)
-  allocate(gpf(3,runObj%atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,gpf,'gpf',subname)
   allocate(hh(3,runObj%atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,hh,'hh',subname)
+  call init_global_output(l_outs, runObj%atoms%nat)
 
   anoise=1.e-4_gp
   fluct=0._gp
@@ -51,7 +48,7 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
   nitsd=500
 
   !start with a steepest descent algorithm
-  call steepdes(runObj,nproc,iproc,etot,fxyz,ncount_bigdft,fnrm,fnoise,runObj%inputs%forcemax,nitsd,fluct)
+  call steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,runObj%inputs%forcemax,nitsd,fluct)
   if (ncount_bigdft >= runObj%inputs%ncount_cluster_x) then
      if (iproc==0 .and. parmin%verbosity > 0) &
         & write(16,*) 'SDCG exited before the geometry optimization converged because more than ',&
@@ -61,7 +58,7 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
   end if
 
   !calculate the max of the forces
-  call fnrmandforcemax(fxyz,tmp,fmax,runObj%atoms%nat)
+  call fnrmandforcemax(outs%fxyz,tmp,fmax,runObj%atoms%nat)
 
   !control whether the convergence criterion is reached after SD
   call convcheck(fmax,fluct*runObj%inputs%frac_fluct,runObj%inputs%forcemax,check) !n(m)
@@ -75,11 +72,7 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
   endif
 
   redo_cg: do
-     do iat=1,runObj%atoms%nat
-        hh(1,iat)=fxyz(1,iat)
-        hh(2,iat)=fxyz(2,iat)
-        hh(3,iat)=fxyz(3,iat)
-     end do
+     call vcopy(3 * runObj%atoms%nat, outs%fxyz(1,1), 1, hh(1,1), 1)
 
      beta0=4._gp*runObj%inputs%betax
      it=0
@@ -93,7 +86,7 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
         call axpy(3 * runObj%atoms%nat, beta0, hh(1,1), 1, runObj%rxyz(1,1), 1)
 
         runObj%inputs%inputPsiId=1
-        call call_bigdft(runObj,nproc,iproc,tetot,gpf,strten,fnoise,infocode)
+        call call_bigdft(runObj,l_outs,nproc,iproc,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,gpf,sumx,sumy,sumz)
 !!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
@@ -106,8 +99,8 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
         y0=0._gp
         y1=0._gp
         do iat=1,runObj%atoms%nat
-           y0=y0+fxyz(1,iat)*hh(1,iat)+fxyz(2,iat)*hh(2,iat)+fxyz(3,iat)*hh(3,iat)
-           y1=y1+gpf(1,iat)*hh(1,iat)+gpf(2,iat)*hh(2,iat)+gpf(3,iat)*hh(3,iat)
+           y0=y0+outs%fxyz(1,iat)*hh(1,iat)+outs%fxyz(2,iat)*hh(2,iat)+outs%fxyz(3,iat)*hh(3,iat)
+           y1=y1+l_outs%fxyz(1,iat)*hh(1,iat)+l_outs%fxyz(2,iat)*hh(2,iat)+l_outs%fxyz(3,iat)*hh(3,iat)
         end do
         tt=y0/(y0-y1)
 !        if (iproc == 0) then
@@ -122,20 +115,20 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
         call vcopy(3 * runObj%atoms%nat, tpos(1,1), 1, runObj%rxyz(1,1), 1)
 
         !call atomic_axpy(at,rxyz,beta,hh,rxyz)
-        runObj%rxyz=runObj%rxyz+beta*hh
+        call axpy(3 * runObj%atoms%nat, beta, hh(1,1), 1, runObj%rxyz(1,1), 1)
 
         avbeta=avbeta+beta/runObj%inputs%betax
         avnum=avnum+1._gp
         !if (iproc ==0)print *,'beta,avbeta,avnum',beta,avbeta,avnum 
         !C new gradient
         do iat=1,runObj%atoms%nat
-           gpf(1,iat)=fxyz(1,iat)
-           gpf(2,iat)=fxyz(2,iat)
-           gpf(3,iat)=fxyz(3,iat)
+           l_outs%fxyz(1,iat)=outs%fxyz(1,iat)
+           l_outs%fxyz(2,iat)=outs%fxyz(2,iat)
+           l_outs%fxyz(3,iat)=outs%fxyz(3,iat)
         end do
 
-        etotprev=etot
-        call call_bigdft(runObj,nproc,iproc,etot,fxyz,strten,fnoise,infocode)
+        etotprev=outs%energy
+        call call_bigdft(runObj,outs,nproc,iproc,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,fxyz,sumx,sumy,sumz)
 !!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
@@ -145,13 +138,13 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
         ncount_bigdft=ncount_bigdft+1
         !if the energy goes up (a small tolerance of anoise is allowed)
         !switch back to SD
-        if (etot > etotprev+anoise) then
+        if (outs%energy > etotprev+anoise) then
 
            if (iproc == 0 .and. parmin%verbosity > 0) then
-              write(16,'(a,i5,2(1pe20.12))') 'switching back to SD:etot,etotprev',it,etot,etotprev
+              write(16,'(a,i5,2(1pe20.12))') 'switching back to SD:etot,etotprev',it,outs%energy,etotprev
               call yaml_open_map('Switching back to SD',flow=.true.)
                  call yaml_map('It',it)
-                 call yaml_map('Etot',etot)
+                 call yaml_map('Etot',outs%energy)
                  call yaml_map('Etotprev',etotprev)
               call yaml_close_map()
            end if
@@ -162,10 +155,10 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
               runObj%rxyz(3,iat)=tpos(3,iat)
            end do
 
-           call steepdes(runObj,nproc,iproc,etot,fxyz,ncount_bigdft,fnrm,fnoise,runObj%inputs%forcemax,nitsd,fluct)
+           call steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,runObj%inputs%forcemax,nitsd,fluct)
 
            !calculate the max of the forces
-           call fnrmandforcemax(fxyz,tmp,fmax,runObj%atoms%nat)
+           call fnrmandforcemax(outs%fxyz,tmp,fmax,runObj%atoms%nat)
            call convcheck(fmax,fluct*runObj%inputs%frac_fluct, runObj%inputs%forcemax,check) !n(m) 
            if(check.gt.5) then
               if (iproc == 0) write(16,*) 'Converged in switch back SD',iproc
@@ -179,19 +172,19 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',sqrt(fnrm)
            call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & etot,runObj%rxyz,runObj%atoms,trim(comment),forces=fxyz)
+                & outs%energy,runObj%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
         endif
 
         !if (iproc == 0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_bigdft,etot,sqrt(fnrm)
 
-        if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
+        if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
 
 !!$        call atomic_dot(at,gpf,gpf,unten)
 !!$        call atomic_dot(at,gpf,fxyz,oben1)
 !!$        call atomic_dot(at,fxyz,fxyz,oben2)
-        unten=dot(3*runObj%atoms%nat,gpf(1,1),1,gpf(1,1),1)
-        oben1=dot(3*runObj%atoms%nat,gpf(1,1),1,fxyz(1,1),1)
-        oben2=dot(3*runObj%atoms%nat,fxyz(1,1),1,fxyz(1,1),1)
+        unten=dot(3*runObj%atoms%nat,l_outs%fxyz(1,1),1,l_outs%fxyz(1,1),1)
+        oben1=dot(3*runObj%atoms%nat,l_outs%fxyz(1,1),1,outs%fxyz(1,1),1)
+        oben2=dot(3*runObj%atoms%nat,outs%fxyz(1,1),1,outs%fxyz(1,1),1)
 
         oben=oben2-oben1
 
@@ -206,20 +199,21 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
 !!!           unten=unten+gpf(1,iat)**2+gpf(2,iat)**2+gpf(3,iat)**2
 !!!        end do
 
-        call fnrmandforcemax(fxyz,fnrm,fmax,runObj%atoms%nat)
+        call fnrmandforcemax(outs%fxyz,fnrm,fmax,runObj%atoms%nat)
         if (iproc == 0) then
            call yaml_open_map('Geometry')
               if (parmin%verbosity > 0) then
                  ! write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' GEOPT CG ',beta/runObj%inputs%betax
                  ! write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*runObj%inputs%frac_fluct,fluct
                  write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
-                      ncount_bigdft,it,"GEOPT_CG  ",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,&
+                      ncount_bigdft,it,"GEOPT_CG  ",outs%energy,outs%energy-etotprev, &
+                      & fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,&
                       fluct,"b/b0=",beta/runObj%inputs%betax
 
                  call yaml_map('Ncount_BigDFT',ncount_bigdft)
                  call yaml_map('Iteration',it)
                  call yaml_map('Geometry Method','GEOPT_CG')
-                 call yaml_map('etot',(/ etot,etot-etotprev /),fmt='(1pe21.14)')
+                 call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
                  call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
                  call yaml_map('b/b0', beta/runObj%inputs%betax, fmt='(1pe8.2e1)')
                  !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
@@ -256,11 +250,11 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
         if (it == 500) then
            if (iproc == 0) then
               if (parmin%verbosity > 0) write(16,*) &
-                   'NO conv in CG after 500 its: switching back to SD',it,fnrm,etot
+                   'NO conv in CG after 500 its: switching back to SD',it,fnrm,outs%energy
               call yaml_open_map('NO conv in CG after 500 its: switching back to SD')
                  call yaml_map('Iteration',it)
                  call yaml_map('fnrm',fnrm)
-                 call yaml_map('Total energy',etot)
+                 call yaml_map('Total energy',outs%energy)
               call yaml_close_map()
               !write(*,*) 'NO conv in CG after 500 its: switching back to SD',it,fnrm,etot
            end if
@@ -270,10 +264,10 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
               runObj%rxyz(3,iat)=tpos(3,iat)
            end do
 
-           call steepdes(runObj,nproc,iproc,etot,fxyz,ncount_bigdft,fnrm,fnoise,runObj%inputs%forcemax,nitsd,fluct)
+           call steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,runObj%inputs%forcemax,nitsd,fluct)
 
            !calculate the max of the forces
-           call fnrmandforcemax(fxyz,tmp,fmax,runObj%atoms%nat)
+           call fnrmandforcemax(outs%fxyz,tmp,fmax,runObj%atoms%nat)
 
            call convcheck(fmax,fluct*runObj%inputs%frac_fluct,runObj%inputs%forcemax,check) !n(m)
            if(check.gt.5) then
@@ -291,9 +285,9 @@ subroutine conjgrad(runObj,nproc,iproc,etot,fxyz,ncount_bigdft)
         rlambda=oben/unten
         !call atomic_axpy_forces(at,fxyz,rlambda,hh,hh)
         do iat=1,runObj%atoms%nat
-           hh(1,iat)=fxyz(1,iat)+rlambda*hh(1,iat)
-           hh(2,iat)=fxyz(2,iat)+rlambda*hh(2,iat)
-           hh(3,iat)=fxyz(3,iat)+rlambda*hh(3,iat)
+           hh(1,iat)=outs%fxyz(1,iat)+rlambda*hh(1,iat)
+           hh(2,iat)=outs%fxyz(2,iat)+rlambda*hh(2,iat)
+           hh(3,iat)=outs%fxyz(3,iat)+rlambda*hh(3,iat)
         end do
      end do loop_cg
      exit redo_cg
@@ -320,20 +314,17 @@ contains
     i_all=-product(shape(tpos))*kind(tpos)
     deallocate(tpos,stat=i_stat)
     call memocc(i_stat,i_all,'tpos',subname)
-    i_all=-product(shape(gpf))*kind(gpf)
-    deallocate(gpf,stat=i_stat)
-    call memocc(i_stat,i_all,'gpf',subname)
     i_all=-product(shape(hh))*kind(hh)
     deallocate(hh,stat=i_stat)
     call memocc(i_stat,i_all,'hh',subname)
+    call deallocate_global_output(l_outs)
   END SUBROUTINE close_and_deallocate
 
 END SUBROUTINE conjgrad
 
 
 !> Steepest descent method
-subroutine steepdes(runObj,nproc,iproc,etot,ff,ncount_bigdft,&
-     fnrm,fnoise,forcemax_sw,nitsd,fluct)
+subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd,fluct)
   use module_base
   use module_types
   use module_interfaces
@@ -343,11 +334,10 @@ subroutine steepdes(runObj,nproc,iproc,etot,ff,ncount_bigdft,&
   implicit none
   integer, intent(in) :: nproc,iproc,nitsd
   type(run_objects), intent(inout) :: runObj
+  type(DFT_global_output), intent(inout) :: outs
   integer, intent(inout) :: ncount_bigdft
-  real(gp), intent(out) :: fnrm,fnoise
-  real(gp), intent(inout) :: etot
+  real(gp), intent(out) :: fnrm
   real(gp), intent(inout) :: fluct
-  real(gp), dimension(3,runObj%atoms%nat), intent(out) ::ff
   real(gp), intent(in)::forcemax_sw
   !local variables
   character(len=*), parameter :: subname='steepdes'
@@ -355,7 +345,6 @@ subroutine steepdes(runObj,nproc,iproc,etot,ff,ncount_bigdft,&
   integer :: nsatur,iat,itot,itsd,i_stat,i_all,infocode,nbeqbx,i,ixyz,nr
   real(gp) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise
   real(gp) :: fmax,de1,de2,df1,df2,beta,etotprev
-  real(gp), dimension(6) :: strten
   real(gp), allocatable, dimension(:,:) :: tpos
   character(len=4) :: fn4
   character(len=40) :: comment
@@ -363,7 +352,7 @@ subroutine steepdes(runObj,nproc,iproc,etot,ff,ncount_bigdft,&
   allocate(tpos(3,runObj%atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,tpos,'tpos',subname)
 
-  etotprev=etot
+  etotprev=outs%energy
   anoise=0.e-4_gp
   fluct=0._gp
 
@@ -376,11 +365,7 @@ subroutine steepdes(runObj,nproc,iproc,etot,ff,ncount_bigdft,&
   etotitm1=1.e100_gp
   fnrmitm1=1.e100_gp
 
-  do iat=1,runObj%atoms%nat
-     tpos(1,iat)=runObj%rxyz(1,iat)
-     tpos(2,iat)=runObj%rxyz(2,iat)
-     tpos(3,iat)=runObj%rxyz(3,iat)
-  end do
+  call vcopy(3 * runObj%atoms%nat, runObj%rxyz(1,1), 1, tpos(1,1), 1)
 
   itot=0
 
@@ -417,7 +402,7 @@ subroutine steepdes(runObj,nproc,iproc,etot,ff,ncount_bigdft,&
         itot=itot+1
 
         runObj%inputs%inputPsiId=1
-        call call_bigdft(runObj,nproc,iproc,etot,ff,strten,fnoise,infocode)
+        call call_bigdft(runObj,outs,nproc,iproc,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,ff,sumx,sumy,sumz)
 !!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
@@ -429,15 +414,11 @@ subroutine steepdes(runObj,nproc,iproc,etot,ff,ncount_bigdft,&
         !if the energy goes up (a small tolerance is allowed by anoise)
         !reduce the value of beta
         !this procedure stops in the case beta is much too small compared with the initial one
-        if (care .and. etot > etotitm1+anoise) then
-           do iat=1,runObj%atoms%nat
-              runObj%rxyz(1,iat)=tpos(1,iat)
-              runObj%rxyz(2,iat)=tpos(2,iat)
-              runObj%rxyz(3,iat)=tpos(3,iat)
-           end do
+        if (care .and. outs%energy > etotitm1+anoise) then
+           call vcopy(3 * runObj%atoms%nat, tpos(1,1), 1, runObj%rxyz(1,1), 1)
            beta=.5_gp*beta
            if (iproc == 0) write(16,'(a,1x,e9.2,1x,i5,2(1x,e21.14))') &
-                'SD reset, beta,itsd,etot,etotitm1= ',beta,itsd,etot,etotitm1
+                'SD reset, beta,itsd,etot,etotitm1= ',beta,itsd,outs%energy,etotitm1
            if (beta <= 1.d-1*runObj%inputs%betax) then
               if (iproc == 0) write(16,*) &
                    'beta getting too small, do not care anymore if energy goes up'
@@ -446,13 +427,13 @@ subroutine steepdes(runObj,nproc,iproc,etot,ff,ncount_bigdft,&
            cycle redo_sd
         endif
 
-        call fnrmandforcemax(ff,fnrm,fmax,runObj%atoms%nat)
-        if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
+        call fnrmandforcemax(outs%fxyz,fnrm,fmax,runObj%atoms%nat)
+        if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
 
         !first and second derivatives of the energy and of the norm of the forces
         !(in units of beta steps)
-        de1=etot-etotitm1
-        de2=etot-2._gp*etotitm1+etotitm2
+        de1=outs%energy-etotitm1
+        de2=outs%energy-2._gp*etotitm1+etotitm2
         df1=fnrm-fnrmitm1
         df2=fnrm-2._gp*fnrmitm1+fnrmitm2
 
@@ -483,7 +464,7 @@ subroutine steepdes(runObj,nproc,iproc,etot,ff,ncount_bigdft,&
            write(fn4,'(i4.4)') ncount_bigdft 
            write(comment,'(a,1pe10.3)')'SD:fnrm= ',sqrt(fnrm)
            call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & etot,runObj%rxyz,runObj%atoms,trim(comment),forces=ff)
+                & outs%energy,runObj%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
 
            !write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'SD ',ncount_bigdft,etot,sqrt(fnrm)
         end if
@@ -491,13 +472,14 @@ subroutine steepdes(runObj,nproc,iproc,etot,ff,ncount_bigdft,&
         if (iproc == 0) then
            if (parmin%verbosity > 0) then
               write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,I2)') &
-                   ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
+                   ncount_bigdft,itsd,"GEOPT_SD  ",outs%energy, outs%energy-etotprev, &
+                   & fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
                    "b/b0=",beta/runObj%inputs%betax,"nsat=",nsatur
               call yaml_open_map('Geometry')
                  call yaml_map('Ncount_BigDFT',ncount_bigdft)
                  call yaml_map('Iteration',itsd)
                  call yaml_map('Geometry Method','GEOPT_SD')
-                 call yaml_map('etot',(/ etot,etot-etotprev /),fmt='(1pe21.14)')
+                 call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
                  call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
                  call yaml_map('b/b0', beta/runObj%inputs%betax, fmt='(1pe8.2e1)')
                  call yaml_map('nsat',nsatur)
@@ -510,7 +492,7 @@ subroutine steepdes(runObj,nproc,iproc,etot,ff,ncount_bigdft,&
               !         fnrm,fluct*runObj%inputs%frac_fluct,fluct
            end if
         end if
-        etotprev=etot
+        etotprev=outs%energy
 
         !exit statements
 
@@ -546,17 +528,17 @@ subroutine steepdes(runObj,nproc,iproc,etot,ff,ncount_bigdft,&
         !maximum number of allowed SD steps reached, locally or globally
         if (itsd >= nitsd) then 
            if (iproc == 0) write(16,'(a,i5,1x,e10.3,1x,e21.14)') &
-                'SD: NO CONVERGENCE:itsd,fnrm2,etot',itsd,fnrm,etot
+                'SD: NO CONVERGENCE:itsd,fnrm2,etot',itsd,fnrm,outs%energy
            exit loop_sd
         endif
         if (itot >= nitsd) then
            if (iproc == 0) write(16,'(a,i5,i5,1x,e10.3,1x,e21.14)') &
-                'SD: NO CONVERGENCE:itsd,itot,fnrm2,etot:',itsd,itot,fnrm,etot
+                'SD: NO CONVERGENCE:itsd,itot,fnrm2,etot:',itsd,itot,fnrm,outs%energy
            exit loop_sd
         endif
 
         etotitm2=etotitm1
-        etotitm1=etot
+        etotitm1=outs%energy
         fnrmitm2=fnrmitm1
         fnrmitm1=fnrm
         
@@ -575,9 +557,9 @@ subroutine steepdes(runObj,nproc,iproc,etot,ff,ncount_bigdft,&
         endif
 !        if (iproc == 0 .and. parmrunObj%inputs%verbosity > 0) write(16,*) 'beta=',beta
 
-        tpos=runObj%rxyz
+        call vcopy(3 * runObj%atoms%nat, runObj%rxyz(1,1), 1, tpos(1,1), 1)
         !call atomic_axpy(at,rxyz,beta,ff,rxyz)
-        call axpy(3*runObj%atoms%nat,beta,ff(1,1),1,runObj%rxyz(1,1),1)
+        call axpy(3 * runObj%atoms%nat,beta,outs%fxyz(1,1),1,runObj%rxyz(1,1),1)
 
 !!!        do iat=1,runObj%atoms%nat
 !!!           tpos(1,iat)=rxyz(1,iat)
@@ -613,7 +595,7 @@ END SUBROUTINE steepdes
 
 
 !> Variable step steepest descent
-subroutine vstepsd(runObj,nproc,iproc,etot,ff,ncount_bigdft)
+subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
   use module_base
   use module_types
   use module_interfaces
@@ -623,28 +605,25 @@ subroutine vstepsd(runObj,nproc,iproc,etot,ff,ncount_bigdft)
   !Arguments
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
-  real(gp), intent(inout) :: etot
   type(run_objects), intent(inout) :: runObj
-  real(gp), dimension(3,runObj%atoms%nat), intent(out) :: ff
+  type(DFT_global_output), intent(inout) :: outs
   !local variables
-  real(gp) ::fnoise
   character(len=*), parameter :: subname='vstepsd'  
+  type(DFT_global_output) :: outsold
   integer :: iat,i_all,i_stat,infocode, nitsd,itsd
   real(gp) :: fluct,fnrm,fnrmold,beta,betaxx,betalast !n(c) anoise,betalastold 
-  real(gp) :: etotold,fmax,scpr,curv,tt,etotprev
-  real(gp), dimension(6) :: strten
-  real(gp), dimension(:,:), allocatable :: posold,ffold
+  real(gp) :: fmax,scpr,curv,tt,etotprev
+  real(gp), dimension(:,:), allocatable :: posold
   !n(c) logical :: reset!,check
   integer :: check
   character(len=4) :: fn4
   character(len=40) :: comment
 
   check=0
-  etotprev=etot
+  etotprev=outs%energy
   allocate(posold(3,runObj%atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,posold,'posold',subname)
-  allocate(ffold(3,runObj%atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,ffold,'ffold',subname)
+  call init_global_output(outsold, runObj%atoms%nat)
 
   !n(c) anoise=1.e-4_gp
   fluct=0._gp
@@ -652,26 +631,26 @@ subroutine vstepsd(runObj,nproc,iproc,etot,ff,ncount_bigdft)
   beta=runObj%inputs%betax
   itsd=0
   runObj%inputs%inputPsiId=1
-  call call_bigdft(runObj,nproc,iproc,etotold,ffold,strten,fnoise,infocode)
-  call fnrmandforcemax(ffold,fnrm,fmax,runObj%atoms%nat)   
-  if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
+  call call_bigdft(runObj,outsold,nproc,iproc,infocode)
+  call fnrmandforcemax(outsold%fxyz,fnrm,fmax,runObj%atoms%nat)   
+  if (fmax < 3.d-1) call updatefluctsum(outsold%fnoise,fluct) !n(m)
   if (iproc == 0) then
      if (parmin%verbosity > 0) then
         write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
-          & ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-etotprev,fmax,sqrt(fnrm), &
+          & ncount_bigdft,itsd,"GEOPT_VSSD",outsold%energy,outsold%energy-etotprev,fmax,sqrt(fnrm), &
           & fluct*runObj%inputs%frac_fluct,fluct,"beta=",beta
         call yaml_open_map('Geometry')
            call yaml_map('Ncount_BigDFT',ncount_bigdft)
            call yaml_map('Iteration',itsd)
            call yaml_map('Geometry Method','GEOPT_VSSD')
-           call yaml_map('etotold',(/ etotold,etotold-etotprev /),fmt='(1pe21.14)')
+           call yaml_map('etotold',(/ outsold%energy,outsold%energy-etotprev /),fmt='(1pe21.14)')
            call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
            call yaml_map('beta', beta, fmt='(1pe8.2e1)')
         call yaml_close_map()
         !if (parmrunObj%inputs%verbosity > 0)   write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
         !&ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,"beta=",beta
      end if
-     etotprev=etotold
+     etotprev=outsold%energy
 !!$     call transforce(at,ffold,sumx,sumy,sumz)                         
 !!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
 !!$     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
@@ -680,7 +659,7 @@ subroutine vstepsd(runObj,nproc,iproc,etot,ff,ncount_bigdft)
      write(fn4,'(i4.4)') ncount_bigdft
      write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
      call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-          & etotold,runObj%rxyz,runObj%atoms,trim(comment),forces=ffold)
+          & outsold%energy,runObj%rxyz,runObj%atoms,trim(comment),forces=outsold%fxyz)
 !     if (parmin%verbosity > 0) &
 !          & write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etotold,' GEOPT VSSD ',beta
   end if
@@ -690,13 +669,13 @@ subroutine vstepsd(runObj,nproc,iproc,etot,ff,ncount_bigdft)
 
   fnrmold=0.0_gp
   do iat=1,runObj%atoms%nat
-     fnrmold=fnrmold+ffold(1,iat)**2+ffold(2,iat)**2+ffold(3,iat)**2
+     fnrmold=fnrmold+outsold%fxyz(1,iat)**2+outsold%fxyz(2,iat)**2+outsold%fxyz(3,iat)**2
      posold(1,iat)=runObj%rxyz(1,iat)
      posold(2,iat)=runObj%rxyz(2,iat)
      posold(3,iat)=runObj%rxyz(3,iat)
-     runObj%rxyz(1,iat)=runObj%rxyz(1,iat)+beta*ffold(1,iat)
-     runObj%rxyz(2,iat)=runObj%rxyz(2,iat)+beta*ffold(2,iat)
-     runObj%rxyz(3,iat)=runObj%rxyz(3,iat)+beta*ffold(3,iat)
+     runObj%rxyz(1,iat)=runObj%rxyz(1,iat)+beta*outsold%fxyz(1,iat)
+     runObj%rxyz(2,iat)=runObj%rxyz(2,iat)+beta*outsold%fxyz(2,iat)
+     runObj%rxyz(3,iat)=runObj%rxyz(3,iat)+beta*outsold%fxyz(3,iat)
   enddo
   !call atomic_dot(at,ffold,ffold,fnrmold)
   !call atomic_axpy(at,wpos,beta,ffold,wpos)
@@ -707,9 +686,9 @@ subroutine vstepsd(runObj,nproc,iproc,etot,ff,ncount_bigdft)
   nitsd=1000
   loop_ntsd: do itsd=1,nitsd
      runObj%inputs%inputPsiId=1
-     call call_bigdft(runObj,nproc,iproc,etot,ff,strten,fnoise,infocode)
+     call call_bigdft(runObj,outs,nproc,iproc,infocode)
 !!$     if (iproc == 0) then                                        
-!!$        call transforce(at,ff,sumx,sumy,sumz)                         
+!!$        call transforce(at,outs%fxyz,sumx,sumy,sumz)                         
 !!$        write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
 !!$        write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
 !!$        write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
@@ -718,16 +697,16 @@ subroutine vstepsd(runObj,nproc,iproc,etot,ff,ncount_bigdft)
      fnrm=0.d0
      scpr=0.d0
      do iat=1,runObj%atoms%nat
-        fnrm=fnrm+ff(1,iat)**2+ff(2,iat)**2+ff(3,iat)**2
-        scpr=scpr+ffold(1,iat)*ff(1,iat)+ffold(2,iat)*ff(2,iat)+ffold(3,iat)*ff(3,iat)
+        fnrm=fnrm+outs%fxyz(1,iat)**2+outs%fxyz(2,iat)**2+outs%fxyz(3,iat)**2
+        scpr=scpr+outsold%fxyz(1,iat)*outs%fxyz(1,iat)+outsold%fxyz(2,iat)*outs%fxyz(2,iat)+outsold%fxyz(3,iat)*outs%fxyz(3,iat)
      enddo
 !!$     call  atomic_dot(at,ff,ff,fnrm)
 !!$     call  atomic_dot(at,ff,ffold,scpr)
      curv=(fnrmold-scpr)/(beta*fnrmold)
      betalast=.5d0/curv
      if (betalast.gt.0.d0) betaxx=min(betaxx,1.5d0*betalast)
-     call fnrmandforcemax(ff,fnrm,fmax,runObj%atoms%nat)   
-     if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
+     call fnrmandforcemax(outs%fxyz,fnrm,fmax,runObj%atoms%nat)   
+     if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
 !     if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*runObj%inputs%frac_fluct,fluct
      call convcheck(fmax,fluct*runObj%inputs%frac_fluct, runObj%inputs%forcemax,check) !n(m)
      if (check > 5) exit loop_ntsd
@@ -738,14 +717,14 @@ subroutine vstepsd(runObj,nproc,iproc,etot,ff,ncount_bigdft)
      endif
 
 
-     if (etot > etotold) then
+     if (outs%energy > outsold%energy) then
         !n(c) reset=.true.
         beta=runObj%inputs%betax
         if (iproc == 0) write(16,*) 'new positions rejected, reduced beta',beta
         do iat=1,runObj%atoms%nat
-           runObj%rxyz(1,iat)=posold(1,iat)+beta*ffold(1,iat)
-           runObj%rxyz(2,iat)=posold(2,iat)+beta*ffold(2,iat)
-           runObj%rxyz(3,iat)=posold(3,iat)+beta*ffold(3,iat)
+           runObj%rxyz(1,iat)=posold(1,iat)+beta*outsold%fxyz(1,iat)
+           runObj%rxyz(2,iat)=posold(2,iat)+beta*outsold%fxyz(2,iat)
+           runObj%rxyz(3,iat)=posold(3,iat)+beta*outsold%fxyz(3,iat)
         enddo
         !call atomic_axpy(at,posold,beta,ffold,wpos)
      else
@@ -760,29 +739,29 @@ subroutine vstepsd(runObj,nproc,iproc,etot,ff,ncount_bigdft)
            write(fn4,'(i4.4)') ncount_bigdft-1
            write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
            call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & etot,runObj%rxyz,runObj%atoms,trim(comment),forces=ff)
+                & outs%energy,runObj%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
         endif
 
         do iat=1,runObj%atoms%nat
            posold(1,iat)=runObj%rxyz(1,iat)
            posold(2,iat)=runObj%rxyz(2,iat)
            posold(3,iat)=runObj%rxyz(3,iat)
-           runObj%rxyz(1,iat)=runObj%rxyz(1,iat)+beta*ff(1,iat)
-           runObj%rxyz(2,iat)=runObj%rxyz(2,iat)+beta*ff(2,iat)
-           runObj%rxyz(3,iat)=runObj%rxyz(3,iat)+beta*ff(3,iat)
-           ffold(1,iat)=ff(1,iat)
-           ffold(2,iat)=ff(2,iat)
-           ffold(3,iat)=ff(3,iat)
+           runObj%rxyz(1,iat)=runObj%rxyz(1,iat)+beta*outs%fxyz(1,iat)
+           runObj%rxyz(2,iat)=runObj%rxyz(2,iat)+beta*outs%fxyz(2,iat)
+           runObj%rxyz(3,iat)=runObj%rxyz(3,iat)+beta*outs%fxyz(3,iat)
+           outsold%fxyz(1,iat)=outs%fxyz(1,iat)
+           outsold%fxyz(2,iat)=outs%fxyz(2,iat)
+           outsold%fxyz(3,iat)=outs%fxyz(3,iat)
         enddo
         !call atomic_axpy(at,wpos,beta,ff,wpos)
-        etotold=etot
+        outsold%energy=outs%energy
         fnrmold=fnrm
         !n(c) betalastold=betalast
      endif
   
      if (iproc == 0.and.parmin%verbosity > 0) then
         write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
-        ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
+        ncount_bigdft,itsd,"GEOPT_VSSD",outs%energy,outs%energy-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
         "beta=",beta,"last beta=",betalast
      end if
 
@@ -791,7 +770,7 @@ subroutine vstepsd(runObj,nproc,iproc,etot,ff,ncount_bigdft)
            call yaml_map('Ncount_BigDFT',ncount_bigdft)
            call yaml_map('Iteration',itsd)
            call yaml_map('Geometry Method','GEOPT_VSSD')
-           call yaml_map('etot',(/ etot,etot-etotprev /),fmt='(1pe21.14)')
+           call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
            call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
            call yaml_map('beta', beta, fmt='(1pe8.2e1)')
            call yaml_map('last beta', betalast, fmt='(1pe8.2e1)')
@@ -802,7 +781,7 @@ subroutine vstepsd(runObj,nproc,iproc,etot,ff,ncount_bigdft)
         !&"beta=",beta,"last beta=",betalast
     end if
 
-    etotprev=etot
+    etotprev=outs%energy
 !     if (iproc == 0) write(16,'(i5,1x,e12.5,1x,e21.14,a,e10.3,1x,e10.3)') itsd,sqrt(fnrm),etot,' GEOPT VSSD ',beta,betalast
      if(iproc==0)call timeleft(tt)
      call MPI_BCAST(tt,1,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,i_stat)
@@ -813,7 +792,7 @@ subroutine vstepsd(runObj,nproc,iproc,etot,ff,ncount_bigdft)
 
   if (iproc == 0.and.parmin%verbosity > 0) & 
        write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
-       ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
+       ncount_bigdft,itsd,"GEOPT_VSSD",outs%energy,outs%energy-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
        "beta=",beta,"last beta=",betalast
 
   if (iproc == 0.and.parmin%verbosity > 0) then
@@ -821,7 +800,7 @@ subroutine vstepsd(runObj,nproc,iproc,etot,ff,ncount_bigdft)
         call yaml_map('Ncount_BigDFT',ncount_bigdft)
         call yaml_map('Iteration',itsd)
         call yaml_map('Geometry Method','GEOPT_VSSD')
-        call yaml_map('etot',(/ etot,etot-etotprev /),fmt='(1pe21.14)')
+        call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
         call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
         call yaml_map('beta', beta, fmt='(1pe8.2e1)')
         call yaml_map('last beta', betalast, fmt='(1pe8.2e1)')
@@ -836,22 +815,19 @@ subroutine vstepsd(runObj,nproc,iproc,etot,ff,ncount_bigdft)
        write(16,'(a,i5,e9.2,e18.10,e9.2)') '---- SD FAILED  TO CONVERGE'
   if (iproc == 0) then
      if (parmin%verbosity > 0) then
-        write(16,'(a,i5,e9.2,e18.10)') 'variable stepsize SD FINISHED,iter, force norm,energy',itsd,sqrt(fnrm),etot
+        write(16,'(a,i5,e9.2,e18.10)') 'variable stepsize SD FINISHED,iter, force norm,energy',itsd,sqrt(fnrm),outs%energy
         write(16,'(a,e9.2)') 'suggested value for stepsize:', betaxx
      end if
      write(fn4,'(i4.4)') ncount_bigdft-1
      write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
      call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-          & etot,runObj%rxyz,runObj%atoms,trim(comment),forces=ff)
+          & outs%energy,runObj%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
   endif
 
 
   i_all=-product(shape(posold))*kind(posold)
   deallocate(posold,stat=i_stat)
   call memocc(i_stat,i_all,'posold',subname)
-  i_all=-product(shape(ffold))*kind(ffold)
-  deallocate(ffold,stat=i_stat)
-  call memocc(i_stat,i_all,'ffold',subname)
-
+  call deallocate_global_output(outsold)
 
 END SUBROUTINE vstepsd

@@ -27,16 +27,15 @@ program test_forces
 
    implicit none
    character(len=*), parameter :: subname='test_forces'
-   integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode!,istat
-   real(gp) :: etot,fnoise
+   integer :: iproc,nproc,iat,ierr,infocode!,istat
    !logical :: exist_list
    !input variables
    type(run_objects) :: runObj
+   type(DFT_global_output) :: outs
    character(len=60), parameter :: filename="list_posinp"
    character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
    character(len=60) :: run_id
    ! atomic coordinates, forces
-   real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: drxyz
    integer :: iconfig,nconfig,igroup,ngroups
    integer :: ipath,npath
@@ -45,7 +44,6 @@ program test_forces
    parameter (dx=1.d-2 , npath=5)
    real(gp) :: simpson(1:npath)
    !character(len=60) :: radical
-   real(gp), dimension(6) :: strten
    integer, dimension(4) :: mpi_info
 
    !-finds the number of taskgroup size
@@ -123,9 +121,7 @@ program test_forces
 
       !initialize memory counting
       !call memocc(0,iproc,'count','start')
-
-      allocate(fxyz(3,runObj%atoms%nat+ndebug),stat=i_stat)
-      call memocc(i_stat,fxyz,'fxyz',subname)
+         call init_global_output(outs, runObj%atoms%nat)
 
       !     if (iproc == 0) then
       !       call print_general_parameters(nproc,inputs,runObj%atoms)
@@ -152,7 +148,7 @@ program test_forces
       ! loop for ipath 
       do ipath=1,npath
 
-         !update atomic positions alog the path
+         !update atomic positions along the path
          if(ipath>1) then
             runObj%rxyz(:,:)=runObj%rxyz(:,:)+drxyz(:,:)
             runObj%inputs%inputPsiId=1
@@ -163,18 +159,18 @@ program test_forces
             call print_general_parameters(nproc,runObj%inputs,runObj%atoms) ! to know the new positions
          end if
 
-         call call_bigdft(runObj, nproc,iproc,etot,fxyz,strten,fnoise,infocode)
+         call call_bigdft(runObj, outs, nproc,iproc,infocode)
          !        inputs%inputPsiId=0   ! change PsiId to 0 if you want to  generate a new Psi and not use the found one
 
          if (iproc == 0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
          !if (iproc == 0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
 
-         if (ipath == 1 ) etot0=etot
+         if (ipath == 1 ) etot0=outs%energy
          !   do one step of the path integration
          if (iproc == 0) then
             !integrate forces*displacement
             !fdr=sum(fxyz(1:3,1:runObj%atoms%nat)*drxyz(1:3,1:runObj%atoms%nat))
-            fdr=sum(fxyz(:,:)*drxyz(:,:))
+            fdr=sum(outs%fxyz(:,:)*drxyz(:,:))
             path=path-simpson(ipath)*fdr
             call yaml_map('Path iteration',ipath)
             call yaml_map('-F.dr',-fdr,fmt='(1pe13.5)')
@@ -182,16 +178,22 @@ program test_forces
             !write(*,"('path iter:',i3,'   -F.dr=',e13.5,'    path integral=',e13.5 )") ipath,-fdr, path 
             
             !Print atomic forces
-            call write_forces(runObj%atoms,fxyz)
+            call write_forces(runObj%atoms,outs%fxyz)
          end if
       end do !loop over ipath
 
       deallocate(drxyz)
 
-      i_all=-product(shape(fxyz))*kind(fxyz)
-      deallocate(fxyz,stat=i_stat)
-      call memocc(i_stat,i_all,'fxyz',subname)
+      if (iproc==0) then 
+         write(*,*) 
+         write(*,*) 'Check correctness of forces'
+         write(*,*) 'Difference of total energies =',outs%energy-etot0
+         write(*,*) 'Integral force*displacement = ',path
+         write(*,*) 'Difference = ',(outs%energy-etot0)-path
+         write(*,*) 
+      endif
 
+      call deallocate_global_output(outs)
       call run_objects_free(runObj, subname)
 
 !!$      if (inputs%inputPsiId==INPUT_PSI_LINEAR_AO .or. inputs%inputPsiId==INPUT_PSI_MEMORY_LINEAR &
@@ -208,14 +210,6 @@ program test_forces
 
 !!$      !finalize memory counting
 !!$      call memocc(0,0,'count','stop')
-      if (iproc==0) then 
-         write(*,*) 
-         write(*,*) 'Check correctness of forces'
-         write(*,*) 'Difference of total energies =',etot-etot0
-         write(*,*) 'Integral force*displacement = ',path
-         write(*,*) 'Difference = ',(etot-etot0)-path
-         write(*,*) 
-      endif
    end if
 enddo !loop over iconfig
 

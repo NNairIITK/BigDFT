@@ -35,12 +35,12 @@ program frequencies
    !File unit
    integer, parameter :: u_hessian=20
    integer :: iproc,nproc,iat,jat,i,j,i_stat,i_all,ierr,infocode,ity,nconfig
-   real(gp) :: etot,alat,dd,rmass,fnoise
+   real(gp) :: alat,dd,rmass
    character(len=60) :: run_id
-   !Input variables
+   !Input/Output variables
    type(run_objects) :: runObj
+   type(DFT_global_output) :: outs
    !Atomic coordinates, forces
-   real(gp), dimension(:), allocatable :: fxyz
    real(gp), dimension(:,:), allocatable :: rinit
    real(gp), dimension(:,:), allocatable :: fpos
    ! hessian, eigenvectors
@@ -55,7 +55,6 @@ program frequencies
    real(gp), dimension(:,:), allocatable :: energies
    real(gp), dimension(:,:,:), allocatable :: forces
    real(gp), dimension(3) :: freq_step
-   real(gp), dimension(6) :: strten
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
    real(gp) :: tel
    real :: tcpu0,tcpu1
@@ -77,6 +76,7 @@ program frequencies
    !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
    ! Read all input files. This should be the sole routine which is called to initialize the run.
    call run_objects_set_from_files(runObj, trim(run_id), 'posinp')
+   call init_global_output(outs, runObj%atoms%nat)
 
    ! Read all input files.
    inquire(file="input.freq",exist=exists)
@@ -112,8 +112,6 @@ program frequencies
    call memocc(i_stat,kmoves,'kmoves',subname)
 
    ! Allocations
-   allocate(fxyz(3*runObj%atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,fxyz,'fxyz',subname)
    allocate(moves(n_order,0:3*runObj%atoms%nat+ndebug),stat=i_stat)
    call memocc(i_stat,moves,'moves',subname)
    allocate(energies(n_order,0:3*runObj%atoms%nat+ndebug),stat=i_stat)
@@ -122,7 +120,7 @@ program frequencies
    call memocc(i_stat,forces,'forces',subname)
    allocate(rinit(3,runObj%atoms%nat+ndebug),stat=i_stat)
    call memocc(i_stat,rinit,'rinit',subname)
-   allocate(fpos(3*runObj%atoms%nat,n_order+ndebug),stat=i_stat)
+   allocate(fpos(3*runObj%atoms%nat,0:n_order+ndebug),stat=i_stat)
    call memocc(i_stat,fpos,'fpos',subname)
    allocate(hessian(3*runObj%atoms%nat,3*runObj%atoms%nat+ndebug),stat=i_stat)
    call memocc(i_stat,hessian,'hessian',subname)
@@ -137,7 +135,7 @@ program frequencies
    call vcopy(3*runObj%atoms%nat, runObj%rxyz(1,1), 1, rinit(1,1), 1)
 
    !Initialize the moves using a restart file if present
-   call frequencies_read_restart(runObj%atoms%nat,n_order,imoves,moves,energies,forces,freq_step,runObj%atoms%amu,etot)
+   call frequencies_read_restart(runObj%atoms%nat,n_order,imoves,moves,energies,forces,freq_step,runObj%atoms%amu,outs%energy)
    !Message
    if (bigdft_mpi%iproc == 0) then
       write(*,'(1x,a,i0,a,i0,a)') '=F=> There are ', imoves, ' moves already calculated over ', &
@@ -147,11 +145,12 @@ program frequencies
 
    !Reference state
    if (moves(1,0)) then
-      fxyz = forces(:,1,0)
+      call vcopy(3 * runObj%atoms%nat, forces(1,1,0), 1, fpos(1,0), 1)
       infocode=0
    else
-      call call_bigdft(runObj,nproc,bigdft_mpi%iproc,etot,fxyz,strten,fnoise,infocode)
-      call frequencies_write_restart(bigdft_mpi%iproc,0,0,0,runObj%rxyz,etot,fxyz,&
+      call call_bigdft(runObj,outs,nproc,bigdft_mpi%iproc,infocode)
+      call vcopy(3 * runObj%atoms%nat, outs%fxyz(1,1), 1, fpos(1,0), 1)
+      call frequencies_write_restart(bigdft_mpi%iproc,0,0,0,runObj%rxyz,outs%energy,fpos(:,0),&
            &   n_order=n_order,freq_step=freq_step,amu=runObj%atoms%amu)
       moves(:,0) = .true.
       call restart_inputs(runObj%inputs)
@@ -164,7 +163,7 @@ program frequencies
       !This file contains the hessian for post-processing: it is regenerated each time.
       open(unit=u_hessian,file='hessian.dat',status="unknown")
       write(u_hessian,'(a,3(1pe20.10))') '#step=',freq_step(:)
-      write(u_hessian,'(a,100(1pe20.10))') '#--',etot,fxyz
+      write(u_hessian,'(a,100(1pe20.10))') '#--',outs%energy,outs%fxyz
    end if
 
    if (bigdft_mpi%iproc == 0) then
@@ -217,8 +216,9 @@ program frequencies
             else
                runObj%rxyz(i,iat)=rinit(i,iat)+dd
             end if
-            call call_bigdft(runObj,nproc,bigdft_mpi%iproc,etot,fpos(:,km),strten,fnoise,infocode)
-            call frequencies_write_restart(bigdft_mpi%iproc,km,i,iat,rinit,etot,fpos(:,km))
+            call call_bigdft(runObj,outs,nproc,bigdft_mpi%iproc,infocode)
+            call vcopy(3 * runObj%atoms%nat, outs%fxyz(1,1), 1, fpos(1,km), 1)
+            call frequencies_write_restart(bigdft_mpi%iproc,km,i,iat,rinit,outs%energy,fpos(:,km))
             moves(km,ii) = .true.
             call restart_inputs(runObj%inputs)
          end do
@@ -229,9 +229,9 @@ program frequencies
                jj = j+3*(jat-1)
                !Force is -dE/dR
                if (order == -1) then
-                  dd = - (fxyz(jj) - fpos(jj,1))/freq_step(i)
+                  dd = - (fpos(jj,0) - fpos(jj,1))/freq_step(i)
                else if (order == 1) then
-                  dd = - (fpos(jj,1) - fxyz(jj))/freq_step(i)
+                  dd = - (fpos(jj,1) - fpos(jj,0))/freq_step(i)
                else if (order == 2) then
                   dd = - (fpos(jj,2) - fpos(jj,1))/(2.d0*freq_step(i))
                else if (order == 3) then
@@ -356,9 +356,7 @@ program frequencies
 !!$!   call deallocate_local_zone_descriptors(rst%Lzd, subname)
 !!$   call free_restart_objects(rst,subname)
 
-   i_all=-product(shape(fxyz))*kind(fxyz)
-   deallocate(fxyz,stat=i_stat)
-   call memocc(i_stat,i_all,'fxyz',subname)
+   call deallocate_global_output(outs)
 
    i_all=-product(shape(hessian))*kind(hessian)
    deallocate(hessian,stat=i_stat)
