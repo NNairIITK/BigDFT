@@ -67,7 +67,7 @@ program BigDFT
             if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
             if (iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
             ! geometry optimization
-            call geopt(runObj,bigdft_mpi%nproc,bigdft_mpi%iproc,outs%fxyz,outs%strten,outs%energy,ncount_bigdft)
+            call geopt(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
             close(16)
          end if
 

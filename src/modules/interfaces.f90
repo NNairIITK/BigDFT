@@ -52,16 +52,14 @@ module module_interfaces
          integer, intent(inout) :: infocode
       END SUBROUTINE call_bigdft
 
-      subroutine geopt(runObj,nproc,iproc,fxyz,strten,epot,ncount_bigdft)
+      subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
         use module_base
         use module_types
         implicit none
         type(run_objects), intent(inout) :: runObj
+        type(DFT_global_output), intent(inout) :: outs
         integer, intent(in) :: nproc,iproc
-        real(gp), intent(inout) :: epot
         integer, intent(inout) :: ncount_bigdft
-        real(gp), dimension(6), intent(inout) :: strten
-        real(gp), dimension(3*runObj%atoms%nat), intent(inout) :: fxyz
       END SUBROUTINE geopt
 
       subroutine kswfn_optimization_loop(iproc, nproc, o, &

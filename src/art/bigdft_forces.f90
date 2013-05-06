@@ -297,8 +297,7 @@ module bigdft_forces
 
       !Local variables
       integer :: i, ierror, ncount_bigdft
-      real(gp), dimension(6) :: strten
-      real(gp), allocatable :: fcart(:,:)
+      type(DFT_global_output) :: outs
 
       if ( .not. initialised ) then
          write(0,*) "No previous call to bigdft_init_art(). On strike, refuse to work."
@@ -320,17 +319,17 @@ module bigdft_forces
          runObj%rxyz(:, i) = (/ posa(i), posa(runObj%atoms%nat + i), posa(2 * runObj%atoms%nat + i) /) / Bohr_Ang
       end do
 
-      allocate(fcart(3, runObj%atoms%nat))
+      call init_global_output(outs, runObj%atoms%nat)
       do i = 1, runObj%atoms%nat, 1
-         fcart(:, i) = (/ forca(i), forca(runObj%atoms%nat + i), forca(2 * runObj%atoms%nat + i) /) * Bohr_Ang / ht2ev
+         outs%fxyz(:, i) = (/ forca(i), forca(runObj%atoms%nat + i), forca(2 * runObj%atoms%nat + i) /) * Bohr_Ang / ht2ev
       end do
 
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
-      call geopt(runObj, nproc, me, fcart, strten,total_energy, ncount_bigdft )
+      call geopt(runObj, outs, nproc, me, ncount_bigdft )
       evalf_number = evalf_number + ncount_bigdft 
       if (ncount_bigdft > runObj%inputs%ncount_cluster_x-1) success = .False.
 
-      total_energy = total_energy * ht2ev
+      total_energy = outs%energy * ht2ev
       ! box in ang
       boxl(1) = runObj%atoms%alat1 * Bohr_Ang
       boxl(2) = runObj%atoms%alat2 * Bohr_Ang
@@ -342,7 +341,7 @@ module bigdft_forces
          posa(2 * runObj%atoms%nat + i) = runObj%rxyz(3, i) * Bohr_Ang
       end do
 
-      deallocate(fcart)
+      call deallocate_global_output(outs)
 
    END SUBROUTINE mingeo
 
@@ -638,7 +637,7 @@ module bigdft_forces
          end if
 
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call geopt(runObj, nproc, me, outs%fxyz, outs%strten,total_energy, ncount_bigdft )
+         call geopt(runObj, outs, nproc, me, ncount_bigdft )
          evalf_number = evalf_number + ncount_bigdft 
          if (ncount_bigdft > runObj%inputs%ncount_cluster_x-1) success = .False.
 
@@ -649,7 +648,7 @@ module bigdft_forces
          evalf_number = evalf_number + 1
          runObj%inputs%inputPsiId = 1
 
-         total_energy = total_energy * ht2ev
+         total_energy = outs%energy * ht2ev
          ! box in ang
          boxl(1) = runObj%atoms%alat1 * Bohr_Ang
          boxl(2) = runObj%atoms%alat2 * Bohr_Ang

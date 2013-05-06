@@ -50,7 +50,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   use minpar
   implicit none
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(out) :: outs
+  type(DFT_global_output), intent(inout) :: outs
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   !local variables
