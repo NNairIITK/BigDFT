@@ -110,7 +110,6 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
         if(parmin%iflag<=0) exit
         icall=icall+1
         if(icall>runObj%inputs%ncount_cluster_x) exit
-        call deallocate_global_output(outs)
     enddo
 
     !De-Allocations
@@ -758,7 +757,6 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   endif
   close(16)
   open(unit=16,file=trim(runObj%inputs%dir_output)//'geopt.mon',status='unknown',position='append')
-  if(ICALL > 1) call deallocate_global_output(outs)
   GO TO 20
 50 CONTINUE
        if (iproc==0) call yaml_warning('Error in BFGS, switching to SD and CG')

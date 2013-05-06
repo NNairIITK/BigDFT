@@ -2448,7 +2448,7 @@ subroutine init_global_output(outs, nat)
 
   call nullify_global_output(outs)
   outs%fdim = nat
-  outs%fxyz = f_malloc_ptr((/ 3, outs%fdim /), id='outs%fxyz')
+  allocate(outs%fxyz(3, outs%fdim))
   outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
 END SUBROUTINE init_global_output
 
@@ -2457,7 +2457,7 @@ subroutine deallocate_global_output(outs)
   implicit none
   type(DFT_global_output), intent(inout) :: outs
 
-  if (associated(outs%fxyz)) call f_free_ptr(outs%fxyz)
+  if (associated(outs%fxyz)) deallocate(outs%fxyz)
 END SUBROUTINE deallocate_global_output
 
 !cprj_clean will be obsolete with the PAW library

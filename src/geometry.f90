@@ -105,7 +105,6 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
         if (iproc ==0) call yaml_map('ENTERING LBFGS,ibfgs',ibfgs)
         call lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         if (.not. fail .or. ibfgs .ge. 5) exit
-        call deallocate_global_output(outs)
      end do
 
      if (fail) then
@@ -489,9 +488,9 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   fluct=0.0_gp
 
   ! We save pointers on data used to call bigdft() routine.
-  allocate(previous_forces(runObj%inputs%history, 3, RUNOBJ%ATOMS%NAT+ndebug),stat=i_stat)
+  allocate(previous_forces(3, RUNOBJ%ATOMS%NAT, runObj%inputs%history+ndebug),stat=i_stat)
   call memocc(i_stat,previous_forces,'previous_forces',subname)
-  allocate(previous_pos(runObj%inputs%history, 3, RUNOBJ%ATOMS%NAT+ndebug),stat=i_stat)
+  allocate(previous_pos(3, RUNOBJ%ATOMS%NAT, runObj%inputs%history+ndebug),stat=i_stat)
   call memocc(i_stat,previous_pos,'previous_pos',subname)
   allocate(product_matrix(runObj%inputs%history, runObj%inputs%history+ndebug),stat=i_stat)
   call memocc(i_stat,product_matrix,'product_matrix',subname)
@@ -528,8 +527,8 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      ! If lter is greater than maxvec, we move the previous solution up by one
      if (lter > maxter) then
         do i=2, maxter
-           previous_forces(i-1,:,:) = previous_forces(i,:,:)
-           previous_pos(i-1,:,:)    = previous_pos(i,:,:)
+           previous_forces(:,:,i-1) = previous_forces(:,:,i)
+           previous_pos(:,:,i-1)    = previous_pos(:,:,i)
            do j=2, maxter
               product_matrix(i-1,j-1) = product_matrix(i,j)
            end do
@@ -538,12 +537,12 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
      ! we first add the force to the previous_force vector and the
      ! position to the previous_pos vector
-     call vcopy(3 * runObj%atoms%nat, outs%fxyz(1,1), 1, previous_forces(maxter,1,1), 1)
-     call vcopy(3 * runObj%atoms%nat, runObj%rxyz(1,1), 1, previous_pos(maxter,1,1), 1)
+     call vcopy(3 * runObj%atoms%nat, outs%fxyz(1,1), 1, previous_forces(1,1,maxter), 1)
+     call vcopy(3 * runObj%atoms%nat, runObj%rxyz(1,1), 1, previous_pos(1,1,maxter), 1)
 
      ! And we add the scalar products to the matrix
      do i = 1, maxter
-        product_matrix(i,maxter) = dot(3 * runObj%atoms%nat,previous_forces(i,1,1),1,outs%fxyz(1,1),1)
+        product_matrix(i,maxter) = dot(3 * runObj%atoms%nat,previous_forces(1,1,i),1,outs%fxyz(1,1),1)
         product_matrix(maxter,i) = product_matrix(i,maxter)
      end do
 
@@ -580,7 +579,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      ! The solution that interests us is made of two parts
      call razero(3 * runObj%atoms%nat, runObj%rxyz)
      do i = 1, maxter
-        call axpy(3 * runObj%atoms%nat, solution(i), previous_pos(i,1,1), 1, runObj%rxyz(1,1), 1)
+        call axpy(3 * runObj%atoms%nat, solution(i), previous_pos(1,1,i), 1, runObj%rxyz(1,1), 1)
      end do
 !!$     !reput the modulo operation on the atoms
 !!$     call atomic_axpy(at,x,0.0_gp,x,x)
