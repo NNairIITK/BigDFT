@@ -1427,7 +1427,7 @@ subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
     integer::n,np,i,ip,istat,infocode
-    type(DFT_global_output), dimension(0:np), intent(inout) :: outs
+    type(DFT_global_output), dimension(1:np-1), intent(inout) :: outs
     real(kind=8)::x(n,0:np)
     real(kind=8)::tt,t1,t2,springcons,fnrmtot,time1,time2,fnrmarr(99),fspmaxarr(99)!,DNRM2
     real(kind=8), allocatable::tang(:,:)
@@ -1439,9 +1439,9 @@ subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
 
     allocate(tang(n,0:np+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
     call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
+    call run_objects_set(runObj, ll_inputs, atoms, rst)
     allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
     call dmemocc(3*atoms%nat,3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
-    call run_objects_set(runObj, ll_inputs, atoms, rst)
     do ip=1,np-1
         call vcopy(n, x(1,ip), 1, runObj%rxyz(1,1), 1)
         call cpu_time(time1)
@@ -2158,9 +2158,9 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
 
     allocate(tang(n,0:np+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
     call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
+    call run_objects_set(runObj, ll_inputs, atoms, rst)
     allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
     call dmemocc(3*atoms%nat,3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
-    call run_objects_set(runObj, ll_inputs, atoms, rst)
     mp=-1
     fnrmmax=0.d0
     do ip=1,np-1
@@ -2238,9 +2238,9 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold
     call caltmax2(istep,n,np,x,xold,outends,etmax,xtmax,ftmax,pnow,pold,nproc,iproc,&
         atoms,rst,ll_inputs,ncount_bigdft)
     if(trim(pnow%hybrid)=='yes') then
+       call run_objects_set(runObj, inputs, atoms, rst)
        allocate(runObj%rxyz(3,atoms%nat),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
        call dmemocc(3*atoms%nat,3*atoms%nat,runObj%rxyz,'runObj%rxyz')
-       call run_objects_set(runObj, inputs, atoms, rst)
        call init_global_output(outs, atoms%nat)
        call vcopy(n, xtmax(1), 1, runObj%rxyz(1,1), 1)
        inputs%inputPsiId=0
@@ -2900,9 +2900,9 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atom
 
     allocate(tang(n+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
     call dmemocc(n,n+ndeb1,tang,'tang')
+    call run_objects_set(runObj, ll_inputs, atoms, rst)
     allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
     call dmemocc(3*atoms%nat,3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
-    call run_objects_set(runObj, ll_inputs, atoms, rst)
     call init_global_output(outs, atoms%nat)
     pnow%ex(0)=pnow%exends(1)
     pnow%ex(npv)=pnow%exends(2)
@@ -3992,9 +3992,9 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     !    tang(i)=0.d0
     !enddo
     !call calenergyforces(n,xt,epot,ft)
+    call run_objects_set(runObj, ll_inputs, atoms, rst)
     allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
     call dmemocc(3*atoms%nat,3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
-    call run_objects_set(runObj, ll_inputs, atoms, rst)
     call init_global_output(outs, atoms%nat)
     call vcopy(n, xt(1), 1, runObj%rxyz(1,1), 1)
     call cpu_time(time1)

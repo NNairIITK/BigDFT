@@ -46,21 +46,21 @@ setattr(BigDFT.Atoms, "rxyz", property(fget = __Atoms_get_rxyz__))
 
 def __Goutput_str__(en):
   """Defines stringification of an Goutput object."""
-  return """<%s.%s at %s (etot: %17.17gHt)>
-  - Hartree: %15.12gHt
-  - XC     : %15.12gHt
-  - Vxc    : %15.12gHt
-  - ionic  : %15.12gHt
-  - disp   : %15.12gHt
-  - kinetic: %15.12gHt
-  - potent.: %15.12gHt
-  - proj.  : %15.12gHt
-  - exactxc: %15.12gHt
-  - band st: %15.12gHt
-  - Kohn-S.: %15.12gHt
-  - traceH : %15.12gHt
-  - sum(V) : %15.12gHt
-  - Vsic   : %15.12gHt
+  return """<%s.%s at %s (etot: %17.17gHa)>
+  - Hartree: %14.11gHa
+  - XC     : %14.11gHa
+  - Vxc    : %14.11gHa
+  - ionic  : %14.11gHa
+  - disp   : %14.11gHa
+  - kinetic: %14.11gHa
+  - potent.: %14.11gHa
+  - proj.  : %14.11gHa
+  - exactxc: %14.11gHa
+  - band st: %14.11gHa
+  - Kohn-S.: %14.11gHa
+  - traceH : %14.11gHa
+  - sum(V) : %14.11gHa
+  - Vsic   : %14.11gHa
   - pressure: %g Ha/Bohr^3
   - stress  : (Ha/Bohr^3)\n%s
   - forces  : (Ha/Bohr)\n%s""" % (en.__class__.__module__,
