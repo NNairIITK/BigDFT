@@ -8,31 +8,31 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-/********************************/
-/* BigDFT_Energs data structure */
-/********************************/
+/*********************************/
+/* BigDFT_Goutput data structure */
+/*********************************/
 #ifdef HAVE_GLIB
 enum {
   EKS_READY_SIGNAL,
   LAST_SIGNAL
 };
 
-G_DEFINE_TYPE(BigDFT_Energs, bigdft_energs, G_TYPE_OBJECT)
+G_DEFINE_TYPE(BigDFT_Goutput, bigdft_goutput, G_TYPE_OBJECT)
 
-static guint bigdft_energs_signals[LAST_SIGNAL] = { 0 };
+static guint bigdft_goutput_signals[LAST_SIGNAL] = { 0 };
 
-static void bigdft_energs_dispose(GObject *energs);
-static void bigdft_energs_finalize(GObject *energs);
+static void bigdft_goutput_dispose(GObject *energs);
+static void bigdft_goutput_finalize(GObject *energs);
 
-static void bigdft_energs_class_init(BigDFT_EnergsClass *klass)
+static void bigdft_goutput_class_init(BigDFT_GoutputClass *klass)
 {
   /* Connect the overloading methods. */
-  G_OBJECT_CLASS(klass)->dispose      = bigdft_energs_dispose;
-  G_OBJECT_CLASS(klass)->finalize     = bigdft_energs_finalize;
+  G_OBJECT_CLASS(klass)->dispose      = bigdft_goutput_dispose;
+  G_OBJECT_CLASS(klass)->finalize     = bigdft_goutput_finalize;
   /* G_OBJECT_CLASS(klass)->set_property = visu_data_set_property; */
   /* G_OBJECT_CLASS(klass)->get_property = visu_data_get_property; */
 
-  bigdft_energs_signals[EKS_READY_SIGNAL] =
+  bigdft_goutput_signals[EKS_READY_SIGNAL] =
     g_signal_new("eks-ready", G_TYPE_FROM_CLASS(klass),
                  G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
 		 0, NULL, NULL, g_cclosure_marshal_VOID__UINT,
@@ -40,111 +40,133 @@ static void bigdft_energs_class_init(BigDFT_EnergsClass *klass)
 }
 #endif
 
-static void bigdft_energs_init(BigDFT_Energs *obj)
+static void bigdft_goutput_init(BigDFT_Goutput *obj)
 {
 #ifdef HAVE_GLIB
-  memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Energs) - sizeof(GObject));
+  memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Goutput) - sizeof(GObject));
 #else
-  memset(obj, 0, sizeof(BigDFT_Energs));
+  memset(obj, 0, sizeof(BigDFT_Goutput));
 #endif
 }
 #ifdef HAVE_GLIB
-static void bigdft_energs_dispose(GObject *obj)
+static void bigdft_goutput_dispose(GObject *obj)
 {
-  BigDFT_Energs *energs = BIGDFT_ENERGS(obj);
+  BigDFT_Goutput *energs = BIGDFT_GOUTPUT(obj);
 
   if (energs->dispose_has_run)
     return;
   energs->dispose_has_run = TRUE;
 
   /* Chain up to the parent class */
-  G_OBJECT_CLASS(bigdft_energs_parent_class)->dispose(obj);
+  G_OBJECT_CLASS(bigdft_goutput_parent_class)->dispose(obj);
 }
 #endif
-static void bigdft_energs_finalize(GObject *obj)
+static void bigdft_goutput_finalize(GObject *obj)
 {
-  BigDFT_Energs *energs = BIGDFT_ENERGS(obj);
+  BigDFT_Goutput *outs = BIGDFT_GOUTPUT(obj);
 
-  if (energs->data)
-    FC_FUNC_(energs_free, ENERGS_FREE)(&energs->data);
+  if (outs->data)
+    FC_FUNC_(global_output_free, GLOBAL_OUTPUT_FREE)(&outs->data);
 
 #ifdef HAVE_GLIB
-  G_OBJECT_CLASS(bigdft_energs_parent_class)->finalize(obj);
+  G_OBJECT_CLASS(bigdft_goutput_parent_class)->finalize(obj);
 #endif
 }
-BigDFT_Energs* bigdft_energs_new()
+BigDFT_Goutput* bigdft_goutput_new(guint nat)
 {
-  BigDFT_Energs *energs;
+  BigDFT_Goutput *outs;
   long self;
+  f90_pointer_double_2D fxyz;
 
 #ifdef HAVE_GLIB
-  energs = BIGDFT_ENERGS(g_object_new(BIGDFT_ENERGS_TYPE, NULL));
+  outs = BIGDFT_GOUTPUT(g_object_new(BIGDFT_GOUTPUT_TYPE, NULL));
 #else
-  energs = g_malloc(sizeof(BigDFT_Energs));
-  bigdft_energs_init(energs);
+  outs = g_malloc(sizeof(BigDFT_Goutput));
+  bigdft_goutput_init(outs);
 #endif
-  self = *((long*)&energs);
-  FC_FUNC_(energs_new, ENERGS_NEW)(&self, &energs->data);
+  self = *((long*)&outs);
+  F90_2D_POINTER_INIT(&fxyz);
+  FC_FUNC_(global_output_new, GLOBAL_OUTPUT_NEW)(&self, &outs->data, &outs->energs,
+                                                 &fxyz, (int*)&nat);
+  outs->fdim = nat;
+  outs->fxyz = fxyz.data;
 
-  return energs;
+  return outs;
 }
-void FC_FUNC_(energs_new_wrapper, ENERGS_NEW_WRAPPER)(double *self, void *obj)
+void FC_FUNC_(energs_new_wrapper, ENERGS_NEW_WRAPPER)(double *self, _DFT_global_output *obj)
 {
-  BigDFT_Energs *energs;
+  BigDFT_Goutput *outs;
 
-  energs = bigdft_energs_new_from_fortran(obj);
-  *self = *((double*)&energs);
+  outs = bigdft_goutput_new_from_fortran(obj);
+  *self = *((double*)&outs);
 }
-BigDFT_Energs* bigdft_energs_new_from_fortran(void *obj)
+static void _sync_energs(BigDFT_Goutput *outs)
 {
-  BigDFT_Energs *energs;
+  FC_FUNC_(energs_copy_data, ENERGS_COPY_DATA)
+    (outs->energs, &outs->eh, &outs->exc,
+     &outs->evxc, &outs->eion, &outs->edisp,
+     &outs->ekin, &outs->epot, &outs->eproj,
+     &outs->eexctX, &outs->ebs, &outs->eKS,
+     &outs->trH, &outs->evsum, &outs->evsic);
+}
+static void _sync_outs(BigDFT_Goutput *outs)
+{
+  f90_pointer_double_2D fxyz;
+
+  F90_2D_POINTER_INIT(&fxyz);
+  FC_FUNC_(global_output_get, GLOBAL_OUTPUT_GET)(outs->data, &outs->energs, &fxyz, &outs->fdim,
+                                                 &outs->fnoise, &outs->pressure,
+                                                 &outs->strten, &outs->etot);
+  outs->fxyz = fxyz.data;
+  _sync_energs(outs);
+}
+BigDFT_Goutput* bigdft_goutput_new_from_fortran(_DFT_global_output *obj)
+{
+  BigDFT_Goutput *outs;
 
 #ifdef HAVE_GLIB
-  energs = BIGDFT_ENERGS(g_object_new(BIGDFT_ENERGS_TYPE, NULL));
+  outs = BIGDFT_GOUTPUT(g_object_new(BIGDFT_GOUTPUT_TYPE, NULL));
 #else
-  energs = g_malloc(sizeof(BigDFT_Energs));
-  bigdft_energs_init(energs);
+  outs = g_malloc(sizeof(BigDFT_Goutput));
+  bigdft_goutput_init(outs);
 #endif
-  energs->data = obj;
+  outs->data = obj;
+  _sync_outs(outs);
 
-  return energs;
+  return outs;
 }
 void FC_FUNC_(energs_free_wrapper, ENERGS_FREE_WRAPPER)(gpointer *obj)
 {
-  BigDFT_Energs *energs = BIGDFT_ENERGS(*obj);
+  BigDFT_Goutput *outs = BIGDFT_GOUTPUT(*obj);
 
-  energs->data = (gpointer)0;
-  bigdft_energs_free(energs);
+  outs->data = (_DFT_global_output*)0;
+  outs->energs = (_energy_terms*)0;
+  bigdft_goutput_free(outs);
 }
-void bigdft_energs_free(BigDFT_Energs *energs)
+void bigdft_goutput_free(BigDFT_Goutput *outs)
 {
 #ifdef HAVE_GLIB
-  g_object_unref(G_OBJECT(energs));
+  g_object_unref(G_OBJECT(outs));
 #else
-  bigdft_energs_finalize(energs);
+  bigdft_goutput_finalize(outs);
   g_free(energs);
 #endif
 }
-void FC_FUNC_(energs_emit, ENERGS_EMIT)(BigDFT_Energs **obj, guint *istep,
+void FC_FUNC_(energs_emit, ENERGS_EMIT)(BigDFT_Goutput **obj, guint *istep,
                                         BigDFT_EnergsIds *kind)
 {
-  BigDFT_Energs *energs = BIGDFT_ENERGS(*obj);
+  BigDFT_Goutput *outs = BIGDFT_GOUTPUT(*obj);
 
-  FC_FUNC_(energs_copy_data, ENERGS_COPY_DATA)
-    (energs->data, &energs->eh, &energs->exc,
-     &energs->evxc, &energs->eion, &energs->edisp,
-     &energs->ekin, &energs->epot, &energs->eproj,
-     &energs->eexctX, &energs->ebs, &energs->eKS,
-     &energs->trH, &energs->evsum, &energs->evsic);
-  bigdft_energs_emit(*obj, *istep, *kind);
+  _sync_energs(outs);
+  bigdft_goutput_emit_energs(*obj, *istep, *kind);
 }
-void bigdft_energs_emit(BigDFT_Energs *energs, guint istep, BigDFT_EnergsIds kind)
+void bigdft_goutput_emit_energs(BigDFT_Goutput *outs, guint istep, BigDFT_EnergsIds kind)
 {
 #ifdef HAVE_GLIB
   switch (kind)
     {
     case BIGDFT_ENERGS_EKS:
-      g_signal_emit(G_OBJECT(energs), bigdft_energs_signals[EKS_READY_SIGNAL],
+      g_signal_emit(G_OBJECT(outs), bigdft_goutput_signals[EKS_READY_SIGNAL],
                     0 /* details */, istep, NULL);
       break;
     default:
@@ -470,23 +492,17 @@ void bigdft_run_free(BigDFT_Run *run)
  *
  * Returns: (transfer full):
  **/
-BigDFT_Energs* bigdft_run_calculate(BigDFT_Run *run, guint iproc, guint nproc)
+BigDFT_Goutput* bigdft_run_calculate(BigDFT_Run *run, guint iproc, guint nproc)
 {
   int infocode;
-  BigDFT_Energs *en;
+  BigDFT_Goutput *outs;
 
-  en = bigdft_energs_new();
-  en->nat = run->atoms->nat;
-  en->fxyz = g_malloc(sizeof(double) * run->atoms->nat * 3);
-  FC_FUNC_(call_bigdft, CALL_BIGDFT)(run->data, (int*)&nproc, (int*)&iproc,
-                                     &en->etot, en->fxyz, en->strten, &en->fnoise,
+  outs = bigdft_goutput_new(run->atoms->nat);
+  FC_FUNC_(call_bigdft, CALL_BIGDFT)(run->data, outs->data, (int*)&nproc, (int*)&iproc,
                                      &infocode);
-  FC_FUNC_(energs_copy_data, ENERGS_COPY_DATA)
-    (en->data, &en->eh, &en->exc, &en->evxc, &en->eion, &en->edisp,
-     &en->ekin, &en->epot, &en->eproj, &en->eexctX, &en->ebs, &en->eKS,
-     &en->trH, &en->evsum, &en->evsic);
+  _sync_outs(outs);
   
-  return en;
+  return outs;
 }
 
 /**

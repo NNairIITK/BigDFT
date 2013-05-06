@@ -182,7 +182,7 @@ static gboolean _emit_energ_ready(gpointer data)
 
   return FALSE;
 }
-void onEKSReadyDBus(BigDFT_Energs *energs_, guint iter, gpointer data)
+void onEKSReadyDBus(BigDFT_Goutput *energs_, guint iter, gpointer data)
 {
 
   struct _energs_signal *dt;

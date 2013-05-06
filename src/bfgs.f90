@@ -740,8 +740,11 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 !  call atomic_axpy(at,txyz,alpha,sxyz,rxyz)
   runObj%inputs%inputPsiId=1
 !  if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,rst,infocode)
-  if(ICALL.ne.0) call call_bigdft(runObj,outs,nproc,iproc,infocode)
-  if(ICALL.ne.0) ncount_bigdft=ncount_bigdft+1
+  if(ICALL.ne.0) then
+     call call_bigdft(runObj,outs,nproc,iproc,infocode)
+     F=outs%energy
+     ncount_bigdft=ncount_bigdft+1
+  end if
   call atomic_copymoving_forward(runObj%atoms,n,outs%fxyz,nr,G)
   outs%energy=F
   G=-G

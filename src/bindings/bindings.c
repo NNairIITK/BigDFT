@@ -266,14 +266,14 @@ void bigdft_optloop_free(BigDFT_OptLoop *optloop)
 #endif
 }
 void FC_FUNC_(optloop_emit, OPTLOOP_EMIT)(BigDFT_OptLoop **obj, BigDFT_OptLoopIds *kind,
-                                          BigDFT_Energs **energs)
+                                          BigDFT_Goutput **energs)
 {
   BigDFT_OptLoop *optloop = BIGDFT_OPTLOOP(*obj);
 
   bigdft_optloop_copy_from_fortran(optloop);
   bigdft_optloop_emit(optloop, *kind, *energs);
 }
-void bigdft_optloop_emit(BigDFT_OptLoop *optloop, BigDFT_OptLoopIds kind, BigDFT_Energs *energs)
+void bigdft_optloop_emit(BigDFT_OptLoop *optloop, BigDFT_OptLoopIds kind, BigDFT_Goutput *energs)
 {
 #ifdef HAVE_GLIB
   switch (kind)

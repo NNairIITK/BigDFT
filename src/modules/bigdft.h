@@ -174,30 +174,30 @@ void           bigdft_inputs_parse           (BigDFT_Inputs *in, guint iproc);
 void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms, guint iproc);
 /*********************************/
 
-/********************************/
-/* BigDFT_Energs data structure */
-/********************************/
+/*********************************/
+/* BigDFT_Goutput data structure */
+/*********************************/
 typedef enum
   {
     BIGDFT_ENERGS_EKS
   } BigDFT_EnergsIds;
 
 #ifdef GLIB_MAJOR_VERSION
-#define BIGDFT_ENERGS_TYPE    (bigdft_energs_get_type())
-#define BIGDFT_ENERGS(obj)                                               \
-  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_ENERGS_TYPE, BigDFT_Energs))
-typedef struct _BigDFT_EnergsClass BigDFT_EnergsClass;
-struct _BigDFT_EnergsClass
+#define BIGDFT_GOUTPUT_TYPE    (bigdft_goutput_get_type())
+#define BIGDFT_GOUTPUT(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_GOUTPUT_TYPE, BigDFT_Goutput))
+typedef struct _BigDFT_GoutputClass BigDFT_GoutputClass;
+struct _BigDFT_GoutputClass
 {
   GObjectClass parent;
 };
-GType bigdft_energs_get_type(void);
+GType bigdft_goutput_get_type(void);
 #else
-#define BIGDFT_ENERGS_TYPE    (999)
-#define BIGDFT_ENERGS(obj)    ((BigDFT_Energs*)obj)
+#define BIGDFT_GOUTPUT_TYPE    (999)
+#define BIGDFT_GOUTPUT(obj)    ((BigDFT_Goutput*)obj)
 #endif
-typedef struct _BigDFT_Energs BigDFT_Energs;
-struct _BigDFT_Energs
+typedef struct _BigDFT_Goutput BigDFT_Goutput;
+struct _BigDFT_Goutput
 {
 #ifdef GLIB_MAJOR_VERSION
   GObject parent;
@@ -208,21 +208,21 @@ struct _BigDFT_Energs
   double eh, exc, evxc, eion, edisp, ekin, epot, eproj, eexctX, ebs, eKS, trH, evsum, evsic;
   double etot;
 
-  /* Storage of forces and stress. */
-  guint nat;
-  double fnoise;
+  guint fdim;
   double *fxyz;
+  double fnoise;
   double pressure;
   double strten[6];
 
   /* Private. */
-  _energy_terms *data;
+  _DFT_global_output *data;
+  _energy_terms *energs;
 };
 /********************************/
-BigDFT_Energs* bigdft_energs_new();
-void           bigdft_energs_free(BigDFT_Energs *energs);
-void           bigdft_energs_emit(BigDFT_Energs *energs, guint istep,
-                                  BigDFT_EnergsIds kind);
+BigDFT_Goutput* bigdft_goutput_new        (guint nat);
+void            bigdft_goutput_free       (BigDFT_Goutput *energs);
+void            bigdft_goutput_emit_energs(BigDFT_Goutput *energs, guint istep,
+                                           BigDFT_EnergsIds kind);
 /********************************/
 
 /*********************************/
@@ -303,7 +303,7 @@ BigDFT_Run*     bigdft_run_new();
 BigDFT_Run*     bigdft_run_new_from_files  (const gchar *radical, const gchar *posinp);
 BigDFT_Run*     bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inputs,
                                             BigDFT_Restart *rst, guint iproc);
-BigDFT_Energs*  bigdft_run_calculate       (BigDFT_Run *run, guint iproc, guint nproc);
+BigDFT_Goutput*  bigdft_run_calculate       (BigDFT_Run *run, guint iproc, guint nproc);
 BigDFT_Atoms*   bigdft_run_get_atoms       (BigDFT_Run *run);
 BigDFT_Inputs*  bigdft_run_get_inputs      (BigDFT_Run *run);
 BigDFT_Restart* bigdft_run_get_restart     (BigDFT_Run *run);
@@ -581,13 +581,13 @@ guint      bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc,
 void       bigdft_wf_init_linear_comm(BigDFT_Wf *wf, const BigDFT_LocalFields *denspot,
                                       const BigDFT_Inputs *in, guint iproc, guint nproc);
 void       bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                                    BigDFT_Proj *proj, BigDFT_Energs *energs,
+                                    BigDFT_Proj *proj, BigDFT_Goutput *energs,
                                     guint iproc, guint nproc);
 guint      bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                                       BigDFT_Proj *proj, BigDFT_Energs *energs,
+                                       BigDFT_Proj *proj, BigDFT_Goutput *energs,
                                        BigDFT_OptLoop *params, guint iproc, guint nproc);
 void       bigdft_wf_post_treatments(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                                     BigDFT_Proj *proj, BigDFT_Energs *energs,
+                                     BigDFT_Proj *proj, BigDFT_Goutput *energs,
                                      guint iproc, guint nproc);
 BigDFT_Locreg* bigdft_wf_get_locreg(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                     BigDFT_Spin ispin, guint iproc);
@@ -615,7 +615,7 @@ void       bigdft_wf_write_psi_compress(const BigDFT_Wf *wf, const gchar *filena
                                         BigDFT_WfFileFormats format, const double *psic,
                                         guint ikpt, guint iorb, BigDFT_Spin ispin, guint psiSize);
 void       bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj,
-                                  BigDFT_LocalFields *denspot, BigDFT_Energs *energs,
+                                  BigDFT_LocalFields *denspot, BigDFT_Goutput *energs,
                                   BigDFT_OptLoop *params, const BigDFT_Inputs *in,
                                   gboolean threaded, guint iproc, guint nproc);
 #ifdef GLIB_MAJOR_VERSION
@@ -783,7 +783,7 @@ void            bigdft_optloop_free(BigDFT_OptLoop *optloop);
 void            bigdft_optloop_copy_from_fortran(BigDFT_OptLoop *optloop);
 void            bigdft_optloop_sync_to_fortran(BigDFT_OptLoop *optloop);
 void            bigdft_optloop_emit(BigDFT_OptLoop *optloop, BigDFT_OptLoopIds kind,
-                                    BigDFT_Energs *energs);
+                                    BigDFT_Goutput *energs);
 
 /******************/
 /* Miscellaneous. */
@@ -804,11 +804,11 @@ BigDFT_SignalsClient* bigdft_signals_client_new(const gchar *hostname,
 BigDFT_SignalsClient* bigdft_signals_client_ref(BigDFT_SignalsClient *client);
 void bigdft_signals_client_unref(BigDFT_SignalsClient *client);
 GType bigdft_signals_client_get_type(void);
-GSource* bigdft_signals_client_create_source(BigDFT_SignalsClient *client, BigDFT_Energs *energs,
+GSource* bigdft_signals_client_create_source(BigDFT_SignalsClient *client, BigDFT_Goutput *energs,
                                              BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                              BigDFT_OptLoop *optloop, GCancellable *cancellable,
                                              GDestroyNotify destroy, gpointer data);
-void bigdft_signals_client_create_thread(BigDFT_SignalsClient *client, BigDFT_Energs *energs,
+void bigdft_signals_client_create_thread(BigDFT_SignalsClient *client, BigDFT_Goutput *energs,
                                          BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                          BigDFT_OptLoop *optloop, GCancellable *cancellable,
                                          GDestroyNotify destroy, gpointer user_data);

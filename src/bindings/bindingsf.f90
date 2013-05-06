@@ -1126,22 +1126,50 @@ subroutine orbs_get_iorbp(orbs, iorbp, isorb, iproc, ikpt, iorb, ispin, ispinor)
   iproc = -1
 END SUBROUTINE orbs_get_iorbp
 
-subroutine energs_new(self, energs)
+subroutine global_output_new(self, outs, energs, fxyz, nat)
   use module_types
   implicit none
   integer(kind = 8), intent(in) :: self
+  type(DFT_global_output), pointer :: outs
   type(energy_terms), pointer :: energs
+  real(gp), dimension(:,:), pointer :: fxyz
+  integer, intent(in) :: nat
 
-  allocate(energs)
-  energs%c_obj = self
-END SUBROUTINE energs_new
-subroutine energs_free(energs)
+  allocate(outs)
+  call init_global_output(outs, nat)
+  energs => outs%energs
+  fxyz => outs%fxyz
+  outs%energs%c_obj = self
+END SUBROUTINE global_output_new
+subroutine global_output_free(outs)
   use module_types
   implicit none
-  type(energy_terms), pointer :: energs
+  type(DFT_global_output), pointer :: outs
 
-  deallocate(energs)
-END SUBROUTINE energs_free
+  call deallocate_global_output(outs)
+  deallocate(outs)
+END SUBROUTINE global_output_free
+subroutine global_output_get(outs, energs, fxyz, fdim, fnoise, pressure, strten, etot)
+  use module_types
+  implicit none
+  type(DFT_global_output), intent(in), target :: outs
+  type(energy_terms), pointer :: energs
+  real(gp), dimension(:,:), pointer :: fxyz
+  integer, intent(out) :: fdim
+  real(gp), intent(out) :: fnoise, pressure
+  real(gp), dimension(6), intent(out) :: strten
+  real(gp), intent(out) :: etot
+
+  energs => outs%energs
+  fxyz => outs%fxyz
+  fdim = outs%fdim
+
+  fnoise = outs%fnoise
+  pressure = outs%pressure
+  strten = outs%strten
+
+  etot = outs%energy
+END SUBROUTINE global_output_get
 subroutine energs_copy_data(energs, eh, exc, evxc, eion, edisp, ekin, epot, &
      & eproj, eexctX, ebs, eKS, trH, evsum, evsic)
   use module_types
