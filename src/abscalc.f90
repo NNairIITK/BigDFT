@@ -104,7 +104,7 @@ program abscalc_main
       deallocate(fxyz,stat=i_stat)
       call memocc(i_stat,i_all,'fxyz',subname)
 
-      call run_objects_free(runObj)
+      call run_objects_free(runObj, "abscalc")
 !!$      call free_input_variables(inputs)
 !!$
 !!$      !finalize memory counting
