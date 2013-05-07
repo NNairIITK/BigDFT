@@ -70,6 +70,10 @@ int bigdft_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mp
   if (mpi_ngroup)
     *mpi_ngroup = (guint)info[3];
 
+#ifdef HAVE_GLIB
+  g_type_init();
+#endif
+
   return ierr;
 }
 int bigdft_finalize()

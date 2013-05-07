@@ -115,7 +115,8 @@ static void _sync_outs(BigDFT_Goutput *outs)
   f90_pointer_double_2D fxyz;
 
   F90_2D_POINTER_INIT(&fxyz);
-  FC_FUNC_(global_output_get, GLOBAL_OUTPUT_GET)(outs->data, &outs->energs, &fxyz, &outs->fdim,
+  FC_FUNC_(global_output_get, GLOBAL_OUTPUT_GET)(outs->data, &outs->energs, &fxyz,
+                                                 (int*)&outs->fdim,
                                                  &outs->fnoise, &outs->pressure,
                                                  outs->strten, &outs->etot);
   outs->fxyz = fxyz.data;
@@ -147,8 +148,7 @@ void FC_FUNC_(energs_free_wrapper, ENERGS_FREE_WRAPPER)(gpointer *obj)
 void bigdft_goutput_unref(BigDFT_Goutput *outs)
 {
   g_object_unref(G_OBJECT(outs));
-#if HAVE_GLIB
-#else
+#ifndef HAVE_GLIB
   if (G_OBJECT(outs)->ref_count <= 0)
     {
       bigdft_goutput_finalize(G_OBJECT(outs));
