@@ -4,5 +4,12 @@
 2 1      # fragment number j, reference fragment i this corresponds to
 
 
-# if multiple reference fragments, should also give directory name as an input so each fragment has its own directory containing its set of tmbs
+
+
+
+
+
+
+# if multiple reference fragments, may also need to give directory name as an input so each fragment has its own directory containing its set of tmbs
 # also assuming posinp file is in fragment order - could later make this whole process more automatic
+# add charge for CDFT?

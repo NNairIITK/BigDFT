@@ -39,6 +39,7 @@ module fragments
      real(gp), dimension(:,:), pointer :: rxyz_env !< position of atoms in environment (AU), external reference frame
      character(len=20), dimension(:), pointer :: atomnames !< Name of type of atoms
      type(fragment_basis), pointer :: frag_basis !< fragment basis, associated only if coherent with positions
+     ! add coeffs and or kernel
   end type system_fragment
 
   !> Contains the rotation and translation (possibly deformation) which have to be applied to a given fragment

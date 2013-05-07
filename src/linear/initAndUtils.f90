@@ -118,31 +118,29 @@ end subroutine deallocateBasicArraysInput
 
 
 
-subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, at, lzd, orbs, Glr, locrad, locregShape, lborbs)
+subroutine initLocregs(iproc, nproc, lzd, rxyz, hx, hy, hz, at, orbs, Glr, locrad, locregShape, lborbs)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => initLocregs
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, nlr
-  real(kind=8),dimension(3,nlr),intent(in) :: rxyz
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(inout) :: lzd
+  real(kind=8),dimension(3,lzd%nlr),intent(in) :: rxyz
   real(kind=8),intent(in) :: hx, hy, hz
   type(atoms_data),intent(in) :: at
-  type(local_zone_descriptors),intent(inout) :: lzd
   type(orbitals_data),intent(in) :: orbs
   type(locreg_descriptors),intent(in) :: Glr
   real(kind=8),dimension(lzd%nlr),intent(in) :: locrad
   character(len=1),intent(in) :: locregShape
   type(orbitals_data),optional,intent(in) :: lborbs
   
-  !real(kind=8),dimension(:),pointer :: phi, lphi
-  
   ! Local variables
   integer :: istat, ilr, jorb, jjorb, jlr, iall
   character(len=*),parameter :: subname='initLocregs'
   logical,dimension(:),allocatable :: calculateBounds
-  real(8):: t1, t2
+
   
   ! Allocate the array of localisation regions
   allocate(lzd%Llr(lzd%nlr),stat=istat)
@@ -175,14 +173,12 @@ subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, at, lzd, orbs, Glr, 
       lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
   end do
   
-  t1=mpi_wtime()
   if(locregShape=='c') then
       stop 'locregShape c is deprecated'
   else if(locregShape=='s') then
       call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
            at, orbs, Glr, lzd%Llr, calculateBounds)
   end if
-  t2=mpi_wtime()
   
   iall=-product(shape(calculateBounds))*kind(calculateBounds)
   deallocate(calculateBounds, stat=istat)
@@ -750,12 +746,7 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
   
   nullify(lzd%llr)
 
-  ! Count the number of localization regions
-  lzd%nlr=0
-  do iat=1,at%nat
-      ityp=at%iatype(iat)
-      lzd%nlr=lzd%nlr+input%lin%norbsPerType(ityp)
-  end do
+  lzd%nlr=orbs%norb
 
   allocate(locregCenter(3,lzd%nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
@@ -774,8 +765,8 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
 
   call timing(iproc,'init_locregs  ','OF')
 
-  call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
-       & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), at, lzd, orbs, &
+  call initLocregs(iproc, nproc, lzd, locregCenter, &
+       & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), at, orbs, &
        & lzd%glr, input%lin%locrad, 's')
 
   call timing(iproc,'init_locregs  ','ON')
@@ -833,7 +824,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
 
   lzd%nlr=nlr
   call timing(iproc,'updatelocreg1','OF') 
-  call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, at, lzd, orbs, glr_tmp, locrad, 's')!, llborbs)
+  call initLocregs(iproc, nproc, lzd, locregCenter, hx, hy, hz, at, orbs, glr_tmp, locrad, 's')!, llborbs)
   call timing(iproc,'updatelocreg1','ON') 
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
@@ -1031,7 +1022,7 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
 
   ! Calling arguments
   type(local_zone_descriptors),intent(in) :: lzd
-  type(orbitals_data),intent(inout) :: orbs
+  type(orbitals_data),intent(in) :: orbs
   integer, intent(in) :: iproc, nproc
   integer, intent(out) :: npsidim_orbs, npsidim_comp
 
@@ -1045,7 +1036,6 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
   npsidim = 0
   do iorb=1,orbs%norbp
    ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
-!print*,iorb,orbs%norbp,ilr,orbs%isorb
    npsidim = npsidim + lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
   end do
   npsidim_orbs=max(npsidim,1)

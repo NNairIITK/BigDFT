@@ -2739,15 +2739,15 @@ module module_interfaces
     end subroutine nullify_grow_bounds
     
 
-    subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, at, lzd, orbs, Glr, locrad, locregShape, lborbs)
+    subroutine initLocregs(iproc, nproc, lzd, rxyz, hx, hy, hz, at, orbs, Glr, locrad, locregShape, lborbs)
       use module_base
       use module_types
       implicit none
-      integer,intent(in):: iproc, nproc, nlr
-      real(8),dimension(3,nlr),intent(in):: rxyz
+      integer,intent(in):: iproc, nproc
+      type(local_zone_descriptors),intent(inout):: lzd
+      real(8),dimension(3,lzd%nlr),intent(in):: rxyz
       real(8),intent(in):: hx, hy, hz
       type(atoms_data),intent(in) :: at
-      type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(in):: orbs
       type(locreg_descriptors),intent(in):: Glr
       real(8),dimension(lzd%nlr),intent(in):: locrad
@@ -3688,9 +3688,9 @@ module module_interfaces
          integer, dimension(orbs%norb), optional :: orblist
        end subroutine initialize_linear_from_file
 
-       subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old, &
-       & ns_old, hgrids_old, lstat, error, nvctr_c_old, nvctr_f_old, &
-       & rxyz_old, nat, locrad, locregCenter, confPotOrder, confPotprefac, onwhichatom)
+       subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old, ns_old, &
+            hgrids_old, lstat, error, onwhichatom, locrad, locregCenter, &
+            confPotOrder, confPotprefac, nat, rxyz_old, nvctr_c_old, nvctr_f_old)
          use module_base
          use module_types
          implicit none
@@ -3701,15 +3701,16 @@ module module_interfaces
          real(gp), dimension(3), intent(out) :: hgrids_old
          logical, intent(out) :: lstat
          real(wp), intent(out) :: eval
-         integer, intent(out) :: confPotOrder
-         real(gp), intent(out) :: locrad, confPotprefac
+         real(gp), intent(out) :: locrad
          real(gp), dimension(3), intent(out) :: locregCenter
          character(len =256), intent(out) :: error
+         integer, intent(out) :: onwhichatom
+         integer, intent(out) :: confPotOrder
+         real(gp), intent(out) :: confPotprefac
          ! Optional arguments
          integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
          integer, intent(in), optional :: nat
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
-         integer, intent(out) :: onwhichatom
        end subroutine io_read_descr_linear
 
        subroutine readmywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz_old,rxyz,  &

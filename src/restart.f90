@@ -1356,15 +1356,15 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   character(len=12) :: orbname
   real(wp), dimension(:), allocatable :: gpsi
 
+
   call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n_old, ns_old, hgrids_old, lstat, error, &
-       & nvctr_c_old, nvctr_f_old, rxyz_old, at%nat,locrad, locregCenter, confPotOrder, confPotprefac, onwhichatom_tmp)
+       onwhichatom_tmp, locrad, locregCenter, confPotOrder, confPotprefac, at%nat, rxyz_old, nvctr_c_old, nvctr_f_old)
 
   if (.not. lstat) call io_error(trim(error))
   if (iorb_old /= iorb) stop 'readonewave_linear'
 
   iiat=onwhichatom(iorb)
   tol=1.d-3
-  reformat_reason=0
 
   theta=0.d0*(4.0_gp*atan(1.d0)/180.0_gp)
   newz=(/1.0_gp,0.0_gp,0.0_gp/)
@@ -1438,9 +1438,9 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
 END SUBROUTINE readonewave_linear
 
 
-subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old, &
-       & ns_old, hgrids_old, lstat, error, nvctr_c_old, nvctr_f_old, &
-       & rxyz_old, nat, locrad, locregCenter, confPotOrder, confPotprefac,onwhichatom)
+subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old, ns_old, &
+       & hgrids_old, lstat, error, onwhichatom, locrad, locregCenter, &
+       & confPotOrder, confPotprefac, nat, rxyz_old, nvctr_c_old, nvctr_f_old)
     use module_base
     use module_types
     use internal_io
@@ -1454,15 +1454,16 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old, &
     real(gp), dimension(3), intent(out) :: hgrids_old
     logical, intent(out) :: lstat
     real(wp), intent(out) :: eval
-    integer, intent(out) :: confPotOrder
-    real(gp), intent(out) :: locrad, confPotprefac
+    real(gp), intent(out) :: locrad
     real(gp), dimension(3), intent(out) :: locregCenter
     character(len =256), intent(out) :: error
+    integer, intent(out) :: onwhichatom
+    integer, intent(out) :: confPotOrder
+    real(gp), intent(out) :: confPotprefac
     ! Optional arguments
     integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
     integer, intent(in), optional :: nat
     real(gp), dimension(:,:), intent(out), optional :: rxyz_old
-    integer, intent(out) :: onwhichatom
 
     integer :: i, iat, i_stat, nat_
     real(gp) :: rxyz(3)
@@ -1472,22 +1473,17 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old, &
     if (formatted) then
        read(unitwf,*,iostat=i_stat) iorb_old,eval
        if (i_stat /= 0) return
-
        read(unitwf,*,iostat=i_stat) hgrids_old(1),hgrids_old(2),hgrids_old(3)
        if (i_stat /= 0) return
-
        read(unitwf,*,iostat=i_stat) n_old(1),n_old(2),n_old(3)
        if (i_stat /= 0) return
-
        read(unitwf,*,iostat=i_stat) ns_old(1),ns_old(2),ns_old(3)
        if (i_stat /= 0) return
-
        read(unitwf,*,iostat=i_stat) (locregCenter(i),i=1,3),onwhichatom,&
             locrad,confPotOrder, confPotprefac
        if (i_stat /= 0) return
        !call yaml_map('Reading atomic positions',nat)
        !write(*,*) 'reading ',nat,' atomic positions' !*
-
        if (present(nat) .And. present(rxyz_old)) then
           read(unitwf,*,iostat=i_stat) nat_
           if (i_stat /= 0) return
@@ -1743,6 +1739,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz_ol
      !call read_waves_etsf(iproc,filename // ".etsf",orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      !     wfd,psi)
   else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
+     reformat_reason=0
      ind = 1
      do iorb=1,orbs%norbp!*orbs%nspinor
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
@@ -1809,49 +1806,39 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   use module_interfaces, except_this_one => initialize_linear_from_file
   implicit none
   integer, intent(in) :: iproc, nproc, iformat
-  type(orbitals_data), intent(inout) :: orbs  !< orbs related to the basis functions, inwhichlocreg generated in this routine
+  type(orbitals_data), intent(inout) :: orbs  !< orbs related to the basis functions, inwhichlocreg and onwhichatom generated in this routine
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   character(len=*), intent(in) :: filename
   type(local_zone_descriptors), intent(inout) :: Lzd !< must already contain Glr and hgrids
   integer, dimension(orbs%norb), optional :: orblist
+
   !Local variables
   character(len=*), parameter :: subname='initialize_linear_from_file'
   character(len =256) :: error
-  logical :: lstat, consistent
-!  logical :: perx, pery, perz
+  logical :: lstat
   integer :: ilr, ierr, iorb_old, iorb, ispinor, iorb_out
   integer, dimension(3) :: n_old, ns_old
-  integer :: i_stat, i_all,confPotOrder, confPotOrder_old, onwhichatom_tmp, iat
-! integer :: jorb
+  integer :: i_stat, i_all, confPotOrder, iat
   real(gp), dimension(3) :: hgrids_old
-! real(gp) :: mindist
-  real(kind=8) :: eval
-!  real(kind=8) :: dx,dy,dz,dist,eval
-  real(gp), dimension(orbs%norb):: locrad, confPotprefac
-  real(gp), dimension(3,at%nat) :: rxyz_old
-  real(gp), dimension(3,orbs%norb) :: locregCenter
-  integer, dimension(orbs%norb) :: nvctr_c, nvctr_f
-  integer, dimension(:), allocatable :: norbsperlocreg
+  real(kind=8) :: eval, confPotprefac
+  real(gp), dimension(orbs%norb):: locrad
+  real(gp), dimension(3) :: locregCenter
   real(kind=8), dimension(:), allocatable :: lrad
   real(gp), dimension(:,:), allocatable :: cxyz
-  logical, dimension(:), allocatable :: calcbounds
 
   ! NOTES:
   ! The orbs%norb family must be all constructed before this routine
   ! This can be done from the input.lin since the number of basis functions should be fixed.
 
-  call to_zero(3*orbs%norb,locregCenter(1,1))
   call to_zero(orbs%norb,locrad(1))
-  call to_zero(orbs%norb,confPotprefac(1))
-  consistent = .true.
+  call to_zero(orbs%norb,orbs%onwhichatom(1))
 
   ! First read the headers (reading is distributed) and then the information is communicated to all procs.
   ! Then each proc generates a group of lrs that are communicated to all others.
   if (iformat == WF_FORMAT_ETSF) then
      stop 'Linear scaling with ETSF writing not implemented yet'
   else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
-     orbs%onwhichatom = 0
      loop_iorb: do iorb=1,orbs%norbp!*orbs%nspinor
         do ispinor=1,orbs%nspinor
            if(present(orblist)) then
@@ -1862,17 +1849,12 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
                    & orbs,iorb,ispinor,iorb_out)
            end if    
 
-           call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n_old, ns_old, hgrids_old, lstat, &
-                & error, nvctr_c(iorb+orbs%isorb), nvctr_f(iorb+orbs%isorb),rxyz_old, at%nat, locrad(iorb+orbs%isorb), &
-                & locregCenter(1,iorb+orbs%isorb), confPotOrder, confPotprefac(iorb+orbs%isorb), onwhichatom_tmp)
+           call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n_old, ns_old, hgrids_old, &
+                lstat, error, orbs%onwhichatom(iorb+orbs%isorb), locrad(iorb+orbs%isorb), locregCenter, confPotOrder, confPotprefac)
 
-           ! get locregcenters from new atomic positions
-           orbs%onwhichatom(iorb+orbs%isorb) = onwhichatom_tmp
-           locregcenter(:,iorb+orbs%isorb) = rxyz(:,onwhichatom_tmp)
            ! DEBUG: print*,iproc,iorb,iorb+orbs%isorb,iorb_old,iorb_out
            if (.not. lstat) then
               call yaml_warning(trim(error))
-              !write(*,*) trim(error)
               stop
            end if
            if (iorb_old /= iorb_out) then
@@ -1880,90 +1862,48 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
               stop
            end if
            close(99)
-           !TO DO: confPotOrder_old should be read from input.lin
-           if(iorb==1) confPotOrder_old = confPotOrder
-
-           confPotOrder_old = confPotOrder
         end do
      end do loop_iorb
   else
      call yaml_warning('Unknown wavefunction file format from filename.')
-     !write(*,*) "Unknown wavefunction file format from filename."
      stop
   end if
 
   Lzd%nlr = orbs%norb
+
   ! Communication of the quantities
   if (nproc > 1)  call mpiallred(orbs%onwhichatom(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-  if (nproc > 1)  call mpiallred(locregCenter(1,1),3*orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   if (nproc > 1)  call mpiallred(locrad(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-  if (nproc > 1)  call mpiallred(confPotprefac(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-
-
-  allocate(Lzd%Llr(Lzd%nlr),stat=i_stat)
-  do ilr=1,lzd%nlr
-     lzd%Llr(ilr)=locreg_null()
-  end do
 
   allocate(cxyz(3,Lzd%nlr),stat=i_stat)
   call memocc(i_stat,cxyz,'cxyz',subname)
-  allocate(calcbounds(Lzd%nlr),stat=i_stat)
-  call memocc(i_stat,calcbounds,'calcbounds',subname)
   allocate(lrad(Lzd%nlr), stat=i_stat)
   call memocc(i_stat, lrad, 'lrad', subname)
-  allocate(norbsperlocreg(Lzd%nlr), stat=i_stat)
-  call memocc(i_stat, norbsPerLocreg, 'norbsPerLocreg', subname)
-  norbsPerLocreg=1 !should be norbsPerLocreg  
 
   ! Put the llr in posinp order
-  ilr = 0
-  do iat = 1, at%nat
+  ilr=0
+  do iat=1,at%nat
      do iorb=1,orbs%norb
         if(iat == orbs%onwhichatom(iorb)) then
            ilr = ilr + 1
            cxyz(1,ilr) = rxyz(1,iat)
            cxyz(2,ilr) = rxyz(2,iat)
            cxyz(3,ilr) = rxyz(3,iat)
-
-!           cxyz(1,ilr) = locregCenter(1,iorb)
-!           cxyz(2,ilr) = locregCenter(2,iorb)
-!           cxyz(3,ilr) = locregCenter(3,iorb)
            lrad(ilr) = locrad(iorb)
-           orbs%inwhichlocreg(iorb)=ilr
+           orbs%inwhichlocreg(iorb) = ilr
         end if
      end do
   end do
   
-!  i_all = -product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
-!  deallocate(orbs%inwhichlocreg,stat=i_stat)
-!  call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
-
-!  call assignToLocreg2(iproc, nproc, orbs%norb, orbs%norb_par, at%nat, Lzd%nlr, orbs%nspin, &
-!       norbsperlocreg, cxyz, orbs%inwhichlocreg) 
-
-  ! Set calcbounds correctly
-  calcbounds = .false.
-  do iorb = 1, orbs%norbp
-     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-     calcbounds(ilr) = .true.
-  end do
-
-!TO DO: CUBIC LOCREGS
-  call determine_locregSphere_parallel(iproc,nproc,Lzd%nlr,cxyz,lrad,Lzd%hgrids(1),&
-       Lzd%hgrids(2),Lzd%hgrids(3),at,orbs,Lzd%Glr,Lzd%Llr,calcbounds)
+  call initLocregs(iproc, nproc, lzd, cxyz, Lzd%hgrids(1), Lzd%hgrids(2),Lzd%hgrids(3), &
+       at, orbs, Lzd%Glr, lrad, 's')
 
   i_all = -product(shape(cxyz))*kind(cxyz)
   deallocate(cxyz,stat=i_stat)
   call memocc(i_stat,i_all,'cxyz',subname)
-  i_all = -product(shape(calcbounds))*kind(calcbounds)
-  deallocate(calcbounds,stat=i_stat)
-  call memocc(i_stat,i_all,'calcbounds',subname)
   i_all = -product(shape(lrad))*kind(lrad)
   deallocate(lrad,stat=i_stat)
   call memocc(i_stat,i_all,'lrad',subname)
-  i_all = -product(shape(norbsperlocreg))*kind(norbsperlocreg)
-  deallocate(norbsperlocreg,stat=i_stat)
-  call memocc(i_stat,i_all,'norbsPerLocreg',subname)
 
 END SUBROUTINE initialize_linear_from_file
 
