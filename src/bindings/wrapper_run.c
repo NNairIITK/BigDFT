@@ -46,6 +46,7 @@ static void bigdft_goutput_init(BigDFT_Goutput *obj)
   memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Goutput) - sizeof(GObject));
 #else
   memset(obj, 0, sizeof(BigDFT_Goutput));
+  G_OBJECT(obj)->ref_count = 1;
 #endif
 }
 #ifdef HAVE_GLIB
@@ -116,7 +117,7 @@ static void _sync_outs(BigDFT_Goutput *outs)
   F90_2D_POINTER_INIT(&fxyz);
   FC_FUNC_(global_output_get, GLOBAL_OUTPUT_GET)(outs->data, &outs->energs, &fxyz, &outs->fdim,
                                                  &outs->fnoise, &outs->pressure,
-                                                 &outs->strten, &outs->etot);
+                                                 outs->strten, &outs->etot);
   outs->fxyz = fxyz.data;
   _sync_energs(outs);
 }
@@ -141,15 +142,18 @@ void FC_FUNC_(energs_free_wrapper, ENERGS_FREE_WRAPPER)(gpointer *obj)
 
   outs->data = (_DFT_global_output*)0;
   outs->energs = (_energy_terms*)0;
-  bigdft_goutput_free(outs);
+  bigdft_goutput_unref(outs);
 }
-void bigdft_goutput_free(BigDFT_Goutput *outs)
+void bigdft_goutput_unref(BigDFT_Goutput *outs)
 {
-#ifdef HAVE_GLIB
   g_object_unref(G_OBJECT(outs));
+#if HAVE_GLIB
 #else
-  bigdft_goutput_finalize(outs);
-  g_free(energs);
+  if (G_OBJECT(outs)->ref_count <= 0)
+    {
+      bigdft_goutput_finalize(G_OBJECT(outs));
+      g_free(outs);
+    }
 #endif
 }
 void FC_FUNC_(energs_emit, ENERGS_EMIT)(BigDFT_Goutput **obj, guint *istep,
@@ -200,6 +204,7 @@ static void bigdft_restart_init(BigDFT_Restart *obj)
   memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Restart) - sizeof(GObject));
 #else
   memset(obj, 0, sizeof(BigDFT_Restart));
+  G_OBJECT(obj)->ref_count = 1;
 #endif
 }
 static void bigdft_restart_dispose(GObject *obj)
@@ -274,15 +279,18 @@ void FC_FUNC_(restart_free_wrapper, RESTART_FREE_WRAPPER)(gpointer *obj)
   BigDFT_Restart *restart = BIGDFT_RESTART(*obj);
 
   restart->data = (gpointer)0;
-  bigdft_restart_free(restart);
+  bigdft_restart_unref(restart);
 }
-void bigdft_restart_free(BigDFT_Restart *restart)
+void bigdft_restart_unref(BigDFT_Restart *restart)
 {
-#ifdef HAVE_GLIB
   g_object_unref(G_OBJECT(restart));
+#ifdef HAVE_GLIB
 #else
-  bigdft_restart_finalize(restart);
-  g_free(restart);
+  if (G_OBJECT(restart)->ref_count <= 0)
+    {
+      bigdft_restart_finalize(G_OBJECT(restart));
+      g_free(restart);
+    }
 #endif
 }
 void bigdft_restart_set_mode(BigDFT_Restart *restart, BigDFT_RestartModes id)
@@ -318,6 +326,7 @@ static void bigdft_run_init(BigDFT_Run *obj)
   memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Run) - sizeof(GObject));
 #else
   memset(obj, 0, sizeof(BigDFT_Run));
+  G_OBJECT(obj)->ref_count = 1;
 #endif
 }
 #ifdef HAVE_GLIB
@@ -338,8 +347,8 @@ static void bigdft_run_finalize(GObject *obj)
   BigDFT_Run *run = BIGDFT_RUN(obj);
 
   bigdft_inputs_unref(run->inputs);
-  bigdft_atoms_free(run->atoms);
-  bigdft_restart_free(run->restart);
+  bigdft_atoms_unref(run->atoms);
+  bigdft_restart_unref(run->restart);
 
   if (run->data)
     FC_FUNC_(run_objects_destroy, RUN_OBJECTS_DESTROY)(&run->data);
@@ -430,12 +439,12 @@ BigDFT_Run* bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inpu
   if (!rst)
     rst = bigdft_restart_new(atoms, inputs, iproc);
   else
-    g_object_ref(rst);
+    g_object_ref(G_OBJECT(rst));
   /* We associate atoms and inputs. */
   run->inputs = inputs;
   bigdft_inputs_ref(run->inputs);
   run->atoms = atoms;
-  g_object_ref(run->atoms);
+  g_object_ref(G_OBJECT(run->atoms));
   run->restart = rst;
   FC_FUNC_(run_objects_set, RUN_OBJECTS_SET)(run->data, inputs->data, atoms->data, rst->data);
   FC_FUNC_(run_objects_set_rxyz, RUN_OBJECTS_SET_RXYZ)(run->data, &atoms->rxyz);
@@ -473,13 +482,16 @@ void bigdft_run_set_restart(BigDFT_Run *run, BigDFT_Restart *rst);
 /*   run->data = (gpointer)0; */
 /*   bigdft_run_free(run); */
 /* } */
-void bigdft_run_free(BigDFT_Run *run)
+void bigdft_run_unref(BigDFT_Run *run)
 {
-#ifdef HAVE_GLIB
   g_object_unref(G_OBJECT(run));
+#ifdef HAVE_GLIB
 #else
-  bigdft_run_finalize(run);
-  g_free(run);
+  if (G_OBJECT(run)->ref_count <= 0)
+    {
+      bigdft_run_finalize(G_OBJECT(run));
+      g_free(run);
+    }
 #endif
 }
 /**
@@ -515,7 +527,7 @@ BigDFT_Goutput* bigdft_run_calculate(BigDFT_Run *run, guint iproc, guint nproc)
  **/
 BigDFT_Atoms* bigdft_run_get_atoms(BigDFT_Run *run)
 {
-  g_object_ref(run->atoms);
+  g_object_ref(G_OBJECT(run->atoms));
   return run->atoms;
 }
 /**
@@ -541,6 +553,6 @@ BigDFT_Inputs* bigdft_run_get_inputs(BigDFT_Run *run)
  **/
 BigDFT_Restart* bigdft_run_get_restart(BigDFT_Run *run)
 {
-  g_object_ref(run->restart);
+  g_object_ref(G_OBJECT(run->restart));
   return run->restart;
 }

@@ -17,7 +17,6 @@
 #define g_free(A)   free(A)
 #define guint unsigned int
 #define gchar char
-#define GObject void
 #define gpointer void*
 #define GQuark int
 #define GArray double
@@ -26,6 +25,11 @@
 #define g_array_unref(A) free(A)
 #define G_BEGIN_DECLS
 #define G_END_DECLS
+typedef struct _GObject {guint ref_count;} GObject;
+#define G_OBJECT(O) ((GObject*)O)
+#define g_object_ref(O) {O->ref_count += 1;}
+#define g_object_unref(O) {O->ref_count -= 1;}
+#define g_strdup(S) strdup(S)
 @GLIB_END_FALSE@
 
 #define BIGDFT_STRING_VERSION "@PACKAGE_VERSION@"

@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
  /* Duplicate functions in C due to multiple interface definition in Fortran */
 void FC_FUNC_(inquire_pointer1, INQUIRE_POINTER1)(void *pt, void *add, int *size)
 {

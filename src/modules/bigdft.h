@@ -51,10 +51,8 @@ typedef struct _BigDFT_Atoms BigDFT_Atoms;
 struct _BigDFT_Atoms
 {
   /* Object management. */
-#ifdef GLIB_MAJOR_VERSION
   GObject parent;
   gboolean dispose_has_run;
-#endif
 
   /* Bindings to values, obtained by copy. Update them with
      bigdft_atoms_sync(). */
@@ -83,7 +81,7 @@ struct _BigDFT_Atoms
 /********************************/
 BigDFT_Atoms* bigdft_atoms_new();
 BigDFT_Atoms* bigdft_atoms_new_from_file     (const gchar *filename);
-void          bigdft_atoms_free              (BigDFT_Atoms *atoms);
+void          bigdft_atoms_unref             (BigDFT_Atoms *atoms);
 void          bigdft_atoms_set_types         (BigDFT_Atoms *atoms, const gchar **names);
 void          bigdft_atoms_set_n_atoms       (BigDFT_Atoms *atoms, guint nat);
 void          bigdft_atoms_set_geometry      (BigDFT_Atoms *atoms, gchar geocode,
@@ -199,10 +197,8 @@ GType bigdft_goutput_get_type(void);
 typedef struct _BigDFT_Goutput BigDFT_Goutput;
 struct _BigDFT_Goutput
 {
-#ifdef GLIB_MAJOR_VERSION
   GObject parent;
   gboolean dispose_has_run;
-#endif
 
   /* Binded values. */
   double eh, exc, evxc, eion, edisp, ekin, epot, eproj, eexctX, ebs, eKS, trH, evsum, evsic;
@@ -220,7 +216,7 @@ struct _BigDFT_Goutput
 };
 /********************************/
 BigDFT_Goutput* bigdft_goutput_new        (guint nat);
-void            bigdft_goutput_free       (BigDFT_Goutput *energs);
+void            bigdft_goutput_unref      (BigDFT_Goutput *energs);
 void            bigdft_goutput_emit_energs(BigDFT_Goutput *energs, guint istep,
                                            BigDFT_EnergsIds kind);
 /********************************/
@@ -251,10 +247,9 @@ GType bigdft_restart_get_type(void);
 typedef struct _BigDFT_Restart BigDFT_Restart;
 struct _BigDFT_Restart
 {
-#ifdef GLIB_MAJOR_VERSION
   GObject parent;
   gboolean dispose_has_run;
-#endif
+
   BigDFT_RestartModes inputPsiId;
 
   /* Private. */
@@ -262,9 +257,9 @@ struct _BigDFT_Restart
   _restart_objects *data;
 };
 /*********************************/
-BigDFT_Restart* bigdft_restart_new             (BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint iproc);
-void            bigdft_restart_free            (BigDFT_Restart *restart);
-void            bigdft_restart_set_mode        (BigDFT_Restart *restart, BigDFT_RestartModes id);
+BigDFT_Restart* bigdft_restart_new     (BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint iproc);
+void            bigdft_restart_unref   (BigDFT_Restart *restart);
+void            bigdft_restart_set_mode(BigDFT_Restart *restart, BigDFT_RestartModes id);
 /*********************************/
 
 /*********************************/
@@ -287,10 +282,9 @@ GType bigdft_run_get_type(void);
 typedef struct _BigDFT_Run BigDFT_Run;
 struct _BigDFT_Run
 {
-#ifdef GLIB_MAJOR_VERSION
   GObject parent;
   gboolean dispose_has_run;
-#endif
+
   BigDFT_Atoms   *atoms;
   BigDFT_Inputs  *inputs;
   BigDFT_Restart *restart;
@@ -303,10 +297,11 @@ BigDFT_Run*     bigdft_run_new();
 BigDFT_Run*     bigdft_run_new_from_files  (const gchar *radical, const gchar *posinp);
 BigDFT_Run*     bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inputs,
                                             BigDFT_Restart *rst, guint iproc);
-BigDFT_Goutput*  bigdft_run_calculate       (BigDFT_Run *run, guint iproc, guint nproc);
+BigDFT_Goutput* bigdft_run_calculate       (BigDFT_Run *run, guint iproc, guint nproc);
 BigDFT_Atoms*   bigdft_run_get_atoms       (BigDFT_Run *run);
 BigDFT_Inputs*  bigdft_run_get_inputs      (BigDFT_Run *run);
 BigDFT_Restart* bigdft_run_get_restart     (BigDFT_Run *run);
+void            bigdft_run_unref           (BigDFT_Run *run);
 /*********************************/
 
 

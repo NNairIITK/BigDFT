@@ -58,6 +58,7 @@ static void bigdft_atoms_init(BigDFT_Atoms *obj)
   memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Atoms) - sizeof(GObject));
 #else
   memset(obj, 0, sizeof(BigDFT_Atoms));
+  G_OBJECT(obj)->ref_count = 1;
 #endif
   F90_2D_POINTER_INIT(&obj->rxyz);
 }
@@ -142,13 +143,16 @@ BigDFT_Atoms* bigdft_atoms_new_from_fortran(_atoms_data *at, f90_pointer_double_
 
   return atoms;
 }
-void bigdft_atoms_free(BigDFT_Atoms *atoms)
+void bigdft_atoms_unref(BigDFT_Atoms *atoms)
 {
-#ifdef HAVE_GLIB
   g_object_unref(G_OBJECT(atoms));
+#ifdef HAVE_GLIB
 #else
-  bigdft_atoms_finalize(atoms);
-  g_free(atoms);
+  if (G_OBJECT(atoms)->ref_count <= 0)
+    {
+      bigdft_atoms_finalize(G_OBJECT(atoms));
+      g_free(atoms);
+    }
 #endif
 }
 BigDFT_Atoms* bigdft_atoms_new_from_file(const gchar *filename)
@@ -165,12 +169,13 @@ BigDFT_Atoms* bigdft_atoms_new_from_file(const gchar *filename)
   
   if (!bigdft_atoms_set_structure_from_file(atoms, filename))
     {
-      bigdft_atoms_free(atoms);
+      bigdft_atoms_unref(atoms);
       atoms = (BigDFT_Atoms*)0;
     }
 
   return atoms;
 }
+
 void bigdft_atoms_set_n_atoms(BigDFT_Atoms *atoms, guint nat)
 {
   FC_FUNC_(atoms_set_n_atoms, ATOMS_SET_N_ATOMS)(atoms->data, &atoms->rxyz,
