@@ -125,17 +125,13 @@ GType bigdft_inputs_get_type(void)
   return g_define_type_id;
 }
 #endif
-void bigdft_inputs_parse(BigDFT_Inputs *in, guint iproc)
+void bigdft_inputs_parse(BigDFT_Inputs *in, guint iproc, gboolean dump)
 {
-  int dump = 0;
-
   FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(in->data, (int*)&iproc, &dump);
   _inputs_sync(in);
 }
-void bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms, guint iproc)
+void bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms, guint iproc, gboolean dump)
 {
-  int dump = 0;
-
   FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(in->data, atoms->data, (int*)&iproc, &dump);
   _inputs_sync_add(in);
 }

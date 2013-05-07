@@ -95,8 +95,8 @@ void          bigdft_atoms_set_displacement  (BigDFT_Atoms *atoms, double randdi
 void          bigdft_atoms_copy_from_fortran (BigDFT_Atoms *atoms);
 GArray*       bigdft_atoms_get_radii         (const BigDFT_Atoms *atoms, double crmult,
                                               double frmult, double projrad);
-void          bigdft_atoms_write             (const BigDFT_Atoms *atoms,
-                                              const gchar *filename);
+void          bigdft_atoms_write             (BigDFT_Atoms *atoms,
+                                              const gchar *filename, const gchar *format);
 gchar*        bigdft_atoms_get_extra_as_label(const BigDFT_Atoms *atoms, guint iat);
 guint bigdft_atoms_get_count(BigDFT_Atoms *atoms);
 /********************************/
@@ -168,8 +168,9 @@ BigDFT_Inputs* bigdft_inputs_ref             (BigDFT_Inputs *in);
 void           bigdft_inputs_unref           (BigDFT_Inputs *in);
 BigDFT_Inputs* bigdft_inputs_new             (const gchar *naming, guint iproc);
 void           bigdft_inputs_free            (BigDFT_Inputs *in);
-void           bigdft_inputs_parse           (BigDFT_Inputs *in, guint iproc);
-void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms, guint iproc);
+void           bigdft_inputs_parse           (BigDFT_Inputs *in, guint iproc, gboolean dump);
+void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms,
+                                              guint iproc, gboolean dump);
 /*********************************/
 
 /*********************************/

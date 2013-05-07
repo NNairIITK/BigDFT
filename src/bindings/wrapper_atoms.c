@@ -374,12 +374,26 @@ GArray* bigdft_atoms_get_radii(const BigDFT_Atoms *atoms, double crmult,
 #endif
 }
 
-void bigdft_atoms_write(const BigDFT_Atoms *atoms, const gchar *filename)
+/**
+ * bigdft_atoms_write:
+ * @atoms: 
+ * @filename: 
+ * @format: (allow-none):
+ *
+ * 
+ **/
+void bigdft_atoms_write(BigDFT_Atoms *atoms, const gchar *filename, const gchar *format)
 {
   gchar *comment;
   int ln, ln2;
   f90_pointer_double_2D forces;
 
+  /* Update format if necessary. */
+  if (format)
+    {
+      strncpy(atoms->format, format, 6);
+      _sync_geometry(atoms);
+    }
   if (atoms->comment)
     {
       comment = atoms->comment;

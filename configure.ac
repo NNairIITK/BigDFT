@@ -1090,6 +1090,7 @@ tests/libs/CUDA/Makefile
 tests/libs/IO-wf/Makefile
 tests/libs/dsygv/Makefile
 tests/libs/ftypes/Makefile
+tests/libs/wrappers/Makefile
 tests/libs/psp/Makefile
 tests/DFT/Makefile
 tests/DFT/cubic/Makefile

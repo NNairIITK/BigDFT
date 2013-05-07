@@ -431,8 +431,8 @@ BigDFT_Run* bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inpu
   /* If inputs has parsed its files, we do it now. */
   if (inputs->files == BIGDFT_INPUTS_UNPARSED)
     {
-      bigdft_inputs_parse(inputs, iproc);
-      bigdft_inputs_parse_additional(inputs, atoms, iproc);
+      bigdft_inputs_parse(inputs, iproc, TRUE);
+      bigdft_inputs_parse_additional(inputs, atoms, iproc, TRUE);
       bigdft_atoms_set_psp(atoms, inputs->ixc, inputs->nspin, NULL);
     }
   /* If no restart, we create it from atoms and inputs. */
