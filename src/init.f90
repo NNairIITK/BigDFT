@@ -2542,11 +2542,11 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   integer :: i_stat, i_all,ilr,iorb,nbox,npsir,ist,i,l,k,i1,i2,i3,l1,l2,l3,p1,p2,p3,ii1,ii2,ii3
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:,:),allocatable :: psir,psir_old
-  real(wp) :: hhx_old,hhy_old,hhz_old,hhx,hhy,hhz,s1,s2,s3,dgrid1,dgrid2,dgrid3,expfct,x,y,z
+  real(wp) :: hhx_old,hhy_old,hhz_old,hhx,hhy,hhz,dgrid1,dgrid2,dgrid3,expfct,x,y,z,s1,s2,s3
   real(wp) :: s1d1,s1d2,s1d3,s2d1,s2d2,s2d3,s3d1,s3d2,s3d3,norm_1,norm_2,norm_3,norm,radius,jacdet
   real(wp),dimension(-1:1) :: coeff,ipv,ipv2
 
-  real(wp) :: s1_new, s2_new, s3_new,xz,yz,zz,recnormsqr
+  real(wp) :: s1_new, s2_new, s3_new,xz,yz,zz,recnormsqr,exp_val, exp_cutoff
   real(4), dimension(:,:), allocatable :: shift
   real(wp) :: k1,k2,k3,distance,cutoff
 
@@ -2620,13 +2620,12 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
       radius = 1.0/((rcov)**2)
       cutoff = 3*rcov
       
-
       !dimensions for box around atom 
       xbox = nint(cutoff/hhx) ; ybox = nint(cutoff/hhy) ; zbox = nint(cutoff/hhz)
   
-      gridx = nint(rxyz_old(1,k)/hhx_old)+14
-      gridy = nint(rxyz_old(2,k)/hhy_old)+14
-      gridz = nint(rxyz_old(3,k)/hhz_old)+14
+      gridx = nint(rxyz(1,k)/hhx)+14
+      gridy = nint(rxyz(2,k)/hhy)+14
+      gridz = nint(rxyz(3,k)/hhz)+14
   
     !$OMP PARALLEL DO DEFAULT(PRIVATE) SHARED(rxyz_old,rxyz,shift,gridx,gridy,gridz,xbox,ybox,zbox, &
     !$OMP& hhz,hhy,hhx,lzd,k) FIRSTPRIVATE(radius,cutoff)
@@ -2645,8 +2644,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                s2d1 = 0d0 ; s2d2 = 0d0 ; s2d3 = 0d0
                s3d1 = 0d0 ; s3d2 = 0d0 ; s3d3 = 0d0 
                
-               distance = sqrt((xz-rxyz_old(1,k))**2+(yz-rxyz_old(2,k))**2+(zz-rxyz_old(3,k))**2)
-               if(distance > cutoff) cycle
+               distance = sqrt((xz-rxyz(1,k))**2+(yz-rxyz(2,k))**2+(zz-rxyz(3,k))**2)
+               if(distance > cutoff) cycle 
                
                exp_val = 0.5*(distance**2)*radius
                exp_cutoff = 0.5*(cutoff**2)*radius
@@ -2660,21 +2659,21 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
                s2_new = (rxyz(2,k) - rxyz_old(2,k))*expfct
                s3_new = (rxyz(3,k) - rxyz_old(3,k))*expfct
 
-               norm_1 =  expfct*((xz-rxyz_old(1,k))*radius)
-               norm_2 =  expfct*((yz-rxyz_old(2,k))*radius)
-               norm_3 =  expfct*((zz-rxyz_old(3,k))*radius)
+               norm_1 =  expfct*((xz-rxyz(1,k))*radius)
+               norm_2 =  expfct*((yz-rxyz(2,k))*radius)
+               norm_3 =  expfct*((zz-rxyz(3,k))*radius)
 
-               s1d1 = s1_new*((xz-rxyz_old(1,k))*radius)
-               s1d2 = s1_new*((yz-rxyz_old(2,k))*radius)
-               s1d3 = s1_new*((zz-rxyz_old(3,k))*radius)
+               s1d1 = s1_new*((xz-rxyz(1,k))*radius)
+               s1d2 = s1_new*((yz-rxyz(2,k))*radius)
+               s1d3 = s1_new*((zz-rxyz(3,k))*radius)
                
-               s2d1 = s2_new*((xz-rxyz_old(1,k))*radius)
-               s2d2 = s2_new*((yz-rxyz_old(2,k))*radius)
-               s2d3 = s2_new*((zz-rxyz_old(3,k))*radius)
+               s2d1 = s2_new*((xz-rxyz(1,k))*radius)
+               s2d2 = s2_new*((yz-rxyz(2,k))*radius)
+               s2d3 = s2_new*((zz-rxyz(3,k))*radius)
      
-               s3d1 = s3_new*((xz-rxyz_old(1,k))*radius)
-               s3d2 = s3_new*((yz-rxyz_old(2,k))*radius)
-               s3d3 = s3_new*((zz-rxyz_old(3,k))*radius)
+               s3d1 = s3_new*((xz-rxyz(1,k))*radius)
+               s3d2 = s3_new*((yz-rxyz(2,k))*radius)
+               s3d3 = s3_new*((zz-rxyz(3,k))*radius)
 
                s1d1 =       (s1d1*expfct - s1_new*norm_1)*recnormsqr
                s1d2 =       (s1d2*expfct - s1_new*norm_2)*recnormsqr
