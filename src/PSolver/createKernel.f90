@@ -238,7 +238,10 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
            md2plus=.true.
        endif
 
-       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) print*,'PSolver n1-n2 plane mpi partitioning activated:',n3pr1,'x',n3pr2
+       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) call yaml_map('PSolver n1-n2 plane mpi partitioning activated:',&
+          trim(yaml_toa(n3pr1,fmt='(i5)'))//' x'//trim(yaml_toa(n3pr2,fmt='(i5)'))//&
+          ' taskgroups')
+       if (kernel%mpi_env%iproc==0 .and. md2plus) call yaml_map('md2 was enlarged for PSolver n1-n2 plane mpi partitioning, md2=',md2)
 
        !$omp master
        if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
@@ -292,7 +295,10 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
            md2plus=.true.
        endif
 
-       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) print*,'PSolver n1-n2 plane mpi partitioning activated:',n3pr1,'x',n3pr2
+       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) call yaml_map('PSolver n1-n2 plane mpi partitioning activated:',&
+          trim(yaml_toa(n3pr1,fmt='(i5)'))//' x'//trim(yaml_toa(n3pr2,fmt='(i5)'))//&
+          ' taskgroups')
+       if (kernel%mpi_env%iproc==0 .and. md2plus) call yaml_map('md2 was enlarged for PSolver n1-n2 plane mpi partitioning, md2=',md2)
 
        !$omp master
        if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
@@ -351,7 +357,10 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
            md2plus=.true.
        endif
 
-       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) print*,'PSolver n1-n2 plane mpi partitioning activated:',n3pr1,'x',n3pr2
+       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) call yaml_map('PSolver n1-n2 plane mpi partitioning activated:',&
+          trim(yaml_toa(n3pr1,fmt='(i5)'))//' x'//trim(yaml_toa(n3pr2,fmt='(i5)'))//&
+          ' taskgroups')
+       if (kernel%mpi_env%iproc==0 .and. md2plus) call yaml_map('md2 was enlarged for PSolver n1-n2 plane mpi partitioning, md2=',md2)
 
        !$omp master
        if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
@@ -404,7 +413,10 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
            md2plus=.true.
        endif
 
-       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) print*,'PSolver n1-n2 plane mpi partitioning activated:',n3pr1,'x',n3pr2
+       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) call yaml_map('PSolver n1-n2 plane mpi partitioning activated:',&
+          trim(yaml_toa(n3pr1,fmt='(i5)'))//' x'//trim(yaml_toa(n3pr2,fmt='(i5)'))//&
+          ' taskgroups')
+       if (md2plus) call yaml_map('md2 was enlarged for PSolver n1-n2 plane mpi partitioning, md2=',md2)
 
        !$omp master
        if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
