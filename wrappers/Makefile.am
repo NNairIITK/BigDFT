@@ -59,7 +59,7 @@ interface_dgemmsy_fake.o: linalg.o
 mpi.o: $(mpi_include)
 
 
-AM_FCFLAGS = -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
 
 # Module files.
