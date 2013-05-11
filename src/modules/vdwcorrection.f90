@@ -9457,10 +9457,10 @@ contains
       real(kind=GP)                                :: t1,t2,dt1x,dt1y,dt1z,dt2x,dt2y,dt2z
       real(kind=GP)                                :: tmp1,tmp2,tmp3,tmp4,fac1,fac2
  
-   !!   cni=crd_nr(iat,n,x,z)
-                   cni  = crd_nr(iat,n,x,atoms)
-  !!    cnj=crd_nr(jat,n,x,z)
-                   cni  = crd_nr(jat,n,x,atoms)
+      !!   cni=crd_nr(iat,n,x,z)
+      cni  = crd_nr(iat,n,x,atoms)
+      !!    cnj=crd_nr(jat,n,x,z)
+      cnj  = crd_nr(jat,n,x,atoms)
       if (iat.eq.kat) then
          cnik(1)=cnij(1,iat)
          cnik(2)=cnij(2,iat)

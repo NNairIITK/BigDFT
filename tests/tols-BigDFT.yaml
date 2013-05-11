@@ -73,7 +73,7 @@ AgBulk:
 SiBulk:
  Residues per orbital: 8.0e-10
  Enl: 2.1e-11
- Epot: 1.21e-11
+ Epot: 1.0e-10
  EvXC: 1.1e-10
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
@@ -183,7 +183,7 @@ test.minhop.ref.yaml:
  maxval: 7.1e-11
  Atomic Forces (Ha/Bohr): 2.0e-11
  Average noise forces: 1.0e-10
- etot: 1.8e-11
+ etot: 1.84e-11
  Orbitals: 6.1e-9
  Keys to ignore:
    - (MH) cpu(hrs)
@@ -210,7 +210,10 @@ IO-wf_plain-read:
 
 CH4-D3:
  EH: 1.1e-10
- Ion-Ion interaction energy: 1.7e-11
+ EKS: 3.3e-11
+ etot: 2.92e-11
+ Etot: 2.9e-11
+ Ion-Ion interaction energy: 2.0e-11
 
 scalability:
  Energies: 1.e-9

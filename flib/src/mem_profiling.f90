@@ -185,6 +185,7 @@ contains
   !!
   subroutine memocc_internal(istat,isize,array,routine)
     use yaml_output
+    use error_handling
     implicit none
 
     ! Arguments
@@ -194,6 +195,7 @@ contains
     ! Local variables
     logical :: lmpinit
     integer :: ierr,istat_del
+    character(len=256) :: message
 
     include 'mpif.h'
 
@@ -270,19 +272,27 @@ contains
     case default
        !control of the allocation/deallocation status (to be removed once f_malloc has been inserted)
        if (istat/=0) then
-          if (isize>=0) then
-             !here the error handling module should be used
-             write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
-                  ', error code=',istat,' exiting...'
-             if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
-             call MPI_ABORT(MPI_COMM_WORLD,ierr)
-          else if (isize<0) then
-             write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
-                  ', error code=',istat,' exiting...'
-             if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
-             call MPI_ABORT(MPI_COMM_WORLD,ierr)
-          end if
+          if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
+          write(message,'(1x,a)')'subroutine '//trim(routine),', array '//trim(array)//&
+               ', error code '//trim(yaml_toa(istat))
+          if (f_err_raise(isize>=0,trim(message),err_name='ERR_ALLOCATE')) return
+          if (f_err_raise(isize< 0,trim(message),err_name='ERR_DEALLOCATE')) return
        end if
+!!$       if (istat/=0) then
+!!$          if (isize>=0) then
+!!$             !here the error handling module should be used
+!!$             
+!!$             write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
+!!$                  ', error code=',istat,' exiting...'
+!!$
+!!$             call MPI_ABORT(MPI_COMM_WORLD,ierr)
+!!$          else if (isize<0) then
+!!$             write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
+!!$                  ', error code=',istat,' exiting...'
+!!$             if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
+!!$             call MPI_ABORT(MPI_COMM_WORLD,ierr)
+!!$          end if
+!!$       end if
        !total counter, for all the processes
        memtot%memory=memtot%memory+int(isize,kind=8)
        if (memtot%memory > memtot%peak) then
@@ -295,15 +305,15 @@ contains
        else if (isize<0) then
           memdealloc=memdealloc+1
        end if
-
+       
        if (memorylimit /= 0.e0 .and. &
             memtot%memory > int(real(memorylimit,kind=8)*1073741824.d0,kind=8)) then !memory limit is in GB
-          write(*,'(1x,a,f7.3,2(a,i0),a)')&
-               'ERROR: Memory limit of ',memorylimit,&
-               ' GB reached for memproc ',memproc,' : total memory is ',memtot%memory,' B.'
-          write(*,'(1x,2(a,i0))')&
-               '       this happened for array '//trim(memtot%array)//' in routine '//trim(memtot%routine)
-          call MPI_ABORT(MPI_COMM_WORLD,ierr)
+          write(message,'(1x,a,f7.3,2(a,i0),a)')&
+               'Limit of ',memorylimit,' GB reached, memproc ',memproc,' total memory is ',memtot%memory,' B. '
+!!$          write(*,'(1x,a)') 'Array '//trim(memtot%array)//', routine '//trim(memtot%routine)
+!!$          call MPI_ABORT(MPI_COMM_WORLD,ierr)
+          if (f_err_raise(.true.,trim(message)//' Array '//trim(memtot%array)//&
+               ', routine '//trim(memtot%routine),err_name='ERR_MEMLIMIT')) return
        end if
 
        select case(memproc)
@@ -907,7 +917,7 @@ contains
     integer :: ndim
     if (ndebug /=0) then
        ndim=product(shape(array))-ndebug
-       stop "I don't have this function!!!!!"
+       !stop "I don't have this function!!!!!"
        !call cmpdp_padding(1,ndim,array)
     end if
     call memocc_internal(istat,product(shape(array))*kind(array),aname,rname)

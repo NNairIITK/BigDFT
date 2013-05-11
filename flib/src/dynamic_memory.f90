@@ -383,6 +383,11 @@ module dynamic_memory
   character(len=*), parameter :: firstadd='Address of first element'
   character(len=*), parameter :: processid='Process Id'
 
+  !error codes
+  integer :: ERR_ALLOCATE
+  integer :: ERR_DEALLOCATE
+  integer :: ERR_MEMLIMIT
+
   !> Structure needed to allocate an allocatable array
   type, public :: malloc_information_all
      logical :: pin         !< flag to control the pinning of the address
@@ -491,7 +496,6 @@ contains
        m%array_id(i:i)=' '
        m%routine_id(i:i)=' '
     end do
-
   end function malloc_information_ptr_null
 
   function malloc_information_all_null() result(m)
@@ -514,7 +518,6 @@ contains
     end do
 
   end function malloc_information_all_null
-
 
   !for rank-1 arrays
   function f_malloc_simple(size,id,routine_id,try) result(m)
@@ -631,7 +634,6 @@ contains
     m%shape(1)=m%ubounds(1)-m%lbounds(1)+1
 
     include 'f_malloc-inc.f90'
-
   end function f_malloc0_bound
 
   function f_malloc0_bounds(bounds,id,routine_id,try) result(m)
@@ -654,7 +656,6 @@ contains
     end do
 
     include 'f_malloc-inc.f90'
-
   end function f_malloc0_bounds
 
   !> define the allocation information for  arrays of different rank
@@ -672,7 +673,6 @@ contains
 
     include 'f_malloc-extra-inc.f90'
     include 'f_malloc-inc.f90'
-
   end function f_malloc0
 
   !> for rank-1 arrays
@@ -690,7 +690,6 @@ contains
     m%ubounds(1)=m%shape(1)
 
     include 'f_malloc-inc.f90'
-
   end function f_malloc_ptr_simple
 
   !for rank-1 arrays
@@ -709,7 +708,6 @@ contains
     m%shape(1)=m%ubounds(1)-m%lbounds(1)+1
 
     include 'f_malloc-inc.f90'
-
   end function f_malloc_ptr_bound
 
     !define the allocation information for  arrays of different rank
@@ -731,7 +729,6 @@ contains
     end do
 
     include 'f_malloc-inc.f90'
-
   end function f_malloc_ptr_bounds
 
 
@@ -748,7 +745,6 @@ contains
 
     include 'f_malloc-extra-inc.f90'
     include 'f_malloc-inc.f90'
-
   end function f_malloc_ptr
 
   !for rank-1 arrays
@@ -767,7 +763,6 @@ contains
     m%ubounds(1)=m%shape(1)
 
     include 'f_malloc-inc.f90'
-
   end function f_malloc0_ptr_simple
 
   !for rank-1 arrays
@@ -787,7 +782,6 @@ contains
     m%shape(1)=m%ubounds(1)-m%lbounds(1)+1
 
     include 'f_malloc-inc.f90'
-
   end function f_malloc0_ptr_bound
 
   !define the allocation information for  arrays of different rank
@@ -810,9 +804,7 @@ contains
     end do
 
     include 'f_malloc-inc.f90'
-
   end function f_malloc0_ptr_bounds
-
 
   !define the allocation information for  arrays of different rank
   function f_malloc0_ptr(shape,id,routine_id,lbounds,ubounds,try) result(m)
@@ -828,29 +820,7 @@ contains
 
     include 'f_malloc-extra-inc.f90'
     include 'f_malloc-inc.f90'
-
   end function f_malloc0_ptr
-  
-  function last_f_malloc_error(error_string) result(ierr)
-    implicit none
-    integer :: ierr
-    character(len=*), intent(out), optional :: error_string
-    !local variables
-    integer :: lgt,i
-
-    ierr=ierror
-
-    if (present(error_string) .and. ierr/=SUCCESS) then
-       lgt=min(len(error_string),error_string_len)
-       error_string(1:lgt)=lasterror(1:lgt)
-       do i=lgt+1,error_string_len
-          error_string(i:i)=' '
-       end do
-       !clean last error
-       lasterror=repeat(' ',len(lasterror))
-    end if
-
-  end function last_f_malloc_error
 
   !> This routine adds the corresponding subprogram name to the dictionary
   !! and prepend the dictionary to the global info dictionary
@@ -900,7 +870,6 @@ contains
     !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
     routine_opened=.false.
   end subroutine f_release_routine
-  
 
   subroutine open_routine(dict)
     implicit none
@@ -961,6 +930,21 @@ contains
 
   end subroutine close_routine
 
+  !> Decide the error messages associated to the dynamic memory
+  subroutine malloc_errors()
+    use error_handling
+    implicit none
+    
+    call f_err_define(err_name='ERR_ALLOCATE',err_msg='Allocation error',err_id=ERR_ALLOCATE,&
+         err_action='Control the order of the allocation of if the memory limit has been reached')
+    call f_err_define(err_name='ERR_DEALLOCATE',err_msg='Dellocation error',err_id=ERR_DEALLOCATE,&
+         err_action='Control the order of the allocation of if the memory limit has been reached')
+    call f_err_define(err_name='ERR_MEMLIMIT',err_msg='Memory limit reached',err_id=ERR_MEMLIMIT,&
+         err_action='Control the size of the arrays needed for this run with bigdft-tool program')
+
+    
+  end subroutine malloc_errors
+
 
   !> Initialize the library
   subroutine f_set_status(memory_limit,output_level,logfile_name,unit,iproc)
@@ -976,6 +960,7 @@ contains
 
     if (.not. profile_initialized) then
        profile_initialized=.true.
+       call malloc_errors()
        !initalize the dictionary with the allocation information
        nullify(dict_routine)
        call dict_init(dict_global)
@@ -1052,7 +1037,6 @@ contains
     present_routine=repeat(' ',namelen)
     routine_opened=.false.
   end subroutine f_finalize
-
 
   !> Check error of allocations or deallocations
   subroutine check_for_errors(ierror,try)

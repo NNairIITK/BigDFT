@@ -5,9 +5,10 @@
   integer :: nerr,ierr,jerr
   character(len=dict_msg_len) :: name
 
-  get_error=0
+  get_error=-1 !no error specified
   nerr=dict_len(dict_present_error)
   if (present(err_name)) then
+     get_error=0
      do ierr=0,nerr-1
         !this one can be substituted by the values of the dictionary
         jerr=dict_present_error//ierr
@@ -18,6 +19,7 @@
         end if
      end do
   else if (present(err_id)) then
+     get_error=0
      do ierr=0,nerr-1
         jerr=dict_present_error//ierr
         if (jerr==err_id) then
