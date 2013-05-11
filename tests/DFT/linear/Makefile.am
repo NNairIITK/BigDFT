@@ -16,9 +16,11 @@ EXTRA_TESTDIRS = water \
                  deltascf \
                  reformat \
 		         paracetamol \
-               rotate \
-               shift
-#paracetamol move temporary
+               rotate 
+#               rotate2 \
+#               rotate3 \
+#               shift
+
 
 EXTRA_DIST = 
 
@@ -51,6 +53,19 @@ rotate_read.out.out : rotate_write.out.out
 rotate_write.out.post-out: 
 	rm -rf data-read
 	mv -f data-write data-read
+
+rotate2_read.out.out : rotate2_write.out.out
+
+rotate2_write.out.post-out: 
+	rm -rf data-read
+	mv -f data-write data-read
+
+rotate3_read.out.out : rotate3_write.out.out
+
+rotate3_write.out.post-out: 
+	rm -rf data-read
+	mv -f data-write data-read
+
 
 shift_read.out.out : shift_write.out.out
 

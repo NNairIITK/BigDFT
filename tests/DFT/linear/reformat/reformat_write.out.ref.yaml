@@ -26,8 +26,8 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.26
- Timestamp of this run                 : 2013-04-23 10:13:34.773
+ Version Number                        : 1.7-dev.28
+ Timestamp of this run                 : 2013-04-30 18:21:48.691
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
@@ -83,7 +83,7 @@
  #|1.E-4          gnrm_cv: convergence criterion gradient                                    
  #|50 10          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
  #|6  6           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
- #|0              dispersion correction potential (values 1,2,3), 0=none                     
+ #|0              dispersion correction potential (values 1,2,3,4,5), 0=none                 
  #|100 0 0        InputPsiId, output_wf, output_denspot                                      
  #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
  #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
@@ -402,7 +402,7 @@
  Wavefunction written No.              :  6
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.044E+00,  1.052E+00 ]}
+ -  {Process:  0, Timing:  [  9.561E-01,  9.590E-01 ]}
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -442,14 +442,14 @@
  -  {H: [ 1.311700547160E-03,  6.700534827525E-02, -7.810802452127E-02]} # 0024
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  56.18
-   Elapsed time (s)                    :  56.81
+   CPU time (s)                        :  55.31
+   Elapsed time (s)                    :  55.63
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 11212
-   Tot. No. of Deallocations: 11212
+   Tot. No. of Allocations  : 11211
+   Tot. No. of Deallocations: 11211
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 695

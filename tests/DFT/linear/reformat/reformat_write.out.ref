@@ -384,5 +384,13 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.220693E-01    1.584878E-01    1.419835E
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.218423072657E+01  2.867463538746E+02 -2.359493448847E+01 -3.085240506492E+01  0.000000000000E+00  2.369534413207E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   2   1.21E-07   -7.46042976583174777E+01    0.0000E+00   FINAL
+ Overview of the reformatting (several categories may apply):
+   - No reformatting required: 4
+   - Grid spacing has changed: 0
+   - Number of coarse grid points has changed: 56
+   - Number of fine grid points has changed: 56
+   - Box size has changed: 28
+   - Molecule was shifted: 56
+   - Molecule was rotated: 0
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.999999875207E+01

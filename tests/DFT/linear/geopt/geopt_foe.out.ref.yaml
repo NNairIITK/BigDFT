@@ -26,8 +26,8 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.26
- Timestamp of this run                 : 2013-04-22 09:55:06.049
+ Version Number                        : 1.7-dev.28
+ Timestamp of this run                 : 2013-04-30 10:42:02.742
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
@@ -83,7 +83,7 @@
  #|1.E-05         gnrm_cv: convergence criterion gradient                                    
  #|100 1          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
  #|5  10          ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
- #|0              dispersion correction potential (values 1,2,3), 0=none                     
+ #|0              dispersion correction potential (values 1,2,3,4,5), 0=none                 
  #|100   0        InputPsiId, output_wf, output_denspot                                      
  #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
  #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
@@ -415,8 +415,8 @@
  -  {H: [ 8.056571039862E-04,  7.344157385161E-03, -5.533661035153E-03]} # 0008
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.99
-   Elapsed time (s)                    :  10.02
+   CPU time (s)                        :  9.96
+   Elapsed time (s)                    :  10.00
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -689,7 +689,7 @@
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  9.88
-   Elapsed time (s)                    :  9.91
+   Elapsed time (s)                    :  9.92
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -967,8 +967,8 @@
  -  {H: [ 5.473058142418E-04,  4.460949171199E-03, -2.532998991864E-03]} # 0008
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.90
-   Elapsed time (s)                    :  9.93
+   CPU time (s)                        :  10.05
+   Elapsed time (s)                    :  10.09
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1246,8 +1246,8 @@
  -  {H: [ 4.944902082463E-04,  3.974070994019E-03, -1.958360102300E-03]} # 0008
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  10.23
-   Elapsed time (s)                    :  10.29
+   CPU time (s)                        :  10.21
+   Elapsed time (s)                    :  10.54
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1525,8 +1525,8 @@
  -  {H: [ 4.342299354242E-04,  3.638742892608E-03, -1.429618650802E-03]} # 0008
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  10.46
-   Elapsed time (s)                    :  10.49
+   CPU time (s)                        :  9.91
+   Elapsed time (s)                    :  9.94
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1804,8 +1804,8 @@
  -  {H: [ 3.681425169616E-04,  3.380890166303E-03, -1.000818472446E-03]} # 0008
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  10.09
-   Elapsed time (s)                    :  10.12
+   CPU time (s)                        :  10.03
+   Elapsed time (s)                    :  10.07
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!

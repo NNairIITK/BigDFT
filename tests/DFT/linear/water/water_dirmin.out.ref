@@ -667,12 +667,13 @@ total elements: 5184
 non-zero elements: 3950
 sparsity: 23.80%
  Overview of the reformatting (several categories may apply):
-   - No reformating required: 72
+   - No reformatting required: 72
    - Grid spacing has changed: 0
-   - number of coarse grid points has changed: 0
-   - number of fine grid points has changed: 0
-   - box size has changed: 0
-   - molecule was shifted: 0
+   - Number of coarse grid points has changed: 0
+   - Number of fine grid points has changed: 0
+   - Box size has changed: 0
+   - Molecule was shifted: 0
+   - Molecule was rotated: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354783E+01
  ************************************************************************************
@@ -1331,78 +1332,6 @@ Calculating charge density... done.
    itoutH, Delta DENSOUT, energy, energyDiff   5   3.58E-10   -2.02829753289285463E+02    0.0000E+00   FINAL
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354500E+01
- wrong phi_old          13   1.0000198652647139     
- wrong phi_old          14   1.0001094901431240     
- wrong phi_old          15   1.0000848603582826     
- wrong phi_old          16  0.99993243466139969     
- wrong phi_old          25  0.99976382909307748     
- wrong phi_old          26   1.0000631015310235     
- wrong phi_old          27  0.99998127067157183     
- wrong phi_old          28   1.0000357636479096     
- wrong phi_old          49  0.99937583489911386     
- wrong phi_old          50  0.99927896975058106     
- wrong phi_old          51   1.0000084897664985     
- wrong phi_old          52  0.99984798556671306     
- wrong phi_old          53   1.0000286058545376     
- wrong phi_old           1   1.0001115688737499     
- wrong phi_old           2   1.0005785573213259     
- wrong phi_old          17   1.0007607679357253     
- wrong phi_old          18  0.99948244788705520     
- wrong phi_old          19  0.99964573593342365     
- wrong phi_old          20   1.0000650475519317     
- wrong phi_old          21  0.99992060863766752     
- wrong phi_old          22   1.0002001589686060     
- wrong phi_old          23   1.0001803150227633     
- wrong phi_old          24  0.99959956104315650     
- wrong phi_old          29   1.0001126277410535     
- wrong phi_old          30  0.99971842014749135     
- wrong phi_old          31   1.0000386077185510     
- wrong phi_old          32   1.0002231606101291     
- wrong phi_old          33  0.99986380206006586     
- wrong phi_old          54   1.0000002373674406     
- wrong phi_old          55  0.99956681015331650     
- wrong phi_old          56   1.0000845101548248     
- wrong phi_old          57   1.0006132461098449     
- wrong phi_old          34   1.0000669609144544     
- wrong phi_old          35   1.0000291984970933     
- wrong phi_old          36   1.0001204027254891     
- wrong phi_old           3   1.0000518481334124     
- wrong phi_old           4  0.99986807001718769     
- wrong phi_old           5   1.0009552183799595     
- wrong phi_old           6   1.0005338102739509     
- wrong phi_old           7  0.99949582370340706     
- wrong phi_old           8  0.99950357046033866     
- wrong phi_old          58  0.99984075940094086     
- wrong phi_old           9  0.99975512851229476     
- wrong phi_old          10  0.99998663126027454     
- wrong phi_old          11   1.0000413720897376     
- wrong phi_old          59   1.0000025389041842     
- wrong phi_old          60  0.99941131358352531     
- wrong phi_old          12  0.99981623418771493     
- wrong phi_old          37   1.0001842418847282     
- wrong phi_old          38   1.0000834628354465     
- wrong phi_old          61   1.0000493519331688     
- wrong phi_old          62   1.0000265482135362     
- wrong phi_old          63   1.0000485119172722     
- wrong phi_old          39  0.99967805728112635     
- wrong phi_old          40  0.99941409042427676     
- wrong phi_old          64   1.0000112442385389     
- wrong phi_old          65   1.0000358022342444     
- wrong phi_old          66  0.99994496702954350     
- wrong phi_old          41  0.99902140353985847     
- wrong phi_old          42  0.99966215374046286     
- wrong phi_old          43  0.99925813481457537     
- wrong phi_old          44   1.0000213394248394     
- wrong phi_old          67   1.0000283333803945     
- wrong phi_old          68  0.99998412146068105     
- wrong phi_old          69  0.99965982377637519     
- wrong phi_old          45   1.0000616514712353     
- wrong phi_old          46  0.99970676651486745     
- wrong phi_old          70  0.99935154555802552     
- wrong phi_old          71  0.99941331335054284     
- wrong phi_old          72  0.99962899805100924     
- wrong phi_old          47   1.0001541441026218     
- wrong phi_old          48  0.99957559480639868     
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
     | Processes from 0 to 5 treat 12 orbitals. |
@@ -1417,12 +1346,13 @@ total elements: 5184
 non-zero elements: 3946
 sparsity: 23.88%
  Overview of the reformatting (several categories may apply):
-   - No reformating required: 0
+   - No reformatting required: 0
    - Grid spacing has changed: 0
-   - number of coarse grid points has changed: 68
-   - number of fine grid points has changed: 68
-   - box size has changed: 0
-   - molecule was shifted: 72
+   - Number of coarse grid points has changed: 68
+   - Number of fine grid points has changed: 68
+   - Box size has changed: 21
+   - Molecule was shifted: 72
+   - Molecule was rotated: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599995590049E+01
  ************************************************************************************

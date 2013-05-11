@@ -85,14 +85,20 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine geti1ptr
 
+     subroutine geti2ptr(array,iadd)
+       implicit none
+       integer, dimension(:,:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine geti2ptr
+
   end interface
 
 interface pad_array
-  module procedure pad_i1,pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5
+  module procedure pad_i1,pad_i2,pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5
 end interface
 
 public :: pad_array,geti1,getdp1,getdp2,getdp3,getdp4!,getlongaddress
-public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,geti1ptr
+public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,geti1ptr,geti2ptr
 public :: address_toi,long_toa
 
 contains
@@ -107,6 +113,17 @@ contains
     call pad_integer(array,init_to_zero,shp(1),shp(1)+ndebug)
 
   end subroutine pad_i1
+
+  subroutine pad_i2(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(2), intent(in) :: shp
+    integer, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
+    
+    call pad_integer(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
+
+  end subroutine pad_i2
 
   subroutine pad_dp1(array,init_to_zero,shp,ndebug)
     implicit none
@@ -422,7 +439,7 @@ module dynamic_memory
   interface assignment(=)
      module procedure i1_all,d1_all,d2_all,d3_all,d4_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
-     module procedure i1_ptr
+     module procedure i1_ptr,i2_ptr
   end interface
 
   interface operator(.to.)
@@ -435,7 +452,7 @@ module dynamic_memory
 
   interface f_free_ptr
      module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free
-     module procedure i1_ptr_free
+     module procedure i1_ptr_free,i2_ptr_free
   end interface
 
 
@@ -1434,6 +1451,29 @@ contains
     include 'deallocate-inc.f90'
     nullify(array)
   end subroutine d2_ptr_free
+
+  subroutine i2_ptr(array,m)
+    use metadata_interfaces, metadata_address => geti2ptr
+    implicit none
+    type(malloc_information_ptr), intent(in) :: m
+    integer, dimension(:,:), pointer, intent(inout) :: array
+    !local variables
+    integer(kind=8) :: iadd
+
+    !allocate the array
+    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
+
+    include 'allocate-inc.f90'
+  end subroutine i2_ptr
+
+  subroutine i2_ptr_free(array)
+    use metadata_interfaces, metadata_address => geti2ptr
+    implicit none
+    integer, dimension(:,:), pointer, intent(inout) :: array
+    include 'deallocate-inc.f90'
+    nullify(array)
+  end subroutine i2_ptr_free
+
 
   subroutine d3_ptr(array,m)
     use metadata_interfaces, metadata_address => getdp3ptr

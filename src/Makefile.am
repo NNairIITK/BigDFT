@@ -207,7 +207,8 @@ low_level = \
 	linear/foe.f90 \
 	linear/chebyshev.f90 \
 	linear/communications_onesided.f90 \
-	linear/sparse_matrices.f90
+	linear/sparse_matrices.f90 \
+   linear/fragments.f90
 
 # C objects
 c_level = posfiles.c \
