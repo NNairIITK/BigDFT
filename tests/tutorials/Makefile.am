@@ -66,7 +66,7 @@ dev.post-clean:
 # Define the precision for specific directories.
 %.report: %.ref
 	@case $< in \
-          *.memguess.ref | *.out.ref) mode="--mode=bigdft";; \
+          *.memguess.ref | *.out.ref | toy_model.dat.ref ) mode="--mode=bigdft";; \
           *) mode="";; \
         esac ; \
         case $* in \
