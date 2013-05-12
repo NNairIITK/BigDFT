@@ -209,11 +209,15 @@ IO-wf_plain-read:
  Energies: 1.1e-10
 
 CH4-D3:
- EH: 1.1e-10
- EKS: 3.3e-11
+ EH: &ener 1.1e-10
+ Epot: *ener
+ EKS: &ener2 3.3e-11
+ Eion: *ener
+ Ekin: *ener
+ Enl: *ener2
  etot: 2.92e-11
  Etot: 2.9e-11
- Ion-Ion interaction energy: 2.0e-11
+ Ion-Ion interaction energy: 9.0e-11
 
 scalability:
  Energies: 1.e-9
