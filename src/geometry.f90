@@ -563,7 +563,8 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      lwork = n*n
 
      ! We prepare the upper triangular matrix for lapack
-     call dsysv('U',n, nrhs, matrice, n, interchanges, solution,n,work,lwork,i_err)
+     !call dsysv('U',n, nrhs, matrice, n, interchanges, solution,n,work,lwork,i_err)
+     call gesv(n, nrhs, matrice(1,1), n, interchanges(1), solution(1), n, i_err)
 
      i_all=-product(shape(interchanges))*kind(interchanges)
      deallocate(interchanges,stat=i_stat)
