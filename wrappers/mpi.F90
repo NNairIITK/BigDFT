@@ -4,7 +4,7 @@
 
 module wrapper_MPI
   ! TO BE REMOVED with f_malloc
-  use m_profiling
+  use memory_profiling
   ! TO BE REMOVED with f_malloc
 
   implicit none

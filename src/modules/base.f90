@@ -13,6 +13,7 @@ module module_base
   use wrapper_linalg
   use wrapper_MPI
   use module_defs
+  use error_handling
   use dynamic_memory
   !use m_profiling
 

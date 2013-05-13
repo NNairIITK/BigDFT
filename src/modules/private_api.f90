@@ -30,7 +30,7 @@ module module_private_api
 
      subroutine atoms_set_n_atoms(atoms, rxyz, nat)
        use module_types
-       use m_profiling
+       use memory_profiling
        implicit none
        type(atoms_data), intent(inout) :: atoms
        real(gp), dimension(:,:), pointer :: rxyz

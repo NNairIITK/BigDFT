@@ -116,19 +116,19 @@ end subroutine nullify_communications_arrays
 
 
 !!! replace calls to these routines with functions defined above
-subroutine nullify_local_zone_descriptors(lzd)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_local_zone_descriptors
-  implicit none
-
-  ! Calling arguments
-  type(local_zone_descriptors),intent(out):: lzd
- 
-  call nullify_locreg_descriptors(lzd%glr)
-  nullify(lzd%llr)
- 
-end subroutine nullify_local_zone_descriptors
+!subroutine nullify_local_zone_descriptors(lzd)
+!  use module_base
+!  use module_types
+!  use module_interfaces, exceptThisOne => nullify_local_zone_descriptors
+!  implicit none
+!
+!  ! Calling arguments
+!  type(local_zone_descriptors),intent(out):: lzd
+! 
+!  call nullify_locreg_descriptors(lzd%glr)
+!  nullify(lzd%llr)
+! 
+!end subroutine nullify_local_zone_descriptors
 
 subroutine nullify_locreg_descriptors(lr)
   use module_base

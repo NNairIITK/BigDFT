@@ -14,7 +14,7 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
              scal,hx,hy,hz,offset,strten)
   use Poisson_Solver, only: dp, gp
   use wrapper_mpi
-  use m_profiling
+  use memory_profiling
   implicit none
   !to be preprocessed
   include 'perfdata.inc'
@@ -161,8 +161,7 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
 
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
 
-  !$omp parallel sections default(shared)&
-  !$omp private(j)
+  !$omp parallel sections default(shared)
   !$omp section
     call ctrig_sg(n3dim,ntrig,btrig3,after3,before3,now3,1,ic3)
     do j = 1, n3dim
@@ -212,7 +211,8 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
   maxIter = min(md2 /nproc, n2dim - iproc *(md2 /nproc))
 
   !$omp parallel default(shared)&
-  !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp, zw, zt,j2,i1,i) &
+  !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp, zw, zt) &
+  !$omp private(j2,i1,i,j3,j) &
   !$omp firstprivate(lot, maxIter)
 !  !$omp firstprivate(before3, now3, after3)
   

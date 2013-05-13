@@ -123,12 +123,15 @@ contains
   end subroutine init_fragment
 
 
-
-
-
   pure function minimal_orbitals_data_null() result(forbs)
     implicit none
     type(minimal_orbitals_data) :: forbs
+    call nullify_minimal_orbitals_data(forbs)
+  end function minimal_orbitals_data_null
+
+  pure subroutine nullify_minimal_orbitals_data(forbs)
+    implicit none
+    type(minimal_orbitals_data), intent(out) :: forbs
 
     forbs%norb=0
     forbs%norbp=0
@@ -138,7 +141,8 @@ contains
     nullify(forbs%isorb_par)
     nullify(forbs%ispot)
     nullify(forbs%norb_par)
-  end function minimal_orbitals_data_null
+  end subroutine nullify_minimal_orbitals_data
+
 
   pure function fragment_null() result(frag)
     implicit none
@@ -160,9 +164,11 @@ contains
 
     basis%npsidim_orbs=0
     basis%npsidim_comp=0
-    basis%lzd=local_zone_descriptors_null()
-    basis%forbs=minimal_orbitals_data_null()
+    call nullify_local_zone_descriptors(basis%lzd)
+    call nullify_minimal_orbitals_data(basis%forbs)
+    !basis%forbs=minimal_orbitals_data_null()
     nullify(basis%psi)
+
   end function fragment_basis_null
 
   subroutine minimal_orbitals_data_free(forbs)

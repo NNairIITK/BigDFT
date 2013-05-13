@@ -98,10 +98,3 @@ function f_loc(routine)
   call getlongaddress(routine,f_loc)
 
 end function f_loc
-
-!> Callback routine for severe errors
-subroutine f_err_severe()
-  implicit none
-  stop 'Severe error, cannot proceed'
-end subroutine f_err_severe
-

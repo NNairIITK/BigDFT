@@ -138,7 +138,7 @@ if bigdft:
             or "wavefunctions need NO reformatting" in line \
             or "WARNING:" in line \
             or "/logfiles/" in line \
-            or "--" in line
+            or "--with" in line
 #	    or "GEOPT" in line
 elif neb:
     # Test if the line should not be compared (NEB output)
@@ -149,7 +149,7 @@ elif neb:
             or "workdir" in line \
             or "Reading atomic input" in line \
             or "Start job" in line \
-            or "--" in line
+            or "--with" in line
 elif psolver:
     #Remove some lines (PS_Check)
     def line_junk(line):

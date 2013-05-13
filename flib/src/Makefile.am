@@ -11,9 +11,11 @@ endif
 if USE_MPI
 mpi_source =
 mpi_include =
+mpi_inc=
 else
 mpi_source = MPIfake.f90
 mpi_include = mpif.h
+mpi_inc = -I$(builddir) 
 endif
 if HAVE_FC_GET_COMMAND_ARGUMENT
 getarg_files =
@@ -21,14 +23,15 @@ else
 getarg_files = get_command_argument_fake.f90
 endif
 libflib_a_SOURCES = dictionaries.f90 yaml_strings.f90 utils.c utilsadd.c \
-	yaml_output.f90 dynamic_memory.f90 razero.f90 getadd.f90 error_handling.f90 time.f90 \
+	yaml_output.f90 mem_profiling.f90 dynamic_memory.f90 razero.f90 getadd.f90 error_handling.f90 time.f90 \
 	$(flush_files) $(mpi_source) $(getarg_files)
 
 DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 f_malloc-inc.f90 f_malloc-extra-inc.f90
 YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90
 STRINGS_INCLUDES = yaml_toa-inc.f90
+ERR_INCLUDES = get_err-inc.f90
 
-EXTRA_DIST = $(DYN_INCLUDES) $(YAML_INCLUDES) $(STRINGS_INCLUDES)
+EXTRA_DIST = $(DYN_INCLUDES) $(YAML_INCLUDES) $(STRINGS_INCLUDES) $(ERR_INCLUDES)
 
 # Module files.
 if CAPITALIZE
@@ -38,7 +41,8 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	ERROR_HANDLING.@MODULE_EXT@ \
 	METADATA_INTERFACES.@MODULE_EXT@ \
 	DYNAMIC_MEMORY.@MODULE_EXT@ \
-	RANDOMDATA.@MODULE_EXT@
+	RANDOMDATA.@MODULE_EXT@ \
+	MEMORY_PROFILING.@MODULE_EXT@
 else
 modules = yaml_strings.@MODULE_EXT@ \
 	dictionaries.@MODULE_EXT@ \
@@ -46,20 +50,22 @@ modules = yaml_strings.@MODULE_EXT@ \
 	metadata_interfaces.@MODULE_EXT@ \
 	error_handling.@MODULE_EXT@ \
 	dynamic_memory.@MODULE_EXT@ \
-	randomdata.@MODULE_EXT@
+	randomdata.@MODULE_EXT@ \
+	memory_profiling.@MODULE_EXT@
 endif
 
 CLEANFILES = $(modules) *.@MODULE_EXT@
 
-AM_FCFLAGS = -I$(srcdir) @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I$(srcdir) $(mpi_inc) @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
 
 # Dependencies
 $(modules): $(libflib_a_OBJECTS)
 yaml_strings.o: $(STRINGS_INCLUDES)
 dictionaries.o: yaml_strings.o
+mem_profiling.o : error_handling.o
 yaml_output.o : dictionaries.o $(YAML_INCLUDES)
-error_handling.o: dictionaries.o yaml_output.o
-dynamic_memory.o: yaml_strings.o yaml_output.o $(DYN_INCLUDES)
+error_handling.o: dictionaries.o yaml_output.o $(ERR_INCLUDES)
+dynamic_memory.o: yaml_strings.o yaml_output.o mem_profiling.o $(DYN_INCLUDES)
 
 time.o: $(mpi_include) #this is temporary, mpif.h should only be in wrappers
 

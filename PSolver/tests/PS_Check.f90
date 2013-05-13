@@ -62,7 +62,7 @@ program PS_Check
 
    !initialize memory counting and timings
    !call memocc(0,iproc,'count','start')
-   call timing(nproc,'time.prc','IN')
+   call timing(nproc,'time.yaml','IN')
 
    !Start global timing
    call cpu_time(tcpu0)

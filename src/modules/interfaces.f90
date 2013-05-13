@@ -2673,14 +2673,6 @@ module module_interfaces
       implicit none
       type(collective_comms),intent(inout):: collcom
     end subroutine nullify_collective_comms
-
-
-    subroutine nullify_local_zone_descriptors(lzd)
-      use module_base
-      use module_types
-      implicit none
-      type(local_zone_descriptors),intent(out):: lzd
-    end subroutine nullify_local_zone_descriptors
     
     subroutine nullify_orbitals_data(orbs)
       use module_base

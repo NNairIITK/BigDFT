@@ -2477,13 +2477,30 @@ subroutine cprj_to_array(cprj,array,norb,nspinor,shift,option)
   end if
 end subroutine cprj_to_array
 
+!> create a null Lzd. Note: this is the correct way of defining 
+!! association through prure procedures.
+!! A pure subroutine has to be defined to create a null structure.
+!! this is important when using the nullification inside other
+!! nullification routines since the usage of a pure function is forbidden
+!! otherwise the routine cannot be pure
 pure function local_zone_descriptors_null() result(lzd)
   implicit none
   type(local_zone_descriptors) :: lzd
- 
+  call nullify_local_zone_descriptors(lzd)
+end function local_zone_descriptors_null
+
+pure subroutine nullify_local_zone_descriptors(lzd)
+  implicit none
+  type(local_zone_descriptors), intent(out) :: lzd
+
+  lzd%linear=.false.
+  lzd%nlr=0
+  lzd%lintyp=0
+  lzd%ndimpotisf=0
+  lzd%hgrids=0.0_gp
   lzd%glr=locreg_descriptors_null()
   nullify(lzd%llr) 
-end function local_zone_descriptors_null
+end subroutine nullify_local_zone_descriptors
 
 pure function locreg_descriptors_null() result(lr)
   implicit none
@@ -2518,8 +2535,9 @@ end function convolutions_bounds_null
 
 pure function kinetic_bounds_null() result(kb)
   implicit none
-
   type(kinetic_bounds) :: kb
+!  call nullify_kinetic_bounds(kb)
+
 
   nullify(kb%ibyz_c)
   nullify(kb%ibxz_c)
