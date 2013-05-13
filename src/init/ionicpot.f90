@@ -14,7 +14,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      & pot_ion,pkernel,psoffset)
   use module_base
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use vdwcorrection
   use yaml_output
   implicit none
@@ -460,7 +460,14 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
   ! Add empiric correction for Van der Waals forces and energy.
   call vdwcorrection_calculate_energy(edisp,rxyz,at,dispersion,iproc)
-  call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion) 
+  if (iproc == 0 .and. edisp /= 0.0_gp) then
+!!$     write(*,'(1x,a, e12.5,1x,a)') &
+!!$          'Dispersion Correction Energy: ', dispersion_energy, 'Hartree'
+     call yaml_map('Dispersion Correction Energy (Ha)',edisp,fmt='(1pe22.14)')
+  end if
+
+  call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion)
+  call vdwcorrection_freeparams() 
 END SUBROUTINE IonicEnergyandForces
 
 
@@ -527,7 +534,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   use module_types
   use yaml_output
 !  use module_interfaces, except_this_one => createIonicPotential
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
@@ -1151,7 +1158,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use module_base
   use module_types
   use module_interfaces, except_this_one => CounterIonPotential
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode

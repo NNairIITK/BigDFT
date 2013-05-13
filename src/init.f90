@@ -1778,7 +1778,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    use module_base
    use module_interfaces, except_this_one => input_wf_diag
    use module_types
-   use Poisson_Solver
+   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use libxc_functionals
    use yaml_output
    use gaussians
@@ -2606,6 +2606,22 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !if (in%lin%scf_mode==LINEAR_FOE) then
      !    stop 'INPUT_PSI_DISK_LINEAR not allowed with LINEAR_FOE!'
      !end if
+
+
+     ! do some extra initialization if this is a fragment calculation
+     if (in%lin%fragment_calculation) then
+        ! want to initialize array of system_fragments for both reference and current system, including fragment_basis
+        ! this requires information from input.frag, rxyz and atom types etc.
+        ! for reference fragments, may have multiple directories and need to call readmywaves for each fragment
+        ! BUT rxyz_old and rxyz won't have same number of atoms, don't necessarily want to reformat yet...
+        ! actually read rxyz from fragmenti.xyz - it's possible one folder of tmbs etc will contain more than one fragment
+        ! so this is the most general method
+        ! bigger question of where to initialize orbs/lzd... - lzd_init_llr and initialize_linear_from file could maybe be better unified?!
+        ! also need to call init_fragment for both reference and system fragments...
+        ! call init_fragment(frag,input%frag%frag_info(i,1),input%frag%frag_info(i,2),NTYPES,rxyz,&
+        !                    atomnames,iatype)
+
+     end if
 
      ! By reading the basis functions and coefficients from file
      call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&

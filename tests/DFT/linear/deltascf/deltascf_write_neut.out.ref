@@ -621,5 +621,13 @@ Calculating charge density... done.
  lowest, highest ev: -8.5695244634649226E-01  5.4889978635027592E-01
  calculate density kernel...    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.302594162024E+01  7.115504162864E+02 -3.803064298824E+01 -4.973627775696E+01  0.000000000000E+00  6.073313967085E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   6   6.22E-09   -1.35539180226321264E+02    0.0000E+00   FINAL
+ Overview of the reformatting (several categories may apply):
+   - No reformatting required: 4
+   - Grid spacing has changed: 0
+   - Number of coarse grid points has changed: 80
+   - Number of fine grid points has changed: 80
+   - Box size has changed: 80
+   - Molecule was shifted: 80
+   - Molecule was rotated: 0
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.399999973897E+01

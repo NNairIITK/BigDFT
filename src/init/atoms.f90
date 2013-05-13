@@ -1638,7 +1638,7 @@ END SUBROUTINE atoms_free
 ! Set routines for bindings
 subroutine atoms_read_variables(atoms, nspin, occup, ln)
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(atoms_data), intent(inout) :: atoms
   integer, intent(in) :: nspin, ln
@@ -1656,7 +1656,7 @@ subroutine atoms_read_variables(atoms, nspin, occup, ln)
 END SUBROUTINE atoms_read_variables
 subroutine atoms_set_n_atoms(atoms, rxyz, nat)
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz

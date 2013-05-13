@@ -16,6 +16,7 @@ module module_types
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
        bigdft_mpi,ndebug,memocc,vcopy
   use gaussians, only: gaussian_basis
+  use Poisson_Solver, only: coulomb_operator
   implicit none
 
   !> Constants to determine between cubic version and linear version
@@ -143,6 +144,7 @@ module module_types
   integer, parameter, public :: INPUTS_SIC   =  64
   integer, parameter, public :: INPUTS_FREQ  = 128
   integer, parameter, public :: INPUTS_LIN   = 256
+  integer, parameter, public :: INPUTS_FRAG  = 512
 
   !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
@@ -163,8 +165,15 @@ module module_types
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
     integer, dimension(:), pointer :: norbsPerType
     integer :: scf_mode, nlevel_accuracy
-    logical :: calc_dipole, pulay_correction, mixing_after_inputguess
+    logical :: calc_dipole, pulay_correction, mixing_after_inputguess, fragment_calculation
   end type linearInputParameters
+
+  type,public:: fragmentInputParameters
+    integer :: nfrag_ref, nfrag
+    integer, dimension(:), pointer :: frag_index ! array matching system fragments to reference fragments
+    integer, dimension(:,:), pointer :: frag_info !array giving number of atoms in fragment and environment for reference fragments
+  end type fragmentInputParameters
+
 
   integer, parameter, public :: INPUT_IG_OFF  = 0
   integer, parameter, public :: INPUT_IG_LIG  = 1
@@ -188,7 +197,7 @@ module module_types
   type, public :: input_variables
      !strings of the input files
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
-                           file_mix,file_sic,file_occnum,file_igpop,file_lin
+                           file_mix,file_sic,file_occnum,file_igpop,file_lin,file_frag
      character(len=100) :: dir_output !< Strings of the directory which contains all data output files
      character(len=100) :: run_name   !< Contains the prefix (by default input) used for input files as input.dft
      integer :: files                 !< Existing files.
@@ -260,6 +269,9 @@ module module_types
   
      !linear scaling data
      type(linearInputParameters) :: lin
+
+     !fragment data
+     type(fragmentInputParameters) :: frag
 
      !acceleration parameters
      type(material_acceleration) :: matacc
@@ -500,7 +512,7 @@ module module_types
      integer :: norbp         !< Total number of orbitals for the given processors
      integer :: norbu,norbd,nspin,nspinor,isorb
      integer :: nkpts,nkptsp,iskpts
-     real(gp) :: efermi,HLgap, eTS
+     real(gp) :: efermi,HLgap,eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
      integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom
      integer, dimension(:,:), pointer :: norb_par
@@ -762,29 +774,6 @@ module module_types
      real(wp), dimension(:), pointer :: psi !<wavelets coefficients in compressed form
      real(gp), dimension(:,:), pointer :: rxyz !<atomic positions of the step
   end type old_wavefunction
-
-    !> Defines the fundamental structure for the kernel
-  type, public :: coulomb_operator
-     !variables with physical meaning
-     integer :: itype_scf !< order of the ISF family to be used
-     real(gp) :: mu !< inverse screening length for the Helmholtz Eq. (Poisson Eq. -> mu=0)
-     character(len=1) :: geocode !< Code for the boundary conditions
-     integer, dimension(3) :: ndims !< dimension of the box of the density
-     real(gp), dimension(3) :: hgrids !<grid spacings in each direction
-     real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
-     real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
-     real(dp) :: work1_GPU,work2_GPU,k_GPU
-     integer, dimension(5) :: plan
-     integer, dimension(3) :: geo
-     !variables with computational meaning
-!     integer :: iproc_world !iproc in the general communicator
-!     integer :: iproc,nproc
-!     integer :: mpi_comm
-     type(mpi_environment) :: mpi_env
-     integer :: igpu !< control the usage of the GPU
-     integer :: initCufftPlan
-     integer :: keepGPUmemory
-  end type coulomb_operator
 
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
@@ -1136,24 +1125,6 @@ contains
     ma%OCL_platform=repeat(' ',len(ma%OCL_platform))
     ma%OCL_platform=repeat(' ',len(ma%OCL_devices))
   end function material_acceleration_null
-
-  function pkernel_null() result(k)
-    type(coulomb_operator) :: k
-    k%itype_scf=0
-    k%geocode='F'
-    k%mu=0.0_gp
-    k%ndims=(/0,0,0/)
-    k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    k%angrad=(/0.0_gp,0.0_gp,0.0_gp/)
-    nullify(k%kernel)
-    k%work1_GPU=0.d0
-    k%work2_GPU=0.d0
-    k%k_GPU=0.d0
-    k%plan=(/0,0,0,0,0/)
-    k%geo=(/0,0,0/)
-    k%mpi_env=mpi_environment_null()
-    k%igpu=0
-  end function pkernel_null
 
   function default_grid() result(g)
     type(grid_dimensions) :: g
@@ -2505,5 +2476,99 @@ subroutine cprj_to_array(cprj,array,norb,nspinor,shift,option)
     end do
   end if
 end subroutine cprj_to_array
+
+!> create a null Lzd. Note: this is the correct way of defining 
+!! association through prure procedures.
+!! A pure subroutine has to be defined to create a null structure.
+!! this is important when using the nullification inside other
+!! nullification routines since the usage of a pure function is forbidden
+!! otherwise the routine cannot be pure
+pure function local_zone_descriptors_null() result(lzd)
+  implicit none
+  type(local_zone_descriptors) :: lzd
+  call nullify_local_zone_descriptors(lzd)
+end function local_zone_descriptors_null
+
+pure subroutine nullify_local_zone_descriptors(lzd)
+  implicit none
+  type(local_zone_descriptors), intent(out) :: lzd
+
+  lzd%linear=.false.
+  lzd%nlr=0
+  lzd%lintyp=0
+  lzd%ndimpotisf=0
+  lzd%hgrids=0.0_gp
+  lzd%glr=locreg_descriptors_null()
+  nullify(lzd%llr) 
+end subroutine nullify_local_zone_descriptors
+
+pure function locreg_descriptors_null() result(lr)
+  implicit none
+
+  type(locreg_descriptors) :: lr
+
+  lr%wfd=wavefunctions_descriptors_null()
+  lr%bounds=convolutions_bounds_null()
+end function locreg_descriptors_null
+
+pure function wavefunctions_descriptors_null() result(wfd)
+  implicit none
+
+  type(wavefunctions_descriptors) :: wfd
+
+  nullify(wfd%keygloc)
+  nullify(wfd%keyglob)
+  nullify(wfd%keyvloc)
+  nullify(wfd%keyvglob)
+end function wavefunctions_descriptors_null
+
+pure function convolutions_bounds_null() result(bounds)
+  implicit none
+
+  type(convolutions_bounds) :: bounds
+
+  bounds%kb=kinetic_bounds_null()
+  bounds%sb=shrink_bounds_null()
+  bounds%gb=grow_bounds_null()
+  nullify(bounds%ibyyzz_r)
+end function convolutions_bounds_null
+
+pure function kinetic_bounds_null() result(kb)
+  implicit none
+  type(kinetic_bounds) :: kb
+!  call nullify_kinetic_bounds(kb)
+
+
+  nullify(kb%ibyz_c)
+  nullify(kb%ibxz_c)
+  nullify(kb%ibxy_c)
+  nullify(kb%ibyz_f)
+  nullify(kb%ibxz_f)
+  nullify(kb%ibxy_f)
+end function kinetic_bounds_null
+
+pure function shrink_bounds_null() result(sb)
+  implicit none
+
+  type(shrink_bounds) :: sb
+
+  nullify(sb%ibzzx_c)
+  nullify(sb%ibyyzz_c)
+  nullify(sb%ibxy_ff)
+  nullify(sb%ibzzx_f)
+  nullify(sb%ibyyzz_f)
+end function shrink_bounds_null
+
+pure function grow_bounds_null() result(gb)
+  implicit none
+
+  type(grow_bounds) :: gb
+
+  nullify(gb%ibzxx_c)
+  nullify(gb%ibxxyy_c)
+  nullify(gb%ibyz_ff)
+  nullify(gb%ibzxx_f)
+  nullify(gb%ibxxyy_f)
+end function grow_bounds_null
 
 end module module_types

@@ -10,7 +10,7 @@ END SUBROUTINE glr_get_psi_size
 subroutine kswfn_free_scf_data(KSwfn, freePsit)
   use module_base
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(DFT_wavefunction), intent(inout) :: KSwfn
   logical, intent(in) :: freePsit
