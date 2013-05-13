@@ -23,6 +23,9 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
   allocate(lin%norbsPerType(ntypes), stat=istat)
   call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
 
+  allocate(lin%potentialPrefac_ao(ntypes), stat=istat)
+  call memocc(istat, lin%potentialPrefac_ao, 'lin%potentialPrefac_ao', subname)
+
   allocate(lin%potentialPrefac_lowaccuracy(ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
 
@@ -49,6 +52,12 @@ subroutine deallocateBasicArraysInput(lin)
   integer :: i_stat,i_all
   character(len=*),parameter :: subname='deallocateBasicArrays'
  
+  if(associated(lin%potentialPrefac_ao)) then
+    i_all = -product(shape(lin%potentialPrefac_ao))*kind(lin%potentialPrefac_ao)
+    deallocate(lin%potentialPrefac_ao,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%potentialPrefac_ao',subname)
+    nullify(lin%potentialPrefac_ao)
+  end if 
   if(associated(lin%potentialPrefac_lowaccuracy)) then
     i_all = -product(shape(lin%potentialPrefac_lowaccuracy))*kind(lin%potentialPrefac_lowaccuracy)
     deallocate(lin%potentialPrefac_lowaccuracy,stat=i_stat)
@@ -472,7 +481,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
   logical :: linear
-  integer :: iat,ityp,nspin_ig,i_all,i_stat
+  integer :: iat,ityp,nspin_ig,i_all,i_stat,ilr
   real(gp), dimension(:), allocatable :: locrad
   logical,dimension(:),allocatable :: calculateBounds
 
@@ -521,6 +530,9 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
 
   if(linearmode /= INPUT_IG_TMO) then
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
+     do ilr=1,Lzd%nlr
+        Lzd%Llr(ilr)=locreg_null()
+     end do
      !for now, always true because we want to calculate the hamiltonians for all locregs
 
      if(.not. Lzd%linear) then

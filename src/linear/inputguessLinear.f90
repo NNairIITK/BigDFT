@@ -17,7 +17,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use module_base
   use module_interfaces, exceptThisOne => inputguessConfinement
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -160,18 +160,18 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          if(iproc==0) write(*,'(3a,es10.2)') 'WARNING: locrad for atom type ',trim(symbol), &
                       ' is too small; minimal value is ',4.d0*rprb
      end if
-     if(input%lin%potentialPrefac_lowaccuracy(ityp)>0.d0) then
-         x0=(70.d0/input%lin%potentialPrefac_lowaccuracy(ityp))**.25d0
+     if(input%lin%potentialPrefac_ao(ityp)>0.d0) then
+         x0=(70.d0/input%lin%potentialPrefac_ao(ityp))**.25d0
          if(iproc==0) write(*,'(a,a,2es11.2,es12.3)') 'type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)', &
                       trim(symbol),4.d0*rprb, x0, input%lin%locrad_type(ityp)
-         V3prb=input%lin%potentialPrefac_lowaccuracy(ityp)*(4.d0*rprb)**4
+         V3prb=input%lin%potentialPrefac_ao(ityp)*(4.d0*rprb)**4
          if(iproc==0) write(*,'(a,es14.4)') 'V3prb',V3prb
      end if
   end do
 
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        at%nat, norbsPerAt, mapping, &
-       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_lowaccuracy)
+       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_ao)
 
   ! Take inwhichlocreg from tmb (otherwise there might be problems after the restart...
   !do iorb=1,tmb%orbs%norb

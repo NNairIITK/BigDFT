@@ -69,24 +69,6 @@ subroutine nullify_sparsematrix(sparsemat)
 
 end subroutine nullify_sparsematrix
 
-
-
-subroutine nullify_local_zone_descriptors(lzd)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_local_zone_descriptors
-  implicit none
-
-  ! Calling arguments
-  type(local_zone_descriptors),intent(out):: lzd
- 
-  call nullify_locreg_descriptors(lzd%glr)
-  nullify(lzd%llr)
- 
-end subroutine nullify_local_zone_descriptors
-
-
-
 subroutine nullify_orbitals_data(orbs)
   use module_base
   use module_types
@@ -131,6 +113,23 @@ subroutine nullify_communications_arrays(comms)
 end subroutine nullify_communications_arrays
 
 
+
+
+!!! replace calls to these routines with functions defined above
+!subroutine nullify_local_zone_descriptors(lzd)
+!  use module_base
+!  use module_types
+!  use module_interfaces, exceptThisOne => nullify_local_zone_descriptors
+!  implicit none
+!
+!  ! Calling arguments
+!  type(local_zone_descriptors),intent(out):: lzd
+! 
+!  call nullify_locreg_descriptors(lzd%glr)
+!  nullify(lzd%llr)
+! 
+!end subroutine nullify_local_zone_descriptors
+
 subroutine nullify_locreg_descriptors(lr)
   use module_base
   use module_types
@@ -144,7 +143,6 @@ subroutine nullify_locreg_descriptors(lr)
   call nullify_convolutions_bounds(lr%bounds)
 
 end subroutine nullify_locreg_descriptors
-
 
 subroutine nullify_wavefunctions_descriptors(wfd)
   use module_base
@@ -161,7 +159,6 @@ subroutine nullify_wavefunctions_descriptors(wfd)
 
 end subroutine nullify_wavefunctions_descriptors
 
-
 subroutine nullify_convolutions_bounds(bounds)
   use module_base
   use module_types
@@ -177,8 +174,6 @@ subroutine nullify_convolutions_bounds(bounds)
   nullify(bounds%ibyyzz_r)
 
 end subroutine nullify_convolutions_bounds
-
-
 
 subroutine nullify_kinetic_bounds(kb)
   use module_base
@@ -197,8 +192,6 @@ subroutine nullify_kinetic_bounds(kb)
 
 end subroutine nullify_kinetic_bounds
 
-
-
 subroutine nullify_shrink_bounds(sb)
   use module_base
   use module_types
@@ -214,8 +207,6 @@ subroutine nullify_shrink_bounds(sb)
   nullify(sb%ibyyzz_f)
 
 end subroutine nullify_shrink_bounds
-
-
 
 subroutine nullify_grow_bounds(gb)
   use module_base
@@ -233,7 +224,7 @@ subroutine nullify_grow_bounds(gb)
 
 end subroutine nullify_grow_bounds
 
-
+!!! replace calls to these routines with functions defined above
 
 
 

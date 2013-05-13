@@ -1,8 +1,9 @@
 program wvl
 
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use BigDFT_API
   use dynamic_memory
+  use yaml_output
   
   implicit none
 
@@ -19,7 +20,7 @@ program wvl
   type(rho_descriptors)                :: rhodsc
   type(denspot_distribution)           :: dpcom
   type(GPU_pointers)                   :: GPU
-  
+  type(rholoc_objects)                 :: rholoc_tmp
   integer :: i, j, ierr, iproc, nproc ,nconfig
   real(dp) :: nrm, epot_sum
   real(gp) :: psoffset
@@ -29,16 +30,13 @@ program wvl
   real(dp), dimension(:), pointer   :: rhor, pot_ion, potential
   real(wp), dimension(:), pointer   :: w
   real(wp), dimension(:,:), pointer :: ovrlp
-  real(dp), dimension(:,:), pointer :: rho_p
+  real(dp), dimension(:,:), pointer :: rho_p => null() !needs to be nullified
   integer, dimension(:,:,:), allocatable :: irrzon
-  integer, dimension(:), allocatable :: i1test
   real(dp), dimension(:,:,:), allocatable :: phnons
   type(coulomb_operator) :: pkernel
   !temporary variables
-  integer(kind=8) :: itns
   integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
-  character(len=100) :: address,posinp_name
 
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
@@ -48,7 +46,7 @@ program wvl
    !just for backward compatibility
    iproc=mpi_info(1)
    nproc=mpi_info(2)
-   call bigdft_set_input('posinp','input',rxyz,inputs,atoms)
+   call bigdft_set_input('input','posinp',rxyz,inputs,atoms)
 
 !!$  ! Start MPI in parallel version
 !!$  call MPI_INIT(ierr)
@@ -92,7 +90,6 @@ program wvl
   call readmywaves(iproc,"data/wavefunction",WF_FORMAT_PLAIN,orbs,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & inputs%hx,inputs%hy,inputs%hz,atoms,rxyz_old,rxyz,Lzd%Glr%wfd,psi)
   call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
-
 
 
   ! Some analysis.
@@ -142,14 +139,20 @@ program wvl
   !       & max(1,comms%nvctr_par(iproc, 0)),0.0_wp,ovrlp(1,1),orbs%norb)
   call mpiallred(ovrlp(1,1),orbs%norb * orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
   if (iproc == 0) then
-     write(*,*) "The overlap matrix is:"
-     do j = 1, orbs%norb, 1
-        write(*, "(A)", advance = "NO") "("
-        do i = 1, orbs%norb, 1  
-           write(*,"(G18.8)", advance = "NO") ovrlp(i, j)
-        end do
-        write(*, "(A)") ")"
-     end do
+     !uses yaml_output routine to provide example
+     call yaml_open_sequence('The overlap matrix is')
+          do j = 1, orbs%norb, 1
+             call yaml_sequence(trim(yaml_toa(ovrlp(:, j),fmt='(g18.8)')))
+          end do
+     call yaml_close_sequence()
+     !write(*,*) "The overlap matrix is:"
+     !do j = 1, orbs%norb, 1
+     !   write(*, "(A)", advance = "NO") "("
+     !   do i = 1, orbs%norb, 1  
+     !      write(*,"(G18.8)", advance = "NO") ovrlp(i, j)
+     !   end do
+     !   write(*, "(A)") ")"
+     !end do
   end if
   deallocate(ovrlp)
 
@@ -220,7 +223,7 @@ program wvl
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
        & inputs%elecfield,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
-       & pkernel,pot_ion,psoffset)
+       & pkernel,pot_ion,psoffset,rholoc_tmp)
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,pot_ion,potential)
 !!$  call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p, &

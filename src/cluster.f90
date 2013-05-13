@@ -6,7 +6,7 @@
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-
+ 
 
 !> Routine to use BigDFT as a blackbox
 subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,infocode)
@@ -29,7 +29,9 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
   logical :: exists
-  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep
+  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep,i,jproc
+  real(gp) :: maxdiff
+  real(gp), dimension(:,:,:), allocatable :: rxyz_glob
 
   !temporary interface
   interface
@@ -59,10 +61,31 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
 
   !put a barrier for all the processes
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+  call f_routine(id=subname)
+  if (nproc > 1) then
+     !check that the positions are identical for all the processes
+     rxyz_glob=f_malloc((/3,atoms%nat,nproc/),id='rxyz_glob')
+     
+     !gather the results for all the processors
+     call MPI_GATHER(rxyz0,3*atoms%nat,mpidtypg,&
+          rxyz_glob,3*atoms%nat,mpidtypg,0,bigdft_mpi%mpi_comm,ierr)
+     if (iproc==0) then
+        maxdiff=0.0_gp
+        do jproc=2,nproc
+           do iat=1,atoms%nat
+              do i=1,3
+                 maxdiff=max(maxdiff,&
+                      abs(rxyz_glob(i,iat,jproc)-rxyz0(i,iat)))
+              end do
+           end do
+        end do
+        if (maxdiff > epsilon(1.0_gp)) &
+             call yaml_warning('The input positions are not Bitwise identical! '//&
+             '(the difference is '//trim(yaml_toa(maxdiff))//' )')
+     end if
 
-  !check that the positions are identical for all the processes
-  
-
+     call f_free(rxyz_glob)
+  end if
   !fill the rxyz array with the positions
   !wrap the atoms in the periodic directions when needed
   do iat=1,atoms%nat
@@ -188,7 +211,9 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   in%inputPsiId=inputPsiId_orig
 
   !put a barrier for all the processes
+  call f_release_routine()
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+
 
 END SUBROUTINE call_bigdft
 
@@ -217,11 +242,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   use module_base
   use module_types
   use module_interfaces
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
 !  use vdwcorrection
   use m_ab6_mixing
   use yaml_output
+  use gaussians, only: gaussian_basis
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -274,6 +300,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   integer :: nkptv, nvirtu, nvirtd
   real(gp), dimension(:), allocatable :: wkptv
 
+  !Variables for WVL+PAW
+  integer:: iatyp
+  type(gaussian_basis),dimension(atoms%ntypes)::proj_G
+  type(rholoc_objects)::rholoc_tmp
+
+  call nullify_rholoc_objects(rholoc_tmp)
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -296,6 +328,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   case (WF_FORMAT_BINARY)
      write(wfformat, "(A)") ".bin"
   end select
+     
+  !proj_G is dummy here, it is only used for PAW
+  do iatyp=1,atoms%ntypes
+     call nullify_gaussian_basis(proj_G(iatyp))
+  end do
 
   norbv=abs(in%norbv)
   nvirt=in%nvirt
@@ -481,7 +518,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !calculate effective ionic potential, including counter ions if any.
   call createEffectiveIonicPotential(iproc,nproc,(iproc == 0),in,atoms,rxyz,shift,KSwfn%Lzd%Glr,&
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-       denspot%dpbox,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset)
+       denspot%dpbox,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset,&
+       rholoc_tmp)
   if (denspot%c_obj /= 0) then
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
@@ -792,7 +830,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            ! Calculate all projectors, or allocate array for on-the-fly calculation
            call timing(iproc,'CrtProjectors ','ON')
            call createProjectorsArrays(iproc,KSwfn%Lzd%Glr,rxyz,atoms,VTwfn%orbs,&
-                radii_cf,in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),nlpspd,proj) 
+                radii_cf,in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),nlpspd,proj_G,proj) 
            call timing(iproc,'CrtProjectors ','OF') 
 
         else
@@ -1319,13 +1357,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            if (iproc == 0) then 
               !yaml output
-              !print *,'test',endloop,opt%nrepmax,opt%itrep,opt%itrpmax,endlooprp,&
-              !     (((endloop .and. opt%nrepmax==1) .or. (endloop .and. opt%itrep == opt%nrepmax))&
-              !     .and. opt%itrpmax==1) .or.&
-              !     (endloop .and. opt%itrpmax >1 .and. endlooprp) 
-              !if ( (((endloop .and. opt%nrepmax==1) .or. (endloop .and. opt%itrep == opt%nrepmax))&
               if (endloop .and. (opt%itrpmax==1 .or. opt%itrpmax >1 .and. endlooprp)) then
-                 !print *,'test',endloop,opt%nrepmax,opt%itrep,opt%itrpmax
                  call yaml_sequence(label='FINAL'//trim(adjustl(yaml_toa(opt%itrep,fmt='(i3.3)'))),advance='no')
               else if (endloop .and. opt%itrep == opt%nrepmax) then
                  call yaml_sequence(label='final'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i4.4)'))),&
@@ -1377,25 +1409,15 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !control the previous value of idsx_actual
            idsx_actual_before=KSwfn%diis%idsx
            iter_for_diis=iter_for_diis+1
-           call hpsitopsi(iproc,nproc,iter_for_diis,idsx,KSwfn)
+           call hpsitopsi(iproc,nproc,iter_for_diis,idsx,KSwfn,atoms,nlpspd)
 
            if (inputpsi == INPUT_PSI_LCAO) then
               if ((opt%gnrm > 4.d0 .and. KSwfn%orbs%norbu /= KSwfn%orbs%norbd) .or. &
                    &   (KSwfn%orbs%norbu == KSwfn%orbs%norbd .and. opt%gnrm > 10.d0)) then
-                 !if (iproc == 0) then
-                    !call yaml_warning('The norm of the residue is too large also with input wavefunctions.')
-                    !write( *,'(1x,a)')&
-                    !     &   'ERROR: the norm of the residue is too large also with input wavefunctions.'
-                 !end if
                  opt%infocode=3
               end if
            else if (inputpsi == INPUT_PSI_MEMORY_WVL) then
               if (opt%gnrm > 1.d0) then
-                 !if (iproc == 0) then
-                    !call yaml_warning('The norm of the residue is too large, need to recalculate input wavefunctions')
-                    !write( *,'(1x,a)')&
-                    !     &   'The norm of the residue is too large, need to recalculate input wavefunctions'
-                 !end if
                  opt%infocode=2
               end if
            end if
@@ -1408,11 +1430,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            ! Emergency exit case
            if (opt%infocode == 2 .or. opt%infocode == 3) then
               if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-              !call kswfn_free_scf_data(KSwfn, (nproc > 1))
-              !if (opt%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-              !   call ab6_mixing_deallocate(denspot%mix)
-              !   deallocate(denspot%mix)
-              !end if
               !>todo: change this return into a clean out of the routine, so the YAML is clean.
               if (iproc==0) then
                  !call yaml_close_map()
@@ -1476,6 +1493,11 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
              !&   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
         end if
         call last_orthon(iproc,nproc,opt%iter,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
+
+!!$        !EXPERIMENTAL
+!!$        !check if after convergence the integral equation associated with Helmholtz' Green function is satisfied
+!!$        !note: valid only for negative-energy eigenstates
+!!$        call integral_equation(iproc,nproc,atoms,KSwfn,denspot%dpbox%ngatherarr,denspot%rhov,GPU,proj,nlpspd,rxyz)
 
         !exit if the opt%infocode is correct
         if (opt%infocode /= 0) then
@@ -1629,7 +1651,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => kswfn_post_treatments
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
 
   implicit none

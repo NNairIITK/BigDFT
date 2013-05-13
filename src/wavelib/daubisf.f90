@@ -168,8 +168,6 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
 
 END SUBROUTINE initialize_work_arrays_locham
 
-
-
 !>
 !!
 !!

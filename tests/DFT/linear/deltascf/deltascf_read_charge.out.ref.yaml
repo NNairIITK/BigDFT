@@ -1,5 +1,4 @@
 ---
-  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
  Code logo:
          TTTT         F       DDDDD
         T    T               D
@@ -27,16 +26,27 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-02-04 15:55:48.529
+ Version Number                        : 1.7-dev.28
+ Timestamp of this run                 : 2013-04-30 18:18:29.998
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
+ MPI tasks of root process node        :  6
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments                 : " 'FC=mpif90' '--disable-bindings'"
+   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
+   Compiler flags:
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -g -O2
+     CXXFLAGS                          : -g -O2
+     CPPFLAGS                          : 
  #... (file:read_charge.perf)............................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
  #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
  #|OCL_platform                 Chosen OCL platform                                          
+ #|OCL_devices                  Chosen OCL devices                                           
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -73,7 +83,7 @@
  #|1.E-5          gnrm_cv: convergence criterion gradient                                    
  #|50 10          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
  #|6  6           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
- #|0              dispersion correction potential (values 1,2,3), 0=none                     
+ #|0              dispersion correction potential (values 1,2,3,4,5), 0=none                 
  #|102 0 0        InputPsiId, output_wf, output_denspot                                      
  #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
  #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
@@ -123,14 +133,13 @@
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
  #|0  F           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|C 4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefactor fo
- #|S 4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefactor fo
- #|H 1 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefactor fo
+ #|C 4 1.0d-4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
+ #|S 4 1.0d-4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
+ #|H 1 1.0d-4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
  # ==== WARNING: the following lines have not been processed by the parser ====
  #|                                                                                          
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-read_charge/
- Material acceleration                 :  No #iproc=0
   #--------------------------------------------- Input Atomic System (file: read_charge.xyz)
  Atomic System Properties:
    Number of atomic types              :  3
@@ -147,6 +156,7 @@
    Fluctuation in forces               :  1.0E+00
    Maximum in forces                   :  0.0E+00
    Steepest descent step               :  4.0E+00
+ Material acceleration                 :  No #iproc=0
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
@@ -331,7 +341,7 @@
    Nonlocal Pseudopotential Arrays     : 0.1011
    Full Uncompressed (ISF) grid        : 48.800
    Workspaces storage size             : 6.8
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 172.910
    Density Construction                : 478.128
    Poisson Solver                      : 422.318
@@ -358,24 +368,20 @@
   #ALLOCATING KSwfn%orbs%eval... is this correct?
   #--------------------------------------------------------- Reading Wavefunctions from disk
  Input Hamiltonian:
-   Reformating Wavefunctions           :  Yes
-   Reformatting for:
-     Cell size has changed             :  [  111,  116,  59,  60,  52,  65 ]
    Reading Waves Time:
-   - 
-      {Process:  0, Timing:  [  1.713E+01,  1.718E+01 ]}
+   -  {Process:  0, Timing:  [  1.289E+02,  1.311E+02 ]}
    Poisson Solver:
      BC                                : Free
      Box                               :  [  263,  151,  161 ]
      MPI tasks                         :  6
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  70527,  2846 ]
-
+   Tolerances for this check: [ 4.80517863558458642E-06,  1.86517468137026299E-14]
    Maxdiff for transpose (checksum)    :  2.79396772384643555E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  51103,  2881 ]
-
+   Tolerances for this check: [ 1.05511787123019145E-05,  1.86517468137026299E-14]
    Maxdiff for transpose (checksum)    :  3.72529029846191406E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
@@ -423,19 +429,53 @@
    BC                                  : Free
    Box                                 :  [  263,  151,  161 ]
    MPI tasks                           :  6
- Non Local forces calculated           :  Yes
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x:  1.63860257E-02, y: -1.50432839E-02, z: -7.53167638E-03, 
+                    total:  2.34846413E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  3.028091081005E-01, fnrm2:  9.111731439682E-01}
+ Raw forces norm (Ha/Bohr): {maxval:  3.182685794213E-01, fnrm2:  9.173159886924E-01}
+  #--------------------------------------------------------------------------- Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {C: [-1.039771197232E-01, -5.866780094174E-02,  1.839724820961E-02]} # 0001
+ -  {C: [-9.265756045121E-02,  2.468053210470E-01,  2.584780473736E-02]} # 0002
+ -  {C: [-1.018872535272E-01, -2.357718787512E-02,  2.624329456432E-01]} # 0003
+ -  {S: [-1.164462776092E-02, -2.016949183665E-01, -1.260026639789E-02]} # 0004
+ -  {H: [ 2.711257440534E-02, -6.676453417551E-02, -5.980236496680E-02]} # 0005
+ -  {H: [ 6.298052659825E-02,  2.933095058842E-02,  1.060034430763E-02]} # 0006
+ -  {H: [-6.921753544102E-02,  4.047872615828E-02, -8.720020683509E-02]} # 0007
+ -  {H: [ 3.504894793923E-02, -7.116725465132E-02, -6.747519102946E-02]} # 0008
+ -  {C: [-9.800420787163E-02,  1.353447815176E-01,  1.300242009823E-01]} # 0009
+ -  {C: [ 2.273498714406E-02, -1.461172622164E-01, -9.628480207318E-02]} # 0010
+ -  {C: [ 3.836175684983E-02,  1.457393173055E-01, -8.887782958993E-02]} # 0011
+ -  {C: [-4.578064552645E-02, -1.343907111502E-01,  9.931975829503E-02]} # 0012
+ -  {S: [-1.062304846495E-02,  2.070845064722E-01, -5.353041515430E-03]} # 0013
+ -  {S: [-4.278900157958E-03, -1.999004642889E-01, -1.005688863247E-03]} # 0014
+ -  {C: [-3.778623477675E-02,  1.245541888635E-01,  9.582428325747E-02]} # 0015
+ -  {C: [ 4.907881168447E-02, -1.265514619410E-01, -9.943802373341E-02]} # 0016
+ -  {C: [ 1.198913503732E-01,  1.118701193999E-01, -1.483693056207E-01]} # 0017
+ -  {C: [-3.040595871070E-02, -1.192902269364E-01,  9.726644924322E-02]} # 0018
+ -  {S: [ 3.227393640738E-03,  1.922281100721E-01,  5.447574895900E-03]} # 0019
+ -  {S: [ 5.039464829168E-04, -1.857067928953E-01,  8.495368798471E-03]} # 0020
+ -  {C: [ 8.721736149160E-02,  2.635326423968E-01, -3.662211343814E-02]} # 0021
+ -  {C: [ 1.266885177266E-01, -1.178290974864E-02, -2.747808917350E-01]} # 0022
+ -  {C: [ 1.295645757074E-01, -5.857732438639E-02, -2.440657252828E-02]} # 0023
+ -  {H: [-3.774918763926E-02, -8.538432524070E-02,  8.346376445282E-02]} # 0024
+ -  {H: [ 6.964019172969E-02,  3.739033450509E-02,  1.068007545356E-01]} # 0025
+ -  {H: [-8.241326614841E-02,  3.855606689140E-02, -1.927414438705E-02]} # 0026
+ -  {H: [-4.562539557375E-02, -8.334189040364E-02,  7.756994535509E-02]} # 0027
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  82.09
-   Elapsed time (s)                    :  83.38
+   CPU time (s)                        :  193.60
+   Elapsed time (s)                    :  196.36
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 22860
-   Tot. No. of Deallocations: 22860
+   Tot. No. of Allocations  : 23130
+   Tot. No. of Deallocations: 23130
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 942
+      Peak Value (MB): 941
       for the array: psi_f
       in the routine: transpose_unswitch_psi

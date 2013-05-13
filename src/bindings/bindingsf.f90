@@ -1,17 +1,17 @@
 subroutine memocc_report()
-  use m_profiling, only: mreport => memocc_report
+  use memory_profiling, only: mreport => memocc_report
   implicit none
   call mreport()
 end subroutine memocc_report
 
 subroutine memocc_verbose()
-  use m_profiling, only: mstate => memocc_set_state
+  use memory_profiling, only: mstate => memocc_set_state
   implicit none
   call mstate(2)
 end subroutine memocc_verbose
 
 subroutine memocc_set_output(file, ln)
-  use m_profiling, only: mstate => memocc_set_filename
+  use memory_profiling, only: mstate => memocc_set_filename
   implicit none
   integer, intent(in) :: ln
   character(len = ln), intent(in) :: file
@@ -458,7 +458,8 @@ subroutine inputs_free(in)
   implicit none
   type(input_variables), pointer :: in
 
-  call free_input_variables(in)
+  !call free_input_variables(in)
+  call bigdft_free_input(in)
   deallocate(in)
 end subroutine inputs_free
 subroutine inputs_set_radical(in, nproc, rad, ln)
@@ -616,7 +617,7 @@ subroutine orbs_init(orbs)
 END SUBROUTINE orbs_init
 subroutine orbs_free(orbs)
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(orbitals_data), pointer :: orbs
 
@@ -775,7 +776,7 @@ subroutine proj_new(nlpspd)
 END SUBROUTINE proj_new
 subroutine proj_free(nlpspd, proj)
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(nonlocal_psp_descriptors), pointer :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
@@ -834,8 +835,8 @@ subroutine localfields_get_data(denspotd, rhod, dpbox)
 END SUBROUTINE localfields_get_data
 subroutine localfields_free(denspotd, fion, fdisp)
   use module_types
-  use Poisson_Solver
-  use m_profiling
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use memory_profiling
   implicit none
   type(DFT_local_fields), pointer :: denspotd
   real(gp), dimension(:,:), pointer :: fion, fdisp
@@ -1018,7 +1019,7 @@ subroutine wf_get_data(wf, orbs, comm, lzd)
 end subroutine wf_get_data
 subroutine wf_empty(wf)
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(DFT_wavefunction), intent(inout) :: wf
 
@@ -1042,7 +1043,7 @@ subroutine wf_empty(wf)
 END SUBROUTINE wf_empty
 subroutine wf_free(wf)
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(DFT_wavefunction), pointer :: wf
 
@@ -1312,3 +1313,31 @@ subroutine optloop_bcast(optloop, iproc)
      optloop%gnrm_startmix = rData(3)
   end if
 END SUBROUTINE optloop_bcast
+
+subroutine rst_new(self, rst)
+  use module_types
+  implicit none
+  integer(kind = 8), intent(in) :: self
+  type(restart_objects), pointer :: rst
+
+  allocate(rst)
+  !rst%c_obj = self
+END SUBROUTINE rst_new
+subroutine rst_free(rst)
+  use module_types
+  implicit none
+  type(restart_objects), pointer :: rst
+
+  call free_restart_objects(rst,"rst_free")
+  deallocate(rst)
+END SUBROUTINE rst_free
+subroutine rst_init(rst, iproc, atoms, inputs)
+  use module_types
+  implicit none
+  type(restart_objects), intent(out) :: rst
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(in) :: atoms
+  type(input_variables), intent(in) :: inputs
+  
+  call init_restart_objects(iproc, inputs, atoms, rst, "rst_init")
+end subroutine rst_init

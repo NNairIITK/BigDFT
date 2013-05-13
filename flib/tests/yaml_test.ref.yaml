@@ -1,0 +1,282 @@
+---
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Yaml Output Module Test
+ Test:
+   Short sentence                      :  Yes
+   Foo: {one:  1, two:  2}
+   toto: {one:  1, two:  2}
+---
+ Test:
+   I have a very long sentence in order to test if yaml_output fails to print that:  Yes
+   Foo: {one:  1, two:  2}
+   toto: {one:  1, two:  2}
+   Build Configure line:
+     $(top_builddir)/src/flib/libflib.a -labinit -lxc   -lOpenCL -lm -lstdc++ -letsf_io_utils 
+      -letsf_io -lnetcdff -lnetcdf -lscalapack-openmpi -lblacs-openmpi -lblacsF77init-openmpi 
+      -llapack -lblas -larchive   -lyaml -pthread -lgthread-2.0 -lrt -lgio-2.0 -lgobject-2.0 
+      -lglib-2.0   -lgio-2.0 -lgobject-2.0 -lglib-2.0
+   Long string array: [compiler, compiler, compiler, compiler, compiler, compiler, compiler, 
+                       compiler, compiler, compiler]
+---
+ Vector of characters                  :  []
+ Vector of integers                    :  []
+ Is it OK?: {Maybe:  Yes, Maybe:  No}
+ Vector of double: [ 3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00, 
+                     3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00, 
+                     3.00000E+00]
+ Vector of real(kind=8): [ 3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.]
+---
+  #This document checks the call yaml_comment().
+  # [  1.0000000000,  1.0000000000,  1.0000000000,  1.0000000000,  1.0000000000 ]
+  #See if this very long comment is correctly treated: [  1.0000000000,  1.0000000000,  
+  #1.0000000000,  1.0000000000,  1.0000000000 ]
+ Map:
+   One                                 :  1
+    #No blank 
+    #charactersxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    #xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    #xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    #xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    #xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    #xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    #
+    #yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+    #yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+    #yyyyyyyyyyyyyy
+    #     yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+    #     yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+    #     yyyyyyyyyyyyyyyyyyyyyyyy
+---
+  #----------------------------------------------------------------------- Yaml Invoice Example
+ invoice                               :  34843
+ date                                  :  2013-05-12
+ bill-to: &id001
+   given                               : Chris
+   address:
+     lines:
+       458 Walkman Dr.
+       Suite #292
+ ship_to                               : *id001
+ product:
+ - sku                                 : BL394D
+   quantity                            :  4
+   description                         : Basketball
+   price                               :  450.00
+ - sku                                 : BL4438H
+   quantity                            :  1
+   description                         : Super Hoop
+   price                               :  2392.00
+ tax                                   :  251.42
+ total                                 :  4443.5200000000004
+ comments:
+   Late afternoon is best. Backup contact is Nancy Billsmer @ 338-4338.
+---
+  #--------------------------------------------------- Yaml Invoice Example, using dictionaries
+ Retrieve the price value              :  2392.0000000000000
+ invoice                               : 34843
+ date                                  :  2013-05-12
+ bill-to:
+   given                               : Chris
+   family                              : Dumars
+   address:
+     lines                             : 458 Walkman Dr. Suite #292
+     city                              : Royal Oak
+     state                             : MI
+     postal                            : 48046
+ Product:
+ - sku                                 : BL34D
+   quantity                            : 4
+   description                         : Basketball
+   price                               : 4.500000000E+02
+ - sku                                 : BL4438
+   quantity                            : 1
+   description                         : Super Hoop
+   price                               : 2.392000000E+03
+ Tax                                   : 2.514199982E+02
+ Total                                 : 4.443520020E+03
+ Comments:
+   Late afternoon is best. Backup contact is Nancy Billsmer @ 338-4338
+---
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Error Handling Module Test
+ Raising the TOTO error, errcode       :  3
+ ERR_TOTO:
+   Id                                  : 3
+   Message:
+     This is the error message for the error of kind 1 and it is written extensively on 
+      purpose to see whether yaml module prints it
+   Action:
+     For this error, contact the routine developer at mail at univ dot gov
+   Callback Procedure Address          : 4244720
+ Additional Info                       : Extra message added
+  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
+ Raising the TOTO error, by name       : ERR_TOTO
+ GENERIC_ERROR:
+   Id                                  : 1
+   Message                             : UNSPECIFIED
+   Action                              : UNKNOWN
+ Additional Info                       : Extra message added again
+  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Aie
+ Callback done, errcode                :  3
+ GENERIC_ERROR:
+   Id                                  : 1
+   Message                             : UNSPECIFIED
+   Action                              : UNKNOWN
+ Additional Info                       : Generic error raised, some message here
+  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Aie
+ ERR_TITI:
+   Id                                  : 4
+   Message                             : test2
+   Callback Procedure Address          : 4244784
+   Callback Procedure Data Address     : 140733737044692
+ Additional Info                       : Now TITI error has been raised
+  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TITI
+ Callback done                         :  Yes
+ Error check value                     :  Yes
+ Error check code                      :  No
+ Error check code2                     :  Yes
+---
+  #Now we test dictionaries inside yaml.
+ toto                                  : 1
+ titi                                  : 1.0000000000000000
+ tutu: [1, 2]
+ List: [a: 0, 4, 1.000000000E+00]
+ New key: {Example: 4}
+ List length                           :  3
+ Dictionary size                       :  5
+---
+ List:
+ - 1
+ - 2
+ - 3
+---
+ Dictionary length                     :  3
+ Dictionary size                       :  0
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Fortran Dictionary Test
+ Number of Groups                      : 1
+ First: {One: 1, Two: 2, Three: 3, Threeb: 3b}
+ Size before popping                   :  4
+ After pop:
+   Number of Groups                    : 1
+   First:
+     Three                             : 3
+     Threeb                            : 3b
+     Four                              : 4
+ Complete pop:
+   Size after popping                  :  1
+   Number of Groups                    : 1
+ Key found                             :  No
+ Second try, Key found                 :  Yes
+ Value found                           :  1
+ Alternative way                       :  2
+ Dictionary associated before last pop :  Yes
+ Last pop done, still associated       :  No
+ Stack:
+ - 5
+ - 4
+ - 2
+ - Test1:
+     Toto                              : 5
+     Titi                              : 6
+ Stack2:
+ - 1
+ - 2
+ - 3
+ Stack:
+ - 5
+ - 4
+ Stack2:
+ - 1
+ - 2
+ - 3
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Prepend dictionary example
+ Size of dict A                        :  2
+ Dict A:
+   Stack:
+   - 5
+   - 4
+   Stack2:
+   - 1
+   - 2
+   - 3
+ Size of dict 2                        :  2
+ Dict 2:
+   Test1:
+     Toto                              : 5
+     Titi                              : 6
+   Test2:
+     Toto                              : 4
+     Titi                              : 2
+ Keys of first dict                    :  [ Stack, Stack2 ]
+ Keys of second dict                   :  [ Test1, Test2 ]
+ Size of prepended                     :  4
+ Prepended:
+   Test1:
+     Toto                              : 5
+     Titi                              : 6
+   Test2:
+     Toto                              : 4
+     Titi                              : 2
+   Stack:
+   - 5
+   - 4
+   Stack2:
+   - 1
+   - 2
+   - 3
+ Keys of prepended dict                :  [ Test1, Test2, Stack, Stack2 ]
+---
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Routine-Tree creation example
+ Calling sequence of Main program:
+ - PS_Check:
+   - Routine 0
+   - Routine A
+   - Routine D:
+     - SubCase 1
+     - Subcase 2:
+       - SubSubcase1
+     - SubCase 3
+   - Routine E
+   - Routine F
+ Routine dictionary:
+   pot_ion:
+     Array Id                          : pot_ion
+     Size (Bytes)                      : 0
+     Allocating Routine Id             : PS_Check
+     Address of first element          : 0x6af338
+     Address of metadata               : 140733737044512
+   xc_pot:
+     Array Id                          : xc_pot
+     Size (Bytes)                      : 48
+     Allocating Routine Id             : PS_Check
+     Address of first element          : 0x6aff68
+     Address of metadata               : 140733737044560
+   extra_ref:
+     Array Id                          : extra_ref
+     Size (Bytes)                      : 0
+     Allocating Routine Id             : PS_Check
+     Address of first element          : 0x6af368
+     Address of metadata               : 140733737044416
+   rhopot:
+     Array Id                          : rhopot
+     Size (Bytes)                      : 48
+     Allocating Routine Id             : PS_Check
+     Address of first element          : 0x6afb78
+     Address of metadata               : 140733737044608
+ Global dictionary:
+   potential:
+     Array Id                          : potential
+     Size (Bytes)                      : 24
+     Allocating Routine Id             : Routine 0
+     Address of first element          : 0x6aff18
+     Address of metadata               : 140733737044464
+   Timestamp of Profile initialization:
+     2013-05-12 18:44:15.861
+   Process Id:
+     0
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  4
+   Tot. No. of Dellocations            :  4
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  0
+     for the array                     : rhopot
+     in the routine                    : PS_Check

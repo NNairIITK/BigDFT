@@ -247,6 +247,7 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
                                                    guint iproc, guint nproc)
 {
   int verb = 0;
+  _rholoc_objects *paw;
   
   FC_FUNC(ionicenergyandforces, IONICENERGYANDFORCES)
     ((int*)&iproc, (int*)&nproc, denspot->dpbox, lzd->parent.parent.data, in->elecfield,
@@ -259,7 +260,7 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
     ((int*)&iproc, (int*)&nproc, &verb, in->data, lzd->parent.parent.data, lzd->parent.parent.rxyz.data,
      lzd->parent.parent.shift, lzd->parent.data, denspot->h, denspot->h + 1, denspot->h + 2,
      denspot->dpbox, denspot->pkernel, denspot->v_ext, in->elecfield,
-     &denspot->psoffset);
+     &denspot->psoffset, paw);
   
   bigdft_localfields_emit_v_ext(denspot);
 }

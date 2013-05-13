@@ -280,9 +280,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_base
    use module_types
    use module_interfaces
-   use Poisson_Solver
+   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use module_xc
-   use vdwcorrection
    use esatto
    use m_ab6_symmetry
    use m_ab6_mixing
@@ -395,6 +394,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    type(pcproj_data_type) ::PPD
    !! to apply paw projectors
    type(PAWproj_data_type) ::PAWD
+
+   !fow wvl+PAW
+   integer::iatyp
+   type(rholoc_objects)::rholoc_tmp
+   type(gaussian_basis),dimension(atoms%ntypes)::proj_tmp
 
 
    if (in%potshortcut==0) then
@@ -512,8 +516,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,orbs,.false.)
    call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
+   !nullify dummy variables only used for PAW:
+   do iatyp=1,atoms%ntypes
+     call nullify_gaussian_basis(proj_tmp(iatyp))
+   end do
+
+
    call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
-        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_tmp,proj)
 
    call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
 
@@ -559,10 +569,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       allocate(pot_ion(1+ndebug),stat=i_stat)
       call memocc(i_stat,pot_ion,'pot_ion',subname)
    end if
-
-   ! A message about dispersion forces.
-   call vdwcorrection_initializeparams(in%ixc, in%dispersion)
-   if (iproc == 0) call vdwcorrection_warnings(atoms, in)
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
    ndegree_ip=16 !default value
@@ -627,7 +633,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         n1,n2,n3,pot_ion,pkernel,psoffset)
 
    call createIonicPotential(atoms%geocode,iproc,nproc, (iproc == 0), atoms,rxyz,hxh,hyh,hzh,&
-        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,&
+        rholoc_tmp)
 
 
    !Allocate Charge density, Potential in real space
@@ -1588,7 +1595,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    use module_base
    use module_interfaces, except_this_one => extract_potential_for_spectra
    use module_types
-   use Poisson_Solver
+   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use libxc_functionals
    implicit none
    !Arguments

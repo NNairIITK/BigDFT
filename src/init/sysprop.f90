@@ -16,6 +16,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   use module_types
   use module_interfaces, fake_name => system_initialization
   use module_xc
+  use gaussians, only: gaussian_basis
   use vdwcorrection
   use yaml_output
   implicit none
@@ -35,10 +36,18 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nB,nKB,nMB,ii,iat,iorb!,i_stat,i_all
+  integer :: nB,nKB,nMB,ii,iat,iorb,iatyp!,i_stat,i_all
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old
+  !Note proj_G should be filled for PAW:
+  type(gaussian_basis),dimension(atoms%nat)::proj_G
+
+  !nullify dummy variables only used for PAW:
+  do iatyp=1,atoms%ntypes
+    call nullify_gaussian_basis(proj_G(iatyp))
+  end do
+
 
   ! Dump XC functionals (done now in output.f90)
   !if (iproc == 0) call xc_dump()
@@ -117,7 +126,6 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
      end if
   end if
 
-
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
@@ -165,7 +173,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
-       radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),nlpspd,proj)
+       radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
+       Lzd%hgrids(3),nlpspd,proj_G,proj)
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way
   if (iproc==0 .and. verbose > 0) then
@@ -202,7 +211,7 @@ END SUBROUTINE system_initialization
 subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   use module_types
   use module_xc
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   logical, intent(in) :: verb
   integer, intent(in) :: iproc, nproc
@@ -228,7 +237,7 @@ END SUBROUTINE system_initKernels
 
 subroutine system_createKernels(denspot, verb)
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   logical, intent(in) :: verb
   type(DFT_local_fields), intent(inout) :: denspot
@@ -300,10 +309,10 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
   if (at%donlcc) then
      !allocate pointer rhocore
-     allocate(rhocore(d%n1i,d%n2i,n3d,4+ndebug),stat=i_stat)
+     allocate(rhocore(d%n1i,d%n2i,n3d,10+ndebug),stat=i_stat)
      call memocc(i_stat,rhocore,'rhocore',subname)
      !initalise it 
-     call to_zero(d%n1i*d%n2i*n3d*4,rhocore(1,1,1,1))
+     call to_zero(d%n1i*d%n2i*n3d*10,rhocore(1,1,1,1))
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%nat
         ityp=at%iatype(iat)
@@ -892,7 +901,6 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
      nspinor=1
   end if
 
-
   call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,in%nspin,nspinor,&
        in%nkpt,in%kpt,in%wkpt,orbs,.false.)
 
@@ -943,7 +951,6 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   end do
   if (verb .and. iproc == 0) call yaml_close_sequence()
 end subroutine read_orbital_variables
-
 
 subroutine read_atomic_variables(atoms, fileocc, nspin)
   use module_base
@@ -2379,50 +2386,3 @@ subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, den
      tmb%c_obj    = 0
   end if
 END SUBROUTINE system_signaling
-
-!> create communicators associated to the groups of size group_size
-subroutine create_group_comm(base_comm,nproc_base,group_id,group_size,group_comm)
-  use module_base
-  use yaml_output
-  implicit none
-  integer, intent(in) :: base_comm,group_size,nproc_base,group_id
-  integer, intent(out) :: group_comm
-  !local variables
-  character(len=*), parameter :: subname='create_group_comm'
-  integer :: grp,ierr,i,j,base_grp,temp_comm,i_stat,i_all
-  integer, dimension(:), allocatable :: group_list
-
-  allocate(group_list(group_size+ndebug),stat=i_stat)
-  call memocc(i_stat,group_list,'group_list',subname)
-
-  !take the base group
-  call MPI_COMM_GROUP(base_comm,base_grp,ierr)
-  if (ierr /=0) then
-     call yaml_warning('Problem in group creation, ierr:'//yaml_toa(ierr))
-     call MPI_ABORT(base_comm,1,ierr)
-  end if
-  do i=0,nproc_base/group_size-1
-     !define the new groups and thread_id
-     do j=0,group_size-1
-        group_list(j+1)=i*group_size+j
-     enddo
-     call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
-     if (ierr /=0) then
-        call yaml_warning('Problem in group inclusion, ierr:'//yaml_toa(ierr))
-        call MPI_ABORT(base_comm,1,ierr)
-     end if
-     call MPI_COMM_CREATE(base_comm,grp,temp_comm,ierr)
-     if (ierr /=0) then
-        call yaml_warning('Problem in communicator creator, ierr:'//yaml_toa(ierr))
-        call MPI_ABORT(base_comm,1,ierr)
-     end if
-     !print *,'i,group_id,temp_comm',i,group_id,temp_comm
-     if (i.eq. group_id) group_comm=temp_comm
-  enddo
-
-  i_all=-product(shape(group_list ))*kind(group_list )
-  deallocate(group_list,stat=i_stat)
-  call memocc(i_stat,i_all,'group_list',subname)
-
-
-end subroutine create_group_comm

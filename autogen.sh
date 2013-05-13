@@ -10,9 +10,13 @@ autoheader
 echo "Creating required files for autotools."
 automake --add-missing --copy
 echo "Generating PSP database."
-python config/pspconf.py > src/init/psp.inc
-sed '/!!PSP_TABLE!!/r src/init/psp.inc' src/init/pspconf.in.f90 > src/init/pspconf.f90
-rm -f src/init/psp.inc
+if test -f config/pspconf.py ; then
+  python config/pspconf.py > src/init/psp.inc
+  sed '/!!PSP_TABLE!!/r src/init/psp.inc' src/init/pspconf.in.f90 > src/init/pspconf.f90
+  rm -f src/init/psp.inc
+else
+  echo " WARNING, missing config/pspconf.py, cannot generate built-in pseudo-potentials."
+fi
 GDBUS_CODEGEN=`which gdbus-codegen`
 if test -n "$GDBUS_CODEGEN" ; then
   echo "Generate Dbus bindings (obsolete)."
@@ -21,7 +25,7 @@ if test -n "$GDBUS_CODEGEN" ; then
   cd -
 fi
 echo "Autotoolize the libXC source tree."
-cd libxc-1.1.0; libtoolize -fc; autoreconf -fi; cd -
+cd libxc-2.0.x; libtoolize -fc; autoreconf -fi; cd -
 echo "Autotoolize the libyaml source tree."
 cd yaml-0.1.4; libtoolize -fc; autoreconf -fi; cd -
 echo "Autotoolize the S_GPU source tree."

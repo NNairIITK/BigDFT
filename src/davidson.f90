@@ -1,4 +1,5 @@
 !> @file
+!       Set to zero:
 !!  Routines to do diagonalisation with Davidson algorithm
 !! @author
 !!    Copyright (C) 2007-2013 BigDFT group
@@ -25,7 +26,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    type(denspot_distribution), intent(in) :: dpcom
    type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in), target :: rhopot
    type(GPU_pointers), intent(inout) :: GPU
@@ -296,7 +297,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       !control the previous value of idsx_actual
       idsx_actual_before=VTwfn%diis%idsx
 
-      call hpsitopsi(iproc,nproc,iter,in%idsx,VTwfn)
+      call hpsitopsi(iproc,nproc,iter,in%idsx,VTwfn,at,nlpspd)
+
 
       if (occorbs) then
          !if this is true the transposition for psivirt which is done in hpsitopsi
@@ -423,7 +425,7 @@ subroutine davidson(iproc,nproc,in,at,&
    type(communications_arrays), intent(in) :: comms, commsv
    type(denspot_distribution), intent(in) :: dpcom
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in) :: rhopot
    type(orbitals_data), intent(inout) :: orbsv
@@ -431,7 +433,7 @@ subroutine davidson(iproc,nproc,in,at,&
    real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
    !v, that is psivirt, is transposed on input and direct on output
    !local variables
-   character(len=*), parameter :: subname='davidson',print_precise='1pe22.14',print_rough='1pe12.4 '
+   character(len=*), parameter :: subname='davidson',print_precise='1pe20.12',print_rough='1pe12.4 '
    character(len=8) :: prteigu,prteigd !format for eigenvalues printing
    logical :: msg,exctX,occorbs !extended output
    integer :: nrhodim,i3rho_add !n(c) occnorb, occnorbu, occnorbd
@@ -1143,49 +1145,47 @@ subroutine davidson(iproc,nproc,in,at,&
                &   hamovr(ish1),v(ispsi:),g(ispsi),hv(ispsi))
 
             ispsi=ispsi+nvctrp*norb*nspinor
+         end do
 
-            if(msg .or. (iproc==0 .and. ikpt == 1)) then
-               call yaml_open_sequence('Eigenvalues and eigenstate residue')
-               !write(*,'(1x,a)')'done. Eigenvalues, gnrm'
-               if (nspin ==1) then
-                  do iorb=1,orbsv%norb
-                     !show the eigenvalue in full form only if it has reached convergence
-                     if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
-                        prteigu=print_precise
-                     else
-                        prteigu=print_rough
-                     end if
+         if(msg .or. (iproc==0 .and. ikpt == 1)) then
+            call yaml_open_sequence('Eigenvalues and eigenstate residue')
+            !write(*,'(1x,a)')'done. Eigenvalues, gnrm'
+            if (nspin ==1) then
+               do iorb=1,orbsv%norb
+                  !show the eigenvalue in full form only if it has reached convergence
+                  if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
+                     prteigu=print_precise
+                  else
+                     prteigu=print_rough
+                  end if
                      call yaml_sequence(trim(yaml_toa((/ e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)) /),fmt='('//prteigu//')')),&
                           advance='no')
                      call yaml_comment(trim(yaml_toa(iorb,fmt='(i4.4)')))
-                     !write(*,'(1x,i5,'//prteigu//',1pe9.2)')iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2))
-                  end do
-                  call yaml_close_sequence()
-               else if (ispin == 2) then
-                  do iorb=1,min(orbsv%norbu,orbsv%norbd) !they should be equal
-                     if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
-                        prteigu=print_precise
-                     else
-                        prteigu=print_rough
-                     end if
-                     if (sqrt(e(iorb+orbsv%norbu,ikpt,2)) <= in%gnrm_cv) then
-                        prteigd=print_precise
-                     else
-                        prteigd=print_rough
-                     end if
-                     call yaml_sequence(trim(yaml_toa((/ &
-                          & e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)), &
+                  !write(*,'(1x,i5,'//prteigu//',1pe9.2)')iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2))
+               end do
+            else if (nspin == 2) then
+               do iorb=1,min(orbsv%norbu,orbsv%norbd) !they should be equal
+                  if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
+                     prteigu=print_precise
+                  else
+                     prteigu=print_rough
+                  end if
+                  if (sqrt(e(iorb+orbsv%norbu,ikpt,2)) <= in%gnrm_cv) then
+                     prteigd=print_precise
+                  else
+                     prteigd=print_rough
+                  end if
+                  call yaml_sequence(trim(yaml_toa((/ &
+                       & e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)), &
                           & e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2)) /),fmt='('//prteigu//')')),&
                           advance='no')
                      call yaml_comment(trim(yaml_toa(iorb,fmt='(i4.4)')))
-                     !write(*,'(1x,i5,'//prteigu//',1pe9.2,t50,'//prteigd//',1pe9.2)')&
-                     !   &   iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)),e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2))
-                  end do
-                  call yaml_close_sequence()
-               end if
+                  !write(*,'(1x,i5,'//prteigu//',1pe9.2,t50,'//prteigd//',1pe9.2)')&
+                  !   &   iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)),e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2))
+               end do
             end if
-
-         end do
+            call yaml_close_sequence()
+         end if
 
       end do
 
