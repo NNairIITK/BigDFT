@@ -2,4 +2,4 @@ DIIS          Geometry optimisation method
 10             Maximum number of force evaluations                                          
 1.0 1e-2       fract_fluct,forcemax                                                         
 0.0            random displacement amplitude                                                
-2.0 4          Stepsize for the geometry optimisation                                       
+2.0 2          Stepsize for the geometry optimisation                                       

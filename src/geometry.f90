@@ -488,7 +488,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   fluct=0.0_gp
 
   ! We save pointers on data used to call bigdft() routine.
-  allocate(previous_forces(3, RUNOBJ%ATOMS%NAT, runObj%inputs%history+ndebug),stat=i_stat)
+  allocate(previous_forces(3, outs%fdim, runObj%inputs%history+ndebug),stat=i_stat)
   call memocc(i_stat,previous_forces,'previous_forces',subname)
   allocate(previous_pos(3, RUNOBJ%ATOMS%NAT, runObj%inputs%history+ndebug),stat=i_stat)
   call memocc(i_stat,previous_pos,'previous_pos',subname)
@@ -498,11 +498,11 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
   ! Set to zero the arrays
   call razero(runObj%inputs%history**2,product_matrix)
-  call razero(runObj%inputs%history*runObj%atoms%nat*3,previous_forces)
+  call razero(runObj%inputs%history*outs%fdim*3,previous_forces)
   call razero(runObj%inputs%history*runObj%atoms%nat*3,previous_pos)
 
   ! We set the first step and move to the second
-  call vcopy(3 * runObj%atoms%nat, outs%fxyz (1,1), 1, previous_forces(1,1,1), 1)
+  call vcopy(3 * outs%fdim, outs%fxyz (1,1), 1, previous_forces(1,1,1), 1)
   call vcopy(3 * runObj%atoms%nat, runObj%rxyz(1,1), 1, previous_pos(1,1,1), 1)
   
   call axpy(3 * runObj%atoms%nat, runObj%inputs%betax, outs%fxyz(1,1), 1, runObj%rxyz(1,1), 1)
@@ -511,7 +511,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 !!$  call atomic_axpy(at,x,runObj%inputs%betax,f,x)
 
 
-  do lter = 2, runObj%inputs%ncount_cluster_x
+  do lter = 1, runObj%inputs%ncount_cluster_x - 1
 
      maxter = min(lter, runObj%inputs%history)
 
