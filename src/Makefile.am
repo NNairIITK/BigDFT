@@ -131,7 +131,8 @@ high_level = cluster.f90 \
 	esatto.f90 \
 	tddft.f90 \
 	output.f90 \
-	external.f90
+	external.f90 \
+	images.f90
 
 #objects which can be compiled only with module_base
 low_level = \
@@ -322,6 +323,8 @@ lanczos.o : lanczos_base.o lanczos_interface.o
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 geometry.o bfgs.o sdcg.o: lbfgs.o
+
+NEB.o: images.o
 
 #initAndUtils.o: cleanup.o
 
