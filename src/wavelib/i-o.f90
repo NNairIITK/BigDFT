@@ -533,6 +533,52 @@ contains
     lstat = .true.
   END SUBROUTINE read_psi_compress
 
+  subroutine read_psig(unitwf, formatted, nvctr_c, nvctr_f, n1, n2, n3, psig, lstat, error)
+    use module_base
+    use module_types
+
+    implicit none
+
+    integer, intent(in) :: unitwf, nvctr_c, nvctr_f, n1, n2, n3
+    logical, intent(in) :: formatted
+    real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(out) :: psig
+    logical, intent(out) :: lstat
+    character(len =256), intent(out) :: error
+
+    integer :: i1, i2, i3, i_stat, iel
+    real(wp) :: tt, t1, t2, t3, t4, t5, t6, t7
+
+    lstat = .false.
+    write(error, "(A)") "cannot read psig values."
+
+    call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+    do iel=1,nvctr_c
+       if (formatted) then
+          read(unitwf,*,iostat=i_stat) i1,i2,i3,tt
+       else
+          read(unitwf,iostat=i_stat) i1,i2,i3,tt
+       end if
+       if (i_stat /= 0) return
+       psig(i1,1,i2,1,i3,1)=tt
+    enddo
+    do iel=1,nvctr_f
+       if (formatted) then
+          read(unitwf,*,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+       else
+          read(unitwf,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+       end if
+       if (i_stat /= 0) return
+       psig(i1,2,i2,1,i3,1)=t1
+       psig(i1,1,i2,2,i3,1)=t2
+       psig(i1,2,i2,2,i3,1)=t3
+       psig(i1,1,i2,1,i3,2)=t4
+       psig(i1,2,i2,1,i3,2)=t5
+       psig(i1,1,i2,2,i3,2)=t6
+       psig(i1,2,i2,2,i3,2)=t7
+    enddo
+    lstat = .true.
+  END SUBROUTINE read_psig
+
   subroutine io_open(unitwf, filename, formatted)
     character(len = *), intent(in) :: filename
     logical, intent(in) :: formatted

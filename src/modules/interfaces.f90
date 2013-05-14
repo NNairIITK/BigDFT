@@ -3680,8 +3680,8 @@ module module_interfaces
          integer, dimension(orbs%norb), optional :: orblist
        end subroutine initialize_linear_from_file
 
-       subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old, ns_old, &
-            hgrids_old, lstat, error, onwhichatom, locrad, locregCenter, &
+       subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old1, n_old2, n_old3, &
+            ns_old1, ns_old2, ns_old3, hgrids_old, lstat, error, onwhichatom, locrad, locregCenter, &     
             confPotOrder, confPotprefac, nat, rxyz_old, nvctr_c_old, nvctr_f_old)
          use module_base
          use module_types
@@ -3689,7 +3689,7 @@ module module_interfaces
          integer, intent(in) :: unitwf
          logical, intent(in) :: formatted
          integer, intent(out) :: iorb_old
-         integer, dimension(3), intent(out) :: n_old, ns_old
+         integer, intent(out) :: n_old1, n_old2, n_old3, ns_old1, ns_old2, ns_old3
          real(gp), dimension(3), intent(out) :: hgrids_old
          logical, intent(out) :: lstat
          real(wp), intent(out) :: eval
@@ -3721,6 +3721,23 @@ module module_interfaces
          real(wp), dimension(orbs%norb,orbs%norb), intent(out) :: coeff
          integer, dimension(orbs%norb), optional :: orblist
         end subroutine readmywaves_linear
+
+        subroutine readmywaves_linear_new(iproc,filename,iformat,at,tmb,rxyz_old,rxyz,ref_frags,fragInputVariables,orblist)
+          use module_base
+          use module_types
+          use module_fragments
+          use yaml_output
+          implicit none
+          integer, intent(in) :: iproc, iformat
+          type(atoms_data), intent(in) :: at
+          type(DFT_wavefunction), intent(inout) :: tmb
+          real(gp), dimension(3,at%nat), intent(in) :: rxyz
+          real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+          character(len=*), intent(in) :: filename
+          type(fragmentInputParameters), intent(in) :: fragInputVariables
+          type(system_fragment), dimension(fragInputVariables%nfrag_ref), intent(inout) :: ref_frags
+          integer, dimension(tmb%orbs%norb), intent(in), optional :: orblist
+        end subroutine readmywaves_linear_new
 
         subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm, lzd)
           use module_base
@@ -4227,14 +4244,21 @@ module module_interfaces
           real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
         end subroutine reformat_one_supportfunction
 
-        subroutine reformat_supportfunctions(iproc,at,rxyz_old,ndim_old,rxyz,tmb,tmb_old)
+        subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,orbs_old,lzd_old,&
+               psi_old,phi_array_old)
           use module_base
           use module_types
+          use module_fragments
           implicit none
           integer, intent(in) :: iproc,ndim_old
           type(atoms_data), intent(in) :: at
           real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
-          type(DFT_wavefunction), intent(inout) :: tmb,tmb_old
+          type(DFT_wavefunction), intent(inout) :: tmb
+          type(orbitals_data), intent(in) :: orbs_old
+          type(local_zone_descriptors), intent(in) :: lzd_old
+          real(wp), dimension(:), pointer, intent(in) :: psi_old
+          type(phi_array), dimension(tmb%orbs%norbp), optional, intent(in) :: phi_array_old
+          logical, intent(in) :: add_derivatives
         end subroutine reformat_supportfunctions
 
         subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)

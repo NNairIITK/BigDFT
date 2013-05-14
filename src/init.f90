@@ -1588,7 +1588,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   ! Reformat the support functions if we are not using FOE. Otherwise an AO
   ! input guess wil be done below.
   if (input%lin%scf_mode/=LINEAR_FOE) then
-      call reformat_supportfunctions(iproc,at,rxyz_old,ndim_old,rxyz,tmb,tmb_old)
+      call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%orbs,tmb_old%lzd,tmb_old%psi)
   end if
   !!write(*,*) 'after reformat_supportfunctions, iproc',iproc
 
@@ -2349,6 +2349,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
+  use module_fragments
   use yaml_output
   use gaussians, only:gaussian_basis
   implicit none
@@ -2375,7 +2376,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
   !local variables
   character(len = *), parameter :: subname = "input_wf"
-  integer :: i_stat, nspin, i_all
+  integer :: i_stat, nspin, i_all, ifrag
   type(gaussian_basis) :: Gvirt
   real(wp), allocatable, dimension(:) :: norm
   !wvl+PAW objects
@@ -2383,6 +2384,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(gaussian_basis),dimension(atoms%ntypes)::proj_G
   type(paw_objects)::paw
   logical :: overlap_calculated
+  type(system_fragment), dimension(:), pointer :: ref_frags
 
   !nullify paw objects:
   do iatyp=1,atoms%ntypes
@@ -2621,12 +2623,23 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         ! call init_fragment(frag,input%frag%frag_info(i,1),input%frag%frag_info(i,2),NTYPES,rxyz,&
         !                    atomnames,iatype)
 
+        ! allocate reference fragment array according to number of reference fragments
+        allocate(ref_frags(in%frag%nfrag_ref))
+
+        ! nullify fragments
+        do ifrag=1,in%frag%nfrag_ref
+           ref_frags(ifrag)=fragment_null()
+        end do
+
      end if
 
      ! By reading the basis functions and coefficients from file
-     call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
-          & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
-          & atoms,rxyz_old,rxyz,tmb%psi,tmb%coeff)
+     !call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
+     !     & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
+     !     & atoms,rxyz_old,rxyz,tmb%psi,tmb%coeff)
+
+     call readmywaves_linear_new(iproc,trim(in%dir_output)//'minBasis',input_wf_format,&
+          atoms,tmb,rxyz_old,rxyz,ref_frags,in%frag)
  
      ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
      !nullify(tmb%psit_c)                                                                

@@ -200,8 +200,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
          ln1 = iex-isx
          ln2 = iey-isy
          ln3 = iez-isz
-    
-    
+  
          ! Localization regions should have free boundary conditions by default
          Llr(ilr)%geocode='F'
     
@@ -397,7 +396,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   call timing(iproc,'comm_llr      ','OF')
 
 
-!create the bound arrays for the locregs we need on the MPI tasks
+  !create the bound arrays for the locregs we need on the MPI tasks
   call timing(iproc,'calc_bounds   ','ON') 
   do ilr=1,nlr
          if (Llr(ilr)%geocode=='F' .and. calculateBounds(ilr) ) then

@@ -1,5 +1,5 @@
 !> Define important structures and methods to manipulate embedding systems
-module fragments
+module module_fragments
   use module_base, only: gp,wp
   use module_types
   use dynamic_memory
@@ -21,12 +21,17 @@ module fragments
      integer, dimension(:,:), pointer :: norb_par
   end type minimal_orbitals_data
 
+  type, public :: phi_array
+     real(wp), dimension(:,:,:,:,:,:), pointer :: psig
+  end type phi_array
+
   type, public :: fragment_basis
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(local_zone_descriptors) :: Lzd
      type(minimal_orbitals_data) :: forbs
-     real(wp), dimension(:), pointer :: psi
+     real(wp), dimension(:), pointer :: psi_full
+     type(phi_array), dimension(:), pointer :: phi
   end type fragment_basis
 
   !> Defines the minimal information to identify a system building block
@@ -51,6 +56,8 @@ module fragments
   end type fragment_transformation
 
   public operator(*)
+
+  public :: fragment_null
 
 contains
 
@@ -92,7 +99,7 @@ contains
 
     frag%atomnames=atomnames
     frag%iatype=iatype
-    
+
 
     ! allocate/initialize fragment basis...
     !currently orbitals are initialized via initAndUtils/init_orbitals_data_for_linear
@@ -167,8 +174,8 @@ contains
     call nullify_local_zone_descriptors(basis%lzd)
     call nullify_minimal_orbitals_data(basis%forbs)
     !basis%forbs=minimal_orbitals_data_null()
-    nullify(basis%psi)
-
+    nullify(basis%psi_full)
+    nullify(basis%phi)
   end function fragment_basis_null
 
   subroutine minimal_orbitals_data_free(forbs)
@@ -191,7 +198,7 @@ contains
     subname='fragment_basis_free'
     call deallocate_local_zone_descriptors(basis%lzd,subname)
     call minimal_orbitals_data_free(basis%forbs)
-    if (associated(basis%psi)) call f_free_ptr(basis%psi)
+    if (associated(basis%psi_full)) call f_free_ptr(basis%psi_full)
     basis=fragment_basis_null()
   end subroutine fragment_basis_free
 
@@ -316,7 +323,7 @@ contains
   !end function transform_fragment_basis
 
 
-end module fragments
+end module module_fragments
 
 !newfrg=trans*frag
 
