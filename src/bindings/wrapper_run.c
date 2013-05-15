@@ -390,7 +390,7 @@ BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
   FC_FUNC_(run_objects_new, RUN_OBJECTS_NEW)(&run->data);
 
   /* Call the creation routine of Frantran. */
-  FC_FUNC_(run_objects_set_from_files, RUN_OBJECTS_SET_FROM_FILES)
+  FC_FUNC_(run_objects_init_from_files, RUN_OBJECTS_SET_FROM_FILES)
     (run->data, radical, posinp, strlen(radical), strlen(posinp));
 
   /* Create C wrappers for Fortran objects. */
@@ -446,8 +446,7 @@ BigDFT_Run* bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inpu
   run->atoms = atoms;
   g_object_ref(G_OBJECT(run->atoms));
   run->restart = rst;
-  FC_FUNC_(run_objects_set, RUN_OBJECTS_SET)(run->data, inputs->data, atoms->data, rst->data);
-  FC_FUNC_(run_objects_set_rxyz, RUN_OBJECTS_SET_RXYZ)(run->data, &atoms->rxyz);
+  FC_FUNC_(run_objects_associate, RUN_OBJECTS_ASSOCIATE)(run->data, inputs->data, atoms->data, rst->data, &atoms->rxyz);
 
   return run;
 }

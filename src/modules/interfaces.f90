@@ -146,6 +146,16 @@ module module_interfaces
         real(gp), dimension(:,:), pointer :: rxyz
       END SUBROUTINE bigdft_set_input
 
+      subroutine run_objects_init_container(runObj, inputs, atoms, rst, rxyz0)
+        use module_types
+        implicit none
+        type(run_objects), intent(out) :: runObj
+        type(input_variables), intent(in), target :: inputs
+        type(atoms_data), intent(in), target :: atoms
+        type(restart_objects), intent(in), target :: rst
+        real(gp), intent(in), optional :: rxyz0
+      end subroutine run_objects_init_container
+
       subroutine read_atomic_file(file,iproc,at,rxyz,status,comment,energy,fxyz)
          !n(c) use module_base
          use module_types

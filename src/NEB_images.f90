@@ -50,7 +50,7 @@ program NEB_images
       if (modulo(iconfig-1,ngroups)==igroup) then
          !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
          ! Read all input files. This should be the sole routine which is called to initialize the run.
-         call run_objects_set_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
+         call run_objects_init_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
          call init_global_output(outs, runObj%atoms%nat)
          call call_bigdft(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 

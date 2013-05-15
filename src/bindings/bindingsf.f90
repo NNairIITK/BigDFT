@@ -1406,11 +1406,18 @@ subroutine run_objects_get(runObj, inputs, atoms, rst, rxyz)
   rst => runObj%rst
   rxyz => runObj%rxyz
 END SUBROUTINE run_objects_get
-subroutine run_objects_set_rxyz(runObj, rxyz)
+subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz)
   use module_types
   implicit none
-  type(run_objects), intent(inout) :: runObj
+  type(run_objects), intent(out) :: runObj
+  type(input_variables), intent(in), target :: inputs
+  type(atoms_data), intent(in), target :: atoms
+  type(restart_objects), intent(in), target :: rst
   real(gp), dimension(:,:), pointer :: rxyz
 
-  runObj%rxyz => rxyz
-END SUBROUTINE run_objects_set_rxyz
+  call run_objects_init(runObj)
+  runObj%atoms  => atoms
+  runObj%inputs => inputs
+  runObj%rst    => rst
+  runObj%rxyz   => rxyz
+END SUBROUTINE run_objects_associate

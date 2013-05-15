@@ -305,6 +305,47 @@ BigDFT_Restart* bigdft_run_get_restart     (BigDFT_Run *run);
 void            bigdft_run_unref           (BigDFT_Run *run);
 /*********************************/
 
+/*********************************/
+/* BigDFT_Neb data structure */
+/*********************************/
+typedef enum
+  {
+    BIGDFT_NEB_STEEPEST_DESCENT,
+    BIGDFT_NEB_FLETCHER_REEVES,
+    BIGDFT_NEB_POLAK_RIBIERE,
+    BIGDFT_NEB_QUICK_MIN,
+    BIGDFT_NEB_DAMPED_VERLET,
+    BIGDFT_NEB_SIM_ANNEALING
+  } BigDFT_NebAlgo;
+
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_NEB_TYPE    (bigdft_neb_get_type())
+#define BIGDFT_NEB(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_NEB_TYPE, BigDFT_Neb))
+typedef struct _BigDFT_NebClass BigDFT_NebClass;
+struct _BigDFT_NebClass
+{
+  GObjectClass parent;
+};
+GType bigdft_neb_get_type(void);
+#else
+#define BIGDFT_NEB_TYPE    (999)
+#define BIGDFT_NEB(obj)    ((BigDFT_Neb*)obj)
+#endif
+typedef struct _BigDFT_Neb BigDFT_Neb;
+struct _BigDFT_Neb
+{
+  GObject parent;
+  gboolean dispose_has_neb;
+
+  /* Private. */
+  _neb_data *data;
+};
+/*********************************/
+BigDFT_Neb*     bigdft_neb_new  ();
+void            bigdft_neb_unref(BigDFT_Neb *neb);
+/*********************************/
+
 
 /* Additional bindings (available only with GObject. */
 #ifdef _BIGDFT_BUILD_FULL_BINDINGS_

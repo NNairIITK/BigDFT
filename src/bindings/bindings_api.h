@@ -2413,16 +2413,16 @@ void FC_FUNC_(run_objects_set, RUN_OBJECTS_SET)(_run_objects *runObj,
                                                 const _input_variables *inputs, 
                                                 const _atoms_data *atoms, 
                                                 const _restart_objects *rst);
-/* run_objects_set_from_files src/cluster.f90:260 */
+/* run_objects_init_from_files src/cluster.f90:260 */
 /* Fortran header:
-subroutine run_objects_set_from_files(runObj, radical, posinp)
+subroutine run_objects_init_from_files(runObj, radical, posinp)
 use module_interfaces
 use module_types
 implicit none
 type(run_objects), intent(out) :: runObj
 character(len = *), intent(in) :: radical, posinp
 */
-void FC_FUNC_(run_objects_set_from_files, RUN_OBJECTS_SET_FROM_FILES)(_run_objects *runObj, 
+void FC_FUNC_(run_objects_init_from_files, RUN_OBJECTS_SET_FROM_FILES)(_run_objects *runObj, 
                                                                       const char *radical, 
                                                                       const char *posinp, 
                                                                       int str_ln_1, 

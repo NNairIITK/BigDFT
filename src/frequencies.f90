@@ -75,7 +75,7 @@ program frequencies
 
    !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
    ! Read all input files. This should be the sole routine which is called to initialize the run.
-   call run_objects_set_from_files(runObj, trim(run_id), 'posinp')
+   call run_objects_init_from_files(runObj, trim(run_id), 'posinp')
    call init_global_output(outs, runObj%atoms%nat)
 
    ! Read all input files.

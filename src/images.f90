@@ -4,7 +4,7 @@ MODULE Minimization_routines
     
   IMPLICIT NONE
   
-  REAL (KIND=gp), PARAMETER, private :: epsi = 1.0D-16
+  REAL (gp), PARAMETER, private :: epsi = 1.0D-16
 
   CONTAINS
 
@@ -295,19 +295,19 @@ contains
     if (associated(neb%vel)) deallocate(neb%vel)
   end subroutine deallocate_images
 
-  SUBROUTINE compute_tangent(tgt, ndim, nimages, V, pos, Lx, Ly, Lz)
-    IMPLICIT NONE
+  subroutine compute_tangent(tgt, ndim, nimages, V, pos, Lx, Ly, Lz)
+    implicit none
 
     integer, intent(in) :: nimages, ndim
-    real(kind = gp), intent(in) :: Lx, Ly, Lz
-    real(kind = gp), dimension(ndim,nimages), intent(out) :: tgt
-    real(kind = gp), dimension(nimages), intent(in) :: V
-    real(kind = gp), dimension(ndim, nimages), intent(in) :: pos
+    real(gp), intent(in) :: Lx, Ly, Lz
+    real(gp), dimension(ndim,nimages), intent(out) :: tgt
+    real(gp), dimension(nimages), intent(in) :: V
+    real(gp), dimension(ndim, nimages), intent(in) :: pos
 
     INTEGER :: i   
-    REAL (KIND=gp) :: V_previous, V_actual, V_next
-    REAL (KIND=gp) :: abs_next, abs_previous
-    REAL (KIND=gp) :: delta_V_max, delta_V_min
+    REAL (gp) :: V_previous, V_actual, V_next
+    REAL (gp) :: abs_next, abs_previous
+    REAL (gp) :: delta_V_max, delta_V_min
 
     tgt = 0
 
@@ -366,16 +366,16 @@ contains
     IMPLICIT NONE
 
     integer, intent(in) :: nimages, ndim, algorithm
-    real(kind = gp), dimension(ndim, nimages), intent(out) :: grad
-    real(kind = gp), dimension(nimages), intent(in) :: V
-    real(kind = gp), dimension(ndim, nimages), intent(in) :: pos, tgt, PES_grad
-    real(kind = gp), intent(in) :: k_max, k_min, Lx, Ly, Lz
+    real(gp), dimension(ndim, nimages), intent(out) :: grad
+    real(gp), dimension(nimages), intent(in) :: V
+    real(gp), dimension(ndim, nimages), intent(in) :: pos, tgt, PES_grad
+    real(gp), intent(in) :: k_max, k_min, Lx, Ly, Lz
     logical, intent(in) :: optimization, climbing
 
     INTEGER         :: i, Emax_index
-    REAL (KIND=gp) :: Ei, Eref, Emax
-    real(kind = gp), dimension(nimages) :: k
-    real(kind = gp), dimension(:), allocatable :: elastic_gradient
+    REAL (gp) :: Ei, Eref, Emax
+    real(gp), dimension(nimages) :: k
+    real(gp), dimension(:), allocatable :: elastic_gradient
 
     ALLOCATE( elastic_gradient( ndim ) )
 
@@ -449,9 +449,9 @@ contains
     IMPLICIT NONE
 
     integer, intent(in) :: nimages, ndim
-    real(kind = gp), dimension(ndim, nimages), intent(in) :: tgt, PES_grad
-    real(kind = gp), dimension(ndim, nimages), intent(in) :: grad
-    real(kind = gp), dimension(nimages), intent(out) :: error
+    real(gp), dimension(ndim, nimages), intent(in) :: tgt, PES_grad
+    real(gp), dimension(ndim, nimages), intent(in) :: grad
+    real(gp), dimension(nimages), intent(out) :: error
 
     INTEGER :: i
 
@@ -480,7 +480,7 @@ contains
     real(gp), dimension(neb%nimages), intent(out) :: error, F
     logical, intent(out) :: loop
 
-    integer :: i, n_in, n_fin
+    integer :: i, n_in, n_fin, istat
     real(gp) :: err
     real(gp), dimension(:,:), allocatable :: tangent, grad
     logical :: file_exists
@@ -496,6 +496,9 @@ contains
     END IF
     allocate(tangent(neb%ndim, neb%nimages), grad(neb%ndim, neb%nimages))
 
+!!$    do i = 2, neb%nimages - 1
+!!$       CALL compute_tangent(tangent, neb%ndim, 3, V(i-1:i+1), pos(:,i-1:i+1), Lx, Ly, Lz)
+!!$    end do
     CALL compute_tangent(tangent, neb%ndim, neb%nimages, V, pos, Lx, Ly, Lz)
 
     if (iteration > 0 .and. neb%algorithm >= 4 ) THEN
@@ -540,7 +543,7 @@ contains
 
     inquire(FILE = exit_file, EXIST = file_exists)
     IF ( file_exists ) THEN
-       CALL SYSTEM ("rm -f EXIT")
+       call delete(trim(exit_file),len(trim(exit_file)),istat)
 
        WRITE(*,*) " WARNING :  soft exit required"
        WRITE(*,*) " STOPPING ...                 "
@@ -597,7 +600,7 @@ contains
     character(len = *), intent(in) :: restart_file
     real(gp), dimension(nimages), intent(in) :: V
     real(gp), dimension(ndim, nimages), intent(in) :: pos, PES_grad
-    integer, dimension(ndim), intent(in) :: fix_atom
+    real(gp), dimension(ndim), intent(in) :: fix_atom
 
     INTEGER             :: i, j
     INTEGER, PARAMETER  :: unit = 10
@@ -612,9 +615,9 @@ contains
           WRITE(unit,fmt1) pos(j,i),     & 
                pos((j+1),i), &
                pos((j+2),i), &
-               fix_atom(j),     &
-               fix_atom((j+1)), &
-               fix_atom((j+2)), &
+               int(fix_atom(j)),     &
+               int(fix_atom((j+1))), &
+               int(fix_atom((j+2))), &
                -PES_grad(j,i),     &
                -PES_grad((j+1),i), &
                -PES_grad((j+2),i)
@@ -724,3 +727,25 @@ contains
   END SUBROUTINE write_dat_files
 
 END MODULE module_images
+
+! Routines for bindings.
+subroutine neb_new(neb, nat, nimages, algorithm)
+  use module_images
+  implicit none
+
+  type(NEB_data), pointer :: neb
+  integer, intent(in) :: nat, nimages, algorithm
+
+  allocate(neb)
+  call init_images(neb, 3 * nat, nimages, algorithm)
+END SUBROUTINE neb_new
+
+subroutine neb_free(neb)
+  use module_images
+  implicit none
+
+  type(NEB_data), pointer :: neb
+
+  call deallocate_images(neb)
+  deallocate(neb)
+end subroutine neb_free

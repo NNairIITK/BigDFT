@@ -257,7 +257,22 @@ subroutine run_objects_free(runObj, subname)
   call yaml_close_all_streams()
 END SUBROUTINE run_objects_free
 
-subroutine run_objects_set_from_files(runObj, radical, posinp)
+subroutine run_objects_free_container(runObj)
+  use module_types
+  use module_base
+  use yaml_output
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+  integer :: i_stat, i_all
+
+  if (associated(runObj%rxyz)) then
+     i_all=-product(shape(runObj%rxyz))*kind(runObj%rxyz)
+     deallocate(runObj%rxyz,stat=i_stat)
+     call memocc(i_stat,i_all,'runObj%rxyz',"run_objects_free_container")
+  end if
+END SUBROUTINE run_objects_free_container
+
+subroutine run_objects_init_from_files(runObj, radical, posinp)
   use module_interfaces
   use module_types
   implicit none
@@ -272,23 +287,51 @@ subroutine run_objects_set_from_files(runObj, radical, posinp)
   allocate(runObj%rst)
   call restart_objects_new(runObj%rst)
   call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
-  call restart_objects_set_nat(runObj%rst, runObj%atoms%nat, "run_objects_set_from_files")
+  call restart_objects_set_nat(runObj%rst, runObj%atoms%nat, "run_objects_init_from_files")
   call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
-END SUBROUTINE run_objects_set_from_files
+END SUBROUTINE run_objects_init_from_files
 
-subroutine run_objects_set(runObj, inputs, atoms, rst)
+!!$subroutine run_objects_init_from_objects(runObj, atoms, inputs, rst)
+!!$  use module_types
+!!$  implicit none
+!!$  type(run_objects), intent(out) :: runObj
+!!$  type(atoms_data), intent(in), target :: atoms
+!!$  type(input_variables), intent(in), target, optional :: inputs
+!!$  type(restart_objects), intent(in), target, optional :: rst
+!!$
+!!$  call run_objects_init(runObj)
+!!$  runObj%atoms  => atoms
+!!$  if (present(inputs)) then
+!!$     runObj%inputs => inputs
+!!$  else
+!!$  end if
+!!$  if (present(rst)) then
+!!$     runObj%rst    => rst
+!!$  else
+!!$  end if
+!!$END SUBROUTINE run_objects_init_from_objects
+
+subroutine run_objects_init_container(runObj, inputs, atoms, rst, rxyz0)
   use module_types
   implicit none
   type(run_objects), intent(out) :: runObj
   type(input_variables), intent(in), target :: inputs
   type(atoms_data), intent(in), target :: atoms
   type(restart_objects), intent(in), target :: rst
+  real(gp), intent(in), optional :: rxyz0
+
+  integer :: i_stat
 
   call run_objects_init(runObj)
   runObj%atoms  => atoms
   runObj%inputs => inputs
   runObj%rst    => rst
-END SUBROUTINE run_objects_set
+  allocate(runObj%rxyz(3, atoms%nat), stat = i_stat)
+  call memocc(i_stat, runObj%rxyz, 'runObj%rxyz', "run_objects_init_container")
+  if (present(rxyz0)) then
+     call vcopy(3 * atoms%nat, rxyz0, 1, runObj%rxyz(1,1), 1)
+  end if
+END SUBROUTINE run_objects_init_container
 
 !>  Main routine which does self-consistent loop.
 !!  Does not parse input file and no geometry optimization.

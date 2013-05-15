@@ -289,7 +289,7 @@ test_forces_SOURCES = test_forces.f90
 test_forces_LDADD = $(bigdft_library)
 
 NEB_SOURCES = NEB.f90
-NEB_LDADD = $(bigdft_library)
+NEB_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/src/MPIfake.f90
 memguess_LDADD = $(bigdft_library) @LINALG_LIBS@
@@ -366,6 +366,7 @@ $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 		$(srcdir)/bindings/wrappers.c \
 		$(srcdir)/bindings/wrapper_inputs.c \
 		$(srcdir)/bindings/wrapper_run.c \
+		$(srcdir)/bindings/wrapper_neb.c \
 		$(srcdir)/bindings/wrapper_atoms.c
 
 $(typelibs_DATA): $(gir_DATA) $(G_IR_COMPILER)

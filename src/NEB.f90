@@ -39,6 +39,7 @@
 !> Module for NEB calculations (variables)
 MODULE NEB_variables
   use module_defs
+  use module_types
 
   IMPLICIT NONE
  
@@ -47,21 +48,28 @@ MODULE NEB_variables
   CHARACTER (LEN=80)                     :: data_file, interpolation_file, barrier_file
   CHARACTER (LEN=80)                     :: restart_file
   CHARACTER (LEN=80)                     :: job_name
-  LOGICAL                                :: restart
+  LOGICAL                                :: restart, external_call
   INTEGER                                :: N
   REAL (gp)                              :: Lx, Ly, Lz
   REAL (gp), DIMENSION(:,:), ALLOCATABLE :: pos
   REAL (gp), DIMENSION(:,:), ALLOCATABLE :: PES_gradient
-  INTEGER, DIMENSION(:), ALLOCATABLE     :: fix_atom
+  real (gp), DIMENSION(:), ALLOCATABLE   :: fix_atom
   REAL (gp), DIMENSION(:), ALLOCATABLE   :: V, F, error
   REAL (gp)                              :: tolerance
+  integer, dimension(4) :: mpi_info
+  character(len=60) :: run_id
+  type(input_variables) :: ins
+  type(atoms_data) :: atoms
+  type(restart_objects) :: rst
 
 END MODULE NEB_variables
 
 !> Module for NEB calculations
 MODULE NEB_routines
   use module_defs
+  use module_types
   use module_images
+  use module_interfaces
   USE NEB_variables
   
   IMPLICIT NONE
@@ -79,7 +87,6 @@ MODULE NEB_routines
 
     SUBROUTINE read_input
 
-      use module_types
       use module_interfaces
 
       IMPLICIT NONE
@@ -91,12 +98,11 @@ MODULE NEB_routines
       INTEGER, PARAMETER                         :: unit = 10
       REAL (gp), DIMENSION(:), ALLOCATABLE :: d_R
       REAL (gp), DIMENSION(:,:), ALLOCATABLE :: vel0
-      type(atoms_data)                           :: at
       real(gp), dimension(:,:), pointer  :: rxyz
       real(gp), dimension(3, 1000)       :: xcart1, xcart2
       real(gp), dimension(3)             :: acell1, acell2
       logical :: file_exists, climbing, optimization
-      integer :: max_iterations
+      integer :: max_iterations, ierr, nconfig
       real(gp) :: convergence, damp, k_min, k_max, ds, temp_req
 
       NAMELIST /NEB/ first_config,        &
@@ -117,6 +123,9 @@ MODULE NEB_routines
          num_of_images
 
 !! default values are assigned
+      external_call     = .true.
+
+      call bigdft_init(mpi_info, nconfig, run_id, ierr)
 
       scratch_dir       = "./"
 
@@ -145,7 +154,10 @@ MODULE NEB_routines
       Ly = 0.D0
       Lz = 0.D0
 
-      READ( * , NML=NEB )
+      open(unit = 123, file = "input", action = "read")
+      READ(123 , NML=NEB )
+      close(123)
+
       neb_%climbing = climbing
       neb_%optimization = optimization
       neb_%convergence = convergence
@@ -220,29 +232,32 @@ MODULE NEB_routines
 
       END IF
 
-      call read_atomic_file(trim(first_config), 0, at, rxyz)
-      n1 = at%nat
-      acell1(1) = at%alat1
-      acell1(2) = at%alat2
-      acell1(3) = at%alat3
-      xcart1(:,1:at%nat) = rxyz
+      call atoms_nullify(atoms)
+      call read_atomic_file(trim(first_config), mpi_info(1), atoms, rxyz)
+      n1 = atoms%nat
+      acell1(1) = atoms%alat1
+      acell1(2) = atoms%alat2
+      acell1(3) = atoms%alat3
+      xcart1(:,1:atoms%nat) = rxyz
       if (acell1(1) == 0.) acell1(1) = maxval(rxyz(1,:)) - minval(rxyz(1,:))
       if (acell1(2) == 0.) acell1(2) = maxval(rxyz(2,:)) - minval(rxyz(2,:))
       if (acell1(3) == 0.) acell1(3) = maxval(rxyz(3,:)) - minval(rxyz(3,:))
       deallocate(rxyz)
+      call deallocate_atoms(atoms, "read_input")
 
-      call read_atomic_file(trim(last_config), 0, at, rxyz)
-      n2 = at%nat
-      acell2(1) = at%alat1
-      acell2(2) = at%alat2
-      acell2(3) = at%alat3
-      xcart2(:,1:at%nat) = rxyz
+      call atoms_nullify(atoms)
+      call read_atomic_file(trim(last_config), mpi_info(1), atoms, rxyz)
+      n2 = atoms%nat
+      acell2(1) = atoms%alat1
+      acell2(2) = atoms%alat2
+      acell2(3) = atoms%alat3
+      xcart2(:,1:atoms%nat) = rxyz
       if (acell2(1) == 0.) acell2(1) = maxval(rxyz(1,:)) - minval(rxyz(1,:))
       if (acell2(2) == 0.) acell2(2) = maxval(rxyz(2,:)) - minval(rxyz(2,:))
       if (acell2(3) == 0.) acell2(3) = maxval(rxyz(3,:)) - minval(rxyz(3,:))
       deallocate(rxyz)
 
-      if (at%geocode == 'F') then
+      if (atoms%geocode == 'F') then
         acell1 = max(acell1, acell2)
         acell2 = acell1
       end if
@@ -405,13 +420,28 @@ MODULE NEB_routines
 
      END IF
 
+     if (.not. external_call) then
+        call standard_inputfile_names(ins,trim(run_id), mpi_info(1))
+        call default_input_variables(ins)
+        call inputs_parse_params(ins, mpi_info(1), .true.)
+        call inputs_parse_add(ins, atoms, mpi_info(1), .true.)
+
+        call init_atomic_values((mpi_info(1) == 0), atoms, ins%ixc)
+        call read_atomic_variables(atoms, trim(ins%file_igpop),ins%nspin)
+
+        call restart_objects_new(rst)
+        call restart_objects_set_mode(rst, ins%inputpsiid)
+        call restart_objects_set_nat(rst, atoms%nat, "read_input")
+        call restart_objects_set_mat_acc(rst, mpi_info(1), ins%matacc)
+     end if
+
    END SUBROUTINE read_input
 
     
     SUBROUTINE dyn_allocation
 
       IMPLICIT NONE
-     
+
       ALLOCATE( pos( neb_%ndim , neb_%nimages ) )
 
       ALLOCATE( PES_gradient( neb_%ndim , neb_%nimages ) )          
@@ -426,14 +456,14 @@ MODULE NEB_routines
 
     END SUBROUTINE dyn_allocation     
 
-
     SUBROUTINE search_MEP
 
       IMPLICIT NONE
 
-      INTEGER         :: iteration
-      LOGICAL         :: stat
-
+      INTEGER :: iteration, i, N_in, N_fin, infocode, ierr
+      LOGICAL :: stat
+      type(run_objects) :: runObj
+      type(DFT_global_output) :: outs
 
       open(unit = 456, file = trim(barrier_file), action = "WRITE")
       write(456, "(A)") "# NEB barrier file"
@@ -445,28 +475,63 @@ MODULE NEB_routines
 
       iteration = 0
       minimization: do
-         CALL PES_IO(neb_%optimization .or. (.not. restart .and. iteration == 0),stat)
-         if (.not. stat) exit minimization
+         if (external_call) then
+            CALL PES_IO(neb_%optimization .or. (.not. restart .and. iteration == 0),stat)
+            if (.not. stat) exit minimization
+         else
+            if (neb_%optimization .or. (.not. restart .and. iteration == 0)) then
+               N_in = 1
+               N_fin = neb_%nimages
+            else
+               N_in = 2
+               N_fin = neb_%nimages - 1
+            end if
+            call to_zero((N_fin - N_in + 1), V(N_in))
+            call to_zero((N_fin - N_in + 1) * neb_%ndim, PES_gradient(1,N_in))
+            do i = N_in, N_fin, 1
+               if (modulo(i-N_in,mpi_info(4)) == mpi_info(3)) then
+                  call run_objects_init_container(runObj, ins, atoms, rst, pos(1,i))
+                  call init_global_output(outs, runObj%atoms%nat)
+                  call call_bigdft(runObj,outs,mpi_info(2),mpi_info(1),infocode)
+                  call run_objects_free_container(runObj)
+                  call dsbmv('L', neb_%ndim, 0, -1.d0, fix_atom(1), 1, outs%fxyz(1,1), 1, 0.d0, PES_gradient(1, i), 1)
+                  V(i) = outs%energy
+                  call deallocate_global_output(outs)
+               end if
+            end do
+            call mpiallred(V(N_in), (N_fin - N_in + 1), MPI_SUM, MPI_COMM_WORLD, ierr)
+            V(N_in:N_fin) = V(N_in:N_fin) / mpi_info(2)
+            call mpiallred(PES_gradient(1,N_in), neb_%ndim * (N_fin - N_in + 1), MPI_SUM, MPI_COMM_WORLD, ierr)
+            PES_gradient(1, N_in:N_fin) = PES_gradient(1, N_in:N_fin) / mpi_info(2)
+         end if
 
          call compute_neb_pos(stat, iteration, error, F, pos, V, PES_gradient, Lx, Ly, Lz, neb_)
 
-         CALL write_restart(restart_file, neb_%ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
-         if (neb_%algorithm >= 4) then
-            CALL write_restart_vel(neb_, trim(scratch_dir) // "velocities_file")
-         end if
+         if (mpi_info(1) == 0 .and. mpi_info(3) == 0) then
+            CALL write_restart(restart_file, neb_%ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
+            if (neb_%algorithm >= 4) then
+               CALL write_restart_vel(neb_, trim(scratch_dir) // "velocities_file")
+            end if
 
-         if (iteration > 1) then
-            CALL write_dat_files(data_file, interpolation_file, neb_%ndim, neb_%nimages, pos, V, F, error, Lx, Ly, Lz)
-            open(unit = 456, file = trim(barrier_file), action = "WRITE", position = "APPEND")
-            WRITE(456, fmt4) iteration - 1, ( maxval(V(2:neb_%nimages - 1)) - V(1) ) * Ha_eV, &
-                 & maxval(error) * ( Ha_eV / Bohr_Ang ) 
-            WRITE(*, fmt4)   iteration - 1, ( maxval(V(2:neb_%nimages - 1)) - V(1) ) * Ha_eV, &
-                 & maxval(error) * ( Ha_eV / Bohr_Ang ) 
-            close(unit = 456)
+            if (iteration > 1) then
+               CALL write_dat_files(data_file, interpolation_file, neb_%ndim, neb_%nimages, pos, V, F, error, Lx, Ly, Lz)
+               open(unit = 456, file = trim(barrier_file), action = "WRITE", position = "APPEND")
+               WRITE(456, fmt4) iteration - 1, ( maxval(V(2:neb_%nimages - 1)) - V(1) ) * Ha_eV, &
+                    & maxval(error) * ( Ha_eV / Bohr_Ang ) 
+               WRITE(*, fmt4)   iteration - 1, ( maxval(V(2:neb_%nimages - 1)) - V(1) ) * Ha_eV, &
+                    & maxval(error) * ( Ha_eV / Bohr_Ang ) 
+               close(unit = 456)
+            end if
          end if
 
          if (.not. stat) exit minimization
       end do minimization
+
+      if (mpi_info(1) == 0 .and. mpi_info(3) == 0) then
+         DO i = 1, neb_%nimages
+            WRITE(*,fmt5) i, V(i) * Ha_eV, error(i) * ( Ha_eV / Bohr_Ang )
+         END DO
+      end if
     END SUBROUTINE search_MEP
 
     SUBROUTINE PES_IO( flag , stat )
@@ -528,7 +593,7 @@ MODULE NEB_routines
           END DO
 
           PES_gradient(:,replica) = PES_gradient(:,replica) * &
-                                    DBLE( fix_atom ) * (-1.d0)
+                                    fix_atom * (-1.d0)
 
         END DO
 
@@ -536,25 +601,11 @@ MODULE NEB_routines
 
     END SUBROUTINE PES_IO
 
-    SUBROUTINE write_output
-
-      IMPLICIT NONE
-
-      INTEGER  :: i
-
-
-      DO i = 1, neb_%nimages
-
-        WRITE(*,fmt5) i, V(i) * Ha_eV, error(i) * ( Ha_eV / Bohr_Ang )
-
-      END DO
-
-    END SUBROUTINE write_output
-
-
     SUBROUTINE deallocation
 
       IMPLICIT NONE
+
+      integer :: ierr
 
       IF ( ALLOCATED( pos ) )              DEALLOCATE( pos )
       IF ( ALLOCATED( PES_gradient ) )     DEALLOCATE( PES_gradient )
@@ -564,6 +615,14 @@ MODULE NEB_routines
       IF ( ALLOCATED( error ) )            DEALLOCATE( error )
       
       call deallocate_images(neb_)
+      call deallocate_atoms(atoms, "deallocation")
+
+      if (.not. external_call) then
+         call free_input_variables(ins)
+         call free_restart_objects(rst,"deallocation")
+      end if
+
+      call bigdft_finalize(ierr)
     END SUBROUTINE deallocation
 
 END MODULE NEB_routines
@@ -577,8 +636,6 @@ PROGRAM NEB
   CALL read_input
 
   CALL search_MEP
-
-  CALL write_output
 
   CALL deallocation
 

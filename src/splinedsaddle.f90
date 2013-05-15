@@ -99,7 +99,7 @@ program splined_saddle
       if (modulo(iconfig-1,mpi_info(4))==mpi_info(3)) then
 
          ! Read all input files. This should be the sole routine which is called to initialize the run.
-         call run_objects_set_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
+         call run_objects_init_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
          call init_global_output(outs, runObj%atoms%nat)
 
 !!$     !welcome screen
@@ -370,10 +370,6 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     endif
     call kpt_input_variables(iproc,'input.kpt',ll_inputs,atoms)
     !-----------------------------------------------------------
-    ! Building run objects from arguments.
-    call run_objects_set(runObj, inputs, atoms, rst)
-    call run_objects_set(ll_runObj, ll_inputs, atoms, rst)
-    !-----------------------------------------------------------
     allocate(rxyz_2(3,atoms%nat+ndeb1))
     call dmemocc(3*(atoms%nat),3*(atoms%nat+ndeb1),rxyz_2,'rxyz_2')
     allocate(rxyz_tmp(3,atoms%nat+ndeb1))
@@ -384,10 +380,6 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     call dmemocc(n*(np+1),n*(np+1+ndeb2),x,'x')
     allocate(xneb(n,0:np_neb+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating xneb'
     call dmemocc(n*(np_neb+1),n*(np_neb+1+ndeb2),xneb,'xneb')
-    allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
-    call dmemocc(3*(atoms%nat),3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
-    allocate(ll_runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating ll_runObj%rxyz.'
-    call dmemocc(3*(atoms%nat),3*(atoms%nat+ndeb1),ll_runObj%rxyz,'runObj%rxyz')
     call init_global_output(outends(1), atoms%nat)
     call init_global_output(outends(2), atoms%nat)
     !if(iproc==0) write(*,*) 'ALIREZA-01'
@@ -440,12 +432,13 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     pnow%exends_b(1)=epot_sp
     call atomic_dot(atoms,outends(1)%fxyz(1,1),outends(1)%fxyz(1,1),fnrm1)
     fnrm1=sqrt(fnrm1)
-    call vcopy(n, x(1,np), 1, runObj%rxyz(1,1), 1)
+    call run_objects_init_container(runObj, inputs, atoms, rst, x(1,np))
     !if(iproc==0) write(*,*) 'ALIREZA-03'
     call cpu_time(time1)
     call call_bigdft(runObj,outends(2),nproc,iproc,infocode)
-    pnow%exends_b(2)=outends(2)%energy
     call cpu_time(time2)
+    call run_objects_free_container(runObj)
+    pnow%exends_b(2)=outends(2)%energy
     ncount_bigdft=ncount_bigdft+1
     pnow%ncount=2
     pnow%time=2.d0*(time2-time1)
@@ -460,7 +453,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     endif
     !---------------------------------------------------------------------------
     if(trim(pnow%hybrid)=='yes') then
-       call vcopy(n, x(1,0), 1, ll_runObj%rxyz(1,1), 1)
+       call run_objects_init_container(ll_runObj, ll_inputs, atoms, rst, x(1,0))
        call cpu_time(time1)
        call call_bigdft(ll_runObj,outends(1),nproc,iproc,infocode)
        pnow%exends(1) = outends(1)%energy
@@ -471,8 +464,9 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
        call vcopy(n, x(1,np), 1, ll_runObj%rxyz(1,1), 1)
        call cpu_time(time1)
        call call_bigdft(ll_runObj,outends(2),nproc,iproc,infocode)
-       pnow%exends(2) = outends(2)%energy
        call cpu_time(time2)
+       call run_objects_free_container(ll_runObj)
+       pnow%exends(2) = outends(2)%energy
        ncount_bigdft=ncount_bigdft+1
        pnow%ncount_ll=pnow%ncount_ll+1
        pnow%time_ll=pnow%time_ll+(time2-time1)
@@ -550,8 +544,6 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     deallocate(xneb,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating xneb'
     deallocate(rxyz_2,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating rxyz_2'
     deallocate(rxyz_tmp,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating rxyz_tmp'
-    deallocate(runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating runObj%rxyz.'
-    deallocate(ll_runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating ll_runObj%rxyz.'
     call deallocate_global_output(outends(1))
     call deallocate_global_output(outends(2))
 end subroutine givemesaddle
@@ -665,9 +657,7 @@ subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
             x(i,1:np-1)=x(i,0)
         endif
     enddo
-    call run_objects_set(runObj, ll_inputs, atoms, rst)
-    allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
-    call dmemocc(3*atoms%nat,3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
+    call run_objects_init_container(runObj, ll_inputs, atoms, rst)
     lp=mp+1
     do iter=1,10
         !call calenergyforces(n,x(1,lp),epot,ft)
@@ -699,7 +689,7 @@ subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
             endif
         enddo
     enddo
-    deallocate(runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating runObj%rxyz.'
+    call run_objects_free_container(runObj)
     deallocate(xt,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating xt.'
     call deallocate_global_output(outs)
 end subroutine improvepeak
@@ -1439,8 +1429,7 @@ subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
 
     allocate(tang(n,0:np+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
     call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
-    call run_objects_set(runObj, ll_inputs, atoms, rst)
-    allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
+    call run_objects_init_container(runObj, ll_inputs, atoms, rst)
     call dmemocc(3*atoms%nat,3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
     do ip=1,np-1
         call vcopy(n, x(1,ip), 1, runObj%rxyz(1,1), 1)
@@ -1454,7 +1443,7 @@ subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
         call calmaxforcecomponentanchors(atoms,2,outs(ip:ip),fnrmarr(ip),fspmaxarr(ip))
         !fnrmarr(ip)=DNRM2(n,f(1,ip),1) !HERE
     enddo
-    deallocate(runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating runObj%rxyz.'
+    call run_objects_free_container(runObj)
     call caltangentupwind(n,np,x,pnow%ex,tang)
     springcons=5.d-2
     !springcons=1.d-1 !non-BigDFT
@@ -2158,9 +2147,7 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
 
     allocate(tang(n,0:np+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
     call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
-    call run_objects_set(runObj, ll_inputs, atoms, rst)
-    allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
-    call dmemocc(3*atoms%nat,3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
+    call run_objects_init_container(runObj, ll_inputs, atoms, rst)
     mp=-1
     fnrmmax=0.d0
     do ip=1,np-1
@@ -2183,7 +2170,7 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
         pnow%ncount_ll=pnow%ncount_ll+1
         pnow%time_ll=pnow%time_ll+(time2-time1)
     enddo
-    deallocate(runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating runObj%rxyz.'
+    call run_objects_free_container(runObj)
     epotarr(0)=pnow%ex(0)
     epotarr(np)=pnow%ex(pnow%npv)
     call caltangentupwind(n,np,x,epotarr,tang)
@@ -2238,19 +2225,15 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold
     call caltmax2(istep,n,np,x,xold,outends,etmax,xtmax,ftmax,pnow,pold,nproc,iproc,&
         atoms,rst,ll_inputs,ncount_bigdft)
     if(trim(pnow%hybrid)=='yes') then
-       call run_objects_set(runObj, inputs, atoms, rst)
-       allocate(runObj%rxyz(3,atoms%nat),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
-       call dmemocc(3*atoms%nat,3*atoms%nat,runObj%rxyz,'runObj%rxyz')
+       call run_objects_init_container(runObj, inputs, atoms, rst, xtmax(1))
        call init_global_output(outs, atoms%nat)
-       call vcopy(n, xtmax(1), 1, runObj%rxyz(1,1), 1)
        inputs%inputPsiId=0
        call cpu_time(time1)
        call call_bigdft(runObj,outs,nproc,iproc,infocode)
-       etmax = outs%energy
        call cpu_time(time2)
-       call vcopy(n, outs%fxyz(1,1), 1, ftmax(1), 1)
-       deallocate(runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating runObj%rxyz.'
-       call deallocate_global_output(outs)
+       call run_objects_free_container(runObj)
+       etmax = outs%energy
+       call deallocate_global_output(outs, ftmax(1))
        ncount_bigdft=ncount_bigdft+1
        pnow%ncount=pnow%ncount+1
        pnow%time=pnow%time+(time2-time1)
@@ -2900,9 +2883,7 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atom
 
     allocate(tang(n+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
     call dmemocc(n,n+ndeb1,tang,'tang')
-    call run_objects_set(runObj, ll_inputs, atoms, rst)
-    allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
-    call dmemocc(3*atoms%nat,3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
+    call run_objects_init_container(runObj, ll_inputs, atoms, rst)
     call init_global_output(outs, atoms%nat)
     pnow%ex(0)=pnow%exends(1)
     pnow%ex(npv)=pnow%exends(2)
@@ -3025,7 +3006,7 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atom
             !pnow%exd(ip)=-mydot(n,ft,tang) 
         endif
     enddo
-    deallocate(runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating runObj%rxyz.'
+    call run_objects_free_container(runObj)
     deallocate(tang,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating tang.'
     call deallocate_global_output(outs)
 end subroutine fill_ex_exd
@@ -3992,25 +3973,21 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     !    tang(i)=0.d0
     !enddo
     !call calenergyforces(n,xt,epot,ft)
-    call run_objects_set(runObj, ll_inputs, atoms, rst)
-    allocate(runObj%rxyz(3,atoms%nat+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating runObj%rxyz.'
-    call dmemocc(3*atoms%nat,3*(atoms%nat+ndeb1),runObj%rxyz,'runObj%rxyz')
+    call run_objects_init_container(runObj, ll_inputs, atoms, rst, xt(1))
     call init_global_output(outs, atoms%nat)
-    call vcopy(n, xt(1), 1, runObj%rxyz(1,1), 1)
     call cpu_time(time1)
     call call_bigdft(runObj,outs,nproc,iproc,infocode)
-    epot = outs%energy
     call cpu_time(time2)
-    call vcopy(n, outs%fxyz(1,1), 1, ft(1), 1)
+    call run_objects_free_container(runObj)
+    epot = outs%energy
+    call deallocate_global_output(outs, ft(1))
     ncount_bigdft=ncount_bigdft+1
     pnow%ncount_ll=pnow%ncount_ll+1
     pnow%time_ll=pnow%time_ll+(time2-time1)
     call atomic_dot(atoms,ft,tang,ett)
     !ett=mydot(n,ft,tang)
     !write(*,'(a20,2f24.15,e24.15)') 'inside: tt,epot,ett',tt,epot,ett
-    deallocate(runObj%rxyz,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating runObj%rxyz.'
     deallocate(tang,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating tang.'
-    call deallocate_global_output(outs)
 end subroutine func
 
 

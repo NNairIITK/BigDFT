@@ -2452,12 +2452,18 @@ subroutine init_global_output(outs, nat)
   outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
 END SUBROUTINE init_global_output
 
-subroutine deallocate_global_output(outs)
+subroutine deallocate_global_output(outs, fxyz)
   use module_base
   implicit none
   type(DFT_global_output), intent(inout) :: outs
+  real(gp), intent(out), optional :: fxyz
 
-  if (associated(outs%fxyz)) deallocate(outs%fxyz)
+  if (associated(outs%fxyz)) then
+     if (present(fxyz)) then
+        call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz, 1)
+     end if
+     deallocate(outs%fxyz)
+  end if
 END SUBROUTINE deallocate_global_output
 
 !cprj_clean will be obsolete with the PAW library

@@ -57,18 +57,14 @@ program BigDFT
       if (modulo(iconfig-1,ngroups)==igroup) then
          !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
          ! Read all input files.
-         call run_objects_set_from_files(runObj, arr_radical(iconfig), arr_posinp(iconfig))
+         call run_objects_init_from_files(runObj, arr_radical(iconfig), arr_posinp(iconfig))
          call init_global_output(outs, runObj%atoms%nat)
          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 
          if (runObj%inputs%ncount_cluster_x > 1) then
-            filename=trim(runObj%inputs%dir_output)//'geopt.mon'
-            open(unit=16,file=filename,status='unknown',position='append')
-            if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
             if (iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
             ! geometry optimization
             call geopt(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
-            close(16)
          end if
 
          !if there is a last run to be performed do it now before stopping

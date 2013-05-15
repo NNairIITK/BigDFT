@@ -112,7 +112,7 @@ program test_forces
       if (modulo(iconfig-1,ngroups)==igroup) then
 
          ! Read all input files.
-         call run_objects_set_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
+         call run_objects_init_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
 
 !!$      !standard names
 !!$      call standard_inputfile_names(inputs,radical,nproc)

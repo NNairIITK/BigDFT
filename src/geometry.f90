@@ -59,10 +59,15 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   character(len=6) :: outfile, fmt
   character(len=5) :: fn4
   character(len=40) :: comment
+  character(len=60) :: filename
   !-------------------------------------------
 
   !Geometry Initialization
   call geopt_init()
+
+  filename=trim(runObj%inputs%dir_output)//'geopt.mon'
+  open(unit=16,file=filename,status='unknown',position='append')
+  if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
 
   if (iproc == 0 .and. parmin%verbosity > 0)  write(16,'(a)')  & 
      '# Geometry optimization log file, grep for GEOPT for consistent output'
@@ -169,6 +174,8 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
 
   end select
   !endif
+
+  close(16)
 
   if (iproc==0) call yaml_map('End of minimization using ',parmin%approach)
   !if (iproc==0) write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach

@@ -18,7 +18,7 @@ bindings_files = bindingsf_fake.f90
 endif
 libbindings_a_SOURCES = bindingsf.f90 bindings_api.h bindings.h \
 	wrappers.c wrapper_inputs.c wrapper_run.c \
-	wrapper_atoms.c $(bindings_files)
+	wrapper_atoms.c wrapper_neb.c $(bindings_files)
 nodist_libbindings_a_SOURCES = $(nodist_bindings_files)
 
 EXTRA_DIST = bindings_dbus.xml
