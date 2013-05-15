@@ -11,8 +11,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer,intent(in) :: iproc, nproc
   type(atoms_data),intent(inout) :: at
   type(input_variables),intent(in) :: input ! need to hack to be inout for geopt changes
-  real(8),dimension(3,at%nat),intent(inout) :: rxyz
-  real(8),dimension(3,at%nat),intent(out) :: fpulay
+  real(8),dimension(3,at%astruct%nat),intent(inout) :: rxyz
+  real(8),dimension(3,at%astruct%nat),intent(out) :: fpulay
   type(DFT_local_fields), intent(inout) :: denspot
   real(gp), dimension(:), intent(inout) :: rhopotold
   type(nonlocal_psp_descriptors),intent(in) :: nlpspd
@@ -151,7 +151,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
          !! do iorb=1,tmb%orbs%norbp
          !!     ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
          !!     iiat=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
-         !!     tmb%confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+         !!     tmb%confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
          !! end do
          !! target_function=TARGET_FUNCTION_IS_HYBRID
          !! nit_basis=input%lin%nItBasis_lowaccuracy
@@ -302,14 +302,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        ! for the first step of the coefficient optimization
        can_use_ham=.true.
        if(target_function==TARGET_FUNCTION_IS_TRACE) then
-           do itype=1,at%ntypes
+           do itype=1,at%astruct%ntypes
                if(input%lin%potentialPrefac_lowaccuracy(itype)/=0.d0) then
                    can_use_ham=.false.
                    exit
                end if
            end do
        else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
-           do itype=1,at%ntypes
+           do itype=1,at%astruct%ntypes
                if(input%lin%potentialPrefac_highaccuracy(itype)/=0.d0) then
                    can_use_ham=.false.
                    exit
@@ -519,7 +519,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ! Calculate Pulay correction to the forces
       call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, fpulay)
   else
-      call to_zero(3*at%nat, fpulay(1,1))
+      call to_zero(3*at%astruct%nat, fpulay(1,1))
   end if
 
   if(tmb%ham_descr%can_use_transposed) then
@@ -618,7 +618,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! Calculate Pulay correction to the forces
              call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, fpulay)
-             fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
+             fnrm_pulay=dnrm2(3*at%astruct%nat, fpulay, 1)/sqrt(dble(at%astruct%nat))
 
              if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
 
@@ -669,7 +669,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              end if
           else
               ! Calculation of Pulay forces not possible, so always start with low accuracy
-              call to_zero(3*at%nat, fpulay(1,1))
+              call to_zero(3*at%astruct%nat, fpulay(1,1))
               if (input%lin%scf_mode==LINEAR_FOE) then
                  nit_lowaccuracy=input%lin%nit_lowaccuracy
               else
@@ -882,7 +882,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   if(lowaccur_converged) then
       do iorb=1,lorbs%norbp
           iiat=onwhichatom(lorbs%isorb+iorb)
-          confdatarr(iorb)%prefac=input%lin%potentialPrefac_highaccuracy(at%iatype(iiat))
+          confdatarr(iorb)%prefac=input%lin%potentialPrefac_highaccuracy(at%astruct%iatype(iiat))
       end do
       target_function=TARGET_FUNCTION_IS_ENERGY
       nit_basis=input%lin%nItBasis_highaccuracy
@@ -896,7 +896,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   else
       do iorb=1,lorbs%norbp
           iiat=onwhichatom(lorbs%isorb+iorb)
-          confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+          confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
       end do
       target_function=TARGET_FUNCTION_IS_TRACE
       nit_basis=input%lin%nItBasis_lowaccuracy
@@ -914,7 +914,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   !!    do iorb=1,lorbs%norbp
   !!        ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
   !!        iiat=onwhichatom(lorbs%isorb+iorb)
-  !!        confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+  !!        confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
   !!    end do
   !!    wfnmd%bs%target_function=TARGET_FUNCTION_IS_HYBRID
   !!    wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
@@ -943,7 +943,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   real(8),intent(in) :: hx, hy, hz
   type(atoms_data),intent(in) :: at
   type(input_variables),intent(in) :: input
-  real(8),dimension(3,at%nat),intent(in):: rxyz
+  real(8),dimension(3,at%astruct%nat),intent(in):: rxyz
   type(DFT_wavefunction),intent(inout) :: KSwfn, tmb
   type(DFT_local_fields),intent(inout) :: denspot
   type(localizedDIISParameters),intent(inout) :: ldiis
@@ -1156,14 +1156,14 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs
   type(atoms_data),intent(in) :: at
-  real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
+  real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
   type(nonlocal_psp_descriptors),intent(in) :: nlpspd
   real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
   type(SIC_data),intent(in) :: SIC
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers),intent(inout) :: GPU
   type(DFT_wavefunction),intent(inout) :: tmb
-  real(kind=8),dimension(3,at%nat),intent(out) :: fpulay
+  real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
 
   ! Local variables
   integer:: istat, iall, ierr, iialpha, jorb
@@ -1284,7 +1284,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   !END DEBUG
 
    ! needs generalizing if dovrlp and dham are to have different structures
-   call to_zero(3*at%nat, fpulay(1,1))
+   call to_zero(3*at%astruct%nat, fpulay(1,1))
    do jdir=1,3
      !do ialpha=1,tmb%orbs%norb
      if (tmb%orbs%norbp>0) then
@@ -1315,10 +1315,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
      end if
    end do 
 
-   call mpiallred(fpulay(1,1), 3*at%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+   call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   if(iproc==0) then
-       do jat=1,at%nat
+       do jat=1,at%astruct%nat
            write(*,'(a,i5,3es16.6)') 'iat, fpulay', jat, fpulay(1:3,jat)
        end do
   end if
@@ -1411,7 +1411,7 @@ subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, co
   do iorb=1,orbs%norbp
       ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
       iiat=orbs%onwhichatom(orbs%isorb+iorb)
-      confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+      confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
   end do
   target_function=TARGET_FUNCTION_IS_HYBRID
   nit_basis=input%lin%nItBasis_lowaccuracy

@@ -96,7 +96,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
   type(wavefunctions_descriptors), intent(in) :: wfd,wfd_old
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz,rxyz_old
   real(wp), dimension(wfd_old%nvctr_c+7*wfd_old%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
   !Local variables
@@ -108,9 +108,9 @@ subroutine reformatmywaves(iproc,orbs,at,&
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
 
   !conditions for periodicity in the three directions
-  perx=(at%geocode /= 'F')
-  pery=(at%geocode == 'P')
-  perz=(at%geocode /= 'F')
+  perx=(at%astruct%geocode /= 'F')
+  pery=(at%astruct%geocode == 'P')
+  perz=(at%astruct%geocode /= 'F')
 
   !buffers realted to periodicity
   !WARNING: the boundary conditions are not assumed to change between new and old
@@ -126,10 +126,10 @@ subroutine reformatmywaves(iproc,orbs,at,&
   ty=0.0_gp
   tz=0.0_gp
 
-  do iat=1,at%nat
-     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
-     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
-     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+  do iat=1,at%astruct%nat
+     tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
+     ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
+     tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
   enddo
   displ=sqrt(tx+ty+tz)
 !  write(100+iproc,*) 'displacement',dis
@@ -326,8 +326,8 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(inout) :: orbs
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
   character(len=*), intent(in) :: filename
   integer, dimension(orbs%norb), optional :: orblist
@@ -354,9 +354,9 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
           wfd,psi)
   else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
      !conditions for periodicity in the three directions
-     perx=(at%geocode /= 'F')
-     pery=(at%geocode == 'P')
-     perz=(at%geocode /= 'F')
+     perx=(at%astruct%geocode /= 'F')
+     pery=(at%astruct%geocode == 'P')
+     perz=(at%astruct%geocode /= 'F')
 
      !buffers related to periodicity
      !WARNING: the boundary conditions are not assumed to change between new and old
@@ -598,7 +598,7 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   character(len=*), intent(in) :: filename
   !Local variables
@@ -620,7 +620,7 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
            call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
                 & orbs,iorb,ispinor,iorb_out)           
            call writeonewave(99,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
-                at%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),  & 
+                at%astruct%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),  & 
                 wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1),wfd%keyvloc(wfd%nseg_c+1), & 
                 psi(1,ispinor,iorb),psi(wfd%nvctr_c+1,ispinor,iorb), &
                 orbs%eval(iorb+orbs%isorb))
@@ -900,7 +900,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   character(len=*), intent(in) :: filename 
   type(DFT_wavefunction), intent(inout) :: tmb
   type(atoms_data), intent(inout) :: at
-  real(gp),dimension(3,at%nat),intent(in) :: rxyz
+  real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
 
   integer :: iorb, jorb, i_stat, i_all, iat, jat
   character(len=*),parameter :: subname='write_linear_matrices'
@@ -1041,7 +1041,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   integer,intent(in) :: iproc, nproc
   type(atoms_data), intent(inout) :: at
   type(DFT_wavefunction),intent(in):: tmb
-  real(gp),dimension(3,at%nat),intent(in) :: rxyz
+  real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
 
   ! Local variables
   logical :: reformat
@@ -1230,7 +1230,7 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz,p
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
   type(local_zone_descriptors), intent(in) :: Lzd
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(npsidim), intent(in) :: psi  ! Should be the real linear dimension and not the global
   real(wp), dimension(orbs%norb,orbs%norb), intent(in) :: coeff
   character(len=*), intent(in) :: filename
@@ -1253,7 +1253,7 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz,p
      ! Write the TMBs in the Plain BigDFT files.
      ! Use same ordering as posinp and llr generation
      ii = 0
-     do iat = 1, at%nat
+     do iat = 1, at%astruct%nat
         do iorb=1,orbs%norbp
            if(iat == orbs%onwhichatom(iorb+orbs%isorb)) then
               shift = 1
@@ -1271,7 +1271,7 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz,p
                     & Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3,& 
                     & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
                     & Lzd%Llr(ilr)%locregCenter,Lzd%Llr(ilr)%locrad, 4, 0.0d0, &  !put here the real potentialPrefac and Order
-                    & at%nat,rxyz,Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
+                    & at%astruct%nat,rxyz,Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
                     & Lzd%Llr(ilr)%wfd%keygloc,Lzd%Llr(ilr)%wfd%keyvloc, &
                     & Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
                     & Lzd%Llr(ilr)%wfd%keygloc(1,Lzd%Llr(ilr)%wfd%nseg_c+1), &
@@ -1293,7 +1293,7 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz,p
       else
          open(99, file=filename//'_coeff.bin', status='unknown',form='unformatted')
       end if
-      call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),at%nat,rxyz,orbs%norb,coeff,orbs%eval)
+      call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),at%astruct%nat,rxyz,orbs%norb,coeff,orbs%eval)
       close(99)
     end if
      call cpu_time(tr1)
@@ -1330,12 +1330,12 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3), intent(in) :: hgrids
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   integer, intent(out) :: confPotOrder
   real(gp), intent(out) :: locrad, confPotprefac
   real(wp), intent(out) :: eval
   real(gp), dimension(3), intent(out) :: locregCenter
-  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
   integer, dimension(*), intent(in) :: onwhichatom
   type(locreg_descriptors), intent(in) :: lr, glr
@@ -1359,7 +1359,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
 
   call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n_old(1), n_old(2), n_old(3), &
        ns_old(1), ns_old(2), ns_old(3), hgrids_old, lstat, error, onwhichatom_tmp, locrad, &
-       locregCenter, confPotOrder, confPotprefac, at%nat, rxyz_old, nvctr_c_old, nvctr_f_old)
+       locregCenter, confPotOrder, confPotprefac, at%astruct%nat, rxyz_old, nvctr_c_old, nvctr_f_old)
 
   if (.not. lstat) call io_error(trim(error))
   if (iorb_old /= iorb) stop 'readonewave_linear'
@@ -1409,7 +1409,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
      enddo
 
      ! NB assuming here geocode is the same in glr and llr
-     call reformat_one_supportfunction(wfd,at%geocode,hgrids_old,n_old, &
+     call reformat_one_supportfunction(wfd,at%astruct%geocode,hgrids_old,n_old, &
           psigold,hgrids,n,centre_old_box,centre_new_box,da,newz,theta,psi)
 
      i_all=-product(shape(psigold))*kind(psigold)
@@ -1637,7 +1637,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,&
   logical, intent(in) :: useFormattedInput
   integer, intent(in) :: unitwf,iproc,ntmb
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
   real(wp), dimension(ntmb,ntmb), intent(out) :: coeff
   real(wp), dimension(ntmb), intent(out) :: eval
 
@@ -1650,13 +1650,13 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,&
 
 
   call io_read_descr_coeff(unitwf, useFormattedInput, norb_old, ntmb_old, &
-       & lstat, error, rxyz_old, at%nat)
+       & lstat, error, rxyz_old, at%astruct%nat)
   if (.not. lstat) call io_error(trim(error))
 
   !conditions for periodicity in the three directions
-  perx=(at%geocode /= 'F')
-  pery=(at%geocode == 'P')
-  perz=(at%geocode /= 'F')
+  perx=(at%astruct%geocode /= 'F')
+  pery=(at%astruct%geocode == 'P')
+  perz=(at%astruct%geocode /= 'F')
 
   if (norb_old /= ntmb_old) then
      if (iproc == 0) write(error,"(A)") 'error in read coeffs, eval and coeffs should be ntmb*ntmb'
@@ -1709,8 +1709,8 @@ subroutine readmywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz_ol
   type(orbitals_data), intent(inout) :: orbs  ! orbs related to the basis functions
   type(local_zone_descriptors), intent(in) :: Lzd
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
   real(wp), dimension(npsidim), intent(out) :: psi  
   real(gp), dimension(orbs%norb,orbs%norb),intent(out) :: coeff
   character(len=*), intent(in) :: filename
@@ -1802,7 +1802,7 @@ END SUBROUTINE readmywaves_linear
 
 !> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell                                                                                                                                                                                                                                                                                                                                   
 !!  have changed
-subroutine readmywaves_linear_new(iproc,filename,iformat,at,tmb,rxyz_old,rxyz,ref_frags,fragInputVariables,orblist)
+subroutine readmywaves_linear_new(iproc,filename,iformat,at,tmb,rxyz_old,rxyz,ref_frags,fragInputVariables,frag_calc,orblist)
   use module_base
   use module_types
   use yaml_output
@@ -1813,11 +1813,12 @@ subroutine readmywaves_linear_new(iproc,filename,iformat,at,tmb,rxyz_old,rxyz,re
   integer, intent(in) :: iproc, iformat
   type(atoms_data), intent(in) :: at
   type(DFT_wavefunction), intent(inout) :: tmb
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
   character(len=*), intent(in) :: filename
   type(fragmentInputParameters), intent(in) :: fragInputVariables
   type(system_fragment), dimension(fragInputVariables%nfrag_ref), intent(inout) :: ref_frags
+  logical, intent(in) :: frag_calc
   integer, dimension(tmb%orbs%norb), intent(in), optional :: orblist
   !Local variables
   integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2
@@ -1831,7 +1832,7 @@ subroutine readmywaves_linear_new(iproc,filename,iformat,at,tmb,rxyz_old,rxyz,re
   logical :: lstat
   character(len=*), parameter :: subname='readmywaves_linear_new'
   ! to eventually be part of the fragment structure?
-  integer :: ndim_old, iiorb, ifrag
+  integer :: ndim_old, iiorb, ifrag, norb, isorb
   type(orbitals_data) :: orbs_old
   type(local_zone_descriptors) :: lzd_old
   real(wp), dimension(:), pointer :: psi_old
@@ -1864,7 +1865,7 @@ subroutine readmywaves_linear_new(iproc,filename,iformat,at,tmb,rxyz_old,rxyz,re
   !              & tmb%orbs,iorb,ispinor,iorb_out)
   !      end if  
   !      call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n_old, ns_old, hgrids_old, lstat, error, &
-  !           onwhichatom_tmp, locrad, locregCenter, confPotOrder, confPotprefac, at%nat, rxyz_old, nvctr_c_old, nvctr_f_old)
+  !           onwhichatom_tmp, locrad, locregCenter, confPotOrder, confPotprefac, at%astruct%nat, rxyz_old, nvctr_c_old, nvctr_f_old)
   !      close(99)
   !   end do
   !end do
@@ -1875,11 +1876,23 @@ subroutine readmywaves_linear_new(iproc,filename,iformat,at,tmb,rxyz_old,rxyz,re
   !         NTYPES,rxyz,atomnames,iatype)
   ! end do
 
+  ! SET UP ONWHICHFRAGMENT USING frag_index
 !type,public:: fragmentInputParameters
 !  integer :: nfrag_ref, nfrag
 !  integer, dimension(:), pointer :: frag_index ! array matching system fragments to reference fragments
 !  integer, dimension(:,:), pointer :: frag_info !array giving number of atoms in fragment and environment for reference fragments
 !end type fragmentInputParameters
+  ! what to do with above and in general when not a fragment calc?  Initialize fragment anyway but just have one?
+  ! are inwhichlocregs the same?  and does initializelinearfromfile need modifying?
+
+  ! lzd_old => ref_frags(onwhichfrag)%frag_basis%lzd
+  ! orbs_old -> ref_frags(onwhichfrag)%frag_basis%forbs ! <- BUT problem with it not being same type
+  ! phi_array_old => ref_frags(onwhichfrag)%frag_basis%phi
+
+  ! add parallelization later, for now all procs read all fragments and tmbs
+  ! initialize fragment lzd and phi_array_old for fragment, then allocate lzd_old which points to appropriate fragment entry
+
+
 
   ! use above information to generate lzds
   ! for now just copy orbs
@@ -1893,31 +1906,33 @@ subroutine readmywaves_linear_new(iproc,filename,iformat,at,tmb,rxyz_old,rxyz,re
      call nullify_locreg_descriptors(lzd_old%llr(ilr))
   end do
 
-  ! find size of psi_old and allocate
-  !ndim_old=0
-  !do iorb=1,tmb%orbs%norbp
-  !   ilr = orbs_old%inwhichlocreg(iorb+orbs_old%isorb)
-  !   do ispinor=1,tmb%orbs%nspinor
-  !      ndim_old = ndim_old + Lzd_old%Llr(ilr)%wfd%nvctr_c+7*Lzd_old%Llr(ilr)%wfd%nvctr_f
-  !   end do
-  !end do
-  !allocate(psi_old(ndim_old), stat=istat)
-  !call memocc(istat, psi_old, 'psi_old', subname)
-
   ! has size of new orbs, will possibly point towards the same tmb multiple times
   allocate(phi_array_old(tmb%orbs%norbp), stat=i_stat)
   do iorb=1,tmb%orbs%norbp
      nullify(phi_array_old(iorb)%psig)
-  enddo
+  end do
+
+  ! initialize fragments - after we've read headers?
+
+  !    call init_fragment(ref_frags(ifrag),fragInputVariables%frag_info(ifrag,1),fragInputVariables%frag_info(ifrag,2),&
+  !         NTYPES,rxyz,atomnames,iatype)
+
+!need forbs before loop, but need rxyz as well and only get that later - need to get from posinp in fragment folder?
+ 
+  if (frag_calc) then
+     norb=ref_frags(ifrag)%fbasis%forbs%norb !- no parallelization for now for fragments
+     isorb=0
+  else
+     norb=tmb%orbs%norbp
+     isorb=tmb%orbs%isorb
+  end if
 
   unitwf=99
-
-  ! read fragments - ORBS?
-  !ind = 1
-  do iorb=1,tmb%orbs%norbp
-     iiorb=iorb+tmb%orbs%isorb
-     ilr = tmb%orbs%inwhichlocreg(iiorb)
-     do ispinor=1,tmb%orbs%nspinor
+  ispinor=1
+  do ifrag=1,fragInputVariables%nfrag_ref
+     do iorb=1,norb
+        iiorb=iorb+isorb 
+        ilr = ref_frags(ifrag)%fbasis%forbs%inwhichlocreg(iiorb)
         if(present(orblist)) then
            call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
                 & tmb%orbs,iorb,ispinor,iorb_out,orblist(iiorb))
@@ -1931,7 +1946,7 @@ subroutine readmywaves_linear_new(iproc,filename,iformat,at,tmb,rxyz_old,rxyz,re
              Lzd_old%Llr(ilr)%d%n1,Lzd_old%Llr(ilr)%d%n2,Lzd_old%Llr(ilr)%d%n3, &
              Lzd_old%Llr(ilr)%ns1,Lzd_old%Llr(ilr)%ns2,Lzd_old%Llr(ilr)%ns3, lzd_old%hgrids, &
              lstat, error, onwhichatom_tmp, Lzd_old%Llr(ilr)%locrad, Lzd_old%Llr(ilr)%locregCenter, &
-             confPotOrder, confPotprefac, at%nat, rxyz_old, &
+             confPotOrder, confPotprefac, at%astruct%nat, rxyz_old, &
              Lzd_old%Llr(ilr)%wfd%nvctr_c, Lzd_old%Llr(ilr)%wfd%nvctr_f)
 
         ! in general this might point to a different tmb
@@ -1945,20 +1960,14 @@ subroutine readmywaves_linear_new(iproc,filename,iformat,at,tmb,rxyz_old,rxyz,re
         if (.not. lstat) call io_error(trim(error))
 
         close(unitwf)
-
-        !ind = ind + Lzd_old%Llr(ilr)%wfd%nvctr_c+7*Lzd_old%Llr(ilr)%wfd%nvctr_f
      end do
   end do
 
-
   ! reformat fragments
-  !nullify(psi_old)
-  call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,orbs_old,lzd_old,psi_old,phi_array_old)
+  nullify(psi_old)
+!first get shift by taking locregcenter-posinp? to give old center
 
-  ! can now deallocate psi_old
-  !i_all = -product(shape(psi_old))*kind(psi_old)
-  !deallocate(psi_old,stat=i_stat)
-  !call memocc(i_stat,i_all,'psi_old',subname)
+  call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,psi_old,phi_array_old)
 
   do iorb=1,tmb%orbs%norbp
      !nullify/deallocate here as appropriate, in future may keep
@@ -1996,7 +2005,6 @@ subroutine readmywaves_linear_new(iproc,filename,iformat,at,tmb,rxyz_old,rxyz,re
   deallocate(gpsi,stat=i_stat)
   call memocc(i_stat,i_all,'gpsi',subname)
   ! END DEBUG 
-
 
 
   ! Read the coefficient file - may need to do one for each fragment
@@ -2037,7 +2045,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   integer, intent(in) :: iproc, nproc, iformat
   type(orbitals_data), intent(inout) :: orbs  !< orbs related to the basis functions, inwhichlocreg and onwhichatom generated in this routine
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   character(len=*), intent(in) :: filename
   type(local_zone_descriptors), intent(inout) :: Lzd !< must already contain Glr and hgrids
   integer, dimension(orbs%norb), optional :: orblist
@@ -2112,7 +2120,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
 
   ! Put the llr in posinp order
   ilr=0
-  do iat=1,at%nat
+  do iat=1,at%astruct%nat
      do iorb=1,orbs%norb
         if(iat == orbs%onwhichatom(iorb)) then
            ilr = ilr + 1
@@ -2146,7 +2154,7 @@ END SUBROUTINE initialize_linear_from_file
 !  integer, intent(in) :: confPotOrder,confPotOrder_old, n1_old, n2_old, n3_old
 !  type(atoms_data), intent(in) :: at
 !  real(gp), intent(in) :: hx_old, hy_old, hz_old
-!  real(gp), dimension(3,at%nat), intent(in) :: rxyz, rxyz_old
+!  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz, rxyz_old
 !  type(local_zone_descriptors), intent(in) :: Lzd !< must already contain Glr and hgrids
 !  logical, intent(out) :: consistent
 !  ! Local variables
@@ -2155,17 +2163,17 @@ END SUBROUTINE initialize_linear_from_file
 !  real(gp):: tx, ty, tz, displ, mindist  
 !
 !  !conditions for periodicity in the three directions
-!  perx=(at%geocode /= 'F')
-!  pery=(at%geocode == 'P')
-!  perz=(at%geocode /= 'F')
+!  perx=(at%astruct%geocode /= 'F')
+!  pery=(at%astruct%geocode == 'P')
+!  perz=(at%astruct%geocode /= 'F')
 !
 !  tx=0.0_gp
 !  ty=0.0_gp
 !  tz=0.0_gp
-!  do iat=1,at%nat
-!     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
-!     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
-!     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+!  do iat=1,at%astruct%nat
+!     tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
+!     ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
+!     tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
 !  enddo
 !  displ=sqrt(tx+ty+tz)
 !  consistent = .true.
@@ -2369,18 +2377,16 @@ END SUBROUTINE copy_old_inwhichlocreg
 
 
 !> Reformat wavefunctions if the mesh have changed (in a restart)
-!CHECK IF ORBS_OLD IS NECESSARY
 !NB add_derivatives must be false if we are using phi_array_old instead of psi_old and don't have the keys
-subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,orbs_old,lzd_old,psi_old,phi_array_old)
+subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,psi_old,phi_array_old)
   use module_base
   use module_types
   use module_fragments
   implicit none
   integer, intent(in) :: iproc,ndim_old
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz,rxyz_old
   type(DFT_wavefunction), intent(inout) :: tmb
-  type(orbitals_data), intent(in) :: orbs_old
   type(local_zone_descriptors), intent(in) :: lzd_old
   real(wp), dimension(:), pointer, intent(in) :: psi_old
   type(phi_array), dimension(tmb%orbs%norbp), optional, intent(in) :: phi_array_old
@@ -2407,7 +2413,7 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
      allocate(phi_old_der(3*ndim_old),stat=i_stat)
      call memocc(i_stat,phi_old_der,'phi_old_der',subname)
      if (.not. associated(psi_old)) stop 'psi_old not associated in reformat_supportfunctions'
-     call get_derivative_supportfunctions(ndim_old, lzd_old%hgrids(1), lzd_old, orbs_old, psi_old, phi_old_der)
+     call get_derivative_supportfunctions(ndim_old, lzd_old%hgrids(1), lzd_old, tmb%orbs, psi_old, phi_old_der)
      jstart_old_der=1
   end if
 
@@ -2418,8 +2424,7 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
       ilr=tmb%orbs%inwhichlocreg(iiorb)
       iiat=tmb%orbs%onwhichatom(iiorb)
 
-      ilr_old=orbs_old%inwhichlocreg(iiorb)
-      !iiat_old=tmb_old%orbs%onwhichatom(iiorb)!?
+      ilr_old=ilr
 
       n_old(1)=lzd_old%Llr(ilr_old)%d%n1
       n_old(2)=lzd_old%Llr(ilr_old)%d%n2
@@ -2558,9 +2563,9 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   logical, dimension(3) :: per
 
   !conditions for periodicity in the three directions
-  per(1)=(at%geocode /= 'F')
-  per(2)=(at%geocode == 'P')
-  per(3)=(at%geocode /= 'F')
+  per(1)=(at%astruct%geocode /= 'F')
+  per(2)=(at%astruct%geocode == 'P')
+  per(3)=(at%astruct%geocode /= 'F')
 
   !buffers related to periodicity
   !WARNING: the boundary conditions are not assumed to change between new and old
@@ -2569,18 +2574,18 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   call ext_buffers_coarse(per(3),nb(3))
 
   ! centre of rotation with respect to start of box
-  centre_old_box(1)=mindist(per(1),at%alat1,centre_old(1),hgrids_old(1)*(ns_old(1)-0.5_dp*nb(1)))
-  centre_old_box(2)=mindist(per(2),at%alat2,centre_old(2),hgrids_old(2)*(ns_old(2)-0.5_dp*nb(2)))
-  centre_old_box(3)=mindist(per(3),at%alat3,centre_old(3),hgrids_old(3)*(ns_old(3)-0.5_dp*nb(3)))
+  centre_old_box(1)=mindist(per(1),at%astruct%cell_dim(1),centre_old(1),hgrids_old(1)*(ns_old(1)-0.5_dp*nb(1)))
+  centre_old_box(2)=mindist(per(2),at%astruct%cell_dim(2),centre_old(2),hgrids_old(2)*(ns_old(2)-0.5_dp*nb(2)))
+  centre_old_box(3)=mindist(per(3),at%astruct%cell_dim(3),centre_old(3),hgrids_old(3)*(ns_old(3)-0.5_dp*nb(3)))
 
-  centre_new_box(1)=mindist(per(1),at%alat1,centre_new(1),hgrids(1)*(ns(1)-0.5_dp*nb(1)))
-  centre_new_box(2)=mindist(per(2),at%alat2,centre_new(2),hgrids(2)*(ns(2)-0.5_dp*nb(2)))
-  centre_new_box(3)=mindist(per(3),at%alat3,centre_new(3),hgrids(3)*(ns(3)-0.5_dp*nb(3)))
+  centre_new_box(1)=mindist(per(1),at%astruct%cell_dim(1),centre_new(1),hgrids(1)*(ns(1)-0.5_dp*nb(1)))
+  centre_new_box(2)=mindist(per(2),at%astruct%cell_dim(2),centre_new(2),hgrids(2)*(ns(2)-0.5_dp*nb(2)))
+  centre_new_box(3)=mindist(per(3),at%astruct%cell_dim(3),centre_new(3),hgrids(3)*(ns(3)-0.5_dp*nb(3)))
 
   !Calculate the shift of the atom to be used in reformat
-  da(1)=mindist(per(1),at%alat1,centre_new_box(1),centre_old_box(1))
-  da(2)=mindist(per(2),at%alat2,centre_new_box(2),centre_old_box(2))
-  da(3)=mindist(per(3),at%alat3,centre_new_box(3),centre_old_box(3))
+  da(1)=mindist(per(1),at%astruct%cell_dim(1),centre_new_box(1),centre_old_box(1))
+  da(2)=mindist(per(2),at%astruct%cell_dim(2),centre_new_box(2),centre_old_box(2))
+  da(3)=mindist(per(3),at%astruct%cell_dim(3),centre_new_box(3),centre_old_box(3))
 
   displ=sqrt(da(1)**2+da(2)**2+da(3)**2)
 

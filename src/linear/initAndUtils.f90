@@ -261,13 +261,13 @@ subroutine init_foe(iproc, nproc, lzd, at, input, orbs_KS, orbs, foe_obj, reset)
         iiorb=orbs%isorb+iorb
         ilr=orbs%inwhichlocreg(iiorb)
         iwa=orbs%onwhichatom(iiorb)
-        itype=at%iatype(iwa)
+        itype=at%astruct%iatype(iwa)
         foe_obj%kernel_nseg(iiorb)=0
         seg_started=.false.
         do jjorb=1,orbs%norb
            jlr=orbs%inwhichlocreg(jjorb)
            jwa=orbs%onwhichatom(jjorb)
-           jtype=at%iatype(jwa)
+           jtype=at%astruct%iatype(jwa)
            tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
                 (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
                 (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
@@ -335,9 +335,9 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   type(local_zone_descriptors), intent(inout) :: Lzd
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data),intent(inout) :: orbs
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   integer, intent(in) :: linType
-!  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+!  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
   logical :: linear
@@ -356,12 +356,12 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
 
   linear  = .true.
   if (linType == INPUT_IG_FULL) then
-     Lzd%nlr=atoms%nat
+     Lzd%nlr=atoms%astruct%nat
      allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
      call memocc(i_stat,locrad,'locrad',subname)
      ! locrad read from last line of  psppar
-     do iat=1,atoms%nat
-        ityp = atoms%iatype(iat)
+     do iat=1,atoms%astruct%nat
+        ityp = atoms%astruct%iatype(iat)
         locrad(iat) = atoms%rloc(ityp,1)
      end do  
      call timing(iproc,'check_IG      ','ON')
@@ -471,9 +471,9 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data),intent(inout) :: orbs
   integer, intent(in) :: linearmode
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(local_zone_descriptors), intent(inout) :: Lzd
-!  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+!  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
   logical :: linear
@@ -496,12 +496,12 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
 
   linear  = .true.
   if (linearmode == INPUT_IG_LIG .or. linearmode == INPUT_IG_FULL) then
-     Lzd%nlr=atoms%nat
+     Lzd%nlr=atoms%astruct%nat
      allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
      call memocc(i_stat,locrad,'locrad',subname)
      ! locrad read from last line of  psppar
-     do iat=1,atoms%nat
-        ityp = atoms%iatype(iat)
+     do iat=1,atoms%astruct%nat
+        ityp = atoms%astruct%iatype(iat)
         locrad(iat) = atoms%rloc(ityp,1)
      end do  
      call timing(iproc,'check_IG      ','ON')
@@ -630,7 +630,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, rxyz,
   integer,intent(in) :: iproc, nproc, nspinor
   type(input_variables),intent(in) :: input
   type(atoms_data),intent(in) :: at
-  real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
+  real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
   type(orbitals_data),intent(out) :: lorbs
   
   ! Local variables
@@ -644,12 +644,12 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, rxyz,
   call nullify_orbitals_data(lorbs)
  
   ! Count the number of basis functions.
-  allocate(norbsPerAtom(at%nat), stat=istat)
+  allocate(norbsPerAtom(at%astruct%nat), stat=istat)
   call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
   norb=0
   nlr=0
-  do iat=1,at%nat
-      ityp=at%iatype(iat)
+  do iat=1,at%astruct%nat
+      ityp=at%astruct%iatype(iat)
       norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
       norb=norb+input%lin%norbsPerType(ityp)
       nlr=nlr+input%lin%norbsPerType(ityp)
@@ -672,8 +672,8 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, rxyz,
   call memocc(istat, locregCenter, 'locregCenter', subname)
   
   ilr=0
-  do iat=1,at%nat
-      ityp=at%iatype(iat)
+  do iat=1,at%astruct%nat
+      ityp=at%astruct%iatype(iat)
       do iorb=1,input%lin%norbsPerType(ityp)
           ilr=ilr+1
           locregCenter(:,ilr)=rxyz(:,iat)
@@ -688,19 +688,35 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, rxyz,
   iall=-product(shape(lorbs%inWhichLocreg))*kind(lorbs%inWhichLocreg)
   deallocate(lorbs%inWhichLocreg, stat=istat)
   call memocc(istat, iall, 'lorbs%inWhichLocreg', subname)
-  call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, at%nat, nlr, &
+  call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, at%astruct%nat, nlr, &
        input%nspin, norbsPerLocreg, locregCenter, lorbs%inwhichlocreg)
 
   iall=-product(shape(lorbs%onwhichatom))*kind(lorbs%onwhichatom)
   deallocate(lorbs%onwhichatom, stat=istat)
   call memocc(istat, iall, 'lorbs%onwhichatom', subname)
-  call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, at%nat, at%nat, &
+  call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, at%astruct%nat, at%astruct%nat, &
        input%nspin, norbsPerAtom, rxyz, lorbs%onwhichatom)
   
   allocate(lorbs%eval(lorbs%norb), stat=istat)
   call memocc(istat, lorbs%eval, 'lorbs%eval', subname)
   lorbs%eval=-.5d0
   
+  ! set onwhichfragment, default 1 - don't need this to be part of structure really
+  !allocate(lorbs%onwhichfragment(lorbs%norb), stat=istat)
+  !call memocc(istat, lorbs%onwhichfragment, 'lorbs%onwhichfragment', subname)
+  !if (input%frag%nfrag_ref==1) then
+  !   lorbs%onwhichfragment=1
+  !else ! need number of atoms in fragments for this
+  !   do iorb=1,lorbs%norb
+  !      ! find out which system fragment we're in
+  !      do ifrag=1,inputs%frag%nfrag
+  !         do iat=1,
+  !         ! find corresponding reference fragment for this orb
+  !         lorbs%onwhichfragment(iorb)=input%frag%frag_index(ifrag)
+  !      end do
+  !   end do
+  !end if
+
   
   iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
   deallocate(norbsPerLocreg, stat=istat)
@@ -731,7 +747,7 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
   integer,intent(in) :: iproc, nproc
   type(input_variables),intent(in) :: input
   type(atoms_data),intent(in) :: at
-  real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
+  real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(inout) :: lzd
   
@@ -752,8 +768,8 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
   call memocc(istat, locregCenter, 'locregCenter', subname)
   
   ilr=0
-  do iat=1,at%nat
-      ityp=at%iatype(iat)
+  do iat=1,at%astruct%nat
+      ityp=at%astruct%iatype(iat)
       do iorb=1,input%lin%norbsPerType(ityp)
           ilr=ilr+1
           locregCenter(:,ilr)=rxyz(:,iat)
@@ -1087,7 +1103,7 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz,
   type(DFT_local_fields),intent(in):: denspot
   type(input_variables),intent(in):: input
   type(atoms_data),intent(in):: at
-  real(8),dimension(3,at%nat),intent(in):: rxyz
+  real(8),dimension(3,at%astruct%nat),intent(in):: rxyz
   logical,intent(in):: lowaccur_converged
 
   ! Local variables

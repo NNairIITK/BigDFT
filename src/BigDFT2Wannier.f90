@@ -154,7 +154,7 @@ program BigDFT2Wannier
 !!$
 !!$   if (iproc == 0) call print_general_parameters(nproc,input,atoms)
 
-   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
+   allocate(radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
 
    call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
@@ -243,7 +243,7 @@ program BigDFT2Wannier
    nx=Glr%d%n1i
    ny=Glr%d%n2i
    nz=Glr%d%n3i
-   n_at=atoms%nat
+   n_at=atoms%astruct%nat
    call initialize_work_arrays_sumrho(Glr,w)
 
    ! Allocations for Amnk calculation
@@ -293,9 +293,9 @@ program BigDFT2Wannier
          end if
 
          ! - b1, b2 and b3 are the norm of the lattice parameters.
-         b1=atoms%alat1
-         b2=atoms%alat2
-         b3=atoms%alat3
+         b1=atoms%astruct%cell_dim(1)
+         b2=atoms%astruct%cell_dim(2)
+         b3=atoms%astruct%cell_dim(3)
          ! - Allocations
          allocate(amnk(orbsv%norb,orbsp%norb),stat=i_stat)
          call memocc(i_stat,amnk,'amnk',subname)
@@ -607,9 +607,9 @@ program BigDFT2Wannier
       end if
 
       ! - b1, b2 and b3 are the norm of the lattice parameters.
-      b1=atoms%alat1
-      b2=atoms%alat2
-      b3=atoms%alat3
+      b1=atoms%astruct%cell_dim(1)
+      b2=atoms%astruct%cell_dim(2)
+      b3=atoms%astruct%cell_dim(3)
       ! - Allocations
       allocate(amnk(orbsb%norb,orbsp%norb),stat=i_stat)
       call memocc(i_stat,amnk,'amnk',subname)
@@ -1046,7 +1046,7 @@ subroutine allocate_initial()
   call memocc(i_stat,G_vec,'G_vec',subname)
   allocate(excb(n_excb),stat=i_stat)
   call memocc(i_stat,excb,'excb',subname)
-  allocate(rxyz_old(3,atoms%nat),stat=i_stat)
+  allocate(rxyz_old(3,atoms%astruct%nat),stat=i_stat)
   call memocc(i_stat,rxyz_old,'rxyz_old',subname)
 
 END SUBROUTINE allocate_initial
@@ -1943,7 +1943,7 @@ subroutine write_functions(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, Glr, &
    real(kind=8), intent(in) :: hxh, hyh, hzh                      !grid spacing
    type(locreg_descriptors), intent(in) :: Glr
    type(atoms_data), intent(in) :: atoms
-   real(kind=8), dimension(3,atoms%nat), intent(in) :: rxyz
+   real(kind=8), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
    real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i), intent(in) :: sph_har, func_r, ylm
    ! Local variables
    character(len=13) :: subname1
@@ -1984,7 +1984,7 @@ subroutine write_functions(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, Glr, &
 
   !conditions for periodicity in the three directions
   !value of the buffer in the x and z direction
-  if (atoms%geocode /= 'F') then
+  if (atoms%astruct%geocode /= 'F') then
      nl1=1
      nl3=1
      nbx = 1
@@ -2000,7 +2000,7 @@ subroutine write_functions(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, Glr, &
      nc3=Glr%d%n3i-31
   end if
   !value of the buffer in the y direction
-  if (atoms%geocode == 'P') then
+  if (atoms%astruct%geocode == 'P') then
      nl2=1
      nby = 1
      nc2=Glr%d%n2i
@@ -2018,12 +2018,12 @@ subroutine write_functions(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, Glr, &
       OPEN(12, FILE=trim(subname1)//'.cube', STATUS='unknown')
       write(12,*) ' CUBE file for ISF field'
       write(12,*) ' Case for'
-      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%nat, real(0.d0), real(0.d0), real(0.d0)
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%astruct%nat, real(0.d0), real(0.d0), real(0.d0)
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc1, hxh, 0.0_gp, 0.0_gp
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc2, 0.0_gp, hyh, 0.0_gp
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc3, 0.0_gp, 0.0_gp, hzh
-      do i=1, atoms%nat
-         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
+      do i=1, atoms%astruct%nat
+         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%astruct%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
       end do
       ! Volumetric data in batches of 6 values per line, 'z'-direction first.
       do ix=0,nc1-1
@@ -2044,12 +2044,12 @@ subroutine write_functions(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, Glr, &
       OPEN(13, FILE=trim(subname2)//'.cube', STATUS='unknown')
       write(12,*) ' CUBE file for ISF field'
       write(12,*) ' Case for'
-      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%nat, real(0.d0), real(0.d0), real(0.d0)
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%astruct%nat, real(0.d0), real(0.d0), real(0.d0)
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc1, hxh, 0.0_gp, 0.0_gp
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc2, 0.0_gp, hyh, 0.0_gp
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc3, 0.0_gp, 0.0_gp, hzh
-      do i=1, atoms%nat
-         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
+      do i=1, atoms%astruct%nat
+         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%astruct%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
       end do
       ! Volumetric data in batches of 6 values per line, 'z'-direction first.
       do ix=0, nc1-1
@@ -2070,12 +2070,12 @@ subroutine write_functions(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, Glr, &
       OPEN(14, FILE=trim(subname3)//'.cube', STATUS='unknown')
       write(12,*) ' CUBE file for ISF field'
       write(12,*) ' Case for'
-      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%nat, real(0.d0), real(0.d0), real(0.d0)
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%astruct%nat, real(0.d0), real(0.d0), real(0.d0)
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc1, hxh, 0.0_gp, 0.0_gp
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc2, 0.0_gp, hyh, 0.0_gp
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc3, 0.0_gp, 0.0_gp, hzh
-      do i=1, atoms%nat
-         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
+      do i=1, atoms%astruct%nat
+         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%astruct%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
       end do
       ! Volumetric data in batches of 6 values per line, 'z'-direction first.
       do ix=0, nc1-1
@@ -2263,7 +2263,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    type(atoms_data), intent(in) :: atoms
    type(input_variables), intent(in) :: input
    integer, intent(in) :: n_occ,n_virt,nx,ny,nz,nk,s,iformat
-   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
    integer, dimension (n_virt), intent(in) :: virt_list
    ! Local variables
    logical :: perx,pery,perz
@@ -2273,7 +2273,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    character(len=*), parameter :: subname='write_unk_bin'
    real(wp), dimension(nx*ny*nz) :: psir
    real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,n_occ+n_virt) :: psi_etsf
-   real(gp), dimension(3,atoms%nat) :: rxyz_old
+   real(gp), dimension(3,atoms%astruct%nat) :: rxyz_old
    type(workarr_sumrho) :: w
 
    n_bands=n_occ+n_virt

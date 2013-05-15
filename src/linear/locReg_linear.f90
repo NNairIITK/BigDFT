@@ -418,7 +418,7 @@ call memocc(istat,iall,'rootarr',subname)
 contains 
   subroutine create_orbsder()
     call nullify_orbitals_data(orbsder)
-    allocate(norbsperatom(at%nat), stat=istat)
+    allocate(norbsperatom(at%astruct%nat), stat=istat)
     call memocc(istat, norbsperatom, 'norbsperatom', subname)
     allocate(locregCenter(3,nlr), stat=istat)
     call memocc(istat, locregCenter, 'locregCenter', subname)
@@ -439,7 +439,7 @@ contains
     deallocate(orbsder%onwhichatom, stat=istat)
     call memocc(istat, iall, 'orbsder%onwhichatom', subname)
                  
-    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%nat, at%nat, &
+    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%astruct%nat, at%astruct%nat, &
          nspin, norbsPerAtom, cxyz, orbsder%onwhichatom)
 
 
@@ -452,7 +452,7 @@ contains
     norbsPerLocreg=3
 
     call memocc(istat, iall, 'orbsder%inWhichLocreg', subname)
-    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%nat, nlr, &
+    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%astruct%nat, nlr, &
          nspin, norbsPerLocreg, locregCenter, orbsder%inwhichlocreg)
 
     iall=-product(shape(locregCenter))*kind(locregCenter)

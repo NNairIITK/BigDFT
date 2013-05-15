@@ -728,8 +728,8 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
   logical, intent(in) :: dump
 
   ! Read k-points input variables (if given)
-  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,atoms%sym,atoms%geocode, &
-       & (/ atoms%alat1, atoms%alat2, atoms%alat3 /))
+  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,atoms%astruct%sym,atoms%astruct%geocode, &
+       & (/ atoms%astruct%cell_dim(1), atoms%astruct%cell_dim(2), atoms%astruct%cell_dim(3) /))
 
   ! Linear scaling (if given)
   in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
@@ -737,6 +737,7 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
        & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
 
   ! Fragment information (if given)
+  in%frag%nfrag_ref=1 ! - make this more elegant, for now set to 1 for case where we don't have a fragment calculation
   call fragment_input_variables(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
        & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_frag),in,atoms)
 

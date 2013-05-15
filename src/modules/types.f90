@@ -171,7 +171,8 @@ module module_types
   type,public:: fragmentInputParameters
     integer :: nfrag_ref, nfrag
     integer, dimension(:), pointer :: frag_index ! array matching system fragments to reference fragments
-    integer, dimension(:,:), pointer :: frag_info !array giving number of atoms in fragment and environment for reference fragments
+    !integer, dimension(:,:), pointer :: frag_info !array giving number of atoms in fragment and environment for reference fragments
+    character(len=100), dimension(:), pointer :: label ! array of fragment names
   end type fragmentInputParameters
 
 
@@ -418,25 +419,33 @@ module module_types
     real(gp),pointer,dimension(:) :: radius !after this radius, rholoc is zero
   end type rholoc_objects
 
+  type, public :: atomic_structure
+    character(len=1) :: geocode          !< Boundary conditions
+    character(len=5) :: inputfile_format !< Can be xyz ascii or yaml
+    character(len=20) :: units           !< Can be angstroem or bohr 
+    integer :: nat                       !< Number of atoms
+    integer :: ntypes                    !< Number of atomic species in the structure
+	 real(gp), dimension(3) :: cell_dim   !< Dimensions of the simulation domain (each one periodic or free according to geocode)
+    !pointers
+ 	 real(gp), dimension(:,:), pointer :: rxyz !< Atomic positions (always in AU, units variable is considered for I/O only)
+    character(len=20), dimension(:), pointer :: atomnames !< Atomic species names
+    integer, dimension(:), pointer :: iatype              !< Atomic species id
+    integer, dimension(:), pointer :: ifrztyp             !< Freeze atoms while updating structure
+    integer, dimension(:), pointer :: input_polarization  !< Used in AO generation for WFN input guess
+    type(symmetry_data) :: sym                      !< The symmetry operators
+  end type atomic_structure
+
+
   !> Atomic data (name, polarisation, ...)
   type, public :: atoms_data
-     character(len=1) :: geocode
-     character(len=5) :: format
-     character(len=20) :: units
-     integer :: nat                                        !< nat            Number of atoms
-     integer :: ntypes                                     !< ntypes         Number of type of atoms
+     type(atomic_structure) :: astruct
      integer :: natsc
-     character(len=20), dimension(:), pointer :: atomnames !< atomnames(ntypes) Name of type of atoms
-     real(gp) :: alat1,alat2,alat3                         !< dimension of the periodic supercell
-     integer, dimension(:), pointer :: iatype              !< iatype(nat)    Type of the atoms
      integer, dimension(:), pointer :: iasctype
-     integer, dimension(:), pointer :: natpol
      integer, dimension(:), pointer :: nelpsp
      integer, dimension(:), pointer :: npspcode
      integer, dimension(:), pointer :: ixcpsp
      integer, dimension(:), pointer :: nzatom
      real(gp), dimension(:,:), pointer :: radii_cf         !< user defined radii_cf, overridden in sysprop.f90
-     integer, dimension(:), pointer :: ifrztyp             !< ifrztyp(nat) Frozen atoms
      real(gp), dimension(:), pointer :: amu                !< amu(ntypes)  Atomic Mass Unit for each type of atoms
      real(gp), dimension(:,:), pointer :: aocc,rloc
      real(gp), dimension(:,:,:), pointer :: psppar         !< pseudopotential parameters (HGH SR section)
@@ -444,7 +453,6 @@ module module_types
      integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc   !<number of valence and core gaussians describing NLCC 
      real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
      real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
-     type(symmetry_data) :: sym                      !< The symmetry operators
 
      !! for abscalc with pawpatch
      integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
@@ -452,7 +460,6 @@ module module_types
      real(gp), dimension(:), pointer :: paw_Greal, paw_Gimag, paw_Gcoeffs
      real(gp), dimension(:), pointer :: paw_H_matrices, paw_S_matrices, paw_Sm1_matrices
      integer :: iat_absorber 
-
   end type atoms_data
 
   !> Structure to store the density / potential distribution among processors.
@@ -514,7 +521,7 @@ module module_types
      integer :: nkpts,nkptsp,iskpts
      real(gp) :: efermi,HLgap,eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
-     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom
+     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom,onwhichfragment
      integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -1220,28 +1227,28 @@ contains
 
   function atoms_null() result(at)
      type(atoms_data) :: at
-     at%geocode='X'
-     at%format=repeat(' ',len(at%format))
-     at%units=repeat(' ',len(at%units))
-     at%nat=-1
-     at%ntypes=-1
+     at%astruct%geocode='X'
+     at%astruct%inputfile_format=repeat(' ',len(at%astruct%inputfile_format))
+     at%astruct%units=repeat(' ',len(at%astruct%units))
+     at%astruct%nat=-1
+     at%astruct%ntypes=-1
      at%natsc=-1
-     at%alat1=0.0_gp
-     at%alat2=0.0_gp
-     at%alat3=0.0_gp
+     at%astruct%cell_dim(1)=0.0_gp
+     at%astruct%cell_dim(2)=0.0_gp
+     at%astruct%cell_dim(3)=0.0_gp
+     nullify(at%astruct%input_polarization)
+     nullify(at%astruct%ifrztyp)
+     nullify(at%astruct%atomnames)
+     nullify(at%astruct%iatype)
+     at%astruct%sym=symm_null()
      at%donlcc=.false.
-     at%sym=symm_null()
      at%iat_absorber=-1
-     nullify(at%atomnames)
-     nullify(at%iatype)
      nullify(at%iasctype)
-     nullify(at%natpol)
      nullify(at%nelpsp)
      nullify(at%npspcode)
      nullify(at%ixcpsp)
      nullify(at%nzatom)
      nullify(at%radii_cf)
-     nullify(at%ifrztyp)
      nullify(at%amu)
      nullify(at%aocc)
      nullify(at%rloc)
@@ -1489,9 +1496,9 @@ END SUBROUTINE deallocate_orbs
     end select
 
     !allocate pointers
-    allocate(rst%rxyz_new(3,atoms%nat+ndebug),stat=i_stat)
+    allocate(rst%rxyz_new(3,atoms%astruct%nat+ndebug),stat=i_stat)
     call memocc(i_stat,rst%rxyz_new,'rxyz_new',subname)
-    allocate(rst%rxyz_old(3,atoms%nat+ndebug),stat=i_stat)
+    allocate(rst%rxyz_old(3,atoms%astruct%nat+ndebug),stat=i_stat)
     call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
 
     !nullify unallocated pointers
@@ -2251,15 +2258,15 @@ subroutine nullify_atoms_data(at)
   implicit none
   type(atoms_data),intent(out)::at
 
-  nullify(at%atomnames)
-  nullify(at%iatype)
+  nullify(at%astruct%atomnames)
+  nullify(at%astruct%iatype)
   nullify(at%iasctype)
   nullify(at%nelpsp)
   nullify(at%npspcode)
   nullify(at%ixcpsp)
   nullify(at%nzatom) 
   nullify(at%radii_cf)
-  nullify(at%ifrztyp)
+  nullify(at%astruct%ifrztyp)
   nullify(at%amu)
   nullify(at%aocc)
   nullify(at%rloc)
