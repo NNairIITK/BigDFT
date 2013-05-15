@@ -136,9 +136,58 @@ contains
     i_all=-product(shape(group_list ))*kind(group_list )
     deallocate(group_list,stat=i_stat)
     call memocc(i_stat,i_all,'group_list',subname)
-
-
   end subroutine create_group_comm
+
+  !> Create a communicator between proc of same rank between the taskgroups.
+  subroutine create_rank_comm(group_comm, rank_comm)
+    use yaml_output
+    implicit none
+    integer, intent(in) :: group_comm
+    integer, intent(out) :: rank_comm
+    !local variables
+    character(len=*), parameter :: subname='create_group_master'
+    integer :: iproc_group, nproc, nproc_group, ngroups
+    integer :: grp, new_grp, ierr, i_stat, i_all, i, j
+    integer, dimension(:), allocatable :: lrank, ids
+
+    call mpi_comm_rank(group_comm, iproc_group, ierr)
+    call mpi_comm_size(MPI_COMM_WORLD, nproc, ierr)
+    call mpi_comm_size(group_comm, nproc_group, ierr)
+    ngroups = nproc / nproc_group
+
+    ! Put in lrank the group rank of each process, indexed by global iproc.
+    allocate(lrank(nproc+ndebug), stat = i_stat)
+    call memocc(i_stat, lrank, 'lrank', subname)
+    call mpi_allgather(iproc_group, 1, MPI_INTEGER, lrank, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
+
+    ! Put in ids, the global iproc of each process that share the same group iproc.
+    allocate(ids(ngroups+ndebug), stat = i_stat)
+    call memocc(i_stat, ids, 'ids', subname)
+    j = 1
+    do i = 1, nproc
+       if (lrank(i) == iproc_group) then
+          ids(j) = i - 1
+          j = j + 1
+       end if
+    end do
+    i_all=-product(shape(lrank ))*kind(lrank )
+    deallocate(lrank,stat=i_stat)
+    call memocc(i_stat,i_all,'lrank',subname)
+
+!!$    call mpi_comm_rank(MPI_COMM_WORLD, iproc_group, ierr)
+!!$    write(*,*) iproc_group, "->", ids
+    
+    ! Create a new comminucator for the list of ids.
+    call mpi_comm_group(MPI_COMM_WORLD, grp, ierr)
+    call mpi_group_incl(grp, ngroups, ids, new_grp, ierr)
+    call mpi_group_free(grp, ierr)
+    i_all=-product(shape(ids ))*kind(ids )
+    deallocate(ids,stat=i_stat)
+    call memocc(i_stat,i_all,'ids',subname)
+
+    call mpi_comm_create(MPI_COMM_WORLD, new_grp, rank_comm, ierr)
+    call mpi_group_free(new_grp, ierr)    
+  END SUBROUTINE create_rank_comm
 
   !interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)

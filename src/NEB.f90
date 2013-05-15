@@ -82,6 +82,7 @@ MODULE NEB_routines
   fmt5 = "(' image: ',I2,'   Energy=  ',F16.8,'   Error=',F8.5)"
 
   type(NEB_data), private :: neb_
+  type(mpi_environment), private :: neb_mpi
 
   CONTAINS
 
@@ -122,10 +123,20 @@ MODULE NEB_routines
          convergence,         &
          num_of_images
 
-!! default values are assigned
-      external_call     = .true.
 
       call bigdft_init(mpi_info, nconfig, run_id, ierr)
+      neb_mpi = mpi_environment_null()
+      neb_mpi%igroup = 0
+      neb_mpi%ngroup = 1
+      neb_mpi%iproc  = mpi_info(3)
+      neb_mpi%nproc  = mpi_info(4)
+      neb_mpi%mpi_comm = MPI_COMM_NULL
+      if (neb_mpi%nproc > 1 .and. mpi_info(1) == 0) then
+         call create_rank_comm(bigdft_mpi%mpi_comm, neb_mpi%mpi_comm)
+      end if
+
+!! default values are assigned
+      external_call     = (mpi_info(4) == 1) .and. (mpi_info(2) == 1)
 
       scratch_dir       = "./"
 
@@ -154,7 +165,7 @@ MODULE NEB_routines
       Ly = 0.D0
       Lz = 0.D0
 
-      open(unit = 123, file = "input", action = "read")
+      open(unit = 123, file = trim(run_id), action = "read")
       READ(123 , NML=NEB )
       close(123)
 
@@ -473,6 +484,8 @@ MODULE NEB_routines
          CALL write_restart(restart_file, neb_%ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
       END IF
 
+      error(:) = 999d99
+
       iteration = 0
       minimization: do
          if (external_call) then
@@ -499,10 +512,17 @@ MODULE NEB_routines
                   call deallocate_global_output(outs)
                end if
             end do
-            call mpiallred(V(N_in), (N_fin - N_in + 1), MPI_SUM, MPI_COMM_WORLD, ierr)
-            V(N_in:N_fin) = V(N_in:N_fin) / mpi_info(2)
-            call mpiallred(PES_gradient(1,N_in), neb_%ndim * (N_fin - N_in + 1), MPI_SUM, MPI_COMM_WORLD, ierr)
-            PES_gradient(1, N_in:N_fin) = PES_gradient(1, N_in:N_fin) / mpi_info(2)
+            if (neb_mpi%nproc > 1) then
+               if (neb_mpi%mpi_comm /= MPI_COMM_NULL) then
+                  call mpiallred(V(N_in), (N_fin - N_in + 1), MPI_SUM, neb_mpi%mpi_comm, ierr)
+                  call mpiallred(PES_gradient(1,N_in), neb_%ndim * (N_fin - N_in + 1), &
+                       & MPI_SUM, neb_mpi%mpi_comm, ierr)
+               end if
+               call mpi_bcast(V(N_in), (N_fin - N_in + 1), MPI_DOUBLE_PRECISION, &
+                    & 0, bigdft_mpi%mpi_comm, ierr)
+               call mpi_bcast(PES_gradient(1,N_in), neb_%ndim * (N_fin - N_in + 1), MPI_DOUBLE_PRECISION, &
+                    & 0, bigdft_mpi%mpi_comm, ierr)
+            end if
          end if
 
          call compute_neb_pos(stat, iteration, error, F, pos, V, PES_gradient, Lx, Ly, Lz, neb_)
@@ -518,9 +538,10 @@ MODULE NEB_routines
                open(unit = 456, file = trim(barrier_file), action = "WRITE", position = "APPEND")
                WRITE(456, fmt4) iteration - 1, ( maxval(V(2:neb_%nimages - 1)) - V(1) ) * Ha_eV, &
                     & maxval(error) * ( Ha_eV / Bohr_Ang ) 
+               close(unit = 456)
+               ! Move this to YAML.
                WRITE(*, fmt4)   iteration - 1, ( maxval(V(2:neb_%nimages - 1)) - V(1) ) * Ha_eV, &
                     & maxval(error) * ( Ha_eV / Bohr_Ang ) 
-               close(unit = 456)
             end if
          end if
 
@@ -528,6 +549,7 @@ MODULE NEB_routines
       end do minimization
 
       if (mpi_info(1) == 0 .and. mpi_info(3) == 0) then
+         ! Move this to YAML.
          DO i = 1, neb_%nimages
             WRITE(*,fmt5) i, V(i) * Ha_eV, error(i) * ( Ha_eV / Bohr_Ang )
          END DO

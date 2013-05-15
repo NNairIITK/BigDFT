@@ -148,7 +148,7 @@ report:
 %.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
 	rm -f triH.NEB.it*
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	$(abs_top_builddir)/src/NEB < input | tee $@
+	$(abs_top_builddir)/src/NEB | tee $@
 	cat triH.NEB.0*/log.yaml > log.yaml
 	rm -rf triH.NEB.0*
 	rm -f gen_output_file velocities_file
