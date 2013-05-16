@@ -37,6 +37,7 @@ module wrapper_MPI
   public :: mpi_environment_null
   public :: mpi_environment_free
   public :: mpi_environment_set
+  public :: mpi_environment_set1,mpi_environment_set2 !to be removed
   
 contains
 
@@ -94,6 +95,54 @@ contains
     end if
   end subroutine mpi_environment_set
 
+!!! PSolver n1-n2 plane mpi partitioning !!! 
+  !> This is exactly like mpi_environment_set but it always creates groups
+  !! the routine above should be modified accordingly
+  subroutine mpi_environment_set2(mpi_env,iproc,nproc,mpi_comm,groupsize)
+    use yaml_output
+    implicit none
+    integer, intent(in) :: iproc,nproc,mpi_comm,groupsize
+    type(mpi_environment), intent(out) :: mpi_env
+
+    mpi_env=mpi_environment_null()
+
+    mpi_env%mpi_comm=mpi_comm
+
+    mpi_env%igroup=iproc/groupsize
+    mpi_env%ngroup=nproc/groupsize
+    mpi_env%iproc=mod(iproc,groupsize)
+    mpi_env%nproc=groupsize
+    call create_group_comm(mpi_comm,nproc,mpi_env%igroup,mpi_env%nproc,mpi_env%mpi_comm)
+!    if (iproc == 0) then
+!       call yaml_map('Total No. of Taskgroups created',nproc/mpi_env%nproc)
+!    end if
+
+  end subroutine mpi_environment_set2
+
+  !this is a different procedure to assign the iproc accordint to the groups.
+  subroutine mpi_environment_set1(mpi_env,iproc,nproc,mpi_comm,groupsize,ngroup)
+    use yaml_output
+    implicit none
+    integer, intent(in) :: iproc,nproc,mpi_comm,groupsize,ngroup
+    type(mpi_environment), intent(out) :: mpi_env
+
+    mpi_env=mpi_environment_null()
+
+    mpi_env%igroup=-1
+
+    mpi_env%ngroup=ngroup
+    if (iproc < groupsize*ngroup) mpi_env%igroup=mod(iproc,ngroup)
+    mpi_env%iproc=iproc/ngroup
+    mpi_env%nproc=groupsize
+    mpi_env%mpi_comm=mpi_comm
+    call create_group_comm1(mpi_comm,nproc,mpi_env%igroup,ngroup,mpi_env%nproc,mpi_env%mpi_comm)
+!    if (iproc == 0) then
+!       call yaml_map('Total No. of Taskgroups created',ngroup)
+!    end if
+
+  end subroutine mpi_environment_set1
+
+
   !> create communicators associated to the groups of size group_size
   subroutine create_group_comm(base_comm,nproc_base,group_id,group_size,group_comm)
     use yaml_output
@@ -137,8 +186,57 @@ contains
     deallocate(group_list,stat=i_stat)
     call memocc(i_stat,i_all,'group_list',subname)
 
-
   end subroutine create_group_comm
+
+!!! PSolver n1-n2 plane mpi partitioning !!! 
+!this routine is like create_group_comm with a different group_list
+subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,group_comm)
+  use yaml_output
+  implicit none
+  integer, intent(in) :: base_comm,group_size,nproc_base,group_id,ngroup
+  integer, intent(out) :: group_comm
+  !local variables
+  character(len=*), parameter :: subname='create_group_comm'
+  integer :: grp,ierr,i,j,base_grp,temp_comm,i_stat,i_all
+  integer, dimension(:), allocatable :: group_list
+
+  allocate(group_list(group_size+ndebug),stat=i_stat)
+  call memocc(i_stat,group_list,'group_list',subname)
+
+  !take the base group
+  call MPI_COMM_GROUP(base_comm,base_grp,ierr)
+  if (ierr /=0) then
+     call yaml_warning('Problem in group creation, ierr:'//yaml_toa(ierr))
+     call MPI_ABORT(base_comm,1,ierr)
+  end if
+  do i=0,ngroup-1
+     !define the new groups and thread_id
+     do j=0,group_size-1
+        group_list(j+1)=i+j*ngroup
+     enddo
+     call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
+     if (ierr /=0) then
+        call yaml_warning('Problem in group inclusion, ierr:'//yaml_toa(ierr))
+        call MPI_ABORT(base_comm,1,ierr)
+     end if
+     call MPI_COMM_CREATE(base_comm,grp,temp_comm,ierr)
+     if (ierr /=0) then
+        call yaml_warning('Problem in communicator creator, ierr:'//yaml_toa(ierr))
+        call MPI_ABORT(base_comm,1,ierr)
+     end if
+     !print *,'i,group_id,temp_comm',i,group_id,temp_comm
+     if (i.eq. group_id) group_comm=temp_comm
+  enddo
+
+  i_all=-product(shape(group_list ))*kind(group_list )
+  deallocate(group_list,stat=i_stat)
+  call memocc(i_stat,i_all,'group_list',subname)
+
+
+end subroutine create_group_comm1
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 
 

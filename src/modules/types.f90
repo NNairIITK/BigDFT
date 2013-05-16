@@ -1517,8 +1517,6 @@ END SUBROUTINE deallocate_orbs
     !initialise the acceleration strategy if required
     call init_material_acceleration(iproc,inputs%matacc,rst%GPU)
 
-
-
   END SUBROUTINE init_restart_objects
 
 

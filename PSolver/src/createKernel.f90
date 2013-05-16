@@ -185,6 +185,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   real(kind=8) :: alphat,betat,gammat,mu0t
   real(kind=8), dimension(:), allocatable :: pkernel2
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,i_all,kernelnproc
+  integer :: n3pr1,n3pr2,n3pr2_reduced
   integer,dimension(3) :: n
 
   call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
@@ -223,9 +224,44 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      endif
      call memocc(i_stat,kernel%kernel,'kernel',subname)
 
+     !!! PSolver n1-n2 plane mpi partitioning !!!   
+
+     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
+       n3pr1=kernel%mpi_env%nproc/(n3/2+1)
+       n3pr2=n3/2+1
+       md2plus=.false.
+       if ((md2/kernel%mpi_env%nproc)*n3pr1*n3pr2 < n2) then
+           md2plus=.true.
+       endif
+
+       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) call yaml_map('PSolver n1-n2 plane mpi partitioning activated:',&
+          trim(yaml_toa(n3pr1,fmt='(i5)'))//' x'//trim(yaml_toa(n3pr2,fmt='(i5)'))//&
+          ' taskgroups')
+       if (kernel%mpi_env%iproc==0 .and. md2plus) &
+            call yaml_map('md2 was enlarged for PSolver n1-n2 plane mpi partitioning, md2=',md2)
+
+       !$omp master
+       if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
+                                             kernel%mpi_env%mpi_comm,n3pr1,n3pr2)
+       !$omp end master
+       !$omp barrier
+     else
+       n3pr1=1
+       n3pr2=kernel%mpi_env%nproc
+     endif
+
+     !$omp master
+     call mpi_environment_set2(part_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc,kernel%mpi_env%mpi_comm,n3pr2)
+     !$omp end master
+     !$omp barrier
+
+     ! n3pr1, n3pr2 are sent to Free_Kernel subroutine below
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
      call Periodic_Kernel(n1,n2,n3,nd1,nd2,nd3,&
           kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
-          kernel%itype_scf,kernel%kernel,kernel%mpi_env%iproc,kernelnproc,mu0t,alphat,betat,gammat)
+          kernel%itype_scf,kernel%kernel,kernel%mpi_env%iproc,kernelnproc,mu0t,alphat,betat,gammat,n3pr2,n3pr1)
 
      nlimd=n2
      nlimk=n3/2+1
@@ -246,10 +282,45 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      endif
      call memocc(i_stat,kernel%kernel,'kernel',subname)
 
+     !!! PSolver n1-n2 plane mpi partitioning !!!   
+
+     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
+       n3pr1=kernel%mpi_env%nproc/(n3/2+1)
+       n3pr2=n3/2+1
+       md2plus=.false.
+       if ((md2/kernel%mpi_env%nproc)*n3pr1*n3pr2 < n2) then
+           md2plus=.true.
+       endif
+
+       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) call yaml_map('PSolver n1-n2 plane mpi partitioning activated:',&
+          trim(yaml_toa(n3pr1,fmt='(i5)'))//' x'//trim(yaml_toa(n3pr2,fmt='(i5)'))//&
+          ' taskgroups')
+       if (kernel%mpi_env%iproc==0 .and. md2plus) &
+            call yaml_map('md2 was enlarged for PSolver n1-n2 plane mpi partitioning, md2=',md2)
+
+       !$omp master
+       if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
+                                             kernel%mpi_env%mpi_comm,n3pr1,n3pr2)
+       !$omp end master
+       !$omp barrier
+     else
+       n3pr1=1
+       n3pr2=kernel%mpi_env%nproc
+     endif
+
+     !$omp master
+     call mpi_environment_set2(part_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc,kernel%mpi_env%mpi_comm,n3pr2)
+     !$omp end master
+     !$omp barrier
+
+     ! n3pr1, n3pr2 are sent to Free_Kernel subroutine below
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
      !the kernel must be built and scattered to all the processes
      call Surfaces_Kernel(kernel%mpi_env%iproc,kernelnproc,kernel%mpi_env%mpi_comm,n1,n2,n3,m3,nd1,nd2,nd3,&
           kernel%hgrids(1),kernel%hgrids(3),kernel%hgrids(2),&
-          kernel%itype_scf,kernel%kernel,mu0t,alphat,betat,gammat)
+          kernel%itype_scf,kernel%kernel,mu0t,alphat,betat,gammat,n3pr2,n3pr1)
 
      !last plane calculated for the density and the kernel
      nlimd=n2
@@ -264,7 +335,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      !Build the Kernel
      call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
           md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu)
-  
+ 
      if (kernel%igpu == 2) then
        allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
      else
@@ -274,10 +345,44 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
      call memocc(i_stat,kernel%kernel,'kernel',subname)
 
+     !!! PSolver n1-n2 plane mpi partitioning !!!   
+ 
+     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
+       n3pr1=kernel%mpi_env%nproc/(n3/2+1)
+       n3pr2=n3/2+1
+       md2plus=.false.
+       if ((md2/kernel%mpi_env%nproc)*n3pr1*n3pr2 < n2/2) then
+           md2plus=.true.
+       endif
+
+       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) call yaml_map('PSolver n1-n2 plane mpi partitioning activated:',&
+          trim(yaml_toa(n3pr1,fmt='(i5)'))//' x'//trim(yaml_toa(n3pr2,fmt='(i5)'))//&
+          ' taskgroups')
+       if (kernel%mpi_env%iproc==0 .and. md2plus) &
+            call yaml_map('md2 was enlarged for PSolver n1-n2 plane mpi partitioning, md2=',md2)
+
+       !$omp master
+       if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
+                                             kernel%mpi_env%mpi_comm,n3pr1,n3pr2)
+       !$omp end master
+       !$omp barrier
+     else
+       n3pr1=1
+       n3pr2=kernel%mpi_env%nproc
+     endif
+
+     !$omp master
+     call mpi_environment_set2(part_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc,kernel%mpi_env%mpi_comm,n3pr2)
+     !$omp end master
+     !$omp barrier
+
+     ! n3pr1, n3pr2 are sent to Free_Kernel subroutine below
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
      !the kernel must be built and scattered to all the processes
      call Free_Kernel(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
           n1,n2,n3,nd1,nd2,nd3,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
-          kernel%itype_scf,kernel%mpi_env%iproc,kernelnproc,kernel%kernel,mu0t)
+          kernel%itype_scf,kernel%mpi_env%iproc,kernelnproc,kernel%kernel,mu0t,n3pr2,n3pr1)
 
      !last plane calculated for the density and the kernel
      nlimd=n2/2
@@ -297,6 +402,39 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
        allocate(kernel%kernel(nd1*nd2*(nd3/kernelnproc)+ndebug),stat=i_stat)
      endif
 
+     !!! PSolver n1-n2 plane mpi partitioning !!!   
+
+     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
+       n3pr1=kernel%mpi_env%nproc/(n3/2+1)
+       n3pr2=n3/2+1
+       md2plus=.false.
+       if ((md2/kernel%mpi_env%nproc)*n3pr1*n3pr2 < n2) then
+           md2plus=.true.
+       endif
+
+       if (kernel%mpi_env%iproc==0 .and. n3pr1>1) call yaml_map('PSolver n1-n2 plane mpi partitioning activated:',&
+          trim(yaml_toa(n3pr1,fmt='(i5)'))//' x'//trim(yaml_toa(n3pr2,fmt='(i5)'))//&
+          ' taskgroups')
+       if (md2plus) call yaml_map('md2 was enlarged for PSolver n1-n2 plane mpi partitioning, md2=',md2)
+
+       !$omp master
+       if (n3pr1>1) call mpi_environment_set1(inplane_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc, &
+                                             kernel%mpi_env%mpi_comm,n3pr1,n3pr2)
+       !$omp end master
+       !$omp barrier
+     else
+       n3pr1=1
+       n3pr2=kernel%mpi_env%nproc
+     endif
+
+     !$omp master
+     call mpi_environment_set2(part_mpi,kernel%mpi_env%iproc,kernel%mpi_env%nproc,kernel%mpi_env%mpi_comm,n3pr2)
+     !$omp end master
+     !$omp barrier
+
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
      call Wires_Kernel(kernel%mpi_env%iproc,kernelnproc,&
           kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
           n1,n2,n3,nd1,nd2,nd3,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
@@ -304,10 +442,10 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
      nlimd=n2
      nlimk=n3/2+1
-              
+
   else
-     
-     !if (iproc==0) 
+
+     !if (iproc==0)
      write(*,'(1x,a,3a)')'createKernel, geocode not admitted',kernel%geocode
 
      stop

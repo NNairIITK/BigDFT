@@ -14,7 +14,6 @@ module metadata_interfaces
 
   private
 
-
   integer, parameter :: longsize=20 !<could be lower
   character(len=*), parameter :: fmtlong='(i20)' !< conversion of long integer
 

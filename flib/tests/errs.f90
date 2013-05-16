@@ -31,8 +31,8 @@ subroutine test_error_handling()
   call yaml_map("Raising the TOTO error, errcode",ERR_TOTO) 
 
   if (f_err_raise(.true.,'Extra message added',err_id=ERR_TOTO)) continue ! return
-    call yaml_map("Raising the TOTO error, by name",'ERR_TOTO') 
-  if (f_err_raise(.true.,'Extra message added again',err_name='ERR_TOTO')) continue ! return
+    call yaml_map("Raising the TOTO error, by name, without condition",'ERR_TOTO') 
+  if (f_err_raise(err_msg='Extra message added again',err_name='ERR_TOTO')) continue ! return
   
   call yaml_map("Callback done, errcode",ERR_TOTO)
 

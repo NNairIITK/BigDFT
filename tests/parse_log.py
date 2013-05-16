@@ -223,9 +223,11 @@ def dict_dump(dict):
 
 def document_analysis(doc):
   #analyse the energy and the forces
+  last=doc["Last Iteration"]
   try:
     last=doc["Last Iteration"]
     dict_dump(last["EKS"])
+    stdout.write(yaml.dump(last,default_flow_style=False,explicit_start=True))    
   except:
     last={}
     print 'Last iteration absent'
@@ -239,8 +241,6 @@ def document_analysis(doc):
       
     
     
-
-
 
 if __name__ == "__main__":
   parser = parse_arguments()
@@ -269,7 +269,7 @@ except:
 ndocs=len(datas)
 
 print 'No. of Documents:',ndocs
-ddd
+
 for run in datas:
   print 'New Document'
   document_analysis(run)

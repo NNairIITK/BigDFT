@@ -67,7 +67,6 @@ module dictionaries
   public :: operator(//),operator(.index.),assignment(=)
   public :: set,dict_init,dict_free,pop,append,prepend,add
   !Handle exceptions
-  public :: try,close_try,try_error
   public :: find_key,dict_len,dict_size,dict_key,dict_next,has_key,dict_keys
   
 
@@ -99,7 +98,8 @@ contains
     type(dictionary), intent(in) :: dict
     logical :: no_key
     !TEST
-    no_key=(len(trim(dict%data%key)) == 0 .and. dict%data%item == -1) .and. associated(dict%parent)
+    no_key=(len_trim(dict%data%key) == 0 .and. dict%data%item == -1) .and. &
+         associated(dict%parent)
   end function no_key
 
   pure function no_value(dict)
@@ -123,7 +123,6 @@ contains
           stop
        end if
     end if
-
   end subroutine check_key
 
   !> Check if there is a value
@@ -139,7 +138,6 @@ contains
           stop
        end if
     end if
-
   end subroutine check_value
 
   pure function dict_key(dict)
@@ -152,7 +150,6 @@ contains
     else
        dict_key=repeat(' ',len(dict_key))
     end if
-
   end function dict_key
 
   subroutine check_conversion(ierror)
@@ -166,7 +163,6 @@ contains
           stop
        end if
     end if
-
   end subroutine check_conversion
 
   subroutine set_item(dict,item)
@@ -405,14 +401,22 @@ contains
     character(len=*), intent(in) :: name
     logical :: name_is
 
-    if (no_key(dict)) then
-       name_is=(trim(name) == trim(dict%data%value))
-    else if (no_value(dict)) then
-       name_is=(trim(name) == trim(dict%data%key))
-    else
-       name_is=.false.
-    end if
+!!$    print *,'name is',trim(name),no_key(dict%child),no_value(dict%child),&
+!!$         'value',trim(dict%data%value),'key',trim(dict%data%key),&
+!!$         'item',dict%data%item,&
+!!$         'child',associated(dict%child),'valueC',trim(dict%child%data%value),&
+!!$         'keyC',trim(dict%child%data%key)
 
+    name_is=.false.
+    if (trim(name) == trim(dict%data%key)) then
+       name_is=.true.
+    else if (associated(dict%child)) then
+       !most likely dict is a item list
+       name_is=(trim(name) == trim(dict%child%data%key))
+       !print *,'here',name_is,trim(dict%child%data%value),'ag',trim(name)
+    else
+       name_is=(trim(name) == trim(dict%data%value))
+    end if
   end function name_is
 
   !> returns the position of the name in the dictionary
@@ -429,7 +433,7 @@ contains
     character(len=max_field_length) :: name_tmp
 
     find_index=0
-    ind=0
+    ind=-1
     if (associated(dict)) then
        dict_tmp=>dict_next(dict)
        loop_find: do while(associated(dict_tmp))
@@ -578,25 +582,6 @@ contains
 
   end function find_key
 
-!!$  subroutine dict_assign_keys_arrays(keys,dictkeys)
-!!$    implicit none
-!!$    character(len=*), dimension(:), intent(out) :: keys
-!!$    character(len=max_field_length), dimension(:), intent(in) :: dictkeys
-!!$    !local variables
-!!$    integer :: i
-!!$    
-!!$    if (size(dictkeys) > size(keys)) then
-!!$       do i=1,size(keys)
-!!$          keys(i)=repeat(' ',len(keys(i)))
-!!$       end do
-!!$       stop 'the size of the array is not enough'
-!!$    else
-!!$       do i=1,size(dictkeys)
-!!$          keys(i)(1:len(keys(i)))=dictkeys(i)
-!!$       end do
-!!$    end if
-!!$  end subroutine dict_assign_keys_arrays
-  
   function dict_keys(dict)
     implicit none
     type(dictionary), intent(in) :: dict !<the dictionary must be associated

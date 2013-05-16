@@ -328,8 +328,6 @@ program PS_Check
       call yaml_release_document()
       call yaml_close_all_streams()
    end if
-!!$   !finalize memory counting
-!!$   call memocc(0,0,'count','stop')
 
    call MPI_FINALIZE(ierr)
 
