@@ -79,7 +79,7 @@ module yaml_output
   public :: yaml_sequence,yaml_open_sequence,yaml_close_sequence
   public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
   public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa,yaml_time_toa
-  public :: yaml_set_stream,yaml_set_default_stream
+  public :: yaml_set_stream,yaml_set_default_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump
 
@@ -115,6 +115,15 @@ contains
     nullify(strm%dict_warning)
   end function stream_null
 
+  !> Set @new_unit as the new default unit and return the old default unit.
+  subroutine yaml_swap_stream(new_unit, old_unit, ierr)
+    implicit none
+    integer, intent(in) :: new_unit
+    integer, intent(out) :: old_unit, ierr
+
+    call yaml_get_default_stream(old_unit)
+    call yaml_set_default_stream(new_unit, ierr)
+  end subroutine yaml_swap_stream
 
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.

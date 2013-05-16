@@ -208,7 +208,9 @@ module module_images
 
   public :: init_images, deallocate_images, set_init_vel
   public :: compute_tangent, compute_gradient, compute_error, compute_neb_pos
+  public :: images_distribute_tasks
   public :: write_restart, write_restart_vel, write_dat_files
+  public :: images_write_step
   public :: termalization
 
   type, public :: NEB_data
@@ -725,6 +727,98 @@ contains
     DEALLOCATE( reaction_coordinate )
 
   END SUBROUTINE write_dat_files
+
+  subroutine images_write_step(V, error, nimages, full, iteration)
+    use yaml_output
+    implicit none
+    integer, intent(in) :: nimages
+    real(gp), dimension(nimages), intent(in) :: V, error
+    logical, intent(in), optional :: full
+    integer, intent(in), optional :: iteration
+
+    logical :: full_
+    integer :: i
+
+    full_ = .false.
+    if (present(full)) full_ = full
+
+    if (full_) then
+       call yaml_open_sequence("Energy and error per image")
+       DO i = 1, nimages
+          call yaml_sequence(advance='no')
+          call yaml_open_map(flow=.true.)
+          call yaml_map("Energy (eV)",V(i) * Ha_eV,fmt='(F16.8)')
+          call yaml_map("error (eV / ang)",error(i) * ( Ha_eV / Bohr_Ang ),fmt='(F8.5)')
+          call yaml_close_map(advance='no')
+!!$          call yaml_sequence( &
+!!$               dict((/ "Energy (eV)"      .is. yaml_toa(V(i) * Ha_eV,fmt='(F16.8)') ,&
+!!$                       "error (eV / ang)" .is. yaml_toa(error(i) * ( Ha_eV / Bohr_Ang ),fmt='(F8.5)') /), &
+!!$                       advance = "no")
+          call yaml_comment(trim(yaml_toa(i,fmt='(i2.2)')))
+       END DO
+       call yaml_close_sequence()
+    else
+       call yaml_open_map(flow=.true.)
+       call yaml_map("E activation (eV)",( maxval(V(2:nimages - 1)) - V(1) ) * Ha_eV,fmt='(F10.6)')
+       call yaml_map("max error (eV / ang)",maxval(error) * ( Ha_eV / Bohr_Ang ),fmt='(F10.6)')
+       if (present(iteration)) then
+          call yaml_close_map(advance="no")
+          call yaml_comment(trim(yaml_toa(iteration, fmt='(i3.3)')))
+       else
+          call yaml_close_map()
+       end if
+    end if
+  END SUBROUTINE images_write_step
+
+  subroutine images_distribute_tasks(igroup, update, nimages, ngroup)
+    implicit none
+    integer, intent(in) :: nimages, ngroup
+    logical, dimension(nimages), intent(in) :: update
+    integer, dimension(nimages), intent(out) :: igroup
+
+    integer :: alpha, beta
+    integer :: i, l, m, n
+
+    n = 0
+    do i = 1, nimages
+       if (update(i)) n = n + 1
+    end do
+
+    igroup(:) = -1
+    alpha = 0
+    beta = nimages + 1
+    ! Taskgroups have l or (l+1) images to compute.
+    l = n / ngroup
+    ! There are m taskgroups with (l+1) images.
+    m = n - l * ngroup
+    do i = 1, m
+       if (modulo(i, 2) == 1) then
+          call span_group(alpha, l + 1, +1, i)
+       else
+          call span_group(beta,  l + 1, -1, i)
+       end if
+    end do
+    ! There are n - m taskgroups with l images.
+    do i = m + 1, ngroup * min(1, l)
+       call span_group(alpha, l, +1, i)
+    end do
+  contains
+    subroutine span_group(it, n, dir, ig)
+      integer, intent(inout) :: it
+      integer, intent(in) :: n, dir, ig
+      integer :: j
+
+      j = 0
+      do
+         it = it + dir
+         if (update(it)) then
+            igroup(it) = ig
+            j = j + 1
+            if (j == n) exit
+         end if
+      end do
+    end subroutine span_group
+  END SUBROUTINE images_distribute_tasks
 
 END MODULE module_images
 

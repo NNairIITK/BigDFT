@@ -56,6 +56,7 @@ MODULE NEB_variables
   real (gp), DIMENSION(:), ALLOCATABLE   :: fix_atom
   REAL (gp), DIMENSION(:), ALLOCATABLE   :: V, F, error
   REAL (gp)                              :: tolerance
+
   integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
   type(input_variables) :: ins
@@ -468,13 +469,12 @@ MODULE NEB_routines
     END SUBROUTINE dyn_allocation     
 
     SUBROUTINE search_MEP
+      use yaml_output
 
       IMPLICIT NONE
 
-      INTEGER :: iteration, i, N_in, N_fin, infocode, ierr
+      INTEGER :: iteration, unt, ierr
       LOGICAL :: stat
-      type(run_objects) :: runObj
-      type(DFT_global_output) :: outs
 
       open(unit = 456, file = trim(barrier_file), action = "WRITE")
       write(456, "(A)") "# NEB barrier file"
@@ -486,43 +486,15 @@ MODULE NEB_routines
 
       error(:) = 999d99
 
+      if (mpi_info(1) == 0 .and. mpi_info(3) == 0) &
+           & call yaml_open_sequence("NEB minimization loop", unit = 6)
       iteration = 0
       minimization: do
          if (external_call) then
             CALL PES_IO(neb_%optimization .or. (.not. restart .and. iteration == 0),stat)
             if (.not. stat) exit minimization
          else
-            if (neb_%optimization .or. (.not. restart .and. iteration == 0)) then
-               N_in = 1
-               N_fin = neb_%nimages
-            else
-               N_in = 2
-               N_fin = neb_%nimages - 1
-            end if
-            call to_zero((N_fin - N_in + 1), V(N_in))
-            call to_zero((N_fin - N_in + 1) * neb_%ndim, PES_gradient(1,N_in))
-            do i = N_in, N_fin, 1
-               if (modulo(i-N_in,mpi_info(4)) == mpi_info(3)) then
-                  call run_objects_init_container(runObj, ins, atoms, rst, pos(1,i))
-                  call init_global_output(outs, runObj%atoms%nat)
-                  call call_bigdft(runObj,outs,mpi_info(2),mpi_info(1),infocode)
-                  call run_objects_free_container(runObj)
-                  call dsbmv('L', neb_%ndim, 0, -1.d0, fix_atom(1), 1, outs%fxyz(1,1), 1, 0.d0, PES_gradient(1, i), 1)
-                  V(i) = outs%energy
-                  call deallocate_global_output(outs)
-               end if
-            end do
-            if (neb_mpi%nproc > 1) then
-               if (neb_mpi%mpi_comm /= MPI_COMM_NULL) then
-                  call mpiallred(V(N_in), (N_fin - N_in + 1), MPI_SUM, neb_mpi%mpi_comm, ierr)
-                  call mpiallred(PES_gradient(1,N_in), neb_%ndim * (N_fin - N_in + 1), &
-                       & MPI_SUM, neb_mpi%mpi_comm, ierr)
-               end if
-               call mpi_bcast(V(N_in), (N_fin - N_in + 1), MPI_DOUBLE_PRECISION, &
-                    & 0, bigdft_mpi%mpi_comm, ierr)
-               call mpi_bcast(PES_gradient(1,N_in), neb_%ndim * (N_fin - N_in + 1), MPI_DOUBLE_PRECISION, &
-                    & 0, bigdft_mpi%mpi_comm, ierr)
-            end if
+            call PES_internal(neb_%optimization .or. (.not. restart .and. iteration == 0), iteration)
          end if
 
          call compute_neb_pos(stat, iteration, error, F, pos, V, PES_gradient, Lx, Ly, Lz, neb_)
@@ -539,22 +511,88 @@ MODULE NEB_routines
                WRITE(456, fmt4) iteration - 1, ( maxval(V(2:neb_%nimages - 1)) - V(1) ) * Ha_eV, &
                     & maxval(error) * ( Ha_eV / Bohr_Ang ) 
                close(unit = 456)
-               ! Move this to YAML.
-               WRITE(*, fmt4)   iteration - 1, ( maxval(V(2:neb_%nimages - 1)) - V(1) ) * Ha_eV, &
-                    & maxval(error) * ( Ha_eV / Bohr_Ang ) 
+               call yaml_swap_stream(6, unt, ierr)
+               call yaml_sequence(advance='no')
+               call images_write_step(V, error, neb_%nimages, iteration = iteration - 1)
+               call yaml_set_default_stream(unt, ierr)
             end if
          end if
 
          if (.not. stat) exit minimization
       end do minimization
+      if (mpi_info(1) == 0 .and. mpi_info(3) == 0) &
+           & call yaml_close_sequence(unit = 6)
 
       if (mpi_info(1) == 0 .and. mpi_info(3) == 0) then
-         ! Move this to YAML.
-         DO i = 1, neb_%nimages
-            WRITE(*,fmt5) i, V(i) * Ha_eV, error(i) * ( Ha_eV / Bohr_Ang )
-         END DO
+         call yaml_swap_stream(6, unt, ierr)
+         call yaml_comment('Final results',hfill='-')
+         call images_write_step(V, error, neb_%nimages, full = .true.)
+         call yaml_set_default_stream(unt, ierr)
       end if
     END SUBROUTINE search_MEP
+
+    subroutine PES_internal( flag, iteration )
+      use yaml_output
+      implicit none
+      logical, intent(in) :: flag
+      integer, intent(in) :: iteration
+
+      logical, dimension(neb_%nimages) :: update
+      integer, dimension(neb_%nimages) :: igroup
+      integer :: i, infocode, ierr
+      type(run_objects) :: runObj
+      type(DFT_global_output) :: outs
+      character(len = 80) :: file
+
+      ! update() is a mask of images to compute.
+      update = .true.
+      where ( error * Ha_eV / Bohr_Ang <= neb_%convergence ) update = .false.
+      if (.not. flag) then
+         update(1) = .false.
+         update(neb_%nimages) = .false.
+      end if
+
+      ! Put to zero V and PES_gradient for the updated images,
+      ! or for all groups not 0 (for later reduction).
+      do i = 1, neb_%nimages
+         if (update(i) .or. neb_mpi%iproc > 0) then
+            V(i) = 0.d0
+            call to_zero(neb_%ndim, PES_gradient(1,i))
+         end if
+      end do
+      
+      ! Do the calculations, distributing along taskgroups.
+      call images_distribute_tasks(igroup, update, neb_%nimages, neb_mpi%nproc)
+      do i = 1, neb_%nimages
+         if (igroup(i) - 1 == mpi_info(3)) then
+            write(file, "(A,I2.2,A)") "log-img", i, ".yaml"
+            call yaml_set_stream(unit = 9169 + i, filename = file, istat = ierr)
+            call yaml_comment("NEB iteration #" // trim(yaml_toa(iteration, fmt = "(I3.3)")), hfill="-")
+            call run_objects_init_container(runObj, ins, atoms, rst, pos(1,i))
+            call init_global_output(outs, runObj%atoms%nat)
+            call call_bigdft(runObj,outs,mpi_info(2),mpi_info(1),infocode)
+            call run_objects_free_container(runObj)
+            ins%inputpsiid = 1
+            call dsbmv('L', neb_%ndim, 0, -1.d0, fix_atom(1), 1, outs%fxyz(1,1), 1, &
+                 & 0.d0, PES_gradient(1, i), 1)
+            V(i) = outs%energy
+            call deallocate_global_output(outs)
+            close(unit = 9169 + i)
+         end if
+      end do
+      
+      ! Reduce the result in case of taskgrouping.
+      if (neb_mpi%nproc > 1) then
+         if (neb_mpi%mpi_comm /= MPI_COMM_NULL) then
+            call mpiallred(V(1), neb_%nimages, MPI_SUM, neb_mpi%mpi_comm, ierr)
+            call mpiallred(PES_gradient(1,1), neb_%ndim * neb_%nimages, &
+                 & MPI_SUM, neb_mpi%mpi_comm, ierr)
+         end if
+         call mpi_bcast(V(1), neb_%nimages, MPI_DOUBLE_PRECISION, 0, bigdft_mpi%mpi_comm, ierr)
+         call mpi_bcast(PES_gradient(1,1), neb_%ndim * neb_%nimages, MPI_DOUBLE_PRECISION, &
+              & 0, bigdft_mpi%mpi_comm, ierr)
+      end if
+    END SUBROUTINE PES_internal
 
     SUBROUTINE PES_IO( flag , stat )
 
@@ -624,7 +662,8 @@ MODULE NEB_routines
     END SUBROUTINE PES_IO
 
     SUBROUTINE deallocation
-
+      use yaml_output
+      use dynamic_memory
       IMPLICIT NONE
 
       integer :: ierr
@@ -642,6 +681,9 @@ MODULE NEB_routines
       if (.not. external_call) then
          call free_input_variables(ins)
          call free_restart_objects(rst,"deallocation")
+         call yaml_set_stream(unit = 6, istat = ierr)
+         call f_finalize()
+         call yaml_close_all_streams()
       end if
 
       call bigdft_finalize(ierr)
