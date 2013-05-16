@@ -1618,7 +1618,7 @@ subroutine atoms_new(atoms, sym)
   nullify(atoms%paw_S_matrices)
   nullify(atoms%paw_Sm1_matrices)
 END SUBROUTINE atoms_new
-subroutine atoms_set_from_file(lstat, atoms, filename, ln)
+subroutine atoms_set_from_file(lstat, atoms, rxyz, filename, ln)
    use module_base
    use module_types
    use module_interfaces
@@ -1627,6 +1627,7 @@ subroutine atoms_set_from_file(lstat, atoms, filename, ln)
    type(atoms_data), intent(inout) :: atoms
    integer, intent(in) :: ln
    character, intent(in) :: filename(ln)
+   real(gp), dimension(:,:), pointer :: rxyz
 
    integer :: status, i
    character(len = 1024) :: filename_
@@ -1639,6 +1640,7 @@ subroutine atoms_set_from_file(lstat, atoms, filename, ln)
 
    lstat = .true.
    call read_atomic_file(trim(filename_), 0, atoms%astruct, status)
+   rxyz=>atoms%astruct%rxyz
    call allocate_atoms_nat(atoms, subname)
    call allocate_atoms_ntypes(atoms, subname)
    lstat = (status == 0)
@@ -1679,19 +1681,20 @@ subroutine atoms_read_variables(atoms, nspin, occup, ln)
 
   call read_atomic_variables(atoms, trim(filename_), nspin)
 END SUBROUTINE atoms_read_variables
-subroutine atoms_set_n_atoms(atoms, nat)
+subroutine atoms_set_n_atoms(atoms, rxyz, nat)
   use module_types
   use memory_profiling
   implicit none
   type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
   integer, intent(in) :: nat
 
   integer :: i, i_stat
 
   call allocate_astruct_nat(atoms%astruct, nat, "atoms_set_n_atoms")
   atoms%astruct%iatype = (/ (i, i=1,nat) /)
-  allocate(atoms%astruct%rxyz(3, atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%astruct%rxyz,'astruct%rxyz',"atoms_set_n_atoms")
+  allocate(rxyz(3, atoms%astruct%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz,'rxyz',"atoms_set_n_atoms")
   call allocate_atoms_nat(atoms, "atoms_set_n_atoms")
 END SUBROUTINE atoms_set_n_atoms
 subroutine atoms_set_n_types(atoms, ntypes)

@@ -387,7 +387,6 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
   integer :: i,iat,ityp,i1,i2,i3
   real(kind=8) :: x,y,z,vx,vy,vz,xlo,xhi,ylo,yhi,zlo,zhi,alat(3)
   type(atoms_data) :: atoms
-  real(gp), dimension(:,:), pointer :: rxyz
   character(len=*), parameter :: subname='read_pos'
 
 
@@ -423,9 +422,9 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
      alat(3) = atoms%astruct%cell_dim(3)
      if (atoms%astruct%geocode == 'F') alat(3) = 1.d0
      do iat=1,nat
-        pos(1,iat)=rxyz(1,iat)/alat(1)
-        pos(2,iat)=rxyz(2,iat)/alat(2)
-        pos(3,iat)=rxyz(3,iat)/alat(3)
+        pos(1,iat)=atoms%astruct%rxyz(1,iat)/alat(1)
+        pos(2,iat)=atoms%astruct%rxyz(2,iat)/alat(2)
+        pos(3,iat)=atoms%astruct%rxyz(3,iat)/alat(3)
      enddo
      call deallocate_atoms(atoms, 'distance')
   end if

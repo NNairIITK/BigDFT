@@ -282,6 +282,7 @@ program memguess
       call read_atomic_file(trim(fileFrom),0,atoms%astruct,i_stat,fcomment,energy,fxyz)
       call allocate_atoms_nat(atoms, subname)
       call allocate_atoms_ntypes(atoms, subname)
+      rxyz=>atoms%astruct%rxyz
       if (i_stat /=0) stop 'error on input file parsing' 
       !find the format of the output file
       if (index(fileTo,'.xyz') > 0) then
@@ -320,7 +321,7 @@ program memguess
    else
       posinp=trim(radical)
    end if
-   call bigdft_set_input(radical, posinp,rxyz,in, atoms)
+   call bigdft_set_input(radical,posinp,rxyz,in,atoms)
    !initialize memory counting
    !call memocc(0,0,'count','start')
 

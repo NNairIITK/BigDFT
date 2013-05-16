@@ -60,8 +60,9 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
   call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms%astruct)
   call allocate_atoms_nat(atoms, subname)
   call allocate_atoms_ntypes(atoms, subname)
-  call read_input_parameters2(bigdft_mpi%iproc,in,atoms,rxyz)
+  call read_input_parameters2(bigdft_mpi%iproc,in,atoms,atoms%astruct%rxyz)
 
+  rxyz=>atoms%astruct%rxyz
   ! Read associated pseudo files.
   call init_atomic_values((bigdft_mpi%iproc == 0), atoms, in%ixc)
   call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
