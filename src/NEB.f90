@@ -43,7 +43,6 @@ MODULE NEB_variables
 
   IMPLICIT NONE
  
-  CHARACTER (LEN=80)                     :: first_config, last_config
   CHARACTER (LEN=80)                     :: scratch_dir
   CHARACTER (LEN=80)                     :: data_file, interpolation_file, barrier_file
   CHARACTER (LEN=80)                     :: restart_file
@@ -58,7 +57,7 @@ MODULE NEB_variables
   REAL (gp)                              :: tolerance
 
   integer, dimension(4) :: mpi_info
-  character(len=60) :: run_id
+  character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
   type(input_variables), dimension(:), allocatable :: ins
   character(len = 100), dimension(:), allocatable  :: log_files
   type(atoms_data) :: atoms
@@ -107,8 +106,9 @@ MODULE NEB_routines
       logical :: file_exists, climbing, optimization
       integer :: max_iterations, ierr, nconfig
       real(gp) :: convergence, damp, k_min, k_max, ds, temp_req
-      character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
       type(mpi_environment) :: bigdft_mpi_svg
+      character(len=60) :: run_id
+      CHARACTER (LEN=80)                     :: first_config, last_config
 
       NAMELIST /NEB/ first_config,        &
                      last_config,         &
@@ -196,59 +196,23 @@ MODULE NEB_routines
 !! initial and final configuration are read only if a new simulation
 !! is started ( restart = .FALSE. ) 
       
-      IF ( .NOT. restart ) THEN
-
-         IF ( trim(first_config) == "" ) THEN
-
-            WRITE(*,'(T2,"read_input: first_config not assigned ")') 
-
-            STOP
-
-         ELSE IF ( trim(last_config) == "" ) THEN       
-
-            WRITE(*,'(T2,"read_input: last_config not assigned ")') 
-
-            STOP
-
-         END IF
-
-      END IF
- 
-!!!      IF ( restart ) THEN
-!!!         neb_%nimages = neb_%nimages - 2
-!!!      END IF
-
       IF ( minimization_scheme == "steepest_descent" ) THEN
-
          neb_%algorithm = 1
-
       ELSE IF ( minimization_scheme == "fletcher-reeves" ) THEN
-
          neb_%algorithm = 2
-
       ELSE IF ( minimization_scheme == "polak-ribiere" ) THEN
-
          neb_%algorithm = 3
-
       ELSE IF ( minimization_scheme == "quick-min" ) THEN
-
          neb_%algorithm = 4
-
       ELSE IF ( minimization_scheme == "damped-verlet" ) THEN
-
          neb_%algorithm = 5
-
       ELSE IF ( minimization_scheme == "sim-annealing" ) THEN
-
          neb_%algorithm = 6
-
       ELSE
-
          WRITE(*,'(T2,"read_input: minimization_scheme ", A20)') &
               minimization_scheme
          WRITE(*,'(T2,"            does not exist")') 
          STOP 
-
       END IF
 
       call atoms_nullify(atoms)
@@ -468,8 +432,6 @@ MODULE NEB_routines
         call yaml_close_all_streams()
      end if
 
-     deallocate(arr_posinp,arr_radical)
-
    END SUBROUTINE read_input
 
     
@@ -640,7 +602,7 @@ MODULE NEB_routines
       IF ( flag ) THEN
 
          CALL SYSTEM( "./NEB_driver.sh all " // trim(job_name) // &
-              & " " // trim(scratch_dir) // " " // trim(first_config))
+              & " " // trim(scratch_dir) // " " // trim(arr_posinp(1)))
 
         N_in  = 1
         N_fin = neb_%nimages
@@ -648,7 +610,7 @@ MODULE NEB_routines
       ELSE
          
          CALL SYSTEM( "./NEB_driver.sh free_only " // trim(job_name) // &
-              & " " // trim(scratch_dir) // " " // trim(first_config))
+              & " " // trim(scratch_dir) // " " // trim(arr_posinp(1)))
 
         N_in  = 2
         N_fin = ( neb_%nimages - 1 )
@@ -719,6 +681,8 @@ MODULE NEB_routines
          call yaml_close_all_streams()
       end if
       IF ( ALLOCATED( ins ) )              DEALLOCATE( ins )
+
+     deallocate(arr_posinp,arr_radical)
 
       call bigdft_finalize(ierr)
     END SUBROUTINE deallocation

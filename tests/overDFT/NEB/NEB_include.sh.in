@@ -62,16 +62,16 @@ make_input()
     id=$3
 
     # Clean the directory
-    rm -f log.yaml input.*
+    rm -f log.yaml input.* default.*
 
     # Create the posinp file
     make_xyz $position_file $n_nodes $restart_file
     
     # Copy the input.dat
-    cp -f -p $datadir/input.dft .
+    cp -f -p $datadir/default.dft ./input.dft
 
     # Copy the input.dat
-    cp -f -p $datadir/input.perf .
+    cp -f -p $datadir/default.perf ./input.perf
 
     # Copy the pseudo-potential files
     cp -f -p $datadir/psppar.* .
