@@ -59,7 +59,8 @@ MODULE NEB_variables
 
   integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
-  type(input_variables) :: ins
+  type(input_variables), dimension(:), allocatable :: ins
+  character(len = 100), dimension(:), allocatable  :: log_files
   type(atoms_data) :: atoms
   type(restart_objects) :: rst
 
@@ -88,7 +89,7 @@ MODULE NEB_routines
   CONTAINS
 
     SUBROUTINE read_input
-
+      use yaml_output
       use module_interfaces
 
       IMPLICIT NONE
@@ -106,6 +107,8 @@ MODULE NEB_routines
       logical :: file_exists, climbing, optimization
       integer :: max_iterations, ierr, nconfig
       real(gp) :: convergence, damp, k_min, k_max, ds, temp_req
+      character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
+      type(mpi_environment) :: bigdft_mpi_svg
 
       NAMELIST /NEB/ first_config,        &
                      last_config,         &
@@ -166,7 +169,7 @@ MODULE NEB_routines
       Ly = 0.D0
       Lz = 0.D0
 
-      open(unit = 123, file = trim(run_id), action = "read")
+      open(unit = 123, file = trim(run_id)//".neb", action = "read")
       READ(123 , NML=NEB )
       close(123)
 
@@ -180,6 +183,10 @@ MODULE NEB_routines
       neb_%temp_req = temp_req
       neb_%max_iterations = max_iterations
       neb_%nimages = num_of_images
+
+      allocate(arr_radical(abs(neb_%nimages)))
+      allocate(arr_posinp(abs(neb_%nimages)))
+      call bigdft_get_run_ids(neb_%nimages,trim(run_id),arr_radical,arr_posinp,ierr)
 
       barrier_file       = trim(job_name) // ".NEB.log"
       data_file          = trim(job_name) // ".NEB.dat"
@@ -245,7 +252,7 @@ MODULE NEB_routines
       END IF
 
       call atoms_nullify(atoms)
-      call read_atomic_file(trim(first_config), mpi_info(1), atoms, rxyz)
+      call read_atomic_file(trim(arr_posinp(1)), mpi_info(1), atoms, rxyz)
       n1 = atoms%nat
       acell1(1) = atoms%alat1
       acell1(2) = atoms%alat2
@@ -258,7 +265,7 @@ MODULE NEB_routines
       call deallocate_atoms(atoms, "read_input")
 
       call atoms_nullify(atoms)
-      call read_atomic_file(trim(last_config), mpi_info(1), atoms, rxyz)
+      call read_atomic_file(trim(arr_posinp(neb_%nimages)), mpi_info(1), atoms, rxyz)
       n2 = atoms%nat
       acell2(1) = atoms%alat1
       acell2(2) = atoms%alat2
@@ -433,19 +440,36 @@ MODULE NEB_routines
      END IF
 
      if (.not. external_call) then
-        call standard_inputfile_names(ins,trim(run_id), mpi_info(1))
-        call default_input_variables(ins)
-        call inputs_parse_params(ins, mpi_info(1), .true.)
-        call inputs_parse_add(ins, atoms, mpi_info(1), .true.)
+        ! Trick here, only super master will read the input files...
+        bigdft_mpi_svg = bigdft_mpi
+        bigdft_mpi%mpi_comm = MPI_COMM_WORLD
+        call mpi_comm_rank(MPI_COMM_WORLD, bigdft_mpi%iproc, ierr)
+        call mpi_comm_size(MPI_COMM_WORLD, bigdft_mpi%nproc, ierr)
+        bigdft_mpi%igroup = 0
+        bigdft_mpi%ngroup = neb_%nimages
+        do i = 1, neb_%nimages
+           call standard_inputfile_names(ins(i), trim(arr_radical(i)), bigdft_mpi%nproc)
+           call default_input_variables(ins(i))
+           ins(i)%ncount_cluster_x = max_iterations
+           call inputs_parse_params(ins(i), bigdft_mpi%iproc, .true.)
+           call inputs_parse_add(ins(i), atoms, bigdft_mpi%iproc, .true.)
 
-        call init_atomic_values((mpi_info(1) == 0), atoms, ins%ixc)
-        call read_atomic_variables(atoms, trim(ins%file_igpop),ins%nspin)
+           write(log_files(i), "(A,A)") trim(ins(i)%writing_directory), &
+                & 'log-'//trim(ins(i)%run_name)//'.yaml'           
+        end do
+        bigdft_mpi = bigdft_mpi_svg
+
+        call init_atomic_values((mpi_info(1) == 0), atoms, ins(1)%ixc)
+        call read_atomic_variables(atoms, trim(ins(1)%file_igpop), ins(1)%nspin)
 
         call restart_objects_new(rst)
-        call restart_objects_set_mode(rst, ins%inputpsiid)
+        call restart_objects_set_mode(rst, ins(1)%inputpsiid)
         call restart_objects_set_nat(rst, atoms%nat, "read_input")
-        call restart_objects_set_mat_acc(rst, mpi_info(1), ins%matacc)
+        call restart_objects_set_mat_acc(rst, mpi_info(1), ins(1)%matacc)
+        call yaml_close_all_streams()
      end if
+
+     deallocate(arr_posinp,arr_radical)
 
    END SUBROUTINE read_input
 
@@ -463,6 +487,9 @@ MODULE NEB_routines
       ALLOCATE( F( neb_%nimages ) )
       ALLOCATE( V( neb_%nimages ) )
       ALLOCATE( error( neb_%nimages ) )
+
+      allocate(ins(neb_%nimages))
+      allocate(log_files(neb_%nimages))
 
       call init_images(neb_, neb_%ndim, neb_%nimages, neb_%algorithm)
 
@@ -542,7 +569,8 @@ MODULE NEB_routines
       integer :: i, infocode, ierr
       type(run_objects) :: runObj
       type(DFT_global_output) :: outs
-      character(len = 80) :: file
+      character(len = 80) :: comment
+      character(len = 4) :: fn4
 
       ! update() is a mask of images to compute.
       update = .true.
@@ -565,20 +593,23 @@ MODULE NEB_routines
       call images_distribute_tasks(igroup, update, neb_%nimages, neb_mpi%nproc)
       do i = 1, neb_%nimages
          if (igroup(i) - 1 == mpi_info(3)) then
-            write(file, "(A,I2.2,A)") "log-img", i, ".yaml"
-            call yaml_set_stream(unit = 9169 + i, filename = file, istat = ierr)
+            call yaml_set_stream(unit = 9169 + i, filename = trim(log_files(i)), istat = ierr)
             call yaml_comment("NEB iteration #" // trim(yaml_toa(iteration, fmt = "(I3.3)")), hfill="-")
-            call run_objects_init_container(runObj, ins, atoms, rst, pos(1,i))
+            call run_objects_init_container(runObj, ins(i), atoms, rst, pos(1,i))
             call init_global_output(outs, runObj%atoms%nat)
             call call_bigdft(runObj,outs,mpi_info(2),mpi_info(1),infocode)
             call run_objects_free_container(runObj)
-            ins%inputpsiid = 1
+            ins(i)%inputpsiid = 1
             call dsbmv('L', neb_%ndim, 0, -1.d0, fix_atom(1), 1, outs%fxyz(1,1), 1, &
                  & 0.d0, PES_gradient(1, i), 1)
             V(i) = outs%energy
+            write(fn4, "(I4.4)") iteration
+            write(comment,'(a,1pe10.3)')'NEB:error= ',error(i)
+            call write_atomic_file(trim(ins(i)%dir_output)//'posout_'//fn4, &
+                 & outs%energy,pos(1,i),atoms,trim(comment),forces=outs%fxyz)
             call deallocate_global_output(outs)
-            close(unit = 9169 + i)
-         end if
+            call yaml_close_all_streams()
+        end if
       end do
       
       ! Reduce the result in case of taskgrouping.
@@ -666,7 +697,7 @@ MODULE NEB_routines
       use dynamic_memory
       IMPLICIT NONE
 
-      integer :: ierr
+      integer :: i, ierr
 
       IF ( ALLOCATED( pos ) )              DEALLOCATE( pos )
       IF ( ALLOCATED( PES_gradient ) )     DEALLOCATE( PES_gradient )
@@ -674,17 +705,21 @@ MODULE NEB_routines
       IF ( ALLOCATED( F ) )                DEALLOCATE( F )
       IF ( ALLOCATED( V ) )                DEALLOCATE( V )
       IF ( ALLOCATED( error ) )            DEALLOCATE( error )
+      IF ( ALLOCATED( log_files ) )        DEALLOCATE( log_files )
       
       call deallocate_images(neb_)
       call deallocate_atoms(atoms, "deallocation")
 
       if (.not. external_call) then
-         call free_input_variables(ins)
+         do i = 1, neb_%nimages
+            call free_input_variables(ins(i))
+         end do
          call free_restart_objects(rst,"deallocation")
          call yaml_set_stream(unit = 6, istat = ierr)
          call f_finalize()
          call yaml_close_all_streams()
       end if
+      IF ( ALLOCATED( ins ) )              DEALLOCATE( ins )
 
       call bigdft_finalize(ierr)
     END SUBROUTINE deallocation
