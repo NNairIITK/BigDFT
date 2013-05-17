@@ -584,9 +584,10 @@ module module_interfaces
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
             denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-            wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
+            wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags)
          use module_defs
          use module_types
+         use module_fragments
          implicit none
          integer, intent(in) :: iproc, nproc, inputpsi,  input_wf_format
          type(input_variables), intent(in) :: in
@@ -605,6 +606,7 @@ module module_interfaces
          type(grid_dimensions), intent(in) :: d_old
          real(gp), dimension(3, atoms%astruct%nat), intent(inout) :: rxyz_old
          type(wavefunctions_descriptors), intent(inout) :: wfd_old
+         type(system_fragment), dimension(in%frag%nfrag_ref), intent(inout) :: ref_frags
        END SUBROUTINE input_wf
 
        subroutine reformatmywaves(iproc,orbs,at,&
@@ -2728,18 +2730,16 @@ module module_interfaces
     end subroutine nullify_grow_bounds
     
 
-    subroutine initLocregs(iproc, nproc, lzd, rxyz, hx, hy, hz, at, orbs, Glr, locrad, locregShape, lborbs)
+    subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locregShape, lborbs)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc
       type(local_zone_descriptors),intent(inout):: lzd
-      real(8),dimension(3,lzd%nlr),intent(in):: rxyz
       real(8),intent(in):: hx, hy, hz
-      type(atoms_data),intent(in) :: at
+      type(atomic_structure),intent(in) :: astruct
       type(orbitals_data),intent(in):: orbs
       type(locreg_descriptors),intent(in):: Glr
-      real(8),dimension(lzd%nlr),intent(in):: locrad
       character(len=1),intent(in):: locregShape
       type(orbitals_data),optional,intent(in):: lborbs
     end subroutine initLocregs
@@ -2906,13 +2906,13 @@ module module_interfaces
        type(paw_objects),optional,intent(inout)::paw
      end subroutine FullHamiltonianApplication
 
-       subroutine init_foe(iproc, nproc, lzd, at, input, orbs_KS, orbs, foe_obj, reset)
+       subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          type(local_zone_descriptors),intent(in) :: lzd
-         type(atoms_data),intent(in) :: at
+         type(atomic_structure),intent(in) :: astruct
          type(input_variables),intent(in) :: input
          type(orbitals_data),intent(in):: orbs_KS, orbs
          type(foe_data),intent(out):: foe_obj
@@ -3091,9 +3091,10 @@ module module_interfaces
 
        subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
             orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
-            inwhichlocreg_old, onwhichatom_old)
+            ref_frags, inwhichlocreg_old, onwhichatom_old)
          use module_base
          use module_types
+         use module_fragments
          implicit none
          integer, intent(in) :: iproc,nproc
          integer, intent(out) :: inputpsi,input_wf_format,lnpsidim_orbs,lnpsidim_comp
@@ -3108,6 +3109,7 @@ module module_interfaces
          real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
          real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
          real(wp), dimension(:), pointer :: proj
+         type(system_fragment), dimension(in%frag%nfrag_ref), intent(inout) :: ref_frags
          integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
        end subroutine system_initialization
 
@@ -3227,7 +3229,7 @@ module module_interfaces
        end subroutine define_confinement_data
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
-                  useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
+                  useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, astruct, input, &
                   orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
          use module_base
          use module_types
@@ -3237,7 +3239,7 @@ module module_interfaces
          logical,intent(in):: useDerivativeBasisFunctions
          integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
          real(8),intent(in):: hx, hy, hz
-         type(atoms_data),intent(in) :: at
+         type(atomic_structure),intent(in) :: astruct
          type(input_variables),intent(in) :: input
          real(8),dimension(nlr),intent(in):: locrad
          type(orbitals_data),intent(in):: orbs_KS, orbs
@@ -3267,14 +3269,14 @@ module module_interfaces
          type(DFT_wavefunction),intent(inout):: wfn
        end subroutine destroy_DFT_wavefunction
 
-       subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, rxyz, lorbs)
+       subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc, nspinor
          type(input_variables),intent(in):: input
-         type(atoms_data),intent(in):: at
-         real(8),dimension(3,at%astruct%nat),intent(in):: rxyz
+         type(atomic_structure),intent(in):: astruct
+         real(8),dimension(3,astruct%nat),intent(in):: rxyz
          type(orbitals_data),intent(out):: lorbs
        end subroutine init_orbitals_data_for_linear
 
@@ -3664,16 +3666,20 @@ module module_interfaces
          type(local_zone_descriptors),optional,intent(in):: lzd
        end subroutine untranspose_localized
 
-       subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,rxyz,orblist)
+       subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,Lzd,&
+              iformat,dir_output,filename,ref_frags,orblist)
          use module_base
          use module_types
+         use module_fragments
          implicit none
          integer, intent(in) :: iproc, nproc, iformat
          type(orbitals_data), intent(inout) :: orbs  !< orbs related to the basis functions, inwhichlocreg generated in this routine
-         type(atoms_data), intent(in) :: at
-         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-         character(len=*), intent(in) :: filename
+         type(atomic_structure), intent(in) :: astruct
+         real(gp), dimension(3,astruct%nat), intent(in) :: rxyz
+         character(len=*), intent(in) :: filename, dir_output
          type(local_zone_descriptors), intent(inout) :: Lzd !< must already contain Glr and hgrids
+         type(fragmentInputParameters), intent(in) :: input_frag
+         type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
          integer, dimension(orbs%norb), optional :: orblist
        end subroutine initialize_linear_from_file
 
@@ -4284,18 +4290,16 @@ module module_interfaces
         end subroutine normalize_transposed
 
 
-        subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,at,orbs,Glr,Llr,calculateBounds)!,outofzone)
+        subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs,Glr,Llr,calculateBounds)!,outofzone)
           use module_base
           use module_types
           implicit none
           integer, intent(in) :: iproc,nproc
           integer, intent(in) :: nlr
           real(gp), intent(in) :: hx,hy,hz
-          type(atoms_data),intent(in) :: at
+          type(atomic_structure),intent(in) :: astruct
           type(orbitals_data),intent(in) :: orbs
           type(locreg_descriptors), intent(in) :: Glr
-          real(gp), dimension(nlr), intent(in) :: locrad
-          real(gp), dimension(3,nlr), intent(in) :: cxyz
           type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
           logical,dimension(nlr),intent(in) :: calculateBounds
         end subroutine determine_locregSphere_parallel

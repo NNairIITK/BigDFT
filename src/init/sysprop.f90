@@ -11,11 +11,12 @@
 !> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
      orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
-     inwhichlocreg_old, onwhichatom_old)
+     ref_frags,inwhichlocreg_old, onwhichatom_old)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
   use module_xc
+  use module_fragments
   use gaussians, only: gaussian_basis
   use vdwcorrection
   use yaml_output
@@ -33,6 +34,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
   real(wp), dimension(:), pointer :: proj
+  type(system_fragment), dimension(in%frag%nfrag_ref), intent(inout) :: ref_frags
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
@@ -93,7 +95,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   ! Create linear orbs data structure.
   if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_DISK_LINEAR &
       .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
-     call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, rxyz, lorbs)
+     call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, rxyz, lorbs)
 
      ! There are needed for the restart (at least if the atoms have moved...)
      present_inwhichlocreg_old = present(inwhichlocreg_old)
@@ -157,17 +159,25 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   lzd_lin=default_lzd()
   call nullify_local_zone_descriptors(lzd_lin)
   lzd_lin%nlr = 0
+
+  ! fragment initializations - if not a fragment calculation, set to appropriate dummy values
+  if (inputpsi == INPUT_PSI_DISK_LINEAR) then
+     call init_fragments(in,lorbs,ref_frags)
+  end if
+
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr, subname)
      call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
      if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-        call lzd_init_llr(iproc, nproc, in, atoms, rxyz, lorbs, lzd_lin)
+        call lzd_init_llr(iproc, nproc, in, atoms%astruct, rxyz, lorbs, lzd_lin)
      else
-        call initialize_linear_from_file(iproc,nproc,trim(in%dir_output)//'minBasis',&
-             input_wf_format,lzd_lin,lorbs,atoms,rxyz)
+        call initialize_linear_from_file(iproc,nproc,in%frag,atoms%astruct,rxyz,lorbs,lzd_lin,&
+             input_wf_format,in%dir_output,'minBasis',ref_frags)
         !what to do with derivatives?
      end if
+     call initLocregs(iproc, nproc, lzd_lin, Lzd_lin%hgrids(1), Lzd_lin%hgrids(2),Lzd_lin%hgrids(3), &
+          atoms%astruct, lorbs, Lzd_lin%Glr, 's')
      call update_wavefunctions_size(lzd_lin,lnpsidim_orbs,lnpsidim_comp,lorbs,iproc,nproc)
   end if
 

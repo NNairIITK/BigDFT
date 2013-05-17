@@ -1709,8 +1709,8 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
   call nullifyInputFragParameters(in%frag)
   call allocateInputFragArrays(in%frag)
 
-  comments = '# reference fragment number i, number of atoms in reference fragment i, '//&
-             'number of atoms in corresponding environment'
+  !comments = '# reference fragment number i, number of atoms in reference fragment i, '//&
+  !           'number of atoms in corresponding environment'
   !do ifrag=1,in%frag%nfrag_ref
   !  call input_var(frag_num,'1',ranges=(/1,in%frag%nfrag_ref/))
   !  if (frag_num/=ifrag) then
@@ -1733,7 +1733,7 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
        call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
        stop
     end if
-    call input_var(in%frag%label(frag_num),'0',comment=comments)
+    call input_var(in%frag%label(frag_num),' ',comment=comments)
   end do
 
   comments = '# fragment number j, reference fragment i this corresponds to'

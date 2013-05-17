@@ -36,13 +36,9 @@ module module_fragments
 
   !> Defines the minimal information to identify a system building block
   type, public :: system_fragment
-     integer :: nat_frg !< atoms effectively belonging to the fragment
      integer :: nat_env !< environment atoms which complete fragment specifications
-     integer :: ntypes  !< Number of atom types (including system and env)
-     integer, dimension(:), pointer :: iatype  !< Type of the atoms (dimension nat_frag+nat_env)
-     real(gp), dimension(:,:), pointer :: rxyz_frg !< position of atoms in fragment (AU), external reference frame
      real(gp), dimension(:,:), pointer :: rxyz_env !< position of atoms in environment (AU), external reference frame
-     character(len=20), dimension(:), pointer :: atomnames !< Name of type of atoms
+     type(atomic_structure) :: astruct_frg !< Number of atoms, positions, atom type etc for fragment
      type(fragment_basis) :: fbasis !< fragment basis, associated only if coherent with positions, pointer - do we really want this to be a pointer?
      ! add coeffs and or kernel
   end type system_fragment
@@ -57,9 +53,42 @@ module module_fragments
 
   public operator(*)
 
-  public :: fragment_null, init_fragment_from_file, fragment_free
+  public :: fragment_null, fragment_free, init_fragments
 
 contains
+
+  ! nned to check somewhere if fragment linking is consistent - initialize linear from file?!
+  ! initializes reference fragments (already nullified), if it isn't a fragment calculation sets to appropriate dummy values
+  ! ignoring environment for now
+  subroutine init_fragments(in,orbs,ref_frags)
+    use module_types
+    implicit none
+    type(input_variables), intent(in) :: in ! might only need input%frag here, to verify
+    type(orbitals_data), intent(in) :: orbs ! orbitals of full system, needed to set 'dummy' values
+    type(system_fragment), dimension(in%frag%nfrag_ref), intent(inout) :: ref_frags
+
+    ! local variables
+    integer :: ifrag
+
+    if (in%lin%fragment_calculation) then
+        ! read fragment posinps and initialize fragment, except for psi and lzds
+        do ifrag=1,in%frag%nfrag_ref
+           call init_fragment_from_file(ref_frags(ifrag),trim(in%dir_output)//trim(in%frag%label(ifrag)))
+        end do
+
+     ! set appropriate default values as this is not a fragment calculation
+     else
+        ! want all components of ref_frags(1)%fbasis%forbs to point towards appropriate component of orbs of full system
+        call orbs_to_min_orbs_point(orbs,ref_frags(1)%fbasis%forbs)
+
+        ! fbasis isn't needed (I think!) so can remain nullified
+  
+        ! astruct also not needed for now, come back to it later...
+
+     end if
+
+  end subroutine init_fragments
+
 
   ! initializes all of fragment except lzd using the fragment posinp and tmb files
   subroutine init_fragment_from_file(frag,dir_name) ! switch this to pure if possible
@@ -74,45 +103,20 @@ contains
     ! nullify fragment
     frag=fragment_null()
 
-    ! set basic integers
-!    frag%nat_frg=nat_frg
-!    frag%nat_env=nat_env
-!    frag%ntypes=ntypes
+    ! read fragment positions
+    call read_atomic_file(trim(dir_name),bigdft_mpi%iproc,frag%astruct_frg)
 
-    ! allocate iatype, atomnames and rxyzs
-!    call fragment_allocate(frag)
+    ! environment?  ignore for now
+    ! call fragment_allocate(frag)
 
-    ! fill iatype, atomnames and rxyzs
-!    do iat=1,frag%nat_frg
-!       frag%rxyz_frg(:,iat)=rxyz(:,iat)
-!    end do
-    
-!    do iat=frag%nat_frg+1,frag%nat_env
-!       frag%rxyz_env(:,iat)=rxyz(:,iat)
-!    end do
-
-!    frag%atomnames=atomnames
-!    frag%iatype=iatype
-
+    !call init_minimal_orbitals_data_for_linear(iproc, nproc, nspinor, input, frag%astruct_frg, lorbs)
 
     ! allocate/initialize fragment basis...
     !currently orbitals are initialized via initAndUtils/init_orbitals_data_for_linear
     !which calls wavefunctions/orbitals_descriptors to assign parallel bits and superfluous stuff
     !and locreg_orbitals/assignToLocreg2 to give inwhichlocreg and onwhichatom - but we should really take onwhichatom from file?!
 
-    !here we don't want to allocate psi yet, as for system fragments this won't be necessary, 
-    !for reference fragments this can be done when it's filled (already nullified in fragment_basis_null)
 
-    !for lzd do we want one for ref frags, one for whole system and one for system fragments or some kind of pointing?
-    !need to think more about what should be replaced, not just what should be added in the way of initialization
-
-    !type, public :: minimal_orbitals_data
-    !   integer :: norb          !< Total number of orbitals per k point
-    !   integer :: norbp         !< Total number of orbitals for the given processors
-    !   integer :: isorb         !< Total number of orbitals for the given processors
-    !   integer, dimension(:), pointer :: inwhichlocreg,onwhichatom !< associate the basis centers
-    !   integer, dimension(:), pointer :: isorb_par,ispot
-    !   integer, dimension(:,:), pointer :: norb_par
 
     !type, public :: fragment_basis
     !   integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
@@ -123,67 +127,6 @@ contains
 
   end subroutine init_fragment_from_file
 
-
-
-
-
-
-
-
-
-
-
-  ! for reference fragments call init_fragment(frag,input%frag%frag_info(i,1),input%frag%frag_info(i,2),NTYPES,rxyz,&
-  !                                            atomnames,iatype)
-  ! rxyz, atomnames and iatype should come from the file fragmenti.xyz
-
-  subroutine init_fragment(frag,nat_frg,nat_env,ntypes,rxyz,atomnames,iatype) ! switch this to pure if possible
-    use module_types
-    implicit none
-    type(system_fragment), intent(inout) :: frag
-    integer, intent(in) :: nat_frg, nat_env, ntypes
-    real(gp), dimension(3,nat_frg+nat_env), intent(in) :: rxyz ! array containing positions of fragment atoms then environment atoms
-    character(len=20), dimension(ntypes), intent(in) :: atomnames
-    integer, dimension(nat_frg+nat_env), intent(in) :: iatype
-
-    ! local variables
-    integer :: iat
-
-    ! nullify fragment
-    frag=fragment_null()
-
-    ! set basic integers
-    frag%nat_frg=nat_frg
-    frag%nat_env=nat_env
-    frag%ntypes=ntypes
-
-    ! allocate iatype, atomnames and rxyzs
-    call fragment_allocate(frag)
-
-    ! fill iatype, atomnames and rxyzs
-    do iat=1,frag%nat_frg
-       frag%rxyz_frg(:,iat)=rxyz(:,iat)
-    end do
-    
-    do iat=frag%nat_frg+1,frag%nat_env
-       frag%rxyz_env(:,iat)=rxyz(:,iat)
-    end do
-
-    frag%atomnames=atomnames
-    frag%iatype=iatype
-
-
-    ! allocate/initialize fragment basis...
-    !currently orbitals are initialized via initAndUtils/init_orbitals_data_for_linear
-    !which calls wavefunctions/orbitals_descriptors to assign parallel bits and superfluous stuff
-    !and locreg_orbitals/assignToLocreg2 to give inwhichlocreg and onwhichatom - but we should really take onwhichatom from file?!
-
-    !here we don't want to allocate psi yet, as for system fragments this won't be necessary, 
-    !for reference fragments this can be done when it's filled (already nullified in fragment_basis_null)
-
-    !for lzd do we want one for ref frags, one for whole system and one for system fragments or some kind of pointing?
-    !need to think more about what should be replaced, not just what should be added in the way of initialization
-
     !type, public :: minimal_orbitals_data
     !   integer :: norb          !< Total number of orbitals per k point
     !   integer :: norbp         !< Total number of orbitals for the given processors
@@ -192,14 +135,212 @@ contains
     !   integer, dimension(:), pointer :: isorb_par,ispot
     !   integer, dimension(:,:), pointer :: norb_par
 
-    !type, public :: fragment_basis
-    !   integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
-    !   integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
-    !   type(local_zone_descriptors) :: Lzd
-    !   type(minimal_orbitals_data) :: forbs
+  subroutine init_minimal_orbitals_data(iproc, nproc, nspinor, input, astruct, lorbs)
+    use module_base
+    use module_types
+    !use module_interfaces, except_this_one => init_orbitals_data_for_linear
+    implicit none
+  
+    ! Calling arguments
+    integer,intent(in) :: iproc, nproc, nspinor
+    type(input_variables),intent(in) :: input
+    type(atomic_structure),intent(in) :: astruct
+    type(orbitals_data),intent(out) :: lorbs
+  
+    ! Local variables
+    integer :: norb, norbu, norbd, ityp, iat, ilr, istat, iall, iorb, nlr
+    integer,dimension(:),allocatable :: norbsPerLocreg, norbsPerAtom
+    real(kind=8),dimension(:,:),allocatable :: locregCenter
+    character(len=*),parameter :: subname='init_minimal_orbitals_data'
+
+    call timing(iproc,'init_orbs_lin ','ON')
+ 
+    ! Count the number of basis functions.
+    allocate(norbsPerAtom(astruct%nat), stat=istat)
+    call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
+    norb=0
+    nlr=0
+    do iat=1,astruct%nat
+      ityp=astruct%iatype(iat)
+       norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
+       norb=norb+input%lin%norbsPerType(ityp)
+       nlr=nlr+input%lin%norbsPerType(ityp)
+    end do
+
+    ! Distribute the basis functions among the processors.
+    norbu=norb
+    norbd=0
+ 
+    lorbs%norb=norb
+
+    call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
+         input%nkpt, input%kpt, input%wkpt, lorbs,.true.) !simple repartition
+ 
+
+    allocate(locregCenter(3,nlr), stat=istat)
+    call memocc(istat, locregCenter, 'locregCenter', subname)
+  
+    ilr=0
+    do iat=1,astruct%nat
+        ityp=astruct%iatype(iat)
+        do iorb=1,input%lin%norbsPerType(ityp)
+            ilr=ilr+1
+            locregCenter(:,ilr)=astruct%rxyz(:,iat)
+            ! DEBUGLR write(10,*) iorb,locregCenter(:,ilr)
+        end do
+    end do
+ 
+    allocate(norbsPerLocreg(nlr), stat=istat)
+    call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
+    norbsPerLocreg=1 !should be norbsPerLocreg
+    
+    iall=-product(shape(lorbs%inWhichLocreg))*kind(lorbs%inWhichLocreg)
+    deallocate(lorbs%inWhichLocreg, stat=istat)
+    call memocc(istat, iall, 'lorbs%inWhichLocreg', subname)
+    call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, astruct%nat, nlr, &
+         input%nspin, norbsPerLocreg, locregCenter, lorbs%inwhichlocreg)
+
+    iall=-product(shape(lorbs%onwhichatom))*kind(lorbs%onwhichatom)
+    deallocate(lorbs%onwhichatom, stat=istat)
+    call memocc(istat, iall, 'lorbs%onwhichatom', subname)
+    call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, astruct%nat, astruct%nat, &
+         input%nspin, norbsPerAtom, astruct%rxyz, lorbs%onwhichatom)
+  
+
+    iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
+    deallocate(norbsPerLocreg, stat=istat)
+    call memocc(istat, iall, 'norbsPerLocreg', subname)
+  
+    iall=-product(shape(locregCenter))*kind(locregCenter)
+    deallocate(locregCenter, stat=istat)
+    call memocc(istat, iall, 'locregCenter', subname)
+
+    iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
+    deallocate(norbsPerAtom, stat=istat)
+    call memocc(istat, iall, 'norbsPerAtom', subname)
 
 
-  end subroutine init_fragment
+    call timing(iproc,'init_orbs_lin ','OF')
+
+  end subroutine init_minimal_orbitals_data
+
+  ! copy a given full orbs structure to minimal orbs structure
+  subroutine orbs_to_min_orbs_copy(orbs,forbs)
+    use module_types
+    implicit none
+    ! Calling arguments
+    type(orbitals_data),intent(in):: orbs
+    type(minimal_orbitals_data),intent(inout):: forbs
+
+    ! Local variables
+    integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+    character(len=200) :: subname
+
+    subname='orbs_to_min_orbs_copy'
+
+    forbs%norb = orbs%norb
+    forbs%norbp = orbs%norbp
+    forbs%isorb = orbs%isorb
+
+    if(associated(forbs%norb_par)) then
+        iall=-product(shape(forbs%norb_par))*kind(forbs%norb_par)
+        deallocate(forbs%norb_par, stat=istat)
+        call memocc(istat, iall, 'forbs%norb_par', subname)
+    end if
+    if(associated(orbs%norb_par)) then
+        iis1=lbound(orbs%norb_par,1)
+        iie1=ubound(orbs%norb_par,1)
+        iis2=lbound(orbs%norb_par,2)
+        iie2=ubound(orbs%norb_par,2)
+        allocate(forbs%norb_par(iis1:iie1,iis2:iie2), stat=istat)
+        call memocc(istat, forbs%norb_par, 'forbs%norb_par', subname)
+        do i1=iis1,iie1
+           do i2 = iis2,iie2
+            forbs%norb_par(i1,i2) = orbs%norb_par(i1,i2)
+           end do
+        end do
+    end if
+
+    if(associated(forbs%inwhichlocreg)) then
+        iall=-product(shape(forbs%inwhichlocreg))*kind(forbs%inwhichlocreg)
+        deallocate(forbs%inwhichlocreg, stat=istat)
+        call memocc(istat, iall, 'forbs%inwhichlocreg', subname)
+    end if
+    if(associated(orbs%inwhichlocreg)) then
+        iis1=lbound(orbs%inwhichlocreg,1)
+        iie1=ubound(orbs%inwhichlocreg,1)
+        allocate(forbs%inwhichlocreg(iis1:iie1), stat=istat)
+        call memocc(istat, forbs%inwhichlocreg, 'forbs%inwhichlocreg', subname)
+        do i1=iis1,iie1
+            forbs%inwhichlocreg(i1) = orbs%inwhichlocreg(i1)
+        end do
+    end if
+
+    if(associated(forbs%onwhichatom)) then
+        iall=-product(shape(forbs%onwhichatom))*kind(forbs%onwhichatom)
+        deallocate(forbs%onwhichatom, stat=istat)
+        call memocc(istat, iall, 'forbs%onwhichatom', subname)
+    end if
+    if(associated(orbs%onwhichatom)) then
+        iis1=lbound(orbs%onwhichatom,1)
+        iie1=ubound(orbs%onwhichatom,1)
+        allocate(forbs%onwhichatom(iis1:iie1), stat=istat)
+        call memocc(istat, forbs%onwhichatom, 'forbs%onwhichatom', subname)
+        do i1=iis1,iie1
+            forbs%onwhichatom(i1) = orbs%onwhichatom(i1)
+        end do
+    end if
+
+    if(associated(forbs%isorb_par)) then
+        iall=-product(shape(forbs%isorb_par))*kind(forbs%isorb_par)
+        deallocate(forbs%isorb_par, stat=istat)
+        call memocc(istat, iall, 'forbs%isorb_par', subname)
+    end if
+    if(associated(orbs%isorb_par)) then
+        iis1=lbound(orbs%isorb_par,1)
+        iie1=ubound(orbs%isorb_par,1)
+        allocate(forbs%isorb_par(iis1:iie1), stat=istat)
+        call memocc(istat, forbs%isorb_par, 'forbs%isorb_par', subname)
+        do i1=iis1,iie1
+            forbs%isorb_par(i1) = orbs%isorb_par(i1)
+        end do
+    end if
+
+    if(associated(forbs%ispot)) then
+        iall=-product(shape(forbs%ispot))*kind(forbs%ispot)
+        deallocate(forbs%ispot, stat=istat)
+        call memocc(istat, iall, 'forbs%ispot', subname)
+    end if
+    if(associated(orbs%ispot)) then
+        iis1=lbound(orbs%ispot,1)
+        iie1=ubound(orbs%ispot,1)
+        allocate(forbs%ispot(iis1:iie1), stat=istat)
+        call memocc(istat, forbs%ispot, 'forbs%ispot', subname)
+        do i1=iis1,iie1
+            forbs%ispot(i1) = orbs%ispot(i1)
+        end do
+    end if
+
+  end subroutine orbs_to_min_orbs_copy
+
+  ! point minimal orbs structure to a given full orbs structure
+  subroutine orbs_to_min_orbs_point(orbs,forbs)
+    use module_types
+    implicit none
+    ! Calling arguments
+    type(orbitals_data),intent(in):: orbs
+    type(minimal_orbitals_data),intent(inout):: forbs
+
+    forbs%norb = orbs%norb
+    forbs%norbp = orbs%norbp
+    forbs%isorb = orbs%isorb
+
+    forbs%norb_par => orbs%norb_par
+    forbs%inwhichlocreg => orbs%inwhichlocreg
+    forbs%onwhichatom => orbs%onwhichatom
+    forbs%isorb_par => orbs%isorb_par
+    forbs%ispot => orbs%ispot
+  end subroutine orbs_to_min_orbs_point
 
 
   pure function minimal_orbitals_data_null() result(forbs)
@@ -227,10 +368,9 @@ contains
     implicit none
     type(system_fragment) :: frag
 
-    frag%nat_frg=0
     frag%nat_env=0
-    nullify(frag%rxyz_frg)
     nullify(frag%rxyz_env)
+    frag%astruct_frg=atomic_structure_null()
 
     ! nullify fragment basis
     frag%fbasis=fragment_basis_null()
@@ -277,8 +417,17 @@ contains
   subroutine fragment_free(frag)
     implicit none
     type(system_fragment), intent(inout) :: frag
-  
-    if (associated(frag%rxyz_frg)) call f_free_ptr(frag%rxyz_frg)
+    character(len=256) :: subname
+    integer :: i_all, i_stat
+
+    subname='fragment_free'
+    call deallocate_atomic_structure(frag%astruct_frg,subname) 
+    if (associated(frag%astruct_frg%rxyz)) then
+       i_all=-product(shape(frag%astruct_frg%rxyz))*kind(frag%astruct_frg%rxyz)
+       deallocate(frag%astruct_frg%rxyz,stat=i_stat)
+       call memocc(i_stat,i_all,'frag%astruct_frg%rxyz',subname)
+    end if
+    frag%astruct_frg=atomic_structure_null()
     if (associated(frag%rxyz_env)) call f_free_ptr(frag%rxyz_env)
     call fragment_basis_free(frag%fbasis)
     frag=fragment_null()
@@ -290,9 +439,6 @@ contains
   
     call f_routine(id='fragment_allocate')
 
-    frag%iatype=f_malloc_ptr(frag%nat_frg+frag%nat_env,id='frag%iatype')
-    !frag%atomnames=f_malloc_ptr(frag%ntypes,id='frag%atomnames') ! fmalloc objection to character here
-    frag%rxyz_frg=f_malloc_ptr((/3,frag%nat_frg/),id='frag%rxyz_frg')
     frag%rxyz_env=f_malloc_ptr((/3,frag%nat_env/),id='frag%rxyz_env')
 
     call f_release_routine()
@@ -308,10 +454,10 @@ contains
     integer :: iat
     
     frg_center=0.0_gp
-    do iat=1,frag%nat_frg
-       frg_center=frg_center+frag%rxyz_frg(:,iat)
+    do iat=1,frag%astruct_frg%nat
+       frg_center=frg_center+frag%astruct_frg%rxyz(:,iat)
     end do
-    frg_center=frg_center/real(frag%nat_frg,gp)
+    frg_center=frg_center/real(frag%astruct_frg%nat,gp)
 
   end function frg_center
 
@@ -325,17 +471,18 @@ contains
     integer :: iat
 
     frag_new=fragment_null()
-    frag_new%nat_frg=frag%nat_frg
+    frag_new%astruct_frg%nat=frag%astruct_frg%nat
     frag_new%nat_env=frag%nat_env
-    frag_new%ntypes=frag%ntypes
+    frag_new%astruct_frg%ntypes=frag%astruct_frg%ntypes
 
     ! allocate arrays here, leave fragment_basis nullified
     call fragment_allocate(frag_new)
 
     ! do fragment first, then environment
-    do iat=1,frag%nat_frg
-       frag_new%rxyz_frg(:,iat)=rotate_vector(trans%rot_axis,trans%theta,frag%rxyz_frg(:,iat)-trans%rot_center(:))
-       frag_new%rxyz_frg(:,iat)=frag_new%rxyz_frg(:,iat)+trans%rot_center(:)+trans%dr(:)
+    do iat=1,frag%astruct_frg%nat
+       frag_new%astruct_frg%rxyz(:,iat)=rotate_vector(trans%rot_axis,&
+            trans%theta,frag%astruct_frg%rxyz(:,iat)-trans%rot_center(:))
+       frag_new%astruct_frg%rxyz(:,iat)=frag_new%astruct_frg%rxyz(:,iat)+trans%rot_center(:)+trans%dr(:)
     end do
 
     do iat=1,frag%nat_env

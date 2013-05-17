@@ -18,25 +18,16 @@ subroutine deallocate_atoms(atoms,subname)
   !local variables
   integer :: i_stat, i_all
 
+  ! Deallocate atomic structure
+  call deallocate_atomic_structure(atoms%astruct,subname) 
+
   ! Deallocations for the geometry part.
   if (atoms%astruct%nat > 0) then
-     i_all=-product(shape(atoms%astruct%ifrztyp))*kind(atoms%astruct%ifrztyp)
-     deallocate(atoms%astruct%ifrztyp,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%astruct%ifrztyp',subname)
-     i_all=-product(shape(atoms%astruct%iatype))*kind(atoms%astruct%iatype)
-     deallocate(atoms%astruct%iatype,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%astruct%iatype',subname)
-     i_all=-product(shape(atoms%astruct%input_polarization))*kind(atoms%astruct%input_polarization)
-     deallocate(atoms%astruct%input_polarization,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%astruct%input_polarization',subname)
      i_all=-product(shape(atoms%amu))*kind(atoms%amu)
      deallocate(atoms%amu,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%amu',subname)
   end if
   if (atoms%astruct%ntypes > 0) then
-     i_all=-product(shape(atoms%astruct%atomnames))*kind(atoms%astruct%atomnames)
-     deallocate(atoms%astruct%atomnames,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%astruct%atomnames',subname)
      ! Parameters for Linear input guess
      i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
      deallocate(atoms%rloc,stat=i_stat)
@@ -134,10 +125,42 @@ subroutine deallocate_atoms(atoms,subname)
      call memocc(i_stat,i_all,'atoms%paw_Sm1_matrices',subname)
   end if
 
-  ! Free additional stuff.
-  call deallocate_symmetry(atoms%astruct%sym, subname)
 END SUBROUTINE deallocate_atoms
 
+!> Deallocate the structure atoms_data.
+subroutine deallocate_atomic_structure(astruct,subname) 
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: subname
+  type(atomic_structure), intent(inout) :: astruct
+  !local variables
+  integer :: i_stat, i_all
+
+  ! Deallocations for the geometry part.
+  if (astruct%nat > 0) then
+     i_all=-product(shape(astruct%ifrztyp))*kind(astruct%ifrztyp)
+     deallocate(astruct%ifrztyp,stat=i_stat)
+     call memocc(i_stat,i_all,'astruct%ifrztyp',subname)
+     i_all=-product(shape(astruct%iatype))*kind(astruct%iatype)
+     deallocate(astruct%iatype,stat=i_stat)
+     call memocc(i_stat,i_all,'astruct%iatype',subname)
+     i_all=-product(shape(astruct%input_polarization))*kind(astruct%input_polarization)
+     deallocate(astruct%input_polarization,stat=i_stat)
+     call memocc(i_stat,i_all,'astruct%input_polarization',subname)
+     !i_all=-product(shape(astruct%rxyz))*kind(astruct%rxyz)
+     !deallocate(astruct%rxyz,stat=i_stat)
+     !call memocc(i_stat,i_all,'astruct%rxyz',subname)
+  end if
+  if (astruct%ntypes > 0) then
+     i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
+     deallocate(astruct%atomnames,stat=i_stat)
+     call memocc(i_stat,i_all,'astruct%atomnames',subname)
+  end if
+
+  ! Free additional stuff.
+  call deallocate_symmetry(astruct%sym, subname)
+END SUBROUTINE deallocate_atomic_structure
 
 !> Allocation of the arrays inside the structure atoms_data
 subroutine allocate_atoms_nat(atoms, subname)

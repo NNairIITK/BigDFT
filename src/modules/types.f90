@@ -521,7 +521,7 @@ module module_types
      integer :: nkpts,nkptsp,iskpts
      real(gp) :: efermi,HLgap,eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
-     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom,onwhichfragment
+     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom
      integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -1218,7 +1218,7 @@ contains
     nullify(lzd%Llr)
   end function default_lzd
  
-  function symm_null() result(sym)
+  pure function symm_null() result(sym)
      type(symmetry_data) :: sym
      sym%symObj=-1
      nullify(sym%irrzon)
@@ -1227,20 +1227,7 @@ contains
 
   function atoms_null() result(at)
      type(atoms_data) :: at
-     at%astruct%geocode='X'
-     at%astruct%inputfile_format=repeat(' ',len(at%astruct%inputfile_format))
-     at%astruct%units=repeat(' ',len(at%astruct%units))
-     at%astruct%nat=-1
-     at%astruct%ntypes=-1
-     at%natsc=-1
-     at%astruct%cell_dim(1)=0.0_gp
-     at%astruct%cell_dim(2)=0.0_gp
-     at%astruct%cell_dim(3)=0.0_gp
-     nullify(at%astruct%input_polarization)
-     nullify(at%astruct%ifrztyp)
-     nullify(at%astruct%atomnames)
-     nullify(at%astruct%iatype)
-     at%astruct%sym=symm_null()
+     at%astruct=atomic_structure_null()
      at%donlcc=.false.
      at%iat_absorber=-1
      nullify(at%iasctype)
@@ -1268,6 +1255,24 @@ contains
      nullify(at%paw_S_matrices)
      nullify(at%paw_Sm1_matrices)
   end function atoms_null
+
+  pure function atomic_structure_null() result(astruct)
+     type(atomic_structure) :: astruct
+     astruct%geocode='X'
+     astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
+     astruct%units=repeat(' ',len(astruct%units))
+     astruct%nat=-1
+     astruct%ntypes=-1
+     astruct%cell_dim(1)=0.0_gp
+     astruct%cell_dim(2)=0.0_gp
+     astruct%cell_dim(3)=0.0_gp
+     nullify(astruct%input_polarization)
+     nullify(astruct%ifrztyp)
+     nullify(astruct%atomnames)
+     nullify(astruct%iatype)
+     nullify(astruct%rxyz)
+     astruct%sym=symm_null()
+  end function atomic_structure_null
 
   function bigdft_run_id_toa()
     use yaml_output

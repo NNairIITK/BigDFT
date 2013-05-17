@@ -128,7 +128,7 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
 END SUBROUTINE determine_wfd_periodicity
 
 
-subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,at,orbs,Glr,Llr,calculateBounds)!,outofzone)
+subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs,Glr,Llr,calculateBounds)!,outofzone)
   use module_base
   use module_types
   use module_interfaces, except_this_one => determine_locregSphere_parallel
@@ -137,11 +137,9 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: nlr
   real(gp), intent(in) :: hx,hy,hz
-  type(atoms_data),intent(in) :: at
+  type(atomic_structure),intent(in) :: astruct
   type(orbitals_data),intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: Glr
-  real(gp), dimension(nlr), intent(in) :: locrad
-  real(gp), dimension(3,nlr), intent(in) :: cxyz
   type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
   logical,dimension(nlr),intent(in) :: calculateBounds
 !  integer, dimension(3,nlr),intent(out) :: outofzone
@@ -186,12 +184,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
      !if(calculateBounds(ilr) .or. (mod(ilr-1,nproc)==iproc)) then 
          ! This makes sure that each locreg is only handled once by one specific processor.
     
-         llr(ilr)%locregCenter(1)=cxyz(1,ilr)
-         llr(ilr)%locregCenter(2)=cxyz(2,ilr)
-         llr(ilr)%locregCenter(3)=cxyz(3,ilr)
-
-         llr(ilr)%locrad=locrad(ilr)
-  
          ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
          call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
               llr(ilr)%locrad, llr(ilr)%locregCenter, &
@@ -418,7 +410,7 @@ call memocc(istat,iall,'rootarr',subname)
 contains 
   subroutine create_orbsder()
     call nullify_orbitals_data(orbsder)
-    allocate(norbsperatom(at%astruct%nat), stat=istat)
+    allocate(norbsperatom(astruct%nat), stat=istat)
     call memocc(istat, norbsperatom, 'norbsperatom', subname)
     allocate(locregCenter(3,nlr), stat=istat)
     call memocc(istat, locregCenter, 'locregCenter', subname)
@@ -438,21 +430,20 @@ contains
     iall=-product(shape(orbsder%onwhichatom))*kind(orbsder%inWhichLocreg)
     deallocate(orbsder%onwhichatom, stat=istat)
     call memocc(istat, iall, 'orbsder%onwhichatom', subname)
-                 
-    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%astruct%nat, at%astruct%nat, &
-         nspin, norbsPerAtom, cxyz, orbsder%onwhichatom)
-
 
     do ilr=1,nlr
         locregCenter(:,ilr)=llr(ilr)%locregCenter
     end do
+                 
+    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, astruct%nat, &
+         nspin, norbsPerAtom, locregCenter, orbsder%onwhichatom)
 
     iall=-product(shape(orbsder%inWhichLocreg))*kind(orbsder%inWhichLocreg)
     deallocate(orbsder%inWhichLocreg, stat=istat)
     norbsPerLocreg=3
 
     call memocc(istat, iall, 'orbsder%inWhichLocreg', subname)
-    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%astruct%nat, nlr, &
+    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, nlr, &
          nspin, norbsPerLocreg, locregCenter, orbsder%inwhichlocreg)
 
     iall=-product(shape(locregCenter))*kind(locregCenter)

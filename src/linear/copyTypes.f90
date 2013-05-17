@@ -887,21 +887,6 @@ if(associated(orbsin%onWhichMPI)) then
     end do
 end if
 
-if(associated(orbsout%onwhichfragment)) then
-    iall=-product(shape(orbsout%onwhichfragment))*kind(orbsout%onwhichfragment)
-    deallocate(orbsout%onwhichfragment, stat=istat)
-    call memocc(istat, iall, 'orbsout%onwhichfragment', subname)
-end if
-if(associated(orbsin%onwhichfragment)) then
-    iis1=lbound(orbsin%onwhichfragment,1)
-    iie1=ubound(orbsin%onwhichfragment,1)
-    allocate(orbsout%onwhichfragment(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%onwhichfragment, 'orbsout%onwhichfragment', subname)
-    do i1=iis1,iie1
-        orbsout%onwhichfragment(i1) = orbsin%onwhichfragment(i1)
-    end do
-end if
-
 if(associated(orbsout%isorb_par)) then
     iall=-product(shape(orbsout%isorb_par))*kind(orbsout%isorb_par)
     deallocate(orbsout%isorb_par, stat=istat)

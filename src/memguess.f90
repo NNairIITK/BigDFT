@@ -17,6 +17,7 @@ program memguess
    use module_interfaces
    use module_xc
    use m_ab6_symmetry
+   use module_fragments
 
    implicit none
    character(len=*), parameter :: subname='memguess'
@@ -50,6 +51,9 @@ program memguess
    logical, dimension(:,:,:), allocatable :: scorb
    real(kind=8), dimension(:), allocatable :: locrad
    real(gp), dimension(:), pointer :: gbd_occ
+   type(system_fragment), dimension(:), pointer :: ref_frags
+   character(len=3) :: in_name !lr408
+   integer :: i
    !! By Ali
    integer :: ierror
 
@@ -441,7 +445,7 @@ program memguess
       allocate(psi((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor+ndebug),stat=i_stat)
       call memocc(i_stat,psi,'psi',subname)
 
-      ! Optionaly compute iorbp from arguments in case of ETSF.
+      ! Optionally compute iorbp from arguments in case of ETSF.
       if (export_wf_ikpt < 1 .or. export_wf_ikpt > orbs%nkpts) stop "Wrong k-point"
       if (export_wf_ispin < 1 .or. export_wf_ispin > orbs%nspin) stop "Wrong spin"
       if ((export_wf_ispin == 1 .and. &
@@ -450,8 +454,15 @@ program memguess
            & (export_wf_iband < 1 .or. export_wf_iband > orbs%norbd))) stop "Wrong orbital"
       iorbp = (export_wf_ikpt - 1) * orbs%norb + (export_wf_ispin - 1) * orbs%norbu + export_wf_iband
 
-      call take_psi_from_file(filename_wfn,hx,hy,hz,Lzd%Glr, &
-           & atoms,rxyz,orbs,psi,iorbp,export_wf_ispinor)
+      ! ref_frags to be allocated here
+      i = index(filename_wfn, "/",back=.true.)+1
+      read(filename_wfn(i:i+3),*) in_name ! lr408
+      if (in_name == 'min') then
+         stop 'Ref fragment not initialized, linear reading currently nonfunctional, to be fixed'
+      end if
+
+      call take_psi_from_file(filename_wfn,in%frag,hx,hy,hz,Lzd%Glr, &
+           & atoms,rxyz,orbs,psi,iorbp,export_wf_ispinor,ref_frags)
       call filename_of_iorb(.false.,"wavefunction",orbs,iorbp, &
            & export_wf_ispinor,filename_wfn,iorb_out)
       call plot_wf(filename_wfn,1,atoms,1.0_wp,Lzd%Glr,hx,hy,hz,rxyz, &
@@ -1352,10 +1363,11 @@ END SUBROUTINE compare_data_and_gflops
 
 
 !> Extract the compressed wavefunction from the given file 
-subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispinor)
+subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispinor,ref_frags)
    use module_base
    use module_types
    use module_interfaces
+   use module_fragments
    implicit none
    integer, intent(inout) :: iorbp, ispinor
    real(gp), intent(in) :: hx,hy,hz
@@ -1363,8 +1375,10 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
    type(locreg_descriptors), intent(in) :: lr
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
+   type(fragmentInputParameters), intent(in) :: in_frag
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(out) :: psi
+   type(system_fragment), dimension(in_frag%nfrag_ref), intent(inout) :: ref_frags
    !local variables
    character(len=*), parameter :: subname='take_psi_form_file'
    logical :: perx,pery,perz
@@ -1440,11 +1454,12 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
 
          i = index(filename, "-",back=.true.)+1
          read(filename(1:i),*) filename_start
-         filename_start = trim(filename_start)//"/minBasis"
 
          print*,'Initialize linear'
-         call initialize_linear_from_file(0,1,filename_start,WF_FORMAT_BINARY,&
-              Lzd,lin_orbs,at,rxyz,orblist)
+         call initialize_linear_from_file(0,1,in_frag,at%astruct,rxyz,lin_orbs,Lzd,&
+              WF_FORMAT_BINARY,filename_start//"/","minBasis",ref_frags,orblist)
+
+         filename_start = trim(filename_start)//"/minBasis"
 
          allocate(lpsi(1:Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f))
       end if

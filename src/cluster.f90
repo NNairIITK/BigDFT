@@ -242,6 +242,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   use module_base
   use module_types
   use module_interfaces
+  use module_fragments
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
 !  use vdwcorrection
@@ -270,7 +271,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   integer :: i, input_wf_format, output_denspot
   integer :: n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: iat,i_all,i_stat,ierr,inputpsi,igroup,ikpt,nproctiming
+  integer :: iat,i_all,i_stat,ierr,inputpsi,igroup,ikpt,nproctiming,ifrag
   real :: tcpu0,tcpu1
   real(kind=8) :: tel
   type(energy_terms), target :: energs ! Target attribute is mandatory for C wrappers
@@ -281,6 +282,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(DFT_wavefunction) :: VTwfn !< Virtual wavefunction
   type(DFT_wavefunction) :: tmb_old
   !!type(DFT_wavefunction) :: tmb
+  type(system_fragment), dimension(:), pointer :: ref_frags
   real(gp), dimension(3) :: shift
   real(dp), dimension(6) :: ewaldstr,xcstr
   real(gp), dimension(:,:), allocatable :: radii_cf,thetaphi,band_structure_eval
@@ -411,14 +413,22 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   allocate(radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
+  ! only needed for linear restart
+  if (in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+     allocate(ref_frags(in%frag%nfrag_ref))
+     do ifrag=1,in%frag%nfrag_ref
+        ref_frags(ifrag)=fragment_null()
+     end do
+  end if
+
   if(in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
     call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
-         KSwfn%comms,shift,proj,radii_cf,tmb_old%orbs%inwhichlocreg,tmb_old%orbs%onwhichatom)
+         KSwfn%comms,shift,proj,radii_cf,ref_frags,tmb_old%orbs%inwhichlocreg,tmb_old%orbs%onwhichatom)
   else
     call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
-         KSwfn%comms,shift,proj,radii_cf)
+         KSwfn%comms,shift,proj,radii_cf,ref_frags)
   end if
 
   ! temporary, really want to just initialize it here rather than copy
@@ -433,7 +443,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !!tag=0
 
      call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, iproc, nproc)
-     call init_foe(iproc, nproc, tmb%lzd, atoms, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
+     call init_foe(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, in, atoms, rxyz, .false.)
 
@@ -525,7 +535,21 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   end if
 
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,&
-       inputpsi,input_wf_format,norbv,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
+       inputpsi,input_wf_format,norbv,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags)
+
+  ! can deallocate now we've done the input guess
+  if (in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+     if (in%lin%fragment_calculation) then ! we really need to deallocate
+        do ifrag=1,in%frag%nfrag_ref
+           call fragment_free(ref_frags(ifrag))
+        end do
+     else ! we haven't actually allocated anything, so can just nullify - should make this more robust/general
+        do ifrag=1,in%frag%nfrag_ref
+           ref_frags(ifrag)=fragment_null()
+        end do
+     end if
+     deallocate(ref_frags)
+  end if
 
   if (in%nvirt > norbv) then
      nvirt = norbv

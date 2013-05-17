@@ -2347,7 +2347,7 @@ END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-     wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
+     wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
@@ -2377,6 +2377,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(grid_dimensions), intent(in) :: d_old
   real(gp), dimension(3, atoms%astruct%nat), intent(inout) :: rxyz_old
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
+  type(system_fragment), dimension(in%frag%nfrag_ref), intent(inout) :: ref_frags
   !local variables
   character(len = *), parameter :: subname = "input_wf"
   integer :: i_stat, nspin, i_all, ifrag, iorb
@@ -2387,7 +2388,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
   type(paw_objects)::paw
   logical :: overlap_calculated
-  type(system_fragment), dimension(:), pointer :: ref_frags
 
   !nullify paw objects:
   do iatyp=1,atoms%astruct%ntypes
@@ -2612,59 +2612,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !    stop 'INPUT_PSI_DISK_LINEAR not allowed with LINEAR_FOE!'
      !end if
 
-
-     ! do some extra initialization if this is a fragment calculation
-     if (in%lin%fragment_calculation) then
-        ! want to initialize array of system_fragments for both reference and current system, including fragment_basis
-        ! this requires information from input.frag, rxyz and atom types etc.
-        ! for reference fragments, may have multiple directories and need to call readmywaves for each fragment
-        ! BUT rxyz_old and rxyz won't have same number of atoms, don't necessarily want to reformat yet...
-        ! actually read rxyz from fragmenti.xyz - it's possible one folder of tmbs etc will contain more than one fragment
-        ! so this is the most general method
-        ! bigger question of where to initialize orbs/lzd... - lzd_init_llr and initialize_linear_from file could maybe be better unified?!
-        ! also need to call init_fragment for both reference and system fragments...
-        ! call init_fragment(frag,input%frag%frag_info(i,1),input%frag%frag_info(i,2),NTYPES,rxyz,&
-        !                    atomnames,iatype)
-
-        ! allocate reference fragment array according to number of reference fragments
-        allocate(ref_frags(in%frag%nfrag_ref))
-
-        ! nullify fragments - done in init_fragments
-        !do ifrag=1,in%frag%nfrag_ref
-        !   ref_frags(ifrag)=fragment_null()
-        !end do
-
-        ! read fragment posinps and initialize here for now
-        ! add directory names for fragments to input file - default could be frag1, frag2 etc.
-        do ifrag=1,in%frag%nfrag_ref
-           call init_fragment_from_file(ref_frags(ifrag),trim(in%dir_output)//trim(in%frag%label(ifrag)))
-        end do
-
-       ! checks need to be made here (or elsewhere checking if fragment linking is consistent
-     else
-        !still need to initialize/allocate ref_frags here, will just only contain 1 element
-        allocate(ref_frags(in%frag%nfrag_ref))
-        ! fill in the rest as well, this is just to keep the code working
-        do ifrag=1,in%frag%nfrag_ref
-           ref_frags(ifrag)=fragment_null()
-           ref_frags(ifrag)%fbasis%forbs%norb=tmb%orbs%norb
-
-           call f_routine(id='input_wf')
-
-           ref_frags(ifrag)%fbasis%forbs%inwhichlocreg&
-                =f_malloc_ptr(ref_frags(ifrag)%fbasis%forbs%norb,id='ref_frags(ifrag)%fbasis%forbs%inwhichlocreg')
-
-           !allocate(ref_frags(ifrag)%fbasis%forbs%inwhichlocreg(ref_frags(ifrag)%fbasis%forbs%norb))
-
-           call f_release_routine()
-
-           do iorb=1,ref_frags(ifrag)%fbasis%forbs%norb
-              ref_frags(ifrag)%fbasis%forbs%inwhichlocreg(iorb)=tmb%orbs%inwhichlocreg(iorb)
-           end do
-        end do
-
-     end if
-
      ! By reading the basis functions and coefficients from file
      !call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
      !     & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
@@ -2672,11 +2619,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      call readmywaves_linear_new(iproc,trim(in%dir_output)//'minBasis',input_wf_format,&
           atoms,tmb,rxyz_old,rxyz,ref_frags,in%frag,in%lin%fragment_calculation)
-
-     do ifrag=1,in%frag%nfrag_ref
-        call fragment_free(ref_frags(ifrag))
-     end do
-     deallocate(ref_frags)
 
      ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
      !nullify(tmb%psit_c)                                                                

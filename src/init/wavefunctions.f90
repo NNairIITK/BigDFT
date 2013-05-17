@@ -732,14 +732,13 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
        & (/ atoms%astruct%cell_dim(1), atoms%astruct%cell_dim(2), atoms%astruct%cell_dim(3) /))
 
   ! Linear scaling (if given)
-  in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
+  !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
   call lin_input_variables_new(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
        & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
 
   ! Fragment information (if given)
-  in%frag%nfrag_ref=1 ! - make this more elegant, for now set to 1 for case where we don't have a fragment calculation
   call fragment_input_variables(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
-       & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_frag),in,atoms)
+       & in%inputPsiId == INPUT_PSI_DISK_LINEAR).and.in%lin%fragment_calculation,trim(in%file_frag),in,atoms)
 
 end subroutine inputs_parse_add
 

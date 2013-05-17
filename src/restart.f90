@@ -2035,26 +2035,31 @@ subroutine readmywaves_linear_new(iproc,filename,iformat,at,tmb,rxyz_old,rxyz,re
 END SUBROUTINE readmywaves_linear_new
 
 
-subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,rxyz,orblist)
+! initializes onwhichatom, inwhichlocreg, locrad and locregcenter from file
+subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,Lzd,iformat,&
+     dir_output,filename,ref_frags,orblist)
   use module_base
   use module_types
   use module_defs
   use yaml_output
+  use module_fragments
   use module_interfaces, except_this_one => initialize_linear_from_file
   implicit none
   integer, intent(in) :: iproc, nproc, iformat
+  type(fragmentInputParameters),intent(in) :: input_frag
+  type(atomic_structure), intent(in) :: astruct
+  real(gp), dimension(3,astruct%nat), intent(in) :: rxyz
   type(orbitals_data), intent(inout) :: orbs  !< orbs related to the basis functions, inwhichlocreg and onwhichatom generated in this routine
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  character(len=*), intent(in) :: filename
   type(local_zone_descriptors), intent(inout) :: Lzd !< must already contain Glr and hgrids
+  type(system_fragment), dimension(input_frag%nfrag_ref) :: ref_frags
+  character(len=*), intent(in) :: filename, dir_output
   integer, dimension(orbs%norb), optional :: orblist
 
   !Local variables
   character(len=*), parameter :: subname='initialize_linear_from_file'
   character(len =256) :: error
   logical :: lstat
-  integer :: ilr, ierr, iorb_old, iorb, ispinor, iorb_out
+  integer :: ilr, ierr, iorb_old, iorb, ispinor, iorb_out, iforb, isforb, isfat, iiorb, iorbp, ifrag, ifrag_ref
   integer, dimension(3) :: n_old, ns_old
   integer :: i_stat, i_all, confPotOrder, iat
   real(gp), dimension(3) :: hgrids_old
@@ -2063,45 +2068,76 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   real(gp), dimension(3) :: locregCenter
   real(kind=8), dimension(:), allocatable :: lrad
   real(gp), dimension(:,:), allocatable :: cxyz
+  character(len=512) :: full_filename
+
+  ! to be fixed
+  if (present(orblist)) then
+print*,'present(orblist)',present(orblist)
+     stop 'orblist no longer functional in initialize_linear_from_file due to addition of fragment calculation'
+  end if
 
   ! NOTES:
   ! The orbs%norb family must be all constructed before this routine
   ! This can be done from the input.lin since the number of basis functions should be fixed.
+  ! Fragment structure must also be fully initialized, even if this is not a fragment calculation
 
   call to_zero(orbs%norb,locrad(1))
   call to_zero(orbs%norb,orbs%onwhichatom(1))
 
-  ! First read the headers (reading is distributed) and then the information is communicated to all procs.
-  ! Then each proc generates a group of lrs that are communicated to all others.
   if (iformat == WF_FORMAT_ETSF) then
      stop 'Linear scaling with ETSF writing not implemented yet'
   else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
-     loop_iorb: do iorb=1,orbs%norbp!*orbs%nspinor
-        do ispinor=1,orbs%nspinor
-           if(present(orblist)) then
-              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
-                   & orbs,iorb,ispinor,iorb_out, orblist(iorb+orbs%isorb))
-           else
-              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
-                   & orbs,iorb,ispinor,iorb_out)
-           end if    
+     ! loop over fragments in current system (will still be treated as one fragment in calculation, just separate for restart)
+     isforb=0
+     isfat=0
+     do ifrag=1,input_frag%nfrag
+        ! find reference fragment this corresponds to
+        ifrag_ref=input_frag%frag_index(ifrag)
+        ! loop over orbitals of this fragment
+        loop_iforb: do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+           loop_iorb: do iorbp=1,orbs%norbp
+              iiorb=iorbp+orbs%isorb
+              ! check if this ref frag orbital corresponds to the orbital we want
+              if (iiorb/=iforb+isforb) cycle
+              do ispinor=1,orbs%nspinor
 
-           call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n_old(1), n_old(2), n_old(3), &
-                ns_old(1), ns_old(2), ns_old(3), hgrids_old, lstat, error, orbs%onwhichatom(iorb+orbs%isorb), &
-                locrad(iorb+orbs%isorb), locregCenter, confPotOrder, confPotprefac)
+                 ! if this is a fragment calculation frag%label will contain fragment directory, otherwise it will be empty
+                 ! bit of a hack to use orbs here not forbs, but different structures so this is necessary - to clean somehow
+                 full_filename=trim(dir_output)//trim(input_frag%label(ifrag_ref))//trim(filename)
 
-           ! DEBUG: print*,iproc,iorb,iorb+orbs%isorb,iorb_old,iorb_out
-           if (.not. lstat) then
-              call yaml_warning(trim(error))
-              stop
-           end if
-           if (iorb_old /= iorb_out) then
-              call yaml_warning('Initialize_linear_from_file')
-              stop
-           end if
-           close(99)
-        end do
-     end do loop_iorb
+print*,'dir_output ',trim(dir_output)
+print*,'label ',trim(input_frag%label(ifrag_ref))
+print*,'filename ',trim(filename)
+print*,'full_filename ',full_filename
+                 call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),full_filename, &
+                      & orbs,iorbp,ispinor,iorb_out,iforb)
+                      !& ref_frags(ifrag_ref)%fbasis%forbs,iforb,ispinor,iorb_out)
+  
+                 call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n_old(1), n_old(2), n_old(3), &
+                      ns_old(1), ns_old(2), ns_old(3), hgrids_old, lstat, error, orbs%onwhichatom(iiorb), &
+                      locrad(iiorb), locregCenter, confPotOrder, confPotprefac)
+
+                 orbs%onwhichatom(iiorb) = orbs%onwhichatom(iiorb) + isfat
+
+                 ! DEBUG: print*,iproc,iorb,iorb+orbs%isorb,iorb_old,iorb_out
+print*,'iproc,iorbp,iiorb,iforb,isforb,iorb_out,iorb_old,isfat,onwhichatom',&
+iproc,iorbp,iiorb,iforb,isforb,iorb_out,iorb_old,isfat,orbs%onwhichatom(iiorb)
+                 if (.not. lstat) then
+                    call yaml_warning(trim(error))
+                    stop
+                 end if
+                 if (iorb_old /= iorb_out) then
+                    call yaml_warning('Initialize_linear_from_file')
+                    stop
+                 end if
+                 close(99)
+              
+              end do
+           end do loop_iorb
+        end do loop_iforb
+        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+        isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat        
+     end do
   else
      call yaml_warning('Unknown wavefunction file format from filename.')
      stop
@@ -2120,7 +2156,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
 
   ! Put the llr in posinp order
   ilr=0
-  do iat=1,at%astruct%nat
+  do iat=1,astruct%nat
      do iorb=1,orbs%norb
         if(iat == orbs%onwhichatom(iorb)) then
            ilr = ilr + 1
@@ -2133,8 +2169,15 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
      end do
   end do
   
-  call initLocregs(iproc, nproc, lzd, cxyz, Lzd%hgrids(1), Lzd%hgrids(2),Lzd%hgrids(3), &
-       at, orbs, Lzd%Glr, lrad, 's')
+  ! Allocate the array of localisation regions
+  allocate(lzd%Llr(lzd%nlr),stat=i_stat)
+  do ilr=1,lzd%nlr
+     lzd%Llr(ilr)=locreg_null()
+  end do
+  do ilr=1,lzd%nlr
+      lzd%llr(ilr)%locrad=lrad(ilr)
+      lzd%llr(ilr)%locregCenter=cxyz(:,ilr)
+  end do
 
   i_all = -product(shape(cxyz))*kind(cxyz)
   deallocate(cxyz,stat=i_stat)

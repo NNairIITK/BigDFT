@@ -54,7 +54,7 @@ program WaCo
    integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:), l(:), mr(:)
    real(gp), dimension(3) :: refpos, normal, box
    real(kind=8),dimension(:,:),allocatable :: umn, umnt, rho, rhoprime, amn, tmatrix
-   integer :: i, j, k, i_all
+   integer :: i, j, k, i_all, ilr
    character(len=16) :: seedname
    integer :: n_occ, n_virt, n_virt_tot, nproj,nband_old,nkpt_old,iwann_out 
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity,write_resid
@@ -837,8 +837,15 @@ program WaCo
        allocate(calcbounds(nwannCon),stat=i_stat)
        call memocc(i_stat,calcbounds,'calcbounds',subname)
        calcbounds =.false.  
-       call determine_locregSphere_parallel(iproc,nproc,nwannCon,cxyz,locrad,Lzd%hgrids(1),&
-               Lzd%hgrids(2),Lzd%hgrids(3),atoms,orbs,Lzd%Glr,Lzd%Llr,calcbounds) 
+       do ilr=1,nwannCon
+          Lzd%llr(ilr)%locregCenter(1)=cxyz(1,ilr)
+          Lzd%llr(ilr)%locregCenter(2)=cxyz(2,ilr)
+          Lzd%llr(ilr)%locregCenter(3)=cxyz(3,ilr)
+
+          Lzd%llr(ilr)%locrad=locrad(ilr)
+       end do
+       call determine_locregSphere_parallel(iproc,nproc,nwannCon,Lzd%hgrids(1),&
+               Lzd%hgrids(2),Lzd%hgrids(3),atoms%astruct,orbs,Lzd%Glr,Lzd%Llr,calcbounds) 
      end if
 
 
