@@ -366,7 +366,7 @@ contains
   end function dict_len
 
 
-  !> return the length of the dictionary
+  !> Return the length of the dictionary
   pure function dict_size(dict)
     implicit none
     type(dictionary), intent(in), pointer :: dict
@@ -415,7 +415,7 @@ contains
 
   end function name_is
 
-  !> returns the position of the name in the dictionary
+  !> Returns the position of the name in the dictionary
   !! returns 0 if the dictionary is nullified or the name is absent
   function find_index(dict,name)
     implicit none
@@ -423,10 +423,8 @@ contains
     character(len=*), intent(in) :: name
     integer :: find_index
     !local variables
-    logical :: found
     integer :: ind
     type(dictionary), pointer :: dict_tmp
-    character(len=max_field_length) :: name_tmp
 
     find_index=0
     ind=0

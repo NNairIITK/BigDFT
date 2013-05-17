@@ -1,7 +1,7 @@
 !> @file
 !! Routines for handling the structure atoms_data 
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -1900,13 +1900,14 @@ subroutine atoms_copy_name(atoms, ityp, name, ln)
   integer :: i,lname
 
   lname = len(name)
-  ln=min(len(trim(atoms%atomnames(ityp))),20)
+  ln=min(len_trim(atoms%atomnames(ityp)),20)
   !print *,'lnt2',lnt
   do i = 1, ln, 1
-     name(i:i) = atoms%atomnames(ityp)(i:i)
+     !name(i) = atoms%atomnames(ityp)(i:i)
+     write(name(i),'(a1)') atoms%atomnames(ityp)(i:i)
   end do
   do i = ln + 1, lname, 1
-     name(i:i) = ' '
+     name(i) = ' '
   end do
 END SUBROUTINE atoms_copy_name
 

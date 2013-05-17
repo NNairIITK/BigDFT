@@ -9,9 +9,8 @@
 
 
   !local variables
-  integer :: ierr
   character(len=info_length) :: address
-  !local variables
+  !integer :: ierr
   logical :: use_global
   integer(kind=8) :: ilsize,jlsize,iadd
   character(len=namelen) :: array_id,routine_id

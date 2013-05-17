@@ -1682,8 +1682,7 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
   logical :: exists
   character(len=*), parameter :: subname='fragment_input_variables'
   character(len=256) :: comments
-  character(len=20):: atomname
-  integer :: ifrag, frag_num, ios, ierr, istat
+  integer :: ifrag, frag_num, ierr
 
   !Linear input parameters
   call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters')  
