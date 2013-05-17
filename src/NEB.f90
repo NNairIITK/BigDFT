@@ -450,9 +450,8 @@ MODULE NEB_routines
         do i = 1, neb_%nimages
            call standard_inputfile_names(ins(i), trim(arr_radical(i)), bigdft_mpi%nproc)
            call default_input_variables(ins(i))
-           ins(i)%ncount_cluster_x = max_iterations
-           call inputs_parse_params(ins(i), bigdft_mpi%iproc, .true.)
-           call inputs_parse_add(ins(i), atoms, bigdft_mpi%iproc, .true.)
+           call inputs_parse_params(ins(i), bigdft_mpi%iproc, .false.)
+           call inputs_parse_add(ins(i), atoms, bigdft_mpi%iproc, .false.)
 
            write(log_files(i), "(A,A)") trim(ins(i)%writing_directory), &
                 & 'log-'//trim(ins(i)%run_name)//'.yaml'           
