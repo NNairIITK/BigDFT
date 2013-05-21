@@ -48,12 +48,7 @@ MODULE NEB_variables
   CHARACTER (LEN=80)                     :: restart_file
   CHARACTER (LEN=80)                     :: job_name
   LOGICAL                                :: restart, external_call
-  INTEGER                                :: N
-  REAL (gp)                              :: Lx, Ly, Lz
-  REAL (gp), DIMENSION(:,:), ALLOCATABLE :: pos
-  REAL (gp), DIMENSION(:,:), ALLOCATABLE :: PES_gradient
-  real (gp), DIMENSION(:), ALLOCATABLE   :: fix_atom
-  REAL (gp), DIMENSION(:), ALLOCATABLE   :: V, F, error
+  real (gp), DIMENSION(:,:), ALLOCATABLE :: fix_atom
   REAL (gp)                              :: tolerance
 
   integer, dimension(4) :: mpi_info
@@ -83,6 +78,7 @@ MODULE NEB_routines
   fmt5 = "(' image: ',I2,'   Energy=  ',F16.8,'   Error=',F8.5)"
 
   type(NEB_data), private :: neb_
+  type(run_image), dimension(:), allocatable :: imgs
   type(mpi_environment), private :: neb_mpi
 
   CONTAINS
@@ -93,17 +89,13 @@ MODULE NEB_routines
 
       IMPLICIT NONE
 
-      INTEGER                                    :: i, j, n1, n2, ios, j0, k, num_of_images
-      real(gp)                           :: r, a
+      INTEGER                                    :: i, n1, n2, num_of_images
       CHARACTER (LEN=20)                         :: minimization_scheme
-      CHARACTER (LEN=95)                         :: vel_file
       INTEGER, PARAMETER                         :: unit = 10
-      REAL (gp), DIMENSION(:), ALLOCATABLE :: d_R
-      REAL (gp), DIMENSION(:,:), ALLOCATABLE :: vel0
+      REAL (gp), DIMENSION(:,:), ALLOCATABLE :: d_R
       real(gp), dimension(:,:), pointer  :: rxyz
-      real(gp), dimension(3, 1000)       :: xcart1, xcart2
       real(gp), dimension(3)             :: acell1, acell2
-      logical :: file_exists, climbing, optimization
+      logical :: climbing, optimization
       integer :: max_iterations, ierr, nconfig
       real(gp) :: convergence, damp, k_min, k_max, ds, temp_req
       type(mpi_environment) :: bigdft_mpi_svg
@@ -163,15 +155,13 @@ MODULE NEB_routines
       tolerance   = 1.0D-4
       neb_%convergence = 5.0D-2
 
-      N = 0
-      
-      Lx = 0.D0
-      Ly = 0.D0
-      Lz = 0.D0
-
       open(unit = 123, file = trim(run_id)//".neb", action = "read")
       READ(123 , NML=NEB )
       close(123)
+      IF ( num_of_images <= 2 ) THEN
+        WRITE(*,'(T1,"read_input: neb_%nimages must be larger than 2")')
+        STOP
+      END IF
 
       neb_%climbing = climbing
       neb_%optimization = optimization
@@ -217,11 +207,15 @@ MODULE NEB_routines
 
       call atoms_nullify(atoms)
       call read_atomic_file(trim(arr_posinp(1)), mpi_info(1), atoms, rxyz)
+
+      ! We have nat and nimages, we allocate everythings.
+      CALL dyn_allocation
+
       n1 = atoms%nat
+      call vcopy(atoms%nat * 3, rxyz(1,1), 1, imgs(1)%run%rxyz(1,1), 1)
       acell1(1) = atoms%alat1
       acell1(2) = atoms%alat2
       acell1(3) = atoms%alat3
-      xcart1(:,1:atoms%nat) = rxyz
       if (acell1(1) == 0.) acell1(1) = maxval(rxyz(1,:)) - minval(rxyz(1,:))
       if (acell1(2) == 0.) acell1(2) = maxval(rxyz(2,:)) - minval(rxyz(2,:))
       if (acell1(3) == 0.) acell1(3) = maxval(rxyz(3,:)) - minval(rxyz(3,:))
@@ -231,10 +225,15 @@ MODULE NEB_routines
       call atoms_nullify(atoms)
       call read_atomic_file(trim(arr_posinp(neb_%nimages)), mpi_info(1), atoms, rxyz)
       n2 = atoms%nat
+      IF ( n1 /= n2 ) THEN      
+         WRITE(*,'(T2,"read_input: number of atoms is not constant")')
+         WRITE(*,'(T2,"            N = ", I8, I8 )') n1, n2
+         STOP  
+      END IF
+      call vcopy(atoms%nat * 3, rxyz(1,1), 1, imgs(neb_%nimages)%run%rxyz(1,1), 1)
       acell2(1) = atoms%alat1
       acell2(2) = atoms%alat2
       acell2(3) = atoms%alat3
-      xcart2(:,1:atoms%nat) = rxyz
       if (acell2(1) == 0.) acell2(1) = maxval(rxyz(1,:)) - minval(rxyz(1,:))
       if (acell2(2) == 0.) acell2(2) = maxval(rxyz(2,:)) - minval(rxyz(2,:))
       if (acell2(3) == 0.) acell2(3) = maxval(rxyz(3,:)) - minval(rxyz(3,:))
@@ -246,162 +245,128 @@ MODULE NEB_routines
       end if
 
 !! some consistency checks are done
-
-      IF ( neb_%nimages <= 2 ) THEN
-
-        WRITE(*,'(T1,"read_input: neb_%nimages must be larger than 2")')
-        STOP
-
-      END IF
-
       IF ( maxval(abs(acell2 - acell1)) > 1.d-6 ) THEN
-      
          WRITE(*,'(T2,"read_input: box size is not constant")')
          WRITE(*,'(T2,"           dLx = ", F10.6 )') acell1(1) - acell2(1)
          WRITE(*,'(T2,"           dLy = ", F10.6 )') acell1(2) - acell2(2)
          WRITE(*,'(T2,"           dLz = ", F10.6 )') acell1(3) - acell2(3)
          STOP  
-
       END IF
-
-      IF ( n1 /= n2 ) THEN
-      
-         WRITE(*,'(T2,"read_input: number of atoms is not constant")')
-         WRITE(*,'(T2,"            N = ", I8, I8 )') n1, n2
-         STOP  
-
-      END IF
-
-      N = n1
-      Lx = acell1(1)
-      Ly = acell1(2)
-      Lz = acell1(3)
-
-      neb_%ndim = 3 * N
-      
-      CALL dyn_allocation
 
 !! all the arrays are initialized
 
-      V                = 0.D0
-      PES_gradient     = 0.D0
-      error            = 0.D0
+!!$      IF ( restart ) THEN
+!!$
+!!$        OPEN( UNIT = unit, FILE = restart_file, STATUS = "OLD", &
+!!$              ACTION = "READ" )
+!!$    
+!!$        ! Read as many configurations as contained in the
+!!$        ! Restart file.
+!!$        DO i = 1, neb_%nimages
+!!$
+!!$           READ(unit,*, iostat = ios)
+!!$           if (ios /= 0) exit
+!!$           READ(unit,fmt3) V(i)
+!!$
+!!$           DO j = 1, ndim, 3 
+!!$
+!!$              READ(unit,*) pos(j,i),     & 
+!!$                   pos((j+1),i), &
+!!$                   pos((j+2),i), &
+!!$                   fix_atom(j),     &
+!!$                   fix_atom((j+1)), &
+!!$                   fix_atom((j+2)), &
+!!$                   PES_gradient(j,i),     &
+!!$                   PES_gradient((j+1),i), &
+!!$                   PES_gradient((j+2),i)
+!!$           END DO
+!!$           PES_gradient(:, i) = PES_gradient(:, i) * (-1d0)
+!!$
+!!$        END DO
+!!$
+!!$        CLOSE( UNIT = unit) 
+!!$
+!!$        ! Check that we read at least two configurations...
+!!$        i = i - 1
+!!$        if (i < 2) then
+!!$           WRITE(*,'(T2,"read_input: number of replica in restart file is less than 2")')
+!!$           WRITE(*,'(T2,"            N = ", I8 )') i - 1
+!!$           STOP  
+!!$        end if
+!!$
+!!$        ! Add some intermediate configurations if neb_%nimages > i
+!!$        if (neb_%nimages > i) then
+!!$           ALLOCATE( d_R(ndim) )           
+!!$           r = real(i - 1, gp) / real(neb_%nimages - 1, gp)
+!!$           a = real(0, gp)
+!!$           j0 = neb_%nimages
+!!$           do j = neb_%nimages, 1, -1
+!!$              ! j : the current position in pos array.
+!!$              ! i : the current position in read configurations.
+!!$              ! r : the ideal ratio (i_0 - 1) / (neb_%nimages - 1)
+!!$              ! a : the current ratio.
+!!$              ! We copy i to j if a < r, otherwise we create a new
+!!$              ! linear approximant.
+!!$              if (a <= r) then
+!!$                 pos(:, j) = pos(:, i)
+!!$                 i = i - 1
+!!$                 ! We create the new linear approx. replicas between j and j0.
+!!$                 if (j0 /= j) then
+!!$                    d_R = ( pos(:,j0) - pos(:,j) ) / &
+!!$                         DBLE( j0 - j )
+!!$                    do k = j0 - 1, j + 1, -1
+!!$                       write(*,*) k, ": new linear approx replica."
+!!$                       pos(:, k) = pos(:, k + 1) - d_R(:)
+!!$                    end do
+!!$                 end if
+!!$                 j0 = j
+!!$                 write(*,*) j, ": restart replica."
+!!$              end if
+!!$              a = (r * real(neb_%nimages - 1, gp) - real(i, gp) + real(1, gp)) / &
+!!$                   & (real(neb_%nimages, gp) - real(j, gp) + real(1, gp))
+!!$           end do
+!!$           deallocate(d_R)
+!!$
+!!$           CALL write_restart(restart_file, ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
+!!$
+!!$        end if
+!!$
+!!$        vel_file = TRIM( scratch_dir )//"/velocities_file"
+!!$        inquire(FILE = vel_file, EXIST = file_exists)
+!!$        IF ( ( neb_%algorithm >= 4 ) .AND. file_exists ) THEN
+!!$!!DEBUG          PRINT *, "reading ", vel_file
+!!$           allocate(vel0(ndim, neb_%nimages))
+!!$           OPEN( UNIT = unit, FILE = vel_file, STATUS = "OLD", ACTION = "READ" )
+!!$           DO i = 1, neb_%nimages
+!!$              READ(unit,*)
+!!$              DO j = 1, ndim, 3 
+!!$                 READ(unit,fmt2) vel0(j,i),     & 
+!!$                      vel0((j+1),i), &
+!!$                      vel0((j+2),i)
+!!$              END DO
+!!$           END DO
+!!$           CLOSE( UNIT = unit )
+!!$           call set_init_vel(neb_, vel0)
+!!$           deallocate(vel0)
+!!$        END IF
+!!$      
+!!$      ELSE
 
-      IF ( restart ) THEN
+        ALLOCATE( d_R(3, atoms%nat) )           
 
-        OPEN( UNIT = unit, FILE = restart_file, STATUS = "OLD", &
-              ACTION = "READ" )
-    
-        ! Read as many configurations as contained in the
-        ! Restart file.
-        DO i = 1, neb_%nimages
-
-           READ(unit,*, iostat = ios)
-           if (ios /= 0) exit
-           READ(unit,fmt3) V(i)
-
-           DO j = 1, neb_%ndim, 3 
-
-              READ(unit,*)    pos(j,i),     & 
-                   pos((j+1),i), &
-                   pos((j+2),i), &
-                   fix_atom(j),     &
-                   fix_atom((j+1)), &
-                   fix_atom((j+2)), &
-                   PES_gradient(j,i),     &
-                   PES_gradient((j+1),i), &
-                   PES_gradient((j+2),i)
-           END DO
-           PES_gradient(:, i) = PES_gradient(:, i) * (-1d0)
-
-        END DO
-
-        CLOSE( UNIT = unit) 
-
-        ! Check that we read at least two configurations...
-        i = i - 1
-        if (i < 2) then
-           WRITE(*,'(T2,"read_input: number of replica in restart file is less than 2")')
-           WRITE(*,'(T2,"            N = ", I8 )') i - 1
-           STOP  
-        end if
-
-        ! Add some intermediate configurations if neb_%nimages > i
-        if (neb_%nimages > i) then
-           ALLOCATE( d_R(neb_%ndim) )           
-           r = real(i - 1, gp) / real(neb_%nimages - 1, gp)
-           a = real(0, gp)
-           j0 = neb_%nimages
-           do j = neb_%nimages, 1, -1
-              ! j : the current position in pos array.
-              ! i : the current position in read configurations.
-              ! r : the ideal ratio (i_0 - 1) / (neb_%nimages - 1)
-              ! a : the current ratio.
-              ! We copy i to j if a < r, otherwise we create a new
-              ! linear approximant.
-              if (a <= r) then
-                 pos(:, j) = pos(:, i)
-                 i = i - 1
-                 ! We create the new linear approx. replicas between j and j0.
-                 if (j0 /= j) then
-                    d_R = ( pos(:,j0) - pos(:,j) ) / &
-                         DBLE( j0 - j )
-                    do k = j0 - 1, j + 1, -1
-                       write(*,*) k, ": new linear approx replica."
-                       pos(:, k) = pos(:, k + 1) - d_R(:)
-                    end do
-                 end if
-                 j0 = j
-                 write(*,*) j, ": restart replica."
-              end if
-              a = (r * real(neb_%nimages - 1, gp) - real(i, gp) + real(1, gp)) / &
-                   & (real(neb_%nimages, gp) - real(j, gp) + real(1, gp))
-           end do
-           deallocate(d_R)
-
-           CALL write_restart(restart_file, neb_%ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
-
-        end if
-
-        vel_file = TRIM( scratch_dir )//"/velocities_file"
-        inquire(FILE = vel_file, EXIST = file_exists)
-        IF ( ( neb_%algorithm >= 4 ) .AND. file_exists ) THEN
-!!DEBUG          PRINT *, "reading ", vel_file
-           allocate(vel0(neb_%ndim, neb_%nimages))
-           OPEN( UNIT = unit, FILE = vel_file, STATUS = "OLD", ACTION = "READ" )
-           DO i = 1, neb_%nimages
-              READ(unit,*)
-              DO j = 1, neb_%ndim, 3 
-                 READ(unit,fmt2) vel0(j,i),     & 
-                      vel0((j+1),i), &
-                      vel0((j+2),i)
-              END DO
-           END DO
-           CLOSE( UNIT = unit )
-           call set_init_vel(neb_, vel0)
-           deallocate(vel0)
-        END IF
-      
-      ELSE
-
-        ALLOCATE( d_R(neb_%ndim) )           
-
-        call vcopy(neb_%ndim, xcart1(1,1), 1, pos(1,1), 1)
-        call vcopy(neb_%ndim, xcart2(1,1), 1, pos(1,neb_%nimages), 1)
-  
-        d_R = ( pos(:,neb_%nimages) - pos(:,1) ) / &
+        d_R = ( imgs(neb_%nimages)%run%rxyz - imgs(1)%run%rxyz ) / &
              DBLE( neb_%nimages - 1 )
 
         fix_atom = 1
         WHERE ( ABS( d_R ) <=  tolerance ) fix_atom = 0
 
         DO i = 2, ( neb_%nimages - 1 )
-           pos(:,i) = pos(:,( i - 1 )) + d_R(:)
+           imgs(i)%run%rxyz = imgs(i - 1)%run%rxyz + d_R
         END DO
 
         DEALLOCATE( d_R )
 
-     END IF
+!!$     END IF
 
      if (.not. external_call) then
         ! Trick here, only super master will read the input files...
@@ -436,24 +401,20 @@ MODULE NEB_routines
 
     
     SUBROUTINE dyn_allocation
-
       IMPLICIT NONE
+      integer :: i
 
-      ALLOCATE( pos( neb_%ndim , neb_%nimages ) )
+      allocate( ins(neb_%nimages) )
+      allocate( log_files(neb_%nimages) )
 
-      ALLOCATE( PES_gradient( neb_%ndim , neb_%nimages ) )          
+      ALLOCATE( fix_atom(3, atoms%nat) )
 
-      ALLOCATE( fix_atom( neb_%ndim ) )
-
-      ALLOCATE( F( neb_%nimages ) )
-      ALLOCATE( V( neb_%nimages ) )
-      ALLOCATE( error( neb_%nimages ) )
-
-      allocate(ins(neb_%nimages))
-      allocate(log_files(neb_%nimages))
-
-      call init_images(neb_, neb_%ndim, neb_%nimages, neb_%algorithm)
-
+      allocate(imgs(neb_%nimages))
+      do i =1, neb_%nimages
+         call run_objects_init_container(imgs(i)%run, ins(i), atoms, rst)
+         call init_global_output(imgs(i)%outs, atoms%nat)
+         call image_init(imgs(i), atoms%nat * 3, neb_%algorithm)
+      end do
     END SUBROUTINE dyn_allocation     
 
     SUBROUTINE search_MEP
@@ -462,51 +423,73 @@ MODULE NEB_routines
       IMPLICIT NONE
 
       INTEGER :: iteration, unt, ierr
+      real(gp) :: err
       LOGICAL :: stat
+      CHARACTER (LEN=4), PARAMETER :: exit_file = "EXIT"  
 
       open(unit = 456, file = trim(barrier_file), action = "WRITE")
       write(456, "(A)") "# NEB barrier file"
       close(unit = 456)
 
-      IF ( .NOT. restart) THEN
-         CALL write_restart(restart_file, neb_%ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
-      END IF
-
-      error(:) = 999d99
+!!$      IF ( .NOT. restart) THEN
+!!$         CALL write_restart(restart_file, neb_%ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
+!!$      END IF
 
       if (mpi_info(1) == 0 .and. mpi_info(3) == 0) &
            & call yaml_open_sequence("NEB minimization loop", unit = 6)
       iteration = 0
       minimization: do
          if (external_call) then
-            CALL PES_IO(neb_%optimization .or. (.not. restart .and. iteration == 0),stat)
+            CALL PES_IO((neb_%optimization .or. (.not. restart .and. iteration == 0)),stat)
             if (.not. stat) exit minimization
          else
-            call PES_internal(neb_%optimization .or. (.not. restart .and. iteration == 0), iteration)
+            call PES_internal((neb_%optimization .or. (.not. restart .and. iteration == 0)), iteration)
          end if
 
-         call compute_neb_pos(stat, iteration, error, F, pos, V, PES_gradient, Lx, Ly, Lz, neb_)
+         call compute_neb_pos(imgs, iteration, neb_)
 
          if (mpi_info(1) == 0 .and. mpi_info(3) == 0) then
-            CALL write_restart(restart_file, neb_%ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
+!!$            CALL write_restart(restart_file, neb_%ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
             if (neb_%algorithm >= 4) then
-               CALL write_restart_vel(neb_, trim(scratch_dir) // "velocities_file")
+               CALL write_restart_vel(trim(scratch_dir) // "velocities_file", imgs)
             end if
 
-            if (iteration > 1) then
-               CALL write_dat_files(data_file, interpolation_file, neb_%ndim, neb_%nimages, pos, V, F, error, Lx, Ly, Lz)
+            if (iteration > 0) then
+               CALL write_dat_files(data_file, interpolation_file, imgs)
                open(unit = 456, file = trim(barrier_file), action = "WRITE", position = "APPEND")
-               WRITE(456, fmt4) iteration - 1, ( maxval(V(2:neb_%nimages - 1)) - V(1) ) * Ha_eV, &
-                    & maxval(error) * ( Ha_eV / Bohr_Ang ) 
+               WRITE(456, fmt4) iteration, images_get_activation(imgs) * Ha_eV, &
+                    & maxval(images_get_errors(imgs)) * ( Ha_eV / Bohr_Ang ) 
                close(unit = 456)
                call yaml_swap_stream(6, unt, ierr)
                call yaml_sequence(advance='no')
-               call images_write_step(V, error, neb_%nimages, iteration = iteration - 1)
+               call images_output_step(imgs, iteration = iteration)
                call yaml_set_default_stream(unt, ierr)
             end if
          end if
 
-         if (.not. stat) exit minimization
+         if (iteration > 0 .or. neb_%max_iterations == 1) then
+            err = maxval(images_get_errors(imgs))
+
+            IF ( ( err * Ha_eV / Bohr_Ang ) <= neb_%convergence .or. neb_%max_iterations == 1)  THEN
+               exit minimization
+            END IF
+         end if
+
+         iteration = iteration + 1
+
+         IF ( iteration > neb_%max_iterations ) THEN
+            exit minimization
+         END IF
+
+         inquire(FILE = exit_file, EXIST = stat)
+         IF ( stat ) THEN
+            call delete(trim(exit_file),len(trim(exit_file)), stat)
+
+            WRITE(*,*) " WARNING :  soft exit required"
+            WRITE(*,*) " STOPPING ...                 "
+
+            exit minimization
+         END IF
       end do minimization
       if (mpi_info(1) == 0 .and. mpi_info(3) == 0) &
            & call yaml_close_sequence(unit = 6)
@@ -514,7 +497,7 @@ MODULE NEB_routines
       if (mpi_info(1) == 0 .and. mpi_info(3) == 0) then
          call yaml_swap_stream(6, unt, ierr)
          call yaml_comment('Final results',hfill='-')
-         call images_write_step(V, error, neb_%nimages, full = .true.)
+         call images_output_step(imgs, full = .true.)
          call yaml_set_default_stream(unt, ierr)
       end if
     END SUBROUTINE search_MEP
@@ -522,68 +505,29 @@ MODULE NEB_routines
     subroutine PES_internal( flag, iteration )
       use yaml_output
       implicit none
-      logical, intent(in) :: flag
       integer, intent(in) :: iteration
+      logical, intent(in) :: flag
 
+      integer :: i
       logical, dimension(neb_%nimages) :: update
       integer, dimension(neb_%nimages) :: igroup
-      integer :: i, infocode, ierr
-      type(run_objects) :: runObj
-      type(DFT_global_output) :: outs
-      character(len = 80) :: comment
-      character(len = 4) :: fn4
 
       ! update() is a mask of images to compute.
       update = .true.
-      where ( error * Ha_eV / Bohr_Ang <= neb_%convergence ) update = .false.
+      where ( images_get_errors(imgs) * Ha_eV / Bohr_Ang <= neb_%convergence ) update = .false.
       if (.not. flag) then
          update(1) = .false.
          update(neb_%nimages) = .false.
       end if
 
-      ! Put to zero V and PES_gradient for the updated images,
-      ! or for all groups not 0 (for later reduction).
-      do i = 1, neb_%nimages
-         if (update(i) .or. neb_mpi%iproc > 0) then
-            V(i) = 0.d0
-            call to_zero(neb_%ndim, PES_gradient(1,i))
-         end if
-      end do
-      
-      ! Do the calculations, distributing along taskgroups.
+      ! Do the calculations, distributing among taskgroups.
       call images_distribute_tasks(igroup, update, neb_%nimages, neb_mpi%nproc)
       do i = 1, neb_%nimages
          if (igroup(i) - 1 == mpi_info(3)) then
-            call yaml_set_stream(unit = 9169 + i, filename = trim(log_files(i)), istat = ierr)
-            call yaml_comment("NEB iteration #" // trim(yaml_toa(iteration, fmt = "(I3.3)")), hfill="-")
-            call run_objects_init_container(runObj, ins(i), atoms, rst, pos(1,i))
-            call init_global_output(outs, runObj%atoms%nat)
-            call call_bigdft(runObj,outs,mpi_info(2),mpi_info(1),infocode)
-            call run_objects_free_container(runObj)
-            ins(i)%inputpsiid = 1
-            call dsbmv('L', neb_%ndim, 0, -1.d0, fix_atom(1), 1, outs%fxyz(1,1), 1, &
-                 & 0.d0, PES_gradient(1, i), 1)
-            V(i) = outs%energy
-            write(fn4, "(I4.4)") iteration
-            write(comment,'(a,1pe10.3)')'NEB:error= ',error(i)
-            call write_atomic_file(trim(ins(i)%dir_output)//'posout_'//fn4, &
-                 & outs%energy,pos(1,i),atoms,trim(comment),forces=outs%fxyz)
-            call deallocate_global_output(outs)
-            call yaml_close_all_streams()
+            call image_calculate(imgs(i), iteration, i, log_files(i), fix_atom, bigdft_mpi)
         end if
       end do
-      
-      ! Reduce the result in case of taskgrouping.
-      if (neb_mpi%nproc > 1) then
-         if (neb_mpi%mpi_comm /= MPI_COMM_NULL) then
-            call mpiallred(V(1), neb_%nimages, MPI_SUM, neb_mpi%mpi_comm, ierr)
-            call mpiallred(PES_gradient(1,1), neb_%ndim * neb_%nimages, &
-                 & MPI_SUM, neb_mpi%mpi_comm, ierr)
-         end if
-         call mpi_bcast(V(1), neb_%nimages, MPI_DOUBLE_PRECISION, 0, bigdft_mpi%mpi_comm, ierr)
-         call mpi_bcast(PES_gradient(1,1), neb_%ndim * neb_%nimages, MPI_DOUBLE_PRECISION, &
-              & 0, bigdft_mpi%mpi_comm, ierr)
-      end if
+      call images_collect_results(imgs, igroup, neb_%nimages, neb_mpi)
     END SUBROUTINE PES_internal
 
     SUBROUTINE PES_IO( flag , stat )
@@ -628,24 +572,23 @@ MODULE NEB_routines
 
           IF ( ABS( temp_V - corruption_flag ) <= epsi ) THEN
                  
-      stat = .FALSE. 
-      
-      RETURN
-    
-    END IF
-    
-    V(replica) = temp_V
+             stat = .FALSE. 
 
-          DO i = 1, neb_%ndim, 3 
+             RETURN
 
-            READ(unit,*) PES_gradient(i,replica),     &
-                 PES_gradient((i+1),replica), &
-                 PES_gradient((i+2),replica)
+          END IF
+
+          imgs(replica)%outs%energy = temp_V
+
+          DO i = 1, imgs(replica)%outs%fdim, 1
+
+            READ(unit,*) imgs(replica)%outs%fxyz(1,i), &
+                 imgs(replica)%outs%fxyz(2,i), &
+                 imgs(replica)%outs%fxyz(3,i)
 
           END DO
 
-          PES_gradient(:,replica) = PES_gradient(:,replica) * &
-                                    fix_atom * (-1.d0)
+          imgs(replica)%outs%fxyz = - imgs(replica)%outs%fxyz * fix_atom
 
         END DO
 
@@ -660,15 +603,18 @@ MODULE NEB_routines
 
       integer :: i, ierr
 
-      IF ( ALLOCATED( pos ) )              DEALLOCATE( pos )
-      IF ( ALLOCATED( PES_gradient ) )     DEALLOCATE( PES_gradient )
       IF ( ALLOCATED( fix_atom ) )         DEALLOCATE( fix_atom )
-      IF ( ALLOCATED( F ) )                DEALLOCATE( F )
-      IF ( ALLOCATED( V ) )                DEALLOCATE( V )
-      IF ( ALLOCATED( error ) )            DEALLOCATE( error )
       IF ( ALLOCATED( log_files ) )        DEALLOCATE( log_files )
       
-      call deallocate_images(neb_)
+      if (allocated(imgs)) then
+         do i = 1, neb_%nimages
+            call image_deallocate(imgs(i))
+            call run_objects_free_container(imgs(i)%run)
+            call deallocate_global_output(imgs(i)%outs)
+         end do
+         deallocate(imgs)
+      end if
+
       call deallocate_atoms(atoms, "deallocation")
 
       if (.not. external_call) then
