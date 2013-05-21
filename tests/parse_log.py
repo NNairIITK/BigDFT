@@ -249,11 +249,33 @@ if __name__ == "__main__":
 
 #args=parse_arguments()
 
+#do some tests
+document = """---
+block sequence:
+ - BlockEntryToken
+ block mapping:
+   ? KeyToken
+   : ValueToken
+ flow sequence: [FlowEntryToken, FlowEntryToken]
+ flow mapping: {KeyToken: ValueToken}
+ anchors and tags:
+ - &A !!int '5'
+ - *A
+...
+ """
+
+for token in yaml.scan(document):
+     print token
+
+ddd
 #print args.ref,args.data,args.output
-datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
+#datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
+datas    = [a for a in yaml.parse(open(args.data, "r").read(), Loader = yaml.BaseLoader)]
+#datas    = [a for a in yaml.safe_load_all(open(args.data, "r").read())]
 #Profile.run('datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]')
 #gyi
 runfile = open(args.data, "r").read()
+sss
 try:
     datas    = [a for a in yaml.load_all(runfile, Loader = yaml.Loader)]
     #Profile.run('datas    = [a for a in yaml.load_all(open(args.data, "r").read())]')

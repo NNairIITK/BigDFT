@@ -13,7 +13,7 @@
 module yaml_output
   use yaml_strings
   use dictionaries
-  use error_handling
+  !use error_handling
   implicit none
   private
 

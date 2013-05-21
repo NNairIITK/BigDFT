@@ -185,7 +185,7 @@ contains
   !!
   subroutine memocc_internal(istat,isize,array,routine)
     use yaml_output
-    use error_handling
+    use dictionaries!error_handling
     implicit none
 
     ! Arguments

@@ -479,7 +479,7 @@ module dynamic_memory
   !> Public routines
   public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_malloc_dump_status
   public :: f_free,f_free_ptr
-  public :: f_routine,f_release_routine,f_set_status,f_finalize
+  public :: f_routine,f_release_routine,f_malloc_set_status,f_finalize
   public :: assignment(=),operator(.to.)
 
 contains
@@ -948,7 +948,7 @@ contains
 
   !> Decide the error messages associated to the dynamic memory
   subroutine malloc_errors()
-    use error_handling
+    use dictionaries!error_handling
     implicit none
     
     call f_err_define(err_name='ERR_ALLOCATE',err_msg='Allocation error',err_id=ERR_ALLOCATE,&
@@ -963,7 +963,7 @@ contains
 
 
   !> Initialize the library
-  subroutine f_set_status(memory_limit,output_level,logfile_name,unit,iproc)
+  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,unit,iproc)
     use yaml_output, only: yaml_date_and_time_toa
     implicit none
     !Arguments
@@ -997,7 +997,7 @@ contains
     if (present(logfile_name)) call memocc_set_filename(logfile_name)
        
     if (present(iproc)) call set(dict_global//processid,iproc)
-  end subroutine f_set_status
+  end subroutine f_malloc_set_status
 
   !> Finalize f_malloc (Display status)
   subroutine f_finalize(dump)

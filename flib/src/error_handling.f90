@@ -9,50 +9,62 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-module error_handling
-  use exception_callbacks
-  use dictionaries, dict_msg_len=>max_field_length
-  implicit none
+!!$module error_handling
+!!$  use exception_callbacks
+!!$  use dictionaries, dict_msg_len=>max_field_length
+!!$  implicit none
+!!$
+!!$  private
+!!$
+!!$  !some parameters
+!!$  character(len=*), parameter :: errid='Id'
+!!$  character(len=*), parameter :: errmsg='Message'
+!!$  character(len=*), parameter :: erract='Action'
+!!$  character(len=*), parameter :: errclbk='Callback Procedure Address'
+!!$  character(len=*), parameter :: errclbkadd='Callback Procedure Data Address'
+!!$
+!!$  character(len=*), parameter :: errunspec='UNSPECIFIED'
+!!$  character(len=*), parameter :: errundef='UNKNOWN'
+!!$
+!!$  integer :: ERR_GENERIC,ERR_SUCCESS,ERR_NOT_DEFINED
+!!$
+!!$  type(dictionary), pointer :: dict_errors=>null() !< the global dictionaries of possible errors, nullified if not initialized
+!!$  type(dictionary), pointer :: dict_present_error=>null() !< local pointer of present error, nullified if success
+!!$
+!!$  public :: f_err_initialize,f_err_finalize
+!!$  public :: f_err_define,f_err_check,f_err_raise,f_err_clean,f_get_error_dict
+!!$
+!!$  !public variables of the callback module
+!!$  public :: f_err_set_callback,f_err_unset_callback
+!!$  public :: f_err_severe,f_err_severe_override,f_err_severe_restore
+!!$  public :: f_loc
+!!$
+!!$contains
 
-  private
-
-  !some parameters
-  character(len=*), parameter :: errid='Id'
-  character(len=*), parameter :: errmsg='Message'
-  character(len=*), parameter :: erract='Action'
-  character(len=*), parameter :: errclbk='Callback Procedure Address'
-  character(len=*), parameter :: errclbkadd='Callback Procedure Data Address'
-
-  character(len=*), parameter :: errunspec='UNSPECIFIED'
-  character(len=*), parameter :: errundef='UNKNOWN'
-
-  integer :: ERR_GENERIC,ERR_SUCCESS,ERR_NOT_DEFINED
-
-  type(dictionary), pointer :: dict_errors=>null() !< the global dictionaries of possible errors, nullified if not initialized
-  type(dictionary), pointer :: dict_present_error=>null() !< local pointer of present error, nullified if success
-
-  public :: f_err_initialize,f_err_finalize
-  public :: f_err_define,f_err_check,f_err_raise,f_err_clean
-
-  !public variables of the callback module
-  public :: f_err_set_callback,f_err_unset_callback
-  public :: f_err_severe,f_err_severe_override,f_err_severe_restore
-  public :: f_loc
-
-contains
-
-  !> initialize module
+  !> initialize module, in case it has not be done so
+  !! the double initialization should not be possible when library is
+  !! correctly set up
   subroutine f_err_initialize()
     implicit none
     !local variables
     call f_err_unset_callback()
-    call dict_init(dict_present_error)
-    call dict_init(dict_errors)
-    !initialize the dictionary with the generic case
-    call f_err_define('SUCCESS','Operation has succeeded',ERR_SUCCESS,err_action='No action')
-    call f_err_define('GENERIC_ERROR',errunspec,ERR_GENERIC,err_action=errundef)
-    call f_err_define('ERR_NOT_DEFINED','The error id or name is invalid',ERR_NOT_DEFINED,&
-         err_action='Control if the err id exists')
+    if (associated(dict_present_error)) then
+       call f_err_clean()
+    else
+       call dict_init(dict_present_error)
+    end if
+    if (.not. associated(dict_errors)) then
+       call dict_init(dict_errors)
+       !initialize the dictionary with the generic case
+       call f_err_define('SUCCESS','Operation has succeeded',ERR_SUCCESS,err_action='No action')
+       call f_err_define('GENERIC_ERROR',errunspec,ERR_GENERIC,err_action=errundef)
+       call f_err_define('ERR_NOT_DEFINED','The error id or name is invalid',ERR_NOT_DEFINED,&
+            err_action='Control if the err id exists')
+       !initalize also error of dictionary part of the module
+       call dictionary_errors()
+    end if
+
+    
   end subroutine f_err_initialize
 
   subroutine f_err_finalize()
@@ -75,11 +87,14 @@ contains
     !local variable
     type(dictionary), pointer :: dict_error
 
+    !assure initialization of the library in case of misuse
+    if (.not. associated(dict_errors)) call f_err_initialize()
+
     !callback stuff to be done
     err_id=ERR_GENERIC
-    if (associated(dict_errors)) then
+!    if (associated(dict_errors)) then
        err_id=dict_len(dict_errors)
-    end if
+!    end if
 
     call dict_init(dict_error)
     call set(dict_error//err_name//errid,err_id)
@@ -93,8 +108,9 @@ contains
        if (present(callback_data)) &
             call set(dict_error//err_name//errclbkadd,callback_data)
     end if
-    !callback stuff to be done
-    if (associated(dict_errors)) call add(dict_errors,dict_error)
+
+    !if (associated(dict_errors)) 
+    call add(dict_errors,dict_error)
 
   end subroutine f_err_define
 
@@ -119,7 +135,7 @@ contains
   !> this routine should be generalized to allow the possiblity of addin customized message at the 
   !! raise of the error. Also customized callback should be allowed
   function f_err_raise(condition,err_msg,err_id,err_name,callback,callback_data)
-    use yaml_output, only: yaml_dict_dump,yaml_map
+    !use yaml_output, only: yaml_dict_dump,yaml_map
     implicit none
     logical, intent(in), optional :: condition !< the condition which raise the error
     integer, intent(in), optional :: err_id !< the code of the error to be raised.
@@ -132,7 +148,7 @@ contains
     !local variables
     integer :: new_errcode
     integer(kind=8) :: clbk_add,clbk_data_add
-    character(len=dict_msg_len), dimension(1) :: keys
+    character(len=max_field_length), dimension(1) :: keys
     type(dictionary), pointer :: dict_tmp
 
     if (present(condition)) then
@@ -161,9 +177,15 @@ contains
        !       call err_exception(new_errcode)
        !call yaml_dict_dump(dict_errors) !a routine to plot all created errors should be created
        !print *,'debug',new_errcode
-       dict_tmp=>dict_errors//new_errcode
-       call yaml_dict_dump(dict_tmp)
-       if (present(err_msg)) call yaml_map('Additional Info',err_msg)
+       if (present(err_msg)) then
+          call f_dump_error(new_errcode,err_msg)
+       else
+          call f_dump_error(new_errcode,'')
+       end if
+       dict_tmp=>f_get_error_dict(new_errcode)
+       !dict_tmp=>dict_errors//new_errcode
+!!$       call yaml_dict_dump(dict_tmp)
+!!$       if (present(err_msg)) call yaml_map('Additional Info',err_msg)
        !identify callback function 
        clbk_add=callback_add
        clbk_data_add=callback_data_add
@@ -172,6 +194,7 @@ contains
           clbk_add=f_loc(callback)
        else
           !find the callback in the error definition
+          !these data can be inserted in a function
           !that is how dict_keys function it should be called
           if (dict_size(dict_tmp) <= size(keys)) keys=dict_keys(dict_tmp)
           dict_tmp=>dict_tmp//trim(keys(1))
@@ -182,6 +205,14 @@ contains
     end if
   end function f_err_raise
 
+  function f_get_error_dict(icode)
+    implicit none
+    integer, intent(in) :: icode
+    type(dictionary), pointer :: f_get_error_dict
+
+    f_get_error_dict=>dict_errors//icode
+  end function f_get_error_dict
+
   !> clean the dictionary of present errors
   subroutine f_err_clean()
     implicit none
@@ -189,4 +220,4 @@ contains
     call dict_init(dict_present_error)
   end subroutine f_err_clean
 
-end module error_handling
+!!$end module error_handling
