@@ -182,11 +182,10 @@ module module_interfaces
          character(len=*), intent(in) :: file
          integer, intent(in) :: iproc
          type(atomic_structure), intent(inout) :: astruct
-         real(gp), dimension(:,:), pointer :: rxyz
          integer, intent(out), optional :: status
          real(gp), intent(out), optional :: energy
          real(gp), dimension(:,:), pointer, optional :: fxyz
-         character(len = 1024), intent(out), optional :: comment
+         character(len =*), intent(out), optional :: comment
       END SUBROUTINE read_atomic_file
 
       !> @author
@@ -1889,6 +1888,17 @@ module module_interfaces
          integer,intent(in),optional :: iiorb
       END SUBROUTINE filename_of_iorb
 
+      subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: nproc
+        character(len=*), intent(in) :: filerad
+        type(orbitals_data), intent(in) :: orbs
+        integer, intent(out) :: iformat
+        integer, optional, intent(in) :: nforb
+      end subroutine verify_file_presence
+
       subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
            & n1, n2, n3, nspinor, psiscf)
         use module_base
@@ -2057,9 +2067,10 @@ module module_interfaces
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,energy,fpulay,infocode)
+           energs,energy,fpulay,infocode,ref_frags)
       use module_base
       use module_types
+      use module_fragments
       implicit none
       integer,intent(in):: iproc, nproc
       type(atoms_data),intent(inout):: at
@@ -2077,6 +2088,7 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout),target:: tmb
       type(DFT_wavefunction),intent(inout),target:: KSwfn
       integer,intent(out):: infocode
+      type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags 
     end subroutine linearScaling   
 
    subroutine createDerivativeBasis(n1,n2,n3, &
@@ -3685,7 +3697,7 @@ module module_interfaces
 
        subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old1, n_old2, n_old3, &
             ns_old1, ns_old2, ns_old3, hgrids_old, lstat, error, onwhichatom, locrad, locregCenter, &     
-            confPotOrder, confPotprefac, nat, rxyz_old, nvctr_c_old, nvctr_f_old)
+            confPotOrder, confPotprefac, nvctr_c_old, nvctr_f_old, nat, rxyz_old)
          use module_base
          use module_types
          implicit none
@@ -3708,25 +3720,8 @@ module module_interfaces
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
        end subroutine io_read_descr_linear
 
-       subroutine readmywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz_old,rxyz,  &
-           psi,coeff,orblist)
-         use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc, iformat,npsidim
-         type(orbitals_data), intent(inout) :: orbs  ! orbs related to the basis functions
-         type(local_zone_descriptors), intent(in) :: Lzd
-         type(atoms_data), intent(in) :: at
-         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-         real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
-         real(wp), dimension(npsidim), intent(out) :: psi
-         character(len=*), intent(in) :: filename
-         real(wp), dimension(orbs%norb,orbs%norb), intent(out) :: coeff
-         integer, dimension(orbs%norb), optional :: orblist
-        end subroutine readmywaves_linear
-
-        subroutine readmywaves_linear_new(iproc,filename,iformat,at,tmb,rxyz_old,rxyz,&
-             ref_frags,fragInputVariables,frag_calc,orblist)
+        subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_old,rxyz,&
+               ref_frags,input_frag,frag_calc,orblist)
           use module_base
           use module_types
           use module_fragments
@@ -3737,9 +3732,9 @@ module module_interfaces
           type(DFT_wavefunction), intent(inout) :: tmb
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
           real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
-          character(len=*), intent(in) :: filename
-          type(fragmentInputParameters), intent(in) :: fragInputVariables
-          type(system_fragment), dimension(fragInputVariables%nfrag_ref), intent(inout) :: ref_frags
+          character(len=*), intent(in) :: dir_output, filename
+          type(fragmentInputParameters), intent(in) :: input_frag
+          type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
           logical, intent(in) :: frag_calc
           integer, dimension(tmb%orbs%norb), intent(in), optional :: orblist
         end subroutine readmywaves_linear_new
@@ -3797,7 +3792,7 @@ module module_interfaces
         end subroutine copy_local_zone_descriptors
 
         subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, &
-            & lstat, error, rxyz_old, nat)
+            & lstat, error, nat, rxyz_old)
          use module_base
          use module_types
          implicit none
@@ -3810,6 +3805,20 @@ module module_interfaces
          integer, intent(in), optional :: nat
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
         end subroutine io_read_descr_coeff
+
+        subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coeff,eval,nat,rxyz_old)
+          use module_base
+          use module_types
+          implicit none
+          logical, intent(in) :: useFormattedInput
+          integer, intent(in) :: unitwf,iproc,ntmb
+          integer, intent(out) :: norb_old
+          real(wp), dimension(ntmb,ntmb), intent(out) :: coeff
+          real(wp), dimension(ntmb), intent(out) :: eval
+          integer, optional, intent(in) :: nat
+          real(gp), dimension(:,:), optional, intent(out) :: rxyz_old
+        end subroutine read_coeff_minbasis
+
 
         subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, comgp)
           use module_base
@@ -4250,7 +4259,7 @@ module module_interfaces
         end subroutine reformat_one_supportfunction
 
         subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
-               psi_old,phi_array_old)
+               frag_trans,psi_old,phi_array_old)
           use module_base
           use module_types
           use module_fragments
@@ -4260,6 +4269,7 @@ module module_interfaces
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz,rxyz_old
           type(DFT_wavefunction), intent(inout) :: tmb
           type(local_zone_descriptors), intent(in) :: lzd_old
+          type(fragment_transformation), dimension(tmb%orbs%norbp), intent(in) :: frag_trans
           real(wp), dimension(:), pointer, intent(in) :: psi_old
           type(phi_array), dimension(tmb%orbs%norbp), optional, intent(in) :: phi_array_old
           logical, intent(in) :: add_derivatives

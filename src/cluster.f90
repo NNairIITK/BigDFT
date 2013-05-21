@@ -537,20 +537,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,&
        inputpsi,input_wf_format,norbv,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags)
 
-  ! can deallocate now we've done the input guess
-  if (in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
-     if (in%lin%fragment_calculation) then ! we really need to deallocate
-        do ifrag=1,in%frag%nfrag_ref
-           call fragment_free(ref_frags(ifrag))
-        end do
-     else ! we haven't actually allocated anything, so can just nullify - should make this more robust/general
-        do ifrag=1,in%frag%nfrag_ref
-           ref_frags(ifrag)=fragment_null()
-        end do
-     end if
-     deallocate(ref_frags)
-  end if
-
   if (in%nvirt > norbv) then
      nvirt = norbv
   end if
@@ -597,7 +583,24 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   else
 
      call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
-          rxyz,denspot,denspot0,nlpspd,proj,GPU,energs,energy,fpulay,infocode)
+          rxyz,denspot,denspot0,nlpspd,proj,GPU,energs,energy,fpulay,infocode,ref_frags)
+
+      ! deallocate fragments
+      if (in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+         if (in%lin%fragment_calculation) then ! we really need to deallocate
+            do ifrag=1,in%frag%nfrag_ref
+               call fragment_free(ref_frags(ifrag))
+            end do
+         else ! we haven't actually allocated anything, so can just nullify - should make this more robust/general
+            do ifrag=1,in%frag%nfrag_ref
+               ref_frags(ifrag)%astruct_frg%nat=-1
+               ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
+               call fragment_free(ref_frags(ifrag))
+               !ref_frags(ifrag)=fragment_null()
+            end do
+         end if
+         deallocate(ref_frags)
+      end if
 
      !!call finalize_p2p_tags()
   

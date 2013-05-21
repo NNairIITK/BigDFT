@@ -1,5 +1,5 @@
 1 2         # number fragments in reference system, number of fragments in current system
-1 benzene/  # reference fragment number i, fragment label
+1 benzene   # reference fragment number i, fragment label
 1 1         # fragment number j, reference fragment i this corresponds to
 2 1         # fragment number j, reference fragment i this corresponds to
 

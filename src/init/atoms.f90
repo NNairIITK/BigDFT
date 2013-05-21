@@ -157,9 +157,9 @@ subroutine deallocate_atomic_structure(astruct,subname)
      deallocate(astruct%atomnames,stat=i_stat)
      call memocc(i_stat,i_all,'astruct%atomnames',subname)
   end if
-
   ! Free additional stuff.
   call deallocate_symmetry(astruct%sym, subname)
+
 END SUBROUTINE deallocate_atomic_structure
 
 !> Allocation of the arrays inside the structure atoms_data

@@ -929,11 +929,15 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   !plot basis functions: true or false
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
-           'calculate dipole ; pulay correction ; fragment calculation'
+           'calculate dipole ; pulay correction'
   call input_var(in%lin%plotBasisFunctions,'0',ranges=(/0,3/))
   call input_var(in%lin%calc_dipole,'F')
-  call input_var(in%lin%pulay_correction,'T')
-  call input_var(in%lin%fragment_calculation,'F',comment=comments)
+  call input_var(in%lin%pulay_correction,'T',comment=comments)
+
+  !fragment calculation and transfer integrals: true or false
+  comments='fragment calculation; calculate transfer_integrals'
+  call input_var(in%lin%fragment_calculation,'F')
+  call input_var(in%lin%calc_transfer_integrals,'F',comment=comments)
 
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
@@ -1734,6 +1738,7 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
        stop
     end if
     call input_var(in%frag%label(frag_num),' ',comment=comments)
+    in%frag%label(frag_num)=trim(in%frag%label(frag_num))//'/'
   end do
 
   comments = '# fragment number j, reference fragment i this corresponds to'
@@ -2397,7 +2402,7 @@ subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
    integer, intent(out), optional :: status
    real(gp), intent(out), optional :: energy
    real(gp), dimension(:,:), pointer, optional :: fxyz
-   character(len = 1024), intent(out), optional :: comment
+   character(len = *), intent(out), optional :: comment
    !Local variables
    character(len=*), parameter :: subname='read_atomic_file'
    integer :: l, extract, i_all, i_stat

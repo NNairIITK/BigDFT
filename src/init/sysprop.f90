@@ -150,20 +150,22 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   end if
   ! Done orbs
 
+
+  ! fragment initializations - if not a fragment calculation, set to appropriate dummy values
+  if (in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+     call init_fragments(in,lorbs,atoms%astruct,ref_frags)
+  end if
+
   inputpsi = in%inputPsiId
 
-  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, orbs, lorbs, iproc, nproc)
+  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, in%frag%nfrag_ref, in%frag%label, &
+       orbs, lorbs, iproc, nproc, ref_frags)
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
   lzd_lin=default_lzd()
   call nullify_local_zone_descriptors(lzd_lin)
   lzd_lin%nlr = 0
-
-  ! fragment initializations - if not a fragment calculation, set to appropriate dummy values
-  if (inputpsi == INPUT_PSI_DISK_LINEAR) then
-     call init_fragments(in,lorbs,ref_frags)
-  end if
 
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then

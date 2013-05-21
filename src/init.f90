@@ -1552,6 +1552,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use module_base
   use module_types
   use module_interfaces, except_this_one => input_memory_linear
+  use module_fragments
   implicit none
 
   ! Calling arguments
@@ -1569,9 +1570,10 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(GPU_pointers), intent(inout) :: GPU
 
   ! Local variables
-  integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, ilr_old
+  integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, ilr_old, iiat
   logical:: overlap_calculated
   real(wp), allocatable, dimension(:) :: norm
+  type(fragment_transformation), dimension(:), pointer :: frag_trans
   character(len=*),parameter:: subname='input_memory_linear'
 
   ! Determine size of phi_old and phi
@@ -1590,7 +1592,21 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   ! Reformat the support functions if we are not using FOE. Otherwise an AO
   ! input guess wil be done below.
   if (input%lin%scf_mode/=LINEAR_FOE) then
-      call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,tmb_old%psi)
+
+     ! define fragment transformation - should eventually be done automatically...
+     allocate(frag_trans(tmb%orbs%norbp))
+
+     do iorb=1,tmb%orbs%norbp
+         iiat=tmb%orbs%onwhichatom(iorb+tmb%orbs%isorb)
+         frag_trans(iorb)%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
+         frag_trans(iorb)%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
+         frag_trans(iorb)%rot_center(:)=rxyz_old(:,iiat)
+         frag_trans(iorb)%dr(:)=rxyz(:,iiat)-rxyz_old(:,iiat)
+     end do
+
+     call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,tmb_old%psi)
+
+     deallocate(frag_trans)
   end if
   !!write(*,*) 'after reformat_supportfunctions, iproc',iproc
 
@@ -2380,7 +2396,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(system_fragment), dimension(in%frag%nfrag_ref), intent(inout) :: ref_frags
   !local variables
   character(len = *), parameter :: subname = "input_wf"
-  integer :: i_stat, nspin, i_all, ifrag, iorb
+  integer :: i_stat, nspin, i_all, ifrag, iorb, itmb, jtmb, ierr
   type(gaussian_basis) :: Gvirt
   real(wp), allocatable, dimension(:) :: norm
   !wvl+PAW objects
@@ -2617,7 +2633,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !     & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
      !     & atoms,rxyz_old,rxyz,tmb%psi,tmb%coeff)
 
-     call readmywaves_linear_new(iproc,trim(in%dir_output)//'minBasis',input_wf_format,&
+     call readmywaves_linear_new(iproc,trim(in%dir_output),'minBasis',input_wf_format,&
           atoms,tmb,rxyz_old,rxyz,ref_frags,in%frag,in%lin%fragment_calculation)
 
      ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
@@ -2754,18 +2770,23 @@ END SUBROUTINE input_wf
 !!                              otherwise switch to normal input guess
 !!    INPUT_PSI_DISK_LINEAR : psi on memory (linear version)
 !!    INPUT_PSI_LCAO          : Use normal input guess (Linear Combination of Atomic Orbitals)
-subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc, nproc)
+subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, nfrag, frag_dir, orbs, lorbs, iproc, nproc, ref_frags)
   use module_types
   use yaml_output
+  use module_fragments
   implicit none
   integer, intent(out) :: input_wf_format         !< (out) Format of WF
   integer, intent(inout) :: inputpsi              !< (in) indicate how check input psi, (out) give how to build psi
   integer, intent(in) :: iproc                    !< (in)  id proc
   integer, intent(in) :: nproc                    !< (in)  #proc
+  integer, intent(in) :: nfrag                    !< number of fragment directories which need checking
+  type(system_fragment), dimension(nfrag), intent(in) :: ref_frags  !< number of orbitals for each fragment
   character(len = *), intent(in) :: dir_output
+  character(len=100), dimension(nfrag) :: frag_dir !< label for fragment subdirectories (blank if not a fragment calculation)
   type(orbitals_data), intent(in) :: orbs, lorbs
 
   logical :: onefile
+  integer :: ifrag
 
   input_wf_format=WF_FORMAT_NONE !default value
   !for the inputPsi == WF_FORMAT_NONE case, check 
@@ -2791,21 +2812,26 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
   end if
   ! Test if the files are there for initialization via reading files
   if (inputpsi == INPUT_PSI_DISK_LINEAR) then
-     ! Test ETSF file.
-     inquire(file=trim(dir_output)//"minBasis.etsf",exist=onefile)
-     if (onefile) then
-        input_wf_format = WF_FORMAT_ETSF
-     else
-        call verify_file_presence(trim(dir_output)//"minBasis",lorbs,input_wf_format,nproc)
-     end if
-     if (input_wf_format == WF_FORMAT_NONE) then
-        call yaml_warning('Missing wavefunction files, switch to normal input guess')
-        !if (iproc==0) write(*,*)''
-        !if (iproc==0) write(*,*)'*********************************************************************'
-        !if (iproc==0) write(*,*)'* WARNING: Missing wavefunction files, switch to normal input guess *'
-        !if (iproc==0) write(*,*)'*********************************************************************'
-        !if (iproc==0) write(*,*)''
-        inputpsi=INPUT_PSI_LINEAR_AO
-     end if
+     do ifrag=1,nfrag
+        ! Test ETSF file.
+        inquire(file=trim(dir_output)//"minBasis.etsf",exist=onefile)
+        if (onefile) then
+           input_wf_format = WF_FORMAT_ETSF
+        else
+           call verify_file_presence(trim(dir_output)//trim(frag_dir(ifrag))//"minBasis",lorbs,input_wf_format,&
+                nproc,ref_frags(ifrag)%fbasis%forbs%norb)
+        end if
+        if (input_wf_format == WF_FORMAT_NONE) then
+           call yaml_warning('Missing wavefunction files, switch to normal input guess')
+           !if (iproc==0) write(*,*)''
+           !if (iproc==0) write(*,*)'*********************************************************************'
+           !if (iproc==0) write(*,*)'* WARNING: Missing wavefunction files, switch to normal input guess *'
+           !if (iproc==0) write(*,*)'*********************************************************************'
+           !if (iproc==0) write(*,*)''
+           inputpsi=INPUT_PSI_LINEAR_AO
+           ! if one directoy doesn't exist, exit
+           exit
+        end if
+     end do
   end if
 END SUBROUTINE input_check_psi_id
