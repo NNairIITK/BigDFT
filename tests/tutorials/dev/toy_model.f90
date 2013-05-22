@@ -3,6 +3,7 @@ program wvl
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use BigDFT_API
   use dynamic_memory
+  use yaml_output
   
   implicit none
 
@@ -29,7 +30,7 @@ program wvl
   real(dp), dimension(:), pointer   :: rhor, pot_ion, potential
   real(wp), dimension(:), pointer   :: w
   real(wp), dimension(:,:), pointer :: ovrlp
-  real(dp), dimension(:,:), pointer :: rho_p
+  real(dp), dimension(:,:), pointer :: rho_p => null() !needs to be nullified
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
   type(coulomb_operator) :: pkernel
@@ -45,7 +46,7 @@ program wvl
    !just for backward compatibility
    iproc=mpi_info(1)
    nproc=mpi_info(2)
-   call bigdft_set_input('posinp','input',rxyz,inputs,atoms)
+   call bigdft_set_input('input','posinp',rxyz,inputs,atoms)
 
 !!$  ! Start MPI in parallel version
 !!$  call MPI_INIT(ierr)
@@ -89,7 +90,6 @@ program wvl
   call readmywaves(iproc,"data/wavefunction",WF_FORMAT_PLAIN,orbs,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & inputs%hx,inputs%hy,inputs%hz,atoms,rxyz_old,rxyz,Lzd%Glr%wfd,psi)
   call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
-
 
 
   ! Some analysis.
@@ -139,14 +139,20 @@ program wvl
   !       & max(1,comms%nvctr_par(iproc, 0)),0.0_wp,ovrlp(1,1),orbs%norb)
   call mpiallred(ovrlp(1,1),orbs%norb * orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
   if (iproc == 0) then
-     write(*,*) "The overlap matrix is:"
-     do j = 1, orbs%norb, 1
-        write(*, "(A)", advance = "NO") "("
-        do i = 1, orbs%norb, 1  
-           write(*,"(G18.8)", advance = "NO") ovrlp(i, j)
-        end do
-        write(*, "(A)") ")"
-     end do
+     !uses yaml_output routine to provide example
+     call yaml_open_sequence('The overlap matrix is')
+          do j = 1, orbs%norb, 1
+             call yaml_sequence(trim(yaml_toa(ovrlp(:, j),fmt='(g18.8)')))
+          end do
+     call yaml_close_sequence()
+     !write(*,*) "The overlap matrix is:"
+     !do j = 1, orbs%norb, 1
+     !   write(*, "(A)", advance = "NO") "("
+     !   do i = 1, orbs%norb, 1  
+     !      write(*,"(G18.8)", advance = "NO") ovrlp(i, j)
+     !   end do
+     !   write(*, "(A)") ")"
+     !end do
   end if
   deallocate(ovrlp)
 

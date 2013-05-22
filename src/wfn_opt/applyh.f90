@@ -507,44 +507,57 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf,eco
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout), optional :: vpsir_noconf !< wavefunction with  the potential without confinement applied
   real(gp), intent(out),optional :: econf !< confinement energy
   !local variables
+  logical :: confining
   integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
 
   epot=0.0_gp
   ishift=(/0,0,0/)
+  confining=present(confdata)
+  if (confining) confining= (confdata%potorder /=0)
 
-  if (present(confdata) .and. confdata%potorder /=0) then
+  if (confining) then
      if (lr%geocode == 'F') then
         if (present(vpsir_noconf)) then
             if (.not.present(econf)) stop 'ERROR: econf must be present when vpsir_noconf is present!'
-            call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+            !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+            call apply_potential_lr_conf_noconf(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
                  lr%d%n1i,lr%d%n2i,lr%d%n3i,&
                  ishift,lr%d%n2,lr%d%n3,&
                  nspinor,npot,vpsir,pot,epot,&
-                 confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r,psir_noconf=vpsir_noconf,econf=econf)
+                 confdata,lr%bounds%ibyyzz_r,vpsir_noconf,econf)
+                 !confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r,psir_noconf=vpsir_noconf,econf=econf)
         else
-            call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+           !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+           call apply_potential_lr_conf(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
                  lr%d%n1i,lr%d%n2i,lr%d%n3i,&
                  ishift,lr%d%n2,lr%d%n3,&
                  nspinor,npot,vpsir,pot,epot,&
-                 confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r)
+                 confdata,lr%bounds%ibyyzz_r)
+                 !confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r)
         end if
      else
-        call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        call apply_potential_lr_conf_nobounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              ishift,lr%d%n2,lr%d%n3,&
-             nspinor,npot,vpsir,pot,epot,confdata=confdata)
+             nspinor,npot,vpsir,pot,epot,&
+             confdata)
+             !confdata=confdata)
      end if
 
   else
      
      if (lr%geocode == 'F') then
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        !call apply_potential_lr_bounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              ishift,lr%d%n2,lr%d%n3,&
              nspinor,npot,vpsir,pot,epot,&
+        !     lr%bounds%ibyyzz_r)
              ibyyzz_r=lr%bounds%ibyyzz_r)
      else
-        call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        call apply_potential_lr_nobounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              ishift,lr%d%n2,lr%d%n3,&
              nspinor,npot,vpsir,pot,epot)
@@ -811,7 +824,7 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   i1e=min(n1i,n1ip+ishift(1))
 
 
-  !$omp parallel default(none)&
+  !$omp parallel default(private)&
   !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
   !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,psir_noconf,econf)&
   !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et,pot1_noconf,tt11_noconf,econf_p)&

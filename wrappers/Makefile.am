@@ -2,6 +2,28 @@
 noinst_LIBRARIES = libwrappers.a
 module_DATA = $(modules)
 
+if USE_MPI
+#mpi_source =
+mpi_include =
+else
+#mpi_source = MPIfake.f90
+mpi_include = mpif.h
+endif
+
+#Fake mpif.h for serial compilation
+mpif.h:
+	touch mpif.h &&\
+	echo "integer, parameter :: MPI_SUCCESS=0,MPI_SUM=1, MPI_COMM_WORLD=1" >> mpif.h &&\
+	echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
+	echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
+	echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1, MPI_CHARACTER=1, MPI_REAL8=1" >> mpif.h &&\
+	echo "integer, parameter :: MPI_MAX_PROCESSOR_NAME=10, MPI_STATUS_SIZE=1,MPI_LAND=1" >> mpif.h &&\
+        echo "integer, parameter :: MPI_REQUEST_NULL=1,MPI_STATUS_IGNORE=1" >> mpif.h &&\
+        echo "integer, parameter :: mpi_tag_ub=1,mpi_address_kind=8,mpi_info_null=0" >> mpif.h &&\
+        echo "integer, parameter :: mpi_mode_noprecede=0" >> mpif.h &&\
+        echo "real(kind=8), external :: mpi_wtime" >> mpif.h
+
+
 # Source code.
 if USE_DGEMMSY
 DGEMMSY_SOURCES = interface_dgemmsy.f90 \
@@ -14,7 +36,7 @@ else
 DGEMMSY_SOURCES = interface_dgemmsy_fake.f90
 endif
 if USE_CUDA_GPU
-CUBLAS_SOURCES = 
+CUBLAS_SOURCES = fortran.c
 else
 CUBLAS_SOURCES = cublas_fake.f90 interface_cuda_fake.f90
 endif
@@ -34,8 +56,15 @@ $(modules): $(libwrappers_a_OBJECTS)
 interface_cuda_fake.o: linalg.o
 interface_dgemmsy_fake.o: linalg.o
 
-AM_FCFLAGS = -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
+interface_dgemmsy_fake.o: linalg.o
+mpi.o: $(mpi_include)
+
+
+AM_FCFLAGS = -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
+if USE_CUDA_GPU
+AM_CPPFLAGS += -I@CUDA_PATH@/include
+endif
 
 # Module files.
 if CAPITALIZE

@@ -50,7 +50,7 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
   integer :: n1b, n2b, n3b, i_stat,iorb,ispinor
   integer, dimension(3) :: periodic
 
-  !call f_routine(id=subname)
+  call f_routine(id=subname)
 
   if (geocode /= 'F') then
     periodic(1) = 1
@@ -185,7 +185,7 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
 
   nullify(GPU%hpsi_ASYNC)
 
-  !call f_release_routine()
+  call f_release_routine()
 
 END SUBROUTINE allocate_data_OCL
 

@@ -32,10 +32,22 @@ XC(rho2dzeta)(int nspin, const FLOAT *rho, FLOAT *d, FLOAT *zeta)
     *d    = max(rho[0], 0.0);
     *zeta = 0.0;
   }else{
-    *d    = max(rho[0] + rho[1], 0.0);
-    *zeta = (rho[0] - rho[1])/(*d);
-    *zeta = min(*zeta,  1.0);
-    *zeta = max(*zeta, -1.0);
+    *d = rho[0] + rho[1];
+    if (*d <= 0.0){
+      if (rho[0] - rho[1] > 0.0) *zeta=1.0;
+      if (rho[0] - rho[1] < 0.0) *zeta=-1.0;
+      if (rho[0] - rho[1] == 0.0) *zeta=0.0;  
+      *d=0.0;
+    }else{
+      *zeta = (rho[0] - rho[1])/(*d);
+      *zeta = min(*zeta,  1.0);
+      *zeta = max(*zeta, -1.0);
+    }
+    //original version, suffers from floating-point exception
+    //*d = max(rho[0] + rho[1], 0.0);
+    //*zeta = (rho[0] - rho[1])/(*d);
+    //*zeta = min(*zeta,  1.0);
+    //*zeta = max(*zeta, -1.0);
   }
 }
 

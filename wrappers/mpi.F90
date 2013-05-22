@@ -4,7 +4,7 @@
 
 module wrapper_MPI
   ! TO BE REMOVED with f_malloc
-  use m_profiling
+  use memory_profiling
   ! TO BE REMOVED with f_malloc
 
   implicit none
@@ -188,6 +188,8 @@ contains
     call mpi_comm_create(MPI_COMM_WORLD, new_grp, rank_comm, ierr)
     call mpi_group_free(new_grp, ierr)    
   END SUBROUTINE create_rank_comm
+
+
 
   !interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)
@@ -420,7 +422,8 @@ subroutine bigdft_open_nesting(num_threads)
 #else
   integer :: ierr,idummy
   write(*,*)'BigDFT_open_nesting is not active!'
-  call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+  !call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+  stop
   idummy=num_threads
 #endif
 end subroutine bigdft_open_nesting
@@ -437,7 +440,8 @@ subroutine bigdft_close_nesting(num_threads)
 #else 
   integer :: ierr,idummy
   write(*,*)'BigDFT_close_nesting is not active!'
-  call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+  stop
+  !call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
   idummy=num_threads
 #endif
 end subroutine bigdft_close_nesting

@@ -4858,7 +4858,7 @@ subroutine initializepoints(atoms,n,x1,x2,np,x)
     !---------------------------------------------
 end subroutine initializepoints
 
-
+!debug mode desactivated, should be inserted in f_malloc functionalities
 subroutine dmemocc(n1,n2,v,chv)
     use module_base
     implicit none
@@ -4872,7 +4872,7 @@ subroutine dmemocc(n1,n2,v,chv)
     else
         write(777,'(2a)') 'padding the double-precision array ',chv
         do i=n1+1,n2
-            v(i)=d_nan()
+            v(i)=0.0d0!d_nan()
         enddo
     endif
 end subroutine dmemocc
@@ -4892,7 +4892,7 @@ subroutine imemocc(n1,n2,v,chv)
     else
         write(888,'(2a)') 'padding the integer array ',chv
         do i=n1+1,n2
-            v(i)=int(r_nan())
+            v(i)=0!int(r_nan())
         enddo
     endif
 end subroutine imemocc

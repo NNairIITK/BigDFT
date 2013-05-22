@@ -2662,14 +2662,6 @@ module module_interfaces
       implicit none
       type(collective_comms),intent(inout):: collcom
     end subroutine nullify_collective_comms
-
-
-    subroutine nullify_local_zone_descriptors(lzd)
-      use module_base
-      use module_types
-      implicit none
-      type(local_zone_descriptors),intent(out):: lzd
-    end subroutine nullify_local_zone_descriptors
     
     subroutine nullify_orbitals_data(orbs)
       use module_base
@@ -3677,17 +3669,17 @@ module module_interfaces
          integer, dimension(orbs%norb), optional :: orblist
        end subroutine initialize_linear_from_file
 
-       subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
-       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat, &
-       & locrad, locregCenter, confPotOrder, confPotprefac, onwhichatom)
+       subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old, &
+       & ns_old, hgrids_old, lstat, error, nvctr_c_old, nvctr_f_old, &
+       & rxyz_old, nat, locrad, locregCenter, confPotOrder, confPotprefac, onwhichatom)
          use module_base
          use module_types
          implicit none
          integer, intent(in) :: unitwf
          logical, intent(in) :: formatted
          integer, intent(out) :: iorb_old
-         integer, intent(out) :: n1_old, n2_old, n3_old
-         real(gp), intent(out) :: hx_old, hy_old, hz_old
+         integer, dimension(3), intent(out) :: n_old, ns_old
+         real(gp), dimension(3), intent(out) :: hgrids_old
          logical, intent(out) :: lstat
          real(wp), intent(out) :: eval
          integer, intent(out) :: confPotOrder
@@ -3770,20 +3762,17 @@ module module_interfaces
           character(len=*),intent(in):: subname
         end subroutine copy_local_zone_descriptors
 
-        subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2_old, n3_old, &
-            & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
+        subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, &
+            & lstat, error, rxyz_old, nat)
          use module_base
          use module_types
          implicit none
          integer, intent(in) :: unitwf
          logical, intent(in) :: formatted
          integer, intent(out) :: norb_old, ntmb_old
-         integer, intent(out) :: n1_old, n2_old, n3_old
-         real(gp), intent(out) :: hx_old, hy_old, hz_old
          logical, intent(out) :: lstat
          character(len =256), intent(out) :: error
          ! Optional arguments
-         integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
          integer, intent(in), optional :: nat
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
         end subroutine io_read_descr_coeff
@@ -4211,19 +4200,19 @@ module module_interfaces
           integer,dimension(:),pointer:: inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old
         end subroutine copy_old_inwhichlocreg
 
-        subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,& !n(c) iproc (arg:1)
-             rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
+        subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,& !n(c) iproc (arg:1)
+             psigold,hgrids,n,centre_old,centre_new,da,newz,theta,psi)
           use module_base
           use module_types
           implicit none
-          integer, intent(in) :: iiat,n1_old,n2_old,n3_old,n1,n2,n3  !n(c) iproc
-          real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
+          integer, dimension(3), intent(in) :: n_old,n
+          real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
           type(wavefunctions_descriptors), intent(in) :: wfd
-          type(atoms_data), intent(in) :: at
-          real(gp), dimension(3,at%nat), intent(in) :: rxyz_old,rxyz
-          real(wp), dimension(0:n1_old,2,0:n2_old,2,0:n3_old,2), intent(in) :: psigold
+          character(len=1), intent(in) :: geocode
+          real(gp), dimension(3), intent(in) :: centre_old,centre_new,newz,da
+          real(gp), intent(in) :: theta
+          real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
           real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
-          real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
         end subroutine reformat_one_supportfunction
 
         subroutine reformat_supportfunctions(iproc,at,rxyz_old,ndim_old,rxyz,tmb,tmb_old)

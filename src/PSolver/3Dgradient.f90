@@ -563,7 +563,7 @@ END SUBROUTINE wb_correction
 subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
      gradient,rhocore)
   use Poisson_Solver, only: dp, wp
-  use m_profiling
+  use memory_profiling
   use wrapper_linalg
  implicit none
  !Arguments

@@ -270,7 +270,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_interfaces
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use module_xc
-   use vdwcorrection
    use esatto
    use m_ab6_symmetry
    use m_ab6_mixing
@@ -558,10 +557,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       allocate(pot_ion(1+ndebug),stat=i_stat)
       call memocc(i_stat,pot_ion,'pot_ion',subname)
    end if
-
-   ! A message about dispersion forces.
-   call vdwcorrection_initializeparams(in%ixc, in%dispersion)
-   if (iproc == 0) call vdwcorrection_warnings(atoms, in)
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
    ndegree_ip=16 !default value

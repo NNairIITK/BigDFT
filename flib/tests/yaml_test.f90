@@ -51,7 +51,6 @@ program yaml_test
    call yaml_invoice_example_with_dictionaries()
    call yaml_release_document()
 
-
    !Fourth-B document, to be moved
    call yaml_new_document()
     call test_error_handling()

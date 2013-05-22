@@ -1674,7 +1674,7 @@ END SUBROUTINE atoms_empty
 ! Set routines for bindings
 subroutine atoms_read_variables(atoms, nspin, occup, ln)
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(atoms_data), intent(inout) :: atoms
   integer, intent(in) :: nspin, ln

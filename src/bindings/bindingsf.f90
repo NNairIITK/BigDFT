@@ -1,17 +1,17 @@
 subroutine memocc_report()
-  use m_profiling, only: mreport => memocc_report
+  use memory_profiling, only: mreport => memocc_report
   implicit none
   call mreport()
 end subroutine memocc_report
 
 subroutine memocc_verbose()
-  use m_profiling, only: mstate => memocc_set_state
+  use memory_profiling, only: mstate => memocc_set_state
   implicit none
   call mstate(2)
 end subroutine memocc_verbose
 
 subroutine memocc_set_output(file, ln)
-  use m_profiling, only: mstate => memocc_set_filename
+  use memory_profiling, only: mstate => memocc_set_filename
   implicit none
   integer, intent(in) :: ln
   character(len = ln), intent(in) :: file
@@ -647,7 +647,7 @@ subroutine orbs_init(orbs)
 END SUBROUTINE orbs_init
 subroutine orbs_free(orbs)
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(orbitals_data), pointer :: orbs
 
@@ -806,7 +806,7 @@ subroutine proj_new(nlpspd)
 END SUBROUTINE proj_new
 subroutine proj_free(nlpspd, proj)
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(nonlocal_psp_descriptors), pointer :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
@@ -866,7 +866,7 @@ END SUBROUTINE localfields_get_data
 subroutine localfields_free(denspotd, fion, fdisp)
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-  use m_profiling
+  use memory_profiling
   implicit none
   type(DFT_local_fields), pointer :: denspotd
   real(gp), dimension(:,:), pointer :: fion, fdisp
@@ -1049,7 +1049,7 @@ subroutine wf_get_data(wf, orbs, comm, lzd)
 end subroutine wf_get_data
 subroutine wf_empty(wf)
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(DFT_wavefunction), intent(inout) :: wf
 
@@ -1073,7 +1073,7 @@ subroutine wf_empty(wf)
 END SUBROUTINE wf_empty
 subroutine wf_free(wf)
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(DFT_wavefunction), pointer :: wf
 
