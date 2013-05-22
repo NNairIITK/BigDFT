@@ -36,7 +36,7 @@ else
 DGEMMSY_SOURCES = interface_dgemmsy_fake.f90
 endif
 if USE_CUDA_GPU
-CUBLAS_SOURCES = 
+CUBLAS_SOURCES = fortran.c
 else
 CUBLAS_SOURCES = cublas_fake.f90 interface_cuda_fake.f90
 endif
@@ -61,6 +61,9 @@ mpi.o: $(mpi_include)
 
 AM_FCFLAGS = -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
+if USE_CUDA_GPU
+AM_CPPFLAGS += -I@CUDA_PATH@/include
+endif
 
 # Module files.
 if CAPITALIZE
