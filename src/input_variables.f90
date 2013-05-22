@@ -265,8 +265,6 @@ subroutine check_for_data_writing_directory(iproc,in)
   type(input_variables), intent(inout) :: in
   !local variables
   logical :: shouldwrite
-  integer :: i_stat,ierror,ierr
-  character(len=100) :: dirname
 
   if (iproc==0) call yaml_comment('|',hfill='-')
 
@@ -288,25 +286,37 @@ subroutine check_for_data_writing_directory(iproc,in)
   !here you can check whether the etsf format is compiled
 
   if (shouldwrite) then
-     ! Create a directory to put the files in.
-     dirname=repeat(' ',len(dirname))
-     if (iproc == 0) then
-        call getdir(in%dir_output, len_trim(in%dir_output), dirname, 100, i_stat)
-        if (i_stat /= 0) then
-           call yaml_warning("Cannot create output directory '" // trim(in%dir_output) // "'.")
-           call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
-        end if
-     end if
-     call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
-     in%dir_output=dirname
+     call create_dir_output(iproc, in)
      if (iproc==0) call yaml_map('Data Writing directory',trim(in%dir_output))
   else
      if (iproc==0) call yaml_map('Data Writing directory','./')
      in%dir_output=repeat(' ',len(in%dir_output))
   end if
-
 END SUBROUTINE check_for_data_writing_directory
 
+subroutine create_dir_output(iproc, in)
+  use yaml_output
+  use module_types
+  use module_base
+  implicit none
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: in
+
+  character(len=100) :: dirname
+  integer :: i_stat,ierror,ierr
+
+  ! Create a directory to put the files in.
+  dirname=repeat(' ',len(dirname))
+  if (iproc == 0) then
+     call getdir(in%dir_output, len_trim(in%dir_output), dirname, 100, i_stat)
+     if (i_stat /= 0) then
+        call yaml_warning("Cannot create output directory '" // trim(in%dir_output) // "'.")
+        call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+     end if
+  end if
+  call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
+  in%dir_output=dirname
+END SUBROUTINE create_dir_output
 
 !> Set default values for input variables
 subroutine default_input_variables(in)
@@ -2239,12 +2249,12 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
    end if
 
    if (.not. file_exists) then
-      write(*,*) "Atomic input file not found."
-      write(*,*) " Files looked for were '"//file//".yaml', '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
       if (present(status)) then
          status = 1
          return
       else
+         write(*,*) "Atomic input file not found."
+         write(*,*) " Files looked for were '"//file//".yaml', '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
          stop 
       end if
    end if
@@ -2257,11 +2267,13 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
          call read_xyz_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,archiveGetLine)
       end if
    else if (atoms%format == "ascii") then
+      i_stat = iproc
+      if (present(status)) i_stat = 1
       !read atomic positions
       if (.not.archive) then
-         call read_ascii_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,directGetLine)
+         call read_ascii_positions(i_stat,99,atoms,rxyz,comment_,energy_,fxyz_,directGetLine)
       else
-         call read_ascii_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,archiveGetLine)
+         call read_ascii_positions(i_stat,99,atoms,rxyz,comment_,energy_,fxyz_,archiveGetLine)
       end if
    else if (atoms%format == "yaml") then
       !read atomic positions
@@ -2275,12 +2287,12 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
 
    !Check the number of atoms
    if (atoms%nat < 0) then
-      write(*,'(1x,3a,i0,a)') "In the file '",trim(filename),&
-           &  "', the number of atoms (",atoms%nat,") < 0 (should be >= 0)."
       if (present(status)) then
          status = 1
          return
       else
+         write(*,'(1x,3a,i0,a)') "In the file '",trim(filename),&
+              &  "', the number of atoms (",atoms%nat,") < 0 (should be >= 0)."
          stop 
       end if
    end if

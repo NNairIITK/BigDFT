@@ -20,7 +20,12 @@ G_BEGIN_DECLS
 /*****************************************************/
 int bigdft_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mpi_ngroup,
                 guint mpi_groupsize);
+int bigdft_mpi_set_distribution(guint *mpi_iproc, guint *mpi_nproc,
+                                guint *mpi_igroup, guint *mpi_ngroup,
+                                guint mpi_groupsize);
+void bigdft_mpi_force_group(guint igroup, guint ngroup);
 int bigdft_finalize();
+guint bigdft_get_count(GObject *obj);
 /********************************/
 /* BigDFT_Atoms data structure. */
 /********************************/
@@ -95,10 +100,10 @@ void          bigdft_atoms_set_displacement  (BigDFT_Atoms *atoms, double randdi
 void          bigdft_atoms_copy_from_fortran (BigDFT_Atoms *atoms);
 GArray*       bigdft_atoms_get_radii         (const BigDFT_Atoms *atoms, double crmult,
                                               double frmult, double projrad);
+void          bigdft_atoms_set_default_file_format(BigDFT_Atoms *atoms, const gchar *format);
 void          bigdft_atoms_write             (BigDFT_Atoms *atoms,
                                               const gchar *filename, const gchar *format);
 gchar*        bigdft_atoms_get_extra_as_label(const BigDFT_Atoms *atoms, guint iat);
-guint bigdft_atoms_get_count(BigDFT_Atoms *atoms);
 /********************************/
 
 /*********************************/
@@ -131,6 +136,10 @@ struct _BigDFT_Inputs
 {
   /* TODO: bindings to values... */
   int files;
+  gchar *file_dft, *file_geopt, *file_kpt, *file_perf, *file_tddft, *file_mix,
+    *file_sic, *file_occnum, *file_igpop, *file_lin;
+  gchar *dir_output, *writing_directory;
+  gchar *run_name;
   
   /* DFT file variables. */
   int ixc, ncharge, nspin, mpol, ncong,
@@ -162,15 +171,16 @@ struct _BigDFT_Inputs
 };
 /*********************************/
 #ifdef GLIB_MAJOR_VERSION
-GType          bigdft_inputs_get_type        (void);
+GType          bigdft_inputs_get_type         (void);
 #endif
-BigDFT_Inputs* bigdft_inputs_ref             (BigDFT_Inputs *in);
-void           bigdft_inputs_unref           (BigDFT_Inputs *in);
-BigDFT_Inputs* bigdft_inputs_new             (const gchar *naming, guint iproc);
-void           bigdft_inputs_free            (BigDFT_Inputs *in);
-void           bigdft_inputs_parse           (BigDFT_Inputs *in, guint iproc, gboolean dump);
-void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms,
-                                              guint iproc, gboolean dump);
+BigDFT_Inputs* bigdft_inputs_ref              (BigDFT_Inputs *in);
+void           bigdft_inputs_unref            (BigDFT_Inputs *in);
+BigDFT_Inputs* bigdft_inputs_new              (const gchar *naming, guint iproc);
+void           bigdft_inputs_free             (BigDFT_Inputs *in);
+void           bigdft_inputs_parse            (BigDFT_Inputs *in, guint iproc, gboolean dump);
+void           bigdft_inputs_parse_additional (BigDFT_Inputs *in, BigDFT_Atoms *atoms,
+                                               guint iproc, gboolean dump);
+void           bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc);
 /*********************************/
 
 /*********************************/
@@ -305,46 +315,69 @@ BigDFT_Restart* bigdft_run_get_restart     (BigDFT_Run *run);
 void            bigdft_run_unref           (BigDFT_Run *run);
 /*********************************/
 
-/*********************************/
-/* BigDFT_Neb data structure */
-/*********************************/
+/*******************************/
+/* BigDFT_Image data structure */
+/*******************************/
 typedef enum
   {
-    BIGDFT_NEB_STEEPEST_DESCENT,
-    BIGDFT_NEB_FLETCHER_REEVES,
-    BIGDFT_NEB_POLAK_RIBIERE,
-    BIGDFT_NEB_QUICK_MIN,
-    BIGDFT_NEB_DAMPED_VERLET,
-    BIGDFT_NEB_SIM_ANNEALING
-  } BigDFT_NebAlgo;
+    BIGDFT_IMAGE_STEEPEST_DESCENT,
+    BIGDFT_IMAGE_FLETCHER_REEVES,
+    BIGDFT_IMAGE_POLAK_RIBIERE,
+    BIGDFT_IMAGE_QUICK_MIN,
+    BIGDFT_IMAGE_DAMPED_VERLET,
+    BIGDFT_IMAGE_SIM_ANNEALING
+  } BigDFT_ImageAlgo;
 
 #ifdef GLIB_MAJOR_VERSION
-#define BIGDFT_NEB_TYPE    (bigdft_neb_get_type())
-#define BIGDFT_NEB(obj)                                               \
-  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_NEB_TYPE, BigDFT_Neb))
-typedef struct _BigDFT_NebClass BigDFT_NebClass;
-struct _BigDFT_NebClass
+#define BIGDFT_IMAGE_TYPE    (bigdft_image_get_type())
+#define BIGDFT_IMAGE(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_IMAGE_TYPE, BigDFT_Image))
+typedef struct _BigDFT_ImageClass BigDFT_ImageClass;
+struct _BigDFT_ImageClass
 {
   GObjectClass parent;
 };
-GType bigdft_neb_get_type(void);
+GType bigdft_image_get_type(void);
 #else
-#define BIGDFT_NEB_TYPE    (999)
-#define BIGDFT_NEB(obj)    ((BigDFT_Neb*)obj)
+#define BIGDFT_IMAGE_TYPE    (999)
+#define BIGDFT_IMAGE(obj)    ((BigDFT_Image*)obj)
 #endif
-typedef struct _BigDFT_Neb BigDFT_Neb;
-struct _BigDFT_Neb
+typedef struct _BigDFT_Image BigDFT_Image;
+struct _BigDFT_Image
 {
   GObject parent;
-  gboolean dispose_has_neb;
+  gboolean dispose_has_image;
+
+  /* Bind attributes. */
+  BigDFT_Run *run;
+  BigDFT_Goutput *outs;
+  double error, F;
+  guint id;
 
   /* Private. */
-  _neb_data *data;
+  _run_image *data;
 };
 /*********************************/
-BigDFT_Neb*     bigdft_neb_new  ();
-void            bigdft_neb_unref(BigDFT_Neb *neb);
+BigDFT_Image* bigdft_image_new       (BigDFT_Atoms *atoms, BigDFT_Inputs *ins,
+                                      BigDFT_Restart *rst, BigDFT_ImageAlgo algo);
+void          bigdft_image_unref     (BigDFT_Image *image);
+void          bigdft_image_update_pos(BigDFT_Image *image, guint iteration,
+                                      const BigDFT_Image *imgm1, const BigDFT_Image *imgp1,
+                                      double k_before, double k_after,
+                                      gboolean climbing);
+gboolean      bigdft_image_update_pos_from_file(BigDFT_Image *image, guint iteration,
+                                                const gchar *filem1, const gchar *filep1,
+                                                double k_before, double k_after, gboolean climbing);
+void          bigdft_image_calculate (BigDFT_Image *image, guint iteration, guint id);
+BigDFT_Run*   bigdft_image_get_run(BigDFT_Image *image);
+BigDFT_Goutput* bigdft_image_get_outs(BigDFT_Image *image);
+
+GArray* bigdft_image_set_distribute(gboolean *update, guint nimages, guint ngroup);
 /*********************************/
+
+
+
+
 
 
 /* Additional bindings (available only with GObject. */

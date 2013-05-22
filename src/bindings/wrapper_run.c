@@ -373,13 +373,25 @@ BigDFT_Run* bigdft_run_new()
 
   return run;
 }
-BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
+static void _attributes_from_fortran(BigDFT_Run *run)
 {
-  BigDFT_Run *run;
   _atoms_data *atoms;
   _input_variables *inputs;
   _restart_objects *rst;
   f90_pointer_double_2D rxyz;
+
+  /* Create C wrappers for Fortran objects. */
+  F90_2D_POINTER_INIT(&rxyz);
+  FC_FUNC_(run_objects_get, RUN_OBJECTS_GET)(run->data, &inputs, &atoms, &rst, &rxyz);
+  run->inputs = bigdft_inputs_new_from_fortran(inputs);
+  run->atoms  = bigdft_atoms_new_from_fortran(atoms, &rxyz);
+  run->restart = bigdft_restart_new_from_fortran(rst);
+  run->restart->in = run->inputs;
+  bigdft_inputs_ref(run->inputs);
+}
+BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
+{
+  BigDFT_Run *run;
 
 #ifdef HAVE_GLIB
   run = BIGDFT_RUN(g_object_new(BIGDFT_RUN_TYPE, NULL));
@@ -393,14 +405,7 @@ BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
   FC_FUNC_(run_objects_init_from_files, RUN_OBJECTS_SET_FROM_FILES)
     (run->data, radical, posinp, strlen(radical), strlen(posinp));
 
-  /* Create C wrappers for Fortran objects. */
-  F90_2D_POINTER_INIT(&rxyz);
-  FC_FUNC_(run_objects_get, RUN_OBJECTS_GET)(run->data, &inputs, &atoms, &rst, &rxyz);
-  run->inputs = bigdft_inputs_new_from_fortran(inputs);
-  run->atoms  = bigdft_atoms_new_from_fortran(atoms, &rxyz);
-  run->restart = bigdft_restart_new_from_fortran(rst);
-  run->restart->in = run->inputs;
-  bigdft_inputs_ref(run->inputs);
+  _attributes_from_fortran(run);
 
   return run;
 }
@@ -460,20 +465,23 @@ void bigdft_run_set_restart(BigDFT_Run *run, BigDFT_Restart *rst);
 /*   run = bigdft_run_new_from_fortran(obj); */
 /*   *self = *((double*)&run); */
 /* } */
-/* BigDFT_Run* bigdft_run_new_from_fortran(void *obj) */
-/* { */
-/*   BigDFT_Run *run; */
+BigDFT_Run* bigdft_run_new_from_fortran(_run_objects *obj, gboolean create_wrappers)
+{
+  BigDFT_Run *run;
 
-/* #ifdef HAVE_GLIB */
-/*   run = BIGDFT_RUN(g_object_new(BIGDFT_RUN_TYPE, NULL)); */
-/* #else */
-/*   run = g_malloc(sizeof(BigDFT_Run)); */
-/*   bigdft_run_init(run); */
-/* #endif */
-/*   run->data = obj; */
+#ifdef HAVE_GLIB
+  run = BIGDFT_RUN(g_object_new(BIGDFT_RUN_TYPE, NULL));
+#else
+  run = g_malloc(sizeof(BigDFT_Run));
+  bigdft_run_init(run);
+#endif
+  run->data = obj;
 
-/*   return run; */
-/* } */
+  if (create_wrappers)
+    _attributes_from_fortran(run);
+
+  return run;
+}
 /* void FC_FUNC_(run_free_wrapper, RUN_FREE_WRAPPER)(gpointer *obj) */
 /* { */
 /*   BigDFT_Run *run = BIGDFT_RUN(*obj); */

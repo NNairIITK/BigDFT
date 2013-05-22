@@ -84,6 +84,15 @@ subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
   mpi_info(4)=bigdft_mpi%ngroup
 end subroutine bigdft_init_mpi_env
 
+subroutine bigdft_init_mpi_force(igroup, ngroup)
+  use BigDFT_API
+  implicit none
+  integer, intent(in) :: igroup, ngroup
+
+  if (igroup >= 0) bigdft_mpi%igroup = igroup
+  if (ngroup >= 0) bigdft_mpi%ngroup = ngroup
+END SUBROUTINE bigdft_init_mpi_force
+
 subroutine bigdft_finalize(ierr)
   use BigDFT_API
   implicit none

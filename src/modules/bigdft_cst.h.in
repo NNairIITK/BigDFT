@@ -65,7 +65,8 @@ typedef void _restart_objects;
 typedef void _run_objects;
 typedef void _DFT_global_output;
 typedef void _energy_terms;
-typedef void _neb_data;
+typedef void _run_image;
+typedef void _NEB_data;
 /* Advanced types, used for full bindings. */
 typedef void _communications_arrays;
 typedef void _coulomb_operator;

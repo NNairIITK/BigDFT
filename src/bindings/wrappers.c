@@ -49,7 +49,7 @@ void FC_FUNC_(inquire_address2, INQUIRE_ADDRESS2)(double *add, void *pt)
  * @mpi_ngroup: (out):
  * @mpi_groupsize: 0 to use all MPI resources.
  *
- * Setup MPI and other variables.
+ * Setup MPI and other variables. Implicitly call bigdft_mpi_set_distribution().
  *
  * Returns: 
  **/
@@ -57,9 +57,35 @@ int bigdft_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mp
                 guint mpi_groupsize)
 {
   int ierr;
-  int info[4];
 
   FC_FUNC_(bigdft_mpi_init, BIGDFT_MPI_INIT)(&ierr);
+  ierr = bigdft_mpi_set_distribution(mpi_iproc, mpi_nproc, mpi_igroup, mpi_ngroup, mpi_groupsize);
+
+#ifdef HAVE_GLIB
+  g_type_init();
+#endif
+
+  return ierr;
+}
+/**
+ * bigdft_mpi_set_distribution:
+ * @mpi_iproc: (out):
+ * @mpi_nproc: (out):
+ * @mpi_igroup: (out):
+ * @mpi_ngroup: (out):
+ * @mpi_groupsize: 0 to use all MPI resources.
+ *
+ * 
+ *
+ * Returns: 
+ **/
+int bigdft_mpi_set_distribution(guint *mpi_iproc, guint *mpi_nproc,
+                                guint *mpi_igroup, guint *mpi_ngroup,
+                                guint mpi_groupsize)
+{
+  int ierr;
+  int info[4];
+
   FC_FUNC_(bigdft_init_mpi_env, BIGDFT_INIT_MPI_ENV)(info, (int*)&mpi_groupsize, &ierr);
   if (mpi_iproc)
     *mpi_iproc = (guint)info[0];
@@ -70,11 +96,11 @@ int bigdft_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mp
   if (mpi_ngroup)
     *mpi_ngroup = (guint)info[3];
 
-#ifdef HAVE_GLIB
-  g_type_init();
-#endif
-
   return ierr;
+}
+void bigdft_mpi_force_group(guint igroup, guint ngroup)
+{
+  FC_FUNC_(bigdft_init_mpi_force, BIGDFT_INIT_MPI_FORCE)((int*)&igroup, (int*)&ngroup);
 }
 int bigdft_finalize()
 {
@@ -82,4 +108,20 @@ int bigdft_finalize()
 
   FC_FUNC_(bigdft_finalize, BIGDFT_FINALIZE)(&ierr);
   return ierr;
+}
+
+guint bigdft_get_count(GObject *obj)
+{
+  return G_OBJECT(obj)->ref_count;
+}
+
+gchar* _get_c_string(const gchar *fstr, guint len)
+{
+  guint i;
+  
+  for (i = len; i > 0 && fstr[i - 1] == ' '; i--);
+  if (i == 0)
+    return (gchar*)0;
+
+  return g_strndup(fstr, i);
 }

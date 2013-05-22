@@ -249,6 +249,11 @@ void bigdft_atoms_set_geometry(BigDFT_Atoms *atoms, gchar geocode, double alat[3
   strncpy(atoms->units, units, 20);
   _sync_geometry(atoms);
 }
+void bigdft_atoms_set_default_file_format(BigDFT_Atoms *atoms, const gchar *format)
+{
+  strncpy(atoms->format, format, 6);
+  _sync_geometry(atoms);
+}
 void bigdft_atoms_copy_from_fortran(BigDFT_Atoms *atoms)
 {
   guint ln, i, j;
@@ -427,9 +432,4 @@ gchar* bigdft_atoms_get_extra_as_label(const BigDFT_Atoms *atoms, guint iat)
   ret[i - j] = '\0';
 
   return ret;
-}
-
-guint bigdft_atoms_get_count(BigDFT_Atoms *atoms)
-{
-  return G_OBJECT(atoms)->ref_count;
 }

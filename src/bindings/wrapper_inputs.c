@@ -6,7 +6,35 @@
 
 #include <string.h>
 
-static void _inputs_sync(BigDFT_Inputs *in)
+static void _free_names(BigDFT_Inputs *in)
+{
+  g_free(in->run_name);
+
+  g_free(in->file_dft);
+  g_free(in->file_geopt);
+  g_free(in->file_kpt);
+  g_free(in->file_perf);
+  g_free(in->file_tddft);
+  g_free(in->file_mix);
+  g_free(in->file_sic);
+  g_free(in->file_occnum);
+  g_free(in->file_igpop);
+  g_free(in->file_lin);
+}
+static void _free_output(BigDFT_Inputs *in)
+{
+  g_free(in->dir_output);
+  g_free(in->writing_directory);
+}
+static void _sync_output(BigDFT_Inputs *in)
+{
+  gchar dir_output[100], writing_directory[500];
+
+  FC_FUNC_(inputs_get_output, INPUTS_GET_OUTPUT)(in->data, dir_output, writing_directory, 100, 500);
+  in->dir_output = _get_c_string(dir_output, 100);
+  in->writing_directory = _get_c_string(writing_directory, 500);
+}
+static void _sync(BigDFT_Inputs *in)
 {
   FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
   FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(in->data, in->h, in->h + 1, in->h + 2,
@@ -32,10 +60,11 @@ static void _inputs_sync(BigDFT_Inputs *in)
   /* FC_FUNC_(inputs_get_tddft, INPUTS_GET_TDDFT)(); */
   FC_FUNC_(inputs_get_perf, INPUTS_GET_PERF)(in->data, (int*)&in->linear);
 }
-static void _inputs_sync_add(BigDFT_Inputs *in)
+static void _sync_add(BigDFT_Inputs *in)
 {
   FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
   /* FC_FUNC_(inputs_get_kpt, INPUTS_GET_KPT)(); */
+  _sync_output(in);
 }
 
 static BigDFT_Inputs* bigdft_inputs_init()
@@ -54,6 +83,10 @@ static void bigdft_inputs_dispose(BigDFT_Inputs *in)
 {
   if (in->data)
     FC_FUNC_(inputs_free, INPUTS_FREE)(&in->data);
+
+  _free_names(in);
+  _free_output(in);
+
   g_free(in);
 }
 /**
@@ -69,6 +102,8 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming, guint iproc)
 {
   BigDFT_Inputs *in;
   int len;
+  gchar file_dft[100], file_geopt[100], file_kpt[100], file_perf[100], file_tddft[100], file_mix[100],
+    file_sic[100], file_occnum[100], file_igpop[100], file_lin[100], run_name[100];
 
   in = bigdft_inputs_init();
   FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data);
@@ -82,6 +117,23 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming, guint iproc)
       len = 1;
       FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, " ", (int*)&iproc, 1);
     }
+  /* Get naming schemes. */
+  _free_names(in);
+  FC_FUNC_(inputs_get_naming, INPUTS_GET_NAMING)(in->data, run_name, file_dft, file_geopt, file_kpt,
+                                                 file_perf, file_tddft, file_mix, file_sic,
+                                                 file_occnum, file_igpop, file_lin, 100, 100, 100,
+                                                 100, 100, 100, 100, 100, 100, 100, 100);
+  in->run_name = _get_c_string(run_name, 100);
+  in->file_dft = _get_c_string(file_dft, 100);
+  in->file_geopt = _get_c_string(file_geopt, 100);
+  in->file_kpt = _get_c_string(file_kpt, 100);
+  in->file_perf = _get_c_string(file_perf, 100);
+  in->file_tddft = _get_c_string(file_tddft, 100);
+  in->file_mix = _get_c_string(file_mix, 100);
+  in->file_sic = _get_c_string(file_sic, 100);
+  in->file_occnum = _get_c_string(file_occnum, 100);
+  in->file_igpop = _get_c_string(file_igpop, 100);
+  in->file_lin = _get_c_string(file_lin, 100);
   
   return in;
 }
@@ -92,8 +144,8 @@ BigDFT_Inputs* bigdft_inputs_new_from_fortran(_input_variables *inputs)
   in = bigdft_inputs_init();
   in->data = inputs;
 
-  _inputs_sync(in);
-  _inputs_sync_add(in);
+  _sync(in);
+  _sync_add(in);
 
   return in;
 }
@@ -128,12 +180,17 @@ GType bigdft_inputs_get_type(void)
 void bigdft_inputs_parse(BigDFT_Inputs *in, guint iproc, gboolean dump)
 {
   FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(in->data, (int*)&iproc, &dump);
-  _inputs_sync(in);
+  _sync(in);
 }
 void bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms, guint iproc, gboolean dump)
 {
   FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(in->data, atoms->data, (int*)&iproc, &dump);
-  _inputs_sync_add(in);
+  _sync_add(in);
+}
+void bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc)
+{
+  FC_FUNC_(create_dir_output, CREATE_DIR_OUTPUT)((int*)&iproc, in->data);
+  _sync_output(in);
 }
 
 /**

@@ -471,6 +471,36 @@ subroutine inputs_read_perf(in, iproc, dump)
   call perf_input_variables(iproc,dump,trim(in%file_perf),in)
 END SUBROUTINE inputs_read_perf
 
+subroutine inputs_get_naming(in, run_name, file_dft, file_geopt, file_kpt, &
+     & file_perf, file_tddft, file_mix, file_sic, file_occnum, file_igpop, file_lin)
+  use module_types
+  implicit none
+  type(input_variables), intent(in) :: in
+  character(len = 100), intent(out) :: run_name, file_dft, file_geopt, file_kpt, &
+     & file_perf, file_tddft, file_mix, file_sic, file_occnum, file_igpop, file_lin
+
+  run_name = in%run_name
+  file_dft = in%file_dft
+  file_geopt = in%file_geopt
+  file_kpt = in%file_kpt
+  file_perf = in%file_perf
+  file_tddft = in%file_tddft
+  file_mix = in%file_mix
+  file_sic = in%file_sic
+  file_occnum = in%file_occnum
+  file_igpop = in%file_igpop
+  file_lin = in%file_lin
+END SUBROUTINE inputs_get_naming
+subroutine inputs_get_output(in, dir_output, writing_directory)
+  use module_types
+  implicit none
+  type(input_variables), intent(in) :: in
+  character(len = 100), intent(out) :: dir_output
+  character(len = 500), intent(out) :: writing_directory
+
+  dir_output = in%dir_output
+  writing_directory = in%writing_directory
+END SUBROUTINE inputs_get_output
 subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspin, mpol, &
      & gnrm, itermax, nrepmax, ncong, idsx, dispcorr, inpsi, outpsi, outgrid, &
      & rbuf, ncongt, davidson, nvirt, nplottedvirt, sym)

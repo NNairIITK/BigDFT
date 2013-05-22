@@ -618,6 +618,7 @@ END SUBROUTINE read_xyz_positions
 
 !> Read atomic positions of ascii files.
 subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getline)
+  use yaml_output
   use module_base
   use module_types
   use module_interfaces, only: atoms_set_n_atoms
@@ -660,7 +661,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
      end if
      nlines = nlines + 1
      if (nlines > 5000) then
-        if (iproc==0) write(*,*) 'Atomic input file too long (> 5000 lines).'
+        if (iproc==0) call yaml_warning('Atomic input file too long (> 5000 lines).')
         atoms%nat = -1
         return
      end if
@@ -668,7 +669,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
   nlines = nlines - 1
 
   if (nlines < 4) then
-     if (iproc==0) write(*,*) 'Error in ASCII file format, file has less than 4 lines.'
+     if (iproc==0) call yaml_warning('Error in ASCII file format, file has less than 4 lines.')
      atoms%nat = -1
      return
   end if
