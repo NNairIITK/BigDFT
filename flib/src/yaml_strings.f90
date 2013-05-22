@@ -20,7 +20,7 @@ module yaml_strings
   integer :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
 
   character(len=*), parameter :: yaml_int_fmt  = '(i0)'       !< Default format for integer
-  character(len=*), parameter :: yaml_real_fmt = '(1pe17.9)' !< Default format for single
+  character(len=*), parameter :: yaml_real_fmt = '(1pe0.9)' !< Default format for single
   character(len=*), parameter :: yaml_dble_fmt = '(1pg26.17e3)'!'(1pe25.17)' !< Default format for double
   character(len=*), parameter :: yaml_char_fmt = '(a)' !< Default format for strings
 

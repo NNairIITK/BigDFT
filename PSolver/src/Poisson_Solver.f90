@@ -91,14 +91,19 @@ module Poisson_Solver
      integer, dimension(5) :: plan
      integer, dimension(3) :: geo
      !variables with computational meaning
-!     integer :: iproc_world !iproc in the general communicator
-!     integer :: iproc,nproc
-!     integer :: mpi_comm
      type(mpi_environment) :: mpi_env
      integer :: igpu !< control the usage of the GPU
      integer :: initCufftPlan
      integer :: keepGPUmemory
   end type coulomb_operator
+
+  !variables temporarily inserted as global which have to be removed once the new parallelisation strategy
+  type(mpi_environment) :: inplane_mpi
+  type(mpi_environment) :: part_mpi
+
+  logical :: md2plus=.false. !default value
+
+  public :: md2plus,inplane_mpi,part_mpi
 
   !calculate the allocation dimensions
   public :: PS_dim4allocation, PS_getVersion

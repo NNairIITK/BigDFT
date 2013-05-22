@@ -18,19 +18,21 @@
 !!   @param itype_scf          Order of the scaling function
 !!   @param iproc,nproc        Number of process, number of processes
 !!   @param karray             output array
-subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc,mu0_screening,alpha,beta,gamma)
+subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc,mu0_screening,alpha, &
+           beta,gamma,n3pr2,n3pr1)
   use Poisson_Solver, only: dp
   use memory_profiling
   implicit none
   !Arguments
   integer, intent(in) :: n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc
+  integer, intent(in) :: n3pr1,n3pr2
   real(dp), intent(in) :: h1,h2,h3
   real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
   real(dp), intent(in) :: mu0_screening,alpha,beta,gamma
   !Local variables 
   character(len=*), parameter :: subname='Periodic_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
-  integer :: i1,i2,i3,j3,i_all,i_stat
+  integer :: i1,i2,i3,j3,i_all,i_stat,iproc1
   real(dp) :: p1,p2,mu3,ker
   real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
   !metric for triclinic lattices
@@ -43,6 +45,15 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
 !!$   integer(kind=8) :: id(3),ii,ing,ig
 !  real(kind=8),allocatable :: gq(:,:)
   !! end of ABINIT stuff
+
+  !!! PSolver n1-n2 plane mpi partitioning !!!
+
+  if (n3pr1 >1) then
+   iproc1=mod(iproc,n3pr2)
+  else
+   iproc1=iproc
+  endif
+
 
   !first control that the domain is not shorter than the scaling function
   !add also a temporary flag for the allowed ISF types for the kernel
@@ -161,7 +172,7 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
 
   !calculate directly the reciprocal space components of the kernel function
   do i3=1,nker3/nproc
-     j3=iproc*(nker3/nproc)+i3
+     j3=iproc1*(nker3/nproc)+i3
      if (j3 <= n3/2+1) then
 !!$        p3=real(j3-1,dp)/real(n3,dp)
         mu3=real(j3-1,dp)/real(n3,dp)
@@ -349,8 +360,8 @@ END SUBROUTINE fourtrans
 !!   @param iproc,nproc        Number of process, number of processes
 !!   @param karray             output array
 subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
-     h1,h2,h3,itype_scf,karray,mu0_screening,alpha,beta,gamma)  
-  use Poisson_Solver, only: dp
+     h1,h2,h3,itype_scf,karray,mu0_screening,alpha,beta,gamma,n3pr2,n3pr1)
+  use Poisson_Solver, only: dp,inplane_mpi
   use wrapper_mpi
 
   implicit none
@@ -358,6 +369,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
   
   !Arguments
   integer, intent(in) :: n1,n2,n3,m3,nker1,nker2,nker3,itype_scf,iproc,nproc,mpi_comm
+  integer, intent(in) :: n3pr1,n3pr2
   real(dp), intent(in) :: h1,h2,h3
   real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
   real(dp), intent(in) :: mu0_screening,alpha,beta,gamma
@@ -390,6 +402,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
 
   !coefficients for the polynomial interpolation
   real(dp), dimension(9,8) :: cpol
+
   !assign the values of the coefficients  
   cpol(:,:)=1._dp
 
@@ -784,9 +797,17 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
         end do
      end do
 
+     call mpi_barrier(mpi_comm,ierr)
+
+     !!! PSolver n1-n2 plane mpi partitioning !!!
+     if (iproc < n3pr1*n3pr2) then
+        call MPI_Bcast(karray,nker1*nker2*nker3/nproc,MPI_double_precision,0,inplane_mpi%mpi_comm,ierr)
+     endif
+
   else
      karray(1:nker1,1:nker2,1:nker3)=kernel(1:nker1,1:nker2,1:nker3)
   endif
+
 
 
   !De-allocations
@@ -1089,12 +1110,13 @@ END SUBROUTINE indices
 !! MODIFICATION
 !!    Different calculation of the gaussian times ISF integral, LG, Dec 2009
 subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
-     hx,hy,hz,itype_scf,iproc,nproc,karray,mu0_screening)
+     hx,hy,hz,itype_scf,iproc,nproc,karray,mu0_screening,n3pr2,n3pr1)
   use Poisson_Solver, only: dp, gp
   use memory_profiling
  implicit none
  !Arguments
  integer, intent(in) :: n01, n02, n03, nfft1, nfft2, nfft3, n1k, n2k, n3k, itype_scf, iproc, nproc
+ integer, intent(in) :: n3pr2,n3pr1
  real(dp), intent(in) :: hx,hy,hz
  real(dp), dimension(n1k,n2k,n3k/nproc), intent(out) :: karray
  real(dp), intent(in) :: mu0_screening
@@ -1115,9 +1137,20 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  real(dp) :: a1,a2,a3,wg,k2,k3
  integer :: n_scf, nker2, nker3 !n(c) nker1
  integer :: i_gauss, n_range, n_cell
- integer :: i1, i2, i3, i_stat, i_all
+ integer :: i1, i2, i3, i_stat, i_all,iproc1
  integer :: i03, iMin, iMax
- 
+
+ !!! PSolver n1-n2 plane mpi partitioning !!!
+
+ if (n3pr1 >1) then
+   iproc1=mod(iproc,n3pr2)
+ else
+   iproc1=iproc
+ endif
+
+ !substitute 'iproc1' for all 'iproc' here after 
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 !print *,'arguments',n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 !     hx,hy,hz,itype_scf,iproc,nproc,mu0_screening
 !print '(3(1pe25.17))',hx,hy,hz
@@ -1127,7 +1160,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 
  !here we must set the dimensions for the fft part, starting from the nfft
  !remember that actually nfft2 is associated to n03 and viceversa
- 
+
  !Auxiliary dimensions only for building the FFT part
  !n(c) nker1=nfft1
  nker2=nfft2
@@ -1239,9 +1272,8 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  call memocc(i_stat,kernel_scf,'kernel_scf',subname)
 !!$ allocate(kernel_scf(-n_range:n_range,3+ndebug),stat=i_stat)
 !!$ call memocc(i_stat,kernel_scf,'kernel_scf',subname)
-
-  iMin = iproc * (nker3/nproc) + 1
-  iMax = min((iproc+1)*(nker3/nproc),nfft3/2+1)
+  iMin = iproc1 * (nker3/nproc) + 1
+  iMax = min((iproc1+1)*(nker3/nproc),nfft3/2+1)
 
   do i_gauss=n_gauss,1,-1
     !Gaussian
@@ -1293,7 +1325,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 !tt=0.d0
 !print *,'aaa',iMin,iMax,n2k,n3k,sum(kernel_scf(:,:))
     do i03 = iMin, iMax
-       i3=i03-iproc*(nker3/nproc)
+       i3=i03-iproc1*(nker3/nproc)
        k3=kernel_scf(i03,3) * wg
 
        !$omp parallel do default(shared) private(i2, k2, i1)
@@ -1324,7 +1356,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  end do
 !!$stop
 !!$
-
+ 
 !!$ !De-allocations
  i_all=-product(shape(kernel_scf))*kind(kernel_scf)
  deallocate(kernel_scf,stat=i_stat)
@@ -2408,7 +2440,8 @@ END SUBROUTINE copyreal
 !!   @param h1,h2,h3           Mesh steps in the three dimensions
 !!   @param itype_scf          Order of the scaling function
 !!   @param karray             output array
-subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,mu0_screening)
+subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray, &
+                        mu0_screening)
   use Poisson_Solver, only: dp
   use memory_profiling
   implicit none
@@ -2427,6 +2460,7 @@ subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2
   real(dp), dimension(:), allocatable :: fwork
   real(dp), dimension(:,:), allocatable :: kernel_scf,fftwork
   real(dp), dimension(:), pointer :: alpha, w
+
 
   !load alpha(:) and w(:) coefficients from an .inc file
   include 'gaussfit_wires.inc'

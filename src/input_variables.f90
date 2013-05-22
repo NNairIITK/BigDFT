@@ -1622,7 +1622,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
 
 !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
   if (in%verbosity == 0 ) then
-     call f_set_status(output_level=0)
+     call f_malloc_set_status(output_level=0)
      !call memocc_set_state(0)
   end if
 
@@ -1656,7 +1656,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   
   ! Set performance variables
   if (.not. in%debug) then
-     call f_set_status(output_level=1)
+     call f_malloc_set_status(output_level=1)
      !call memocc_set_state(1)
   end if
   call set_cache_size(in%ncache_fft)
@@ -1909,7 +1909,7 @@ subroutine create_log_file(iproc,inputs)
         !create that only if the stream is not already present, otherwise print a warning
         if (ierr == 0) then
            call input_set_stdout(unit=70)
-           call f_set_status(unit=70,logfile_name=trim(inputs%dir_output)//'malloc.prc')
+           call f_malloc_set_status(unit=70,logfile_name=trim(inputs%dir_output)//'malloc.prc')
            !call memocc_set_stdout(unit=70)
         else
            call yaml_warning('Logfile '//trim(logfile)//' cannot be created, stream already present. Ignoring...')

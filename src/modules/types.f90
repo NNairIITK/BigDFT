@@ -1258,7 +1258,16 @@ contains
   end function atoms_null
 
   pure function atomic_structure_null() result(astruct)
-     type(atomic_structure) :: astruct
+    implicit none
+    type(atomic_structure) :: astruct
+
+     call nullify_atomic_structure(astruct)
+   end function atomic_structure_null
+
+   pure subroutine nullify_atomic_structure(astruct)
+     implicit none
+     type(atomic_structure), intent(out) :: astruct
+
      astruct%geocode='X'
      astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
      astruct%units=repeat(' ',len(astruct%units))
@@ -1273,7 +1282,7 @@ contains
      nullify(astruct%iatype)
      nullify(astruct%rxyz)
      astruct%sym=symm_null()
-  end function atomic_structure_null
+   end subroutine nullify_atomic_structure
 
   function bigdft_run_id_toa()
     use yaml_output
@@ -1529,8 +1538,6 @@ END SUBROUTINE deallocate_orbs
 
     !initialise the acceleration strategy if required
     call init_material_acceleration(iproc,inputs%matacc,rst%GPU)
-
-
 
   END SUBROUTINE init_restart_objects
 

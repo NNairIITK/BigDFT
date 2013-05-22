@@ -68,7 +68,7 @@ subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
   if (ierr /= MPI_SUCCESS) return
 
   !set the memory limit for the allocation library
-  call f_set_status(memory_limit=memorylimit,iproc=iproc)
+  call f_malloc_set_status(memory_limit=memorylimit,iproc=iproc)
   !call memocc_set_memory_limit(memorylimit)
 
 !!$  print *,'list_posinp',trim(posinp_file),'iproc',iproc

@@ -22,7 +22,7 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: at
   real(wp), dimension(n1i,n2i,n3i,nspin), target, intent(in) :: x
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   !local variables
   integer :: nl1,nl2,nl3,nbx,nby,nbz,iat, ncid, i3, i2, i_stat, i_all,nc1,nc2,nc3
   double precision, dimension(3, 3), target :: rprim
@@ -40,7 +40,7 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
 
   !conditions for periodicity in the three directions
   !value of the buffer in the x and z direction
-  if (at%geocode /= 'F') then
+  if (at%astruct%geocode /= 'F') then
      nl1=1
      nl3=1
      nbx = 1
@@ -56,7 +56,7 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
      nc3=n3i-31
   end if
   !value of the buffer in the y direction
-  if (at%geocode == 'P') then
+  if (at%astruct%geocode == 'P') then
      nl2=1
      nby = 1
      nc2=n2i
@@ -95,7 +95,7 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
 
   ! Specific dims of interest.
   dims%number_of_atom_species        = at%astruct%ntypes
-  dims%number_of_atoms               = at%nat
+  dims%number_of_atoms               = at%astruct%nat
   dims%number_of_grid_points_vector1 = nc1!2*(n1+nbx)
   dims%number_of_grid_points_vector2 = nc2!2*(n2+nby)
   dims%number_of_grid_points_vector3 = nc3!2*(n3+nbz)
@@ -135,9 +135,9 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
   rprim = reshape((/ (hxh * nc1),0.0_gp,0.0_gp, &
        & 0.0_gp,(hyh *nc2),0.0_gp, &
        & 0.0_gp,0.0_gp,(hzh *nc3) /), (/ 3, 3 /))
-  allocate(xred(3, at%nat),stat=i_stat)
+  allocate(xred(3, at%astruct%nat),stat=i_stat)
   call memocc(i_stat,xred,'xred',subname)
-  do iat = 1, at%nat, 1
+  do iat = 1, at%astruct%nat, 1
      xred(:, iat) = rxyz(:, iat) / (/ hxh * nc1, hyh * nc2, hzh * nc3 /)
   end do
   allocate(znucl(at%astruct%ntypes),stat=i_stat)

@@ -48,7 +48,7 @@
 ---
   #----------------------------------------------------------------------- Yaml Invoice Example
  invoice                               :  34843
- date                                  :  2013-05-12
+ date                                  :  2013-05-17
  bill-to: &id001
    given                               : Chris
    address:
@@ -73,7 +73,7 @@
   #--------------------------------------------------- Yaml Invoice Example, using dictionaries
  Retrieve the price value              :  2392.0000000000000
  invoice                               : 34843
- date                                  :  2013-05-12
+ date                                  :  2013-05-17
  bill-to:
    given                               : Chris
    family                              : Dumars
@@ -86,13 +86,13 @@
  - sku                                 : BL34D
    quantity                            : 4
    description                         : Basketball
-   price                               : 4.500000000E+02
+   price                               : 450.00000
  - sku                                 : BL4438
    quantity                            : 1
    description                         : Super Hoop
-   price                               : 2.392000000E+03
- Tax                                   : 2.514199982E+02
- Total                                 : 4.443520020E+03
+   price                               : 2392.0000
+ Tax                                   : 251.42000
+ Total                                 : 4443.5200
  Comments:
    Late afternoon is best. Backup contact is Nancy Billsmer @ 338-4338
 ---
@@ -105,29 +105,29 @@
       purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4244720
- Additional Info                       : Extra message added
+   Callback Procedure Address          : 4227072
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
- Raising the TOTO error, by name       : ERR_TOTO
- GENERIC_ERROR:
-   Id                                  : 1
-   Message                             : UNSPECIFIED
-   Action                              : UNKNOWN
- Additional Info                       : Extra message added again
-  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Aie
+ Raising the TOTO error, by name, without condition: ERR_TOTO
+ ERR_TOTO:
+   Id                                  : 3
+   Message:
+     This is the error message for the error of kind 1 and it is written extensively on 
+      purpose to see whether yaml module prints it
+   Action:
+     For this error, contact the routine developer at mail at univ dot gov
+   Callback Procedure Address          : 4227072
+  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
  Callback done, errcode                :  3
  GENERIC_ERROR:
    Id                                  : 1
    Message                             : UNSPECIFIED
    Action                              : UNKNOWN
- Additional Info                       : Generic error raised, some message here
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Aie
  ERR_TITI:
    Id                                  : 4
    Message                             : test2
-   Callback Procedure Address          : 4244784
-   Callback Procedure Data Address     : 140733737044692
- Additional Info                       : Now TITI error has been raised
+   Callback Procedure Address          : 4227008
+   Callback Procedure Data Address     : 140733595914768
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TITI
  Callback done                         :  Yes
  Error check value                     :  Yes
@@ -138,7 +138,7 @@
  toto                                  : 1
  titi                                  : 1.0000000000000000
  tutu: [1, 2]
- List: [a: 0, 4, 1.000000000E+00]
+ List: [a: 0, 4, 1.0000000]
  New key: {Example: 4}
  List length                           :  3
  Dictionary size                       :  5
@@ -241,35 +241,35 @@
      Array Id                          : pot_ion
      Size (Bytes)                      : 0
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0x6af338
-     Address of metadata               : 140733737044512
+     Address of first element          : 0x828ca0
+     Address of metadata               : 140733595914624
    xc_pot:
      Array Id                          : xc_pot
      Size (Bytes)                      : 48
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0x6aff68
-     Address of metadata               : 140733737044560
+     Address of first element          : 0x8224f0
+     Address of metadata               : 140733595914480
    extra_ref:
      Array Id                          : extra_ref
      Size (Bytes)                      : 0
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0x6af368
-     Address of metadata               : 140733737044416
+     Address of first element          : 0x82a120
+     Address of metadata               : 140733595914672
    rhopot:
      Array Id                          : rhopot
      Size (Bytes)                      : 48
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0x6afb78
-     Address of metadata               : 140733737044608
+     Address of first element          : 0x826150
+     Address of metadata               : 140733595914528
  Global dictionary:
    potential:
      Array Id                          : potential
      Size (Bytes)                      : 24
      Allocating Routine Id             : Routine 0
-     Address of first element          : 0x6aff18
-     Address of metadata               : 140733737044464
+     Address of first element          : 0x821df0
+     Address of metadata               : 140733595914576
    Timestamp of Profile initialization:
-     2013-05-12 18:44:15.861
+     2013-05-17 18:39:30.661
    Process Id:
      0
  Memory Consumption Report:

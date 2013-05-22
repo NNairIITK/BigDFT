@@ -68,7 +68,8 @@ module module_fragments
 
   !> Contains the rotation and translation (possibly deformation) which have to be applied to a given fragment
   type, public :: fragment_transformation
-     real(gp), dimension(3) :: dr !< translation of fragment center
+     !real(gp), dimension(3) ::  !< translation of fragment center
+     real(gp), dimension(3) :: rot_center_new !< positions of the centers
      real(gp), dimension(3) :: rot_center !< center of rotation in original coordinates (might be fragment center or not)
      real(gp), dimension(3) :: rot_axis !< unit rotation axis (should have modulus one)
      real(gp) :: theta !< angle of rotation 
@@ -407,8 +408,7 @@ contains
     nullify(frag%rxyz_env)
     frag%nksorb=0
     nullify(frag%coeff)
-    frag%astruct_frg=atomic_structure_null()
-
+    call nullify_atomic_structure(frag%astruct_frg)
     ! nullify fragment basis
     frag%fbasis=fragment_basis_null()
 
@@ -585,6 +585,83 @@ contains
 
   !end function transform_fragment_basis
 
+  subroutine find_frag_trans(nat,rxyz_ref,rxyz_new,rot_axis,theta)
+    implicit none
+    integer, intent(in) :: nat !< fragment size
+    real(gp), dimension(3,nat), intent(in) :: rxyz_ref,rxyz_new !<coordinates measured wrt rot_center
+    real(gp), dimension(3) :: rot_axis !< unit rotation axis (should have modulus one)
+    real(gp) :: theta !< angle of rotation (ref becomes new)
+    !local variables
+    integer, parameter :: lwork=7*3
+    integer :: info
+    real(gp) :: dets,tracem1
+    real(gp), dimension(3) :: SM_arr !< array of SVD and M array
+    real(gp), dimension(lwork) :: work !< array of SVD and M array
+    real(gp), dimension(3,3) :: B_mat,R_mat,U_mat,VT_mat !<matrices of Wahba's problem
+
+    B_mat=0.0_gp
+    R_mat=0.0_gp
+
+    !all positions are of weight one for the moment
+    call gemm('N','T',3,3,nat,1.0_gp,rxyz_ref,3,rxyz_new,3,0.0_gp,B_mat,3)
+
+    !find matrix of svd
+    call dgesvd('A','A',3,3,B_mat,3,SM_arr,U_mat,3,VT_mat,3,work,lwork,info)
+    if (f_err_raise(info/=0,'Problem in DGESVD')) return
+    
+    !multiply last line of VT_mat by det(U)*det(V)
+    dets=det_33(U_mat)*det_33(VT_mat)
+    VT_mat(3,:)=VT_mat(3,:)*dets
+
+    !find rotation matrix
+    call gemm('N','N',3,3,3,1.0_gp,U_mat,3,VT_mat,3,0.0_gp,R_mat,3)
+
+    !to be verified that the cost function of Wahba's problem is little
+
+    !find the angle from R matrix
+    tracem1=R_mat(1,1)+R_mat(2,2)+R_mat(3,3)-1.0_gp
+
+    theta=acos(0.5_gp*tracem1)
+
+    !find rot_axis
+    rot_axis(1)=R_mat(3,2)-R_mat(2,3)    
+    rot_axis(2)=R_mat(1,3)-R_mat(3,1)
+    rot_axis(3)=R_mat(2,1)-R_mat(1,2)    
+    !normalize it
+    call dscal(3,1.0_gp/dnrm2(3,rot_axis,1),rot_axis,1)
+
+  end subroutine find_frag_trans
+
+  pure function frag_center(nat,rxyz) result(cen)
+    implicit none
+    integer, intent(in) :: nat 
+    real(gp), dimension(3,nat), intent(in) :: rxyz
+    real(gp), dimension(3) :: cen
+    !local variables
+    integer :: iat,i
+    
+    cen=0.0_gp
+    if (nat > 0) then
+       do iat=1,nat
+          do i=1,3
+             cen(i)=cen(i)+rxyz(i,iat)
+          end do
+       end do
+       cen=cen/real(nat,gp)
+    end if
+    
+  end function frag_center
+
+  !>determinant of a 3x3 matrix
+  pure function det_33(a) result(det)
+    implicit none
+    real(gp), dimension(3,3), intent(in) :: a
+    real(gp) :: det
+
+    det = a(1,1)*(a(2,2)*a(3,3) - a(3,2)*a(2,3)) &
+         + a(1,2)*(a(3,1)*a(2,3) - a(2,1)*a(3,3))  &
+         + a(1,3)*(a(2,1)*a(3,2) - a(3,1)*a(2,2))
+  end function det_33
 
 end module module_fragments
 

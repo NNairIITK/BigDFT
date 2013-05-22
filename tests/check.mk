@@ -149,7 +149,7 @@ report:
 	rm -f triH.NEB.it*
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(abs_top_builddir)/src/NEB < input | tee $@
-	cat triH.NEB.0*/log.yaml > log.yaml
+	cat triH.NEB.0*/log.yaml > log.yaml | grep -v "Unable to read mpd.hosts"
 	rm -rf triH.NEB.0*
 	rm -f gen_output_file velocities_file
 	name=`basename $@ .out` ; \
