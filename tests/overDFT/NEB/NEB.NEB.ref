@@ -31,7 +31,7 @@ Start job 3.
 Job 3 finished (1/3).
 Start job 4.
 Job 4 finished (2/3).
- -  {E activation (eV):  0.253090, max error (eV / ang):  11.644719} # 001
+ -  {E activation (eV):  0.252790, max error (eV / ang):  11.648517} # 001
 External computation of forces for replicas.
  type     = free_only
  job_name = triH
@@ -46,11 +46,11 @@ Start job 3.
 Job 3 finished (1/3).
 Start job 4.
 Job 4 finished (2/3).
- -  {E activation (eV): -0.650096, max error (eV / ang):  3.036355} # 002
+ -  {E activation (eV): -0.650422, max error (eV / ang):  3.029205} # 002
   #------------------------------------------------------------------------------ Final results
  Energy and error per image:
  -  {Energy (eV): -54.74433737, error (eV / ang):  0.00000} # 01
- -  {Energy (eV): -56.01095326, error (eV / ang):  0.41426} # 02
- -  {Energy (eV): -55.39443317, error (eV / ang):  3.03636} # 03
- -  {Energy (eV): -56.01218251, error (eV / ang):  0.98996} # 04
+ -  {Energy (eV): -56.01094780, error (eV / ang):  0.41427} # 02
+ -  {Energy (eV): -55.39475904, error (eV / ang):  3.02921} # 03
+ -  {Energy (eV): -56.00290541, error (eV / ang):  0.95781} # 04
  -  {Energy (eV): -55.25796539, error (eV / ang):  0.00000} # 05

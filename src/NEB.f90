@@ -54,7 +54,6 @@ MODULE NEB_variables
   integer, dimension(4) :: mpi_info
   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
   type(input_variables), dimension(:), allocatable :: ins
-  character(len = 100), dimension(:), allocatable  :: log_files
   type(atoms_data) :: atoms
   type(restart_objects) :: rst
 
@@ -96,7 +95,7 @@ MODULE NEB_routines
       real(gp), dimension(:,:), pointer  :: rxyz
       real(gp), dimension(3)             :: acell1, acell2
       logical :: climbing, optimization
-      integer :: max_iterations, ierr, nconfig
+      integer :: max_iterations, ierr, nconfig, algorithm
       real(gp) :: convergence, damp, k_min, k_max, ds, temp_req
       type(mpi_environment) :: bigdft_mpi_svg
       character(len=60) :: run_id
@@ -172,11 +171,33 @@ MODULE NEB_routines
       neb_%ds = ds
       neb_%temp_req = temp_req
       neb_%max_iterations = max_iterations
-      neb_%nimages = num_of_images
 
-      allocate(arr_radical(abs(neb_%nimages)))
-      allocate(arr_posinp(abs(neb_%nimages)))
-      call bigdft_get_run_ids(neb_%nimages,trim(run_id),arr_radical,arr_posinp,ierr)
+      allocate(arr_radical(abs(num_of_images)))
+      allocate(arr_posinp(abs(num_of_images)))
+      call bigdft_get_run_ids(num_of_images,trim(run_id),arr_radical,arr_posinp,ierr)
+      allocate( ins(num_of_images) )
+      if (.not. external_call) then
+         ! Trick here, only super master will read the input files...
+         bigdft_mpi_svg = bigdft_mpi
+         bigdft_mpi%mpi_comm = MPI_COMM_WORLD
+         call mpi_comm_rank(MPI_COMM_WORLD, bigdft_mpi%iproc, ierr)
+         call mpi_comm_size(MPI_COMM_WORLD, bigdft_mpi%nproc, ierr)
+         bigdft_mpi%igroup = 0
+         bigdft_mpi%ngroup = num_of_images
+         do i = 1, num_of_images
+            call standard_inputfile_names(ins(i), trim(arr_radical(i)), bigdft_mpi%nproc)
+            call default_input_variables(ins(i))
+            call inputs_parse_params(ins(i), bigdft_mpi%iproc, .false.)
+            call inputs_parse_add(ins(i), atoms, bigdft_mpi%iproc, .false.)
+         end do
+         bigdft_mpi = bigdft_mpi_svg
+      else
+         do i = 1, num_of_images
+            call default_input_variables(ins(i))
+            write(ins(i)%writing_directory, "(A)") "."
+            write(ins(i)%run_name, "(A)") trim(job_name)
+         end do
+      end if
 
       barrier_file       = trim(job_name) // ".NEB.log"
       data_file          = trim(job_name) // ".NEB.dat"
@@ -187,17 +208,17 @@ MODULE NEB_routines
 !! is started ( restart = .FALSE. ) 
       
       IF ( minimization_scheme == "steepest_descent" ) THEN
-         neb_%algorithm = 1
+         algorithm = 1
       ELSE IF ( minimization_scheme == "fletcher-reeves" ) THEN
-         neb_%algorithm = 2
+         algorithm = 2
       ELSE IF ( minimization_scheme == "polak-ribiere" ) THEN
-         neb_%algorithm = 3
+         algorithm = 3
       ELSE IF ( minimization_scheme == "quick-min" ) THEN
-         neb_%algorithm = 4
+         algorithm = 4
       ELSE IF ( minimization_scheme == "damped-verlet" ) THEN
-         neb_%algorithm = 5
+         algorithm = 5
       ELSE IF ( minimization_scheme == "sim-annealing" ) THEN
-         neb_%algorithm = 6
+         algorithm = 6
       ELSE
          WRITE(*,'(T2,"read_input: minimization_scheme ", A20)') &
               minimization_scheme
@@ -208,8 +229,10 @@ MODULE NEB_routines
       call atoms_nullify(atoms)
       call read_atomic_file(trim(arr_posinp(1)), mpi_info(1), atoms, rxyz)
 
-      ! We have nat and nimages, we allocate everythings.
-      CALL dyn_allocation
+      allocate(imgs(num_of_images))
+      do i = 1, num_of_images
+         call image_init(imgs(i), ins(i), atoms, rst, algorithm)
+      end do
 
       n1 = atoms%nat
       call vcopy(atoms%nat * 3, rxyz(1,1), 1, imgs(1)%run%rxyz(1,1), 1)
@@ -223,14 +246,14 @@ MODULE NEB_routines
       call deallocate_atoms(atoms, "read_input")
 
       call atoms_nullify(atoms)
-      call read_atomic_file(trim(arr_posinp(neb_%nimages)), mpi_info(1), atoms, rxyz)
+      call read_atomic_file(trim(arr_posinp(num_of_images)), mpi_info(1), atoms, rxyz)
       n2 = atoms%nat
       IF ( n1 /= n2 ) THEN      
          WRITE(*,'(T2,"read_input: number of atoms is not constant")')
          WRITE(*,'(T2,"            N = ", I8, I8 )') n1, n2
          STOP  
       END IF
-      call vcopy(atoms%nat * 3, rxyz(1,1), 1, imgs(neb_%nimages)%run%rxyz(1,1), 1)
+      call vcopy(atoms%nat * 3, rxyz(1,1), 1, imgs(num_of_images)%run%rxyz(1,1), 1)
       acell2(1) = atoms%alat1
       acell2(2) = atoms%alat2
       acell2(3) = atoms%alat3
@@ -354,13 +377,14 @@ MODULE NEB_routines
 
         ALLOCATE( d_R(3, atoms%nat) )           
 
-        d_R = ( imgs(neb_%nimages)%run%rxyz - imgs(1)%run%rxyz ) / &
-             DBLE( neb_%nimages - 1 )
+        d_R = ( imgs(num_of_images)%run%rxyz - imgs(1)%run%rxyz ) / &
+             DBLE( num_of_images - 1 )
 
+        ALLOCATE( fix_atom(3, atoms%nat) )
         fix_atom = 1
         WHERE ( ABS( d_R ) <=  tolerance ) fix_atom = 0
 
-        DO i = 2, ( neb_%nimages - 1 )
+        DO i = 2, ( num_of_images - 1 )
            imgs(i)%run%rxyz = imgs(i - 1)%run%rxyz + d_R
         END DO
 
@@ -369,24 +393,6 @@ MODULE NEB_routines
 !!$     END IF
 
      if (.not. external_call) then
-        ! Trick here, only super master will read the input files...
-        bigdft_mpi_svg = bigdft_mpi
-        bigdft_mpi%mpi_comm = MPI_COMM_WORLD
-        call mpi_comm_rank(MPI_COMM_WORLD, bigdft_mpi%iproc, ierr)
-        call mpi_comm_size(MPI_COMM_WORLD, bigdft_mpi%nproc, ierr)
-        bigdft_mpi%igroup = 0
-        bigdft_mpi%ngroup = neb_%nimages
-        do i = 1, neb_%nimages
-           call standard_inputfile_names(ins(i), trim(arr_radical(i)), bigdft_mpi%nproc)
-           call default_input_variables(ins(i))
-           call inputs_parse_params(ins(i), bigdft_mpi%iproc, .false.)
-           call inputs_parse_add(ins(i), atoms, bigdft_mpi%iproc, .false.)
-
-           write(log_files(i), "(A,A)") trim(ins(i)%writing_directory), &
-                & 'log-'//trim(ins(i)%run_name)//'.yaml'           
-        end do
-        bigdft_mpi = bigdft_mpi_svg
-
         call init_atomic_values((mpi_info(1) == 0), atoms, ins(1)%ixc)
         call read_atomic_variables(atoms, trim(ins(1)%file_igpop), ins(1)%nspin)
 
@@ -400,23 +406,6 @@ MODULE NEB_routines
    END SUBROUTINE read_input
 
     
-    SUBROUTINE dyn_allocation
-      IMPLICIT NONE
-      integer :: i
-
-      allocate( ins(neb_%nimages) )
-      allocate( log_files(neb_%nimages) )
-
-      ALLOCATE( fix_atom(3, atoms%nat) )
-
-      allocate(imgs(neb_%nimages))
-      do i =1, neb_%nimages
-         call run_objects_init_container(imgs(i)%run, ins(i), atoms, rst)
-         call init_global_output(imgs(i)%outs, atoms%nat)
-         call image_init(imgs(i), atoms%nat * 3, neb_%algorithm)
-      end do
-    END SUBROUTINE dyn_allocation     
-
     SUBROUTINE search_MEP
       use yaml_output
 
@@ -440,17 +429,17 @@ MODULE NEB_routines
       iteration = 0
       minimization: do
          if (external_call) then
-            CALL PES_IO((neb_%optimization .or. (.not. restart .and. iteration == 0)),stat)
+            CALL PES_IO(imgs, (neb_%optimization .or. (.not. restart .and. iteration == 0)),stat)
             if (.not. stat) exit minimization
          else
-            call PES_internal((neb_%optimization .or. (.not. restart .and. iteration == 0)), iteration)
+            call PES_internal(imgs, (neb_%optimization .or. (.not. restart .and. iteration == 0)), iteration)
          end if
 
          call compute_neb_pos(imgs, iteration, neb_)
 
          if (mpi_info(1) == 0 .and. mpi_info(3) == 0) then
 !!$            CALL write_restart(restart_file, neb_%ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
-            if (neb_%algorithm >= 4) then
+            if (imgs(1)%algorithm >= 4) then
                CALL write_restart_vel(trim(scratch_dir) // "velocities_file", imgs)
             end if
 
@@ -502,38 +491,41 @@ MODULE NEB_routines
       end if
     END SUBROUTINE search_MEP
 
-    subroutine PES_internal( flag, iteration )
+    subroutine PES_internal( imgs, flag, iteration )
       use yaml_output
       implicit none
+      type(run_image), dimension(:), intent(inout) :: imgs
       integer, intent(in) :: iteration
       logical, intent(in) :: flag
 
       integer :: i
-      logical, dimension(neb_%nimages) :: update
-      integer, dimension(neb_%nimages) :: igroup
+      logical, dimension(size(imgs)) :: update
+      integer, dimension(size(imgs)) :: igroup
 
       ! update() is a mask of images to compute.
       update = .true.
       where ( images_get_errors(imgs) * Ha_eV / Bohr_Ang <= neb_%convergence ) update = .false.
       if (.not. flag) then
          update(1) = .false.
-         update(neb_%nimages) = .false.
+         update(size(imgs)) = .false.
       end if
 
       ! Do the calculations, distributing among taskgroups.
-      call images_distribute_tasks(igroup, update, neb_%nimages, neb_mpi%nproc)
-      do i = 1, neb_%nimages
+      call images_distribute_tasks(igroup, update, size(imgs), neb_mpi%nproc)
+      do i = 1, size(imgs)
          if (igroup(i) - 1 == mpi_info(3)) then
-            call image_calculate(imgs(i), iteration, i, log_files(i), fix_atom, bigdft_mpi)
+            call image_calculate(imgs(i), iteration, i)
+            imgs(i)%outs%fxyz = imgs(i)%outs%fxyz * fix_atom
         end if
       end do
-      call images_collect_results(imgs, igroup, neb_%nimages, neb_mpi)
+      call images_collect_results(imgs, igroup, size(imgs), neb_mpi)
     END SUBROUTINE PES_internal
 
-    SUBROUTINE PES_IO( flag , stat )
+    SUBROUTINE PES_IO( imgs, flag , stat )
 
       IMPLICIT NONE
 
+      type(run_image), dimension(:), intent(inout) :: imgs
       LOGICAL, INTENT(IN)        :: flag
       LOGICAL, INTENT(OUT)       :: stat
       INTEGER                    :: i, replica
@@ -543,13 +535,15 @@ MODULE NEB_routines
       INTEGER, PARAMETER         :: unit = 10     
       REAL (gp), PARAMETER :: epsi = 1.0D-8
 
+      call write_restart(trim(restart_file), imgs, fix_atom)
+
       IF ( flag ) THEN
 
          CALL SYSTEM( "./NEB_driver.sh all " // trim(job_name) // &
               & " " // trim(scratch_dir) // " " // trim(arr_posinp(1)))
 
         N_in  = 1
-        N_fin = neb_%nimages
+        N_fin = size(imgs)
 
       ELSE
          
@@ -557,7 +551,7 @@ MODULE NEB_routines
               & " " // trim(scratch_dir) // " " // trim(arr_posinp(1)))
 
         N_in  = 2
-        N_fin = ( neb_%nimages - 1 )
+        N_fin = ( size(imgs) - 1 )
 
       END IF
 
@@ -588,7 +582,7 @@ MODULE NEB_routines
 
           END DO
 
-          imgs(replica)%outs%fxyz = - imgs(replica)%outs%fxyz * fix_atom
+          imgs(replica)%outs%fxyz = imgs(replica)%outs%fxyz * fix_atom
 
         END DO
 
@@ -604,13 +598,10 @@ MODULE NEB_routines
       integer :: i, ierr
 
       IF ( ALLOCATED( fix_atom ) )         DEALLOCATE( fix_atom )
-      IF ( ALLOCATED( log_files ) )        DEALLOCATE( log_files )
-      
+
       if (allocated(imgs)) then
-         do i = 1, neb_%nimages
-            call image_deallocate(imgs(i))
-            call run_objects_free_container(imgs(i)%run)
-            call deallocate_global_output(imgs(i)%outs)
+         do i = 1, size(imgs)
+            call image_deallocate(imgs(i), .true.)
          end do
          deallocate(imgs)
       end if
@@ -618,7 +609,7 @@ MODULE NEB_routines
       call deallocate_atoms(atoms, "deallocation")
 
       if (.not. external_call) then
-         do i = 1, neb_%nimages
+         do i = 1, size(ins)
             call free_input_variables(ins(i))
          end do
          call free_restart_objects(rst,"deallocation")

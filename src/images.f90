@@ -207,17 +207,20 @@ module module_images
   fmt2 = "(3(2X,F12.8))",                                                      &
   fmt3 = "(2X,F16.8)"
 
+  ! Calculation routines.
+  public :: compute_local_tangent, compute_local_gradient
+
   ! Routines on one image.
   public :: image_init, image_deallocate, image_set_init_vel
-  public :: image_calculate, image_update_pos, compute_neb_pos
 
   ! Routines for a list of images.
-  public :: images_distribute_tasks, images_collect_results
+  public :: images_collect_results
+  public :: compute_neb_pos
   public :: images_get_activation, images_get_energies, images_get_errors
   public :: images_output_step
 
   ! Misc.
-  public :: write_restart_vel, write_dat_files
+  public :: write_restart, write_restart_vel, write_dat_files
   public :: termalization
 
   type, public :: NEB_data
@@ -226,8 +229,6 @@ module module_images
      real(gp) :: convergence 
      real(gp) :: ds, k_min, k_max
      real(gp) :: damp, temp_req
-     integer :: algorithm
-     integer :: nimages
   end type NEB_data
 
   type, public :: run_image
@@ -236,11 +237,13 @@ module module_images
      !  the total energy and the forces (modified to be gradients).
      type(run_objects) :: run
      type(DFT_global_output) :: outs
+     character(len = 128) :: log_file
      ! Local convergence quantities
      real(gp) :: error, F
      ! Last running image.
      integer :: id
      ! Private work arrays.
+     integer :: algorithm
      real(gp), dimension(:), pointer :: old_grad, delta_pos, vel
   end type run_image
 
@@ -281,10 +284,16 @@ contains
     END DO
   END FUNCTION cubic_pbc
 
-  subroutine image_init(img, ndim, algorithm)
+  subroutine image_init(img, inputs, atoms, rst, algorithm)
+    use module_interfaces, only: run_objects_init_container
     implicit none
     type(run_image), intent(out) :: img
-    integer, intent(in) :: ndim, algorithm
+    type(input_variables), intent(in) :: inputs
+    type(atoms_data), intent(in) :: atoms
+    type(restart_objects), intent(in) :: rst
+    integer, intent(in) :: algorithm
+
+    integer :: ndim
 
     img%id = -1
 
@@ -295,6 +304,14 @@ contains
     nullify(img%delta_pos)
     nullify(img%vel)
 
+    call run_objects_init_container(img%run, inputs, atoms, rst)
+    call init_global_output(img%outs, atoms%nat)
+
+    write(img%log_file, "(A,A)") trim(inputs%writing_directory), &
+         & 'log-'//trim(inputs%run_name)//'.yaml'           
+
+    img%algorithm = algorithm
+    ndim = 3 * atoms%nat
     if (algorithm <= 3) then
        allocate(img%old_grad(ndim))
        call to_zero(ndim, img%old_grad(1))
@@ -315,9 +332,15 @@ contains
     call vcopy(ndim, vel0(1), 1, img%vel(1), 1)
   end subroutine image_set_init_vel
 
-  subroutine image_deallocate(img)
+  subroutine image_deallocate(img, free_subs)
     implicit none
     type(run_image), intent(inout) :: img
+    logical, intent(in) :: free_subs
+
+    if (free_subs) then
+       call run_objects_free_container(img%run)
+       call deallocate_global_output(img%outs)
+    end if
 
     if (associated(img%old_grad)) deallocate(img%old_grad)
     if (associated(img%delta_pos)) deallocate(img%delta_pos)
@@ -343,8 +366,8 @@ contains
     real(gp) :: images_get_activation
     integer :: i
 
-    images_get_activation = 0.
-    do i = 2, size(imgs)
+    images_get_activation = -999.d99
+    do i = 2, size(imgs) - 1
        images_get_activation = max(images_get_activation, imgs(i)%outs%energy - imgs(1)%outs%energy)
     end do
   end function images_get_activation
@@ -411,13 +434,13 @@ contains
     tgt = tgt / norm( tgt )
   END SUBROUTINE compute_local_tangent
 
-  SUBROUTINE compute_local_gradient(ndim, grad, posm1, pos0, posp1, tgt, PES_grad, Lx, Ly, Lz, &
+  SUBROUTINE compute_local_gradient(ndim, grad, posm1, pos0, posp1, tgt, PES_forces, Lx, Ly, Lz, &
        & k, full, climbing)
     IMPLICIT NONE
 
     integer, intent(in) :: ndim
     real(gp), dimension(ndim), intent(out) :: grad
-    real(gp), dimension(ndim), intent(in) :: tgt, PES_grad
+    real(gp), dimension(ndim), intent(in) :: tgt, PES_forces
     real(gp), dimension(ndim), intent(in) :: posm1, pos0, posp1
     real(gp), intent(in) :: Lx, Ly, Lz
     real(gp), dimension(2:3), intent(in) :: k
@@ -429,7 +452,7 @@ contains
     !! only the component of the PES gradient ortogonal to the path is taken into
     !! account
     if (climbing) then
-       grad = PES_grad - 2.D0 * dot_product( PES_grad , tgt ) * tgt
+       grad = - PES_forces + 2.D0 * dot_product( PES_forces , tgt ) * tgt
     else
        allocate(elastic_gradient(ndim))
 
@@ -445,7 +468,7 @@ contains
                  k(3) * norm( cubic_pbc( posp1 - pos0, Lx, Ly, Lz ) ) ) * tgt
        END IF
 
-       grad = PES_grad + elastic_gradient - dot_product( PES_grad, tgt ) * tgt
+       grad = - PES_forces + elastic_gradient + dot_product( PES_forces, tgt ) * tgt
 
        deallocate(elastic_gradient)
     end if
@@ -479,193 +502,99 @@ contains
     end do elastic_const_loop
   END SUBROUTINE compute_k
 
-  subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
-       & km1, kp1, optimization, climbing, neb)
-    use Minimization_routines
-    use module_interfaces, only: write_atomic_file
-    implicit none
-    type(run_image), intent(inout) :: img
-    integer, intent(in) :: iteration
-    real(gp), intent(in) :: km1, kp1
-    real(gp), intent(in) :: Vm1, Vp1
-    real(gp), dimension(3*img%run%atoms%nat), intent(in) :: posm1, posp1
-    logical, intent(in) :: optimization, climbing
-    type(NEB_data), intent(in) :: neb
-    
-    integer :: ndim
-    real(gp) :: Lx, Ly, Lz
-    real(gp), dimension(:), allocatable :: tangent, grad
-    character(len = 80) :: comment
-    character(len = 4) :: fn4
-
-    ! Aliasing
-    ndim = 3 * img%run%atoms%nat
-    Lx = img%run%atoms%alat1
-    Ly = img%run%atoms%alat2
-    Lz = img%run%atoms%alat3
-
-    allocate(grad(ndim))
-    call to_zero(ndim, grad(1))
-
-    if (.not. optimization) then
-       allocate(tangent(ndim))
-       call compute_local_tangent(tangent, ndim, (/ Vm1, img%outs%energy, Vp1 /), posm1, img%run%rxyz, posp1, Lx, Ly, Lz)
-    end if
-
-    if (iteration > 0 .and. neb%algorithm >= 4 ) then
-       if (optimization) then
-          call vcopy(ndim, img%outs%fxyz(1,1), 1, grad(1), 1)
-       else
-          call compute_local_gradient(ndim, grad, posm1, img%run%rxyz, posp1, tangent, &
-               & img%outs%fxyz, Lx,Ly,Lz, (/ km1, kp1 /), (neb%algorithm == 6), climbing)
-       end if
-       IF ( neb%algorithm == 4 ) THEN
-          CALL quick_min_second_step( ndim, img%vel, grad, neb%ds)
-       ELSE IF ( neb%algorithm == 5 ) THEN
-          CALL velocity_Verlet_second_step( ndim, img%vel, grad, neb%ds, neb%damp )
-       ELSE IF ( neb%algorithm == 6 ) THEN
-          CALL velocity_Verlet_second_step( ndim, img%vel, grad, neb%ds )
-       END IF
-
-!!$       IF ( algorithm == 6 ) CALL termalization(neb%ndim, neb%nimages, neb%vel, neb%temp_req)
-    end if
-
-    if (iteration > 0 .or. neb%max_iterations == 1) then
-       img%error = real(0, gp)
-       img%F     = real(0, gp)
-       if (optimization) then
-          img%error = nrm2(ndim, img%outs%fxyz(1,1), 1)
-       else
-          img%F = - dot(ndim, img%outs%fxyz(1,1), 1, tangent(1), 1)
-          call vcopy(ndim, img%outs%fxyz(1,1), 1, grad(1), 1)
-          call axpy(ndim, img%F, tangent(1), 1, grad(1), 1)
-          img%error = nrm2(ndim, grad(1), 1)
-       end if
-
-       write(comment,'(a,1pe10.3)')'NEB:error= ', img%error
-    else
-       img%error = real(999, gp)
-       img%F     = real(999, gp)
-       comment = repeat(' ', len(comment))
-    end if
-    
-    ! Output the corresponding file.
-    write(fn4, "(I4.4)") iteration
-    call write_atomic_file(trim(img%run%inputs%dir_output)//'posout_'//fn4, &
-         & img%outs%energy, img%run%rxyz, img%run%atoms, trim(comment), forces = img%outs%fxyz)
-
-    ! Calculate new positions for next step.
-    if (optimization) then
-       call vcopy(ndim, img%outs%fxyz(1,1), 1, grad(1), 1)
-    else
-       call compute_local_gradient(ndim, grad, posm1, img%run%rxyz, posp1, tangent, &
-            & img%outs%fxyz, Lx,Ly,Lz, (/ km1, kp1 /), (neb%algorithm == 6), climbing)
-    end if
-    IF ( neb%algorithm == 1 ) THEN
-       CALL steepest_descent( ndim, img%run%rxyz, grad, neb%ds)
-    ELSE IF ( neb%algorithm == 2 ) THEN
-       CALL fletcher_reeves( ndim, img%run%rxyz, grad, img%old_grad, img%delta_pos, neb%ds)
-    ELSE IF ( neb%algorithm == 3 ) THEN
-       CALL polak_ribiere( ndim, img%run%rxyz, grad, img%old_grad, img%delta_pos, neb%ds)
-    ELSE IF ( neb%algorithm >= 4 ) THEN
-       CALL velocity_Verlet_first_step( ndim, img%run%rxyz, img%vel, grad, neb%ds)
-    END IF
-
-    IF ( neb%algorithm <= 3 ) call vcopy(ndim, grad(1), 1, img%old_grad(1), 1)
-
-    if (.not. optimization) then
-       deallocate(tangent)
-    end if
-
-    deallocate(grad)
-  END SUBROUTINE image_update_pos
-
-  subroutine image_calculate(img, iteration, id, log_file, fix_atom, mpi_env)
-    use yaml_output
-    implicit none
-    type(run_image), intent(inout) :: img
-    integer :: iteration
-    integer, intent(in) :: id
-    character(len = *), intent(in) :: log_file
-    real(gp), dimension(3, img%run%atoms%nat), intent(in) :: fix_atom
-    type(mpi_environment), intent(in) :: mpi_env
-
-    integer :: ierr, infocode
-
-    img%run%inputs%inputpsiid = 0
-    if (iteration > 0 .and. abs(img%id - id) < 2) img%run%inputs%inputpsiid = 1
-
-    img%id = id
-    call yaml_set_stream(unit = 9169 + id, filename = trim(log_file), istat = ierr)
-    call yaml_comment("NEB iteration #" // trim(yaml_toa(iteration, fmt = "(I3.3)")), hfill="-")
-    call call_bigdft(img%run, img%outs, mpi_env%nproc, mpi_env%iproc, infocode)
-    img%outs%fxyz = - img%outs%fxyz * fix_atom
-    call yaml_close_all_streams()
-  end subroutine image_calculate
-
   subroutine compute_neb_pos(imgs, iteration, neb)
     implicit none
 
     type(NEB_data), intent(in) :: neb
-    type(run_image), dimension(neb%nimages), intent(inout) :: imgs
+    type(run_image), dimension(:), intent(inout) :: imgs
     integer, intent(in) :: iteration
 
     integer :: i, n_in, n_fin, climbing_img
-    real(gp), dimension(2:neb%nimages) :: k
+    real(gp), dimension(2:size(imgs)) :: k
 
     IF ( neb%optimization ) THEN
        N_in  = 1
-       N_fin = neb%nimages
+       N_fin = size(imgs)
     ELSE
        N_in  = 2
-       N_fin = neb%nimages - 1
+       N_fin = size(imgs) - 1
 
        imgs(1)%error = 0.d0
        imgs(1)%F     = 0.d0
-       imgs(neb%nimages)%error = 0.d0
-       imgs(neb%nimages)%F     = 0.d0
+       imgs(size(imgs))%error = 0.d0
+       imgs(size(imgs))%F     = 0.d0
     END IF
 
     ! Global line treatment.
-    call compute_k(neb%nimages, k, images_get_energies(imgs), neb%k_min, neb%k_max)
+    call compute_k(size(imgs), k, images_get_energies(imgs), neb%k_min, neb%k_max)
     climbing_img = 0
     if (neb%climbing) climbing_img = maxloc(images_get_energies(imgs), 1)
 
     ! Per image treatment.
     do i = N_in, N_fin
        call image_update_pos(imgs(i), iteration, &
-            & imgs(max(1,i-1))%run%rxyz, imgs(min(i+1,neb%nimages))%run%rxyz, &
-            & imgs(max(1,i-1))%outs%energy, imgs(min(i+1,neb%nimages))%outs%energy, &
-            & k(i), k(i+1), (i == 1 .or. i == neb%nimages), (i == climbing_img), neb)
+            & imgs(max(1,i-1))%run%rxyz, imgs(min(i+1,size(imgs)))%run%rxyz, &
+            & imgs(max(1,i-1))%outs%energy, imgs(min(i+1,size(imgs)))%outs%energy, &
+            & k(i), k(i+1), (i == 1 .or. i == size(imgs)), (i == climbing_img), neb)
     end do
 
     ! Global line treatment.
-    IF ( neb%algorithm == 6 ) CALL termalization(neb%nimages, imgs, neb%temp_req)
+    IF ( imgs(1)%algorithm == 6 ) CALL termalization(imgs, neb%temp_req)
   END SUBROUTINE compute_neb_pos
   
-  SUBROUTINE termalization(nimages, imgs, temp_req)
+  SUBROUTINE termalization(imgs, temp_req)
     IMPLICIT NONE
 
-    integer, intent(in) :: nimages
     real(gp), intent(in) :: temp_req
-    type(run_image), dimension(nimages), intent(inout) :: imgs
+    type(run_image), dimension(:), intent(inout) :: imgs
 
     REAL(gp) :: temp, fact
     INTEGER :: i, n
 
     n = 0
     temp = 0.D0
-    DO i = 2, ( nimages - 1 )
+    DO i = 2, ( size(imgs) - 1 )
        temp = temp + DOT_PRODUCT( imgs(i)%vel , imgs(i)%vel )
        n = n + size(imgs(i)%vel)
     END DO
 
     temp = temp / DBLE( n )
     fact = SQRT( temp_req / temp )
-    do i = 2, nimages - 1
+    do i = 2, size(imgs) - 1
        imgs(i)%vel = imgs(i)%vel * fact
     end do
   END SUBROUTINE termalization
+
+  SUBROUTINE write_restart(restart_file, imgs, fix_atom)
+    IMPLICIT NONE
+
+    character(len = *), intent(in) :: restart_file
+    type(run_image), dimension(:), intent(in) :: imgs
+    real(gp), dimension(:,:), intent(in) :: fix_atom
+
+    INTEGER             :: i, j
+    INTEGER, PARAMETER  :: unit = 10
+
+
+    OPEN( UNIT = unit, FILE = trim(restart_file), STATUS = "UNKNOWN", ACTION = "WRITE" )
+    DO i = 1, size(imgs)
+       WRITE(unit,*) "Replica: ", i
+       WRITE(unit,fmt3) imgs(i)%outs%energy
+
+       DO j = 1, imgs(i)%run%atoms%nat
+          WRITE(unit,fmt1) imgs(i)%run%rxyz(1,j),     & 
+               imgs(i)%run%rxyz(2,j), &
+               imgs(i)%run%rxyz(3,j), &
+               int(fix_atom(1,j)),     &
+               int(fix_atom(2,j)), &
+               int(fix_atom(3,j)), &
+               imgs(i)%outs%fxyz(1,j), &
+               imgs(i)%outs%fxyz(2,j), &
+               imgs(i)%outs%fxyz(3,j)
+       END DO
+    END DO
+    CLOSE( UNIT = unit )
+  END SUBROUTINE write_restart
 
   SUBROUTINE write_restart_vel(velocity_file, imgs)
     IMPLICIT NONE
@@ -806,56 +735,6 @@ contains
     end if
   END SUBROUTINE images_output_step
 
-  subroutine images_distribute_tasks(igroup, update, nimages, ngroup)
-    implicit none
-    integer, intent(in) :: nimages, ngroup
-    logical, dimension(nimages), intent(in) :: update
-    integer, dimension(nimages), intent(out) :: igroup
-
-    integer :: alpha, beta
-    integer :: i, l, m, n
-
-    n = 0
-    do i = 1, nimages
-       if (update(i)) n = n + 1
-    end do
-
-    igroup(:) = -1
-    alpha = 0
-    beta = nimages + 1
-    ! Taskgroups have l or (l+1) images to compute.
-    l = n / ngroup
-    ! There are m taskgroups with (l+1) images.
-    m = n - l * ngroup
-    do i = 1, m
-       if (modulo(i, 2) == 1) then
-          call span_group(alpha, l + 1, +1, i)
-       else
-          call span_group(beta,  l + 1, -1, i)
-       end if
-    end do
-    ! There are n - m taskgroups with l images.
-    do i = m + 1, ngroup * min(1, l)
-       call span_group(alpha, l, +1, i)
-    end do
-  contains
-    subroutine span_group(it, n, dir, ig)
-      integer, intent(inout) :: it
-      integer, intent(in) :: n, dir, ig
-      integer :: j
-
-      j = 0
-      do
-         it = it + dir
-         if (update(it)) then
-            igroup(it) = ig
-            j = j + 1
-            if (j == n) exit
-         end if
-      end do
-    end subroutine span_group
-  END SUBROUTINE images_distribute_tasks
-
   subroutine images_collect_results(imgs, igroup, nimages, mpi_env)
     implicit none
     integer, intent(in) :: nimages
@@ -892,24 +771,327 @@ contains
 
 END MODULE module_images
 
+! Public routines.
+subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
+     & km1, kp1, optimization, climbing, neb)
+  use Minimization_routines
+  use module_images
+  implicit none
+  type(run_image), intent(inout) :: img
+  integer, intent(in) :: iteration
+  real(gp), intent(in) :: km1, kp1
+  real(gp), intent(in) :: Vm1, Vp1
+  real(gp), dimension(3*img%run%atoms%nat), intent(in) :: posm1, posp1
+  logical, intent(in) :: optimization, climbing
+  type(NEB_data), intent(in) :: neb
+
+  integer :: ndim
+  real(gp) :: Lx, Ly, Lz
+  real(gp), dimension(:), allocatable :: tangent, grad
+
+  ! Aliasing
+  ndim = 3 * img%run%atoms%nat
+  Lx = img%run%atoms%alat1
+  Ly = img%run%atoms%alat2
+  Lz = img%run%atoms%alat3
+
+  allocate(grad(ndim))
+  call to_zero(ndim, grad(1))
+
+  if (.not. optimization) then
+     allocate(tangent(ndim))
+     call compute_local_tangent(tangent, ndim, (/ Vm1, img%outs%energy, Vp1 /), posm1, img%run%rxyz, posp1, Lx, Ly, Lz)
+  end if
+
+  if (iteration > 0 .and. img%algorithm >= 4 ) then
+     if (optimization) then
+        call to_zero(ndim, grad(1))
+        call axpy(ndim, -1.d0, img%outs%fxyz(1,1), 1, grad(1), 1)
+     else
+        call compute_local_gradient(ndim, grad, posm1, img%run%rxyz, posp1, tangent, &
+             & img%outs%fxyz, Lx,Ly,Lz, (/ km1, kp1 /), (img%algorithm == 6), climbing)
+     end if
+     IF ( img%algorithm == 4 ) THEN
+        CALL quick_min_second_step( ndim, img%vel, grad, neb%ds)
+     ELSE IF ( img%algorithm == 5 ) THEN
+        CALL velocity_Verlet_second_step( ndim, img%vel, grad, neb%ds, neb%damp )
+     ELSE IF ( img%algorithm == 6 ) THEN
+        CALL velocity_Verlet_second_step( ndim, img%vel, grad, neb%ds )
+     END IF
+
+!!$       IF ( algorithm == 6 ) CALL termalization(neb%ndim, neb%nimages, neb%vel, neb%temp_req)
+  end if
+
+  if (iteration > 0 .or. neb%max_iterations == 1) then
+     img%error = real(0, gp)
+     img%F     = real(0, gp)
+     if (optimization) then
+        img%error = nrm2(ndim, img%outs%fxyz(1,1), 1)
+     else
+        img%F = - dot(ndim, img%outs%fxyz(1,1), 1, tangent(1), 1)
+        call vcopy(ndim, img%outs%fxyz(1,1), 1, grad(1), 1)
+        call axpy(ndim, img%F, tangent(1), 1, grad(1), 1)
+        img%error = nrm2(ndim, grad(1), 1)
+     end if
+  else
+     img%error = real(999, gp)
+     img%F     = real(999, gp)
+  end if
+
+  ! Calculate new positions for next step.
+  if (optimization) then
+     call to_zero(ndim, grad(1))
+     call axpy(ndim, -1.d0, img%outs%fxyz(1,1), 1, grad(1), 1)
+  else
+     call compute_local_gradient(ndim, grad, posm1, img%run%rxyz, posp1, tangent, &
+          & img%outs%fxyz, Lx,Ly,Lz, (/ km1, kp1 /), (img%algorithm == 6), climbing)
+  end if
+  IF ( img%algorithm == 1 ) THEN
+     CALL steepest_descent( ndim, img%run%rxyz, grad, neb%ds)
+  ELSE IF ( img%algorithm == 2 ) THEN
+     CALL fletcher_reeves( ndim, img%run%rxyz, grad, img%old_grad, img%delta_pos, neb%ds)
+  ELSE IF ( img%algorithm == 3 ) THEN
+     CALL polak_ribiere( ndim, img%run%rxyz, grad, img%old_grad, img%delta_pos, neb%ds)
+  ELSE IF ( img%algorithm >= 4 ) THEN
+     CALL velocity_Verlet_first_step( ndim, img%run%rxyz, img%vel, grad, neb%ds)
+  END IF
+
+  IF ( img%algorithm <= 3 ) call vcopy(ndim, grad(1), 1, img%old_grad(1), 1)
+
+  if (.not. optimization) then
+     deallocate(tangent)
+  end if
+
+  deallocate(grad)
+END SUBROUTINE image_update_pos
+
+subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, climbing, neb)
+  use Minimization_routines
+  use module_types
+  use module_images
+  use module_interfaces, only: read_atomic_file
+  implicit none
+  type(run_image), intent(inout) :: img
+  integer, intent(in) :: iteration
+  character(len = *), intent(in) :: filem1, filep1
+  real(gp), intent(in) :: km1, kp1
+  logical, intent(in) :: climbing
+  type(NEB_data), intent(in) :: neb
+
+  character(len = *), parameter :: subname = "image_update_pos_from_file"
+  real(gp), dimension(:,:), pointer :: rxyzm1, rxyzp1
+  type(atoms_data) :: atoms
+  real(gp) :: Vm1, Vp1
+  integer :: stat
+
+  img%error = UNINITIALIZED(real(1, gp))
+  nullify(rxyzm1)
+  nullify(rxyzp1)
+  call atoms_nullify(atoms)
+
+  if (trim(filem1) /= "") then
+     call read_atomic_file(trim(filem1), bigdft_mpi%iproc, atoms, rxyzm1, &
+          & status = stat, energy = Vm1)
+     if (stat /= 0 .or. atoms%nat /= img%run%atoms%nat) then
+        call free_me()
+        return
+     end if
+     call deallocate_atoms(atoms, subname)
+     call atoms_nullify(atoms)
+  end if
+
+  if (trim(filep1) /= "") then
+     call read_atomic_file(trim(filep1), bigdft_mpi%iproc, atoms, rxyzp1, &
+          & status = stat, energy = Vp1)
+     if (stat /= 0 .or. atoms%nat /= img%run%atoms%nat) then
+        call free_me()
+        return
+     end if
+     call deallocate_atoms(atoms, subname)
+     call atoms_nullify(atoms)
+  end if
+  
+  call image_update_pos(img, iteration, rxyzm1, rxyzp1, Vm1, Vp1, km1, kp1, &
+       & .not. associated(rxyzm1) .or. .not. associated(rxyzp1), climbing, neb)
+  call free_me()
+contains
+  subroutine free_me()
+    implicit none
+    integer :: i_all, i_stat
+    character(len = *), parameter :: subname = "image_update_pos_from_file"
+
+    if (associated(rxyzp1)) then
+      i_all=-product(shape(rxyzp1))*kind(rxyzp1)
+      deallocate(rxyzp1,stat=i_stat)
+      call memocc(i_stat,i_all,'rxyzp1',subname)
+    end if
+    if (associated(rxyzm1)) then
+      i_all=-product(shape(rxyzm1))*kind(rxyzm1)
+      deallocate(rxyzm1,stat=i_stat)
+      call memocc(i_stat,i_all,'rxyzm1',subname)
+    end if
+    call deallocate_atoms(atoms, subname)
+  end subroutine free_me
+END SUBROUTINE image_update_pos_from_file
+
+subroutine image_calculate(img, iteration, id)
+  use yaml_output
+  use module_types
+  use module_images
+  use module_interfaces, only: write_atomic_file
+  implicit none
+  type(run_image), intent(inout) :: img
+  integer :: iteration
+  integer, intent(in) :: id
+
+  integer :: ierr, infocode
+  character(len = 4) :: fn4
+
+  img%run%inputs%inputpsiid = 0
+  if (iteration > 0 .and. abs(img%id - id) < 2) img%run%inputs%inputpsiid = 1
+
+  img%id = id
+  if (trim(img%log_file) /= "" .and. bigdft_mpi%iproc == 0) then
+     call yaml_set_stream(unit = 9169 + id, filename = trim(img%log_file), istat = ierr)
+     call yaml_comment("NEB iteration #" // trim(yaml_toa(iteration, fmt = "(I3.3)")), hfill="-")
+  end if
+  call call_bigdft(img%run, img%outs, bigdft_mpi%nproc, bigdft_mpi%iproc, infocode)
+  if (trim(img%log_file) /= "" .and. bigdft_mpi%iproc == 0) call yaml_close_all_streams()
+
+  ! Output the corresponding file.
+  write(fn4, "(I4.4)") iteration
+  call write_atomic_file(trim(img%run%inputs%dir_output)//'posout_'//fn4, &
+       & img%outs%energy, img%run%rxyz, img%run%atoms, "", forces = img%outs%fxyz)
+end subroutine image_calculate
+
+subroutine images_distribute_tasks(igroup, update, nimages, ngroup)
+  implicit none
+  integer, intent(in) :: nimages, ngroup
+  logical, dimension(nimages), intent(in) :: update
+  integer, dimension(nimages), intent(out) :: igroup
+
+  integer :: alpha, beta
+  integer :: i, l, m, n
+
+  n = 0
+  do i = 1, nimages
+     if (update(i)) n = n + 1
+  end do
+
+  igroup(:) = -1
+  alpha = 0
+  beta = nimages + 1
+  ! Taskgroups have l or (l+1) images to compute.
+  l = n / ngroup
+  ! There are m taskgroups with (l+1) images.
+  m = n - l * ngroup
+  do i = 1, m
+     if (modulo(i, 2) == 1) then
+        call span_group(alpha, l + 1, +1, i)
+     else
+        call span_group(beta,  l + 1, -1, i)
+     end if
+  end do
+  ! There are n - m taskgroups with l images.
+  do i = m + 1, ngroup * min(1, l)
+     call span_group(alpha, l, +1, i)
+  end do
+contains
+  subroutine span_group(it, n, dir, ig)
+    integer, intent(inout) :: it
+    integer, intent(in) :: n, dir, ig
+    integer :: j
+
+    j = 0
+    do
+       it = it + dir
+       if (update(it)) then
+          igroup(it) = ig
+          j = j + 1
+          if (j == n) exit
+       end if
+    end do
+  end subroutine span_group
+END SUBROUTINE images_distribute_tasks
+
 ! Routines for bindings.
-subroutine neb_new(neb, nat, nimages, algorithm)
+subroutine image_new(img, run, outs, atoms, inputs, rst, rxyz, algorithm)
+  use module_types
   use module_images
   implicit none
 
-  type(NEB_data), pointer :: neb
-  integer, intent(in) :: nat, nimages, algorithm
+  type(run_image), pointer :: img
+  type(run_objects), pointer :: run
+  type(DFT_global_output), pointer :: outs
+  type(input_variables), intent(in) :: inputs
+  type(atoms_data), intent(in) :: atoms
+  type(restart_objects), intent(in) :: rst
+  real(gp), dimension(:,:), pointer :: rxyz
+  integer, intent(in) :: algorithm
 
-!!$  allocate(neb)
-!!$  call image_init(neb, 3 * nat, algorithm)
-END SUBROUTINE neb_new
+  integer :: i_all, i_stat
+
+  allocate(img)
+  call image_init(img, inputs, atoms, rst, algorithm)
+  run => img%run
+  outs => img%outs
+  i_all=-product(shape(run%rxyz))*kind(run%rxyz)
+  deallocate(run%rxyz,stat=i_stat)
+  call memocc(i_stat,i_all,'run%rxyz',"image_new")
+  run%rxyz => rxyz
+END SUBROUTINE image_new
+
+subroutine image_free(img, run, outs)
+  use module_types
+  use module_images
+  implicit none
+
+  type(run_image), pointer :: img
+  type(run_objects), pointer :: run
+  type(DFT_global_output), pointer :: outs
+
+  allocate(run)
+  run = img%run
+
+  allocate(outs)
+  outs = img%outs
+
+  call image_deallocate(img, .false.)
+  deallocate(img)
+END SUBROUTINE image_free
+
+subroutine image_get_attributes(img, error, F, id)
+  use module_images
+  use module_types
+  implicit none
+
+  type(run_image), intent(in) :: img
+  real(gp), intent(out) :: error, F
+  integer, intent(out) :: id
+
+  id = img%id
+  error = img%error
+  F = img%F
+END SUBROUTINE image_get_attributes
+
+subroutine neb_new(neb)
+  use module_images
+  implicit none
+  type(NEB_data), pointer :: neb
+
+  allocate(neb)
+  neb%damp = 1.d0
+  neb%ds = 0.8d0
+  neb%k_min = 0.05d0
+  neb%k_max = 0.1d0
+  neb%max_iterations = 2
+  neb%convergence = 0.5d0
+end subroutine neb_new
 
 subroutine neb_free(neb)
   use module_images
   implicit none
-
   type(NEB_data), pointer :: neb
 
-!!$  call image_deallocate(neb)
-!!$  deallocate(neb)
+  deallocate(neb)
 end subroutine neb_free
