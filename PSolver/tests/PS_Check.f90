@@ -44,7 +44,7 @@ program PS_Check
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-   call f_set_status(memory_limit=0.e0,iproc=iproc)
+   call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
    call f_routine(id='PS_Check')
 
    bigdft_mpi%mpi_comm=MPI_COMM_WORLD !workaround to be removed

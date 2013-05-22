@@ -16,7 +16,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz_old,rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz_old,rxyz
   real(wp), dimension(0:n1_old,2,0:n2_old,2,0:n3_old,2), intent(in) :: psigold
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
   real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
@@ -33,9 +33,9 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   real(wp), dimension(:,:,:), allocatable :: psifscfold
 
   !conditions for periodicity in the three directions
-  perx=(at%geocode /= 'F')
-  pery=(at%geocode == 'P')
-  perz=(at%geocode /= 'F')
+  perx=(at%astruct%geocode /= 'F')
+  pery=(at%astruct%geocode == 'P')
+  perz=(at%astruct%geocode /= 'F')
 
   !buffers related to periodicity
   !WARNING: the boundary conditions are not assumed to change between new and old
@@ -48,11 +48,11 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   allocate(wwold((2*n1_old+2+2*nb1)*(2*n2_old+2+2*nb2)*(2*n3_old+2+2*nb3)+ndebug),stat=i_stat)
   call memocc(i_stat,wwold,'wwold',subname)
 
-  if (at%geocode=='F') then
+  if (at%astruct%geocode=='F') then
      call synthese_grow(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
-  else if (at%geocode=='S') then     
+  else if (at%astruct%geocode=='S') then     
      call synthese_slab(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
-  else if (at%geocode=='P') then     
+  else if (at%astruct%geocode=='P') then     
      call synthese_per(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
   end if
 
@@ -84,14 +84,14 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
      dz=0.0_gp
      !Calculate average shift
      !Take into account the modulo operation which should be done for non-isolated BC
-     do iat=1,at%nat 
-        dx=dx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))
-        dy=dy+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))
-        dz=dz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))
+     do iat=1,at%astruct%nat 
+        dx=dx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))
+        dy=dy+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))
+        dz=dz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))
      enddo
-     dx=dx/real(at%nat,gp)
-     dy=dy/real(at%nat,gp)
-     dz=dz/real(at%nat,gp)
+     dx=dx/real(at%astruct%nat,gp)
+     dy=dy/real(at%astruct%nat,gp)
+     dz=dz/real(at%astruct%nat,gp)
      
      ! transform to new structure    
      !if (iproc==0) write(*,*) iproc,' orbital fully transformed'
@@ -181,11 +181,11 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   allocate(ww((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3)+ndebug),stat=i_stat)
   call memocc(i_stat,ww,'ww',subname)
 
-  if (at%geocode=='F') then
+  if (at%astruct%geocode=='F') then
      call analyse_shrink(n1,n2,n3,ww,psifscf,psig)
-  else if (at%geocode == 'S') then
+  else if (at%astruct%geocode == 'S') then
      call analyse_slab(n1,n2,n3,ww,psifscf,psig)
-  else if (at%geocode == 'P') then
+  else if (at%astruct%geocode == 'P') then
      call analyse_per(n1,n2,n3,ww,psifscf,psig)
   end if
 
@@ -533,6 +533,52 @@ contains
     lstat = .true.
   END SUBROUTINE read_psi_compress
 
+  subroutine read_psig(unitwf, formatted, nvctr_c, nvctr_f, n1, n2, n3, psig, lstat, error)
+    use module_base
+    use module_types
+
+    implicit none
+
+    integer, intent(in) :: unitwf, nvctr_c, nvctr_f, n1, n2, n3
+    logical, intent(in) :: formatted
+    real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(out) :: psig
+    logical, intent(out) :: lstat
+    character(len =256), intent(out) :: error
+
+    integer :: i1, i2, i3, i_stat, iel
+    real(wp) :: tt, t1, t2, t3, t4, t5, t6, t7
+
+    lstat = .false.
+    write(error, "(A)") "cannot read psig values."
+
+    call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+    do iel=1,nvctr_c
+       if (formatted) then
+          read(unitwf,*,iostat=i_stat) i1,i2,i3,tt
+       else
+          read(unitwf,iostat=i_stat) i1,i2,i3,tt
+       end if
+       if (i_stat /= 0) return
+       psig(i1,1,i2,1,i3,1)=tt
+    enddo
+    do iel=1,nvctr_f
+       if (formatted) then
+          read(unitwf,*,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+       else
+          read(unitwf,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+       end if
+       if (i_stat /= 0) return
+       psig(i1,2,i2,1,i3,1)=t1
+       psig(i1,1,i2,2,i3,1)=t2
+       psig(i1,2,i2,2,i3,1)=t3
+       psig(i1,1,i2,1,i3,2)=t4
+       psig(i1,2,i2,1,i3,2)=t5
+       psig(i1,1,i2,2,i3,2)=t6
+       psig(i1,2,i2,2,i3,2)=t7
+    enddo
+    lstat = .true.
+  END SUBROUTINE read_psig
+
   subroutine io_open(unitwf, filename, formatted)
     character(len = *), intent(in) :: filename
     logical, intent(in) :: formatted
@@ -568,9 +614,9 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(atoms_data), intent(in) :: at
   real(gp), intent(in) :: hx,hy,hz
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), intent(out) :: eval
-  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
   real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
   !local variables
@@ -584,22 +630,22 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
   !write(*,*) 'INSIDE readonewave'
   call io_read_descr(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &
-       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, at%nat)
+       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, at%astruct%nat)
   if (.not. lstat) call io_error(trim(error))
   if (iorb_old /= iorb) stop 'readonewave'
 
   !conditions for periodicity in the three directions
-  perx=(at%geocode /= 'F')
-  pery=(at%geocode == 'P')
-  perz=(at%geocode /= 'F')
+  perx=(at%astruct%geocode /= 'F')
+  pery=(at%astruct%geocode == 'P')
+  perz=(at%astruct%geocode /= 'F')
 
   tx=0.0_gp 
   ty=0.0_gp
   tz=0.0_gp
-  do iat=1,at%nat
-     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
-     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
-     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+  do iat=1,at%astruct%nat
+     tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
+     ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
+     tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
   enddo
   displ=sqrt(tx+ty+tz)
 

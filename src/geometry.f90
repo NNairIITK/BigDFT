@@ -55,9 +55,9 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
   type(restart_objects), intent(inout) :: rst
   real(gp), intent(inout) :: epot
   integer, intent(inout) :: ncount_bigdft
-  real(gp), dimension(3*at%nat), intent(inout) :: pos
+  real(gp), dimension(3*at%astruct%nat), intent(inout) :: pos
   real(gp), dimension(6), intent(inout) :: strten
-  real(gp), dimension(3*at%nat), intent(inout) :: fxyz
+  real(gp), dimension(3*at%astruct%nat), intent(inout) :: fxyz
   !local variables
   logical :: fail
   integer :: ibfgs
@@ -197,8 +197,8 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   type(input_variables), intent(inout) :: in
   type(restart_objects), intent(inout) :: rst
   real(gp), intent(inout) :: epot
-  real(gp), dimension(3*at%nat), intent(inout) :: x
-  real(gp), dimension(3*at%nat), intent(inout) :: f
+  real(gp), dimension(3*at%astruct%nat), intent(inout) :: x
+  real(gp), dimension(3*at%astruct%nat), intent(inout) :: f
   logical, intent(out) :: fail
   !Local variables
   character(len=*), parameter :: subname='ab6md'
@@ -219,24 +219,24 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   end if
 
   ! Prepare the objects used by ABINIT.
-  allocate(amass(at%nat),stat=i_stat)
+  allocate(amass(at%astruct%nat),stat=i_stat)
   call memocc(i_stat,amass,'amass',subname)
-  allocate(xfhist(3, at%nat + 4, 2, in%ncount_cluster_x+1))
+  allocate(xfhist(3, at%astruct%nat + 4, 2, in%ncount_cluster_x+1))
   call memocc(i_stat,xfhist,'xfhist',subname)
-  allocate(vel(3, at%nat),stat=i_stat)
+  allocate(vel(3, at%astruct%nat),stat=i_stat)
   call memocc(i_stat,vel,'vel',subname)
-  allocate(xred(3, at%nat),stat=i_stat)
+  allocate(xred(3, at%astruct%nat),stat=i_stat)
   call memocc(i_stat,xred,'xred',subname)
-  allocate(iatfix(3, at%nat),stat=i_stat)
+  allocate(iatfix(3, at%astruct%nat),stat=i_stat)
   call memocc(i_stat,iatfix,'iatfix',subname)
-  allocate(fred(3, at%nat),stat=i_stat)
+  allocate(fred(3, at%astruct%nat),stat=i_stat)
   call memocc(i_stat,fred,'fred',subname)
 
   nxfh = 0
-  !acell = (/ at%alat1, at%alat2, at%alat3 /)
-  acell(1)=at%alat1
-  acell(2)=at%alat2
-  acell(3)=at%alat3
+  !acell = (/ at%astruct%cell_dim(1), at%astruct%cell_dim(2), at%astruct%cell_dim(3) /)
+  acell(1)=at%astruct%cell_dim(1)
+  acell(2)=at%astruct%cell_dim(2)
+  acell(3)=at%astruct%cell_dim(3)
   rprim(:,:) = 0.0_gp
   rprim(1,1) = real(1, gp)
   rprim(2,2) = real(1, gp)
@@ -245,13 +245,13 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   symrel(1,1,1) = real(1, gp)
   symrel(2,2,1) = real(1, gp)
   symrel(3,3,1) = real(1, gp)
-  do iat = 1, at%nat
-     amass(iat) = amu2emass * at%amu(at%iatype(iat))
+  do iat = 1, at%astruct%nat
+     amass(iat) = amu2emass * at%amu(at%astruct%iatype(iat))
      do idim = 1, 3
         xred(idim, iat) = x((iat - 1) * 3 + idim) / acell(idim)
         fred(idim, iat) = - f((iat - 1) * 3 + idim) / acell(idim)
      end do
-     select case(at%ifrztyp(iat))
+     select case(at%astruct%ifrztyp(iat))
      case(0)
         iatfix(:, iat) = 0
      case(1)
@@ -271,7 +271,7 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   ! Call the ABINIT routine.
   ! currently, we force optcell == 0
-  call moldyn(acell, amass, iproc, in%ncount_cluster_x+1, nxfh, at%nat, &
+  call moldyn(acell, amass, iproc, in%ncount_cluster_x+1, nxfh, at%astruct%nat, &
        & rprim, epot, iexit, &
        & 0, in%ionmov, in%ncount_cluster_x, in%dtion, in%noseinert, &
        & in%mditemp, in%mdftemp, in%friction, in%mdwall, in%nnos, &
@@ -279,7 +279,7 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
        & in%strprecon, in%strfact, in%forcemax, &
        & 1, symrel, vel, xfhist, fred, xred)
 
-  do iat = 1, at%nat, 1
+  do iat = 1, at%astruct%nat, 1
      do idim = 1, 3, 1
         f(idim + 3 * (iat - 1)) = fred(idim, iat) * acell(idim)
      end do
@@ -375,16 +375,16 @@ subroutine fnrmandforcemax_old(ff,fnrm,fmax,at)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
-  real(gp), intent(in):: ff(3,at%nat)
+  real(gp), intent(in):: ff(3,at%astruct%nat)
   real(gp), intent(out):: fnrm, fmax
   real(gp):: t1,t2,t3
   integer:: iat
 
   fmax=0._gp
-  do iat=1,at%nat
-     call frozen_alpha(at%ifrztyp(iat),1,ff(1,iat)**2,t1)
-     call frozen_alpha(at%ifrztyp(iat),2,ff(2,iat)**2,t2)
-     call frozen_alpha(at%ifrztyp(iat),3,ff(3,iat)**2,t3)
+  do iat=1,at%astruct%nat
+     call frozen_alpha(at%astruct%ifrztyp(iat),1,ff(1,iat)**2,t1)
+     call frozen_alpha(at%astruct%ifrztyp(iat),2,ff(2,iat)**2,t2)
+     call frozen_alpha(at%astruct%ifrztyp(iat),3,ff(3,iat)**2,t3)
      fmax=max(fmax,sqrt(t1+t2+t3))
   enddo
 
@@ -416,7 +416,7 @@ subroutine transforce(at,fxyz,sumx,sumy,sumz)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
-  real(gp),intent(in):: fxyz(3,at%nat)
+  real(gp),intent(in):: fxyz(3,at%astruct%nat)
   real(gp), intent(out) :: sumx,sumy,sumz
   integer :: iat
 
@@ -424,7 +424,7 @@ subroutine transforce(at,fxyz,sumx,sumy,sumz)
   sumx=0._gp 
   sumy=0._gp 
   sumz=0._gp
-  do iat=1,at%nat
+  do iat=1,at%astruct%nat
 
      sumx=sumx+fxyz(1,iat) 
      sumy=sumy+fxyz(2,iat) 
@@ -440,7 +440,7 @@ subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
-  real(gp),intent(in):: fxyz(3,at%nat)
+  real(gp),intent(in):: fxyz(3,at%astruct%nat)
   real(gp), intent(out) :: sumx,sumy,sumz
   integer :: iat
   real(gp) :: alphax,alphay,alphaz
@@ -449,11 +449,11 @@ subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
   sumx=0._gp 
   sumy=0._gp 
   sumz=0._gp
-  do iat=1,at%nat
+  do iat=1,at%astruct%nat
 
-     call frozen_alpha(at%ifrztyp(iat),1,1.0_gp,alphax)
-     call frozen_alpha(at%ifrztyp(iat),2,1.0_gp,alphay)
-     call frozen_alpha(at%ifrztyp(iat),3,1.0_gp,alphaz)
+     call frozen_alpha(at%astruct%ifrztyp(iat),1,1.0_gp,alphax)
+     call frozen_alpha(at%astruct%ifrztyp(iat),2,1.0_gp,alphay)
+     call frozen_alpha(at%astruct%ifrztyp(iat),3,1.0_gp,alphaz)
 
      sumx=sumx+alphax*fxyz(1,iat) 
      sumy=sumy+alphay*fxyz(2,iat) 
@@ -477,9 +477,9 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   type(input_variables), intent(inout) :: in
   type(restart_objects), intent(inout) :: rst
   real(gp), intent(inout) :: epot
-  real(gp), dimension(3*at%nat), intent(inout) :: x
+  real(gp), dimension(3*at%astruct%nat), intent(inout) :: x
   logical, intent(out) :: fail
-  real(gp), dimension(3*at%nat), intent(inout) :: f
+  real(gp), dimension(3*at%astruct%nat), intent(inout) :: f
   !local variables
   character(len=*), parameter :: subname='rundiis'
   real(gp), dimension(6) :: strten
@@ -501,9 +501,9 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   fluct=0.0_gp
 
   ! We save pointers on data used to call bigdft() routine.
-  allocate(previous_forces(in%history, AT%NAT * 3+ndebug),stat=i_stat)
+  allocate(previous_forces(in%history, at%astruct%nat * 3+ndebug),stat=i_stat)
   call memocc(i_stat,previous_forces,'previous_forces',subname)
-  allocate(previous_pos(in%history, AT%NAT * 3+ndebug),stat=i_stat)
+  allocate(previous_pos(in%history, at%astruct%nat * 3+ndebug),stat=i_stat)
   call memocc(i_stat,previous_pos,'previous_pos',subname)
   allocate(product_matrix(in%history, in%history+ndebug),stat=i_stat)
   call memocc(i_stat,product_matrix,'product_matrix',subname)
@@ -511,8 +511,8 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   ! Set to zero the arrays
   call razero(in%history**2,product_matrix)
-  call razero(in%history*at%nat*3,previous_forces)
-  call razero(in%history*at%nat*3,previous_pos)
+  call razero(in%history*at%astruct%nat*3,previous_forces)
+  call razero(in%history*at%astruct%nat*3,previous_pos)
 
   ! We set the first step and move to the second
   previous_forces(1,:) = f(:)
@@ -616,7 +616,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
      ncount_bigdft=ncount_bigdft+1
 
-     call fnrmandforcemax(f,fnrm,fmax,at%nat)
+     call fnrmandforcemax(f,fnrm,fmax,at%astruct%nat)
      if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
      call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
 
@@ -681,9 +681,9 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   type(input_variables), intent(inout) :: in
   type(restart_objects), intent(inout) :: rst
   real(gp), intent(inout) :: etot
-  real(gp), dimension(3*at%nat), intent(inout) :: rxyz
+  real(gp), dimension(3*at%astruct%nat), intent(inout) :: rxyz
   logical, intent(inout) :: fail
-  real(gp), dimension(3*at%nat), intent(inout) :: fxyz
+  real(gp), dimension(3*at%astruct%nat), intent(inout) :: fxyz
 
   real(gp) :: fluct,fnrm,  fnoise
   real(gp) :: fmax,vmax
@@ -697,7 +697,8 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
 
 !Fire parameters:
   real(gp):: alpha,P,finc,fdec,falpha,alphastart,dt,dtmax,vnrm
-  real(gp):: velcur(3*at%nat), velpred(3*at%nat),poscur(3*at%nat),pospred(3*at%nat),fcur(3*at%nat),fpred(3*at%nat),mass(3*at%nat)
+  real(gp):: velcur(3*at%astruct%nat), velpred(3*at%astruct%nat),poscur(3*at%astruct%nat),pospred(3*at%astruct%nat)
+  real(gp):: fcur(3*at%astruct%nat),fpred(3*at%astruct%nat),mass(3*at%astruct%nat)
   real(gp):: epred,eprev,anoise !n(c) ecur
   integer:: Nmin,nstep,it
 
@@ -728,21 +729,21 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   eprev=0.0_gp
 
   Big_loop: do it=1,in%ncount_cluster_x-1
-     do iat=1,3*at%nat
+     do iat=1,3*at%astruct%nat
         pospred(iat)=poscur(iat)+dt*velcur(iat)+dt*dt*0.5_gp*fcur(iat)/mass(iat)
      enddo
 
      in%inputPsiId=1
      call call_bigdft(nproc,iproc,at,pospred,in,epred,fpred,strten,fnoise,rst,infocode)
      ncount_bigdft=ncount_bigdft+1
-     call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
+     call fnrmandforcemax(fpred,fnrm,fmax,at%astruct%nat)
    !  call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
 
-     do iat=1,3*at%nat
+     do iat=1,3*at%astruct%nat
         velpred(iat)=velcur(iat)+0.5_gp*dt*(fpred(iat))/mass(iat)+0.5_gp*dt*fcur(iat)/mass(iat)
      enddo
      P=dot_product(fpred,velpred)
-     call fnrmandforcemax(velpred,vnrm,vmax,at%nat)
+     call fnrmandforcemax(velpred,vnrm,vmax,at%astruct%nat)
 
      if (iproc == 0) then
         write(fn4,'(i4.4)') ncount_bigdft
@@ -799,9 +800,9 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
 !  velcur=velpred
 
 !!FIRE Update
-     call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
+     call fnrmandforcemax(fpred,fnrm,fmax,at%astruct%nat)
      fnrm=sqrt(fnrm)
-     call fnrmandforcemax(velpred,vnrm,vmax,at%nat)
+     call fnrmandforcemax(velpred,vnrm,vmax,at%astruct%nat)
      vnrm=sqrt(vnrm)
 !Modified velocity update, suggested by Alireza
 !  velcur(:)=(1.0_gp-alpha)*velpred(:)+fpred(:)*min(alpha*vnrm/fnrm,2.0_gp*in%betax)!alpha*fpred(:)/fnrm*vnrm

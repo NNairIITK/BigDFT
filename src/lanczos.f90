@@ -24,8 +24,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    type(nonlocal_psp_descriptors), intent(in), target :: nlpspd
    type(local_zone_descriptors), intent(inout), target :: Lzd
    type(denspot_distribution), intent(in), target :: dpcom
-   real(gp), dimension(3,at%nat), intent(in), target :: rxyz
-   real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
+   real(gp), dimension(3,at%astruct%nat), intent(in), target :: rxyz
+   real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
    real(wp), dimension(nlpspd%nprojel), intent(in), target :: proj
    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
    type(energy_terms), intent(inout) :: energs
@@ -53,7 +53,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    end if
    GPU%full_locham=.true.
    if (OCLconv) then
-      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%geocode,&
+      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
          &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
       if (iproc == 0) write(*,*) 'GPU data allocated'
    end if
@@ -73,11 +73,11 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
 
 
-   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
+   if(   at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
       Gabs_coeffs(:)=in%Gabs_coeffs(:)
    else     
       print * ," You are asking for a spectra for atom " , in_iat_absorber
-      print *, " but at%paw_NofL( at%iatype(   in_iat_absorber ) )=0 " 
+      print *, " but at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) )=0 " 
       print *, " this mean that the pseudopotential file is not pawpatched. "
       print *, " You'll have to generated the patch with pseudo"
       STOP     
@@ -187,8 +187,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    type(nonlocal_psp_descriptors), target :: nlpspd
    type(local_zone_descriptors), target :: Lzd
    type(denspot_distribution), intent(in), target :: dpcom
-   real(gp), dimension(3,at%nat), target :: rxyz
-   real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
+   real(gp), dimension(3,at%astruct%nat), target :: rxyz
+   real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
    real(wp), dimension(nlpspd%nprojel), target :: proj
    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
    type(energy_terms), intent(inout) :: energs
@@ -224,7 +224,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    GPU%full_locham=.true.
 
    if (OCLconv) then
-      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%geocode,&
+      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
          &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
       if (iproc == 0) write(*,*)&
          &   'GPU data allocated'
@@ -240,10 +240,10 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
    call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
 
-   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
+   if(   at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
    else
       print * ," You are asking for a spactra for atom " , in_iat_absorber
-      print *, " but at%paw_NofL( at%iatype(   in_iat_absorber ) )=0 " 
+      print *, " but at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) )=0 " 
       print *, " this mean that the pseudopotential file is not pawpatched. "
       print *, " You'll have to generated the patch with pseudo"
       STOP     
@@ -435,8 +435,8 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    type(local_zone_descriptors), target :: Lzd
    type(pcproj_data_type), target ::PPD
    type(denspot_distribution), intent(in), target :: dpcom
-   real(gp), dimension(3,at%nat), target :: rxyz
-   real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
+   real(gp), dimension(3,at%astruct%nat), target :: rxyz
+   real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
    real(wp), dimension(nlpspd%nprojel), target :: proj
    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: rhoXanes
@@ -474,7 +474,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    end if
    GPU%full_locham=.true.
    if (OCLconv) then
-      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%geocode,&
+      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
          &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
       if (iproc == 0) write(*,*)&
          &   'GPU data allocated'
@@ -494,11 +494,11 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
    call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
 
-   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
+   if(   at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
       Gabs_coeffs(:)=in%Gabs_coeffs(:)
    else
       print * ," You are asking for a spactra for atom " , in_iat_absorber
-      print *, " but at%paw_NofL( at%iatype(   in_iat_absorber ) )=0 " 
+      print *, " but at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) )=0 " 
       print *, " this mean that the pseudopotential file is not pawpatched. "
       print *, " You'll have to generated the patch with pseudo"
       STOP     
@@ -707,9 +707,9 @@ function GetBottom(atoms,nspin)
       noncoll=1
    end if
 
-   do ity=1, atoms%ntypes
-      do iat=1, atoms%nat
-         if (ity.eq.atoms%iatype(iat)) exit
+   do ity=1, atoms%astruct%ntypes
+      do iat=1, atoms%astruct%nat
+         if (ity.eq.atoms%astruct%iatype(iat)) exit
       end do
       call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,atoms%aocc(1,iat),occup,nl)
 

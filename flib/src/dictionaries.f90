@@ -57,6 +57,7 @@ module dictionaries
      module procedure dict_new,dict_new_single
   end interface
 
+  integer(kind=8), external :: f_loc
 
   !> Public routines
   public :: operator(//),operator(.index.),assignment(=)

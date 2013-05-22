@@ -30,7 +30,8 @@ module exception_callbacks
 
   public :: f_err_set_callback,f_err_unset_callback
   public :: f_err_severe,f_err_severe_override,f_err_severe_restore
-  public :: f_loc
+  
+  ! public :: f_loc
 
 contains
 

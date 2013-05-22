@@ -67,7 +67,7 @@ program BigDFT
 
          !here we should define a routine to extract the number of atoms and the positions, and allocate forces array
 
-         allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
+         allocate(fxyz(3,atoms%astruct%nat+ndebug),stat=i_stat)
          call memocc(i_stat,fxyz,'fxyz',subname)
          call init_restart_objects(bigdft_mpi%iproc,inputs,atoms,rst,subname)
 
