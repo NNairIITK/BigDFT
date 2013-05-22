@@ -2774,6 +2774,7 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, nfrag, frag
   use module_types
   use yaml_output
   use module_fragments
+  use module_interfaces
   implicit none
   integer, intent(out) :: input_wf_format         !< (out) Format of WF
   integer, intent(inout) :: inputpsi              !< (in) indicate how check input psi, (out) give how to build psi

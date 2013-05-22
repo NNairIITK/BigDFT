@@ -673,6 +673,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
    use module_base
    use module_types
    use yaml_output
+   use module_interfaces, except_this_one => NonLocalHamiltonianApplication
    use gaussians, only: gaussian_basis
    implicit none
    integer, intent(in) :: iproc, npsidim_orbs
