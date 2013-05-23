@@ -275,8 +275,8 @@ BigDFT2Wannier.b2w.ref.yaml:
   amnk_guess(nb): 1.31e-10
 
 cleanup:
- Atomic Forces (Ha/Bohr): 2.41e-10
- Average noise forces: 1.5e-10
+ Atomic Forces (Ha/Bohr): 2.45e-10
+ Average noise forces: 2.1e-10
  Clean forces norm (Ha/Bohr): 1.6e-10
  Raw forces norm (Ha/Bohr): 2.4e-10
 
