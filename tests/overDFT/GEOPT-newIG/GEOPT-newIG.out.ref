@@ -1,0 +1,157 @@
+ <BigDFT> Log of the run will be written in logfile: .//log.yaml
+ <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.11:11:38.932.yaml
+ --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
+   Atomic system                  Fixed positions           Additional data
+ Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
+ N. types =     2         |                          | Sp. group = free BC     
+ N. atoms =     8         |                          | Virt. orb.= none        
+ Types    = 'C', 'H'      |                          | Plot dens.= none        
+                          |                          | Spin pol. = no          
+ --- (file: input.geopt) ------------------------------------- Geopt Input Parameters
+       Generic param.              Geo. optim.                MD param.
+       Max. steps=      5 | Fluct. in forces=1.0E+00 |           ionmov=     -1
+        algorithm=BFGS    |   Max. in forces=4.0E-04 |            dtion=     0.
+ random at.displ.=0.0E+00 |   steep. descent=2.0E+00 |
+ 
+ Number of MPI processes 4
+ Number of maximal OpenMP threads per MPI process 2
+ No material acceleration (iproc=0)
+ 
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
+ Exchange-corr. ref.                                                   (XC: Teter 93)
+                                                    XC functional provided by ABINIT.
+ ion-ion interaction energy  2.60871344043436E+01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge           -14.000000016733   0.000E+00
+ ----------------------------------------------------------------- Forces Calculation
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ average noise along x direction:  -1.05633168E-04
+ average noise along y direction:  -3.77012420E-05
+ average noise along z direction:  -2.65903764E-05
+ total average noise            :   1.15268373E-04
+ clean forces norm (Ha/Bohr): maxval=  1.546197427510E-01  fnrm2=  6.248007333078E-02
+ raw forces:                  maxval=  1.546062025309E-01  fnrm2=  6.248015219766E-02
+ Wavefunction Optimization Finished, exit signal=    0
+# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
+ Begin of minimization using  BFGS      
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
+ Exchange-corr. ref.                                                   (XC: Teter 93)
+                                                    XC functional provided by ABINIT.
+ ion-ion interaction energy  2.60871344043436E+01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge           -14.000000016733   0.000E+00
+ The wavefunctions do not need reformatting and can be imported directly...    done.
+ ----------------------------------------------------------------- Forces Calculation
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ average noise along x direction:  -1.05896470E-04
+ average noise along y direction:  -3.75506432E-05
+ average noise along z direction:  -2.63800345E-05
+ total average noise            :   1.15412389E-04
+ clean forces norm (Ha/Bohr): maxval=  1.546217812681E-01  fnrm2=  6.248110333854E-02
+ raw forces:                  maxval=  1.546083537257E-01  fnrm2=  6.248118206920E-02
+ ICHECK            0
+    1     0  GEOPT_BFGS  -1.48023661166073E+01   0.00E+00  1.546E-01  2.50E-01  1.15E-04  1.15E-04  isatur=  0
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
+ Exchange-corr. ref.                                                   (XC: Teter 93)
+                                                    XC functional provided by ABINIT.
+ ion-ion interaction energy  2.56164054781763E+01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge           -13.999999976407   0.000E+00
+ ----------------------------------------------------------------- Forces Calculation
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ average noise along x direction:   6.88126155E-05
+ average noise along y direction:   3.65717540E-05
+ average noise along z direction:   8.60403119E-05
+ total average noise            :   1.16084471E-04
+ clean forces norm (Ha/Bohr): maxval=  5.248546766735E-02  fnrm2=  1.286011203148E-02
+ raw forces:                  maxval=  5.241715395632E-02  fnrm2=  1.286015921850E-02
+ ICHECK            0
+    2     1  GEOPT_BFGS  -1.48539934627180E+01  -5.16E-02  5.249E-02  1.13E-01  1.16E-04  1.16E-04  isatur=  0
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
+ Exchange-corr. ref.                                                   (XC: Teter 93)
+                                                    XC functional provided by ABINIT.
+ ion-ion interaction energy  2.60626556968314E+01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge           -14.000000013656   0.000E+00
+ ----------------------------------------------------------------- Forces Calculation
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ average noise along x direction:   2.80996770E-05
+ average noise along y direction:   1.69620263E-05
+ average noise along z direction:   7.35740327E-05
+ total average noise            :   8.05632700E-05
+ clean forces norm (Ha/Bohr): maxval=  4.518112292154E-02  fnrm2=  7.869709125338E-03
+ raw forces:                  maxval=  4.520250840348E-02  fnrm2=  7.869745746479E-03
+ ICHECK            0
+    3     2  GEOPT_BFGS  -1.48736693292579E+01  -1.97E-02  4.518E-02  8.87E-02  1.09E-04  1.09E-04  isatur=  0
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
+ Exchange-corr. ref.                                                   (XC: Teter 93)
+                                                    XC functional provided by ABINIT.
+ ion-ion interaction energy  2.69500795609308E+01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge           -13.999999954348   0.000E+00
+ ----------------------------------------------------------------- Forces Calculation
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ average noise along x direction:   1.90518565E-05
+ average noise along y direction:  -1.74972370E-05
+ average noise along z direction:   1.41740624E-04
+ total average noise            :   1.44081682E-04
+ clean forces norm (Ha/Bohr): maxval=  3.192164201970E-02  fnrm2=  3.475538958433E-03
+ raw forces:                  maxval=  3.188132842178E-02  fnrm2=  3.475610993767E-03
+ ICHECK            0
+    4     3  GEOPT_BFGS  -1.48932943225552E+01  -1.96E-02  3.192E-02  5.90E-02  1.16E-04  1.16E-04  isatur=  0
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
+ Exchange-corr. ref.                                                   (XC: Teter 93)
+                                                    XC functional provided by ABINIT.
+ ion-ion interaction energy  2.70563353016257E+01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge           -13.999999945166   0.000E+00
+ ----------------------------------------------------------------- Forces Calculation
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ average noise along x direction:   1.48238863E-04
+ average noise along y direction:  -5.37390602E-05
+ average noise along z direction:   1.02933410E-04
+ total average noise            :   1.88302773E-04
+ clean forces norm (Ha/Bohr): maxval=  1.872323041896E-02  fnrm2=  1.329644802154E-03
+ raw forces:                  maxval=  1.871099834008E-02  fnrm2=  1.329697255413E-03
+ ICHECK            0
+    5     4  GEOPT_BFGS  -1.48976432219620E+01  -4.35E-03  1.872E-02  3.65E-02  1.30E-04  1.30E-04  isatur=  0
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
+ Exchange-corr. ref.                                                   (XC: Teter 93)
+                                                    XC functional provided by ABINIT.
+ ion-ion interaction energy  2.69184805358297E+01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge           -13.999999964299   0.000E+00
+ ----------------------------------------------------------------- Forces Calculation
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ average noise along x direction:   9.12276243E-05
+ average noise along y direction:  -7.97427817E-05
+ average noise along z direction:  -3.02217257E-05
+ total average noise            :   1.24878915E-04
+ clean forces norm (Ha/Bohr): maxval=  1.521010794471E-02  fnrm2=  6.917639773177E-04
+ raw forces:                  maxval=  1.519847260116E-02  fnrm2=  6.918472043904E-04
+ ICHECK            0
+    6     5  GEOPT_BFGS  -1.48997001056211E+01  -2.06E-03  1.521E-02  2.63E-02  1.29E-04  1.29E-04  isatur=  0
+End of minimization using  BFGS      
+ Final values of the Forces for each atom
+     1      C -3.24893E-03 -9.95202E-03 -8.22223E-03
+     2      C  2.89261E-03  6.93987E-03  1.32219E-02
+     3      H -1.94917E-03  4.98597E-03 -2.63236E-03
+     4      H  2.09396E-03 -8.05755E-03 -4.12164E-03
+     5      H -5.25393E-04 -3.43424E-03 -3.34640E-03
+     6      H -4.34676E-04  6.06692E-03  3.89620E-03
+     7      H -9.96466E-04  2.93385E-03 -5.33866E-03
+     8      H  2.16806E-03  5.17194E-04  6.54320E-03
