@@ -61,12 +61,13 @@ SiH4:
 AgBulk:
  Grid Spacing threshold (AU): 1.e-2
  Residues per orbital: 2.2e-8
- EH: 1.5e-11
- EXC: 2.7e-11
+ EH: 1.6e-11
+ EXC: 2.9e-11
+ Ekin: 1.2e-11
  Enl: 2.3e-11
- Epot: 1.9e-11
- EvXC: 3.6e-11
- tr(H): 2.4e-11
+ Epot: 2.1e-11
+ EvXC: 3.7e-11
+ tr(H): 2.5e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -77,6 +78,8 @@ SiBulk:
  Enl: 2.1e-11
  Epot: 1.0e-10
  EvXC: 1.1e-10
+ Atomic Forces (Ha/Bohr): 1.2e-11
+ Clean forces norm (Ha/Bohr): 1.2e-11
 # Energies: &en 8.7e-7
 # Complete list of energy eigenvalues: *en
 # EKS: *en
