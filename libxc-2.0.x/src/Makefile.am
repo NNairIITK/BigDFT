@@ -139,13 +139,13 @@ libxc_la-libxc_s.lo: libxc_s.f90 $(LIBFUNCMOD)
 	$(LIBTOOL)  --tag=FC $(libxc_la_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(FC) $(AM_FCFLAGS) $(FCFLAGS) -c -o libxc_la-libxc_s.lo $(FCFLAGS_f90) `test -f 'libxc_s.f90' || echo '$(srcdir)/'`libxc_s.f90
 
 
-libxc.f90: libxc_master.F90 libxc_funcs.o
+libxc.f90: libxc_master.F90 $(LIBFUNCMOD)
 	@FCCPP@ @CPPFLAGS@ $(AM_CPPFLAGS) $(srcdir)/libxc_master.F90 > $(top_builddir)/src/libxc.f90
 	@if [ "@F90_ACCEPTS_LINE_NUMBERS@" = "no" ]; then \
 		grep -v "^#" $(top_builddir)/src/libxc.f90 > $(top_builddir)/src/libxc.f91; \
 		mv -f $(top_builddir)/src/libxc.f91 $(top_builddir)/src/libxc.f90; \
 	fi
-libxc_s.f90: libxc_master.F90 libxc_funcs.o
+libxc_s.f90: libxc_master.F90 $(LIBFUNCMOD)
 	@FCCPP@ -D SINGLE_PRECISION=1 @CPPFLAGS@ $(AM_CPPFLAGS) $(srcdir)/libxc_master.F90 > $(top_builddir)/src/libxc_s.f90
 	@if [ "@F90_ACCEPTS_LINE_NUMBERS@" = "no" ]; then \
 		grep -v "^#" $(top_builddir)/src/libxc_s.f90 > $(top_builddir)/src/libxc_s.f91; \
