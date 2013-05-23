@@ -27,7 +27,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.28
- Timestamp of this run                 : 2013-05-11 14:29:55.358
+ Timestamp of this run                 : 2013-05-23 12:09:30.874
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  1
  OpenMP parallelization                :  Yes
@@ -35,18 +35,15 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/opt/intel/bin/ifort' 'FCFLAGS=-O2 -openmp' 
-      '--with-ext-linalg=-Wl,--start-group  /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.a 
-      /opt/intel/mkl/lib/intel64/libmkl_intel_thread.a 
-      /opt/intel/mkl/lib/intel64/libmkl_core.a -Wl,--end-group -openmp -lpthread' 
-      '--with-ext-linalg-path=-L/opt/intel/mkl/lib/intel64' '--with-blas=no' 
-      '--with-lapack=no' '--enable-dgemmsy' '--enable-minima-hopping' '--disable-mpi' 
-      'CC=icc' 'CFLAGS=-O2 -openmp' 'CCLD=icc'"
-   Compilers (CC, FC, CXX)             :  [ icc, /opt/intel/bin/ifort, g++ ]
+     " 'FC=ifort' 'CC=icc' 'FCFLAGS=-openmp -O3' 'CFLAGS=-O3' 'CXXFLAGS=-O3' 
+      '--with-ext-linalg=-lmkl_solver_lp64_sequential -Wl,--start-group -lmkl_intel_lp64 
+      -lmkl_sequential -lmkl_core -Wl,--end-group -lpthread' '--disable-bindings' 
+      '--disable-mpi'"
+   Compilers (CC, FC, CXX)             :  [ icc, ifort, g++ ]
    Compiler flags:
-     CFLAGS                            : -O2 -openmp
-     FCFLAGS                           : -O2 -openmp
-     CXXFLAGS                          : -g -O2
+     CFLAGS                            : -O3
+     FCFLAGS                           : -openmp -O3
+     CXXFLAGS                          : -O3
      CPPFLAGS                          : 
  #... (file:input.perf.. not present)...................................Performance Options 
  #|debug F                      Debug option                                                 
@@ -194,28 +191,28 @@
  Need to reformat wavefunctions        :  No
  Need to reformat wavefunctions        :  No
  Reading Waves Time:
- -  {Process:  0, Timing:  [  1.600E-01,  9.890E-02 ]}
- Proc           0  allocates psi to      115430
- Proc           0  treats orbital           1
- Proc           0  treats orbital           2
- Proc           0  treats orbital           3
- Proc           0  treats orbital           4
- Proc           0  treats orbital           5
- Proc           0  orbital           1  is of norm   0.999999999999766     
- Proc           0  orbital           2  is of norm   0.999999999999845     
- Proc           0  orbital           3  is of norm    1.00000000000003     
- Proc           0  orbital           4  is of norm   0.999999999999811     
- Proc           0  orbital           5  is of norm    1.00000000000014     
- Proc           0  treats       115430 components of all orbitals.
+ -  {Process:  0, Timing:  [  1.640E+00,  5.565E-01 ]}
+  #Proc 0 allocates psi to  115430
+  #Proc 0 treats orbital 1
+  #Proc 0 treats orbital 2
+  #Proc 0 treats orbital 3
+  #Proc 0 treats orbital 4
+  #Proc 0 treats orbital 5
+  #Proc 0 orbital 1 is of norm  0.99999999999976641
+  #Proc 0 orbital 2 is of norm  0.99999999999984635
+  #Proc 0 orbital 3 is of norm  0.99999999999975109
+  #Proc 0 orbital 4 is of norm  1.0000000000000171
+  #Proc 0 orbital 5 is of norm  1.0000000000001343
+  #Proc 0 treats  115430components of all orbitals.
  The overlap matrix is:
- -  [  1.0000000,  0.22010171E-13, -0.10128617E-13, -0.44522112E-13,  0.54289906E-13 ]
- -  [  0.22010171E-13,  1.0000000, -0.95175604E-13, -0.44532086E-13, -0.19900748E-12 ]
- -  [ -0.10128617E-13, -0.95175604E-13,  1.0000000,  0.76800545E-13,  0.44108814E-13 ]
- -  [ -0.44522112E-13, -0.44532086E-13,  0.76800545E-13,  1.0000000, -0.20319683E-13 ]
- -  [  0.54289906E-13, -0.19900748E-12,  0.44108814E-13, -0.20319683E-13,  1.0000000 ]
- System has   9.99999880900030      electrons.
+ -  [  1.0000000,  0.11842674E-13,  0.36104533E-13, -0.35039537E-13,  0.53225164E-13 ]
+ -  [  0.11842674E-13,  1.0000000,  0.24941557E-13, -0.50536905E-13, -0.19112863E-12 ]
+ -  [  0.36104533E-13,  0.24941557E-13,  1.0000000,  0.12477962E-13,  0.11595004E-13 ]
+ -  [ -0.35039537E-13, -0.50536905E-13,  0.12477962E-13,  1.00000000, -0.28665483E-13 ]
+ -  [  0.53225164E-13, -0.19112863E-12,  0.11595004E-13, -0.28665483E-13,  1.00000000 ]
+ Number of electrons                   :  9.9999988090005694
  GPU acceleration                      :  No
- Total electronic charge               :  9.999998809000
+ Total electronic charge               :  9.999998809001
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  1
@@ -226,4 +223,4 @@
    BC                                  : Free
    Box                                 :  [  91,  91,  101 ]
    MPI tasks                           :  1
- System pseudo energy is -0.404200517880341      Ht.
+ System pseudo energy (Ha)             : -0.40420051788038436
