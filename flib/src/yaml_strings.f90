@@ -219,7 +219,6 @@ contains
     character(len=max_value_length) :: zr,zi
     double complex :: ztmp
     double precision, dimension(2) :: zeta
-    equivalence (ztmp,zeta)
 
     yaml_ztoa=repeat(' ',max_value_length)
     ztmp=z

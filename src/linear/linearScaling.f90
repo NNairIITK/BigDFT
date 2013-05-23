@@ -25,7 +25,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(DFT_wavefunction),intent(inout),target :: tmb
   type(DFT_wavefunction),intent(inout),target :: KSwfn
   integer,intent(out) :: infocode
-  type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags ! for transfer integrals
+  type(system_fragment), dimension(:), pointer :: ref_frags ! for transfer integrals
   
   real(8) :: pnrm,trace,trace_old,fnrm_tmb
   integer :: infoCoeff,istat,iall,it_scc,itout,info_scf,i,ierr,iorb
@@ -1575,7 +1575,7 @@ subroutine calc_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovr
      !ifrag_ref=input_frag%frag_index(ifrag)
      do ifrag=1,input_frag%nfrag
         !jfrag_ref=input_frag%frag_index(jfrag)
-        if (iproc==0) write(*,'(2(I5,x),x,2(2(F16.12,x),x))') jfrag, ifrag, homo_ham(jfrag,ifrag), lumo_ham(jfrag,ifrag), &
+        if (iproc==0) write(*,'(2(I5,1x),1x,2(2(F16.12,1x),1x))') jfrag, ifrag, homo_ham(jfrag,ifrag), lumo_ham(jfrag,ifrag), &
              homo_ovrlp(jfrag,ifrag), lumo_ovrlp(jfrag,ifrag)
      end do
   end do

@@ -1209,7 +1209,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
            call input_var( in%kpt(2,i),'0.')
         end if
         call input_var( in%kpt(3,i),'0.')
-        call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weigth')
+        call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weight')
         if (geocode == 'F') then
            in%kpt = 0.
            in%wkpt = 1.

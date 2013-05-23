@@ -1601,7 +1601,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          frag_trans(iorb)%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
          frag_trans(iorb)%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
          frag_trans(iorb)%rot_center(:)=rxyz_old(:,iiat)
-         frag_trans(iorb)%dr(:)=rxyz(:,iiat)-rxyz_old(:,iiat)
+         frag_trans(iorb)%rot_center_new(:)=rxyz(:,iiat)
      end do
 
      call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,tmb_old%psi)
@@ -2393,7 +2393,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(grid_dimensions), intent(in) :: d_old
   real(gp), dimension(3, atoms%astruct%nat), intent(inout) :: rxyz_old
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
-  type(system_fragment), dimension(in%frag%nfrag_ref), intent(inout) :: ref_frags
+  type(system_fragment), dimension(:), pointer :: ref_frags
   !local variables
   character(len = *), parameter :: subname = "input_wf"
   integer :: i_stat, nspin, i_all, ifrag, iorb, itmb, jtmb, ierr
@@ -2770,20 +2770,20 @@ END SUBROUTINE input_wf
 !!                              otherwise switch to normal input guess
 !!    INPUT_PSI_DISK_LINEAR : psi on memory (linear version)
 !!    INPUT_PSI_LCAO          : Use normal input guess (Linear Combination of Atomic Orbitals)
-subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, nfrag, frag_dir, orbs, lorbs, iproc, nproc, ref_frags)
+subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc, nproc, nfrag, frag_dir, ref_frags)
   use module_types
   use yaml_output
   use module_fragments
-  use module_interfaces
+  use module_interfaces, except_this_one=>input_check_psi_id
   implicit none
   integer, intent(out) :: input_wf_format         !< (out) Format of WF
   integer, intent(inout) :: inputpsi              !< (in) indicate how check input psi, (out) give how to build psi
   integer, intent(in) :: iproc                    !< (in)  id proc
   integer, intent(in) :: nproc                    !< (in)  #proc
   integer, intent(in) :: nfrag                    !< number of fragment directories which need checking
-  type(system_fragment), dimension(nfrag), intent(in) :: ref_frags  !< number of orbitals for each fragment
+  type(system_fragment), dimension(:), pointer :: ref_frags  !< number of orbitals for each fragment
+  character(len=100), dimension(nfrag), intent(in) :: frag_dir !< label for fragment subdirectories (blank if not a fragment calculation)
   character(len = *), intent(in) :: dir_output
-  character(len=100), dimension(nfrag) :: frag_dir !< label for fragment subdirectories (blank if not a fragment calculation)
   type(orbitals_data), intent(in) :: orbs, lorbs
 
   logical :: onefile

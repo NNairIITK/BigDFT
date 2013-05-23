@@ -18,7 +18,7 @@ subroutine f_dump_error(newerror_code,err_msg)
 
   !dump the error message
   call yaml_dict_dump(f_get_error_dict(newerror_code))
-  if (len_trim(err_msg)==0) call yaml_map('Additional Info',err_msg)
+  if (len_trim(err_msg)/=0) call yaml_map('Additional Info',err_msg)
 
 end subroutine f_dump_error
 
