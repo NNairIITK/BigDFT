@@ -28,23 +28,11 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
 
   !Initalize the global mpi environment
   call bigdft_mpi_init(ierr)
-  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-
   if (ierr /= MPI_SUCCESS) return
-
-  !set the memory limit for the allocation library
-  !call f_set_status(memory_limit=memorylimit,iproc=iproc)
-  call memocc_set_memory_limit(memorylimit)
-
 
   call command_line_information(mpi_groupsize,posinp_file,radical,ierr)
 
-!!$  print *,'list_posinp',trim(posinp_file),'iproc',iproc
-!!$  print *,'run_id',trim(radical),'iproc',iproc
-!!$  print *,'mpi_groupsize',mpi_groupsize,'iproc',iproc
-
-  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,mpi_groupsize)
+  call bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
 
   !minimum number of different configurations dictated by ngroups
   nconfig=bigdft_mpi%ngroup
@@ -63,14 +51,38 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
         stop
      end if
   end if
+end subroutine bigdft_init
+
+subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
+  use BigDFT_API
+  implicit none
+  
+  integer, dimension(4), intent(out) :: mpi_info
+  integer, intent(in) :: mpi_groupsize
+  integer, intent(out) :: ierr
+  !local variables
+  integer :: iproc,nproc
+
+  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+  if (ierr /= MPI_SUCCESS) return
+
+  !set the memory limit for the allocation library
+  call f_set_status(memory_limit=memorylimit,iproc=iproc)
+  !call memocc_set_memory_limit(memorylimit)
+
+!!$  print *,'list_posinp',trim(posinp_file),'iproc',iproc
+!!$  print *,'run_id',trim(radical),'iproc',iproc
+!!$  print *,'mpi_groupsize',mpi_groupsize,'iproc',iproc
+
+  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,mpi_groupsize)
+
   !final values
   mpi_info(1)=bigdft_mpi%iproc
   mpi_info(2)=bigdft_mpi%nproc
   mpi_info(3)=bigdft_mpi%igroup
   mpi_info(4)=bigdft_mpi%ngroup
-
-end subroutine bigdft_init
-
+end subroutine bigdft_init_mpi_env
 
 subroutine bigdft_finalize(ierr)
   use BigDFT_API

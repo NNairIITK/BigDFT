@@ -90,9 +90,9 @@ subroutine bigdft_free_input(in)
   type(input_variables), intent(inout) :: in
   
   call free_input_variables(in)
-  !call f_finalize()
+  call f_finalize()
   !finalize memory counting
-  call memocc(0,0,'count','stop')
+  !call memocc(0,0,'count','stop')
   !free all yaml_streams active
   call yaml_close_all_streams()
 
@@ -230,6 +230,7 @@ subroutine standard_inputfile_names(in, radical, nproc)
   call set_inputfile(in%file_occnum, radical, "occ")
   call set_inputfile(in%file_igpop, radical,  "occup")
   call set_inputfile(in%file_lin, radical,    "lin")
+  call set_inputfile(in%file_frag, radical,    "frag")
 
   if (trim(radical) == "input") then
         in%dir_output="data" // trim(bigdft_run_id_toa())
@@ -441,6 +442,8 @@ subroutine default_input_variables(in)
   nullify(in%lin%locrad_highaccuracy)
   nullify(in%lin%locrad_type)
   nullify(in%lin%kernel_cutoff)
+  nullify(in%frag%frag_info)
+  nullify(in%frag%frag_index)
 END SUBROUTINE default_input_variables
 
 
@@ -506,7 +509,8 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   in%idsx = min(in%idsx, in%itermax)
 
   !dispersion parameter
-  call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
+  call input_var(in%dispersion,'0',ranges=(/0,5/),&
+       comment='dispersion correction potential (values 1,2,3,4,5), 0=none')
     
   ! Now the variables which are to be used only for the last run
   call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,13,100,101,102/),input_iostat=ierror)
@@ -920,11 +924,12 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   !plot basis functions: true or false
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
-           'calculate dipole ; pulay correction'
+           'calculate dipole ; pulay correction ; fragment calculation'
   call input_var(in%lin%plotBasisFunctions,'0',ranges=(/0,3/))
   call input_var(in%lin%calc_dipole,'F')
-  call input_var(in%lin%pulay_correction,'T',comment=comments)
-  
+  call input_var(in%lin%pulay_correction,'T')
+  call input_var(in%lin%fragment_calculation,'F',comment=comments)
+
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%ntypes)
@@ -1608,8 +1613,8 @@ subroutine perf_input_variables(iproc,dump,filename,in)
 
 !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
   if (in%verbosity == 0 ) then
-     !call f_set_status(output_level=0)
-     call memocc_set_state(0)
+     call f_set_status(output_level=0)
+     !call memocc_set_state(0)
   end if
 
   !here the logfile should be opened in the usual way, differentiating between 
@@ -1642,8 +1647,8 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   
   ! Set performance variables
   if (.not. in%debug) then
-     !call f_set_status(output_level=1)
-     call memocc_set_state(1)
+     call f_set_status(output_level=1)
+     !call memocc_set_state(1)
   end if
   call set_cache_size(in%ncache_fft)
 
@@ -1661,6 +1666,132 @@ subroutine perf_input_variables(iproc,dump,filename,in)
      write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
   end if
 END SUBROUTINE perf_input_variables
+
+!> Read fragment input parameters
+subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
+  use module_base
+  use module_types
+  use module_input
+  implicit none
+  integer, intent(in) :: iproc
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  type(atoms_data), intent(inout) :: atoms
+  logical, intent(in) :: dump
+  !local variables
+  logical :: exists
+  character(len=*), parameter :: subname='fragment_input_variables'
+  character(len=256) :: comments
+  character(len=20):: atomname
+  integer :: ifrag, frag_num, ios, ierr, istat
+
+  !Linear input parameters
+  call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters')  
+  if (exists) in%files = in%files + INPUTS_FRAG
+
+  if (.not. exists .and. in%lin%fragment_calculation) then ! we should be doing a fragment calculation, so this is a problem
+     write(*,'(1x,a)',advance='no') "ERROR: the file 'input.frag' is missing and fragment calculation was specified"
+     call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+     stop
+  end if
+
+  ! number of reference fragments
+  comments='# number of fragments in reference system, number of fragments in current system'
+  call input_var(in%frag%nfrag_ref,'1',ranges=(/1,100000/))
+  call input_var(in%frag%nfrag,'1',ranges=(/1,100000/),comment=comments)
+  
+  ! Allocate fragment pointers
+  call nullifyInputFragParameters(in%frag)
+  call allocateInputFragArrays(in%frag)
+
+  comments = '# reference fragment number i, number of atoms in reference fragment i, '//&
+             'number of atoms in corresponding environment'
+  do ifrag=1,in%frag%nfrag_ref
+    call input_var(frag_num,'1',ranges=(/1,in%frag%nfrag_ref/))
+    if (frag_num/=ifrag) then
+        write(*,'(1x,a)',advance='no') "ERROR: the file 'input.frag' has an error when specifying&
+             & the reference fragments"
+       call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+       stop
+    end if
+    call input_var(in%frag%frag_info(frag_num,1),'1',ranges=(/1,100000/))
+    call input_var(in%frag%frag_info(frag_num,2),'0',ranges=(/0,100000/),comment=comments)
+  end do
+
+  comments = '# fragment number j, reference fragment i this corresponds to'
+  do ifrag=1,in%frag%nfrag
+    call input_var(frag_num,'1',ranges=(/1,in%frag%nfrag/))
+    if (frag_num/=ifrag) then
+        write(*,'(1x,a)',advance='no') "ERROR: the file 'input.frag' has an error when specifying&
+             & the system fragments"
+       call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+       stop
+    end if
+    call input_var(in%frag%frag_index(frag_num),'1',ranges=(/1,in%frag%nfrag_ref/),comment=comments)
+  end do
+
+  call input_free((iproc == 0) .and. dump)
+
+END SUBROUTINE fragment_input_variables
+
+  subroutine allocateInputFragArrays(input_frag)
+    use module_types
+    implicit none
+  
+    ! Calling arguments
+    type(fragmentInputParameters),intent(inout) :: input_frag
+  
+    ! Local variables
+    integer :: i_stat
+    character(len=*),parameter :: subname='allocateInputFragArrays'
+ 
+    allocate(input_frag%frag_index(input_frag%nfrag), stat=i_stat)
+    call memocc(i_stat, input_frag%frag_index, 'input_frag%frag_index', subname)
+
+    allocate(input_frag%frag_info(input_frag%nfrag_ref,2), stat=i_stat)
+    call memocc(i_stat, input_frag%frag_info, 'input_frag%frag_info', subname)
+
+  end subroutine allocateInputFragArrays
+
+  subroutine deallocateInputFragArrays(input_frag)
+    use module_types
+    implicit none
+  
+    ! Calling arguments
+    type(fragmentInputParameters),intent(inout) :: input_frag
+  
+    ! Local variables
+    integer :: i_stat,i_all
+    character(len=*),parameter :: subname='deallocateInputFragArrays'
+ 
+    if(associated(input_frag%frag_info)) then
+      i_all = -product(shape(input_frag%frag_info))*kind(input_frag%frag_info)
+      deallocate(input_frag%frag_info,stat=i_stat)
+      call memocc(i_stat,i_all,'input_frag%frag_info',subname)
+      nullify(input_frag%frag_info)
+    end if 
+ 
+    if(associated(input_frag%frag_index)) then
+      i_all = -product(shape(input_frag%frag_index))*kind(input_frag%frag_index)
+      deallocate(input_frag%frag_index,stat=i_stat)
+      call memocc(i_stat,i_all,'input_frag%frag_index',subname)
+      nullify(input_frag%frag_index)
+    end if 
+
+  end subroutine deallocateInputFragArrays
+
+
+  subroutine nullifyInputFragParameters(input_frag)
+    use module_types
+    implicit none
+
+    ! Calling arguments
+    type(fragmentInputParameters),intent(inout) :: input_frag
+
+    nullify(input_frag%frag_index)
+    nullify(input_frag%frag_info)
+
+  end subroutine nullifyInputFragParameters
 
 
 subroutine create_log_file(iproc,inputs)
@@ -1744,8 +1875,8 @@ subroutine create_log_file(iproc,inputs)
         !create that only if the stream is not already present, otherwise print a warning
         if (ierr == 0) then
            call input_set_stdout(unit=70)
-           !call f_set_status(unit=70,logfile_name=trim(inputs%dir_output)//'malloc.prc')
-           call memocc_set_stdout(unit=70)
+           call f_set_status(unit=70,logfile_name=trim(inputs%dir_output)//'malloc.prc')
+           !call memocc_set_stdout(unit=70)
         else
            call yaml_warning('Logfile '//trim(logfile)//' cannot be created, stream already present. Ignoring...')
         end if
@@ -1813,6 +1944,7 @@ subroutine free_input_variables(in)
   end if
   call free_kpt_variables(in)
   call deallocateBasicArraysInput(in%lin)
+  call deallocateInputFragArrays(in%frag)
 
   ! Free the libXC stuff if necessary, related to the choice of in%ixc.
   call xc_end()

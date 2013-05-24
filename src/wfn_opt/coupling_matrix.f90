@@ -47,7 +47,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
      hxh,hyh,hzh,chargec,pkernel,dvxcdrho,psirocc,psivirtr)
   use module_base
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode

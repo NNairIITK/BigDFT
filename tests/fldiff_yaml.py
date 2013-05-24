@@ -147,13 +147,16 @@ def compare_map(map, ref, tols, always_fails = False):
       if failed:
         if key in tols:
           if type(newtols)== type({}):
-            tols[key].update(newtols)
+            if type(tols[key]) == type({}):
+              tols[key].update(newtols)
+            else:
+              tols[key]=newtols
           elif type(newtols) == type([]):
             tols[key]=newtols
           else:
             tols[key] = max(newtols,tols[key])
         else:
-            tols[key] = newtols
+          tols[key] = newtols
   return (len(tols) > 0, tols)  
   
 

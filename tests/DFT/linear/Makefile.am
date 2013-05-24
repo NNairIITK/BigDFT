@@ -15,8 +15,12 @@ EXTRA_TESTDIRS = water \
                  molecule \
                  deltascf \
                  reformat \
-		         paracetamol
-#paracetamol move temporary
+		         paracetamol \
+               rotate 
+#               rotate2 \
+#               rotate3 \
+#               shift
+
 
 EXTRA_DIST = 
 
@@ -43,6 +47,31 @@ deltascf_read_charge.out.out : deltascf_write_neut.out.out
 deltascf_write_neut.out.post-out: 
 	rm -rf data-read_charge
 	mv -f data-write_neut data-read_charge
+
+rotate_read.out.out : rotate_write.out.out
+
+rotate_write.out.post-out: 
+	rm -rf data-read
+	mv -f data-write data-read
+
+rotate2_read.out.out : rotate2_write.out.out
+
+rotate2_write.out.post-out: 
+	rm -rf data-read
+	mv -f data-write data-read
+
+rotate3_read.out.out : rotate3_write.out.out
+
+rotate3_write.out.post-out: 
+	rm -rf data-read
+	mv -f data-write data-read
+
+
+shift_read.out.out : shift_write.out.out
+
+shift_write.out.post-out: 
+	rm -rf data-read
+	mv -f data-write data-read
 
 # Define the precision for specific directories.
 %.report: %.ref

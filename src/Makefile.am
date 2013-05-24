@@ -12,10 +12,9 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 
 # Sub-directories.
 # ---------------
-SUBDIRS = flib \
+SUBDIRS = \
 	modules \
 	convolutions \
-	lib \
 	PSolver \
 	$(sub_dirs_libconfig) \
 	CUDA \
@@ -34,23 +33,27 @@ EXTRA_DIST = \
 # Build targets, binaries and libraries.
 # -------------
 noinst_LIBRARIES = libmain.a
-# put all subs except flib/libflib.a
-subs_static_library = modules/libmodules.a \
+# put all subs
+subs_static_library = \
+	modules/libmodules.a \
 	CUDA/libCUDA.a \
 	convolutions/libconvolutions.a \
-	PSolver/libPSolver.a \
+	PSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
-	lib/liblib.a \
 	bindings/libbindings.a
+out_static_library =  \
+	$(top_builddir)/PSolver/src/libPSolver-1.a \
+	$(top_builddir)/wrappers/libwrappers.a \
+	$(top_builddir)/flib/src/libflib.a
 if BUILD_DYNAMIC_LIBS
-bigdft_dynamic_library = libbigdft-1.so.7.0.24
-bigdft_soname_library = libbigdft-1.so.7
+bigdft_dynamic_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
+bigdft_soname_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 bigdft_library = $(bigdft_soname_library)
 AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a @LIBS_SHORT_DEPS@
+bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft-1.a
@@ -97,7 +100,7 @@ am_global_OBJECTS = global.$(OBJEXT)
 global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
-AM_FCFLAGS = -I. -Iincludes -I$(srcdir)/wavelib -I$(srcdir)/PSolver \
+AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
 	@MPI_INCLUDE@
@@ -114,6 +117,7 @@ high_level = cluster.f90 \
 	forces.f90 \
 	tail.f90 \
 	restart.f90 \
+	lbfgs.f90 \
 	geometry.f90 \
 	davidson.f90 \
 	ConstrainedDavidson.f90 \
@@ -153,6 +157,7 @@ low_level = \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
+	wfn_opt/potential.f90 \
 	wfn_opt/exctX.f90 \
 	wfn_opt/exctX_op2p.f90 \
 	wfn_opt/sic.f90 \
@@ -171,7 +176,6 @@ low_level = \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
 	profiling/memoryestimator.f90 \
-	profiling/time.f90 \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
 	linear/filterModule.f90 \
@@ -203,7 +207,8 @@ low_level = \
 	linear/foe.f90 \
 	linear/chebyshev.f90 \
 	linear/communications_onesided.f90 \
-	linear/sparse_matrices.f90
+	linear/sparse_matrices.f90 \
+   linear/fragments.f90
 
 # C objects
 c_level = posfiles.c \
@@ -216,18 +221,18 @@ libmain_a_SOURCES = \
 
 libbigdft_1_a_SOURCES =
 
-libbigdft-1.a: $(libmain_a_OBJECTS) $(subs_static_library)
+libbigdft-1.a: $(libmain_a_OBJECTS) $(subs_static_library) $(out_static_library)
 	test -e "tmp-libbigdft" || $(INSTALL) -d -m 755 tmp-libbigdft
 	cd tmp-libbigdft ; \
-	for lib in $(subs_static_library) ; do \
+	for lib in $(subs_static_library) $(out_static_library); do \
 	  $(AR) x ../$$lib ; \
 	done
 	$(AR) $(ARFLAGS) $@ $(libmain_a_OBJECTS) tmp-libbigdft/*
 	$(RANLIB) $@
 	rm -rf tmp-libbigdft
 
-$(bigdft_dynamic_library): $(libmain_a_OBJECTS) $(subs_static_library)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) $(subs_static_library) @LIBS_SHORT_DEPS@
+$(bigdft_dynamic_library): $(libmain_a_OBJECTS) $(subs_static_library) $(out_static_library)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $^ @LIBS_SHORT_DEPS@
 	@chmod a+x $@
 
 libbigdft-1.so.7: $(bigdft_dynamic_library)
@@ -272,6 +277,10 @@ MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = $(bigdft_library)
 
 abscalc_SOURCES = abscalc.f90
+abscalc_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib -I$(top_srcdir)/PSolver/src \
+	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
+	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
+	@MPI_INCLUDE@
 abscalc_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90
@@ -280,19 +289,17 @@ test_forces_LDADD = $(bigdft_library)
 NEB_SOURCES = NEB.f90
 NEB_LDADD = $(bigdft_library)
 
-memguess_SOURCES = memguess.f90 flib/MPIfake.f90
+memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/src/MPIfake.f90
 memguess_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90
 frequencies_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 bart_SOURCES = art.f90
-bart_FCFLAGS = -I. -Iart -Iincludes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.*
-clean-local:
-	-rm -rf includes
 
 all: all-recursive
 	chmod ug+x bigdft-tool
@@ -310,6 +317,8 @@ abscalc.o : esatto.o
 lanczos.o : lanczos_base.o lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
+
+geometry.o bfgs.o sdcg.o: lbfgs.o
 
 #initAndUtils.o: cleanup.o
 

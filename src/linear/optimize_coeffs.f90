@@ -101,9 +101,11 @@ subroutine optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
         sk(iorb,iiorb) = 1.d0
      end do 
  
-     call dgemm('n', 'n', tmb%orbs%norbp, tmb%orbs%norb, tmb%orbs%norb, -1.d0, &
-          tmb%linmat%ovrlp%matrix(tmb%orbs%isorb+1:tmb%orbs%isorb+tmb%orbs%norbp,:),&
-          tmb%orbs%norbp, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, 1.d0, sk, tmb%orbs%norbp)
+     if (tmb%orbs%norbp>0) then
+        call dgemm('n', 'n', tmb%orbs%norbp, tmb%orbs%norb, tmb%orbs%norb, -1.d0, &
+             tmb%linmat%ovrlp%matrix(tmb%orbs%isorb+1:tmb%orbs%isorb+tmb%orbs%norbp,:),&
+             tmb%orbs%norbp, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, 1.d0, sk, tmb%orbs%norbp)
+     end if
 
      ! coeffs and therefore kernel will change, so no need to keep it
      iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
@@ -114,8 +116,10 @@ subroutine optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
      call memocc(istat, skhp, 'skhp', subname)
 
      ! multiply by H to get (I_ab - S_ag K^gb) H_bg, or in this case the transpose of the above
-     call dgemm('t', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, tmb%linmat%ham%matrix(1,1), &
-          tmb%orbs%norb, sk(1,1), tmb%orbs%norbp, 0.d0, skhp(1,1), tmb%orbs%norb)
+     if (tmb%orbs%norbp>0) then
+        call dgemm('t', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, tmb%linmat%ham%matrix(1,1), &
+             tmb%orbs%norb, sk(1,1), tmb%orbs%norbp, 0.d0, skhp(1,1), tmb%orbs%norb)
+     end if
 
      iall=-product(shape(sk))*kind(sk)
      deallocate(sk, stat=istat)

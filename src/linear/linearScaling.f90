@@ -82,7 +82,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   call nullify_sparsematrix(ham_small) ! nullify anyway
 
-  if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
+  if (input%lin%scf_mode==LINEAR_FOE) then ! allocate ham_small
      call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
      allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
      call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
@@ -95,18 +95,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      call allocate_DIIS_coeff(tmb, ldiis_coeff)
   end if
 
-  ! Orthogonalize the input guess minimal basis functions using exact calculation of S^-1/2
   tmb%can_use_transposed=.false.
   nullify(tmb%psit_c)
   nullify(tmb%psit_f)
-  !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
 
   call timing(iproc,'linscalinit','OF') !lr408t
-
-  ! now done in inputguess
-      ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
-  !call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%denskern, &
-  !     tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
 
   ! Check the quality of the input guess
   call check_inputguess()
@@ -131,6 +124,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
   if (iproc ==0) call yaml_close_map()
 
+  ! CDFT: calculate w_ab here given Nc and some scheme for calculating w(r)
+  ! CDFT: also define some initial guess for V
+
+
   call timing(iproc,'linscalinit','OF') !lr408t
 
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration, with istart=0
@@ -146,7 +143,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                lowaccur_converged, pnrm_out)
           ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
           call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
-           convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
+               convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
       else if (input%lin%nlevel_accuracy==1 .and. itout==1) then
           call set_variables_for_hybrid(tmb%lzd%nlr, input, at, tmb%orbs, lowaccur_converged, tmb%confdatarr, &
                target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
@@ -182,7 +179,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
           if (locreg_increased .and. input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
              call deallocate_sparsematrix(ham_small,subname)
-             call nullify_sparsematrix(ham_small) ! nullify anyway
+             call nullify_sparsematrix(ham_small)
              call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
              allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
              call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
@@ -224,23 +221,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       else
           call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
       end if
-      ldiis%DIISHistMin=0
-      if (lowaccur_converged) then
-          ldiis%DIISHistMax=input%lin%DIIS_hist_highaccur
-      else
-          ldiis%DIISHistMax=input%lin%DIIS_hist_lowaccur
-      end if
-      ldiis%switchSD=.false.
-      ldiis%trmin=1.d100
-      ldiis%trold=1.d100
-      ldiis%icountSDSatur=0
-      ldiis%icountSwitch=0
-      ldiis%icountDIISFailureTot=0
-      ldiis%icountDIISFailureCons=0
-      ldiis%is=0
-      ldiis%switchSD=.false.
-      ldiis%trmin=1.d100
-      ldiis%trold=1.d100
       if(itout==1) then
           ldiis%alphaSD=input%lin%alphaSD
           ldiis%alphaDIIS=input%lin%alphaDIIS
@@ -366,22 +346,39 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
       kernel_loop : do it_scc=1,nit_scc
 
-          ! If the hamiltonian is available do not recalculate it
-          ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
-          ! since this is only required if basis changed
-          if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
-              call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                   .false.,ham_small,ldiis_coeff=ldiis_coeff)
-          else
-              call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                   .true.,ham_small,ldiis_coeff=ldiis_coeff)
-          end if
+          ! CDFT: need to pass V*w_ab to get_coeff so that it can be added to H_ab and the correct KS eqn can therefore be solved
+          ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
+          ! CDFT: all this will be in some extra CDFT loop
+          !cdft_loop : do
 
-          ! Since we do not update the basis functions anymore in this loop
-          update_phi = .false.
+             ! If the hamiltonian is available do not recalculate it
+             ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
+             ! since this is only required if basis changed
+             if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
+                call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                     .false.,ham_small,ldiis_coeff=ldiis_coeff)
+             else
+                call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                     .true.,ham_small,ldiis_coeff=ldiis_coeff)
+             end if
+             ! Since we do not update the basis functions anymore in this loop
+             update_phi = .false.
 
+             ! CDFT: update V
+             ! CDFT: we updated the kernel in get_coeff so 1st deriv of W wrt V becomes:
+             ! CDFT: Tr[Kw]-Nc as in CONQUEST
+             ! CDFT: 2nd deriv more problematic?
+
+
+             ! CDFT: exit when W is converged wrt both V and rho
+
+          !end do cdft_loop
+          ! CDFT: end of CDFT loop to find V which correctly imposes constraint and corresponding density
+
+
+          ! CDFT: don't need additional energy term here as constraint should now be correctly imposed?
           ! Calculate the total energy.
           !if(iproc==0) print *,'energs',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
           energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
@@ -542,7 +539,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   if(input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
     call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
        max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,at,rxyz,tmb%psi,tmb%coeff)
-    call write_linear_matrices(iproc,nproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb,input,at,rxyz)
+    call write_linear_matrices(iproc,nproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb,at,rxyz)
   end if
 
   !DEBUG

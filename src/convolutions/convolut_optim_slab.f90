@@ -788,7 +788,6 @@ contains
 END SUBROUTINE convolut_kinetic_slab_c
 
 
-
 subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
 !   applies the kinetic energy operator onto x to get y. Works for surface BC
 !   y:=y-1/2Delta x

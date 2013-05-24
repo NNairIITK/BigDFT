@@ -1,6 +1,5 @@
 SUBDIRS = fft \
-	flib \
-	PSolver \
+	xcPSolver \
 	OP2P \
 	psp \
 	IO-wf

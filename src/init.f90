@@ -1778,7 +1778,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    use module_base
    use module_interfaces, except_this_one => input_wf_diag
    use module_types
-   use Poisson_Solver
+   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use libxc_functionals
    use yaml_output
    use gaussians
@@ -1897,6 +1897,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      if (GPUconv) then
         call prepare_gpu_for_locham(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,nspin_ig,&
              Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzde%Glr%wfd,orbse,GPUe)
+        if (iproc == 0) call yaml_comment('GPU data allocated')
      else if (OCLconv) then
         call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%geocode,&
              nspin_ig,Lzde%Glr%wfd,orbse,GPUe)
@@ -2209,8 +2210,10 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      !free GPU if it is the case
      if (GPUconv) then
         call free_gpu(GPUe,orbse%norbp)
+        if (iproc == 0) call yaml_comment('GPU data deallocated')
      else if (OCLconv) then
         call free_gpu_OCL(GPUe,orbse,nspin_ig)
+        if (iproc == 0) call yaml_comment('GPU data deallocated')
      end if
 
      !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
@@ -2606,6 +2609,22 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !if (in%lin%scf_mode==LINEAR_FOE) then
      !    stop 'INPUT_PSI_DISK_LINEAR not allowed with LINEAR_FOE!'
      !end if
+
+
+     ! do some extra initialization if this is a fragment calculation
+     if (in%lin%fragment_calculation) then
+        ! want to initialize array of system_fragments for both reference and current system, including fragment_basis
+        ! this requires information from input.frag, rxyz and atom types etc.
+        ! for reference fragments, may have multiple directories and need to call readmywaves for each fragment
+        ! BUT rxyz_old and rxyz won't have same number of atoms, don't necessarily want to reformat yet...
+        ! actually read rxyz from fragmenti.xyz - it's possible one folder of tmbs etc will contain more than one fragment
+        ! so this is the most general method
+        ! bigger question of where to initialize orbs/lzd... - lzd_init_llr and initialize_linear_from file could maybe be better unified?!
+        ! also need to call init_fragment for both reference and system fragments...
+        ! call init_fragment(frag,input%frag%frag_info(i,1),input%frag%frag_info(i,2),NTYPES,rxyz,&
+        !                    atomnames,iatype)
+
+     end if
 
      ! By reading the basis functions and coefficients from file
      call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
