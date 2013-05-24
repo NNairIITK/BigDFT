@@ -80,22 +80,6 @@ SiBulk:
  EvXC: 1.1e-10
  Atomic Forces (Ha/Bohr): 1.2e-11
  Clean forces norm (Ha/Bohr): 1.2e-11
-# Energies: &en 8.7e-7
-# Complete list of energy eigenvalues: *en
-# EKS: *en
-# Orbitals: *en
-# D: 9.7e-10
-# Wavefunctions Iterations: 9.7e-10
-# DIIS weights: 0.02
-# gnrm: 2.31e-6
-# Atomic Forces (Ha/Bohr): &forces 4.6e-6
-# Average noise forces: *forces
-# Clean forces norm (Ha/Bohr): *forces
-# Stress Tensor: 4.85e-9
-# Pressure:
-#  Ha/Bohr^3: 3.6e-11
-#  PV (Ha): 4.0e-8
-# Electric Dipole Moment (AU): 1.e-5
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -270,13 +254,15 @@ TDDFT:
   Epot: 1.1e-10
   Gradient Norm: 3.1e-9
   L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-7
+  Excitation Energy and Oscillator Strength: 1.7e-6
+  Transition energies (eV): 1.1e-4
 
 BigDFT2Wannier.b2w.ref.yaml:
   amnk_guess(nb): 1.31e-10
 
 cleanup:
  Atomic Forces (Ha/Bohr): 2.45e-10
- Average noise forces: 2.1e-10
+ Average noise forces: 3.1e-10
  Clean forces norm (Ha/Bohr): 1.6e-10
  Raw forces norm (Ha/Bohr): 2.4e-10
 
