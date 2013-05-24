@@ -62,7 +62,7 @@ mpi.o: $(mpi_include)
 AM_FCFLAGS = -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
 if USE_CUDA_GPU
-AM_CPPFLAGS += -I@CUDA_PATH@/include
+AM_CPPFLAGS += -I@CUDA_PATH@/include @LIBSGPU_INCLUDE@
 endif
 
 # Module files.
