@@ -16,181 +16,6 @@ path=os.path.dirname(sys.argv[0])
 import yaml
 #from yaml_hl import *
 
-start_fail = "<fail>" #"\033[0;31m"
-start_fail_esc = "\033[0;31m "
-start_success = "\033[0;32m "
-start_pass = "<pass>"
-end = "</end>" #"\033[m"
-end_esc = "\033[m "
-
-
-
-def ignore_key(key):
-  ret = key in keys_to_ignore
-  if (not(ret)):
-    for p in patterns_to_ignore:
-      if key.find(p) > -1:
-        ret=True
-        exit
-  return ret
-    
-
-#generic document comparison routine
-#descend recursively in the dictionary until a scalar is found
-#a tolerance value might be passed
-def compare(data, ref, tols = None, always_fails = False):
-#  if tols is not None:
-#    print 'test',data,ref,tols
-  if data is None:
-    return (True, None)
-  elif type(ref) == type({}):
-#for a floating point the reference is set for all the lower levels    
-    if type(tols) == type(1.0e-1):
-      neweps=tols
-      tols={}
-      for key in ref:
-        tols[key]=neweps
-    ret = compare_map(data, ref, tols, always_fails)
-  elif type(ref) == type([]):
-    if type(tols) == type(1.0e-1):
-      neweps=tols
-      tols=[]
-      tols.append(neweps)
-    ret = compare_seq(data, ref, tols, always_fails)
-  else:
-    ret = compare_scl(data, ref, tols, always_fails)
-  return ret
-
-#sequence comparison routine
-def compare_seq(seq, ref, tols, always_fails = False):
-  global failed_checks
-  if tols is not None:
-    for i in range(len(ref)):
-      (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails)
-# Add to the tolerance dictionary a failed result      
-      if failed:
-        if type(newtols)== type({}):
-          tols[0].update(newtols)
-        elif type(newtols) == type([]):
-          tols[0] = newtols   
-        else:
-          tols[0] = max(newtols,tols[0])
-  else:
-    tols = []
-    if len(ref) == len(seq):
-      for i in range(len(ref)):
-        if len(tols) == 0:
-          (failed, newtols) = compare(seq[i], ref[i], always_fails = always_fails)
-          #  add to the tolerance dictionary a failed result      
-          if failed:
-            tols.append(newtols)
-        else:
-          (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails = always_fails)
-          if failed:
-            tols[0] = newtols
-    else:
-      failed_checks+=1
-      if len(tols) == 0:
-        tols.append("NOT SAME LENGTH")
-      else:
-        tols[0] = "NOT SAME LENGTH"
-  return (len(tols) > 0, tols)
-
-def compare_map(map, ref, tols, always_fails = False):
-  global docmiss,docmiss_it
-  if tols is None:
-    tols = {}
-  for key in ref:
-    if not(ignore_key(key)):
-      if not(key in map):
-        docmiss+=1
-        docmiss_it.append(key)
-        print "WARNING!!",key,"not found",ref[key]
-        always_fails = True
-        value = ref[key]
-      else:
-        value = map[key]
-      if type(tols) == type({}) and key in tols:
-        (failed, newtols) = compare(value, ref[key], tols[key], always_fails)
-      elif key in def_tols: #def tols is rigorously a one-level only dictionary
-        (failed, newtols) = compare(value, ref[key], def_tols[key], always_fails)
-      else:
-        (failed, newtols) = compare(value, ref[key], always_fails = always_fails)
-# add to the tolerance dictionary a failed result              
-      if failed:
-        if key in tols:
-          if type(newtols)== type({}):
-            tols[key].update(newtols)
-          elif type(newtols) == type([]):
-            tols[key]=newtols
-          else:
-            tols[key] = max(newtols,tols[key])
-        else:
-            tols[key] = newtols
-  return (len(tols) > 0, tols)  
-  
-
-#compare the scalars.
-#return the tolerance if the results are ok
-def compare_scl(scl, ref, tols, always_fails = False):
-  global failed_checks,discrepancy,biggest_tol
-  failed = always_fails
-  ret = (failed, None)
-#  print scl,ref,tols
-#eliminate the character variables
-  if type(ref) == type(""):
-    if not(scl == ref):
-      ret = (True, scl)
-  elif not(always_fails):
-    if tols is None:
-      failed = not(math.fabs(scl - ref) <= epsilon)
-    else:
-      failed = not(math.fabs(scl - ref) <= tols) 
-    discrepancy=max(discrepancy,math.fabs(scl - ref))
-    if not(failed):
-      if tols is None:
-        ret = (always_fails, None)
-      else:
-        ret = (True, tols)
-    else:
-      ret = (True, math.fabs(scl - ref))
-      if tols is not None:
-        biggest_tol=max(biggest_tol,math.fabs(tols))
-  if failed:
-    failed_checks +=1
-  return ret
-
-def document_report(hostname,tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet):
-
-  results={}
-  failure_reason = None 
-
-#  disc=biggest_disc
-  if nchecks > 0 or leaks != 0 or nmiss > 0:
-    if leaks != 0:
-      failure_reason="Memory"
-    elif nmiss > 0:
-      failure_reason="Information"
-    elif tol==0 and biggest_disc==0 and timet==0:
-      failure_reason="Yaml Standard"
-    else:
-      failure_reason="Difference"
-  else:
-    start = start_success
-    message = "succeeded "
-  results["Platform"]=hostname  
-  results["Test succeeded"]=nchecks == 0  and nmiss==0 and leaks==0
-  if failure_reason is not None:
-    results["Failure reason"]=failure_reason
-  results["Maximum discrepancy"]=biggest_disc
-  results["Maximum tolerance applied"]=tol
-  results["Seconds needed for the test"]=timet
-  if (nmiss > 0):
-    results["Missed Reference Items"]=miss_it
-
-  return results
-
-
 #import yaml_hl
 
 class Pouet:
@@ -200,27 +25,77 @@ class Pouet:
     self.style = "ascii"
     self.config = os.path.join(path,'yaml_hl.cfg')
 
-def parse_arguments():
-  parser = optparse.OptionParser("This script is used to compare two yaml outputs with respect to a tolerance file given. usage: fldiff_yaml.py <options>")
-  parser.add_option('-d', '--data', dest='data',default=None, #sys.argv[2],
-                    help="yaml stream to be compared with reference", metavar='DATA')
-  parser.add_option('-o', '--output', dest='output', default="/dev/null", #sys.argv[4],
-                    help="set the output file (default: /dev/null)", metavar='FILE')
-  #Return the parsing
-  return parser
-
-def fatal_error(args,reports):
-  "Fatal Error: exit after writing the report, assume that the report file is already open)"
-  print 'Error in reading datas, Yaml Standard violated or missing file'
-  finres=document_report('None',0.,0.,1,0,0,0,0)
-  sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
-  reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
-  #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
-  sys.exit(1)
-
+# print out a python dictionary in yaml syntax
 def dict_dump(dict):
   sys.stdout.write(yaml.dump(dict,default_flow_style=False,explicit_start=True))
 
+#function which removes from a set of lines the yaml_fields contained in the to_remove list
+def clean_logfile(logfile_lines,to_remove):
+  line_rev=logfile_lines #list of the lines of the logfile
+  #loop in the reversed from (such as to parse by blocks)
+  extra_lines=20 #internal variable to be customized
+  line_rev.reverse()
+  #clean the log
+  cleaned_logfile=[]
+  #for line in line_rev: #line_iter:
+  while len(line_rev) >0:
+    line=line_rev.pop()
+    to_print=line
+    #check if the line contains interesting information
+    for remove_it in to_remove :
+      stream_list=[]
+      if remove_it+':' in line.split('#')[0]:
+         #creates a new Yaml document starting from the line
+         #treat the rest of the line following the key to be removed
+         header=''.join(line.split(':')[1:])
+         header=header.rstrip()+'\n'
+         if len(header) > 0 :
+            stream_list.append(header)
+         #part to be printed, updated
+         to_print = line.split(':')[0] + ": <folded> \n"
+
+         #then check when the mapping will end:
+         while True:
+            #create a stream with extra_lines block           
+            for i in range(0,min(extra_lines,len(line_rev))):
+               stream_list.append(line_rev.pop())
+            #create a stream to be parsed
+            stream=''.join(stream_list)
+            #then parse the stream until the last valid position has been found
+            try:
+              for i in yaml.parse(stream,Loader=yaml.CLoader):
+                endpos=i.end_mark.index
+            except:
+              #convert back the valid stream into a list
+              #if needed the stream can be loaded into a document
+              item_list=stream[:endpos].split('\n')
+              #if lengths are different there is no need to add lines
+              if len(item_list) != len(stream_list):
+                #last line might be shorter, therefore treat it separately
+                last_line=item_list.pop()
+                #purge the stream
+                for item in item_list:
+                  stream_list.remove(item+'\n')
+                #extract the remaining line which should be compared with the last one  
+                first_line=stream_list.pop(0)[len(last_line.rstrip()):]
+                #then put the rest in the line to be treated
+                to_print.rstrip('\n')
+                to_print += first_line+'\n'
+                # the item has been found
+                break
+         stream_list.reverse()
+         #put back the unused part in the document
+         line_rev.extend(stream_list)
+         # mark that the key has been removed
+         print 'removed: ',remove_it
+  # then print out the line
+    cleaned_logfile.append(to_print)
+
+  return cleaned_logfile
+
+
+# this is a tentative function written to understand the sanity of the
+# BigDFT run
 def document_analysis(doc):
   #analyse the energy and the forces
   last=doc["Last Iteration"]
@@ -238,9 +113,19 @@ def document_analysis(doc):
   except:
     forces={}
     print 'forces not calculated'
-      
     
-    
+
+def parse_arguments():
+  parser = optparse.OptionParser("This script is used to extraact some information from a logfile")
+  parser.add_option('-d', '--data', dest='data',default=None, #sys.argv[2],
+                    help="BigDFT logfile, yaml compliant (check this if only this option is given)", metavar='FILE')
+  parser.add_option('-v', '--invert-match', dest='remove',default=None, #sys.argv[2],
+                    help="File containing the keys which have to be excluded from the logfile", metavar='FILE')
+  parser.add_option('-o', '--output', dest='output', default="/dev/null", #sys.argv[4],
+                    help="set the output file (default: /dev/null)", metavar='FILE')
+  #Return the parsing
+  return parser
+
 
 if __name__ == "__main__":
   parser = parse_arguments()
@@ -248,6 +133,22 @@ if __name__ == "__main__":
 
 
 #args=parse_arguments()
+#logfile
+with open(args.data, "r") as fp:
+  logfile_lines = fp.readlines()
+#output file
+file_out=open(args.output, "w")
+#to_remove list
+to_remove = yaml.load(open(args.remove, "r").read(), Loader = yaml.CLoader)
+    
+#obtain the cleaned document
+cleaned_logfile = clean_logfile(logfile_lines,to_remove)
+
+#dump it
+for line in cleaned_logfile:
+  file_out.write(line) 
+
+sys.exit(0)
 
 #do some tests
 document = """---
@@ -264,17 +165,26 @@ block sequence:
 ...
  """
 
-for token in yaml.scan(document):
-     print token
+#for token in yaml.scan(document):
+#     print token
 
-ddd
+#ddd
 #print args.ref,args.data,args.output
-#datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
-datas    = [a for a in yaml.parse(open(args.data, "r").read(), Loader = yaml.BaseLoader)]
+
+datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
+#i=0
+#for doc in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader):
+#  i+=1
+#  print 'doc No.',i#,"Last Iteration" in doc.keys()
+  #try:
+  #  print yaml.dump(doc["Last Iteration"])
+  #except:
+  #  print "Last Iteration not found"
+
 #datas    = [a for a in yaml.safe_load_all(open(args.data, "r").read())]
 #Profile.run('datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]')
 #gyi
-runfile = open(args.data, "r").read()
+#runfile = open(args.data, "r").read()
 sss
 try:
     datas    = [a for a in yaml.load_all(runfile, Loader = yaml.Loader)]

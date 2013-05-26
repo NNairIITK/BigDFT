@@ -442,7 +442,7 @@ contains
   subroutine fragment_basis_free(basis)
     implicit none
     type(fragment_basis), intent(inout) :: basis
-    character(len=200) :: subname  
+    character(len=200) :: subname
 
     subname='fragment_basis_free'
     call deallocate_local_zone_descriptors(basis%lzd,subname)
@@ -459,7 +459,7 @@ contains
 
     subname='fragment_free'
 
-    call deallocate_atomic_structure(frag%astruct_frg,subname) 
+    call deallocate_atomic_structure(frag%astruct_frg,subname)
     if (associated(frag%astruct_frg%rxyz)) then
        i_all=-product(shape(frag%astruct_frg%rxyz))*kind(frag%astruct_frg%rxyz)
        deallocate(frag%astruct_frg%rxyz,stat=i_stat)
@@ -478,7 +478,7 @@ contains
   subroutine fragment_allocate(frag)
     implicit none
     type(system_fragment), intent(inout) :: frag
-  
+
     call f_routine(id='fragment_allocate')
 
     frag%rxyz_env=f_malloc_ptr((/3,frag%nat_env/),id='frag%rxyz_env')
@@ -495,7 +495,7 @@ contains
     real(gp), dimension(3) :: frg_center
     !local variables
     integer :: iat
-    
+
     frg_center=0.0_gp
     do iat=1,frag%astruct_frg%nat
        frg_center=frg_center+frag%astruct_frg%rxyz(:,iat)
@@ -525,12 +525,14 @@ contains
     do iat=1,frag%astruct_frg%nat
        frag_new%astruct_frg%rxyz(:,iat)=rotate_vector(trans%rot_axis,&
             trans%theta,frag%astruct_frg%rxyz(:,iat)-trans%rot_center(:))
-       frag_new%astruct_frg%rxyz(:,iat)=frag_new%astruct_frg%rxyz(:,iat)+trans%rot_center(:)+trans%dr(:)
+!       frag_new%astruct_frg%rxyz(:,iat)=frag_new%astruct_frg%rxyz(:,iat)+trans%rot_center(:)+&
+!            trans%dr(:)
     end do
 
     do iat=1,frag%nat_env
-       frag_new%rxyz_env(:,iat)=rotate_vector(trans%rot_axis,trans%theta,frag%rxyz_env(:,iat)-trans%rot_center(:))
-       frag_new%rxyz_env(:,iat)=frag_new%rxyz_env(:,iat)+trans%rot_center(:)+trans%dr(:)
+       frag_new%rxyz_env(:,iat)=rotate_vector(trans%rot_axis,trans%theta,frag%rxyz_env(:,iat)-&
+            trans%rot_center(:))
+!       frag_new%rxyz_env(:,iat)=frag_new%rxyz_env(:,iat)+trans%rot_center(:)+trans%dr(:)
     end do
 
     ! to complete should copy across iatype and atomnames but only using as a check to see how effective trans is
