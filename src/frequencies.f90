@@ -34,7 +34,6 @@ program frequencies
    character(len=4) :: cc
    !File unit
    integer, parameter :: u_hessian=20
-   integer :: iproc,nproc,iat,jat,i,j,i_stat,i_all,ierr,infocode,ity,nconfig
    real(gp) :: etot,alat,dd,rmass,fnoise
    character(len=60) :: run_id
    !Input variables
@@ -63,6 +62,8 @@ program frequencies
    real(gp) :: tel
    real :: tcpu0,tcpu1
    integer :: k,km,ii,jj,ik,imoves,order,n_order,ncount0,ncount1,ncount_rate,ncount_max
+   integer :: iproc,nproc,igroup,ngroups
+   integer :: iat,jat,i,j,i_stat,i_all,ierr,infocode,ity,nconfig
    logical :: exists
    integer, dimension(4) :: mpi_info
 
@@ -71,11 +72,14 @@ program frequencies
    !-decides the radical name for each run
    call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
+   if (nconfig < 0) stop 'runs-file not supported for frequencies executable'
+
    !just for backward compatibility
    iproc=mpi_info(1)
    nproc=mpi_info(2)
-
-   if (nconfig < 0) stop 'runs-file not supported for frequencies executable'
+   igroup=mpi_info(3)
+   !number of groups
+   ngroups=mpi_info(4)
 
    !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
    ! Read all input files. This should be the sole routine which is called to initialize the run.
