@@ -1577,7 +1577,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   call input_var("signaling", .false., "Expose calculation results on Network",in%signaling)
   call input_var("signalTimeout", 0, "Time out on startup for signal connection",in%signalTimeout)  
   call input_var("domain", "", "Domain to add to the hostname to find the IP", in%domain)
-  call input_var("inguess_geopt", 0,(/0,1/),"0= wavlet input guess, 1= real space input guess",inputs%inguess_geopt)
+  call input_var("inguess_geopt", 0,(/0,1/),"0= wavlet input guess, 1= real space input guess",in%inguess_geopt)
   !verbosity of the output
   call input_var("verbosity", 2,(/0,1,2,3/), &
      & "verbosity of the output 0=low, 2=high",in%verbosity)

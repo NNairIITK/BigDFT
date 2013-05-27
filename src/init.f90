@@ -1698,7 +1698,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   !!if (iproc==0) then
   !!  do i_stat=1,size(tmb%linmat%denskern%matrix_compr)
   !!    write(*,'(a,i8,es20.10)') 'i_stat, tmb%linmat%denskern%matrix_compr(i_stat)', i_stat, tmb%linmat%denskern%matrix_compr(i_stat)
-               denspot%rhov)
+  !!             denspot%rhov)
   !!  end do
   !!end if
 
@@ -2247,7 +2247,7 @@ END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-     wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
+     lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
@@ -2273,13 +2273,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   !real(wp), dimension(:,:), pointer :: gaucoeffs
   type(grid_dimensions), intent(in) :: d_old
   real(gp), dimension(3, atoms%nat), intent(inout) :: rxyz_old
+  type(local_zone_descriptors),intent(inout):: lzd_old
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
   !local variables
   character(len = *), parameter :: subname = "input_wf"
   integer :: i_stat, nspin, i_all, iorb, jorb, ilr, jlr,iat,ist 
   type(gaussian_basis) :: Gvirt
   real(wp), allocatable, dimension(:) :: norm
-  logical :: norb_change, perx,pery,perz
+  logical :: overlap_calculated, norb_change, perx,pery,perz
   real(gp) :: tx,ty,tz,displ,mindist,t2,t1
 
  !determine the orthogonality parameters
@@ -2397,7 +2398,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call yaml_comment('Wavefunctions Restart',hfill='-')
         call yaml_open_map("Input Hamiltonian")
      end if
-     if (in%wfn_history <= 2) then
      perx=(atoms%geocode /= 'F')
      pery=(atoms%geocode == 'P')
      perz=(atoms%geocode /= 'F')
@@ -2413,31 +2413,31 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      enddo
      displ=sqrt(tx+ty+tz)
  
-    if(displ.eq.0d0 .or. in%inguess_geopt == 0) then
-       if (in%wfn_history <= 2) then
-          call timing(iproc,'restart_wvl   ','ON')
-          call input_wf_memory(iproc, atoms, &
-               rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
-               rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-               KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs)
-             call timing(iproc,'restart_wvl   ','OF')
-       else
-          call input_wf_memory_history(iproc,KSwfn%orbs,atoms,in%wfn_history,&
-               Kswfn%istep_history,KSwfn%oldpsis,rxyz,Kswfn%Lzd,KSwfn%psi)
-       end if
-    else if(in%inguess_geopt == 1) then
-       call timing(iproc,'restart_rsp   ','ON')
-       call input_wf_memory_new(nproc, iproc, atoms, &
-            rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
-            rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-            KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs,KSwfn%lzd,displ)
-       call timing(iproc,'restart_rsp   ','OF')
-   else
-       stop 'Wrong value of inguess_geopt in input.perf'
-   end if
+     if(displ.eq.0d0 .or. in%inguess_geopt == 0) then
+        if (in%wfn_history <= 2) then
+           call timing(iproc,'restart_wvl   ','ON')
+           call input_wf_memory(iproc, atoms, &
+                rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
+                rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+                KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs)
+              call timing(iproc,'restart_wvl   ','OF')
+        else
+           call input_wf_memory_history(iproc,KSwfn%orbs,atoms,in%wfn_history,&
+                Kswfn%istep_history,KSwfn%oldpsis,rxyz,Kswfn%Lzd,KSwfn%psi)
+        end if
+     else if(in%inguess_geopt == 1) then
+        call timing(iproc,'restart_rsp   ','ON')
+        call input_wf_memory_new(nproc, iproc, atoms, &
+             rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
+             rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+             KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs,KSwfn%lzd,displ)
+        call timing(iproc,'restart_rsp   ','OF')
+    else
+        stop 'Wrong value of inguess_geopt in input.perf'
+    end if
 
-    if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
-          call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
+     if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
+           call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
   case(INPUT_PSI_MEMORY_LINEAR)
      if (iproc == 0) then
         call yaml_comment('Support functions Restart',hfill='-')

@@ -105,7 +105,10 @@ program BigDFT
 
 
      !always deallocate lzd for new input guess
-     call deallocate_lzd(rst%tmb%lzd, subname)
+     !call deallocate_lzd(rst%tmb%lzd, subname)
+     ! Modified by SM
+     call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
+
          i_all=-product(shape(rxyz))*kind(rxyz)
          deallocate(rxyz,stat=i_stat)
          call memocc(i_stat,i_all,'rxyz',subname)

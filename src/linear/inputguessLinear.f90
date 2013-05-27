@@ -315,14 +315,15 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      iall=-product(shape(minorbs_type))*kind(minorbs_type)
      deallocate(minorbs_type,stat=istat)
      call memocc(istat, iall,'minorbs_type',subname)
-     iall=-product(shape(aocc))*kind(aocc)
-     deallocate(aocc,stat=istat)
-     call memocc(istat, iall,'aocc',subname)
      iall=-product(shape(type_covered))*kind(type_covered)
      deallocate(type_covered,stat=istat)
      call memocc(istat, iall,'type_covered',subname)
 
  end if
+
+ iall=-product(shape(aocc))*kind(aocc)
+ deallocate(aocc,stat=istat)
+ call memocc(istat, iall,'aocc',subname)
 
  !!call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
  !!     tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
