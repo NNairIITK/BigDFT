@@ -163,7 +163,7 @@ module module_types
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
     integer, dimension(:), pointer :: norbsPerType
     integer :: scf_mode, nlevel_accuracy
-    logical :: calc_dipole, pulay_correction, mixing_after_inputguess
+    logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization
   end type linearInputParameters
 
   integer, parameter, public :: INPUT_IG_OFF  = 0

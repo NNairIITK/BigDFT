@@ -254,77 +254,80 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end if
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
 
+  if (.not. input%lin%iterative_orthogonalization) then
+
+      ! Standard orthonomalization
+      if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
-!! COMMENTED AS A TEST ######################################################################
-!!  if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
-!!  call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
-!!       tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+      call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
+           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+            
+ else
 
-    if(iproc==0) write(*,*) 'calling generalized orthonormalization'
-    allocate(maxorbs_type(at%ntypes),stat=istat)
-    call memocc(istat,maxorbs_type,'maxorbs_type',subname)
-    allocate(minorbs_type(at%ntypes),stat=istat)
-    call memocc(istat,minorbs_type,'minorbs_type',subname)
-    allocate(type_covered(at%ntypes),stat=istat)
-    call memocc(istat,type_covered,'type_covered',subname)
-    minorbs_type(1:at%ntypes)=0
-    iortho=0
-    ortho_loop: do
-        finished=.true.
-        type_covered=.false.
-        do iat=1,at%nat
-            itype=at%iatype(iat)
-            if (type_covered(itype)) cycle
-            type_covered(itype)=.true.
-            jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
-                 5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
-            maxorbs_type(itype)=jj
-            if (jj<input%lin%norbsPerType(at%iatype(iat))) then
-                finished=.false.
-                if (ceiling(aocc(1,iat))==0) then
-                    aocc(1,iat)=1.d0
-                else if (ceiling(aocc(3,iat))==0) then
-                    aocc(3,iat)=1.d0
-                else if (ceiling(aocc(7,iat))==0) then
-                    aocc(7,iat)=1.d0
-                else if (ceiling(aocc(13,iat))==0) then
-                    aocc(13,iat)=1.d0
-                end if
-            end if
-        end do
-        if (iortho>0) then
-            call gramschmidt_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
-                 tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, &
-                 tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
-        end if
-        call orthonormalize_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
-             tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, &
-             tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
-        if (finished) exit ortho_loop
-        iortho=iortho+1
-        minorbs_type(1:at%ntypes)=maxorbs_type(1:at%ntypes)+1
-    end do ortho_loop
-    iall=-product(shape(maxorbs_type))*kind(maxorbs_type)
-    deallocate(maxorbs_type,stat=istat)
-    call memocc(istat, iall,'maxorbs_type',subname)
-    iall=-product(shape(minorbs_type))*kind(minorbs_type)
-    deallocate(minorbs_type,stat=istat)
-    call memocc(istat, iall,'minorbs_type',subname)
-    iall=-product(shape(aocc))*kind(aocc)
-    deallocate(aocc,stat=istat)
-    call memocc(istat, iall,'aocc',subname)
-    iall=-product(shape(type_covered))*kind(type_covered)
-    deallocate(type_covered,stat=istat)
-    call memocc(istat, iall,'type_covered',subname)
+     ! Iterative orthonomalization
+     if(iproc==0) write(*,*) 'calling generalized orthonormalization'
+     allocate(maxorbs_type(at%ntypes),stat=istat)
+     call memocc(istat,maxorbs_type,'maxorbs_type',subname)
+     allocate(minorbs_type(at%ntypes),stat=istat)
+     call memocc(istat,minorbs_type,'minorbs_type',subname)
+     allocate(type_covered(at%ntypes),stat=istat)
+     call memocc(istat,type_covered,'type_covered',subname)
+     minorbs_type(1:at%ntypes)=0
+     iortho=0
+     ortho_loop: do
+         finished=.true.
+         type_covered=.false.
+         do iat=1,at%nat
+             itype=at%iatype(iat)
+             if (type_covered(itype)) cycle
+             type_covered(itype)=.true.
+             jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
+                  5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
+             maxorbs_type(itype)=jj
+             if (jj<input%lin%norbsPerType(at%iatype(iat))) then
+                 finished=.false.
+                 if (ceiling(aocc(1,iat))==0) then
+                     aocc(1,iat)=1.d0
+                 else if (ceiling(aocc(3,iat))==0) then
+                     aocc(3,iat)=1.d0
+                 else if (ceiling(aocc(7,iat))==0) then
+                     aocc(7,iat)=1.d0
+                 else if (ceiling(aocc(13,iat))==0) then
+                     aocc(13,iat)=1.d0
+                 end if
+             end if
+         end do
+         if (iortho>0) then
+             call gramschmidt_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
+                  tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, &
+                  tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+         end if
+         call orthonormalize_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
+              tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, &
+              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+         if (finished) exit ortho_loop
+         iortho=iortho+1
+         minorbs_type(1:at%ntypes)=maxorbs_type(1:at%ntypes)+1
+     end do ortho_loop
+     iall=-product(shape(maxorbs_type))*kind(maxorbs_type)
+     deallocate(maxorbs_type,stat=istat)
+     call memocc(istat, iall,'maxorbs_type',subname)
+     iall=-product(shape(minorbs_type))*kind(minorbs_type)
+     deallocate(minorbs_type,stat=istat)
+     call memocc(istat, iall,'minorbs_type',subname)
+     iall=-product(shape(aocc))*kind(aocc)
+     deallocate(aocc,stat=istat)
+     call memocc(istat, iall,'aocc',subname)
+     iall=-product(shape(type_covered))*kind(type_covered)
+     deallocate(type_covered,stat=istat)
+     call memocc(istat, iall,'type_covered',subname)
 
-  !!call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
-  !!     tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
-  !!call mpi_finalize(istat)
-  !!stop
+ end if
 
-
-!! ##########################################################################################
-
+ !!call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
+ !!     tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+ !!call mpi_finalize(istat)
+ !!stop
 
   call nullify_sparsematrix(ham_small) ! nullify anyway
 
