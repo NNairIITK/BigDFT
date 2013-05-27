@@ -77,8 +77,8 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
            end do
         end do
         if (maxdiff > epsilon(1.0_gp)) &
-             call yaml_warning('The input positions are not Bitwise identical! '//&
-             '(the difference is '//trim(yaml_toa(maxdiff))//' )')
+             call yaml_warning('Input positions not identical! '//&
+             '(difference:'//trim(yaml_toa(maxdiff))//' )')
      end if
 
      call f_free(rxyz_glob)
@@ -1795,14 +1795,16 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   !manipulate scatter array for avoiding the GGA shift
 !!$     call dpbox_repartition(denspot%dpbox%iproc,denspot%dpbox%nproc,atoms%geocode,'D',1,denspot%dpbox)
+  !n3d=n3p
+  denspot%dpbox%n3d=denspot%dpbox%n3p
+  !i3xcsh=0
+  denspot%dpbox%i3s=denspot%dpbox%i3s+denspot%dpbox%i3xcsh
+  denspot%dpbox%i3xcsh=0
   do jproc=0,denspot%dpbox%mpi_env%nproc-1
      !n3d=n3p
-     denspot%dpbox%n3d=denspot%dpbox%n3p
      denspot%dpbox%nscatterarr(jproc,1)=denspot%dpbox%nscatterarr(jproc,2)
      !i3xcsh=0
      denspot%dpbox%nscatterarr(jproc,4)=0
-     denspot%dpbox%i3s=denspot%dpbox%i3s+denspot%dpbox%i3xcsh
-     denspot%dpbox%i3xcsh=0
      !the same for the density
      denspot%dpbox%ngatherarr(:,3)=denspot%dpbox%ngatherarr(:,1)
   end do

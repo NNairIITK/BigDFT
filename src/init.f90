@@ -1897,6 +1897,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      if (GPUconv) then
         call prepare_gpu_for_locham(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,nspin_ig,&
              Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzde%Glr%wfd,orbse,GPUe)
+        if (iproc == 0) call yaml_comment('GPU data allocated')
      else if (OCLconv) then
         call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%geocode,&
              nspin_ig,Lzde%Glr%wfd,orbse,GPUe)
@@ -2209,8 +2210,10 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      !free GPU if it is the case
      if (GPUconv) then
         call free_gpu(GPUe,orbse%norbp)
+        if (iproc == 0) call yaml_comment('GPU data deallocated')
      else if (OCLconv) then
         call free_gpu_OCL(GPUe,orbse,nspin_ig)
+        if (iproc == 0) call yaml_comment('GPU data deallocated')
      end if
 
      !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
