@@ -1,4 +1,5 @@
  <BigDFT> log of the run will be written in logfile: ./log-read_charge.yaml
+ <BigDFT> Logfile existing, renamed into: ./logfiles/log-read_charge.12:39:47.468.yaml
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
     | Processes from 0 to 5 treat 14 orbitals. |
@@ -15,16 +16,16 @@ sparsity:  9.07%
  Overview of the reformatting (several categories may apply):
    - No reformatting required: 0
    - Grid spacing has changed: 0
-   - Number of coarse grid points has changed: 6
-   - Number of fine grid points has changed: 6
-   - Box size has changed: 1
-   - Molecule was shifted: 6
+   - Number of coarse grid points has changed: 80
+   - Number of fine grid points has changed: 84
+   - Box size has changed: 4
+   - Molecule was shifted: 84
    - Molecule was rotated: 0
--  {Process:  5, Timing:  [  1.297E+02,  1.311E+02 ]}
--  {Process:  4, Timing:  [  1.296E+02,  1.311E+02 ]}
--  {Process:  2-  {, Timing:  [  1.296E+02,  1.311E+02 ]}
-Process:  3, Timing:  [  1.297E+02,  1.311E+02 ]}
--  {Process:  1, Timing:  [  1.298E+02,  1.311E+02 ]}
+-  {Process:  5-  {Process:  2-  {Process:  4, Timing:  [  1.296E+02,  1.336E+02 ]}
+, Timing:  [  1.303E+02,  1.336E+02 ]}
+, Timing:  [  1.303E+02,  1.336E+02 ]}
+-  {Process:  3-  {Process:  1, Timing:  [  1.303E+02,  1.336E+02 ]}
+, Timing:  [  1.299E+02,  1.336E+02 ]}
 coeff renormalization... calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.199999943201E+01
  ************************************************************************************

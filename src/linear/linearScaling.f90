@@ -1,18 +1,19 @@
 subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,energy,fpulay,infocode)
+           energs,energy,fpulay,infocode,ref_frags)
  
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => linearScaling
   use yaml_output
+  use module_fragments
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
   type(atoms_data),intent(inout) :: at
   type(input_variables),intent(in) :: input ! need to hack to be inout for geopt changes
-  real(8),dimension(3,at%nat),intent(inout) :: rxyz
-  real(8),dimension(3,at%nat),intent(out) :: fpulay
+  real(8),dimension(3,at%astruct%nat),intent(inout) :: rxyz
+  real(8),dimension(3,at%astruct%nat),intent(out) :: fpulay
   type(DFT_local_fields), intent(inout) :: denspot
   real(gp), dimension(:), intent(inout) :: rhopotold
   type(nonlocal_psp_descriptors),intent(in) :: nlpspd
@@ -24,6 +25,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(DFT_wavefunction),intent(inout),target :: tmb
   type(DFT_wavefunction),intent(inout),target :: KSwfn
   integer,intent(out) :: infocode
+  type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags ! for transfer integrals
   
   real(8) :: pnrm,trace,trace_old,fnrm_tmb
   integer :: infoCoeff,istat,iall,it_scc,itout,info_scf,i,ierr,iorb
@@ -151,7 +153,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
          !! do iorb=1,tmb%orbs%norbp
          !!     ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
          !!     iiat=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
-         !!     tmb%confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+         !!     tmb%confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
          !! end do
          !! target_function=TARGET_FUNCTION_IS_HYBRID
          !! nit_basis=input%lin%nItBasis_lowaccuracy
@@ -302,14 +304,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        ! for the first step of the coefficient optimization
        can_use_ham=.true.
        if(target_function==TARGET_FUNCTION_IS_TRACE) then
-           do itype=1,at%ntypes
+           do itype=1,at%astruct%ntypes
                if(input%lin%potentialPrefac_lowaccuracy(itype)/=0.d0) then
                    can_use_ham=.false.
                    exit
                end if
            end do
        else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
-           do itype=1,at%ntypes
+           do itype=1,at%astruct%ntypes
                if(input%lin%potentialPrefac_highaccuracy(itype)/=0.d0) then
                    can_use_ham=.false.
                    exit
@@ -519,7 +521,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ! Calculate Pulay correction to the forces
       call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, fpulay)
   else
-      call to_zero(3*at%nat, fpulay(1,1))
+      call to_zero(3*at%astruct%nat, fpulay(1,1))
   end if
 
   if(tmb%ham_descr%can_use_transposed) then
@@ -536,10 +538,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
   !Write the linear wavefunctions to file if asked, also write Hamiltonian and overlap matrices
-  if(input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
+  if (input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
     call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
-       max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,at,rxyz,tmb%psi,tmb%coeff)
+       max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,KSwfn%orbs%norb,at,rxyz,tmb%psi,tmb%coeff)
     call write_linear_matrices(iproc,nproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb,at,rxyz)
+  end if
+ 
+  ! maybe not the best place to keep it - think about it!
+  if (input%lin%calc_transfer_integrals) then
+     if (.not. input%lin%fragment_calculation) stop 'Error, fragment calculation needed for transfer integral calculation'
+     call calc_transfer_integrals(iproc,nproc,input%frag,ref_frags,tmb%orbs,tmb%linmat%ham,tmb%linmat%ovrlp)
   end if
 
   !DEBUG
@@ -618,7 +626,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! Calculate Pulay correction to the forces
              call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, fpulay)
-             fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
+             fnrm_pulay=dnrm2(3*at%astruct%nat, fpulay, 1)/sqrt(dble(at%astruct%nat))
 
              if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
 
@@ -669,7 +677,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              end if
           else
               ! Calculation of Pulay forces not possible, so always start with low accuracy
-              call to_zero(3*at%nat, fpulay(1,1))
+              call to_zero(3*at%astruct%nat, fpulay(1,1))
               if (input%lin%scf_mode==LINEAR_FOE) then
                  nit_lowaccuracy=input%lin%nit_lowaccuracy
               else
@@ -882,7 +890,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   if(lowaccur_converged) then
       do iorb=1,lorbs%norbp
           iiat=onwhichatom(lorbs%isorb+iorb)
-          confdatarr(iorb)%prefac=input%lin%potentialPrefac_highaccuracy(at%iatype(iiat))
+          confdatarr(iorb)%prefac=input%lin%potentialPrefac_highaccuracy(at%astruct%iatype(iiat))
       end do
       target_function=TARGET_FUNCTION_IS_ENERGY
       nit_basis=input%lin%nItBasis_highaccuracy
@@ -896,7 +904,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   else
       do iorb=1,lorbs%norbp
           iiat=onwhichatom(lorbs%isorb+iorb)
-          confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+          confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
       end do
       target_function=TARGET_FUNCTION_IS_TRACE
       nit_basis=input%lin%nItBasis_lowaccuracy
@@ -914,7 +922,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   !!    do iorb=1,lorbs%norbp
   !!        ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
   !!        iiat=onwhichatom(lorbs%isorb+iorb)
-  !!        confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+  !!        confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
   !!    end do
   !!    wfnmd%bs%target_function=TARGET_FUNCTION_IS_HYBRID
   !!    wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
@@ -943,7 +951,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   real(8),intent(in) :: hx, hy, hz
   type(atoms_data),intent(in) :: at
   type(input_variables),intent(in) :: input
-  real(8),dimension(3,at%nat),intent(in):: rxyz
+  real(8),dimension(3,at%astruct%nat),intent(in):: rxyz
   type(DFT_wavefunction),intent(inout) :: KSwfn, tmb
   type(DFT_local_fields),intent(inout) :: denspot
   type(localizedDIISParameters),intent(inout) :: ldiis
@@ -1001,8 +1009,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !temporary,  moved from update_locreg
      tmb%orbs%eval=-0.5_gp
      call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, locregCenter, lzd_tmp%glr, .false., &
-          denspot%dpbox%nscatterarr, hx, hy, hz, at, input, KSwfn%orbs, tmb%orbs, tmb%lzd, tmb%npsidim_orbs, tmb%npsidim_comp, &
-          tmb%comgp, tmb%collcom, tmb%foe_obj, tmb%collcom_sr)
+          denspot%dpbox%nscatterarr, hx, hy, hz, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%lzd, &
+          tmb%npsidim_orbs, tmb%npsidim_comp, tmb%comgp, tmb%collcom, tmb%foe_obj, tmb%collcom_sr)
 
      iall=-product(shape(locregCenter))*kind(locregCenter)
      deallocate(locregCenter, stat=istat)
@@ -1156,14 +1164,14 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs
   type(atoms_data),intent(in) :: at
-  real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
+  real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
   type(nonlocal_psp_descriptors),intent(in) :: nlpspd
   real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
   type(SIC_data),intent(in) :: SIC
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers),intent(inout) :: GPU
   type(DFT_wavefunction),intent(inout) :: tmb
-  real(kind=8),dimension(3,at%nat),intent(out) :: fpulay
+  real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
 
   ! Local variables
   integer:: istat, iall, ierr, iialpha, jorb
@@ -1284,7 +1292,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   !END DEBUG
 
    ! needs generalizing if dovrlp and dham are to have different structures
-   call to_zero(3*at%nat, fpulay(1,1))
+   call to_zero(3*at%astruct%nat, fpulay(1,1))
    do jdir=1,3
      !do ialpha=1,tmb%orbs%norb
      if (tmb%orbs%norbp>0) then
@@ -1315,10 +1323,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
      end if
    end do 
 
-   call mpiallred(fpulay(1,1), 3*at%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+   call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   if(iproc==0) then
-       do jat=1,at%nat
+       do jat=1,at%astruct%nat
            write(*,'(a,i5,3es16.6)') 'iat, fpulay', jat, fpulay(1:3,jat)
        end do
   end if
@@ -1411,7 +1419,7 @@ subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, co
   do iorb=1,orbs%norbp
       ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
       iiat=orbs%onwhichatom(orbs%isorb+iorb)
-      confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+      confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
   end do
   target_function=TARGET_FUNCTION_IS_HYBRID
   nit_basis=input%lin%nItBasis_lowaccuracy
@@ -1424,3 +1432,172 @@ subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, co
   convCritMix=input%lin%convCritMix_lowaccuracy
 
 end subroutine set_variables_for_hybrid
+
+
+! calculation of cSc and cHc using original coeffs (HOMO and LUMO only) and new Hamiltonian and overlap matrices
+subroutine calc_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovrlp)
+  use module_base
+  use module_types
+  use yaml_output
+  use module_fragments
+  use internal_io
+  use module_interfaces
+  implicit none
+
+  integer, intent(in) :: iproc, nproc
+  type(fragmentInputParameters), intent(in) :: input_frag
+  type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
+  type(orbitals_data), intent(in) :: orbs
+  type(sparseMatrix), intent(inout) :: ham, ovrlp
+
+  integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ifrag_ref, jfrag_ref, ierr, jtmb
+  real(gp), allocatable, dimension(:,:) :: homo_coeffs, lumo_coeffs, homo_ham, lumo_ham, homo_ovrlp, lumo_ovrlp, coeff_tmp
+  character(len=200) :: subname
+
+  subname='calc_transfer_integrals'
+
+  ! make the coeff copies more efficient?
+
+  allocate(coeff_tmp(orbs%norbp,input_frag%nfrag), stat=i_stat)
+  call memocc(i_stat, coeff_tmp, 'coeff_tmp', subname)
+
+  ntmb_tot=ham%full_dim1!=orbs%norb
+  allocate(homo_coeffs(ntmb_tot,input_frag%nfrag), stat=i_stat)
+  call memocc(i_stat, homo_coeffs, 'homo_coeffs', subname)
+
+  allocate(lumo_coeffs(ntmb_tot,input_frag%nfrag), stat=i_stat)
+  call memocc(i_stat, lumo_coeffs, 'lumo_coeffs', subname)
+
+  ! combine individual homo and lumo coeffs into a big ntmb_tot x input_frag%nfrag  array
+  call to_zero(ntmb_tot*input_frag%nfrag, homo_coeffs(1,1))
+  call to_zero(ntmb_tot*input_frag%nfrag, lumo_coeffs(1,1))
+  ind=0
+  do ifrag=1,input_frag%nfrag
+     ! find reference fragment this corresponds to
+     ifrag_ref=input_frag%frag_index(ifrag)
+     do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+        homo_coeffs(ind+itmb,ifrag)=ref_frags(ifrag_ref)%coeff(itmb,ref_frags(ifrag_ref)%nksorb)
+        lumo_coeffs(ind+itmb,ifrag)=ref_frags(ifrag_ref)%coeff(itmb,ref_frags(ifrag_ref)%nksorb+1)
+     end do
+     ind=ind+ref_frags(ifrag_ref)%fbasis%forbs%norb
+  end do
+
+  allocate(homo_ham(input_frag%nfrag,input_frag%nfrag), stat=i_stat)
+  call memocc(i_stat, homo_ham, 'homo_ham', subname)
+
+  allocate(lumo_ham(input_frag%nfrag,input_frag%nfrag), stat=i_stat)
+  call memocc(i_stat, lumo_ham, 'lumo_ham', subname)
+
+  allocate(homo_ovrlp(input_frag%nfrag,input_frag%nfrag), stat=i_stat)
+  call memocc(i_stat, homo_ovrlp, 'homo_ovrlp', subname)
+
+  allocate(lumo_ovrlp(input_frag%nfrag,input_frag%nfrag), stat=i_stat)
+  call memocc(i_stat, lumo_ovrlp, 'lumo_ovrlp', subname)
+
+  allocate(ham%matrix(ham%full_dim1,ham%full_dim1), stat=i_stat)
+  call memocc(i_stat, ham%matrix, 'ham%matrix', subname)
+  call uncompressMatrix(iproc,ham)
+
+  !DGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
+  !rows op(a) and c, cols op(b) and c, cols op(a) and rows op(b)
+  call to_zero(input_frag%nfrag**2, homo_ham(1,1))
+  if (orbs%norbp>0) then
+     call dgemm('n', 'n', orbs%norbp, input_frag%nfrag, orbs%norb, 1.d0, &
+	       ham%matrix(orbs%isorb+1,1),orbs%norb, &
+          homo_coeffs(1,1), orbs%norb, 0.d0, &
+          coeff_tmp, orbs%norbp)
+     call dgemm('t', 'n', input_frag%nfrag, input_frag%nfrag, orbs%norbp, 1.d0, homo_coeffs(orbs%isorb+1,1), &
+          orbs%norb, coeff_tmp, orbs%norbp, 0.d0, homo_ham, input_frag%nfrag)
+  end if
+
+  call to_zero(input_frag%nfrag**2, lumo_ham(1,1))
+  if (orbs%norbp>0) then
+     call dgemm('n', 'n', orbs%norbp, input_frag%nfrag, orbs%norb, 1.d0, ham%matrix(orbs%isorb+1,1), &
+          orbs%norb, lumo_coeffs(1,1), orbs%norb, 0.d0, coeff_tmp, orbs%norbp)
+     call dgemm('t', 'n', input_frag%nfrag, input_frag%nfrag, orbs%norbp, 1.d0, lumo_coeffs(orbs%isorb+1,1), &
+          orbs%norb, coeff_tmp, orbs%norbp, 0.d0, lumo_ham, input_frag%nfrag)
+  end if
+
+  if (nproc>1) then
+      call mpiallred(homo_ham(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(lumo_ham(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  end if
+
+  i_all=-product(shape(ham%matrix))*kind(ham%matrix)
+  deallocate(ham%matrix, stat=i_stat)
+  call memocc(i_stat, i_all, 'ham%matrix', subname)
+
+  allocate(ovrlp%matrix(ovrlp%full_dim1,ovrlp%full_dim1), stat=i_stat)
+  call memocc(i_stat, ovrlp%matrix, 'ovrlp%matrix', subname)
+  call uncompressMatrix(iproc,ovrlp)
+
+  call to_zero(input_frag%nfrag**2, homo_ovrlp(1,1))
+  if (orbs%norbp>0) then
+     call dgemm('n', 'n', orbs%norbp, input_frag%nfrag, orbs%norb, 1.d0, ovrlp%matrix(orbs%isorb+1,1), &
+          orbs%norb, homo_coeffs(1,1), orbs%norb, 0.d0, coeff_tmp, orbs%norbp)
+     call dgemm('t', 'n', input_frag%nfrag, input_frag%nfrag, orbs%norbp, 1.d0, homo_coeffs(orbs%isorb+1,1), &
+          orbs%norb, coeff_tmp, orbs%norbp, 0.d0, homo_ovrlp, input_frag%nfrag)
+  end if
+
+  call to_zero(input_frag%nfrag**2, lumo_ovrlp(1,1))
+  if (orbs%norbp>0) then
+     call dgemm('n', 'n', orbs%norbp, input_frag%nfrag, orbs%norb, 1.d0, ovrlp%matrix(orbs%isorb+1,1), &
+          orbs%norb, lumo_coeffs(1,1), orbs%norb, 0.d0, coeff_tmp, orbs%norbp)
+     call dgemm('t', 'n', input_frag%nfrag, input_frag%nfrag, orbs%norbp, 1.d0, lumo_coeffs(orbs%isorb+1,1), &
+          orbs%norb, coeff_tmp, orbs%norbp, 0.d0, lumo_ovrlp, input_frag%nfrag)
+  end if
+
+  if (nproc>1) then
+      call mpiallred(homo_ovrlp(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(lumo_ovrlp(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  end if
+
+  i_all=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
+  deallocate(ovrlp%matrix, stat=i_stat)
+  call memocc(i_stat, i_all, 'ovrlp%matrix', subname)
+
+  i_all = -product(shape(coeff_tmp))*kind(coeff_tmp)
+  deallocate(coeff_tmp,stat=i_stat)
+  call memocc(i_stat,i_all,'coeff_tmp',subname)
+
+  i_all = -product(shape(homo_coeffs))*kind(homo_coeffs)
+  deallocate(homo_coeffs,stat=i_stat)
+  call memocc(i_stat,i_all,'homo_coeffs',subname)
+
+  i_all = -product(shape(lumo_coeffs))*kind(lumo_coeffs)
+  deallocate(lumo_coeffs,stat=i_stat)
+  call memocc(i_stat,i_all,'lumo_coeffs',subname)
+
+  ! output results
+  if (iproc==0) write(*,*) 'Transfer integrals and site energies:'
+  if (iproc==0) write(*,*) 'frag i, frag j, HOMO energy, LUMO energy, HOMO overlap , LUMO overlap'
+  do jfrag=1,input_frag%nfrag
+     !ifrag_ref=input_frag%frag_index(ifrag)
+     do ifrag=1,input_frag%nfrag
+        !jfrag_ref=input_frag%frag_index(jfrag)
+        if (iproc==0) write(*,'(2(I5,x),x,2(2(F16.12,x),x))') jfrag, ifrag, homo_ham(jfrag,ifrag), lumo_ham(jfrag,ifrag), &
+             homo_ovrlp(jfrag,ifrag), lumo_ovrlp(jfrag,ifrag)
+     end do
+  end do
+
+  i_all = -product(shape(homo_ham))*kind(homo_ham)
+  deallocate(homo_ham,stat=i_stat)
+  call memocc(i_stat,i_all,'homo_ham',subname)
+
+  i_all = -product(shape(lumo_ham))*kind(lumo_ham)
+  deallocate(lumo_ham,stat=i_stat)
+  call memocc(i_stat,i_all,'lumo_ham',subname)
+
+  i_all = -product(shape(homo_ovrlp))*kind(homo_ovrlp)
+  deallocate(homo_ovrlp,stat=i_stat)
+  call memocc(i_stat,i_all,'homo_ovrlp',subname)
+
+  i_all = -product(shape(lumo_ovrlp))*kind(lumo_ovrlp)
+  deallocate(lumo_ovrlp,stat=i_stat)
+  call memocc(i_stat,i_all,'lumo_ovrlp',subname)
+
+end subroutine calc_transfer_integrals
+
+
+
+

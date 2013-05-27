@@ -65,7 +65,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   type(communications_arrays), intent(in) :: comms, commsv
   type(denspot_distribution), intent(in) :: dpcom
   real(gp), intent(in) :: hx,hy,hz
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: rhopot
   type(orbitals_data), intent(inout) :: orbsv
   type(GPU_pointers), intent(inout) :: GPU
@@ -120,7 +120,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
           hx,hy,hz,Lzd%Glr%wfd,orbsv,GPU)
   else if (OCLconv) then
      call free_gpu_OCL(GPU,orbs,in%nspin)   
-     call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%geocode,&
+     call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
           in%nspin,Lzd%Glr%wfd,orbsv,GPU) 
   end if
  

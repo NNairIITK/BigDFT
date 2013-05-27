@@ -559,9 +559,9 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
       ty=0.0_gp
       tz=0.0_gp
       do iat=1,at%nat
-         tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
-         ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
-         tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+         tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
+         ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
+         tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
       enddo
       displ=sqrt(tx+ty+tz)
    END SUBROUTINE calc_displ
@@ -1047,7 +1047,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       dims%number_of_localization_regions = 1
 
       dims%number_of_atoms               = at%nat
-      dims%number_of_atom_species        = at%ntypes
+      dims%number_of_atom_species        = at%astruct%ntypes
       !!$    if (at%geocode == 'P') then
       dims%number_of_grid_points_vector1 = n1 + 1
       dims%number_of_grid_points_vector2 = n2 + 1
@@ -1100,18 +1100,18 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
             &    hy * dims%number_of_grid_points_vector2, &
             &   hz * dims%number_of_grid_points_vector3 /)
       end do
-      allocate(znucl(at%ntypes),stat=i_stat)
+      allocate(znucl(at%astruct%ntypes),stat=i_stat)
       call memocc(i_stat,znucl,'znucl',subname)
       znucl = real(at%nzatom)
-      allocate(spnames(at%ntypes),stat=i_stat)
+      allocate(spnames(at%astruct%ntypes),stat=i_stat)
       call memocc(i_stat,spnames,'spnames',subname)
-      do iat = 1, at%ntypes, 1
+      do iat = 1, at%astruct%ntypes, 1
          call nzsymbol(at%nzatom(iat), spnames(iat))
       end do
       symId = reshape((/1,0,0,0,1,0,0,0,1/), (/3,3,1/))
       transId = reshape((/0.d0,0.d0,0.d0/), (/3,1/))
       geo%chemical_symbols              => spnames
-      geo%atom_species                  => at%iatype
+      geo%atom_species                  => at%astruct%iatype
       geo%atomic_numbers                => znucl
       geo%reduced_atom_positions        => xred
       geo%primitive_vectors             => rprimd

@@ -229,7 +229,7 @@ module module_private_api
        character, intent(in) :: filename(filelen)
        type(atoms_data), intent(in) :: atoms
        real(gp), intent(in) :: energy
-       real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+       real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
        real(gp), dimension(:,:), pointer :: forces
      END SUBROUTINE atoms_write
 

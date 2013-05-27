@@ -19,7 +19,7 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,x
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: at
   real(wp), dimension(n1i,n2i,n3i), intent(in) :: x
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   !local variables
 
   write(0, "(A)") "Illegal call to write_etsf_density(), not compiled with ETSF_IO support."
@@ -75,8 +75,8 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(in) :: orbs
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
   character(len = *), intent(in) :: filename
 
@@ -98,9 +98,9 @@ subroutine read_one_wave_etsf(iproc,filename,iorbp,isorb,nspinor,n1,n2,n3,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(atoms_data), intent(in) :: at
   real(gp), intent(in) :: hx,hy,hz
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), intent(out) :: eval
-  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor), intent(out) :: psi
   character(len = *), intent(in) :: filename
   !To avoid warnings from the compiler
@@ -111,7 +111,7 @@ subroutine read_one_wave_etsf(iproc,filename,iorbp,isorb,nspinor,n1,n2,n3,&
   stop 'No ETSF support at compilation!'
 
   !To avoid warning from the compiler
-  write (*,*) filename,wfd%nvctr_c,at%nat,hx,hy,hz
+  write (*,*) filename,wfd%nvctr_c,at%astruct%nat,hx,hy,hz
 END SUBROUTINE read_one_wave_etsf
 
 !> Write wavefunctions in ETSF format

@@ -12,7 +12,7 @@ subroutine center_of_charge(at,rxyz,cc)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(3), intent(out) :: cc
   !local variables
   integer :: iat,ityp
@@ -22,8 +22,8 @@ subroutine center_of_charge(at,rxyz,cc)
   cc(2)=0.0_gp
   cc(3)=0.0_gp
   qtot=0.0_gp
-  do iat=1,at%nat
-     ityp=at%iatype(iat)
+  do iat=1,at%astruct%nat
+     ityp=at%astruct%iatype(iat)
      zatom=real(at%nelpsp(ityp),gp)
      qtot=qtot+zatom
      !coordinates of the center
