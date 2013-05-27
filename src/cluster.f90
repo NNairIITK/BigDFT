@@ -1167,8 +1167,9 @@ contains
 
     ! Free all remaining parts of KSwfn
 !!write(*,*) 'WARNING HERE!!!!!'
-    if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
-                     .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+    !if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+    !                 .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+    if (in%inguess_geopt/=1) then
         call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
              KSwfn%Lzd%Glr%bounds,subname)
     end if
