@@ -4656,6 +4656,24 @@ module module_interfaces
           logical,intent(inout) :: can_use_transposed
         end subroutine gramschmidt_subset
 
-   end interface
+   subroutine input_wf_memory_new(nproc,iproc, atoms, &
+           rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
+           rxyz,hx,hy,hz,d,wfd,psi,orbs,lzd,displ)
+  use module_defs
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3, atoms%nat), intent(in) :: rxyz, rxyz_old
+  real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old,displ
+  type(grid_dimensions), intent(in) :: d, d_old
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(wavefunctions_descriptors), intent(inout) :: wfd_old
+  type(orbitals_data), intent(in) :: orbs
+  type(local_zone_descriptors), intent(inout) :: lzd_old
+  type(local_zone_descriptors), intent(in) :: lzd
+  real(wp), dimension(:), pointer :: psi, psi_old
+  end subroutine input_wf_memory_new
 
+  end interface
 END MODULE module_interfaces

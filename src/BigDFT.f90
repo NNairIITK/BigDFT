@@ -48,6 +48,11 @@ program BigDFT
    igroup=mpi_info(3)
    !number of groups
    ngroups=mpi_info(4)
+   
+   
+   !Nullify LZD for cubic version (new input guess)
+   call nullify_local_zone_descriptors(rst%tmb%lzd)
+
 
   
    !allocate arrays of run ids
@@ -98,6 +103,9 @@ program BigDFT
             if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'Geometry + metaData forces',forces=fxyz)
          end if
 
+
+     !always deallocate lzd for new input guess
+     call deallocate_lzd(rst%tmb%lzd, subname)
          i_all=-product(shape(rxyz))*kind(rxyz)
          deallocate(rxyz,stat=i_stat)
          call memocc(i_stat,i_all,'rxyz',subname)

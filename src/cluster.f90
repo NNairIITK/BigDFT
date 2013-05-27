@@ -299,7 +299,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   norbv=abs(in%norbv)
   nvirt=in%nvirt
-
+  !Nullify for new input guess
+  call nullify_local_zone_descriptors(lzd_old)
+  call nullify_wavefunctions_descriptors(wfd_old)
+  
   if (iproc == 0) then
      !start a new document in the beginning of the output, if the document is closed before
      call yaml_new_document()
@@ -330,6 +333,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call correct_grid(atoms%alat1,hx_old,KSwfn%Lzd%Glr%d%n1)
         call correct_grid(atoms%alat3,hz_old,KSwfn%Lzd%Glr%d%n3)
      end if
+     
+     call copy_local_zone_descriptors(KSwfn%Lzd, lzd_old, subname)
+     
      !if the history is bigger than two, create the workspace to store the wavefunction
      if (in%wfn_history > 2) then
         call old_wavefunction_set(KSwfn%oldpsis(in%wfn_history+1),&
@@ -343,6 +349,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
              KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
              KSwfn%Lzd%Glr%wfd,KSwfn%psi,d_old%n1,d_old%n2,d_old%n3,wfd_old,psi_old)
      end if
+     !already here due to new input guess
+     call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds, subname)
 
   else if (in%inputPsiId == INPUT_PSI_MEMORY_GAUSS) then
      !deallocate wavefunction and descriptors for placing the gaussians
@@ -379,6 +387,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
          KSwfn%comms,shift,proj,radii_cf,tmb_old%orbs%inwhichlocreg,tmb_old%orbs%onwhichatom)
   else
+
+
     call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
          KSwfn%comms,shift,proj,radii_cf)
@@ -488,8 +498,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,&
        inputpsi,input_wf_format,norbv,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
+  !new position due to new input guess
 
-  if (in%nvirt > norbv) then
+  call deallocate_wfd(wfd_old,subname)
+  call deallocate_local_zone_descriptors(lzd_old,subname)
+
+
+ if(in%nvirt > norbv) then
      nvirt = norbv
   end if
 
@@ -530,6 +545,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      ! Treat the info code from the optimization routine.
      if (infocode == 2 .or. infocode == 3) then
         call deallocate_before_exiting
+        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds, subname)
         return
      end if
   else
@@ -1088,9 +1104,8 @@ contains
 
   !> Routine which deallocate the pointers and the arrays before exiting 
   subroutine deallocate_before_exiting
-
-
-    !when this condition is verified we are in the middle of the SCF cycle
+    
+  !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1 .and. inputpsi /= INPUT_PSI_EMPTY) then
        i_all=-product(shape(denspot%V_ext))*kind(denspot%V_ext)
        deallocate(denspot%V_ext,stat=i_stat)
@@ -1148,9 +1163,11 @@ contains
     call memocc(i_stat, i_all, 'denspot0', subname)
 
     ! Free all remaining parts of KSwfn
-    call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
-         KSwfn%Lzd%Glr%bounds,subname)
+!!write(*,*) 'WARNING HERE!!!!!'
+!    call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
+!         KSwfn%Lzd%Glr%bounds,subname)
     call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
+
 !    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
 !    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
 !    call memocc(i_stat,i_all,'Glr%projflg',subname)

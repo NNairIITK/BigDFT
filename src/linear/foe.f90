@@ -509,6 +509,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
+     
+      deallocate(penalty_ev, stat=istat)
 
 
 end subroutine foe
