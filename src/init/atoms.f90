@@ -189,8 +189,8 @@ END SUBROUTINE deallocate_atoms
 
 !> Allocation of the arrays inside the structure atoms_data
 subroutine atoms_set_n_atoms(atoms, rxyz, nat)
+  use module_base
   use module_types
-  use m_profiling
   implicit none
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
