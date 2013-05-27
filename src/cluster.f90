@@ -501,7 +501,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
        inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
   !new position due to new input guess
 
-  call deallocate_wfd(wfd_old,subname)
+  !call deallocate_wfd(wfd_old,subname)
+  ! modified by SM
+  call deallocate_wavefunctions_descriptors(wfd_old, subname)
   call deallocate_local_zone_descriptors(lzd_old,subname)
 
 
@@ -1165,8 +1167,11 @@ contains
 
     ! Free all remaining parts of KSwfn
 !!write(*,*) 'WARNING HERE!!!!!'
-!    call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
-!         KSwfn%Lzd%Glr%bounds,subname)
+    if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+                     .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+        call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
+             KSwfn%Lzd%Glr%bounds,subname)
+    end if
     call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
 
 !    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)

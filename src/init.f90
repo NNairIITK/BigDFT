@@ -72,16 +72,16 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   end if
   call wfd_from_grids(logrid_c,logrid_f,Glr)
 
-           if (iproc == 0) then
-              !write(*,'(2(1x,a,i10))') &
-              !     &   'Coarse resolution grid: Number of segments= ',Glr%wfd%nseg_c,'points=',Glr%wfd%nvctr_c
-              call yaml_open_map('Coarse resolution grid')!,flow=.true.)
-              call yaml_map('No. of segments',Glr%wfd%nseg_c)
-              call yaml_map('No. of points',Glr%wfd%nvctr_c)
-              call yaml_close_map()
-           end if
+         if (iproc == 0) then
+            !write(*,'(2(1x,a,i10))') &
+            !     &   'Coarse resolution grid: Number of segments= ',Glr%wfd%nseg_c,'points=',Glr%wfd%nvctr_c
+            call yaml_open_map('Coarse resolution grid')!,flow=.true.)
+            call yaml_map('No. of segments',Glr%wfd%nseg_c)
+            call yaml_map('No. of points',Glr%wfd%nvctr_c)
+            call yaml_close_map()
+         end if
 
-           if (atoms%geocode == 'P' .and. .not. Glr%hybrid_on .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
+         if (atoms%geocode == 'P' .and. .not. Glr%hybrid_on .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
               if (iproc ==0) then
          call yaml_warning('The coarse grid does not fill the entire periodic box')
          call yaml_comment('Errors due to translational invariance breaking may occur')
@@ -162,7 +162,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
         subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
            use module_base
            use module_types
-   use yaml_output
+           use yaml_output
            implicit none
            !Arguments
            type(locreg_descriptors), intent(inout) :: Glr
@@ -203,8 +203,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
            call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c,Glr%wfd%nvctr_c)
            if (Glr%wfd%nseg_c == 0) then
               ! Check if the number of seg_c (Glr%wfd%nseg_c) > 0
-      call yaml_warning('There is no coarse grid points (nseg_c=0)!')
-      !write( *,*) ' ERROR: there is no coarse grid points (nseg_c=0)!'
+              call yaml_warning('There is no coarse grid points (nseg_c=0)!')
+              !write( *,*) ' ERROR: there is no coarse grid points (nseg_c=0)!'
               stop
            end if
 
