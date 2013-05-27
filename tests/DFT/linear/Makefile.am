@@ -48,17 +48,17 @@ deltascf_write_neut.out.post-out:
 rotate_read.out.out : rotate_write.out.out
 
 rotate_write.out.post-out: 
-	rm -rf data-read/benzene
+	rm -rf data-read/data-benzene
 	mkdir -p data-read
-	mv -f data-write data-read/benzene
+	mv -f data-write data-read/data-benzene
 	cp -f write.xyz data-read/benzene.xyz
 
 rotate2_read.out.out : rotate2_write.out.out
 
 rotate2_write.out.post-out: 
-	rm -rf data-read/benzene
+	rm -rf data-read/data-benzene
 	mkdir -p data-read
-	mv -f data-write data-read/benzene
+	mv -f data-write data-read/data-benzene
 	cp -f write.xyz data-read/benzene.xyz
 
 # Define the precision for specific directories.

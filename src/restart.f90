@@ -1817,9 +1817,9 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
            ! check if this ref frag orbital corresponds to the orbital we want
            if (iiorb/=iforb+isforb) cycle
            do ispinor=1,tmb%orbs%nspinor
-              ! if this is a fragment calculation frag%label will contain fragment directory, otherwise it will be empty
+              ! if this is a fragment calculation frag%dirname will contain fragment directory, otherwise it will be empty
               ! bit of a hack to use orbs here not forbs, but different structures so this is necessary - to clean somehow
-              full_filename=trim(dir_output)//trim(input_frag%label(ifrag_ref))//trim(filename)
+              full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
 
               call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),full_filename, &
                    & tmb%orbs,iorbp,ispinor,iorb_out,iforb)
@@ -2006,21 +2006,21 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
         call memocc(i_stat, rxyz_ref, 'rxyz_ref', subname)
         allocate(rxyz_new(3,ref_frags(ifrag_ref)%astruct_frg%nat), stat=i_stat)
         call memocc(i_stat, rxyz_new, 'rxyz_ref', subname)
-        allocate(dist(ref_frags(ifrag_ref)%astruct_frg%nat-1), stat=i_stat)
+        allocate(dist(ref_frags(ifrag_ref)%astruct_frg%nat), stat=i_stat)
         call memocc(i_stat, dist, 'dist', subname)
-        allocate(ipiv(ref_frags(ifrag_ref)%astruct_frg%nat-1), stat=i_stat)
+        allocate(ipiv(ref_frags(ifrag_ref)%astruct_frg%nat), stat=i_stat)
         call memocc(i_stat, ipiv, 'ipiv', subname)
-
-        do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
-           rxyz_new(:,iat)=rxyz(:,isfat+iat)
-           rxyz_ref(:,iat)=rxyz_old(:,isfat+iat)
-        end do
 
         ! loop over orbitals of this fragment
         do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
            do iorbp=1,tmb%orbs%norbp
               iiorb=iorbp+tmb%orbs%isorb
               if (iiorb/=iforb+isforb) cycle
+
+              do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+                 rxyz_new(:,iat)=rxyz(:,isfat+iat)
+                 rxyz_ref(:,iat)=rxyz_old(:,isfat+iat)
+              end do
 
               iiat=tmb%orbs%onwhichatom(iiorb)
 
@@ -2036,19 +2036,16 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 
               ! find distances from this atom
               do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
-                 if (iat==iiat) cycle
-                 dist=dsqrt(rxyz_ref(1,iat)**2+rxyz_ref(2,iat)**2+rxyz_ref(3,iat)**2)
+                   dist(iat)=-dsqrt(rxyz_ref(1,iat)**2+rxyz_ref(2,iat)**2+rxyz_ref(3,iat)**2)
               end do             
 
               ! sort atoms into neighbour order
-              call sort_positions(ref_frags(ifrag_ref)%astruct_frg%nat-1,dist,ipiv)
+              call sort_positions(ref_frags(ifrag_ref)%astruct_frg%nat,dist,ipiv)
 
               ! take atom and 3 nearest neighbours
-              rxyz4_ref(:,1)=frag_trans_orb(iorbp)%rot_center
-              rxyz4_new(:,1)=frag_trans_orb(iorbp)%rot_center_new
-              do iat=1,min(3,ref_frags(ifrag_ref)%astruct_frg%nat-1)
-                 rxyz4_ref(:,iat+1)=rxyz_ref(:,ipiv(iat))
-                 rxyz4_new(:,iat+1)=rxyz_new(:,ipiv(iat))
+              do iat=1,min(4,ref_frags(ifrag_ref)%astruct_frg%nat)
+                 rxyz4_ref(:,iat)=rxyz_ref(:,ipiv(iat))
+                 rxyz4_new(:,iat)=rxyz_new(:,ipiv(iat))
               end do
 
               call find_frag_trans(min(4,ref_frags(ifrag_ref)%astruct_frg%nat),rxyz4_ref,rxyz4_new,&
@@ -2056,8 +2053,6 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 
               write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,iorb,rot_axis,theta',&
                    ifrag,iiorb,frag_trans_orb(iorbp)%rot_axis,frag_trans_orb(iorbp)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
-
-frag_trans_orb(iorbp)%theta=0.0_gp
 
            end do
         end do
@@ -2146,7 +2141,7 @@ frag_trans_orb(iorbp)%theta=0.0_gp
      ! find reference fragment this corresponds to
      ifrag_ref=input_frag%frag_index(ifrag)
 
-     full_filename=trim(dir_output)//trim(input_frag%label(ifrag_ref))//trim(filename)//'_coeff.bin'
+     full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)//'_coeff.bin'
 
      if(iformat == WF_FORMAT_PLAIN) then
         open(unitwf,file=trim(full_filename),status='unknown',form='formatted')
@@ -2290,9 +2285,9 @@ print*,'present(orblist)',present(orblist)
               if (iiorb/=iforb+isforb) cycle
               do ispinor=1,orbs%nspinor
 
-                 ! if this is a fragment calculation frag%label will contain fragment directory, otherwise it will be empty
+                 ! if this is a fragment calculation frag%dirname will contain fragment directory, otherwise it will be empty
                  ! bit of a hack to use orbs here not forbs, but different structures so this is necessary - to clean somehow
-                 full_filename=trim(dir_output)//trim(input_frag%label(ifrag_ref))//trim(filename)
+                 full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
 
                  call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),full_filename, &
                       & orbs,iorbp,ispinor,iorb_out,iforb)

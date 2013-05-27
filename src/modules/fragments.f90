@@ -122,12 +122,12 @@ contains
 
 
   ! initializes all of fragment except lzd using the fragment posinp and tmb files
-  subroutine init_fragment_from_file(frag,dir_name,input) ! switch this to pure if possible
+  subroutine init_fragment_from_file(frag,frag_name,input) ! switch this to pure if possible
     use module_types
     !use module_interfaces
     implicit none
     type(system_fragment), intent(inout) :: frag
-    character(len=*), intent(in) :: dir_name
+    character(len=*), intent(in) :: frag_name
     type(input_variables), intent(in) :: input
 
     ! local variables
@@ -137,7 +137,7 @@ contains
     frag=fragment_null()
 
     ! read fragment positions
-    call read_atomic_file(dir_name(1:len(dir_name)-1),bigdft_mpi%iproc,frag%astruct_frg)
+    call read_atomic_file(frag_name(1:len(frag_name)),bigdft_mpi%iproc,frag%astruct_frg)
 
 
     ! iproc, nproc, nspinor not needed yet, add in later
@@ -595,10 +595,11 @@ contains
     real(gp) :: theta !< angle of rotation (ref becomes new)
     !local variables
     integer, parameter :: lwork=7*3
-    integer :: info, i
-    real(gp) :: dets,tracem1,dnrm2
+    integer :: info,i,iat
+    real(gp) :: dets,tracem1,dnrm2,J
     real(gp), dimension(3) :: SM_arr !< array of SVD and M array
     real(gp), dimension(lwork) :: work !< array of SVD and M array
+    real(gp), dimension(3,nat) :: J_arr !< matrix for calculating Wahba's cost function
     real(gp), dimension(3,3) :: B_mat,R_mat,U_mat,VT_mat !<matrices of Wahba's problem
 
     B_mat=0.0_gp
@@ -618,9 +619,6 @@ contains
     !find rotation matrix
     call dgemm('N','N',3,3,3,1.0_gp,U_mat,3,VT_mat,3,0.0_gp,R_mat,3)
 
-    !to be verified that the cost function of Wahba's problem is little
-
-
     !find the angle from R matrix
     tracem1=R_mat(1,1)+R_mat(2,2)+R_mat(3,3)-1.0_gp
 
@@ -633,8 +631,9 @@ contains
        !theta=theta/(4.0_gp*atan(1.d0)/180.0_gp)
     end if
     !check the pertinence of the suggested rotation
-	 if  (f_err_raise(abs(theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp),'Angle theta not optimal (theta= '//&
-	        yaml_toa(theta)//' )')) return
+    if (abs(theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp)) print*,'theta=',theta/(4.0_gp*atan(1.d0)/180.0_gp)
+	 !if  (f_err_raise(abs(theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp),'Angle theta not optimal (theta= '//&
+	 !      yaml_toa(theta)//' )')) return
     !find rot_axis
     rot_axis(1)=R_mat(3,2)-R_mat(2,3)    
     rot_axis(2)=R_mat(1,3)-R_mat(3,1)
@@ -658,7 +657,15 @@ contains
     !     rot_axis(3)*rot_axis(2)*(1.0_gp-cos(theta))+rot_axis(1)*sin(theta),&
     !     cos(theta)+rot_axis(3)**2*(1.0_gp-cos(theta))
     
+    !to be verified that the cost function of Wahba's problem is little
+    J_arr=rxyz_new
+    call dgemm('N','N',3,nat,3,-1.0_gp,R_mat,3,rxyz_ref,3,1.0_gp,J_arr,3)
+    J=0.0_gp
+    do iat=1,nat
+       J=J+J_arr(1,iat)**2+J_arr(2,iat)**2+J_arr(3,iat)**2
+    end do
 
+    print*,'J,theta',J,theta/(4.0_gp*atan(1.d0)/180.0_gp)
 
   end subroutine find_frag_trans
 

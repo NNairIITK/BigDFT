@@ -174,6 +174,7 @@ module module_types
     integer, dimension(:), pointer :: frag_index ! array matching system fragments to reference fragments
     !integer, dimension(:,:), pointer :: frag_info !array giving number of atoms in fragment and environment for reference fragments
     character(len=100), dimension(:), pointer :: label ! array of fragment names
+    character(len=100), dimension(:), pointer :: dirname ! array of fragment directories, blank if not a fragment calculation
   end type fragmentInputParameters
 
 
