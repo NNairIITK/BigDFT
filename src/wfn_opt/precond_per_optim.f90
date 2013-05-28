@@ -476,14 +476,18 @@ subroutine apply_hp_per_k(n1,n2,n3, &
   hgridh(2)=hy*.5_gp
   hgridh(3)=hz*.5_gp
 
-  !transpose (to be included in the uncompression)
-  call transpose_for_kpoints(2,2*n1+2,2*n2+2,2*n3+2,&
-       psifscf,ww,.true.)
-  call convolut_kinetic_per_c_k(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,ww,cprecr,k1,k2,k3)
-  !call convolut_kinetic_per_c(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,ww,cprecr)
-  !this can be included in the compression
-  call transpose_for_kpoints(2,2*n1+2,2*n2+2,2*n3+2,&
-       ww,psifscf,.false.)
+  if (transpose) then
+     !transpose (to be included in the uncompression)
+     call transpose_for_kpoints(2,2*n1+2,2*n2+2,2*n3+2,&
+          psifscf,ww,.true.)
+     call convolut_kinetic_per_c_k(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,ww,cprecr,k1,k2,k3)
+     !call convolut_kinetic_per_c(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,ww,cprecr)
+     !this can be included in the compression
+     call transpose_for_kpoints(2,2*n1+2,2*n2+2,2*n3+2,&
+          ww,psifscf,.false.)
+  else
+     call convolut_kinetic_per_c_k_notranspose(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,ww,cprecr,k1,k2,k3)
+  end if
 
   do idx=1,2
      call compress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
