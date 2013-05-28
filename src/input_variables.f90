@@ -996,7 +996,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in)
   character(len=*), parameter :: subname='kpt_input_variables_new'
   character(len = 6) :: type
   integer :: i_stat,ierror,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount,ierror1, nkpt
-  real(gp) :: kptrlen, shiftk(3), norm, kpt(3), wkpt
+  real(gp) :: kptrlen, shiftk(3), kpt(3), wkpt
   integer, allocatable :: iseg(:)
 
   ! Set default values.
@@ -1060,7 +1060,6 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in)
      call input_var(nkpt,'1',ranges=(/1,10000/),&
           comment='Number of K-points')
      call set(in%kpt//'Number of K-points', nkpt)
-     norm=0.0_gp
      do i=1,nkpt
         call input_var( kpt(1),'0.')
         call input_var( kpt(2),'0.')
@@ -1070,12 +1069,6 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in)
         call set(in%kpt//'Kpt coordinates'//i//3, kpt(3))
         call input_var( wkpt,'1.',comment='K-pt coords, K-pt weigth')
         call set(in%kpt//'Kpt weights'//i, wkpt)
-        norm=norm+wkpt
-     end do
-     ! We normalise the weights.
-     do i=1,nkpt
-        wkpt = in%kpt//'Kpt weights'//i
-        call set(in%kpt//'Kpt weights'//i, wkpt / norm)
      end do
   end if
 
@@ -2829,7 +2822,7 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
            kpt(2,i) = 0.
            if (iproc==0) call yaml_warning('Surface conditions, supressing k-points along y.')
         end if
-        wkpt(i) = in_kpt//'Kpt weigths'//i
+        wkpt(i) = in_kpt//'Kpt weights'//i
         if (geocode == 'F') then
            kpt = 0.
            wkpt = 1.
