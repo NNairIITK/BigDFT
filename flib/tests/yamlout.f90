@@ -49,7 +49,6 @@ subroutine test_yaml_output2()
            '-lscalapack-openmpi -lblacs-openmpi -lblacsF77init-openmpi -llapack '//&
            '-lblas -larchive   -lyaml -pthread -lgthread-2.0 -lrt -lgio-2.0 '//&
            '-lgobject-2.0 -lglib-2.0   -lgio-2.0 -lgobject-2.0 -lglib-2.0    ')
-
       call yaml_map('Build Configure line again',&
            'FC=/opt/openmpi-1.6.1/bin/mpif90 FCFLAGS=-O2 -i_dynamic -msse4.2'//&
            ' -heap-arrays 1024 -openmp '//&
