@@ -58,15 +58,15 @@ dev.check: dev/toy_model
 dev/toy_model toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90
 	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90 \
 			$(AM_LDFLAGS) $(LDFLAGS) -lbigdft-1 $(LIBS)
-toy_model.dat.out: dev-N2.out.out toy_model 
-	./toy_model > toy_model.dat.out
+dev-N2.out.post-out: dev-N2.out.out toy_model 
+	./toy_model > log-model.yaml
 dev.post-clean:
 	rm -f toy_model
 
 # Define the precision for specific directories.
 %.report: %.ref
 	@case $< in \
-          *.memguess.ref | *.out.ref | toy_model.dat.ref ) mode="--mode=bigdft";; \
+          *.memguess.ref | *.out.ref ) mode="--mode=bigdft";; \
           *) mode="";; \
         esac ; \
         case $* in \
@@ -77,11 +77,12 @@ dev.post-clean:
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 %.report.yaml: %.ref.yaml
-	@export PYTHONPATH=${PYTHONPATH} ; \
+	export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
 	tols=`basename $< .out.ref.yaml` ;\
 	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ;\
+	echo $$log; \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
 		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
 
