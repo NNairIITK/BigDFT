@@ -135,7 +135,8 @@ contains
        if (exceptions) then
           last_error=DICT_VALUE_ABSENT
        else
-          write(*,*)'ERROR: value absent in dictionary'
+          write(*,*)'ERROR: value absent in dictionary (key:' // trim(dict%data%key) // ').'
+          if (associated(dict%parent)) write(*,*)' parent is key:' // trim(dict%parent%data%key) // '.'
           stop
        end if
     end if
@@ -754,7 +755,6 @@ contains
     else
        call dict_init(dict%child)
        call define_parent(dict,dict%child)
-       dict%data%nitems = 1
        call set_item(dict%child,item)
        subd_ptr => dict%child
     end if

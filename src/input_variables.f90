@@ -1040,9 +1040,9 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in)
      call input_var(ngkpt(2),'1',ranges=(/1,10000/))
      call input_var(ngkpt(3),'1',ranges=(/1,10000/), &
           & comment='No. of Monkhorst-Pack grid points')
-     call set(in%kpt//'No. of Monkhorst-Pack grid points'//1, ngkpt(1))
-     call set(in%kpt//'No. of Monkhorst-Pack grid points'//2, ngkpt(2))
-     call set(in%kpt//'No. of Monkhorst-Pack grid points'//3, ngkpt(3))
+     call set(in%kpt//'No. of Monkhorst-Pack grid points'//0, ngkpt(1))
+     call set(in%kpt//'No. of Monkhorst-Pack grid points'//1, ngkpt(2))
+     call set(in%kpt//'No. of Monkhorst-Pack grid points'//2, ngkpt(3))
      !shift
      call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
      call set(in%kpt//'No. of different shifts', nshiftk)
@@ -1052,9 +1052,9 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in)
         call input_var(shiftk(1),'0.')
         call input_var(shiftk(2),'0.')
         call input_var(shiftk(3),'0.',comment=' ')
-        call set(in%kpt//'Grid shifts'//i//1, shiftk(1))
-        call set(in%kpt//'Grid shifts'//i//2, shiftk(2))
-        call set(in%kpt//'Grid shifts'//i//3, shiftk(3))
+        call set(in%kpt//'Grid shifts'//(i-1)//0, shiftk(1))
+        call set(in%kpt//'Grid shifts'//(i-1)//1, shiftk(2))
+        call set(in%kpt//'Grid shifts'//(i-1)//2, shiftk(3))
      end do
   else if (case_insensitive_equiv(trim(type),'manual')) then
      call input_var(nkpt,'1',ranges=(/1,10000/),&
@@ -1064,11 +1064,11 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in)
         call input_var( kpt(1),'0.')
         call input_var( kpt(2),'0.')
         call input_var( kpt(3),'0.')
-        call set(in%kpt//'Kpt coordinates'//i//1, kpt(1))
-        call set(in%kpt//'Kpt coordinates'//i//2, kpt(2))
-        call set(in%kpt//'Kpt coordinates'//i//3, kpt(3))
+        call set(in%kpt//'Kpt coordinates'//(i-1)//0, kpt(1))
+        call set(in%kpt//'Kpt coordinates'//(i-1)//1, kpt(2))
+        call set(in%kpt//'Kpt coordinates'//(i-1)//2, kpt(3))
         call input_var( wkpt,'1.',comment='K-pt coords, K-pt weigth')
-        call set(in%kpt//'Kpt weights'//i, wkpt)
+        call set(in%kpt//'Kpt weights'//(i-1), wkpt)
      end do
   end if
 
@@ -2765,18 +2765,18 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
      end if
   else if (case_insensitive_equiv(trim(method%data%value),'mpgrid')) then
      !take the points of Monkhorst-pack grid
-     ngkpt(1) = in_kpt//'No. of Monkhorst-Pack grid points'//1
-     ngkpt(2) = in_kpt//'No. of Monkhorst-Pack grid points'//2
-     ngkpt(3) = in_kpt//'No. of Monkhorst-Pack grid points'//3
+     ngkpt(1) = in_kpt//'No. of Monkhorst-Pack grid points'//0
+     ngkpt(2) = in_kpt//'No. of Monkhorst-Pack grid points'//1
+     ngkpt(3) = in_kpt//'No. of Monkhorst-Pack grid points'//2
      if (geocode == 'S') ngkpt(2) = 1
      !shift
      nshiftk = in_kpt//'No. of different shifts'
      !read the shifts
      shiftk=0.0_gp
      do i=1,nshiftk
-        shiftk(1,i) = in_kpt//'Grid shifts'//i//1
-        shiftk(2,i) = in_kpt//'Grid shifts'//i//2
-        shiftk(3,i) = in_kpt//'Grid shifts'//i//3
+        shiftk(1,i) = in_kpt//'Grid shifts'//(i-1)//0
+        shiftk(2,i) = in_kpt//'Grid shifts'//(i-1)//1
+        shiftk(3,i) = in_kpt//'Grid shifts'//(i-1)//2
      end do
 
      !control whether we are giving k-points to Free BC
@@ -2815,14 +2815,14 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
      call memocc(i_stat,wkpt,'wkpt',subname)
      norm=0.0_gp
      do i=1,nkpt
-        kpt(1,i) = in_kpt//'Kpt coordinates'//i//1
-        kpt(2,i) = in_kpt//'Kpt coordinates'//i//2
-        kpt(3,i) = in_kpt//'Kpt coordinates'//i//3
+        kpt(1,i) = in_kpt//'Kpt coordinates'//(i-1)//0
+        kpt(2,i) = in_kpt//'Kpt coordinates'//(i-1)//1
+        kpt(3,i) = in_kpt//'Kpt coordinates'//(i-1)//2
         if (geocode == 'S' .and. kpt(2,i) /= 0.) then
            kpt(2,i) = 0.
            if (iproc==0) call yaml_warning('Surface conditions, supressing k-points along y.')
         end if
-        wkpt(i) = in_kpt//'Kpt weights'//i
+        wkpt(i) = in_kpt//'Kpt weights'//(i-1)
         if (geocode == 'F') then
            kpt = 0.
            wkpt = 1.
