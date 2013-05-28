@@ -77,7 +77,7 @@ dev.post-clean:
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 %.report.yaml: %.ref.yaml
-	export PYTHONPATH=${PYTHONPATH} ; \
+	@export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
 	tols=`basename $< .out.ref.yaml` ;\
