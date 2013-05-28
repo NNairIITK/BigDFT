@@ -368,11 +368,11 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     else
         ll_inputs=inputs
     endif
-    call kpt_input_variables_new(iproc,(iproc == 0),'input.kpt',ll_inputs,atoms%geocode, &
-         & (/ atoms%alat1, atoms%alat2, atoms%alat3 /))
+    call kpt_input_variables_new(iproc,(iproc == 0),'input.kpt', ll_inputs)
     ! Generate kpoint meshs.
-    call kpt_input_analyse(iproc, ll_inputs%gen_nkpt, ll_inputs%gen_kpt, ll_inputs%gen_wkpt, ll_inputs%kpt, &
-       & atoms%sym, atoms%geocode, (/ atoms%alat1, atoms%alat2, atoms%alat3 /))
+    call kpt_input_analyse(iproc, ll_inputs%gen_nkpt, ll_inputs%gen_kpt, ll_inputs%gen_wkpt, &
+         & ll_inputs%kptv, ll_inputs%kpt, ll_inputs%nkptv, &
+         & atoms%sym, atoms%geocode, (/ atoms%alat1, atoms%alat2, atoms%alat3 /))
     !-----------------------------------------------------------
     allocate(rxyz_2(3,atoms%nat+ndeb1))
     call dmemocc(3*(atoms%nat),3*(atoms%nat+ndeb1),rxyz_2,'rxyz_2')

@@ -125,3 +125,15 @@ gchar* _get_c_string(const gchar *fstr, guint len)
 
   return g_strndup(fstr, i);
 }
+
+#ifndef GLIB_MAJOR_VERSION
+GArray* g_array_sized_new(gboolean zero, gboolean nullify, guint ele_size, guint n_ele)
+{
+  GArray *arr;
+
+  arr = g_malloc(sizeof(GArray));
+  arr->data = g_malloc(ele_size * n_ele);
+  arr->len = 0;
+  return arr;
+}
+#endif

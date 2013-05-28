@@ -354,29 +354,17 @@ void bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)
 GArray* bigdft_atoms_get_radii(const BigDFT_Atoms *atoms, double crmult,
                                double frmult, double projrad)
 {
-#ifdef GLIB_MAJOR_VERSION
   GArray *arr;
-#endif
-  double *radii_cf;
   double crmult_, frmult_, projrad_;
 
-#ifdef GLIB_MAJOR_VERSION
   arr = g_array_sized_new(FALSE, FALSE, sizeof(double), 3 * atoms->ntypes);
-  arr = g_array_set_size(arr, 3 * atoms->ntypes);
-  radii_cf = (double*)arr->data;
-#else
-  radii_cf = g_malloc(sizeof(double) * 3 * atoms->ntypes);
-#endif
+  g_array_set_size(arr, 3 * atoms->ntypes);
   crmult_  = (crmult <= 0.)?5.:crmult;
   frmult_  = (frmult <= 0.)?8.:frmult;
   projrad_ = (projrad <= 0.)?15.:projrad;
-  FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(atoms->data, radii_cf,
+  FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(atoms->data, (double*)arr->data,
                                                        &crmult_, &frmult_, &projrad_);
-#ifdef GLIB_MAJOR_VERSION
   return arr;
-#else
-  return radii_cf;
-#endif
 }
 
 /**

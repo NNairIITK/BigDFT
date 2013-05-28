@@ -19,10 +19,12 @@
 #define gchar char
 #define gpointer void*
 #define GQuark int
-#define GArray double
+typedef struct _GArray {gchar *data; guint len;} GArray;
 #define GType  int
-#define g_array_index(A, T, I) (A[I])
-#define g_array_unref(A) free(A)
+#define g_array_index(A, T, I) (((T*)(A->data))[I])
+GArray* g_array_sized_new(gboolean zero, gboolean nullify, guint ele_size, guint n_ele);
+#define g_array_set_size(A, N) A->len = N
+#define g_array_unref(A) free(A->data)
 #define G_BEGIN_DECLS
 #define G_END_DECLS
 typedef struct _GObject {guint ref_count;} GObject;
@@ -30,6 +32,7 @@ typedef struct _GObject {guint ref_count;} GObject;
 #define g_object_ref(O) {O->ref_count += 1;}
 #define g_object_unref(O) {O->ref_count -= 1;}
 #define g_strdup(S) strdup(S)
+#define g_strndup(S,N) strndup(S,N)
 @GLIB_END_FALSE@
 
 #define BIGDFT_STRING_VERSION "@PACKAGE_VERSION@"
