@@ -975,25 +975,13 @@ iat, fpulay    1   -9.190292E-04    2.878822E-04    5.938097E-04
 iat, fpulay    2   -8.727935E-05   -3.369397E-05   -2.338556E-05
 iat, fpulay    3   -5.232033E-06    9.656940E-05   -4.966172E-06
  done.
+ Overview of the reformatting (several categories may apply):
+   - No reformatting required: 4
+   - Grid spacing has changed: 0
+   - Number of coarse grid points has changed: 2
+   - Number of fine grid points has changed: 2
+   - Box size has changed: 0
+   - Molecule was shifted: 2
+   - Molecule was rotated: 0
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   6.999996217831E+00
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:10:18.889
- Calling sequence of Main program      : 
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:10:18.889
- Calling sequence of Main program      : 
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:10:18.889
- Calling sequence of Main program      : 
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:10:18.889
- Calling sequence of Main program      : 
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:10:18.889
- Calling sequence of Main program      : 

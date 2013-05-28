@@ -16,6 +16,7 @@ module module_types
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
        bigdft_mpi,ndebug,memocc,vcopy
   use gaussians, only: gaussian_basis
+  use Poisson_Solver, only: coulomb_operator
   implicit none
 
   !> Constants to determine between cubic version and linear version
@@ -143,6 +144,7 @@ module module_types
   integer, parameter, public :: INPUTS_SIC   =  64
   integer, parameter, public :: INPUTS_FREQ  = 128
   integer, parameter, public :: INPUTS_LIN   = 256
+  integer, parameter, public :: INPUTS_FRAG  = 512
 
   !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
@@ -164,7 +166,16 @@ module module_types
     integer, dimension(:), pointer :: norbsPerType
     integer :: scf_mode, nlevel_accuracy
     logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization
+    logical :: fragment_calculation, calc_transfer_integrals
   end type linearInputParameters
+
+  type,public:: fragmentInputParameters
+    integer :: nfrag_ref, nfrag
+    integer, dimension(:), pointer :: frag_index ! array matching system fragments to reference fragments
+    !integer, dimension(:,:), pointer :: frag_info !array giving number of atoms in fragment and environment for reference fragments
+    character(len=100), dimension(:), pointer :: label ! array of fragment names
+  end type fragmentInputParameters
+
 
   integer, parameter, public :: INPUT_IG_OFF  = 0
   integer, parameter, public :: INPUT_IG_LIG  = 1
@@ -188,7 +199,7 @@ module module_types
   type, public :: input_variables
      !strings of the input files
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
-                           file_mix,file_sic,file_occnum,file_igpop,file_lin
+                           file_mix,file_sic,file_occnum,file_igpop,file_lin,file_frag
      character(len=100) :: dir_output !< Strings of the directory which contains all data output files
      character(len=100) :: run_name   !< Contains the prefix (by default input) used for input files as input.dft
      integer :: files                 !< Existing files.
@@ -261,6 +272,9 @@ module module_types
   
      !linear scaling data
      type(linearInputParameters) :: lin
+
+     !fragment data
+     type(fragmentInputParameters) :: frag
 
      !acceleration parameters
      type(material_acceleration) :: matacc
@@ -398,25 +412,42 @@ module module_types
      real(dp), dimension(:,:,:), pointer :: phnons
   end type symmetry_data
 
+!> Contains arguments needed for \rho_local for WVL+PAW
+
+  type, public :: rholoc_objects
+    integer ,pointer,dimension(:)    :: msz ! mesh size for local rho
+    real(gp),pointer,dimension(:,:,:)::d! local rho and derivatives
+    real(gp),pointer,dimension(:,:)  ::rad!radial mesh for local rho
+    real(gp),pointer,dimension(:) :: radius !after this radius, rholoc is zero
+  end type rholoc_objects
+
+  type, public :: atomic_structure
+    character(len=1) :: geocode          !< Boundary conditions
+    character(len=5) :: inputfile_format !< Can be xyz ascii or yaml
+    character(len=20) :: units           !< Can be angstroem or bohr 
+    integer :: nat                       !< Number of atoms
+    integer :: ntypes                    !< Number of atomic species in the structure
+	 real(gp), dimension(3) :: cell_dim   !< Dimensions of the simulation domain (each one periodic or free according to geocode)
+    !pointers
+ 	 real(gp), dimension(:,:), pointer :: rxyz !< Atomic positions (always in AU, units variable is considered for I/O only)
+    character(len=20), dimension(:), pointer :: atomnames !< Atomic species names
+    integer, dimension(:), pointer :: iatype              !< Atomic species id
+    integer, dimension(:), pointer :: ifrztyp             !< Freeze atoms while updating structure
+    integer, dimension(:), pointer :: input_polarization  !< Used in AO generation for WFN input guess
+    type(symmetry_data) :: sym                      !< The symmetry operators
+  end type atomic_structure
+
+
   !> Atomic data (name, polarisation, ...)
   type, public :: atoms_data
-     character(len=1) :: geocode
-     character(len=5) :: format
-     character(len=20) :: units
-     integer :: nat                                        !< nat            Number of atoms
-     integer :: ntypes                                     !< ntypes         Number of type of atoms
+     type(atomic_structure) :: astruct
      integer :: natsc
-     character(len=20), dimension(:), pointer :: atomnames !< atomnames(ntypes) Name of type of atoms
-     real(gp) :: alat1,alat2,alat3                         !< dimension of the periodic supercell
-     integer, dimension(:), pointer :: iatype              !< iatype(nat)    Type of the atoms
      integer, dimension(:), pointer :: iasctype
-     integer, dimension(:), pointer :: natpol
      integer, dimension(:), pointer :: nelpsp
      integer, dimension(:), pointer :: npspcode
      integer, dimension(:), pointer :: ixcpsp
      integer, dimension(:), pointer :: nzatom
      real(gp), dimension(:,:), pointer :: radii_cf         !< user defined radii_cf, overridden in sysprop.f90
-     integer, dimension(:), pointer :: ifrztyp             !< ifrztyp(nat) Frozen atoms
      real(gp), dimension(:), pointer :: amu                !< amu(ntypes)  Atomic Mass Unit for each type of atoms
      real(gp), dimension(:,:), pointer :: aocc,rloc
      real(gp), dimension(:,:,:), pointer :: psppar         !< pseudopotential parameters (HGH SR section)
@@ -424,7 +455,6 @@ module module_types
      integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc   !<number of valence and core gaussians describing NLCC 
      real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
      real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
-     type(symmetry_data) :: sym                      !< The symmetry operators
 
      !! for abscalc with pawpatch
      integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
@@ -432,7 +462,6 @@ module module_types
      real(gp), dimension(:), pointer :: paw_Greal, paw_Gimag, paw_Gcoeffs
      real(gp), dimension(:), pointer :: paw_H_matrices, paw_S_matrices, paw_Sm1_matrices
      integer :: iat_absorber 
-
   end type atoms_data
 
   !> Structure to store the density / potential distribution among processors.
@@ -445,7 +474,8 @@ module module_types
      type(mpi_environment) :: mpi_env
   end type denspot_distribution
 
-  !> Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
+
+!>   Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
   type, public :: gaussian_basis_c
      integer :: nat,ncoeff,nshltot,nexpo
      integer, dimension(:), pointer :: nshell,ndoc,nam
@@ -491,7 +521,7 @@ module module_types
      integer :: norbp         !< Total number of orbitals for the given processors
      integer :: norbu,norbd,nspin,nspinor,isorb
      integer :: nkpts,nkptsp,iskpts
-     real(gp) :: efermi,HLgap, eTS
+     real(gp) :: efermi,HLgap,eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
      integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom
      integer, dimension(:,:), pointer :: norb_par
@@ -754,29 +784,6 @@ module module_types
      real(gp), dimension(:,:), pointer :: rxyz !<atomic positions of the step
   end type old_wavefunction
 
-    !> Defines the fundamental structure for the kernel
-  type, public :: coulomb_operator
-     !variables with physical meaning
-     integer :: itype_scf !< order of the ISF family to be used
-     real(gp) :: mu !< inverse screening length for the Helmholtz Eq. (Poisson Eq. -> mu=0)
-     character(len=1) :: geocode !< Code for the boundary conditions
-     integer, dimension(3) :: ndims !< dimension of the box of the density
-     real(gp), dimension(3) :: hgrids !<grid spacings in each direction
-     real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
-     real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
-     real(dp) :: work1_GPU,work2_GPU,k_GPU
-     integer, dimension(5) :: plan
-     integer, dimension(3) :: geo
-     !variables with computational meaning
-!     integer :: iproc_world !iproc in the general communicator
-!     integer :: iproc,nproc
-!     integer :: mpi_comm
-     type(mpi_environment) :: mpi_env
-     integer :: igpu !< control the usage of the GPU
-     integer :: initCufftPlan
-     integer :: keepGPUmemory
-  end type coulomb_operator
-
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
   type, public :: DFT_local_fields
@@ -903,6 +910,193 @@ module module_types
      type(GPU_pointers) :: GPU 
   end type restart_objects
 
+!> type paw_ij_objects
+
+ type paw_ij_objects
+
+!Integer scalars
+
+  integer :: cplex
+   ! cplex=1 if all on-site PAW quantities are real, 2 if they are complex
+   ! cplex=2 is useful for RF calculations
+
+  integer :: cplex_dij
+   ! cplex=1 if dij are real, 2 if they are complex
+
+  !$integer :: has_dijexxcore
+   ! 1 if dijexxcore is allocated
+   ! 2 if dijexxcore is already computed
+
+  integer :: has_dij
+   ! 1 if dij is allocated
+   ! 2 if dij is already computed
+
+  integer :: has_dijfr
+   ! 1 if dijfr is allocated
+   ! 2 if dijfr is already computed
+
+  integer :: has_dijhartree
+   ! 1 if dijhartree is allocated
+   ! 2 if dijhartree is already computed
+
+  integer :: has_dijhat
+   ! 1 if dijhat is allocated
+   ! 2 if dijhat is already computed
+
+  integer :: has_dijso
+   ! 1 if dijso is associated and used, 0 otherwise
+   ! 2 if dijso is already computed
+
+  integer :: has_dijU
+   ! 1 if dijU is associated and used, 0 otherwise
+   ! 2 if dijU is already computed
+
+  integer :: has_dijxc
+   ! 1 if dijxc is associated and used, 0 otherwise
+   ! 2 if dijxc is already computed
+
+  integer :: has_dijxc_val
+   ! 1 if dijxc_val is associated and used, 0 otherwise
+   ! 2 if dijxc_val is already computed
+
+  integer :: has_exexch_pot
+   ! 1 if PAW+(local exact exchange) potential is allocated
+
+  integer :: has_pawu_occ
+   ! 1 if PAW+U occupations are allocated
+
+  integer :: lmn_size
+   ! Number of (l,m,n) elements for the paw basis
+
+  integer :: lmn2_size
+   ! lmn2_size=lmn_size*(lmn_size+1)/2
+   ! where lmn_size is the number of (l,m,n) elements for the paw basis
+
+  integer :: ndij
+   ! Number of components of dij
+   ! Usually ndij=nspden, except for nspinor==2 (where ndij=nspinor**2)
+
+  integer :: nspden
+   ! Number of spin-density components (may be different from dtset%nspden if spin-orbit)
+
+  integer :: nsppol
+   ! Number of independant spin-components
+
+!Real (real(dp)) arrays
+
+  real(dp), pointer :: dij(:,:)
+   ! dij(cplex_dij*lmn2_size,ndij)
+   ! Dij term (non-local operator)
+   ! May be complex if cplex_dij=2
+   !  dij(:,:,1) contains Dij^up-up
+   !  dij(:,:,2) contains Dij^dn-dn
+   !  dij(:,:,3) contains Dij^up-dn (only if nspinor=2)
+   !  dij(:,:,4) contains Dij^dn-up (only if nspinor=2)
+
+  !real(dp),pointer :: dijexxcore(:,:)
+  ! dijexxcore(cplex_dij*lmn2_size,ndij)
+  ! Onsite matrix elements of the Fock operator generated by core electrons
+
+!  real(dp), pointer :: dijfr(:,:)
+!   ! dijhat(cplex_dij*lmn2_size,ndij)
+!   ! For response function calculation only
+!   ! RF Frozen part of Dij (depends on q vector but not on 1st-order wave function)
+!   ! Same storage as Dij (see above)
+!
+!  real(dp), pointer :: dijhartree(:)
+!   ! dijhartree(cplex*lmn2_size)
+!   ! Dij_hartree term
+!   ! Contains all contributions to Dij from hartree
+!   ! Warning: Dimensioned by cplex, not cplex_dij
+!   ! Same storage as Dij (see above)
+!
+!  real(dp), pointer :: dijhat(:,:)
+!   ! dijhat(cplex_dij*lmn2_size,ndij)
+!   ! Dij_hat term (non-local operator) i.e \sum_LM \int_FFT Q_{ij}^{LM} vtrial
+!   ! Same storage as Dij (see above)
+!
+!  real(dp), pointer :: dijU(:,:)
+!   ! dijU(cplex_dij*lmn2_size,ndij)
+!   ! Onsite matrix elements of the U part of the PAW Hamiltonian.
+!   ! Same storage as Dij (see above)
+!
+!  real(dp), pointer :: dijso(:,:)
+!   ! dijso(cplex_dij*lmn2_size,ndij)
+!   ! Onsite matrix elements of L.S i.e <phi_i|L.S|phi_j>
+!   ! Same storage as Dij (see above)
+!
+!  real(dp), pointer :: dijxc(:,:)
+!   ! dijxc(cplex_dij*lmn2_size,ndij)
+!   ! Onsite matrix elements of vxc i.e
+!   ! <phi_i|vxc[n1+nc]|phi_j> - <tphi_i|vxc(tn1+nhat+tnc]|tphi_j>
+!   ! Same storage as Dij (see above)
+!
+!  real(dp), pointer :: dijxc_val(:,:)
+!   ! dijxc_val(cplex_dij*lmn2_size,ndij)
+!   ! Onsite matrix elements of valence-only vxc i.e
+!   ! <phi_i|vxc[n1]|phi_j> - <tphi_i|vxc(tn1+nhat]|tphi_j>
+!   ! Same storage as Dij (see above)
+!
+!  real(dp), pointer :: noccmmp(:,:,:,:)
+!   ! noccmmp(cplex_dij,2*lpawu+1,2*lpawu+1,nocc_nspden)
+!   ! cplex_dij=1 if collinear
+!   ! cplex_dij=2 if spin orbit is used
+!   ! cplex_dij=2 is used if non-collinear (for coherence, it is not necessary in this case, however)
+!   ! gives occupation matrix for lda+u (computed in setnoccmmp)
+!   ! Stored as: noccmmp(:,:,1)=   n^{up,up}_{m,mp}
+!   !            noccmmp(:,:,2)=   n^{dn,dn}_{m,mp}
+!   !            noccmmp(:,:,3)=   n^{up,dn}_{m,mp}
+!   !            noccmmp(:,:,4)=   n^{dn,up}_{m,mp}
+!   ! noccmmp(m,mp,:) is computed from rhoij(klmn) with  m=klmntomn(2)>mp=klmntomn(1)
+!
+!  real(dp), pointer :: nocctot(:)
+!   ! nocctot(nspden)
+!   ! gives trace of occupation matrix for lda+u (computed in pawdenpot)
+!   ! for each value of ispden (1 or 2)
+!
+!  real(dp), pointer :: vpawx(:,:,:)
+!   ! vpawx(2*lexexch+1,2*lexexch+1,nspden)
+!   ! exact exchange potential
+
+ end type paw_ij_objects
+
+!This is cprj_type in ABINIT,
+!this will be obsolete with the PAW Library
+ type cprj_objects
+
+!Integer scalars
+
+  integer :: ncpgr
+   ! Number of gradients of cp=<p_lmn|Cnk>
+
+  integer :: nlmn
+   ! Number of (l,m,n) non-local projectors
+
+!Real (real(dp)) arrays
+
+  real(wp), pointer :: cp (:,:)
+   ! cp(2,nlmn)
+   ! <p_lmn|Cnk> projected scalars for a given atom and wave function
+
+  real(wp), pointer :: dcp (:,:,:)
+   ! dcp(2,ncpgr,nlmn)
+   ! derivatives of <p_lmn|Cnk> projected scalars for a given atom and wave function
+
+ end type cprj_objects
+!!***
+!> Contains the arguments needed for the PAW implementation:
+  type, public :: paw_objects
+    integer :: lmnmax
+    integer :: ntypes
+    integer :: natom
+    integer :: usepaw
+    integer,dimension(:,:,:),pointer::indlmn
+    type(paw_ij_objects),dimension(:),allocatable :: paw_ij
+    type(cprj_objects),dimension(:,:),allocatable :: cprj
+    real(wp),dimension(:),pointer :: spsi
+    real(wp),dimension(:,:),pointer :: sij
+  end type paw_objects
+
 contains
 
   function old_wavefunction_null() result(wfn)
@@ -941,98 +1135,6 @@ contains
     ma%OCL_platform=repeat(' ',len(ma%OCL_devices))
   end function material_acceleration_null
 
-  function pkernel_null() result(k)
-    type(coulomb_operator) :: k
-    k%itype_scf=0
-    k%geocode='F'
-    k%mu=0.0_gp
-    k%ndims=(/0,0,0/)
-    k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    k%angrad=(/0.0_gp,0.0_gp,0.0_gp/)
-    nullify(k%kernel)
-    k%work1_GPU=0.d0
-    k%work2_GPU=0.d0
-    k%k_GPU=0.d0
-    k%plan=(/0,0,0,0,0/)
-    k%geo=(/0,0,0/)
-    k%mpi_env=mpi_environment_null()
-    k%igpu=0
-  end function pkernel_null
-
-  function default_grid() result(g)
-    type(grid_dimensions) :: g
-    g%n1   =0
-    g%n2   =0
-    g%n3   =0
-    g%nfl1 =0
-    g%nfu1 =0
-    g%nfl2 =0
-    g%nfu2 =0
-    g%nfl3 =0
-    g%nfu3 =0
-    g%n1i  =0
-    g%n2i  =0
-    g%n3i  =0
-  end function default_grid
-
-  function default_wfd() result(wfd)
-    type(wavefunctions_descriptors) :: wfd
-    wfd%nvctr_c=0
-    wfd%nvctr_f=0
-    wfd%nseg_c=0
-    wfd%nseg_f=0
-    nullify(wfd%keyglob)
-    nullify(wfd%keygloc)
-    nullify(wfd%keyvglob)
-    nullify(wfd%keyvloc)
-  end function default_wfd
-
-  function default_kb() result(kb)
-    type(kinetic_bounds) :: kb
-    nullify(&
-         kb%ibyz_c,kb%ibxz_c,kb%ibxy_c, &
-         kb%ibyz_f,kb%ibxz_f,kb%ibxy_f)
-  end function default_kb
-
-  function default_sb() result(sb)
-    type(shrink_bounds) :: sb
-    nullify(sb%ibzzx_c,sb%ibyyzz_c,sb%ibxy_ff,sb%ibzzx_f,sb%ibyyzz_f)
-  end function default_sb
-  
-  function default_gb() result(gb)
-    type(grow_bounds) :: gb
-    nullify(gb%ibzxx_c,gb%ibxxyy_c,gb%ibyz_ff,gb%ibzxx_f,gb%ibxxyy_f)
-  end function default_gb
-
-  function default_bounds() result(b)
-    type(convolutions_bounds) :: b
-    b%kb=default_kb()
-    b%sb=default_sb()
-    b%gb=default_gb()
-    nullify(b%ibyyzz_r)
-  end function default_bounds
-
-  function locreg_null() result(lr)
-    type(locreg_descriptors) :: lr
-
-    lr%geocode='F'
-    lr%hybrid_on=.false.   
-    lr%ns1=0
-    lr%ns2=0
-    lr%ns3=0 
-    lr%nsi1=0
-    lr%nsi2=0
-    lr%nsi3=0  
-    lr%Localnorb=0  
-    lr%outofzone=(/0,0,0/) 
-    lr%d=default_grid()
-    lr%wfd=default_wfd()
-    lr%bounds=default_bounds()
-    lr%locregCenter=(/0.0_gp,0.0_gp,0.0_gp/) 
-    lr%locrad=0 
-
-  end function locreg_null
-
   function default_lzd() result(lzd)
     type(local_zone_descriptors) :: lzd
     lzd%linear=.false.
@@ -1044,7 +1146,7 @@ contains
     nullify(lzd%Llr)
   end function default_lzd
  
-  function symm_null() result(sym)
+  pure function symm_null() result(sym)
      type(symmetry_data) :: sym
      sym%symObj=-1
      nullify(sym%irrzon)
@@ -1053,28 +1155,16 @@ contains
 
   function atoms_null() result(at)
      type(atoms_data) :: at
-     at%geocode='X'
-     at%format=repeat(' ',len(at%format))
-     at%units=repeat(' ',len(at%units))
-     at%nat=-1
-     at%ntypes=-1
-     at%natsc=-1
-     at%alat1=0.0_gp
-     at%alat2=0.0_gp
-     at%alat3=0.0_gp
+     call nullify_atomic_structure(at%astruct)
+     !at%astruct=atomic_structure_null()
      at%donlcc=.false.
-     at%sym=symm_null()
      at%iat_absorber=-1
-     nullify(at%atomnames)
-     nullify(at%iatype)
      nullify(at%iasctype)
-     nullify(at%natpol)
      nullify(at%nelpsp)
      nullify(at%npspcode)
      nullify(at%ixcpsp)
      nullify(at%nzatom)
      nullify(at%radii_cf)
-     nullify(at%ifrztyp)
      nullify(at%amu)
      nullify(at%aocc)
      nullify(at%rloc)
@@ -1095,6 +1185,31 @@ contains
      nullify(at%paw_Sm1_matrices)
   end function atoms_null
 
+  pure function atomic_structure_null() result(astruct)
+    implicit none
+    type(atomic_structure) :: astruct
+     call nullify_atomic_structure(astruct)
+   end function atomic_structure_null
+   pure subroutine nullify_atomic_structure(astruct)
+     implicit none
+     type(atomic_structure), intent(out) :: astruct
+
+     astruct%geocode='X'
+     astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
+     astruct%units=repeat(' ',len(astruct%units))
+     astruct%nat=-1
+     astruct%ntypes=-1
+     astruct%cell_dim(1)=0.0_gp
+     astruct%cell_dim(2)=0.0_gp
+     astruct%cell_dim(3)=0.0_gp
+     nullify(astruct%input_polarization)
+     nullify(astruct%ifrztyp)
+     nullify(astruct%atomnames)
+     nullify(astruct%iatype)
+     nullify(astruct%rxyz)
+     astruct%sym=symm_null()
+   end subroutine nullify_atomic_structure
+
   function bigdft_run_id_toa()
     use yaml_output
     implicit none
@@ -1107,50 +1222,6 @@ contains
     end if
 
   end function bigdft_run_id_toa
-
-  !accessors for external programs
-  !> Get the number of orbitals of the run in rst
-  function bigdft_get_number_of_orbitals(rst,istat) result(norb)
-    use module_base
-    implicit none
-    type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
-    integer :: norb !> Number of orbitals of run in rst
-    integer, intent(out) :: istat
-    
-    istat=BIGDFT_SUCCESS
-
-    norb=rst%KSwfn%orbs%norb
-    if (norb==0) istat = BIGDFT_UNINITIALIZED
-    
-  end function bigdft_get_number_of_orbitals
-  
-  !> Fill the array eval with the number of orbitals of the last run
-  subroutine bigdft_get_eigenvalues(rst,eval,istat)
-    use module_base
-    implicit none
-    type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
-    real(gp), dimension(*), intent(out) :: eval !> Buffer for eigenvectors. Should have at least dimension equal to bigdft_get_number_of_orbitals(rst,istat)
-    integer, intent(out) :: istat !> Error code
-    !local variables
-    integer :: norb
-    
-    norb=bigdft_get_number_of_orbitals(rst,istat)
-
-    if (istat /= BIGDFT_SUCCESS) return
-
-    if (.not. associated(rst%KSwfn%orbs%eval)) then
-       istat = BIGDFT_UNINITIALIZED
-       return
-    end if
-
-    if (product(shape(rst%KSwfn%orbs%eval)) < norb) then
-       istat = BIGDFT_INCONSISTENCY
-       return
-    end if
-
-    call vcopy(norb,rst%KSwfn%orbs%eval(1),1,eval(1),1)
-
-  end subroutine bigdft_get_eigenvalues
 
   !> Fills the old_wavefunction structure with corresponding data
   !! Deallocate previous workspaces if already existing
@@ -1322,9 +1393,9 @@ END SUBROUTINE deallocate_orbs
     end select
 
     !allocate pointers
-    allocate(rst%rxyz_new(3,atoms%nat+ndebug),stat=i_stat)
+    allocate(rst%rxyz_new(3,atoms%astruct%nat+ndebug),stat=i_stat)
     call memocc(i_stat,rst%rxyz_new,'rxyz_new',subname)
-    allocate(rst%rxyz_old(3,atoms%nat+ndebug),stat=i_stat)
+    allocate(rst%rxyz_old(3,atoms%astruct%nat+ndebug),stat=i_stat)
     call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
 
     !nullify unallocated pointers
@@ -1349,8 +1420,6 @@ END SUBROUTINE deallocate_orbs
 
     !initialise the acceleration strategy if required
     call init_material_acceleration(iproc,inputs%matacc,rst%GPU)
-
-
 
   END SUBROUTINE init_restart_objects
 
@@ -2034,5 +2103,423 @@ END SUBROUTINE deallocate_orbs
 
     end if
   END SUBROUTINE deallocate_pcproj_data
+
+subroutine nullify_DFT_local_fields(denspot)
+  implicit none
+  type(DFT_local_fields),intent(out)::denspot
+
+  nullify(denspot%rhov)
+  nullify(denspot%mix)
+  nullify(denspot%rho_psi)
+  nullify(denspot%rho_C)
+  nullify(denspot%V_ext)
+  nullify(denspot%V_XC)
+  nullify(denspot%Vloc_KS)
+  nullify(denspot%f_XC)
+  nullify(denspot%rho_work)
+  nullify(denspot%pot_work)
+  call nullify_rho_descriptors(denspot%rhod)
+  call nullify_denspot_distribution(denspot%dpbox)
+  call nullify_coulomb_operator(denspot%pkernel)
+  call nullify_coulomb_operator(denspot%pkernelseq)
+  
+end subroutine nullify_DFT_local_fields
+
+subroutine nullify_coulomb_operator(coul_op)
+  implicit none
+  type(coulomb_operator),intent(out)::coul_op
+  nullify(coul_op%kernel)
+end subroutine nullify_coulomb_operator
+
+subroutine nullify_denspot_distribution(dpbox)
+  implicit none
+  type(denspot_distribution),intent(out)::dpbox
+  
+  nullify(dpbox%nscatterarr)
+  nullify(dpbox%ngatherarr)
+end subroutine nullify_denspot_distribution
+
+subroutine nullify_rho_descriptors(rhod)
+  implicit none
+  type(rho_descriptors),intent(out)::rhod
+
+  nullify(rhod%spkey)
+  nullify(rhod%dpkey)
+  nullify(rhod%cseg_b)
+  nullify(rhod%fseg_b)
+end subroutine nullify_rho_descriptors
+
+subroutine nullify_atoms_data(at)
+  implicit none
+  type(atoms_data),intent(out)::at
+
+  nullify(at%astruct%atomnames)
+  nullify(at%astruct%iatype)
+  nullify(at%iasctype)
+  nullify(at%nelpsp)
+  nullify(at%npspcode)
+  nullify(at%ixcpsp)
+  nullify(at%nzatom) 
+  nullify(at%radii_cf)
+  nullify(at%astruct%ifrztyp)
+  nullify(at%amu)
+  nullify(at%aocc)
+  nullify(at%rloc)
+  nullify(at%psppar)
+  nullify(at%nlcc_ngv)
+  nullify(at%nlcc_ngc)
+  nullify(at%nlccpar)
+  nullify(at%ig_nlccpar)
+  nullify(at%paw_NofL)
+  nullify(at%paw_l)
+  nullify(at%paw_nofchannels)
+  nullify(at%paw_nofgaussians)
+  nullify(at%paw_Greal) 
+  nullify(at%paw_Gimag) 
+  nullify(at%paw_Gcoeffs)
+  nullify(at%paw_H_matrices) 
+  nullify(at%paw_S_matrices) 
+  nullify(at%paw_Sm1_matrices)
+end subroutine nullify_atoms_data
+
+subroutine nullify_GPU_pointers(gpup)
+  implicit none
+  type(GPU_pointers), intent(out):: gpup
+
+  nullify(gpup%psi)
+  nullify(gpup%ekinpot_host)
+  nullify(gpup%psicf_host)
+  nullify(gpup%hpsicf_host)
+  nullify(gpup%bprecond_host)
+  nullify(gpup%ekin)
+  nullify(gpup%epot)
+
+end subroutine nullify_GPU_pointers
+
+!subroutine nullify_wfn_metadata(wfnmd)
+!  implicit none
+!  type(wfn_metadata),intent(inout):: wfnmd
+!
+!  nullify(wfnmd%coeff)
+!  nullify(wfnmd%coeff_proj)
+!  nullify(wfnmd%alpha_coeff)
+!  nullify(wfnmd%grad_coeff_old)
+!
+!end subroutine nullify_wfn_metadata
+
+subroutine nullify_diis_objects(diis)
+  implicit none
+  type(diis_objects),intent(inout):: diis
+
+  nullify(diis%psidst)
+  nullify(diis%hpsidst)
+  nullify(diis%ads)
+
+end subroutine nullify_diis_objects
+
+subroutine nullify_rholoc_objects(rholoc)
+  implicit none
+  type(rholoc_objects),intent(inout):: rholoc
+  
+  nullify(rholoc%msz)
+  nullify(rholoc%d)
+  nullify(rholoc%rad)
+  nullify(rholoc%radius) 
+end subroutine nullify_rholoc_objects
+
+subroutine nullify_paw_objects(paw,rholoc)
+  implicit none
+  type(paw_objects),intent(inout)::paw
+  type(rholoc_objects),optional :: rholoc
+  
+  nullify(paw%indlmn) 
+  nullify(paw%spsi) 
+  nullify(paw%sij) 
+
+  if(present(rholoc)) then
+   nullify(rholoc%msz)
+   nullify(rholoc%d)
+   nullify(rholoc%rad)
+   nullify(rholoc%radius) 
+  end if
+end subroutine nullify_paw_objects
+
+subroutine nullify_paw_ij_objects(paw_ij)
+  implicit none
+  !Arguments
+  type(paw_ij_objects), intent(inout)::paw_ij
+
+  nullify(paw_ij%dij) 
+
+end subroutine nullify_paw_ij_objects
+
+subroutine nullify_cprj_objects(cprj)
+  implicit none
+  type(cprj_objects),intent(inout)::cprj
+
+  nullify(cprj%cp)
+  nullify(cprj%dcp)
+end subroutine nullify_cprj_objects
+
+subroutine nullify_gaussian_basis(G)
+
+  implicit none
+  !Arguments
+  type(gaussian_basis),intent(inout)::G 
+
+  G%ncplx=1
+  nullify(G%nshell)
+  nullify(G%ndoc)
+  nullify(G%nam)
+  nullify(G%psiat)
+  nullify(G%xp)
+  nullify(G%rxyz)
+
+END SUBROUTINE nullify_gaussian_basis
+
+!cprj_clean will be obsolete with the PAW library
+!this is cprj_free in abinit.
+ subroutine cprj_clean(cprj)
+
+ implicit none
+!Arguments ------------------------------------
+!scalars
+!arrays
+ type(cprj_objects),intent(inout) :: cprj(:,:)
+!Local variables-------------------------------
+ integer :: ii,jj,n1dim,n2dim
+
+! *************************************************************************
+
+ n1dim=size(cprj,dim=1);n2dim=size(cprj,dim=2)
+!write(std_out,*) "cprj_free ndim = ", n1dim, n2dim
+ do jj=1,n2dim
+   do ii=1,n1dim
+     if (associated(cprj(ii,jj)%cp))  then
+       deallocate(cprj(ii,jj)%cp)
+     end if
+     if (associated(cprj(ii,jj)%dcp))  then
+       deallocate(cprj(ii,jj)%dcp)
+     end if
+   end do
+ end do
+end subroutine cprj_clean
+
+!this routine is cprj_alloc in abinit
+!with the PAW library this will be obsolet.
+ subroutine cprj_paw_alloc(cprj,ncpgr,nlmn)
+
+ implicit none
+!Arguments ------------------------------------
+!scalars
+ integer,intent(in) :: ncpgr
+!arrays
+ integer,intent(in) :: nlmn(:)
+ type(cprj_objects),intent(inout) :: cprj(:,:)
+!Local variables-------------------------------
+ integer :: ii,jj,n1dim,n2dim,nn
+
+! *************************************************************************
+
+ n1dim=size(cprj,dim=1);n2dim=size(cprj,dim=2);nn=size(nlmn,dim=1)
+ if (nn/=n1dim) then
+   write(*,*)"Error in cprj_alloc: wrong sizes !",nn,n1dim
+   stop
+ end if
+!write(std_out,*) "cprj_alloc ndim = ", n1dim, n2dim
+ do jj=1,n2dim
+   do ii=1,n1dim
+     nullify (cprj(ii,jj)%cp)
+     nullify (cprj(ii,jj)%dcp)
+
+     nn=nlmn(ii)
+     cprj(ii,jj)%nlmn=nn
+     ALLOCATE(cprj(ii,jj)%cp(2,nn))
+!    XG 080820 Was needed to get rid of problems with test paral#R with four procs
+     cprj(ii,jj)%cp=0.0_dp
+!    END XG 080820
+
+     cprj(ii,jj)%ncpgr=ncpgr
+     if (ncpgr>0) then
+       ALLOCATE(cprj(ii,jj)%dcp(2,ncpgr,nn))
+       cprj(ii,jj)%dcp=0.0_dp
+     end if
+   end do
+ end do
+end subroutine cprj_paw_alloc
+
+subroutine cprj_to_array(cprj,array,norb,nspinor,shift,option)
+  implicit none
+  integer,intent(in)::option,norb,nspinor,shift
+  real(kind=8),intent(inout):: array(:,:)
+  type(cprj_objects),intent(inout) :: cprj(:)
+  !
+  integer::ii,jj,ilmn,iorb
+  !
+  if(option==1) then
+    do iorb=1,norb*nspinor
+      ii=0
+      do ilmn=1,cprj(iorb+shift)%nlmn
+        do jj=1,2
+          ii=ii+1
+          array(ii,iorb)=cprj(iorb+shift)%cp(jj,ilmn)
+        end do
+      end do
+    end do
+  elseif(option==2) then
+    do iorb=1,norb*nspinor
+      ii=0
+      do ilmn=1,cprj(iorb+shift)%nlmn
+        do jj=1,2
+          ii=ii+1
+          cprj(iorb+shift)%cp(jj,ilmn)=array(ii,iorb)
+        end do
+      end do
+    end do
+  end if
+end subroutine cprj_to_array
+
+!> create a null Lzd. Note: this is the correct way of defining 
+!! association through prure procedures.
+!! A pure subroutine has to be defined to create a null structure.
+!! this is important when using the nullification inside other
+!! nullification routines since the usage of a pure function is forbidden
+!! otherwise the routine cannot be pure
+pure function local_zone_descriptors_null() result(lzd)
+  implicit none
+  type(local_zone_descriptors) :: lzd
+  call nullify_local_zone_descriptors(lzd)
+end function local_zone_descriptors_null
+pure subroutine nullify_local_zone_descriptors(lzd)
+  implicit none
+  type(local_zone_descriptors), intent(out) :: lzd
+
+  lzd%linear=.false.
+  lzd%nlr=0
+  lzd%lintyp=0
+  lzd%ndimpotisf=0
+  lzd%hgrids=0.0_gp
+  call nullify_locreg_descriptors(lzd%glr)
+  nullify(lzd%llr) 
+end subroutine nullify_local_zone_descriptors
+
+pure function locreg_null() result(lr)
+  implicit none
+  type(locreg_descriptors) :: lr
+  call nullify_locreg_descriptors(lr)
+end function locreg_null
+pure subroutine nullify_locreg_descriptors(lr)
+  implicit none
+  type(locreg_descriptors), intent(out) :: lr
+  lr%geocode='F'
+  lr%hybrid_on=.false.   
+  lr%ns1=0
+  lr%ns2=0
+  lr%ns3=0 
+  lr%nsi1=0
+  lr%nsi2=0
+  lr%nsi3=0  
+  lr%Localnorb=0  
+  lr%outofzone=(/0,0,0/) 
+  lr%d=grid_null()
+  call nullify_wfd(lr%wfd)
+  call nullify_convolutions_bounds(lr%bounds)
+  lr%locregCenter=(/0.0_gp,0.0_gp,0.0_gp/) 
+  lr%locrad=0 
+end subroutine nullify_locreg_descriptors
+
+pure function grid_null() result(g)
+  type(grid_dimensions) :: g
+  g%n1   =0
+  g%n2   =0
+  g%n3   =0
+  g%nfl1 =0
+  g%nfu1 =0
+  g%nfl2 =0
+  g%nfu2 =0
+  g%nfl3 =0
+  g%nfu3 =0
+  g%n1i  =0
+  g%n2i  =0
+  g%n3i  =0
+end function grid_null
+
+pure function wfd_null() result(wfd)
+  implicit none
+  type(wavefunctions_descriptors) :: wfd
+  call nullify_wfd(wfd)
+end function wfd_null
+pure subroutine nullify_wfd(wfd)
+  implicit none
+  type(wavefunctions_descriptors), intent(out) :: wfd
+  wfd%nvctr_c=0
+  wfd%nvctr_f=0
+  wfd%nseg_c=0
+  wfd%nseg_f=0
+  nullify(wfd%keyglob)
+  nullify(wfd%keygloc)
+  nullify(wfd%keyvglob)
+  nullify(wfd%keyvloc)
+end subroutine nullify_wfd
+
+pure function convolutions_bounds_null() result(bounds)
+  implicit none
+  type(convolutions_bounds) :: bounds
+  call nullify_convolutions_bounds(bounds)
+end function convolutions_bounds_null
+pure subroutine nullify_convolutions_bounds(bounds)
+  implicit none
+  type(convolutions_bounds), intent(out) :: bounds
+  call nullify_kinetic_bounds(bounds%kb)
+  call nullify_shrink_bounds(bounds%sb)
+  call nullify_grow_bounds(bounds%gb)
+  nullify(bounds%ibyyzz_r)
+end subroutine nullify_convolutions_bounds
+
+pure function kinetic_bounds_null() result(kb)
+  implicit none
+  type(kinetic_bounds) :: kb
+  call nullify_kinetic_bounds(kb)
+end function kinetic_bounds_null
+pure subroutine nullify_kinetic_bounds(kb)
+  implicit none
+  type(kinetic_bounds), intent(out) :: kb
+  nullify(kb%ibyz_c)
+  nullify(kb%ibxz_c)
+  nullify(kb%ibxy_c)
+  nullify(kb%ibyz_f)
+  nullify(kb%ibxz_f)
+  nullify(kb%ibxy_f)
+end subroutine nullify_kinetic_bounds
+
+pure function shrink_bounds_null() result(sb)
+  implicit none
+  type(shrink_bounds) :: sb
+  call nullify_shrink_bounds(sb)
+end function shrink_bounds_null
+pure subroutine nullify_shrink_bounds(sb)
+  implicit none
+  type(shrink_bounds), intent(out) :: sb
+  nullify(sb%ibzzx_c)
+  nullify(sb%ibyyzz_c)
+  nullify(sb%ibxy_ff)
+  nullify(sb%ibzzx_f)
+  nullify(sb%ibyyzz_f)
+end subroutine nullify_shrink_bounds
+
+pure function grow_bounds_null() result(gb)
+  implicit none
+  type(grow_bounds) :: gb
+  call nullify_grow_bounds(gb)
+end function grow_bounds_null
+pure subroutine nullify_grow_bounds(gb)
+  implicit none
+  type(grow_bounds), intent(out) :: gb
+  nullify(gb%ibzxx_c)
+  nullify(gb%ibxxyy_c)
+  nullify(gb%ibyz_ff)
+  nullify(gb%ibzxx_f)
+  nullify(gb%ibxxyy_f)
+end subroutine nullify_grow_bounds
 
 end module module_types

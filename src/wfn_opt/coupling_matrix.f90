@@ -12,7 +12,7 @@ subroutine center_of_charge(at,rxyz,cc)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(3), intent(out) :: cc
   !local variables
   integer :: iat,ityp
@@ -22,8 +22,8 @@ subroutine center_of_charge(at,rxyz,cc)
   cc(2)=0.0_gp
   cc(3)=0.0_gp
   qtot=0.0_gp
-  do iat=1,at%nat
-     ityp=at%iatype(iat)
+  do iat=1,at%astruct%nat
+     ityp=at%astruct%iatype(iat)
      zatom=real(at%nelpsp(ityp),gp)
      qtot=qtot+zatom
      !coordinates of the center
@@ -47,7 +47,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
      hxh,hyh,hzh,chargec,pkernel,dvxcdrho,psirocc,psivirtr)
   use module_base
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode
@@ -480,29 +480,30 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
         call memocc(i_stat,work,'work',subname)
 
 
-        call DSYEV('V','U',nmulti,K,nmulti,omega,work,lwork,info)
-        if (info /= 0) then
-           call yaml_warning('Error, DSYEV' // trim(yaml_toa(info)))
-           !write(*,*) 'error, DSYEV',info
-        end if
-
-        !transition dipoles
-        call gemm('N','N',3,ndipoles,ndipoles,1.0_wp,dipoles(1,1),3,&
-             K(1,1),ndipoles,0.0_wp,fi(1,1),3)
-
-        !print eigenvalues
-        if (iproc == 0) then
-           call yaml_open_sequence('Excitation energies (Ha, eV, dipoles)')
-           do imulti=1,nmulti
-              call yaml_sequence( trim(yaml_toa( &
-                 & (/ omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti) /),fmt='(f10.5)')),&
-                 & advance='no')
-              call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
-              !print '(a,i6,2(f10.5),3(f10.5))','excitation energies: Ha, eV, dipoles:' , &
-              !imulti,omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti)
-           end do
-           call yaml_close_sequence()
-        end if
+        !this second part is not needed
+!!$        call DSYEV('V','U',nmulti,K,nmulti,omega,work,lwork,info)
+!!$        if (info /= 0) then
+!!$           call yaml_warning('Error, DSYEV' // trim(yaml_toa(info)))
+!!$           !write(*,*) 'error, DSYEV',info
+!!$        end if
+!!$
+!!$        !transition dipoles
+!!$        call gemm('N','N',3,ndipoles,ndipoles,1.0_wp,dipoles(1,1),3,&
+!!$             K(1,1),ndipoles,0.0_wp,fi(1,1),3)
+!!$
+!!$        !print eigenvalues
+!!$        if (iproc == 0) then
+!!$           call yaml_open_sequence('Excitation energies (Ha, eV, dipoles)')
+!!$           do imulti=1,nmulti
+!!$              call yaml_sequence( trim(yaml_toa( &
+!!$                 & (/ omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti) /),fmt='(f10.5)')),&
+!!$                 & advance='no')
+!!$              call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
+!!$              !print '(a,i6,2(f10.5),3(f10.5))','excitation energies: Ha, eV, dipoles:' , &
+!!$              !imulti,omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti)
+!!$           end do
+!!$           call yaml_close_sequence()
+!!$        end if
          
      end if
      

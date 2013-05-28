@@ -17,7 +17,8 @@
 8                                number of iterations in the preconditioner
 0  1                             0-> exact Loewdin, 1-> taylor expansion ; in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
 5.d-2                            fscale: length scale over which complementary error function decays from 1 to 0
-0  T  T                          output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; pulay correction
+0 T T                            output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; pulay correction
+F F                              fragment calculation; calculate transfer integrals
 O 4 1.0d-4 1.0d-4 0.0d0 5.0 5.0 20.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
 H 1 1.0d-4 1.0d-4 0.0d0 5.0 5.0 20.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
 

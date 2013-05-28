@@ -126,7 +126,7 @@ END SUBROUTINE preconditionall
 subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,confdatarr,gnrm,gnrm_zero)
   use module_base
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,npsidim
@@ -142,14 +142,18 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
   real(wp) :: cprecr,scpr,evalmax,eval_zero,gnrm_orb
   real(gp) :: kx,ky,kz
 !!$  integer :: i_stat,i_all,ispinor,nbox
-!!$  real(gp) :: eh
-!!$  real(wp), dimension(:,:), allocatable :: hpsir
-!!$  type(coulomb_operator) :: kernel
+  logical, parameter :: newp=.true.
+!!$  real(gp) :: eh_fake,monop
+!!$  real(wp), dimension(:), allocatable :: hpsir
+!!$  type(coulomb_operator) :: G_Helmholtz
 !!$  real(wp), dimension(:,:), allocatable :: gnrm_per_orb
 !!$  type(workarr_sumrho) :: w
   integer, dimension(:,:), allocatable :: ncntdsp
   real(wp), dimension(:), allocatable :: gnrms,gnrmp
-
+  !debug
+!!$  type(atoms_data) atoms_fake
+!!$  integer :: iter=0
+!!$  iter=iter+1
 
   ! Preconditions all orbitals belonging to iproc
   !and calculate the norm of the residue
@@ -158,20 +162,18 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
   !norm of gradient of unoccupied orbitals
   gnrm_zero=0.0_dp
 
-  !commented out, never used
-!   evalmax=orbs%eval(orbs%isorb+1)
-!   do iorb=1,orbs%norbp
-!     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
-!   enddo
-!   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-!        MPI_MAX,bigdft_mpi%mpi_comm,ierr)
-
   !prepare the arrays for the 
   if (verbose >=3) then
      allocate(gnrmp(max(orbs%norbp,1)+ndebug),stat=i_stat)
      call memocc(i_stat,gnrmp,'gnrmp',subname)
   end if
-  
+
+!!$  if (newp) then
+!!$     ilr=1
+!!$     hpsir=f_malloc(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,id='hpsir',routine_id=subname)
+!!$     call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
+!!$  end if
+
   !if (iproc.eq. 0 .and. verbose.ge.3) write(*,*) ' '
   ist = 0
   if (orbs%norbp >0) ikpt=orbs%iokpt(1)
@@ -199,57 +201,12 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
 !       print *, iorb, orbs%kpts(1,orbs%iokpt(iorb)), orbs%kpts(2,orbs%iokpt(iorb)), orbs%kpts(3,orbs%iokpt(iorb))
 
      !real k-point different from Gamma still not implemented
-     if (kx**2+ky**2+kz**2 > 0.0_gp .or. orbs%nspinor==2 ) then
+     if (kx**2+ky**2+kz**2 > 0.0_gp .or. orbs%nspinor==2) then
         ncplx=2
      else
         ncplx=1
      end if
 
-!!$     !helmholtz-based preconditioning
-!!$     call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
-!!$     !box elements size
-!!$     nbox=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
-!!$
-!!$     ! Wavefunction in real space
-!!$     allocate(hpsir(nbox,orbs%nspinor+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,hpsir,'hpsir',subname)
-!!$     call to_zero(nbox*orbs%nspinor,hpsir(1,1))
-!!$
-!!$     !case for helmholtz-based preconditioning
-!!$     do ispinor=1,orbs%nspinor
-!!$
-!!$        call daub_to_isf(Lzd%Llr(ilr),w,hpsi(1+ist),hpsir(1,ispinor))
-!!$
-!!$        !the nrm2 function can be replaced here by ddot
-!!$        scpr=nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1)
-!!$        if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
-!!$           gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
-!!$        else
-!!$           !write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2,ilr
-!!$           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
-!!$        end if
-!!$
-!!$          call cprecr_from_eval(Lzd%Llr(ilr)%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)
-!!$          !sequential kernel
-!!$          call createKernel(0,1,Lzd%Llr(ilr)%geocode,&
-!!$               (/Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i/),&
-!!$               Lzd%hgrids,16,kernel,.true.,1.0_gp)!sqrt(2.0_gp*cprecr))
-!!$
-!!$          !apply it to the gradient to smooth it
-!!$          call H_potential('D',kernel,hpsir(1,ispinor),hpsir(1,1),eh,0.d0,.false.)
-!!$
-!!$          !convert the gradient back to the locreg
-!!$          call isf_to_daub(Lzd%Llr(ilr),w,hpsir(1,ispinor),hpsi(1+ist))
-!!$          call vscal(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),1.0_gp/(16.0_gp*atan(1.0_gp)),hpsi(1+ist),1)
-!!$          print *,'iorb,gradient',iorb,scpr,nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1),eh
-!!$          ist=ist+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)
-!!$
-!!$     end do
-!!$     call deallocate_work_arrays_sumrho(w)
-!!$     i_all=-product(shape(hpsir))*kind(hpsir)
-!!$     deallocate(hpsir,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'hpsir',subname)
-!!$
      gnrm_orb=0.0_wp
      do inds=1,orbs%nspinor,ncplx
 
@@ -267,6 +224,39 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
            !write(*,*) 'iorb,gnrm,ilr',orbs%isorb+iorb,scpr,ilr,gnrm_orb,iproc
         end if
 
+!!$        print *,'plotting gradient iorb,initial',iorb,&
+!!$             nrm2(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f,hpsi(1+ist),1)
+!!$        atoms_fake=atoms_null()
+!!$        atoms_fake%nat=0
+!!$        atoms_fake%geocode='F'
+!!$        atoms_fake%alat1=Lzd%hgrids(1)*(Lzd%Llr(ilr)%d%n1+1)
+!!$        atoms_fake%alat2=Lzd%hgrids(2)*(Lzd%Llr(ilr)%d%n2+1)
+!!$        atoms_fake%alat3=Lzd%hgrids(3)*(Lzd%Llr(ilr)%d%n3+1)
+!!$        call plot_wf('G'//trim(adjustl(yaml_toa(iorb)))//'-'//trim(adjustl(yaml_toa(iter))),1,&
+!!$             atoms_fake,1.0_gp,Lzd%llr(ilr),&
+!!$             Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),(/0.0_gp,0.0_gp,0.0_gp/),hpsi(1+ist))
+!!$
+!!$        if (newp) then
+!!$           call cprecr_from_eval(Lzd%Llr(ilr)%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)
+!!$           !alternative preconditioner
+!!$           call vscal(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),0.5_gp/pi_param,hpsi(1+ist),1)
+!!$           call daub_to_isf(Lzd%Llr(ilr),w,hpsi(1+ist),hpsir(1))
+!!$           !sequential kernel
+!!$           G_Helmholtz=pkernel_init(.false.,0,1,0,Lzd%Llr(ilr)%geocode,&
+!!$                (/Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i/),&
+!!$                0.5_gp*Lzd%hgrids,16,mu0_screening=sqrt(2.0_gp*abs(cprecr)))
+!!$           
+!!$           call pkernel_set(G_Helmholtz,.true.)
+!!$           
+!!$           !apply it to the gradient to smooth it
+!!$           call H_potential('D',G_Helmholtz,hpsir(1),hpsir(1),eh_fake,0.d0,.false.)
+!!$           call pkernel_free(G_Helmholtz,subname)
+!!$           !convert the gradient back to the locreg
+!!$           call isf_to_daub(Lzd%Llr(ilr),w,hpsir(1),hpsi(1+ist))
+!!$           
+!!$        end if
+
+        
        if (scpr /= 0.0_wp) then
           call cprecr_from_eval(Lzd%Llr(ilr)%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)
            !cases with no CG iterations, diagonal preconditioning
@@ -307,15 +297,25 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
               end if
            end if
 
-       end if
-!       print *,'iorb,gradient',iorb,scpr,nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1)!,eh
+        end if
+
+!!$        print *,'iorb,newgradient',iorb,scpr,nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1),eh_fake
+!!$        call plot_wf('GPnew'//trim(adjustl(yaml_toa(iorb)))//'-'//trim(adjustl(yaml_toa(iter))),1,&
+!!$             atoms_fake,1.0_gp,Lzd%llr(ilr),&
+!!$             Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),(/0.0_gp,0.0_gp,0.0_gp/),hpsi(1+ist))
+
+
        ist = ist + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*ncplx
 !     print *,iorb,inds,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds,iorb),1,hpsi(1,inds,iorb),1)
 !     print *,iorb,inds+1,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds+1,iorb),1,hpsi(1,inds+1,iorb),1)
     end do
 
-  enddo
+ enddo
 
+!!$ if (newp) then
+!!$    call deallocate_work_arrays_sumrho(w)
+!!$    call f_free(hpsir)
+!!$ end if
   !gather the results of the gnrm per orbital in the case of high verbosity
   if (verbose >= 3) then
      allocate(gnrms(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)

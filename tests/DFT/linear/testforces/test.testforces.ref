@@ -1995,16 +1995,16 @@ sparsity:  0.00%
    - number of coarse grid points has changed: 6
    - number of fine grid points has changed: 6
    - box size has changed: 0
-   - molecule was shifted: 6
+   - molecule was shifted: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   8.000283729247E+00
+   Calculation finished. TOTAL CHARGE =   7.999999350962E+00
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
-iat, fpulay    1    6.577302E-02    1.048318E-01    1.464412E-01
-iat, fpulay    2   -3.311149E-03   -2.983109E-04   -4.631880E-04
-iat, fpulay    3   -3.588654E-03   -1.089117E-02   -1.100959E-02
+iat, fpulay    1    7.487461E-02    9.651340E-02    1.380292E-01
+iat, fpulay    2   -5.557312E-03   -1.709791E-03   -1.837719E-03
+iat, fpulay    3   -2.480702E-03   -8.916682E-03   -9.083748E-03
  done.
- fnrm_pulay  0.11109273026763967     
+ fnrm_pulay  0.10673715410656982     
  The pulay force is too large after the restart. Start over again with an AO input guess.
 WARNING: locrad for atom type O is too small; minimal value is   1.10E+01
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)O   1.10E+01   1.55E+01   8.000E+00
@@ -3977,16 +3977,16 @@ sparsity:  0.00%
    - number of coarse grid points has changed: 6
    - number of fine grid points has changed: 6
    - box size has changed: 0
-   - molecule was shifted: 6
+   - molecule was shifted: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   8.000283686375E+00
+   Calculation finished. TOTAL CHARGE =   7.999999343597E+00
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
-iat, fpulay    1    6.559918E-02    1.051267E-01    1.467161E-01
-iat, fpulay    2   -3.343163E-03   -3.179039E-04   -4.876265E-04
-iat, fpulay    3   -3.492366E-03   -1.079755E-02   -1.089200E-02
+iat, fpulay    1    7.483758E-02    9.704414E-02    1.385724E-01
+iat, fpulay    2   -5.590646E-03   -1.733839E-03   -1.867885E-03
+iat, fpulay    3   -2.427081E-03   -8.887282E-03   -9.032656E-03
  done.
- fnrm_pulay  0.11126459037085214     
+ fnrm_pulay  0.10712102506029421     
  The pulay force is too large after the restart. Start over again with an AO input guess.
 WARNING: locrad for atom type O is too small; minimal value is   1.10E+01
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)O   1.10E+01   1.55E+01   8.000E+00
@@ -5917,16 +5917,16 @@ sparsity:  0.00%
    - number of coarse grid points has changed: 6
    - number of fine grid points has changed: 6
    - box size has changed: 0
-   - molecule was shifted: 6
+   - molecule was shifted: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   8.000283469749E+00
+   Calculation finished. TOTAL CHARGE =   7.999999335707E+00
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
-iat, fpulay    1    6.534560E-02    1.053546E-01    1.468988E-01
-iat, fpulay    2   -3.373107E-03   -3.247533E-04   -4.957986E-04
-iat, fpulay    3   -3.369172E-03   -1.067287E-02   -1.075269E-02
+iat, fpulay    1    7.478155E-02    9.748948E-02    1.389966E-01
+iat, fpulay    2   -5.641715E-03   -1.760915E-03   -1.896863E-03
+iat, fpulay    3   -2.354796E-03   -8.836791E-03   -8.968488E-03
  done.
- fnrm_pulay  0.11135754930570403     
+ fnrm_pulay  0.10742305369863742     
  The pulay force is too large after the restart. Start over again with an AO input guess.
 WARNING: locrad for atom type O is too small; minimal value is   1.10E+01
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)O   1.10E+01   1.55E+01   8.000E+00
@@ -7893,16 +7893,16 @@ sparsity:  0.00%
    - number of coarse grid points has changed: 6
    - number of fine grid points has changed: 6
    - box size has changed: 0
-   - molecule was shifted: 6
+   - molecule was shifted: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   8.000283586946E+00
+   Calculation finished. TOTAL CHARGE =   7.999999329236E+00
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
-iat, fpulay    1    6.512794E-02    1.056121E-01    1.471545E-01
-iat, fpulay    2   -3.405874E-03   -3.411784E-04   -5.169088E-04
-iat, fpulay    3   -3.268195E-03   -1.056042E-02   -1.061501E-02
+iat, fpulay    1    7.470584E-02    9.801084E-02    1.395477E-01
+iat, fpulay    2   -5.679124E-03   -1.784132E-03   -1.925863E-03
+iat, fpulay    3   -2.294164E-03   -8.788840E-03   -8.897553E-03
  done.
- fnrm_pulay  0.11150017126160366     
+ fnrm_pulay  0.10779836289924663     
  The pulay force is too large after the restart. Start over again with an AO input guess.
 WARNING: locrad for atom type O is too small; minimal value is   1.10E+01
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)O   1.10E+01   1.55E+01   8.000E+00
@@ -9835,26 +9835,6 @@ iat, fpulay    3   -2.362027E-07   -1.974873E-07   -1.767219E-07
  done.
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   7.999999318629E+00
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:14:47.193
- Calling sequence of Main program      : 
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:14:47.193
- Calling sequence of Main program      : 
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:14:47.194
- Calling sequence of Main program      : 
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:14:47.194
- Calling sequence of Main program      : 
-     2013-03-28 16:14:47.193
- Calling sequence of Main program      : 
 
  Check correctness of forces
  Difference of total energies =  1.84145040746486188E-003

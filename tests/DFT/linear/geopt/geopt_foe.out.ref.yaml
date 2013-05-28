@@ -26,11 +26,21 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.25
- Timestamp of this run                 : 2013-03-28 16:13:42.382
+ Version Number                        : 1.7-dev.28
+ Timestamp of this run                 : 2013-04-30 10:42:02.742
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
+ MPI tasks of root process node        :  6
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments                 : " 'FC=mpif90' '--disable-bindings'"
+   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
+   Compiler flags:
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -g -O2
+     CXXFLAGS                          : -g -O2
+     CPPFLAGS                          : 
  #... (file:foe.perf)....................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -73,7 +83,7 @@
  #|1.E-05         gnrm_cv: convergence criterion gradient                                    
  #|100 1          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
  #|5  10          ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
- #|0              dispersion correction potential (values 1,2,3), 0=none                     
+ #|0              dispersion correction potential (values 1,2,3,4,5), 0=none                 
  #|100   0        InputPsiId, output_wf, output_denspot                                      
  #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
  #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
@@ -280,7 +290,7 @@
    Nonlocal Pseudopotential Arrays     : 0.39
    Full Uncompressed (ISF) grid        : 7.1022
    Workspaces storage size             : 0.647
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 30.329
    Density Construction                : 35.858
    Poisson Solver                      : 28.737
@@ -322,12 +332,12 @@
      MPI tasks                         :  6
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  5531,  74 ]
-
+   Tolerances for this check: [ 1.77546669037168913E-06,  3.10862446895043831E-15]
    Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  3966,  74 ]
-
+   Tolerances for this check: [ 2.63193336847341230E-06,  3.10862446895043831E-15]
    Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
@@ -395,18 +405,18 @@
  Raw forces norm (Ha/Bohr): {maxval:  2.563255818867E-02, fnrm2:  1.652228807179E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  1.826617911926E-02,  9.521892173869E-03,  1.273204710112E-02 ]} # 0001
- -  {C:  [  4.638785550860E-03, -1.621100011675E-02, -6.644778198018E-03 ]} # 0002
- -  {H:  [ -5.729868483950E-04, -7.264642826018E-03,  1.327467150618E-03 ]} # 0003
- -  {H:  [ -6.172716854421E-03,  2.451806697311E-03, -6.499429963815E-03 ]} # 0004
- -  {H:  [ -9.812345185163E-03, -7.721673785261E-03, -5.422400861624E-03 ]} # 0005
- -  {H:  [  4.819346449966E-03,  2.833211159195E-03,  5.061845453282E-03 ]} # 0006
- -  {H:  [ -1.197191933609E-02,  9.046249312495E-03,  4.978910353589E-03 ]} # 0007
- -  {H:  [  8.056571039862E-04,  7.344157385161E-03, -5.533661035153E-03 ]} # 0008
+ -  {C: [ 1.826617911926E-02,  9.521892173869E-03,  1.273204710112E-02]} # 0001
+ -  {C: [ 4.638785550860E-03, -1.621100011675E-02, -6.644778198018E-03]} # 0002
+ -  {H: [-5.729868483950E-04, -7.264642826018E-03,  1.327467150618E-03]} # 0003
+ -  {H: [-6.172716854421E-03,  2.451806697311E-03, -6.499429963815E-03]} # 0004
+ -  {H: [-9.812345185163E-03, -7.721673785261E-03, -5.422400861624E-03]} # 0005
+ -  {H: [ 4.819346449966E-03,  2.833211159195E-03,  5.061845453282E-03]} # 0006
+ -  {H: [-1.197191933609E-02,  9.046249312495E-03,  4.978910353589E-03]} # 0007
+ -  {H: [ 8.056571039862E-04,  7.344157385161E-03, -5.533661035153E-03]} # 0008
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  10.06
-   Elapsed time (s)                    :  10.10
+   CPU time (s)                        :  9.96
+   Elapsed time (s)                    :  10.00
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -551,7 +561,7 @@
    Nonlocal Pseudopotential Arrays     : 0.39
    Full Uncompressed (ISF) grid        : 7.1022
    Workspaces storage size             : 0.647
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 30.329
    Density Construction                : 35.858
    Poisson Solver                      : 28.737
@@ -668,18 +678,18 @@
  Raw forces norm (Ha/Bohr): {maxval:  2.563255818867E-02, fnrm2:  1.652228807179E-03}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  1.826617911926E-02,  9.521892173869E-03,  1.273204710112E-02 ]} # 0001
- -  {C:  [  4.638785550860E-03, -1.621100011675E-02, -6.644778198018E-03 ]} # 0002
- -  {H:  [ -5.729868483950E-04, -7.264642826018E-03,  1.327467150618E-03 ]} # 0003
- -  {H:  [ -6.172716854421E-03,  2.451806697311E-03, -6.499429963815E-03 ]} # 0004
- -  {H:  [ -9.812345185163E-03, -7.721673785261E-03, -5.422400861624E-03 ]} # 0005
- -  {H:  [  4.819346449966E-03,  2.833211159195E-03,  5.061845453282E-03 ]} # 0006
- -  {H:  [ -1.197191933609E-02,  9.046249312495E-03,  4.978910353589E-03 ]} # 0007
- -  {H:  [  8.056571039862E-04,  7.344157385161E-03, -5.533661035153E-03 ]} # 0008
+ -  {C: [ 1.826617911926E-02,  9.521892173869E-03,  1.273204710112E-02]} # 0001
+ -  {C: [ 4.638785550860E-03, -1.621100011675E-02, -6.644778198018E-03]} # 0002
+ -  {H: [-5.729868483950E-04, -7.264642826018E-03,  1.327467150618E-03]} # 0003
+ -  {H: [-6.172716854421E-03,  2.451806697311E-03, -6.499429963815E-03]} # 0004
+ -  {H: [-9.812345185163E-03, -7.721673785261E-03, -5.422400861624E-03]} # 0005
+ -  {H: [ 4.819346449966E-03,  2.833211159195E-03,  5.061845453282E-03]} # 0006
+ -  {H: [-1.197191933609E-02,  9.046249312495E-03,  4.978910353589E-03]} # 0007
+ -  {H: [ 8.056571039862E-04,  7.344157385161E-03, -5.533661035153E-03]} # 0008
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  10.54
-   Elapsed time (s)                    :  10.58
+   CPU time (s)                        :  9.88
+   Elapsed time (s)                    :  9.92
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -830,7 +840,7 @@
    Nonlocal Pseudopotential Arrays     : 0.39
    Full Uncompressed (ISF) grid        : 7.1022
    Workspaces storage size             : 0.647
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 30.329
    Density Construction                : 35.860
    Poisson Solver                      : 28.739
@@ -947,18 +957,18 @@
  Raw forces norm (Ha/Bohr): {maxval:  9.125393098181E-03, fnrm2:  3.116004136636E-04}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  5.282052310412E-03,  5.869101967264E-04,  5.414622023375E-03 ]} # 0001
- -  {C:  [  1.230323747377E-03, -5.333093310747E-04, -3.644145903439E-03 ]} # 0002
- -  {H:  [ -3.822875159515E-04, -6.250829924441E-03,  1.716583511921E-03 ]} # 0003
- -  {H:  [ -2.321457857486E-03, -9.829662965504E-05, -5.828134196866E-03 ]} # 0004
- -  {H:  [ -1.609630085893E-03, -1.520162318250E-03, -4.733549480989E-03 ]} # 0005
- -  {H:  [  1.946050087204E-03,  6.021932468496E-04,  5.114477330935E-03 ]} # 0006
- -  {H:  [ -4.692356499906E-03,  2.752545588646E-03,  4.493145706927E-03 ]} # 0007
- -  {H:  [  5.473058142418E-04,  4.460949171199E-03, -2.532998991864E-03 ]} # 0008
+ -  {C: [ 5.282052310412E-03,  5.869101967264E-04,  5.414622023375E-03]} # 0001
+ -  {C: [ 1.230323747377E-03, -5.333093310747E-04, -3.644145903439E-03]} # 0002
+ -  {H: [-3.822875159515E-04, -6.250829924441E-03,  1.716583511921E-03]} # 0003
+ -  {H: [-2.321457857486E-03, -9.829662965504E-05, -5.828134196866E-03]} # 0004
+ -  {H: [-1.609630085893E-03, -1.520162318250E-03, -4.733549480989E-03]} # 0005
+ -  {H: [ 1.946050087204E-03,  6.021932468496E-04,  5.114477330935E-03]} # 0006
+ -  {H: [-4.692356499906E-03,  2.752545588646E-03,  4.493145706927E-03]} # 0007
+ -  {H: [ 5.473058142418E-04,  4.460949171199E-03, -2.532998991864E-03]} # 0008
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  12.01
-   Elapsed time (s)                    :  12.18
+   CPU time (s)                        :  10.05
+   Elapsed time (s)                    :  10.09
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1109,7 +1119,7 @@
    Nonlocal Pseudopotential Arrays     : 0.39
    Full Uncompressed (ISF) grid        : 7.1022
    Workspaces storage size             : 0.647
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 30.329
    Density Construction                : 35.862
    Poisson Solver                      : 28.741
@@ -1226,18 +1236,18 @@
  Raw forces norm (Ha/Bohr): {maxval:  6.363395322263E-03, fnrm2:  1.945399060854E-04}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  1.414207432175E-03, -7.003303239234E-04,  2.891555713532E-03 ]} # 0001
- -  {C:  [  3.444885639653E-05,  1.933914481716E-03, -1.501989244135E-03 ]} # 0002
- -  {H:  [ -1.832303021985E-04, -5.724685241482E-03,  1.508973151977E-03 ]} # 0003
- -  {H:  [ -5.415438345407E-04, -1.068740023274E-03, -5.378413948942E-03 ]} # 0004
- -  {H:  [  1.262629832370E-05, -3.045774628815E-04, -4.213038735622E-03 ]} # 0005
- -  {H:  [  1.616645866108E-03,  4.782998786758E-04,  4.712742435098E-03 ]} # 0006
- -  {H:  [ -2.847644524511E-03,  1.412047697150E-03,  3.938530730391E-03 ]} # 0007
- -  {H:  [  4.944902082463E-04,  3.974070994019E-03, -1.958360102300E-03 ]} # 0008
+ -  {C: [ 1.414207432175E-03, -7.003303239234E-04,  2.891555713532E-03]} # 0001
+ -  {C: [ 3.444885639653E-05,  1.933914481716E-03, -1.501989244135E-03]} # 0002
+ -  {H: [-1.832303021985E-04, -5.724685241482E-03,  1.508973151977E-03]} # 0003
+ -  {H: [-5.415438345407E-04, -1.068740023274E-03, -5.378413948942E-03]} # 0004
+ -  {H: [ 1.262629832370E-05, -3.045774628815E-04, -4.213038735622E-03]} # 0005
+ -  {H: [ 1.616645866108E-03,  4.782998786758E-04,  4.712742435098E-03]} # 0006
+ -  {H: [-2.847644524511E-03,  1.412047697150E-03,  3.938530730391E-03]} # 0007
+ -  {H: [ 4.944902082463E-04,  3.974070994019E-03, -1.958360102300E-03]} # 0008
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.84
-   Elapsed time (s)                    :  9.89
+   CPU time (s)                        :  10.21
+   Elapsed time (s)                    :  10.54
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1388,7 +1398,7 @@
    Nonlocal Pseudopotential Arrays     : 0.39
    Full Uncompressed (ISF) grid        : 7.1022
    Workspaces storage size             : 0.647
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 30.329
    Density Construction                : 35.862
    Poisson Solver                      : 28.741
@@ -1505,18 +1515,18 @@
  Raw forces norm (Ha/Bohr): {maxval:  5.935886836414E-03, fnrm2:  1.579684577067E-04}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  5.997172915580E-04, -9.572369378053E-04,  1.925266091772E-03 ]} # 0001
- -  {C:  [ -2.038636763069E-04,  2.323246554726E-03, -7.747121059444E-04 ]} # 0002
- -  {H:  [ -1.108178700205E-04, -5.148848234943E-03,  1.107317209971E-03 ]} # 0003
- -  {H:  [ -1.887478819846E-04, -1.230823221672E-03, -4.922731958865E-03 ]} # 0004
- -  {H:  [  2.368973758517E-04, -1.736368194871E-04, -3.819743106262E-03 ]} # 0005
- -  {H:  [  1.445219144799E-03,  5.378595330946E-04,  4.360218607528E-03 ]} # 0006
- -  {H:  [ -2.212634319321E-03,  1.010696233478E-03,  3.554003912603E-03 ]} # 0007
- -  {H:  [  4.342299354242E-04,  3.638742892608E-03, -1.429618650802E-03 ]} # 0008
+ -  {C: [ 5.997172915580E-04, -9.572369378053E-04,  1.925266091772E-03]} # 0001
+ -  {C: [-2.038636763069E-04,  2.323246554726E-03, -7.747121059444E-04]} # 0002
+ -  {H: [-1.108178700205E-04, -5.148848234943E-03,  1.107317209971E-03]} # 0003
+ -  {H: [-1.887478819846E-04, -1.230823221672E-03, -4.922731958865E-03]} # 0004
+ -  {H: [ 2.368973758517E-04, -1.736368194871E-04, -3.819743106262E-03]} # 0005
+ -  {H: [ 1.445219144799E-03,  5.378595330946E-04,  4.360218607528E-03]} # 0006
+ -  {H: [-2.212634319321E-03,  1.010696233478E-03,  3.554003912603E-03]} # 0007
+ -  {H: [ 4.342299354242E-04,  3.638742892608E-03, -1.429618650802E-03]} # 0008
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.72
-   Elapsed time (s)                    :  9.75
+   CPU time (s)                        :  9.91
+   Elapsed time (s)                    :  9.94
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1667,7 +1677,7 @@
    Nonlocal Pseudopotential Arrays     : 0.39
    Full Uncompressed (ISF) grid        : 7.1022
    Workspaces storage size             : 0.647
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 30.329
    Density Construction                : 35.862
    Poisson Solver                      : 28.741
@@ -1784,18 +1794,18 @@
  Raw forces norm (Ha/Bohr): {maxval:  5.556930523014E-03, fnrm2:  1.333059126838E-04}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  4.057186831991E-04, -8.856937937088E-04,  1.492613334726E-03 ]} # 0001
- -  {C:  [ -1.685349048689E-04,  2.174163477585E-03, -4.712552143550E-04 ]} # 0002
- -  {H:  [ -8.018955849909E-05, -4.650402635011E-03,  7.093872116576E-04 ]} # 0003
- -  {H:  [ -7.785925551211E-05, -1.238358830977E-03, -4.529576807738E-03 ]} # 0004
- -  {H:  [  1.908412118728E-04, -2.221425980617E-04, -3.482463123198E-03 ]} # 0005
- -  {H:  [  1.262725286992E-03,  5.697320489468E-04,  4.039222962466E-03 ]} # 0006
- -  {H:  [ -1.900843980146E-03,  8.718121649229E-04,  3.242890108888E-03 ]} # 0007
- -  {H:  [  3.681425169616E-04,  3.380890166303E-03, -1.000818472446E-03 ]} # 0008
+ -  {C: [ 4.057186831991E-04, -8.856937937088E-04,  1.492613334726E-03]} # 0001
+ -  {C: [-1.685349048689E-04,  2.174163477585E-03, -4.712552143550E-04]} # 0002
+ -  {H: [-8.018955849909E-05, -4.650402635011E-03,  7.093872116576E-04]} # 0003
+ -  {H: [-7.785925551211E-05, -1.238358830977E-03, -4.529576807738E-03]} # 0004
+ -  {H: [ 1.908412118728E-04, -2.221425980617E-04, -3.482463123198E-03]} # 0005
+ -  {H: [ 1.262725286992E-03,  5.697320489468E-04,  4.039222962466E-03]} # 0006
+ -  {H: [-1.900843980146E-03,  8.718121649229E-04,  3.242890108888E-03]} # 0007
+ -  {H: [ 3.681425169616E-04,  3.380890166303E-03, -1.000818472446E-03]} # 0008
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.63
-   Elapsed time (s)                    :  9.67
+   CPU time (s)                        :  10.03
+   Elapsed time (s)                    :  10.07
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1811,13 +1821,9 @@
    FORCES norm(Ha/Bohr): { maxval:  4.70488E-03, fnrm2:  1.10252E-04, fluct:  4.61194E-03}
  ncount_bigdft in SD2                  :  [  5,  4 ]
  End of minimization using             : SDCG
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:13:42.380
- Calling sequence of Main program      : 
  Memory Consumption Report:
-   Tot. No. of Allocations  : 45404
-   Tot. No. of Deallocations: 45404
+   Tot. No. of Allocations  : 45441
+   Tot. No. of Deallocations: 45441
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 131

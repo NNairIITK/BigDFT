@@ -168,8 +168,6 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
 
 END SUBROUTINE initialize_work_arrays_locham
 
-
-
 !>
 !!
 !!
@@ -341,6 +339,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
   real(wp), dimension(6), optional :: k_strten
   !Local variables
+  logical, parameter :: transpose=.false.
   logical :: usekpts
   integer :: idx,i,i_f,iseg_f,ipsif,isegf
   real(gp) :: ekino
@@ -527,26 +526,35 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
                    psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
            end do
 
-           !Transposition of the work arrays (use psir as workspace)
-           call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
-                w%x_c,w%y_c,.true.)
+           if (transpose) then
+              !Transposition of the work arrays (use psir as workspace)
+              call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                   w%x_c,w%y_c,.true.)
 
-           call to_zero(nspinor*w%nyc,w%y_c(1,1))
+              call to_zero(nspinor*w%nyc,w%y_c(1,1))
+              ! compute the kinetic part and add  it to psi_out
+              ! the kinetic energy is calculated at the same time
+              do idx=1,nspinor,2
+                 !print *,'AAA',2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,hgridh
 
-           ! compute the kinetic part and add  it to psi_out
-           ! the kinetic energy is calculated at the same time
-           do idx=1,nspinor,2
-              !print *,'AAA',2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,hgridh
-              
-              call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                   hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
-              kstrten=kstrten+kstrteno
-              !ekin=ekin+ekino
-           end do
+                 call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                      hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
+                 kstrten=kstrten+kstrteno
+                 !ekin=ekin+ekino
+              end do
 
-           !Transposition of the work arrays (use psir as workspace)
-           call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
-                w%y_c,w%x_c,.false.)
+              !Transposition of the work arrays (use psir as workspace)
+              call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                   w%y_c,w%x_c,.false.)
+
+           else
+              call to_zero(nspinor*w%nyc,w%y_c(1,1))
+              do idx=1,nspinor,2
+                 call convolut_kinetic_per_T_k_notranspose(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                      hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
+                 kstrten=kstrten+kstrteno
+              end do
+           end if
 
            do idx=1,nspinor
 

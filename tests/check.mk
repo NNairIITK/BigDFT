@@ -32,8 +32,7 @@ if BUILD_DYNAMIC_LIBS
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/src
 endif
 
-AM_FCFLAGS = -I$(top_builddir)/src/includes -I$(top_builddir)/src/PSolver -I$(top_srcdir)/src/PSolver -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
-#AM_FCFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/PSolver -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_srcdir)/src/PSolver -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
 
 PSPS = psppar.H \
        psppar.C \
@@ -150,7 +149,7 @@ report:
 	rm -f triH.NEB.it*
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(abs_top_builddir)/src/NEB < input | tee $@
-	cat triH.NEB.0*/log.yaml > log.yaml
+	cat triH.NEB.0*/log.yaml | grep -v "Unable to read mpd.hosts" > log.yaml 
 	rm -rf triH.NEB.0*
 	rm -f gen_output_file velocities_file
 	name=`basename $@ .out` ; \

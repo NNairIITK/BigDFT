@@ -678,6 +678,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   real(wp), dimension(:), pointer :: psiw
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
      
+
   !performs some check of the arguments
   if (present(orbse) .neqv. present(commse)) then
      !if (iproc ==0) 
@@ -992,6 +993,16 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      !number of complex components
      ncplx=1
      if (nspinor > 1) ncplx=2
+
+     !@todo: see to broadcast a smaller array, if possible.
+     !@todo: switch to a allgatherv to handle kpoint case.
+     ! Broadcast in case of different degenerated eigen vectors.
+     if (nproc > 1 .and. orbsu%nkpts == 1) then
+        !reduce the overlap matrix between all the processors
+        call mpi_bcast(hamovr(1,1,1), 2*nspin*ndim_hamovr*orbsu%nkpts, mpidtypw, &
+             & 0, bigdft_mpi%mpi_comm, ierr)
+     end if
+
      do ikptp=1,orbsu%nkptsp
         ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
 

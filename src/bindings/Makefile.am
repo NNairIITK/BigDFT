@@ -32,7 +32,7 @@ bindings_dbus.c: bindings_dbus.xml
                       --c-namespace BigdftDBus \
                       --c-generate-object-manager $(srcdir)/bindings_dbus.xml
 
-AM_FCFLAGS = -I../includes @LIBABINIT_INCLUDE@
+AM_FCFLAGS = @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
 AM_CPPFLAGS = -I. -I../modules -I$(top_srcdir)/src/modules -I$(top_builddir)
 AM_CFLAGS = @GLIB_CFLAGS@ @GDBUS_CFLAGS@
 

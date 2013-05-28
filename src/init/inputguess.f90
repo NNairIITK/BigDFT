@@ -20,10 +20,10 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    integer, intent(inout) :: nvirt
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(gp), intent(out) :: eks
    integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
-   real(gp), dimension(at%nat), intent(out) :: locrad
+   real(gp), dimension(at%astruct%nat), intent(out) :: locrad
    type(orbitals_data), intent(out) :: orbse
    type(gaussian_basis), intent(out) :: G
    real(wp), dimension(:,:,:), pointer :: psigau
@@ -162,16 +162,16 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   integer, intent(inout) :: nvirt
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   integer,dimension(norb),intent(in):: mapping
-  integer,dimension(at%nat),intent(in):: norbsPerAt
+  integer,dimension(at%astruct%nat),intent(in):: norbsPerAt
   real(gp), intent(out) :: eks
   integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
-  real(gp), dimension(at%nat), intent(out) :: locrad
+  real(gp), dimension(at%astruct%nat), intent(out) :: locrad
   type(orbitals_data), intent(inout) :: orbse
   type(gaussian_basis), intent(out) :: G
   real(wp), dimension(:,:,:), pointer :: psigau
-  real(gp),dimension(at%ntypes),intent(in),optional:: quartic_prefactor
+  real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
   !local variables
   character(len=*), parameter :: subname='inputguess_gaussian_orbitals_forLinear'
   integer, parameter :: ngx=31
@@ -260,7 +260,7 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   !deallocate(orbse%inWhichLocreg,stat=istat)
   !call memocc(istat,iall,'orbse%inWhichLocreg',subname)
   ! Assign the orbitals to the localization regions.
-  !call assignToLocreg2(iproc,nproc,orbse%norb,orbse%norb_par,at%nat,nlr,nspin,norbsPerAt,rxyz,orbse%inwhichlocreg)
+  !call assignToLocreg2(iproc,nproc,orbse%norb,orbse%norb_par,at%astruct%nat,nlr,nspin,norbsPerAt,rxyz,orbse%inwhichlocreg)
 
   do ikpt = 1, orbse%nkpts
      ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
@@ -375,7 +375,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    type(atoms_data), intent(in) :: at
    logical, dimension(4,2,at%natsc), intent(out) :: scorb
    integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
-   real(gp), dimension(at%nat), intent(out) :: locrad
+   real(gp), dimension(at%astruct%nat), intent(out) :: locrad
    !local variables
    !n(c) character(len=*), parameter :: subname='readAtomicOrbitals'
    integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
@@ -394,8 +394,8 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    norbsc=0
    iatsc=0
    scorb(:,:,:)=.false.
-   do iat=1,at%nat
-      ity=at%iatype(iat)
+   do iat=1,at%astruct%nat
+      ity=at%astruct%iatype(iat)
       call count_atomic_shells(lmax+1,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
 
       norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
@@ -457,7 +457,7 @@ subroutine readAtomicOrbitals_withOnWhichAtom(at,orbsig,norbe,norbsc,nspin,nspin
   type(atoms_data), intent(inout) :: at
   logical, dimension(4,2,at%natsc), intent(out) :: scorb
   integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
-  real(gp), dimension(at%nat), intent(out) :: locrad
+  real(gp), dimension(at%astruct%nat), intent(out) :: locrad
   integer,dimension(orbsig%norb),intent(out):: onWhichAtom
   !local variables
   character(len=*), parameter :: subname='readAtomicOrbitals'
@@ -478,8 +478,8 @@ subroutine readAtomicOrbitals_withOnWhichAtom(at,orbsig,norbe,norbsc,nspin,nspin
   norbsc=0
   iatsc=0
   scorb(:,:,:)=.false.
-  do iat=1,at%nat
-     ity=at%iatype(iat)
+  do iat=1,at%astruct%nat
+     ity=at%astruct%iatype(iat)
      call count_atomic_shells(lmax+1,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
 !write(*,'(a,i4,2x,10i4)') 'iat, nl', iat, nl
      norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
@@ -542,14 +542,14 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    integer, intent(in) :: norbsc,nspin
    type(atoms_data), intent(in) :: at
    logical, dimension(4,2,at%natsc), intent(in) :: scorb
-   real(gp), dimension(3,at%nat), intent(in), target :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in), target :: rxyz
    type(orbitals_data), intent(inout) :: orbse
    type(gaussian_basis), intent(out) :: G
    real(gp), intent(out) :: eks
    integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
    real(wp), dimension(norbe,orbse%nspinor,orbse%norbp), intent(out) :: gaucoeff !norbe=G%ncoeff
    integer,dimension(orbse%norb), optional, intent(in):: mapping
-   real(gp),dimension(at%ntypes),intent(in),optional:: quartic_prefactor
+   real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
    !local variables
    character(len=*), parameter :: subname= 'AtomicOrbitals'
    integer, parameter :: nterm_max=3,noccmax=2,lmax=4,nmax=6,nelecmax=32,nmax_occ=10!actually is 24
@@ -576,11 +576,11 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    !insert these things in the loops above
    !here we can create a gaussian basis structure for the input guess functions
    !the number of gaussian centers are thus nat
-   G%nat=at%nat
+   G%nat=at%astruct%nat
    G%rxyz => rxyz
    !copy the parsed values in the gaussian structure
    !count also the total number of shells
-   allocate(G%nshell(at%nat+ndebug),stat=i_stat)
+   allocate(G%nshell(at%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,G%nshell,'G%nshell',subname)
 
    !if non-collinear it is like nspin=1 but with the double of orbitals
@@ -591,21 +591,21 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    end if
 
    !calculate the number of atom types by taking into account the occupation
-   allocate(iatypex(at%nat+ndebug),stat=i_stat)
+   allocate(iatypex(at%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,iatypex,'iatypex',subname)
 
    ntypesx=0
    G%nshltot=0
-   count_shells: do iat=1,at%nat
+   count_shells: do iat=1,at%astruct%nat
       !print *,'atom,aocc',iat,at%aocc(1:nelecmax,iat)
-      ity=at%iatype(iat)
+      ity=at%astruct%iatype(iat)
       call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,at%aocc(1,iat),occup,nl)
       G%nshell(iat)=(nl(1)+nl(2)+nl(3)+nl(4))
       G%nshltot=G%nshltot+G%nshell(iat)
       !check the occupation numbers and the atoms type
       !once you find something equal exit the procedure
       do jat=1,iat-1
-         if (at%iatype(jat) == ity) then
+         if (at%astruct%iatype(jat) == ity) then
             occeq=.true.
             do i=1,nelecmax
                occeq = occeq .and. (at%aocc(i,jat) == at%aocc(i,iat))
@@ -647,12 +647,13 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
    !assign shell IDs and count the number of exponents and coefficients
    !also calculate the wavefunctions 
+   G%ncplx=1 !2 only for PAW and projectors
    G%nexpo=0
    G%ncoeff=0
    ishell=0
    ntypesx=0
-   do iat=1,at%nat
-      ity=at%iatype(iat)
+   do iat=1,at%astruct%nat
+      ity=at%astruct%iatype(iat)
       ityx=iatypex(iat)
       ishltmp=0
       call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,at%aocc(1,iat),occup,nl)
@@ -660,10 +661,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          if (iproc == 0 .and. verbose > 1) then
             call yaml_sequence(advance='no')
             call yaml_open_map(flow=.true.)
-            call yaml_map('Atom Type',trim(at%atomnames(ity)))
+            call yaml_map('Atom Type',trim(at%astruct%atomnames(ity)))
             !write(*,'(1x,a,a6,a)')&
             !   &   'Generation of input wavefunction data for atom ',&
-            !   &   trim(at%atomnames(ity)),&
+            !   &   trim(at%astruct%atomnames(ity)),&
             !   &   ': '
             call print_eleconf(nspin,orbse%nspinor,noccmax,nelecmax,lmax,&
                &   at%aocc(1,iat),at%iasctype(iat))
@@ -725,10 +726,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    call razero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
 
    !allocate and assign the exponents and the coefficients
-   allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
+   allocate(G%psiat(G%ncplx,G%nexpo+ndebug),stat=i_stat)
    call memocc(i_stat,G%psiat,'G%psiat',subname)
 
-   allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
+   allocate(G%xp(G%ncplx,G%nexpo+ndebug),stat=i_stat)
    call memocc(i_stat,G%xp,'G%xp',subname)
 
    allocate(psiatn(ng+ndebug),stat=i_stat)
@@ -738,12 +739,12 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    !WARNING: units are not good for the moment
    !the moments can be inserted in the atoms_data structure
    if (orbse%nspinor == 4) then
-      allocate(atmoments(3,at%nat+ndebug),stat=i_stat)
+      allocate(atmoments(3,at%astruct%nat+ndebug),stat=i_stat)
       call memocc(i_stat,atmoments,'atmoments',subname)
 
       open(unit=22,file='moments',form='formatted',action='read',status='old')
       !this part can be transferred on the atomic orbitals section
-      do iat=1,at%nat
+      do iat=1,at%astruct%nat
          read(unit=22,fmt=*,iostat=i_stat) mx,my,mz
          if (i_stat > 0) then
             write(unit=*,fmt='(a,i0,a,i0,a)') &
@@ -772,9 +773,9 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    ishell=0
    iexpo=0
    icoeff=1
-   do iat=1,at%nat
+   do iat=1,at%astruct%nat
 
-      ity=at%iatype(iat)
+      ity=at%astruct%iatype(iat)
       ityx=iatypex(iat)
       call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,at%aocc(1,iat),occup,nl)
 
@@ -809,8 +810,8 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
             call atomkin(l-1,ng,xp(1,ityx),psiat(1,ictotpsi,ityx),psiatn,ek)
             do ig=1,G%ndoc(ishell)
                iexpo=iexpo+1
-               G%psiat(iexpo)=psiatn(ig)
-               G%xp(iexpo)=xp(ig,ityx)
+               G%psiat(1,iexpo)=psiatn(ig)
+               G%xp(1,iexpo)=xp(ig,ityx)
             end do
 
             do ispin=1,nspin
@@ -1287,7 +1288,8 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
       i_all=-product(shape(ofdcoef))*kind(ofdcoef)
       deallocate(ofdcoef,stat=i_stat)
       call memocc(i_stat,i_all,'ofdcoef',subname)
-   else if (npspcode == 10) then !HGH-K case
+   else if (npspcode == 10 .or. npspcode == 7 ) then !HGH-K case
+! For PAW this is just the initial guess
       do l=1,lpx+1
          hsep(1,l)=psppar(l,1) !h11
          hsep(2,l)=psppar(l,4) !h12

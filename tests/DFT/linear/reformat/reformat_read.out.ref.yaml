@@ -24,14 +24,23 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
- 
+
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.24
- Timestamp of this run                 : 2013-02-18 17:18:53.001
- Root process Hostname                 : badiane
- Number of MPI tasks                   :  4
- OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  1
+ Version Number                        : 1.7-dev.28
+ Timestamp of this run                 : 2013-05-07 12:30:00.532
+ Root process Hostname                 : moutarde
+ Number of MPI tasks                   :  6
+ OpenMP parallelization                :  No
+ MPI tasks of root process node        :  6
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments                 : " 'FC=mpif90' '--disable-bindings'"
+   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
+   Compiler flags:
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -g -O2
+     CXXFLAGS                          : -g -O2
+     CPPFLAGS                          : 
  #... (file:read.perf)...................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -74,7 +83,7 @@
  #|1.E-4          gnrm_cv: convergence criterion gradient                                    
  #|50 10          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
  #|6  6           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
- #|0              dispersion correction potential (values 1,2,3), 0=none                     
+ #|0              dispersion correction potential (values 1,2,3,4,5), 0=none                 
  #|102 0 0        InputPsiId, output_wf, output_denspot                                      
  #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
  #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
@@ -123,11 +132,15 @@
  #|4              number of iterations in the preconditioner                                 
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
- #|0  F           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|C 4 0.0d-3 0.0d0 8.0 8.0 20.0  Atom name, number of basis functions per atom, prefactor fo
- #|H 1 0.0d-3 0.0d0 8.0 8.0 20.0  Atom name, number of basis functions per atom, prefactor fo
+ #|0  F  F        Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|C 4 0.0d-3 0.0d-3 0.0d0 8.0 8.0 20.0  Atom name, number of basis functions per atom, prefa
+ #|H 1 0.0d-3 0.0d-3 0.0d0 8.0 8.0 20.0  Atom name, number of basis functions per atom, prefa
  # ==== WARNING: the following lines have not been processed by the parser ====
  #|                                                                                          
+ #... (file:default.frag)................................................Fragment Parameters
+ #|1 1            # number of fragments in reference system, number of fragments in current s
+ #|1 1 0          # reference fragment number i, number of atoms in reference fragment i, num
+ #|1 1            # fragment number j, reference fragment i this corresponds to              
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-read/
   #---------------------------------------------------- Input Atomic System (file: read.xyz)
@@ -253,20 +266,19 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
-   OpenMP threads per MPI task         :  1
+   MPI tasks                           :  6
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  5.34
-     Kernel (MB)                       :  5.53
+     Density (MB)                      :  3.56
+     Kernel (MB)                       :  3.74
      Full Grid Arrays (MB)             :  20.77
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 3                : 100%
+         MPI tasks 0- 5                : 100%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  92%
+         MPI tasks 0- 4                : 100%
+         MPI task 5                    :  80%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -279,13 +291,12 @@
  Total Number of Electrons             :  60
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 1                     :  8
-   MPI tasks  2- 3                     :  7
+   MPI tasks  0- 5                     :  5
  Total Number of Orbitals              :  30
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-30:  2.0000}
- Wavefunctions memory occupation for root MPI process:  7 MB 883 KB 256 B
+ Wavefunctions memory occupation for root MPI process:  4 MB 936 KB 32 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  12
@@ -295,17 +306,17 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 30)
    Single orbital                      : 0.1007 # (Number of Components: 128820)
-   All (distributed) orbitals          : 23.602 # (Number of Orbitals per MPI task: 8)
-   Wavefunction storage size           : 117.961 # (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 14.761 # (Number of Orbitals per MPI task: 5)
+   Wavefunction storage size           : 73.729 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.56
    Full Uncompressed (ISF) grid        : 20.786
    Workspaces storage size             : 2.70
- Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 105.786
-   Density Construction                : 194.958
-   Poisson Solver                      : 187.647
-   Hamiltonian application             : 197.667
- Estimated Memory Peak (MB)            :  197
+ Accumulated memory requirements during principal run stages (MiB.KiB):
+   Kernel calculation                  : 71.476
+   Density Construction                : 143.578
+   Poisson Solver                      : 120.248
+   Hamiltonian application             : 146.286
+ Estimated Memory Peak (MB)            :  146
   #WARNING: Do not call check_communications in the linear scaling version!
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -319,108 +330,83 @@
    Maxdiff for uncompress              :  0.00000000000000000E+00
  Ion-Ion interaction energy            :  3.31347212942244E+02
   #---------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -60.000000229900
+ Total ionic charge                    : -60.000000229899
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
   #ALLOCATING KSwfn%orbs%eval... is this correct?
   #--------------------------------------------------------- Reading Wavefunctions from disk
  Input Hamiltonian:
-   Reformating Wavefunctions           :  Yes
-   Reformatting for:
-     hgrid_old /= hgrid: {
- hgrid_old:  [  4.000000000000E-01,  4.000000000000E-01,  4.000000000000E-01 ], hgrid: [
-  4.200000000000E-01,  4.200000000000E-01,  4.200000000000E-01]}
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  1.069E+01,  1.073E+01 ]}
+   -  {Process:  0, Timing:  [  4.386E+01,  4.424E+01 ]}
    Poisson Solver:
      BC                                : Free
      Box                               :  [  135,  143,  141 ]
-     MPI tasks                         :  4
+     MPI tasks                         :  6
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  35107,  1172 ]
- 
-   Maxdiff for transpose (checksum)    :  1.39698386192321777E-09
+   Number of coarse and fine DoF (MasterMPI task):  [  28824,  854 ]
+   Tolerances for this check: [ 5.10075006810231657E-06,  1.33226762955018785E-14]
+   Maxdiff for transpose (checksum)    :  1.86264514923095703E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  28773,  1081 ]
- 
+   Number of coarse and fine DoF (MasterMPI task):  [  21656,  725 ]
+   Tolerances for this check: [ 9.30792012427406091E-06,  1.33226762955018785E-14]
    Maxdiff for transpose (checksum)    :  2.79396772384643555E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x:  4.44225754E+00, y:  1.30714786E+00, z:  1.33687717E+00, 
-                    total:  4.81970208E+00}
- Clean forces norm (Ha/Bohr): {maxval:  1.830583987581E+00, fnrm2:  3.170523201951E+01}
- Raw forces norm (Ha/Bohr): {maxval:  2.652645639885E+00, fnrm2:  5.503433175290E+01}
+ Average noise forces: {x: -3.27899096E-03, y: -5.39598939E-03, z: -4.80635394E-03, 
+                    total:  7.93533372E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  9.950333691981E-02, fnrm2:  1.616615575571E-01}
+ Raw forces norm (Ha/Bohr): {maxval:  9.840270974560E-02, fnrm2:  1.617279328529E-01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -1.513654223044E-01,  8.851047448306E-01, -5.553248314921E-01 ]} # 0001
- -  {C:  [ -2.333464565222E-01, -2.476439762865E-01,  1.056913600704E+00 ]} # 0002
- -  {C:  [  5.080956809841E-02, -3.380568922989E-03, -1.598884569955E-01 ]} # 0003
- -  {C:  [  4.912694006971E-01,  1.411550522178E-01,  1.123454273686E+00 ]} # 0004
- -  {C:  [  6.500056405138E-01,  1.016584171861E+00, -1.077104848654E-03 ]} # 0005
- -  {C:  [  9.715207963803E-02, -1.023237487888E-01,  3.077953100267E-01 ]} # 0006
- -  {H:  [ -8.164682886551E-01, -1.464064223833E-01, -8.275278851901E-02 ]} # 0007
- -  {H:  [ -8.614687541602E-01, -1.266452038343E-01, -1.597809817206E-01 ]} # 0008
- -  {H:  [ -7.383117134471E-01, -1.938625940581E-01,  1.828411603624E-01 ]} # 0009
- -  {H:  [ -5.270921755572E-01, -5.744322077033E-01,  7.296302672860E-02 ]} # 0010
- -  {H:  [ -4.966575893656E-01, -4.217905206566E-02, -5.564472203848E-01 ]} # 0011
- -  {H:  [ -7.237054380392E-01,  2.406364879201E-01, -3.242989918925E-01 ]} # 0012
- -  {C:  [  1.013115419291E+00,  1.524674022412E+00, -2.002039457517E-03 ]} # 0013
- -  {C:  [  9.539492882634E-01,  3.412104636841E-01,  1.522113421824E+00 ]} # 0014
- -  {C:  [  1.030753806640E+00, -8.270824148965E-01,  7.909599567449E-01 ]} # 0015
- -  {C:  [  1.072496167375E+00, -1.196820730982E+00, -6.735923158318E-02 ]} # 0016
- -  {C:  [  1.099914298518E+00, -3.181055477564E-01, -1.164646183386E+00 ]} # 0017
- -  {C:  [  1.056273693949E+00,  6.637425907708E-01, -9.057986634200E-01 ]} # 0018
- -  {H:  [ -5.259861076141E-01,  5.003543088301E-01, -4.625811591321E-04 ]} # 0019
- -  {H:  [ -5.176645348017E-01,  1.154092331125E-01,  4.427691414911E-01 ]} # 0020
- -  {H:  [ -5.463367573708E-01, -6.065858775442E-01,  4.861283206832E-01 ]} # 0021
- -  {H:  [ -4.300183259176E-01, -1.029997523731E+00, -2.597047128063E-01 ]} # 0022
- -  {H:  [ -4.166444999371E-01, -4.263156694752E-01, -1.000168534243E+00 ]} # 0023
- -  {H:  [ -5.306732992909E-01,  4.129104627887E-01, -7.462258903441E-01 ]} # 0024
+ -  {C: [-6.481433191751E-03,  7.196579895662E-02,  1.170072902054E-02]} # 0001
+ -  {C: [-6.507890429531E-03,  2.265329002912E-02,  7.951425062857E-02]} # 0002
+ -  {C: [-6.405309548847E-03, -4.736778031774E-02,  5.928186264146E-02]} # 0003
+ -  {C: [-6.392039008214E-03, -7.782897329722E-02, -1.389099858361E-02]} # 0004
+ -  {C: [-6.199641788801E-03, -2.783233519553E-02, -7.151553926502E-02]} # 0005
+ -  {C: [-6.165068542274E-03,  5.107415674094E-02, -6.802942422553E-02]} # 0006
+ -  {H: [ 2.720512082869E-04,  9.804018375768E-02,  1.699889452516E-02]} # 0007
+ -  {H: [ 4.725959476313E-04,  3.265573671308E-02,  8.663209528537E-02]} # 0008
+ -  {H: [ 7.176812671858E-04, -5.858068672127E-02,  7.309600070092E-02]} # 0009
+ -  {H: [ 7.620132282542E-04, -9.051444380929E-02, -1.477695270644E-02]} # 0010
+ -  {H: [ 1.150861158170E-03, -3.312013601491E-02, -8.799771454252E-02]} # 0011
+ -  {H: [ 9.446043049913E-04,  5.957114127648E-02, -6.974305993011E-02]} # 0012
+ -  {C: [ 3.930797317781E-03,  6.680572537148E-02,  7.158221490928E-03]} # 0013
+ -  {C: [ 4.121060890122E-03,  1.956705271626E-02,  6.337334578930E-02]} # 0014
+ -  {C: [ 4.089346666065E-03, -4.535665633630E-02,  5.177765067389E-02]} # 0015
+ -  {C: [ 4.029102956772E-03, -6.574929971083E-02, -1.488818726292E-02]} # 0016
+ -  {C: [ 3.958834059579E-03, -2.616987941562E-02, -6.464702016741E-02]} # 0017
+ -  {C: [ 4.037374949000E-03,  4.169166046307E-02, -5.296803976663E-02]} # 0018
+ -  {H: [ 1.447017630014E-03,  8.658513562994E-02,  1.530651740606E-02]} # 0019
+ -  {H: [ 1.464376630092E-03,  3.057168802935E-02,  8.152716942510E-02]} # 0020
+ -  {H: [ 1.494411319143E-03, -5.266770411170E-02,  6.672497668162E-02]} # 0021
+ -  {H: [ 1.715358662052E-03, -8.207906738776E-02, -1.303028880336E-02]} # 0022
+ -  {H: [ 1.857084637662E-03, -2.934918417169E-02, -7.769780689896E-02]} # 0023
+ -  {H: [ 1.686809676617E-03,  5.543457680583E-02, -6.390668211641E-02]} # 0024
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  67.36
-   Elapsed time (s)                    :  67.65
+   CPU time (s)                        :  68.80
+   Elapsed time (s)                    :  69.34
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -534,20 +520,19 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
-   OpenMP threads per MPI task         :  1
+   MPI tasks                           :  6
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  5.34
-     Kernel (MB)                       :  5.53
+     Density (MB)                      :  3.56
+     Kernel (MB)                       :  3.74
      Full Grid Arrays (MB)             :  20.77
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 3                : 100%
+         MPI tasks 0- 5                : 100%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  92%
+         MPI tasks 0- 4                : 100%
+         MPI task 5                    :  80%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -560,13 +545,12 @@
  Total Number of Electrons             :  60
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 1                     :  8
-   MPI tasks  2- 3                     :  7
+   MPI tasks  0- 5                     :  5
  Total Number of Orbitals              :  30
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-30:  2.0000}
- Wavefunctions memory occupation for root MPI process:  7 MB 883 KB 256 B
+ Wavefunctions memory occupation for root MPI process:  4 MB 936 KB 32 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  12
@@ -576,17 +560,17 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 30)
    Single orbital                      : 0.1007 # (Number of Components: 128820)
-   All (distributed) orbitals          : 23.602 # (Number of Orbitals per MPI task: 8)
-   Wavefunction storage size           : 117.961 # (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 14.761 # (Number of Orbitals per MPI task: 5)
+   Wavefunction storage size           : 73.729 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.56
    Full Uncompressed (ISF) grid        : 20.786
    Workspaces storage size             : 2.70
- Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 105.786
-   Density Construction                : 194.958
-   Poisson Solver                      : 187.647
-   Hamiltonian application             : 197.667
- Estimated Memory Peak (MB)            :  197
+ Accumulated memory requirements during principal run stages (MiB.KiB):
+   Kernel calculation                  : 71.476
+   Density Construction                : 143.578
+   Poisson Solver                      : 120.248
+   Hamiltonian application             : 146.286
+ Estimated Memory Peak (MB)            :  146
   #WARNING: Do not call check_communications in the linear scaling version!
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -600,102 +584,82 @@
    Maxdiff for uncompress              :  0.00000000000000000E+00
  Ion-Ion interaction energy            :  3.31347212942244E+02
   #------------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -60.000000229900
+ Total ionic charge                    : -60.000000229899
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
   #------------------------------------------------------------------ Support functions Restart
  Input Hamiltonian:
    Poisson Solver:
      BC                                : Free
      Box                               :  [  135,  143,  141 ]
-     MPI tasks                         :  4
+     MPI tasks                         :  6
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  35107,  1172 ]
- 
-   Tolerances for this check           :  [  5.20006673609500324E-06,  1.33226762955018785E-14 ]
-   Maxdiff for transpose (checksum)    :  1.39698386192321777E-09
+   Number of coarse and fine DoF (MasterMPI task):  [  28824,  854 ]
+
+   Tolerances for this check           :  [  5.10075006810231657E-06,  1.33226762955018785E-14 ]
+   Maxdiff for transpose (checksum)    :  1.86264514923095703E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  28773,  1081 ]
- 
-   Tolerances for this check           :  [  9.42446012583003577E-06,  1.33226762955018785E-14 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  21656,  725 ]
+
+   Tolerances for this check           :  [  9.30792012427406091E-06,  1.33226762955018785E-14 ]
    Maxdiff for transpose (checksum)    :  2.79396772384643555E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x:  3.02273262E+00, y:  8.76823054E-01, z:  9.16713494E-01, 
-                    total:  3.27812367E+00}
- Clean forces norm (Ha/Bohr): {maxval:  1.208914593504E+00, fnrm2:  1.555254093780E+01}
- Raw forces norm (Ha/Bohr): {maxval:  1.731182297863E+00, fnrm2:  2.636773153741E+01}
+ Average noise forces: {x: -4.30364630E-03, y: -5.84214239E-03, z: -5.06530409E-03, 
+                    total:  8.84925447E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  8.691699552353E-02, fnrm2:  1.030383991591E-01}
+ Raw forces norm (Ha/Bohr): {maxval:  8.571321513691E-02, fnrm2:  1.031200066080E-01}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -7.015731802513E-03,  6.843220818158E-01, -4.145548019379E-01 ]} # 0001
- -  {C:  [ -7.754245607241E-02, -1.888074207833E-01,  8.221584327730E-01 ]} # 0002
- -  {C:  [  1.059249116514E-01,  3.347486570996E-02, -8.452331331059E-02 ]} # 0003
- -  {C:  [  4.554012306832E-01,  2.988577668434E-02,  8.147625504018E-01 ]} # 0004
- -  {C:  [  5.920131361242E-01,  7.650279176353E-01, -6.427514440180E-02 ]} # 0005
- -  {C:  [  1.149254831436E-01, -8.820471156565E-02,  2.342013364512E-01 ]} # 0006
- -  {H:  [ -5.624763955946E-01, -6.197953419786E-02, -4.518650404147E-02 ]} # 0007
- -  {H:  [ -6.023259294033E-01, -7.612905687206E-02, -6.301499107629E-02 ]} # 0008
- -  {H:  [ -4.790107552844E-01, -1.455908038749E-01,  1.744950891927E-01 ]} # 0009
- -  {H:  [ -3.168073712832E-01, -4.601000551374E-01,  4.828296389902E-02 ]} # 0010
- -  {H:  [ -2.861207072260E-01, -3.341947814430E-02, -4.430014112811E-01 ]} # 0011
- -  {H:  [ -4.729387876654E-01,  2.100261548641E-01, -2.682751559848E-01 ]} # 0012
- -  {C:  [  5.662977522702E-01,  1.050883394008E+00, -6.435810091412E-02 ]} # 0013
- -  {C:  [  5.145114894375E-01,  1.882971986565E-01,  1.077634718540E+00 ]} # 0014
- -  {C:  [  5.974431571059E-01, -5.659385207446E-01,  4.613564383158E-01 ]} # 0015
- -  {C:  [  5.932290300421E-01, -8.997301877113E-01, -5.675251463884E-02 ]} # 0016
- -  {C:  [  6.219357444411E-01, -2.401073477396E-01, -8.737804629688E-01 ]} # 0017
- -  {C:  [  6.184325084932E-01,  3.884109632387E-01, -6.160550896258E-01 ]} # 0018
- -  {H:  [ -3.593445320999E-01,  4.459567181017E-01,  4.659761177456E-02 ]} # 0019
- -  {H:  [ -3.555179261388E-01,  1.406714850522E-01,  3.960225016636E-01 ]} # 0020
- -  {H:  [ -3.625856419922E-01, -4.665568385199E-01,  4.538673759393E-01 ]} # 0021
- -  {H:  [ -2.802385056708E-01, -7.968453722942E-01, -1.771599512788E-01 ]} # 0022
- -  {H:  [ -2.709354183556E-01, -3.044948077112E-01, -7.699913665943E-01 ]} # 0023
- -  {H:  [ -3.472542848030E-01,  3.909475795294E-01, -5.884502108963E-01 ]} # 0024
+ -  {C: [-6.211200127251E-03,  5.110175121132E-02,  8.186892793679E-03]} # 0001
+ -  {C: [-6.157751476275E-03,  1.505050932884E-02,  6.063225693885E-02]} # 0002
+ -  {C: [-6.009137729447E-03, -3.394845046913E-02,  4.315940638230E-02]} # 0003
+ -  {C: [-6.150592647498E-03, -5.759809094080E-02, -1.068791915929E-02]} # 0004
+ -  {C: [-5.877596297808E-03, -2.050943278790E-02, -5.189756578991E-02]} # 0005
+ -  {C: [-5.871603624357E-03,  3.777518842205E-02, -5.280740573337E-02]} # 0006
+ -  {H: [ 5.248027681043E-04,  8.560715291288E-02,  1.502345043732E-02]} # 0007
+ -  {H: [ 9.468590532751E-04,  2.791728907439E-02,  7.348194083017E-02]} # 0008
+ -  {H: [ 1.170500955743E-03, -4.984601285028E-02,  6.272976951746E-02]} # 0009
+ -  {H: [ 1.009947056135E-03, -7.702131387033E-02, -1.239404298641E-02]} # 0010
+ -  {H: [ 1.547967252591E-03, -2.845991366290E-02, -7.554308298950E-02]} # 0011
+ -  {H: [ 1.361758932610E-03,  5.070818299284E-02, -5.879907378678E-02]} # 0012
+ -  {C: [ 2.995563374246E-03,  4.706623438225E-02,  3.775075453898E-03]} # 0013
+ -  {C: [ 3.189660824050E-03,  1.239153041722E-02,  4.446327402108E-02]} # 0014
+ -  {C: [ 3.262249154027E-03, -3.259551830035E-02,  3.632195312517E-02]} # 0015
+ -  {C: [ 3.121325343100E-03, -4.611943835963E-02, -1.186575655203E-02]} # 0016
+ -  {C: [ 3.104826050782E-03, -1.908249951761E-02, -4.592728125681E-02]} # 0017
+ -  {C: [ 3.133187135279E-03,  2.837318540769E-02, -3.740263125432E-02]} # 0018
+ -  {H: [ 1.649461546157E-03,  7.226824720635E-02,  1.312661065022E-02]} # 0019
+ -  {H: [ 1.705921628155E-03,  2.575020515352E-02,  6.794242722408E-02]} # 0020
+ -  {H: [ 1.718939104361E-03, -4.322450529569E-02,  5.553391063510E-02]} # 0021
+ -  {H: [ 1.924632538921E-03, -6.771219775385E-02, -1.042187828294E-02]} # 0022
+ -  {H: [ 2.041567185400E-03, -2.409679507498E-02, -6.406741169981E-02]} # 0023
+ -  {H: [ 1.868711999700E-03,  4.620469237409E-02, -5.256291851814E-02]} # 0024
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  56.81
-   Elapsed time (s)                    :  57.05
+   CPU time (s)                        :  25.51
+   Elapsed time (s)                    :  26.34
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -704,10 +668,10 @@
    Ncount_BigDFT                       :  1
    Geometry step                       :  0
    Geometry Method                     : GEOPT_BFGS
-   etot                                : -5.33483993841620E+01
+   etot                                : -7.49729838203450E+01
    de                                  :  0.00E+00
-   Forces                              :  [  1.209E+00,  3.944E+00 ]
-   flt                                 :  [  0.00E+00,  0.00E+00 ]
+   Forces                              :  [  8.692E-02,  3.210E-01 ]
+   flt                                 :  [  8.85E-03,  8.85E-03 ]
    Alpha                               :  8.00E-1
    isatur                              :  0
 ---
@@ -780,97 +744,94 @@
    PSP XC                              : "XC: Teter 93"
   #----------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
- - C: {AU:  [  7.8840,  15.726,  12.414 ], GU:  [  18.772,  37.443,  29.558 ]} # 0001
- - C: {AU:  [  7.8224,  13.291,  15.519 ], GU:  [  18.625,  31.646,  36.949 ]} # 0002
- - C: {AU:  [  7.9835,  10.908,  14.286 ], GU:  [  19.008,  25.972,  34.015 ]} # 0003
- - C: {AU:  [  8.2914,  9.9911,  12.627 ], GU:  [  19.741,  23.788,  30.064 ]} # 0004
- - C: {AU:  [  8.4112,  12.304,  9.8375 ], GU:  [  20.027,  29.296,  23.423 ]} # 0005
- - C: {AU:  [  7.9918,  14.133,  10.535 ], GU:  [  19.028,  33.649,  25.083 ]} # 0006
- - H: {AU:  [  7.3952,  17.106,  13.084 ], GU:  [  17.608,  40.728,  31.152 ]} # 0007
- - H: {AU:  [  7.3602,  14.109,  16.676 ], GU:  [  17.524,  33.593,  39.705 ]} # 0008
- - H: {AU:  [  7.4687,  9.4344,  16.106 ], GU:  [  17.783,  22.463,  38.348 ]} # 0009
- - H: {AU:  [  7.6115,  7.5235,  11.608 ], GU:  [  18.123,  17.913,  27.638 ]} # 0010
- - H: {AU:  [  7.6384,  10.883,  7.5677 ], GU:  [  18.187,  25.912,  18.018 ]} # 0011
- - H: {AU:  [  7.4741,  15.711,  8.5006 ], GU:  [  17.796,  37.408,  20.239 ]} # 0012
- - C: {AU:  [  14.389,  16.049,  12.722 ], GU:  [  34.258,  38.211,  30.291 ]} # 0013
- - C: {AU:  [  14.343,  13.623,  15.743 ], GU:  [  34.151,  32.436,  37.484 ]} # 0014
- - C: {AU:  [  14.416,  10.381,  14.767 ], GU:  [  34.324,  24.716,  35.158 ]} # 0015
- - C: {AU:  [  14.413,  9.1731,  11.860 ], GU:  [  34.316,  21.841,  28.238 ]} # 0016
- - C: {AU:  [  14.438,  11.420,  9.1252 ], GU:  [  34.375,  27.190,  21.727 ]} # 0017
- - C: {AU:  [  14.435,  14.552,  9.7866 ], GU:  [  34.369,  34.648,  23.301 ]} # 0018
- - H: {AU:  [  13.574,  17.553,  13.165 ], GU:  [  32.319,  41.792,  31.345 ]} # 0019
- - H: {AU:  [  13.577,  14.300,  17.080 ], GU:  [  32.327,  34.048,  40.667 ]} # 0020
- - H: {AU:  [  13.571,  9.1519,  16.352 ], GU:  [  32.312,  21.790,  38.933 ]} # 0021
- - H: {AU:  [  13.644,  7.2272,  11.409 ], GU:  [  32.485,  17.208,  27.165 ]} # 0022
- - H: {AU:  [  13.652,  10.645,  7.2800 ], GU:  [  32.504,  25.344,  17.333 ]} # 0023
- - H: {AU:  [  13.585,  15.870,  8.2188 ], GU:  [  32.345,  37.787,  19.569 ]} # 0024
- Rigid Shift Applied (AU)              :  [  7.8902,  12.322,  12.607 ]
+ - C: {AU:  [  7.9156,  14.591,  12.203 ], GU:  [  18.847,  34.740,  29.054 ]} # 0001
+ - C: {AU:  [  7.9161,  12.893,  14.265 ], GU:  [  18.848,  30.697,  33.964 ]} # 0002
+ - C: {AU:  [  7.9159,  10.271,  13.815 ], GU:  [  18.847,  24.454,  32.893 ]} # 0003
+ - C: {AU:  [  7.9161,  9.3360,  11.317 ], GU:  [  18.848,  22.228,  26.945 ]} # 0004
+ - C: {AU:  [  7.9160,  11.035,  9.2648 ], GU:  [  18.848,  26.274,  22.059 ]} # 0005
+ - C: {AU:  [  7.9163,  13.665,  9.6986 ], GU:  [  18.848,  32.536,  23.092 ]} # 0006
+ - H: {AU:  [  7.9216,  16.658,  12.553 ], GU:  [  18.861,  39.661,  29.889 ]} # 0007
+ - H: {AU:  [  7.9220,  13.623,  16.213 ], GU:  [  18.862,  32.435,  38.601 ]} # 0008
+ - H: {AU:  [  7.9222,  8.9404,  15.424 ], GU:  [  18.862,  21.287,  36.724 ]} # 0009
+ - H: {AU:  [  7.9220,  7.2825,  10.971 ], GU:  [  18.862,  17.339,  26.121 ]} # 0010
+ - H: {AU:  [  7.9225,  10.309,  7.3074 ], GU:  [  18.863,  24.546,  17.399 ]} # 0011
+ - H: {AU:  [  7.9224,  14.993,  8.1013 ], GU:  [  18.863,  35.697,  19.289 ]} # 0012
+ - C: {AU:  [  13.924,  14.587,  12.199 ], GU:  [  33.152,  34.732,  29.044 ]} # 0013
+ - C: {AU:  [  13.924,  12.890,  14.251 ], GU:  [  33.153,  30.691,  33.930 ]} # 0014
+ - C: {AU:  [  13.924,  10.272,  13.809 ], GU:  [  33.153,  24.457,  32.878 ]} # 0015
+ - C: {AU:  [  13.924,  9.3461,  11.316 ], GU:  [  33.153,  22.253,  26.943 ]} # 0016
+ - C: {AU:  [  13.924,  11.036,  9.2700 ], GU:  [  33.152,  26.277,  22.072 ]} # 0017
+ - C: {AU:  [  13.924,  13.657,  9.7121 ], GU:  [  33.153,  32.517,  23.124 ]} # 0018
+ - H: {AU:  [  13.923,  16.646,  12.552 ], GU:  [  33.149,  39.633,  29.885 ]} # 0019
+ - H: {AU:  [  13.923,  13.621,  16.208 ], GU:  [  33.149,  32.430,  38.590 ]} # 0020
+ - H: {AU:  [  13.923,  8.9463,  15.418 ], GU:  [  33.149,  21.301,  36.709 ]} # 0021
+ - H: {AU:  [  13.923,  7.2907,  10.973 ], GU:  [  33.150,  17.359,  26.125 ]} # 0022
+ - H: {AU:  [  13.923,  10.313,  7.3175 ], GU:  [  33.150,  24.555,  17.423 ]} # 0023
+ - H: {AU:  [  13.923,  14.989,  8.1068 ], GU:  [  33.150,  35.688,  19.302 ]} # 0024
+ Rigid Shift Applied (AU)              :  [  7.9211,  11.744,  12.023 ]
   #---------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4200,  0.4200,  0.4200 ]
  Sizes of the simulation domain:
-   AU                                  :  [  22.260,  24.780,  24.360 ]
-   Angstroem                           :  [  11.779,  13.113,  12.891 ]
-   Grid Spacing Units                  :  [  53,  59,  58 ]
+   AU                                  :  [  21.840,  23.940,  23.520 ]
+   Angstroem                           :  [  11.557,  12.669,  12.446 ]
+   Grid Spacing Units                  :  [  52,  57,  56 ]
    High resolution region boundaries (GU):
-     From                              :  [  15,  14,  14 ]
-     To                                :  [  38,  45,  44 ]
+     From                              :  [  15,  15,  15 ]
+     To                                :  [  37,  42,  41 ]
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
-   OpenMP threads per MPI task         :  1
+   MPI tasks                           :  6
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  6.09
-     Kernel (MB)                       :  6.05
-     Full Grid Arrays (MB)             :  22.89
+     Density (MB)                      :  3.71
+     Kernel (MB)                       :  3.88
+     Full Grid Arrays (MB)             :  21.36
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  95%
+         MPI tasks 0- 5                : 100%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  97%
+         MPI tasks 0- 4                : 100%
+         MPI task 5                    :  81%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
-     No. of segments                   :  2835
-     No. of points                     :  107581
+     No. of segments                   :  2708
+     No. of points                     :  99591
    Fine resolution grid:
-     No. of segments                   :  826
-     No. of points                     :  4346
+     No. of segments                   :  820
+     No. of points                     :  4335
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  60
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 1                     :  8
-   MPI tasks  2- 3                     :  7
+   MPI tasks  0- 5                     :  5
  Total Number of Orbitals              :  30
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-30:  2.0000}
- Wavefunctions memory occupation for root MPI process:  8 MB 433 KB 192 B
+ Wavefunctions memory occupation for root MPI process:  4 MB 979 KB 640 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  12
-   Total number of components          :  7184
+   Total number of components          :  7087
    Percent of zero components          :  0
   #----------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 30)
-   Single orbital                      : 1.55 #   (Number of Components: 138003)
-   All (distributed) orbitals          : 25.276 # (Number of Orbitals per MPI task: 8)
-   Wavefunction storage size           : 126.355 # (DIIS/SD workspaces included)
-   Nonlocal Pseudopotential Arrays     : 0.57
-   Full Uncompressed (ISF) grid        : 22.916
-   Workspaces storage size             : 2.371
- Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 117.287
-   Density Construction                : 212.251
-   Poisson Solver                      : 205.649
-   Hamiltonian application             : 215.532
- Estimated Memory Peak (MB)            :  215
+   Single orbital                      : 0.1016 # (Number of Components: 129936)
+   All (distributed) orbitals          : 14.891 # (Number of Orbitals per MPI task: 5)
+   Wavefunction storage size           : 74.359 # (DIIS/SD workspaces included)
+   Nonlocal Pseudopotential Arrays     : 0.56
+   Full Uncompressed (ISF) grid        : 21.365
+   Workspaces storage size             : 2.109
+ Accumulated memory requirements during principal run stages (MiB.KiB):
+   Kernel calculation                  : 74.331
+   Density Construction                : 146.344
+   Poisson Solver                      : 122.830
+   Hamiltonian application             : 148.1023
+ Estimated Memory Peak (MB)            :  148
   #WARNING: Do not call check_communications in the linear scaling version!
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -882,104 +843,84 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
- Ion-Ion interaction energy            :  3.01997082214650E+02
+ Ion-Ion interaction energy            :  3.27387906939910E+02
   #------------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -59.999999824655
+ Total ionic charge                    : -59.999999806095
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  137,  149,  147 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  145,  143 ]
+   MPI tasks                           :  6
   #------------------------------------------------------------------ Support functions Restart
  Input Hamiltonian:
    Poisson Solver:
      BC                                : Free
-     Box                               :  [  137,  149,  147 ]
-     MPI tasks                         :  4
+     Box                               :  [  135,  145,  143 ]
+     MPI tasks                         :  6
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  39772,  1207 ]
- 
-   Tolerances for this check           :  [  4.96620006630588140E-06,  1.33226762955018785E-14 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  29745,  871 ]
+
+   Tolerances for this check           :  [  5.08666006791419506E-06,  1.33226762955018785E-14 ]
    Maxdiff for transpose (checksum)    :  1.39698386192321777E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  33007,  1101 ]
- 
-   Tolerances for this check           :  [  9.59946679483329215E-06,  1.33226762955018785E-14 ]
-   Maxdiff for transpose (checksum)    :  2.79396772384643555E-09
+   Number of coarse and fine DoF (MasterMPI task):  [  21810,  730 ]
+
+   Tolerances for this check           :  [  9.32850012454883304E-06,  1.33226762955018785E-14 ]
+   Maxdiff for transpose (checksum)    :  2.32830643653869629E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  137,  149,  147 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  145,  143 ]
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  137,  149,  147 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  145,  143 ]
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  137,  149,  147 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  137,  149,  147 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  137,  149,  147 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  137,  149,  147 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  137,  149,  147 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  137,  149,  147 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  145,  143 ]
+   MPI tasks                           :  6
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  137,  149,  147 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  145,  143 ]
+   MPI tasks                           :  6
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x:  2.65893107E+00, y: -3.31208874E-02, z: -1.86652656E-01, 
-                    total:  2.66568015E+00}
- Clean forces norm (Ha/Bohr): {maxval:  2.430669718890E+00, fnrm2:  2.927063821892E+01}
- Raw forces norm (Ha/Bohr): {maxval:  2.752019901243E+00, fnrm2:  3.657146551970E+01}
+ Average noise forces: {x: -1.05750242E-02, y: -2.60537164E+00, z: -2.66683924E+00, 
+                    total:  3.72828442E+00}
+ Clean forces norm (Ha/Bohr): {maxval:  7.779198924930E-01, fnrm2:  1.116527045808E+01}
+ Raw forces norm (Ha/Bohr): {maxval:  1.521978518993E+00, fnrm2:  2.506541566161E+01}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  8.541150907876E-01, -1.521279226268E-01, -1.164989323756E-01 ]} # 0001
- -  {C:  [  8.684701987779E-01, -4.312535404088E-01, -6.781668200101E-01 ]} # 0002
- -  {C:  [  6.468038347283E-01,  3.238892109985E-01,  2.059418248203E+00 ]} # 0003
- -  {C:  [  1.454420718077E+00, -1.257572040256E+00, -1.487053536603E+00 ]} # 0004
- -  {C:  [  1.283922992074E+00, -1.190547043321E+00, -7.444019597213E-01 ]} # 0005
- -  {C:  [  5.095479839003E-01,  1.821145477049E+00, -2.568021529583E-01 ]} # 0006
- -  {H:  [ -5.228953779693E-01,  6.724730056529E-01,  3.737486408797E-01 ]} # 0007
- -  {H:  [ -6.926501626022E-01,  6.298070061159E-01,  8.901697221005E-01 ]} # 0008
- -  {H:  [ -3.118931788946E-01, -1.490384967125E-01,  2.752259982801E-01 ]} # 0009
- -  {H:  [ -1.256118848989E-01, -2.331264750979E-01, -5.098235910857E-02 ]} # 0010
- -  {H:  [ -1.289226192919E-01, -1.231514717545E-01, -1.537861944878E-01 ]} # 0011
- -  {H:  [ -2.725572767030E-01,  2.054571344009E-01, -1.912988306428E-01 ]} # 0012
- -  {C:  [  2.660122159678E-01, -2.108038529986E-01,  8.185523797302E-02 ]} # 0013
- -  {C:  [  3.648637532525E-01, -2.012081205651E-02, -2.682267878221E-01 ]} # 0014
- -  {C:  [ -1.946822687785E-01, -7.469609606932E-02, -1.712910350811E-01 ]} # 0015
- -  {C:  [ -2.437398276461E-01, -2.912229440470E-01, -3.838058608516E-01 ]} # 0016
- -  {C:  [ -2.340244531108E-01, -3.870682890371E-01, -2.436285812708E-01 ]} # 0017
- -  {C:  [ -2.657699517462E-01, -2.241708401493E-01, -1.643559690581E-01 ]} # 0018
- -  {H:  [ -7.259646146393E-01,  9.528349929231E-01,  3.714048139564E-01 ]} # 0019
- -  {H:  [ -7.584299350458E-01,  5.601886274542E-01,  1.007883367166E+00 ]} # 0020
- -  {H:  [ -5.083811787695E-01, -2.500020176989E-01,  4.975638835077E-01 ]} # 0021
- -  {H:  [ -3.902125198652E-01, -3.823513905448E-01, -4.809169431337E-02 ]} # 0022
- -  {H:  [ -3.843144325786E-01, -1.396687852815E-01, -3.097195324955E-01 ]} # 0023
- -  {H:  [ -4.881071050257E-01,  3.511265634664E-01, -2.891596652665E-01 ]} # 0024
+ -  {C: [ 7.114822509537E-03, -5.142672041660E-01, -5.597277799317E-01]} # 0001
+ -  {C: [ 7.867852633604E-03, -5.117627686162E-01, -4.612317709011E-01]} # 0002
+ -  {C: [ 6.567062250396E-03, -3.512364010034E-01, -6.583159089400E-01]} # 0003
+ -  {C: [ 7.581130905233E-03, -4.306220703553E-01, -4.321635525298E-01]} # 0004
+ -  {C: [ 7.005314354053E-03, -4.292559347892E-01, -4.662647292774E-01]} # 0005
+ -  {C: [ 5.463480947804E-03, -5.963831430062E-01, -3.284392259747E-01]} # 0006
+ -  {H: [ 3.616289353890E-03,  5.989872238675E-01,  4.614550213010E-01]} # 0007
+ -  {H: [ 4.789048706977E-03,  4.850413132208E-01,  6.081704930510E-01]} # 0008
+ -  {H: [ 4.326936401838E-03,  3.790263496439E-01,  5.090847301751E-01]} # 0009
+ -  {H: [ 3.073707545292E-03,  4.449073593932E-01,  4.589812906358E-01]} # 0010
+ -  {H: [ 2.655387374643E-03,  4.492611479285E-01,  4.586091934802E-01]} # 0011
+ -  {H: [ 2.813344603957E-03,  4.764428557167E-01,  4.040186468569E-01]} # 0012
+ -  {C: [-1.108771736025E-02, -4.866427399720E-01, -5.488330254775E-01]} # 0013
+ -  {C: [-1.115961860389E-02, -5.107100756251E-01, -4.467360381527E-01]} # 0014
+ -  {C: [-1.103082155593E-02, -3.660036244881E-01, -6.259701173144E-01]} # 0015
+ -  {C: [-1.302360820396E-02, -4.505699261800E-01, -4.255487964450E-01]} # 0016
+ -  {C: [-1.369732855711E-02, -4.331666675087E-01, -4.904564894384E-01]} # 0017
+ -  {C: [-1.192338434476E-02, -5.699545903273E-01, -3.405728386497E-01]} # 0018
+ -  {H: [ 2.233160010363E-03,  5.827385054269E-01,  4.582814663088E-01]} # 0019
+ -  {H: [ 2.934671366791E-03,  4.796481367566E-01,  5.950713545007E-01]} # 0020
+ -  {H: [ 2.359701299745E-03,  3.847935941506E-01,  4.995204046231E-01]} # 0021
+ -  {H: [ 7.569430871368E-04,  4.492629971935E-01,  4.583850855080E-01]} # 0022
+ -  {H: [-7.311960239608E-05,  4.508038046758E-01,  4.636996781232E-01]} # 0023
+ -  {H: [ 8.367448770230E-04,  4.696618580635E-01,  4.089829084685E-01]} # 0024
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  63.32
-   Elapsed time (s)                    :  63.57
+   CPU time (s)                        :  37.98
+   Elapsed time (s)                    :  39.43
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -988,10 +929,10 @@
    Ncount_BigDFT                       :  2
    Geometry step                       :  1
    Geometry Method                     : GEOPT_BFGS
-   etot                                : -4.68332813785611E+01
-   de                                  :  6.52E+00
-   Forces                              :  [  2.431E+00,  5.410E+00 ]
-   flt                                 :  [  0.00E+00,  0.00E+00 ]
+   etot                                : -7.40694155200479E+01
+   de                                  :  9.04E-01
+   Forces                              :  [  7.779E-01,  3.341E+00 ]
+   flt                                 :  [  8.85E-03,  8.85E-03 ]
    Alpha                               :  8.80E-1
    isatur                              :  0
 ---
@@ -1064,96 +1005,94 @@
    PSP XC                              : "XC: Teter 93"
   #----------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
- - C: {AU:  [  7.8695,  14.704,  12.153 ], GU:  [  18.737,  35.010,  28.937 ]} # 0001
- - C: {AU:  [  7.8572,  12.881,  14.392 ], GU:  [  18.708,  30.669,  34.267 ]} # 0002
- - C: {AU:  [  7.8899,  10.342,  13.794 ], GU:  [  18.785,  24.624,  32.844 ]} # 0003
- - C: {AU:  [  7.9531,  9.4274,  11.506 ], GU:  [  18.936,  22.446,  27.395 ]} # 0004
- - C: {AU:  [  7.9774,  11.226,  9.3316 ], GU:  [  18.994,  26.729,  22.218 ]} # 0005
- - C: {AU:  [  7.8918,  13.652,  9.8199 ], GU:  [  18.790,  32.504,  23.381 ]} # 0006
- - H: {AU:  [  7.7695,  16.606,  12.565 ], GU:  [  18.499,  39.539,  29.916 ]} # 0007
- - H: {AU:  [  7.7624,  13.620,  16.169 ], GU:  [  18.482,  32.428,  38.498 ]} # 0008
- - H: {AU:  [  7.7845,  8.9935,  15.433 ], GU:  [  18.535,  21.413,  36.745 ]} # 0009
- - H: {AU:  [  7.8138,  7.3028,  11.023 ], GU:  [  18.604,  17.388,  26.246 ]} # 0010
- - H: {AU:  [  7.8193,  10.364,  7.3269 ], GU:  [  18.617,  24.676,  17.445 ]} # 0011
- - H: {AU:  [  7.7857,  15.021,  8.1375 ], GU:  [  18.537,  35.765,  19.375 ]} # 0012
- - C: {AU:  [  13.973,  14.770,  12.217 ], GU:  [  33.268,  35.167,  29.087 ]} # 0013
- - C: {AU:  [  13.964,  12.949,  14.438 ], GU:  [  33.247,  30.830,  34.377 ]} # 0014
- - C: {AU:  [  13.978,  10.234,  13.893 ], GU:  [  33.282,  24.367,  33.078 ]} # 0015
- - C: {AU:  [  13.978,  9.2601,  11.349 ], GU:  [  33.281,  22.048,  27.021 ]} # 0016
- - C: {AU:  [  13.983,  11.045,  9.1859 ], GU:  [  33.292,  26.298,  21.871 ]} # 0017
- - C: {AU:  [  13.982,  13.737,  9.6669 ], GU:  [  33.292,  32.708,  23.016 ]} # 0018
- - H: {AU:  [  13.806,  16.698,  12.581 ], GU:  [  32.872,  39.757,  29.955 ]} # 0019
- - H: {AU:  [  13.807,  13.659,  16.252 ], GU:  [  32.873,  32.521,  38.695 ]} # 0020
- - H: {AU:  [  13.806,  8.9357,  15.483 ], GU:  [  32.870,  21.275,  36.865 ]} # 0021
- - H: {AU:  [  13.820,  7.2422,  10.983 ], GU:  [  32.906,  17.243,  26.149 ]} # 0022
- - H: {AU:  [  13.822,  10.315,  7.2681 ], GU:  [  32.910,  24.559,  17.305 ]} # 0023
- - H: {AU:  [  13.808,  15.054,  8.0798 ], GU:  [  32.877,  35.843,  19.238 ]} # 0024
- Rigid Shift Applied (AU)              :  [  7.8707,  11.779,  12.056 ]
+ - C: {AU:  [  7.9189,  14.348,  11.986 ], GU:  [  18.855,  34.162,  28.538 ]} # 0001
+ - C: {AU:  [  7.9194,  12.675,  14.012 ], GU:  [  18.856,  30.179,  33.361 ]} # 0002
+ - C: {AU:  [  7.9190,  10.087,  13.574 ], GU:  [  18.855,  24.018,  32.319 ]} # 0003
+ - C: {AU:  [  7.9193,  9.1693,  11.114 ], GU:  [  18.856,  21.832,  26.461 ]} # 0004
+ - C: {AU:  [  7.9191,  10.842,  9.0904 ], GU:  [  18.855,  25.815,  21.644 ]} # 0005
+ - C: {AU:  [  7.9194,  13.432,  9.5248 ], GU:  [  18.856,  31.981,  22.678 ]} # 0006
+ - H: {AU:  [  7.9201,  16.391,  12.332 ], GU:  [  18.857,  39.025,  29.362 ]} # 0007
+ - H: {AU:  [  7.9203,  13.396,  15.950 ], GU:  [  18.858,  31.896,  37.977 ]} # 0008
+ - H: {AU:  [  7.9203,  8.7683,  15.169 ], GU:  [  18.858,  20.877,  36.118 ]} # 0009
+ - H: {AU:  [  7.9203,  7.1294,  10.769 ], GU:  [  18.858,  16.975,  25.640 ]} # 0010
+ - H: {AU:  [  7.9203,  10.122,  7.1496 ], GU:  [  18.858,  24.101,  17.023 ]} # 0011
+ - H: {AU:  [  7.9204,  14.750,  7.9317 ], GU:  [  18.858,  35.120,  18.885 ]} # 0012
+ - C: {AU:  [  13.921,  14.347,  11.985 ], GU:  [  33.144,  34.160,  28.536 ]} # 0013
+ - C: {AU:  [  13.921,  12.675,  14.009 ], GU:  [  33.145,  30.178,  33.354 ]} # 0014
+ - C: {AU:  [  13.921,  10.088,  13.573 ], GU:  [  33.145,  24.018,  32.316 ]} # 0015
+ - C: {AU:  [  13.921,  9.1713,  11.114 ], GU:  [  33.145,  21.837,  26.461 ]} # 0016
+ - C: {AU:  [  13.921,  10.843,  9.0915 ], GU:  [  33.144,  25.815,  21.646 ]} # 0017
+ - C: {AU:  [  13.921,  13.430,  9.5276 ], GU:  [  33.145,  31.977,  22.685 ]} # 0018
+ - H: {AU:  [  13.920,  16.388,  12.332 ], GU:  [  33.144,  39.020,  29.361 ]} # 0019
+ - H: {AU:  [  13.920,  13.396,  15.949 ], GU:  [  33.144,  31.895,  37.975 ]} # 0020
+ - H: {AU:  [  13.920,  8.7695,  15.168 ], GU:  [  33.144,  20.880,  36.114 ]} # 0021
+ - H: {AU:  [  13.920,  7.1311,  10.769 ], GU:  [  33.144,  16.979,  25.641 ]} # 0022
+ - H: {AU:  [  13.920,  10.123,  7.1517 ], GU:  [  33.144,  24.103,  17.028 ]} # 0023
+ - H: {AU:  [  13.920,  14.749,  7.9328 ], GU:  [  33.144,  35.118,  18.888 ]} # 0024
+ Rigid Shift Applied (AU)              :  [  7.9200,  11.537,  11.813 ]
   #---------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4200,  0.4200,  0.4200 ]
  Sizes of the simulation domain:
-   AU                                  :  [  21.840,  23.940,  23.520 ]
-   Angstroem                           :  [  11.557,  12.669,  12.446 ]
-   Grid Spacing Units                  :  [  52,  57,  56 ]
+   AU                                  :  [  21.840,  23.520,  23.100 ]
+   Angstroem                           :  [  11.557,  12.446,  12.224 ]
+   Grid Spacing Units                  :  [  52,  56,  55 ]
    High resolution region boundaries (GU):
      From                              :  [  15,  14,  14 ]
-     To                                :  [  37,  43,  42 ]
+     To                                :  [  37,  42,  41 ]
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
-   OpenMP threads per MPI task         :  1
+   MPI tasks                           :  6
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  5.56
-     Kernel (MB)                       :  5.68
-     Full Grid Arrays (MB)             :  21.36
+     Density (MB)                      :  3.56
+     Kernel (MB)                       :  3.74
+     Full Grid Arrays (MB)             :  20.77
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 3                : 100%
+         MPI tasks 0- 5                : 100%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  97%
+         MPI tasks 0- 4                : 100%
+         MPI task 5                    :  80%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
-     No. of segments                   :  2684
-     No. of points                     :  100200
+     No. of segments                   :  2712
+     No. of points                     :  98896
    Fine resolution grid:
-     No. of segments                   :  821
-     No. of points                     :  4323
+     No. of segments                   :  843
+     No. of points                     :  4309
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  60
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 1                     :  8
-   MPI tasks  2- 3                     :  7
+   MPI tasks  0- 5                     :  5
  Total Number of Orbitals              :  30
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-30:  2.0000}
- Wavefunctions memory occupation for root MPI process:  7 MB 985 KB 832 B
+ Wavefunctions memory occupation for root MPI process:  4 MB 945 KB 416 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  12
-   Total number of components          :  7149
+   Total number of components          :  7094
    Percent of zero components          :  0
   #----------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 30)
-   Single orbital                      : 0.1020 # (Number of Components: 130461)
-   All (distributed) orbitals          : 23.910 # (Number of Orbitals per MPI task: 8)
-   Wavefunction storage size           : 119.454 # (DIIS/SD workspaces included)
+   Single orbital                      : 0.1009 # (Number of Components: 129059)
+   All (distributed) orbitals          : 14.789 # (Number of Orbitals per MPI task: 5)
+   Wavefunction storage size           : 73.870 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.56
-   Full Uncompressed (ISF) grid        : 21.365
-   Workspaces storage size             : 2.152
- Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 108.642
-   Density Construction                : 198.960
-   Poisson Solver                      : 191.980
-   Hamiltonian application             : 201.820
- Estimated Memory Peak (MB)            :  201
+   Full Uncompressed (ISF) grid        : 20.786
+   Workspaces storage size             : 2.70
+ Accumulated memory requirements during principal run stages (MiB.KiB):
+   Kernel calculation                  : 71.476
+   Density Construction                : 143.718
+   Poisson Solver                      : 120.389
+   Hamiltonian application             : 146.427
+ Estimated Memory Peak (MB)            :  146
   #WARNING: Do not call check_communications in the linear scaling version!
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -1165,104 +1104,84 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
- Ion-Ion interaction energy            :  3.24397057615972E+02
+ Ion-Ion interaction energy            :  3.30528134798576E+02
   #------------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -60.000000063183
+ Total ionic charge                    : -60.000000203147
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  135,  145,  143 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  143,  141 ]
+   MPI tasks                           :  6
   #------------------------------------------------------------------ Support functions Restart
  Input Hamiltonian:
    Poisson Solver:
      BC                                : Free
-     Box                               :  [  135,  145,  143 ]
-     MPI tasks                         :  4
+     Box                               :  [  135,  143,  141 ]
+     MPI tasks                         :  6
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  35247,  1188 ]
- 
-   Tolerances for this check           :  [  5.16444006895266910E-06,  1.33226762955018785E-14 ]
-   Maxdiff for transpose (checksum)    :  1.39698386192321777E-09
+   Number of coarse and fine DoF (MasterMPI task):  [  28912,  855 ]
+
+   Tolerances for this check           :  [  5.09594006803809601E-06,  1.33226762955018785E-14 ]
+   Maxdiff for transpose (checksum)    :  1.86264514923095703E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  29765,  1086 ]
- 
-   Tolerances for this check           :  [  9.46669345972724515E-06,  1.33226762955018785E-14 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  21729,  726 ]
+
+   Tolerances for this check           :  [  9.30926012429195081E-06,  1.33226762955018785E-14 ]
    Maxdiff for transpose (checksum)    :  2.79396772384643555E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  135,  145,  143 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  143,  141 ]
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  135,  145,  143 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  143,  141 ]
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  135,  145,  143 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  145,  143 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  145,  143 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  145,  143 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  145,  143 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  145,  143 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  143,  141 ]
+   MPI tasks                           :  6
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  135,  145,  143 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  143,  141 ]
+   MPI tasks                           :  6
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x:  1.67831149E+00, y:  6.36458575E-01, z:  5.56881460E-01, 
-                    total:  1.87934189E+00}
- Clean forces norm (Ha/Bohr): {maxval:  1.496621769969E+00, fnrm2:  1.479463780922E+01}
- Raw forces norm (Ha/Bohr): {maxval:  1.750497826653E+00, fnrm2:  1.832878037522E+01}
+ Average noise forces: {x: -7.00219524E-03, y:  4.42703616E-01, z:  4.42192828E-01, 
+                    total:  6.25755559E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  1.794917103164E-01, fnrm2:  3.532455157474E-01}
+ Raw forces norm (Ha/Bohr): {maxval:  2.682323233566E-01, fnrm2:  7.449698431964E-01}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -4.074213600835E-01,  7.971674644680E-01, -1.048563789340E+00 ]} # 0001
- -  {C:  [ -6.209936931598E-01, -8.036520447074E-01,  7.840200221658E-01 ]} # 0002
- -  {C:  [ -1.911240134019E-02, -1.682507973885E-01,  1.993990986596E-01 ]} # 0003
- -  {C:  [  3.499289220265E-01, -2.854602920758E-01,  1.420591264120E+00 ]} # 0004
- -  {C:  [  5.853020738139E-01,  1.318369502604E+00, -3.989988212222E-01 ]} # 0005
- -  {C:  [ -7.695322765358E-02,  2.914361000898E-01,  1.832717626724E-01 ]} # 0006
- -  {H:  [ -4.201728516367E-01,  1.395405925530E-01, -3.780417535810E-02 ]} # 0007
- -  {H:  [ -4.518212559196E-01,  1.963152287860E-02,  2.188586267492E-01 ]} # 0008
- -  {H:  [ -2.536955037923E-01, -9.187681019380E-02,  2.372181088291E-01 ]} # 0009
- -  {H:  [ -1.539739648612E-01, -4.261923998655E-01,  1.075706584644E-01 ]} # 0010
- -  {H:  [ -1.436658135768E-01, -7.262010151293E-03, -3.563491186185E-01 ]} # 0011
- -  {H:  [ -2.586055255286E-01,  3.265110837487E-01, -2.280962711026E-01 ]} # 0012
- -  {C:  [  2.672043056252E-01,  4.582655754593E-01, -4.567129129065E-01 ]} # 0013
- -  {C:  [  1.795912381613E-01, -2.538085552486E-01,  5.157252098480E-01 ]} # 0014
- -  {C:  [  6.089560151254E-01, -4.886819983666E-01,  8.983027481817E-02 ]} # 0015
- -  {C:  [  6.392592992932E-01, -5.752036785337E-01,  4.427164791457E-02 ]} # 0016
- -  {C:  [  7.058385436073E-01, -5.211297097044E-02, -5.575013666793E-01 ]} # 0017
- -  {C:  [  6.544371428483E-01,  8.401206713647E-02, -4.774454505879E-01 ]} # 0018
- -  {H:  [ -2.258425273670E-01,  4.460411122919E-01,  3.238557026531E-02 ]} # 0019
- -  {H:  [ -2.263718737843E-01,  1.273071101973E-01,  4.285605881575E-01 ]} # 0020
- -  {H:  [ -1.804099025909E-01, -3.723569769117E-01,  3.427509594403E-01 ]} # 0021
- -  {H:  [ -1.736593046968E-01, -5.366262090470E-01, -1.090142542849E-01 ]} # 0022
- -  {H:  [ -1.833545696769E-01, -2.030802144187E-01, -4.945101400438E-01 ]} # 0023
- -  {H:  [ -1.944637648330E-01,  2.562828264520E-01, -4.394574919601E-01 ]} # 0024
+ -  {C: [-1.511655078491E-03,  7.905100269847E-02,  9.192542841906E-02]} # 0001
+ -  {C: [-1.028898323986E-03,  9.324492520507E-02,  8.876768737451E-02]} # 0002
+ -  {C: [-1.982587318860E-03,  5.969239373952E-02,  1.101527087641E-01]} # 0003
+ -  {C: [-3.471569859210E-03,  6.887510695222E-02,  5.422346087666E-02]} # 0004
+ -  {C: [-3.619378447646E-03,  5.920018030340E-02,  7.834154564415E-02]} # 0005
+ -  {C: [-2.360914920286E-03,  1.004174517166E-01,  3.728730881827E-02]} # 0006
+ -  {H: [ 4.746709935139E-03, -1.984499723077E-02, -6.985136942511E-02]} # 0007
+ -  {H: [ 5.588105695119E-03, -6.060622308276E-02, -2.681838787028E-02]} # 0008
+ -  {H: [ 3.138623887888E-03, -1.076435161175E-01, -3.616190182690E-02]} # 0009
+ -  {H: [-3.695777660042E-04, -1.465371936109E-01, -8.141386398507E-02]} # 0010
+ -  {H: [-3.688583072953E-04, -9.880411092799E-02, -1.498495434747E-01]} # 0011
+ -  {H: [ 2.287741119731E-03, -4.029995556668E-02, -1.113755320579E-01]} # 0012
+ -  {C: [ 1.677678769908E-04,  9.390636305638E-02,  1.022165433052E-01]} # 0013
+ -  {C: [ 5.864905572244E-04,  9.746855080153E-02,  8.340996787635E-02]} # 0014
+ -  {C: [-1.344558042936E-03,  6.375054461069E-02,  1.143061184091E-01]} # 0015
+ -  {C: [-3.994533444372E-03,  7.915274870130E-02,  5.801609835711E-02]} # 0016
+ -  {C: [-4.351788694520E-03,  6.427045616928E-02,  8.517050030969E-02]} # 0017
+ -  {C: [-2.292410606305E-03,  1.005957431433E-01,  5.564814116168E-02]} # 0018
+ -  {H: [ 3.972363538061E-03, -3.706606189546E-02, -7.219144999319E-02]} # 0019
+ -  {H: [ 4.535161574937E-03, -6.539095354198E-02, -3.774992522970E-02]} # 0020
+ -  {H: [ 2.077555298119E-03, -1.016408034447E-01, -4.531498863413E-02]} # 0021
+ -  {H: [-6.057980164176E-04, -1.397005763012E-01, -8.144239345705E-02]} # 0022
+ -  {H: [-1.039444494946E-03, -9.590916512802E-02, -1.403770632922E-01]} # 0023
+ -  {H: [ 1.241453838068E-03, -4.618191024989E-02, -1.069190900697E-01]} # 0024
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  62.93
-   Elapsed time (s)                    :  63.19
+   CPU time (s)                        :  37.78
+   Elapsed time (s)                    :  37.97
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1271,10 +1190,10 @@
    Ncount_BigDFT                       :  3
    Geometry step                       :  2
    Geometry Method                     : GEOPT_BFGS
-   etot                                : -5.42664339990286E+01
-   de                                  : -9.18E-01
-   Forces                              :  [  1.497E+00,  3.846E+00 ]
-   flt                                 :  [  0.00E+00,  0.00E+00 ]
+   etot                                : -7.50903930824595E+01
+   de                                  : -1.17E-01
+   Forces                              :  [  1.795E-01,  5.943E-01 ]
+   flt                                 :  [  1.32E-01,  1.32E-01 ]
    Alpha                               :  9.00E-1
    isatur                              :  0
 ---
@@ -1347,96 +1266,94 @@
    PSP XC                              : "XC: Teter 93"
   #----------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
- - C: {AU:  [  8.2627,  17.983,  11.929 ], GU:  [  19.673,  42.817,  28.403 ]} # 0001
- - C: {AU:  [  7.9117,  13.216,  17.816 ], GU:  [  18.837,  31.468,  42.419 ]} # 0002
- - C: {AU:  [  8.8810,  11.700,  15.453 ], GU:  [  21.145,  27.857,  36.793 ]} # 0003
- - C: {AU:  [  9.7967,  10.641,  15.684 ], GU:  [  23.325,  25.335,  37.342 ]} # 0004
- - C: {AU:  [  10.263,  15.224,  10.297 ], GU:  [  24.437,  36.248,  24.517 ]} # 0005
- - C: {AU:  [  8.8242,  15.417,  11.834 ], GU:  [  21.010,  36.708,  28.175 ]} # 0006
- - H: {AU:  [  7.4953,  18.221,  13.985 ], GU:  [  17.846,  43.384,  33.299 ]} # 0007
- - H: {AU:  [  7.4035,  15.074,  17.877 ], GU:  [  17.627,  35.891,  42.563 ]} # 0008
- - H: {AU:  [  7.8078,  10.233,  17.441 ], GU:  [  18.590,  24.364,  41.526 ]} # 0009
- - H: {AU:  [  8.1470,  7.7722,  12.728 ], GU:  [  19.398,  18.505,  30.304 ]} # 0010
- - H: {AU:  [  8.2008,  11.836,  7.8989 ], GU:  [  19.526,  28.181,  18.807 ]} # 0011
- - H: {AU:  [  7.8103,  17.179,  9.0682 ], GU:  [  18.596,  40.903,  21.591 ]} # 0012
- - C: {AU:  [  15.847,  18.073,  13.113 ], GU:  [  37.732,  43.032,  31.221 ]} # 0013
- - C: {AU:  [  15.673,  14.386,  17.840 ], GU:  [  37.316,  34.252,  42.477 ]} # 0014
- - C: {AU:  [  16.299,  10.504,  16.061 ], GU:  [  38.807,  25.010,  38.240 ]} # 0015
- - C: {AU:  [  16.330,  9.0348,  12.854 ], GU:  [  38.881,  21.511,  30.606 ]} # 0016
- - C: {AU:  [  16.448,  12.221,  9.0111 ], GU:  [  39.163,  29.098,  21.455 ]} # 0017
- - C: {AU:  [  16.382,  15.814,  9.8906 ], GU:  [  39.005,  37.653,  23.549 ]} # 0018
- - H: {AU:  [  14.003,  19.276,  14.194 ], GU:  [  33.341,  45.895,  33.795 ]} # 0019
- - H: {AU:  [  14.008,  15.497,  18.749 ], GU:  [  33.352,  36.897,  44.641 ]} # 0020
- - H: {AU:  [  14.053,  9.4620,  17.946 ], GU:  [  33.460,  22.529,  42.728 ]} # 0021
- - H: {AU:  [  14.173,  7.1839,  12.163 ], GU:  [  33.745,  17.105,  28.960 ]} # 0022
- - H: {AU:  [  14.174,  11.234,  7.2906 ], GU:  [  33.747,  26.749,  17.359 ]} # 0023
- - H: {AU:  [  14.057,  17.340,  8.3815 ], GU:  [  33.470,  41.286,  19.956 ]} # 0024
- Rigid Shift Applied (AU)              :  [  8.7604,  13.299,  13.575 ]
+ - C: {AU:  [  7.9083,  14.782,  12.352 ], GU:  [  18.829,  35.196,  29.409 ]} # 0001
+ - C: {AU:  [  7.9093,  13.042,  14.490 ], GU:  [  18.832,  31.051,  34.499 ]} # 0002
+ - C: {AU:  [  7.9085,  10.322,  14.030 ], GU:  [  18.830,  24.575,  33.404 ]} # 0003
+ - C: {AU:  [  7.9074,  9.3587,  11.410 ], GU:  [  18.827,  22.283,  27.167 ]} # 0004
+ - C: {AU:  [  7.9076,  11.105,  9.3148 ], GU:  [  18.828,  26.441,  22.178 ]} # 0005
+ - C: {AU:  [  7.9089,  13.853,  9.7164 ], GU:  [  18.831,  32.984,  23.134 ]} # 0006
+ - H: {AU:  [  7.9290,  16.826,  12.591 ], GU:  [  18.879,  40.062,  29.979 ]} # 0007
+ - H: {AU:  [  7.9307,  13.675,  16.369 ], GU:  [  18.883,  32.559,  38.975 ]} # 0008
+ - H: {AU:  [  7.9293,  8.8417,  15.558 ], GU:  [  18.879,  21.052,  37.043 ]} # 0009
+ - H: {AU:  [  7.9263,  7.1141,  10.959 ], GU:  [  18.872,  16.938,  26.093 ]} # 0010
+ - H: {AU:  [  7.9276,  10.249,  7.1506 ], GU:  [  18.875,  24.402,  17.025 ]} # 0011
+ - H: {AU:  [  7.9292,  15.094,  7.9982 ], GU:  [  18.879,  35.938,  19.043 ]} # 0012
+ - C: {AU:  [  13.931,  14.784,  12.349 ], GU:  [  33.170,  35.200,  29.403 ]} # 0013
+ - C: {AU:  [  13.933,  13.038,  14.447 ], GU:  [  33.173,  31.044,  34.398 ]} # 0014
+ - C: {AU:  [  13.931,  10.328,  14.017 ], GU:  [  33.169,  24.590,  33.373 ]} # 0015
+ - C: {AU:  [  13.929,  9.3935,  11.410 ], GU:  [  33.164,  22.366,  27.167 ]} # 0016
+ - C: {AU:  [  13.928,  11.113,  9.3341 ], GU:  [  33.163,  26.458,  22.224 ]} # 0017
+ - C: {AU:  [  13.930,  13.831,  9.7666 ], GU:  [  33.167,  32.931,  23.254 ]} # 0018
+ - H: {AU:  [  13.931,  16.781,  12.585 ], GU:  [  33.169,  39.956,  29.964 ]} # 0019
+ - H: {AU:  [  13.932,  13.666,  16.348 ], GU:  [  33.171,  32.538,  38.924 ]} # 0020
+ - H: {AU:  [  13.930,  8.8619,  15.534 ], GU:  [  33.166,  21.100,  36.986 ]} # 0021
+ - H: {AU:  [  13.928,  7.1413,  10.964 ], GU:  [  33.163,  17.003,  26.104 ]} # 0022
+ - H: {AU:  [  13.928,  10.262,  7.1848 ], GU:  [  33.162,  24.432,  17.107 ]} # 0023
+ - H: {AU:  [  13.930,  15.079,  8.0163 ], GU:  [  33.166,  35.902,  19.086 ]} # 0024
+ Rigid Shift Applied (AU)              :  [  7.9242,  11.800,  12.091 ]
   #---------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4200,  0.4200,  0.4200 ]
  Sizes of the simulation domain:
-   AU                                  :  [  24.360,  26.460,  26.040 ]
-   Angstroem                           :  [  12.891,  14.002,  13.780 ]
-   Grid Spacing Units                  :  [  58,  63,  62 ]
+   AU                                  :  [  21.840,  23.940,  23.520 ]
+   Angstroem                           :  [  11.557,  12.669,  12.446 ]
+   Grid Spacing Units                  :  [  52,  57,  56 ]
    High resolution region boundaries (GU):
-     From                              :  [  15,  14,  15 ]
-     To                                :  [  43,  49,  47 ]
+     From                              :  [  15,  14,  14 ]
+     To                                :  [  37,  43,  42 ]
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
-   OpenMP threads per MPI task         :  1
+   MPI tasks                           :  6
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  7.32
-     Kernel (MB)                       :  7.56
-     Full Grid Arrays (MB)             :  27.29
+     Density (MB)                      :  3.71
+     Kernel (MB)                       :  3.88
+     Full Grid Arrays (MB)             :  21.36
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 3                : 100%
+         MPI tasks 0- 5                : 100%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  93%
+         MPI tasks 0- 4                : 100%
+         MPI task 5                    :  81%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
-     No. of segments                   :  3173
-     No. of points                     :  128898
+     No. of segments                   :  2787
+     No. of points                     :  102288
    Fine resolution grid:
-     No. of segments                   :  857
-     No. of points                     :  4540
+     No. of segments                   :  872
+     No. of points                     :  4440
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  60
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 1                     :  8
-   MPI tasks  2- 3                     :  7
+   MPI tasks  0- 5                     :  5
  Total Number of Orbitals              :  30
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-30:  2.0000}
- Wavefunctions memory occupation for root MPI process:  9 MB 826 KB 384 B
+ Wavefunctions memory occupation for root MPI process:  5 MB 89 KB 704 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  12
-   Total number of components          :  7151
+   Total number of components          :  7128
    Percent of zero components          :  0
   #----------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 30)
-   Single orbital                      : 1.232 #  (Number of Components: 160678)
-   All (distributed) orbitals          : 29.432 # (Number of Orbitals per MPI task: 8)
-   Wavefunction storage size           : 147.110 # (DIIS/SD workspaces included)
+   Single orbital                      : 1.18 #   (Number of Components: 133368)
+   All (distributed) orbitals          : 15.270 # (Number of Orbitals per MPI task: 5)
+   Wavefunction storage size           : 76.322 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.56
-   Full Uncompressed (ISF) grid        : 27.300
-   Workspaces storage size             : 2.988
- Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 144.500
-   Density Construction                : 250.608
-   Poisson Solver                      : 242.673
-   Hamiltonian application             : 255.38
- Estimated Memory Peak (MB)            :  255
+   Full Uncompressed (ISF) grid        : 21.365
+   Workspaces storage size             : 2.152
+ Accumulated memory requirements during principal run stages (MiB.KiB):
+   Kernel calculation                  : 74.331
+   Density Construction                : 148.451
+   Poisson Solver                      : 124.794
+   Hamiltonian application             : 151.311
+ Estimated Memory Peak (MB)            :  151
   #WARNING: Do not call check_communications in the linear scaling version!
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -1448,104 +1365,84 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
- Ion-Ion interaction energy            :  2.57823335618098E+02
+ Ion-Ion interaction energy            :  3.19482762914810E+02
   #------------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -60.000000020780
+ Total ionic charge                    : -60.000000458561
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  147,  157,  155 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  145,  143 ]
+   MPI tasks                           :  6
   #------------------------------------------------------------------ Support functions Restart
  Input Hamiltonian:
    Poisson Solver:
      BC                                : Free
-     Box                               :  [  147,  157,  155 ]
-     MPI tasks                         :  4
+     Box                               :  [  135,  145,  143 ]
+     MPI tasks                         :  6
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  48725,  1299 ]
- 
-   Tolerances for this check           :  [  4.45864672619598421E-06,  1.33226762955018785E-14 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  31025,  903 ]
+
+   Tolerances for this check           :  [  5.06161006757974169E-06,  1.33226762955018785E-14 ]
    Maxdiff for transpose (checksum)    :  1.39698386192321777E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  42511,  1202 ]
- 
-   Tolerances for this check           :  [  9.59926012816386608E-06,  1.33226762955018785E-14 ]
-   Maxdiff for transpose (checksum)    :  3.72529029846191406E-09
+   Number of coarse and fine DoF (MasterMPI task):  [  23486,  753 ]
+
+   Tolerances for this check           :  [  9.41633012572148897E-06,  1.33226762955018785E-14 ]
+   Maxdiff for transpose (checksum)    :  2.79396772384643555E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  147,  157,  155 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  145,  143 ]
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  147,  157,  155 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  145,  143 ]
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  147,  157,  155 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  147,  157,  155 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  147,  157,  155 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  147,  157,  155 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  147,  157,  155 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  147,  157,  155 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  145,  143 ]
+   MPI tasks                           :  6
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  147,  157,  155 ]
-   MPI tasks                           :  4
+   Box                                 :  [  135,  145,  143 ]
+   MPI tasks                           :  6
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x: -9.83359318E-01, y: -1.52788947E+00, z: -1.69473625E+00, 
-                    total:  2.48466753E+00}
- Clean forces norm (Ha/Bohr): {maxval:  6.776617329483E+00, fnrm2:  1.127124822553E+02}
- Raw forces norm (Ha/Bohr): {maxval:  6.797266008203E+00, fnrm2:  1.195157748389E+02}
+ Average noise forces: {x: -1.71297904E-02, y: -3.62582284E+00, z: -3.83417500E+00, 
+                    total:  5.27709983E+00}
+ Clean forces norm (Ha/Bohr): {maxval:  1.220380109645E+00, fnrm2:  2.193860682468E+01}
+ Raw forces norm (Ha/Bohr): {maxval:  2.262037102843E+00, fnrm2:  4.978722614538E+01}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  4.198472123356E-02, -1.794061832112E-01,  7.168976629879E-01 ]} # 0001
- -  {C:  [  7.575619196821E-01, -1.996207848404E-01, -1.569778469168E+00 ]} # 0002
- -  {C:  [ -4.052236334435E+00,  5.221192656426E+00, -1.497020495723E+00 ]} # 0003
- -  {C:  [  4.576536686804E+00, -4.186261695700E+00, -3.909301280097E-02 ]} # 0004
- -  {C:  [  1.458472985842E+00, -1.193446710502E+00, -9.022825442511E-01 ]} # 0005
- -  {C:  [ -8.808874705215E-01, -1.212398029137E+00,  1.022372183582E+00 ]} # 0006
- -  {H:  [  7.183541308358E-02,  5.600883387913E-01,  7.360574563640E-01 ]} # 0007
- -  {H:  [ -1.237456475657E-02,  8.884310495529E-01,  4.876996194194E-01 ]} # 0008
- -  {H:  [  1.880704548039E-01, -3.196182984318E-01,  5.202821473033E-01 ]} # 0009
- -  {H:  [  4.582273833508E-01,  7.776000725327E-02, -2.657702469645E-01 ]} # 0010
- -  {H:  [  4.257955417285E-01, -2.648226530363E-01,  1.373563881520E-01 ]} # 0011
- -  {H:  [  1.545013409101E-01,  1.178098258939E-01, -3.122360074270E-01 ]} # 0012
- -  {C:  [ -3.563571647966E-01, -6.087435511082E-01,  3.993395384945E-01 ]} # 0013
- -  {C:  [ -1.384131141723E-01,  1.786025388688E-01, -5.817937734306E-01 ]} # 0014
- -  {C:  [ -1.046777094984E+00,  1.840211410819E-01, -9.746718194949E-01 ]} # 0015
- -  {C:  [ -1.111861534947E+00,  7.219127019395E-01, -1.282212598281E+00 ]} # 0016
- -  {C:  [ -6.730608413733E-01, -9.117441871064E-01,  9.506928220194E-01 ]} # 0017
- -  {C:  [ -1.146290942975E+00, -1.146248437809E+00,  1.504785277444E-01 ]} # 0018
- -  {H:  [ -1.646532785662E-04,  5.733738257107E-01,  5.965584762588E-01 ]} # 0019
- -  {H:  [ -9.684621753782E-02,  6.325022995277E-01,  6.103158908162E-01 ]} # 0020
- -  {H:  [  2.797149772242E-01,  2.328915104354E-01,  3.204757416842E-01 ]} # 0021
- -  {H:  [  3.739750313593E-01,  4.463189454717E-01,  6.324623704590E-02 ]} # 0022
- -  {H:  [  4.077241881211E-01,  1.470117941274E-01,  4.872013133222E-01 ]} # 0023
- -  {H:  [  3.208692896347E-01,  2.403938958019E-01,  2.258849623472E-01 ]} # 0024
+ -  {C: [ 2.093736654799E-02, -5.992235708530E-01, -7.645968993358E-01]} # 0001
+ -  {C: [ 2.569937116380E-02, -6.043110989614E-01, -5.722822176531E-01]} # 0002
+ -  {C: [ 1.428675072590E-02, -4.731205964835E-01, -1.124846834887E+00]} # 0003
+ -  {C: [ 2.868007087157E-02, -2.696316586540E-01, -8.694619471852E-01]} # 0004
+ -  {C: [ 2.834713223103E-02, -6.895766381096E-01, -3.030343999649E-01]} # 0005
+ -  {C: [ 1.449631627125E-02, -1.146586572971E+00, -4.022410911999E-01]} # 0006
+ -  {H: [ 9.373350801206E-03,  7.480384972785E-01,  5.910680554794E-01]} # 0007
+ -  {H: [ 1.193621426423E-02,  6.102873002353E-01,  8.208192413285E-01]} # 0008
+ -  {H: [ 8.882066887095E-03,  5.226821050003E-01,  6.384170426239E-01]} # 0009
+ -  {H: [ 1.899526970129E-03,  6.784888153479E-01,  6.601191558442E-01]} # 0010
+ -  {H: [-1.221957053235E-03,  6.430311496135E-01,  7.068861143993E-01]} # 0011
+ -  {H: [ 3.052659549307E-03,  5.922934049901E-01,  6.134426271215E-01]} # 0012
+ -  {C: [-2.926897791951E-02, -5.524258811811E-01, -7.269257217011E-01]} # 0013
+ -  {C: [-3.228008402104E-02, -6.516324053550E-01, -5.231599964805E-01]} # 0014
+ -  {C: [-2.214488207611E-02, -4.872249357891E-01, -1.046688214188E+00]} # 0015
+ -  {C: [-2.509545626869E-02, -3.856238073371E-01, -8.251046874458E-01]} # 0016
+ -  {C: [-2.588876874940E-02, -6.850067405920E-01, -4.123790975261E-01]} # 0017
+ -  {C: [-2.414315873025E-02, -1.044285042653E+00, -4.577864733405E-01]} # 0018
+ -  {H: [-3.244115795330E-04,  7.657152491504E-01,  5.874951744657E-01]} # 0019
+ -  {H: [ 1.784226222458E-03,  6.063108544144E-01,  8.082379944536E-01]} # 0020
+ -  {H: [ 1.851744637304E-03,  5.248470549822E-01,  6.338886534649E-01]} # 0021
+ -  {H: [-2.358936553744E-03,  6.679587309166E-01,  6.555810514615E-01]} # 0022
+ -  {H: [-5.433731366899E-03,  6.407214372069E-01,  6.965679414402E-01]} # 0023
+ -  {H: [-3.066432824867E-03,  5.882743498032E-01,  6.159845288254E-01]} # 0024
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  64.83
-   Elapsed time (s)                    :  65.08
+   CPU time (s)                        :  38.04
+   Elapsed time (s)                    :  38.41
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1554,18 +1451,18 @@
    Ncount_BigDFT                       :  4
    Geometry step                       :  3
    Geometry Method                     : GEOPT_BFGS
-   etot                                : -9.47645823809660E+00
-   de                                  :  4.48E+01
-   Forces                              :  [  6.777E+00,  1.062E+01 ]
-   flt                                 :  [  0.00E+00,  0.00E+00 ]
+   etot                                : -7.17195159175068E+01
+   de                                  :  3.37E+00
+   Forces                              :  [  1.220E+00,  4.684E+00 ]
+   flt                                 :  [  1.32E-01,  1.32E-01 ]
    Alpha                               :  9.00E-1
    isatur                              :  0
  End of minimization using             : BFGS
  Memory Consumption Report:
-   Tot. No. of Allocations  : 95138
-   Tot. No. of Deallocations: 95138
+   Tot. No. of Allocations  : 37690
+   Tot. No. of Deallocations: 37690
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 1064
+      Peak Value (MB): 720
       for the array: nrecvdspls
       in the routine: transpose_communicate_psi

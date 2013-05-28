@@ -27,6 +27,7 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
   type(atoms_data), intent(out) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz 
 
+  character(len=*), parameter :: subname='bigdft_set_input'
 !!$  logical :: exist_list
 !!$  integer :: group_size,ierr
 
@@ -56,9 +57,12 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
 !!$  call standard_inputfile_names(in, radical, bigdft_mpi%nproc)
 
   ! Read atomic file
-  call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms,rxyz)
-  call read_input_parameters2(bigdft_mpi%iproc,in,atoms,rxyz)
+  call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms%astruct)
+  call allocate_atoms_nat(atoms, subname)
+  call allocate_atoms_ntypes(atoms, subname)
+  call read_input_parameters2(bigdft_mpi%iproc,in,atoms,atoms%astruct%rxyz)
 
+  rxyz=>atoms%astruct%rxyz
   ! Read associated pseudo files.
   call init_atomic_values((bigdft_mpi%iproc == 0), atoms, in%ixc)
   call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
@@ -90,7 +94,7 @@ subroutine bigdft_free_input(in)
   type(input_variables), intent(inout) :: in
   
   call free_input_variables(in)
-  call f_malloc_finalize()
+  call f_lib_finalize()
   !finalize memory counting
   !call memocc(0,0,'count','stop')
   !free all yaml_streams active
@@ -230,6 +234,7 @@ subroutine standard_inputfile_names(in, radical, nproc)
   call set_inputfile(in%file_occnum, radical, "occ")
   call set_inputfile(in%file_igpop, radical,  "occup")
   call set_inputfile(in%file_lin, radical,    "lin")
+  call set_inputfile(in%file_frag, radical,    "frag")
 
   if (trim(radical) == "input") then
         in%dir_output="data" // trim(bigdft_run_id_toa())
@@ -290,7 +295,7 @@ subroutine read_input_parameters2(iproc,in,atoms,rxyz)
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
   type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
   !Local variables
   integer :: ierr
 !!$  integer :: ierror
@@ -299,23 +304,23 @@ subroutine read_input_parameters2(iproc,in,atoms,rxyz)
 !!$  print *,'hereAAA',iproc
   ! Shake atoms, if required.
   call atoms_set_displacement(atoms, rxyz, in%randdis)
-!!$  print *,'hello21',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
+!!$  print *,'hello21',atoms%astruct%ntypes,'ciaoAAA',bigdft_mpi%iproc
   call mpi_barrier(mpi_comm_world,ierr)
 
   ! Update atoms with symmetry information
   call atoms_set_symmetries(atoms, rxyz, in%disableSym, in%symTol, in%elecfield)
-!!$  print *,'hello22',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
+!!$  print *,'hello22',atoms%astruct%ntypes,'ciaoAAA',bigdft_mpi%iproc
 !!$call mpi_barrier(mpi_comm_world,ierr)
 
   ! Parse input files depending on atoms.
   call inputs_parse_add(in, atoms, iproc, .true.)
 !!$
-!!$  print *,'hello23',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
+!!$  print *,'hello23',atoms%astruct%ntypes,'ciaoAAA',bigdft_mpi%iproc
 !!$  call mpi_barrier(mpi_comm_world,ierr)
 
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
-!  if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
+!  if (atoms%astruct%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
 !     if (iproc==0) call yaml_warning('GPU calculation allowed only in periodic boundary conditions')
 !     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
 !  end if
@@ -327,7 +332,7 @@ subroutine read_input_parameters2(iproc,in,atoms,rxyz)
   end if
 
 !!$  ! Stop code for unproper input variables combination.
-!!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%geocode == 'S') then
+!!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%astruct%geocode == 'S') then
 !!$     if (iproc==0) then
 !!$        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
 !!$        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
@@ -342,7 +347,7 @@ subroutine read_input_parameters2(iproc,in,atoms,rxyz)
   !check whether a directory name should be associated for the data storage
   call check_for_data_writing_directory(iproc,in)
 
-!!$  print *,'hello24',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
+!!$  print *,'hello24',atoms%astruct%ntypes,'ciaoAAA',bigdft_mpi%iproc
 !!$  call mpi_barrier(mpi_comm_world,ierr)
 
 
@@ -441,6 +446,9 @@ subroutine default_input_variables(in)
   nullify(in%lin%locrad_highaccuracy)
   nullify(in%lin%locrad_type)
   nullify(in%lin%kernel_cutoff)
+  !nullify(in%frag%frag_info)
+  nullify(in%frag%label)
+  nullify(in%frag%frag_index)
 END SUBROUTINE default_input_variables
 
 
@@ -506,7 +514,8 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   in%idsx = min(in%idsx, in%itermax)
 
   !dispersion parameter
-  call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
+  call input_var(in%dispersion,'0',ranges=(/0,5/),&
+       comment='dispersion correction potential (values 1,2,3,4,5), 0=none')
     
   ! Now the variables which are to be used only for the last run
   call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,13,100,101,102/),input_iostat=ierror)
@@ -830,12 +839,12 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   logical :: exists
   character(len=*), parameter :: subname='lin_input_variables'
   character(len=256) :: comments
-  logical,dimension(atoms%ntypes) :: parametersSpecified
+  logical,dimension(atoms%astruct%ntypes) :: parametersSpecified
   logical :: found
   character(len=20):: atomname
   integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
   real(gp):: ppao, ppl, pph, lrl, lrh, kco
-  real(gp),dimension(atoms%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
+  real(gp),dimension(atoms%astruct%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
 
   !Linear input parameters
   call input_set_file(iproc,dump,trim(filename),exists,'Linear Parameters')  
@@ -924,10 +933,15 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%plotBasisFunctions,'0',ranges=(/0,3/))
   call input_var(in%lin%calc_dipole,'F')
   call input_var(in%lin%pulay_correction,'T',comment=comments)
-  
+
+  !fragment calculation and transfer integrals: true or false
+  comments='fragment calculation; calculate transfer_integrals'
+  call input_var(in%lin%fragment_calculation,'F')
+  call input_var(in%lin%calc_transfer_integrals,'F',comment=comments)
+
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
-  call allocateBasicArraysInputLin(in%lin, atoms%ntypes)
+  call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
   
   ! Now read in the parameters specific for each atom type.
   comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential,'//&
@@ -936,12 +950,12 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   itype = 1
   do
      !Check at the beginning to permit natom=0
-     if (itype > atoms%ntypes) exit
+     if (itype > atoms%astruct%ntypes) exit
      if (exists) then
         call input_var(atomname,'C',input_iostat=ios)
         if (ios /= 0) exit
      else
-        call input_var(atomname,trim(atoms%atomnames(itype)))
+        call input_var(atomname,trim(atoms%astruct%atomnames(itype)))
         itype = itype + 1
      end if
      call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
@@ -953,8 +967,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
      call input_var(kco,'20.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
      ! The reading was successful. Check whether this atom type is actually present.
      found=.false.
-     do jtype=1,atoms%ntypes
-        if(trim(atomname)==trim(atoms%atomnames(jtype))) then
+     do jtype=1,atoms%astruct%ntypes
+        if(trim(atomname)==trim(atoms%astruct%atomnames(jtype))) then
            found=.true.
            parametersSpecified(jtype)=.true.
            in%lin%norbsPerType(jtype)=npt
@@ -975,7 +989,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
      end if
   end do
   found  = .true.
-  do jtype=1,atoms%ntypes
+  do jtype=1,atoms%astruct%ntypes
      found = found .and. parametersSpecified(jtype)
   end do
   if (.not. found) then
@@ -983,8 +997,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
      if(iproc==0) then
         write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
              & for the following atom types:"
-        do jtype=1,atoms%ntypes
-           if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%atomnames(jtype))
+        do jtype=1,atoms%astruct%ntypes
+           if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%astruct%atomnames(jtype))
         end do
      end if
      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
@@ -992,8 +1006,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   end if
 
   nlr=0
-  do iat=1,atoms%nat
-      itype=atoms%iatype(iat)
+  do iat=1,atoms%astruct%nat
+      itype=atoms%astruct%iatype(iat)
       nlr=nlr+in%lin%norbsPerType(itype)
   end do
   allocate(in%lin%locrad(nlr),stat=istat)
@@ -1006,8 +1020,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   
   ! Assign the localization radius to each atom.
   iiorb=0
-  do iat=1,atoms%nat
-      itype=atoms%iatype(iat)
+  do iat=1,atoms%astruct%nat
+      itype=atoms%astruct%iatype(iat)
       do iorb=1,in%lin%norbsPerType(itype)
           iiorb=iiorb+1
           in%lin%locrad(iiorb)=locradType(itype)
@@ -1195,7 +1209,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
            call input_var( in%kpt(2,i),'0.')
         end if
         call input_var( in%kpt(3,i),'0.')
-        call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weigth')
+        call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weight')
         if (geocode == 'F') then
            in%kpt = 0.
            in%wkpt = 1.
@@ -1344,7 +1358,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
      in%wkpt(1) = 1.
      return
   !and control whether we are giving k-points to Free BC
-  else if (atoms%geocode == 'F') then
+  else if (atoms%astruct%geocode == 'F') then
      if (iproc==0) write(*,*)&
           ' NONSENSE: Trying to use k-points with Free Boundary Conditions!'
      stop
@@ -1362,7 +1376,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   if (trim(type) == "auto" .or. trim(type) == "Auto" .or. trim(type) == "AUTO") then
      read(1,*,iostat=ierror) kptrlen
      call check()
-     call kpoints_get_auto_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_auto_k_grid(atoms%astruct%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1380,9 +1394,9 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
         read(1,*,iostat=ierror) shiftk(:, i)
         call check()
      end do
-     if (atoms%geocode == 'S') ngkpt(2) = 1
-     if (atoms%geocode == 'F') ngkpt = 1
-     call kpoints_get_mp_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
+     if (atoms%astruct%geocode == 'S') ngkpt(2) = 1
+     if (atoms%astruct%geocode == 'F') ngkpt = 1
+     call kpoints_get_mp_k_grid(atoms%astruct%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1479,8 +1493,8 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   close(unit=1,iostat=ierror)
 
   ! Convert reduced coordinates into BZ coordinates.
-  alat = (/ atoms%alat1, atoms%alat2, atoms%alat3 /)
-  if (atoms%geocode == 'S') alat(2) = 1.d0
+  alat = atoms%astruct%cell_dim
+  if (atoms%astruct%geocode == 'S') alat(2) = 1.d0
   do i = 1, in%nkpt, 1
      in%kpt(:, i) = in%kpt(:, i) / alat * two_pi
   end do
@@ -1518,7 +1532,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   !local variables
   !n(c) character(len=*), parameter :: subname='perf_input_variables'
   logical :: exists
-  integer :: ierr,blocks(2),ipos,i
+  integer :: ierr,blocks(2),ipos,i,iproc_node,nproc_node
 
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) in%files = in%files + INPUTS_PERF
@@ -1632,6 +1646,11 @@ subroutine perf_input_variables(iproc,dump,filename,in)
      !welcome screen
      if (dump) call print_logo()
   end if
+  if (bigdft_mpi%nproc >1) call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
+  if (iproc ==0 .and. dump) then
+     if (bigdft_mpi%nproc >1) call yaml_map('MPI tasks of root process node',nproc_node)
+     call print_configure_options()
+  end if
   !call input_free((iproc == 0) .and. dump)
 
   call input_free(iproc==0)
@@ -1661,6 +1680,157 @@ subroutine perf_input_variables(iproc,dump,filename,in)
      write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
   end if
 END SUBROUTINE perf_input_variables
+
+!> Read fragment input parameters
+subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
+  use module_base
+  use module_types
+  use module_input
+  implicit none
+  integer, intent(in) :: iproc
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  type(atoms_data), intent(inout) :: atoms
+  logical, intent(in) :: dump
+  !local variables
+  logical :: exists
+  character(len=*), parameter :: subname='fragment_input_variables'
+  character(len=256) :: comments
+  character(len=20):: atomname
+  integer :: ifrag, frag_num, ios, ierr, istat
+
+  !Linear input parameters
+  call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters')  
+  if (exists) in%files = in%files + INPUTS_FRAG
+
+  if (.not. exists .and. in%lin%fragment_calculation) then ! we should be doing a fragment calculation, so this is a problem
+     write(*,'(1x,a)',advance='no') "ERROR: the file 'input.frag' is missing and fragment calculation was specified"
+     call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+     stop
+  end if
+
+  ! number of reference fragments
+  comments='# number of fragments in reference system, number of fragments in current system'
+  call input_var(in%frag%nfrag_ref,'1',ranges=(/1,100000/))
+  call input_var(in%frag%nfrag,'1',ranges=(/1,100000/),comment=comments)
+  
+  ! Allocate fragment pointers
+  call nullifyInputFragParameters(in%frag)
+  call allocateInputFragArrays(in%frag)
+
+  !comments = '# reference fragment number i, number of atoms in reference fragment i, '//&
+  !           'number of atoms in corresponding environment'
+  !do ifrag=1,in%frag%nfrag_ref
+  !  call input_var(frag_num,'1',ranges=(/1,in%frag%nfrag_ref/))
+  !  if (frag_num/=ifrag) then
+  !      write(*,'(1x,a)',advance='no') "ERROR: the file 'input.frag' has an error when specifying&
+  !           & the reference fragments"
+  !     call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  !     stop
+  !  end if
+  !  call input_var(in%frag%frag_info(frag_num,1),'1',ranges=(/1,100000/))
+  !  call input_var(in%frag%frag_info(frag_num,2),'0',ranges=(/0,100000/),comment=comments)
+  !end do
+
+  ! ADD A SENSIBLE DEFAULT AND ALLOW FOR USER NOT TO SPECIFY FRAGMENT NAMES
+  comments = '#  reference fragment number i, fragment label'
+  do ifrag=1,in%frag%nfrag_ref
+    call input_var(frag_num,'1',ranges=(/1,in%frag%nfrag_ref/))
+    if (frag_num/=ifrag) then
+        write(*,'(1x,a)',advance='no') "ERROR: the file 'input.frag' has an error when specifying&
+             & the reference fragments"
+       call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+       stop
+    end if
+    call input_var(in%frag%label(frag_num),' ',comment=comments)
+    in%frag%label(frag_num)=trim(in%frag%label(frag_num))//'/'
+  end do
+
+  comments = '# fragment number j, reference fragment i this corresponds to'
+  do ifrag=1,in%frag%nfrag
+    call input_var(frag_num,'1',ranges=(/1,in%frag%nfrag/))
+    if (frag_num/=ifrag) then
+        write(*,'(1x,a)',advance='no') "ERROR: the file 'input.frag' has an error when specifying&
+             & the system fragments"
+       call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+       stop
+    end if
+    call input_var(in%frag%frag_index(frag_num),'1',ranges=(/0,100000/),comment=comments)
+  end do
+
+  call input_free((iproc == 0) .and. dump)
+
+END SUBROUTINE fragment_input_variables
+
+  subroutine allocateInputFragArrays(input_frag)
+    use module_types
+    implicit none
+  
+    ! Calling arguments
+    type(fragmentInputParameters),intent(inout) :: input_frag
+  
+    ! Local variables
+    integer :: i_stat
+    character(len=*),parameter :: subname='allocateInputFragArrays'
+ 
+    allocate(input_frag%frag_index(input_frag%nfrag), stat=i_stat)
+    call memocc(i_stat, input_frag%frag_index, 'input_frag%frag_index', subname)
+
+    !allocate(input_frag%frag_info(input_frag%nfrag_ref,2), stat=i_stat)
+    !call memocc(i_stat, input_frag%frag_info, 'input_frag%frag_info', subname)
+
+    allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
+    call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
+
+  end subroutine allocateInputFragArrays
+
+  subroutine deallocateInputFragArrays(input_frag)
+    use module_types
+    implicit none
+  
+    ! Calling arguments
+    type(fragmentInputParameters),intent(inout) :: input_frag
+  
+    ! Local variables
+    integer :: i_stat,i_all
+    character(len=*),parameter :: subname='deallocateInputFragArrays'
+ 
+    !if(associated(input_frag%frag_info)) then
+    !  i_all = -product(shape(input_frag%frag_info))*kind(input_frag%frag_info)
+    !  deallocate(input_frag%frag_info,stat=i_stat)
+    !  call memocc(i_stat,i_all,'input_frag%frag_info',subname)
+    !  nullify(input_frag%frag_info)
+    !end if 
+ 
+    if(associated(input_frag%frag_index)) then
+      i_all = -product(shape(input_frag%frag_index))*kind(input_frag%frag_index)
+      deallocate(input_frag%frag_index,stat=i_stat)
+      call memocc(i_stat,i_all,'input_frag%frag_index',subname)
+      nullify(input_frag%frag_index)
+    end if 
+
+    if(associated(input_frag%label)) then
+      i_all = -product(shape(input_frag%label))*kind(input_frag%label)
+      deallocate(input_frag%label,stat=i_stat)
+      call memocc(i_stat,i_all,'input_frag%label',subname)
+      nullify(input_frag%label)
+    end if 
+
+  end subroutine deallocateInputFragArrays
+
+
+  subroutine nullifyInputFragParameters(input_frag)
+    use module_types
+    implicit none
+
+    ! Calling arguments
+    type(fragmentInputParameters),intent(inout) :: input_frag
+
+    nullify(input_frag%frag_index)
+    !nullify(input_frag%frag_info)
+    nullify(input_frag%label)
+
+  end subroutine nullifyInputFragParameters
 
 
 subroutine create_log_file(iproc,inputs)
@@ -1813,6 +1983,7 @@ subroutine free_input_variables(in)
   end if
   call free_kpt_variables(in)
   call deallocateBasicArraysInput(in%lin)
+  call deallocateInputFragArrays(in%frag)
 
   ! Free the libXC stuff if necessary, related to the choice of in%ixc.
   call xc_end()
@@ -2223,7 +2394,7 @@ module position_files
 end module position_files
 
 !> Read atomic file
-subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
+subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
    use module_base
    use module_types
    use module_interfaces, except_this_one => read_atomic_file
@@ -2232,12 +2403,11 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
    implicit none
    character(len=*), intent(in) :: file
    integer, intent(in) :: iproc
-   type(atoms_data), intent(inout) :: atoms
-   real(gp), dimension(:,:), pointer :: rxyz
+   type(atomic_structure), intent(inout) :: astruct
    integer, intent(out), optional :: status
    real(gp), intent(out), optional :: energy
    real(gp), dimension(:,:), pointer, optional :: fxyz
-   character(len = 1024), intent(out), optional :: comment
+   character(len = *), intent(out), optional :: comment
    !Local variables
    character(len=*), parameter :: subname='read_atomic_file'
    integer :: l, extract, i_all, i_stat
@@ -2275,7 +2445,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
          end if
          archive = .true.
          write(filename, "(A)") file//'.'//trim(ext)
-         write(atoms%format, "(A)") trim(ext)
+         write(astruct%inputfile_format, "(A)") trim(ext)
       end if
    end if
 
@@ -2284,7 +2454,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
       inquire(FILE = file//'.xyz', EXIST = file_exists)
       if (file_exists) then
          write(filename, "(A)") file//'.xyz'!"posinp.xyz"
-         write(atoms%format, "(A)") "xyz"
+         write(astruct%inputfile_format, "(A)") "xyz"
          open(unit=99,file=trim(filename),status='old')
       end if
    end if
@@ -2293,7 +2463,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
       inquire(FILE = file//'.ascii', EXIST = file_exists)
       if (file_exists) then
          write(filename, "(A)") file//'.ascii'!"posinp.ascii"
-         write(atoms%format, "(A)") "ascii"
+         write(astruct%inputfile_format, "(A)") "ascii"
          open(unit=99,file=trim(filename),status='old')
       end if
    end if
@@ -2302,7 +2472,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
       inquire(FILE = file//'.yaml', EXIST = file_exists)
       if (file_exists) then
          write(filename, "(A)") file//'.yaml'!"posinp.ascii"
-         write(atoms%format, "(A)") "yaml"
+         write(astruct%inputfile_format, "(A)") "yaml"
       end if
    end if
    ! Test the name directly
@@ -2312,11 +2482,11 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
          write(filename, "(A)") file
          l = len(file)
          if (file(l-3:l) == ".xyz") then
-            write(atoms%format, "(A)") "xyz"
+            write(astruct%inputfile_format, "(A)") "xyz"
          else if (file(l-5:l) == ".ascii") then
-            write(atoms%format, "(A)") "ascii"
+            write(astruct%inputfile_format, "(A)") "ascii"
          else if (file(l-4:l) == ".yaml") then
-            write(atoms%format, "(A)") "yaml"
+            write(astruct%inputfile_format, "(A)") "yaml"
          else
             write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
             write(*,*) " File should be *.yaml, *.ascii or *.xyz."
@@ -2327,7 +2497,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
                stop
             end if
          end if
-         if (trim(atoms%format) /= "yaml") then
+         if (trim(astruct%inputfile_format) /= "yaml") then
             open(unit=99,file=trim(filename),status='old')
          end if
       end if
@@ -2344,24 +2514,24 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
       end if
    end if
 
-   if (atoms%format == "xyz") then
+   if (astruct%inputfile_format == "xyz") then
       !read atomic positions
       if (.not.archive) then
-         call read_xyz_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,directGetLine)
+         call read_xyz_positions(iproc,99,astruct,comment_,energy_,fxyz_,directGetLine)
       else
-         call read_xyz_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,archiveGetLine)
+         call read_xyz_positions(iproc,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
       end if
-   else if (atoms%format == "ascii") then
+   else if (astruct%inputfile_format == "ascii") then
       !read atomic positions
       if (.not.archive) then
-         call read_ascii_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,directGetLine)
+         call read_ascii_positions(iproc,99,astruct,comment_,energy_,fxyz_,directGetLine)
       else
-         call read_ascii_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,archiveGetLine)
+         call read_ascii_positions(iproc,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
       end if
-   else if (atoms%format == "yaml") then
+   else if (astruct%inputfile_format == "yaml") then
       !read atomic positions
       if (.not.archive) then
-         call read_yaml_positions(trim(filename),atoms,rxyz,comment_,energy_,fxyz_)
+         call read_yaml_positions(trim(filename),astruct,comment_,energy_,fxyz_)
       else
          write(*,*) "Atomic input file in YAML not yet supported in archive file."
          stop
@@ -2369,9 +2539,9 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
    end if
 
    !Check the number of atoms
-   if (atoms%nat < 0) then
+   if (astruct%nat < 0) then
       write(*,'(1x,3a,i0,a)') "In the file '",trim(filename),&
-           &  "', the number of atoms (",atoms%nat,") < 0 (should be >= 0)."
+           &  "', the number of atoms (",astruct%nat,") < 0 (should be >= 0)."
       if (present(status)) then
          status = 1
          return
@@ -2381,17 +2551,17 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
    end if
 
    !control atom positions
-   call check_atoms_positions(iproc,atoms,rxyz)
+   call check_atoms_positions(iproc,astruct)
 
    ! We delay the calculation of the symmetries.
 !this should be already in the atoms_null routine
-   atoms%sym=symm_null()
-!   atoms%sym%symObj = -1
-!   nullify(atoms%sym%irrzon)
-!   nullify(atoms%sym%phnons)
+   astruct%sym=symm_null()
+!   astruct%sym%symObj = -1
+!   nullify(astruct%sym%irrzon)
+!   nullify(astruct%sym%phnons)
 
    ! close open file.
-   if (.not.archive .and. trim(atoms%format) /= "yaml") then
+   if (.not.archive .and. trim(astruct%inputfile_format) /= "yaml") then
       close(99)
       !!$  else
       !!$     call unlinkExtract(trim(filename), len(trim(filename)))
@@ -2423,19 +2593,19 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   character(len=*), intent(in) :: filename,comment
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  real(gp), dimension(3,atoms%nat), intent(in), optional :: forces
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
   !local variables
   character(len = 15) :: arFile
 
-  open(unit=9,file=trim(filename)//'.'//trim(atoms%format))
-  if (atoms%format == "xyz") then
+  open(unit=9,file=trim(filename)//'.'//trim(atoms%astruct%inputfile_format))
+  if (atoms%astruct%inputfile_format == "xyz") then
      call wtxyz(9,energy,rxyz,atoms,comment)
      if (present(forces)) call wtxyz_forces(9,forces,atoms)
-  else if (atoms%format == "ascii") then
+  else if (atoms%astruct%inputfile_format == "ascii") then
      call wtascii(9,energy,rxyz,atoms,comment)
      if (present(forces)) call wtascii_forces(9,forces,atoms)
-  else if (atoms%format == 'yaml') then
+  else if (atoms%astruct%inputfile_format == 'yaml') then
      if (present(forces)) then
         call wtyaml(9,energy,rxyz,atoms,comment,.true.,forces)
      else
@@ -2452,8 +2622,8 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
      write(arFile, "(A)") "posout.tar.bz2"
      if (index(filename, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
      call addToCompress(trim(arFile), len(trim(arFile)), &
-          & trim(filename)//'.'//trim(atoms%format), &
-          & len(trim(filename)//'.'//trim(atoms%format)))
+          & trim(filename)//'.'//trim(atoms%astruct%inputfile_format), &
+          & len(trim(filename)//'.'//trim(atoms%astruct%inputfile_format)))
   end if
 END SUBROUTINE write_atomic_file
 
@@ -2486,26 +2656,26 @@ subroutine atomic_axpy(atoms,txyz,alpha,sxyz,rxyz)
   implicit none
   real(gp), intent(in) :: alpha
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(in) :: txyz,sxyz
-  real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: txyz,sxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
   !local variables
   integer :: iat
   real(gp) :: alphax,alphay,alphaz
 
-  do iat=1,atoms%nat
+  do iat=1,atoms%astruct%nat
      !adjust the moving of the atoms following the frozen direction
-     call frozen_alpha(atoms%ifrztyp(iat),1,alpha,alphax)
-     call frozen_alpha(atoms%ifrztyp(iat),2,alpha,alphay)
-     call frozen_alpha(atoms%ifrztyp(iat),3,alpha,alphaz)
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),1,alpha,alphax)
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),2,alpha,alphay)
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),3,alpha,alphaz)
 
-     if (atoms%geocode == 'P') then
-        rxyz(1,iat)=modulo(txyz(1,iat)+alphax*sxyz(1,iat),atoms%alat1)
-        rxyz(2,iat)=modulo(txyz(2,iat)+alphay*sxyz(2,iat),atoms%alat2)
-        rxyz(3,iat)=modulo(txyz(3,iat)+alphaz*sxyz(3,iat),atoms%alat3)
-     else if (atoms%geocode == 'S') then
-        rxyz(1,iat)=modulo(txyz(1,iat)+alphax*sxyz(1,iat),atoms%alat1)
+     if (atoms%astruct%geocode == 'P') then
+        rxyz(1,iat)=modulo(txyz(1,iat)+alphax*sxyz(1,iat),atoms%astruct%cell_dim(1))
+        rxyz(2,iat)=modulo(txyz(2,iat)+alphay*sxyz(2,iat),atoms%astruct%cell_dim(2))
+        rxyz(3,iat)=modulo(txyz(3,iat)+alphaz*sxyz(3,iat),atoms%astruct%cell_dim(3))
+     else if (atoms%astruct%geocode == 'S') then
+        rxyz(1,iat)=modulo(txyz(1,iat)+alphax*sxyz(1,iat),atoms%astruct%cell_dim(1))
         rxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
-        rxyz(3,iat)=modulo(txyz(3,iat)+alphaz*sxyz(3,iat),atoms%alat3)
+        rxyz(3,iat)=modulo(txyz(3,iat)+alphaz*sxyz(3,iat),atoms%astruct%cell_dim(3))
      else
         rxyz(1,iat)=txyz(1,iat)+alphax*sxyz(1,iat)
         rxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
@@ -2527,17 +2697,17 @@ subroutine atomic_axpy_forces(atoms,txyz,alpha,sxyz,fxyz)
   implicit none
   real(gp), intent(in) :: alpha
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(in) :: txyz,sxyz
-  real(gp), dimension(3,atoms%nat), intent(inout) :: fxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: txyz,sxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: fxyz
   !local variables
   integer :: iat
   real(gp) :: alphax,alphay,alphaz
   
-  do iat=1,atoms%nat
+  do iat=1,atoms%astruct%nat
      !adjust the moving of the forces following the frozen direction
-     call frozen_alpha(atoms%ifrztyp(iat),1,alpha,alphax)
-     call frozen_alpha(atoms%ifrztyp(iat),2,alpha,alphay)
-     call frozen_alpha(atoms%ifrztyp(iat),3,alpha,alphaz)
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),1,alpha,alphax)
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),2,alpha,alphay)
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),3,alpha,alphaz)
 
      fxyz(1,iat)=txyz(1,iat)+alphax*sxyz(1,iat)
      fxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
@@ -2554,7 +2724,7 @@ subroutine atomic_dot(atoms,x,y,scpr)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(in) :: x,y
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: x,y
   real(gp), intent(out) :: scpr
   !local variables
   integer :: iat
@@ -2563,10 +2733,10 @@ subroutine atomic_dot(atoms,x,y,scpr)
 
   scpr=0.0_gp
 
-  do iat=1,atoms%nat
-     call frozen_alpha(atoms%ifrztyp(iat),1,1.0_gp,alphax)
-     call frozen_alpha(atoms%ifrztyp(iat),2,1.0_gp,alphay)
-     call frozen_alpha(atoms%ifrztyp(iat),3,1.0_gp,alphaz)
+  do iat=1,atoms%astruct%nat
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),1,1.0_gp,alphax)
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),2,1.0_gp,alphay)
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),3,1.0_gp,alphaz)
      scpr1=alphax*x(1,iat)*y(1,iat)
      scpr2=alphay*x(2,iat)*y(2,iat)
      scpr3=alphaz*x(3,iat)*y(3,iat)
@@ -2584,9 +2754,9 @@ subroutine atomic_gemv(atoms,m,alpha,A,x,beta,y,z)
   integer, intent(in) :: m
   real(gp), intent(in) :: alpha,beta
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(in) :: x
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: x
   real(gp), dimension(m), intent(in) :: y
-  real(gp), dimension(m,3,atoms%nat), intent(in) :: A
+  real(gp), dimension(m,3,atoms%astruct%nat), intent(in) :: A
   real(gp), dimension(m), intent(out) :: z
   !local variables
   integer :: iat,i,j
@@ -2594,9 +2764,9 @@ subroutine atomic_gemv(atoms,m,alpha,A,x,beta,y,z)
   
   do i=1,m
      mv=0.0_gp
-     do iat=1,atoms%nat
+     do iat=1,atoms%astruct%nat
         do j=1,3
-           call frozen_alpha(atoms%ifrztyp(iat),j,A(i,j,iat),alphai)
+           call frozen_alpha(atoms%astruct%ifrztyp(iat),j,A(i,j,iat),alphai)
            mv=mv+alphai*x(j,iat)
         end do
      end do
@@ -2635,21 +2805,21 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
   real(gp) :: alat,alphai
 
   if (ixyz == 1) then
-     alat=atoms%alat1
+     alat=atoms%astruct%cell_dim(1)
   else if (ixyz == 2) then
-     alat=atoms%alat2
+     alat=atoms%astruct%cell_dim(2)
   else if (ixyz == 3) then
-     alat=atoms%alat3
+     alat=atoms%astruct%cell_dim(3)
   else
      alat = -1
      write(0,*) "Internal error"
      stop
   end if
   
-  periodize= atoms%geocode == 'P' .or. &
-       (atoms%geocode == 'S' .and. ixyz /= 2)
+  periodize= atoms%astruct%geocode == 'P' .or. &
+       (atoms%astruct%geocode == 'S' .and. ixyz /= 2)
 
-  call frozen_alpha(atoms%ifrztyp(iat),ixyz,alphas,alphai)
+  call frozen_alpha(atoms%astruct%ifrztyp(iat),ixyz,alphas,alphai)
 
   if (periodize) then
      r=modulo(t+alphai,alat)
@@ -2841,78 +3011,78 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   integer :: i_stat
   integer :: iat,i,ierr
 
-  allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
+  allocate(atoms%amu(atoms%astruct%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%amu,'atoms%amu',subname)
 
-  if (atoms%geocode=='S') then 
-        atoms%alat2=0.0_gp
-  else if (atoms%geocode=='F') then !otherwise free bc    
-        atoms%alat1=0.0_gp
-        atoms%alat2=0.0_gp
-        atoms%alat3=0.0_gp
+  if (atoms%astruct%geocode=='S') then 
+        atoms%astruct%cell_dim(2)=0.0_gp
+  else if (atoms%astruct%geocode=='F') then !otherwise free bc    
+        atoms%astruct%cell_dim(1)=0.0_gp
+        atoms%astruct%cell_dim(2)=0.0_gp
+        atoms%astruct%cell_dim(3)=0.0_gp
   else
-        atoms%alat1=0.0_gp
-        atoms%alat2=0.0_gp
-        atoms%alat3=0.0_gp
+        atoms%astruct%cell_dim(1)=0.0_gp
+        atoms%astruct%cell_dim(2)=0.0_gp
+        atoms%astruct%cell_dim(3)=0.0_gp
   end if
 
   !reduced coordinates are possible only with periodic units
-  if (atoms%units == 'reduced' .and. atoms%geocode == 'F') then
+  if (atoms%astruct%units == 'reduced' .and. atoms%astruct%geocode == 'F') then
      if (iproc==0) write(*,'(1x,a)')&
           'ERROR: Reduced coordinates are not allowed with isolated BC'
   end if
 
    !convert the values of the cell sizes in bohr
-  if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
+  if (atoms%astruct%units=='angstroem' .or. atoms%astruct%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     atoms%alat1=atoms%alat1/Bohr_Ang
-     atoms%alat2=atoms%alat2/Bohr_Ang
-     atoms%alat3=atoms%alat3/Bohr_Ang
-  else if (atoms%units == 'reduced') then
+     atoms%astruct%cell_dim(1)=atoms%astruct%cell_dim(1)/Bohr_Ang
+     atoms%astruct%cell_dim(2)=atoms%astruct%cell_dim(2)/Bohr_Ang
+     atoms%astruct%cell_dim(3)=atoms%astruct%cell_dim(3)/Bohr_Ang
+  else if (atoms%astruct%units == 'reduced') then
      !assume that for reduced coordinates cell size is in bohr
-     atoms%alat1=real(atoms%alat1,gp)
-     atoms%alat2=real(atoms%alat2,gp)
-     atoms%alat3=real(atoms%alat3,gp)
+     atoms%astruct%cell_dim(1)=real(atoms%astruct%cell_dim(1),gp)
+     atoms%astruct%cell_dim(2)=real(atoms%astruct%cell_dim(2),gp)
+     atoms%astruct%cell_dim(3)=real(atoms%astruct%cell_dim(3),gp)
   else
      call yaml_warning('Length units in input file unrecognized')
      call yaml_warning('recognized units are angstroem or atomic = bohr')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   endif
   
-  do iat=1,atoms%nat
+  do iat=1,atoms%astruct%nat
      !xyz input file, allow extra information
      
-     if (atoms%units == 'reduced') then !add treatment for reduced coordinates
+     if (atoms%astruct%units == 'reduced') then !add treatment for reduced coordinates
         rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
-        if (atoms%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
+        if (atoms%astruct%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
         rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
-     else if (atoms%geocode == 'P') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
-        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
-        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
-     else if (atoms%geocode == 'S') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
-        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     else if (atoms%astruct%geocode == 'P') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%astruct%cell_dim(1))
+        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%astruct%cell_dim(2))
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%astruct%cell_dim(3))
+     else if (atoms%astruct%geocode == 'S') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%astruct%cell_dim(1))
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%astruct%cell_dim(3))
      end if
  
-     if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
+     if (atoms%astruct%units=='angstroem' .or. atoms%astruct%units=='angstroemd0') then
         ! if Angstroem convert to Bohr
         do i=1,3 
            rxyz(i,iat)=rxyz(i,iat)/Bohr_Ang
         enddo
-     else if (atoms%units == 'reduced') then 
-        rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
-        if (atoms%geocode == 'P') rxyz(2,iat)=rxyz(2,iat)*atoms%alat2
-        rxyz(3,iat)=rxyz(3,iat)*atoms%alat3
+     else if (atoms%astruct%units == 'reduced') then 
+        rxyz(1,iat)=rxyz(1,iat)*atoms%astruct%cell_dim(1)
+        if (atoms%astruct%geocode == 'P') rxyz(2,iat)=rxyz(2,iat)*atoms%astruct%cell_dim(2)
+        rxyz(3,iat)=rxyz(3,iat)*atoms%astruct%cell_dim(3)
      endif
   enddo
 
   !control atom positions
-  call check_atoms_positions(iproc,atoms,rxyz)
+  call check_atoms_positions(iproc,atoms)
 
   ! We delay the calculation of the symmetries.
-  atoms%sym%symObj = -1
-  nullify(atoms%sym%irrzon)
-  nullify(atoms%sym%phnons)
+  atoms%astruct%sym%symObj = -1
+  nullify(atoms%astruct%sym%irrzon)
+  nullify(atoms%astruct%sym%phnons)
 
 END SUBROUTINE initialize_atomic_file

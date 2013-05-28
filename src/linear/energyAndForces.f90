@@ -15,7 +15,7 @@ subroutine updatePotential(ixc,nspin,denspot,ehart,eexcu,vexcu)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => updatePotential
-use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
 implicit none
 
 ! Calling arguments
@@ -57,7 +57,7 @@ else
         denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),ixc,&
         denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
         denspot%rhov,eexcu,vexcu,nspin,denspot%rho_C,denspot%V_XC,xcstr)
-   
+    
    call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart,0.0_dp,.true.,&
         quiet=denspot%PSquiet) !optional argument
    

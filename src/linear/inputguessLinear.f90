@@ -17,7 +17,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use module_base
   use module_interfaces, exceptThisOne => inputguessConfinement
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -26,7 +26,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(GPU_pointers), intent(inout) :: GPU
   type(input_variables),intent(in) :: input
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   type(orbitals_data),intent(inout) :: orbs
   type(DFT_wavefunction),intent(inout) :: tmb
@@ -64,9 +64,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Allocate some arrays we need for the input guess.
   allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=istat)
   call memocc(istat,norbsc_arr,'norbsc_arr',subname)
-  allocate(locrad(at%nat+ndebug),stat=istat)
+  allocate(locrad(at%astruct%nat+ndebug),stat=istat)
   call memocc(istat,locrad,'locrad',subname)
-  allocate(norbsPerAt(at%nat), stat=istat)
+  allocate(norbsPerAt(at%astruct%nat), stat=istat)
   call memocc(istat, norbsPerAt, 'norbsPerAt', subname)
   allocate(mapping(tmb%orbs%norb), stat=istat)
   call memocc(istat, mapping, 'mapping', subname)
@@ -94,8 +94,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! its 'natural' value.
   norbat=0
   ist=0
-  do iat=1,at%nat
-      ii=input%lin%norbsPerType(at%iatype(iat))
+  do iat=1,at%astruct%nat
+      ii=input%lin%norbsPerType(at%astruct%iatype(iat))
       iadd=0
       do 
           ! Count the number of atomic orbitals and increase the number if necessary until we have more
@@ -131,7 +131,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! our optimized orbital distribution (determined by in orbs%inwhichlocreg).
   iiorb=0
   covered=.false.
-  do iat=1,at%nat
+  do iat=1,at%astruct%nat
       do iorb=1,norbsPerAt(iat)
           iiorb=iiorb+1
           ! Search the corresponding entry in inwhichlocreg
@@ -161,7 +161,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   nvirt=0
 
-  do ityp=1,at%ntypes
+  do ityp=1,at%astruct%ntypes
      call eleconf(at%nzatom(ityp),at%nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
      if(4.d0*rprb>input%lin%locrad_type(ityp)) then
          if(iproc==0) write(*,'(3a,es10.2)') 'WARNING: locrad for atom type ',trim(symbol), &
@@ -177,7 +177,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end do
 
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
-       at%nat, norbsPerAt, mapping, &
+       at%astruct%nat, norbsPerAt, mapping, &
        tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_ao)
 
   ! Take inwhichlocreg from tmb (otherwise there might be problems after the restart...

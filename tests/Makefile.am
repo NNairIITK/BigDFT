@@ -55,25 +55,25 @@ pyyaml_clean:
 	cd -
 
 head_message: all-recursive
-	@echo "======================================================="
-	@echo "Type 'make check' in the directory tests      "
+	@echo "========================================================"
+	@echo "To run the tests, type 'make check' (might take a while)"
 
 foot_message: $(mpirun_message) $(oclrun_message) head_message
-	@echo "======================================================="
+	@echo "========================================================"
 
 mpirun: head_message
 	@echo "     Use the environment variable run_parallel"
-	@echo "     ex: export run_parallel='mpirun -np 2'  "
+	@echo "         ex: export run_parallel='mpirun -np 2'  "
 
 oclrun: head_message $(mpirun_message)
 	@echo "     Use the environment variable run_ocl"
-	@echo "     ex: export run_ocl='on' to use OpenCL acceleration"
-	@echo "     use run_ocl='CPU' or 'ACC' to force use of hardware"
-	@echo "     different than GPU"
+	@echo "         ex: export run_ocl='on' to use OpenCL acceleration"
+	@echo "     Use run_ocl='CPU' or 'ACC' to force use of hardware"
+	@echo "         different than GPU"
 	@echo "     and the environment variable ocl_platform"
-	@echo "     ex: export ocl_platform='NVIDIA'"
+	@echo "         ex: export ocl_platform='NVIDIA'"
 	@echo "     and the environment variable ocl_devices"
-	@echo "     ex: export ocl_devices='K20'"
+	@echo "         ex: export ocl_devices='K20'"
 
 CLEANFILES =
 

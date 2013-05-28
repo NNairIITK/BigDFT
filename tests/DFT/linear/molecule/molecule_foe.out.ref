@@ -1826,23 +1826,3 @@ Calculating charge density... done.
    itoutH, Delta DENSOUT, energy, energyDiff   4   5.20E-08   -1.76325187793824853E+02    0.0000E+00   FINAL
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.139999983432E+02
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:33:50.071
- Calling sequence of Main program      : 
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:33:50.071
- Calling sequence of Main program      : 
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:33:50.071
- Calling sequence of Main program      : 
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:33:50.071
- Calling sequence of Main program      : 
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-03-28 16:33:50.072
- Calling sequence of Main program      : 

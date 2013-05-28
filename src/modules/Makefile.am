@@ -11,11 +11,11 @@ else
 BLACS = blacs_fake.f90
 endif
 
-if USE_MPI
-mpi_include =
-else
-mpi_include = mpif.h
-endif
+#if USE_MPI
+#mpi_include =
+#else
+#mpi_include = mpif.h
+#endif
 
 if USE_LIBXC
 LIBXC_MODULE =
@@ -34,7 +34,7 @@ bindings_headers_nodist =
 endif
 
 libmodules_a_SOURCES = base.f90 \
-	defs.F90 \
+	defs.f90 \
 	gaussians.f90 \
 	types.f90 \
 	input.f90 \
@@ -44,9 +44,11 @@ libmodules_a_SOURCES = base.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
+   fragments.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
-	$(BLACS)
+	$(BLACS) \
+	configure.c
 
 # Modules
 if CAPITALIZE
@@ -60,7 +62,8 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_INPUT.@MODULE_EXT@ \
 	GAUSSIANS.@MODULE_EXT@ \
 	BIGDFT_API.@MODULE_EXT@ \
-	VDWCORRECTION.@MODULE_EXT@
+	VDWCORRECTION.@MODULE_EXT@ \
+	MODULE_FRAGMENTS.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -72,14 +75,15 @@ modules = module_base.@MODULE_EXT@ \
 	module_input.@MODULE_EXT@ \
 	gaussians.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ \
-	vdwcorrection.@MODULE_EXT@
+	vdwcorrection.@MODULE_EXT@ \
+	module_fragments.@MODULE_EXT@
 endif
 
 
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py
-CLEANFILES = mpif.h $(modules)
+CLEANFILES = $(modules)
 
-AM_FCFLAGS = -I. -I$(srcdir) -I../includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
@@ -87,44 +91,32 @@ PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
 
 # Hack for MIC compilation.
 if USE_MIC
-defs.o: defs.F90 $(mpi_include) configure.inc
+defs.o: defs.F90 configure.inc
 	$(PPFCCOMPILE) -offload-attribute-target=mic -opt-report-phase:offload -offload-option,mic,compiler,'-g -O0' -c -o $@ $<
 cublas_fake.o: cublas_fake.f90
 	$(FCCOMPILE) -offload-attribute-target=mic -c -o $@ $<
 else
-defs.o: $(mpi_include) configure.inc 
+defs.o: configure.inc 
 endif
-
-#Fake mpif.h for serial compilation
-mpif.h:
-	touch mpif.h &&\
-	echo "integer, parameter :: MPI_SUCCESS=0,MPI_SUM=1, MPI_COMM_WORLD=1" >> mpif.h &&\
-	echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
-	echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1, MPI_CHARACTER=1, MPI_REAL8=1" >> mpif.h &&\
-	echo "integer, parameter :: MPI_MAX_PROCESSOR_NAME=10, MPI_STATUS_SIZE=1,MPI_LAND=1" >> mpif.h &&\
-        echo "integer, parameter :: MPI_REQUEST_NULL=1,MPI_STATUS_IGNORE=1" >> mpif.h &&\
-        echo "integer, parameter :: mpi_tag_ub=1,mpi_address_kind=8,mpi_info_null=0" >> mpif.h &&\
-        echo "integer, parameter :: mpi_mode_noprecede=0" >> mpif.h &&\
-        echo "real(kind=8), external :: mpi_wtime" >> mpif.h
 
 #dependencies
 $(modules): $(libmodules_a_OBJECTS)
-base.o: defs.o 
-gaussians.o : base.o
+base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o
 types.o: base.o gaussians.o
 input.o: base.o 
-interfaces.o: base.o types.o xc.o
+interfaces.o: base.o types.o xc.o fragments.o
+gaussians.o: base.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
+fragments.o: base.o types.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
-insmod: $(modules) $(mpi_include)
-	test -e "../includes" || $(INSTALL) -d -m 755 ../includes
+insmod: $(modules) 
+	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \
-	  $(INSTALL) -m 644  $$mod ../includes ; \
+	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \
 	done
-	test -z "$(mpi_include)" || $(INSTALL) -m 644 mpif.h ../includes
+#	test -z "$(mpi_include)" || $(INSTALL) -m 644 mpif.h $(top_builddir)/includes

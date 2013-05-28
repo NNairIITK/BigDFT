@@ -111,7 +111,7 @@ subroutine plotGrid(iproc, norb, nspinor, nspin, orbitalNumber, llr, glr, atoms,
   integer, intent(in) :: iproc, norb, nspinor, nspin, orbitalNumber
   type(locreg_descriptors), intent(in) :: llr, glr
   type(atoms_data), intent(in) ::atoms
-  real(kind=8), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(kind=8), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   real(kind=8), intent(in) :: hx, hy, hz
   
   ! Local variables
@@ -134,18 +134,21 @@ subroutine plotGrid(iproc, norb, nspinor, nspin, orbitalNumber, llr, glr, atoms,
     filename='orbital_'//trim(num)
   
     open(unit=2000+iproc,file=trim(filename)//'.xyz',status='unknown')
-    !write(2000+iproc,*) llr%wfd%nvctr_c+llr%wfd%nvctr_f+atoms%nat,' atomic'
-    write(2000+iproc,*) glr%wfd%nvctr_c+glr%wfd%nvctr_f+llr%wfd%nvctr_c+llr%wfd%nvctr_f+atoms%nat,' atomic'
-    if (atoms%geocode=='F') then
+    !write(2000+iproc,*) llr%wfd%nvctr_c+llr%wfd%nvctr_f+atoms%astruct%nat,' atomic'
+    write(2000+iproc,*) glr%wfd%nvctr_c+glr%wfd%nvctr_f+llr%wfd%nvctr_c+llr%wfd%nvctr_f+atoms%astruct%nat,' atomic'
+    if (atoms%astruct%geocode=='F') then
        write(2000+iproc,*)'complete simulation grid with low and high resolution points'
-    else if (atoms%geocode =='S') then
-       write(2000+iproc,'(a,2x,3(1x,1pe24.17))')'surface',atoms%alat1,atoms%alat2,atoms%alat3
-    else if (atoms%geocode =='P') then
-       write(2000+iproc,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%alat1,atoms%alat2,atoms%alat3
+    else if (atoms%astruct%geocode =='S') then
+       write(2000+iproc,'(a,2x,3(1x,1pe24.17))')'surface',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
+            atoms%astruct%cell_dim(3)
+    else if (atoms%astruct%geocode =='P') then
+       write(2000+iproc,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
+            atoms%astruct%cell_dim(3)
     end if
 
-   do iat=1,atoms%nat
-      write(2000+iproc,'(a6,2x,3(1x,e12.5),3x)') trim(atoms%atomnames(atoms%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
+   do iat=1,atoms%astruct%nat
+      write(2000+iproc,'(a6,2x,3(1x,e12.5),3x)') trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
+           rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
    end do
 
   

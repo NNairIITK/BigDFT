@@ -127,7 +127,7 @@ program test_forces
       !initialize memory counting
       !call memocc(0,iproc,'count','start')
 
-      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
+      allocate(fxyz(3,atoms%astruct%nat+ndebug),stat=i_stat)
       call memocc(i_stat,fxyz,'fxyz',subname)
 
       call init_restart_objects(iproc,inputs,atoms,rst,subname)
@@ -146,8 +146,8 @@ program test_forces
       path=0.d0
       !calculate the displacement at each integration step
       !(use sin instead of random numbers)
-      allocate(drxyz(1:3,1:atoms%nat))
-      do iat=1,atoms%nat
+      allocate(drxyz(1:3,1:atoms%astruct%nat))
+      do iat=1,atoms%astruct%nat
          drxyz(1,iat)=dx*sin(iat+.2d0)   
          drxyz(2,iat)=dx*sin(iat+.4d0)  
          drxyz(3,iat)=dx*sin(iat+.7d0)  
@@ -177,7 +177,7 @@ program test_forces
          !   do one step of the path integration
          if (iproc == 0) then
             !integrate forces*displacement
-            !fdr=sum(fxyz(1:3,1:atoms%nat)*drxyz(1:3,1:atoms%nat))
+            !fdr=sum(fxyz(1:3,1:atoms%astruct%nat)*drxyz(1:3,1:atoms%astruct%nat))
             fdr=sum(fxyz(:,:)*drxyz(:,:))
             path=path-simpson(ipath)*fdr
             call yaml_map('Path iteration',ipath)
