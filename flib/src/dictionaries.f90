@@ -17,7 +17,7 @@ module dictionaries
 
   private
 
-  type :: dictionary_container
+  type, public :: dictionary_container !>public only due to the fact that some functions are public
      character(len=max_field_length) :: val=' '
      type(dictionary), pointer :: dict => null()
   end type dictionary_container
@@ -261,16 +261,17 @@ contains
     !local variables
     integer :: i_st,n_st
     character(len=max_field_length) :: key,val
+    type(dictionary), pointer :: dict_tmp
 
     !initialize dictionary
-    call dict_init(dict_new)
-    
+    call dict_init(dict_tmp)
     n_st=size(st_arr)
     do i_st=1,n_st
-       key=st_arr(i_st)%key
-       val=st_arr(i_st)%value
-       call set(dict_new//key,val)
+       call set(dict_tmp//trim(st_arr(i_st)%key),&
+            trim(st_arr(i_st)%value))
     end do
+
+    dict_new => dict_tmp
 
   end function dict_new
 
@@ -280,16 +281,22 @@ contains
     type(dictionary), pointer :: dict_new_single
     !local variables
     character(len=max_field_length) :: key,val
+    type(dictionary), pointer :: dict_tmp
+
+    !nullify(dict_new_single)
 
     !initialize dictionary
-    call dict_init(dict_new_single)
-    
+    call dict_init(dict_tmp)
+    !call dictionary_nullify(dict_new_single)
+
     if (present(st)) then
        key=st%key
        val=st%value
-       call set(dict_new_single//key,val)
+       call set(dict_tmp//trim(key),trim(val))
     end if
     
+    dict_new_single => dict_tmp
+
   end function dict_new_single
 
 
@@ -658,18 +665,21 @@ contains
     !local variables
     integer :: i_st,n_st
     character(len=max_field_length) :: key,val
+    type(dictionary), pointer :: dict_tmp
 
     !initialize dictionary
-    call dict_init(list_new)
+    call dict_init(dict_tmp)
     
     n_st=size(dicts)
     do i_st=1,n_st
        if (associated(dicts(i_st)%dict)) then
-          call add(list_new,dicts(i_st)%dict)
+          call add(dict_tmp,dicts(i_st)%dict)
        else if (len_trim(dicts(i_st)%val) > 0) then
-          call add(list_new,dicts(i_st)%val)
+          call add(dict_tmp,dicts(i_st)%val)
        end if
     end do
+
+    list_new => dict_tmp
 
   end function list_new
 
@@ -692,18 +702,9 @@ contains
   subroutine get_dict(dictval,dict)
     implicit none
     type(dictionary), pointer, intent(out) :: dictval
-    type(dictionary), target, intent(in) :: dict
+    type(dictionary), pointer, intent(in) :: dict
 
-    if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
-    !call check_key(dict)
-    
-    !if (associated(dict%child)) then
-    !   dictval=>dict%child
-!    if (associated(dict)) then
-       dictval=>dict
-!    else
-!       nullify(dictval)
-!    end if
+    dictval=>dict
 
   end subroutine get_dict
 

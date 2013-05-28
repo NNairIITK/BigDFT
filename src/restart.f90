@@ -427,7 +427,7 @@ END SUBROUTINE readmywaves
 subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one=>verify_file_presence
   implicit none
   integer, intent(in) :: nproc
   character(len=*), intent(in) :: filerad
@@ -1127,7 +1127,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
       frag_trans%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
       frag_trans%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
       frag_trans%rot_center(:)=rxyz(:,iiat)
-      frag_trans%dr(:)=rxyz(:,iiat)-rxyz(:,iiat_tmp)
+      frag_trans%rot_center_new(:)=rxyz(:,iiat_tmp)
 
       call reformat_check(reformat,reformat_reason,tol,at,tmb%lzd%hgrids,tmb%lzd%hgrids,&
            tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_c,&
@@ -1390,7 +1390,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   frag_trans%theta=20.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
   frag_trans%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
   frag_trans%rot_center(:)=(/7.8d0,11.8d0,11.6d0/)
-  frag_trans%dr(:)=(/7.8d0,11.2d0,11.8d0/)-(/7.8d0,11.8d0,11.6d0/)
+  frag_trans%rot_center_new(:)=(/7.8d0,11.2d0,11.8d0/)
 
   call reformat_check(reformat,reformat_reason,tol,at,hgrids,hgrids_old,&
        nvctr_c_old,nvctr_f_old,wfd%nvctr_c,wfd%nvctr_f,&
@@ -1748,7 +1748,11 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   type(local_zone_descriptors) :: lzd_old
   real(wp), dimension(:), pointer :: psi_old
   type(phi_array), dimension(:), pointer :: phi_array_old
-  type(fragment_transformation), dimension(:), pointer :: frag_trans
+  type(fragment_transformation), dimension(:), pointer :: frag_trans_orb, frag_trans_frag
+  real(gp), dimension(:,:), allocatable :: rxyz_ref, rxyz_new, rxyz4_ref, rxyz4_new
+  real(gp), dimension(:), allocatable :: dist
+  integer, dimension(:), allocatable :: ipiv
+  logical :: skip
 
   ! DEBUG
   character(len=12) :: orbname
@@ -1794,7 +1798,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
      nullify(phi_array_old(iorbp)%psig)
   end do
 
-  allocate(frag_trans(tmb%orbs%norbp))
+  !allocate(frag_trans_orb(tmb%orbs%norbp))
 
   unitwf=99
   isforb=0
@@ -1842,31 +1846,32 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 
               ! DEBUG: print*,iproc,iorb,iorb+orbs%isorb,iorb_old,iorb_out
 
-              ! define fragment transformation - should eventually be done automatically...
-              ! first fragment is shifted only, hack here that second fragment should be rotated
-              if (ifrag==1) then
-                 frag_trans(iorbp)%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
-                 frag_trans(iorbp)%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
-                 frag_trans(iorbp)%rot_center(:)=rxyz_old(:,iiat)
-                 frag_trans(iorbp)%dr(:)=rxyz(:,iiat)-rxyz_old(:,iiat)
-              else
-                 ! unnecessary recalculation here, to be tidied later
-                 mol_centre=0.0d0
-                 mol_centre_new=0.0d0
-                 do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
-                    mol_centre(:)=mol_centre(:)+rxyz_old(:,isfat+iat)
-                    mol_centre_new(:)=mol_centre_new(:)+rxyz(:,isfat+iat)
-                 end do
-                 mol_centre=mol_centre/real(ref_frags(ifrag_ref)%astruct_frg%nat,gp)
-                 mol_centre_new=mol_centre_new/real(ref_frags(ifrag_ref)%astruct_frg%nat,gp)
-                 frag_trans(iorbp)%theta=30.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
-                 frag_trans(iorbp)%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
-                 frag_trans(iorbp)%rot_center(:)=mol_centre(:) ! take as average for now
-                 frag_trans(iorbp)%dr(:)=mol_centre_new(:)-mol_centre(:) ! to get shift, mol is rigidly shifted so could take any, rather than centre
-              end if
+              !! define fragment transformation - should eventually be done automatically...
+              !! first fragment is shifted only, hack here that second fragment should be rotated
+              !if (ifrag==1) then
+              !   frag_trans_orb(iorbp)%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
+              !   frag_trans_orb(iorbp)%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
+              !   frag_trans_orb(iorbp)%rot_center(:)=rxyz_old(:,iiat)
+              !   frag_trans_orb(iorbp)%rot_center_new(:)=rxyz(:,iiat)
+              !else
+              !   ! unnecessary recalculation here, to be tidied later
+              !   mol_centre=0.0d0
+              !   mol_centre_new=0.0d0
+              !   do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+              !      mol_centre(:)=mol_centre(:)+rxyz_old(:,isfat+iat)
+              !      mol_centre_new(:)=mol_centre_new(:)+rxyz(:,isfat+iat)
+              !   end do
+              !   mol_centre=mol_centre/real(ref_frags(ifrag_ref)%astruct_frg%nat,gp)
+              !   mol_centre_new=mol_centre_new/real(ref_frags(ifrag_ref)%astruct_frg%nat,gp)
+              !   frag_trans_orb(iorbp)%theta=30.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
+              !   frag_trans_orb(iorbp)%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
+              !   frag_trans_orb(iorbp)%rot_center(:)=mol_centre(:) ! take as average for now
+              !   frag_trans_orb(iorbp)%rot_center_new(:)=mol_centre_new(:) ! to get shift, mol is rigidly shifted so could take any, rather than centre
+              !end if
 
-              !!write(*,'(a,x,i2,x,4(f5.2,x),6(f7.3,x))'),'trans',ifrag,frag_trans(iorbp)%theta,frag_trans(iorbp)%rot_axis, &
-              !!     frag_trans(iorbp)%rot_center,frag_trans(iorbp)%dr
+              !write(*,'(a,x,2(i2,x),4(f5.2,x),6(f7.3,x))'),'trans',ifrag,iiorb,frag_trans_orb(iorbp)%theta,&
+              !     frag_trans_orb(iorbp)%rot_axis, &
+              !     frag_trans_orb(iorbp)%rot_center,frag_trans_orb(iorbp)%rot_center_new
 
               if (.not. lstat) then
                  call yaml_warning(trim(error))
@@ -1888,11 +1893,205 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   ! reformat fragments
   nullify(psi_old)
 
-  ! could get shift by taking locregcenter-posinp? to give old center, instead taking directly from file header for now
+!if several fragments do this, otherwise find 3 nearest neighbours (use sort in time.f90) and send rxyz arrays with 4 atoms
 
-  call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans,psi_old,phi_array_old)
+  if (input_frag%nfrag>1) then
+     ! Find fragment transformations for each fragment, then put in frag_trans array for each orb
+     allocate(frag_trans_frag(input_frag%nfrag))
+     isfat=0
+     isforb=0
+     do ifrag=1,input_frag%nfrag
+        ! find reference fragment this corresponds to
+        ifrag_ref=input_frag%frag_index(ifrag)
 
-  deallocate(frag_trans)
+        ! check if we need this fragment transformation on this proc
+        skip=.true.
+        do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+           do iorbp=1,tmb%orbs%norbp
+              iiorb=iorbp+tmb%orbs%isorb
+              ! check if this ref frag orbital corresponds to the orbital we want
+              if (iiorb==iforb+isforb) then
+                 skip=.false.
+                 exit
+              end if
+           end do
+        end do
+
+        if (skip) then
+           isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
+           isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+           cycle
+        end if
+
+        allocate(rxyz_ref(3,ref_frags(ifrag_ref)%astruct_frg%nat), stat=i_stat)
+        call memocc(i_stat, rxyz_ref, 'rxyz_ref', subname)
+        allocate(rxyz_new(3,ref_frags(ifrag_ref)%astruct_frg%nat), stat=i_stat)
+        call memocc(i_stat, rxyz_new, 'rxyz_ref', subname)
+
+        do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+           rxyz_new(:,iat)=rxyz(:,isfat+iat)
+           rxyz_ref(:,iat)=rxyz_old(:,isfat+iat)
+        end do
+
+        ! use center of fragment for now, could later change to center of symmetry
+        frag_trans_frag(ifrag)%rot_center=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref)
+        frag_trans_frag(ifrag)%rot_center_new=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_new)
+
+        ! shift rxyz wrt center of rotation
+        do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+           rxyz_ref(:,iat)=rxyz_ref(:,iat)-frag_trans_frag(ifrag)%rot_center
+           rxyz_new(:,iat)=rxyz_new(:,iat)-frag_trans_frag(ifrag)%rot_center_new
+        end do
+
+        call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,&
+             frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta)
+
+        i_all = -product(shape(rxyz_ref))*kind(rxyz_ref)
+        deallocate(rxyz_ref,stat=i_stat)
+        call memocc(i_stat,i_all,'rxyz_ref',subname)
+        i_all = -product(shape(rxyz_new))*kind(rxyz_new)
+        deallocate(rxyz_new,stat=i_stat)
+        call memocc(i_stat,i_all,'rxyz_new',subname)
+
+        write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,ifrag_ref,rot_axis,theta',&
+             ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+
+        isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
+        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+     end do
+
+     allocate(frag_trans_orb(tmb%orbs%norbp))
+     isforb=0
+     isfat=0
+     do ifrag=1,input_frag%nfrag
+        ! find reference fragment this corresponds to
+        ifrag_ref=input_frag%frag_index(ifrag)
+        ! loop over orbitals of this fragment
+        do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+           do iorbp=1,tmb%orbs%norbp
+              iiorb=iorbp+tmb%orbs%isorb
+              ! check if this ref frag orbital corresponds to the orbital we want
+              if (iiorb/=iforb+isforb) cycle
+              frag_trans_orb(iorbp)%rot_center=frag_trans_frag(ifrag)%rot_center
+              frag_trans_orb(iorbp)%rot_center_new=frag_trans_frag(ifrag)%rot_center_new
+              frag_trans_orb(iorbp)%rot_axis=(frag_trans_frag(ifrag)%rot_axis)
+              frag_trans_orb(iorbp)%theta=frag_trans_frag(ifrag)%theta
+
+              !write(*,'(a,x,2(i2,x),4(f5.2,x),6(f7.3,x))'),'trans2',ifrag,iiorb,frag_trans_orb(iorbp)%theta,&
+              !     frag_trans_orb(iorbp)%rot_axis, &
+              !     frag_trans_orb(iorbp)%rot_center,frag_trans_orb(iorbp)%rot_center_new
+           end do
+        end do
+        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+        isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
+     end do
+
+     deallocate(frag_trans_frag)
+  else
+     ! only 1 'fragment', calculate rotation/shift atom wise, using nearest neighbours
+     allocate(frag_trans_orb(tmb%orbs%norbp))
+
+     allocate(rxyz4_ref(3,min(4,ref_frags(ifrag_ref)%astruct_frg%nat)), stat=i_stat)
+     call memocc(i_stat, rxyz4_ref, 'rxyz4_ref', subname)
+     allocate(rxyz4_new(3,min(4,ref_frags(ifrag_ref)%astruct_frg%nat)), stat=i_stat)
+     call memocc(i_stat, rxyz4_new, 'rxyz4_ref', subname)
+
+     isforb=0
+     isfat=0
+     do ifrag=1,input_frag%nfrag
+        ! find reference fragment this corresponds to
+        ifrag_ref=input_frag%frag_index(ifrag)
+
+        allocate(rxyz_ref(3,ref_frags(ifrag_ref)%astruct_frg%nat), stat=i_stat)
+        call memocc(i_stat, rxyz_ref, 'rxyz_ref', subname)
+        allocate(rxyz_new(3,ref_frags(ifrag_ref)%astruct_frg%nat), stat=i_stat)
+        call memocc(i_stat, rxyz_new, 'rxyz_ref', subname)
+        allocate(dist(ref_frags(ifrag_ref)%astruct_frg%nat-1), stat=i_stat)
+        call memocc(i_stat, dist, 'dist', subname)
+        allocate(ipiv(ref_frags(ifrag_ref)%astruct_frg%nat-1), stat=i_stat)
+        call memocc(i_stat, ipiv, 'ipiv', subname)
+
+        do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+           rxyz_new(:,iat)=rxyz(:,isfat+iat)
+           rxyz_ref(:,iat)=rxyz_old(:,isfat+iat)
+        end do
+
+        ! loop over orbitals of this fragment
+        do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+           do iorbp=1,tmb%orbs%norbp
+              iiorb=iorbp+tmb%orbs%isorb
+              if (iiorb/=iforb+isforb) cycle
+
+              iiat=tmb%orbs%onwhichatom(iiorb)
+
+              ! use atom position
+              frag_trans_orb(iorbp)%rot_center=rxyz_old(:,iiat)
+              frag_trans_orb(iorbp)%rot_center_new=rxyz(:,iiat)
+
+              ! shift rxyz wrt center of rotation
+              do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+                 rxyz_ref(:,iat)=rxyz_ref(:,iat)-frag_trans_orb(iorbp)%rot_center
+                 rxyz_new(:,iat)=rxyz_new(:,iat)-frag_trans_orb(iorbp)%rot_center_new
+              end do
+
+              ! find distances from this atom
+              do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+                 if (iat==iiat) cycle
+                 dist=dsqrt(rxyz_ref(1,iat)**2+rxyz_ref(2,iat)**2+rxyz_ref(3,iat)**2)
+              end do             
+
+              ! sort atoms into neighbour order
+              call sort_positions(ref_frags(ifrag_ref)%astruct_frg%nat-1,dist,ipiv)
+
+              ! take atom and 3 nearest neighbours
+              rxyz4_ref(:,1)=frag_trans_orb(iorbp)%rot_center
+              rxyz4_new(:,1)=frag_trans_orb(iorbp)%rot_center_new
+              do iat=1,min(3,ref_frags(ifrag_ref)%astruct_frg%nat-1)
+                 rxyz4_ref(:,iat+1)=rxyz_ref(:,ipiv(iat))
+                 rxyz4_new(:,iat+1)=rxyz_new(:,ipiv(iat))
+              end do
+
+              call find_frag_trans(min(4,ref_frags(ifrag_ref)%astruct_frg%nat),rxyz4_ref,rxyz4_new,&
+                   frag_trans_orb(iorbp)%rot_axis,frag_trans_orb(iorbp)%theta)
+
+              write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,iorb,rot_axis,theta',&
+                   ifrag,iiorb,frag_trans_orb(iorbp)%rot_axis,frag_trans_orb(iorbp)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+
+frag_trans_orb(iorbp)%theta=0.0_gp
+
+           end do
+        end do
+        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+        isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
+
+        i_all = -product(shape(ipiv))*kind(ipiv)
+        deallocate(ipiv,stat=i_stat)
+        call memocc(i_stat,i_all,'ipiv',subname)
+        i_all = -product(shape(dist))*kind(dist)
+        deallocate(dist,stat=i_stat)
+        call memocc(i_stat,i_all,'dist',subname)
+        i_all = -product(shape(rxyz_ref))*kind(rxyz_ref)
+        deallocate(rxyz_ref,stat=i_stat)
+        call memocc(i_stat,i_all,'rxyz_ref',subname)
+        i_all = -product(shape(rxyz_new))*kind(rxyz_new)
+        deallocate(rxyz_new,stat=i_stat)
+        call memocc(i_stat,i_all,'rxyz_new',subname)
+
+     end do
+
+     i_all = -product(shape(rxyz4_ref))*kind(rxyz4_ref)
+     deallocate(rxyz4_ref,stat=i_stat)
+     call memocc(i_stat,i_all,'rxyz4_ref',subname)
+     i_all = -product(shape(rxyz4_new))*kind(rxyz4_new)
+     deallocate(rxyz4_new,stat=i_stat)
+     call memocc(i_stat,i_all,'rxyz4_new',subname)
+
+  end if
+
+
+  call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,psi_old,phi_array_old)
+
+  deallocate(frag_trans_orb)
 
   do iorbp=1,tmb%orbs%norbp
      !nullify/deallocate here as appropriate, in future may keep
@@ -2013,13 +2212,15 @@ call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
   call system_clock(ncount2,ncount_rate,ncount_max)
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
 
-  if (iproc == 0) call yaml_open_sequence('Reading Waves Time')
-  call yaml_sequence(advance='no')
-  call yaml_open_map(flow=.true.)
+  if (iproc == 0) then
+     call yaml_open_sequence('Reading Waves Time')
+     call yaml_sequence(advance='no')
+     call yaml_open_map(flow=.true.)
      call yaml_map('Process',iproc)
      call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
-  call yaml_close_map()
-  if (iproc == 0) call yaml_close_sequence()
+     call yaml_close_map()
+     call yaml_close_sequence()
+  end if
   !write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 
 END SUBROUTINE readmywaves_linear_new
@@ -2540,7 +2741,6 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   real(gp) :: displ, mindist
   integer, dimension(3) :: nb
   logical, dimension(3) :: per
-  real(gp), dimension(3) :: centre_new
 
   !conditions for periodicity in the three directions
   per(1)=(at%astruct%geocode /= 'F')
@@ -2553,16 +2753,14 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   call ext_buffers_coarse(per(2),nb(2))
   call ext_buffers_coarse(per(3),nb(3))
 
-  centre_new=frag_trans%rot_center+frag_trans%dr
-
   ! centre of rotation with respect to start of box
   centre_old_box(1)=mindist(per(1),at%astruct%cell_dim(1),frag_trans%rot_center(1),hgrids_old(1)*(ns_old(1)-0.5_dp*nb(1)))
   centre_old_box(2)=mindist(per(2),at%astruct%cell_dim(2),frag_trans%rot_center(2),hgrids_old(2)*(ns_old(2)-0.5_dp*nb(2)))
   centre_old_box(3)=mindist(per(3),at%astruct%cell_dim(3),frag_trans%rot_center(3),hgrids_old(3)*(ns_old(3)-0.5_dp*nb(3)))
 
-  centre_new_box(1)=mindist(per(1),at%astruct%cell_dim(1),centre_new(1),hgrids(1)*(ns(1)-0.5_dp*nb(1)))
-  centre_new_box(2)=mindist(per(2),at%astruct%cell_dim(2),centre_new(2),hgrids(2)*(ns(2)-0.5_dp*nb(2)))
-  centre_new_box(3)=mindist(per(3),at%astruct%cell_dim(3),centre_new(3),hgrids(3)*(ns(3)-0.5_dp*nb(3)))
+  centre_new_box(1)=mindist(per(1),at%astruct%cell_dim(1),frag_trans%rot_center_new(1),hgrids(1)*(ns(1)-0.5_dp*nb(1)))
+  centre_new_box(2)=mindist(per(2),at%astruct%cell_dim(2),frag_trans%rot_center_new(2),hgrids(2)*(ns(2)-0.5_dp*nb(2)))
+  centre_new_box(3)=mindist(per(3),at%astruct%cell_dim(3),frag_trans%rot_center_new(3),hgrids(3)*(ns(3)-0.5_dp*nb(3)))
 
   !Calculate the shift of the atom to be used in reformat
   da(1)=mindist(per(1),at%astruct%cell_dim(1),centre_new_box(1),centre_old_box(1))

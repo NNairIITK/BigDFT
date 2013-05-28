@@ -76,7 +76,7 @@ subroutine test_dynamic_memory()
 !!$   !   call yaml_close_map()
    call f_release_routine()
 
-   call f_finalize()
+   call f_malloc_finalize()
 
 
 end subroutine test_dynamic_memory

@@ -18,7 +18,7 @@ subroutine f_dump_error(newerror_code,err_msg)
 
   !dump the error message
   call yaml_dict_dump(f_get_error_dict(newerror_code))
-  if (len_trim(err_msg)==0) call yaml_map('Additional Info',err_msg)
+  if (len_trim(err_msg)/=0) call yaml_map('Additional Info',err_msg)
 
 end subroutine f_dump_error
 
@@ -31,8 +31,9 @@ end subroutine f_lib_initialize
 !>routine which finalize f_lib 
 subroutine f_lib_finalize()
   use dictionaries
+  use dynamic_memory
   implicit none
-
+  call f_malloc_finalize()
   call f_err_finalize()
 end subroutine f_lib_finalize
 

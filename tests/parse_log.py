@@ -37,6 +37,7 @@ def clean_logfile(logfile_lines,to_remove):
   line_rev.reverse()
   #clean the log
   cleaned_logfile=[]
+  removed=[]
   #for line in line_rev: #line_iter:
   while len(line_rev) >0:
     line=line_rev.pop()
@@ -76,8 +77,12 @@ def clean_logfile(logfile_lines,to_remove):
                 #purge the stream
                 for item in item_list:
                   stream_list.remove(item+'\n')
-                #extract the remaining line which should be compared with the last one  
-                first_line=stream_list.pop(0)[len(last_line.rstrip()):]
+                #extract the remaining line which should be compared with the last one
+                strip_size=len(last_line.rstrip())
+                if strip_size > 0:
+                  first_line=stream_list.pop(0)[strip_size:]
+                else:
+                  first_line=''
                 #then put the rest in the line to be treated
                 to_print.rstrip('\n')
                 to_print += first_line+'\n'
@@ -87,40 +92,50 @@ def clean_logfile(logfile_lines,to_remove):
          #put back the unused part in the document
          line_rev.extend(stream_list)
          # mark that the key has been removed
-         print 'removed: ',remove_it
-  # then print out the line
+         if (remove_it not in removed):
+           removed.append(remove_it)
+           print 'removed: ',remove_it
+  # then print out the line 
     cleaned_logfile.append(to_print)
 
+  # check that everything has been removed, at least once
+  if (set(removed) != set(to_remove)):
+    print 'WARNING, not all the requested items have been removed!'
+    print 'To_remove : ',to_remove
+    print 'removed   : ',removed
+    print 'Difference: ',list(set(to_remove) - set(removed) )
   return cleaned_logfile
 
 
-# this is a tentative function written to understand the sanity of the
-# BigDFT run
-def document_analysis(doc):
-  #analyse the energy and the forces
-  last=doc["Last Iteration"]
-  try:
-    last=doc["Last Iteration"]
-    dict_dump(last["EKS"])
-    stdout.write(yaml.dump(last,default_flow_style=False,explicit_start=True))    
-  except:
-    last={}
-    print 'Last iteration absent'
-  try:
-    forces=doc["Geometry"]["Forces"]
-    dict_dump(forces[0])
-    #print forces["maxval"]
-  except:
-    forces={}
-    print 'forces not calculated'
-    
+# this is a tentative function written to extract information from the runs
+def document_analysis(doc,to_extract):
+  analysis=[]
+  for quantity in to_extract:
+    #print quantity
+    #follow the levels indicated to find the quantity
+    value=doc
+    for key in quantity:
+      #as soon as there is a problem the quantity is null
+      try:
+        value=value[key]
+      except:
+        value=None
+        break
+    if value is not None:
+      analysis.append(value)
+    else:
+      #skip the document is one of the value is None
+      return None
+  return analysis    
 
 def parse_arguments():
-  parser = optparse.OptionParser("This script is used to extraact some information from a logfile")
+  parser = optparse.OptionParser("This script is used to extract some information from a logfile")
   parser.add_option('-d', '--data', dest='data',default=None, #sys.argv[2],
                     help="BigDFT logfile, yaml compliant (check this if only this option is given)", metavar='FILE')
   parser.add_option('-v', '--invert-match', dest='remove',default=None, #sys.argv[2],
                     help="File containing the keys which have to be excluded from the logfile", metavar='FILE')
+  parser.add_option('-e', '--extract', dest='extract',default=None, #sys.argv[2],
+                    help="File containing the keys which have to be extracted to build the quantities", metavar='FILE')
   parser.add_option('-o', '--output', dest='output', default="/dev/null", #sys.argv[4],
                     help="set the output file (default: /dev/null)", metavar='FILE')
   #Return the parsing
@@ -139,15 +154,59 @@ with open(args.data, "r") as fp:
 #output file
 file_out=open(args.output, "w")
 #to_remove list
-to_remove = yaml.load(open(args.remove, "r").read(), Loader = yaml.CLoader)
+if args.remove is not None:
+  to_remove = yaml.load(open(args.remove, "r").read(), Loader = yaml.CLoader)
+else:
+  #standard list which removes long items from the logfile
+  to_remove= ["Atomic positions within the cell (Atomic and Grid Units)",
+              "Atomic Forces (Ha/Bohr)",
+              "Orbitals",
+              "Energies",
+              "Properties of atoms in the system"]
+  #to_remove=[]
+
     
 #obtain the cleaned document
 cleaned_logfile = clean_logfile(logfile_lines,to_remove)
 
+print 'Logfile cleaned, writing output file...'
 #dump it
 for line in cleaned_logfile:
   file_out.write(line) 
 
+file_out.close()
+print 'Output file written'
+#sys.exit(0)
+#experimental: extract for any document of the cleaned logfile the final energy and positions
+if args.extract is not None:
+  to_extract = yaml.load(open(args.extract, "r").read(), Loader = yaml.CLoader)
+else:
+  to_extract=[ ["Geometry","FORCES norm(Ha/Bohr)","maxval"], ["Last Iteration","EKS"]]
+
+datas=yaml.load_all(''.join(cleaned_logfile), Loader = yaml.CLoader)
+extracted_result=[]
+for doc in datas:
+  doc_res=document_analysis(doc,to_extract)
+  if doc_res is not None:
+    extracted_result.append(doc_res)
+
+print "Number of valid documents:",len(extracted_result)
+for it in extracted_result:
+  print it
+
+iterations = range(len(extracted_result))
+energies = [en for [f, en] in extracted_result]
+energy_min=min(energies)
+energies = [en-energy_min for en in energies]
+forces = [f for [f, en] in extracted_result]
+
+import matplotlib.pyplot as plt
+plt.plot(iterations, energies, '.-',label='E - min(E)')
+plt.plot(iterations, forces, '.-',label='max F')
+plt.yscale('log')
+plt.legend(loc='lower left')
+plt.show()
+  
 sys.exit(0)
 
 #do some tests

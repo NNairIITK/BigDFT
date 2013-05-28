@@ -605,7 +605,7 @@ module module_interfaces
          type(grid_dimensions), intent(in) :: d_old
          real(gp), dimension(3, atoms%astruct%nat), intent(inout) :: rxyz_old
          type(wavefunctions_descriptors), intent(inout) :: wfd_old
-         type(system_fragment), dimension(in%frag%nfrag_ref), intent(inout) :: ref_frags
+         type(system_fragment), dimension(:), pointer :: ref_frags
        END SUBROUTINE input_wf
 
        subroutine reformatmywaves(iproc,orbs,at,&
@@ -2088,7 +2088,7 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout),target:: tmb
       type(DFT_wavefunction),intent(inout),target:: KSwfn
       integer,intent(out):: infocode
-      type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags 
+      type(system_fragment), dimension(:), pointer :: ref_frags 
     end subroutine linearScaling   
 
    subroutine createDerivativeBasis(n1,n2,n3, &
@@ -2698,50 +2698,7 @@ module module_interfaces
       implicit none
       type(communications_arrays),intent(out):: comms
     end subroutine nullify_communications_arrays
-    
-    subroutine nullify_locreg_descriptors(lr)
-      use module_base
-      use module_types
-      implicit none
-      type(locreg_descriptors),intent(out):: lr
-    end subroutine nullify_locreg_descriptors
-    
-    subroutine nullify_wavefunctions_descriptors(wfd)
-      use module_base
-      use module_types
-      implicit none
-      type(wavefunctions_descriptors),intent(out):: wfd
-    end subroutine nullify_wavefunctions_descriptors
-    
-    subroutine nullify_convolutions_bounds(bounds)
-      use module_base
-      use module_types
-      implicit none
-      type(convolutions_bounds),intent(out):: bounds
-    end subroutine nullify_convolutions_bounds
-    
-    subroutine nullify_kinetic_bounds(kb)
-      use module_base
-      use module_types
-      implicit none
-      type(kinetic_bounds),intent(out):: kb
-    end subroutine nullify_kinetic_bounds
-    
-    subroutine nullify_shrink_bounds(sb)
-      use module_base
-      use module_types
-      implicit none
-      type(shrink_bounds),intent(out):: sb
-    end subroutine nullify_shrink_bounds
-    
-    subroutine nullify_grow_bounds(gb)
-      use module_base
-      use module_types
-      implicit none
-      type(grow_bounds),intent(out):: gb
-    end subroutine nullify_grow_bounds
-    
-
+        
     subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locregShape, lborbs)
       use module_base
       use module_types
@@ -3121,9 +3078,24 @@ module module_interfaces
          real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
          real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
          real(wp), dimension(:), pointer :: proj
-         type(system_fragment), dimension(in%frag%nfrag_ref), intent(inout) :: ref_frags
+         type(system_fragment), dimension(:), pointer :: ref_frags
          integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
        end subroutine system_initialization
+
+       subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc, nproc, nfrag, frag_dir, ref_frags)
+         use module_types
+         use module_fragments
+         implicit none
+         integer, intent(out) :: input_wf_format         !< (out) Format of WF
+         integer, intent(inout) :: inputpsi              !< (in) indicate how check input psi, (out) give how to build psi
+         integer, intent(in) :: iproc                    !< (in)  id proc
+         integer, intent(in) :: nproc                    !< (in)  #proc
+         integer, intent(in) :: nfrag                    !< number of fragment directories which need checking
+         type(system_fragment), dimension(:), pointer :: ref_frags  !< number of orbitals for each fragment
+         character(len=100), dimension(nfrag), intent(in) :: frag_dir !< label for fragment subdirectories (blank if not a fragment calculation)
+         character(len = *), intent(in) :: dir_output
+         type(orbitals_data), intent(in) :: orbs, lorbs
+       end subroutine input_check_psi_id
 
        subroutine nullify_p2pComms(p2pcomm)
          use module_base

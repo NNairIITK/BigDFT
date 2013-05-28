@@ -7,9 +7,9 @@ module module_fragments
 
   private
 
-  interface operator(*)
-     module procedure transform_fragment
-  end interface
+  !interface operator(*)
+  !   module procedure transform_fragment
+  !end interface
 
    interface
       subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
@@ -75,9 +75,9 @@ module module_fragments
      real(gp) :: theta !< angle of rotation 
   end type fragment_transformation
 
-  public operator(*)
+  !public operator(*)
 
-  public :: fragment_null, fragment_free, init_fragments, minimal_orbitals_data_null
+  public :: fragment_null, fragment_free, init_fragments, minimal_orbitals_data_null, frag_center, find_frag_trans
 
 contains
 
@@ -504,40 +504,38 @@ contains
 
   end function frg_center
 
-  function transform_fragment(trans,frag) result(frag_new)
-    implicit none
-    type(fragment_transformation), intent(in) :: trans
-    type(system_fragment), intent(in) :: frag
-    type(system_fragment) :: frag_new
-
-    ! local variables
-    integer :: iat
-
-    frag_new=fragment_null()
-    frag_new%astruct_frg%nat=frag%astruct_frg%nat
-    frag_new%nat_env=frag%nat_env
-    frag_new%astruct_frg%ntypes=frag%astruct_frg%ntypes
-
-    ! allocate arrays here, leave fragment_basis nullified
-    call fragment_allocate(frag_new)
-
-    ! do fragment first, then environment
-    do iat=1,frag%astruct_frg%nat
-       frag_new%astruct_frg%rxyz(:,iat)=rotate_vector(trans%rot_axis,&
-            trans%theta,frag%astruct_frg%rxyz(:,iat)-trans%rot_center(:))
-!       frag_new%astruct_frg%rxyz(:,iat)=frag_new%astruct_frg%rxyz(:,iat)+trans%rot_center(:)+&
-!            trans%dr(:)
-    end do
-
-    do iat=1,frag%nat_env
-       frag_new%rxyz_env(:,iat)=rotate_vector(trans%rot_axis,trans%theta,frag%rxyz_env(:,iat)-&
-            trans%rot_center(:))
-!       frag_new%rxyz_env(:,iat)=frag_new%rxyz_env(:,iat)+trans%rot_center(:)+trans%dr(:)
-    end do
-
-    ! to complete should copy across iatype and atomnames but only using as a check to see how effective trans is
-
-  end function transform_fragment
+  !function transform_fragment(trans,frag) result(frag_new)
+  !  implicit none
+  !  type(fragment_transformation), intent(in) :: trans
+  !  type(system_fragment), intent(in) :: frag
+  !  type(system_fragment) :: frag_new
+  !
+  !  ! local variables
+  !  integer :: iat
+  !
+  !  frag_new=fragment_null()
+  !  frag_new%astruct_frg%nat=frag%astruct_frg%nat
+  !  frag_new%nat_env=frag%nat_env
+  !  frag_new%astruct_frg%ntypes=frag%astruct_frg%ntypes
+  !
+  !  ! allocate arrays here, leave fragment_basis nullified
+  !  call fragment_allocate(frag_new)
+  !
+  !  ! do fragment first, then environment
+  !  do iat=1,frag%astruct_frg%nat
+  !     frag_new%astruct_frg%rxyz(:,iat)=rotate_vector(trans%rot_axis,&
+  !          trans%theta,frag%astruct_frg%rxyz(:,iat)-trans%rot_center(:))
+  !     frag_new%astruct_frg%rxyz(:,iat)=frag_new%astruct_frg%rxyz(:,iat)+trans%rot_center(:)+trans%dr(:)
+  !  end do
+  !
+  !  do iat=1,frag%nat_env
+  !     frag_new%rxyz_env(:,iat)=rotate_vector(trans%rot_axis,trans%theta,frag%rxyz_env(:,iat)-trans%rot_center(:))
+  !     frag_new%rxyz_env(:,iat)=frag_new%rxyz_env(:,iat)+trans%rot_center(:)+trans%dr(:)
+  !  end do
+  !
+  !  ! to complete should copy across iatype and atomnames but only using as a check to see how effective trans is
+  !
+  !end function transform_fragment
 
 
 
@@ -588,6 +586,8 @@ contains
   !end function transform_fragment_basis
 
   subroutine find_frag_trans(nat,rxyz_ref,rxyz_new,rot_axis,theta)
+    use module_base
+    use yaml_output
     implicit none
     integer, intent(in) :: nat !< fragment size
     real(gp), dimension(3,nat), intent(in) :: rxyz_ref,rxyz_new !<coordinates measured wrt rot_center
@@ -595,8 +595,8 @@ contains
     real(gp) :: theta !< angle of rotation (ref becomes new)
     !local variables
     integer, parameter :: lwork=7*3
-    integer :: info
-    real(gp) :: dets,tracem1
+    integer :: info, i
+    real(gp) :: dets,tracem1,dnrm2
     real(gp), dimension(3) :: SM_arr !< array of SVD and M array
     real(gp), dimension(lwork) :: work !< array of SVD and M array
     real(gp), dimension(3,3) :: B_mat,R_mat,U_mat,VT_mat !<matrices of Wahba's problem
@@ -605,7 +605,7 @@ contains
     R_mat=0.0_gp
 
     !all positions are of weight one for the moment
-    call gemm('N','T',3,3,nat,1.0_gp,rxyz_ref,3,rxyz_new,3,0.0_gp,B_mat,3)
+    call dgemm('N','T',3,3,nat,1.0_gp,rxyz_new,3,rxyz_ref,3,0.0_gp,B_mat,3)
 
     !find matrix of svd
     call dgesvd('A','A',3,3,B_mat,3,SM_arr,U_mat,3,VT_mat,3,work,lwork,info)
@@ -616,21 +616,49 @@ contains
     VT_mat(3,:)=VT_mat(3,:)*dets
 
     !find rotation matrix
-    call gemm('N','N',3,3,3,1.0_gp,U_mat,3,VT_mat,3,0.0_gp,R_mat,3)
+    call dgemm('N','N',3,3,3,1.0_gp,U_mat,3,VT_mat,3,0.0_gp,R_mat,3)
 
     !to be verified that the cost function of Wahba's problem is little
+
 
     !find the angle from R matrix
     tracem1=R_mat(1,1)+R_mat(2,2)+R_mat(3,3)-1.0_gp
 
-    theta=acos(0.5_gp*tracem1)
-
+	 if (abs(tracem1) - 2.0_gp > -1.e-14_gp) then
+	     if (tracem1 > 0.0_gp) theta = 0.0_gp
+	     if (tracem1 <= 0.0_gp) theta = 180.0_gp*(4.0_gp*atan(1.d0)/180.0_gp)
+    else
+       theta=acos(0.5_gp*tracem1)
+       !convert to degrees
+       !theta=theta/(4.0_gp*atan(1.d0)/180.0_gp)
+    end if
+    !check the pertinence of the suggested rotation
+	 if  (f_err_raise(abs(theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp),'Angle theta not optimal (theta= '//&
+	        yaml_toa(theta)//' )')) return
     !find rot_axis
     rot_axis(1)=R_mat(3,2)-R_mat(2,3)    
     rot_axis(2)=R_mat(1,3)-R_mat(3,1)
     rot_axis(3)=R_mat(2,1)-R_mat(1,2)    
     !normalize it
     call dscal(3,1.0_gp/dnrm2(3,rot_axis,1),rot_axis,1)
+
+    !print*,'Rmat:',theta
+    !do i=1,3
+    !   write(*,'(3(F12.6,2x))') R_mat(i,:)
+    !end do
+
+    !print*,'Rcalc:',theta
+    !write(*,'(3(F12.6,2x))') cos(theta)+rot_axis(1)**2*(1.0_gp-cos(theta)),&
+    !     rot_axis(1)*rot_axis(2)*(1.0_gp-cos(theta))-rot_axis(3)*sin(theta),&
+    !     rot_axis(1)*rot_axis(3)*(1.0_gp-cos(theta))+rot_axis(2)*sin(theta)
+    !write(*,'(3(F12.6,2x))') rot_axis(2)*rot_axis(1)*(1.0_gp-cos(theta))+rot_axis(3)*sin(theta),&
+    !     cos(theta)+rot_axis(2)**2*(1.0_gp-cos(theta)),&
+    !     rot_axis(2)*rot_axis(3)*(1.0_gp-cos(theta))-rot_axis(1)*sin(theta)
+    !write(*,'(3(F12.6,2x))') rot_axis(3)*rot_axis(1)*(1.0_gp-cos(theta))-rot_axis(2)*sin(theta),&
+    !     rot_axis(3)*rot_axis(2)*(1.0_gp-cos(theta))+rot_axis(1)*sin(theta),&
+    !     cos(theta)+rot_axis(3)**2*(1.0_gp-cos(theta))
+    
+
 
   end subroutine find_frag_trans
 

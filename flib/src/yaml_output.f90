@@ -73,6 +73,7 @@ module yaml_output
   integer :: YAML_STREAM_ALREADY_PRESENT !< trying to create a stream already present
   integer :: YAML_STREAM_NOT_FOUND       !< trying to seach for a absent unitt
   integer :: YAML_UNIT_INCONSISTENCY     !< internal error, unit inconsistency
+  integer :: YAML_INVALID                !< invalid action, unit inconsistency
 
   !> Generic routine
   interface yaml_map
@@ -128,6 +129,8 @@ contains
     if (.not. module_initialized) then
        module_initialized=.true.
        !initialize error messages
+       call f_err_define('YAML_INVALID','Generic error of yaml module, invalid operation',&
+            YAML_INVALID)
        call f_err_define('YAML_STREAM_ALREADY_PRESENT','The stream is already present',&
             YAML_STREAM_ALREADY_PRESENT)
        call f_err_define('YAML_STREAM_NOT_FOUND','The stream has not been found',&
@@ -406,6 +409,10 @@ contains
     if (present(unit)) unt=unit
     call get_stream(unt,strm,istat=istatus)
 
+    !unit 6 cannot be closed
+    if (f_err_raise(unt==6,'Stream of unit 6 cannot be closed',&
+         err_id=YAML_INVALID)) return
+
     if (present(istat)) then
        istat=istatus
        if (istatus==YAML_STREAM_NOT_FOUND) return
@@ -427,8 +434,10 @@ contains
     if (unt /= 6) close(unt)
     !reset the stream information
     !reduce the active_stream
-    streams(strm)=streams(active_streams)
-    stream_units(strm)=stream_units(active_streams)
+    if (strm /= active_streams) then
+       streams(strm)=streams(active_streams)
+       stream_units(strm)=stream_units(active_streams)
+    end if
 
     !in case the active stream is the last one move at the place of this one
     if (default_stream==active_streams) then
@@ -452,7 +461,8 @@ contains
 
     do istream=1,active_streams
        unt=stream_units(istream)
-       call yaml_close_stream(unit=unt)
+       !unit 6 cannot be closed
+       if (unt /= 6) call yaml_close_stream(unit=unt)
 !!$       unts=streams(istream)%unit
 !!$       if (unts /= unt) stop 'YAML close streams: unit inconsistency'
 !!$       !close files which are not stdout

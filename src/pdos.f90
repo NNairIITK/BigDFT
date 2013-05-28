@@ -496,7 +496,8 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
            write(12,'(a,a13,5x,i6,a)')  & 
                 '# band', ' energy (eV),  ',G%ncoeff,' partial densities of states ' 
            do iorb=orbs%norbu+1,orbs%norbu+orbs%norbd
-              write(12,'(i5,es14.5,5x,1000es14.5)')iorb-orbs%norbu,orbs%eval(iorb+(ikpt-1)*orbs%norb)*Ha_eV,pdos(1:G%ncoeff+1,iorb+(ikpt-1)*orbs%norb)
+              write(12,'(i5,es14.5,5x,1000es14.5)')iorb-orbs%norbu,&
+                   orbs%eval(iorb+(ikpt-1)*orbs%norb)*Ha_eV,pdos(1:G%ncoeff+1,iorb+(ikpt-1)*orbs%norb)
            end do
         end if
      end do

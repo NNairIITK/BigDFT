@@ -15,7 +15,7 @@ program schtroumpf_lib
   integer :: ierr, i, j, k  
 
   call MPI_INIT(ierr)
-  call f_set_status(memory_limit=0.e0)
+  call f_malloc_set_status(memory_limit=0.e0)
 
   call get_command_argument(1, value = filename)
 
