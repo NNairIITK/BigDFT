@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to do frequencies calculation by finite difference
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -147,9 +147,11 @@ program frequencies
    call frequencies_read_restart(atoms%nat,n_order,imoves,moves,energies,forces,freq_step,atoms%amu,etot)
    !Message
    if (bigdft_mpi%iproc == 0) then
-      write(*,'(1x,a,i0,a,i0,a)') '=F=> There are ', imoves, ' moves already calculated over ', &
-         &   n_order*3*atoms%nat,' frequencies.'
-      write(*,*)
+      !write(*,'(1x,a,i0,a,i0,a)') '=F=> There are ', imoves, ' moves already calculated over ', &
+      !   &   n_order*3*atoms%nat,' frequencies.'
+      !write(*,*)
+      call yaml_map('(F) Frequency moves already calculated',imoves)
+      call yaml_map('(F) Total Frequency moves',n_order*3*atoms%nat)
    end if
 
    !Reference state
@@ -158,14 +160,14 @@ program frequencies
       infocode=0
    else
       call call_bigdft(nproc,bigdft_mpi%iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
-      call frequencies_write_restart(bigdft_mpi%iproc,0,0,0,rxyz,etot,fxyz,&
-         &   n_order=n_order,freq_step=freq_step,amu=atoms%amu)
+      call frequencies_write_restart(0,0,0,rxyz,etot,fxyz,n_order=n_order,freq_step=freq_step,amu=atoms%amu)
       moves(:,0) = .true.
       call restart_inputs(inputs)
    end if
 
    if (bigdft_mpi%iproc == 0) then
-      write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+      !write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+      call yaml_map('(F) Exit signal for Wavefunction Optimization Finished',infocode)
       !Print atomic forces
       !call write_forces(atoms,fxyz)
       !This file contains the hessian for post-processing: it is regenerated each time.
@@ -175,14 +177,16 @@ program frequencies
    end if
 
    if (bigdft_mpi%iproc == 0) then
-      write(*,*)
-      write(*,'(1x,a,59("="))') '=Frequencies calculation '
+      !write(*,*)
+      !write(*,'(1x,a,59("="))') '=Frequencies calculation '
+      call yaml_comment('(F) Start Frequencies calculation ',hfill='=')
    end if
 
    do iat=1,atoms%nat
 
       if (atoms%ifrztyp(iat) == 1) then
-         if (bigdft_mpi%iproc == 0) write(*,"(1x,a,i0,a)") '=F:The atom ',iat,' is frozen.'
+         !if (bigdft_mpi%iproc == 0) write(*,"(1x,a,i0,a)") '=F:The atom ',iat,' is frozen.'
+         if (bigdft_mpi%iproc == 0) call yaml_comment('(F) The atom ' // trim(yaml_toa(iat)) // ' is frozen.')
          cycle
       end if
 
@@ -214,8 +218,9 @@ program frequencies
             !We copy atomic positions
             rpos=rxyz
             if (bigdft_mpi%iproc == 0) then
-               write(*,"(1x,a,i0,a,a,a,1pe20.10,a)") &
-                  &   '=F Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
+               !write(*,"(1x,a,i0,a,a,a,1pe20.10,a)") '=F Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
+               call yaml_map('(F) Move (atom direction axe displacement in bohr)', &
+                    & (/ trim(yaml_toa(iat)), trim(yaml_toa(k)), cc(3:4), trim(yaml_toa(dd,fmt='(1pe20.10)')) /))
             end if
             if (atoms%geocode == 'P') then
                rpos(i,iat)=modulo(rxyz(i,iat)+dd,alat)
@@ -226,7 +231,7 @@ program frequencies
             end if
             call call_bigdft(nproc,bigdft_mpi%iproc,atoms,rpos,inputs,etot,fpos(:,km),strten,fnoise,&
                  rst,infocode)
-            call frequencies_write_restart(bigdft_mpi%iproc,km,i,iat,rpos,etot,fpos(:,km))
+            call frequencies_write_restart(km,i,iat,rpos,etot,fpos(:,km))
             moves(km,ii) = .true.
             call restart_inputs(inputs)
          end do
@@ -297,11 +302,14 @@ program frequencies
    call sort_dp(3*atoms%nat,sort_work,iperm,tol_freq)
 
    if (bigdft_mpi%iproc == 0) then
-      write(*,*)
-      write(*,'(1x,a,81("="))') '=F '
-      write(*,*)
-      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(iperm(3*atoms%nat:1:-1))
-      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(iperm(3*atoms%nat:1:-1))
+      !write(*,*)
+      !write(*,'(1x,a,81("="))') '=F '
+      !write(*,*)
+      !write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(iperm(3*atoms%nat:1:-1))
+      !write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(iperm(3*atoms%nat:1:-1))
+      !call yaml_map('(F) Eigenvalues (real)',     trim(yaml_toa(eigen_r(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')))
+      call yaml_map('(F) Eigenvalues (real)',     eigen_r(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')
+      call yaml_map('(F) Eigenvalues (imaginary)',eigen_i(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')
       do i=1,3*atoms%nat
          if (eigen_r(i)<0.0_dp) then
             eigen_r(i)=-sqrt(-eigen_r(i))
@@ -309,8 +317,10 @@ program frequencies
             eigen_r(i)= sqrt( eigen_r(i))
          end if
       end do
-      write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r(iperm(3*atoms%nat:1:-1))
-      write(*,'(1x,a,1x,100(f13.2))')    '=F: frequencies (cm-1)      =',eigen_r(iperm(3*atoms%nat:1:-1))*Ha_cmm1
+      !write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r(iperm(3*atoms%nat:1:-1))
+      !write(*,'(1x,a,1x,100(f13.2))')    '=F: frequencies (cm-1)      =',eigen_r(iperm(3*atoms%nat:1:-1))*Ha_cmm1
+      call yaml_map('(F) frequencies (Hartree)',eigen_r(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')
+      call yaml_map('(F) frequencies (cm-1)',   eigen_r(iperm(3*atoms%nat:1:-1))*Ha_cmm1,fmt='(f13.2)')
       !Build frequencies.xyz in descending order
       open(unit=15,file='frequencies.xyz',status="unknown")
       do i=3*atoms%nat,1,-1
@@ -346,15 +356,22 @@ program frequencies
       !Multiply by 1/kT
       vibrational_entropy=vibrational_entropy*Ha_K/Temperature
       total_energy=energies(1,0)+vibrational_energy
-      write(*,'(1x,a,81("="))') '=F '
-      write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a)') &
-         &   '=F: Zero-point energy   =', zpenergy*Ha_cmm1, 'cm-1',zpenergy,'Hartree'
-      write(*,'(1x,a,1pe22.10,a,0pf5.1,a)') &
-         &   '=F: Vibrational entropy =', vibrational_entropy,' at ',Temperature,'K'
-      write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a,0pf5.1,a)') &
-         &   '=F: Vibrational  energy =', vibrational_energy*Ha_cmm1, 'cm-1',vibrational_energy,'Hartree at ',Temperature,'K'
-      write(*,'(1x,a,1pe22.10,1x,a,0pf5.1,a)') &
-         &   '=F: Total energy        =', total_energy,'Hartree at ',Temperature,'K'
+      !write(*,'(1x,a,81("="))') '=F '
+      !write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a)') &
+      !   &   '=F: Zero-point energy   =', zpenergy*Ha_cmm1, 'cm-1',zpenergy,'Hartree'
+      !write(*,'(1x,a,1pe22.10,a,0pf5.1,a)') &
+      !   &   '=F: Vibrational entropy =', vibrational_entropy,' at ',Temperature,'K'
+      !write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a,0pf5.1,a)') &
+      !   &   '=F: Vibrational  energy =', vibrational_energy*Ha_cmm1, 'cm-1',vibrational_energy,'Hartree at ',Temperature,'K'
+      !write(*,'(1x,a,1pe22.10,1x,a,0pf5.1,a)') &
+      !   &   '=F: Total energy        =', total_energy,'Hartree at ',Temperature,'K'
+      call yaml_map('(F) Zero-point energy (cm-1 and Hartree)', &
+           & (/ zpenergy*Ha_cmm1,zpenergy /),fmt='(1pe20.10)')
+      call yaml_map('(F) Considered Temperature (Kelvin)',Temperature,fmt='(f5.1)')
+      call yaml_map('(F) Vibrational entropy =', vibrational_entropy,fmt='(1pe22.10)')
+      call yaml_map('(F) Vibrational Energy (cm-1 and Hartree)', &
+           & (/ vibrational_energy*Ha_cmm1,vibrational_energy/),fmt='(1pe20.10)')
+      call yaml_map('(F) Total Energy (Hartree)',total_energy,fmt='(1pe22.10)')
    end if
 
 !!$   !Deallocations
@@ -404,6 +421,15 @@ program frequencies
    deallocate(forces,stat=i_stat)
    call memocc(i_stat,i_all,'forces',subname)
 
+   !Final timing
+   call cpu_time(tcpu1)
+   call system_clock(ncount1,ncount_rate,ncount_max)
+   tel=real(ncount1-ncount0,kind=gp)/real(ncount_rate,kind=gp)
+   if (bigdft_mpi%iproc == 0) then
+      !write( *,'(1x,a,1x,i4,2(1x,f12.2))') '=F: CPU time/ELAPSED time for root process ', bigdft_mpi%iproc,tel,tcpu1-tcpu0
+      call yaml_map('(F) CPU time/ELAPSED time for root process ', (/ tel,real(tcpu1-tcpu0,kind=gp) /), fmt='(f12.2)')
+   end if
+
    call free_restart_objects(rst,subname)
 
    call deallocate_atoms(atoms,subname) 
@@ -411,19 +437,6 @@ program frequencies
    call bigdft_free_input(inputs)
 
 
-!!$   call free_input_variables(inputs)
-
-   !Final timing
-   call cpu_time(tcpu1)
-   call system_clock(ncount1,ncount_rate,ncount_max)
-   tel=real(ncount1-ncount0,kind=gp)/real(ncount_rate,kind=gp)
-   if (bigdft_mpi%iproc == 0) &
-      &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') '=F: CPU time/ELAPSED time for root process ', bigdft_mpi%iproc,tel,tcpu1-tcpu0
-
-!!$   !Finalize memory counting
-!!$   call memocc(0,0,'count','stop')
-!!$
-!!$   call MPI_FINALIZE(ierr)
 
    call bigdft_finalize(ierr)
 
@@ -472,22 +485,27 @@ program frequencies
       character(len=*), parameter :: subname = "frequencies_read_restart"
       logical :: exists
       integer, parameter :: iunit = 15
-      character(len=*), parameter :: freq_form = '(1x,"=F=> ",a)'
+      !character(len=*), parameter :: freq_form = '(1x,"=F=> ",a)'
       real(gp) :: steps(3)
       real(gp), dimension(:), allocatable :: rxyz,fxyz
       integer :: ierror,km,i,iat,ii,i_order
+
       !Initialize by default to false
       imoves=0
       moves = .false.
       !Test if the file does exist.
       if (bigdft_mpi%iproc == 0) then
-         write(*,freq_form) 'Check if the file "frequencies.res" is present.'
+         !write(*,freq_form) 'Check if the file "frequencies.res" is present.'
+         call yaml_comment('(F) Check if the file "frequencies.res" is present.')
       end if
+
       inquire(file='frequencies.res', exist=exists)
+
       if (.not.exists) then
          !There is no restart file.
          call razero(n_order*(3*nat+1),energies(1,0))
-         if (bigdft_mpi%iproc == 0) write(*,freq_form) 'No "frequencies.res" file present.'
+         !if (bigdft_mpi%iproc == 0) write(*,freq_form) 'No "frequencies.res" file present.'
+         if (bigdft_mpi%iproc == 0) call yaml_comment('(F) No "frequencies.res" file present.')
          return
       end if
 
@@ -505,147 +523,156 @@ program frequencies
          !Read error, we clean the file.
          if (bigdft_mpi%iproc == 0) then
             close(unit=iunit)
-            write(*,freq_form) 'Erase the file "frequencies.res".'
+            !write(*,freq_form) 'Erase the file "frequencies.res".'
+            call yaml_comment('(F) Erase the file "frequencies.res".')
             open(unit=iunit,file='frequencies.res',status='old',form='unformatted')
             write(iunit)
             close(unit=iunit)
          end if
          return
       else
-         if (steps(1) /= freq_step(1) .or. &
-            &   steps(2) /= freq_step(2) .or. &
-         steps(3) /= freq_step(3)) then
-         if (bigdft_mpi%iproc == 0) write(*,freq_form) 'The step to calculate frequencies is not the same: stop.'
-         stop
-      end if
-      if (i_order > n_order) then
-         if (bigdft_mpi%iproc == 0) then 
-            write(*,freq_form) 'The number of points per direction is bigger in the "frequencies.res" file.'
-            write(*,freq_form) 'Increase the order of the finite difference scheme'
+         if (steps(1) /= freq_step(1) .or. steps(2) /= freq_step(2) .or. steps(3) /= freq_step(3)) then
+            !if (bigdft_mpi%iproc == 0) write(*,freq_form) 'The step to calculate frequencies is not the same: stop.'
+            if (bigdft_mpi%iproc == 0) call yaml_warning('(F) The step to calculate frequencies is not the same: stop.')
+            stop
          end if
+
+
+         if (i_order > n_order) then
+            if (bigdft_mpi%iproc == 0) then 
+               !write(*,freq_form) 'The number of points per direction is bigger in the "frequencies.res" file.'
+               !write(*,freq_form) 'Increase the order of the finite difference scheme'
+               call yaml_warning('(F) The number of points per direction is bigger in the "frequencies.res" file.')
+               call yaml_warning('(F) Increase the order of the finite difference scheme')
+            end if
+            stop
+         end if
+      end if
+      
+      !Read the reference state
+      read(unit=iunit,iostat=ierror) iat,etot,rxyz,fxyz
+      if (ierror /= 0 .or. iat /= 0) then
+         !Read error, we assume that it is not calculated
+         !if (bigdft_mpi%iproc == 0) write(*,freq_form) 'The reference state is not calculated in "frequencies.res" file.'
+         if (bigdft_mpi%iproc == 0) call yaml_comment('(F) The reference state is not calculated in "frequencies.res" file.')
+      else
+         !if (bigdft_mpi%iproc == 0) write(*,freq_form) 'The reference state is already calculated.'
+         if (bigdft_mpi%iproc == 0) call yaml_comment('(F) The reference state is already calculated.')
+         energies(:,0) = etot
+         forces(:,1,0) = fxyz
+         moves(:,0) = .true.
+      end if
+      do
+         read(unit=iunit,iostat=ierror) km,i,iat,rxyz,etot,fxyz
+         if (ierror /= 0) then
+            !Read error, we exit
+            exit
+         end if
+         ii = i + 3*(iat-1)
+         imoves = imoves + 1
+         energies(km,ii) = etot
+         forces(:,km,ii) = fxyz
+         moves(km,ii) = .true.
+      end do
+      close(unit=iunit)
+
+      !Deallocations
+      i_all=-product(shape(rxyz))*kind(rxyz)
+      deallocate(rxyz)
+      call memocc(i_stat,i_all,'rxyz',subname)
+      i_all=-product(shape(fxyz))*kind(fxyz)
+      deallocate(fxyz)
+      call memocc(i_stat,i_all,'fxyz',subname)
+
+   END SUBROUTINE frequencies_read_restart
+
+
+   subroutine frequencies_write_restart(km,i,iat,rxyz,etot,fxyz,n_order,freq_step,amu)
+      implicit none
+      !Arguments
+      integer, intent(in) :: km,i,iat
+      real(gp), dimension(:,:), intent(in) :: rxyz
+      real(gp), intent(in) :: etot
+      real(gp), dimension(:), intent(in) :: fxyz
+      integer, intent(in), optional :: n_order
+      real(gp), intent(in), optional :: freq_step(3)
+      real(gp), dimension(:), intent(in), optional :: amu
+      !Local variables
+      integer, parameter :: iunit = 15
+
+      if (km == 0 .and. .not.(present(n_order).and.present(freq_step).and.present(amu))) then
+         if (bigdft_mpi%iproc == 0) write(*,*) "Bug for use of frequencies_write_restart"
+         if (bigdft_mpi%iproc == 0) call yaml_warning("(F) Bug for use of frequencies_write_restart")
          stop
       end if
-   end if
-   !Read the reference state
-   read(unit=iunit,iostat=ierror) iat,etot,rxyz,fxyz
-   if (ierror /= 0 .or. iat /= 0) then
-      !Read error, we assume that it is not calculated
-      if (bigdft_mpi%iproc == 0) write(*,freq_form) 'The reference state is not calculated in "frequencies.res" file.'
-   else
-      if (bigdft_mpi%iproc == 0) write(*,freq_form) 'The reference state is already calculated.'
-      energies(:,0) = etot
-      forces(:,1,0) = fxyz
-      moves(:,0) = .true.
-   end if
-   do
-      read(unit=iunit,iostat=ierror) km,i,iat,rxyz,etot,fxyz
-      if (ierror /= 0) then
-         !Read error, we exit
-         exit
+
+      if (bigdft_mpi%iproc ==0 ) then
+         !This file is used as a restart
+         open(unit=iunit,file='frequencies.res',status="unknown",form="unformatted",position="append")
+         if (km == 0) then
+            write(unit=iunit) n_order,freq_step,amu
+            write(unit=iunit) 0,etot,rxyz,fxyz
+         else
+            write(unit=iunit) km,i,iat,etot,rxyz,fxyz
+         end if
+         close(unit=iunit)
       end if
-      ii = i + 3*(iat-1)
-      imoves = imoves + 1
-      energies(km,ii) = etot
-      forces(:,km,ii) = fxyz
-      moves(km,ii) = .true.
-   end do
-   close(unit=iunit)
-
-   !Deallocations
-   i_all=-product(shape(rxyz))*kind(rxyz)
-   deallocate(rxyz)
-   call memocc(i_stat,i_all,'rxyz',subname)
-   i_all=-product(shape(fxyz))*kind(fxyz)
-   deallocate(fxyz)
-   call memocc(i_stat,i_all,'fxyz',subname)
-
-END SUBROUTINE frequencies_read_restart
+   END SUBROUTINE frequencies_write_restart
 
 
-subroutine frequencies_write_restart(iproc,km,i,iat,rxyz,etot,fxyz,n_order,freq_step,amu)
-   implicit none
-   !Arguments
-   integer, intent(in) :: iproc,km,i,iat
-   real(gp), dimension(:,:), intent(in) :: rxyz
-   real(gp), intent(in) :: etot
-   real(gp), dimension(:), intent(in) :: fxyz
-   integer, intent(in), optional :: n_order
-   real(gp), intent(in), optional :: freq_step(3)
-   real(gp), dimension(:), intent(in), optional :: amu
-   !Local variables
-   integer, parameter :: iunit = 15
-
-   if (km == 0 .and. &
-      &   .not.(present(n_order).and.present(freq_step).and.present(amu))) then
-   if (iproc == 0) write(*,*) "Bug for use of frequencies_write_restart"
-   stop
-end if
-if (iproc ==0 ) then
-   !This file is used as a restart
-   open(unit=iunit,file='frequencies.res',status="unknown",form="unformatted",position="append")
-   if (km == 0) then
-      write(unit=iunit) n_order,freq_step,amu
-      write(unit=iunit) 0,etot,rxyz,fxyz
-   else
-      write(unit=iunit) km,i,iat,etot,rxyz,fxyz
-   end if
-   close(unit=iunit)
-end if
-  END SUBROUTINE frequencies_write_restart
+   subroutine restart_inputs(inputs)
+      implicit none
+      !Argument
+      type(input_variables), intent(inout) :: inputs
+      inputs%inputPsiId=1
+   END SUBROUTINE restart_inputs
 
 
-  subroutine restart_inputs(inputs)
-     implicit none
-     !Argument
-     type(input_variables), intent(inout) :: inputs
-     inputs%inputPsiId=1
-  END SUBROUTINE restart_inputs
-
+   !> Integrate forces (not used)
+   subroutine integrate_forces(iproc,n_moves) !n(c) energies,forces (arg:2,3)
+   
+      use module_base
+   
+      implicit none
+      !Arguments
+      integer, intent(in) :: iproc,n_moves
+      !n(c) real(gp), intent(in) :: energies(n_moves)
+      !n(c) real(gp), intent(in) :: forces(3*nat,n_moves)
+      !Local variables
+      character(len=*), parameter :: subname = "integrate_forces"
+      real(gp), dimension(:), allocatable :: weight
+      !n(c) real(gp) :: path
+      integer :: i,i_stat,i_all
+   
+      !Allocation
+      allocate(weight(n_moves+ndebug),stat=i_stat)
+      call memocc(i_stat,weight,'weight',subname)
+   
+      !Prepare the array of the correct weights of the iteration steps
+      if (mod(n_moves,2).ne.1) then
+         if (iproc == 0) write(*,*) 'the number of iteration steps has to be odd'
+         stop
+      end if
+      weight(1)=1.d0/3.d0
+      weight(2)=4.d0/3.d0
+      do i=3,n_moves-2,2
+         weight(i)=2.d0/3.d0
+         weight(i+1)=4.d0/3.d0
+      enddo
+      weight(n_moves)=1.d0/3.d0
+   
+      !Start integration
+      !n(c) path = 0_gp
+      do i=1,n_moves
+      end do
+   
+      !De-allocation
+      i_all=-product(shape(weight))*kind(weight)
+      deallocate(weight,stat=i_stat)
+      call memocc(i_stat,i_all,'weight',subname)
+   
+   END SUBROUTINE integrate_forces
 
 END PROGRAM frequencies
 
 
-!> Integrate forces (not used)
-subroutine integrate_forces(iproc,n_moves) !n(c) energies,forces (arg:2,3)
-
-   use module_base
-
-   implicit none
-   !Arguments
-   integer, intent(in) :: iproc,n_moves
-   !n(c) real(gp), intent(in) :: energies(n_moves)
-   !n(c) real(gp), intent(in) :: forces(3*nat,n_moves)
-   !Local variables
-   character(len=*), parameter :: subname = "integrate_forces"
-   real(gp), dimension(:), allocatable :: weight
-   !n(c) real(gp) :: path
-   integer :: i,i_stat,i_all
-
-   !Allocation
-   allocate(weight(n_moves+ndebug),stat=i_stat)
-   call memocc(i_stat,weight,'weight',subname)
-
-   !Prepare the array of the correct weights of the iteration steps
-   if (mod(n_moves,2).ne.1) then
-      if (iproc == 0) write(*,*) 'the number of iteration steps has to be odd'
-      stop
-   end if
-   weight(1)=1.d0/3.d0
-   weight(2)=4.d0/3.d0
-   do i=3,n_moves-2,2
-      weight(i)=2.d0/3.d0
-      weight(i+1)=4.d0/3.d0
-   enddo
-   weight(n_moves)=1.d0/3.d0
-
-   !Start integration
-   !n(c) path = 0_gp
-   do i=1,n_moves
-   end do
-
-   !De-allocation
-   i_all=-product(shape(weight))*kind(weight)
-   deallocate(weight,stat=i_stat)
-   call memocc(i_stat,i_all,'weight',subname)
-
-END SUBROUTINE integrate_forces
