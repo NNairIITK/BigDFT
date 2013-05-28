@@ -341,7 +341,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   nvirt=in%nvirt
   !Nullify for new input guess
   call nullify_local_zone_descriptors(lzd_old)
-  call nullify_wavefunctions_descriptors(wfd_old)
+  !call nullify_wavefunctions_descriptors(wfd_old)
+  call nullify_wfd(wfd_old)
   
   if (iproc == 0) then
      !start a new document in the beginning of the output, if the document is closed before

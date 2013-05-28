@@ -86,9 +86,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end if
 
   ! Keep the natural occupations
-  allocate(aocc(32,at%nat),stat=istat)
+  allocate(aocc(32,at%astruct%nat),stat=istat)
   call memocc(istat,aocc,'aocc',subname)
-  call vcopy(32*at%nat, at%aocc(1,1), 1, aocc(1,1), 1)
+  call vcopy(32*at%astruct%nat, at%aocc(1,1), 1, aocc(1,1), 1)
 
   ! Determine how many atomic orbitals we have. Maybe we have to increase this number to more than
   ! its 'natural' value.
@@ -266,25 +266,25 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
      ! Iterative orthonomalization
      if(iproc==0) write(*,*) 'calling generalized orthonormalization'
-     allocate(maxorbs_type(at%ntypes),stat=istat)
+     allocate(maxorbs_type(at%astruct%ntypes),stat=istat)
      call memocc(istat,maxorbs_type,'maxorbs_type',subname)
-     allocate(minorbs_type(at%ntypes),stat=istat)
+     allocate(minorbs_type(at%astruct%ntypes),stat=istat)
      call memocc(istat,minorbs_type,'minorbs_type',subname)
-     allocate(type_covered(at%ntypes),stat=istat)
+     allocate(type_covered(at%astruct%ntypes),stat=istat)
      call memocc(istat,type_covered,'type_covered',subname)
-     minorbs_type(1:at%ntypes)=0
+     minorbs_type(1:at%astruct%ntypes)=0
      iortho=0
      ortho_loop: do
          finished=.true.
          type_covered=.false.
-         do iat=1,at%nat
-             itype=at%iatype(iat)
+         do iat=1,at%astruct%nat
+             itype=at%astruct%iatype(iat)
              if (type_covered(itype)) cycle
              type_covered(itype)=.true.
              jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
                   5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
              maxorbs_type(itype)=jj
-             if (jj<input%lin%norbsPerType(at%iatype(iat))) then
+             if (jj<input%lin%norbsPerType(at%astruct%iatype(iat))) then
                  finished=.false.
                  if (ceiling(aocc(1,iat))==0) then
                      aocc(1,iat)=1.d0
@@ -309,7 +309,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
          if (finished) exit ortho_loop
          iortho=iortho+1
-         minorbs_type(1:at%ntypes)=maxorbs_type(1:at%ntypes)+1
+         minorbs_type(1:at%astruct%ntypes)=maxorbs_type(1:at%astruct%ntypes)+1
      end do ortho_loop
      iall=-product(shape(maxorbs_type))*kind(maxorbs_type)
      deallocate(maxorbs_type,stat=istat)

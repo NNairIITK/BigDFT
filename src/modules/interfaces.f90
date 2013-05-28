@@ -4778,7 +4778,7 @@ module module_interfaces
           integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
           type(orbitals_data),intent(in) :: orbs
           type(atoms_data),intent(in) :: at
-          integer,dimension(at%ntypes),intent(in) :: minorbs_type, maxorbs_type
+          integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
           type(local_zone_descriptors),intent(in) :: lzd
           type(sparseMatrix),intent(inout) :: ovrlp
           type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
@@ -4798,7 +4798,7 @@ module module_interfaces
           integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
           type(orbitals_data),intent(in) :: orbs
           type(atoms_data),intent(in) :: at
-          integer,dimension(at%ntypes),intent(in) :: minorbs_type, maxorbs_type
+          integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
           type(local_zone_descriptors),intent(in) :: lzd
           type(sparseMatrix),intent(inout) :: ovrlp
           type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
@@ -4817,7 +4817,7 @@ module module_interfaces
           implicit none
           integer, intent(in) :: iproc,nproc
           type(atoms_data), intent(in) :: atoms
-          real(gp), dimension(3, atoms%nat), intent(in) :: rxyz, rxyz_old
+          real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz, rxyz_old
           real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old,displ
           type(grid_dimensions), intent(in) :: d, d_old
           type(wavefunctions_descriptors), intent(in) :: wfd

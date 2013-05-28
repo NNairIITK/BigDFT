@@ -1189,7 +1189,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
   type(orbitals_data),intent(in) :: orbs
   type(atoms_data),intent(in) :: at
-  integer,dimension(at%ntypes),intent(in) :: minorbs_type, maxorbs_type
+  integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
   type(local_zone_descriptors),intent(in) :: lzd
   type(sparseMatrix),intent(inout) :: ovrlp
   type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
@@ -1240,16 +1240,16 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
       ! For the "higher" TMBs: delete off-diagonal elements and
       ! set diagonal elements to 1
-      allocate(icount_norb(at%nat),stat=istat)
+      allocate(icount_norb(at%astruct%nat),stat=istat)
       call memocc(istat,icount_norb,'icount_norb',subname)
-      allocate(jcount_norb(at%nat),stat=istat)
+      allocate(jcount_norb(at%astruct%nat),stat=istat)
       call memocc(istat,jcount_norb,'jcount_norb',subname)
       icount_norb=0
       do iorb=1,orbs%norb
           iat=orbs%onwhichatom(iorb)
           icount_norb(iat)=icount_norb(iat)+1
-          if (icount_norb(iat)<minorbs_type(at%iatype(iat)) .or. &
-              icount_norb(iat)>maxorbs_type(at%iatype(iat))) then
+          if (icount_norb(iat)<minorbs_type(at%astruct%iatype(iat)) .or. &
+              icount_norb(iat)>maxorbs_type(at%astruct%iatype(iat))) then
               iout=.true.
           else
               iout=.false.
@@ -1258,8 +1258,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
           do jorb=1,orbs%norb
               jat=orbs%onwhichatom(jorb)
               jcount_norb(jat)=jcount_norb(jat)+1
-              if (jcount_norb(jat)<minorbs_type(at%iatype(jat)) .or. &
-                  jcount_norb(jat)>maxorbs_type(at%iatype(jat))) then
+              if (jcount_norb(jat)<minorbs_type(at%astruct%iatype(jat)) .or. &
+                  jcount_norb(jat)>maxorbs_type(at%astruct%iatype(jat))) then
                   jout=.true.
               else
                   jout=.false.
@@ -1293,16 +1293,16 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
       ! For the "higher" TMBs: delete off-diagonal elements and
       ! set diagonal elements to 1
-      allocate(icount_norb(at%nat),stat=istat)
+      allocate(icount_norb(at%astruct%nat),stat=istat)
       call memocc(istat,icount_norb,'icount_norb',subname)
-      allocate(jcount_norb(at%nat),stat=istat)
+      allocate(jcount_norb(at%astruct%nat),stat=istat)
       call memocc(istat,jcount_norb,'jcount_norb',subname)
       icount_norb=0
       do iorb=1,orbs%norb
           iat=orbs%onwhichatom(iorb)
           icount_norb(iat)=icount_norb(iat)+1
-          if (icount_norb(iat)<minorbs_type(at%iatype(iat)) .or. &
-              icount_norb(iat)>maxorbs_type(at%iatype(iat))) then
+          if (icount_norb(iat)<minorbs_type(at%astruct%iatype(iat)) .or. &
+              icount_norb(iat)>maxorbs_type(at%astruct%iatype(iat))) then
               iout=.true.
           else
               iout=.false.
@@ -1311,8 +1311,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
           do jorb=1,orbs%norb
               jat=orbs%onwhichatom(jorb)
               jcount_norb(jat)=jcount_norb(jat)+1
-              if (jcount_norb(jat)<minorbs_type(at%iatype(jat)) .or. &
-                  jcount_norb(jat)>maxorbs_type(at%iatype(jat))) then
+              if (jcount_norb(jat)<minorbs_type(at%astruct%iatype(jat)) .or. &
+                  jcount_norb(jat)>maxorbs_type(at%astruct%iatype(jat))) then
                   jout=.true.
               else
                   jout=.false.
@@ -1381,7 +1381,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
   type(orbitals_data),intent(in) :: orbs
   type(atoms_data),intent(in) :: at
-  integer,dimension(at%ntypes),intent(in) :: minorbs_type, maxorbs_type
+  integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
   type(local_zone_descriptors),intent(in) :: lzd
   type(sparseMatrix),intent(inout) :: ovrlp
   type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
@@ -1432,16 +1432,16 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
 
       ! For the "higher" TMBs: delete off-diagonal elements and
       ! set diagonal elements to 1
-      allocate(icount_norb(at%nat),stat=istat)
+      allocate(icount_norb(at%astruct%nat),stat=istat)
       call memocc(istat,icount_norb,'icount_norb',subname)
-      allocate(jcount_norb(at%nat),stat=istat)
+      allocate(jcount_norb(at%astruct%nat),stat=istat)
       call memocc(istat,jcount_norb,'jcount_norb',subname)
       icount_norb=0
       do iorb=1,orbs%norb
           iat=orbs%onwhichatom(iorb)
           icount_norb(iat)=icount_norb(iat)+1
-          if (icount_norb(iat)<minorbs_type(at%iatype(iat)) .or. &
-              icount_norb(iat)>maxorbs_type(at%iatype(iat))) then
+          if (icount_norb(iat)<minorbs_type(at%astruct%iatype(iat)) .or. &
+              icount_norb(iat)>maxorbs_type(at%astruct%iatype(iat))) then
               iout=.true.
           else
               iout=.false.
@@ -1450,9 +1450,9 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
           do jorb=1,orbs%norb
               jat=orbs%onwhichatom(jorb)
               jcount_norb(jat)=jcount_norb(jat)+1
-              !!if (jcount_norb(jat)<minorbs_type(at%iatype(jat)) .or. &
-              !!    jcount_norb(jat)>maxorbs_type(at%iatype(jat))) then
-              if (jcount_norb(jat)<minorbs_type(at%iatype(jat))) then
+              !!if (jcount_norb(jat)<minorbs_type(at%astruct%iatype(jat)) .or. &
+              !!    jcount_norb(jat)>maxorbs_type(at%astruct%iatype(jat))) then
+              if (jcount_norb(jat)<minorbs_type(at%astruct%iatype(jat))) then
                   jout=.true.
               else
                   jout=.false.

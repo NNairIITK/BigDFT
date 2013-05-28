@@ -2538,18 +2538,18 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call yaml_comment('Wavefunctions Restart',hfill='-')
         call yaml_open_map("Input Hamiltonian")
      end if
-     perx=(atoms%geocode /= 'F')
-     pery=(atoms%geocode == 'P')
-     perz=(atoms%geocode /= 'F')
+     perx=(atoms%astruct%geocode /= 'F')
+     pery=(atoms%astruct%geocode == 'P')
+     perz=(atoms%astruct%geocode /= 'F')
  
      tx=0.0_gp
      ty=0.0_gp
      tz=0.0_gp
  
-     do iat=1,atoms%nat
-        tx=tx+mindist(perx,atoms%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
-        ty=ty+mindist(pery,atoms%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
-        tz=tz+mindist(perz,atoms%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+     do iat=1,atoms%astruct%nat
+        tx=tx+mindist(perx,atoms%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
+        ty=ty+mindist(pery,atoms%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
+        tz=tz+mindist(perz,atoms%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
      enddo
      displ=sqrt(tx+ty+tz)
  
@@ -2887,7 +2887,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   !Global Variables  
   integer, intent(in) :: nproc, iproc
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3, atoms%nat), intent(in) :: rxyz, rxyz_old
+  real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz, rxyz_old
   real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old,displ
   type(grid_dimensions), intent(in) :: d, d_old
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -2954,9 +2954,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   
   jacdet = 0.d0 ; expfct = 0.d0 ; recnormsqr = 0d0
 
-  irange = int(atoms%nat/nproc)
+  irange = int(atoms%astruct%nat/nproc)
 
-  rest = atoms%nat - nproc*irange
+  rest = atoms%astruct%nat - nproc*irange
 
   do i = 0,rest-1
    if(iproc .eq. i) irange = irange + 1 
@@ -2973,8 +2973,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   do k = istart,iend
 
       !determine sigma of gaussian (sigma is taken as the covalent radius of the atom,rcov)
-      nzatom = atoms%nzatom(atoms%iatype(k))
-      nvalelec =  atoms%nelpsp(atoms%iatype(k))
+      nzatom = atoms%nzatom(atoms%astruct%iatype(k))
+      nvalelec =  atoms%nelpsp(atoms%astruct%iatype(k))
       call eleconf(nzatom, nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
       
       radius = 1.0/((rcov)**2)
