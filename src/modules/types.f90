@@ -13,6 +13,7 @@
 module module_types
 
   use m_ab6_mixing, only : ab6_mixing_object
+  use dictionaries
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
        bigdft_mpi,ndebug,memocc,vcopy
   use gaussians, only: gaussian_basis
@@ -230,9 +231,14 @@ module module_types
      integer :: freq_method  !< Method to calculate the frequencies
 
      ! kpoints related input variables
-     integer :: nkpt, nkptv,ngroups_kptv
+     type(dictionary), pointer :: kpt
+     ! generated results
+     integer :: gen_nkpt
+     real(gp), pointer :: gen_kpt(:,:), gen_wkpt(:)
+     ! Band structure path
+     integer :: nkptv,ngroups_kptv
      integer, dimension(:), pointer :: nkptsv_group
-     real(gp), pointer :: kpt(:,:), wkpt(:), kptv(:,:)
+     real(gp), pointer :: kptv(:,:)
      character(len=100) :: band_structure_filename
 
      ! Geometry variables from *.geopt

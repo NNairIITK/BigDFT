@@ -715,6 +715,7 @@ subroutine inputs_parse_params(in, iproc, dump)
   call geopt_input_variables_new(iproc,dump,trim(in%file_geopt),in)
   call tddft_input_variables_new(iproc,dump,trim(in%file_tddft),in)
   call sic_input_variables_new(iproc,dump,trim(in%file_sic),in)
+  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in)
 
   ! Initialise XC calculation
   if (in%ixc < 0) then
@@ -741,6 +742,7 @@ end subroutine inputs_parse_params
 subroutine inputs_parse_add(in, atoms, iproc, dump)
   use module_types
   use yaml_output
+  use module_interfaces
   implicit none
   type(input_variables), intent(inout) :: in
   type(atoms_data), intent(inout) :: atoms
@@ -749,9 +751,9 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
 
   integer :: ierr
 
-  ! Read k-points input variables (if given)
-  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,atoms%sym,atoms%geocode, &
-       & (/ atoms%alat1, atoms%alat2, atoms%alat3 /))
+  ! Generate kpoint meshs.
+  call kpt_input_analyse(iproc, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, in%kptv, in%kpt, in%nkptv, &
+       & atoms%sym, atoms%geocode, (/ atoms%alat1, atoms%alat2, atoms%alat3 /))
 
   ! Linear scaling (if given)
   in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
@@ -770,11 +772,11 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
 !!$     end if
 !!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
 !!$  end if
-  if (in%nkpt > 1 .and. in%gaussian_help) then
+  if (in%gen_nkpt > 1 .and. in%gaussian_help) then
      if (iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
-
+  
   !check whether a directory name should be associated for the data storage
   call check_for_data_writing_directory(iproc,in)
 end subroutine inputs_parse_add

@@ -669,7 +669,6 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   enddo
 END SUBROUTINE read_radii_variables
 
-
 subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   use module_base
   use module_types
@@ -692,7 +691,6 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
   character(len=100) :: radical
-
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
@@ -902,7 +900,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   end if
 
   call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,in%nspin,nspinor,&
-       in%nkpt,in%kpt,in%wkpt,orbs,.false.)
+       in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
 
   !distribution of wavefunction arrays between processors
   !tuned for the moment only on the cubic distribution

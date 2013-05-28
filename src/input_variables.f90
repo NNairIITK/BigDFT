@@ -331,7 +331,8 @@ subroutine default_input_variables(in)
   in%output_wf_format = WF_FORMAT_NONE
   in%output_denspot_format = output_denspot_FORMAT_CUBE
   nullify(in%kpt)
-  nullify(in%wkpt)
+  nullify(in%gen_kpt)
+  nullify(in%gen_wkpt)
   nullify(in%kptv)
   nullify(in%nkptsv_group)
   ! Default abscalc variables
@@ -978,7 +979,7 @@ subroutine tddft_input_variables_new(iproc,dump,filename,in)
 
 END SUBROUTINE tddft_input_variables_new
 
-subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
+subroutine kpt_input_variables_new(iproc,dump,filename,in)
   use module_base
   use module_types
   use defs_basis
@@ -990,23 +991,19 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
   integer, intent(in) :: iproc
   logical, intent(in) :: dump
   type(input_variables), intent(inout) :: in
-  type(symmetry_data), intent(in) :: sym
-  character(len = 1), intent(in) :: geocode
-  real(gp), intent(in) :: alat(3)
   !local variables
   logical :: exists
   character(len=*), parameter :: subname='kpt_input_variables_new'
   character(len = 6) :: type
-  integer :: i_stat,ierror,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount,ierror1
-  real(gp) :: kptrlen, shiftk(3,8), norm, alat_(3)
+  integer :: i_stat,ierror,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount,ierror1, nkpt
+  real(gp) :: kptrlen, shiftk(3), norm, kpt(3), wkpt
   integer, allocatable :: iseg(:)
 
   ! Set default values.
-  in%nkpt=1
   in%nkptv=0
   in%ngroups_kptv=1
 
-  nullify(in%kpt,in%wkpt,in%kptv,in%nkptsv_group)
+  nullify(in%kptv,in%nkptsv_group)
   call free_kpt_variables(in)
 
   !dft parameters, needed for the SCF part
@@ -1027,109 +1024,65 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
      !return
   end if
 
+  call dict_init(in%kpt)
+
   call input_var(type,'manual',exclusive=(/'auto  ','mpgrid','manual'/),&
        comment='K-point sampling method')
+  call set(in%kpt//'K-point sampling method', trim(type))
 
   if (case_insensitive_equiv(trim(type),'auto')) then
      call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
           comment='Equivalent length of K-space resolution (Bohr)')
-     if (geocode == 'F') then
-        in%nkpt = 1
-        allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
-        call memocc(i_stat,in%kpt,'in%kpt',subname)
-        allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
-        call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-        in%kpt = 0.
-        in%wkpt = 1.
-     else
-        call kpoints_get_auto_k_grid(sym%symObj, in%nkpt, in%kpt, in%wkpt, &
-             & kptrlen, ierror)
-        if (ierror /= AB6_NO_ERROR) then
-           if (iproc==0) &
-                & call yaml_warning("ERROR: cannot generate automatic k-point grid." // &
-                & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
-           stop
-        end if
-        !assumes that the allocation went through
-        call memocc(0,in%kpt,'in%kpt',subname)
-        call memocc(0,in%wkpt,'in%wkpt',subname)
-     end if
+     call set(in%kpt//'Equivalent length of K-space resolution (Bohr)', kptrlen)
   else if (case_insensitive_equiv(trim(type),'mpgrid')) then
      !take the points of Monckorst-pack grid
      call input_var(ngkpt(1),'1',ranges=(/1,10000/))
      call input_var(ngkpt(2),'1',ranges=(/1,10000/))
      call input_var(ngkpt(3),'1',ranges=(/1,10000/), &
           & comment='No. of Monkhorst-Pack grid points')
-     if (geocode == 'S') ngkpt(2) = 1
+     call set(in%kpt//'No. of Monkhorst-Pack grid points'//1, ngkpt(1))
+     call set(in%kpt//'No. of Monkhorst-Pack grid points'//2, ngkpt(2))
+     call set(in%kpt//'No. of Monkhorst-Pack grid points'//3, ngkpt(3))
      !shift
      call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
+     call set(in%kpt//'No. of different shifts', nshiftk)
      !read the shifts
      shiftk=0.0_gp
      do i=1,nshiftk
-        call input_var(shiftk(1,i),'0.')
-        call input_var(shiftk(2,i),'0.')
-        call input_var(shiftk(3,i),'0.',comment=' ')
+        call input_var(shiftk(1),'0.')
+        call input_var(shiftk(2),'0.')
+        call input_var(shiftk(3),'0.',comment=' ')
+        call set(in%kpt//'Grid shifts'//i//1, shiftk(1))
+        call set(in%kpt//'Grid shifts'//i//2, shiftk(2))
+        call set(in%kpt//'Grid shifts'//i//3, shiftk(3))
      end do
-
-     !control whether we are giving k-points to Free BC
-     if (geocode == 'F') then
-        if (iproc==0 .and. (maxval(ngkpt) > 1 .or. maxval(abs(shiftk)) > 0.)) &
-             & call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
-        in%nkpt = 1
-        allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
-        call memocc(i_stat,in%kpt,'in%kpt',subname)
-        allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
-        call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-        in%kpt = 0.
-        in%wkpt = 1.
-     else
-        call kpoints_get_mp_k_grid(sym%symObj, in%nkpt, in%kpt, in%wkpt, &
-             & ngkpt, nshiftk, shiftk, ierror)
-        if (ierror /= AB6_NO_ERROR) then
-           if (iproc==0) &
-                & call yaml_warning("ERROR: cannot generate MP k-point grid." // &
-                & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
-           stop
-        end if
-        !assumes that the allocation went through
-        call memocc(0,in%kpt,'in%kpt',subname)
-        call memocc(0,in%wkpt,'in%wkpt',subname)
-     end if
   else if (case_insensitive_equiv(trim(type),'manual')) then
-     call input_var(in%nkpt,'1',ranges=(/1,10000/),&
+     call input_var(nkpt,'1',ranges=(/1,10000/),&
           comment='Number of K-points')
-     if (geocode == 'F' .and. in%nkpt > 1) then
-        if (iproc==0) call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
-        in%nkpt = 1
-     end if
-     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
-     call memocc(i_stat,in%kpt,'in%kpt',subname)
-     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
-     call memocc(i_stat,in%wkpt,'in%wkpt',subname)
+     call set(in%kpt//'Number of K-points', nkpt)
      norm=0.0_gp
-     do i=1,in%nkpt
-        call input_var( in%kpt(1,i),'0.')
-        if (geocode == 'S') then
-           call input_var( in%kpt(2,i),'0.',ranges=(/0._gp,0._gp/))
-        else
-           call input_var( in%kpt(2,i),'0.')
-        end if
-        call input_var( in%kpt(3,i),'0.')
-        call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weigth')
-        if (geocode == 'F') then
-           in%kpt = 0.
-           in%wkpt = 1.
-        end if
-        norm=norm+in%wkpt(i)
+     do i=1,nkpt
+        call input_var( kpt(1),'0.')
+        call input_var( kpt(2),'0.')
+        call input_var( kpt(3),'0.')
+        call set(in%kpt//'Kpt coordinates'//i//1, kpt(1))
+        call set(in%kpt//'Kpt coordinates'//i//2, kpt(2))
+        call set(in%kpt//'Kpt coordinates'//i//3, kpt(3))
+        call input_var( wkpt,'1.',comment='K-pt coords, K-pt weigth')
+        call set(in%kpt//'Kpt weights'//i, wkpt)
+        norm=norm+wkpt
      end do
      ! We normalise the weights.
-     in%wkpt(:)=in%wkpt/norm
+     do i=1,nkpt
+        wkpt = in%kpt//'Kpt weights'//i
+        call set(in%kpt//'Kpt weights'//i, wkpt / norm)
+     end do
   end if
 
   ! Now read the band structure definition. do it only if the file exists
   !nullify the kptv pointers
   nullify(in%kptv,in%nkptsv_group)
-  if (exists .and. geocode /= 'F') then
+  if (exists) then
      call input_var(type,'bands',exclusive=(/'bands'/),&
           comment='For doing band structure calculation',&
           input_iostat=ierror)
@@ -1210,218 +1163,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
   !Dump the input file
   call input_free((iproc == 0) .and. dump)
 
-  ! Convert reduced coordinates into BZ coordinates.
-  alat_ = alat
-  if (geocode /= 'P') alat_(2) = 1.0_gp
-  if (geocode == 'F') then
-     alat_(1)=1.0_gp
-     alat_(3)=1.0_gp
-  end if
-  do i = 1, in%nkpt, 1
-     in%kpt(:, i) = in%kpt(:, i) / alat_ * two_pi
-  end do
-  do i = 1, in%nkptv, 1
-     in%kptv(:, i) = in%kptv(:, i) / alat_ * two_pi
-  end do
- 
 end subroutine kpt_input_variables_new
-
-
-!> Read the input variables needed for the k points generation
-subroutine kpt_input_variables(iproc,filename,in,atoms)
-  use module_base
-  use module_types
-  use defs_basis
-  use m_ab6_kpoints
-  implicit none
-  character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc
-  type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(in) :: atoms
-  !local variables
-  logical :: exists
-  character(len=*), parameter :: subname='kpt_input_variables'
-  character(len = 6) :: type
-  character(len=100) :: line
-  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount
-  real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
-  integer, allocatable :: iseg(:)
-
-  ! Set default values.
-  in%nkpt = 1
-  in%nkptv = 0
-  in%ngroups_kptv=1
-
-  inquire(file=trim(filename),exist=exists)
-
-  if (.not. exists) then
-     ! Set only the gamma point.
-     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
-     call memocc(i_stat,in%kpt,'in%kpt',subname)
-     in%kpt(:, 1) = (/ 0., 0., 0. /)
-     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
-     call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-     in%wkpt(1) = 1.
-     return
-  !and control whether we are giving k-points to Free BC
-  else if (atoms%geocode == 'F') then
-     if (iproc==0) write(*,*)&
-          ' NONSENSE: Trying to use k-points with Free Boundary Conditions!'
-     stop
-  end if
-
-  ! Real generation of k-point set.
-  open(unit=1,file=filename,status='old')
-
-  !line number, to control the input values
-  iline=0
-
-  read(1,*,iostat=ierror) type
-  call check()
-  
-  if (trim(type) == "auto" .or. trim(type) == "Auto" .or. trim(type) == "AUTO") then
-     read(1,*,iostat=ierror) kptrlen
-     call check()
-     call kpoints_get_auto_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
-          & kptrlen, ierror)
-     if (ierror /= AB6_NO_ERROR) then
-        if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
-        stop
-     end if
-     ! in%kpt and in%wkpt will be allocated by ab6_symmetry routine.
-     call memocc(0,in%kpt,'in%kpt',subname)
-     call memocc(0,in%wkpt,'in%wkpt',subname)
-  else if (trim(type) == "MPgrid" .or. trim(type) == "mpgrid") then
-     read(1,*,iostat=ierror) ngkpt
-     call check()
-     read(1,*,iostat=ierror) nshiftk
-     call check()
-     do i = 1, min(nshiftk, 8), 1
-        read(1,*,iostat=ierror) shiftk(:, i)
-        call check()
-     end do
-     if (atoms%geocode == 'S') ngkpt(2) = 1
-     if (atoms%geocode == 'F') ngkpt = 1
-     call kpoints_get_mp_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
-          & ngkpt, nshiftk, shiftk, ierror)
-     if (ierror /= AB6_NO_ERROR) then
-        if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
-        stop
-     end if
-     ! in%kpt and in%wkpt will be allocated by ab6_symmetry routine.
-     call memocc(0,in%kpt,'in%kpt',subname)
-     call memocc(0,in%wkpt,'in%wkpt',subname)
-  else if (trim(type) == "manual" .or. trim(type) == "Manual") then
-     read(1,*,iostat=ierror) in%nkpt
-     call check()
-     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
-     call memocc(i_stat,in%kpt,'in%kpt',subname)
-     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
-     call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-     norm=0.0_gp
-     do i = 1, in%nkpt
-        read(1,*,iostat=ierror) in%kpt(:, i), in%wkpt(i)
-        norm=norm+in%wkpt(i)
-        call check()
-     end do
-     
-     ! We normalise the weights.
-     in%wkpt(:) = in%wkpt / norm
-  end if
-  ! Now read the band structure definition.
-  read(1,*,iostat=ierror) type
-  if (ierror == 0 .and. (trim(type) == "bands" .or. trim(type) == "Bands" .or. &
-       & trim(type) == "BANDS")) then
-     read(1,*,iostat=ierror) nseg
-     call check()
-     allocate(iseg(nseg+ndebug),stat=i_stat)
-     call memocc(i_stat,iseg,'iseg',subname)
-     read(1,*,iostat=ierror) iseg, ngranularity
-     call check()
-     !calculate the number of groups of for the band structure
-     in%nkptv=1
-     do i=1,nseg
-        in%nkptv=in%nkptv+iseg(i)
-     end do
-     in%ngroups_kptv=ceiling(real(in%nkptv,gp)/real(ngranularity,gp))
-
-     allocate(in%nkptsv_group(in%ngroups_kptv+ndebug),stat=i_stat)
-     call memocc(i_stat,in%nkptsv_group,'in%nkptsv_group',subname)
-     ncount=0
-     do i=1,in%ngroups_kptv-1
-        in%nkptsv_group(i)=ngranularity !if ngranularity is bigger than nkptv  then ngroups is one
-        ncount=ncount+ngranularity
-     end do
-     !put the rest in the last group
-     in%nkptsv_group(in%ngroups_kptv)=in%nkptv-ncount
-
-     allocate(in%kptv(3,in%nkptv+ndebug),stat=i_stat)
-     call memocc(i_stat,in%kptv,'in%kptv',subname)
-     ikpt = 1
-     read(1,*,iostat=ierror) in%kptv(:, ikpt)
-     call check()
-     do i = 1, nseg
-        ikpt = ikpt + iseg(i)
-        read(1,*,iostat=ierror) in%kptv(:, ikpt)
-        call check()
-        do j = ikpt - iseg(i) + 1, ikpt - 1
-           in%kptv(:, j) = in%kptv(:, ikpt - iseg(i)) + &
-                & (in%kptv(:, ikpt) - in%kptv(:, ikpt - iseg(i))) * &
-                & real(j - ikpt + iseg(i), gp) / real(iseg(i), gp)
-        end do
-     end do
-     
-     i_all=-product(shape(iseg))*kind(iseg)
-     deallocate(iseg,stat=i_stat)
-     call memocc(i_stat,i_all,'iseg',subname)
-
-     !read an optional line to see if there is a file associated
-     read(1,'(a100)',iostat=ierror)line
-     if (ierror /=0) then
-        !last line missing, put an empty line
-        line=''
-        in%band_structure_filename=''
-     else
-        read(line,*,iostat=ierror) in%band_structure_filename
-        call check()
-        !since a file for the local potential is already given, do not perform ground state calculation
-        if (iproc==0) then
-           write(*,'(1x,a)')'Local Potential read from file, '//trim(in%band_structure_filename)//&
-                ', do not optimise GS wavefunctions'
-        end if
-        in%nrepmax=0
-        in%itermax=0
-        in%itrpmax=0
-        in%inputPsiId=-1000 !allocate empty wavefunctions
-        in%output_denspot=0
-     end if
-  end if
-  close(unit=1,iostat=ierror)
-
-  ! Convert reduced coordinates into BZ coordinates.
-  alat = (/ atoms%alat1, atoms%alat2, atoms%alat3 /)
-  if (atoms%geocode == 'S') alat(2) = 1.d0
-  do i = 1, in%nkpt, 1
-     in%kpt(:, i) = in%kpt(:, i) / alat * two_pi
-  end do
-  do i = 1, in%nkptv, 1
-     in%kptv(:, i) = in%kptv(:, i) / alat * two_pi
-  end do
-
-contains
-
-  subroutine check()
-    iline=iline+1
-    if (ierror/=0) then
-       !if (iproc == 0) 
-            write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-       stop
-    end if
-  END SUBROUTINE check
-
-END SUBROUTINE kpt_input_variables
-
 
 !> Read the input variables which can be used for performances
 subroutine perf_input_variables(iproc,dump,filename,in)
@@ -1597,8 +1339,7 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
   logical :: exists
   character(len=*), parameter :: subname='fragment_input_variables'
   character(len=256) :: comments
-  character(len=20):: atomname
-  integer :: ifrag, frag_num, ios, ierr, istat
+  integer :: ifrag, frag_num, ierr
 
   !Linear input parameters
   call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters')  
@@ -1812,15 +1553,16 @@ subroutine free_kpt_variables(in)
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_kpt_variables'
   integer :: i_stat, i_all
-  if (associated(in%kpt)) then
-     i_all=-product(shape(in%kpt))*kind(in%kpt)
-     deallocate(in%kpt,stat=i_stat)
-     call memocc(i_stat,i_all,'in%kpt',subname)
+
+  if (associated(in%gen_kpt)) then
+     i_all=-product(shape(in%gen_kpt))*kind(in%gen_kpt)
+     deallocate(in%gen_kpt,stat=i_stat)
+     call memocc(i_stat,i_all,'in%gen_kpt',subname)
   end if
-  if (associated(in%wkpt)) then
-     i_all=-product(shape(in%wkpt))*kind(in%wkpt)
-     deallocate(in%wkpt,stat=i_stat)
-     call memocc(i_stat,i_all,'in%wkpt',subname)
+  if (associated(in%gen_wkpt)) then
+     i_all=-product(shape(in%gen_wkpt))*kind(in%gen_wkpt)
+     deallocate(in%gen_wkpt,stat=i_stat)
+     call memocc(i_stat,i_all,'in%gen_wkpt',subname)
   end if
   if (associated(in%kptv)) then
      i_all=-product(shape(in%kptv))*kind(in%kptv)
@@ -1832,10 +1574,11 @@ subroutine free_kpt_variables(in)
      deallocate(in%nkptsv_group,stat=i_stat)
      call memocc(i_stat,i_all,'in%nkptsv_group',subname)
   end if
-  nullify(in%kpt)
-  nullify(in%wkpt)
+  nullify(in%gen_kpt)
+  nullify(in%gen_wkpt)
   nullify(in%kptv)
   nullify(in%nkptsv_group)
+  if (associated(in%kpt)) call dict_free(in%kpt)
 end subroutine free_kpt_variables
 
 !>  Free all dynamically allocated memory from the input variable structure.
@@ -2973,3 +2716,151 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   nullify(atoms%sym%phnons)
 
 END SUBROUTINE initialize_atomic_file
+
+subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, geocode, alat)
+  use module_base
+  use module_types
+  use defs_basis
+  use m_ab6_kpoints
+  use yaml_output
+  use module_input
+  use dictionaries
+  implicit none
+  integer, intent(in) :: iproc, nkptv
+  type(dictionary), pointer :: in_kpt
+  integer, intent(out) :: nkpt
+  real(gp), pointer :: kpt(:,:), wkpt(:)
+  real(gp), dimension(3,nkptv), intent(inout) :: kptv
+  type(symmetry_data), intent(in) :: sym
+  character(len = 1), intent(in) :: geocode
+  real(gp), intent(in) :: alat(3)
+  !local variables
+  character(len=*), parameter :: subname='kpt_input_analyse'
+  integer :: i_stat,ierror,i,nshiftk, ngkpt(3)
+  real(gp) :: kptrlen, shiftk(3,8), norm, alat_(3)
+  type(dictionary), pointer :: method
+
+  ! Set default values.
+  nkpt=1
+  !call yaml_dict_dump(in_kpt, flow = .true.)
+
+  nullify(kpt, wkpt)
+
+  method => in_kpt//"K-point sampling method"
+  if (case_insensitive_equiv(trim(method%data%value),'auto')) then
+     kptrlen=in_kpt//'Equivalent length of K-space resolution (Bohr)'
+     if (geocode == 'F') then
+        nkpt = 1
+        allocate(kpt(3, nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,kpt,'kpt',subname)
+        kpt = 0.
+        allocate(wkpt(nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,wkpt,'wkpt',subname)
+        wkpt = 1.
+     else
+        call kpoints_get_auto_k_grid(sym%symObj, nkpt, kpt, wkpt, &
+             & kptrlen, ierror)
+        if (ierror /= AB6_NO_ERROR) then
+           if (iproc==0) &
+                & call yaml_warning("ERROR: cannot generate automatic k-point grid." // &
+                & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
+           stop
+        end if
+        !assumes that the allocation went through
+        call memocc(0,kpt,'kpt',subname)
+        call memocc(0,wkpt,'wkpt',subname)
+     end if
+  else if (case_insensitive_equiv(trim(method%data%value),'mpgrid')) then
+     !take the points of Monkhorst-pack grid
+     ngkpt(1) = in_kpt//'No. of Monkhorst-Pack grid points'//1
+     ngkpt(2) = in_kpt//'No. of Monkhorst-Pack grid points'//2
+     ngkpt(3) = in_kpt//'No. of Monkhorst-Pack grid points'//3
+     if (geocode == 'S') ngkpt(2) = 1
+     !shift
+     nshiftk = in_kpt//'No. of different shifts'
+     !read the shifts
+     shiftk=0.0_gp
+     do i=1,nshiftk
+        shiftk(1,i) = in_kpt//'Grid shifts'//i//1
+        shiftk(2,i) = in_kpt//'Grid shifts'//i//2
+        shiftk(3,i) = in_kpt//'Grid shifts'//i//3
+     end do
+
+     !control whether we are giving k-points to Free BC
+     if (geocode == 'F') then
+        if (iproc==0 .and. (maxval(ngkpt) > 1 .or. maxval(abs(shiftk)) > 0.)) &
+             & call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
+        nkpt = 1
+        allocate(kpt(3, nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,kpt,'kpt',subname)
+        kpt = 0.
+        allocate(wkpt(nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,wkpt,'wkpt',subname)
+        wkpt = 1.
+     else
+        call kpoints_get_mp_k_grid(sym%symObj, nkpt, kpt, wkpt, &
+             & ngkpt, nshiftk, shiftk, ierror)
+        if (ierror /= AB6_NO_ERROR) then
+           if (iproc==0) &
+                & call yaml_warning("ERROR: cannot generate MP k-point grid." // &
+                & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
+           stop
+        end if
+        !assumes that the allocation went through
+        call memocc(0,kpt,'kpt',subname)
+        call memocc(0,wkpt,'wkpt',subname)
+     end if
+  else if (case_insensitive_equiv(trim(method%data%value),'manual')) then
+     nkpt = in_kpt//'Number of K-points'
+     if (geocode == 'F' .and. nkpt > 1) then
+        if (iproc==0) call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
+        nkpt = 1
+     end if
+     allocate(kpt(3, nkpt+ndebug),stat=i_stat)
+     call memocc(i_stat,kpt,'kpt',subname)
+     allocate(wkpt(nkpt+ndebug),stat=i_stat)
+     call memocc(i_stat,wkpt,'wkpt',subname)
+     norm=0.0_gp
+     do i=1,nkpt
+        kpt(1,i) = in_kpt//'Kpt coordinates'//i//1
+        kpt(2,i) = in_kpt//'Kpt coordinates'//i//2
+        kpt(3,i) = in_kpt//'Kpt coordinates'//i//3
+        if (geocode == 'S' .and. kpt(2,i) /= 0.) then
+           kpt(2,i) = 0.
+           if (iproc==0) call yaml_warning('Surface conditions, supressing k-points along y.')
+        end if
+        wkpt(i) = in_kpt//'Kpt weigths'//i
+        if (geocode == 'F') then
+           kpt = 0.
+           wkpt = 1.
+        end if
+        norm=norm+wkpt(i)
+     end do
+     ! We normalise the weights.
+     wkpt(:)=wkpt/norm
+  else
+     if (iproc==0) &
+          & call yaml_warning("ERROR: wrong k-point sampling method (" // &
+          & trim(method%data%value) // ").")
+     stop
+  end if
+
+  ! Convert reduced coordinates into BZ coordinates.
+  alat_ = alat
+  if (geocode /= 'P') alat_(2) = 1.0_gp
+  if (geocode == 'F') then
+     alat_(1)=1.0_gp
+     alat_(3)=1.0_gp
+  end if
+  do i = 1, nkpt, 1
+     kpt(:, i) = kpt(:, i) / alat_(:) * two_pi
+  end do
+ 
+  if (nkptv > 0 .and. geocode == 'F' .and. iproc == 0) &
+       & call yaml_warning('Defining a k-point path in free boundary conditions.')
+  ! Convert reduced coordinates into BZ coordinates.
+  do i = 1, nkptv, 1
+     kptv(:, i) = kptv(:, i) / alat_(:) * two_pi
+  end do
+ 
+END SUBROUTINE kpt_input_analyse

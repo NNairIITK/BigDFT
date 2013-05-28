@@ -754,6 +754,7 @@ contains
     else
        call dict_init(dict%child)
        call define_parent(dict,dict%child)
+       dict%data%nitems = 1
        call set_item(dict%child,item)
        subd_ptr => dict%child
     end if

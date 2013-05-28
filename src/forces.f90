@@ -4015,7 +4015,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   real(kind=8),allocatable :: rhog(:,:,:,:,:)
   real(kind=8),dimension(:),pointer :: rhor
   integer :: ierr,i_stat,i_all
-  real(kind=8) :: pi,p(3),g2,rloc,set,fac
+  real(kind=8) :: pi,p(3),g2,rloc,setv,fac
   real(kind=8) :: rx,ry,rz,sfr,sfi,rhore,rhoim
   real(kind=8) :: potg,potg2
   real(kind=8) :: Zion
@@ -4099,12 +4099,12 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
               !set = rhog^el (analytic)
               fac=(Zion/rloc**3.0_gp)/sqrt(2.0_gp*pi)/(2.0_gp*pi)
               fac=fac/real(n1i*hxh*n2i*hyh*n3i*hzh,kind=8)                    !Division by Volume
-              set=((sqrt(pi*2.0_gp*rloc**2.0_gp))**3)*fac*exp(-pi*pi*g2*2.0_gp*rloc**2.0_gp)
+              setv=((sqrt(pi*2.0_gp*rloc**2.0_gp))**3)*fac*exp(-pi*pi*g2*2.0_gp*rloc**2.0_gp)
 
               if (g2 /= 0) then
 
-                 potg = -set/(pi*g2)  ! V^el(G)
-                 potg2 = (set/pi)*((real(1.d0,kind=8)/g2**2.d0)&
+                 potg = -setv/(pi*g2)  ! V^el(G)
+                 potg2 = (setv/pi)*((real(1.d0,kind=8)/g2**2.d0)&
                       +real(pi*pi*2.d0*rloc**2.d0/g2,kind=8))
 
                  !STRESS TENSOR

@@ -251,6 +251,22 @@ module module_interfaces
          real(gp), dimension(3,atoms%nat), intent(in), optional :: forces
       END SUBROUTINE write_atomic_file
 
+      subroutine kpt_input_analyse(iproc,nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, geocode, alat)
+        use module_base
+        use module_types
+        use defs_basis
+        use m_ab6_kpoints
+        implicit none
+        integer, intent(in) :: iproc, nkptv
+        type(dictionary), pointer :: in_kpt
+        integer, intent(out) :: nkpt
+        real(gp), pointer :: kpt(:,:), wkpt(:)
+        real(gp), dimension(3,nkptv), intent(inout) :: kptv
+        type(symmetry_data), intent(in) :: sym
+        character(len = 1), intent(in) :: geocode
+        real(gp), intent(in) :: alat(3)
+      end subroutine kpt_input_analyse
+
       subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,peakmem)
          !n(c) use module_base
          use module_types

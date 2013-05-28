@@ -119,7 +119,6 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   end if
   inputPsiId_orig=runObj%inputs%inputPsiId
 
-
   loop_cluster: do
      !allocate history container if it has not been done
      if (runObj%inputs%wfn_history > 1  .and. .not. associated(runObj%rst%KSwfn%oldpsis)) then
