@@ -50,7 +50,7 @@ module dictionaries
   end interface
 
   interface add
-     module procedure add_char,add_dict,add_integer!,add_real,add_double,add_long
+     module procedure add_char,add_dict,add_integer,add_real,add_double,add_long
   end interface
 
   interface dict_new
@@ -194,65 +194,43 @@ contains
     end subroutine pop_dict_
   end subroutine pop_dict
 
-  !> assign the value to the dictionary
+  !> add to a list
   subroutine add_char(dict,val)
     implicit none
     type(dictionary), pointer :: dict
     character(len=*), intent(in) :: val
-    !local variables
-    integer :: length,isize
-    
-    isize=dict_size(dict)
-    length=dict_len(dict)
-
-    if (f_err_raise(isize > 0,'Add not allowed for this node',&
-         err_id=DICT_INVALID_LIST)) return
-    if (f_err_raise(length == -1,'Add not allowed for this node',&
-         err_id=DICT_INVALID)) return
-
-    call set(dict//length,trim(val))
-
+    include 'dict_add-inc.f90'
   end subroutine add_char
-
-  !> assign the value to the dictionary
-  subroutine add_dict(dict,dict_item)
+  subroutine add_dict(dict,val)
     implicit none
     type(dictionary), pointer :: dict
-    type(dictionary), pointer :: dict_item
-    !local variables
-    integer :: length,isize
-    
-    isize=dict_size(dict)
-    length=dict_len(dict)
-
-    if (f_err_raise(isize > 0,'Add not allowed for this node',&
-         err_id=DICT_INVALID_LIST)) return
-    if (f_err_raise(length == -1,'Add not allowed for this node',&
-         err_id=DICT_INVALID)) return
-
-    call set(dict//length,dict_item)
-
+    type(dictionary), pointer :: val
+    include 'dict_add-inc.f90'
   end subroutine add_dict
-
-  !> assign the value to the dictionary
   subroutine add_integer(dict,val)
     implicit none
     type(dictionary), pointer :: dict
     integer, intent(in) :: val
-    !local variables
-    integer :: length,isize
-    
-    isize=dict_size(dict)
-    length=dict_len(dict)
-
-    if (f_err_raise(isize > 0,'Add not allowed for this node',&
-         err_id=DICT_INVALID_LIST)) return
-    if (f_err_raise(length == -1,'Add not allowed for this node',&
-         err_id=DICT_INVALID)) return
-
-    call set(dict//length,val)
-
+    include 'dict_add-inc.f90'
   end subroutine add_integer
+  subroutine add_real(dict,val)
+    implicit none
+    type(dictionary), pointer :: dict
+    real, intent(in) :: val
+    include 'dict_add-inc.f90'
+  end subroutine add_real
+  subroutine add_double(dict,val)
+    implicit none
+    type(dictionary), pointer :: dict
+    double precision, intent(in) :: val
+    include 'dict_add-inc.f90'
+  end subroutine add_double
+  subroutine add_long(dict,val)
+    implicit none
+    type(dictionary), pointer :: dict
+    integer(kind=8), intent(in) :: val
+    include 'dict_add-inc.f90'
+  end subroutine add_long
 
   !defines a dictionary from a array of storage data
   function dict_new(st_arr)
@@ -523,8 +501,7 @@ contains
     type(dictionary), pointer :: dict
     type(dictionary), pointer :: subd
 
-    !TEST
-!if the dictionary starts with a master tree, eliminate it and put the child
+    !if the dictionary starts with a master tree, eliminate it and put the child
     if (.not. associated(subd%parent)) then
        call put_child(dict,subd%child)
        nullify(subd%child)
@@ -541,8 +518,12 @@ contains
        call dict_free(dict%child)
     end if
     dict%child=>subd
+    !inherit the number of elements or items from subd's parent
+    !which is guaranteed to be associated
+    dict%data%nelems=subd%parent%data%nelems
+    dict%data%nitems=subd%parent%data%nitems
     call define_parent(dict,dict%child)
-    dict%data%nelems=dict%data%nelems+1
+
   end subroutine put_child
 
   !> append another dictionary

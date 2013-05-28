@@ -47,7 +47,31 @@ subroutine test_dictionaries0()
   call dict_init(dict2)
   call set(dict2//'a',0)
 
+  !this had  a bug, now solved
   call set(dict1//'List',list_new((/.item. dict2,.item. '4',.item. '1.0'/)))
+
+  !this works
+!!$  call add(dict1//'List',dict2)
+!!$  call add(dict1//'List',4)
+!!$  call add(dict1//'List',1.0)
+
+!!$  !this works too
+!!$  list=>dict_new()
+!!$  call add(list,dict2)
+!!$  call add(list,4)
+!!$  call add(list,1.0)
+!!$  call set(dict1//'List',list)
+
+!!$  !this also
+!!$  list=>dict_new()
+!!$  call set(list//'First',dict2)
+!!$  call set(list//'Second',4)
+!!$  call set(list//'Third',1.0)
+!!$  call set(dict1//'List',list)
+
+!!$  dict3=>dict1//'List'
+!!$  call yaml_map('Elements of the new dictionary (elems, list)',&
+!!$       (/dict3%data%nelems,dict3%data%nitems/))
 
   dict3=> dict1//'New key'
   call set(dict3//'Example',4)

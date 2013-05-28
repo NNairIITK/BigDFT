@@ -23,6 +23,8 @@ Keys to ignore:
  - Tolerances for this check
  - Material acceleration
  - Number of OpenCL devices per node
+ - Version Number
+ - Root process Hostname
 Patterns to ignore:
  - Timestamp
  - memory
@@ -32,10 +34,15 @@ Expected Test CPUtime: #
   athelas: [ 6.0, 1.0 ]
 
 yaml_test:
+ Tax: 1.8e-6
+ Total: 2.0e-5
  Keys to ignore:
    - Error code
    - Address*
    - date
+   - Id
+ Patterns to ignore:
+   - errcode
 
 #Runs which update and override the default
 SiH4:
@@ -59,12 +66,13 @@ SiH4:
 AgBulk:
  Grid Spacing threshold (AU): 1.e-2
  Residues per orbital: 2.2e-8
- EH: 1.5e-11
- EXC: 2.7e-11
+ EH: 1.6e-11
+ EXC: 2.9e-11
+ Ekin: 1.2e-11
  Enl: 2.3e-11
- Epot: 1.9e-11
- EvXC: 3.6e-11
- tr(H): 2.4e-11
+ Epot: 2.1e-11
+ EvXC: 3.7e-11
+ tr(H): 2.5e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -75,6 +83,8 @@ SiBulk:
  Enl: 2.1e-11
  Epot: 1.0e-10
  EvXC: 1.1e-10
+ Atomic Forces (Ha/Bohr): 1.2e-11
+ Clean forces norm (Ha/Bohr): 1.2e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -135,9 +145,9 @@ CH3-:
  - b/b0
 
 scalability:
- Epsilon: 1.1e-10
+ Energies: 1.e-9
  EKS: 2.0e-10
- EH: 1.e-9
+ Total electronic charge: 1.9e-11
 
 ElecField:
  Epsilon: 1.1e-10 
@@ -219,11 +229,6 @@ CH4-D3:
  Etot: 2.9e-11
  Ion-Ion interaction energy: 9.0e-11
 
-scalability:
- Energies: 1.e-9
- EKS: 2.e-10
- Total electronic charge: 1.4e-11
-
 NLCC: &NLCCs
  Energies: 1.2e-10
  EKS: 5.e-11
@@ -233,6 +238,7 @@ NLCC: &NLCCs
 NLCC_free-O2: *NLCCs
 NLCC_free: *NLCCs
 NLCC_periodic-O2: *NLCCs
+NLCC_periodic: *NLCCs
 
 taskgroups:
   Energies: 1.1e-10
@@ -253,13 +259,15 @@ TDDFT:
   Epot: 1.1e-10
   Gradient Norm: 3.1e-9
   L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-7
+  Excitation Energy and Oscillator Strength: 1.7e-6
+  Transition energies (eV): 1.1e-4
 
 BigDFT2Wannier.b2w.ref.yaml:
   amnk_guess(nb): 1.31e-10
 
 cleanup:
- Atomic Forces (Ha/Bohr): 2.41e-10
- Average noise forces: 1.5e-10
+ Atomic Forces (Ha/Bohr): 2.45e-10
+ Average noise forces: 3.1e-10
  Clean forces norm (Ha/Bohr): 1.6e-10
  Raw forces norm (Ha/Bohr): 2.4e-10
 

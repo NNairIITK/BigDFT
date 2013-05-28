@@ -30,7 +30,7 @@ DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 f_malloc-inc.f90 f_malloc-ex
 YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90
 STRINGS_INCLUDES = yaml_toa-inc.f90
 ERR_INCLUDES = get_err-inc.f90
-DICT_INCLUDES = error_handling.f90
+DICT_INCLUDES = error_handling.f90 dict_add-inc.f90
 
 EXTRA_DIST = $(DYN_INCLUDES) $(YAML_INCLUDES) $(STRINGS_INCLUDES) $(ERR_INCLUDES) $(DICT_INCLUDES)
 
