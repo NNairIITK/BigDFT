@@ -63,6 +63,13 @@ subroutine  MPI_GROUP_INCL(GROUP,N,NRANKS,NEWGROUP,ierr)
   ierr=GROUP*0
 END SUBROUTINE MPI_GROUP_INCL
 
+subroutine  MPI_GROUP_FREE(GROUP,ierr)
+  implicit none
+  integer, intent(in) :: GROUP
+  integer, intent(out) :: ierr
+  ierr=GROUP*0
+END SUBROUTINE MPI_GROUP_FREE
+
 subroutine mpi_test(request,flag,MPI_Status)
   implicit none
   integer, intent(in) :: request
