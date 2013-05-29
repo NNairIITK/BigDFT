@@ -22,6 +22,7 @@ program frequencies
    use module_interfaces
    use m_ab6_symmetry
    use yaml_output
+
    implicit none
 
    !Parameters
@@ -59,9 +60,7 @@ program frequencies
    real(gp), dimension(3) :: freq_step
    real(gp), dimension(6) :: strten
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
-   real(gp) :: tel
-   real :: tcpu0,tcpu1
-   integer :: k,km,ii,jj,ik,imoves,order,n_order,ncount0,ncount1,ncount_rate,ncount_max
+   integer :: k,km,ii,jj,ik,imoves,order,n_order
    integer :: iproc,nproc,igroup,ngroups
    integer :: iat,jat,i,j,i_stat,i_all,ierr,infocode,ity,nconfig
    logical :: exists
@@ -159,6 +158,7 @@ program frequencies
       fxyz = forces(:,1,0)
       infocode=0
    else
+      if (bigdft_mpi%iproc == 0) call yaml_comment('(F) Reference state calculation',hfill='=')
       call call_bigdft(nproc,bigdft_mpi%iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
       call frequencies_write_restart(0,0,0,rxyz,etot,fxyz,n_order=n_order,freq_step=freq_step,amu=atoms%amu)
       moves(:,0) = .true.
@@ -179,7 +179,7 @@ program frequencies
    if (bigdft_mpi%iproc == 0) then
       !write(*,*)
       !write(*,'(1x,a,59("="))') '=Frequencies calculation '
-      call yaml_comment('(F) Start Frequencies calculation ',hfill='=')
+      call yaml_comment('(F) Start Frequencies calculation',hfill='=')
    end if
 
    do iat=1,atoms%nat
@@ -219,8 +219,12 @@ program frequencies
             rpos=rxyz
             if (bigdft_mpi%iproc == 0) then
                !write(*,"(1x,a,i0,a,a,a,1pe20.10,a)") '=F Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
-               call yaml_map('(F) Move (atom direction axe displacement in bohr)', &
-                    & (/ trim(yaml_toa(iat)), trim(yaml_toa(k)), cc(3:4), trim(yaml_toa(dd,fmt='(1pe20.10)')) /))
+               call yaml_open_map('(F) Move',flow=.true.)
+                  call yaml_map('atom',      iat)
+                  call yaml_map('direction', k)
+                  call yaml_map('axis',      cc(4:4))
+                  call yaml_map('displacement (Bohr)', dd,fmt='(1pe20.10)')
+               call yaml_close_map()
             end if
             if (atoms%geocode == 'P') then
                rpos(i,iat)=modulo(rxyz(i,iat)+dd,alat)
@@ -288,10 +292,6 @@ program frequencies
    allocate(iperm(3*atoms%nat+ndebug),stat=i_stat)
    call memocc(i_stat,iperm,'iperm',subname)
 
-   !Start timing only for the last part
-   call cpu_time(tcpu0)
-   call system_clock(ncount0,ncount_rate,ncount_max)
-
    !Diagonalise the hessian matrix
    call solve(hessian,3*atoms%nat,eigen_r,eigen_i,vector_l,vector_r)
    !Sort eigenvalues in ascending order (use abinit routine sort_dp)
@@ -308,8 +308,9 @@ program frequencies
       !write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(iperm(3*atoms%nat:1:-1))
       !write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(iperm(3*atoms%nat:1:-1))
       !call yaml_map('(F) Eigenvalues (real)',     trim(yaml_toa(eigen_r(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')))
-      call yaml_map('(F) Eigenvalues (real)',     eigen_r(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')
-      call yaml_map('(F) Eigenvalues (imaginary)',eigen_i(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')
+      call yaml_comment('(F) Frequencies results',hfill='=')
+      call yaml_map('(F) Eigenvalues (real part)',eigen_r(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')
+      call yaml_map('(F) Eigenvalues (imag part)',eigen_i(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')
       do i=1,3*atoms%nat
          if (eigen_r(i)<0.0_dp) then
             eigen_r(i)=-sqrt(-eigen_r(i))
@@ -319,8 +320,8 @@ program frequencies
       end do
       !write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r(iperm(3*atoms%nat:1:-1))
       !write(*,'(1x,a,1x,100(f13.2))')    '=F: frequencies (cm-1)      =',eigen_r(iperm(3*atoms%nat:1:-1))*Ha_cmm1
-      call yaml_map('(F) frequencies (Hartree)',eigen_r(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')
-      call yaml_map('(F) frequencies (cm-1)',   eigen_r(iperm(3*atoms%nat:1:-1))*Ha_cmm1,fmt='(f13.2)')
+      call yaml_map('(F) Frequencies (Hartree)',eigen_r(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')
+      call yaml_map('(F) Frequencies (cm-1)',   eigen_r(iperm(3*atoms%nat:1:-1))*Ha_cmm1,fmt='(f13.2)')
       !Build frequencies.xyz in descending order
       open(unit=15,file='frequencies.xyz',status="unknown")
       do i=3*atoms%nat,1,-1
@@ -421,15 +422,6 @@ program frequencies
    deallocate(forces,stat=i_stat)
    call memocc(i_stat,i_all,'forces',subname)
 
-   !Final timing
-   call cpu_time(tcpu1)
-   call system_clock(ncount1,ncount_rate,ncount_max)
-   tel=real(ncount1-ncount0,kind=gp)/real(ncount_rate,kind=gp)
-   if (bigdft_mpi%iproc == 0) then
-      !write( *,'(1x,a,1x,i4,2(1x,f12.2))') '=F: CPU time/ELAPSED time for root process ', bigdft_mpi%iproc,tel,tcpu1-tcpu0
-      call yaml_map('(F) CPU time/ELAPSED time for root process ', (/ tel,real(tcpu1-tcpu0,kind=gp) /), fmt='(f12.2)')
-   end if
-
    call free_restart_objects(rst,subname)
 
    call deallocate_atoms(atoms,subname) 
@@ -459,7 +451,8 @@ program frequencies
       call dgeev('V','V',n,hessian,n,eigen_r,eigen_i,vector_l,n,vector_r,n,work,lwork,info)
 
       if (info /= 0) then
-         write(*,'(1x,a,i0)') 'Error from the routine dgeev: info=',info
+         !write(*,'(1x,a,i0)') 'Error from the routine dgeev: info=',info
+         call yaml_warning('(F) Error from the routine dgeev: info=' // trim(yaml_toa(info)))
       end if
 
       !De-allocation
@@ -494,10 +487,9 @@ program frequencies
       imoves=0
       moves = .false.
       !Test if the file does exist.
-      if (bigdft_mpi%iproc == 0) then
+      !if (bigdft_mpi%iproc == 0) then
          !write(*,freq_form) 'Check if the file "frequencies.res" is present.'
-         call yaml_comment('(F) Check if the file "frequencies.res" is present.')
-      end if
+      !end if
 
       inquire(file='frequencies.res', exist=exists)
 
@@ -505,8 +497,10 @@ program frequencies
          !There is no restart file.
          call razero(n_order*(3*nat+1),energies(1,0))
          !if (bigdft_mpi%iproc == 0) write(*,freq_form) 'No "frequencies.res" file present.'
-         if (bigdft_mpi%iproc == 0) call yaml_comment('(F) No "frequencies.res" file present.')
+         if (bigdft_mpi%iproc == 0) call yaml_map('(F) File "frequencies.res" present',.false.)
          return
+      else
+         if (bigdft_mpi%iproc == 0) call yaml_map('(F) File "frequencies.res" present',.true.)
       end if
 
       !Allocations
@@ -554,10 +548,10 @@ program frequencies
       if (ierror /= 0 .or. iat /= 0) then
          !Read error, we assume that it is not calculated
          !if (bigdft_mpi%iproc == 0) write(*,freq_form) 'The reference state is not calculated in "frequencies.res" file.'
-         if (bigdft_mpi%iproc == 0) call yaml_comment('(F) The reference state is not calculated in "frequencies.res" file.')
+         if (bigdft_mpi%iproc == 0) call yaml_map('(F) Reference state calculated in the "frequencies.res" file',.false.)
       else
          !if (bigdft_mpi%iproc == 0) write(*,freq_form) 'The reference state is already calculated.'
-         if (bigdft_mpi%iproc == 0) call yaml_comment('(F) The reference state is already calculated.')
+         if (bigdft_mpi%iproc == 0) call yaml_map('(F) Reference state calculated in the "frequencies.res" file',.true.)
          energies(:,0) = etot
          forces(:,1,0) = fxyz
          moves(:,0) = .true.

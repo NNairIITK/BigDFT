@@ -48,7 +48,7 @@
 ---
   #----------------------------------------------------------------------- Yaml Invoice Example
  invoice                               :  34843
- date                                  :  2013-05-12
+ date                                  :  2013-05-29
  bill-to: &id001
    given                               : Chris
    address:
@@ -73,7 +73,7 @@
   #--------------------------------------------------- Yaml Invoice Example, using dictionaries
  Retrieve the price value              :  2392.0000000000000
  invoice                               : 34843
- date                                  :  2013-05-12
+ date                                  :  2013-05-29
  bill-to:
    given                               : Chris
    family                              : Dumars
@@ -105,7 +105,7 @@
       purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4244720
+   Callback Procedure Address          : 4206208
  Additional Info                       : Extra message added
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
  Raising the TOTO error, by name       : ERR_TOTO
@@ -125,8 +125,8 @@
  ERR_TITI:
    Id                                  : 4
    Message                             : test2
-   Callback Procedure Address          : 4244784
-   Callback Procedure Data Address     : 140733737044692
+   Callback Procedure Address          : 4206256
+   Callback Procedure Data Address     : 140736635689036
  Additional Info                       : Now TITI error has been raised
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TITI
  Callback done                         :  Yes
@@ -136,7 +136,7 @@
 ---
   #Now we test dictionaries inside yaml.
  toto                                  : 1
- titi                                  : 1.0000000000000000
+ titi                                  : 1.00000000000000000
  tutu: [1, 2]
  List: [a: 0, 4, 1.000000000E+00]
  New key: {Example: 4}
@@ -241,35 +241,35 @@
      Array Id                          : pot_ion
      Size (Bytes)                      : 0
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0x6af338
-     Address of metadata               : 140733737044512
+     Address of first element          : 0x100
+     Address of metadata               : 140736635688752
    xc_pot:
      Array Id                          : xc_pot
      Size (Bytes)                      : 48
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0x6aff68
-     Address of metadata               : 140733737044560
+     Address of first element          : 0x2090540
+     Address of metadata               : 140736635688672
    extra_ref:
      Array Id                          : extra_ref
      Size (Bytes)                      : 0
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0x6af368
-     Address of metadata               : 140733737044416
+     Address of first element          : 0x100
+     Address of metadata               : 140736635688592
    rhopot:
      Array Id                          : rhopot
      Size (Bytes)                      : 48
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0x6afb78
-     Address of metadata               : 140733737044608
+     Address of first element          : 0x2094970
+     Address of metadata               : 140736635688912
  Global dictionary:
    potential:
      Array Id                          : potential
      Size (Bytes)                      : 24
      Allocating Routine Id             : Routine 0
-     Address of first element          : 0x6aff18
-     Address of metadata               : 140733737044464
+     Address of first element          : 0x2090580
+     Address of metadata               : 140736635688832
    Timestamp of Profile initialization:
-     2013-05-12 18:44:15.861
+     2013-05-29 11:36:19.219
    Process Id:
      0
  Memory Consumption Report:
