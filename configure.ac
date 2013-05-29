@@ -1047,6 +1047,7 @@ Makefile
 bigdft.pc
 libABINIT/src/Makefile
 config/Doxyfile
+PyYAML-3.10/Makefile
 flib/Makefile
 flib/src/Makefile
 flib/tests/Makefile

@@ -11,14 +11,9 @@ SUBDIRS =
 
 # This is required for testing.
 if BUILD_LIBYAML
-pyyaml_build = pyyaml_build
-pyyaml_clean = pyyaml_clean
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
 PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
-SUBDIRS += yaml-0.1.4
-else
-pyyaml_build =
-pyyaml_clean =
+SUBDIRS += yaml-0.1.4 PyYAML-3.10
 endif
 
 # Low level libraries provided by BigDFT team.
@@ -58,24 +53,6 @@ SUBDIRS += tests
 endif
 endif
 
-pyyaml_build:
-	cd $(top_builddir)/PyYAML-3.10 ; \
-	rm -rf build ; \
-	echo "[build_ext]" > setup.cfg ; \
-	echo "define=YAML_DECLARE_STATIC" >> setup.cfg ; \
-	echo "include_dirs=$(abs_top_srcdir)/yaml-0.1.4/include" >> setup.cfg ; \
-	echo "library_dirs=$(abs_top_builddir)/yaml-0.1.4/src/.libs" >> setup.cfg ; \
-	python setup.py build ; \
-	cd -
-
-pyyaml_clean:
-	cd $(top_builddir)/PyYAML-3.10 ; \
-	python setup.py clean ; \
-	cd -
-
-all: all-recursive $(pyyaml_build)
-
-clean: $(pyyaml_clean) clean-recursive
 
 check report:
 	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}; python $(top_srcdir)/tests/report.py

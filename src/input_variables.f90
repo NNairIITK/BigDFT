@@ -1043,6 +1043,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in)
      call set(in%kpt//'No. of Monkhorst-Pack grid points'//0, ngkpt(1))
      call set(in%kpt//'No. of Monkhorst-Pack grid points'//1, ngkpt(2))
      call set(in%kpt//'No. of Monkhorst-Pack grid points'//2, ngkpt(3))
+!!$     call set(in%kpt//'No. of Monkhorst-Pack grid points', ngkpt)
      !shift
      call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
      call set(in%kpt//'No. of different shifts', nshiftk)
@@ -1055,6 +1056,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in)
         call set(in%kpt//'Grid shifts'//(i-1)//0, shiftk(1))
         call set(in%kpt//'Grid shifts'//(i-1)//1, shiftk(2))
         call set(in%kpt//'Grid shifts'//(i-1)//2, shiftk(3))
+!!$        call add(in%kpt//'Grid shifts', shiftk)
      end do
   else if (case_insensitive_equiv(trim(type),'manual')) then
      call input_var(nkpt,'1',ranges=(/1,10000/),&
@@ -2731,7 +2733,7 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
   character(len=*), parameter :: subname='kpt_input_analyse'
   integer :: i_stat,ierror,i,nshiftk, ngkpt(3)
   real(gp) :: kptrlen, shiftk(3,8), norm, alat_(3)
-  type(dictionary), pointer :: method
+  character(len = 6) :: method
 
   ! Set default values.
   nkpt=1
@@ -2739,8 +2741,8 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
 
   nullify(kpt, wkpt)
 
-  method => in_kpt//"K-point sampling method"
-  if (case_insensitive_equiv(trim(method%data%value),'auto')) then
+  method = in_kpt//"K-point sampling method"
+  if (case_insensitive_equiv(trim(method),'auto')) then
      kptrlen=in_kpt//'Equivalent length of K-space resolution (Bohr)'
      if (geocode == 'F') then
         nkpt = 1
@@ -2763,7 +2765,7 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
         call memocc(0,kpt,'kpt',subname)
         call memocc(0,wkpt,'wkpt',subname)
      end if
-  else if (case_insensitive_equiv(trim(method%data%value),'mpgrid')) then
+  else if (case_insensitive_equiv(trim(method),'mpgrid')) then
      !take the points of Monkhorst-pack grid
      ngkpt(1) = in_kpt//'No. of Monkhorst-Pack grid points'//0
      ngkpt(2) = in_kpt//'No. of Monkhorst-Pack grid points'//1
@@ -2803,7 +2805,7 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
         call memocc(0,kpt,'kpt',subname)
         call memocc(0,wkpt,'wkpt',subname)
      end if
-  else if (case_insensitive_equiv(trim(method%data%value),'manual')) then
+  else if (case_insensitive_equiv(trim(method),'manual')) then
      nkpt = in_kpt//'Number of K-points'
      if (geocode == 'F' .and. nkpt > 1) then
         if (iproc==0) call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
@@ -2834,7 +2836,7 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
   else
      if (iproc==0) &
           & call yaml_warning("ERROR: wrong k-point sampling method (" // &
-          & trim(method%data%value) // ").")
+          & trim(method) // ").")
      stop
   end if
 
