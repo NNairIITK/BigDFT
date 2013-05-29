@@ -1152,6 +1152,12 @@ contains
      nullify(sym%irrzon)
      nullify(sym%phnons)
   end function symm_null
+  pure subroutine nullify_sym(sym)
+     type(symmetry_data), intent(out) :: sym
+     sym%symObj=-1
+     nullify(sym%irrzon)
+     nullify(sym%phnons)
+  end subroutine nullify_sym
 
   function atoms_null() result(at)
      type(atoms_data) :: at
@@ -1207,7 +1213,8 @@ contains
      nullify(astruct%atomnames)
      nullify(astruct%iatype)
      nullify(astruct%rxyz)
-     astruct%sym=symm_null()
+     !astruct%sym=symm_null()
+     call nullify_sym(astruct%sym)
    end subroutine nullify_atomic_structure
 
   function bigdft_run_id_toa()
