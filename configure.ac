@@ -861,9 +861,7 @@ if test x"$ac_use_libyaml" != x"no" ; then
          ac_use_libyaml="yes"
          LIB_YAML_CFLAGS="-I\$(top_srcdir)"/yaml-0.1.4/include
          LIB_YAML_LIBS="\$(top_builddir)/yaml-0.1.4/src/.libs/libyaml.a"
-         if ! test -d ${srcdir}/PyYAML-3.10 ; then
-            tar -xzf ${srcdir}/PyYAML-3.10.tar.gz
-         fi
+         tar -xzf ${srcdir}/PyYAML-3.10.tar.gz
       else
          AC_MSG_WARN([libyaml is not available.])
       fi
