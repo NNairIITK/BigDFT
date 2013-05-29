@@ -372,15 +372,15 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
   logical, intent(in) :: dump
-!!$  type(input_variables), intent(inout) :: in
+  type(input_variables), intent(inout) :: in
   !local variables
   logical :: exists
   integer :: ierror
   real(gp), dimension(2), parameter :: hgrid_rng=(/0.0_gp,2.0_gp/)
   real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,100.0_gp/)
-  integer :: dummy_int
-  real(gp) :: dummy_real
-  real(gp), dimension(3) :: dummy_real3
+!!$  integer :: dummy_int
+!!$  real(gp) :: dummy_real
+!!$  real(gp), dimension(3) :: dummy_real3
 
   !dft parameters, needed for the SCF part
   call input_set_file(iproc,dump,trim(filename),exists,'DFT Calculation Parameters')  
@@ -388,10 +388,10 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   !call the variable, its default value, the line ends if there is a comment
 
   !grid spacings
-!!$  call input_var(in%hx,'0.45',ranges=hgrid_rng)
-!!$  call input_var(in%hy,'0.45',ranges=hgrid_rng)
-!!$  call input_var(in%hz,'0.45',ranges=hgrid_rng,comment='hx,hy,hz: grid spacing in the three directions')
-  call input_var(dummy_real3,'0.45',ranges=hgrid_rng,key='hx,hy,hz',comment='grid spacing in the three directions'
+  call input_var(in%hx,'0.45',ranges=hgrid_rng)
+  call input_var(in%hy,'0.45',ranges=hgrid_rng)
+  call input_var(in%hz,'0.45',ranges=hgrid_rng,comment='hx,hy,hz: grid spacing in the three directions')
+!!$  call input_var(dummy_real3,'0.45',ranges=hgrid_rng,key='hx,hy,hz',comment='grid spacing in the three directions'
 
   !coarse and fine radii around atoms
   call input_var(in%crmult,'5.0',ranges=xrmult_rng)
