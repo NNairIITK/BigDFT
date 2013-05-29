@@ -897,7 +897,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   if (DoDavidson) then
 
      !for a band structure calculation allocate the array in which to put the eigenvalues
-     if (associated(in%kptv)) then
+     if (associated(in%kptv) .and. in%nkptv > 0) then
         allocate(band_structure_eval(KSwfn%orbs%norbu+KSwfn%orbs%norbd+in%nspin*norbv,in%nkptv+ndebug),stat=i_stat)
         call memocc(i_stat,band_structure_eval,'band_structure_eval',subname)
      end if
@@ -911,7 +911,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         nvirtd = 0
         if (in%nspin==2) nvirtd=nvirtu
         ! Create the orbitals.
-        if (associated(in%kptv)) then
+        if (associated(in%kptv) .and. in%nkptv > 0) then
            nvirtu = nvirtu + KSwfn%orbs%norbu
            nvirtd = nvirtd + KSwfn%orbs%norbd
            nvirt  = nvirtu+nvirtd
@@ -1061,7 +1061,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
         !in the case of band structure calculation, copy the values of the eigenvectors
         !into a new array to write them afterwards
-        if (associated(in%kptv)) then
+        if (associated(in%kptv) .and. in%nkptv > 0) then
            call dcopy(VTwfn%orbs%norb*nkptv,VTwfn%orbs%eval(1),1,band_structure_eval(1,ikpt),1)
            !increment the value of ikpt
            ikpt=ikpt+in%nkptsv_group(igroup)
@@ -1078,7 +1078,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      end do
 
-     if (associated(in%kptv)) then
+     if (associated(in%kptv) .and. in%nkptv > 0) then
         !dump the band structure eigenvalue on a file and deallocate it
         if (iproc == 0) then
            open(unit=11,file='band_structure.dat',status='unknown')
