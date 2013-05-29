@@ -872,14 +872,14 @@ contains
     msg_lgt_ck=msg_lgt
     !print *, 'here'
     call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt,istat=ierr)
-!   print *, 'here2',ierr
+    !print *, 'here2',ierr
     if (ierr ==0) then
        call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING,istat=ierr)
     end if
-!    print *, 'here2b',ierr
+    !print *, 'here2b',ierr
     redo_line=ierr/=0
     if (redo_line) then
-!       print *, 'here3',ierr
+       !print *, 'here3',ierr,msg_lgt_ck,msg_lgt
        if (streams(strm)%flowrite) then
           call dump(streams(strm),towrite(1:msg_lgt_ck),advance=trim(adv),event=SCALAR)
        else
@@ -897,21 +897,28 @@ contains
        idbg=0
        cut_line: do while(cut)
           idbg=idbg+1
-!          print *,'hereOUTPU',cut,icut,idbg
+          !print *,'hereOUTPU',cut,icut,idbg
        !verify where the message can be cut
           cut=.false.
           cut_message :do while(icut > streams(strm)%max_record_length - &
                max(streams(strm)%icursor,streams(strm)%indent))
              icut=index(trim((mapvalue(istr:istr+icut-1))),' ',back=.true.)
+             !print *,'test',icut,streams(strm)%max_record_length,&
+             !     max(streams(strm)%icursor,streams(strm)%indent),&
+             !     streams(strm)%max_record_length - &
+             !     max(streams(strm)%icursor,streams(strm)%indent),istr
              cut=.true.
           end do cut_message
+          !if the first line is too long cut it abruptly
+          if (icut == 0) icut = streams(strm)%max_record_length - &
+               max(streams(strm)%icursor,streams(strm)%indent)+1
           call buffer_string(towrite,len(towrite),mapvalue(istr:istr+icut-1),msg_lgt)
           if (streams(strm)%flowrite .and. .not. cut) &
                call buffer_string(towrite,len(towrite),',',msg_lgt)
           call dump(streams(strm),towrite(1:msg_lgt),advance='yes',event=SCALAR)
-          istr=istr-1+icut
+          istr=istr+icut
           icut=len_trim(mapvalue)-istr+1
-!          print *,'icut',istr,icut,mapvalue(istr:istr+icut-1),cut,istr+icut-1,len_trim(mapvalue)
+          !print *,'icut',istr,icut,mapvalue(istr:istr+icut-1),cut,istr+icut-1,len_trim(mapvalue)
           msg_lgt=0
          if (idbg==1000) exit cut_line !to avoid infinite loops
        end do cut_line
