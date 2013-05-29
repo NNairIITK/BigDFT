@@ -20,7 +20,7 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
     integer, intent(in) :: nproc,iproc
     integer, intent(inout) :: ncount_bigdft
     type(run_objects), intent(inout) :: runObj
-    type(DFT_global_output), intent(out) :: outs
+    type(DFT_global_output), intent(inout) :: outs
     !Local variables
     character(len=*), parameter :: subname='bfgs'
     real(gp) :: fluct=0.0_gp,fnrm,fmax
@@ -576,7 +576,7 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(out) :: outs
+  type(DFT_global_output), intent(inout) :: outs
   logical, intent(out) :: fail
 
   !n(c) real(gp), dimension(3*runObj%atoms%nat):: txyz, sxyz
