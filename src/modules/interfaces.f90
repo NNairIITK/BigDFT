@@ -965,7 +965,7 @@ module module_interfaces
         real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
       end subroutine davidson
 
-      subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
+      subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
             &   ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,passmat,nvirte,psivirt)
          use module_base
          implicit none
@@ -978,7 +978,6 @@ module module_interfaces
          real(wp), dimension(*), intent(out) :: passmat
          integer, dimension(2), intent(in), optional :: nvirte
          real(wp), dimension(*), optional :: psivirt
-         integer:: iproc
       END SUBROUTINE build_eigenvectors
 
       subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
@@ -1677,11 +1676,10 @@ module module_interfaces
          type(gaussian_basis), intent(out) :: G  
       END SUBROUTINE gaussian_hermite_basis
 
-      subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
+      subroutine write_eigenvalues_data(etol,orbs,mom_vec)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: nproc
         real(gp), intent(in) :: etol
         type(orbitals_data), intent(in) :: orbs
         real(gp), dimension(:,:,:), intent(in), pointer :: mom_vec

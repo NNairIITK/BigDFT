@@ -23,7 +23,7 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   integer, intent(out) :: ierr                   !< error code
   !local variables
   logical :: exist_list
-  integer :: iproc,nproc,nconfig_file,mpi_groupsize
+  integer :: nconfig_file,mpi_groupsize
   character(len=60) :: posinp_file,radical
 
   !Initalize the global mpi environment

@@ -557,11 +557,11 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
          if (nvctrp == 0) cycle
 
          if (.not. present(orbsv)) then
-            call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
+            call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
                &   natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
                &   psi(ispsie:),psit(ispsi:),passmat(ispm))
          else
-            call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
+            call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
                &   natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
                &   psi(ispsie:),psit(ispsi:),passmat(ispm),&
                &   (/orbsv%norbu,orbsv%norbd/),psivirt(ispsiv:))
@@ -965,7 +965,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
      if (iproc ==0) then 
         nullify(mom_vec_fake)
-        call write_eigenvalues_data(nproc,tolerance,orbsu,mom_vec_fake)
+        call write_eigenvalues_data(tolerance,orbsu,mom_vec_fake)
         !call write_ig_eigenvectors(tolerance,orbsu,nspin,orbs%norb,orbs%norbu,orbs%norbd)
      end if
 
@@ -1010,11 +1010,11 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
         if (nvctrp == 0) cycle
 
         if (.not. present(orbsv)) then
-           call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
+           call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
                 natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
                 psi(ispsie:),psit(ispsi:),passmat(ispm))
         else
-           call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
+           call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
                 natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
                 psi(ispsie:),psit(ispsi:),passmat(ispm),&
                 (/orbsv%norbu,orbsv%norbd/),psivirt(ispsiv:))
@@ -1389,7 +1389,7 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
 
 END SUBROUTINE solve_eigensystem
 
-subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
+subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
       &   ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,passmat,nvirte,psivirt)
    use module_base
    implicit none
@@ -1407,7 +1407,7 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
    !n(c) integer, parameter :: iunit=1978
    integer :: ispin,iorbst,iorbst2,imatrst,norbsc,norbi,norbj
    integer :: ncplx,ncomp,i,ispsiv
-   integer:: iproc,ispm
+   integer:: ispm
 
 !  if(iproc==0) then
 !      do j=1,size(hamovr)

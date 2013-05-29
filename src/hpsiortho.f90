@@ -2046,7 +2046,7 @@ subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
 
   !print the found eigenvalues
   if (iproc == 0) then
-     call write_eigenvalues_data(nproc,tolerance,orbs,mom_vec)
+     call write_eigenvalues_data(tolerance,orbs,mom_vec)
   end if
 
   if (orbs%nspinor ==4) then

@@ -116,7 +116,7 @@ program splined_saddle
 !!$     !-----------------------------------------------------------
 !!$     !-----------------------------------------------------------
 !!$     if (iproc == 0) then
-!!$        call print_general_parameters(nproc,inputs,atoms)
+!!$        call print_general_parameters(inputs,atoms)
 !!$     end if
 
      open(unit=16,file=trim(inputs%dir_output)//'geopt.mon',status='unknown',position='append')

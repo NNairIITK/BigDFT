@@ -2289,7 +2289,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !call to_zero(orbse%norb*orbse%nkpts-orbs%norb*orbs%nkpts,&
    !     orbse%occup(min(orbse%norb*orbse%nkpts,orbs%norb*orbs%nkpts+1)))
 !!$
-!!$      call write_eigenvalues_data(nproc,orbse,mom_vec)
+!!$      call write_eigenvalues_data(orbse,mom_vec)
 !!$      yaml_indent=yaml_indent-2
 !!$
 !!$      if (orbs%nspinor ==4) then

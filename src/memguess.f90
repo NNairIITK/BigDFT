@@ -328,7 +328,7 @@ program memguess
       call xc_init(in%ixc, XC_ABINIT, nspin)
    end if
 
-   call print_general_parameters(nproc,in,atoms)
+   call print_general_parameters(in,atoms)
    call print_dft_parameters(in,atoms)
    call xc_dump()
 

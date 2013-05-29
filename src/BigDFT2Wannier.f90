@@ -152,7 +152,7 @@ program BigDFT2Wannier
 !!$   call standard_inputfile_names(input,radical,nproc)
 !!$   call read_input_variables(iproc,nproc,posinp,input, atoms, rxyz,1,radical,1)
 !!$
-!!$   if (iproc == 0) call print_general_parameters(nproc,input,atoms)
+!!$   if (iproc == 0) call print_general_parameters(input,atoms)
 
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)

@@ -19,7 +19,6 @@ subroutine print_logo()
   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   integer :: nthreads
   integer, parameter :: ln = 1024
-  character(len = ln), dimension(4) :: buf
 !$ integer :: omp_get_max_threads
 
 !  call yaml_comment('Daubechies Wavelets for DFT Pseudopotential Calculations',hfill='=')
@@ -104,7 +103,7 @@ end subroutine print_configure_options
 
 
 !> Print all general parameters
-subroutine print_general_parameters(nproc,in,atoms)
+subroutine print_general_parameters(in,atoms)
   use module_base
   use module_types
   use defs_basis
@@ -113,7 +112,6 @@ subroutine print_general_parameters(nproc,in,atoms)
   use module_input, only: case_insensitive_equiv
   implicit none
   !Arguments
-  integer, intent(in) :: nproc
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
 
@@ -715,12 +713,11 @@ end subroutine write_energies
 
 
 !> Write the eigenvalues-related information
-subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
+subroutine write_eigenvalues_data(etol,orbs,mom_vec)
   use module_base
   use module_types
   use yaml_output
   implicit none
-  integer, intent(in) :: nproc
   real(gp), intent(in) :: etol
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(:,:,:), pointer :: mom_vec

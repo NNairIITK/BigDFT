@@ -70,7 +70,7 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
   end if
 
   if (bigdft_mpi%iproc == 0) then
-     call print_general_parameters(bigdft_mpi%nproc,in,atoms)
+     call print_general_parameters(in,atoms)
      !call write_input_parameters(inputs,atoms)
   end if
 
