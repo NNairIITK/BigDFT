@@ -145,6 +145,6 @@ grep_forces()
     #grep "FINAL" log.yaml | sed 's/  */ /g' | cut -d' ' -f6
     #grep -A $1 "Final values of the Forces for each atom" log | sed 's/  */ /g' | cut -d' ' -f4,5,6 | tail -n $1
     #new version based on yaml output
-    grep FINAL log.yaml | grep EKS | awk '{print $4}' | sed s/,//g
+    grep "#FINAL" log.yaml | tail -n 1 | grep EKS | awk '{print $4}' | sed s/,//g
     grep  -A $1 'Atomic Forces (Ha/Bohr)'  log.yaml | cut -d"[" -f2 | cut -d"]" -f1 | sed s/,//g | tail -n $1
 }
