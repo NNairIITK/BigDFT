@@ -73,12 +73,12 @@ pyyaml_clean:
 	python setup.py clean ; \
 	cd -
 
-all: $(pyyaml_build)
+all: all-recursive $(pyyaml_build)
 
 clean: $(pyyaml_clean) clean-recursive
 
 check report:
-	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ;python $(top_srcdir)/tests/report.py
+	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}; python $(top_srcdir)/tests/report.py
 
 clean-local:
 	-rm -rf includes
