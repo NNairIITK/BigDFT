@@ -2079,7 +2079,7 @@ module module_interfaces
       real(8),dimension(3,at%astruct%nat),intent(inout):: rxyz
       real(8),dimension(3,at%astruct%nat),intent(out):: fpulay
       type(DFT_local_fields), intent(inout) :: denspot
-      real(gp), dimension(:), intent(inout) :: rhopotold
+      real(gp), dimension(*), intent(inout) :: rhopotold
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       type(GPU_pointers),intent(in out):: GPU
