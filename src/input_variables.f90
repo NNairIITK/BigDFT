@@ -83,6 +83,7 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
 END SUBROUTINE bigdft_set_input
 
 
+!> De-allocate the variable of type input_variables
 subroutine bigdft_free_input(in)
   use module_base
   use module_types
@@ -1666,6 +1667,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
      write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
   end if
 END SUBROUTINE perf_input_variables
+
 
 !> Read fragment input parameters
 subroutine fragment_input_variables(iproc,dump,filename,in,atoms)

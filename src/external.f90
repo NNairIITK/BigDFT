@@ -1,5 +1,5 @@
 !> @file
-!! External routine of the bigDFT library.
+!! External routine of the BigDFT library.
 !! To be documented in detail once stabilized
 !! All the call to BigDFT code should be performed from these routines
 !! No interface should be required to manipulate these routines

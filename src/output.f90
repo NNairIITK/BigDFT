@@ -70,6 +70,7 @@ subroutine print_logo()
 
 END SUBROUTINE print_logo
 
+
 subroutine print_configure_options()
   use yaml_output
   implicit none

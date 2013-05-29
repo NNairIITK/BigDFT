@@ -273,3 +273,6 @@ directmin:
 restartdisk_charge:
  Patterns to ignore:
  - Wavefunction written
+
+H2-freq:
+ (F) Frequencies (Hartree): 5.e-10
