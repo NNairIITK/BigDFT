@@ -1,7 +1,7 @@
 !> @file
 !!   Program to guess the used memory by BigDFT
 !! @author
-!!   Copyright (C) 2007-2011 BigDFT group (LG)
+!!   Copyright (C) 2007-2013 BigDFT group (LG)
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -29,9 +29,9 @@ program memguess
    logical :: disable_deprecation = .false.,convertpos=.false.
    integer :: ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
    integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
-   integer :: norbgpu,nspin_ig,ng,ncount0,ncount1,ncount_max,ncount_rate
+   integer :: norbgpu,nspin_ig,ng
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: peakmem,hx,hy,hz,tcpu0,tcpu1,tel,energy
+   real(gp) :: peakmem,hx,hy,hz,energy
    type(input_variables) :: in
    type(atoms_data) :: atoms
    type(orbitals_data) :: orbs,orbstst
@@ -50,6 +50,8 @@ program memguess
    logical, dimension(:,:,:), allocatable :: scorb
    real(kind=8), dimension(:), allocatable :: locrad
    real(gp), dimension(:), pointer :: gbd_occ
+   !real(gp) :: tcpu0,tcpu1,tel
+   !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
    integer :: ierror
 
@@ -333,8 +335,8 @@ program memguess
    call xc_dump()
 
    !Time initialization
-   call cpu_time(tcpu0)
-   call system_clock(ncount0,ncount_rate,ncount_max)
+   !call cpu_time(tcpu0)
+   !call system_clock(ncount0,ncount_rate,ncount_max)
 
    ! store PSP parameters
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
@@ -625,10 +627,10 @@ program memguess
    call memocc(0,0,'count','stop')
 
    !Elapsed time
-   call cpu_time(tcpu1)
-   call system_clock(ncount1,ncount_rate,ncount_max)
-   tel=dble(ncount1-ncount0)/dble(ncount_rate)
-   write( *,'(1x,a,2(1x,f12.2))') 'CPU time/ELAPSED time ', tel, tcpu1-tcpu0
+   !call cpu_time(tcpu1)
+   !call system_clock(ncount1,ncount_rate,ncount_max)
+   !tel=dble(ncount1-ncount0)/dble(ncount_rate)
+   !write( *,'(1x,a,2(1x,f12.2))') 'CPU time/ELAPSED time ', tel, tcpu1-tcpu0
 
    if (.not. disable_deprecation) then
       call deprecation_message()
