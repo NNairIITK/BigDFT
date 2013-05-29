@@ -831,7 +831,7 @@ dnl Yaml input file support
 ac_use_libyaml="yes"
 AC_ARG_WITH([yaml],
             AS_HELP_STRING([--without-yaml], [add support of YAML for input files (default = yes).]),
-            [ac_use_libyaml=$withval], [ac_use_libyaml=$ac_build_lib_BigDFT])
+            [ac_use_libyaml=$withval], [ac_use_libyaml="yes"])
 AC_ARG_WITH([yaml-path],
             AS_HELP_STRING([--with-yaml-path], [give a path to find libyaml.]),
             [ac_path_yaml=$withval])
