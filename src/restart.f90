@@ -427,7 +427,7 @@ END SUBROUTINE readmywaves
 subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => verify_file_presence
   implicit none
   integer, intent(in) :: nproc
   character(len=*), intent(in) :: filerad
