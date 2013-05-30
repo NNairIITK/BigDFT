@@ -41,7 +41,7 @@ endif
 endif
 
 PS_Check_SOURCES = PS_Check.f90
-PS_Check_LDADD = -lPSolver-1 @LINALG_LIBS@
+PS_Check_LDADD = -lPSolver-1 @LINALG_LIBS@ $(top_builddir)/flib/src/libflib.a
 
 PS_Program_SOURCES = PS_Program.f90
 PS_Program_LDADD = -lPSolver-1
