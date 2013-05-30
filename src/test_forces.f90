@@ -121,7 +121,7 @@ program test_forces
 
       !initialize memory counting
       !call memocc(0,iproc,'count','start')
-         call init_global_output(outs, runObj%atoms%nat)
+         call init_global_output(outs, runObj%atoms%astruct%nat)
 
       !     if (iproc == 0) then
       !       call print_general_parameters(nproc,inputs,runObj%atoms)
@@ -138,8 +138,8 @@ program test_forces
       path=0.d0
       !calculate the displacement at each integration step
       !(use sin instead of random numbers)
-      allocate(drxyz(1:3,1:runObj%atoms%nat))
-      do iat=1,runObj%atoms%nat
+      allocate(drxyz(1:3,1:runObj%atoms%astruct%nat))
+      do iat=1,runObj%atoms%astruct%nat
          drxyz(1,iat)=dx*sin(iat+.2d0)   
          drxyz(2,iat)=dx*sin(iat+.4d0)  
          drxyz(3,iat)=dx*sin(iat+.7d0)  
@@ -150,7 +150,7 @@ program test_forces
 
          !update atomic positions along the path
          if(ipath>1) then
-            runObj%rxyz(:,:)=runObj%rxyz(:,:)+drxyz(:,:)
+            runObj%atoms%astruct%rxyz(:,:)=runObj%atoms%astruct%rxyz(:,:)+drxyz(:,:)
             runObj%inputs%inputPsiId=1
             if(runObj%rst%version == LINEAR_VERSION) runObj%inputs%inputPsiId=101
          end if

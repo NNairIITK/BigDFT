@@ -319,8 +319,8 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    type(atoms_data), intent(in) :: atoms
    integer, intent(in) :: iproc
    real(gp), intent(in) :: hx,hy,hz,crmult,frmult
-   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
    type(locreg_descriptors), intent(inout) :: Glr
 
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
@@ -1434,7 +1434,8 @@ subroutine run_objects_get(runObj, inputs, atoms, rst, rxyz)
   inputs => runObj%inputs
   atoms => runObj%atoms
   rst => runObj%rst
-  rxyz => runObj%rxyz
+  write(0,*) "FIXME"
+  nullify(rxyz)
 END SUBROUTINE run_objects_get
 subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz)
   use module_types
@@ -1449,5 +1450,5 @@ subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz)
   runObj%atoms  => atoms
   runObj%inputs => inputs
   runObj%rst    => rst
-  runObj%rxyz   => rxyz
+  write(0,*) "FIXME"
 END SUBROUTINE run_objects_associate

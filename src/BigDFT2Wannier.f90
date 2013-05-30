@@ -36,7 +36,7 @@ program BigDFT2Wannier
    real(kind=8) ::tel
    real(kind=8) :: znorm,xnorm,ortho,ddot
    real(kind=8),parameter :: eps6=1.0d-6, eps8=1.0d-8
-   real(gp), dimension(:,:), pointer :: rxyz, rxyz_old
+   real(gp), dimension(:,:), pointer :: rxyz_old
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), dimension(3) :: shift
    real(wp), allocatable :: psi_etsf(:,:),psi_etsfv(:),sph_har_etsf(:),psir(:),psir_re(:),psir_im(:),sph_daub(:)
@@ -91,7 +91,7 @@ program BigDFT2Wannier
    if (nconfig < 0) stop 'runs-file not supported for BigDFT2Wannier executable'
 
   call bigdft_set_input(trim(run_id)//trim(bigdft_run_id_toa()),'posinp'//trim(bigdft_run_id_toa()),&
-       rxyz,input,atoms)
+       input,atoms)
 
 
    if (input%verbosity > 2) then
@@ -154,19 +154,19 @@ program BigDFT2Wannier
 !!$
 !!$   if (iproc == 0) call print_general_parameters(nproc,input,atoms)
 
-   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
+   allocate(radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
 
    call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
-   call system_size(iproc,atoms,rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
+   call system_size(iproc,atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
       &   Glr,shift)
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-      &   atoms,rxyz,radii_cf,input%crmult,input%frmult,Glr)
+      &   atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,Glr)
 
    ! don't need radii_cf anymore
    i_all = -product(shape(radii_cf))*kind(radii_cf)
@@ -243,7 +243,7 @@ program BigDFT2Wannier
    nx=Glr%d%n1i
    ny=Glr%d%n2i
    nz=Glr%d%n3i
-   n_at=atoms%nat
+   n_at=atoms%astruct%nat
    call initialize_work_arrays_sumrho(Glr,w)
 
    ! Allocations for Amnk calculation
@@ -276,8 +276,9 @@ program BigDFT2Wannier
          call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
 
          filename= trim(input%dir_output) // 'virtuals'
-         call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
-         Glr%wfd,psi_etsfv)
+         call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3, &
+              & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
+              Glr%wfd,psi_etsfv)
          i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
          deallocate(orbsv%eval,stat=i_stat)
          nullify(orbsv%eval)
@@ -293,9 +294,9 @@ program BigDFT2Wannier
          end if
 
          ! - b1, b2 and b3 are the norm of the lattice parameters.
-         b1=atoms%alat1
-         b2=atoms%alat2
-         b3=atoms%alat3
+         b1=atoms%astruct%cell_dim(1)
+         b2=atoms%astruct%cell_dim(2)
+         b3=atoms%astruct%cell_dim(3)
          ! - Allocations
          allocate(amnk(orbsv%norb,orbsp%norb),stat=i_stat)
          call memocc(i_stat,amnk,'amnk',subname)
@@ -355,7 +356,7 @@ program BigDFT2Wannier
             call dscal(nz*ny*nx,1.0_dp/sqrt(xnorm),sph_har_etsf(1),1)
             if(w_sph .or. w_ang .or. w_rad) then
                call write_functions(w_sph, w_ang, w_rad, 'sph_har', 'func_r', 'ylm', np, Glr, &
-               &    0.5_dp*input%hx, 0.5_dp*input%hy, 0.5_dp*input%hz, atoms, rxyz, sph_har_etsf, func_r, ylm)
+               &    0.5_dp*input%hx, 0.5_dp*input%hy, 0.5_dp*input%hz, atoms, atoms%astruct%rxyz, sph_har_etsf, func_r, ylm)
             end if
             call isf_to_daub(Glr,w,sph_har_etsf(1),sph_daub(1+pshft))
             pshft=pshft + Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f 
@@ -534,7 +535,7 @@ program BigDFT2Wannier
       if(orbs%norbp > 0) then
             filename=trim(input%dir_output) // 'wavefunction'
             call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
-            input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,Glr%wfd,psi_etsf(1,1))
+            input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,Glr%wfd,psi_etsf(1,1))
       end if
       ! For bin files, the eigenvalues are distributed, so reduce them
       if((filetype == 'bin' .or. filetype == 'BIN') .and. nproc > 0) then
@@ -575,7 +576,7 @@ program BigDFT2Wannier
       if(orbsv%norbp > 0 .and. .not. residentity) then
          filename=trim(input%dir_output) // 'virtuals'
             call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
-            input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz, Glr%wfd,psi_etsf(1,1+orbs%norbp),virt_list)
+            input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz, Glr%wfd,psi_etsf(1,1+orbs%norbp),virt_list)
       end if
       ! For bin files, the eigenvalues are distributed, so reduce them
       if(residentity)then
@@ -607,9 +608,9 @@ program BigDFT2Wannier
       end if
 
       ! - b1, b2 and b3 are the norm of the lattice parameters.
-      b1=atoms%alat1
-      b2=atoms%alat2
-      b3=atoms%alat3
+      b1=atoms%astruct%cell_dim(1)
+      b2=atoms%astruct%cell_dim(2)
+      b3=atoms%astruct%cell_dim(3)
       ! - Allocations
       allocate(amnk(orbsb%norb,orbsp%norb),stat=i_stat)
       call memocc(i_stat,amnk,'amnk',subname)
@@ -662,7 +663,7 @@ program BigDFT2Wannier
             call dscal(nz*ny*nx,1.0_dp/sqrt(xnorm),sph_har_etsf(1),1)
             if(w_sph .or. w_ang .or. w_rad) then
                call write_functions(w_sph, w_ang, w_rad, 'sph_har', 'func_r', 'ylm', np, Glr, &
-               &    0.5_dp*input%hx, 0.5_dp*input%hy, 0.5_dp*input%hz, atoms, rxyz, sph_har_etsf, func_r, ylm)
+               &    0.5_dp*input%hx, 0.5_dp*input%hy, 0.5_dp*input%hz, atoms, atoms%astruct%rxyz, sph_har_etsf, func_r, ylm)
             end if
             !print *,'before isf_to_daub',sqrt(ddot(nz*ny*nx,sph_har_etsf(1),1,sph_har_etsf(1),1))
             call isf_to_daub(Glr,w,sph_har_etsf(1),sph_daub(1+pshft))
@@ -792,7 +793,7 @@ program BigDFT2Wannier
             allocate(orbsv%eval(orbsv%norb))
             orbsv%eval = 99.0_dp
             call writemywaves(iproc,trim(input%dir_output) // "virtuals",iformat,orbsv,Glr%d%n1,Glr%d%n2,&
-              Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz,Glr%wfd,psi_etsf(1,1+orbs%norbp))
+              Glr%d%n3,input%hx,input%hy,input%hz,atoms,atoms%astruct%rxyz,Glr%wfd,psi_etsf(1,1+orbs%norbp))
             deallocate(orbsv%eval)
          end if
          
@@ -990,7 +991,7 @@ program BigDFT2Wannier
          s=1 ! s is the spin, set by default to 1
          if (w_unk) then 
             if (iproc==0) call write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms, &
-               &   rxyz,n_occ,n_virt,virt_list,nx,ny,nz,nk,s,iformat)
+               &   atoms%astruct%rxyz,n_occ,n_virt,virt_list,nx,ny,nz,nk,s,iformat)
          end if
       end do
    
@@ -1046,7 +1047,7 @@ subroutine allocate_initial()
   call memocc(i_stat,G_vec,'G_vec',subname)
   allocate(excb(n_excb),stat=i_stat)
   call memocc(i_stat,excb,'excb',subname)
-  allocate(rxyz_old(3,atoms%nat),stat=i_stat)
+  allocate(rxyz_old(3,atoms%astruct%nat),stat=i_stat)
   call memocc(i_stat,rxyz_old,'rxyz_old',subname)
 
 END SUBROUTINE allocate_initial
@@ -1154,9 +1155,6 @@ subroutine final_deallocations()
   i_all = -product(shape(psi_daub_im))*kind(psi_daub_im)
   deallocate(psi_daub_im,stat=i_stat)
   call memocc(i_stat,i_all,'psi_daub_im',subname)
-  i_all = -product(shape(rxyz))*kind(rxyz)
-  deallocate(rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz',subname)
   i_all = -product(shape(virt_list))*kind(virt_list)
   deallocate(virt_list,stat=i_stat)
   call memocc(i_stat,i_all,'virt_list',subname)
@@ -1943,7 +1941,7 @@ subroutine write_functions(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, Glr, &
    real(kind=8), intent(in) :: hxh, hyh, hzh                      !grid spacing
    type(locreg_descriptors), intent(in) :: Glr
    type(atoms_data), intent(in) :: atoms
-   real(kind=8), dimension(3,atoms%nat), intent(in) :: rxyz
+   real(kind=8), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
    real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i), intent(in) :: sph_har, func_r, ylm
    ! Local variables
    character(len=13) :: subname1
@@ -1984,7 +1982,7 @@ subroutine write_functions(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, Glr, &
 
   !conditions for periodicity in the three directions
   !value of the buffer in the x and z direction
-  if (atoms%geocode /= 'F') then
+  if (atoms%astruct%geocode /= 'F') then
      nl1=1
      nl3=1
      nbx = 1
@@ -2000,7 +1998,7 @@ subroutine write_functions(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, Glr, &
      nc3=Glr%d%n3i-31
   end if
   !value of the buffer in the y direction
-  if (atoms%geocode == 'P') then
+  if (atoms%astruct%geocode == 'P') then
      nl2=1
      nby = 1
      nc2=Glr%d%n2i
@@ -2018,12 +2016,12 @@ subroutine write_functions(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, Glr, &
       OPEN(12, FILE=trim(subname1)//'.cube', STATUS='unknown')
       write(12,*) ' CUBE file for ISF field'
       write(12,*) ' Case for'
-      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%nat, real(0.d0), real(0.d0), real(0.d0)
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%astruct%nat, real(0.d0), real(0.d0), real(0.d0)
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc1, hxh, 0.0_gp, 0.0_gp
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc2, 0.0_gp, hyh, 0.0_gp
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc3, 0.0_gp, 0.0_gp, hzh
-      do i=1, atoms%nat
-         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
+      do i=1, atoms%astruct%nat
+         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%astruct%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
       end do
       ! Volumetric data in batches of 6 values per line, 'z'-direction first.
       do ix=0,nc1-1
@@ -2044,12 +2042,12 @@ subroutine write_functions(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, Glr, &
       OPEN(13, FILE=trim(subname2)//'.cube', STATUS='unknown')
       write(12,*) ' CUBE file for ISF field'
       write(12,*) ' Case for'
-      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%nat, real(0.d0), real(0.d0), real(0.d0)
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%astruct%nat, real(0.d0), real(0.d0), real(0.d0)
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc1, hxh, 0.0_gp, 0.0_gp
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc2, 0.0_gp, hyh, 0.0_gp
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc3, 0.0_gp, 0.0_gp, hzh
-      do i=1, atoms%nat
-         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
+      do i=1, atoms%astruct%nat
+         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%astruct%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
       end do
       ! Volumetric data in batches of 6 values per line, 'z'-direction first.
       do ix=0, nc1-1
@@ -2070,12 +2068,12 @@ subroutine write_functions(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, Glr, &
       OPEN(14, FILE=trim(subname3)//'.cube', STATUS='unknown')
       write(12,*) ' CUBE file for ISF field'
       write(12,*) ' Case for'
-      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%nat, real(0.d0), real(0.d0), real(0.d0)
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%astruct%nat, real(0.d0), real(0.d0), real(0.d0)
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc1, hxh, 0.0_gp, 0.0_gp
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc2, 0.0_gp, hyh, 0.0_gp
       write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc3, 0.0_gp, 0.0_gp, hzh
-      do i=1, atoms%nat
-         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
+      do i=1, atoms%astruct%nat
+         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%astruct%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
       end do
       ! Volumetric data in batches of 6 values per line, 'z'-direction first.
       do ix=0, nc1-1
@@ -2263,7 +2261,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    type(atoms_data), intent(in) :: atoms
    type(input_variables), intent(in) :: input
    integer, intent(in) :: n_occ,n_virt,nx,ny,nz,nk,s,iformat
-   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
    integer, dimension (n_virt), intent(in) :: virt_list
    ! Local variables
    logical :: perx,pery,perz
@@ -2273,7 +2271,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    character(len=*), parameter :: subname='write_unk_bin'
    real(wp), dimension(nx*ny*nz) :: psir
    real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,n_occ+n_virt) :: psi_etsf
-   real(gp), dimension(3,atoms%nat) :: rxyz_old
+   real(gp), dimension(3,atoms%astruct%nat) :: rxyz_old
    type(workarr_sumrho) :: w
 
    n_bands=n_occ+n_virt

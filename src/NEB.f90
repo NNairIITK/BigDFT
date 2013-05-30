@@ -54,7 +54,7 @@ MODULE NEB_variables
   integer, dimension(4) :: mpi_info
   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
   type(input_variables), dimension(:), allocatable :: ins
-  type(atoms_data) :: atoms
+  type(atoms_data), dimension(:), allocatable :: atoms
   type(restart_objects) :: rst
 
 END MODULE NEB_variables
@@ -88,9 +88,9 @@ MODULE NEB_routines
 
       IMPLICIT NONE
 
-      INTEGER                                    :: i, n1, n2, num_of_images
-      CHARACTER (LEN=20)                         :: minimization_scheme
-      INTEGER, PARAMETER                         :: unit = 10
+      INTEGER :: i, n1, n2, num_of_images
+      CHARACTER (LEN=20) :: minimization_scheme
+      INTEGER, PARAMETER :: unit = 10
       REAL (gp), DIMENSION(:,:), ALLOCATABLE :: d_R
       real(gp), dimension(:,:), pointer  :: rxyz
       real(gp), dimension(3)             :: acell1, acell2
@@ -99,7 +99,7 @@ MODULE NEB_routines
       real(gp) :: convergence, damp, k_min, k_max, ds, temp_req
       type(mpi_environment) :: bigdft_mpi_svg
       character(len=60) :: run_id
-      CHARACTER (LEN=80)                     :: first_config, last_config
+      CHARACTER (LEN=80) :: first_config, last_config
 
       NAMELIST /NEB/ first_config,        &
                      last_config,         &
@@ -175,7 +175,8 @@ MODULE NEB_routines
       allocate(arr_radical(abs(num_of_images)))
       allocate(arr_posinp(abs(num_of_images)))
       call bigdft_get_run_ids(num_of_images,trim(run_id),arr_radical,arr_posinp,ierr)
-      allocate( ins(num_of_images) )
+
+      allocate( ins(num_of_images), atoms(num_of_images) )
       if (.not. external_call) then
          ! Trick here, only super master will read the input files...
          bigdft_mpi_svg = bigdft_mpi
@@ -188,7 +189,15 @@ MODULE NEB_routines
             call standard_inputfile_names(ins(i), trim(arr_radical(i)), bigdft_mpi%nproc)
             call default_input_variables(ins(i))
             call inputs_parse_params(ins(i), bigdft_mpi%iproc, .false.)
-            call inputs_parse_add(ins(i), atoms, bigdft_mpi%iproc, .false.)
+            call read_atomic_file(trim(arr_posinp(1)), mpi_info(1), atoms(i)%astruct, status = ierr)
+            if (ierr /= 0 .and. (i == 1 .or. i == num_of_images)) then
+               stop "Missing images"
+            end if
+            call allocate_atoms_nat(atoms(i), "read_input")
+            call allocate_atoms_ntypes(atoms(i), "read_input")
+            call inputs_parse_add(ins(i), atoms(1), bigdft_mpi%iproc, .false.)
+            call init_atomic_values((mpi_info(1) == 0), atoms(i), ins(1)%ixc)
+            call read_atomic_variables(atoms(i), trim(ins(1)%file_igpop), ins(1)%nspin)
          end do
          bigdft_mpi = bigdft_mpi_svg
       else
@@ -196,6 +205,10 @@ MODULE NEB_routines
             call default_input_variables(ins(i))
             write(ins(i)%writing_directory, "(A)") "."
             write(ins(i)%run_name, "(A)") trim(job_name)
+            call read_atomic_file(trim(arr_posinp(1)), mpi_info(1), atoms(i)%astruct, status = ierr)
+            if (ierr /= 0 .and. (i == 1 .or. i == num_of_images)) then
+               stop "Missing images"
+            end if
          end do
       end if
 
@@ -226,43 +239,30 @@ MODULE NEB_routines
          STOP 
       END IF
 
-      call atoms_nullify(atoms)
-      call read_atomic_file(trim(arr_posinp(1)), mpi_info(1), atoms, rxyz)
-
       allocate(imgs(num_of_images))
       do i = 1, num_of_images
-         call image_init(imgs(i), ins(i), atoms, rst, algorithm)
+         call image_init(imgs(i), ins(i), atoms(i), rst, algorithm)
       end do
 
-      n1 = atoms%nat
-      call vcopy(atoms%nat * 3, rxyz(1,1), 1, imgs(1)%run%rxyz(1,1), 1)
-      acell1(1) = atoms%alat1
-      acell1(2) = atoms%alat2
-      acell1(3) = atoms%alat3
-      if (acell1(1) == 0.) acell1(1) = maxval(rxyz(1,:)) - minval(rxyz(1,:))
-      if (acell1(2) == 0.) acell1(2) = maxval(rxyz(2,:)) - minval(rxyz(2,:))
-      if (acell1(3) == 0.) acell1(3) = maxval(rxyz(3,:)) - minval(rxyz(3,:))
-      deallocate(rxyz)
-      call deallocate_atoms(atoms, "read_input")
+      acell1 = atoms(1)%astruct%cell_dim
+      if (acell1(1) == 0.) acell1(1) = maxval(atoms(1)%astruct%rxyz(1,:)) - minval(atoms(1)%astruct%rxyz(1,:))
+      if (acell1(2) == 0.) acell1(2) = maxval(atoms(1)%astruct%rxyz(2,:)) - minval(atoms(1)%astruct%rxyz(2,:))
+      if (acell1(3) == 0.) acell1(3) = maxval(atoms(1)%astruct%rxyz(3,:)) - minval(atoms(1)%astruct%rxyz(3,:))
 
-      call atoms_nullify(atoms)
-      call read_atomic_file(trim(arr_posinp(num_of_images)), mpi_info(1), atoms, rxyz)
-      n2 = atoms%nat
-      IF ( n1 /= n2 ) THEN      
+      IF ( atoms(1)%astruct%nat /= atoms(num_of_images)%astruct%nat ) THEN
          WRITE(*,'(T2,"read_input: number of atoms is not constant")')
-         WRITE(*,'(T2,"            N = ", I8, I8 )') n1, n2
+         WRITE(*,'(T2,"            N = ", I8, I8 )') atoms(1)%astruct%nat, atoms(num_of_images)%astruct%nat
          STOP  
       END IF
-      call vcopy(atoms%nat * 3, rxyz(1,1), 1, imgs(num_of_images)%run%rxyz(1,1), 1)
-      acell2(1) = atoms%alat1
-      acell2(2) = atoms%alat2
-      acell2(3) = atoms%alat3
-      if (acell2(1) == 0.) acell2(1) = maxval(rxyz(1,:)) - minval(rxyz(1,:))
-      if (acell2(2) == 0.) acell2(2) = maxval(rxyz(2,:)) - minval(rxyz(2,:))
-      if (acell2(3) == 0.) acell2(3) = maxval(rxyz(3,:)) - minval(rxyz(3,:))
-      deallocate(rxyz)
+      acell2 = atoms(num_of_images)%astruct%cell_dim
+      if (acell2(1) == 0.) acell2(1) = maxval(atoms(num_of_images)%astruct%rxyz(1,:)) - &
+           & minval(atoms(num_of_images)%astruct%rxyz(1,:))
+      if (acell2(2) == 0.) acell2(2) = maxval(atoms(num_of_images)%astruct%rxyz(2,:)) - &
+           & minval(atoms(num_of_images)%astruct%rxyz(2,:))
+      if (acell2(3) == 0.) acell2(3) = maxval(atoms(num_of_images)%astruct%rxyz(3,:)) - &
+           & minval(atoms(num_of_images)%astruct%rxyz(3,:))
 
-      if (atoms%geocode == 'F') then
+      if (atoms(1)%astruct%geocode == 'F') then
         acell1 = max(acell1, acell2)
         acell2 = acell1
       end if
@@ -375,17 +375,17 @@ MODULE NEB_routines
 !!$      
 !!$      ELSE
 
-        ALLOCATE( d_R(3, atoms%nat) )           
+        ALLOCATE( d_R(3, atoms(1)%astruct%nat) )           
 
-        d_R = ( imgs(num_of_images)%run%rxyz - imgs(1)%run%rxyz ) / &
+        d_R = ( atoms(num_of_images)%astruct%rxyz - atoms(1)%astruct%rxyz ) / &
              DBLE( num_of_images - 1 )
 
-        ALLOCATE( fix_atom(3, atoms%nat) )
+        ALLOCATE( fix_atom(3, atoms(1)%astruct%nat) )
         fix_atom = 1
         WHERE ( ABS( d_R ) <=  tolerance ) fix_atom = 0
 
         DO i = 2, ( num_of_images - 1 )
-           imgs(i)%run%rxyz = imgs(i - 1)%run%rxyz + d_R
+           atoms(i)%astruct%rxyz = atoms(i - 1)%astruct%rxyz + d_R
         END DO
 
         DEALLOCATE( d_R )
@@ -393,12 +393,9 @@ MODULE NEB_routines
 !!$     END IF
 
      if (.not. external_call) then
-        call init_atomic_values((mpi_info(1) == 0), atoms, ins(1)%ixc)
-        call read_atomic_variables(atoms, trim(ins(1)%file_igpop), ins(1)%nspin)
-
         call restart_objects_new(rst)
         call restart_objects_set_mode(rst, ins(1)%inputpsiid)
-        call restart_objects_set_nat(rst, atoms%nat, "read_input")
+        call restart_objects_set_nat(rst, atoms(1)%astruct%nat, "read_input")
         call restart_objects_set_mat_acc(rst, mpi_info(1), ins(1)%matacc)
         call yaml_close_all_streams()
      end if

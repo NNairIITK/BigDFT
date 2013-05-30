@@ -1261,12 +1261,12 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors),intent(in) :: lr
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
   real(gp), intent(out) :: eproj_sum
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
-  type(gaussian_basis),dimension(at%ntypes),optional,intent(in)::proj_G
+  type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
   type(paw_objects),optional,intent(inout)::paw
   !local variables
   integer :: iat,nwarnings,iproj,iorb
@@ -1294,8 +1294,8 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
 
      !this may not work for non-collinear cases
      iproj=0
-     do iat=1,at%nat
-        iatype=at%iatype(iat)
+     do iat=1,at%astruct%nat
+        iatype=at%astruct%iatype(iat)
         istart_c=1
         if(at%npspcode(iatype)==7) then
           call atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
@@ -1374,7 +1374,7 @@ END SUBROUTINE applyprojectorsonthefly
 !!$  do ispinor=1,orbs%nspinor,ncplx
 !!$     eproj_spinor=0.0_gp
 !!$     if (ispinor >= 2) istart_c=istart_c_i
-!!$     ityp=at%iatype(iat)
+!!$     ityp=at%astruct%iatype(iat)
 !!$     mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
 !!$     mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
 !!$     
@@ -1870,7 +1870,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
  
 
   !parameter for the descriptors of the projectors
-  ityp=at%iatype(iat)
+  ityp=at%astruct%iatype(iat)
 
   call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
  
@@ -2096,7 +2096,7 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
   !ispsi will no longer be an argument
 
   !parameter for the descriptors of the projectors
-  ityp=at%iatype(iat)
+  ityp=at%astruct%iatype(iat)
 
   call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
  
@@ -2118,7 +2118,7 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
         plr%wfd%keyglob,& !nlpspd%keyg_p(1,jseg_c),&
         proj(1),&
         psi,hpsi,paw%spsi(ispsi),eproj_i,proj_G,paw%paw_ij(iat),&
-        paw%indlmn(:,:,at%iatype(iat)),paw%lmnmax,paw%cprj(iat,iorb),&
+        paw%indlmn(:,:,at%astruct%iatype(iat)),paw%lmnmax,paw%cprj(iat,iorb),&
         sij_opt,paw%sij(:,ityp))  
 
   !DEBUG
@@ -2277,11 +2277,11 @@ END SUBROUTINE ncplx_kpt
 !!    rxyzShifted(2)=rxyz(2,onWhichAtom(iorb))+orbs%parabolaShift(2,iorb)
 !!    rxyzShifted(3)=rxyz(3,onWhichAtom(iorb))+orbs%parabolaShift(3,iorb)
 !!        call apply_potentialParabola(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-!!             pot(nsoffset),epot, rxyzShifted, hxh, hyh, hzh, orbs%parabPrefacArr(at%iatype(onWhichAtom(iorb))), orbs%power, &
+!!             pot(nsoffset),epot, rxyzShifted, hxh, hyh, hzh, orbs%parabPrefacArr(at%astruct%iatype(onWhichAtom(iorb))), orbs%power, &
 !!             lr%bounds%ibyyzz_r) !optional
 !!   ! THIS WAS THE ORIGINAL
 !!        !call apply_potentialParabola(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-!!        !     pot(nsoffset),epot, rxyz(1,onWhichAtom(iorb)), hxh, hyh, hzh, orbs%parabPrefacArr(at%iatype(onWhichAtom(iorb))),  &
+!!        !     pot(nsoffset),epot, rxyz(1,onWhichAtom(iorb)), hxh, hyh, hzh, orbs%parabPrefacArr(at%astruct%iatype(onWhichAtom(iorb))),  &
 !!        !     lr%bounds%ibyyzz_r) !optional
 !!
 !!        !call apply_potentialParabola(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&

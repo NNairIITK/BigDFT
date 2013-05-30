@@ -21,9 +21,9 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
-  type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+  type(gaussian_basis),dimension(at%astruct%ntypes),intent(in)::proj_G
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
   !Local variables
   !n(c) logical :: cmplxprojs
@@ -45,30 +45,30 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
 
 !!$  if (iproc ==0) then
 !!$     !print the number of projectors to be created
-!!$     do ityp=1,at%ntypes
+!!$     do ityp=1,at%astruct%ntypes
 !!$        if(at%npspcode(ityp)==7) then
-!!$          call numb_proj_paw_tr(ityp,at%ntypes,proj_G(ityp),mproj)
+!!$          call numb_proj_paw_tr(ityp,at%astruct%ntypes,proj_G(ityp),mproj)
 !!$        else
-!!$          call numb_proj(ityp,at%ntypes,at%psppar,at%npspcode,mproj)
+!!$          call numb_proj(ityp,at%astruct%ntypes,at%psppar,at%npspcode,mproj)
 !!$        end if
 !!$        natyp=0
-!!$        do iat=1,at%nat
-!!$           if (at%iatype(iat) == ityp) natyp=natyp+1
+!!$        do iat=1,at%astruct%nat
+!!$           if (at%astruct%iatype(iat) == ityp) natyp=natyp+1
 !!$        end do
 !!$        write(*,'(1x,i4,2x,a6,1x,i15,i21)')&
-!!$             ityp,trim(at%atomnames(ityp)),natyp,mproj
+!!$             ityp,trim(at%astruct%atomnames(ityp)),natyp,mproj
 !!$     end do
 !!$  end if
 
   !Pb of inout
   izero=0
 
-  do iat=1,at%nat
+  do iat=1,at%astruct%nat
 
-     if(at%npspcode(at%iatype(iat))==7) then
-       call numb_proj_paw_tr(at%iatype(iat),at%ntypes,proj_G(at%iatype(iat)),mproj)
+     if(at%npspcode(at%astruct%iatype(iat))==7) then
+       call numb_proj_paw_tr(at%astruct%iatype(iat),at%astruct%ntypes,proj_G(at%astruct%iatype(iat)),mproj)
      else
-       call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
+       call numb_proj(at%astruct%iatype(iat),at%astruct%ntypes,at%psppar,at%npspcode,mproj)
      end if
      if (mproj == 0) call bounds_to_plr_limits(.true.,1,nlpspd%plr(iat),&
                           izero,izero,izero,izero,izero,izero)
@@ -79,14 +79,14 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         nlpspd%nproj=nlpspd%nproj+mproj
 
         ! coarse grid quantities
-        call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),&
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),radii_cf(at%astruct%iatype(iat),3),&
              cpmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         call bounds_to_plr_limits(.true.,1,nlpspd%plr(iat),&
              nl1,nl2,nl3,nu1,nu2,nu3)
 
-        call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,&
-             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
+        call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,&
+             at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
              cpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
 
@@ -100,14 +100,14 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         !print *,'iat,mvctr',iat,mvctr,mseg,mproj
 
         ! fine grid quantities
-        call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),radii_cf(at%astruct%iatype(iat),2),fpmult,&
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         call bounds_to_plr_limits(.true.,2,nlpspd%plr(iat),&
              nl1,nl2,nl3,nu1,nu2,nu3)
 
-        call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
+        call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
         !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr, fine  projectors ',mseg,mvctr
 
@@ -130,15 +130,15 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         !! the following is necessary to the creation of preconditioning projectors
         !! coarse grid quantities ( when used preconditioners are applied to all atoms
         !! even H if present )
-        call pregion_size(at%geocode,rxyz(1,iat),&
-             radii_cf(at%iatype(iat),3),cpmult, &
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),&
+             radii_cf(at%astruct%iatype(iat),3),cpmult, &
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         call bounds_to_plr_limits(.true.,1,nlpspd%plr(iat),&
              nl1,nl2,nl3,nu1,nu2,nu3)
 
         ! fine grid quantities
-        call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),radii_cf(at%astruct%iatype(iat),2),fpmult,&
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         call bounds_to_plr_limits(.true.,2,nlpspd%plr(iat),&
@@ -165,8 +165,8 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      totzerovol=0.0_gp
      maxfullvol=0.0_gp
      totfullvol=0.0_gp
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
         maxrad=min(maxval(at%psppar(1:4,0,ityp)),cpmult/15.0_gp*radii_cf(ityp,3))
         zerovol=0.0_gp
         fullvol=0.0_gp
@@ -266,7 +266,7 @@ subroutine fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
   type(orbitals_data), intent(in) :: orbs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors),intent(in) :: lr
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   !Local variables
   !n(c) integer, parameter :: nterm_max=20 !if GTH nterm_max=4
@@ -291,7 +291,7 @@ subroutine fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
 
   do ikpt=iskpt,iekpt
      iproj=0
-     do iat=1,at%nat
+     do iat=1,at%astruct%nat
         !this routine is defined to uniformise the call for on-the-fly application
         call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
              lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings)
@@ -361,7 +361,7 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
      ncplx_k=2
   end if
 
-  ityp=at%iatype(iat)
+  ityp=at%astruct%iatype(iat)
 
   call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
 !!$  mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
@@ -392,13 +392,13 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
         !DEBUG:
         !gau_a(1)=1.0_gp; gau_a(2)=1.0_gp
         !fac(1)=1.0_gp; fac(2)=0.0_gp
-        !call projector_paw(at%geocode,at%atomnames(ityp),iat,idir,l,i,&
+        !call projector_paw(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
         !     fac,gau_a,rxyz(1),lr,&
         !     hx,hy,hz,kx,ky,kz,proj_G%ncplx,ncplx_k,&
         !     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
         !     plr%wfd%keyvglob,plr%wfd%keyglob,proj_tmp(1),nwarnings)
         !END DEBUG
-        call projector_paw(at%geocode,at%atomnames(ityp),iat,idir,l,i,&
+        call projector_paw(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
              proj_G%psiat(:,jj),proj_G%xp(:,jj),rxyz(1),lr,&
              hx,hy,hz,kx,ky,kz,proj_G%ncplx,ncplx_k,&
              mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
@@ -414,7 +414,7 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
           call wnrm_wrap(ncplx_k,mbvctr_c,mbvctr_f,proj(jstart_c),scpr)
           write(*,'(1x,a,i4,a,a6,3(a,i1),a,f10.3)')&
                'The norm of the projector for atom n=',iat,&
-               ' (',trim(at%atomnames(ityp)),&
+               ' (',trim(at%astruct%atomnames(ityp)),&
                ') labeled by lmn ',i_shell,', l,',l,', m',m,' is ',scpr
           !scpr=ddot(mbvctr_c+mbvctr_f*7,proj(1),1,proj(1),1)
           !write(*,*)'norm cprj= ',scpr
@@ -468,7 +468,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
      ncplx_k=2
   end if
 
-  ityp=at%iatype(iat)
+  ityp=at%astruct%iatype(iat)
 
   call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
 !!$  mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
@@ -481,13 +481,13 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
   do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
      do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
         if (at%psppar(l,i,ityp) /= 0.0_gp) then
-!!$           call projector(at%geocode,at%atomnames(ityp),iat,idir,l,i,&
+!!$           call projector(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
 !!$                at%psppar(l,0,ityp),rxyz(1,iat),lr,&
 !!$                hx,hy,hz,kx,ky,kz,ncplx_k,&
 !!$                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
 !!$                proj(istart_c),nwarnings)
-           call projector(at%geocode,at%atomnames(ityp),iat,idir,l,i,&
+           call projector(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
                 at%psppar(l,0,ityp),rxyz(1),lr,&
                 hx,hy,hz,kx,ky,kz,ncplx_k,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
@@ -674,7 +674,7 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
         !do iterm=1,nterm
         !   if (iproc.eq.0) write(*,'(1x,a,i0,1x,a,1pe10.3,3(1x,i0))') &
         !        'projector: iat,atomname,gau_a,lx,ly,lz ', & 
-        !        iat,trim(at%atomnames(at%iatype(iat))),gau_a,lx(iterm),ly(iterm),lz(iterm)
+        !        iat,trim(at%astruct%atomnames(at%astruct%iatype(iat))),gau_a,lx(iterm),ly(iterm),lz(iterm)
         !enddo
      end if
      !end testing
@@ -2031,8 +2031,8 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
 
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
   type(PAWproj_data_type) ::PAWD
 
@@ -2058,12 +2058,12 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
 
   if (iproc ==0) then
      !print the number of projectors to be created
-     do ityp=1,at%ntypes
+     do ityp=1,at%astruct%ntypes
         natyp=0
         mproj=0
         if(at%paw_NofL(ityp).gt.0) then
-           do iat=1,at%nat
-              if (at%iatype(iat) == ityp) then
+           do iat=1,at%astruct%nat
+              if (at%astruct%iatype(iat) == ityp) then
                  if(natyp.eq.0) then
                     call numb_proj_paw(ityp,mproj)                    
                  endif
@@ -2071,16 +2071,16 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
               endif
            end do
            write(*,'(1x,i4,2x,a6,1x,i15,i21)')&
-                ityp,trim(at%atomnames(ityp)),natyp,mproj
+                ityp,trim(at%astruct%atomnames(ityp)),natyp,mproj
         end if
      end do
   end if
 
   !count number of PAW projectors
   natpaw=0
-  do iat=1,at%nat
-     if(  at%paw_NofL(at%iatype(iat)).gt.0) then
-        call numb_proj_paw(at%iatype(iat),mproj)
+  do iat=1,at%astruct%nat
+     if(  at%paw_NofL(at%astruct%iatype(iat)).gt.0) then
+        call numb_proj_paw(at%astruct%iatype(iat),mproj)
         if (mproj /= 0) then 
            natpaw=natpaw+1
         end if
@@ -2090,11 +2090,11 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
   allocate(PAWD%paw_nlpspd%plr(PAWD%paw_nlpspd%natoms),stat=i_stat)
 
   natpaw=0
-  do iat=1,at%nat
+  do iat=1,at%astruct%nat
 
-     if(  at%paw_NofL(at%iatype(iat)).gt.0) then
+     if(  at%paw_NofL(at%astruct%iatype(iat)).gt.0) then
 
-        call numb_proj_paw(at%iatype(iat),mproj)
+        call numb_proj_paw(at%astruct%iatype(iat),mproj)
 
         if (mproj /= 0) then 
            natpaw=natpaw+1
@@ -2103,7 +2103,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
 
 
            ! coarse grid quantities
-           call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),cpmult, &
+           call pregion_size(at%astruct%geocode,rxyz(1,iat),radii_cf(at%astruct%iatype(iat),3),cpmult, &
                 hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
            PAWD%paw_nlpspd%plr(natpaw)%ns1=nl1     
@@ -2114,8 +2114,8 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
            PAWD%paw_nlpspd%plr(natpaw)%d%n2=nu2-nl2
            PAWD%paw_nlpspd%plr(natpaw)%d%n3=nu3-nl3
 
-           call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-                at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),cpmult,hx,hy,hz,logrid)
+           call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+                at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,3),cpmult,hx,hy,hz,logrid)
            call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
 
            PAWD%paw_nlpspd%plr(natpaw)%wfd%nseg_c=mseg
@@ -2129,7 +2129,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
 
            ! fine grid quantities
 
-           call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),&
+           call pregion_size(at%astruct%geocode,rxyz(1,iat),radii_cf(at%astruct%iatype(iat),2),&
                 fpmult,&
                 hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
@@ -2146,8 +2146,8 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
            PAWD%paw_nlpspd%plr(natpaw)%d%nfu3=nu3-&
                 PAWD%paw_nlpspd%plr(natpaw)%ns3
 
-           call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-                at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
+           call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+                at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
            call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
            !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr, fine  projectors ',mseg,mvctr
            PAWD%paw_nlpspd%plr(natpaw)%wfd%nseg_f=mseg
@@ -2170,7 +2170,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
            !! the following is necessary to the creati of preconditioning projectors
 
            ! coarse grid quantities
-           call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),cpmult, &
+           call pregion_size(at%astruct%geocode,rxyz(1,iat),radii_cf(at%astruct%iatype(iat),3),cpmult, &
                 hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
            
            PAWD%paw_nlpspd%plr(natpaw)%ns1=nl1     
@@ -2182,7 +2182,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
            PAWD%paw_nlpspd%plr(natpaw)%d%n3=nu3-nl3
 
            ! fine grid quantities
-           call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
+           call pregion_size(at%astruct%geocode,rxyz(1,iat),radii_cf(at%astruct%iatype(iat),2),fpmult,&
                 hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
            PAWD%paw_nlpspd%plr(natpaw)%d%nfl1=nl1-&
@@ -2216,9 +2216,9 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
   totzerovol=0.0_gp
   maxfullvol=0.0_gp
   totfullvol=0.0_gp
-  do iat=1,at%nat
-     if(  at%paw_NofL(at%iatype(iat)).gt.0) then
-        ityp=at%iatype(iat)
+  do iat=1,at%astruct%nat
+     if(  at%paw_NofL(at%astruct%iatype(iat)).gt.0) then
+        ityp=at%astruct%iatype(iat)
         maxrad=min(maxval(at%psppar(1:4,0,ityp)),cpmult/15.0_gp*radii_cf(ityp,3))
         zerovol=0.0_gp
         fullvol=0.0_gp

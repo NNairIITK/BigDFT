@@ -19,7 +19,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    type(locreg_descriptors), intent(in) :: lr
    type(orbitals_data), intent(in) :: orbs,orbsv
    type(atoms_data), intent(in) :: at
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(:), pointer :: psi,psivirt
    !local variables
    character(len=*), parameter :: subname='local_analysis'
@@ -48,7 +48,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    !allocate(radii_cf_fake(atc%ntypes,3+ndebug),stat=i_stat)
    !call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
 
-   allocate(radii_cf_fake(at%ntypes,3+ndebug),stat=i_stat)
+   allocate(radii_cf_fake(at%astruct%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
 
 

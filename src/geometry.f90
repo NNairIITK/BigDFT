@@ -92,7 +92,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
      write(fn4,fmt) ncount_bigdft
      write(comment,'(a)')'INITIAL CONFIGURATION '
      call write_atomic_file(trim(runObj%inputs%dir_output)//trim(outfile)//'_'//trim(fn4),&
-          & outs%energy,runObj%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+          & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
      call yaml_new_document()
      call yaml_comment('Geometry minimization using ' // trim(parmin%approach),hfill='-')
      call yaml_map('Begin of minimization using ',parmin%approach)
@@ -218,24 +218,24 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   end if
 
   ! Prepare the objects used by ABINIT.
-  allocate(amass(runObj%atoms%nat),stat=i_stat)
+  allocate(amass(runObj%atoms%astruct%nat),stat=i_stat)
   call memocc(i_stat,amass,'amass',subname)
-  allocate(xfhist(3, runObj%atoms%nat + 4, 2, runObj%inputs%ncount_cluster_x+1))
+  allocate(xfhist(3, runObj%atoms%astruct%nat + 4, 2, runObj%inputs%ncount_cluster_x+1))
   call memocc(i_stat,xfhist,'xfhist',subname)
-  allocate(vel(3, runObj%atoms%nat),stat=i_stat)
+  allocate(vel(3, runObj%atoms%astruct%nat),stat=i_stat)
   call memocc(i_stat,vel,'vel',subname)
-  allocate(xred(3, runObj%atoms%nat),stat=i_stat)
+  allocate(xred(3, runObj%atoms%astruct%nat),stat=i_stat)
   call memocc(i_stat,xred,'xred',subname)
-  allocate(iatfix(3, runObj%atoms%nat),stat=i_stat)
+  allocate(iatfix(3, runObj%atoms%astruct%nat),stat=i_stat)
   call memocc(i_stat,iatfix,'iatfix',subname)
-  allocate(fred(3, runObj%atoms%nat),stat=i_stat)
+  allocate(fred(3, runObj%atoms%astruct%nat),stat=i_stat)
   call memocc(i_stat,fred,'fred',subname)
 
   nxfh = 0
-  !acell = (/ runObj%atoms%alat1, runObj%atoms%alat2, runObj%atoms%alat3 /)
-  acell(1)=runObj%atoms%alat1
-  acell(2)=runObj%atoms%alat2
-  acell(3)=runObj%atoms%alat3
+  !acell = (/ runObj%atoms%astruct%cell_dim(1), runObj%atoms%astruct%cell_dim(2), runObj%atoms%astruct%cell_dim(3) /)
+  acell(1)=runObj%atoms%astruct%cell_dim(1)
+  acell(2)=runObj%atoms%astruct%cell_dim(2)
+  acell(3)=runObj%atoms%astruct%cell_dim(3)
   rprim(:,:) = 0.0_gp
   rprim(1,1) = real(1, gp)
   rprim(2,2) = real(1, gp)
@@ -244,13 +244,13 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   symrel(1,1,1) = real(1, gp)
   symrel(2,2,1) = real(1, gp)
   symrel(3,3,1) = real(1, gp)
-  do iat = 1, runObj%atoms%nat
-     amass(iat) = amu2emass * runObj%atoms%amu(runObj%atoms%iatype(iat))
+  do iat = 1, runObj%atoms%astruct%nat
+     amass(iat) = amu2emass * runObj%atoms%amu(runObj%atoms%astruct%iatype(iat))
      do idim = 1, 3
-        xred(idim, iat) = runObj%rxyz(idim, iat) / acell(idim)
+        xred(idim, iat) = runObj%atoms%astruct%rxyz(idim, iat) / acell(idim)
         fred(idim, iat) = - outs%fxyz(idim, iat) / acell(idim)
      end do
-     select case(runObj%atoms%ifrztyp(iat))
+     select case(runObj%atoms%astruct%ifrztyp(iat))
      case(0)
         iatfix(:, iat) = 0
      case(1)
@@ -270,7 +270,7 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
   ! Call the ABINIT routine.
   ! currently, we force optcell == 0
-  call moldyn(acell, amass, iproc, runObj%inputs%ncount_cluster_x+1, nxfh, runObj%atoms%nat, &
+  call moldyn(acell, amass, iproc, runObj%inputs%ncount_cluster_x+1, nxfh, runObj%atoms%astruct%nat, &
        & rprim, outs%energy, iexit, &
        & 0, runObj%inputs%ionmov, runObj%inputs%ncount_cluster_x, runObj%inputs%dtion, runObj%inputs%noseinert, &
        & runObj%inputs%mditemp, runObj%inputs%mdftemp, runObj%inputs%friction, runObj%inputs%mdwall, runObj%inputs%nnos, &
@@ -278,7 +278,7 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
        & runObj%inputs%strprecon, runObj%inputs%strfact, runObj%inputs%forcemax, &
        & 1, symrel, vel, xfhist, fred, xred)
 
-  do iat = 1, runObj%atoms%nat, 1
+  do iat = 1, runObj%atoms%astruct%nat, 1
      outs%fxyz(1, iat) = fred(1, iat) * acell(1)
      outs%fxyz(2, iat) = fred(2, iat) * acell(2)
      outs%fxyz(3, iat) = fred(3, iat) * acell(3)
@@ -374,16 +374,16 @@ subroutine fnrmandforcemax_old(ff,fnrm,fmax,at)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
-  real(gp), intent(in):: ff(3,at%nat)
+  real(gp), intent(in):: ff(3,at%astruct%nat)
   real(gp), intent(out):: fnrm, fmax
   real(gp):: t1,t2,t3
   integer:: iat
 
   fmax=0._gp
-  do iat=1,at%nat
-     call frozen_alpha(at%ifrztyp(iat),1,ff(1,iat)**2,t1)
-     call frozen_alpha(at%ifrztyp(iat),2,ff(2,iat)**2,t2)
-     call frozen_alpha(at%ifrztyp(iat),3,ff(3,iat)**2,t3)
+  do iat=1,at%astruct%nat
+     call frozen_alpha(at%astruct%ifrztyp(iat),1,ff(1,iat)**2,t1)
+     call frozen_alpha(at%astruct%ifrztyp(iat),2,ff(2,iat)**2,t2)
+     call frozen_alpha(at%astruct%ifrztyp(iat),3,ff(3,iat)**2,t3)
      fmax=max(fmax,sqrt(t1+t2+t3))
   enddo
 
@@ -415,7 +415,7 @@ subroutine transforce(at,fxyz,sumx,sumy,sumz)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
-  real(gp),intent(in):: fxyz(3,at%nat)
+  real(gp),intent(in):: fxyz(3,at%astruct%nat)
   real(gp), intent(out) :: sumx,sumy,sumz
   integer :: iat
 
@@ -423,7 +423,7 @@ subroutine transforce(at,fxyz,sumx,sumy,sumz)
   sumx=0._gp 
   sumy=0._gp 
   sumz=0._gp
-  do iat=1,at%nat
+  do iat=1,at%astruct%nat
 
      sumx=sumx+fxyz(1,iat) 
      sumy=sumy+fxyz(2,iat) 
@@ -439,7 +439,7 @@ subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
-  real(gp),intent(in):: fxyz(3,at%nat)
+  real(gp),intent(in):: fxyz(3,at%astruct%nat)
   real(gp), intent(out) :: sumx,sumy,sumz
   integer :: iat
   real(gp) :: alphax,alphay,alphaz
@@ -448,11 +448,11 @@ subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
   sumx=0._gp 
   sumy=0._gp 
   sumz=0._gp
-  do iat=1,at%nat
+  do iat=1,at%astruct%nat
 
-     call frozen_alpha(at%ifrztyp(iat),1,1.0_gp,alphax)
-     call frozen_alpha(at%ifrztyp(iat),2,1.0_gp,alphay)
-     call frozen_alpha(at%ifrztyp(iat),3,1.0_gp,alphaz)
+     call frozen_alpha(at%astruct%ifrztyp(iat),1,1.0_gp,alphax)
+     call frozen_alpha(at%astruct%ifrztyp(iat),2,1.0_gp,alphay)
+     call frozen_alpha(at%astruct%ifrztyp(iat),3,1.0_gp,alphaz)
 
      sumx=sumx+alphax*fxyz(1,iat) 
      sumy=sumy+alphay*fxyz(2,iat) 
@@ -497,7 +497,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   ! We save pointers on data used to call bigdft() routine.
   allocate(previous_forces(3, outs%fdim, runObj%inputs%history+ndebug),stat=i_stat)
   call memocc(i_stat,previous_forces,'previous_forces',subname)
-  allocate(previous_pos(3, RUNOBJ%ATOMS%NAT, runObj%inputs%history+ndebug),stat=i_stat)
+  allocate(previous_pos(3, RUNOBJ%ATOMS%astruct%NAT, runObj%inputs%history+ndebug),stat=i_stat)
   call memocc(i_stat,previous_pos,'previous_pos',subname)
   allocate(product_matrix(runObj%inputs%history, runObj%inputs%history+ndebug),stat=i_stat)
   call memocc(i_stat,product_matrix,'product_matrix',subname)
@@ -506,13 +506,13 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   ! Set to zero the arrays
   call razero(runObj%inputs%history**2,product_matrix)
   call razero(runObj%inputs%history*outs%fdim*3,previous_forces)
-  call razero(runObj%inputs%history*runObj%atoms%nat*3,previous_pos)
+  call razero(runObj%inputs%history*runObj%atoms%astruct%nat*3,previous_pos)
 
   ! We set the first step and move to the second
   call vcopy(3 * outs%fdim, outs%fxyz (1,1), 1, previous_forces(1,1,1), 1)
-  call vcopy(3 * runObj%atoms%nat, runObj%rxyz(1,1), 1, previous_pos(1,1,1), 1)
+  call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, previous_pos(1,1,1), 1)
   
-  call axpy(3 * runObj%atoms%nat, runObj%inputs%betax, outs%fxyz(1,1), 1, runObj%rxyz(1,1), 1)
+  call axpy(3 * runObj%atoms%astruct%nat, runObj%inputs%betax, outs%fxyz(1,1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
 !!$  !always better to use the atomic_* routines to move atoms
 !!$  !it performs modulo operation as well as constrained search
 !!$  call atomic_axpy(at,x,runObj%inputs%betax,f,x)
@@ -544,12 +544,12 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
      ! we first add the force to the previous_force vector and the
      ! position to the previous_pos vector
-     call vcopy(3 * runObj%atoms%nat, outs%fxyz(1,1), 1, previous_forces(1,1,maxter), 1)
-     call vcopy(3 * runObj%atoms%nat, runObj%rxyz(1,1), 1, previous_pos(1,1,maxter), 1)
+     call vcopy(3 * runObj%atoms%astruct%nat, outs%fxyz(1,1), 1, previous_forces(1,1,maxter), 1)
+     call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, previous_pos(1,1,maxter), 1)
 
      ! And we add the scalar products to the matrix
      do i = 1, maxter
-        product_matrix(i,maxter) = dot(3 * runObj%atoms%nat,previous_forces(1,1,i),1,outs%fxyz(1,1),1)
+        product_matrix(i,maxter) = dot(3 * runObj%atoms%astruct%nat,previous_forces(1,1,i),1,outs%fxyz(1,1),1)
         product_matrix(maxter,i) = product_matrix(i,maxter)
      end do
 
@@ -585,9 +585,9 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
 
      ! The solution that interests us is made of two parts
-     call razero(3 * runObj%atoms%nat, runObj%rxyz)
+     call razero(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz)
      do i = 1, maxter
-        call axpy(3 * runObj%atoms%nat, solution(i), previous_pos(1,1,i), 1, runObj%rxyz(1,1), 1)
+        call axpy(3 * runObj%atoms%astruct%nat, solution(i), previous_pos(1,1,i), 1, runObj%atoms%astruct%rxyz(1,1), 1)
      end do
 !!$     !reput the modulo operation on the atoms
 !!$     call atomic_axpy(at,x,0.0_gp,x,x)
@@ -610,7 +610,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
      ncount_bigdft=ncount_bigdft+1
 
-     call fnrmandforcemax(outs%fxyz,fnrm,fmax,runObj%atoms%nat)
+     call fnrmandforcemax(outs%fxyz,fnrm,fmax,outs%fdim)
      if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
      call convcheck(fmax,fluct*runObj%inputs%frac_fluct,runObj%inputs%forcemax,check) !n(m)
 
@@ -624,7 +624,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'DIIS:fnrm= ',sqrt(fnrm)
         call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-             & outs%energy,runObj%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+             & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
      endif
 
      if(check > 5)then
@@ -640,7 +640,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
       exit
      endif
 
-     call axpy(3 * runObj%atoms%nat, runObj%inputs%betax, outs%fxyz(1,1), 1, runObj%rxyz(1,1), 1)
+     call axpy(3 * runObj%atoms%astruct%nat, runObj%inputs%betax, outs%fxyz(1,1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
   end do
 
   i_all=-product(shape(previous_forces))*kind(previous_forces)
@@ -687,9 +687,9 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
 !Fire parameters:
   real(gp):: alpha,P,finc,fdec,falpha,alphastart,dt,dtmax,vnrm
-  real(gp):: velcur(3*runObj%atoms%nat), velpred(3*runObj%atoms%nat),poscur(3*runObj%atoms%nat),&
-       & pospred(3*runObj%atoms%nat),fcur(3*runObj%atoms%nat),fpred(3*runObj%atoms%nat),&
-       & mass(3*runObj%atoms%nat)
+  real(gp):: velcur(3*runObj%atoms%astruct%nat), velpred(3*runObj%atoms%astruct%nat),poscur(3*runObj%atoms%astruct%nat),&
+       & pospred(3*runObj%atoms%astruct%nat),fcur(3*runObj%atoms%astruct%nat),fpred(3*runObj%atoms%astruct%nat),&
+       & mass(3*runObj%atoms%astruct%nat)
   real(gp):: eprev,anoise !n(c) ecur
   integer:: Nmin,nstep,it
 
@@ -712,30 +712,30 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   fail=.false.
   fnrm=1.e10_gp
   velcur=0.0_gp
-  call vcopy(3*runObj%atoms%nat, runObj%rxyz(1,1), 1, poscur(1), 1)
-  call vcopy(3*runObj%atoms%nat, outs%fxyz(1,1), 1, fcur(1), 1)
+  call vcopy(3*runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, poscur(1), 1)
+  call vcopy(3*outs%fdim, outs%fxyz(1,1), 1, fcur(1), 1)
   mass=1.0_gp
   !n(c) ecur=etot
   eprev=0.0_gp
 
   Big_loop: do it=1,runObj%inputs%ncount_cluster_x-1
-     do iat=1,3*runObj%atoms%nat
+     do iat=1,3*runObj%atoms%astruct%nat
         pospred(iat)=poscur(iat)+dt*velcur(iat)+dt*dt*0.5_gp*fcur(iat)/mass(iat)
      enddo
 
      runObj%inputs%inputPsiId=1
-     call vcopy(3 * runObj%atoms%nat, pospred(1), 1, runObj%rxyz(1,1), 1)
+     call vcopy(3 * runObj%atoms%astruct%nat, pospred(1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
      call call_bigdft(runObj,outs,nproc,iproc,infocode)
-     call vcopy(3 * runObj%atoms%nat, outs%fxyz(1,1), 1, fpred(1), 1)
+     call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fpred(1), 1)
      ncount_bigdft=ncount_bigdft+1
-     call fnrmandforcemax(fpred,fnrm,fmax,runObj%atoms%nat)
+     call fnrmandforcemax(fpred,fnrm,fmax,outs%fdim)
    !  call convcheck(fmax,fluct*runObj%inputs%frac_fluct,runObj%inputs%forcemax,check) !n(m)
 
-     do iat=1,3*runObj%atoms%nat
+     do iat=1,3*runObj%atoms%astruct%nat
         velpred(iat)=velcur(iat)+0.5_gp*dt*(fpred(iat))/mass(iat)+0.5_gp*dt*fcur(iat)/mass(iat)
      enddo
      P=dot_product(fpred,velpred)
-     call fnrmandforcemax(velpred,vnrm,vmax,runObj%atoms%nat)
+     call fnrmandforcemax(velpred,vnrm,vmax,runObj%atoms%astruct%nat)
 
      if (iproc == 0) then
         write(fn4,'(i4.4)') ncount_bigdft
@@ -793,9 +793,9 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 !  velcur=velpred
 
 !!FIRE Update
-     call fnrmandforcemax(fpred,fnrm,fmax,runObj%atoms%nat)
+     call fnrmandforcemax(fpred,fnrm,fmax,outs%fdim)
      fnrm=sqrt(fnrm)
-     call fnrmandforcemax(velpred,vnrm,vmax,runObj%atoms%nat)
+     call fnrmandforcemax(velpred,vnrm,vmax,runObj%atoms%astruct%nat)
      vnrm=sqrt(vnrm)
 !Modified velocity update, suggested by Alireza
 !  velcur(:)=(1.0_gp-alpha)*velpred(:)+fpred(:)*min(alpha*vnrm/fnrm,2.0_gp*runObj%inputs%betax)!alpha*fpred(:)/fnrm*vnrm
@@ -817,8 +817,8 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
    end do Big_loop
         
 ! Output the final energy, atomic positions and forces
-   call vcopy(3*runObj%atoms%nat, pospred(1), 1, runObj%rxyz(1,1), 1)
-   call vcopy(3*runObj%atoms%nat, fpred(1), 1, outs%fxyz(1,1), 1)
+   call vcopy(3*runObj%atoms%astruct%nat, pospred(1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
+   call vcopy(3*outs%fdim, fpred(1), 1, outs%fxyz(1,1), 1)
 
 END SUBROUTINE fire
 

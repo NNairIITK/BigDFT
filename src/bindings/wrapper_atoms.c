@@ -178,8 +178,9 @@ BigDFT_Atoms* bigdft_atoms_new_from_file(const gchar *filename)
 
 void bigdft_atoms_set_n_atoms(BigDFT_Atoms *atoms, guint nat)
 {
-  FC_FUNC_(atoms_set_n_atoms, ATOMS_SET_N_ATOMS)(atoms->data, &atoms->rxyz,
-                                                 (int*)(&nat));
+  /* FC_FUNC_(atoms_set_n_atoms, ATOMS_SET_N_ATOMS)(atoms->data, &atoms->rxyz, */
+  /*                                                (int*)(&nat)); */
+  fprintf(stderr, "FIXME\n");
   atoms->nat = nat;
   bigdft_atoms_get_nat_arrays(atoms);
 }
@@ -209,7 +210,8 @@ void bigdft_atoms_set_types(BigDFT_Atoms *atoms, const gchar **names)
   guint i, ntypes;
 
   for (ntypes = 0; names[ntypes]; ntypes++);
-  FC_FUNC_(atoms_set_n_types, ATOMS_SET_N_TYPES)(atoms->data, (int*)(&ntypes));
+  /* FC_FUNC_(atoms_set_n_types, ATOMS_SET_N_TYPES)(atoms->data, (int*)(&ntypes)); */
+  fprintf(stderr, "FIXME\n");
   atoms->ntypes = ntypes;
   bigdft_atoms_get_ntypes_arrays(atoms);
   atoms->atomnames = g_malloc(sizeof(gchar*) * (ntypes + 1));
@@ -334,13 +336,15 @@ void bigdft_atoms_set_symmetries(BigDFT_Atoms *atoms, gboolean active,
   int disable;
 
   disable = (!active);
-  FC_FUNC_(atoms_set_symmetries, ATOMS_SET_SYMMETRIES)(atoms->data, atoms->rxyz.data,
-                                                       &disable, &tol, elecfield);
+  /* FC_FUNC_(atoms_set_symmetries, ATOMS_SET_SYMMETRIES)(atoms->data, atoms->rxyz.data, */
+  /*                                                      &disable, &tol, elecfield); */
+  fprintf(stderr, "FIXME\n");
 }
 
 void bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)
 {
-  FC_FUNC_(atoms_set_displacement, ATOMS_SET_DISPLACEMENT)(atoms->data, atoms->rxyz.data, &randdis);
+  /* FC_FUNC_(atoms_set_displacement, ATOMS_SET_DISPLACEMENT)(atoms->data, atoms->rxyz.data, &randdis); */
+  fprintf(stderr, "FIXME\n");
 }
 /**
  * bigdft_atoms_get_radii:

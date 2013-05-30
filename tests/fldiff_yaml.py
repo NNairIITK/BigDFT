@@ -266,6 +266,7 @@ if __name__ == "__main__":
 #args=parse_arguments()
 
 #print args.ref,args.data,args.output
+#datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 references = [a for a in yaml.load_all(open(args.ref, "r").read(), Loader = yaml.CLoader)]
 try:
   datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]

@@ -2,7 +2,8 @@ SUBDIRS = fft \
 	xcPSolver \
 	OP2P \
 	psp \
-	IO-wf
+	IO-wf \
+	wrappers
 
 if USE_BLACS
 SUBDIRS += dsygv

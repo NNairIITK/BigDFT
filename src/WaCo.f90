@@ -41,7 +41,7 @@ program WaCo
    character(len=*), parameter :: subname='WaCo'
    character(len=4) :: num, units
    integer, allocatable :: wann_list(:), Zatoms(:,:), ncenters(:), types(:,:)
-   real(gp), dimension(:,:), pointer :: rxyz, rxyz_old, cxyz,rxyz_wann
+   real(gp), dimension(:,:), pointer :: rxyz_old, cxyz,rxyz_wann
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), allocatable :: sprd(:), locrad(:), eigen(:,:), proj(:,:), projC(:,:),distw(:),charge(:),prodw(:),wannocc(:)
    real(wp), allocatable :: psi(:,:),wann(:),wannr(:),lwann(:)
@@ -54,7 +54,7 @@ program WaCo
    integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:), l(:), mr(:)
    real(gp), dimension(3) :: refpos, normal, box
    real(kind=8),dimension(:,:),allocatable :: umn, umnt, rho, rhoprime, amn, tmatrix
-   integer :: i, j, k, i_all
+   integer :: i, j, k, i_all, ilr
    character(len=16) :: seedname
    integer :: n_occ, n_virt, n_virt_tot, nproj,nband_old,nkpt_old,iwann_out 
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity,write_resid
@@ -110,7 +110,7 @@ program WaCo
    if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
 
   call bigdft_set_input(trim(run_id)//trim(bigdft_run_id_toa()),'posinp'//trim(bigdft_run_id_toa()),&
-       rxyz,input,atoms)
+       input,atoms)
 
    if (input%verbosity > 2) then
       nproctiming=-nproc !timing in debug mode                                                                                                                                                                 
@@ -140,23 +140,23 @@ program WaCo
 
    call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList,linear,nbandCon,bandlist) 
 
-   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
+   allocate(radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
 
    call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
-   call system_size(iproc,atoms,rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
+   call system_size(iproc,atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
         Glr,shift)
    
-   box(1) = atoms%alat1*b2a !Glr%d%n1*input%hx * b2a
-   box(2) = atoms%alat2*b2a !Glr%d%n2*input%hy * b2a
-   box(3) = atoms%alat3*b2a !Glr%d%n3*input%hz * b2a
+   box(1) = atoms%astruct%cell_dim(1)*b2a !Glr%d%n1*input%hx * b2a
+   box(2) = atoms%astruct%cell_dim(2)*b2a !Glr%d%n2*input%hy * b2a
+   box(3) = atoms%astruct%cell_dim(3)*b2a !Glr%d%n3*input%hz * b2a
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-        atoms,rxyz,radii_cf,input%crmult,input%frmult,Glr)
+        atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,Glr)
 
    ! don't need radii_cf anymore
    i_all = -product(shape(radii_cf))*kind(radii_cf)
@@ -197,11 +197,11 @@ program WaCo
    ! Read Wannier centers
    allocate(cxyz(3,plotwann),stat=i_stat)
    call memocc(i_stat,cxyz,'cxyz',subname)
-   allocate(rxyz_wann(3,atoms%nat),stat=i_stat)
+   allocate(rxyz_wann(3,atoms%astruct%nat),stat=i_stat)
    call memocc(i_stat,rxyz_wann,'rxyz_wann',subname)
    allocate(sprd(plotwann+1),stat=i_stat)
    call memocc(i_stat,sprd,'sprd',subname)
-   call read_centers(iproc,nwann,plotwann,atoms%nat,seedname,wann_list,cxyz,rxyz_wann,.true.,sprd)
+   call read_centers(iproc,nwann,plotwann,atoms%astruct%nat,seedname,wann_list,cxyz,rxyz_wann,.true.,sprd)
 
    call timing(iproc,'Precondition  ','OF')
 
@@ -294,7 +294,7 @@ program WaCo
 
 
       !wann_list will contain the list of occupied Wannier functions
-      allocate(Zatoms(atoms%nat,plotwann),stat=i_stat)
+      allocate(Zatoms(atoms%astruct%nat,plotwann),stat=i_stat)
       call memocc(i_stat,Zatoms,'Zatoms',subname)  
       allocate(ncenters(plotwann),stat=i_stat)
       call memocc(i_stat,ncenters,'ncenters',subname)
@@ -311,7 +311,7 @@ program WaCo
       do iwann = 1, plotwann
          ncenters(iwann) = 0
          iat = 0
-         do i = 1, atoms%nat
+         do i = 1, atoms%astruct%nat
             call get_mindist(Glr%geocode,rxyz_wann(1,i),cxyz(1,iwann),box,dist)
             if (dist**2 <= sprdfact * sprd(iwann)) then    !for normal distribution: 1=68%, 1.64=80%, 3=94%
                ncenters(iwann) = ncenters(iwann) +1
@@ -346,7 +346,7 @@ program WaCo
 
       allocate(distw(maxval(ncenters)),stat=i_stat)
       call memocc(i_stat,distw,'distw',subname)
-      allocate(charge(atoms%nat),stat=i_stat)
+      allocate(charge(atoms%astruct%nat),stat=i_stat)
       call memocc(i_stat,charge,'charge',subname)
       allocate(prodw(maxval(ncenters)),stat=i_stat)
       call memocc(i_stat,prodw,'prodw',subname)
@@ -371,7 +371,7 @@ program WaCo
          end do
       end do
 
-!      do iat = 1, atoms%nat
+!      do iat = 1, atoms%astruct%nat
 !         write(*,*) 'Charge of atom ', iat,' is : ', charge(iat)
 !      end do
       if(iproc == 0) then
@@ -393,7 +393,7 @@ program WaCo
       do iwann = 1, plotwann
           write(22, '(E14.6, 2x, E14.6)') 0.0_dp, 0.0_dp
       end do
-      do iat = 1, atoms%nat
+      do iat = 1, atoms%astruct%nat
          write(22, '(E14.6, 2x, E14.6)') (charge(iat)-minval(charge))/(maxval(charge)-minval(charge)), charge(iat)
       end do
       close(unit=22)
@@ -443,11 +443,11 @@ program WaCo
 
 !DEBUG Test distribution on all the atoms
 !!     write(*,*) '######################ENTERING DEBUG#################'
-!!      allocate(distw(atoms%nat),stat=i_stat)
+!!      allocate(distw(atoms%astruct%nat),stat=i_stat)
 !!      call memocc(i_stat,distw,'distw',subname)
-!!      allocate(charge(atoms%nat),stat=i_stat)
+!!      allocate(charge(atoms%astruct%nat),stat=i_stat)
 !!      call memocc(i_stat,charge,'charge',subname)
-!!      allocate(prodw(atoms%nat),stat=i_stat)
+!!      allocate(prodw(atoms%astruct%nat),stat=i_stat)
 !!      call memocc(i_stat,prodw,'prodw',subname)
 !!      allocate(cxyz2(3,nwann),stat=i_stat)
 !!      call memocc(i_stat,cxyz2,'cxyz2',subname)
@@ -456,25 +456,25 @@ program WaCo
 !!      do iwann = 1, nwann
 !!         list(iwann) = iwann
 !!      end do 
-!!      call read_centers(iproc,nwann,nwann,atoms%nat,seedname,list,cxyz2,rxyz_wann,.false.,sprd)
+!!      call read_centers(iproc,nwann,nwann,atoms%astruct%nat,seedname,list,cxyz2,rxyz_wann,.false.,sprd)
 !!      charge = 0.0_dp
 !!      do iwann = 1, nwann
 !!         distw = 0.0_dp
-!!         do iat = 1, atoms%nat
+!!         do iat = 1, atoms%astruct%nat
 !!            distw(iat) = (rxyz_wann(1,iat)-cxyz2(1,iwann))**2 +&
 !!                        (rxyz_wann(2,iat)-cxyz2(2,iwann))**2 +&
 !!                        (rxyz_wann(3,iat)-cxyz2(3,iwann))**2
 !!         end do
 !!         prodw = 0.0_dp
-!!         do iat = 1, atoms%nat
+!!         do iat = 1, atoms%astruct%nat
 !!            prodw(iat) = 1.0_dp
-!!            do i = 1, atoms%nat
+!!            do i = 1, atoms%astruct%nat
 !!               if(i == iat) cycle
 !!write(*,*) 'distw(i),prodw(iat)',distw(i),prodw(iat)
 !!               prodw(iat) = prodw(iat) * distw(i)
 !!            end do
 !!         end do
-!!         do iat = 1, atoms%nat
+!!         do iat = 1, atoms%astruct%nat
 !!            charge(iat) = charge(iat) + 2.0_dp * wannocc(iwann) * prodw(iat)  / (sum(prodw))
 !!         end do
 !!      end do
@@ -484,7 +484,7 @@ program WaCo
 !!         write(*,*) 'Minimal charge is: ',minval(charge), 'on atom :', minloc(charge)
 !!      end if
 !!      open(unit=22,file='Wannier_charge2.dat',status='unknown')
-!!      do iat = 1, atoms%nat
+!!      do iat = 1, atoms%astruct%nat
 !!         write(22, '(E14.6, 2x, E14.6)') charge(iat)/maxval(charge), charge(iat)
 !!      end do
 !!      close(unit=22)
@@ -517,7 +517,7 @@ program WaCo
 !###############################################################
       if(Stereo) then
          ! Transform rxyz_wann from angstrom to bohr
-         do iat = 1, atoms%nat
+         do iat = 1, atoms%astruct%nat
            do i = 1, 3
               rxyz_wann(i,iat) = rxyz_wann(i,iat) / b2a
            end do
@@ -537,25 +537,25 @@ program WaCo
 
          ! Output the posref for visual check
          open(unit=22,file='pos_ref.xyz', status='unknown')
-         write(22,'(I4)') atoms%nat+1
+         write(22,'(I4)') atoms%astruct%nat+1
          write(22,*) !skip this line
          write(22,'(A,3(2x,E14.6))') 'X',(refpos(i),i=1,3)
-         do i = 1, atoms%nat
-            write(22,'(A,3(2x,E14.6))')atoms%atomnames(atoms%iatype(i)),rxyz_wann(1,i),rxyz_wann(2,i),rxyz_wann(3,i)
+         do i = 1, atoms%astruct%nat
+            write(22,'(A,3(2x,E14.6))')atoms%astruct%atomnames(atoms%astruct%iatype(i)),rxyz_wann(1,i),rxyz_wann(2,i),rxyz_wann(3,i)
          end do
          close(unit=22)
 
          ! Calculate Center of mass
          CM = 0.0_dp
-         do iat = 1, atoms%nat
+         do iat = 1, atoms%astruct%nat
             do j = 1, 3 
-               CM(j) = CM(j) + rxyz_wann(j,iat) / real(atoms%nat,kind=8)
+               CM(j) = CM(j) + rxyz_wann(j,iat) / real(atoms%astruct%nat,kind=8)
             end do
          end do
 
          !Calculate the radius of the sphere (choose it to be the biggest distance from the CM)
          rad= 0.0_dp
-         do iat = 1, atoms%nat
+         do iat = 1, atoms%astruct%nat
             dist = 0.0_dp
             do j = 1, 3
                dist = dist + (rxyz_wann(j,iat) - CM(j))**2
@@ -564,7 +564,7 @@ program WaCo
          end do
          rad =sqrt(rad)
 
-         allocate(proj(atoms%nat,3),stat=i_stat)
+         allocate(proj(atoms%astruct%nat,3),stat=i_stat)
          call memocc(i_stat,proj,'proj',subname)
          allocate(projC(plotwann,3),stat=i_stat)
          call memocc(i_stat,projC,'projC',subname)
@@ -576,10 +576,10 @@ program WaCo
          call memocc(i_stat,vertex,'vertex',subname)
 
          ! Do stereographic projection of atoms and Wannier centers
-         call stereographic_projection(0,atoms%nat,rxyz_wann,refpos, CM, rad, proj, normal, NeglectPoint)
+         call stereographic_projection(0,atoms%astruct%nat,rxyz_wann,refpos, CM, rad, proj, normal, NeglectPoint)
          ! TO DO: CNeglectPoint should be a vector...
          call stereographic_projection(1,plotwann,cxyz,refpos, CM, rad, projC, normal, CNeglectPoint)
-         call shift_stereographic_projection(plotwann,projC,atoms%nat,proj)
+         call shift_stereographic_projection(plotwann,projC,atoms%astruct%nat,proj)
          call write_stereographic_projection(22, 'proj.xyz    ', atoms, proj, NeglectPoint) 
 
          !Must warn if a Wannier center is on the projection reference
@@ -593,9 +593,9 @@ program WaCo
 !            stop
          end if
          
-         call build_stereographic_graph_facets(atoms%nat,plotwann,maxval(ncenters),4.0d0,rxyz_wann,ncenters,&
+         call build_stereographic_graph_facets(atoms%astruct%nat,plotwann,maxval(ncenters),4.0d0,rxyz_wann,ncenters,&
               Zatoms,nfacets,facets,vertex)
-         call output_stereographic_graph(atoms%nat,maxval(ncenters),proj,projC,plotwann,ncenters,Zatoms,nfacets,&
+         call output_stereographic_graph(atoms%astruct%nat,maxval(ncenters),proj,projC,plotwann,ncenters,Zatoms,nfacets,&
               facets,vertex,normal,NeglectPoint)
 
          i_all = -product(shape(nfacets))*kind(nfacets)
@@ -795,14 +795,14 @@ program WaCo
      if(linear)then
        allocate(cxyz(3,nwannCon),stat=i_stat)
        call memocc(i_stat,cxyz,'cxyz',subname)
-       allocate(rxyz_wann(3,atoms%nat),stat=i_stat)
+       allocate(rxyz_wann(3,atoms%astruct%nat),stat=i_stat)
        call memocc(i_stat,rxyz_wann,'rxyz_wann',subname)
        allocate(sprd(nwannCon+1),stat=i_stat)
        call memocc(i_stat,sprd,'sprd',subname)
        allocate(locrad(nwannCon),stat=i_stat)
        call memocc(i_stat,locrad,'locrad',subname)
 
-       call read_centers(iproc,nwann,nwannCon,atoms%nat,seedname,ConstList,cxyz,rxyz_wann,.true.,sprd)
+       call read_centers(iproc,nwann,nwannCon,atoms%astruct%nat,seedname,ConstList,cxyz,rxyz_wann,.true.,sprd)
 
        call yaml_open_sequence('Wannier centers')
        do iwann = 1, nwannCon
@@ -837,8 +837,15 @@ program WaCo
        allocate(calcbounds(nwannCon),stat=i_stat)
        call memocc(i_stat,calcbounds,'calcbounds',subname)
        calcbounds =.false.  
-       call determine_locregSphere_parallel(iproc,nproc,nwannCon,cxyz,locrad,Lzd%hgrids(1),&
-               Lzd%hgrids(2),Lzd%hgrids(3),atoms,orbs,Lzd%Glr,Lzd%Llr,calcbounds) 
+       do ilr=1,nwannCon
+          Lzd%llr(ilr)%locregCenter(1)=cxyz(1,ilr)
+          Lzd%llr(ilr)%locregCenter(2)=cxyz(2,ilr)
+          Lzd%llr(ilr)%locregCenter(3)=cxyz(3,ilr)
+
+          Lzd%llr(ilr)%locrad=locrad(ilr)
+       end do
+       call determine_locregSphere_parallel(iproc,nproc,nwannCon,Lzd%hgrids(1),&
+               Lzd%hgrids(2),Lzd%hgrids(3),atoms%astruct,orbs,Lzd%Glr,Lzd%Llr,calcbounds) 
      end if
 
 
@@ -871,7 +878,7 @@ program WaCo
      npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsw%norbp*orbsw%nspinor,sum(commsw%ncntt(0:nproc-1)))
      allocate(psi(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbsw%norbp*orbsw%nspinor),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
-     allocate(rxyz_old(3,atoms%nat),stat=i_stat)  
+     allocate(rxyz_old(3,atoms%astruct%nat),stat=i_stat)  
      call memocc(i_stat,rxyz_old,'rxyz_old',subname)
      ! For the occupied orbitals, need to modifify norbp,isorb to match the total distributed scheme
      orbs%norbp = n_occ - orbsw%isorb
@@ -891,8 +898,9 @@ program WaCo
         allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
         call memocc(i_stat,orbs%eval,'orbs%eval',subname)
         filename=trim(input%dir_output) // 'wavefunction'
-        call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
-           Glr%wfd,psi(1,1))
+        call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+             & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
+             Glr%wfd,psi(1,1))
         i_all = -product(shape(orbs%eval))*kind(orbs%eval)
         deallocate(orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'orbs%eval',subname)
@@ -920,8 +928,9 @@ program WaCo
         if(associated(orbsv%eval)) nullify(orbsv%eval)
         allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
         call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
-        call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
-           Glr%wfd,psi(1,1+orbs%norbp),virt_list)
+        call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+             & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
+             Glr%wfd,psi(1,1+orbs%norbp),virt_list)
         i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
         deallocate(orbsv%eval,stat=i_stat)
         call memocc(i_stat,i_all,'orbsv%eval',subname)
@@ -1009,7 +1018,7 @@ program WaCo
            if(outputype == 'cube') then
               !Put it in interpolating scaling functions
               call daub_to_isf(Glr,w,wann(1),wannr)
-              call write_wannier_cube(ifile,trim(seedname)//'_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
+              call write_wannier_cube(ifile,trim(seedname)//'_'//num//'.cube',atoms,Glr,input,atoms%astruct%rxyz,wannr)
            else if(trim(outputype)=='bin') then
               i_all = -product(shape(orbsw%iokpt))*kind(orbsw%iokpt)
               deallocate(orbsw%iokpt,stat=i_stat)
@@ -1053,7 +1062,7 @@ program WaCo
                  !stop 
                 !END DEBUG
                  call writeonewave_linear(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz, &
-                   (/cxyz(1,iwann),cxyz(2,iwann),cxyz(3,iwann) /),locrad(iwann),4,0.0d0,atoms%nat,rxyz,  & 
+                   (/cxyz(1,iwann),cxyz(2,iwann),cxyz(3,iwann) /),locrad(iwann),4,0.0d0,atoms%astruct%nat,atoms%astruct%rxyz,  & 
                    Lzd%Llr(iiwann)%wfd%nseg_c,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%keyglob(1,1),&
                    Lzd%Llr(iiwann)%wfd%keyvglob(1),Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%nvctr_f,&
                    Lzd%Llr(iiwann)%wfd%keyglob(1,Lzd%Llr(iiwann)%wfd%nseg_c+1),&
@@ -1066,13 +1075,13 @@ program WaCo
                 ! open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
                  call open_filename_of_iorb(ifile,.not.outformat,trim(seedname),orbsw,iwann,1,iwann_out)
                  call writeonewave(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,&
-                   atoms%nat,rxyz,  & 
+                   atoms%astruct%nat,atoms%astruct%rxyz,  & 
                    Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
                    Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
                    wann(1),wann(Glr%wfd%nvctr_c+1), ham(1,iwann,iwann))
               else
                  call writeonewave(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,&
-                   atoms%nat,rxyz,  & 
+                   atoms%astruct%nat,atoms%astruct%rxyz,  & 
                    Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
                    Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
                    wann(1),wann(Glr%wfd%nvctr_c+1), -0.5d0)
@@ -1082,7 +1091,7 @@ program WaCo
               stop 'ETSF not implemented yet'                
               ! should be write_wave_etsf  (only one orbital)
               call write_waves_etsf(iproc,trim(seedname)//'_'//num//'.etsf',orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
-                   input%hx,input%hy,input%hz,atoms,rxyz,Glr%wfd,wann)
+                   input%hx,input%hy,input%hz,atoms,atoms%astruct%rxyz,Glr%wfd,wann)
            end if
         end if
      end do  ! closing loop on iwann
@@ -1109,8 +1118,9 @@ program WaCo
         else 
            open(unit=99, file='minBasis'//'_coeff.bin', status='unknown',form='unformatted')
         end if
-        call writeLinearCoefficients(99,outformat,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,&
-           nbandCon,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
+        call writeLinearCoefficients(99,outformat,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+             & input%hx,input%hy,input%hz,atoms%astruct%nat,atoms%astruct%rxyz,&
+             nbandCon,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
         close(unit=99)
      end if
 
@@ -1136,7 +1146,7 @@ program WaCo
 !!  lzd%hgrids(3)=input%hz
 !!
 !!! Then allocate some stuff
-!!  allocate(rxyz_old(3,atoms%nat),stat=i_stat)
+!!  allocate(rxyz_old(3,atoms%astruct%nat),stat=i_stat)
 !!  call memocc(i_stat,rxyz_old,'rxyz_old',subname)
 !!
 !!  call initialize_linear_from_file(iproc,nproc,'minBasis',WF_FORMAT_BINARY,Lzd,wannorbs,atoms,rxyz)
@@ -1271,9 +1281,6 @@ program WaCo
   i_all = -product(shape(wann_list))*kind(wann_list)
   deallocate(wann_list,stat=i_stat)
   call memocc(i_stat,i_all,'wann_list',subname)
-  i_all = -product(shape(rxyz))*kind(rxyz)
-  deallocate(rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz',subname)
   call deallocate_lr(Glr,subname)
   call deallocate_orbs(orbs,subname)
   !call deallocate_atoms_scf(atoms,subname)
@@ -1826,7 +1833,7 @@ subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
    type(atoms_data),intent(in) :: atoms
    type(locreg_descriptors), intent(in) :: Glr
    type(input_variables),intent(in) :: input
-   real(gp),dimension(3,atoms%nat),intent(in) :: rxyz
+   real(gp),dimension(3,atoms%astruct%nat),intent(in) :: rxyz
    real(gp),dimension(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i),intent(in) :: wannr
    ! Local variables
    logical :: perx, pery, perz
@@ -1848,12 +1855,12 @@ subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
    open(unit=ifile, file=filename, status='unknown')
    write(ifile,*) ' CUBE file for ISF field'
    write(ifile,*) ' Case for'
-   write(ifile,'(I4,1X,F12.6,2(1X,F12.6))') atoms%nat, real(0.d0), real(0.d0), real(0.d0)
+   write(ifile,'(I4,1X,F12.6,2(1X,F12.6))') atoms%astruct%nat, real(0.d0), real(0.d0), real(0.d0)
    write(ifile,'(I4,1X,F12.6,2(1X,F12.6))') Glr%d%n1i-(nbl1+nbr1), 0.5_dp*input%hx, real(0.d0),  real(0.d0)
    write(ifile,'(I4,1X,F12.6,2(1X,F12.6))') Glr%d%n2i-(nbl2+nbr2), real(0.d0),  0.5_dp*input%hy, real(0.d0)
    write(ifile,'(I4,1X,F12.6,2(1X,F12.6))') Glr%d%n3i-(nbl3+nbr3), real(0.d0),  real(0.d0),  0.5_dp*input%hz
-   do i=1, atoms%nat
-      write(ifile,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
+   do i=1, atoms%astruct%nat
+      write(ifile,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%astruct%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
    end do
    !do ix=Glr%d%n1i-nbr1,1+nbl1,-1
    !   do iy=Glr%d%n2i-nbr2,1+nbl2,-1
@@ -2222,25 +2229,25 @@ subroutine write_stereographic_projection(unitnumb, filename, atoms, proj, Negle
    character(len=12), intent(in) :: filename
    type(atoms_data), intent(in) :: atoms
    integer, intent(in) :: NeglectPoint                   ! neglected point (atom corresponding to reference)
-   real(gp), dimension(atoms%nat,3), intent(in) :: proj  ! atom positions in the projection
+   real(gp), dimension(atoms%astruct%nat,3), intent(in) :: proj  ! atom positions in the projection
    !Local variable
    integer :: i, iat
 
    ! Now open file that will contain the stereographic projection
    open(unitnumb,file=trim(filename), status='unknown')
    if(NeglectPoint .ne. 0) then
-      write(unitnumb,*) atoms%nat-1
+      write(unitnumb,*) atoms%astruct%nat-1
    else
-      write(unitnumb,*) atoms%nat
+      write(unitnumb,*) atoms%astruct%nat
    end if
    write(unitnumb,*)
 
-   do iat = 1, atoms%nat
+   do iat = 1, atoms%astruct%nat
       ! Now print the information
       if(iat == NeglectPoint) then
-         write(unitnumb,'(A,3(2x,E14.6))')'#   '//atoms%atomnames(atoms%iatype(iat)),(proj(iat,i), i=1,3)
+         write(unitnumb,'(A,3(2x,E14.6))')'#   '//atoms%astruct%atomnames(atoms%astruct%iatype(iat)),(proj(iat,i), i=1,3)
       else
-         write(unitnumb,'(A,3(2x,E14.6))')atoms%atomnames(atoms%iatype(iat)),(proj(iat,i), i=1,3)
+         write(unitnumb,'(A,3(2x,E14.6))')atoms%astruct%atomnames(atoms%astruct%iatype(iat)),(proj(iat,i), i=1,3)
       end if
    end do
    close(unitnumb)
@@ -3183,7 +3190,7 @@ END SUBROUTINE get_mindist
 !!  type(atoms_data), intent(in) :: at
 !!  type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
 !!  type(local_zone_descriptors), intent(in) :: Lzd
-!!  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+!!  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
 !!  real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi  ! Should be the real linear dimension and not the global
 !!  real(wp), dimension(orbs%norb,norb), intent(in) :: coeff
 !!  character(len=*), intent(in) :: filename
@@ -3209,7 +3216,7 @@ END SUBROUTINE get_mindist
 !!                & orbs,iorb,ispinor,iorb_out)
 !!           call writeonewave_linear(99,(iformat == WF_FORMAT_PLAIN),iorb_out,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
 !!                Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Llr(ilr)%locregCenter,Lzd%Llr(ilr)%locrad, 4, 0.0d0, &  !put here the real potentialPrefac and Order
-!!                at%nat,rxyz,Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
+!!                at%astruct%nat,rxyz,Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
 !!                Lzd%Llr(ilr)%wfd%keyglob(1,1),Lzd%Llr(ilr)%wfd%keyvglob(1),Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
 !!                Lzd%Llr(ilr)%wfd%keyglob(1,Lzd%Llr(ilr)%wfd%nseg_c+1),Lzd%Llr(ilr)%wfd%keyvglob(Lzd%Llr(ilr)%wfd%nseg_c+1), &
 !!                psi(1,ispinor,iorb),psi(Lzd%Llr(ilr)%wfd%nvctr_c+1,ispinor,iorb),orbs%eval(iorb+orbs%isorb))
@@ -3222,7 +3229,7 @@ END SUBROUTINE get_mindist
 !!    ! while the norb is the number of orbitals.
 !!    if(iproc == 0) then
 !!      call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
-!!           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at%nat,rxyz,norb,orbs%norb,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,coeff)
+!!           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at%astruct%nat,rxyz,norb,orbs%norb,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,coeff)
 !!    end if
 !!     call cpu_time(tr1)
 !!     call system_clock(ncount2,ncount_rate,ncount_max)
@@ -3246,12 +3253,12 @@ END SUBROUTINE get_mindist
 !!  type(wavefunctions_descriptors), intent(in) :: wfd
 !!  type(atoms_data), intent(in) :: at
 !!  real(gp), intent(in) :: hx,hy,hz
-!!  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+!!  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
 !!  integer, intent(out) :: confPotOrder
 !!  real(gp), intent(out) :: locrad, confPotprefac
 !!  real(wp), intent(out) :: eval
 !!  real(gp), dimension(3), intent(out) :: locregCenter
-!!  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+!!  real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
 !!  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
 !!  real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
 !!  
@@ -3266,7 +3273,7 @@ END SUBROUTINE get_mindist
 !!
 !!  !write(*,*) 'INSIDE readonewave'
 !!  call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &
-!!       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, at%nat,&
+!!       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, at%astruct%nat,&
 !!       & locrad, locregCenter, confPotOrder, confPotprefac)
 !!  if (.not. lstat) call io_error(trim(error))
 !!  if (iorb_old /= iorb) stop 'readonewave_linear'
@@ -3279,10 +3286,10 @@ END SUBROUTINE get_mindist
 !!  tx=0.0_gp
 !!  ty=0.0_gp
 !!  tz=0.0_gp
-!!  do iat=1,at%nat
-!!     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
-!!     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
-!!     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+!!  do iat=1,at%astruct%nat
+!!     tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
+!!     ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
+!!     tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
 !!  enddo
 !!  displ=sqrt(tx+ty+tz)
 !!
@@ -3556,8 +3563,8 @@ END SUBROUTINE get_mindist
 !!  integer, intent(in) :: unitwf,iproc,n1,n2,n3,norb,ntmb
 !!  type(atoms_data), intent(in) :: at
 !!  real(gp), intent(in) :: hx,hy,hz
-!!  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-!!  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+!!  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+!!  real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
 !!  real(wp), dimension(ntmb,norb), intent(out) :: coeff
 !!  !local variables
 !!  character(len=*), parameter :: subname='readonewave_linear'
@@ -3570,7 +3577,7 @@ END SUBROUTINE get_mindist
 !!
 !!  !write(*,*) 'INSIDE readonewave'
 !!  call io_read_descr_coeff(unitwf, useFormattedInput, norb_old, ntmb_old, n1_old, n2_old, n3_old, &
-!!       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, at%nat)
+!!       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, at%astruct%nat)
 !!  if (.not. lstat) call io_error(trim(error))
 !!
 !!  !conditions for periodicity in the three directions
@@ -3581,10 +3588,10 @@ END SUBROUTINE get_mindist
 !!  tx=0.0_gp
 !!  ty=0.0_gp
 !!  tz=0.0_gp
-!!  do iat=1,at%nat
-!!     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
-!!     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
-!!     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+!!  do iat=1,at%astruct%nat
+!!     tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
+!!     ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
+!!     tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
 !!  enddo
 !!  displ=sqrt(tx+ty+tz)
 !!
@@ -3643,8 +3650,8 @@ END SUBROUTINE get_mindist
 !!  type(orbitals_data), intent(inout) :: orbs  ! orbs related to the basis functions
 !!  type(local_zone_descriptors), intent(in) :: Lzd
 !!  type(atoms_data), intent(in) :: at
-!!  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-!!  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+!!  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+!!  real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
 !!  real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi  
 !!  real(gp), dimension(norb,orbs%norb),intent(out) :: coeff
 !!  character(len=*), intent(in) :: filename
@@ -3748,7 +3755,7 @@ END SUBROUTINE get_mindist
 !!  integer, intent(in) :: iproc, nproc, iformat
 !!  type(orbitals_data), intent(inout) :: orbs  !< orbs related to the basis functions, inwhichlocreg generated in this routine
 !!  type(atoms_data), intent(in) :: at
-!!  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+!!  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
 !!  character(len=*), intent(in) :: filename
 !!  type(local_zone_descriptors), intent(inout) :: Lzd !< must already contain Glr and hgrids
 !!  integer, dimension(orbs%norb), optional :: orblist
@@ -3762,7 +3769,7 @@ END SUBROUTINE get_mindist
 !!  real(kind=8) :: tel,dx,dy,dz,dist,eval
 !!  real(gp) :: hx_old, hy_old, hz_old, mindist
 !!  real(gp), dimension(orbs%norb):: locrad, confPotprefac
-!!  real(gp), dimension(3,at%nat) :: rxyz_old
+!!  real(gp), dimension(3,at%astruct%nat) :: rxyz_old
 !!  real(gp), dimension(3,orbs%norb) :: locregCenter
 !!  integer, dimension(:), allocatable :: lrtable
 !!  integer, dimension(orbs%norb) :: nvctr_c, nvctr_f
@@ -3794,7 +3801,7 @@ END SUBROUTINE get_mindist
 !!           end if          
 !!           call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n1_old, n2_old, n3_old, &
 !!                & hx_old, hy_old, hz_old, lstat, error, nvctr_c(iorb+orbs%isorb), nvctr_f(iorb+orbs%isorb),&
-!!                & rxyz_old, at%nat, locrad(iorb+orbs%isorb), locregCenter(1,iorb+orbs%isorb), confPotOrder,&
+!!                & rxyz_old, at%astruct%nat, locrad(iorb+orbs%isorb), locregCenter(1,iorb+orbs%isorb), confPotOrder,&
 !!                & confPotprefac(iorb+orbs%isorb))
 !!           if (.not. lstat) then ; write(*,*) trim(error) ; stop; end if
 !!           if (iorb_old /= iorb_out) stop 'initialize_linear_from_file'
@@ -3832,9 +3839,9 @@ END SUBROUTINE get_mindist
 !!  lrtable = 0
 !!  outer_loop: do iorb = 1, orbs%norb
 !!     do jorb = iorb+1, orbs%norb
-!!        dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
-!!        dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
-!!        dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
+!!        dx=mindist(perx,at%astruct%cell_dim(1),locregCenter(1,iorb),locregCenter(1,jorb))**2
+!!        dy=mindist(pery,at%astruct%cell_dim(2),locregCenter(2,iorb),locregCenter(2,jorb))**2
+!!        dz=mindist(perz,at%astruct%cell_dim(3),locregCenter(3,iorb),locregCenter(3,jorb))**2
 !!        dist=sqrt(dx+dy+dz)
 !!        if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
 !!           confPotprefac(iorb) == confPotprefac(jorb)) then
@@ -3863,9 +3870,9 @@ END SUBROUTINE get_mindist
 !!     cxyz(3,ilr) = locregCenter(3,iorb)
 !!     calcbounds(ilr) = .true.
 !!     do jorb = 1, orbs%norb
-!!        dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
-!!        dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
-!!        dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
+!!        dx=mindist(perx,at%astruct%cell_dim(1),locregCenter(1,iorb),locregCenter(1,jorb))**2
+!!        dy=mindist(pery,at%astruct%cell_dim(2),locregCenter(2,iorb),locregCenter(2,jorb))**2
+!!        dz=mindist(perz,at%astruct%cell_dim(3),locregCenter(3,iorb),locregCenter(3,jorb))**2
 !!        dist=sqrt(dx+dy+dz)
 !!        if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
 !!           confPotprefac(iorb) == confPotprefac(jorb)) then
@@ -3892,7 +3899,7 @@ END SUBROUTINE get_mindist
 !!  integer, intent(in) :: confPotOrder,confPotOrder_old, n1_old, n2_old, n3_old
 !!  type(atoms_data), intent(in) :: at
 !!  real(gp), intent(in) :: hx_old, hy_old, hz_old
-!!  real(gp), dimension(3,at%nat), intent(in) :: rxyz, rxyz_old
+!!  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz, rxyz_old
 !!  type(local_zone_descriptors), intent(in) :: Lzd !< must already contain Glr and hgrids
 !!  logical, intent(out) :: consistent
 !!  ! Local variables
@@ -3908,10 +3915,10 @@ END SUBROUTINE get_mindist
 !!  tx=0.0_gp
 !!  ty=0.0_gp
 !!  tz=0.0_gp
-!!  do iat=1,at%nat
-!!     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
-!!     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
-!!     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+!!  do iat=1,at%astruct%nat
+!!     tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
+!!     ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
+!!     tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
 !!  enddo
 !!  displ=sqrt(tx+ty+tz)
 !!  consistent = .true.

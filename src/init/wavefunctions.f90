@@ -753,16 +753,16 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
 
   ! Generate kpoint meshs.
   call kpt_input_analyse(iproc, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, in%kptv, in%kpt, in%nkptv, &
-       & atoms%sym, atoms%geocode, (/ atoms%alat1, atoms%alat2, atoms%alat3 /))
+       & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
 
   ! Linear scaling (if given)
-  in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
+  !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
   call lin_input_variables_new(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
        & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
 
   ! Fragment information (if given)
   call fragment_input_variables(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
-       & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_frag),in,atoms)
+       & in%inputPsiId == INPUT_PSI_DISK_LINEAR).and.in%lin%fragment_calculation,trim(in%file_frag),in,atoms)
 
 !!$  ! Stop code for unproper input variables combination.
 !!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%geocode == 'S') then

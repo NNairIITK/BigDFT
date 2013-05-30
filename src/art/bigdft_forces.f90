@@ -72,37 +72,39 @@ module bigdft_forces
       integer                                 :: i
       character(len=2)                        :: symbol
       character(len=10)                       :: name
-      real(gp), dimension(:,:), pointer       :: rxyz
+      character(len=*), parameter             :: subname='init_all_atoms'
       !_______________________
 
       nproc = nproc_
       me = me_
 
-      call read_atomic_file(file,me_,atoms_all,rxyz)
-      nat = atoms_all%nat
-      boxtype = atoms_all%geocode
+      call read_atomic_file(file,me_,atoms_all%astruct)
+      call allocate_atoms_nat(atoms_all, subname)
+      call allocate_atoms_ntypes(atoms_all, subname)
+      nat = atoms_all%astruct%nat
+      boxtype = atoms_all%astruct%geocode
 
       allocate(posa(3 * nat))
       allocate(typa(nat))
       allocate(const_(nat))
 
       do i = 1, nat, 1
-         posa(i)           = rxyz(1, i) * Bohr_Ang
-         posa(i + nat)     = rxyz(2, i) * Bohr_Ang
-         posa(i + 2 * nat) = rxyz(3, i) * Bohr_Ang
-         typa(i) = atoms_all%iatype(i)
+         posa(i)           = atoms_all%astruct%rxyz(1, i) * Bohr_Ang
+         posa(i + nat)     = atoms_all%astruct%rxyz(2, i) * Bohr_Ang
+         posa(i + 2 * nat) = atoms_all%astruct%rxyz(3, i) * Bohr_Ang
+         typa(i) = atoms_all%astruct%iatype(i)
       end do
 
-      boxl(1) = atoms_all%alat1 * Bohr_Ang
-      boxl(2) = atoms_all%alat2 * Bohr_Ang
-      boxl(3) = atoms_all%alat3 * Bohr_Ang
+      boxl(1) = atoms_all%astruct%cell_dim(1) * Bohr_Ang
+      boxl(2) = atoms_all%astruct%cell_dim(2) * Bohr_Ang
+      boxl(3) = atoms_all%astruct%cell_dim(3) * Bohr_Ang
       ! Blocked atoms 
       const_ = 0                          ! Initialization, everyone is free.
-      const_(:) = atoms_all%ifrztyp(:)
+      const_(:) = atoms_all%astruct%ifrztyp(:)
 
       if ( iproc == 0 ) then
-         do i=1,atoms_all%nat
-            name=trim(atoms_all%atomnames(atoms_all%iatype(i)))
+         do i=1,atoms_all%astruct%nat
+            name=trim(atoms_all%astruct%atomnames(atoms_all%astruct%iatype(i)))
             if (name(3:3)=='_') then
                symbol=name(1:2)
             else if (name(2:2)=='_') then
@@ -110,7 +112,7 @@ module bigdft_forces
             else
                symbol=name(1:2)
             end if
-            !write(9,'(i3, a2,4x,3(1x,1pe24.17))')i, symbol,(rxyz(j,i),j=1,3)
+            !write(9,'(i3, a2,4x,3(1x,1pe24.17))')i, symbol,(atoms_all%astruct%rxyz(j,i),j=1,3)
          enddo
       end if
 
@@ -144,14 +146,16 @@ module bigdft_forces
       allocate(runObj%inputs)
       if (nat .eq. total_nb_atoms .and. .not. passivate) then 
          ! we just reread all atoms
-         call read_atomic_file("posinp",me_,runObj%atoms,runObj%rxyz)
+         call read_atomic_file("posinp",me_,runObj%atoms%astruct)
+         call allocate_atoms_nat(runObj%atoms, subname)
+         call allocate_atoms_ntypes(runObj%atoms, subname)
       else 
          !uses the big object to prepare. everything should
          ! be alright in the object exept the length
          call prepare_quantum_atoms_Si(atoms_all,posquant,natoms_calcul)
          !we just copy it in a smaller vect
-         call copy_atoms_object(atoms_all,runObj%atoms,runObj%rxyz,natoms_calcul,total_nb_atoms,posquant)
-         call initialize_atomic_file(me_,runObj%atoms,runObj%rxyz)
+         call copy_atoms_object(atoms_all,runObj%atoms,runObj%atoms%astruct%rxyz,natoms_calcul,total_nb_atoms,posquant)
+         call initialize_atomic_file(me_,runObj%atoms,runObj%atoms%astruct%rxyz)
       endif
       !standard names
       call standard_inputfile_names(runObj%inputs,'input',nproc)
@@ -159,9 +163,9 @@ module bigdft_forces
       call default_input_variables(runObj%inputs)
       call inputs_parse_params(runObj%inputs, me_, .true.)
       ! Shake atoms, if required.
-      call atoms_set_displacement(runObj%atoms, runObj%rxyz, runObj%inputs%randdis)
+      call astruct_set_displacement(runObj%atoms%astruct, runObj%inputs%randdis)
       ! Update atoms with symmetry information
-      call atoms_set_symmetries(runObj%atoms, runObj%rxyz, runObj%inputs%disableSym, &
+      call astruct_set_symmetries(runObj%atoms%astruct, runObj%inputs%disableSym, &
            & runObj%inputs%symTol, runObj%inputs%elecfield)
 
       ! Parse input files depending on atoms.
@@ -191,8 +195,8 @@ module bigdft_forces
 
       !Arguments
 
-      real(kind=8), intent(in),  dimension(3*runObj%atoms%nat), target :: posa
-      real(kind=8), intent(out), dimension(3*runObj%atoms%nat), target :: forca
+      real(kind=8), intent(in),  dimension(3*runObj%atoms%astruct%nat), target :: posa
+      real(kind=8), intent(out), dimension(3*runObj%atoms%astruct%nat), target :: forca
       real(kind=8), dimension(3), intent(inout)           :: boxl
       real(kind=8), intent(out)                           :: energy
       integer,      intent(inout)                         :: evalf_number
@@ -209,16 +213,15 @@ module bigdft_forces
          runObj%inputs%gnrm_cv = gnrm_l                                    
       end if
       ! We transfer acell into 'at'
-      runObj%atoms%alat1 = boxl(1)/Bohr_Ang
-      runObj%atoms%alat2 = boxl(2)/Bohr_Ang
-      runObj%atoms%alat3 = boxl(3)/Bohr_Ang
+      runObj%atoms%astruct%cell_dim = boxl/Bohr_Ang
       ! Need to transform posa into xcart
       ! 1D -> 2D array
-      do i = 1, runObj%atoms%nat, 1
-         runObj%rxyz(:, i) = (/ posa(i), posa(runObj%atoms%nat + i), posa(2 * runObj%atoms%nat + i) /) / Bohr_Ang
+      do i = 1, runObj%atoms%astruct%nat, 1
+         runObj%atoms%astruct%rxyz(:, i) = (/ posa(i), posa(runObj%atoms%astruct%nat + i), &
+              & posa(2 * runObj%atoms%astruct%nat + i) /) / Bohr_Ang
       end do
 
-      call init_global_output(outs, runObj%atoms%nat)
+      call init_global_output(outs, runObj%atoms%astruct%nat)
 
       if ( first_time ) then              ! This is done by default at the beginning.
 
@@ -257,24 +260,22 @@ module bigdft_forces
       ! Energy in eV 
       energy = outs%energy * ht2ev
       ! box in ang
-      boxl(1) = runObj%atoms%alat1 * Bohr_Ang
-      boxl(2) = runObj%atoms%alat2 * Bohr_Ang
-      boxl(3) = runObj%atoms%alat3 * Bohr_Ang
+      boxl = runObj%atoms%astruct%cell_dim * Bohr_Ang
 
       ! zero forces for blocked atoms:
       ! This was already done in clean_forces (forces.f90).
       ! But, up to now, ART only works with totally frozen atoms
       ! ( i.e "f" ). Therefore, this is a safe action.
-      do i = 1, runObj%atoms%nat, 1
-         if ( runObj%atoms%ifrztyp(i) /= 0  .or. in_system(i) /= 0 ) outs%fxyz(:,i) = 0.0d0 
+      do i = 1, runObj%atoms%astruct%nat, 1
+         if ( runObj%atoms%astruct%ifrztyp(i) /= 0  .or. in_system(i) /= 0 ) outs%fxyz(:,i) = 0.0d0 
       end do 
 
-      call center_f( outs%fxyz, runObj%atoms%nat )     ! We remove the net force over our free atomos.
+      call center_f( outs%fxyz, runObj%atoms%astruct%nat )     ! We remove the net force over our free atomos.
 
-      do i = 1, runObj%atoms%nat, 1                    ! Forces into ev/ang and in 1D array.
+      do i = 1, runObj%atoms%astruct%nat, 1                    ! Forces into ev/ang and in 1D array.
          forca( i )                        = outs%fxyz(1, i) * ht2ev / Bohr_Ang
-         forca( runObj%atoms%nat + i )     = outs%fxyz(2, i) * ht2ev / Bohr_Ang
-         forca( 2 * runObj%atoms%nat + i ) = outs%fxyz(3, i) * ht2ev / Bohr_Ang
+         forca( runObj%atoms%astruct%nat + i )     = outs%fxyz(2, i) * ht2ev / Bohr_Ang
+         forca( 2 * runObj%atoms%astruct%nat + i ) = outs%fxyz(3, i) * ht2ev / Bohr_Ang
       end do
 
       call deallocate_global_output(outs)
@@ -288,8 +289,8 @@ module bigdft_forces
       implicit none
 
       !Arguments
-      real(kind=8), intent(inout), dimension(3*atoms_all%nat) :: posa
-      real(kind=8), intent(in),    dimension(3*atoms_all%nat), target :: forca
+      real(kind=8), intent(inout), dimension(3*atoms_all%astruct%nat) :: posa
+      real(kind=8), intent(in),    dimension(3*atoms_all%astruct%nat), target :: forca
       real(kind=8), intent(inout), dimension(3)     :: boxl
       integer,      intent(inout)                   :: evalf_number
       real(kind=8), intent(out)                     :: total_energy
@@ -310,18 +311,18 @@ module bigdft_forces
 
       runObj%inputs%gnrm_cv = gnrm_l                 ! For relaxation, we use always the default value in input.dft
 
-      runObj%atoms%alat1 = boxl(1)/Bohr_Ang
-      runObj%atoms%alat2 = boxl(2)/Bohr_Ang
-      runObj%atoms%alat3 = boxl(3)/Bohr_Ang
+      runObj%atoms%astruct%cell_dim = boxl/Bohr_Ang
       ! Need to transform posa into xcart
       ! 1D -> 2D array
-      do i = 1, runObj%atoms%nat, 1
-         runObj%rxyz(:, i) = (/ posa(i), posa(runObj%atoms%nat + i), posa(2 * runObj%atoms%nat + i) /) / Bohr_Ang
+      do i = 1, runObj%atoms%astruct%nat, 1
+         runObj%atoms%astruct%rxyz(:, i) = (/ posa(i), posa(runObj%atoms%astruct%nat + i), &
+              & posa(2 * runObj%atoms%astruct%nat + i) /) / Bohr_Ang
       end do
 
-      call init_global_output(outs, runObj%atoms%nat)
-      do i = 1, runObj%atoms%nat, 1
-         outs%fxyz(:, i) = (/ forca(i), forca(runObj%atoms%nat + i), forca(2 * runObj%atoms%nat + i) /) * Bohr_Ang / ht2ev
+      call init_global_output(outs, runObj%atoms%astruct%nat)
+      do i = 1, runObj%atoms%astruct%nat, 1
+         outs%fxyz(:, i) = (/ forca(i), forca(runObj%atoms%astruct%nat + i), &
+              & forca(2 * runObj%atoms%astruct%nat + i) /) * Bohr_Ang / ht2ev
       end do
 
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
@@ -331,14 +332,12 @@ module bigdft_forces
 
       total_energy = outs%energy * ht2ev
       ! box in ang
-      boxl(1) = runObj%atoms%alat1 * Bohr_Ang
-      boxl(2) = runObj%atoms%alat2 * Bohr_Ang
-      boxl(3) = runObj%atoms%alat3 * Bohr_Ang
+      boxl = runObj%atoms%astruct%cell_dim * Bohr_Ang
       ! Positions into ang.
-      do i = 1, runObj%atoms%nat, 1
-         posa(i)                        = runObj%rxyz(1, i) * Bohr_Ang
-         posa(runObj%atoms%nat + i)     = runObj%rxyz(2, i) * Bohr_Ang
-         posa(2 * runObj%atoms%nat + i) = runObj%rxyz(3, i) * Bohr_Ang
+      do i = 1, runObj%atoms%astruct%nat, 1
+         posa(i)                        = runObj%atoms%astruct%rxyz(1, i) * Bohr_Ang
+         posa(runObj%atoms%astruct%nat + i)     = runObj%atoms%astruct%rxyz(2, i) * Bohr_Ang
+         posa(2 * runObj%atoms%astruct%nat + i) = runObj%atoms%astruct%rxyz(3, i) * Bohr_Ang
       end do
 
       call deallocate_global_output(outs)
@@ -371,7 +370,7 @@ module bigdft_forces
       logical, dimension(natoms) :: mask
 
       ! degrees of freedom 
-      mask = runObj%atoms%ifrztyp .eq. 0 .and. in_system .eq. 0
+      mask = runObj%atoms%astruct%ifrztyp .eq. 0 .and. in_system .eq. 0
       natoms_f = count(mask)
 
       xtotal = 0.0d0
@@ -432,35 +431,35 @@ module bigdft_forces
 
 
 
-      atoms2%units   = atoms1%units
-      atoms2%nat  =    nat
-      atoms2%alat1  = atoms1%alat1*Bohr_Ang
-      atoms2%alat2  = atoms1%alat2*Bohr_Ang
-      atoms2%alat3  = atoms1%alat3*Bohr_Ang
+      atoms2%astruct%units   = atoms1%astruct%units
+      atoms2%astruct%nat  =    nat
+      atoms2%astruct%cell_dim(1)  = atoms1%astruct%cell_dim(1)*Bohr_Ang
+      atoms2%astruct%cell_dim(2)  = atoms1%astruct%cell_dim(2)*Bohr_Ang
+      atoms2%astruct%cell_dim(3)  = atoms1%astruct%cell_dim(3)*Bohr_Ang
 
-      atoms2%geocode = atoms1%geocode
+      atoms2%astruct%geocode = atoms1%astruct%geocode
 
 
-      allocate(atoms2%natpol(atoms2%nat+ndebug),stat=i_stat)
-      call memocc(i_stat,atoms2%natpol,'atoms%natpol',subname)
+      allocate(atoms2%astruct%input_polarization(atoms2%astruct%nat+ndebug),stat=i_stat)
+      call memocc(i_stat,atoms2%astruct%input_polarization,'atoms%astruct%input_polarization',subname)
 
       !also the spin polarisation and the charge are is fixed to zero by default
       !this corresponds to the value of 100
       !RULE natpol=charge*1000 + 100 + spinpol
 
-      atoms2%natpol(:)=100
-      atoms2%natpol(:) = atoms1%natpol(1:nat)
+      atoms2%astruct%input_polarization(:)=100
+      atoms2%astruct%input_polarization(:) = atoms1%astruct%input_polarization(1:nat)
 
-      allocate(atoms2%ifrztyp(atoms2%nat+ndebug),stat=i_stat)
-      call memocc(i_stat,atoms2%ifrztyp,'atoms%ifrztyp',subname)
+      allocate(atoms2%astruct%ifrztyp(atoms2%astruct%nat+ndebug),stat=i_stat)
+      call memocc(i_stat,atoms2%astruct%ifrztyp,'atoms2%astruct%ifrztyp',subname)
 
 
       !this array is useful for frozen atoms
       !no atom is frozen by default
-      atoms2%ifrztyp(:)=0
-      atoms2%ifrztyp(:)= atoms1%ifrztyp(1:nat)
+      atoms2%astruct%ifrztyp(:)=0
+      atoms2%astruct%ifrztyp(:)= atoms1%astruct%ifrztyp(1:nat)
 
-      allocate(rxyz(3,atoms2%nat+ndebug),stat=i_stat)
+      allocate(rxyz(3,atoms2%astruct%nat+ndebug),stat=i_stat)
       call memocc(i_stat,rxyz,'rxyz',subname)
 
 
@@ -468,19 +467,19 @@ module bigdft_forces
       rxyz(2,:) = posquant(1+total_nb_atoms:nat+total_nb_atoms)
       rxyz(3,:) = posquant(1+total_nb_atoms+total_nb_atoms:nat+total_nb_atoms+total_nb_atoms)
 
-      atoms2%ntypes  = atoms1%ntypes
+      atoms2%astruct%ntypes  = atoms1%astruct%ntypes
 
 
 
 
-      allocate(atoms2%iatype(atoms2%nat+ndebug),stat=i_stat)
-      call memocc(i_stat,atoms2%iatype,'atoms%iatype',subname)
-      atoms2%iatype(:) = atoms1%iatype(1:nat)
+      allocate(atoms2%astruct%iatype(atoms2%astruct%nat+ndebug),stat=i_stat)
+      call memocc(i_stat,atoms2%astruct%iatype,'atoms%astruct%iatype',subname)
+      atoms2%astruct%iatype(:) = atoms1%astruct%iatype(1:nat)
 
-      allocate(atoms2%atomnames(atoms2%ntypes+ndebug),stat=i_stat)
-      call memocc(i_stat,atoms2%atomnames,'atoms%atomnames',subname)
-      atoms2%atomnames(1:atoms2%ntypes)=atoms1%atomnames(1:atoms2%ntypes)
-      atoms2%format = atoms1%format
+      allocate(atoms2%astruct%atomnames(atoms2%astruct%ntypes+ndebug),stat=i_stat)
+      call memocc(i_stat,atoms2%astruct%atomnames,'atoms%astruct%atomnames',subname)
+      atoms2%astruct%atomnames(1:atoms2%astruct%ntypes)=atoms1%astruct%atomnames(1:atoms2%astruct%ntypes)
+      atoms2%astruct%inputfile_format = atoms1%astruct%inputfile_format
 
    END SUBROUTINE copy_atoms_object
 
@@ -539,14 +538,14 @@ module bigdft_forces
             endif      
          end do
          if (.not. have_hydro) then
-            atomnames(1:atoms%ntypes) = atoms%atomnames(1:atoms%ntypes)
-            atoms%ntypes = atoms%ntypes +1
-            deallocate(atoms%atomnames,stat = i_stat)
-            allocate(atoms%atomnames(atoms%ntypes),stat = i_stat)
-            call memocc(i_stat,atoms%atomnames,'atoms%atomnames',subname)
-            atomnames(atoms%ntypes) = "H"
-            atoms%atomnames(1:atoms%ntypes) = atomnames(1:atoms%ntypes)
-            hydro_atom_type = atoms%ntypes
+            atomnames(1:atoms%astruct%ntypes) = atoms%astruct%atomnames(1:atoms%astruct%ntypes)
+            atoms%astruct%ntypes = atoms%astruct%ntypes +1
+            deallocate(atoms%astruct%atomnames,stat = i_stat)
+            allocate(atoms%astruct%atomnames(atoms%astruct%ntypes),stat = i_stat)
+            call memocc(i_stat,atoms%astruct%atomnames,'atoms%astruct%atomnames',subname)
+            atomnames(atoms%astruct%ntypes) = "H"
+            atoms%astruct%atomnames(1:atoms%astruct%ntypes) = atomnames(1:atoms%astruct%ntypes)
+            hydro_atom_type = atoms%astruct%ntypes
          endif
       endif
 
@@ -583,9 +582,9 @@ module bigdft_forces
                      posquant(nat) = pos(i) + 0.5d0*xij
                      posquant(nat+natoms) = pos(i+natoms) + 0.5d0*yij
                      posquant(nat+natoms+natoms) = pos(i+2*natoms) + 0.5d0*zij !we passivate with hydrogene at this distance
-                     atoms%iatype(nat) = hydro_atom_type
-                     atoms%ifrztyp(i) = 1  !this atom is frozen
-                     atoms%ifrztyp(nat) = 1  !this one as well
+                     atoms%astruct%iatype(nat) = hydro_atom_type
+                     atoms%astruct%ifrztyp(i) = 1  !this atom is frozen
+                     atoms%astruct%ifrztyp(nat) = 1  !this one as well
                   endif
                endif   
             enddo
@@ -599,7 +598,7 @@ module bigdft_forces
 
       implicit none
 
-      real(kind=8), intent(inout), dimension(3*atoms_all%nat) :: posa
+      real(kind=8), intent(inout), dimension(3*atoms_all%astruct%nat) :: posa
       real(kind=8), intent(inout), dimension(3)     :: boxl
       integer,      intent(inout)                   :: evalf_number
       real(kind=8), intent(out)                     :: total_energy
@@ -614,12 +613,11 @@ module bigdft_forces
       runObj%inputs%inputPsiId = 0 
       runObj%inputs%gnrm_cv = gnrm_l 
       ! We transfer acell into 'at'
-      runObj%atoms%alat1 = boxl(1)/Bohr_Ang
-      runObj%atoms%alat2 = boxl(2)/Bohr_Ang
-      runObj%atoms%alat3 = boxl(3)/Bohr_Ang
+      runObj%atoms%astruct%cell_dim = boxl/Bohr_Ang
 
-      do i = 1, runObj%atoms%nat, 1
-         runObj%rxyz(:, i) = (/ posa(i), posa(runObj%atoms%nat + i), posa(2 * runObj%atoms%nat + i) /) / Bohr_Ang
+      do i = 1, runObj%atoms%astruct%nat, 1
+         runObj%atoms%astruct%rxyz(:, i) = (/ posa(i), posa(runObj%atoms%astruct%nat + i), &
+              & posa(2 * runObj%atoms%astruct%nat + i) /) / Bohr_Ang
       end do
 
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
@@ -627,7 +625,7 @@ module bigdft_forces
       evalf_number = evalf_number + 1
       runObj%inputs%inputPsiId = 1
 
-      call fnrmandforcemax(outs%fxyz,fnrm,fmax, runObj%atoms%nat)
+      call fnrmandforcemax(outs%fxyz,fnrm,fmax, outs%fdim)
 
       if ( fmax > runObj%inputs%forcemax ) then
 
@@ -650,14 +648,12 @@ module bigdft_forces
 
          total_energy = outs%energy * ht2ev
          ! box in ang
-         boxl(1) = runObj%atoms%alat1 * Bohr_Ang
-         boxl(2) = runObj%atoms%alat2 * Bohr_Ang
-         boxl(3) = runObj%atoms%alat3 * Bohr_Ang
+         boxl = runObj%atoms%astruct%cell_dim * Bohr_Ang
          ! Positions into ang.
-         do i = 1, runObj%atoms%nat, 1
-            posa(i)                        = runObj%rxyz(1, i) * Bohr_Ang
-            posa(runObj%atoms%nat + i)     = runObj%rxyz(2, i) * Bohr_Ang
-            posa(2 * runObj%atoms%nat + i) = runObj%rxyz(3, i) * Bohr_Ang
+         do i = 1, runObj%atoms%astruct%nat, 1
+            posa(i)                        = runObj%atoms%astruct%rxyz(1, i) * Bohr_Ang
+            posa(runObj%atoms%astruct%nat + i)     = runObj%atoms%astruct%rxyz(2, i) * Bohr_Ang
+            posa(2 * runObj%atoms%astruct%nat + i) = runObj%atoms%astruct%rxyz(3, i) * Bohr_Ang
          end do
 
       end if 

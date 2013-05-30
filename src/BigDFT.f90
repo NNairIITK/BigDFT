@@ -58,7 +58,7 @@ program BigDFT
          !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
          ! Read all input files.
          call run_objects_init_from_files(runObj, arr_radical(iconfig), arr_posinp(iconfig))
-         call init_global_output(outs, runObj%atoms%nat)
+         call init_global_output(outs, runObj%atoms%astruct%nat)
          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 
          if (runObj%inputs%ncount_cluster_x > 1) then
@@ -75,11 +75,11 @@ program BigDFT
 
          if (runObj%inputs%ncount_cluster_x > 1) then
             filename=trim('final_'//trim(arr_posinp(iconfig)))
-            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%rxyz, &
+            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
                  & runObj%atoms,'FINAL CONFIGURATION',forces=outs%fxyz)
          else
             filename=trim('forces_'//trim(arr_posinp(iconfig)))
-            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%rxyz, &
+            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
                  & runObj%atoms,'Geometry + metaData forces',forces=outs%fxyz)
          end if
 

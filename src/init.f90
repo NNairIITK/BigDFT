@@ -21,8 +21,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   type(atoms_data), intent(in) :: atoms
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz,crmult,frmult
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   type(locreg_descriptors), intent(inout) :: Glr
   logical, intent(in), optional :: output_denspot
   !local variables
@@ -52,7 +52,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   nfu3=Glr%d%nfu3
 
   !assign geocode and the starting points
-  Glr%geocode=atoms%geocode
+  Glr%geocode=atoms%astruct%geocode
 
   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
   allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
@@ -61,11 +61,11 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   call memocc(i_stat,logrid_f,'logrid_f',subname)
 
   ! coarse/fine grid quantities
-  if (atoms%ntypes >0) then
-     call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
-          &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
-     call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
-          &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
+  if (atoms%astruct%ntypes >0) then
+     call fill_logrid(atoms%astruct%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%astruct%nat,&
+          &   atoms%astruct%ntypes,atoms%astruct%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
+     call fill_logrid(atoms%astruct%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%astruct%nat,&
+          &   atoms%astruct%ntypes,atoms%astruct%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
   else
      logrid_c=.true.
      logrid_f=.true.
@@ -81,7 +81,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       call yaml_close_map()
    end if
 
-   if (atoms%geocode == 'P' .and. .not. Glr%hybrid_on .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
+   if (atoms%astruct%geocode == 'P' .and. .not. Glr%hybrid_on .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
       if (iproc ==0) then
          call yaml_warning('The coarse grid does not fill the entire periodic box')
          call yaml_comment('Errors due to translational invariance breaking may occur')
@@ -115,17 +115,18 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    if (present(output_denspot)) my_output_denspot = output_denspot
    if (my_output_denspot) then
       open(unit=22,file='grid.xyz',status='unknown')
-      write(22,*) Glr%wfd%nvctr_c+Glr%wfd%nvctr_f+atoms%nat,' atomic'
-      if (atoms%geocode=='F') then
+      write(22,*) Glr%wfd%nvctr_c+Glr%wfd%nvctr_f+atoms%astruct%nat,' atomic'
+      if (atoms%astruct%geocode=='F') then
          write(22,*)'complete simulation grid with low and high resolution points'
-      else if (atoms%geocode =='S') then
-         write(22,'(a,2x,3(1x,1pe24.17))')'surface',atoms%alat1,atoms%alat2,atoms%alat3
-      else if (atoms%geocode =='P') then
-         write(22,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%alat1,atoms%alat2,atoms%alat3
+      else if (atoms%astruct%geocode =='S') then
+         write(22,'(a,2x,3(1x,1pe24.17))')'surface',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),atoms%astruct%cell_dim(3)
+      else if (atoms%astruct%geocode =='P') then
+         write(22,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
+              atoms%astruct%cell_dim(3)
       end if
-      do iat=1,atoms%nat
+      do iat=1,atoms%astruct%nat
          write(22,'(a6,2x,3(1x,e12.5),3x)') &
-            &   trim(atoms%atomnames(atoms%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
+            &   trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
       enddo
       do i3=0,n3  
          do i2=0,n2  
@@ -303,11 +304,11 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    type(locreg_descriptors),intent(in) :: lr
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+   real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
    type(nonlocal_psp_descriptors), intent(out) :: nlpspd
    real(wp), dimension(:), pointer :: proj
-   type(gaussian_basis),dimension(at%ntypes),intent(in) :: proj_G
+   type(gaussian_basis),dimension(at%astruct%ntypes),intent(in) :: proj_G
    !local variables
    character(len=*), parameter :: subname='createProjectorsArrays'
    integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
@@ -315,9 +316,9 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    logical, dimension(:,:,:), allocatable :: logrid
 
    !allocate the different localization regions of the projectors
-   nlpspd%natoms=at%nat
-   allocate(nlpspd%plr(at%nat),stat=i_stat)
-   do iat=1,at%nat
+   nlpspd%natoms=at%astruct%nat
+   allocate(nlpspd%plr(at%astruct%nat),stat=i_stat)
+   do iat=1,at%astruct%nat
       nlpspd%plr(iat)=locreg_null() !< set in types
    end do
 
@@ -344,19 +345,19 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    if (nlpspd%nprojel >0) call to_zero(nlpspd%nprojel,proj(1))
 
    ! After having determined the size of the projector descriptor arrays fill them
-   do iat=1,at%nat
-      if(at%npspcode(at%iatype(iat))==7) then  
-        call numb_proj_paw_tr(at%iatype(iat),at%ntypes,proj_G(at%iatype(iat)),mproj)
+   do iat=1,at%astruct%nat
+      if(at%npspcode(at%astruct%iatype(iat))==7) then  
+        call numb_proj_paw_tr(at%astruct%iatype(iat),at%astruct%ntypes,proj_G(at%astruct%iatype(iat)),mproj)
       else
-        call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
+        call numb_proj(at%astruct%iatype(iat),at%astruct%ntypes,at%psppar,at%npspcode,mproj)
       end if
       if (mproj.ne.0) then 
 
          call bounds_to_plr_limits(.false.,1,nlpspd%plr(iat),&
               nl1,nl2,nl3,nu1,nu2,nu3)         
 
-         call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
+         call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+              at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
               cpmult,hx,hy,hz,logrid)
 
          call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,&
@@ -370,8 +371,8 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
          call bounds_to_plr_limits(.false.,2,nlpspd%plr(iat),&
               nl1,nl2,nl3,nu1,nu2,nu3)         
 
-         call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-            &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),&
+         call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+            &   at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,2),&
             fpmult,hx,hy,hz,logrid)
 
          mseg=nlpspd%plr(iat)%wfd%nseg_f
@@ -426,7 +427,7 @@ subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   i
    Plr%d%n1 = Glr%d%n1
    Plr%d%n2 = Glr%d%n2
    Plr%d%n3 = Glr%d%n3
-   Plr%geocode = at%geocode
+   Plr%geocode = at%astruct%geocode
 
 
    call plr_segs_and_vctrs(PPD%pc_nlpspd%plr(iat),&
@@ -550,7 +551,7 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
    jorb=startjorb
 
    !!Just for extracting the covalent radius 
-   call eleconf(at%nzatom( at%iatype(iatat)), at%nelpsp(at%iatype(iatat)) ,  &
+   call eleconf(at%nzatom( at%astruct%iatype(iatat)), at%nelpsp(at%astruct%iatype(iatat)) ,  &
       &   symbol, rcov, rprb, ehomo,neleconf, nsccode, mxpl, mxchg, amu)
 
    cutoff=rcov*1.5_gp
@@ -595,8 +596,8 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
 
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+   real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
    real(gp), intent(in):: ecut_pc
 
    type(pcproj_data_type) ::PPD
@@ -646,16 +647,16 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
 
 
-   PPD%pc_nlpspd%natoms=at%nat
-   allocate(PPD%pc_nlpspd%plr(at%nat),stat=i_stat)
+   PPD%pc_nlpspd%natoms=at%astruct%nat
+   allocate(PPD%pc_nlpspd%plr(at%astruct%nat),stat=i_stat)
 
-!!$   allocate(PPD%pc_nlpspd%nseg_p(0:2*at%nat+ndebug),stat=i_stat)
+!!$   allocate(PPD%pc_nlpspd%nseg_p(0:2*at%astruct%nat+ndebug),stat=i_stat)
 !!$   call memocc(i_stat,PPD%pc_nlpspd%nseg_p,'pc_nlpspd%nseg_p',subname)
-!!$   allocate(PPD%pc_nlpspd%nvctr_p(0:2*at%nat+ndebug),stat=i_stat)
+!!$   allocate(PPD%pc_nlpspd%nvctr_p(0:2*at%astruct%nat+ndebug),stat=i_stat)
 !!$   call memocc(i_stat,PPD%pc_nlpspd%nvctr_p,'pc_nlpspd%nvctr_p',subname)
-!!$   allocate(PPD%pc_nlpspd%nboxp_c(2,3,at%nat+ndebug),stat=i_stat)
+!!$   allocate(PPD%pc_nlpspd%nboxp_c(2,3,at%astruct%nat+ndebug),stat=i_stat)
 !!$   call memocc(i_stat,PPD%pc_nlpspd%nboxp_c,'pc_nlpspd%nboxp_c',subname)
-!!$   allocate(PPD%pc_nlpspd%nboxp_f(2,3,at%nat+ndebug),stat=i_stat)
+!!$   allocate(PPD%pc_nlpspd%nboxp_f(2,3,at%astruct%nat+ndebug),stat=i_stat)
 !!$   call memocc(i_stat,PPD%pc_nlpspd%nboxp_f,'pc_nlpspd%nboxp_f',subname)
 
    allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
@@ -676,11 +677,11 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
       call allocate_wfd(PPD%pc_nlpspd%plr(iat)%wfd,subname)
    end do
 
-!!$   allocate(PPD%pc_nlpspd%keyg_p(2,PPD%pc_nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
+!!$   allocate(PPD%pc_nlpspd%keyg_p(2,PPD%pc_nlpspd%nseg_p(2*at%astruct%nat)+ndebug),stat=i_stat)
 !!$   call memocc(i_stat,PPD%pc_nlpspd%keyg_p,'pc_nlpspd%keyg_p',subname)
 !!$
 !!$
-!!$   allocate(PPD%pc_nlpspd%keyv_p(PPD%pc_nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
+!!$   allocate(PPD%pc_nlpspd%keyv_p(PPD%pc_nlpspd%nseg_p(2*at%astruct%nat)+ndebug),stat=i_stat)
 !!$   call memocc(i_stat,PPD%pc_nlpspd%keyv_p,'pc_nlpspd%keyv_p',subname)
 
 
@@ -699,7 +700,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    mprojtot=0
    jorb=1  
    ! After having determined the size of the projector descriptor arrays fill them
-   do iat=1,at%nat
+   do iat=1,at%astruct%nat
 
       mproj=0
 
@@ -731,8 +732,8 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 !!$         nu2=PPD%pc_nlpspd%nboxp_c(2,2,iat)
 !!$         nu3=PPD%pc_nlpspd%nboxp_c(2,3,iat)
 
-         call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-            &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),Pcpmult,hx,hy,hz,logrid)
+         call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+            &   at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,3),Pcpmult,hx,hy,hz,logrid)
 
 !!$         iseg=PPD%pc_nlpspd%nseg_p(2*iat-2)+1
 !!$         mseg=PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
@@ -756,8 +757,8 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 !!$         nu1=PPD%pc_nlpspd%nboxp_f(2,1,iat)
 !!$         nu2=PPD%pc_nlpspd%nboxp_f(2,2,iat)
 !!$         nu3=PPD%pc_nlpspd%nboxp_f(2,3,iat)
-         call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-            &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
+         call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+            &   at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
 !!$         iseg=PPD%pc_nlpspd%nseg_p(2*iat-1)+1
 !!$         mseg=PPD%pc_nlpspd%nseg_p(2*iat)-PPD%pc_nlpspd%nseg_p(2*iat-1)
          iseg=PPD%pc_nlpspd%plr(iat)%wfd%nseg_c+1
@@ -791,7 +792,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    allocate(PPD%pc_proj(PPD%pc_nlpspd%nprojel+ndebug),stat=i_stat)
    call memocc(i_stat,PPD%pc_proj,'pc_proj',subname)
 
-   allocate(PPD%ilr_to_mproj(at%nat  +ndebug ) , stat=i_stat)
+   allocate(PPD%ilr_to_mproj(at%astruct%nat  +ndebug ) , stat=i_stat)
    call memocc(i_stat,PPD%ilr_to_mproj,'ilr_to_mproj',subname)
 
    allocate(PPD%iproj_to_ene(mprojtot +ndebug ) , stat=i_stat)
@@ -813,7 +814,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
 
    iproj=0
-   do iat=1,at%nat
+   do iat=1,at%astruct%nat
 
       mproj=0
       do while( jorb<=PPD%G%ncoeff         .and. PPD%iorbtolr(jorb)== iat)
@@ -929,8 +930,8 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
 
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+   real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
 
    type(PAWproj_data_type) ::PAWD
 
@@ -1036,8 +1037,8 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    jorb=1  
    ! After having determined the size of the projector descriptor arrays fill them
    iat=0
-   do iatat=1, at%nat
-      if (  at%paw_NofL(at%iatype(iatat)).gt.0  ) then
+   do iatat=1, at%astruct%nat
+      if (  at%paw_NofL(at%astruct%iatype(iatat)).gt.0  ) then
          iat=iat+1
          mproj=0
          do while( jorb<=PAWD%G%ncoeff         .and. PAWD%iorbtolr(jorb)== iat)
@@ -1059,8 +1060,8 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 !!$            nu2=PAWD%paw_nlpspd%nboxp_c(2,2,iat)
 !!$            nu3=PAWD%paw_nlpspd%nboxp_c(2,3,iat)
 
-            call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-               &   at%ntypes,at%iatype(iatat),rxyz(1,iatat),radii_cf(1,3),Pcpmult,hx,hy,hz,logrid)
+            call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+               &   at%astruct%ntypes,at%astruct%iatype(iatat),rxyz(1,iatat),radii_cf(1,3),Pcpmult,hx,hy,hz,logrid)
 
 !!$            iseg=PAWD%paw_nlpspd%nseg_p(2*iat-2)+1
 !!$            mseg=PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
@@ -1084,8 +1085,8 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 !!$            nu1=PAWD%paw_nlpspd%nboxp_f(2,1,iat)
 !!$            nu2=PAWD%paw_nlpspd%nboxp_f(2,2,iat)
 !!$            nu3=PAWD%paw_nlpspd%nboxp_f(2,3,iat)
-            call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-               &   at%ntypes,at%iatype(iatat),rxyz(1,iatat),radii_cf(1,2),1*fpmult,hx,hy,hz,logrid)
+            call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+               &   at%astruct%ntypes,at%astruct%iatype(iatat),rxyz(1,iatat),radii_cf(1,2),1*fpmult,hx,hy,hz,logrid)
             
 !!$            iseg=PAWD%paw_nlpspd%nseg_p(2*iat-1)+1
 !!$            mseg=PAWD%paw_nlpspd%nseg_p(2*iat)-PAWD%paw_nlpspd%nseg_p(2*iat-1)
@@ -1136,8 +1137,8 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
       iproj=0
 
       iat=0
-      do iatat=1, at%nat
-         if (  at%paw_NofL(at%iatype(iatat)).gt.0  ) then
+      do iatat=1, at%astruct%nat
+         if (  at%paw_NofL(at%astruct%iatype(iatat)).gt.0  ) then
             iat=iat+1
             mproj=0
             do while( jorb<=PAWD%G%ncoeff         .and. PAWD%iorbtolr(jorb)== iat)
@@ -1163,7 +1164,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
                if( .not. PAWD%DistProjApply) then
                   istart_c= istart_c-mproj*(nvctr_c+7*nvctr_f)*ncplx
                   call fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz, kx,ky,kz, startjorb,&
-                     &   istart_c, at%geocode , at, iatat) 
+                     &   istart_c, at%astruct%geocode , at, iatat) 
                   istart_c= istart_c+mproj*(nvctr_c+7*nvctr_f)*ncplx
                endif
             end if
@@ -1266,7 +1267,7 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
      if (iproc == 0) then
         call yaml_map('Reading local potential from file:',trim(band_structure_filename))
         !write(*,'(1x,a)')'Reading local potential from file:'//trim(band_structure_filename)
-        call read_density(trim(band_structure_filename),atoms%geocode,&
+        call read_density(trim(band_structure_filename),atoms%astruct%geocode,&
              n1i,n2i,n3i,nspin,hxh,hyh,hzh,denspot%Vloc_KS)
         if (nspin /= input_spin) stop
      else
@@ -1353,7 +1354,7 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
 
   integer, intent(in) :: iproc, nproc, nspin
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data), intent(inout) :: orbs
   real(wp), dimension(:), pointer :: psi
@@ -1376,7 +1377,7 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
   end if
 
   call parse_cp2k_files(iproc,'gaubasis.dat','gaucoeff.dat',&
-       atoms%nat,atoms%ntypes,orbs,atoms%iatype,rxyz,gbd,gaucoeffs)
+       atoms%astruct%nat,atoms%astruct%ntypes,orbs,atoms%astruct%iatype,rxyz,gbd,gaucoeffs)
 
   call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,gbd,gaucoeffs,psi)
 
@@ -1400,7 +1401,7 @@ subroutine input_wf_memory_history(iproc,orbs,atoms,wfn_history,istep_history,ol
   implicit none
   integer, intent(in) :: iproc,wfn_history
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data), intent(in) :: orbs
   type(old_wavefunction), dimension(0:wfn_history+1), intent(inout) :: oldpsis
@@ -1450,14 +1451,14 @@ subroutine input_wf_memory_history(iproc,orbs,atoms,wfn_history,istep_history,ol
      !if so, copy the SCF wfn, which is in the last position, in the corresponding history place
 
      call old_wavefunction_set(oldpsis(istep_history),&
-          atoms%nat,orbs%norbp*orbs%nspinor,&
+          atoms%astruct%nat,orbs%norbp*orbs%nspinor,&
           oldpsis(wfn_history+1)%Lzd,oldpsis(wfn_history+1)%rxyz,&
           oldpsis(wfn_history+1)%psi)
      !check if it is the first restart
      if (istep_history == 0) then
         do istep=1,wfn_history
                 call old_wavefunction_set(oldpsis(istep),&
-                atoms%nat,orbs%norbp*orbs%nspinor,&
+                atoms%astruct%nat,orbs%norbp*orbs%nspinor,&
                 oldpsis(wfn_history+1)%Lzd,oldpsis(wfn_history+1)%rxyz,&
                 oldpsis(wfn_history+1)%psi)
         end do
@@ -1504,7 +1505,7 @@ if (iproc==0)call yaml_map('Previous SCF wfn copied',.true.)
      istep=modulo(istep_history,wfn_history+1)
      !and save the input wfn in the history
      call old_wavefunction_set(oldpsis(istep),&
-          atoms%nat,orbs%norbp*orbs%nspinor,&
+          atoms%astruct%nat,orbs%norbp*orbs%nspinor,&
           Lzd,rxyz,psi)
   end if
 
@@ -1520,7 +1521,7 @@ subroutine input_wf_memory(iproc, atoms, &
 
   integer, intent(in) :: iproc
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3, atoms%nat), intent(in) :: rxyz, rxyz_old
+  real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz, rxyz_old
   real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old
   type(grid_dimensions), intent(in) :: d, d_old
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -1551,6 +1552,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use module_base
   use module_types
   use module_interfaces, except_this_one => input_memory_linear
+  use module_fragments
   implicit none
 
   ! Calling arguments
@@ -1560,7 +1562,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(DFT_wavefunction),intent(inout):: tmb, tmb_old
   type(DFT_local_fields), intent(inout) :: denspot
   type(input_variables),intent(in):: input
-  real(gp),dimension(3,at%nat),intent(in) :: rxyz_old, rxyz
+  real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz_old, rxyz
   real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
   type(energy_terms),intent(inout):: energs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -1568,9 +1570,10 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(GPU_pointers), intent(inout) :: GPU
 
   ! Local variables
-  integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, ilr_old
+  integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, ilr_old, iiat
   logical:: overlap_calculated
   real(wp), allocatable, dimension(:) :: norm
+  type(fragment_transformation), dimension(:), pointer :: frag_trans
   character(len=*),parameter:: subname='input_memory_linear'
 
   ! Determine size of phi_old and phi
@@ -1579,7 +1582,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   do iorb=1,tmb%orbs%norbp
       iiorb=tmb%orbs%isorb+iorb
       ilr=tmb%orbs%inwhichlocreg(iiorb)
-      ilr_old=tmb_old%orbs%inwhichlocreg(iiorb)
+      !ilr_old=tmb_old%orbs%inwhichlocreg(iiorb)
+      ilr_old=ilr
       !!write(*,*) '###### input_memory_linear: iiorb, ilr', iiorb, ilr
       ndim_old=ndim_old+tmb_old%lzd%llr(ilr_old)%wfd%nvctr_c+7*tmb_old%lzd%llr(ilr_old)%wfd%nvctr_f
       ndim=ndim+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
@@ -1588,7 +1592,21 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   ! Reformat the support functions if we are not using FOE. Otherwise an AO
   ! input guess wil be done below.
   if (input%lin%scf_mode/=LINEAR_FOE) then
-      call reformat_supportfunctions(iproc,at,rxyz_old,ndim_old,rxyz,tmb,tmb_old)
+
+     ! define fragment transformation - should eventually be done automatically...
+     allocate(frag_trans(tmb%orbs%norbp))
+
+     do iorb=1,tmb%orbs%norbp
+         iiat=tmb%orbs%onwhichatom(iorb+tmb%orbs%isorb)
+         frag_trans(iorb)%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
+         frag_trans(iorb)%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
+         frag_trans(iorb)%rot_center(:)=rxyz_old(:,iiat)
+         frag_trans(iorb)%dr(:)=rxyz(:,iiat)-rxyz_old(:,iiat)
+     end do
+
+     call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,tmb_old%psi)
+
+     deallocate(frag_trans)
   end if
   !!write(*,*) 'after reformat_supportfunctions, iproc',iproc
 
@@ -1735,8 +1753,8 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
   real(gp), intent(in) :: hx, hy, hz
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
-  real(gp), dimension(3, atoms%nat), intent(out) :: rxyz_old
+  real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(3, atoms%astruct%nat), intent(out) :: rxyz_old
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(inout) :: orbs
   real(wp), dimension(:), pointer :: psi
@@ -1761,7 +1779,7 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
      !inquire(file=trim(in%dir_output)//'local_potential.cube',exist=potential_from_disk)
      !if (potential_from_disk)  then
      !   call read_potential_from_disk(iproc,nproc,trim(in%dir_output)//'local_potential.cube',&
-     !        atoms%geocode,ngatherarr,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,n3p,in%nspin,hxh,hyh,hzh,rhopot)
+     !        atoms%astruct%geocode,ngatherarr,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,n3p,in%nspin,hxh,hyh,hzh,rhopot)
      !end if
   end if
 END SUBROUTINE input_wf_disk
@@ -1797,10 +1815,10 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    type(GPU_pointers), intent(in) :: GPU
    type(input_variables), intent(in) :: input
    type(symmetry_data), intent(in) :: symObj
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(gaussian_basis), intent(out) :: G !basis for davidson IG
-   type(gaussian_basis),dimension(at%ntypes),optional,intent(in)::proj_G
+   type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
    type(paw_objects),optional,intent(inout)::paw
    real(wp), dimension(:), pointer :: psi,hpsi,psit
    !local variables
@@ -1831,7 +1849,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
    allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
    call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
-   allocate(locrad(at%nat+ndebug),stat=i_stat)
+   allocate(locrad(at%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,locrad,'locrad',subname)
 
    if (iproc == 0) then
@@ -1899,7 +1917,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
              Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzde%Glr%wfd,orbse,GPUe)
         if (iproc == 0) call yaml_comment('GPU data allocated')
      else if (OCLconv) then
-        call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%geocode,&
+        call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%astruct%geocode,&
              nspin_ig,Lzde%Glr%wfd,orbse,GPUe)
         if (iproc == 0) call yaml_comment('GPU data allocated')
         !if (iproc == 0) write(*,*) 'GPU data allocated'
@@ -2172,7 +2190,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !!!  call memocc(i_stat,hpsigau,'hpsigau',subname)
    !!!
    !!!
-   !!!  call wavelets_to_gaussians(at%geocode,orbse%norbp,Glr%d%n1,Glr%d%n2,Glr%d%n3,G,&
+   !!!  call wavelets_to_gaussians(at%astruct%geocode,orbse%norbp,Glr%d%n1,Glr%d%n2,Glr%d%n3,G,&
    !!!       thetaphi,hx,hy,hz,Glr%wfd,hpsi,hpsigau)
    !!!
    !!!  i_all=-product(shape(thetaphi))*kind(thetaphi)
@@ -2183,8 +2201,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !tolerance for comparing the eigenvalues in the case of degeneracies
    etol=accurex/real(orbse%norbu,gp)
 
-   !if (iproc == 0 .and. verbose > 1 .and. at%geocode=='F') write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',energs%ekin,eks
-   if (iproc == 0 .and. verbose > 1 .and. at%geocode=='F') call yaml_map('Expected kinetic energy',eks,fmt='(f19.10)')
+   !if (iproc == 0 .and. verbose > 1 .and. at%astruct%geocode=='F') write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',energs%ekin,eks
+   if (iproc == 0 .and. verbose > 1 .and. at%astruct%geocode=='F') call yaml_map('Expected kinetic energy',eks,fmt='(f19.10)')
    if (iproc==0) call yaml_newline()
 
    call total_energies(energs, 0, iproc)
@@ -2314,7 +2332,7 @@ subroutine deallocate_input_wfs()
 
    if (iproc == 0) then
       !gaussian estimation valid only for Free BC
-      if (at%geocode == 'F') then
+      if (at%astruct%geocode == 'F') then
          call yaml_newline()
          call yaml_open_map('Accuracy estimation for this run')
          call yaml_map('Energy',accurex,fmt='(1pe9.2)')
@@ -2348,10 +2366,12 @@ END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-     wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
+     wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
+  use module_fragments
+  use dynamic_memory
   use yaml_output
   use gaussians, only:gaussian_basis
   implicit none
@@ -2361,7 +2381,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(GPU_pointers), intent(inout) :: GPU
   real(gp), intent(in) :: hx_old,hy_old,hz_old
   type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
+  real(gp), dimension(3, atoms%astruct%nat), target, intent(in) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
   type(DFT_wavefunction), intent(inout) :: KSwfn,tmb,tmb_old !<input wavefunctions
   real(gp), dimension(*), intent(out) :: denspot0 !< Initial density / potential, if needed
@@ -2374,21 +2394,22 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   !type(gaussian_basis), intent(inout) :: gbd
   !real(wp), dimension(:,:), pointer :: gaucoeffs
   type(grid_dimensions), intent(in) :: d_old
-  real(gp), dimension(3, atoms%nat), intent(inout) :: rxyz_old
+  real(gp), dimension(3, atoms%astruct%nat), intent(inout) :: rxyz_old
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
+  type(system_fragment), dimension(in%frag%nfrag_ref), intent(inout) :: ref_frags
   !local variables
   character(len = *), parameter :: subname = "input_wf"
-  integer :: i_stat, nspin, i_all
+  integer :: i_stat, nspin, i_all, ifrag, iorb, itmb, jtmb, ierr
   type(gaussian_basis) :: Gvirt
   real(wp), allocatable, dimension(:) :: norm
   !wvl+PAW objects
   integer :: iatyp
-  type(gaussian_basis),dimension(atoms%ntypes)::proj_G
+  type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
   type(paw_objects)::paw
   logical :: overlap_calculated
 
   !nullify paw objects:
-  do iatyp=1,atoms%ntypes
+  do iatyp=1,atoms%astruct%ntypes
   call nullify_gaussian_basis(proj_G(iatyp))
   end do
   paw%usepaw=0 !Not using PAW
@@ -2501,7 +2522,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call input_wf_diag(iproc,nproc, atoms,denspot,&
           KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,energs,rxyz,&
           nlpspd,proj,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
-          Gvirt,nspin,atoms%sym,GPU,in,.false.)
+          Gvirt,nspin,atoms%astruct%sym,GPU,in,.false.)
 
   case(INPUT_PSI_MEMORY_WVL)
      !restart from previously calculated wavefunctions, in memory
@@ -2564,7 +2585,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call read_gaussian_information(KSwfn%orbs,KSwfn%gbd,KSwfn%gaucoeffs,&
           trim(in%dir_output)//'wavefunctions.gau')
      !associate the new positions, provided that the atom number is good
-     if (KSwfn%gbd%nat == atoms%nat) then
+     if (KSwfn%gbd%nat == atoms%astruct%nat) then
         KSwfn%gbd%rxyz=>rxyz
      else
         !        if (iproc == 0) then
@@ -2610,27 +2631,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !    stop 'INPUT_PSI_DISK_LINEAR not allowed with LINEAR_FOE!'
      !end if
 
-
-     ! do some extra initialization if this is a fragment calculation
-     if (in%lin%fragment_calculation) then
-        ! want to initialize array of system_fragments for both reference and current system, including fragment_basis
-        ! this requires information from input.frag, rxyz and atom types etc.
-        ! for reference fragments, may have multiple directories and need to call readmywaves for each fragment
-        ! BUT rxyz_old and rxyz won't have same number of atoms, don't necessarily want to reformat yet...
-        ! actually read rxyz from fragmenti.xyz - it's possible one folder of tmbs etc will contain more than one fragment
-        ! so this is the most general method
-        ! bigger question of where to initialize orbs/lzd... - lzd_init_llr and initialize_linear_from file could maybe be better unified?!
-        ! also need to call init_fragment for both reference and system fragments...
-        ! call init_fragment(frag,input%frag%frag_info(i,1),input%frag%frag_info(i,2),NTYPES,rxyz,&
-        !                    atomnames,iatype)
-
-     end if
-
      ! By reading the basis functions and coefficients from file
-     call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
-          & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
-          & atoms,rxyz_old,rxyz,tmb%psi,tmb%coeff)
- 
+     !call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
+     !     & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
+     !     & atoms,rxyz_old,rxyz,tmb%psi,tmb%coeff)
+
+     call readmywaves_linear_new(iproc,trim(in%dir_output),'minBasis',input_wf_format,&
+          atoms,tmb,rxyz_old,rxyz,ref_frags,in%frag,in%lin%fragment_calculation)
+
      ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
      !nullify(tmb%psit_c)                                                                
      !nullify(tmb%psit_f)  
@@ -2738,7 +2746,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !the same with OpenCL, but they cannot exist at same time
      if (OCLconv) then
         call allocate_data_OCL(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
-             atoms%geocode,&
+             atoms%astruct%geocode,&
              in%nspin,KSwfn%Lzd%Glr%wfd,KSwfn%orbs,GPU)
         if (iproc == 0) call yaml_comment('GPU data allocated')
         !if (iproc == 0) write(*,*)'GPU data allocated'
@@ -2765,18 +2773,24 @@ END SUBROUTINE input_wf
 !!                              otherwise switch to normal input guess
 !!    INPUT_PSI_DISK_LINEAR : psi on memory (linear version)
 !!    INPUT_PSI_LCAO          : Use normal input guess (Linear Combination of Atomic Orbitals)
-subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc, nproc)
+subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, nfrag, frag_dir, orbs, lorbs, iproc, nproc, ref_frags)
   use module_types
   use yaml_output
+  use module_fragments
+  use module_interfaces
   implicit none
   integer, intent(out) :: input_wf_format         !< (out) Format of WF
   integer, intent(inout) :: inputpsi              !< (in) indicate how check input psi, (out) give how to build psi
   integer, intent(in) :: iproc                    !< (in)  id proc
   integer, intent(in) :: nproc                    !< (in)  #proc
+  integer, intent(in) :: nfrag                    !< number of fragment directories which need checking
+  type(system_fragment), dimension(nfrag), intent(in) :: ref_frags  !< number of orbitals for each fragment
   character(len = *), intent(in) :: dir_output
+  character(len=100), dimension(nfrag) :: frag_dir !< label for fragment subdirectories (blank if not a fragment calculation)
   type(orbitals_data), intent(in) :: orbs, lorbs
 
   logical :: onefile
+  integer :: ifrag
 
   input_wf_format=WF_FORMAT_NONE !default value
   !for the inputPsi == WF_FORMAT_NONE case, check 
@@ -2802,21 +2816,26 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
   end if
   ! Test if the files are there for initialization via reading files
   if (inputpsi == INPUT_PSI_DISK_LINEAR) then
-     ! Test ETSF file.
-     inquire(file=trim(dir_output)//"minBasis.etsf",exist=onefile)
-     if (onefile) then
-        input_wf_format = WF_FORMAT_ETSF
-     else
-        call verify_file_presence(trim(dir_output)//"minBasis",lorbs,input_wf_format,nproc)
-     end if
-     if (input_wf_format == WF_FORMAT_NONE) then
-        call yaml_warning('Missing wavefunction files, switch to normal input guess')
-        !if (iproc==0) write(*,*)''
-        !if (iproc==0) write(*,*)'*********************************************************************'
-        !if (iproc==0) write(*,*)'* WARNING: Missing wavefunction files, switch to normal input guess *'
-        !if (iproc==0) write(*,*)'*********************************************************************'
-        !if (iproc==0) write(*,*)''
-        inputpsi=INPUT_PSI_LINEAR_AO
-     end if
+     do ifrag=1,nfrag
+        ! Test ETSF file.
+        inquire(file=trim(dir_output)//"minBasis.etsf",exist=onefile)
+        if (onefile) then
+           input_wf_format = WF_FORMAT_ETSF
+        else
+           call verify_file_presence(trim(dir_output)//trim(frag_dir(ifrag))//"minBasis",lorbs,input_wf_format,&
+                nproc,ref_frags(ifrag)%fbasis%forbs%norb)
+        end if
+        if (input_wf_format == WF_FORMAT_NONE) then
+           call yaml_warning('Missing wavefunction files, switch to normal input guess')
+           !if (iproc==0) write(*,*)''
+           !if (iproc==0) write(*,*)'*********************************************************************'
+           !if (iproc==0) write(*,*)'* WARNING: Missing wavefunction files, switch to normal input guess *'
+           !if (iproc==0) write(*,*)'*********************************************************************'
+           !if (iproc==0) write(*,*)''
+           inputpsi=INPUT_PSI_LINEAR_AO
+           ! if one directoy doesn't exist, exit
+           exit
+        end if
+     end do
   end if
 END SUBROUTINE input_check_psi_id

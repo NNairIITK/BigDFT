@@ -1,4 +1,5 @@
  <BigDFT> log of the run will be written in logfile: ./log-write_neut.yaml
+ <BigDFT> Logfile existing, renamed into: ./logfiles/log-write_neut.12:35:24.778.yaml
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
     | Processes from 0 to 5 treat 14 orbitals. |

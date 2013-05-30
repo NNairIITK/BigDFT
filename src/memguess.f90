@@ -17,6 +17,7 @@ program memguess
    use module_interfaces
    use module_xc
    use m_ab6_symmetry
+   use module_fragments
 
    implicit none
    character(len=*), parameter :: subname='memguess'
@@ -43,13 +44,16 @@ program memguess
    real(gp), dimension(3) :: shift
    logical, dimension(:,:,:), allocatable :: logrid
    integer, dimension(:,:), allocatable :: norbsc_arr
-   real(gp), dimension(:,:), pointer :: rxyz, fxyz
+   real(gp), dimension(:,:), pointer :: fxyz
    real(wp), dimension(:), allocatable :: rhoexpo,psi
    real(wp), dimension(:,:,:,:), pointer :: rhocoeff
    real(kind=8), dimension(:,:), allocatable :: radii_cf
    logical, dimension(:,:,:), allocatable :: scorb
    real(kind=8), dimension(:), allocatable :: locrad
    real(gp), dimension(:), pointer :: gbd_occ
+   type(system_fragment), dimension(:), pointer :: ref_frags
+   character(len=3) :: in_name !lr408
+   integer :: i
    !! By Ali
    integer :: ierror
 
@@ -259,11 +263,11 @@ program memguess
    !call print_logo()
 
    if (convert) then
-      atoms%geocode = "P"
+      atoms%astruct%geocode = "P"
       write(*,*) "Read density file..."
-      call read_density(trim(fileFrom), atoms%geocode, Lzd%Glr%d%n1i, Lzd%Glr%d%n2i, Lzd%Glr%d%n3i, &
-         &   nspin, hx, hy, hz, rhocoeff, atoms%nat, rxyz, atoms%iatype, atoms%nzatom)
-      atoms%ntypes = size(atoms%nzatom) - ndebug
+      call read_density(trim(fileFrom), atoms%astruct%geocode, Lzd%Glr%d%n1i, Lzd%Glr%d%n2i, Lzd%Glr%d%n3i, &
+         &   nspin, hx, hy, hz, rhocoeff, atoms%astruct%nat, atoms%astruct%rxyz, atoms%astruct%iatype, atoms%nzatom)
+      atoms%astruct%ntypes = size(atoms%nzatom) - ndebug
       write(*,*) "Write new density file..."
       dpbox%ndims(1)=Lzd%Glr%d%n1i
       dpbox%ndims(2)=Lzd%Glr%d%n2i
@@ -274,36 +278,38 @@ program memguess
       allocate(dpbox%ngatherarr(0:0,2+ndebug),stat=i_stat)
       call memocc(i_stat,dpbox%ngatherarr,'ngatherarr',subname)
 
-      call plot_density(0,1,trim(fileTo),atoms,rxyz,dpbox,nspin,rhocoeff)
+      call plot_density(0,1,trim(fileTo),atoms,atoms%astruct%rxyz,dpbox,nspin,rhocoeff)
       write(*,*) "Done"
       stop
    end if
    if (convertpos) then
-      call read_atomic_file(trim(fileFrom),0,atoms,rxyz,i_stat,fcomment,energy,fxyz)
+      call read_atomic_file(trim(fileFrom),0,atoms%astruct,i_stat,fcomment,energy,fxyz)
+      call allocate_atoms_nat(atoms, subname)
+      call allocate_atoms_ntypes(atoms, subname)
       if (i_stat /=0) stop 'error on input file parsing' 
       !find the format of the output file
       if (index(fileTo,'.xyz') > 0) then
          irad=index(fileTo,'.xyz')
-         atoms%format='xyz  '
+         atoms%astruct%inputfile_format='xyz  '
       else if (index(fileTo,'.ascii') > 0) then
          irad=index(fileTo,'.ascii')
-         atoms%format='ascii'
+         atoms%astruct%inputfile_format='ascii'
       else if (index(fileTo,'.yaml') > 0) then
          irad=index(fileTo,'.yaml')
-         atoms%format='yaml '
+         atoms%astruct%inputfile_format='yaml '
       else
          irad = len(trim(fileTo)) + 1
       end if
       
       if (associated(fxyz)) then
-         call write_atomic_file(fileTo(1:irad-1),energy,rxyz,atoms,&
+         call write_atomic_file(fileTo(1:irad-1),energy,atoms%astruct%rxyz,atoms,&
               trim(fcomment) // ' (converted from '//trim(fileFrom)//")", fxyz)
 
          i_all=-product(shape(fxyz))*kind(fxyz)
          deallocate(fxyz,stat=i_stat)
          call memocc(i_stat,i_all,'fxyz',subname)
       else
-         call write_atomic_file(fileTo(1:irad-1),energy,rxyz,atoms,&
+         call write_atomic_file(fileTo(1:irad-1),energy,atoms%astruct%rxyz,atoms,&
               trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
       end if
       stop
@@ -318,7 +324,7 @@ program memguess
    else
       posinp=trim(radical)
    end if
-   call bigdft_set_input(radical, posinp,rxyz,in, atoms)
+   call bigdft_set_input(radical,posinp,in,atoms)
    !initialize memory counting
    !call memocc(0,0,'count','start')
 
@@ -337,20 +343,20 @@ program memguess
    call system_clock(ncount0,ncount_rate,ncount_max)
 
    ! store PSP parameters
-   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
+   allocate(radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
 
    call system_properties(0,nproc,in,atoms,orbs,radii_cf)
 
    if (optimise) then
-      if (atoms%geocode =='F') then
-         call optimise_volume(atoms,in%crmult,in%frmult,in%hx,in%hy,in%hz,rxyz,radii_cf)
+      if (atoms%astruct%geocode =='F') then
+         call optimise_volume(atoms,in%crmult,in%frmult,in%hx,in%hy,in%hz,atoms%astruct%rxyz,radii_cf)
       else
-         call shift_periodic_directions(atoms,rxyz,radii_cf)
+         call shift_periodic_directions(atoms,atoms%astruct%rxyz,radii_cf)
       end if
       write(*,'(1x,a)')'Writing optimised positions in file posopt.[xyz,ascii]...'
       write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
-      call write_atomic_file('posopt',0.d0,rxyz,atoms,trim(comment))
+      call write_atomic_file('posopt',0.d0,atoms%astruct%rxyz,atoms,trim(comment))
       !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
    end if
 
@@ -362,7 +368,7 @@ program memguess
       call memocc(i_stat,scorb,'scorb',subname)
       allocate(norbsc_arr(atoms%natsc+1,in%nspin+ndebug),stat=i_stat)
       call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
-      allocate(locrad(atoms%nat+ndebug),stat=i_stat)
+      allocate(locrad(atoms%astruct%nat+ndebug),stat=i_stat)
       call memocc(i_stat,locrad,'locrad',subname)
 
       !calculate the inputguess orbitals
@@ -426,11 +432,11 @@ program memguess
    hy=in%hy
    hz=in%hz
 
-   call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Lzd%Glr,shift)
+   call system_size(0,atoms,atoms%astruct%rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Lzd%Glr,shift)
 
    ! Build and print the communicator scheme.
    call createWavefunctionsDescriptors(0,hx,hy,hz,&
-      &   atoms,rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr, output_denspot = (output_grid > 0))
+      &   atoms,atoms%astruct%rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr, output_denspot = (output_grid > 0))
    call orbitals_communicators(0,nproc,Lzd%Glr,orbs,comms)  
 
    if (exportwf) then
@@ -438,7 +444,7 @@ program memguess
       allocate(psi((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor+ndebug),stat=i_stat)
       call memocc(i_stat,psi,'psi',subname)
 
-      ! Optionaly compute iorbp from arguments in case of ETSF.
+      ! Optionally compute iorbp from arguments in case of ETSF.
       if (export_wf_ikpt < 1 .or. export_wf_ikpt > orbs%nkpts) stop "Wrong k-point"
       if (export_wf_ispin < 1 .or. export_wf_ispin > orbs%nspin) stop "Wrong spin"
       if ((export_wf_ispin == 1 .and. &
@@ -447,11 +453,18 @@ program memguess
            & (export_wf_iband < 1 .or. export_wf_iband > orbs%norbd))) stop "Wrong orbital"
       iorbp = (export_wf_ikpt - 1) * orbs%norb + (export_wf_ispin - 1) * orbs%norbu + export_wf_iband
 
-      call take_psi_from_file(filename_wfn,hx,hy,hz,Lzd%Glr, &
-           & atoms,rxyz,orbs,psi,iorbp,export_wf_ispinor)
+      ! ref_frags to be allocated here
+      i = index(filename_wfn, "/",back=.true.)+1
+      read(filename_wfn(i:i+3),*) in_name ! lr408
+      if (in_name == 'min') then
+         stop 'Ref fragment not initialized, linear reading currently nonfunctional, to be fixed'
+      end if
+
+      call take_psi_from_file(filename_wfn,in%frag,hx,hy,hz,Lzd%Glr, &
+           & atoms,atoms%astruct%rxyz,orbs,psi,iorbp,export_wf_ispinor,ref_frags)
       call filename_of_iorb(.false.,"wavefunction",orbs,iorbp, &
            & export_wf_ispinor,filename_wfn,iorb_out)
-      call plot_wf(filename_wfn,1,atoms,1.0_wp,Lzd%Glr,hx,hy,hz,rxyz, &
+      call plot_wf(filename_wfn,1,atoms,1.0_wp,Lzd%Glr,hx,hy,hz,atoms%astruct%rxyz, &
            & psi((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1))
 
       i_all=-product(shape(psi))*kind(psi)
@@ -487,7 +500,7 @@ program memguess
          orbstst%spinsgn(iorb)=1.0_gp
       end do
 
-      call check_linear_and_create_Lzd(0,1,in%linear,Lzd,atoms,orbstst,in%nspin,rxyz)
+      call check_linear_and_create_Lzd(0,1,in%linear,Lzd,atoms,orbstst,in%nspin,atoms%astruct%rxyz)
 
       !for the given processor (this is only the cubic strategy)
       orbstst%npsidim_orbs=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbstst%norbp*orbstst%nspinor
@@ -496,7 +509,7 @@ program memguess
 
       call compare_cpu_gpu_hamiltonian(0,1,in%matacc,atoms,&
            orbstst,nspin,in%ncong,in%ixc,&
-           Lzd,hx,hy,hz,rxyz,ntimes)
+           Lzd,hx,hy,hz,atoms%astruct%rxyz,ntimes)
 
       call deallocate_orbs(orbstst,subname)
 
@@ -510,27 +523,27 @@ program memguess
    call deallocate_comms(comms,subname)
 
    ! determine localization region for all projectors, but do not yet fill the descriptor arrays
-   allocate(nlpspd%plr(atoms%nat))
-!!$   allocate(nlpspd%nseg_p(0:2*atoms%nat+ndebug),stat=i_stat)
+   allocate(nlpspd%plr(atoms%astruct%nat))
+!!$   allocate(nlpspd%nseg_p(0:2*atoms%astruct%nat+ndebug),stat=i_stat)
 !!$   call memocc(i_stat,nlpspd%nseg_p,'nseg_p',subname)
-!!$   allocate(nlpspd%nvctr_p(0:2*atoms%nat+ndebug),stat=i_stat)
+!!$   allocate(nlpspd%nvctr_p(0:2*atoms%astruct%nat+ndebug),stat=i_stat)
 !!$   call memocc(i_stat,nlpspd%nvctr_p,'nvctr_p',subname)
-!!$   allocate(nlpspd%nboxp_c(2,3,atoms%nat+ndebug),stat=i_stat)
+!!$   allocate(nlpspd%nboxp_c(2,3,atoms%astruct%nat+ndebug),stat=i_stat)
 !!$   call memocc(i_stat,nlpspd%nboxp_c,'nboxp_c',subname)
-!!$   allocate(nlpspd%nboxp_f(2,3,atoms%nat+ndebug),stat=i_stat)
+!!$   allocate(nlpspd%nboxp_f(2,3,atoms%astruct%nat+ndebug),stat=i_stat)
 !!$   call memocc(i_stat,nlpspd%nboxp_f,'nboxp_f',subname)
 
    allocate(logrid(0:Lzd%Glr%d%n1,0:Lzd%Glr%d%n2,0:Lzd%Glr%d%n3+ndebug),stat=i_stat)
    call memocc(i_stat,logrid,'logrid',subname)
 
    call localize_projectors(0,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,hx,hy,hz,&
-      &   in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,orbs,nlpspd)
+      &   in%frmult,in%frmult,atoms%astruct%rxyz,radii_cf,logrid,atoms,orbs,nlpspd)
    deallocate(nlpspd%plr)
    !allocations for arrays holding the data descriptors
 !!$   !just for modularity
-!!$   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
+!!$   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*atoms%astruct%nat)+ndebug),stat=i_stat)
 !!$   call memocc(i_stat,nlpspd%keyg_p,'nlpspd%keyg_p',subname)
-!!$   allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
+!!$   allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*atoms%astruct%nat)+ndebug),stat=i_stat)
 !!$   call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
 
    if (atwf) then
@@ -539,7 +552,7 @@ program memguess
       !ng=31
       !plot the wavefunctions for the pseudo atom
       nullify(G%rxyz)
-      call gaussian_pswf_basis(ng,.false.,0,in%nspin,atoms,rxyz,G,gbd_occ)
+      call gaussian_pswf_basis(ng,.false.,0,in%nspin,atoms,atoms%astruct%rxyz,G,gbd_occ)
       !for the moment multiply the number of coefficients for each channel
       allocate(rhocoeff((ng*(ng+1))/2,4,1,1+ndebug),stat=i_stat)
       call memocc(i_stat,rhocoeff,'rhocoeff',subname)
@@ -559,10 +572,10 @@ program memguess
 
       !!$  !plot the wavefunctions for the AE atom
       !!$  !not possible, the code should recognize the AE eleconf
-      !!$  call razero(35,atoms%psppar(0,0,atoms%iatype(1)))
-      !!$  atoms%psppar(0,0,atoms%iatype(1))=0.01_gp
+      !!$  call razero(35,atoms%psppar(0,0,atoms%astruct%iatype(1)))
+      !!$  atoms%psppar(0,0,atoms%astruct%iatype(1))=0.01_gp
       !!$  nullify(G%rxyz)
-      !!$  call gaussian_pswf_basis(ng,.false.,0,in%nspin,atoms,rxyz,G,gbd_occ)
+      !!$  call gaussian_pswf_basis(ng,.false.,0,in%nspin,atoms,atoms%astruct%rxyz,G,gbd_occ)
       !!$  !for the moment multiply the number of coefficients for each channel
       !!$  allocate(rhocoeff((ng*(ng+1))/2,4+ndebug),stat=i_stat)
       !!$  call memocc(i_stat,rhocoeff,'rhocoeff',subname)
@@ -596,7 +609,7 @@ program memguess
    !call deallocate_proj_descr(nlpspd,subname)
 
    call MemoryEstimator(nproc,in%idsx,Lzd%Glr,&
-        atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
+        atoms%astruct%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
         in%nspin,in%itrpmax,in%iscf,peakmem)
 
    !add the comparison between cuda hamiltonian and normal one if it is the case
@@ -610,9 +623,6 @@ program memguess
    i_all=-product(shape(radii_cf))*kind(radii_cf)
    deallocate(radii_cf,stat=i_stat)
    call memocc(i_stat,i_all,'radii_cf',subname)
-   i_all=-product(shape(rxyz))*kind(rxyz)
-   deallocate(rxyz,stat=i_stat)
-   call memocc(i_stat,i_all,'rxyz',subname)
 
    ! De-allocations
    call deallocate_orbs(orbs,subname)
@@ -647,8 +657,8 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
    implicit none
    type(atoms_data), intent(inout) :: atoms
    real(gp), intent(in) :: crmult,frmult,hx,hy,hz
-   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
-   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
    !local variables
    character(len=*), parameter :: subname='optimise_volume'
    integer :: iat,i_all,i_stat,it,i
@@ -658,11 +668,11 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
    real(gp), dimension(3,3) :: urot
    real(gp), dimension(:,:), allocatable :: txyz
 
-   allocate(txyz(3,atoms%nat+ndebug),stat=i_stat)
+   allocate(txyz(3,atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,txyz,'txyz',subname)
    call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
    !call volume(nat,rxyz,vol)
-   vol=atoms%alat1*atoms%alat2*atoms%alat3
+   vol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3)
    write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
 
    it=0
@@ -703,7 +713,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
       if (urot(3,3) <= 0._gp) urot(:,3)=-urot(:,3)
 
       ! apply the rotation to all atomic positions! 
-      do iat=1,atoms%nat
+      do iat=1,atoms%astruct%nat
          x=rxyz(1,iat) 
          y=rxyz(2,iat) 
          z=rxyz(3,iat)
@@ -712,16 +722,16 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
       enddo
 
       call system_size(1,atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
-      tvol=atoms%alat1*atoms%alat2*atoms%alat3
+      tvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3)
       !call volume(nat,txyz,tvol)
       if (tvol < vol) then
          write(*,'(1x,a,1pe16.8,1x,i0,1x,f15.5)')'Found new best volume: ',tvol,it,diag
          rxyz(:,:)=txyz(:,:)
          vol=tvol
-         dmax=max(atoms%alat1,atoms%alat2,atoms%alat3)
+         dmax=max(atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),atoms%astruct%cell_dim(3))
          ! if box longest along x switch x and z
-         if (atoms%alat1 == dmax)  then
-            do  iat=1,atoms%nat
+         if (atoms%astruct%cell_dim(1) == dmax)  then
+            do  iat=1,atoms%astruct%nat
                tx=rxyz(1,iat)
                tz=rxyz(3,iat)
 
@@ -729,8 +739,8 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
                rxyz(3,iat)=tx
             enddo
             ! if box longest along y switch y and z
-         else if (atoms%alat2 == dmax .and. atoms%alat1 /= dmax)  then
-            do  iat=1,atoms%nat
+         else if (atoms%astruct%cell_dim(2) == dmax .and. atoms%astruct%cell_dim(1) /= dmax)  then
+            do  iat=1,atoms%astruct%nat
                ty=rxyz(2,iat) 
                tz=rxyz(3,iat)
 
@@ -755,8 +765,8 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
    use module_types
    implicit none
    type(atoms_data), intent(inout) :: at
-   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
-   real(gp), dimension(3,at%nat), intent(inout) :: rxyz
+   real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+   real(gp), dimension(3,at%astruct%nat), intent(inout) :: rxyz
    !local variables
    character(len=*), parameter :: subname='shift_periodic_directions'
    integer :: iat,i_all,i_stat,i,ityp
@@ -766,28 +776,28 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
    !calculate maximum shift between these values
    !this is taken as five times the coarse radius around atoms
    maxsh=0.0_gp
-   do ityp=1,at%ntypes
+   do ityp=1,at%astruct%ntypes
       maxsh=max(maxsh,5_gp*radii_cf(ityp,1))
    end do
 
-   allocate(txyz(3,at%nat+ndebug),stat=i_stat)
+   allocate(txyz(3,at%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,txyz,'txyz',subname)
 
-   call calc_vol(at%geocode,at%nat,rxyz,vol)
+   call calc_vol(at%astruct%geocode,at%astruct%nat,rxyz,vol)
 
-   if (at%geocode /= 'F') then
+   if (at%astruct%geocode /= 'F') then
       loop_shiftx: do i=1,5000 ! loop over all trial rotations
          ! create a random orthogonal (rotation) matrix
          call random_number(shiftx)
 
          !apply the shift to all atomic positions taking into account the modulo operation
-         do iat=1,at%nat
-            txyz(1,iat)=modulo(rxyz(1,iat)+shiftx*maxsh,at%alat1)
+         do iat=1,at%astruct%nat
+            txyz(1,iat)=modulo(rxyz(1,iat)+shiftx*maxsh,at%astruct%cell_dim(1))
             txyz(2,iat)=rxyz(2,iat)
             txyz(3,iat)=rxyz(3,iat)
          end do
 
-         call calc_vol(at%geocode,at%nat,txyz,tvol)
+         call calc_vol(at%astruct%geocode,at%astruct%nat,txyz,tvol)
          !print *,'vol',tvol
 
          if (tvol < vol) then
@@ -798,19 +808,19 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
       end do loop_shiftx
    end if
 
-   if (at%geocode == 'P') then
+   if (at%astruct%geocode == 'P') then
       loop_shifty: do i=1,5000 ! loop over all trial rotations
          ! create a random orthogonal (rotation) matrix
          call random_number(shifty)
 
          !apply the shift to all atomic positions taking into account the modulo operation
-         do iat=1,at%nat
+         do iat=1,at%astruct%nat
             txyz(1,iat)=rxyz(1,iat)
-            txyz(2,iat)=modulo(rxyz(2,iat)+shifty*maxsh,at%alat2)
+            txyz(2,iat)=modulo(rxyz(2,iat)+shifty*maxsh,at%astruct%cell_dim(2))
             txyz(3,iat)=rxyz(3,iat)
          end do
 
-         call calc_vol(at%geocode,at%nat,txyz,tvol)
+         call calc_vol(at%astruct%geocode,at%astruct%nat,txyz,tvol)
 
          if (tvol < vol) then
             write(*,'(1x,a,1pe16.8,1x,i0,1x,f15.5)')'Found new best volume: ',tvol
@@ -820,19 +830,19 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
       end do loop_shifty
    end if
 
-   if (at%geocode /= 'F') then
+   if (at%astruct%geocode /= 'F') then
       loop_shiftz: do i=1,5000 ! loop over all trial rotations
          ! create a random orthogonal (rotation) matrix
          call random_number(shiftz)
 
          !apply the shift to all atomic positions taking into account the modulo operation
-         do iat=1,at%nat
+         do iat=1,at%astruct%nat
             txyz(1,iat)=rxyz(1,iat)
             txyz(2,iat)=rxyz(2,iat)
-            txyz(3,iat)=modulo(rxyz(3,iat)+shiftz*maxsh,at%alat3)
+            txyz(3,iat)=modulo(rxyz(3,iat)+shiftz*maxsh,at%astruct%cell_dim(3))
          end do
 
-         call calc_vol(at%geocode,at%nat,txyz,tvol)
+         call calc_vol(at%astruct%geocode,at%astruct%nat,txyz,tvol)
 
          if (tvol < vol) then
             write(*,'(1x,a,1pe16.8,1x,i0,1x,f15.5)')'Found new best volume: ',tvol
@@ -906,7 +916,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(inout) :: orbs
    type(local_zone_descriptors), intent(inout) :: Lzd
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    !local variables
    character(len=*), parameter :: subname='compare_cpu_gpu_hamiltonian'
    logical :: rsflag
@@ -959,7 +969,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    call razero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,hpsi)
 
    !convert the gaussians in wavelets
-   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,Lzd%Glr%d,&
+   call gaussians_to_wavelets(iproc,nproc,at%astruct%geocode,orbs,Lzd%Glr%d,&
            hx,hy,hz,Lzd%Glr%wfd,G,gaucoeffs,psi)
 
    i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
@@ -987,7 +997,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
 
    !normally nproc=1
    do jproc=0,nproc-1
-      call PS_dim4allocation(at%geocode,'D',jproc,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,xc_isgga(),(ixc/=13),&
+      call PS_dim4allocation(at%astruct%geocode,'D',jproc,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,xc_isgga(),(ixc/=13),&
          &   n3d,n3p,n3pi,i3xcsh,i3s)
       nscatterarr(jproc,1)=n3d
       nscatterarr(jproc,2)=n3p
@@ -1349,10 +1359,11 @@ END SUBROUTINE compare_data_and_gflops
 
 
 !> Extract the compressed wavefunction from the given file 
-subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispinor)
+subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispinor,ref_frags)
    use module_base
    use module_types
    use module_interfaces
+   use module_fragments
    implicit none
    integer, intent(inout) :: iorbp, ispinor
    real(gp), intent(in) :: hx,hy,hz
@@ -1360,8 +1371,10 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
    type(locreg_descriptors), intent(in) :: lr
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   type(fragmentInputParameters), intent(in) :: in_frag
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(out) :: psi
+   type(system_fragment), dimension(in_frag%nfrag_ref), intent(inout) :: ref_frags
    !local variables
    character(len=*), parameter :: subname='take_psi_form_file'
    logical :: perx,pery,perz
@@ -1382,15 +1395,15 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
    real(wp), allocatable, dimension(:) :: lpsi
    type(orbitals_data) :: lin_orbs
 
-   allocate(rxyz_file(at%nat,3+ndebug),stat=i_stat)
+   allocate(rxyz_file(at%astruct%nat,3+ndebug),stat=i_stat)
    call memocc(i_stat,rxyz_file,'rxyz_file',subname)
 
    iformat = wave_format_from_filename(0, filename)
    if (iformat == WF_FORMAT_PLAIN .or. iformat == WF_FORMAT_BINARY) then
       !conditions for periodicity in the three directions
-      perx=(at%geocode /= 'F')
-      pery=(at%geocode == 'P')
-      perz=(at%geocode /= 'F')
+      perx=(at%astruct%geocode /= 'F')
+      pery=(at%astruct%geocode == 'P')
+      perz=(at%astruct%geocode /= 'F')
 
       !buffers related to periodicity
       !WARNING: the boundary conditions are not assumed to change between new and old
@@ -1437,11 +1450,12 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
 
          i = index(filename, "-",back=.true.)+1
          read(filename(1:i),*) filename_start
-         filename_start = trim(filename_start)//"/minBasis"
 
          print*,'Initialize linear'
-         call initialize_linear_from_file(0,1,filename_start,WF_FORMAT_BINARY,&
-              Lzd,lin_orbs,at,rxyz,orblist)
+         call initialize_linear_from_file(0,1,in_frag,at%astruct,rxyz,lin_orbs,Lzd,&
+              WF_FORMAT_BINARY,filename_start//"/","minBasis",ref_frags,orblist)
+
+         filename_start = trim(filename_start)//"/minBasis"
 
          allocate(lpsi(1:Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f))
       end if

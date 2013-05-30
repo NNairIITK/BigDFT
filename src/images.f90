@@ -305,13 +305,13 @@ contains
     nullify(img%vel)
 
     call run_objects_init_container(img%run, inputs, atoms, rst)
-    call init_global_output(img%outs, atoms%nat)
+    call init_global_output(img%outs, atoms%astruct%nat)
 
     write(img%log_file, "(A,A)") trim(inputs%writing_directory), &
          & 'log-'//trim(inputs%run_name)//'.yaml'           
 
     img%algorithm = algorithm
-    ndim = 3 * atoms%nat
+    ndim = 3 * atoms%astruct%nat
     if (algorithm <= 3) then
        allocate(img%old_grad(ndim))
        call to_zero(ndim, img%old_grad(1))
@@ -533,7 +533,8 @@ contains
     ! Per image treatment.
     do i = N_in, N_fin
        call image_update_pos(imgs(i), iteration, &
-            & imgs(max(1,i-1))%run%rxyz, imgs(min(i+1,size(imgs)))%run%rxyz, &
+            & imgs(max(1,i-1))%run%atoms%astruct%rxyz, &
+            & imgs(min(i+1,size(imgs)))%run%atoms%astruct%rxyz, &
             & imgs(max(1,i-1))%outs%energy, imgs(min(i+1,size(imgs)))%outs%energy, &
             & k(i), k(i+1), (i == 1 .or. i == size(imgs)), (i == climbing_img), neb)
     end do
@@ -581,10 +582,10 @@ contains
        WRITE(unit,*) "Replica: ", i
        WRITE(unit,fmt3) imgs(i)%outs%energy
 
-       DO j = 1, imgs(i)%run%atoms%nat
-          WRITE(unit,fmt1) imgs(i)%run%rxyz(1,j),     & 
-               imgs(i)%run%rxyz(2,j), &
-               imgs(i)%run%rxyz(3,j), &
+       DO j = 1, imgs(i)%run%atoms%astruct%nat
+          WRITE(unit,fmt1) imgs(i)%run%atoms%astruct%rxyz(1,j),     & 
+               imgs(i)%run%atoms%astruct%rxyz(2,j), &
+               imgs(i)%run%atoms%astruct%rxyz(3,j), &
                int(fix_atom(1,j)),     &
                int(fix_atom(2,j)), &
                int(fix_atom(3,j)), &
@@ -631,7 +632,7 @@ contains
     INTEGER, PARAMETER :: max_i = 1000 
     INTEGER, PARAMETER :: unit = 10
 
-    ndim = imgs(1)%run%atoms%nat * 3
+    ndim = imgs(1)%run%atoms%astruct%nat * 3
     ALLOCATE( d_R( ndim ) )
 
     ALLOCATE( a( size(imgs) - 1 ) )
@@ -642,9 +643,10 @@ contains
 
     reaction_coordinate(1) = 0.D0
     DO i = 1, ( size(imgs) - 1 )
-       call vcopy(ndim, imgs(i + 1)%run%rxyz(1,1), 1, d_R(1), 1)
-       call axpy(ndim, -1.d0, imgs(i)%run%rxyz(1,1), 1, d_R(1), 1)
-       d_R = cubic_pbc( d_R, imgs(1)%run%atoms%alat1, imgs(1)%run%atoms%alat2, imgs(1)%run%atoms%alat3 ) 
+       call vcopy(ndim, imgs(i + 1)%run%atoms%astruct%rxyz(1,1), 1, d_R(1), 1)
+       call axpy(ndim, -1.d0, imgs(i)%run%atoms%astruct%rxyz(1,1), 1, d_R(1), 1)
+       d_R = cubic_pbc( d_R, imgs(1)%run%atoms%astruct%cell_dim(1), &
+            & imgs(1)%run%atoms%astruct%cell_dim(2), imgs(1)%run%atoms%astruct%cell_dim(3) ) 
        R = norm( d_R )
 
        reaction_coordinate(i+1) = reaction_coordinate(i) + R
@@ -752,7 +754,7 @@ contains
              if (igroup(i) > 0) then
                 call mpi_bcast(imgs(i)%outs%energy, 1, MPI_DOUBLE_PRECISION, &
                      & igroup(i) - 1, mpi_env%mpi_comm, ierr)
-                call mpi_bcast(imgs(i)%outs%fxyz(1,1), imgs(i)%run%atoms%nat * 3, MPI_DOUBLE_PRECISION, &
+                call mpi_bcast(imgs(i)%outs%fxyz(1,1), imgs(i)%outs%fdim * 3, MPI_DOUBLE_PRECISION, &
                      & igroup(i) - 1, mpi_env%mpi_comm, ierr)
              end if
           end do
@@ -762,7 +764,7 @@ contains
           if (igroup(i) > 0) then
              call mpi_bcast(imgs(i)%outs%energy, 1, MPI_DOUBLE_PRECISION, &
                   & 0, bigdft_mpi%mpi_comm, ierr)
-             call mpi_bcast(imgs(i)%outs%fxyz(1,1), imgs(i)%run%atoms%nat * 3, MPI_DOUBLE_PRECISION, &
+             call mpi_bcast(imgs(i)%outs%fxyz(1,1), imgs(i)%outs%fdim * 3, MPI_DOUBLE_PRECISION, &
                   & 0, bigdft_mpi%mpi_comm, ierr)
           end if
        end do
@@ -781,7 +783,7 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
   integer, intent(in) :: iteration
   real(gp), intent(in) :: km1, kp1
   real(gp), intent(in) :: Vm1, Vp1
-  real(gp), dimension(3*img%run%atoms%nat), intent(in) :: posm1, posp1
+  real(gp), dimension(3*img%run%atoms%astruct%nat), intent(in) :: posm1, posp1
   logical, intent(in) :: optimization, climbing
   type(NEB_data), intent(in) :: neb
 
@@ -790,17 +792,18 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
   real(gp), dimension(:), allocatable :: tangent, grad
 
   ! Aliasing
-  ndim = 3 * img%run%atoms%nat
-  Lx = img%run%atoms%alat1
-  Ly = img%run%atoms%alat2
-  Lz = img%run%atoms%alat3
+  ndim = 3 * img%run%atoms%astruct%nat
+  Lx = img%run%atoms%astruct%cell_dim(1)
+  Ly = img%run%atoms%astruct%cell_dim(2)
+  Lz = img%run%atoms%astruct%cell_dim(3)
 
   allocate(grad(ndim))
   call to_zero(ndim, grad(1))
 
   if (.not. optimization) then
      allocate(tangent(ndim))
-     call compute_local_tangent(tangent, ndim, (/ Vm1, img%outs%energy, Vp1 /), posm1, img%run%rxyz, posp1, Lx, Ly, Lz)
+     call compute_local_tangent(tangent, ndim, (/ Vm1, img%outs%energy, Vp1 /), &
+          & posm1, img%run%atoms%astruct%rxyz, posp1, Lx, Ly, Lz)
   end if
 
   if (iteration > 0 .and. img%algorithm >= 4 ) then
@@ -808,7 +811,7 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
         call to_zero(ndim, grad(1))
         call axpy(ndim, -1.d0, img%outs%fxyz(1,1), 1, grad(1), 1)
      else
-        call compute_local_gradient(ndim, grad, posm1, img%run%rxyz, posp1, tangent, &
+        call compute_local_gradient(ndim, grad, posm1, img%run%atoms%astruct%rxyz, posp1, tangent, &
              & img%outs%fxyz, Lx,Ly,Lz, (/ km1, kp1 /), (img%algorithm == 6), climbing)
      end if
      IF ( img%algorithm == 4 ) THEN
@@ -843,17 +846,17 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
      call to_zero(ndim, grad(1))
      call axpy(ndim, -1.d0, img%outs%fxyz(1,1), 1, grad(1), 1)
   else
-     call compute_local_gradient(ndim, grad, posm1, img%run%rxyz, posp1, tangent, &
+     call compute_local_gradient(ndim, grad, posm1, img%run%atoms%astruct%rxyz, posp1, tangent, &
           & img%outs%fxyz, Lx,Ly,Lz, (/ km1, kp1 /), (img%algorithm == 6), climbing)
   end if
   IF ( img%algorithm == 1 ) THEN
-     CALL steepest_descent( ndim, img%run%rxyz, grad, neb%ds)
+     CALL steepest_descent( ndim, img%run%atoms%astruct%rxyz, grad, neb%ds)
   ELSE IF ( img%algorithm == 2 ) THEN
-     CALL fletcher_reeves( ndim, img%run%rxyz, grad, img%old_grad, img%delta_pos, neb%ds)
+     CALL fletcher_reeves( ndim, img%run%atoms%astruct%rxyz, grad, img%old_grad, img%delta_pos, neb%ds)
   ELSE IF ( img%algorithm == 3 ) THEN
-     CALL polak_ribiere( ndim, img%run%rxyz, grad, img%old_grad, img%delta_pos, neb%ds)
+     CALL polak_ribiere( ndim, img%run%atoms%astruct%rxyz, grad, img%old_grad, img%delta_pos, neb%ds)
   ELSE IF ( img%algorithm >= 4 ) THEN
-     CALL velocity_Verlet_first_step( ndim, img%run%rxyz, img%vel, grad, neb%ds)
+     CALL velocity_Verlet_first_step( ndim, img%run%atoms%astruct%rxyz, img%vel, grad, neb%ds)
   END IF
 
   IF ( img%algorithm <= 3 ) call vcopy(ndim, grad(1), 1, img%old_grad(1), 1)
@@ -880,35 +883,39 @@ subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, 
 
   character(len = *), parameter :: subname = "image_update_pos_from_file"
   real(gp), dimension(:,:), pointer :: rxyzm1, rxyzp1
-  type(atoms_data) :: atoms
+  type(atomic_structure) :: astruct
   real(gp) :: Vm1, Vp1
   integer :: stat
 
   img%error = UNINITIALIZED(real(1, gp))
   nullify(rxyzm1)
   nullify(rxyzp1)
-  call atoms_nullify(atoms)
+  call astruct_nullify(astruct)
 
   if (trim(filem1) /= "") then
-     call read_atomic_file(trim(filem1), bigdft_mpi%iproc, atoms, rxyzm1, &
+     call read_atomic_file(trim(filem1), bigdft_mpi%iproc, astruct, &
           & status = stat, energy = Vm1)
-     if (stat /= 0 .or. atoms%nat /= img%run%atoms%nat) then
+     if (stat /= 0 .or. astruct%nat /= img%run%atoms%astruct%nat) then
         call free_me()
         return
      end if
-     call deallocate_atoms(atoms, subname)
-     call atoms_nullify(atoms)
+     rxyzm1 => astruct%rxyz
+     nullify(astruct%rxyz)
+     call deallocate_atomic_structure(astruct, subname)
+     call astruct_nullify(astruct)
   end if
 
   if (trim(filep1) /= "") then
-     call read_atomic_file(trim(filep1), bigdft_mpi%iproc, atoms, rxyzp1, &
+     call read_atomic_file(trim(filep1), bigdft_mpi%iproc, astruct, &
           & status = stat, energy = Vp1)
-     if (stat /= 0 .or. atoms%nat /= img%run%atoms%nat) then
+     if (stat /= 0 .or. astruct%nat /= img%run%atoms%astruct%nat) then
         call free_me()
         return
      end if
-     call deallocate_atoms(atoms, subname)
-     call atoms_nullify(atoms)
+     rxyzp1 => astruct%rxyz
+     nullify(astruct%rxyz)
+     call deallocate_atomic_structure(astruct, subname)
+     call astruct_nullify(astruct)
   end if
   
   call image_update_pos(img, iteration, rxyzm1, rxyzp1, Vm1, Vp1, km1, kp1, &
@@ -930,7 +937,7 @@ contains
       deallocate(rxyzm1,stat=i_stat)
       call memocc(i_stat,i_all,'rxyzm1',subname)
     end if
-    call deallocate_atoms(atoms, subname)
+    call deallocate_atomic_structure(astruct, subname)
   end subroutine free_me
 END SUBROUTINE image_update_pos_from_file
 
@@ -961,7 +968,7 @@ subroutine image_calculate(img, iteration, id)
   ! Output the corresponding file.
   write(fn4, "(I4.4)") iteration
   call write_atomic_file(trim(img%run%inputs%dir_output)//'posout_'//fn4, &
-       & img%outs%energy, img%run%rxyz, img%run%atoms, "", forces = img%outs%fxyz)
+       & img%outs%energy, img%run%atoms%astruct%rxyz, img%run%atoms, "", forces = img%outs%fxyz)
 end subroutine image_calculate
 
 subroutine images_distribute_tasks(igroup, update, nimages, ngroup)
@@ -1035,10 +1042,13 @@ subroutine image_new(img, run, outs, atoms, inputs, rst, rxyz, algorithm)
   call image_init(img, inputs, atoms, rst, algorithm)
   run => img%run
   outs => img%outs
-  i_all=-product(shape(run%rxyz))*kind(run%rxyz)
-  deallocate(run%rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'run%rxyz',"image_new")
-  run%rxyz => rxyz
+
+  write(0,*) "FIXME"
+  
+  i_all=-product(shape(run%atoms%astruct%rxyz))*kind(run%atoms%astruct%rxyz)
+  deallocate(run%atoms%astruct%rxyz,stat=i_stat)
+  call memocc(i_stat,i_all,'run%atoms%astruct%rxyz',"image_new")
+  run%atoms%astruct%rxyz => rxyz
 END SUBROUTINE image_new
 
 subroutine image_free(img, run, outs)
