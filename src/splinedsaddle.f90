@@ -458,7 +458,6 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     endif
     !---------------------------------------------------------------------------
     if(trim(pnow%hybrid)=='yes') then
-       write(*,*) iproc, shape(atoms%astruct%rxyz), atoms%astruct%nat
        call run_objects_init_container(ll_runObj, ll_inputs, atoms, rst, x(1,0))
        call cpu_time(time1)
        call call_bigdft(ll_runObj,outends(1),nproc,iproc,infocode)

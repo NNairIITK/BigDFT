@@ -140,7 +140,7 @@ while [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; do
 	# Job has finished
 	if test $res -gt 0 && [ ! -f OK ] && [ ! -f FAILED ] ; then
 	    if test x"$DEBUG" != x ; then
-		echo "Job "${count}" finished ("$jobs_done"/"$((${max} - ${min} + 1))")."
+		echo "Job "${count}" finished ("$(($jobs_done + 1))"/"$((${max} - ${min} + 1))")."
 	    fi
 
 	    if test x"$res" == x"1" ; then

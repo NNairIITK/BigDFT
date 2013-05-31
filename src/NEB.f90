@@ -88,13 +88,13 @@ MODULE NEB_routines
 
       IMPLICIT NONE
 
-      INTEGER :: i, n1, n2, num_of_images
+      INTEGER :: i, j, num_of_images, istart, istop
       CHARACTER (LEN=20) :: minimization_scheme
       INTEGER, PARAMETER :: unit = 10
       REAL (gp), DIMENSION(:,:), ALLOCATABLE :: d_R
-      real(gp), dimension(:,:), pointer  :: rxyz
-      real(gp), dimension(3)             :: acell1, acell2
+      real(gp), dimension(3) :: acell1, acell2
       logical :: climbing, optimization
+      logical, dimension(:), allocatable :: read_posinp
       integer :: max_iterations, ierr, nconfig, algorithm
       real(gp) :: convergence, damp, k_min, k_max, ds, temp_req
       type(mpi_environment) :: bigdft_mpi_svg
@@ -177,6 +177,8 @@ MODULE NEB_routines
       call bigdft_get_run_ids(num_of_images,trim(run_id),arr_radical,arr_posinp,ierr)
 
       allocate( ins(num_of_images), atoms(num_of_images) )
+      allocate( read_posinp(num_of_images) )
+      istart = 1
       if (.not. external_call) then
          ! Trick here, only super master will read the input files...
          bigdft_mpi_svg = bigdft_mpi
@@ -189,9 +191,15 @@ MODULE NEB_routines
             call standard_inputfile_names(ins(i), trim(arr_radical(i)), bigdft_mpi%nproc)
             call default_input_variables(ins(i))
             call inputs_parse_params(ins(i), bigdft_mpi%iproc, .false.)
-            call read_atomic_file(trim(arr_posinp(1)), mpi_info(1), atoms(i)%astruct, status = ierr)
-            if (ierr /= 0 .and. (i == 1 .or. i == num_of_images)) then
-               stop "Missing images"
+            call read_atomic_file(trim(arr_posinp(i)), mpi_info(1), atoms(i)%astruct, status = ierr)
+            if (ierr /= 0) then
+               if (i == 1 .or. i == num_of_images) stop "Missing images"
+               ! we read the last valid image instead.
+               call read_atomic_file(trim(arr_posinp(istart)), mpi_info(1), atoms(i)%astruct)
+               read_posinp(i) = .false.
+            else
+               istart = i
+               read_posinp(i) = .true.
             end if
             call allocate_atoms_nat(atoms(i), "read_input")
             call allocate_atoms_ntypes(atoms(i), "read_input")
@@ -205,9 +213,15 @@ MODULE NEB_routines
             call default_input_variables(ins(i))
             write(ins(i)%writing_directory, "(A)") "."
             write(ins(i)%run_name, "(A)") trim(job_name)
-            call read_atomic_file(trim(arr_posinp(1)), mpi_info(1), atoms(i)%astruct, status = ierr)
-            if (ierr /= 0 .and. (i == 1 .or. i == num_of_images)) then
-               stop "Missing images"
+            call read_atomic_file(trim(arr_posinp(i)), mpi_info(1), atoms(i)%astruct, status = ierr)
+            if (ierr /= 0) then
+               if (i == 1 .or. i == num_of_images) stop "Missing images"
+               ! we read the last valid image instead.
+               call read_atomic_file(trim(arr_posinp(istart)), mpi_info(1), atoms(i)%astruct)
+               read_posinp(i) = .false.
+            else
+               istart = i
+               read_posinp(i) = .true.
             end if
          end do
       end if
@@ -238,11 +252,6 @@ MODULE NEB_routines
          WRITE(*,'(T2,"            does not exist")') 
          STOP 
       END IF
-
-      allocate(imgs(num_of_images))
-      do i = 1, num_of_images
-         call image_init(imgs(i), ins(i), atoms(i), rst, algorithm)
-      end do
 
       acell1 = atoms(1)%astruct%cell_dim
       if (acell1(1) == 0.) acell1(1) = maxval(atoms(1)%astruct%rxyz(1,:)) - minval(atoms(1)%astruct%rxyz(1,:))
@@ -276,84 +285,7 @@ MODULE NEB_routines
          STOP  
       END IF
 
-!! all the arrays are initialized
-
 !!$      IF ( restart ) THEN
-!!$
-!!$        OPEN( UNIT = unit, FILE = restart_file, STATUS = "OLD", &
-!!$              ACTION = "READ" )
-!!$    
-!!$        ! Read as many configurations as contained in the
-!!$        ! Restart file.
-!!$        DO i = 1, neb_%nimages
-!!$
-!!$           READ(unit,*, iostat = ios)
-!!$           if (ios /= 0) exit
-!!$           READ(unit,fmt3) V(i)
-!!$
-!!$           DO j = 1, ndim, 3 
-!!$
-!!$              READ(unit,*) pos(j,i),     & 
-!!$                   pos((j+1),i), &
-!!$                   pos((j+2),i), &
-!!$                   fix_atom(j),     &
-!!$                   fix_atom((j+1)), &
-!!$                   fix_atom((j+2)), &
-!!$                   PES_gradient(j,i),     &
-!!$                   PES_gradient((j+1),i), &
-!!$                   PES_gradient((j+2),i)
-!!$           END DO
-!!$           PES_gradient(:, i) = PES_gradient(:, i) * (-1d0)
-!!$
-!!$        END DO
-!!$
-!!$        CLOSE( UNIT = unit) 
-!!$
-!!$        ! Check that we read at least two configurations...
-!!$        i = i - 1
-!!$        if (i < 2) then
-!!$           WRITE(*,'(T2,"read_input: number of replica in restart file is less than 2")')
-!!$           WRITE(*,'(T2,"            N = ", I8 )') i - 1
-!!$           STOP  
-!!$        end if
-!!$
-!!$        ! Add some intermediate configurations if neb_%nimages > i
-!!$        if (neb_%nimages > i) then
-!!$           ALLOCATE( d_R(ndim) )           
-!!$           r = real(i - 1, gp) / real(neb_%nimages - 1, gp)
-!!$           a = real(0, gp)
-!!$           j0 = neb_%nimages
-!!$           do j = neb_%nimages, 1, -1
-!!$              ! j : the current position in pos array.
-!!$              ! i : the current position in read configurations.
-!!$              ! r : the ideal ratio (i_0 - 1) / (neb_%nimages - 1)
-!!$              ! a : the current ratio.
-!!$              ! We copy i to j if a < r, otherwise we create a new
-!!$              ! linear approximant.
-!!$              if (a <= r) then
-!!$                 pos(:, j) = pos(:, i)
-!!$                 i = i - 1
-!!$                 ! We create the new linear approx. replicas between j and j0.
-!!$                 if (j0 /= j) then
-!!$                    d_R = ( pos(:,j0) - pos(:,j) ) / &
-!!$                         DBLE( j0 - j )
-!!$                    do k = j0 - 1, j + 1, -1
-!!$                       write(*,*) k, ": new linear approx replica."
-!!$                       pos(:, k) = pos(:, k + 1) - d_R(:)
-!!$                    end do
-!!$                 end if
-!!$                 j0 = j
-!!$                 write(*,*) j, ": restart replica."
-!!$              end if
-!!$              a = (r * real(neb_%nimages - 1, gp) - real(i, gp) + real(1, gp)) / &
-!!$                   & (real(neb_%nimages, gp) - real(j, gp) + real(1, gp))
-!!$           end do
-!!$           deallocate(d_R)
-!!$
-!!$           CALL write_restart(restart_file, ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
-!!$
-!!$        end if
-!!$
 !!$        vel_file = TRIM( scratch_dir )//"/velocities_file"
 !!$        inquire(FILE = vel_file, EXIST = file_exists)
 !!$        IF ( ( neb_%algorithm >= 4 ) .AND. file_exists ) THEN
@@ -375,32 +307,46 @@ MODULE NEB_routines
 !!$      
 !!$      ELSE
 
-        ALLOCATE( d_R(3, atoms(1)%astruct%nat) )           
+      ALLOCATE( d_R(3, atoms(1)%astruct%nat) )           
 
-        d_R = ( atoms(num_of_images)%astruct%rxyz - atoms(1)%astruct%rxyz ) / &
-             DBLE( num_of_images - 1 )
+      istart = 1
+      ! We set the coordinates for all empty images.
+      DO i = 2, num_of_images
+         if (read_posinp(i)) then
+            istop = i
+            d_R = ( atoms(istop)%astruct%rxyz - atoms(istart)%astruct%rxyz ) / &
+                 DBLE( istop - istart )
+            do j = istart + 1, istop - 1, 1
+               atoms(j)%astruct%rxyz = atoms(j - 1)%astruct%rxyz + d_R
+            end do
+            istart = i
+         end if
+      END DO
 
-        ALLOCATE( fix_atom(3, atoms(1)%astruct%nat) )
-        fix_atom = 1
-        WHERE ( ABS( d_R ) <=  tolerance ) fix_atom = 0
+      ALLOCATE( fix_atom(3, atoms(1)%astruct%nat) )
+      fix_atom = 1
+      WHERE ( ABS( d_R ) <=  tolerance ) fix_atom = 0
 
-        DO i = 2, ( num_of_images - 1 )
-           atoms(i)%astruct%rxyz = atoms(i - 1)%astruct%rxyz + d_R
-        END DO
-
-        DEALLOCATE( d_R )
+      DEALLOCATE( d_R )
 
 !!$     END IF
 
-     if (.not. external_call) then
-        call restart_objects_new(rst)
-        call restart_objects_set_mode(rst, ins(1)%inputpsiid)
-        call restart_objects_set_nat(rst, atoms(1)%astruct%nat, "read_input")
-        call restart_objects_set_mat_acc(rst, mpi_info(1), ins(1)%matacc)
-        call yaml_close_all_streams()
-     end if
+      if (.not. external_call) then
+         call restart_objects_new(rst)
+         call restart_objects_set_mode(rst, ins(1)%inputpsiid)
+         call restart_objects_set_nat(rst, atoms(1)%astruct%nat, "read_input")
+         call restart_objects_set_mat_acc(rst, mpi_info(1), ins(1)%matacc)
+         call yaml_close_all_streams()
+      end if
 
-   END SUBROUTINE read_input
+      allocate(imgs(num_of_images))
+      do i = 1, num_of_images
+         call image_init(imgs(i), ins(i), atoms(i), rst, algorithm)
+      end do
+
+      deallocate( read_posinp )
+
+    END SUBROUTINE read_input
 
     
     SUBROUTINE search_MEP
