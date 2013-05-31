@@ -179,52 +179,35 @@ MODULE NEB_routines
       allocate( ins(num_of_images), atoms(num_of_images) )
       allocate( read_posinp(num_of_images) )
       istart = 1
-      if (.not. external_call) then
-         ! Trick here, only super master will read the input files...
-         bigdft_mpi_svg = bigdft_mpi
-         bigdft_mpi%mpi_comm = MPI_COMM_WORLD
-         call mpi_comm_rank(MPI_COMM_WORLD, bigdft_mpi%iproc, ierr)
-         call mpi_comm_size(MPI_COMM_WORLD, bigdft_mpi%nproc, ierr)
-         bigdft_mpi%igroup = 0
-         bigdft_mpi%ngroup = num_of_images
-         do i = 1, num_of_images
-            call standard_inputfile_names(ins(i), trim(arr_radical(i)), bigdft_mpi%nproc)
-            call default_input_variables(ins(i))
-            call inputs_parse_params(ins(i), bigdft_mpi%iproc, .false.)
-            call read_atomic_file(trim(arr_posinp(i)), mpi_info(1), atoms(i)%astruct, status = ierr)
-            if (ierr /= 0) then
-               if (i == 1 .or. i == num_of_images) stop "Missing images"
-               ! we read the last valid image instead.
-               call read_atomic_file(trim(arr_posinp(istart)), mpi_info(1), atoms(i)%astruct)
-               read_posinp(i) = .false.
-            else
-               istart = i
-               read_posinp(i) = .true.
-            end if
-            call allocate_atoms_nat(atoms(i), "read_input")
-            call allocate_atoms_ntypes(atoms(i), "read_input")
-            call inputs_parse_add(ins(i), atoms(1), bigdft_mpi%iproc, .false.)
-            call init_atomic_values((mpi_info(1) == 0), atoms(i), ins(1)%ixc)
-            call read_atomic_variables(atoms(i), trim(ins(1)%file_igpop), ins(1)%nspin)
-         end do
-         bigdft_mpi = bigdft_mpi_svg
-      else
-         do i = 1, num_of_images
-            call default_input_variables(ins(i))
-            write(ins(i)%writing_directory, "(A)") "."
-            write(ins(i)%run_name, "(A)") trim(job_name)
-            call read_atomic_file(trim(arr_posinp(i)), mpi_info(1), atoms(i)%astruct, status = ierr)
-            if (ierr /= 0) then
-               if (i == 1 .or. i == num_of_images) stop "Missing images"
-               ! we read the last valid image instead.
-               call read_atomic_file(trim(arr_posinp(istart)), mpi_info(1), atoms(i)%astruct)
-               read_posinp(i) = .false.
-            else
-               istart = i
-               read_posinp(i) = .true.
-            end if
-         end do
-      end if
+
+      ! Trick here, only super master will read the input files...
+      bigdft_mpi_svg = bigdft_mpi
+      bigdft_mpi%mpi_comm = MPI_COMM_WORLD
+      call mpi_comm_rank(MPI_COMM_WORLD, bigdft_mpi%iproc, ierr)
+      call mpi_comm_size(MPI_COMM_WORLD, bigdft_mpi%nproc, ierr)
+      bigdft_mpi%igroup = 0
+      bigdft_mpi%ngroup = num_of_images
+      do i = 1, num_of_images
+         call standard_inputfile_names(ins(i), trim(arr_radical(i)), bigdft_mpi%nproc)
+         call default_input_variables(ins(i))
+         call inputs_parse_params(ins(i), bigdft_mpi%iproc, .false.)
+         call read_atomic_file(trim(arr_posinp(i)), mpi_info(1), atoms(i)%astruct, status = ierr)
+         if (ierr /= 0) then
+            if (i == 1 .or. i == num_of_images) stop "Missing images"
+            ! we read the last valid image instead.
+            call read_atomic_file(trim(arr_posinp(istart)), mpi_info(1), atoms(i)%astruct)
+            read_posinp(i) = .false.
+         else
+            istart = i
+            read_posinp(i) = .true.
+         end if
+         call allocate_atoms_nat(atoms(i), "read_input")
+         call allocate_atoms_ntypes(atoms(i), "read_input")
+         call inputs_parse_add(ins(i), atoms(1), bigdft_mpi%iproc, .false.)
+         call init_atomic_values((mpi_info(1) == 0), atoms(i), ins(1)%ixc)
+         call read_atomic_variables(atoms(i), trim(ins(1)%file_igpop), ins(1)%nspin)
+      end do
+      bigdft_mpi = bigdft_mpi_svg
 
       barrier_file       = trim(job_name) // ".NEB.log"
       data_file          = trim(job_name) // ".NEB.dat"
@@ -549,20 +532,28 @@ MODULE NEB_routines
          deallocate(imgs)
       end if
 
-      call deallocate_atoms(atoms, "deallocation")
+      if (allocated(atoms)) then
+         do i = 1, size(atoms)
+            call deallocate_atoms(atoms(i), "deallocation")
+         end do
+         deallocate(atoms)
+      end if
 
-      if (.not. external_call) then
+      if (allocated(ins)) then
          do i = 1, size(ins)
             call free_input_variables(ins(i))
          end do
+         deallocate( ins )
+      end if
+
+      if (.not. external_call) then
          call free_restart_objects(rst,"deallocation")
          call yaml_set_stream(unit = 6, istat = ierr)
          call f_finalize()
          call yaml_close_all_streams()
       end if
-      IF ( ALLOCATED( ins ) )              DEALLOCATE( ins )
 
-     deallocate(arr_posinp,arr_radical)
+      deallocate(arr_posinp,arr_radical)
 
       call bigdft_finalize(ierr)
     END SUBROUTINE deallocation
