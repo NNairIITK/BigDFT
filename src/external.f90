@@ -30,6 +30,8 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   call bigdft_mpi_init(ierr)
   if (ierr /= MPI_SUCCESS) return
 
+  call bigdft_init_errors()
+
   call command_line_information(mpi_groupsize,posinp_file,radical,ierr)
 
   call bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
@@ -235,3 +237,14 @@ subroutine bigdft_get_eigenvalues(rst,eval,istat)
   call vcopy(norb,rst%KSwfn%orbs%eval(1),1,eval(1),1)
 
 end subroutine bigdft_get_eigenvalues
+
+subroutine bigdft_severe_abort()
+  use module_base
+  implicit none
+  integer :: ierr
+
+  !the MPI_ABORT works only in MPI_COMM_WORLD
+  call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+  if (ierr/=0) stop 'Problem in MPI_ABORT'
+
+end subroutine bigdft_severe_abort

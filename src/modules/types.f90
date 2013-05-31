@@ -28,6 +28,7 @@ module module_types
   integer, parameter :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
   integer, parameter :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
   integer, parameter :: BIGDFT_INVALID  = -12 !< Invalid entry
+  integer :: BIGDFT_MPI_ERROR !<to be defined 
 
 
   !> Input wf parameters.
@@ -2520,5 +2521,19 @@ pure subroutine nullify_grow_bounds(gb)
   nullify(gb%ibzxx_f)
   nullify(gb%ibxxyy_f)
 end subroutine nullify_grow_bounds
+
+subroutine bigdft_init_errors()
+  use dictionaries
+  implicit none
+  external :: bigdft_severe_abort
+
+  call f_err_define('BIGDFT_MPI_ERROR',&
+       'An error of MPI library occurred',&
+       BIGDFT_MPI_ERROR,&
+       err_action='Check if the error is related to MPI library or runtime condtions')
+
+  !define the severe operation via MPI_ABORT
+  call f_err_severe_override(bigdft_severe_abort)
+end subroutine bigdft_init_errors
 
 end module module_types
