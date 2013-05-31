@@ -1049,17 +1049,19 @@ END SUBROUTINE writeonewave
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
  
+! make frag_trans the argument so can eliminate need for interface
 subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,& 
-     hgrids,n,centre_old,centre_new,da,newz,theta,psi)
+     hgrids,n,centre_old,centre_new,da,frag_trans,psi)
   use module_base
   use module_types
+  use module_fragments
   implicit none
   integer, dimension(3), intent(in) :: n,n_old
   real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
   type(wavefunctions_descriptors), intent(in) :: wfd
   character(len=1), intent(in) :: geocode
-  real(gp), dimension(3), intent(in) :: centre_old,centre_new,newz,da
-  real(gp), intent(in) :: theta
+  real(gp), dimension(3), intent(inout) :: centre_old,centre_new,da
+  type(fragment_transformation), intent(in) :: frag_trans
   real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
 
@@ -1067,15 +1069,20 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   character(len=*), parameter :: subname='reformatonesupportfunction'
   logical, dimension(3) :: per
   integer :: i_stat,i_all
-  integer, dimension(3) :: nb
+  integer, dimension(3) :: nb, ndims_tmp
   real(gp), dimension(3) :: hgridsh,hgridsh_old
   !!real(wp) :: dnrm2
   real(wp), dimension(:), allocatable :: ww,wwold
   real(wp), dimension(:), allocatable :: x_phi, y_phi
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
-  real(wp), dimension(:,:,:), allocatable :: psifscfold, psifscf
+  real(wp), dimension(:,:,:), pointer :: psifscfold, psifscf, psifscf_tmp
   integer :: itype, nd, nrange
 
+  !if (size(frag_trans%discrete_operations)>0) then
+  !   print*,'Error discrete operations not yet implemented',size(frag_trans%discrete_operations),&
+  !        frag_trans%discrete_operations(1)
+  !   stop
+  !end if
 
   !conditions for periodicity in the three directions
   per(1)=(geocode /= 'F')
@@ -1130,8 +1137,31 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   deallocate(x_phi,stat=i_stat)
   call memocc(i_stat,i_all,'x_phi',subname)
 
-  call field_rototranslation(nd,nrange,y_phi,da,newz,centre_old,centre_new,theta,&
-       hgridsh_old,(2*n_old+2+2*nb),psifscfold,hgridsh,(2*n+2+2*nb),psifscf)
+  nullify(psifscf_tmp)
+  if (size(frag_trans%discrete_operations)==0) then
+     psifscf_tmp => psifscfold
+     ndims_tmp=(2*n_old+2+2*nb)
+  else if (size(frag_trans%discrete_operations)==1) then
+     allocate(psifscf_tmp(-nb(1):2*n_old(1)+1+nb(1),-nb(2):2*n_old(2)+1+nb(2),-nb(3):2*n_old(3)+1+nb(3)+ndebug),stat=i_stat)
+     call memocc(i_stat,psifscf_tmp,'psifscf_tmp',subname)
+     call switch_axes(nd,nrange,y_phi,centre_old,hgridsh_old,(2*n_old+2+2*nb),psifscfold,&
+          hgridsh,ndims_tmp,psifscf_tmp,frag_trans%discrete_operations(1),da)
+  else if (size(frag_trans%discrete_operations)==2) then
+     stop 'only 1 discrete operation allowed right now'
+  else if (size(frag_trans%discrete_operations)==3) then
+     stop 'only 1 discrete operation allowed right now'
+  end if
+
+  call field_rototranslation(nd,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
+       hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+
+  if (size(frag_trans%discrete_operations)>0) then
+     i_all=-product(shape(psifscf_tmp))*kind(psifscf_tmp)
+     deallocate(psifscf_tmp,stat=i_stat)
+     call memocc(i_stat,i_all,'psifscf_tmp',subname)
+  else
+     nullify(psifscf_tmp)    
+  end if
 
   i_all=-product(shape(y_phi))*kind(y_phi)
   deallocate(y_phi,stat=i_stat)
@@ -1435,8 +1465,9 @@ subroutine define_rotations(da,newz,boxc_old,boxc_new,theta,hgrids_old,ndims_old
         !fill the second vector
         x=-boxc_new(1)
         do i=1,ndims_new(1)
-           dy(j,k+(i-1)*ndims_old(3)) = ( da(2) -y + y*(cost + onemc*newz(2)**2) + z*(-(sint*newz(1)) &
-                                      + onemc*newz(2)*newz(3)) -  ((onemc*newz(1)*newz(2) &
+           dy(j,k+(i-1)*ndims_old(3)) = ( da(2) - y &
+                                      + y*(cost + onemc*newz(2)**2) + z*(-(sint*newz(1)) &
+                                      + onemc*newz(2)*newz(3)) - ((onemc*newz(1)*newz(2) &
                                       + sint*newz(3))*(-x  + sint*(z*newz(2) - y*newz(3)) &
                                       + onemc*newz(1)*(y*newz(2) + z*newz(3)))) &
                                       / (cost + onemc*newz(1)**2) ) / hgrids_old(2)
@@ -1449,10 +1480,8 @@ subroutine define_rotations(da,newz,boxc_old,boxc_new,theta,hgrids_old,ndims_old
      do j=1,ndims_new(2)
         x=-boxc_new(1)
         do i=1,ndims_new(1)
-           dz(k,i+(j-1)*ndims_new(1)) = ( da(3) - z - sint*x*newz(2) + onemc*x*newz(1)*newz(3) + z*(cost + onemc*newz(3)**2) &
-                                      + ((sint*newz(1) + onemc*newz(2)*newz(3))*(y + sint*(z*newz(1) &
-                                      - x*newz(3)) + onemc*(-x*newz(1)*newz(2) &
-                                      + z*newz(2)*newz(3) - y*(newz(2)**2 + newz(3)**2)))) &
+           dz(k,i+(j-1)*ndims_new(1)) = ( da(3) - z &
+                                      + (sint*(newz(1)*y - newz(2)*x) - onemc*newz(3)*(newz(1)*x + newz(2)*y) + z) &
                                       / (cost + onemc*newz(3)**2) ) / hgrids_old(3)
            x=x+hgrids_new(1)
         end do
@@ -1462,6 +1491,66 @@ subroutine define_rotations(da,newz,boxc_old,boxc_new,theta,hgrids_old,ndims_old
   end do
 
 end subroutine define_rotations
+
+subroutine define_rotations_switch(da,newz,boxc_old,boxc_new,theta,hgrids_old,ndims_old,&
+     hgrids_new,ndims_new,dx,dy,dz)
+  use module_base
+  implicit none
+  real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
+  real(gp), intent(in) :: theta !< rotation wrt newzeta vector
+  real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
+  real(gp), dimension(3), intent(in) :: boxc_old,boxc_new !<centre of rotation (the coordinates are zero at these points)
+  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
+  integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
+  real(gp), dimension(ndims_old(1),ndims_old(2)*ndims_old(3)), intent(out) :: dx !<first deformation
+  real(gp), dimension(ndims_old(2),ndims_new(1)*ndims_old(3)), intent(out) :: dy !<second deformation
+  real(gp), dimension(ndims_old(3),ndims_new(1)*ndims_new(2)), intent(out) :: dz !<third deformation
+  !local variables
+  integer :: i,j,k
+  real(gp) :: x,y,z,cost,sint,onemc,dotp
+
+  !save recalculation
+  sint=sin(theta)
+  cost=cos(theta)
+  onemc=1.0_gp-cost
+
+  z=-boxc_old(3)
+  do k=1,ndims_old(3)
+     y=-boxc_old(2)
+     do j=1,ndims_old(2)
+        x=-boxc_old(1)
+        do i=1,ndims_old(1)
+           dotp=newz(1)*x+newz(2)*y+newz(3)*z
+           dx(i,j+(k-1)*ndims_old(2)) = ( da(1) - x + x*newz(1)**2 - y*newz(1)*newz(2) + sint*y*newz(3) &
+                                      - z*(sint*newz(2) + newz(1)*newz(3)) + cost*(x - x*newz(1)**2 &
+                                      + y*newz(1)*newz(2) + z*newz(1)*newz(3)) ) / hgrids_old(1)
+           x=x+hgrids_old(1)
+        end do
+        !fill the second vector
+        x=-boxc_new(1)
+        do i=1,ndims_new(1)
+           dy(j,k+(i-1)*ndims_old(3)) = ( -da(2) - y + (cost*y - sint*z*newz(1) - onemc*x*newz(1)*newz(2) &
+                                      - newz(3)*(sint*x - onemc*(-(z*newz(2)) + y*newz(3)))) &
+                                      /(-cost - onemc*newz(1)**2) ) / hgrids_old(2)
+           x=x+hgrids_new(1)
+        end do
+        y=y+hgrids_old(2)
+     end do
+     !fill the third vector
+     y=-boxc_new(2)
+     do j=1,ndims_new(2)
+        x=-boxc_new(1)
+        do i=1,ndims_new(1)
+           dz(k,i+(j-1)*ndims_new(1)) = ( -da(3) - z + (z + sint*(-(y*newz(1)) + x*newz(2)) + onemc*(x*newz(1) &
+                                      + y*newz(2))*newz(3))/(-cost - onemc*newz(3)**2) ) / hgrids_old(3)
+           x=x+hgrids_new(1)
+        end do
+        y=y+hgrids_new(2)
+     end do
+     z=z+hgrids_old(3)
+  end do
+
+end subroutine define_rotations_switch
 
 subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,f_old,&
      hgrids_new,ndims_new,f_new)
@@ -1492,6 +1581,9 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,cen
   
   call define_rotations(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
        hgrids_new,ndims_new,dx,dy,dz)
+
+  !call define_rotations_switch(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
+  !     hgrids_new,ndims_new,dx,dy,dz)
   
   !perform interpolation
   call morph_and_transpose(dx,n_phi,nrange_phi,phi_ISF,ndims_old(2)*ndims_old(3),&
@@ -1512,5 +1604,123 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,cen
   call f_release_routine()
 end subroutine field_rototranslation
  
+
+
+
+subroutine switch_axes(n_phi,nrange_phi,phi_ISF,centre_old,hgrids_old,ndims_old,f_old,&
+     hgrids_new,ndims_new,f_new,discrete_op,da_global)
+  use module_base
+  implicit none
+  integer, intent(in) :: n_phi,nrange_phi !< number of points of ISF array and real-space range
+  character(len=2) :: discrete_op
+  real(gp), dimension(3), intent(inout) :: centre_old
+  !real(gp), dimension(3), intent(out) :: centre_new !<centre of rotation
+  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
+  integer, dimension(3), intent(in) :: ndims_old !<dimension of old and new box
+  integer, dimension(3), intent(out) :: ndims_new !<dimension of old and new box
+  real(gp), dimension(3), intent(inout) :: da_global ! shift to be used in final interpolation with non-discrete rotation
+  real(gp), dimension(n_phi), intent(in) :: phi_ISF
+  real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
+  real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(out) :: f_new ! in general allocate here to ndims_new, but size doesn't change for now so leave like this
+
+  ! local variables
+  integer :: i, ipos
+  integer, dimension(3) :: icentre_old, icentre_new
+  real(gp), dimension(3) :: da, centre_new
+  real(gp), dimension(:,:,:), allocatable :: f_tmp, f_tmp2
+
+  ! For now do in the least efficient, easiest way
+  call f_routine(id='switch_axes')
+
+  f_tmp=f_malloc((/ndims_old(1),ndims_old(2),ndims_old(3)/),id='f_tmp')
+
+  !do i=1,size(discrete_ops)
+     !theta = 90 => y -> -z, z -> y
+     if (discrete_op=='x1') then
+        stop '90 degrees not yet treated'
+
+     !theta = 180 => y -> -y, z -> -z
+     else if (discrete_op=='x2') then
+        !shift so that centre is on a grid point: +1 to account for the fact that point 1 corresponds to x=0.0
+        icentre(1)=0
+        da(1)=0.0_gp
+        icentre(2)=nint(centre_old(2)/hgrids_old(2))+1
+        da(2)=real((icentre(2)-1)*hgrids_old(2),gp)-centre_old(2)
+        icentre(3)=nint(centre_old(3)/hgrids_old(3))+1
+        da(3)=real((icentre(3)-1)*hgrids_old(3),gp)-centre_old(3)
+
+print*,'da',da
+
+        centre_new = centre_old+da
+        call field_rototranslation(n_phi,nrange_phi,phi_ISF,da,(/0.0_gp,0.0_gp,0.0_gp/),centre_old,centre_new,0.0_gp,&
+            hgrids_old,ndims_old,f_old,hgrids_old,ndims_old,f_tmp)
+
+        f_tmp2=f_malloc((/ndims_old(1),ndims_old(2),ndims_old(3)/),id='f_tmp2')
+
+        ! only switching within axes, so no change in dimensions here
+        ndims_new = ndims_old
+
+        ! switch axes so that y -> -y and z -> -z
+        do i=1,ndims_old(2)
+           ipos=i-icentre(2)
+           if (-ipos+icentre(2)>=1.and.-ipos+icentre(2)<=ndims_old(2)) then
+              f_tmp2(:,i,:)=f_tmp(:,-ipos+icentre(2),:)
+           else
+              f_tmp2(:,i,:)=0.0_gp
+           end if
+        end do
+
+        do i=1,ndims_old(3)
+           ipos=i-icentre(3)
+           if (-ipos+icentre(3)>=1.and.-ipos+icentre(3)<=ndims_old(3)) then
+              f_new(:,:,i)=f_tmp2(:,:,-ipos+icentre(3))
+           else
+              f_new(:,:,i)=0.0_gp
+           end if
+        end do
+
+        ! correct the shift to be done afterwards
+        da_global=da_global-da!-(icentre_new-icentre_old)
+
+        ! correct centre_old as well ?!  - check when you have a non-zero rotation after!
+        centre_old=centre_old+da
+
+     !theta = -90 => y -> z, z -> -y
+     else if (discrete_op=='x3') then
+        stop '90 degrees not yet treated'
+
+     !theta = 90 => x -> z, z -> -x
+     else if (discrete_op=='y1') then
+        stop '90 degrees not yet treated'
+
+     !theta = 180 => x -> -x, z -> -z
+     else if (discrete_op=='y2') then
+
+     !theta = -90 => x -> -z, z -> x
+     else if (discrete_op=='y3') then
+        stop '90 degrees not yet treated'
+
+     !theta = 90 => x -> -y, y -> x
+     else if (discrete_op=='z1') then
+        stop '90 degrees not yet treated'
+
+     !theta = 180 => x -> -x, y -> -y
+     else if (discrete_op=='z2') then
+
+     !theta = -90 => x -> y, y -> -x
+     else if (discrete_op=='z3') then
+        stop '90 degrees not yet treated'
+     end if
+  !end do
+
+  call f_free(f_tmp)
+  call f_free(f_tmp2)
+
+  call f_release_routine()
+
+end subroutine switch_axes
+
+
+
 
 
