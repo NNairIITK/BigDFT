@@ -22,7 +22,7 @@ int main(int argc, const char **argv)
   bigdft_atoms_set_n_atoms(atoms, 2);
   atoms->iatype[0] = 1;
   atoms->iatype[1] = 2;
-  atoms->rxyz.data[3] = 1.23;
+  atoms->rxyz[3] = 1.23;
   bigdft_atoms_set_geometry(atoms, 'S', alat, "bohr");
   if (iproc == 0) bigdft_atoms_write(atoms, "posinp", "xyz");
 

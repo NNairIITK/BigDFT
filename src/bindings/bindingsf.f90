@@ -1422,33 +1422,28 @@ subroutine run_objects_destroy(runObj)
   call yaml_close_all_streams()
   deallocate(runObj)
 end subroutine run_objects_destroy
-subroutine run_objects_get(runObj, inputs, atoms, rst, rxyz)
+subroutine run_objects_get(runObj, inputs, atoms, rst)
   use module_types
   implicit none
   type(run_objects), intent(in) :: runObj
   type(input_variables), pointer :: inputs
   type(atoms_data), pointer :: atoms
   type(restart_objects), pointer :: rst
-  real(gp), dimension(:,:), pointer :: rxyz
 
   inputs => runObj%inputs
   atoms => runObj%atoms
   rst => runObj%rst
-  write(0,*) "FIXME"
-  nullify(rxyz)
 END SUBROUTINE run_objects_get
-subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz)
+subroutine run_objects_associate(runObj, inputs, atoms, rst)
   use module_types
   implicit none
   type(run_objects), intent(out) :: runObj
   type(input_variables), intent(in), target :: inputs
   type(atoms_data), intent(in), target :: atoms
   type(restart_objects), intent(in), target :: rst
-  real(gp), dimension(:,:), pointer :: rxyz
 
   call run_objects_init(runObj)
   runObj%atoms  => atoms
   runObj%inputs => inputs
   runObj%rst    => rst
-  write(0,*) "FIXME"
 END SUBROUTINE run_objects_associate

@@ -378,13 +378,11 @@ static void _attributes_from_fortran(BigDFT_Run *run)
   _atoms_data *atoms;
   _input_variables *inputs;
   _restart_objects *rst;
-  f90_pointer_double_2D rxyz;
 
   /* Create C wrappers for Fortran objects. */
-  F90_2D_POINTER_INIT(&rxyz);
-  FC_FUNC_(run_objects_get, RUN_OBJECTS_GET)(run->data, &inputs, &atoms, &rst, &rxyz);
+  FC_FUNC_(run_objects_get, RUN_OBJECTS_GET)(run->data, &inputs, &atoms, &rst);
   run->inputs = bigdft_inputs_new_from_fortran(inputs);
-  run->atoms  = bigdft_atoms_new_from_fortran(atoms, &rxyz);
+  run->atoms  = bigdft_atoms_new_from_fortran(atoms);
   run->restart = bigdft_restart_new_from_fortran(rst);
   run->restart->in = run->inputs;
   bigdft_inputs_ref(run->inputs);
@@ -437,8 +435,8 @@ BigDFT_Run* bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inpu
   if (inputs->files == BIGDFT_INPUTS_UNPARSED)
     {
       bigdft_inputs_parse(inputs, iproc, TRUE);
-      bigdft_inputs_parse_additional(inputs, atoms, iproc, TRUE);
       bigdft_atoms_set_psp(atoms, inputs->ixc, inputs->nspin, NULL);
+      bigdft_inputs_parse_additional(inputs, atoms, iproc, TRUE);
     }
   /* If no restart, we create it from atoms and inputs. */
   if (!rst)
@@ -451,7 +449,7 @@ BigDFT_Run* bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inpu
   run->atoms = atoms;
   g_object_ref(G_OBJECT(run->atoms));
   run->restart = rst;
-  FC_FUNC_(run_objects_associate, RUN_OBJECTS_ASSOCIATE)(run->data, inputs->data, atoms->data, rst->data, &atoms->rxyz);
+  FC_FUNC_(run_objects_associate, RUN_OBJECTS_ASSOCIATE)(run->data, inputs->data, atoms->data, rst->data);
 
   return run;
 }

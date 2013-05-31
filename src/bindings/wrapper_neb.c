@@ -84,7 +84,7 @@ BigDFT_Image* bigdft_image_new(BigDFT_Atoms *atoms, BigDFT_Inputs *ins, BigDFT_R
 #endif
   /* self = *((long*)&image); */
   algo_ = algo + 1;
-  FC_FUNC_(image_new, IMAGE_NEW)(&image->data, &run, &outs, atoms->data, ins->data, rst->data, &atoms->rxyz, (int*)&algo_);
+  FC_FUNC_(image_new, IMAGE_NEW)(&image->data, &run, &outs, atoms->data, ins->data, rst->data, (int*)&algo_);
   image->run = bigdft_run_new_from_fortran(run, FALSE);
   image->run->atoms = atoms;
   g_object_ref(G_OBJECT(atoms));
@@ -163,7 +163,7 @@ void bigdft_image_update_pos(BigDFT_Image *image, guint iteration,
   optimization = (m1 == image) || (p1 == image);
   FC_FUNC_(neb_new, NEB_NEW)(&neb);
   FC_FUNC_(image_update_pos, IMAGE_UPDATE_POS)(image->data, (int*)&iteration,
-                                               m1->run->atoms->rxyz.data, p1->run->atoms->rxyz.data,
+                                               m1->run->atoms->rxyz, p1->run->atoms->rxyz,
                                                &m1->outs->etot, &p1->outs->etot,
                                                &k_before, &k_after,
                                                &optimization, &climbing, neb);

@@ -4807,11 +4807,10 @@ module module_interfaces
           real(dp), dimension(:), pointer :: local_potential
         end subroutine integral_equation
 
-        subroutine atoms_new(atoms, sym)
+        subroutine atoms_new(atoms)
           use module_types
           implicit none
           type(atoms_data), pointer :: atoms
-          type(symmetry_data), pointer :: sym
         end subroutine atoms_new
 
         subroutine rst_new(self, rst)

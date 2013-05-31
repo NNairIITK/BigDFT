@@ -269,10 +269,9 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
   character(len = *), intent(in) :: radical, posinp
 
   integer(kind = 8) :: dummy
-  type(symmetry_data), pointer :: dummy_sym
 
   call run_objects_init(runObj)
-  call atoms_new(runObj%atoms, dummy_sym)
+  call atoms_new(runObj%atoms)
   call inputs_new(runObj%inputs)
   call bigdft_set_input(radical, posinp, runObj%inputs, runObj%atoms)
 

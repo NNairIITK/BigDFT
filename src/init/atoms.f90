@@ -9,14 +9,12 @@
 
 ! Init and free routines
 !> Allocate a new atoms_data type, for bindings.
-subroutine atoms_new(atoms, sym)
+subroutine atoms_new(atoms)
   use module_types
   implicit none
   type(atoms_data), pointer :: atoms
-  type(symmetry_data), pointer :: sym
   
   allocate(atoms)
-  sym => atoms%astruct%sym
   call atoms_nullify(atoms)
 END SUBROUTINE atoms_new
 !> Free an allocated atoms_data type.
@@ -1666,40 +1664,28 @@ END SUBROUTINE charge_and_spol
 
 
 
-subroutine atoms_set_from_file(lstat, atoms, rxyz, filename, ln)
+subroutine astruct_set_from_file(lstat, astruct, filename)
    use module_base
    use module_types
    use module_interfaces
    implicit none
    logical, intent(out) :: lstat
-   type(atoms_data), intent(inout) :: atoms
-   integer, intent(in) :: ln
-   character, intent(in) :: filename(ln)
-   real(gp), dimension(:,:), pointer :: rxyz
+   type(atomic_structure), intent(inout) :: astruct
+   character(len = *), intent(in) :: filename
 
-   integer :: status, i
-   character(len = 1024) :: filename_
-   character(len=*), parameter :: subname='atoms_set_from_file'
+   integer :: status
 
-   write(filename_, "(A)") " "
-   do i = 1, ln
-      write(filename_(i:i), "(A1)") filename(i)
-   end do
-
-   lstat = .true.
-   call read_atomic_file(trim(filename_), 0, atoms%astruct, status)
-   rxyz=>atoms%astruct%rxyz
-   call allocate_atoms_nat(atoms, subname)
-   call allocate_atoms_ntypes(atoms, subname)
+   call read_atomic_file(filename, 0, astruct, status)
+!!$   call allocate_atoms_nat(atoms, subname)
+!!$   call allocate_atoms_ntypes(atoms, subname)
    lstat = (status == 0)
-END SUBROUTINE atoms_set_from_file
-subroutine atoms_write(atoms, filename, filelen, forces, energy, comment, ln)
+ END SUBROUTINE astruct_set_from_file
+subroutine atoms_write(atoms, filename, forces, energy, comment)
   use module_types
   use module_interfaces, only: write_atomic_file
   implicit none
-  integer, intent(in) :: ln, filelen
-  character(len = ln), intent(in) :: comment
-  character(len = filelen), intent(in) :: filename
+  character(len = *), intent(in) :: comment
+  character(len = *), intent(in) :: filename
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(:,:), pointer :: forces
@@ -1747,48 +1733,48 @@ subroutine atoms_set_name(atoms, ityp, name)
 
   write(atoms%astruct%atomnames(ityp), "(20A1)") name
 END SUBROUTINE atoms_set_name
-subroutine atoms_sync(atoms, alat1, alat2, alat3, geocode, format, units)
+subroutine astruct_set_geometry(astruct, alat, geocode, format, units)
   use module_types
   implicit none
-  type(atoms_data), intent(inout) :: atoms
-  real(gp), intent(in) :: alat1, alat2, alat3
-  character, intent(in) :: geocode(1)
+  type(atomic_structure), intent(inout) :: astruct
+  real(gp), intent(in) :: alat(3)
+  character, intent(in) :: geocode
   character, intent(in) :: format(5)
   character, intent(in) :: units(20)
 
-  atoms%astruct%cell_dim(1) = alat1
-  atoms%astruct%cell_dim(2) = alat2
-  atoms%astruct%cell_dim(3) = alat3
-  atoms%astruct%geocode = geocode(1)
-  write(atoms%astruct%inputfile_format, "(5A1)") format
-  write(atoms%astruct%units, "(20A1)") units
-END SUBROUTINE atoms_sync
+  astruct%cell_dim(:) = alat(:)
+  astruct%geocode = geocode
+  write(astruct%inputfile_format, "(5A1)") format
+  write(astruct%units, "(20A1)") units
+END SUBROUTINE astruct_set_geometry
 
 ! Accessors for bindings.
-subroutine atoms_get(atoms, symObj)
+subroutine atoms_get(atoms, astruct, symObj)
   use module_types
   implicit none
   type(atoms_data), intent(in), target :: atoms
+  type(atomic_structure), pointer :: astruct
   type(symmetry_data), pointer :: symObj
 
+  astruct => atoms%astruct
   symObj => atoms%astruct%sym
 END SUBROUTINE atoms_get
-subroutine atoms_copy_nat(atoms, nat)
+subroutine astruct_copy_nat(astruct, nat)
   use module_types
   implicit none
-  type(atoms_data), intent(in) :: atoms
+  type(atomic_structure), intent(in) :: astruct
   integer, intent(out) :: nat
 
-  nat = atoms%astruct%nat
-END SUBROUTINE atoms_copy_nat
-subroutine atoms_copy_ntypes(atoms, ntypes)
+  nat = astruct%nat
+END SUBROUTINE astruct_copy_nat
+subroutine astruct_copy_ntypes(astruct, ntypes)
   use module_types
   implicit none
-  type(atoms_data), intent(in) :: atoms
+  type(atomic_structure), intent(in) :: astruct
   integer, intent(out) :: ntypes
 
-  ntypes = atoms%astruct%ntypes
-END SUBROUTINE atoms_copy_ntypes
+  ntypes = astruct%ntypes
+END SUBROUTINE astruct_copy_ntypes
 subroutine atoms_get_iatype(atoms, iatype)
   use module_types
   implicit none
@@ -1821,6 +1807,14 @@ subroutine atoms_get_ifrztyp(atoms, ifrztyp)
 
   ifrztyp => atoms%astruct%ifrztyp
 END SUBROUTINE atoms_get_ifrztyp
+subroutine atoms_get_rxyz(atoms, rxyz)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
+
+  rxyz => atoms%astruct%rxyz
+END SUBROUTINE atoms_get_rxyz
 subroutine atoms_get_nelpsp(atoms, nelpsp)
   use module_types
   implicit none
@@ -1930,18 +1924,18 @@ subroutine atoms_get_ig_nlccpar(atoms, ig_nlccpar)
 END SUBROUTINE atoms_get_ig_nlccpar
 
 
-subroutine atoms_copy_geometry_data(atoms, geocode, format, units)
+subroutine astruct_copy_geometry_data(astruct, geocode, format, units)
   use module_types
   implicit none
-  type(atoms_data), intent(in) :: atoms
+  type(atomic_structure), intent(in) :: astruct
   character(len = 1), intent(out) :: geocode
   character(len = 5), intent(out) :: format
   character(len = 20), intent(out) :: units
 
-  write(geocode, "(A1)") atoms%astruct%geocode
-  write(format,  "(A5)") atoms%astruct%inputfile_format
-  write(units,  "(A20)") atoms%astruct%units
-END SUBROUTINE atoms_copy_geometry_data
+  write(geocode, "(A1)") astruct%geocode
+  write(format,  "(A5)") astruct%inputfile_format
+  write(units,  "(A20)") astruct%units
+END SUBROUTINE astruct_copy_geometry_data
 
 
 subroutine atoms_copy_psp_data(atoms, natsc, donlcc)
@@ -1956,11 +1950,11 @@ subroutine atoms_copy_psp_data(atoms, natsc, donlcc)
 END SUBROUTINE atoms_copy_psp_data
 
 
-subroutine atoms_copy_name(atoms, ityp, name, ln)
+subroutine astruct_copy_name(astruct, ityp, name, ln)
   use module_types
   implicit none
   !Arguments
-  type(atoms_data), intent(in) :: atoms
+  type(atomic_structure), intent(in) :: astruct
   integer, intent(in) :: ityp
   character(len=1), dimension(20), intent(out) :: name
 !  character(len=*), intent(out) :: name
@@ -1968,30 +1962,30 @@ subroutine atoms_copy_name(atoms, ityp, name, ln)
   !Local variables 
   integer :: i,lname
 
-  if (atoms%astruct%ntypes > 0) then
+  if (astruct%ntypes > 0) then
      lname = len(name)
-     ln=min(len(trim(atoms%astruct%atomnames(ityp))),20)
+     ln=min(len(trim(astruct%atomnames(ityp))),20)
      !print *,'lnt2',lnt
      do i = 1, ln, 1
-        name(i:i) = atoms%astruct%atomnames(ityp)(i:i)
+        name(i:i) = astruct%atomnames(ityp)(i:i)
      end do
      do i = ln + 1, lname, 1
         name(i:i) = ' '
      end do
   end if
-END SUBROUTINE atoms_copy_name
+END SUBROUTINE astruct_copy_name
 
 
-subroutine atoms_copy_alat(atoms, alat1, alat2, alat3)
+subroutine astruct_copy_alat(astruct, alat)
   use module_types
   implicit none
-  type(atoms_data), intent(in) :: atoms
-  real(gp), intent(out) :: alat1, alat2, alat3
+  type(atomic_structure), intent(in) :: astruct
+  real(gp), intent(out) :: alat(3)
 
-  alat1 = atoms%astruct%cell_dim(1)
-  alat2 = atoms%astruct%cell_dim(2)
-  alat3 = atoms%astruct%cell_dim(3)
-END SUBROUTINE atoms_copy_alat
+  alat(1) = astruct%cell_dim(1)
+  alat(2) = astruct%cell_dim(2)
+  alat(3) = astruct%cell_dim(3)
+END SUBROUTINE astruct_copy_alat
 
 subroutine symmetry_set_irreductible_zone(sym, geocode, n1i, n2i, n3i, nspin)
   use module_base

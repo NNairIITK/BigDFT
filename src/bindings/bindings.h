@@ -82,7 +82,7 @@ void FC_FUNC_(deallocate_double_1d, DEALLOCATE_DOUBLE_1D)(f90_pointer_double *ar
 void FC_FUNC_(deallocate_double_2d, DEALLOCATE_DOUBLE_2D)(f90_pointer_double_2D *array);
 
 /* Constructors of C wrappers around already built Fortran objects. */
-BigDFT_Atoms*   bigdft_atoms_new_from_fortran  (_atoms_data *at, f90_pointer_double_2D *rxyz);
+BigDFT_Atoms*   bigdft_atoms_new_from_fortran  (_atoms_data *at);
 BigDFT_Inputs*  bigdft_inputs_new_from_fortran (_input_variables *inputs);
 BigDFT_Restart* bigdft_restart_new_from_fortran(_restart_objects *obj);
 BigDFT_Run*     bigdft_run_new_from_fortran    (_run_objects *obj, gboolean create_wrappers);

@@ -1022,7 +1022,7 @@ contains
 END SUBROUTINE images_distribute_tasks
 
 ! Routines for bindings.
-subroutine image_new(img, run, outs, atoms, inputs, rst, rxyz, algorithm)
+subroutine image_new(img, run, outs, atoms, inputs, rst, algorithm)
   use module_types
   use module_images
   implicit none
@@ -1033,7 +1033,6 @@ subroutine image_new(img, run, outs, atoms, inputs, rst, rxyz, algorithm)
   type(input_variables), intent(in) :: inputs
   type(atoms_data), intent(in) :: atoms
   type(restart_objects), intent(in) :: rst
-  real(gp), dimension(:,:), pointer :: rxyz
   integer, intent(in) :: algorithm
 
   integer :: i_all, i_stat
@@ -1042,13 +1041,6 @@ subroutine image_new(img, run, outs, atoms, inputs, rst, rxyz, algorithm)
   call image_init(img, inputs, atoms, rst, algorithm)
   run => img%run
   outs => img%outs
-
-  write(0,*) "FIXME"
-  
-  i_all=-product(shape(run%atoms%astruct%rxyz))*kind(run%atoms%astruct%rxyz)
-  deallocate(run%atoms%astruct%rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'run%atoms%astruct%rxyz',"image_new")
-  run%atoms%astruct%rxyz => rxyz
 END SUBROUTINE image_new
 
 subroutine image_free(img, run, outs)

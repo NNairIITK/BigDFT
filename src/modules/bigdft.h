@@ -72,7 +72,7 @@ struct _BigDFT_Atoms
   double *radii_cf, *amu, *aocc, *psppar, *nlccpar, *ig_nlccpar;
 
   /* Coordinates. */
-  f90_pointer_double_2D rxyz;
+  double *rxyz;
   double shift[3];
 
   /* Additional fields. */
@@ -80,6 +80,7 @@ struct _BigDFT_Atoms
   double energy;
 
   /* Private. */
+  _atomic_structure *astruct;
   _atoms_data *data;
   _symmetry_data *sym;
 };
