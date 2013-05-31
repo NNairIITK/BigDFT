@@ -1642,12 +1642,16 @@ subroutine switch_axes(n_phi,nrange_phi,phi_ISF,centre_old,hgrids_old,ndims_old,
      !theta = 180 => y -> -y, z -> -z
      else if (discrete_op=='x2') then
         !shift so that centre is on a grid point: +1 to account for the fact that point 1 corresponds to x=0.0
-        icentre(1)=0
+        icentre_old(1)=0
         da(1)=0.0_gp
-        icentre(2)=nint(centre_old(2)/hgrids_old(2))+1
-        da(2)=real((icentre(2)-1)*hgrids_old(2),gp)-centre_old(2)
-        icentre(3)=nint(centre_old(3)/hgrids_old(3))+1
-        da(3)=real((icentre(3)-1)*hgrids_old(3),gp)-centre_old(3)
+        icentre_old(2)=nint(centre_old(2)/hgrids_old(2))+1
+        da(2)=real((icentre_old(2)-1)*hgrids_old(2),gp)-centre_old(2)
+        icentre_old(3)=nint(centre_old(3)/hgrids_old(3))+1
+        da(3)=real((icentre_old(3)-1)*hgrids_old(3),gp)-centre_old(3)
+
+        icentre_new(1)=0
+        icentre_new(2)=ndims_old(2)-icentre_old(2)+1
+        icentre_new(3)=ndims_old(3)-icentre_old(3)+1
 
 print*,'da',da
 
@@ -1662,28 +1666,28 @@ print*,'da',da
 
         ! switch axes so that y -> -y and z -> -z
         do i=1,ndims_old(2)
-           ipos=i-icentre(2)
-           if (-ipos+icentre(2)>=1.and.-ipos+icentre(2)<=ndims_old(2)) then
-              f_tmp2(:,i,:)=f_tmp(:,-ipos+icentre(2),:)
+           ipos=i-icentre_new(2)
+           if (-ipos+icentre_old(2)>=1.and.-ipos+icentre_old(2)<=ndims_old(2)) then
+              f_tmp2(:,i,:)=f_tmp(:,-ipos+icentre_old(2),:)
            else
               f_tmp2(:,i,:)=0.0_gp
            end if
         end do
 
         do i=1,ndims_old(3)
-           ipos=i-icentre(3)
-           if (-ipos+icentre(3)>=1.and.-ipos+icentre(3)<=ndims_old(3)) then
-              f_new(:,:,i)=f_tmp2(:,:,-ipos+icentre(3))
+           ipos=i-icentre_new(3)
+           if (-ipos+icentre_old(3)>=1.and.-ipos+icentre_old(3)<=ndims_old(3)) then
+              f_new(:,:,i)=f_tmp2(:,:,-ipos+icentre_old(3))
            else
               f_new(:,:,i)=0.0_gp
            end if
         end do
 
         ! correct the shift to be done afterwards
-        da_global=da_global-da!-(icentre_new-icentre_old)
+        da_global=da_global-da-(icentre_new-icentre_old)
 
         ! correct centre_old as well ?!  - check when you have a non-zero rotation after!
-        centre_old=centre_old+da
+        centre_old=centre_old+da+(icentre_new-icentre_old)
 
      !theta = -90 => y -> z, z -> -y
      else if (discrete_op=='x3') then
