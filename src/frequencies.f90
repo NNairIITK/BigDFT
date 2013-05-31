@@ -61,7 +61,7 @@ program frequencies
    real(gp), dimension(6) :: strten
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
    integer :: k,km,ii,jj,ik,imoves,order,n_order
-   integer :: iproc,nproc,igroup,ngroups
+   integer :: iproc,nproc,igroup,ngroups,icalc
    integer :: iat,jat,i,j,i_stat,i_all,ierr,infocode,ity,nconfig
    logical :: exists
    integer, dimension(4) :: mpi_info
@@ -141,6 +141,9 @@ program frequencies
    freq_step(3) = inputs%freq_alpha*inputs%hz
 
    call init_restart_objects(bigdft_mpi%iproc,inputs,atoms,rst,subname)
+
+   !Determination of the calculation id
+   icalc=0
 
    !Initialize the moves using a restart file if present
    call frequencies_read_restart(atoms%nat,n_order,imoves,moves,energies,forces,freq_step,atoms%amu,etot)
@@ -428,11 +431,11 @@ program frequencies
 
    call bigdft_free_input(inputs)
 
-
-
    call bigdft_finalize(ierr)
 
+
    contains
+
 
    subroutine solve(hessian,n,eigen_r,eigen_i,vector_l,vector_r)
       implicit none
