@@ -269,7 +269,7 @@ subroutine astruct_set_n_atoms(astruct, nat, subname)
   !RULE natpol=charge*1000 + 100 + spinpol
   astruct%input_polarization(:)=100
 
-  call to_zero(3 * astruct%nat, astruct%rxyz(1,1))
+  if (astruct%nat > 0) call to_zero(3 * astruct%nat, astruct%rxyz(1,1))
 END SUBROUTINE astruct_set_n_atoms
 
 subroutine allocate_atoms_ntypes(atoms, subname)

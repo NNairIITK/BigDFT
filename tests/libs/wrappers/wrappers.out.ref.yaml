@@ -443,12 +443,12 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -9.70753059E-03, y: -1.18860166E-04, z:  4.76523410E-05, 
                     total:  9.70837518E-03}
- Clean forces norm (Ha/Bohr): {maxval:  6.265724897938E+00, fnrm2:  7.834676719181E+01}
+ Clean forces norm (Ha/Bohr): {maxval:  6.265724897938E+00, fnrm2:  7.834676717704E+01}
  Raw forces norm (Ha/Bohr): {maxval:  6.265724896872E+00, fnrm2:  7.834676720593E+01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
  -  {C: [-6.265724896751E+00,  1.215276875665E-04,  1.072713576278E-05]} # 0001
- -  {O: [ 6.251996375333E+00, -1.215276875665E-04,  5.666345115429E-05]} # 0002
+ -  {O: [ 6.251996375333E+00,  0.000000000000E+00,  5.666345115429E-05]} # 0002
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  23.88

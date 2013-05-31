@@ -1243,10 +1243,15 @@ contains
  
   pure function symm_null() result(sym)
      type(symmetry_data) :: sym
-     sym%symObj=-1
-     nullify(sym%irrzon)
-     nullify(sym%phnons)
+     call nullify_symm(sym)
   end function symm_null
+
+  pure subroutine nullify_symm(sym)
+    type(symmetry_data), intent(out) :: sym
+    sym%symObj=-1
+    nullify(sym%irrzon)
+    nullify(sym%phnons)
+  end subroutine nullify_symm
 
   function atoms_null() result(at)
      type(atoms_data) :: at
@@ -1281,21 +1286,26 @@ contains
 
   pure function atomic_structure_null() result(astruct)
      type(atomic_structure) :: astruct
-     astruct%geocode='X'
-     astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
-     astruct%units=repeat(' ',len(astruct%units))
-     astruct%nat=-1
-     astruct%ntypes=-1
-     astruct%cell_dim(1)=0.0_gp
-     astruct%cell_dim(2)=0.0_gp
-     astruct%cell_dim(3)=0.0_gp
-     nullify(astruct%input_polarization)
-     nullify(astruct%ifrztyp)
-     nullify(astruct%atomnames)
-     nullify(astruct%iatype)
-     nullify(astruct%rxyz)
-     astruct%sym=symm_null()
+     call nullify_atomic_structure(astruct)
   end function atomic_structure_null
+
+  pure subroutine nullify_atomic_structure(astruct)
+    type(atomic_structure), intent(out) :: astruct
+    astruct%geocode='X'
+    astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
+    astruct%units=repeat(' ',len(astruct%units))
+    astruct%nat=-1
+    astruct%ntypes=-1
+    astruct%cell_dim(1)=0.0_gp
+    astruct%cell_dim(2)=0.0_gp
+    astruct%cell_dim(3)=0.0_gp
+    nullify(astruct%input_polarization)
+    nullify(astruct%ifrztyp)
+    nullify(astruct%atomnames)
+    nullify(astruct%iatype)
+    nullify(astruct%rxyz)
+    call nullify_symm(astruct%sym)
+  end subroutine nullify_atomic_structure
 
   function bigdft_run_id_toa()
     use yaml_output

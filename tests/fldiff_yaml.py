@@ -166,17 +166,23 @@ def compare_scl(scl, ref, tols, always_fails = False):
   global failed_checks,discrepancy,biggest_tol
   failed = always_fails
   ret = (failed, None)
-  #print scl,ref,tols
+  #print scl,ref,tols, type(ref), type(scl)
 #eliminate the character variables
   if type(ref) == type(""):
     if not(scl == ref):
       ret = (True, scl)
   elif not(always_fails):
-    if tols is None:
-      failed = not(math.fabs(scl - ref) <= epsilon)
+    # infinity case
+    if scl == ref:
+      failed = False
+      diff = 0.
     else:
-      failed = not(math.fabs(scl - ref) <= tols) 
-    discrepancy=max(discrepancy,math.fabs(scl - ref))
+      diff = math.fabs(scl - ref)
+      if tols is None:
+        failed = not(diff <= epsilon)
+      else:
+        failed = not(diff <= tols)
+    discrepancy=max(discrepancy,diff)
 #    if (discrepancy > 1.85e-9):
 #    print 'test',scl,ref,tols,discrepancy,failed
 #      sys.exit(1)

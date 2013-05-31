@@ -407,16 +407,22 @@ contains
     nullify(frag%rxyz_env)
     frag%nksorb=0
     nullify(frag%coeff)
-    frag%astruct_frg=atomic_structure_null()
+    call nullify_atomic_structure(frag%astruct_frg)
 
     ! nullify fragment basis
-    frag%fbasis=fragment_basis_null()
+    call nullify_fragment_basis(frag%fbasis)
 
   end function fragment_null
 
   pure function fragment_basis_null() result(basis)
     implicit none
     type(fragment_basis) :: basis
+    call nullify_fragment_basis(basis)
+  end function fragment_basis_null
+
+  pure subroutine nullify_fragment_basis(basis)
+    implicit none
+    type(fragment_basis), intent(out) :: basis
 
     basis%npsidim_orbs=0
     basis%npsidim_comp=0
@@ -425,7 +431,7 @@ contains
     !basis%forbs=minimal_orbitals_data_null()
     nullify(basis%psi_full)
     nullify(basis%phi)
-  end function fragment_basis_null
+  end subroutine nullify_fragment_basis
 
   subroutine minimal_orbitals_data_free(forbs)
     implicit none
@@ -460,11 +466,6 @@ contains
     subname='fragment_free'
 
     call deallocate_atomic_structure(frag%astruct_frg,subname) 
-    if (associated(frag%astruct_frg%rxyz)) then
-       i_all=-product(shape(frag%astruct_frg%rxyz))*kind(frag%astruct_frg%rxyz)
-       deallocate(frag%astruct_frg%rxyz,stat=i_stat)
-       call memocc(i_stat,i_all,'frag%astruct_frg%rxyz',subname)
-    end if
     frag%astruct_frg=atomic_structure_null()
     call f_routine(id='fragment_free')
     if (associated(frag%rxyz_env)) call f_free_ptr(frag%rxyz_env)

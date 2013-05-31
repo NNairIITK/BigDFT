@@ -23,8 +23,11 @@ int main(int argc, const char **argv)
   atoms->iatype[0] = 1;
   atoms->iatype[1] = 2;
   atoms->rxyz[3] = 1.23;
+  atoms->ifrztyp[1] = 2;
+  atoms->natpol[0] = 99;
+  atoms->natpol[1] = 101;
   bigdft_atoms_set_geometry(atoms, 'S', alat, "bohr");
-  if (iproc == 0) bigdft_atoms_write(atoms, "posinp", "xyz");
+  if (iproc == 0) bigdft_atoms_write(atoms, "posinp", "yaml");
 
   ins = bigdft_inputs_new("truc", iproc);
 
