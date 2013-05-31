@@ -5,6 +5,7 @@
 #include "bindings_api.h"
 
 #include <string.h>
+#include <stdio.h>
 
 static void _free_names(BigDFT_Inputs *in)
 {
@@ -98,25 +99,19 @@ static void bigdft_inputs_dispose(BigDFT_Inputs *in)
  * 
  * Returns: (transfer full): a new structure.
  */
-BigDFT_Inputs* bigdft_inputs_new(const gchar *naming, guint iproc)
+BigDFT_Inputs* bigdft_inputs_new(const gchar *naming, guint nproc)
 {
   BigDFT_Inputs *in;
-  int len;
   gchar file_dft[100], file_geopt[100], file_kpt[100], file_perf[100], file_tddft[100], file_mix[100],
     file_sic[100], file_occnum[100], file_igpop[100], file_lin[100], run_name[100];
 
   in = bigdft_inputs_init();
   FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data);
   if (naming && naming[0])
-    {
-      len = strlen(naming);
-      FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, naming, (int*)&iproc, len);
-    }
+    FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, naming, (int*)&nproc, strlen(naming));
   else
-    {
-      len = 1;
-      FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, " ", (int*)&iproc, 1);
-    }
+    FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, " ", (int*)&nproc, 1);
+  fprintf(stderr, "done %d\n", nproc);
   /* Get naming schemes. */
   _free_names(in);
   FC_FUNC_(inputs_get_naming, INPUTS_GET_NAMING)(in->data, run_name, file_dft, file_geopt, file_kpt,

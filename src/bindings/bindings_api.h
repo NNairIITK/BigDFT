@@ -3,7 +3,7 @@
 
 #undef hz
 
-/* atoms_get_amu src/init/atoms.f90:1858 */
+/* atoms_get_amu src/init/atoms.f90:1866 */
 /* Fortran header:
 subroutine atoms_get_amu(atoms, amu)
 use module_types
@@ -13,7 +13,7 @@ real(gp), dimension(:), pointer :: amu
 */
 void FC_FUNC_(atoms_get_amu, ATOMS_GET_AMU)(const _atoms_data *atoms, 
                                             f90_pointer_double *amu);
-/* atoms_get_aocc src/init/atoms.f90:1868 */
+/* atoms_get_aocc src/init/atoms.f90:1876 */
 /* Fortran header:
 subroutine atoms_get_aocc(atoms, aocc)
 use module_types
@@ -53,7 +53,7 @@ integer, dimension(:), pointer :: ifrztyp
 */
 void FC_FUNC_(atoms_get_ifrztyp, ATOMS_GET_IFRZTYP)(const _atoms_data *atoms, 
                                                     f90_pointer_int *ifrztyp);
-/* atoms_get_ig_nlccpar src/init/atoms.f90:1909 */
+/* atoms_get_ig_nlccpar src/init/atoms.f90:1917 */
 /* Fortran header:
 subroutine atoms_get_ig_nlccpar(atoms, ig_nlccpar)
 use module_types
@@ -63,7 +63,7 @@ real(gp), dimension(:,:), pointer :: ig_nlccpar
 */
 void FC_FUNC_(atoms_get_ig_nlccpar, ATOMS_GET_IG_NLCCPAR)(const _atoms_data *atoms, 
                                                           f90_pointer_double_2D *ig_nlccpar);
-/* atoms_get_ixcpsp src/init/atoms.f90:1850 */
+/* atoms_get_ixcpsp src/init/atoms.f90:1858 */
 /* Fortran header:
 subroutine atoms_get_ixcpsp(atoms, ixcpsp)
 use module_types
@@ -83,7 +83,7 @@ integer, dimension(:), pointer :: natpol
 */
 void FC_FUNC_(atoms_get_natpol, ATOMS_GET_NATPOL)(const _atoms_data *atoms, 
                                                   f90_pointer_int *natpol);
-/* atoms_get_nelpsp src/init/atoms.f90:1810 */
+/* atoms_get_nelpsp src/init/atoms.f90:1818 */
 /* Fortran header:
 subroutine atoms_get_nelpsp(atoms, nelpsp)
 use module_types
@@ -93,7 +93,7 @@ integer, dimension(:), pointer :: nelpsp
 */
 void FC_FUNC_(atoms_get_nelpsp, ATOMS_GET_NELPSP)(const _atoms_data *atoms, 
                                                   f90_pointer_int *nelpsp);
-/* atoms_get_nlcc_ngc src/init/atoms.f90:1842 */
+/* atoms_get_nlcc_ngc src/init/atoms.f90:1850 */
 /* Fortran header:
 subroutine atoms_get_nlcc_ngc(atoms, nlcc_ngc)
 use module_types
@@ -103,7 +103,7 @@ integer, dimension(:), pointer :: nlcc_ngc
 */
 void FC_FUNC_(atoms_get_nlcc_ngc, ATOMS_GET_NLCC_NGC)(const _atoms_data *atoms, 
                                                       f90_pointer_int *nlcc_ngc);
-/* atoms_get_nlcc_ngv src/init/atoms.f90:1834 */
+/* atoms_get_nlcc_ngv src/init/atoms.f90:1842 */
 /* Fortran header:
 subroutine atoms_get_nlcc_ngv(atoms, nlcc_ngv)
 use module_types
@@ -113,7 +113,7 @@ integer, dimension(:), pointer :: nlcc_ngv
 */
 void FC_FUNC_(atoms_get_nlcc_ngv, ATOMS_GET_NLCC_NGV)(const _atoms_data *atoms, 
                                                       f90_pointer_int *nlcc_ngv);
-/* atoms_get_nlccpar src/init/atoms.f90:1899 */
+/* atoms_get_nlccpar src/init/atoms.f90:1907 */
 /* Fortran header:
 subroutine atoms_get_nlccpar(atoms, nlccpar)
 use module_types
@@ -123,7 +123,7 @@ real(gp), dimension(:,:), pointer :: nlccpar
 */
 void FC_FUNC_(atoms_get_nlccpar, ATOMS_GET_NLCCPAR)(const _atoms_data *atoms, 
                                                     f90_pointer_double_2D *nlccpar);
-/* atoms_get_npspcode src/init/atoms.f90:1818 */
+/* atoms_get_npspcode src/init/atoms.f90:1826 */
 /* Fortran header:
 subroutine atoms_get_npspcode(atoms, npspcode)
 use module_types
@@ -133,7 +133,7 @@ integer, dimension(:), pointer :: npspcode
 */
 void FC_FUNC_(atoms_get_npspcode, ATOMS_GET_NPSPCODE)(const _atoms_data *atoms, 
                                                       f90_pointer_int *npspcode);
-/* atoms_get_nzatom src/init/atoms.f90:1826 */
+/* atoms_get_nzatom src/init/atoms.f90:1834 */
 /* Fortran header:
 subroutine atoms_get_nzatom(atoms, nzatom)
 use module_types
@@ -143,7 +143,7 @@ integer, dimension(:), pointer :: nzatom
 */
 void FC_FUNC_(atoms_get_nzatom, ATOMS_GET_NZATOM)(const _atoms_data *atoms, 
                                                   f90_pointer_int *nzatom);
-/* atoms_get_psppar src/init/atoms.f90:1889 */
+/* atoms_get_psppar src/init/atoms.f90:1897 */
 /* Fortran header:
 subroutine atoms_get_psppar(atoms, psppar)
 use module_types
@@ -153,7 +153,7 @@ real(gp), dimension(:,:,:), pointer :: psppar
 */
 void FC_FUNC_(atoms_get_psppar, ATOMS_GET_PSPPAR)(const _atoms_data *atoms, 
                                                   f90_pointer_double_3D *psppar);
-/* atoms_get_radii_cf src/init/atoms.f90:1879 */
+/* atoms_get_radii_cf src/init/atoms.f90:1887 */
 /* Fortran header:
 subroutine atoms_get_radii_cf(atoms, radii_cf)
 use module_types
@@ -163,6 +163,16 @@ real(gp), dimension(:,:), pointer :: radii_cf
 */
 void FC_FUNC_(atoms_get_radii_cf, ATOMS_GET_RADII_CF)(const _atoms_data *atoms, 
                                                       f90_pointer_double_2D *radii_cf);
+/* atoms_get_rxyz src/init/atoms.f90:1810 */
+/* Fortran header:
+subroutine atoms_get_rxyz(atoms, rxyz)
+use module_types
+implicit none
+type(atoms_data), intent(in) :: atoms
+real(gp), dimension(:,:), pointer :: rxyz
+*/
+void FC_FUNC_(atoms_get_rxyz, ATOMS_GET_RXYZ)(const _atoms_data *atoms, 
+                                              f90_pointer_double_2D *rxyz);
 /* localfields_get_rhov src/bindings/bindingsf.f90:937 */
 /* Fortran header:
 subroutine localfields_get_rhov(denspot, rhov)
@@ -315,7 +325,7 @@ void FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(const int *iproc,
                                              const _atoms_data *atoms, 
                                              const double *rxyz, 
                                              _DFT_local_fields *denspot);
-/* astruct_copy_alat src/init/atoms.f90:1971 */
+/* astruct_copy_alat src/init/atoms.f90:1979 */
 /* Fortran header:
 subroutine astruct_copy_alat(astruct, alat)
 use module_types
@@ -325,7 +335,7 @@ real(gp), intent(out) :: alat(3)
 */
 void FC_FUNC_(astruct_copy_alat, ASTRUCT_COPY_ALAT)(const _atomic_structure *astruct, 
                                                     double *alat);
-/* astruct_copy_geometry_data src/init/atoms.f90:1919 */
+/* astruct_copy_geometry_data src/init/atoms.f90:1927 */
 /* Fortran header:
 subroutine astruct_copy_geometry_data(astruct, geocode, format, units)
 use module_types
@@ -342,7 +352,7 @@ void FC_FUNC_(astruct_copy_geometry_data, ASTRUCT_COPY_GEOMETRY_DATA)(const _ato
                                                                       int str_ln_1, 
                                                                       int str_ln_2, 
                                                                       int str_ln_3);
-/* astruct_copy_name src/init/atoms.f90:1945 */
+/* astruct_copy_name src/init/atoms.f90:1953 */
 /* Fortran header:
 subroutine astruct_copy_name(astruct, ityp, name, ln)
 use module_types
@@ -486,7 +496,7 @@ void FC_FUNC_(astruct_set_symmetries, ASTRUCT_SET_SYMMETRIES)(_atomic_structure 
                                                               const double *tol, 
                                                               const double *elecfield);
 /* atoms_copy_alat  */
-/* atoms_copy_psp_data src/init/atoms.f90:1933 */
+/* atoms_copy_psp_data src/init/atoms.f90:1941 */
 /* Fortran header:
 subroutine atoms_copy_psp_data(atoms, natsc, donlcc)
 use module_types
@@ -617,7 +627,7 @@ integer, intent(in) :: igroup, ngroup
 void FC_FUNC_(bigdft_init_mpi_force, BIGDFT_INIT_MPI_FORCE)(const int *igroup, 
                                                             const int *ngroup);
 /* bigdft_mpi_init  */
-/* bigdft_set_input src/input_variables.f90:16 */
+/* bigdft_set_input src/input_variables.f90:16 src/input_variables.f90.~1~:16 */
 /* Fortran header:
 subroutine bigdft_set_input(radical,posinp,in,atoms)
 use module_base
@@ -705,7 +715,7 @@ implicit none
 integer, intent(in) :: unitwf
 */
 void FC_FUNC_(close_file, CLOSE_FILE)(const int *unitwf);
-/* create_dir_output src/input_variables.f90:303 */
+/* create_dir_output src/input_variables.f90:303 src/input_variables.f90.~1~:303 */
 /* Fortran header:
 subroutine create_dir_output(iproc, in)
 use yaml_output
@@ -1842,7 +1852,7 @@ void FC_FUNC_(kswfn_mpi_copy, KSWFN_MPI_COPY)(double *psic,
                                               const int *jproc, 
                                               const int *psiStart, 
                                               const int *psiSize);
-/* kswfn_optimization_loop src/cluster.f90:1391 */
+/* kswfn_optimization_loop src/cluster.f90:1389 */
 /* Fortran header:
 subroutine kswfn_optimization_loop(iproc, nproc, opt,  alphamix, idsx, inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr,  in)
 use module_base
@@ -1887,7 +1897,7 @@ void FC_FUNC_(kswfn_optimization_loop, KSWFN_OPTIMIZATION_LOOP)(const int *iproc
                                                                 _GPU_pointers *GPU, 
                                                                 double *xcstr, 
                                                                 const _input_variables *in);
-/* kswfn_post_treatments src/cluster.f90:1775 */
+/* kswfn_post_treatments src/cluster.f90:1773 */
 /* Fortran header:
 subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear,  fxyz, fnoise, fion, fdisp, fpulay,  strten, pressure, ewaldstr, xcstr,  GPU, energs, denspot, atoms, rxyz, nlpspd, proj,  output_denspot, dir_output, gridformat, refill_proj, calculate_dipole)
 use module_base
@@ -2669,7 +2679,7 @@ implicit none
 type(run_objects), pointer :: runObj
 */
 void FC_FUNC_(run_objects_new, RUN_OBJECTS_NEW)(_run_objects **runObj);
-/* standard_inputfile_names src/input_variables.f90:225 */
+/* standard_inputfile_names src/input_variables.f90:225 src/input_variables.f90.~1~:225 */
 /* Fortran header:
 subroutine standard_inputfile_names(in, radical, nproc)
 use module_types
@@ -2685,7 +2695,7 @@ void FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(_input_variabl
                                                                   const char *radical, 
                                                                   const int *nproc, 
                                                                   int str_ln_1);
-/* symmetry_set_irreductible_zone src/init/atoms.f90:1982 */
+/* symmetry_set_irreductible_zone src/init/atoms.f90:1990 */
 /* Fortran header:
 subroutine symmetry_set_irreductible_zone(sym, geocode, n1i, n2i, n3i, nspin)
 use module_base

@@ -29,7 +29,7 @@ int main(int argc, const char **argv)
   bigdft_atoms_set_geometry(atoms, 'S', alat, "bohr");
   if (iproc == 0) bigdft_atoms_write(atoms, "posinp", "yaml");
 
-  ins = bigdft_inputs_new("truc", iproc);
+  ins = bigdft_inputs_new("truc", nproc);
 
   run = bigdft_run_new_from_objects(atoms, ins, NULL, iproc);
   bigdft_inputs_unref(ins);

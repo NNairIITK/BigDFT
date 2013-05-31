@@ -176,7 +176,7 @@ GType          bigdft_inputs_get_type         (void);
 #endif
 BigDFT_Inputs* bigdft_inputs_ref              (BigDFT_Inputs *in);
 void           bigdft_inputs_unref            (BigDFT_Inputs *in);
-BigDFT_Inputs* bigdft_inputs_new              (const gchar *naming, guint iproc);
+BigDFT_Inputs* bigdft_inputs_new              (const gchar *naming, guint nproc);
 void           bigdft_inputs_free             (BigDFT_Inputs *in);
 void           bigdft_inputs_parse            (BigDFT_Inputs *in, guint iproc, gboolean dump);
 void           bigdft_inputs_parse_additional (BigDFT_Inputs *in, BigDFT_Atoms *atoms,
