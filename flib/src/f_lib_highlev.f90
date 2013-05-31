@@ -31,8 +31,9 @@ end subroutine f_lib_initialize
 !>routine which finalize f_lib 
 subroutine f_lib_finalize()
   use dictionaries
+  use dynamic_memory
   implicit none
-
+  call f_malloc_finalize()
   call f_err_finalize()
 end subroutine f_lib_finalize
 

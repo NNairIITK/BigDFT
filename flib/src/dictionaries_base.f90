@@ -177,8 +177,8 @@ contains
   !! this routine is only useful for its interface
   pure subroutine set_field(input,output)
     implicit none
-    character(len=*), intent(in) :: input !intent eliminated
-    character(len=max_field_length), intent(out) :: output !intent eliminated
+    character(len=*), intent(in) :: input 
+    character(len=max_field_length), intent(out) :: output 
     !local variables
     integer :: ipos,i
 
@@ -299,7 +299,6 @@ contains
 
     !!commented out, the key is checked only when retrieving
     !call check_key(dict)
-
     if (associated(dict%child)) then
        subd_ptr => get_dict_ptr(dict%child,key)
     else
@@ -398,8 +397,26 @@ contains
 
     storage_data=storage_null()
 
-    storage_data%key(1:max_field_length)=key
-    storage_data%value(1:max_field_length)=val
+    call set_field(key,storage_data%key)
+    call set_field(val,storage_data%value)
+
   end function storage_data
+
+  !test to see the g95 behaviour
+  pure function stored_key(st) result(key)
+    implicit none
+    type(storage), intent(in) :: st
+    character(len=max_field_length) :: key
+    call get_field(st%key,key)
+  end function stored_key
+
+    !test to see the g95 behaviour
+  pure function stored_value(st) result(val)
+    implicit none
+    type(storage), intent(in) :: st
+    character(len=max_field_length) :: val
+    call get_field(st%value,val)
+  end function stored_value
+
 
 end module dictionaries_base

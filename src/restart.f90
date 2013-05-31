@@ -2237,13 +2237,15 @@ call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
   call system_clock(ncount2,ncount_rate,ncount_max)
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
 
-  if (iproc == 0) call yaml_open_sequence('Reading Waves Time')
-  call yaml_sequence(advance='no')
-  call yaml_open_map(flow=.true.)
+  if (iproc == 0) then
+     call yaml_open_sequence('Reading Waves Time')
+     call yaml_sequence(advance='no')
+     call yaml_open_map(flow=.true.)
      call yaml_map('Process',iproc)
      call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
-  call yaml_close_map()
-  if (iproc == 0) call yaml_close_sequence()
+     call yaml_close_map()
+     call yaml_close_sequence()
+  end if
   !write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 
 END SUBROUTINE readmywaves_linear_new

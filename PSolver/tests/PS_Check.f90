@@ -323,7 +323,7 @@ program PS_Check
    !&   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', pkernel%iproc,tel,tcpu1-tcpu0
    
    call f_release_routine()
-   call f_finalize()
+   call f_lib_finalize()
    if (iproc==0) then
       call yaml_release_document()
       call yaml_close_all_streams()

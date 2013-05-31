@@ -648,7 +648,7 @@ program memguess
       call deprecation_message()
    end if
 
-   call f_finalize()
+   call f_lib_finalize()
 
 END PROGRAM memguess
 

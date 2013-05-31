@@ -2698,50 +2698,7 @@ module module_interfaces
       implicit none
       type(communications_arrays),intent(out):: comms
     end subroutine nullify_communications_arrays
-    
-    subroutine nullify_locreg_descriptors(lr)
-      use module_base
-      use module_types
-      implicit none
-      type(locreg_descriptors),intent(out):: lr
-    end subroutine nullify_locreg_descriptors
-    
-    subroutine nullify_wavefunctions_descriptors(wfd)
-      use module_base
-      use module_types
-      implicit none
-      type(wavefunctions_descriptors),intent(out):: wfd
-    end subroutine nullify_wavefunctions_descriptors
-    
-    subroutine nullify_convolutions_bounds(bounds)
-      use module_base
-      use module_types
-      implicit none
-      type(convolutions_bounds),intent(out):: bounds
-    end subroutine nullify_convolutions_bounds
-    
-    subroutine nullify_kinetic_bounds(kb)
-      use module_base
-      use module_types
-      implicit none
-      type(kinetic_bounds),intent(out):: kb
-    end subroutine nullify_kinetic_bounds
-    
-    subroutine nullify_shrink_bounds(sb)
-      use module_base
-      use module_types
-      implicit none
-      type(shrink_bounds),intent(out):: sb
-    end subroutine nullify_shrink_bounds
-    
-    subroutine nullify_grow_bounds(gb)
-      use module_base
-      use module_types
-      implicit none
-      type(grow_bounds),intent(out):: gb
-    end subroutine nullify_grow_bounds
-    
-
+        
     subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locregShape, lborbs)
       use module_base
       use module_types

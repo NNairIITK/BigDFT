@@ -94,7 +94,7 @@ subroutine bigdft_free_input(in)
   type(input_variables), intent(inout) :: in
   
   call free_input_variables(in)
-  call f_finalize()
+  call f_lib_finalize()
   !finalize memory counting
   !call memocc(0,0,'count','stop')
   !free all yaml_streams active

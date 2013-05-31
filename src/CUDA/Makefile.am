@@ -12,7 +12,6 @@ EXTRA_DIST = Makefile.standalone \
 if USE_CUDA_GPU
 sources = binding_s_gpu.c \
 	commonDef.cpp commonDef.h \
-	fortran.c \
 	cudafct.cu \
 	locham.cu \
 	kernels_anasyn.hcu \

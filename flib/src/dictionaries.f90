@@ -17,7 +17,7 @@ module dictionaries
 
   private
 
-  type :: dictionary_container
+  type, public :: dictionary_container !>public only due to the fact that some functions are public
      character(len=max_field_length) :: val=' '
      type(dictionary), pointer :: dict => null()
   end type dictionary_container
@@ -50,7 +50,7 @@ module dictionaries
   end interface
 
   interface add
-     module procedure add_char,add_dict,add_integer!,add_real,add_double,add_long
+     module procedure add_char,add_dict,add_integer,add_real,add_double,add_long
   end interface
 
   interface dict_new
@@ -194,65 +194,43 @@ contains
     end subroutine pop_dict_
   end subroutine pop_dict
 
-  !> assign the value to the dictionary
+  !> add to a list
   subroutine add_char(dict,val)
     implicit none
     type(dictionary), pointer :: dict
     character(len=*), intent(in) :: val
-    !local variables
-    integer :: length,isize
-    
-    isize=dict_size(dict)
-    length=dict_len(dict)
-
-    if (f_err_raise(isize > 0,'Add not allowed for this node',&
-         err_id=DICT_INVALID_LIST)) return
-    if (f_err_raise(length == -1,'Add not allowed for this node',&
-         err_id=DICT_INVALID)) return
-
-    call set(dict//length,trim(val))
-
+    include 'dict_add-inc.f90'
   end subroutine add_char
-
-  !> assign the value to the dictionary
-  subroutine add_dict(dict,dict_item)
+  subroutine add_dict(dict,val)
     implicit none
     type(dictionary), pointer :: dict
-    type(dictionary), pointer :: dict_item
-    !local variables
-    integer :: length,isize
-    
-    isize=dict_size(dict)
-    length=dict_len(dict)
-
-    if (f_err_raise(isize > 0,'Add not allowed for this node',&
-         err_id=DICT_INVALID_LIST)) return
-    if (f_err_raise(length == -1,'Add not allowed for this node',&
-         err_id=DICT_INVALID)) return
-
-    call set(dict//length,dict_item)
-
+    type(dictionary), pointer :: val
+    include 'dict_add-inc.f90'
   end subroutine add_dict
-
-  !> assign the value to the dictionary
   subroutine add_integer(dict,val)
     implicit none
     type(dictionary), pointer :: dict
     integer, intent(in) :: val
-    !local variables
-    integer :: length,isize
-    
-    isize=dict_size(dict)
-    length=dict_len(dict)
-
-    if (f_err_raise(isize > 0,'Add not allowed for this node',&
-         err_id=DICT_INVALID_LIST)) return
-    if (f_err_raise(length == -1,'Add not allowed for this node',&
-         err_id=DICT_INVALID)) return
-
-    call set(dict//length,val)
-
+    include 'dict_add-inc.f90'
   end subroutine add_integer
+  subroutine add_real(dict,val)
+    implicit none
+    type(dictionary), pointer :: dict
+    real, intent(in) :: val
+    include 'dict_add-inc.f90'
+  end subroutine add_real
+  subroutine add_double(dict,val)
+    implicit none
+    type(dictionary), pointer :: dict
+    double precision, intent(in) :: val
+    include 'dict_add-inc.f90'
+  end subroutine add_double
+  subroutine add_long(dict,val)
+    implicit none
+    type(dictionary), pointer :: dict
+    integer(kind=8), intent(in) :: val
+    include 'dict_add-inc.f90'
+  end subroutine add_long
 
   !defines a dictionary from a array of storage data
   function dict_new(st_arr)
@@ -261,16 +239,17 @@ contains
     !local variables
     integer :: i_st,n_st
     character(len=max_field_length) :: key,val
+    type(dictionary), pointer :: dict_tmp
 
     !initialize dictionary
-    call dict_init(dict_new)
-    
+    call dict_init(dict_tmp)
     n_st=size(st_arr)
     do i_st=1,n_st
-       key=st_arr(i_st)%key
-       val=st_arr(i_st)%value
-       call set(dict_new//key,val)
+       call set(dict_tmp//trim(st_arr(i_st)%key),&
+            trim(st_arr(i_st)%value))
     end do
+
+    dict_new => dict_tmp
 
   end function dict_new
 
@@ -280,16 +259,22 @@ contains
     type(dictionary), pointer :: dict_new_single
     !local variables
     character(len=max_field_length) :: key,val
+    type(dictionary), pointer :: dict_tmp
+
+    !nullify(dict_new_single)
 
     !initialize dictionary
-    call dict_init(dict_new_single)
-    
+    call dict_init(dict_tmp)
+    !call dictionary_nullify(dict_new_single)
+
     if (present(st)) then
        key=st%key
        val=st%value
-       call set(dict_new_single//key,val)
+       call set(dict_tmp//trim(key),trim(val))
     end if
     
+    dict_new_single => dict_tmp
+
   end function dict_new_single
 
 
@@ -516,8 +501,7 @@ contains
     type(dictionary), pointer :: dict
     type(dictionary), pointer :: subd
 
-    !TEST
-!if the dictionary starts with a master tree, eliminate it and put the child
+    !if the dictionary starts with a master tree, eliminate it and put the child
     if (.not. associated(subd%parent)) then
        call put_child(dict,subd%child)
        nullify(subd%child)
@@ -534,8 +518,12 @@ contains
        call dict_free(dict%child)
     end if
     dict%child=>subd
+    !inherit the number of elements or items from subd's parent
+    !which is guaranteed to be associated
+    dict%data%nelems=subd%parent%data%nelems
+    dict%data%nitems=subd%parent%data%nitems
     call define_parent(dict,dict%child)
-    dict%data%nelems=dict%data%nelems+1
+
   end subroutine put_child
 
   !> append another dictionary
@@ -658,18 +646,21 @@ contains
     !local variables
     integer :: i_st,n_st
     character(len=max_field_length) :: key,val
+    type(dictionary), pointer :: dict_tmp
 
     !initialize dictionary
-    call dict_init(list_new)
+    call dict_init(dict_tmp)
     
     n_st=size(dicts)
     do i_st=1,n_st
        if (associated(dicts(i_st)%dict)) then
-          call add(list_new,dicts(i_st)%dict)
+          call add(dict_tmp,dicts(i_st)%dict)
        else if (len_trim(dicts(i_st)%val) > 0) then
-          call add(list_new,dicts(i_st)%val)
+          call add(dict_tmp,dicts(i_st)%val)
        end if
     end do
+
+    list_new => dict_tmp
 
   end function list_new
 
@@ -692,18 +683,9 @@ contains
   subroutine get_dict(dictval,dict)
     implicit none
     type(dictionary), pointer, intent(out) :: dictval
-    type(dictionary), target, intent(in) :: dict
+    type(dictionary), pointer, intent(in) :: dict
 
-    if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
-    !call check_key(dict)
-    
-    !if (associated(dict%child)) then
-    !   dictval=>dict%child
-!    if (associated(dict)) then
-       dictval=>dict
-!    else
-!       nullify(dictval)
-!    end if
+    dictval=>dict
 
   end subroutine get_dict
 
