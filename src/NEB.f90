@@ -549,7 +549,7 @@ MODULE NEB_routines
       if (.not. external_call) then
          call free_restart_objects(rst,"deallocation")
          call yaml_set_stream(unit = 6, istat = ierr)
-         call f_finalize()
+         call f_lib_finalize()
          call yaml_close_all_streams()
       end if
 

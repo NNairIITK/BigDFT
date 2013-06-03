@@ -34,16 +34,21 @@ Expected Test CPUtime: #
   athelas: [ 6.0, 1.0 ]
 
 yaml_test:
+ Tax: 1.8e-6
+ Total: 2.0e-5
  Keys to ignore:
    - Error code
    - Address*
    - date
+   - Id
+ Patterns to ignore:
+   - errcode
 
 #Runs which update and override the default
 SiH4:
  #due to lack of functionality in fldiff, since energies field is updated
  Energies: &etol 4.6e-9
- Eion: &eion 3.2e-9
+ Eion: &eion 3.4e-9
  EH: *etol
  EXC: *etol
  Eion: *etol
@@ -75,6 +80,7 @@ AgBulk:
 
 SiBulk:
  Residues per orbital: 8.0e-10
+ maxval: 1.2e-11
  Enl: 2.1e-11
  Epot: 1.0e-10
  EvXC: 1.1e-10

@@ -32,7 +32,8 @@ program MINHOP
   real(kind=8),allocatable, dimension(:,:) :: fp_arr
   real(kind=8),allocatable, dimension(:) :: fp,wfp,fphop
   real(kind=8),allocatable, dimension(:,:,:) :: pl_arr
-  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode,nksevals,i,igroup,ngroups
+  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode,nksevals,i,igroup,ngroups,natoms
+  integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
   character(len=4) :: fn4
@@ -113,22 +114,25 @@ program MINHOP
 !!$  call init_atomic_values((bigdft_mpi%iproc == 0),md_atoms,inputs_md%ixc)
   call deallocate_atoms(md_atoms,subname) 
 
+  !get number of atoms of the system, to allocate local arrays
+  natoms=bigdft_get_number_of_atoms(atoms)
+
 
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) beta_S, beta_O, beta_N',(/beta_S,beta_O,beta_N/),fmt='(1pe11.4)')
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) alpha_A, alpha_R',(/alpha_A,alpha_R/),fmt='(1pe11.4)')
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) mdmin=',mdmin)
 
   ! allocate other arrays
-  allocate(vxyz(3,atoms%astruct%nat+ndebug),stat=i_stat)
+  allocate(vxyz(3,natoms+ndebug),stat=i_stat)
   call memocc(i_stat,vxyz,'vxyz',subname)
-  allocate(gg(3,atoms%astruct%nat+ndebug),stat=i_stat)
+  allocate(gg(3,natoms+ndebug),stat=i_stat)
   call memocc(i_stat,gg,'gg',subname)
-  allocate(poshop(3,atoms%astruct%nat+ndebug),stat=i_stat)
+  allocate(poshop(3,natoms+ndebug),stat=i_stat)
   call memocc(i_stat,poshop,'poshop',subname)
-  allocate(rcov(atoms%astruct%nat+ndebug),stat=i_stat)
+  allocate(rcov(natoms+ndebug),stat=i_stat)
   call memocc(i_stat,rcov,'rcov',subname)
 
-  call give_rcov(bigdft_mpi%iproc,atoms,atoms%astruct%nat,rcov)
+  call give_rcov(bigdft_mpi%iproc,atoms,natoms,rcov)
 
 ! read random offset
   open(unit=11,file='rand'//trim(bigdft_run_id_toa())//'.inp')
@@ -219,7 +223,7 @@ program MINHOP
 
   ngeopt=ngeopt+1
   if (bigdft_mpi%iproc == 0) then 
-     tt=dnrm2(3*atoms%astruct%nat,ff,1)
+     tt=dnrm2(3*natoms,ff,1)
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call write_atomic_file('posimed_'//fn4//'_'//trim(bigdft_run_id_toa()),&
@@ -245,7 +249,7 @@ program MINHOP
   end if
 
   if (bigdft_mpi%iproc == 0) then 
-     tt=dnrm2(3*atoms%astruct%nat,outs%fxyz,1)
+     tt=dnrm2(3*outs%fdim,outs%fxyz,1)
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
@@ -257,7 +261,7 @@ program MINHOP
       close(864)
   endif
   
-        nid=atoms%astruct%nat
+        nid=natoms
         allocate(fp(nid))
           call memocc(i_stat,fp,'fp',subname)
         allocate(wfp(nid))
@@ -290,7 +294,7 @@ program MINHOP
           call memocc(i_stat,ct_arr,'ct_arr',subname)
         allocate(fp_arr(nid,nlminx))
           call memocc(i_stat,fp_arr,'fp_arr',subname)
-        allocate(pl_arr(3,atoms%astruct%nat,nlminx))
+        allocate(pl_arr(3,natoms,nlminx))
           call memocc(i_stat,pl_arr,'pl_arr',subname)
         if (nlmin.eq.0) then 
             if (bigdft_mpi%iproc == 0) call yaml_map('(MH) New run with nlminx=',nlminx)
@@ -307,6 +311,7 @@ program MINHOP
         if (bigdft_mpi%iproc == 0) call yaml_map('(MH) read idarr','idarr'//trim(bigdft_run_id_toa()))
 
   ! If restart read previous poslocm's
+  ! here we should use bigdft built-in routines to read atomic positions
      do ilmin=1,nlmin
 
         write(fn5,'(i5.5)') ilmin
@@ -318,13 +323,13 @@ program MINHOP
            exit
         end if
         read(9,*) natp,unitsp,en_arr(ilmin)
-        if (atoms%astruct%nat.ne.natp) stop   'nat <> natp'
+        if (natoms.ne.natp) stop   'nat <> natp'
         if (trim(unitsp).ne.trim(atoms%astruct%units) .and. bigdft_mpi%iproc.eq.0) write(*,*)  & 
                  '(MH) different units in poslow and poscur file: ',trim(unitsp),' ',trim(atoms%astruct%units)
         if (trim(unitsp).ne.trim(atoms%astruct%units) .and. bigdft_mpi%iproc.eq.0) call yaml_scalar( &
                  '(MH) different units in poslow and poscur file: '//trim(unitsp)//' , '//trim(atoms%astruct%units))
         read(9,*)
-        do iat=1,atoms%astruct%nat
+        do iat=1,natoms
           read(9,*) atmn,t1,t2,t3
           if (atoms%astruct%units=='angstroem' .or. atoms%astruct%units=='angstroemd0') then ! if Angstroem convert to Bohr
               pl_arr(1,iat,ilmin)=t1/bohr2ang
@@ -356,7 +361,7 @@ program MINHOP
         do i=1,nid
           fp_arr(i,1)=fp(i)
         enddo
-        do iat=1,atoms%astruct%nat
+        do iat=1,natoms
           pl_arr(1,iat,1)=atoms%astruct%rxyz(1,iat) 
           pl_arr(2,iat,1)=atoms%astruct%rxyz(2,iat) 
           pl_arr(3,iat,1)=atoms%astruct%rxyz(3,iat) 
@@ -376,7 +381,7 @@ program MINHOP
         nlmin=nlmin+1
         if (nlmin.gt.nlminx) stop 'nlminx too small'
         !            add minimum to history list
-        call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,atoms%astruct%nat,k_e_wpos,e_wpos,wfp,pos,en_arr,ct_arr,fp_arr,pl_arr)
+        call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,natoms,k_e_wpos,e_wpos,wfp,pos,en_arr,ct_arr,fp_arr,pl_arr)
         if (k_e_wpos .gt. nlminx .or. k_e_wpos .lt. 1) stop "k_e_wpos out of bounds"
         nvisit=int(ct_arr(k_e_wpos))
      else
@@ -440,9 +445,9 @@ program MINHOP
 !!$  enddo
   call run_objects_init_container(runObj, inputs_md, atoms, rst, pos(1,1))
   escape=escape+1.d0
+  e_pos = outs%energy
   call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, runObj, outs, &
        bigdft_mpi%nproc,bigdft_mpi%iproc)
-  e_pos = outs%energy
 
      if (atoms%astruct%geocode == 'F') &
           & call fixfrag_posvel(bigdft_mpi%iproc,atoms%astruct%nat,rcov,atoms%astruct%rxyz,vxyz,1,occured)
@@ -476,7 +481,7 @@ program MINHOP
   runObj%inputs => inputs_opt
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
-     count_bfgs=count_bfgs+ncount_bigdft
+     count_bfgs=counts_bfgs+ncount_bigdft
 
       call bigdft_get_eigenvalues(rst,ksevals,i_stat)
         if (i_stat /= BIGDFT_SUCCESS) then
@@ -547,7 +552,7 @@ program MINHOP
            & atoms%astruct%rxyz,en_arr,ct_arr,fp_arr,pl_arr)
 ! write intermediate results
       if (bigdft_mpi%iproc == 0) call yaml_comment('(MH) WINTER')
-      if (bigdft_mpi%iproc == 0) call winter(atoms,nid,nlminx,nlmin,en_delta,fp_delta, &
+      if (bigdft_mpi%iproc == 0) call winter(natoms,atoms,nid,nlminx,nlmin,en_delta,fp_delta, &
            en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nrandoff,nsoften)
       if (bigdft_mpi%iproc == 0) then
          !call yaml_stream_attributes()
@@ -583,7 +588,7 @@ program MINHOP
   !  hopp=hopp+1.d0
   if (outs%energy.lt.e_hop) then
      e_hop=outs%energy
-     do iat=1,atoms%astruct%nat
+     do iat=1,natoms
         poshop(1,iat)=atoms%astruct%rxyz(1,iat) 
         poshop(2,iat)=atoms%astruct%rxyz(2,iat) 
         poshop(3,iat)=atoms%astruct%rxyz(3,iat)
@@ -599,7 +604,7 @@ program MINHOP
      !C          local minima accepted -------------------------------------------------------
      accepted=accepted+1.d0
      e_pos=e_hop
-     do iat=1,atoms%astruct%nat
+     do iat=1,natoms
         pos(1,iat)=poshop(1,iat) 
         pos(2,iat)=poshop(2,iat) 
         pos(3,iat)=poshop(3,iat)
@@ -646,7 +651,7 @@ end do hopping_loop
      call yaml_open_map('(MH) Final results')
      call yaml_map('(MH) Total number of minima found',nlmin)
      call yaml_map('(MH) Number of accepted minima',accepted)
-     call winter(atoms,nid,nlminx,nlmin,en_delta,fp_delta, &
+     call winter(natoms,atoms,nid,nlminx,nlmin,en_delta,fp_delta, &
            en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nrandoff,nsoften)
   endif
 
@@ -819,7 +824,7 @@ contains
   enddo
   enddo
   ! normalize velocities to target ekinetic
-    call velnorm(atoms,atoms%astruct%rxyz,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
+    call velnorm(atoms%astruct%nat,atoms%astruct%rxyz,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
     call razero(3*atoms%astruct%nat,gg)
 
     if(iproc==0) call torque(atoms%astruct%nat,atoms%astruct%rxyz,vxyz)
@@ -1174,33 +1179,34 @@ END SUBROUTINE hunt_g
 
 
 !>  assigns initial velocities for the MD escape part
-subroutine velnorm(at,rxyz,ekinetic,vxyz)
+subroutine velnorm(nat,rxyz,ekinetic,vxyz)
   use module_base
-  use module_types
-  use m_ab6_symmetry
+!  use module_types
+!  use m_ab6_symmetry
   implicit none
   !implicit real*8 (a-h,o-z)
+  integer, intent(in) :: nat
   real(gp), intent(in) :: ekinetic
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(gp), dimension(3,at%astruct%nat), intent(inout) :: vxyz
+  !type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(gp), dimension(3,nat), intent(inout) :: vxyz
   !local variables
   integer :: iat
   real(gp) :: rkin,rkinsum,sclvel
 
   !C      Kinetic energy of the initial velocities
   rkinsum= 0.d0      
-  do iat=1,at%astruct%nat
+  do iat=1,nat
 !     if (.not. at%lfrztyp(iat)) then
         rkinsum= rkinsum+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
 !     end if
   end do
-  rkin=.5d0*rkinsum/(3*at%astruct%nat-3)
+  rkin=.5d0*rkinsum/(3*nat-3)
   !       write(*,*) 'rkin,ekinetic',rkin,ekinetic
 
   !C      Rescaling of velocities to get reference kinetic energy
   sclvel= dsqrt(ekinetic/rkin)
-  do iat=1,at%astruct%nat
+  do iat=1,nat
 !     if (.not. at%lfrztyp(iat)) then
         vxyz(1,iat)=vxyz(1,iat)*sclvel
         vxyz(2,iat)=vxyz(2,iat)*sclvel
@@ -1496,7 +1502,7 @@ subroutine elim_moment(nat,vxyz)
 END SUBROUTINE elim_moment
 
 
-subroutine winter(at,nid,nlminx,nlmin,en_delta,fp_delta, &
+subroutine winter(nat,at,nid,nlminx,nlmin,en_delta,fp_delta, &
      en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nrandoff,nsoften)
   use module_base
   use module_types
@@ -1508,7 +1514,8 @@ subroutine winter(at,nid,nlminx,nlmin,en_delta,fp_delta, &
   integer, intent(in) :: nlminx,nlmin,nsoften,nrandoff,nid
   real(gp), intent(in) :: ediff,ekinetic,dt,en_delta,fp_delta
   type(atoms_data), intent(in) :: at
-  real(gp), intent(in) :: en_arr(nlminx),ct_arr(nlminx),fp_arr(nid,nlminx),pl_arr(3,at%astruct%nat,nlminx)
+  integer, intent(in) :: nat 
+  real(gp), intent(in) :: en_arr(nlminx),ct_arr(nlminx),fp_arr(nid,nlminx),pl_arr(3,nat,nlminx)
   !local variables
   integer :: k,i
   character(len=50) :: comment

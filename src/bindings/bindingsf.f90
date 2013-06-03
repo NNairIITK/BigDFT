@@ -1418,8 +1418,6 @@ subroutine run_objects_destroy(runObj)
   ! We don't do it here, we just destroy the container,
   !  The caller is responsible to free public attributes.
   !call run_objects_free(runObj)
-  call f_finalize()
-  call yaml_close_all_streams()
   deallocate(runObj)
 end subroutine run_objects_destroy
 subroutine run_objects_get(runObj, inputs, atoms, rst)

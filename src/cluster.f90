@@ -245,7 +245,7 @@ subroutine run_objects_free(runObj, subname)
      call free_input_variables(runObj%inputs)
      deallocate(runObj%inputs)
   end if
-  call f_finalize()
+  call f_lib_finalize()
   call yaml_close_all_streams()
 END SUBROUTINE run_objects_free
 
@@ -519,6 +519,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      do ifrag=1,in%frag%nfrag_ref
         ref_frags(ifrag)=fragment_null()
      end do
+  else
+     nullify(ref_frags)
   end if
 
   if(in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then

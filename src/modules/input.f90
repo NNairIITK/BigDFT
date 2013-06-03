@@ -1202,7 +1202,6 @@ module module_input
    !> Take a string.
    subroutine dict_var_character(var,dict,default,exclusive)
      use dictionaries
-     use error_handling
      implicit none
      character(len=*), intent(out) :: var
      type(dictionary), pointer :: dict
@@ -1237,7 +1236,6 @@ module module_input
    subroutine dict_var_double(var,dict,default,ranges,exclusive)
      use yaml_output
      use dictionaries
-     use error_handling
      implicit none
      double precision, intent(out) :: var
      type(dictionary), pointer :: dict
@@ -1282,7 +1280,6 @@ module module_input
    subroutine dict_var_int(var,dict, default,ranges,exclusive)
      use yaml_output
      use dictionaries
-     use error_handling
      implicit none
      integer, intent(out) :: var
      type(dictionary), pointer :: dict
@@ -1325,7 +1322,6 @@ module module_input
    subroutine dict_var_int_arr(var, dict, default,ranges,exclusive)
      use yaml_output
      use dictionaries
-     use error_handling
      implicit none
      integer, dimension(:), intent(out) :: var
      type(dictionary), pointer :: dict
@@ -1366,7 +1362,6 @@ module module_input
    subroutine dict_var_double_arr(var, dict, default,ranges,exclusive)
      use yaml_output
      use dictionaries
-     use error_handling
      implicit none
      double precision, dimension(:), intent(out) :: var
      type(dictionary), pointer :: dict

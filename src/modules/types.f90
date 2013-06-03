@@ -29,6 +29,7 @@ module module_types
   integer, parameter :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
   integer, parameter :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
   integer, parameter :: BIGDFT_INVALID  = -12 !< Invalid entry
+  integer :: BIGDFT_MPI_ERROR !<to be defined 
 
 
   !> Input wf parameters.
@@ -175,6 +176,7 @@ module module_types
     integer, dimension(:), pointer :: frag_index ! array matching system fragments to reference fragments
     !integer, dimension(:,:), pointer :: frag_info !array giving number of atoms in fragment and environment for reference fragments
     character(len=100), dimension(:), pointer :: label ! array of fragment names
+    character(len=100), dimension(:), pointer :: dirname ! array of fragment directories, blank if not a fragment calculation
   end type fragmentInputParameters
 
 
@@ -1156,80 +1158,6 @@ contains
     ma%OCL_platform=repeat(' ',len(ma%OCL_devices))
   end function material_acceleration_null
 
-  function default_grid() result(g)
-    type(grid_dimensions) :: g
-    g%n1   =0
-    g%n2   =0
-    g%n3   =0
-    g%nfl1 =0
-    g%nfu1 =0
-    g%nfl2 =0
-    g%nfu2 =0
-    g%nfl3 =0
-    g%nfu3 =0
-    g%n1i  =0
-    g%n2i  =0
-    g%n3i  =0
-  end function default_grid
-
-  function default_wfd() result(wfd)
-    type(wavefunctions_descriptors) :: wfd
-    wfd%nvctr_c=0
-    wfd%nvctr_f=0
-    wfd%nseg_c=0
-    wfd%nseg_f=0
-    nullify(wfd%keyglob)
-    nullify(wfd%keygloc)
-    nullify(wfd%keyvglob)
-    nullify(wfd%keyvloc)
-  end function default_wfd
-
-  function default_kb() result(kb)
-    type(kinetic_bounds) :: kb
-    nullify(&
-         kb%ibyz_c,kb%ibxz_c,kb%ibxy_c, &
-         kb%ibyz_f,kb%ibxz_f,kb%ibxy_f)
-  end function default_kb
-
-  function default_sb() result(sb)
-    type(shrink_bounds) :: sb
-    nullify(sb%ibzzx_c,sb%ibyyzz_c,sb%ibxy_ff,sb%ibzzx_f,sb%ibyyzz_f)
-  end function default_sb
-  
-  function default_gb() result(gb)
-    type(grow_bounds) :: gb
-    nullify(gb%ibzxx_c,gb%ibxxyy_c,gb%ibyz_ff,gb%ibzxx_f,gb%ibxxyy_f)
-  end function default_gb
-
-  function default_bounds() result(b)
-    type(convolutions_bounds) :: b
-    b%kb=default_kb()
-    b%sb=default_sb()
-    b%gb=default_gb()
-    nullify(b%ibyyzz_r)
-  end function default_bounds
-
-  function locreg_null() result(lr)
-    type(locreg_descriptors) :: lr
-
-    lr%geocode='F'
-    lr%hybrid_on=.false.   
-    lr%ns1=0
-    lr%ns2=0
-    lr%ns3=0 
-    lr%nsi1=0
-    lr%nsi2=0
-    lr%nsi3=0  
-    lr%Localnorb=0  
-    lr%outofzone=(/0,0,0/) 
-    lr%d=default_grid()
-    lr%wfd=default_wfd()
-    lr%bounds=default_bounds()
-    lr%locregCenter=(/0.0_gp,0.0_gp,0.0_gp/) 
-    lr%locrad=0 
-
-  end function locreg_null
-
   function default_lzd() result(lzd)
     type(local_zone_descriptors) :: lzd
     lzd%linear=.false.
@@ -1242,6 +1170,7 @@ contains
   end function default_lzd
  
   pure function symm_null() result(sym)
+     implicit none
      type(symmetry_data) :: sym
      call nullify_symm(sym)
   end function symm_null
@@ -1255,7 +1184,8 @@ contains
 
   function atoms_null() result(at)
      type(atoms_data) :: at
-     at%astruct=atomic_structure_null()
+     call nullify_atomic_structure(at%astruct)
+     !at%astruct=atomic_structure_null()
      at%donlcc=.false.
      at%iat_absorber=-1
      nullify(at%iasctype)
@@ -1285,12 +1215,14 @@ contains
   end function atoms_null
 
   pure function atomic_structure_null() result(astruct)
-     type(atomic_structure) :: astruct
+    implicit none
+    type(atomic_structure) :: astruct
      call nullify_atomic_structure(astruct)
   end function atomic_structure_null
 
   pure subroutine nullify_atomic_structure(astruct)
     type(atomic_structure), intent(out) :: astruct
+
     astruct%geocode='X'
     astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
     astruct%units=repeat(' ',len(astruct%units))
@@ -1319,50 +1251,6 @@ contains
     end if
 
   end function bigdft_run_id_toa
-
-  !accessors for external programs
-  !> Get the number of orbitals of the run in rst
-  function bigdft_get_number_of_orbitals(rst,istat) result(norb)
-    use module_base
-    implicit none
-    type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
-    integer :: norb !> Number of orbitals of run in rst
-    integer, intent(out) :: istat
-    
-    istat=BIGDFT_SUCCESS
-
-    norb=rst%KSwfn%orbs%norb
-    if (norb==0) istat = BIGDFT_UNINITIALIZED
-    
-  end function bigdft_get_number_of_orbitals
-  
-  !> Fill the array eval with the number of orbitals of the last run
-  subroutine bigdft_get_eigenvalues(rst,eval,istat)
-    use module_base
-    implicit none
-    type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
-    real(gp), dimension(*), intent(out) :: eval !> Buffer for eigenvectors. Should have at least dimension equal to bigdft_get_number_of_orbitals(rst,istat)
-    integer, intent(out) :: istat !> Error code
-    !local variables
-    integer :: norb
-    
-    norb=bigdft_get_number_of_orbitals(rst,istat)
-
-    if (istat /= BIGDFT_SUCCESS) return
-
-    if (.not. associated(rst%KSwfn%orbs%eval)) then
-       istat = BIGDFT_UNINITIALIZED
-       return
-    end if
-
-    if (product(shape(rst%KSwfn%orbs%eval)) < norb) then
-       istat = BIGDFT_INCONSISTENCY
-       return
-    end if
-
-    call vcopy(norb,rst%KSwfn%orbs%eval(1),1,eval(1),1)
-
-  end subroutine bigdft_get_eigenvalues
 
   !> Fills the old_wavefunction structure with corresponding data
   !! Deallocate previous workspaces if already existing
@@ -1577,7 +1465,6 @@ subroutine deallocate_orbs(orbs,subname)
        rst%version = LINEAR_VERSION
     end select
   END SUBROUTINE restart_objects_set_mode
-
   subroutine restart_objects_set_nat(rst, nat, subname)
     use module_base
     implicit none
@@ -1587,7 +1474,6 @@ subroutine deallocate_orbs(orbs,subname)
     type(restart_objects), intent(inout) :: rst
     !local variables
     integer :: i_all,i_stat
-
     if (associated(rst%rxyz_old)) then
        i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
        deallocate(rst%rxyz_old,stat=i_stat)
@@ -2618,7 +2504,6 @@ pure function local_zone_descriptors_null() result(lzd)
   type(local_zone_descriptors) :: lzd
   call nullify_local_zone_descriptors(lzd)
 end function local_zone_descriptors_null
-
 pure subroutine nullify_local_zone_descriptors(lzd)
   implicit none
   type(local_zone_descriptors), intent(out) :: lzd
@@ -2628,77 +2513,141 @@ pure subroutine nullify_local_zone_descriptors(lzd)
   lzd%lintyp=0
   lzd%ndimpotisf=0
   lzd%hgrids=0.0_gp
-  lzd%glr=locreg_descriptors_null()
+  call nullify_locreg_descriptors(lzd%glr)
   nullify(lzd%llr) 
 end subroutine nullify_local_zone_descriptors
 
-pure function locreg_descriptors_null() result(lr)
+pure function locreg_null() result(lr)
   implicit none
-
   type(locreg_descriptors) :: lr
-
-  lr%wfd=wavefunctions_descriptors_null()
-  lr%bounds=convolutions_bounds_null()
-end function locreg_descriptors_null
-
-pure function wavefunctions_descriptors_null() result(wfd)
+  call nullify_locreg_descriptors(lr)
+end function locreg_null
+pure subroutine nullify_locreg_descriptors(lr)
   implicit none
+  type(locreg_descriptors), intent(out) :: lr
+  lr%geocode='F'
+  lr%hybrid_on=.false.   
+  lr%ns1=0
+  lr%ns2=0
+  lr%ns3=0 
+  lr%nsi1=0
+  lr%nsi2=0
+  lr%nsi3=0  
+  lr%Localnorb=0  
+  lr%outofzone=(/0,0,0/) 
+  lr%d=grid_null()
+  call nullify_wfd(lr%wfd)
+  call nullify_convolutions_bounds(lr%bounds)
+  lr%locregCenter=(/0.0_gp,0.0_gp,0.0_gp/) 
+  lr%locrad=0 
+end subroutine nullify_locreg_descriptors
 
+pure function grid_null() result(g)
+  type(grid_dimensions) :: g
+  g%n1   =0
+  g%n2   =0
+  g%n3   =0
+  g%nfl1 =0
+  g%nfu1 =0
+  g%nfl2 =0
+  g%nfu2 =0
+  g%nfl3 =0
+  g%nfu3 =0
+  g%n1i  =0
+  g%n2i  =0
+  g%n3i  =0
+end function grid_null
+
+pure function wfd_null() result(wfd)
+  implicit none
   type(wavefunctions_descriptors) :: wfd
-
-  nullify(wfd%keygloc)
+  call nullify_wfd(wfd)
+end function wfd_null
+pure subroutine nullify_wfd(wfd)
+  implicit none
+  type(wavefunctions_descriptors), intent(out) :: wfd
+  wfd%nvctr_c=0
+  wfd%nvctr_f=0
+  wfd%nseg_c=0
+  wfd%nseg_f=0
   nullify(wfd%keyglob)
-  nullify(wfd%keyvloc)
+  nullify(wfd%keygloc)
   nullify(wfd%keyvglob)
-end function wavefunctions_descriptors_null
+  nullify(wfd%keyvloc)
+end subroutine nullify_wfd
 
 pure function convolutions_bounds_null() result(bounds)
   implicit none
-
   type(convolutions_bounds) :: bounds
-
-  bounds%kb=kinetic_bounds_null()
-  bounds%sb=shrink_bounds_null()
-  bounds%gb=grow_bounds_null()
-  nullify(bounds%ibyyzz_r)
+  call nullify_convolutions_bounds(bounds)
 end function convolutions_bounds_null
+pure subroutine nullify_convolutions_bounds(bounds)
+  implicit none
+  type(convolutions_bounds), intent(out) :: bounds
+  call nullify_kinetic_bounds(bounds%kb)
+  call nullify_shrink_bounds(bounds%sb)
+  call nullify_grow_bounds(bounds%gb)
+  nullify(bounds%ibyyzz_r)
+end subroutine nullify_convolutions_bounds
 
 pure function kinetic_bounds_null() result(kb)
   implicit none
   type(kinetic_bounds) :: kb
-!  call nullify_kinetic_bounds(kb)
-
-
+  call nullify_kinetic_bounds(kb)
+end function kinetic_bounds_null
+pure subroutine nullify_kinetic_bounds(kb)
+  implicit none
+  type(kinetic_bounds), intent(out) :: kb
   nullify(kb%ibyz_c)
   nullify(kb%ibxz_c)
   nullify(kb%ibxy_c)
   nullify(kb%ibyz_f)
   nullify(kb%ibxz_f)
   nullify(kb%ibxy_f)
-end function kinetic_bounds_null
+end subroutine nullify_kinetic_bounds
 
 pure function shrink_bounds_null() result(sb)
   implicit none
-
   type(shrink_bounds) :: sb
-
+  call nullify_shrink_bounds(sb)
+end function shrink_bounds_null
+pure subroutine nullify_shrink_bounds(sb)
+  implicit none
+  type(shrink_bounds), intent(out) :: sb
   nullify(sb%ibzzx_c)
   nullify(sb%ibyyzz_c)
   nullify(sb%ibxy_ff)
   nullify(sb%ibzzx_f)
   nullify(sb%ibyyzz_f)
-end function shrink_bounds_null
+end subroutine nullify_shrink_bounds
 
 pure function grow_bounds_null() result(gb)
   implicit none
-
   type(grow_bounds) :: gb
-
+  call nullify_grow_bounds(gb)
+end function grow_bounds_null
+pure subroutine nullify_grow_bounds(gb)
+  implicit none
+  type(grow_bounds), intent(out) :: gb
   nullify(gb%ibzxx_c)
   nullify(gb%ibxxyy_c)
   nullify(gb%ibyz_ff)
   nullify(gb%ibzxx_f)
   nullify(gb%ibxxyy_f)
-end function grow_bounds_null
+end subroutine nullify_grow_bounds
+
+subroutine bigdft_init_errors()
+  use dictionaries
+  implicit none
+  external :: bigdft_severe_abort
+
+  call f_err_define('BIGDFT_MPI_ERROR',&
+       'An error of MPI library occurred',&
+       BIGDFT_MPI_ERROR,&
+       err_action='Check if the error is related to MPI library or runtime condtions')
+
+  !define the severe operation via MPI_ABORT
+  call f_err_severe_override(bigdft_severe_abort)
+end subroutine bigdft_init_errors
 
 end module module_types
