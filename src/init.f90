@@ -1602,10 +1602,17 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          frag_trans(iorb)%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
          frag_trans(iorb)%rot_center(:)=rxyz_old(:,iiat)
          frag_trans(iorb)%rot_center_new(:)=rxyz(:,iiat)
+         allocate(frag_trans(iorb)%discrete_operations(0),stat=i_stat)
+         call memocc(i_stat,frag_trans(iorb)%discrete_operations,'frag_trans(iorb)%discrete_operations',subname)
      end do
 
      call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,tmb_old%psi)
 
+     do iorb=1,tmb%orbs%norbp
+        i_all = -product(shape(frag_trans(iorb)%discrete_operations)*kind(frag_trans(iorb)%discrete_operations))
+        deallocate(frag_trans(iorb)%discrete_operations,stat=i_stat)
+        call memocc(i_stat,i_all,'frag_trans(iorb)%discrete_operations',subname)
+     end do
      deallocate(frag_trans)
   end if
   !!write(*,*) 'after reformat_supportfunctions, iproc',iproc

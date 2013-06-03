@@ -175,6 +175,7 @@ module module_types
     integer, dimension(:), pointer :: frag_index ! array matching system fragments to reference fragments
     !integer, dimension(:,:), pointer :: frag_info !array giving number of atoms in fragment and environment for reference fragments
     character(len=100), dimension(:), pointer :: label ! array of fragment names
+    character(len=100), dimension(:), pointer :: dirname ! array of fragment directories, blank if not a fragment calculation
   end type fragmentInputParameters
 
 
@@ -1147,11 +1148,17 @@ contains
   end function default_lzd
  
   pure function symm_null() result(sym)
+     implicit none
      type(symmetry_data) :: sym
+     call nullify_symm(sym)
+  end function symm_null
+  pure subroutine nullify_symm(sym)
+     implicit none
+     type(symmetry_data), intent(out) :: sym
      sym%symObj=-1
      nullify(sym%irrzon)
      nullify(sym%phnons)
-  end function symm_null
+  end subroutine nullify_symm
 
   function atoms_null() result(at)
      type(atoms_data) :: at
@@ -1207,7 +1214,7 @@ contains
      nullify(astruct%atomnames)
      nullify(astruct%iatype)
      nullify(astruct%rxyz)
-     astruct%sym=symm_null()
+     call nullify_symm(astruct%sym)
    end subroutine nullify_atomic_structure
 
   function bigdft_run_id_toa()
