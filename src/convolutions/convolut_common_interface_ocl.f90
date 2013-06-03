@@ -939,7 +939,7 @@ subroutine local_partial_density_OCL(orbs,&
   if ( nspin == 2 ) then
     call set_d(GPU%queue, lr%d%n1i*lr%d%n2i*lr%d%n3i , 1.d-20,  GPU%rhopot_down)
   end if
-  if (pin .and. orbs%norbp) call ocl_create_read_buffer_host( GPU%context, &
+  if (pin .and. orbs%norbp > 0) call ocl_create_read_buffer_host( GPU%context, &
        orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8, psi, GPU%psicf_host(1,1) )
   !copy the wavefunctions on GPU
   do iorb=1,orbs%norbp*orbs%nspinor
