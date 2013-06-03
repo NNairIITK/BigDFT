@@ -455,7 +455,6 @@ program MINHOP
           & call fixfrag_posvel_slab(bigdft_mpi%iproc,atoms%astruct%nat,rcov,atoms%astruct%rxyz,vxyz,1)
      
   av_ekinetic=av_ekinetic+ekinetic
-  e_pos = outs%energy
   ncount_bigdft=0
 
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
