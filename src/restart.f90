@@ -1075,8 +1075,10 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   tol=1.d-3
   reformat_reason=0
 
+  !arbitrarily pick the middle one as assuming it'll be near the centre of structure
+  !and therefore have large fine grid
   norb_tmp=tmb%orbs%norb/2
-  ilr_tmp=tmb%orbs%inwhichlocreg(norb_tmp) !arbitrarily pick the middle one as assuming it'll be near the centre of structure
+  ilr_tmp=tmb%orbs%inwhichlocreg(norb_tmp) 
   iiat_tmp=tmb%orbs%onwhichatom(norb_tmp)
 
   ! find biggest instead
