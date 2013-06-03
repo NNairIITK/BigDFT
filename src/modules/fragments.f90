@@ -477,18 +477,6 @@ contains
     nullify(basis%psi_full)
     nullify(basis%phi)
   end subroutine nullify_fragment_basis
-  pure subroutine nullify_fragment_basis(basis)
-    implicit none
-    type(fragment_basis), intent(out) :: basis
-
-    basis%npsidim_orbs=0
-    basis%npsidim_comp=0
-    call nullify_local_zone_descriptors(basis%lzd)
-    call nullify_minimal_orbitals_data(basis%forbs)
-    !basis%forbs=minimal_orbitals_data_null()
-    nullify(basis%psi_full)
-    nullify(basis%phi)
-  end subroutine nullify_fragment_basis
 
   subroutine minimal_orbitals_data_free(forbs)
     implicit none
