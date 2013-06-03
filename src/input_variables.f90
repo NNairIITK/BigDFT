@@ -1060,7 +1060,6 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in)
 !!$     call set(in%kpt//'No. of Monkhorst-Pack grid points', ngkpt)
      !shift
      call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
-     call set(in%kpt//'No. of different shifts', nshiftk)
      !read the shifts
      shiftk=0.0_gp
      do i=1,nshiftk
@@ -1075,7 +1074,6 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in)
   else if (case_insensitive_equiv(trim(type),'manual')) then
      call input_var(nkpt,'1',ranges=(/1,10000/),&
           comment='Number of K-points')
-     call set(in%kpt//'Number of K-points', nkpt)
      do i=1,nkpt
         call input_var( kpt(1),'0.')
         call input_var( kpt(2),'0.')
@@ -2787,9 +2785,11 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
 
   nullify(kpt, wkpt)
 
-  method = in_kpt//"K-point sampling method"
+  call input_dict_var(method, in_kpt // "K-point sampling method", &
+       & default = "auto", exclusive=(/'auto  ','mpgrid','manual'/))
   if (case_insensitive_equiv(trim(method),'auto')) then
-     kptrlen=in_kpt//'Equivalent length of K-space resolution (Bohr)'
+     call input_dict_var(kptrlen, in_kpt // 'Equivalent length of K-space resolution (Bohr)', &
+          & default = 0._gp, ranges=(/0.0_gp,1.e4_gp/))
      if (geocode == 'F') then
         nkpt = 1
         allocate(kpt(3, nkpt+ndebug),stat=i_stat)
@@ -2813,18 +2813,15 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
      end if
   else if (case_insensitive_equiv(trim(method),'mpgrid')) then
      !take the points of Monkhorst-pack grid
-     ngkpt(1) = in_kpt//'No. of Monkhorst-Pack grid points'//0
-     ngkpt(2) = in_kpt//'No. of Monkhorst-Pack grid points'//1
-     ngkpt(3) = in_kpt//'No. of Monkhorst-Pack grid points'//2
+     call input_dict_var(ngkpt, in_kpt // 'No. of Monkhorst-Pack grid points', &
+          & default = (/ 1, 1, 1 /), ranges = (/ 1, 10000 /))
      if (geocode == 'S') ngkpt(2) = 1
      !shift
-     nshiftk = in_kpt//'No. of different shifts'
+     nshiftk = dict_len(in_kpt//'Grid shifts')
      !read the shifts
      shiftk=0.0_gp
      do i=1,nshiftk
-        shiftk(1,i) = in_kpt//'Grid shifts'//(i-1)//0
-        shiftk(2,i) = in_kpt//'Grid shifts'//(i-1)//1
-        shiftk(3,i) = in_kpt//'Grid shifts'//(i-1)//2
+        call input_dict_var(shiftk(:,i), in_kpt // 'Grid shifts' // (i-1))
      end do
 
      !control whether we are giving k-points to Free BC
@@ -2852,7 +2849,7 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
         call memocc(0,wkpt,'wkpt',subname)
      end if
   else if (case_insensitive_equiv(trim(method),'manual')) then
-     nkpt = in_kpt//'Number of K-points'
+     nkpt = dict_len(in_kpt//'Kpt coordinates')
      if (geocode == 'F' .and. nkpt > 1) then
         if (iproc==0) call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
         nkpt = 1
@@ -2863,14 +2860,13 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
      call memocc(i_stat,wkpt,'wkpt',subname)
      norm=0.0_gp
      do i=1,nkpt
-        kpt(1,i) = in_kpt//'Kpt coordinates'//(i-1)//0
-        kpt(2,i) = in_kpt//'Kpt coordinates'//(i-1)//1
-        kpt(3,i) = in_kpt//'Kpt coordinates'//(i-1)//2
+        call input_dict_var(kpt(:,i), in_kpt // 'Kpt coordinates' // (i-1), &
+             & default = (/ 0._gp, 0._gp, 0._gp /))
         if (geocode == 'S' .and. kpt(2,i) /= 0.) then
            kpt(2,i) = 0.
            if (iproc==0) call yaml_warning('Surface conditions, supressing k-points along y.')
         end if
-        wkpt(i) = in_kpt//'Kpt weights'//(i-1)
+        call input_dict_var(wkpt(i), in_kpt // 'Kpt weights' // (i-1), default = 1._gp)
         if (geocode == 'F') then
            kpt = 0.
            wkpt = 1.
