@@ -179,7 +179,7 @@ H2O-CP2K:
 
 test.splsad.ref.yaml:
  Epsilon: 1.1e-10
- Electric Dipole Moment (Debye): 1.2e-8
+ Electric Dipole Moment (Debye): 1.21e-8
 
 test.minhop.ref.yaml:
  Energies: &etol1 6.0e-9

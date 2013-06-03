@@ -1253,7 +1253,10 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
           k=real(l,gp)+t0_field(l,j)
           if (k-real(i,gp) > tol) exit find_trans
           kold=k
+          print *,l,k,t0_field(l,j),i
        end do find_trans
+       print *,'the rest is',t0_field(l:,j)
+       stop
 
        ! want to use either l or l-1 to give us point i - pick closest
        if (k-real(i,gp) < -kold+real(i,gp)) then

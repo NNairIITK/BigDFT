@@ -12,12 +12,12 @@ TESTDIRS = Locreg \
 	   fructose
 
 EXTRA_TESTDIRS = water \
-                 molecule \
-                 deltascf \
-                 reformat \
-		         paracetamol \
-               rotate \
-               rotate2
+	molecule \
+	deltascf \
+	reformat \
+	paracetamol \
+	rotate \
+	rotate2
 
 
 EXTRA_DIST = 
