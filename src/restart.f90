@@ -2267,7 +2267,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   real(gp), dimension(3,astruct%nat), intent(in) :: rxyz
   type(orbitals_data), intent(inout) :: orbs  !< orbs related to the basis functions, inwhichlocreg and onwhichatom generated in this routine
   type(local_zone_descriptors), intent(inout) :: Lzd !< must already contain Glr and hgrids
-  type(system_fragment), dimension(input_frag%nfrag_ref) :: ref_frags
+  type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
   character(len=*), intent(in) :: filename, dir_output
   integer, dimension(orbs%norb), optional :: orblist
 
@@ -2753,7 +2753,7 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   implicit none
 
   logical, intent(out) :: reformat_needed ! logical telling whether reformat is needed
-  integer, dimension(0:7), intent(out) :: reformat_reason ! array giving reasons for reformatting
+  integer, dimension(0:7), intent(inout) :: reformat_reason ! array giving reasons for reformatting
   real(gp), intent(in) :: tol ! tolerance for rotations and shifts
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3), intent(in) :: hgrids, hgrids_old

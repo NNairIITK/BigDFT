@@ -1670,6 +1670,7 @@ print*,'da',da
            if (-ipos+icentre_old(2)>=1.and.-ipos+icentre_old(2)<=ndims_old(2)) then
               f_tmp2(:,i,:)=f_tmp(:,-ipos+icentre_old(2),:)
            else
+stop 'out of range y'
               f_tmp2(:,i,:)=0.0_gp
            end if
         end do
@@ -1679,15 +1680,17 @@ print*,'da',da
            if (-ipos+icentre_old(3)>=1.and.-ipos+icentre_old(3)<=ndims_old(3)) then
               f_new(:,:,i)=f_tmp2(:,:,-ipos+icentre_old(3))
            else
+stop 'out of range z'
               f_new(:,:,i)=0.0_gp
            end if
         end do
 
         ! correct the shift to be done afterwards
-        da_global=da_global-da-(icentre_new-icentre_old)
-
+        da_global=da_global+da-(icentre_new-icentre_old)*hgrids_old
+print*,'n',ndims_old
+print*,'centres',da,icentre_new,icentre_old
         ! correct centre_old as well ?!  - check when you have a non-zero rotation after!
-        centre_old=centre_old+da+(icentre_new-icentre_old)
+        centre_old=centre_old+da+(icentre_new-icentre_old)*hgrids_old
 
      !theta = -90 => y -> z, z -> -y
      else if (discrete_op=='x3') then
