@@ -63,7 +63,7 @@ subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
   integer, intent(in) :: mpi_groupsize
   integer, intent(out) :: ierr
   !local variables
-  integer :: iproc,nproc
+  integer :: iproc,nproc,ngroup_size
 
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
@@ -77,7 +77,14 @@ subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
 !!$  print *,'run_id',trim(radical),'iproc',iproc
 !!$  print *,'mpi_groupsize',mpi_groupsize,'iproc',iproc
 
-  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,mpi_groupsize)
+  !if the taskgroup size is not a divisor of nproc do not create taskgroups
+  if (nproc >1 .and. mpi_groupsize > 0 .and. mpi_groupsize < nproc .and.&
+       mod(nproc,mpi_groupsize)==0) then
+     ngroup_size=mpi_groupsize
+  else
+     ngroup_size=nproc
+  end if
+  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,ngroup_size)
 
   !final values
   mpi_info(1)=bigdft_mpi%iproc

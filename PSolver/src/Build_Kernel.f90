@@ -359,17 +359,17 @@ END SUBROUTINE fourtrans
 !!   @param itype_scf          Order of the scaling function
 !!   @param iproc,nproc        Number of process, number of processes
 !!   @param karray             output array
-subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
-     h1,h2,h3,itype_scf,karray,mu0_screening,alpha,beta,gamma,n3pr2,n3pr1)
-  use Poisson_Solver, only: dp,inplane_mpi
+subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
+     h1,h2,h3,itype_scf,karray,mu0_screening,alpha,beta,gamma)!,n3pr2,n3pr1)
+  use Poisson_Solver, only: dp
   use wrapper_mpi
 
   implicit none
   include 'perfdata.inc'
   
   !Arguments
-  integer, intent(in) :: n1,n2,n3,m3,nker1,nker2,nker3,itype_scf,iproc,nproc,mpi_comm
-  integer, intent(in) :: n3pr1,n3pr2
+  integer, intent(in) :: n1,n2,n3,m3,nker1,nker2,nker3,itype_scf
+  integer, intent(in) :: iproc,nproc,mpi_comm,inplane_comm!n3pr1,n3pr2
   real(dp), intent(in) :: h1,h2,h3
   real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
   real(dp), intent(in) :: mu0_screening,alpha,beta,gamma
@@ -800,8 +800,14 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
      call mpi_barrier(mpi_comm,ierr)
 
      !!! PSolver n1-n2 plane mpi partitioning !!!
-     if (iproc < n3pr1*n3pr2) then
-        call MPI_Bcast(karray,nker1*nker2*nker3/nproc,MPI_double_precision,0,inplane_mpi%mpi_comm,ierr)
+     !! Broadcast the result to all the other processors of the internal group
+     !! actually the result can be scattered since only a section of the
+     !! kernel should be multiplied
+     !if (iproc < n3pr1*n3pr2) then
+     if (inplane_comm /= MPI_COMM_NULL) then
+        call MPI_Bcast(karray,nker1*nker2*nker3/nproc,MPI_double_precision,&
+             0,inplane_comm,ierr)
+        !exception should be added
      endif
 
   else

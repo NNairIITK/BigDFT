@@ -10,9 +10,9 @@
 
 !>  Parallel version of Poisson Solver
 !!  General version, for each boundary condition
-subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,&
-             scal,hx,hy,hz,offset,strten)
-  use Poisson_Solver, only: dp, gp,part_mpi,inplane_mpi
+subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,geocode,ncplx,&
+     n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,scal,hx,hy,hz,offset,strten)
+  use Poisson_Solver, only: dp, gp
   use wrapper_mpi
   use memory_profiling
   implicit none
@@ -20,7 +20,8 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
   include 'perfdata.inc'
   !Arguments
   character(len=1), intent(in) :: geocode
-  integer, intent(inout) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,ncplx,mpi_comm
+  integer, intent(inout) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,ncplx
+  integer, intent(in) :: planes_comm,inplane_comm,iproc_inplane
   real(gp), intent(in) :: scal,hx,hy,hz,offset
   real(dp), dimension(nd1,nd2,nd3/nproc), intent(in) :: pot
   real(dp), dimension(ncplx,md1,md3,md2/nproc), intent(inout) :: zf
@@ -306,7 +307,7 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
         call MPI_ALLTOALL(zmpi2,2*n1dim*(md2/nproc)*(nd3/n3pr2), &
              MPI_double_precision, &
              zmpi1,2*n1dim*(md2/nproc)*(nd3/n3pr2), &
-             MPI_double_precision,part_mpi%mpi_comm,ierr)
+             MPI_double_precision,planes_comm,ierr)
 
        call timing(iproc,'PSolv_commun  ','OF')
        call timing(iproc,'PSolv_comput  ','ON')
@@ -388,12 +389,15 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
              stop
           endif
 
-          if (n3pr1 > 1) then
+          !LG: I am not convinced that putting MPI_ALLTOALL inside a loop
+          !!   is a good idea: this will break OMP parallelization, moreover
+          !!   the granularity of the external loop will impose too many communications
+          if (n3pr1 > 1 .and. inplane_comm/=MPI_COMM_NULL) then
             call timing(iproc,'PSolv_comput  ','OF')
             call timing(iproc,'PSolv_commun  ','ON')
 
             call MPI_ALLTOALL(zt,2*(n1p/n3pr1)*(lzt/n3pr1),MPI_double_precision,zt_t,2*(n1p/n3pr1)*(lzt/n3pr1), &
-                            MPI_double_precision,inplane_mpi%mpi_comm,ierr)
+                            MPI_double_precision,inplane_comm,ierr)
 
             call timing(iproc,'PSolv_commun  ','OF')
             call timing(iproc,'PSolv_comput  ','ON')
@@ -423,7 +427,7 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
              i3=mod(iproc,n3pr2)*(nd3/n3pr2)+j3
 
             j1start=0
-            if (n3pr1>1) j1start=(n1p/n3pr1)*inplane_mpi%iproc
+            if (n3pr1>1) j1start=(n1p/n3pr1)*iproc_inplane
 
             if (geocode == 'P') then
               call P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,j+j1start,pot(1,1,j3),zw(1,1,inzee),&
@@ -453,17 +457,17 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
                zw(1,1,inzee),zt_t(1,1,1),n3pr1,j)
            endif
              !output: I2,i1,j3,(jp3)
-          end do
+        end do
           !transform along x axis
           !input: I2,i1,j3,(jp3)
 
-
-          if (n3pr1 > 1) then
+        !LG: this MPI_ALLTOALL is inside a loop. I think that it will rapidly become unoptimal
+        if (n3pr1 > 1 .and. inplane_comm/=MPI_COMM_NULL) then
             call timing(iproc,'PSolv_comput  ','OF')
             call timing(iproc,'PSolv_commun  ','ON')
 
             call MPI_ALLTOALL(zt_t,2*(n1p/n3pr1)*(lzt/n3pr1),MPI_double_precision,zt,2*(n1p/n3pr1)*(lzt/n3pr1), &
-                            MPI_double_precision,inplane_mpi%mpi_comm,ierr)
+                            MPI_double_precision,inplane_comm,ierr)
 
             call timing(iproc,'PSolv_commun  ','OF')
             call timing(iproc,'PSolv_comput  ','ON')
@@ -527,7 +531,7 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
        call MPI_ALLTOALL(zmpi1,2*n1dim*(md2/nproc)*(nd3/n3pr2), &
             MPI_double_precision, &
             zmpi2,2*n1dim*(md2/nproc)*(nd3/n3pr2), &
-            MPI_double_precision,part_mpi%mpi_comm,ierr)
+            MPI_double_precision,planes_comm,ierr)
        call timing(iproc,'PSolv_commun  ','OF')
        call timing(iproc,'PSolv_comput  ','ON')
     endif
