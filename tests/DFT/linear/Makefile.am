@@ -16,7 +16,8 @@ EXTRA_TESTDIRS = water \
                  deltascf \
                  reformat \
 		         paracetamol \
-               rotate
+               rotate \
+               rotate2
 
 
 EXTRA_DIST = 

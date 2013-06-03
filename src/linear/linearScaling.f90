@@ -1570,7 +1570,7 @@ subroutine calc_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovr
 
   ! output results
   if (iproc==0) write(*,*) 'Transfer integrals and site energies:'
-  if (iproc==0) write(*,*) 'frag i, frag j, HOMO energy, LUMO energy, HOMO overlap , LUMO overlap'
+  if (iproc==0) write(*,*) 'frag i, frag j, HOMO energy, LUMO energy, HOMO overlap, LUMO overlap'
   do jfrag=1,input_frag%nfrag
      !ifrag_ref=input_frag%frag_index(ifrag)
      do ifrag=1,input_frag%nfrag

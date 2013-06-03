@@ -718,14 +718,14 @@ contains
 	 !      yaml_toa(frag_trans%theta)//' )')) return
 
     ! reduce the angle if frag_trans%theta > 60 degrees
-    if (abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp)) then
-       write(*,*) 'before',frag_trans%rot_axis,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
-       call find_discrete_operations(frag_trans,R_mat)
-       write(*,*) 'after',frag_trans%rot_axis,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
-    else
+    !if (abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp)) then
+    !   write(*,*) 'before',frag_trans%rot_axis,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+    !   call find_discrete_operations(frag_trans,R_mat)
+    !   write(*,*) 'after',frag_trans%rot_axis,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+    !else
        allocate(frag_trans%discrete_operations(0),stat=i_stat)
        call memocc(i_stat,frag_trans%discrete_operations,'frag_trans%discrete_operations',subname)
-    end if
+    !end if
 
 
   end subroutine find_frag_trans
