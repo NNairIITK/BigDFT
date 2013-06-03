@@ -28,6 +28,7 @@ module module_types
   integer, parameter :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
   integer, parameter :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
   integer, parameter :: BIGDFT_INVALID  = -12 !< Invalid entry
+  integer :: BIGDFT_MPI_ERROR !<to be defined 
 
 
   !> Input wf parameters.
@@ -174,6 +175,7 @@ module module_types
     integer, dimension(:), pointer :: frag_index ! array matching system fragments to reference fragments
     !integer, dimension(:,:), pointer :: frag_info !array giving number of atoms in fragment and environment for reference fragments
     character(len=100), dimension(:), pointer :: label ! array of fragment names
+    character(len=100), dimension(:), pointer :: dirname ! array of fragment directories, blank if not a fragment calculation
   end type fragmentInputParameters
 
 
@@ -1147,11 +1149,17 @@ contains
   end function default_lzd
  
   pure function symm_null() result(sym)
+     implicit none
      type(symmetry_data) :: sym
+     call nullify_symm(sym)
+  end function symm_null
+  pure subroutine nullify_symm(sym)
+     implicit none
+     type(symmetry_data), intent(out) :: sym
      sym%symObj=-1
      nullify(sym%irrzon)
      nullify(sym%phnons)
-  end function symm_null
+  end subroutine nullify_symm
   pure subroutine nullify_sym(sym)
      type(symmetry_data), intent(out) :: sym
      sym%symObj=-1
@@ -1213,8 +1221,7 @@ contains
      nullify(astruct%atomnames)
      nullify(astruct%iatype)
      nullify(astruct%rxyz)
-     !astruct%sym=symm_null()
-     call nullify_sym(astruct%sym)
+     call nullify_symm(astruct%sym)
    end subroutine nullify_atomic_structure
 
   function bigdft_run_id_toa()
@@ -2528,5 +2535,19 @@ pure subroutine nullify_grow_bounds(gb)
   nullify(gb%ibzxx_f)
   nullify(gb%ibxxyy_f)
 end subroutine nullify_grow_bounds
+
+subroutine bigdft_init_errors()
+  use dictionaries
+  implicit none
+  external :: bigdft_severe_abort
+
+  call f_err_define('BIGDFT_MPI_ERROR',&
+       'An error of MPI library occurred',&
+       BIGDFT_MPI_ERROR,&
+       err_action='Check if the error is related to MPI library or runtime condtions')
+
+  !define the severe operation via MPI_ABORT
+  call f_err_severe_override(bigdft_severe_abort)
+end subroutine bigdft_init_errors
 
 end module module_types

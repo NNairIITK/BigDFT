@@ -73,6 +73,7 @@ module module_fragments
      real(gp), dimension(3) :: rot_center !< center of rotation in original coordinates (might be fragment center or not)
      real(gp), dimension(3) :: rot_axis !< unit rotation axis (should have modulus one)
      real(gp) :: theta !< angle of rotation 
+     character(len=2), dimension(:), pointer :: discrete_operations
   end type fragment_transformation
 
   !public operator(*)
@@ -100,6 +101,11 @@ contains
         do ifrag=1,in%frag%nfrag_ref
            call init_fragment_from_file(ref_frags(ifrag),trim(in%dir_output)//trim(in%frag%label(ifrag)),in)
         end do
+
+        ! check that fragments are sensible, i.e. correct number of atoms, atom types etc.
+        call check_fragments(in,ref_frags,astruct)
+
+
      ! set appropriate default values as this is not a fragment calculation
      else
         ! nullify fragment
@@ -122,12 +128,12 @@ contains
 
 
   ! initializes all of fragment except lzd using the fragment posinp and tmb files
-  subroutine init_fragment_from_file(frag,dir_name,input) ! switch this to pure if possible
+  subroutine init_fragment_from_file(frag,frag_name,input) ! switch this to pure if possible
     use module_types
     !use module_interfaces
     implicit none
     type(system_fragment), intent(inout) :: frag
-    character(len=*), intent(in) :: dir_name
+    character(len=*), intent(in) :: frag_name
     type(input_variables), intent(in) :: input
 
     ! local variables
@@ -137,23 +143,19 @@ contains
     frag=fragment_null()
 
     ! read fragment positions
-    call read_atomic_file(dir_name(1:len(dir_name)-1),bigdft_mpi%iproc,frag%astruct_frg)
-
+    call read_atomic_file(frag_name(1:len(frag_name)),bigdft_mpi%iproc,frag%astruct_frg)
 
     ! iproc, nproc, nspinor not needed yet, add in later
     call init_minimal_orbitals_data(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, input, frag%astruct_frg, frag%fbasis%forbs)
     !call init_minimal_orbitals_data(iproc, nproc, nspinor, input, frag%astruct_frg, frag%fbasis%forbs)
 
-
     ! environment and coeffs
-     call fragment_allocate(frag)
+    call fragment_allocate(frag)
 
     ! allocate/initialize fragment basis...
     !currently orbitals are initialized via initAndUtils/init_orbitals_data_for_linear
     !which calls wavefunctions/orbitals_descriptors to assign parallel bits and superfluous stuff
     !and locreg_orbitals/assignToLocreg2 to give inwhichlocreg and onwhichatom - but we should really take onwhichatom from file?!
-
-
 
     !type, public :: fragment_basis
     !   integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
@@ -161,8 +163,53 @@ contains
     !   type(local_zone_descriptors) :: Lzd
     !   type(minimal_orbitals_data) :: forbs
 
-
   end subroutine init_fragment_from_file
+
+
+  ! sanity check on fragment definitions
+  subroutine check_fragments(input,ref_frags,astruct)
+    use module_types
+    implicit none
+    type(input_variables), intent(in) :: input
+    type(atomic_structure), intent(in) :: astruct ! atomic structure of full system, needed to check fragments are sensible
+    type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+
+    integer :: ifrag, ifrag_ref, tot_frag_ats, isfat, iat
+    logical :: fragments_ok
+
+    fragments_ok=.true.
+
+    tot_frag_ats=0
+    do ifrag=1,input%frag%nfrag
+       ifrag_ref = input%frag%frag_index(ifrag)
+       tot_frag_ats = tot_frag_ats + ref_frags(ifrag_ref)%astruct_frg%nat
+    end do
+
+    if (tot_frag_ats /= astruct%nat) then
+       fragments_ok=.false.
+       write(*,*) 'Sum of atoms in fragments not equal to total atoms in system',tot_frag_ats,astruct%nat
+    end if
+
+    isfat=0
+    do ifrag=1,input%frag%nfrag
+       ifrag_ref=input%frag%frag_index(ifrag)
+
+       do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+          if (ref_frags(ifrag_ref)%astruct_frg%iatype(iat) /= astruct%iatype(iat+isfat)) then
+             fragments_ok=.false.
+             write(*,*) 'Atom type for fragment ',ifrag,', reference fragment ',ifrag_ref,' atom number ',iat,&
+                  ' does not match ',ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat)),&
+                  astruct%atomnames(astruct%iatype(iat+isfat))
+          end if
+       end do
+
+       isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
+    end do
+
+    if (.not. fragments_ok) stop 'Problem in fragment definitions'
+
+  end subroutine check_fragments
+
 
     !type, public :: minimal_orbitals_data
     !   integer :: norb          !< Total number of orbitals per k point
@@ -410,7 +457,6 @@ contains
     nullify(frag%coeff)
     call nullify_atomic_structure(frag%astruct_frg)
     ! nullify fragment basis
-    !frag%fbasis=fragment_basis_null()
     call nullify_fragment_basis(frag%fbasis)
 
   end function fragment_null
@@ -418,7 +464,11 @@ contains
   pure function fragment_basis_null() result(basis)
     implicit none
     type(fragment_basis) :: basis
-
+    call nullify_fragment_basis(basis)
+  end function fragment_basis_null
+  pure subroutine nullify_fragment_basis(basis)
+    implicit none
+    type(fragment_basis), intent(out) :: basis
     basis%npsidim_orbs=0
     basis%npsidim_comp=0
     call nullify_local_zone_descriptors(basis%lzd)
@@ -426,7 +476,7 @@ contains
     !basis%forbs=minimal_orbitals_data_null()
     nullify(basis%psi_full)
     nullify(basis%phi)
-  end function fragment_basis_null
+  end subroutine nullify_fragment_basis
   pure subroutine nullify_fragment_basis(basis)
     implicit none
     type(fragment_basis), intent(out) :: basis
@@ -598,21 +648,24 @@ contains
 
   !end function transform_fragment_basis
 
-  subroutine find_frag_trans(nat,rxyz_ref,rxyz_new,rot_axis,theta)
+  subroutine find_frag_trans(nat,rxyz_ref,rxyz_new,frag_trans)
     use module_base
     use yaml_output
     implicit none
     integer, intent(in) :: nat !< fragment size
     real(gp), dimension(3,nat), intent(in) :: rxyz_ref,rxyz_new !<coordinates measured wrt rot_center
-    real(gp), dimension(3) :: rot_axis !< unit rotation axis (should have modulus one)
-    real(gp) :: theta !< angle of rotation (ref becomes new)
+    type(fragment_transformation), intent(inout) :: frag_trans
     !local variables
     integer, parameter :: lwork=7*3
-    integer :: info, i
-    real(gp) :: dets,tracem1,dnrm2
+    integer :: info,i,iat,i_stat
+    real(gp) :: dets,tracem1,dnrm2,J
     real(gp), dimension(3) :: SM_arr !< array of SVD and M array
     real(gp), dimension(lwork) :: work !< array of SVD and M array
+    real(gp), dimension(3,nat) :: J_arr !< matrix for calculating Wahba's cost function
     real(gp), dimension(3,3) :: B_mat,R_mat,U_mat,VT_mat !<matrices of Wahba's problem
+    character(len=100) :: subname
+
+    subname='find_frag_trans'
 
     B_mat=0.0_gp
     R_mat=0.0_gp
@@ -631,10 +684,338 @@ contains
     !find rotation matrix
     call dgemm('N','N',3,3,3,1.0_gp,U_mat,3,VT_mat,3,0.0_gp,R_mat,3)
 
-    !to be verified that the cost function of Wahba's problem is little
-
-
     !find the angle from R matrix
+    frag_trans%theta=theta_from_r(R_mat)
+
+    !find rot_axis
+    frag_trans%rot_axis=axis_from_r(R_mat)
+
+    !print*,'Rmat:',frag_trans%theta
+    !do i=1,3
+    !   write(*,'(3(F12.6,2x))') R_mat(i,:)
+    !end do
+
+    !print*,'Rcalc:',frag_trans%theta
+    !write(*,'(3(F12.6,2x))') cos(frag_trans%theta)+frag_trans%rot_axis(1)**2*(1.0_gp-cos(frag_trans%theta)),&
+    !     frag_trans%rot_axis(1)*frag_trans%rot_axis(2)*(1.0_gp-cos(frag_trans%theta))&
+    !     -frag_trans%rot_axis(3)*sin(frag_trans%theta),&
+    !     frag_trans%rot_axis(1)*frag_trans%rot_axis(3)*(1.0_gp-cos(frag_trans%theta))&
+    !     +frag_trans%rot_axis(2)*sin(frag_trans%theta)
+    !write(*,'(3(F12.6,2x))') frag_trans%rot_axis(2)*frag_trans%rot_axis(1)*(1.0_gp-cos(frag_trans%theta))&
+    !     +frag_trans%rot_axis(3)*sin(frag_trans%theta),&
+    !     cos(frag_trans%theta)+frag_trans%rot_axis(2)**2*(1.0_gp-cos(frag_trans%theta)),&
+    !     frag_trans%rot_axis(2)*frag_trans%rot_axis(3)*(1.0_gp-cos(frag_trans%theta))&
+    !     -frag_trans%rot_axis(1)*sin(frag_trans%theta)
+    !write(*,'(3(F12.6,2x))') frag_trans%rot_axis(3)*frag_trans%rot_axis(1)*(1.0_gp-cos(frag_trans%theta))&
+    !     -frag_trans%rot_axis(2)*sin(frag_trans%theta),&
+    !     frag_trans%rot_axis(3)*frag_trans%rot_axis(2)*(1.0_gp-cos(frag_trans%theta))&
+    !     +frag_trans%rot_axis(1)*sin(frag_trans%theta),&
+    !     cos(frag_trans%theta)+frag_trans%rot_axis(3)**2*(1.0_gp-cos(frag_trans%theta))
+    
+    !to be verified that the cost function of Wahba's problem is little
+    J_arr=rxyz_new
+    call dgemm('N','N',3,nat,3,-1.0_gp,R_mat,3,rxyz_ref,3,1.0_gp,J_arr,3)
+    J=0.0_gp
+    do iat=1,nat
+       J=J+J_arr(1,iat)**2+J_arr(2,iat)**2+J_arr(3,iat)**2
+    end do
+
+    if (J>1.0e-10) then
+       print*,"Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+    end if
+
+    !check the pertinence of the suggested rotation
+    !if (abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp)) print*,'frag_trans%theta=',frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+	 !if  (f_err_raise(abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp),'Angle frag_trans%theta not optimal (frag_trans%theta= '//&
+	 !      yaml_toa(frag_trans%theta)//' )')) return
+
+    ! reduce the angle if frag_trans%theta > 60 degrees
+    !if (abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp)) then
+    !   write(*,*) 'before',frag_trans%rot_axis,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+    !   call find_discrete_operations(frag_trans,R_mat)
+    !   write(*,*) 'after',frag_trans%rot_axis,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+    !else
+       allocate(frag_trans%discrete_operations(0),stat=i_stat)
+       call memocc(i_stat,frag_trans%discrete_operations,'frag_trans%discrete_operations',subname)
+    !end if
+
+
+  end subroutine find_frag_trans
+
+
+
+  subroutine find_discrete_operations(frag_trans,R_mat)
+    use module_base
+    use yaml_output
+    use dictionaries
+    implicit none
+    type(fragment_transformation), intent(inout) :: frag_trans
+    real(gp), dimension(3,3), intent(inout) :: R_mat
+    !local variables
+    integer :: i, j, ival, nval, i_stat, ix, iy, iz, list_len_max
+    character(len=2) :: val
+    real(gp) :: min_theta, theta_orig, new_theta
+    integer :: rand_size
+    integer, allocatable, dimension(:) :: rand_seed
+    real(kind=gp) :: rtime, rn
+    character(len=10) :: sys_time 
+    logical, dimension(3,3) :: stag
+    type(dictionary), pointer :: list, list_tmp
+    character(len=100) :: subname
+    integer, dimension(3,2) :: axis_type
+
+    subname='find_discrete_operations'
+
+    call dict_init(list)
+
+    theta_orig=frag_trans%theta
+    min_theta=theta_orig
+    list_len_max=4
+
+    do ix=3,0,-1
+       do iy=0,3
+          do iz=0,3
+
+             axis_type(1,1)=ix  !type of operation
+             axis_type(2,1)=iy  !type of operation
+             axis_type(3,1)=iz  !type of operation
+             axis_type(1,2)=1  !axis of operation
+             axis_type(2,2)=2  !axis of operation
+             axis_type(3,2)=3  !axis of operation
+
+             call apply_discrete_operations_to_matrix(frag_trans%rot_axis,frag_trans%theta,new_theta,&
+                  R_mat,axis_type,list,.false.)
+!print*,'ix,iy,iz',ix,iy,iz,new_theta/(4.0_gp*atan(1.d0)/180.0_gp),min_theta/(4.0_gp*atan(1.d0)/180.0_gp)
+             !write(*,'(F8.4,1x,L2,1x)',advance='no') new_theta/(4.0_gp*atan(1.d0)/180.0_gp)
+             if (new_theta<min_theta) min_theta=new_theta
+             if (new_theta/(4.0_gp*atan(1.d0)/180.0_gp)<=60.0_gp) then
+                call dict_init(list_tmp)
+                call apply_discrete_operations_to_matrix(frag_trans%rot_axis,frag_trans%theta,new_theta,&
+                     R_mat,axis_type,list,.true.)
+                exit
+                !nval=dict_len(list_tmp)
+!print*,'dict',nval,list_len_max
+                !if (nval<list_len_max) then
+                !    call dict_free(list) 
+                !    call dict_init(list)
+                !    list_len_max=nval
+                !    do ival=0,nval-1
+                !       call add(list,list_tmp//ival)
+                !    end do
+                !end if
+                !call dict_free(list_tmp) 
+                !if (list_len_max==1) exit
+             end if
+
+          end do
+          if (min_theta/(4.0_gp*atan(1.d0)/180.0_gp)<=60.0_gp) exit
+       end do
+       if (min_theta/(4.0_gp*atan(1.d0)/180.0_gp)<=60.0_gp) exit
+    end do
+
+
+    ! copy from dict to frag_trans structure
+    nval=dict_len(list)
+    allocate(frag_trans%discrete_operations(nval),stat=i_stat)
+    call memocc(i_stat,frag_trans%discrete_operations,'frag_trans%discrete_operations',subname)
+
+    do ival=0,nval-1
+       frag_trans%discrete_operations(ival+1)=list//ival
+       print*,'filling discrete_ops',ival+1,frag_trans%discrete_operations(ival+1)
+    end do
+
+   call dict_free(list) 
+
+   write(*,*) 'Old theta, new theta',theta_orig/(4.0_gp*atan(1.d0)/180.0_gp), min_theta/(4.0_gp*atan(1.d0)/180.0_gp),nval
+
+   frag_trans%theta=min_theta
+   frag_trans%rot_axis=axis_from_r(R_mat)
+
+  end subroutine find_discrete_operations
+
+  subroutine apply_discrete_operations_to_matrix(rot_axis,theta,new_theta,R_mat,axis_type,list,make_list)
+    use module_base
+    use dictionaries
+    implicit none
+
+    real(gp), intent(in) :: theta
+    real(gp), dimension(3), intent(in) :: rot_axis
+    real(gp), intent(out) :: new_theta
+    real(gp), dimension(3,3), intent(inout) :: R_mat
+    integer, dimension(3,2), intent(in) :: axis_type
+    type(dictionary), pointer :: list ! list of operations performed
+    logical, intent(in) :: make_list ! adds operations to a list
+    !local variables
+    real(gp), dimension(3,3) :: R_mat_new, R_mat2
+    integer :: i
+    logical :: stag1,stag2,stag3
+
+    R_mat2=R_mat
+
+    do i=1,3,2
+       if (axis_type(i,1)==0) then
+          ! identity operation, no need to add to list
+          R_mat_new=R_mat2
+       else if (axis_type(i,1)==1) then
+          call subtract_90_rotation(R_mat2,R_mat_new,axis_type(i,2))
+          if (axis_type(i,2)==1.and.make_list) call add(list,'x1')
+          if (axis_type(i,2)==2.and.make_list) call add(list,'y1')
+          if (axis_type(i,2)==3.and.make_list) call add(list,'z1')
+       else if (axis_type(i,1)==2) then
+          call subtract_180_rotation(R_mat2,R_mat_new,axis_type(i,2))
+          if (axis_type(i,2)==1.and.make_list) call add(list,'x2')
+          if (axis_type(i,2)==2.and.make_list) call add(list,'y2')
+          if (axis_type(i,2)==3.and.make_list) call add(list,'z2')
+       else if (axis_type(i,1)==3) then
+          call add_90_rotation(R_mat2,R_mat_new,axis_type(i,2))
+          if (axis_type(i,2)==1.and.make_list) call add(list,'x3')
+          if (axis_type(i,2)==2.and.make_list) call add(list,'y3')
+          if (axis_type(i,2)==3.and.make_list) call add(list,'z3')
+       end if
+
+       new_theta=theta_from_r(R_mat_new)
+       !newz_new=axis_from_r(R_mat_new)
+        !if (make_list) print*,'discrete op',i,axis_type(i,2),new_theta!,axis_from_r(R_mat_new)
+
+       if (i==3) exit
+
+       if (axis_type(i+1,1)==0) then
+          ! identity operation, no need to add to list
+          R_mat2=R_mat_new
+       else if (axis_type(i+1,1)==1) then
+          call subtract_90_rotation(R_mat_new,R_mat2,axis_type(i+1,2))
+          if (axis_type(i+1,2)==1.and.make_list) call add(list,'x1')
+          if (axis_type(i+1,2)==2.and.make_list) call add(list,'y1')
+          if (axis_type(i+1,2)==3.and.make_list) call add(list,'z1')
+       else if (axis_type(i+1,1)==2) then
+          call subtract_180_rotation(R_mat_new,R_mat2,axis_type(i+1,2))
+          if (axis_type(i+1,2)==1.and.make_list) call add(list,'x2')
+          if (axis_type(i+1,2)==2.and.make_list) call add(list,'y2')
+          if (axis_type(i+1,2)==3.and.make_list) call add(list,'z2')
+       else if (axis_type(i+1,1)==3) then
+          call add_90_rotation(R_mat_new,R_mat2,axis_type(i+1,2))
+          if (axis_type(i+1,2)==1.and.make_list) call add(list,'x3')
+          if (axis_type(i+1,2)==2.and.make_list) call add(list,'y3')
+          if (axis_type(i+1,2)==3.and.make_list) call add(list,'z3')
+       end if
+
+       new_theta=theta_from_r(R_mat2)
+       !newz_new=axis_from_r(R_mat2)
+       !if (make_list) print*,'discrete op',i+1,axis_type(i+1,2),new_theta!,axis_from_r(R_mat2)
+    end do
+
+    if (make_list) R_mat=R_mat_new
+
+  end subroutine apply_discrete_operations_to_matrix
+
+
+  subroutine subtract_180_rotation(R_mat,R_mat_new,xyz)
+    implicit none
+
+    real(gp), dimension(3,3), intent(in) :: R_mat
+    real(gp), dimension(3,3), intent(out) :: R_mat_new
+    integer, intent(in) :: xyz ! subtract 180 degree rotation around this axis
+
+    real(gp), dimension(3,3) :: R_mat_180_xyz_inv
+
+    R_mat_180_xyz_inv=0.0_gp
+
+    if (xyz==1) then
+       R_mat_180_xyz_inv(1,1)=1
+       R_mat_180_xyz_inv(2,2)=-1
+       R_mat_180_xyz_inv(3,3)=-1   
+    else if (xyz==2) then
+       R_mat_180_xyz_inv(1,1)=-1
+       R_mat_180_xyz_inv(2,2)=1
+       R_mat_180_xyz_inv(3,3)=-1   
+    else if (xyz==3) then
+       R_mat_180_xyz_inv(1,1)=-1
+       R_mat_180_xyz_inv(2,2)=-1
+       R_mat_180_xyz_inv(3,3)=1   
+    else
+       print*,'Error'
+       stop
+    end if
+
+    call dgemm('N','N',3,3,3,1.0_gp,R_mat_180_xyz_inv,3,R_mat,3,0.0_gp,R_mat_new,3)
+
+  end subroutine subtract_180_rotation
+
+
+  subroutine subtract_90_rotation(R_mat,R_mat_new,xyz)
+    implicit none
+
+    real(gp), dimension(3,3), intent(in) :: R_mat
+    real(gp), dimension(3,3), intent(out) :: R_mat_new
+    integer, intent(in) :: xyz ! subtract 180 degree rotation around this axis
+
+    real(gp), dimension(3,3) :: R_mat_90_xyz_inv
+
+    R_mat_90_xyz_inv=0.0_gp
+
+    if (xyz==1) then
+       R_mat_90_xyz_inv(1,1)=1
+       R_mat_90_xyz_inv(2,3)=1
+       R_mat_90_xyz_inv(3,2)=-1   
+    else if (xyz==2) then
+       R_mat_90_xyz_inv(1,3)=-1
+       R_mat_90_xyz_inv(2,2)=1
+       R_mat_90_xyz_inv(3,1)=1   
+    else if (xyz==3) then
+       R_mat_90_xyz_inv(1,2)=1
+       R_mat_90_xyz_inv(2,1)=-1
+       R_mat_90_xyz_inv(3,3)=1   
+    else
+       print*,'Error'
+       stop
+    end if
+
+    call dgemm('N','N',3,3,3,1.0_gp,R_mat_90_xyz_inv,3,R_mat,3,0.0_gp,R_mat_new,3)
+
+  end subroutine subtract_90_rotation
+
+
+  subroutine add_90_rotation(R_mat,R_mat_new,xyz)
+    implicit none
+
+    real(gp), dimension(3,3), intent(in) :: R_mat
+    real(gp), dimension(3,3), intent(out) :: R_mat_new
+    integer, intent(in) :: xyz ! subtract 180 degree rotation around this axis
+
+    real(gp), dimension(3,3) :: R_mat_90_xyz_inv
+
+    R_mat_90_xyz_inv=0.0_gp
+
+    if (xyz==1) then
+       R_mat_90_xyz_inv(1,1)=1
+       R_mat_90_xyz_inv(2,3)=-1
+       R_mat_90_xyz_inv(3,2)=1   
+    else if (xyz==2) then
+       R_mat_90_xyz_inv(1,3)=1
+       R_mat_90_xyz_inv(2,2)=1
+       R_mat_90_xyz_inv(3,1)=-1   
+    else if (xyz==3) then
+       R_mat_90_xyz_inv(1,2)=-1
+       R_mat_90_xyz_inv(2,1)=1
+       R_mat_90_xyz_inv(3,3)=1   
+    else
+       print*,'Error'
+       stop
+    end if
+
+    call dgemm('N','N',3,3,3,1.0_gp,R_mat_90_xyz_inv,3,R_mat,3,0.0_gp,R_mat_new,3)
+
+  end subroutine add_90_rotation
+
+  pure function theta_from_r(R_mat) result(theta)
+    implicit none
+    real(gp), dimension(3,3), intent(in) :: R_mat
+
+    real(gp) :: theta
+
+    !local variables
+    real(gp) :: tracem1
+
     tracem1=R_mat(1,1)+R_mat(2,2)+R_mat(3,3)-1.0_gp
 
 	 if (abs(tracem1) - 2.0_gp > -1.e-14_gp) then
@@ -642,38 +1023,40 @@ contains
 	     if (tracem1 <= 0.0_gp) theta = 180.0_gp*(4.0_gp*atan(1.d0)/180.0_gp)
     else
        theta=acos(0.5_gp*tracem1)
-       !convert to degrees
-       !theta=theta/(4.0_gp*atan(1.d0)/180.0_gp)
     end if
-    !check the pertinence of the suggested rotation
-	 if  (f_err_raise(abs(theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp),'Angle theta not optimal (theta= '//&
-	        yaml_toa(theta)//' )')) return
-    !find rot_axis
+
+  end function theta_from_r
+
+  function axis_from_r(R_mat) result(rot_axis)
+    implicit none
+    real(gp), dimension(3,3), intent(in) :: R_mat
+    real(gp), dimension(3) :: rot_axis
+
+    !local variables
+    real(gp) :: dnrm2, norm
+
     rot_axis(1)=R_mat(3,2)-R_mat(2,3)    
     rot_axis(2)=R_mat(1,3)-R_mat(3,1)
     rot_axis(3)=R_mat(2,1)-R_mat(1,2)    
+
     !normalize it
-    call dscal(3,1.0_gp/dnrm2(3,rot_axis,1),rot_axis,1)
 
-    !print*,'Rmat:',theta
-    !do i=1,3
-    !   write(*,'(3(F12.6,2x))') R_mat(i,:)
-    !end do
+    norm=dnrm2(3,rot_axis,1)
+    !print*,'axis_from_r',norm,rot_axis
+    if (norm>=1.e-5_gp) then
+       call dscal(3,1.0_gp/norm,rot_axis,1)
+       !print*,'axis_from_r2',norm,rot_axis
+    else
+       ! squares of rot_axis are diag 0.5(R+I), signs as before
+       rot_axis(1)=sign(dsqrt(0.5_gp*(R_mat(1,1)+1.0_gp)),rot_axis(1))
+       rot_axis(2)=sign(dsqrt(0.5_gp*(R_mat(2,2)+1.0_gp)),rot_axis(2))
+       rot_axis(3)=sign(dsqrt(0.5_gp*(R_mat(3,3)+1.0_gp)),rot_axis(3))
+       !print*,'axis_from_r3',norm,rot_axis
+    end if
 
-    !print*,'Rcalc:',theta
-    !write(*,'(3(F12.6,2x))') cos(theta)+rot_axis(1)**2*(1.0_gp-cos(theta)),&
-    !     rot_axis(1)*rot_axis(2)*(1.0_gp-cos(theta))-rot_axis(3)*sin(theta),&
-    !     rot_axis(1)*rot_axis(3)*(1.0_gp-cos(theta))+rot_axis(2)*sin(theta)
-    !write(*,'(3(F12.6,2x))') rot_axis(2)*rot_axis(1)*(1.0_gp-cos(theta))+rot_axis(3)*sin(theta),&
-    !     cos(theta)+rot_axis(2)**2*(1.0_gp-cos(theta)),&
-    !     rot_axis(2)*rot_axis(3)*(1.0_gp-cos(theta))-rot_axis(1)*sin(theta)
-    !write(*,'(3(F12.6,2x))') rot_axis(3)*rot_axis(1)*(1.0_gp-cos(theta))-rot_axis(2)*sin(theta),&
-    !     rot_axis(3)*rot_axis(2)*(1.0_gp-cos(theta))+rot_axis(1)*sin(theta),&
-    !     cos(theta)+rot_axis(3)**2*(1.0_gp-cos(theta))
-    
+  end function axis_from_r
 
 
-  end subroutine find_frag_trans
 
   pure function frag_center(nat,rxyz) result(cen)
     implicit none
@@ -706,15 +1089,167 @@ contains
          + a(1,3)*(a(2,1)*a(3,2) - a(3,1)*a(2,2))
   end function det_33
 
+
+
+
+
+  subroutine find_discrete_operations_random(rot_axis,theta,R_mat,discrete_ops)
+    use module_base
+    use yaml_output
+    use dictionaries
+    implicit none
+    real(gp), dimension(3), intent(inout) :: rot_axis !< unit rotation axis (should have modulus one)
+    real(gp), intent(inout) :: theta !< angle of rotation (ref becomes new)
+    real(gp), dimension(3,3), intent(inout) :: R_mat
+    character(len=2), dimension(:), pointer :: discrete_ops
+    !local variables
+    integer :: i, j, ival, nval, i_stat
+    character(len=2) :: val
+    real(gp) :: min_theta, theta_orig
+    integer :: rand_size
+    integer, allocatable, dimension(:) :: rand_seed
+    real(kind=gp) :: rtime, rn
+    character(len=10) :: sys_time 
+    logical, dimension(3,3) :: stag
+    type(dictionary), pointer :: list
+    character(len=100) :: subname
+
+    subname='find_discrete_operations'
+
+    call dict_init(list)
+
+    call random_seed(size=rand_size)
+    allocate(rand_seed(1:rand_size))
+    call date_and_time(time=sys_time)
+    read(sys_time,*) rtime
+    rand_seed=int(rtime*1000.0_dp)
+    call random_seed(put=rand_seed)
+    deallocate(rand_seed) 
+
+    theta_orig=theta
+    write(*,'(F8.4,2x)',advance='no') theta_orig/(4.0_gp*atan(1.d0)/180.0_gp)
+
+    write(16,*) ''
+    write(16,*) 'begin'
+    write(16,*) theta_orig/(4.0_gp*atan(1.d0)/180.0_gp),rot_axis
+
+    min_theta=theta_orig
+
+    do j=1,100000
+       stag=.false.
+       call random_number(rn) 
+       if (rn < min(j,10)*0.01_dp) then
+          stag(1,1)=.true.
+       else if (rn < min(j,10)*0.02_dp) then
+          stag(1,2)=.true.
+       else if (rn < min(j,10)*0.03_dp) then
+          stag(1,3)=.true.
+       else if (rn < min(j,10)*0.04_dp) then
+          stag(2,1)=.true.
+       else if (rn < min(j,10)*0.05_dp) then
+          stag(2,2)=.true.
+       else if (rn < min(j,10)*0.06_dp) then
+          stag(2,3)=.true.
+       else if (rn < min(j,10)*0.07_dp) then
+          stag(3,1)=.true.
+       else if (rn < min(j,10)*0.08_dp) then
+          stag(3,2)=.true.
+       else if (rn < min(j,10)*0.09_dp) then
+          stag(3,3)=.true.
+       end if
+       call apply_discrete_operations_random(rot_axis,theta,min_theta,R_mat,stag,list)
+       !write(*,'(F8.4,1x,L2,1x)',advance='no') theta/(4.0_gp*atan(1.d0)/180.0_gp),rn < min(j,10)*0.09_dp
+       if (min_theta/(4.0_gp*atan(1.d0)/180.0_gp)<=45.0_gp) exit
+    end do
+    write(16,*) 'end'
+    write(16,*) ''
+
+    ! copy from dict to frag_trans structure
+    nval=dict_len(list)
+    allocate(discrete_ops(nval),stat=i_stat)
+    call memocc(i_stat,discrete_ops,'discrete_ops',subname)
+
+    do ival=0,nval-1
+       discrete_ops(ival+1)=list//ival
+    end do
+
+   call dict_free(list) 
+
+   write(*,*) 'Old theta, new theta',theta_orig/(4.0_gp*atan(1.d0)/180.0_gp), min_theta/(4.0_gp*atan(1.d0)/180.0_gp),nval
+
+  end subroutine find_discrete_operations_random
+
+
+  subroutine apply_discrete_operations_random(rot_axis,theta,mintheta,R_mat,stag,list)
+    use module_base
+    use dictionaries
+    implicit none
+
+    real(gp), intent(inout) :: theta
+    real(gp), dimension(3), intent(inout) :: rot_axis
+    real(gp), intent(inout) :: mintheta
+    real(gp), dimension(3,3), intent(inout) :: R_mat
+    logical, dimension(3,3), intent(in) :: stag
+    type(dictionary), pointer :: list
+    !local variables
+    real(gp), dimension(3,3) :: R_mat_new
+    integer :: i
+    logical :: stag1,stag2,stag3
+
+    do i=1,3
+       call subtract_180_rotation(R_mat,R_mat_new,i)
+       if (i==1) stag1=stag(1,1)
+       if (i==2) stag1=stag(1,2)
+       if (i==3) stag1=stag(1,3)
+       if (theta_from_r(R_mat_new)<mintheta .or. stag1) then
+          if (theta_from_r(R_mat_new)<mintheta) mintheta=theta_from_r(R_mat_new)
+          theta=theta_from_r(R_mat_new)
+          rot_axis=axis_from_r(R_mat_new)
+          R_mat=R_mat_new
+          if (i==1) call add(list,'x1')
+          if (i==2) call add(list,'y1')
+          if (i==3) call add(list,'z1')
+          write(16,*) 'trans 180',i,stag1,theta/(4.0_gp*atan(1.d0)/180.0_gp),mintheta/(4.0_gp*atan(1.d0)/180.0_gp),rot_axis
+          return
+       end if
+
+       call subtract_90_rotation(R_mat,R_mat_new,i)
+       if (i==1) stag2=stag(2,1)
+       if (i==2) stag2=stag(2,2)
+       if (i==3) stag2=stag(2,3)
+       if (theta_from_r(R_mat_new)<mintheta .or. stag2) then
+          if (theta_from_r(R_mat_new)<mintheta) mintheta=theta_from_r(R_mat_new)
+          theta=theta_from_r(R_mat_new)
+          rot_axis=axis_from_r(R_mat_new)
+          R_mat=R_mat_new
+          if (i==1) call add(list,'x2')
+          if (i==2) call add(list,'y2')
+          if (i==3) call add(list,'z2')
+          write(16,*) 'trans 90',i,stag2,theta/(4.0_gp*atan(1.d0)/180.0_gp),mintheta/(4.0_gp*atan(1.d0)/180.0_gp),rot_axis
+          return
+       end if
+
+       call add_90_rotation(R_mat,R_mat_new,i)
+       if (i==1) stag3=stag(3,1)
+       if (i==2) stag3=stag(3,2)
+       if (i==3) stag3=stag(3,3)
+       if (theta_from_r(R_mat_new)<mintheta .or. stag3) then
+          if (theta_from_r(R_mat_new)<mintheta) mintheta=theta_from_r(R_mat_new)
+          theta=theta_from_r(R_mat_new)
+          rot_axis=axis_from_r(R_mat_new)
+          R_mat=R_mat_new
+          if (i==1) call add(list,'x3')
+          if (i==2) call add(list,'y3')
+          if (i==3) call add(list,'z3')
+          write(16,*) 'trans -90',i,stag3,theta/(4.0_gp*atan(1.d0)/180.0_gp),mintheta/(4.0_gp*atan(1.d0)/180.0_gp),rot_axis
+          return
+       end if
+    end do
+
+  end subroutine apply_discrete_operations_random
+
+
 end module module_fragments
-
-!newfrg=trans*frag
-
-
-
-
-
-
 
 
 

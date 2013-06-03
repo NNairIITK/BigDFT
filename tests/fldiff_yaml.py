@@ -270,7 +270,8 @@ if __name__ == "__main__":
 references = [a for a in yaml.load_all(open(args.ref, "r").read(), Loader = yaml.CLoader)]
 try:
   datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
-except:
+except Exception,e:
+  print str(e)
   datas = []
   reports = open(args.output, "w")
   fatal_error(args,reports)

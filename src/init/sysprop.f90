@@ -159,7 +159,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   inputpsi = in%inputPsiId
 
   call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, &
-       orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%label, ref_frags)
+       orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%dirname, ref_frags)
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)

@@ -448,6 +448,7 @@ subroutine default_input_variables(in)
   nullify(in%lin%kernel_cutoff)
   !nullify(in%frag%frag_info)
   nullify(in%frag%label)
+  nullify(in%frag%dirname)
   nullify(in%frag%frag_index)
 END SUBROUTINE default_input_variables
 
@@ -1743,7 +1744,13 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
        stop
     end if
     call input_var(in%frag%label(frag_num),' ',comment=comments)
-    in%frag%label(frag_num)=trim(in%frag%label(frag_num))//'/'
+    in%frag%label(frag_num)=trim(in%frag%label(frag_num))
+    ! keep dirname blank if this isn't a fragment calculation
+    if (len(trim(in%frag%label(frag_num)))>1) then
+       in%frag%dirname(frag_num)='data-'//trim(in%frag%label(frag_num))//'/'
+    else
+       in%frag%dirname(frag_num)=''
+    end if
   end do
 
   comments = '# fragment number j, reference fragment i this corresponds to'
@@ -1782,6 +1789,9 @@ END SUBROUTINE fragment_input_variables
     allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
     call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
 
+    allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
+    call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
+
   end subroutine allocateInputFragArrays
 
   subroutine deallocateInputFragArrays(input_frag)
@@ -1816,6 +1826,13 @@ END SUBROUTINE fragment_input_variables
       nullify(input_frag%label)
     end if 
 
+    if(associated(input_frag%dirname)) then
+      i_all = -product(shape(input_frag%dirname))*kind(input_frag%dirname)
+      deallocate(input_frag%dirname,stat=i_stat)
+      call memocc(i_stat,i_all,'input_frag%dirname',subname)
+      nullify(input_frag%dirname)
+    end if 
+
   end subroutine deallocateInputFragArrays
 
 
@@ -1829,6 +1846,7 @@ END SUBROUTINE fragment_input_variables
     nullify(input_frag%frag_index)
     !nullify(input_frag%frag_info)
     nullify(input_frag%label)
+    nullify(input_frag%dirname)
 
   end subroutine nullifyInputFragParameters
 

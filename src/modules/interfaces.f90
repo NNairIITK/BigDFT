@@ -2092,6 +2092,7 @@ module module_interfaces
       type(system_fragment), dimension(:), pointer :: ref_frags 
     end subroutine linearScaling   
 
+
    subroutine createDerivativeBasis(n1,n2,n3, &
               nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
               hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
@@ -4216,21 +4217,6 @@ module module_interfaces
           integer,dimension(:),pointer:: inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old
         end subroutine copy_old_inwhichlocreg
 
-        subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,& !n(c) iproc (arg:1)
-             psigold,hgrids,n,centre_old,centre_new,da,newz,theta,psi)
-          use module_base
-          use module_types
-          implicit none
-          integer, dimension(3), intent(in) :: n_old,n
-          real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
-          type(wavefunctions_descriptors), intent(in) :: wfd
-          character(len=1), intent(in) :: geocode
-          real(gp), dimension(3), intent(in) :: centre_old,centre_new,newz,da
-          real(gp), intent(in) :: theta
-          real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
-          real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
-        end subroutine reformat_one_supportfunction
-
         subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
                frag_trans,psi_old,phi_array_old)
           use module_base
@@ -4243,7 +4229,7 @@ module module_interfaces
           type(DFT_wavefunction), intent(inout) :: tmb
           type(local_zone_descriptors), intent(in) :: lzd_old
           type(fragment_transformation), dimension(tmb%orbs%norbp), intent(in) :: frag_trans
-          real(wp), dimension(:), pointer, intent(in) :: psi_old
+          real(wp), dimension(:), pointer :: psi_old
           type(phi_array), dimension(tmb%orbs%norbp), optional, intent(in) :: phi_array_old
           logical, intent(in) :: add_derivatives
         end subroutine reformat_supportfunctions

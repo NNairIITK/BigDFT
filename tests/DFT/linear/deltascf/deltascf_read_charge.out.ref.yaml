@@ -27,7 +27,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.28
- Timestamp of this run                 : 2013-05-07 12:39:47.469
+ Timestamp of this run                 : 2013-05-27 14:32:11.950
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
@@ -111,7 +111,7 @@
  #... (file:default.kpt)..................................Brillouin Zone Sampling Parameters
  #|manual         K-point sampling method                                                    
  #|1              Number of K-points                                                         
- #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
+ #|0. 0. 0. 1.    K-pt coords, K-pt weight                                                   
  #... (file:read_charge.lin)...............................................Linear Parameters
  #|2              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
  #|0              outer loop iterations (low, high)                                          
@@ -132,16 +132,13 @@
  #|5              number of iterations in the preconditioner                                 
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
- #|0  F  F        Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|0 F F          Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|F F            fragment calculation; calculate transfer_integrals                         
  #|C 4 1.0d-4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
  #|S 4 1.0d-4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
  #|H 1 1.0d-4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
  # ==== WARNING: the following lines have not been processed by the parser ====
  #|                                                                                          
- #... (file:default.frag)................................................Fragment Parameters
- #|1 1            # number of fragments in reference system, number of fragments in current s
- #|1 1 0          # reference fragment number i, number of atoms in reference fragment i, num
- #|1 1            # fragment number j, reference fragment i this corresponds to              
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-read_charge/
   #--------------------------------------------- Input Atomic System (file: read_charge.xyz)
@@ -373,7 +370,7 @@
   #--------------------------------------------------------- Reading Wavefunctions from disk
  Input Hamiltonian:
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  1.284E+02,  1.336E+02 ]}
+   -  {Process:  0, Timing:  [  1.430E+02,  1.452E+02 ]}
    Poisson Solver:
      BC                                : Free
      Box                               :  [  263,  151,  161 ]
@@ -435,51 +432,55 @@
    MPI tasks                           :  6
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x:  1.63860257E-02, y: -1.50432839E-02, z: -7.53167638E-03, 
-                    total:  2.34846413E-02}
- Clean forces norm (Ha/Bohr): {maxval:  3.028091081005E-01, fnrm2:  9.111731439682E-01}
- Raw forces norm (Ha/Bohr): {maxval:  3.182685794213E-01, fnrm2:  9.173159886924E-01}
+ Average noise forces: {x: -2.00857440E-01, y:  4.49291258E-02, z:  3.80490763E-01, 
+                    total:  4.32591677E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  3.006519013241E-01, fnrm2:  6.200987780883E-01}
+ Raw forces norm (Ha/Bohr): {maxval:  3.562649379551E-01, fnrm2:  8.080499416213E-01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [-1.039771197232E-01, -5.866780094174E-02,  1.839724820961E-02]} # 0001
- -  {C: [-9.265756045121E-02,  2.468053210470E-01,  2.584780473736E-02]} # 0002
- -  {C: [-1.018872535272E-01, -2.357718787512E-02,  2.624329456432E-01]} # 0003
- -  {S: [-1.164462776092E-02, -2.016949183665E-01, -1.260026639789E-02]} # 0004
- -  {H: [ 2.711257440534E-02, -6.676453417551E-02, -5.980236496680E-02]} # 0005
- -  {H: [ 6.298052659825E-02,  2.933095058842E-02,  1.060034430763E-02]} # 0006
- -  {H: [-6.921753544102E-02,  4.047872615828E-02, -8.720020683509E-02]} # 0007
- -  {H: [ 3.504894793923E-02, -7.116725465132E-02, -6.747519102946E-02]} # 0008
- -  {C: [-9.800420787163E-02,  1.353447815176E-01,  1.300242009823E-01]} # 0009
- -  {C: [ 2.273498714406E-02, -1.461172622164E-01, -9.628480207318E-02]} # 0010
- -  {C: [ 3.836175684983E-02,  1.457393173055E-01, -8.887782958993E-02]} # 0011
- -  {C: [-4.578064552645E-02, -1.343907111502E-01,  9.931975829503E-02]} # 0012
- -  {S: [-1.062304846495E-02,  2.070845064722E-01, -5.353041515430E-03]} # 0013
- -  {S: [-4.278900157958E-03, -1.999004642889E-01, -1.005688863247E-03]} # 0014
- -  {C: [-3.778623477675E-02,  1.245541888635E-01,  9.582428325747E-02]} # 0015
- -  {C: [ 4.907881168447E-02, -1.265514619410E-01, -9.943802373341E-02]} # 0016
- -  {C: [ 1.198913503732E-01,  1.118701193999E-01, -1.483693056207E-01]} # 0017
- -  {C: [-3.040595871070E-02, -1.192902269364E-01,  9.726644924322E-02]} # 0018
- -  {S: [ 3.227393640738E-03,  1.922281100721E-01,  5.447574895900E-03]} # 0019
- -  {S: [ 5.039464829168E-04, -1.857067928953E-01,  8.495368798471E-03]} # 0020
- -  {C: [ 8.721736149160E-02,  2.635326423968E-01, -3.662211343814E-02]} # 0021
- -  {C: [ 1.266885177266E-01, -1.178290974864E-02, -2.747808917350E-01]} # 0022
- -  {C: [ 1.295645757074E-01, -5.857732438639E-02, -2.440657252828E-02]} # 0023
- -  {H: [-3.774918763926E-02, -8.538432524070E-02,  8.346376445282E-02]} # 0024
- -  {H: [ 6.964019172969E-02,  3.739033450509E-02,  1.068007545356E-01]} # 0025
- -  {H: [-8.241326614841E-02,  3.855606689140E-02, -1.927414438705E-02]} # 0026
- -  {H: [-4.562539557375E-02, -8.334189040364E-02,  7.756994535509E-02]} # 0027
+ -  {C: [-2.034481422222E-01, -3.505101834290E-04,  8.238668416732E-02]} # 0001
+ -  {C: [-1.915224411244E-01,  2.198694929979E-01,  7.326749869064E-02]} # 0002
+ -  {C: [-1.236825089449E-01,  8.719038999035E-02,  4.953290757120E-02]} # 0003
+ -  {S: [ 1.698421390906E-02, -1.860235925512E-01, -1.752442527974E-02]} # 0004
+ -  {H: [ 8.027893551778E-02, -9.445725587348E-02, -6.741505630732E-02]} # 0005
+ -  {H: [ 4.946264093326E-02,  1.046924576193E-02,  1.794308198836E-02]} # 0006
+ -  {H: [ 2.860018676510E-02,  2.787365898176E-02, -1.405564035264E-01]} # 0007
+ -  {H: [ 8.759366908890E-02, -9.583735342499E-02, -8.363051160548E-02]} # 0008
+ -  {C: [-1.329594179114E-01,  1.949721601003E-02,  5.878590324864E-02]} # 0009
+ -  {C: [-2.150380533744E-02, -5.191210028371E-02,  4.935755287924E-02]} # 0010
+ -  {C: [-6.366035925096E-03,  3.000789862694E-02,  4.122060123928E-02]} # 0011
+ -  {C: [-5.368871526390E-02, -3.352985473896E-02,  5.250154290651E-02]} # 0012
+ -  {S: [ 1.169022148879E-02,  1.700222511258E-01, -3.191109132614E-02]} # 0013
+ -  {S: [ 1.834903480039E-02, -1.854819899824E-01, -1.674676507093E-02]} # 0014
+ -  {C: [-4.745804339287E-02,  7.043304120138E-03,  4.839946000337E-02]} # 0015
+ -  {C: [ 1.610422315706E-02, -2.792377174870E-02,  4.407045481590E-02]} # 0016
+ -  {C: [ 1.197257510547E-01,  4.165060856896E-03,  1.553055696339E-02]} # 0017
+ -  {C: [-4.047583509985E-02, -2.443754989258E-02,  5.394581764590E-02]} # 0018
+ -  {S: [ 2.101723506042E-02,  1.550954102080E-01, -3.354092612449E-02]} # 0019
+ -  {S: [ 1.655650286950E-02, -1.705983530457E-01, -1.746260069011E-02]} # 0020
+ -  {C: [ 1.175601435440E-01,  2.341129699580E-01,  1.774501027450E-02]} # 0021
+ -  {C: [ 9.922619754863E-02,  9.914206772703E-02,  8.707463535039E-03]} # 0022
+ -  {C: [ 1.449485528292E-01, -3.310437049506E-02,  2.668967437120E-02]} # 0023
+ -  {H: [-2.101724693023E-02, -1.062737097459E-01, -4.620323540212E-02]} # 0024
+ -  {H: [ 3.215185474302E-02,  1.194215024911E-02,  3.190401383407E-02]} # 0025
+ -  {H: [ 9.056101412960E-03,  3.625971444310E-02, -1.580108331349E-01]} # 0026
+ -  {H: [-2.718327257049E-02, -1.027604190909E-01, -5.898637566694E-02]} # 0027
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  198.21
-   Elapsed time (s)                    :  204.10
+   CPU time (s)                        :  214.96
+   Elapsed time (s)                    :  219.25
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 23131
-   Tot. No. of Deallocations: 23131
-   Remaining Memory (B)     : 0
-   Memory occupation: 
-      Peak Value (MB): 941
-      for the array: psi_f
-      in the routine: transpose_unswitch_psi
+   Tot. No. of Allocations             :  23127
+   Tot. No. of Deallocations           :  23127
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  941
+     for the array                     : psi_f
+     in the routine                    : transpose_unswitch_psi
+ YAML_STREAM_NOT_FOUND:
+   Id                                  : 13
+   Message                             : The stream has not been found
+ Additional Info                       : Unit  6 not found

@@ -5,6 +5,7 @@
 module wrapper_MPI
   ! TO BE REMOVED with f_malloc
   use memory_profiling
+  use dynamic_memory
   ! TO BE REMOVED with f_malloc
 
   implicit none
@@ -37,18 +38,18 @@ module wrapper_MPI
   public :: mpi_environment_null
   public :: mpi_environment_free
   public :: mpi_environment_set
-  public :: mpi_environment_set1,mpi_environment_set2 !to be removed
+  public :: mpi_environment_set1 !to be removed
   
 contains
 
-  function mpi_environment_null() result(mpi)
+  pure function mpi_environment_null() result(mpi)
     implicit none
     type(mpi_environment) :: mpi
-    mpi%mpi_comm=MPI_COMM_WORLD
-    mpi%igroup=0
-    mpi%ngroup=1
-    mpi%iproc=0
-    mpi%nproc=1
+    mpi%mpi_comm=MPI_COMM_NULL !better to put an invalid comm?
+    mpi%igroup=-1
+    mpi%ngroup=-1
+    mpi%iproc=-1
+    mpi%nproc=-1
   end function mpi_environment_null
 
   subroutine mpi_environment_free(mpi_env)
@@ -57,7 +58,10 @@ contains
     !local variables
     integer :: ierr
 
-    if (mpi_env%ngroup > 1) call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
+    if (mpi_env%mpi_comm /= MPI_COMM_WORLD .and. &
+         mpi_env%mpi_comm /= MPI_COMM_NULL) &
+         call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
+    mpi_env=mpi_environment_null()
   end subroutine mpi_environment_free
 
   !> Set the MPI environment (i.e. taskgroup or MPI communicator)
@@ -72,59 +76,86 @@ contains
     implicit none
     integer, intent(in) :: iproc,nproc,mpi_comm,groupsize
     type(mpi_environment), intent(out) :: mpi_env
+    !local variables
+    integer :: j
+    integer, dimension(:), allocatable :: group_list
 
+    call f_routine(id='mpi_environment_set')
     mpi_env=mpi_environment_null()
 
-    mpi_env%igroup=0
-    mpi_env%ngroup=1
-    mpi_env%iproc=iproc
-    mpi_env%nproc=nproc
+!!$    mpi_env%igroup=0
+!!$    mpi_env%ngroup=1
+!!$    mpi_env%iproc=iproc
+!!$    mpi_env%nproc=nproc
     mpi_env%mpi_comm=mpi_comm
-
-    if (nproc >1 .and. groupsize > 0) then
-       if (nproc >1 .and. groupsize < nproc .and. mod(nproc,groupsize)==0) then
-          mpi_env%igroup=iproc/groupsize
-          mpi_env%ngroup=nproc/groupsize
-          mpi_env%iproc=mod(iproc,groupsize)
-          mpi_env%nproc=groupsize
-          call create_group_comm(mpi_comm,nproc,mpi_env%igroup,mpi_env%nproc,mpi_env%mpi_comm)
-          if (iproc == 0) then
-             call yaml_map('Total No. of Taskgroups created',nproc/mpi_env%nproc)
-          end if
+    mpi_env%igroup=iproc/groupsize
+    mpi_env%ngroup=nproc/groupsize
+    mpi_env%iproc=mod(iproc,groupsize)
+    mpi_env%nproc=groupsize
+    if (groupsize /= nproc) then
+       !define the strategy for the taskgroups
+       group_list=f_malloc(groupsize,id='group_list')
+       !iproc in the same group are close to each other
+       do j=0,groupsize-1
+          group_list(j+1)=mpi_env%igroup*groupsize+j
+       enddo
+       call create_group_comm(mpi_comm,nproc,mpi_env%igroup,mpi_env%nproc,group_list,mpi_env%mpi_comm)
+       if (iproc == 0) then
+          call yaml_map('Total No. of Taskgroups created',nproc/mpi_env%nproc)
        end if
+       call f_free(group_list)
     end if
+    call f_release_routine()
   end subroutine mpi_environment_set
 
 !!! PSolver n1-n2 plane mpi partitioning !!! 
   !> This is exactly like mpi_environment_set but it always creates groups
   !! the routine above should be modified accordingly
-  subroutine mpi_environment_set2(mpi_env,iproc,nproc,mpi_comm,groupsize)
-    use yaml_output
-    implicit none
-    integer, intent(in) :: iproc,nproc,mpi_comm,groupsize
-    type(mpi_environment), intent(out) :: mpi_env
+!!$  subroutine mpi_environment_set2(mpi_env,iproc,nproc,mpi_comm,groupsize)
+!!$    use yaml_output
+!!$    implicit none
+!!$    integer, intent(in) :: iproc,nproc,mpi_comm,groupsize
+!!$    type(mpi_environment), intent(out) :: mpi_env
+!!$    !local variables
+!!$    integer :: j
+!!$    integer, dimension(:), allocatable :: group_list
+!!$
+!!$    call f_routine(id='mpi_environment_set2')
+!!$    mpi_env=mpi_environment_null()
+!!$
+!!$    mpi_env%mpi_comm=mpi_comm
+!!$
+!!$    mpi_env%igroup=iproc/groupsize
+!!$    mpi_env%ngroup=nproc/groupsize
+!!$    mpi_env%iproc=mod(iproc,groupsize)
+!!$    mpi_env%nproc=groupsize
+!!$
+!!$    !define the strategy for the taskgroups
+!!$    group_list=f_malloc(groupsize,id='group_list')
+!!$    !iproc in the same group are close to each other
+!!$    do j=0,groupsize-1
+!!$       group_list(j+1)=mpi_env%igroup*groupsize+j
+!!$    enddo
+!!$
+!!$    call create_group_comm(mpi_comm,nproc,mpi_env%igroup,mpi_env%nproc,group_list,mpi_env%mpi_comm)
+!!$!    if (iproc == 0) then
+!!$!       call yaml_map('Total No. of Taskgroups created',nproc/mpi_env%nproc)
+!!$!    end if
+!!$    call f_free(group_list)
+!!$    call f_release_routine()
+!!$  end subroutine mpi_environment_set2
 
-    mpi_env=mpi_environment_null()
-
-    mpi_env%mpi_comm=mpi_comm
-
-    mpi_env%igroup=iproc/groupsize
-    mpi_env%ngroup=nproc/groupsize
-    mpi_env%iproc=mod(iproc,groupsize)
-    mpi_env%nproc=groupsize
-    call create_group_comm(mpi_comm,nproc,mpi_env%igroup,mpi_env%nproc,mpi_env%mpi_comm)
-!    if (iproc == 0) then
-!       call yaml_map('Total No. of Taskgroups created',nproc/mpi_env%nproc)
-!    end if
-
-  end subroutine mpi_environment_set2
-
-  !this is a different procedure to assign the iproc accordint to the groups.
+  !this is a different procedure to assign the iproc according to the groups.
   subroutine mpi_environment_set1(mpi_env,iproc,nproc,mpi_comm,groupsize,ngroup)
     use yaml_output
     implicit none
     integer, intent(in) :: iproc,nproc,mpi_comm,groupsize,ngroup
     type(mpi_environment), intent(out) :: mpi_env
+    !local variables
+    integer :: j
+    integer, dimension(:), allocatable :: group_list
+
+    call f_routine(id='mpi_environment_set1')
 
     mpi_env=mpi_environment_null()
 
@@ -135,56 +166,61 @@ contains
     mpi_env%iproc=iproc/ngroup
     mpi_env%nproc=groupsize
     mpi_env%mpi_comm=mpi_comm
-    call create_group_comm1(mpi_comm,nproc,mpi_env%igroup,ngroup,mpi_env%nproc,mpi_env%mpi_comm)
+
+    !define the strategy for the taskgroups
+    group_list=f_malloc(groupsize,id='group_list')
+    !round-robin strategy
+    if (mpi_env%igroup >0) then
+       do j=0,groupsize-1
+          group_list(j+1)=mpi_env%igroup+j*mpi_env%ngroup
+       enddo
+    else
+       !these processes have MPI_COMM_NULL
+       group_list=-1
+       mpi_env%mpi_comm=MPI_COMM_NULL
+    end if
+
+    !call create_group_comm1(mpi_comm,nproc,mpi_env%igroup,ngroup,mpi_env%nproc,mpi_env%mpi_comm)
+    call create_group_comm(mpi_comm,nproc,mpi_env%igroup,mpi_env%nproc,group_list,mpi_env%mpi_comm)
 !    if (iproc == 0) then
 !       call yaml_map('Total No. of Taskgroups created',ngroup)
 !    end if
-
+    call f_free(group_list)
+    call f_release_routine()
   end subroutine mpi_environment_set1
 
-
   !> create communicators associated to the groups of size group_size
-  subroutine create_group_comm(base_comm,nproc_base,group_id,group_size,group_comm)
+  subroutine create_group_comm(base_comm,nproc_base,group_id,group_size,group_list,group_comm)
     use yaml_output
+    use dictionaries
+
     implicit none
     integer, intent(in) :: base_comm,group_size,nproc_base,group_id
+    integer, dimension(group_size), intent(in) :: group_list !< list of id of the group identified by group_id in units of base_comm
     integer, intent(out) :: group_comm
     !local variables
-    character(len=*), parameter :: subname='create_group_comm'
-    integer :: grp,ierr,i,j,base_grp,temp_comm,i_stat,i_all
-    integer, dimension(:), allocatable :: group_list
-
-    allocate(group_list(group_size+ndebug),stat=i_stat)
-    call memocc(i_stat,group_list,'group_list',subname)
+    integer :: grp,ierr,base_grp
 
     !take the base group
     call MPI_COMM_GROUP(base_comm,base_grp,ierr)
-    if (ierr /=0) then
-       call yaml_warning('Problem in group creation, ierr:'//yaml_toa(ierr))
-       call MPI_ABORT(base_comm,1,ierr)
-    end if
-    do i=0,nproc_base/group_size-1
-       !define the new groups and thread_id
-       do j=0,group_size-1
-          group_list(j+1)=i*group_size+j
-       enddo
-       call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
-       if (ierr /=0) then
-          call yaml_warning('Problem in group inclusion, ierr:'//yaml_toa(ierr))
-          call MPI_ABORT(base_comm,1,ierr)
-       end if
-       call MPI_COMM_CREATE(base_comm,grp,temp_comm,ierr)
-       if (ierr /=0) then
-          call yaml_warning('Problem in communicator creator, ierr:'//yaml_toa(ierr))
-          call MPI_ABORT(base_comm,1,ierr)
-       end if
-       !print *,'i,group_id,temp_comm',i,group_id,temp_comm
-       if (i.eq. group_id) group_comm=temp_comm
-    enddo
-
-    i_all=-product(shape(group_list ))*kind(group_list )
-    deallocate(group_list,stat=i_stat)
-    call memocc(i_stat,i_all,'group_list',subname)
+    if (f_err_raise(ierr/=0,'Problem in group creation, ierr:'//yaml_toa(ierr),&
+         err_name='BIGDFT_MPI_ERROR')) return
+    !create the groups with the list
+    call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
+    if (f_err_raise(ierr/=0,'Problem in group inclusion, ierr:'//yaml_toa(ierr),&
+         err_name='BIGDFT_MPI_ERROR')) return
+    !free base group
+    call MPI_GROUP_FREE(base_grp,ierr)
+    if (f_err_raise(ierr/=0,'Problem in base_group free, ierr:'//yaml_toa(ierr),&
+         err_name='BIGDFT_MPI_ERROR')) return
+    !create the communicator (the communicator can be also null)
+    call MPI_COMM_CREATE(base_comm,grp,group_comm,ierr)
+    if (f_err_raise(ierr/=0,'Problem in communicator creator, ierr:'//yaml_toa(ierr),&
+         err_name='BIGDFT_MPI_ERROR')) return
+    !free temporary group
+    call MPI_GROUP_FREE(grp,ierr)
+    if (f_err_raise(ierr/=0,'Problem in new_group free, ierr:'//yaml_toa(ierr),&
+              err_name='BIGDFT_MPI_ERROR')) return
 
   end subroutine create_group_comm
 

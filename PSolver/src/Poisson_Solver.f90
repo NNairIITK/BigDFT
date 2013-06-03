@@ -91,19 +91,12 @@ module Poisson_Solver
      integer, dimension(5) :: plan
      integer, dimension(3) :: geo
      !variables with computational meaning
-     type(mpi_environment) :: mpi_env
+     type(mpi_environment) :: mpi_env !< complete environment for the POisson Solver
+     type(mpi_environment) :: inplane_mpi,part_mpi !<mpi_environment for internal ini-plane parallelization
      integer :: igpu !< control the usage of the GPU
      integer :: initCufftPlan
      integer :: keepGPUmemory
   end type coulomb_operator
-
-  !variables temporarily inserted as global which have to be removed once the new parallelisation strategy
-  type(mpi_environment) :: inplane_mpi
-  type(mpi_environment) :: part_mpi
-
-  logical :: md2plus=.false. !default value
-
-  public :: md2plus,inplane_mpi,part_mpi
 
   !calculate the allocation dimensions
   public :: PS_dim4allocation, PS_getVersion
@@ -116,7 +109,7 @@ module Poisson_Solver
 
 contains
 
-  function pkernel_null() result(k)
+  pure function pkernel_null() result(k)
     type(coulomb_operator) :: k
     k%itype_scf=0
     k%geocode='F'
@@ -131,7 +124,11 @@ contains
     k%plan=(/0,0,0,0,0/)
     k%geo=(/0,0,0/)
     k%mpi_env=mpi_environment_null()
+    k%inplane_mpi=mpi_environment_null()
+    k%part_mpi=mpi_environment_null()
     k%igpu=0
+    k%initCufftPlan=0
+    k%keepGPUmemory=1
   end function pkernel_null
 
   function PS_getVersion() result(str)
