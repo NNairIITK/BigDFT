@@ -35,11 +35,11 @@ PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
 endif
 
 head_message: all-recursive
-	@echo "======================================================="
-	@echo "Type 'make check' in the directory tests      "
+	@echo "========================================================"
+	@echo "To run the tests, type 'make check' (might take a while)"
 
 foot_message: $(mpirun_message) $(oclrun_message) head_message
-	@echo "======================================================="
+	@echo "========================================================"
 
 mpirun: head_message
 	@echo "     Use the environment variable run_parallel"

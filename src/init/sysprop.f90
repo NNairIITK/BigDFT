@@ -34,7 +34,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
   real(wp), dimension(:), pointer :: proj
-  type(system_fragment), dimension(in%frag%nfrag_ref), intent(inout) :: ref_frags
+  type(system_fragment), dimension(:), pointer :: ref_frags
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
@@ -158,8 +158,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
 
   inputpsi = in%inputPsiId
 
-  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, in%frag%nfrag_ref, in%frag%label, &
-       orbs, lorbs, iproc, nproc, ref_frags)
+  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, &
+       orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%dirname, ref_frags)
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)

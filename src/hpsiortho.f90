@@ -1621,7 +1621,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
      write(*,*)'hpsiortho, l1478 erase me:'
      do iat=1,paw%natom 
        do jorb=1,wfn%orbs%norbu
-       write(*,'(a,2(i4,x),1000f20.12)')' cprj(iat,jorb)%cp(:,:)=',iat,jorb,paw%cprj(iat,jorb)%cp(:,:)
+       write(*,'(a,2(i4,1x),1000f20.12)')' cprj(iat,jorb)%cp(:,:)=',iat,jorb,paw%cprj(iat,jorb)%cp(:,:)
        end do
      end do
    end if
@@ -2758,7 +2758,7 @@ loop_kpt: do
                  scpr(1)=scalprod(1,1)+scalprod(2,2)
                  scpr(2)=scalprod(1,2)-scalprod(2,1)
               end if
-              write(*,'("<psi|H|psi> for kpt=,",i5," iat=",i5,"=>",2(f15.5,x))')ikpt,iat,scpr
+              write(*,'("<psi|H|psi> for kpt=,",i5," iat=",i5,"=>",2(f15.5,1x))')ikpt,iat,scpr
               write(*,*)'ispsi_a','ispsi_b','nvctr_tot',ispsi_a,ispsi_b,nvctr_tot
             end do !ispinor
          end do !iorb

@@ -548,13 +548,13 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf,eco
   else
      
      if (lr%geocode == 'F') then
-        call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-        !call apply_potential_lr_bounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        call apply_potential_lr_bounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              ishift,lr%d%n2,lr%d%n3,&
              nspinor,npot,vpsir,pot,epot,&
-        !     lr%bounds%ibyyzz_r)
-             ibyyzz_r=lr%bounds%ibyyzz_r)
+             lr%bounds%ibyyzz_r)
+        !     ibyyzz_r=lr%bounds%ibyyzz_r)
      else
         !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
         call apply_potential_lr_nobounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&

@@ -419,6 +419,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      do ifrag=1,in%frag%nfrag_ref
         ref_frags(ifrag)=fragment_null()
      end do
+  else
+     nullify(ref_frags)
   end if
 
   if(in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then

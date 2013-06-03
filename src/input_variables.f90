@@ -94,7 +94,7 @@ subroutine bigdft_free_input(in)
   type(input_variables), intent(inout) :: in
   
   call free_input_variables(in)
-  call f_finalize()
+  call f_lib_finalize()
   !finalize memory counting
   !call memocc(0,0,'count','stop')
   !free all yaml_streams active
@@ -448,6 +448,7 @@ subroutine default_input_variables(in)
   nullify(in%lin%kernel_cutoff)
   !nullify(in%frag%frag_info)
   nullify(in%frag%label)
+  nullify(in%frag%dirname)
   nullify(in%frag%frag_index)
 END SUBROUTINE default_input_variables
 
@@ -1209,7 +1210,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
            call input_var( in%kpt(2,i),'0.')
         end if
         call input_var( in%kpt(3,i),'0.')
-        call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weigth')
+        call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weight')
         if (geocode == 'F') then
            in%kpt = 0.
            in%wkpt = 1.
@@ -1622,7 +1623,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
 
 !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
   if (in%verbosity == 0 ) then
-     call f_set_status(output_level=0)
+     call f_malloc_set_status(output_level=0)
      !call memocc_set_state(0)
   end if
 
@@ -1656,7 +1657,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   
   ! Set performance variables
   if (.not. in%debug) then
-     call f_set_status(output_level=1)
+     call f_malloc_set_status(output_level=1)
      !call memocc_set_state(1)
   end if
   call set_cache_size(in%ncache_fft)
@@ -1738,7 +1739,13 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
        stop
     end if
     call input_var(in%frag%label(frag_num),' ',comment=comments)
-    in%frag%label(frag_num)=trim(in%frag%label(frag_num))//'/'
+    in%frag%label(frag_num)=trim(in%frag%label(frag_num))
+    ! keep dirname blank if this isn't a fragment calculation
+    if (len(trim(in%frag%label(frag_num)))>1) then
+       in%frag%dirname(frag_num)='data-'//trim(in%frag%label(frag_num))//'/'
+    else
+       in%frag%dirname(frag_num)=''
+    end if
   end do
 
   comments = '# fragment number j, reference fragment i this corresponds to'
@@ -1777,6 +1784,9 @@ END SUBROUTINE fragment_input_variables
     allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
     call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
 
+    allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
+    call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
+
   end subroutine allocateInputFragArrays
 
   subroutine deallocateInputFragArrays(input_frag)
@@ -1811,6 +1821,13 @@ END SUBROUTINE fragment_input_variables
       nullify(input_frag%label)
     end if 
 
+    if(associated(input_frag%dirname)) then
+      i_all = -product(shape(input_frag%dirname))*kind(input_frag%dirname)
+      deallocate(input_frag%dirname,stat=i_stat)
+      call memocc(i_stat,i_all,'input_frag%dirname',subname)
+      nullify(input_frag%dirname)
+    end if 
+
   end subroutine deallocateInputFragArrays
 
 
@@ -1824,6 +1841,7 @@ END SUBROUTINE fragment_input_variables
     nullify(input_frag%frag_index)
     !nullify(input_frag%frag_info)
     nullify(input_frag%label)
+    nullify(input_frag%dirname)
 
   end subroutine nullifyInputFragParameters
 
@@ -1909,7 +1927,7 @@ subroutine create_log_file(iproc,inputs)
         !create that only if the stream is not already present, otherwise print a warning
         if (ierr == 0) then
            call input_set_stdout(unit=70)
-           call f_set_status(unit=70,logfile_name=trim(inputs%dir_output)//'malloc.prc')
+           call f_malloc_set_status(unit=70,logfile_name=trim(inputs%dir_output)//'malloc.prc')
            !call memocc_set_stdout(unit=70)
         else
            call yaml_warning('Logfile '//trim(logfile)//' cannot be created, stream already present. Ignoring...')

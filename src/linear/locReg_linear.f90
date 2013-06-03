@@ -140,7 +140,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   type(atomic_structure),intent(in) :: astruct
   type(orbitals_data),intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: Glr
-  type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
+  type(locreg_descriptors), dimension(nlr), intent(inout) :: Llr
   logical,dimension(nlr),intent(in) :: calculateBounds
 !  integer, dimension(3,nlr),intent(out) :: outofzone
   !local variables

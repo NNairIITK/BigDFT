@@ -1,3 +1,4 @@
+
 subroutine test_dynamic_memory()
    use yaml_output
    use dynamic_memory
@@ -9,17 +10,17 @@ subroutine test_dynamic_memory()
    call yaml_comment('Routine-Tree creation example',hfill='~')
    !call dynmem_sandbox()
 
-   call f_set_status(memory_limit=0.e0)
+   call f_malloc_set_status(memory_limit=0.e0)
    call f_routine(id='PS_Check')
 
    call f_routine(id='Routine 0')
    !Density
    density=f_malloc(3*2,id='density')
    !Density then potential
-   potential=f_malloc0(3,id='potential')
+   potential=f_malloc(3,id='potential')!0
 
    call f_release_routine()
-!!$
+
    call f_routine(id='Routine A')
    call f_release_routine()
 
@@ -75,7 +76,7 @@ subroutine test_dynamic_memory()
 !!$   !   call yaml_close_map()
    call f_release_routine()
 
-   call f_finalize()
+   call f_malloc_finalize()
 
 
 end subroutine test_dynamic_memory
