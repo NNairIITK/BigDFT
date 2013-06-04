@@ -111,7 +111,6 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming, guint nproc)
     FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, naming, (int*)&nproc, strlen(naming));
   else
     FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, " ", (int*)&nproc, 1);
-  fprintf(stderr, "done %d\n", nproc);
   /* Get naming schemes. */
   _free_names(in);
   FC_FUNC_(inputs_get_naming, INPUTS_GET_NAMING)(in->data, run_name, file_dft, file_geopt, file_kpt,

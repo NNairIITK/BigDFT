@@ -49,7 +49,26 @@ subroutine atoms_nullify(atoms)
   type(atoms_data), intent(out) :: atoms
 
   call astruct_nullify(atoms%astruct)
+
+  ! Arrays related to ntypes.
+  nullify(atoms%psppar)
+  nullify(atoms%nelpsp)
+  nullify(atoms%npspcode)
+  nullify(atoms%nzatom)
+  nullify(atoms%ixcpsp)
+  nullify(atoms%radii_cf)
+  ! parameters for NLCC
   nullify(atoms%nlccpar)
+  nullify(atoms%nlcc_ngv)
+  nullify(atoms%nlcc_ngc)
+  ! Parameters for Linear input guess
+  nullify(atoms%rloc)
+
+  ! Arrays related to nat.
+  nullify(atoms%iasctype)
+  nullify(atoms%aocc)
+  nullify(atoms%amu)
+
   nullify(atoms%paw_l)
   nullify(atoms%paw_NofL)
   nullify(atoms%paw_nofchannels)
@@ -74,19 +93,6 @@ subroutine deallocate_atoms(atoms,subname)
 
   ! Deallocate atomic structure
   call deallocate_atomic_structure(atoms%astruct,subname) 
-
-  ! Deallocations for the geometry part.
-  if (atoms%astruct%nat > 0) then
-     i_all=-product(shape(atoms%amu))*kind(atoms%amu)
-     deallocate(atoms%amu,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%amu',subname)
-  end if
-  if (atoms%astruct%ntypes > 0) then
-     ! Parameters for Linear input guess
-     i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
-     deallocate(atoms%rloc,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%rloc',subname)
-  end if
 
   ! Deallocations related to pseudos.
   if (atoms%astruct%ntypes > 0) then
@@ -114,12 +120,21 @@ subroutine deallocate_atoms(atoms,subname)
      i_all=-product(shape(atoms%radii_cf))*kind(atoms%radii_cf)
      deallocate(atoms%radii_cf,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%radii_cf',subname)
+     ! Parameters for Linear input guess
+     i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
+     deallocate(atoms%rloc,stat=i_stat)
+     call memocc(i_stat,i_all,'atoms%rloc',subname)
+  end if
+  if (atoms%astruct%nat > 0) then
      i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
      deallocate(atoms%iasctype,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%iasctype',subname)
      i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
      deallocate(atoms%aocc,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%aocc',subname)
+     i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+     deallocate(atoms%amu,stat=i_stat)
+     call memocc(i_stat,i_all,'atoms%amu',subname)
   end if
   if (associated(atoms%nlccpar)) then
      i_all=-product(shape(atoms%nlccpar))*kind(atoms%nlccpar)
