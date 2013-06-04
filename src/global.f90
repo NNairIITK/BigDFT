@@ -480,7 +480,7 @@ program MINHOP
   runObj%inputs => inputs_opt
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
-     count_bfgs=counts_bfgs+ncount_bigdft
+     count_bfgs=count_bfgs+ncount_bigdft
 
       call bigdft_get_eigenvalues(rst,ksevals,i_stat)
         if (i_stat /= BIGDFT_SUCCESS) then
