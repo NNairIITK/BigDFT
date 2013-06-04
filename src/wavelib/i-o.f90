@@ -1247,6 +1247,7 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
     psi_out(j,:)=0.0_gp
     do i=1,nout
 
+       !find inverse
        kold=-1000.0_gp
        find_trans: do l=1,nin
           k=real(l,gp)+t0_field(l,j)
@@ -1254,12 +1255,6 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
           kold=k
           !print *,l,k,t0_field(l,j),i
        end do find_trans
-       !print *,'the rest is',t0_field(l:,j)
-       if (real(i,gp) > k .and. real(i,gp) < kold .or. real(i,gp) > kold .and. real(i,gp) < k )then
-       else
-          print *,'i,k1',i,k,kold,t0_field(:,j),l
-          stop
-       end if
        ! want to use either l or l-1 to give us point i - pick closest
        if (k-real(i,gp) < -kold+real(i,gp)) then
           ksh1=k-real(i,gp)
@@ -1297,6 +1292,8 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
        alpha=ksh2/(ksh1+ksh2)
 
        t0_l=alpha*t0_field(k1,j)+(1.0_gp-alpha)*t0_field(k2,j)
+       !end of find_inverse
+
 
        dt=t0_l-nint(t0_l)
    
@@ -1304,29 +1301,8 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
 
        if (abs(diff - dt) < abs(diff+dt)) dt=-dt
 
-       !evaluate the shift
-       ish=nint(real(nunit,gp)*dt)
-
-       if (ish<=0) then
-          shf(-m_isf)=0.0_gp
-       else
-          shf(-m_isf)=phi(ish)  
-       end if 
-       ipos=ish
-
-       do l=-m_isf+1,m_isf-1 !extremes excluded
-          !position of the shifted argument in the phi array
-          ipos=ipos+nunit
-          shf(l)=phi(ipos)  
-       end do
-
-       if (ish<=0) then
-          shf(m_isf)=phi(ipos+nunit)
-       else
-          shf(m_isf)=0.0_gp
-       end if 
-
-
+       !define filter for the interpolation starting from a constant shift
+       call define_filter(dt,nrange,nphi,phi,shf)
 
        !here the boundary conditions have to be considered
        tt=0.0_gp
@@ -1335,6 +1311,7 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
        do l=ms,me
           tt=tt+shf(l)*psi_in(k1+l,j)
        end do
+       !end of interpolate coefficient
 
 
        if (i > 0 .and. i < nout) psi_out(j,i)=tt
@@ -1351,6 +1328,96 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
 
 end subroutine morph_and_transpose
 
+subroutine define_filter(dt,nrange,nphi,phi,shf)
+  use module_base
+  implicit none
+  integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+  integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+  real(gp), intent(in) :: dt
+  real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+  real(gp), dimension(-nrange/2:nrange/2), intent(out) :: shf !< interpolating filter to be applied
+  !local variables
+  integer :: nunit,ish,ipos,m_isf,l
+  
+  m_isf=nrange/2
+  !number of points for a unit displacement
+  nunit=nphi/nrange 
+  
+  !evaluate the shift
+  ish=nint(real(nunit,gp)*dt)
+  
+  if (ish<=0) then
+     shf(-m_isf)=0.0_gp
+  else
+     shf(-m_isf)=phi(ish)  
+  end if
+  ipos=ish
+  
+  do l=-m_isf+1,m_isf-1 !extremes excluded
+     !position of the shifted argument in the phi array
+     ipos=ipos+nunit
+     shf(l)=phi(ipos)  
+  end do
+  
+  if (ish<=0) then
+     shf(m_isf)=phi(ipos+nunit)
+  else
+     shf(m_isf)=0.0_gp
+  end if
+  !end of define_filter
+end subroutine define_filter
+
+
+!!$!> given a translation vector, find the inverse one
+!!$subroutine find_inverse
+!!$  implicit none
+!!$  
+!!$  kold=-1000.0_gp
+!!$  find_trans: do l=1,nin
+!!$     k=real(l,gp)+t0_field(l,j)
+!!$     if (k-real(i,gp) > tol) exit find_trans
+!!$     kold=k
+!!$     !print *,l,k,t0_field(l,j),i
+!!$  end do find_trans
+!!$  ! want to use either l or l-1 to give us point i - pick closest
+!!$  if (k-real(i,gp) < -kold+real(i,gp)) then
+!!$     ksh1=k-real(i,gp)
+!!$     ksh2=-kold+real(i,gp)
+!!$     k1=l
+!!$     k2=l-1
+!!$     if (k2==0) then
+!!$        k2=1
+!!$        ksh2=ksh1
+!!$     end if
+!!$     if (k1==nin+1) then
+!!$        k1=nin
+!!$        ksh1=ksh2
+!!$     end if
+!!$  else
+!!$     ksh1=-kold+real(i,gp)
+!!$     ksh2=k-real(i,gp)
+!!$     k1=l-1
+!!$     k2=l
+!!$     if (k1==0) then
+!!$        k1=1
+!!$        ksh1=ksh2
+!!$     end if
+!!$     if (k2==nin+1) then
+!!$        k2=nin
+!!$        ksh2=ksh1
+!!$     end if
+!!$  end if
+!!$
+!!$  if (ksh1==0.0_gp .or. k1==k2) then !otherwise already have exactly on point
+!!$     ksh2=1.0_gp
+!!$     ksh1=0.0_gp
+!!$  end if
+!!$
+!!$  alpha=ksh2/(ksh1+ksh2)
+!!$
+!!$  t0_l=alpha*t0_field(k1,j)+(1.0_gp-alpha)*t0_field(k2,j)
+!!$
+!!$end subroutine find_inverse
 
 subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
    use module_base
@@ -1615,6 +1682,66 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,cen
 
   call f_release_routine()
 end subroutine field_rototranslation
+
+!> routine which directly applies the 3D transformation of the rototranslation
+subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,f_old,&
+     hgrids_new,ndims_new,f_new)
+  use module_base
+  implicit none
+  integer, intent(in) :: n_phi,nrange_phi !< number of points of ISF array and real-space range
+  real(gp), intent(in) :: theta !< rotation wrt newzeta vector
+  real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
+  real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
+  real(gp), dimension(3), intent(in) :: centre_old,centre_new !<centre of rotation
+  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
+  integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
+  real(gp), dimension(n_phi), intent(in) :: phi_ISF
+  real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
+  real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
+  !local variables
+  real(gp), dimension(:,:), allocatable :: dx,dy,dz
+  real(gp), dimension(:,:), allocatable :: work,work2
+  
+  call f_routine(id='field_rototranslation3D')
+  
+  dx=f_malloc((/ndims_old(1),ndims_old(2)*ndims_old(3)/),id='dx')
+  dy=f_malloc((/ndims_old(2),ndims_new(1)*ndims_old(3)/),id='dy')
+  dz=f_malloc((/ndims_old(3),ndims_new(1)*ndims_new(2)/),id='dz')
+  work =f_malloc(shape(dy),id='work')
+  work2=f_malloc(shape(dz),id='work2')
+
+  !for each of the dimensions build the interpolating vector which is needed
+  
+
+  call define_rotations(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
+       hgrids_new,ndims_new,dx,dy,dz)
+
+  !call define_rotations(da,newz,centre_old,centre_new,0.498_gp*pi_param,hgrids_old,ndims_old,&
+  !     hgrids_new,ndims_new,dx,dy,dz)
+
+
+  !call define_rotations_switch(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
+  !     hgrids_new,ndims_new,dx,dy,dz)
+  
+  !perform interpolation
+  call morph_and_transpose(dx,n_phi,nrange_phi,phi_ISF,ndims_old(2)*ndims_old(3),&
+         ndims_old(1),f_old,ndims_new(1),work)
+
+  call morph_and_transpose(dy,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_old(3),&
+         ndims_old(2),work,ndims_new(2),work2)
+
+  call morph_and_transpose(dz,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_new(2),&
+         ndims_old(3),work2,ndims_new(3),f_new)
+  
+  call f_free(dx)
+  call f_free(dy)
+  call f_free(dz)
+  call f_free(work)
+  call f_free(work2)
+
+  call f_release_routine()
+end subroutine field_rototranslation3D
+
  
 
 
