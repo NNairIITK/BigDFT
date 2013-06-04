@@ -33,7 +33,8 @@ program MINHOP
   real(kind=8),allocatable, dimension(:,:) :: fp_arr
   real(kind=8),allocatable, dimension(:) :: fp,wfp,fphop
   real(kind=8),allocatable, dimension(:,:,:) :: pl_arr
-  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode,nksevals,i,igroup,ngroups
+  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode,nksevals,i,igroup,ngroups,natoms
+  integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
   character(len=4) :: fn4
@@ -96,7 +97,7 @@ program MINHOP
   !unoptimized input parameters
   call bigdft_set_input('md'//trim(run_id)//trim(bigdft_run_id_toa()),'poscur'//trim(bigdft_run_id_toa()),&
        mdpos,inputs_md,md_atoms)
-!   write(*,*) 'nat=',atoms%nat
+!   write(*,*) 'nat=',atoms%astruct%nat
 
   !associate the same output directory
   if (inputs_opt%dir_output /= inputs_md%dir_output) then
@@ -115,26 +116,29 @@ program MINHOP
   deallocate(mdpos,stat=i_stat)
   call memocc(i_stat,i_all,'mdpos',subname)
 
+  !get number of atoms of the system, to allocate local arrays
+  natoms=bigdft_get_number_of_atoms(atoms)
+
 
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) beta_S, beta_O, beta_N',(/beta_S,beta_O,beta_N/),fmt='(1pe11.4)')
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) alpha_A, alpha_R',(/alpha_A,alpha_R/),fmt='(1pe11.4)')
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) mdmin=',mdmin)
 
   ! allocate other arrays
-  allocate(ff(3,atoms%nat+ndebug),stat=i_stat)
+  allocate(ff(3,natoms+ndebug),stat=i_stat)
   call memocc(i_stat,ff,'ff',subname)
-  allocate(wpos(3,atoms%nat+ndebug),stat=i_stat)
+  allocate(wpos(3,natoms+ndebug),stat=i_stat)
   call memocc(i_stat,wpos,'wpos',subname)
-  allocate(vxyz(3,atoms%nat+ndebug),stat=i_stat)
+  allocate(vxyz(3,natoms+ndebug),stat=i_stat)
   call memocc(i_stat,vxyz,'vxyz',subname)
-  allocate(gg(3,atoms%nat+ndebug),stat=i_stat)
+  allocate(gg(3,natoms+ndebug),stat=i_stat)
   call memocc(i_stat,gg,'gg',subname)
-  allocate(poshop(3,atoms%nat+ndebug),stat=i_stat)
+  allocate(poshop(3,natoms+ndebug),stat=i_stat)
   call memocc(i_stat,poshop,'poshop',subname)
-  allocate(rcov(atoms%nat+ndebug),stat=i_stat)
+  allocate(rcov(natoms+ndebug),stat=i_stat)
   call memocc(i_stat,rcov,'rcov',subname)
 
-  call give_rcov(bigdft_mpi%iproc,atoms,atoms%nat,rcov)
+  call give_rcov(bigdft_mpi%iproc,atoms,natoms,rcov)
 
 ! read random offset
   open(unit=11,file='rand'//trim(bigdft_run_id_toa())//'.inp')
@@ -225,7 +229,7 @@ program MINHOP
 
   ngeopt=ngeopt+1
   if (bigdft_mpi%iproc == 0) then 
-     tt=dnrm2(3*atoms%nat,ff,1)
+     tt=dnrm2(3*natoms,ff,1)
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call write_atomic_file('posimed_'//fn4//'_'//trim(bigdft_run_id_toa()),&
@@ -237,7 +241,7 @@ program MINHOP
       close(864)
   endif
 
-  call ha_trans(atoms%nat,pos)
+  call ha_trans(natoms,pos)
 
   call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,pos,atoms,ff,strten,e_pos,rst,inputs_opt,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
@@ -250,7 +254,7 @@ program MINHOP
   end if
 
   if (bigdft_mpi%iproc == 0) then 
-     tt=dnrm2(3*atoms%nat,ff,1)
+     tt=dnrm2(3*natoms,ff,1)
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
@@ -262,7 +266,7 @@ program MINHOP
       close(864)
   endif
   
-        nid=atoms%nat
+        nid=natoms
         allocate(fp(nid))
           call memocc(i_stat,fp,'fp',subname)
         allocate(wfp(nid))
@@ -270,7 +274,7 @@ program MINHOP
         allocate(fphop(nid))
           call memocc(i_stat,fphop,'fphop',subname)
 
-  call fingerprint(bigdft_mpi%iproc,atoms%nat,nid,pos,rcov,fp)
+  call fingerprint(bigdft_mpi%iproc,natoms,nid,pos,rcov,fp)
   if (bigdft_mpi%iproc == 0) then
      call yaml_map('(MH) INPUT(relaxed), e_pos ',e_pos,fmt='(e17.10)')
   end if
@@ -295,7 +299,7 @@ program MINHOP
           call memocc(i_stat,ct_arr,'ct_arr',subname)
         allocate(fp_arr(nid,nlminx))
           call memocc(i_stat,fp_arr,'fp_arr',subname)
-        allocate(pl_arr(3,atoms%nat,nlminx))
+        allocate(pl_arr(3,natoms,nlminx))
           call memocc(i_stat,pl_arr,'pl_arr',subname)
         if (nlmin.eq.0) then 
             if (bigdft_mpi%iproc == 0) call yaml_map('(MH) New run with nlminx=',nlminx)
@@ -312,6 +316,7 @@ program MINHOP
         if (bigdft_mpi%iproc == 0) call yaml_map('(MH) read idarr','idarr'//trim(bigdft_run_id_toa()))
 
   ! If restart read previous poslocm's
+  ! here we should use bigdft built-in routines to read atomic positions
      do ilmin=1,nlmin
 
         write(fn5,'(i5.5)') ilmin
@@ -323,15 +328,15 @@ program MINHOP
            exit
         end if
         read(9,*) natp,unitsp,en_arr(ilmin)
-        if (atoms%nat.ne.natp) stop   'nat <> natp'
-        if (trim(unitsp).ne.trim(atoms%units) .and. bigdft_mpi%iproc.eq.0) write(*,*)  & 
-                 '(MH) different units in poslow and poscur file: ',trim(unitsp),' ',trim(atoms%units)
-        if (trim(unitsp).ne.trim(atoms%units) .and. bigdft_mpi%iproc.eq.0) call yaml_scalar( &
-                 '(MH) different units in poslow and poscur file: '//trim(unitsp)//' , '//trim(atoms%units))
+        if (natoms.ne.natp) stop   'nat <> natp'
+        if (trim(unitsp).ne.trim(atoms%astruct%units) .and. bigdft_mpi%iproc.eq.0) write(*,*)  & 
+                 '(MH) different units in poslow and poscur file: ',trim(unitsp),' ',trim(atoms%astruct%units)
+        if (trim(unitsp).ne.trim(atoms%astruct%units) .and. bigdft_mpi%iproc.eq.0) call yaml_scalar( &
+                 '(MH) different units in poslow and poscur file: '//trim(unitsp)//' , '//trim(atoms%astruct%units))
         read(9,*)
-        do iat=1,atoms%nat
+        do iat=1,natoms
           read(9,*) atmn,t1,t2,t3
-          if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then ! if Angstroem convert to Bohr
+          if (atoms%astruct%units=='angstroem' .or. atoms%astruct%units=='angstroemd0') then ! if Angstroem convert to Bohr
               pl_arr(1,iat,ilmin)=t1/bohr2ang
               pl_arr(2,iat,ilmin)=t2/bohr2ang
               pl_arr(3,iat,ilmin)=t3/bohr2ang
@@ -361,13 +366,13 @@ program MINHOP
         do i=1,nid
           fp_arr(i,1)=fp(i)
         enddo
-        do iat=1,atoms%nat
+        do iat=1,natoms
           pl_arr(1,iat,1)=pos(1,iat) 
           pl_arr(2,iat,1)=pos(2,iat) 
           pl_arr(3,iat,1)=pos(3,iat) 
         enddo
 
-        do iat=1,atoms%nat
+        do iat=1,natoms
           wpos(1,iat)=pos(1,iat) ; wpos(2,iat)=pos(2,iat) ; wpos(3,iat)=pos(3,iat)
         enddo
 
@@ -379,7 +384,7 @@ program MINHOP
         nlmin=nlmin+1
         if (nlmin.gt.nlminx) stop 'nlminx too small'
         !            add minimum to history list
-        call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,atoms%nat,k_e_wpos,e_wpos,wfp,pos,en_arr,ct_arr,fp_arr,pl_arr)
+        call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,natoms,k_e_wpos,e_wpos,wfp,pos,en_arr,ct_arr,fp_arr,pl_arr)
         if (k_e_wpos .gt. nlminx .or. k_e_wpos .lt. 1) stop "k_e_wpos out of bounds"
         nvisit=int(ct_arr(k_e_wpos))
      else
@@ -433,7 +438,7 @@ program MINHOP
   endif
   CPUcheck=.true.
 
-  do iat=1,atoms%nat
+  do iat=1,natoms
      wpos(1,iat)=pos(1,iat)
      wpos(2,iat)=pos(2,iat) 
      wpos(3,iat)=pos(3,iat)
@@ -441,10 +446,10 @@ program MINHOP
 
   escape=escape+1.d0
   call mdescape(nsoften,mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,wpos, &
-       bigdft_mpi%nproc,bigdft_mpi%iproc,atoms,rst,inputs_md)
+       bigdft_mpi%nproc,bigdft_mpi%iproc,natoms,atoms,rst,inputs_md)
 
-     if (atoms%geocode == 'F') call fixfrag_posvel(bigdft_mpi%iproc,atoms%nat,rcov,wpos,vxyz,1,occured)
-     if (atoms%geocode == 'S') call fixfrag_posvel_slab(bigdft_mpi%iproc,atoms%nat,rcov,wpos,vxyz,1)
+     if (atoms%astruct%geocode == 'F') call fixfrag_posvel(bigdft_mpi%iproc,natoms,rcov,wpos,vxyz,1,occured)
+     if (atoms%astruct%geocode == 'S') call fixfrag_posvel_slab(bigdft_mpi%iproc,natoms,rcov,wpos,vxyz,1)
      
   av_ekinetic=av_ekinetic+ekinetic
   ncount_bigdft=0
@@ -455,7 +460,7 @@ program MINHOP
 
   ngeopt=ngeopt+1
   if (bigdft_mpi%iproc == 0) then 
-     tt=dnrm2(3*atoms%nat,ff,1)
+     tt=dnrm2(3*natoms,ff,1)
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call write_atomic_file('posimed_'//fn4//'_'//trim(bigdft_run_id_toa()),&
@@ -468,7 +473,7 @@ program MINHOP
   endif
 
 
-  call  ha_trans(atoms%nat,wpos)
+  call  ha_trans(natoms,wpos)
   call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,wpos,atoms,ff,strten,e_wpos,rst,inputs_opt,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
      count_bfgs=count_bfgs+ncount_bigdft
@@ -483,7 +488,7 @@ program MINHOP
 
 
   if (bigdft_mpi%iproc == 0) then 
-     tt=dnrm2(3*atoms%nat,ff,1)
+     tt=dnrm2(3*natoms,ff,1)
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
@@ -502,7 +507,7 @@ program MINHOP
      call yaml_close_map()
   endif
 
-  call fingerprint(bigdft_mpi%iproc,atoms%nat,nid,wpos,rcov,wfp)
+  call fingerprint(bigdft_mpi%iproc,natoms,nid,wpos,rcov,wfp)
 
      if (abs(e_wpos-e_pos).lt.en_delta) then
      call fpdistance(nid,wfp,fp,d)
@@ -538,10 +543,10 @@ program MINHOP
       escape_new=escape_new+1.d0
       ekinetic=ekinetic*beta_N
       nlmin=nlmin+1
-      call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,atoms%nat,k_e_wpos,e_wpos,wfp,wpos,en_arr,ct_arr,fp_arr,pl_arr)
+      call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,natoms,k_e_wpos,e_wpos,wfp,wpos,en_arr,ct_arr,fp_arr,pl_arr)
 ! write intermediate results
       if (bigdft_mpi%iproc == 0) call yaml_comment('(MH) WINTER')
-      if (bigdft_mpi%iproc == 0) call winter(atoms,nid,nlminx,nlmin,en_delta,fp_delta, &
+      if (bigdft_mpi%iproc == 0) call winter(natoms,atoms,nid,nlminx,nlmin,en_delta,fp_delta, &
            en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nrandoff,nsoften)
       if (bigdft_mpi%iproc == 0) then
          !call yaml_stream_attributes()
@@ -577,7 +582,7 @@ program MINHOP
   !  hopp=hopp+1.d0
   if (e_wpos.lt.e_hop) then
      e_hop=e_wpos
-     do iat=1,atoms%nat
+     do iat=1,natoms
         poshop(1,iat)=wpos(1,iat) 
         poshop(2,iat)=wpos(2,iat) 
         poshop(3,iat)=wpos(3,iat)
@@ -593,7 +598,7 @@ program MINHOP
      !C          local minima accepted -------------------------------------------------------
      accepted=accepted+1.d0
      e_pos=e_hop
-     do iat=1,atoms%nat
+     do iat=1,natoms
         pos(1,iat)=poshop(1,iat) 
         pos(2,iat)=poshop(2,iat) 
         pos(3,iat)=poshop(3,iat)
@@ -640,7 +645,7 @@ end do hopping_loop
      call yaml_open_map('(MH) Final results')
      call yaml_map('(MH) Total number of minima found',nlmin)
      call yaml_map('(MH) Number of accepted minima',accepted)
-     call winter(atoms,nid,nlminx,nlmin,en_delta,fp_delta, &
+     call winter(natoms,atoms,nid,nlminx,nlmin,en_delta,fp_delta, &
            en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nrandoff,nsoften)
   endif
 
@@ -764,7 +769,7 @@ contains
 
   !> Does a MD run with the atomic positiosn rxyz
   subroutine mdescape(nsoften,mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
-       nproc,iproc,atoms,rst,inputs_md)!  &
+       nproc,iproc,nat,atoms,rst,inputs_md)!  &
     use module_base
     use module_types
     use module_interfaces
@@ -772,7 +777,7 @@ contains
     implicit real*8 (a-h,o-z)
     type(atoms_data) :: atoms
     type(restart_objects) :: rst
-    dimension ff(3,atoms%nat),gg(3,atoms%nat),vxyz(3,atoms%nat),rxyz(3,atoms%nat),strten(6)
+    dimension ff(3,nat),gg(3,nat),vxyz(3,nat),rxyz(3,nat),strten(6)
     type(input_variables) :: inputs_md
     character(len=4) :: fn
     logical :: move_this_coordinate
@@ -790,11 +795,11 @@ contains
   !        call expdist(nat,rxyz,vxyz)
   !! or localized velocities
   !        call localdist(nat,rxyz,vxyz)
-    call randdist(atoms%nat,rxyz,vxyz)
+    call randdist(nat,rxyz,vxyz)
 
     !!! Put to zero the velocities for all boron atoms
-    !!do iat=1,atoms%nat
-    !!    if (atoms%atomnames(atoms%iatype(iat))=='B') then
+    !!do iat=1,nat
+    !!    if (atoms%astruct%atomnames(atoms%astruct%iatype(iat))=='B') then
     !!        if (iproc==0) then
     !!            write(*,'(a,i0)') 'set velocities to zero for atom ',iat
     !!        end if
@@ -804,13 +809,13 @@ contains
 
   ! Soften previous velocity distribution
     call soften(nsoften,ekinetic,e_pos,ff,vxyz,dt,count_md,rxyz, &
-         nproc,iproc,atoms,rst,inputs_md)
+         nproc,iproc,nat,atoms,rst,inputs_md)
   ! put velocities for frozen degrees of freedom to zero
        ndfree=0
        ndfroz=0
-  do iat=1,atoms%nat
+  do iat=1,nat
   do ixyz=1,3
-  if ( move_this_coordinate(atoms%ifrztyp(iat),ixyz) ) then
+  if ( move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz) ) then
        ndfree=ndfree+1
   else
        ndfroz=ndfroz+1
@@ -819,10 +824,10 @@ contains
   enddo
   enddo
   ! normalize velocities to target ekinetic
-    call velnorm(atoms,rxyz,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
-    call razero(3*atoms%nat,gg)
+    call velnorm(nat,rxyz,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
+    call razero(3*nat,gg)
 
-    if(iproc==0) call torque(atoms%nat,rxyz,vxyz)
+    if(iproc==0) call torque(nat,rxyz,vxyz)
 
     if(iproc==0) call yaml_map('(MH) MINHOP start MD',(/ndfree,ndfroz/))
     !C inner (escape) loop
@@ -837,21 +842,21 @@ contains
 
        !C      Evolution of the system according to 'VELOCITY VERLET' algorithm
 !!       rkin=0.d0
-!!       do iat=1,atoms%nat
+!!       do iat=1,nat
 !!          if (.not. atoms%lfrztyp(iat)) then
 !!             if (atoms%geocode == 'P') then
 !!                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
-!!                     atoms%alat1)
+!!                     atoms%astruct%cell_dim(1))
 !!                rxyz(2,iat)=modulo(rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat),&
-!!                     atoms%alat2)
+!!                     atoms%astruct%cell_dim(2))
 !!                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
-!!                     atoms%alat3)
+!!                     atoms%astruct%cell_dim(3))
 !!             else if (atoms%geocode == 'S') then
 !!                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
-!!                     atoms%alat1)
+!!                     atoms%astruct%cell_dim(1))
 !!                rxyz(2,iat)=       rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
 !!                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
-!!                     atoms%alat3)
+!!                     atoms%astruct%cell_dim(3))
 !!             else if (atoms%geocode == 'F') then
 !!                rxyz(1,iat)=rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat)
 !!                rxyz(2,iat)=rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
@@ -863,10 +868,10 @@ contains
 !      call atomic_axpy(atoms,rxyz,dt,vxyz,rxyz)
 !      call atomic_axpy(atoms,rxyz,.5d0*dt*dt,gg,rxyz)
 !      call atomic_dot(atoms,vxyz,vxyz,rkin)
-       call daxpy(3*atoms%nat,dt,vxyz(1,1),1,rxyz(1,1),1)
-       call daxpy(3*atoms%nat,0.5_gp*dt*dt,gg(1,1),1,rxyz(1,1),1)
+       call daxpy(3*nat,dt,vxyz(1,1),1,rxyz(1,1),1)
+       call daxpy(3*nat,0.5_gp*dt*dt,gg(1,1),1,rxyz(1,1),1)
 
-rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
+       rkin=dot(3*nat,vxyz(1,1),1,vxyz(1,1),1)
        rkin=rkin*.5d0
 
        enmin2=enmin1
@@ -901,7 +906,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
                call yaml_warning('nummin,nummax'//trim(yaml_toa((/nummax,nummin/))))
           exit md_loop
          endif
-       do iat=1,atoms%nat
+       do iat=1,nat
           at1=ff(1,iat)
           at2=ff(2,iat)
           at3=ff(3,iat)
@@ -917,11 +922,11 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
           gg(3,iat) = at3
        end do
 
-   if (atoms%geocode == 'S') then 
-      call fixfrag_posvel_slab(iproc,atoms%nat,rcov,wpos,vxyz,2)
-   else if (atoms%geocode == 'F') then
+   if (atoms%astruct%geocode == 'S') then 
+      call fixfrag_posvel_slab(iproc,nat,rcov,wpos,vxyz,2)
+   else if (atoms%astruct%geocode == 'F') then
      if (istep == istepnext) then 
-           call fixfrag_posvel(iproc,atoms%nat,rcov,rxyz,vxyz,2,occured)
+           call fixfrag_posvel(iproc,nat,rcov,rxyz,vxyz,2,occured)
         if (occured) then 
           istepnext=istep+4
         else
@@ -943,7 +948,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     !  if (iproc == 0) write(67,*) 'EXIT MD',istep
     
     ! adjust time step to meet precision criterion
-    devcon=devcon/(3*atoms%nat-3)
+    devcon=devcon/(3*nat-3)
     !if (iproc == 0) &
     !     write(66,'(a,2(1x,1pe11.4),1x,i5)')&
     !     'MD devcon ',devcon,devcon/ekinetic,istep
@@ -959,20 +964,20 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
   
 
   subroutine soften(nsoften,ekinetic,e_pos,fxyz,vxyz,dt,count_md,rxyz, &
-       nproc,iproc,atoms,rst,inputs_md)! &
+       nproc,iproc,nat,atoms,rst,inputs_md)! &
     use module_base
     use module_types
     use module_interfaces
     use m_ab6_symmetry
     implicit real*8 (a-h,o-z)
     type(atoms_data) :: atoms
-    dimension fxyz(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat)
+    dimension fxyz(3*nat),vxyz(3*nat),rxyz(3*nat)
     type(input_variables) :: inputs_md
     type(restart_objects) :: rst
     !Local variables
-    dimension wpos(3*atoms%nat),strten(6)
+    dimension wpos(3*nat),strten(6)
 
-!    eps_vxyz=1.d-1*atoms%nat
+!    eps_vxyz=1.d-1*nat
     alpha=inputs_md%betax
 
     !allocate(wpos(3,nat),fxyz(3,nat))
@@ -985,9 +990,9 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
 
 !    call atomic_dot(atoms,vxyz,vxyz,svxyz)
     svxyz=0.d0
-    do i=1,3*atoms%nat
+    do i=1,3*nat
        iat=(i-1)/3+1
-       if (atoms%ifrztyp(iat) == 0) then
+       if (atoms%astruct%ifrztyp(iat) == 0) then
           svxyz=svxyz+vxyz(i)**2
        end if
     enddo
@@ -1003,9 +1008,9 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
 
        sdf=0.d0
        svxyz=0.d0
-       do i=1,3*atoms%nat
+       do i=1,3*nat
           iat=(i-1)/3+1
-          if (atoms%ifrztyp(iat) == 0) then
+          if (atoms%astruct%ifrztyp(iat) == 0) then
              sdf=sdf+vxyz(i)*fxyz(i)
              svxyz=svxyz+vxyz(i)*vxyz(i)
           end if
@@ -1017,9 +1022,9 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
        if (it == 1) curv0=curv
 
        res=0.d0
-       do i=1,3*atoms%nat
+       do i=1,3*nat
           iat=(i-1)/3+1
-          if (atoms%ifrztyp(iat) == 0) then
+          if (atoms%astruct%ifrztyp(iat) == 0) then
              fxyz(i)=fxyz(i)+curv*vxyz(i)
              res=res+fxyz(i)**2
           end if
@@ -1050,16 +1055,16 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
        end if
        if (etot-etot0.lt.1.d-2) eps_vxyz=eps_vxyz*1.2d0
 
-!       do iat=1,atoms%nat
+!       do iat=1,nat
 !          if (.not. atoms%lfrztyp(iat)) then
 !             if (atoms%geocode == 'P') then
-!                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%alat1)
-!                wpos(3*(iat-1)+2)=modulo(wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2),atoms%alat2)
-!                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%alat3)
+!                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%astruct%cell_dim(1))
+!                wpos(3*(iat-1)+2)=modulo(wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2),atoms%astruct%cell_dim(2))
+!                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%astruct%cell_dim(3))
 !             else if (atoms%geocode == 'S') then
-!                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%alat1)
+!                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%astruct%cell_dim(1))
 !                wpos(3*(iat-1)+2)=       wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
-!                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%alat3)
+!                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%astruct%cell_dim(3))
 !             else if (atoms%geocode == 'F') then
 !                wpos(3*(iat-1)+1)=wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1)
 !                wpos(3*(iat-1)+2)=wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
@@ -1069,20 +1074,20 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
 !          end if
 !       end do
 !       call atomic_axpy_forces(atoms,wpos,alpha,fxyz,wpos)
-        call daxpy(3*atoms%nat,alpha,fxyz(1),1,wpos(1),1)
-       do i=1,3*atoms%nat
+        call daxpy(3*nat,alpha,fxyz(1),1,wpos(1),1)
+       do i=1,3*nat
           vxyz(i)=wpos(i)-rxyz(i)
        end do
        write(comment,'(a,1pe10.3)')'curv= ',curv
        if (iproc == 0) &
             call write_atomic_file(trim(inputs_md%dir_output)//'posvxyz',0.d0,vxyz,atoms,trim(comment),forces=fxyz)
-       call elim_moment(atoms%nat,vxyz)
-       call elim_torque_reza(atoms%nat,rxyz,vxyz)
+       call elim_moment(nat,vxyz)
+       call elim_torque_reza(nat,rxyz,vxyz)
 
        svxyz=0.d0
-       do i=1,3*atoms%nat
+       do i=1,3*nat
           iat=(i-1)/3+1
-          if (atoms%ifrztyp(iat) == 0) then
+          if (atoms%astruct%ifrztyp(iat) == 0) then
              svxyz=svxyz+vxyz(i)*vxyz(i)
           end if
        end do
@@ -1090,7 +1095,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
        if (res <= curv*eps_vxyz*5.d-1) exit
        svxyz=eps_vxyz/dsqrt(svxyz)
 
-       do i=1,3*atoms%nat
+       do i=1,3*nat
           vxyz(i)=vxyz(i)*svxyz
        end do
 
@@ -1169,33 +1174,34 @@ END SUBROUTINE hunt_g
 
 
 !>  assigns initial velocities for the MD escape part
-subroutine velnorm(at,rxyz,ekinetic,vxyz)
+subroutine velnorm(nat,rxyz,ekinetic,vxyz)
   use module_base
-  use module_types
-  use m_ab6_symmetry
+!  use module_types
+!  use m_ab6_symmetry
   implicit none
   !implicit real*8 (a-h,o-z)
+  integer, intent(in) :: nat
   real(gp), intent(in) :: ekinetic
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(3,at%nat), intent(inout) :: vxyz
+  !type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(gp), dimension(3,nat), intent(inout) :: vxyz
   !local variables
   integer :: iat
   real(gp) :: rkin,rkinsum,sclvel
 
   !C      Kinetic energy of the initial velocities
   rkinsum= 0.d0      
-  do iat=1,at%nat
+  do iat=1,nat
 !     if (.not. at%lfrztyp(iat)) then
         rkinsum= rkinsum+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
 !     end if
   end do
-  rkin=.5d0*rkinsum/(3*at%nat-3)
+  rkin=.5d0*rkinsum/(3*nat-3)
   !       write(*,*) 'rkin,ekinetic',rkin,ekinetic
 
   !C      Rescaling of velocities to get reference kinetic energy
   sclvel= dsqrt(ekinetic/rkin)
-  do iat=1,at%nat
+  do iat=1,nat
 !     if (.not. at%lfrztyp(iat)) then
         vxyz(1,iat)=vxyz(1,iat)*sclvel
         vxyz(2,iat)=vxyz(2,iat)*sclvel
@@ -1491,7 +1497,7 @@ subroutine elim_moment(nat,vxyz)
 END SUBROUTINE elim_moment
 
 
-subroutine winter(at,nid,nlminx,nlmin,en_delta,fp_delta, &
+subroutine winter(nat,at,nid,nlminx,nlmin,en_delta,fp_delta, &
      en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nrandoff,nsoften)
   use module_base
   use module_types
@@ -1503,7 +1509,8 @@ subroutine winter(at,nid,nlminx,nlmin,en_delta,fp_delta, &
   integer, intent(in) :: nlminx,nlmin,nsoften,nrandoff,nid
   real(gp), intent(in) :: ediff,ekinetic,dt,en_delta,fp_delta
   type(atoms_data), intent(in) :: at
-  real(gp), intent(in) :: en_arr(nlminx),ct_arr(nlminx),fp_arr(nid,nlminx),pl_arr(3,at%nat,nlminx)
+  integer, intent(in) :: nat 
+  real(gp), intent(in) :: en_arr(nlminx),ct_arr(nlminx),fp_arr(nid,nlminx),pl_arr(3,nat,nlminx)
   !local variables
   integer :: k,i
   character(len=50) :: comment
@@ -1805,14 +1812,14 @@ END SUBROUTINE adjustrxyz
 !           if (.not. belong(iat) ) then  !.and. .not. at%lfrztyp(iat)) then
 !              if (at%geocode == 'P') then
 !stop  '------ P ----------'
-!                 rxyz(1,iat)=modulo(rxyz(1,iat)-d1*(tt),at%alat1)
-!                 rxyz(2,iat)=modulo(rxyz(2,iat)-d2*(tt),at%alat2)
-!                 rxyz(3,iat)=modulo(rxyz(3,iat)-d3*(tt),at%alat3)
+!                 rxyz(1,iat)=modulo(rxyz(1,iat)-d1*(tt),at%astruct%cell_dim(1))
+!                 rxyz(2,iat)=modulo(rxyz(2,iat)-d2*(tt),at%astruct%cell_dim(2))
+!                 rxyz(3,iat)=modulo(rxyz(3,iat)-d3*(tt),at%astruct%cell_dim(3))
 !              else if (at%geocode == 'S') then
 !stop  '------ S ----------'
-!                 rxyz(1,iat)=modulo(rxyz(1,iat)-d1*(tt),at%alat1)
+!                 rxyz(1,iat)=modulo(rxyz(1,iat)-d1*(tt),at%astruct%cell_dim(1))
 !                 rxyz(2,iat)=       rxyz(2,iat)-d2*(tt)
-!                 rxyz(3,iat)=modulo(rxyz(3,iat)-d3*(tt),at%alat3)
+!                 rxyz(3,iat)=modulo(rxyz(3,iat)-d3*(tt),at%astruct%cell_dim(3))
 !              else
 !                 rxyz(1,iat)=rxyz(1,iat)-d1*(tt)
 !                 rxyz(2,iat)=rxyz(2,iat)-d2*(tt)
@@ -2341,183 +2348,184 @@ subroutine give_rcov(iproc,atoms,nat,rcov)
   integer :: iat
 
   do iat=1,nat
-     if (trim(atoms%atomnames(atoms%iatype(iat)))=='H') then
+     if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='H') then
         rcov(iat)=0.75d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='He') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='He') then
         rcov(iat)=0.75d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Li') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Li') then
         rcov(iat)=3.40d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Be') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Be') then
         rcov(iat)=2.30d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='B' ) then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='B' ) then
         rcov(iat)=1.55d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='C' ) then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='C' ) then
         rcov(iat)=1.45d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='N' ) then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='N' ) then
         rcov(iat)=1.42d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='O' ) then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='O' ) then
         rcov(iat)=1.38d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='F' ) then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='F' ) then
         rcov(iat)=1.35d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ne') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ne') then
         rcov(iat)=1.35d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Na') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Na') then
         rcov(iat)=3.40d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Mg') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mg') then
         rcov(iat)=2.65d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Al') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Al') then
         rcov(iat)=2.23d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Si') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Si') then
         rcov(iat)=2.09d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='P' ) then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='P' ) then
         rcov(iat)=2.00d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='S' ) then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='S' ) then
         rcov(iat)=1.92d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cl') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cl') then
         rcov(iat)=1.87d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ar') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ar') then
         rcov(iat)=1.80d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='K' ) then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='K' ) then
         rcov(iat)=4.00d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ca') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ca') then
         rcov(iat)=3.00d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sc') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sc') then
         rcov(iat)=2.70d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ti') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ti') then
         rcov(iat)=2.70d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='V' ) then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='V' ) then
         rcov(iat)=2.60d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cr') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cr') then
         rcov(iat)=2.60d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Mn') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mn') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Fe') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Fe') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Co') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Co') then
         rcov(iat)=2.40d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ni') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ni') then
         rcov(iat)=2.30d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cu') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cu') then
         rcov(iat)=2.30d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Zn') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Zn') then
         rcov(iat)=2.30d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ga') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ga') then
         rcov(iat)=2.10d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ge') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ge') then
         rcov(iat)=2.40d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='As') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='As') then
         rcov(iat)=2.30d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Se') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Se') then
         rcov(iat)=2.30d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Br') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Br') then
         rcov(iat)=2.20d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Kr') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Kr') then
         rcov(iat)=2.20d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Rb') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rb') then
         rcov(iat)=4.50d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sr') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sr') then
         rcov(iat)=3.30d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Y' ) then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Y' ) then
         rcov(iat)=3.30d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Zr') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Zr') then
         rcov(iat)=3.00d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Nb') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Nb') then
         rcov(iat)=2.92d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Mo') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mo') then
         rcov(iat)=2.83d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Tc') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tc') then
         rcov(iat)=2.75d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ru') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ru') then
         rcov(iat)=2.67d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Rh') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rh') then
         rcov(iat)=2.58d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pd') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pd') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ag') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ag') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cd') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cd') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='In') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='In') then
         rcov(iat)=2.30d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sn') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sn') then
         rcov(iat)=2.66d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sb') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sb') then
         rcov(iat)=2.66d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Te') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Te') then
         rcov(iat)=2.53d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='I' ) then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='I' ) then
         rcov(iat)=2.50d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Xe') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Xe') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cs') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cs') then
         rcov(iat)=4.50d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pa') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pa') then
         rcov(iat)=4.00d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='La') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='La') then
         rcov(iat)=3.50d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ce') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ce') then
         rcov(iat)=3.50d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pr') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pr') then
         rcov(iat)=3.44d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Nd') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Nd') then
         rcov(iat)=3.38d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pm') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pm') then
         rcov(iat)=3.33d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sm') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sm') then
         rcov(iat)=3.27d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Eu') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Eu') then
         rcov(iat)=3.21d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Gd') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Gd') then
         rcov(iat)=3.15d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Td') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Td') then
         rcov(iat)=3.09d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Dy') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Dy') then
         rcov(iat)=3.03d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ho') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ho') then
         rcov(iat)=2.97d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Er') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Er') then
         rcov(iat)=2.92d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Tm') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tm') then
         rcov(iat)=2.92d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Yb') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Yb') then
         rcov(iat)=2.80d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Lu') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Lu') then
         rcov(iat)=2.80d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Hf') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Hf') then
         rcov(iat)=2.90d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ta') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ta') then
         rcov(iat)=2.70d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='W' ) then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='W' ) then
         rcov(iat)=2.60d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Re') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Re') then
         rcov(iat)=2.60d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Os') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Os') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ir') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ir') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pt') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pt') then
         rcov(iat)=2.60d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Au') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Au') then
         rcov(iat)=2.70d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Hg') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Hg') then
         rcov(iat)=2.80d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Tl') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tl') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pb') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pb') then
         rcov(iat)=3.30d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Bi') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Bi') then
         rcov(iat)=2.90d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Po') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Po') then
         rcov(iat)=2.80d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='At') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='At') then
         rcov(iat)=2.60d0
-     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Rn') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rn') then
         rcov(iat)=2.60d0
      else
-        call yaml_comment('(MH) no covalent radius stored for this atomtype '//trim(atoms%atomnames(atoms%iatype(iat))))
+        call yaml_comment('(MH) no covalent radius stored for this atomtype '&
+             //trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))))
      endif
      if (iproc == 0) then
-        call yaml_map('(MH) RCOV:'//trim(atoms%atomnames(atoms%iatype(iat))),rcov(iat))
+        call yaml_map('(MH) RCOV:'//trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),rcov(iat))
      endif
   enddo
 end subroutine give_rcov

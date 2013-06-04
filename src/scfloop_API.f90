@@ -79,15 +79,15 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   end if
 
   ! We transfer acell into at
-  scfloop_at%alat1 = acell(1)
-  scfloop_at%alat2 = rprimd(2,2)
-  scfloop_at%alat3 = acell(3)
+  scfloop_at%astruct%cell_dim(1) = acell(1)
+  scfloop_at%astruct%cell_dim(2) = rprimd(2,2)
+  scfloop_at%astruct%cell_dim(3) = acell(3)
 
   scfloop_in%inputPsiId=1
   ! need to transform xred into xcart
-  allocate(xcart(3, scfloop_at%nat+ndebug),stat=i_stat)
+  allocate(xcart(3, scfloop_at%astruct%nat+ndebug),stat=i_stat)
   call memocc(i_stat,xcart,'xcart',subname)
-  do i = 1, scfloop_at%nat, 1
+  do i = 1, scfloop_at%astruct%nat, 1
      do j=1,3
         xcart(j,i)=modulo(xred(j,i),1._gp)*acell(j)
      end do
@@ -102,12 +102,12 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
 
   ! need to transform the forces into reduced ones.
   favg(:) = real(0, dp)
-  do i = 1, scfloop_at%nat, 1
+  do i = 1, scfloop_at%astruct%nat, 1
      fcart(:, i) = grad(:, i)
      favg(:) = favg(:) + fcart(:, i) / real(natom, dp)
      grad(:, i) = -grad(:, i) / acell(:)
   end do
-  do i = 1, scfloop_at%nat, 1
+  do i = 1, scfloop_at%astruct%nat, 1
      fcart(:, i) = fcart(:, i) - favg(:)
   end do
 
@@ -143,12 +143,12 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
 
   fnrm = real(0, dp)
   ! need to transform xred into xcart
-  allocate(xcart(3, scfloop_at%nat+ndebug),stat=i_stat)
+  allocate(xcart(3, scfloop_at%astruct%nat+ndebug),stat=i_stat)
   call memocc(i_stat,xcart,'xcart',subname)
-  allocate(fcart(3, scfloop_at%nat+ndebug),stat=i_stat)
+  allocate(fcart(3, scfloop_at%astruct%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fcart,'fcart',subname)
 
-  do i = 1, scfloop_at%nat
+  do i = 1, scfloop_at%astruct%nat
      xcart(:, i) = xred(:, i) * acell(:)
      fnrm = fnrm + real(fred(1, i) * acell(1) * fred(1, i) * acell(1) + &
           & fred(2, i) * acell(2) * fred(2, i) * acell(2) + &
@@ -186,7 +186,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(out) :: vxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(out) :: vxyz
   !local variables
   !n(c) character(len=*), parameter :: subname='read_velocities'
   character(len=2) :: symbol
@@ -203,12 +203,12 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   !inquire whether the input file is present, otherwise put velocities to zero
   inquire(file=filename,exist=exists)
   if (.not. exists) then  
-     call razero(3*atoms%nat,vxyz)
+     call razero(3*atoms%astruct%nat,vxyz)
      return
   end if
 
   !controls if the positions are provided with machine precision
-  if (atoms%units== 'atomicd0' .or. atoms%units== 'bohrd0') then
+  if (atoms%astruct%units== 'atomicd0' .or. atoms%astruct%units== 'bohrd0') then
      lpsdbl=.true.
   else
      lpsdbl=.false.
@@ -219,7 +219,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   read(99,*) nat,units,extra,itime_shift_for_restart
  
   !check whether the number of atoms is different 
-  if (nat /= atoms%nat) then
+  if (nat /= atoms%astruct%nat) then
      if (iproc ==0) write(*,*)' ERROR: the number of atoms in the velocities is different'
      stop
   end if
@@ -244,7 +244,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
      write(*,*) 'recognized units are angstroem or atomic = bohr'
      stop 
   endif
-  do iat=1,atoms%nat
+  do iat=1,atoms%astruct%nat
      !xyz input file, allow extra information
      read(99,'(a150)')line 
      if (lpsdbl) then
@@ -269,9 +269,9 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
            vxyz(i,iat)=vxyz(i,iat)/Bohr_Ang
         enddo
      else if (units == 'reduced') then 
-        vxyz(1,iat)=vxyz(1,iat)*atoms%alat1
-        if (atoms%geocode == 'P') vxyz(2,iat)=vxyz(2,iat)*atoms%alat2
-        vxyz(3,iat)=vxyz(3,iat)*atoms%alat3
+        vxyz(1,iat)=vxyz(1,iat)*atoms%astruct%cell_dim(1)
+        if (atoms%astruct%geocode == 'P') vxyz(2,iat)=vxyz(2,iat)*atoms%astruct%cell_dim(2)
+        vxyz(3,iat)=vxyz(3,iat)*atoms%astruct%cell_dim(3)
      endif
   enddo
 
@@ -284,7 +284,7 @@ subroutine wtvel(filename,vxyz,atoms,comment)
   implicit none
   character(len=*), intent(in) :: filename,comment
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(in) :: vxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: vxyz
   !Local variables
   integer, parameter :: iunit = 9
   character(len=2) :: symbol
@@ -294,7 +294,7 @@ subroutine wtvel(filename,vxyz,atoms,comment)
   real(gp) :: factor
 
   open(unit=iunit,file=trim(filename),status='unknown',action='write')
-  if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
+  if (trim(atoms%astruct%units) == 'angstroem' .or. trim(atoms%astruct%units) == 'angstroemd0') then
      factor=Bohr_Ang
      units='angstroemd0'
   else
@@ -302,19 +302,19 @@ subroutine wtvel(filename,vxyz,atoms,comment)
      units='atomicd0'
   end if
 
-  write(iunit,'(i6,2x,a,2x,a)') atoms%nat,trim(units),comment
+  write(iunit,'(i6,2x,a,2x,a)') atoms%astruct%nat,trim(units),comment
 
-  if (atoms%geocode == 'P') then
+  if (atoms%astruct%geocode == 'P') then
      write(iunit,'(a,3(1x,1pe24.17))') 'periodic',&
-       &  atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
-  else if (atoms%geocode == 'S') then
+       &  atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
+  else if (atoms%astruct%geocode == 'S') then
      write(iunit,'(a,3(1x,1pe24.17))') 'surface',&
-       &  atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
+       &  atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
   else
      write(9,*)'free'
   end if
-  do iat=1,atoms%nat
-     name=trim(atoms%atomnames(atoms%iatype(iat)))
+  do iat=1,atoms%astruct%nat
+     name=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
      if (name(3:3)=='_') then
         symbol=name(1:2)
      else if (name(2:2)=='_') then

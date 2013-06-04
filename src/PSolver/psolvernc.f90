@@ -153,27 +153,27 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      if (iproc==0 .and. wrtmsg) call PSolver_yaml('periodic BC',n01,n02,n03,nproc,ixc)
           !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           !'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
-     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
   else if (geocode == 'S') then
      if (iproc==0 .and. wrtmsg) call PSolver_yaml('surfaces BC',n01,n02,n03,nproc,ixc)
           !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           !'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
-     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   else if (geocode == 'F') then
      if (iproc==0 .and. wrtmsg) call PSolver_yaml('free BC',n01,n02,n03,nproc,ixc)
           !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           !'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   else if (geocode == 'W') then
      if (iproc==0 .and. wrtmsg) call PSolver_yaml('wires BC',n01,n02,n03,nproc,ixc)
           !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           !'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
-     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   else if (geocode == 'H') then
      if (iproc==0 .and. wrtmsg) call PSolver_yaml('Helmholtz Equation Solver',n01,n02,n03,nproc,ixc)
           !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           !'PSolver, Helmholtz Equation Solver, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   else
      stop 'PSolver: geometry code not admitted'
   end if
@@ -316,7 +316,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      scal=-2.0_dp*hx*hy/real(n1*n2*n3,dp)
   end if
   !here the case ncplx/= 1 should be added
-  call G_PoissonSolver(iproc,nproc,bigdft_mpi%mpi_comm,geocode,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,zf(1,1,1),&
+  call G_PoissonSolver(iproc,nproc,bigdft_mpi%mpi_comm,0,MPI_COMM_NULL,geocode,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,zf(1,1,1),&
        scal,hx,hy,hz,offset,strten)
   
   call timing(iproc,'PSolv_comput  ','ON')

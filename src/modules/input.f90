@@ -295,10 +295,10 @@ module module_input
 
       if (present(default) .and. iline_parsed==0) then
          !case without file, write default and continue the line
-         do i=1,len_trim(default)
+         do i=1,len(default)
             inout_lines(iline_written)(i+ipos:i+ipos)=default(i:i)
          end do
-         ipos=ipos+len_trim(default)+1
+         ipos=ipos+len(default)+1
          inout_lines(iline_written)(ipos:ipos)=' '
       end if
       if (present(line_comment) .and. iline_parsed==0) then
@@ -821,7 +821,7 @@ module module_input
          else
             call process_line(default=default)
          end if
-         read(default,*,iostat=ierror) var
+         read(default,'(a)',iostat=ierror) var
          if (present(input_iostat) .and. ierror /= 0) then
             input_iostat=-2
             return

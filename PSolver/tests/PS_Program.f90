@@ -135,27 +135,27 @@ program PSolver_Program
   if (geocode == 'P') then
 
      if (iproc==0) print *,"PSolver, periodic BC: ",n01,n02,n03,'processes',nproc
-     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
   
   else if (geocode == 'S') then
 
      if (iproc==0) print *,"PSolver for surfaces: ",n01,n02,n03,'processes',nproc
-     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   
   else if (geocode == 'F') then
 
      if (iproc==0) print *,"PSolver, free BC: ",n01,n02,n03,'processes',nproc
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   
   else if (geocode == 'W') then
     
      if (iproc==0) print *,"PSolver, wires BC: ",n01,n02,n03,'processes',nproc
-     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
      
   else if (geocode == 'H') then
    
      if (iproc==0) print *,"PSolver, Helmholtz Equation Solver: ",n01,n02,n03,'processes',nproc
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   
   end if
 

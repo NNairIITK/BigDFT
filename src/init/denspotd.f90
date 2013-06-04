@@ -79,12 +79,22 @@ subroutine dpbox_set(dpbox,Lzd,iproc,nproc,mpi_comm,in,geocode)
   type(input_variables), intent(in) :: in 
   type(local_zone_descriptors), intent(in) :: Lzd
   type(denspot_distribution), intent(out) :: dpbox
+  !local variables
+  integer :: npsolver_groupsize
 
   dpbox=dpbox_null()
 
   call dpbox_set_box(dpbox,Lzd)
 
-  call mpi_environment_set(dpbox%mpi_env,iproc,nproc,mpi_comm,in%PSolver_groupsize)
+  !if the taskgroup size is not a divisor of nproc do not create taskgroups
+  if (nproc >1 .and. in%PSolver_groupsize > 0 .and. &
+       in%PSolver_groupsize < nproc .and.&
+       mod(nproc,in%PSolver_groupsize)==0) then
+     npsolver_groupsize=in%PSolver_groupsize
+  else
+     npsolver_groupsize=nproc
+  end if
+  call mpi_environment_set(dpbox%mpi_env,iproc,nproc,mpi_comm,npsolver_groupsize)
 
   call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,in%ixc,in%nspin,geocode,in%SIC%approach,dpbox)
 
@@ -132,7 +142,7 @@ subroutine dpbox_set_box(dpbox,Lzd)
 
 end subroutine dpbox_set_box
 
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>todo: remove n1i and n2i
 subroutine denspot_set_history(denspot, iscf, nspin, &
      & n1i, n2i) !to be removed arguments when denspot has dimensions
@@ -430,7 +440,7 @@ subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
   integer, intent(in) :: iproc,nspin
   type(locreg_descriptors), intent(in) :: Glr
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
 
   character(len = *), parameter :: subname = "allocateRhoPot"
@@ -473,7 +483,7 @@ subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
 
 !!$  !calculate the XC energy of rhocore
 !!$  call xc_init_rho(denspot%dpbox%nrhodim,denspot%rhov,1)
-!!$  call XC_potential(atoms%geocode,'D',iproc,nproc,&
+!!$  call XC_potential(atoms%astruct%geocode,'D',iproc,nproc,&
 !!$       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
 !!$       denspot%rhov,eexcu,vexcu,orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
 
@@ -556,8 +566,8 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   type(atoms_data), intent(in) :: atoms
   type(denspot_distribution), intent(in) :: dpbox
   character(len=3), intent(in) :: rho_commun
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   type(rho_descriptors), intent(out) :: rhodsc
   !local variables
 
@@ -574,12 +584,12 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
      rhodsc%icomm=0
   else if (rho_commun == 'RSC') then
      rhodsc%icomm=1
-  else if (rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1)) then
+  else if (rho_commun=='MIX' .and. (atoms%astruct%geocode.eq.'F') .and. (nproc > 1)) then
      rhodsc%icomm=2
   end if
   
 !!$  !recent way
-!!$  if ((atoms%geocode.eq.'F') .and. (nproc > 1)) then
+!!$  if ((atoms%astruct%geocode.eq.'F') .and. (nproc > 1)) then
 !!$     rhodsc%icomm=2
 !!$  end if
 !!$  !override the  default
@@ -591,7 +601,7 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
 
   !in the case of taskgroups the RSC scheme should be overrided
   if (rhodsc%icomm==1 .and. size(dpbox%nscatterarr,1) < nproc) then
-     if (atoms%geocode.eq.'F') then
+     if (atoms%astruct%geocode.eq.'F') then
         rhodsc%icomm=2
      else
         rhodsc%icomm=0
@@ -601,7 +611,7 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   !create rhopot descriptors
   !allocate rho_descriptors if the density repartition is activated
 
-  if (rhodsc%icomm==2) then !rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1)) then! .and. xc_isgga()) then
+  if (rhodsc%icomm==2) then !rho_commun=='MIX' .and. (atoms%astruct%geocode.eq.'F') .and. (nproc > 1)) then! .and. xc_isgga()) then
      call rho_segkey(iproc,atoms,rxyz,crmult,frmult,radii_cf,&
           dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),&
           dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),nspin,rhodsc,.false.)
@@ -662,9 +672,9 @@ subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
   type(orbitals_data), intent(in) :: orbs
   !!type(linearParameters), intent(in) :: lin
   integer,intent(in):: confpotorder
-  real(gp),dimension(at%ntypes),intent(in):: potentialprefac
+  real(gp),dimension(at%astruct%ntypes),intent(in):: potentialprefac
   type(local_zone_descriptors), intent(in) :: Lzd
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   integer, dimension(orbs%norb), intent(in) :: confinementCenter
   type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
   !local variables
@@ -675,9 +685,9 @@ subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
      ilr=orbs%inWhichlocreg(orbs%isorb+iorb)
      icenter=confinementCenter(orbs%isorb+iorb)
      !!confdatarr(iorb)%potorder=lin%confpotorder
-     !!confdatarr(iorb)%prefac=lin%potentialprefac(at%iatype(icenter))
+     !!confdatarr(iorb)%prefac=lin%potentialprefac(at%astruct%iatype(icenter))
      confdatarr(iorb)%potorder=confpotorder
-     confdatarr(iorb)%prefac=potentialprefac(at%iatype(icenter))
+     confdatarr(iorb)%prefac=potentialprefac(at%astruct%iatype(icenter))
      confdatarr(iorb)%hh(1)=.5_gp*hx
      confdatarr(iorb)%hh(2)=.5_gp*hy
      confdatarr(iorb)%hh(3)=.5_gp*hz

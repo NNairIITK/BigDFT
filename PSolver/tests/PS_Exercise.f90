@@ -7,7 +7,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 program exercise
-  use module_types
    use Poisson_Solver
    implicit none
    character(len=1) :: solvertype,afunc

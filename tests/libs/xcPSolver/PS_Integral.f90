@@ -44,7 +44,7 @@ program PS_Integral
   real(dp), dimension(:,:,:), allocatable :: psifscf,psifscfold,psi_w,psi_w2,dx_field,dy_field
   real(dp), external :: lr_gauss
 
-  call f_set_status(memory_limit=0.e0)
+  call f_malloc_set_status(memory_limit=0.e0)
 
   call f_routine(id=subname)
 !!$  include 'lazy_ISF_8_2048.inc'
@@ -824,7 +824,7 @@ print*,'interpolating first dimension...'
   deallocate(analytic_vs_naive, stat=i_stat)
   deallocate(timings, stat=i_stat)
 
-  call f_finalize()
+  call f_malloc_finalize()
 
 end program PS_Integral
 

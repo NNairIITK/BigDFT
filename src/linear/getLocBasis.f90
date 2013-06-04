@@ -20,7 +20,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   integer,intent(in) :: iproc, nproc, scf_mode
   type(orbitals_data),intent(inout) :: orbs
   type(atoms_data),intent(in) :: at
-  real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
+  real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers),intent(inout) :: GPU
   integer,intent(out) :: infoCoeff
@@ -344,7 +344,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   integer,intent(out) :: infoBasisFunctions
   type(atoms_data), intent(in) :: at
   type(orbitals_data) :: orbs
-  real(kind=8),dimension(3,at%nat) :: rxyz
+  real(kind=8),dimension(3,at%astruct%nat) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers), intent(inout) :: GPU
   real(kind=8),intent(out) :: trH, fnrm
@@ -927,7 +927,7 @@ subroutine diagonalizeHamiltonian2(iproc, orbs, HamSmall, ovrlp, eval)
   call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
 
   if(info/=0)then
-    write(*,*) 'ERROR: dsygv in diagonalizeHamiltonian2, info=',info
+    write(*,*) 'ERROR: dsygv in diagonalizeHamiltonian2, info=',info,'N=',orbs%norb
   end if
 
   iall=-product(shape(work))*kind(work)

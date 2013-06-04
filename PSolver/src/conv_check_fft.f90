@@ -706,13 +706,13 @@ contains
     nproc=1
     !calculate the dimensions wrt the geocode
     if (geocode == 'P') then
-       call P_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+       call P_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
     else if (geocode == 'S') then
-       call S_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1)
+       call S_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1,.false.)
     else if (geocode == 'F') then
-       call F_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1)
+       call F_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1,.false.)
      else if (geocode == 'W') then
-       call W_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1)
+       call W_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1,.false.)
     else
        stop 'ERROR(transpose_kernel_forGPU): geometry code not admitted'
     end if
@@ -759,13 +759,13 @@ contains
     nproc=1
     !calculate the dimensions wrt the geocode
     if (geocode == 'P') then
-       call P_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+       call P_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
     else if (geocode == 'S') then
-       call S_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1)
+       call S_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1,.false.)
     else if (geocode == 'F') then
-       call F_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1)
+       call F_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1,.false.)
      else if (geocode == 'W') then
-       call W_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1)
+       call W_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1,.false.)
     else
        stop 'ERROR(transpose_kernel_forGPU): geometry code not admitted'
     end if

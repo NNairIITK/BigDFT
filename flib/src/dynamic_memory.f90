@@ -14,7 +14,6 @@ module metadata_interfaces
 
   private
 
-
   integer, parameter :: longsize=20 !<could be lower
   character(len=*), parameter :: fmtlong='(i20)' !< conversion of long integer
 
@@ -384,8 +383,8 @@ module dynamic_memory
 
   logical :: profile_initialized=.false.  !< global variables for initialization
   !>dictionaries needed for profiling storage
-  type(dictionary), pointer :: dict_global
-  type(dictionary), pointer :: dict_routine           
+  type(dictionary), pointer :: dict_global=>null()
+  type(dictionary), pointer :: dict_routine=>null()           
   type(dictionary), pointer :: dict_calling_sequence
   type(dictionary), pointer :: dict_codepoint=>null() !< save variable which says where we are in the code
   logical :: routine_opened=.false.                   !< global variable (can be stored in dictionaries)
@@ -480,7 +479,7 @@ module dynamic_memory
   !> Public routines
   public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_malloc_dump_status
   public :: f_free,f_free_ptr
-  public :: f_routine,f_release_routine,f_set_status,f_finalize
+  public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_finalize
   public :: assignment(=),operator(.to.)
 
 contains
@@ -949,7 +948,7 @@ contains
 
   !> Decide the error messages associated to the dynamic memory
   subroutine malloc_errors()
-    use error_handling
+    use dictionaries!error_handling
     implicit none
     
     call f_err_define(err_name='ERR_ALLOCATE',err_msg='Allocation error',err_id=ERR_ALLOCATE,&
@@ -964,7 +963,7 @@ contains
 
 
   !> Initialize the library
-  subroutine f_set_status(memory_limit,output_level,logfile_name,unit,iproc)
+  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,unit,iproc)
     use yaml_output, only: yaml_date_and_time_toa
     implicit none
     !Arguments
@@ -998,10 +997,10 @@ contains
     if (present(logfile_name)) call memocc_set_filename(logfile_name)
        
     if (present(iproc)) call set(dict_global//processid,iproc)
-  end subroutine f_set_status
+  end subroutine f_malloc_set_status
 
   !> Finalize f_malloc (Display status)
-  subroutine f_finalize(dump)
+  subroutine f_malloc_finalize(dump)
     use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
     implicit none
     !Arguments
@@ -1011,49 +1010,53 @@ contains
     integer :: pid
     logical :: dump_status
     !integer :: unt
-    !put the last values in the dictionary if not freed
-    if (associated(dict_routine)) then
-       !call yaml_get_default_stream(unt)
-       !call yaml_stream_attributes(unit=unt)
-       !call yaml_warning('Not all the arrays have been freed: memory leaks are possible')
-       call prepend(dict_global,dict_routine)
-       nullify(dict_routine)
-       !      end if
-       !      if (.false.) then !residual memory to be defined
-    end if
-
-    if (present(dump)) then
-       dump_status=.true.
-    else 
-       pid = dict_global//processid
-       if (pid == 0) then
-          dump_status=.true.
-       else
-          dump_status=.false.
+    
+    !quick return if variables not associated
+    if (associated(dict_global)) then
+       !put the last values in the dictionary if not freed
+       if (associated(dict_routine)) then
+          !call yaml_get_default_stream(unt)
+          !call yaml_stream_attributes(unit=unt)
+          !call yaml_warning('Not all the arrays have been freed: memory leaks are possible')
+          call prepend(dict_global,dict_routine)
+          nullify(dict_routine)
+          !      end if
+          !      if (.false.) then !residual memory to be defined
        end if
-       !Print if error
-       if (dict_size(dict_global) == 2) dump_status=.false.
-       !print *,'dict_size',dict_size(dict_global)
-       !print *,'dict_len',dict_len(dict_global)
-    end if
-    if (dump_status) then
-       call yaml_open_map('Status of the memory at finalization')
-       !call yaml_dict_dump(dict_global)
-       call dump_leaked_memory(dict_global)
-       call yaml_close_map()
-    end if
-       call dict_free(dict_global)
-    !    call yaml_open_map('Calling sequence')
-    !    call yaml_dict_dump(dict_calling_sequence)
-    !    call yaml_close_map()
-       call dict_free(dict_calling_sequence)
 
-       call memocc_report()
+       if (present(dump)) then
+          dump_status=.true.
+       else 
+          pid = dict_global//processid
+          if (pid == 0) then
+             dump_status=.true.
+          else
+             dump_status=.false.
+          end if
+          !Print if error
+          if (dict_size(dict_global) == 2) dump_status=.false.
+          !print *,'dict_size',dict_size(dict_global)
+          !print *,'dict_len',dict_len(dict_global)
+       end if
+       if (dump_status) then
+          call yaml_open_map('Status of the memory at finalization')
+          !call yaml_dict_dump(dict_global)
+          call dump_leaked_memory(dict_global)
+          call yaml_close_map()
+       end if
+       call dict_free(dict_global)
+       !    call yaml_open_map('Calling sequence')
+       !    call yaml_dict_dump(dict_calling_sequence)
+       !    call yaml_close_map()
+       call dict_free(dict_calling_sequence)
+    end if
+
+    if (profile_initialized) call memocc_report()
 !    end if
     profile_initialized=.false.
     present_routine=repeat(' ',namelen)
     routine_opened=.false.
-  end subroutine f_finalize
+  end subroutine f_malloc_finalize
 
   !> Check error of allocations or deallocations
   subroutine check_for_errors(ierror,try)

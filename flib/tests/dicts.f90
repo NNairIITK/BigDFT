@@ -4,29 +4,98 @@ subroutine test_dictionaries0()
   implicit none
   type(dictionary), pointer :: dict1,dict2,dict3
   !local variables
-  
+  integer :: ival,nval
+  character(len=2) :: val
+  type(dictionary), pointer :: list
+  !finding operations
+!!$  print *,' Filling a linked list' 
+!!$  call dict_init(list)
+!!$
+!!$  call add(list,'x1')
+!!$  call add(list,'x2')
+!!$  call add(list,'y1')
+!!$  call add(list,'z1')
+!!$  call add(list,'z1')
+!!$ 
+!!$  call yaml_dict_dump(list)
+!!$
+!!$  nval=dict_len(list)
+!!$  print *,' Number of elements',dict_len(list)
+!!$
+!!$  do ival=0,nval-1
+!!$     val=list//ival
+!!$     print *,'value',ival,val
+!!$  end do
+!!$  
+!!$  call dict_free(list)
 
   call yaml_comment('Now we test dictionaries inside yaml.')
   !Test a dictionary
-  call dict_init(dict1)
+  !alternative way of initializing a dictionary
+  !call dict_init(dict1)
+  dict1=>dict_new()
+  ! a single scalar
+!!  call set(dict1//'',1)
+!!$  !can be also set like that, should be avoided
+!  call set(dict1,1
+!  call yaml_dict_dump(dict1)
+!stop
   call set(dict1//'toto',1)
+!stop
   call set(dict1//'titi',1.d0)
   call set(dict1//'tutu',(/ '1', '2' /))
   call dict_init(dict2)
   call set(dict2//'a',0)
-  !call set(dict1//'dict2',dict2)
-  call set(dict1//'List'//0,dict2)
-  call set(dict1//'List'//1,4)
-  call set(dict1//'List'//2,1.0)
+
+  !this had  a bug, now solved
+  call set(dict1//'List',list_new((/.item. dict2,.item. '4',.item. '1.0'/)))
+
+  !this works
+!!$  call add(dict1//'List',dict2)
+!!$  call add(dict1//'List',4)
+!!$  call add(dict1//'List',1.0)
+
+!!$  !this works too
+!!$  list=>dict_new()
+!!$  call add(list,dict2)
+!!$  call add(list,4)
+!!$  call add(list,1.0)
+!!$  call set(dict1//'List',list)
+
+!!$  !this also
+!!$  list=>dict_new()
+!!$  call set(list//'First',dict2)
+!!$  call set(list//'Second',4)
+!!$  call set(list//'Third',1.0)
+!!$  call set(dict1//'List',list)
+
+!!$  dict3=>dict1//'List'
+!!$  call yaml_map('Elements of the new dictionary (elems, list)',&
+!!$       (/dict3%data%nelems,dict3%data%nitems/))
+
   dict3=> dict1//'New key'
   call set(dict3//'Example',4)
   call yaml_dict_dump(dict1,flow=.true.)
 
-  !test length functions of dictianries
+  !test length functions of dictionaries
   call yaml_map('List length',dict_len(dict1//'List'))
   call yaml_map('Dictionary size',dict_size(dict1))
   call dict_free(dict1)
 
+  !new test, build dictionary on-the-fly
+  dict1=>dict_new((/'Key1' .is. 'One',&
+       'Key2' .is. 'Two','Key3' .is. 'Three'/))
+
+  call yaml_dict_dump(dict1)
+  call dict_free(dict1)
+!!$
+!!$  !new test, build list on-the-fly
+!!$  dict1=list_new((/ .item. 'Val1', .item. 'Val2', .item. 'Val3' ,&
+!!$       .item. 'Val4'/))
+!!$  call yaml_dict_dump(dict1)
+!!$  call dict_free(dict1)
+
+  
 end subroutine test_dictionaries0
 
 subroutine test_dictionaries1()

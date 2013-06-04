@@ -185,7 +185,7 @@ contains
   !!
   subroutine memocc_internal(istat,isize,array,routine)
     use yaml_output
-    use error_handling
+    use dictionaries!error_handling
     implicit none
 
     ! Arguments
@@ -237,7 +237,7 @@ contains
           end if
           call yaml_open_map('Memory Consumption Report')
           call yaml_map('Tot. No. of Allocations',memalloc)
-          call yaml_map('Tot. No. of Dellocations',memdealloc)
+          call yaml_map('Tot. No. of Deallocations',memdealloc)
           call yaml_map('Remaining Memory (B)',memtot%memory)
           call yaml_open_map('Memory occupation')
           call yaml_map('Peak Value (MB)',memtot%peak/int(1048576,kind=8))

@@ -30,36 +30,16 @@ mpirun_message =
 endif
 
 if BUILD_LIBYAML
-pyyaml_build = pyyaml_build
-pyyaml_clean = pyyaml_clean
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
 PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
-else
-pyyaml_build =
-pyyaml_clean =
 endif
 
-pyyaml_build:
-	cd $(top_builddir)/PyYAML-3.10 ; \
-	rm -rf build ; \
-	echo "[build_ext]" > setup.cfg ; \
-	echo "define=YAML_DECLARE_STATIC" >> setup.cfg ; \
-	echo "include_dirs=$(abs_top_srcdir)/yaml-0.1.4/include" >> setup.cfg ; \
-	echo "library_dirs=$(top_builddir)/yaml-0.1.4/src/.libs" >> setup.cfg ; \
-	python setup.py build ; \
-	cd -
-
-pyyaml_clean:
-	cd $(top_builddir)/PyYAML-3.10 ; \
-	python setup.py clean ; \
-	cd -
-
 head_message: all-recursive
-	@echo "======================================================="
-	@echo "Type 'make check' in the directory tests      "
+	@echo "========================================================"
+	@echo "To run the tests, type 'make check' (might take a while)"
 
 foot_message: $(mpirun_message) $(oclrun_message) head_message
-	@echo "======================================================="
+	@echo "========================================================"
 
 mpirun: head_message
 	@echo "     Use the environment variable run_parallel"
@@ -77,9 +57,7 @@ oclrun: head_message $(mpirun_message)
 
 CLEANFILES =
 
-all: $(pyyaml_build) head_message foot_message
-
-clean: $(pyyaml_clean) clean-recursive
+all: head_message foot_message
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
