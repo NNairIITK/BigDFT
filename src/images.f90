@@ -617,10 +617,11 @@ contains
     CLOSE( UNIT = unit )
   END SUBROUTINE write_restart_vel
 
-  SUBROUTINE write_dat_files(data_file, interpolation_file, imgs)
+  SUBROUTINE write_dat_files(job_name, imgs, iter)
     IMPLICIT NONE
 
-    character(len = *), intent(in) :: data_file, interpolation_file
+    character(len = *), intent(in) :: job_name
+    integer, intent(in) :: iter
     type(run_image), dimension(:), intent(in) :: imgs
 
     INTEGER :: i, j, ndim
@@ -631,6 +632,9 @@ contains
     REAL (gp)                            :: E, E_0
     INTEGER, PARAMETER :: max_i = 1000 
     INTEGER, PARAMETER :: unit = 10
+    character(len = 4) :: fn4
+
+    write(fn4, "(I4.4)") iter
 
     ndim = imgs(1)%run%atoms%astruct%nat * 3
     ALLOCATE( d_R( ndim ) )
@@ -658,7 +662,7 @@ contains
        d(i) = imgs(i)%outs%energy
     END DO
 
-    OPEN( UNIT = unit, FILE = trim(data_file), STATUS = "UNKNOWN", &
+    OPEN( UNIT = unit, FILE = job_name // ".it" // fn4 // ".dat", STATUS = "UNKNOWN", &
          ACTION = "WRITE" )
 
     WRITE(unit,'(3(2X,F12.8))') 0.D0, 0.D0, 0.D0
@@ -668,7 +672,7 @@ contains
     END DO
     CLOSE( UNIT = unit )  
 
-    OPEN( UNIT = unit, FILE = trim(interpolation_file), STATUS = "UNKNOWN", &
+    OPEN( UNIT = unit, FILE = job_name // ".it" // fn4 // ".int", STATUS = "UNKNOWN", &
          ACTION = "WRITE" )
 
     i = 1
@@ -696,15 +700,18 @@ contains
 
   END SUBROUTINE write_dat_files
 
-  subroutine images_output_step(imgs, full, iteration)
+  subroutine images_output_step(imgs, full, iteration, tol)
     use yaml_output
     implicit none
     type(run_image), dimension(:), intent(in) :: imgs
     logical, intent(in), optional :: full
     integer, intent(in), optional :: iteration
+    real(gp), intent(in), optional :: tol
 
     logical :: full_
     integer :: i
+    character(len = size(imgs)) :: scheme
+    logical, dimension(size(imgs)) :: update
 
     full_ = .false.
     if (present(full)) full_ = full
@@ -715,7 +722,7 @@ contains
           call yaml_sequence(advance='no')
           call yaml_open_map(flow=.true.)
           call yaml_map("Energy (eV)", imgs(i)%outs%energy * Ha_eV,fmt='(F16.8)')
-          call yaml_map("error (eV / ang)", imgs(i)%error * ( Ha_eV / Bohr_Ang ),fmt='(F8.5)')
+          call yaml_map("error (eV/ang)", imgs(i)%error * ( Ha_eV / Bohr_Ang ),fmt='(F8.5)')
           call yaml_close_map(advance='no')
 !!$          call yaml_sequence( &
 !!$               dict((/ "Energy (eV)"      .is. yaml_toa(V(i) * Ha_eV,fmt='(F16.8)') ,&
@@ -726,8 +733,21 @@ contains
        call yaml_close_sequence()
     else
        call yaml_open_map(flow=.true.)
-       call yaml_map("E activation (eV)", images_get_activation(imgs) * Ha_eV,fmt='(F10.6)')
-       call yaml_map("max error (eV / ang)", maxval(images_get_errors(imgs)) * ( Ha_eV / Bohr_Ang ),fmt='(F10.6)')
+       call yaml_map("Ea (eV)", images_get_activation(imgs) * Ha_eV,fmt='(F10.6)')
+       if (present(tol)) then
+          ! Print the update scheme.
+          update = .true.
+          where ( images_get_errors(imgs) * Ha_eV / Bohr_Ang <= tol ) update = .false.
+          do i = 1, size(imgs)
+             if (update(i)) then
+                scheme(i:i) = '*'
+             else
+                scheme(i:i) = '.'
+             end if
+          end do
+          call yaml_map("cv", '"' // trim(scheme) // '"')
+       end if
+       call yaml_map("max err (eV/ang)", maxval(images_get_errors(imgs)) * ( Ha_eV / Bohr_Ang ),fmt='(F10.6)')
        if (present(iteration)) then
           call yaml_close_map(advance="no")
           call yaml_comment(trim(yaml_toa(iteration, fmt='(i3.3)')))

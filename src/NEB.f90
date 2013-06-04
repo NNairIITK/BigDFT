@@ -44,7 +44,7 @@ MODULE NEB_variables
   IMPLICIT NONE
  
   CHARACTER (LEN=80)                     :: scratch_dir
-  CHARACTER (LEN=80)                     :: data_file, interpolation_file, barrier_file
+  CHARACTER (LEN=80)                     :: data_file, interpolation_file
   CHARACTER (LEN=80)                     :: restart_file
   CHARACTER (LEN=80)                     :: job_name
   LOGICAL                                :: restart, external_call
@@ -126,8 +126,9 @@ MODULE NEB_routines
       neb_mpi%iproc  = mpi_info(3)
       neb_mpi%nproc  = mpi_info(4)
       neb_mpi%mpi_comm = MPI_COMM_NULL
-      if (neb_mpi%nproc > 1 .and. mpi_info(1) == 0) then
+      if (neb_mpi%nproc > 1) then
          call create_rank_comm(bigdft_mpi%mpi_comm, neb_mpi%mpi_comm)
+         if (mpi_info(1) /= 0) neb_mpi%mpi_comm = MPI_COMM_NULL
       end if
 
 !! default values are assigned
@@ -135,7 +136,6 @@ MODULE NEB_routines
 
       scratch_dir       = "./"
 
-      job_name          = "neb"
       restart           = .FALSE.
       neb_%climbing     = .FALSE.
       neb_%optimization = .FALSE.
@@ -162,6 +162,8 @@ MODULE NEB_routines
         STOP
       END IF
 
+      job_name          = "neb"
+      if (trim(run_id) /= "input") write(job_name, "(A)") trim(run_id)
       neb_%climbing = climbing
       neb_%optimization = optimization
       neb_%convergence = convergence
@@ -191,11 +193,11 @@ MODULE NEB_routines
          call standard_inputfile_names(ins(i), trim(arr_radical(i)), bigdft_mpi%nproc)
          call default_input_variables(ins(i))
          call inputs_parse_params(ins(i), bigdft_mpi%iproc, .false.)
-         call read_atomic_file(trim(arr_posinp(i)), mpi_info(1), atoms(i)%astruct, status = ierr)
+         call read_atomic_file(trim(arr_posinp(i)), bigdft_mpi%iproc, atoms(i)%astruct, status = ierr)
          if (ierr /= 0) then
             if (i == 1 .or. i == num_of_images) stop "Missing images"
             ! we read the last valid image instead.
-            call read_atomic_file(trim(arr_posinp(istart)), mpi_info(1), atoms(i)%astruct)
+            call read_atomic_file(trim(arr_posinp(istart)), bigdft_mpi%iproc, atoms(i)%astruct)
             read_posinp(i) = .false.
          else
             istart = i
@@ -204,15 +206,14 @@ MODULE NEB_routines
          call allocate_atoms_nat(atoms(i), "read_input")
          call allocate_atoms_ntypes(atoms(i), "read_input")
          call inputs_parse_add(ins(i), atoms(1), bigdft_mpi%iproc, .false.)
-         call init_atomic_values((mpi_info(1) == 0), atoms(i), ins(1)%ixc)
+         call init_atomic_values((bigdft_mpi%iproc == 0), atoms(i), ins(1)%ixc)
          call read_atomic_variables(atoms(i), trim(ins(1)%file_igpop), ins(1)%nspin)
       end do
       bigdft_mpi = bigdft_mpi_svg
 
-      barrier_file       = trim(job_name) // ".NEB.log"
-      data_file          = trim(job_name) // ".NEB.dat"
-      interpolation_file = trim(job_name) // ".NEB.int"
-      restart_file       = trim(job_name) // ".NEB.restart"
+      data_file          = trim(run_id) // ".NEB.dat"
+      interpolation_file = trim(run_id) // ".NEB.int"
+      restart_file       = trim(run_id) // ".NEB.restart"
 
 !! initial and final configuration are read only if a new simulation
 !! is started ( restart = .FALSE. ) 
@@ -337,14 +338,11 @@ MODULE NEB_routines
 
       IMPLICIT NONE
 
-      INTEGER :: iteration, unt, ierr
+      INTEGER :: iteration, unt, ierr, i
       real(gp) :: err
       LOGICAL :: stat
       CHARACTER (LEN=4), PARAMETER :: exit_file = "EXIT"  
-
-      open(unit = 456, file = trim(barrier_file), action = "WRITE")
-      write(456, "(A)") "# NEB barrier file"
-      close(unit = 456)
+      character(len = 256) :: filename
 
 !!$      IF ( .NOT. restart) THEN
 !!$         CALL write_restart(restart_file, neb_%ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
@@ -370,14 +368,10 @@ MODULE NEB_routines
             end if
 
             if (iteration > 0) then
-               CALL write_dat_files(data_file, interpolation_file, imgs)
-               open(unit = 456, file = trim(barrier_file), action = "WRITE", position = "APPEND")
-               WRITE(456, fmt4) iteration, images_get_activation(imgs) * Ha_eV, &
-                    & maxval(images_get_errors(imgs)) * ( Ha_eV / Bohr_Ang ) 
-               close(unit = 456)
+               CALL write_dat_files(trim(job_name), imgs, iteration)
                call yaml_swap_stream(6, unt, ierr)
                call yaml_sequence(advance='no')
-               call images_output_step(imgs, iteration = iteration)
+               call images_output_step(imgs, iteration = iteration, tol = neb_%convergence)
                call yaml_set_default_stream(unt, ierr)
             end if
          end if
@@ -414,6 +408,12 @@ MODULE NEB_routines
          call yaml_comment('Final results',hfill='-')
          call images_output_step(imgs, full = .true.)
          call yaml_set_default_stream(unt, ierr)
+
+         do i = 1, size(imgs), 1
+            filename=trim('final_'//trim(arr_posinp(i)))
+            call write_atomic_file(filename, imgs(i)%outs%energy,imgs(i)%run%atoms%astruct%rxyz, &
+                 & imgs(i)%run%atoms,'FINAL CONFIGURATION',forces=imgs(i)%outs%fxyz)
+         end do
       end if
     END SUBROUTINE search_MEP
 
@@ -571,7 +571,5 @@ PROGRAM NEB
   CALL search_MEP
 
   CALL deallocation
-
-  STOP
 
 END PROGRAM NEB
