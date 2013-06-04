@@ -1035,8 +1035,6 @@ subroutine image_new(img, run, outs, atoms, inputs, rst, algorithm)
   type(restart_objects), intent(in) :: rst
   integer, intent(in) :: algorithm
 
-  integer :: i_all, i_stat
-
   allocate(img)
   call image_init(img, inputs, atoms, rst, algorithm)
   run => img%run
