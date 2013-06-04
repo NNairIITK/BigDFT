@@ -30,6 +30,8 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   call bigdft_mpi_init(ierr)
   if (ierr /= MPI_SUCCESS) return
 
+  call bigdft_init_errors()
+
   call command_line_information(mpi_groupsize,posinp_file,radical,ierr)
 
   call bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
@@ -61,21 +63,28 @@ subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
   integer, intent(in) :: mpi_groupsize
   integer, intent(out) :: ierr
   !local variables
-  integer :: iproc,nproc
+  integer :: iproc,nproc,ngroup_size
 
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
   if (ierr /= MPI_SUCCESS) return
 
   !set the memory limit for the allocation library
-  call f_set_status(memory_limit=memorylimit,iproc=iproc)
+  call f_malloc_set_status(memory_limit=memorylimit,iproc=iproc)
   !call memocc_set_memory_limit(memorylimit)
 
 !!$  print *,'list_posinp',trim(posinp_file),'iproc',iproc
 !!$  print *,'run_id',trim(radical),'iproc',iproc
 !!$  print *,'mpi_groupsize',mpi_groupsize,'iproc',iproc
 
-  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,mpi_groupsize)
+  !if the taskgroup size is not a divisor of nproc do not create taskgroups
+  if (nproc >1 .and. mpi_groupsize > 0 .and. mpi_groupsize < nproc .and.&
+       mod(nproc,mpi_groupsize)==0) then
+     ngroup_size=mpi_groupsize
+  else
+     ngroup_size=nproc
+  end if
+  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,ngroup_size)
 
   !final values
   mpi_info(1)=bigdft_mpi%iproc
@@ -175,3 +184,74 @@ function bigdft_error_ret(err_signal,err_message) result (ierr)
   ierr=err_signal
   
 end function bigdft_error_ret
+
+!accessors for external programs
+!> Get the number of orbitals of the run in rst
+function bigdft_get_number_of_atoms(atoms) result(nat)
+  use module_base
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms !> BigDFT restart variables. call_bigdft already called
+  integer :: nat !> Number of atoms
+
+  nat=atoms%astruct%nat
+
+  if (f_err_raise(nat < 0 ,'Number of atoms unitialized')) return
+
+end function bigdft_get_number_of_atoms
+
+!> Get the number of orbitals of the run in rst
+function bigdft_get_number_of_orbitals(rst,istat) result(norb)
+  use module_base
+  use module_types
+  implicit none
+  type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
+  integer :: norb !> Number of orbitals of run in rst
+  integer, intent(out) :: istat
+
+  istat=BIGDFT_SUCCESS
+
+  norb=rst%KSwfn%orbs%norb
+  if (norb==0) istat = BIGDFT_UNINITIALIZED
+
+end function bigdft_get_number_of_orbitals
+
+!> Fill the array eval with the number of orbitals of the last run
+subroutine bigdft_get_eigenvalues(rst,eval,istat)
+  use module_base
+  use module_types
+  implicit none
+  type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
+  real(gp), dimension(*), intent(out) :: eval !> Buffer for eigenvectors. Should have at least dimension equal to bigdft_get_number_of_orbitals(rst,istat)
+  integer, intent(out) :: istat !> Error code
+  !local variables
+  integer :: norb,bigdft_get_number_of_orbitals
+
+  norb=bigdft_get_number_of_orbitals(rst,istat)
+
+  if (istat /= BIGDFT_SUCCESS) return
+
+  if (.not. associated(rst%KSwfn%orbs%eval)) then
+     istat = BIGDFT_UNINITIALIZED
+     return
+  end if
+
+  if (product(shape(rst%KSwfn%orbs%eval)) < norb) then
+     istat = BIGDFT_INCONSISTENCY
+     return
+  end if
+
+  call vcopy(norb,rst%KSwfn%orbs%eval(1),1,eval(1),1)
+
+end subroutine bigdft_get_eigenvalues
+
+subroutine bigdft_severe_abort()
+  use module_base
+  implicit none
+  integer :: ierr
+
+  !the MPI_ABORT works only in MPI_COMM_WORLD
+  call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+  if (ierr/=0) stop 'Problem in MPI_ABORT'
+
+end subroutine bigdft_severe_abort

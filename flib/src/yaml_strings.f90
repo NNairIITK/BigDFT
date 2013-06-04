@@ -2,7 +2,7 @@
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markeup Language (ML for Human)
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -20,7 +20,7 @@ module yaml_strings
   integer :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
 
   character(len=*), parameter :: yaml_int_fmt  = '(i0)'       !< Default format for integer
-  character(len=*), parameter :: yaml_real_fmt = '(1pe17.9)' !< Default format for single
+  character(len=*), parameter :: yaml_real_fmt = '(1pe18.9)' !< Default format for single
   character(len=*), parameter :: yaml_dble_fmt = '(1pg26.17e3)'!'(1pe25.17)' !< Default format for double
   character(len=*), parameter :: yaml_char_fmt = '(a)' !< Default format for strings
 
@@ -33,8 +33,11 @@ module yaml_strings
      module procedure fmt_i,fmt_r,fmt_d,fmt_a,fmt_li
   end interface
 
+  !Public routines
   public ::  yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa
+
+  !Private routines
   private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa
   private :: yaml_dvtoa,yaml_ivtoa,max_value_length
   
@@ -219,7 +222,6 @@ contains
     character(len=max_value_length) :: zr,zi
     double complex :: ztmp
     double precision, dimension(2) :: zeta
-    equivalence (ztmp,zeta)
 
     yaml_ztoa=repeat(' ',max_value_length)
     ztmp=z

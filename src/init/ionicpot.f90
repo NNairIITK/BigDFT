@@ -22,7 +22,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   type(atoms_data), intent(in) :: at
   integer, intent(in) :: iproc,nproc,n1,n2,n3,dispersion
   real(gp), dimension(3), intent(in) :: elecfield
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
   real(gp), intent(out) :: eion,edisp,psoffset
   real(dp), dimension(6),intent(out) :: ewaldstr
@@ -46,9 +46,9 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   real(gp), dimension(:,:), allocatable :: fewald,xred
   real(gp), dimension(3) :: cc
 
-  allocate(fion(3,at%nat+ndebug),stat=i_stat)
+  allocate(fion(3,at%astruct%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fion,'fion',subname)
-  allocate(fdisp(3,at%nat+ndebug),stat=i_stat)
+  allocate(fdisp(3,at%astruct%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fdisp,'fdisp',subname)
 
   ! Aliasing
@@ -64,25 +64,25 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   pi=4.d0*datan(1.d0)
   psoffset=0.0_gp
   ewaldstr=0.0_gp
-  if (at%geocode == 'P') then
+  if (at%astruct%geocode == 'P') then
      !here we insert the calculation of the ewald forces
-     allocate(fewald(3,at%nat+ndebug),stat=i_stat)
+     allocate(fewald(3,at%astruct%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fewald,'fewald',subname)
-     allocate(xred(3,at%nat+ndebug),stat=i_stat)
+     allocate(xred(3,at%astruct%nat+ndebug),stat=i_stat)
      call memocc(i_stat,xred,'xred',subname)
 
      !calculate rprimd
      rprimd(:,:)=0.0_gp
 
-     rprimd(1,1)=at%alat1
-     rprimd(2,2)=at%alat2
-     rprimd(3,3)=at%alat3
+     rprimd(1,1)=at%astruct%cell_dim(1)
+     rprimd(2,2)=at%astruct%cell_dim(2)
+     rprimd(3,3)=at%astruct%cell_dim(3)
 
      !calculate the metrics and the volume
      call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
 
      !calculate reduced coordinates
-     do iat=1,at%nat
+     do iat=1,at%astruct%nat
         do ii=1,3
            xred(ii,iat)= gprimd(1,ii)*rxyz(1,iat)+gprimd(2,ii)*rxyz(2,iat)+&
                 gprimd(3,ii)*rxyz(3,iat)
@@ -90,17 +90,17 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      end do
 
      !calculate ewald energy and forces + stress
-     call ewald(eion,gmet,fewald,at%nat,at%ntypes,rmet,at%iatype,ucvol,&
+     call ewald(eion,gmet,fewald,at%astruct%nat,at%astruct%ntypes,rmet,at%astruct%iatype,ucvol,&
           xred,real(at%nelpsp,kind=8))
      ewaldstr=0.0_dp
-     call ewald2(gmet,at%nat,at%ntypes,rmet,rprimd,ewaldstr,at%iatype,&
+     call ewald2(gmet,at%astruct%nat,at%astruct%ntypes,rmet,rprimd,ewaldstr,at%astruct%iatype,&
           ucvol,xred,real(at%nelpsp,kind=8))
 
 ! our sequence of strten elements : 11 22 33 12 13 23
 ! abinit output                   : 11 22 33 23 13 12
 
      !make forces dimensional
-     do iat=1,at%nat
+     do iat=1,at%astruct%nat
         do ii=1,3
            fion(ii,iat)= - (gprimd(ii,1)*fewald(1,iat)+&
                 gprimd(ii,2)*fewald(2,iat)+&
@@ -122,8 +122,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      shortlength=0.0_gp
      charge=0.0_gp
      twopitothreehalf=2.0_gp*pi*sqrt(2.0_gp*pi)
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
         rloc=at%psppar(0,0,ityp)
         atint=at%psppar(0,1,ityp)+3.0_gp*at%psppar(0,2,ityp)+&
              15.0_gp*at%psppar(0,3,ityp)+105.0_gp*at%psppar(0,4,ityp)
@@ -134,13 +134,13 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      psoffset=twopitothreehalf*psoffset
      shortlength=shortlength*2.d0*pi
 
-     !print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(at%alat1*at%alat2*at%alat3)
+     !print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3))
      !if (iproc ==0) print *,'eion',eion,charge/ucvol*(psoffset+shortlength)
      !correct ionic energy taking into account the PSP core correction
      eion=eion+charge/ucvol*(psoffset+shortlength)
 
      !symmetrization of ewald stress (probably not needed)
-     if (at%sym%symObj >= 0) call symm_stress((iproc==0),ewaldstr,at%sym%symObj)
+     if (at%astruct%sym%symObj >= 0) call symm_stress((iproc==0),ewaldstr,at%astruct%sym%symObj)
      !PSP core correction of the stress tensor (diag.)
      ewaldstr(1:3)=ewaldstr(1:3)-charge*(psoffset+shortlength)/ucvol/ucvol
 
@@ -151,36 +151,36 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 !!$     end if
 
 !!!     !in the surfaces case, correct the energy term following (J.Chem.Phys. 111(7)-3155, 1999)
-!!!     if (at%geocode == 'S') then
+!!!     if (at%astruct%geocode == 'S') then
 !!!        !calculate the Mz dipole component (which in our case corresponds to y direction)
 !!!        !first calculate the center of mass
 !!!        cmassy=0.0_gp
-!!!        do iat=1,at%nat
+!!!        do iat=1,at%astruct%nat
 !!!           cmassy=cmassy+rxyz(2,iat)
 !!!        end do
 !!!        
 !!!        Mz=0.0_gp
-!!!        do iat=1,at%nat
-!!!           ityp=at%iatype(iat)
+!!!        do iat=1,at%astruct%nat
+!!!           ityp=at%astruct%iatype(iat)
 !!!           Mz=Mz+real(at%nelpsp(ityp),gp)*(rxyz(2,iat)-cmassy)
 !!!        end do
 !!!        
 !!!        !correct energy and forces in the y direction
 !!!        eion=eion+0.5_gp/ucvol*Mz**2
-!!!        do iat=1,at%nat
-!!!           ityp=at%iatype(iat)
+!!!        do iat=1,at%astruct%nat
+!!!           ityp=at%astruct%iatype(iat)
 !!!           fion(2,iat)=fion(2,iat)-real(at%nelpsp(ityp),gp)/ucvol*Mz
 !!!           if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
 !!!        end do
 !!!
 !!!     end if
 
-  else if (at%geocode == 'F') then
+  else if (at%astruct%geocode == 'F') then
 
      eion=0.0_gp
      eself=0.0_gp
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
         rx=rxyz(1,iat) 
         ry=rxyz(2,iat)
         rz=rxyz(3,iat)
@@ -199,7 +199,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         !    ion-ion interaction
         do jat=1,iat-1
            dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-           jtyp=at%iatype(jat)
+           jtyp=at%astruct%iatype(jat)
            chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
            eion=eion+chgprod/dist
            !forces
@@ -214,9 +214,9 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
            hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
         enddo
-        do jat=iat+1,at%nat
+        do jat=iat+1,at%astruct%nat
            dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-           jtyp=at%iatype(jat)
+           jtyp=at%astruct%iatype(jat)
            chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
 
            !forces
@@ -247,17 +247,17 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
   !for the surfaces BC,
   !activate for the moment only the slow calculation of the ionic energy and forces
-  !if (at%geocode == 'S' .or. at%geocode == 'P') slowion=.true.
-  if (at%geocode == 'S') slowion=.true.
+  !if (at%astruct%geocode == 'S' .or. at%astruct%geocode == 'P') slowion=.true.
+  if (at%astruct%geocode == 'S') slowion=.true.
   !slowion=.true.
 
   if (slowion) then
 
      !case of slow ionic calculation
      !conditions for periodicity in the three directions
-     perx=(at%geocode /= 'F')
-     pery=(at%geocode == 'P')
-     perz=(at%geocode /= 'F')
+     perx=(at%astruct%geocode /= 'F')
+     pery=(at%astruct%geocode == 'P')
+     perz=(at%astruct%geocode /= 'F')
 
      call ext_buffers(perx,nbl1,nbr1)
      call ext_buffers(pery,nbl2,nbr2)
@@ -270,13 +270,13 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
      !self energy initialisation
      eself=0.0_gp
-     do iat=1,at%nat
+     do iat=1,at%astruct%nat
 
         fion(1,iat)=0.0_gp
         fion(2,iat)=0.0_gp
         fion(3,iat)=0.0_gp
 
-        ityp=at%iatype(iat)
+        ityp=at%astruct%iatype(iat)
         rloc=at%psppar(0,0,ityp)
         charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
         prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
@@ -296,8 +296,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         !then calculate the hartree energy and forces of the charge distributions
         !(and save the values for the ionic potential)
 
-        do iat=1,at%nat
-           ityp=at%iatype(iat)
+        do iat=1,at%astruct%nat
+           ityp=at%astruct%iatype(iat)
            rx=rxyz(1,iat) 
            ry=rxyz(2,iat)
            rz=rxyz(3,iat)
@@ -353,8 +353,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      !if (nproc==1) 
      !print *,'iproc,eion',iproc,eion
 
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
         !coordinates of the center
         rx=rxyz(1,iat) 
         ry=rxyz(2,iat) 
@@ -425,7 +425,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      end do
 
      if (pkernel%mpi_env%nproc > 1) then
-        call mpiallred(fion(1,1),3*at%nat,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
+        call mpiallred(fion(1,1),3*at%astruct%nat,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
      end if
 
      !if (iproc ==0) print *,'eion',eion,psoffset,shortlength
@@ -434,8 +434,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
   ! Add contribution from constant electric field to the forces
   call center_of_charge(at,rxyz,cc)
-  do iat=1,at%nat
-     ityp=at%iatype(iat)
+  do iat=1,at%astruct%nat
+     ityp=at%astruct%iatype(iat)
      charge=real(at%nelpsp(ityp),gp)
      fion(1:3,iat)=fion(1:3,iat)+(charge*elecfield(1:3))
      !ry=rxyz(2,iat) 
@@ -487,7 +487,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   type(denspot_distribution), intent(in) :: rhopotd
   real(gp), intent(in) :: elecfield(3)
   real(gp), dimension(3), intent(in) :: shift
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
   type(rholoc_objects),intent(in)::rholoc  !Object used for PAW+WVL
@@ -499,7 +499,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   real(dp), dimension(:), allocatable :: counter_ions
 
   ! Compute the main ionic potential.
-  call createIonicPotential(atoms%geocode, iproc, nproc, verb, atoms, rxyz, hxh, hyh, hzh, &
+  call createIonicPotential(atoms%astruct%geocode, iproc, nproc, verb, atoms, rxyz, hxh, hyh, hzh, &
        & elecfield, Glr%d%n1, Glr%d%n2, Glr%d%n3, rhopotd%n3pi, rhopotd%i3s + rhopotd%i3xcsh, &
        & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, psoffset,rholoc)
 
@@ -514,7 +514,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
         call memocc(i_stat,counter_ions,'counter_ions',subname)
      end if
 
-     call CounterIonPotential(atoms%geocode,iproc,nproc,in,shift,&
+     call CounterIonPotential(atoms%astruct%geocode,iproc,nproc,in,shift,&
           &   hxh,hyh,hzh,Glr%d,rhopotd%n3pi,rhopotd%i3s + rhopotd%i3xcsh,pkernel,counter_ions)
 
      !sum that to the ionic potential
@@ -542,7 +542,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3), intent(in) :: elecfield
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
   type(rholoc_objects),intent(in)::rholoc
@@ -583,8 +583,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
   if (n3pi >0 .and. .not. htoobig) then
 
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
         rx=rxyz(1,iat) 
         ry=rxyz(2,iat)
         rz=rxyz(3,iat)
@@ -747,7 +747,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                  x=real(i1-nbl1-1,gp)*hxh
                  ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
                  !if (i1==49 .and. i2==46 .and. i3==44) then
-                    call sum_erfcr(at%nat,at%ntypes,x,y,z,at%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
+                    call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
                  !   stop
                  !end if
                  potion_corr(ind)=potion_corr(ind)+potxyz
@@ -793,8 +793,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
   if (n3pi > 0) then
 !    Only for HGH pseudos
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
 
         rx=rxyz(1,iat)
         ry=rxyz(2,iat)
@@ -908,7 +908,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
               do i1=1,n1i
                  x=real(i1-nbl1-1,gp)*hxh
                  ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                 call sum_erfcr(at%nat,at%ntypes,x,y,z,at%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
+                 call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
                  pot_ion(ind)=pot_ion(ind)+potxyz
               end do
            end do
@@ -1183,7 +1183,6 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   real(dp), dimension(2) :: charges_mpi
   real(dp), dimension(:), allocatable :: potion_corr
   real(gp), dimension(:,:), allocatable :: radii_cf
-  real(gp), dimension(:,:), pointer :: rxyz
 
   call timing(iproc,'CrtLocPot     ','ON')
 
@@ -1193,12 +1192,14 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   end if
 
   !read the positions of the counter ions from file
-  call read_atomic_file('posinp_ci',iproc,at,rxyz)
+  call read_atomic_file('posinp_ci',iproc,at%astruct)
+  call allocate_atoms_nat(at, subname)
+  call allocate_atoms_ntypes(at, subname)
   ! Read associated pseudo files.
   call init_atomic_values((iproc == 0), at, in%ixc)
   call read_atomic_variables(at, 'input.occup', in%nspin)
 
-  allocate(radii_cf(at%ntypes,3+ndebug),stat=i_stat)
+  allocate(radii_cf(at%astruct%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   !read the specifications of the counter ions from pseudopotentials
@@ -1225,12 +1226,12 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
 
   if (n3pi >0 .and. .not. htoobig) then
 
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
         !shift the positions of the counter_ion wrt the box
-        rx=rxyz(1,iat)-shift(1)
-        ry=rxyz(2,iat)-shift(2)
-        rz=rxyz(3,iat)-shift(3)
+        rx=at%astruct%rxyz(1,iat)-shift(1)
+        ry=at%astruct%rxyz(2,iat)-shift(2)
+        rz=at%astruct%rxyz(3,iat)-shift(3)
 
         if (iproc == 0) then
            write(*,'(1x,a,i6,3(1pe14.7))')'counter ion No. ',iat,rx,ry,rz
@@ -1334,7 +1335,8 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
                  x=real(i1-nbl1-1,gp)*hxh
                  ind=i1+(i2-1)*grid%n1i+(i3-1)*grid%n1i*grid%n2i
                  !if (i1==49 .and. i2==46 .and. i3==44) then
-                    call sum_erfcr(at%nat,at%ntypes,x,y,z,at%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
+                    call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,&
+                          at%astruct%rxyz,potxyz)
                  !   stop
                  !end if
                  potion_corr(ind)=potion_corr(ind)+potxyz
@@ -1380,7 +1382,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
            do i1=1,grid%n1i
               x=real(i1-nbl1-1,gp)*hxh
               ind=i1+(i2-1)*grid%n1i+(i3-1)*grid%n1i*grid%n2i
-              call sum_erfcr(at%nat,at%ntypes,x,y,z,at%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
+              call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,at%astruct%rxyz,potxyz)
               pot_ion(ind)=pot_ion(ind)+potxyz
            end do
         end do
@@ -1394,9 +1396,9 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   deallocate(radii_cf,stat=i_stat)
   call memocc(i_stat,i_all,'radii_cf',subname)
 
-  i_all=-product(shape(rxyz))*kind(rxyz)
-  deallocate(rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz',subname)
+  i_all=-product(shape(at%astruct%rxyz))*kind(at%astruct%rxyz)
+  deallocate(at%astruct%rxyz,stat=i_stat)
+  call memocc(i_stat,i_all,'at%astruct%rxyz',subname)
 
 
   call timing(iproc,'CrtLocPot     ','OF')

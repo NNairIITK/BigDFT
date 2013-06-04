@@ -424,9 +424,9 @@ MODULE NEB_routines
       INTEGER, PARAMETER                         :: unit = 10
       REAL (KIND=dbl), DIMENSION(:), ALLOCATABLE :: d_R
       type(atoms_data)                           :: at
-      real(kind = dbl), dimension(:,:), pointer  :: rxyz
       real(kind = dbl), dimension(3, 1000)       :: xcart1, xcart2
       real(kind = dbl), dimension(3)             :: acell1, acell2
+      character(len=*), parameter                :: subname='read_input'
 
       NAMELIST /NEB/ first_config,        &
                      last_config,         &
@@ -540,29 +540,34 @@ MODULE NEB_routines
 
       END IF
 
-      call read_atomic_file(trim(first_config), 0, at, rxyz)
-      n1 = at%nat
-      acell1(1) = at%alat1
-      acell1(2) = at%alat2
-      acell1(3) = at%alat3
-      xcart1(:,1:at%nat) = rxyz
-      if (acell1(1) == 0.) acell1(1) = maxval(rxyz(1,:)) - minval(rxyz(1,:))
-      if (acell1(2) == 0.) acell1(2) = maxval(rxyz(2,:)) - minval(rxyz(2,:))
-      if (acell1(3) == 0.) acell1(3) = maxval(rxyz(3,:)) - minval(rxyz(3,:))
-      deallocate(rxyz)
+      call read_atomic_file(trim(first_config), 0, at%astruct)
+      call allocate_atoms_nat(at, subname)
+      call allocate_atoms_ntypes(at, subname)
 
-      call read_atomic_file(trim(last_config), 0, at, rxyz)
-      n2 = at%nat
-      acell2(1) = at%alat1
-      acell2(2) = at%alat2
-      acell2(3) = at%alat3
-      xcart2(:,1:at%nat) = rxyz
-      if (acell2(1) == 0.) acell2(1) = maxval(rxyz(1,:)) - minval(rxyz(1,:))
-      if (acell2(2) == 0.) acell2(2) = maxval(rxyz(2,:)) - minval(rxyz(2,:))
-      if (acell2(3) == 0.) acell2(3) = maxval(rxyz(3,:)) - minval(rxyz(3,:))
-      deallocate(rxyz)
+      n1 = at%astruct%nat
+      acell1(1) = at%astruct%cell_dim(1)
+      acell1(2) = at%astruct%cell_dim(2)
+      acell1(3) = at%astruct%cell_dim(3)
+      xcart1(:,1:at%astruct%nat) = at%astruct%rxyz
+      if (acell1(1) == 0.) acell1(1) = maxval(at%astruct%rxyz(1,:)) - minval(at%astruct%rxyz(1,:))
+      if (acell1(2) == 0.) acell1(2) = maxval(at%astruct%rxyz(2,:)) - minval(at%astruct%rxyz(2,:))
+      if (acell1(3) == 0.) acell1(3) = maxval(at%astruct%rxyz(3,:)) - minval(at%astruct%rxyz(3,:))
+      deallocate(at%astruct%rxyz)
 
-      if (at%geocode == 'F') then
+      call read_atomic_file(trim(last_config), 0, at%astruct)
+      call allocate_atoms_nat(at, subname)
+      call allocate_atoms_ntypes(at, subname)
+      n2 = at%astruct%nat
+      acell2(1) = at%astruct%cell_dim(1)
+      acell2(2) = at%astruct%cell_dim(2)
+      acell2(3) = at%astruct%cell_dim(3)
+      xcart2(:,1:at%astruct%nat) = at%astruct%rxyz
+      if (acell2(1) == 0.) acell2(1) = maxval(at%astruct%rxyz(1,:)) - minval(at%astruct%rxyz(1,:))
+      if (acell2(2) == 0.) acell2(2) = maxval(at%astruct%rxyz(2,:)) - minval(at%astruct%rxyz(2,:))
+      if (acell2(3) == 0.) acell2(3) = maxval(at%astruct%rxyz(3,:)) - minval(at%astruct%rxyz(3,:))
+      deallocate(at%astruct%rxyz)
+
+      if (at%astruct%geocode == 'F') then
         acell1 = max(acell1, acell2)
         acell2 = acell1
       end if

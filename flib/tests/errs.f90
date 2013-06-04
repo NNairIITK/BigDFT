@@ -1,6 +1,6 @@
 subroutine test_error_handling()
   use yaml_output
-  use error_handling
+  use dictionaries!error_handling
   implicit none
   !local variables
   integer :: ival,err1,ERR_TOTO,ERR_TITI,ERR_GRAVE
@@ -11,10 +11,9 @@ subroutine test_error_handling()
 !!$  print *,'address',f_loc(abort1)
 !!$  print *,'address',f_loc(ival)
 
-
   call f_err_initialize()
   
-!  call f_err_set_callback(abort1)
+!!$!  call f_err_set_callback(abort1)
   call f_err_severe_override(abort2)
   
   call f_err_define(err_name='ERR_TOTO',&
@@ -31,8 +30,8 @@ subroutine test_error_handling()
   call yaml_map("Raising the TOTO error, errcode",ERR_TOTO) 
 
   if (f_err_raise(.true.,'Extra message added',err_id=ERR_TOTO)) continue ! return
-    call yaml_map("Raising the TOTO error, by name",'ERR_TOTO') 
-  if (f_err_raise(.true.,'Extra message added again',err_name='ERR_TOTO')) continue ! return
+    call yaml_map("Raising the TOTO error, by name, without condition",'ERR_TOTO') 
+  if (f_err_raise(err_msg='Extra message added again',err_name='ERR_TOTO')) continue ! return
   
   call yaml_map("Callback done, errcode",ERR_TOTO)
 
@@ -43,11 +42,10 @@ subroutine test_error_handling()
   call f_err_set_callback(abort2)
 
   call yaml_map("Callback done",f_err_raise(.true.,'Now TITI error has been raised',err_id=ERR_TITI))
-
   call yaml_map("Error check value",f_err_check())
-
   call yaml_map("Error check code",f_err_check(err_id=ERR_TOTO))
   call yaml_map("Error check code2",f_err_check(err_id=ERR_TITI))
+
   call f_err_finalize()
 
 end subroutine test_error_handling

@@ -3,7 +3,7 @@
   !local variables
   integer :: get_error 
   integer :: nerr,ierr,jerr
-  character(len=dict_msg_len) :: name
+  character(len=max_field_length) :: name
 
   get_error=-1 !no error specified
   nerr=dict_len(dict_present_error)

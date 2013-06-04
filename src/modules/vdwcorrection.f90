@@ -954,7 +954,7 @@ contains
 
     ! Arguments
     type(atoms_data),                 intent(in) :: atoms
-    real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+    real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
     !integer,                          intent(in) :: iproc
     integer,                          intent(in) :: dispersion
     real(kind=GP),                   intent(out) :: dispersion_energy
@@ -983,11 +983,11 @@ contains
 
        ! qoh: Loop over all distinct pairs of atoms
 
-       do atom1=1,atoms%nat
+       do atom1=1,atoms%astruct%nat
           do atom2=1,atom1-1
 
-             nzatom1 = atoms%nzatom(atoms%iatype(atom1))
-             nzatom2 = atoms%nzatom(atoms%iatype(atom2))
+             nzatom1 = atoms%nzatom(atoms%astruct%iatype(atom1))
+             nzatom2 = atoms%nzatom(atoms%astruct%iatype(atom2))
 
              ! qoh: Calculate distance between each pair of atoms
              sqdist=(rxyz(1,atom1) - rxyz(1,atom2))**2 &
@@ -1017,8 +1017,8 @@ contains
                   e8 = 0.0_GP
 !! DFT-D3
              
-                   cni  = crd_nr(atom1,atoms%nat,rxyz,atoms)
-                   cnj  = crd_nr(atom2,atoms%nat,rxyz,atoms)
+                   cni  = crd_nr(atom1,atoms%astruct%nat,rxyz,atoms)
+                   cnj  = crd_nr(atom2,atoms%astruct%nat,rxyz,atoms)
                    c6d3 = c6cn(nzatom1,nzatom2,cni,cnj)
                    c8   = 3.0_GP*c6d3*vdwparams%Qatom(nzatom1)*vdwparams%Qatom(nzatom2)
     
@@ -1071,8 +1071,8 @@ contains
     ! Arguments
 
     type(atoms_data),                 intent(in)  :: atoms
-    real(GP), dimension(3,atoms%nat), intent(out) :: vdw_forces
-    real(GP), dimension(3,atoms%nat), intent(in)  :: rxyz
+    real(GP), dimension(3,atoms%astruct%nat), intent(out) :: vdw_forces
+    real(GP), dimension(3,atoms%astruct%nat), intent(in)  :: rxyz
     integer,                          intent(in)  :: dispersion
 
     ! Internal variables
@@ -1102,8 +1102,8 @@ contains
     real(kind=GP) :: tmp6, tmp8
     real(kind=GP) :: tmp6a, tmp8a
     real(kind=GP) :: cnA, cnj, c6Aj
-    real(kind=GP), DIMENSION(3,atoms%nat)            :: cnij
-    real(kind=GP), DIMENSION(3,atoms%nat,atoms%nat)  :: cnijk
+    real(kind=GP), DIMENSION(3,atoms%astruct%nat)            :: cnij
+    real(kind=GP), DIMENSION(3,atoms%astruct%nat,atoms%astruct%nat)  :: cnijk
     real(kind=GP), DIMENSION(3)                      :: grad_c6
 
     vdw_forces = 0.0_GP
@@ -1114,16 +1114,16 @@ contains
 
        ! qoh: Loop over all atoms
 
-       do atom1=1,atoms%nat
+       do atom1=1,atoms%astruct%nat
 
           ! qoh: Loop over all other atoms
 
-          do atom2=1,atoms%nat
+          do atom2=1,atoms%astruct%nat
 
              if ( atom2 .ne. atom1) then
 
-                nzatom1 = atoms%nzatom(atoms%iatype(atom1))
-                nzatom2 = atoms%nzatom(atoms%iatype(atom2))
+                nzatom1 = atoms%nzatom(atoms%astruct%iatype(atom1))
+                nzatom2 = atoms%nzatom(atoms%astruct%iatype(atom2))
 
                 ! qoh: Calculate c6 coefficient
                 c6coeff = vdwcorrection_c6(nzatom1,nzatom2,dispersion)
@@ -1160,16 +1160,16 @@ contains
        enddo
     else if (dispersion == 5) then
 
-       call crd_nr_der(atoms%nat,rxyz,cnij,cnijk,atoms)
+       call crd_nr_der(atoms%astruct%nat,rxyz,cnij,cnijk,atoms)
 
-       do atom1=1,atoms%nat
+       do atom1=1,atoms%astruct%nat
 
-          do atom2=1,atoms%nat
+          do atom2=1,atoms%astruct%nat
 
              if (atom2 .eq. atom1) cycle
 
-             nzatom1 = atoms%nzatom(atoms%iatype(atom1))
-             nzatom2 = atoms%nzatom(atoms%iatype(atom2))
+             nzatom1 = atoms%nzatom(atoms%astruct%iatype(atom1))
+             nzatom2 = atoms%nzatom(atoms%astruct%iatype(atom2))
 
              dxAj = rxyz(1,atom1) - rxyz(1,atom2)
              dyAj = rxyz(2,atom1) - rxyz(2,atom2)
@@ -1194,13 +1194,13 @@ contains
  
 !         Coordination dependent C6_AB value
  
-             cnA = crd_nr(atom1,atoms%nat,rxyz,atoms)
-             cnj = crd_nr(atom2,atoms%nat,rxyz,atoms)
+             cnA = crd_nr(atom1,atoms%astruct%nat,rxyz,atoms)
+             cnj = crd_nr(atom2,atoms%astruct%nat,rxyz,atoms)
              c6Aj = c6cn(nzatom1,nzatom2,cnA,cnj)
 !
 !         Get gradient for coordination number dependent C6
 !
-             call c6_grad(grad_c6,atom1,atom2,atom1,rxyz,atoms%nat,cnij,cnijk,atoms)
+             call c6_grad(grad_c6,atom1,atom2,atom1,rxyz,atoms%astruct%nat,cnij,cnijk,atoms)
    
              tmp6 = 6.0_GP*fdmp6*vdwparams%s6*c6Aj/(rAj**4.0_GP)
              tmp8 = 6.0_GP*fdmp8*vdwparams%s8*c6Aj*Qfac/(rAj**5.0_GP)
@@ -1240,7 +1240,7 @@ contains
 !         Three center derivatives. Grimme uses aggressive screening
 !         to get this N^3 contribution back to N^2
 
-          do atom2=2,atoms%nat
+          do atom2=2,atoms%astruct%nat
              if (atom2 .eq. atom1) cycle
              rAj = sqrt((rxyz(1,atom1) - rxyz(1,atom2))**2 &
                     + (rxyz(2,atom1) - rxyz(2,atom2))**2 &
@@ -1255,7 +1255,7 @@ contains
 !            Third center involved
 !
              do atom3=1,atom2-1
-                 nzatom3 = atoms%nzatom(atoms%iatype(atom3))
+                 nzatom3 = atoms%nzatom(atoms%astruct%iatype(atom3))
                  if (atom1.eq.atom3) cycle
 
                  dxAk = rxyz(1,atom1) - rxyz(1,atom3)
@@ -1279,7 +1279,7 @@ contains
 !
 !                Get gradient for coordination number dependent C6 for three centers
 !
-                 call c6_grad(grad_c6,atom2,atom3,atom1,rxyz,atoms%nat,cnij,cnijk,atoms)
+                 call c6_grad(grad_c6,atom2,atom3,atom1,rxyz,atoms%astruct%nat,cnij,cnijk,atoms)
 
                  fac6 = (vdwparams%sr6*r0jk/sqrt(rjk))**(vdwparams%alpha)
                  fac8 = (vdwparams%sr8*r0jk/sqrt(rjk))**(vdwparams%alpha+2.0_GP)
@@ -1309,9 +1309,9 @@ contains
 
 
 !        write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom vdw'
-!        do atom1=1,atoms%nat
+!        do atom1=1,atoms%astruct%nat
 !           write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-!           atom1,trim(atoms%atomnames(atoms%iatype(atom1))),(vdw_forces(atom2,atom1),atom2=1,3)
+!           atom1,trim(atoms%astruct%atomnames(atoms%astruct%iatype(atom1))),(vdw_forces(atom2,atom1),atom2=1,3)
 !        enddo
 
 
@@ -1342,15 +1342,15 @@ contains
     if (in%dispersion /= 0) then 
 
        ! qoh: Loop over types to check we have parameters
-       do itype=1,atoms%ntypes
+       do itype=1,atoms%astruct%ntypes
           if (any(unoptimised == atoms%nzatom(itype)) .and. &
                any(xcfoptimised == in%ixc)) then 
              write(*,'(a,a2)') 'WARNING: Unoptimised dispersion &
-                  &parameters used for ', atoms%atomnames(itype)
+                  &parameters used for ', atoms%astruct%atomnames(itype)
           elseif (.not. any(optimised == atoms%nzatom(itype)) .and. &
                .not. any(unoptimised == atoms%nzatom(itype))) then
              write(*,'(a,a2)') 'WARNING: No dispersion parameters &
-                  &available for ', atoms%atomnames(itype) 
+                  &available for ', atoms%astruct%atomnames(itype) 
           end if
        end do
 
@@ -9390,8 +9390,8 @@ contains
             dz=xyz(3,iat)-xyz(3,i)
             r=sqrt(dx*dx+dy*dy+dz*dz)
             !!rcov=vdwparams%cov_table(iz(i))+vdwparams%cov_table(iz(iat))
-            rcov = vdwparams%cov_table(atoms%nzatom(atoms%iatype(i)))+&
-             vdwparams%cov_table(atoms%nzatom(atoms%iatype(iat)))
+            rcov = vdwparams%cov_table(atoms%nzatom(atoms%astruct%iatype(i)))+&
+             vdwparams%cov_table(atoms%nzatom(atoms%astruct%iatype(iat)))
             crd_nr=crd_nr+1.0_GP/(1.0_GP+exp(-k1*(rcov/r-1.0_GP)))
          endif
       enddo
@@ -9422,8 +9422,8 @@ contains
                dy=xyz(2,iat)-xyz(2,i)
                dz=xyz(3,iat)-xyz(3,i)
                r=sqrt(dx*dx+dy*dy+dz*dz)
-               cov_rad=  vdwparams%cov_table(atoms%nzatom(atoms%iatype(iat)))&
-                       + vdwparams%cov_table(atoms%nzatom(atoms%iatype(i)))
+               cov_rad=  vdwparams%cov_table(atoms%nzatom(atoms%astruct%iatype(iat)))&
+                       + vdwparams%cov_table(atoms%nzatom(atoms%astruct%iatype(i)))
                expf=exp(-k1*((cov_rad/r)-1.0_GP))
                fac2=1.0_GP/(expf+1.0_GP)
                fac3=k1*cov_rad*expf*fac2*fac2/(r*r*r)
@@ -9484,15 +9484,15 @@ contains
       dt2x=0.0_GP
       dt2y=0.0_GP
       dt2z=0.0_GP
-      do i=1,vdwparams%maxcn(atoms%nzatom(atoms%iatype(iat)))
-        do j=1,vdwparams%maxcn(atoms%nzatom(atoms%iatype(jat)))
-          tmp1=vdwparams_c6AB(atoms%nzatom(atoms%iatype(iat)),atoms%nzatom(atoms%iatype(jat)),i,j,3)-cnj
-          tmp2=vdwparams_c6AB(atoms%nzatom(atoms%iatype(iat)),atoms%nzatom(atoms%iatype(jat)),i,j,2)-cni
+      do i=1,vdwparams%maxcn(atoms%nzatom(atoms%astruct%iatype(iat)))
+        do j=1,vdwparams%maxcn(atoms%nzatom(atoms%astruct%iatype(jat)))
+          tmp1=vdwparams_c6AB(atoms%nzatom(atoms%astruct%iatype(iat)),atoms%nzatom(atoms%astruct%iatype(jat)),i,j,3)-cnj
+          tmp2=vdwparams_c6AB(atoms%nzatom(atoms%astruct%iatype(iat)),atoms%nzatom(atoms%astruct%iatype(jat)),i,j,2)-cni
           tmp3=exp(k3*(tmp1*tmp1+tmp2*tmp2))
-          t1=t1+vdwparams_c6AB(atoms%nzatom(atoms%iatype(iat)),atoms%nzatom(atoms%iatype(jat)),i,j,1)*tmp3
+          t1=t1+vdwparams_c6AB(atoms%nzatom(atoms%astruct%iatype(iat)),atoms%nzatom(atoms%astruct%iatype(jat)),i,j,1)*tmp3
           t2=t2+tmp3
           fac1=tmp3*k3*2.0_GP
-          fac2=fac1*vdwparams_c6AB(atoms%nzatom(atoms%iatype(iat)),atoms%nzatom(atoms%iatype(jat)),i,j,1)
+          fac2=fac1*vdwparams_c6AB(atoms%nzatom(atoms%astruct%iatype(iat)),atoms%nzatom(atoms%astruct%iatype(jat)),i,j,1)
           tmp4=(tmp2*cnik(1)+tmp1*cnjk(1))
           dt1x=dt1x+fac2*tmp4
           dt2x=dt2x+fac1*tmp4

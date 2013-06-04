@@ -25,7 +25,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    type(nonlocal_psp_descriptors), intent(in) :: nlpspd
    type(denspot_distribution), intent(in) :: dpcom
    type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in), target :: rhopot
@@ -73,7 +73,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
            VTwfn%Lzd%hgrids(1), VTwfn%Lzd%hgrids(2), VTwfn%Lzd%hgrids(3),VTwfn%Lzd%Glr%wfd,VTwfn%orbs,GPU)
    else if (OCLconv) then
       call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)    
-      call allocate_data_OCL(VTwfn%Lzd%Glr%d%n1,VTwfn%Lzd%Glr%d%n2,VTwfn%Lzd%Glr%d%n3,at%geocode,&
+      call allocate_data_OCL(VTwfn%Lzd%Glr%d%n1,VTwfn%Lzd%Glr%d%n2,VTwfn%Lzd%Glr%d%n3,at%astruct%geocode,&
          &   in%nspin,VTwfn%Lzd%Glr%wfd,VTwfn%orbs,GPU)
       if (iproc == 0) call yaml_map('GPU data allocated',.true.)
       !if (iproc == 0) write(*,*) 'GPU data allocated'
@@ -424,7 +424,7 @@ subroutine davidson(iproc,nproc,in,at,&
    type(orbitals_data), intent(inout) :: orbs !<could be modify in calculate_HOMO_LUMO_gap
    type(communications_arrays), intent(in) :: comms, commsv
    type(denspot_distribution), intent(in) :: dpcom
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in) :: rhopot
@@ -479,7 +479,7 @@ subroutine davidson(iproc,nproc,in,at,&
            Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr%wfd,orbsv,GPU)
    else if (OCLconv) then
       call free_gpu_OCL(GPU,orbs,in%nspin)    
-      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%geocode,&
+      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
            in%nspin,Lzd%Glr%wfd,orbsv,GPU)
    end if
 
@@ -624,7 +624,7 @@ subroutine davidson(iproc,nproc,in,at,&
    
 
    !experimental: add parabolic potential to the hamiltonian
-   !call add_parabolic_potential(at%geocode,at%nat,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,12.0_gp,rxyz,pot)
+   !call add_parabolic_potential(at%astruct%geocode,at%astruct%nat,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,12.0_gp,rxyz,pot)
 
    call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
         proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
@@ -1512,7 +1512,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
    type(communications_arrays), intent(in) :: comms
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psivirt
    !local variables
    character(len=*), parameter :: subname='psivirt_from_gaussians'
@@ -1759,7 +1759,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
    type(atoms_data), intent(in) :: at
    type(locreg_descriptors), intent(in) :: lr
    type(orbitals_data), intent(in) :: orbs,orbsv
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(:), pointer :: psi,psivirt
    !local variables
    character(len=10) :: comment

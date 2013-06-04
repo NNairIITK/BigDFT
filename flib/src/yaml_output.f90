@@ -13,6 +13,7 @@
 module yaml_output
   use yaml_strings
   use dictionaries
+  !use error_handling
   implicit none
   private
 
@@ -30,7 +31,6 @@ module yaml_output
   integer, parameter :: SEQUENCE_ELEM          = -1010
   integer, parameter :: NEWLINE                = -1011
   integer, parameter :: COMMA_TO_BE_PUT        =  10
-  integer, parameter :: STREAM_ALREADY_PRESENT = -1
 
   integer, parameter :: tot_max_record_length=95   !< Max record length by default
   integer, parameter :: tot_max_flow_events=500    !< Max flow events
@@ -68,6 +68,13 @@ module yaml_output
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
   integer, dimension(tot_streams) :: stream_units=6             !< Default units unless otherwise specified
 
+  logical :: module_initialized=.false.  !<tells if the module has been already referenced or not
+  !error ids
+  integer :: YAML_STREAM_ALREADY_PRESENT !< trying to create a stream already present
+  integer :: YAML_STREAM_NOT_FOUND       !< trying to seach for a absent unitt
+  integer :: YAML_UNIT_INCONSISTENCY     !< internal error, unit inconsistency
+  integer :: YAML_INVALID                !< invalid action, unit inconsistency
+
   !> Generic routine
   interface yaml_map
      module procedure yaml_map,yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
@@ -79,7 +86,7 @@ module yaml_output
   public :: yaml_sequence,yaml_open_sequence,yaml_close_sequence
   public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
   public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa,yaml_time_toa
-  public :: yaml_set_stream,yaml_set_default_stream
+  public :: yaml_set_stream,yaml_set_default_stream,yaml_close_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump
 
@@ -115,6 +122,27 @@ contains
     nullify(strm%dict_warning)
   end function stream_null
 
+  !>initialize the variables of the module, like error definitions.
+  !! should be called only once unless the module has been closed by close_all_streams
+  subroutine assure_initialization()
+    implicit none
+    if (.not. module_initialized) then
+       module_initialized=.true.
+       !initialize error messages
+       call f_err_define('YAML_INVALID','Generic error of yaml module, invalid operation',&
+            YAML_INVALID)
+       call f_err_define('YAML_STREAM_ALREADY_PRESENT','The stream is already present',&
+            YAML_STREAM_ALREADY_PRESENT)
+       call f_err_define('YAML_STREAM_NOT_FOUND','The stream has not been found',&
+            YAML_STREAM_NOT_FOUND)
+       call f_err_define('YAML_UNIT_INCONSISTENCY',&
+            'The array of the units is not in agreement with the array of the streams',&
+            YAML_UNIT_INCONSISTENCY,&
+            err_action='This is an internal error of yaml_output module, contact developers')
+
+    end if
+
+  end subroutine assure_initialization
 
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.
@@ -155,6 +183,9 @@ contains
     !local variables
     integer, parameter :: NO_ERRORS           = 0
     integer :: istream,unt,ierr
+    
+    !check that the module has been initialized
+    call assure_initialization()
 
     if (present(istat)) istat=NO_ERRORS !so far
 
@@ -167,11 +198,14 @@ contains
     !check if unit has been already assigned
     do istream=1,active_streams
        if (unt==stream_units(istream)) then
-          if (present(istat)) then
-             istat=STREAM_ALREADY_PRESENT
+          !raise error if istat is not present
+          if (f_err_raise(.not. present(istat),&
+               'Unit '//trim(yaml_toa(unt))//' already present',&
+               err_id=YAML_STREAM_ALREADY_PRESENT)) then
              return
           else
-             stop 'yaml_set_stream:unit already present'
+             istat=YAML_STREAM_ALREADY_PRESENT
+             return
           end if
        end if
     end do
@@ -362,24 +396,83 @@ contains
 
   end subroutine yaml_release_document
 
+  !< close one stream and free its place
+  !! should this stream be the default stream, stdout becomes the default
+  subroutine yaml_close_stream(unit,istat)
+    implicit none
+    integer, optional, intent(in) :: unit
+    integer, optional, intent(out) :: istat
+    !local variables
+    integer :: unt,istatus,strm
+
+    unt=0
+    if (present(unit)) unt=unit
+    call get_stream(unt,strm,istat=istatus)
+
+    !unit 6 cannot be closed
+    if (f_err_raise(unt==6,'Stream of unit 6 cannot be closed',&
+         err_id=YAML_INVALID)) return
+
+    if (present(istat)) then
+       istat=istatus
+       if (istatus==YAML_STREAM_NOT_FOUND) return
+    else
+       !if the stream has not been found raise an error
+       if (f_err_raise(istatus==YAML_STREAM_NOT_FOUND,&
+            'Unit '//trim(yaml_toa(unt))//' not found',&
+            err_id=YAML_STREAM_NOT_FOUND)) return
+    end if
+    
+    !as far as the unit has been found close the stream
+    !check if there is no unit inconsistency 
+    !(this is an internal error therefore istat is ignored)
+    if (f_err_raise(stream_units(strm) /= unt,&
+         'Unit '//trim(yaml_toa(unt))//' inconsistent',&
+         err_id=YAML_UNIT_INCONSISTENCY)) return
+
+    !close files which are not stdout
+    if (unt /= 6) close(unt)
+    !reset the stream information
+    !reduce the active_stream
+    if (strm /= active_streams) then
+       streams(strm)=streams(active_streams)
+       stream_units(strm)=stream_units(active_streams)
+    end if
+
+    !in case the active stream is the last one move at the place of this one
+    if (default_stream==active_streams) then
+       default_stream=strm
+    else if (default_stream==strm) then
+       default_stream=1
+    end if
+
+    streams(active_streams)=stream_null()
+    stream_units(active_streams)=6
+    active_streams=active_streams-1
+    
+  end subroutine yaml_close_stream
 
   !> Close all the streams
   subroutine yaml_close_all_streams()
     implicit none
 
     !local variables
-    integer :: istream,unt,unts
+    integer :: istream,unt
+!!$    integer :: unts
 
     do istream=1,active_streams
        unt=stream_units(istream)
-       unts=streams(istream)%unit
-       if (unts /= unt) stop 'YAML close streams: unit inconsistency'
-       !close files which are not stdout
-       if (unt /= 6) close(unt)
-       !reset the stream information
-       stream_units(istream)=6
-       streams(istream)=stream_null()
+       !unit 6 cannot be closed
+       if (unt /= 6) call yaml_close_stream(unit=unt)
+!!$       unts=streams(istream)%unit
+!!$       if (unts /= unt) stop 'YAML close streams: unit inconsistency'
+!!$       !close files which are not stdout
+!!$       if (unt /= 6) close(unt)
+!!$       !reset the stream information
+!!$       stream_units(istream)=6
+!!$       streams(istream)=stream_null()
     end do
+    stream_units=6
     active_streams=1 !stdout is always kept active
     default_stream=1
   end subroutine yaml_close_all_streams
@@ -780,14 +873,14 @@ contains
     msg_lgt_ck=msg_lgt
     !print *, 'here'
     call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt,istat=ierr)
-!   print *, 'here2',ierr
+    !print *, 'here2',ierr
     if (ierr ==0) then
        call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING,istat=ierr)
     end if
-!    print *, 'here2b',ierr
+    !print *, 'here2b',ierr
     redo_line=ierr/=0
     if (redo_line) then
-!       print *, 'here3',ierr
+       !print *, 'here3',ierr,msg_lgt_ck,msg_lgt
        if (streams(strm)%flowrite) then
           call dump(streams(strm),towrite(1:msg_lgt_ck),advance=trim(adv),event=SCALAR)
        else
@@ -805,21 +898,28 @@ contains
        idbg=0
        cut_line: do while(cut)
           idbg=idbg+1
-!          print *,'hereOUTPU',cut,icut,idbg
+          !print *,'hereOUTPU',cut,icut,idbg
        !verify where the message can be cut
           cut=.false.
           cut_message :do while(icut > streams(strm)%max_record_length - &
                max(streams(strm)%icursor,streams(strm)%indent))
              icut=index(trim((mapvalue(istr:istr+icut-1))),' ',back=.true.)
+             !print *,'test',icut,streams(strm)%max_record_length,&
+             !     max(streams(strm)%icursor,streams(strm)%indent),&
+             !     streams(strm)%max_record_length - &
+             !     max(streams(strm)%icursor,streams(strm)%indent),istr
              cut=.true.
           end do cut_message
+          !if the first line is too long cut it abruptly
+          if (icut == 0) icut = streams(strm)%max_record_length - &
+               max(streams(strm)%icursor,streams(strm)%indent)+1
           call buffer_string(towrite,len(towrite),mapvalue(istr:istr+icut-1),msg_lgt)
           if (streams(strm)%flowrite .and. .not. cut) &
                call buffer_string(towrite,len(towrite),',',msg_lgt)
           call dump(streams(strm),towrite(1:msg_lgt),advance='yes',event=SCALAR)
-          istr=istr-1+icut
+          istr=istr+icut
           icut=len_trim(mapvalue)-istr+1
-!          print *,'icut',istr,icut,mapvalue(istr:istr+icut-1),cut,istr+icut-1,len_trim(mapvalue)
+          !print *,'icut',istr,icut,mapvalue(istr:istr+icut-1),cut,istr+icut-1,len_trim(mapvalue)
           msg_lgt=0
          if (idbg==1000) exit cut_line !to avoid infinite loops
        end do cut_line
@@ -919,6 +1019,9 @@ contains
     logical :: stream_found
     integer :: istream,prev_def,ierr
 
+    !check that the module has been initialized
+    call assure_initialization()
+
     if (present(istat)) istat=0
 
     if (unt==0) then
@@ -937,7 +1040,7 @@ contains
        end do
        if (.not. stream_found) then
           if (present(istat)) then
-             istat=STREAM_ALREADY_PRESENT
+             istat=YAML_STREAM_NOT_FOUND
           else
              !otherwise initialize it, no pretty printing
              prev_def=default_stream

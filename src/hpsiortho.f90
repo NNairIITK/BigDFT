@@ -32,14 +32,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   type(DFT_local_fields), intent(inout) :: denspot
   type(energy_terms), intent(inout) :: energs
   type(DFT_wavefunction), intent(inout) :: wfn
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   type(GPU_pointers), intent(inout) :: GPU  
   !real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   real(gp), intent(inout) :: rpnrm
   real(gp), dimension(6), intent(out) :: xcstr
   !real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
-  type(gaussian_basis),dimension(atoms%nat),optional,intent(in)::proj_G
+  type(gaussian_basis),dimension(atoms%astruct%nat),optional,intent(in)::proj_G
   type(paw_objects),optional,intent(inout)::paw
   !local variables
   character(len=*), parameter :: subname='psitohpsi'
@@ -93,7 +93,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      energs%e_prev=energs%energy
      !print *,'here',savefields,correcth,energs%ekin,energs%epot,dot(wfn%orbs%npsidim_orbs,wfn%psi(1),1,wfn%psi(1),1)
      ! Potential from electronic charge density 
-     call sumrho(denspot%dpbox,wfn%orbs,wfn%Lzd,GPU,atoms%sym,denspot%rhod,wfn%psi,denspot%rho_psi)
+     call sumrho(denspot%dpbox,wfn%orbs,wfn%Lzd,GPU,atoms%astruct%sym,denspot%rhod,wfn%psi,denspot%rho_psi)
      !print *,'here',wfn%orbs%occup(:),'there',savefields,correcth,energs%ekin,energs%epot,&
      !     dot(wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p*wfn%orbs%nspin,&
      !     denspot%rho_psi(1,1),1,denspot%rho_psi(1,1),1)
@@ -150,7 +150,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
         if (denspot%mix%kind == AB6_MIXING_DENSITY) then
            call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
                 denspot%rhov,itrp,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
-                atoms%alat1*atoms%alat2*atoms%alat3,&
+                atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&
                 rpnrm,denspot%dpbox%nscatterarr)
            
            if (iproc == 0 .and. itrp > 1) then
@@ -187,14 +187,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
 
      if(wfn%orbs%nspinor==4) then
         !this wrapper can be inserted inside the XC_potential routine
-        call PSolverNC(atoms%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
+        call PSolverNC(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
              denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
              denspot%dpbox%n3d,ixc,&
              denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
              denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,&
              energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
      else
-        call XC_potential(atoms%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
+        call XC_potential(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
              denspot%pkernel%mpi_env%mpi_comm,&
              denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),ixc,&
              denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
@@ -225,7 +225,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
         if (denspot%mix%kind == AB6_MIXING_POTENTIAL) then
            call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
                 denspot%rhov,itrp,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
-                atoms%alat1*atoms%alat2*atoms%alat3,&!volume should be used 
+                atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&!volume should be used 
                 rpnrm,denspot%dpbox%nscatterarr)
            if (iproc == 0 .and. itrp > 1) then
               call yaml_newline()
@@ -394,7 +394,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(SIC_data), intent(in) :: SIC
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
@@ -408,7 +408,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
   !PAW variables:
-  type(gaussian_basis),dimension(at%ntypes),optional,intent(in)::proj_G
+  type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
   type(paw_objects),optional,intent(inout)::paw
 
   !put to zero hpsi array (now important since any of the pieces of the hamiltonian is accumulating)
@@ -544,7 +544,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
 
       !here we have to add the round part
       if (present(psirocc) .and. present(orbsocc)) then
-         call exact_exchange_potential_virt(iproc,nproc,at%geocode,orbs%nspin,&
+         call exact_exchange_potential_virt(iproc,nproc,at%astruct%geocode,orbs%nspin,&
               Lzd%Glr,orbsocc,orbs,ngatherarr(0,1),n3p,&
               0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
               pkernel,psirocc,psi,pot(ispot))
@@ -552,13 +552,13 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
       else
          !here the condition for the scheme should be chosen
          if (.not. op2p) then
-            call exact_exchange_potential(iproc,nproc,at%geocode,orbs%nspin,&
+            call exact_exchange_potential(iproc,nproc,at%astruct%geocode,orbs%nspin,&
                  Lzd%Glr,orbs,ngatherarr(0,1),n3p,&
                  0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
                  pkernel,psi,pot(ispot),energs%eexctX)
          else
             !the psi should be transformed in real space
-            call exact_exchange_potential_round(iproc,nproc,at%geocode,orbs%nspin,Lzd%Glr,orbs,&
+            call exact_exchange_potential_round(iproc,nproc,at%astruct%geocode,orbs%nspin,Lzd%Glr,orbs,&
                 0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
                 pkernel,psi,pot(ispot),energs%eexctX)
 
@@ -674,6 +674,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
    use module_base
    use module_types
    use yaml_output
+   use module_interfaces, except_this_one => NonLocalHamiltonianApplication
    use gaussians, only: gaussian_basis
    implicit none
    integer, intent(in) :: iproc, npsidim_orbs
@@ -682,12 +683,12 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
    type(local_zone_descriptors), intent(in) :: Lzd
    type(nonlocal_psp_descriptors), intent(in) :: nlpspd
    real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(npsidim_orbs), intent(in) :: psi
    real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
    real(gp), intent(out) :: eproj_sum
    !PAW variables:
-   type(gaussian_basis),dimension(at%ntypes),optional,intent(in)::proj_G !projectors in gaussian basis (for PAW)
+   type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G !projectors in gaussian basis (for PAW)
    type(paw_objects),optional,intent(inout)::paw
    !local variables
    logical :: dosome, overlap
@@ -741,14 +742,14 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
          if (DistProjApply) then
             !first create a projector ,then apply it for everyone
             iproj=0
-            do iat=1,at%nat
-               iatype=at%iatype(iat)
+            do iat=1,at%astruct%nat
+               iatype=at%astruct%iatype(iat)
 
                ! Check if atom has projectors, if not cycle
                if(at%npspcode(iatype)==7) then
-                 call numb_proj_paw_tr(iatype,at%ntypes,proj_G(iatype),mproj) 
+                 call numb_proj_paw_tr(iatype,at%astruct%ntypes,proj_G(iatype),mproj) 
                else
-                 call numb_proj(iatype,at%ntypes,at%psppar,at%npspcode,mproj) 
+                 call numb_proj(iatype,at%astruct%ntypes,at%psppar,at%npspcode,mproj) 
                end if
                if(mproj == 0) cycle
 
@@ -816,13 +817,13 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                end if
 
                istart_c=istart_ck !TO BE CHANGED IN ONCE-AND-FOR-ALL 
-               do iat=1,at%nat
-                  iatype=at%iatype(iat)
+               do iat=1,at%astruct%nat
+                  iatype=at%astruct%iatype(iat)
                   ! Check if atom has projectors, if not cycle
                   if(at%npspcode(iatype)==7) then
-                   call numb_proj_paw_tr(iatype,at%ntypes,proj_G(iatype),mproj) 
+                   call numb_proj_paw_tr(iatype,at%astruct%ntypes,proj_G(iatype),mproj) 
                   else
-                   call numb_proj(iatype,at%ntypes,at%psppar,at%npspcode,mproj) 
+                   call numb_proj(iatype,at%astruct%ntypes,at%psppar,at%npspcode,mproj) 
                   end if
                   if(mproj == 0) cycle
                   !check if the atom intersect with the given localisation region
@@ -1530,9 +1531,9 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    type(atoms_data), intent(in) :: at
    type(nonlocal_psp_descriptors), intent(in) :: nlpspd 
    type(paw_objects),optional,intent(inout)::paw
-   type(gaussian_basis),dimension(at%ntypes),optional,intent(in)::proj_G !< Projectors in gaussian basis (for PAW)
+   type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G !projectors in gaussian basis (for PAW)
    real(gp),optional, intent(out) :: eproj_sum
-   real(gp),optional, dimension(3,at%nat), intent(in) :: rxyz
+   real(gp),optional, dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp),optional, dimension(nlpspd%nprojel), intent(inout) :: proj
    !local variables
    integer :: i_all,i_stat
@@ -1621,7 +1622,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
      write(*,*)'hpsiortho, l1478 erase me:'
      do iat=1,paw%natom 
        do jorb=1,wfn%orbs%norbu
-       write(*,'(a,2(i4,x),1000f20.12)')' cprj(iat,jorb)%cp(:,:)=',iat,jorb,paw%cprj(iat,jorb)%cp(:,:)
+       write(*,'(a,2(i4,1x),1000f20.12)')' cprj(iat,jorb)%cp(:,:)=',iat,jorb,paw%cprj(iat,jorb)%cp(:,:)
        end do
      end do
    end if
@@ -2692,7 +2693,7 @@ subroutine debug_hpsi(wfn,at,proj_G,paw,nlpspd)
    type(DFT_wavefunction), intent(in) :: wfn
    type(paw_objects),intent(in) :: paw
    type(atoms_data), intent(in) :: at
-   type(gaussian_basis),dimension(at%ntypes),intent(in) :: proj_G !projectors in gaussian basis (for PAW)
+   type(gaussian_basis),dimension(at%astruct%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
    !Local variables   
    integer :: ispsi_a,ispsi_b,ia,ib,iatype,ispinor
    integer :: nvctr_c,nvctr_f,nvctr_tot
@@ -2728,8 +2729,8 @@ subroutine debug_hpsi(wfn,at,proj_G,paw,nlpspd)
          end do
          if (.not. dosome) cycle loop_lr
       
-         do iat=1,at%nat
-              iatype=at%iatype(iat)
+      do iat=1,at%astruct%nat
+           iatype=at%astruct%iatype(iat)
               ispsi=ispsi_k
             do iorb=isorb,ieorb
                if (wfn%orbs%inwhichlocreg(iorb+wfn%orbs%isorb) /= ilr) then
@@ -2759,7 +2760,7 @@ subroutine debug_hpsi(wfn,at,proj_G,paw,nlpspd)
                     scpr(1)=scalprod(1,1)+scalprod(2,2)
                     scpr(2)=scalprod(1,2)-scalprod(2,1)
                  end if
-                 write(*,'("<psi|H|psi> for kpt=,",i5," iat=",i5,"=>",2(f15.5,x))')ikpt,iat,scpr
+              write(*,'("<psi|H|psi> for kpt=,",i5," iat=",i5,"=>",2(f15.5,1x))')ikpt,iat,scpr
                  write(*,*)'ispsi_a','ispsi_b','nvctr_tot',ispsi_a,ispsi_b,nvctr_tot
                end do !ispinor
             end do !iorb
@@ -3141,7 +3142,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   real(dp), dimension(:), pointer :: local_potential
   !local variables
   integer :: iorb,nbox,ilr,ist

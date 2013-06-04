@@ -118,19 +118,19 @@ program frequencies
    call memocc(i_stat,kmoves,'kmoves',subname)
 
    ! Allocations
-   allocate(fxyz(3*atoms%nat+ndebug),stat=i_stat)
+   allocate(fxyz(3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,fxyz,'fxyz',subname)
-   allocate(moves(n_order,0:3*atoms%nat+ndebug),stat=i_stat)
+   allocate(moves(n_order,0:3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,moves,'moves',subname)
-   allocate(energies(n_order,0:3*atoms%nat+ndebug),stat=i_stat)
+   allocate(energies(n_order,0:3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,energies,'energies',subname)
-   allocate(forces(3*atoms%nat,n_order,0:3*atoms%nat+ndebug),stat=i_stat)
+   allocate(forces(3*atoms%astruct%nat,n_order,0:3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,forces,'forces',subname)
-   allocate(rpos(3,atoms%nat+ndebug),stat=i_stat)
+   allocate(rpos(3,atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,rpos,'rpos',subname)
-   allocate(fpos(3*atoms%nat,n_order+ndebug),stat=i_stat)
+   allocate(fpos(3*atoms%astruct%nat,n_order+ndebug),stat=i_stat)
    call memocc(i_stat,fpos,'fpos',subname)
-   allocate(hessian(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
+   allocate(hessian(3*atoms%astruct%nat,3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,hessian,'hessian',subname)
 
    ! Initialize the Hessian
@@ -146,14 +146,14 @@ program frequencies
    icalc=0
 
    !Initialize the moves using a restart file if present
-   call frequencies_read_restart(atoms%nat,n_order,imoves,moves,energies,forces,freq_step,atoms%amu,etot)
+   call frequencies_read_restart(atoms%astruct%nat,n_order,imoves,moves,energies,forces,freq_step,atoms%amu,etot)
    !Message
    if (bigdft_mpi%iproc == 0) then
       !write(*,'(1x,a,i0,a,i0,a)') '=F=> There are ', imoves, ' moves already calculated over ', &
-      !   &   n_order*3*atoms%nat,' frequencies.'
+      !   &   n_order*3*atoms%astruct%nat,' frequencies.'
       !write(*,*)
       call yaml_map('(F) Frequency moves already calculated',imoves)
-      call yaml_map('(F) Total Frequency moves',n_order*3*atoms%nat)
+      call yaml_map('(F) Total Frequency moves',n_order*3*atoms%astruct%nat)
    end if
 
    !Reference state
@@ -185,9 +185,9 @@ program frequencies
       call yaml_comment('(F) Start Frequencies calculation',hfill='=')
    end if
 
-   do iat=1,atoms%nat
+   do iat=1,atoms%astruct%nat
 
-      if (atoms%ifrztyp(iat) == 1) then
+      if (atoms%astruct%ifrztyp(iat) == 1) then
          !if (bigdft_mpi%iproc == 0) write(*,"(1x,a,i0,a)") '=F:The atom ',iat,' is frozen.'
          if (bigdft_mpi%iproc == 0) call yaml_comment('(F) The atom ' // trim(yaml_toa(iat)) // ' is frozen.')
          cycle
@@ -196,13 +196,13 @@ program frequencies
       do i=1,3
          ii = i+3*(iat-1)
          if (i==1) then
-            alat=atoms%alat1
+            alat=atoms%astruct%cell_dim(1)
             cc(3:4)='*x'
          else if (i==2) then
-            alat=atoms%alat2
+            alat=atoms%astruct%cell_dim(2)
             cc(3:4)='*y'
          else
-            alat=atoms%alat3
+            alat=atoms%astruct%cell_dim(3)
             cc(3:4)='*z'
          end if
          km = 0
@@ -229,9 +229,9 @@ program frequencies
                   call yaml_map('displacement (Bohr)', dd,fmt='(1pe20.10)')
                call yaml_close_map()
             end if
-            if (atoms%geocode == 'P') then
+            if (atoms%astruct%geocode == 'P') then
                rpos(i,iat)=modulo(rxyz(i,iat)+dd,alat)
-            else if (atoms%geocode == 'S') then
+            else if (atoms%astruct%geocode == 'S') then
                rpos(i,iat)=modulo(rxyz(i,iat)+dd,alat)
             else
                rpos(i,iat)=rxyz(i,iat)+dd
@@ -243,8 +243,8 @@ program frequencies
             call restart_inputs(inputs)
          end do
          ! Build the Hessian
-         do jat=1,atoms%nat
-            rmass = amu_emass*sqrt(atoms%amu(atoms%iatype(iat))*atoms%amu(atoms%iatype(jat)))
+         do jat=1,atoms%astruct%nat
+            rmass = amu_emass*sqrt(atoms%amu(atoms%astruct%iatype(iat))*atoms%amu(atoms%astruct%iatype(jat)))
             do j=1,3
                jj = j+3*(jat-1)
                !Force is -dE/dR
@@ -282,59 +282,58 @@ program frequencies
    call memocc(i_stat,i_all,'kmoves',subname)
 
    !allocations
-   allocate(eigen_r(3*atoms%nat+ndebug),stat=i_stat)
+   allocate(eigen_r(3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,eigen_r,'eigen_r',subname)
-   allocate(eigen_i(3*atoms%nat+ndebug),stat=i_stat)
+   allocate(eigen_i(3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,eigen_i,'eigen_i',subname)
-   allocate(vector_r(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
+   allocate(vector_r(3*atoms%astruct%nat,3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,vector_r,'vector_r',subname)
-   allocate(vector_l(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
+   allocate(vector_l(3*atoms%astruct%nat,3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,vector_l,'vector_l',subname)
-   allocate(sort_work(3*atoms%nat+ndebug),stat=i_stat)
+   allocate(sort_work(3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,sort_work,'sort_work',subname)
-   allocate(iperm(3*atoms%nat+ndebug),stat=i_stat)
+   allocate(iperm(3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,iperm,'iperm',subname)
 
    !Diagonalise the hessian matrix
-   call solve(hessian,3*atoms%nat,eigen_r,eigen_i,vector_l,vector_r)
+   call solve(hessian,3*atoms%astruct%nat,eigen_r,eigen_i,vector_l,vector_r)
    !Sort eigenvalues in ascending order (use abinit routine sort_dp)
    sort_work=eigen_r
-   do i=1,3*atoms%nat
+   do i=1,3*atoms%astruct%nat
       iperm(i)=i
    end do
-   call sort_dp(3*atoms%nat,sort_work,iperm,tol_freq)
+   call sort_dp(3*atoms%astruct%nat,sort_work,iperm,tol_freq)
 
    if (bigdft_mpi%iproc == 0) then
       !write(*,*)
       !write(*,'(1x,a,81("="))') '=F '
       !write(*,*)
-      !write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(iperm(3*atoms%nat:1:-1))
-      !write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(iperm(3*atoms%nat:1:-1))
-      !call yaml_map('(F) Eigenvalues (real)',     trim(yaml_toa(eigen_r(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')))
+      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(iperm(3*atoms%astruct%nat:1:-1))
+      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(iperm(3*atoms%astruct%nat:1:-1))
       call yaml_comment('(F) Frequencies results',hfill='=')
-      call yaml_map('(F) Eigenvalues (real part)',eigen_r(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')
-      call yaml_map('(F) Eigenvalues (imag part)',eigen_i(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')
-      do i=1,3*atoms%nat
+      call yaml_map('(F) Eigenvalues (real part)',eigen_r(iperm(3*atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
+      call yaml_map('(F) Eigenvalues (imag part)',eigen_i(iperm(3*atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
+      do i=1,3*atoms%astruct%nat
          if (eigen_r(i)<0.0_dp) then
             eigen_r(i)=-sqrt(-eigen_r(i))
          else
             eigen_r(i)= sqrt( eigen_r(i))
          end if
       end do
-      !write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r(iperm(3*atoms%nat:1:-1))
-      !write(*,'(1x,a,1x,100(f13.2))')    '=F: frequencies (cm-1)      =',eigen_r(iperm(3*atoms%nat:1:-1))*Ha_cmm1
-      call yaml_map('(F) Frequencies (Hartree)',eigen_r(iperm(3*atoms%nat:1:-1)),fmt='(1pe20.10)')
-      call yaml_map('(F) Frequencies (cm-1)',   eigen_r(iperm(3*atoms%nat:1:-1))*Ha_cmm1,fmt='(f13.2)')
+      !write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r(iperm(3*atoms%astruct%nat:1:-1))
+      !write(*,'(1x,a,1x,100(f13.2))')    '=F: frequencies (cm-1)      =',eigen_r(iperm(3*atoms%astruct%nat:1:-1))*Ha_cmm1
+      call yaml_map('(F) Frequencies (Hartree)',eigen_r(iperm(3*atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
+      call yaml_map('(F) Frequencies (cm-1)',   eigen_r(iperm(3*atoms%astruct%nat:1:-1))*Ha_cmm1,fmt='(f13.2)')
       !Build frequencies.xyz in descending order
       open(unit=15,file='frequencies.xyz',status="unknown")
-      do i=3*atoms%nat,1,-1
-         write(15,'(1x,i0,1x,1pe20.10,a)') atoms%nat,eigen_r(iperm(i))
+      do i=3*atoms%astruct%nat,1,-1
+         write(15,'(1x,i0,1x,1pe20.10,a)') atoms%astruct%nat,eigen_r(iperm(i))
          write(15,'(1x,a)') 'Frequency'
-         do iat=1,atoms%nat
-            ity=atoms%iatype(iat)
+         do iat=1,atoms%astruct%nat
+            ity=atoms%astruct%iatype(iat)
             do j=1,3
                write(15,'(1x,a,1x,100(1pe20.10))') &
-                  &   atoms%atomnames(ity),vector_l(3*(iat-1)+j,iperm(i))
+                  &   atoms%astruct%atomnames(ity),vector_l(3*(iat-1)+j,iperm(i))
             end do
          end do
          !Blank line
@@ -350,7 +349,7 @@ program frequencies
       vibrational_entropy=0.0_gp
       !iperm: ascending order
       !Remove almost zero frequencies
-      do i=6,3*atoms%nat
+      do i=6,3*atoms%astruct%nat
          freq_exp=exp(eigen_r(iperm(i))*Ha_K/Temperature)
          freq2_exp=exp(-eigen_r(iperm(i))*Ha_K/(2.0_gp*Temperature))
          zpenergy=zpenergy+0.5_gp*eigen_r(iperm(i))

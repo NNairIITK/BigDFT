@@ -75,7 +75,7 @@ program wvl
 !!$  posinp_name='posinp'
 !!$  call read_input_variables(iproc,nproc,posinp_name,inputs, atoms, rxyz,1,'input',0)
 
-  allocate(radii_cf(atoms%ntypes,3))
+  allocate(radii_cf(atoms%astruct%ntypes,3))
   call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf)
   
   call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/)) 
@@ -91,13 +91,13 @@ program wvl
   call check_linear_and_create_Lzd(iproc,nproc,inputs%linear,Lzd,atoms,orbs,inputs%nspin,rxyz)
 
   !grid spacings and box of the density
-  call dpbox_set(dpcom,Lzd,iproc,nproc,MPI_COMM_WORLD,inputs,atoms%geocode)
+  call dpbox_set(dpcom,Lzd,iproc,nproc,MPI_COMM_WORLD,inputs,atoms%astruct%geocode)
 
   ! Read wavefunctions from disk and store them in psi.
   allocate(orbs%eval(orbs%norb*orbs%nkpts))
   call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
   allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)))
-  allocate(rxyz_old(3, atoms%nat))
+  allocate(rxyz_old(3, atoms%astruct%nat))
   call readmywaves(iproc,"data/wavefunction",WF_FORMAT_PLAIN,orbs,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & inputs%hx,inputs%hy,inputs%hz,atoms,rxyz_old,rxyz,Lzd%Glr%wfd,psi)
   call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -225,22 +225,22 @@ program wvl
 
   !call sumrho(iproc,nproc,orbs,Lzd%Glr,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
   !     & psi,rhor,nscatterarr,inputs%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
-  call sumrho(dpcom,orbs,Lzd,GPU,atoms%sym,rhodsc,psi,rho_p)
+  call sumrho(dpcom,orbs,Lzd,GPU,atoms%astruct%sym,rhodsc,psi,rho_p)
   call communicate_density(dpcom,orbs%nspin,rhodsc,rho_p,rhor,.false.)
 
   call deallocate_rho_descriptors(rhodsc,"main")
 
   ! Example of calculation of the energy of the local potential of the pseudos.
   pkernel=pkernel_init(.true.,iproc,nproc,0,&
-       atoms%geocode,(/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/),&
+       atoms%astruct%geocode,(/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/),&
        (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/),16)
   call pkernel_set(pkernel,.false.)
-  !call createKernel(iproc,nproc,atoms%geocode,&
+  !call createKernel(iproc,nproc,atoms%astruct%geocode,&
   !     (/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/), &
   !     (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/)&
   !     ,16,pkernel,.false.)
   allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
-  call createIonicPotential(atoms%geocode,iproc,nproc,(iproc==0),atoms,rxyz,&
+  call createIonicPotential(atoms%astruct%geocode,iproc,nproc,(iproc==0),atoms,rxyz,&
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
        & inputs%elecfield,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &

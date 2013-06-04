@@ -126,7 +126,7 @@ program splined_saddle
      !initialize memory counting
      !call memocc(0,iproc,'count','start')
 
-     allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
+     allocate(fxyz(3,atoms%astruct%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz,'fxyz',subname)
 
      call init_restart_objects(iproc,inputs,atoms,rst,subname)
@@ -143,9 +143,9 @@ program splined_saddle
      if (inputs%ncount_cluster_x > -1) then
         if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
         
-        allocate(ratsp(3,atoms%nat),fatsp(3,atoms%nat))
-        ratsp(1:3,1:atoms%nat)=rxyz(1:3,1:atoms%nat)
-        fatsp(1:3,1:atoms%nat)=fxyz(1:3,1:atoms%nat)
+        allocate(ratsp(3,atoms%astruct%nat),fatsp(3,atoms%astruct%nat))
+        ratsp(1:3,1:atoms%astruct%nat)=rxyz(1:3,1:atoms%astruct%nat)
+        fatsp(1:3,1:atoms%astruct%nat)=fxyz(1:3,1:atoms%astruct%nat)
         etot=etot
         call givemesaddle(etot,ratsp,fatsp,16,nproc,iproc,atoms,rst,inputs,ncount_bigdft)
         close(16)
@@ -346,7 +346,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     real(gp), dimension(:,:), allocatable :: x,f,xneb,fneb,rxyz_tmp,x_t
     integer :: np,np_neb,np_t,iat,ifile
     type(parameterminimization_sp)::parmin_neb,parmin
-    real(gp) ::epot_sp,ratsp(3,atoms%nat),fatsp(3,atoms%nat),fnoise
+    real(gp) ::epot_sp,ratsp(3,atoms%astruct%nat),fatsp(3,atoms%astruct%nat),fnoise
     character(len=20) :: tatonam
     integer::n,nr,istat,infocode,ixyz,i,mm1,mm2,mm3
     real(kind=8)::fnrm,fnrm1,fnrm2,tt1,tt2,tt3,time1,time2
@@ -364,13 +364,13 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     pnow%ifile=ifile
     parmin%ifile=ifile
     parmin_neb%ifile=ifile
-    n=3*atoms%nat
+    n=3*atoms%astruct%nat
     nr=0
     pnow%time_ll=0.0d0
-    do i=1,3*atoms%nat
+    do i=1,3*atoms%astruct%nat
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) nr=nr+1
+        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) nr=nr+1
     enddo
     if(iproc==0) write(*,'(a,i0,1x,i0)') 'DOF: n,nr ',n,nr
     !---------------------------------------------------------------------------
@@ -388,12 +388,12 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     else
         ll_inputs=inputs
     endif
-    call kpt_input_variables(iproc,'input.kpt',ll_inputs,atoms)
+    call inputs_parse_add(ll_inputs, atoms, iproc, (iproc == 0))
     !-----------------------------------------------------------
-    allocate(rxyz_2(3,atoms%nat+ndeb1))
-    call dmemocc(3*(atoms%nat),3*(atoms%nat+ndeb1),rxyz_2,'rxyz_2')
-    allocate(rxyz_tmp(3,atoms%nat+ndeb1))
-    call dmemocc(3*(atoms%nat),3*(atoms%nat+ndeb1),rxyz_tmp,'rxyz_tmp')
+    allocate(rxyz_2(3,atoms%astruct%nat+ndeb1))
+    call dmemocc(3*(atoms%astruct%nat),3*(atoms%astruct%nat+ndeb1),rxyz_2,'rxyz_2')
+    allocate(rxyz_tmp(3,atoms%astruct%nat+ndeb1))
+    call dmemocc(3*(atoms%astruct%nat),3*(atoms%astruct%nat+ndeb1),rxyz_tmp,'rxyz_tmp')
     allocate(f(n,0:np+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating f'
     call dmemocc(n*(np+1),n*(np+1+ndeb2),f,'f')
     allocate(x(n,0:np+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating x'
@@ -424,9 +424,9 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         open(unit=1336,file='posinp.xyz',status='old') !read atomic positions
         read(1336,*) 
         read(1336,*) 
-        do iat=1,atoms%nat
+        do iat=1,atoms%astruct%nat
           read(1336,*) tatonam,rxyz_tmp(1,iat),rxyz_tmp(2,iat),rxyz_tmp(3,iat)
-          if(atoms%units == 'angstroemd0' .or. atoms%units == 'angstroem') then
+          if(atoms%astruct%units == 'angstroemd0' .or. atoms%astruct%units == 'angstroem') then
             rxyz_tmp(1:3,iat)=rxyz_tmp(1:3,iat)/0.5291772108_gp !non-BigDFT
           endif
         enddo
@@ -434,14 +434,15 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         open(unit=1336,file='posinp2.xyz',status='old') !read atomic positions
         read(1336,*) 
         read(1336,*) 
-        do iat=1,atoms%nat
+        do iat=1,atoms%astruct%nat
           read(1336,*) tatonam,rxyz_2(1,iat),rxyz_2(2,iat),rxyz_2(3,iat)
-          if(atoms%units == 'angstroemd0' .or. atoms%units == 'angstroem') then
+          if(atoms%astruct%units == 'angstroemd0' .or. atoms%astruct%units == 'angstroem') then
             rxyz_2(1:3,iat)=rxyz_2(1:3,iat)/0.5291772108_gp !non-BigDFT
           endif
         enddo
         close(1336)
-        rxyz_2(1:3,1:atoms%nat)=rxyz_2(1:3,1:atoms%nat)+ratsp(1:3,1:atoms%nat)-rxyz_tmp(1:3,1:atoms%nat)
+        rxyz_2(1:3,1:atoms%astruct%nat)=rxyz_2(1:3,1:atoms%astruct%nat)&
+             +ratsp(1:3,1:atoms%astruct%nat)-rxyz_tmp(1:3,1:atoms%astruct%nat)
         if(trim(pnow%doneb)=='yes') then
             call initializepoints(atoms,n,ratsp,rxyz_2,np_neb,xneb)
             call change_np(n,np_neb,xneb,atoms,np,x)
@@ -452,7 +453,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     if(iproc==0) call writepathway(n,np,x,'pathinp.xyz',atoms)
     if(iproc==0) write(*,*) 'ALIREZA-02'
     !---------------------------------------------------------------------------
-    do iat=1,atoms%nat
+    do iat=1,atoms%astruct%nat
         fends(3*iat-2,1)=fatsp(1,iat)
         fends(3*iat-1,1)=fatsp(2,iat)
         fends(3*iat-0,1)=fatsp(3,iat)
@@ -553,9 +554,9 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         write(*,'(a,3i5,3es15.5)') 'SP-TIMINGS: ',mm1,mm2,mm3,tt1,tt2,tt3
     endif
     !if(iproc==0) then
-    !    write(55,*) atoms%nat
+    !    write(55,*) atoms%astruct%nat
     !    write(55,*)
-    !    do iat=1,atoms%nat
+    !    do iat=1,atoms%astruct%nat
     !        write(55,'(a,3e24.15)') ' Si ',ratsp(1,iat),ratsp(2,iat),ratsp(3,iat)
     !    enddo
     !endif
@@ -600,7 +601,7 @@ subroutine change_np(n,np1,x1,atoms,np2,x2)
             !if(i<=nr) then
             iat=(i-1)/3+1
             ixyz=mod(i-1,3)+1
-            if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+            if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
                 y(0:np1)=x1(i,0:np1)
                 call inter_cubic(np1,y,h,e1,e2,c)
                 do ip=1,np2-1
@@ -673,7 +674,7 @@ subroutine improvepeak(n,nr,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
         !if(i<=nr) then
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
             pnow%y(0:np)=x(i,0:np)
             call inter_cubic(np,pnow%y,pnow%h,pnow%e1,pnow%e2,pnow%c)
             call ffdfdd_cubic(np,pnow%y,pnow%s,lp,pnow%h(lp),pnow%tmax,pnow%c,x(i,mp),ed_tt,edd_tt)
@@ -703,7 +704,7 @@ subroutine improvepeak(n,nr,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
         do i=1,n
             iat=(i-1)/3+1
             ixyz=mod(i-1,3)+1
-            if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+            if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
                 ft(i)=ft(i)-proj*xt(i) !-1.d0*xt(i)
                 x(i,lp)=x(i,lp)+1.d-1*ft(i)
             endif
@@ -829,7 +830,7 @@ subroutine pickbestanchors2(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
         !if(i<=nr) then
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
             pnow%y(0:np)=x(i,0:np)
             call inter_cubic(np,pnow%y,pnow%h,pnow%e1,pnow%e2,pnow%c)
             !diff=1.d10
@@ -891,7 +892,7 @@ subroutine pickbestanchors(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
         !if(i<=nr) then
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
             pnow%y(0:np)=x(i,0:np)
             call inter_cubic(np,pnow%y,pnow%h,pnow%e1,pnow%e2,pnow%c)
             diff=1.d10
@@ -1321,10 +1322,10 @@ subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
     real(kind=8)::x(n),xa(nr)
     logical::move_this_coordinate
     ir=0
-    do i=1,3*atoms%nat
+    do i=1,3*atoms%astruct%nat
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
             ir=ir+1
             xa(ir)=x(i)
         endif
@@ -1341,10 +1342,10 @@ subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
     real(kind=8)::x(n),xa(nr)
     logical::move_this_coordinate
     ir=0
-    do i=1,3*atoms%nat
+    do i=1,3*atoms%astruct%nat
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
             ir=ir+1
             x(i)=xa(ir)
         endif
@@ -1358,14 +1359,14 @@ subroutine calmaxforcecomponentsub(atoms,f,fnrm,fspmax)
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::i,iat,ixyz
-    real(kind=8)::f(3*atoms%nat),fnrm,fspmax
+    real(kind=8)::f(3*atoms%astruct%nat),fnrm,fspmax
     logical::move_this_coordinate
     fspmax=0.d0
     fnrm=0.d0
-    do i=1,3*atoms%nat
+    do i=1,3*atoms%astruct%nat
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
             fnrm=fnrm+f(i)**2
             fspmax=max(fspmax,abs(f(i)))
         endif
@@ -1379,14 +1380,14 @@ subroutine calmaxforcecomponentanchors(atoms,np,f,fnrm,fspmax)
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::np,i,ip,iat,ixyz
-    real(kind=8)::f(3*atoms%nat,1:np-1),fnrm,fspmax
+    real(kind=8)::f(3*atoms%astruct%nat,1:np-1),fnrm,fspmax
     logical::move_this_coordinate
     fspmax=0.d0
     fnrm=0.d0
-    do i=1,3*atoms%nat
+    do i=1,3*atoms%astruct%nat
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
             do ip=1,np-1
                 fnrm=fnrm+f(i,ip)**2
                 fspmax=max(fspmax,abs(f(i,ip)))
@@ -1478,7 +1479,7 @@ subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount
         do i=1,n
             iat=(i-1)/3+1
             ixyz=mod(i-1,3)+1
-            if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+            if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
                 t1=t1+(x(i,ip+1)-x(i,ip))**2
                 t2=t2+(x(i,ip)-x(i,ip-1))**2
             endif
@@ -1492,7 +1493,7 @@ subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount
         do i=1,n
             iat=(i-1)/3+1
             ixyz=mod(i-1,3)+1
-            if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+            if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
                 f(i,ip)=f(i,ip)+tt*tang(i,ip)
             endif
         enddo
@@ -2187,7 +2188,7 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
         do i=1,n
             iat=(i-1)/3+1
             ixyz=mod(i-1,3)+1
-            if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+            if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
                 f(i,ip)=f(i,ip)+1.d-1*(f_t(i,ip)+tt*tang(i,ip))
             endif
         enddo
@@ -2965,7 +2966,7 @@ subroutine fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,
         do i=1,n
             iat=(i-1)/3+1
             ixyz=mod(i-1,3)+1
-            if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+            if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
                 pnow%y(0:np)=x(i,0:np)
                 call inter_cubic(np,pnow%y,pnow%h,pnow%e1,pnow%e2,pnow%c)
                 call ffdfdd_cubic(np,pnow%y,pnow%s,mp,pnow%h(mp),pnow%sv(ip),pnow%c,xt(i),tang(i),t1)
@@ -3301,7 +3302,7 @@ end subroutine estimate_sv
 !        do i=1,n
 !            iat=(i-1)/3+1
 !            ixyz=mod(i-1,3)+1
-!            if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+!            if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
 !                pnow%y(0:np)=x(i,0:np)
 !                call inter_cubic(np,pnow%y,pnow%h,pnow%e1,pnow%e2,pnow%c)
 !                call ffdfdd_cubic(np,pnow%y,pnow%s,mp,pnow%h(mp),t,pnow%c,xt(i),t1,t2)
@@ -3741,7 +3742,7 @@ subroutine prepdd(atoms,n,np,x,e1,e2,h,s,mp,tmax,dd)
     do j=1,n
         jat=(j-1)/3+1
         jxyz=mod(j-1,3)+1
-        if(.not. move_this_coordinate(atoms%ifrztyp(jat),jxyz)) cycle
+        if(.not. move_this_coordinate(atoms%astruct%ifrztyp(jat),jxyz)) cycle
         yj(0:np)=x(j,0:np)
         call inter_cubic(np,yj,h,e1,e2,c)
         !t1=0.d0
@@ -3765,7 +3766,7 @@ subroutine prepdd(atoms,n,np,x,e1,e2,h,s,mp,tmax,dd)
         do i=1,n
             iat=(i-1)/3+1
             ixyz=mod(i-1,3)+1
-            if(.not. move_this_coordinate(atoms%ifrztyp(iat),ixyz)) cycle
+            if(.not. move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) cycle
             yi(0:np)=x(i,0:np)
             !call prepcd1cd2(np,h,mp,yi,yj,cd1,cd2,ainv)
             call prepcd3cd4(np,h,mp,ainv,i,j,yi,yj,cd1,cd2)
@@ -3954,7 +3955,7 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     do i=1,n
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
             pnow%y(0:np)=x(i,0:np)
             call inter_cubic(np,pnow%y,pnow%h,pnow%e1,pnow%e2,pnow%c)
             call ffdfdd_cubic(np,pnow%y,pnow%s,mp,pnow%h(mp),tt,pnow%c,xt(i),tang(i),t1)
@@ -3997,7 +3998,7 @@ subroutine equalarclengthparametrization(atoms,n,np,x,s,h)
         do i=1,n
             iat=(i-1)/3+1
             ixyz=mod(i-1,3)+1
-            if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+            if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
                 tt=tt+(x(i,ip)-x(i,ip-1))**2
             endif
         enddo
@@ -4248,25 +4249,25 @@ subroutine atomic_copycoord(atoms,xyzi,xyzo)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(in) :: xyzi
-  real(gp), dimension(3,atoms%nat), intent(inout) :: xyzo
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: xyzi
+  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: xyzo
   !local variables
   integer :: iat,ix,iy,iz
   logical::move_this_coordinate
 
-  do iat=1,atoms%nat
+  do iat=1,atoms%astruct%nat
      ix=0;iy=0;iz=0
-     if(move_this_coordinate(atoms%ifrztyp(iat),1)) ix=1
-     if(move_this_coordinate(atoms%ifrztyp(iat),2)) iy=1
-     if(move_this_coordinate(atoms%ifrztyp(iat),3)) iz=1
-     if (atoms%geocode == 'P') then
-        if(ix==1) xyzo(1,iat)=modulo(xyzi(1,iat),atoms%alat1)
-        if(iy==1) xyzo(2,iat)=modulo(xyzi(2,iat),atoms%alat2)
-        if(iz==1) xyzo(3,iat)=modulo(xyzi(3,iat),atoms%alat3)
-     else if (atoms%geocode == 'S') then
-        if(ix==1) xyzo(1,iat)=modulo(xyzi(1,iat),atoms%alat1)
+     if(move_this_coordinate(atoms%astruct%ifrztyp(iat),1)) ix=1
+     if(move_this_coordinate(atoms%astruct%ifrztyp(iat),2)) iy=1
+     if(move_this_coordinate(atoms%astruct%ifrztyp(iat),3)) iz=1
+     if (atoms%astruct%geocode == 'P') then
+        if(ix==1) xyzo(1,iat)=modulo(xyzi(1,iat),atoms%astruct%cell_dim(1))
+        if(iy==1) xyzo(2,iat)=modulo(xyzi(2,iat),atoms%astruct%cell_dim(2))
+        if(iz==1) xyzo(3,iat)=modulo(xyzi(3,iat),atoms%astruct%cell_dim(3))
+     else if (atoms%astruct%geocode == 'S') then
+        if(ix==1) xyzo(1,iat)=modulo(xyzi(1,iat),atoms%astruct%cell_dim(1))
         if(iy==1) xyzo(2,iat)=xyzi(2,iat)
-        if(iz==1) xyzo(3,iat)=modulo(xyzi(3,iat),atoms%alat3)
+        if(iz==1) xyzo(3,iat)=modulo(xyzi(3,iat),atoms%astruct%cell_dim(3))
      else
         if(ix==1) xyzo(1,iat)=xyzi(1,iat)
         if(iy==1) xyzo(2,iat)=xyzi(2,iat)
@@ -4693,7 +4694,7 @@ subroutine writepathway(n,np,x,filename,atoms)
         do i=1,n
             iat=(i-1)/3+1
             ixyz=mod(i-1,3)+1
-            if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+            if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
                 y(0:np)=x(i,0:np)
                 call inter_cubic(np,y,h,e1,e2,c)
                 call ffdfdd_cubic(np,y,s,ip,h(ip),tt,c,xt(i),ed_tt,edd_tt)
@@ -4702,7 +4703,7 @@ subroutine writepathway(n,np,x,filename,atoms)
             endif
             if(mod(i,3)==0) then
                 iat=i/3
-                name=trim(atoms%atomnames(atoms%iatype(iat)))
+                name=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
                 if (name(3:3)=='_') then
                    symbol=name(1:2)
                    !suffix=name(4:6)
@@ -4713,7 +4714,7 @@ subroutine writepathway(n,np,x,filename,atoms)
                    symbol=name(1:2)
                    !suffix=' '
                 end if
-                if(atoms%units=='angstroemd0' .or. atoms%units=='angstroem') then
+                if(atoms%astruct%units=='angstroemd0' .or. atoms%astruct%units=='angstroem') then
                     xyz(1:3)=xt(i-2:i)*0.5291772108_gp !non-BigDFT
                 else
                     xyz(1:3)=xt(i-2:i)
@@ -4753,7 +4754,7 @@ subroutine writeanchorpoints(n,np,x,filename,atoms)
         do i=1,n
             if(mod(i,3)==0) then
                 iat=i/3
-                name=trim(atoms%atomnames(atoms%iatype(iat)))
+                name=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
                 if (name(3:3)=='_') then
                    symbol=name(1:2)
                    !suffix=name(4:6)
@@ -4764,7 +4765,7 @@ subroutine writeanchorpoints(n,np,x,filename,atoms)
                    symbol=name(1:2)
                    !suffix=' '
                 end if
-                if(atoms%units=='angstroemd0' .or. atoms%units=='angstroem') then
+                if(atoms%astruct%units=='angstroemd0' .or. atoms%astruct%units=='angstroem') then
                     xyz(1:3)=x(i-2:i,ip)*0.5291772108_gp !non-BigDFT
                 else
                     xyz(1:3)=x(i-2:i,ip)
@@ -4798,7 +4799,7 @@ subroutine readanchorpoints(n,np,x,filename,atoms)
             if(mod(i,3)==0) then
                 !n(c) iat=i/3
                 read(1390,*) tname,xyz(1),xyz(2),xyz(3) !x(i-2:i,ip)
-                if(atoms%units=='angstroemd0' .or. atoms%units=='angstroem') then
+                if(atoms%astruct%units=='angstroemd0' .or. atoms%astruct%units=='angstroem') then
                     x(i-2:i,ip)=xyz(1:3)/0.5291772108_gp !non-BigDFT
                 else
                     x(i-2:i,ip)=xyz(1:3)
@@ -4839,7 +4840,7 @@ subroutine initializepoints(atoms,n,x1,x2,np,x)
         do i=1,n
             iat=(i-1)/3+1
             ixyz=mod(i-1,3)+1
-            if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+            if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
                 x(i,ip)=tt*x1(i)+(1.d0-tt)*x2(i)
             else
                 x(i,ip)=x1(i)

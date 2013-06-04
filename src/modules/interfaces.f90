@@ -52,9 +52,9 @@ module module_interfaces
          type(restart_objects), intent(inout) :: rst
          integer, intent(inout) :: infocode
          real(gp), intent(out) :: energy,fnoise
-         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+         real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
          real(gp), dimension(6), intent(out) :: strten
-         real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+         real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
       END SUBROUTINE call_bigdft
 
       subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
@@ -67,9 +67,9 @@ module module_interfaces
         type(restart_objects), intent(inout) :: rst
         real(gp), intent(inout) :: epot
         integer, intent(inout) :: ncount_bigdft
-        real(gp), dimension(3*at%nat), intent(inout) :: pos
+        real(gp), dimension(3*at%astruct%nat), intent(inout) :: pos
         real(gp), dimension(6), intent(inout) :: strten
-        real(gp), dimension(3*at%nat), intent(inout) :: fxyz
+        real(gp), dimension(3*at%astruct%nat), intent(inout) :: fxyz
       END SUBROUTINE geopt
 
       subroutine kswfn_optimization_loop(iproc, nproc, o, &
@@ -89,7 +89,7 @@ module module_interfaces
         type(GPU_pointers), intent(inout) :: GPU
         type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
         real(kind=8), dimension(:), pointer :: proj
-        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+        real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
         type(input_variables), intent(in) :: in !<todo: Remove me
       END SUBROUTINE kswfn_optimization_loop
 
@@ -120,7 +120,7 @@ module module_interfaces
          type(input_variables), intent(in) :: in
          type(atoms_data), intent(inout) :: at
          type(orbitals_data), intent(inout) :: orbs
-         real(gp), dimension(at%ntypes,3), intent(out) :: radii_cf
+         real(gp), dimension(at%astruct%ntypes,3), intent(out) :: radii_cf
       END SUBROUTINE system_properties
 
       subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
@@ -130,8 +130,8 @@ module module_interfaces
          type(atoms_data), intent(inout) :: atoms
          integer, intent(in) :: iproc
          real(gp), intent(in) :: crmult,frmult
-         real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-         real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+         real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
+         real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
          real(gp), intent(inout) :: hx,hy,hz
          type(locreg_descriptors), intent(out) :: Glr
          real(gp), dimension(3), intent(out) :: shift
@@ -172,21 +172,20 @@ module module_interfaces
          integer, intent(in) :: iproc
          type(input_variables), intent(inout) :: inputs
          type(atoms_data), intent(inout) :: atoms
-         real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+         real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
       END SUBROUTINE read_input_parameters2
 
-      subroutine read_atomic_file(file,iproc,at,rxyz,status,comment,energy,fxyz)
+      subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
          !n(c) use module_base
          use module_types
          implicit none
          character(len=*), intent(in) :: file
          integer, intent(in) :: iproc
-         type(atoms_data), intent(inout) :: at
-         real(gp), dimension(:,:), pointer :: rxyz
+         type(atomic_structure), intent(inout) :: astruct
          integer, intent(out), optional :: status
          real(gp), intent(out), optional :: energy
          real(gp), dimension(:,:), pointer, optional :: fxyz
-         character(len = 1024), intent(out), optional :: comment
+         character(len =*), intent(out), optional :: comment
       END SUBROUTINE read_atomic_file
 
       !> @author
@@ -201,13 +200,12 @@ module module_interfaces
          real(gp), dimension(:,:), pointer :: rxyz
       END SUBROUTINE initialize_atomic_file
 
-      subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment_,energy_,fxyz_,getLine)
+      subroutine read_xyz_positions(iproc,ifile,astruct,comment_,energy_,fxyz_,getLine)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,ifile
-         type(atoms_data), intent(inout) :: atoms
-         real(gp), dimension(:,:), pointer :: rxyz
+         type(atomic_structure), intent(inout) :: astruct
          real(gp), intent(out) :: energy_
          real(gp), dimension(:,:), pointer :: fxyz_
          character(len = 1024), intent(out) :: comment_
@@ -220,13 +218,12 @@ module module_interfaces
          end interface
       END SUBROUTINE read_xyz_positions
 
-      subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment_,energy_,fxyz_,getline)
+      subroutine read_ascii_positions(iproc,ifile,astruct,comment_,energy_,fxyz_,getline)
          ! use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,ifile
-         type(atoms_data), intent(inout) :: atoms
-         real(gp), dimension(:,:), pointer :: rxyz
+         type(atomic_structure), intent(inout) :: astruct
          real(gp), intent(out) :: energy_
          real(gp), dimension(:,:), pointer :: fxyz_
          character(len = 1024), intent(out) :: comment_
@@ -239,13 +236,12 @@ module module_interfaces
          end interface
       END SUBROUTINE read_ascii_positions
 
-      subroutine read_yaml_positions(filename, atoms,rxyz,comment_,energy_,fxyz_)
+      subroutine read_yaml_positions(filename,astruct,comment_,energy_,fxyz_)
         use module_base
         use module_types
         implicit none
         character(len = *), intent(in) :: filename
-        type(atoms_data), intent(inout) :: atoms
-        real(gp), dimension(:,:), pointer :: rxyz
+        type(atomic_structure), intent(inout) :: astruct
         real(gp), intent(out) :: energy_
         real(gp), dimension(:,:), pointer :: fxyz_
         character(len = 1024), intent(out) :: comment_
@@ -258,8 +254,8 @@ module module_interfaces
          character(len=*), intent(in) :: filename,comment
          type(atoms_data), intent(in) :: atoms
          real(gp), intent(in) :: energy
-         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-         real(gp), dimension(3,atoms%nat), intent(in), optional :: forces
+         real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+         real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
       END SUBROUTINE write_atomic_file
 
       subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,peakmem)
@@ -326,8 +322,8 @@ module module_interfaces
          type(atoms_data), intent(in) :: atoms
          integer, intent(in) :: iproc
          real(gp), intent(in) :: hx,hy,hz,crmult,frmult
-         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-         real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+         real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+         real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
          type(locreg_descriptors), intent(inout) :: Glr
          logical, intent(in), optional :: output_denspot
       END SUBROUTINE createWavefunctionsDescriptors
@@ -343,10 +339,10 @@ module module_interfaces
          type(orbitals_data), intent(in) :: orbs
          real(kind=8), intent(in) :: cpmult,fpmult,hx,hy,hz
        type(locreg_descriptors),intent(in) :: lr
-         real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
-         real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
+         real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
+         real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
          type(nonlocal_psp_descriptors), intent(out) :: nlpspd
-       type(gaussian_basis),dimension(at%ntypes),intent(in) :: proj_G
+       type(gaussian_basis),dimension(at%astruct%ntypes),intent(in) :: proj_G
          real(kind=8), dimension(:), pointer :: proj
       END SUBROUTINE createProjectorsArrays
 
@@ -361,8 +357,8 @@ module module_interfaces
         type(atoms_data), intent(in) :: atoms
         type(denspot_distribution), intent(in) :: dpbox
         character(len=3), intent(in) :: rho_commun
-        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-        real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+        real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+        real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
         type(rho_descriptors), intent(out) :: rhodsc
       end subroutine density_descriptors
 !!$      subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
@@ -378,8 +374,8 @@ module module_interfaces
 !!$         real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
 !!$         type(atoms_data), intent(in) :: atoms
 !!$         type(grid_dimensions), intent(in) :: gdim
-!!$         real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
-!!$         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+!!$         real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+!!$         real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
 !!$         integer, intent(out) ::  n3d,n3p,n3pi,i3xcsh,i3s
 !!$         type(rho_descriptors), intent(out) :: rhodsc
 !!$         integer, dimension(0:nproc-1,4), intent(out) :: nscatterarr
@@ -398,8 +394,8 @@ module module_interfaces
          type(atoms_data), intent(in) :: at
          type(orbitals_data), intent(in) :: orbs
 
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
-         real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+         real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
          real(gp), intent(in):: ecut_pc
 
          type(pcproj_data_type) ::pcproj_data
@@ -454,7 +450,7 @@ module module_interfaces
          type(atoms_data), intent(in) :: at
          integer, intent(in) :: iproc,nproc,n1,n2,n3,dispersion
          real(gp), dimension(3), intent(in) :: elecfield
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          type(coulomb_operator), intent(in) :: pkernel
          real(gp), intent(out) :: eion,edisp,psoffset
          real(dp), dimension(6),intent(out) :: ewaldstr
@@ -474,7 +470,7 @@ module module_interfaces
          real(gp), intent(in) :: hxh,hyh,hzh,psoffset
          type(atoms_data), intent(in) :: at
          real(gp), dimension(3), intent(in) :: elecfield
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          type(coulomb_operator), intent(in) :: pkernel
          real(wp), dimension(*), intent(inout) :: pot_ion
          type(rholoc_objects),intent(in)::rholoc
@@ -511,7 +507,7 @@ module module_interfaces
          implicit none
          integer, intent(in) :: iproc, nproc, nspin
          type(atoms_data), intent(in) :: atoms
-         real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
+         real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
          type(local_zone_descriptors), intent(in) :: Lzd
          type(orbitals_data), intent(inout) :: orbs
          real(wp), dimension(:), pointer :: psi
@@ -525,7 +521,7 @@ module module_interfaces
          implicit none
          integer, intent(in) :: iproc
          type(atoms_data), intent(in) :: atoms
-         real(gp), dimension(3, atoms%nat), intent(in) :: rxyz, rxyz_old
+         real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz, rxyz_old
          real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old
          type(grid_dimensions), intent(in) :: d, d_old
          type(wavefunctions_descriptors), intent(in) :: wfd
@@ -544,8 +540,8 @@ module module_interfaces
          real(gp), intent(in) :: hx, hy, hz
          type(input_variables), intent(in) :: in
          type(atoms_data), intent(in) :: atoms
-         real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
-         real(gp), dimension(3, atoms%nat), intent(out) :: rxyz_old
+         real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
+         real(gp), dimension(3, atoms%astruct%nat), intent(out) :: rxyz_old
          type(wavefunctions_descriptors), intent(in) :: wfd
          type(orbitals_data), intent(inout) :: orbs
          real(wp), dimension(:), pointer :: psi
@@ -577,26 +573,27 @@ module module_interfaces
          type(GPU_pointers), intent(in) :: GPU
          type(input_variables):: input
          type(symmetry_data), intent(in) :: symObj
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
          type(gaussian_basis), intent(out) :: G !basis for davidson IG
          real(wp), dimension(:), pointer :: psi,hpsi,psit
-         type(gaussian_basis),optional,dimension(at%ntypes),intent(in) :: proj_G
+         type(gaussian_basis),optional,dimension(at%astruct%ntypes),intent(in) :: proj_G
          type(paw_objects),optional,intent(inout)::paw
        end subroutine input_wf_diag
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
             denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-            wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
+            wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags)
          use module_defs
          use module_types
+         use module_fragments
          implicit none
          integer, intent(in) :: iproc, nproc, inputpsi,  input_wf_format
          type(input_variables), intent(in) :: in
          type(GPU_pointers), intent(in) :: GPU
          real(gp), intent(in) :: hx_old,hy_old,hz_old
          type(atoms_data), intent(inout) :: atoms
-         real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
+         real(gp), dimension(3, atoms%astruct%nat), target, intent(in) :: rxyz
          type(DFT_local_fields), intent(inout) :: denspot
          type(DFT_wavefunction), intent(inout) :: KSwfn,tmb,tmb_old !<input wavefunction
          type(energy_terms), intent(inout) :: energs !<energies of the system
@@ -606,8 +603,9 @@ module module_interfaces
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
          real(kind=8), dimension(:), pointer :: proj
          type(grid_dimensions), intent(in) :: d_old
-         real(gp), dimension(3, atoms%nat), intent(inout) :: rxyz_old
+         real(gp), dimension(3, atoms%astruct%nat), intent(inout) :: rxyz_old
          type(wavefunctions_descriptors), intent(inout) :: wfd_old
+         type(system_fragment), dimension(:), pointer :: ref_frags
        END SUBROUTINE input_wf
 
        subroutine reformatmywaves(iproc,orbs,at,&
@@ -621,7 +619,7 @@ module module_interfaces
          type(wavefunctions_descriptors), intent(in) :: wfd,wfd_old
          type(atoms_data), intent(in) :: at
          type(orbitals_data), intent(in) :: orbs
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz,rxyz_old
          real(wp), dimension(wfd_old%nvctr_c+7*wfd_old%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi_old
          real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
       END SUBROUTINE reformatmywaves
@@ -691,9 +689,9 @@ module module_interfaces
          implicit none
          integer,intent(in) :: n1i,n2i,n3i,iproc,nspin
          type(atoms_data), intent(in) :: at
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
-         real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+         real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
          logical,intent(in) :: iprint
          type(rho_descriptors),intent(inout) :: rho_d
        END SUBROUTINE rho_segkey
@@ -741,11 +739,11 @@ module module_interfaces
         type(local_zone_descriptors), intent(in) :: Lzd
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd 
         real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-        real(gp), dimension(3,at%nat), intent(in) :: rxyz
+        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
         real(gp), intent(out) :: eproj_sum
-        type(gaussian_basis),dimension(at%ntypes),optional,intent(in)::proj_G !projectors in gaussian basis (for PAW)
+        type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G !projectors in gaussian basis (for PAW)
         type(paw_objects),optional,intent(inout)::paw
       END SUBROUTINE NonLocalHamiltonianApplication
 
@@ -774,9 +772,9 @@ module module_interfaces
          type(atoms_data), intent(in) :: at
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd 
          type(paw_objects),optional,intent(inout)::paw
-         type(gaussian_basis),optional,dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
+         type(gaussian_basis),optional,dimension(at%astruct%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
          real(gp),optional, intent(out) :: eproj_sum
-         real(gp),optional, dimension(3,at%nat), intent(in) :: rxyz
+         real(gp),optional, dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(wp),optional, dimension(nlpspd%nprojel), intent(inout) :: proj
       END SUBROUTINE hpsitopsi
 
@@ -834,12 +832,12 @@ module module_interfaces
         integer, intent(in) :: output_denspot, iproc, nproc
         character(len = *), intent(in) :: dir_output
         character(len = *), intent(in) :: gridformat
-        real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
-        real(gp), dimension(3, atoms%nat), intent(in) :: fdisp, fion, fpulay
+        real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
+        real(gp), dimension(3, atoms%astruct%nat), intent(in) :: fdisp, fion, fpulay
         real(dp), dimension(6), intent(in) :: ewaldstr, xcstr
         real(gp), intent(out) :: fnoise, pressure
         real(gp), dimension(6), intent(out) :: strten
-        real(gp), dimension(3, atoms%nat), intent(out) :: fxyz
+        real(gp), dimension(3, atoms%astruct%nat), intent(out) :: fxyz
       END SUBROUTINE kswfn_post_treatments
 
       subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
@@ -860,10 +858,10 @@ module module_interfaces
         real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
         real(wp), dimension(nsize_psi), intent(in) :: psi
         real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
-        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp,fpulay
+        real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz,fion,fdisp,fpulay
         real(gp), intent(out) :: fnoise,pressure
         real(gp), dimension(6), intent(out) :: strten
-        real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+        real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
         type(DFT_wavefunction),intent(in) :: tmb
       END SUBROUTINE calculate_forces
       
@@ -881,13 +879,13 @@ module module_interfaces
          integer, intent(in) :: iproc,nproc,ncongt,nspin
          logical, intent(in) :: output_denspot
          real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
-         real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
-         real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
+         real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+         real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nspin), intent(in) :: pot
          real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
          real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
          real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
-         type(gaussian_basis),optional,intent(in),dimension(at%ntypes)::proj_G
+         type(gaussian_basis),optional,intent(in),dimension(at%astruct%ntypes)::proj_G
          type(paw_objects),optional,intent(inout)::paw
       END SUBROUTINE CalculateTailCorrection
 
@@ -901,7 +899,7 @@ module module_interfaces
          real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
          type(wavefunctions_descriptors), intent(in) :: wfd
          type(atoms_data), intent(in) :: at
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz_old,rxyz
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz_old,rxyz
          real(wp), dimension(0:n1_old,2,0:n2_old,2,0:n3_old,2), intent(in) :: psigold
          real(wp), dimension(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8), intent(out) :: psifscf
          real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
@@ -916,9 +914,9 @@ module module_interfaces
          type(wavefunctions_descriptors), intent(in) :: wfd
          type(atoms_data), intent(in) :: at
          real(gp), intent(in) :: hx,hy,hz
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(wp), intent(out) :: eval
-         real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+         real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
          real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
          real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
       END SUBROUTINE readonewave
@@ -956,7 +954,7 @@ module module_interfaces
         type(orbitals_data), intent(inout) :: orbs
         type(communications_arrays), intent(in) :: comms, commsv
         type(denspot_distribution), intent(in) :: dpbox
-        real(gp), dimension(3,at%nat), intent(in) :: rxyz
+        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
         real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
         type(coulomb_operator), intent(in) :: pkernel
         real(dp), dimension(*), intent(in) :: rhopot
@@ -1056,7 +1054,7 @@ module module_interfaces
        real(dp), intent(in) :: factor
          real(gp), intent(in) :: hx,hy,hz
          type(atoms_data), intent(in) :: at
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          type(locreg_descriptors), intent(in) :: lr
          real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
       END SUBROUTINE plot_wf
@@ -1121,10 +1119,10 @@ module module_interfaces
          integer, intent(inout) :: nvirt
          type(atoms_data), intent(in) :: at
          type(orbitals_data), intent(in) :: orbs
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(gp), intent(out) :: eks
          integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
-         real(gp), dimension(at%nat), intent(out) :: locrad
+         real(gp), dimension(at%astruct%nat), intent(out) :: locrad
          type(orbitals_data), intent(out) :: orbse
          type(gaussian_basis), intent(out) :: G
          real(wp), dimension(:,:,:), pointer :: psigau
@@ -1141,16 +1139,16 @@ module module_interfaces
        integer, intent(inout) :: nvirt
        type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(in) :: orbs
-       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
        integer,dimension(norb),intent(in):: mapping
-       integer,dimension(at%nat),intent(in):: norbsPerAt
+       integer,dimension(at%astruct%nat),intent(in):: norbsPerAt
        real(gp), intent(out) :: eks
        integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
-       real(gp), dimension(at%nat), intent(out) :: locrad
+       real(gp), dimension(at%astruct%nat), intent(out) :: locrad
        type(orbitals_data), intent(inout) :: orbse
        type(gaussian_basis), intent(out) :: G
        real(wp), dimension(:,:,:), pointer :: psigau
-       real(gp),dimension(at%ntypes),intent(in),optional:: quartic_prefactor
+       real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
      END SUBROUTINE inputguess_gaussian_orbitals_forLinear
 
      subroutine inputguess_gaussian_orbitals_withOnWhichAtom(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
@@ -1163,10 +1161,10 @@ module module_interfaces
        type(atoms_data), intent(inout) :: at
        type(orbitals_data), intent(in) :: orbs
        type(locreg_descriptors), intent(in) :: Glr
-       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
        real(gp), intent(out) :: eks
        integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
-       real(gp), dimension(at%nat), intent(out) :: locrad
+       real(gp), dimension(at%astruct%nat), intent(out) :: locrad
        type(orbitals_data), intent(inout) :: orbse
        type(gaussian_basis), intent(out) :: G
        real(wp), dimension(:,:,:), pointer :: psigau
@@ -1182,14 +1180,14 @@ module module_interfaces
        integer, intent(in) :: norbsc,nspin
        type(atoms_data), intent(in) :: at
        logical, dimension(4,2,at%natsc), intent(in) :: scorb
-       real(gp), dimension(3,at%nat), intent(in), target :: rxyz
+       real(gp), dimension(3,at%astruct%nat), intent(in), target :: rxyz
        type(orbitals_data), intent(inout) :: orbse
        type(gaussian_basis), intent(out) :: G
        real(gp), intent(out) :: eks
        integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
        real(wp), intent(out) :: gaucoeff !norbe=G%ncoeff !fake interface for passing address
        integer,dimension(orbse%norb), optional, intent(in):: mapping
-       real(gp),dimension(at%ntypes),intent(in),optional:: quartic_prefactor
+       real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
       END SUBROUTINE AtomicOrbitals
 
       subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
@@ -1246,8 +1244,8 @@ module module_interfaces
         type(nonlocal_psp_descriptors), intent(in), target :: nlpspd
         type(local_zone_descriptors), intent(inout), target :: Lzd
         type(denspot_distribution), intent(in), target :: dpbox
-        real(gp), dimension(3,at%nat), intent(in), target :: rxyz
-        real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
+        real(gp), dimension(3,at%astruct%nat), intent(in), target :: rxyz
+        real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
         real(wp), dimension(nlpspd%nprojel), intent(in), target :: proj
         real(wp), dimension(max(dpbox%ndimpot,1),nspin), target :: potential
         type(energy_terms), intent(inout) :: energs
@@ -1339,8 +1337,8 @@ module module_interfaces
         type(local_zone_descriptors), target :: Lzd
         type(pcproj_data_type), target ::PPD
         type(denspot_distribution), intent(in), target :: dpbox
-        real(gp), dimension(3,at%nat), target :: rxyz
-        real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
+        real(gp), dimension(3,at%astruct%nat), target :: rxyz
+        real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
         real(wp), dimension(nlpspd%nprojel), target :: proj
         real(wp), dimension(max(dpbox%ndimpot,1),nspin), target :: potential
         real(wp), dimension(max(dpbox%ndimpot,1),nspin), target :: rhoXanes
@@ -1364,8 +1362,8 @@ module module_interfaces
         type(nonlocal_psp_descriptors), target :: nlpspd
         type(local_zone_descriptors), target :: Lzd
         type(denspot_distribution), intent(in), target :: dpbox
-        real(gp), dimension(3,at%nat), target :: rxyz
-        real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
+        real(gp), dimension(3,at%astruct%nat), target :: rxyz
+        real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
         real(wp), dimension(nlpspd%nprojel), target :: proj
         real(wp), dimension(max(dpbox%ndimpot,1),nspin), target :: potential
         type(energy_terms), intent(inout) :: energs
@@ -1388,8 +1386,8 @@ module module_interfaces
          type(nonlocal_psp_descriptors), target :: nlpspd
          type(locreg_descriptors), target :: lr
          integer, dimension(0:nproc-1,2), target :: ngatherarr 
-         real(gp), dimension(3,at%nat), target :: rxyz
-         real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
+         real(gp), dimension(3,at%astruct%nat), target :: rxyz
+         real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
          real(wp), dimension(nlpspd%nprojel), target :: proj
          real(wp), dimension(max(ndimpot,1),nspin), target :: potential
          type(energy_terms), intent(inout) :: energs
@@ -1435,7 +1433,7 @@ module module_interfaces
         type(atoms_data), intent(in) :: at
         type(denspot_distribution), intent(in) :: box
         character(len=*), intent(in) :: filename
-        real(gp), dimension(3,at%nat), intent(in) :: rxyz
+        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
         real(dp), dimension(max(box%ndimpot,1),nspin), target, intent(in) :: rho
       END SUBROUTINE plot_density
 
@@ -1517,7 +1515,7 @@ module module_interfaces
          logical, intent(in) :: enlargerprb
          integer, intent(in) :: iproc,nspin,ng
          type(atoms_data), intent(in) :: at
-         real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), target, intent(in) :: rxyz
          type(gaussian_basis), intent(out) :: G
          real(wp), dimension(:), pointer :: Gocc
          real(gp), pointer, optional :: gaenes(:)
@@ -1535,7 +1533,7 @@ module module_interfaces
          use module_types
          implicit none
          type(atoms_data), intent(in) :: at
-         real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), target, intent(in) :: rxyz
          type(gaussian_basis_c), intent(out) :: G
 
          integer, pointer :: iorbtolr(:)
@@ -1559,7 +1557,7 @@ module module_interfaces
          type(locreg_descriptors), intent(in) :: lr
          type(orbitals_data), intent(in) :: orbs,orbsv
          type(atoms_data), intent(in) :: at
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(wp), dimension(:), pointer :: psi,psivirt
       END SUBROUTINE local_analysis
 
@@ -1583,7 +1581,7 @@ module module_interfaces
         real(gp), intent(in) :: hxh,hyh,hzh
         type(atoms_data), intent(in) :: at
         type(grid_dimensions), intent(in) :: d
-        real(gp), dimension(3,at%nat), intent(in) :: rxyz
+        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
         real(wp), dimension(:,:,:,:), pointer :: rhocore
       END SUBROUTINE calculate_rhocore
 
@@ -1634,7 +1632,7 @@ module module_interfaces
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
         type(denspot_distribution), intent(in) :: dpbox
         type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
-        real(gp), dimension(3,at%nat), intent(in) :: rxyz
+        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
         real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
         type(coulomb_operator), intent(in) :: pkernel
         real(dp), dimension(*), intent(in), target :: rhopot
@@ -1695,7 +1693,7 @@ module module_interfaces
          type(atoms_data), intent(in) :: at
          type(locreg_descriptors), intent(in) :: lr
          type(orbitals_data), intent(in) :: orbs,orbsv
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(wp), dimension(:), pointer :: psi,psivirt
        END SUBROUTINE write_eigen_objects
 
@@ -1782,7 +1780,7 @@ module module_interfaces
         type(communications_arrays), intent(in) :: comms, commsv
         type(denspot_distribution), intent(in) :: dpbox
         real(gp), intent(in) :: hx,hy,hz
-        real(gp), dimension(3,at%nat), intent(in) :: rxyz
+        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
         real(dp), dimension(*), intent(in) :: rhopot
         type(orbitals_data), intent(inout) :: orbsv
         type(GPU_pointers), intent(inout) :: GPU
@@ -1855,9 +1853,9 @@ module module_interfaces
          type(wavefunctions_descriptors), intent(in) :: wfd
          type(orbitals_data), intent(inout) :: orbs
          type(atoms_data), intent(in) :: at
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          integer, dimension(orbs%norb), optional :: orblist
-         real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+         real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
          real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
          character(len=*), intent(in) :: filename
       END SUBROUTINE readmywaves
@@ -1887,6 +1885,17 @@ module module_interfaces
          integer, intent(out) :: iorb_out
          integer,intent(in),optional :: iiorb
       END SUBROUTINE filename_of_iorb
+
+      subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: nproc
+        character(len=*), intent(in) :: filerad
+        type(orbitals_data), intent(in) :: orbs
+        integer, intent(out) :: iformat
+        integer, optional, intent(in) :: nforb
+      end subroutine verify_file_presence
 
       subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
            & n1, n2, n3, nspinor, psiscf)
@@ -1950,7 +1959,7 @@ module module_interfaces
         integer, intent(in) :: iproc,nspin
         type(locreg_descriptors), intent(in) :: Glr
         type(atoms_data), intent(in) :: atoms
-        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+        real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
         type(DFT_local_fields), intent(inout) :: denspot
       END SUBROUTINE allocateRhoPot
 
@@ -1968,7 +1977,7 @@ module module_interfaces
         integer,intent(out) :: infoBasisFunctions
         type(atoms_data), intent(in) :: at
         type(orbitals_data) :: orbs
-        real(kind=8),dimension(3,at%nat) :: rxyz
+        real(kind=8),dimension(3,at%astruct%nat) :: rxyz
         type(DFT_local_fields), intent(inout) :: denspot
         type(GPU_pointers), intent(inout) :: GPU
         real(kind=8),intent(out) :: trH, fnrm
@@ -2005,7 +2014,7 @@ module module_interfaces
       type(input_variables):: input
       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-      real(gp), dimension(3,at%nat), intent(in) :: rxyz
+      real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
       real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
       type(gaussian_basis), intent(out) :: G 
@@ -2039,7 +2048,7 @@ module module_interfaces
       integer,intent(in) :: iproc, nproc, scf_mode
       type(orbitals_data),intent(inout) :: orbs
       type(atoms_data),intent(in) :: at
-      real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
+      real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
       type(DFT_local_fields), intent(inout) :: denspot
       type(GPU_pointers),intent(inout) :: GPU
       integer,intent(out) :: infoCoeff
@@ -2056,17 +2065,18 @@ module module_interfaces
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,energy,fpulay,infocode)
+           energs,energy,fpulay,infocode,ref_frags)
       use module_base
       use module_types
+      use module_fragments
       implicit none
       integer,intent(in):: iproc, nproc
       type(atoms_data),intent(inout):: at
       type(input_variables),intent(in):: input
-      real(8),dimension(3,at%nat),intent(inout):: rxyz
-      real(8),dimension(3,at%nat),intent(out):: fpulay
+      real(8),dimension(3,at%astruct%nat),intent(inout):: rxyz
+      real(8),dimension(3,at%astruct%nat),intent(out):: fpulay
       type(DFT_local_fields), intent(inout) :: denspot
-      real(gp), dimension(:), intent(inout) :: rhopotold
+      real(gp), dimension(*), intent(inout) :: rhopotold
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       type(GPU_pointers),intent(in out):: GPU
@@ -2076,7 +2086,9 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout),target:: tmb
       type(DFT_wavefunction),intent(inout),target:: KSwfn
       integer,intent(out):: infocode
+      type(system_fragment), dimension(:), pointer :: ref_frags 
     end subroutine linearScaling   
+
 
    subroutine createDerivativeBasis(n1,n2,n3, &
               nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
@@ -2112,7 +2124,7 @@ module module_interfaces
       type(atoms_data), intent(in) :: at
       logical, dimension(4,2,at%natsc), intent(out) :: scorb
       integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
-      real(gp), dimension(at%nat), intent(out) :: locrad
+      real(gp), dimension(at%astruct%nat), intent(out) :: locrad
     end subroutine readAtomicOrbitals
 
     subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
@@ -2131,7 +2143,7 @@ module module_interfaces
       type(nonlocal_psp_descriptors), intent(in) :: nlpspd
       type(GPU_pointers), intent(inout) :: GPU
       type(input_variables),intent(in) :: input
-      real(gp), dimension(3,at%nat), intent(in) :: rxyz
+      real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
       real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
       type(orbitals_data),intent(inout) :: orbs
       type(DFT_wavefunction),intent(inout) :: tmb
@@ -2685,62 +2697,17 @@ module module_interfaces
       implicit none
       type(communications_arrays),intent(out):: comms
     end subroutine nullify_communications_arrays
-    
-    subroutine nullify_locreg_descriptors(lr)
+        
+    subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locregShape, lborbs)
       use module_base
       use module_types
       implicit none
-      type(locreg_descriptors),intent(out):: lr
-    end subroutine nullify_locreg_descriptors
-    
-    subroutine nullify_wavefunctions_descriptors(wfd)
-      use module_base
-      use module_types
-      implicit none
-      type(wavefunctions_descriptors),intent(out):: wfd
-    end subroutine nullify_wavefunctions_descriptors
-    
-    subroutine nullify_convolutions_bounds(bounds)
-      use module_base
-      use module_types
-      implicit none
-      type(convolutions_bounds),intent(out):: bounds
-    end subroutine nullify_convolutions_bounds
-    
-    subroutine nullify_kinetic_bounds(kb)
-      use module_base
-      use module_types
-      implicit none
-      type(kinetic_bounds),intent(out):: kb
-    end subroutine nullify_kinetic_bounds
-    
-    subroutine nullify_shrink_bounds(sb)
-      use module_base
-      use module_types
-      implicit none
-      type(shrink_bounds),intent(out):: sb
-    end subroutine nullify_shrink_bounds
-    
-    subroutine nullify_grow_bounds(gb)
-      use module_base
-      use module_types
-      implicit none
-      type(grow_bounds),intent(out):: gb
-    end subroutine nullify_grow_bounds
-    
-
-    subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, at, lzd, orbs, Glr, locrad, locregShape, lborbs)
-      use module_base
-      use module_types
-      implicit none
-      integer,intent(in):: iproc, nproc, nlr
-      real(8),dimension(3,nlr),intent(in):: rxyz
-      real(8),intent(in):: hx, hy, hz
-      type(atoms_data),intent(in) :: at
+      integer,intent(in):: iproc, nproc
       type(local_zone_descriptors),intent(inout):: lzd
+      real(8),intent(in):: hx, hy, hz
+      type(atomic_structure),intent(in) :: astruct
       type(orbitals_data),intent(in):: orbs
       type(locreg_descriptors),intent(in):: Glr
-      real(8),dimension(lzd%nlr),intent(in):: locrad
       character(len=1),intent(in):: locregShape
       type(orbitals_data),optional,intent(in):: lborbs
     end subroutine initLocregs
@@ -2777,7 +2744,7 @@ module module_interfaces
        type(linearInputParameters),intent(in):: lin
        type(DFT_wavefunction),intent(in) :: tmb
        integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-       real(gp),dimension(3,at%nat),intent(in):: rxyz
+       real(gp),dimension(3,at%astruct%nat),intent(in):: rxyz
      end subroutine initInputguessConfinement
 
       subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, &
@@ -2890,7 +2857,7 @@ module module_interfaces
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
        type(SIC_data), intent(in) :: SIC
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
        real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
        real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
        type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
@@ -2903,17 +2870,17 @@ module module_interfaces
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
        !PAW variables:
-       type(gaussian_basis),dimension(at%ntypes),optional,intent(in)::proj_G
+       type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
        type(paw_objects),optional,intent(inout)::paw
      end subroutine FullHamiltonianApplication
 
-       subroutine init_foe(iproc, nproc, lzd, at, input, orbs_KS, orbs, foe_obj, reset)
+       subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          type(local_zone_descriptors),intent(in) :: lzd
-         type(atoms_data),intent(in) :: at
+         type(atomic_structure),intent(in) :: astruct
          type(input_variables),intent(in) :: input
          type(orbitals_data),intent(in):: orbs_KS, orbs
          type(foe_data),intent(out):: foe_obj
@@ -3056,7 +3023,7 @@ module module_interfaces
          implicit none
          !passed var
          type(atoms_data), intent(in) :: at
-         real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), target, intent(in) :: rxyz
          real(gp), intent(in) :: hxh,hyh,hzh
          integer,intent(in) :: n1i,n2i,n3i,n3p,iproc,nproc
          real(kind=8), dimension(n1i*n2i*max(n3p,1)), intent(in), target :: rho
@@ -3073,7 +3040,7 @@ module module_interfaces
          type(local_zone_descriptors), intent(inout) :: Lzd
          type(atoms_data), intent(in) :: atoms
          type(orbitals_data),intent(inout) :: orbs
-         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+         real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
        end subroutine check_linear_and_create_Lzd
 
        subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
@@ -3087,30 +3054,47 @@ module module_interfaces
          type(atoms_data), intent(in) :: atoms
          type(orbitals_data),intent(inout) :: orbs
          integer, intent(in) :: linearmode
-         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+         real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
        end subroutine create_LzdLIG
 
        subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
             orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
-            inwhichlocreg_old, onwhichatom_old)
+            ref_frags, inwhichlocreg_old, onwhichatom_old)
          use module_base
          use module_types
+         use module_fragments
          implicit none
          integer, intent(in) :: iproc,nproc
          integer, intent(out) :: inputpsi,input_wf_format,lnpsidim_orbs,lnpsidim_comp
          type(input_variables), intent(in) :: in 
          type(atoms_data), intent(inout) :: atoms
-         real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+         real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
          type(orbitals_data), intent(inout) :: orbs,lorbs
          type(local_zone_descriptors), intent(inout) :: Lzd, Lzd_lin
          type(DFT_local_fields), intent(out) :: denspot
          type(nonlocal_psp_descriptors), intent(out) :: nlpspd
          type(communications_arrays), intent(out) :: comms
          real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
-         real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
+         real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
          real(wp), dimension(:), pointer :: proj
+         type(system_fragment), dimension(:), pointer :: ref_frags
          integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
        end subroutine system_initialization
+
+       subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc, nproc, nfrag, frag_dir, ref_frags)
+         use module_types
+         use module_fragments
+         implicit none
+         integer, intent(out) :: input_wf_format         !< (out) Format of WF
+         integer, intent(inout) :: inputpsi              !< (in) indicate how check input psi, (out) give how to build psi
+         integer, intent(in) :: iproc                    !< (in)  id proc
+         integer, intent(in) :: nproc                    !< (in)  #proc
+         integer, intent(in) :: nfrag                    !< number of fragment directories which need checking
+         type(system_fragment), dimension(:), pointer :: ref_frags  !< number of orbitals for each fragment
+         character(len=100), dimension(nfrag), intent(in) :: frag_dir !< label for fragment subdirectories (blank if not a fragment calculation)
+         character(len = *), intent(in) :: dir_output
+         type(orbitals_data), intent(in) :: orbs, lorbs
+       end subroutine input_check_psi_id
 
        subroutine nullify_p2pComms(p2pcomm)
          use module_base
@@ -3142,7 +3126,7 @@ module module_interfaces
          type(symmetry_data), intent(in) :: symObj
          !integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
          !integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
          real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
          type(gaussian_basis), intent(out) :: G !basis for davidson IG
@@ -3169,12 +3153,12 @@ module module_interfaces
          type(DFT_local_fields), intent(inout) :: denspot
          type(energy_terms), intent(inout) :: energs
          type(DFT_wavefunction), intent(inout) :: wfn
-         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+         real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
          real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
          type(GPU_pointers), intent(inout) :: GPU  
          real(gp), intent(inout) :: rpnrm
          real(gp), dimension(6), intent(out) :: xcstr
-         type(gaussian_basis),dimension(atoms%nat),optional,intent(in)::proj_G
+         type(gaussian_basis),dimension(atoms%astruct%nat),optional,intent(in)::proj_G
          type(paw_objects),optional,intent(inout)::paw
        end subroutine psitohpsi
 
@@ -3220,15 +3204,15 @@ module module_interfaces
          type(atoms_data), intent(in) :: at
          type(orbitals_data), intent(in) :: orbs
          integer,intent(in):: confpotorder
-         real(gp),dimension(at%ntypes),intent(in):: potentialprefac
+         real(gp),dimension(at%astruct%ntypes),intent(in):: potentialprefac
          type(local_zone_descriptors), intent(in) :: Lzd
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          integer, dimension(orbs%norb), intent(in) :: confinementCenter
          type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
        end subroutine define_confinement_data
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
-                  useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
+                  useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, astruct, input, &
                   orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
          use module_base
          use module_types
@@ -3238,7 +3222,7 @@ module module_interfaces
          logical,intent(in):: useDerivativeBasisFunctions
          integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
          real(8),intent(in):: hx, hy, hz
-         type(atoms_data),intent(in) :: at
+         type(atomic_structure),intent(in) :: astruct
          type(input_variables),intent(in) :: input
          real(8),dimension(nlr),intent(in):: locrad
          type(orbitals_data),intent(in):: orbs_KS, orbs
@@ -3268,14 +3252,14 @@ module module_interfaces
          type(DFT_wavefunction),intent(inout):: wfn
        end subroutine destroy_DFT_wavefunction
 
-       subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, rxyz, lorbs)
+       subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc, nspinor
          type(input_variables),intent(in):: input
-         type(atoms_data),intent(in):: at
-         real(8),dimension(3,at%nat),intent(in):: rxyz
+         type(atomic_structure),intent(in):: astruct
+         real(8),dimension(3,astruct%nat),intent(in):: rxyz
          type(orbitals_data),intent(out):: lorbs
        end subroutine init_orbitals_data_for_linear
 
@@ -3395,7 +3379,7 @@ module module_interfaces
          real(8),intent(in):: hx, hy, hz
          type(atoms_data),intent(in) :: at
          type(input_variables),intent(in):: input
-         real(8),dimension(3,at%nat),intent(in):: rxyz
+         real(8),dimension(3,at%astruct%nat),intent(in):: rxyz
          type(DFT_wavefunction),intent(inout):: KSwfn, tmb
          type(DFT_local_fields),intent(inout) :: denspot
          type(localizedDIISParameters),intent(inout):: ldiis
@@ -3665,59 +3649,66 @@ module module_interfaces
          type(local_zone_descriptors),optional,intent(in):: lzd
        end subroutine untranspose_localized
 
-       subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,rxyz,orblist)
+       subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,Lzd,&
+              iformat,dir_output,filename,ref_frags,orblist)
          use module_base
          use module_types
+         use module_fragments
          implicit none
          integer, intent(in) :: iproc, nproc, iformat
          type(orbitals_data), intent(inout) :: orbs  !< orbs related to the basis functions, inwhichlocreg generated in this routine
-         type(atoms_data), intent(in) :: at
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
-         character(len=*), intent(in) :: filename
+         type(atomic_structure), intent(in) :: astruct
+         real(gp), dimension(3,astruct%nat), intent(in) :: rxyz
+         character(len=*), intent(in) :: filename, dir_output
          type(local_zone_descriptors), intent(inout) :: Lzd !< must already contain Glr and hgrids
+         type(fragmentInputParameters), intent(in) :: input_frag
+         type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
          integer, dimension(orbs%norb), optional :: orblist
        end subroutine initialize_linear_from_file
 
-       subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old, &
-       & ns_old, hgrids_old, lstat, error, nvctr_c_old, nvctr_f_old, &
-       & rxyz_old, nat, locrad, locregCenter, confPotOrder, confPotprefac, onwhichatom)
+       subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old1, n_old2, n_old3, &
+            ns_old1, ns_old2, ns_old3, hgrids_old, lstat, error, onwhichatom, locrad, locregCenter, &     
+            confPotOrder, confPotprefac, nvctr_c_old, nvctr_f_old, nat, rxyz_old)
          use module_base
          use module_types
          implicit none
          integer, intent(in) :: unitwf
          logical, intent(in) :: formatted
          integer, intent(out) :: iorb_old
-         integer, dimension(3), intent(out) :: n_old, ns_old
+         integer, intent(out) :: n_old1, n_old2, n_old3, ns_old1, ns_old2, ns_old3
          real(gp), dimension(3), intent(out) :: hgrids_old
          logical, intent(out) :: lstat
          real(wp), intent(out) :: eval
-         integer, intent(out) :: confPotOrder
-         real(gp), intent(out) :: locrad, confPotprefac
+         real(gp), intent(out) :: locrad
          real(gp), dimension(3), intent(out) :: locregCenter
          character(len =256), intent(out) :: error
+         integer, intent(out) :: onwhichatom
+         integer, intent(out) :: confPotOrder
+         real(gp), intent(out) :: confPotprefac
          ! Optional arguments
          integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
          integer, intent(in), optional :: nat
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
-         integer, intent(out) :: onwhichatom
        end subroutine io_read_descr_linear
 
-       subroutine readmywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,at,rxyz_old,rxyz,  &
-           psi,coeff,orblist)
-         use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc, iformat,npsidim
-         type(orbitals_data), intent(inout) :: orbs  ! orbs related to the basis functions
-         type(local_zone_descriptors), intent(in) :: Lzd
-         type(atoms_data), intent(in) :: at
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
-         real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
-         real(wp), dimension(npsidim), intent(out) :: psi
-         character(len=*), intent(in) :: filename
-         real(wp), dimension(orbs%norb,orbs%norb), intent(out) :: coeff
-         integer, dimension(orbs%norb), optional :: orblist
-        end subroutine readmywaves_linear
+        subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_old,rxyz,&
+               ref_frags,input_frag,frag_calc,orblist)
+          use module_base
+          use module_types
+          use module_fragments
+          use yaml_output
+          implicit none
+          integer, intent(in) :: iproc, iformat
+          type(atoms_data), intent(in) :: at
+          type(DFT_wavefunction), intent(inout) :: tmb
+          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+          real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
+          character(len=*), intent(in) :: dir_output, filename
+          type(fragmentInputParameters), intent(in) :: input_frag
+          type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
+          logical, intent(in) :: frag_calc
+          integer, dimension(tmb%orbs%norb), intent(in), optional :: orblist
+        end subroutine readmywaves_linear_new
 
         subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm, lzd)
           use module_base
@@ -3772,7 +3763,7 @@ module module_interfaces
         end subroutine copy_local_zone_descriptors
 
         subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, &
-            & lstat, error, rxyz_old, nat)
+            & lstat, error, nat, rxyz_old)
          use module_base
          use module_types
          implicit none
@@ -3785,6 +3776,20 @@ module module_interfaces
          integer, intent(in), optional :: nat
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
         end subroutine io_read_descr_coeff
+
+        subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coeff,eval,nat,rxyz_old)
+          use module_base
+          use module_types
+          implicit none
+          logical, intent(in) :: useFormattedInput
+          integer, intent(in) :: unitwf,iproc,ntmb
+          integer, intent(out) :: norb_old
+          real(wp), dimension(ntmb,ntmb), intent(out) :: coeff
+          real(wp), dimension(ntmb), intent(out) :: eval
+          integer, optional, intent(in) :: nat
+          real(gp), dimension(:,:), optional, intent(out) :: rxyz_old
+        end subroutine read_coeff_minbasis
+
 
         subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, comgp)
           use module_base
@@ -3886,10 +3891,10 @@ module module_interfaces
           real(gp), intent(in) :: hx,hy,hz
           type(locreg_descriptors) :: lr
           type(orbitals_data), intent(in) :: orbs
-          real(gp), dimension(3,at%nat), intent(in) :: rxyz
+          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
           real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(in) :: psi
           real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
-          real(gp), dimension(3,at%nat), intent(inout) :: fsep
+          real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
           real(gp), dimension(6), intent(out) :: strten
         end subroutine nonlocal_forces
 
@@ -3903,9 +3908,9 @@ module module_interfaces
           integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i
           real(gp), intent(in) :: hxh,hyh,hzh 
           real(gp),intent(out) :: charge
-          real(gp), dimension(3,at%nat), intent(in) :: rxyz
+          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
           real(dp), dimension(*), intent(in) :: rho,pot
-          real(gp), dimension(3,at%nat), intent(out) :: floc
+          real(gp), dimension(3,at%astruct%nat), intent(out) :: floc
           real(gp), dimension(6), intent(out) :: locstrten
         end subroutine local_forces
 
@@ -3914,7 +3919,7 @@ module module_interfaces
           use module_types
           implicit none
           type(atoms_data), intent(inout) :: atoms
-          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+          real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
           logical, intent(in) :: disableSym
           real(gp), intent(in) :: tol
           real(gp), intent(in) :: elecfield(3)
@@ -4097,14 +4102,14 @@ module module_interfaces
           integer,intent(in):: iproc, nproc
           type(orbitals_data),intent(in):: orbs
           type(atoms_data),intent(in):: at
-          real(8),dimension(at%nat),intent(in):: rxyz
+          real(8),dimension(at%astruct%nat),intent(in):: rxyz
           type(nonlocal_psp_descriptors),intent(in):: nlpspd
           real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
           type(SIC_data),intent(in):: SIC
           type(DFT_local_fields), intent(inout) :: denspot
           type(GPU_pointers),intent(inout):: GPU
           type(DFT_wavefunction),intent(inout):: tmb
-          real(8),dimension(3,at%nat),intent(out):: fpulay
+          real(8),dimension(3,at%astruct%nat),intent(out):: fpulay
         end subroutine pulay_correction
 
         subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz, lowaccur_converged)
@@ -4116,7 +4121,7 @@ module module_interfaces
           type(DFT_local_fields),intent(in):: denspot
           type(input_variables),intent(in):: input
           type(atoms_data),intent(in):: at
-          real(8),dimension(3,at%nat),intent(in):: rxyz
+          real(8),dimension(3,at%astruct%nat),intent(in):: rxyz
           logical,intent(in):: lowaccur_converged
         end subroutine create_large_tmbs
 
@@ -4187,7 +4192,7 @@ module module_interfaces
           type(DFT_wavefunction),intent(inout):: tmb, tmb_old
           type(DFT_local_fields), intent(inout) :: denspot
           type(input_variables),intent(in):: input
-          real(gp),dimension(3,at%nat),intent(in) :: rxyz_old, rxyz
+          real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz_old, rxyz
           real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
           type(energy_terms),intent(inout):: energs
           type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -4209,29 +4214,21 @@ module module_interfaces
           integer,dimension(:),pointer:: inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old
         end subroutine copy_old_inwhichlocreg
 
-        subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,& !n(c) iproc (arg:1)
-             psigold,hgrids,n,centre_old,centre_new,da,newz,theta,psi)
+        subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
+               frag_trans,psi_old,phi_array_old)
           use module_base
           use module_types
-          implicit none
-          integer, dimension(3), intent(in) :: n_old,n
-          real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
-          type(wavefunctions_descriptors), intent(in) :: wfd
-          character(len=1), intent(in) :: geocode
-          real(gp), dimension(3), intent(in) :: centre_old,centre_new,newz,da
-          real(gp), intent(in) :: theta
-          real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
-          real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
-        end subroutine reformat_one_supportfunction
-
-        subroutine reformat_supportfunctions(iproc,at,rxyz_old,ndim_old,rxyz,tmb,tmb_old)
-          use module_base
-          use module_types
+          use module_fragments
           implicit none
           integer, intent(in) :: iproc,ndim_old
           type(atoms_data), intent(in) :: at
-          real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
-          type(DFT_wavefunction), intent(inout) :: tmb,tmb_old
+          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz,rxyz_old
+          type(DFT_wavefunction), intent(inout) :: tmb
+          type(local_zone_descriptors), intent(in) :: lzd_old
+          type(fragment_transformation), dimension(tmb%orbs%norbp), intent(in) :: frag_trans
+          real(wp), dimension(:), pointer :: psi_old
+          type(phi_array), dimension(tmb%orbs%norbp), optional, intent(in) :: phi_array_old
+          logical, intent(in) :: add_derivatives
         end subroutine reformat_supportfunctions
 
         subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
@@ -4259,18 +4256,16 @@ module module_interfaces
         end subroutine normalize_transposed
 
 
-        subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,at,orbs,Glr,Llr,calculateBounds)!,outofzone)
+        subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs,Glr,Llr,calculateBounds)!,outofzone)
           use module_base
           use module_types
           implicit none
           integer, intent(in) :: iproc,nproc
           integer, intent(in) :: nlr
           real(gp), intent(in) :: hx,hy,hz
-          type(atoms_data),intent(in) :: at
+          type(atomic_structure),intent(in) :: astruct
           type(orbitals_data),intent(in) :: orbs
           type(locreg_descriptors), intent(in) :: Glr
-          real(gp), dimension(nlr), intent(in) :: locrad
-          real(gp), dimension(3,nlr), intent(in) :: cxyz
           type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
           logical,dimension(nlr),intent(in) :: calculateBounds
         end subroutine determine_locregSphere_parallel
@@ -4448,11 +4443,11 @@ module module_interfaces
           real(gp), intent(in) :: hx,hy,hz
           type(locreg_descriptors) :: lr
           type(orbitals_data), intent(in) :: orbs
-          real(gp), dimension(3,at%nat), intent(in) :: rxyz
+          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
           real(wp), dimension(npsidim_orbs), intent(in) :: phi
           type(SparseMatrix),intent(in) :: denskern
           real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
-          real(gp), dimension(3,at%nat), intent(inout) :: fsep
+          real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
           real(gp), dimension(6), intent(out) :: strten
         end subroutine nonlocal_forces_linear
 
@@ -4768,7 +4763,7 @@ module module_interfaces
           type(nonlocal_psp_descriptors), intent(in) :: nlpspd
           integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
           real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+          real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
           real(dp), dimension(:), pointer :: local_potential
         end subroutine integral_equation
    end interface

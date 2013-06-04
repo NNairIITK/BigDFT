@@ -62,7 +62,19 @@ subroutine test_yaml_output2()
            '-lscalapack-openmpi -lblacs-openmpi -lblacsF77init-openmpi -llapack '//&
            '-lblas -larchive   -lyaml -pthread -lgthread-2.0 -lrt -lgio-2.0 '//&
            '-lgobject-2.0 -lglib-2.0   -lgio-2.0 -lgobject-2.0 -lglib-2.0    ')
-
+      call yaml_map('Build Configure line again',&
+           'FC=/opt/openmpi-1.6.1/bin/mpif90 FCFLAGS=-O2 -i_dynamic -msse4.2'//&
+           ' -heap-arrays 1024 -openmp '//&
+           '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1'//&
+           '.11.339/mkl/lib/intel64/libmkl_scalapack_lp64.a'//&
+           '  -Wl,--start-group  /opt/intel/composer_xe_2011_sp1.11.339'//&
+           '/mkl/lib/intel64/libmkl_cdft_core.a /opt/intel/composer_xe'//&
+           '_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_lp64.a'//&
+           ' /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64'//&
+           '/libmkl_intel_thread.a /opt/intel/composer_xe_2011_sp1.11.'//&
+           '339/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2011'//&
+           '_sp1.11.339/mkl/lib/intel64/libmkl_blacs_openmpi_lp64.a '//&
+           '-Wl,--end-group -openmp -lpthread -lm')
       call yaml_map('Long string array',(/('compiler',i=1,10)/))
    call yaml_close_map()
 !stop
