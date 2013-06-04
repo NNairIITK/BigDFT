@@ -1075,8 +1075,10 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   tol=1.d-3
   reformat_reason=0
 
+  !arbitrarily pick the middle one as assuming it'll be near the centre of structure
+  !and therefore have large fine grid
   norb_tmp=tmb%orbs%norb/2
-  ilr_tmp=tmb%orbs%inwhichlocreg(norb_tmp) !arbitrarily pick the middle one as assuming it'll be near the centre of structure
+  ilr_tmp=tmb%orbs%inwhichlocreg(norb_tmp) 
   iiat_tmp=tmb%orbs%onwhichatom(norb_tmp)
 
   ! find biggest instead
@@ -2224,14 +2226,14 @@ close(16)
      jsforb=jsforb+ref_frags(ifrag_ref)%fbasis%forbs%norb-ref_frags(ifrag_ref)%nksorb
   end do
 
-open(10)
-  do itmb=1,tmb%orbs%norb
-     do jtmb=1,tmb%orbs%norb
-        if (iproc==0) write(10,*) jtmb,itmb,tmb%coeff(jtmb,itmb)
-     end do
-  end do
-close(10)
-call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+!!$open(10)
+!!$  do itmb=1,tmb%orbs%norb
+!!$     do jtmb=1,tmb%orbs%norb
+!!$        if (iproc==0) write(10,*) jtmb,itmb,tmb%coeff(jtmb,itmb)
+!!$     end do
+!!$  end do
+!!$close(10)
+!!$call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
 
   call cpu_time(tr1)
   call system_clock(ncount2,ncount_rate,ncount_max)
@@ -2715,10 +2717,11 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
           !write(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
           !write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
 
+call timing(iproc,'Reformatting ','ON')
           call reformat_one_supportfunction(tmb%lzd%llr(ilr)%wfd,tmb%lzd%llr(ilr)%geocode,lzd_old%hgrids,&
                n_old,phigold,tmb%lzd%hgrids,n,centre_old_box,centre_new_box,da,&
                frag_trans(iorb),tmb%psi(jstart))
-
+call timing(iproc,'Reformatting ','OF')
           jstart=jstart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
 
           if (present(phi_array_old)) then   

@@ -1242,7 +1242,6 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
  !number of points for a unit displacement
  nunit=nphi/nrange 
 
-
  !apply the interpolating filter to the output
  do j=1,ndat
     psi_out(j,:)=0.0_gp
@@ -1253,11 +1252,14 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
           k=real(l,gp)+t0_field(l,j)
           if (k-real(i,gp) > tol) exit find_trans
           kold=k
-          print *,l,k,t0_field(l,j),i
+          !print *,l,k,t0_field(l,j),i
        end do find_trans
-       print *,'the rest is',t0_field(l:,j)
-       stop
-
+       !print *,'the rest is',t0_field(l:,j)
+       if (real(i,gp) > k .and. real(i,gp) < kold .or. real(i,gp) > kold .and. real(i,gp) < k )then
+       else
+          print *,'i,k1',i,k,kold,t0_field(:,j),l
+          stop
+       end if
        ! want to use either l or l-1 to give us point i - pick closest
        if (k-real(i,gp) < -kold+real(i,gp)) then
           ksh1=k-real(i,gp)
@@ -1324,6 +1326,8 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
           shf(m_isf)=0.0_gp
        end if 
 
+
+
        !here the boundary conditions have to be considered
        tt=0.0_gp
        ms=-min(m_isf,k1-1)
@@ -1332,10 +1336,10 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
           tt=tt+shf(l)*psi_in(k1+l,j)
        end do
 
+
        if (i > 0 .and. i < nout) psi_out(j,i)=tt
 
     end do
-
  end do
 
 ! call f_free(shf)
@@ -1464,7 +1468,9 @@ subroutine define_rotations(da,newz,boxc_old,boxc_new,theta,hgrids_old,ndims_old
            dx(i,j+(k-1)*ndims_old(2)) = ( da(1) - x + dotp*newz(1) - cost*(-x + dotp*newz(1)) &
                                       + sint*(z*newz(2) - y*newz(3)) ) / hgrids_old(1)
            x=x+hgrids_old(1)
+
         end do
+        !if (j==1 .and. k==1) print *,'test vector',dx(:,j+(k-1)*ndims_old(2)),'x,y,z',x,y,z,theta,sint,cost,'newz',newz
         !fill the second vector
         x=-boxc_new(1)
         do i=1,ndims_new(1)
@@ -1581,9 +1587,12 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,cen
   work =f_malloc(shape(dy),id='work')
   work2=f_malloc(shape(dz),id='work2')
 
-  
   call define_rotations(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
        hgrids_new,ndims_new,dx,dy,dz)
+
+  !call define_rotations(da,newz,centre_old,centre_new,0.498_gp*pi_param,hgrids_old,ndims_old,&
+  !     hgrids_new,ndims_new,dx,dy,dz)
+
 
   !call define_rotations_switch(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
   !     hgrids_new,ndims_new,dx,dy,dz)
@@ -1591,7 +1600,7 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,cen
   !perform interpolation
   call morph_and_transpose(dx,n_phi,nrange_phi,phi_ISF,ndims_old(2)*ndims_old(3),&
          ndims_old(1),f_old,ndims_new(1),work)
-  
+  if (theta /= 0.0_gp) stop
   call morph_and_transpose(dy,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_old(3),&
          ndims_old(2),work,ndims_new(2),work2)
 

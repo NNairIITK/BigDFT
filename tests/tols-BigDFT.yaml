@@ -281,3 +281,7 @@ directmin:
 restartdisk_charge:
  Patterns to ignore:
  - Wavefunction written
+
+rotate_write:
+ Patterns to ignore:
+ - Wavefunction written

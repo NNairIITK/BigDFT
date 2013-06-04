@@ -1036,9 +1036,12 @@ contains
        !print*,'axis_from_r2',norm,rot_axis
     else
        ! squares of rot_axis are diag 0.5(R+I), signs as before
-       rot_axis(1)=sign(dsqrt(0.5_gp*(R_mat(1,1)+1.0_gp)),rot_axis(1))
-       rot_axis(2)=sign(dsqrt(0.5_gp*(R_mat(2,2)+1.0_gp)),rot_axis(2))
-       rot_axis(3)=sign(dsqrt(0.5_gp*(R_mat(3,3)+1.0_gp)),rot_axis(3))
+       !this is not good as it gives a array of modulus bigger than one
+       rot_axis(1:2)=0.0_gp
+       rot_axis(3)=1.0_gp
+       !rot_axis(1)=sign(dsqrt(0.5_gp*(R_mat(1,1)+1.0_gp)),rot_axis(1))
+       !rot_axis(2)=sign(dsqrt(0.5_gp*(R_mat(2,2)+1.0_gp)),rot_axis(2))
+       !rot_axis(3)=sign(dsqrt(0.5_gp*(R_mat(3,3)+1.0_gp)),rot_axis(3))
        !print*,'axis_from_r3',norm,rot_axis
     end if
 
