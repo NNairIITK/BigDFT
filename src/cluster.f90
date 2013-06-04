@@ -261,7 +261,6 @@ subroutine run_objects_free_container(runObj)
 END SUBROUTINE run_objects_free_container
 
 subroutine run_objects_init_from_files(runObj, radical, posinp)
-  use module_interfaces
   use module_types
   use module_interfaces, only: atoms_new, rst_new, inputs_new
   implicit none
