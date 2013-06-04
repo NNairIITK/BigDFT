@@ -308,8 +308,8 @@ program frequencies
       !write(*,*)
       !write(*,'(1x,a,81("="))') '=F '
       !write(*,*)
-      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(iperm(3*atoms%astruct%nat:1:-1))
-      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(iperm(3*atoms%astruct%nat:1:-1))
+      !write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(iperm(3*atoms%astruct%nat:1:-1))
+      !write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(iperm(3*atoms%astruct%nat:1:-1))
       call yaml_comment('(F) Frequencies results',hfill='=')
       call yaml_map('(F) Eigenvalues (real part)',eigen_r(iperm(3*atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
       call yaml_map('(F) Eigenvalues (imag part)',eigen_i(iperm(3*atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
