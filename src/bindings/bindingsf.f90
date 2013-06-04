@@ -319,8 +319,8 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    type(atoms_data), intent(in) :: atoms
    integer, intent(in) :: iproc
    real(gp), intent(in) :: hx,hy,hz,crmult,frmult
-   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
    type(locreg_descriptors), intent(inout) :: Glr
 
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
