@@ -24,7 +24,7 @@ subroutine test_dictionaries0()
 !!$
 !!$  do ival=0,nval-1
 !!$     val=list//ival
-!!$     print *,'value',ival,val
+!!$     print *,'value',ival,valget
 !!$  end do
 !!$  
 !!$  call dict_free(list)
@@ -33,7 +33,15 @@ subroutine test_dictionaries0()
   !Test a dictionary
   !alternative way of initializing a dictionary
   !call dict_init(dict1)
+call f_err_severe_restore()
   dict1=>dict_new()
+
+  ival=dict1//'Toto' 
+  call yaml_map('ival not existing, fake value',ival)
+  call yaml_map('An error has been raised',f_err_check())
+  !should add a routine to retrieve the error
+
+
   ! a single scalar
 !!  call set(dict1//'',1)
 !!$  !can be also set like that, should be avoided

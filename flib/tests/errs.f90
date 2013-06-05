@@ -46,8 +46,6 @@ subroutine test_error_handling()
   call yaml_map("Error check code",f_err_check(err_id=ERR_TOTO))
   call yaml_map("Error check code2",f_err_check(err_id=ERR_TITI))
 
-  call f_err_finalize()
-
 end subroutine test_error_handling
 
 subroutine abort1()

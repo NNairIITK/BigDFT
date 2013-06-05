@@ -669,7 +669,7 @@ contains
     implicit none
     character(len=*), intent(out) :: val
     type(dictionary), intent(in) :: dict
-
+    val(1:len(val))=' '
     if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
     if (f_err_raise(no_value(dict),err_id=DICT_VALUE_ABSENT)) return
 
@@ -689,8 +689,8 @@ contains
 
   end subroutine get_dict
 
-  !set and get routines for different types
-  subroutine get_integer(ival,dict)
+  !set and get routines for different types (this routine can be called from error_check also
+  recursive subroutine get_integer(ival,dict)
     integer, intent(out) :: ival
     type(dictionary), intent(in) :: dict
     !local variables
@@ -701,7 +701,13 @@ contains
     val=dict
     !look at conversion
     read(val,*,iostat=ierror)ival
-
+    !is the value existing?
+    if (ierror/=0) then
+       if (f_err_check(err_id=DICT_VALUE_ABSENT))then
+          ival=0
+          return
+       end if
+    end if
     if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return    
   end subroutine get_integer
 

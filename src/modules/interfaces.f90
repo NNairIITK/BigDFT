@@ -583,7 +583,7 @@ module module_interfaces
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
             denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-            wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags)
+            lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags)
          use module_defs
          use module_types
          use module_fragments
@@ -604,6 +604,7 @@ module module_interfaces
          real(kind=8), dimension(:), pointer :: proj
          type(grid_dimensions), intent(in) :: d_old
          real(gp), dimension(3, atoms%astruct%nat), intent(inout) :: rxyz_old
+         type(local_zone_descriptors),intent(inout):: lzd_old
          type(wavefunctions_descriptors), intent(inout) :: wfd_old
          type(system_fragment), dimension(:), pointer :: ref_frags
        END SUBROUTINE input_wf
@@ -4754,6 +4755,65 @@ module module_interfaces
           type(orbitals_data), optional, intent(in) :: orbs
         end subroutine overlapPowerMinusOneHalf_old
 
+        subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
+                   orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
+                   lphi, psit_c, psit_f, can_use_transposed)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
+          type(orbitals_data),intent(in) :: orbs
+          type(atoms_data),intent(in) :: at
+          integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(sparseMatrix),intent(inout) :: ovrlp
+          type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+          type(collective_comms),intent(in) :: collcom
+          type(orthon_data),intent(in) :: orthpar
+          real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
+          real(kind=8),dimension(:),pointer :: psit_c, psit_f
+          logical,intent(inout) :: can_use_transposed
+        end subroutine orthonormalize_subset
+
+        subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
+                   orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
+                   lphi, psit_c, psit_f, can_use_transposed)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
+          type(orbitals_data),intent(in) :: orbs
+          type(atoms_data),intent(in) :: at
+          integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(sparseMatrix),intent(inout) :: ovrlp
+          type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+          type(collective_comms),intent(in) :: collcom
+          type(orthon_data),intent(in) :: orthpar
+          real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
+          real(kind=8),dimension(:),pointer :: psit_c, psit_f
+          logical,intent(inout) :: can_use_transposed
+        end subroutine gramschmidt_subset
+
+        subroutine input_wf_memory_new(nproc,iproc, atoms, &
+                 rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
+                 rxyz,hx,hy,hz,d,wfd,psi,orbs,lzd,displ)
+          use module_defs
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc,nproc
+          type(atoms_data), intent(in) :: atoms
+          real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz, rxyz_old
+          real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old,displ
+          type(grid_dimensions), intent(in) :: d, d_old
+          type(wavefunctions_descriptors), intent(in) :: wfd
+          type(wavefunctions_descriptors), intent(inout) :: wfd_old
+          type(orbitals_data), intent(in) :: orbs
+          type(local_zone_descriptors), intent(inout) :: lzd_old
+          type(local_zone_descriptors), intent(in) :: lzd
+          real(wp), dimension(:), pointer :: psi, psi_old
+        end subroutine input_wf_memory_new
+      
         subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GPU,proj,nlpspd,rxyz)
           use module_base
           use module_types
@@ -4768,6 +4828,7 @@ module module_interfaces
           real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
           real(dp), dimension(:), pointer :: local_potential
         end subroutine integral_equation
-   end interface
 
+  
+  end interface
 END MODULE module_interfaces

@@ -166,7 +166,7 @@ module module_types
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
     integer, dimension(:), pointer :: norbsPerType
     integer :: scf_mode, nlevel_accuracy
-    logical :: calc_dipole, pulay_correction, mixing_after_inputguess
+    logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization
     logical :: fragment_calculation, calc_transfer_integrals
   end type linearInputParameters
 
@@ -267,6 +267,7 @@ module module_types
      character(len = 64) :: domain !< Domain to get the IP from hostname.
      character(len=500) :: writing_directory !< absolute path of the local directory to write the data on
      double precision :: gmainloop !< Internal C pointer on the signaling structure.
+     integer :: inguess_geopt !< 0= Wavelet input guess, 1 = real space input guess 
 
      !orthogonalisation data
      type(orthon_data) :: orthpar
@@ -1159,6 +1160,12 @@ contains
      nullify(sym%irrzon)
      nullify(sym%phnons)
   end subroutine nullify_symm
+  pure subroutine nullify_sym(sym)
+     type(symmetry_data), intent(out) :: sym
+     sym%symObj=-1
+     nullify(sym%irrzon)
+     nullify(sym%phnons)
+  end subroutine nullify_sym
 
   function atoms_null() result(at)
      type(atoms_data) :: at

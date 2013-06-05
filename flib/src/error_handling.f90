@@ -70,6 +70,7 @@
   subroutine f_err_finalize()
     implicit none
     call f_err_unset_callback()
+    call f_err_severe_restore()
     call dict_free(dict_errors)
     call dict_free(dict_present_error)
   end subroutine f_err_finalize
@@ -173,7 +174,13 @@
           if (err_id < dict_len(dict_errors)) new_errcode=err_id
        end if
 
+       !to prevent infinite loop due to not association of the error handling
+       if (.not. associated(dict_present_error)) then
+          write(0,*)'error_handling library not initialized'
+          call f_err_severe()
+       end if
        call add(dict_present_error,new_errcode)
+
        !       call err_exception(new_errcode)
        !call yaml_dict_dump(dict_errors) !a routine to plot all created errors should be created
        !print *,'debug',new_errcode

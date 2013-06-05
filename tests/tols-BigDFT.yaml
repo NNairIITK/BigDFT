@@ -283,3 +283,7 @@ restartdisk_charge:
 rotate_write:
  Patterns to ignore:
  - Wavefunction written
+
+GEOPT-newIG:
+  Energies: 1.1e-9
+  EKS: 3.2e-10
