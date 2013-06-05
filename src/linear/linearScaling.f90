@@ -34,7 +34,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
   type(mixrhopotDIISParameters) :: mixdiis
   type(localizedDIISParameters) :: ldiis, ldiis_coeff
-  logical :: can_use_ham, update_phi, locreg_increased, reduce_conf
+  logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
   logical :: fix_support_functions, check_initialguess, fix_supportfunctions
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
   real(8),dimension(:),allocatable :: locrad_tmp
@@ -81,6 +81,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ldiis_coeff_hist=input%lin%mixHist_lowaccuracy
   reduce_conf=.false.
   ldiis_coeff_changed = .false.
+  orthonormalization_on=.true.
 
   call nullify_sparsematrix(ham_small) ! nullify anyway
 
@@ -178,6 +179,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           ! Adjust the confining potential if required.
           call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                at, input, rxyz, KSwfn, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
+          orthonormalization_on=.true.
 
           if (locreg_increased .and. input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
              call deallocate_sparsematrix(ham_small,subname)
@@ -274,7 +276,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
                reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
-               ratio_deltas)
+               ratio_deltas,orthonormalization_on)
 
            tmb%can_use_transposed=.false. !since basis functions have changed...
 

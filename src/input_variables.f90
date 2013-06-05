@@ -1746,7 +1746,7 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
     call input_var(in%frag%label(frag_num),' ',comment=comments)
     in%frag%label(frag_num)=trim(in%frag%label(frag_num))
     ! keep dirname blank if this isn't a fragment calculation
-    if (len(trim(in%frag%label(frag_num)))>1) then
+    if (len(trim(in%frag%label(frag_num)))>=1) then
        in%frag%dirname(frag_num)='data-'//trim(in%frag%label(frag_num))//'/'
     else
        in%frag%dirname(frag_num)=''
