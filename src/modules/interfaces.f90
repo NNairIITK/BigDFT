@@ -2890,13 +2890,14 @@ module module_interfaces
          logical, intent(in) :: reset
        end subroutine init_foe
 
-       subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
+       subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          type(local_zone_descriptors),intent(in) :: lzd
          type(orbitals_data),intent(in):: orbs
+         type(input_variables),intent(in) :: input
          type(sparseMatrix),intent(out):: sparsemat
        end subroutine initSparseMatrix
 

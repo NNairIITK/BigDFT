@@ -299,6 +299,9 @@ module module_types
      
      !> Global MPI group size (will be written in the mpi_environment)
      ! integer :: mpi_groupsize 
+
+     !> linear scaling: store indices of the sparse matrices or recalculate them 
+     logical :: store_index
   end type input_variables
 
   !> Contains all energy terms
@@ -683,7 +686,12 @@ module module_types
       !type(sparseMatrix_metadata), pointer :: pattern
       real(kind=8),dimension(:),pointer :: matrix_compr
       real(kind=8),dimension(:,:),pointer :: matrix
-      integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
+      !integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
+      integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
+      logical :: store_index
+
+      contains
+        procedure,pass :: matrixindex_in_compressed
   end type sparseMatrix
 
   type,public :: linear_matrices !may not keep
@@ -2549,5 +2557,27 @@ subroutine bigdft_init_errors()
   !define the severe operation via MPI_ABORT
   call f_err_severe_override(bigdft_severe_abort)
 end subroutine bigdft_init_errors
+
+
+integer function matrixindex_in_compressed(this, iorb, jorb)
+  implicit none
+
+  ! Calling arguments
+  class(sparseMatrix),intent(in) :: this
+  integer,intent(in) :: iorb, jorb
+
+  ! Local variables
+  integer :: compressed_index
+
+  if (this%store_index) then
+      ! Take the value from the array
+      matrixindex_in_compressed = this%matrixindex_in_compressed_arr(iorb,jorb)
+  else
+      ! Recalculate the value
+      matrixindex_in_compressed = compressed_index(iorb, jorb, this%full_dim1, this)
+  end if
+
+end function matrixindex_in_compressed
+
 
 end module module_types

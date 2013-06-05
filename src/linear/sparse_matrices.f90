@@ -9,7 +9,7 @@
 
  
 !> Currently assuming square matrices
-subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
+subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   use module_base
   use module_types
   use module_interfaces, fake_name => initSparseMatrix
@@ -19,6 +19,7 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
   integer,intent(in) :: iproc, nproc
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
+  type(input_variables),intent(in) :: input
   type(sparseMatrix), intent(out) :: sparsemat
   
   ! Local variables
@@ -182,15 +183,25 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
   deallocate(overlaps, stat=istat)
   call memocc(istat, iall, 'overlaps', subname)
 
-  ! initialize sparsemat%matrixindex_in_compressed
-  allocate(sparsemat%matrixindex_in_compressed(orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, sparsemat%matrixindex_in_compressed, 'sparsemat%matrixindex_in_compressed', subname)
+  if (input%store_index) then
+      ! store the indices of the matrices in the sparse format
+      sparsemat%store_index=.true.
 
-  do iorb=1,orbs%norb
-     do jorb=1,orbs%norb
-        sparsemat%matrixindex_in_compressed(iorb,jorb)=compressed_index(iorb,jorb,orbs%norb,sparsemat)
-     end do
-  end do
+      ! initialize sparsemat%matrixindex_in_compressed
+      allocate(sparsemat%matrixindex_in_compressed_arr(orbs%norb,orbs%norb), stat=istat)
+      call memocc(istat, sparsemat%matrixindex_in_compressed_arr, 'sparsemat%matrixindex_in_compressed_arr', subname)
+
+      do iorb=1,orbs%norb
+         do jorb=1,orbs%norb
+            sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,orbs%norb,sparsemat)
+         end do
+      end do
+
+  else
+      ! Otherwise alwyas calculate them on-the-fly
+      sparsemat%store_index=.false.
+      nullify(sparsemat%matrixindex_in_compressed_arr)
+  end if
 
   allocate(sparsemat%orb_from_index(sparsemat%nvctr,2), stat=istat)
   call memocc(istat, sparsemat%orb_from_index, 'sparsemat%orb_from_index', subname)
