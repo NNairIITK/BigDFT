@@ -629,5 +629,6 @@ Calculating charge density... done.
    - Box size has changed: 80
    - Molecule was shifted: 80
    - Molecule was rotated: 0
+   - Discrete operations: 0
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.399999973897E+01
