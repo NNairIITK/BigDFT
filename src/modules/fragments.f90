@@ -105,7 +105,6 @@ contains
         ! check that fragments are sensible, i.e. correct number of atoms, atom types etc.
         call check_fragments(in,ref_frags,astruct)
 
-
      ! set appropriate default values as this is not a fragment calculation
      else
         ! nullify fragment
@@ -195,7 +194,8 @@ contains
        ifrag_ref=input%frag%frag_index(ifrag)
 
        do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
-          if (ref_frags(ifrag_ref)%astruct_frg%iatype(iat) /= astruct%iatype(iat+isfat)) then
+          if (ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat)) &
+               /= astruct%atomnames(astruct%iatype(iat+isfat))) then
              fragments_ok=.false.
              write(*,*) 'Atom type for fragment ',ifrag,', reference fragment ',ifrag_ref,' atom number ',iat,&
                   ' does not match ',ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat)),&

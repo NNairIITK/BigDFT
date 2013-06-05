@@ -230,7 +230,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           if(tt>.6d0 .and. trH<trHold) then
               alpha(iorb)=alpha(iorb)*1.1d0
           ! apply a threshold so that alpha never goes below around 1.d-2
-          else if (alpha(iorb)>1.7d-8) then
+          else if (alpha(iorb)>1.7d-3) then
               alpha(iorb)=alpha(iorb)*.6d0
           end if
           !!alpha(iorb)=min(alpha(iorb),1.5d0)
