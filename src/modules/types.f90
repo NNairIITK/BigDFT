@@ -2575,8 +2575,44 @@ integer function matrixindex_in_compressed(this, iorb, jorb)
       matrixindex_in_compressed = this%matrixindex_in_compressed_arr(iorb,jorb)
   else
       ! Recalculate the value
-      matrixindex_in_compressed = compressed_index(iorb, jorb, this%full_dim1, this)
+      matrixindex_in_compressed = compressed_index_fn(iorb, jorb, this%full_dim1, this)
   end if
+
+  contains
+    ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+    integer function compressed_index_fn(irow, jcol, norb, sparsemat)
+      !use module_base
+      !use module_types
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: irow, jcol, norb
+      type(sparseMatrix),intent(in) :: sparsemat
+    
+      ! Local variables
+      integer :: ii, iseg
+    
+      ii=(jcol-1)*norb+irow
+    
+      iseg=sparsemat%istsegline(jcol)
+      do
+          if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
+              ! The matrix element is in this segment
+               compressed_index_fn = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
+              return
+          end if
+          iseg=iseg+1
+          if (iseg>sparsemat%nseg) exit
+          if (ii<sparsemat%keyg(1,iseg)) then
+              compressed_index_fn=0
+              return
+          end if
+      end do
+    
+      ! Not found
+      compressed_index_fn=0
+    
+    end function compressed_index_fn
 
 end function matrixindex_in_compressed
 
