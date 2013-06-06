@@ -100,8 +100,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           !        iiorb = (jorb-1)/tmb%orbs%norb + 1
           !        jjorb = jorb - (iiorb-1)*tmb%orbs%norb
               do ii=1,tmb%linmat%denskern%nvctr
-                      iiorb = tmb%linmat%denskern%orb_from_index(ii,1)
-                      jjorb = tmb%linmat%denskern%orb_from_index(ii,2)
+                      iiorb = tmb%linmat%denskern%orb_from_index(1,ii)
+                      jjorb = tmb%linmat%denskern%orb_from_index(2,ii)
                   if(iiorb==jjorb) then
                       tmb%linmat%denskern%matrix_compr(ii)=0.d0
                   else
@@ -120,8 +120,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
               !        iiorb = (jorb-1)/tmb%orbs%norb + 1
               !        jjorb = jorb - (iiorb-1)*tmb%orbs%norb
               do ii=1,tmb%linmat%denskern%nvctr
-                      iiorb = tmb%linmat%denskern%orb_from_index(ii,1)
-                      jjorb = tmb%linmat%denskern%orb_from_index(ii,2)
+                      iiorb = tmb%linmat%denskern%orb_from_index(1,ii)
+                      jjorb = tmb%linmat%denskern%orb_from_index(2,ii)
                       if(iiorb==jjorb .and. iiorb==iorb) then
                           ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
                           call dscal(ncount, kernel_compr_tmp(ii), tmb%hpsi(ist), 1)

@@ -345,8 +345,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
 
   indc=0
   do ind = 1, tmb%linmat%ham%nvctr
-     lorb = tmb%linmat%ham%orb_from_index(ind,1)
-     kkorb = tmb%linmat%ham%orb_from_index(ind,2)
+     lorb = tmb%linmat%ham%orb_from_index(1,ind)
+     kkorb = tmb%linmat%ham%orb_from_index(2,ind)
 
      if (lorb<kkorb) cycle ! so still only doing half
      indc = indc + 1

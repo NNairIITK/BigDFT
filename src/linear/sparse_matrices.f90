@@ -204,7 +204,7 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
       nullify(sparsemat%matrixindex_in_compressed_arr)
   end if
 
-  allocate(sparsemat%orb_from_index(sparsemat%nvctr,2), stat=istat)
+  allocate(sparsemat%orb_from_index(2,sparsemat%nvctr), stat=istat)
   call memocc(istat, sparsemat%orb_from_index, 'sparsemat%orb_from_index', subname)
 
   ind = 0
@@ -213,8 +213,8 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
         ind=ind+1
         iorb = (segn - 1) / sparsemat%full_dim1 + 1
         jorb = segn - (iorb-1)*sparsemat%full_dim1
-        sparsemat%orb_from_index(ind,1) = jorb
-        sparsemat%orb_from_index(ind,2) = iorb
+        sparsemat%orb_from_index(1,ind) = jorb
+        sparsemat%orb_from_index(2,ind) = iorb
      end do
   end do
 
@@ -621,8 +621,8 @@ subroutine compress_matrix_for_allreduce(iproc,sparsemat)
   !end do
 
   do jj=1,sparsemat%nvctr
-     irow = sparsemat%orb_from_index(jj,1)
-     jcol = sparsemat%orb_from_index(jj,2)
+     irow = sparsemat%orb_from_index(1,jj)
+     jcol = sparsemat%orb_from_index(2,jj)
      sparsemat%matrix_compr(jj)=sparsemat%matrix(irow,jcol)
   end do
 
@@ -664,8 +664,8 @@ subroutine uncompressMatrix(iproc,sparsemat)
   !end do
 
   do ii=1,sparsemat%nvctr
-     irow = sparsemat%orb_from_index(ii,1)
-     jcol = sparsemat%orb_from_index(ii,2)
+     irow = sparsemat%orb_from_index(1,ii)
+     jcol = sparsemat%orb_from_index(2,ii)
      sparsemat%matrix(irow,jcol)=sparsemat%matrix_compr(ii)
   end do
 

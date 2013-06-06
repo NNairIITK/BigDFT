@@ -1356,8 +1356,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
 
      indc=0
      do ind = 1, basis_overlap%nvctr
-        korb = basis_overlap%orb_from_index(ind,1)
-        llorb = basis_overlap%orb_from_index(ind,2)
+        korb = basis_overlap%orb_from_index(1,ind)
+        llorb = basis_overlap%orb_from_index(2,ind)
         if (korb<llorb) cycle ! so still only doing half
         indc = indc + 1
         if (indc < ind_start .or. indc > ind_end) cycle

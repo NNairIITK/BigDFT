@@ -768,8 +768,8 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       !        iiorb = (jorb-1)/norb + 1
       !        jjorb = jorb - (iiorb-1)*norb
            do ii=1,ovrlp%nvctr
-              iiorb = ovrlp%orb_from_index(ii,1)
-              jjorb = ovrlp%orb_from_index(ii,2)
+              iiorb = ovrlp%orb_from_index(1,ii)
+              jjorb = ovrlp%orb_from_index(2,ii)
 
               ii_inv = inv_ovrlp_half%matrixindex_in_compressed(iiorb,jjorb) ! double check this order
               if(iiorb==jjorb) then
