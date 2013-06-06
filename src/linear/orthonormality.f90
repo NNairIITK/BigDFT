@@ -28,7 +28,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   logical,intent(inout) :: can_use_transposed
 
   ! Local variables
-  integer :: it, istat, iall, irow, jcol, ii!, iorb, jorb
+  integer :: it, istat, iall, irow, jcol, ii, iorb, jorb
   real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm
   !type(sparseMatrix) :: inv_ovrlp_half
   character(len=*),parameter :: subname='orthonormalizeLocalized'
@@ -120,6 +120,17 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 
       call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
       call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
+      do iorb=1,orbs%norb
+        do jorb=1,orbs%norb
+          write(61,*) iorb, jorb, inv_ovrlp_half%matrixindex_in_compressed(jorb,iorb)
+        end do
+      end do
+      do iorb=lbound(collcom%matrixindex_in_compressed,2),ubound(collcom%matrixindex_in_compressed,2)
+        do jorb=lbound(collcom%matrixindex_in_compressed,1),ubound(collcom%matrixindex_in_compressed,1)
+        !do jorb=1,tmb%orbs%norb
+          write(62,*) iorb, jorb, collcom%matrixindex_in_compressed(jorb,iorb)
+        end do
+      end do
       call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
       allocate(norm(orbs%norb), stat=istat)
@@ -1341,6 +1352,19 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
       call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
       call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
+
+      do iorb=1,orbs%norb
+        do jorb=1,orbs%norb
+          write(51,*) iorb, jorb, inv_ovrlp_half%matrixindex_in_compressed(jorb,iorb)
+        end do
+      end do
+      do iorb=lbound(collcom%matrixindex_in_compressed,2),ubound(collcom%matrixindex_in_compressed,2)
+        do jorb=lbound(collcom%matrixindex_in_compressed,1),ubound(collcom%matrixindex_in_compressed,1)
+        !do jorb=1,tmb%orbs%norb
+          write(52,*) iorb, jorb, collcom%matrixindex_in_compressed(jorb,iorb)
+        end do
+      end do
+
       call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
       allocate(norm(orbs%norb), stat=istat)

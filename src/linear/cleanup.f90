@@ -1112,6 +1112,7 @@ subroutine deallocate_sparseMatrix(sparsemat, subname)
   !call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed, 'sparseMat%matrixindex_in_compressed', subname)
   call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_arr, 'sparseMat%matrixindex_in_compressed_arr', subname)
   call checkAndDeallocatePointer(sparseMat%orb_from_index, 'sparseMat%orb_from_index', subname)
+  call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_fortransposed, 'sparseMat%matrixindex_in_compressed_fortransposed', subname)
 
 end subroutine deallocate_sparseMatrix
 
@@ -1158,6 +1159,7 @@ subroutine deallocate_collective_comms(collcom, subname)
   call checkAndDeallocatePointer(collcom%nrecvcounts_repartitionrho, 'collcom%nrecvcounts_repartitionrho', subname)
   call checkAndDeallocatePointer(collcom%nsenddspls_repartitionrho, 'collcom%nsenddspls_repartitionrho', subname)
   call checkAndDeallocatePointer(collcom%nrecvdspls_repartitionrho, 'collcom%nrecvdspls_repartitionrho', subname)
+  call checkAndDeallocatePointer(collcom%matrixindex_in_compressed, 'collcom%matrixindex_in_compressed', subname)
 
 end subroutine deallocate_collective_comms
 

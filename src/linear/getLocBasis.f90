@@ -71,6 +71,18 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+      do iorb=1,tmb%orbs%norb
+        do jorb=1,tmb%orbs%norb
+          write(21,*) iorb, jorb, tmb%linmat%ovrlp%matrixindex_in_compressed(jorb,iorb)
+        end do
+      end do
+      do iorb=lbound(tmb%collcom%matrixindex_in_compressed,2),ubound(tmb%collcom%matrixindex_in_compressed,2)
+        do jorb=lbound(tmb%collcom%matrixindex_in_compressed,1),ubound(tmb%collcom%matrixindex_in_compressed,1)
+        !do jorb=1,tmb%orbs%norb
+          write(22,*) iorb, jorb, tmb%collcom%matrixindex_in_compressed(jorb,iorb)
+        end do
+      end do
+      
   end if
 
   ! Post the p2p communications for the density. (must not be done in inputguess)
@@ -152,6 +164,17 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
            tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
            tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%ham)
+      do iorb=1,tmb%orbs%norb
+        do jorb=1,tmb%orbs%norb
+          write(31,*) iorb, jorb, tmb%linmat%ham%matrixindex_in_compressed(jorb,iorb)
+        end do
+      end do
+      do iorb=lbound(tmb%ham_descr%collcom%matrixindex_in_compressed,2),ubound(tmb%ham_descr%collcom%matrixindex_in_compressed,2)
+        do jorb=lbound(tmb%ham_descr%collcom%matrixindex_in_compressed,1),ubound(tmb%ham_descr%collcom%matrixindex_in_compressed,1)
+        !do jorb=1,tmb%orbs%norb
+          write(32,*) iorb, jorb, tmb%ham_descr%collcom%matrixindex_in_compressed(jorb,iorb)
+        end do
+      end do
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)
       call memocc(istat, iall, 'hpsit_c', subname)

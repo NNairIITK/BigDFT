@@ -688,6 +688,7 @@ module module_types
       real(kind=8),dimension(:,:),pointer :: matrix
       !integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
+      integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
       logical :: store_index
 
       contains
@@ -710,6 +711,7 @@ module module_types
     real(kind=8),dimension(:),pointer :: psit_c, psit_f
     integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
     integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
+    integer,dimension(:,:),pointer :: matrixindex_in_compressed
   end type collective_comms
 
 

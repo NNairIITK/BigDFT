@@ -66,6 +66,7 @@ subroutine nullify_sparsematrix(sparsemat)
   nullify(sparsemat%matrix_compr)
   nullify(sparsemat%matrixindex_in_compressed_arr)
   nullify(sparsemat%orb_from_index)
+  nullify(sparsemat%matrixindex_in_compressed_fortransposed)
 
 end subroutine nullify_sparsematrix
 
@@ -172,5 +173,6 @@ subroutine nullify_collective_comms(collcom)
   nullify(collcom%nrecvcounts_repartitionrho)
   nullify(collcom%nsenddspls_repartitionrho)
   nullify(collcom%nrecvdspls_repartitionrho)
+  nullify(collcom%matrixindex_in_compressed)
 
 end subroutine nullify_collective_comms

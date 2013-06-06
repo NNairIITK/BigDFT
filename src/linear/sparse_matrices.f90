@@ -24,11 +24,12 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   
   ! Local variables
   integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, nseg, irow, irowold, isegline, ilr, segn, ind, iseg
-  integer :: nseglinemax, iall
+  integer :: nseglinemax, iall, isend, irecv, kproc, imin, imax, ierr
   integer :: compressed_index
   integer,dimension(:,:,:),pointer:: keygline
   integer,dimension(:),pointer:: noverlaps
   integer,dimension(:,:),pointer:: overlaps
+  integer,dimension(:,:),allocatable :: sendbuf, requests, iminmaxarr
   character(len=*),parameter :: subname='initSparseMatrix'
   
   call timing(iproc,'init_matrCompr','ON')
@@ -216,6 +217,88 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
         sparsemat%orb_from_index(ind,2) = iorb
      end do
   end do
+
+
+!!  ! for the calculation of overlaps and the charge density
+!!  imin=minval(collcom%indexrecvorbital_c)
+!!  imin=min(imin,minval(collcom%indexrecvorbital_f))
+!!  imax=maxval(collcom%indexrecvorbital_c)
+!!  imax=max(imax,maxval(collcom%indexrecvorbital_f))
+!!
+!!  allocate(collcom%matrixindex_in_compressed(orbs%norb,imin:imax), stat=istat)
+!!  call memocc(istat, collcom%matrixindex_in_compressed, 'collcom%matrixindex_in_compressed', subname)
+!!
+!!  allocate(sendbuf(orbs%norb,orbs%norbp), stat=istat)
+!!  call memocc(istat, sendbuf, 'sendbuf', subname)
+!!
+!!  do iorb=1,orbs%norbp
+!!      iiorb=orbs%isorb+iorb
+!!      do jorb=1,orbs%norb
+!!          sendbuf(jorb,iorb)=compressed_index(iiorb,jorb,orbs%norb,sparsemat)
+!!      end do
+!!  end do
+!!
+!!  allocate(iminmaxarr(2,0:nproc-1), stat=istat)
+!!  call memocc(istat, iminmaxarr, 'iminmaxarr', subname)
+!!  call to_zero(2*nproc, iminmaxarr(1,0))
+!!  iminmaxarr(1,iproc)=imin
+!!  iminmaxarr(2,iproc)=imax
+!!  call mpiallred(iminmaxarr(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+!!
+!!  allocate(requests(maxval(orbs%norb_par(:,0))*nproc,2), stat=istat)
+!!  call memocc(istat, requests, 'requests', subname)
+!!
+!!  if (nproc>1) then
+!!
+!!      isend=0
+!!      irecv=0
+!!      do jproc=0,nproc-1
+!!          do jorb=1,orbs%norb_par(jproc,0)
+!!              jjorb=jorb+orbs%isorb_par(jproc)
+!!              do kproc=0,nproc-1
+!!                  if (jjorb>=iminmaxarr(1,kproc) .and. jjorb<=iminmaxarr(2,kproc)) then
+!!                      ! send from jproc to kproc
+!!                      if (iproc==jproc) then
+!!                          isend=isend+1
+!!                          call mpi_isend(sendbuf(1,jorb), orbs%norb, &
+!!                               mpi_integer, kproc, jjorb, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+!!                      end if
+!!                      if (iproc==kproc) then
+!!                          irecv=irecv+1
+!!                          call mpi_irecv(collcom%matrixindex_in_compressed(1,jjorb), orbs%norb, &
+!!                               mpi_integer, jproc, jjorb, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+!!                      end if
+!!                  end if
+!!              end do
+!!          end do
+!!      end do
+!!
+!!      call mpi_waitall(isend, requests(1,1), mpi_statuses_ignore, ierr)
+!!      call mpi_waitall(irecv, requests(1,2), mpi_statuses_ignore, ierr)
+!!
+!!  else
+!!      call vcopy(orbs%norb*orbs%norbp, sendbuf(1,1), 1, collcom%matrixindex_in_compressed(1,1), 1)
+!!  end if
+!!
+!!  !!do iorb=imin,imax
+!!  !!    do jorb=1,orbs%norb
+!!  !!        write(200+iproc,*) iorb,jorb,collcom%matrixindex_in_compressed(jorb,iorb)
+!!  !!    end do
+!!  !!end do
+!!
+!!
+!!  iall=-product(shape(iminmaxarr))*kind(iminmaxarr)
+!!  deallocate(iminmaxarr, stat=istat)
+!!  call memocc(istat, iall, 'iminmaxarr', subname)
+!!
+!!  iall=-product(shape(requests))*kind(requests)
+!!  deallocate(requests, stat=istat)
+!!  call memocc(istat, iall, 'requests', subname)
+!!
+!!  iall=-product(shape(sendbuf))*kind(sendbuf)
+!!  deallocate(sendbuf, stat=istat)
+!!  call memocc(istat, iall, 'sendbuf', subname)
+
 
 
   call timing(iproc,'init_matrCompr','OF')

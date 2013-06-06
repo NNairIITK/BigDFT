@@ -1067,7 +1067,9 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      ! Update sparse matrices
      call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%ham)
+     call init_collcom_matrixindex_in_compressed(iproc, nproc, tmb%orbs, tmb%linmat%ham, tmb%ham_descr%collcom)
      call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, input, tmb%linmat%ovrlp)
+     call init_collcom_matrixindex_in_compressed(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%collcom)
      !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
      call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%denskern)
      call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
