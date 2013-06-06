@@ -212,16 +212,21 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   allocate(tmp_mat_compr(lagmat%nvctr), stat=istat) ! save cf doing sparsecopy
   call memocc(istat, tmp_mat_compr, 'tmp_mat_compr', subname)
 call timing(iproc,'misc','ON')
-  do jorb=1,orbs%norb
-     do iorb=1,orbs%norb
-          ii_trans = matrixindex_in_compressed(lagmat,jorb, iorb)
-          ii = matrixindex_in_compressed(lagmat,iorb, jorb)
-          if (ii==0.or.ii_trans==0) cycle
+  do ii=1,lagmat%nvctr
+     iorb = lagmat%orb_from_index(1,ii)
+     jorb = lagmat%orb_from_index(2,ii)
+     ii_trans=matrixindex_in_compressed(lagmat,jorb, iorb)
+
+  !do jorb=1,orbs%norb
+     !do iorb=1,orbs%norb
+          !ii_trans = matrixindex_in_compressed(lagmat,jorb, iorb)
+          !ii = matrixindex_in_compressed(lagmat,iorb, jorb)
+          !if (ii==0.or.ii_trans==0) cycle
           tmp_mat_compr(ii)=-0.5d0*lagmat%matrix_compr(ii) &
                -0.5d0*lagmat%matrix_compr(ii_trans)
           !tmp_mat%matrix_compr(ii)=-0.5d0*lagmat%matrix_compr(ii) &
           !     -0.5d0*lagmat%matrix_compr(ii_trans)
-      end do
+      !end do
   end do
 
   allocate(lagmat_tmp_compr(lagmat%nvctr), stat=istat) ! save cf doing sparsecopy
@@ -256,156 +261,156 @@ end subroutine orthoconstraintNonorthogonal
 
 ! can still tidy this up more when tmblarge is removed
 ! use sparsity of density kernel for all inverse quantities
-subroutine orthoconstraintNonorthogonal_orig(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
-           correction_orthoconstraint, linmat, lphi, lhphi, lagmat, psit_c, psit_f, hpsit_c, hpsit_f, &
-           can_use_transposed, overlap_calculated)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp
-  type(local_zone_descriptors),intent(in) :: lzd
-  type(orbitals_Data),intent(in) :: orbs
-  type(collective_comms),intent(in) :: collcom
-  type(orthon_data),intent(in) :: orthpar
-  integer,intent(in) :: correction_orthoconstraint
-  real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
-  real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
-  type(SparseMatrix),intent(inout) :: lagmat
-  real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
-  logical,intent(inout) :: can_use_transposed, overlap_calculated
-  type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
-
-  ! Local variables
-  integer :: istat, iall, iorb, jorb, ii, ii_trans, matrixindex_in_compressed
-  type(SparseMatrix) :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans, tmp_mat
-  character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
-
-
-  ! ASSUME denskern sparsity pattern is symmetric
-  ! create ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans with sparsity pattern of denskern here
-  ! this is slight overkill for no orthoconstraint correction, think about going back to just matrices
-  ! also isn't going to work unless denskern sparsity = lagmat sparsity...
-  call nullify_sparsematrix(ovrlp_minus_one_lagmat)
-  call sparse_copy_pattern(linmat%denskern, ovrlp_minus_one_lagmat, iproc, subname)
-  call nullify_sparsematrix(ovrlp_minus_one_lagmat_trans)
-  call sparse_copy_pattern(linmat%denskern, ovrlp_minus_one_lagmat_trans, iproc, subname)
-
-  if (correction_orthoconstraint==0) then
-      allocate(ovrlp_minus_one_lagmat%matrix_compr(ovrlp_minus_one_lagmat%nvctr), stat=istat)
-      call memocc(istat, ovrlp_minus_one_lagmat%matrix_compr, 'ovrlp_minus_one_lagmat%matrix_compr', subname)
-      allocate(ovrlp_minus_one_lagmat_trans%matrix_compr(ovrlp_minus_one_lagmat_trans%nvctr), stat=istat)
-      call memocc(istat, ovrlp_minus_one_lagmat_trans%matrix_compr, 'ovrlp_minus_one_lagmat_trans%matrix_compr', subname)
-  else
-      ovrlp_minus_one_lagmat%matrix_compr => lagmat%matrix_compr
-      ovrlp_minus_one_lagmat_trans%matrix_compr => lagmat%matrix_compr
-  end if
-
-  if(.not. can_use_transposed) then
-      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, psit_c, 'psit_c', subname)
-
-      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psit_f, 'psit_f', subname)
-
-      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
-      can_use_transposed=.true.
-  end if
-
-  ! It is assumed that this routine is called with the transposed gradient ready if it is associated...
-  if(.not.associated(hpsit_c)) then
-      allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, hpsit_c, 'hpsit_c', subname)
- 
-      allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, hpsit_f, 'hpsit_f', subname)
- 
-     call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
-  end if
-
-  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
-
-  if (correction_orthoconstraint==0) then !not correctly working
-      if(overlap_calculated) stop 'overlap_calculated should be wrong... To be modified later'
-
-      ! problem here as psit match tmblarge whereas linmat%ovrlp matches tmb
-      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
-
-      allocate(linmat%ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)
-      call memocc(istat, linmat%ovrlp%matrix, 'linmat%ovrlp%matrix', subname)
-
-      call uncompressMatrix(iproc,linmat%ovrlp)
-
-      allocate(lagmat%matrix(orbs%norb,orbs%norb), stat=istat)
-      call memocc(istat, lagmat%matrix, 'lagmat%matrix', subname)
-
-      call uncompressMatrix(iproc,lagmat)
-
-      allocate(ovrlp_minus_one_lagmat%matrix(orbs%norb,orbs%norb), stat=istat)
-      call memocc(istat, ovrlp_minus_one_lagmat%matrix, 'ovrlp_minus_one_lagmat%matrix', subname)
- 
-      allocate(ovrlp_minus_one_lagmat_trans%matrix(orbs%norb,orbs%norb), stat=istat)
-      call memocc(istat, ovrlp_minus_one_lagmat_trans%matrix, 'ovrlp_minus_one_lagmat_trans%matrix', subname)
-
-      call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
-           correction_orthoconstraint, orbs, lagmat%matrix, linmat%ovrlp%matrix, &
-           ovrlp_minus_one_lagmat%matrix, ovrlp_minus_one_lagmat_trans%matrix)
-
-      iall=-product(shape(linmat%ovrlp%matrix))*kind(linmat%ovrlp%matrix)
-      deallocate(linmat%ovrlp%matrix, stat=istat)
-      call memocc(istat, iall, 'linmat%ovrlp%matrix', subname)
-
-      iall=-product(shape(lagmat%matrix))*kind(lagmat%matrix)
-      deallocate(lagmat%matrix, stat=istat)
-      call memocc(istat, iall, 'lagmat%matrix', subname)
-
-      call compress_matrix_for_allreduce(iproc,ovrlp_minus_one_lagmat)
-
-      iall=-product(shape(ovrlp_minus_one_lagmat%matrix))*kind(ovrlp_minus_one_lagmat%matrix)
-      deallocate(ovrlp_minus_one_lagmat%matrix, stat=istat)
-      call memocc(istat, iall, 'ovrlp_minus_one_lagmat%matrix', subname)
- 
-      call compress_matrix_for_allreduce(iproc,ovrlp_minus_one_lagmat_trans)
-
-      iall=-product(shape(ovrlp_minus_one_lagmat_trans%matrix))*kind(ovrlp_minus_one_lagmat_trans%matrix)
-      deallocate(ovrlp_minus_one_lagmat_trans%matrix, stat=istat)
-      call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans%matrix', subname)
-  end if
-
-  call nullify_sparseMatrix(tmp_mat)
-  call sparse_copy_pattern(ovrlp_minus_one_lagmat,tmp_mat,iproc,subname)
-
-  allocate(tmp_mat%matrix_compr(tmp_mat%nvctr), stat=istat)
-  call memocc(istat, tmp_mat%matrix_compr, 'tmp_mat%matrix_compr', subname)
-call timing(iproc,'misc','ON')
-  do jorb=1,orbs%norb
-     do iorb=1,orbs%norb
-          ii_trans = matrixindex_in_compressed(ovrlp_minus_one_lagmat_trans,jorb, iorb)
-          ii = matrixindex_in_compressed(ovrlp_minus_one_lagmat,iorb, jorb)
-          if (ii==0.or.ii_trans==0) cycle
-          tmp_mat%matrix_compr(ii)=-0.5d0*ovrlp_minus_one_lagmat%matrix_compr(ii) &
-               -0.5d0*ovrlp_minus_one_lagmat_trans%matrix_compr(ii_trans)
-      end do
-  end do
-call timing(iproc,'misc','OF')
-  call build_linear_combination_transposed(collcom, tmp_mat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
-  call deallocate_sparseMatrix(tmp_mat, subname)
-
-  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
-
-  if (correction_orthoconstraint/=0) then
-      nullify(ovrlp_minus_one_lagmat%matrix_compr)
-      nullify(ovrlp_minus_one_lagmat_trans%matrix_compr)
-  end if
-
-  call deallocate_sparseMatrix(ovrlp_minus_one_lagmat, subname)
-  call deallocate_sparseMatrix(ovrlp_minus_one_lagmat_trans, subname)
-
-  overlap_calculated=.false.
-
-end subroutine orthoconstraintNonorthogonal_orig
+!!subroutine orthoconstraintNonorthogonal_orig(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
+!!           correction_orthoconstraint, linmat, lphi, lhphi, lagmat, psit_c, psit_f, hpsit_c, hpsit_f, &
+!!           can_use_transposed, overlap_calculated)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp
+!!  type(local_zone_descriptors),intent(in) :: lzd
+!!  type(orbitals_Data),intent(in) :: orbs
+!!  type(collective_comms),intent(in) :: collcom
+!!  type(orthon_data),intent(in) :: orthpar
+!!  integer,intent(in) :: correction_orthoconstraint
+!!  real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
+!!  real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
+!!  type(SparseMatrix),intent(inout) :: lagmat
+!!  real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
+!!  logical,intent(inout) :: can_use_transposed, overlap_calculated
+!!  type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
+!!
+!!  ! Local variables
+!!  integer :: istat, iall, iorb, jorb, ii, ii_trans, matrixindex_in_compressed
+!!  type(SparseMatrix) :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans, tmp_mat
+!!  character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
+!!
+!!
+!!  ! ASSUME denskern sparsity pattern is symmetric
+!!  ! create ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans with sparsity pattern of denskern here
+!!  ! this is slight overkill for no orthoconstraint correction, think about going back to just matrices
+!!  ! also isn't going to work unless denskern sparsity = lagmat sparsity...
+!!  call nullify_sparsematrix(ovrlp_minus_one_lagmat)
+!!  call sparse_copy_pattern(linmat%denskern, ovrlp_minus_one_lagmat, iproc, subname)
+!!  call nullify_sparsematrix(ovrlp_minus_one_lagmat_trans)
+!!  call sparse_copy_pattern(linmat%denskern, ovrlp_minus_one_lagmat_trans, iproc, subname)
+!!
+!!  if (correction_orthoconstraint==0) then
+!!      allocate(ovrlp_minus_one_lagmat%matrix_compr(ovrlp_minus_one_lagmat%nvctr), stat=istat)
+!!      call memocc(istat, ovrlp_minus_one_lagmat%matrix_compr, 'ovrlp_minus_one_lagmat%matrix_compr', subname)
+!!      allocate(ovrlp_minus_one_lagmat_trans%matrix_compr(ovrlp_minus_one_lagmat_trans%nvctr), stat=istat)
+!!      call memocc(istat, ovrlp_minus_one_lagmat_trans%matrix_compr, 'ovrlp_minus_one_lagmat_trans%matrix_compr', subname)
+!!  else
+!!      ovrlp_minus_one_lagmat%matrix_compr => lagmat%matrix_compr
+!!      ovrlp_minus_one_lagmat_trans%matrix_compr => lagmat%matrix_compr
+!!  end if
+!!
+!!  if(.not. can_use_transposed) then
+!!      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+!!      call memocc(istat, psit_c, 'psit_c', subname)
+!!
+!!      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+!!      call memocc(istat, psit_f, 'psit_f', subname)
+!!
+!!      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
+!!      can_use_transposed=.true.
+!!  end if
+!!
+!!  ! It is assumed that this routine is called with the transposed gradient ready if it is associated...
+!!  if(.not.associated(hpsit_c)) then
+!!      allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+!!      call memocc(istat, hpsit_c, 'hpsit_c', subname)
+!! 
+!!      allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+!!      call memocc(istat, hpsit_f, 'hpsit_f', subname)
+!! 
+!!     call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
+!!  end if
+!!
+!!  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
+!!
+!!  if (correction_orthoconstraint==0) then !not correctly working
+!!      if(overlap_calculated) stop 'overlap_calculated should be wrong... To be modified later'
+!!
+!!      ! problem here as psit match tmblarge whereas linmat%ovrlp matches tmb
+!!      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
+!!
+!!      allocate(linmat%ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)
+!!      call memocc(istat, linmat%ovrlp%matrix, 'linmat%ovrlp%matrix', subname)
+!!
+!!      call uncompressMatrix(iproc,linmat%ovrlp)
+!!
+!!      allocate(lagmat%matrix(orbs%norb,orbs%norb), stat=istat)
+!!      call memocc(istat, lagmat%matrix, 'lagmat%matrix', subname)
+!!
+!!      call uncompressMatrix(iproc,lagmat)
+!!
+!!      allocate(ovrlp_minus_one_lagmat%matrix(orbs%norb,orbs%norb), stat=istat)
+!!      call memocc(istat, ovrlp_minus_one_lagmat%matrix, 'ovrlp_minus_one_lagmat%matrix', subname)
+!! 
+!!      allocate(ovrlp_minus_one_lagmat_trans%matrix(orbs%norb,orbs%norb), stat=istat)
+!!      call memocc(istat, ovrlp_minus_one_lagmat_trans%matrix, 'ovrlp_minus_one_lagmat_trans%matrix', subname)
+!!
+!!      call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
+!!           correction_orthoconstraint, orbs, lagmat%matrix, linmat%ovrlp%matrix, &
+!!           ovrlp_minus_one_lagmat%matrix, ovrlp_minus_one_lagmat_trans%matrix)
+!!
+!!      iall=-product(shape(linmat%ovrlp%matrix))*kind(linmat%ovrlp%matrix)
+!!      deallocate(linmat%ovrlp%matrix, stat=istat)
+!!      call memocc(istat, iall, 'linmat%ovrlp%matrix', subname)
+!!
+!!      iall=-product(shape(lagmat%matrix))*kind(lagmat%matrix)
+!!      deallocate(lagmat%matrix, stat=istat)
+!!      call memocc(istat, iall, 'lagmat%matrix', subname)
+!!
+!!      call compress_matrix_for_allreduce(iproc,ovrlp_minus_one_lagmat)
+!!
+!!      iall=-product(shape(ovrlp_minus_one_lagmat%matrix))*kind(ovrlp_minus_one_lagmat%matrix)
+!!      deallocate(ovrlp_minus_one_lagmat%matrix, stat=istat)
+!!      call memocc(istat, iall, 'ovrlp_minus_one_lagmat%matrix', subname)
+!! 
+!!      call compress_matrix_for_allreduce(iproc,ovrlp_minus_one_lagmat_trans)
+!!
+!!      iall=-product(shape(ovrlp_minus_one_lagmat_trans%matrix))*kind(ovrlp_minus_one_lagmat_trans%matrix)
+!!      deallocate(ovrlp_minus_one_lagmat_trans%matrix, stat=istat)
+!!      call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans%matrix', subname)
+!!  end if
+!!
+!!  call nullify_sparseMatrix(tmp_mat)
+!!  call sparse_copy_pattern(ovrlp_minus_one_lagmat,tmp_mat,iproc,subname)
+!!
+!!  allocate(tmp_mat%matrix_compr(tmp_mat%nvctr), stat=istat)
+!!  call memocc(istat, tmp_mat%matrix_compr, 'tmp_mat%matrix_compr', subname)
+!!call timing(iproc,'misc','ON')
+!!  do jorb=1,orbs%norb
+!!     do iorb=1,orbs%norb
+!!          ii_trans = matrixindex_in_compressed(ovrlp_minus_one_lagmat_trans,jorb, iorb)
+!!          ii = matrixindex_in_compressed(ovrlp_minus_one_lagmat,iorb, jorb)
+!!          if (ii==0.or.ii_trans==0) cycle
+!!          tmp_mat%matrix_compr(ii)=-0.5d0*ovrlp_minus_one_lagmat%matrix_compr(ii) &
+!!               -0.5d0*ovrlp_minus_one_lagmat_trans%matrix_compr(ii_trans)
+!!      end do
+!!  end do
+!!call timing(iproc,'misc','OF')
+!!  call build_linear_combination_transposed(collcom, tmp_mat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+!!  call deallocate_sparseMatrix(tmp_mat, subname)
+!!
+!!  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
+!!
+!!  if (correction_orthoconstraint/=0) then
+!!      nullify(ovrlp_minus_one_lagmat%matrix_compr)
+!!      nullify(ovrlp_minus_one_lagmat_trans%matrix_compr)
+!!  end if
+!!
+!!  call deallocate_sparseMatrix(ovrlp_minus_one_lagmat, subname)
+!!  call deallocate_sparseMatrix(ovrlp_minus_one_lagmat_trans, subname)
+!!
+!!  overlap_calculated=.false.
+!!
+!!end subroutine orthoconstraintNonorthogonal_orig
 
 subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comarr)
   use module_base
