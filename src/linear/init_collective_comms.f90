@@ -3373,7 +3373,7 @@ subroutine init_collcom_matrixindex_in_compressed(iproc, nproc, orbs, collcom, c
   imax=max(imax,maxval(collcom_sr%indexrecvorbital_c))
 
   allocate(sparsemat%matrixindex_in_compressed_fortransposed(imin:imax,imin:imax), stat=istat)
-  call memocc(istat, collcom%matrixindex_in_compressed, 'collcom%matrixindex_in_compressed', subname)
+  call memocc(istat, sparsemat%matrixindex_in_compressed_fortransposed, 'sparsemat%matrixindex_in_compressed_fortransposed', subname)
 
 !!  allocate(sendbuf(orbs%norbp,orbs%norb), stat=istat)
 !!  call memocc(istat, sendbuf, 'sendbuf', subname)
