@@ -1829,11 +1829,8 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      nsize_psi=1
      ! This is just to save memory, since calculate_forces will require quite a lot
      call deallocate_collective_comms(tmb%collcom, subname)
-     write(*,*) 'here 1'
      call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
-     write(*,*) 'here 2'
      call deallocate_collective_comms(tmb%collcom_sr, subname)
-     write(*,*) 'here 3'
   else
      imode = 0
      nsize_psi = (KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f)*KSwfn%orbs%nspinor*KSwfn%orbs%norbp
