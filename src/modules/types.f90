@@ -711,7 +711,6 @@ module module_types
     real(kind=8),dimension(:),pointer :: psit_c, psit_f
     integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
     integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
-    integer,dimension(:,:),pointer :: matrixindex_in_compressed
   end type collective_comms
 
 
