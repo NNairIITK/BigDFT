@@ -1112,7 +1112,8 @@ subroutine deallocate_sparseMatrix(sparsemat, subname)
   !call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed, 'sparseMat%matrixindex_in_compressed', subname)
   call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_arr, 'sparseMat%matrixindex_in_compressed_arr', subname)
   call checkAndDeallocatePointer(sparseMat%orb_from_index, 'sparseMat%orb_from_index', subname)
-  call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_fortransposed, 'sparseMat%matrixindex_in_compressed_fortransposed', subname)
+  call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_fortransposed, &
+       'sparseMat%matrixindex_in_compressed_fortransposed', subname)
 
 end subroutine deallocate_sparseMatrix
 

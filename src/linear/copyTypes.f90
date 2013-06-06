@@ -1266,7 +1266,8 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
   end if
 
   if(associated(sparsemat_out%matrixindex_in_compressed_fortransposed)) then
-     iall=-product(shape(sparsemat_out%matrixindex_in_compressed_fortransposed))*kind(sparsemat_out%matrixindex_in_compressed_fortransposed)
+     iall=-product(shape(sparsemat_out%matrixindex_in_compressed_fortransposed))*&
+         &kind(sparsemat_out%matrixindex_in_compressed_fortransposed)
      deallocate(sparsemat_out%matrixindex_in_compressed_fortransposed, stat=istat)
      call memocc(istat, iall, 'sparsemat_out%matrixindex_in_compressed_fortransposed', subname)
   end if
@@ -1276,10 +1277,12 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
      iis2=lbound(sparsemat_in%matrixindex_in_compressed_fortransposed,2)
      iie2=ubound(sparsemat_in%matrixindex_in_compressed_fortransposed,2)
      allocate(sparsemat_out%matrixindex_in_compressed_fortransposed(iis1:iie1,iis2:iie2), stat=istat)
-     call memocc(istat, sparsemat_out%matrixindex_in_compressed_fortransposed, 'sparsemat_out%matrixindex_in_compressed_fortransposed', subname)
+     call memocc(istat, sparsemat_out%matrixindex_in_compressed_fortransposed, &
+         'sparsemat_out%matrixindex_in_compressed_fortransposed', subname)
      do i1=iis1,iie1
         do i2 = iis2,iie2
-           sparsemat_out%matrixindex_in_compressed_fortransposed(i1,i2) = sparsemat_in%matrixindex_in_compressed_fortransposed(i1,i2)
+           sparsemat_out%matrixindex_in_compressed_fortransposed(i1,i2) = &
+                sparsemat_in%matrixindex_in_compressed_fortransposed(i1,i2)
         end do
      end do
   end if
