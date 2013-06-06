@@ -691,8 +691,8 @@ module module_types
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
       logical :: store_index
 
-      contains
-        procedure,pass :: matrixindex_in_compressed
+      !!contains
+      !!  procedure,pass :: matrixindex_in_compressed
   end type sparseMatrix
 
   type,public :: linear_matrices !may not keep
@@ -2560,61 +2560,61 @@ subroutine bigdft_init_errors()
 end subroutine bigdft_init_errors
 
 
-integer function matrixindex_in_compressed(this, iorb, jorb)
-  implicit none
-
-  ! Calling arguments
-  class(sparseMatrix),intent(in) :: this
-  integer,intent(in) :: iorb, jorb
-
-  ! Local variables
-  integer :: compressed_index
-
-  if (this%store_index) then
-      ! Take the value from the array
-      matrixindex_in_compressed = this%matrixindex_in_compressed_arr(iorb,jorb)
-  else
-      ! Recalculate the value
-      matrixindex_in_compressed = compressed_index_fn(iorb, jorb, this%full_dim1, this)
-  end if
-
-  contains
-    ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-    integer function compressed_index_fn(irow, jcol, norb, sparsemat)
-      !use module_base
-      !use module_types
-      implicit none
-    
-      ! Calling arguments
-      integer,intent(in) :: irow, jcol, norb
-      type(sparseMatrix),intent(in) :: sparsemat
-    
-      ! Local variables
-      integer :: ii, iseg
-    
-      ii=(jcol-1)*norb+irow
-    
-      iseg=sparsemat%istsegline(jcol)
-      do
-          if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
-              ! The matrix element is in this segment
-               compressed_index_fn = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
-              return
-          end if
-          iseg=iseg+1
-          if (iseg>sparsemat%nseg) exit
-          if (ii<sparsemat%keyg(1,iseg)) then
-              compressed_index_fn=0
-              return
-          end if
-      end do
-    
-      ! Not found
-      compressed_index_fn=0
-    
-    end function compressed_index_fn
-
-end function matrixindex_in_compressed
+!!integer function matrixindex_in_compressed(this, iorb, jorb)
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  class(sparseMatrix),intent(in) :: this
+!!  integer,intent(in) :: iorb, jorb
+!!
+!!  ! Local variables
+!!  integer :: compressed_index
+!!
+!!  if (this%store_index) then
+!!      ! Take the value from the array
+!!      matrixindex_in_compressed = this%matrixindex_in_compressed_arr(iorb,jorb)
+!!  else
+!!      ! Recalculate the value
+!!      matrixindex_in_compressed = compressed_index_fn(iorb, jorb, this%full_dim1, this)
+!!  end if
+!!
+!!  contains
+!!    ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+!!    integer function compressed_index_fn(irow, jcol, norb, sparsemat)
+!!      !use module_base
+!!      !use module_types
+!!      implicit none
+!!    
+!!      ! Calling arguments
+!!      integer,intent(in) :: irow, jcol, norb
+!!      type(sparseMatrix),intent(in) :: sparsemat
+!!    
+!!      ! Local variables
+!!      integer :: ii, iseg
+!!    
+!!      ii=(jcol-1)*norb+irow
+!!    
+!!      iseg=sparsemat%istsegline(jcol)
+!!      do
+!!          if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
+!!              ! The matrix element is in this segment
+!!               compressed_index_fn = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
+!!              return
+!!          end if
+!!          iseg=iseg+1
+!!          if (iseg>sparsemat%nseg) exit
+!!          if (ii<sparsemat%keyg(1,iseg)) then
+!!              compressed_index_fn=0
+!!              return
+!!          end if
+!!      end do
+!!    
+!!      ! Not found
+!!      compressed_index_fn=0
+!!    
+!!    end function compressed_index_fn
+!!
+!!end function matrixindex_in_compressed
 
 
 end module module_types
