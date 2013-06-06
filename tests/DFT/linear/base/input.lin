@@ -1,24 +1,24 @@
-2                                number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
-2        4                       outer loop iterations (low, high)
-6        8                       basis iterations (low, high)
-5        5	                     kernel iterations (low, high)
+2                                Number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
+2        4                       Outer loop iterations (low, high)
+6        8                       Basis iterations (low, high)
+5        5	                     Kernel iterations (low, high)
 5        0                       DIIS history for basis (low, high)
 0        0                       DIIS history for kernel (low, high)
-.5d0     .5d0                    density mixing parameter (low, high)
-1.d-11   1.d-11                  outer loop convergence (low, high)
-4.d-5    4.d-5                   basis convergence (low, high)
-1.d0     5.d-2                   multiplier to (exit one TMB optimization, fix TMB completely). Only used for hybrid mode
-0.5d0                            factor to reduce the confinement. Only used for hybrid mode.
-1.d-13   1.d-13                  kernel convergence (low, high)
-1.d-11                           convergence criterion on density to fix TMBS
-101                              mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (foe)
-1.d0     1.d0                    initial step size for basis optimization (DIIS, SD)
--0.5d0   0.5d0                   lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small
-5                                number of iterations in the preconditioner
-0  1                             0-> exact Loewdin, 1-> taylor expansion ; in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
+.5d0     .5d0                    Density mixing parameter (low, high)
+1.d-11   1.d-11                  Outer loop convergence (low, high)
+4.d-5    4.d-5                   Basis convergence (low, high)
+1.d0     5.d-2                   Multiplier to (exit one TMB optimization, fix TMB completely). Only used for hybrid mode.
+0.5d0                            Factor to reduce the confinement. Only used for hybrid mode.
+1.d-13   1.d-13                  Kernel convergence (low, high)
+1.d-11                           Convergence criterion on density to fix TMBS
+101                              Mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (FOE)
+1.d0     1.d0                    Initial step size for basis optimization (DIIS, SD)
+-0.5d0   0.5d0                   Lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small
+5                                Number of iterations in the preconditioner
+0  1                             0-> exact Loewdin, 1-> Taylor expansion; In orthoconstraint: correction for non-orthogonality (0) or no correction (1)
 5.d-2                            fscale: length scale over which complementary error function decays from 1 to 0
-0 T T                            output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; pulay correction
-F F                              fragment calculation; calculate transfer integrals
-C 4 4.0d-2 4.0d-2 0.0d-4 6.0 7.0 20.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
-H 1 4.0d-2 4.0d-2 0.0d-4 6.0 7.0 20.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+0 T T                            Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; Pulay correction
+F F                              Fragment calculation; Calculate transfer integrals
+C 4 4.0d-2 4.0d-2 0.0d-4 6.0 7.0 20.d0   Number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+H 1 4.0d-2 4.0d-2 0.0d-4 6.0 7.0 20.d0   Number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
 
