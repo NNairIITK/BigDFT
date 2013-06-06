@@ -1201,8 +1201,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   logical,intent(inout) :: can_use_transposed
 
   ! Local variables
-  integer :: it, istat, iall, iorb, jorb, iat, jat, ii
-  logical :: iout, jout, matrixindex_in_compressed
+  integer :: it, istat, iall, iorb, jorb, iat, jat, ii, matrixindex_in_compressed
+  logical :: iout, jout
   integer,dimension(:),allocatable :: icount_norb, jcount_norb
   real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm
   !type(sparseMatrix) :: inv_ovrlp_half
