@@ -3341,7 +3341,7 @@ end subroutine normalize_transposed
 
 
 
-subroutine init_collcom_matrixindex_in_compressed(iproc, nproc, orbs, sparsemat, collcom)
+subroutine init_collcom_matrixindex_in_compressed(iproc, nproc, orbs, collcom, collcom_sr, sparsemat)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_collcom_matrixindex_in_compressed
@@ -3350,8 +3350,8 @@ subroutine init_collcom_matrixindex_in_compressed(iproc, nproc, orbs, sparsemat,
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs
+  type(collective_comms),intent(in) :: collcom, collcom_sr
   type(sparseMatrix), intent(inout) :: sparsemat
-  type(collective_comms),intent(inout) :: collcom
   
   ! Local variables
   integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, nseg, irow, irowold, isegline, ilr, segn, ind, iseg
@@ -3367,8 +3367,10 @@ subroutine init_collcom_matrixindex_in_compressed(iproc, nproc, orbs, sparsemat,
   ! for the calculation of overlaps and the charge density
   imin=minval(collcom%indexrecvorbital_c)
   imin=min(imin,minval(collcom%indexrecvorbital_f))
+  imin=min(imin,minval(collcom_sr%indexrecvorbital_c))
   imax=maxval(collcom%indexrecvorbital_c)
   imax=max(imax,maxval(collcom%indexrecvorbital_f))
+  imax=max(imax,maxval(collcom_sr%indexrecvorbital_c))
 
   allocate(sparsemat%matrixindex_in_compressed_fortransposed(imin:imax,imin:imax), stat=istat)
   call memocc(istat, collcom%matrixindex_in_compressed, 'collcom%matrixindex_in_compressed', subname)

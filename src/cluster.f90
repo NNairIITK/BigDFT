@@ -462,16 +462,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, in, atoms, rxyz, .false.)
 
      call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, in, tmb%linmat%ham)
-     call init_collcom_matrixindex_in_compressed(iproc, nproc, tmb%orbs, tmb%linmat%ham, tmb%ham_descr%collcom)
+     call init_collcom_matrixindex_in_compressed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
      !tmb%linmat%ham%matrixindex_in_compressed_ptr => tmb%ham_descr%collcom%matrixindex_in_compressed
      call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, in, tmb%linmat%ovrlp)
-     call init_collcom_matrixindex_in_compressed(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%collcom)
+     call init_collcom_matrixindex_in_compressed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
      !tmb%linmat%ovrlp%matrixindex_in_compressed_ptr => tmb%collcom%matrixindex_in_compressed
      !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
      call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, in, tmb%linmat%denskern)
+     call init_collcom_matrixindex_in_compressed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern)
      call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
      call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
-     call init_collcom_matrixindex_in_compressed(iproc, nproc, tmb%orbs, tmb%linmat%inv_ovrlp, tmb%ham_descr%collcom)
+     call init_collcom_matrixindex_in_compressed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%inv_ovrlp)
      !tmb%linmat%inv_ovrlp%matrixindex_in_compressed_ptr => tmb%ham_descr%collcom%matrixindex_in_compressed
 
      if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of sparse matrices')

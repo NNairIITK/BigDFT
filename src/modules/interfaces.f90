@@ -4830,14 +4830,14 @@ module module_interfaces
           real(dp), dimension(:), pointer :: local_potential
         end subroutine integral_equation
 
-        subroutine init_collcom_matrixindex_in_compressed(iproc, nproc, orbs, sparsemat, collcom)
+        subroutine init_collcom_matrixindex_in_compressed(iproc, nproc, orbs, collcom, collcom_sr, sparsemat)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc
           type(orbitals_data),intent(in) :: orbs
-          type(sparseMatrix), intent(in) :: sparsemat
-          type(collective_comms),intent(inout) :: collcom
+          type(collective_comms),intent(in) :: collcom, collcom_sr
+          type(sparseMatrix), intent(inout) :: sparsemat
         end subroutine init_collcom_matrixindex_in_compressed
 
   
