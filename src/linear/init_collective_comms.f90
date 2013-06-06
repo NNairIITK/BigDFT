@@ -3341,10 +3341,10 @@ end subroutine normalize_transposed
 
 
 
-subroutine init_collcom_matrixindex_in_compressed(iproc, nproc, orbs, collcom, collcom_sr, sparsemat)
+subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, collcom, collcom_sr, sparsemat)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => init_collcom_matrixindex_in_compressed
+  use module_interfaces, except_this_one => init_matrixindex_in_compressed_fortransposed
   implicit none
   
   ! Calling arguments
@@ -3458,4 +3458,4 @@ subroutine init_collcom_matrixindex_in_compressed(iproc, nproc, orbs, collcom, c
 !!  call memocc(istat, iall, 'sendbuf', subname)
 
 
-end subroutine init_collcom_matrixindex_in_compressed
+end subroutine init_matrixindex_in_compressed_fortransposed

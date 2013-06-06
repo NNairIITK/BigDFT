@@ -1160,7 +1160,6 @@ subroutine deallocate_collective_comms(collcom, subname)
   call checkAndDeallocatePointer(collcom%nrecvcounts_repartitionrho, 'collcom%nrecvcounts_repartitionrho', subname)
   call checkAndDeallocatePointer(collcom%nsenddspls_repartitionrho, 'collcom%nsenddspls_repartitionrho', subname)
   call checkAndDeallocatePointer(collcom%nrecvdspls_repartitionrho, 'collcom%nrecvdspls_repartitionrho', subname)
-  call checkAndDeallocatePointer(collcom%matrixindex_in_compressed, 'collcom%matrixindex_in_compressed', subname)
 
 end subroutine deallocate_collective_comms
 
