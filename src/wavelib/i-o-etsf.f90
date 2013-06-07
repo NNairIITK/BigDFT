@@ -1048,11 +1048,11 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
 
       dims%number_of_atoms               = at%astruct%nat
       dims%number_of_atom_species        = at%astruct%ntypes
-      !!$    if (at%geocode == 'P') then
+      !!$    if (at%astruct%geocode == 'P') then
       dims%number_of_grid_points_vector1 = n1 + 1
       dims%number_of_grid_points_vector2 = n2 + 1
       dims%number_of_grid_points_vector3 = n3 + 1
-      !!$    else if (at%geocode == 'S') then
+      !!$    else if (at%astruct%geocode == 'S') then
       !!$       dims%number_of_grid_points_vector1 = n1 + 1
       !!$       dims%number_of_grid_points_vector2 = n2
       !!$       dims%number_of_grid_points_vector3 = n3 + 1

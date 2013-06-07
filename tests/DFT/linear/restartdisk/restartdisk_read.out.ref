@@ -20,11 +20,7 @@ sparsity:  0.00%
    - Box size has changed: 0
    - Molecule was shifted: 0
    - Molecule was rotated: 0
--  {Process:  1-  {Process:  2-  {Process:  4-  {Process:  5, Timing:  [  9.561E-01,  9.590E-01 ]}
--  {Process:  3, Timing:  [  9.521E-01,  9.570E-01 ]}
-, Timing:  [  9.561E-01,  9.590E-01 ]}
-, Timing:  [  9.561E-01,  9.590E-01 ]}
-, Timing:  [  9.561E-01,  9.580E-01 ]}
+   - Discrete operations: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   6.999996217831E+00
  ************************************************************************************

@@ -4,6 +4,7 @@ noinst_LIBRARIES = $(psolver_noinst)
 lib_LIBRARIES    = $(psolver_lib)
 module_DATA      = $(modules)
 dynlib_DATA      = $(psolver_dynlib)
+noinst_DATA      = $(psolver_linklib)
 
 # Static or dynamic library
 psolver_dynamic_library = libPSolver-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
@@ -18,8 +19,10 @@ else
 psolver_lib    = libPSolver-1.a
 if BUILD_DYNAMIC_LIBS
 psolver_dynlib = $(psolver_dynamic_library)
+psolver_linklib = $(psolver_library_soname)
 else
 psolver_dynlib =
+psolver_linklib =
 endif
 psolver_noinst =
 endif

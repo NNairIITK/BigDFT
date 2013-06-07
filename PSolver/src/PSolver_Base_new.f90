@@ -115,7 +115,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 
   n1p=n1
 
-  if (nproc>2*(n3/2+1)-1) then
+  if (nproc>2*(n3/2+1)-1 .and. .false.) then
     n3pr1=nproc/(n3/2+1)
     n3pr2=n3/2+1
     if (mod(n1,n3pr1) .ne. 0) n1p=((n1/n3pr1)+1)*n3pr1

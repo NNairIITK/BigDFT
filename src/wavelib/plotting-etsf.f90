@@ -230,7 +230,7 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   !local variables
   character(len=*), parameter :: subname='read_etsf'
   integer :: groupIds, i_stat, i_all, ncid
-  integer :: n1t,n2t,n3t,n1,n2,n3, i1, i2, i3, iat
+  integer :: n1t,n2t,n3t,n1,n2,n3, i2, i3, iat
   integer :: nl1,nl2,nl3,nbx,nby,nbz
   double precision, dimension(3, 3), target :: rprim
   double precision, dimension(:), allocatable, target :: znucl_
