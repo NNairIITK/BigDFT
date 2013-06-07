@@ -10,9 +10,9 @@ TESTDIRS = Locreg \
 	   geopt \
 	   testforces \
 	   fructose \
-      rotatesmall \
-      rotatesmall2 \
-      cdft
+	rotatesmall2 
+#      rotatesmall \
+#      cdft
 
 EXTRA_TESTDIRS = water \
 	molecule \

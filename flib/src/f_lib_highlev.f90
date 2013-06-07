@@ -8,19 +8,37 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!> routine which dump an error according to the arguments.
-subroutine f_dump_error(newerror_code,err_msg)
-  use dictionaries, only: f_get_error_dict
+!print error information about last error
+subroutine f_dump_last_error()
+  use dictionaries, only: f_get_error_dict,f_get_last_error,max_field_length
   use yaml_output, only: yaml_dict_dump,yaml_map
   implicit none
-  integer, intent(in) :: newerror_code
-  character(len=*), intent(in) :: err_msg
+  !local variables
+  integer :: ierr
+  character(len=max_field_length) :: add_msg
 
-  !dump the error message
-  call yaml_dict_dump(f_get_error_dict(newerror_code))
-  if (len_trim(err_msg)/=0) call yaml_map('Additional Info',err_msg)
+  ierr=f_get_last_error(add_msg)
 
-end subroutine f_dump_error
+  if (ierr /=0) then
+     call yaml_dict_dump(f_get_error_dict(ierr))
+     if (trim(add_msg)/= 'UNKNOWN') call yaml_map('Additional Info',add_msg)
+  end if
+end subroutine f_dump_last_error
+
+
+!!$!> routine which dump an error according to the arguments.
+!!$subroutine f_dump_error(newerror_code,err_msg)
+!!$  use dictionaries, only: f_get_error_dict
+!!$  use yaml_output, only: yaml_dict_dump,yaml_map
+!!$  implicit none
+!!$  integer, intent(in) :: newerror_code
+!!$  character(len=*), intent(in) :: err_msg
+!!$
+!!$  !dump the error message
+!!$  call yaml_dict_dump(f_get_error_dict(newerror_code))
+!!$  if (len_trim(err_msg)/=0) call yaml_map('Additional Info',err_msg)
+!!$
+!!$end subroutine f_dump_error
 
 !>routine which initializes f_lib global pointers, to be called in general
 subroutine f_lib_initialize()

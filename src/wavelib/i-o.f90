@@ -1152,10 +1152,10 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
      stop 'only 1 discrete operation allowed right now'
   end if
 
-  !call field_rototranslation(nd,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
-  !     hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
-  call field_rototranslation3D(nd,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
+  call field_rototranslation(nd,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
        hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+  !call field_rototranslation3D(nd,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
+  !     hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
 
   if (size(frag_trans%discrete_operations)>0) then
      i_all=-product(shape(psifscf_tmp))*kind(psifscf_tmp)
@@ -1779,6 +1779,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   real(gp), dimension(:,:), allocatable :: dx,dy,dz
   real(gp), dimension(:,:), allocatable :: work,work2
   
+  print *,'3d'
+
   call f_routine(id='field_rototranslation3D')
   
   dx=f_malloc((/ndims_old(1),ndims_old(2)*ndims_old(3)/),id='dx')
@@ -1803,7 +1805,7 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   !     hgrids_new,ndims_new,dx,dy,dz)
 
   !the condition for activating the switch can be generalized further
-  if (theta==0.0_gp) then
+  if (theta==0.0_gp .and. .false.) then
      call shift_only(ndims_old(2)*ndims_old(3),ndims_old(1),&
           ndims_new(1),da(1)/hgrids_old(1),nrange_phi,n_phi,phi_ISF,shf,&
           f_old,work)

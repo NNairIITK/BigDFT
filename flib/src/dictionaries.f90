@@ -39,7 +39,7 @@ module dictionaries
   end interface
 
   interface assignment(=)
-     module procedure get_value,get_integer,get_real,get_double,get_long,get_dict
+     module procedure get_value,get_integer,get_real,get_double,get_long!,get_dict, xlf does not like
   end interface
   interface pop
      module procedure pop_dict,pop_item,pop_last
@@ -85,12 +85,12 @@ module dictionaries
   type(dictionary), pointer :: dict_errors=>null() !< the global dictionaries of possible errors, nullified if not initialized
   type(dictionary), pointer :: dict_present_error=>null() !< local pointer of present error, nullified if success
 
-  public :: f_err_initialize,f_err_finalize
+  public :: f_err_initialize,f_err_finalize,f_get_last_error
   public :: f_err_define,f_err_check,f_err_raise,f_err_clean,f_get_error_dict
 
   !public variables of the callback module
-  public :: f_err_set_callback,f_err_unset_callback
-  public :: f_err_severe,f_err_severe_override,f_err_severe_restore
+  public :: f_err_set_callback,f_err_unset_callback,f_err_open_try,f_err_close_try
+  public :: f_err_severe,f_err_severe_override,f_err_severe_restore,f_err_ignore
   public :: f_loc
 
 

@@ -33,31 +33,31 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   real(gp) :: maxdiff
   real(gp), dimension(:,:,:), allocatable :: rxyz_glob
 
-  !temporary interface
-  interface
-     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
-          KSwfn,tmb,&!psi,Lzd,gaucoeffs,gbd,orbs,
-          rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
-       use module_base
-       use module_types
-       implicit none
-       integer, intent(in) :: nproc,iproc
-       integer, intent(out) :: infocode
-       real(gp), intent(inout) :: hx_old,hy_old,hz_old
-       type(input_variables), intent(in) :: in
-       !type(local_zone_descriptors), intent(inout) :: Lzd
-       type(atoms_data), intent(inout) :: atoms
-       !type(gaussian_basis), intent(inout) :: gbd
-       !type(orbitals_data), intent(inout) :: orbs
-       type(GPU_pointers), intent(inout) :: GPU
-       type(DFT_wavefunction), intent(inout) :: KSwfn,tmb
-       real(gp), intent(out) :: energy,fnoise
-       real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz_old
-       real(gp), dimension(3,atoms%astruct%nat), target, intent(inout) :: rxyz
-       real(gp), dimension(6), intent(out) :: strten
-       real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
-     END SUBROUTINE cluster
-  end interface
+  !temporary interface, not needed anymore since all arguments are structures
+!!$  interface
+!!$     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
+!!$          KSwfn,tmb,&!psi,Lzd,gaucoeffs,gbd,orbs,
+!!$          rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
+!!$       use module_base
+!!$       use module_types
+!!$       implicit none
+!!$       integer, intent(in) :: nproc,iproc
+!!$       integer, intent(out) :: infocode
+!!$       real(gp), intent(inout) :: hx_old,hy_old,hz_old
+!!$       type(input_variables), intent(in) :: in
+!!$       !type(local_zone_descriptors), intent(inout) :: Lzd
+!!$       type(atoms_data), intent(inout) :: atoms
+!!$       !type(gaussian_basis), intent(inout) :: gbd
+!!$       !type(orbitals_data), intent(inout) :: orbs
+!!$       type(GPU_pointers), intent(inout) :: GPU
+!!$       type(DFT_wavefunction), intent(inout) :: KSwfn,tmb
+!!$       real(gp), intent(out) :: energy,fnoise
+!!$       real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz_old
+!!$       real(gp), dimension(3,atoms%astruct%nat), target, intent(inout) :: rxyz
+!!$       real(gp), dimension(6), intent(out) :: strten
+!!$       real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
+!!$     END SUBROUTINE cluster
+!!$  end interface
 
   !put a barrier for all the processes
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
