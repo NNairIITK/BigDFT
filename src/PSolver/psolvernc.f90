@@ -666,7 +666,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
 !!$  end interface
 
   !only for nspin==4
-  if(nspin==4) then
+  !if(nspin==4) then
   if (f_err_raise(nspin/=4,'Noncollinear Poisson Solver can only be called with nspin=4')) then
      return
   else
