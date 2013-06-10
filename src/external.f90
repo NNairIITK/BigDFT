@@ -260,7 +260,7 @@ subroutine bigdft_severe_abort()
   integer :: ierr
 
   !the MPI_ABORT works only in MPI_COMM_WORLD
-  call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+  call MPI_ABORT(MPI_COMM_WORLD,816037,ierr)
   if (ierr/=0) stop 'Problem in MPI_ABORT'
 
 end subroutine bigdft_severe_abort

@@ -1263,7 +1263,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
      end if
      call yaml_map('PSP XC','"'//trim(name_xc1)//'"')
      if (trim(name_xc1) /= trim(name_xc2)) then
-        call yaml_warning('Input ixc parameter corresponds to '//trim(name_xc2)//' XC functional')
+        call yaml_warning('Input XC is "'//trim(name_xc2) // '"')
 !!$        write(*,'(1x,a)')&
 !!$             'WARNING: The pseudopotential file psppar."'//trim(atoms%astruct%atomnames(ityp))//'"'
 !!$        write(*,'(1x,a,i0,a,i0)')&
