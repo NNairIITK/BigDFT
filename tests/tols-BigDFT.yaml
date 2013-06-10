@@ -256,10 +256,10 @@ Davidson-SiH4:
 
 TDDFT:
   Epsilon: 1.1e-10
-  e_virtual: 1.3e-9
+  e_virtual: 1.61e-9
   Eigenvalues and eigenstate residue: 1.1e-7
   Epot: 1.1e-10
-  Gradient Norm: 3.1e-9
+  Gradient Norm: 4.11e-9
   L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-7
   Excitation Energy and Oscillator Strength: 1.7e-6
   Transition energies (eV): 1.1e-4

@@ -51,8 +51,6 @@
    Compiler flags:
      CFLAGS                            : -g -O2
      FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
-     CXXFLAGS                          : 
-     CPPFLAGS                          : 
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       

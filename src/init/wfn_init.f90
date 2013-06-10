@@ -952,7 +952,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      !here the value of the IG occupation numbers can be calculated
      if (iscf > SCF_KIND_DIRECT_MINIMIZATION .or. Tel > 0.0_gp) then
 
-        call yaml_map('Noise added to input eigenvalues to determine occupation numbers',&
+        if (iproc==0) call yaml_map('Noise added to input eigenvalues to determine occupation numbers',&
              max(Tel,1.0e-3_gp),fmt='(1pe12.5)')
         !add a small displacement in the eigenvalues
         do iorb=1,orbsu%norb*orbsu%nkpts
