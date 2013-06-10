@@ -768,7 +768,7 @@ contains
 
     ! Reduce the results in case of taskgrouping.
     if (mpi_env%nproc > 1) then
-       if (mpi_env%mpi_comm /= MPI_COMM_NULL) then
+       if (mpi_env%igroup == 0) then
           ! Broadcast between taskgroups.
           do i = 1, nimages
              if (igroup(i) > 0) then
@@ -986,9 +986,11 @@ subroutine image_calculate(img, iteration, id)
   if (trim(img%log_file) /= "" .and. bigdft_mpi%iproc == 0) call yaml_close_all_streams()
 
   ! Output the corresponding file.
-  write(fn4, "(I4.4)") iteration
-  call write_atomic_file(trim(img%run%inputs%dir_output)//'posout_'//fn4, &
-       & img%outs%energy, img%run%atoms%astruct%rxyz, img%run%atoms, "", forces = img%outs%fxyz)
+  if (bigdft_mpi%iproc == 0) then
+     write(fn4, "(I4.4)") iteration
+     call write_atomic_file(trim(img%run%inputs%dir_output)//'posout_'//fn4, &
+          & img%outs%energy, img%run%atoms%astruct%rxyz, img%run%atoms, "", forces = img%outs%fxyz)
+  end if
 end subroutine image_calculate
 
 subroutine images_distribute_tasks(igroup, update, nimages, ngroup)

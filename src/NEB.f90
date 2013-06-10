@@ -121,14 +121,13 @@ MODULE NEB_routines
 
       call bigdft_init(mpi_info, nconfig, run_id, ierr)
       neb_mpi = mpi_environment_null()
-      neb_mpi%igroup = 0
-      neb_mpi%ngroup = 1
+      neb_mpi%igroup = mpi_info(1)
+      neb_mpi%ngroup = mpi_info(2)
       neb_mpi%iproc  = mpi_info(3)
       neb_mpi%nproc  = mpi_info(4)
       neb_mpi%mpi_comm = MPI_COMM_NULL
       if (neb_mpi%nproc > 1) then
          call create_rank_comm(bigdft_mpi%mpi_comm, neb_mpi%mpi_comm)
-         if (mpi_info(1) /= 0) neb_mpi%mpi_comm = MPI_COMM_NULL
       end if
 
 !! default values are assigned
@@ -546,15 +545,14 @@ MODULE NEB_routines
          deallocate( ins )
       end if
 
-      if (.not. external_call) then
-         call free_restart_objects(rst,"deallocation")
-         call yaml_set_stream(unit = 6, istat = ierr)
-         call f_lib_finalize()
-         call yaml_close_all_streams()
-      end if
-
       deallocate(arr_posinp,arr_radical)
 
+      if (.not. external_call) then
+         call free_restart_objects(rst, "deallocation")
+         call f_lib_finalize()
+      end if
+
+      call mpi_environment_free(neb_mpi)
       call bigdft_finalize(ierr)
     END SUBROUTINE deallocation
 
