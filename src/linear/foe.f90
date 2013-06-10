@@ -227,8 +227,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           if (calculate_SHS) then
               ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
               if (iproc==0) write(*,*) 'Need to recalculate the Chebyshev polynomials.'
-              call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, ovrlp, fermi, hamscal_compr, ovrlpeff_compr, calculate_SHS, &
-                   nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials)
+              call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, ovrlp, fermi, hamscal_compr, &
+                   ovrlpeff_compr, calculate_SHS, nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials)
           else
               ! The Chebyshev polynomials are already available
               if (iproc==0) write(*,*) 'Can use the Chebyshev polynomials from memory.'
@@ -272,7 +272,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               end if
 
               call mpiallred(allredarr, 2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-              if (allredarr(1)>2.d0*anoise) then
+              if (allredarr(1)>anoise) then
                   if (iproc==0) then
                       write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', &
                                                 allredarr(1), anoise
@@ -281,7 +281,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   foe_obj%evlow=foe_obj%evlow*1.2d0
                   restart=.true.
               end if
-              if (allredarr(2)>2.d0*anoise) then
+              if (allredarr(2)>anoise) then
                   if (iproc==0) then
                       write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', &
                                                 allredarr(2), anoise
@@ -338,25 +338,26 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   adjust_lower_bound=.false.
                   foe_obj%bisection_shift=foe_obj%bisection_shift*9.d-1
                   sumnarr(1)=sumn
-                  it_solver=it_solver+1
-                  ii=min(it_solver,4)
-                  do i=1,4
-                      interpol_matrix(ii,1)=foe_obj%ef**3
-                      interpol_matrix(ii,2)=foe_obj%ef**2
-                      interpol_matrix(ii,3)=foe_obj%ef
-                      interpol_matrix(ii,4)=1
-                  end do
-                  interpol_vector(ii)=(sumn-foe_obj%charge)
+                  !!it_solver=it_solver+1
+                  !!ii=min(it_solver,4)
+                  !!do i=1,4
+                  !!    interpol_matrix(ii,1)=foe_obj%ef**3
+                  !!    interpol_matrix(ii,2)=foe_obj%ef**2
+                  !!    interpol_matrix(ii,3)=foe_obj%ef
+                  !!    interpol_matrix(ii,4)=1
+                  !!end do
+                  !!interpol_vector(ii)=(sumn-foe_obj%charge)
                   if (iproc==0) write(*,'(1x,a)') 'lower bound for the eigenvalue spectrum is okay.'
-                  cycle
+                  !cycle
               else
                   efarr(1)=efarr(1)-foe_obj%bisection_shift
                   foe_obj%bisection_shift=foe_obj%bisection_shift*1.1d0
                   if (iproc==0) write(*,'(1x,a,es12.5)') &
                       'lower bisection bound does not give negative charge difference: diff=',charge_diff
-                  cycle
+                  !cycle
               end if
-          else if (adjust_upper_bound) then
+          end if
+          if (adjust_upper_bound) then
               if (charge_diff>=0.d0) then
                   ! Upper bound okay
                   adjust_upper_bound=.false.
@@ -368,25 +369,30 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   foe_obj%bisection_shift=foe_obj%bisection_shift*1.1d0
                   if (iproc==0) write(*,'(1x,a,es12.5)') &
                       'upper bisection bound does not give positive charge difference: diff=',charge_diff
-                  cycle
+                  !cycle
               end if
           end if
+
+          ! Cycle if one of the two bounds is not okay
+          if (adjust_lower_bound .or. adjust_upper_bound) cycle
 
           it_solver=it_solver+1
 
           ! Check whether the system behaves reasonably.
           interpolation_possible=.true.
-          if (it>1) then
+          if (it_solver>1) then
               if (foe_obj%ef>ef_old .and. sumn<sumn_old) then
                   if (iproc==0) then
-                      write(*,'(1x,a)') 'WARNING: Fermi energy was raised, but the trace still decreased!'
+                      write(*,'(1x,a,2es13.5)') 'WARNING: Fermi energy was raised, but the trace still decreased: Deltas=',&
+                                        foe_obj%ef-ef_old,sumn-sumn_old
                       write(*,'(1x,a)') 'Cubic interpolation not possible under this circumstances.'
                   end if
                   interpolation_possible=.false.
               end if
               if (foe_obj%ef<ef_old .and. sumn>sumn_old) then
                   if (iproc==0) then
-                      write(*,'(1x,a)') 'WARNING: Fermi energy was lowered, but the trace still increased!'
+                      write(*,'(1x,a,2es13.5)') 'WARNING: Fermi energy was lowered, but the trace still increased: Deltas=',&
+                                        foe_obj%ef-ef_old,sumn-sumn_old
                       write(*,'(1x,a)') 'Cubic interpolation not possible under this circumstances.'
                   end if
                   interpolation_possible=.false.
@@ -662,8 +668,8 @@ subroutine chebft2(a,b,n,cc)
   bma=0.5d0*(b-a)
   bpa=0.5d0*(b+a)
   ! 3 gives broder safety zone than 4
-  tt=3.0d0*n/(b-a)
-  !tt=4.d0*n/(b-a)
+  !tt=3.0d0*n/(b-a)
+  tt=4.d0*n/(b-a)
   do k=1,n
       y=cos(pi*(k-0.5d0)*(1.d0/n))
       arg=y*bma+bpa
@@ -726,8 +732,7 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   dist=(fact*evhigh-fact*evlow)
   ddx=dist/(10*npl)
   cent=.5d0*(fact*evhigh+fact*evlow)
-  tt=abs(chebev(evlow,evhigh,npl,cent,cc))
-  ! Why use a real number as counter?!
+  !!tt=abs(chebev(evlow,evhigh,npl,cent,cc))
   !!do x=ddx,.25d0*dist,ddx
   !!    tt=max(tt,abs(chebev(evlow,evhigh,npl,cent+x,cc)), &
   !!       & abs(chebev(evlow,evhigh,npl,cent-x,cc)))
@@ -742,8 +747,7 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
       if (x>=.25d0*dist) exit
   end do
   !anoise=2.d0*tt
-  ! Increase the noise level
-  anoise=5.d0*tt
+  anoise=20.d0*tt
 
 end subroutine evnoise
 

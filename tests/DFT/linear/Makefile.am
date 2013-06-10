@@ -83,12 +83,12 @@ rotate2_write.out.post-out:
 	  water_dirmin.out*)          prec="1.e-8" ;; \
 	  water_mixdens.out*)         prec="1.1e-8" ;; \
 	  water_mixpot.out*)          prec="1.1e-8" ;; \
-	  water_foe.out*)             prec="1.e-8" ;; \
+	  water_foe.out*)             prec="3.e-8" ;; \
 	  molecule_dmin.out*)         prec="1.e-9" ;; \
 	  molecule_dmix.out*)         prec="1.e-9" ;; \
 	  molecule_pmix.out*)         prec="1.1e-9" ;; \
-	  molecule_foe.out*)          prec="1.1e-9" ;; \
-	  foe.out*)                   prec="2.1e-10" ;; \
+	  molecule_foe.out*)          prec="5.4e-7" ;; \
+	  foe.out*)                   prec="3.1e-10" ;; \
 	  reformat_write.out*)        prec="3.e-10" ;; \
 	  paracetamol.out*)           prec="2.e-10" ;; \
       *)                          prec="1.1e-10" ;; \
