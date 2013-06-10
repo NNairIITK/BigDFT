@@ -328,14 +328,15 @@ END SUBROUTINE create_dir_output
 subroutine default_input_variables(in)
   use module_base
   use module_types
+  use dictionaries
   implicit none
 
   type(input_variables), intent(inout) :: in
 
   ! Default values.
+  call dict_init(in%input_values)
   in%output_wf_format = WF_FORMAT_NONE
   in%output_denspot_format = output_denspot_FORMAT_CUBE
-  nullify(in%kpt)
   nullify(in%gen_kpt)
   nullify(in%gen_wkpt)
   nullify(in%kptv)
@@ -370,95 +371,212 @@ subroutine default_input_variables(in)
   nullify(in%frag%frag_index)
 END SUBROUTINE default_input_variables
 
-
-subroutine dft_input_variables_new(iproc,dump,filename,in)
+subroutine read_dft_from_text_format(iproc,dict,filename,dump)
   use module_base
   use module_types
   use module_input
+  use module_input_keys
+  use dictionaries
   implicit none
+  type(dictionary), pointer :: dict
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
   logical, intent(in) :: dump
-  type(input_variables), intent(inout) :: in
   !local variables
   logical :: exists
   integer :: ierror
   real(gp), dimension(2), parameter :: hgrid_rng=(/0.0_gp,2.0_gp/)
   real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,100.0_gp/)
-!!$  integer :: dummy_int
-!!$  real(gp) :: dummy_real
-!!$  real(gp), dimension(3) :: dummy_real3
+
+  logical :: dummy_bool
+  integer :: dummy_int
+  real(gp) :: dummy_real
+  real(gp), dimension(3) :: dummy_real3
 
   !dft parameters, needed for the SCF part
-  call input_set_file(iproc,dump,trim(filename),exists,'DFT Calculation Parameters')  
-  if (exists) in%files = in%files + INPUTS_DFT
+  call input_set_file(iproc,dump,trim(filename),exists, DFT_VARIABLES)
+  !if (exists) in%files = in%files + INPUTS_DFT
   !call the variable, its default value, the line ends if there is a comment
+  if (.not. exists) then
+     call input_free(.false.)
+     return
+  end if
+
+  if (.not. associated(dict)) call dict_init(dict)
 
   !grid spacings
-  call input_var(in%hx,'0.45',ranges=hgrid_rng)
-  call input_var(in%hy,'0.45',ranges=hgrid_rng)
-  call input_var(in%hz,'0.45',ranges=hgrid_rng,comment='hx,hy,hz: grid spacing in the three directions')
+  call input_var(dummy_real3(1),'0.45',ranges=hgrid_rng)
+  call input_var(dummy_real3(2),'0.45',ranges=hgrid_rng)
+  call input_var(dummy_real3(3),'0.45',ranges=hgrid_rng,comment='hx,hy,hz: grid spacing in the three directions')
+  call set(dict//HGRIDS//0, dummy_real3(1))
+  call set(dict//HGRIDS//1, dummy_real3(2))
+  call set(dict//HGRIDS//2, dummy_real3(3))
 !!$  call input_var(dummy_real3,'0.45',ranges=hgrid_rng,key='hx,hy,hz',comment='grid spacing in the three directions'
 
   !coarse and fine radii around atoms
-  call input_var(in%crmult,'5.0',ranges=xrmult_rng)
-  call input_var(in%frmult,'8.0',ranges=xrmult_rng,&
+  call input_var(dummy_real,'5.0',ranges=xrmult_rng)
+  call set(dict//RMULT//0, dummy_real)
+  call input_var(dummy_real,'8.0',ranges=xrmult_rng,&
        comment='c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius')
+  call set(dict//RMULT//1, dummy_real)
 
   !XC functional (ABINIT XC codes)
-  call input_var(in%ixc,'1',comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
+  call input_var(dummy_int,'1',comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
+  call set(dict//IXC, dummy_int)
 
   !charge and electric field
-  call input_var(in%ncharge,'0',ranges=(/-500,500/))
-  call input_var(in%elecfield(1),'0.')
-  call input_var(in%elecfield(2),'0.')
-  call input_var(in%elecfield(3),'0.',comment='charge of the system, Electric field (Ex,Ey,Ez)')
+  call input_var(dummy_int,'0',ranges=(/-500,500/))
+  call set(dict//NCHARGE, dummy_int)
+  call input_var(dummy_real3(1),'0.')
+  call input_var(dummy_real3(2),'0.')
+  call input_var(dummy_real3(3),'0.',comment='charge of the system, Electric field (Ex,Ey,Ez)')
+  call set(dict//ELECFIELD//0, dummy_real3(1))
+  call set(dict//ELECFIELD//1, dummy_real3(2))
+  call set(dict//ELECFIELD//2, dummy_real3(3))
   !call input_var(in%elecfield(3),'0.',comment='ncharge: charge of the system, Electric field (Ex,Ey,Ez)')
 
   !spin and polarization
-  call input_var(in%nspin,'1',exclusive=(/1,2,4/))
-  call input_var(in%mpol,'0',comment='nspin=1 non-spin polarization, mpol=total magnetic moment')
+  call input_var(dummy_int,'1',exclusive=(/1,2,4/))
+  call set(dict//NSPIN, dummy_int)
+  call input_var(dummy_int,'0',comment='nspin=1 non-spin polarization, mpol=total magnetic moment')
+  call set(dict//MPOL, dummy_int)
+
+  !convergence parameters
+  call input_var(dummy_real,'1.e-4',ranges=(/1.e-20_gp,1.0_gp/),&
+       comment='gnrm_cv: convergence criterion gradient')
+  call set(dict//GNRM_CV, dummy_real)
+  call input_var(dummy_int,'50',ranges=(/0,10000/))
+  call set(dict//ITERMAX, dummy_int)
+  call input_var(dummy_int,'1',ranges=(/0,1000/),&
+       comment='itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs')
+  call set(dict//NREPMAX, dummy_int)
+
+  !convergence parameters
+  call input_var(dummy_int,'6',ranges=(/0,20/))
+  call set(dict//NCONG, dummy_int)
+  call input_var(dummy_int,'6',ranges=(/0,15/),&
+       comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
+  call set(dict//IDSX, dummy_int)
+
+  !dispersion parameter
+  call input_var(dummy_int,'0',ranges=(/0,5/),&
+       comment='dispersion correction potential (values 1,2,3,4,5), 0=none')
+  call set(dict//DISPERSION, dummy_int)
+    
+  ! Now the variables which are to be used only for the last run
+  call input_var(dummy_int,'0',exclusive=(/-2,-1,0,2,10,12,13,100,101,102/),input_iostat=ierror)
+  ! Validate inputPsiId value (Can be added via error handling exception)
+  if (ierror /=0 .and. iproc == 0) then
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', dummy_int, ').'
+     call input_psi_help()
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
+  end if
+  call set(dict//INPUTPSIID, dummy_int)
+
+  call input_var(dummy_int,'0',exclusive=(/0,1,2,3/),input_iostat=ierror)
+  ! Validate output_wf value.
+  if (ierror /=0 .and. iproc == 0) then
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', dummy_int, ').'
+     call output_wf_format_help()
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
+  end if
+  call set(dict//OUTPUT_WF, dummy_int)
+
+  call input_var(dummy_int,'0',exclusive=(/0,1,2,10,11,12,20,21,22/),&
+       comment='InputPsiId, output_wf, output_denspot')
+  call set(dict//OUTPUT_DENSPOT, dummy_int)
+
+  ! Tail treatment.
+  call input_var(dummy_real,'0.0',ranges=(/0.0_gp,10.0_gp/))
+  call set(dict//RBUF, dummy_real)
+  call input_var(dummy_int,'30',ranges=(/1,50/),&
+       comment='rbuf, ncongt: length of the tail (AU),# tail CG iterations')
+  call set(dict//NCONGT, dummy_int)
+
+  !davidson treatment
+  call input_var(dummy_int,'0',ranges=(/-9999,9999/))
+  call set(dict//NORBV, dummy_int)
+  call input_var(dummy_int,'0')
+  call set(dict//NVIRT, dummy_int)
+  call input_var(dummy_int,'0',&
+       comment='Davidson subspace dim., # of opt. orbs, # of plotted orbs')
+  call set(dict//NPLOT, dummy_int)
+
+  ! Line to disable automatic behaviours (currently only symmetries).
+  call input_var(dummy_bool,'F',comment='disable the symmetry detection')
+  call set(dict//DISABLE_SYM, dummy_bool)
+
+  call input_free((iproc == 0) .and. dump)
+
+end subroutine read_dft_from_text_format
+
+subroutine dft_input_analyse(iproc, in, dict_dft)
+  use module_base
+  use module_types
+  use module_input
+  use dictionaries
+  use module_xc
+  use yaml_output
+  use module_input_keys
+  implicit none
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: in
+  type(dictionary), pointer :: dict_dft
+
+  if (.not.associated(dict_dft)) call dict_init(dict_dft)
+
+!!$  call yaml_dict_dump(dict_dft)
+  call input_keys_fill(dict_dft, DFT_VARIABLES)
+  call yaml_dict_dump(dict_dft)
+
+  !grid spacings
+  in%hx = dict_dft//HGRIDS//0
+  in%hy = dict_dft//HGRIDS//1
+  in%hz = dict_dft//HGRIDS//2
+
+  !coarse and fine radii around atoms
+  in%crmult = dict_dft//RMULT//0
+  in%frmult = dict_dft//RMULT//1
 
   !XC functional (ABINIT XC codes)
-  call input_var(in%gnrm_cv,'1.e-4',ranges=(/1.e-20_gp,1.0_gp/),&
-       comment='gnrm_cv: convergence criterion gradient')
+  in%ixc = dict_dft//IXC
+
+  !charge and electric field
+  in%ncharge = dict_dft//NCHARGE
+  in%elecfield(1) = dict_dft//ELECFIELD//0
+  in%elecfield(2) = dict_dft//ELECFIELD//1
+  in%elecfield(3) = dict_dft//ELECFIELD//2
+
+  !spin and polarization
+  in%nspin = dict_dft//NSPIN
+  in%mpol = dict_dft//MPOL
+
+  ! Initialise XC calculation
+  if (in%ixc < 0) then
+     call xc_init(in%ixc, XC_MIXED, in%nspin)
+  else
+     call xc_init(in%ixc, XC_ABINIT, in%nspin)
+  end if
 
   !convergence parameters
-  call input_var(in%itermax,'50',ranges=(/0,10000/))
-  call input_var(in%nrepmax,'1',ranges=(/0,1000/),&
-       comment='itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs')
+  in%gnrm_cv = dict_dft//GNRM_CV
+  in%itermax = dict_dft//ITERMAX
+  in%nrepmax = dict_dft//NREPMAX
 
   !convergence parameters
-  call input_var(in%ncong,'6',ranges=(/0,20/))
-  call input_var(in%idsx,'6',ranges=(/0,15/),&
-       comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
+  in%ncong = dict_dft//NCONG
+  in%idsx = dict_dft//IDSX
   !does not make sense a DIIS history longer than the number of iterations
   !only if the iscf is not particular
   in%idsx = min(in%idsx, in%itermax)
 
   !dispersion parameter
-  call input_var(in%dispersion,'0',ranges=(/0,5/),&
-       comment='dispersion correction potential (values 1,2,3,4,5), 0=none')
+  in%dispersion = dict_dft//DISPERSION
     
   ! Now the variables which are to be used only for the last run
-  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,13,100,101,102/),input_iostat=ierror)
-  ! Validate inputPsiId value (Can be added via error handling exception)
-  if (ierror /=0 .and. iproc == 0) then
-     write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
-     call input_psi_help()
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
-  end if
-
-  call input_var(in%output_wf_format,'0',exclusive=(/0,1,2,3/),input_iostat=ierror)
-  ! Validate output_wf value.
-  if (ierror /=0 .and. iproc == 0) then
-     write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', in%output_wf_format, ').'
-     call output_wf_format_help()
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
-  end if
-
-  call input_var(in%output_denspot,'0',exclusive=(/0,1,2,10,11,12,20,21,22/),&
-       comment='InputPsiId, output_wf, output_denspot')
+  in%inputPsiId = dict_dft//INPUTPSIID
+  in%output_wf_format = dict_dft//OUTPUT_WF
+  in%output_denspot = dict_dft//OUTPUT_DENSPOT
 
   !project however the wavefunction on gaussians if asking to write them on disk
   ! But not if we use linear scaling version (in%inputPsiId >= 100)
@@ -467,9 +585,9 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   !switch on the gaussian auxiliary treatment 
   !and the zero of the forces
   if (in%inputPsiId == 10) then
-     in%inputPsiId=0
+     in%inputPsiId = 0
   else if (in%inputPsiId == 13) then
-     in%inputPsiId=2
+     in%inputPsiId = 2
   end if
   ! Setup out grid parameters.
   if (in%output_denspot >= 0) then
@@ -481,23 +599,18 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   in%output_denspot = modulo(in%output_denspot, 10)
 
   ! Tail treatment.
-  call input_var(in%rbuf,'0.0',ranges=(/0.0_gp,10.0_gp/))
-  call input_var(in%ncongt,'30',ranges=(/1,50/),&
-       comment='rbuf, ncongt: length of the tail (AU),# tail CG iterations')
-
-  !in%calc_tail=(in%rbuf > 0.0_gp)
+  in%rbuf = dict_dft//RBUF
+  in%ncongt = dict_dft//NCONGT
 
   !davidson treatment
-  ! Now the variables which are to be used only for the last run
-  call input_var(in%norbv,'0',ranges=(/-9999,9999/))
-  call input_var(in%nvirt,'0',ranges=(/0,abs(in%norbv)/))
-  call input_var(in%nplot,'0',ranges=(/0,abs(in%norbv)/),&
-       comment='Davidson subspace dim., # of opt. orbs, # of plotted orbs')
-
-  !in%nvirt = min(in%nvirt, in%norbv) commented out
+  in%norbv = dict_dft//NORBV
+  in%nvirt = dict_dft//NVIRT
+  in%nplot = dict_dft//NPLOT
+!!$  call input_dict_var(in%nvirt, dict_dft//NVIRT, 0, ranges=(/0,abs(in%norbv)/))
+!!$  call input_dict_var(in%nplot, dict_dft//NPLOT, 0, ranges=(/0,abs(in%norbv)/))
 
   ! Line to disable automatic behaviours (currently only symmetries).
-  call input_var(in%disableSym,'F',comment='disable the symmetry detection')
+  in%disableSym = dict_dft//DISABLE_SYM
 
   !define whether there should be a last_run after geometry optimization
   !also the mulliken charge population should be inserted
@@ -507,11 +620,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   else
      in%last_run=0
   end if
-
-  call input_free((iproc == 0) .and. dump)
-
-end subroutine dft_input_variables_new
-
+end subroutine dft_input_analyse
 
 !> Assign default values for mixing variables
 subroutine mix_input_variables_default(in)
@@ -1001,6 +1110,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in)
   use m_ab6_kpoints
   use module_input
   use yaml_output
+  use dictionaries
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
@@ -1013,6 +1123,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in)
   integer :: i_stat,ierror,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount,ierror1, nkpt
   real(gp) :: kptrlen, shiftk(3), kpt(3), wkpt
   integer, allocatable :: iseg(:)
+  type(dictionary), pointer :: dict
 
   ! Set default values.
   in%nkptv=0
@@ -1021,70 +1132,63 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in)
   nullify(in%kptv,in%nkptsv_group)
   call free_kpt_variables(in)
 
+  ! To be removed later.
+  dict => in%input_values//'Brillouin Zone Sampling Parameters'
+
+  if (.not. associated(dict)) call dict_init(dict)
+
   !dft parameters, needed for the SCF part
   call input_set_file(iproc,dump,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
   if (exists) in%files = in%files + INPUTS_KPT
   !call the variable, its default value, the line ends if there is a comment
 
-  !if the file does not exists, put the default values
-  if (.not. exists) then
-     
-!!$     ! Set only the gamma point.
-!!$     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,in%kpt,'in%kpt',subname)
-!!$     in%kpt(:, 1) = (/ 0., 0., 0. /)
-!!$     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-!!$     in%wkpt(1) = 1.0_gp
-     !return
-  end if
+  !if the file does exist, we fill up the dictionary.
+  if (exists) then
+     call input_var(type,'manual',exclusive=(/'auto  ','mpgrid','manual'/),&
+          comment='K-point sampling method')
+     call set(dict//'K-point sampling method', trim(type))
 
-  call dict_init(in%kpt)
-
-  call input_var(type,'manual',exclusive=(/'auto  ','mpgrid','manual'/),&
-       comment='K-point sampling method')
-  call set(in%kpt//'K-point sampling method', trim(type))
-
-  if (case_insensitive_equiv(trim(type),'auto')) then
-     call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
-          comment='Equivalent length of K-space resolution (Bohr)')
-     call set(in%kpt//'Equivalent length of K-space resolution (Bohr)', kptrlen)
-  else if (case_insensitive_equiv(trim(type),'mpgrid')) then
-     !take the points of Monckorst-pack grid
-     call input_var(ngkpt(1),'1',ranges=(/1,10000/))
-     call input_var(ngkpt(2),'1',ranges=(/1,10000/))
-     call input_var(ngkpt(3),'1',ranges=(/1,10000/), &
-          & comment='No. of Monkhorst-Pack grid points')
-     call set(in%kpt//'No. of Monkhorst-Pack grid points'//0, ngkpt(1))
-     call set(in%kpt//'No. of Monkhorst-Pack grid points'//1, ngkpt(2))
-     call set(in%kpt//'No. of Monkhorst-Pack grid points'//2, ngkpt(3))
-!!$     call set(in%kpt//'No. of Monkhorst-Pack grid points', ngkpt)
-     !shift
-     call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
-     !read the shifts
-     shiftk=0.0_gp
-     do i=1,nshiftk
-        call input_var(shiftk(1),'0.')
-        call input_var(shiftk(2),'0.')
-        call input_var(shiftk(3),'0.',comment=' ')
-        call set(in%kpt//'Grid shifts'//(i-1)//0, shiftk(1))
-        call set(in%kpt//'Grid shifts'//(i-1)//1, shiftk(2))
-        call set(in%kpt//'Grid shifts'//(i-1)//2, shiftk(3))
-!!$        call add(in%kpt//'Grid shifts', shiftk)
-     end do
-  else if (case_insensitive_equiv(trim(type),'manual')) then
-     call input_var(nkpt,'1',ranges=(/1,10000/),&
-          comment='Number of K-points')
-     do i=1,nkpt
-        call input_var( kpt(1),'0.')
-        call input_var( kpt(2),'0.')
-        call input_var( kpt(3),'0.')
-        call set(in%kpt//'Kpt coordinates'//(i-1)//0, kpt(1))
-        call set(in%kpt//'Kpt coordinates'//(i-1)//1, kpt(2))
-        call set(in%kpt//'Kpt coordinates'//(i-1)//2, kpt(3))
-        call input_var( wkpt,'1.',comment='K-pt coords, K-pt weigth')
-        call set(in%kpt//'Kpt weights'//(i-1), wkpt)
-     end do
+     if (case_insensitive_equiv(trim(type),'auto')) then
+        call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
+             comment='Equivalent length of K-space resolution (Bohr)')
+        call set(dict//'Equivalent length of K-space resolution (Bohr)', kptrlen)
+     else if (case_insensitive_equiv(trim(type),'mpgrid')) then
+        !take the points of Monckorst-pack grid
+        call input_var(ngkpt(1),'1',ranges=(/1,10000/))
+        call input_var(ngkpt(2),'1',ranges=(/1,10000/))
+        call input_var(ngkpt(3),'1',ranges=(/1,10000/), &
+             & comment='No. of Monkhorst-Pack grid points')
+        call set(dict//'No. of Monkhorst-Pack grid points'//0, ngkpt(1))
+        call set(dict//'No. of Monkhorst-Pack grid points'//1, ngkpt(2))
+        call set(dict//'No. of Monkhorst-Pack grid points'//2, ngkpt(3))
+!!$     call set(dict//'No. of Monkhorst-Pack grid points', ngkpt)
+        !shift
+        call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
+        !read the shifts
+        shiftk=0.0_gp
+        do i=1,nshiftk
+           call input_var(shiftk(1),'0.')
+           call input_var(shiftk(2),'0.')
+           call input_var(shiftk(3),'0.',comment=' ')
+           call set(dict//'Grid shifts'//(i-1)//0, shiftk(1))
+           call set(dict//'Grid shifts'//(i-1)//1, shiftk(2))
+           call set(dict//'Grid shifts'//(i-1)//2, shiftk(3))
+!!$        call add(dict//'Grid shifts', shiftk)
+        end do
+     else if (case_insensitive_equiv(trim(type),'manual')) then
+        call input_var(nkpt,'1',ranges=(/1,10000/),&
+             comment='Number of K-points')
+        do i=1,nkpt
+           call input_var( kpt(1),'0.')
+           call input_var( kpt(2),'0.')
+           call input_var( kpt(3),'0.')
+           call set(dict//'Kpt coordinates'//(i-1)//0, kpt(1))
+           call set(dict//'Kpt coordinates'//(i-1)//1, kpt(2))
+           call set(dict//'Kpt coordinates'//(i-1)//2, kpt(3))
+           call input_var( wkpt,'1.',comment='K-pt coords, K-pt weigth')
+           call set(dict//'Kpt weights'//(i-1), wkpt)
+        end do
+     end if
   end if
 
   ! Now read the band structure definition. do it only if the file exists
@@ -1636,7 +1740,6 @@ subroutine free_kpt_variables(in)
   nullify(in%gen_wkpt)
   nullify(in%kptv)
   nullify(in%nkptsv_group)
-  if (associated(in%kpt)) call dict_free(in%kpt)
 end subroutine free_kpt_variables
 
 !>  Free all dynamically allocated memory from the input variable structure.
@@ -1652,6 +1755,7 @@ subroutine free_input_variables(in)
   if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) &
        & call deallocateBasicArraysInput(in%lin)
 
+  if (associated(in%input_values)) call dict_free(in%input_values)
 
   if (associated(in%qmass)) then
      i_all=-product(shape(in%qmass))*kind(in%qmass)
@@ -2774,7 +2878,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
 
 END SUBROUTINE initialize_atomic_file
 
-subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, geocode, alat)
+subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, dict, nkptv, sym, geocode, alat)
   use module_base
   use module_types
   use defs_basis
@@ -2784,7 +2888,7 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
   use dictionaries
   implicit none
   integer, intent(in) :: iproc, nkptv
-  type(dictionary), pointer :: in_kpt
+  type(dictionary), pointer :: dict
   integer, intent(out) :: nkpt
   real(gp), pointer :: kpt(:,:), wkpt(:)
   real(gp), dimension(3,nkptv), intent(inout) :: kptv
@@ -2796,17 +2900,18 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
   integer :: i_stat,ierror,i,nshiftk, ngkpt(3)
   real(gp) :: kptrlen, shiftk(3,8), norm, alat_(3)
   character(len = 6) :: method
-
+  
   ! Set default values.
   nkpt=1
-  !call yaml_dict_dump(in_kpt, flow = .true.)
+
+  if (.not.associated(dict)) call dict_init(dict)
 
   nullify(kpt, wkpt)
 
-  call input_dict_var(method, in_kpt // "K-point sampling method", &
-       & default = "auto", exclusive=(/'auto  ','mpgrid','manual'/))
+  call input_dict_var(method, dict // "K-point sampling method", &
+       & default = "manual", exclusive=(/'auto  ','mpgrid','manual'/))
   if (case_insensitive_equiv(trim(method),'auto')) then
-     call input_dict_var(kptrlen, in_kpt // 'Equivalent length of K-space resolution (Bohr)', &
+     call input_dict_var(kptrlen, dict // 'Equivalent length of K-space resolution (Bohr)', &
           & default = 0._gp, ranges=(/0.0_gp,1.e4_gp/))
      if (geocode == 'F') then
         nkpt = 1
@@ -2831,15 +2936,15 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
      end if
   else if (case_insensitive_equiv(trim(method),'mpgrid')) then
      !take the points of Monkhorst-pack grid
-     call input_dict_var(ngkpt, in_kpt // 'No. of Monkhorst-Pack grid points', &
+     call input_dict_var(ngkpt, dict // 'No. of Monkhorst-Pack grid points', &
           & default = (/ 1, 1, 1 /), ranges = (/ 1, 10000 /))
      if (geocode == 'S') ngkpt(2) = 1
      !shift
-     nshiftk = dict_len(in_kpt//'Grid shifts')
+     nshiftk = dict_len(dict//'Grid shifts')
      !read the shifts
      shiftk=0.0_gp
      do i=1,nshiftk
-        call input_dict_var(shiftk(:,i), in_kpt // 'Grid shifts' // (i-1))
+        call input_dict_var(shiftk(:,i), dict // 'Grid shifts' // (i-1))
      end do
 
      !control whether we are giving k-points to Free BC
@@ -2867,7 +2972,7 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
         call memocc(0,wkpt,'wkpt',subname)
      end if
   else if (case_insensitive_equiv(trim(method),'manual')) then
-     nkpt = dict_len(in_kpt//'Kpt coordinates')
+     nkpt = max(1, dict_len(dict//'Kpt coordinates'))
      if (geocode == 'F' .and. nkpt > 1) then
         if (iproc==0) call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
         nkpt = 1
@@ -2878,13 +2983,13 @@ subroutine kpt_input_analyse(iproc, nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, g
      call memocc(i_stat,wkpt,'wkpt',subname)
      norm=0.0_gp
      do i=1,nkpt
-        call input_dict_var(kpt(:,i), in_kpt // 'Kpt coordinates' // (i-1), &
+        call input_dict_var(kpt(:,i), dict // 'Kpt coordinates' // (i-1), &
              & default = (/ 0._gp, 0._gp, 0._gp /))
         if (geocode == 'S' .and. kpt(2,i) /= 0.) then
            kpt(2,i) = 0.
            if (iproc==0) call yaml_warning('Surface conditions, supressing k-points along y.')
         end if
-        call input_dict_var(wkpt(i), in_kpt // 'Kpt weights' // (i-1), default = 1._gp)
+        call input_dict_var(wkpt(i), dict // 'Kpt weights' // (i-1), default = 1._gp)
         if (geocode == 'F') then
            kpt = 0.
            wkpt = 1.

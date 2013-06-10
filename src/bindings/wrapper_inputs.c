@@ -213,3 +213,33 @@ BigDFT_Inputs* bigdft_set_input(const gchar *radical, const gchar *posinp, BigDF
   return in;
 }
 
+/* Wrappers on dictionaries, for the input variables. */
+#include "input_keys.h"
+void bigdft_inputs_set(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gchar *value)
+{
+  const gchar *name, *file;
+
+  name = _input_keys[id];
+  file = _input_keys[_input_files[id]];
+  FC_FUNC_(inputs_set, INPUTS_SET)(in->data, file, name, value,
+                                   strlen(file), strlen(name), strlen(value));
+}
+/**
+ * bigdft_inputs_set_array:
+ * @in: 
+ * @id: 
+ * @value: (array zero-terminated=1):
+ *
+ * 
+ **/
+void bigdft_inputs_set_array(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gchar **value)
+{
+  const gchar *name, *file;
+  guint i;
+
+  name = _input_keys[id];
+  file = _input_keys[_input_files[id]];
+  for (i = 0; value[i]; i++)
+    FC_FUNC_(inputs_set_at, INPUTS_SET_AT)(in->data, file, name, &i, value[i],
+                                           strlen(file), strlen(name), strlen(value[i]));
+}

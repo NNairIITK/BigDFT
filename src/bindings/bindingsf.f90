@@ -470,7 +470,25 @@ subroutine inputs_read_perf(in, iproc, dump)
 
   call perf_input_variables(iproc,dump,trim(in%file_perf),in)
 END SUBROUTINE inputs_read_perf
+subroutine inputs_set(in, file, key, value)
+  use dictionaries
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+  character(len = *), intent(in) :: file, key, value
 
+  call set(in%input_values // file // key, value)
+END SUBROUTINE inputs_set
+subroutine inputs_set_at(in, file, key, i, value)
+  use dictionaries
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+  integer, intent(in) :: i
+  character(len = *), intent(in) :: file, key, value
+
+  call set(in%input_values // file // key // i, value)
+END SUBROUTINE inputs_set_at
 subroutine inputs_get_naming(in, run_name, file_dft, file_geopt, file_kpt, &
      & file_perf, file_tddft, file_mix, file_sic, file_occnum, file_igpop, file_lin)
   use module_types

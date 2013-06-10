@@ -46,7 +46,7 @@ module module_input
    end interface
 
    interface input_dict_var
-      module procedure dict_var_character, dict_var_double, dict_var_int
+      module procedure dict_var_character, dict_var_double, dict_var_int, dict_var_bool
       module procedure dict_var_double_arr, dict_var_int_arr
    end interface input_dict_var
 
@@ -1213,11 +1213,16 @@ module module_input
 
      var = dict
      ! To be activated after merge with Luigi.
-!!$     found = .not.(f_err_check(DICT_KEY_ABSENT) .or. f_err_check(DICT_VALUE_ABSENT))
-!!$     if (.not. found) then
-!!$        if (present(default)) write(var, "(A)") default
-!!$        return
-!!$     end if
+     if (f_err_check(DICT_KEY_ABSENT) .or. f_err_check(DICT_VALUE_ABSENT)) then
+        if (present(default)) then
+           call set(dict, default)
+           write(var, "(A)") default
+           call f_err_clean()
+        end if
+        return
+     else if (f_err_check()) then
+        call f_err_severe()
+     end if
      
      if (present(exclusive)) then
         found=.false.
@@ -1249,11 +1254,17 @@ module module_input
 
      val = dict
      ! To be activated after merge with Luigi.
-!!$     found = .not.(f_err_check(DICT_KEY_ABSENT) .or. f_err_check(DICT_VALUE_ABSENT))
-!!$     if (.not. found) then
-!!$        if (present(default)) write(var, "(A)") default
-!!$        return
-!!$     end if
+     if (f_err_check(DICT_KEY_ABSENT) .or. f_err_check(DICT_VALUE_ABSENT)) then
+        if (present(default)) then
+           call set(dict, default)
+           var = default
+           call f_err_clean()
+        end if
+        return
+     else if (f_err_check()) then
+        call f_err_severe()
+     end if
+
      call read_fraction_string(val, var, ierror)
      if (f_err_raise(ierror /= 0, err_id = INPUT_VAR_CONVERSION_ERROR, &
           & err_msg = "cannot read a double from '" // trim(val) //"'.")) return
@@ -1277,6 +1288,29 @@ module module_input
    END SUBROUTINE dict_var_double
 
    !> Take an integer
+   subroutine dict_var_bool(var,dict, default)
+     use yaml_output
+     use dictionaries
+     implicit none
+     logical, intent(out) :: var
+     type(dictionary), pointer :: dict
+     logical, intent(in), optional :: default
+
+     var = dict
+     ! To be activated after merge with Luigi.
+     if (f_err_check(DICT_KEY_ABSENT) .or. f_err_check(DICT_VALUE_ABSENT)) then
+        if (present(default)) then
+           call set(dict, default)
+           var = default
+           call f_err_clean()
+        end if
+        return
+     else if (f_err_check()) then
+        call f_err_severe()
+     end if
+   END SUBROUTINE dict_var_bool
+
+   !> Take an integer
    subroutine dict_var_int(var,dict, default,ranges,exclusive)
      use yaml_output
      use dictionaries
@@ -1293,11 +1327,16 @@ module module_input
 
      var = dict
      ! To be activated after merge with Luigi.
-!!$     found = .not.(f_err_check(DICT_KEY_ABSENT) .or. f_err_check(DICT_VALUE_ABSENT))
-!!$     if (.not. found) then
-!!$        if (present(default)) write(var, "(A)") default
-!!$        return
-!!$     end if
+     if (f_err_check(DICT_KEY_ABSENT) .or. f_err_check(DICT_VALUE_ABSENT)) then
+        if (present(default)) then
+           call set(dict, default)
+           var = default
+           call f_err_clean()
+        end if
+        return
+     else if (f_err_check()) then
+        call f_err_severe()
+     end if
 
      !check the validity of the variable
      val = dict

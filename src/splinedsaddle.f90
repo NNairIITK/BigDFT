@@ -308,6 +308,7 @@ end module modulesplinedsaddle
 
 
 subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,ncount_bigdft)
+  use dictionaries
     use module_base
     use module_interfaces
     use module_types
@@ -364,7 +365,10 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     call default_input_variables(ll_inputs)
     if(trim(pnow%hybrid)=='yes') then
         call perf_input_variables(iproc,.true.,'ll_input.perf',ll_inputs)
-        call dft_input_variables_new(iproc,.true.,'ll_input.dft',ll_inputs)
+        ! Parse all values independant from atoms.
+        call read_dft_from_text_format(iproc,ll_inputs%input_values//"DFT Calculation Parameters", &
+             & 'll_input.dft', .true.)
+        call dft_input_analyse(iproc, ll_inputs, ll_inputs%input_values//"DFT Calculation Parameters")
     else
         ll_inputs=inputs
     endif

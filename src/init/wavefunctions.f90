@@ -697,8 +697,10 @@ END SUBROUTINE lzd_set_hgrids
 subroutine inputs_parse_params(in, iproc, dump)
   use module_types
   use module_defs
-  use module_xc
   use yaml_output
+  use module_interfaces
+  use dictionaries
+  use module_input_keys
   implicit none
   type(input_variables), intent(inout) :: in
   integer, intent(in) :: iproc
@@ -706,23 +708,23 @@ subroutine inputs_parse_params(in, iproc, dump)
 
   integer :: ierr
 
+  call input_keys_init()
+
   ! This file is peculiar, it initialize yaml output
   ! and has some unique info like the material acceleration...
   call perf_input_variables(iproc,dump,trim(in%file_perf),in)
   ! Parse all values independant from atoms.
-  call dft_input_variables_new(iproc,dump,trim(in%file_dft),in)
+  call read_dft_from_text_format(iproc,in%input_values//DFT_VARIABLES, &
+       & trim(in%file_dft), dump)
+  ! All analyse should be put later in the parse_add() routine.
+  call dft_input_analyse(iproc, in, in%input_values//DFT_VARIABLES)
   call mix_input_variables_new(iproc,dump,trim(in%file_mix),in)
   call geopt_input_variables_new(iproc,dump,trim(in%file_geopt),in)
   call tddft_input_variables_new(iproc,dump,trim(in%file_tddft),in)
   call sic_input_variables_new(iproc,dump,trim(in%file_sic),in)
   call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in)
 
-  ! Initialise XC calculation
-  if (in%ixc < 0) then
-     call xc_init(in%ixc, XC_MIXED, in%nspin)
-  else
-     call xc_init(in%ixc, XC_ABINIT, in%nspin)
-  end if
+  call input_keys_finalize()
 
   if(in%inputpsiid==100 .or. in%inputpsiid==101 .or. in%inputpsiid==102) &
       DistProjApply=.true.
@@ -743,6 +745,7 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
   use module_types
   use yaml_output
   use module_interfaces
+  use dictionaries
   implicit none
   type(input_variables), intent(inout) :: in
   type(atoms_data), intent(inout) :: atoms
@@ -752,7 +755,8 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
   integer :: ierr
 
   ! Generate kpoint meshs.
-  call kpt_input_analyse(iproc, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, in%kptv, in%kpt, in%nkptv, &
+  call kpt_input_analyse(iproc, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, in%kptv, &
+       & in%input_values//"Brillouin Zone Sampling Parameters", in%nkptv, &
        & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
 
   ! Linear scaling (if given)
@@ -776,6 +780,8 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
      if (iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
+
+  call yaml_dict_dump(in%input_values)
   
   !check whether a directory name should be associated for the data storage
   call check_for_data_writing_directory(iproc,in)

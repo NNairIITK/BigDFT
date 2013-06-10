@@ -238,6 +238,27 @@ module module_interfaces
          real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
       END SUBROUTINE write_atomic_file
 
+      subroutine read_dft_from_text_format(iproc,dict,filename,dump)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        type(dictionary), pointer :: dict
+        character(len=*), intent(in) :: filename
+        integer, intent(in) :: iproc
+        logical, intent(in) :: dump
+      end subroutine read_dft_from_text_format
+
+      subroutine dft_input_analyse(iproc, in, dict_dft)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        type(input_variables), intent(inout) :: in
+        type(dictionary), pointer :: dict_dft
+      end subroutine dft_input_analyse
+
       subroutine kpt_input_analyse(iproc,nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, geocode, alat)
         use module_base
         use module_types

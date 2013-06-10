@@ -13,7 +13,7 @@
 module module_types
 
   use m_ab6_mixing, only : ab6_mixing_object
-  use dictionaries
+  use dictionaries, only: dictionary
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
        bigdft_mpi,ndebug,memocc,vcopy
   use gaussians, only: gaussian_basis
@@ -200,6 +200,9 @@ module module_types
 
   !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
+     ! Dictionary storing all input values, before analysing.
+     type(dictionary), pointer :: input_values
+
      !strings of the input files
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
                            file_mix,file_sic,file_occnum,file_igpop,file_lin,file_frag
@@ -208,12 +211,17 @@ module module_types
      integer :: files                 !< Existing files.
      !miscellaneous variables
      logical :: gaussian_help
-     integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
-     integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty, occopt
-     integer :: OUTPUT_DENSPOT,dispersion,last_run,output_wf_format,OUTPUT_DENSPOT_format
+     integer :: itrpmax
+     integer :: iscf,norbsempty,norbsuempty,norbsdempty, occopt
+     integer :: last_run
      real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel, alphadiis
-     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
+     real(gp) :: rpnrm_cv,gnrm_startmix
      integer :: verbosity
+     ! DFT basic parameters.
+     integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol
+     integer :: norbv,nvirt,nplot
+     integer :: output_denspot,dispersion,output_wf_format,output_denspot_format
+     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
      real(gp) :: elecfield(3)
      logical :: disableSym
 
@@ -235,7 +243,6 @@ module module_types
      integer :: freq_method  !< Method to calculate the frequencies
 
      ! kpoints related input variables
-     type(dictionary), pointer :: kpt
      ! generated results
      integer :: gen_nkpt
      real(gp), pointer :: gen_kpt(:,:), gen_wkpt(:)

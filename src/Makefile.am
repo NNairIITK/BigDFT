@@ -363,6 +363,7 @@ $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 		-DGLIB_MAJOR_VERSION=2 -L$(builddir) \
 		-I$(srcdir)/modules -I$(builddir)/modules \
 		$(srcdir)/modules/bigdft.h \
+		$(srcdir)/modules/bigdft_input_keys.h \
 		$(builddir)/modules/bigdft_cst.h \
 		$(srcdir)/bindings/wrappers.c \
 		$(srcdir)/bindings/wrapper_inputs.c \
