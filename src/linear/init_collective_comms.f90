@@ -3300,7 +3300,6 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
   end if
 
   do iorb=1,orbs%norb
-!print *,'herefpe',norm(iorb),iorb
      norm(iorb)=1.d0/sqrt(norm(iorb))
   end do
 
