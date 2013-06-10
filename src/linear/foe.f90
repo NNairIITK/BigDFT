@@ -18,9 +18,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
   ! Local variables
   integer :: npl, istat, iall, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver!, iorb
-  integer :: isegstart, isegend, iismall, iseglarge, isegsmall, is, ie, iilarge
+  integer :: isegstart, isegend, iismall, iseglarge, isegsmall, is, ie, iilarge, nsize_polynomial
   integer,parameter :: nplx=5000
-  real(kind=8),dimension(:,:),allocatable :: cc, fermip
+  real(kind=8),dimension(:,:),allocatable :: cc, fermip, chebyshev_polynomials
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol
   real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old
@@ -84,6 +84,31 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
   else if (mode==2) then
 
+      ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
+      nsize_polynomial=0
+      if (orbs%norbp>0) then
+          isegstart=fermi%istsegline(orbs%isorb_par(iproc)+1)
+          if (orbs%isorb+orbs%norbp<orbs%norb) then
+              isegend=fermi%istsegline(orbs%isorb_par(iproc+1)+1)-1
+          else
+              isegend=fermi%nseg
+          end if
+          !!$omp parallel default(private) shared(isegstart, isegend, fermi, nsize_polynomial)
+          !!$omp do reduction(+:nsize_polynomial)
+          do iseg=isegstart,isegend
+              do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
+                  nsize_polynomial=nsize_polynomial+1
+              end do
+          end do
+          !!$omp end do
+          !!$omp end parallel
+      end if
+
+      write(*,*) 'iproc, nsize_polynomial', iproc, nsize_polynomial
+
+      ! Fake allocation, will be modified later
+      allocate(chebyshev_polynomials(nsize_polynomial,1),stat=istat)
+      call memocc(istat,chebyshev_polynomials,'chebyshev_polynomials',subname)
 
       ! Don't let this value become too small.
       foe_obj%bisection_shift = max(foe_obj%bisection_shift,1.d-4)
@@ -138,6 +163,23 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           npl=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/foe_obj%fscale)
           if (npl>nplx) stop 'npl>nplx'
 
+          ! Array the holds the Chebyshev polynomials. Needs to be recalculated
+          ! every thime the Hamiltonian has been modified.
+          if (calculate_SHS) then
+              iall=-product(shape(chebyshev_polynomials))*kind(chebyshev_polynomials)
+              deallocate(chebyshev_polynomials,stat=istat)
+              call memocc(istat,iall,'chebyshev_polynomials',subname)
+              allocate(chebyshev_polynomials(nsize_polynomial,npl),stat=istat)
+              call memocc(istat,chebyshev_polynomials,'chebyshev_polynomials',subname)
+          !!else
+          !!    if (iproc==0) write(*,*) 'de- and allocate'
+          !!    iall=-product(shape(chebyshev_polynomials))*kind(chebyshev_polynomials)
+          !!    deallocate(chebyshev_polynomials,stat=istat)
+          !!    call memocc(istat,iall,'chebyshev_polynomials',subname)
+          !!    allocate(chebyshev_polynomials(nsize_polynomial,npl),stat=istat)
+          !!    call memocc(istat,chebyshev_polynomials,'chebyshev_polynomials',subname)
+          end if
+
           if (iproc==0) then
               write( *,'(1x,a,i0)') repeat('-',75 - int(log(real(it))/log(10.))) // ' FOE it=', it
               write(*,'(1x,a,2x,i0,2es12.3,es18.9,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', &
@@ -184,35 +226,51 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
         
           call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-          ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
-          call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, ovrlp, hamscal_compr, ovrlpeff_compr, calculate_SHS, &
-               SHS, fermip, penalty_ev)
+          if (calculate_SHS) then
+              ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
+              if (iproc==0) write(*,*) 'SLOW'
+              call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, ovrlp, fermi, hamscal_compr, ovrlpeff_compr, calculate_SHS, &
+                   nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials)
+          else
+              ! The Chebyshev polynomials are already available
+              if (iproc==0) write(*,*) 'FAST'
+              call chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, fermip)
+          end if 
+          !!write(200,*) fermip
+          !!write(200,*) '--------------------'
+          !!write(201,*) chebyshev_polynomials(1,:)
+          !!write(201,*) '--------------------'
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
 
+
           restart=.false.
 
-          ! The penalty function must be smaller than the noise.
-          allredarr(1)=maxval(abs(penalty_ev(:,:,2)))
-          allredarr(2)=maxval(abs(penalty_ev(:,:,1)))
-          call mpiallred(allredarr, 2, mpi_max, bigdft_mpi%mpi_comm, ierr)
-          if (allredarr(1)>anoise) then
-              if (iproc==0) then
-                  write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', &
-                                            allredarr(1), anoise
-                  write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
+          ! Check the eigenvalue bounds. Only necessary if calculate_SHS is true
+          ! (otherwise this has already been checked in the previous iteration).
+          if (calculate_SHS) then
+              ! The penalty function must be smaller than the noise.
+              allredarr(1)=maxval(abs(penalty_ev(:,:,2)))
+              allredarr(2)=maxval(abs(penalty_ev(:,:,1)))
+              call mpiallred(allredarr, 2, mpi_max, bigdft_mpi%mpi_comm, ierr)
+              if (allredarr(1)>anoise) then
+                  if (iproc==0) then
+                      write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', &
+                                                allredarr(1), anoise
+                      write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
+                  end if
+                  foe_obj%evlow=foe_obj%evlow*1.2d0
+                  restart=.true.
               end if
-              foe_obj%evlow=foe_obj%evlow*1.2d0
-              restart=.true.
-          end if
-          if (allredarr(2)>anoise) then
-              if (iproc==0) then
-                  write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', &
-                                            allredarr(2), anoise
-                  write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
+              if (allredarr(2)>anoise) then
+                  if (iproc==0) then
+                      write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', &
+                                                allredarr(2), anoise
+                      write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
+                  end if
+                  foe_obj%evhigh=foe_obj%evhigh*1.2d0
+                  restart=.true.
               end if
-              foe_obj%evhigh=foe_obj%evhigh*1.2d0
-              restart=.true.
           end if
 
           iall=-product(shape(cc))*kind(cc)
@@ -220,6 +278,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           call memocc(istat, iall, 'cc', subname)
 
           if (restart) cycle
+              
         
 
           sumn=0.d0
@@ -486,6 +545,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   ebs=ebs*scale_factor-shift_value*sumn
 
 
+  iall=-product(shape(chebyshev_polynomials))*kind(chebyshev_polynomials)
+  deallocate(chebyshev_polynomials,stat=istat)
+  call memocc(istat,iall,'chebyshev_polynomials',subname)
 
   iall=-product(shape(penalty_ev))*kind(penalty_ev)
   deallocate(penalty_ev, stat=istat)
@@ -961,3 +1023,89 @@ real(kind=8) function determinant(iproc, n, mat)
     determinant=sgn*determinant   
 
 end function determinant
+
+
+subroutine compress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector, vector_compressed)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nsize_polynomial
+  type(orbitals_data),intent(in) :: orbs
+  type(sparseMatrix),intent(in) :: fermi
+  real(kind=8),dimension(orbs%norb,orbs%norbp),intent(in) :: vector
+  real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
+
+  ! Local variables
+  integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
+
+
+  if (orbs%norbp>0) then
+      isegstart=fermi%istsegline(orbs%isorb_par(iproc)+1)
+      if (orbs%isorb+orbs%norbp<orbs%norb) then
+          isegend=fermi%istsegline(orbs%isorb_par(iproc+1)+1)-1
+      else
+          isegend=fermi%nseg
+      end if
+      ii=0
+      !!$omp parallel default(private) shared(isegstart, isegend, orbs, fermi, vector, vector_compressed)
+      !!$omp do
+      do iseg=isegstart,isegend
+          !ii=fermi%keyv(iseg)-1
+          do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
+              ii=ii+1
+              iiorb = (jorb-1)/orbs%norb + 1
+              jjorb = jorb - (iiorb-1)*orbs%norb
+              vector_compressed(ii)=vector(jjorb,iiorb-orbs%isorb)
+              !write(300,*) 'ii, jjorb, iiorb-orbs%isorb', ii, jjorb, iiorb-orbs%isorb
+          end do
+      end do
+      !!$omp end do
+      !!$omp end parallel
+  end if
+end subroutine compress_polynomial_vector
+
+
+
+subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector_compressed, vector)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nsize_polynomial
+  type(orbitals_data),intent(in) :: orbs
+  type(sparseMatrix),intent(in) :: fermi
+  real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
+  real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: vector
+
+  ! Local variables
+  integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
+
+
+  if (orbs%norbp>0) then
+      call to_zero(orbs%norb*orbs%norbp, vector(1,1))
+      isegstart=fermi%istsegline(orbs%isorb_par(iproc)+1)
+      if (orbs%isorb+orbs%norbp<orbs%norb) then
+          isegend=fermi%istsegline(orbs%isorb_par(iproc+1)+1)-1
+      else
+          isegend=fermi%nseg
+      end if
+      ii=0
+      !!$omp parallel default(private) shared(isegstart, isegend, orbs, fermi, vector, vector_compressed)
+      !!$omp do
+      do iseg=isegstart,isegend
+          !ii=fermi%keyv(iseg)-1
+          do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
+              ii=ii+1
+              iiorb = (jorb-1)/orbs%norb + 1
+              jjorb = jorb - (iiorb-1)*orbs%norb
+              vector(jjorb,iiorb-orbs%isorb)=vector_compressed(ii)
+              !write(*,*) 'ii, iiorb-orbs%isorb, jjorb', ii, iiorb-orbs%isorb, jjorb
+          end do
+      end do
+      !!$omp end do
+      !!$omp end parallel
+  end if
+end subroutine uncompress_polynomial_vector
