@@ -33,9 +33,6 @@ module dictionaries_base
   interface operator(//)
      module procedure get_child_ptr,get_list_ptr
   end interface
-  interface operator(.is.)
-     module procedure storage_data
-  end interface
 
 contains
   

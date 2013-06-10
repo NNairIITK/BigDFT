@@ -1635,21 +1635,25 @@ contains
   end subroutine close_indent_level
 
   !> Dump a dictionary
-  subroutine yaml_dict_dump(dict,flow)
+  subroutine yaml_dict_dump(dict,flow,comment_key)
    implicit none
    type(dictionary), intent(in) :: dict   !< Dictionary to dump
    logical, intent(in), optional :: flow  !< if .true. inline
+   character(len = *), intent(in), optional :: comment_key !< use the provifded key as comment key
    !local variables
    logical :: flowrite
-     character(len=3) :: adv
+   character(len=3) :: adv
+   character(len=128) :: comment
 
    flowrite=.false.
    if (present(flow)) flowrite=flow
+   comment(1:len(comment)) = ' '
+   if (present(comment_key)) comment(1:len(comment)) = comment_key
 
      !TEST (the first dictionary has no key)
      !if (.not. associated(dict%parent)) then
      if (associated(dict%child)) then
-        call yaml_dict_dump_(dict%child,flowrite)
+        call yaml_dict_dump_(dict%child,flowrite,comment)
      else
         if (flowrite) then
            adv='no '
@@ -1660,27 +1664,33 @@ contains
      end if
 
    contains
-     recursive subroutine yaml_dict_dump_(dict,flowrite)
+     recursive subroutine yaml_dict_dump_(dict,flowrite,comment)
          implicit none
          type(dictionary), intent(in) :: dict
          logical, intent(in) :: flowrite
+         character(len = *), intent(in) :: comment
 
          if (associated(dict%child)) then
             !see whether the child is a list or not
             !print *trim(dict%data%key),dict%data%nitems
             if (dict%data%nitems > 0) then
                call yaml_open_sequence(trim(dict%data%key),flow=flowrite)
-               call yaml_dict_dump_(dict%child,flowrite)
+               call yaml_dict_dump_(dict%child,flowrite,comment)
                call yaml_close_sequence()
             else
                if (dict%data%item >= 0) then
                   call yaml_sequence(advance='no')
-                  call yaml_dict_dump_(dict%child,flowrite)
+                  call yaml_dict_dump_(dict%child,flowrite,comment)
                else
-                  call yaml_open_map(trim(dict%data%key),flow=flowrite)
-                  !call yaml_map('No. of Elems',dict%data%nelems)
-                  call yaml_dict_dump_(dict%child,flowrite)
-                  call yaml_close_map()
+                  if (trim(comment) == trim(dict%data%key) .and. &
+                       & trim(dict%data%value) /= "") then
+                     call yaml_comment(trim(dict%data%value))
+                  else
+                     call yaml_open_map(trim(dict%data%key),flow=flowrite)
+                     !call yaml_map('No. of Elems',dict%data%nelems)
+                     call yaml_dict_dump_(dict%child,flowrite,comment)
+                     call yaml_close_map()
+                  end if
                end if
             end if
          else
@@ -1688,11 +1698,16 @@ contains
             if (dict%data%item >= 0) then
                call yaml_sequence(trim(dict%data%value))
             else
-               call yaml_map(trim(dict%data%key),trim(dict%data%value))
+               if (trim(comment) == trim(dict%data%key) .and. &
+                    & trim(dict%data%value) /= "") then
+                  call yaml_comment(trim(dict%data%value))
+               else
+                  call yaml_map(trim(dict%data%key),trim(dict%data%value))
+               end if
             end if
          end if
          if (associated(dict%next)) then
-            call yaml_dict_dump_(dict%next,flowrite)
+            call yaml_dict_dump_(dict%next,flowrite,comment)
          end if
 
        end subroutine yaml_dict_dump_

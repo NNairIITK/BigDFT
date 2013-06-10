@@ -17,19 +17,26 @@ module dictionaries
 
   private
 
-  type, public :: dictionary_container !>public only due to the fact that some functions are public
+  !>public to be used in list_new() constructor.
+  type, public :: list_container
      character(len=max_field_length) :: val=' '
      type(dictionary), pointer :: dict => null()
+  end type list_container
+  !>public to be used in dict_new() constructor.
+  type, public :: dictionary_container
+     character(len=max_field_length) :: key=' '
+     character(len=max_field_length) :: value=' '
+    type(dictionary), pointer :: child => null()
   end type dictionary_container
 
 
   !> Error codes
-  integer :: DICT_KEY_ABSENT
-  integer :: DICT_VALUE_ABSENT
-  integer :: DICT_ITEM_NOT_VALID
-  integer :: DICT_CONVERSION_ERROR
-  integer :: DICT_INVALID_LIST
-  integer :: DICT_INVALID
+  integer, public :: DICT_KEY_ABSENT
+  integer, public :: DICT_VALUE_ABSENT
+  integer, public :: DICT_ITEM_NOT_VALID
+  integer, public :: DICT_CONVERSION_ERROR
+  integer, public :: DICT_INVALID_LIST
+  integer, public :: DICT_INVALID
 
   interface operator(.index.)
      module procedure find_index
@@ -37,16 +44,19 @@ module dictionaries
   interface operator(.item.)
      module procedure item_char,item_dict
   end interface
+  interface operator(.is.)
+     module procedure dict_cont_new_with_value, dict_cont_new_with_dict
+  end interface
 
   interface assignment(=)
-     module procedure get_value,get_integer,get_real,get_double,get_long,get_dict
+     module procedure get_value,get_integer,get_real,get_double,get_long,get_dict,get_bool
   end interface
   interface pop
      module procedure pop_dict,pop_item,pop_last
   end interface
 
   interface set
-     module procedure put_child,put_value,put_list,put_integer,put_real,put_double,put_long
+     module procedure put_child,put_value,put_list,put_integer,put_real,put_double,put_long,put_bool
   end interface
 
   interface add
@@ -233,8 +243,10 @@ contains
   end subroutine add_long
 
   !defines a dictionary from a array of storage data
-  function dict_new(st_arr)
-    type(storage), dimension(:), intent(in) :: st_arr
+  function dict_new(dicts)
+    use yaml_output
+!    type(storage), dimension(:), intent(in) :: st_arr
+    type(dictionary_container), dimension(:), intent(in) :: dicts
     type(dictionary), pointer :: dict_new
     !local variables
     integer :: i_st,n_st
@@ -243,40 +255,56 @@ contains
 
     !initialize dictionary
     call dict_init(dict_tmp)
-    n_st=size(st_arr)
+    n_st=size(dicts)
     do i_st=1,n_st
-       call set(dict_tmp//trim(st_arr(i_st)%key),&
-            trim(st_arr(i_st)%value))
+       if (associated(dicts(i_st)%child)) then
+          call set(dict_tmp//dicts(i_st)%key, dicts(i_st)%child)
+       else
+          call set(dict_tmp//dicts(i_st)%key, dicts(i_st)%value)
+       end if
     end do
-
     dict_new => dict_tmp
-
   end function dict_new
 
   !defines a dictionary from a array of storage data
-  function dict_new_single(st)
-    type(storage), intent(in), optional :: st
+  function dict_new_single(cont)
+    type(dictionary_container), intent(in), optional :: cont
     type(dictionary), pointer :: dict_new_single
     !local variables
     character(len=max_field_length) :: key,val
     type(dictionary), pointer :: dict_tmp
 
-    !nullify(dict_new_single)
-
-    !initialize dictionary
     call dict_init(dict_tmp)
-    !call dictionary_nullify(dict_new_single)
-
-    if (present(st)) then
-       key=st%key
-       val=st%value
-       call set(dict_tmp//trim(key),trim(val))
+    if (present(cont)) then
+       if (associated(cont%child)) then
+          call set(dict_tmp//cont%key, cont%child)
+       else
+          call set(dict_tmp//cont%key, cont%value)
+       end if
     end if
-    
     dict_new_single => dict_tmp
 
   end function dict_new_single
 
+  !defines a new dictionary from a key and a value
+  function dict_cont_new_with_value(key, val)
+    character(len = *), intent(in) :: key, val
+    type(dictionary_container) :: dict_cont_new_with_value
+
+    dict_cont_new_with_value%key(1:max_field_length) = key
+    dict_cont_new_with_value%value(1:max_field_length) = val
+
+  end function dict_cont_new_with_value
+
+  function dict_cont_new_with_dict(key, val)
+    character(len = *), intent(in) :: key
+    type(dictionary), pointer, intent(in) :: val
+    type(dictionary_container) :: dict_cont_new_with_dict
+
+    dict_cont_new_with_dict%key(1:max_field_length) = key
+    dict_cont_new_with_dict%child => val
+
+  end function dict_cont_new_with_dict
 
   function dict_next(dict)
     implicit none
@@ -463,7 +491,7 @@ contains
     character(len=*), intent(in) :: key
     logical :: has_key
 
-    if (.not. associated(dict)) then
+    if (.not. associated(dict) .or. trim(key) == "") then
        has_key=.false.
        return
     end if
@@ -624,7 +652,7 @@ contains
   function item_char(val) result(elem)
     implicit none
     character(len=*), intent(in) :: val
-    type(dictionary_container) :: elem
+    type(list_container) :: elem
 
     elem%val(1:max_field_length)=val
 
@@ -633,7 +661,7 @@ contains
   function item_dict(val) result(elem)
     implicit none
     type(dictionary), pointer, intent(in) :: val
-    type(dictionary_container) :: elem
+    type(list_container) :: elem
     
     elem%dict=>val
   end function item_dict
@@ -641,7 +669,7 @@ contains
   !creates a list from a table of dictionaries
   function list_new(dicts)
     implicit none
-    type(dictionary_container), dimension(:) :: dicts
+    type(list_container), dimension(:) :: dicts
     type(dictionary), pointer :: list_new
     !local variables
     integer :: i_st,n_st
@@ -688,6 +716,29 @@ contains
     dictval=>dict
 
   end subroutine get_dict
+
+  !set and get routines for different types
+  subroutine get_bool(lval,dict)
+    logical, intent(out) :: lval
+    type(dictionary), intent(in) :: dict
+    !local variables
+    integer :: ierror
+    character(len=max_field_length) :: val
+
+    !take value
+    val=dict
+    ierror = 0
+    if (trim(val) == "Yes") then
+       lval = .true.
+    else if (trim(val) == "No") then
+       lval = .false.
+    else
+       !look at conversion
+       read(val,*,iostat=ierror)lval
+    end if
+
+    if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return    
+  end subroutine get_bool
 
   !set and get routines for different types
   subroutine get_integer(ival,dict)
@@ -755,6 +806,21 @@ contains
     if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
      
   end subroutine get_double
+
+  !> assign the value to the dictionary
+  subroutine put_bool(dict,lval,fmt)
+    use yaml_strings, only:yaml_toa
+    implicit none
+    type(dictionary), pointer :: dict
+    logical, intent(in) :: lval
+    character(len=*), optional, intent(in) :: fmt
+
+    if (present(fmt)) then
+       call put_value(dict,trim(adjustl(yaml_toa(lval,fmt=fmt))))
+    else
+       call put_value(dict,trim(adjustl(yaml_toa(lval))))
+    end if
+  end subroutine put_bool
 
   !> assign the value to the dictionary
   subroutine put_integer(dict,ival,fmt)
