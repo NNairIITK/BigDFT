@@ -104,7 +104,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           !!$omp end parallel
       end if
 
-      write(*,*) 'iproc, nsize_polynomial', iproc, nsize_polynomial
 
       ! Fake allocation, will be modified later
       allocate(chebyshev_polynomials(nsize_polynomial,1),stat=istat)
@@ -171,13 +170,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               call memocc(istat,iall,'chebyshev_polynomials',subname)
               allocate(chebyshev_polynomials(nsize_polynomial,npl),stat=istat)
               call memocc(istat,chebyshev_polynomials,'chebyshev_polynomials',subname)
-          !!else
-          !!    if (iproc==0) write(*,*) 'de- and allocate'
-          !!    iall=-product(shape(chebyshev_polynomials))*kind(chebyshev_polynomials)
-          !!    deallocate(chebyshev_polynomials,stat=istat)
-          !!    call memocc(istat,iall,'chebyshev_polynomials',subname)
-          !!    allocate(chebyshev_polynomials(nsize_polynomial,npl),stat=istat)
-          !!    call memocc(istat,chebyshev_polynomials,'chebyshev_polynomials',subname)
           end if
 
           if (iproc==0) then
@@ -228,18 +220,14 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
           if (calculate_SHS) then
               ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
-              if (iproc==0) write(*,*) 'SLOW'
+              if (iproc==0) write(*,*) 'Need to recalculate the Chebyshev polynomials.'
               call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, ovrlp, fermi, hamscal_compr, ovrlpeff_compr, calculate_SHS, &
                    nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials)
           else
               ! The Chebyshev polynomials are already available
-              if (iproc==0) write(*,*) 'FAST'
+              if (iproc==0) write(*,*) 'Can use the Chebyshev polynomials from memory.'
               call chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, fermip)
           end if 
-          !!write(200,*) fermip
-          !!write(200,*) '--------------------'
-          !!write(201,*) chebyshev_polynomials(1,:)
-          !!write(201,*) '--------------------'
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
 
