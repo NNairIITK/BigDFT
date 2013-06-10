@@ -33,6 +33,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   integer,dimension(4) :: ipiv
   real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
 
+  !!real(8),dimension(100000) ::  work, eval, hamtmp, ovrlptmp
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -40,6 +41,11 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   ! initialization
   interpol_solution = 0.d0
 
+
+  !!hamtmp(1:orbs%norb**2)=ham%matrix_compr
+  !!ovrlptmp(1:orbs%norb**2)=ovrlp%matrix_compr
+  !!call dsygv(1, 'v', 'l', orbs%norb, hamtmp, orbs%norb, ovrlptmp, orbs%norb, eval, work, 1000, ii)
+  !!if (iproc==0) write(*,*) 'evals',eval(1), eval(orbs%norb)
 
 
   allocate(penalty_ev(orbs%norb,orbs%norbp,2), stat=istat)
@@ -238,10 +244,35 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           ! (otherwise this has already been checked in the previous iteration).
           if (calculate_SHS) then
               ! The penalty function must be smaller than the noise.
-              allredarr(1)=maxval(abs(penalty_ev(:,:,2)))
-              allredarr(2)=maxval(abs(penalty_ev(:,:,1)))
-              call mpiallred(allredarr, 2, mpi_max, bigdft_mpi%mpi_comm, ierr)
-              if (allredarr(1)>anoise) then
+              !!allredarr(1)=maxval(abs(penalty_ev(:,:,2)))
+              !!allredarr(2)=maxval(abs(penalty_ev(:,:,1)))
+              allredarr(1)=0.d0
+              allredarr(2)=0.d0
+              if (orbs%norbp>0) then
+                  isegstart=ovrlp%istsegline(orbs%isorb_par(iproc)+1)
+                  if (orbs%isorb+orbs%norbp<orbs%norb) then
+                      isegend=ovrlp%istsegline(orbs%isorb_par(iproc+1)+1)-1
+                  else
+                      isegend=ovrlp%nseg
+                  end if
+                  !$omp parallel default(private) shared(isegstart, isegend, orbs, penalty_ev, ovrlp, allredarr)
+                  !$omp do reduction(+:allredarr)
+                  do iseg=isegstart,isegend
+                      ii=ovrlp%keyv(iseg)-1
+                      do jorb=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
+                          ii=ii+1
+                          iiorb = (jorb-1)/orbs%norb + 1
+                          jjorb = jorb - (iiorb-1)*orbs%norb
+                          allredarr(1) = allredarr(1) + penalty_ev(jjorb,iiorb-orbs%isorb,2)*ovrlp%matrix_compr(ii)
+                          allredarr(2) = allredarr(2) + penalty_ev(jjorb,iiorb-orbs%isorb,1)*ovrlp%matrix_compr(ii)
+                      end do  
+                  end do
+                  !$omp end do
+                  !$omp end parallel
+              end if
+
+              call mpiallred(allredarr, 2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+              if (allredarr(1)>2.d0*anoise) then
                   if (iproc==0) then
                       write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', &
                                                 allredarr(1), anoise
@@ -250,7 +281,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   foe_obj%evlow=foe_obj%evlow*1.2d0
                   restart=.true.
               end if
-              if (allredarr(2)>anoise) then
+              if (allredarr(2)>2.d0*anoise) then
                   if (iproc==0) then
                       write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', &
                                                 allredarr(2), anoise
@@ -631,8 +662,8 @@ subroutine chebft2(a,b,n,cc)
   bma=0.5d0*(b-a)
   bpa=0.5d0*(b+a)
   ! 3 gives broder safety zone than 4
-  !tt=3.0d0*n/(B-A)
-  tt=4.d0*n/(b-a)
+  tt=3.0d0*n/(b-a)
+  !tt=4.d0*n/(b-a)
   do k=1,n
       y=cos(pi*(k-0.5d0)*(1.d0/n))
       arg=y*bma+bpa
@@ -710,7 +741,9 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
       x=x+ddx
       if (x>=.25d0*dist) exit
   end do
-  anoise=2.d0*tt
+  !anoise=2.d0*tt
+  ! Increase the noise level
+  anoise=5.d0*tt
 
 end subroutine evnoise
 
