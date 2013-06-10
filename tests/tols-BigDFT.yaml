@@ -25,6 +25,7 @@ Keys to ignore:
  - Number of OpenCL devices per node
  - Version Number
  - Root process Hostname
+ - WARNINGS # They are not parsing reliable because of ':' character
 Patterns to ignore:
  - Timestamp
  - memory
