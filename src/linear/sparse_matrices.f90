@@ -9,7 +9,7 @@
 
  
 !> Currently assuming square matrices
-subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
+subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   use module_base
   use module_types
   use module_interfaces, fake_name => initSparseMatrix
@@ -19,15 +19,17 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
   integer,intent(in) :: iproc, nproc
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
+  type(input_variables),intent(in) :: input
   type(sparseMatrix), intent(out) :: sparsemat
   
   ! Local variables
   integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, nseg, irow, irowold, isegline, ilr, segn, ind, iseg
-  integer :: nseglinemax, iall
+  integer :: nseglinemax, iall, isend, irecv, kproc, imin, imax, ierr
   integer :: compressed_index
   integer,dimension(:,:,:),pointer:: keygline
   integer,dimension(:),pointer:: noverlaps
   integer,dimension(:,:),pointer:: overlaps
+  integer,dimension(:,:),allocatable :: sendbuf, requests, iminmaxarr
   character(len=*),parameter :: subname='initSparseMatrix'
   
   call timing(iproc,'init_matrCompr','ON')
@@ -182,17 +184,27 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
   deallocate(overlaps, stat=istat)
   call memocc(istat, iall, 'overlaps', subname)
 
-  ! initialize sparsemat%matrixindex_in_compressed
-  allocate(sparsemat%matrixindex_in_compressed(orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, sparsemat%matrixindex_in_compressed, 'sparsemat%matrixindex_in_compressed', subname)
+  if (input%store_index) then
+      ! store the indices of the matrices in the sparse format
+      sparsemat%store_index=.true.
 
-  do iorb=1,orbs%norb
-     do jorb=1,orbs%norb
-        sparsemat%matrixindex_in_compressed(iorb,jorb)=compressed_index(iorb,jorb,orbs%norb,sparsemat)
-     end do
-  end do
+      ! initialize sparsemat%matrixindex_in_compressed
+      allocate(sparsemat%matrixindex_in_compressed_arr(orbs%norb,orbs%norb), stat=istat)
+      call memocc(istat, sparsemat%matrixindex_in_compressed_arr, 'sparsemat%matrixindex_in_compressed_arr', subname)
 
-  allocate(sparsemat%orb_from_index(sparsemat%nvctr,2), stat=istat)
+      do iorb=1,orbs%norb
+         do jorb=1,orbs%norb
+            sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,orbs%norb,sparsemat)
+         end do
+      end do
+
+  else
+      ! Otherwise alwyas calculate them on-the-fly
+      sparsemat%store_index=.false.
+      nullify(sparsemat%matrixindex_in_compressed_arr)
+  end if
+
+  allocate(sparsemat%orb_from_index(2,sparsemat%nvctr), stat=istat)
   call memocc(istat, sparsemat%orb_from_index, 'sparsemat%orb_from_index', subname)
 
   ind = 0
@@ -201,10 +213,92 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
         ind=ind+1
         iorb = (segn - 1) / sparsemat%full_dim1 + 1
         jorb = segn - (iorb-1)*sparsemat%full_dim1
-        sparsemat%orb_from_index(ind,1) = jorb
-        sparsemat%orb_from_index(ind,2) = iorb
+        sparsemat%orb_from_index(1,ind) = jorb
+        sparsemat%orb_from_index(2,ind) = iorb
      end do
   end do
+
+
+!!  ! for the calculation of overlaps and the charge density
+!!  imin=minval(collcom%indexrecvorbital_c)
+!!  imin=min(imin,minval(collcom%indexrecvorbital_f))
+!!  imax=maxval(collcom%indexrecvorbital_c)
+!!  imax=max(imax,maxval(collcom%indexrecvorbital_f))
+!!
+!!  allocate(collcom%matrixindex_in_compressed(orbs%norb,imin:imax), stat=istat)
+!!  call memocc(istat, collcom%matrixindex_in_compressed, 'collcom%matrixindex_in_compressed', subname)
+!!
+!!  allocate(sendbuf(orbs%norb,orbs%norbp), stat=istat)
+!!  call memocc(istat, sendbuf, 'sendbuf', subname)
+!!
+!!  do iorb=1,orbs%norbp
+!!      iiorb=orbs%isorb+iorb
+!!      do jorb=1,orbs%norb
+!!          sendbuf(jorb,iorb)=compressed_index(iiorb,jorb,orbs%norb,sparsemat)
+!!      end do
+!!  end do
+!!
+!!  allocate(iminmaxarr(2,0:nproc-1), stat=istat)
+!!  call memocc(istat, iminmaxarr, 'iminmaxarr', subname)
+!!  call to_zero(2*nproc, iminmaxarr(1,0))
+!!  iminmaxarr(1,iproc)=imin
+!!  iminmaxarr(2,iproc)=imax
+!!  call mpiallred(iminmaxarr(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+!!
+!!  allocate(requests(maxval(orbs%norb_par(:,0))*nproc,2), stat=istat)
+!!  call memocc(istat, requests, 'requests', subname)
+!!
+!!  if (nproc>1) then
+!!
+!!      isend=0
+!!      irecv=0
+!!      do jproc=0,nproc-1
+!!          do jorb=1,orbs%norb_par(jproc,0)
+!!              jjorb=jorb+orbs%isorb_par(jproc)
+!!              do kproc=0,nproc-1
+!!                  if (jjorb>=iminmaxarr(1,kproc) .and. jjorb<=iminmaxarr(2,kproc)) then
+!!                      ! send from jproc to kproc
+!!                      if (iproc==jproc) then
+!!                          isend=isend+1
+!!                          call mpi_isend(sendbuf(1,jorb), orbs%norb, &
+!!                               mpi_integer, kproc, jjorb, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+!!                      end if
+!!                      if (iproc==kproc) then
+!!                          irecv=irecv+1
+!!                          call mpi_irecv(collcom%matrixindex_in_compressed(1,jjorb), orbs%norb, &
+!!                               mpi_integer, jproc, jjorb, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+!!                      end if
+!!                  end if
+!!              end do
+!!          end do
+!!      end do
+!!
+!!      call mpi_waitall(isend, requests(1,1), mpi_statuses_ignore, ierr)
+!!      call mpi_waitall(irecv, requests(1,2), mpi_statuses_ignore, ierr)
+!!
+!!  else
+!!      call vcopy(orbs%norb*orbs%norbp, sendbuf(1,1), 1, collcom%matrixindex_in_compressed(1,1), 1)
+!!  end if
+!!
+!!  !!do iorb=imin,imax
+!!  !!    do jorb=1,orbs%norb
+!!  !!        write(200+iproc,*) iorb,jorb,collcom%matrixindex_in_compressed(jorb,iorb)
+!!  !!    end do
+!!  !!end do
+!!
+!!
+!!  iall=-product(shape(iminmaxarr))*kind(iminmaxarr)
+!!  deallocate(iminmaxarr, stat=istat)
+!!  call memocc(istat, iall, 'iminmaxarr', subname)
+!!
+!!  iall=-product(shape(requests))*kind(requests)
+!!  deallocate(requests, stat=istat)
+!!  call memocc(istat, iall, 'requests', subname)
+!!
+!!  iall=-product(shape(sendbuf))*kind(sendbuf)
+!!  deallocate(sendbuf, stat=istat)
+!!  call memocc(istat, iall, 'sendbuf', subname)
+
 
 
   call timing(iproc,'init_matrCompr','OF')
@@ -527,8 +621,8 @@ subroutine compress_matrix_for_allreduce(iproc,sparsemat)
   !end do
 
   do jj=1,sparsemat%nvctr
-     irow = sparsemat%orb_from_index(jj,1)
-     jcol = sparsemat%orb_from_index(jj,2)
+     irow = sparsemat%orb_from_index(1,jj)
+     jcol = sparsemat%orb_from_index(2,jj)
      sparsemat%matrix_compr(jj)=sparsemat%matrix(irow,jcol)
   end do
 
@@ -570,8 +664,8 @@ subroutine uncompressMatrix(iproc,sparsemat)
   !end do
 
   do ii=1,sparsemat%nvctr
-     irow = sparsemat%orb_from_index(ii,1)
-     jcol = sparsemat%orb_from_index(ii,2)
+     irow = sparsemat%orb_from_index(1,ii)
+     jcol = sparsemat%orb_from_index(2,ii)
      sparsemat%matrix(irow,jcol)=sparsemat%matrix_compr(ii)
   end do
 
@@ -684,3 +778,60 @@ contains
      !print *,'irow,icol',irow,icol
    END SUBROUTINE get_indecies 
 end subroutine check_matrix_compression
+
+
+
+integer function matrixindex_in_compressed(sparsemat, iorb, jorb)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(sparseMatrix),intent(in) :: sparsemat
+  integer,intent(in) :: iorb, jorb
+
+  ! Local variables
+  integer :: compressed_index
+
+  if (sparsemat%store_index) then
+      ! Take the value from the array
+      matrixindex_in_compressed = sparsemat%matrixindex_in_compressed_arr(iorb,jorb)
+  else
+      ! Recalculate the value
+      matrixindex_in_compressed = compressed_index_fn(iorb, jorb, sparsemat%full_dim1, sparsemat)
+  end if
+
+  contains
+    ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+    integer function compressed_index_fn(irow, jcol, norb, sparsemat)
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: irow, jcol, norb
+      type(sparseMatrix),intent(in) :: sparsemat
+    
+      ! Local variables
+      integer :: ii, iseg
+    
+      ii=(jcol-1)*norb+irow
+    
+      iseg=sparsemat%istsegline(jcol)
+      do
+          if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
+              ! The matrix element is in sparsemat segment
+               compressed_index_fn = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
+              return
+          end if
+          iseg=iseg+1
+          if (iseg>sparsemat%nseg) exit
+          if (ii<sparsemat%keyg(1,iseg)) then
+              compressed_index_fn=0
+              return
+          end if
+      end do
+    
+      ! Not found
+      compressed_index_fn=0
+    
+    end function compressed_index_fn
+end function matrixindex_in_compressed

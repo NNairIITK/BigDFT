@@ -37,7 +37,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   ! Local variables 
   integer :: istat, iall, iorb, jorb, info, ind_ham, ind_denskern
-  integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie
+  integer :: isegsmall, iseglarge, iismall, iilarge, i, is,  ie,matrixindex_in_compressed
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -71,6 +71,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+    
   end if
 
   ! Post the p2p communications for the density. (must not be done in inputguess)
@@ -278,8 +279,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       ebs=0.d0
       do iorb=1,tmb%orbs%norb
          do jorb=1,tmb%orbs%norb
-            ind_ham = tmb%linmat%ham%matrixindex_in_compressed(iorb,jorb)
-            ind_denskern = tmb%linmat%denskern%matrixindex_in_compressed(jorb,iorb)
+            ind_ham = matrixindex_in_compressed(tmb%linmat%ham,iorb,jorb)
+            ind_denskern = matrixindex_in_compressed(tmb%linmat%denskern,jorb,iorb)
             if (ind_ham==0.or.ind_denskern==0) cycle
             ebs = ebs + tmb%linmat%denskern%matrix_compr(ind_denskern)*tmb%linmat%ham%matrix_compr(ind_ham)
          end do
@@ -1355,8 +1356,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
 
      indc=0
      do ind = 1, basis_overlap%nvctr
-        korb = basis_overlap%orb_from_index(ind,1)
-        llorb = basis_overlap%orb_from_index(ind,2)
+        korb = basis_overlap%orb_from_index(1,ind)
+        llorb = basis_overlap%orb_from_index(2,ind)
         if (korb<llorb) cycle ! so still only doing half
         indc = indc + 1
         if (indc < ind_start .or. indc > ind_end) cycle

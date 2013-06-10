@@ -2891,13 +2891,14 @@ module module_interfaces
          logical, intent(in) :: reset
        end subroutine init_foe
 
-       subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
+       subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          type(local_zone_descriptors),intent(in) :: lzd
          type(orbitals_data),intent(in):: orbs
+         type(input_variables),intent(in) :: input
          type(sparseMatrix),intent(out):: sparsemat
        end subroutine initSparseMatrix
 
@@ -4533,21 +4534,22 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
 
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_compr, &
-                   ovrlp_compr, calculate_SHS, SHS, fermi, penalty_ev)
+        subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kernel, ham_compr, &
+                   ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: iproc, nproc, npl
+          integer,intent(in) :: iproc, nproc, npl, nsize_polynomial
           real(8),dimension(npl,3),intent(in) :: cc
           type(orbitals_data),intent(in) :: orbs
           type(foe_data),intent(in) :: foe_obj
-          type(sparseMatrix), intent(in) :: sparsemat
+          type(sparseMatrix), intent(in) :: sparsemat, kernel
           real(kind=8),dimension(sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
           logical,intent(in) :: calculate_SHS
           real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: SHS
           real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
           real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
+          real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
         end subroutine chebyshev_clean
 
         subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)
@@ -4830,6 +4832,38 @@ module module_interfaces
           real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
           real(dp), dimension(:), pointer :: local_potential
         end subroutine integral_equation
+
+        subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, collcom, collcom_sr, sparsemat)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(orbitals_data),intent(in) :: orbs
+          type(collective_comms),intent(in) :: collcom, collcom_sr
+          type(sparseMatrix), intent(inout) :: sparsemat
+        end subroutine init_matrixindex_in_compressed_fortransposed
+
+        subroutine compress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector, vector_compressed)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nsize_polynomial
+          type(orbitals_data),intent(in) :: orbs
+          type(sparseMatrix),intent(in) :: fermi
+          real(kind=8),dimension(orbs%norb,orbs%norbp),intent(in) :: vector
+          real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
+        end subroutine compress_polynomial_vector
+
+        subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector_compressed, vector)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nsize_polynomial
+          type(orbitals_data),intent(in) :: orbs
+          type(sparseMatrix),intent(in) :: fermi
+          real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
+          real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: vector
+        end subroutine uncompress_polynomial_vector
 
   
   end interface

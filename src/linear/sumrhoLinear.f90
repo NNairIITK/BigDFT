@@ -1718,11 +1718,11 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
           tt1=collcom_sr%psit_c(i0+i)
-          ind=denskern%matrixindex_in_compressed(iiorb,iiorb)
+          ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
           tt=tt+denskern%matrix_compr(ind)*tt1*tt1
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
-              ind=denskern%matrixindex_in_compressed(jjorb,iiorb)
+              ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               if (ind==0) cycle
               tt=tt+2.0_dp*denskern%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
           end do

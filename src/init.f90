@@ -1514,73 +1514,73 @@ if (iproc==0)call yaml_map('Previous SCF wfn copied',.true.)
 
 end subroutine input_wf_memory_history
 
-        subroutine input_wf_memory(iproc, atoms, &
-             & rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
-             & rxyz, hx, hy, hz, d, wfd, psi, orbs)
-          use module_defs
-          use module_types
-          use module_interfaces, except_this_one => input_wf_memory
-          implicit none
+subroutine input_wf_memory(iproc, atoms, &
+     & rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
+     & rxyz, hx, hy, hz, d, wfd, psi, orbs)
+  use module_defs
+  use module_types
+  use module_interfaces, except_this_one => input_wf_memory
+  implicit none
 
-          integer, intent(in) :: iproc
-          type(atoms_data), intent(in) :: atoms
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz, rxyz_old
-          real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old
-          type(grid_dimensions), intent(in) :: d, d_old
-          type(wavefunctions_descriptors), intent(in) :: wfd
-          type(wavefunctions_descriptors), intent(inout) :: wfd_old
-          type(orbitals_data), intent(in) :: orbs
-          real(wp), dimension(:), pointer :: psi, psi_old
+  real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old
+  type(grid_dimensions), intent(in) :: d, d_old
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(wavefunctions_descriptors), intent(inout) :: wfd_old
+  type(orbitals_data), intent(in) :: orbs
+  real(wp), dimension(:), pointer :: psi, psi_old
 
-          character(len = *), parameter :: subname = "input_wf_memory"
-          integer :: i_stat, i_all
+  character(len = *), parameter :: subname = "input_wf_memory"
+  integer :: i_stat, i_all
 
-          !these parts should be reworked for the non-collinear spin case
-          call reformatmywaves(iproc,orbs,atoms,hx_old,hy_old,hz_old,&
-               d_old%n1,d_old%n2,d_old%n3,rxyz_old,wfd_old,psi_old,hx,hy,hz,&
-               & d%n1,d%n2,d%n3,rxyz,wfd,psi)
+  !these parts should be reworked for the non-collinear spin case
+  call reformatmywaves(iproc,orbs,atoms,hx_old,hy_old,hz_old,&
+       d_old%n1,d_old%n2,d_old%n3,rxyz_old,wfd_old,psi_old,hx,hy,hz,&
+       & d%n1,d%n2,d%n3,rxyz,wfd,psi)
 
 
-          i_all=-product(shape(psi_old))*kind(psi_old)
-          deallocate(psi_old,stat=i_stat)
-          call memocc(i_stat,i_all,'psi_old',subname)
-        END SUBROUTINE input_wf_memory
+  i_all=-product(shape(psi_old))*kind(psi_old)
+  deallocate(psi_old,stat=i_stat)
+  call memocc(i_stat,i_all,'psi_old',subname)
+END SUBROUTINE input_wf_memory
 
 
 
 subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, input, &
            rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU)
 
-          use module_base
-          use module_types
-          use module_interfaces, except_this_one => input_memory_linear
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => input_memory_linear
   use module_fragments
-          implicit none
+  implicit none
 
-          ! Calling arguments
-          integer,intent(in) :: iproc, nproc
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
   type(atoms_data), intent(inout) :: at
   type(DFT_wavefunction),intent(inout):: KSwfn
   type(DFT_wavefunction),intent(inout):: tmb, tmb_old
-          type(DFT_local_fields), intent(inout) :: denspot
-          type(input_variables),intent(in):: input
+  type(DFT_local_fields), intent(inout) :: denspot
+  type(input_variables),intent(in):: input
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz_old, rxyz
-          real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
-          type(energy_terms),intent(inout):: energs
+  real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
+  type(energy_terms),intent(inout):: energs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
   type(GPU_pointers), intent(inout) :: GPU
 
-          ! Local variables
+  ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, ilr_old, iiat
-          logical:: overlap_calculated
+         logical:: overlap_calculated
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
-          character(len=*),parameter:: subname='input_memory_linear'
+  character(len=*),parameter:: subname='input_memory_linear'
 
-          ! Determine size of phi_old and phi
-          ndim_old=0
-          ndim=0
+  ! Determine size of phi_old and phi
+  ndim_old=0
+  ndim=0
   do iorb=1,tmb%orbs%norbp
       iiorb=tmb%orbs%isorb+iorb
       ilr=tmb%orbs%inwhichlocreg(iiorb)
@@ -1589,7 +1589,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
               !!write(*,*) '###### input_memory_linear: iiorb, ilr', iiorb, ilr
       ndim_old=ndim_old+tmb_old%lzd%llr(ilr_old)%wfd%nvctr_c+7*tmb_old%lzd%llr(ilr_old)%wfd%nvctr_f
       ndim=ndim+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-          end do
+  end do
 
   ! Reformat the support functions if we are not using FOE. Otherwise an AO
   ! input guess wil be done below.
@@ -1665,29 +1665,33 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
    ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
 
-   tmb%can_use_transposed=.true.
-   overlap_calculated=.false.
-   allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=i_stat)
-   call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
+   ! Normalize the input guess. If FOE is used, the input guess will be generated below.
+   if (input%lin%scf_mode/=LINEAR_FOE) then
+       tmb%can_use_transposed=.true.
+       overlap_calculated=.false.
+       allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=i_stat)
+       call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
 
-   allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=i_stat)
-   call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
+       allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=i_stat)
+       call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
 
-   call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-        tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
 
-   ! normalize psi
-   allocate(norm(tmb%orbs%norb), stat=i_stat)
-   call memocc(i_stat, norm, 'norm', subname)
+       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+            tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
 
-   call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
+       ! normalize psi
+       allocate(norm(tmb%orbs%norb), stat=i_stat)
+       call memocc(i_stat, norm, 'norm', subname)
 
-   call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-        tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
+       call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
 
-   i_all = -product(shape(norm))*kind(norm)
-   deallocate(norm,stat=i_stat)
-   call memocc(i_stat,i_all,'norm',subname)
+       call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+            tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
+
+       i_all = -product(shape(norm))*kind(norm)
+       deallocate(norm,stat=i_stat)
+       call memocc(i_stat,i_all,'norm',subname)
+   end if
 
 
           ! Update the kernel
@@ -1749,7 +1753,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
 
 
-        END SUBROUTINE input_memory_linear
+END SUBROUTINE input_memory_linear
 
         subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
              & in, atoms, rxyz, rxyz_old, wfd, orbs, psi)

@@ -37,7 +37,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Local variables
   type(gaussian_basis) :: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
-  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat
+  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,matrixindex_in_compressed
   real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
@@ -222,7 +222,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !Put the Density kernel to identity for now
   call to_zero(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1))
   do iorb=1,tmb%orbs%norb
-     ii=tmb%linmat%denskern%matrixindex_in_compressed(iorb,iorb)
+     ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
      tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(inversemapping(iorb))
   end do
 

@@ -284,6 +284,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   ! Local variables
   integer:: iorb, jorb, korb, lorb, istat, iall, info, iiorb, ierr, ind, indh, indo, kkorb
   integer :: npts_per_proc, ind_start, ind_end, indc!, iseg, segn
+  integer :: matrixindex_in_compressed
   real(8),dimension(:,:),allocatable:: lagmat, rhs, gradp, coeffp !, ovrlp_coeff, ovrlp_tmp
   integer,dimension(:),allocatable:: ipiv
   real(8):: tt, ddot, tt2
@@ -345,8 +346,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
 
   indc=0
   do ind = 1, tmb%linmat%ham%nvctr
-     lorb = tmb%linmat%ham%orb_from_index(ind,1)
-     kkorb = tmb%linmat%ham%orb_from_index(ind,2)
+     lorb = tmb%linmat%ham%orb_from_index(1,ind)
+     kkorb = tmb%linmat%ham%orb_from_index(2,ind)
 
      if (lorb<kkorb) cycle ! so still only doing half
      indc = indc + 1
@@ -434,7 +435,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   if (orbs%norbp>0) then ! don't need to bother if we have no orbs on this proc
      do lorb=1,tmb%orbs%norb
         do korb=lorb,tmb%orbs%norb
-           indh=tmb%linmat%ham%matrixindex_in_compressed(korb,lorb)
+           indh=matrixindex_in_compressed(tmb%linmat%ham,korb,lorb)
            if (indh==0) cycle ! H should always be less sparse than S
 
            do iorb=1,orbs%norbp
@@ -443,7 +444,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
               if (korb/=lorb) rhs(korb,iiorb)=rhs(korb,iiorb)+tmb%coeff(lorb,iiorb)*tmb%linmat%ham%matrix_compr(indh)
            end do
 
-           indo=tmb%linmat%ovrlp%matrixindex_in_compressed(korb,lorb)
+           indo=matrixindex_in_compressed(tmb%linmat%ovrlp,korb,lorb)
            if (indo==0) cycle
 
            do jorb=1,orbs%norb
