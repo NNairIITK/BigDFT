@@ -25,6 +25,25 @@ subroutine f_dump_last_error()
   end if
 end subroutine f_dump_last_error
 
+!> dump the list of possible errors as they are defined at present
+subroutine f_dump_possible_errors(extra_msg)
+  use yaml_output
+  use dictionaries, only: f_get_error_definitions
+  implicit none
+  character(len=*), intent(in) :: extra_msg
+  
+  call yaml_newline()
+  call yaml_comment('Error list',hfill='~')
+  call yaml_open_map('List of errors defined so far')
+  call yaml_dict_dump(f_get_error_definitions())
+  call yaml_close_map()
+  call yaml_comment('End of error list',hfill='~')
+  if (len_trim(extra_msg) > 0) then
+     call yaml_map('Additional Info',trim(extra_msg))
+  else
+     call yaml_map('Dump ended',.true.)
+  end if
+end subroutine f_dump_possible_errors
 
 !!$!> routine which dump an error according to the arguments.
 !!$subroutine f_dump_error(newerror_code,err_msg)

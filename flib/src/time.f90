@@ -6,7 +6,15 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-
+!> module to profile the actions of the code as well as the internal operations defined by the f_lib
+!!$module time_profiling
+!!$  implicit none
+!!$  
+!!$  contains
+!!$
+!!$    subroutine f_time_category(name,class,info)
+!!$    end subroutine f_time_category
+!!$end module time_profiling
 
 !>    Contains variables used a timing for BigDFT
 module timeData

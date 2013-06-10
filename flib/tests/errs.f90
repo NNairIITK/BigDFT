@@ -41,6 +41,9 @@ subroutine test_error_handling()
   if (f_err_raise(.true.,'Generic error raised, some message here')) continue ! return
 
   call f_err_clean()
+
+  call f_dump_possible_errors('This is the list of the errors')
+
   call f_err_set_callback(abort2)
 
   call yaml_map("Callback done",f_err_raise(.true.,'Now TITI error has been raised',err_id=ERR_TITI))
