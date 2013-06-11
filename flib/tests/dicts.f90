@@ -24,7 +24,7 @@ subroutine test_dictionaries0()
 !!$
 !!$  do ival=0,nval-1
 !!$     val=list//ival
-!!$     print *,'value',ival,val
+!!$     print *,'value',ival,valget
 !!$  end do
 !!$  
 !!$  call dict_free(list)
@@ -33,7 +33,20 @@ subroutine test_dictionaries0()
   !Test a dictionary
   !alternative way of initializing a dictionary
   !call dict_init(dict1)
+
   dict1=>dict_new()
+  call f_err_open_try()
+  ival=dict1//'Toto' 
+
+  call yaml_map('ival not existing, fake value',ival)
+
+  call yaml_map('An error has been raised',f_err_check())
+  call yaml_map('Its error id is',f_get_last_error())
+  !routine to retrieve the error
+  call f_dump_last_error()
+  call f_err_close_try()
+  call yaml_map('Error pipe is still full',f_err_check())
+ 
   ! a single scalar
 !!  call set(dict1//'',1)
 !!$  !can be also set like that, should be avoided

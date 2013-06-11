@@ -79,8 +79,8 @@
 !!    February 2007
 !! 
 subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin,&
-     alpha,beta,gamma,quiet) !optional argument
+     rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)!,&
+!     alpha,beta,gamma,quiet) !optional argument
   use module_base
   use module_types
   use module_xc
@@ -97,9 +97,9 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(gp), intent(out) :: eh,exc,vxc
   real(dp), dimension(*), intent(inout) :: rhopot
   real(wp), dimension(*), intent(inout) :: pot_ion
-  character(len=3), intent(in), optional :: quiet
-  !triclinic lattice
-  real(dp), intent(in), optional :: alpha,beta,gamma
+!  character(len=3), intent(in), optional :: quiet
+!  !triclinic lattice
+!  real(dp), intent(in), optional :: alpha,beta,gamma
   !local variables
   character(len=*), parameter :: subname='PSolver'
   logical :: wrtmsg
@@ -119,29 +119,29 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   call timing(iproc,'Exchangecorr  ','ON')
 
-  if (present(quiet)) then
-     if(quiet == 'yes' .or. quiet == 'YES') then
-        wrtmsg=.false.
-     else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
-        wrtmsg=.true.
-     else
-        call yaml_warning('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
-        !write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
-        stop
-     end if
-  else
+!!$  if (present(quiet)) then
+!!$     if(quiet == 'yes' .or. quiet == 'YES') then
+!!$        wrtmsg=.false.
+!!$     else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
+!!$        wrtmsg=.true.
+!!$     else
+!!$        call yaml_warning('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
+!!$        !write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
+!!$        stop
+!!$     end if
+!!$  else
      wrtmsg=.true.
-  end if
+!!$  end if
 
-  if (present(alpha) .and. present(beta) .and. present(gamma)) then
-     alphat = alpha
-     betat = beta
-     gammat = gamma
-  else
+!!$  if (present(alpha) .and. present(beta) .and. present(gamma)) then
+!!$     alphat = alpha
+!!$     betat = beta
+!!$     gammat = gamma
+!!$  else
      alphat = 2.0_dp*datan(1.0_dp)
      betat = 2.0_dp*datan(1.0_dp)
      gammat = 2.0_dp*datan(1.0_dp)
-  end if
+!!$  end if
 
 
  
@@ -623,6 +623,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
   use module_base
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use dictionaries, only: f_err_raise
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
@@ -641,30 +642,34 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
   real(dp), dimension(:,:,:), allocatable :: m_norm
   real(dp), dimension(:,:,:,:), allocatable :: rho_diag
 
-  interface
-     subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-          rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin,&
-          alpha,beta,gamma,quiet) !optional argument
-       use module_base
-       use module_types
-       implicit none
-       character(len=1), intent(in) :: geocode
-       character(len=1), intent(in) :: datacode
-       logical, intent(in) :: sumpion
-       integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
-       real(gp), intent(in) :: hx,hy,hz
-       real(dp), intent(in) :: offset
-       real(dp), dimension(*), intent(in) :: karray
-       real(gp), intent(out) :: eh,exc,vxc
-       real(dp), dimension(*), intent(inout) :: rhopot
-       real(wp), dimension(*), intent(inout) :: pot_ion
-       character(len=3), intent(in), optional :: quiet
-       !triclinic lattice
-       real(dp), intent(in), optional :: alpha,beta,gamma
-     end subroutine PSolver
-  end interface
+!!$  interface
+!!$     subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+!!$          rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin,&
+!!$          alpha,beta,gamma,quiet) !optional argument
+!!$       use module_base
+!!$       use module_types
+!!$       implicit none
+!!$       character(len=1), intent(in) :: geocode
+!!$       character(len=1), intent(in) :: datacode
+!!$       logical, intent(in) :: sumpion
+!!$       integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
+!!$       real(gp), intent(in) :: hx,hy,hz
+!!$       real(dp), intent(in) :: offset
+!!$       real(dp), dimension(*), intent(in) :: karray
+!!$       real(gp), intent(out) :: eh,exc,vxc
+!!$       real(dp), dimension(*), intent(inout) :: rhopot
+!!$       real(wp), dimension(*), intent(inout) :: pot_ion
+!!$       character(len=3), intent(in), optional :: quiet
+!!$       !triclinic lattice
+!!$       real(dp), intent(in), optional :: alpha,beta,gamma
+!!$     end subroutine PSolver
+!!$  end interface
 
-  if(nspin==4) then
+  !only for nspin==4
+  !if(nspin==4) then
+  if (f_err_raise(nspin/=4,'Noncollinear Poisson Solver can only be called with nspin=4')) then
+     return
+  else
      !Allocate diagonal spin-density in real space
      if (n3d >0) then
         allocate(rho_diag(n01,n02,n3d,2+ndebug),stat=i_stat)
@@ -698,6 +703,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
         m_norm=0.0_dp
      end if
      !print *,'ciao',iproc     
+     !substitution of the calling routine
+     
      call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
           rho_diag,karray,pot_ion,eh,exc,vxc,offset,sumpion,2)
      !print *,'Psolver R',eh,exc,vxc
@@ -734,9 +741,9 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
      i_all=-product(shape(m_norm))*kind(m_norm)
      deallocate(m_norm,stat=i_stat)
      call memocc(i_stat,i_all,'m_norm',subname)
-  else
-     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-          rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
+!!$  else
+!!$     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+!!$          rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
   end if
 
 END SUBROUTINE PSolverNC

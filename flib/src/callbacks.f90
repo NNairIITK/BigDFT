@@ -29,7 +29,7 @@ module exception_callbacks
   public :: callback_add,callback_data_add,severe_callback_add,err_abort
 
   public :: f_err_set_callback,f_err_unset_callback
-  public :: f_err_severe,f_err_severe_override,f_err_severe_restore
+  public :: f_err_severe,f_err_severe_override,f_err_severe_restore,f_err_ignore
   
   ! public :: f_loc
 
@@ -89,6 +89,11 @@ contains
     severe_callback_add=0
   end subroutine f_err_severe_restore
 
+  !>wrapper to ignore errors, do not dump
+  subroutine f_err_ignore()
+    implicit none
+  end subroutine f_err_ignore
+
   !>wrapper for severe errors, the can be desactivated
   subroutine f_err_severe()
     implicit none
@@ -102,7 +107,9 @@ contains
   !> Callback routine for severe errors
   subroutine f_err_severe_internal()
     implicit none
+    call f_dump_last_error()
     stop 'Severe error, cannot proceed'
   end subroutine f_err_severe_internal
   
+
 end module exception_callbacks

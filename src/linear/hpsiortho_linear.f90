@@ -12,7 +12,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-           hpsi_small, hpsi_noprecond)
+           energy_only, hpsi_small, hpsi_noprecond)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
@@ -32,6 +32,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   type(energy_terms),intent(in) :: energs
   real(8),dimension(:),pointer:: hpsit_c, hpsit_f
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
+  logical, intent(in) :: energy_only
   real(kind=8),dimension(tmb%npsidim_orbs),intent(out) :: hpsi_small
   real(kind=8),dimension(tmb%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
 
@@ -66,11 +67,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end do
       call timing(iproc,'eglincomms','OF')
   end if
-
-  allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
-  call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
-  allocate(fnrmArr(tmb%orbs%norb,2), stat=istat)
-  call memocc(istat, fnrmArr, 'fnrmArr', subname)
 
   ! by default no quick exit
   energy_increased=.false.
@@ -147,6 +143,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
   end if
 
+  iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
+  deallocate(hpsittmp_c, stat=istat)
+  call memocc(istat, iall, 'hpsittmp_c', subname)
+  iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
+  deallocate(hpsittmp_f, stat=istat)
+  call memocc(istat, iall, 'hpsittmp_f', subname)
+
 
   ! make lagmat a structure with same sparsity as h
   !call nullify_sparsematrix(lagmat)
@@ -191,6 +194,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
   end if
 
+  allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
+  call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
+  allocate(fnrmArr(tmb%orbs%norb,2), stat=istat)
+  call memocc(istat, fnrmArr, 'fnrmArr', subname)
+
   ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
   ! of the previous iteration (fnrmOvrlpArr).
   call timing(iproc,'eglincomms','ON')
@@ -222,7 +230,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
           if(tt>.6d0 .and. trH<trHold) then
               alpha(iorb)=alpha(iorb)*1.1d0
-          else
+          ! apply a threshold so that alpha never goes below around 1.d-2
+          else if (alpha(iorb)>1.7d-3) then
               alpha(iorb)=alpha(iorb)*.6d0
           end if
           !!alpha(iorb)=min(alpha(iorb),1.5d0)
@@ -232,9 +241,30 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
   fnrmMax=sqrt(fnrmMax)
+
+  iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)
+  deallocate(fnrmOvrlpArr, stat=istat)
+  call memocc(istat, iall, 'fnrmOvrlpArr', subname)
+
+  iall=-product(shape(fnrmArr))*kind(fnrmArr)
+  deallocate(fnrmArr, stat=istat)
+  call memocc(istat, iall, 'fnrmArr', subname)
+
+  ! Determine the mean step size for steepest descent iterations.
+  tt=sum(alpha)
+  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  alpha_mean=tt/dble(tmb%orbs%norb)
+  alpha_max=maxval(alpha)
+  call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call dcopy(tmb%npsidim_orbs, hpsi_small, 1, lhphiold, 1)
   call timing(iproc,'eglincomms','OF')
+
+  ! if energy has increased or we only wanted to calculate the energy, not gradient, we can return here
+  ! rather than calculating the preconditioning for nothing
+  if ((energy_increased .or. energy_only) .and. target_function/=TARGET_FUNCTION_IS_HYBRID) return
+
   ! Precondition the gradient.
   if(iproc==0) then
       write(*,'(a)',advance='no') 'Preconditioning... '
@@ -277,7 +307,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   if(target_function==TARGET_FUNCTION_IS_HYBRID) then
      allocate(hpsi_tmp(tmb%npsidim_orbs), stat=istat)
-     call memocc(istat, hpsi_conf, 'hpsi_conf', subname)
+     call memocc(istat, hpsi_tmp, 'hpsi_tmp', subname)
      ist=1
      do iorb=1,tmb%orbs%norbp
         iiorb=tmb%orbs%isorb+iorb
@@ -367,30 +397,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   gnrm=sqrt(gnrm/dble(tmb%orbs%norb))
   gnrmMax=sqrt(gnrmMax)
   if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
-
-
-  ! Determine the mean step size for steepest descent iterations.
-  tt=sum(alpha)
-  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  alpha_mean=tt/dble(tmb%orbs%norb)
-  alpha_max=maxval(alpha)
-  call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   call timing(iproc,'eglincomms','OF')
-
-  iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)
-  deallocate(fnrmOvrlpArr, stat=istat)
-  call memocc(istat, iall, 'fnrmOvrlpArr', subname)
-
-  iall=-product(shape(fnrmArr))*kind(fnrmArr)
-  deallocate(fnrmArr, stat=istat)
-  call memocc(istat, iall, 'fnrmArr', subname)
-
-  iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
-  deallocate(hpsittmp_c, stat=istat)
-  call memocc(istat, iall, 'hpsittmp_c', subname)
-  iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
-  deallocate(hpsittmp_f, stat=istat)
-  call memocc(istat, iall, 'hpsittmp_f', subname)
 
 
 end subroutine calculate_energy_and_gradient_linear

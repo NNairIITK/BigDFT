@@ -9,14 +9,18 @@ TESTDIRS = Locreg \
 	   foe \
 	   geopt \
 	   testforces \
-	   fructose
+	   fructose \
+	rotatesmall2 
+#      rotatesmall \
+#      cdft
 
 EXTRA_TESTDIRS = water \
-                 molecule \
-                 deltascf \
-                 reformat \
-		         paracetamol \
-               rotate
+	molecule \
+	deltascf \
+	reformat \
+	paracetamol \
+	rotate \
+	rotate2
 
 
 EXTRA_DIST = 
@@ -45,6 +49,22 @@ deltascf_write_neut.out.post-out:
 	rm -rf data-read_charge
 	mv -f data-write_neut data-read_charge
 
+rotatesmall_read.out.out : rotatesmall_write.out.out
+
+rotatesmall_write.out.post-out: 
+	rm -rf data-read/data-sih3
+	mkdir -p data-read
+	mv -f data-write data-read/data-sih3
+	cp -f write.xyz data-read/sih3.xyz
+
+rotatesmall2_read.out.out : rotatesmall2_write.out.out
+
+rotatesmall2_write.out.post-out: 
+	rm -rf data-read/data-sih3
+	mkdir -p data-read
+	mv -f data-write data-read/data-sih3
+	cp -f write.xyz data-read/sih3.xyz
+
 rotate_read.out.out : rotate_write.out.out
 
 rotate_write.out.post-out: 
@@ -60,6 +80,20 @@ rotate2_write.out.post-out:
 	mkdir -p data-read
 	mv -f data-write data-read/data-benzene
 	cp -f write.xyz data-read/benzene.xyz
+
+cdft_co.out.out : cdft_c.out.out
+cdft_c.out.out : cdft_o.out.out
+
+cdft_o.out.post-out: 
+	rm -rf data-co/data-o
+	mkdir -p data-co
+	mv -f data-o data-co/data-o
+	cp -f o.xyz data-co/o.xyz
+
+cdft_c.out.post-out: 
+	rm -rf data-co/data-c
+	mv -f data-c data-co/data-c
+	cp -f c.xyz data-co/c.xyz
 
 # Define the precision for specific directories.
 %.report: %.ref
@@ -88,7 +122,7 @@ rotate2_write.out.post-out:
 	  molecule_dmix.out*)         prec="1.e-9" ;; \
 	  molecule_pmix.out*)         prec="1.1e-9" ;; \
 	  molecule_foe.out*)          prec="5.4e-7" ;; \
-	  foe.out*)                   prec="3.1e-10" ;; \
+	  foe.out*)                   prec="5.6e-10" ;; \
 	  reformat_write.out*)        prec="3.e-10" ;; \
 	  paracetamol.out*)           prec="2.e-10" ;; \
       *)                          prec="1.1e-10" ;; \

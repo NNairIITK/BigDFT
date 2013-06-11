@@ -2595,7 +2595,11 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    call memocc(i_stat, psit_f, 'psit_f', subname)
    allocate(checksum(orbs%norb*orbs%nspinor,2), stat=i_stat)
    call memocc(i_stat, checksum, 'checksum', subname)
-   tol=1.e-10*real(npsidim_orbs,wp)/real(orbs%norbp,wp)
+   if (orbs%norbp>0) then
+      tol=1.e-10*real(npsidim_orbs,wp)/real(orbs%norbp,wp)
+   else
+      tol=0.0_wp
+   end if
 
    checksum(:,:)=0.0_wp
    do iorb=1,orbs%norbp

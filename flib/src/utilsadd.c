@@ -61,6 +61,13 @@ void FC_FUNC(geti1, GETI1)(void *ptr,long long int *address)
   return;
 }
 
+void FC_FUNC(geti2, GETI2)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
 void FC_FUNC(getdp1, GETDP1)(void *ptr,long long int *address)
 {
   *address=0;

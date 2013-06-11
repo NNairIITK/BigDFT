@@ -105,7 +105,6 @@ contains
         ! check that fragments are sensible, i.e. correct number of atoms, atom types etc.
         call check_fragments(in,ref_frags,astruct)
 
-
      ! set appropriate default values as this is not a fragment calculation
      else
         ! nullify fragment
@@ -195,7 +194,8 @@ contains
        ifrag_ref=input%frag%frag_index(ifrag)
 
        do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
-          if (ref_frags(ifrag_ref)%astruct_frg%iatype(iat) /= astruct%iatype(iat+isfat)) then
+          if (ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat)) &
+               /= astruct%atomnames(astruct%iatype(iat+isfat))) then
              fragments_ok=.false.
              write(*,*) 'Atom type for fragment ',ifrag,', reference fragment ',ifrag_ref,' atom number ',iat,&
                   ' does not match ',ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat)),&
@@ -708,7 +708,7 @@ contains
        J=J+J_arr(1,iat)**2+J_arr(2,iat)**2+J_arr(3,iat)**2
     end do
 
-    if (J>1.0e-10) then
+    if (J>1.0e-4) then
        print*,"Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
     end if
 
@@ -1036,9 +1036,12 @@ contains
        !print*,'axis_from_r2',norm,rot_axis
     else
        ! squares of rot_axis are diag 0.5(R+I), signs as before
-       rot_axis(1)=sign(dsqrt(0.5_gp*(R_mat(1,1)+1.0_gp)),rot_axis(1))
-       rot_axis(2)=sign(dsqrt(0.5_gp*(R_mat(2,2)+1.0_gp)),rot_axis(2))
-       rot_axis(3)=sign(dsqrt(0.5_gp*(R_mat(3,3)+1.0_gp)),rot_axis(3))
+       !this is not good as it gives a array of modulus bigger than one
+       rot_axis(1:2)=0.0_gp
+       rot_axis(3)=1.0_gp
+       !rot_axis(1)=sign(dsqrt(0.5_gp*(R_mat(1,1)+1.0_gp)),rot_axis(1))
+       !rot_axis(2)=sign(dsqrt(0.5_gp*(R_mat(2,2)+1.0_gp)),rot_axis(2))
+       !rot_axis(3)=sign(dsqrt(0.5_gp*(R_mat(3,3)+1.0_gp)),rot_axis(3))
        !print*,'axis_from_r3',norm,rot_axis
     end if
 

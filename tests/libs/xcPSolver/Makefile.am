@@ -39,6 +39,10 @@ PS_Check.out.yaml: PS_Check
 	$(run_parallel) ./PS_Check 32 64 48  1 S >> PS_Check.out.yaml
 	$(run_parallel) ./PS_Check 32 64 48 11 S >> PS_Check.out.yaml
 	$(run_parallel) ./PS_Check 32 64 48 13 S >> PS_Check.out.yaml
+	cp -f PS_Check.out.yaml tmp
+	cat tmp | grep -v 'Unable to read mpd.hosts' > PS_Check.out.yaml
+	rm -f tmp
+
 
 check: PS_Check.out.yaml
 	export PYTHONPATH=${PYTHONPATH} ; \

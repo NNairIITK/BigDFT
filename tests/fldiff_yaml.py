@@ -166,7 +166,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
   global failed_checks,discrepancy,biggest_tol
   failed = always_fails
   ret = (failed, None)
-  #print scl,ref,tols
+  #print 'scl',scl,'ref',ref,'tols',tols
 #eliminate the character variables
   if type(ref) == type(""):
     if not(scl == ref):

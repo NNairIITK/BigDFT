@@ -389,6 +389,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         ll_inputs=inputs
     endif
     call inputs_parse_add(ll_inputs, atoms, iproc, (iproc == 0))
+    
     !-----------------------------------------------------------
     allocate(rxyz_2(3,atoms%astruct%nat+ndeb1))
     call dmemocc(3*(atoms%astruct%nat),3*(atoms%astruct%nat+ndeb1),rxyz_2,'rxyz_2')
