@@ -111,10 +111,10 @@ subroutine print_configure_options()
   call yaml_map("Compilers (CC, FC, CXX)", buf(1:3))
   call bigdft_config_get_compiler_flags(buf(1), buf(2), buf(3), buf(4), ln)
   call yaml_open_map("Compiler flags")
-  if (len_trim(buf(1)>0)) call yaml_map("CFLAGS",   trim(buf(1)))
-  if (len_trim(buf(2)>0)) call yaml_map("FCFLAGS",  trim(buf(2)))
-  if (len_trim(buf(3)>0)) call yaml_map("CXXFLAGS", trim(buf(3)))
-  if (len_trim(buf(4)>0)) call yaml_map("CPPFLAGS", trim(buf(4)))
+  if (len_trim(buf(1))>0) call yaml_map("CFLAGS",   trim(buf(1)))
+  if (len_trim(buf(2))>0) call yaml_map("FCFLAGS",  trim(buf(2)))
+  if (len_trim(buf(3))>0) call yaml_map("CXXFLAGS", trim(buf(3)))
+  if (len_trim(buf(4))>0) call yaml_map("CPPFLAGS", trim(buf(4)))
   call yaml_close_map()
 !!$  call bigdft_config_get_linker(buf(1), buf(2), buf(3), buf(4), ln)
 !!$  call yaml_open_map("Linker")
@@ -123,7 +123,7 @@ subroutine print_configure_options()
 !!$   call yaml_map("LIBS",    trim(buf(3)))
 !!$   call yaml_map("Full linking options", trim(buf(4)))
 !!$  call yaml_close_map()
- 
+
  call yaml_close_map()
 
 end subroutine print_configure_options
