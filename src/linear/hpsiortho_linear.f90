@@ -239,6 +239,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if(iproc==0) then
       write(*,'(a)',advance='no') 'Preconditioning... '
   end if
+
  
 
   !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
@@ -320,9 +321,25 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      deallocate(hpsi_tmp, stat=istat)
      call memocc(istat, iall, 'hpsi_tmp', subname)
   else
+  ist=1
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      write(*,*) 'before precond: iorb, ddot', iorb, ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
+      ist=ist+ncount
+  end do
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
           nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero)
+  ist=1
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      write(*,*) 'after precond: iorb, ddot', iorb, ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
+      ist=ist+ncount
+  end do
    end if
 
   !sum over all the partial residues
@@ -357,13 +374,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ilr=tmb%orbs%inwhichlocreg(iiorb)
       ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
       gnrmArr=ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
+      write(*,*) 'iorb, gnrmarr', iorb, gnrmarr
       gnrm=gnrm+gnrmArr
       if(gnrmArr>gnrmMax) gnrmMax=gnrmArr
       ist=ist+ncount
   end do
 
-  call mpiallred(gnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+
+  if (nproc>1) then
+      call mpiallred(gnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  end if
   gnrm=sqrt(gnrm/dble(tmb%orbs%norb))
   gnrmMax=sqrt(gnrmMax)
   if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
@@ -371,10 +392,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
-  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  if (nproc>1) then
+      call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  end if
   alpha_mean=tt/dble(tmb%orbs%norb)
   alpha_max=maxval(alpha)
-  call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  if (nproc>1) then
+      call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  end if
   call timing(iproc,'eglincomms','OF')
 
   iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)

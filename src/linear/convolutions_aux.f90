@@ -45,6 +45,12 @@ x03=x0**3
 if(filterCode=='a')then
     do i=lb,ub
         eff(i)=prefac1*a(i) + fac2*( hgrid3*a4(i) + 4*hgrid2*x0*a3(i) + 6*hgrid*x02*a2(i) + 4*x03*a1(i))
+        !!!$omp parallel
+        !!!$omp master
+        !!write(*,'(a,13es13.6)') 'prefac1,a(i),fac2,hgrid3,a4(i),hgrid2,x0,a3(i),hgrid,x02,a2(i),x03,a1(i)', &
+        !!                         prefac1,a(i),fac2,hgrid3,a4(i),hgrid2,x0,a3(i),hgrid,x02,a2(i),x03,a1(i)
+        !!!$omp end master
+        !!!$omp end parallel
     end do
     eff(0)=eff(0)+fac*x0**4
 elseif(filterCode=='b') then

@@ -105,6 +105,48 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   logical:: with_confpot
   character(len=*),parameter :: subname='ConvolQuartic4'
 
+  real(8) :: ddot !debug
+
+  write(*,*) 'in quartic: ddot xx_c', ddot((n1+1)*(n2+1)*(n3+1), xx_c, 1, xx_c, 1)
+  write(*,*) 'in quartic: ddot xy_c', ddot((n1+1)*(n2+1)*(n3+1), xy_c, 1, xy_c, 1)
+  write(*,*) 'in quartic: ddot xz_c', ddot((n1+1)*(n2+1)*(n3+1), xz_c, 1, xz_c, 1)
+  write(*,*) 'in quartic: ddot xx_f1', ddot((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1), xx_f1, 1, xx_f1, 1)
+  write(*,*) 'in quartic: ddot xx_f', ddot(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1), xx_f, 1, xx_f, 1)
+  write(*,*) 'in quartic: ddot xy_f2', ddot((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1), xy_f2, 1, xy_f2, 1)
+  write(*,*) 'in quartic: ddot xy_f', ddot(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1), xy_f, 1, xy_f, 1)
+  write(*,*) 'in quartic: ddot xz_f4', ddot((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1), xz_f4, 1, xz_f4, 1)
+  write(*,*) 'in quartic: ddot xz_f', ddot(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1), xz_f, 1, xz_f, 1)
+  write(*,*) 'in quartic: ddot, aeff0array', ddot(35*(maxdim+1), aeff0array, 1, aeff0array, 1)
+  write(*,*) 'in quartic: ddot, beff0array', ddot(35*(maxdim+1), beff0array, 1, beff0array, 1)
+  write(*,*) 'in quartic: ddot, ceff0array', ddot(35*(maxdim+1), ceff0array, 1, ceff0array, 1)
+  write(*,*) 'in quartic: ddot, eeff0array', ddot(35*(maxdim+1), eeff0array, 1, eeff0array, 1)
+  write(*,*) 'in quartic: ddot, aeff0_2array', ddot(35*(maxdim+1), aeff0_2array, 1, aeff0_2array, 1)
+  write(*,*) 'in quartic: ddot, beff0_2array', ddot(35*(maxdim+1), beff0_2array, 1, beff0_2array, 1)
+  write(*,*) 'in quartic: ddot, ceff0_2array', ddot(35*(maxdim+1), ceff0_2array, 1, ceff0_2array, 1)
+  write(*,*) 'in quartic: ddot, eeff0_2array', ddot(35*(maxdim+1), eeff0_2array, 1, eeff0_2array, 1)
+  write(*,*) 'in quartic: ddot, aeff0_2auxarray', ddot(35*(maxdim+1), aeff0_2auxarray, 1, aeff0_2auxarray, 1)
+  write(*,*) 'in quartic: ddot, beff0_2auxarray', ddot(35*(maxdim+1), beff0_2auxarray, 1, beff0_2auxarray, 1)
+  write(*,*) 'in quartic: ddot, ceff0_2auxarray', ddot(35*(maxdim+1), ceff0_2auxarray, 1, ceff0_2auxarray, 1)
+  write(*,*) 'in quartic: ddot, eeff0_2auxarray', ddot(35*(maxdim+1), eeff0_2auxarray, 1, eeff0_2auxarray, 1)
+  !!write(*,*) 'in quartic: ddot, ibyz_c ', ddot((n2+1)*(n3+1), ibyz_c, 1, ibyz_c, 1)
+  !!write(*,*) 'in quartic: ddot, ibyz_f ', ddot((n2+1)*(n3+1), ibyz_f, 1, ibyz_f, 1)
+  !!write(*,*) 'in quartic: ddot, ibxz_c ', ddot((n1+1)*(n3+1), ibxz_c, 1, ibxz_c, 1)
+  !!write(*,*) 'in quartic: ddot, ibxz_f ', ddot((n1+1)*(n3+1), ibxz_f, 1, ibxz_f, 1)
+  !!write(*,*) 'in quartic: ddot, ibxy_c ', ddot((n1+1)*(n2+1), ibxy_c, 1, ibxy_c, 1)
+  !!write(*,*) 'in quartic: ddot, ibxy_f ', ddot((n1+1)*(n2+1), ibxy_f, 1, ibxy_f, 1)
+  write(*,*) 'in quartic: sum, ibyz_c ', sum(ibyz_c)
+  write(*,*) 'in quartic: sum, ibyz_f ', sum(ibyz_f)
+  write(*,*) 'in quartic: sum, ibxz_c ', sum(ibxz_c)
+  write(*,*) 'in quartic: sum, ibxz_f ', sum(ibxz_f)
+  write(*,*) 'in quartic: sum, ibxy_c ', sum(ibxy_c)
+  write(*,*) 'in quartic: sum, ibxy_f ', sum(ibxy_f)
+  !!do i3=0,n3
+  !!  do i2=0,n2
+  !!    write(*,*) 'ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)', ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)
+  !!  end do
+  !!end do
+
+
 
   call timing(iproc,'convolQuartic ','ON')
 
@@ -118,7 +160,34 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   call to_zero((n1+1)*(n2+1)*(n3+1),y_c(0,0,0))
   call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f(1,nfl1,nfl2,nfl3))
 
-  !$omp parallel default(private) &
+  write(*,*) 'in quartic: ddot y_c', ddot((n1+1)*(n2+1)*(n3+1), y_c, 1, y_c, 1)
+  write(*,*) 'cprecr', cprecr
+
+  !!$omp parallel default(private) &
+  !$omp parallel default(none) &
+  !$omp shared (maxdim)&
+  !$omp private(t,i1,i2,i3,icur,istart,iend,l)&
+  !$omp private(dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211)&
+  !$omp private(tt112, tt121, tt122, tt212, tt221, tt222, tt211, tt0)&
+  !$omp private(x0, y0, z0) &
+  !$omp private(tt10, tt11, tt12, tt13) &
+  !$omp private(tt20, tt21, tt22, tt23) &
+  !$omp private(tt30, tt31, tt32, tt33) &
+  !$omp private(tt40, tt41, tt42, tt43) &
+  !$omp private(tt50, tt51, tt52, tt53) &
+  !$omp private(tt60, tt61, tt62, tt63) &
+  !$omp private(tt70) &
+  !$omp private(tt0a0, tt0a1, tt0a2, tt0a3) &
+  !$omp private(tt0b0, tt0b1, tt0b2, tt0b3) &
+  !$omp private(tt0c0, tt0c1, tt0c2, tt0c3) &
+  !$omp private(tt0e0, tt0e1, tt0e2, tt0e3) &
+  !$omp private(tt1a0, tt1b0, tt1c0, tt1e0) &
+  !$omp private(tt2a0, tt2b0, tt2c0, tt2e0) &
+  !$omp private(tt3a0, tt3b0, tt3c0, tt3e0) &
+  !$omp private(tt4a0, tt4b0, tt4c0, tt4e0) &
+  !$omp private(tt5a0, tt5b0, tt5c0, tt5e0) &
+  !$omp private(tt6a0, tt6b0, tt6c0, tt6e0) &
+  !$omp private(tt7a0, tt7b0, tt7c0, tt7e0) &
   !$omp shared(hgrid,offsetx,offsety,offsetz,rxyzConf,with_kinetic,potentialPrefac,with_confpot,cprecr) &
   !$omp shared(nfu1,nfu2,nfu3,n1,n2,n3,nfl1,nfl2,nfl3)&
   !$omp shared(ibxy_c,ibxy_f,ibxz_c,ibyz_c,ibxz_f,ibyz_f,xx_c,xx_f,xx_f1,xy_c,xy_f,xz_f,xy_f2,xz_f4,xz_c)&
@@ -128,7 +197,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   !$omp shared(xya_c,xyc_c,xza_c,xzc_c,yza_c,yzc_c)&
   !$omp shared(xya_f,xyb_f,xyc_f,xye_f,xza_f,xzb_f,xzc_f,xze_f,yza_f,yzb_f,yzc_f,yze_f)
  
-!$omp do
+ !!$omp do
  do i1=0,n1
         x0=hgrid*(i1+offsetx)-rxyzConf(1)
         if(.not. with_kinetic) then
@@ -136,22 +205,43 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
             call getFilterQuartic(potentialPrefac, hgrid, x0, beff0array(lowfil,i1), 'b')
             call getFilterQuartic(potentialPrefac, hgrid, x0, ceff0array(lowfil,i1), 'c')
             call getFilterQuartic(potentialPrefac, hgrid, x0, eeff0array(lowfil,i1), 'e')
+            !!!$omp master
+            !!write(*,*) 'i1, ddot', i1, ddot(35, aeff0array(lowfil,i1), 1, aeff0array(lowfil,i1), 1)
+            !!write(*,*) 'lowfil, lupfil', lowfil, lupfil
+            !!do i2=lowfil,lupfil
+            !!    write(*,*) 'i1,i2,aeff0array(i2,i1)', i1,i2,aeff0array(i2,i1)
+            !!end do
+            !!!$omp end master
         else
+            !$omp master
             call getEffectiveFilterQuartic(potentialPrefac, hgrid, x0, aeff0array(lowfil,i1), 'a')
             call getEffectiveFilterQuartic(potentialPrefac, hgrid, x0, beff0array(lowfil,i1), 'b')
             call getEffectiveFilterQuartic(potentialPrefac, hgrid, x0, ceff0array(lowfil,i1), 'c')
             call getEffectiveFilterQuartic(potentialPrefac, hgrid, x0, eeff0array(lowfil,i1), 'e')
+            !$omp end master
+            !$omp master
+            write(*,*) 'i1, ddot', i1, ddot(35, aeff0array(lowfil,i1), 1, aeff0array(lowfil,i1), 1)
+            write(*,*) 'lowfil, lupfil', lowfil, lupfil
+            write(*,*) 'potentialPrefac, hgrid, x0', potentialPrefac, hgrid, x0
+            do i2=lowfil,lupfil
+                write(*,*) 'i1,i2,aeff0array(i2,i1)', i1,i2,aeff0array(i2,i1)
+            end do
+            !$omp end master
         end if
        if(with_confpot) then
+            !$omp master
             call getFilterQuadratic(1.d0, hgrid, x0, aeff0_2auxarray(lowfil,i1), 'a')
             call getFilterQuadratic(1.d0, hgrid, x0, beff0_2auxarray(lowfil,i1), 'b')
             call getFilterQuadratic(1.d0, hgrid, x0, ceff0_2auxarray(lowfil,i1), 'c')
             call getFilterQuadratic(1.d0, hgrid, x0, eeff0_2auxarray(lowfil,i1), 'e')
+            !$omp end master
        end if
    end do
-  !$omp end do
+  !!$omp end do
+  write(*,*) 'in quartic: ddot, beff0array', ddot(35*(maxdim+1), beff0array, 1, beff0array, 1)
+  write(*,*) 'in quartic: ddot, aeff0array', ddot(35*(maxdim+1), aeff0array, 1, aeff0array, 1)
 
-  !$omp do schedule(static,1)
+  !!$omp do schedule(static,1)
 
     do i3=0,n3
        do i2=0,n2
@@ -164,62 +254,69 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                    dyi1=dyi1 + xx_c(t,i2,i3)*aeff0array(t-i1-1,i1+1)
                    dyi2=dyi2 + xx_c(t,i2,i3)*aeff0array(t-i1-2,i1+2)
                    dyi3=dyi3 + xx_c(t,i2,i3)*aeff0array(t-i1-3,i1+3)
+                   !$omp master
+                   !write(*,'(a,4i5,3es18.11)') 'i1,i2,i3,t,dyi0,xx_c(t,i2,i3),aeff0array(t-i1-0,i1+0)', i1,i2,i3,t,dyi0,xx_c(t,i2,i3),aeff0array(t-i1-0,i1+0)
+                   write(*,'(a,4i5,3es18.11)') 't,i1,i2,i3,dyi0,xx_c(t,i2,i3),aeff0array(t-i1-0,i1+0)', t,i1,i2,i3,dyi0,xx_c(t,i2,i3),aeff0array(t-i1-0,i1+0)
+                   !$omp end master
                 end do
              
+                !$omp master
+                write(*,'(a,3i5,4es18.11)') 'i1,i2,i3,dyi0,dyi1,dyi2,dyi3',i1,i2,i3,dyi0,dyi1,dyi2,dyi3
+                !$omp end master
                 y_c(i1+0,i2,i3)=dyi0+cprecr*xx_c(i1+0,i2,i3)
                 y_c(i1+1,i2,i3)=dyi1+cprecr*xx_c(i1+1,i2,i3)
                 y_c(i1+2,i2,i3)=dyi2+cprecr*xx_c(i1+2,i2,i3)
                 y_c(i1+3,i2,i3)=dyi3+cprecr*xx_c(i1+3,i2,i3)
 
-                ! sss coefficients
-                if(with_confpot) then
+               !!% ! sss coefficients
+               !!% if(with_confpot) then
 
-                  tt0a0=0.d0 ; tt0a1=0.d0 ; tt0a2=0.d0 ; tt0a3=0.d0
-                  tt0b0=0.d0 ; tt0b1=0.d0 ; tt0b2=0.d0 ; tt0b3=0.d0
-                  tt0c0=0.d0 ; tt0c1=0.d0 ; tt0c2=0.d0 ; tt0c3=0.d0
-                  tt0e0=0.d0 ; tt0e1=0.d0 ; tt0e2=0.d0 ; tt0e3=0.d0
-                  
-                  do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
-                      tt0a0=tt0a0 + xx_c(t,i2,i3)*aeff0_2auxarray(t-i1-0,i1+0)
-                      tt0a1=tt0a1 + xx_c(t,i2,i3)*aeff0_2auxarray(t-i1-1,i1+1)
-                      tt0a2=tt0a2 + xx_c(t,i2,i3)*aeff0_2auxarray(t-i1-2,i1+2)
-                      tt0a3=tt0a3 + xx_c(t,i2,i3)*aeff0_2auxarray(t-i1-3,i1+3)
+               !!%   tt0a0=0.d0 ; tt0a1=0.d0 ; tt0a2=0.d0 ; tt0a3=0.d0
+               !!%   tt0b0=0.d0 ; tt0b1=0.d0 ; tt0b2=0.d0 ; tt0b3=0.d0
+               !!%   tt0c0=0.d0 ; tt0c1=0.d0 ; tt0c2=0.d0 ; tt0c3=0.d0
+               !!%   tt0e0=0.d0 ; tt0e1=0.d0 ; tt0e2=0.d0 ; tt0e3=0.d0
+               !!%   
+               !!%   do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
+               !!%       tt0a0=tt0a0 + xx_c(t,i2,i3)*aeff0_2auxarray(t-i1-0,i1+0)
+               !!%       tt0a1=tt0a1 + xx_c(t,i2,i3)*aeff0_2auxarray(t-i1-1,i1+1)
+               !!%       tt0a2=tt0a2 + xx_c(t,i2,i3)*aeff0_2auxarray(t-i1-2,i1+2)
+               !!%       tt0a3=tt0a3 + xx_c(t,i2,i3)*aeff0_2auxarray(t-i1-3,i1+3)
 
-                      tt0b0=tt0b0 + xx_c(t,i2,i3)*beff0_2auxarray(t-i1-0,i1+0)
-                      tt0b1=tt0b1 + xx_c(t,i2,i3)*beff0_2auxarray(t-i1-1,i1+1)
-                      tt0b2=tt0b2 + xx_c(t,i2,i3)*beff0_2auxarray(t-i1-2,i1+2)
-                      tt0b3=tt0b3 + xx_c(t,i2,i3)*beff0_2auxarray(t-i1-3,i1+3)
+               !!%       tt0b0=tt0b0 + xx_c(t,i2,i3)*beff0_2auxarray(t-i1-0,i1+0)
+               !!%       tt0b1=tt0b1 + xx_c(t,i2,i3)*beff0_2auxarray(t-i1-1,i1+1)
+               !!%       tt0b2=tt0b2 + xx_c(t,i2,i3)*beff0_2auxarray(t-i1-2,i1+2)
+               !!%       tt0b3=tt0b3 + xx_c(t,i2,i3)*beff0_2auxarray(t-i1-3,i1+3)
 
-                      tt0c0=tt0c0 + xx_c(t,i2,i3)*ceff0_2auxarray(t-i1-0,i1+0)
-                      tt0c1=tt0c1 + xx_c(t,i2,i3)*ceff0_2auxarray(t-i1-1,i1+1)
-                      tt0c2=tt0c2 + xx_c(t,i2,i3)*ceff0_2auxarray(t-i1-2,i1+2)
-                      tt0c3=tt0c3 + xx_c(t,i2,i3)*ceff0_2auxarray(t-i1-3,i1+3)
+               !!%       tt0c0=tt0c0 + xx_c(t,i2,i3)*ceff0_2auxarray(t-i1-0,i1+0)
+               !!%       tt0c1=tt0c1 + xx_c(t,i2,i3)*ceff0_2auxarray(t-i1-1,i1+1)
+               !!%       tt0c2=tt0c2 + xx_c(t,i2,i3)*ceff0_2auxarray(t-i1-2,i1+2)
+               !!%       tt0c3=tt0c3 + xx_c(t,i2,i3)*ceff0_2auxarray(t-i1-3,i1+3)
 
-                      tt0e0=tt0e0 + xx_c(t,i2,i3)*eeff0_2auxarray(t-i1-0,i1+0)
-                      tt0e1=tt0e1 + xx_c(t,i2,i3)*eeff0_2auxarray(t-i1-1,i1+1)
-                      tt0e2=tt0e2 + xx_c(t,i2,i3)*eeff0_2auxarray(t-i1-2,i1+2)
-                      tt0e3=tt0e3 + xx_c(t,i2,i3)*eeff0_2auxarray(t-i1-3,i1+3)
-                   end do
+               !!%       tt0e0=tt0e0 + xx_c(t,i2,i3)*eeff0_2auxarray(t-i1-0,i1+0)
+               !!%       tt0e1=tt0e1 + xx_c(t,i2,i3)*eeff0_2auxarray(t-i1-1,i1+1)
+               !!%       tt0e2=tt0e2 + xx_c(t,i2,i3)*eeff0_2auxarray(t-i1-2,i1+2)
+               !!%       tt0e3=tt0e3 + xx_c(t,i2,i3)*eeff0_2auxarray(t-i1-3,i1+3)
+               !!%    end do
 
-                   
-                   xya_c(i2,i1+0,i3)=tt0a0
-                   xya_c(i2,i1+1,i3)=tt0a1
-                   xya_c(i2,i1+2,i3)=tt0a2
-                   xya_c(i2,i1+3,i3)=tt0a3
-                   xza_c(i3,i1+0,i2)=tt0a0
-                   xza_c(i3,i1+1,i2)=tt0a1
-                   xza_c(i3,i1+2,i2)=tt0a2
-                   xza_c(i3,i1+3,i2)=tt0a3
+               !!%    
+               !!%    xya_c(i2,i1+0,i3)=tt0a0
+               !!%    xya_c(i2,i1+1,i3)=tt0a1
+               !!%    xya_c(i2,i1+2,i3)=tt0a2
+               !!%    xya_c(i2,i1+3,i3)=tt0a3
+               !!%    xza_c(i3,i1+0,i2)=tt0a0
+               !!%    xza_c(i3,i1+1,i2)=tt0a1
+               !!%    xza_c(i3,i1+2,i2)=tt0a2
+               !!%    xza_c(i3,i1+3,i2)=tt0a3
 
-                   xyc_c(i2,i1+0,i3)=tt0c0
-                   xyc_c(i2,i1+1,i3)=tt0c1
-                   xyc_c(i2,i1+2,i3)=tt0c2
-                   xyc_c(i2,i1+3,i3)=tt0c3
-                   xzc_c(i3,i1+0,i2)=tt0c0
-                   xzc_c(i3,i1+1,i2)=tt0c1
-                   xzc_c(i3,i1+2,i2)=tt0c2
-                   xzc_c(i3,i1+3,i2)=tt0c3
-               end if
+               !!%    xyc_c(i2,i1+0,i3)=tt0c0
+               !!%    xyc_c(i2,i1+1,i3)=tt0c1
+               !!%    xyc_c(i2,i1+2,i3)=tt0c2
+               !!%    xyc_c(i2,i1+3,i3)=tt0c3
+               !!%    xzc_c(i3,i1+0,i2)=tt0c0
+               !!%    xzc_c(i3,i1+1,i2)=tt0c1
+               !!%    xzc_c(i3,i1+2,i2)=tt0c2
+               !!%    xzc_c(i3,i1+3,i2)=tt0c3
+               !!%end if
 
              enddo
              icur=i1
@@ -227,102 +324,104 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
              icur=ibyz_c(1,i2,i3)
           endif
   
-          do i1=icur,ibyz_c(2,i2,i3)
-             dyi=0.0_wp ; tt0a0=0.d0 ; tt0b0=0.d0 ; tt0c0=0.d0 ; tt0e0=0.d0
+          !!%do i1=icur,ibyz_c(2,i2,i3)
+          !!%   dyi=0.0_wp ; tt0a0=0.d0 ; tt0b0=0.d0 ; tt0c0=0.d0 ; tt0e0=0.d0
 
-             do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
-                dyi=dyi + xx_c(t,i2,i3)*aeff0array(t-i1,i1)
-             end do
+          !!%  !!% do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
+          !!%  !!%    dyi=dyi + xx_c(t,i2,i3)*aeff0array(t-i1,i1)
+          !!%  !!% end do
 
-             y_c(i1,i2,i3)=dyi+cprecr*xx_c(i1,i2,i3)
+          !!%  !!% y_c(i1,i2,i3)=dyi+cprecr*xx_c(i1,i2,i3)
 
 
-             if(with_confpot) then
-                ! sss coefficients
-                do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
-                   tt0a0=tt0a0 + xx_c(t,i2,i3)*aeff0_2auxarray(t-i1,i1)
-                   tt0b0=tt0b0 + xx_c(t,i2,i3)*beff0_2auxarray(t-i1,i1)
-                   tt0c0=tt0c0 + xx_c(t,i2,i3)*ceff0_2auxarray(t-i1,i1)
-                   tt0e0=tt0e0 + xx_c(t,i2,i3)*eeff0_2auxarray(t-i1,i1)
+          !!%  !!% if(with_confpot) then
+          !!%  !!%    ! sss coefficients
+          !!%  !!%    do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
+          !!%  !!%       tt0a0=tt0a0 + xx_c(t,i2,i3)*aeff0_2auxarray(t-i1,i1)
+          !!%  !!%       tt0b0=tt0b0 + xx_c(t,i2,i3)*beff0_2auxarray(t-i1,i1)
+          !!%  !!%       tt0c0=tt0c0 + xx_c(t,i2,i3)*ceff0_2auxarray(t-i1,i1)
+          !!%  !!%       tt0e0=tt0e0 + xx_c(t,i2,i3)*eeff0_2auxarray(t-i1,i1)
 
-                   xya_c(i2,i1,i3)=tt0a0
-                   xza_c(i3,i1,i2)=tt0a0
+          !!%  !!%       xya_c(i2,i1,i3)=tt0a0
+          !!%  !!%       xza_c(i3,i1,i2)=tt0a0
 
-                   xyc_c(i2,i1,i3)=tt0c0
-                   xzc_c(i3,i1,i2)=tt0c0
+          !!%  !!%       xyc_c(i2,i1,i3)=tt0c0
+          !!%  !!%       xzc_c(i3,i1,i2)=tt0c0
 
-                enddo
-            end if
+          !!%  !!%    enddo
+          !!%  !!%end if
 
-          enddo
+          !!%enddo
+          !write(*,*) 'in quartic 1: ddot y_c', ddot((n1+1)*(n2+1)*(n3+1), y_c, 1, y_c, 1)
   
-          istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
-          iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
+          !!%istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
+          !!%iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
   
-          if (iend-istart.ge.4) then
-             do i1=istart,iend-4,4
-                dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp
+          !!%if (iend-istart.ge.4) then
+          !!%   do i1=istart,iend-4,4
+          !!%      dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp
 
-                do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_f(2,i2,i3))
-                   dyi0=dyi0 + xx_f1(t,i2,i3)*beff0array(t-i1-0,i1+0)
-                   dyi1=dyi1 + xx_f1(t,i2,i3)*beff0array(t-i1-1,i1+1)
-                   dyi2=dyi2 + xx_f1(t,i2,i3)*beff0array(t-i1-2,i1+2)
-                   dyi3=dyi3 + xx_f1(t,i2,i3)*beff0array(t-i1-3,i1+3)
-                enddo
+          !!%      do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_f(2,i2,i3))
+          !!%         dyi0=dyi0 + xx_f1(t,i2,i3)*beff0array(t-i1-0,i1+0)
+          !!%         dyi1=dyi1 + xx_f1(t,i2,i3)*beff0array(t-i1-1,i1+1)
+          !!%         dyi2=dyi2 + xx_f1(t,i2,i3)*beff0array(t-i1-2,i1+2)
+          !!%         dyi3=dyi3 + xx_f1(t,i2,i3)*beff0array(t-i1-3,i1+3)
+          !!%      enddo
 
-                y_c(i1+0,i2,i3)=y_c(i1+0,i2,i3)+dyi0
-                y_c(i1+1,i2,i3)=y_c(i1+1,i2,i3)+dyi1
-                y_c(i1+2,i2,i3)=y_c(i1+2,i2,i3)+dyi2
-                y_c(i1+3,i2,i3)=y_c(i1+3,i2,i3)+dyi3
+          !!%      y_c(i1+0,i2,i3)=y_c(i1+0,i2,i3)+dyi0
+          !!%      y_c(i1+1,i2,i3)=y_c(i1+1,i2,i3)+dyi1
+          !!%      y_c(i1+2,i2,i3)=y_c(i1+2,i2,i3)+dyi2
+          !!%      y_c(i1+3,i2,i3)=y_c(i1+3,i2,i3)+dyi3
 
-             enddo
-             istart=i1
-          endif
+          !!%   enddo
+          !!%   istart=i1
+          !!%endif
   
-          do i1=istart,iend
-             dyi=0.0_wp ; tt0=0.0_wp
+          !!%do i1=istart,iend
+          !!%   dyi=0.0_wp ; tt0=0.0_wp
 
-             do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_f(2,i2,i3))
-                dyi=dyi + xx_f1(t,i2,i3)*beff0array(t-i1,i1)
-             enddo
+          !!%   do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_f(2,i2,i3))
+          !!%      dyi=dyi + xx_f1(t,i2,i3)*beff0array(t-i1,i1)
+          !!%   enddo
 
-             y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+          !!%   y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
 
-          enddo
+          !!%enddo
   
-           if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
-             do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)-4,4
-                dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp 
+          !!% if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
+          !!%   do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)-4,4
+          !!%      dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp 
 
-                do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
-                   dyi0=dyi0 + xx_c(t,i2,i3)*ceff0array(t-i1-0,i1+0)
-                   dyi1=dyi1 + xx_c(t,i2,i3)*ceff0array(t-i1-1,i1+1)
-                   dyi2=dyi2 + xx_c(t,i2,i3)*ceff0array(t-i1-2,i1+2)
-                   dyi3=dyi3 + xx_c(t,i2,i3)*ceff0array(t-i1-3,i1+3)
-                enddo
+          !!%      do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
+          !!%         dyi0=dyi0 + xx_c(t,i2,i3)*ceff0array(t-i1-0,i1+0)
+          !!%         dyi1=dyi1 + xx_c(t,i2,i3)*ceff0array(t-i1-1,i1+1)
+          !!%         dyi2=dyi2 + xx_c(t,i2,i3)*ceff0array(t-i1-2,i1+2)
+          !!%         dyi3=dyi3 + xx_c(t,i2,i3)*ceff0array(t-i1-3,i1+3)
+          !!%      enddo
 
-                y_f(1,i1+0,i2,i3)=dyi0
-                y_f(1,i1+1,i2,i3)=dyi1
-                y_f(1,i1+2,i2,i3)=dyi2
-                y_f(1,i1+3,i2,i3)=dyi3
+          !!%      y_f(1,i1+0,i2,i3)=dyi0
+          !!%      y_f(1,i1+1,i2,i3)=dyi1
+          !!%      y_f(1,i1+2,i2,i3)=dyi2
+          !!%      y_f(1,i1+3,i2,i3)=dyi3
 
-             enddo
-             icur=i1
-          else
-             icur=ibyz_f(1,i2,i3)
-          endif
-          do i1=icur,ibyz_f(2,i2,i3)
-             dyi=0.0_wp ; tt0=0.0_wp 
-             do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
-                dyi=dyi + xx_c(t,i2,i3)*ceff0array(t-i1,i1)
-             enddo
+          !!%   enddo
+          !!%   icur=i1
+          !!%else
+          !!%   icur=ibyz_f(1,i2,i3)
+          !!%endif
+          !!%do i1=icur,ibyz_f(2,i2,i3)
+          !!%   dyi=0.0_wp ; tt0=0.0_wp 
+          !!%   do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
+          !!%      dyi=dyi + xx_c(t,i2,i3)*ceff0array(t-i1,i1)
+          !!%   enddo
 
-             y_f(1,i1,i2,i3)=dyi
+          !!%   y_f(1,i1,i2,i3)=dyi
 
-          enddo
+          !!%enddo
        enddo
     enddo
-    !$omp end do
+    !!$omp end do
+  write(*,*) 'in quartic 10: ddot y_c', ddot((n1+1)*(n2+1)*(n3+1), y_c, 1, y_c, 1)
 
     ! wavelet part
   
@@ -1155,6 +1254,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
   call timing(iproc,'convolQuartic ','OF')
 
+  write(*,*) 'in quartic: ddot y_c', ddot((n1+1)*(n2+1)*(n3+1), y_c, 1, y_c, 1)
 
 END SUBROUTINE ConvolQuartic4
 
