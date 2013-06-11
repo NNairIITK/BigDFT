@@ -152,11 +152,8 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
   !local variables
   integer :: idx,nf
 
-  real(8) :: ddot !debug
-
   if (lr%geocode == 'F') then
      do idx=1,ncplx
-        write(*,*) 'in differentiateBetweenBoundaryConditions: ddot x', ddot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, x, 1, x, 1)
         call applyOperator(iproc,nproc,lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, lr%ns1, lr%ns2, lr%ns3, &
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keygloc,lr%wfd%keyvloc,&
@@ -171,7 +168,6 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
              rxyzParab, parabPrefac, confPotOrder, &
              w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f,&
              w%x_f1,w%x_f2,w%x_f3, work_conv)
-        write(*,*) 'in differentiateBetweenBoundaryConditions: ddot y', ddot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, y, 1, y, 1)
      end do
   else if (lr%geocode == 'P') then
      if (lr%hybrid_on) then
