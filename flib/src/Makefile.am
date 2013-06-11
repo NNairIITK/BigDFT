@@ -70,7 +70,7 @@ dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
 yaml_output.o : dictionaries.o $(YAML_INCLUDES)
 #error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
 dynamic_memory.o: yaml_strings.o yaml_output.o mem_profiling.o $(DYN_INCLUDES)
-mem_profiling.o: yaml_output.o
+mem_profiling.o: yaml_output.o $(mpi_include)
 f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o
 
 time.o: $(mpi_include) #this is temporary, mpif.h should only be in wrappers
