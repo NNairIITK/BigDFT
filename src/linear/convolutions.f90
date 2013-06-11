@@ -79,8 +79,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
 
   ! Local variables
-  !integer,parameter :: lowfil=-14,lupfil=14
-  integer :: lowfil=-14,lupfil=14
+  integer,parameter :: lowfil=-14,lupfil=14
   integer :: t,i1,i2,i3, icur,istart,iend,l
   real(wp) :: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
   real(wp) :: tt112, tt121, tt122, tt212, tt221, tt222, tt211, tt0
@@ -105,6 +104,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   real(kind=8) :: tt7a0, tt7b0, tt7c0, tt7e0                     
   logical:: with_confpot
   character(len=*),parameter :: subname='ConvolQuartic4'
+  real(kind=8) :: ddot
 
 
   call timing(iproc,'convolQuartic ','ON')
@@ -119,55 +119,19 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   call to_zero((n1+1)*(n2+1)*(n3+1),y_c(0,0,0))
   call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f(1,nfl1,nfl2,nfl3))
 
-  !!!$omp parallel default(private) &
-  !!!$omp shared(hgrid,offsetx,offsety,offsetz,rxyzConf,with_kinetic,potentialPrefac,with_confpot,cprecr) &
-  !!!$omp shared(nfu1,nfu2,nfu3,n1,n2,n3,nfl1,nfl2,nfl3)&
-  !!!$omp shared(ibxy_c,ibxy_f,ibxz_c,ibyz_c,ibxz_f,ibyz_f,xx_c,xx_f,xx_f1,xy_c,xy_f,xz_f,xy_f2,xz_f4,xz_c)&
-  !!!$omp shared(y_c,y_f)&
-  !!!$omp shared(aeff0_2auxarray,beff0_2auxarray,ceff0_2auxarray,eeff0_2auxarray,aeff0array,beff0array,ceff0array,eeff0array)&
-  !!!$omp shared(aeff0_2array,beff0_2array,ceff0_2array,eeff0_2array)&
-  !!!$omp shared(xya_c,xyc_c,xza_c,xzc_c,yza_c,yzc_c)&
-  !!!$omp shared(xya_f,xyb_f,xyc_f,xye_f,xza_f,xzb_f,xzc_f,xze_f,yza_f,yzb_f,yzc_f,yze_f)
+  !write(*,*) 'before: ddot',ddot((n1+1)*(n2+1)*(n3+1), y_c, 1, y_c, 1)
 
-  !!$omp parallel default(private) &
-  !!$omp parallel default(none) &
-  !$omp parallel default(shared)&
-  !$omp private(t,i1,i2,i3,icur,istart,iend,l)&
-  !$omp private(dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211)&
-  !$omp private(tt112, tt121, tt122, tt212, tt221, tt222, tt211, tt0)&
-  !$omp private(x0, y0, z0) &
-  !$omp private(tt10, tt11, tt12, tt13) &
-  !$omp private(tt20, tt21, tt22, tt23) &
-  !$omp private(tt30, tt31, tt32, tt33) &
-  !$omp private(tt40, tt41, tt42, tt43) &
-  !$omp private(tt50, tt51, tt52, tt53) &
-  !$omp private(tt60, tt61, tt62, tt63) &
-  !$omp private(tt70) &
-  !$omp private(tt0a0, tt0a1, tt0a2, tt0a3) &
-  !$omp private(tt0b0, tt0b1, tt0b2, tt0b3) &
-  !$omp private(tt0c0, tt0c1, tt0c2, tt0c3) &
-  !$omp private(tt0e0, tt0e1, tt0e2, tt0e3) &
-  !$omp private(tt1a0, tt1b0, tt1c0, tt1e0) &
-  !$omp private(tt2a0, tt2b0, tt2c0, tt2e0) &
-  !$omp private(tt3a0, tt3b0, tt3c0, tt3e0) &
-  !$omp private(tt4a0, tt4b0, tt4c0, tt4e0) &
-  !$omp private(tt5a0, tt5b0, tt5c0, tt5e0) &
-  !$omp private(tt6a0, tt6b0, tt6c0, tt6e0) &
-  !$omp private(tt7a0, tt7b0, tt7c0, tt7e0) !&
-  !!$omp shared (maxdim)&
-  !!$omp shared(hgrid,offsetx,offsety,offsetz,rxyzConf,with_kinetic,potentialPrefac,with_confpot,cprecr) &
-  !!$omp shared(nfu1,nfu2,nfu3,n1,n2,n3,nfl1,nfl2,nfl3)&
-  !!$omp shared(ibxy_c,ibxy_f,ibxz_c,ibyz_c,ibxz_f,ibyz_f,xx_c,xx_f,xx_f1,xy_c,xy_f,xz_f,xy_f2,xz_f4,xz_c)&
-  !!$omp shared(y_c,y_f)&
-  !!$omp shared(aeff0_2auxarray,beff0_2auxarray,ceff0_2auxarray,eeff0_2auxarray,aeff0array,beff0array,ceff0array,eeff0array)&
-  !!$omp shared(aeff0_2array,beff0_2array,ceff0_2array,eeff0_2array)&
-  !!$omp shared(xya_c,xyc_c,xza_c,xzc_c,yza_c,yzc_c)&
-  !!$omp shared(xya_f,xyb_f,xyc_f,xye_f,xza_f,xzb_f,xzc_f,xze_f,yza_f,yzb_f,yzc_f,yze_f)
-
-  !$omp master
+  !$omp parallel default(private) &
+  !$omp shared(hgrid,offsetx,offsety,offsetz,rxyzConf,with_kinetic,potentialPrefac,with_confpot,cprecr) &
+  !$omp shared(nfu1,nfu2,nfu3,n1,n2,n3,nfl1,nfl2,nfl3)&
+  !$omp shared(ibxy_c,ibxy_f,ibxz_c,ibyz_c,ibxz_f,ibyz_f,xx_c,xx_f,xx_f1,xy_c,xy_f,xz_f,xy_f2,xz_f4,xz_c)&
+  !$omp shared(y_c,y_f)&
+  !$omp shared(aeff0_2auxarray,beff0_2auxarray,ceff0_2auxarray,eeff0_2auxarray,aeff0array,beff0array,ceff0array,eeff0array)&
+  !$omp shared(aeff0_2array,beff0_2array,ceff0_2array,eeff0_2array)&
+  !$omp shared(xya_c,xyc_c,xza_c,xzc_c,yza_c,yzc_c)&
+  !$omp shared(xya_f,xyb_f,xyc_f,xye_f,xza_f,xzb_f,xzc_f,xze_f,yza_f,yzb_f,yzc_f,yze_f)
  
-!!!$omp do
-!!$omp master
+!$omp do
  do i1=0,n1
         x0=hgrid*(i1+offsetx)-rxyzConf(1)
         if(.not. with_kinetic) then
@@ -188,11 +152,10 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
             call getFilterQuadratic(1.d0, hgrid, x0, eeff0_2auxarray(lowfil,i1), 'e')
        end if
    end do
-  !!$omp end master
-  !!!$omp end do
+  !$omp end do
 
-  !!!$omp do schedule(static,1)
-  !!!$omp do
+  !$omp do schedule(static,1)
+
     do i3=0,n3
        do i2=0,n2
           if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -362,12 +325,11 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           enddo
        enddo
     enddo
-    !!!$omp end do
+    !$omp end do
 
     ! wavelet part
   
-    !!!$omp do schedule(static,1) 
-    !!!$omp do
+    !$omp do schedule(static,1) 
     do i3=nfl3,nfu3
        do i2=nfl2,nfu2
           do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
@@ -468,10 +430,9 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           enddo
        enddo
     enddo
-    !!!$omp enddo
+    !$omp enddo
  
-   !!!$omp do 
-   !!$omp master
+   !$omp do 
    do i2=0,n2
             
         y0=hgrid*(i2+offsety)-rxyzConf(2)
@@ -501,11 +462,9 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
       end if
 
     end do 
-  !!!$omp end do
-  !!$omp end master
+  !$omp end do
 
-    !!!$omp do schedule(static,1) 
-    !!!$omp do
+    !$omp do schedule(static,1) 
     do i3=0,n3
        do i1=0,n1
           if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
@@ -742,14 +701,13 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           enddo
        enddo
     enddo
-    !!!$omp end do 
+    !$omp end do 
     
 
 
     ! wavelet part
   
-    !!!$omp do schedule(static,1) 
-    !!!$omp do
+    !$omp do schedule(static,1) 
     do i3=nfl3,nfu3
        do i1=nfl1,nfu1
           do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
@@ -868,10 +826,9 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           enddo
        enddo
     enddo
-    !!!$omp enddo 
+    !$omp enddo 
 
-    !!!$omp do
-    !!$omp master
+    !$omp do
     do i3=0,n3
         z0=hgrid*(i3+offsetz)-rxyzConf(3)
         if(.not. with_kinetic) then
@@ -892,12 +849,10 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
             call getFilterQuadratic(potentialPrefac, hgrid, z0, eeff0_2array(lowfil,i3), 'e')
         end if
     end do
-    !!!$omp end do
-    !!$omp end master
+    !$omp end do
 
   ! + (1/2) d^2/dz^2
-  !!!$omp do schedule(static,1) 
-  !!!$omp do
+  !$omp do schedule(static,1) 
   do i2=0,n2
      do i1=0,n1
         if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
@@ -1115,13 +1070,12 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
         enddo
      enddo
   enddo
-  !!!$omp enddo
+  !$omp enddo
 
 
   ! wavelet part
 
-  !!!$omp do schedule(static,1) 
-  !!!$omp do
+  !$omp do schedule(static,1) 
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
         do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
@@ -1198,223 +1152,13 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
         enddo
      enddo
   enddo
-  !!!$omp enddo
-
-  !$omp end master
+  !$omp enddo
 
   !$omp end parallel
 
   call timing(iproc,'convolQuartic ','OF')
 
-
-  contains
-
-subroutine getEffectiveFilterQuartic(parabPrefac,hgrid, x0, eff, filterCode)
-use filterModule
-implicit none
-
-! Calling arguments
-real(kind=8),intent(in) :: parabPrefac, hgrid, x0
-real(kind=8),dimension(lb:ub),intent(out) :: eff
-character(len=*) :: filterCode
-
-! Local variables
-integer :: i
-real(kind=8) :: fac, fac2, prefac1, hgrid2, hgrid3, x02, x03
-prefac1=-.5d0/hgrid**2
-fac=parabPrefac
-fac2=parabPrefac*hgrid
-hgrid2=hgrid**2
-hgrid3=hgrid**3
-x02=x0**2
-x03=x0**3
-! Determine which filter we have to calculate
-
-if(filterCode=='a')then
-    do i=lb,ub
-        eff(i)=prefac1*a(i) + fac2*( hgrid3*a4(i) + 4*hgrid2*x0*a3(i) + 6*hgrid*x02*a2(i) + 4*x03*a1(i))
-    end do
-    eff(0)=eff(0)+fac*x0**4
-elseif(filterCode=='b') then
-    do i=lb,ub
-        eff(i)=prefac1*b(i) + fac2*( hgrid3*b4(i) + 4*hgrid2*x0*b3(i) + 6*hgrid*x02*b2(i) + 4*x03*b1(i))
-    end do
-elseif(filterCode=='c') then
-    do i=lb,ub
-        eff(i)=prefac1*c(i) + fac2*( hgrid3*c4(i) + 4*hgrid2*x0*c3(i) + 6*hgrid*x02*c2(i) + 4*x03*c1(i))
-    end do
-elseif(filterCode=='e') then
-    do i=lb,ub
-        eff(i)=prefac1*e(i) + fac2*( hgrid3*e4(i) + 4*hgrid2*x0*e3(i) + 6*hgrid*x02*e2(i) + 4*x03*e1(i))
-    end do
-    eff(0)=eff(0)+fac*x0**4
-else
-    write(*,*) "ERROR: allowed values for 'filterCode' are 'a', 'b', 'c', 'e', whereas we found ", trim(filterCode)
-    stop
-end if
-
-
-end subroutine getEffectiveFilterQuartic
-
-
-!> Calculates the effective filter for the operator [kineticEnergy + (x-x0)^4].
-!!   
-!! Calling arguments:
-!! ==================
-!!   Input arguments:
-!!     @param hgrid  grid spacing
-!!     @param x0     the center of the parabolic potential (x-x0)^2
-!!   Output arguments:
-!!     @param aeff   the effective filter for <phi|Op|phi>
-!!     @param beff   the effective filter for <psi|Op|phi>
-!!     @param ceff   the effective filter for <phi|Op|psi>
-!!     @param eeff   the effective filter for <psi|Op|psi>
-
-
-!> Calculates the effective filter for the operator (x-x0)^4
-!!   
-!! Calling arguments:
-!! ==================
-!!   Input arguments:
-!!     @param hgrid  grid spacing
-!!     @param x0     the center of the parabolic potential (x-x0)^2
-!!   Output arguments:
-!!     @param aeff   the effective filter for <phi|Op|phi>
-!!     @param beff   the effective filter for <psi|Op|phi>
-!!     @param ceff   the effective filter for <phi|Op|psi>
-!!     @param eeff   the effective filter for <psi|Op|psi>
-subroutine getFilterQuartic(parabPrefac,hgrid, x0, eff, filterCode)
-
-use filterModule
-implicit none
-
-! Calling arguments
-real(kind=8),intent(in) :: parabPrefac, hgrid, x0
-real(kind=8),dimension(lb:ub),intent(out) :: eff
-character(len=*) :: filterCode
-
-! Local variables
-integer :: i
-real(kind=8) :: fac, fac2,  hgrid2, hgrid3, x02, x03
-real(kind=8) :: scale
-scale=1.d0
-!scale=1.d-1
-!scale=0.d-1
-!scale=5.d-2
-!fac=dble(max(100-int(dble(it)/2.d0),1))*parabPrefac
-!fac2=dble(max(100-int(dble(it)/2.d0),1))*parabPrefac*hgrid
-fac=parabPrefac*scale
-fac2=parabPrefac*hgrid*scale
-hgrid2=hgrid**2
-hgrid3=hgrid**3
-x02=x0**2
-x03=x0**3
-! Determine which filter we have to calculate
-
-if(filterCode=='a') then
-    do i=lb,ub
-        !eff(i)=prefac1*a(i) + fac2*(hgrid*a2(i)+2*x0*a1(i))
-        eff(i) = fac2*( hgrid3*a4(i) + 4*hgrid2*x0*a3(i) + 6*hgrid*x02*a2(i) + 4*x03*a1(i))
-    end do
-    !eff(0)=eff(0)+fac*x0**2
-    eff(0)=eff(0)+fac*x0**4
-elseif(filterCode=='b') then
-    do i=lb,ub
-        !eff(i)=prefac1*b(i) + fac2*(hgrid*b2(i)+2*x0*b1(i))
-        eff(i) = fac2*( hgrid3*b4(i) + 4*hgrid2*x0*b3(i) + 6*hgrid*x02*b2(i) + 4*x03*b1(i))
-    end do
-elseif(filterCode=='c') then
-    do i=lb,ub
-        !eff(i)=prefac1*c(i) + fac2*(hgrid*c2(i)+2*x0*c1(i))
-        eff(i) = fac2*( hgrid3*c4(i) + 4*hgrid2*x0*c3(i) + 6*hgrid*x02*c2(i) + 4*x03*c1(i))
-    end do
-elseif(filterCode=='e') then
-    do i=lb,ub
-        !eff(i)=prefac1*e(i) + fac2*(hgrid*e2(i)+2*x0*e1(i))
-        eff(i) = fac2*( hgrid3*e4(i) + 4*hgrid2*x0*e3(i) + 6*hgrid*x02*e2(i) + 4*x03*e1(i))
-    end do
-    !eff(0)=eff(0)+fac*x0**2
-    eff(0)=eff(0)+fac*x0**4
-else
-    write(*,*) "ERROR: allowed values for 'filterCode' are 'a', 'b', 'c', 'e', whereas we found ", trim(filterCode)
-    stop
-end if
-
-
-end subroutine getFilterQuartic
-
-
-!> Calculates the effective filter for the operator (x-x0)^2
-!!   
-!! Calling arguments:
-!! ==================
-!!   Input arguments:
-!!     @param hgrid  grid spacing
-!!     @param x0     the center of the parabolic potential (x-x0)^2
-!!   Output arguments:
-!!     @param aeff   the effective filter for <phi|Op|phi>
-!!     @param beff   the effective filter for <psi|Op|phi>
-!!     @param ceff   the effective filter for <phi|Op|psi>
-!!     @param eeff   the effective filter for <psi|Op|psi>
-subroutine getFilterQuadratic(parabPrefac,hgrid, x0, eff, filterCode)
-use filterModule
-implicit none
-
-! Calling arguments
-real(kind=8),intent(in) :: parabPrefac, hgrid, x0
-real(kind=8),dimension(lb:ub),intent(out) :: eff
-character(len=*) :: filterCode
-
-! Local variables
-integer :: i
-real(kind=8) :: fac, fac2, hgrid2, hgrid3, x02, x03
-real(kind=8) :: scale
-scale=1.d0
-!scale=1.d-1
-!scale=0.d-1
-!scale=5.d-2
-!fac=dble(max(100-int(dble(it)/2.d0),1))*parabPrefac
-!fac2=dble(max(100-int(dble(it)/2.d0),1))*parabPrefac*hgrid
-fac=parabPrefac*scale
-fac2=parabPrefac*hgrid*scale
-hgrid2=hgrid**2
-hgrid3=hgrid**3
-x02=x0**2
-x03=x0**3
-! Determine which filter we have to calculate
-
-if(filterCode=='a') then
-    do i=lb,ub
-        eff(i) = fac2*( hgrid*a2(i) + 2.d0*x0*a1(i) )
-        !eff(i) = fac2*( hgrid3*a4(i) + 4*hgrid2*x0*a3(i) + 6*hgrid*x02*a2(i) + 4*x03*a1(i))
-    end do
-    eff(0)=eff(0)+fac*x0**2
-    !eff(0)=eff(0)+fac*x0**4
-elseif(filterCode=='b') then
-    do i=lb,ub
-        eff(i) = fac2*( hgrid*b2(i) + 2.d0*x0*b1(i) )
-        !eff(i) = fac2*( hgrid3*b4(i) + 4*hgrid2*x0*b3(i) + 6*hgrid*x02*b2(i) + 4*x03*b1(i))
-    end do
-elseif(filterCode=='c') then
-    do i=lb,ub
-        eff(i) = fac2*( hgrid*c2(i) + 2.d0*x0*c1(i) )
-        !eff(i) = fac2*( hgrid3*c4(i) + 4*hgrid2*x0*c3(i) + 6*hgrid*x02*c2(i) + 4*x03*c1(i))
-    end do
-elseif(filterCode=='e') then
-    do i=lb,ub
-        eff(i) = fac2*( hgrid*e2(i) + 2.d0*x0*e1(i) )
-        !eff(i) = fac2*( hgrid3*e4(i) + 4*hgrid2*x0*e3(i) + 6*hgrid*x02*e2(i) + 4*x03*e1(i))
-    end do
-    eff(0)=eff(0)+fac*x0**2
-    !eff(0)=eff(0)+fac*x0**4
-else
-    write(*,*) "ERROR: allowed values for 'filterCode' are 'a', 'b', 'c', 'e', whereas we found ", trim(filterCode)
-    stop
-end if
-
-
-end subroutine getFilterQuadratic
-
+  !write(*,*) 'after: ddot',ddot((n1+1)*(n2+1)*(n3+1), y_c, 1, y_c, 1)
 
 END SUBROUTINE ConvolQuartic4
 
