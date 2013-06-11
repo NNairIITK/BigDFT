@@ -126,7 +126,8 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   !$omp shared(aeff0_2auxarray,beff0_2auxarray,ceff0_2auxarray,eeff0_2auxarray,aeff0array,beff0array,ceff0array,eeff0array)&
   !$omp shared(aeff0_2array,beff0_2array,ceff0_2array,eeff0_2array)&
   !$omp shared(xya_c,xyc_c,xza_c,xzc_c,yza_c,yzc_c)&
-  !$omp shared(xya_f,xyb_f,xyc_f,xye_f,xza_f,xzb_f,xzc_f,xze_f,yza_f,yzb_f,yzc_f,yze_f)
+  !$omp shared(xya_f,xyb_f,xyc_f,xye_f,xza_f,xzb_f,xzc_f,xze_f,yza_f,yzb_f,yzc_f,yze_f)&
+  !$omp private(i1,i3,i2)
  
 !$omp do
  do i1=0,n1

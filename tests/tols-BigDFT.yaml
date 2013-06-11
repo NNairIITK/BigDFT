@@ -29,6 +29,7 @@ Keys to ignore:
 Patterns to ignore:
  - Timestamp
  - memory
+ - FLAGS
 
 Expected Test CPUtime: #
  C: #[expected, error]

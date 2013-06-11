@@ -22,7 +22,6 @@ subroutine test_yaml_output1()
   !      call yaml_stream_attributes(iflowlevel=i,ilevel=l,ilast=j,indent=d)
   !      print *,'iflowlevel',i,'ilevel',l,'ilast',j,'indent',d
   call yaml_close_map()
-
 end subroutine test_yaml_output1
 
 subroutine test_yaml_output2()

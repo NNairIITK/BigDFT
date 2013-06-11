@@ -79,8 +79,8 @@
 !!    February 2007
 !! 
 subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin,&
-     alpha,beta,gamma,quiet) !optional argument
+     rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)!,&
+!     alpha,beta,gamma,quiet) !optional argument
   use module_base
   use module_types
   use module_xc
@@ -97,9 +97,9 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(gp), intent(out) :: eh,exc,vxc
   real(dp), dimension(*), intent(inout) :: rhopot
   real(wp), dimension(*), intent(inout) :: pot_ion
-  character(len=3), intent(in), optional :: quiet
-  !triclinic lattice
-  real(dp), intent(in), optional :: alpha,beta,gamma
+!  character(len=3), intent(in), optional :: quiet
+!  !triclinic lattice
+!  real(dp), intent(in), optional :: alpha,beta,gamma
   !local variables
   character(len=*), parameter :: subname='PSolver'
   logical :: wrtmsg
@@ -119,29 +119,29 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   call timing(iproc,'Exchangecorr  ','ON')
 
-  if (present(quiet)) then
-     if(quiet == 'yes' .or. quiet == 'YES') then
-        wrtmsg=.false.
-     else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
-        wrtmsg=.true.
-     else
-        call yaml_warning('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
-        !write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
-        stop
-     end if
-  else
+!!$  if (present(quiet)) then
+!!$     if(quiet == 'yes' .or. quiet == 'YES') then
+!!$        wrtmsg=.false.
+!!$     else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
+!!$        wrtmsg=.true.
+!!$     else
+!!$        call yaml_warning('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
+!!$        !write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
+!!$        stop
+!!$     end if
+!!$  else
      wrtmsg=.true.
-  end if
+!!$  end if
 
-  if (present(alpha) .and. present(beta) .and. present(gamma)) then
-     alphat = alpha
-     betat = beta
-     gammat = gamma
-  else
+!!$  if (present(alpha) .and. present(beta) .and. present(gamma)) then
+!!$     alphat = alpha
+!!$     betat = beta
+!!$     gammat = gamma
+!!$  else
      alphat = 2.0_dp*datan(1.0_dp)
      betat = 2.0_dp*datan(1.0_dp)
      gammat = 2.0_dp*datan(1.0_dp)
-  end if
+!!$  end if
 
 
  
@@ -703,6 +703,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
         m_norm=0.0_dp
      end if
      !print *,'ciao',iproc     
+     !substitution of the calling routine
+     
      call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
           rho_diag,karray,pot_ion,eh,exc,vxc,offset,sumpion,2)
      !print *,'Psolver R',eh,exc,vxc

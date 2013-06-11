@@ -257,7 +257,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_wavefunction), intent(inout) :: KSwfn, tmb
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz_old
-  real(gp), dimension(3,atoms%astruct%nat), target, intent(inout) :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
   integer, intent(out) :: infocode
   real(gp), intent(out) :: energy,fnoise
   real(gp), dimension(6), intent(out) :: strten

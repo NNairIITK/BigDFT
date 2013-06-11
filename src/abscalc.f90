@@ -210,7 +210,6 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
 
          stop 'ERROR'
       else
-
          call abscalc(nproc,iproc,atoms,rxyz,&
              rst%KSwfn,&!%psi,rst%KSwfn%Lzd,rst%KSwfn%orbs,&
              rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
@@ -295,7 +294,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    type(atoms_data), intent(inout) :: atoms
  !  type(orbitals_data), intent(inout) :: orbsAO
    type(GPU_pointers), intent(inout) :: GPU
-   real(gp), dimension(3,atoms%astruct%nat), target, intent(inout) :: rxyz
+   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
 !   real(wp), dimension(:), pointer :: psi
    integer, intent(out) :: infocode        !< encloses some information about the status of the run
 !!                         - 0 run successfully succeded
