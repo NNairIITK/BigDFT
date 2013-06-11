@@ -1,22 +1,2 @@
  <BigDFT> log of the run will be written in logfile: ./log.yaml
- <BigDFT> Logfile already existing, move previous file in: ./logfiles/log.00:01:05.974.yaml
- =F=> Check if the file "frequencies.res" is present.
- =F=> The reference state is already calculated.
- =F=> There are 12 moves already calculated over 12 frequencies.
-
- Wavefunction Optimization Finished, exit signal=    0
-
- =Frequencies calculation ===========================================================
-
- =F =================================================================================
-
- =F: eigenvalues (real)      =     3.6667157112E-04    7.2429663548E-07    7.2424942023E-07    1.1532035186E-23    2.4620619587E-23    0.0000000000E+00
- =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00
- =F: frequencies (Hartree)   =     1.9148670218E-02    8.5105618820E-04    8.5102844854E-04    3.3958850373E-12    4.9619169266E-12    0.0000000000E+00
- =F: frequencies (cm-1)      =       4202.65       186.79       186.78         0.00         0.00         0.00
- =F =================================================================================
- =F: Zero-point energy   =      2101.32 cm-1         9.5743351090E-03 Hartree
- =F: Vibrational entropy =      4.5058946475E-02 at 300.0K
- =F: Vibrational  energy =      2101.32 cm-1         9.5743351428E-03 Hartree at 300.0K
- =F: Total energy        =     -1.1273429753E+00 Hartree at 300.0K
- =F: CPU time/ELAPSED time for root process     0         0.00         0.00
+ <BigDFT> Logfile existing, renamed into: ./logfiles/log.17:52:43.244.yaml

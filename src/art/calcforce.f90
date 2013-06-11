@@ -84,7 +84,7 @@ subroutine calcforce_mix(posa,forca,energy,evalf_numbera, conva) !be careful, th
    !now passivate the quantum box, this will take a few steps. should make
    !a separate sub-routine
 
-   !we should also make sure that the set we send to bigDFT forces did not
+   !we should also make sure that the set we send to BigDFT forces did not
    !change in size since the last time
 
 

@@ -1,4 +1,15 @@
-  !body of the yaml_to template. Used in yaml_strings.f90
+!> @file
+!! Include file used in yaml_strings.f90
+!! Body of the yaml_to template.
+!! yaml: Yet Another Markeup Language (ML for Human)
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
   character(len=max_value_length) :: str
   character(len=*), optional, intent(in) :: fmt
 

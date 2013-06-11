@@ -36,7 +36,6 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !work arrays for transpositions
   real(kind=8), dimension(:,:,:), allocatable :: zt
   real(kind=8), dimension(:,:,:), allocatable :: zt_t
-  logical, dimension(:), allocatable :: arraytag
   !work arrays for MPI
   real(kind=8), dimension(:,:,:,:,:), allocatable :: zmpi1
   real(kind=8), dimension(:,:,:,:), allocatable :: zmpi2
@@ -52,7 +51,6 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 
   integer :: maxIter
   integer :: n3pr1,n3pr2,j1start,n1p,n2dimp
-  integer, dimension(10) :: status
 
   !Initialize stress tensor no matter of the BC
   !call to_zero(6,strten(1))

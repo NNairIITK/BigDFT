@@ -1,7 +1,7 @@
 !> @file
 !!   Routines to orthogonalize the wavefunctions
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -2001,7 +2001,6 @@ integer,dimension(nspin):: norbTot
 
 ! Local arguments
 integer:: nvctrp, i_stat, i_all, ncomp, ikptp, ikpt, ispin, norb, norbs, istThis, istOther,usepaw=0
-integer:: ii,iat,jj,shift,ispinor,iorb,jorb,ilmn
 !real(kind=8),allocatable::raux(:)
 real(kind=8),dimension(:),allocatable:: A1D
 character(len=*),parameter:: subname='gramschmidt'
@@ -2149,7 +2148,7 @@ type(paw_objects),optional,intent(inout)::paw
 
 ! Local variables
 integer:: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb,nspinor
-integer:: ii,i_all,i_stat,iat,jj,ispinor,ilmn,iorb,jorb
+integer:: i_all,i_stat,iat
 integer:: usepaw=0
 real(kind=8),dimension(:,:),allocatable::raux
 character(len=*),parameter:: subname='cholesky'

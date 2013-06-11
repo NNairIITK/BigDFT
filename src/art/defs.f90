@@ -8,13 +8,13 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 !> ART Module defs
-!! This module defines almost all variables used accross the program ART
+!! This module defines almost all variables used across the program ART
 module defs
 
   implicit none
 
-  real(kind=8), parameter :: VERSION_NUMBER  = 1.6    !< Version of the code
-  character(len=20), parameter :: BIGREVNO ="1.6-dev.12-538" !< Bigdft version
+  real(kind=8), parameter :: VERSION_NUMBER  = 1.6           !< Version of the code
+  character(len=20), parameter :: BIGREVNO ="1.6-dev.12-538" !< BigDFT version
  
   real(kind=8) :: t1                 !< Initial Date (cputime)
 

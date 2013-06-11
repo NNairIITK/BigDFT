@@ -238,7 +238,6 @@ contains
     type(dictionary), pointer :: dict_new
     !local variables
     integer :: i_st,n_st
-    character(len=max_field_length) :: key,val
     type(dictionary), pointer :: dict_tmp
 
     !initialize dictionary
@@ -294,7 +293,7 @@ contains
     end if
   end function dict_next
 
-  !> returns the position of the name in the dictionary
+  !> Returns the position of the name in the dictionary
   !! returns 0 if the dictionary is nullified or the name is absent
   function find_index(dict,name)
     implicit none
@@ -302,10 +301,8 @@ contains
     character(len=*), intent(in) :: name
     integer :: find_index
     !local variables
-    logical :: found
     integer :: ind
     type(dictionary), pointer :: dict_tmp
-    character(len=max_field_length) :: name_tmp
 
     find_index =0
     ind=-1
@@ -645,7 +642,6 @@ contains
     type(dictionary), pointer :: list_new
     !local variables
     integer :: i_st,n_st
-    character(len=max_field_length) :: key,val
     type(dictionary), pointer :: dict_tmp
 
     !initialize dictionary
