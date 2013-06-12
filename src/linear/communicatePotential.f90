@@ -44,7 +44,6 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
       ie2=-1000000000
       is3=1000000000
       ie3=-1000000000
-      if (iproc==0) write(*,*) 'jproc, orbs%norb_par(jproc,0), is3', jproc, orbs%norb_par(jproc,0), is3
       do iorb=1,orbs%norb_par(jproc,0)
           
           iiorb=iiorb+1 
@@ -78,7 +77,6 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
           end if
       
       end do
-      if (iproc==0) write(*,*) 'jproc, is3', jproc, is3
       comgp%ise(1,jproc)=is1
       comgp%ise(2,jproc)=ie1
       comgp%ise(3,jproc)=is2
@@ -97,7 +95,6 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
       ie3j=comgp%ise(6,jproc)
       mpidest=jproc
       ioverlap=0
-      if (iproc==0) write(*,*) 'jproc, is3j, ie3j', jproc, is3j, ie3j
       do kproc=0,nproc-1
           is3k=nscatterarr(kproc,3)+1
           ie3k=is3k+nscatterarr(kproc,2)-1
@@ -116,7 +113,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
           end if
       end do
       comgp%noverlaps(jproc)=ioverlap
-      !if(iproc==0) write(*,'(2(a,i0),a)') 'Process ',jproc,' gets ',ioverlap,' potential slices.'
+      !!if(iproc==0) write(*,'(2(a,i0),a)') 'Process ',jproc,' gets ',ioverlap,' potential slices.'
   end do
   
   ! Determine the parameters for the communications.
