@@ -2373,11 +2373,12 @@ END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-     wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags)
+     wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
   use module_fragments
+  use constrained_dft
   use dynamic_memory
   use yaml_output
   use gaussians, only:gaussian_basis
@@ -2404,6 +2405,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(gp), dimension(3, atoms%astruct%nat), intent(inout) :: rxyz_old
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
   type(system_fragment), dimension(:), pointer :: ref_frags
+  type(cdft_data), intent(out) :: cdft
   !local variables
   character(len = *), parameter :: subname = "input_wf"
   integer :: i_stat, nspin, i_all, ifrag, iorb, itmb, jtmb, ierr
@@ -2414,6 +2416,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
   type(paw_objects)::paw
   logical :: overlap_calculated
+  !!real(gp), dimension(:,:), allocatable :: ks, ksk
+  !!real(gp) :: nonidem
 
   !nullify paw objects:
   do iatyp=1,atoms%astruct%ntypes
@@ -2673,9 +2677,55 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      i_all = -product(shape(norm))*kind(norm)
      deallocate(norm,stat=i_stat)
      call memocc(i_stat,i_all,'norm',subname)
-                                                    
+
+     !!allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
+     !!call memocc(i_stat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
+     !!call calculate_density_kernel(iproc, nproc, .true., KSwfn%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
+     !!call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
+     !!do itmb=1,tmb%orbs%norb
+     !!   do jtmb=1,tmb%orbs%norb
+     !!      write(20,*) itmb,jtmb,tmb%linmat%denskern%matrix(itmb,jtmb)
+     !!   end do
+     !!end do
+     !!i_all=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
+     !!deallocate(tmb%linmat%denskern%matrix,stat=i_stat)
+     !!call memocc(i_stat,i_all,'tmb%linmat%denskern%matrix',subname)           
+
+     ! we have to copy the coeffs from the fragment structure to the tmb structure and reconstruct each 'mini' kernel
+     ! this is overkill as we are recalculating the kernel anyway - fix at some point
+     ! or just put into fragment structure to save recalculating for CDFT
+     if (in%lin%fragment_calculation) then
+        call fragment_coeffs_to_kernel(in%frag,ref_frags,tmb,KSwfn%orbs,overlap_calculated)
+     end if
+
      call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
           KSwfn%orbs, tmb, overlap_calculated)     
+
+     !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
+     !!tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
+     !!ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ks')
+     !!ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ksk')
+     !!call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
+     !!call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%denskern)
+     !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, &
+     !!           tmb%linmat%ovrlp%matrix(1,1), tmb%orbs%norb, 0.d0, ks(1,1), tmb%orbs%norb) 
+     !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
+     !!           tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, 0.d0, ksk(1,1), tmb%orbs%norb)
+
+     !!nonidem=0
+     !!do itmb=1,tmb%orbs%norb
+     !!   do jtmb=1,tmb%orbs%norb
+     !!      write(61,*) itmb,jtmb,tmb%linmat%denskern%matrix(itmb,jtmb),ksk(itmb,jtmb),&
+     !!           tmb%linmat%denskern%matrix(itmb,jtmb)-ksk(itmb,jtmb),tmb%linmat%ovrlp%matrix(itmb,jtmb)
+     !!      nonidem=nonidem+tmb%linmat%denskern%matrix(itmb,jtmb)-ksk(itmb,jtmb)
+     !!   end do
+     !!end do
+     !!print*,'non idempotency',nonidem/tmb%orbs%norb**2
+
+     !!call f_free(ks) 
+     !!call f_free(ksk) 
+     !!call f_free_ptr(tmb%linmat%ovrlp%matrix)   
+     !!call f_free_ptr(tmb%linmat%denskern%matrix)   
 
      tmb%can_use_transposed=.false. ! - do we really need to deallocate here?
 
@@ -2686,13 +2736,27 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      deallocate(tmb%psit_f,stat=i_stat)                                                 
      call memocc(i_stat,i_all,'tmb%psit_f',subname)     
 
-
      ! Now need to calculate the charge density and the potential related to this inputguess
      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
           tmb%orbs, tmb%psi, tmb%collcom_sr)
 
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
           tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+
+     ! CDFT: calculate w(r), define some initial guess for V and initialize other cdft_data stuff
+     ! CDFT: could move to linearscaling but use rhopotold rather than rhov, but keep here in case we want to deallocate fragment stuff
+
+     call timing(iproc,'constraineddft','ON')
+     call nullify_cdft_data(cdft)
+     if (in%lin%constrained_dft) then
+        call cdft_data_init(cdft,in%frag,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d)
+        call cdft_data_allocate(cdft,tmb%linmat%ham)
+        if (trim(cdft%method)=='fragment_density') then
+           call calculate_weight_function(in,ref_frags,cdft,&
+                KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,denspot%rhov,tmb,atoms,rxyz,denspot)
+        end if
+     end if
+     call timing(iproc,'constraineddft','OF')
 
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
      call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &

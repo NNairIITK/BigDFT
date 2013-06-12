@@ -9,11 +9,12 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    calculate_ham,ham_small,ldiis_coeff)
+    calculate_ham,ham_small,ldiis_coeff,cdft)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use constrained_dft
   implicit none
 
   ! Calling arguments
@@ -34,6 +35,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical,intent(in) :: calculate_ham
   type(sparseMatrix), intent(inout) :: ham_small ! for foe only
   type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
+  type(cdft_data),intent(inout),optional :: cdft
 
   ! Local variables 
   integer :: istat, iall, iorb, jorb, info, ind_ham, ind_denskern
@@ -44,7 +46,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(energy_terms) :: energs
 
   character(len=*),parameter :: subname='get_coeff'
-  real(kind=8) :: tmprtr
+  real(kind=8) :: tmprtr, ebsold
 
 
   if(calculate_ham) then
@@ -111,9 +113,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       deallocate(confdatarrtmp)
 
       !DEBUG
-      !!if(iproc==0) then
-      !! print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
-      !!end if
+      if(iproc==0) then
+       print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
+      end if
       !END DEBUG
 
       iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
@@ -185,8 +187,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   end if
 
 
-  ! CDFT: add V*w_ab to Hamiltonian here
-
+  ! CDFT: add V*w_ab to Hamiltonian here - assuming ham and weight matrix have the same sparsity...
+  if (present(cdft)) then
+     call daxpy(tmb%linmat%ham%nvctr,cdft%lag_mult,cdft%weight_matrix%matrix_compr,1,tmb%linmat%ham%matrix_compr,1)   
+  end if
 
 
   if (scf_mode/=LINEAR_FOE) then
@@ -260,7 +264,46 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, iall, 'matrixElements', subname)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
-      call optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
+      ebsold=0.0_gp
+      do i=1,1000
+         call optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
+
+         allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+         call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
+         call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
+         call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
+         iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
+         deallocate(tmb%linmat%denskern%matrix, stat=istat)
+         call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
+
+         ! CDFT: subtract V*w_ab from Hamiltonian so that we are calculating the correct energy
+         if (present(cdft)) then
+           call daxpy(tmb%linmat%ham%nvctr,-cdft%lag_mult,cdft%weight_matrix%matrix_compr,1,tmb%linmat%ham%matrix_compr,1)   
+         end if
+
+         ebsold=ebs
+         ebs=0.d0
+         do iorb=1,tmb%orbs%norb
+            do jorb=1,tmb%orbs%norb
+               ind_ham = tmb%linmat%ham%matrixindex_in_compressed(iorb,jorb)
+               ind_denskern = tmb%linmat%denskern%matrixindex_in_compressed(jorb,iorb)
+               if (ind_ham==0.or.ind_denskern==0) cycle
+               ebs = ebs + tmb%linmat%denskern%matrix_compr(ind_denskern)*tmb%linmat%ham%matrix_compr(ind_ham)
+            end do
+         end do
+
+
+         ! CDFT: add V*w_ab to Hamiltonian here - assuming ham and weight matrix have the same sparsity...
+         if (present(cdft)) then
+            call daxpy(tmb%linmat%ham%nvctr,cdft%lag_mult,cdft%weight_matrix%matrix_compr,1,tmb%linmat%ham%matrix_compr,1)   
+         end if
+
+         if (fnrm < 1.0e-4) then
+            !print*,''
+            if (iproc==0) print*,'Direct min additional loop: it, fnrm, ebs, ebsdiff',i,fnrm,ebs,ebs-ebsold
+            exit
+         end if
+      end do
   end if
 
   if (scf_mode/=LINEAR_FOE) then
@@ -272,6 +315,11 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
       deallocate(tmb%linmat%denskern%matrix, stat=istat)
       call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
+
+      ! CDFT: subtract V*w_ab from Hamiltonian so that we are calculating the correct energy
+      if (present(cdft)) then
+        call daxpy(tmb%linmat%ham%nvctr,-cdft%lag_mult,cdft%weight_matrix%matrix_compr,1,tmb%linmat%ham%matrix_compr,1)   
+      end if
 
       call timing(iproc,'getlocbasinit','ON') !lr408t
       ! Calculate the band structure energy 
@@ -1276,6 +1324,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
 
   allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+
   call reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
        tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
 
@@ -1330,7 +1379,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
   call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
 
   if(iproc==0) then
-      write(*,'(a)',advance='no') 'coeff renormalization...'
+  !    write(*,'(a)',advance='no') 'coeff renormalization...'
   end if
 
   call to_zero(orbs%norb**2, ovrlp_coeff(1,1))

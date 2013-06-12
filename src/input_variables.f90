@@ -450,6 +450,7 @@ subroutine default_input_variables(in)
   nullify(in%frag%label)
   nullify(in%frag%dirname)
   nullify(in%frag%frag_index)
+  nullify(in%frag%charge)
 END SUBROUTINE default_input_variables
 
 
@@ -936,9 +937,10 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%pulay_correction,'T',comment=comments)
 
   !fragment calculation and transfer integrals: true or false
-  comments='fragment calculation; calculate transfer_integrals'
+  comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation'
   call input_var(in%lin%fragment_calculation,'F')
-  call input_var(in%lin%calc_transfer_integrals,'F',comment=comments)
+  call input_var(in%lin%calc_transfer_integrals,'F')
+  call input_var(in%lin%constrained_dft,'F',comment=comments)
 
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
@@ -1748,7 +1750,7 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
     end if
   end do
 
-  comments = '# fragment number j, reference fragment i this corresponds to'
+  comments = '# fragment number j, reference fragment i this corresponds to, charge on this fragment'
   do ifrag=1,in%frag%nfrag
     call input_var(frag_num,'1',ranges=(/1,in%frag%nfrag/))
     if (frag_num/=ifrag) then
@@ -1757,7 +1759,8 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
        call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
        stop
     end if
-    call input_var(in%frag%frag_index(frag_num),'1',ranges=(/0,100000/),comment=comments)
+    call input_var(in%frag%frag_index(frag_num),'1',ranges=(/0,100000/))
+    call input_var(in%frag%charge(frag_num),'1',ranges=(/-500,500/),comment=comments)
   end do
 
   call input_free((iproc == 0) .and. dump)
@@ -1777,6 +1780,9 @@ END SUBROUTINE fragment_input_variables
  
     allocate(input_frag%frag_index(input_frag%nfrag), stat=i_stat)
     call memocc(i_stat, input_frag%frag_index, 'input_frag%frag_index', subname)
+
+    allocate(input_frag%charge(input_frag%nfrag), stat=i_stat)
+    call memocc(i_stat, input_frag%charge, 'input_frag%charge', subname)
 
     !allocate(input_frag%frag_info(input_frag%nfrag_ref,2), stat=i_stat)
     !call memocc(i_stat, input_frag%frag_info, 'input_frag%frag_info', subname)
@@ -1813,6 +1819,13 @@ END SUBROUTINE fragment_input_variables
       call memocc(i_stat,i_all,'input_frag%frag_index',subname)
       nullify(input_frag%frag_index)
     end if 
+ 
+    if(associated(input_frag%charge)) then
+      i_all = -product(shape(input_frag%charge))*kind(input_frag%charge)
+      deallocate(input_frag%charge,stat=i_stat)
+      call memocc(i_stat,i_all,'input_frag%charge',subname)
+      nullify(input_frag%charge)
+    end if 
 
     if(associated(input_frag%label)) then
       i_all = -product(shape(input_frag%label))*kind(input_frag%label)
@@ -1839,6 +1852,7 @@ END SUBROUTINE fragment_input_variables
     type(fragmentInputParameters),intent(inout) :: input_frag
 
     nullify(input_frag%frag_index)
+    nullify(input_frag%charge)
     !nullify(input_frag%frag_info)
     nullify(input_frag%label)
     nullify(input_frag%dirname)

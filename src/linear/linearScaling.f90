@@ -1,11 +1,12 @@
 subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,energy,fpulay,infocode,ref_frags)
+           energs,energy,fpulay,infocode,ref_frags,cdft)
  
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => linearScaling
   use yaml_output
   use module_fragments
+  use constrained_dft
   implicit none
 
   ! Calling arguments
@@ -18,7 +19,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(gp), dimension(*), intent(inout) :: rhopotold
   type(nonlocal_psp_descriptors),intent(in) :: nlpspd
   real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
-  type(GPU_pointers),intent(in out) :: GPU
+  type(GPU_pointers),intent(inout) :: GPU
   type(energy_terms),intent(inout) :: energs
   real(gp), dimension(:), pointer :: rho,pot
   real(8),intent(out) :: energy
@@ -26,6 +27,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(DFT_wavefunction),intent(inout),target :: KSwfn
   integer,intent(out) :: infocode
   type(system_fragment), dimension(:), pointer :: ref_frags ! for transfer integrals
+  type(cdft_data), intent(inout) :: cdft
   
   real(8) :: pnrm,trace,trace_old,fnrm_tmb
   integer :: infoCoeff,istat,iall,it_scc,itout,info_scf,i,ierr,iorb
@@ -47,6 +49,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer:: target_function, nit_basis
   type(sparseMatrix) :: ham_small
   integer :: isegsmall, iseglarge, iismall, iilarge, is, ie
+  
+
+  real(kind=gp) :: ebs
+  integer :: ind_denskern, ind_ham, jorb, cdft_it, nelec, iat, ityp, ifrag, ifrag_charged, ifrag_ref, isforb, itmb
+
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -127,8 +134,42 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
   if (iproc ==0) call yaml_close_map()
 
-  ! CDFT: calculate w_ab here given Nc and some scheme for calculating w(r)
-  ! CDFT: also define some initial guess for V
+  ! CDFT: calculate w_ab here given w(r)
+  ! CDFT: first check that we aren't updating the basis at any point and we don't have any low acc iterations
+  if (input%lin%constrained_dft) then
+     call timing(iproc,'constraineddft','ON')
+     if (nit_lowaccuracy>0 .or. input%lin%nItBasis_highaccuracy>1) then
+        stop 'Basis cannot be updated for now in constrained DFT calculations and no low accuracy is allowed'
+     end if
+
+     if (trim(cdft%method)=='fragment_density') then ! fragment density approach
+        call calculate_weight_matrix_using_density(cdft,tmb,at,input,GPU,denspot)
+     else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
+        call calculate_weight_matrix_lowdin(cdft,tmb,input,ref_frags,.true.)
+        ! debug
+        call plot_density(iproc,nproc,'initial_density.cube', &
+             at,rxyz,denspot%dpbox,1,rhopotold)
+        ! debug
+     else 
+        stop 'Error invalid method for calculating CDFT weight matrix'
+     end if
+
+     ! as a first check
+     ! needs updating for Stephan's sparse matrix changes
+     ! calculate (w_abK^ba-Nc)*V
+     ebs=0.d0
+     do iorb=1,tmb%orbs%norb
+        do jorb=1,tmb%orbs%norb
+           ind_ham = cdft%weight_matrix%matrixindex_in_compressed(iorb,jorb)
+           ind_denskern = tmb%linmat%denskern%matrixindex_in_compressed(jorb,iorb)
+           if (ind_ham==0.or.ind_denskern==0) cycle
+           ebs = ebs + tmb%linmat%denskern%matrix_compr(ind_denskern)*cdft%weight_matrix%matrix_compr(ind_ham)
+        end do
+     end do
+
+     if (iproc==0) print*,'Tr(KW), Tr(KW)-N, V*(Tr(KW)-N)',ebs,ebs-cdft%charge,cdft%lag_mult*(ebs-cdft%charge)
+     call timing(iproc,'constraineddft','OF')
+  end if
 
 
   call timing(iproc,'linscalinit','OF') !lr408t
@@ -189,6 +230,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
           end if
 
+          ! is this really necessary if the locrads haven't changed?  we should check this!
+          ! for now for CDFT don't do the extra get_coeffs, as don't want to add extra CDFT loop here
           if (target_function==TARGET_FUNCTION_IS_HYBRID) then
               if (iproc==0) write(*,*) 'WARNING: COMMENTED THESE LINES'
           else
@@ -196,9 +239,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! being different for low and high accuracy.
              update_phi=.true.
              tmb%can_use_transposed=.false.   !check if this is set properly!
-             call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                  infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                  .true.,ham_small,ldiis_coeff=ldiis_coeff)
+             ! NB nothing is written to screen for this get_coeff
+             if (.not. input%lin%constrained_dft) then
+                call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                     .true.,ham_small,ldiis_coeff=ldiis_coeff)
+             end if
           end if
 
           ! Some special treatement if we are in the high accuracy part
@@ -353,36 +399,74 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           ! CDFT: need to pass V*w_ab to get_coeff so that it can be added to H_ab and the correct KS eqn can therefore be solved
           ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
           ! CDFT: all this will be in some extra CDFT loop
-          !cdft_loop : do
+          cdft_loop : do cdft_it=1,100
 
              ! If the hamiltonian is available do not recalculate it
              ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
              ! since this is only required if basis changed
              if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
-                call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                     .false.,ham_small,ldiis_coeff=ldiis_coeff)
+                if (input%lin%constrained_dft) then
+                   call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        .false.,ham_small,ldiis_coeff=ldiis_coeff,cdft=cdft)
+                else
+                   call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        .false.,ham_small,ldiis_coeff=ldiis_coeff)
+                end if
              else
-                call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                     .true.,ham_small,ldiis_coeff=ldiis_coeff)
+                if (input%lin%constrained_dft) then
+                   call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        .true.,ham_small,ldiis_coeff=ldiis_coeff,cdft=cdft)
+                else
+                   call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        .true.,ham_small,ldiis_coeff=ldiis_coeff)
+                end if
              end if
              ! Since we do not update the basis functions anymore in this loop
              update_phi = .false.
 
-             ! CDFT: update V
-             ! CDFT: we updated the kernel in get_coeff so 1st deriv of W wrt V becomes:
-             ! CDFT: Tr[Kw]-Nc as in CONQUEST
-             ! CDFT: 2nd deriv more problematic?
+             if (input%lin%constrained_dft) then
+                call timing(iproc,'constraineddft','ON')
+                ! CDFT: see how satisfaction of constraint varies as kernel is updated
+                ! CDFT: calculate Tr[Kw]-Nc
+                ebs=0.d0
+                do iorb=1,tmb%orbs%norb
+                   do jorb=1,tmb%orbs%norb
+                      ind_ham = cdft%weight_matrix%matrixindex_in_compressed(iorb,jorb)
+                      ind_denskern = tmb%linmat%denskern%matrixindex_in_compressed(jorb,iorb)
+                      if (ind_ham==0.or.ind_denskern==0) cycle
+                      ebs = ebs + tmb%linmat%denskern%matrix_compr(ind_denskern)*cdft%weight_matrix%matrix_compr(ind_ham)
+                   end do
+                end do
 
+                if (iproc==0) print*,''
+                if (iproc==0) print*,'itc, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N), V',cdft_it,ebs,ebs-cdft%charge,&
+                     cdft%lag_mult*(ebs-cdft%charge),cdft%lag_mult
 
-             ! CDFT: exit when W is converged wrt both V and rho
+                ! CDFT: update V (maximizing E wrt V)
+                ! CDFT: we updated the kernel in get_coeff so 1st deriv of W wrt V becomes Tr[Kw]-Nc as in CONQUEST
+                ! CDFT: 2nd deriv more problematic?
+                ! CDFT: use simplest possible scheme for now
+                cdft%lag_mult=cdft%lag_mult+0.5_gp*(ebs-cdft%charge)
 
-          !end do cdft_loop
+                call timing(iproc,'constraineddft','OF')
+
+                ! CDFT: exit when W is converged wrt both V and rho
+                if (abs(ebs-cdft%charge) < 1.0e-3) exit
+
+             ! if not constrained DFT exit straight away
+             else
+                exit
+             end if
+!exit
+          end do cdft_loop
           ! CDFT: end of CDFT loop to find V which correctly imposes constraint and corresponding density
 
 
-          ! CDFT: don't need additional energy term here as constraint should now be correctly imposed?
+          ! CDFT: this is the real energy here as we subtracted the constraint term from the Hamiltonian before calculating ebs
           ! Calculate the total energy.
           !if(iproc==0) print *,'energs',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
           energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
@@ -391,9 +475,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
           ! update alpha_coeff for direct minimization steepest descents
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and. ldiis_coeff%isx == 0) then
-             if(energyDiff<0.d0) then
+             ! apply a cap so that alpha_coeff never goes below around 1.d-2 or above 2
+             if (energyDiff<0.d0 .and. ldiis_coeff%alpha_coeff < 1.8d0) then
                 ldiis_coeff%alpha_coeff=1.1d0*ldiis_coeff%alpha_coeff
-             else
+             else if (ldiis_coeff%alpha_coeff > 1.7d-3) then
                 ldiis_coeff%alpha_coeff=0.5d0*ldiis_coeff%alpha_coeff
              end if
              if(iproc==0) write(*,*) ''
@@ -496,10 +581,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            .true.,ham_small,ldiis_coeff=ldiis_coeff)
   end if
 
-
   if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
      call deallocate_sparsematrix(ham_small,subname)
   end if
+
+  if (input%lin%constrained_dft) call cdft_data_free(cdft)
 
 
   ! print the final summary
@@ -541,9 +627,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   !Write the linear wavefunctions to file if asked, also write Hamiltonian and overlap matrices
   if (input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
-    call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
-       max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,KSwfn%orbs%norb,at,rxyz,tmb%psi,tmb%coeff)
-    call write_linear_matrices(iproc,nproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb,at,rxyz)
+     nelec=0
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
+        nelec=nelec+at%nelpsp(ityp)
+     enddo
+     call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
+          max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff)
+     call write_linear_matrices(iproc,nproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb,at,rxyz)
   end if
  
   ! maybe not the best place to keep it - think about it!
@@ -1478,8 +1569,8 @@ subroutine calc_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovr
      ! find reference fragment this corresponds to
      ifrag_ref=input_frag%frag_index(ifrag)
      do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-        homo_coeffs(ind+itmb,ifrag)=ref_frags(ifrag_ref)%coeff(itmb,ref_frags(ifrag_ref)%nksorb)
-        lumo_coeffs(ind+itmb,ifrag)=ref_frags(ifrag_ref)%coeff(itmb,ref_frags(ifrag_ref)%nksorb+1)
+        homo_coeffs(ind+itmb,ifrag)=ref_frags(ifrag_ref)%coeff(itmb,ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp))
+        lumo_coeffs(ind+itmb,ifrag)=ref_frags(ifrag_ref)%coeff(itmb,ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)+1)
      end do
      ind=ind+ref_frags(ifrag_ref)%fbasis%forbs%norb
   end do

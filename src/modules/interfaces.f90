@@ -583,10 +583,11 @@ module module_interfaces
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
             denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-            wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags)
+            wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft)
          use module_defs
          use module_types
          use module_fragments
+         use constrained_dft
          implicit none
          integer, intent(in) :: iproc, nproc, inputpsi,  input_wf_format
          type(input_variables), intent(in) :: in
@@ -606,6 +607,7 @@ module module_interfaces
          real(gp), dimension(3, atoms%astruct%nat), intent(inout) :: rxyz_old
          type(wavefunctions_descriptors), intent(inout) :: wfd_old
          type(system_fragment), dimension(:), pointer :: ref_frags
+         type(cdft_data), intent(out) :: cdft
        END SUBROUTINE input_wf
 
        subroutine reformatmywaves(iproc,orbs,at,&
@@ -2042,9 +2044,10 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,&
         GPU,infoCoeff,ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,&
-        communicate_phi_for_lsumrho,calculate_ham,ham_small,ldiis_coeff)
+        communicate_phi_for_lsumrho,calculate_ham,ham_small,ldiis_coeff,cdft)
       use module_base
       use module_types
+      use constrained_dft
       implicit none
       
       ! Calling arguments
@@ -2065,13 +2068,15 @@ module module_interfaces
       logical,intent(in) :: calculate_ham
       type(sparseMatrix), intent(inout) :: ham_small ! foe only, not otherwise allocated
       type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
+      type(cdft_data),intent(inout),optional :: cdft
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,energy,fpulay,infocode,ref_frags)
+           energs,energy,fpulay,infocode,ref_frags,cdft)
       use module_base
       use module_types
       use module_fragments
+      use constrained_dft
       implicit none
       integer,intent(in):: iproc, nproc
       type(atoms_data),intent(inout):: at
@@ -2090,6 +2095,7 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout),target:: KSwfn
       integer,intent(out):: infocode
       type(system_fragment), dimension(:), pointer :: ref_frags 
+      type(cdft_data), intent(inout) :: cdft
     end subroutine linearScaling   
 
 

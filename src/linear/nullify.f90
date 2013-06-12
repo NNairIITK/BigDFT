@@ -49,7 +49,7 @@ subroutine nullify_foe(foe_obj)
 end subroutine nullify_foe
 
 
-subroutine nullify_sparsematrix(sparsemat)
+pure subroutine nullify_sparsematrix(sparsemat)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => nullify_sparseMatrix

@@ -27,7 +27,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.29
- Timestamp of this run                 : 2013-06-05 15:05:05.141
+ Timestamp of this run                 : 2013-06-06 12:44:09.239
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
@@ -133,7 +133,7 @@
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
  #|1 F F          Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|F F            fragment calculation; calculate transfer_integrals                         
+ #|F F F          fragment calculation; calculate transfer_integrals; constrained DFT calcula
  #|O 4 5.0d-3 1.0d-3 0.0d0 6.0 6.0 20.0  Atom name, number of basis functions per atom, prefa
  # ==== WARNING: the following lines have not been processed by the parser ====
  #|                                                                                          
@@ -359,7 +359,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  3.600E-02,  3.800E-02 ]}
+ -  {Process:  0, Timing:  [  7.200E-02,  6.900E-02 ]}
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -376,14 +376,14 @@
  -  {O: [ 0.000000000000E+00,  0.000000000000E+00,  0.000000000000E+00]} # 0001
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  2.54
-   Elapsed time (s)                    :  2.55
+   CPU time (s)                        :  4.50
+   Elapsed time (s)                    :  4.57
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations             :  3222
-   Tot. No. of Deallocations           :  3222
+   Tot. No. of Allocations             :  3223
+   Tot. No. of Deallocations           :  3223
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  81

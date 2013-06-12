@@ -227,9 +227,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
       ! Adapt step size for the steepest descent minimization.
           tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
-          if(tt>.6d0 .and. trH<trHold) then
+          ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
+          if(tt>.6d0 .and. trH<trHold .and. alpha(iorb)<1.8d0) then
               alpha(iorb)=alpha(iorb)*1.1d0
-          ! apply a threshold so that alpha never goes below around 1.d-2
           else if (alpha(iorb)>1.7d-3) then
               alpha(iorb)=alpha(iorb)*.6d0
           end if
