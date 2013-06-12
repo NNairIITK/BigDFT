@@ -242,6 +242,13 @@ ldiis%is=0
 ldiis%switchSD=.false.
 ldiis%trmin=1.d100
 ldiis%trold=1.d100
+ldiis%DIISHistMin=0
+ldiis%DIISHistMax=isx
+ldiis%icountSDSatur=0
+ldiis%icountSwitch=0
+ldiis%icountDIISFailureTot=0
+ldiis%icountDIISFailureCons=0
+
 allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norbp), stat=istat)
 call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
 ii=0

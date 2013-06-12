@@ -4,7 +4,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
   use module_base
   use module_types
   use module_interfaces
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
   implicit none
   integer, intent(in) :: iorb,ixc
@@ -191,7 +191,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
   use module_types
   use module_xc
   use module_interfaces, except_this_one => NK_SIC_potential
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   integer, intent(in) :: ixc
   real(gp), intent(in) :: hxh,hyh,hzh,fref

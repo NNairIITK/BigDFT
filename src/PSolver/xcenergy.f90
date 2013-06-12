@@ -18,7 +18,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp 
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
-  real(dp), dimension(n1i*n2i*n3d,0:3), intent(inout) :: rhocore
+  real(dp), dimension(n1i*n2i*n3d,0:9), intent(inout) :: rhocore
   !local variables
   !n(c) character(len=*), parameter :: subname='calc_rhocore'
   real(gp), parameter :: oneo4pi=.079577471545947_wp
@@ -76,9 +76,9 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   !if (iproc == 0) write(*,'(1x,a,f12.6)',advance='no')' analytic core charge: ',chc-chv
 
   !conditions for periodicity in the three directions
-  perx=(atoms%geocode /= 'F')
-  pery=(atoms%geocode == 'P')
-  perz=(atoms%geocode /= 'F')
+  perx=(atoms%astruct%geocode /= 'F')
+  pery=(atoms%astruct%geocode == 'P')
+  perz=(atoms%astruct%geocode /= 'F')
 
   call ext_buffers(perx,nbl1,nbr1)
   call ext_buffers(pery,nbl2,nbr2)
@@ -107,7 +107,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
         !in periodic case nbl3=0
         j3=j3+nbl3+1
 
-        !if (atoms%geocode /= 'F' .and. j3 >= modulo(i3s,n3i) .and. i3s < 0) j3=j3-n3i
+        !if (atoms%astruct%geocode /= 'F' .and. j3 >= modulo(i3s,n3i) .and. i3s < 0) j3=j3-n3i
         if (j3 >= i3s .and. j3 <= i3s+n3d-1) then
            do i2=isy,iey
               y=real(i2,kind=8)*hyh-ry
@@ -156,6 +156,13 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                        rhocore(ind,1)=rhocore(ind,1)+x*drhodr2*oneo4pi
                        rhocore(ind,2)=rhocore(ind,2)+y*drhodr2*oneo4pi
                        rhocore(ind,3)=rhocore(ind,3)+z*drhodr2*oneo4pi
+!stress components
+                       rhocore(ind,4)=rhocore(ind,4)+x*x*drhodr2*oneo4pi
+                       rhocore(ind,5)=rhocore(ind,5)+y*y*drhodr2*oneo4pi
+                       rhocore(ind,6)=rhocore(ind,6)+z*z*drhodr2*oneo4pi
+                       rhocore(ind,7)=rhocore(ind,7)+y*z*drhodr2*oneo4pi
+                       rhocore(ind,8)=rhocore(ind,8)+x*z*drhodr2*oneo4pi
+                       rhocore(ind,9)=rhocore(ind,9)+x*y*drhodr2*oneo4pi
 
 !!$                 !print out the result, to see what happens
 !!$                 if (z==0.0_gp .and. y==0.0_gp) then
@@ -272,9 +279,9 @@ end function spherical_gaussian_value
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
 subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx,hy,hz,&
-     rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho)
+     rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho,rhohat)
   use module_base
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_interfaces, fake_name => XC_potential
   use module_xc
   implicit none
@@ -288,15 +295,18 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx
   real(wp), dimension(*), intent(out) :: potxc
   real(dp), dimension(6), intent(out) :: xcstr
   real(dp), dimension(:,:,:,:), target, intent(out), optional :: dvxcdrho
+  real(wp), dimension(:,:,:,:), optional :: rhohat
   !local variables
   character(len=*), parameter :: subname='XC_potential'
   logical :: wrtmsg
   !n(c) integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
   integer :: i_all,i_stat,ierr,i,j
-  integer :: i1,i2,i3,istart,iend,i3start,jend,jproc
+  integer :: i1,i2,i3,istart,iend,iwarn,i3start,jend,jproc
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
   integer :: ndvxc,order
+  !real(dp),parameter:: tol14=0.00000000000001_dp
+  real(dp),parameter:: tol20=0.0000000000000000000001_dp
   real(dp) :: eexcuLOC,vexcuLOC,vexcuRC
   integer, dimension(:,:), allocatable :: gather_arr
   real(dp), dimension(:), allocatable :: rho_G
@@ -304,11 +314,12 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx
   real(dp), dimension(:,:,:,:), allocatable :: vxci
   real(gp), dimension(:), allocatable :: energies_mpi
   real(dp), dimension(:,:,:,:), pointer :: dvxci
-  real(dp), dimension(6) :: wbstr
+  real(dp), dimension(6) :: wbstr, rhocstr
   call timing(iproc,'Exchangecorr  ','ON')
 
 call to_zero(6,xcstr(1))
 call to_zero(6,wbstr(1))
+call to_zero(6,rhocstr(1))
 
   wrtmsg=.false.
   !calculate the dimensions wrt the geocode
@@ -316,22 +327,22 @@ call to_zero(6,wbstr(1))
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
-     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
   else if (geocode == 'S') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
-     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   else if (geocode == 'F') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   else if (geocode == 'W') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
-     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   else
      stop 'XC potential: geometry code not admitted'
   end if
@@ -353,7 +364,7 @@ call to_zero(6,wbstr(1))
   istart=iproc*(md2/nproc)
   iend=min((iproc+1)*md2/nproc,m2)
 
-  call xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
+  call xc_dimensions(geocode,xc_isgga(),(ixc/=13),istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
   nwb=nxcl+nxc+nxcr-2
   nxt=nwbr+nwb+nwbl
 
@@ -384,6 +395,12 @@ call to_zero(6,wbstr(1))
 !!$        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1+m1*m3*nxt),1)
 !!$     end if
 !!$  end if
+ 
+  !if rhohat is present, substract it from charge density
+  if (present(rhohat)) then
+        call axpy(m1*m3*nxt*nspin,-1.0_wp,rhohat(1,1,1,1),1,rho(1),1)
+        call mkdenpos(iwarn,m1*m3*nxt,nspin,0,rho,tol20)
+  end if
 
   if (datacode=='G') then
      !starting address of rho in the case of global i/o
@@ -551,39 +568,24 @@ call to_zero(6,wbstr(1))
      end do
   end if
 
+  !
+  !if rhohat is present, add it to charge density
+  if(present(rhohat)) then
+     do ispin=1,nspin
+       call axpy(m1*m3*nxc,1.0_wp,rhohat(1,1,i3xcsh_fake+1,ispin),1,rho(1),1)
+     end do
+     !This will add V_xc(n) nhat to V_xc(n) n, to get: V_xc(n) (n+nhat)
+     call add_to_vexcu(rhohat)
+  end if
+
+
   !if rhocore is associated we then remove it from the charge density
   !and subtract its contribution from the evaluation of the XC potential integral vexcu
   if (associated(rhocore)) then
      !at this stage the density is not anymore spin-polarised
      !sum the complete core density for non-spin polarised calculations
      call axpy(m1*m3*nxc,-1.0_wp,rhocore(1,1,i3xcsh_fake+1,1),1,rho(1),1)
-     vexcuRC=0.0_gp
-     do i3=1,nxc
-        do i2=1,m3
-           do i1=1,m1
-              !do i=1,nxc*m3*m1
-              i=i1+(i2-1)*m1+(i3-1)*m1*m3
-              vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i)
-           end do
-        end do
-     end do
-     if (nspin==2) then
-        do i3=1,nxc
-           do i2=1,m3
-              do i1=1,m1
-                 !do i=1,nxc*m3*m1
-                 !vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
-                 i=i1+(i2-1)*m1+(i3-1)*m1*m3
-                 vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i+m1*m3*nxc)
-              end do
-           end do
-        end do
-        !divide the results per two because of the spin multiplicity
-        vexcuRC=0.5*vexcuRC
-     end if
-     vexcuRC=vexcuRC*real(hx*hy*hz,gp)
-     !subtract this value from the vexcu
-     vexcuLOC=vexcuLOC-vexcuRC
+     call substract_from_vexcu(rhocore)
 !print *,' aaaa', vexcuRC,vexcuLOC,eexcuLOC
   end if
 
@@ -605,10 +607,17 @@ call to_zero(6,wbstr(1))
 
 !XC-stress term
   if (geocode == 'P') then
+
+        if (associated(rhocore)) then
+        call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
+        call mpiallred(rhocstr(1),6,MPI_SUM,mpi_comm,ierr)
+        rhocstr=rhocstr/real(n01*n02*n03,dp)
+        end if
+
      xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
      call mpiallred(wbstr(1),6,MPI_SUM,mpi_comm,ierr)
      wbstr=wbstr/real(n01*n02*n03,dp)
-     xcstr(:)=xcstr(:)+wbstr(:)
+     xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
   end if
      i_all=-product(shape(energies_mpi))*kind(energies_mpi)
      deallocate(energies_mpi,stat=i_stat)
@@ -667,9 +676,13 @@ call to_zero(6,wbstr(1))
 
 !XC-stress term
    if (geocode == 'P') then
+        if (associated(rhocore)) then
+        call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
+        rhocstr=rhocstr/real(n01*n02*n03,dp)
+        end if
     xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
     wbstr=wbstr/real(n01*n02*n03,dp)
-    xcstr(:)=xcstr(:)+wbstr(:)
+    xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
    end if
 
   end if
@@ -685,6 +698,76 @@ call to_zero(6,wbstr(1))
   end if
 
   !if (iproc==0 .and. wrtmsg) write(*,'(a)')'done.'
+
+contains
+subroutine substract_from_vexcu(rhoin)
+ implicit none
+ real(wp),dimension(:,:,:,:),intent(in)::rhoin
+
+ vexcuRC=0.0_gp
+ do i3=1,nxc
+    do i2=1,m3
+       do i1=1,m1
+          !do i=1,nxc*m3*m1
+          i=i1+(i2-1)*m1+(i3-1)*m1*m3
+          vexcuRC=vexcuRC+rhoin(i1,i2,i3+i3xcsh_fake,1)*potxc(i)
+       end do
+    end do
+ end do
+ if (nspin==2) then
+    do i3=1,nxc
+       do i2=1,m3
+          do i1=1,m1
+             !do i=1,nxc*m3*m1
+             !vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
+             i=i1+(i2-1)*m1+(i3-1)*m1*m3
+             vexcuRC=vexcuRC+rhoin(i1,i2,i3+i3xcsh_fake,1)*potxc(i+m1*m3*nxc)
+          end do
+       end do
+    end do
+    !divide the results per two because of the spin multiplicity
+    vexcuRC=0.5*vexcuRC
+ end if
+ vexcuRC=vexcuRC*real(hx*hy*hz,gp)
+ !subtract this value from the vexcu
+ vexcuLOC=vexcuLOC-vexcuRC
+ 
+end subroutine substract_from_vexcu
+
+!This routine is slightly different than 'substract_from_vexcu',
+! since rhoin has spin up and spin down components (there is no 0.5 factor).
+subroutine add_to_vexcu(rhoin)
+ implicit none
+ real(wp),dimension(:,:,:,:),intent(in)::rhoin
+
+ vexcuRC=0.0_gp
+ do i3=1,nxc
+    do i2=1,m3
+       do i1=1,m1
+          !do i=1,nxc*m3*m1
+          i=i1+(i2-1)*m1+(i3-1)*m1*m3
+          vexcuRC=vexcuRC+rhoin(i1,i2,i3+i3xcsh_fake,1)*potxc(i)
+       end do
+    end do
+ end do
+ if (nspin==2) then
+    do i3=1,nxc
+       do i2=1,m3
+          do i1=1,m1
+             !do i=1,nxc*m3*m1
+             !vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
+             i=i1+(i2-1)*m1+(i3-1)*m1*m3
+             vexcuRC=vexcuRC+rhoin(i1,i2,i3+i3xcsh_fake,2)*potxc(i+m1*m3*nxc)
+          end do
+       end do
+    end do
+ end if
+ vexcuRC=vexcuRC*real(hx*hy*hz,gp)
+ !add this value to the vexcu
+ vexcuLOC=vexcuLOC+vexcuRC
+ 
+end subroutine add_to_vexcu
+
 
 END SUBROUTINE XC_potential
 
@@ -1523,7 +1606,7 @@ subroutine wb_stress(n1,n2,n3,n3eff,wbl,nsp,f_i,gradient,wbstr)
  integer :: i1,i2,i3,isp
 
 wbstr=0._dp
-!seq: 11 22 33 12 13 23
+!seq: 11 22 33 23 13 12
 do isp=1,nsp
            do i3=wbl,n3eff+wbl-1
               do i2=1,n2
@@ -1548,3 +1631,35 @@ if (nsp==1) wbstr=wbstr*2._gp
 !write(*,*) wbstress(4:6)
 
 end subroutine wb_stress
+
+subroutine calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
+ use module_base
+ implicit none
+ real(dp),dimension(6),intent(out) :: rhocstr
+ integer,intent(in) :: nxc,nxt,m1,m3,i3xcsh_fake,nspin
+ real(wp), dimension(m1,m3,nxt,10), intent(in) :: rhocore
+ real(wp), dimension(m1*m3*nxc*nspin), intent(in) :: potxc
+ integer :: i,i1,i2,i3,isp
+
+rhocstr=0._dp
+!seq: 11 22 33 23 13 12
+
+do isp=0,nspin-1
+     do i3=1,nxc
+        do i2=1,m3
+           do i1=1,m1
+              i=i1+(i2-1)*m1+(i3-1)*m1*m3
+rhocstr(1)=rhocstr(1)+rhocore(i1,i2,i3+i3xcsh_fake,5)*potxc(i+m1*m3*nxc*isp)
+rhocstr(2)=rhocstr(2)+rhocore(i1,i2,i3+i3xcsh_fake,6)*potxc(i+m1*m3*nxc*isp)
+rhocstr(3)=rhocstr(3)+rhocore(i1,i2,i3+i3xcsh_fake,7)*potxc(i+m1*m3*nxc*isp)
+rhocstr(4)=rhocstr(4)+rhocore(i1,i2,i3+i3xcsh_fake,8)*potxc(i+m1*m3*nxc*isp)
+rhocstr(5)=rhocstr(5)+rhocore(i1,i2,i3+i3xcsh_fake,9)*potxc(i+m1*m3*nxc*isp)
+rhocstr(6)=rhocstr(6)+rhocore(i1,i2,i3+i3xcsh_fake,10)*potxc(i+m1*m3*nxc*isp)
+           end do
+        end do
+     end do
+end do
+
+if (nspin==1) rhocstr(:)=rhocstr(:)*2._gp
+
+end subroutine calc_rhocstr

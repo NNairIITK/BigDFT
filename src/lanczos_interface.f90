@@ -502,7 +502,7 @@ nullify(Qvect,dumQvect)
      !Local variables
      integer :: i
 
-     if ( ha%at%paw_NofL(ha%at%iatype(ha%in_iat_absorber )).gt.0  ) then
+     if ( ha%at%paw_NofL(ha%at%astruct%iatype(ha%in_iat_absorber )).gt.0  ) then
         if (ha%iproc == 0) write(*,*) "USING PTILDES TO BUILD INITIAL WAVE"
         !!if(EP_dim_tot.gt.0) then
         call razero(EP_dim_tot  ,  Qvect_tmp  )
@@ -512,7 +512,8 @@ nullify(Qvect,dumQvect)
            &   ha%Gabs_coeffs               ) 
         !!end if
      else
-        STOP " ha%at%paw_NofL(ha%at%iatype(ha%in_iat_absorber )).gt.0  is false" 
+        STOP " ha%at%paw_NofL(ha%at%astruct%iatype(ha%in_iat_absorber )).gt.0  is false" 
+        !!$       Note G%psiat and G%xp have now 2 dimenstions.
         !!$       call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%Lzd%Glr%geocode,ha%orbs,ha%Lzd%Glr%d,&
         !!$            ha%hx,ha%hy,ha%hz,ha%Lzd%Glr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
      endif
@@ -989,13 +990,15 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_Moltiplica4spectra(p,i, ene, gamma)
      use module_interfaces
+     use gaussians, only: gaussian_basis
      !Arguments
      implicit none
      integer, intent(in) :: p,i
      real(gp) :: ene, gamma
      !Local variables
-     integer :: k
+     integer :: k,iatyp
      type(confpot_data), dimension(ha%orbs%norbp) :: confdatarr
+     type(gaussian_basis),dimension(ha%at%astruct%ntypes)::proj_G
 
      if( ha%nproc > 1) then
         if(i>=0) then
@@ -1023,7 +1026,6 @@ nullify(Qvect,dumQvect)
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
           ha%energs,ha%SIC,ha%GPU)
-
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
      call vcopy(EP_dim_tot,wrk(1),1,Qvect_tmp(1),1)
@@ -1422,7 +1424,7 @@ nullify(Qvect,dumQvect)
               end do loop_calc
               if (maycalc) then
                  call crtonewave(geocode,grid%n1,grid%n2,grid%n3,ng,nterm,lx,ly,lz,fac_arr,&
-                    &   G%xp(iexpo),G%psiat(iexpo),&
+                    &   G%xp(1,iexpo),G%psiat(1,iexpo),&
                     &   rx,ry,rz,hx,hy,hz,&
                     &   0,grid%n1,0,grid%n2,0,grid%n3,&
                     &   grid%nfl1,grid%nfu1,grid%nfl2,grid%nfu2,grid%nfl3,grid%nfu3,  & 
@@ -1535,12 +1537,12 @@ nullify(Qvect,dumQvect)
      !!$
      !!$
      !!$  ! coarse grid quantities
-     !!$  call fill_logrid(ha%at%geocode,n1/2,n2/2,n3/2,0,n1/2,0,n2/2,0,n3/2,0,ha%at%nat,&
-     !!$       ha%at%ntypes,ha%at%iatype,ha%rxyz,ha%radii_cf(1,1),8.0_gp,2.0_gp*ha%hx,2.0_gp*ha%hy,2.0_gp*ha%hz,logrid)
+     !!$  call fill_logrid(ha%at%astruct%geocode,n1/2,n2/2,n3/2,0,n1/2,0,n2/2,0,n3/2,0,ha%at%astruct%nat,&
+     !!$       ha%at%astruct%ntypes,ha%at%astruct%iatype,ha%rxyz,ha%radii_cf(1,1),8.0_gp,2.0_gp*ha%hx,2.0_gp*ha%hy,2.0_gp*ha%hz,logrid)
 
      !!$
-     do ia =1, ha%at%nat
-        iat=ha%at%iatype(ia)
+     do ia =1, ha%at%astruct%nat
+        iat=ha%at%astruct%iatype(ia)
         radius_gross = ha%radii_cf(  iat ,1 )*8
         if(ha%iproc==0) print *, " for atomo " , ia , " fine degrees of freedo,g will be thrown beyond radius =  " ,  radius_gross
      enddo
@@ -1552,8 +1554,8 @@ nullify(Qvect,dumQvect)
               ry = ha%hy*(iy-1)           *2.0  
               rz = ha%hz*(iz-1)           *2.0  
               isgross=.true.
-              do ia =1, ha%at%nat
-                 iat=ha%at%iatype(ia)
+              do ia =1, ha%at%astruct%nat
+                 iat=ha%at%astruct%iatype(ia)
                  radius_gross = ha%radii_cf(  iat ,1 )*8
                  rxc = rx  -  ha%rxyz(1,ia )
                  ryc = ry  -  ha%rxyz(2,ia )
@@ -1630,7 +1632,6 @@ END MODULE lanczos_interface
 subroutine applyPAWprojectors(orbs,at,&
       &   hx,hy,hz,Glr,PAWD,psi,hpsi,  paw_matrix, dosuperposition , &
       &   sup_iatom, sup_l, sup_arraym)
-
    use module_base
    use module_types
    use module_interfaces, except_this_one => applyPAWprojectors
@@ -1691,8 +1692,8 @@ subroutine applyPAWprojectors(orbs,at,&
             iproj=1
             iat=0
 
-            do iatat=1, at%nat
-               if (  at%paw_NofL(at%iatype(iatat)).gt.0  ) then
+            do iatat=1, at%astruct%nat
+               if (  at%paw_NofL(at%astruct%iatype(iatat)).gt.0  ) then
                   iat=iat+1
                   istart_c_i=istart_c
                   iproj_old=iproj
@@ -1732,7 +1733,7 @@ subroutine applyPAWprojectors(orbs,at,&
                            if(jorb<PAWD%G%ncoeff) then
                               call fillPawProjOnTheFly(PAWD,Glr,iat,hx,hy,hz,&
                                  &   kx,ky,kz,&
-                                 &   jorb,istart_c,at%geocode,at,iatat ) 
+                                 &   jorb,istart_c,at%astruct%geocode,at,iatat ) 
                            endif
                         end if
                      endif
@@ -1787,7 +1788,7 @@ subroutine applyPAWprojectors(orbs,at,&
                               !!$                          Plr%d%n1 = Glr%d%n1
                               !!$                          Plr%d%n2 = Glr%d%n2
                               !!$                          Plr%d%n3 = Glr%d%n3
-                              !!$                          Plr%geocode = at%geocode
+                              !!$                          Plr%geocode = at%astruct%geocode
                               !!$                          Plr%wfd%nvctr_c  =PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
                               !!$                          Plr%wfd%nvctr_f  =PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
                               !!$                          Plr%wfd%nseg_c   =PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
@@ -1887,6 +1888,7 @@ subroutine applyPAWprojectors(orbs,at,&
                   else
                      istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*mproj*ncplx
                   endif
+
                end if
             end do
 
@@ -1952,7 +1954,7 @@ subroutine applyPCprojectors(orbs,at,&
       istart_c=1
       iproj=1
 
-      do iat=1,at%nat
+      do iat=1,at%astruct%nat
          istart_c_i=istart_c
          iproj_old=iproj
          ispsi=ispsi_k
@@ -2041,7 +2043,7 @@ subroutine applyPCprojectors(orbs,at,&
                            Plr%d%n1=Glr%d%n1
                            Plr%d%n2=Glr%d%n2
                            Plr%d%n3=Glr%d%n3
-                           Plr%geocode=at%geocode
+                           Plr%geocode=at%astruct%geocode
                            
                            call plr_segs_and_vctrs(PPD%pc_nlpspd%plr(iat),&
                                 Plr%wfd%nseg_c,Plr%wfd%nseg_f,&

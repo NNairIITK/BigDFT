@@ -12,11 +12,12 @@
 !! Conceived only for isolated Boundary Conditions, no SIC correction
 subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      Glr,nlpspd,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
-     proj,psi,output_denspot,ekin_sum,epot_sum,eproj_sum)
+     proj,psi,output_denspot,ekin_sum,epot_sum,eproj_sum,proj_G,paw)
   use module_base
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => CalculateTailCorrection
+  use gaussians, only: gaussian_basis
   implicit none
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -25,12 +26,14 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   integer, intent(in) :: iproc,nproc,ncongt,nspin
   logical, intent(in) :: output_denspot
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
-  real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
-  real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
+  real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+  real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nspin), intent(in) :: pot
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
+  type(gaussian_basis),optional,intent(in),dimension(at%astruct%ntypes)::proj_G
+  type(paw_objects),optional,intent(inout)::paw
   !local variables
   type(locreg_descriptors) :: lr
   character(len=*), parameter :: subname='CalculateTailCorrection'
@@ -107,11 +110,11 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
   !---reformat keyg_p
 
-  do iat=1,at%nat
+  do iat=1,at%astruct%nat
      do iseg=1,nlpspd%plr(iat)%wfd%nseg_c+nlpspd%plr(iat)%wfd%nseg_f
         j0=nlpspd%plr(iat)%wfd%keyglob(1,iseg)
         j1=nlpspd%plr(iat)%wfd%keyglob(2,iseg)
-        !do iseg=1,nlpspd%nseg_p(2*at%nat)
+        !do iseg=1,nlpspd%nseg_p(2*at%astruct%nat)
         !j0=nlpspd%keyg_p(1,iseg)
         !j1=nlpspd%keyg_p(2,iseg)
         ii=j0-1
@@ -149,9 +152,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   endif
 
   ! change atom coordinates according to the enlarged box
-  allocate(txyz(3,at%nat+ndebug),stat=i_stat)
+  allocate(txyz(3,at%astruct%nat+ndebug),stat=i_stat)
   call memocc(i_stat,txyz,'txyz',subname)
-  do iat=1,at%nat
+  do iat=1,at%astruct%nat
      txyz(1,iat)=rxyz(1,iat)+real(nbuf,kind=8)*hgrid
      txyz(2,iat)=rxyz(2,iat)+real(nbuf,kind=8)*hgrid
      txyz(3,iat)=rxyz(3,iat)+real(nbuf,kind=8)*hgrid
@@ -204,7 +207,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   call memocc(i_stat,ibbyyzz_r,'ibbyyzz_r',subname)
 
   ! coarse grid quantities
-  call fill_logrid('F',nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,at%nat,at%ntypes,at%iatype,txyz, & 
+  call fill_logrid('F',nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,at%astruct%nat,at%astruct%ntypes,at%astruct%iatype,txyz, & 
        radii_cf(1,1),crmult,hgrid,hgrid,hgrid,logrid_c)
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,nvctrb_c)
 
@@ -220,7 +223,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   call make_bounds(nb1,nb2,nb3,logrid_c,ibbyz_c,ibbxz_c,ibbxy_c)
 
   ! fine grid quantities
-  call fill_logrid('F',nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,0,at%nat,at%ntypes,at%iatype,txyz, & 
+  call fill_logrid('F',nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,0,at%astruct%nat,at%astruct%ntypes,at%astruct%iatype,txyz, & 
        radii_cf(1,2),frmult,hgrid,hgrid,hgrid,logrid_f)
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
   if (iproc == 0) then
@@ -243,9 +246,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      open(unit=22,file='grid_tail.xyz',status='unknown') !here the output directory can be passed
      write(22,*) nvctrb_c+nvctrb_f,' atomic' 
      write(22,*)'complete simulation grid for the tail correction'
-     do iat=1,at%nat
+     do iat=1,at%astruct%nat
         write(22,'(a6,2x,3(1x,e12.5),3x)') &
-             trim(at%atomnames(at%iatype(iat))),txyz(1,iat),txyz(2,iat),txyz(3,iat)
+             trim(at%astruct%atomnames(at%astruct%iatype(iat))),txyz(1,iat),txyz(2,iat),txyz(3,iat)
      enddo
      do i3=0,nb3  
         do i2=0,nb2  
@@ -416,11 +419,20 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         !write(*,'(a,3i3,2f12.8)') 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin
 
         if (DistProjApply) then
-           call applyprojectorsonthefly(0,orbsb,at,lr,&
-                txyz,hgrid,hgrid,hgrid,wfdb,nlpspd,proj,psib,hpsib,eproj)
+           if(any(at%npspcode == 7)) then
+             call applyprojectorsonthefly(0,orbsb,at,lr,&
+                  txyz,hgrid,hgrid,hgrid,wfdb,nlpspd,proj,psib,hpsib,eproj,proj_G,paw)
+           else
+             call applyprojectorsonthefly(0,orbsb,at,lr,&
+                  txyz,hgrid,hgrid,hgrid,wfdb,nlpspd,proj,psib,hpsib,eproj)
+           end if
            !only the wavefunction descriptors must change
         else
-           call applyprojectorsone(at%ntypes,at%nat,at%iatype,&
+           if(any(at%npspcode == 7)) then
+             write(*,*)'WVL+PAW: applyprojectorsone not yet implemented'
+             stop
+           end if
+           call applyprojectorsone(at%astruct%ntypes,at%astruct%nat,at%astruct%iatype,&
                 at%psppar,at%npspcode, &
                 nlpspd%nprojel,nlpspd%nproj,proj,nlpspd,&
                 !nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,nlpspd%nvctr_p,&

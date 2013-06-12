@@ -15,7 +15,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,
   use module_base
   use module_types
   use module_interfaces, fake_name => density_and_hpot
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   type(denspot_distribution), intent(in) :: dpbox
   type(rho_descriptors),intent(inout) :: rhodsc
@@ -61,6 +61,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,
 
   !calculate electrostatic potential
   call dcopy(dpbox%ndimpot,rho,1,vh,1)
+  
   call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
   !in principle symmetrization of the stress tensor is not needed since the density has been 
   !already symmetrized
@@ -1133,9 +1134,9 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    implicit none
    integer,intent(in) :: n1i,n2i,n3i,iproc,nspin
    type(atoms_data), intent(in) :: at
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
-   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+   real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
    logical,intent(in) :: iprint
    type(rho_descriptors),intent(inout) :: rhodsc
    !local variables
@@ -1150,9 +1151,9 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    integer :: nbx,nby,nbz,nl1,nl2,nl3,nat,i_all
    real(gp) :: dpmult,dsq,spadd
    integer :: i1min,i1max,i2min,i2max,i3min,i3max,nrhomin,nrhomax
-   integer,dimension(at%nat) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax
-   integer,dimension(at%nat) :: i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax!,dsq_cr,dsq_fr
-   real(gp), dimension(at%nat) :: dsq_cr,dsq_fr
+   integer,dimension(at%astruct%nat) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax
+   integer,dimension(at%astruct%nat) :: i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax!,dsq_cr,dsq_fr
+   real(gp), dimension(at%astruct%nat) :: dsq_cr,dsq_fr
    integer :: csegstot,fsegstot,corx,cory,corz,ithread,nthreads
    integer, dimension(:), allocatable :: reg
    integer, dimension(:,:), allocatable :: dpkey,spkey
@@ -1170,8 +1171,8 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    ithread=0
    nthreads=1
 
-   rhodsc%geocode=at%geocode
-   nat=at%nat
+   rhodsc%geocode=at%astruct%geocode
+   nat=at%astruct%nat
 
    !parameter to adjust the single precision and double precision regions
    spadd=5.0_gp
@@ -1180,7 +1181,7 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
 
    ! calculate the corrections of the grid when transforming from 
    ! n1,n2,n3 to n1i, n2i, n3i
-   call gridcorrection(nbx,nby,nbz,nl1,nl2,nl3,at%geocode)
+   call gridcorrection(nbx,nby,nbz,nl1,nl2,nl3,at%astruct%geocode)
 
    corx=nl1+nbx+1
    cory=nl2+nby+1
@@ -1220,8 +1221,8 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
          &   i1cmin(iat),i1cmax(iat),i2cmin(iat),i2cmax(iat),i3cmin(iat),i3cmax(iat),&
          &   i1fmin(iat),i1fmax(iat),i2fmin(iat),i2fmax(iat),i3fmin(iat),i3fmax(iat))
 
-      dsq_cr(iat)=(radii_cf(at%iatype(iat),1)*crmult+hxh*spadd)**2
-      dsq_fr(iat)=(radii_cf(at%iatype(iat),2)*frmult*dpmult)**2
+      dsq_cr(iat)=(radii_cf(at%astruct%iatype(iat),1)*crmult+hxh*spadd)**2
+      dsq_fr(iat)=(radii_cf(at%astruct%iatype(iat),2)*frmult*dpmult)**2
    enddo
 
    !$omp parallel default(none)&
@@ -1487,11 +1488,11 @@ subroutine get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,
    real(gp),intent(in) :: dpmult,spadd
    integer,intent(in) :: n1i,n2i,n3i,corx,cory,corz
    type(atoms_data), intent(in) :: at
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
-   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+   real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
    integer,intent(out) :: i1min,i1max,i2min,i2max,i3min,i3max
-   integer,dimension(at%nat,6) :: crbound,frbound
+   integer,dimension(at%astruct%nat,6) :: crbound,frbound
    real(gp) :: sprad,dprad
    integer :: iat
 
@@ -1507,9 +1508,9 @@ subroutine get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,
 !write (*,*) 'hxh,hyh,hzh',hxh,hyh,hzh
 
    ! setup up the cubes that determines the single and double precision segments
-   do iat=1,at%nat
-      sprad=radii_cf(at%iatype(iat),1)*crmult+hxh*spadd
-      dprad=radii_cf(at%iatype(iat),2)*frmult*dpmult
+   do iat=1,at%astruct%nat
+      sprad=radii_cf(at%astruct%iatype(iat),1)*crmult+hxh*spadd
+      dprad=radii_cf(at%astruct%iatype(iat),2)*frmult*dpmult
       crbound(iat,1)=floor((rxyz(1,iat)-sprad)/hxh)+corx
 !write(*,*) 'crbound(iat,1)',crbound(iat,1)
       crbound(iat,2)=floor((rxyz(1,iat)+sprad)/hxh)+corx
@@ -1560,15 +1561,15 @@ subroutine get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,&
    real(gp),intent(in) :: dpmult,spadd
    integer,intent(in) :: n1i,n2i,n3i,iat,corx,cory,corz
    type(atoms_data), intent(in) :: at
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
-   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+   real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
    integer,intent(out) :: i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax
    integer,intent(out) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax
    real(gp) :: sprad,dprad
 
-   sprad=radii_cf(at%iatype(iat),1)*crmult+hxh*spadd
-   dprad=dpmult*frmult*radii_cf(at%iatype(iat),2)
+   sprad=radii_cf(at%astruct%iatype(iat),1)*crmult+hxh*spadd
+   dprad=dpmult*frmult*radii_cf(at%astruct%iatype(iat),2)
 
    i1cmin=floor((rxyz(1,iat)-sprad)/hxh)+corx+1
    i1cmax=floor((rxyz(1,iat)+sprad)/hxh)+corx-1

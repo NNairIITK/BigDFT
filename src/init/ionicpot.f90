@@ -9,20 +9,20 @@
 
 
 !> Calculte the ionic contribution to the energy and the forces
-subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
-     & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,psoffset,n1,n2,n3,&
-     & n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
+     & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,n1,n2,n3,&
+     & pot_ion,pkernel,psoffset)
   use module_base
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use vdwcorrection
   use yaml_output
   implicit none
+  type(denspot_distribution), intent(in) :: dpbox
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,dispersion
-  real(gp), intent(in) :: hxh,hyh,hzh
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,dispersion
   real(gp), dimension(3), intent(in) :: elecfield
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
   real(gp), intent(out) :: eion,edisp,psoffset
   real(dp), dimension(6),intent(out) :: ewaldstr
@@ -32,10 +32,12 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   character(len=*), parameter :: subname='IonicEnergyandForces'
   logical :: slowion=.false.
   logical :: perx,pery,perz,gox,goy,goz
+  integer :: n1i,n2i,n3i,i3s,n3pi
   integer :: i,iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
   real(gp) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
+  real(gp) :: hxh,hyh,hzh
   real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod
   real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart,de
   !real(gp) :: Mz,cmassy
@@ -44,33 +46,43 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   real(gp), dimension(:,:), allocatable :: fewald,xred
   real(gp), dimension(3) :: cc
 
-  allocate(fion(3,at%nat+ndebug),stat=i_stat)
+  allocate(fion(3,at%astruct%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fion,'fion',subname)
-  allocate(fdisp(3,at%nat+ndebug),stat=i_stat)
+  allocate(fdisp(3,at%astruct%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fdisp,'fdisp',subname)
+
+  ! Aliasing
+  hxh = dpbox%hgrids(1)
+  hyh = dpbox%hgrids(2)
+  hzh = dpbox%hgrids(3)
+  n1i = dpbox%ndims(1)
+  n2i = dpbox%ndims(2)
+  n3i = dpbox%ndims(3)
+  i3s = dpbox%i3s+dpbox%i3xcsh
+  n3pi = dpbox%n3pi
 
   pi=4.d0*datan(1.d0)
   psoffset=0.0_gp
   ewaldstr=0.0_gp
-  if (at%geocode == 'P') then
+  if (at%astruct%geocode == 'P') then
      !here we insert the calculation of the ewald forces
-     allocate(fewald(3,at%nat+ndebug),stat=i_stat)
+     allocate(fewald(3,at%astruct%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fewald,'fewald',subname)
-     allocate(xred(3,at%nat+ndebug),stat=i_stat)
+     allocate(xred(3,at%astruct%nat+ndebug),stat=i_stat)
      call memocc(i_stat,xred,'xred',subname)
 
      !calculate rprimd
      rprimd(:,:)=0.0_gp
 
-     rprimd(1,1)=at%alat1
-     rprimd(2,2)=at%alat2
-     rprimd(3,3)=at%alat3
+     rprimd(1,1)=at%astruct%cell_dim(1)
+     rprimd(2,2)=at%astruct%cell_dim(2)
+     rprimd(3,3)=at%astruct%cell_dim(3)
 
      !calculate the metrics and the volume
      call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
 
      !calculate reduced coordinates
-     do iat=1,at%nat
+     do iat=1,at%astruct%nat
         do ii=1,3
            xred(ii,iat)= gprimd(1,ii)*rxyz(1,iat)+gprimd(2,ii)*rxyz(2,iat)+&
                 gprimd(3,ii)*rxyz(3,iat)
@@ -78,17 +90,17 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      end do
 
      !calculate ewald energy and forces + stress
-     call ewald(eion,gmet,fewald,at%nat,at%ntypes,rmet,at%iatype,ucvol,&
+     call ewald(eion,gmet,fewald,at%astruct%nat,at%astruct%ntypes,rmet,at%astruct%iatype,ucvol,&
           xred,real(at%nelpsp,kind=8))
      ewaldstr=0.0_dp
-     call ewald2(gmet,at%nat,at%ntypes,rmet,rprimd,ewaldstr,at%iatype,&
+     call ewald2(gmet,at%astruct%nat,at%astruct%ntypes,rmet,rprimd,ewaldstr,at%astruct%iatype,&
           ucvol,xred,real(at%nelpsp,kind=8))
 
 ! our sequence of strten elements : 11 22 33 12 13 23
 ! abinit output                   : 11 22 33 23 13 12
 
      !make forces dimensional
-     do iat=1,at%nat
+     do iat=1,at%astruct%nat
         do ii=1,3
            fion(ii,iat)= - (gprimd(ii,1)*fewald(1,iat)+&
                 gprimd(ii,2)*fewald(2,iat)+&
@@ -110,8 +122,8 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      shortlength=0.0_gp
      charge=0.0_gp
      twopitothreehalf=2.0_gp*pi*sqrt(2.0_gp*pi)
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
         rloc=at%psppar(0,0,ityp)
         atint=at%psppar(0,1,ityp)+3.0_gp*at%psppar(0,2,ityp)+&
              15.0_gp*at%psppar(0,3,ityp)+105.0_gp*at%psppar(0,4,ityp)
@@ -122,13 +134,13 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      psoffset=twopitothreehalf*psoffset
      shortlength=shortlength*2.d0*pi
 
-     !print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(at%alat1*at%alat2*at%alat3)
+     !print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3))
      !if (iproc ==0) print *,'eion',eion,charge/ucvol*(psoffset+shortlength)
      !correct ionic energy taking into account the PSP core correction
      eion=eion+charge/ucvol*(psoffset+shortlength)
 
      !symmetrization of ewald stress (probably not needed)
-     if (at%sym%symObj >= 0) call symm_stress((iproc==0),ewaldstr,at%sym%symObj)
+     if (at%astruct%sym%symObj >= 0) call symm_stress((iproc==0),ewaldstr,at%astruct%sym%symObj)
      !PSP core correction of the stress tensor (diag.)
      ewaldstr(1:3)=ewaldstr(1:3)-charge*(psoffset+shortlength)/ucvol/ucvol
 
@@ -139,36 +151,36 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
 !!$     end if
 
 !!!     !in the surfaces case, correct the energy term following (J.Chem.Phys. 111(7)-3155, 1999)
-!!!     if (at%geocode == 'S') then
+!!!     if (at%astruct%geocode == 'S') then
 !!!        !calculate the Mz dipole component (which in our case corresponds to y direction)
 !!!        !first calculate the center of mass
 !!!        cmassy=0.0_gp
-!!!        do iat=1,at%nat
+!!!        do iat=1,at%astruct%nat
 !!!           cmassy=cmassy+rxyz(2,iat)
 !!!        end do
 !!!        
 !!!        Mz=0.0_gp
-!!!        do iat=1,at%nat
-!!!           ityp=at%iatype(iat)
+!!!        do iat=1,at%astruct%nat
+!!!           ityp=at%astruct%iatype(iat)
 !!!           Mz=Mz+real(at%nelpsp(ityp),gp)*(rxyz(2,iat)-cmassy)
 !!!        end do
 !!!        
 !!!        !correct energy and forces in the y direction
 !!!        eion=eion+0.5_gp/ucvol*Mz**2
-!!!        do iat=1,at%nat
-!!!           ityp=at%iatype(iat)
+!!!        do iat=1,at%astruct%nat
+!!!           ityp=at%astruct%iatype(iat)
 !!!           fion(2,iat)=fion(2,iat)-real(at%nelpsp(ityp),gp)/ucvol*Mz
 !!!           if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
 !!!        end do
 !!!
 !!!     end if
 
-  else if (at%geocode == 'F') then
+  else if (at%astruct%geocode == 'F') then
 
      eion=0.0_gp
      eself=0.0_gp
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
         rx=rxyz(1,iat) 
         ry=rxyz(2,iat)
         rz=rxyz(3,iat)
@@ -187,7 +199,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
         !    ion-ion interaction
         do jat=1,iat-1
            dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-           jtyp=at%iatype(jat)
+           jtyp=at%astruct%iatype(jat)
            chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
            eion=eion+chgprod/dist
            !forces
@@ -202,9 +214,9 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
            hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
            hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
         enddo
-        do jat=iat+1,at%nat
+        do jat=iat+1,at%astruct%nat
            dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-           jtyp=at%iatype(jat)
+           jtyp=at%astruct%iatype(jat)
            chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
 
            !forces
@@ -235,17 +247,17 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
 
   !for the surfaces BC,
   !activate for the moment only the slow calculation of the ionic energy and forces
-  !if (at%geocode == 'S' .or. at%geocode == 'P') slowion=.true.
-  if (at%geocode == 'S') slowion=.true.
+  !if (at%astruct%geocode == 'S' .or. at%astruct%geocode == 'P') slowion=.true.
+  if (at%astruct%geocode == 'S') slowion=.true.
   !slowion=.true.
 
   if (slowion) then
 
      !case of slow ionic calculation
      !conditions for periodicity in the three directions
-     perx=(at%geocode /= 'F')
-     pery=(at%geocode == 'P')
-     perz=(at%geocode /= 'F')
+     perx=(at%astruct%geocode /= 'F')
+     pery=(at%astruct%geocode == 'P')
+     perz=(at%astruct%geocode /= 'F')
 
      call ext_buffers(perx,nbl1,nbr1)
      call ext_buffers(pery,nbl2,nbr2)
@@ -258,13 +270,13 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
 
      !self energy initialisation
      eself=0.0_gp
-     do iat=1,at%nat
+     do iat=1,at%astruct%nat
 
         fion(1,iat)=0.0_gp
         fion(2,iat)=0.0_gp
         fion(3,iat)=0.0_gp
 
-        ityp=at%iatype(iat)
+        ityp=at%astruct%iatype(iat)
         rloc=at%psppar(0,0,ityp)
         charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
         prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
@@ -284,8 +296,8 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
         !then calculate the hartree energy and forces of the charge distributions
         !(and save the values for the ionic potential)
 
-        do iat=1,at%nat
-           ityp=at%iatype(iat)
+        do iat=1,at%astruct%nat
+           ityp=at%astruct%iatype(iat)
            rx=rxyz(1,iat) 
            ry=rxyz(2,iat)
            rz=rxyz(3,iat)
@@ -341,8 +353,8 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      !if (nproc==1) 
      !print *,'iproc,eion',iproc,eion
 
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
         !coordinates of the center
         rx=rxyz(1,iat) 
         ry=rxyz(2,iat) 
@@ -413,7 +425,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      end do
 
      if (pkernel%mpi_env%nproc > 1) then
-        call mpiallred(fion(1,1),3*at%nat,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
+        call mpiallred(fion(1,1),3*at%astruct%nat,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
      end if
 
      !if (iproc ==0) print *,'eion',eion,psoffset,shortlength
@@ -422,8 +434,8 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
 
   ! Add contribution from constant electric field to the forces
   call center_of_charge(at,rxyz,cc)
-  do iat=1,at%nat
-     ityp=at%iatype(iat)
+  do iat=1,at%astruct%nat
+     ityp=at%astruct%iatype(iat)
      charge=real(at%nelpsp(ityp),gp)
      fion(1:3,iat)=fion(1:3,iat)+(charge*elecfield(1:3))
      !ry=rxyz(2,iat) 
@@ -448,12 +460,19 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
 
   ! Add empiric correction for Van der Waals forces and energy.
   call vdwcorrection_calculate_energy(edisp,rxyz,at,dispersion,iproc)
-  call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion) 
+  if (iproc == 0 .and. edisp /= 0.0_gp) then
+!!$     write(*,'(1x,a, e12.5,1x,a)') &
+!!$          'Dispersion Correction Energy: ', dispersion_energy, 'Hartree'
+     call yaml_map('Dispersion Correction Energy (Ha)',edisp,fmt='(1pe22.14)')
+  end if
+
+  call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion)
+  call vdwcorrection_freeparams() 
 END SUBROUTINE IonicEnergyandForces
 
 
 subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift, &
-     & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset)
+     & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset,rholoc)
   use module_base
   use module_types
 
@@ -468,9 +487,11 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   type(denspot_distribution), intent(in) :: rhopotd
   real(gp), intent(in) :: elecfield(3)
   real(gp), dimension(3), intent(in) :: shift
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
+  type(rholoc_objects),intent(in)::rholoc  !Object used for PAW+WVL
+                                           !contains the local density
 
   character(len = *), parameter :: subname = "createEffectiveIonicPotential"
   logical :: counterions
@@ -478,9 +499,9 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   real(dp), dimension(:), allocatable :: counter_ions
 
   ! Compute the main ionic potential.
-  call createIonicPotential(atoms%geocode, iproc, nproc, verb, atoms, rxyz, hxh, hyh, hzh, &
+  call createIonicPotential(atoms%astruct%geocode, iproc, nproc, verb, atoms, rxyz, hxh, hyh, hzh, &
        & elecfield, Glr%d%n1, Glr%d%n2, Glr%d%n3, rhopotd%n3pi, rhopotd%i3s + rhopotd%i3xcsh, &
-       & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, psoffset)
+       & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, psoffset,rholoc)
 
   !inquire for the counter_ion potential calculation (for the moment only xyz format)
   inquire(file='posinp_ci.xyz',exist=counterions)
@@ -493,7 +514,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
         call memocc(i_stat,counter_ions,'counter_ions',subname)
      end if
 
-     call CounterIonPotential(atoms%geocode,iproc,nproc,in,shift,&
+     call CounterIonPotential(atoms%astruct%geocode,iproc,nproc,in,shift,&
           &   hxh,hyh,hzh,Glr%d,rhopotd%n3pi,rhopotd%i3s + rhopotd%i3xcsh,pkernel,counter_ions)
 
      !sum that to the ionic potential
@@ -508,12 +529,12 @@ END SUBROUTINE createEffectiveIonicPotential
 
 
 subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
-     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,rholoc)
   use module_base
   use module_types
   use yaml_output
 !  use module_interfaces, except_this_one => createIonicPotential
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
@@ -521,9 +542,11 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3), intent(in) :: elecfield
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
+  type(rholoc_objects),intent(in)::rholoc
+
   !local variables
   character(len=*), parameter :: subname='createIonicPotential'
   character(len = 3) :: quiet
@@ -532,10 +555,12 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
+  real(kind=8) :: raux,raux2,rr,r2paw
   real(wp) :: maxdiff
   real(gp) :: ehart
   real(dp), dimension(2) :: charges_mpi
   real(dp), dimension(:), allocatable :: potion_corr
+  !real(dp), dimension(:), allocatable :: den_aux
 
   call timing(iproc,'CrtLocPot     ','ON')
 
@@ -558,8 +583,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
   if (n3pi >0 .and. .not. htoobig) then
 
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
         rx=rxyz(1,iat) 
         ry=rxyz(2,iat)
         rz=rxyz(3,iat)
@@ -576,28 +601,77 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         iey=ceiling((ry+cutoff)/hyh)
         iez=ceiling((rz+cutoff)/hzh)
 
-        do i3=isz,iez
-           z=real(i3,kind=8)*hzh-rz
-           call ind_positions(perz,i3,n3,j3,goz) 
-           j3=j3+nbl3+1
-           do i2=isy,iey
-              y=real(i2,kind=8)*hyh-ry
-              call ind_positions(pery,i2,n2,j2,goy)
-              do i1=isx,iex
-                 x=real(i1,kind=8)*hxh-rx
-                 call ind_positions(perx,i1,n1,j1,gox)
-                 r2=x**2+y**2+z**2
-                 arg=r2/rloc**2
-                 xp=exp(-.5d0*arg)
-                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                    ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                    pot_ion(ind)=pot_ion(ind)-xp*charge
-                 else if (.not. goz ) then
-                    rholeaked=rholeaked+xp*charge
-                 endif
+!       Calculate Ionic Density
+!       using HGH parameters.
+!       Eq. 1.104, T. Deutsch and L. Genovese, JDN. 12, 2011
+        if( .not. any(at%npspcode == 7) ) then
+
+           do i3=isz,iez
+              z=real(i3,kind=8)*hzh-rz
+              call ind_positions(perz,i3,n3,j3,goz) 
+              j3=j3+nbl3+1
+              do i2=isy,iey
+                 y=real(i2,kind=8)*hyh-ry
+                 call ind_positions(pery,i2,n2,j2,goy)
+                 do i1=isx,iex
+                    x=real(i1,kind=8)*hxh-rx
+                    call ind_positions(perx,i1,n1,j1,gox)
+                    r2=x**2+y**2+z**2
+                    arg=r2/rloc**2
+                    xp=exp(-.5d0*arg)
+                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                       pot_ion(ind)=pot_ion(ind)-xp*charge
+                    else if (.not. goz ) then
+                       rholeaked=rholeaked+xp*charge
+                    endif
+                 enddo
               enddo
            enddo
-        enddo
+
+!       Calculate Ionic Density using splines, 
+!       PAW case
+        else
+             
+           r2paw=rholoc%radius(ityp)**2
+           do i3=isz,iez
+              z=real(i3,kind=8)*hzh-rz
+              call ind_positions(perz,i3,n3,j3,goz)
+              j3=j3+nbl3+1
+              do i2=isy,iey
+                 y=real(i2,kind=8)*hyh-ry
+                 call ind_positions(pery,i2,n2,j2,goy)
+                 do i1=isx,iex
+                    x=real(i1,kind=8)*hxh-rx
+                    call ind_positions(perx,i1,n1,j1,gox)
+                    r2=x**2+y**2+z**2
+                    !if(r2>r2paw) cycle
+                    rr=sqrt(r2)
+                    if(1==2) then
+                      !This converges very slow                
+                      call splint(rholoc%msz(ityp),rholoc%rad(1:rholoc%msz(ityp),ityp),&
+&                      rholoc%d(1:rholoc%msz(ityp),1,ityp),rholoc%d(1:rholoc%msz(ityp),2,ityp),1,rr,raux,ierr)
+                    else
+                      !Take the HGH form for rho_L (long range)
+                      arg=r2/rloc**2
+                      xp=exp(-.5d0*arg)
+                      raux=-xp*charge
+                    end if
+                    !raux=-4.d0**(3.0d0/2.0d0)*exp(-4.d0*pi*r2)
+
+                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                       pot_ion(ind)=pot_ion(ind)+raux
+                    else if (.not. goz ) then
+                       rholeaked=rholeaked-raux
+                    endif
+                 enddo
+              enddo
+           enddo
+
+        end if
+
+
 
      enddo
 
@@ -673,7 +747,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                  x=real(i1-nbl1-1,gp)*hxh
                  ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
                  !if (i1==49 .and. i2==46 .and. i3==44) then
-                    call sum_erfcr(at%nat,at%ntypes,x,y,z,at%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
+                    call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
                  !   stop
                  !end if
                  potion_corr(ind)=potion_corr(ind)+potxyz
@@ -718,18 +792,14 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !!!  print *,'previous offset',tt_tot*hxh*hyh*hzh
 
   if (n3pi > 0) then
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
+!    Only for HGH pseudos
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
 
         rx=rxyz(1,iat)
         ry=rxyz(2,iat)
         rz=rxyz(3,iat)
 
-        ! determine number of local terms
-        nloc=0
-        do iloc=1,4
-           if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
-        enddo
         rloc=at%psppar(0,0,ityp)
         cutoff=10.d0*rloc
 
@@ -741,9 +811,52 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         iey=ceiling((ry+cutoff)/hyh)
         iez=ceiling((rz+cutoff)/hzh)
         
-        !do not add the local part for the vacancy
-        if (nloc /= 0) then
+        if( at%npspcode(1) .ne.7) then
 
+!          Add the remaining local terms of Eq. (9)
+!          in JCP 129, 014109(2008)
+
+           ! determine number of local terms
+           nloc=0
+           do iloc=1,4
+              if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
+           enddo
+
+           !do not add the local part for the vacancy
+           if (nloc /= 0) then
+
+              do i3=isz,iez
+                 z=real(i3,kind=8)*hzh-rz
+                 call ind_positions(perz,i3,n3,j3,goz) 
+                 j3=j3+nbl3+1
+                 if (goz .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
+                    do i2=isy,iey
+                       y=real(i2,kind=8)*hyh-ry
+                       call ind_positions(pery,i2,n2,j2,goy)
+                       if (goy) then
+                          do i1=isx,iex
+                             x=real(i1,kind=8)*hxh-rx
+                             call ind_positions(perx,i1,n1,j1,gox)
+                             if (gox) then
+                                r2=x**2+y**2+z**2
+                                arg=r2/rloc**2
+                                xp=exp(-.5d0*arg)
+                                tt=at%psppar(0,nloc,ityp)
+                                do iloc=nloc-1,1,-1
+                                   tt=arg*tt+at%psppar(0,iloc,ityp)
+                                enddo
+                                ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                                pot_ion(ind)=pot_ion(ind)+xp*tt
+                             end if
+                          enddo
+                       end if
+                    enddo
+                 end if
+              end do
+           end if !nloc
+        else !HGH or PAW
+           ! For PAW, add V^PAW-V_L^HGH
+           charge=real(at%nelpsp(ityp),kind=8)
            do i3=isz,iez
               z=real(i3,kind=8)*hzh-rz
               call ind_positions(perz,i3,n3,j3,goz) 
@@ -758,24 +871,32 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                           call ind_positions(perx,i1,n1,j1,gox)
                           if (gox) then
                              r2=x**2+y**2+z**2
-                             arg=r2/rloc**2
-                             xp=exp(-.5d0*arg)
-                             tt=at%psppar(0,nloc,ityp)
-                             do iloc=nloc-1,1,-1
-                                tt=arg*tt+at%psppar(0,iloc,ityp)
-                             enddo
+                             rr=sqrt(r2)
+                             !1) V_L^HGH
+                             if(rr>0.01d0) then
+                               arg=rr/(sqrt(2.0)*rloc)
+                               call derf_ab(tt,arg)
+                               raux2=-charge/rr*tt  
+                             else
+                               !In this case we deduce the values
+                               !from a quadratic interpolation (due to 1/rr factor)
+                               call interpol_vloc(rr,rloc,charge,raux2)
+                             end if
+                             !2) V^PAW from splines
+                             call splint(rholoc%msz(ityp),rholoc%rad(1:rholoc%msz(ityp),ityp),&
+&                              rholoc%d(1:rholoc%msz(ityp),3,ityp),rholoc%d(1:rholoc%msz(ityp),4,ityp),1,rr,raux,ierr)
+                             
                              ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                             pot_ion(ind)=pot_ion(ind)+xp*tt
+                             pot_ion(ind)=pot_ion(ind)+raux-raux2
                           end if
                        enddo
                     end if
                  enddo
               end if
            end do
-
-        end if
-
-     enddo
+        end if ! at%npspcode(iat) .ne.7
+     end do !iat
+     !debug exit
 
      if (htoobig) then
         !add to pot_ion an explicit error function to correct in the case of big grid spacing
@@ -787,7 +908,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
               do i1=1,n1i
                  x=real(i1-nbl1-1,gp)*hxh
                  ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                 call sum_erfcr(at%nat,at%ntypes,x,y,z,at%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
+                 call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
                  pot_ion(ind)=pot_ion(ind)+potxyz
               end do
            end do
@@ -874,6 +995,52 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   end if
 
   call timing(iproc,'CrtLocPot     ','OF')
+
+contains
+
+! We use a quadratic interpolation to get vloc(x)
+! useful for small values of x
+  SUBROUTINE interpol_vloc(xx,rloc,charge,yy)
+    implicit none
+    real(dp),intent(in)  :: xx,rloc,charge
+    real(dp),intent(out) :: yy 
+!   local variables
+    real(dp)::l0,l1,l2,x0,x1,x2,y0,y1,y2
+
+!   Find 3 points (x0,y0), (x1,y1), (x2,y2).
+    x0=0.01d0; x1=0.02d0; x2=0.03d0
+    call calcVloc(y0,x0,rloc,charge)
+    call calcVloc(y1,x1,rloc,charge)
+    call calcVloc(y2,x2,rloc,charge)   
+
+!   Find a polynomial of the form:
+!   P(x)=y0L0(x) + y1L1(x) + y2L2(x)
+ 
+!   L0(x) = (x-x1)(x-x2)/((x0-x1)(x0-x2))
+    l0=(xx-x1)*(xx-x2)/((x0-x1)*(x0-x2))
+!   L1(x) = (x-x0)(x-x2)/((x1-x0)(x1-x2))
+    l1=(xx-x0)*(xx-x2)/((x1-x0)*(x1-x2))
+!   L2(x) = (x-x0)(x-x1)/((x2-x0)(x2-x1))
+    l2=(xx-x0)*(xx-x1)/((x2-x0)*(x2-x1))
+
+    yy=y0*l0+y1*l1+y2*l2
+
+  END SUBROUTINE interpol_vloc
+
+  subroutine calcVloc(yy,xx,rloc,Z)
+   implicit none
+   INTEGER, PARAMETER   :: DP = KIND(1.0D0)          ! double precision
+   real(dp),intent(in)  :: xx,rloc,Z
+   real(dp),intent(out) :: yy
+   real(dp):: arg,tt
+  
+   arg=xx/(sqrt(2.0)*rloc)
+   call derf_ab(tt,arg)
+   yy=-Z/xx*tt
+  
+  
+  end subroutine calcVloc
+
 
 END SUBROUTINE createIonicPotential
 
@@ -991,7 +1158,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use module_base
   use module_types
   use module_interfaces, except_this_one => CounterIonPotential
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode
@@ -1016,7 +1183,6 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   real(dp), dimension(2) :: charges_mpi
   real(dp), dimension(:), allocatable :: potion_corr
   real(gp), dimension(:,:), allocatable :: radii_cf
-  real(gp), dimension(:,:), pointer :: rxyz
 
   call timing(iproc,'CrtLocPot     ','ON')
 
@@ -1026,12 +1192,14 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   end if
 
   !read the positions of the counter ions from file
-  call read_atomic_file('posinp_ci',iproc,at,rxyz)
+  call read_atomic_file('posinp_ci',iproc,at%astruct)
+  call allocate_atoms_nat(at, subname)
+  call allocate_atoms_ntypes(at, subname)
   ! Read associated pseudo files.
   call init_atomic_values((iproc == 0), at, in%ixc)
   call read_atomic_variables(at, 'input.occup', in%nspin)
 
-  allocate(radii_cf(at%ntypes,3+ndebug),stat=i_stat)
+  allocate(radii_cf(at%astruct%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   !read the specifications of the counter ions from pseudopotentials
@@ -1058,12 +1226,12 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
 
   if (n3pi >0 .and. .not. htoobig) then
 
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
         !shift the positions of the counter_ion wrt the box
-        rx=rxyz(1,iat)-shift(1)
-        ry=rxyz(2,iat)-shift(2)
-        rz=rxyz(3,iat)-shift(3)
+        rx=at%astruct%rxyz(1,iat)-shift(1)
+        ry=at%astruct%rxyz(2,iat)-shift(2)
+        rz=at%astruct%rxyz(3,iat)-shift(3)
 
         if (iproc == 0) then
            write(*,'(1x,a,i6,3(1pe14.7))')'counter ion No. ',iat,rx,ry,rz
@@ -1167,7 +1335,8 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
                  x=real(i1-nbl1-1,gp)*hxh
                  ind=i1+(i2-1)*grid%n1i+(i3-1)*grid%n1i*grid%n2i
                  !if (i1==49 .and. i2==46 .and. i3==44) then
-                    call sum_erfcr(at%nat,at%ntypes,x,y,z,at%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
+                    call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,&
+                          at%astruct%rxyz,potxyz)
                  !   stop
                  !end if
                  potion_corr(ind)=potion_corr(ind)+potxyz
@@ -1213,7 +1382,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
            do i1=1,grid%n1i
               x=real(i1-nbl1-1,gp)*hxh
               ind=i1+(i2-1)*grid%n1i+(i3-1)*grid%n1i*grid%n2i
-              call sum_erfcr(at%nat,at%ntypes,x,y,z,at%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
+              call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,at%astruct%rxyz,potxyz)
               pot_ion(ind)=pot_ion(ind)+potxyz
            end do
         end do
@@ -1227,9 +1396,9 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   deallocate(radii_cf,stat=i_stat)
   call memocc(i_stat,i_all,'radii_cf',subname)
 
-  i_all=-product(shape(rxyz))*kind(rxyz)
-  deallocate(rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz',subname)
+  i_all=-product(shape(at%astruct%rxyz))*kind(at%astruct%rxyz)
+  deallocate(at%astruct%rxyz,stat=i_stat)
+  call memocc(i_stat,i_all,'at%astruct%rxyz',subname)
 
 
   call timing(iproc,'CrtLocPot     ','OF')

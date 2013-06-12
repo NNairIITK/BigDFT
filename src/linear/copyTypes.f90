@@ -135,6 +135,7 @@ subroutine copy_wavefunctions_descriptors(wfdin, wfdout, subname)
       iie1=ubound(wfdin%keygloc,1)
       iis2=lbound(wfdin%keygloc,2)
       iie2=ubound(wfdin%keygloc,2)
+      
       allocate(wfdout%keygloc(iis1:iie1,iis2:iie2), stat=istat)
       call memocc(istat, wfdout%keygloc, 'wfdout%keygloc', subname)
       do i2=iis2,iie2
@@ -1069,7 +1070,7 @@ end subroutine copy_local_zone_descriptors
 
 
 !only copying sparsity pattern here, not copying whole matrix
-subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, subname)
+subroutine sparse_copy_pattern_new(sparseMat_in, sparseMat_out, iproc, subname)
   use module_base
   use module_types
   use module_interfaces, except_this_one => sparse_copy_pattern
@@ -1077,11 +1078,23 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, subname)
 
   ! Calling arguments
   type(sparseMatrix),intent(in):: sparseMat_in
-  type(sparseMatrix),intent(inout):: sparseMat_out
+  type(sparseMatrix),intent(out):: sparseMat_out
+  integer, intent(in) :: iproc
   character(len=*),intent(in):: subname
 
   ! Local variables
   integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+
+  call timing(iproc,'sparse_copy','ON')
+
+  !assume sparsemat_out is nullified, take advantage of pointers
+
+sparsemat_out=sparsemat_in
+
+  nullify(sparsemat_out%matrix)
+  nullify(sparsemat_out%matrix_compr)
+
+return
 
   sparsemat_out%nvctr = sparsemat_in%nvctr
   sparsemat_out%nseg = sparsemat_in%nseg
@@ -1091,39 +1104,64 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, subname)
   nullify(sparsemat_out%matrix)
   nullify(sparsemat_out%matrix_compr)
 
-  if(associated(sparsemat_out%noverlaps)) then
-     iall=-product(shape(sparsemat_out%noverlaps))*kind(sparsemat_out%noverlaps)
-     deallocate(sparsemat_out%noverlaps, stat=istat)
-     call memocc(istat, iall, 'sparsemat_out%noverlaps', subname)
+  if(associated(sparsemat_in%keyv)) then
+     sparsemat_out%keyv = sparsemat_in%keyv
   end if
-  if(associated(sparsemat_in%noverlaps)) then
-     iis1=lbound(sparsemat_in%noverlaps,1)
-     iie1=ubound(sparsemat_in%noverlaps,1)
-     allocate(sparsemat_out%noverlaps(iis1:iie1), stat=istat)
-     call memocc(istat, sparsemat_out%noverlaps, 'sparsemat_out%noverlaps', subname)
-     do i1=iis1,iie1
-        sparsemat_out%noverlaps(i1) = sparsemat_in%noverlaps(i1)
-     end do
+
+  if(associated(sparsemat_in%nsegline)) then
+     sparsemat_out%nsegline(i1) = sparsemat_in%nsegline(i1)
   end if
- 
-  if(associated(sparsemat_out%overlaps)) then
-     iall=-product(shape(sparsemat_out%overlaps))*kind(sparsemat_out%overlaps)
-     deallocate(sparsemat_out%overlaps, stat=istat)
-     call memocc(istat, iall, 'sparsemat_out%overlaps', subname)
+
+  if(associated(sparsemat_in%istsegline)) then
+     sparsemat_out%istsegline = sparsemat_in%istsegline
   end if
-  if(associated(sparsemat_in%overlaps)) then
-     iis1=lbound(sparsemat_in%overlaps,1)
-     iie1=ubound(sparsemat_in%overlaps,1)
-     iis2=lbound(sparsemat_in%overlaps,2)
-     iie2=ubound(sparsemat_in%overlaps,2)
-     allocate(sparsemat_out%overlaps(iis1:iie1,iis2:iie2), stat=istat)
-     call memocc(istat, sparsemat_out%overlaps, 'sparsemat_out%overlaps', subname)
-     do i1=iis1,iie1
-        do i2 = iis2,iie2
-           sparsemat_out%overlaps(i1,i2) = sparsemat_in%overlaps(i1,i2)
-        end do
-     end do
+
+  if(associated(sparsemat_in%keyg)) then
+     sparsemat_out%keyg = sparsemat_in%keyg
   end if
+
+  !!if(associated(sparsemat_in%matrixindex_in_compressed)) then
+  !!   sparsemat_out%matrixindex_in_compressed = sparsemat_in%matrixindex_in_compressed
+  !!end if
+  if(associated(sparsemat_in%matrixindex_in_compressed_arr)) then
+     sparsemat_out%matrixindex_in_compressed_arr = sparsemat_in%matrixindex_in_compressed_arr
+  end if
+
+  if(associated(sparsemat_in%orb_from_index)) then
+     sparsemat_out%orb_from_index = sparsemat_in%orb_from_index
+  end if
+
+  call timing(iproc,'sparse_copy','OF')
+
+end subroutine sparse_copy_pattern_new
+
+!only copying sparsity pattern here, not copying whole matrix
+subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => sparse_copy_pattern
+  implicit none
+
+  ! Calling arguments
+  type(sparseMatrix),intent(in):: sparseMat_in
+  type(sparseMatrix),intent(inout):: sparseMat_out
+  integer, intent(in) :: iproc
+  character(len=*),intent(in):: subname
+
+  ! Local variables
+  integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+
+  call timing(iproc,'sparse_copy','ON')
+
+  sparsemat_out%nvctr = sparsemat_in%nvctr
+  sparsemat_out%nseg = sparsemat_in%nseg
+  sparsemat_out%full_dim1 = sparsemat_in%full_dim1
+  sparsemat_out%full_dim2 = sparsemat_in%full_dim2
+  sparsemat_out%store_index = sparsemat_in%store_index
+
+
+  nullify(sparsemat_out%matrix)
+  nullify(sparsemat_out%matrix_compr)
 
   if(associated(sparsemat_out%keyv)) then
      iall=-product(shape(sparsemat_out%keyv))*kind(sparsemat_out%keyv)
@@ -1189,21 +1227,21 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, subname)
      end do
   end if
 
-  if(associated(sparsemat_out%matrixindex_in_compressed)) then
-     iall=-product(shape(sparsemat_out%matrixindex_in_compressed))*kind(sparsemat_out%matrixindex_in_compressed)
-     deallocate(sparsemat_out%matrixindex_in_compressed, stat=istat)
-     call memocc(istat, iall, 'sparsemat_out%matrixindex_in_compressed', subname)
+  if(associated(sparsemat_out%matrixindex_in_compressed_arr)) then
+     iall=-product(shape(sparsemat_out%matrixindex_in_compressed_arr))*kind(sparsemat_out%matrixindex_in_compressed_arr)
+     deallocate(sparsemat_out%matrixindex_in_compressed_arr, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%matrixindex_in_compressed_arr', subname)
   end if
-  if(associated(sparsemat_in%matrixindex_in_compressed)) then
-     iis1=lbound(sparsemat_in%matrixindex_in_compressed,1)
-     iie1=ubound(sparsemat_in%matrixindex_in_compressed,1)
-     iis2=lbound(sparsemat_in%matrixindex_in_compressed,2)
-     iie2=ubound(sparsemat_in%matrixindex_in_compressed,2)
-     allocate(sparsemat_out%matrixindex_in_compressed(iis1:iie1,iis2:iie2), stat=istat)
-     call memocc(istat, sparsemat_out%matrixindex_in_compressed, 'sparsemat_out%matrixindex_in_compressed', subname)
+  if(associated(sparsemat_in%matrixindex_in_compressed_arr)) then
+     iis1=lbound(sparsemat_in%matrixindex_in_compressed_arr,1)
+     iie1=ubound(sparsemat_in%matrixindex_in_compressed_arr,1)
+     iis2=lbound(sparsemat_in%matrixindex_in_compressed_arr,2)
+     iie2=ubound(sparsemat_in%matrixindex_in_compressed_arr,2)
+     allocate(sparsemat_out%matrixindex_in_compressed_arr(iis1:iie1,iis2:iie2), stat=istat)
+     call memocc(istat, sparsemat_out%matrixindex_in_compressed_arr, 'sparsemat_out%matrixindex_in_compressed_arr', subname)
      do i1=iis1,iie1
         do i2 = iis2,iie2
-           sparsemat_out%matrixindex_in_compressed(i1,i2) = sparsemat_in%matrixindex_in_compressed(i1,i2)
+           sparsemat_out%matrixindex_in_compressed_arr(i1,i2) = sparsemat_in%matrixindex_in_compressed_arr(i1,i2)
         end do
      end do
   end if
@@ -1227,7 +1265,29 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, subname)
      end do
   end if
 
+  if(associated(sparsemat_out%matrixindex_in_compressed_fortransposed)) then
+     iall=-product(shape(sparsemat_out%matrixindex_in_compressed_fortransposed))*&
+         &kind(sparsemat_out%matrixindex_in_compressed_fortransposed)
+     deallocate(sparsemat_out%matrixindex_in_compressed_fortransposed, stat=istat)
+     call memocc(istat, iall, 'sparsemat_out%matrixindex_in_compressed_fortransposed', subname)
+  end if
+  if(associated(sparsemat_in%matrixindex_in_compressed_fortransposed)) then
+     iis1=lbound(sparsemat_in%matrixindex_in_compressed_fortransposed,1)
+     iie1=ubound(sparsemat_in%matrixindex_in_compressed_fortransposed,1)
+     iis2=lbound(sparsemat_in%matrixindex_in_compressed_fortransposed,2)
+     iie2=ubound(sparsemat_in%matrixindex_in_compressed_fortransposed,2)
+     allocate(sparsemat_out%matrixindex_in_compressed_fortransposed(iis1:iie1,iis2:iie2), stat=istat)
+     call memocc(istat, sparsemat_out%matrixindex_in_compressed_fortransposed, &
+         'sparsemat_out%matrixindex_in_compressed_fortransposed', subname)
+     do i1=iis1,iie1
+        do i2 = iis2,iie2
+           sparsemat_out%matrixindex_in_compressed_fortransposed(i1,i2) = &
+                sparsemat_in%matrixindex_in_compressed_fortransposed(i1,i2)
+        end do
+     end do
+  end if
+
+  call timing(iproc,'sparse_copy','OF')
+
 end subroutine sparse_copy_pattern
-
-
 

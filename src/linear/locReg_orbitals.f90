@@ -77,7 +77,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
           jat=jat+1
           iiOrb=0
       end if
-      if(jat > atoms%nat) then
+      if(jat > atoms%astruct%nat) then
         jat = 1
       end if
       jorb=jorb+1

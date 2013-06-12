@@ -289,7 +289,7 @@ contains
     real(kind=8) :: xlo,xhi
     integer, dimension(ntypes) :: natoms
     type(atoms_data) :: atoms
-    real(gp), dimension(:,:), pointer :: rxyz
+    character(len=*), parameter :: subname='box_features'
 
     !!allocate arrays and set atom types
     if (whichone /= 'B') open(11,file=contcar,status='unknown')
@@ -345,16 +345,18 @@ contains
     else if (whichone == 'B') then
        !open the first file to check box features
 !print *,'here'
-       call read_atomic_file(trim(contcar),0,atoms,rxyz)
-       nat=atoms%nat
+       call read_atomic_file(trim(contcar),0,atoms%astruct)
+       call allocate_atoms_nat(atoms, subname)
+       call allocate_atoms_ntypes(atoms, subname)
+       nat=atoms%astruct%nat
 !print *,'nat',nat
        allocate(iatype(nrep**3*nat),pos(3,nrep**3*nat))
        do i=1,nat
-          iatype(i)=atoms%iatype(i)
+          iatype(i)=atoms%astruct%iatype(i)
        enddo
-       factor=atoms%alat1 * Bohr_Ang
+       factor=atoms%astruct%cell_dim(1) * Bohr_Ang
 
-       deallocate(rxyz)
+       deallocate(atoms%astruct%rxyz)
        call deallocate_atoms(atoms, "box_features")
 
     end if
@@ -385,7 +387,7 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
   integer :: i,iat,ityp,i1,i2,i3
   real(kind=8) :: x,y,z,vx,vy,vz,xlo,xhi,ylo,yhi,zlo,zhi,alat(3)
   type(atoms_data) :: atoms
-  real(gp), dimension(:,:), pointer :: rxyz
+  character(len=*), parameter :: subname='read_pos'
 
 
   if (whichone == 'V') then
@@ -409,18 +411,20 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
   else if (whichone == 'B') then
      !use the BigDFT call with iunit to control the posout
      write(fn4,'(i5.5)') iunit
-     call read_atomic_file('posmd_'//fn4,0,atoms,rxyz)
+     call read_atomic_file('posmd_'//fn4,0,atoms%astruct)
+     call allocate_atoms_nat(atoms, subname)
+     call allocate_atoms_ntypes(atoms, subname)
      !transform the positions in reduced coordinates
-     alat(1) = atoms%alat1
-     if (atoms%geocode == 'F') alat(1) = 1.d0
-     alat(2) = atoms%alat2
-     if (atoms%geocode == 'F' .or. atoms%geocode == 'S') alat(2) = 1.d0
-     alat(3) = atoms%alat3
-     if (atoms%geocode == 'F') alat(3) = 1.d0
+     alat(1) = atoms%astruct%cell_dim(1)
+     if (atoms%astruct%geocode == 'F') alat(1) = 1.d0
+     alat(2) = atoms%astruct%cell_dim(2)
+     if (atoms%astruct%geocode == 'F' .or. atoms%astruct%geocode == 'S') alat(2) = 1.d0
+     alat(3) = atoms%astruct%cell_dim(3)
+     if (atoms%astruct%geocode == 'F') alat(3) = 1.d0
      do iat=1,nat
-        pos(1,iat)=rxyz(1,iat)/alat(1)
-        pos(2,iat)=rxyz(2,iat)/alat(2)
-        pos(3,iat)=rxyz(3,iat)/alat(3)
+        pos(1,iat)=atoms%astruct%rxyz(1,iat)/alat(1)
+        pos(2,iat)=atoms%astruct%rxyz(2,iat)/alat(2)
+        pos(3,iat)=atoms%astruct%rxyz(3,iat)/alat(3)
      enddo
      call deallocate_atoms(atoms, 'distance')
   end if

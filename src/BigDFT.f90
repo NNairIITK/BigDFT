@@ -1,7 +1,7 @@
 !> @file
 !! BigDFT package performing ab initio calculation based on wavelets
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -22,20 +22,19 @@ program BigDFT
    integer :: iproc,nproc,i_stat,i_all,ierr,infocode
    integer :: ncount_bigdft
    real(gp) :: etot,fnoise
-   logical :: exist_list
    !input variables
    type(atoms_data) :: atoms
    type(input_variables) :: inputs
    type(restart_objects) :: rst
    character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
-   character(len=60) :: filename, radical,run_id
+   character(len=60) :: filename, run_id
    ! atomic coordinates, forces, strten
    !information for mpi_initalization
    integer, dimension(4) :: mpi_info
    real(gp), dimension(6) :: strten
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
-   integer :: iconfig,nconfig,istat,group_size,ngroups,igroup
+   integer :: iconfig,nconfig,ngroups,igroup
 
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
@@ -49,6 +48,11 @@ program BigDFT
    igroup=mpi_info(3)
    !number of groups
    ngroups=mpi_info(4)
+   
+   
+   !Nullify LZD for cubic version (new input guess)
+   call nullify_local_zone_descriptors(rst%tmb%lzd)
+
 
   
    !allocate arrays of run ids
@@ -68,7 +72,7 @@ program BigDFT
 
          !here we should define a routine to extract the number of atoms and the positions, and allocate forces array
 
-         allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
+         allocate(fxyz(3,atoms%astruct%nat+ndebug),stat=i_stat)
          call memocc(i_stat,fxyz,'fxyz',subname)
          call init_restart_objects(bigdft_mpi%iproc,inputs,atoms,rst,subname)
 
@@ -98,6 +102,12 @@ program BigDFT
             filename=trim('forces_'//trim(arr_posinp(iconfig)))
             if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'Geometry + metaData forces',forces=fxyz)
          end if
+
+
+     !always deallocate lzd for new input guess
+     !call deallocate_lzd(rst%tmb%lzd, subname)
+     ! Modified by SM
+     call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
 
          i_all=-product(shape(rxyz))*kind(rxyz)
          deallocate(rxyz,stat=i_stat)

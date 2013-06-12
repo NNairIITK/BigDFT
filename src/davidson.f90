@@ -1,7 +1,8 @@
 !> @file
+!       Set to zero:
 !!  Routines to do diagonalisation with Davidson algorithm
 !! @author
-!!    Copyright (C) 2007-2012 BigDFT group
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -24,8 +25,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    type(nonlocal_psp_descriptors), intent(in) :: nlpspd
    type(denspot_distribution), intent(in) :: dpcom
    type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in), target :: rhopot
    type(GPU_pointers), intent(inout) :: GPU
@@ -72,7 +73,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
            VTwfn%Lzd%hgrids(1), VTwfn%Lzd%hgrids(2), VTwfn%Lzd%hgrids(3),VTwfn%Lzd%Glr%wfd,VTwfn%orbs,GPU)
    else if (OCLconv) then
       call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)    
-      call allocate_data_OCL(VTwfn%Lzd%Glr%d%n1,VTwfn%Lzd%Glr%d%n2,VTwfn%Lzd%Glr%d%n3,at%geocode,&
+      call allocate_data_OCL(VTwfn%Lzd%Glr%d%n1,VTwfn%Lzd%Glr%d%n2,VTwfn%Lzd%Glr%d%n3,at%astruct%geocode,&
          &   in%nspin,VTwfn%Lzd%Glr%wfd,VTwfn%orbs,GPU)
       if (iproc == 0) call yaml_map('GPU data allocated',.true.)
       !if (iproc == 0) write(*,*) 'GPU data allocated'
@@ -296,7 +297,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       !control the previous value of idsx_actual
       idsx_actual_before=VTwfn%diis%idsx
 
-      call hpsitopsi(iproc,nproc,iter,in%idsx,VTwfn)
+      call hpsitopsi(iproc,nproc,iter,in%idsx,VTwfn,at,nlpspd)
+
 
       if (occorbs) then
          !if this is true the transposition for psivirt which is done in hpsitopsi
@@ -422,8 +424,8 @@ subroutine davidson(iproc,nproc,in,at,&
    type(orbitals_data), intent(inout) :: orbs !<could be modify in calculate_HOMO_LUMO_gap
    type(communications_arrays), intent(in) :: comms, commsv
    type(denspot_distribution), intent(in) :: dpcom
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in) :: rhopot
    type(orbitals_data), intent(inout) :: orbsv
@@ -431,7 +433,7 @@ subroutine davidson(iproc,nproc,in,at,&
    real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
    !v, that is psivirt, is transposed on input and direct on output
    !local variables
-   character(len=*), parameter :: subname='davidson',print_precise='1pe22.14',print_rough='1pe12.4 '
+   character(len=*), parameter :: subname='davidson',print_precise='1pe20.12',print_rough='1pe12.4 '
    character(len=8) :: prteigu,prteigd !format for eigenvalues printing
    logical :: msg,exctX,occorbs !extended output
    integer :: nrhodim,i3rho_add !n(c) occnorb, occnorbu, occnorbd
@@ -477,7 +479,7 @@ subroutine davidson(iproc,nproc,in,at,&
            Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr%wfd,orbsv,GPU)
    else if (OCLconv) then
       call free_gpu_OCL(GPU,orbs,in%nspin)    
-      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%geocode,&
+      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
            in%nspin,Lzd%Glr%wfd,orbsv,GPU)
    end if
 
@@ -622,7 +624,7 @@ subroutine davidson(iproc,nproc,in,at,&
    
 
    !experimental: add parabolic potential to the hamiltonian
-   !call add_parabolic_potential(at%geocode,at%nat,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,12.0_gp,rxyz,pot)
+   !call add_parabolic_potential(at%astruct%geocode,at%astruct%nat,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,12.0_gp,rxyz,pot)
 
    call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
         proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
@@ -684,7 +686,8 @@ subroutine davidson(iproc,nproc,in,at,&
          !e(:,1,1) = <psi|H|psi> / <psi|psi>
          e(iorb,ikpt,1)=e(iorb,ikpt,1)/e(iorb,ikpt,2)
          if (iproc == 0) then
-            call yaml_sequence(trim(yaml_toa((/ 1.0_gp-e(iorb,ikpt,2),e(iorb,ikpt,1) /),fmt='(1pe13.6)')))
+            call yaml_sequence(trim(yaml_toa((/ 1.0_gp-e(iorb,ikpt,2),e(iorb,ikpt,1) /),fmt='(1pe13.6)')),&
+                               advance='no')
             !call yaml_map('Orbitals',&
             !     ,advance='no')
             call yaml_comment(trim(yaml_toa(iorb,fmt='(i4.4)')))
@@ -1142,45 +1145,47 @@ subroutine davidson(iproc,nproc,in,at,&
                &   hamovr(ish1),v(ispsi:),g(ispsi),hv(ispsi))
 
             ispsi=ispsi+nvctrp*norb*nspinor
-
-            if(msg .or. (iproc==0 .and. ikpt == 1)) then
-               call yaml_open_sequence('Eigenvalues and eigenstate residue')
-               !write(*,'(1x,a)')'done. Eigenvalues, gnrm'
-               if (nspin ==1) then
-                  do iorb=1,orbsv%norb
-                     !show the eigenvalue in full form only if it has reached convergence
-                     if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
-                        prteigu=print_precise
-                     else
-                        prteigu=print_rough
-                     end if
-                     call yaml_sequence(trim(yaml_toa((/ e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)) /),fmt='('//prteigu//')')))
-                     !write(*,'(1x,i5,'//prteigu//',1pe9.2)')iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2))
-                  end do
-                  call yaml_close_sequence()
-               else if (ispin == 2) then
-                  do iorb=1,min(orbsv%norbu,orbsv%norbd) !they should be equal
-                     if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
-                        prteigu=print_precise
-                     else
-                        prteigu=print_rough
-                     end if
-                     if (sqrt(e(iorb+orbsv%norbu,ikpt,2)) <= in%gnrm_cv) then
-                        prteigd=print_precise
-                     else
-                        prteigd=print_rough
-                     end if
-                     call yaml_sequence(trim(yaml_toa((/ &
-                          & e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)), &
-                          & e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2)) /),fmt='('//prteigu//')')))
-                     !write(*,'(1x,i5,'//prteigu//',1pe9.2,t50,'//prteigd//',1pe9.2)')&
-                     !   &   iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)),e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2))
-                  end do
-                  call yaml_close_sequence()
-               end if
-            end if
-
          end do
+
+         if(msg .or. (iproc==0 .and. ikpt == 1)) then
+            call yaml_open_sequence('Eigenvalues and eigenstate residue')
+            !write(*,'(1x,a)')'done. Eigenvalues, gnrm'
+            if (nspin ==1) then
+               do iorb=1,orbsv%norb
+                  !show the eigenvalue in full form only if it has reached convergence
+                  if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
+                     prteigu=print_precise
+                  else
+                     prteigu=print_rough
+                  end if
+                     call yaml_sequence(trim(yaml_toa((/ e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)) /),fmt='('//prteigu//')')),&
+                          advance='no')
+                     call yaml_comment(trim(yaml_toa(iorb,fmt='(i4.4)')))
+                  !write(*,'(1x,i5,'//prteigu//',1pe9.2)')iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2))
+               end do
+            else if (nspin == 2) then
+               do iorb=1,min(orbsv%norbu,orbsv%norbd) !they should be equal
+                  if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
+                     prteigu=print_precise
+                  else
+                     prteigu=print_rough
+                  end if
+                  if (sqrt(e(iorb+orbsv%norbu,ikpt,2)) <= in%gnrm_cv) then
+                     prteigd=print_precise
+                  else
+                     prteigd=print_rough
+                  end if
+                  call yaml_sequence(trim(yaml_toa((/ &
+                       & e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)), &
+                          & e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2)) /),fmt='('//prteigu//')')),&
+                          advance='no')
+                     call yaml_comment(trim(yaml_toa(iorb,fmt='(i4.4)')))
+                  !write(*,'(1x,i5,'//prteigu//',1pe9.2,t50,'//prteigd//',1pe9.2)')&
+                  !   &   iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)),e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2))
+               end do
+            end if
+            call yaml_close_sequence()
+         end if
 
       end do
 
@@ -1507,7 +1512,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
    type(communications_arrays), intent(in) :: comms
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psivirt
    !local variables
    character(len=*), parameter :: subname='psivirt_from_gaussians'
@@ -1754,7 +1759,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
    type(atoms_data), intent(in) :: at
    type(locreg_descriptors), intent(in) :: lr
    type(orbitals_data), intent(in) :: orbs,orbsv
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(:), pointer :: psi,psivirt
    !local variables
    character(len=10) :: comment
@@ -2051,19 +2056,23 @@ subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
       return
       stop 'HL gap with Band structure not implemented yet'
    end if
-
    !depending on nspin
    orbs%HLgap=UNINITIALIZED(orbs%HLgap)
    if (orbs%nspin==1) then
+      ikpt=1
+       orbs%HLgap=orbsv%eval(1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)
       !the minimum wrt all the k-points
-      do ikpt=1,orbs%nkpts
+      do ikpt=2,orbs%nkpts
          orbs%HLgap=min(orbs%HLgap,orbsv%eval(1+(ikpt-1)*orbsv%norb)&
-            &   -orbs%eval(orbs%norb+(ikpt-1)*orbs%norb))
+              -orbs%eval(orbs%norb+(ikpt-1)*orbs%norb))
       end do
    else if (orbs%nspin==2) then
-      do ikpt=1,orbs%nkpts
+      ikpt=1
+      orbs%HLgap=min(orbsv%eval(1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
+           orbsv%eval(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbd+orbs%norbu+(ikpt-1)*orbs%norb))
+      do ikpt=2,orbs%nkpts
          orbs%HLgap=min(orbs%HLgap,orbsv%eval(1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
-            &   orbsv%eval(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbd+orbs%norbu+(ikpt-1)*orbs%norb))
+              orbsv%eval(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbd+orbs%norbu+(ikpt-1)*orbs%norb))
       end do
    end if
 

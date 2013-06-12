@@ -59,47 +59,12 @@ program frequencies
    real(gp), dimension(:,:,:), allocatable :: forces
    real(gp), dimension(3) :: freq_step
    real(gp), dimension(6) :: strten
-   character(len=60) :: radical,posinp
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
    real(gp) :: tel
    real :: tcpu0,tcpu1
-   integer :: k,km,ii,jj,ik,imoves,order,n_order,istat,ncount0,ncount1,ncount_rate,ncount_max
+   integer :: k,km,ii,jj,ik,imoves,order,n_order,ncount0,ncount1,ncount_rate,ncount_max
    logical :: exists
    integer, dimension(4) :: mpi_info
-!!$   ! Start MPI in parallel version
-!!$   !in the case of MPIfake libraries the number of processors is automatically adjusted
-!!$   call MPI_INIT(ierr)
-!!$   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-!!$   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-!!$ 
-!!$   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
-!!$
-!!$   call memocc_set_memory_limit(memorylimit)
-!!$
-!!$   ! Read a possible radical format argument.
-!!$   call get_command_argument(1, value = radical, status = istat)
-!!$   if (istat > 0) then
-!!$      write(radical, "(A)") "input"
-!!$   end if
-!!$
-!!$   !open unit for yaml output
-!!$   if (istat > 0) then
-!!$      if (bigdft_mpi%iproc ==0) call yaml_set_stream(unit=70,filename='log.yaml')
-!!$   else
-!!$      if (bigdft_mpi%iproc ==0) call yaml_set_stream(unit=70,filename='log-'//trim(radical)//'.yaml')
-!!$   end if
-!  if (bigdft_mpi%iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
-
-   ! Welcome screen
-!   if (bigdft_mpi%iproc == 0) call print_logo()
-
-   ! Initialize memory counting
-   !call memocc(0,bigdft_mpi%iproc,'count','start')
-
-!!$   !standard names
-!!$   call standard_inputfile_names(inputs,radical,nproc)
-!!$   posinp="posinp"
-!!$   call read_input_variables(iproc,nproc,posinp, inputs, atoms, rxyz,1,radical,istat)
 
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
@@ -150,19 +115,19 @@ program frequencies
    call memocc(i_stat,kmoves,'kmoves',subname)
 
    ! Allocations
-   allocate(fxyz(3*atoms%nat+ndebug),stat=i_stat)
+   allocate(fxyz(3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,fxyz,'fxyz',subname)
-   allocate(moves(n_order,0:3*atoms%nat+ndebug),stat=i_stat)
+   allocate(moves(n_order,0:3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,moves,'moves',subname)
-   allocate(energies(n_order,0:3*atoms%nat+ndebug),stat=i_stat)
+   allocate(energies(n_order,0:3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,energies,'energies',subname)
-   allocate(forces(3*atoms%nat,n_order,0:3*atoms%nat+ndebug),stat=i_stat)
+   allocate(forces(3*atoms%astruct%nat,n_order,0:3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,forces,'forces',subname)
-   allocate(rpos(3,atoms%nat+ndebug),stat=i_stat)
+   allocate(rpos(3,atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,rpos,'rpos',subname)
-   allocate(fpos(3*atoms%nat,n_order+ndebug),stat=i_stat)
+   allocate(fpos(3*atoms%astruct%nat,n_order+ndebug),stat=i_stat)
    call memocc(i_stat,fpos,'fpos',subname)
-   allocate(hessian(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
+   allocate(hessian(3*atoms%astruct%nat,3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,hessian,'hessian',subname)
 
    ! Initialize the Hessian
@@ -175,11 +140,11 @@ program frequencies
    call init_restart_objects(bigdft_mpi%iproc,inputs,atoms,rst,subname)
 
    !Initialize the moves using a restart file if present
-   call frequencies_read_restart(atoms%nat,n_order,imoves,moves,energies,forces,freq_step,atoms%amu,etot)
+   call frequencies_read_restart(atoms%astruct%nat,n_order,imoves,moves,energies,forces,freq_step,atoms%amu,etot)
    !Message
    if (bigdft_mpi%iproc == 0) then
       write(*,'(1x,a,i0,a,i0,a)') '=F=> There are ', imoves, ' moves already calculated over ', &
-         &   n_order*3*atoms%nat,' frequencies.'
+         &   n_order*3*atoms%astruct%nat,' frequencies.'
       write(*,*)
    end if
 
@@ -210,9 +175,9 @@ program frequencies
       write(*,'(1x,a,59("="))') '=Frequencies calculation '
    end if
 
-   do iat=1,atoms%nat
+   do iat=1,atoms%astruct%nat
 
-      if (atoms%ifrztyp(iat) == 1) then
+      if (atoms%astruct%ifrztyp(iat) == 1) then
          if (bigdft_mpi%iproc == 0) write(*,"(1x,a,i0,a)") '=F:The atom ',iat,' is frozen.'
          cycle
       end if
@@ -220,13 +185,13 @@ program frequencies
       do i=1,3
          ii = i+3*(iat-1)
          if (i==1) then
-            alat=atoms%alat1
+            alat=atoms%astruct%cell_dim(1)
             cc(3:4)='*x'
          else if (i==2) then
-            alat=atoms%alat2
+            alat=atoms%astruct%cell_dim(2)
             cc(3:4)='*y'
          else
-            alat=atoms%alat3
+            alat=atoms%astruct%cell_dim(3)
             cc(3:4)='*z'
          end if
          km = 0
@@ -248,9 +213,9 @@ program frequencies
                write(*,"(1x,a,i0,a,a,a,1pe20.10,a)") &
                   &   '=F Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
             end if
-            if (atoms%geocode == 'P') then
+            if (atoms%astruct%geocode == 'P') then
                rpos(i,iat)=modulo(rxyz(i,iat)+dd,alat)
-            else if (atoms%geocode == 'S') then
+            else if (atoms%astruct%geocode == 'S') then
                rpos(i,iat)=modulo(rxyz(i,iat)+dd,alat)
             else
                rpos(i,iat)=rxyz(i,iat)+dd
@@ -262,8 +227,8 @@ program frequencies
             call restart_inputs(inputs)
          end do
          ! Build the Hessian
-         do jat=1,atoms%nat
-            rmass = amu_emass*sqrt(atoms%amu(atoms%iatype(iat))*atoms%amu(atoms%iatype(jat)))
+         do jat=1,atoms%astruct%nat
+            rmass = amu_emass*sqrt(atoms%amu(atoms%astruct%iatype(iat))*atoms%amu(atoms%astruct%iatype(jat)))
             do j=1,3
                jj = j+3*(jat-1)
                !Force is -dE/dR
@@ -301,17 +266,17 @@ program frequencies
    call memocc(i_stat,i_all,'kmoves',subname)
 
    !allocations
-   allocate(eigen_r(3*atoms%nat+ndebug),stat=i_stat)
+   allocate(eigen_r(3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,eigen_r,'eigen_r',subname)
-   allocate(eigen_i(3*atoms%nat+ndebug),stat=i_stat)
+   allocate(eigen_i(3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,eigen_i,'eigen_i',subname)
-   allocate(vector_r(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
+   allocate(vector_r(3*atoms%astruct%nat,3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,vector_r,'vector_r',subname)
-   allocate(vector_l(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
+   allocate(vector_l(3*atoms%astruct%nat,3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,vector_l,'vector_l',subname)
-   allocate(sort_work(3*atoms%nat+ndebug),stat=i_stat)
+   allocate(sort_work(3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,sort_work,'sort_work',subname)
-   allocate(iperm(3*atoms%nat+ndebug),stat=i_stat)
+   allocate(iperm(3*atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,iperm,'iperm',subname)
 
    !Start timing only for the last part
@@ -319,39 +284,39 @@ program frequencies
    call system_clock(ncount0,ncount_rate,ncount_max)
 
    !Diagonalise the hessian matrix
-   call solve(hessian,3*atoms%nat,eigen_r,eigen_i,vector_l,vector_r)
+   call solve(hessian,3*atoms%astruct%nat,eigen_r,eigen_i,vector_l,vector_r)
    !Sort eigenvalues in ascending order (use abinit routine sort_dp)
    sort_work=eigen_r
-   do i=1,3*atoms%nat
+   do i=1,3*atoms%astruct%nat
       iperm(i)=i
    end do
-   call sort_dp(3*atoms%nat,sort_work,iperm,tol_freq)
+   call sort_dp(3*atoms%astruct%nat,sort_work,iperm,tol_freq)
 
    if (bigdft_mpi%iproc == 0) then
       write(*,*)
       write(*,'(1x,a,81("="))') '=F '
       write(*,*)
-      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(iperm(3*atoms%nat:1:-1))
-      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(iperm(3*atoms%nat:1:-1))
-      do i=1,3*atoms%nat
+      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(iperm(3*atoms%astruct%nat:1:-1))
+      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(iperm(3*atoms%astruct%nat:1:-1))
+      do i=1,3*atoms%astruct%nat
          if (eigen_r(i)<0.0_dp) then
             eigen_r(i)=-sqrt(-eigen_r(i))
          else
             eigen_r(i)= sqrt( eigen_r(i))
          end if
       end do
-      write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r(iperm(3*atoms%nat:1:-1))
-      write(*,'(1x,a,1x,100(f13.2))')    '=F: frequencies (cm-1)      =',eigen_r(iperm(3*atoms%nat:1:-1))*Ha_cmm1
+      write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r(iperm(3*atoms%astruct%nat:1:-1))
+      write(*,'(1x,a,1x,100(f13.2))')    '=F: frequencies (cm-1)      =',eigen_r(iperm(3*atoms%astruct%nat:1:-1))*Ha_cmm1
       !Build frequencies.xyz in descending order
       open(unit=15,file='frequencies.xyz',status="unknown")
-      do i=3*atoms%nat,1,-1
-         write(15,'(1x,i0,1x,1pe20.10,a)') atoms%nat,eigen_r(iperm(i))
+      do i=3*atoms%astruct%nat,1,-1
+         write(15,'(1x,i0,1x,1pe20.10,a)') atoms%astruct%nat,eigen_r(iperm(i))
          write(15,'(1x,a)') 'Frequency'
-         do iat=1,atoms%nat
-            ity=atoms%iatype(iat)
+         do iat=1,atoms%astruct%nat
+            ity=atoms%astruct%iatype(iat)
             do j=1,3
                write(15,'(1x,a,1x,100(1pe20.10))') &
-                  &   atoms%atomnames(ity),vector_l(3*(iat-1)+j,iperm(i))
+                  &   atoms%astruct%atomnames(ity),vector_l(3*(iat-1)+j,iperm(i))
             end do
          end do
          !Blank line
@@ -367,7 +332,7 @@ program frequencies
       vibrational_entropy=0.0_gp
       !iperm: ascending order
       !Remove almost zero frequencies
-      do i=6,3*atoms%nat
+      do i=6,3*atoms%astruct%nat
          freq_exp=exp(eigen_r(iperm(i))*Ha_K/Temperature)
          freq2_exp=exp(-eigen_r(iperm(i))*Ha_K/(2.0_gp*Temperature))
          zpenergy=zpenergy+0.5_gp*eigen_r(iperm(i))

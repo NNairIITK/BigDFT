@@ -1,17 +1,16 @@
-<p>The BigDFT project was an European project (FP6-NEST) from 2005 to 2008.</p>
+<!-- This file is written in the MediaWiki syntax, to be published on
+     http://bigdft.org -->
+The BigDFT project was an European project (FP6-NEST) from 2005 to 2008.
 
-<p>Four institutions were implicated in the BigDFT project (version < 1.1):</p>
-<ul>
-  <li>Commissariat à l'Énergie Atomique (T. Deutsch),</li>
-  <li>University of Basel (S. Goedecker),</li>
-  <li>Université catholique de Louvain (X. Gonze),</li>
-  <li>Christian-Albrechts Universität zu Kiel (R. Schneider).</li>
-</ul>
+Four institutions were implicated in the BigDFT project (version < 1.1):
+* Commissariat à l'Énergie Atomique (T. Deutsch),
+* University of Basel (S. Goedecker),
+* Université catholique de Louvain (X. Gonze),
+* Christian-Albrechts Universität zu Kiel (R. Schneider).
 
-<p>From 2010, three laboratories are contributing: L_Sim (CEA), UNIBAS and ESRF.</p>
+From 2010, three laboratories are contributing: L_Sim (CEA), UNIBAS and ESRF.
 
-<h2>Contributors (v1.7)</h2>
-<ul>
+== Contributors (v1.7) ==
 <!-- Name          Initials Email                         Institution -->
 Max Amsler              MA  m.amsler@unibas.ch            Basel Universität, Switzerland
 Frédéric Bonnet         FB  Frederic.Bonnet@cea.fr        INAC, CEA-Grenoble, France
@@ -35,8 +34,7 @@ Alexander Willand       AW  A.Willand@unibas.ch           Basel Universität, Sw
 </ul>
 
 
-<h2>Contributors (v1.6)</h2>
-<ul>
+== Contributors (v1.6) ==
 <!-- Name          Initials Email                         Institution -->
 Max Amsler              MA  m.amsler@unibas.ch            Basel Universität, Switzerland
 Paul Boulanger          PB  Paul.Boulanger@cea.fr         INAC, CEA-Grenoble, France
@@ -58,11 +56,8 @@ Ali Sadeghi             AS  ali.sadeghi@unibas.ch         Basel Universität, Sw
 Huan Tran               HT  huan.tran@unibas.ch           Basel Universität, Switzerland
 Brice Videau            BV  Brice.Videau@cea.fr           INAC, CEA-Grenoble, France
 Alexander Willand       AW  A.Willand@unibas.ch           Basel Universität, Switzerland
-</ul>
 
-
-<h2>Contributors (v1.5)</h2>
-<ul>
+== Contributors (v1.5) ==
 <!-- Name          Initials Email                         Institution -->
 Max Amsler              MA  m.amsler@unibas.ch            Basel Universität, Switzerland
 Eric Bainville          EB  eric.bainville@bealto.com     Bealto, Italy
@@ -80,11 +75,8 @@ Bhaarathi Natarajan     BN  Bhaarathi.Natarajan@cea.fr    INAC, CEA-Grenoble, Fr
 Matthieu Ospici         MO  Matthieu.Ospici@imag.fr       Bull, IMAG, CEA, France
 Brice Videau            BV  Brice.Videau@cea.fr           INAC, CEA-Grenoble, France
 Alexander Willand       AW  A.Willand@unibas.ch           Basel Universität, Switzerland
-</ul>
 
-
-<h2>Contributors (v1.4)</h2>
-<ul>
+== Contributors (v1.4) ==
 <!-- Name          Initials Email                         Institution -->
 Max Amsler              MA  M.Amsler@unibas.ch            Basel Universität, Switzerland
 Damien Caliste          DC  Damien.Caliste@cea.fr         INAC, CEA-Grenoble, France
@@ -100,11 +92,8 @@ Bhaarathi Natarajan     BN  Bhaarathi.Natarajan@ujf-grenoble.fr INAC, CEA-Grenob
 Matthieu Ospici         MO  Matthieu.Ospici@imag.fr       Bull, IMAG, CEA, France
 Brice Videau            BV  Brice.Videau@cea.fr           INAC, CEA-Grenoble, France
 Alexander Willand       AW  A.Willand@unibas.ch           Basel Universität, Switzerland
-</ul>
 
-
-<h2>Contributors (v1.3)</h2>
-<ul>
+== Contributors (v1.3) ==
 <!-- Name          Initials Email                         Institution -->
 Damien Caliste          DC  Damien.Caliste@cea.fr         INAC, CEA-Grenoble, France
 Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France
@@ -116,22 +105,16 @@ Alessandro Mirone       AM  Alessandro.Mirone@esrf.fr     ESRF, Grenoble, France
 Alexey Neelov           AN  Alexey.Neelov@unibas.ch       Basel Universität, Switzerland
 Matthieu Ospici         MO  Matthieu.Ospici@imag.fr       Bull, IMAG, CEA, France
 Carlo Sbraccia          CS
-</ul>
 
-
-<h2>Contributors (v1.2)</h2>
-<ul>
+== Contributors (v1.2) ==
 <!-- Name          Initials Email                         Institution -->
 Damien Caliste          DC  damien.caliste@cea.fr         INAC, CEA-Grenoble, France
 Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France
 Luigi Genovese          LG  Luigi.Genovese@gmail.com      ESRF, Grenoble, France
 Alexey Neelov           AN  alexey.neelov@unibas.ch       Basel Universität, Switzerland
 Matthieu Ospici         MO  Matthieu.Ospici@imag.fr       Bull, IMAG, CEA, France
-</ul>
 
-
-<h2>Contributors (v1.1)</h2>
-<ul>
+== Contributors (v1.1) ==
 <!-- Name          Initials Email                         Institution -->
 Anders Bergman          AB  Anders.Bergman@cea.fr         INAC, CEA-Grenoble, France
 Damien Caliste          DC  damien.caliste@cea.fr         INAC, CEA-Grenoble, France
@@ -142,11 +125,8 @@ Stefan Goedecker        SG  Stefan.Goedecker@unibas.ch    Basel Universität, Sw
 Alexey Neelov           AN  alexey.neelov@unibas.ch       Basel Universität, Switzerland
 Matthieu Ospici         MO  Matthieu.Ospici@free.fr       Bull, IMAG, CEA, France
 Alexander Willand       AW  A.Willand@unibas.ch           Basel Universität, Switzerland
-</ul>
 
-
-<h2>Contributors (v1.0)</h2>
-<ul>
+== Contributors (v1.0) ==
 <!-- Name          Initials Email                         Institution -->
 Pierre-Matthieu Anglade  PMA anglade@gmail.com            Université de Caen, France
 Anders Bergman           AB  Anders.Bergman@cea.fr        INAC, CEA-Grenoble, France
@@ -162,4 +142,3 @@ Jaroslav Piwonski        JP  jpi@numerik.uni-kiel.de      Kiel Universität, Ger
 Mark Rayson              MR  Mark.Rayson@unibas.ch        Basel Universität, Switzerland
 Reinhold Schneider       RS  schneidr@silica.math.TU-Berlin.de TU Berlin, Germany
 Oded Zilberberg          OZ
-</ul>

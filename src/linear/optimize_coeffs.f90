@@ -24,11 +24,11 @@ subroutine optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   real(8),intent(out):: fnrm
 
   ! Local variables
-  integer:: iorb, jorb, korb, lorb, istat, iall, info, iiorb, ierr, ind, indh, indo, kkorb
-  integer :: npts_per_proc, ind_start, ind_end, indc, iseg, segn
+  integer:: iorb, jorb, istat, iall, info, iiorb, ierr!, ind, indh, indo, kkorb, korb, lorb
+  !integer :: segn,npts_per_proc,  indc, ind_start, ind_end, iseg
   real(8),dimension(:,:),allocatable:: rhs, coeffp, sk, skh, skhp !gradp, lagmat, ovrlp_tmp, ovrlp_coeff
   integer,dimension(:),allocatable:: ipiv
-  real(8) :: tt, ddot, tt2
+  real(8) :: tt, ddot!, tt2
   logical :: dense
   character(len=*),parameter:: subname='optimize_coeffs'
 
@@ -101,9 +101,11 @@ subroutine optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
         sk(iorb,iiorb) = 1.d0
      end do 
  
-     call dgemm('n', 'n', tmb%orbs%norbp, tmb%orbs%norb, tmb%orbs%norb, -1.d0, &
-          tmb%linmat%ovrlp%matrix(tmb%orbs%isorb+1:tmb%orbs%isorb+tmb%orbs%norbp,:),&
-          tmb%orbs%norbp, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, 1.d0, sk, tmb%orbs%norbp)
+     if (tmb%orbs%norbp>0) then
+        call dgemm('n', 'n', tmb%orbs%norbp, tmb%orbs%norb, tmb%orbs%norb, -1.d0, &
+             tmb%linmat%ovrlp%matrix(tmb%orbs%isorb+1:tmb%orbs%isorb+tmb%orbs%norbp,:),&
+             tmb%orbs%norbp, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, 1.d0, sk, tmb%orbs%norbp)
+     end if
 
      ! coeffs and therefore kernel will change, so no need to keep it
      iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
@@ -114,8 +116,10 @@ subroutine optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
      call memocc(istat, skhp, 'skhp', subname)
 
      ! multiply by H to get (I_ab - S_ag K^gb) H_bg, or in this case the transpose of the above
-     call dgemm('t', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, tmb%linmat%ham%matrix(1,1), &
-          tmb%orbs%norb, sk(1,1), tmb%orbs%norbp, 0.d0, skhp(1,1), tmb%orbs%norb)
+     if (tmb%orbs%norbp>0) then
+        call dgemm('t', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, tmb%linmat%ham%matrix(1,1), &
+             tmb%orbs%norb, sk(1,1), tmb%orbs%norbp, 0.d0, skhp(1,1), tmb%orbs%norb)
+     end if
 
      iall=-product(shape(sk))*kind(sk)
      deallocate(sk, stat=istat)
@@ -279,8 +283,9 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
 
   ! Local variables
   integer:: iorb, jorb, korb, lorb, istat, iall, info, iiorb, ierr, ind, indh, indo, kkorb
-  integer :: npts_per_proc, ind_start, ind_end, indc, iseg, segn
-  real(8),dimension(:,:),allocatable:: lagmat, rhs, ovrlp_coeff, gradp, coeffp !, ovrlp_tmp
+  integer :: npts_per_proc, ind_start, ind_end, indc!, iseg, segn
+  integer :: matrixindex_in_compressed
+  real(8),dimension(:,:),allocatable:: lagmat, rhs, gradp, coeffp !, ovrlp_coeff, ovrlp_tmp
   integer,dimension(:),allocatable:: ipiv
   real(8):: tt, ddot, tt2
   character(len=*),parameter:: subname='optimize_coeffs'
@@ -341,8 +346,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
 
   indc=0
   do ind = 1, tmb%linmat%ham%nvctr
-     lorb = tmb%linmat%ham%orb_from_index(ind,1)
-     kkorb = tmb%linmat%ham%orb_from_index(ind,2)
+     lorb = tmb%linmat%ham%orb_from_index(1,ind)
+     kkorb = tmb%linmat%ham%orb_from_index(2,ind)
 
      if (lorb<kkorb) cycle ! so still only doing half
      indc = indc + 1
@@ -430,7 +435,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   if (orbs%norbp>0) then ! don't need to bother if we have no orbs on this proc
      do lorb=1,tmb%orbs%norb
         do korb=lorb,tmb%orbs%norb
-           indh=tmb%linmat%ham%matrixindex_in_compressed(korb,lorb)
+           indh=matrixindex_in_compressed(tmb%linmat%ham,korb,lorb)
            if (indh==0) cycle ! H should always be less sparse than S
 
            do iorb=1,orbs%norbp
@@ -439,7 +444,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
               if (korb/=lorb) rhs(korb,iiorb)=rhs(korb,iiorb)+tmb%coeff(lorb,iiorb)*tmb%linmat%ham%matrix_compr(indh)
            end do
 
-           indo=tmb%linmat%ovrlp%matrixindex_in_compressed(korb,lorb)
+           indo=matrixindex_in_compressed(tmb%linmat%ovrlp,korb,lorb)
            if (indo==0) cycle
 
            do jorb=1,orbs%norb
@@ -990,7 +995,7 @@ subroutine allocate_DIIS_coeff(tmb, ldiis)
   type(localizedDIISParameters),intent(inout):: ldiis
   
   ! Local variables
-  integer:: iorb, ii, istat
+  integer:: ii, istat
   character(len=*),parameter:: subname='allocate_DIIS_coeff'
 
   allocate(ldiis%mat(ldiis%isx,ldiis%isx,tmb%orbs%norbp),stat=istat)

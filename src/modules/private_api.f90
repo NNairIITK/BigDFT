@@ -30,7 +30,7 @@ module module_private_api
 
      subroutine atoms_set_n_atoms(atoms, rxyz, nat)
        use module_types
-       use m_profiling
+       use memory_profiling
        implicit none
        type(atoms_data), intent(inout) :: atoms
        real(gp), dimension(:,:), pointer :: rxyz
@@ -229,7 +229,7 @@ module module_private_api
        character, intent(in) :: filename(filelen)
        type(atoms_data), intent(in) :: atoms
        real(gp), intent(in) :: energy
-       real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+       real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
        real(gp), dimension(:,:), pointer :: forces
      END SUBROUTINE atoms_write
 

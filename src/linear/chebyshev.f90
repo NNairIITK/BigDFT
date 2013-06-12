@@ -1,30 +1,41 @@
-!again assuming all matrices have same sparsity, still some tidying to be done
-subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_compr, &
-           ovrlp_compr, calculate_SHS, SHS, fermi, penalty_ev)
+!> @file
+!!  Linear version: Define Chebyshev polynomials
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+ 
+!> Again assuming all matrices have same sparsity, still some tidying to be done
+subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kernel, ham_compr, &
+           ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials)
   use module_base
   use module_types
   use module_interfaces, except_this_one => chebyshev_clean
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, npl
+  integer,intent(in) :: iproc, nproc, npl, nsize_polynomial
   real(8),dimension(npl,3),intent(in) :: cc
   type(orbitals_data),intent(in) :: orbs
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix), intent(in) :: sparsemat
+  type(sparseMatrix), intent(in) :: sparsemat, kernel
   real(kind=8),dimension(sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
   logical,intent(in) :: calculate_SHS
   real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: SHS
   real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
   real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
+  real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
   ! Local variables
-  integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr,i,j, nseq, nmaxsegk, nmaxvalk
+  integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr, nseq, nmaxsegk, nmaxvalk
   integer :: isegstart, isegend, iseg, ii, jjorb, nout
   character(len=*),parameter :: subname='chebyshev_clean'
   real(8), dimension(:,:,:), allocatable :: vectors
   real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq, SHS_seq
   real(kind=8),dimension(:,:),allocatable :: matrix
-  real(kind=8) :: tt1, tt2, time1,time2 , tt, time_to_zero, time_vcopy, time_sparsemm, time_axpy, time_axbyz, time_copykernel
+  real(kind=8) :: tt
   integer,dimension(:,:,:),allocatable :: istindexarr
   integer,dimension(:),allocatable :: ivectorindex
   integer,parameter :: one=1, three=3
@@ -32,7 +43,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_
   integer,dimension(:,:),pointer :: onedimindices
 
   call timing(iproc, 'chebyshev_comp', 'ON')
-
 
   norb = orbs%norb
   norbp = orbs%norbp
@@ -164,9 +174,13 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_
   !initialize fermi
   call to_zero(norbp*norb, fermi(1,1))
   call to_zero(2*norb*norbp, penalty_ev(1,1,1))
+  call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,4), chebyshev_polynomials(1,1))
+  !write(*,*) 'ipl, first element', 1, vectors(1,1,4)
   call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
   call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
   call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
+  call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,2), chebyshev_polynomials(1,2))
+  !write(*,*) 'ipl, first element', 2, vectors(1,1,2)
   call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(2,1), vectors(1,1,2), fermi(:,1))
   call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
   call axpy_kernel_vectors(norbp, norb, nout, onedimindices, -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
@@ -187,6 +201,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_
       end if
       call axbyz_kernel_vectors(norbp, norb, nout, onedimindices, 2.d0, vectors(1,1,2), &
            -1.d0, vectors(1,1,4), vectors(1,1,3))
+      call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,3), chebyshev_polynomials(1,ipl))
+  !write(*,*) 'ipl, first element', ipl, vectors(1,1,3)
       call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(ipl,1), vectors(1,1,3), fermi(:,1))
       call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
  
@@ -387,7 +403,7 @@ subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)
   integer,dimension(4,nout),intent(in) :: onedimindices
   real(kind=8),intent(in) :: a
   real(kind=8),dimension(norb,norbp),intent(in) :: x
-  real(kind=8),dimension(norb,norbp),intent(out) :: y
+  real(kind=8),dimension(norb,norbp),intent(inout) :: y
 
   ! Local variables
   integer :: i, jorb, iorb
@@ -572,3 +588,43 @@ subroutine sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, a, ns
   end do 
 
 end subroutine sequential_acces_matrix
+
+
+
+subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, kernelp)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nsize_polynomial, npl
+  type(orbitals_data),intent(in) :: orbs
+  type(sparseMatrix),intent(in) :: fermi
+  real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
+  real(kind=8),dimension(npl),intent(in) :: cc
+  real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: kernelp
+
+  ! Local variables
+  integer :: ipl, istat, iall
+  real(kind=8),dimension(:),allocatable :: kernel_compressed
+  character(len=*),parameter :: subname='chebyshev_fast'
+
+
+  allocate(kernel_compressed(nsize_polynomial),stat=istat)
+  call memocc(istat,kernel_compressed,'kernel_compressed',subname)
+
+  call to_zero(nsize_polynomial,kernel_compressed(1))
+  !write(*,*) 'ipl, first element', 1, chebyshev_polynomials(1,1)
+  call daxpy(nsize_polynomial, 0.5d0*cc(1), chebyshev_polynomials(1,1), 1, kernel_compressed(1), 1)
+  do ipl=2,npl
+  !write(*,*) 'ipl, first element', ipl, chebyshev_polynomials(1,ipl)
+      call daxpy(nsize_polynomial, cc(ipl), chebyshev_polynomials(1,ipl), 1, kernel_compressed(1), 1)
+  end do
+
+  call uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, kernel_compressed, kernelp)
+
+  iall=-product(shape(kernel_compressed))*kind(kernel_compressed)
+  deallocate(kernel_compressed, stat=istat)
+  call memocc(istat, iall, 'kernel_compressed', subname)
+
+end subroutine chebyshev_fast

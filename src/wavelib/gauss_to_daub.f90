@@ -447,21 +447,30 @@ END SUBROUTINE gauss_to_daub
 !!@warning 
 !!  In this version, we dephase the projector to wrt the center of the gaussian
 !!  this should not have an impact on the results since the operator is unchanged
-subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
+subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
+     factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      nstart,nmax,n_left,n_right,c,& 
      ww,nwork,periodic)      !added work arrays ww with dimension nwork
   use module_base
   implicit none
   logical, intent(in) :: periodic
-  integer, intent(in) :: n_gau,nmax,nwork,ncplx,nstart
-  real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a,kval
-  real(wp), dimension(0:nwork,2,ncplx), intent(inout) :: ww 
+  integer, intent(in) :: n_gau,nmax,nwork,nstart
+  integer, intent(in) :: ncplx_w !size of the ww matrix
+  integer, intent(in) :: ncplx_g !1 or 2 for simple or complex gaussians, respectively.
+  integer, intent(in) :: ncplx_k !use 2 for k-points.
+  real(gp), intent(in) :: hgrid,gau_cen,kval
+  real(gp),dimension(ncplx_g),intent(in)::factor,gau_a
+  real(wp), dimension(0:nwork,2,ncplx_w), intent(inout) :: ww 
   integer, intent(out) :: n_left,n_right
-  real(wp), dimension(ncplx,0:nmax,2), intent(out) :: c
+  real(wp), dimension(ncplx_w,0:nmax,2), intent(out) :: c
   !local variables
+  character(len=*), parameter :: subname='gauss_to_daub_k'
+  integer :: i_all,i_stat
   integer :: rightx,leftx,right_t,i0,i,k,length,j,icplx
-  real(gp) :: a,z0,h,x,r,coeff,r2,fac,rk
-  real(wp) :: func,cval,sval
+  real(gp) :: a1,a2,z0,h,x,r,coeff,r2,rk
+  real(gp) :: fac(ncplx_g)
+  real(wp) :: func,cval,sval,cval2,sval2
+  real(wp), dimension(:,:,:), allocatable :: cc
   integer, dimension(0:4) :: lefts,rights
   !include the convolutions filters
   include 'recs16.inc'! MAGIC FILTER  
@@ -469,23 +478,29 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
   include 'sym_16.inc'! WAVELET FILTERS
 
   !rescale the parameters so that hgrid goes to 1.d0  
-  a=gau_a/hgrid
-
+  !when calculating "r2" in gauss_to_scf 
+  a1=gau_a(1)/hgrid
+  if(ncplx_g==2) then
+    a2=gau_a(2)*hgrid*hgrid
+    allocate(cc(ncplx_g,0:nmax,2),stat=i_stat)
+    call memocc(i_stat,cc,'cc',subname)
+  end if
   i0=nint(gau_cen/hgrid) ! the array is centered at i0
   z0=gau_cen/hgrid-real(i0,gp)
   h=.125_gp*.5_gp
 
   !calculate the array sizes;
   !at level 0, positions shifted by i0 
-  right_t= ceiling(15.d0*a)
+  right_t= ceiling(15.d0*a1)
 
-  !print *,'a,right_t',a,right_t,gau_a,hgrid
+  !print *,'a,right_t',a1,right_t,gau_a,hgrid
 
   !to rescale back the coefficients
-  fac=hgrid**n_gau*sqrt(hgrid)*factor
+  fac(:)=hgrid**n_gau*sqrt(hgrid)*factor(:)
 
   !initialise array
   c=0.0_gp
+  if(ncplx_g==2)cc=0.0_gp
 
   if (periodic) then
      !we expand the whole Gaussian in scfunctions and later fold one of its tails periodically
@@ -497,12 +512,8 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
      lefts( 0)=i0-right_t
      rights(0)=i0+right_t
 
-     if (ncplx==1) then
-       call gauss_to_scf_1()
-     else if (ncplx==2) then
-       call gauss_to_scf_2()
-     endif
-     
+     call gauss_to_scf()
+
      ! special for periodic case:
      call fold_tail
   else
@@ -510,23 +521,42 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
      lefts( 0)=max(i0-right_t,nstart)
      rights(0)=min(i0+right_t,nmax+nstart)
 
-     if (ncplx==1) then
-       call gauss_to_scf_1()
-     else if (ncplx==2) then
-       call gauss_to_scf_2()
-     endif
+     call gauss_to_scf()
     
-      n_left = n_left - nstart
+     n_left = n_left - nstart
      
      !loop for each complex component
-     do icplx=1,ncplx
-        ! non-periodic: no tails to fold
-        do i=0,length-1
-           c(icplx,i+n_left,1)=fac*ww(i       ,2,icplx)
-           c(icplx,i+n_left,2)=fac*ww(i+length,2,icplx) 
+     if(ncplx_g==1) then
+        do icplx=1,ncplx_w
+           ! non-periodic: no tails to fold
+           do i=0,length-1
+              c(icplx,i+n_left,1)=ww(i       ,2,icplx)
+              c(icplx,i+n_left,2)=ww(i+length,2,icplx) 
+           end do
         end do
-     end do
+     else !ncplx_g==2
+     !use a temporary array cc instead
+        do icplx=1,ncplx_w
+           ! non-periodic: no tails to fold
+           do i=0,length-1
+              cc(icplx,i+n_left,1)=ww(i       ,2,icplx)
+              cc(icplx,i+n_left,2)=ww(i+length,2,icplx) 
+           end do
+        end do
+     end if
   endif
+
+! Apply factor:
+  if(ncplx_g==1) then
+     c=fac(1)*c
+  else
+     c(1,:,:)=fac(1)*cc(1,:,:)-fac(2)*cc(2,:,:)
+     c(2,:,:)=fac(1)*cc(2,:,:)+fac(2)*cc(1,:,:)
+ 
+     i_all=-product(shape(cc))*kind(cc)
+     deallocate(cc,stat=i_stat)
+     call memocc(i_stat,i_all,'cc',subname)
+  end if
 
 contains
 
@@ -537,8 +567,7 @@ contains
   !! All this is done assuming nonperiodic boundary conditions
   !! but will also work in the periodic case if the tails are folded
 
-  ! Called when ncplx = 1
-  subroutine gauss_to_scf_1
+  subroutine gauss_to_scf
     n_left=lefts(0)
     n_right=rights(0)
     length=n_right-n_left+1
@@ -559,6 +588,42 @@ contains
        return
     end if
 
+    if (ncplx_w==1) then
+      !no kpts and real gaussians
+      call gauss_to_scf_1()
+    elseif(ncplx_k==2 .and. ncplx_g==1) then
+      !kpts and real gaussians
+      call gauss_to_scf_2()
+    elseif(ncplx_k==1 .and. ncplx_g==2) then
+      !no kpts and complex gaussians
+      call gauss_to_scf_3()
+    elseif(ncplx_k==2 .and. ncplx_g==2) then
+      !kpts and complex gaussians
+      call gauss_to_scf_4()
+    endif
+
+    do icplx=1,ncplx_w
+      !print *,'here',gau_a,gau_cen,n_gau
+      call apply_w(ww(0,1,icplx),ww(0,2,icplx),&
+           leftx   ,rightx   ,lefts(4),rights(4),h)
+
+      call forward_c(ww(0,2,icplx),ww(0,1,icplx),&
+           lefts(4),rights(4),lefts(3),rights(3)) 
+      call forward_c(ww(0,1,icplx),ww(0,2,icplx),&
+           lefts(3),rights(3),lefts(2),rights(2)) 
+      call forward_c(ww(0,2,icplx),ww(0,1,icplx),&
+           lefts(2),rights(2),lefts(1),rights(1)) 
+
+      call forward(  ww(0,1,icplx),ww(0,2,icplx),&
+           lefts(1),rights(1),lefts(0),rights(0)) 
+
+    end do
+
+  END SUBROUTINE gauss_to_scf
+
+  ! Called when ncplx_w = 1
+  subroutine gauss_to_scf_1
+
     !loop for each complex component
        !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
        !corrected for avoiding 0**0 problem
@@ -567,7 +632,7 @@ contains
           do i=leftx,rightx
              x=real(i-i0*16,gp)*h
              r=x-z0
-             r2=r/a
+             r2=r/a1
              r2=r2*r2
              r2=0.5_gp*r2
              func=dexp(-r2)
@@ -578,7 +643,7 @@ contains
              x=real(i-i0*16,gp)*h
              r=x-z0
              coeff=r**n_gau
-             r2=r/a
+             r2=r/a1
              r2=r2*r2
              r2=0.5_gp*r2
              func=dexp(-r2)
@@ -586,42 +651,11 @@ contains
              ww(i-leftx,1,icplx)=func
           enddo
        end if
-       !print *,'here',gau_a,gau_cen,n_gau
-       call apply_w(ww(0,1,icplx),ww(0,2,icplx),&
-            leftx   ,rightx   ,lefts(4),rights(4),h)
 
-       call forward_c(ww(0,2,icplx),ww(0,1,icplx),&
-            lefts(4),rights(4),lefts(3),rights(3)) 
-       call forward_c(ww(0,1,icplx),ww(0,2,icplx),&
-            lefts(3),rights(3),lefts(2),rights(2)) 
-       call forward_c(ww(0,2,icplx),ww(0,1,icplx),&
-            lefts(2),rights(2),lefts(1),rights(1)) 
-
-       call forward(  ww(0,1,icplx),ww(0,2,icplx),&
-            lefts(1),rights(1),lefts(0),rights(0)) 
   END SUBROUTINE gauss_to_scf_1
 
-  ! Called when ncplx = 2
+  ! Called when ncplx_k = 2 and ncplx_g = 1
   subroutine gauss_to_scf_2
-    n_left=lefts(0)
-    n_right=rights(0)
-    length=n_right-n_left+1
-
-    !print *,'nleft,nright',n_left,n_right
-
-    do k=1,4
-       rights(k)=2*rights(k-1)+m
-       lefts( k)=2*lefts( k-1)-m
-    enddo
-
-    leftx = lefts(4)-n
-    rightx=rights(4)+n  
-
-    !stop the code if the gaussian is too extended
-    if (rightx-leftx > nwork) then
-       !STOP 'gaustodaub'
-       return
-    end if
 
     !loop for each complex component
     !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
@@ -631,7 +665,7 @@ contains
           x=real(i-i0*16,gp)*h
           r=x-z0
           rk=real(i,gp)*h
-          r2=r/a
+          r2=r/a1
           r2=r2*r2
           r2=0.5_gp*r2
           cval=cos(kval*rk)
@@ -646,7 +680,7 @@ contains
           r=x-z0
           rk=real(i,gp)*h
           coeff=r**n_gau
-          r2=r/a
+          r2=r/a1
           r2=r2*r2
           r2=0.5_gp*r2
           cval=cos(kval*rk)
@@ -658,21 +692,78 @@ contains
        enddo
     end if
 
-
-    !print *,'here',gau_a,gau_cen,n_gau
-    do icplx=1,2
-    call apply_w(ww(0,1,icplx),ww(0,2,icplx),&
-         leftx   ,rightx   ,lefts(4),rights(4),h)
-    call forward_c(ww(0,2,icplx),ww(0,1,icplx),&
-         lefts(4),rights(4),lefts(3),rights(3)) 
-    call forward_c(ww(0,1,icplx),ww(0,2,icplx),&
-         lefts(3),rights(3),lefts(2),rights(2)) 
-    call forward_c(ww(0,2,icplx),ww(0,1,icplx),&
-         lefts(2),rights(2),lefts(1),rights(1)) 
-    call forward(  ww(0,1,icplx),ww(0,2,icplx),&
-         lefts(1),rights(1),lefts(0),rights(0)) 
-    enddo
   END SUBROUTINE gauss_to_scf_2
+
+  ! Called when ncplx_k = 1 and ncplx_g = 2
+  ! no k-points + complex Gaussians
+  subroutine gauss_to_scf_3
+
+    if (n_gau == 0) then
+       do i=leftx,rightx
+          x=real(i-i0*16,gp)*h
+          r=x-z0
+          r2=r*r
+          cval=cos(a2*r2)
+          sval=sin(a2*r2)
+          r2=0.5_gp*r2/(a1**2)
+          func=dexp(-r2)
+          ww(i-leftx,1,1)=func*cval
+          ww(i-leftx,1,2)=func*sval
+       enddo
+    else
+       do i=leftx,rightx
+          x=real(i-i0*16,gp)*h
+          r=x-z0
+          r2=r*r
+          cval=cos(a2*r2)
+          sval=sin(a2*r2)
+          coeff=r**n_gau
+          r2=0.5_gp*r2/(a1**2)
+          func=dexp(-r2)
+          func=coeff*func
+          ww(i-leftx,1,1)=func*cval
+          ww(i-leftx,1,2)=func*sval
+       enddo
+    end if
+  END SUBROUTINE gauss_to_scf_3
+
+  ! Called when ncplx_k = 2 and ncplx_g = 2
+  subroutine gauss_to_scf_4
+
+    if (n_gau == 0) then
+       do i=leftx,rightx
+          x=real(i-i0*16,gp)*h
+          r=x-z0
+          r2=r*r
+          cval=cos(a2*r2)
+          sval=sin(a2*r2)
+          rk=real(i,gp)*h
+          cval2=cos(kval*rk)
+          sval2=sin(kval*rk)
+          r2=0.5_gp*r2/(a1**2)
+          func=dexp(-r2)
+          ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
+          ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)
+       enddo
+    else
+       do i=leftx,rightx
+          x=real(i-i0*16,gp)*h
+          r=x-z0
+          r2=r*r
+          cval=cos(a2*r2)
+          sval=sin(a2*r2)
+          rk=real(i,gp)*h
+          cval2=cos(kval*rk)
+          sval2=sin(kval*rk)
+          coeff=r**n_gau
+          r2=0.5_gp*r2/(a1**2)
+          func=dexp(-r2)
+          func=coeff*func
+          ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
+          ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)
+       enddo
+    end if
+  END SUBROUTINE gauss_to_scf_4
 
   ! Original version
 !  subroutine gauss_to_scf
@@ -812,7 +903,7 @@ contains
     !modification of the calculation.
     !at this stage the values of c are fixed to zero
     !print *,'ncplx',ncplx,n_left,n_right,nwork,length
-    do icplx=1,ncplx
+    do icplx=1,ncplx_w
        do i=n_left,n_right
           j=modulo(i,nmax+1)
           c(icplx,j,1)=c(icplx,j,1)+ww(i-n_left       ,2,icplx)
@@ -820,7 +911,6 @@ contains
        end do
     end do
 
-    c=fac*c
 
   END SUBROUTINE fold_tail
 

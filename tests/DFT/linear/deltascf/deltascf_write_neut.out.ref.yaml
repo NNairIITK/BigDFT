@@ -1,5 +1,4 @@
 ---
-  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
  Code logo:
          TTTT         F       DDDDD
         T    T               D
@@ -27,16 +26,27 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-02-04 15:51:49.221
+ Version Number                        : 1.7-dev.28
+ Timestamp of this run                 : 2013-05-27 14:27:39.004
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
+ MPI tasks of root process node        :  6
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments                 : " 'FC=mpif90' '--disable-bindings'"
+   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
+   Compiler flags:
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -g -O2
+     CXXFLAGS                          : -g -O2
+     CPPFLAGS                          : 
  #... (file:write_neut.perf).............................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
  #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
  #|OCL_platform                 Chosen OCL platform                                          
+ #|OCL_devices                  Chosen OCL devices                                           
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -73,7 +83,7 @@
  #|1.E-5          gnrm_cv: convergence criterion gradient                                    
  #|50 10          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
  #|6  6           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
- #|0              dispersion correction potential (values 1,2,3), 0=none                     
+ #|0              dispersion correction potential (values 1,2,3,4,5), 0=none                 
  #|100 0 0        InputPsiId, output_wf, output_denspot                                      
  #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
  #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
@@ -101,7 +111,7 @@
  #... (file:default.kpt.. not present)...................Brillouin Zone Sampling Parameters 
  #|manual         K-point sampling method                                                    
  #|1              Number of K-points                                                         
- #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
+ #|0. 0. 0. 1.    K-pt coords, K-pt weight                                                   
  #... (file:write_neut.lin)................................................Linear Parameters
  #|2              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
  #|2              outer loop iterations (low, high)                                          
@@ -122,13 +132,13 @@
  #|5              number of iterations in the preconditioner                                 
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
- #|1  F           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|C 4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefactor fo
- #|S 4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefactor fo
- #|H 1 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefactor fo
+ #|1 F F          Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|F F            fragment calculation; calculate transfer_integrals                         
+ #|C 4 1.0d-4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
+ #|S 4 1.0d-4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
+ #|H 1 1.0d-4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-write_neut/
- Material acceleration                 :  No #iproc=0
   #---------------------------------------------- Input Atomic System (file: write_neut.xyz)
  Atomic System Properties:
    Number of atomic types              :  3
@@ -145,6 +155,7 @@
    Fluctuation in forces               :  1.0E+00
    Maximum in forces                   :  0.0E+00
    Steepest descent step               :  4.0E+00
+ Material acceleration                 :  No #iproc=0
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
@@ -330,7 +341,7 @@
    Nonlocal Pseudopotential Arrays     : 0.1010
    Full Uncompressed (ISF) grid        : 38.847
    Workspaces storage size             : 4.373
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 131.749
    Density Construction                : 416.91
    Poisson Solver                      : 370.46
@@ -373,12 +384,12 @@
      MPI tasks                         :  6
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  64498,  2586 ]
-
+   Tolerances for this check: [ 4.94385720886471476E-06,  1.86517468137026299E-14]
    Maxdiff for transpose (checksum)    :  1.86264514923095703E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  45582,  2448 ]
-
+   Tolerances for this check: [ 1.06902501427301455E-05,  1.86517468137026299E-14]
    Maxdiff for transpose (checksum)    :  3.72529029846191406E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
@@ -518,26 +529,63 @@
  Wavefunction written No.              :  8
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- - 
-    {Process:  0, Timing:  [  1.440E+00,  1.443E+00 ]}
+ -  {Process:  0, Timing:  [  1.376E+00,  1.376E+00 ]}
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  253,  149,  135 ]
    MPI tasks                           :  6
- Non Local forces calculated           :  Yes
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x: -9.94452696E-04, y: -6.70003251E-03, z:  9.70024189E-04, 
+                    total:  6.84253745E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  1.962993249082E-02, fnrm2:  1.837112076472E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  1.838003559187E-02, fnrm2:  1.884216257513E-03}
+  #--------------------------------------------------------------------------- Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {C: [-2.877709099423E-03, -7.651452737079E-04, -2.100026554848E-03]} # 0001
+ -  {C: [-1.076356399120E-02,  3.254908796799E-03, -1.263691680096E-04]} # 0002
+ -  {C: [ 5.204656327075E-03, -1.129218347410E-02,  4.761213564732E-04]} # 0003
+ -  {S: [-7.398222372506E-03,  1.770901072753E-02, -2.645227928167E-04]} # 0004
+ -  {H: [-8.746811429248E-04, -1.121770483364E-04,  3.828239328659E-03]} # 0005
+ -  {H: [ 1.121136699208E-03, -1.915477004502E-03, -1.081674444697E-03]} # 0006
+ -  {H: [-9.692706650682E-04,  4.041821998261E-03, -1.297334062678E-03]} # 0007
+ -  {H: [-1.600032122476E-03,  2.815450624373E-04,  2.659137710035E-05]} # 0008
+ -  {C: [ 3.866726897145E-03, -1.112553106347E-02, -2.047199410419E-04]} # 0009
+ -  {C: [-2.319585980212E-03, -3.044139983036E-03,  1.737044350940E-04]} # 0010
+ -  {C: [-4.139768663882E-03,  2.890657006236E-04,  1.018716225904E-04]} # 0011
+ -  {C: [ 3.935352298774E-03,  9.229855449077E-04, -4.254541845852E-06]} # 0012
+ -  {S: [-8.202325638422E-04,  2.673780014455E-03, -2.652450723826E-04]} # 0013
+ -  {S: [-1.988121049956E-04, -1.879768111828E-03,  7.759774851821E-05]} # 0014
+ -  {C: [ 3.742732404633E-03, -1.328698880240E-05,  1.388177977187E-04]} # 0015
+ -  {C: [-4.094992114339E-03,  6.936810952212E-04,  2.682969613146E-04]} # 0016
+ -  {C: [-3.617351970975E-03, -1.027898685954E-02,  2.983545294464E-04]} # 0017
+ -  {C: [ 1.498134011388E-03, -3.247604721611E-03,  4.793481693695E-04]} # 0018
+ -  {S: [ 4.974280867292E-04,  2.072200773906E-03,  2.047691140298E-04]} # 0019
+ -  {S: [ 6.717239128124E-03,  1.844299512821E-02,  2.624476909458E-04]} # 0020
+ -  {C: [ 1.128550051864E-02,  5.151680527701E-03,  1.482270379995E-05]} # 0021
+ -  {C: [-3.266643121428E-03, -1.246414826231E-02,  8.656900115362E-04]} # 0022
+ -  {C: [ 2.699596974732E-03, -1.434354867316E-03, -2.567537554439E-03]} # 0023
+ -  {H: [ 5.958907508216E-04, -1.168910913310E-04,  3.622462589146E-03]} # 0024
+ -  {H: [-1.047403622341E-03, -1.817866598249E-03, -1.091974384412E-03]} # 0025
+ -  {H: [ 1.197408076033E-03,  4.081360555971E-03, -1.710730971011E-03]} # 0026
+ -  {H: [ 1.626467362310E-03, -1.074745778780E-04, -1.247459475615E-04]} # 0027
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  236.31
-   Elapsed time (s)                    :  238.20
+   CPU time (s)                        :  267.96
+   Elapsed time (s)                    :  271.05
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 101092
-   Tot. No. of Deallocations: 101092
-   Remaining Memory (B)     : 0
-   Memory occupation: 
-      Peak Value (MB): 913
-      for the array: nrecvdspls
-      in the routine: transpose_communicate_psi
+   Tot. No. of Allocations             :  101242
+   Tot. No. of Deallocations           :  101242
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  913
+     for the array                     : nrecvdspls
+     in the routine                    : transpose_communicate_psi
+ YAML_STREAM_NOT_FOUND:
+   Id                                  : 13
+   Message                             : The stream has not been found
+ Additional Info                       : Unit  6 not found

@@ -89,7 +89,11 @@
          !clean the file situation (delete the previously existing file)
          close(unit=mallocFile)                        
          !call delete(trim(filename),len(trim(filename)),istat_del)
-         open(unit=mallocFile,file=trim(filename),status='unknown',action='write')
+         if (trim(filename) == "") then
+            open(unit=mallocFile,file="malloc.prc",status='unknown',action='write')
+         else
+            open(unit=mallocFile,file=trim(filename),status='unknown',action='write')
+         end if
       end if
 
       if (istatus == 0 .and. memproc==0) then
@@ -353,8 +357,9 @@
       integer, intent(in) :: nalloc,ndealloc
       !Local variables
       if (malloc_level==2 .and. nalloc /= ndealloc) then
+         !Use # to be yaml compliant (is a comment in yaml)
          write(*,*) &
-              "Use the python script 'memcheck.py' in utils/scripts to check"//&
+              "#Use the python script 'memcheck.py' in utils/scripts to check"//&
               trim(filename)//" file"
       end if
     END SUBROUTINE memory_malloc_check

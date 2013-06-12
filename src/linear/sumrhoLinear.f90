@@ -15,7 +15,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
   use module_types
   use module_interfaces, exceptThisOne => local_partial_densityLinear
   use module_xc
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   logical, intent(in) :: rsflag
   integer, intent(in) :: nproc
@@ -90,7 +90,9 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      hfac=orbs%kwgts(orbs%iokpt(ii))*(orbs%occup(mapping(iorb))/(hxh*hyh*hzh))
      spinval=orbs%spinsgn(iorb)
 
-     Lzd%Llr(ilr)%hybrid_on=.false.
+     !this shoudl have aleady been defined
+     if (Lzd%Llr(ilr)%hybrid_on) stop 'ERROR, ilr not initialized'
+     !Lzd%Llr(ilr)%hybrid_on=.false.
 
      if (hfac /= 0.d0) then
 
@@ -538,7 +540,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
        orbs, istartend, collcom_sr%norb_per_gridpoint_c, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
        collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%isendbuf_c, collcom_sr%irecvbuf_c, &
        collcom_sr%iextract_c, collcom_sr%iexpand_c, collcom_sr%indexrecvorbital_c)
-  call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   ! These variables are used in various subroutines to speed up the code
   allocate(collcom_sr%isptsp_c(max(collcom_sr%nptsp_c,1)), stat=istat)
@@ -853,7 +855,7 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
                           !tt=tt+ttt**2
                       end do
                   end do
-              end do
+               end do
               do i2=1,lzd%glr%d%n2i
                   do i1=1,lzd%glr%d%n1i
                       ii=ii+1
@@ -863,9 +865,9 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
                           exit outer_loop
                       end if
                   end do
-              end do
-          end do i3_loop
-      end do outer_loop
+               end do
+           end do i3_loop
+        end do outer_loop
       iall = -product(shape(slicearr))*kind(slicearr)
       deallocate(slicearr,stat=istat)
       call memocc(istat, iall, 'slicearr', subname)
@@ -916,6 +918,7 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
            istartend, weight_tot, weights_per_zpoint, norb_per_gridpoint)
   use module_base
   use module_types
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -930,7 +933,7 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   ! Local variables
   integer :: i3, ii, i2, i1, ipt, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr, i
   real(8) :: tt, weight_check
-  logical :: fast
+  !logical :: fast
 
 
 !!t1=mpi_wtime()
@@ -1041,8 +1044,12 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
 
   ! Some check
   call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if (weight_check/=weight_tot) then
+  if (abs(weight_check-weight_tot) > 1.d-3) then
       stop '2: tt/=weight_tot'
+  else if (abs(weight_check-weight_tot) > 0.d0) then
+     call yaml_warning('The total weight for density seems inconsistent! Ref:'//&
+           trim(yaml_toa(weight_tot,fmt='(1pe25.17)'))//', Check:'//&
+           trim(yaml_toa(weight_check,fmt='(1pe25.17)')))
   end if
 
 end subroutine determine_num_orbs_per_gridpoint_sumrho
@@ -1711,11 +1718,11 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
           tt1=collcom_sr%psit_c(i0+i)
-          ind=denskern%matrixindex_in_compressed(iiorb,iiorb)
+          ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
           tt=tt+denskern%matrix_compr(ind)*tt1*tt1
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
-              ind=denskern%matrixindex_in_compressed(jjorb,iiorb)
+              ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               if (ind==0) cycle
               tt=tt+2.0_dp*denskern%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
           end do
@@ -1753,3 +1760,33 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   call memocc(istat, iall, 'rho_local', subname)
 
 end subroutine sumrho_for_TMBs
+
+!!$!> this routine is important to create the density needed for GGA XC functionals calculation
+!!$subroutine fill_global_density(rho_local)
+!!$  use module_base
+!!$  implicit none
+!!$  
+!!$  real(dp), dimension(:,:,:,:), allocatable :: rho_global !>density in the global box to be reduced 
+!!$
+!!$  call f_malloc_routine_id('fill_global_density')
+!!$
+!!$  !malloc and initialization to zero to be defined
+!!$  rho_global=f_malloc0((/dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),1/),id='rho_global')
+!!$
+!!$  !rho is the density in the LDA_like poisson solver distribution, therefore starting from i3s+i3xcsh until i3s+i3xcsh+n3p-1
+!!$  do jproc=0,nproc-1
+!!$     !quantity of data to be copied
+!!$     nrho=collcom_sr%nsendcounts_repartitionrho(jproc)
+!!$     !starting point of the local array to be put at the place of 
+!!$     irls=collcom_sr%nsenddspls_repartitionrho(jproc)+1
+!!$     !starting point of the global density in the processor jproc in z direction
+!!$     isz=dpbox%nscatterarr(jproc,3)
+!!$     irgs=
+!!$     call vcopy(nrho,rho_local(irhos),1,rho_global(),1)
+!!$  end do
+!!$
+!!$  call f_free(rho_global)
+!!$  !this call might free all the allocatable arrays in the routine if the address of the original object is known
+!!$  call f_malloc_free_routine()
+!!$
+!!$end subroutine fill_global_density

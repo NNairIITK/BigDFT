@@ -41,7 +41,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb,jproc,ierr
+  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb!,jproc,ierr
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
   type(workarr_locham) :: wrk_lh
@@ -507,44 +507,57 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf,eco
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout), optional :: vpsir_noconf !< wavefunction with  the potential without confinement applied
   real(gp), intent(out),optional :: econf !< confinement energy
   !local variables
+  logical :: confining
   integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
 
   epot=0.0_gp
   ishift=(/0,0,0/)
+  confining=present(confdata)
+  if (confining) confining= (confdata%potorder /=0)
 
-  if (present(confdata) .and. confdata%potorder /=0) then
+  if (confining) then
      if (lr%geocode == 'F') then
         if (present(vpsir_noconf)) then
             if (.not.present(econf)) stop 'ERROR: econf must be present when vpsir_noconf is present!'
-            call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+            !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+            call apply_potential_lr_conf_noconf(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
                  lr%d%n1i,lr%d%n2i,lr%d%n3i,&
                  ishift,lr%d%n2,lr%d%n3,&
                  nspinor,npot,vpsir,pot,epot,&
-                 confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r,psir_noconf=vpsir_noconf,econf=econf)
+                 confdata,lr%bounds%ibyyzz_r,vpsir_noconf,econf)
+                 !confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r,psir_noconf=vpsir_noconf,econf=econf)
         else
-            call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+           !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+           call apply_potential_lr_conf(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
                  lr%d%n1i,lr%d%n2i,lr%d%n3i,&
                  ishift,lr%d%n2,lr%d%n3,&
                  nspinor,npot,vpsir,pot,epot,&
-                 confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r)
+                 confdata,lr%bounds%ibyyzz_r)
+                 !confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r)
         end if
      else
-        call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        call apply_potential_lr_conf_nobounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              ishift,lr%d%n2,lr%d%n3,&
-             nspinor,npot,vpsir,pot,epot,confdata=confdata)
+             nspinor,npot,vpsir,pot,epot,&
+             confdata)
+             !confdata=confdata)
      end if
 
   else
      
      if (lr%geocode == 'F') then
-        call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        call apply_potential_lr_bounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              ishift,lr%d%n2,lr%d%n3,&
              nspinor,npot,vpsir,pot,epot,&
-             ibyyzz_r=lr%bounds%ibyyzz_r)
+             lr%bounds%ibyyzz_r)
+        !     ibyyzz_r=lr%bounds%ibyyzz_r)
      else
-        call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        call apply_potential_lr_nobounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              ishift,lr%d%n2,lr%d%n3,&
              nspinor,npot,vpsir,pot,epot)
@@ -764,9 +777,11 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   real(gp), intent(out),optional :: econf
   !local variables
   integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et,ii1,ii2,ii3
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt11_noconf,ttt,r2
+  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt11_noconf,ttt!,r2
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,pot1_noconf
-  real(gp) :: epot_p,econf_p,ierr
+  real(gp) :: epot_p,econf_p!,ierr
+  !real(gp), dimension(3) :: hh,rxyzconf
+  !integer, dimension(3) :: ioffset
   real(kind=8),dimension(:),pointer :: hh, rxyzConf
   integer,dimension(:),pointer :: ioffset
   real(kind=8),pointer :: prefac
@@ -809,9 +824,10 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   i1e=min(n1i,n1ip+ishift(1))
 
 
-  !$omp parallel default(none)&
+  !$omp parallel default(private)&
   !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
   !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,psir_noconf,econf)&
+  !$omp shared(hh,ioffset,rxyzConf,prefac,potorder)&
   !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et,pot1_noconf,tt11_noconf,econf_p)&
   !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42)&
   !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ii1,ii2,ii3,ttt)
@@ -1002,7 +1018,9 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   
   !$omp end parallel
 
-
+  if (.not. present(confdata)) then
+     deallocate(hh,ioffset,rxyzConf)
+  end if
 contains
   
   !inline the definition of the confining potential
@@ -1230,10 +1248,12 @@ END SUBROUTINE realspaceINPLACE
 !>   Calculate on-the fly each projector for each atom, then applies the projectors 
 !!   to all distributed orbitals
 subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
-     rxyz,hx,hy,hz,wfd,nlpspd,proj,psi,hpsi,eproj_sum)
+     rxyz,hx,hy,hz,wfd,nlpspd,proj,psi,hpsi,eproj_sum,&
+     proj_G,paw)
   use module_base
   use module_types
   use yaml_output
+  use gaussians, only:gaussian_basis
   implicit none
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
@@ -1242,13 +1262,16 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors),intent(in) :: lr
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
   real(gp), intent(out) :: eproj_sum
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
+  type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
+  type(paw_objects),optional,intent(inout)::paw
   !local variables
   integer :: iat,nwarnings,iproj,iorb
+  integer :: iatype
   integer :: istart_c,idir,isorb,ieorb,ikpt,nspinor,ispsi_k,ispsi
   
   !put idir=0, no derivative
@@ -1272,18 +1295,32 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
 
      !this may not work for non-collinear cases
      iproj=0
-     do iat=1,at%nat
+     do iat=1,at%astruct%nat
+        iatype=at%astruct%iatype(iat)
         istart_c=1
-        call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
-             lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings)
+        if(at%npspcode(iatype)==7) then
+          call atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
+               lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings,proj_G(iatype))
+        else
+          call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
+               lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings)
+        end if
 
         !apply the projector to all the orbitals belonging to the processor
         ispsi=ispsi_k
         do iorb=isorb,ieorb
            istart_c=1
-           call apply_atproj_iorb_new(iat,iorb,istart_c,nlpspd%nprojel,&
-                at,orbs,wfd,nlpspd%plr(iat),proj,&
-                psi(ispsi),hpsi(ispsi),eproj_sum)
+           if(at%npspcode(iatype)==7) then
+           !    PAW case:
+              call apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nlpspd%nprojel,&
+                   at,orbs,wfd,nlpspd%plr(iat),proj,&
+                   psi(ispsi),hpsi(ispsi),eproj_sum,proj_G(iatype),paw)
+           else
+           !    HGH or GTH case:
+              call apply_atproj_iorb_new(iat,iorb,istart_c,nlpspd%nprojel,&
+                   at,orbs,wfd,nlpspd%plr(iat),proj,&
+                   psi(ispsi),hpsi(ispsi),eproj_sum)
+           end if
            ispsi=ispsi+(wfd%nvctr_c+7*wfd%nvctr_f)*nspinor
         end do
      end do
@@ -1338,7 +1375,7 @@ END SUBROUTINE applyprojectorsonthefly
 !!$  do ispinor=1,orbs%nspinor,ncplx
 !!$     eproj_spinor=0.0_gp
 !!$     if (ispinor >= 2) istart_c=istart_c_i
-!!$     ityp=at%iatype(iat)
+!!$     ityp=at%astruct%iatype(iat)
 !!$     mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
 !!$     mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
 !!$     
@@ -1518,6 +1555,290 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
   end if
 END SUBROUTINE applyprojector
 
+
+!sij_opt=1 : obtain hpsi
+!sij_opt=2 : obtain spsi
+!sij_opt=3 : obtain hpsi and spsi
+!
+subroutine applyprojector_paw(ncplx,istart_c,&
+     nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
+     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,&
+     psi,hpsi,spsi,eproj,proj_G,paw_ij,&
+     indlmn,lmnmax,cprj_out,sij_opt,sij)
+  use module_base
+  use module_types
+  use gaussians, only:gaussian_basis
+  implicit none
+  integer,parameter::nspinor=1  !not yet implemented
+  integer, intent(inout)::istart_c
+  integer, intent(in) :: ncplx,lmnmax,sij_opt
+  integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer, dimension(mbseg_c+mbseg_f), intent(in) :: keyv_p
+  integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keyg_p
+  integer, dimension(6,lmnmax),intent(in)::indlmn
+  real(wp), dimension(*), intent(in) :: proj
+  real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(in) :: psi
+  type(gaussian_basis),intent(in)::proj_G
+  type(paw_ij_objects),intent(in)::paw_ij
+  !type(cprj_objects),dimension(1,nspinor),intent(out)::cprj_out
+  type(cprj_objects),intent(out)::cprj_out
+  real(gp), intent(out) :: eproj
+  real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(inout) :: hpsi
+  real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(inout) :: spsi
+  real(wp), dimension(lmnmax*(lmnmax+1)/2),intent(in)::sij
+  !local variables
+  character(len=*),parameter::subname='applyprojector_paw'
+  integer :: i_shell,j_shell,ilmn,jlmn,klmn,i0lmn,j0lmn,ispinor
+  integer :: i_l,j_l,klmnc,i_m,j_m,iaux
+  integer :: istart_i,istart_j,icplx,jspinor
+  integer :: i_stat,i_all
+  real(gp)::eproj_i
+  real(gp)::ddot
+  real(dp), dimension(2) :: scpr,scprp,scpr_i,scprp_i,scpr_j,scprp_j
+  real(gp) :: dij
+  real(wp), dimension(:,:), allocatable :: cprj_i
+  real(wp), dimension(:,:), allocatable :: cprj,dprj !scalar products with the projectors (always assumed to be complex and spinorial)
+  integer :: proj_count, i_proj
+
+! change: keyv_p by nlpspd%keyv_p(jseg_c),&
+
+!
+  proj_count= paw_ij%lmn_size
+  allocate(cprj(nspinor*ncplx,proj_count),stat=i_stat)
+  call memocc(i_stat,cprj,'cprj',subname)
+  allocate(dprj(nspinor*ncplx,proj_count),stat=i_stat)
+  call memocc(i_stat,dprj,'dprj',subname)
+
+  !cprj_out(1,1:nspinor)%cp(1:ncplx,1:proj_count)=0.0_wp
+  eproj=0.0_gp
+  cprj=0.0_wp
+  !call to_zero(4*7*3*4,cprj(1,1,1,1))
+
+  !Use special subroutines for these number of projectors
+  !if (proj_count.eq.4 .or. proj_count.eq.5 .or. proj_count.eq.8 .or. proj_count.eq.13 &
+  !    .or. proj_count.eq.14 .or. proj_count.eq.18 .or. proj_count.eq.19 &
+  !    .or. proj_count.eq.20 .or. proj_count.eq.22) then
+
+  !  allocate(cprj_i(proj_count,ncplx))
+  !
+  !  !loop over all the components of the wavefunction
+  !  do ispinor=1,orbs%nspinor,ncplx
+  !               call wpdot_wrap1(ncplx,  &
+  !                    wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
+  !                    wfd%keyv,wfd%keyglob,&
+  !                    psi(1,ispinor), &
+  !                    mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+  !                    plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
+  !                    plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
+  !                    proj(istart_c),&
+  !                    cprj_i,proj_count)
+  !
+  !    i_proj=1
+  !    do i_shell=1,proj_G%nshltot
+  !      i_l=proj_G%nam(i_shell)
+  !      do i_m=1,2*i_l-1
+  !        do icplx=1,ncplx
+  !         cprj(ispinor+icplx-1,m,i,l) = cprj_i(i_proj,icplx)
+  !        enddo
+  !        i_proj=i_proj+1
+  !      end do
+  !    end do
+  !  end do
+
+  !  deallocate(cprj_i)
+  !else !use standart subroutine for projector application
+
+  istart_j=istart_c
+! Get cprj:
+  jlmn=0
+  do j_shell=1,proj_G%nshltot
+     j_l=proj_G%nam(j_shell)
+     do j_m=1,2*j_l-1
+        jlmn=jlmn+1
+        !loop over all the components of the wavefunction
+        do ispinor=1,nspinor,ncplx
+           call wpdot_wrap(ncplx,  &
+                nvctr_c,nvctr_f,nseg_c,nseg_f,&
+                keyv,keyg,&
+                psi(1,ispinor), &
+                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                keyv_p,keyg_p,&
+                proj(istart_j),&
+                cprj(ispinor,jlmn))
+        end do !ispinor
+        istart_j=istart_j+(mbvctr_c+7*mbvctr_f)*ncplx
+     end do !i_m
+  end do !j_shell
+  !
+  !copy cprj into cprj_out
+  !
+!  do ispinor=1,nspinor
+!    do icplx=1,ncplx
+!      jspinor=jspinor+1
+!      cprj_out(1,ispinor)%cp(icplx,:)=cprj(jspinor,:) 
+!    end do
+!  end do
+  do ispinor=1,nspinor
+     cprj_out%cp(ispinor,:)=cprj(ispinor,:)
+     write(*,*)'applyprojector_paw: erase me: l1212 cprj=',cprj_out%cp(ispinor,:)
+  end do
+!
+
+  if(sij_opt==1 .or. sij_opt==3) then
+  !CALCULATE |H|PSI>
+     dprj=0.0_wp
+     iaux=paw_ij%cplex_dij*paw_ij%lmn2_size
+     !call calculate_dprj(paw_ij%dij,iaux,paw_ij%ndij)
+     call calculate_dprj(paw_ij%dij(:,1),iaux)
+     !
+     !apply non-local operator
+     istart_j=istart_c
+     call apply_non_local_operator(hpsi,nvctr_c+7*nvctr_f,ncplx,istart_j)
+     eproj=eproj+eproj_i
+     !
+     !DEBUG: calculate <PSI|H|PSI>, only for 1 orbital and ncplx=1
+     do ispinor=1,nspinor,ncplx
+        scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,hpsi(istart_c,ispinor),1)
+        write(*,*)'erase me: applyprojector_paw l1231'
+        write(*,*)'<psi|H|psi>= ',scpr(1:ncplx)
+     end do !ispinor
+  end if
+  if(sij_opt==2 .or. sij_opt==3) then
+  !CALCULATE |S-I|PSI>
+     dprj=0.0_wp
+     !Pending: check if it works  for cplex_dij=2
+     iaux=paw_ij%cplex_dij*paw_ij%lmn2_size
+     !DEBUG
+     !write(*,*)'erase me, applyprojector_paw, l1241 sij=',sij(1:iaux)
+     !END DEBUG
+     call calculate_dprj(sij(1:iaux),iaux)
+     !
+     !apply non-local operator
+     istart_j=istart_c
+     call apply_non_local_operator(spsi,nvctr_c+7*nvctr_f,ncplx,istart_j)
+     !
+     !DEBUG: calculate <PSI|S-I|PSI>, only for 1 orbital and ncplx=1
+     !do ispinor=1,nspinor,ncplx
+     !   scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,spsi(istart_c,ispinor),1)
+     !   write(*,*)'erase me: applyprojector_paw l1260'
+     !   write(*,*)'<psi|S-I|psi>= ',scpr(1:ncplx)
+     !end do !ispinor
+  end if
+
+  !update istart_c, note that we only used istart_j above.
+  istart_c=istart_j
+
+  i_all=-product(shape(cprj))*kind(cprj)
+  deallocate(cprj,stat=i_stat)
+  call memocc(i_stat,i_all,'cprj',subname)
+  i_all=-product(shape(dprj))*kind(dprj)
+  deallocate(dprj,stat=i_stat)
+  call memocc(i_stat,i_all,'dprj',subname)
+
+  contains
+
+!real(8) function ddot(n,A,l1,B,l2)
+!  implicit none
+!  integer, intent(in)::n,l1,l2
+!  real(8),intent(in),dimension(n)::A,B
+!  real(8)::scpr
+!  integer::i
+
+!  scpr=0.00_dp
+!  do i=1,n
+!   ddot=ddot+A(i)*B(i)
+!  end do
+!end function ddot
+
+  subroutine calculate_dprj(kij,dim1)
+     !Here we calculate:
+     !dprj(i)= sum_{j} dij <p_j|psi>
+  
+     implicit none
+     integer,intent(in)::dim1
+     real(wp),dimension(dim1),intent(in)::kij 
+
+     !apply the matrix of the coefficients on the cprj array
+     jlmn=0
+     do j_shell=1,proj_G%nshltot
+        j_l=proj_G%nam(j_shell)
+        do j_m=1,2*j_l-1
+           jlmn=jlmn+1
+           j0lmn=jlmn*(jlmn-1)/2
+           !Diagonal components
+           klmn=j0lmn+jlmn;klmnc=paw_ij%cplex_dij*(klmn-1)
+           !case of cplex_dij pending
+           !dij=paw_ij%dij(klmn,1)
+           dij=kij(klmn)
+           !write(*,'(2(i2,x),f18.10,i2)')j_shell,j_m,dij,klmn
+           do ispinor=1,nspinor !real matrix
+              dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
+              dij*cprj(ispinor,jlmn)
+           end do
+           !Off-diagonal components
+           ilmn=0
+           do i_shell=1,j_shell
+              i_l=proj_G%nam(i_shell)
+              do i_m=1,2*i_l-1
+                 if(i_m>=j_m .and. i_shell==j_shell) cycle
+                 ilmn=ilmn+1
+                 klmn=j0lmn+ilmn;klmnc=paw_ij%cplex_dij*(klmn-1)
+                 dij=paw_ij%dij(klmn,1)
+                 !write(*,'(4(i2,x),f18.10,i2)')j_shell,j_m,i_shell,i_m,dij,klmn
+                 do ispinor=1,nspinor !real matrix
+                     dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
+                         dij*cprj(ispinor,ilmn)
+                     dprj(ispinor,ilmn)=dprj(ispinor,ilmn)+&
+                         dij*cprj(ispinor,jlmn)
+                 end do
+              end do
+           end do
+        end do
+     end do
+  end subroutine calculate_dprj 
+
+  subroutine apply_non_local_operator(apham,dim1,dim2,istart)
+
+     implicit none
+     integer,intent(in)::dim1,dim2
+     integer,intent(inout)::istart
+     real(wp),dimension(dim1,dim2), intent(inout) :: apham
+     
+ 
+     !build a single array via daxpy for the projectors
+     !apply the non-local operator on the wavefunction
+     !for the moment use the traditional waxpy instead of daxpy, for test purposes
+     eproj_i=0.0_gp
+     jlmn=0
+     do j_shell=1,proj_G%nshltot
+        j_l=proj_G%nam(j_shell)
+        do j_m=1,2*j_l-1
+           jlmn=jlmn+1
+           do ispinor=1,nspinor,ncplx
+              do icplx=1,ncplx
+                 eproj_i=eproj_i+dprj(ispinor+icplx-1,jlmn)*cprj(ispinor+icplx-1,jlmn)
+              end do
+              call waxpy_wrap(ncplx,dprj(ispinor,jlmn),&
+                   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                   keyv_p,&!nlpspd%keyv_p(jseg_c),&
+                   keyg_p,&!nlpspd%keyg_p(1,jseg_c),&
+                   proj(istart),&
+                   nvctr_c,nvctr_f,nseg_c,nseg_f,&
+                   keyv,keyg,&
+                   apham(1,ispinor))
+           end do
+           istart=istart+(mbvctr_c+7*mbvctr_f)*ncplx
+        end do
+     end do
+  end subroutine apply_non_local_operator
+
+
+
+end subroutine applyprojector_paw
+
+
 !> Applies the projector associated on a given atom on a corresponding orbital
 !! uses a generic representation of the projector to generalize the form of the projector  
 subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
@@ -1550,7 +1871,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
  
 
   !parameter for the descriptors of the projectors
-  ityp=at%iatype(iat)
+  ityp=at%astruct%iatype(iat)
 
   call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
  
@@ -1741,6 +2062,78 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
 
 END SUBROUTINE apply_atproj_iorb_new
 
+!> Applies the projector associated on a given atom on a corresponding orbital
+!! uses a generic representation of the projector to generalize the form of the projector  
+subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
+     plr,proj,&
+     psi,hpsi,eproj,proj_G,paw)
+  use module_base
+  use module_types
+  use gaussians, only: gaussian_basis
+  implicit none
+  integer, intent(in) :: iat,iorb,ispsi,nprojel
+  integer, intent(inout)::istart_c
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(locreg_descriptors), intent(in) :: plr
+  !type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  real(wp), dimension(nprojel), intent(in) :: proj
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(in) :: psi
+  real(gp), intent(inout) :: eproj
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
+  type(gaussian_basis), intent(in) :: proj_G
+  type(paw_objects),intent(inout)::paw
+  !local variables
+  integer :: i_shell,sij_opt,ii
+  integer :: ncplx,j
+  character(len=*), parameter :: subname='apply_atproj_iorb'
+  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,m,icplx
+  real(gp) :: eproj_i
+
+  !Note:
+  !spsi should be in a wvl structure. 
+  !in that case spsi(ispsi) will be passed here, and 
+  !ispsi will no longer be an argument
+
+  !parameter for the descriptors of the projectors
+  ityp=at%astruct%iatype(iat)
+
+  call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+ 
+  !complex functions or not
+  !this should be decided as a function of the orbital
+  !features of the k-point ikpt
+  call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
+
+
+  !calculate the scalar product with all the projectors of the atom
+  !index for performing the calculation with all the projectors
+  
+  sij_opt=3 !get hpsi and spsi
+
+   call applyprojector_paw(ncplx,istart_c,&
+        wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyvglob,wfd%keyglob,&
+        mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+        plr%wfd%keyvglob,& !nlpspd%keyv_p(jseg_c),
+        plr%wfd%keyglob,& !nlpspd%keyg_p(1,jseg_c),&
+        proj(1),&
+        psi,hpsi,paw%spsi(ispsi),eproj_i,proj_G,paw%paw_ij(iat),&
+        paw%indlmn(:,:,at%astruct%iatype(iat)),paw%lmnmax,paw%cprj(iat,iorb),&
+        sij_opt,paw%sij(:,ityp))  
+
+  !DEBUG
+  !do ii=1,wfd%nvctr_c+7*wfd%nvctr_f
+  !   write(400,*)ii,hpsi(ii,1)
+  !   write(401,*)ii,paw%spsi(ispsi+ii-1)
+  !end do
+  !DEBUG
+  eproj=eproj+&
+        &orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_i
+
+
+
+end subroutine apply_atproj_iorb_paw
 
 !>   Find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
 subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
@@ -1885,11 +2278,11 @@ END SUBROUTINE ncplx_kpt
 !!    rxyzShifted(2)=rxyz(2,onWhichAtom(iorb))+orbs%parabolaShift(2,iorb)
 !!    rxyzShifted(3)=rxyz(3,onWhichAtom(iorb))+orbs%parabolaShift(3,iorb)
 !!        call apply_potentialParabola(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-!!             pot(nsoffset),epot, rxyzShifted, hxh, hyh, hzh, orbs%parabPrefacArr(at%iatype(onWhichAtom(iorb))), orbs%power, &
+!!             pot(nsoffset),epot, rxyzShifted, hxh, hyh, hzh, orbs%parabPrefacArr(at%astruct%iatype(onWhichAtom(iorb))), orbs%power, &
 !!             lr%bounds%ibyyzz_r) !optional
 !!   ! THIS WAS THE ORIGINAL
 !!        !call apply_potentialParabola(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-!!        !     pot(nsoffset),epot, rxyz(1,onWhichAtom(iorb)), hxh, hyh, hzh, orbs%parabPrefacArr(at%iatype(onWhichAtom(iorb))),  &
+!!        !     pot(nsoffset),epot, rxyz(1,onWhichAtom(iorb)), hxh, hyh, hzh, orbs%parabPrefacArr(at%astruct%iatype(onWhichAtom(iorb))),  &
 !!        !     lr%bounds%ibyyzz_r) !optional
 !!
 !!        !call apply_potentialParabola(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&

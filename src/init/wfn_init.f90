@@ -666,7 +666,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   character(len=*), parameter :: subname='LDiagHam'
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
-  integer :: ikptp,ikpt,nvctrp,iorb,Gdim,jproc
+  integer :: ikptp,ikpt,nvctrp,iorb,Gdim!,jproc
   integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx,idum=0
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
   real(kind=4) :: tt,builtin_rand
@@ -678,6 +678,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   real(wp), dimension(:), pointer :: psiw
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
      
+
   !performs some check of the arguments
   if (present(orbse) .neqv. present(commse)) then
      !if (iproc ==0) 
@@ -951,6 +952,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      !here the value of the IG occupation numbers can be calculated
      if (iscf > SCF_KIND_DIRECT_MINIMIZATION .or. Tel > 0.0_gp) then
 
+        if (iproc==0) call yaml_map('Noise added to input eigenvalues to determine occupation numbers',&
+             max(Tel,1.0e-3_gp),fmt='(1pe12.5)')
         !add a small displacement in the eigenvalues
         do iorb=1,orbsu%norb*orbsu%nkpts
            tt=builtin_rand(idum)
@@ -992,6 +995,16 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      !number of complex components
      ncplx=1
      if (nspinor > 1) ncplx=2
+
+     !@todo: see to broadcast a smaller array, if possible.
+     !@todo: switch to a allgatherv to handle kpoint case.
+     ! Broadcast in case of different degenerated eigen vectors.
+     if (nproc > 1 .and. orbsu%nkpts == 1) then
+        !reduce the overlap matrix between all the processors
+        call mpi_bcast(hamovr(1,1,1), 2*nspin*ndim_hamovr*orbsu%nkpts, mpidtypw, &
+             & 0, bigdft_mpi%mpi_comm, ierr)
+     end if
+
      do ikptp=1,orbsu%nkptsp
         ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
 
@@ -1110,8 +1123,8 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
    real(wp), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
    real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,hpsi
    !local variables
-   integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx,jproc,ierr
-   integer :: iorb,jorb
+   integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx!,ierr,jproc
+   !integer :: iorb,jorb
    !WARNING: here nspin=1 for nspinor=4
    if(nspinor == 1) then
       ncplx=1
@@ -1199,7 +1212,7 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
    !n(c) character(len=25) :: gapstring
    !n(c) character(len=64) :: message
    integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,i,ncplx !n(c) iorb, ncomp, ndegen
-   integer :: norbj,jiorb,jjorb,ihs,ispin,norbij,norbu_ig,jproc !n(c) nwrtmsg
+   integer :: norbj,jiorb,jjorb,ihs,ispin,norbij,norbu_ig !,jproc n(c) nwrtmsg
    !n(c) real(wp), dimension(2) :: preval
    real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
    !n(c) real(gp) :: HLIGgap

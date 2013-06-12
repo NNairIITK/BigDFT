@@ -23,7 +23,7 @@
 !! @param n3grad is the effective dimension of interest
 subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
      wb_vxc)
- use module_base
+  use Poisson_Solver, only: dp
  implicit none
  !Arguments
  character(len=1), intent(in) :: geocode
@@ -562,7 +562,9 @@ END SUBROUTINE wb_correction
 !!           The rest of the array is defined for later use in the wb postprocessing routine.
 subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
      gradient,rhocore)
- use module_base
+  use Poisson_Solver, only: dp, wp
+  use memory_profiling
+  use wrapper_linalg
  implicit none
  !Arguments
  character(len=1), intent(in) :: geocode

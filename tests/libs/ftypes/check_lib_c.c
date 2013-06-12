@@ -59,6 +59,18 @@ static void output_atoms(const BigDFT_Atoms *atoms)
   fprintf(Cout, " Box [%c], is in %f %f %f\n", atoms->geocode,
           atoms->alat[0], atoms->alat[1], atoms->alat[2]);
 }
+static void output_forces(const BigDFT_Energs *energs)
+{
+  guint i;
+
+  for (i = 0; i  < energs->nat; i++)
+    fprintf(Cout, " Atom %d, force %f %f %f\n", i,
+            energs->fxyz[3 * i], energs->fxyz[3 * i + 1], energs->fxyz[3 * i + 2]);
+  fprintf(Cout, " Pressure [%f], stress tensor %f %f %f\n", energs->pressure,
+          energs->strten[0], energs->strten[1], energs->strten[2]);
+  fprintf(Cout, "                                    %f %f %f\n",
+          energs->strten[3], energs->strten[4], energs->strten[5]);
+}
 static void output_locreg(const BigDFT_Locreg *glr)
 {
   guint i, n;
@@ -184,6 +196,8 @@ int main(int argc, char **argv)
 #ifdef HAVE_GLIB
   GMainLoop *loop;
 #endif
+  char memocc[] = "malloc.prc";
+  int memocc_ln = sizeof(memocc);
 
   int out_pipe[2], stdout_fileno_old;
 
@@ -200,6 +214,7 @@ int main(int argc, char **argv)
     Cout = fopen("output.C", "w");
 
   FC_FUNC_(memocc_verbose, MEMOCC_VERBOSE)();
+  FC_FUNC_(memocc_set_output, MEMOCC_SET_OUTPUT)(memocc, &memocc_ln, memocc_ln);
 
   fprintf(Cout, "Test BigDFT_Wf structure creation.\n");
   wf = bigdft_wf_new(100);
@@ -233,6 +248,7 @@ int main(int argc, char **argv)
   in = bigdft_inputs_new("test");
   fprintf(Cout, " base Ok\n");
   bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
+  fprintf(Cout, " symmetries Ok\n");
   bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));
   fprintf(Cout, " additional Ok\n");
   output_inputs(in);
@@ -335,6 +351,8 @@ int main(int argc, char **argv)
           denspot->rhov_is, denspot->psoffset);
   bigdft_localfields_create_poisson_kernels(denspot);
 
+  /* fflush(Cout); */
+
   /* Block here in a main loop. */
 #ifdef HAVE_GLIB
   data = run_bigdft(in, proj, denspot, wf, loop);
@@ -347,6 +365,11 @@ int main(int argc, char **argv)
   g_free(data);
 
   fprintf(Cout, " Total energy after relaxation is %gHt.\n", energs->eKS);
+
+  fprintf(Cout, "Test force calculation.\n");
+  bigdft_wf_post_treatments(wf, denspot, proj, energs, 0, 1);
+  output_forces(energs);
+  fprintf(Cout, " Ok\n");
 
   fprintf(Cout, "Test BigDFT_LocalFields free.\n");
   bigdft_localfields_free(denspot);
@@ -586,12 +609,15 @@ static void onPsiReady(BigDFT_Wf *wf, guint iter, gpointer data)
     }
   fprintf(Cout, " Band 4 has min partial density %g and max %g.\n", minDens, maxDens);
 
+  fprintf(Cout, " Dump psi if iter = 0 (%d).\n", iter);
   if (iter == 0)
     bigdft_wf_write_psi_compress(wf, "wave", BIGDFT_WF_FORMAT_PLAIN, psic, 1, 4, BIGDFT_SPIN_UP, size);
 
+  fprintf(Cout, " freeing.\n");
   g_free(psir);
   if (BIGDFT_ORBS(wf)->nspinor == 2)
     g_free(psii);
+  fprintf(Cout, " Signal done.\n");
 }
 static void onEksReady(BigDFT_Energs *energs, guint iter, gpointer data)
 {

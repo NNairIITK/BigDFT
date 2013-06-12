@@ -258,7 +258,6 @@ program conv_check_fft
    call compare_3D_cplx_results(n1, n2, n3, psi_in, psi_cuda, maxdiff, 3.d-7)
    call compare_time(CPUtime,GPUtime,n1*n2*n3,5 * (log(real(n1,kind=8))+&
      log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
-
    
    !Poisson Solver
     write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver, dimensions:',n1,n2,n3
@@ -558,11 +557,11 @@ contains
     nproc=1
     !calculate the dimensions wrt the geocode
     if (geocode == 'P') then
-       call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+       call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
     else if (geocode == 'S') then
-       call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+       call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
     else if (geocode == 'F') then
-       call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+       call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
     else
        stop 'ERROR(transpose_kernel_forGPU): geometry code not admitted'
     end if

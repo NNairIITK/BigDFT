@@ -4,7 +4,6 @@ Default tolerances:
  
 Keys to ignore:
  - Code logo
- - Timestamp of this run
  - MPI task*
  - Timings for root process
  - Maximal OpenMP threads per MPI task
@@ -24,17 +23,34 @@ Keys to ignore:
  - Tolerances for this check
  - Material acceleration
  - Number of OpenCL devices per node
+ - Version Number
+ - Root process Hostname
+ - WARNINGS # They are not parsing reliable because of ':' character
+Patterns to ignore:
+ - Timestamp
+ - memory
+ - FLAGS
 
 Expected Test CPUtime: #
  C: #[expected, error]
   athelas: [ 6.0, 1.0 ]
 
+yaml_test:
+ Tax: 1.8e-6
+ Total: 2.0e-5
+ Keys to ignore:
+   - Error code
+   - Address*
+   - date
+   - Id
+ Patterns to ignore:
+   - errcode
 
 #Runs which update and override the default
 SiH4:
- #due like that due to lack of functionality in fldiff, since energies field is updated
+ #due to lack of functionality in fldiff, since energies field is updated
  Energies: &etol 4.6e-9
- Eion: &eion 2.7e-9
+ Eion: &eion 3.4e-9
  EH: *etol
  EXC: *etol
  Eion: *etol
@@ -46,13 +62,19 @@ SiH4:
  Ion-Ion interaction energy: *eion
  Atomic Forces (Ha/Bohr): 2.e-9
  maxval: 2.e-9
+ Average noise forces: 1.5e-10
+ Average CG stepsize in terms of betax: 1.1e-5
 
 AgBulk:
  Grid Spacing threshold (AU): 1.e-2
  Residues per orbital: 2.2e-8
- EXC: 1.6e-11
- EvXC: 1.6e-11
- tr(H): 1.6e-11
+ EH: 1.6e-11
+ EXC: 2.9e-11
+ Ekin: 1.2e-11
+ Enl: 2.3e-11
+ Epot: 2.1e-11
+ EvXC: 3.7e-11
+ tr(H): 2.5e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -60,7 +82,12 @@ AgBulk:
 
 SiBulk:
  Residues per orbital: 8.0e-10
- Epot: 1.2e-11
+ maxval: 1.2e-11
+ Enl: 2.1e-11
+ Epot: 1.0e-10
+ EvXC: 1.1e-10
+ Atomic Forces (Ha/Bohr): 1.2e-11
+ Clean forces norm (Ha/Bohr): 1.2e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -69,10 +96,19 @@ Mn2:
  Keys to ignore:
   - proc
  Epsilon: 2.e-10
+ Enl: 3.1e-10
  Ekin: 3.1e-10
+ Average noise forces: 3.4e-10
+ Atomic Forces (Ha/Bohr):
+  - Mn: 2.5e-10
+ Clean forces norm (Ha/Bohr):
+  maxval: 2.5e-10
 
 GPU:
  EvXC: 1.1e-10
+
+Graphene:
+ EH: 1.1e-10
 
 TiMix:
  Epsilon: 1.e-10
@@ -82,11 +118,15 @@ GEOPT-BFGS:
 
 GEOPT-LBFGS: 
  Epsilon: 4.1e-10
+ EH: 1.11e-9
+ Epot: 3.3e-10
+ Eion: 8.5e-10
+ Enl: 6.5e-10
  DIIS weights: 1.1e-5
  
 NaCl:
  Epsilon: 2.e-9
- Mean L2 norm of gaussian-wavelet difference: 1.4e-5
+ Mean L2 norm of gaussian-wavelet difference: 1.21e-4
 
 NH3:
  Epsilon: 1.1e-10
@@ -94,22 +134,23 @@ NH3:
 CH3-:
  Epsilon: 5.1e-9
  gnrm: 1.1e-5
- EKS: 7.84e-9
+ EKS: 1.6e-8
  D: 1.e-8
- Average CG stepsize in terms of betax: 5.1e-5
- Atomic Forces (Ha/Bohr): 1.7e-8
- Average noise forces: 2.7e-8
- Clean forces norm (Ha/Bohr): 1.1e-7
- Raw forces norm (Ha/Bohr): 1.5e-7
- Ion-Ion interaction energy: 3.8e-7
- FORCES norm(Ha/Bohr): 5.6e-9
+ Average CG stepsize in terms of betax: 3.4e-4
+ Atomic Forces (Ha/Bohr): 4.0e-7
+ Average noise forces: 5.3e-8
+ Clean forces norm (Ha/Bohr): 3.6e-7
+ Raw forces norm (Ha/Bohr): 4.0e-7
+ Ion-Ion interaction energy: 3.0e-6
+ FORCES norm(Ha/Bohr): 1.1e-6
+ Forces: 1.1e-7
  Keys to ignore:
  - b/b0
 
 scalability:
- Epsilon: 1.1e-10
+ Energies: 1.e-9
  EKS: 2.0e-10
- EH: 1.e-9
+ Total electronic charge: 1.9e-11
 
 ElecField:
  Epsilon: 1.1e-10 
@@ -123,6 +164,12 @@ Li+:
 O2-Spin:
  Epsilon: 1.1e-10
 
+H2-spin:
+ Estimation of Finite-Size Corrections:
+  Corrected Energies:
+   Epot: 2.1e-11
+  Total energy with tail correction: 1.51e-11
+
 TiSmear:
  Epsilon: 5.e-11
  EKS: 5.5e-11
@@ -132,11 +179,28 @@ H2O-CP2K:
 
 test.splsad.ref.yaml:
  Epsilon: 1.1e-10
- Electric Dipole Moment (Debye): 1.2e-8
+ Electric Dipole Moment (Debye): 1.21e-8
 
 test.minhop.ref.yaml:
-  Keys to ignore:
-    - (MH) cpu(hrs)
+ Energies: &etol1 6.0e-9
+ Eion: &eion1 4.1e-11
+ EH: *etol1
+ EXC: *etol1
+ Ekin: *etol1
+ Enl: *etol1
+ Epot: *etol1
+ EvXC: *etol1
+ EKS: 9.7e-10
+ Ion-Ion interaction energy: *eion1
+ fluct: 1.2e-9
+ maxval: 7.1e-11
+ Atomic Forces (Ha/Bohr): 2.0e-11
+ Average noise forces: 1.0e-10
+ etot: 1.84e-11
+ Orbitals: 6.1e-9
+ Keys to ignore:
+   - (MH) cpu(hrs)
+   - WARNINGS
 
 test.testforces.ref.yaml:
  Epsilon: 1.2e-10
@@ -144,6 +208,9 @@ test.testforces.ref.yaml:
 H2O-bader:
  Epsilon: 3.0e-11
  EKS: 6.0e-11
+
+H2O-CP2K:
+ Total energy with tail correction: 1.8e-11
 
 N2:
  Epsilon: 1.2e-10
@@ -154,40 +221,73 @@ mixpotential:
 IO-wf_plain-read:
  Energies: 1.1e-10
 
-scalability:
- Energies: 1.e-9
- EKS: 2.e-10
- Total electronic charge: 1.4e-11
+CH4-D3:
+ EH: &ener 1.1e-10
+ Epot: *ener
+ EKS: &ener2 3.3e-11
+ Eion: *ener
+ Ekin: *ener
+ Enl: *ener2
+ etot: 2.92e-11
+ Etot: 2.9e-11
+ Ion-Ion interaction energy: 9.0e-11
 
 NLCC: &NLCCs
  Energies: 1.2e-10
  EKS: 5.e-11
+ Total electronic charge: 1.2e-11
 
 #deepcopy of the above defined cases
 NLCC_free-O2: *NLCCs
 NLCC_free: *NLCCs
 NLCC_periodic-O2: *NLCCs
+NLCC_periodic: *NLCCs
 
 taskgroups:
   Energies: 1.1e-10
-  EKS: 5.3e-11
+  EKS: 1.1e-10
+  P vector: 1.1e-10
+
+base:
+  norm(P): 1.1e-9
 
 Davidson-SiH4:
-  e_virtual: 1.2e-11
+  e_virtual: 1.7e-11
   Eigenvalues and eigenstate residue: 1.3e-10
 
 TDDFT:
   Epsilon: 1.1e-10
-  e_virtual: 4.9e-10
+  e_virtual: 1.61e-9
   Eigenvalues and eigenstate residue: 1.1e-7
   Epot: 1.1e-10
-  Gradient Norm: 1.3e-9
+  Gradient Norm: 4.11e-9
+  L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-7
+  Excitation Energy and Oscillator Strength: 1.7e-6
+  Transition energies (eV): 1.1e-4
 
 BigDFT2Wannier.b2w.ref.yaml:
-  amnk_guess(nb): 5.0e-11
+  amnk_guess(nb): 1.31e-10
 
 cleanup:
- Atomic Forces (Ha/Bohr): 1.5e-10
- Average noise forces: 1.5e-10
+ Atomic Forces (Ha/Bohr): 3.1e-10
+ Average noise forces: 3.1e-10
  Clean forces norm (Ha/Bohr): 1.6e-10
  Raw forces norm (Ha/Bohr): 2.4e-10
+
+directmin:
+ Patterns to ignore:
+ - Wavefunction written
+
+restartdisk_charge:
+ Patterns to ignore:
+ - Wavefunction written
+
+rotate_write:
+ Patterns to ignore:
+ - Wavefunction written
+
+GEOPT-newIG:
+  Ion-Ion interaction energy: 1.62e-11
+  D: 1.1e-10
+  Energies: 4.81e-9
+  EKS: 5.6e-10

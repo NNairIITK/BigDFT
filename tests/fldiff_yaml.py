@@ -2,6 +2,16 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 
+#> @file
+## Check yaml output for tests
+## @author
+##    Copyright (C) 2012-2013 BigDFT group
+##    This file is distributed under the terms of the
+##    GNU General Public License, see ~/COPYING file
+##    or http://www.gnu.org/copyleft/gpl.txt .
+##    For the list of contributors, see ~/AUTHORS
+
+
 import math
 import sys
 import os,copy,optparse
@@ -23,7 +33,7 @@ if  version <= [2,5,0]:
 
 
 import yaml
-from yaml_hl import *
+#from yaml_hl import *
 
 start_fail = "<fail>" #"\033[0;31m"
 start_fail_esc = "\033[0;31m "
@@ -54,7 +64,7 @@ def compare(data, ref, tols = None, always_fails = False):
   if data is None:
     return (True, None)
   elif type(ref) == type({}):
-#for a floating point the reference is set for all the lower levels    
+    #for a floating point the reference is set for all the lower levels    
     if type(tols) == type(1.0e-1):
       neweps=tols
       tols={}
@@ -80,7 +90,7 @@ def compare_seq(seq, ref, tols, always_fails = False):
   global failed_checks
   if tols is not None:
     for i in range(len(ref)):
-#      print 'here',ref[i],seq[i],tols[0]
+      #print 'here',ref[i],seq[i],tols[0]
       (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails)
 # Add to the tolerance dictionary a failed result      
       if failed:
@@ -137,13 +147,16 @@ def compare_map(map, ref, tols, always_fails = False):
       if failed:
         if key in tols:
           if type(newtols)== type({}):
-            tols[key].update(newtols)
+            if type(tols[key]) == type({}):
+              tols[key].update(newtols)
+            else:
+              tols[key]=newtols
           elif type(newtols) == type([]):
             tols[key]=newtols
           else:
             tols[key] = max(newtols,tols[key])
         else:
-            tols[key] = newtols
+          tols[key] = newtols
   return (len(tols) > 0, tols)  
   
 
@@ -153,7 +166,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
   global failed_checks,discrepancy,biggest_tol
   failed = always_fails
   ret = (failed, None)
-  #print scl,ref,tols
+  #print 'scl',scl,'ref',ref,'tols',tols
 #eliminate the character variables
   if type(ref) == type(""):
     if not(scl == ref):
@@ -254,16 +267,17 @@ if __name__ == "__main__":
 
 #print args.ref,args.data,args.output
 #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
-references = [a for a in yaml.load_all(open(args.ref, "r"), Loader = yaml.CLoader)]
+references = [a for a in yaml.load_all(open(args.ref, "r").read(), Loader = yaml.CLoader)]
 try:
-  datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
-except:
+  datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
+except Exception,e:
+  print str(e)
   datas = []
   reports = open(args.output, "w")
   fatal_error(args,reports)
 
 if args.tols:
-    orig_tols = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)
+    orig_tols = yaml.load(open(args.tols, "r").read(), Loader = yaml.CLoader)
 else:
     orig_tols = dict()
 
@@ -394,7 +408,8 @@ for i in range(len(references)):
                             default_flow_style=False,explicit_start=True))
   newreport.close()
   reports.write(open("report", "rb").read())
-  hl = YAMLHighlight(options)
+  Style = yaml_hl.Style
+  hl = yaml_hl.YAMLHighlight(options)
   hl.highlight()
   
 #create dictionary for the final report

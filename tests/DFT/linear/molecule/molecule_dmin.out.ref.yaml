@@ -1,5 +1,4 @@
 ---
-  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
  Code logo:
          TTTT         F       DDDDD
         T    T               D
@@ -27,16 +26,27 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-02-04 15:11:17.206
+ Version Number                        : 1.7-dev.26
+ Timestamp of this run                 : 2013-04-22 10:14:08.592
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
+ MPI tasks of root process node        :  6
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments                 : " 'FC=mpif90' '--disable-bindings'"
+   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
+   Compiler flags:
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -g -O2
+     CXXFLAGS                          : -g -O2
+     CPPFLAGS                          : 
  #... (file:dmin.perf)...................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
  #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
  #|OCL_platform                 Chosen OCL platform                                          
+ #|OCL_devices                  Chosen OCL devices                                           
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -123,12 +133,11 @@
  #|1  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
  #|0  F           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|C 4 1.0d-4 0.0d0 4.5 5.0 20.0  Atom name, number of basis functions per atom, prefactor fo
- #|N 4 1.0d-4 0.0d0 4.5 5.0 20.0  Atom name, number of basis functions per atom, prefactor fo
- #|H 1 1.0d-4 0.0d0 4.5 5.0 20.0  Atom name, number of basis functions per atom, prefactor fo
+ #|C 4 1.0d-4 1.0d-4 0.0d0 4.5 5.0 20.0  Atom name, number of basis functions per atom, prefa
+ #|N 4 1.0d-4 1.0d-4 0.0d0 4.5 5.0 20.0  Atom name, number of basis functions per atom, prefa
+ #|H 1 1.0d-4 1.0d-4 0.0d0 4.5 5.0 20.0  Atom name, number of basis functions per atom, prefa
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-dmin/
- Material acceleration                 :  No #iproc=0
   #---------------------------------------------------- Input Atomic System (file: dmin.xyz)
  Atomic System Properties:
    Number of atomic types              :  3
@@ -145,6 +154,7 @@
    Fluctuation in forces               :  1.0E+00
    Maximum in forces                   :  0.0E+00
    Steepest descent step               :  4.0E+00
+ Material acceleration                 :  No #iproc=0
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
@@ -330,7 +340,7 @@
    Nonlocal Pseudopotential Arrays     : 0.65
    Full Uncompressed (ISF) grid        : 32.281
    Workspaces storage size             : 3.380
- Memory requirements for principal code sections (MiB.KiB):
+ Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 111.966
    Density Construction                : 358.480
    Poisson Solver                      : 323.80
@@ -373,12 +383,12 @@
      MPI tasks                         :  6
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  55282,  1386 ]
-
+   Tolerances for this check: [ 1.66993335562933454E-06,  2.35367281220533187E-14]
    Maxdiff for transpose (checksum)    :  1.16415321826934814E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  37962,  1346 ]
-
+   Tolerances for this check: [ 5.18440006921916385E-06,  2.35367281220533187E-14]
    Maxdiff for transpose (checksum)    :  2.79396772384643555E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
@@ -446,19 +456,60 @@
    BC                                  : Free
    Box                                 :  [  197,  197,  109 ]
    MPI tasks                           :  6
- Non Local forces calculated           :  Yes
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x: -3.47448630E-04, y:  4.25147647E-04, z:  5.29049982E-03, 
+                    total:  5.31891524E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  2.285129867194E-02, fnrm2:  2.094293054019E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  2.283679161336E-02, fnrm2:  2.122637173065E-03}
+  #--------------------------------------------------------------------------- Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {N: [ 1.112691306127E-02,  8.415846831123E-04, -6.760444154517E-05]} # 0001
+ -  {N: [ 9.232182856575E-04,  5.530376998633E-03, -2.523613731838E-04]} # 0002
+ -  {N: [ 1.770553434803E-03, -6.826075967775E-04, -1.596470308639E-04]} # 0003
+ -  {N: [-6.585503629437E-04, -2.281874220309E-02,  1.026239096071E-03]} # 0004
+ -  {N: [-1.880329407928E-04, -1.664939926315E-03, -1.615179428861E-04]} # 0005
+ -  {C: [-3.259680112052E-03,  3.500459915041E-03, -2.884499120120E-04]} # 0006
+ -  {C: [ 9.797240039488E-04,  5.809329596615E-03,  5.621801941875E-04]} # 0007
+ -  {C: [ 5.930422698313E-04, -6.249498698129E-03,  6.288555883803E-04]} # 0008
+ -  {C: [-3.525614809026E-03, -6.202137615414E-03, -1.832181181901E-04]} # 0009
+ -  {C: [ 5.916759971128E-04,  2.822294257394E-03, -2.131419337127E-04]} # 0010
+ -  {C: [ 7.366597351766E-03, -6.929972115815E-05,  3.037543442160E-04]} # 0011
+ -  {C: [-7.288505333683E-03, -2.000980147719E-04,  3.361530210122E-04]} # 0012
+ -  {C: [-2.011550584917E-03,  2.702369647410E-03, -1.445267374734E-04]} # 0013
+ -  {C: [ 3.081403020285E-03,  4.018520435258E-03, -3.322948403011E-04]} # 0014
+ -  {H: [ 2.361036560567E-03, -7.931965604229E-04, -1.635688208603E-04]} # 0015
+ -  {H: [ 2.311341670444E-03,  1.293402029902E-03, -1.611824236393E-04]} # 0016
+ -  {H: [-8.177801637687E-04, -2.313133600097E-03, -5.001155108251E-04]} # 0017
+ -  {H: [ 1.155302358975E-03, -1.992718101141E-03, -5.077349189623E-04]} # 0018
+ -  {H: [ 8.070474282015E-04, -6.831511265913E-03, -1.660394770402E-04]} # 0019
+ -  {N: [-1.327804773774E-02,  9.202256144802E-04, -1.995384752122E-04]} # 0020
+ -  {N: [-4.744676940228E-04,  2.172562436086E-02,  9.091076346018E-04]} # 0021
+ -  {N: [ 5.073144795361E-04,  5.161394415659E-03, -2.512146313846E-04]} # 0022
+ -  {C: [ 3.156754821370E-03, -7.234844396501E-03, -2.194418462393E-04]} # 0023
+ -  {C: [-1.575541848586E-05, -5.606284586313E-03,  6.359841704566E-04]} # 0024
+ -  {C: [-4.178563461001E-04,  5.279216746380E-03,  5.648955374324E-04]} # 0025
+ -  {C: [-9.713024892824E-04, -3.837621633004E-03, -1.451751155791E-04]} # 0026
+ -  {C: [-8.371964146511E-03, -1.905929388288E-04,  4.445307702393E-04]} # 0027
+ -  {C: [ 7.913210058961E-03, -8.765286765549E-04,  4.243547328171E-04]} # 0028
+ -  {C: [-3.063929315144E-04, -3.641769834373E-03, -1.878386077224E-04]} # 0029
+ -  {H: [-2.080879030680E-03,  1.859133004130E-03, -1.050577059168E-04]} # 0030
+ -  {H: [-2.296255977017E-03, -1.246461545933E-03, -1.080205646199E-04]} # 0031
+ -  {H: [ 9.102617493301E-04,  1.964579399092E-03, -5.780167763189E-04]} # 0032
+ -  {H: [-4.291742039117E-04,  2.167498589858E-03, -5.662788371793E-04]} # 0033
+ -  {H: [ 8.364137303938E-04,  6.855977220914E-03, -1.740690477459E-04]} # 0034
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  89.47
-   Elapsed time (s)                    :  91.51
+   CPU time (s)                        :  97.42
+   Elapsed time (s)                    :  98.12
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 64702
-   Tot. No. of Deallocations: 64702
+   Tot. No. of Allocations  : 64340
+   Tot. No. of Deallocations: 64340
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 625
+      Peak Value (MB): 624
       for the array: nrecvdspls
       in the routine: transpose_communicate_psi
