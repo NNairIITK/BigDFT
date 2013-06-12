@@ -51,6 +51,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
       call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
            tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
+      write(*,*) 'iproc, size(denspot%rhov)', iproc, size(denspot%rhov)
+      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
   end if
 
   ! Calculate the overlap matrix if required.

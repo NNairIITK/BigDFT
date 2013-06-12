@@ -14,6 +14,8 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
   integer :: jproc, joverlap, mpisource, istsource, mpidest, istdest, ierr, nit
   integer :: ioffset_send, mpi_type, ist, i2, i3, ist2, ist3, info, nsize, size_of_double
   character(len=*),parameter :: subname='start_onesided_communication'
+  integer :: ii
+  integer(kind=mpi_address_kind) :: lb, extent
 
 
 
@@ -21,6 +23,7 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
 
   nproc_if: if (nproc>1) then
 
+      write(*,*) 'iproc, nsendbuf, nrecvbuf', iproc, nsendbuf, nrecvbuf
       ! Allocate MPI memory window
       call mpi_type_size(mpi_double_precision, size_of_double, ierr)
       call mpi_info_create(info, ierr)
@@ -32,6 +35,7 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
       call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
       
       do jproc=0,nproc-1
+          if (iproc==0) write(*,*) 'jproc, comm%noverlaps(jproc)', jproc, comm%noverlaps(jproc)
           do joverlap=1,comm%noverlaps(jproc)
               mpisource=comm%comarr(1,joverlap,jproc)
               istsource=comm%comarr(2,joverlap,jproc)
@@ -40,17 +44,32 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
               nit=comm%comarr(5,joverlap,jproc)
               ioffset_send=comm%comarr(6,joverlap,jproc)
               if (iproc==mpidest) then
-                  call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
-                       comm%mpi_datatypes(1,jproc), mpi_type, ierr)
-                  call mpi_type_commit(mpi_type, ierr)
-                  call mpi_type_size(mpi_type, nsize, ierr)
-                  nsize=nsize/size_of_double
-                  if(nsize>0) then
-                      call mpi_get(recvbuf(istdest), nsize, &
-                           mpi_double_precision, mpisource, int((istsource-1),kind=mpi_address_kind), &
-                           1, mpi_type, comm%window, ierr)
+                  if(iproc==49 .and. mpisource==49) then
+                  !if(mpisource==49) then
+                      write(*,'(a,3i8)') 'iproc, nit, ioffset_send', iproc, nit, ioffset_send
+                      call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
+                           comm%mpi_datatypes(1,jproc), mpi_type, ierr)
+                      call mpi_type_commit(mpi_type, ierr)
+                      call mpi_type_size(mpi_type, nsize, ierr)
+                      nsize=nsize/size_of_double
+                      call mpi_type_size(mpi_type, ii, ierr)
+                      call mpi_type_get_extent(mpi_type, lb, extent, ierr)
+                      !!MPI_TYPE_GET_EXTENT(DATATYPE, LB, EXTENT, IERROR)
+                      !!INTEGER    DATATYPE, IERROR
+                      !!INTEGER(KIND=MPI_ADDRESS_KIND) LB, EXTENT
+                      write(*,'(a,8i8)') 'iproc, mpisource, istdest, nsize, istsource-1, ii, lb, extent', &
+                                          iproc, mpisource, istdest, nsize, istsource-1, ii, lb, extent
+                      if(nsize>0) then
+                          call mpi_get(recvbuf(istdest), nsize, &
+                               mpi_double_precision, mpisource, int((istsource-1),kind=mpi_address_kind), &
+                               1, mpi_type, comm%window, ierr)
+                          !!call dcopy(nsize, sendbuf(istsource), 1, recvbuf(istdest), 1)
+                          !!call mpi_get(recvbuf(istdest), , &
+                          !!     mpi_double_precision, mpisource, int((istsource-1),kind=mpi_address_kind), &
+                          !!     1, mpi_type, comm%window, ierr)
+                      end if
+                      call mpi_type_free(mpi_type, ierr)
                   end if
-                  call mpi_type_free(mpi_type, ierr)
               end if
           end do
       end do
@@ -91,12 +110,19 @@ subroutine synchronize_onesided_communication(iproc, nproc, comm)
   type(p2pComms),intent(inout):: comm
   
   ! Local variables
-  integer:: ierr
+  integer:: ierr, jproc
   
   
   if(.not.comm%communication_complete) then
-      call mpi_win_fence(0, comm%window, ierr)
-      call mpi_win_free(comm%window, ierr)
+      !do jproc=0,nproc-1
+          !if (iproc==jproc) then
+              write(*,*) 'start: iproc', iproc
+              call mpi_win_fence(0, comm%window, ierr)
+              call mpi_win_free(comm%window, ierr)
+              write(*,*) 'complete: iproc', iproc
+          !end if
+          !call mpi_barrier(mpi_comm_world, ierr)
+      !end do
   end if
 
   ! Flag indicating that the communication is complete
