@@ -257,8 +257,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if (.not. input%lin%iterative_orthogonalization) then
 
       ! Standard orthonomalization
-      if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+      !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
+      !write(*,'(a,i4,4i8)') 'IG: iproc, lbound, ubound, minval, maxval',&
+      !iproc, lbound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
+      !ubound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
+      !minval(tmb%collcom%indexrecvorbital_c),maxval(tmb%collcom%indexrecvorbital_c)
       call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
            tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
             
