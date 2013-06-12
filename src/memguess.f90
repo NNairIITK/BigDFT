@@ -637,8 +637,8 @@ program memguess
    call deldir(in%dir_output,len(trim(in%dir_output)),ierror)
    call free_input_variables(in)  
 
-   !finalize memory counting
-   call memocc(0,0,'count','stop')
+!   !finalize memory counting
+!   call memocc(0,0,'count','stop')
 
    !Elapsed time
    !call cpu_time(tcpu1)
