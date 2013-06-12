@@ -72,7 +72,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   !close(unit=79)
 
  
-  if (iproc == 0) call yaml_map('Analytic core charge',chc-chv,fmt='(f12.6)')
+!  if (iproc == 0) call yaml_map('Analytic core charge',chc-chv,fmt='(f12.6)')
   !if (iproc == 0) write(*,'(1x,a,f12.6)',advance='no')' analytic core charge: ',chc-chv
 
   !conditions for periodicity in the three directions
