@@ -130,7 +130,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
       calculate_SHS=.true.
 
-      call to_zero(orbs%norb*orbs%norbp, fermip(1,1))
+      if (orbs%norbp>0) then
+          call to_zero(orbs%norb*orbs%norbp, fermip(1,1))
+      end if
 
       it=0
       it_solver=0
