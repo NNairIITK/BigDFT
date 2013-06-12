@@ -3097,6 +3097,11 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, psitwork_c, p
   !$omp parallel default(private) &
   !$omp shared(collcom, psit_c, psitwork_c, psit_f, psitwork_f, sparsemat)
 
+  !!write(*,'(a,i4,4i8)') 'iproc, lbound, ubound, minval, maxval',&
+  !!iproc, lbound(sparsemat%matrixindex_in_compressed_fortransposed,2),&
+  !!ubound(sparsemat%matrixindex_in_compressed_fortransposed,2),&
+  !!minval(collcom%indexrecvorbital_c),maxval(collcom%indexrecvorbital_c)
+
   !$omp do
    do ipt=1,collcom%nptsp_c 
       ii=collcom%norb_per_gridpoint_c(ipt) 
