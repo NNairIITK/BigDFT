@@ -3821,17 +3821,6 @@ module module_interfaces
           type(orbitals_data), intent(inout) :: orbs
         end subroutine local_potential_dimensions
 
-        subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in):: iproc, nproc
-          type(orbitals_data),intent(in):: orbs
-          type(DFT_wavefunction),intent(inout):: tmb
-          type(localizedDIISParameters),intent(inout):: ldiis_coeff
-          real(8),intent(out):: fnrm
-        end subroutine optimize_coeffs
-
         subroutine DIIS_coeff(iproc, orbs, tmb, grad, coeff, ldiis)
           use module_base
           use module_types

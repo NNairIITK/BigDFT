@@ -2696,6 +2696,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! or just put into fragment structure to save recalculating for CDFT
      if (in%lin%fragment_calculation) then
         call fragment_coeffs_to_kernel(in%frag,ref_frags,tmb,KSwfn%orbs,overlap_calculated)
+     else
+        call dcopy(tmb%orbs%norb**2,ref_frags(1)%coeff(1,1),1,tmb%coeff(1,1),1)
+        call dcopy(tmb%orbs%norb**2,ref_frags(1)%eval(1),1,tmb%orbs%eval(1),1)
+        if (associated(ref_frags(1)%coeff)) call f_free_ptr(ref_frags(1)%coeff)
+        if (associated(ref_frags(1)%eval)) call f_free_ptr(ref_frags(1)%eval)
      end if
 
      call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &

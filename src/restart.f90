@@ -2468,17 +2468,21 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
         stop 'Coefficient format not implemented'
      end if
 
-     call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
-          ref_frags(ifrag_ref)%nelec,ref_frags(ifrag_ref)%coeff,ref_frags(ifrag_ref)%eval)
-          !tmb%orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb))
-          !tmb%orbs%eval(isforb+1)
-
+     !if (input_frag%nfrag>1) then
+        call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
+             ref_frags(ifrag_ref)%nelec,ref_frags(ifrag_ref)%coeff,ref_frags(ifrag_ref)%eval)
+             !tmb%orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb))
+             !tmb%orbs%eval(isforb+1)
+        ! copying of coeffs from fragment to tmb%coeff now occurs after this routine
+     !else
+     !   call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
+     !        ref_frags(ifrag_ref)%nelec,tmb%coeff,tmb%orbs%eval)
+     !end if
      close(unitwf)
 
      isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
   end do
-  
-  ! copying of coeffs from fragment to tmb%coeff now occurs after this routine
+
 
   call cpu_time(tr1)
   call system_clock(ncount2,ncount_rate,ncount_max)

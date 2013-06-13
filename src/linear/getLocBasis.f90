@@ -46,7 +46,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(energy_terms) :: energs
 
   character(len=*),parameter :: subname='get_coeff'
-  real(kind=8) :: tmprtr, ebsold
+  real(kind=gp) :: tmprtr, ebsold, fnrm_old, alpha_old, a, b, c, pred_e, ebs1
+  real(kind=gp),dimension(:,:),allocatable :: coeff_orig
 
 
   if(calculate_ham) then
@@ -263,47 +264,140 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       deallocate(matrixElements, stat=istat)
       call memocc(istat, iall, 'matrixElements', subname)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-      if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
-      ebsold=0.0_gp
-      do i=1,1000
-         call optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
 
-         allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-         call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
-         call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
-         call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
-         iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
-         deallocate(tmb%linmat%denskern%matrix, stat=istat)
-         call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
+     if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
 
-         ! CDFT: subtract V*w_ab from Hamiltonian so that we are calculating the correct energy
-         if (present(cdft)) then
-           call daxpy(tmb%linmat%ham%nvctr,-cdft%lag_mult,cdft%weight_matrix%matrix_compr,1,tmb%linmat%ham%matrix_compr,1)   
-         end if
+if (.false.) then
+     allocate(coeff_orig(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+     call memocc(istat, coeff_orig, 'coeff_orig', subname)
 
-         ebsold=ebs
-         ebs=0.d0
-         do iorb=1,tmb%orbs%norb
-            do jorb=1,tmb%orbs%norb
-               ind_ham = tmb%linmat%ham%matrixindex_in_compressed(iorb,jorb)
-               ind_denskern = tmb%linmat%denskern%matrixindex_in_compressed(jorb,iorb)
-               if (ind_ham==0.or.ind_denskern==0) cycle
-               ebs = ebs + tmb%linmat%denskern%matrix_compr(ind_denskern)*tmb%linmat%ham%matrix_compr(ind_ham)
-            end do
-         end do
+     ! 1st point
+     call dcopy(tmb%orbs%norb**2,tmb%coeff,1,coeff_orig,1)
 
+     allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+     call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
+     call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
+     call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
+     iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
+     deallocate(tmb%linmat%denskern%matrix, stat=istat)
+     call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
 
-         ! CDFT: add V*w_ab to Hamiltonian here - assuming ham and weight matrix have the same sparsity...
-         if (present(cdft)) then
-            call daxpy(tmb%linmat%ham%nvctr,cdft%lag_mult,cdft%weight_matrix%matrix_compr,1,tmb%linmat%ham%matrix_compr,1)   
-         end if
+     ebsold=0.d0
+     do iorb=1,tmb%orbs%norb
+        do jorb=1,tmb%orbs%norb
+           ind_ham = tmb%linmat%ham%matrixindex_in_compressed(iorb,jorb)
+           ind_denskern = tmb%linmat%denskern%matrixindex_in_compressed(jorb,iorb)
+           if (ind_ham==0.or.ind_denskern==0) cycle
+           ebsold = ebsold + tmb%linmat%denskern%matrix_compr(ind_denskern)*tmb%linmat%ham%matrix_compr(ind_ham)
+        end do
+     end do
 
-         if (fnrm < 1.0e-4) then
-            !print*,''
-            if (iproc==0) print*,'Direct min additional loop: it, fnrm, ebs, ebsdiff',i,fnrm,ebs,ebs-ebsold
-            exit
-         end if
-      end do
+     ebs1=ebsold
+end if
+     do i=1,1!000
+
+        ! 2nd point
+        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
+
+if (.false.) then
+        allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+        call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
+        call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
+        call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
+        iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
+        deallocate(tmb%linmat%denskern%matrix, stat=istat)
+        call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
+
+        ebs=0.d0
+        do iorb=1,tmb%orbs%norb
+           do jorb=1,tmb%orbs%norb
+              ind_ham = tmb%linmat%ham%matrixindex_in_compressed(iorb,jorb)
+              ind_denskern = tmb%linmat%denskern%matrixindex_in_compressed(jorb,iorb)
+              if (ind_ham==0.or.ind_denskern==0) cycle
+              ebs = ebs + tmb%linmat%denskern%matrix_compr(ind_denskern)*tmb%linmat%ham%matrix_compr(ind_ham)
+           end do
+        end do
+
+        ! find ideal alpha using both points
+        fnrm_old=-fnrm**2*real(orbs%norb,gp)
+        alpha_old=ldiis_coeff%alpha_coeff
+        a=-fnrm_old/alpha_old+(ebs-ebsold)/alpha_old**2
+        b=fnrm_old
+        c=ebsold
+        ldiis_coeff%alpha_coeff=-0.5_gp*b/a
+        ! don't update if we have found a maximum, or negative alpha is predicted
+        ! do something better here - don't just want to do the same thing twice, so at least check if energy has decreased
+        if (ldiis_coeff%alpha_coeff<0.0_gp .or. a<0.0_gp) ldiis_coeff%alpha_coeff=alpha_old
+
+        pred_e=a*ldiis_coeff%alpha_coeff**2+b*ldiis_coeff%alpha_coeff+c
+
+        ! return coeffs to original values and update
+        call dcopy(tmb%orbs%norb**2,coeff_orig,1,tmb%coeff,1)
+        
+        !!if (iproc==0) print*,'Finding alpha: it, fnrm, ebsold, ebs, ideal alpha',&
+        !!     i,fnrm,ebsold,ebs,ldiis_coeff%alpha_coeff
+        open(127)
+        write(127,*) '#',a,b,c,(ebs-ebsold)/alpha_old,b-(ebs-ebsold)/alpha_old
+        write(127,*) 0.0_gp,ebsold,dsqrt(-fnrm_old/real(orbs%norb,gp))
+
+        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
+
+        write(127,*) alpha_old,ebs,fnrm
+
+        allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+        call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
+        call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
+        call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
+        iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
+        deallocate(tmb%linmat%denskern%matrix, stat=istat)
+        call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
+
+        ebs=0.d0
+        do iorb=1,tmb%orbs%norb
+           do jorb=1,tmb%orbs%norb
+              ind_ham = tmb%linmat%ham%matrixindex_in_compressed(iorb,jorb)
+              ind_denskern = tmb%linmat%denskern%matrixindex_in_compressed(jorb,iorb)
+              if (ind_ham==0.or.ind_denskern==0) cycle
+              ebs = ebs + tmb%linmat%denskern%matrix_compr(ind_denskern)*tmb%linmat%ham%matrix_compr(ind_ham)
+           end do
+        end do
+
+        write(127,*) ldiis_coeff%alpha_coeff,ebs
+        close(127)
+
+        ! set values for next iteration
+        ebsold=ebs
+        call dcopy(tmb%orbs%norb**2,tmb%coeff,1,coeff_orig,1)
+
+        ! update alpha_coeff for direct minimization steepest descents
+        ! apply a cap so that alpha_coeff never goes below around 1.d-2 or above 2
+        ! no longer self-consistent, so really care if fnrm is decreasing rather than if energy is ok
+        !if (fnrm<fnrm_old) then
+        !   if (ldiis_coeff%alpha_coeff < 1.8d0) ldiis_coeff%alpha_coeff=1.1d0*ldiis_coeff%alpha_coeff
+        !else if (ldiis_coeff%alpha_coeff > 1.7d-3) then
+        !   ldiis_coeff%alpha_coeff=0.6d0*ldiis_coeff%alpha_coeff
+        !end if
+
+        if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))')'Dmini: it, fnrm, ebs, ebsdiff, alpha, pred E, diff',&
+             i,fnrm,ebs,ebs-ebs1,ldiis_coeff%alpha_coeff,pred_e,pred_e-ebs!debug
+
+        if (fnrm < 1.0e-4) exit
+
+        ebs1=ebs
+
+        fnrm_old=fnrm
+end if
+     end do
+
+if (.false.) then
+     !print*,''
+     if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'Dmin: it, fnrm, ebs, ebsdiff, alpha, pred E, diff',&
+          i,fnrm,ebs,ebs-ebs1,ldiis_coeff%alpha_coeff,pred_e,pred_e-ebs!debug
+
+     iall=-product(shape(coeff_orig))*kind(coeff_orig)
+     deallocate(coeff_orig, stat=istat)
+     call memocc(istat, iall, 'coeff_orig', subname)
+end if
   end if
 
   if (scf_mode/=LINEAR_FOE) then

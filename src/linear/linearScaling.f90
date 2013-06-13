@@ -400,7 +400,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
           ! CDFT: all this will be in some extra CDFT loop
           cdft_loop : do cdft_it=1,100
-
              ! If the hamiltonian is available do not recalculate it
              ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
              ! since this is only required if basis changed
@@ -425,6 +424,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                         .true.,ham_small,ldiis_coeff=ldiis_coeff)
                 end if
              end if
+if (iproc==0) print*,'EBS',energs%ebs
              ! Since we do not update the basis functions anymore in this loop
              update_phi = .false.
 
@@ -442,9 +442,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    end do
                 end do
 
-                if (iproc==0) print*,''
-                if (iproc==0) print*,'itc, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N), V',cdft_it,ebs,ebs-cdft%charge,&
-                     cdft%lag_mult*(ebs-cdft%charge),cdft%lag_mult
+                !if (iproc==0) print*,''
+                if (iproc==0) write(*,'(a,I4,2x,5(ES16.6e3,2x))') 'itc, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N), V, EBS',&
+                     cdft_it,ebs,ebs-cdft%charge,cdft%lag_mult*(ebs-cdft%charge),cdft%lag_mult,energs%ebs
 
                 ! CDFT: update V (maximizing E wrt V)
                 ! CDFT: we updated the kernel in get_coeff so 1st deriv of W wrt V becomes Tr[Kw]-Nc as in CONQUEST
@@ -461,7 +461,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              else
                 exit
              end if
-!exit
           end do cdft_loop
           ! CDFT: end of CDFT loop to find V which correctly imposes constraint and corresponding density
 
@@ -485,14 +484,25 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if(iproc==0) write(*,*) 'alpha, energydiff',ldiis_coeff%alpha_coeff,energydiff
           end if
 
+
           ! Calculate the charge density.
           call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
           ! Mix the density.
-          if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+          if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then!.or. &
+             !input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
              call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
                   denspot, mixdiis, rhopotold, pnrm)
+          else if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. .false.) then
+             pnrm=0.d0
+             do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                pnrm=pnrm+(denspot%rhov(i)-rhopotOld(i))**2
+             end do
+             call mpiallred(pnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+             pnrm=sqrt(pnrm)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+             call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+                  denspot%rhov(1), 1, rhopotOld(1), 1) 
           end if
  
           if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE .and.(pnrm<convCritMix .or. it_scc==nit_scc)) then
@@ -835,7 +845,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
               write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', &
                    it_SCC, pnrm, energy, energyDiff
           else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, fnrm coeff, energy, energyDiff', &
+              write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
                    it_SCC, pnrm, energy, energyDiff
           end if
           write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
@@ -923,7 +933,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
               write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy
           else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, fnrm coeff, energy', itout, pnrm, energy
+              write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
           end if
           write(*,'(3x,a,es14.6)') '> energy difference to last iteration:', energyDiff
           write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
