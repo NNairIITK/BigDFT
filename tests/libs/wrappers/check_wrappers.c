@@ -10,7 +10,7 @@ int main(int argc, const char **argv)
   BigDFT_Atoms *atoms;
 
   BigDFT_Inputs *ins;
-  const gchar *hgrids[] = {"20/3", "0.55", "0.55", NULL};
+  const gchar *hgrids[] = {"0.55", "0.55", "0.55", NULL};
 
   BigDFT_Run *run;
 
@@ -31,9 +31,10 @@ int main(int argc, const char **argv)
   if (iproc == 0) bigdft_atoms_write(atoms, "posinp", "yaml");
 
   ins = bigdft_inputs_new("truc", nproc);
-  bigdft_inputs_set(ins, INPUTS_IXC, "-101130");
+  bigdft_inputs_set(ins, INPUTS_IXC, "PBE");
   bigdft_inputs_set_array(ins, INPUTS_HGRIDS, hgrids);
   bigdft_inputs_set(ins, INPUTS_NSPIN, "2");
+  /* bigdft_inputs_set(ins, INPUTS_INPUTPSIID, "-500"); */
 
   run = bigdft_run_new_from_objects(atoms, ins, NULL, iproc);
   bigdft_inputs_unref(ins);

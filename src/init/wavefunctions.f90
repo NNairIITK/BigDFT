@@ -708,23 +708,27 @@ subroutine inputs_parse_params(in, iproc, dump)
 
   integer :: ierr
 
+  ! Required for analyse, to be moved later.
   call input_keys_init()
 
   ! This file is peculiar, it initialize yaml output
   ! and has some unique info like the material acceleration...
   call perf_input_variables(iproc,dump,trim(in%file_perf),in)
+
   ! Parse all values independant from atoms.
   call read_dft_from_text_format(iproc,in%input_values//DFT_VARIABLES, &
        & trim(in%file_dft), dump)
+  call read_kpt_from_text_format(iproc,in%input_values//KPT_VARIABLES, &
+       & trim(in%file_kpt), dump)
+
   ! All analyse should be put later in the parse_add() routine.
   call dft_input_analyse(iproc, in, in%input_values//DFT_VARIABLES)
+
+  ! Parse to be moved before.
   call mix_input_variables_new(iproc,dump,trim(in%file_mix),in)
   call geopt_input_variables_new(iproc,dump,trim(in%file_geopt),in)
   call tddft_input_variables_new(iproc,dump,trim(in%file_tddft),in)
   call sic_input_variables_new(iproc,dump,trim(in%file_sic),in)
-  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in)
-
-  call input_keys_finalize()
 
   if(in%inputpsiid==100 .or. in%inputpsiid==101 .or. in%inputpsiid==102) &
       DistProjApply=.true.
@@ -746,6 +750,7 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
   use yaml_output
   use module_interfaces
   use dictionaries
+  use module_input_keys
   implicit none
   type(input_variables), intent(inout) :: in
   type(atoms_data), intent(inout) :: atoms
@@ -755,8 +760,7 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
   integer :: ierr
 
   ! Generate kpoint meshs.
-  call kpt_input_analyse(iproc, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, in%kptv, &
-       & in%input_values//"Brillouin Zone Sampling Parameters", in%nkptv, &
+  call kpt_input_analyse(iproc, in, in%input_values//KPT_VARIABLES, &
        & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
 
   ! Linear scaling (if given)
@@ -781,10 +785,13 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
-  call yaml_dict_dump(in%input_values)
+  if (iproc == 0) call input_keys_dump(in%input_values)
   
+  call input_keys_finalize()
+
   !check whether a directory name should be associated for the data storage
   call check_for_data_writing_directory(iproc,in)
+
 end subroutine inputs_parse_add
 
 

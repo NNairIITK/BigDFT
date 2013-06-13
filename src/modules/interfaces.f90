@@ -259,17 +259,25 @@ module module_interfaces
         type(dictionary), pointer :: dict_dft
       end subroutine dft_input_analyse
 
-      subroutine kpt_input_analyse(iproc,nkpt, kpt, wkpt, kptv, in_kpt, nkptv, sym, geocode, alat)
+      subroutine read_kpt_from_text_format(iproc,dict,filename,dump)
         use module_base
         use module_types
-        use defs_basis
-        use m_ab6_kpoints
+        use dictionaries
         implicit none
-        integer, intent(in) :: iproc, nkptv
-        type(dictionary), pointer :: in_kpt
-        integer, intent(out) :: nkpt
-        real(gp), pointer :: kpt(:,:), wkpt(:)
-        real(gp), dimension(3,nkptv), intent(inout) :: kptv
+        character(len=*), intent(in) :: filename
+        integer, intent(in) :: iproc
+        logical, intent(in) :: dump
+        type(dictionary), pointer :: dict
+      end subroutine read_kpt_from_text_format
+
+      subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        type(input_variables), intent(inout) :: in
+        type(dictionary), pointer :: dict
         type(symmetry_data), intent(in) :: sym
         character(len = 1), intent(in) :: geocode
         real(gp), intent(in) :: alat(3)
