@@ -6,6 +6,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use module_interfaces, exceptThisOne => linearScaling
   use yaml_output
   use module_fragments
+  use diis_sd_optimization
   implicit none
 
   ! Calling arguments
@@ -33,7 +34,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(8),dimension(:),allocatable :: rhopotold_out
   real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
   type(mixrhopotDIISParameters) :: mixdiis
-  type(localizedDIISParameters) :: ldiis, ldiis_coeff
+  type(localizedDIISParameters) :: ldiis!, ldiis_coeff
+  type(DIIS_obj) :: ldiis_coeff
   logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
   logical :: fix_support_functions, check_initialguess, fix_supportfunctions
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
@@ -94,8 +96,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! Allocate the communication arrays for the calculation of the charge density.
 
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then  
-     call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
-     call allocate_DIIS_coeff(tmb, ldiis_coeff)
+!!$     call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
+!!$     call allocate_DIIS_coeff(tmb, ldiis_coeff)
+     call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
   end if
 
   tmb%can_use_transposed=.false.
@@ -208,13 +211,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
       if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
-         call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
+         !call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
+         call DIIS_free(ldiis_coeff)
+         call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
          ! need to reallocate DIIS matrices to adjust for changing history length
-         if (ldiis_coeff_changed) then
-            call deallocateDIIS(ldiis_coeff)
-            call allocate_DIIS_coeff(tmb, ldiis_coeff)
-            ldiis_coeff_changed = .false.
-         end if
+!!$         if (ldiis_coeff_changed) then
+!!$            call deallocateDIIS(ldiis_coeff)
+!!$            call allocate_DIIS_coeff(tmb, ldiis_coeff)
+!!$            ldiis_coeff_changed = .false.
+!!$         end if
       end if
 
       if(itout>1 .or. (nit_lowaccuracy==0 .and. itout==1)) then
@@ -390,7 +395,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           energyold=energy
 
           ! update alpha_coeff for direct minimization steepest descents
-          if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and. ldiis_coeff%isx == 0) then
+          if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and.&
+               ldiis_coeff%idsx == 0) then
              if(energyDiff<0.d0) then
                 ldiis_coeff%alpha_coeff=1.1d0*ldiis_coeff%alpha_coeff
              else
@@ -506,7 +512,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   call print_info(.true.)
 
   ! Deallocate everything that is not needed any more.
-  if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call deallocateDIIS(ldiis_coeff)
+  if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call DIIS_free(ldiis_coeff)!call deallocateDIIS(ldiis_coeff)
   call deallocateDIIS(ldiis)
   if(input%lin%mixHist_highaccuracy>0 .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
       call deallocateMixrhopotDIIS(mixdiis)
