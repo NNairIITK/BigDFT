@@ -24,7 +24,19 @@ static const gchar* _input_keys[] = {
   "norbv",
   "nvirt",
   "nplot",
-  "disablesym"
+  "disablesym",
+  "kpt",
+  "method",
+  "kptrlen",
+  "ngkpt",
+  "shiftk",
+  "kpt",
+  "wkpt",
+  "bands",
+  "iseg",
+  "kptv",
+  "ngranularity",
+  "band_structure_filename"
 };
 
 static const BigDFT_InputsKeyIds _input_files[] = {
@@ -50,7 +62,19 @@ static const BigDFT_InputsKeyIds _input_files[] = {
   INPUTS_DFT_VARIABLES,
   INPUTS_DFT_VARIABLES,
   INPUTS_DFT_VARIABLES,
-  INPUTS_DFT_VARIABLES
+  INPUTS_DFT_VARIABLES,
+  INPUTS_KPT_VARIABLES,
+  INPUTS_KPT_VARIABLES,
+  INPUTS_KPT_VARIABLES,
+  INPUTS_KPT_VARIABLES,
+  INPUTS_KPT_VARIABLES,
+  INPUTS_KPT_VARIABLES,
+  INPUTS_KPT_VARIABLES,
+  INPUTS_KPT_VARIABLES,
+  INPUTS_KPT_VARIABLES,
+  INPUTS_KPT_VARIABLES,
+  INPUTS_KPT_VARIABLES,
+  INPUTS_KPT_VARIABLES
 };
 
 #endif

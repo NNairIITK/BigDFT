@@ -6,7 +6,7 @@ keys = []
 for line in open("src/modules/input_keys.f90", "r").xreadlines():
   if line.strip() == "contains":
     break
-  if "::" in line:
+  if "::" in line and "character" in line and "parameter" in line and "public" in line:
     decls = line.split("::")[1]
     decls = decls.split(',')
     np = [x.count('"') + x.count("'") for x in decls]
