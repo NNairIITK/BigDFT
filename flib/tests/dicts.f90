@@ -116,10 +116,10 @@ subroutine test_dictionaries1()
   use dictionaries
   implicit none
   !local variables
-   integer :: ival
+   integer :: ival,i
    type(dictionary), pointer :: dict2
    type(dictionary), pointer :: dict,dictA
-   type(dictionary), pointer :: dictA2
+   type(dictionary), pointer :: dictA2,dict_tmp
 
    !testing add
    call dict_init(dict)
@@ -261,6 +261,31 @@ subroutine test_dictionaries1()
    
    call yaml_map('Keys of prepended dict',dict_keys(dictA))
 
+   !perform an iterator on dictA
+   dict_tmp=>dict_next(dictA)
+   do while(associated(dict_tmp))
+      call yaml_map('Iterating in dictA',.true.)
+      call yaml_map('Key of dictA',dict_key(dict_tmp))
+      call yaml_map('Value of dictA',dict_value(dict_tmp))
+      dict_tmp=>dict_next(dict_tmp)
+   end do
+
    call dict_free(dictA)
 
+   !fill a list and iterate over it
+   dictA=>dict_new()
+   do i=1,10
+      call add(dictA,'Value'//adjustl(trim(yaml_toa(i))))
+   end do
+
+   !perform an iterator on dict
+   dict_tmp=>dict_next(dictA)
+   do while(associated(dict_tmp))
+      call yaml_map('Item of dictA',dict_item(dict_tmp))
+      call yaml_map('Value of dictA',dict_value(dict_tmp))
+      dict_tmp=>dict_next(dict_tmp)
+   end do
+
+
+stop
  end subroutine test_dictionaries1
