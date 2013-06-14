@@ -788,11 +788,11 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
-  if (iproc == 0) then
-     profs = input_keys_get_profiles("")
-     call yaml_dict_dump(profs)
-     call dict_free(profs)
-  end if
+!!$  if (iproc == 0) then
+!!$     profs => input_keys_get_profiles("")
+!!$     call yaml_dict_dump(profs)
+!!$     call dict_free(profs)
+!!$  end if
 
   if (iproc == 0) call input_keys_dump(in%input_values)
   

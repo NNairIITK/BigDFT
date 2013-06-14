@@ -535,7 +535,7 @@ contains
     if (has_key(parameters, file)) then
        call vars(p, parameters // file)
     else
-       allocate(keys(dict_len(parameters)))
+       allocate(keys(dict_size(parameters)))
        keys = dict_keys(parameters)
        do i = 1, size(keys), 1
           call vars(p // keys(i), parameters // keys(i))
@@ -553,7 +553,7 @@ contains
       integer :: i
       character(max_field_length), dimension(:), allocatable :: var
 
-      allocate(var(dict_len(ref)))
+      allocate(var(dict_size(ref)))
       var = dict_keys(ref)
       do i = 1, size(var), 1
          call generate(dict,  var(i), ref // var(i))
@@ -573,7 +573,7 @@ contains
       integer :: i
       character(max_field_length), dimension(:), allocatable :: keys
 
-      allocate(keys(dict_len(ref)))
+      allocate(keys(dict_size(ref)))
       keys = dict_keys(ref)
       do i = 1, size(keys), 1
          if (trim(keys(i)) /= COMMENT .and. &
@@ -638,8 +638,8 @@ contains
     type(dictionary), pointer :: ref
     character(max_field_length), dimension(:), allocatable :: keys
 
-    ref = parameters // file
-    allocate(keys(dict_len(ref)))
+    ref => parameters // file
+    allocate(keys(dict_size(ref)))
     keys = dict_keys(ref)
 
     if (present(profile)) then
@@ -706,7 +706,7 @@ contains
              call validate(dict // key, key, rg)
           else if (has_key(ref, EXCLUSIVE)) then
              failed_exclusive => ref // EXCLUSIVE
-             allocate(keys(dict_len(failed_exclusive)))
+             allocate(keys(dict_size(failed_exclusive)))
              keys = dict_keys(failed_exclusive)
              found = .false.
              do i = 1, size(keys), 1
@@ -780,7 +780,7 @@ contains
             end do            
          else
             ! Dictionary case
-            allocate(keys(dict_len(dict)))
+            allocate(keys(dict_size(dict)))
             keys = dict_keys(dict)
             do i = 1, size(keys), 1
                call validate(dict // keys(i), key, rg)
@@ -811,7 +811,7 @@ contains
             end do            
          else
             ! Dictionary case
-            allocate(keys(dict_len(ref)))
+            allocate(keys(dict_size(ref)))
             keys = dict_keys(ref)
             do i = 1, size(keys), 1
                call copy(dict // keys(i), ref // keys(i))
@@ -848,7 +848,7 @@ contains
           end do
        else
           ! Dictionary case
-          allocate(keys(dict_len(dict)))
+          allocate(keys(dict_size(dict)))
           keys = dict_keys(dict)
           do i = 1, size(keys), 1
              call dict_dump_(dict // keys(i))
@@ -869,7 +869,7 @@ contains
 
       logical :: flow
       integer :: i
-      type(dictionary), pointer :: parent, attr
+      type(dictionary), pointer :: parent, attr, iter
       character(max_field_length) :: descr
       character(max_field_length), dimension(:), allocatable :: keys
 
@@ -894,6 +894,7 @@ contains
                call yaml_open_sequence(trim(dict%data%key), flow=flow)
             end if
             do i = 0, dict_len(dict) - 1, 1
+               call yaml_sequence("", advance = "no")
                call dict_dump_(dict // i)
             end do
             if (flow .and. trim(descr) /= "") then
@@ -905,7 +906,8 @@ contains
          else
             ! Dictionary case
             call yaml_open_map(trim(dict%data%key),flow=.false.)
-            allocate(keys(dict_len(dict)))
+            iter => dict_next(dict)
+            allocate(keys(dict_size(dict)))
             keys = dict_keys(dict)
             do i = 1, size(keys), 1
                call dict_dump_(dict // keys(i))

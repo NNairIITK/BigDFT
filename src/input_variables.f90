@@ -508,7 +508,7 @@ subroutine read_dft_from_text_format(iproc,dict,filename,dump)
   call input_var(dummy_bool,'F',comment='disable the symmetry detection')
   call set(dict//DISABLE_SYM, dummy_bool)
 
-  call input_free((iproc == 0) .and. dump)
+  call input_free(.false.)
 
 !  call yaml_dict_dump(dict)
 
@@ -812,7 +812,7 @@ subroutine read_geopt_from_text_format(iproc,dict,filename,dump)
      call set(dict // DTMAX, dummy_real, fmt = "(F6.3)")
   endif
 
-  call input_free((iproc == 0) .and. dump)
+  call input_free(.false.)
 
 END SUBROUTINE read_geopt_from_text_format
 
@@ -1218,8 +1218,7 @@ subroutine read_kpt_from_text_format(iproc,dict,filename,dump)
      end if
   end if
   
-  !Dump the input file
-  call input_free((iproc == 0) .and. dump)
+  call input_free(.false.)
 
 end subroutine read_kpt_from_text_format
 

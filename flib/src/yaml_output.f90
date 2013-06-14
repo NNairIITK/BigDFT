@@ -742,13 +742,13 @@ contains
 
     msg_lgt=0
     !put the message
-    if (present(mapname)) then
+    if (present(mapname) .and. trim(mapname) /= "") then
        call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
        !put the semicolon
        call buffer_string(towrite,len(towrite),':',msg_lgt)
     end if
     !put the optional name
-    if (present(label)) then
+    if (present(label) .and. trim(label) /= "") then
        call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
     end if
