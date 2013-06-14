@@ -1,6 +1,15 @@
+!> @file
+!!  Routines used by the linear scaling version
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 !> Determines the the wavefunction descriptors,wfd, and fine grid upper limit of locreg 
 !! taking into account the pediodicity
-!!          
 !! @warning
 !!    We assign Llr%nfl and llr%nfu with respect to the origin of the local zone, like in determine_locreg. 
 subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
@@ -1592,8 +1601,6 @@ type(locreg_descriptors),intent(in) :: glr, llr_i, llr_j, olr
 end subroutine check_overlapregion
 
 
-
-
 !> Gives the dimensions of the overlap box resulting from the overlap of two wavefunction descriptors and
 !> the number of segments of the resulting overlap descriptor.
 !> Calling arguments: *_i refers to overlap region i (input)
@@ -2221,10 +2228,11 @@ subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lp
   integer :: nseg        ! total number of segments in Llr
   integer, allocatable :: keymask(:,:)  ! shift for every segment of Llr (with respect to Glr)
   character(len=*), parameter :: subname='Lpsi_to_global'
-  integer :: i_stat,i_all
+  integer :: i_all
   integer :: start,Gstart,Lindex
   integer :: lfinc,Gfinc,spinshift,ispin,Gindex,isegstart
-  integer:: istart
+  integer :: istart
+  !integer :: i_stat
 
   call f_routine(id=subname)
 

@@ -27,13 +27,14 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   type(paw_objects),optional,intent(inout) :: paw
   !local variables
   character(len=*), parameter :: subname='orthogonalize'
-  integer :: i_stat,i_all,i,idx
+  integer :: i_stat,i_all
+  !integer :: i,idx
   integer :: ispin,nspin,nspinor,usepaw=0
   integer, dimension(:,:), allocatable :: ndim_ovrlp
   real(wp), dimension(:), allocatable :: ovrlp
   integer,dimension(:),allocatable:: norbArr
   character(len=20):: category
-  real(8) :: test,test_max
+  !real(kind=8) :: test,test_max
 
   ! Determine whether we have close shell (nspin=1) or spin polarized (nspin=2)
   if (orbs%norbd>0) then

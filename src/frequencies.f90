@@ -396,7 +396,7 @@ program frequencies
 
 
    !> Check the restart file
-   subroutine frequencies_check_restart(nat,n_order,imoves,moves,energies,forces,freq_step,amu,infocode)
+   subroutine frequencies_check_restart(nat,n_order,imoves,moves,energies,forces,freq_step,amu,ierror)
       implicit none
       !Arguments
       integer, intent(in) :: nat     !< Number of atoms
@@ -407,16 +407,15 @@ program frequencies
       real(gp), dimension(3), intent(in) :: freq_step     !< Frequency step in each direction
       integer, intent(out) :: imoves                      !< Number of frequency already calculated   
       real(gp), dimension(:), intent(out) :: amu          !< Atomic masses
-      integer, intent(out) :: infocode                    !< 0 means all calculations are done
+      integer, intent(out) :: ierror                      !< 0 means all calculations are done
       !Local variables
       character(len=*), parameter :: subname = "frequencies_check_restart"
-      integer :: ierror
       !We read the file
       call frequencies_read_restart(nat,n_order,imoves,moves,energies,forces,freq_step,amu,ierror)
-      if (ierror /= 0) then
-         !If error, we write a new file
-         call frequencies_write_new_restart(nat,n_order,imoves,moves,energies,forces,freq_step,amu,ierror)
-      end if
+      !if (ierror /= 0) then
+      !   !If error, we write a new file
+      !   call frequencies_write_new_restart(nat,n_order,imoves,moves,energies,forces,freq_step,amu,ierror)
+      !end if
       !Check also if all calculations are done.
    end subroutine frequencies_check_restart
 
@@ -469,7 +468,7 @@ program frequencies
          !Read error, we exit
          if (bigdft_mpi%iproc == 0) then
             close(unit=iunit)
-            call yaml_warning('(F) Error when reading "frequencies.res"')
+            call yaml_warning('(F) Error when reading the first line of "frequencies.res"')
          end if
          call f_release_routine()
          return
@@ -509,7 +508,8 @@ program frequencies
             !Read error, we exit
             if (bigdft_mpi%iproc == 0) then
                close(unit=iunit)
-               call yaml_warning('(F) Error when reading "frequencies.res"')
+               !Error if all moves are not read
+               if (imoves < 3*nat+1) call yaml_warning('(F) The file "frequencies.res" is incomplete!')
             end if
             exit
          end if
