@@ -376,7 +376,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       call memocc(istat,iall,'density_kernel_partial',subname)
   else if (communication_strategy==ALLREDUCE) then
       call timing(iproc,'calc_kernel','ON') !lr408t
-      !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
+      if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       if(orbs%norbp>0) then
           allocate(fcoeff(orbs_tmb%norb,orbs%norb), stat=istat)
           call memocc(istat, fcoeff, 'fcoeff', subname)

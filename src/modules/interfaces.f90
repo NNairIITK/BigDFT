@@ -4739,8 +4739,8 @@ module module_interfaces
           real(kind=8),dimension(nseq),intent(out) :: a_seq
         end subroutine sequential_acces_matrix
 
-        subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-                   blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half, orbs)
+        subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
+                   blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half, plusminus, orbs)
           use module_base
           use module_types
           implicit none
@@ -4748,8 +4748,9 @@ module module_interfaces
           integer,intent(in) :: iproc, nproc, norb, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm
           real(kind=8),dimension(norb,norb),intent(in) :: ovrlp
           real(kind=8),dimension(norb,norb),intent(inout) :: inv_ovrlp_half
+          logical, intent(in) :: plusminus
           type(orbitals_data), optional, intent(in) :: orbs
-        end subroutine overlapPowerMinusOneHalf_old
+        end subroutine overlapPowerPlusMinusOneHalf_old
 
         subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GPU,proj,nlpspd,rxyz)
           use module_base

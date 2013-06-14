@@ -1473,7 +1473,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
   call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
 
   if(iproc==0) then
-  !    write(*,'(a)',advance='no') 'coeff renormalization...'
+      write(*,'(a)',advance='no') 'coeff renormalization...'
   end if
 
   call to_zero(orbs%norb**2, ovrlp_coeff(1,1))
@@ -1544,8 +1544,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
 
   call timing(iproc,'renormCoefCom1','OF')
 
-  call overlapPowerMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, inversion_method, &
-       blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp_coeff, ovrlp_coeff2, orbs)
+  call overlapPowerPlusMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, inversion_method, &
+       blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp_coeff, ovrlp_coeff2, .false., orbs)
   call timing(iproc,'renormCoefCom2','ON')
 
   iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)

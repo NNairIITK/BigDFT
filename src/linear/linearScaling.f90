@@ -399,7 +399,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           ! CDFT: need to pass V*w_ab to get_coeff so that it can be added to H_ab and the correct KS eqn can therefore be solved
           ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
           ! CDFT: all this will be in some extra CDFT loop
-          cdft_loop : do cdft_it=1,100
+          cdft_loop : do cdft_it=1,2!00
              ! If the hamiltonian is available do not recalculate it
              ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
              ! since this is only required if basis changed
@@ -424,7 +424,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                         .true.,ham_small,ldiis_coeff=ldiis_coeff)
                 end if
              end if
-if (iproc==0) print*,'EBS',energs%ebs
+!if (iproc==0) print*,'EBS',energs%ebs
              ! Since we do not update the basis functions anymore in this loop
              update_phi = .false.
 
