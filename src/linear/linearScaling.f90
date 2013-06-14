@@ -7,6 +7,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use yaml_output
   use module_fragments
   use constrained_dft
+  use diis_sd_optimization
   implicit none
 
   ! Calling arguments
@@ -35,7 +36,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(8),dimension(:),allocatable :: rhopotold_out
   real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
   type(mixrhopotDIISParameters) :: mixdiis
-  type(localizedDIISParameters) :: ldiis, ldiis_coeff
+  type(localizedDIISParameters) :: ldiis!, ldiis_coeff
+  type(DIIS_obj) :: ldiis_coeff
   logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
   logical :: fix_support_functions, check_initialguess, fix_supportfunctions
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
@@ -49,11 +51,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer:: target_function, nit_basis
   type(sparseMatrix) :: ham_small
   integer :: isegsmall, iseglarge, iismall, iilarge, is, ie
+  integer :: matrixindex_in_compressed
   
-
   real(kind=gp) :: ebs
   integer :: ind_denskern, ind_ham, jorb, cdft_it, nelec, iat, ityp, ifrag, ifrag_charged, ifrag_ref, isforb, itmb
-
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -101,8 +102,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! Allocate the communication arrays for the calculation of the charge density.
 
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then  
-     call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
-     call allocate_DIIS_coeff(tmb, ldiis_coeff)
+!!$     call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
+!!$     call allocate_DIIS_coeff(tmb, ldiis_coeff)
+     call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
   end if
 
   tmb%can_use_transposed=.false.
@@ -155,13 +157,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      end if
 
      ! as a first check
-     ! needs updating for Stephan's sparse matrix changes
      ! calculate (w_abK^ba-Nc)*V
      ebs=0.d0
      do iorb=1,tmb%orbs%norb
         do jorb=1,tmb%orbs%norb
-           ind_ham = cdft%weight_matrix%matrixindex_in_compressed(iorb,jorb)
-           ind_denskern = tmb%linmat%denskern%matrixindex_in_compressed(jorb,iorb)
+           ind_ham = matrixindex_in_compressed(cdft%weight_matrix,iorb,jorb)
+           ind_denskern = matrixindex_in_compressed(tmb%linmat%denskern,jorb,iorb)
            if (ind_ham==0.or.ind_denskern==0) cycle
            ebs = ebs + tmb%linmat%denskern%matrix_compr(ind_denskern)*cdft%weight_matrix%matrix_compr(ind_ham)
         end do
@@ -254,13 +255,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
       if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
-         call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
+         !call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
+         call DIIS_free(ldiis_coeff)
+         call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
          ! need to reallocate DIIS matrices to adjust for changing history length
-         if (ldiis_coeff_changed) then
-            call deallocateDIIS(ldiis_coeff)
-            call allocate_DIIS_coeff(tmb, ldiis_coeff)
-            ldiis_coeff_changed = .false.
-         end if
+!!$         if (ldiis_coeff_changed) then
+!!$            call deallocateDIIS(ldiis_coeff)
+!!$            call allocate_DIIS_coeff(tmb, ldiis_coeff)
+!!$            ldiis_coeff_changed = .false.
+!!$         end if
       end if
 
       if(itout>1 .or. (nit_lowaccuracy==0 .and. itout==1)) then
@@ -435,8 +438,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 ebs=0.d0
                 do iorb=1,tmb%orbs%norb
                    do jorb=1,tmb%orbs%norb
-                      ind_ham = cdft%weight_matrix%matrixindex_in_compressed(iorb,jorb)
-                      ind_denskern = tmb%linmat%denskern%matrixindex_in_compressed(jorb,iorb)
+                      ind_ham = matrixindex_in_compressed(cdft%weight_matrix,iorb,jorb)
+                      ind_denskern = matrixindex_in_compressed(tmb%linmat%denskern,jorb,iorb)
                       if (ind_ham==0.or.ind_denskern==0) cycle
                       ebs = ebs + tmb%linmat%denskern%matrix_compr(ind_denskern)*cdft%weight_matrix%matrix_compr(ind_ham)
                    end do
@@ -473,7 +476,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           energyold=energy
 
           ! update alpha_coeff for direct minimization steepest descents
-          if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and. ldiis_coeff%isx == 0) then
+          if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and.&
+               ldiis_coeff%idsx == 0) then
              ! apply a cap so that alpha_coeff never goes below around 1.d-2 or above 2
              if (energyDiff<0.d0 .and. ldiis_coeff%alpha_coeff < 1.8d0) then
                 ldiis_coeff%alpha_coeff=1.1d0*ldiis_coeff%alpha_coeff
@@ -602,7 +606,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   call print_info(.true.)
 
   ! Deallocate everything that is not needed any more.
-  if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call deallocateDIIS(ldiis_coeff)
+  if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call DIIS_free(ldiis_coeff)!call deallocateDIIS(ldiis_coeff)
   call deallocateDIIS(ldiis)
   if(input%lin%mixHist_highaccuracy>0 .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
       call deallocateMixrhopotDIIS(mixdiis)
@@ -1169,12 +1173,19 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz, lowaccur_converged)
 
      ! Update sparse matrices
-     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%ham)
-     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
+     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%ham)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
+     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, input, tmb%linmat%ovrlp)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
      !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
-     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%denskern)
+     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%denskern)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern)
      call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
      call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
+     !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%inv_ovrlp)
 
      allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=istat)
      call memocc(istat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)

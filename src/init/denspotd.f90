@@ -79,12 +79,22 @@ subroutine dpbox_set(dpbox,Lzd,iproc,nproc,mpi_comm,in,geocode)
   type(input_variables), intent(in) :: in 
   type(local_zone_descriptors), intent(in) :: Lzd
   type(denspot_distribution), intent(out) :: dpbox
+  !local variables
+  integer :: npsolver_groupsize
 
   dpbox=dpbox_null()
 
   call dpbox_set_box(dpbox,Lzd)
 
-  call mpi_environment_set(dpbox%mpi_env,iproc,nproc,mpi_comm,in%PSolver_groupsize)
+  !if the taskgroup size is not a divisor of nproc do not create taskgroups
+  if (nproc >1 .and. in%PSolver_groupsize > 0 .and. &
+       in%PSolver_groupsize < nproc .and.&
+       mod(nproc,in%PSolver_groupsize)==0) then
+     npsolver_groupsize=in%PSolver_groupsize
+  else
+     npsolver_groupsize=nproc
+  end if
+  call mpi_environment_set(dpbox%mpi_env,iproc,nproc,mpi_comm,npsolver_groupsize)
 
   call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,in%ixc,in%nspin,geocode,in%SIC%approach,dpbox)
 
@@ -110,7 +120,9 @@ subroutine dpbox_free(dpbox,subname)
      call memocc(i_stat,i_all,'ngatherarr',subname)
   end if
 
-  call mpi_environment_free(dpbox%mpi_env)
+  if (dpbox%mpi_env%mpi_comm /= bigdft_mpi%mpi_comm) then
+     call mpi_environment_free(dpbox%mpi_env)
+  end if
 
   dpbox=dpbox_null()
 

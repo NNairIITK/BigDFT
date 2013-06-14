@@ -946,8 +946,7 @@ contains
   !! @author
   !! Written by Quintin Hill in 2008, with some modifications in 2008
   !! Modified for BigDFT in March/April 2009 by Quintin Hill.
-  subroutine vdwcorrection_calculate_energy(dispersion_energy,rxyz,atoms,dispersion,&
-       iproc)
+  subroutine vdwcorrection_calculate_energy(dispersion_energy,rxyz,atoms,dispersion)!,iproc)
 
     use module_types
 
@@ -956,7 +955,8 @@ contains
     ! Arguments
     type(atoms_data),                 intent(in) :: atoms
     real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-    integer,                          intent(in) :: iproc, dispersion
+    !integer,                          intent(in) :: iproc
+    integer,                          intent(in) :: dispersion
     real(kind=GP),                   intent(out) :: dispersion_energy
 
     ! Internal variables
@@ -2364,8 +2364,8 @@ contains
     !REAL(kind=GP), DIMENSION(161925) :: grimme_c6_parameters
     integer, parameter :: c6dim=161925
 !    real(gp), dimension(:), allocatable :: grimme_c6_parameters
-    integer            :: nlines, idata,iline,iat,jat,iadr,jadr,il,jl,istep,nstep,nline,ialine
-    real(gp) :: tti,ttj
+    integer            :: nlines, idata,iline,iat,jat,iadr,jadr,il,jl
+    !real(gp) :: tti,ttj
 
     vdwparams%coeffs=f_malloc_ptr((ntot_values*(ntot_values+1))/2,id='coeffs')
 

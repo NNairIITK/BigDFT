@@ -473,7 +473,7 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
      end if
   enddo
 
-  if (pin) call ocl_create_write_buffer_host( GPU%context, &
+  if (pin .and. orbs%norbp > 0) call ocl_create_write_buffer_host( GPU%context, &
        orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8, hpsi, GPU%hpsicf_host(1,1) )
 
 !  call ocl_create_read_buffer_host( GPU%context, &
@@ -575,7 +575,7 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
      end if
   end do
 !  call ocl_release_mem_object(GPU%psicf_host(1,1))
-  if (pin) call ocl_release_mem_object(GPU%hpsicf_host(1,1))
+  if (pin .and. orbs%norbp > 0) call ocl_release_mem_object(GPU%hpsicf_host(1,1))
   if (.not. ASYNCconv) then
      call finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
   endif
@@ -871,7 +871,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
         end do
      end do
 
-     if (pin) then
+     if (pin .and. orbs%norbp > 0) then
         do ispinor=1,orbs%nspinor
            call ocl_release_mem_object(GPU%bprecond_host(1+(ispinor-1)*2))
            call ocl_release_mem_object(GPU%bprecond_host(2+(ispinor-1)*2))
@@ -939,7 +939,7 @@ subroutine local_partial_density_OCL(orbs,&
   if ( nspin == 2 ) then
     call set_d(GPU%queue, lr%d%n1i*lr%d%n2i*lr%d%n3i , 1.d-20,  GPU%rhopot_down)
   end if
-  if (pin) call ocl_create_read_buffer_host( GPU%context, &
+  if (pin .and. orbs%norbp > 0) call ocl_create_read_buffer_host( GPU%context, &
        orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8, psi, GPU%psicf_host(1,1) )
   !copy the wavefunctions on GPU
   do iorb=1,orbs%norbp*orbs%nspinor
@@ -995,6 +995,6 @@ subroutine local_partial_density_OCL(orbs,&
   endif
 
   !free pinning information for potential
-  if (pin) call ocl_release_mem_object(GPU%psicf_host(1,1))
+  if (pin .and. orbs%norbp>0) call ocl_release_mem_object(GPU%psicf_host(1,1))
 
 END SUBROUTINE local_partial_density_OCL

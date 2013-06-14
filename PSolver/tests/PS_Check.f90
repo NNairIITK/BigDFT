@@ -2,7 +2,7 @@
 !!  Performs a check of the Poisson Solver suite by running with different regimes
 !!  and for different choices of the XC functionals
 !! @author
-!!    Copyright (C) 2002-2010 BigDFT group 
+!!    Copyright (C) 2002-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -29,13 +29,12 @@ program PS_Check
    real(kind=8) :: tel
    real :: tcpu0,tcpu1
    integer :: ncount0,ncount1,ncount_rate,ncount_max
-   integer :: n01,n02,n03,itype_scf,i_all,i_stat
+   integer :: n01,n02,n03,itype_scf!,i_all,i_stat
    integer :: iproc,nproc,namelen,ierr,ispden
    integer :: n_cell
    integer, dimension(3) :: nxyz
    integer, dimension(3) :: ndims
    real(wp), dimension(:,:,:,:), pointer :: rhocore
-   real(dp), dimension(6) :: xcstr
    real(dp), dimension(3) :: hgrids
    type(mpi_environment) :: bigdft_mpi
    character(len = *), parameter :: package_version = "PSolver 1.7-dev.25"
@@ -194,12 +193,10 @@ program PS_Check
 !!$      deallocate(rhopot,stat=i_stat)
 !!$      call memocc(i_stat,i_all,'rhopot',subname)
 
-      call compare_with_reference(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'G',n01,n02,n03,ispden,hx,hy,hz,&
-      offset,ehartree,&
+      call compare_with_reference(pkernel%mpi_env%nproc,geocode,'G',n01,n02,n03,ispden,offset,ehartree,&
       density,potential,pot_ion,pkernel)
 
-      call compare_with_reference(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'D',n01,n02,n03,ispden,hx,hy,hz,&
-      offset,ehartree,&
+      call compare_with_reference(pkernel%mpi_env%nproc,geocode,'D',n01,n02,n03,ispden,offset,ehartree,&
       density,potential,pot_ion,pkernel)
 
       !test for the serial solver (always done to have a simpler comparison)
@@ -212,12 +209,10 @@ program PS_Check
 !         !calculate the kernel 
 !         call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.false.)
 !
-!         call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
-!         offset,ehartree,eexcu,vexcu,&
+!         call compare_with_reference(1,geocode,'G',n01,n02,n03,ixc,ispden,offset,ehartree,eexcu,vexcu,&
 !         density,potential,pot_ion,xc_pot,pkernel)
 !
-!         call compare_with_reference(0,1,geocode,'D',n01,n02,n03,ixc,ispden,hx,hy,hz,&
-!         offset,ehartree,eexcu,vexcu,&
+!         call compare_with_reference(1,geocode,'D',n01,n02,n03,ixc,ispden,offset,ehartree,eexcu,vexcu,&
 !         density,potential,pot_ion,xc_pot,pkernel)
 !      end if
 
@@ -262,12 +257,10 @@ program PS_Check
 !!$       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)
        call yaml_open_map('Comparison with a reference run')
 
-       call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ispden,hx,hy,hz,&
-         offset,ehartree,&
+       call compare_with_reference(1,geocode,'G',n01,n02,n03,ispden,offset,ehartree,&
          density,potential,pot_ion,pkernelseq)
 
-       call compare_with_reference(0,1,geocode,'D',n01,n02,n03,ispden,hx,hy,hz,&
-         offset,ehartree,&
+       call compare_with_reference(1,geocode,'D',n01,n02,n03,ispden,offset,ehartree,&
          density,potential,pot_ion,pkernelseq)
 
        call pkernel_free(pkernelseq,subname)
@@ -443,15 +436,17 @@ program PS_Check
     
    END SUBROUTINE compare_cplx_calculations
 
-   subroutine compare_with_reference(iproc,nproc,geocode,distcode,n01,n02,n03,&
-      nspden,hx,hy,hz,offset,ehref,&
+
+   !> Compare with the given reference
+   subroutine compare_with_reference(nproc,geocode,distcode,n01,n02,n03,&
+      nspden,offset,ehref,&
       density,potential,pot_ion,pkernel)
       use Poisson_Solver
       use dynamic_memory
       implicit none
       character(len=1), intent(in) :: geocode,distcode
-      integer, intent(in) :: iproc,nproc,n01,n02,n03,nspden
-      real(kind=8), intent(in) :: hx,hy,hz,offset,ehref
+      integer, intent(in) :: nproc,n01,n02,n03,nspden
+      real(kind=8), intent(in) :: offset,ehref
       real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
       real(kind=8), dimension(n01*n02*n03*nspden), intent(in) :: density
       real(kind=8), dimension(n01*n02*n03), intent(inout) :: pot_ion
@@ -459,13 +454,11 @@ program PS_Check
       !local variables
       character(len=*), parameter :: subname='compare_with_reference'
       character(len=100) :: message
-      integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,i_all,i_stat,istpoti,i
-      integer :: istxc,i1,i2,i3,isp,i3sd
-      real(kind=8) :: eexcu,vexcu,ehartree
+      integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,istpoti,i!,i_stat,i_all
+      integer :: i1,i2,i3,isp,i3sd
+      real(kind=8) :: ehartree!,vexcu,eexcu
       real(kind=8), dimension(:), allocatable :: test
       real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
-      real(kind=8), dimension(:), pointer :: xc_temp
-      real(dp), dimension(6) :: xcstr
       real(dp), dimension(:,:,:,:), pointer :: rhocore
 
       call f_routine(id=subname)
@@ -841,7 +834,7 @@ program PS_Check
                   if (r == 0.d0) then
                      potential(i1,i2,i3) = 2.d0/(sqrt(pi)*a_gauss)
                   else
-                     call derf_ab(derf_tt,r/a_gauss)
+                     call derf_local(derf_tt,r/a_gauss)
                      potential(i1,i2,i3) = derf_tt/r
                   end if
                end do
@@ -981,3 +974,130 @@ program PS_Check
    !!***
 
 
+!!****f* BigDFT/derf_local
+!! FUNCTION
+!!   Error function in double precision
+!!
+!! SOURCE
+!!
+subroutine derf_local(derf_yy,yy)
+  use poisson_solver
+ implicit none
+ real(dp),intent(in) :: yy
+ real(dp),intent(out) :: derf_yy
+ integer          ::  done,ii,isw
+ real(dp), parameter :: &
+       ! coefficients for 0.0 <= yy < .477
+       &  pp(5)=(/ 113.8641541510502e0_dp, 377.4852376853020e0_dp,  &
+       &           3209.377589138469e0_dp, .1857777061846032e0_dp,  &
+       &           3.161123743870566e0_dp /)
+  real(dp), parameter :: &
+       &  qq(4)=(/ 244.0246379344442e0_dp, 1282.616526077372e0_dp,  &
+       &           2844.236833439171e0_dp, 23.60129095234412e0_dp/)
+  ! coefficients for .477 <= yy <= 4.0
+  real(dp), parameter :: &
+       &  p1(9)=(/ 8.883149794388376e0_dp, 66.11919063714163e0_dp,  &
+       &           298.6351381974001e0_dp, 881.9522212417691e0_dp,  &
+       &           1712.047612634071e0_dp, 2051.078377826071e0_dp,  &
+       &           1230.339354797997e0_dp, 2.153115354744038e-8_dp, &
+       &           .5641884969886701e0_dp /)
+  real(dp), parameter :: &
+       &  q1(8)=(/ 117.6939508913125e0_dp, 537.1811018620099e0_dp,  &
+       &           1621.389574566690e0_dp, 3290.799235733460e0_dp,  &
+       &           4362.619090143247e0_dp, 3439.367674143722e0_dp,  &
+       &           1230.339354803749e0_dp, 15.74492611070983e0_dp/)
+  ! coefficients for 4.0 < y,
+  real(dp), parameter :: &
+       &  p2(6)=(/ -3.603448999498044e-01_dp, -1.257817261112292e-01_dp,   &
+       &           -1.608378514874228e-02_dp, -6.587491615298378e-04_dp,   &
+       &           -1.631538713730210e-02_dp, -3.053266349612323e-01_dp/)
+  real(dp), parameter :: &
+       &  q2(5)=(/ 1.872952849923460e0_dp   , 5.279051029514284e-01_dp,    &
+       &           6.051834131244132e-02_dp , 2.335204976268692e-03_dp,    &
+       &           2.568520192289822e0_dp /)
+  real(dp), parameter :: &
+       &  sqrpi=.5641895835477563e0_dp, xbig=13.3e0_dp, xlarge=6.375e0_dp, xmin=1.0e-10_dp
+  real(dp) ::  res,xden,xi,xnum,xsq,xx
+
+ xx = yy
+ isw = 1
+!Here change the sign of xx, and keep track of it thanks to isw
+ if (xx<0.0e0_dp) then
+  isw = -1
+  xx = -xx
+ end if
+
+ done=0
+
+!Residual value, if yy < -6.375e0_dp
+ res=-1.0e0_dp
+
+!abs(yy) < .477, evaluate approximation for erfc
+ if (xx<0.477e0_dp) then
+! xmin is a very small number
+  if (xx<xmin) then
+   res = xx*pp(3)/qq(3)
+  else
+   xsq = xx*xx
+   xnum = pp(4)*xsq+pp(5)
+   xden = xsq+qq(4)
+   do ii = 1,3
+    xnum = xnum*xsq+pp(ii)
+    xden = xden*xsq+qq(ii)
+   end do
+   res = xx*xnum/xden
+  end if
+  if (isw==-1) res = -res
+  done=1
+ end if
+
+!.477 < abs(yy) < 4.0 , evaluate approximation for erfc
+ if (xx<=4.0e0_dp .and. done==0 ) then
+  xsq = xx*xx
+  xnum = p1(8)*xx+p1(9)
+  xden = xx+q1(8)
+  do ii=1,7
+   xnum = xnum*xx+p1(ii)
+   xden = xden*xx+q1(ii)
+  end do
+  res = xnum/xden
+  res = res* exp(-xsq)
+  if (isw.eq.-1) then
+     res = res-1.0e0_dp
+  else
+     res=1.0e0_dp-res
+  end if
+  done=1
+ end if
+
+!y > 13.3e0_dp
+ if (isw > 0 .and. xx > xbig .and. done==0 ) then
+  res = 1.0e0_dp
+  done=1
+ end if
+
+!4.0 < yy < 13.3e0_dp  .or. -6.375e0_dp < yy < -4.0
+!evaluate minimax approximation for erfc
+ if ( ( isw > 0 .or. xx < xlarge ) .and. done==0 ) then
+  xsq = xx*xx
+  xi = 1.0e0_dp/xsq
+  xnum= p2(5)*xi+p2(6)
+  xden = xi+q2(5)
+  do ii = 1,4
+   xnum = xnum*xi+p2(ii)
+   xden = xden*xi+q2(ii)
+  end do
+  res = (sqrpi+xi*xnum/xden)/xx
+  res = res* exp(-xsq)
+  if (isw.eq.-1) then
+     res = res-1.0e0_dp
+  else
+     res=1.0e0_dp-res
+  end if
+ end if
+
+!All cases have been investigated
+ derf_yy = res
+
+end subroutine derf_local
+!!***

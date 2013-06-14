@@ -36,8 +36,9 @@ program PSolver_Program
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
   !triclinic lattice
   real(kind=8) :: alpha,beta,gamma,detg
-
+  real(kind=8), dimension(:,:,:,:), pointer :: rhocore_fake
   
+  nullify(rhocore_fake)
 
   alpha = 2.0_dp*datan(1.0_dp)
   beta  = 2.0_dp*datan(1.0_dp)
@@ -135,27 +136,27 @@ program PSolver_Program
   if (geocode == 'P') then
 
      if (iproc==0) print *,"PSolver, periodic BC: ",n01,n02,n03,'processes',nproc
-     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
   
   else if (geocode == 'S') then
 
      if (iproc==0) print *,"PSolver for surfaces: ",n01,n02,n03,'processes',nproc
-     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   
   else if (geocode == 'F') then
 
      if (iproc==0) print *,"PSolver, free BC: ",n01,n02,n03,'processes',nproc
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   
   else if (geocode == 'W') then
     
      if (iproc==0) print *,"PSolver, wires BC: ",n01,n02,n03,'processes',nproc
-     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
      
   else if (geocode == 'H') then
    
      if (iproc==0) print *,"PSolver, Helmholtz Equation Solver: ",n01,n02,n03,'processes',nproc
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   
   end if
 
@@ -366,9 +367,18 @@ program PSolver_Program
         !offset, used only for the periodic solver case
         if(ixc==0) offset=potential(1,1,1)!-pot_ion(1,1,1)
         
-        !apply the Poisson Solver (case with distributed potential
-        call PSolver(geocode,'G',0,1,n01,n02,n03,ixc,hx,hy,hz,&
-             rhopot,karray%kernel,pot_ion,eh,exc,vxc,offset,.true.,1,alpha,beta,gamma)
+        
+!!$        !this is how it should be called. Temporarily desactivated
+!!$        call XC_potential(geocode,'G',karray%mpi_env%iproc,karray%mpi_env%nproc,&
+!!$             karray%mpi_env%mpi_comm,n01,n02,n03,ixc,hx,hy,hz,&
+!!$             rhopot,exc,vxc,1,rhocore_fake,V_XC,xcstr)
+!!$        
+!!$        call H_potential('G',karray,rhopot,pot_ion,eh,0.0_dp,.true.)
+!!$
+!!$        !apply the Poisson Solver (case with distributed potential
+!!$        !this is the old call
+!!$        call PSolver(geocode,'G',0,1,n01,n02,n03,ixc,hx,hy,hz,&
+!!$             rhopot,karray%kernel,pot_ion,eh,exc,vxc,offset,.true.,1,alpha,beta,gamma)
         
      end if
      call pkernel_free(karray,subname)

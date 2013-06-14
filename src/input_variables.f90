@@ -74,7 +74,7 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
   end if
 
   if (bigdft_mpi%iproc == 0) then
-     call print_general_parameters(bigdft_mpi%nproc,in,atoms)
+     call print_general_parameters(in,atoms)
      !call write_input_parameters(inputs,atoms)
   end if
 
@@ -87,6 +87,7 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
 END SUBROUTINE bigdft_set_input
 
 
+!> De-allocate the variable of type input_variables
 subroutine bigdft_free_input(in)
   use module_base
   use module_types
@@ -1594,6 +1595,8 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   call input_var("signaling", .false., "Expose calculation results on Network",in%signaling)
   call input_var("signalTimeout", 0, "Time out on startup for signal connection",in%signalTimeout)  
   call input_var("domain", "", "Domain to add to the hostname to find the IP", in%domain)
+  call input_var("inguess_geopt", 0,(/0,1/),"0= wavlet input guess, 1= real space input guess",in%inguess_geopt)
+  call input_var("store_index", .true., "linear scaling: store indices or recalculate them", in%store_index)
   !verbosity of the output
   call input_var("verbosity", 2,(/0,1,2,3/), &
      & "verbosity of the output 0=low, 2=high",in%verbosity)
@@ -1622,6 +1625,10 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   !determines whether a mixing step shall be preformed after the input guess !(linear version)
   call input_var("mixing_after_inputguess",.true.,"mixing step after linear input guess (T/F)",&
        in%lin%mixing_after_inputguess)
+
+  !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
+  call input_var("iterative_orthogonalization",.false.,"iterative_orthogonalization for input guess orbitals",&
+       in%lin%iterative_orthogonalization)
 
 !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
   if (in%verbosity == 0 ) then
@@ -1679,6 +1686,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   end if
 END SUBROUTINE perf_input_variables
 
+
 !> Read fragment input parameters
 subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
   use module_base
@@ -1694,8 +1702,7 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
   logical :: exists
   character(len=*), parameter :: subname='fragment_input_variables'
   character(len=256) :: comments
-  character(len=20):: atomname
-  integer :: ifrag, frag_num, ios, ierr, istat
+  integer :: ifrag, frag_num, ierr
 
   !Linear input parameters
   call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters')  

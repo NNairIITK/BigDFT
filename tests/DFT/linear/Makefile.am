@@ -10,17 +10,17 @@ TESTDIRS = Locreg \
 	   geopt \
 	   testforces \
 	   fructose \
-      rotatesmall \
-      rotatesmall2 \
-      cdft
+	rotatesmall2 
+#      rotatesmall \
+#      cdft
 
 EXTRA_TESTDIRS = water \
-                 molecule \
-                 deltascf \
-                 reformat \
-		         paracetamol \
-               rotate \
-               rotate2
+	molecule \
+	deltascf \
+	reformat \
+	paracetamol \
+	rotate \
+	rotate2
 
 
 EXTRA_DIST = 
@@ -109,7 +109,7 @@ cdft_c.out.post-out:
 	  mixpotential.out*)          prec="1.e-9" ;; \
 	  onlyhigh.out*)              prec="1.1e-9" ;; \
 	  cleanup.out*)               prec="1.1e-8" ;; \
-	  fructose.out*)              prec="9.0e-7" ;; \
+	  fructose.out*)              prec="1.0e-6" ;; \
 	  geopt_diag.out*)            prec="2.e-9" ;; \
 	  geopt_foe.out*)             prec="9.2e-7" ;; \
 	  reformat_read.out*)         prec="1.e-9" ;; \
@@ -117,12 +117,12 @@ cdft_c.out.post-out:
 	  water_dirmin.out*)          prec="1.e-8" ;; \
 	  water_mixdens.out*)         prec="1.1e-8" ;; \
 	  water_mixpot.out*)          prec="1.1e-8" ;; \
-	  water_foe.out*)             prec="1.e-8" ;; \
+	  water_foe.out*)             prec="3.e-8" ;; \
 	  molecule_dmin.out*)         prec="1.e-9" ;; \
 	  molecule_dmix.out*)         prec="1.e-9" ;; \
 	  molecule_pmix.out*)         prec="1.1e-9" ;; \
-	  molecule_foe.out*)          prec="1.1e-9" ;; \
-	  foe.out*)                   prec="2.1e-10" ;; \
+	  molecule_foe.out*)          prec="5.4e-7" ;; \
+	  foe.out*)                   prec="5.6e-10" ;; \
 	  reformat_write.out*)        prec="3.e-10" ;; \
 	  paracetamol.out*)           prec="2.e-10" ;; \
       *)                          prec="1.1e-10" ;; \

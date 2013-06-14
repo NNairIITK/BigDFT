@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.29],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7.0.30],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -108,7 +108,7 @@ fi
 AM_CONDITIONAL(BUILD_BINDINGS, test "$ac_build_bindings" = "yes")
 AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
                      [Build GObject bindings (default is yes).]),
-            ac_use_glib=$withval, ac_use_glib="yes")
+            ac_use_glib=$withval, ac_use_glib=$ac_build_bindings)
 if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
   PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [have_glib=yes], [have_glib=no])
   PKG_CHECK_MODULES(GDBUS, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
@@ -570,98 +570,6 @@ end]], ac_use_etsfio=yes, ac_use_etsfio=no)
 fi
 AM_CONDITIONAL(HAVE_ETSF_IO, test "$ac_use_etsfio" = "yes")
 
-dnl Archive input file support
-ac_use_archive="yes"
-AC_ARG_WITH([archives],
-            AS_HELP_STRING([--with-archives], [add support of archives for output files.]),
-            [ac_use_archive=$withval], [ac_use_archive=yes])
-AC_ARG_WITH([archives-path],
-            AS_HELP_STRING([--with-archives-path], [give a path to find libarchive.]),
-            [ac_path_archive=$withval])
-if test x"$ac_use_archive" != x"no" ; then
-   if test x"$ac_path_archive" == x"" ; then
-      PKG_CHECK_MODULES([LIB_ARCHIVE],
-                        [libarchive >= 2.4],
-                        [ac_use_archive=yes],
-                        [ac_use_archive=warn])
-   else
-      LDFLAGS_SVG="$LDFLAGS"
-      AC_LANG_PUSH(C)
-      LDFLAGS="-L$ac_path_archive/lib"
-      AC_CHECK_LIB([archive], [archive_read_data_block],
-                   [ac_use_archive=yes], [ac_use_archive=warn])
-      if test x"$ac_use_archive" = x"yes" ; then
-         LIB_ARCHIVE_CFLAGS="-I$ac_path_archive/include"
-         LIB_ARCHIVE_LIBS="-L$ac_path_archive/lib -larchive"
-      fi
-      AC_LANG_POP(C)
-      LDFLAGS="$LDFLAGS_SVG"
-   fi
-   if test x"$ac_use_archive" = x"yes" ; then
-      AC_DEFINE([HAVE_LIB_ARCHIVE], [1], [libarchive is linkable.])
-   else
-      AC_MSG_WARN([libarchive is not available])
-   fi
-fi
-AC_LANG_PUSH(C)
-AC_CHECK_FUNCS([strndup])
-AC_LANG_POP(C)
-AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_use_archive" = x"yes")
-AC_SUBST(LIB_ARCHIVE_CFLAGS)
-AC_SUBST(LIB_ARCHIVE_LIBS)
-
-dnl Yaml input file support
-ac_use_libyaml="yes"
-AC_ARG_WITH([yaml],
-            AS_HELP_STRING([--without-yaml], [add support of YAML for input files (default = yes).]),
-            [ac_use_libyaml=$withval], [ac_use_libyaml=yes])
-AC_ARG_WITH([yaml-path],
-            AS_HELP_STRING([--with-yaml-path], [give a path to find libyaml.]),
-            [ac_path_yaml=$withval])
-AC_ARG_ENABLE(internal-libyaml, AS_HELP_STRING([--disable-internal-libyaml], [Do not build and link with internal libyaml library (default = yes).]), ac_internal_libyaml=$enableval, ac_internal_libyaml="yes")
-ac_build_libyaml=$ac_internal_libyaml
-if test x"$ac_use_libyaml" != x"no" ; then
-   if test x"$ac_path_yaml" == x"" ; then
-      ac_path_yaml="/usr"
-   fi
-   LDFLAGS_SVG="$LDFLAGS"
-   AC_LANG_PUSH(C)
-   LDFLAGS="-L$ac_path_yaml/lib"
-   AC_CHECK_LIB([yaml], [yaml_parser_parse],
-                [ac_use_libyaml=yes], [ac_use_libyaml=warn])
-   if test x"$ac_use_libyaml" = x"yes"; then
-      if test x"$ac_path_yaml" != x"/usr" ; then
-         LIB_YAML_CFLAGS="-I$ac_path_yaml/include"
-         LIB_YAML_LIBS="-L$ac_path_yaml/lib "
-      fi
-      LIB_YAML_LIBS=$LIB_YAML_LIBS"-lyaml"
-   fi
-   AC_LANG_POP(C)
-   LDFLAGS="$LDFLAGS_SVG"
-   if test x"$ac_use_libyaml" != x"yes" ; then
-      if test x"$ac_internal_libyaml" = x"yes" ; then
-         AC_MSG_WARN([libyaml is not available, building internal one.])
-         ac_use_libyaml="yes"
-         LIB_YAML_CFLAGS="-I\$(top_srcdir)"/yaml-0.1.4/include
-         LIB_YAML_LIBS="\$(top_builddir)/yaml-0.1.4/src/.libs/libyaml.a"
-         if ! test -d ${srcdir}/PyYAML-3.10 ; then
-            tar -xzf ${srcdir}/PyYAML-3.10.tar.gz
-         fi
-      else
-         AC_MSG_WARN([libyaml is not available.])
-      fi
-   else
-      ac_build_libyaml="no"
-   fi
-   AC_DEFINE([HAVE_YAML], [], [If set, we can call yaml.h])
-else
-   ac_build_libyaml="no"
-fi
-AM_CONDITIONAL(BUILD_LIBYAML, test x"$ac_build_libyaml" = x"yes")
-AM_CONDITIONAL(HAVE_LIB_YAML, test x"$ac_use_libyaml" = x"yes")
-AC_SUBST(LIB_YAML_CFLAGS)
-AC_SUBST(LIB_YAML_LIBS)
-
 dnl Test libraries required for benching.
 AC_LANG_PUSH(C++)
 AC_CHECK_LIB(config++, config_init, withconfig=yes, withconfig=no)
@@ -669,8 +577,6 @@ AM_CONDITIONAL(HAVE_LIBCONFIG, test "$withconfig" = "yes")
 AC_LANG_POP(C++)
 
 dnl AM_CONDITIONAL for the different libraries, set default values.
-dnl the common routines from ABINIT.
-ac_build_lib_ABINIT="yes"
 dnl the BigDFT library.
 ac_build_lib_BigDFT="yes"
 dnl the standalone executable (required linking tests)
@@ -865,6 +771,95 @@ if test "$ac_build_bin_cluster" = "yes" ; then
   fi
 fi # End of the if library compilation
 
+dnl Archive input file support
+ac_use_archive="yes"
+AC_ARG_WITH([archives],
+            AS_HELP_STRING([--with-archives], [add support of archives for output files.]),
+            [ac_use_archive=$withval], [ac_use_archive=$ac_build_lib_BigDFT])
+AC_ARG_WITH([archives-path],
+            AS_HELP_STRING([--with-archives-path], [give a path to find libarchive.]),
+            [ac_path_archive=$withval])
+if test x"$ac_use_archive" != x"no" ; then
+   if test x"$ac_path_archive" == x"" ; then
+      PKG_CHECK_MODULES([LIB_ARCHIVE],
+                        [libarchive >= 2.4],
+                        [ac_use_archive=yes],
+                        [ac_use_archive=warn])
+   else
+      LDFLAGS_SVG="$LDFLAGS"
+      AC_LANG_PUSH(C)
+      LDFLAGS="-L$ac_path_archive/lib"
+      AC_CHECK_LIB([archive], [archive_read_data_block],
+                   [ac_use_archive=yes], [ac_use_archive=warn])
+      if test x"$ac_use_archive" = x"yes" ; then
+         LIB_ARCHIVE_CFLAGS="-I$ac_path_archive/include"
+         LIB_ARCHIVE_LIBS="-L$ac_path_archive/lib -larchive"
+      fi
+      AC_LANG_POP(C)
+      LDFLAGS="$LDFLAGS_SVG"
+   fi
+   if test x"$ac_use_archive" = x"yes" ; then
+      AC_DEFINE([HAVE_LIB_ARCHIVE], [1], [libarchive is linkable.])
+   else
+      AC_MSG_WARN([libarchive is not available])
+   fi
+fi
+AC_LANG_PUSH(C)
+AC_CHECK_FUNCS([strndup])
+AC_LANG_POP(C)
+AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_use_archive" = x"yes")
+AC_SUBST(LIB_ARCHIVE_CFLAGS)
+AC_SUBST(LIB_ARCHIVE_LIBS)
+
+dnl Yaml input file support
+ac_use_libyaml="yes"
+AC_ARG_WITH([yaml],
+            AS_HELP_STRING([--without-yaml], [add support of YAML for input files (default = yes).]),
+            [ac_use_libyaml=$withval], [ac_use_libyaml="yes"])
+AC_ARG_WITH([yaml-path],
+            AS_HELP_STRING([--with-yaml-path], [give a path to find libyaml.]),
+            [ac_path_yaml=$withval])
+AC_ARG_ENABLE(internal-libyaml, AS_HELP_STRING([--disable-internal-libyaml], [Do not build and link with internal libyaml library (default = yes).]), ac_internal_libyaml=$enableval, ac_internal_libyaml="yes")
+ac_build_libyaml=$ac_internal_libyaml
+if test x"$ac_use_libyaml" != x"no" ; then
+   if test x"$ac_path_yaml" == x"" ; then
+      ac_path_yaml="/usr"
+   fi
+   LDFLAGS_SVG="$LDFLAGS"
+   AC_LANG_PUSH(C)
+   LDFLAGS="-L$ac_path_yaml/lib"
+   AC_CHECK_LIB([yaml], [yaml_parser_parse],
+                [ac_use_libyaml=yes], [ac_use_libyaml=warn])
+   if test x"$ac_use_libyaml" = x"yes"; then
+      if test x"$ac_path_yaml" != x"/usr" ; then
+         LIB_YAML_CFLAGS="-I$ac_path_yaml/include"
+         LIB_YAML_LIBS="-L$ac_path_yaml/lib "
+      fi
+      LIB_YAML_LIBS=$LIB_YAML_LIBS"-lyaml"
+   fi
+   AC_LANG_POP(C)
+   LDFLAGS="$LDFLAGS_SVG"
+   if test x"$ac_use_libyaml" != x"yes" ; then
+      if test x"$ac_internal_libyaml" = x"yes" ; then
+         AC_MSG_WARN([libyaml is not available, building internal one.])
+         ac_use_libyaml="yes"
+         LIB_YAML_CFLAGS="-I\$(top_srcdir)"/yaml-0.1.4/include
+         LIB_YAML_LIBS="\$(top_builddir)/yaml-0.1.4/src/.libs/libyaml.a"
+         tar -xzf ${srcdir}/PyYAML-3.10.tar.gz
+      else
+         AC_MSG_WARN([libyaml is not available.])
+      fi
+   else
+      ac_build_libyaml="no"
+   fi
+   AC_DEFINE([HAVE_YAML], [], [If set, we can call yaml.h])
+else
+   ac_build_libyaml="no"
+fi
+AM_CONDITIONAL(BUILD_LIBYAML, test x"$ac_build_libyaml" = x"yes")
+AM_CONDITIONAL(HAVE_LIB_YAML, test x"$ac_use_libyaml" = x"yes")
+AC_SUBST(LIB_YAML_CFLAGS)
+AC_SUBST(LIB_YAML_LIBS)
 
 dnl Test the libXC library
 ac_internal_libxc="yes"
@@ -919,7 +914,7 @@ fi
 
 dnl Test the ABINIT library
 ac_internal_libabinit="yes"
-AC_ARG_ENABLE(internal-libabinit, AS_HELP_STRING([--disable-internal-libabinit], [Do not build and link with internal libABINIT library (default = yes).]), ac_internal_libabinit=$enableval, ac_internal_libabinit="yes")
+AC_ARG_ENABLE(internal-libabinit, AS_HELP_STRING([--disable-internal-libabinit], [Do not build and link with internal libABINIT library (default = yes).]), ac_internal_libabinit=$enableval, ac_internal_libabinit=$ac_build_lib_BigDFT)
 AC_ARG_WITH(libabinit-path, AS_HELP_STRING([--with-libabinit-path], [Give the path for an external libABINIT library, lib and module files (default = None).]),
             ac_libabinit_dir=$withval, ac_libabinit_dir=)
 ac_use_libabinit="no"
@@ -1034,6 +1029,7 @@ Makefile
 bigdft.pc
 libABINIT/src/Makefile
 config/Doxyfile
+PyYAML-3.10/Makefile
 flib/Makefile
 flib/src/Makefile
 flib/tests/Makefile
@@ -1111,7 +1107,6 @@ Basics:
   Linked libraries:          $LIBS_DEPENDENCIES $LIBS
 
 Build:
-  Library ABINIT:            $ac_build_lib_ABINIT
   Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (bigdft,...):$ac_build_bin_cluster
   Minima hopping binary:     $ac_build_bin_minima_hopping

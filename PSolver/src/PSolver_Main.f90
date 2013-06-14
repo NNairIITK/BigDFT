@@ -133,24 +133,24 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
      if (wrtmsg) &
           call yaml_map('BC','Periodic')
      call P_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-          md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc)
+          md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,.false.)
   else if (kernel%geocode == 'S') then
      if (wrtmsg) &
           call yaml_map('BC','Surface')
      call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
           md1,md2,md3,nd1,nd2,nd3,&
-          kernel%mpi_env%nproc,kernel%igpu)
+          kernel%mpi_env%nproc,kernel%igpu,.false.)
   else if (kernel%geocode == 'F') then
      if (wrtmsg) &
           call yaml_map('BC','Free')
      call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
           md1,md2,md3,nd1,nd2,nd3,&
-          kernel%mpi_env%nproc,kernel%igpu)
+          kernel%mpi_env%nproc,kernel%igpu,.false.)
   else if (kernel%geocode == 'W') then
      if (wrtmsg) &
           call yaml_map('BC','Wires')
      call W_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-          md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu)
+          md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
   else
      stop 'PSolver: geometry code not admitted'
   end if
@@ -167,7 +167,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
   if(kernel%geocode == 'P') then
      !no powers of hgrid because they are incorporated in the plane wave treatment
-     scal=1.0_dp/(real(n1,dp)*real(n2*n3,dp)) !to reduce chances of overflow
+     scal=1.0_dp/(real(n1,dp)*real(n2*n3,dp)) !to reduce chances of integer overflow
   else if (kernel%geocode == 'S') then
      !only one power of hgrid 
      !factor of -4*pi for the definition of the Poisson equation
@@ -226,7 +226,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   if (.not. cudasolver) then !CPU case
 
      call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
-     call G_PoissonSolver(kernel%mpi_env%iproc,kernel%mpi_env%nproc,kernel%mpi_env%mpi_comm,kernel%geocode,1,&
+     call G_PoissonSolver(kernel%mpi_env%iproc,kernel%mpi_env%nproc,&
+          kernel%part_mpi%mpi_comm,kernel%inplane_mpi%iproc,kernel%inplane_mpi%mpi_comm,kernel%geocode,1,&
           n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,kernel%kernel,&
           zf(1,1,1),&
           scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
@@ -517,8 +518,8 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
 
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
-     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
-      if (nproc>2*(n3/2+1)-1) then
+     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
+      if (nproc>2*(n3/2+1)-1 .and. .false.) then
        n3pr1=nproc/(n3/2+1)
        n3pr2=n3/2+1
        if ((md2/nproc)*n3pr1*n3pr2 < n2) then
@@ -526,8 +527,8 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
        endif
      endif
   else if (geocode == 'S') then
-     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
-     if (nproc>2*(n3/2+1)-1) then
+     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
+     if (nproc>2*(n3/2+1)-1 .and. .false.) then
        n3pr1=nproc/(n3/2+1)
        n3pr2=n3/2+1
        if ((md2/nproc)*n3pr1*n3pr2 < n2) then
@@ -535,8 +536,8 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
        endif
      endif
   else if (geocode == 'F' .or. geocode == 'H') then
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
-     if (nproc>2*(n3/2+1)-1) then
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
+     if (nproc>2*(n3/2+1)-1 .and. .false.) then
        n3pr1=nproc/(n3/2+1)
        n3pr2=n3/2+1
        if ((md2/nproc)*n3pr1*n3pr2 < n2/2) then
@@ -544,8 +545,8 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
        endif
      endif
   else if (geocode == 'W') then
-     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
-     if (nproc>2*(n3/2+1)-1) then
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
+     if (nproc>2*(n3/2+1)-1 .and. .false.) then
        n3pr1=nproc/(n3/2+1)
        n3pr2=n3/2+1
        if ((md2/nproc)*n3pr1*n3pr2 < n2) then
@@ -709,9 +710,10 @@ END SUBROUTINE xc_dimensions
 !! CREATION DATE
 !!    October 2006
 !!
-subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,enlarge_md2)
   !use module_defs, only: md2plus
  implicit none
+ logical, intent(in) :: enlarge_md2
  integer, intent(in) :: n01,n02,n03,nproc
  integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
  integer :: l1,l2,l3
@@ -766,7 +768,7 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
 !    goto 151
  !endif
  
- if (md2plus) md2=(md2/nproc+1)*nproc
+ if (enlarge_md2) md2=(md2/nproc+1)*nproc
 
  !dimensions of the kernel, 1/8 of the total volume,
  !compatible with nproc
@@ -817,8 +819,9 @@ END SUBROUTINE P_FFT_dimensions
 !! CREATION DATE
 !!    October 2006
 !!
-subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu)
+subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu,enlarge_md2)
  implicit none
+ logical, intent(in) :: enlarge_md2
  integer, intent(in) :: n01,n02,n03,nproc,gpu
  integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
  integer :: l1,l2,l3
@@ -877,7 +880,7 @@ subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
     !endif
  end do
 
- if (md2plus) md2=(md2/nproc+1)*nproc
+ if (enlarge_md2) md2=(md2/nproc+1)*nproc
 
  !dimensions of the kernel, 1/8 of the total volume,
  !compatible with nproc
@@ -926,8 +929,9 @@ END SUBROUTINE S_FFT_dimensions
 !! CREATION DATE
 !!    October 2006
 !!
-subroutine W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu)
+subroutine W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu,enlarge_md2)
  implicit none
+ logical, intent(in) :: enlarge_md2
  integer, intent(in) :: n01,n02,n03,nproc,gpu
  integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
  integer :: l1,l2,l3
@@ -984,7 +988,7 @@ subroutine W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
     !endif
  end do
 
- if (md2plus) md2=(md2/nproc+1)*nproc
+ if (enlarge_md2) md2=(md2/nproc+1)*nproc
 
  !dimensions of the kernel, 1/8 of the total volume,
  !compatible with nproc
@@ -1032,9 +1036,10 @@ END SUBROUTINE W_FFT_dimensions
 !! CREATION DATE
 !!    February 2006
 !!
-subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu)
+subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu,enlarge_md2)
   !use module_defs, only: md2plus
  implicit none
+ logical, intent(in) :: enlarge_md2
  integer, intent(in) :: n01,n02,n03,nproc,gpu
  integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
  integer :: l1,l2,l3
@@ -1090,7 +1095,7 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
    !endif
  end do
 
- if (md2plus) md2=(md2/nproc+1)*nproc
+ if (enlarge_md2) md2=(md2/nproc+1)*nproc
 
  !dimensions of the kernel, 1/8 of the total volume,
  !compatible with nproc

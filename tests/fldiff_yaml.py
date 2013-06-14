@@ -166,7 +166,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
   global failed_checks,discrepancy,biggest_tol
   failed = always_fails
   ret = (failed, None)
-  #print scl,ref,tols
+  #print 'scl',scl,'ref',ref,'tols',tols
 #eliminate the character variables
   if type(ref) == type(""):
     if not(scl == ref):
@@ -270,7 +270,8 @@ if __name__ == "__main__":
 references = [a for a in yaml.load_all(open(args.ref, "r").read(), Loader = yaml.CLoader)]
 try:
   datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
-except:
+except Exception,e:
+  print str(e)
   datas = []
   reports = open(args.output, "w")
   fatal_error(args,reports)

@@ -1,5 +1,5 @@
 !> @file
-!! External routine of the bigDFT library.
+!! External routine of the BigDFT library.
 !! To be documented in detail once stabilized
 !! All the call to BigDFT code should be performed from these routines
 !! No interface should be required to manipulate these routines
@@ -23,12 +23,14 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   integer, intent(out) :: ierr                   !< error code
   !local variables
   logical :: exist_list
-  integer :: iproc,nproc,nconfig_file,mpi_groupsize
+  integer :: nconfig_file,mpi_groupsize
   character(len=60) :: posinp_file,radical
 
   !Initalize the global mpi environment
   call bigdft_mpi_init(ierr)
   if (ierr /= MPI_SUCCESS) return
+
+  call bigdft_init_errors()
 
   call command_line_information(mpi_groupsize,posinp_file,radical,ierr)
 
@@ -61,7 +63,7 @@ subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
   integer, intent(in) :: mpi_groupsize
   integer, intent(out) :: ierr
   !local variables
-  integer :: iproc,nproc
+  integer :: iproc,nproc,ngroup_size
 
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
@@ -75,7 +77,14 @@ subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
 !!$  print *,'run_id',trim(radical),'iproc',iproc
 !!$  print *,'mpi_groupsize',mpi_groupsize,'iproc',iproc
 
-  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,mpi_groupsize)
+  !if the taskgroup size is not a divisor of nproc do not create taskgroups
+  if (nproc >1 .and. mpi_groupsize > 0 .and. mpi_groupsize < nproc .and.&
+       mod(nproc,mpi_groupsize)==0) then
+     ngroup_size=mpi_groupsize
+  else
+     ngroup_size=nproc
+  end if
+  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,ngroup_size)
 
   !final values
   mpi_info(1)=bigdft_mpi%iproc
@@ -235,3 +244,15 @@ subroutine bigdft_get_eigenvalues(rst,eval,istat)
   call vcopy(norb,rst%KSwfn%orbs%eval(1),1,eval(1),1)
 
 end subroutine bigdft_get_eigenvalues
+
+subroutine bigdft_severe_abort()
+  use module_base
+  implicit none
+  integer :: ierr
+
+  !the MPI_ABORT works only in MPI_COMM_WORLD
+  call f_dump_last_error()
+  call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+  if (ierr/=0) stop 'Problem in MPI_ABORT'
+
+end subroutine bigdft_severe_abort
