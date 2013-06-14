@@ -3668,8 +3668,8 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   real(gp), intent(out) :: fnoise
   !local variables
   logical :: move_this_coordinate
-  integer :: iat,ixyz
-  real(gp) :: sumx,sumy,sumz
+  integer :: iat,ixyz, ijk(3)
+  real(gp) :: sumx,sumy,sumz, u(3), scal
   !my variables
   real(gp):: fmax1,t1,t2,t3,fnrm1
   real(gp):: fmax2,fnrm2
@@ -3741,9 +3741,25 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   
   !clean the forces for blocked atoms
   do iat=1,at%astruct%nat
-     do ixyz=1,3
-        if (.not. move_this_coordinate(at%astruct%ifrztyp(iat),ixyz)) fxyz(ixyz,iat)=0.0_gp
-     end do
+     if (at%astruct%ifrztyp(iat) < 9000) then
+        do ixyz=1,3
+           if (.not. move_this_coordinate(at%astruct%ifrztyp(iat),ixyz)) fxyz(ixyz,iat)=0.0_gp
+        end do
+     else
+        ! Projection on a plane, defined by Miller indices stored in ifrztyp:
+        !  ifrztyp(iat) = 9ijk
+        ijk = (/ (at%astruct%ifrztyp(iat) - 9000) / 100, &
+             & modulo(at%astruct%ifrztyp(iat) - 9000, 100) / 10, &
+             & modulo(at%astruct%ifrztyp(iat) - 9000, 10) /)
+        u = (/ at%astruct%cell_dim(1) / real(ijk(1), gp), &
+             & at%astruct%cell_dim(2) / real(ijk(2), gp), &
+             & at%astruct%cell_dim(3) / real(ijk(3), gp) /)
+        u = u / nrm2(3, u(1), 1)
+        scal = fxyz(1,iat) * u(1) + fxyz(2,iat) * u(2) + fxyz(3,iat) * u(3)
+        fxyz(1,iat)=fxyz(1,iat) - scal * u(1)
+        fxyz(2,iat)=fxyz(2,iat) - scal * u(2)
+        fxyz(3,iat)=fxyz(3,iat) - scal * u(3)
+     end if
   end do
   
   !the noise of the forces is the norm of the translational force

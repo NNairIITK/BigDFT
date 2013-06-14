@@ -1200,6 +1200,10 @@ subroutine frozen_ftoi(frzchain,ifrztyp)
      ifrztyp = 2
   else if (trim(frzchain)=='fxz') then
      ifrztyp = 3
+  else if (verify(frzchain, 'f0123456789') == 0) then
+     read(frzchain(2:4), *) ifrztyp
+     ! f001 will give 9001 value.
+     ifrztyp = 9000 + ifrztyp
   end if
         
 END SUBROUTINE frozen_ftoi
