@@ -773,18 +773,52 @@ contains
     
   end subroutine get_long
 
+  !> Read a real or real/real, real:real 
+  !! Here the fraction is indicated by the ':' or '/'
+  !! The problem is that / is a separator for Fortran
+  subroutine read_fraction_string(string,var,ierror)
+    implicit none
+    !Arguments
+    character(len=*), intent(in) :: string
+    double precision, intent(out) :: var
+    integer, intent(out) :: ierror
+    !Local variables
+    character(len=max_field_length) :: tmp
+    integer :: num,den,pfr,psp
+
+    !First look at the first blank after trim
+    tmp(1:max_field_length)=trim(string)
+    psp = scan(tmp,' ')
+
+    !see whether there is a fraction in the string
+    if(psp==0) psp=len(tmp)
+    pfr = scan(tmp(1:psp),':')
+    if (pfr == 0) pfr = scan(tmp(1:psp),'/')
+    !It is not a fraction
+    if (pfr == 0) then
+       read(tmp(1:psp),*,iostat=ierror) var
+    else 
+       read(tmp(1:pfr-1),*,iostat=ierror) num
+       read(tmp(pfr+1:psp),*,iostat=ierror) den
+       if (ierror == 0) var=real(num)/real(den)
+    end if
+    !Value by defaut
+    if (ierror /= 0) var = huge(1.d0) 
+  END SUBROUTINE read_fraction_string
+
   !set and get routines for different types
   subroutine get_real(rval,dict)
     real(kind=4), intent(out) :: rval
     type(dictionary), intent(in) :: dict
     !local variables
     integer :: ierror
+    double precision :: dval
     character(len=max_field_length) :: val
 
     !take value
     val=dict
     !look at conversion
-    read(val,*,iostat=ierror)rval
+    call read_fraction_string(val, dval, ierror)
 
     if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
     
@@ -801,7 +835,7 @@ contains
     !take value
     val=dict
     !look at conversion
-    read(val,*,iostat=ierror)dval
+    call read_fraction_string(val, dval, ierror)
 
     if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
      

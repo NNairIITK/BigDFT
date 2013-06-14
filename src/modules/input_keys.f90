@@ -51,7 +51,6 @@ module module_input_keys
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST
   integer, public :: INPUT_VAR_NOT_IN_RANGE
-  integer, public :: INPUT_VAR_CONVERSION_ERROR
   integer, public :: INPUT_VAR_ILLEGAL
   type(dictionary), pointer :: failed_exclusive
 
@@ -335,40 +334,6 @@ contains
     get_kpt_parameters => p
   END FUNCTION get_kpt_parameters
 
-  !> Read a real or real/real, real:real 
-  !! Here the fraction is indicated by the ':' or '/'
-  !! The problem is that / is a separator for Fortran
-  subroutine read_fraction_string(string,var,ierror)
-    use module_base
-    implicit none
-    !Arguments
-    character(len=*), intent(in) :: string
-    double precision, intent(out) :: var
-    integer, intent(out) :: ierror
-    !Local variables
-    character(len=max_field_length) :: tmp
-    integer :: num,den,pfr,psp
-
-    !First look at the first blank after trim
-    tmp(1:max_field_length)=trim(string)
-    psp = scan(tmp,' ')
-
-    !see whether there is a fraction in the string
-    if(psp==0) psp=len(tmp)
-    pfr = scan(tmp(1:psp),':')
-    if (pfr == 0) pfr = scan(tmp(1:psp),'/')
-    !It is not a fraction
-    if (pfr == 0) then
-       read(tmp(1:psp),*,iostat=ierror) var
-    else 
-       read(tmp(1:pfr-1),*,iostat=ierror) num
-       read(tmp(pfr+1:psp),*,iostat=ierror) den
-       if (ierror == 0) var=real(num,gp)/real(den,gp)
-    end if
-    !Value by defaut
-    if (ierror /= 0) var = huge(1_gp) 
-  END SUBROUTINE read_fraction_string
-
   !> Compare two strings (case-insensitive). Blanks are relevant!
   function input_keys_equal(stra,strb)
     implicit none
@@ -415,18 +380,6 @@ contains
           call input_keys_set(dict, file, keys(i))
        end do
     end if
-
-!!$  ! Validate inputPsiId value.
-!!$  if (f_err_check(INPUT_VAR_NOT_IN_LIST) .and. iproc == 0) then
-!!$     call input_psi_help()
-!!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
-!!$  end if
-
-!!$  ! Validate output_wf value.
-!!$  if (f_err_check(INPUT_VAR_NOT_IN_LIST) .and. iproc == 0) then
-!!$     call output_wf_format_help()
-!!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
-!!$  end if
 
     deallocate(keys)
   END SUBROUTINE input_keys_fill
@@ -551,12 +504,7 @@ contains
             deallocate(keys)
          end if
       else
-         val = dict
-         call read_fraction_string(val, var, ierror)
-
-         if (f_err_raise(ierror /= 0, err_id = INPUT_VAR_CONVERSION_ERROR, &
-              & err_msg = "cannot read a double from '" // trim(val) //"'.")) return
-
+         var = dict
          if (f_err_raise(var < rg(1) .or. var > rg(2), err_id = INPUT_VAR_NOT_IN_RANGE, &
               & err_msg = trim(key) // " = '" // trim(val) // &
               & "' not in range.")) return

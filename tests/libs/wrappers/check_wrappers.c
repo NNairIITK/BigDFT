@@ -10,7 +10,7 @@ int main(int argc, const char **argv)
   BigDFT_Atoms *atoms;
 
   BigDFT_Inputs *ins;
-  const gchar *hgrids[] = {"0.55", "0.55", "0.55", NULL};
+  const gchar *hgrids[] = {"2/5", "0.55", "0.55", NULL};
 
   BigDFT_Run *run;
 
