@@ -1,3 +1,13 @@
+!> @file
+!!  Routines used by the linear scaling version
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
            energs,energy,fpulay,infocode,ref_frags)
  
@@ -29,12 +39,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   
   real(8) :: pnrm,trace,trace_old,fnrm_tmb
   integer :: infoCoeff,istat,iall,it_scc,itout,info_scf,i,ierr,iorb
-  character(len=*),parameter :: subname='linearScaling'
+  character(len=*), parameter :: subname='linearScaling'
   real(8),dimension(:),allocatable :: rhopotold_out
   real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
   type(mixrhopotDIISParameters) :: mixdiis
   type(localizedDIISParameters) :: ldiis, ldiis_coeff
-  logical :: can_use_ham, update_phi, locreg_increased, reduce_conf
+  logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
   logical :: fix_support_functions, check_initialguess, fix_supportfunctions
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
   real(8),dimension(:),allocatable :: locrad_tmp
@@ -81,6 +91,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ldiis_coeff_hist=input%lin%mixHist_lowaccuracy
   reduce_conf=.false.
   ldiis_coeff_changed = .false.
+  orthonormalization_on=.true.
 
   call nullify_sparsematrix(ham_small) ! nullify anyway
 
@@ -178,6 +189,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           ! Adjust the confining potential if required.
           call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                at, input, rxyz, KSwfn, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
+          orthonormalization_on=.true.
 
           if (locreg_increased .and. input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
              call deallocate_sparsematrix(ham_small,subname)
@@ -274,7 +286,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
                reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
-               ratio_deltas)
+               ratio_deltas,orthonormalization_on)
 
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
@@ -964,7 +976,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   real(kind=8),dimension(:,:),allocatable :: locregCenter
   real(kind=8),dimension(:),allocatable :: lphilarge
   type(local_zone_descriptors) :: lzd_tmp
-  character(len=*),parameter :: subname='adjust_locregs_and_confinement'
+  character(len=*), parameter :: subname='adjust_locregs_and_confinement'
 
   locreg_increased=.false.
   if(lowaccur_converged ) then
@@ -1066,12 +1078,19 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz, lowaccur_converged)
 
      ! Update sparse matrices
-     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%ham)
-     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
+     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%ham)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
+     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, input, tmb%linmat%ovrlp)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
      !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
-     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%denskern)
+     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%denskern)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern)
      call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
      call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
+     !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%inv_ovrlp)
 
      allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=istat)
      call memocc(istat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
@@ -1449,12 +1468,12 @@ subroutine calc_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovr
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   type(orbitals_data), intent(in) :: orbs
   type(sparseMatrix), intent(inout) :: ham, ovrlp
-
-  integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ifrag_ref, jfrag_ref, ierr, jtmb
+  !Local variables
+  character(len=*), parameter :: subname='calc_transfer_integrals'
+  integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ifrag_ref, ierr
+  !integer :: jfrag_ref, jtmb
   real(gp), allocatable, dimension(:,:) :: homo_coeffs, lumo_coeffs, homo_ham, lumo_ham, homo_ovrlp, lumo_ovrlp, coeff_tmp
-  character(len=200) :: subname
 
-  subname='calc_transfer_integrals'
 
   ! make the coeff copies more efficient?
 
@@ -1503,7 +1522,7 @@ subroutine calc_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovr
   call to_zero(input_frag%nfrag**2, homo_ham(1,1))
   if (orbs%norbp>0) then
      call dgemm('n', 'n', orbs%norbp, input_frag%nfrag, orbs%norb, 1.d0, &
-	       ham%matrix(orbs%isorb+1,1),orbs%norb, &
+          ham%matrix(orbs%isorb+1,1),orbs%norb, &
           homo_coeffs(1,1), orbs%norb, 0.d0, &
           coeff_tmp, orbs%norbp)
      call dgemm('t', 'n', input_frag%nfrag, input_frag%nfrag, orbs%norbp, 1.d0, homo_coeffs(orbs%isorb+1,1), &

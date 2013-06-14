@@ -104,6 +104,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   real(kind=8) :: tt7a0, tt7b0, tt7c0, tt7e0                     
   logical:: with_confpot
   character(len=*),parameter :: subname='ConvolQuartic4'
+  real(kind=8) :: ddot
 
 
   call timing(iproc,'convolQuartic ','ON')
@@ -118,6 +119,8 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   call to_zero((n1+1)*(n2+1)*(n3+1),y_c(0,0,0))
   call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f(1,nfl1,nfl2,nfl3))
 
+  !write(*,*) 'before: ddot',ddot((n1+1)*(n2+1)*(n3+1), y_c, 1, y_c, 1)
+
   !$omp parallel default(private) &
   !$omp shared(hgrid,offsetx,offsety,offsetz,rxyzConf,with_kinetic,potentialPrefac,with_confpot,cprecr) &
   !$omp shared(nfu1,nfu2,nfu3,n1,n2,n3,nfl1,nfl2,nfl3)&
@@ -126,7 +129,8 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   !$omp shared(aeff0_2auxarray,beff0_2auxarray,ceff0_2auxarray,eeff0_2auxarray,aeff0array,beff0array,ceff0array,eeff0array)&
   !$omp shared(aeff0_2array,beff0_2array,ceff0_2array,eeff0_2array)&
   !$omp shared(xya_c,xyc_c,xza_c,xzc_c,yza_c,yzc_c)&
-  !$omp shared(xya_f,xyb_f,xyc_f,xye_f,xza_f,xzb_f,xzc_f,xze_f,yza_f,yzb_f,yzc_f,yze_f)
+  !$omp shared(xya_f,xyb_f,xyc_f,xye_f,xza_f,xzb_f,xzc_f,xze_f,yza_f,yzb_f,yzc_f,yze_f)&
+  !$omp private(i1,i3,i2)
  
 !$omp do
  do i1=0,n1
@@ -1155,6 +1159,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
   call timing(iproc,'convolQuartic ','OF')
 
+  !write(*,*) 'after: ddot',ddot((n1+1)*(n2+1)*(n3+1), y_c, 1, y_c, 1)
 
 END SUBROUTINE ConvolQuartic4
 

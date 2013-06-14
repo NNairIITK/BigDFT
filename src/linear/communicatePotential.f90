@@ -36,14 +36,14 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   
   ! Determine the bounds of the potential that we need for
   ! the orbitals on this process.
-  is1=1000000000
-  ie1=-1000000000
-  is2=1000000000
-  ie2=-1000000000
-  is3=1000000000
-  ie3=-1000000000
   iiorb=0
   do jproc=0,nproc-1
+      is1=1000000000
+      ie1=-1000000000
+      is2=1000000000
+      ie2=-1000000000
+      is3=1000000000
+      ie3=-1000000000
       do iorb=1,orbs%norb_par(jproc,0)
           
           iiorb=iiorb+1 

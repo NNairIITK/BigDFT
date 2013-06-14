@@ -37,7 +37,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   ! Local variables 
   integer :: istat, iall, iorb, jorb, info, ind_ham, ind_denskern
-  integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie
+  integer :: isegsmall, iseglarge, iismall, iilarge, i, is,  ie,matrixindex_in_compressed
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -71,6 +71,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+    
   end if
 
   ! Post the p2p communications for the density. (must not be done in inputguess)
@@ -278,8 +279,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       ebs=0.d0
       do iorb=1,tmb%orbs%norb
          do jorb=1,tmb%orbs%norb
-            ind_ham = tmb%linmat%ham%matrixindex_in_compressed(iorb,jorb)
-            ind_denskern = tmb%linmat%denskern%matrixindex_in_compressed(jorb,iorb)
+            ind_ham = matrixindex_in_compressed(tmb%linmat%ham,iorb,jorb)
+            ind_denskern = matrixindex_in_compressed(tmb%linmat%denskern,jorb,iorb)
             if (ind_ham==0.or.ind_denskern==0) cycle
             ebs = ebs + tmb%linmat%denskern%matrix_compr(ind_denskern)*tmb%linmat%ham%matrix_compr(ind_ham)
          end do
@@ -325,7 +326,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
     reduce_conf,fix_supportfunctions,nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit,deltaenergy_multiplier_TMBfix,&
-    ratio_deltas)
+    ratio_deltas,ortho_on)
   !
   ! Purpose:
   ! ========
@@ -360,6 +361,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
   real(kind=8),intent(in) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
   real(kind=8),intent(out) :: ratio_deltas
+  logical, intent(inout) :: ortho_on
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
@@ -367,7 +369,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: hpsi_noprecond
   real(kind=8),dimension(:,:),allocatable :: coeff_old
-  logical :: energy_increased, overlap_calculated, ortho
+  logical :: energy_increased, overlap_calculated
   character(len=*),parameter :: subname='getLocalizedBasis'
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
@@ -396,7 +398,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   overlap_calculated=.false.
   it=0
   it_tot=0
-  ortho=.true.
+  !ortho=.true.
   call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
   call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
        tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
@@ -477,11 +479,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
               meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
-              hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, hpsi_noprecond)
+              hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, .false., hpsi_small, hpsi_noprecond)
       else
          call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, &
               fnrm, fnrmMax, meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, &
-              energs_base, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small)
+              energs_base, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, .false., hpsi_small)
       end if
 
 
@@ -543,7 +545,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
              if (iproc==0) write(*,'(a)') 'Energy increasing, switching off orthonormalization of tmbs'
-             ortho=.false.
+             ortho_on=.false.
              alpha=alpha*5.0d0/3.0d0 ! increase alpha to make up for decrease from previous iteration
           end if
       end if 
@@ -595,10 +597,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff)
+              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff)
       else
          call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho)
+              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on)
       end if
 
 
@@ -925,7 +927,6 @@ subroutine diagonalizeHamiltonian2(iproc, orbs, HamSmall, ovrlp, eval)
 
   ! Diagonalize the Hamiltonian
   call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-
   if(info/=0)then
     write(*,*) 'ERROR: dsygv in diagonalizeHamiltonian2, info=',info,'N=',orbs%norb
   end if
@@ -1355,8 +1356,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
 
      indc=0
      do ind = 1, basis_overlap%nvctr
-        korb = basis_overlap%orb_from_index(ind,1)
-        llorb = basis_overlap%orb_from_index(ind,2)
+        korb = basis_overlap%orb_from_index(1,ind)
+        llorb = basis_overlap%orb_from_index(2,ind)
         if (korb<llorb) cycle ! so still only doing half
         indc = indc + 1
         if (indc < ind_start .or. indc > ind_end) cycle

@@ -583,7 +583,7 @@ module module_interfaces
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
             denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-            wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags)
+            lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags)
          use module_defs
          use module_types
          use module_fragments
@@ -604,6 +604,7 @@ module module_interfaces
          real(kind=8), dimension(:), pointer :: proj
          type(grid_dimensions), intent(in) :: d_old
          real(gp), dimension(3, atoms%astruct%nat), intent(inout) :: rxyz_old
+         type(local_zone_descriptors),intent(inout):: lzd_old
          type(wavefunctions_descriptors), intent(inout) :: wfd_old
          type(system_fragment), dimension(:), pointer :: ref_frags
        END SUBROUTINE input_wf
@@ -1967,7 +1968,7 @@ module module_interfaces
           fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
           reduce_conf, fix_supportfunctions,nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix,&
-          ratio_deltas)
+          ratio_deltas,ortho_on)
         use module_base
         use module_types
         implicit none
@@ -1993,6 +1994,7 @@ module module_interfaces
         integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
         real(kind=8),intent(in) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
         real(kind=8),intent(out) :: ratio_deltas
+        logical, intent(inout) :: ortho_on
       end subroutine getLocalizedBasis
 
     subroutine inputOrbitals(iproc,nproc,at,&
@@ -2887,13 +2889,14 @@ module module_interfaces
          logical, intent(in) :: reset
        end subroutine init_foe
 
-       subroutine initSparseMatrix(iproc, nproc, lzd, orbs, sparsemat)
+       subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          type(local_zone_descriptors),intent(in) :: lzd
          type(orbitals_data),intent(in):: orbs
+         type(input_variables),intent(in) :: input
          type(sparseMatrix),intent(out):: sparsemat
        end subroutine initSparseMatrix
 
@@ -3282,7 +3285,7 @@ module module_interfaces
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-                  hpsi_small, hpsi_noprecond)
+                  energy_only, hpsi_small, hpsi_noprecond)
          use module_base
          use module_types
          implicit none
@@ -3299,6 +3302,7 @@ module module_interfaces
          type(energy_terms),intent(in) :: energs
          real(8),dimension(:),pointer:: hpsit_c, hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
+         logical, intent(in) :: energy_only
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
        end subroutine calculate_energy_and_gradient_linear
@@ -4528,21 +4532,22 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
 
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_compr, &
-                   ovrlp_compr, calculate_SHS, SHS, fermi, penalty_ev)
+        subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kernel, ham_compr, &
+                   ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: iproc, nproc, npl
+          integer,intent(in) :: iproc, nproc, npl, nsize_polynomial
           real(8),dimension(npl,3),intent(in) :: cc
           type(orbitals_data),intent(in) :: orbs
           type(foe_data),intent(in) :: foe_obj
-          type(sparseMatrix), intent(in) :: sparsemat
+          type(sparseMatrix), intent(in) :: sparsemat, kernel
           real(kind=8),dimension(sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
           logical,intent(in) :: calculate_SHS
           real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: SHS
           real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
           real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
+          real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
         end subroutine chebyshev_clean
 
         subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)
@@ -4752,6 +4757,65 @@ module module_interfaces
           type(orbitals_data), optional, intent(in) :: orbs
         end subroutine overlapPowerMinusOneHalf_old
 
+        subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
+                   orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
+                   lphi, psit_c, psit_f, can_use_transposed)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
+          type(orbitals_data),intent(in) :: orbs
+          type(atoms_data),intent(in) :: at
+          integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(sparseMatrix),intent(inout) :: ovrlp
+          type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+          type(collective_comms),intent(in) :: collcom
+          type(orthon_data),intent(in) :: orthpar
+          real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
+          real(kind=8),dimension(:),pointer :: psit_c, psit_f
+          logical,intent(inout) :: can_use_transposed
+        end subroutine orthonormalize_subset
+
+        subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
+                   orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
+                   lphi, psit_c, psit_f, can_use_transposed)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
+          type(orbitals_data),intent(in) :: orbs
+          type(atoms_data),intent(in) :: at
+          integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(sparseMatrix),intent(inout) :: ovrlp
+          type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+          type(collective_comms),intent(in) :: collcom
+          type(orthon_data),intent(in) :: orthpar
+          real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
+          real(kind=8),dimension(:),pointer :: psit_c, psit_f
+          logical,intent(inout) :: can_use_transposed
+        end subroutine gramschmidt_subset
+
+        subroutine input_wf_memory_new(nproc,iproc, atoms, &
+                 rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
+                 rxyz,hx,hy,hz,d,wfd,psi,orbs,lzd,displ)
+          use module_defs
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc,nproc
+          type(atoms_data), intent(in) :: atoms
+          real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz, rxyz_old
+          real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old,displ
+          type(grid_dimensions), intent(in) :: d, d_old
+          type(wavefunctions_descriptors), intent(in) :: wfd
+          type(wavefunctions_descriptors), intent(inout) :: wfd_old
+          type(orbitals_data), intent(in) :: orbs
+          type(local_zone_descriptors), intent(inout) :: lzd_old
+          type(local_zone_descriptors), intent(in) :: lzd
+          real(wp), dimension(:), pointer :: psi, psi_old
+        end subroutine input_wf_memory_new
+      
         subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GPU,proj,nlpspd,rxyz)
           use module_base
           use module_types
@@ -4766,6 +4830,40 @@ module module_interfaces
           real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
           real(dp), dimension(:), pointer :: local_potential
         end subroutine integral_equation
-   end interface
 
+        subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, collcom, collcom_shamop, &
+                   collcom_sr, sparsemat)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(orbitals_data),intent(in) :: orbs
+          type(collective_comms),intent(in) :: collcom, collcom_shamop, collcom_sr
+          type(sparseMatrix), intent(inout) :: sparsemat
+        end subroutine init_matrixindex_in_compressed_fortransposed
+
+        subroutine compress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector, vector_compressed)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nsize_polynomial
+          type(orbitals_data),intent(in) :: orbs
+          type(sparseMatrix),intent(in) :: fermi
+          real(kind=8),dimension(orbs%norb,orbs%norbp),intent(in) :: vector
+          real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
+        end subroutine compress_polynomial_vector
+
+        subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector_compressed, vector)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nsize_polynomial
+          type(orbitals_data),intent(in) :: orbs
+          type(sparseMatrix),intent(in) :: fermi
+          real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
+          real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: vector
+        end subroutine uncompress_polynomial_vector
+
+  
+  end interface
 END MODULE module_interfaces
