@@ -124,7 +124,7 @@ program test_forces
          call init_global_output(outs, runObj%atoms%astruct%nat)
 
       !     if (iproc == 0) then
-      !       call print_general_parameters(nproc,inputs,runObj%atoms)
+      !       call print_general_parameters(inputs,atoms)
       !    end if
 
       !if other steps are supposed to be done leave the last_run to minus one
@@ -156,7 +156,7 @@ program test_forces
          end if
 
          if (iproc == 0) then
-            call print_general_parameters(nproc,runObj%inputs,runObj%atoms) ! to know the new positions
+            call print_general_parameters(runObj%inputs,runObj%atoms) ! to know the new positions
          end if
 
          call call_bigdft(runObj, outs, nproc,iproc,infocode)

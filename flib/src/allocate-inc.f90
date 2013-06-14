@@ -10,27 +10,35 @@
 
 !  call timing(0,'Init to Zero  ','IR') 
   !then perform all the checks and profile the allocation procedure
+  if (f_err_raise(ierror/=0,&
+       'Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)) return
   if (size(shape(array))==m%rank) then
      call pad_array(array,m%put_to_zero,m%shape,ndebug)
      !profile the array allocation
-     call metadata_address(array,iadd)
-
-     call profile(iadd)
-     ierror=SUCCESS
+     if (m%profile) then
+        call metadata_address(array,iadd)
+        call profile(iadd)
+     end if
+     !ierror=SUCCESS
   else
-     ierror=INVALID_RANK
-     lasterror='rank not valid'
-     call check_for_errors(ierror,m%try)
-     if (m%try) deallocate(array,stat=ierror)
+     call f_err_throw('Rank specified by f_malloc ('//trim(yaml_toa(m%rank))//&
+          ') is not coherent with the one of the array ('//trim(yaml_toa(size(shape(array))))//')',&
+          ERR_INVALID_MALLOC)
+     return
+     !ierror=INVALID_RANK
+     !lasterror='rank not valid'
+     !call check_for_errors(ierror,m%try)
+     !if (m%try) deallocate(array,stat=ierror)
   end if
 !  call timing(0,'Init to Zero  ','RS') 
+
 contains 
 
   subroutine profile(iadd)
     implicit none
     integer(kind=8), intent(in) :: iadd
     !local variables
-    integer :: ierr,i,sizeof
+    integer :: ierr,sizeof
     integer(kind=8) :: ilsize
     type(dictionary), pointer :: dict_tmp
     character(len=info_length) :: address
@@ -61,7 +69,7 @@ contains
     !call set(dict_routine//trim(address),dict_tmp)
     call set(dict_routine//trim(long_toa(iadd)),dict_tmp)
 
-    call check_for_errors(ierror,m%try)
+    !call check_for_errors(ierror,m%try)
     call memocc(ierror,product(m%shape(1:m%rank))*sizeof,m%array_id,m%routine_id)
 
   end subroutine profile

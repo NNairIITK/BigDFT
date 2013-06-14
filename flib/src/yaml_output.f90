@@ -467,7 +467,8 @@ contains
     implicit none
 
     !local variables
-    integer :: istream,unt,unts
+    integer :: istream,unt
+!!$    integer :: unts
 
     do istream=1,active_streams
        unt=stream_units(istream)

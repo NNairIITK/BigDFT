@@ -2,7 +2,7 @@
 !!  Performs a check of the Poisson Solver suite by running with different regimes
 !!  and for different choices of the XC functionals
 !! @author
-!!    Copyright (C) 2002-2010 BigDFT group 
+!!    Copyright (C) 2002-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -29,13 +29,12 @@ program PS_Check
    real(kind=8) :: tel
    real :: tcpu0,tcpu1
    integer :: ncount0,ncount1,ncount_rate,ncount_max
-   integer :: n01,n02,n03,itype_scf,i_all,i_stat
+   integer :: n01,n02,n03,itype_scf!,i_all,i_stat
    integer :: iproc,nproc,namelen,ierr,ispden
    integer :: n_cell
    integer, dimension(3) :: nxyz
    integer, dimension(3) :: ndims
    real(wp), dimension(:,:,:,:), pointer :: rhocore
-   real(dp), dimension(6) :: xcstr
    real(dp), dimension(3) :: hgrids
    type(mpi_environment) :: bigdft_mpi
    character(len = *), parameter :: package_version = "PSolver 1.7-dev.25"
@@ -194,12 +193,10 @@ program PS_Check
 !!$      deallocate(rhopot,stat=i_stat)
 !!$      call memocc(i_stat,i_all,'rhopot',subname)
 
-      call compare_with_reference(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'G',n01,n02,n03,ispden,hx,hy,hz,&
-      offset,ehartree,&
+      call compare_with_reference(pkernel%mpi_env%nproc,geocode,'G',n01,n02,n03,ispden,offset,ehartree,&
       density,potential,pot_ion,pkernel)
 
-      call compare_with_reference(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'D',n01,n02,n03,ispden,hx,hy,hz,&
-      offset,ehartree,&
+      call compare_with_reference(pkernel%mpi_env%nproc,geocode,'D',n01,n02,n03,ispden,offset,ehartree,&
       density,potential,pot_ion,pkernel)
 
       !test for the serial solver (always done to have a simpler comparison)
@@ -212,12 +209,10 @@ program PS_Check
 !         !calculate the kernel 
 !         call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.false.)
 !
-!         call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
-!         offset,ehartree,eexcu,vexcu,&
+!         call compare_with_reference(1,geocode,'G',n01,n02,n03,ixc,ispden,offset,ehartree,eexcu,vexcu,&
 !         density,potential,pot_ion,xc_pot,pkernel)
 !
-!         call compare_with_reference(0,1,geocode,'D',n01,n02,n03,ixc,ispden,hx,hy,hz,&
-!         offset,ehartree,eexcu,vexcu,&
+!         call compare_with_reference(1,geocode,'D',n01,n02,n03,ixc,ispden,offset,ehartree,eexcu,vexcu,&
 !         density,potential,pot_ion,xc_pot,pkernel)
 !      end if
 
@@ -262,12 +257,10 @@ program PS_Check
 !!$       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)
        call yaml_open_map('Comparison with a reference run')
 
-       call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ispden,hx,hy,hz,&
-         offset,ehartree,&
+       call compare_with_reference(1,geocode,'G',n01,n02,n03,ispden,offset,ehartree,&
          density,potential,pot_ion,pkernelseq)
 
-       call compare_with_reference(0,1,geocode,'D',n01,n02,n03,ispden,hx,hy,hz,&
-         offset,ehartree,&
+       call compare_with_reference(1,geocode,'D',n01,n02,n03,ispden,offset,ehartree,&
          density,potential,pot_ion,pkernelseq)
 
        call pkernel_free(pkernelseq,subname)
@@ -443,15 +436,17 @@ program PS_Check
     
    END SUBROUTINE compare_cplx_calculations
 
-   subroutine compare_with_reference(iproc,nproc,geocode,distcode,n01,n02,n03,&
-      nspden,hx,hy,hz,offset,ehref,&
+
+   !> Compare with the given reference
+   subroutine compare_with_reference(nproc,geocode,distcode,n01,n02,n03,&
+      nspden,offset,ehref,&
       density,potential,pot_ion,pkernel)
       use Poisson_Solver
       use dynamic_memory
       implicit none
       character(len=1), intent(in) :: geocode,distcode
-      integer, intent(in) :: iproc,nproc,n01,n02,n03,nspden
-      real(kind=8), intent(in) :: hx,hy,hz,offset,ehref
+      integer, intent(in) :: nproc,n01,n02,n03,nspden
+      real(kind=8), intent(in) :: offset,ehref
       real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
       real(kind=8), dimension(n01*n02*n03*nspden), intent(in) :: density
       real(kind=8), dimension(n01*n02*n03), intent(inout) :: pot_ion
@@ -459,13 +454,11 @@ program PS_Check
       !local variables
       character(len=*), parameter :: subname='compare_with_reference'
       character(len=100) :: message
-      integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,i_all,i_stat,istpoti,i
-      integer :: istxc,i1,i2,i3,isp,i3sd
-      real(kind=8) :: eexcu,vexcu,ehartree
+      integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,istpoti,i!,i_stat,i_all
+      integer :: i1,i2,i3,isp,i3sd
+      real(kind=8) :: ehartree!,vexcu,eexcu
       real(kind=8), dimension(:), allocatable :: test
       real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
-      real(kind=8), dimension(:), pointer :: xc_temp
-      real(dp), dimension(6) :: xcstr
       real(dp), dimension(:,:,:,:), pointer :: rhocore
 
       call f_routine(id=subname)

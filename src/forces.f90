@@ -31,32 +31,32 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   real(gp), dimension(:), allocatable :: functional,dfunctional
   real(gp), dimension(:,:), allocatable :: rxyz_ref,fxyz_fake
 
-  interface
-     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
-          KSwfn,tmb,&!psi,Lzd,gaucoeffs,gbd,orbs,
-          rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
-       use module_base
-       use module_types
-       implicit none
-       integer, intent(in) :: nproc,iproc
-       integer, intent(out) :: infocode
-       real(gp), intent(inout) :: hx_old,hy_old,hz_old
-       type(input_variables), intent(in) :: in
-       !type(local_zone_descriptors), intent(inout) :: Lzd
-       type(atoms_data), intent(inout) :: atoms
-       !type(gaussian_basis), intent(inout) :: gbd
-       !type(orbitals_data), intent(inout) :: orbs
-       type(GPU_pointers), intent(inout) :: GPU
-       type(DFT_wavefunction), intent(inout) :: KSwfn,tmb
-       real(gp), intent(out) :: energy,fnoise
-       real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz_old
-       real(gp), dimension(3,atoms%astruct%nat), target, intent(inout) :: rxyz
-       real(gp), dimension(6), intent(out) :: strten
-       real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
-       !real(wp), dimension(:), pointer :: psi
-       !real(wp), dimension(:,:), pointer :: gaucoeffs
-     END SUBROUTINE cluster
-  end interface
+!!$  interface !not needed anymore
+!!$     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
+!!$          KSwfn,tmb,&!psi,Lzd,gaucoeffs,gbd,orbs,
+!!$          rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
+!!$       use module_base
+!!$       use module_types
+!!$       implicit none
+!!$       integer, intent(in) :: nproc,iproc
+!!$       integer, intent(out) :: infocode
+!!$       real(gp), intent(inout) :: hx_old,hy_old,hz_old
+!!$       type(input_variables), intent(in) :: in
+!!$       !type(local_zone_descriptors), intent(inout) :: Lzd
+!!$       type(atoms_data), intent(inout) :: atoms
+!!$       !type(gaussian_basis), intent(inout) :: gbd
+!!$       !type(orbitals_data), intent(inout) :: orbs
+!!$       type(GPU_pointers), intent(inout) :: GPU
+!!$       type(DFT_wavefunction), intent(inout) :: KSwfn,tmb
+!!$       real(gp), intent(out) :: energy,fnoise
+!!$       real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz_old
+!!$       real(gp), dimension(3,atoms%astruct%nat), target, intent(inout) :: rxyz
+!!$       real(gp), dimension(6), intent(out) :: strten
+!!$       real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
+!!$       !real(wp), dimension(:), pointer :: psi
+!!$       !real(wp), dimension(:,:), pointer :: gaucoeffs
+!!$     END SUBROUTINE cluster
+!!$  end interface
 
   if (iproc == 0) then
      write(*,*)

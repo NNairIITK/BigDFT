@@ -1,4 +1,13 @@
-! yaml_invoice example
+!> @file
+!! Test yaml output module
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed oneder the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+!> yaml_invoice example
 subroutine yaml_invoice_example()
   use yaml_output
   implicit none
@@ -46,6 +55,7 @@ subroutine yaml_invoice_example()
 
 end subroutine yaml_invoice_example
 
+!> Test yaml and dictionairies
 subroutine yaml_invoice_example_with_dictionaries()
   use yaml_output
   use dictionaries

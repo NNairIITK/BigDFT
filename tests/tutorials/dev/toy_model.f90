@@ -1,3 +1,14 @@
+!> @file
+!! Toy program to use BigDFT API
+!! @author
+!!    Copyright (C) 2007-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Toy program to use BigDFT API
 program wvl
 
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
@@ -92,7 +103,10 @@ program wvl
 
 
   ! Some analysis.
-  write(*,*) "Proc", iproc, " allocates psi to",max(orbs%npsidim_orbs,orbs%npsidim_comp)
+  call yaml_comment("Proc" // trim(yaml_toa(iproc)) // " allocates psi to " // &
+                   & trim(yaml_toa(max(orbs%npsidim_orbs,orbs%npsidim_comp))))
+  !write(*,*) "Proc", iproc, " allocates psi to",max(orbs%npsidim_orbs,orbs%npsidim_comp)
+
   call bigdft_utils_flush(unit=6)
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
@@ -100,7 +114,9 @@ program wvl
   ! The orbital repartition !
   !-------------------------!
   do i = 1, orbs%norbp, 1
-     write(*,*) "Proc", iproc, " treats orbital", orbs%isorb + i
+     !write(*,*) "Proc", iproc, " treats orbital", orbs%isorb + i
+     call yaml_comment("Proc" // trim(yaml_toa(iproc)) // " treats orbital" // &
+                      & trim(yaml_toa(orbs%isorb + i)))
   end do
   
   ! We can do some arithmetic on wavefunctions under compressed form.
@@ -108,7 +124,9 @@ program wvl
      ! Norm calculation.
      call wnrm_wrap(1, Lzd%Glr%wfd%nvctr_c, Lzd%Glr%wfd%nvctr_f, &
           & psi((i - 1) * (Lzd%Glr%wfd%nvctr_c + 7 * Lzd%Glr%wfd%nvctr_f) + 1), nrm)
-     write(*,*) "Proc", iproc, " orbital", orbs%isorb + i, " is of norm ", nrm
+     !write(*,*) "Proc", iproc, " orbital", orbs%isorb + i, " is of norm ", nrm
+     call yaml_comment("Proc" // trim(yaml_toa(iproc)) // " orbital" // &
+                      & trim(yaml_toa(orbs%isorb + i)) // " is of norm " // trim(yaml_toa(nrm)))
   end do
 
   call bigdft_utils_flush(unit=6)
@@ -120,7 +138,9 @@ program wvl
   allocate(w(max(orbs%npsidim_orbs,orbs%npsidim_comp)))
   ! Transpose the psi wavefunction
   call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi, work=w)
-  write(*,*) "Proc", iproc, " treats ", comms%nvctr_par(iproc, 0) * orbs%norb, "components of all orbitals."
+  !write(*,*) "Proc", iproc, " treats ", comms%nvctr_par(iproc, 0) * orbs%norb, "components of all orbitals."
+  call yaml_comment("Proc" // trim(yaml_toa(iproc)) // " treats " // &
+                   & trim(yaml_toa(comms%nvctr_par(iproc, 0) * orbs%norb)) // "components of all orbitals.")
 
   ! Calculate the overlap matrix, thanks to orthogonality of
   ! Daubechies wavelets, one can directly multiply the coefficients.
@@ -183,7 +203,8 @@ program wvl
      end do
   end do
   call mpiallred(rhor(1),Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i,MPI_SUM,MPI_COMM_WORLD,ierr)
-  if (iproc == 0) write(*,*) "System has", sum(rhor), "electrons."
+  !if (iproc == 0) write(*,*) "System has", sum(rhor), "electrons."
+  if (iproc == 0) call yaml_map("Number of electrons", sum(rhor))
   deallocate(rhor)
   call density_descriptors(iproc,nproc,inputs%nspin,inputs%crmult,inputs%frmult,atoms,&
        dpcom,inputs%rho_commun,atoms%astruct%rxyz,radii_cf,rhodsc)
@@ -240,7 +261,10 @@ program wvl
   epot_sum = epot_sum * inputs%hx / 2._gp * inputs%hy / 2._gp * inputs%hz / 2._gp
   call free_full_potential(dpcom%mpi_env%nproc,0,potential,"main")
   call mpiallred(epot_sum,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-  if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
+  
+  !if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
+  if (iproc == 0) call yaml_map("System pseudo energy (Ha)", epot_sum)
+
   deallocate(pot_ion)
   deallocate(psir)
   call deallocate_work_arrays_sumrho(wisf)

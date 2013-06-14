@@ -3,6 +3,7 @@ TESTDIRS = \
 	   GEOPT-all \
 	   GEOPT-BFGS \
 	   GEOPT-LBFGS \
+	   GEOPT-newIG \
 	   NH3 \
 	   H2O-slab \
 	   H2-freq \

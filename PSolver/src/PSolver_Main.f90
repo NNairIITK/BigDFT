@@ -519,7 +519,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
-      if (nproc>2*(n3/2+1)-1) then
+      if (nproc>2*(n3/2+1)-1 .and. .false.) then
        n3pr1=nproc/(n3/2+1)
        n3pr2=n3/2+1
        if ((md2/nproc)*n3pr1*n3pr2 < n2) then
@@ -528,7 +528,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
      endif
   else if (geocode == 'S') then
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
-     if (nproc>2*(n3/2+1)-1) then
+     if (nproc>2*(n3/2+1)-1 .and. .false.) then
        n3pr1=nproc/(n3/2+1)
        n3pr2=n3/2+1
        if ((md2/nproc)*n3pr1*n3pr2 < n2) then
@@ -537,7 +537,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
      endif
   else if (geocode == 'F' .or. geocode == 'H') then
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
-     if (nproc>2*(n3/2+1)-1) then
+     if (nproc>2*(n3/2+1)-1 .and. .false.) then
        n3pr1=nproc/(n3/2+1)
        n3pr2=n3/2+1
        if ((md2/nproc)*n3pr1*n3pr2 < n2/2) then
@@ -546,7 +546,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
      endif
   else if (geocode == 'W') then
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
-     if (nproc>2*(n3/2+1)-1) then
+     if (nproc>2*(n3/2+1)-1 .and. .false.) then
        n3pr1=nproc/(n3/2+1)
        n3pr2=n3/2+1
        if ((md2/nproc)*n3pr1*n3pr2 < n2) then

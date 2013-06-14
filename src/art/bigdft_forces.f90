@@ -13,7 +13,7 @@
 
 
 !> ART Module bigdft_forces
-!! Module which contains information for Bigdft run inside art
+!! Module which contains information for BigDFT run inside art
 module bigdft_forces
 
    use module_base!, only : gp,wp,dp,Bohr_Ang

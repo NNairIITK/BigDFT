@@ -1,3 +1,13 @@
+!> @file
+!!  Module to handle the fragments of a system
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+ 
 !> Define important structures and methods to manipulate embedding systems
 module module_fragments
   use module_base, only: gp,wp
@@ -105,7 +115,6 @@ contains
         ! check that fragments are sensible, i.e. correct number of atoms, atom types etc.
         call check_fragments(in,ref_frags,astruct)
 
-
      ! set appropriate default values as this is not a fragment calculation
      else
         ! nullify fragment
@@ -127,7 +136,7 @@ contains
   end subroutine init_fragments
 
 
-  ! initializes all of fragment except lzd using the fragment posinp and tmb files
+  !> Initializes all of fragment except lzd using the fragment posinp and tmb files
   subroutine init_fragment_from_file(frag,frag_name,input) ! switch this to pure if possible
     use module_types
     !use module_interfaces
@@ -137,7 +146,6 @@ contains
     type(input_variables), intent(in) :: input
 
     ! local variables
-    integer :: iat
 
     ! nullify fragment
     frag=fragment_null()
@@ -195,7 +203,8 @@ contains
        ifrag_ref=input%frag%frag_index(ifrag)
 
        do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
-          if (ref_frags(ifrag_ref)%astruct_frg%iatype(iat) /= astruct%iatype(iat+isfat)) then
+          if (ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat)) &
+               /= astruct%atomnames(astruct%iatype(iat+isfat))) then
              fragments_ok=.false.
              write(*,*) 'Atom type for fragment ',ifrag,', reference fragment ',ifrag_ref,' atom number ',iat,&
                   ' does not match ',ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat)),&
@@ -218,7 +227,7 @@ contains
     !   integer, dimension(:), pointer :: inwhichlocreg,onwhichatom !< associate the basis centers
     !   integer, dimension(:), pointer :: isorb_par,ispot
     !   integer, dimension(:,:), pointer :: norb_par
-  ! just initializing norb for now, come back and do the rest later
+  !> just initializing norb for now, come back and do the rest later
   subroutine init_minimal_orbitals_data(iproc, nproc, nspinor, input, astruct, forbs)
     use module_base
     use module_types
@@ -231,9 +240,10 @@ contains
     type(minimal_orbitals_data),intent(out) :: forbs
   
     ! Local variables
-    integer :: norb, norbu, norbd, ityp, iat, ilr, istat, iall, iorb, nlr
-    integer,dimension(:),allocatable :: norbsPerLocreg, norbsPerAtom
-    real(kind=8),dimension(:,:),allocatable :: locregCenter
+    integer :: norb, ityp, iat
+    !integer :: norbu, norbd, nlr, ilr, iall, iorb, istat
+    !integer,dimension(:),allocatable :: norbsPerLocreg, norbsPerAtom
+    !real(kind=8),dimension(:,:),allocatable :: locregCenter
     character(len=*),parameter :: subname='init_minimal_orbitals_data'
 
     call timing(iproc,'init_orbs_lin ','ON')
@@ -642,8 +652,8 @@ contains
     type(fragment_transformation), intent(inout) :: frag_trans
     !local variables
     integer, parameter :: lwork=7*3
-    integer :: info,i,iat,i_stat
-    real(gp) :: dets,tracem1,dnrm2,J
+    integer :: info,iat,i_stat!,i
+    real(gp) :: dets,J
     real(gp), dimension(3) :: SM_arr !< array of SVD and M array
     real(gp), dimension(lwork) :: work !< array of SVD and M array
     real(gp), dimension(3,nat) :: J_arr !< matrix for calculating Wahba's cost function
@@ -705,7 +715,7 @@ contains
        J=J+J_arr(1,iat)**2+J_arr(2,iat)**2+J_arr(3,iat)**2
     end do
 
-    if (J>1.0e-10) then
+    if (J>1.0e-4) then
        print*,"Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
     end if
 
@@ -737,19 +747,11 @@ contains
     type(fragment_transformation), intent(inout) :: frag_trans
     real(gp), dimension(3,3), intent(inout) :: R_mat
     !local variables
-    integer :: i, j, ival, nval, i_stat, ix, iy, iz, list_len_max
-    character(len=2) :: val
+    character(len=*), parameter :: subname='find_discrete_operations'
+    integer :: ival, nval, i_stat, ix, iy, iz, list_len_max
     real(gp) :: min_theta, theta_orig, new_theta
-    integer :: rand_size
-    integer, allocatable, dimension(:) :: rand_seed
-    real(kind=gp) :: rtime, rn
-    character(len=10) :: sys_time 
-    logical, dimension(3,3) :: stag
     type(dictionary), pointer :: list, list_tmp
-    character(len=100) :: subname
     integer, dimension(3,2) :: axis_type
-
-    subname='find_discrete_operations'
 
     call dict_init(list)
 
@@ -798,7 +800,6 @@ contains
        if (min_theta/(4.0_gp*atan(1.d0)/180.0_gp)<=60.0_gp) exit
     end do
 
-
     ! copy from dict to frag_trans structure
     nval=dict_len(list)
     allocate(frag_trans%discrete_operations(nval),stat=i_stat)
@@ -818,6 +819,7 @@ contains
 
   end subroutine find_discrete_operations
 
+
   subroutine apply_discrete_operations_to_matrix(rot_axis,theta,new_theta,R_mat,axis_type,list,make_list)
     use module_base
     use dictionaries
@@ -833,7 +835,6 @@ contains
     !local variables
     real(gp), dimension(3,3) :: R_mat_new, R_mat2
     integer :: i
-    logical :: stag1,stag2,stag3
 
     R_mat2=R_mat
 
@@ -1003,9 +1004,9 @@ contains
 
     tracem1=R_mat(1,1)+R_mat(2,2)+R_mat(3,3)-1.0_gp
 
-	 if (abs(tracem1) - 2.0_gp > -1.e-14_gp) then
-	     if (tracem1 > 0.0_gp) theta = 0.0_gp
-	     if (tracem1 <= 0.0_gp) theta = 180.0_gp*(4.0_gp*atan(1.d0)/180.0_gp)
+    if (abs(tracem1) - 2.0_gp > -1.e-14_gp) then
+      if (tracem1 > 0.0_gp) theta = 0.0_gp
+      if (tracem1 <= 0.0_gp) theta = 180.0_gp*(4.0_gp*atan(1.d0)/180.0_gp)
     else
        theta=acos(0.5_gp*tracem1)
     end if
@@ -1033,9 +1034,12 @@ contains
        !print*,'axis_from_r2',norm,rot_axis
     else
        ! squares of rot_axis are diag 0.5(R+I), signs as before
-       rot_axis(1)=sign(dsqrt(0.5_gp*(R_mat(1,1)+1.0_gp)),rot_axis(1))
-       rot_axis(2)=sign(dsqrt(0.5_gp*(R_mat(2,2)+1.0_gp)),rot_axis(2))
-       rot_axis(3)=sign(dsqrt(0.5_gp*(R_mat(3,3)+1.0_gp)),rot_axis(3))
+       !this is not good as it gives a array of modulus bigger than one
+       rot_axis(1:2)=0.0_gp
+       rot_axis(3)=1.0_gp
+       !rot_axis(1)=sign(dsqrt(0.5_gp*(R_mat(1,1)+1.0_gp)),rot_axis(1))
+       !rot_axis(2)=sign(dsqrt(0.5_gp*(R_mat(2,2)+1.0_gp)),rot_axis(2))
+       !rot_axis(3)=sign(dsqrt(0.5_gp*(R_mat(3,3)+1.0_gp)),rot_axis(3))
        !print*,'axis_from_r3',norm,rot_axis
     end if
 
@@ -1077,7 +1081,6 @@ contains
 
 
 
-
   subroutine find_discrete_operations_random(rot_axis,theta,R_mat,discrete_ops)
     use module_base
     use yaml_output
@@ -1088,8 +1091,8 @@ contains
     real(gp), dimension(3,3), intent(inout) :: R_mat
     character(len=2), dimension(:), pointer :: discrete_ops
     !local variables
-    integer :: i, j, ival, nval, i_stat
-    character(len=2) :: val
+    character(len=*), parameter :: subname='find_discrete_operations_random'
+    integer :: j, ival, nval, i_stat
     real(gp) :: min_theta, theta_orig
     integer :: rand_size
     integer, allocatable, dimension(:) :: rand_seed
@@ -1097,9 +1100,6 @@ contains
     character(len=10) :: sys_time 
     logical, dimension(3,3) :: stag
     type(dictionary), pointer :: list
-    character(len=100) :: subname
-
-    subname='find_discrete_operations'
 
     call dict_init(list)
 

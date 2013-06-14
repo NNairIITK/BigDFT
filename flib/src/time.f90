@@ -6,13 +6,21 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-
+!> module to profile the actions of the code as well as the internal operations defined by the f_lib
+!!$module time_profiling
+!!$  implicit none
+!!$  
+!!$  contains
+!!$
+!!$    subroutine f_time_category(name,class,info)
+!!$    end subroutine f_time_category
+!!$end module time_profiling
 
 !>    Contains variables used a timing for BigDFT
 module timeData
 !  use module_defs, only: mpi_environment, bigdft_mpi
   implicit none
-  integer, parameter :: ncat=121,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=124,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -143,6 +151,9 @@ module timeData
        'norm_trans    ','Other         ' ,'Miscellaneous ' ,  &
        'misc          ','Other         ' ,'Miscellaneous ' ,  &
        'sparse_copy   ','Other         ' ,'Miscellaneous ' ,  &
+       'Reformatting  ','Initialization' ,'Interpolation ' ,  &
+       'restart_wvl   ','Initialization' ,'inguess    rst' ,  &
+       'restart_rsp   ','Initialization' ,'inguess    rst' ,  &
        'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat/))
   logical :: parallel,init,newfile,debugmode
   integer :: ncounters, ncaton,nproc = 0,nextra,ncat_stopped

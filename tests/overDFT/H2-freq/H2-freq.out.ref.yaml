@@ -24,28 +24,26 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.26
- Timestamp of this run                 : 2013-04-15 15:34:25.301
- Root process Hostname                 : athelas
- Number of MPI tasks                   :  2
+ Version Number                        : 1.7-dev.28
+ Timestamp of this run                 : 2013-05-29 14:29:12.819
+ Root process Hostname                 : localhost
+ Number of MPI tasks                   :  1
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  2
+ Maximal OpenMP threads per MPI task   :  8
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=mpif90' 'FCFLAGS=-O2 -fopenmp' '--enable-dgemmsy' '--with-etsf-io' 
-      '--with-etsf-io-path=/opt' '--enable-minima-hopping' 
-      '--with-ext-linalg=-Wl,--start-group  /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.a 
-      /opt/intel/mkl/lib/intel64/libmkl_sequential.a 
-      /opt/intel/mkl/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread 
-      -lscalapack-openmpi -lblacs-openmpi -lblacsCinit-openmpi -lblacsF77init-openmpi'"
-   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
+     " 'FC=ifort' 'CC=icc' 'FCFLAGS=-openmp -O3' 'CFLAGS=-O3' 'CXXFLAGS=-O3' 
+      '--with-ext-linalg=-lmkl_solver_lp64_sequential -Wl,--start-group -lmkl_intel_lp64 
+      -lmkl_sequential -lmkl_core -Wl,--end-group -lpthread' '--disable-bindings' 
+      '--disable-mpi'"
+   Compilers (CC, FC, CXX)             :  [ icc, ifort, g++ ]
    Compiler flags:
-     CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -fopenmp
-     CXXFLAGS                          : -g -O2
+     CFLAGS                            : -O3
+     FCFLAGS                           : -openmp -O3
+     CXXFLAGS                          : -O3
      CPPFLAGS                          : 
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -89,7 +87,7 @@
  #|1.e-4          gnrm_cv: convergence criterion gradient                                    
  #|50 1           itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
  #|6  6           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
- #|0              dispersion correction potential (values 1,2,3), 0=none                     
+ #|0              dispersion correction potential (values 1,2,3,4,5), 0=none                 
  #|0 0            InputPsiId, output_wf, output_denspot                                      
  #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
  #|0 0  0         Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
@@ -141,6 +139,10 @@
  # ==== WARNING: the following lines have not been processed by the parser ====
  #|#Best effort: 4173 cm-1, E=-1.1370708233960054 Hartree, d=0.76558 angstroem               
  Material acceleration                 :  No #iproc=0
+ (F) File "frequencies.res" present    :  No
+ (F) Frequency moves already calculated:  0
+ (F) Total Frequency moves             :  12
+  #========================================================= (F) Reference state calculation
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
@@ -204,8 +206,8 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  8
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  717
@@ -216,13 +218,11 @@
   #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Collinear
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  1
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 848 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  0
@@ -234,14 +234,12 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
   #----------------------------------- Wavefunctions from PSP Atomic Orbitals initialization
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  4
-   Inputguess Orbitals Repartition:
-     MPI tasks  0- 1                   :  2
    Deviation from normalization        :  1.62E-06
-   EKS                                 : -8.16171562368969816E-01
+   EKS                                 : -8.16171562368994463E-01
    Accuracy estimation for this run:
      Energy                            :  1.71E-04
      Convergence Criterion             :  8.54E-05
@@ -250,15 +248,15 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -1.02716489518831211E+00, gnrm:  2.41E-01, D: -2.11E-01}
-       -  {iter:  2, EKS: -1.12482970036871799E+00, gnrm:  1.15E-01, D: -9.77E-02}
-       -  {iter:  3, EKS: -1.13318025977440517E+00, gnrm:  4.88E-02, D: -8.35E-03}
-       -  {iter:  4, EKS: -1.13527714772313515E+00, gnrm:  2.76E-02, D: -2.10E-03}
-       -  {iter:  5, EKS: -1.13677110534504044E+00, gnrm:  1.28E-02, D: -1.49E-03}
-       -  {iter:  6, EKS: -1.13691647505320703E+00, gnrm:  1.67E-03, D: -1.45E-04}
-       -  {iter:  7, EKS: -1.13691727738458614E+00, gnrm:  3.05E-04, D: -8.02E-07}
-       -  {iter:  8, EKS: -1.13691730854338835E+00, gnrm:  8.92E-05, D: -3.12E-08}
-       -  &FINAL001  {iter:  9, EKS: -1.13691731045351130E+00, gnrm:  8.92E-05, 
+       -  {iter:  1, EKS: -1.02716489518831877E+00, gnrm:  2.41E-01, D: -2.11E-01}
+       -  {iter:  2, EKS: -1.12482970036874863E+00, gnrm:  1.15E-01, D: -9.77E-02}
+       -  {iter:  3, EKS: -1.13318025977447667E+00, gnrm:  4.88E-02, D: -8.35E-03}
+       -  {iter:  4, EKS: -1.13527714772319066E+00, gnrm:  2.76E-02, D: -2.10E-03}
+       -  {iter:  5, EKS: -1.13677110534510439E+00, gnrm:  1.28E-02, D: -1.49E-03}
+       -  {iter:  6, EKS: -1.13691647505327320E+00, gnrm:  1.67E-03, D: -1.45E-04}
+       -  {iter:  7, EKS: -1.13691727738465320E+00, gnrm:  3.05E-04, D: -8.02E-07}
+       -  {iter:  8, EKS: -1.13691730854341677E+00, gnrm:  8.92E-05, D: -3.12E-08}
+       -  &FINAL001  {iter:  9, EKS: -1.13691731045359057E+00, gnrm:  8.92E-05, 
                          D: -1.91E-09}
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
  Last Iteration                        : *FINAL001
@@ -266,7 +264,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -7.4253E+00, -6.7504E+00, -6.7504E+00 ]
    norm(P)                             :  1.209425E+01
@@ -275,16 +273,19 @@
    norm(P)                             :  3.074052E+01
  Average noise forces: {x:  1.79468833E-04, y:  2.22049688E-04, z:  2.22049688E-04, 
                     total:  3.61692120E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.539518700079E-04, fnrm2:  1.820048340583E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.105470481571E-03, fnrm2:  1.951066894404E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.539518700066E-04, fnrm2:  1.820048340578E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.105470481570E-03, fnrm2:  1.951066894400E-06}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.539518700079E-04, -1.524659305058E-20, -8.470329472543E-22]} # 0001
- -  {H: [ 9.539518700079E-04, -1.185846126156E-20,  8.470329472543E-22]} # 0002
+ -  {H: [-9.539518700066E-04,  1.694065894509E-21,  1.439956010332E-20]} # 0001
+ -  {H: [ 9.539518700066E-04, -1.694065894509E-21,  1.270549420881E-20]} # 0002
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  11.03
-   Elapsed time (s)                    :  6.37
+   CPU time (s)                        :  29.80
+   Elapsed time (s)                    :  4.85
+ (F) Exit signal for Wavefunction Optimization Finished:  0
+  #========================================================== (F) Start Frequencies calculation
+ (F) Move: {atom:  1, direction: -1, axis: x, displacement (Bohr): -7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -349,8 +350,8 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  8
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  717
@@ -361,13 +362,11 @@
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Collinear
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  1
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 848 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  0
@@ -379,7 +378,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
@@ -390,18 +389,18 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -1.13689474838108806E+00, gnrm:  8.83E-03}
-       -  {iter:  2, EKS: -1.13691440160213930E+00, gnrm:  1.95E-03, D: -1.97E-05}
-       -  {iter:  3, EKS: -1.13691563089228453E+00, gnrm:  2.46E-04, D: -1.23E-06}
-       -  {iter:  4, EKS: -1.13691563701482568E+00, gnrm:  3.81E-05, D: -6.12E-09}
-       -  &FINAL001  {iter:  5, EKS: -1.13691563719244226E+00, gnrm:  3.81E-05, D: -1.78E-10}
+       -  {iter:  1, EKS: -1.13689474838116822E+00, gnrm:  8.83E-03}
+       -  {iter:  2, EKS: -1.13691440160217971E+00, gnrm:  1.95E-03, D: -1.97E-05}
+       -  {iter:  3, EKS: -1.13691563089235648E+00, gnrm:  2.46E-04, D: -1.23E-06}
+       -  {iter:  4, EKS: -1.13691563701485854E+00, gnrm:  3.81E-05, D: -6.12E-09}
+       -  &FINAL001  {iter:  5, EKS: -1.13691563719248534E+00, gnrm:  3.81E-05, D: -1.78E-10}
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -7.4253E+00, -6.7504E+00, -6.7504E+00 ]
    norm(P)                             :  1.209423E+01
@@ -410,16 +409,17 @@
    norm(P)                             :  3.074046E+01
  Average noise forces: {x:  1.71301814E-04, y:  2.21811203E-04, z:  2.21811203E-04, 
                     total:  3.57413949E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.442530347886E-03, fnrm2:  4.161787609145E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.578004991209E-03, fnrm2:  4.289713362528E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  1.442530347887E-03, fnrm2:  4.161787609152E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.578004991211E-03, fnrm2:  4.289713362536E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [ 1.442530347886E-03,  1.270549420881E-20, -1.694065894509E-21]} # 0001
- -  {H: [-1.442530347886E-03,  1.439956010332E-20,  1.694065894509E-21]} # 0002
+ -  {H: [ 1.442530347887E-03,  1.524659305058E-20,  1.694065894509E-21]} # 0001
+ -  {H: [-1.442530347887E-03,  1.185846126156E-20, -1.694065894509E-21]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  5.72
-   Elapsed time (s)                    :  3.06
+   CPU time (s)                        :  15.73
+   Elapsed time (s)                    :  2.60
+ (F) Move: {atom:  1, direction:  1, axis: x, displacement (Bohr):  7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -484,8 +484,8 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  8
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  717
@@ -496,13 +496,11 @@
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Collinear
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  1
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 848 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  0
@@ -514,7 +512,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
@@ -525,18 +523,18 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -1.13681883191125221E+00, gnrm:  1.77E-02}
-       -  {iter:  2, EKS: -1.13689745958754562E+00, gnrm:  3.89E-03, D: -7.86E-05}
-       -  {iter:  3, EKS: -1.13690229974717827E+00, gnrm:  4.81E-04, D: -4.84E-06}
-       -  {iter:  4, EKS: -1.13690232615610443E+00, gnrm:  7.95E-05, D: -2.64E-08}
-       -  &FINAL001  {iter:  5, EKS: -1.13690232688509374E+00, gnrm:  7.95E-05, D: -7.29E-10}
+       -  {iter:  1, EKS: -1.13681883191128419E+00, gnrm:  1.77E-02}
+       -  {iter:  2, EKS: -1.13689745958758159E+00, gnrm:  3.89E-03, D: -7.86E-05}
+       -  {iter:  3, EKS: -1.13690229974723422E+00, gnrm:  4.81E-04, D: -4.84E-06}
+       -  {iter:  4, EKS: -1.13690232615614795E+00, gnrm:  7.95E-05, D: -2.64E-08}
+       -  &FINAL001  {iter:  5, EKS: -1.13690232688512882E+00, gnrm:  7.95E-05, D: -7.29E-10}
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -7.4253E+00, -6.7504E+00, -6.7504E+00 ]
    norm(P)                             :  1.209427E+01
@@ -545,16 +543,17 @@
    norm(P)                             :  3.074056E+01
  Average noise forces: {x:  1.87619795E-04, y:  2.20934806E-04, z:  2.20934806E-04, 
                     total:  3.64452417E-04}
- Clean forces norm (Ha/Bohr): {maxval:  3.294701934989E-03, fnrm2:  2.171012168084E-05}
- Raw forces norm (Ha/Bohr): {maxval:  3.435167758465E-03, fnrm2:  2.184316377651E-05}
+ Clean forces norm (Ha/Bohr): {maxval:  3.294701934990E-03, fnrm2:  2.171012168085E-05}
+ Raw forces norm (Ha/Bohr): {maxval:  3.435167758465E-03, fnrm2:  2.184316377652E-05}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-3.294701934989E-03, -1.609362599783E-20, -1.694065894509E-21]} # 0001
- -  {H: [ 3.294701934989E-03, -1.101142831431E-20,  1.694065894509E-21]} # 0002
+ -  {H: [-3.294701934990E-03,  8.470329472543E-22,  1.524659305058E-20]} # 0001
+ -  {H: [ 3.294701934990E-03, -8.470329472543E-22,  1.185846126156E-20]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  5.73
-   Elapsed time (s)                    :  3.07
+   CPU time (s)                        :  16.37
+   Elapsed time (s)                    :  2.64
+ (F) Move: {atom:  1, direction: -1, axis: y, displacement (Bohr): -7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -619,8 +618,8 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  8
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  717
@@ -631,13 +630,11 @@
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Collinear
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  1
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 848 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  0
@@ -649,7 +646,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
@@ -660,18 +657,18 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -1.13688517086004226E+00, gnrm:  1.20E-02}
-       -  {iter:  2, EKS: -1.13691515464927817E+00, gnrm:  2.52E-03, D: -3.00E-05}
-       -  {iter:  3, EKS: -1.13691704607569721E+00, gnrm:  3.09E-04, D: -1.89E-06}
-       -  {iter:  4, EKS: -1.13691705955519473E+00, gnrm:  6.32E-05, D: -1.35E-08}
-       -  &FINAL001  {iter:  5, EKS: -1.13691706002435811E+00, gnrm:  6.32E-05, D: -4.69E-10}
+       -  {iter:  1, EKS: -1.13688517086008445E+00, gnrm:  1.20E-02}
+       -  {iter:  2, EKS: -1.13691515464932547E+00, gnrm:  2.52E-03, D: -3.00E-05}
+       -  {iter:  3, EKS: -1.13691704607573363E+00, gnrm:  3.09E-04, D: -1.89E-06}
+       -  {iter:  4, EKS: -1.13691705955523537E+00, gnrm:  6.32E-05, D: -1.35E-08}
+       -  &FINAL001  {iter:  5, EKS: -1.13691706002441051E+00, gnrm:  6.32E-05, D: -4.69E-10}
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -7.4253E+00, -6.7504E+00, -6.7504E+00 ]
    norm(P)                             :  1.209424E+01
@@ -680,16 +677,17 @@
    norm(P)                             :  3.074048E+01
  Average noise forces: {x:  1.77470813E-04, y:  2.21336249E-04, z:  2.21094797E-04, 
                     total:  3.59678375E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.630205540403E-04, fnrm2:  1.854817175008E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.630205540404E-04, fnrm2:  1.854817175009E-06}
  Raw forces norm (Ha/Bohr): {maxval:  1.103015002805E-03, fnrm2:  1.995142613333E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.630091796398E-04,  4.680537755767E-06, -1.694065894509E-21]} # 0001
- -  {H: [ 9.630091796398E-04, -4.680537755767E-06,  1.694065894509E-21]} # 0002
+ -  {H: [-9.630091796399E-04,  4.680537755767E-06,  8.470329472543E-22]} # 0001
+ -  {H: [ 9.630091796399E-04, -4.680537755767E-06, -8.470329472543E-22]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  5.69
-   Elapsed time (s)                    :  3.06
+   CPU time (s)                        :  16.00
+   Elapsed time (s)                    :  2.57
+ (F) Move: {atom:  1, direction:  1, axis: y, displacement (Bohr):  7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -754,8 +752,8 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  8
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  717
@@ -766,13 +764,11 @@
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Collinear
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  1
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 848 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  0
@@ -784,7 +780,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
@@ -795,19 +791,19 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -1.13687231681679068E+00, gnrm:  1.62E-02}
-       -  {iter:  2, EKS: -1.13691425920294065E+00, gnrm:  3.13E-03, D: -4.19E-05}
-       -  {iter:  3, EKS: -1.13691692973986291E+00, gnrm:  4.17E-04, D: -2.67E-06}
-       -  {iter:  4, EKS: -1.13691695991885244E+00, gnrm:  1.12E-04, D: -3.02E-08}
-       -  {iter:  5, EKS: -1.13691696097611961E+00, gnrm:  8.02E-06, D: -1.06E-09}
-       -  &FINAL001  {iter:  6, EKS: -1.13691696099644157E+00, gnrm:  8.02E-06, D: -2.03E-11}
+       -  {iter:  1, EKS: -1.13687231681682821E+00, gnrm:  1.62E-02}
+       -  {iter:  2, EKS: -1.13691425920300238E+00, gnrm:  3.13E-03, D: -4.19E-05}
+       -  {iter:  3, EKS: -1.13691692973987557E+00, gnrm:  4.17E-04, D: -2.67E-06}
+       -  {iter:  4, EKS: -1.13691695991889574E+00, gnrm:  1.12E-04, D: -3.02E-08}
+       -  {iter:  5, EKS: -1.13691696097618999E+00, gnrm:  8.02E-06, D: -1.06E-09}
+       -  &FINAL001  {iter:  6, EKS: -1.13691696099650019E+00, gnrm:  8.02E-06, D: -2.03E-11}
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -7.4253E+00, -6.7504E+00, -6.7504E+00 ]
    norm(P)                             :  1.209425E+01
@@ -816,16 +812,17 @@
    norm(P)                             :  3.074050E+01
  Average noise forces: {x:  1.79086964E-04, y:  2.21375320E-04, z:  2.21180246E-04, 
                     total:  3.60554953E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.628607182431E-04, fnrm2:  1.854201525471E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.129141436935E-03, fnrm2:  1.999720374387E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.628607182423E-04, fnrm2:  1.854201525468E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.129141436935E-03, fnrm2:  1.999720374385E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.628493457304E-04, -4.679760910994E-06, -1.694065894509E-21]} # 0001
- -  {H: [ 9.628493457304E-04,  4.679760910994E-06,  1.694065894509E-21]} # 0002
+ -  {H: [-9.628493457296E-04, -4.679760910990E-06,  1.694065894509E-21]} # 0001
+ -  {H: [ 9.628493457296E-04,  4.679760910990E-06, -1.694065894509E-21]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  6.57
-   Elapsed time (s)                    :  3.53
+   CPU time (s)                        :  20.41
+   Elapsed time (s)                    :  3.29
+ (F) Move: {atom:  1, direction: -1, axis: z, displacement (Bohr): -7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -890,8 +887,8 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  8
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  717
@@ -902,13 +899,11 @@
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Collinear
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  1
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 848 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  0
@@ -920,7 +915,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
@@ -931,18 +926,18 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -1.13689473903909977E+00, gnrm:  1.14E-02}
-       -  {iter:  2, EKS: -1.13691570538589359E+00, gnrm:  2.22E-03, D: -2.10E-05}
-       -  {iter:  3, EKS: -1.13691704429760931E+00, gnrm:  2.97E-04, D: -1.34E-06}
-       -  {iter:  4, EKS: -1.13691705949171240E+00, gnrm:  7.99E-05, D: -1.52E-08}
-       -  &FINAL001  {iter:  5, EKS: -1.13691706002701887E+00, gnrm:  7.99E-05, D: -5.35E-10}
+       -  {iter:  1, EKS: -1.13689473903915927E+00, gnrm:  1.14E-02}
+       -  {iter:  2, EKS: -1.13691570538591802E+00, gnrm:  2.22E-03, D: -2.10E-05}
+       -  {iter:  3, EKS: -1.13691704429765417E+00, gnrm:  2.97E-04, D: -1.34E-06}
+       -  {iter:  4, EKS: -1.13691705949174771E+00, gnrm:  7.99E-05, D: -1.52E-08}
+       -  &FINAL001  {iter:  5, EKS: -1.13691706002706638E+00, gnrm:  7.99E-05, D: -5.35E-10}
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -7.4253E+00, -6.7504E+00, -6.7504E+00 ]
    norm(P)                             :  1.209424E+01
@@ -951,16 +946,17 @@
    norm(P)                             :  3.074049E+01
  Average noise forces: {x:  1.78067431E-04, y:  2.21456566E-04, z:  2.21485496E-04, 
                     total:  3.60287171E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.622009142943E-04, fnrm2:  1.851661198937E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.102812194785E-03, fnrm2:  1.992214452298E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.622009142936E-04, fnrm2:  1.851661198935E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.102812194783E-03, fnrm2:  1.992214452294E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.621895495746E-04, -6.776263578034E-21,  4.676554087130E-06]} # 0001
- -  {H: [ 9.621895495746E-04,  6.776263578034E-21, -4.676554087130E-06]} # 0002
+ -  {H: [-9.621895495739E-04, -2.032879073410E-20,  4.676554087126E-06]} # 0001
+ -  {H: [ 9.621895495739E-04, -6.776263578034E-21, -4.676554087126E-06]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  5.72
-   Elapsed time (s)                    :  3.08
+   CPU time (s)                        :  16.27
+   Elapsed time (s)                    :  2.64
+ (F) Move: {atom:  1, direction:  1, axis: z, displacement (Bohr):  7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -1025,8 +1021,8 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  8
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  717
@@ -1037,13 +1033,11 @@
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Collinear
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  1
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 848 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  0
@@ -1055,7 +1049,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
@@ -1066,19 +1060,19 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -1.13687230598324507E+00, gnrm:  1.62E-02}
-       -  {iter:  2, EKS: -1.13691425848326966E+00, gnrm:  3.13E-03, D: -4.20E-05}
-       -  {iter:  3, EKS: -1.13691692972958180E+00, gnrm:  4.17E-04, D: -2.67E-06}
-       -  {iter:  4, EKS: -1.13691695991837727E+00, gnrm:  1.12E-04, D: -3.02E-08}
-       -  {iter:  5, EKS: -1.13691696097612094E+00, gnrm:  8.03E-06, D: -1.06E-09}
-       -  &FINAL001  {iter:  6, EKS: -1.13691696099643980E+00, gnrm:  8.03E-06, D: -2.03E-11}
+       -  {iter:  1, EKS: -1.13687230598328393E+00, gnrm:  1.62E-02}
+       -  {iter:  2, EKS: -1.13691425848331518E+00, gnrm:  3.13E-03, D: -4.20E-05}
+       -  {iter:  3, EKS: -1.13691692972964775E+00, gnrm:  4.17E-04, D: -2.67E-06}
+       -  {iter:  4, EKS: -1.13691695991842789E+00, gnrm:  1.12E-04, D: -3.02E-08}
+       -  {iter:  5, EKS: -1.13691696097615913E+00, gnrm:  8.03E-06, D: -1.06E-09}
+       -  &FINAL001  {iter:  6, EKS: -1.13691696099650819E+00, gnrm:  8.03E-06, D: -2.03E-11}
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -7.4253E+00, -6.7504E+00, -6.7504E+00 ]
    norm(P)                             :  1.209425E+01
@@ -1087,16 +1081,17 @@
    norm(P)                             :  3.074050E+01
  Average noise forces: {x:  1.79087904E-04, y:  2.21180528E-04, z:  2.21375486E-04, 
                     total:  3.60555695E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.628607737181E-04, fnrm2:  1.854201739130E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.129142177777E-03, fnrm2:  1.999721117411E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.628607737177E-04, fnrm2:  1.854201739128E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.129142177777E-03, fnrm2:  1.999721117409E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.628494012047E-04, -1.355252715607E-20, -4.679761180617E-06]} # 0001
- -  {H: [ 9.628494012047E-04,  1.355252715607E-20,  4.679761180617E-06]} # 0002
+ -  {H: [-9.628494012043E-04,  6.776263578034E-21, -4.679761180615E-06]} # 0001
+ -  {H: [ 9.628494012043E-04,  2.032879073410E-20,  4.679761180615E-06]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  6.60
-   Elapsed time (s)                    :  3.53
+   CPU time (s)                        :  16.24
+   Elapsed time (s)                    :  2.61
+ (F) Move: {atom:  2, direction: -1, axis: x, displacement (Bohr): -7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -1161,8 +1156,8 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  8
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  717
@@ -1173,13 +1168,11 @@
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Collinear
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  1
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 848 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  0
@@ -1191,7 +1184,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
@@ -1202,18 +1195,18 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -1.13687039487436392E+00, gnrm:  1.20E-02}
-       -  {iter:  2, EKS: -1.13690045677790685E+00, gnrm:  2.49E-03, D: -3.01E-05}
-       -  {iter:  3, EKS: -1.13690231332076630E+00, gnrm:  2.88E-04, D: -1.86E-06}
-       -  {iter:  4, EKS: -1.13690232646196154E+00, gnrm:  6.25E-05, D: -1.31E-08}
-       -  &FINAL001  {iter:  5, EKS: -1.13690232690265924E+00, gnrm:  6.25E-05, D: -4.41E-10}
+       -  {iter:  1, EKS: -1.13687039487442521E+00, gnrm:  1.20E-02}
+       -  {iter:  2, EKS: -1.13690045677796947E+00, gnrm:  2.49E-03, D: -3.01E-05}
+       -  {iter:  3, EKS: -1.13690231332082048E+00, gnrm:  2.88E-04, D: -1.86E-06}
+       -  {iter:  4, EKS: -1.13690232646199663E+00, gnrm:  6.25E-05, D: -1.31E-08}
+       -  &FINAL001  {iter:  5, EKS: -1.13690232690270099E+00, gnrm:  6.25E-05, D: -4.41E-10}
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -7.4253E+00, -6.7504E+00, -6.7504E+00 ]
    norm(P)                             :  1.209426E+01
@@ -1226,12 +1219,13 @@
  Raw forces norm (Ha/Bohr): {maxval:  3.433893474180E-03, fnrm2:  2.184260848340E-05}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-3.294739045837E-03, -1.694065894509E-21, -8.470329472543E-22]} # 0001
- -  {H: [ 3.294739045837E-03,  1.694065894509E-21,  8.470329472543E-22]} # 0002
+ -  {H: [-3.294739045837E-03,  8.470329472543E-22,  1.439956010332E-20]} # 0001
+ -  {H: [ 3.294739045837E-03, -8.470329472543E-22,  1.270549420881E-20]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  5.68
-   Elapsed time (s)                    :  3.05
+   CPU time (s)                        :  15.04
+   Elapsed time (s)                    :  2.43
+ (F) Move: {atom:  2, direction:  1, axis: x, displacement (Bohr):  7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -1296,8 +1290,8 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  8
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  717
@@ -1308,13 +1302,11 @@
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Collinear
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  1
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 848 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  0
@@ -1326,7 +1318,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
@@ -1337,18 +1329,18 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -1.13683237663041670E+00, gnrm:  1.76E-02}
-       -  {iter:  2, EKS: -1.13691068044048094E+00, gnrm:  3.91E-03, D: -7.83E-05}
-       -  {iter:  3, EKS: -1.13691561257390750E+00, gnrm:  4.95E-04, D: -4.93E-06}
-       -  {iter:  4, EKS: -1.13691563647181471E+00, gnrm:  7.45E-05, D: -2.39E-08}
-       -  &FINAL001  {iter:  5, EKS: -1.13691563717255772E+00, gnrm:  7.45E-05, D: -7.01E-10}
+       -  {iter:  1, EKS: -1.13683237663047465E+00, gnrm:  1.76E-02}
+       -  {iter:  2, EKS: -1.13691068044052579E+00, gnrm:  3.91E-03, D: -7.83E-05}
+       -  {iter:  3, EKS: -1.13691561257395235E+00, gnrm:  4.95E-04, D: -4.93E-06}
+       -  {iter:  4, EKS: -1.13691563647187110E+00, gnrm:  7.45E-05, D: -2.39E-08}
+       -  &FINAL001  {iter:  5, EKS: -1.13691563717262833E+00, gnrm:  7.45E-05, D: -7.01E-10}
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -7.4253E+00, -6.7504E+00, -6.7504E+00 ]
    norm(P)                             :  1.209422E+01
@@ -1357,16 +1349,17 @@
    norm(P)                             :  3.074044E+01
  Average noise forces: {x:  1.70025396E-04, y:  2.21521408E-04, z:  2.21522274E-04, 
                     total:  3.56444228E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.442054332968E-03, fnrm2:  4.159041398463E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.576597680278E-03, fnrm2:  4.286275570959E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  1.442054332968E-03, fnrm2:  4.159041398465E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.576597680278E-03, fnrm2:  4.286275570962E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [ 1.442054332968E-03,  1.185846126156E-20, -8.470329472543E-22]} # 0001
- -  {H: [-1.442054332968E-03,  1.524659305058E-20,  8.470329472543E-22]} # 0002
+ -  {H: [ 1.442054332968E-03,  8.470329472543E-22,  8.470329472543E-22]} # 0001
+ -  {H: [-1.442054332968E-03, -8.470329472543E-22, -8.470329472543E-22]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  5.64
-   Elapsed time (s)                    :  3.04
+   CPU time (s)                        :  17.20
+   Elapsed time (s)                    :  2.81
+ (F) Move: {atom:  2, direction: -1, axis: y, displacement (Bohr): -7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -1431,8 +1424,8 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  8
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  717
@@ -1443,13 +1436,11 @@
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Collinear
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  1
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 848 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  0
@@ -1461,7 +1452,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
@@ -1472,18 +1463,18 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -1.13688483094496307E+00, gnrm:  1.20E-02}
-       -  {iter:  2, EKS: -1.13691506472606751E+00, gnrm:  2.52E-03, D: -3.02E-05}
-       -  {iter:  3, EKS: -1.13691694635675478E+00, gnrm:  3.03E-04, D: -1.88E-06}
-       -  {iter:  4, EKS: -1.13691696051040925E+00, gnrm:  6.45E-05, D: -1.42E-08}
-       -  &FINAL001  {iter:  5, EKS: -1.13691696098336648E+00, gnrm:  6.45E-05, D: -4.73E-10}
+       -  {iter:  1, EKS: -1.13688483094503323E+00, gnrm:  1.20E-02}
+       -  {iter:  2, EKS: -1.13691506472613124E+00, gnrm:  2.52E-03, D: -3.02E-05}
+       -  {iter:  3, EKS: -1.13691694635679474E+00, gnrm:  3.03E-04, D: -1.88E-06}
+       -  {iter:  4, EKS: -1.13691696051047386E+00, gnrm:  6.45E-05, D: -1.42E-08}
+       -  &FINAL001  {iter:  5, EKS: -1.13691696098338801E+00, gnrm:  6.45E-05, D: -4.73E-10}
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -7.4253E+00, -6.7504E+00, -6.7504E+00 ]
    norm(P)                             :  1.209425E+01
@@ -1492,16 +1483,17 @@
    norm(P)                             :  3.074052E+01
  Average noise forces: {x:  1.80082566E-04, y:  2.21338765E-04, z:  2.21299157E-04, 
                     total:  3.61100950E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.623471234948E-04, fnrm2:  1.852223972197E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.129369695976E-03, fnrm2:  1.998208744807E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.623471234941E-04, fnrm2:  1.852223972195E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.129369695976E-03, fnrm2:  1.998208744804E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.623357570482E-04, -4.677264702994E-06, -1.694065894509E-21]} # 0001
- -  {H: [ 9.623357570482E-04,  4.677264702994E-06,  1.694065894509E-21]} # 0002
+ -  {H: [-9.623357570476E-04, -4.677264702991E-06, -1.355252715607E-20]} # 0001
+ -  {H: [ 9.623357570476E-04,  4.677264702991E-06, -1.355252715607E-20]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  5.69
-   Elapsed time (s)                    :  3.05
+   CPU time (s)                        :  18.75
+   Elapsed time (s)                    :  3.01
+ (F) Move: {atom:  2, direction:  1, axis: y, displacement (Bohr):  7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -1566,8 +1558,8 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  8
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  717
@@ -1578,13 +1570,11 @@
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Collinear
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  1
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 848 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  0
@@ -1596,7 +1586,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
@@ -1607,19 +1597,19 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -1.13687241789375970E+00, gnrm:  1.62E-02}
-       -  {iter:  2, EKS: -1.13691435854767486E+00, gnrm:  3.13E-03, D: -4.19E-05}
-       -  {iter:  3, EKS: -1.13691702876177225E+00, gnrm:  4.17E-04, D: -2.67E-06}
-       -  {iter:  4, EKS: -1.13691705894871475E+00, gnrm:  1.13E-04, D: -3.02E-08}
-       -  {iter:  5, EKS: -1.13691706001711945E+00, gnrm:  8.05E-06, D: -1.07E-09}
-       -  &FINAL001  {iter:  6, EKS: -1.13691706003745607E+00, gnrm:  8.05E-06, D: -2.03E-11}
+       -  {iter:  1, EKS: -1.13687241789378235E+00, gnrm:  1.62E-02}
+       -  {iter:  2, EKS: -1.13691435854774592E+00, gnrm:  3.13E-03, D: -4.19E-05}
+       -  {iter:  3, EKS: -1.13691702876183443E+00, gnrm:  4.17E-04, D: -2.67E-06}
+       -  {iter:  4, EKS: -1.13691705894876738E+00, gnrm:  1.13E-04, D: -3.02E-08}
+       -  {iter:  5, EKS: -1.13691706001715520E+00, gnrm:  8.05E-06, D: -1.07E-09}
+       -  &FINAL001  {iter:  6, EKS: -1.13691706003749959E+00, gnrm:  8.05E-06, D: -2.03E-11}
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -7.4253E+00, -6.7504E+00, -6.7504E+00 ]
    norm(P)                             :  1.209424E+01
@@ -1628,16 +1618,17 @@
    norm(P)                             :  3.074049E+01
  Average noise forces: {x:  1.78456395E-04, y:  2.21314531E-04, z:  2.21227910E-04, 
                     total:  3.60234083E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.622402276142E-04, fnrm2:  1.851812511278E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.102943819281E-03, fnrm2:  1.992514876616E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.622402276138E-04, fnrm2:  1.851812511277E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.102943819281E-03, fnrm2:  1.992514876615E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.622288624302E-04,  4.676745160391E-06, -8.470329472543E-22]} # 0001
- -  {H: [ 9.622288624302E-04, -4.676745160391E-06,  8.470329472543E-22]} # 0002
+ -  {H: [-9.622288624298E-04,  4.676745160390E-06, -1.185846126156E-20]} # 0001
+ -  {H: [ 9.622288624298E-04, -4.676745160390E-06, -1.524659305058E-20]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  6.60
-   Elapsed time (s)                    :  3.53
+   CPU time (s)                        :  22.73
+   Elapsed time (s)                    :  4.07
+ (F) Move: {atom:  2, direction: -1, axis: z, displacement (Bohr): -7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -1702,8 +1693,8 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  8
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  717
@@ -1714,13 +1705,11 @@
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Collinear
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  1
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 848 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  0
@@ -1732,7 +1721,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
@@ -1743,18 +1732,18 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -1.13689463992664286E+00, gnrm:  1.14E-02}
-       -  {iter:  2, EKS: -1.13691560628822463E+00, gnrm:  2.22E-03, D: -2.10E-05}
-       -  {iter:  3, EKS: -1.13691694526811937E+00, gnrm:  2.97E-04, D: -1.34E-06}
-       -  {iter:  4, EKS: -1.13691696045621327E+00, gnrm:  7.91E-05, D: -1.52E-08}
-       -  &FINAL001  {iter:  5, EKS: -1.13691696098602635E+00, gnrm:  7.91E-05, D: -5.30E-10}
+       -  {iter:  1, EKS: -1.13689463992668638E+00, gnrm:  1.14E-02}
+       -  {iter:  2, EKS: -1.13691560628828681E+00, gnrm:  2.22E-03, D: -2.10E-05}
+       -  {iter:  3, EKS: -1.13691694526815534E+00, gnrm:  2.97E-04, D: -1.34E-06}
+       -  {iter:  4, EKS: -1.13691696045627988E+00, gnrm:  7.91E-05, D: -1.52E-08}
+       -  &FINAL001  {iter:  5, EKS: -1.13691696098608586E+00, gnrm:  7.91E-05, D: -5.30E-10}
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -7.4253E+00, -6.7504E+00, -6.7504E+00 ]
    norm(P)                             :  1.209425E+01
@@ -1763,16 +1752,17 @@
    norm(P)                             :  3.074051E+01
  Average noise forces: {x:  1.79492153E-04, y:  2.20945163E-04, z:  2.21188865E-04, 
                     total:  3.60497866E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.629157575296E-04, fnrm2:  1.854413512198E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.129173652927E-03, fnrm2:  1.999624867064E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.629157575306E-04, fnrm2:  1.854413512201E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.129173652928E-03, fnrm2:  1.999624867068E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.629043843669E-04, -1.355252715607E-20, -4.680028416664E-06]} # 0001
- -  {H: [ 9.629043843669E-04,  1.355252715607E-20,  4.680028416664E-06]} # 0002
+ -  {H: [-9.629043843678E-04,  0.000000000000E+00, -4.680028416668E-06]} # 0001
+ -  {H: [ 9.629043843678E-04,  2.710505431214E-20,  4.680028416668E-06]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  5.55
-   Elapsed time (s)                    :  2.97
+   CPU time (s)                        :  16.94
+   Elapsed time (s)                    :  2.81
+ (F) Move: {atom:  2, direction:  1, axis: z, displacement (Bohr):  7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -1837,8 +1827,8 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  8
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  717
@@ -1849,13 +1839,11 @@
   #------------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Collinear
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  1
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 848 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  0
@@ -1867,7 +1855,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
@@ -1878,19 +1866,19 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -1.13687240499388964E+00, gnrm:  1.62E-02}
-       -  {iter:  2, EKS: -1.13691435762837934E+00, gnrm:  3.13E-03, D: -4.20E-05}
-       -  {iter:  3, EKS: -1.13691702874714240E+00, gnrm:  4.17E-04, D: -2.67E-06}
-       -  {iter:  4, EKS: -1.13691705894806994E+00, gnrm:  1.13E-04, D: -3.02E-08}
-       -  {iter:  5, EKS: -1.13691706001710657E+00, gnrm:  8.06E-06, D: -1.07E-09}
-       -  &FINAL001  {iter:  6, EKS: -1.13691706003744719E+00, gnrm:  8.06E-06, D: -2.03E-11}
+       -  {iter:  1, EKS: -1.13687240499395004E+00, gnrm:  1.62E-02}
+       -  {iter:  2, EKS: -1.13691435762844595E+00, gnrm:  3.13E-03, D: -4.20E-05}
+       -  {iter:  3, EKS: -1.13691702874717704E+00, gnrm:  4.17E-04, D: -2.67E-06}
+       -  {iter:  4, EKS: -1.13691705894810857E+00, gnrm:  1.13E-04, D: -3.02E-08}
+       -  {iter:  5, EKS: -1.13691706001712078E+00, gnrm:  8.06E-06, D: -1.07E-09}
+       -  &FINAL001  {iter:  6, EKS: -1.13691706003749449E+00, gnrm:  8.06E-06, D: -2.04E-11}
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  91,  91 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -7.4253E+00, -6.7504E+00, -6.7504E+00 ]
    norm(P)                             :  1.209424E+01
@@ -1899,24 +1887,37 @@
    norm(P)                             :  3.074049E+01
  Average noise forces: {x:  1.78455449E-04, y:  2.21227620E-04, z:  2.21314371E-04, 
                     total:  3.60233338E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.622401745740E-04, fnrm2:  1.851812307128E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.102943077632E-03, fnrm2:  1.992514128013E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.622401745729E-04, fnrm2:  1.851812307124E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.102943077630E-03, fnrm2:  1.992514128008E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.622288093906E-04, -1.355252715607E-20,  4.676744902602E-06]} # 0001
- -  {H: [ 9.622288093906E-04,  1.355252715607E-20, -4.676744902602E-06]} # 0002
+ -  {H: [-9.622288093896E-04, -1.355252715607E-20,  4.676744902597E-06]} # 0001
+ -  {H: [ 9.622288093896E-04,  1.355252715607E-20, -4.676744902597E-06]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  6.56
-   Elapsed time (s)                    :  3.51
+   CPU time (s)                        :  19.69
+   Elapsed time (s)                    :  3.18
+  #==================================================================== (F) Frequencies results
+ (F) Eigenvalues (real part): [ 3.6667157112E-04,  7.2429663548E-07,  7.2424942023E-07, 
+                               -1.5568015752E-23, -1.5568015752E-23,  2.7105054312E-20]
+ (F) Eigenvalues (imag part): [ 0.0000000000E+00,  0.0000000000E+00,  0.0000000000E+00, 
+                               -9.4879791304E-23,  9.4879791304E-23,  0.0000000000E+00]
+ (F) Frequencies (Hartree): [ 1.9148670218E-02,  8.5105618820E-04,  8.5102844854E-04, 
+                             -3.9456324907E-12, -3.9456324907E-12,  1.6463612700E-10]
+ (F) Frequencies (cm-1)                :  [  4202.65,  186.79,  186.78, -0.00, -0.00,  0.00 ]
+ (F) Zero-point energy (cm-1 and Hartree):  [  2.1013236687E+03,  9.5743351090E-03 ]
+ (F) Considered Temperature (Kelvin)   :  300.0
+ (F) Vibrational entropy =             :  4.5058946475E-02
+ (F) Vibrational Energy (cm-1 and Hartree):  [  2.1013236761E+03,  9.5743351428E-03 ]
+ (F) Total Energy (Hartree)            :  9.5743351428E-03
  Memory Consumption Report:
-   Tot. No. of Allocations  : 9337
-   Tot. No. of Deallocations: 9337
-   Remaining Memory (B)     : 0
-   Memory occupation: 
-      Peak Value (MB): 69
-      for the array: wz
-      in the routine: gaussians_to_wavelets_orb
+   Tot. No. of Allocations             :  11232
+   Tot. No. of Dellocations            :  11232
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  88
+     for the array                     : wz
+     in the routine                    : gaussians_to_wavelets_orb
 ---
  Code logo:
          TTTT         F       DDDDD
@@ -1943,28 +1944,26 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.26
- Timestamp of this run                 : 2013-04-15 15:35:10.215
- Root process Hostname                 : athelas
- Number of MPI tasks                   :  2
+ Version Number                        : 1.7-dev.28
+ Timestamp of this run                 : 2013-05-29 14:29:52.412
+ Root process Hostname                 : localhost
+ Number of MPI tasks                   :  1
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  2
+ Maximal OpenMP threads per MPI task   :  8
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=mpif90' 'FCFLAGS=-O2 -fopenmp' '--enable-dgemmsy' '--with-etsf-io' 
-      '--with-etsf-io-path=/opt' '--enable-minima-hopping' 
-      '--with-ext-linalg=-Wl,--start-group  /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.a 
-      /opt/intel/mkl/lib/intel64/libmkl_sequential.a 
-      /opt/intel/mkl/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread 
-      -lscalapack-openmpi -lblacs-openmpi -lblacsCinit-openmpi -lblacsF77init-openmpi'"
-   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
+     " 'FC=ifort' 'CC=icc' 'FCFLAGS=-openmp -O3' 'CFLAGS=-O3' 'CXXFLAGS=-O3' 
+      '--with-ext-linalg=-lmkl_solver_lp64_sequential -Wl,--start-group -lmkl_intel_lp64 
+      -lmkl_sequential -lmkl_core -Wl,--end-group -lpthread' '--disable-bindings' 
+      '--disable-mpi'"
+   Compilers (CC, FC, CXX)             :  [ icc, ifort, g++ ]
    Compiler flags:
-     CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -fopenmp
-     CXXFLAGS                          : -g -O2
+     CFLAGS                            : -O3
+     FCFLAGS                           : -openmp -O3
+     CXXFLAGS                          : -O3
      CPPFLAGS                          : 
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -2010,7 +2009,7 @@
  #|1.e-4          gnrm_cv: convergence criterion gradient                                    
  #|50 1           itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
  #|6  6           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
- #|0              dispersion correction potential (values 1,2,3), 0=none                     
+ #|0              dispersion correction potential (values 1,2,3,4,5), 0=none                 
  #|0 0            InputPsiId, output_wf, output_denspot                                      
  #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
  #|0 0  0         Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
@@ -2062,11 +2061,30 @@
  # ==== WARNING: the following lines have not been processed by the parser ====
  #|#Best effort: 4173 cm-1, E=-1.1370708233960054 Hartree, d=0.76558 angstroem               
  Material acceleration                 :  No #iproc=0
+ (F) File "frequencies.res" present    :  Yes
+ (F) Reference state calculated in the "frequencies.res" file:  Yes
+ (F) Frequency moves already calculated:  12
+ (F) Total Frequency moves             :  12
+ (F) Exit signal for Wavefunction Optimization Finished:  0
+  #======================================================= (F) Start Frequencies calculation
+  #================================================================= (F) Frequencies results
+ (F) Eigenvalues (real part): [ 3.6667157112E-04,  7.2429663548E-07,  7.2424942023E-07, 
+                               -1.5568015752E-23, -1.5568015752E-23,  2.7105054312E-20]
+ (F) Eigenvalues (imag part): [ 0.0000000000E+00,  0.0000000000E+00,  0.0000000000E+00, 
+                               -9.4879791304E-23,  9.4879791304E-23,  0.0000000000E+00]
+ (F) Frequencies (Hartree): [ 1.9148670218E-02,  8.5105618820E-04,  8.5102844854E-04, 
+                             -3.9456324907E-12, -3.9456324907E-12,  1.6463612700E-10]
+ (F) Frequencies (cm-1): [ 4202.65,  186.79,  186.78, -0.00, -0.00,  0.00]
+ (F) Zero-point energy (cm-1 and Hartree):  [  2.1013236687E+03,  9.5743351090E-03 ]
+ (F) Considered Temperature (Kelvin)   :  300.0
+ (F) Vibrational entropy =             :  4.5058946475E-02
+ (F) Vibrational Energy (cm-1 and Hartree):  [  2.1013236761E+03,  9.5743351428E-03 ]
+ (F) Total Energy (Hartree)            : -1.1273429753E+00
  Memory Consumption Report:
-   Tot. No. of Allocations  : 49
-   Tot. No. of Deallocations: 49
-   Remaining Memory (B)     : 0
-   Memory occupation: 
-      Peak Value (MB): 0
-      for the array: work
-      in the routine: solve
+   Tot. No. of Allocations             :  51
+   Tot. No. of Dellocations            :  51
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  0
+     for the array                     : work
+     in the routine                    : solve

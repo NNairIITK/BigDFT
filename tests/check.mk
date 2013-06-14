@@ -93,9 +93,18 @@ report:
 	@if test $(MAKELEVEL) = 0 ; then	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ;python $(top_srcdir)/tests/report.py ; fi
 
 %.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
-	@export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	@name=`basename $@ .memguess.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
+	if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
+	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
+	   cat accel.perf >> $$file ; \
+	fi ; \
+	echo outdir ./ >> $$file ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	echo "$(abs_top_builddir)/src/bigdft-tool -n 1 > $@"; \
-	$(abs_top_builddir)/src/bigdft-tool -n 1 > $@
+	$(abs_top_builddir)/src/bigdft-tool -n 1 > $@ ; \
+	mv log.yaml log-memguess.yaml ; \
+	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
 	@name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
@@ -381,7 +390,7 @@ head_message:
 	@echo "  make in:           generate all input dirs."
 	@echo "  make failed-check: run check again on all directories"
 	@echo "                     with missing report or failed report."
-	@echo "  make complete-check: for developpers, makes long and extensive tests."
+	@echo "  make complete-check: for developers, makes long and extensive tests."
 	@echo "  make X.in:         generate input dir for directory X."
 	@echo "  make X.check:      generate a report for directory X"
 	@echo "                     (if not already existing)."

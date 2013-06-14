@@ -11,9 +11,9 @@ LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
 PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
 endif
 
-AM_FCFLAGS = -I../src @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I../src
 AM_LDFLAGS = -L$(top_builddir)/flib/src
-LIBS += -lflib @LIBS_SHORT_DEPS@ -lrt
+LIBS += -lflib -lrt
 
 if USE_MPI
 mpi_source =

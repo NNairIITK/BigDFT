@@ -1,7 +1,7 @@
 !> @file
 !!    Routines to create the kernel for Poisson solver
 !! @author
-!!    Copyright (C) 2002-2011 BigDFT group  (LG)
+!!    Copyright (C) 2002-2013 BigDFT group  (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -193,7 +193,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   real(kind=8) :: alphat,betat,gammat,mu0t
   real(kind=8), dimension(:), allocatable :: pkernel2
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,i_all,kernelnproc
-  integer :: n3pr1,n3pr2,n3pr2_reduced
+  integer :: n3pr1,n3pr2
   integer,dimension(3) :: n
 
   call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
