@@ -244,7 +244,7 @@ contains
 
   !defines a dictionary from a array of storage data
   function dict_new(dicts)
-    use yaml_output
+!    use yaml_output
 !    type(storage), dimension(:), intent(in) :: st_arr
     type(dictionary_container), dimension(:), intent(in) :: dicts
     type(dictionary), pointer :: dict_new

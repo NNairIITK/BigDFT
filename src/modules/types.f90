@@ -1483,6 +1483,9 @@ subroutine deallocate_orbs(orbs,subname)
     nullify(rst%KSwfn%gbd%xp)
     nullify(rst%KSwfn%gbd%psiat)
     nullify(rst%KSwfn%gbd%rxyz)
+
+    !Nullify LZD for cubic version (new input guess)
+    call nullify_local_zone_descriptors(rst%tmb%lzd)
   END SUBROUTINE restart_objects_new
 
   subroutine restart_objects_set_mode(rst, inputpsiid)
@@ -1546,8 +1549,11 @@ subroutine deallocate_orbs(orbs,subname)
 
     if (rst%version == LINEAR_VERSION) then
        call destroy_DFT_wavefunction(rst%tmb)
-       call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
     end if
+    !always deallocate lzd for new input guess
+    !call deallocate_lzd(rst%tmb%lzd, subname)
+    ! Modified by SM
+    call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
 
     call deallocate_locreg_descriptors(rst%KSwfn%Lzd%Glr,subname)
 

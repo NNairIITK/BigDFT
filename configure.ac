@@ -25,9 +25,11 @@ dnl Versioning
 BIGDFT_MAJOR_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f1)
 BIGDFT_MINOR_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f2 | cut -d'-' -f1)
 BIGDFT_MICRO_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f3)
+BIGDFT_NANO_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f4)
 AC_SUBST(BIGDFT_MAJOR_VERSION)
 AC_SUBST(BIGDFT_MINOR_VERSION)
 AC_SUBST(BIGDFT_MICRO_VERSION)
+AC_SUBST(BIGDFT_NANO_VERSION)
 
 dnl This is a hack for usage inside ABINIT.
 dnl if test -n "$FCFLAGS" ; then

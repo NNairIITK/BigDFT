@@ -358,7 +358,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz_old
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
   integer, intent(out) :: infocode
-  type(energy_terms), intent(out), target :: energs ! Target attribute is mandatory for C wrappers
+  type(energy_terms), intent(out) :: energs
   real(gp), intent(out) :: energy,fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
