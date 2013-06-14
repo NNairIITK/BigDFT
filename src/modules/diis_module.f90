@@ -18,7 +18,6 @@ module diis_sd_optimization
      real(gp) :: alpha_coeff
   end type DIIS_obj
 
-
 contains
 
 !!$  function DIIS_ctrl_init() result(ctrl)
@@ -54,8 +53,6 @@ contains
 !!$    diis%energy_old=diis%energy
 !!$    !logical control variable for switch DIIS-SD
 !!$    diis%switchSD=.false.
-
-
   END SUBROUTINE DIIS_set
 
 

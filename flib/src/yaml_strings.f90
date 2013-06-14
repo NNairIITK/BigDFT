@@ -111,19 +111,23 @@ contains
     if (present(istat)) istat=0 !no errors
 
     lgt_add=len(buffer)
-    !do not copy strings which are too long
+    !do not copy strings which are too long if istat is present
     if (lgt_add+string_pos > string_lgt) then
+       !try to eliminate trailing spaces
+       lgt_add=len_trim(buffer)
        if (present(istat)) then
           istat=-1
           return
-       else
-          write(*,*)'ERROR (buffer string): string too long'
-          write(*,*)'Initial String: ',string(1:string_pos)
-          write(*,*)'Buffer: ',trim(buffer)
-          write(*,*)'String position: ',string_pos
-          write(*,*)'Length of Buffer: ',lgt_add
-          write(*,*)'String limit: ',string_lgt
-          stop 
+       else if (lgt_add+string_pos > string_lgt) then
+          write(*,*)'#ERROR (buffer string): string too long'
+          write(*,*)'#Initial String: ',string(1:string_pos)
+          write(*,*)'#Buffer: ',trim(buffer)
+          write(*,*)'#String position: ',string_pos
+          write(*,*)'#Length of Buffer: ',lgt_add
+          write(*,*)'#String limit: ',string_lgt
+          lgt_add=string_lgt-string_pos-1
+          write(*,*)'#Buffer shortened into: ',buffer(1:lgt_add)
+          !stop 
        end if
     end if
        

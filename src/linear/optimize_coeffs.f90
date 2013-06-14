@@ -218,14 +218,14 @@ subroutine optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
      ldiis_coeff%mids=mod(ldiis_coeff%ids,ldiis_coeff%idsx)+1
      ldiis_coeff%ids=ldiis_coeff%ids+1
 
-     call DIIS_update_errors(1,0,1,(/tmb%orbs%norb*orbs%norbp/),tmb%orbs%norb*orbs%norbp,&
-          tmb%coeff(1,orbs%isorb+1),rhs(1,orbs%isorb+1),ldiis_coeff)
-
-     call diis_step(iproc,nproc,1,0,1,(/iproc/),&
-          (/tmb%orbs%norb*orbs%norbp/),ldiis_coeff)
-
-     call DIIS_update_psi(1,0,1,(/tmb%orbs%norb*orbs%norbp/),tmb%orbs%norb*orbs%norbp,&
-          tmb%coeff(1,orbs%isorb+1),ldiis_coeff)
+!!$     call DIIS_update_errors(1,0,1,(/tmb%orbs%norb*orbs%norbp/),tmb%orbs%norb*orbs%norbp,&
+!!$          tmb%coeff(1,orbs%isorb+1),rhs(1,orbs%isorb+1),ldiis_coeff)
+!!$
+!!$     call diis_step(iproc,nproc,1,0,1,(/iproc/),&
+!!$          (/tmb%orbs%norb*orbs%norbp/),ldiis_coeff)
+!!$
+!!$     call DIIS_update_psi(1,0,1,(/tmb%orbs%norb*orbs%norbp/),tmb%orbs%norb*orbs%norbp,&
+!!$          tmb%coeff(1,orbs%isorb+1),ldiis_coeff)
 
      !call DIIS_coeff(iproc, orbs, tmb, rhs(1,orbs%isorb+1), tmb%coeff, ldiis_coeff)
   else  !steepest descent

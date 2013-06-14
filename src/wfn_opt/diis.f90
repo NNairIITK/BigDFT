@@ -549,7 +549,6 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
      call DIIS_update_psi(orbs%nkpts,orbs%iskpts,orbs%nkptsp,&
           orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),ndim_psi,psit,diis_new)
 
-
      call DIIS_obj_release(diis_new,diis)
 
 
