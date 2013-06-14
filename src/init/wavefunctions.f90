@@ -757,6 +757,7 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
   integer, intent(in) :: iproc
   logical, intent(in) :: dump
 
+  type(dictionary), pointer :: profs
   integer :: ierr
 
   ! Generate kpoint meshs.
@@ -783,6 +784,12 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
   if (in%gen_nkpt > 1 .and. in%gaussian_help) then
      if (iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+  end if
+
+  if (iproc == 0) then
+     profs = input_keys_get_profiles("")
+     call yaml_dict_dump(profs)
+     call dict_free(profs)
   end if
 
   if (iproc == 0) call input_keys_dump(in%input_values)

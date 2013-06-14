@@ -57,12 +57,13 @@ module module_input_keys
   character(len = *), parameter :: RANGE = "__range__", EXCLUSIVE = "__exclusive__"
   character(len = *), parameter :: DEFAULT = "default", COMMENT = "__comment__"
   character(len = *), parameter :: COND = "__condition__", WHEN = "__when__"
-  character(len = *), parameter :: MASTER_KEY = "master_key"
+  character(len = *), parameter :: MASTER_KEY = "master_key", USER_DEFINED = "__user__"
   character(len = *), parameter :: PROFILE_KEY = "profile", ATTRS = "_attributes"
 
   public :: input_keys_init, input_keys_finalize
   public :: input_keys_set, input_keys_fill, input_keys_dump
-  public :: input_keys_equal
+  public :: input_keys_equal, input_keys_get_source
+  public :: input_keys_get_profiles
 
   type(dictionary), pointer :: parameters
 
@@ -334,6 +335,74 @@ contains
     get_kpt_parameters => p
   END FUNCTION get_kpt_parameters
 
+  function input_keys_get_profiles(file)
+    use dictionaries
+    implicit none
+    character(len = *), intent(in) :: file
+    type(dictionary), pointer :: input_keys_get_profiles
+
+    type(dictionary), pointer :: p
+    integer :: i
+    character(max_field_length), dimension(:), allocatable :: keys
+
+    call dict_init(p)
+    
+    if (has_key(parameters, file)) then
+       call vars(p, parameters // file)
+    else
+       allocate(keys(dict_len(parameters)))
+       keys = dict_keys(parameters)
+       do i = 1, size(keys), 1
+          call vars(p // keys(i), parameters // keys(i))
+       end do
+       deallocate(keys)
+    end if
+
+    input_keys_get_profiles => p
+  contains
+    subroutine vars(dict, ref)
+      use dictionaries
+      implicit none
+      type(dictionary), pointer :: dict, ref
+
+      integer :: i
+      character(max_field_length), dimension(:), allocatable :: var
+
+      allocate(var(dict_len(ref)))
+      var = dict_keys(ref)
+      do i = 1, size(var), 1
+         call generate(dict,  var(i), ref // var(i))
+      end do
+      deallocate(var)
+      if (dict_size(dict) == 0) then
+         call set(dict, "no profile")
+      end if
+    end subroutine vars
+
+    subroutine generate(dict, key, ref)
+      use dictionaries
+      implicit none
+      type(dictionary), pointer :: dict, ref
+      character(len = *), intent(in) :: key
+
+      integer :: i
+      character(max_field_length), dimension(:), allocatable :: keys
+
+      allocate(keys(dict_len(ref)))
+      keys = dict_keys(ref)
+      do i = 1, size(keys), 1
+         if (trim(keys(i)) /= COMMENT .and. &
+              & trim(keys(i)) /= COND .and. &
+              & trim(keys(i)) /= RANGE .and. &
+              & trim(keys(i)) /= EXCLUSIVE .and. &
+              & trim(keys(i)) /= DEFAULT) then
+            call add(dict // key, keys(i))
+         end if
+      end do
+      deallocate(keys)
+    end subroutine generate
+  END FUNCTION input_keys_get_profiles
+
   !> Compare two strings (case-insensitive). Blanks are relevant!
   function input_keys_equal(stra,strb)
     implicit none
@@ -355,6 +424,22 @@ contains
        if (.not. input_keys_equal) exit
     end do
   END FUNCTION input_keys_equal
+
+  function input_keys_get_source(dict, key)
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len = *), intent(in) :: key
+
+    character(len = max_field_length) :: input_keys_get_source
+
+    input_keys_get_source(1:max_field_length) = DEFAULT
+    if (has_key(dict, trim(key) // ATTRS)) then
+       if (has_key(dict // (trim(key) // ATTRS), PROFILE_KEY)) then
+          input_keys_get_source = dict // (trim(key) // ATTRS) // PROFILE_KEY
+       end if
+    end if
+  end function input_keys_get_source
 
   subroutine input_keys_fill(dict, file, profile)
     use dictionaries
@@ -435,24 +520,22 @@ contains
                   & err_msg = trim(key) // " = '" // trim(val) // "' is not allowed.")) return
              nullify(failed_exclusive)
           end if
+          profile_(1:max_field_length) = USER_DEFINED
        end if
     else
        ! Key should be present only for some unmet conditions.
        if (.not.set_(dict, ref)) return
 
        ! There is no value in dict, we take it from ref.
-       if (has_key(ref, profile_)) then
-          call copy(dict // key, ref // profile_)
-       else
-          call copy(dict // key, ref // DEFAULT)
-       end if
+       if (.not. has_key(ref, profile_)) profile_ = DEFAULT
+       call copy(dict // key, ref // profile_)
     end if
 
     ! Copy the comment.
     if (has_key(ref, COMMENT)) &
          & call copy(dict // (trim(key) // ATTRS) // COMMENT, ref // COMMENT)
-    if (trim(profile_) /= DEFAULT .and. has_key(ref, profile_)) &
-         & call copy(dict // (trim(key) // ATTRS) // PROFILE_KEY, ref // profile_)
+    if (trim(profile_) /= DEFAULT) &
+         & call set(dict // (trim(key) // ATTRS) // PROFILE_KEY, profile_)
 
   contains
 
@@ -486,7 +569,6 @@ contains
       character(len = max_field_length) :: val
       character(max_field_length), dimension(:), allocatable :: keys
       double precision :: var
-      integer :: ierror
 
       if (associated(dict%child)) then
          if (dict_len(dict) >= 1) then
