@@ -35,6 +35,8 @@ int main(int argc, const char **argv)
   bigdft_inputs_set_array(ins, INPUTS_HGRIDS, hgrids);
   bigdft_inputs_set(ins, INPUTS_NSPIN, "2");
   /* bigdft_inputs_set(ins, INPUTS_INPUTPSIID, "-500"); */
+  bigdft_inputs_set(ins, INPUTS_GEOPT_METHOD, "DIIS");
+  /* bigdft_inputs_set(ins, INPUTS_BETAX, "1."); */
 
   run = bigdft_run_new_from_objects(atoms, ins, NULL, iproc);
   bigdft_inputs_unref(ins);

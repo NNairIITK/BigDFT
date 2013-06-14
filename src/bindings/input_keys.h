@@ -36,7 +36,28 @@ static const gchar* _input_keys[] = {
   "iseg",
   "kptv",
   "ngranularity",
-  "band_structure_filename"
+  "band_structure_filename",
+  "geopt",
+  "method",
+  "ncount_cluster_x",
+  "frac_fluct",
+  "forcemax",
+  "randdis",
+  "ionmov",
+  "dtion",
+  "mditemp",
+  "mdftemp",
+  "noseinert",
+  "friction",
+  "mdwall",
+  "nnos",
+  "qmass",
+  "bmass",
+  "vmass",
+  "betax",
+  "history",
+  "dtinit",
+  "dtmax"
 };
 
 static const BigDFT_InputsKeyIds _input_files[] = {
@@ -74,7 +95,28 @@ static const BigDFT_InputsKeyIds _input_files[] = {
   INPUTS_KPT_VARIABLES,
   INPUTS_KPT_VARIABLES,
   INPUTS_KPT_VARIABLES,
-  INPUTS_KPT_VARIABLES
+  INPUTS_KPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES,
+  INPUTS_GEOPT_VARIABLES
 };
 
 #endif

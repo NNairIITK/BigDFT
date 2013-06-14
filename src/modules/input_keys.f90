@@ -48,6 +48,28 @@ module module_input_keys
   character(len = *), parameter, public :: NGRANULARITY = "ngranularity"
   character(len = *), parameter, public :: BAND_STRUCTURE_FILENAME = "band_structure_filename"
 
+  character(len = *), parameter, public :: GEOPT_VARIABLES = "geopt"
+  character(len = *), parameter, public :: GEOPT_METHOD = "method"
+  character(len = *), parameter, public :: NCOUNT_CLUSTER_X = "ncount_cluster_x"
+  character(len = *), parameter, public :: FRAC_FLUCT = "frac_fluct"
+  character(len = *), parameter, public :: FORCEMAX = "forcemax"
+  character(len = *), parameter, public :: RANDDIS = "randdis"
+  character(len = *), parameter, public :: IONMOV = "ionmov"
+  character(len = *), parameter, public :: DTION = "dtion"
+  character(len = *), parameter, public :: MDITEMP = "mditemp"
+  character(len = *), parameter, public :: MDFTEMP = "mdftemp"
+  character(len = *), parameter, public :: NOSEINERT = "noseinert"
+  character(len = *), parameter, public :: FRICTION = "friction"
+  character(len = *), parameter, public :: MDWALL = "mdwall"
+  character(len = *), parameter, public :: NNOS = "nnos"
+  character(len = *), parameter, public :: QMASS = "qmass"
+  character(len = *), parameter, public :: BMASS = "bmass"
+  character(len = *), parameter, public :: VMASS = "vmass"
+  character(len = *), parameter, public :: BETAX = "betax"
+  character(len = *), parameter, public :: HISTORY = "history"
+  character(len = *), parameter, public :: DTINIT = "dtinit"
+  character(len = *), parameter, public :: DTMAX = "dtmax"
+
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST
   integer, public :: INPUT_VAR_NOT_IN_RANGE
@@ -58,7 +80,7 @@ module module_input_keys
   character(len = *), parameter :: DEFAULT = "default", COMMENT = "__comment__"
   character(len = *), parameter :: COND = "__condition__", WHEN = "__when__"
   character(len = *), parameter :: MASTER_KEY = "master_key", USER_DEFINED = "__user__"
-  character(len = *), parameter :: PROFILE_KEY = "profile", ATTRS = "_attributes"
+  character(len = *), parameter :: PROF_KEY = "__profile__", ATTRS = "_attributes"
 
   public :: input_keys_init, input_keys_finalize
   public :: input_keys_set, input_keys_fill, input_keys_dump
@@ -80,6 +102,14 @@ contains
     call f_err_severe()
   end subroutine abort_excl
 
+  subroutine warn_illegal()
+    use yaml_output
+    use dictionaries
+    implicit none
+    
+    call yaml_warning("variable not allowed in context")
+  end subroutine warn_illegal
+
   subroutine input_keys_init()
     use yaml_output
     use dictionaries
@@ -88,6 +118,7 @@ contains
     call dict_init(parameters)
     call set(parameters // DFT_VARIABLES, get_dft_parameters())
     call set(parameters // KPT_VARIABLES, get_kpt_parameters())
+    call set(parameters // GEOPT_VARIABLES, get_geopt_parameters())
 
     !call yaml_dict_dump(parameters, comment_key = COMMENT)
     call f_err_define(err_name='INPUT_VAR_NOT_IN_LIST',&
@@ -98,6 +129,10 @@ contains
          err_msg='given value not in allowed range.',&
          err_action='adjust the given value.',&
          err_id=INPUT_VAR_NOT_IN_RANGE)
+    call f_err_define(err_name='INPUT_VAR_ILLEGAL',&
+         err_msg='provided variable is not allowed in this context.',&
+         err_action='remove the input variable.',&
+         err_id=INPUT_VAR_ILLEGAL,callback=warn_illegal)
   END SUBROUTINE input_keys_init
   
   subroutine input_keys_finalize()
@@ -335,6 +370,156 @@ contains
     get_kpt_parameters => p
   END FUNCTION get_kpt_parameters
 
+  function get_geopt_parameters()
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: p, get_geopt_parameters
+
+    call dict_init(p)
+
+    ! Settings
+    call set(p // GEOPT_METHOD, dict_new( (/ &
+         & COMMENT   .is. 'Geometry optimisation method', &
+         & EXCLUSIVE .is. dict_new((/ &
+         & "SDCG"    .is. "a combination of Steepest Descent and Conjugate Gradient", &
+         & "VSSD"    .is. "Variable Stepsize Steepest Descent method", &
+         & "LBFGS"   .is. "limited-memory BFGS", &
+         & "BFGS"    .is. "Broyden–Fletcher–Goldfarb–Shanno", &
+         & "PBFGS"   .is. "Same as BFGS with an initial Hessian obtained from a force field", &
+         & "AB6MD"   .is. "molecular dynamics from ABINIT", &
+         & "DIIS"    .is. "direct inversion of iterative subspace", &
+         & "FIRE"    .is. "Fast Inertial Relaxation Engine as described by Bitzek et al." /)), &
+         & DEFAULT   .is. "none" /) ))
+
+    call set(p // NCOUNT_CLUSTER_X, dict_new( (/ &
+         & COMMENT   .is. 'Maximum number of force evaluations', &
+         & RANGE     .is. list_new((/ .item."0", .item."2000" /)), &
+         & PROF_KEY  .is. GEOPT_METHOD, &
+         & DEFAULT   .is. "50", &
+         & "none"    .is. "1"/) ))
+
+    call set(p // FRAC_FLUCT, dict_new( (/ &
+         & RANGE     .is. list_new((/ .item."0.", .item."10." /)), &
+         & DEFAULT   .is. "1." /) ))
+
+    call set(p // FORCEMAX, dict_new( (/ &
+         & RANGE     .is. list_new((/ .item."0.", .item."10." /)), &
+         & DEFAULT   .is. "0." /) ))
+
+    call set(p // RANDDIS, dict_new( (/ &
+         & COMMENT   .is. 'random displacement amplitude', &
+         & RANGE     .is. list_new((/ .item."0.", .item."10." /)), &
+         & DEFAULT   .is. "0." /) ))
+
+    call set(p // BETAX, dict_new( (/ &
+         & COMMENT   .is. 'Stepsize for the geometry optimisation', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. GEOPT_METHOD, &
+         &                            WHEN .is. list_new((/ .item. "SDCG", &
+         &                .item."VSSD", .item."LBFGS", .item."BFGS", .item."PBFGS", &
+         &                .item."DIIS", .item."FIRE", .item."none" /)) /)), &
+         & PROF_KEY  .is. GEOPT_METHOD, &
+         & RANGE     .is. list_new((/ .item."0.", .item."100." /)), &
+         & DEFAULT   .is. "4.", &
+         & "DIIS"    .is. "2." /) ))
+
+    call set(p // HISTORY, dict_new( (/ &
+         & COMMENT   .is. 'history for DIIS method', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. GEOPT_METHOD, &
+         &                            WHEN .is. list_new((/ .item. "DIIS" /)) /)), &
+         & RANGE     .is. list_new((/ .item."0", .item."100" /)), &
+         & DEFAULT   .is. "4" /) ))
+
+    call set(p // DTINIT, dict_new( (/ &
+         & COMMENT   .is. 'initial time step for the FIRE method', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. GEOPT_METHOD, &
+         &                            WHEN .is. list_new((/ .item. "FIRE" /)) /)), &
+         & RANGE     .is. list_new((/ .item."0", .item."1e4" /)), &
+         & DEFAULT   .is. "0.75" /) ))
+
+    call set(p // DTMAX, dict_new( (/ &
+         & COMMENT   .is. 'maximal time step for the FIRE method', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. GEOPT_METHOD, &
+         &                            WHEN .is. list_new((/ .item. "FIRE" /)) /)), &
+         & RANGE     .is. list_new((/ .item."0", .item."1e4" /)), &
+         & DEFAULT   .is. "1.5" /) ))
+
+    call set(p // IONMOV, dict_new( (/ &
+         & COMMENT   .is. 'movement ion method', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. GEOPT_METHOD, &
+         &                            WHEN .is. list_new((/ .item. "AB6MD" /)) /)), &
+         & EXCLUSIVE .is. dict_new((/ "6".is."simple velocity-Verlet molecular dynamic", &
+         & "7".is."quenched molecular dynamic", "8".is."Nose-Hoover thermostat", &
+         & "9".is."Langevin dynamic", "12".is."Isokinetic ensemble molecular dynamics", &
+         & "13".is."Iosthermal/isenthalpic ensemble" /)), &
+         & DEFAULT   .is. "6" /) ))
+
+    call set(p // DTION, dict_new( (/ &
+         & COMMENT   .is. 'time step - Atomic Units (20.670689 AU=0.5 fs)', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. GEOPT_METHOD, &
+         &                            WHEN .is. list_new((/ .item. "AB6MD" /)) /)), &
+         & RANGE     .is. list_new((/ .item."0", .item."1e3" /)), &
+         & DEFAULT   .is. "20.670689" /) ))
+
+    call set(p // MDITEMP, dict_new( (/ &
+         & COMMENT   .is. 'temperature of molecular dynamics', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
+         &                            WHEN .is. list_new((/ .item. "6" /)) /)), &
+         & RANGE     .is. list_new((/ .item."0", .item."1e9" /)), &
+         & DEFAULT   .is. "300." /) ))
+
+    call set(p // MDFTEMP, dict_new( (/ &
+         & COMMENT   .is. 'final temperature of molecular dynamics', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
+         &                            WHEN .is. list_new((/ .item. "8", .item."9", &
+         &                                                  .item."12", .item."13" /)) /)), &
+         & RANGE     .is. list_new((/ .item."0", .item."1e9" /)), &
+         & DEFAULT   .is. "300." /) ))
+
+    call set(p // NOSEINERT, dict_new( (/ &
+         & COMMENT   .is. 'thermostat inertia coefficient for Nose_Hoover dynamics', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
+         &                            WHEN .is. list_new((/ .item. "8" /)) /)), &
+         & RANGE     .is. list_new((/ .item."0", .item."1e9" /)), &
+         & DEFAULT   .is. "1e5" /) ))
+
+    call set(p // FRICTION, dict_new( (/ &
+         & COMMENT   .is. 'Friction coefficient for Langevin dynamics', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
+         &                            WHEN .is. list_new((/ .item. "9" /)) /)), &
+         & RANGE     .is. list_new((/ .item."0", .item."1e5" /)), &
+         & DEFAULT   .is. "1e-3" /) ))
+
+    call set(p // MDWALL, dict_new( (/ &
+         & COMMENT   .is. 'Distance in bohr where atoms can bounce for Langevin dynamics', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
+         &                            WHEN .is. list_new((/ .item. "9" /)) /)), &
+         & RANGE     .is. list_new((/ .item."0", .item."1e5" /)), &
+         & DEFAULT   .is. "1e4" /) ))
+
+    call set(p // QMASS, dict_new( (/ &
+         & COMMENT   .is. 'Mass of each thermostat (isothermal/isenthalpic ensemble)', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
+         &                            WHEN .is. list_new((/ .item. "13" /)) /)), &
+         & RANGE     .is. list_new((/ .item."0", .item."1e9" /)), &
+         & DEFAULT   .is. list_new((/ .item."0." /)) /) ))
+
+    call set(p // BMASS, dict_new( (/ &
+         & COMMENT   .is. 'Barostat masses (isothermal/isenthalpic ensemble)', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
+         &                            WHEN .is. list_new((/ .item. "13" /)) /)), &
+         & RANGE     .is. list_new((/ .item."0", .item."1e9" /)), &
+         & DEFAULT   .is. "10." /) ))
+
+    call set(p // VMASS, dict_new( (/ &
+         & COMMENT   .is. 'Barostat masses (isothermal/isenthalpic ensemble)', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
+         &                            WHEN .is. list_new((/ .item. "13" /)) /)), &
+         & RANGE     .is. list_new((/ .item."0", .item."1e9" /)), &
+         & DEFAULT   .is. "1." /) ))
+
+    get_geopt_parameters => p
+  END FUNCTION get_geopt_parameters
+
   function input_keys_get_profiles(file)
     use dictionaries
     implicit none
@@ -394,6 +579,7 @@ contains
          if (trim(keys(i)) /= COMMENT .and. &
               & trim(keys(i)) /= COND .and. &
               & trim(keys(i)) /= RANGE .and. &
+              & trim(keys(i)) /= PROF_KEY .and. &
               & trim(keys(i)) /= EXCLUSIVE .and. &
               & trim(keys(i)) /= DEFAULT) then
             call add(dict // key, keys(i))
@@ -435,8 +621,8 @@ contains
 
     input_keys_get_source(1:max_field_length) = DEFAULT
     if (has_key(dict, trim(key) // ATTRS)) then
-       if (has_key(dict // (trim(key) // ATTRS), PROFILE_KEY)) then
-          input_keys_get_source = dict // (trim(key) // ATTRS) // PROFILE_KEY
+       if (has_key(dict // (trim(key) // ATTRS), PROF_KEY)) then
+          input_keys_get_source = dict // (trim(key) // ATTRS) // PROF_KEY
        end if
     end if
   end function input_keys_get_source
@@ -484,15 +670,27 @@ contains
     double precision, dimension(2) :: rg
     logical :: found
 
+    ref => parameters // file // key
+
     profile_(1:max_field_length) = " "
-    if (present(profile)) profile_(1:max_field_length) = profile
+    if (present(profile)) then
+       ! User defined profile.
+       profile_(1:max_field_length) = profile
+    else
+       ! Hard-coded profile from key.
+       if (has_key(ref, PROF_KEY)) then
+          val = ref // PROF_KEY
+          if (has_key(dict, val)) then
+             profile_ = dict // val
+          end if
+       end if
+    end if
     if (trim(profile_) == "") profile_(1:max_field_length) = DEFAULT
     
-    ref => parameters // file // key
     if (has_key(dict, key)) then
        ! Key should be present only for some unmet conditions.
        if (f_err_raise(.not.set_(dict, ref), err_id = INPUT_VAR_ILLEGAL, &
-            & err_msg = trim(key) // " is not allowed.")) return
+            & err_msg = trim(key) // " is not allowed in this context.")) return
 
        val = dict // key
        ! There is already a value in dict.
@@ -535,7 +733,7 @@ contains
     if (has_key(ref, COMMENT)) &
          & call copy(dict // (trim(key) // ATTRS) // COMMENT, ref // COMMENT)
     if (trim(profile_) /= DEFAULT) &
-         & call set(dict // (trim(key) // ATTRS) // PROFILE_KEY, profile_)
+         & call set(dict // (trim(key) // ATTRS) // PROF_KEY, profile_)
 
   contains
 
@@ -550,6 +748,10 @@ contains
       set_ = .true.
       if (has_key(ref, COND)) then
          mkey = ref // COND // MASTER_KEY
+         if (.not. has_key(dict, mkey)) then
+            set_ = .false.
+            return
+         end if
          val_master = dict // mkey
          set_ = .false.
          do j = 0, dict_len(ref // COND // WHEN) - 1, 1

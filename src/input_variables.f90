@@ -716,106 +716,104 @@ END SUBROUTINE geopt_input_variables_default
 
 !> Read the input variables needed for the geometry optimisation
 !! Every argument should be considered as mandatory
-subroutine geopt_input_variables_new(iproc,dump,filename,in)
+subroutine read_geopt_from_text_format(iproc,dict,filename,dump)
   use module_base
   use module_types
   use module_input
+  use module_input_keys
+  use dictionaries
   implicit none
   integer, intent(in) :: iproc
   logical, intent(in) :: dump
   character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
+  type(dictionary), pointer :: dict
   !local variables
-  character(len=*), parameter :: subname='geopt_input_variables'
-  integer :: i_stat,i
+  character(len=*), parameter :: subname='read_geopt_from_text_format'
+  integer :: i
   logical :: exists
 
-  !target stress tensor
-  in%strtarget(:)=0.0_gp
+  character(len = 5) :: dummy_str
+  integer :: dummy_int, ionmov_
+  real(gp) :: dummy_real
 
   !geometry input parameters
-  call input_set_file(iproc,dump,trim(filename),exists,'Geometry Parameters')  
-  if (exists) in%files = in%files + INPUTS_GEOPT
+  call input_set_file(iproc,dump,trim(filename),exists,GEOPT_VARIABLES)  
+  !if (exists) in%files = in%files + INPUTS_GEOPT
   !call the variable, its default value, the line ends if there is a comment
-!  if (.not. exists) then
-!     in%ncount_cluster_x=0
-!     return
-!  end if
-
-  call input_var(in%geopt_approach,"BFGS",exclusive=(/'SDCG ','VSSD ','LBFGS','BFGS ','PBFGS','AB6MD','DIIS ','FIRE '/),&
-       comment="Geometry optimisation method")
-  call input_var(in%ncount_cluster_x,'1',ranges=(/0,2000/),&
-       comment="Maximum number of force evaluations")
-  !here the parsing of the wavefunction history should be added
-  in%wfn_history=1
-
-  call input_var(in%frac_fluct,'1.0',ranges=(/0.0_gp,10.0_gp/))
-  call input_var(in%forcemax,'0.0',ranges=(/0.0_gp,10.0_gp/),&
-       comment="fract_fluct,forcemax")
-  call input_var(in%randdis,'0.0',ranges=(/0.0_gp,10.0_gp/),&
-       comment="random displacement amplitude")
-
-  if (case_insensitive_equiv(trim(in%geopt_approach),"AB6MD")) then
-     in%nnos=0
-     call input_var(in%ionmov,'6',exclusive=(/6,7,8,9,12,13/),&
-          comment="AB6MD: movement ion method")
-     call input_var(in%dtion,'20.670689',ranges=(/0.0_gp,1.e3_gp/),&
-          comment="Time step for molecular dynamics - Atomic Units (20.670689 AU=0.5 fs)")
-     if (in%ionmov == 6) then
-        call input_var(in%mditemp,'300',ranges=(/0.0_gp,1.0e9_gp/),&
-             comment="Temperature of molecular dynamics")
-     elseif (in%ionmov > 7) then
-        call input_var(in%mditemp,'300',ranges=(/0.0_gp,1.0e9_gp/))
-        call input_var(in%mdftemp,'300',ranges=(/0.0_gp,1.0e9_gp/),&
-             comment="Initial and Final Temperatures of molecular dynamics")
-     end if
-
-     if (in%ionmov == 8) then
-        call input_var(in%noseinert,'1.e5',ranges=(/0.0_gp,1.0e9_gp/),&
-             comment="Thermostat inertia coefficient for Nose_Hoover dynamics")
-     else if (in%ionmov == 9) then
-        call input_var(in%friction,'1.e-3',&
-             comment="Friction coefficient for Langevin dynamics")
-        call input_var(in%mdwall,'1.e4',ranges=(/0.0_gp,1.e5_gp/),&
-             comment="Distance in bohr where atoms can bounce for Langevin dynamics")
-     else if (in%ionmov == 13) then
-        call input_var(in%nnos,'0',ranges=(/0,100/),&
-             comment="Number of Thermostat (isothermal/isenthalpic ensemble)")
-        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
-        call memocc(i_stat,in%qmass,'in%qmass',subname)
-        do i=1,in%nnos-1
-           call input_var(in%qmass(i),'0.0',ranges=(/0.0_gp,1.e9_gp/))
-        end do
-        if (in%nnos > 0) call input_var(in%qmass(in%nnos),'0.0',ranges=(/0.0_gp,1.e9_gp/),&
-           comment="Mass of each thermostat (isothermal/isenthalpic ensemble)")
-        call input_var(in%bmass,'10',ranges=(/0.0_gp,1.0e9_gp/))
-        call input_var(in%vmass,'1.0',ranges=(/0.0_gp,1.0e9_gp/),&
-             comment="Barostat masses (isothermal/isenthalpic ensemble)")
-     end if
-
-     if (in%ionmov /= 13) then
-        !the allocation of this pointer should be done in any case
-        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
-        call memocc(i_stat,in%qmass,'in%qmass',subname)
-     end if
-
-  else if (case_insensitive_equiv(trim(in%geopt_approach),"DIIS")) then
-     call input_var(in%betax,'2.0',ranges=(/0.0_gp,100.0_gp/))
-     call input_var(in%history,'4',ranges=(/0,1000/),&
-          comment="Stepsize and history for DIIS method")
-  else
-     call input_var(in%betax,'4.0',ranges=(/0.0_gp,100.0_gp/),&
-          comment="Stepsize for the geometry optimisation")
+  if (.not. exists) then
+     call input_free(.false.)
+     return
   end if
-  if (case_insensitive_equiv(trim(in%geopt_approach),"FIRE")) then
-        call input_var(in%dtinit,'0.75',ranges=(/0.0_gp,1.e4_gp/))
-        call input_var(in%dtmax, '1.5',ranges=(/in%dtinit,1.e4_gp/),&
-             comment="initial and maximal time step for the FIRE method")
+
+  call input_var(dummy_str,"BFGS", comment = "")
+  call set(dict // GEOPT_METHOD, dummy_str)
+  call input_var(dummy_int,'1', comment="")
+  call set(dict // NCOUNT_CLUSTER_X, dummy_int)
+
+  call input_var(dummy_real,'1.0')
+  call set(dict // FRAC_FLUCT, dummy_real, fmt = "(E8.2)")
+  call input_var(dummy_real,'0.0',comment="")
+  call set(dict // FORCEMAX, dummy_real, fmt = "(E8.2)")
+  call input_var(dummy_real,'0.0',comment="")
+  call set(dict // RANDDIS, dummy_real, fmt = "(E8.2)")
+
+  if (case_insensitive_equiv(trim(dummy_str),"AB6MD")) then
+     call input_var(ionmov_,'6',comment="")
+     call set(dict // IONMOV, ionmov_)
+     call input_var(dummy_real,'20.670689',comment="")
+     call set(dict // DTION, dummy_real)
+     if (ionmov_ == 6) then
+        call input_var(dummy_real,'300',comment="")
+        call set(dict // MDITEMP, dummy_real)
+     elseif (ionmov_ > 7) then
+        call input_var(dummy_real,'300')
+        call set(dict // MDITEMP, dummy_real)
+        call input_var(dummy_real,'300',comment="")
+        call set(dict // MDFTEMP, dummy_real)
+     end if
+
+     if (ionmov_ == 8) then
+        call input_var(dummy_real,'1.e5',comment="")
+        call set(dict // NOSEINERT, dummy_real)
+     else if (ionmov_ == 9) then
+        call input_var(dummy_real,'1.e-3',comment="")
+        call set(dict // FRICTION, dummy_real)
+        call input_var(dummy_real,'1.e4',comment="")
+        call set(dict // MDWALL, dummy_real)
+     else if (ionmov_ == 13) then
+        call input_var(dummy_int,'0',ranges=(/0,100/),comment="")
+        do i=1,dummy_int-1
+           call input_var(dummy_real,'0.0')
+           call set(dict // QMASS // (i-1), dummy_real)
+        end do
+        if (dummy_int > 0) then
+           call input_var(dummy_real,'0.0',comment="")
+           call set(dict // QMASS // (dummy_int-1), dummy_real)
+        end if
+        call input_var(dummy_real,'10')
+        call set(dict // BMASS, dummy_real)
+        call input_var(dummy_real,'1.0',comment="")
+        call set(dict // VMASS, dummy_real)
+     end if
+  else if (case_insensitive_equiv(trim(dummy_str),"DIIS")) then
+     call input_var(dummy_real,'2.0')
+     call set(dict // BETAX, dummy_real, fmt = "(E8.2)")
+     call input_var(dummy_int,'4',comment="")
+     call set(dict // HISTORY, dummy_int)
+  else
+     call input_var(dummy_real,'4.0',comment="")
+     call set(dict // BETAX, dummy_real, fmt = "(E8.2)")
+  end if
+  if (case_insensitive_equiv(trim(dummy_str),"FIRE")) then
+     call input_var(dummy_real,'0.75')
+     call set(dict // DTINIT, dummy_real, fmt = "(F6.3)")
+     call input_var(dummy_real, '1.5',comment="")
+     call set(dict // DTMAX, dummy_real, fmt = "(F6.3)")
   endif
 
   call input_free((iproc == 0) .and. dump)
 
-END SUBROUTINE geopt_input_variables_new
+END SUBROUTINE read_geopt_from_text_format
 
 
 !> Assign default values for self-interaction correction variables
@@ -1681,6 +1679,23 @@ subroutine free_kpt_variables(in)
   nullify(in%nkptsv_group)
 end subroutine free_kpt_variables
 
+!>  Free all dynamically allocated memory from the geopt input file.
+subroutine free_geopt_variables(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+  character(len=*), parameter :: subname='free_geopt_variables'
+  integer :: i_stat, i_all
+
+  if (associated(in%qmass)) then
+     i_all=-product(shape(in%qmass))*kind(in%qmass)
+     deallocate(in%qmass,stat=i_stat)
+     call memocc(i_stat,i_all,'in%qmass',subname)
+  end if
+  nullify(in%qmass)
+end subroutine free_geopt_variables
+
 !>  Free all dynamically allocated memory from the input variable structure.
 subroutine free_input_variables(in)
   use module_base
@@ -1689,18 +1704,13 @@ subroutine free_input_variables(in)
   implicit none
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_input_variables'
-  integer :: i_stat, i_all
 
   if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) &
        & call deallocateBasicArraysInput(in%lin)
 
   if (associated(in%input_values)) call dict_free(in%input_values)
 
-  if (associated(in%qmass)) then
-     i_all=-product(shape(in%qmass))*kind(in%qmass)
-     deallocate(in%qmass,stat=i_stat)
-     call memocc(i_stat,i_all,'in%qmass',subname)
-  end if
+  call free_geopt_variables(in)
   call free_kpt_variables(in)
   call deallocateBasicArraysInput(in%lin)
   call deallocateInputFragArrays(in%frag)
@@ -3035,3 +3045,102 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   if (in%nkptv > 0 .and. geocode == 'F' .and. iproc == 0) &
        & call yaml_warning('Defining a k-point path in free boundary conditions.') 
 END SUBROUTINE kpt_input_analyse
+
+!> Read the input variables needed for the geometry optimisation
+!! Every argument should be considered as mandatory
+subroutine geopt_input_analyse(iproc,in,dict)
+  use module_base
+  use module_types
+  use module_input_keys
+  use dictionaries
+  use yaml_output
+  implicit none
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: in
+  type(dictionary), pointer :: dict
+  !local variables
+  character(len=*), parameter :: subname='geopt_input_analyse'
+  integer :: i_stat,i
+  character(len = max_field_length) :: prof, meth
+  real(gp) :: betax_, dtmax_
+
+  if (.not.associated(dict)) call dict_init(dict)
+
+!!$  call yaml_dict_dump(dict_dft)
+  call input_keys_fill(dict, GEOPT_VARIABLES)
+!!$  call yaml_dict_dump(dict)
+  ! Additional treatments.
+  meth = dict // GEOPT_METHOD
+  if (input_keys_equal(trim(meth), "FIRE")) then
+     prof = input_keys_get_source(dict, DTMAX)
+     if (trim(prof) == "default") then
+        betax_ = dict // BETAX
+        call set(dict // DTMAX, 0.25 * pi_param * sqrt(betax_), fmt = "(F7.4)")
+     end if
+     prof = input_keys_get_source(dict, DTINIT)
+     if (trim(prof) == "default") then
+        dtmax_ = dict // DTMAX
+        call set(dict // DTINIT, 0.5 * dtmax_, fmt = "(F7.4)")
+     end if
+  end if
+!!$  call yaml_dict_dump(dict)
+
+  call free_geopt_variables(in)
+
+  !target stress tensor
+  in%strtarget(:)=0.0_gp
+
+  !geometry input parameters
+  in%geopt_approach = dict // GEOPT_METHOD
+  in%ncount_cluster_x = dict // NCOUNT_CLUSTER_X
+  !here the parsing of the wavefunction history should be added
+  in%wfn_history=1
+
+  in%frac_fluct = dict // FRAC_FLUCT
+  in%forcemax = dict // FORCEMAX
+  in%randdis = dict // RANDDIS
+
+  if (input_keys_equal(trim(in%geopt_approach), "AB6MD")) then
+     in%nnos=0
+     in%ionmov = dict // IONMOV
+     in%dtion = dict // DTION
+     if (in%ionmov == 6) then
+        in%mditemp = dict // MDITEMP
+     elseif (in%ionmov > 7) then
+        in%mditemp = dict // MDITEMP
+        in%mdftemp = dict // MDFTEMP
+     end if
+
+     if (in%ionmov == 8) then
+        in%noseinert = dict // NOSEINERT
+     else if (in%ionmov == 9) then
+        in%friction = dict // FRICTION
+        in%mdwall = dict // MDWALL
+     else if (in%ionmov == 13) then
+        in%nnos = dict_len(dict // QMASS)
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
+        call memocc(i_stat,in%qmass,'in%qmass',subname)
+        do i=1,in%nnos-1
+           in%qmass(i) = dict_len(dict // QMASS // (i-1))
+        end do
+        in%bmass = dict // BMASS
+        in%vmass = dict // VMASS
+     end if
+
+     if (in%ionmov /= 13) then
+        !the allocation of this pointer should be done in any case
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
+        call memocc(i_stat,in%qmass,'in%qmass',subname)
+     end if
+  else if (input_keys_equal(trim(in%geopt_approach),"DIIS")) then
+     in%betax = dict // BETAX
+     in%history = dict // HISTORY
+  else
+     in%betax = dict // BETAX
+  end if
+
+  if (input_keys_equal(trim(in%geopt_approach),"FIRE")) then
+     in%dtinit = dict // DTINIT
+     in%dtmax = dict // DTMAX
+  endif
+END SUBROUTINE geopt_input_analyse

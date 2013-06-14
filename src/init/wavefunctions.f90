@@ -720,13 +720,14 @@ subroutine inputs_parse_params(in, iproc, dump)
        & trim(in%file_dft), dump)
   call read_kpt_from_text_format(iproc,in%input_values//KPT_VARIABLES, &
        & trim(in%file_kpt), dump)
+  call read_geopt_from_text_format(iproc,in%input_values//GEOPT_VARIABLES, &
+       & trim(in%file_geopt), dump)
 
   ! All analyse should be put later in the parse_add() routine.
   call dft_input_analyse(iproc, in, in%input_values//DFT_VARIABLES)
 
   ! Parse to be moved before.
   call mix_input_variables_new(iproc,dump,trim(in%file_mix),in)
-  call geopt_input_variables_new(iproc,dump,trim(in%file_geopt),in)
   call tddft_input_variables_new(iproc,dump,trim(in%file_tddft),in)
   call sic_input_variables_new(iproc,dump,trim(in%file_sic),in)
 
@@ -760,9 +761,10 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
   type(dictionary), pointer :: profs
   integer :: ierr
 
-  ! Generate kpoint meshs.
+  ! Analyse the input dictionary and transfer it to in.
   call kpt_input_analyse(iproc, in, in%input_values//KPT_VARIABLES, &
        & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
+  call geopt_input_analyse(iproc, in, in%input_values//GEOPT_VARIABLES)
 
   ! Linear scaling (if given)
   !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information

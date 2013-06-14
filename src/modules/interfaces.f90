@@ -283,6 +283,25 @@ module module_interfaces
         real(gp), intent(in) :: alat(3)
       end subroutine kpt_input_analyse
 
+      subroutine read_geopt_from_text_format(iproc,dict,filename,dump)
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        logical, intent(in) :: dump
+        character(len=*), intent(in) :: filename
+        type(dictionary), pointer :: dict
+      end subroutine read_geopt_from_text_format
+
+      subroutine geopt_input_analyse(iproc,in,dict)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        type(input_variables), intent(inout) :: in
+        type(dictionary), pointer :: dict
+      end subroutine geopt_input_analyse
+
       subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,peakmem)
          !n(c) use module_base
          use module_types
