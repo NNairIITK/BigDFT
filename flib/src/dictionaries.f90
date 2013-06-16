@@ -68,6 +68,7 @@ module dictionaries
   !> Public elements of dictionary_base
   public :: operator(.is.),operator(.item.)
   public :: dictionary,max_field_length
+  public :: TYPE_DICT,TYPE_LIST
 
   !header of error handling part
   !some parameters
