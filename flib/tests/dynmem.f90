@@ -60,7 +60,9 @@ subroutine test_dynamic_memory()
    extra_ref=f_malloc_ptr(0,id='extra_ref')
 
    rhopot=f_malloc(3*2,id='rhopot')
+
     call f_malloc_dump_status()
+
    call f_free(rhopot)
 !!$
 !!$   !   call f_free(density,potential,pot_ion,xc_pot,extra_ref)

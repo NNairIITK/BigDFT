@@ -232,18 +232,18 @@ subroutine test_dictionaries1()
    !  call append(dictA,dictA2)
    call yaml_dict_dump(dictA)
 
-   !try to see if extra information can be added after the value
-   call set(dictA//'Test Field',6,fmt='(i6.6)')
-   ival = dictA//'Test Field'
-   call yaml_map('Retrieving Test Field',ival)
-   call yaml_map('Retrieving actual value',dict_value(dictA//'Test Field'))
-
-
-   call set(dictA//'Test Field','6   #extra comment # extra')
-   ival = dictA//'Test Field'
-   call yaml_map('Retrieving Test Field Again',ival)
-   call yaml_map('Retrieving actual value',dict_value(dictA//'Test Field'))
-   call yaml_map('Index of comment',index(dict_value(dictA//'Test Field'),'#'))
+!!$   !try to see if extra information can be added after the value
+!!$   call set(dictA//'Test Field',6,fmt='(i6.6)')
+!!$   ival = dictA//'Test Field'
+!!$   call yaml_map('Retrieving Test Field',ival)
+!!$   call yaml_map('Retrieving actual value',dict_value(dictA//'Test Field'))
+!!$
+!!$
+!!$   call set(dictA//'Test Field','6   #extra comment # extra')
+!!$   ival = dictA//'Test Field'
+!!$   call yaml_map('Retrieving Test Field Again',ival)
+!!$   call yaml_map('Retrieving actual value',dict_value(dictA//'Test Field'))
+!!$   call yaml_map('Index of comment',index(dict_value(dictA//'Test Field'),'#'))
 
    call yaml_comment('Prepend dictionary example',hfill='~')
 
@@ -252,7 +252,7 @@ subroutine test_dictionaries1()
    call yaml_dict_dump(dictA)
    call yaml_close_map()
 
-stop
+
    call dict_init(dict2)
    call set(dict2//'Test1'//'Toto',5)
    call set(dict2//'Test1'//'Titi',6)
