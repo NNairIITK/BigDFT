@@ -1,7 +1,7 @@
 !> @file
 !!   Routines to orthogonalize the wavefunctions
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -27,13 +27,14 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   type(paw_objects),optional,intent(inout) :: paw
   !local variables
   character(len=*), parameter :: subname='orthogonalize'
-  integer :: i_stat,i_all,i,idx
+  integer :: i_stat,i_all
+  !integer :: i,idx
   integer :: ispin,nspin,nspinor,usepaw=0
   integer, dimension(:,:), allocatable :: ndim_ovrlp
   real(wp), dimension(:), allocatable :: ovrlp
   integer,dimension(:),allocatable:: norbArr
   character(len=20):: category
-  real(8) :: test,test_max
+  !real(kind=8) :: test,test_max
 
   ! Determine whether we have close shell (nspin=1) or spin polarized (nspin=2)
   if (orbs%norbd>0) then
@@ -2001,7 +2002,6 @@ integer,dimension(nspin):: norbTot
 
 ! Local arguments
 integer:: nvctrp, i_stat, i_all, ncomp, ikptp, ikpt, ispin, norb, norbs, istThis, istOther,usepaw=0
-integer:: ii,iat,jj,shift,ispinor,iorb,jorb,ilmn
 !real(kind=8),allocatable::raux(:)
 real(kind=8),dimension(:),allocatable:: A1D
 character(len=*),parameter:: subname='gramschmidt'
@@ -2149,7 +2149,7 @@ type(paw_objects),optional,intent(inout)::paw
 
 ! Local variables
 integer:: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb,nspinor
-integer:: ii,i_all,i_stat,iat,jj,ispinor,ilmn,iorb,jorb
+integer:: i_all,i_stat,iat
 integer:: usepaw=0
 real(kind=8),dimension(:,:),allocatable::raux
 character(len=*),parameter:: subname='cholesky'

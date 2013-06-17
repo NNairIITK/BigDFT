@@ -2,7 +2,7 @@
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markeup Language (ML for Human)
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -33,8 +33,11 @@ module yaml_strings
      module procedure fmt_i,fmt_r,fmt_d,fmt_a,fmt_li
   end interface
 
+  !Public routines
   public ::  yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa
+
+  !Private routines
   private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa
   private :: yaml_dvtoa,yaml_ivtoa,max_value_length
   
@@ -108,19 +111,23 @@ contains
     if (present(istat)) istat=0 !no errors
 
     lgt_add=len(buffer)
-    !do not copy strings which are too long
+    !do not copy strings which are too long if istat is present
     if (lgt_add+string_pos > string_lgt) then
+       !try to eliminate trailing spaces
+       lgt_add=len_trim(buffer)
        if (present(istat)) then
           istat=-1
           return
-       else
-          write(*,*)'ERROR (buffer string): string too long'
-          write(*,*)'Initial String: ',string(1:string_pos)
-          write(*,*)'Buffer: ',trim(buffer)
-          write(*,*)'String position: ',string_pos
-          write(*,*)'Length of Buffer: ',lgt_add
-          write(*,*)'String limit: ',string_lgt
-          stop 
+       else if (lgt_add+string_pos > string_lgt) then
+          write(*,*)'#ERROR (buffer string): string too long'
+          write(*,*)'#Initial String: ',string(1:string_pos)
+          write(*,*)'#Buffer: ',trim(buffer)
+          write(*,*)'#String position: ',string_pos
+          write(*,*)'#Length of Buffer: ',lgt_add
+          write(*,*)'#String limit: ',string_lgt
+          lgt_add=string_lgt-string_pos-1
+          write(*,*)'#Buffer shortened into: ',buffer(1:lgt_add)
+          !stop 
        end if
     end if
        

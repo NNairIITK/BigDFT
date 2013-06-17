@@ -14,13 +14,15 @@ subroutine optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   use module_base
   use module_types
   use module_interfaces
+  use diis_sd_optimization
   implicit none
 
   ! Calling arguments
   integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
-  type(localizedDIISParameters),intent(inout):: ldiis_coeff
+!  type(localizedDIISParameters),intent(inout):: ldiis_coeff
+  type(DIIS_obj), intent(inout) :: ldiis_coeff
   real(8),intent(out):: fnrm
 
   ! Local variables
@@ -209,16 +211,23 @@ subroutine optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   !call precondition_gradient_coeff(tmb%orbs%norb, tmb%orbs%norbp, tmb%linmat%ham%matrix, tmb%linmat%ovrlp%matrix, rhs(1,orbs%isorb+1))
 
   call timing(iproc,'dirmin_sddiis','ON')
-  ! Improve the coefficients
-  if (ldiis_coeff%isx > 0) then
-      ldiis_coeff%mis=mod(ldiis_coeff%is,ldiis_coeff%isx)+1
-      ldiis_coeff%is=ldiis_coeff%is+1
-  end if  
 
-  if (ldiis_coeff%isx > 0) then !do DIIS
+  if (ldiis_coeff%idsx > 0) then !do DIIS
      !TO DO: make sure DIIS works
      print *,'in DIIS'
-     call DIIS_coeff(iproc, orbs, tmb, rhs(1,orbs%isorb+1), tmb%coeff, ldiis_coeff)
+     ldiis_coeff%mids=mod(ldiis_coeff%ids,ldiis_coeff%idsx)+1
+     ldiis_coeff%ids=ldiis_coeff%ids+1
+
+!!$     call DIIS_update_errors(1,0,1,(/tmb%orbs%norb*orbs%norbp/),tmb%orbs%norb*orbs%norbp,&
+!!$          tmb%coeff(1,orbs%isorb+1),rhs(1,orbs%isorb+1),ldiis_coeff)
+!!$
+!!$     call diis_step(iproc,nproc,1,0,1,(/iproc/),&
+!!$          (/tmb%orbs%norb*orbs%norbp/),ldiis_coeff)
+!!$
+!!$     call DIIS_update_psi(1,0,1,(/tmb%orbs%norb*orbs%norbp/),tmb%orbs%norb*orbs%norbp,&
+!!$          tmb%coeff(1,orbs%isorb+1),ldiis_coeff)
+
+     !call DIIS_coeff(iproc, orbs, tmb, rhs(1,orbs%isorb+1), tmb%coeff, ldiis_coeff)
   else  !steepest descent
      allocate(coeffp(tmb%orbs%norb,orbs%norbp),stat=istat)
      call memocc(istat, coeffp, 'coeffp', subname)
@@ -721,7 +730,7 @@ end subroutine optimize_coeffs
 !
 !  iall=-product(shape(ovrlp_tmp))*kind(ovrlp_tmp)
 !  deallocate(ovrlp_tmp, stat=istat)
-!  call memocc(istat, iall, 'ovrlp_tmp', subname)
+!  call memocc(istat, iall', 'ovrlp_tmp', subname)
 !
 !  iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)
 !  deallocate(ovrlp_coeff, stat=istat)

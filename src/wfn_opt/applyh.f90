@@ -1,7 +1,7 @@
 !> @file
 !!  Routine to calculate the action of the hamiltonian
 !! @author
-!!   Copyright (C) 2005-2011 BigDFT group 
+!!   Copyright (C) 2005-2013 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -9,12 +9,6 @@
 
 
 !> Calculate the action of the local hamiltonian on the orbitals
-!! @param ipotmethod Indicates the method which has to be chosen for applying the potential to the wavefunctions in the 
-!!                   real space form:
-!!                   0 is the traditional potential application
-!!                   1 is the application of the exact exchange (which has to be precomputed and stored in the potential array)
-!!                   2 is the application of the Perdew-Zunger SIC
-!!                   3 is the application of the Non-Koopman's correction SIC
 subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
      ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
      dpbox,potential,comgp)
@@ -23,21 +17,27 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
   use module_interfaces, except_this_one => local_hamiltonian
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,nproc,ipotmethod,ixc,npsidim_orbs
+  !Arguments
+  integer, intent(in) :: iproc,nproc,ixc,npsidim_orbs
+  integer, intent(in) :: ipotmethod !< Method which has to be chosen for applying the potential to the wavefunctions in the real space form:
+                                    !! 0 is the traditional potential application
+                                    !! 1 is the application of the exact exchange (which has to be precomputed and stored in the potential array)
+                                    !! 2 is the application of the Perdew-Zunger SIC
+                                    !! 3 is the application of the Non-Koopman's correction SIC
   real(gp), intent(in) :: hx,hy,hz,alphaSIC
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
-  real(wp), dimension(npsidim_orbs), intent(in) :: psi !this dimension will be modified
-  real(wp), dimension(:),pointer :: pot !< the potential, with the dimension compatible with the ipotmethod flag
-  !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
+  real(wp), dimension(npsidim_orbs), intent(in) :: psi              !< This dimension will be modified
+  real(wp), dimension(:),pointer :: pot                             !< the potential, with the dimension compatible with the ipotmethod flag
   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
   real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
-  type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+  type(coulomb_operator), intent(in) :: pkernel                     !< the PSolver kernel which should be associated for the SIC schemes
   type(denspot_distribution),intent(in),optional :: dpbox
-  !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
   real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
   type(p2pComms),intent(inout), optional:: comgp
+  !!real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
+  !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   logical :: dosome
@@ -1590,17 +1590,17 @@ subroutine applyprojector_paw(ncplx,istart_c,&
   real(wp), dimension(lmnmax*(lmnmax+1)/2),intent(in)::sij
   !local variables
   character(len=*),parameter::subname='applyprojector_paw'
-  integer :: i_shell,j_shell,ilmn,jlmn,klmn,i0lmn,j0lmn,ispinor
+  integer :: i_shell,j_shell,ilmn,jlmn,klmn,j0lmn,ispinor
   integer :: i_l,j_l,klmnc,i_m,j_m,iaux
-  integer :: istart_i,istart_j,icplx,jspinor
+  integer :: istart_j,icplx
   integer :: i_stat,i_all
   real(gp)::eproj_i
   real(gp)::ddot
-  real(dp), dimension(2) :: scpr,scprp,scpr_i,scprp_i,scpr_j,scprp_j
+  real(dp), dimension(2) :: scpr
   real(gp) :: dij
-  real(wp), dimension(:,:), allocatable :: cprj_i
+  !real(wp), dimension(:,:), allocatable :: cprj_i
   real(wp), dimension(:,:), allocatable :: cprj,dprj !scalar products with the projectors (always assumed to be complex and spinorial)
-  integer :: proj_count, i_proj
+  integer :: proj_count
 
 ! change: keyv_p by nlpspd%keyv_p(jseg_c),&
 
@@ -2085,10 +2085,10 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
   type(gaussian_basis), intent(in) :: proj_G
   type(paw_objects),intent(inout)::paw
   !local variables
-  integer :: i_shell,sij_opt,ii
-  integer :: ncplx,j
+  integer :: sij_opt
+  integer :: ncplx
   character(len=*), parameter :: subname='apply_atproj_iorb'
-  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,m,icplx
+  integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   real(gp) :: eproj_i
 
   !Note:

@@ -14,6 +14,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use module_types
   use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use diis_sd_optimization
   implicit none
 
   ! Calling arguments
@@ -33,7 +34,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
   logical,intent(in) :: calculate_ham
   type(sparseMatrix), intent(inout) :: ham_small ! for foe only
-  type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
+  type(DIIS_obj),intent(inout),optional :: ldiis_coeff
 
   ! Local variables 
   integer :: istat, iall, iorb, jorb, info, ind_ham, ind_denskern

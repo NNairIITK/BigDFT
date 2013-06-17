@@ -31,13 +31,14 @@
      !if (m%try) deallocate(array,stat=ierror)
   end if
 !  call timing(0,'Init to Zero  ','RS') 
+
 contains 
 
   subroutine profile(iadd)
     implicit none
     integer(kind=8), intent(in) :: iadd
     !local variables
-    integer :: ierr,i,sizeof
+    integer :: ierr,sizeof
     integer(kind=8) :: ilsize
     type(dictionary), pointer :: dict_tmp
     character(len=info_length) :: address
