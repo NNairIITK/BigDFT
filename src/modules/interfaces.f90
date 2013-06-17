@@ -2039,13 +2039,14 @@ module module_interfaces
       real(wp), dimension(ndim_psi), intent(inout) :: psit,hpsit
     end subroutine psimix
     
-    subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,&
-        GPU,infoCoeff,ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,&
-        communicate_phi_for_lsumrho,calculate_ham,ham_small,ldiis_coeff)
+    subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
+         ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+         calculate_ham,ham_small,ldiis_coeff)
       use module_base
       use module_types
+      use diis_sd_optimization
       implicit none
-      
+
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, scf_mode
       type(orbitals_data),intent(inout) :: orbs
@@ -2062,8 +2063,8 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout) :: tmb
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       logical,intent(in) :: calculate_ham
-      type(sparseMatrix), intent(inout) :: ham_small ! foe only, not otherwise allocated
-      type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
+      type(sparseMatrix), intent(inout) :: ham_small ! for foe only
+      type(DIIS_obj),intent(inout),optional :: ldiis_coeff
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&

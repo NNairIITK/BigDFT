@@ -149,7 +149,8 @@
     logical :: f_err_raise
     !local variables
 !    integer :: new_errcode
-    integer(kind=8) :: clbk_add,clbk_data_add
+    integer(kind=8) :: clbk_data_add
+!    integer(kind=8) :: clbk_add
 !    character(len=max_field_length), dimension(1) :: keys
 !    type(dictionary), pointer :: dict_tmp
     character(len=max_field_length) :: message

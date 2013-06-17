@@ -29,8 +29,8 @@ module module_types
   integer, parameter :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
   integer, parameter :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
   integer, parameter :: BIGDFT_INVALID        = -12 !< Invalid entry
-  integer :: BIGDFT_MPI_ERROR                       !< To be defined 
-
+  integer :: BIGDFT_MPI_ERROR                       !< see error definitions below
+  integer :: BIGDFT_LINALG_ERROR                    !<to be moved to linalg wrappers
 
   !> Input wf parameters.
   integer, parameter :: INPUT_PSI_EMPTY        = -1000  !< Input PSI to 0
@@ -2559,6 +2559,12 @@ subroutine bigdft_init_errors()
        'An error of MPI library occurred',&
        BIGDFT_MPI_ERROR,&
        err_action='Check if the error is related to MPI library or runtime condtions')
+
+    call f_err_define('BIGDFT_LINALG_ERRROR',&
+       'An error of linear algebra occurred',&
+       BIGDFT_LINALG_ERROR,&
+       err_action='Check if the matrix is correct at input, also look at the info value')
+
 
   !define the severe operation via MPI_ABORT
   call f_err_severe_override(bigdft_severe_abort)

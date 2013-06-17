@@ -2217,10 +2217,11 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
             cutoffd=.5d0*(1.d0+resd +exp(-xd**2)*(-a*xd**2 + .5d0*a+xd)/sqrtpi)
          end if
       enddo
-      if (cutoffu > 1.d-12 .or. cutoffd > 1.d-12 .and. iproc == 0) then
-         call yaml_warning('The last orbitals levels are occupation number != 0.0' // &
-             & ' lastu=' // trim(yaml_toa(cutoffu,fmt='(1pe8.1)')) // &
-             & ' lastd=' // trim(yaml_toa(cutoffd,fmt='(1pe8.1)')))
+
+      if ((cutoffu > 1.d-12 .or. cutoffd > 1.d-12) .and. iproc == 0) then
+         call yaml_warning('Occupation numbers do not fill all available levels' // &
+              ' lastu=' // trim(yaml_toa(cutoffu,fmt='(1pe8.1)')) // &
+              ' lastd=' // trim(yaml_toa(cutoffd,fmt='(1pe8.1)')))
       end if
       !if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
       orbs%efermi=ef

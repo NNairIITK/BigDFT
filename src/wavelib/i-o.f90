@@ -6,7 +6,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
- 
+
+
+!> Reformat one wavefunction
 subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,& !n(c) iproc (arg:1)
      rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
   use module_base
@@ -602,6 +604,7 @@ contains
 
 END MODULE internal_io
 
+
 subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      & hx,hy,hz,at,wfd,rxyz_old,rxyz,psi,eval,psifscf)
   use module_base
@@ -1039,17 +1042,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
 END SUBROUTINE writeonewave
 
 
-
-!> @file
-!!  Routine to reformat one support function (linear scaling). Adapted version of reformatonewave.
-!! @author
-!!    Copyright (C) 2010-2011 BigDFT group 
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
- 
-! make frag_trans the argument so can eliminate need for interface
+!> Make frag_trans the argument so can eliminate need for interface
 subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,& 
      hgrids,n,centre_old,centre_new,da,frag_trans,psi)
   use module_base
@@ -1211,7 +1204,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 END SUBROUTINE reformat_one_supportfunction
 
 
-!call the routine which performs the interpolation in each direction
+!> Call the routine which performs the interpolation in each direction
 subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
  use module_base
  implicit none
@@ -1227,9 +1220,11 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
  !local variables
  character(len=*), parameter :: subname='morph_and_transpose'
  real(gp), parameter  :: tol=1.e-14_gp
- integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me,k2,k1
- real(gp) :: dt,tt,t0_l,ksh1,ksh2,k,kold,alpha,diff
+ integer :: i_all,i_stat,nunit,m_isf,i,j,l,ms,me,k1
+ real(gp) :: dt,tt,t0_l,diff
  real(gp), dimension(:), allocatable :: shf !< shift filter
+!!$ integer :: k2
+!!$ real(gp) :: k,kold,ksh1,ksh2,alpha
 
  !assume for the moment that the grid spacing is constant
  !call f_malloc_routine_id(subname)
@@ -1370,19 +1365,20 @@ subroutine define_filter(dt,nrange,nphi,phi,shf)
   !end of define_filter
 end subroutine define_filter
 
-!> given a translation vector, find the inverse one
+
+!> Given a translation vector, find the inverse one
 subroutine find_inverse(nin,iout,t0_field,t0_l,k1)
   use module_base
   implicit none
-  integer, intent(in) :: iout !< point of the new grid from which the inverse has to be found
-  integer, intent(in) :: nin !< number of points of the input grid
-  real(gp), dimension(nin), intent(in) :: t0_field !<array of displacements of the input grid
-  integer, intent(out) :: k1 !< starting point of the input grid from which the interplation should be calculated
-  real(gp), intent(out) :: t0_l !< resulting shift from the starting point, from which the filter has to be calculated
+  integer, intent(in) :: iout                      !< Point of the new grid from which the inverse has to be found
+  integer, intent(in) :: nin                       !< Number of points of the input grid
+  real(gp), dimension(nin), intent(in) :: t0_field !< Array of displacements of the input grid
+  integer, intent(out) :: k1                       !< Starting point of the input grid from which the interplation should be calculated
+  real(gp), intent(out) :: t0_l                    !< Resulting shift from the starting point, from which the filter has to be calculated
   !local variables
   real(gp), parameter  :: tol=1.e-14_gp
-  integer :: j,l,ms,me,k2
-  real(gp) :: dt,tt,ksh1,ksh2,k,kold,alpha,diff
+  integer :: l,k2
+  real(gp) :: ksh1,ksh2,k,kold,alpha
 
   kold=-1000.0_gp
   find_trans: do l=1,nin
@@ -1513,6 +1509,7 @@ subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
    deallocate(y,stat=i_stat)
    call memocc(i_stat,i_all,'y',subname)
 END SUBROUTINE my_scaling_function4b2B
+
 
 subroutine define_rotations(da,newz,boxc_old,boxc_new,theta,hgrids_old,ndims_old,&
      hgrids_new,ndims_new,dx,dy,dz)
@@ -2138,19 +2135,18 @@ end subroutine interpolate_zp_from_z
 
 
 
-
 subroutine switch_axes(n_phi,nrange_phi,phi_ISF,centre_old,hgrids_old,ndims_old,f_old,&
      hgrids_new,ndims_new,f_new,discrete_op,da_global)
   use module_base
   implicit none
-  integer, intent(in) :: n_phi,nrange_phi !< number of points of ISF array and real-space range
+  integer, intent(in) :: n_phi,nrange_phi                      !< number of points of ISF array and real-space range
   character(len=2) :: discrete_op
   real(gp), dimension(3), intent(inout) :: centre_old
   !real(gp), dimension(3), intent(out) :: centre_new !<centre of rotation
-  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
-  integer, dimension(3), intent(in) :: ndims_old !<dimension of old and new box
-  integer, dimension(3), intent(out) :: ndims_new !<dimension of old and new box
-  real(gp), dimension(3), intent(inout) :: da_global ! shift to be used in final interpolation with non-discrete rotation
+  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !< Dimension of old and new box
+  integer, dimension(3), intent(in) :: ndims_old              !< Dimension of old box
+  integer, dimension(3), intent(out) :: ndims_new             !< Dimension of new box
+  real(gp), dimension(3), intent(inout) :: da_global          !< Shift to be used in final interpolation with non-discrete rotation
   real(gp), dimension(n_phi), intent(in) :: phi_ISF
   real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
   real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(out) :: f_new ! in general allocate here to ndims_new, but size doesn't change for now so leave like this

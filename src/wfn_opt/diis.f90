@@ -1,7 +1,7 @@
 !> @file
 !!   Routines for density mixing and wavefunction update
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -522,6 +522,7 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   use module_types
   use module_interfaces, except_this_one => psimix
   use yaml_output
+  use diis_sd_optimization
   implicit none
   integer, intent(in) :: iproc,nproc,ndim_psi
   type(orbitals_data), intent(in) :: orbs
@@ -531,9 +532,26 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   !real(wp), dimension(:), pointer :: psit,hpsit
   !local variables
   integer :: ikptp,nvctrp,ispsi,ispsidst,ikpt
+!!$  type(diis_obj) :: diis_new
  
 
   if (diis%idsx > 0) then
+
+!!$     !test for the new diis routine
+!!$     call DIIS_obj_fill(diis,diis_new)
+!!$
+!!$     call DIIS_update_errors(orbs%nkpts,orbs%iskpts,orbs%nkptsp,&
+!!$          orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),ndim_psi,psit,hpsit,diis_new)
+!!$
+!!$     call diis_step(iproc,nproc,orbs%nkpts,orbs%iskpts,orbs%nkptsp,orbs%ikptproc,&
+!!$          orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),diis_new)
+!!$
+!!$     call DIIS_update_psi(orbs%nkpts,orbs%iskpts,orbs%nkptsp,&
+!!$          orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),ndim_psi,psit,diis_new)
+!!$
+!!$     call DIIS_obj_release(diis_new,diis)
+!!$
+!!$
      !do not transpose the hpsi wavefunction into the diis array
      !for compatibility with the k-points distribution
      ispsi=1
@@ -560,10 +578,10 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
         ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
         ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
      end do
-
+    
      !here we should separate between up and down spin orbitals, but it turned out to be not necessary
      call diisstp(iproc,nproc,orbs,comms,diis)
-
+!!$
      !update the psit array with the difference stored in the psidst work array
      ispsi=1
      ispsidst=1

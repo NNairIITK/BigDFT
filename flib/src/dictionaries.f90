@@ -63,11 +63,12 @@ module dictionaries
   public :: operator(//),operator(.index.),assignment(=)
   public :: set,dict_init,dict_free,pop,append,prepend,add
   !Handle exceptions
-  public :: find_key,dict_len,dict_size,dict_key,dict_next,has_key,dict_keys
+  public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,has_key,dict_keys
   public :: dict_new,list_new
   !> Public elements of dictionary_base
   public :: operator(.is.),operator(.item.)
   public :: dictionary,max_field_length
+  public :: TYPE_DICT,TYPE_LIST
 
   !header of error handling part
   !some parameters
@@ -507,7 +508,6 @@ contains
     end if
 
     if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
-    !call check_key(dict)
 
     call set_field(repeat(' ',max_field_length),dict%data%value)
     if ( .not. associated(dict%child,target=subd) .and. &
