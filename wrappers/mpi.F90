@@ -1,7 +1,17 @@
+!! Wrapper for the MPI call
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 #if defined HAVE_CONFIG_H
 #include <config.inc>
 #endif
 
+!> Define routine which wrap the MPI calls
 module wrapper_MPI
   ! TO BE REMOVED with f_malloc
   use memory_profiling
@@ -505,7 +515,7 @@ subroutine bigdft_open_nesting(num_threads)
   !$ call OMP_SET_MAX_ACTIVE_LEVELS(2)
   !$ call OMP_SET_NUM_THREADS(num_threads)
 #else
-  integer :: ierr,idummy
+  integer :: idummy
   write(*,*)'BigDFT_open_nesting is not active!'
   !call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
   stop
@@ -523,7 +533,7 @@ subroutine bigdft_close_nesting(num_threads)
   !$ call OMP_SET_NESTED(.false.) 
   !$ call OMP_SET_NUM_THREADS(num_threads)
 #else 
-  integer :: ierr,idummy
+  integer :: idummy
   write(*,*)'BigDFT_close_nesting is not active!'
   stop
   !call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)

@@ -39,7 +39,7 @@ module dictionaries
   end interface
 
   interface assignment(=)
-     module procedure get_value,get_integer,get_real,get_double,get_long,get_dict
+     module procedure get_value,get_integer,get_real,get_double,get_long!,get_dict, xlf does not like
   end interface
   interface pop
      module procedure pop_dict,pop_item,pop_last
@@ -63,11 +63,12 @@ module dictionaries
   public :: operator(//),operator(.index.),assignment(=)
   public :: set,dict_init,dict_free,pop,append,prepend,add
   !Handle exceptions
-  public :: find_key,dict_len,dict_size,dict_key,dict_next,has_key,dict_keys
+  public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,has_key,dict_keys
   public :: dict_new,list_new
   !> Public elements of dictionary_base
   public :: operator(.is.),operator(.item.)
   public :: dictionary,max_field_length
+  public :: TYPE_DICT,TYPE_LIST
 
   !header of error handling part
   !some parameters
@@ -85,12 +86,12 @@ module dictionaries
   type(dictionary), pointer :: dict_errors=>null() !< the global dictionaries of possible errors, nullified if not initialized
   type(dictionary), pointer :: dict_present_error=>null() !< local pointer of present error, nullified if success
 
-  public :: f_err_initialize,f_err_finalize
-  public :: f_err_define,f_err_check,f_err_raise,f_err_clean,f_get_error_dict
+  public :: f_err_initialize,f_err_finalize,f_get_last_error,f_get_error_definitions
+  public :: f_err_define,f_err_check,f_err_raise,f_err_clean,f_get_error_dict,f_err_throw
 
   !public variables of the callback module
-  public :: f_err_set_callback,f_err_unset_callback
-  public :: f_err_severe,f_err_severe_override,f_err_severe_restore
+  public :: f_err_set_callback,f_err_unset_callback,f_err_open_try,f_err_close_try
+  public :: f_err_severe,f_err_severe_override,f_err_severe_restore,f_err_ignore
   public :: f_loc
 
 
@@ -238,7 +239,6 @@ contains
     type(dictionary), pointer :: dict_new
     !local variables
     integer :: i_st,n_st
-    character(len=max_field_length) :: key,val
     type(dictionary), pointer :: dict_tmp
 
     !initialize dictionary
@@ -294,7 +294,7 @@ contains
     end if
   end function dict_next
 
-  !> returns the position of the name in the dictionary
+  !> Returns the position of the name in the dictionary
   !! returns 0 if the dictionary is nullified or the name is absent
   function find_index(dict,name)
     implicit none
@@ -302,12 +302,10 @@ contains
     character(len=*), intent(in) :: name
     integer :: find_index
     !local variables
-    logical :: found
     integer :: ind
     type(dictionary), pointer :: dict_tmp
-    character(len=max_field_length) :: name_tmp
 
-    find_index=0
+    find_index =0
     ind=-1
     if (associated(dict)) then
        dict_tmp=>dict_next(dict)
@@ -510,7 +508,6 @@ contains
     end if
 
     if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
-    !call check_key(dict)
 
     call set_field(repeat(' ',max_field_length),dict%data%value)
     if ( .not. associated(dict%child,target=subd) .and. &
@@ -645,7 +642,6 @@ contains
     type(dictionary), pointer :: list_new
     !local variables
     integer :: i_st,n_st
-    character(len=max_field_length) :: key,val
     type(dictionary), pointer :: dict_tmp
 
     !initialize dictionary
@@ -669,7 +665,7 @@ contains
     implicit none
     character(len=*), intent(out) :: val
     type(dictionary), intent(in) :: dict
-
+    val(1:len(val))=' '
     if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
     if (f_err_raise(no_value(dict),err_id=DICT_VALUE_ABSENT)) return
 
@@ -689,8 +685,8 @@ contains
 
   end subroutine get_dict
 
-  !set and get routines for different types
-  subroutine get_integer(ival,dict)
+  !set and get routines for different types (this routine can be called from error_check also
+  recursive subroutine get_integer(ival,dict)
     integer, intent(out) :: ival
     type(dictionary), intent(in) :: dict
     !local variables
@@ -701,7 +697,13 @@ contains
     val=dict
     !look at conversion
     read(val,*,iostat=ierror)ival
-
+    !is the value existing?
+    if (ierror/=0) then
+       if (f_err_check(err_id=DICT_VALUE_ABSENT))then
+          ival=0
+          return
+       end if
+    end if
     if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return    
   end subroutine get_integer
 

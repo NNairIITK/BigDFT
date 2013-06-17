@@ -30,6 +30,8 @@ subroutine test_error_handling()
   call yaml_map("Raising the TOTO error, errcode",ERR_TOTO) 
 
   if (f_err_raise(.true.,'Extra message added',err_id=ERR_TOTO)) continue ! return
+
+  call yaml_map('Print the error ID',f_get_last_error())
     call yaml_map("Raising the TOTO error, by name, without condition",'ERR_TOTO') 
   if (f_err_raise(err_msg='Extra message added again',err_name='ERR_TOTO')) continue ! return
   
@@ -39,6 +41,9 @@ subroutine test_error_handling()
   if (f_err_raise(.true.,'Generic error raised, some message here')) continue ! return
 
   call f_err_clean()
+
+  call f_dump_possible_errors('This is the list of the errors')
+
   call f_err_set_callback(abort2)
 
   call yaml_map("Callback done",f_err_raise(.true.,'Now TITI error has been raised',err_id=ERR_TITI))
@@ -46,30 +51,35 @@ subroutine test_error_handling()
   call yaml_map("Error check code",f_err_check(err_id=ERR_TOTO))
   call yaml_map("Error check code2",f_err_check(err_id=ERR_TITI))
 
-  call f_err_finalize()
+  call f_err_unset_callback()
+  call f_err_severe_restore()
 
 end subroutine test_error_handling
 
 subroutine abort1()
   use yaml_output
   implicit none
+  call f_dump_last_error()
   call yaml_comment('Ouille',hfill='!')
 end subroutine abort1
 
 subroutine abort2()
   use yaml_output
   implicit none
+  call f_dump_last_error()
   call yaml_comment('Aie',hfill='!')
 end subroutine abort2
 
 subroutine abort_toto()
   use yaml_output
   implicit none
+  call f_dump_last_error()
   call yaml_comment('TOTO',hfill='!')
 end subroutine abort_toto
 
 subroutine abort_titi()
   use yaml_output
   implicit none
+  call f_dump_last_error()
   call yaml_comment('TITI',hfill='!')
 end subroutine abort_titi

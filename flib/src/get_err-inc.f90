@@ -7,11 +7,12 @@
 
   get_error=-1 !no error specified
   nerr=dict_len(dict_present_error)
+
   if (present(err_name)) then
      get_error=0
      do ierr=0,nerr-1
         !this one can be substituted by the values of the dictionary
-        jerr=dict_present_error//ierr
+        jerr=dict_present_error//ierr//errid
         name=dict_key(dict_errors//jerr)
         if (trim(name)==trim(err_name)) then
            get_error=1 !name
@@ -21,7 +22,8 @@
   else if (present(err_id)) then
      get_error=0
      do ierr=0,nerr-1
-        jerr=dict_present_error//ierr
+        jerr=dict_present_error//ierr//errid
+
         if (jerr==err_id) then
            get_error=2
            exit

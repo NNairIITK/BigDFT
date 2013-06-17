@@ -25,10 +25,11 @@ Keys to ignore:
  - Number of OpenCL devices per node
  - Version Number
  - Root process Hostname
- - WARNINGS # They are not parsing reliable because of ':' character
+ - Input ixc parameter corresponds to XC
 Patterns to ignore:
  - Timestamp
  - memory
+ - FLAGS
 
 Expected Test CPUtime: #
  C: #[expected, error]
@@ -72,7 +73,7 @@ AgBulk:
  Ekin: 1.2e-11
  Enl: 2.3e-11
  Epot: 2.1e-11
- EvXC: 3.7e-11
+ EvXC: 7.1e-11
  tr(H): 2.5e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
@@ -178,7 +179,7 @@ H2O-CP2K:
 
 test.splsad.ref.yaml:
  Epsilon: 1.1e-10
- Electric Dipole Moment (Debye): 1.2e-8
+ Electric Dipole Moment (Debye): 1.21e-8
 
 test.minhop.ref.yaml:
  Energies: &etol1 6.0e-9
@@ -256,10 +257,10 @@ Davidson-SiH4:
 
 TDDFT:
   Epsilon: 1.1e-10
-  e_virtual: 1.3e-9
+  e_virtual: 1.61e-9
   Eigenvalues and eigenstate residue: 1.1e-7
   Epot: 1.1e-10
-  Gradient Norm: 3.1e-9
+  Gradient Norm: 4.11e-9
   L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-7
   Excitation Energy and Oscillator Strength: 1.7e-6
   Transition energies (eV): 1.1e-4
@@ -280,3 +281,25 @@ directmin:
 restartdisk_charge:
  Patterns to ignore:
  - Wavefunction written
+
+H2-freq:
+ (F) Frequencies (Hartree): 5.e-10
+ 
+rotate_write:
+ Patterns to ignore:
+ - Wavefunction written
+
+GEOPT-newIG:
+  Ion-Ion interaction energy: 1.62e-11
+  D: 1.1e-10
+  Energies: 4.81e-9
+  EKS: 5.6e-10
+
+rotatesmall_write:
+  Keys to ignore:
+  - Wavefunction written No.
+
+
+
+
+

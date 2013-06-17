@@ -133,7 +133,7 @@ program test_forces
       call init_restart_objects(iproc,inputs,atoms,rst,subname)
 
       !     if (iproc == 0) then
-      !       call print_general_parameters(nproc,inputs,atoms)
+      !       call print_general_parameters(inputs,atoms)
       !    end if
 
       !if other steps are supposed to be done leave the last_run to minus one
@@ -164,7 +164,7 @@ program test_forces
          end if
 
          if (iproc == 0) then
-            call print_general_parameters(nproc,inputs,atoms) ! to know the new positions
+            call print_general_parameters(inputs,atoms) ! to know the new positions
          end if
 
          call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)

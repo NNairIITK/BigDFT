@@ -1,8 +1,8 @@
 !> @file
-!!  Wrapper around XC library routines (both BAINIT and LibXC).
+!!  Wrapper around XC library routines (both ABINIT and LibXC).
 !! @author
 !!    Copyright (C) 2008-2010 ABINIT group (MOliveira)
-!!    Copyright (C) 2008-2012 BigDFT group (DC)
+!!    Copyright (C) 2008-2013 BigDFT group (DC)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .

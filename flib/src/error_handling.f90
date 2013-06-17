@@ -70,6 +70,7 @@
   subroutine f_err_finalize()
     implicit none
     call f_err_unset_callback()
+    call f_err_severe_restore()
     call dict_free(dict_errors)
     call dict_free(dict_present_error)
   end subroutine f_err_finalize
@@ -88,9 +89,9 @@
     type(dictionary), pointer :: dict_error
 
     !assure initialization of the library in case of misuse
+    !when f_lib library becomes beta, this should become a severe error
     if (.not. associated(dict_errors)) call f_err_initialize()
 
-    !callback stuff to be done
     err_id=ERR_GENERIC
 !    if (associated(dict_errors)) then
        err_id=dict_len(dict_errors)
@@ -135,6 +136,7 @@
   !> this routine should be generalized to allow the possiblity of addin customized message at the 
   !! raise of the error. Also customized callback should be allowed
   function f_err_raise(condition,err_msg,err_id,err_name,callback,callback_data)
+    use yaml_strings, only: yaml_toa
     !use yaml_output, only: yaml_dict_dump,yaml_map
     implicit none
     logical, intent(in), optional :: condition !< the condition which raise the error
@@ -146,10 +148,11 @@
     optional :: callback
     logical :: f_err_raise
     !local variables
-    integer :: new_errcode
+!    integer :: new_errcode
     integer(kind=8) :: clbk_add,clbk_data_add
-    character(len=max_field_length), dimension(1) :: keys
-    type(dictionary), pointer :: dict_tmp
+!    character(len=max_field_length), dimension(1) :: keys
+!    type(dictionary), pointer :: dict_tmp
+    character(len=max_field_length) :: message
 
     if (present(condition)) then
        f_err_raise=condition
@@ -159,59 +162,192 @@
 
     !once the error has been identified add it to the present errors and call callback function if needed
     if (f_err_raise) then
-       !search the error ID (the generic error is always the first)
-       new_errcode=ERR_GENERIC
-       if (present(err_name)) then
-          new_errcode= max(dict_errors .index. err_name,ERR_GENERIC)
-!!$          call yaml_map('Error raised, name entered',err_name)
-!!$          call yaml_map('Errorcode found',new_errcode)
-!!$          call yaml_map('Index function returned',dict_errors .index. err_name)
-!!$          call yaml_dict_dump(dict_errors)
-!!$          call yaml_map('Dump ended',.true.)
-       else if (present(err_id)) then
-          new_errcode=ERR_GENERIC
-          if (err_id < dict_len(dict_errors)) new_errcode=err_id
+
+       !trow the error with the annoying stuff of optional variables
+       if (present(err_msg)) then
+          message(1:len(message))=err_msg
+       else
+          message(1:len(message))='UNKNOWN'
        end if
 
-       call add(dict_present_error,new_errcode)
-       !       call err_exception(new_errcode)
-       !call yaml_dict_dump(dict_errors) !a routine to plot all created errors should be created
-       !print *,'debug',new_errcode
-       if (present(err_msg)) then
-          call f_dump_error(new_errcode,err_msg)
-       else
-          call f_dump_error(new_errcode,'')
-       end if
-       dict_tmp=>f_get_error_dict(new_errcode)
-       !dict_tmp=>dict_errors//new_errcode
-!!$       call yaml_dict_dump(dict_tmp)
-!!$       if (present(err_msg)) call yaml_map('Additional Info',err_msg)
-       !identify callback function 
-       clbk_add=callback_add
        clbk_data_add=callback_data_add
        if (present(callback_data)) clbk_data_add=callback_data
+
        if (present(callback)) then
-          clbk_add=f_loc(callback)
+          if (present(err_id)) then
+             call f_err_throw(message,err_id,callback=callback,callback_data=clbk_data_add)
+          else if (present(err_name)) then
+             call f_err_throw(message,err_name=err_name,callback=callback,callback_data=clbk_data_add) 
+          else
+             call f_err_throw(message,callback=callback,callback_data=clbk_data_add)
+          end if
        else
-          !find the callback in the error definition
-          !these data can be inserted in a function
-          !that is how dict_keys function it should be called
-          if (dict_size(dict_tmp) <= size(keys)) keys=dict_keys(dict_tmp)
-          dict_tmp=>dict_tmp//trim(keys(1))
-          if (has_key(dict_tmp,errclbk)) clbk_add=dict_tmp//errclbk
-          if (has_key(dict_tmp,errclbkadd)) clbk_data_add=dict_tmp//errclbkadd
+          if (present(err_id)) then
+             call f_err_throw(message,err_id,callback_data=clbk_data_add)
+          else if (present(err_name)) then
+             call f_err_throw(message,err_name=err_name,callback_data=clbk_data_add)
+          else
+             call f_err_throw(message,callback_data=clbk_data_add)
+          end if
        end if
-       call err_abort(clbk_add,clbk_data_add)
+
+!       !to prevent infinite loop due to not association of the error handling
+!       if (.not. associated(dict_present_error)) then
+!          write(0,*)'error_handling library not initialized'
+!          call f_err_severe()
+!       end if
+!
+!       !search the error ID (the generic error is always the first)
+!       new_errcode=ERR_GENERIC
+!       if (present(err_name)) then
+!          new_errcode= max(dict_errors .index. err_name,ERR_GENERIC)
+!          !add a potentially verbose error list in case the specified error name has not been found
+!          call yaml_map('Error raised, name entered',err_name)
+!          call yaml_map('Errorcode found',new_errcode)
+!          call yaml_map('Index function returned',dict_errors .index. err_name)
+!          call yaml_dict_dump(dict_errors)
+!          call yaml_map('Dump ended',.true.)
+!       else if (present(err_id)) then
+!          new_errcode=ERR_GENERIC
+!          if (err_id < dict_len(dict_errors)) new_errcode=err_id
+!       end if
+!
+!       if (present(err_msg)) then
+!          message(1:len(message))=err_msg
+!       else
+!          message(1:len(message))='UNKNOWN'
+!       end if
+!       call add(dict_present_error,&
+!            dict_new((/ errid .is. yaml_toa(new_errcode),&
+!            'Additional Info' .is. message/)))
+!       !call add(dict_present_error,new_errcode)
+!
+!!!$       if (present(err_msg)) then
+!!!$          call f_dump_error(new_errcode,err_msg)
+!!!$       else
+!!!$          call f_dump_error(new_errcode,'')
+!!!$       end if
+!
+!       !identify callback function 
+!       clbk_add=callback_add
+!       clbk_data_add=callback_data_add
+!       if (present(callback_data)) clbk_data_add=callback_data
+!       if (present(callback)) then
+!          clbk_add=f_loc(callback)
+!       else
+!          !find the callback in the error definition
+!          !these data can be inserted in a function
+!          dict_tmp=>f_get_error_dict(new_errcode)
+!          !that is how dict_keys function should be called      
+!          if (dict_size(dict_tmp) <= size(keys)) keys=dict_keys(dict_tmp)
+!          dict_tmp=>dict_tmp//trim(keys(1))
+!
+!          if (has_key(dict_tmp,errclbk)) clbk_add=dict_tmp//errclbk
+!          if (has_key(dict_tmp,errclbkadd)) clbk_data_add=dict_tmp//errclbkadd
+!       end if
+!
+!       call err_abort(clbk_add,clbk_data_add)
     end if
   end function f_err_raise
+
+  !raise the error indicated
+  subroutine f_err_throw(err_msg,err_id,err_name,callback,callback_data)
+    use yaml_strings, only: yaml_toa
+    implicit none
+    integer, intent(in), optional :: err_id !< the code of the error to be raised.
+                                      !! it should already have been defined by f_err_define
+    character(len=*), intent(in), optional :: err_name,err_msg !<search for the error and add a message to it 
+    integer(kind=8), intent(in), optional :: callback_data
+    external :: callback
+    optional :: callback
+    !local variables
+    integer :: new_errcode
+    integer(kind=8) :: clbk_add,clbk_data_add
+    character(len=max_field_length), dimension(1) :: keys
+    type(dictionary), pointer :: dict_tmp
+    character(len=max_field_length) :: message
+    
+    !to prevent infinite loop due to not association of the error handling
+    if (.not. associated(dict_present_error)) then
+       write(0,*)'error_handling library not initialized'
+       call f_err_severe()
+    end if
+
+    !search the error ID (the generic error is always the first)
+    new_errcode=ERR_GENERIC
+    if (present(err_name)) then
+       new_errcode= max(dict_errors .index. err_name,ERR_GENERIC)
+       !add a potentially verbose error list in case the specified error name has not been found
+       if ((dict_errors .index. err_name) < ERR_GENERIC) then
+          call f_dump_possible_errors('Error raised, name entered= '//trim(err_name)//&
+               '. Errorcode found='//trim(yaml_toa(new_errcode))//&
+               '; index function returned'//trim(yaml_toa(dict_errors .index. err_name)))
+       end if
+       else if (present(err_id)) then
+       new_errcode=ERR_GENERIC
+       if (err_id < dict_len(dict_errors)) then
+          new_errcode=err_id
+       else
+          !add a potentially verbose error list in case the specified error name has not been found
+          call f_dump_possible_errors('Error raised, id='//trim(yaml_toa(err_id)))
+       end if
+    end if
+
+    if (present(err_msg)) then
+       message(1:len(message))=err_msg
+    else
+       message(1:len(message))='UNKNOWN'
+    end if
+    call add(dict_present_error,&
+         dict_new((/ errid .is. yaml_toa(new_errcode),'Additional Info' .is. message/)))
+
+    !identify callback function 
+    clbk_add=callback_add
+    clbk_data_add=callback_data_add
+    if (present(callback_data)) clbk_data_add=callback_data
+    if (present(callback)) then
+       clbk_add=f_loc(callback)
+    else
+       !find the callback in the error definition
+       !these data can be inserted in a function
+       dict_tmp=>f_get_error_dict(new_errcode)
+       !that is how dict_keys function should be called      
+       if (dict_size(dict_tmp) <= size(keys)) keys=dict_keys(dict_tmp)
+       dict_tmp=>dict_tmp//trim(keys(1))
+
+       if (has_key(dict_tmp,errclbk)) clbk_add=dict_tmp//errclbk
+       if (has_key(dict_tmp,errclbkadd)) clbk_data_add=dict_tmp//errclbkadd
+    end if
+
+    call err_abort(clbk_add,clbk_data_add)
+    
+  end subroutine f_err_throw
 
   function f_get_error_dict(icode)
     implicit none
     integer, intent(in) :: icode
     type(dictionary), pointer :: f_get_error_dict
+    !local variables
 
     f_get_error_dict=>dict_errors//icode
   end function f_get_error_dict
+
+  !> identify id of lastr error occured
+  function f_get_last_error(add_msg)
+    implicit none
+    character(len=*), optional :: add_msg
+    integer :: f_get_last_error
+    !local variables
+    integer :: ierr
+    ierr=dict_len(dict_present_error)-1
+    if (ierr >= 0) then
+       f_get_last_error=dict_present_error//ierr//errid
+       if (present(add_msg)) add_msg=dict_present_error//ierr//'Additional Info'
+    else
+       f_get_last_error=0
+       if (present(add_msg)) add_msg=repeat(' ',len(add_msg))
+    end if
+  end function f_get_last_error
 
   !> clean the dictionary of present errors
   subroutine f_err_clean()
@@ -219,5 +355,25 @@
     call dict_free(dict_present_error)
     call dict_init(dict_present_error)
   end subroutine f_err_clean
+
+  !> activate the exception handling for all errors
+  subroutine f_err_open_try()
+    implicit none
+    call f_err_set_callback(f_err_ignore)
+  end subroutine f_err_open_try
+  
+  !> close the try environment
+  subroutine f_err_close_try()
+    implicit none
+    call f_err_clean() !no errors anymore
+    call f_err_unset_callback()
+  end subroutine f_err_close_try
+  
+  function f_get_error_definitions()
+    implicit none
+    type(dictionary), pointer :: f_get_error_definitions
+
+    f_get_error_definitions => dict_errors
+  end function f_get_error_definitions
 
 !!$end module error_handling

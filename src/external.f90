@@ -1,5 +1,5 @@
 !> @file
-!! External routine of the bigDFT library.
+!! External routine of the BigDFT library.
 !! To be documented in detail once stabilized
 !! All the call to BigDFT code should be performed from these routines
 !! No interface should be required to manipulate these routines
@@ -23,7 +23,7 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   integer, intent(out) :: ierr                   !< error code
   !local variables
   logical :: exist_list
-  integer :: iproc,nproc,nconfig_file,mpi_groupsize
+  integer :: nconfig_file,mpi_groupsize
   character(len=60) :: posinp_file,radical
 
   !Initalize the global mpi environment
@@ -251,6 +251,7 @@ subroutine bigdft_severe_abort()
   integer :: ierr
 
   !the MPI_ABORT works only in MPI_COMM_WORLD
+  call f_dump_last_error()
   call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
   if (ierr/=0) stop 'Problem in MPI_ABORT'
 
