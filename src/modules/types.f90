@@ -1096,6 +1096,7 @@ module module_types
     type(cprj_objects),dimension(:,:),allocatable :: cprj
     real(wp),dimension(:),pointer :: spsi
     real(wp),dimension(:,:),pointer :: sij
+    real(dp),dimension(:),pointer :: rpaw
   end type paw_objects
 
 contains
@@ -2333,6 +2334,7 @@ subroutine nullify_paw_objects(paw,rholoc)
   nullify(paw%indlmn) 
   nullify(paw%spsi) 
   nullify(paw%sij) 
+  nullify(paw%rpaw)
 
   if(present(rholoc)) then
    nullify(rholoc%msz)
