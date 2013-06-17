@@ -882,7 +882,11 @@ contains
     !while putting the message verify that the string is not too long
     msg_lgt_ck=msg_lgt
     !print *, 'here'
-    call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt,istat=ierr)
+    if (len_trim(mapvalue) == 0) then
+       call buffer_string(towrite,len(towrite),"~",msg_lgt,istat=ierr)
+    else
+       call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt,istat=ierr)
+    end if
     !print *, 'here2',ierr
     if (ierr ==0) then
        call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING,istat=ierr)

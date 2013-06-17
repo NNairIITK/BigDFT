@@ -445,13 +445,15 @@ subroutine lzd_get_llr(Lzd, i, llr)
   llr => Lzd%Llr(i)
 END SUBROUTINE lzd_get_llr
 
-subroutine inputs_new(in)
+subroutine inputs_new(in, dict)
   use module_types
+  use dictionaries
   implicit none
   type(input_variables), pointer :: in
-
+  type(dictionary), pointer :: dict
   allocate(in)
   call default_input_variables(in)
+  dict => in%input_values
 end subroutine inputs_new
 subroutine inputs_free(in)
   use module_types
@@ -461,50 +463,32 @@ subroutine inputs_free(in)
   call free_input_variables(in)
   deallocate(in)
 end subroutine inputs_free
-subroutine inputs_read_perf(in, iproc, dump)
-  use module_types
-  implicit none
-  type(input_variables), intent(inout) :: in
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
-
-  call perf_input_variables(iproc,dump,trim(in%file_perf),in)
-END SUBROUTINE inputs_read_perf
-subroutine inputs_set(in, file, key, value)
+subroutine inputs_set(dict, file, key, value)
   use dictionaries
   use module_types
   implicit none
-  type(input_variables), intent(inout) :: in
+  type(dictionary), pointer :: dict
   character(len = *), intent(in) :: file, key, value
 
-  call set(in%input_values // file // key, value)
+  call set(dict // file // key, value)
 END SUBROUTINE inputs_set
-subroutine inputs_set_at(in, file, key, i, value)
+subroutine inputs_set_at(dict, file, key, i, value)
   use dictionaries
   use module_types
   implicit none
-  type(input_variables), intent(inout) :: in
+  type(dictionary), pointer :: dict
   integer, intent(in) :: i
   character(len = *), intent(in) :: file, key, value
 
-  call set(in%input_values // file // key // i, value)
+  call set(dict // file // key // i, value)
 END SUBROUTINE inputs_set_at
-subroutine inputs_get_naming(in, run_name, file_dft, file_geopt, file_kpt, &
-     & file_perf, file_tddft, file_mix, file_sic, file_occnum, file_igpop, file_lin)
+subroutine inputs_get_naming(in, run_name, file_occnum, file_igpop, file_lin)
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
-  character(len = 100), intent(out) :: run_name, file_dft, file_geopt, file_kpt, &
-     & file_perf, file_tddft, file_mix, file_sic, file_occnum, file_igpop, file_lin
+  character(len = 100), intent(out) :: run_name, file_occnum, file_igpop, file_lin
 
   run_name = in%run_name
-  file_dft = in%file_dft
-  file_geopt = in%file_geopt
-  file_kpt = in%file_kpt
-  file_perf = in%file_perf
-  file_tddft = in%file_tddft
-  file_mix = in%file_mix
-  file_sic = in%file_sic
   file_occnum = in%file_occnum
   file_igpop = in%file_igpop
   file_lin = in%file_lin

@@ -214,8 +214,7 @@ module module_types
      type(dictionary), pointer :: input_values
 
      !strings of the input files
-     character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
-                           file_mix,file_sic,file_occnum,file_igpop,file_lin,file_frag
+     character(len=100) :: file_occnum,file_igpop,file_lin,file_frag
      character(len=100) :: dir_output !< Strings of the directory which contains all data output files
      character(len=100) :: run_name   !< Contains the prefix (by default input) used for input files as input.dft
      integer :: files                 !< Existing files.

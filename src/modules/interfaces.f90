@@ -238,16 +238,91 @@ module module_interfaces
          real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
       END SUBROUTINE write_atomic_file
 
-      subroutine read_dft_from_text_format(iproc,dict,filename,dump)
-        use module_base
-        use module_types
+      subroutine read_inputs_from_text_format(input_values, radical, iproc)
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        type(dictionary), pointer :: input_values
+        character(len = *), intent(in) :: radical
+      end subroutine read_inputs_from_text_format
+
+      subroutine read_perf_from_text_format(iproc,dict,filename)
+        use dictionaries
+        implicit none
+        character(len=*), intent(in) :: filename
+        type(dictionary), pointer :: dict
+        integer, intent(in) :: iproc
+      end subroutine read_perf_from_text_format
+
+      subroutine read_dft_from_text_format(iproc,dict,filename)
         use dictionaries
         implicit none
         type(dictionary), pointer :: dict
         character(len=*), intent(in) :: filename
         integer, intent(in) :: iproc
-        logical, intent(in) :: dump
       end subroutine read_dft_from_text_format
+
+      subroutine read_kpt_from_text_format(iproc,dict,filename)
+        use dictionaries
+        implicit none
+        character(len=*), intent(in) :: filename
+        integer, intent(in) :: iproc
+        type(dictionary), pointer :: dict
+      end subroutine read_kpt_from_text_format
+
+      subroutine read_geopt_from_text_format(iproc,dict,filename)
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        character(len=*), intent(in) :: filename
+        type(dictionary), pointer :: dict
+      end subroutine read_geopt_from_text_format
+
+      subroutine read_mix_from_text_format(iproc,dict,filename)
+        use dictionaries
+        implicit none
+        !Arguments
+        integer, intent(in) :: iproc
+        type(dictionary), pointer :: dict
+        character(len=*), intent(in) :: filename
+      end subroutine read_mix_from_text_format
+
+      subroutine read_sic_from_text_format(iproc,dict,filename)
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        type(dictionary), pointer :: dict
+        character(len=*), intent(in) :: filename
+      end subroutine read_sic_from_text_format
+
+      subroutine read_tddft_from_text_format(iproc,dict,filename)
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        type(dictionary), pointer :: dict
+        character(len=*), intent(in) :: filename
+      end subroutine read_tddft_from_text_format
+
+      subroutine inputs_from_dict(in, atoms, dict, dump)
+        use module_types
+        use module_defs
+        use dictionaries
+        implicit none
+        type(input_variables), intent(inout) :: in
+        type(atoms_data), intent(inout) :: atoms
+        type(dictionary), pointer :: dict
+        logical, intent(in) :: dump
+      end subroutine inputs_from_dict
+
+      subroutine perf_input_analyse(iproc,in,dict)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        type(dictionary), pointer :: dict
+        type(input_variables), intent(inout) :: in
+      end subroutine perf_input_analyse
 
       subroutine dft_input_analyse(iproc, in, dict_dft)
         use module_base
@@ -258,17 +333,6 @@ module module_interfaces
         type(input_variables), intent(inout) :: in
         type(dictionary), pointer :: dict_dft
       end subroutine dft_input_analyse
-
-      subroutine read_kpt_from_text_format(iproc,dict,filename,dump)
-        use module_base
-        use module_types
-        use dictionaries
-        implicit none
-        character(len=*), intent(in) :: filename
-        integer, intent(in) :: iproc
-        logical, intent(in) :: dump
-        type(dictionary), pointer :: dict
-      end subroutine read_kpt_from_text_format
 
       subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         use module_base
@@ -283,15 +347,6 @@ module module_interfaces
         real(gp), intent(in) :: alat(3)
       end subroutine kpt_input_analyse
 
-      subroutine read_geopt_from_text_format(iproc,dict,filename,dump)
-        use dictionaries
-        implicit none
-        integer, intent(in) :: iproc
-        logical, intent(in) :: dump
-        character(len=*), intent(in) :: filename
-        type(dictionary), pointer :: dict
-      end subroutine read_geopt_from_text_format
-
       subroutine geopt_input_analyse(iproc,in,dict)
         use module_base
         use module_types
@@ -301,6 +356,39 @@ module module_interfaces
         type(input_variables), intent(inout) :: in
         type(dictionary), pointer :: dict
       end subroutine geopt_input_analyse
+
+      subroutine mix_input_analyse(iproc,in,dict)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        !Arguments
+        integer, intent(in) :: iproc
+        type(dictionary), pointer :: dict
+        type(input_variables), intent(inout) :: in
+      end subroutine mix_input_analyse
+
+      subroutine sic_input_analyse(iproc,in,dict,ixc)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        !Arguments
+        integer, intent(in) :: iproc
+        type(dictionary), pointer :: dict
+        type(input_variables), intent(inout) :: in
+        integer, intent(in) :: ixc
+      end subroutine sic_input_analyse
+
+      subroutine tddft_input_analyse(iproc,in,dict)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        type(dictionary), pointer :: dict
+        type(input_variables), intent(inout) :: in
+      end subroutine tddft_input_analyse
 
       subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,peakmem)
          !n(c) use module_base

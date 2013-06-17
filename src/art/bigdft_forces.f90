@@ -147,8 +147,6 @@ module bigdft_forces
       if (nat .eq. total_nb_atoms .and. .not. passivate) then 
          ! we just reread all atoms
          call read_atomic_file("posinp",me_,runObj%atoms%astruct)
-         call allocate_atoms_nat(runObj%atoms, subname)
-         call allocate_atoms_ntypes(runObj%atoms, subname)
       else 
          !uses the big object to prepare. everything should
          ! be alright in the object exept the length
@@ -159,18 +157,9 @@ module bigdft_forces
       endif
       !standard names
       call standard_inputfile_names(runObj%inputs,'input',nproc)
-      ! Read inputs.
-      call default_input_variables(runObj%inputs)
-      call inputs_parse_params(runObj%inputs, me_, .true.)
-      ! Shake atoms, if required.
-      call astruct_set_displacement(runObj%atoms%astruct, runObj%inputs%randdis)
-      ! Update atoms with symmetry information
-      call astruct_set_symmetries(runObj%atoms%astruct, runObj%inputs%disableSym, &
-           & runObj%inputs%symTol, runObj%inputs%elecfield)
-
-      ! Parse input files depending on atoms.
-      call inputs_parse_add(runObj%inputs, runObj%atoms, me_, .true.)
-
+      call read_inputs_from_text_format(runObj%inputs%input_values, 'input', me_)
+      call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%inputs%input_values, .true.)
+      
       call init_atomic_values((me_ == 0), runObj%atoms, runObj%inputs%ixc)
       call read_atomic_variables(runObj%atoms, trim(runObj%inputs%file_igpop),runObj%inputs%nspin)
 

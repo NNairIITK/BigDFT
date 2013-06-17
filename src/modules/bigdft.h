@@ -170,6 +170,7 @@ struct _BigDFT_Inputs
   /* Private. */
   guint refCount;
   _input_variables *data;
+  _dictionary *input_values;
 };
 /*********************************/
 #ifdef GLIB_MAJOR_VERSION
@@ -177,15 +178,15 @@ GType          bigdft_inputs_get_type         (void);
 #endif
 BigDFT_Inputs* bigdft_inputs_ref              (BigDFT_Inputs *in);
 void           bigdft_inputs_unref            (BigDFT_Inputs *in);
-BigDFT_Inputs* bigdft_inputs_new              (const gchar *naming, guint nproc);
 void           bigdft_inputs_free             (BigDFT_Inputs *in);
+BigDFT_Inputs* bigdft_inputs_new              ();
+BigDFT_Inputs* bigdft_inputs_new_from_files   (const gchar *naming, guint iproc, guint nproc,
+                                               gboolean dump);
 void           bigdft_inputs_set              (BigDFT_Inputs *in,
                                                BigDFT_InputsKeyIds id, const gchar *value);
 void           bigdft_inputs_set_array        (BigDFT_Inputs *in,
                                                BigDFT_InputsKeyIds id, const gchar **value);
-void           bigdft_inputs_parse            (BigDFT_Inputs *in, guint iproc, gboolean dump);
-void           bigdft_inputs_parse_additional (BigDFT_Inputs *in, BigDFT_Atoms *atoms,
-                                               guint iproc, gboolean dump);
+void           bigdft_inputs_analyse          (BigDFT_Inputs *in, BigDFT_Atoms *atoms);
 void           bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc);
 /*********************************/
 

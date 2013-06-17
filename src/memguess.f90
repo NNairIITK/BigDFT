@@ -286,8 +286,6 @@ program memguess
    end if
    if (convertpos) then
       call read_atomic_file(trim(fileFrom),0,atoms%astruct,i_stat,fcomment,energy,fxyz)
-      call allocate_atoms_nat(atoms, subname)
-      call allocate_atoms_ntypes(atoms, subname)
       if (i_stat /=0) stop 'error on input file parsing' 
       !find the format of the output file
       if (index(fileTo,'.xyz') > 0) then

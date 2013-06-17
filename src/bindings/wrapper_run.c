@@ -431,12 +431,11 @@ BigDFT_Run* bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inpu
 #endif
   FC_FUNC_(run_objects_new, RUN_OBJECTS_NEW)(&run->data);
 
-  /* If inputs has parsed its files, we do it now. */
+  /* If inputs has not parsed its files, we do it now. */
   if (inputs->files == BIGDFT_INPUTS_UNPARSED)
     {
-      bigdft_inputs_parse(inputs, iproc, TRUE);
+      bigdft_inputs_analyse(inputs, atoms);      
       bigdft_atoms_set_psp(atoms, inputs->ixc, inputs->nspin, NULL);
-      bigdft_inputs_parse_additional(inputs, atoms, iproc, TRUE);
     }
   /* If no restart, we create it from atoms and inputs. */
   if (!rst)

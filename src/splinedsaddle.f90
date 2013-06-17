@@ -363,18 +363,12 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     endif
     !-----------------------------------------------------------
     call standard_inputfile_names(ll_inputs,'input',nproc)
-    call default_input_variables(ll_inputs)
     if(trim(pnow%hybrid)=='yes') then
-        call perf_input_variables(iproc,.true.,'ll_input.perf',ll_inputs)
-        ! Parse all values independant from atoms.
-        call read_dft_from_text_format(iproc,ll_inputs%input_values//DFT_VARIABLES, &
-             & 'll_input.dft', .true.)
-        call dft_input_analyse(iproc, ll_inputs, ll_inputs%input_values//DFT_VARIABLES)
+       call read_inputs_from_text_format(ll_inputs%input_values, 'll_input', iproc)
     else
-        ll_inputs=inputs
+       call read_inputs_from_text_format(ll_inputs%input_values, 'input', iproc)
     endif
-    call read_kpt_from_text_format(iproc,ll_inputs%input_values//KPT_VARIABLES, 'input.kpt', (iproc == 0))
-    call inputs_parse_add(ll_inputs, atoms, iproc, (iproc == 0))
+    call inputs_from_dict(ll_inputs, atoms, ll_inputs%input_values, .true.)
     
     !-----------------------------------------------------------
     allocate(rxyz_2(3,atoms%astruct%nat+ndeb1))

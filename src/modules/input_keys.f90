@@ -70,6 +70,61 @@ module module_input_keys
   character(len = *), parameter, public :: DTINIT = "dtinit"
   character(len = *), parameter, public :: DTMAX = "dtmax"
 
+  character(len = *), parameter, public :: MIX_VARIABLES = "mix"
+  character(len = *), parameter, public :: ISCF = "iscf"
+  character(len = *), parameter, public :: ITRPMAX = "itrpmax"
+  character(len = *), parameter, public :: RPNRM_CV = "rpnrm_cv"
+  character(len = *), parameter, public :: NORBSEMPTY = "norbsempty"
+  character(len = *), parameter, public :: TEL = "Tel"
+  character(len = *), parameter, public :: OCCOPT = "occopt"
+  character(len = *), parameter, public :: ALPHAMIX = "alphamix"
+  character(len = *), parameter, public :: ALPHADIIS = "alphadiis"
+
+  character(len = *), parameter, public :: SIC_VARIABLES = "sic"
+  character(len = *), parameter, public :: SIC_APPROACH = "sic_approach"
+  character(len = *), parameter, public :: SIC_ALPHA = "sic_alpha"
+  character(len = *), parameter, public :: SIC_FREF = "sic_fref"
+
+  character(len = *), parameter, public :: TDDFT_VARIABLES = "tddft"
+  character(len = *), parameter, public :: TDDFT_APPROACH = "tddft_approach"
+
+  character(len = *), parameter, public :: PERF_VARIABLES = "perf"
+  character(len = *), parameter, public :: DEBUG = "debug"
+  character(len = *), parameter, public :: FFTCACHE = "fftcache"
+  character(len = *), parameter, public :: ACCEL = "accel"
+  character(len = *), parameter, public :: OCL_PLATFORM = "ocl_platform"
+  character(len = *), parameter, public :: OCL_DEVICES = "ocl_devices"
+  character(len = *), parameter, public :: BLAS = "blas"
+  character(len = *), parameter, public :: PROJRAD = "projrad"
+  character(len = *), parameter, public :: EXCTXPAR = "exctxpar"
+  character(len = *), parameter, public :: IG_DIAG = "ig_diag"
+  character(len = *), parameter, public :: IG_NORBP = "ig_norbp"
+  character(len = *), parameter, public :: IG_BLOCKS = "ig_blocks"
+  character(len = *), parameter, public :: IG_TOL = "ig_tol"
+  character(len = *), parameter, public :: METHORTHO = "methortho"
+  character(len = *), parameter, public :: RHO_COMMUN = "rho_commun"
+  character(len = *), parameter, public :: PSOLVER_GROUPSIZE = "psolver_groupsize"
+  character(len = *), parameter, public :: PSOLVER_ACCEL = "psolver_ACCEL"
+  character(len = *), parameter, public :: UNBLOCK_COMMS = "unblock_comms"
+  character(len = *), parameter, public :: LINEAR = "linear"
+  character(len = *), parameter, public :: TOLSYM = "tolsym"
+  character(len = *), parameter, public :: SIGNALING = "signaling"
+  character(len = *), parameter, public :: SIGNALTIMEOUT = "signaltimeout"
+  character(len = *), parameter, public :: DOMAIN = "domain"
+  character(len = *), parameter, public :: INGUESS_GEOPT = "inguess_geopt"
+  character(len = *), parameter, public :: STORE_INDEX = "store_index"
+  character(len = *), parameter, public :: VERBOSITY = "verbosity"
+  character(len = *), parameter, public :: OUTDIR = "outdir"
+  character(len = *), parameter, public :: PSP_ONFLY = "psp_onfly"
+  character(len = *), parameter, public :: PDSYEV_BLOCKSIZE = "pdsyev_blocksize"
+  character(len = *), parameter, public :: PDGEMM_BLOCKSIZE = "pdgemm_blocksize"
+  character(len = *), parameter, public :: MAXPROC_PDSYEV = "maxproc_pdsyev"
+  character(len = *), parameter, public :: MAXPROC_PDGEMM = "maxproc_pdgemm"
+  character(len = *), parameter, public :: EF_INTERPOL_DET = "ef_interpol_det"
+  character(len = *), parameter, public :: EF_INTERPOL_CHARGEDIFF = "ef_interpol_chargediff"
+  character(len = *), parameter, public :: MIXING_AFTER_INPUTGUESS = "mixing_after_inputguess"
+  character(len = *), parameter, public :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
+
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST
   integer, public :: INPUT_VAR_NOT_IN_RANGE
@@ -119,6 +174,10 @@ contains
     call set(parameters // DFT_VARIABLES, get_dft_parameters())
     call set(parameters // KPT_VARIABLES, get_kpt_parameters())
     call set(parameters // GEOPT_VARIABLES, get_geopt_parameters())
+    call set(parameters // MIX_VARIABLES, get_mix_parameters())
+    call set(parameters // SIC_VARIABLES, get_sic_parameters())
+    call set(parameters // TDDFT_VARIABLES, get_tddft_parameters())
+    call set(parameters // PERF_VARIABLES, get_perf_parameters())
 
     !call yaml_dict_dump(parameters, comment_key = COMMENT)
     call f_err_define(err_name='INPUT_VAR_NOT_IN_LIST',&
@@ -520,6 +579,316 @@ contains
     get_geopt_parameters => p
   END FUNCTION get_geopt_parameters
 
+  function get_mix_parameters()
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: p, get_mix_parameters
+
+    call dict_init(p)
+
+    ! Settings
+    call set(p // ISCF, dict_new( (/ &
+         & COMMENT   .is. 'mixing parameters', &
+         & EXCLUSIVE .is. dict_new((/ &
+         & "-1" .is. "reserved, don't use it.", &
+         & "0"  .is. "direct minimization", &
+         & "1"  .is. "get the largest eigenvalue of the SCF cycle", &
+         & "2"  .is. "simple mixing of the potential", &
+         & "3"  .is. "Anderson mixing of the potential", &
+         & "4"  .is. "Anderson mixing of the potential based on the two previous iterations", &
+         & "5"  .is. "CG based on the minim. of the energy with respect to the potential", &
+         & "7"  .is. "Pulay mixing of the potential based on npulayit previous iterations", &
+         & "12" .is. "simple mixing of the density", &
+         & "13" .is. "Anderson mixing of the density", &
+         & "14" .is. "Anderson mixing of the density based on the two previous iterations", &
+         & "15" .is. "CG based on the minim. of the energy with respect to the density", &
+         & "17" .is. "Pulay mixing of the density" /)), &
+         & DEFAULT   .is. "0"/) ))
+
+    call set(p // ITRPMAX, dict_new( (/ &
+         & COMMENT   .is. 'maximum number of diagonalisation iterations', &
+         & RANGE     .is. list_new((/ .item."0", .item."10000" /)), &
+         & DEFAULT   .is. "1" /) ))
+
+    call set(p // RPNRM_CV, dict_new( (/ &
+         & COMMENT   .is. 'stop criterion on the residue of potential or density', &
+         & RANGE     .is. list_new((/ .item."0.", .item."10." /)), &
+         & DEFAULT   .is. "1e-4" /) ))
+
+    call set(p // NORBSEMPTY, dict_new( (/ &
+         & COMMENT   .is. 'No. of additional bands', &
+         & RANGE     .is. list_new((/ .item."0", .item."10000" /)), &
+         & DEFAULT   .is. "0" /) ))
+
+    call set(p // TEL, dict_new( (/ &
+         & COMMENT   .is. 'electronic temperature', &
+         & RANGE     .is. list_new((/ .item."0.", .item."1e6" /)), &
+         & DEFAULT   .is. "0." /) ))
+
+    call set(p // OCCOPT, dict_new( (/ &
+         & COMMENT   .is. 'smearing method', &
+         & EXCLUSIVE .is. dict_new((/ &
+         & "1" .is. "error function smearing", &
+         & "2" .is. "normal Fermi distribution", &
+         & "3" .is. "Marzari's cold smearing a=-.5634 (bumb minimization)", &
+         & "4" .is. "Marzari's cold smearing with a=-.8165 (monotonic tail)", &
+         & "5" .is. "Methfessel and Paxton (same as cold with a=0)" /)), &
+         & DEFAULT   .is. "1" /) ))
+
+    call set(p // ALPHAMIX, dict_new( (/ &
+         & COMMENT   .is. 'Multiplying factors for the mixing', &
+         & RANGE     .is. list_new((/ .item."0", .item."1." /)), &
+         & DEFAULT   .is. "0." /) ))
+
+    call set(p // ALPHADIIS, dict_new( (/ &
+         & COMMENT   .is. 'Multiplying factors for the electronic DIIS', &
+         & RANGE     .is. list_new((/ .item."0.", .item."10." /)), &
+         & DEFAULT   .is. "2." /) ))
+
+    get_mix_parameters => p
+  END FUNCTION get_mix_parameters
+
+  function get_sic_parameters()
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: p, get_sic_parameters
+
+    call dict_init(p)
+
+    ! Settings
+    call set(p // SIC_APPROACH, dict_new( (/ &
+         & COMMENT   .is. 'SIC method', &
+         & EXCLUSIVE .is. dict_new((/ &
+         & "none" .is. "no self-interaction correction", &
+         & "PZ"   .is. "???", &
+         & "NK"   .is. "???" /)), &
+         & DEFAULT.is. "none"/) ))
+
+    call set(p // SIC_ALPHA, dict_new( (/ &
+         & COMMENT   .is. 'SIC downscaling parameter', &
+         & RANGE     .is. list_new((/ .item."0", .item."1." /)), &
+         & DEFAULT   .is. "0." /) ))
+
+    call set(p // SIC_FREF, dict_new( (/ &
+         & COMMENT   .is. 'reference occupation fref', &
+         & COND      .is. dict_new((/ MASTER_KEY .is. SIC_APPROACH, &
+         &                            WHEN .is. list_new((/ .item. "NK" /)) /)), &
+         & RANGE     .is. list_new((/ .item."0.", .item."1." /)), &
+         & DEFAULT   .is. "0." /) ))
+
+    get_sic_parameters => p
+  END FUNCTION get_sic_parameters
+
+  function get_tddft_parameters()
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: p, get_tddft_parameters
+
+    call dict_init(p)
+
+    ! Settings
+    call set(p // TDDFT_APPROACH, dict_new( (/ &
+         & COMMENT   .is. 'TDDFT method', &
+         & EXCLUSIVE .is. dict_new((/ &
+         & "none" .is. "no tddft post-processing", &
+         & "TDA"   .is. "???" /)), &
+         & DEFAULT.is. "none"/) ))
+
+    get_tddft_parameters => p
+  END FUNCTION get_tddft_parameters
+
+  function get_perf_parameters()
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: p, get_perf_parameters
+
+    call dict_init(p)
+
+    ! Settings
+    call set(p // DEBUG, dict_new( (/ &
+         & COMMENT   .is. 'debug option', &
+         & DEFAULT.is. "No"/) ))
+
+    call set(p // FFTCACHE, dict_new( (/ &
+         & COMMENT   .is. 'cache size for the FFT', &
+         & DEFAULT.is. "8192"/) ))
+
+    call set(p // ACCEL, dict_new( (/ &
+         & COMMENT   .is. 'acceleration', &
+         & EXCLUSIVE .is. dict_new((/ &
+         & "no"      .is. "no material acceleration", &
+         & "CUDAGPU" .is. "CUDA", &
+         & "OCLGPU"  .is. "OpenCL on GPU", &
+         & "OCLCPU"  .is. "OpenCL on CPU", &
+         & "OCLACC"  .is. "???" /)), &
+         & DEFAULT.is. "No"/) ))
+
+    call set(p // OCL_PLATFORM, dict_new( (/ &
+         & COMMENT   .is. 'Chosen OCL platform', &
+         & DEFAULT.is. " "/) ))
+
+    call set(p // OCL_DEVICES, dict_new( (/ &
+         & COMMENT   .is. 'Chosen OCL devices', &
+         & DEFAULT.is. " "/) ))
+
+    call set(p // BLAS, dict_new( (/ &
+         & COMMENT   .is. 'CUBLAS acceleration', &
+         & DEFAULT.is. "No"/) ))
+
+    call set(p // PROJRAD, dict_new( (/ &
+         & COMMENT   .is. 'Radius of the projector as a function of the maxrad', &
+         & RANGE     .is. list_new((/ .item."0.", .item."100." /)), &
+         & DEFAULT.is. "15."/) ))
+
+    call set(p // EXCTXPAR, dict_new( (/ &
+         & COMMENT   .is. 'Exact exchange parallelisation scheme', &
+         & EXCLUSIVE .is. dict_new((/ &
+         & "OP2P"    .is. "???"/)), &
+         & DEFAULT.is. "OP2P"/) ))
+
+    call set(p // IG_DIAG, dict_new( (/ &
+         & COMMENT .is. 'Input guess: (T:Direct, F:Iterative) diag. of Ham.', &
+         & DEFAULT .is. "Yes"/) ))
+
+    call set(p // IG_NORBP, dict_new( (/ &
+         & COMMENT   .is. 'Input guess: Orbitals per process for iterative diag.', &
+         & RANGE     .is. list_new((/ .item."1", .item."1000" /)), &
+         & DEFAULT.is. "5"/) ))
+
+    call set(p // IG_BLOCKS, dict_new( (/ &
+         & COMMENT   .is. 'Input guess: Block sizes for orthonormalisation', &
+         & RANGE     .is. list_new((/ .item."1", .item."100000" /)), &
+         & DEFAULT   .is. list_new((/ .item."300", .item."800" /)) /) ))
+
+    call set(p // IG_TOL, dict_new( (/ &
+         & COMMENT   .is. 'Input guess: Tolerance criterion', &
+         & RANGE     .is. list_new((/ .item."0.", .item."1." /)), &
+         & DEFAULT.is. "1e-4"/) ))
+
+    call set(p // METHORTHO, dict_new( (/ &
+         & COMMENT   .is. 'Orthogonalisation', &
+         & EXCLUSIVE .is. dict_new((/ &
+         & "0"    .is. "Cholesky", &
+         & "1"    .is. "GS/Chol", &
+         & "2"    .is. "Loewdin" /)), &
+         & DEFAULT.is. "0"/) ))
+
+    call set(p // RHO_COMMUN, dict_new( (/ &
+         & COMMENT   .is. 'Density communication scheme (DBL, RSC, MIX)', &
+         & DEFAULT.is. "DEF"/) ))
+
+    call set(p // PSOLVER_GROUPSIZE, dict_new( (/ &
+         & COMMENT   .is. 'Size of Poisson Solver taskgroups (0=nproc)', &
+         & RANGE     .is. list_new((/ .item."0", .item."1000000" /)), &
+         & DEFAULT.is. "0"/) ))
+
+    call set(p // PSOLVER_ACCEL, dict_new( (/ &
+         & COMMENT   .is. 'Acceleration of the Poisson Solver (0=none, 1=CUDA)', &
+         & EXCLUSIVE .is. dict_new((/ &
+         & "0"    .is. "none", &
+         & "1"    .is. "CUDA"/)), &
+         & DEFAULT.is. "0"/) ))
+
+    call set(p // UNBLOCK_COMMS, dict_new( (/ &
+         & COMMENT   .is. 'Overlap Communications of fields (OFF,DEN,POT)', &
+         & EXCLUSIVE .is. dict_new((/ &
+         & "OFF"    .is. "synchronous run", &
+         & "DEN"    .is. "???", &
+         & "POT"    .is. "???"/)), &
+         & DEFAULT.is. "OFF"/) ))
+
+    call set(p // LINEAR, dict_new( (/ &
+         & COMMENT   .is. 'Linear Input Guess approach', &
+         & EXCLUSIVE .is. dict_new((/ &
+         & "OFF"    .is. "???", &
+         & "LIG"    .is. "???", &
+         & "FUL"    .is. "???", &
+         & "TMO"    .is. "???"/)), &
+         & DEFAULT.is. "OFF"/) ))
+
+    call set(p // TOLSYM, dict_new( (/ &
+         & COMMENT   .is. 'Tolerance for symmetry detection', &
+         & RANGE     .is. list_new((/ .item."0.", .item."1." /)), &
+         & DEFAULT.is. "1e-8"/) ))
+
+    call set(p // SIGNALING, dict_new( (/ &
+         & COMMENT   .is. 'Expose calculation results on Network', &
+         & DEFAULT.is. "No"/) ))
+
+    call set(p // SIGNALTIMEOUT, dict_new( (/ &
+         & COMMENT   .is. 'Time out on startup for signal connection (in seconds)', &
+         & RANGE     .is. list_new((/ .item."-1", .item."3600" /)), &
+         & DEFAULT.is. "0"/) ))
+
+    call set(p // DOMAIN, dict_new( (/ &
+         & COMMENT   .is. 'Domain to add to the hostname to find the IP', &
+         & DEFAULT.is. " "/) ))
+
+    call set(p // INGUESS_GEOPT, dict_new( (/ &
+         & COMMENT   .is. '0= wavlet input guess, 1= real space input guess', &
+         & EXCLUSIVE .is. dict_new((/ &
+         & "0"    .is. "wavlet input guess", &
+         & "1"    .is. "real space input guess"/)), &
+         & DEFAULT.is. "0"/) ))
+
+    call set(p // STORE_INDEX, dict_new( (/ &
+         & COMMENT   .is. 'linear scaling: store indices or recalculate them', &
+         & DEFAULT.is. "Yes"/) ))
+
+    call set(p // VERBOSITY, dict_new( (/ &
+         & COMMENT   .is. 'verbosity of the output', &
+         & EXCLUSIVE .is. dict_new((/ &
+         & "0"    .is. "???", &
+         & "1"    .is. "???", &
+         & "2"    .is. "???", &
+         & "3"    .is. "???"/)), &
+         & DEFAULT.is. "2"/) ))
+
+    call set(p // OUTDIR, dict_new( (/ &
+         & COMMENT   .is. 'Writing directory', &
+         & DEFAULT.is. "."/) ))
+
+    call set(p // PSP_ONFLY, dict_new( (/ &
+         & COMMENT   .is. 'Calculate pseudopotential projectors on the fly', &
+         & DEFAULT.is. "Yes"/) ))
+
+    call set(p // PDSYEV_BLOCKSIZE, dict_new( (/ &
+         & COMMENT   .is. 'SCALAPACK linear scaling blocksize', &
+         & DEFAULT.is. "-8"/) ))
+
+    call set(p // PDGEMM_BLOCKSIZE, dict_new( (/ &
+         & COMMENT   .is. 'SCALAPACK linear scaling blocksize', &
+         & DEFAULT.is. "-8"/) ))
+
+    call set(p // MAXPROC_PDSYEV, dict_new( (/ &
+         & COMMENT   .is. 'SCALAPACK linear scaling max num procs', &
+         & DEFAULT.is. "4"/) ))
+
+    call set(p // MAXPROC_PDGEMM, dict_new( (/ &
+         & COMMENT   .is. 'SCALAPACK linear scaling max num procs', &
+         & DEFAULT.is. "4"/) ))
+
+    call set(p // EF_INTERPOL_DET, dict_new( (/ &
+         & COMMENT   .is. 'FOE: max determinant of cubic interpolation matrix', &
+         & RANGE     .is. list_new((/ .item."0.", .item."1." /)), &
+         & DEFAULT.is. "1e-20"/) ))
+
+    call set(p // EF_INTERPOL_CHARGEDIFF, dict_new( (/ &
+         & COMMENT   .is. 'FOE: max charge difference for interpolation', &
+         & RANGE     .is. list_new((/ .item."0.", .item."1000." /)), &
+         & DEFAULT.is. "10."/) ))
+
+    call set(p // MIXING_AFTER_INPUTGUESS, dict_new( (/ &
+         & COMMENT   .is. 'mixing step after linear input guess (T/F)', &
+         & DEFAULT.is. "Yes"/) ))
+
+    call set(p // ITERATIVE_ORTHOGONALIZATION, dict_new( (/ &
+         & COMMENT   .is. 'iterative_orthogonalization for input guess orbitals', &
+         & DEFAULT.is. "No"/) ))
+
+    get_perf_parameters => p
+  END FUNCTION get_perf_parameters
+
   function input_keys_get_profiles(file)
     use dictionaries
     implicit none
@@ -638,6 +1007,7 @@ contains
     type(dictionary), pointer :: ref
     character(max_field_length), dimension(:), allocatable :: keys
 
+    write(*,*) "############", trim(file)
     ref => parameters // file
     allocate(keys(dict_size(ref)))
     keys = dict_keys(ref)
@@ -670,6 +1040,7 @@ contains
     double precision, dimension(2) :: rg
     logical :: found
 
+    write(*,*) "handle key ", trim(key)
     ref => parameters // file // key
 
     profile_(1:max_field_length) = " "

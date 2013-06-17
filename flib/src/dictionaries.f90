@@ -270,7 +270,6 @@ contains
     type(dictionary_container), intent(in), optional :: cont
     type(dictionary), pointer :: dict_new_single
     !local variables
-    character(len=max_field_length) :: key,val
     type(dictionary), pointer :: dict_tmp
 
     call dict_init(dict_tmp)
@@ -821,6 +820,7 @@ contains
     val=dict
     !look at conversion
     call read_fraction_string(val, dval, ierror)
+    rval = dval
 
     if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
     

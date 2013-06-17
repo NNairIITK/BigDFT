@@ -92,21 +92,40 @@ static void bigdft_inputs_dispose(BigDFT_Inputs *in)
 }
 /**
  * bigdft_inputs_new:
- * @naming: (allow-none): a naming scheme, or none.
- * @iproc:
  *
- * Create a new #BigDFT_Inputs structure, issuing into default values.
+ * Create a new #BigDFT_Inputs structure, empty.
  * 
  * Returns: (transfer full): a new structure.
  */
-BigDFT_Inputs* bigdft_inputs_new(const gchar *naming, guint nproc)
+BigDFT_Inputs* bigdft_inputs_new()
+{
+  BigDFT_Inputs *in;
+
+  in = bigdft_inputs_init();
+  FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data, &in->input_values);
+  
+  return in;
+}
+/**
+ * bigdft_inputs_new_from_files:
+ * @naming: (allow-none): a naming scheme, or none.
+ * @iproc:
+ *
+ * Create a new #BigDFT_Inputs structure, parsing files with the given
+ * naming scheme. Use bigdft_inputs_analyse() to actually analyse the
+ * values and transfer them into variables.
+ * 
+ * Returns: (transfer full): a new structure.
+ */
+BigDFT_Inputs* bigdft_inputs_new_from_files(const gchar *naming, guint iproc, guint nproc,
+                                            gboolean dump)
 {
   BigDFT_Inputs *in;
   gchar file_dft[100], file_geopt[100], file_kpt[100], file_perf[100], file_tddft[100], file_mix[100],
     file_sic[100], file_occnum[100], file_igpop[100], file_lin[100], run_name[100];
 
-  in = bigdft_inputs_init();
-  FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data);
+  in = bigdft_inputs_new();
+
   if (naming && naming[0])
     FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, naming, (int*)&nproc, strlen(naming));
   else
@@ -128,6 +147,9 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming, guint nproc)
   in->file_occnum = _get_c_string(file_occnum, 100);
   in->file_igpop = _get_c_string(file_igpop, 100);
   in->file_lin = _get_c_string(file_lin, 100);
+
+  FC_FUNC_(read_inputs_from_text_format, READ_INPUTS_FROM_TEXT_FORMAT)
+    (&in->input_values, (gint*)&iproc, (int*)&dump);
   
   return in;
 }
@@ -171,14 +193,10 @@ GType bigdft_inputs_get_type(void)
   return g_define_type_id;
 }
 #endif
-void bigdft_inputs_parse(BigDFT_Inputs *in, guint iproc, gboolean dump)
+void bigdft_inputs_analyse(BigDFT_Inputs *in, BigDFT_Atoms *atoms)
 {
-  FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(in->data, (int*)&iproc, &dump);
+  FC_FUNC_(inputs_from_dict, INPUTS_FROM_DICT)(in->data, atoms->data, &in->input_values);
   _sync(in);
-}
-void bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms, guint iproc, gboolean dump)
-{
-  FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(in->data, atoms->data, (int*)&iproc, &dump);
   _sync_add(in);
 }
 void bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc)
@@ -203,11 +221,11 @@ BigDFT_Inputs* bigdft_set_input(const gchar *radical, const gchar *posinp, BigDF
   BigDFT_Inputs *in;
 
   at = bigdft_atoms_new();
-  in = bigdft_inputs_init();
-  FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data);
+  in = bigdft_inputs_new();
   FC_FUNC_(bigdft_set_input, BIGDFT_SET_INPUT)(radical, posinp, in->data, at->data,
                                                strlen(radical), strlen(posinp));
-
+  _sync(in);
+  _sync_add(in);
   bigdft_atoms_copy_from_fortran(at);
   *atoms = at;
   return in;
@@ -221,7 +239,7 @@ void bigdft_inputs_set(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gchar *v
 
   name = _input_keys[id];
   file = _input_keys[_input_files[id]];
-  FC_FUNC_(inputs_set, INPUTS_SET)(in->data, file, name, value,
+  FC_FUNC_(inputs_set, INPUTS_SET)(&in->input_values, file, name, value,
                                    strlen(file), strlen(name), strlen(value));
 }
 /**
@@ -240,6 +258,6 @@ void bigdft_inputs_set_array(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gc
   name = _input_keys[id];
   file = _input_keys[_input_files[id]];
   for (i = 0; value[i]; i++)
-    FC_FUNC_(inputs_set_at, INPUTS_SET_AT)(in->data, file, name, (gint*)&i, value[i],
+    FC_FUNC_(inputs_set_at, INPUTS_SET_AT)(&in->input_values, file, name, (gint*)&i, value[i],
                                            strlen(file), strlen(name), strlen(value[i]));
 }

@@ -18,6 +18,7 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   use module_types
   use module_interfaces, except_this_one => bigdft_set_input
   use yaml_output
+  use dictionaries
   implicit none
 
   !Arguments
@@ -27,53 +28,21 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   type(atoms_data), intent(out) :: atoms
 
   character(len=*), parameter :: subname='bigdft_set_input'
+  type(dictionary), pointer :: dict
 !!$  logical :: exist_list
-  integer :: ierr
 
   atoms=atoms_null()
+  ! Read atomic file
+  call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms%astruct)
 
   ! initialize mpi environment (this shouldn't be done twice)
 !  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,nproc)
   !standard names
   call standard_inputfile_names(in,trim(radical), bigdft_mpi%nproc)
-  ! Default for inputs (should not be necessary if all the variables comes from the parsing)
-  call default_input_variables(in)
-
-  !call yaml_open_map('Representation of the input files')
-  ! Parse all input files, independent from atoms.
-  call inputs_parse_params(in, bigdft_mpi%iproc, .true.)
-  !call yaml_close_map()
-
-!!$  ! find out which input files will be used
-!!$  inquire(file="list_posinp",exist=exist_list)
-
-!!$  if (in%mpi_groupsize >0 .and. (.not. exist_list)) then
-!!$     group_size=in%mpi_groupsize
-!!$  else
-!!$     group_size=nproc
-!!$  endif
-!!$  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,group_size)
-!!$  !reset standard names (this should be avoided) 
-!!$  call standard_inputfile_names(in, radical, bigdft_mpi%nproc)
-
-  ! Read atomic file
-  call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms%astruct)
-  ! Shake atoms, if required.
-  call astruct_set_displacement(atoms%astruct, in%randdis)
-  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
-  ! Update atoms with symmetry information
-  call astruct_set_symmetries(atoms%astruct, in%disableSym, in%symTol, in%elecfield)
-
-  ! This should be moved to init_atomic_values, but we can't since
-  ! input.lin needs some arrays allocated here.
-  call allocate_atoms_nat(atoms, subname)
-  call allocate_atoms_ntypes(atoms, subname)
-
-  ! Parse input files depending on atoms.
-  call inputs_parse_add(in, atoms, bigdft_mpi%iproc, .true.)
-
-!!$  print *,'hello24',atoms%ntypes,'ciaoAAA',bigdft_mpi%iproc
-!!$  call mpi_barrier(mpi_comm_world,ierr)
+  call dict_init(dict)
+  call read_inputs_from_text_format(dict, trim(radical), bigdft_mpi%iproc)
+  call inputs_from_dict(in, atoms, dict, .true.)
+  call dict_free(dict)
 
   ! Read associated pseudo files.
   call init_atomic_values((bigdft_mpi%iproc == 0), atoms, in%ixc)
@@ -237,17 +206,10 @@ subroutine standard_inputfile_names(in, radical, nproc)
   in%run_name=repeat(' ',len(in%run_name))
   if (trim(radical) /= 'input') in%run_name=trim(radical)
 
-  call set_inputfile(in%file_dft, radical,    "dft")
-  call set_inputfile(in%file_geopt, radical,  "geopt")
-  call set_inputfile(in%file_kpt, radical,    "kpt")
-  call set_inputfile(in%file_perf, radical,   "perf")
-  call set_inputfile(in%file_tddft, radical,  "tddft")
-  call set_inputfile(in%file_mix, radical,    "mix")
-  call set_inputfile(in%file_sic, radical,    "sic")
   call set_inputfile(in%file_occnum, radical, "occ")
   call set_inputfile(in%file_igpop, radical,  "occup")
   call set_inputfile(in%file_lin, radical,    "lin")
-  call set_inputfile(in%file_frag, radical,    "frag")
+  call set_inputfile(in%file_frag, radical,   "frag")
 
   if (trim(radical) == "input") then
         in%dir_output="data" // trim(bigdft_run_id_toa())
@@ -372,7 +334,51 @@ subroutine default_input_variables(in)
   nullify(in%frag%frag_index)
 END SUBROUTINE default_input_variables
 
-subroutine read_dft_from_text_format(iproc,dict,filename,dump)
+subroutine read_inputs_from_text_format(input_values, radical, iproc)
+  use module_interfaces, except => read_inputs_from_text_format
+  use dictionaries
+  use module_input_keys
+  !use yaml_output
+  implicit none
+  integer, intent(in) :: iproc
+  type(dictionary), pointer :: input_values
+  character(len = *), intent(in) :: radical
+
+  character(len = 100) :: fname
+
+  ! Parse all files.
+  call set_inputfile(fname, radical, PERF_VARIABLES)
+  call read_perf_from_text_format(iproc,input_values//PERF_VARIABLES, trim(fname))
+  call set_inputfile(fname, radical, DFT_VARIABLES)
+  call read_dft_from_text_format(iproc,input_values//DFT_VARIABLES, trim(fname))
+  call set_inputfile(fname, radical, KPT_VARIABLES)
+  call read_kpt_from_text_format(iproc,input_values//KPT_VARIABLES, trim(fname))
+  call set_inputfile(fname, radical, GEOPT_VARIABLES)
+  call read_geopt_from_text_format(iproc,input_values//GEOPT_VARIABLES, trim(fname))
+  call set_inputfile(fname, radical, MIX_VARIABLES)
+  call read_mix_from_text_format(iproc,input_values//MIX_VARIABLES, trim(fname))
+  call set_inputfile(fname, radical, SIC_VARIABLES)
+  call read_sic_from_text_format(iproc,input_values//SIC_VARIABLES, trim(fname))
+  call set_inputfile(fname, radical, TDDFT_VARIABLES)
+  call read_tddft_from_text_format(iproc,input_values//TDDFT_VARIABLES, trim(fname))
+
+  !call yaml_dict_dump(input_values)
+  
+  ! Check and complete dictionary.
+  call input_keys_init()
+  
+  call input_keys_fill(input_values//PERF_VARIABLES, PERF_VARIABLES)
+  call input_keys_fill(input_values//DFT_VARIABLES, DFT_VARIABLES)
+  call input_keys_fill(input_values//KPT_VARIABLES, KPT_VARIABLES)
+  call input_keys_fill(input_values//GEOPT_VARIABLES, GEOPT_VARIABLES)
+  call input_keys_fill(input_values//MIX_VARIABLES, MIX_VARIABLES)
+  call input_keys_fill(input_values//SIC_VARIABLES, SIC_VARIABLES)
+  call input_keys_fill(input_values//TDDFT_VARIABLES, TDDFT_VARIABLES)
+
+  call input_keys_finalize()
+end subroutine read_inputs_from_text_format
+
+subroutine read_dft_from_text_format(iproc,dict,filename)
   use module_base
   use module_types
   use module_input
@@ -383,7 +389,6 @@ subroutine read_dft_from_text_format(iproc,dict,filename,dump)
   type(dictionary), pointer :: dict
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
-  logical, intent(in) :: dump
   !local variables
   logical :: exists
   integer :: ierror
@@ -396,7 +401,7 @@ subroutine read_dft_from_text_format(iproc,dict,filename,dump)
   real(gp), dimension(3) :: dummy_real3
 
   !dft parameters, needed for the SCF part
-  call input_set_file(iproc,dump,trim(filename),exists, DFT_VARIABLES)
+  call input_set_file(iproc,(iproc == 0),trim(filename),exists, DFT_VARIABLES)
   !if (exists) in%files = in%files + INPUTS_DFT
   !call the variable, its default value, the line ends if there is a comment
   if (.not. exists) then
@@ -514,118 +519,6 @@ subroutine read_dft_from_text_format(iproc,dict,filename,dump)
 
 end subroutine read_dft_from_text_format
 
-subroutine dft_input_analyse(iproc, in, dict_dft)
-  use module_base
-  use module_types
-  use module_input
-  use dictionaries
-  use module_xc
-  use yaml_output
-  use module_input_keys
-  implicit none
-  integer, intent(in) :: iproc
-  type(input_variables), intent(inout) :: in
-  type(dictionary), pointer :: dict_dft
-
-  if (.not.associated(dict_dft)) call dict_init(dict_dft)
-
-!!$  call yaml_dict_dump(dict_dft)
-  call input_keys_fill(dict_dft, DFT_VARIABLES)
-!!$  call yaml_dict_dump(dict_dft)
-
-  !grid spacings
-  in%hx = dict_dft//HGRIDS//0
-  in%hy = dict_dft//HGRIDS//1
-  in%hz = dict_dft//HGRIDS//2
-
-  !coarse and fine radii around atoms
-  in%crmult = dict_dft//RMULT//0
-  in%frmult = dict_dft//RMULT//1
-
-  !XC functional (ABINIT XC codes)
-  in%ixc = dict_dft//IXC
-
-  !charge and electric field
-  in%ncharge = dict_dft//NCHARGE
-  in%elecfield(1) = dict_dft//ELECFIELD//0
-  in%elecfield(2) = dict_dft//ELECFIELD//1
-  in%elecfield(3) = dict_dft//ELECFIELD//2
-
-  !spin and polarization
-  in%nspin = dict_dft//NSPIN
-  in%mpol = dict_dft//MPOL
-
-  ! Initialise XC calculation
-  if (in%ixc < 0) then
-     call xc_init(in%ixc, XC_MIXED, in%nspin)
-  else
-     call xc_init(in%ixc, XC_ABINIT, in%nspin)
-  end if
-
-  !convergence parameters
-  in%gnrm_cv = dict_dft//GNRM_CV
-  in%itermax = dict_dft//ITERMAX
-  in%nrepmax = dict_dft//NREPMAX
-
-  !convergence parameters
-  in%ncong = dict_dft//NCONG
-  in%idsx = dict_dft//IDSX
-  !does not make sense a DIIS history longer than the number of iterations
-  !only if the iscf is not particular
-  in%idsx = min(in%idsx, in%itermax)
-
-  !dispersion parameter
-  in%dispersion = dict_dft//DISPERSION
-    
-  ! Now the variables which are to be used only for the last run
-  in%inputPsiId = dict_dft//INPUTPSIID
-  in%output_wf_format = dict_dft//OUTPUT_WF
-  in%output_denspot = dict_dft//OUTPUT_DENSPOT
-
-  !project however the wavefunction on gaussians if asking to write them on disk
-  ! But not if we use linear scaling version (in%inputPsiId >= 100)
-  in%gaussian_help=(in%inputPsiId >= 10 .and. in%inputPsiId < 100)
-
-  !switch on the gaussian auxiliary treatment 
-  !and the zero of the forces
-  if (in%inputPsiId == 10) then
-     in%inputPsiId = 0
-  else if (in%inputPsiId == 13) then
-     in%inputPsiId = 2
-  end if
-  ! Setup out grid parameters.
-  if (in%output_denspot >= 0) then
-     in%output_denspot_format = in%output_denspot / 10
-  else
-     in%output_denspot_format = output_denspot_FORMAT_CUBE
-     in%output_denspot = abs(in%output_denspot)
-  end if
-  in%output_denspot = modulo(in%output_denspot, 10)
-
-  ! Tail treatment.
-  in%rbuf = dict_dft//RBUF
-  in%ncongt = dict_dft//NCONGT
-
-  !davidson treatment
-  in%norbv = dict_dft//NORBV
-  in%nvirt = dict_dft//NVIRT
-  in%nplot = dict_dft//NPLOT
-!!$  call input_dict_var(in%nvirt, dict_dft//NVIRT, 0, ranges=(/0,abs(in%norbv)/))
-!!$  call input_dict_var(in%nplot, dict_dft//NPLOT, 0, ranges=(/0,abs(in%norbv)/))
-
-  ! Line to disable automatic behaviours (currently only symmetries).
-  in%disableSym = dict_dft//DISABLE_SYM
-
-  !define whether there should be a last_run after geometry optimization
-  !also the mulliken charge population should be inserted
-  if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. &
-       in%output_denspot /= output_denspot_NONE .or. in%norbv /= 0) then
-     in%last_run=-1 !last run to be done depending of the external conditions
-  else
-     in%last_run=0
-  end if
-end subroutine dft_input_analyse
-
 !> Assign default values for mixing variables
 subroutine mix_input_variables_default(in)
   use module_base
@@ -649,47 +542,54 @@ END SUBROUTINE mix_input_variables_default
 
 !> Read the input variables needed for the geometry optimisation
 !!    Every argument should be considered as mandatory
-subroutine mix_input_variables_new(iproc,dump,filename,in)
+subroutine read_mix_from_text_format(iproc,dict,filename)
   use module_base
   use module_types
   use module_input
+  use module_input_keys
+  use dictionaries
   implicit none
   !Arguments
   integer, intent(in) :: iproc
-  logical, intent(in) :: dump
+  type(dictionary), pointer :: dict
   character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
   !local variables
   !n(c) character(len=*), parameter :: subname='mix_input_variables'
   logical :: exists
+  integer :: dummy_int
+  real(gp) :: dummy_real
 
   !Mix parameters, needed for the SCF poart with Davidson
-  call input_set_file(iproc,dump,trim(filename),exists,'Mixing Parameters')  
-  if (exists) in%files = in%files + INPUTS_MIX
+  call input_set_file(iproc,(iproc == 0),trim(filename),exists,MIX_VARIABLES)
+  !if (exists) in%files = in%files + INPUTS_MIX
   !call the variable, its default value, the line ends if there is a comment
+  if (.not.exists) then
+     call input_free(.false.)
+     return
+  end if
+
+  if (.not. associated(dict)) call dict_init(dict)
 
   !Controls the self-consistency: 0 direct minimisation otherwise ABINIT convention
-  call input_var(in%iscf,'0',exclusive=(/-1,0,1,2,3,4,5,7,12,13,14,15,17/),&
-       comment="Mixing parameters")
-  call input_var(in%itrpmax,'1',ranges=(/0,10000/),&
-       comment="Maximum number of diagonalisation iterations")
-  call input_var(in%rpnrm_cv,'1.e-4',ranges=(/0.0_gp,10.0_gp/),&
-       comment="Stop criterion on the residue of potential or density")
-  call input_var(in%norbsempty,'0',ranges=(/0,10000/))
-  call input_var(in%Tel,'0.0',ranges=(/0.0_gp,1.0e6_gp/)) 
-  call input_var(in%occopt,'1',ranges=(/1,5/),&
-       comment="No. of additional bands, elec. temperature, smearing method")
-  call input_var(in%alphamix,'0.0',ranges=(/0.0_gp,1.0_gp/))
-  call input_var(in%alphadiis,'2.0',ranges=(/0.0_gp,10.0_gp/),&
-       comment="Multiplying factors for the mixing and the electronic DIIS")
+  call input_var(dummy_int,'0',comment="")
+  call set(dict // ISCF, dummy_int)
+  call input_var(dummy_int,'1',comment="")
+  call set(dict // ITRPMAX, dummy_int)
+  call input_var(dummy_real,'1.e-4',comment="")
+  call set(dict // RPNRM_CV, dummy_real, fmt = "(E8.1)")
+  call input_var(dummy_int,'0')
+  call set(dict // NORBSEMPTY, dummy_int)
+  call input_var(dummy_real,'0.0') 
+  call set(dict // TEL, dummy_real, fmt = "(F5.2)")
+  call input_var(dummy_int,'1',comment="")
+  call set(dict // OCCOPT, dummy_int)
+  call input_var(dummy_real,'0.0')
+  call set(dict // ALPHAMIX, dummy_real, fmt = "(F6.3)")
+  call input_var(dummy_real,'2.0',comment="")
+  call set(dict // ALPHADIIS, dummy_real, fmt = "(F6.3)")
 
-  call input_free((iproc == 0) .and. dump)
-
-  !put the startmix if the mixing has to be done
-  if (in%iscf >  SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
-
-END SUBROUTINE mix_input_variables_new
-
+  call input_free(.false.)
+END SUBROUTINE read_mix_from_text_format
 
 !> Assign default values for GEOPT variables
 subroutine geopt_input_variables_default(in)
@@ -717,7 +617,7 @@ END SUBROUTINE geopt_input_variables_default
 
 !> Read the input variables needed for the geometry optimisation
 !! Every argument should be considered as mandatory
-subroutine read_geopt_from_text_format(iproc,dict,filename,dump)
+subroutine read_geopt_from_text_format(iproc,dict,filename)
   use module_base
   use module_types
   use module_input
@@ -725,7 +625,6 @@ subroutine read_geopt_from_text_format(iproc,dict,filename,dump)
   use dictionaries
   implicit none
   integer, intent(in) :: iproc
-  logical, intent(in) :: dump
   character(len=*), intent(in) :: filename
   type(dictionary), pointer :: dict
   !local variables
@@ -738,7 +637,7 @@ subroutine read_geopt_from_text_format(iproc,dict,filename,dump)
   real(gp) :: dummy_real
 
   !geometry input parameters
-  call input_set_file(iproc,dump,trim(filename),exists,GEOPT_VARIABLES)  
+  call input_set_file(iproc,(iproc == 0),trim(filename),exists,GEOPT_VARIABLES)  
   !if (exists) in%files = in%files + INPUTS_GEOPT
   !call the variable, its default value, the line ends if there is a comment
   if (.not. exists) then
@@ -798,12 +697,12 @@ subroutine read_geopt_from_text_format(iproc,dict,filename,dump)
      end if
   else if (case_insensitive_equiv(trim(dummy_str),"DIIS")) then
      call input_var(dummy_real,'2.0')
-     call set(dict // BETAX, dummy_real, fmt = "(E8.2)")
+     call set(dict // BETAX, dummy_real, fmt = "(F6.3)")
      call input_var(dummy_int,'4',comment="")
      call set(dict // HISTORY, dummy_int)
   else
      call input_var(dummy_real,'4.0',comment="")
-     call set(dict // BETAX, dummy_real, fmt = "(E8.2)")
+     call set(dict // BETAX, dummy_real, fmt = "(F6.3)")
   end if
   if (case_insensitive_equiv(trim(dummy_str),"FIRE")) then
      call input_var(dummy_real,'0.75')
@@ -832,31 +731,37 @@ END SUBROUTINE sic_input_variables_default
 
 
 !> Read Self-Interaction Correction (SIC) input parameters
-subroutine sic_input_variables_new(iproc,dump,filename,in)
-  use module_base
-  use module_types
+subroutine read_sic_from_text_format(iproc,dict,filename)
   use module_input
+  use module_input_keys
+  use dictionaries
   implicit none
   integer, intent(in) :: iproc
-  logical, intent(in) :: dump
+  type(dictionary), pointer :: dict
   character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
   !local variables
   logical :: exists
   !n(c) character(len=*), parameter :: subname='sic_input_variables'
+  double precision :: dummy_real
+  character(len = 4) :: dummy_str
 
   !Self-Interaction Correction input parameters
-  call input_set_file(iproc,dump,trim(filename),exists,'SIC Parameters')  
-  if (exists) in%files = in%files + INPUTS_SIC
+  call input_set_file(iproc,(iproc == 0),trim(filename),exists,'SIC Parameters')  
+  !if (exists) in%files = in%files + INPUTS_SIC
+  if (.not.exists) then
+     call input_free(.false.)
+     return
+  end if
 
-  call input_var(in%SIC%approach,'NONE',exclusive=(/'NONE','PZ  ','NK  '/),comment='SIC method: NONE, PZ, NK')
-  call input_var(in%SIC%alpha,'0.0',ranges=(/0.0_gp,1.0_gp/),comment='SIC downscaling parameter')
-  call input_var(in%SIC%fref,'0.0',ranges=(/0.0_gp,1.0_gp/),comment='Reference occupation fref (NK case only)')
-  in%SIC%ixc=in%ixc
-  call input_free((iproc == 0) .and. dump)
+  call input_var(dummy_str,'NONE',comment='')
+  call set(dict // SIC_APPROACH, dummy_str)
+  call input_var(dummy_real,'0.0',comment='')
+  call set(dict // SIC_ALPHA, dummy_real, fmt = "(E8.2)")
+  call input_var(dummy_real,'0.0',comment='')
+  call set(dict // SIC_FREF, dummy_real, fmt = "(E8.2)")
 
-END SUBROUTINE sic_input_variables_new
-
+  call input_free(.false.)
+END SUBROUTINE read_sic_from_text_format
 
 !> Read linear input parameters
 subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
@@ -1080,32 +985,38 @@ subroutine tddft_input_variables_default(in)
 
 END SUBROUTINE tddft_input_variables_default
 
-
-subroutine tddft_input_variables_new(iproc,dump,filename,in)
-  use module_base
-  use module_types
+subroutine read_tddft_from_text_format(iproc,dict,filename)
   use module_input
+  use module_input_keys
+  use dictionaries
   implicit none
   integer, intent(in) :: iproc
-  logical, intent(in) :: dump
+  type(dictionary), pointer :: dict
   character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
   !local variables
   logical :: exists
   !n(c) character(len=*), parameter :: subname='tddft_input_variables'
+  character(len = 4) :: dummy_str
 
   !TD-DFT parameters
-  call input_set_file(iproc,dump,trim(filename),exists,'TD-DFT Parameters')  
-  if (exists) in%files = in%files + INPUTS_TDDFT
+  call input_set_file(iproc,(iproc == 0),trim(filename),exists,'TD-DFT Parameters')  
+  !if (exists) in%files = in%files + INPUTS_TDDFT
   !call the variable, its default value, the line ends if there is a comment
+  if (.not. exists) then
+     call input_free(.false.)
+     return
+  end if
 
-  call input_var(in%tddft_approach,"NONE",exclusive=(/'NONE','TDA '/),&
-       comment="TDDFT Method")
-  call input_free((iproc == 0) .and. dump)
+  if (.not. associated(dict)) call dict_init(dict)
 
-END SUBROUTINE tddft_input_variables_new
+  call input_var(dummy_str,"NONE",comment="")
+  call set(dict // TDDFT_APPROACH, dummy_str)
 
-subroutine read_kpt_from_text_format(iproc,dict,filename,dump)
+  call input_free(.false.)
+
+END SUBROUTINE read_tddft_from_text_format
+
+subroutine read_kpt_from_text_format(iproc,dict,filename)
   use module_base
   use module_types
   use dictionaries
@@ -1114,7 +1025,6 @@ subroutine read_kpt_from_text_format(iproc,dict,filename,dump)
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
-  logical, intent(in) :: dump
   type(dictionary), pointer :: dict
   !local variables
   logical :: exists
@@ -1127,7 +1037,7 @@ subroutine read_kpt_from_text_format(iproc,dict,filename,dump)
   character(len = max_field_length) :: dummy_str
 
   !kpt parameters, needed for the SCF part
-  call input_set_file(iproc,dump,trim(filename),exists, KPT_VARIABLES)
+  call input_set_file(iproc,(iproc == 0),trim(filename),exists, KPT_VARIABLES)
   !if (exists) in%files = in%files + INPUTS_KPT
   !call the variable, its default value, the line ends if there is a comment
   if (.not. exists) then
@@ -1223,169 +1133,124 @@ subroutine read_kpt_from_text_format(iproc,dict,filename,dump)
 end subroutine read_kpt_from_text_format
 
 !> Read the input variables which can be used for performances
-subroutine perf_input_variables(iproc,dump,filename,in)
-  use module_base
-  use module_types
+subroutine read_perf_from_text_format(iproc,dict,filename)
   use module_input
-  use yaml_strings
-  use yaml_output
+  use module_input_keys
+  use dictionaries
   implicit none
   character(len=*), intent(in) :: filename
+  type(dictionary), pointer :: dict
   integer, intent(in) :: iproc
-  logical, intent(in) :: dump
-  type(input_variables), intent(inout) :: in
   !local variables
   !n(c) character(len=*), parameter :: subname='perf_input_variables'
-  logical :: exists
-  integer :: ierr,blocks(2),ipos,i,iproc_node,nproc_node
+  logical :: exists, dummy_bool
+  integer :: dummy_int, blocks(2)
+  double precision :: dummy_real
+  character(len = 7) :: dummy_str
+  character(len = max_field_length) :: dummy_path
 
-  call input_set_file(iproc, dump, filename, exists,'Performance Options')
-  if (exists) in%files = in%files + INPUTS_PERF
-  !Use Linear scaling methods
-  in%linear=INPUT_IG_OFF
+  call input_set_file(iproc, (iproc == 0), filename, exists, PERF_VARIABLES)
+  !if (exists) in%files = in%files + INPUTS_PERF
+  if (.not. exists) then
+     call input_free(.false.)
+     return
+  end if
 
-  in%matacc=material_acceleration_null()
+  if (.not. associated(dict)) call dict_init(dict)
 
-  call input_var("debug", .false., "Debug option", in%debug)
-  call input_var("fftcache", 8*1024, "Cache size for the FFT", in%ncache_fft)
-  call input_var("accel", 7, "NO     ", &
-       (/ "NO     ", "CUDAGPU", "OCLGPU ", "OCLCPU ", "OCLACC " /), &
-       & "Acceleration", in%matacc%iacceleration)
+  call input_var("debug", .false., "Debug option", dummy_bool)
+  call set(dict // DEBUG, dummy_bool)
+  call input_var("fftcache", 8*1024, "Cache size for the FFT", dummy_int)
+  call set(dict // FFTCACHE, dummy_int)
+  call input_var("accel", "NO", "Acceleration", dummy_str)
+  call set(dict // ACCEL, dummy_str)
 
   !determine desired OCL platform which is used for acceleration
-  call input_var("OCL_platform",repeat(' ',len(in%matacc%OCL_platform)), &
-       & "Chosen OCL platform", in%matacc%OCL_platform)
-  ipos=min(len(in%matacc%OCL_platform),len(trim(in%matacc%OCL_platform))+1)
-  do i=ipos,len(in%matacc%OCL_platform)
-     in%matacc%OCL_platform(i:i)=achar(0)
-  end do
-  call input_var("OCL_devices",repeat(' ',len(in%matacc%OCL_devices)), &
-       & "Chosen OCL devices", in%matacc%OCL_devices)
-  ipos=min(len(in%matacc%OCL_devices),len(trim(in%matacc%OCL_devices))+1)
-  do i=ipos,len(in%matacc%OCL_devices)
-     in%matacc%OCL_devices(i:i)=achar(0)
-  end do
+  call input_var("OCL_platform"," ", "Chosen OCL platform", dummy_str)
+  call set(dict // OCL_PLATFORM, dummy_str)
+  call input_var("OCL_devices"," ", "Chosen OCL devices", dummy_str)
+  call set(dict // OCL_DEVICES, dummy_str)
 
   !!@TODO to relocate
-  call input_var("blas", .false., "CUBLAS acceleration", GPUblas)
-  call input_var("projrad", 15.0d0, &
-       & "Radius of the projector as a function of the maxrad", in%projrad)
-  call input_var("exctxpar", "OP2P", &
-       & "Exact exchange parallelisation scheme", in%exctxpar)
-  call input_var("ig_diag", .true., &
-       & "Input guess: (T:Direct, F:Iterative) diag. of Ham.", &
-       & in%orthpar%directDiag)
-  call input_var("ig_norbp", 5, &
-       & "Input guess: Orbitals per process for iterative diag.", &
-       & in%orthpar%norbpInguess)
-  call input_var("ig_blocks", (/ 300, 800 /), &
-       & "Input guess: Block sizes for orthonormalisation", blocks)
-  call input_var("ig_tol", 1d-4, &
-       & "Input guess: Tolerance criterion", in%orthpar%iguessTol)
-  call input_var("methortho", 0, (/ 0, 1, 2 /), &
-       & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", in%orthpar%methOrtho)
-  call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",&
-       in%rho_commun)
-  call input_var("psolver_groupsize",0, "Size of Poisson Solver taskgroups (0=nproc)", in%PSolver_groupsize)
-  call input_var("psolver_accel",0, "Acceleration of the Poisson Solver (0=none, 1=CUDA)", in%matacc%PSolver_igpu)
-  call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
-       in%unblock_comms)
-  call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
-       & "Linear Input Guess approach",in%linear)
-  call input_var("tolsym", 1d-8, "Tolerance for symmetry detection",in%symTol)
-  call input_var("signaling", .false., "Expose calculation results on Network",in%signaling)
-  call input_var("signalTimeout", 0, "Time out on startup for signal connection",in%signalTimeout)  
-  call input_var("domain", "", "Domain to add to the hostname to find the IP", in%domain)
-  call input_var("inguess_geopt", 0,(/0,1/),"0= wavlet input guess, 1= real space input guess",in%inguess_geopt)
-  call input_var("store_index", .true., "linear scaling: store indices or recalculate them", in%store_index)
+  call input_var("blas", .false., "CUBLAS acceleration", dummy_bool)
+  call set(dict // BLAS, dummy_bool)
+  call input_var("projrad", 15.0d0, "Radius ", dummy_real)
+  call set(dict // PROJRAD, dummy_real)
+  call input_var("exctxpar", "OP2P", "Exact exchange parallelisation scheme", dummy_str)
+  call set(dict // EXCTXPAR, dummy_str)
+  call input_var("ig_diag", .true.,"Input guess", dummy_bool)
+  call set(dict // IG_DIAG, dummy_bool)
+  call input_var("ig_norbp", 5, "Input guess: ", dummy_int)
+  call set(dict // IG_NORBP, dummy_int)
+  call input_var("ig_blocks", (/ 300, 800 /), "Input guess: ", blocks)
+  call set(dict // IG_BLOCKS // 0, blocks(1))
+  call set(dict // IG_BLOCKS // 1, blocks(2))
+  call input_var("ig_tol", 1d-4, "Input guess: Tolerance criterion", dummy_real)
+  call set(dict // IG_TOL, dummy_real)
+  call input_var("methortho", 0, "Orthogonalisation ", dummy_int)
+  call set(dict // METHORTHO, dummy_int)
+  call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",dummy_str)
+  call set(dict // RHO_COMMUN, dummy_str)
+  call input_var("psolver_groupsize",0, "Size of ", dummy_int)
+  call set(dict // PSOLVER_GROUPSIZE, dummy_int)
+  call input_var("psolver_accel",0, "Acceleration ", dummy_int)
+  call set(dict // PSOLVER_ACCEL, dummy_int)
+  call input_var("unblock_comms", "OFF", "Overlap Com)",dummy_str)
+  call set(dict // UNBLOCK_COMMS, dummy_str)
+  call input_var("linear", 'OFF', "Linear Input Guess approach",dummy_str)
+  call set(dict // LINEAR, dummy_str)
+  call input_var("tolsym", 1d-8, "Tolerance for symmetry detection",dummy_real)
+  call set(dict // TOLSYM, dummy_real)
+  call input_var("signaling", .false., "Expose calculation results on Network",dummy_bool)
+  call set(dict // SIGNALING, dummy_bool)
+  call input_var("signalTimeout", 0, "Time out on startup for signal connection",dummy_int)  
+  call set(dict // SIGNALTIMEOUT, dummy_int)
+  call input_var("domain", "", "Domain to add to the hostname to find the IP", dummy_str)
+  call set(dict // DOMAIN, dummy_str)
+  call input_var("inguess_geopt", 0,"0= wavlet input ",dummy_int)
+  call set(dict // INGUESS_GEOPT, dummy_int)
+  call input_var("store_index", .true., "linear scaling: store ", dummy_bool)
+  call set(dict // STORE_INDEX, dummy_bool)
   !verbosity of the output
-  call input_var("verbosity", 2,(/0,1,2,3/), &
-     & "verbosity of the output 0=low, 2=high",in%verbosity)
-  in%writing_directory=repeat(' ',len(in%writing_directory))
-  call input_var("outdir", ".","Writing directory", in%writing_directory)
+  call input_var("verbosity", 2, "rbosity of the output 0=low, 2=high",dummy_int)
+  call set(dict // VERBOSITY, dummy_int)
+  call input_var("outdir", ".","Writing directory", dummy_path)
+  call set(dict // OUTDIR, dummy_path)
 
   !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
-  call input_var("psp_onfly", .true., &
-       & "Calculate pseudopotential projectors on the fly",DistProjApply)
+  call input_var("psp_onfly", .true., "Calculate ",dummy_bool)
+  call set(dict // PSP_ONFLY, dummy_bool)
  
   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
-  call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",in%lin%blocksize_pdsyev) !ranges=(/-100,1000/)
-  call input_var("pdgemm_blocksize",-8,"SCALAPACK linear scaling blocksize",in%lin%blocksize_pdgemm) !ranges=(/-100,1000/)
+  call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)
+  call set(dict // PDSYEV_BLOCKSIZE, dummy_int)
+  call input_var("pdgemm_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)
+  call set(dict // PDGEMM_BLOCKSIZE, dummy_int)
   
   !max number of process uses for pdsyev/pdsygv, pdgemm
-  call input_var("maxproc_pdsyev",4,"SCALAPACK linear scaling max num procs",in%lin%nproc_pdsyev) !ranges=(/1,100000/)
-  call input_var("maxproc_pdgemm",4,"SCALAPACK linear scaling max num procs",in%lin%nproc_pdgemm) !ranges=(/1,100000/)
+  call input_var("maxproc_pdsyev",4,"SCALAPACK linear scaling max num procs",dummy_int) !ranges=(/1,100000/)
+  call set(dict // MAXPROC_PDSYEV, dummy_int)
+  call input_var("maxproc_pdgemm",4,"SCALAPACK linear scaling max num procs",dummy_int) !ranges=(/1,100000/)
+  call set(dict // MAXPROC_PDGEMM, dummy_int)
 
   !FOE: if the determinant of the interpolation matrix to find the Fermi energy
   !is smaller than this value, switch from cubic to linear interpolation.
-  call input_var("ef_interpol_det",1.d-20,"FOE: max determinant of cubic interpolation matrix",&
-       in%lin%ef_interpol_det)
-  call input_var("ef_interpol_chargediff",10.d0,"FOE: max charge difference for interpolation",&
-       in%lin%ef_interpol_chargediff)
+  call input_var("ef_interpol_det",1.d-20,"FOE: max ",dummy_real)
+  call set(dict // EF_INTERPOL_DET, dummy_real)
+  call input_var("ef_interpol_chargediff",10.d0,"FOE: max ",dummy_real)
+  call set(dict // EF_INTERPOL_CHARGEDIFF, dummy_real)
 
   !determines whether a mixing step shall be preformed after the input guess !(linear version)
-  call input_var("mixing_after_inputguess",.true.,"mixing step after linear input guess (T/F)",&
-       in%lin%mixing_after_inputguess)
+  call input_var("mixing_after_inputguess",.true.,"mixing  (T/F)",dummy_bool)
+  call set(dict // MIXING_AFTER_INPUTGUESS, dummy_bool)
 
   !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
-  call input_var("iterative_orthogonalization",.false.,"iterative_orthogonalization for input guess orbitals",&
-       in%lin%iterative_orthogonalization)
+  call input_var("iterative_orthogonalization",.false.," orbitals",dummy_bool)
+  call set(dict // ITERATIVE_ORTHOGONALIZATION, dummy_bool)
 
-!  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
-  if (in%verbosity == 0 ) then
-     call f_malloc_set_status(output_level=0)
-     !call memocc_set_state(0)
-  end if
+  call input_free(.false.)
 
-  !here the logfile should be opened in the usual way, differentiating between 
-  ! logfiles in case of multiple taskgroups
-  if (trim(in%writing_directory) /= '.' .or. bigdft_mpi%ngroup > 1) then
-     call create_log_file(iproc,in)
-  else
-     !use stdout, do not crash if unit is present
-     if (iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
-  end if
-  !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
-  if (iproc==0) then
-     !start writing on logfile
-     call yaml_new_document()
-     !welcome screen
-     if (dump) call print_logo()
-  end if
-  if (bigdft_mpi%nproc >1) call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
-  if (iproc ==0 .and. dump) then
-     if (bigdft_mpi%nproc >1) call yaml_map('MPI tasks of root process node',nproc_node)
-     call print_configure_options()
-  end if
-  !call input_free((iproc == 0) .and. dump)
-
-  call input_free(iproc==0)
-
-  !Block size used for the orthonormalization
-  in%orthpar%bsLow = blocks(1)
-  in%orthpar%bsUp  = blocks(2)
-  
-  ! Set performance variables
-  if (.not. in%debug) then
-     call f_malloc_set_status(output_level=1)
-     !call memocc_set_state(1)
-  end if
-  call set_cache_size(in%ncache_fft)
-
-  !Check after collecting all values
-  if(.not.in%orthpar%directDiag .or. in%orthpar%methOrtho==1) then 
-     write(*,'(1x,a)') 'Input Guess: Block size used for the orthonormalization (ig_blocks)'
-     if(in%orthpar%bsLow==in%orthpar%bsUp) then
-        write(*,'(5x,a,i0)') 'Take block size specified by user: ',in%orthpar%bsLow
-     else if(in%orthpar%bsLow<in%orthpar%bsUp) then
-        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',in%orthpar%bsLow,' and ',in%orthpar%bsUp
-     else
-        write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
-        call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-     end if
-     write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
-  end if
-END SUBROUTINE perf_input_variables
+END SUBROUTINE read_perf_from_text_format
 
 
 !> Read fragment input parameters
@@ -2834,6 +2699,112 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
 
 END SUBROUTINE initialize_atomic_file
 
+subroutine dft_input_analyse(iproc, in, dict_dft)
+  use module_base
+  use module_types
+  use module_input
+  use dictionaries
+  use module_xc
+  use yaml_output
+  use module_input_keys
+  implicit none
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: in
+  type(dictionary), pointer :: dict_dft
+
+  !grid spacings
+  in%hx = dict_dft//HGRIDS//0
+  in%hy = dict_dft//HGRIDS//1
+  in%hz = dict_dft//HGRIDS//2
+
+  !coarse and fine radii around atoms
+  in%crmult = dict_dft//RMULT//0
+  in%frmult = dict_dft//RMULT//1
+
+  !XC functional (ABINIT XC codes)
+  in%ixc = dict_dft//IXC
+
+  !charge and electric field
+  in%ncharge = dict_dft//NCHARGE
+  in%elecfield(1) = dict_dft//ELECFIELD//0
+  in%elecfield(2) = dict_dft//ELECFIELD//1
+  in%elecfield(3) = dict_dft//ELECFIELD//2
+
+  !spin and polarization
+  in%nspin = dict_dft//NSPIN
+  in%mpol = dict_dft//MPOL
+
+  ! Initialise XC calculation
+  if (in%ixc < 0) then
+     call xc_init(in%ixc, XC_MIXED, in%nspin)
+  else
+     call xc_init(in%ixc, XC_ABINIT, in%nspin)
+  end if
+
+  !convergence parameters
+  in%gnrm_cv = dict_dft//GNRM_CV
+  in%itermax = dict_dft//ITERMAX
+  in%nrepmax = dict_dft//NREPMAX
+
+  !convergence parameters
+  in%ncong = dict_dft//NCONG
+  in%idsx = dict_dft//IDSX
+  !does not make sense a DIIS history longer than the number of iterations
+  !only if the iscf is not particular
+  in%idsx = min(in%idsx, in%itermax)
+
+  !dispersion parameter
+  in%dispersion = dict_dft//DISPERSION
+    
+  ! Now the variables which are to be used only for the last run
+  in%inputPsiId = dict_dft//INPUTPSIID
+  in%output_wf_format = dict_dft//OUTPUT_WF
+  in%output_denspot = dict_dft//OUTPUT_DENSPOT
+
+  !project however the wavefunction on gaussians if asking to write them on disk
+  ! But not if we use linear scaling version (in%inputPsiId >= 100)
+  in%gaussian_help=(in%inputPsiId >= 10 .and. in%inputPsiId < 100)
+
+  !switch on the gaussian auxiliary treatment 
+  !and the zero of the forces
+  if (in%inputPsiId == 10) then
+     in%inputPsiId = 0
+  else if (in%inputPsiId == 13) then
+     in%inputPsiId = 2
+  end if
+  ! Setup out grid parameters.
+  if (in%output_denspot >= 0) then
+     in%output_denspot_format = in%output_denspot / 10
+  else
+     in%output_denspot_format = output_denspot_FORMAT_CUBE
+     in%output_denspot = abs(in%output_denspot)
+  end if
+  in%output_denspot = modulo(in%output_denspot, 10)
+
+  ! Tail treatment.
+  in%rbuf = dict_dft//RBUF
+  in%ncongt = dict_dft//NCONGT
+
+  !davidson treatment
+  in%norbv = dict_dft//NORBV
+  in%nvirt = dict_dft//NVIRT
+  in%nplot = dict_dft//NPLOT
+!!$  call input_dict_var(in%nvirt, dict_dft//NVIRT, 0, ranges=(/0,abs(in%norbv)/))
+!!$  call input_dict_var(in%nplot, dict_dft//NPLOT, 0, ranges=(/0,abs(in%norbv)/))
+
+  ! Line to disable automatic behaviours (currently only symmetries).
+  in%disableSym = dict_dft//DISABLE_SYM
+
+  !define whether there should be a last_run after geometry optimization
+  !also the mulliken charge population should be inserted
+  if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. &
+       in%output_denspot /= output_denspot_NONE .or. in%norbv /= 0) then
+     in%last_run=-1 !last run to be done depending of the external conditions
+  else
+     in%last_run=0
+  end if
+end subroutine dft_input_analyse
+
 subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_base
   use module_types
@@ -2864,12 +2835,6 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   call free_kpt_variables(in)
   nullify(in%kptv, in%nkptsv_group)
   nullify(in%gen_kpt, in%gen_wkpt)
-
-  if (.not.associated(dict)) call dict_init(dict)
-
-!!$  call yaml_dict_dump(dict_dft)
-  call input_keys_fill(dict, KPT_VARIABLES)
-!!$  call yaml_dict_dump(dict)
 
   method = dict // KPT_METHOD
   if (input_keys_equal(trim(method), 'auto')) then
@@ -3011,6 +2976,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
      allocate(in%kptv(3,in%nkptv+ndebug),stat=i_stat)
      call memocc(i_stat,in%kptv,'in%kptv',subname)
 
+     ikpt = 0
      do i=1,nseg
         iseg_ = dict // ISEG // (i-1)
         ikpt=ikpt+iseg_
@@ -3071,11 +3037,6 @@ subroutine geopt_input_analyse(iproc,in,dict)
   character(len = max_field_length) :: prof, meth
   real(gp) :: betax_, dtmax_
 
-  if (.not.associated(dict)) call dict_init(dict)
-
-!!$  call yaml_dict_dump(dict_dft)
-  call input_keys_fill(dict, GEOPT_VARIABLES)
-!!$  call yaml_dict_dump(dict)
   ! Additional treatments.
   meth = dict // GEOPT_METHOD
   if (input_keys_equal(trim(meth), "FIRE")) then
@@ -3151,3 +3112,227 @@ subroutine geopt_input_analyse(iproc,in,dict)
      in%dtmax = dict // DTMAX
   endif
 END SUBROUTINE geopt_input_analyse
+
+subroutine mix_input_analyse(iproc,in,dict)
+  use module_base
+  use module_types
+  use module_input_keys
+  use dictionaries
+  implicit none
+  !Arguments
+  integer, intent(in) :: iproc
+  type(dictionary), pointer :: dict
+  type(input_variables), intent(inout) :: in
+  !local variables
+  !n(c) character(len=*), parameter :: subname='mix_input_variables'
+
+  in%iscf = dict // ISCF
+  
+  in%itrpmax = dict // ITRPMAX
+  in%rpnrm_cv = dict // RPNRM_CV
+
+  in%norbsempty = dict // NORBSEMPTY
+  in%Tel = dict // TEL
+  in%occopt = dict // OCCOPT
+
+  in%alphamix = dict // ALPHAMIX
+  in%alphadiis = dict //ALPHADIIS
+
+  !put the startmix if the mixing has to be done
+  if (in%iscf >  SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
+
+END SUBROUTINE mix_input_analyse
+
+subroutine sic_input_analyse(iproc,in,dict,ixc_)
+  use module_base
+  use module_types
+  use module_input_keys
+  use dictionaries
+  implicit none
+  !Arguments
+  integer, intent(in) :: iproc
+  type(dictionary), pointer :: dict
+  type(input_variables), intent(inout) :: in
+  integer, intent(in) :: ixc_
+  !local variables
+  !n(c) character(len=*), parameter :: subname='sic_input_variables'
+
+  in%SIC%approach(1:len(in%SIC%approach)) = dict // SIC_APPROACH
+  in%SIC%alpha = dict // SIC_ALPHA
+  if (input_keys_equal(trim(in%SIC%approach), "NK")) in%SIC%fref = dict // SIC_FREF
+  in%SIC%ixc = ixc_
+
+END SUBROUTINE sic_input_analyse
+
+subroutine tddft_input_analyse(iproc,in,dict)
+  use module_base
+  use module_types
+  use module_input_keys
+  use dictionaries
+  implicit none
+  integer, intent(in) :: iproc
+  type(dictionary), pointer :: dict
+  type(input_variables), intent(inout) :: in
+  !local variables
+  !n(c) character(len=*), parameter :: subname='tddft_input_variables'
+
+  !TD-DFT parameters
+  in%tddft_approach(1:len(in%tddft_approach)) = dict // TDDFT_APPROACH
+
+END SUBROUTINE tddft_input_analyse
+
+!> Read the input variables which can be used for performances
+subroutine perf_input_analyse(iproc,in,dict)
+  use module_base
+  use module_types
+  use module_input_keys
+  use yaml_strings
+  use yaml_output
+  use dictionaries
+  implicit none
+  integer, intent(in) :: iproc
+  type(dictionary), pointer :: dict
+  type(input_variables), intent(inout) :: in
+  !local variables
+  !n(c) character(len=*), parameter :: subname='perf_input_variables'
+  integer :: ierr,ipos,i,iproc_node,nproc_node
+  character(len = 7) :: val
+
+  ! Performence and setting-up options
+  ! ----------------------------------
+  in%debug = dict // DEBUG
+  if (.not. in%debug) then
+     call f_malloc_set_status(output_level=1)
+     !call memocc_set_state(1)
+  end if
+  in%ncache_fft = dict // FFTCACHE
+  call set_cache_size(in%ncache_fft)
+  in%verbosity = dict // VERBOSITY
+  if (in%verbosity == 0 ) then
+     call f_malloc_set_status(output_level=0)
+     !call memocc_set_state(0)
+  end if
+  in%writing_directory = dict // OUTDIR
+  !here the logfile should be opened in the usual way, differentiating between 
+  ! logfiles in case of multiple taskgroups
+  if (trim(in%writing_directory) /= '.' .or. bigdft_mpi%ngroup > 1) then
+     call create_log_file(iproc,in)
+  else
+     !use stdout, do not crash if unit is present
+     if (iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
+  end if
+
+  !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+  if (iproc==0) then
+     !start writing on logfile
+     call yaml_new_document()
+     !welcome screen
+     call print_logo()
+  end if
+  if (bigdft_mpi%nproc >1) call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
+  if (iproc ==0) then
+     if (bigdft_mpi%nproc >1) call yaml_map('MPI tasks of root process node',nproc_node)
+     call print_configure_options()
+  end if
+
+  ! Miscellaneous options
+  ! ---------------------
+  in%symTol = dict // TOLSYM
+  in%projrad = dict // PROJRAD
+  in%exctxpar = dict // EXCTXPAR
+  in%inguess_geopt = dict // INGUESS_GEOPT
+
+  ! Material acceleration options
+  ! -----------------------------
+  in%matacc=material_acceleration_null()
+  val = dict // ACCEL
+  if (input_keys_equal(trim(val), "CUDAGPU")) then
+     in%matacc%iacceleration = 1
+  else if (input_keys_equal(trim(val), "OCLGPU")) then
+     in%matacc%iacceleration = 2
+  else if (input_keys_equal(trim(val), "OCLCPU")) then
+     in%matacc%iacceleration = 3
+  else if (input_keys_equal(trim(val), "OCLACC")) then
+     in%matacc%iacceleration = 4
+  else 
+     in%matacc%iacceleration = 0
+  end if
+  !determine desired OCL platform which is used for acceleration
+  in%matacc%OCL_platform = dict // OCL_PLATFORM
+  ipos=min(len(in%matacc%OCL_platform),len(trim(in%matacc%OCL_platform))+1)
+  do i=ipos,len(in%matacc%OCL_platform)
+     in%matacc%OCL_platform(i:i)=achar(0)
+  end do
+  in%matacc%OCL_devices = dict // OCL_DEVICES
+  ipos=min(len(in%matacc%OCL_devices),len(trim(in%matacc%OCL_devices))+1)
+  do i=ipos,len(in%matacc%OCL_devices)
+     in%matacc%OCL_devices(i:i)=achar(0)
+  end do
+  in%matacc%PSolver_igpu = dict // PSOLVER_ACCEL
+
+  ! Signaling parameters
+  in%signaling = dict // SIGNALING
+  in%signalTimeout = dict // SIGNALTIMEOUT
+  in%domain = dict // DOMAIN
+
+  !!@TODO to relocate
+  GPUblas = dict // BLAS
+  DistProjApply = dict // PSP_ONFLY 
+
+  in%orthpar%directDiag = dict // IG_DIAG
+  in%orthpar%norbpInguess = dict // IG_NORBP
+  in%orthpar%iguessTol = dict // IG_TOL
+  in%orthpar%methOrtho = dict // METHORTHO
+  !Block size used for the orthonormalization
+  in%orthpar%bsLow = dict // IG_BLOCKS // 0
+  in%orthpar%bsUp  = dict // IG_BLOCKS // 1
+  !Check after collecting all values
+  if(.not.in%orthpar%directDiag .or. in%orthpar%methOrtho==1) then 
+     write(*,'(1x,a)') 'Input Guess: Block size used for the orthonormalization (ig_blocks)'
+     if(in%orthpar%bsLow==in%orthpar%bsUp) then
+        write(*,'(5x,a,i0)') 'Take block size specified by user: ',in%orthpar%bsLow
+     else if(in%orthpar%bsLow<in%orthpar%bsUp) then
+        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',in%orthpar%bsLow,' and ',in%orthpar%bsUp
+     else
+        write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
+        call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+     end if
+     write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
+  end if
+
+  in%rho_commun = dict // RHO_COMMUN
+  in%PSolver_groupsize = dict // PSOLVER_GROUPSIZE
+  in%unblock_comms = dict // UNBLOCK_COMMS
+
+  !Use Linear scaling methods
+  val = dict // LINEAR
+  if (input_keys_equal(trim(val), "LIG")) then
+     in%linear = INPUT_IG_LIG
+  else if (input_keys_equal(trim(val), "FUL")) then
+     in%linear = INPUT_IG_FULL
+  else if (input_keys_equal(trim(val), "TMO")) then
+     in%linear = INPUT_IG_TMO
+  else
+     in%linear = INPUT_IG_OFF
+  end if
+
+  in%store_index = dict // STORE_INDEX
+
+  !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+  in%lin%blocksize_pdsyev = dict // PDSYEV_BLOCKSIZE
+  in%lin%blocksize_pdgemm = dict // PDGEMM_BLOCKSIZE
+  !max number of process uses for pdsyev/pdsygv, pdgemm
+  in%lin%nproc_pdsyev = dict // MAXPROC_PDSYEV
+  in%lin%nproc_pdgemm = dict // MAXPROC_PDGEMM
+  !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+  !is smaller than this value, switch from cubic to linear interpolation.
+  in%lin%ef_interpol_det = dict // EF_INTERPOL_DET
+  in%lin%ef_interpol_chargediff = dict // EF_INTERPOL_CHARGEDIFF
+  !determines whether a mixing step shall be preformed after the input guess !(linear version)
+  in%lin%mixing_after_inputguess = dict // MIXING_AFTER_INPUTGUESS
+  !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
+  in%lin%iterative_orthogonalization = dict // ITERATIVE_ORTHOGONALIZATION
+
+!  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
+END SUBROUTINE perf_input_analyse
+

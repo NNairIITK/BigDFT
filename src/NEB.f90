@@ -189,9 +189,6 @@ MODULE NEB_routines
       bigdft_mpi%igroup = 0
       bigdft_mpi%ngroup = num_of_images
       do i = 1, num_of_images
-         call standard_inputfile_names(ins(i), trim(arr_radical(i)), bigdft_mpi%nproc)
-         call default_input_variables(ins(i))
-         call inputs_parse_params(ins(i), bigdft_mpi%iproc, .false.)
          call read_atomic_file(trim(arr_posinp(i)), bigdft_mpi%iproc, atoms(i)%astruct, status = ierr)
          if (ierr /= 0) then
             if (i == 1 .or. i == num_of_images) stop "Missing images"
@@ -202,9 +199,12 @@ MODULE NEB_routines
             istart = i
             read_posinp(i) = .true.
          end if
-         call allocate_atoms_nat(atoms(i), "read_input")
-         call allocate_atoms_ntypes(atoms(i), "read_input")
-         call inputs_parse_add(ins(i), atoms(1), bigdft_mpi%iproc, .false.)
+
+         call standard_inputfile_names(ins(i),trim(arr_radical(i)), bigdft_mpi%nproc)
+         call read_inputs_from_text_format(ins(i)%input_values,trim(arr_radical(i)), &
+              & bigdft_mpi%iproc)
+         call inputs_from_dict(ins(i), atoms(i), ins(i)%input_values, .true.)
+
          call init_atomic_values((bigdft_mpi%iproc == 0), atoms(i), ins(1)%ixc)
          call read_atomic_variables(atoms(i), trim(ins(1)%file_igpop), ins(1)%nspin)
       end do

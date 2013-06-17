@@ -15,6 +15,8 @@ module dictionaries_base
 
   integer, parameter, public :: max_field_length = 256
 
+  character(len = max_field_length), parameter, private :: NOT_A_VALUE = "__not_a_value__"
+
   type, public :: storage
      integer :: item   !< Id of the item associated to the list
      integer :: nitems !< No. of items in the list
@@ -51,13 +53,13 @@ contains
     type(dictionary), intent(in) :: dict
     logical :: no_value
 
-    no_value=len(trim(dict%data%value)) == 0 .and. .not. associated(dict%child)
+    no_value=trim(dict%data%value) == NOT_A_VALUE .and. .not. associated(dict%child)
   end function no_value
 
   pure function storage_null() result(st)
     type(storage) :: st
     st%key=repeat(' ',max_field_length)
-    st%value=repeat(' ',max_field_length)
+    st%value(1:max_field_length)=NOT_A_VALUE
     st%item=-1
     st%nitems=0
     st%nelems=0

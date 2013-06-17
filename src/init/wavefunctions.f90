@@ -693,43 +693,40 @@ subroutine lzd_set_hgrids(Lzd, hgrids)
   Lzd%hgrids = hgrids
 END SUBROUTINE lzd_set_hgrids
 
-
-subroutine inputs_parse_params(in, iproc, dump)
+subroutine inputs_from_dict(in, atoms, dict, dump)
   use module_types
   use module_defs
   use yaml_output
-  use module_interfaces
+  use module_interfaces, except => inputs_from_dict
   use dictionaries
   use module_input_keys
   implicit none
   type(input_variables), intent(inout) :: in
-  integer, intent(in) :: iproc
+  type(atoms_data), intent(inout) :: atoms
+  type(dictionary), pointer :: dict
   logical, intent(in) :: dump
 
+  !type(dictionary), pointer :: profs
   integer :: ierr
 
-  ! Required for analyse, to be moved later.
-  call input_keys_init()
+  call default_input_variables(in)
 
-  ! This file is peculiar, it initialize yaml output
-  ! and has some unique info like the material acceleration...
-  call perf_input_variables(iproc,dump,trim(in%file_perf),in)
+  ! Analyse the input dictionary and transfer it to in.
+  call perf_input_analyse(bigdft_mpi%iproc, in, dict//PERF_VARIABLES)
+  call dft_input_analyse(bigdft_mpi%iproc, in, dict//DFT_VARIABLES)
+  call geopt_input_analyse(bigdft_mpi%iproc, in, dict//GEOPT_VARIABLES)
+  call mix_input_analyse(bigdft_mpi%iproc, in, dict//MIX_VARIABLES)
+  call sic_input_analyse(bigdft_mpi%iproc, in, dict//SIC_VARIABLES, in%ixc)
+  call tddft_input_analyse(bigdft_mpi%iproc, in, dict//TDDFT_VARIABLES)
 
-  ! Parse all values independant from atoms.
-  call read_dft_from_text_format(iproc,in%input_values//DFT_VARIABLES, &
-       & trim(in%file_dft), dump)
-  call read_kpt_from_text_format(iproc,in%input_values//KPT_VARIABLES, &
-       & trim(in%file_kpt), dump)
-  call read_geopt_from_text_format(iproc,in%input_values//GEOPT_VARIABLES, &
-       & trim(in%file_geopt), dump)
+  ! Shake atoms, if required.
+  call astruct_set_displacement(atoms%astruct, in%randdis)
+  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+  ! Update atoms with symmetry information
+  call astruct_set_symmetries(atoms%astruct, in%disableSym, in%symTol, in%elecfield)
 
-  ! All analyse should be put later in the parse_add() routine.
-  call dft_input_analyse(iproc, in, in%input_values//DFT_VARIABLES)
-
-  ! Parse to be moved before.
-  call mix_input_variables_new(iproc,dump,trim(in%file_mix),in)
-  call tddft_input_variables_new(iproc,dump,trim(in%file_tddft),in)
-  call sic_input_variables_new(iproc,dump,trim(in%file_sic),in)
+  call kpt_input_analyse(bigdft_mpi%iproc, in, dict//KPT_VARIABLES, &
+       & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
 
   if(in%inputpsiid==100 .or. in%inputpsiid==101 .or. in%inputpsiid==102) &
       DistProjApply=.true.
@@ -740,67 +737,48 @@ subroutine inputs_parse_params(in, iproc, dump)
 
   ! Stop the code if it is trying to run GPU with spin=4
   if (in%nspin == 4 .and. (GPUconv .or. OCLconv)) then
-     if (iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
+     if (bigdft_mpi%iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
-end subroutine inputs_parse_params
 
-
-subroutine inputs_parse_add(in, atoms, iproc, dump)
-  use module_types
-  use yaml_output
-  use module_interfaces
-  use dictionaries
-  use module_input_keys
-  implicit none
-  type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(inout) :: atoms
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
-
-  type(dictionary), pointer :: profs
-  integer :: ierr
-
-  ! Analyse the input dictionary and transfer it to in.
-  call kpt_input_analyse(iproc, in, in%input_values//KPT_VARIABLES, &
-       & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
-  call geopt_input_analyse(iproc, in, in%input_values//GEOPT_VARIABLES)
+  ! This should be moved to init_atomic_values, but we can't since
+  ! input.lin needs some arrays allocated here.
+  call allocate_atoms_nat(atoms, "inputs_from_dict")
+  call allocate_atoms_ntypes(atoms, "inputs_from_dict")
 
   ! Linear scaling (if given)
   !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
-  call lin_input_variables_new(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
+  call lin_input_variables_new(bigdft_mpi%iproc,(bigdft_mpi%iproc == 0) .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
        & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
 
   ! Fragment information (if given)
-  call fragment_input_variables(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
+  call fragment_input_variables(bigdft_mpi%iproc,(bigdft_mpi%iproc == 0) .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
        & in%inputPsiId == INPUT_PSI_DISK_LINEAR).and.in%lin%fragment_calculation,trim(in%file_frag),in,atoms)
 
 !!$  ! Stop code for unproper input variables combination.
 !!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%geocode == 'S') then
-!!$     if (iproc==0) then
+!!$     if (bigdft_mpi%iproc==0) then
 !!$        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
 !!$        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
 !!$     end if
 !!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
 !!$  end if
   if (in%gen_nkpt > 1 .and. in%gaussian_help) then
-     if (iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
+     if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
-!!$  if (iproc == 0) then
+!!$  if (bigdft_mpi%iproc == 0) then
 !!$     profs => input_keys_get_profiles("")
 !!$     call yaml_dict_dump(profs)
 !!$     call dict_free(profs)
 !!$  end if
 
-  if (iproc == 0) call input_keys_dump(in%input_values)
-  
-  call input_keys_finalize()
-
   !check whether a directory name should be associated for the data storage
-  call check_for_data_writing_directory(iproc,in)
+  call check_for_data_writing_directory(bigdft_mpi%iproc,in)
 
-end subroutine inputs_parse_add
+  if (bigdft_mpi%iproc == 0 .and. dump) call input_keys_dump(dict)
+  
+end subroutine inputs_from_dict
 
 
