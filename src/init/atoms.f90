@@ -1647,7 +1647,6 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
   !restore the default stream
   if (iunit/=iunit_def) then
      call yaml_set_default_stream(iunit_def,ierr)
-     write(*,*) "#####", ierr
   end if
 
 contains

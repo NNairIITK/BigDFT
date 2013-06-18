@@ -526,7 +526,7 @@ contains
     type(dictionary), pointer :: subd
 
     !if the dictionary starts with a master tree, eliminate it and put the child
-    if (.not. associated(subd%parent)) then
+    if (.not. associated(subd%parent) .and. associated(subd%child)) then
        call put_child(dict,subd%child)
        nullify(subd%child)
        call dict_free(subd)
@@ -542,10 +542,12 @@ contains
        call dict_free(dict%child)
     end if
     dict%child=>subd
-    !inherit the number of elements or items from subd's parent
-    !which is guaranteed to be associated
-    dict%data%nelems=subd%parent%data%nelems
-    dict%data%nitems=subd%parent%data%nitems
+    if (associated(subd%parent)) then
+       !inherit the number of elements or items from subd's parent
+       !which is guaranteed to be associated
+       dict%data%nelems=subd%parent%data%nelems
+       dict%data%nitems=subd%parent%data%nitems
+    end if
     call define_parent(dict,dict%child)
 
   end subroutine put_child
