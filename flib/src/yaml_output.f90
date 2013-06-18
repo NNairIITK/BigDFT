@@ -474,13 +474,6 @@ contains
        unt=stream_units(istream)
        !unit 6 cannot be closed
        if (unt /= 6) call yaml_close_stream(unit=unt)
-!!$       unts=streams(istream)%unit
-!!$       if (unts /= unt) stop 'YAML close streams: unit inconsistency'
-!!$       !close files which are not stdout
-!!$       if (unt /= 6) close(unt)
-!!$       !reset the stream information
-!!$       stream_units(istream)=6
-!!$       streams(istream)=stream_null()
     end do
     stream_units=6
     active_streams=1 !stdout is always kept active
@@ -505,15 +498,20 @@ contains
     call dump(streams(strm),' #WARNING: '//trim(message))
     !here we should add a collection of all the warning which are printed out in the code.
     if (.not. streams(strm)%document_closed) then
-       if (.not. associated(streams(strm)%dict_warning)) then
-          call dict_init(streams(strm)%dict_warning)
-          call set(streams(strm)%dict_warning//'WARNINGS'//0,trim(message))
-       else
-          !add the warning as a list
-          dict_tmp=>streams(strm)%dict_warning//'WARNINGS'
-          item=dict_tmp%data%nitems
-          call set(dict_tmp//item,trim(message))
-       end if
+!!$       if (.not. associated(streams(strm)%dict_warning)) then
+!!$          call dict_init(streams(strm)%dict_warning)
+!!$          call set(streams(strm)%dict_warning//'WARNINGS'//0,trim(message))
+!!$       else
+!!$          !add the warning as a list
+!!$          dict_tmp=>streams(strm)%dict_warning//'WARNINGS'
+!!$          item=dict_tmp%data%nitems
+!!$          call set(dict_tmp//item,trim(message))
+!!$       end if
+       if (.not. associated(streams(strm)%dict_warning)) &
+            call dict_init(streams(strm)%dict_warning)
+       !add the warning as a list
+       call add(streams(strm)%dict_warning//'WARNINGS',trim(message))
+
     end if
     if (present(level)) then
        if (level <= streams(strm)%Wall) then
@@ -742,13 +740,13 @@ contains
 
     msg_lgt=0
     !put the message
-    if (present(mapname) .and. trim(mapname) /= "") then
+    if (present(mapname) .and. len_trim(mapname)>0) then
        call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
        !put the semicolon
        call buffer_string(towrite,len(towrite),':',msg_lgt)
     end if
     !put the optional name
-    if (present(label) .and. trim(label) /= "") then
+    if (present(label).and. len_trim(label)>0) then
        call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
     end if
@@ -987,39 +985,41 @@ contains
 
   subroutine yaml_map_iv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    character(len=*), intent(in) :: mapname
     integer, dimension(:), intent(in) :: mapvalue
-    character(len=*), optional, intent(in) :: label,advance,fmt
-    integer, optional, intent(in) :: unit
-    !local variables
-    integer :: msg_lgt,strm,unt
-    character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
-
-    unt=0
-    if (present(unit)) unt=unit
-    call get_stream(unt,strm)
-
-    adv='def' !default value
-    if (present(advance)) adv=advance
-
-    msg_lgt=0
-    !put the message
-    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-    !put the semicolon
-    call buffer_string(towrite,len(towrite),': ',msg_lgt)
-    !put the optional name
-    if (present(label)) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
-    end if
-    !put the value
-    if (present(fmt)) then
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
-    else
-       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-    end if
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
+    include 'yaml_map-arr-inc.f90'
+!!$    character(len=*), intent(in) :: mapname
+!!$
+!!$    character(len=*), optional, intent(in) :: label,advance,fmt
+!!$    integer, optional, intent(in) :: unit
+!!$    !local variables
+!!$    integer :: msg_lgt,strm,unt
+!!$    character(len=3) :: adv
+!!$    character(len=tot_max_record_length) :: towrite
+!!$
+!!$    unt=0
+!!$    if (present(unit)) unt=unit
+!!$    call get_stream(unt,strm)
+!!$
+!!$    adv='def' !default value
+!!$    if (present(advance)) adv=advance
+!!$
+!!$    msg_lgt=0
+!!$    !put the message
+!!$    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
+!!$    !put the semicolon
+!!$    call buffer_string(towrite,len(towrite),': ',msg_lgt)
+!!$    !put the optional name
+!!$    if (present(label)) then
+!!$       call buffer_string(towrite,len(towrite),' &',msg_lgt)
+!!$       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
+!!$    end if
+!!$    !put the value
+!!$    if (present(fmt)) then
+!!$       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
+!!$    else
+!!$       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
+!!$    end if
+!!$    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map_iv
 
 
@@ -1589,7 +1589,6 @@ contains
     if (.not.stream%flowrite) stream%flowrite=.true. !start to write
   end subroutine open_flow_level
 
-
   !> Close a level
   subroutine close_level(stream,doflow)
     implicit none
@@ -1638,84 +1637,160 @@ contains
     type(yaml_stream), intent(inout) :: stream
     stream%indent=max(stream%indent-stream%indent_step,0) !to prevent bugs
   end subroutine close_indent_level
-
+  
   !> Dump a dictionary
-  subroutine yaml_dict_dump(dict,flow,comment_key)
-   implicit none
-   type(dictionary), intent(in) :: dict   !< Dictionary to dump
-   logical, intent(in), optional :: flow  !< if .true. inline
-   character(len = *), intent(in), optional :: comment_key !< use the provifded key as comment key
-   !local variables
-   logical :: flowrite
-   character(len=3) :: adv
-   character(len=128) :: comment
+  subroutine yaml_dict_dump(dict,unit,flow,verbatim)
+    implicit none
+    type(dictionary), pointer, intent(in) :: dict   !< Dictionary to dump
+    logical, intent(in), optional :: flow  !< if .true. inline
+    logical, intent(in), optional :: verbatim  !< if .true. print as comments the calls performed
+    integer, intent(in), optional :: unit   !< unit in which the dump has to be 
+    !local variables
+    logical :: flowrite,verb
+    integer :: unt
+    character(len=3) :: adv
+    character(len=7) :: flw
 
-   flowrite=.false.
-   if (present(flow)) flowrite=flow
-   comment(1:len(comment)) = ' '
-   if (present(comment_key)) comment(1:len(comment)) = comment_key
+    flowrite=.false.
+    if (present(flow)) flowrite=flow
+    if (flowrite) then
+       adv='no '
+       flw='.true.'
+    else
+       adv='yes'
+       flw='.false.'
+    end if
+    unt=0
+    if (present(unit)) unt=unit
+    verb=.false.
+    if (present(verbatim)) verb=verbatim
 
-     !TEST (the first dictionary has no key)
-     !if (.not. associated(dict%parent)) then
-     if (associated(dict%child)) then
-        call yaml_dict_dump_(dict%child,flowrite,comment)
-     else
-        if (flowrite) then
-           adv='no '
-        else
-           adv='yes'
-        end if
-        call yaml_scalar(dict%data%value,advance=adv)
-     end if
+    if (associated(dict%child)) then
+       call yaml_dict_dump_(dict%child)
+    else
+       call scalar(dict_value(dict))
+    end if
 
-   contains
-     recursive subroutine yaml_dict_dump_(dict,flowrite,comment)
-         implicit none
-         type(dictionary), intent(in) :: dict
-         logical, intent(in) :: flowrite
-         character(len = *), intent(in) :: comment
+  contains
 
-         if (associated(dict%child)) then
-            !see whether the child is a list or not
-            !print *trim(dict%data%key),dict%data%nitems
-            if (dict%data%nitems > 0) then
-               call yaml_open_sequence(trim(dict%data%key),flow=flowrite)
-               call yaml_dict_dump_(dict%child,flowrite,comment)
-               call yaml_close_sequence()
-            else
-               if (dict%data%item >= 0) then
-                  call yaml_sequence(advance='no')
-                  call yaml_dict_dump_(dict%child,flowrite,comment)
-               else
-                  if (trim(comment) == trim(dict%data%key) .and. &
-                       & trim(dict%data%value) /= "") then
-                     call yaml_comment(trim(dict%data%value))
-                  else
-                     call yaml_open_map(trim(dict%data%key),flow=flowrite)
-                     !call yaml_map('No. of Elems',dict%data%nelems)
-                     call yaml_dict_dump_(dict%child,flowrite,comment)
-                     call yaml_close_map()
-                  end if
-               end if
-            end if
+    recursive subroutine yaml_dict_dump_(dict)
+      implicit none
+      type(dictionary), pointer, intent(in) :: dict
+
+      if (.not. associated(dict)) return
+      if (associated(dict%child)) then
+         !see whether the child is a list or not
+         if (dict_item(dict) >= 0) call sequence(adv='no')
+         if (dict_len(dict) > 0) then
+            call open_seq(dict_key(dict))
+            call yaml_dict_dump_(dict%child)
+            call close_seq()
          else
-            !print *,'ciao',dict%key,len_trim(dict%key),'key',dict%value,flowrite
-            if (dict%data%item >= 0) then
-               call yaml_sequence(trim(dict%data%value))
+            if (dict_item(dict) >= 0) then
+               call yaml_dict_dump_(dict%child)
             else
-               if (trim(comment) == trim(dict%data%key) .and. &
-                    & trim(dict%data%value) /= "") then
-                  call yaml_comment(trim(dict%data%value))
-               else
-                  call yaml_map(trim(dict%data%key),trim(dict%data%value))
-               end if
+               call open_map(dict_key(dict))
+               call yaml_dict_dump_(dict%child)
+               call close_map()
             end if
          end if
-         if (associated(dict%next)) then
-            call yaml_dict_dump_(dict%next,flowrite,comment)
+      else
+         if (dict_item(dict) >= 0) then
+            call sequence(val=dict_value(dict))
+         else
+            call map(dict_key(dict),dict_value(dict))
          end if
+      end if
+      call yaml_dict_dump_(dict_next(dict))
 
-       end subroutine yaml_dict_dump_
+    end subroutine yaml_dict_dump_
+
+    subroutine scalar(val)
+      implicit none
+      character(len=*), intent(in) :: val
+      if (verb) then
+         call yaml_comment('call yaml_scalar("'//trim(val)//'",advance="'//trim(adv)//'")')
+      else
+         call yaml_scalar(trim(val),advance=adv)
+      end if
+    end subroutine scalar
+
+    subroutine map(key,val)
+      implicit none
+      character(len=*), intent(in) :: key,val
+      if (verb) then
+         call yaml_comment('call yaml_map("'//trim(key)//'","'//trim(val)//'")')
+      else
+         call yaml_map(trim(key),trim(val))
+      end if
+    end subroutine map
+
+    subroutine sequence(adv,val)
+      implicit none
+      character(len=*), intent(in), optional :: val,adv
+
+      if (present(val) .and. present(adv)) then
+         if (verb) then
+            call yaml_comment('call yaml_sequence("'//trim(val)//&
+                 '",advance="'//trim(adv)//'")')
+         else
+            call yaml_sequence(trim(val),advance=adv)
+         end if
+      else if (present(adv)) then
+         if (verb) then
+            call yaml_comment('call yaml_sequence(advance="'//trim(adv)//'")')
+         else
+            call yaml_sequence(advance=adv)
+         end if
+      else if (present(val)) then
+         if (verb) then
+            call yaml_comment('call yaml_sequence("'//trim(val)//'")')
+         else
+            call yaml_sequence(trim(val))
+         end if
+      end if
+    end subroutine sequence
+
+    subroutine open_seq(key)
+      implicit none
+      character(len=*), intent(in) :: key
+      if (verb) then
+         call yaml_comment('call yaml_open_sequence("'//trim(key)//&
+              '",flow='//trim(flw)//')')
+      else
+         call yaml_open_sequence(trim(key),flow=flowrite)
+      end if
+    end subroutine open_seq
+
+    subroutine close_seq()
+      implicit none
+      if (verb) then
+         call yaml_comment('call yaml_close_sequence()')
+      else
+         call yaml_close_sequence()
+      end if
+    end subroutine close_seq
+
+    subroutine open_map(key)
+      implicit none
+      character(len=*), intent(in) :: key
+      if (verb) then
+         call yaml_comment('call yaml_open_map("'//trim(key)//&
+              '",flow='//trim(flw)//')')
+      else
+         call yaml_open_map(trim(key),flow=flowrite)
+      end if
+    end subroutine open_map
+
+    subroutine close_map()
+      implicit none
+      if (verb) then
+         call yaml_comment('call yaml_close_map()')
+      else
+         call yaml_close_map()
+      end if
+    end subroutine close_map
+
   end subroutine yaml_dict_dump
 
 end module yaml_output

@@ -109,6 +109,7 @@ subroutine test_yaml_output_sequences1()
          call yaml_sequence(trim(yaml_toa(dv(i),fmt='(1pe12.5)')))
    end do
    call yaml_close_sequence()
+
    call yaml_map('Vector of real(kind=8)',dv,fmt='(f3.0)')
 
    deallocate(cv)

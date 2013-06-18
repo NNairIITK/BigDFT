@@ -1350,7 +1350,7 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
         nspinor=4
         noncoll=2
      case default
-        call yaml_warning('nspin not valid:' // trim(yaml_toa(nspin)))
+        call yaml_warning('nspin not valid. Value=' // trim(yaml_toa(nspin)))
         !write(*,*)' ERROR: nspin not valid:',nspin
         stop
   end select
@@ -1362,7 +1362,7 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
      open(unit=91,file=filename,status='old',iostat=ierror)
      !Check the open statement
      if (ierror /= 0) then
-        call yaml_warning('Failed to open the existing  file: '// trim(filename))
+        call yaml_warning('Failed to open the existing  file '// trim(filename))
         !write(*,*)'Failed to open the existing  file: '//filename
         stop
      end if
