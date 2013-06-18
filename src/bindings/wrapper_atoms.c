@@ -85,7 +85,7 @@ static void bigdft_atoms_finalize(GObject *obj)
   G_OBJECT_CLASS(bigdft_atoms_parent_class)->finalize(obj);
 #endif
 }
-static void bigdft_atoms_get_nat_arrays(BigDFT_Atoms *atoms)
+void bigdft_atoms_get_nat_arrays(BigDFT_Atoms *atoms)
 {
   GET_ATTR_UINT  (atoms, ATOMS, iatype,   IATYPE);
   GET_ATTR_UINT  (atoms, ATOMS, iasctype, IASCTYPE);
@@ -95,7 +95,7 @@ static void bigdft_atoms_get_nat_arrays(BigDFT_Atoms *atoms)
   GET_ATTR_DBL_2D(atoms, ATOMS, aocc,     AOCC);
   GET_ATTR_DBL_2D(atoms, ATOMS, rxyz,     RXYZ);
 }
-static void bigdft_atoms_get_ntypes_arrays(BigDFT_Atoms *atoms)
+void bigdft_atoms_get_ntypes_arrays(BigDFT_Atoms *atoms)
 {
   GET_ATTR_UINT  (atoms, ATOMS, nelpsp,     NELPSP);
   GET_ATTR_UINT  (atoms, ATOMS, npspcode,   NPSPCODE);

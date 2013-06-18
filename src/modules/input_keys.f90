@@ -104,7 +104,7 @@ module module_input_keys
   character(len = *), parameter, public :: METHORTHO = "methortho"
   character(len = *), parameter, public :: RHO_COMMUN = "rho_commun"
   character(len = *), parameter, public :: PSOLVER_GROUPSIZE = "psolver_groupsize"
-  character(len = *), parameter, public :: PSOLVER_ACCEL = "psolver_ACCEL"
+  character(len = *), parameter, public :: PSOLVER_ACCEL = "psolver_accel"
   character(len = *), parameter, public :: UNBLOCK_COMMS = "unblock_comms"
   character(len = *), parameter, public :: LINEAR = "linear"
   character(len = *), parameter, public :: TOLSYM = "tolsym"

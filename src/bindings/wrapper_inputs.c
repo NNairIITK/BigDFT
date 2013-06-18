@@ -188,6 +188,9 @@ void bigdft_inputs_analyse(BigDFT_Inputs *in, BigDFT_Atoms *atoms, gboolean dump
   FC_FUNC_(inputs_from_dict, INPUTS_FROM_DICT)(in->data, atoms->data, &in->input_values, (gint*)&dump);
   _sync(in);
   _sync_add(in);
+  /* To be removed later, currently, this allocates atoms also. */
+  bigdft_atoms_get_nat_arrays(atoms);
+  bigdft_atoms_get_ntypes_arrays(atoms);
 }
 void bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc)
 {

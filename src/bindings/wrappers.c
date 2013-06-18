@@ -106,6 +106,7 @@ int bigdft_finalize()
 {
   int ierr;
 
+  FC_FUNC_(f_lib_finalize, F_LIB_FINALIZE)();
   FC_FUNC_(bigdft_finalize, BIGDFT_FINALIZE)(&ierr);
   return ierr;
 }

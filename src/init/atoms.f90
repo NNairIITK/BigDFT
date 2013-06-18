@@ -95,7 +95,7 @@ subroutine deallocate_atoms(atoms,subname)
   call deallocate_atomic_structure(atoms%astruct,subname) 
 
   ! Deallocations related to pseudos.
-  if (atoms%astruct%ntypes > 0) then
+  if (associated(atoms%nzatom)) then
      i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
      deallocate(atoms%nzatom,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%nzatom',subname)
@@ -125,7 +125,7 @@ subroutine deallocate_atoms(atoms,subname)
      deallocate(atoms%rloc,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%rloc',subname)
   end if
-  if (atoms%astruct%nat > 0) then
+  if (associated(atoms%iasctype)) then
      i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
      deallocate(atoms%iasctype,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%iasctype',subname)
@@ -1645,8 +1645,9 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
   end if
 
   !restore the default stream
-  if (iostat==0) then
+  if (iunit/=iunit_def) then
      call yaml_set_default_stream(iunit_def,ierr)
+     write(*,*) "#####", ierr
   end if
 
 contains

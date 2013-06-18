@@ -113,7 +113,6 @@ subroutine bigdft_finalize(ierr)
    !wait all processes before finalisation
    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
    call MPI_FINALIZE(ierr)
-
 end subroutine bigdft_finalize
 
 
