@@ -30,7 +30,7 @@ int main(int argc, const char **argv)
   bigdft_atoms_set_geometry(atoms, 'S', alat, "bohr");
   if (iproc == 0) bigdft_atoms_write(atoms, "posinp", "yaml");
 
-  ins = bigdft_inputs_new("truc", nproc);
+  ins = bigdft_inputs_new("");
   bigdft_inputs_set(ins, INPUTS_IXC, "PBE");
   bigdft_inputs_set_array(ins, INPUTS_HGRIDS, hgrids);
   bigdft_inputs_set(ins, INPUTS_NSPIN, "2");
@@ -39,7 +39,7 @@ int main(int argc, const char **argv)
   /* bigdft_inputs_set(ins, INPUTS_GEOPT_METHOD, "DIIS"); */
   /* bigdft_inputs_set(ins, INPUTS_BETAX, "1."); */
 
-  run = bigdft_run_new_from_objects(atoms, ins, NULL, iproc);
+  run = bigdft_run_new_from_objects(atoms, ins, NULL, iproc, TRUE);
   bigdft_inputs_unref(ins);
   bigdft_atoms_unref(atoms);
 

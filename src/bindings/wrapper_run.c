@@ -419,7 +419,7 @@ BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
  * Returns: (transfer full):
  **/
 BigDFT_Run* bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inputs,
-                                        BigDFT_Restart *rst, guint iproc)
+                                        BigDFT_Restart *rst, guint iproc, gboolean dump)
 {
   BigDFT_Run *run;
 
@@ -434,7 +434,7 @@ BigDFT_Run* bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inpu
   /* If inputs has not parsed its files, we do it now. */
   if (inputs->files == BIGDFT_INPUTS_UNPARSED)
     {
-      bigdft_inputs_analyse(inputs, atoms);      
+      bigdft_inputs_analyse(inputs, atoms, dump);      
       bigdft_atoms_set_psp(atoms, inputs->ixc, inputs->nspin, NULL);
     }
   /* If no restart, we create it from atoms and inputs. */

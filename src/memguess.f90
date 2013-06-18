@@ -315,10 +315,6 @@ program memguess
       stop
    end if
 
-   !standard names
-   call standard_inputfile_names(in, radical, 1)
-
-
    if (trim(radical) == "") then
       posinp='posinp'
    else

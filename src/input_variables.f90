@@ -38,7 +38,7 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   ! initialize mpi environment (this shouldn't be done twice)
 !  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,nproc)
   !standard names
-  call standard_inputfile_names(in,trim(radical), bigdft_mpi%nproc)
+  call standard_inputfile_names(in,trim(radical))
   call dict_init(dict)
   call read_inputs_from_text_format(dict, trim(radical), bigdft_mpi%iproc)
   call inputs_from_dict(in, atoms, dict, .true.)
@@ -192,15 +192,13 @@ end subroutine set_inputfile
 
 
 !> Define the name of the input files
-subroutine standard_inputfile_names(in, radical, nproc)
+subroutine standard_inputfile_names(in, radical)
   use module_types
   use module_base
   use yaml_output
   implicit none
   type(input_variables), intent(inout) :: in
   character(len = *), intent(in) :: radical
-  integer, intent(in) :: nproc
-  integer :: ierr
 
   !set prefix name of the run (as input by defaut for input.dft)
   in%run_name=repeat(' ',len(in%run_name))
@@ -212,16 +210,12 @@ subroutine standard_inputfile_names(in, radical, nproc)
   call set_inputfile(in%file_frag, radical,   "frag")
 
   if (trim(radical) == "input") then
-        in%dir_output="data" // trim(bigdft_run_id_toa())
+     in%dir_output="data" // trim(bigdft_run_id_toa())
   else
-        in%dir_output="data-"//trim(radical)!//trim(bigdft_run_id_toa())
+     in%dir_output="data-"//trim(radical)!//trim(bigdft_run_id_toa())
   end if
 
   in%files = INPUTS_NONE
-
-  ! To avoid race conditions where procs create the default file and other test its
-  ! presence, we put a barrier here.
-  if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
 END SUBROUTINE standard_inputfile_names
 
 !> Check the directory of data (create if not present)
@@ -297,7 +291,6 @@ subroutine default_input_variables(in)
   type(input_variables), intent(inout) :: in
 
   ! Default values.
-  call dict_init(in%input_values)
   in%output_wf_format = WF_FORMAT_NONE
   in%output_denspot_format = output_denspot_FORMAT_CUBE
   nullify(in%gen_kpt)
@@ -334,48 +327,33 @@ subroutine default_input_variables(in)
   nullify(in%frag%frag_index)
 END SUBROUTINE default_input_variables
 
-subroutine read_inputs_from_text_format(input_values, radical, iproc)
+subroutine read_inputs_from_text_format(dict, radical, iproc)
   use module_interfaces, except => read_inputs_from_text_format
   use dictionaries
   use module_input_keys
   !use yaml_output
   implicit none
   integer, intent(in) :: iproc
-  type(dictionary), pointer :: input_values
+  type(dictionary), pointer :: dict
   character(len = *), intent(in) :: radical
 
   character(len = 100) :: fname
 
   ! Parse all files.
   call set_inputfile(fname, radical, PERF_VARIABLES)
-  call read_perf_from_text_format(iproc,input_values//PERF_VARIABLES, trim(fname))
+  call read_perf_from_text_format(iproc,dict//PERF_VARIABLES, trim(fname))
   call set_inputfile(fname, radical, DFT_VARIABLES)
-  call read_dft_from_text_format(iproc,input_values//DFT_VARIABLES, trim(fname))
+  call read_dft_from_text_format(iproc,dict//DFT_VARIABLES, trim(fname))
   call set_inputfile(fname, radical, KPT_VARIABLES)
-  call read_kpt_from_text_format(iproc,input_values//KPT_VARIABLES, trim(fname))
+  call read_kpt_from_text_format(iproc,dict//KPT_VARIABLES, trim(fname))
   call set_inputfile(fname, radical, GEOPT_VARIABLES)
-  call read_geopt_from_text_format(iproc,input_values//GEOPT_VARIABLES, trim(fname))
+  call read_geopt_from_text_format(iproc,dict//GEOPT_VARIABLES, trim(fname))
   call set_inputfile(fname, radical, MIX_VARIABLES)
-  call read_mix_from_text_format(iproc,input_values//MIX_VARIABLES, trim(fname))
+  call read_mix_from_text_format(iproc,dict//MIX_VARIABLES, trim(fname))
   call set_inputfile(fname, radical, SIC_VARIABLES)
-  call read_sic_from_text_format(iproc,input_values//SIC_VARIABLES, trim(fname))
+  call read_sic_from_text_format(iproc,dict//SIC_VARIABLES, trim(fname))
   call set_inputfile(fname, radical, TDDFT_VARIABLES)
-  call read_tddft_from_text_format(iproc,input_values//TDDFT_VARIABLES, trim(fname))
-
-  !call yaml_dict_dump(input_values)
-  
-  ! Check and complete dictionary.
-  call input_keys_init()
-  
-  call input_keys_fill(input_values//PERF_VARIABLES, PERF_VARIABLES)
-  call input_keys_fill(input_values//DFT_VARIABLES, DFT_VARIABLES)
-  call input_keys_fill(input_values//KPT_VARIABLES, KPT_VARIABLES)
-  call input_keys_fill(input_values//GEOPT_VARIABLES, GEOPT_VARIABLES)
-  call input_keys_fill(input_values//MIX_VARIABLES, MIX_VARIABLES)
-  call input_keys_fill(input_values//SIC_VARIABLES, SIC_VARIABLES)
-  call input_keys_fill(input_values//TDDFT_VARIABLES, TDDFT_VARIABLES)
-
-  call input_keys_finalize()
+  call read_tddft_from_text_format(iproc,dict//TDDFT_VARIABLES, trim(fname))
 end subroutine read_inputs_from_text_format
 
 subroutine read_dft_from_text_format(iproc,dict,filename)
@@ -1175,7 +1153,7 @@ subroutine read_perf_from_text_format(iproc,dict,filename)
   call input_var("blas", .false., "CUBLAS acceleration", dummy_bool)
   call set(dict // BLAS, dummy_bool)
   call input_var("projrad", 15.0d0, "Radius ", dummy_real)
-  call set(dict // PROJRAD, dummy_real)
+  call set(dict // PROJRAD, dummy_real, fmt = "(F6.3)")
   call input_var("exctxpar", "OP2P", "Exact exchange parallelisation scheme", dummy_str)
   call set(dict // EXCTXPAR, dummy_str)
   call input_var("ig_diag", .true.,"Input guess", dummy_bool)
@@ -1186,7 +1164,7 @@ subroutine read_perf_from_text_format(iproc,dict,filename)
   call set(dict // IG_BLOCKS // 0, blocks(1))
   call set(dict // IG_BLOCKS // 1, blocks(2))
   call input_var("ig_tol", 1d-4, "Input guess: Tolerance criterion", dummy_real)
-  call set(dict // IG_TOL, dummy_real)
+  call set(dict // IG_TOL, dummy_real, fmt = "(E8.1)")
   call input_var("methortho", 0, "Orthogonalisation ", dummy_int)
   call set(dict // METHORTHO, dummy_int)
   call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",dummy_str)
@@ -1200,7 +1178,7 @@ subroutine read_perf_from_text_format(iproc,dict,filename)
   call input_var("linear", 'OFF', "Linear Input Guess approach",dummy_str)
   call set(dict // LINEAR, dummy_str)
   call input_var("tolsym", 1d-8, "Tolerance for symmetry detection",dummy_real)
-  call set(dict // TOLSYM, dummy_real)
+  call set(dict // TOLSYM, dummy_real, fmt = "(E8.1)")
   call input_var("signaling", .false., "Expose calculation results on Network",dummy_bool)
   call set(dict // SIGNALING, dummy_bool)
   call input_var("signalTimeout", 0, "Time out on startup for signal connection",dummy_int)  
@@ -1236,9 +1214,9 @@ subroutine read_perf_from_text_format(iproc,dict,filename)
   !FOE: if the determinant of the interpolation matrix to find the Fermi energy
   !is smaller than this value, switch from cubic to linear interpolation.
   call input_var("ef_interpol_det",1.d-20,"FOE: max ",dummy_real)
-  call set(dict // EF_INTERPOL_DET, dummy_real)
+  call set(dict // EF_INTERPOL_DET, dummy_real, fmt = "(E9.2)")
   call input_var("ef_interpol_chargediff",10.d0,"FOE: max ",dummy_real)
-  call set(dict // EF_INTERPOL_CHARGEDIFF, dummy_real)
+  call set(dict // EF_INTERPOL_CHARGEDIFF, dummy_real, fmt = "(E9.2)")
 
   !determines whether a mixing step shall be preformed after the input guess !(linear version)
   call input_var("mixing_after_inputguess",.true.,"mixing  (T/F)",dummy_bool)
@@ -1579,8 +1557,6 @@ subroutine free_input_variables(in)
 
   if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) &
        & call deallocateBasicArraysInput(in%lin)
-
-  if (associated(in%input_values)) call dict_free(in%input_values)
 
   call free_geopt_variables(in)
   call free_kpt_variables(in)

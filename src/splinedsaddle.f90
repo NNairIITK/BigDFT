@@ -331,6 +331,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     integer::n,nr,istat,infocode,ixyz,i,mm1,mm2,mm3
     real(kind=8)::fnrm,fnrm1,fnrm2,tt1,tt2,tt3,time1,time2
     type(parametersplinedsaddle)::pnow
+    type(dictionary), pointer :: dict
     type(input_variables), target :: ll_inputs
     type(run_objects) :: ll_runObj, runObj
     type(DFT_global_output), dimension(2) :: outends
@@ -362,13 +363,15 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         write(*,*) 'degree of freedom: n,nr ',n,nr
     endif
     !-----------------------------------------------------------
-    call standard_inputfile_names(ll_inputs,'input',nproc)
+    call dict_init(dict)
     if(trim(pnow%hybrid)=='yes') then
-       call read_inputs_from_text_format(ll_inputs%input_values, 'll_input', iproc)
+       call read_inputs_from_text_format(dict, 'll_input', iproc)
     else
-       call read_inputs_from_text_format(ll_inputs%input_values, 'input', iproc)
+       call read_inputs_from_text_format(dict, 'input', iproc)
     endif
-    call inputs_from_dict(ll_inputs, atoms, ll_inputs%input_values, .true.)
+    call standard_inputfile_names(ll_inputs,'input')
+    call inputs_from_dict(ll_inputs, atoms, dict, .true.)
+    call dict_free(dict)
     
     !-----------------------------------------------------------
     allocate(rxyz_2(3,atoms%astruct%nat+ndeb1))

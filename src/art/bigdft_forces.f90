@@ -122,7 +122,7 @@ module bigdft_forces
    !> ART bigdft_init_art
    !! Routine to initialize all BigDFT stuff
    subroutine bigdft_init_art( nat, me_, nproc_, my_gnrm,passivate,total_nb_atoms )
-
+     use dictionaries
       implicit none
 
       !Arguments
@@ -136,6 +136,7 @@ module bigdft_forces
       character(len=*), parameter :: subname='bigdft_init_art'
       real(gp),dimension(3*total_nb_atoms) :: posquant
       integer :: natoms_calcul
+      type(dictionary), pointer :: dict
       !_______________________
 
       me = me_
@@ -156,9 +157,11 @@ module bigdft_forces
          call initialize_atomic_file(me_,runObj%atoms,runObj%atoms%astruct%rxyz)
       endif
       !standard names
-      call standard_inputfile_names(runObj%inputs,'input',nproc)
-      call read_inputs_from_text_format(runObj%inputs%input_values, 'input', me_)
-      call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%inputs%input_values, .true.)
+      call dict_init(dict)
+      call read_inputs_from_text_format(dict, 'input', me_)
+      call standard_inputfile_names(runObj%inputs,'input')
+      call inputs_from_dict(runObj%inputs, runObj%atoms, dict, .true.)
+      call dict_free(dict)
       
       call init_atomic_values((me_ == 0), runObj%atoms, runObj%inputs%ixc)
       call read_atomic_variables(runObj%atoms, trim(runObj%inputs%file_igpop),runObj%inputs%nspin)

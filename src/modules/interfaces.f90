@@ -127,12 +127,11 @@ module module_interfaces
          real(gp), dimension(3), intent(out) :: shift
       END SUBROUTINE system_size
 
-      subroutine standard_inputfile_names(inputs, radical, nproc)
+      subroutine standard_inputfile_names(inputs, radical)
          use module_types
          implicit none
          type(input_variables), intent(out) :: inputs
          character(len = *), intent(in) :: radical
-         integer, intent(in) :: nproc
       END SUBROUTINE standard_inputfile_names
 
       subroutine bigdft_set_input(radical,posinp,inputs,atoms)

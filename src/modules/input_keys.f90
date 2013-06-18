@@ -138,7 +138,7 @@ module module_input_keys
   character(len = *), parameter :: PROF_KEY = "__profile__", ATTRS = "_attributes"
 
   public :: input_keys_init, input_keys_finalize
-  public :: input_keys_set, input_keys_fill, input_keys_dump
+  public :: input_keys_set, input_keys_fill, input_keys_fill_all, input_keys_dump
   public :: input_keys_equal, input_keys_get_source
   public :: input_keys_get_profiles
 
@@ -996,6 +996,28 @@ contains
     end if
   end function input_keys_get_source
 
+  subroutine input_keys_fill_all(dict)
+    use dictionaries
+    !use yaml_output
+    implicit none
+    type(dictionary), pointer :: dict
+
+    !call yaml_dict_dump(dict)
+
+    ! Check and complete dictionary.
+    call input_keys_init()
+
+    call input_keys_fill(dict//PERF_VARIABLES, PERF_VARIABLES)
+    call input_keys_fill(dict//DFT_VARIABLES, DFT_VARIABLES)
+    call input_keys_fill(dict//KPT_VARIABLES, KPT_VARIABLES)
+    call input_keys_fill(dict//GEOPT_VARIABLES, GEOPT_VARIABLES)
+    call input_keys_fill(dict//MIX_VARIABLES, MIX_VARIABLES)
+    call input_keys_fill(dict//SIC_VARIABLES, SIC_VARIABLES)
+    call input_keys_fill(dict//TDDFT_VARIABLES, TDDFT_VARIABLES)
+
+    call input_keys_finalize()
+  end subroutine input_keys_fill_all
+
   subroutine input_keys_fill(dict, file, profile)
     use dictionaries
     implicit none
@@ -1007,7 +1029,6 @@ contains
     type(dictionary), pointer :: ref
     character(max_field_length), dimension(:), allocatable :: keys
 
-    write(*,*) "############", trim(file)
     ref => parameters // file
     allocate(keys(dict_size(ref)))
     keys = dict_keys(ref)
@@ -1040,7 +1061,6 @@ contains
     double precision, dimension(2) :: rg
     logical :: found
 
-    write(*,*) "handle key ", trim(key)
     ref => parameters // file // key
 
     profile_(1:max_field_length) = " "

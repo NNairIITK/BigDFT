@@ -13,7 +13,6 @@
 module module_types
 
   use m_ab6_mixing, only : ab6_mixing_object
-  use dictionaries, only: dictionary
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
        bigdft_mpi,ndebug,memocc,vcopy
   use gaussians, only: gaussian_basis
@@ -210,9 +209,6 @@ module module_types
 
   !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
-     ! Dictionary storing all input values, before analysing.
-     type(dictionary), pointer :: input_values
-
      !strings of the input files
      character(len=100) :: file_occnum,file_igpop,file_lin,file_frag
      character(len=100) :: dir_output !< Strings of the directory which contains all data output files

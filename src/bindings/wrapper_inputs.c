@@ -11,13 +11,6 @@ static void _free_names(BigDFT_Inputs *in)
 {
   g_free(in->run_name);
 
-  g_free(in->file_dft);
-  g_free(in->file_geopt);
-  g_free(in->file_kpt);
-  g_free(in->file_perf);
-  g_free(in->file_tddft);
-  g_free(in->file_mix);
-  g_free(in->file_sic);
   g_free(in->file_occnum);
   g_free(in->file_igpop);
   g_free(in->file_lin);
@@ -84,6 +77,8 @@ static void bigdft_inputs_dispose(BigDFT_Inputs *in)
 {
   if (in->data)
     FC_FUNC_(inputs_free, INPUTS_FREE)(&in->data);
+  if (in->input_values)
+    FC_FUNC_(dict_free, DICT_FREE)(&in->input_values);
 
   _free_names(in);
   _free_output(in);
@@ -92,18 +87,34 @@ static void bigdft_inputs_dispose(BigDFT_Inputs *in)
 }
 /**
  * bigdft_inputs_new:
+ * @naming: (allow-none): a naming scheme, or none.
  *
  * Create a new #BigDFT_Inputs structure, empty.
  * 
  * Returns: (transfer full): a new structure.
  */
-BigDFT_Inputs* bigdft_inputs_new()
+BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
 {
   BigDFT_Inputs *in;
+  gchar file_occnum[100], file_igpop[100], file_lin[100], run_name[100];
 
   in = bigdft_inputs_init();
-  FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data, &in->input_values);
+  FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data);
+  FC_FUNC_(dict_new, DICT_NEW)(&in->input_values);
   
+  if (naming && naming[0])
+    FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, naming, strlen(naming));
+  else
+    FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, " ", 1);
+  /* Get naming schemes. */
+  _free_names(in);
+  FC_FUNC_(inputs_get_naming, INPUTS_GET_NAMING)(in->data, run_name, file_occnum, file_igpop,
+                                                 file_lin, 100, 100, 100, 100);
+  in->run_name = _get_c_string(run_name, 100);
+  in->file_occnum = _get_c_string(file_occnum, 100);
+  in->file_igpop = _get_c_string(file_igpop, 100);
+  in->file_lin = _get_c_string(file_lin, 100);
+
   return in;
 }
 /**
@@ -117,39 +128,18 @@ BigDFT_Inputs* bigdft_inputs_new()
  * 
  * Returns: (transfer full): a new structure.
  */
-BigDFT_Inputs* bigdft_inputs_new_from_files(const gchar *naming, guint iproc, guint nproc,
-                                            gboolean dump)
+BigDFT_Inputs* bigdft_inputs_new_from_files(const gchar *naming, guint iproc)
 {
   BigDFT_Inputs *in;
-  gchar file_dft[100], file_geopt[100], file_kpt[100], file_perf[100], file_tddft[100], file_mix[100],
-    file_sic[100], file_occnum[100], file_igpop[100], file_lin[100], run_name[100];
 
-  in = bigdft_inputs_new();
+  in = bigdft_inputs_new(naming);
 
   if (naming && naming[0])
-    FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, naming, (int*)&nproc, strlen(naming));
+    FC_FUNC_(read_inputs_from_text_format, READ_INPUTS_FROM_TEXT_FORMAT)
+      (&in->input_values, naming, (gint*)&iproc, strlen(naming));
   else
-    FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, " ", (int*)&nproc, 1);
-  /* Get naming schemes. */
-  _free_names(in);
-  FC_FUNC_(inputs_get_naming, INPUTS_GET_NAMING)(in->data, run_name, file_dft, file_geopt, file_kpt,
-                                                 file_perf, file_tddft, file_mix, file_sic,
-                                                 file_occnum, file_igpop, file_lin, 100, 100, 100,
-                                                 100, 100, 100, 100, 100, 100, 100, 100);
-  in->run_name = _get_c_string(run_name, 100);
-  in->file_dft = _get_c_string(file_dft, 100);
-  in->file_geopt = _get_c_string(file_geopt, 100);
-  in->file_kpt = _get_c_string(file_kpt, 100);
-  in->file_perf = _get_c_string(file_perf, 100);
-  in->file_tddft = _get_c_string(file_tddft, 100);
-  in->file_mix = _get_c_string(file_mix, 100);
-  in->file_sic = _get_c_string(file_sic, 100);
-  in->file_occnum = _get_c_string(file_occnum, 100);
-  in->file_igpop = _get_c_string(file_igpop, 100);
-  in->file_lin = _get_c_string(file_lin, 100);
-
-  FC_FUNC_(read_inputs_from_text_format, READ_INPUTS_FROM_TEXT_FORMAT)
-    (&in->input_values, (gint*)&iproc, (int*)&dump);
+    FC_FUNC_(read_inputs_from_text_format, READ_INPUTS_FROM_TEXT_FORMAT)
+      (&in->input_values, " ", (gint*)&iproc, 1);
   
   return in;
 }
@@ -193,9 +183,9 @@ GType bigdft_inputs_get_type(void)
   return g_define_type_id;
 }
 #endif
-void bigdft_inputs_analyse(BigDFT_Inputs *in, BigDFT_Atoms *atoms)
+void bigdft_inputs_analyse(BigDFT_Inputs *in, BigDFT_Atoms *atoms, gboolean dump)
 {
-  FC_FUNC_(inputs_from_dict, INPUTS_FROM_DICT)(in->data, atoms->data, &in->input_values);
+  FC_FUNC_(inputs_from_dict, INPUTS_FROM_DICT)(in->data, atoms->data, &in->input_values, (gint*)&dump);
   _sync(in);
   _sync_add(in);
 }
@@ -221,7 +211,8 @@ BigDFT_Inputs* bigdft_set_input(const gchar *radical, const gchar *posinp, BigDF
   BigDFT_Inputs *in;
 
   at = bigdft_atoms_new();
-  in = bigdft_inputs_new();
+  in = bigdft_inputs_init();
+  FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data);
   FC_FUNC_(bigdft_set_input, BIGDFT_SET_INPUT)(radical, posinp, in->data, at->data,
                                                strlen(radical), strlen(posinp));
   _sync(in);

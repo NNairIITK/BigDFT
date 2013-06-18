@@ -445,15 +445,13 @@ subroutine lzd_get_llr(Lzd, i, llr)
   llr => Lzd%Llr(i)
 END SUBROUTINE lzd_get_llr
 
-subroutine inputs_new(in, dict)
+subroutine inputs_new(in)
   use module_types
   use dictionaries
   implicit none
   type(input_variables), pointer :: in
-  type(dictionary), pointer :: dict
   allocate(in)
   call default_input_variables(in)
-  dict => in%input_values
 end subroutine inputs_new
 subroutine inputs_free(in)
   use module_types
@@ -482,6 +480,14 @@ subroutine inputs_set_at(dict, file, key, i, value)
 
   call set(dict // file // key // i, value)
 END SUBROUTINE inputs_set_at
+subroutine inputs_fill_all(inputs_values)
+  use module_input_keys
+  use dictionaries
+  implicit none
+  type(dictionary), pointer :: inputs_values
+
+  call input_keys_fill_all(inputs_values)
+end subroutine inputs_fill_all
 subroutine inputs_get_naming(in, run_name, file_occnum, file_igpop, file_lin)
   use module_types
   implicit none

@@ -711,7 +711,12 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 
   call default_input_variables(in)
 
+  ! To avoid race conditions where procs create the default file and other test its
+  ! presence, we put a barrier here.
+  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+
   ! Analyse the input dictionary and transfer it to in.
+  call input_keys_fill_all(dict)
   call perf_input_analyse(bigdft_mpi%iproc, in, dict//PERF_VARIABLES)
   call dft_input_analyse(bigdft_mpi%iproc, in, dict//DFT_VARIABLES)
   call geopt_input_analyse(bigdft_mpi%iproc, in, dict//GEOPT_VARIABLES)
@@ -727,7 +732,14 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 
   call kpt_input_analyse(bigdft_mpi%iproc, in, dict//KPT_VARIABLES, &
        & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
+  
+  if (bigdft_mpi%iproc == 0 .and. dump) call input_keys_dump(dict)
 
+  if (in%gen_nkpt > 1 .and. in%gaussian_help) then
+     if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+  end if
+  
   if(in%inputpsiid==100 .or. in%inputpsiid==101 .or. in%inputpsiid==102) &
       DistProjApply=.true.
   if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) then
@@ -748,11 +760,11 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 
   ! Linear scaling (if given)
   !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
-  call lin_input_variables_new(bigdft_mpi%iproc,(bigdft_mpi%iproc == 0) .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
+  call lin_input_variables_new(bigdft_mpi%iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
        & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
 
   ! Fragment information (if given)
-  call fragment_input_variables(bigdft_mpi%iproc,(bigdft_mpi%iproc == 0) .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
+  call fragment_input_variables(bigdft_mpi%iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
        & in%inputPsiId == INPUT_PSI_DISK_LINEAR).and.in%lin%fragment_calculation,trim(in%file_frag),in,atoms)
 
 !!$  ! Stop code for unproper input variables combination.
@@ -763,10 +775,6 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 !!$     end if
 !!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
 !!$  end if
-  if (in%gen_nkpt > 1 .and. in%gaussian_help) then
-     if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-  end if
 
 !!$  if (bigdft_mpi%iproc == 0) then
 !!$     profs => input_keys_get_profiles("")
@@ -777,8 +785,6 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   !check whether a directory name should be associated for the data storage
   call check_for_data_writing_directory(bigdft_mpi%iproc,in)
 
-  if (bigdft_mpi%iproc == 0 .and. dump) call input_keys_dump(dict)
-  
 end subroutine inputs_from_dict
 
 

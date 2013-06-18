@@ -138,8 +138,7 @@ struct _BigDFT_Inputs
 {
   /* TODO: bindings to values... */
   int files;
-  gchar *file_dft, *file_geopt, *file_kpt, *file_perf, *file_tddft, *file_mix,
-    *file_sic, *file_occnum, *file_igpop, *file_lin;
+  gchar *file_occnum, *file_igpop, *file_lin;
   gchar *dir_output, *writing_directory;
   gchar *run_name;
   
@@ -179,14 +178,14 @@ GType          bigdft_inputs_get_type         (void);
 BigDFT_Inputs* bigdft_inputs_ref              (BigDFT_Inputs *in);
 void           bigdft_inputs_unref            (BigDFT_Inputs *in);
 void           bigdft_inputs_free             (BigDFT_Inputs *in);
-BigDFT_Inputs* bigdft_inputs_new              ();
-BigDFT_Inputs* bigdft_inputs_new_from_files   (const gchar *naming, guint iproc, guint nproc,
-                                               gboolean dump);
+BigDFT_Inputs* bigdft_inputs_new              (const gchar *naming);
+BigDFT_Inputs* bigdft_inputs_new_from_files   (const gchar *naming, guint iproc);
 void           bigdft_inputs_set              (BigDFT_Inputs *in,
                                                BigDFT_InputsKeyIds id, const gchar *value);
 void           bigdft_inputs_set_array        (BigDFT_Inputs *in,
                                                BigDFT_InputsKeyIds id, const gchar **value);
-void           bigdft_inputs_analyse          (BigDFT_Inputs *in, BigDFT_Atoms *atoms);
+void           bigdft_inputs_analyse          (BigDFT_Inputs *in, BigDFT_Atoms *atoms,
+                                               gboolean dump);
 void           bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc);
 /*********************************/
 
@@ -314,7 +313,7 @@ struct _BigDFT_Run
 BigDFT_Run*     bigdft_run_new();
 BigDFT_Run*     bigdft_run_new_from_files  (const gchar *radical, const gchar *posinp);
 BigDFT_Run*     bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inputs,
-                                            BigDFT_Restart *rst, guint iproc);
+                                            BigDFT_Restart *rst, guint iproc, gboolean dump);
 BigDFT_Goutput* bigdft_run_calculate       (BigDFT_Run *run, guint iproc, guint nproc);
 BigDFT_Atoms*   bigdft_run_get_atoms       (BigDFT_Run *run);
 BigDFT_Inputs*  bigdft_run_get_inputs      (BigDFT_Run *run);

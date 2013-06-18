@@ -84,6 +84,7 @@ MODULE NEB_routines
 
     SUBROUTINE read_input
       use yaml_output
+      use dictionaries
       use module_interfaces
 
       IMPLICIT NONE
@@ -100,6 +101,7 @@ MODULE NEB_routines
       type(mpi_environment) :: bigdft_mpi_svg
       character(len=60) :: run_id
       CHARACTER (LEN=80) :: first_config, last_config
+      type(dictionary), pointer :: dict
 
       NAMELIST /NEB/ first_config,        &
                      last_config,         &
@@ -200,10 +202,13 @@ MODULE NEB_routines
             read_posinp(i) = .true.
          end if
 
-         call standard_inputfile_names(ins(i),trim(arr_radical(i)), bigdft_mpi%nproc)
-         call read_inputs_from_text_format(ins(i)%input_values,trim(arr_radical(i)), &
+         call dict_init(dict)
+         call read_inputs_from_text_format(dict,trim(arr_radical(i)), &
               & bigdft_mpi%iproc)
-         call inputs_from_dict(ins(i), atoms(i), ins(i)%input_values, .true.)
+
+         call standard_inputfile_names(ins(i),trim(arr_radical(i)))
+         call inputs_from_dict(ins(i), atoms(i), dict, .true.)
+         call dict_free(dict)
 
          call init_atomic_values((bigdft_mpi%iproc == 0), atoms(i), ins(1)%ixc)
          call read_atomic_variables(atoms(i), trim(ins(1)%file_igpop), ins(1)%nspin)
