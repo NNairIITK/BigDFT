@@ -822,7 +822,7 @@ contains
     val=dict
     !look at conversion
     call read_fraction_string(val, dval, ierror)
-    rval = dval
+    rval = real(dval)
 
     if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
     

@@ -26,7 +26,7 @@ static char* _error(yaml_parser_t *parser)
       if (parser->problem_value != -1)
         {
           needed = snprintf(NULL, 0, "Reader error: %s: #%X at %ld", parser->problem,
-                            parser->problem_value, parser->problem_offset);
+                            parser->problem_value, parser->problem_offset) + 1;
           err_mess = malloc(sizeof(char) * needed);
           snprintf(err_mess, needed, "Reader error: %s: #%X at %ld", parser->problem,
                    parser->problem_value, parser->problem_offset);
@@ -34,7 +34,7 @@ static char* _error(yaml_parser_t *parser)
       else
         {
           needed = snprintf(NULL, 0, "Reader error: %s at %ld", parser->problem,
-                            parser->problem_offset);
+                            parser->problem_offset) + 1;
           err_mess = malloc(sizeof(char) * needed);
           snprintf(err_mess, needed, "Reader error: %s at %ld", parser->problem,
                    parser->problem_offset);
@@ -47,7 +47,7 @@ static char* _error(yaml_parser_t *parser)
                             "%s at line %ld, column %ld\n", parser->context,
                             parser->context_mark.line+1, parser->context_mark.column+1,
                             parser->problem, parser->problem_mark.line+1,
-                            parser->problem_mark.column+1);
+                            parser->problem_mark.column+1) + 1;
           err_mess = malloc(sizeof(char) * needed);
           snprintf(err_mess, needed, "Scanner error: %s at line %ld, column %ld"
                    "%s at line %ld, column %ld\n", parser->context,
@@ -59,7 +59,7 @@ static char* _error(yaml_parser_t *parser)
         {
           needed = snprintf(NULL, 0, "Scanner error: %s at line %ld, column %ld",
                             parser->problem, parser->problem_mark.line+1,
-                            parser->problem_mark.column+1);
+                            parser->problem_mark.column+1) + 1;
           err_mess = malloc(sizeof(char) * needed);
           snprintf(err_mess, needed, "Scanner error: %s at line %ld, column %ld",
                    parser->problem, parser->problem_mark.line+1,
@@ -71,7 +71,7 @@ static char* _error(yaml_parser_t *parser)
         {
           needed = snprintf(NULL, 0, "Parser error: %s at line %ld, column %ld, %s",
                             parser->context, parser->context_mark.line+1,
-                            parser->context_mark.column+1, parser->problem);
+                            parser->context_mark.column+1, parser->problem) + 1;
           err_mess = malloc(sizeof(char) * needed);
           snprintf(err_mess, needed, "Parser error: %s at line %ld, column %ld, %s",
                    parser->context, parser->context_mark.line+1,
@@ -81,7 +81,7 @@ static char* _error(yaml_parser_t *parser)
         {
           needed = snprintf(NULL, 0, "Parser error: %s at line %ld, column %ld",
                             parser->problem, parser->problem_mark.line+1,
-                            parser->problem_mark.column+1);
+                            parser->problem_mark.column+1) + 1;
           err_mess = malloc(sizeof(char) * needed);
           snprintf(err_mess, needed, "Parser error: %s at line %ld, column %ld",
                    parser->problem, parser->problem_mark.line+1,
@@ -105,12 +105,13 @@ void FC_FUNC_(yaml_parser_c_init, YAML_PARSER_C_INIT)(void **pt, const char *fna
   obj = malloc(sizeof(FLib_Yaml_Parser));
 
   f = malloc(sizeof(char) * (*ln + 1));
-  for (i = 0; i < *ln; i++)
-    f[i] = fname[i];
-  f[i] = '\0';
+  memcpy(f, fname, sizeof(char) * *ln);
+  f[*ln] = '\0';
   
   obj->input = fopen(f, "rb");
   /* Error handling here. */
+
+  free(f);
 
   /* Create the Parser object. */
   yaml_parser_initialize(&(obj->parser));
