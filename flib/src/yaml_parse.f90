@@ -132,7 +132,7 @@ contains
 
   recursive function build_map(parser) result(map)
     use dictionaries
-    use yaml_output
+    !use yaml_output
     implicit none
     integer(kind = 8), intent(in) :: parser
 
