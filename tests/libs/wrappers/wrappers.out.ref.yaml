@@ -71,7 +71,7 @@
    nplot                               : 0 #      # of plottec orbs
    disablesym                          : No #     disable the symmetry detection
  perf:
-   debug                               : Yes #    debug option
+   debug                               : No #     debug option
    fftcache                            : 8192 #   cache size for the FFT
    accel                               : No #     acceleration
    ocl_platform                        : ~ #      Chosen OCL platform
@@ -86,7 +86,7 @@
    methortho                           : 0 #      Orthogonalisation
    rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
    psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
-   psolver_ACCEL                       : 0 #      Acceleration of the Poisson Solver (0=none, 1=CUDA)
+   psolver_accel                       : 0 #      Acceleration of the Poisson Solver (0=none, 1=CUDA)
    unblock_comms                       : OFF #    Overlap Communications of fields (OFF,DEN,POT)
    linear                              : OFF #    Linear Input Guess approach
    tolsym                              : 1e-8 #   Tolerance for symmetry detection

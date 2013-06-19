@@ -150,11 +150,12 @@ contains
     use yaml_output
     use dictionaries
     implicit none
-    
+
+    call f_dump_last_error()
     call yaml_open_map("allowed values")
     call yaml_dict_dump(failed_exclusive)
     call yaml_close_map()
-    call f_err_severe()
+    stop 'Severe error, cannot proceed'
   end subroutine abort_excl
 
   subroutine warn_illegal()

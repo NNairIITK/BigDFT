@@ -89,7 +89,7 @@ static const gchar* _input_keys[] = {
   "methortho",
   "rho_commun",
   "psolver_groupsize",
-  "psolver_ACCEL",
+  "psolver_accel",
   "unblock_comms",
   "linear",
   "tolsym",

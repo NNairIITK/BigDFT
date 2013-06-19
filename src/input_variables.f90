@@ -38,9 +38,10 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   ! initialize mpi environment (this shouldn't be done twice)
 !  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,nproc)
   !standard names
-  call standard_inputfile_names(in,trim(radical))
   call dict_init(dict)
   call read_inputs_from_text_format(dict, trim(radical), bigdft_mpi%iproc)
+
+  call standard_inputfile_names(in,trim(radical))
   call inputs_from_dict(in, atoms, dict, .true.)
   call dict_free(dict)
 
