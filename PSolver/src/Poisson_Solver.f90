@@ -4,7 +4,7 @@
 !! @author
 !!    Luigi Genovese (February 2007)
 !!    PSolverNC added by Anders Bergman, March 2008
-!!    Copyright (C) 2002-2011 BigDFT group 
+!!    Copyright (C) 2002-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .

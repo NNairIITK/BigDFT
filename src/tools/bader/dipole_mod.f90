@@ -8,8 +8,9 @@
 !!    (at your option) any later version.
 !!    A copy of the GNU General Public License is available at
 !!    http://www.gnu.org/licenses/
+!!
 !!    Written by Ali Sadeghi 2011
-!!    Copyright (C) 2011-2011 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -54,12 +55,13 @@ MODULE dipole_mod
 
   PRIVATE
   PUBLIC :: dipole_obj, dipole_cal, dipole_output
+
+
   CONTAINS
 
-!-----------------------------------------------------------------------------------!
-! dipole_cal: Calculate the dipole moments of each Bader volume with respect to the ions center
-!  as well as of the the whole system (which is origin-independent)
-!-----------------------------------------------------------------------------------!
+
+!> Calculate the dipole moments of each Bader volume with respect to the ions center
+!! as well as of the the whole system (which is origin-independent)
   SUBROUTINE dipole_cal(bdr,ions,chg,dpl,opts)
 
     TYPE(bader_obj) :: bdr
@@ -132,11 +134,9 @@ MODULE dipole_mod
     RETURN
   END SUBROUTINE dipole_cal
 
-!-----------------------------------------------------------------------------------!
-! dipole_output: Write out a summary of the dipole moment calulations.
-!         dipole.dat        : Stores the main output to the screen.
-!-----------------------------------------------------------------------------------!
 
+!> Write out a summary of the dipole moment calulations.
+!!  dipole.dat : Stores the main output to the screen.
  SUBROUTINE dipole_output(bdr,ions,dpl)
     
     IMPLICIT NONE
@@ -153,6 +153,7 @@ MODULE dipole_mod
     INTEGER  :: i 
  
     WRITE(*,'(A44,/)') 'WRITING BADER ATOMIC DIPOLES TO dipole.dat'
+
     OPEN(UNIT=iunit,FILE='dipole.dat',STATUS='replace',ACTION='write')
 
     WRITE(iunit,format_line) 
@@ -165,7 +166,7 @@ MODULE dipole_mod
                      ions%ion_chg(i),-bdr%ionchg(i), dpl%ion_netchg(i) 
     END DO
     WRITE(iunit,format_line) 
-    WRITE(iunit,* ) 
+    WRITE(iunit,'(a)') ''
 
     WRITE(iunit,format_line) 
     WRITE(iunit,'(a)') & 
@@ -194,7 +195,7 @@ MODULE dipole_mod
 !                     tmp1(:),  sqrt(DOT_PRODUCT(tmp1(:),tmp1(:)))   
 !    WRITE(iunit,format_line) 
 
-    WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Charge-tranfer contribution:' , & 
+    WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Charge-transfer contribution:' , & 
                      tmp2(:), sqrt(DOT_PRODUCT(tmp2(:),tmp2(:)))   
     WRITE(iunit,format_line) 
     WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Total dipole moment:' , & 
@@ -204,7 +205,7 @@ MODULE dipole_mod
     tmp1= dpl%tot_core(1:3)*dipoleunits 
     tmp2= dpl%tot_elec(1:3)*dipoleunits 
     WRITE(iunit,'(a)') & 
-    "Dipole-moment of the whole system (not decomposited to atoms) with respect to arbitrary origin:" 
+    "Dipole-moment of the whole system (not decomposed to atoms) with respect to arbitrary origin:" 
  !!   WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Elec. dipole moment:' , & 
  !!                    tmp2     ,sqrt(DOT_PRODUCT(tmp2     ,tmp2     ))     
  !!   WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Cores dipole moment:' , & 
@@ -213,7 +214,6 @@ MODULE dipole_mod
                      tmp1+tmp2,sqrt(DOT_PRODUCT(tmp1+tmp2,tmp1+tmp2))     
     WRITE(iunit,format_line) 
     CLOSE(UNIT=iunit)
-
 
  END SUBROUTINE dipole_output
 

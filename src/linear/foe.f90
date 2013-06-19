@@ -23,7 +23,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   real(kind=8),dimension(:,:),allocatable :: cc, fermip, chebyshev_polynomials
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol
-  real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old
+  real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old, bound_low, bound_up
   logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
@@ -32,6 +32,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   real(kind=8),dimension(4) :: interpol_vector, interpol_solution
   integer,dimension(4) :: ipiv
   real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
+  integer :: omp_get_thread_num
 
   !!real(8),dimension(100000) ::  work, eval, hamtmp, ovrlptmp
 
@@ -129,7 +130,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
       calculate_SHS=.true.
 
-      call to_zero(orbs%norb*orbs%norbp, fermip(1,1))
+      if (orbs%norbp>0) then
+          call to_zero(orbs%norb*orbs%norbp, fermip(1,1))
+      end if
 
       it=0
       it_solver=0
@@ -244,10 +247,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           ! (otherwise this has already been checked in the previous iteration).
           if (calculate_SHS) then
               ! The penalty function must be smaller than the noise.
-              !!allredarr(1)=maxval(abs(penalty_ev(:,:,2)))
-              !!allredarr(2)=maxval(abs(penalty_ev(:,:,1)))
-              allredarr(1)=0.d0
-              allredarr(2)=0.d0
+              bound_low=0.d0
+              bound_up=0.d0
               if (orbs%norbp>0) then
                   isegstart=ovrlp%istsegline(orbs%isorb_par(iproc)+1)
                   if (orbs%isorb+orbs%norbp<orbs%norb) then
@@ -255,40 +256,50 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   else
                       isegend=ovrlp%nseg
                   end if
-                  !$omp parallel default(private) shared(isegstart, isegend, orbs, penalty_ev, ovrlp, allredarr)
-                  !$omp do reduction(+:allredarr)
+                  !$omp parallel default(private) shared(isegstart, isegend, orbs, penalty_ev, ovrlp, bound_low, bound_up)
+                  !$omp do reduction(+:bound_low,bound_up)
                   do iseg=isegstart,isegend
                       ii=ovrlp%keyv(iseg)-1
                       do jorb=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
                           ii=ii+1
                           iiorb = (jorb-1)/orbs%norb + 1
                           jjorb = jorb - (iiorb-1)*orbs%norb
-                          allredarr(1) = allredarr(1) + penalty_ev(jjorb,iiorb-orbs%isorb,2)*ovrlp%matrix_compr(ii)
-                          allredarr(2) = allredarr(2) + penalty_ev(jjorb,iiorb-orbs%isorb,1)*ovrlp%matrix_compr(ii)
+                          bound_low = bound_low + penalty_ev(jjorb,iiorb-orbs%isorb,2)*ovrlp%matrix_compr(ii)
+                          bound_up = bound_up +penalty_ev(jjorb,iiorb-orbs%isorb,1)*ovrlp%matrix_compr(ii)
                       end do  
                   end do
                   !$omp end do
                   !$omp end parallel
               end if
 
+              allredarr(1)=bound_low
+              allredarr(2)=bound_up
               call mpiallred(allredarr, 2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
               if (allredarr(1)>anoise) then
                   if (iproc==0) then
                       write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', &
                                                 allredarr(1), anoise
-                      write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
+                      write(*,'(1x,a)') 'Increase magnitude by 20% and cycle.'
                   end if
                   foe_obj%evlow=foe_obj%evlow*1.2d0
                   restart=.true.
+              else
+                  if (iproc==0) then
+                      write(*,'(1x,a)') 'Lowest eigenvalue within interval, can continue.'
+                  end if
               end if
               if (allredarr(2)>anoise) then
                   if (iproc==0) then
                       write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', &
                                                 allredarr(2), anoise
-                      write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
+                      write(*,'(1x,a)') 'Increase magnitude by 20% and cycle.'
                   end if
                   foe_obj%evhigh=foe_obj%evhigh*1.2d0
                   restart=.true.
+              else
+                  if (iproc==0) then
+                      write(*,'(1x,a)') 'Highest eigenvalue within interval, can continue.'
+                  end if
               end if
           end if
 
@@ -347,14 +358,14 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   !!    interpol_matrix(ii,4)=1
                   !!end do
                   !!interpol_vector(ii)=(sumn-foe_obj%charge)
-                  if (iproc==0) write(*,'(1x,a)') 'lower bound for the eigenvalue spectrum is okay.'
-                  !cycle
+                  if (iproc==0) write(*,'(1x,a)') 'lower bisection bound is okay.'
+                  cycle !now check the upper bound
               else
                   efarr(1)=efarr(1)-foe_obj%bisection_shift
                   foe_obj%bisection_shift=foe_obj%bisection_shift*1.1d0
                   if (iproc==0) write(*,'(1x,a,es12.5)') &
                       'lower bisection bound does not give negative charge difference: diff=',charge_diff
-                  !cycle
+                  cycle !move the bisection bound
               end if
           end if
           if (adjust_upper_bound) then
@@ -363,18 +374,18 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   adjust_upper_bound=.false.
                   foe_obj%bisection_shift=foe_obj%bisection_shift*9.d-1
                   sumnarr(2)=sumn
-                  if (iproc==0) write(*,'(1x,a)') 'upper bound for the eigenvalue spectrum is okay.'
+                  if (iproc==0) write(*,'(1x,a)') 'upper bisection bound is okay.'
               else
                   efarr(2)=efarr(2)+foe_obj%bisection_shift
                   foe_obj%bisection_shift=foe_obj%bisection_shift*1.1d0
                   if (iproc==0) write(*,'(1x,a,es12.5)') &
                       'upper bisection bound does not give positive charge difference: diff=',charge_diff
-                  !cycle
+                  cycle !move the bisection bound
               end if
           end if
 
-          ! Cycle if one of the two bounds is not okay
-          if (adjust_lower_bound .or. adjust_upper_bound) cycle
+          !!! Cycle if one of the two bounds is not okay
+          !!if (adjust_lower_bound .or. adjust_upper_bound) cycle
 
           it_solver=it_solver+1
 
@@ -746,7 +757,7 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
       x=x+ddx
       if (x>=.25d0*dist) exit
   end do
-  !anoise=2.d0*tt
+  !anoise=1.d0*tt
   anoise=20.d0*tt
 
 end subroutine evnoise

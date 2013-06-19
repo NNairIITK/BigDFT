@@ -1,3 +1,14 @@
+!> @file
+!! Routine to tests yaml_output module
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed oneder the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> First yaml document
 subroutine test_yaml_output1()
   use yaml_output
   implicit none
@@ -24,6 +35,8 @@ subroutine test_yaml_output1()
   call yaml_close_map()
 end subroutine test_yaml_output1
 
+
+!> Second yaml document
 subroutine test_yaml_output2()
   use yaml_output
   implicit none
@@ -66,6 +79,8 @@ subroutine test_yaml_output2()
 !stop
 end subroutine test_yaml_output2
 
+
+!> Test of sequences
 subroutine test_yaml_output_sequences1()
   use yaml_output
   implicit none
@@ -94,6 +109,7 @@ subroutine test_yaml_output_sequences1()
          call yaml_sequence(trim(yaml_toa(dv(i),fmt='(1pe12.5)')))
    end do
    call yaml_close_sequence()
+
    call yaml_map('Vector of real(kind=8)',dv,fmt='(f3.0)')
 
    deallocate(cv)
@@ -102,6 +118,8 @@ subroutine test_yaml_output_sequences1()
 
 end subroutine test_yaml_output_sequences1
 
+
+!> Second test of sequences
 subroutine test_yaml_output_sequences2()
   use yaml_output
   implicit none

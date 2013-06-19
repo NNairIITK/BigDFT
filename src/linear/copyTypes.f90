@@ -1,13 +1,14 @@
 !> @file
 !! Copy the different type used by linear version
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-!currently incomplete - need to add comms arrays etc
+
+!> Currently incomplete - need to add comms arrays etc
 subroutine copy_tmbs(tmbin, tmbout, subname)
   use module_base
   use module_types
@@ -1083,7 +1084,8 @@ subroutine sparse_copy_pattern_new(sparseMat_in, sparseMat_out, iproc, subname)
   character(len=*),intent(in):: subname
 
   ! Local variables
-  integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+  integer :: i1
+  !integer:: iis1, iie1, iis2, iie2, i2, istat, iall
 
   call timing(iproc,'sparse_copy','ON')
 

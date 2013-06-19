@@ -229,7 +229,7 @@
  Error pipe is still full              :  No
  Toto                                  : 
  toto                                  : 1
- titi                                  : 1.0000000000000000
+ titi                                  : 1.00000000000000000
  tutu: [1, 2]
  List: [a: 0, 4, 1.0]
  New key: {Example: 4}

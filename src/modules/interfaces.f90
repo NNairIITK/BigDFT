@@ -964,7 +964,7 @@ module module_interfaces
         real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
       end subroutine davidson
 
-      subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
+      subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
             &   ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,passmat,nvirte,psivirt)
          use module_base
          implicit none
@@ -977,7 +977,6 @@ module module_interfaces
          real(wp), dimension(*), intent(out) :: passmat
          integer, dimension(2), intent(in), optional :: nvirte
          real(wp), dimension(*), optional :: psivirt
-         integer:: iproc
       END SUBROUTINE build_eigenvectors
 
       subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
@@ -1676,11 +1675,10 @@ module module_interfaces
          type(gaussian_basis), intent(out) :: G  
       END SUBROUTINE gaussian_hermite_basis
 
-      subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
+      subroutine write_eigenvalues_data(etol,orbs,mom_vec)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: nproc
         real(gp), intent(in) :: etol
         type(orbitals_data), intent(in) :: orbs
         real(gp), dimension(:,:,:), intent(in), pointer :: mom_vec
@@ -2041,13 +2039,14 @@ module module_interfaces
       real(wp), dimension(ndim_psi), intent(inout) :: psit,hpsit
     end subroutine psimix
     
-    subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,&
-        GPU,infoCoeff,ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,&
-        communicate_phi_for_lsumrho,calculate_ham,ham_small,ldiis_coeff)
+    subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
+         ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+         calculate_ham,ham_small,ldiis_coeff)
       use module_base
       use module_types
+      use diis_sd_optimization
       implicit none
-      
+
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, scf_mode
       type(orbitals_data),intent(inout) :: orbs
@@ -2064,8 +2063,8 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout) :: tmb
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       logical,intent(in) :: calculate_ham
-      type(sparseMatrix), intent(inout) :: ham_small ! foe only, not otherwise allocated
-      type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
+      type(sparseMatrix), intent(inout) :: ham_small ! for foe only
+      type(DIIS_obj),intent(inout),optional :: ldiis_coeff
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
@@ -4833,13 +4832,14 @@ module module_interfaces
           real(dp), dimension(:), pointer :: local_potential
         end subroutine integral_equation
 
-        subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, collcom, collcom_sr, sparsemat)
+        subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, collcom, collcom_shamop, &
+                   collcom_sr, sparsemat)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc
           type(orbitals_data),intent(in) :: orbs
-          type(collective_comms),intent(in) :: collcom, collcom_sr
+          type(collective_comms),intent(in) :: collcom, collcom_shamop, collcom_sr
           type(sparseMatrix), intent(inout) :: sparsemat
         end subroutine init_matrixindex_in_compressed_fortransposed
 

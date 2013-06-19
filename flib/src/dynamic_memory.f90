@@ -1,7 +1,7 @@
 !> @file
 !! Manage dynamic memory allocation
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group
+!!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -10,11 +10,12 @@
 
 !> Module used by the module to manage the memory allocations
 module metadata_interfaces
+
   implicit none
 
   private
 
-  integer, parameter :: longsize=20 !<could be lower
+  integer, parameter :: longsize=20              !<could be lower
   character(len=*), parameter :: fmtlong='(i20)' !< conversion of long integer
 
   interface
@@ -30,6 +31,17 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine geti2
 
+     subroutine getl1(array,iadd)
+       implicit none
+       logical, dimension(:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getl1
+
+     subroutine getl2(array,iadd)
+       implicit none
+       logical, dimension(:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getl2
 
      subroutine getdp1(array,iadd)
        implicit none
@@ -100,10 +112,13 @@ module metadata_interfaces
   end interface
 
 interface pad_array
-  module procedure pad_i1,pad_i2,pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5
+  module procedure pad_i1,pad_i2
+  module procedure pad_l1,pad_l2
+  module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5
 end interface
 
-public :: pad_array,geti1,geti2,getdp1,getdp2,getdp3,getdp4!,getlongaddress
+public :: pad_array,geti1,geti2,getl1,getl2
+public :: getdp1,getdp2,getdp3,getdp4!,getlongaddress
 public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,geti1ptr,geti2ptr
 public :: address_toi,long_toa
 
@@ -130,6 +145,28 @@ contains
     call pad_integer(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
 
   end subroutine pad_i2
+
+  subroutine pad_l1(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(1), intent(in) :: shp
+    logical, dimension(shp(1)+ndebug), intent(out) :: array
+    
+    call pad_logical(array,init_to_zero,shp(1),shp(1)+ndebug)
+
+  end subroutine pad_l1
+
+  subroutine pad_l2(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(2), intent(in) :: shp
+    logical, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
+    
+    call pad_logical(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
+
+  end subroutine pad_l2
 
   subroutine pad_dp1(array,init_to_zero,shp,ndebug)
     implicit none
@@ -372,6 +409,7 @@ end module metadata_interfaces
 
 !> Module used to manage memory allocations and de-allocations
 module dynamic_memory
+
   !use m_profiling, except => ndebug, and=> d_nan, also=> r_nan
   use memory_profiling, except => ndebug
   use dictionaries, info_length => max_field_length
@@ -383,6 +421,7 @@ module dynamic_memory
   integer, parameter :: namelen=32          !< length of the character variables
   integer, parameter :: error_string_len=80 !< length of error string
   integer, parameter :: ndebug=0            !< size of debug parameters
+  integer, parameter :: max_rank=7          !< maximum rank in fortran
   !> errorcodes
 
   logical :: profile_initialized=.false.  !< global variables for initialization
@@ -414,27 +453,31 @@ module dynamic_memory
 
   !> Structure needed to allocate an allocatable array
   type, public :: malloc_information_all
-     logical :: pin         !< flag to control the pinning of the address
-     logical :: profile     !< activate profiling for this allocation
-     logical :: put_to_zero !<initialize to zero after allocation
-     integer :: rank        !< rank of the array
-     integer, dimension(7) :: shape,lbounds,ubounds
-     integer(kind=8) :: metadata_add      !<physical address of the fortran metadata
-     character(len=namelen) :: array_id   !< label the array
-     character(len=namelen) :: routine_id !<label the routine
+     logical :: pin                          !< flag to control the pinning of the address
+     logical :: profile                      !< activate profiling for this allocation
+     logical :: put_to_zero                  !< initialize to zero after allocation
+     integer :: rank                         !< rank of the array
+     integer, dimension(max_rank) :: shape   !< shape of the structure 
+     integer, dimension(max_rank) :: lbounds !< lower bounds
+     integer, dimension(max_rank) :: ubounds !< upper bounds
+     integer(kind=8) :: metadata_add         !< physical address of the fortran metadata
+     character(len=namelen) :: array_id      !< label the array
+     character(len=namelen) :: routine_id    !< label the routine
   end type malloc_information_all
 
   !> Structure needed to allocate a pointer
   type, public :: malloc_information_ptr
-     logical :: ptr         !< just to make the structures different, to see if needed
-     logical :: pin         !< flag to control the pinning of the address
-     logical :: profile     !< activate profiling for this allocation
-     logical :: put_to_zero !<initialize to zero after allocation
-     integer :: rank        !< rank of the pointer
-     integer, dimension(7) :: shape,lbounds,ubounds
-     integer(kind=8) :: metadata_add      !<physical address of the fortran metadata
-     character(len=namelen) :: array_id   !< label the array
-     character(len=namelen) :: routine_id !<label the routine
+     logical :: ptr                          !< just to make the structures different, to see if needed
+     logical :: pin                          !< flag to control the pinning of the address
+     logical :: profile                      !< activate profiling for this allocation
+     logical :: put_to_zero                  !< initialize to zero after allocation
+     integer :: rank                         !< rank of the pointer
+     integer, dimension(max_rank) :: shape   !< shape of the structure 
+     integer, dimension(max_rank) :: lbounds !< lower bounds
+     integer, dimension(max_rank) :: ubounds !< upper bounds
+     integer(kind=8) :: metadata_add         !< physical address of the fortran metadata
+     character(len=namelen) :: array_id      !< label the array
+     character(len=namelen) :: routine_id    !< label the routine
   end type malloc_information_ptr
 
 
@@ -445,6 +488,7 @@ module dynamic_memory
 
   interface assignment(=)
      module procedure i1_all,i2_all
+     module procedure l1_all,l2_all
      module procedure d1_all,d2_all,d3_all,d4_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
      module procedure i1_ptr,i2_ptr
@@ -455,12 +499,14 @@ module dynamic_memory
   end interface
 
   interface f_free
-     module procedure i1_all_free,i2_all_free,d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free
+     module procedure i1_all_free,i2_all_free
+     module procedure l1_all_free,l2_all_free
+     module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free
   end interface
 
   interface f_free_ptr
-     module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free
      module procedure i1_ptr_free,i2_ptr_free
+     module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free
   end interface
 
 
@@ -484,14 +530,30 @@ module dynamic_memory
      module procedure f_malloc0_ptr,f_malloc0_ptr_simple,f_malloc0_ptr_bounds,f_malloc0_ptr_bound
   end interface
 
+  interface
+     pure subroutine nanosec(itime)
+       implicit none
+       integer(kind=8), intent(out) :: itime
+     end subroutine nanosec
+  end interface
+
 
   !> Public routines
   public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_malloc_dump_status
   public :: f_free,f_free_ptr
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_finalize
+  public :: f_time
   public :: assignment(=),operator(.to.)
 
 contains
+
+  pure function f_time()
+    integer(kind=8) :: f_time
+    !local variables
+    integer(kind=8) :: itime
+    call nanosec(itime)
+    f_time=itime
+  end function f_time
 
   pure function bounds(nlow,nhigh)
     implicit none
@@ -544,7 +606,7 @@ contains
 
   end function malloc_information_all_null
 
-  !for rank-1 arrays
+  !> For rank-1 arrays
   pure function f_malloc_simple(size,id,routine_id,profile) result(m)
     integer, intent(in) :: size
     logical, intent(in), optional :: profile
@@ -562,7 +624,7 @@ contains
 
   end function f_malloc_simple
 
-  !for rank-1 arrays
+  !> For rank-1 arrays
   pure function f_malloc_bound(bounds,id,routine_id,profile) result(m)
     type(array_bounds), intent(in) :: bounds
     logical, intent(in), optional :: profile
@@ -581,7 +643,7 @@ contains
 
   end function f_malloc_bound
 
-  !define the allocation information for  arrays of different rank
+  !> Define the allocation information for  arrays of different rank
   pure function f_malloc_bounds(bounds,id,routine_id,profile) result(m)
     implicit none
     type(array_bounds), dimension(:), intent(in) :: bounds
@@ -604,7 +666,7 @@ contains
   end function f_malloc_bounds
 
 
-  !define the allocation information for  arrays of different rank
+  !> Define the allocation information for  arrays of different rank
   function f_malloc(shape,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
@@ -700,7 +762,7 @@ contains
     include 'f_malloc-inc.f90'
   end function f_malloc0
 
-  !> for rank-1 arrays
+  !> For rank-1 arrays
   pure function f_malloc_ptr_simple(size,id,routine_id,profile) result(m)
     integer, intent(in) :: size
     logical, intent(in), optional :: profile
@@ -717,7 +779,7 @@ contains
     include 'f_malloc-inc.f90'
   end function f_malloc_ptr_simple
 
-  !for rank-1 arrays
+  !> For rank-1 arrays
   pure function f_malloc_ptr_bound(bounds,id,routine_id,profile) result(m)
     type(array_bounds), intent(in) :: bounds
     logical, intent(in), optional :: profile
@@ -735,7 +797,7 @@ contains
     include 'f_malloc-inc.f90'
   end function f_malloc_ptr_bound
 
-  !define the allocation information for  arrays of different rank
+    !> Define the allocation information for  arrays of different rank
   pure function f_malloc_ptr_bounds(bounds,id,routine_id,profile) result(m)
     implicit none
     type(array_bounds), dimension(:), intent(in) :: bounds
@@ -757,7 +819,7 @@ contains
   end function f_malloc_ptr_bounds
 
 
-  !define the allocation information for  arrays of different rank
+  !> Define the allocation information for  arrays of different rank
   function f_malloc_ptr(shape,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
@@ -772,7 +834,7 @@ contains
     include 'f_malloc-inc.f90'
   end function f_malloc_ptr
 
-  !for rank-1 arrays
+  !> For rank-1 arrays
   pure function f_malloc0_ptr_simple(size,id,routine_id,profile) result(m)
     integer, intent(in) :: size
     logical, intent(in), optional :: profile
@@ -790,7 +852,7 @@ contains
     include 'f_malloc-inc.f90'
   end function f_malloc0_ptr_simple
 
-  !for rank-1 arrays
+  !> For rank-1 arrays
   pure function f_malloc0_ptr_bound(bounds,id,routine_id,profile) result(m)
     type(array_bounds), intent(in) :: bounds
     logical, intent(in), optional :: profile
@@ -809,7 +871,7 @@ contains
     include 'f_malloc-inc.f90'
   end function f_malloc0_ptr_bound
 
-  !define the allocation information for  arrays of different rank
+  !> Define the allocation information for  arrays of different rank
   pure function f_malloc0_ptr_bounds(bounds,id,routine_id,profile) result(m)
     implicit none
     type(array_bounds), dimension(:), intent(in) :: bounds
@@ -831,7 +893,7 @@ contains
     include 'f_malloc-inc.f90'
   end function f_malloc0_ptr_bounds
 
-  !define the allocation information for  arrays of different rank
+  !> Define the allocation information for  arrays of different rank
   function f_malloc0_ptr(shape,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
@@ -857,6 +919,7 @@ contains
     
     !local variables
     integer :: lgt
+    integer(kind=8) :: itime
 
     if (.not. present(id)) return !no effect
 
@@ -1093,44 +1156,6 @@ contains
     profile_routine=.true.
   end subroutine f_malloc_finalize
 
-!!  !> Check error of allocations or deallocations
-!!  subroutine check_for_errors(ierror,try)
-!!    use yaml_output!, only: yaml_warning,yaml_open_map,yaml_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
-!!    implicit none
-!!    logical, intent(in) :: try
-!!    integer, intent(in) :: ierror
-!!    !local variables
-!!    integer :: unt
-!!
-!!    !recuperate possible error
-!!    if (ierror /= INVALID_RANK) lasterror='Fortran (de)allocation problem'
-!!
-!!    !raise exception if exit
-!!    if (ierror /= SUCCESS) then
-!!       if (try) then
-!!          return
-!!       else
-!!          call yaml_open_map('(de)allocation error exiting')
-!!             call yaml_map('Error code',ierror)
-!!             call yaml_map('Last error',lasterror)
-!!          call yaml_close_map()
-!!          !write(*,*)'(de)allocation error, exiting. Error code:',ierror
-!!          !write(*,*)'last error:',lasterror
-!!          call yaml_get_default_stream(unt)
-!!          if (associated(dict_routine)) then
-!!             call yaml_open_map('Status of the routine before exiting')
-!!             !call yaml_dict_dump(dict_routine)
-!!             call dump_leaked_memory(dict_routine)
-!!             call yaml_close_map()
-!!          end if
-!!          call yaml_dict_dump(dict_calling_sequence)
-!!          stop
-!!       end if
-!!    end if
-!!
-!!  end subroutine check_for_errors
-!!
-
   !> Dump all allocations
   subroutine dump_leaked_memory(dict)
     use metadata_interfaces, only: address_toi
@@ -1142,131 +1167,21 @@ contains
      character(len=256) :: array_id
      dict_ptr => dict_next(dict)
      do while(associated(dict_ptr))
-!!$        call yaml_map('Key has been found',has_key(dict_ptr,trim(arrayid)))
-!!$        call try()
-!!$        array_id = dict_ptr//arrayid
-!!$        call close_try()
         if (has_key(dict_ptr,trim(arrayid))) then
            array_id = dict_ptr//arrayid
            call yaml_open_map(trim(array_id))
            call yaml_dict_dump(dict_ptr)
            call yaml_map(metadatadd,trim(dict_key(dict_ptr)))
-!!$           call yaml_map('Long integer conversion',&
-!!$                address_toi(trim(adjustl(dict_key(dict_ptr)))))
            call yaml_close_map()
         else
            call yaml_open_map(trim(dict_key(dict_ptr)))
            call yaml_dict_dump(dict_ptr)
            call yaml_close_map()
         end if
-!!$           PRINT *,'ERROR',TRY_ERROR()
-!!$           call yaml_map('key',dict_key(dict_ptr))
-!!$           print *,'nelems: ',dict_ptr%data%nelems
-!!$           print *,'key: "',trim(dict_ptr%data%key),'"'
-!!$           print *,'value: "',trim(dict_ptr%data%value),'"'
-!!$           call yaml_dict_dump(dict_ptr%parent)
-!!$           print *,'aa'
         dict_ptr=>dict_next(dict_ptr)
      end do
   end subroutine dump_leaked_memory
 
-!!
-!!  !> Use the address of the allocated pointer to profile the deallocation
-!!  subroutine profile_deallocation(ierr,ilsize,address)
-!!    use yaml_output!, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_map
-!!    implicit none
-!!    integer, intent(in) :: ierr
-!!    integer(kind=8), intent(in) :: ilsize
-!!    character(len=*), intent(in) :: address
-!!    !local variables
-!!    logical :: use_global
-!!    character(len=namelen) :: array_id,routine_id
-!!    integer(kind=8) :: jlsize
-!!    type(dictionary), pointer :: dict_add!,dict_tmp
-!!
-!!    call check_for_errors(ierr,.false.)
-!!    !search in the dictionaries the address
-!!    dict_add=>find_key(dict_routine,trim(address))
-!!    if (.not. associated(dict_add)) then
-!!       dict_add=>find_key(dict_global,trim(address))
-!!       if (.not. associated(dict_add)) then
-!!          print *,'address:',trim(address)
-!!          call f_malloc_dump_status()
-!!          call yaml_dict_dump(dict_calling_sequence)
-!!          stop 'profile deallocations: address not present'
-!!       else
-!!          use_global=.true.
-!!       end if
-!!    else
-!!       use_global=.false.
-!!    end if
-!!    !the global dictionary should be used instead
-!!    array_id=dict_add//arrayid
-!!    routine_id=dict_add//routineid
-!!    jlsize=dict_add//sizeid
-!!
-!!    call memocc(ierr,-int(ilsize),trim(array_id),trim(routine_id))
-!!!!$    call yaml_map('Deallocating',trim(array_id))
-!!!!$    call yaml_map('Use global',use_global)
-!!!!$    call yaml_map('Associated global',associated(dict_global))
-!!    if (use_global) then
-!!       !call yaml_dict_dump(dict_global)
-!!       call pop(dict_global,trim(address))
-!!    else
-!!       call pop(dict_routine,trim(address))
-!!    end if
-!!
-!!!!$    call yaml_comment('Test',hfill='-')
-!!!!$!    call yaml_map('Associated',associated(dict_tmp))
-!!!!$    call yaml_map('Associated routine',associated(dict_routine))
-!!!!$    !call yaml_dict_dump(dict_tmp)
-!!
-!!  end subroutine profile_deallocation
-!!
-!!
-!!  subroutine profile_allocation(ierr,iadd,address,sizeof,m)
-!!    implicit none
-!!    integer, intent(in) :: ierr,sizeof
-!!    integer(kind=8), intent(in) :: iadd
-!!    character(len=*), intent(in) :: address
-!!    type(malloc_information_all), intent(in) :: m
-!!    !local variables
-!!    integer :: i
-!!    integer(kind=8) :: ilsize
-!!    type(dictionary), pointer :: dict_tmp
-!!
-!!    if (.not. associated(dict_routine)) then
-!!       call dict_init(dict_routine)
-!!    end if
-!!    !size
-!!    ilsize=int(sizeof,kind=8)
-!!    do i=1,m%rank
-!!       ilsize=ilsize*int(m%shape(i),kind=8)
-!!    end do
-!!    !create the dictionary array
-!!    !add the array to the routine
-!!    call dict_array(m%routine_id,m%array_id,ilsize,dict_tmp)
-!!    call set(dict_routine//trim(address),dict_tmp)
-!!    call check_for_errors(ierr,m%try)
-!!    call memocc(ierr,product(m%shape(1:m%rank))*sizeof,m%array_id,m%routine_id)
-!!  contains
-!!
-!!    subroutine dict_array(routine_id,array_id,size,dict_tmp)
-!!      implicit none
-!!      character(len=*), intent(in) :: array_id,routine_id
-!!      integer(kind=8), intent(in) :: size !< in bytes
-!!      type(dictionary), pointer :: dict_tmp
-!!      nullify(dict_tmp)
-!!      call dict_init(dict_tmp)
-!!      call set(dict_tmp//arrayid,trim(array_id))
-!!      call set(dict_tmp//sizeid,size)
-!!      call set(dict_tmp//routineid,trim(routine_id))
-!!      call set(dict_tmp//metadatadd,iadd)
-!!
-!!    end subroutine dict_array
-!!
-!!  end subroutine profile_allocation
-!!
   subroutine f_malloc_dump_status()
     use yaml_output
     implicit none
@@ -1288,24 +1203,8 @@ contains
 
   end subroutine f_malloc_dump_status
 
-  subroutine i2_all(array,m)
-    use metadata_interfaces, metadata_address => geti2
-    implicit none
-    type(malloc_information_all), intent(in) :: m
-    integer, dimension(:,:), allocatable, intent(inout) :: array
-    include 'allocate-inc-profile.f90' 
-    !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
-    include 'allocate-inc.f90'
-  end subroutine i2_all
-  subroutine i2_all_free(array)
-    use metadata_interfaces, metadata_address => geti2
-    implicit none
-    integer, dimension(:,:), allocatable, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    include 'deallocate-inc.f90' 
-  end subroutine i2_all_free
 
+  !---Templates start here
   subroutine i1_all(array,m)
     use metadata_interfaces, metadata_address => geti1
     implicit none
@@ -1325,7 +1224,63 @@ contains
     include 'deallocate-inc.f90' 
   end subroutine i1_all_free
 
+  subroutine i2_all(array,m)
+    use metadata_interfaces, metadata_address => geti2
+    implicit none
+    type(malloc_information_all), intent(in) :: m
+    integer, dimension(:,:), allocatable, intent(inout) :: array
+    include 'allocate-inc-profile.f90' 
+    !allocate the array
+    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
+    include 'allocate-inc.f90'
+  end subroutine i2_all
+  subroutine i2_all_free(array)
+    use metadata_interfaces, metadata_address => geti2
+    implicit none
+    integer, dimension(:,:), allocatable, intent(inout) :: array
+    include 'deallocate-inc-profile.f90' 
+    include 'deallocate-inc.f90' 
+  end subroutine i2_all_free
 
+
+  subroutine l1_all(array,m)
+    use metadata_interfaces, metadata_address => getl1
+    implicit none
+    type(malloc_information_all), intent(in) :: m
+    logical, dimension(:), allocatable, intent(inout) :: array
+    include 'allocate-inc-profile.f90' 
+    !allocate the array
+    allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
+    include 'allocate-inc.f90'
+  end subroutine l1_all
+
+  subroutine l1_all_free(array)
+    use metadata_interfaces, metadata_address => getl1
+    implicit none
+    logical, dimension(:), allocatable, intent(inout) :: array
+    include 'deallocate-inc-profile.f90' 
+    include 'deallocate-inc.f90' 
+  end subroutine l1_all_free
+
+
+  subroutine l2_all(array,m)
+    use metadata_interfaces, metadata_address => getl2
+    implicit none
+    type(malloc_information_all), intent(in) :: m
+    logical, dimension(:,:), allocatable, intent(inout) :: array
+    include 'allocate-inc-profile.f90' 
+    !allocate the array
+    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
+    include 'allocate-inc.f90'
+  end subroutine l2_all
+
+  subroutine l2_all_free(array)
+    use metadata_interfaces, metadata_address => getl2
+    implicit none
+    logical, dimension(:,:), allocatable, intent(inout) :: array
+    include 'deallocate-inc-profile.f90' 
+    include 'deallocate-inc.f90' 
+  end subroutine l2_all_free
 
   subroutine d1_all(array,m)
     use metadata_interfaces, metadata_address => getdp1
@@ -1386,7 +1341,6 @@ contains
     include 'deallocate-inc.f90' 
   end subroutine d3_all_free
 
-
   subroutine d4_all(array,m)
     use metadata_interfaces, metadata_address => getdp4
     implicit none
@@ -1408,6 +1362,7 @@ contains
     include 'deallocate-inc.f90' 
   end subroutine d4_all_free
 
+  !test to see if this is convenient
   subroutine d1_all_free_multi(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH)
     implicit none
     double precision, dimension(:), allocatable, intent(inout) :: arrayA

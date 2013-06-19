@@ -331,7 +331,7 @@
 !!!    FOR NOW, just transform the Lpsi to psi in global region.
 !!     nvctrp=Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
 !!     if (nvctrp == 0) cycle
-!!     call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
+!!     call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
 !!          natsceff,nspin,orbse%nspinor,orbse%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
 !!          psi(ispsie:),psit(ispsi:))
 !!     ispsi=ispsi+nvctrp*orbs%norb*orbse%nspinor
