@@ -696,7 +696,8 @@ contains
     type(dictionary), intent(in) :: dict
     val(1:len(val))=' '
     if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
-    if (f_err_raise(no_value(dict),err_id=DICT_VALUE_ABSENT)) return
+    if (f_err_raise(no_value(dict),err_id=DICT_VALUE_ABSENT, &
+         & err_msg = "key is '" // trim(dict%data%key) // "'")) return
 
     call get_field(dict%data%value,val)
 
