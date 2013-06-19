@@ -99,7 +99,6 @@ static char* _error(yaml_parser_t *parser)
 void FC_FUNC_(yaml_parser_c_init, YAML_PARSER_C_INIT)(void **pt, const char *fname, int *ln)
 {
   FLib_Yaml_Parser *obj;
-  int i;
   char *f;
 
   obj = malloc(sizeof(FLib_Yaml_Parser));
@@ -120,9 +119,35 @@ void FC_FUNC_(yaml_parser_c_init, YAML_PARSER_C_INIT)(void **pt, const char *fna
   *pt = (void*)obj;
 }
 
+void FC_FUNC_(yaml_parser_c_init_from_buf, YAML_PARSER_C_INIT_FROM_BUF)
+     (void **pt, void **buf, size_t *ln)
+{
+  FLib_Yaml_Parser *obj;
+  const unsigned char *str;
+
+  obj = malloc(sizeof(FLib_Yaml_Parser));
+  obj->input = NULL;
+
+  /* Create the Parser object. */
+  yaml_parser_initialize(&(obj->parser));
+  if (*ln)
+    {
+      str = (unsigned char*)buf;
+      yaml_parser_set_input_string(&(obj->parser), str, *ln);
+    }
+  else
+    {
+      str = (unsigned char*)(*buf);
+      yaml_parser_set_input_string(&(obj->parser), str, strlen((char*)str));
+    }
+
+  *pt = (void*)obj;
+}
+
 static void _finalize(FLib_Yaml_Parser *obj)
 {
-  fclose(obj->input);
+  if (obj->input)
+    fclose(obj->input);
 
   /* Delete the Parser object. */
   yaml_parser_delete(&(obj->parser));
@@ -170,6 +195,11 @@ void FC_FUNC_(yaml_parser_c_get_scalar,
 {
   *id = (int)YAML_SCALAR_EVENT;
 }
+void FC_FUNC_(yaml_parser_c_get_alias,
+              YAML_PARSER_C_GET_ALIAS)(int *id)
+{
+  *id = (int)YAML_ALIAS_EVENT;
+}
 void FC_FUNC_(yaml_parser_c_get_stream_end,
               YAML_PARSER_C_GET_STREAM_END)(int *id)
 {
@@ -198,6 +228,13 @@ void FC_FUNC_(yaml_parser_c_next, YAML_PARSER_C_NEXT)(void **pt, int *type, char
         {
           for (i = 0; event.data.scalar.value[i] && i < *len; i++)
             val[i] = event.data.scalar.value[i];
+          for (; i < *len; i++)
+            val[i] = ' ';
+        }
+      if (event.type == YAML_ALIAS_EVENT)
+        {
+          for (i = 0; event.data.alias.anchor[i] && i < *len; i++)
+            val[i] = event.data.alias.anchor[i];
           for (; i < *len; i++)
             val[i] = ' ';
         }
