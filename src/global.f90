@@ -842,34 +842,7 @@ contains
     istepnext=5
     md_loop: do istep=1,200
 
-       !C      Evolution of the system according to 'VELOCITY VERLET' algorithm
-!!       rkin=0.d0
-!!       do iat=1,nat
-!!          if (.not. atoms%lfrztyp(iat)) then
-!!             if (atoms%geocode == 'P') then
-!!                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
-!!                     atoms%astruct%cell_dim(1))
-!!                rxyz(2,iat)=modulo(rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat),&
-!!                     atoms%astruct%cell_dim(2))
-!!                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
-!!                     atoms%astruct%cell_dim(3))
-!!             else if (atoms%geocode == 'S') then
-!!                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
-!!                     atoms%astruct%cell_dim(1))
-!!                rxyz(2,iat)=       rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
-!!                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
-!!                     atoms%astruct%cell_dim(3))
-!!             else if (atoms%geocode == 'F') then
-!!                rxyz(1,iat)=rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat)
-!!                rxyz(2,iat)=rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
-!!                rxyz(3,iat)=rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat)
-!!             end if
-!!             rkin=rkin+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
-!!          end if
-!!       enddo
-!      call atomic_axpy(atoms,rxyz,dt,vxyz,rxyz)
-!      call atomic_axpy(atoms,rxyz,.5d0*dt*dt,gg,rxyz)
-!      call atomic_dot(atoms,vxyz,vxyz,rkin)
+!C      Evolution of the system according to 'VELOCITY VERLET' algorithm
        call daxpy(3*nat,dt,vxyz(1,1),1,rxyz(1,1),1)
        call daxpy(3*nat,0.5_gp*dt*dt,gg(1,1),1,rxyz(1,1),1)
 
