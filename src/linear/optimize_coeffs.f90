@@ -141,7 +141,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   call f_release_routine()
 
 end subroutine optimize_coeffs
-
+!!$
 subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pred_e)
   use module_base
   use module_types
@@ -154,7 +154,6 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
   real(kind=gp), dimension(tmb%orbs%norb,orbs%norbp), intent(in) :: grad
   real(kind=gp), intent(in) :: energy0, fnrm
   real(kind=gp), intent(out) :: pred_e
-
   integer :: iorb, iiorb, jorb, ierr
   real(kind=gp) :: tt, ddot, energy1, a, b, c, alpha_old
   real(kind=gp),dimension(:,:),allocatable :: coeff_tmp

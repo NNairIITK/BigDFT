@@ -537,63 +537,70 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
 
   if (diis%idsx > 0) then
 
-     !test for the new diis routine
-     call DIIS_obj_fill(diis,diis_new)
-
-     call diis_opt(iproc,nproc,orbs%nkpts,orbs%iskpts,orbs%nkptsp,orbs%ikptproc,&
-          orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),ndim_psi,psit,hpsit,diis_new)
-
-     call DIIS_obj_release(diis_new,diis)
-
-
-!!$     !do not transpose the hpsi wavefunction into the diis array
-!!$     !for compatibility with the k-points distribution
-!!$     ispsi=1
-!!$     ispsidst=1
-!!$     do ikptp=1,orbs%nkptsp
-!!$        ikpt=orbs%iskpts+ikptp
-!!$        nvctrp=comms%nvctr_par(iproc,ikpt)
-!!$        if (nvctrp == 0) cycle
-!!$        !here we can choose to store the DIIS arrays with single precision
-!!$        !psidst=psit
-!!$        call vcopy(nvctrp*orbs%norb*orbs%nspinor,&
-!!$             psit(ispsi),1,&
-!!$             diis%psidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(diis%mids-1)),1)
-!!$        
-!!$        !hpsidst=hpsi
-!!$        call vcopy(nvctrp*orbs%norb*orbs%nspinor,&
-!!$             hpsit(ispsi),1,&
-!!$             diis%hpsidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(diis%mids-1)),1)
+!!$     !test for the new diis routine
+!!$     call DIIS_obj_fill(diis,diis_new)
+!!$     call diis_opt(iproc,nproc,orbs%nkpts,orbs%iskpts,orbs%nkptsp,orbs%ikptproc,&
 !!$
-!!$        !do jj=0,nvctrp*orbs%norb*orbs%nspinor-1
-!!$        !diis%hpsidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(diis%mids-1)+jj)&
-!!$        !=real(hpsit(ispsi+jj),tp) !diis precision conversion
-!!$        !end do
-!!$        ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
-!!$        ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
-!!$     end do
-!!$    
-!!$     !here we should separate between up and down spin orbitals, but it turned out to be not necessary
-!!$     call diisstp(iproc,nproc,orbs,comms,diis)
+!!$!     call DIIS_update_errors(orbs%nkpts,orbs%iskpts,orbs%nkptsp,&
+!!$!          orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),ndim_psi,psit,hpsit,diis_new)
+!!$
+!!$!     call diis_step(iproc,nproc,orbs%nkpts,orbs%iskpts,orbs%nkptsp,orbs%ikptproc,&
+!!$!          orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),diis_new)
+!!$
+!!$!     call DIIS_update_psi(orbs%nkpts,orbs%iskpts,orbs%nkptsp,&
+!!$!          orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),ndim_psi,psit,diis_new)
+!!$
+!!$     call DIIS_obj_release(diis_new,diis)
+!!$
+!!$
+     !do not transpose the hpsi wavefunction into the diis array
+     !for compatibility with the k-points distribution
+     ispsi=1
+     ispsidst=1
+     do ikptp=1,orbs%nkptsp
+        ikpt=orbs%iskpts+ikptp
+        nvctrp=comms%nvctr_par(iproc,ikpt)
+        if (nvctrp == 0) cycle
+        !here we can choose to store the DIIS arrays with single precision
+        !psidst=psit
+        call vcopy(nvctrp*orbs%norb*orbs%nspinor,&
+             psit(ispsi),1,&
+             diis%psidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(diis%mids-1)),1)
+        
+        !hpsidst=hpsi
+        call vcopy(nvctrp*orbs%norb*orbs%nspinor,&
+             hpsit(ispsi),1,&
+             diis%hpsidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(diis%mids-1)),1)
 
-!!$     !update the psit array with the difference stored in the psidst work array
-!!$     ispsi=1
-!!$     ispsidst=1
-!!$     do ikptp=1,orbs%nkptsp
-!!$        ikpt=orbs%iskpts+ikptp
-!!$        nvctrp=comms%nvctr_par(iproc,ikpt)
-!!$        if (nvctrp == 0) cycle
-!!$        !experimental, recast in single precision the difference to see the loss
-!!$        !do i=1,nvctrp*orbs%nspinor*orbs%norb
-!!$        !   tt=real(diis%psidst(ispsidst+i-1+(mod(diis%ids,diis%idsx))*orbs%norb*orbs%nspinor*nvctrp),kind=4)
-!!$        !   psit(ispsi+i-1)=psit(ispsi+i-1)+real(tt,wp)
-!!$        !end do
-!!$        call axpy(nvctrp*orbs%nspinor*orbs%norb,1.0_dp,&
-!!$             diis%psidst(ispsidst+(mod(diis%ids,diis%idsx))*orbs%norb*orbs%nspinor*nvctrp),1,&
-!!$             psit(ispsi),1)
-!!$        ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
-!!$        ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
-!!$     end do
+        !do jj=0,nvctrp*orbs%norb*orbs%nspinor-1
+        !diis%hpsidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(diis%mids-1)+jj)&
+        !=real(hpsit(ispsi+jj),tp) !diis precision conversion
+        !end do
+        ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
+        ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
+     end do
+    
+     !here we should separate between up and down spin orbitals, but it turned out to be not necessary
+     call diisstp(iproc,nproc,orbs,comms,diis)
+!!$
+     !update the psit array with the difference stored in the psidst work array
+     ispsi=1
+     ispsidst=1
+     do ikptp=1,orbs%nkptsp
+        ikpt=orbs%iskpts+ikptp
+        nvctrp=comms%nvctr_par(iproc,ikpt)
+        if (nvctrp == 0) cycle
+        !experimental, recast in single precision the difference to see the loss
+        !do i=1,nvctrp*orbs%nspinor*orbs%norb
+        !   tt=real(diis%psidst(ispsidst+i-1+(mod(diis%ids,diis%idsx))*orbs%norb*orbs%nspinor*nvctrp),kind=4)
+        !   psit(ispsi+i-1)=psit(ispsi+i-1)+real(tt,wp)
+        !end do
+        call axpy(nvctrp*orbs%nspinor*orbs%norb,1.0_dp,&
+             diis%psidst(ispsidst+(mod(diis%ids,diis%idsx))*orbs%norb*orbs%nspinor*nvctrp),1,&
+             psit(ispsi),1)
+        ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
+        ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
+     end do
 
   else
      ! update all wavefunctions with the preconditioned gradient

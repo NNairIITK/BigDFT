@@ -14,6 +14,8 @@ module dictionaries_base
   implicit none
 
   integer, parameter, public :: max_field_length = 256
+  character(len=max_field_length), parameter, public :: TYPE_DICT='__dict__'
+  character(len=max_field_length), parameter, public :: TYPE_LIST='__list__'
 
   type, public :: storage
      integer :: item   !< Id of the item associated to the list
@@ -121,11 +123,7 @@ contains
     integer :: dict_len
     
     if (associated(dict)) then
-!       if (associated(dict%parent)) then
-          dict_len=dict%data%nitems
-!       else
-!          dict_len=dict%child%data%nitems
-!       end if
+       dict_len=dict%data%nitems
     else
        dict_len=-1
     end if
@@ -138,17 +136,13 @@ contains
     integer :: dict_size
     
     if (associated(dict)) then
-!       if (associated(dict%parent)) then
-          dict_size=dict%data%nelems
-!       else
-!          dict_size=dict%child%data%nelems
-!       end if
+       dict_size=dict%data%nelems
     else
        dict_size=-1
     end if
   end function dict_size
 
-  !> this function returns the key is present otherwise the value of the element if in a list
+  !> this function returns the key if present otherwise the value of the element if in a list
   pure function name_is(dict,name)
     implicit none
     type(dictionary), pointer, intent(in) :: dict
@@ -225,6 +219,41 @@ contains
     end if
   end function dict_key
 
+  !> returns the value of the key of the dictionary
+  pure function dict_item(dict)
+    type(dictionary), pointer, intent(in) :: dict
+    integer :: dict_item
+
+    if (associated(dict)) then 
+       dict_item=dict%data%item
+    else
+       dict_item=-1
+    end if
+  end function dict_item
+
+  
+  !>value of the dictionary, if present, otherwise empty
+  !if the value is a dictionary, it returns __dict__ in the character
+  pure function dict_value(dict)
+    type(dictionary), pointer, intent(in) :: dict
+    character(len=max_field_length) :: dict_value
+
+    if (associated(dict)) then 
+       !call check_key(dict)
+       if (associated(dict%child)) then
+          if (dict%data%nitems > 0) then
+             dict_value=TYPE_LIST
+          else if (dict%data%nelems > 0) then
+             dict_value=TYPE_DICT
+          end if
+       else
+          dict_value=dict%data%value
+       end if
+    else
+       dict_value=repeat(' ',len(dict_value))
+    end if
+
+  end function dict_value
 
   !non-pure subroutines, due to pointer assignments
 
