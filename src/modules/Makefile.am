@@ -59,6 +59,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	VDWCORRECTION.@MODULE_EXT@ \
 	MODULE_FRAGMENTS.@MODULE_EXT@ \
 	DIIS_SD_OPTIMIZATION.@MODULE_EXT@ \
+	INPUT_OLD_TEXT_FORMAT.@MODULE_EXT@ \
 	MODULE_INPUT_KEYS.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
@@ -74,6 +75,7 @@ modules = module_base.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ \
 	module_fragments.@MODULE_EXT@ \
 	diis_sd_optimization.@MODULE_EXT@ \
+	input_old_text_format.@MODULE_EXT@ \
 	module_input_keys.@MODULE_EXT@
 endif
 

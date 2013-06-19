@@ -136,7 +136,7 @@ subroutine print_general_parameters(in,atoms)
   use defs_basis
   use m_ab6_symmetry
   use yaml_output
-  use module_input, only: case_insensitive_equiv
+  use module_input_keys, only: input_keys_equal
   implicit none
   !Arguments
   type(input_variables), intent(in) :: in
@@ -323,7 +323,7 @@ subroutine print_general_parameters(in,atoms)
            call yaml_map('DIIS history', in%history)
         end if
      call yaml_close_map()
-     if (case_insensitive_equiv(trim(in%geopt_approach),"AB6MD")) then
+     if (input_keys_equal(trim(in%geopt_approach),"AB6MD")) then
         call yaml_open_map('Molecular Dynamics Parameters')
            call yaml_map('ionmov',in%ionmov)
            call yaml_map('dtion', in%dtion,fmt='(0pf7.0)')

@@ -245,63 +245,6 @@ module module_interfaces
         character(len = *), intent(in) :: radical
       end subroutine read_inputs_from_text_format
 
-      subroutine read_perf_from_text_format(iproc,dict,filename)
-        use dictionaries
-        implicit none
-        character(len=*), intent(in) :: filename
-        type(dictionary), pointer :: dict
-        integer, intent(in) :: iproc
-      end subroutine read_perf_from_text_format
-
-      subroutine read_dft_from_text_format(iproc,dict,filename)
-        use dictionaries
-        implicit none
-        type(dictionary), pointer :: dict
-        character(len=*), intent(in) :: filename
-        integer, intent(in) :: iproc
-      end subroutine read_dft_from_text_format
-
-      subroutine read_kpt_from_text_format(iproc,dict,filename)
-        use dictionaries
-        implicit none
-        character(len=*), intent(in) :: filename
-        integer, intent(in) :: iproc
-        type(dictionary), pointer :: dict
-      end subroutine read_kpt_from_text_format
-
-      subroutine read_geopt_from_text_format(iproc,dict,filename)
-        use dictionaries
-        implicit none
-        integer, intent(in) :: iproc
-        character(len=*), intent(in) :: filename
-        type(dictionary), pointer :: dict
-      end subroutine read_geopt_from_text_format
-
-      subroutine read_mix_from_text_format(iproc,dict,filename)
-        use dictionaries
-        implicit none
-        !Arguments
-        integer, intent(in) :: iproc
-        type(dictionary), pointer :: dict
-        character(len=*), intent(in) :: filename
-      end subroutine read_mix_from_text_format
-
-      subroutine read_sic_from_text_format(iproc,dict,filename)
-        use dictionaries
-        implicit none
-        integer, intent(in) :: iproc
-        type(dictionary), pointer :: dict
-        character(len=*), intent(in) :: filename
-      end subroutine read_sic_from_text_format
-
-      subroutine read_tddft_from_text_format(iproc,dict,filename)
-        use dictionaries
-        implicit none
-        integer, intent(in) :: iproc
-        type(dictionary), pointer :: dict
-        character(len=*), intent(in) :: filename
-      end subroutine read_tddft_from_text_format
-
       subroutine inputs_from_dict(in, atoms, dict, dump)
         use module_types
         use module_defs
