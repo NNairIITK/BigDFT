@@ -120,7 +120,7 @@ void FC_FUNC_(yaml_parser_c_init, YAML_PARSER_C_INIT)(void **pt, const char *fna
 }
 
 void FC_FUNC_(yaml_parser_c_init_from_buf, YAML_PARSER_C_INIT_FROM_BUF)
-     (void **pt, void **buf, size_t *ln)
+     (void **pt, void **buf, int *ln)
 {
   FLib_Yaml_Parser *obj;
   const unsigned char *str;
@@ -130,10 +130,11 @@ void FC_FUNC_(yaml_parser_c_init_from_buf, YAML_PARSER_C_INIT_FROM_BUF)
 
   /* Create the Parser object. */
   yaml_parser_initialize(&(obj->parser));
+
   if (*ln)
     {
       str = (unsigned char*)buf;
-      yaml_parser_set_input_string(&(obj->parser), str, *ln);
+      yaml_parser_set_input_string(&(obj->parser), str, (size_t)*ln);
     }
   else
     {

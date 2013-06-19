@@ -13,7 +13,7 @@ module yaml_parse
   integer, public :: YAML_PARSE_UNSUPPORTED = 0
 
   public :: yaml_parse_from_file
-  public :: yaml_parse_from_c_buffer
+  public :: yaml_parse_from_char_array
   public :: yaml_parse_from_string
 
 contains
@@ -30,17 +30,17 @@ contains
     dict => yaml_parse_(parser)
   end subroutine yaml_parse_from_file
 
-  subroutine yaml_parse_from_c_buffer(dict, cbuf)
+  subroutine yaml_parse_from_char_array(dict, carr)
     use dictionaries
     implicit none
     type(dictionary), pointer :: dict
-    integer(kind = 8), intent(in) :: cbuf
+    character, dimension(:), intent(in) :: carr
     
     integer(kind = 8) :: parser
 
-    call yaml_parser_c_init_from_buf(parser, cbuf, 0)
+    call yaml_parser_c_init_from_buf(parser, carr, size(carr))
     dict => yaml_parse_(parser)
-  end subroutine yaml_parse_from_c_buffer
+  end subroutine yaml_parse_from_char_array
 
   subroutine yaml_parse_from_string(dict, str)
     use dictionaries
@@ -60,7 +60,7 @@ contains
     integer(kind = 8), intent(in) :: parser
 
     type(dictionary), pointer :: dict, doc, output
-    integer :: event
+    integer :: event, errid
     character(max_field_length) :: val
 
     ! Get event values from C.
@@ -92,6 +92,7 @@ contains
     call f_err_open_try()
     call dict_init(dict)
     event = 0
+    nullify(doc)
     do while (event /= STREAM_END)
        call yaml_parser_c_next(parser, event, val, max_field_length)
 
@@ -115,15 +116,18 @@ contains
 
        if (f_err_check()) exit
     end do
+    errid = 0
     if (f_err_check()) then
-       call add(dict, doc)
-       call f_dump_last_error()
+       if (associated(doc)) call add(dict, doc)
+       errid = f_get_last_error(val)
     end if
     call f_err_close_try()
 
     if (event /= STREAM_END) call yaml_parser_c_finalize(parser)
 
     output => dict
+
+    if (errid /= 0) call f_err_throw(err_id = errid, err_msg = val)
   end function yaml_parse_
 
   recursive function build_map(parser) result(map)
