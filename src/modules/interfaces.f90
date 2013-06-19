@@ -2043,7 +2043,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-         calculate_ham,ham_small,ldiis_coeff,cdft)
+         calculate_ham,ham_small,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,cdft)
       use module_base
       use module_types
       use constrained_dft
@@ -2067,7 +2067,10 @@ module module_interfaces
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       logical,intent(in) :: calculate_ham
       type(sparseMatrix), intent(inout) :: ham_small ! for foe only
-      type(DIIS_obj),intent(inout),optional :: ldiis_coeff
+      type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
+      integer, intent(in), optional :: nitdmin ! for dmin only
+      real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
+      logical, intent(in), optional :: curvefit_dmin ! for dmin only
       type(cdft_data),intent(inout),optional :: cdft
     end subroutine get_coeff
 
@@ -3413,7 +3416,8 @@ module module_interfaces
        end subroutine adjust_DIIS_for_high_accuracy
 
        subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, &
-                  convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
+                  convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
+                  convcrit_dmin, nitdmin)
          use module_base
          use module_types
          implicit none
@@ -3423,9 +3427,9 @@ module module_interfaces
          type(atoms_data),intent(in):: at
          integer,dimension(lorbs%norb),intent(in):: onwhichatom
          type(confpot_data),dimension(lorbs%norbp),intent(inout):: confdatarr
-         real(kind=8), intent(out) :: convCritMix, alpha_mix
+         real(kind=8), intent(out) :: convCritMix, alpha_mix, convcrit_dmin
          logical, intent(in) :: lowaccur_converged
-         integer, intent(out) :: nit_scc, mix_hist
+         integer, intent(out) :: nit_scc, mix_hist, nitdmin
          real(kind=8), dimension(nlr), intent(out) :: locrad
          integer, intent(out) :: target_function, nit_basis
        end subroutine set_optimization_variables

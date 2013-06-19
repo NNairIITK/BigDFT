@@ -37,15 +37,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
   type(mixrhopotDIISParameters) :: mixdiis
   type(localizedDIISParameters) :: ldiis!, ldiis_coeff
-  type(DIIS_obj) :: ldiis_coeff
+  type(DIIS_obj) :: ldiis_coeff, vdiis
   logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
   logical :: fix_support_functions, check_initialguess, fix_supportfunctions
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
   real(8),dimension(:),allocatable :: locrad_tmp
-  integer :: ldiis_coeff_hist
+  integer :: ldiis_coeff_hist, nitdmin
   logical :: ldiis_coeff_changed
   integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy
-  real(8) :: pnrm_out, alpha_mix, ratio_deltas
+  real(8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin
   logical :: lowaccur_converged, exit_outer_loop
   real(8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
@@ -53,10 +53,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: isegsmall, iseglarge, iismall, iilarge, is, ie
   integer :: matrixindex_in_compressed
   
-  real(kind=gp) :: ebs
+  real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp
+  real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
   integer :: ind_denskern, ind_ham, jorb, cdft_it, nelec, iat, ityp, ifrag, ifrag_charged, ifrag_ref, isforb, itmb
 
   call timing(iproc,'linscalinit','ON') !lr408t
+
+  call f_routine(id='linear_scaling')
 
   call allocate_local_arrays()
 
@@ -71,7 +74,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
   ! Initialize the DIIS mixing of the potential if required.
-  if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+  if(input%lin%mixHist_lowaccuracy>0) then
       call initializeMixrhopotDIIS(input%lin%mixHist_lowaccuracy, denspot%dpbox%ndimpot, mixdiis)
   end if
 
@@ -79,6 +82,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   pnrm_out=1.d100
   energyold=0.d0
   energyoldout=0.d0
+  energs%ebs=0.0d0
   target_function=TARGET_FUNCTION_IS_TRACE
   lowaccur_converged=.false.
   info_basis_functions=-1
@@ -86,7 +90,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   check_initialguess=.true.
   cur_it_highaccuracy=0
   trace_old=0.0d0
-  ldiis_coeff_hist=input%lin%mixHist_lowaccuracy
+  ldiis_coeff_hist=input%lin%dmin_hist_lowaccuracy
   reduce_conf=.false.
   ldiis_coeff_changed = .false.
   orthonormalization_on=.true.
@@ -102,6 +106,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! Allocate the communication arrays for the calculation of the charge density.
 
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then  
+     ldiis_coeff%alpha_coeff=input%lin%alphaSD_coeff
 !!$     call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
 !!$     call allocate_DIIS_coeff(tmb, ldiis_coeff)
      call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
@@ -156,19 +161,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         stop 'Error invalid method for calculating CDFT weight matrix'
      end if
 
-     ! as a first check
-     ! calculate (w_abK^ba-Nc)*V
-     ebs=0.d0
-     do iorb=1,tmb%orbs%norb
-        do jorb=1,tmb%orbs%norb
-           ind_ham = matrixindex_in_compressed(cdft%weight_matrix,iorb,jorb)
-           ind_denskern = matrixindex_in_compressed(tmb%linmat%denskern,jorb,iorb)
-           if (ind_ham==0.or.ind_denskern==0) cycle
-           ebs = ebs + tmb%linmat%denskern%matrix_compr(ind_denskern)*cdft%weight_matrix%matrix_compr(ind_ham)
-        end do
-     end do
+     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
+          ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+     vgrad_old=ebs-cdft%charge
 
-     if (iproc==0) print*,'Tr(KW), Tr(KW)-N, V*(Tr(KW)-N)',ebs,ebs-cdft%charge,cdft%lag_mult*(ebs-cdft%charge)
+     if (iproc==0) print*,'Tr(KW), Tr(KW)-N, V*(Tr(KW)-N)',ebs,vgrad_old,cdft%lag_mult*(ebs-cdft%charge)
+     vgrad_old=abs(vgrad_old)
+     valpha=0.5_gp
+
+     coeff_tmp=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_tmp')
      call timing(iproc,'constraineddft','OF')
   end if
 
@@ -188,7 +189,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                lowaccur_converged, pnrm_out)
           ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
           call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
-               convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
+               convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
+               convcrit_dmin, nitdmin)
       else if (input%lin%nlevel_accuracy==1 .and. itout==1) then
           call set_variables_for_hybrid(tmb%lzd%nlr, input, at, tmb%orbs, lowaccur_converged, tmb%confdatarr, &
                target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
@@ -244,7 +246,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if (.not. input%lin%constrained_dft) then
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                     .true.,ham_small,ldiis_coeff=ldiis_coeff)
+                     .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
              end if
           end if
 
@@ -329,7 +331,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
-           if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) ldiis_coeff%alpha_coeff=0.2d0 !reset to default value
+           if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) ldiis_coeff%alpha_coeff=input%lin%alphaSD_coeff !reset to default value
 
            if (input%inputPsiId==101 .and. info_basis_functions<0 .and. itout==1) then
                ! There seem to be some convergence problems after a restart. Better to quit
@@ -396,13 +398,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       end if
 
 
-      ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
-      kernel_loop : do it_scc=1,nit_scc
-
-          ! CDFT: need to pass V*w_ab to get_coeff so that it can be added to H_ab and the correct KS eqn can therefore be solved
-          ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
-          ! CDFT: all this will be in some extra CDFT loop
-          cdft_loop : do cdft_it=1,2!00
+      if (input%lin%constrained_dft) then
+         call DIIS_set(30,valpha,1,1,vdiis)
+         call dcopy(tmb%orbs%norb**2,tmb%coeff(1,1),1,coeff_tmp,1)
+         vold=cdft%lag_mult
+      end if
+      ! CDFT: need to pass V*w_ab to get_coeff so that it can be added to H_ab and the correct KS eqn can therefore be solved
+      ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
+      ! CDFT: all this will be in some extra CDFT loop
+      cdft_loop : do cdft_it=1,100
+         ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
+         kernel_loop : do it_scc=1,nit_scc
              ! If the hamiltonian is available do not recalculate it
              ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
              ! since this is only required if basis changed
@@ -410,155 +416,174 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,ham_small,ldiis_coeff=ldiis_coeff,cdft=cdft)
+                        .false.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,ham_small,ldiis_coeff=ldiis_coeff)
+                        .false.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
                 end if
              else
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,ham_small,ldiis_coeff=ldiis_coeff,cdft=cdft)
+                        .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,ham_small,ldiis_coeff=ldiis_coeff)
+                        .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
                 end if
              end if
-!if (iproc==0) print*,'EBS',energs%ebs
              ! Since we do not update the basis functions anymore in this loop
              update_phi = .false.
 
-             if (input%lin%constrained_dft) then
-                call timing(iproc,'constraineddft','ON')
-                ! CDFT: see how satisfaction of constraint varies as kernel is updated
-                ! CDFT: calculate Tr[Kw]-Nc
-                ebs=0.d0
-                do iorb=1,tmb%orbs%norb
-                   do jorb=1,tmb%orbs%norb
-                      ind_ham = matrixindex_in_compressed(cdft%weight_matrix,iorb,jorb)
-                      ind_denskern = matrixindex_in_compressed(tmb%linmat%denskern,jorb,iorb)
-                      if (ind_ham==0.or.ind_denskern==0) cycle
-                      ebs = ebs + tmb%linmat%denskern%matrix_compr(ind_denskern)*cdft%weight_matrix%matrix_compr(ind_ham)
+             ! CDFT: this is the real energy here as we subtracted the constraint term from the Hamiltonian before calculating ebs
+             ! Calculate the total energy.
+             !if(iproc==0) print *,'energs',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
+             energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
+             energyDiff=energy-energyold
+             energyold=energy
+
+             ! update alpha_coeff for direct minimization steepest descents
+             if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and.&
+                  ldiis_coeff%idsx == 0 .and. (.not. input%lin%curvefit_dmin)) then
+                ! apply a cap so that alpha_coeff never goes below around 1.d-2 or above 2
+                if (energyDiff<0.d0 .and. ldiis_coeff%alpha_coeff < 1.8d0) then
+                   ldiis_coeff%alpha_coeff=1.1d0*ldiis_coeff%alpha_coeff
+                else if (ldiis_coeff%alpha_coeff > 1.7d-3) then
+                   ldiis_coeff%alpha_coeff=0.5d0*ldiis_coeff%alpha_coeff
+                end if
+                if(iproc==0) write(*,*) ''
+                if(iproc==0) write(*,*) 'alpha, energydiff',ldiis_coeff%alpha_coeff,energydiff
+             end if
+
+             ! Calculate the charge density.
+             call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+                  tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+
+             ! Mix the density.
+             if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+                call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
+                     denspot, mixdiis, rhopotold, pnrm)
+                if ((pnrm<convCritMix .or. it_scc==nit_scc) .and. (.not. input%lin%constrained_dft)) then
+                   ! calculate difference in density for convergence criterion of outer loop
+                   pnrm_out=0.d0
+                   do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                      pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
                    end do
-                end do
+                   call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                   pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+                      call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+                     denspot%rhov(1), 1, rhopotOld_out(1), 1)
+                end if
+             end if
 
-                !if (iproc==0) print*,''
-                if (iproc==0) write(*,'(a,I4,2x,5(ES16.6e3,2x))') 'itc, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N), V, EBS',&
-                     cdft_it,ebs,ebs-cdft%charge,cdft%lag_mult*(ebs-cdft%charge),cdft%lag_mult,energs%ebs
+             ! Calculate the new potential.
+             if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+             call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
-                ! CDFT: update V (maximizing E wrt V)
-                ! CDFT: we updated the kernel in get_coeff so 1st deriv of W wrt V becomes Tr[Kw]-Nc as in CONQUEST
-                ! CDFT: 2nd deriv more problematic?
-                ! CDFT: use simplest possible scheme for now
-                cdft%lag_mult=cdft%lag_mult+0.5_gp*(ebs-cdft%charge)
+             ! Mix the potential
+             if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+                call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
+                     denspot, mixdiis, rhopotold, pnrm)
+                if (pnrm<convCritMix .or. it_scc==nit_scc .and. (.not. input%lin%constrained_dft)) then
+                   ! calculate difference in density for convergence criterion of outer loop
+                   pnrm_out=0.d0
+                   do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                      pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
+                   end do
+                   call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                   pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+                   call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+                        denspot%rhov(1), 1, rhopotOld_out(1), 1) 
+                end if
+             end if
 
-                call timing(iproc,'constraineddft','OF')
+             ! Keep the support functions fixed if they converged and the density
+             ! change is below the tolerance already in the very first iteration
+             if(it_scc==1 .and. pnrm<convCritMix .and.  info_basis_functions>0) then
+                fix_support_functions=.true.
+             end if
 
-                ! CDFT: exit when W is converged wrt both V and rho
-                if (abs(ebs-cdft%charge) < 1.0e-3) exit
+             ! Write some informations.
+             call printSummary()
 
-             ! if not constrained DFT exit straight away
+             if(pnrm<convCritMix) then
+                 info_scf=it_scc
+                 exit
              else
-                exit
+                 info_scf=-1
              end if
-          end do cdft_loop
-          ! CDFT: end of CDFT loop to find V which correctly imposes constraint and corresponding density
 
+         end do kernel_loop
 
-          ! CDFT: this is the real energy here as we subtracted the constraint term from the Hamiltonian before calculating ebs
-          ! Calculate the total energy.
-          !if(iproc==0) print *,'energs',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
-          energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
-          energyDiff=energy-energyold
-          energyold=energy
+         if (input%lin%constrained_dft) then
+            call timing(iproc,'constraineddft','ON')
+            ! CDFT: see how satisfaction of constraint varies as kernel is updated
+            ! CDFT: calculate Tr[Kw]-Nc
+            call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
+                 ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+            ! reset rhopotold (to zero) to ensure we don't exit immediately if V only changes a little
+            !call razero(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, rhopotOld(1)) 
+            call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+                 rhopotOld_out(1), 1, rhopotOld(1), 1) 
 
-          ! update alpha_coeff for direct minimization steepest descents
-          if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and.&
-               ldiis_coeff%idsx == 0) then
-             ! apply a cap so that alpha_coeff never goes below around 1.d-2 or above 2
-             if (energyDiff<0.d0 .and. ldiis_coeff%alpha_coeff < 1.8d0) then
-                ldiis_coeff%alpha_coeff=1.1d0*ldiis_coeff%alpha_coeff
-             else if (ldiis_coeff%alpha_coeff > 1.7d-3) then
-                ldiis_coeff%alpha_coeff=0.5d0*ldiis_coeff%alpha_coeff
-             end if
-             if(iproc==0) write(*,*) ''
-             if(iproc==0) write(*,*) 'alpha, energydiff',ldiis_coeff%alpha_coeff,energydiff
-          end if
+            vgrad=ebs-cdft%charge
 
+            ! CDFT: update V (maximizing E wrt V)
+            ! CDFT: we updated the kernel in get_coeff so 1st deriv of W wrt V becomes Tr[Kw]-Nc as in CONQUEST
+            ! CDFT: 2nd deriv more problematic?
+            ! CDFT: use simplest possible scheme for now
 
-          ! Calculate the charge density.
-          call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+            if (iproc==0) write(*,*) ''
+            if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itc, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N), V, Vold, EBS',&
+                 cdft_it,ebs,vgrad,cdft%lag_mult*vgrad,cdft%lag_mult,vold,energs%ebs
 
-          ! Mix the density.
-          if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then!.or. &
-             !input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-             call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
-                  denspot, mixdiis, rhopotold, pnrm)
-          else if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. .false.) then
-             pnrm=0.d0
-             do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
-                pnrm=pnrm+(denspot%rhov(i)-rhopotOld(i))**2
-             end do
-             call mpiallred(pnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-             pnrm=sqrt(pnrm)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-             call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
-                  denspot%rhov(1), 1, rhopotOld(1), 1) 
-          end if
- 
-          if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE .and.(pnrm<convCritMix .or. it_scc==nit_scc)) then
-             ! calculate difference in density for convergence criterion of outer loop
-             pnrm_out=0.d0
-             do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
-                pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
-             end do
-             call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-             pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-             call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
-                  denspot%rhov(1), 1, rhopotOld_out(1), 1) 
-          end if
+            if (.false.) then ! diis
+               vdiis%mids=mod(vdiis%ids,vdiis%idsx)+1
+               vdiis%ids=vdiis%ids+1
+               vold=cdft%lag_mult
+               call diis_opt(0,1,1,0,1,(/0/),(/1/),1,&
+                  cdft%lag_mult,-vgrad,vdiis) 
+               !call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/1/),1,&
+               !   cdft%lag_mult,-vgrad,vdiis) 
+            else if (.false.) then !sd
+               if (abs(vgrad)<abs(vgrad_old)) then
+                  valpha=valpha*1.1d0
+               else
+                  valpha=valpha*0.6d0
+               end if
+               vold=cdft%lag_mult
+               cdft%lag_mult=cdft%lag_mult+valpha*vgrad
+            else if (cdft_it==1) then !first step newton
+               vold=cdft%lag_mult
+               if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itn, V, Vg',&
+                    cdft_it,cdft%lag_mult,vgrad
+               cdft%lag_mult=cdft%lag_mult-5.0e-2
+            else ! newton
+               vgrad2=(vgrad-vgrad_old)/(cdft%lag_mult-vold)
+               if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itn, V, Vold, Vg, Vgold, Vg2, Vg/Vg2',&
+                    cdft_it,cdft%lag_mult,vold,vgrad,vgrad_old,vgrad2,vgrad/vgrad2
+               vold_tmp=cdft%lag_mult
+               cdft%lag_mult=vold-vgrad_old/vgrad2
+               vold=vold_tmp
+            end if
 
-          ! Calculate the new potential.
-          if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
-          call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+            !call dcopy(tmb%orbs%norb**2,coeff_tmp(1,1),1,tmb%coeff(1,1),1)
+            !if (abs(abs(vgrad)-abs(vgrad_old))>0.1d0) call dcopy(tmb%orbs%norb**2,coeff_tmp(1,1),1,tmb%coeff(1,1),1)
+            vgrad_old=vgrad
 
-          ! Mix the potential
-          if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-             call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
-                  denspot, mixdiis, rhopotold, pnrm)
-             if (pnrm<convCritMix .or. it_scc==nit_scc) then
-                ! calculate difference in density for convergence criterion of outer loop
-                pnrm_out=0.d0
-                do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
-                   pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
-                end do
-                call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-                pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-                call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
-                     denspot%rhov(1), 1, rhopotOld_out(1), 1) 
-             end if
-          end if
+            call timing(iproc,'constraineddft','OF')
 
-          ! Keep the support functions fixed if they converged and the density
-          ! change is below the tolerance already in the very first iteration
-          if(it_scc==1 .and. pnrm<convCritMix .and.  info_basis_functions>0) then
-             fix_support_functions=.true.
-          end if
+            ! CDFT: exit when W is converged wrt both V and rho
+            if (abs(ebs-cdft%charge) < 1.0e-3) exit
 
-          ! Write some informations.
-          call printSummary()
-
-          if(pnrm<convCritMix) then
-              info_scf=it_scc
-              exit
-          else
-              info_scf=-1
-          end if
-
-      end do kernel_loop
+         ! if not constrained DFT exit straight away
+         else
+            exit
+         end if
+      end do cdft_loop
+      if (input%lin%constrained_dft) call DIIS_free(vdiis)
+      ! CDFT: end of CDFT loop to find V which correctly imposes constraint and corresponding density
 
       if(tmb%can_use_transposed) then
           iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
@@ -592,14 +617,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
-           .true.,ham_small,ldiis_coeff=ldiis_coeff)
+           .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
   end if
 
   if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
      call deallocate_sparsematrix(ham_small,subname)
   end if
 
-  if (input%lin%constrained_dft) call cdft_data_free(cdft)
+  if (input%lin%constrained_dft) then
+     call cdft_data_free(cdft)
+     call f_free(coeff_tmp)
+  end if
 
 
   ! print the final summary
@@ -608,7 +636,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! Deallocate everything that is not needed any more.
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call DIIS_free(ldiis_coeff)!call deallocateDIIS(ldiis_coeff)
   call deallocateDIIS(ldiis)
-  if(input%lin%mixHist_highaccuracy>0 .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+  if(input%lin%mixHist_highaccuracy>0) then
       call deallocateMixrhopotDIIS(mixdiis)
   end if
   !!call wait_p2p_communication(iproc, nproc, tmb%comgp)
@@ -680,6 +708,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   nullify(rho,pot)
 
   call deallocate_local_arrays()
+  call f_release_routine()
 
   call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
 
@@ -973,7 +1002,8 @@ end subroutine linearScaling
 
 
 subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, &
-     convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
+     convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
+     convcrit_dmin, nitdmin)
   use module_base
   use module_types
   implicit none
@@ -985,9 +1015,9 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   type(atoms_data),intent(in) :: at
   integer,dimension(lorbs%norb),intent(in) :: onwhichatom
   type(confpot_data),dimension(lorbs%norbp),intent(inout) :: confdatarr
-  real(kind=8), intent(out) :: convCritMix, alpha_mix
+  real(kind=8), intent(out) :: convCritMix, alpha_mix, convcrit_dmin
   logical, intent(in) :: lowaccur_converged
-  integer, intent(out) :: nit_scc, mix_hist
+  integer, intent(out) :: nit_scc, mix_hist, nitdmin
   real(kind=8), dimension(nlr), intent(out) :: locrad
   integer, intent(out) :: target_function, nit_basis
 
@@ -1008,6 +1038,8 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       end do
       alpha_mix=input%lin%alpha_mix_highaccuracy
       convCritMix=input%lin%convCritMix_highaccuracy
+      convcrit_dmin=input%lin%convCritDmin_highaccuracy
+      nitdmin=input%lin%nItdmin_highaccuracy
   else
       do iorb=1,lorbs%norbp
           iiat=onwhichatom(lorbs%isorb+iorb)
@@ -1022,6 +1054,8 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       end do
       alpha_mix=input%lin%alpha_mix_lowaccuracy
       convCritMix=input%lin%convCritMix_lowaccuracy
+      convcrit_dmin=input%lin%convCritDmin_lowaccuracy
+      nitdmin=input%lin%nItdmin_lowaccuracy
   end if
 
   !!! new hybrid version... not the best place here
@@ -1223,20 +1257,19 @@ subroutine adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_conve
   logical, intent(out) :: ldiis_coeff_changed  
 
   if(lowaccur_converged) then
-     if (input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
-        if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
-           call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
-        else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
-           call deallocateMixrhopotDIIS(mixdiis)
-        end if
-     else
+     if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
+        call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
+     else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
+        call deallocateMixrhopotDIIS(mixdiis)
+     end if
+     if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
         ! check whether ldiis_coeff_hist arrays will need reallocating due to change in history length
-        if (ldiis_coeff_hist /= input%lin%mixHist_highaccuracy) then
+        if (ldiis_coeff_hist /= input%lin%dmin_hist_highaccuracy) then
            ldiis_coeff_changed=.true.
         else
            ldiis_coeff_changed=.false.
         end if
-        ldiis_coeff_hist=input%lin%mixHist_highaccuracy
+        ldiis_coeff_hist=input%lin%dmin_hist_highaccuracy
      end if
   else
      if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then

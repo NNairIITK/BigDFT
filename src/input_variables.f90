@@ -866,7 +866,11 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,100000/))
   call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,100000/),comment=comments)
 
-  comments = 'kernel iterations (low, high)'
+  comments = 'kernel iterations (low, high) - directmin only'
+  call input_var(in%lin%nItdmin_lowaccuracy,'1',ranges=(/0,1000/))
+  call input_var(in%lin%nItdmin_highaccuracy,'1',ranges=(/0,1000/),comment=comments)
+
+  comments = 'density iterations (low, high)'
   call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/0,1000/))
   call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/0,1000/),comment=comments)
 
@@ -875,7 +879,11 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%DIIS_hist_lowaccur,'5',ranges=(/0,100/))
   call input_var(in%lin%DIIS_hist_highaccur,'0',ranges=(/0,100/),comment=comments)
 
-  comments = 'DIIS history for kernel (low, high)'
+  comments = 'DIIS history for kernel (low, high) - directmin only'
+  call input_var(in%lin%dmin_hist_lowaccuracy,'0',ranges=(/0,100/))
+  call input_var(in%lin%dmin_hist_highaccuracy,'0',ranges=(/0,100/),comment=comments)
+
+  comments = 'DIIS history for density mixing (low, high)'
   call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
   call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/),comment=comments)
 
@@ -900,7 +908,11 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments = 'factor to reduce the confinement. Only used for hybrid mode.'
   call input_var(in%lin%reduce_confinement_factor,'0.5d0',ranges=(/-1.d100,1.d0/),comment=comments)
 
-  comments = 'kernel convergence (low, high)'
+  comments = 'kernel convergence (low, high) - directmin only'
+  call input_var(in%lin%convCritdmin_lowaccuracy,'1.d-5',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%convCritdmin_highaccuracy,'1.d-5',ranges=(/0.d0,1.d0/),comment=comments)
+
+  comments = 'density convergence (low, high)'
   call input_var(in%lin%convCritMix_lowaccuracy,'1.d-13',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%convCritMix_highaccuracy,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
 
@@ -914,6 +926,10 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments = 'initial step size for basis optimization (DIIS, SD)' ! DELETE ONE
   call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,10.0_gp/))
   call input_var(in%lin%alphaSD,'1.d0',ranges=(/0.0_gp,10.0_gp/),comment=comments)
+
+  comments = 'initial step size for kernel update (SD), curve fitting for alpha update - directmin only'
+  call input_var(in%lin%alphaSD_coeff,'1.d0',ranges=(/0.0_gp,10.0_gp/))
+  call input_var(in%lin%curvefit_dmin,'F',comment=comments)
 
   comments = 'lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small'
   call input_var(in%lin%evlow,'-.5d0',ranges=(/-10.d0,-1.d-10/))

@@ -1,18 +1,22 @@
 1                                number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
 80       0                       outer loop iterations (low, high)
 100      0                       basis iterations (low, high)
-3        0   	                 kernel iterations (low, high)
+1        1                       Kernel iterations (low, high) - directmin only
+3        0   	                  Density iterations (low, high)
 0        0                       DIIS history for basis (low, high)
-0        0                       DIIS history for kernel (low, high)
+0        0                       DIIS history for kernel (low, high) - directmin only
+0        0                       DIIS history for density mixing (low, high)
 .2d0     .2d0                    density mixing parameter (low, high)
 1.d-11   1.d-11                  outer loop convergence (low, high)
 4.d-5    4.d-5                   basis convergence (low, high)
 1.d0     1.d-1                   multiplier to (exit one TMB optimization, fix TMB completely). Only used for hybrid mode
 0.5d0                            factor to reduce the confinement. Only used for hybrid mode.
-1.d-9    1.d-9                   kernel convergence (low, high)
+1.d-5    1.d-5                   Kernel convergence (low, high) - directmin only
+1.d-9    1.d-9                   density convergence (low, high)
 1.d-11                           convergence criterion on density to fix TMBS
 103                              mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (FOE)
 1.d0     0.2d0                   initial step size for basis optimization (DIIS, SD)
+0.2d0    F                       initial step size for kernel update (SD), curve fitting for alpha update - directmin only
 -2.3d0   2.3d0                   lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small
 5                                number of iterations in the preconditioner
 1  1                             0-> exact Loewdin, 1-> Taylor expansion ; in orthoconstraint: correction for non-orthogonality (0) or no correction (1)

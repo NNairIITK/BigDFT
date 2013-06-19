@@ -540,13 +540,6 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
      !test for the new diis routine
      call DIIS_obj_fill(diis,diis_new)
 
-     !call DIIS_update_errors(orbs%nkpts,orbs%iskpts,orbs%nkptsp,&
-     !     orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),ndim_psi,psit,hpsit,diis_new)
-     !call diis_step(iproc,nproc,orbs%nkpts,orbs%iskpts,orbs%nkptsp,orbs%ikptproc,&
-     !     orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),diis_new)
-     !call DIIS_update_psi(orbs%nkpts,orbs%iskpts,orbs%nkptsp,&
-     !     orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),ndim_psi,psit,diis_new)
-
      call diis_opt(iproc,nproc,orbs%nkpts,orbs%iskpts,orbs%nkptsp,orbs%ikptproc,&
           orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),ndim_psi,psit,hpsit,diis_new)
 

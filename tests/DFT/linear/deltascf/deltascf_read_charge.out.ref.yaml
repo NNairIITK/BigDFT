@@ -1,33 +1,34 @@
 ---
  Code logo:
-         TTTT         F       DDDDD
-        T    T               D
-       T     T        F     D
-       T    T         F     D        D
-       TTTTT          F     D         D
-       T    T         F     D         D
-       T     T        F     D         D
-       T      T       F     D         D
-       T     T     FFFF     D         D
-       T TTTT         F      D        D
-       T             F        D      D
-   TTTTTTTTT    FFFFF          DDDDDD
-     gggggg          iiiii    BBBBBBBBB
-    g      g        i             B
-   g        g      i         BBBB B
-   g         g     iiii     B     B
-   g         g     i       B      B
-   g         g     i        B     B
-   g         g     i         B    B
-   g         g     i          BBBBB
-    g        g     i         B    B
-             g     i        B     B
-            g               B    B
-       ggggg       i         BBBB
+   "__________________________________ A fast and precise DFT wavelet code
+   |     |     |     |     |     |
+   |     |     |     |     |     |      BBBB         i       gggggg
+   |_____|_____|_____|_____|_____|     B    B               g
+   |     |  :  |  :  |     |     |    B     B        i     g
+   |     |-0+--|-0+--|     |     |    B    B         i     g        g
+   |_____|__:__|__:__|_____|_____|___ BBBBB          i     g         g
+   |  :  |     |     |  :  |     |    B    B         i     g         g
+   |--+0-|     |     |-0+--|     |    B     B     iiii     g         g
+   |__:__|_____|_____|__:__|_____|    B     B        i      g        g
+   |     |  :  |  :  |     |     |    B BBBB        i        g      g
+   |     |-0+--|-0+--|     |     |    B        iiiii          gggggg
+   |_____|__:__|__:__|_____|_____|__BBBBB
+   |     |     |     |  :  |     |                           TTTTTTTTT
+   |     |     |     |--+0-|     |  DDDDDD          FFFFF        T
+   |_____|_____|_____|__:__|_____| D      D        F        TTTT T
+   |     |     |     |  :  |     |D        D      F        T     T
+   |     |     |     |--+0-|     |D         D     FFFF     T     T
+   |_____|_____|_____|__:__|_____|D___      D     F         T    T
+   |     |     |  :  |     |     |D         D     F          TTTTT
+   |     |     |--+0-|     |     | D        D     F         T    T
+   |_____|_____|__:__|_____|_____|          D     F        T     T
+   |     |     |     |     |     |         D               T    T
+   |     |     |     |     |     |   DDDDDD       F         TTTT
+   |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.29
- Timestamp of this run                 : 2013-06-05 16:26:34.223
+ Version Number                        : 1.7.0.30
+ Timestamp of this run                 : 2013-06-19 10:06:25.219
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
@@ -40,7 +41,6 @@
      CFLAGS                            : -g -O2
      FCFLAGS                           : -g -O2
      CXXFLAGS                          : -g -O2
-     CPPFLAGS                          : 
  #... (file:read_charge.perf)............................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -64,6 +64,8 @@
  #|signaling F                  Expose calculation results on Network                        
  #|signalTimeout 0              Time out on startup for signal connection                    
  #|domain                       Domain to add to the hostname to find the IP                 
+ #|inguess_geopt 0              0= wavlet input guess, 1= real space input guess             
+ #|store_index T                linear scaling: store indices or recalculate them            
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
@@ -74,6 +76,7 @@
  #|ef_interpol_det  1.00E-20    FOE: max determinant of cubic interpolation matrix           
  #|ef_interpol_chargediff  1.00EFOE: max charge difference for interpolation                 
  #|mixing_after_inputguess F    mixing step after linear input guess (T/F)                   
+ #|iterative_orthogonalization Fiterative_orthogonalization for input guess orbitals         
  #... (file:read_charge.dft)......................................DFT Calculation Parameters
  #|0.4 0.4 0.4    hx,hy,hz: grid spacing in the three directions                             
  #|6.0  8.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -116,24 +119,28 @@
  #|2              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
  #|0              outer loop iterations (low, high)                                          
  #|4              basis iterations (low, high)                                               
- #|5              kernel iterations (low, high)                                              
+ #|1              kernel iterations (low, high) - directmin only                             
+ #|5              density iterations (low, high)                                             
  #|0              DIIS history for basis (low, high)                                         
- #|0              DIIS history for kernel (low, high)                                        
- #|.4d0     .     density mixing parameter (low, high)                                       
+ #|5              DIIS history for kernel (low, high) - directmin only                       
+ #|0              DIIS history for density mixing (low, high)                                
+ #|1.d0     1     density mixing parameter (low, high)                                       
  #|1.d-8    1.d   outer loop convergence (low, high)                                         
  #|5.d-6    1.d   basis convergence (low, high)                                              
  #|1.d0     5.    multiplier to (exit one TMB optimization, fix TMB completely). Only used fo
  #|0.5d0          factor to reduce the confinement. Only used for hybrid mode.               
- #|1.d-4    1.d   kernel convergence (low, high)                                             
+ #|1.d-5    1.d   kernel convergence (low, high) - directmin only                            
+ #|1.d-10   1.d-1 density convergence (low, high)                                            
  #|1.d-10         convergence criterion on density to fix TMBS                               
  #|100            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
  #|1.d0     1     initial step size for basis optimization (DIIS, SD)                        
+ #|0.2d0          initial step size for kernel update (SD), curve fitting for alpha update - 
  #|-0.5d0   0.5d  lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted a
  #|5              number of iterations in the preconditioner                                 
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
  #|0 F F          Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|F F            fragment calculation; calculate transfer_integrals                         
+ #|F F F          fragment calculation; calculate transfer_integrals; constrained DFT calcula
  #|C 4 1.0d-4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
  #|S 4 1.0d-4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
  #|H 1 1.0d-4 1.0d-4 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
@@ -370,7 +377,7 @@
   #--------------------------------------------------------- Reading Wavefunctions from disk
  Input Hamiltonian:
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  3.090E+02,  3.245E+02 ]}
+   -  {Process:  0, Timing:  [  1.342E+02,  1.353E+02 ]}
    Poisson Solver:
      BC                                : Free
      Box                               :  [  263,  151,  161 ]
@@ -385,42 +392,53 @@
    Tolerances for this check: [ 1.05511787123019145E-05,  1.86517468137026299E-14]
    Maxdiff for transpose (checksum)    :  3.72529029846191406E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
+ DIIS weights: [ 1.00E+00,  1.00E+00]
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  263,  151,  161 ]
    MPI tasks                           :  6
+ DIIS weights: [ 7.04E-01,  2.96E-01, -1.58E-02]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  263,  151,  161 ]
    MPI tasks                           :  6
+ DIIS weights: [ 2.10E-01, -2.29E-01,  1.02E+00, -2.25E-03]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  263,  151,  161 ]
    MPI tasks                           :  6
+ DIIS weights: [ 6.36E-02, -2.89E-01,  7.12E-01,  5.13E-01, -5.37E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  263,  151,  161 ]
    MPI tasks                           :  6
+ DIIS weights: [ 3.71E-03, -1.58E-01,  2.21E-01,  3.00E-01,  6.34E-01, -1.22E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  263,  151,  161 ]
    MPI tasks                           :  6
+ DIIS weights: [-3.15E-02, -4.55E-04,  5.75E-02,  3.03E-01,  6.71E-01, -4.27E-05]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  263,  151,  161 ]
    MPI tasks                           :  6
+ DIIS weights: [-1.42E-02, -3.24E-03,  4.86E-02,  3.20E-01,  6.49E-01, -2.21E-05]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  263,  151,  161 ]
    MPI tasks                           :  6
+ DIIS weights: [ 8.80E-04, -3.84E-02, -9.03E-02,  2.93E-01,  8.35E-01, -1.30E-05]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  263,  151,  161 ]
    MPI tasks                           :  6
+ DIIS weights: [-4.94E-02, -2.96E-01, -3.06E-01,  6.17E-01,  1.04E+00, -5.51E-06]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  263,  151,  161 ]
    MPI tasks                           :  6
+ DIIS weights: [-1.64E-01, -3.42E-01,  4.16E-02,  6.87E-01,  7.77E-01, -2.48E-06]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  263,  151,  161 ]
@@ -432,51 +450,56 @@
    MPI tasks                           :  6
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x: -2.02184445E-01, y:  3.60453883E-02, z:  3.22012576E-01, 
-                    total:  3.81929207E-01}
- Clean forces norm (Ha/Bohr): {maxval:  3.042125199488E-01, fnrm2:  6.509040911565E-01}
- Raw forces norm (Ha/Bohr): {maxval:  3.520270016815E-01, fnrm2:  7.973902663188E-01}
+ Average noise forces: {x: -2.00046796E-01, y:  4.13014822E-02, z:  3.21720606E-01, 
+                    total:  3.81088810E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  3.050837805902E-01, fnrm2:  6.494823290050E-01}
+ Raw forces norm (Ha/Bohr): {maxval:  3.529498155068E-01, fnrm2:  7.953337767290E-01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [-2.238739892672E-01, -6.223167094288E-02,  8.309374825261E-02]} # 0001
- -  {C: [-1.913357351025E-01,  2.273061137722E-01,  6.532858798513E-02]} # 0002
- -  {C: [-1.372992745313E-01,  8.299886411280E-02,  4.425633763219E-02]} # 0003
- -  {S: [ 1.660833615500E-02, -1.951506310725E-01, -1.585755272648E-02]} # 0004
- -  {H: [ 7.758275341474E-02, -8.701442292679E-02, -5.615298917796E-02]} # 0005
- -  {H: [ 6.060985792835E-02,  2.933400845898E-02,  1.619217948737E-02]} # 0006
- -  {H: [ 3.310434546386E-02,  4.773196001699E-02, -1.257859905549E-01]} # 0007
- -  {H: [ 8.636816796223E-02, -8.980331539760E-02, -6.987146189031E-02]} # 0008
- -  {C: [-1.350460062459E-01,  2.199855668644E-02,  5.220572220564E-02]} # 0009
- -  {C: [-2.121549106406E-02, -5.059122533124E-02,  4.138899066772E-02]} # 0010
- -  {C: [-5.288671508480E-03,  3.209498620201E-02,  3.438651047015E-02]} # 0011
- -  {C: [-5.551255099635E-02, -3.171337807519E-02,  4.550132435002E-02]} # 0012
- -  {S: [ 1.263911746022E-02,  1.834349612359E-01, -2.780564569020E-02]} # 0013
- -  {S: [ 1.791680375514E-02, -1.953989196888E-01, -1.534953824064E-02]} # 0014
- -  {C: [-4.771877728323E-02,  8.644011503546E-03,  4.225317253087E-02]} # 0015
- -  {C: [ 1.797004706387E-02, -2.668600244140E-02,  3.662088839638E-02]} # 0016
- -  {C: [ 1.219985635449E-01,  5.807464919105E-03,  1.091614396769E-02]} # 0017
- -  {C: [-4.091136509126E-02, -2.341629275638E-02,  4.682724353878E-02]} # 0018
- -  {S: [ 2.129582235276E-02,  1.683242673233E-01, -2.923582001632E-02]} # 0019
- -  {S: [ 1.583438579885E-02, -1.814513916943E-01, -1.595148051464E-02]} # 0020
- -  {C: [ 1.189674861722E-01,  2.392098383392E-01,  1.247966498054E-02]} # 0021
- -  {C: [ 1.114481643862E-01,  9.374680508694E-02,  4.578786449209E-03]} # 0022
- -  {C: [ 1.612957469859E-01, -7.799071693073E-02,  1.050232741800E-02]} # 0023
- -  {H: [-1.792564218596E-02, -1.015603644375E-01, -4.017564148328E-02]} # 0024
- -  {H: [ 2.642128770315E-02,  3.092783911623E-02,  3.328892271809E-02]} # 0025
- -  {H: [ 4.836922678846E-04,  5.014839257704E-02, -1.329982253802E-01]} # 0026
- -  {H: [-2.441707513919E-02, -9.869973765547E-02, -5.063620537543E-02]} # 0027
+ -  {C: [-2.225660226461E-01, -5.929874443144E-02,  8.299486932435E-02]} # 0001
+ -  {C: [-1.901685421275E-01,  2.295945480655E-01,  6.479492466911E-02]} # 0002
+ -  {C: [-1.390974986482E-01,  8.106824224662E-02,  4.403026438763E-02]} # 0003
+ -  {S: [ 1.425659796367E-02, -1.937887966826E-01, -1.543438875730E-02]} # 0004
+ -  {H: [ 7.733404318451E-02, -8.765687001073E-02, -5.611075718460E-02]} # 0005
+ -  {H: [ 5.977404009631E-02,  2.703579438733E-02,  1.508045794040E-02]} # 0006
+ -  {H: [ 3.293994863544E-02,  4.534864567685E-02, -1.246074202879E-01]} # 0007
+ -  {H: [ 8.527639468223E-02, -9.005979015353E-02, -6.966391313488E-02]} # 0008
+ -  {C: [-1.386976196578E-01,  1.933798653653E-02,  5.303493704540E-02]} # 0009
+ -  {C: [-1.119686505561E-02, -4.450576427674E-02,  3.968112090698E-02]} # 0010
+ -  {C: [ 1.619228964214E-03,  2.640125816182E-02,  3.340073246250E-02]} # 0011
+ -  {C: [-6.107548073385E-02, -2.704959682779E-02,  4.681231306934E-02]} # 0012
+ -  {S: [ 1.074858957302E-02,  1.799813979816E-01, -2.752425255862E-02]} # 0013
+ -  {S: [ 1.750223152928E-02, -1.936227277228E-01, -1.532191292155E-02]} # 0014
+ -  {C: [-5.524333412601E-02,  3.582782002421E-03,  4.377376734437E-02]} # 0015
+ -  {C: [ 2.603892231193E-02, -2.126873035088E-02,  3.575021068876E-02]} # 0016
+ -  {C: [ 1.267136663354E-01,  4.334952020629E-03,  1.043529446682E-02]} # 0017
+ -  {C: [-5.363079776083E-02, -1.701567581306E-02,  4.913995049912E-02]} # 0018
+ -  {S: [ 2.239755044161E-02,  1.643465156568E-01, -2.950864573141E-02]} # 0019
+ -  {S: [ 1.785978281208E-02, -1.796406043191E-01, -1.637910873401E-02]} # 0020
+ -  {C: [ 1.198094645353E-01,  2.419445271620E-01,  1.176275709786E-02]} # 0021
+ -  {C: [ 1.109939419092E-01,  9.281687543862E-02,  4.352296446600E-03]} # 0022
+ -  {C: [ 1.641530444407E-01, -7.640036440341E-02,  1.061948141823E-02]} # 0023
+ -  {H: [-1.827517673939E-02, -1.019367734809E-01, -4.027187726214E-02]} # 0024
+ -  {H: [ 2.605253510495E-02,  2.810613747204E-02,  3.131989066553E-02]} # 0025
+ -  {H: [ 4.795286279763E-04,  4.722262448972E-02, -1.313843635721E-01]} # 0026
+ -  {H: [-2.399817365250E-02, -9.887784882548E-02, -5.077662828847E-02]} # 0027
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  377.55
-   Elapsed time (s)                    :  395.31
+   CPU time (s)                        :  205.96
+   Elapsed time (s)                    :  207.63
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
+ Status of the memory at finalization:
+   Timestamp of Profile initialization:
+     2013-06-19 10:06:25.217
+   Process Id:
+     0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  23127
-   Tot. No. of Deallocations           :  23127
+   Tot. No. of Allocations             :  23186
+   Tot. No. of Deallocations           :  23186
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  941
+     Peak Value (MB)                   :  942
      for the array                     : nrecvdspls
      in the routine                    : transpose_communicate_psi

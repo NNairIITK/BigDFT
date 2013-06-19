@@ -162,22 +162,24 @@ module module_types
     integer :: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond
     integer :: nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer :: mixHist_lowaccuracy, mixHist_highaccuracy
+    integer :: dmin_hist_lowaccuracy, dmin_hist_highaccuracy
     integer :: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
-    integer :: nit_lowaccuracy, nit_highaccuracy
+    integer :: nit_lowaccuracy, nit_highaccuracy, nItdmin_lowaccuracy, nItdmin_highaccuracy
     integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
     real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
     real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor, ef_interpol_det
     integer :: plotBasisFunctions
     real(kind=8) ::  fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
     real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
-    real(kind=8) :: highaccuracy_conv_crit, support_functions_converged
+    real(kind=8) :: highaccuracy_conv_crit, support_functions_converged, alphaSD_coeff
+    real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
     real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
     integer, dimension(:), pointer :: norbsPerType
     integer :: scf_mode, nlevel_accuracy
     logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization
-    logical :: fragment_calculation, calc_transfer_integrals, constrained_dft
+    logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin
   end type linearInputParameters
 
   type,public:: fragmentInputParameters
