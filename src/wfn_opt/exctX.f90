@@ -700,7 +700,7 @@ END SUBROUTINE exact_exchange_potential_virt
 !> Calculate the exact exchange potential on occupied orbitals
 !! within the symmetric round-robin scheme
 !! the psi is already given in the real-space form
-subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
+subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
      hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
   use module_base
   use module_types
@@ -708,7 +708,6 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   use module_xc
   use yaml_output
   implicit none
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hxh,hyh,hzh
   type(locreg_descriptors), intent(in) :: lr
@@ -1365,13 +1364,9 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
 END SUBROUTINE exact_exchange_potential_round
 
 
-!!$!> BigDFT/exact_exchange_potential_round
-!!$!! :
-!!$!!   Calculate the exact exchange potential on occupied orbitals
-!!$!!   within the symmetric round-robin scheme
-!!$!!   the psi is already given in the real-space form
-!!$!!
-!!$!! 
+!!$!> Calculate the exact exchange potential on occupied orbitals
+!!$!! within the symmetric round-robin scheme
+!!$!! the psi is already given in the real-space form
 !!$subroutine exact_exchange_potential_round_new(iproc,nproc,geocode,nspin,lr,orbs,&
 !!$     hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
 !!$  use module_base
@@ -1389,7 +1384,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$  real(gp), intent(out) :: eexctX
 !!$  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: dpsir
 !!$  !local variables
-!!$  character(len=*), parameter :: subname='exact_exchange_potential_round'
+!!$  character(len=*), parameter :: subname='exact_exchange_potential_round_new'
 !!$  logical :: doit
 !!$  integer :: i_all,i_stat,ierr,ispin,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp,jgroup
 !!$  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,jprocsend,jprocrecv,jprocrecv2,nend,isorb,iorbs,iorbe,jorbs,jorbe
