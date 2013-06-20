@@ -2539,7 +2539,6 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
 
   ! to be fixed
   if (present(orblist)) then
-print*,'present(orblist)',present(orblist)
      stop 'orblist no longer functional in initialize_linear_from_file due to addition of fragment calculation'
   end if
 

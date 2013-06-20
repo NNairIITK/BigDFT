@@ -113,7 +113,8 @@ contains
     if (in%lin%fragment_calculation) then
         ! read fragment posinps and initialize fragment, except for psi and lzds
         do ifrag=1,in%frag%nfrag_ref
-           call init_fragment_from_file(ref_frags(ifrag),trim(in%dir_output)//trim(in%frag%label(ifrag)),in)
+           call init_fragment_from_file(ref_frags(ifrag),trim(in%dir_output)//trim(in%frag%label(ifrag)),&
+                in,astruct)
         end do
 
         ! check that fragments are sensible, i.e. correct number of atoms, atom types etc.
@@ -141,15 +142,15 @@ contains
 
 
   !> Initializes all of fragment except lzd using the fragment posinp and tmb files
-  subroutine init_fragment_from_file(frag,frag_name,input) ! switch this to pure if possible
+  subroutine init_fragment_from_file(frag,frag_name,input,astruct) ! switch this to pure if possible
     use module_types
     !use module_interfaces
     implicit none
     type(system_fragment), intent(inout) :: frag
     character(len=*), intent(in) :: frag_name
     type(input_variables), intent(in) :: input
+    type(atomic_structure), intent(in) :: astruct ! atomic structure of full system
 
-    ! local variables
 
     ! nullify fragment
     frag=fragment_null()
@@ -158,7 +159,8 @@ contains
     call read_atomic_file(frag_name(1:len(frag_name)),bigdft_mpi%iproc,frag%astruct_frg)
 
     ! iproc, nproc, nspinor not needed yet, add in later
-    call init_minimal_orbitals_data(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, input, frag%astruct_frg, frag%fbasis%forbs)
+    call init_minimal_orbitals_data(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, input, frag%astruct_frg, &
+         frag%fbasis%forbs,astruct)
     !call init_minimal_orbitals_data(iproc, nproc, nspinor, input, frag%astruct_frg, frag%fbasis%forbs)
 
     ! environment and coeffs
@@ -232,7 +234,7 @@ contains
     !   integer, dimension(:), pointer :: isorb_par,ispot
     !   integer, dimension(:,:), pointer :: norb_par
   !> just initializing norb for now, come back and do the rest later
-  subroutine init_minimal_orbitals_data(iproc, nproc, nspinor, input, astruct, forbs)
+  subroutine init_minimal_orbitals_data(iproc, nproc, nspinor, input, astruct, forbs, astruct_full)
     use module_base
     use module_types
     implicit none
@@ -242,9 +244,10 @@ contains
     type(input_variables),intent(in) :: input
     type(atomic_structure),intent(in) :: astruct
     type(minimal_orbitals_data),intent(out) :: forbs
+    type(atomic_structure), intent(in) :: astruct_full ! atomic structure of full system
   
     ! Local variables
-    integer :: norb, ityp, iat
+    integer :: norb, ityp, iat, jtyp
     !integer :: norbu, norbd, nlr, ilr, iall, iorb, istat
     !integer,dimension(:),allocatable :: norbsPerLocreg, norbsPerAtom
     !real(kind=8),dimension(:,:),allocatable :: locregCenter
@@ -260,7 +263,14 @@ contains
     do iat=1,astruct%nat
        ityp=astruct%iatype(iat)
        !norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
-       norb=norb+input%lin%norbsPerType(ityp)
+       do jtyp=1,astruct_full%ntypes
+          if (astruct_full%atomnames(jtyp)==astruct%atomnames(ityp)) exit
+       end do
+       if (jtyp==astruct_full%ntypes+1) then
+          print*, 'Error in fragment_init_orbitals, atom type ',astruct%atomnames(ityp),' does not exist in full structure'
+          stop
+       end if
+       norb=norb+input%lin%norbsPerType(jtyp)
        !nlr=nlr+input%lin%norbsPerType(ityp)
     end do
 
@@ -1253,10 +1263,10 @@ contains
     logical, intent(inout) :: overlap_calculated
 
     integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, nelecfrag_tot, itmb, jtmb
-    integer :: nksorbs_correct, nksorbsp_correct, nelecorbs, ksisorb_correct
+    integer :: nksorbs_correct, nksorbsp_correct, ksisorb_correct
     real(gp), dimension(:,:), allocatable :: coeff_final, ks, ksk
     !*real(gp), dimension(:), allocatable :: kernel_final
-    real(gp) :: nonidem
+    real(gp) :: nonidem, nelecorbs
 
 !DEAL WITH OCCUP CORRECTLY
 
@@ -1275,7 +1285,7 @@ contains
        nelecorbs=nelecorbs+ksorbs%occup(iorb)
     end do
 
-    if (nelecorbs/=nelecfrag_tot) then
+    if (nint(nelecorbs)/=nelecfrag_tot) then
        print*,'User must specify which fragments charges are added to/removed from in charged fragment calculation',&
             nelecfrag_tot,nelecorbs,ksorbs%norb
        stop
