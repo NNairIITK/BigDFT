@@ -18,6 +18,7 @@ program memguess
    use module_xc
    use m_ab6_symmetry
    use module_fragments
+   use yaml_output
 
    implicit none
    character(len=*), parameter :: subname='memguess'
@@ -157,8 +158,6 @@ program memguess
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = filename_wfn)
             !call getarg(i_arg,filename_wfn)
-            write(*,'(1x,3a)')&
-               &   'export wavefunction file: "', trim(filename_wfn),'" in .cube format'
             ! Read optional additional arguments with the iband, up/down and ikpt
             export_wf_iband = 1
             export_wf_ispin = 1
@@ -456,10 +455,12 @@ program memguess
          stop 'Ref fragment not initialized, linear reading currently nonfunctional, to be fixed'
       end if
 
+      call yaml_map("Export wavefunction from file", trim(filename_wfn))
       call take_psi_from_file(filename_wfn,in%frag,hx,hy,hz,Lzd%Glr, &
            & atoms,atoms%astruct%rxyz,orbs,psi,iorbp,export_wf_ispinor,ref_frags)
       call filename_of_iorb(.false.,"wavefunction",orbs,iorbp, &
            & export_wf_ispinor,filename_wfn,iorb_out)
+
       call plot_wf(filename_wfn,1,atoms,1.0_wp,Lzd%Glr,hx,hy,hz,atoms%astruct%rxyz, &
            & psi((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1))
 
@@ -604,9 +605,11 @@ program memguess
 
    !call deallocate_proj_descr(nlpspd,subname)
 
-   call MemoryEstimator(nproc,in%idsx,Lzd%Glr,&
-        atoms%astruct%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
-        in%nspin,in%itrpmax,in%iscf,peakmem)
+   if (.not. exportwf) then
+      call MemoryEstimator(nproc,in%idsx,Lzd%Glr,&
+           atoms%astruct%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
+           in%nspin,in%itrpmax,in%iscf,peakmem)
+   end if
 
    !add the comparison between cuda hamiltonian and normal one if it is the case
 

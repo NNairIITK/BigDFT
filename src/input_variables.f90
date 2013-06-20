@@ -959,8 +959,8 @@ subroutine free_input_variables(in)
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_input_variables'
 
-  if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) &
-       & call deallocateBasicArraysInput(in%lin)
+!!$  if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) &
+!!$       & call deallocateBasicArraysInput(in%lin)
 
   call free_geopt_variables(in)
   call free_kpt_variables(in)

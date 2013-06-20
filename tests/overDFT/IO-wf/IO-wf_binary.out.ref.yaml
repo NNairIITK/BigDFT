@@ -651,26 +651,12 @@
        Kpt 0001: [Orbitals:  [  1,  12 ], Components:  [  1,  38592 ]], 
        Kpt 0002: [Orbitals:  [  1,  12 ], Components:  [  1,  38592 ]]]
   #Reading wavefunctions in BigDFT binary file format.
+ Export wavefunction from file         : wavefunction-k002-DI.bin.b0003
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  2
    Total number of components          :  25934
    Percent of zero components          :  0
-  #-------------------------------------------------------- Estimation of Memory Consumption
- Memory requirements for principal quantities (MiB.KiB):
-   Subspace Matrix                     : 0.1 #    (Number of Orbitals: 12)
-   Single orbital                      : 0.603 #  (Number of Components: 38592)
-   All (distributed) orbitals          : 28.272 # (Number of Orbitals per MPI task: 24)
-   Wavefunction storage size           : 28.272 # (DIIS/SD workspaces included)
-   Nonlocal Pseudopotential Arrays     : 0.203
-   Full Uncompressed (ISF) grid        : 3.303
-   Workspaces storage size             : 0.422
- Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 2.513
-   Density Construction                : 43.535
-   Poisson Solver                      : 55.60
-   Hamiltonian application             : 51.781
- Estimated Memory Peak (MB)            :  55
  Memory Consumption Report:
    Tot. No. of Allocations             :  79
    Tot. No. of Deallocations           :  79
