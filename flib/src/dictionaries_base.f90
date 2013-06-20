@@ -245,6 +245,8 @@ contains
           else if (dict%data%nelems > 0) then
              dict_value=TYPE_DICT
           end if
+       else if (trim(dict%data%value) == NOT_A_VALUE) then
+          dict_value=repeat(' ',len(dict_value))
        else
           dict_value=dict%data%value
        end if
