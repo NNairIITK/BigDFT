@@ -179,12 +179,15 @@ def compare_scl(scl, ref, tols, always_fails = False):
     else:
       try:
         diff = math.fabs(scl - ref)
+        ret_diff = diff
+        if tols is None:
+          failed = not(diff <= epsilon)
+        else:
+          failed = not(diff <= tols)
       except TypeError:
-        diff = 99
-      if tols is None:
-        failed = not(diff <= epsilon)
-      else:
-        failed = not(diff <= tols)
+        ret_diff = "NOT SAME KIND"
+        diff = 0.
+        failed = True
     discrepancy=max(discrepancy,diff)
 #    if (discrepancy > 1.85e-9):
 #    print 'test',scl,ref,tols,discrepancy,failed
@@ -195,7 +198,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
       else:
         ret = (True, tols)
     else:
-      ret = (True, diff)
+      ret = (True, ret_diff)
       if tols is not None:
         biggest_tol=max(biggest_tol,math.fabs(tols))
   if failed:
@@ -383,7 +386,7 @@ for i in range(len(references)):
   discrepancy=0.
   reference = references[i]
   #this executes the fldiff procedure
-  compare(datas[i], reference, tols)
+  #compare(datas[i], reference, tols)
   try:
     data = datas[i]
     compare(data, reference, tols)
