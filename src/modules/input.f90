@@ -1479,7 +1479,7 @@ contains
     call input_var(dummy_int,'0')
     call set(dict // NORBSEMPTY, dummy_int)
     call input_var(dummy_real,'0.0') 
-    call set(dict // TEL, dummy_real, fmt = "(F5.2)")
+    call set(dict // TEL, dummy_real, fmt = "(E9.2)")
     call input_var(dummy_int,'1',comment="")
     call set(dict // OCCOPT, dummy_int)
     call input_var(dummy_real,'0.0')
@@ -1607,9 +1607,9 @@ contains
           call input_var(dummy_real3(1),'0.')
           call input_var(dummy_real3(2),'0.')
           call input_var(dummy_real3(3),'0.',comment=' ')
-          call set(dict//SHIFTK//(i-1)//0, dummy_real3(1))
-          call set(dict//SHIFTK//(i-1)//1, dummy_real3(2))
-          call set(dict//SHIFTK//(i-1)//2, dummy_real3(3))
+          call set(dict//SHIFTK//(i-1)//0, dummy_real3(1), fmt = "(F6.4)")
+          call set(dict//SHIFTK//(i-1)//1, dummy_real3(2), fmt = "(F6.4)")
+          call set(dict//SHIFTK//(i-1)//2, dummy_real3(3), fmt = "(F6.4)")
        end do
     else if (input_keys_equal(trim(dummy_str),'manual')) then
        call input_var(dummy_int,'1',ranges=(/1,10000/),&
@@ -1618,11 +1618,11 @@ contains
           call input_var( dummy_real3(1),'0.')
           call input_var( dummy_real3(2),'0.')
           call input_var( dummy_real3(3),'0.')
-          call set(dict//KPT//(i-1)//0, dummy_real3(1))
-          call set(dict//KPT//(i-1)//1, dummy_real3(2))
-          call set(dict//KPT//(i-1)//2, dummy_real3(3))
+          call set(dict//KPT//(i-1)//0, dummy_real3(1), fmt = "(F6.4)")
+          call set(dict//KPT//(i-1)//1, dummy_real3(2), fmt = "(F6.4)")
+          call set(dict//KPT//(i-1)//2, dummy_real3(3), fmt = "(F6.4)")
           call input_var( dummy_real,'1.',comment='K-pt coords, K-pt weigth')
-          call set(dict//WKPT//(i-1), dummy_real)
+          call set(dict//WKPT//(i-1), dummy_real, fmt = "(F6.4)")
        end do
     end if
 

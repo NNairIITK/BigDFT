@@ -177,7 +177,10 @@ def compare_scl(scl, ref, tols, always_fails = False):
       failed = False
       diff = 0.
     else:
-      diff = math.fabs(scl - ref)
+      try:
+        diff = math.fabs(scl - ref)
+      except TypeError:
+        diff = 99
       if tols is None:
         failed = not(diff <= epsilon)
       else:
@@ -192,7 +195,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
       else:
         ret = (True, tols)
     else:
-      ret = (True, math.fabs(scl - ref))
+      ret = (True, diff)
       if tols is not None:
         biggest_tol=max(biggest_tol,math.fabs(tols))
   if failed:
