@@ -461,24 +461,26 @@ subroutine inputs_free(in)
   call free_input_variables(in)
   deallocate(in)
 end subroutine inputs_free
-subroutine inputs_set(dict, file, key, value)
+subroutine inputs_set(dict, file, key, val)
   use dictionaries
   use module_types
   implicit none
   type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: file, key, value
+  character(len = *), intent(in) :: file, key, val
 
-  call set(dict // file // key, value)
+  ! This is a patch for Intel, to be corrected properly later.
+  call set(dict // file // key, val(1:len(val)))
 END SUBROUTINE inputs_set
-subroutine inputs_set_at(dict, file, key, i, value)
+subroutine inputs_set_at(dict, file, key, i, val)
   use dictionaries
   use module_types
   implicit none
   type(dictionary), pointer :: dict
   integer, intent(in) :: i
-  character(len = *), intent(in) :: file, key, value
+  character(len = *), intent(in) :: file, key, val
 
-  call set(dict // file // key // i, value)
+  ! This is a patch for Intel, to be corrected properly later.
+  call set(dict // file // key // i, val(1:len(val)))
 END SUBROUTINE inputs_set_at
 subroutine inputs_fill_all(inputs_values)
   use module_input_keys
