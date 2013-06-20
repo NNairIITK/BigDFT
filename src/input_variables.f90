@@ -884,7 +884,13 @@ subroutine create_log_file(iproc,inputs)
         !create that only if the stream is not already present, otherwise print a warning
         if (ierr == 0) then
            call input_set_stdout(unit=70)
-           call f_malloc_set_status(unit=70,logfile_name=trim(inputs%dir_output)//'malloc.prc')
+           if (len_trim(inputs%run_name) == 0) then
+              call f_malloc_set_status(unit=70, &
+                   & logfile_name='malloc' // trim(bigdft_run_id_toa()) // '.prc')
+           else
+              call f_malloc_set_status(unit=70, &
+                   & logfile_name='malloc-' // trim(inputs%run_name) // '.prc')
+           end if
            !call memocc_set_stdout(unit=70)
         else
            call yaml_warning('Logfile '//trim(logfile)//' cannot be created, stream already present. Ignoring...')
