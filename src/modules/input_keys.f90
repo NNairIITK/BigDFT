@@ -744,6 +744,7 @@ contains
     call set(p // EXCTXPAR, dict_new( (/ &
          & COMMENT   .is. 'Exact exchange parallelisation scheme', &
          & EXCLUSIVE .is. dict_new((/ &
+         & "BC"      .is. "???", &
          & "OP2P"    .is. "???"/)), &
          & DEFAULT.is. "OP2P"/) ))
 
