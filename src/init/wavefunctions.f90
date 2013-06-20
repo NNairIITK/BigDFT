@@ -755,8 +755,10 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 
   ! This should be moved to init_atomic_values, but we can't since
   ! input.lin needs some arrays allocated here.
-  call allocate_atoms_nat(atoms, "inputs_from_dict")
-  call allocate_atoms_ntypes(atoms, "inputs_from_dict")
+  if (.not. associated(atoms%nzatom)) then
+     call allocate_atoms_nat(atoms, "inputs_from_dict")
+     call allocate_atoms_ntypes(atoms, "inputs_from_dict")
+  end if
 
   ! Linear scaling (if given)
   !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
