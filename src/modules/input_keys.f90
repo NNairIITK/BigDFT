@@ -244,7 +244,7 @@ contains
 
     call set(p // MPOL, dict_new((/ &
          & COMMENT .is. "total magnetic moment", &
-         & DEFAULT  . is. "0" /)))
+         & DEFAULT .is. "0" /)))
 
     call set(p // GNRM_CV, dict_new((/ &
          & COMMENT   .is. "convergence criterion gradient", &
