@@ -66,6 +66,7 @@ endif
 CLEANFILES = $(modules) *.@MODULE_EXT@ $(mpi_include)
 
 AM_FCFLAGS = -I$(srcdir) $(mpi_inc) @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
+AM_CFLAGS = @LIB_YAML_CFLAGS@
 
 # Dependencies
 $(modules): $(libflib_a_OBJECTS)
