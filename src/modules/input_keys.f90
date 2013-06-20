@@ -1182,9 +1182,13 @@ contains
          end if
       else
          var = dict
-         if (f_err_raise(var < rg(1) .or. var > rg(2), err_id = INPUT_VAR_NOT_IN_RANGE, &
+         if (var < rg(1) .or. var > rg(2)) then
+            val = dict
+            call f_err_throw(err_id = INPUT_VAR_NOT_IN_RANGE, &
               & err_msg = trim(key) // " = '" // trim(val) // &
-              & "' not in range.")) return
+              & "' not in range.")
+            return
+         end if
       end if
     end subroutine validate
 

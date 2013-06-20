@@ -348,9 +348,9 @@ program frequencies
    call f_free(energies)
    call f_free(forces)
 
-   call run_objects_free(runObj, subname)
-
    call f_release_routine()
+
+   call run_objects_free(runObj, subname)
 
    call bigdft_finalize(ierr)
 
