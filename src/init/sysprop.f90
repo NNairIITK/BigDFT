@@ -420,7 +420,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
   nullify(atoms%paw_NofL)
   do ityp=1,atoms%astruct%ntypes
      filename = 'psppar.'//atoms%astruct%atomnames(ityp)
-     !ALEX: if npspcod==12, nlccpar are read from psppar.Xy via rcore and qcore 
+     !ALEX: if npspcode==12, nlccpar are read from psppar.Xy via rcore and qcore 
      call psp_from_file(filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
            & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
            & atoms%donlcc, rcore(ityp), qcore(ityp), radii_cf, read_radii, exists)
@@ -458,8 +458,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
   end do
   !deallocate the paw_array if not all the atoms are present
   if (.not. exist_all .and. associated(atoms%paw_NofL)) then
-     
-i_all=-product(shape(atoms%paw_NofL ))*kind(atoms%paw_NofL )
+     i_all=-product(shape(atoms%paw_NofL ))*kind(atoms%paw_NofL )
      deallocate(atoms%paw_NofL,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%paw_NofL',subname)
      nullify(atoms%paw_NofL)
@@ -519,11 +518,11 @@ i_all=-product(shape(atoms%paw_NofL ))*kind(atoms%paw_NofL )
            end do
            close(unit=79)
         end if
-     !ALEX: Cheap work-around: If npspcod is 12, we set it to 10 here.
+     !ALEX: Cheap work-around: If npspcode is 12, we set it to 10 here.
      !This is only to test if things are working correctly until all if clauses for
-     !npspcod 10 also work for npspcod 12, which is exactly the same except for the
+     !npspcode 10 also work for npspcode 12, which is exactly the same except for the
      !addition of a line for NLCC read from the psppar file.
-     if(atoms%npspcode(ityp)==12)  atoms%npspcode(ityp)=10
+     !if(atoms%npspcode(ityp)==12)  atoms%npspcode(ityp)=10
      end do fill_nlcc
   end if
   
@@ -538,8 +537,10 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   character(len = *), intent(in) :: filename
   integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp
   real(gp), intent(out) :: psppar(0:4,0:6), radii_cf(3), rcore, qcore
-  logical, intent(out) :: read_radii, exists, donlcc
-  real(gp):: fourpi, sqrt2pi
+  logical, intent(out) :: read_radii, exists
+  logical, intent(inout) ::  donlcc
+  !ALEX: Some local variables
+  real(gp):: fourpi, sqrt2pi, skip
 
   integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l
   character(len=100) :: line
@@ -571,7 +572,8 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      read(11,*) (psppar(1,j),j=0,3)
      do i=2,4
         read(11,*) (psppar(i,j),j=0,3)
-        read(11,*) !k coefficients, not used for the moment (no spin-orbit coupling)
+        !ALEX: Maybe this can prevent reading errors on CRAY machines?
+        read(11,*) skip !k coefficients, not used for the moment (no spin-orbit coupling)
      enddo
   else if (npspcode == 10) then !HGH-K case
      read(11,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
@@ -584,7 +586,8 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
         end do
         if (l==1) cycle
         do i=1,nprl
-           read(11,*) !k coefficients, not used
+           !ALEX: Maybe this can prevent reading errors on CRAY machines?
+           read(11,*)skip !k coefficients, not used
         end do
      end do prjloop
   !ALEX: Add support for reading NLCC from psppar
@@ -599,7 +602,8 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
         end do
         if (l==1) cycle
         do i=1,nprl
-           read(11,*) !k coefficients, not used
+           !ALEX: Maybe this can prevent reading errors on CRAY machines?
+           read(11,*) skip !k coefficients, not used
         end do
      end do 
      read(11,*) rcore, qcore
@@ -1242,7 +1246,8 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
                  hij(1,2)=offdiagarr(1,1,l)*atoms%psppar(l,2,ityp)
                  hij(1,3)=offdiagarr(1,2,l)*atoms%psppar(l,3,ityp)
                  hij(2,3)=offdiagarr(2,1,l)*atoms%psppar(l,3,ityp)
-              else if (atoms%npspcode(ityp) == 10) then !HGH-K convention
+              else if (atoms%npspcode(ityp) == 10 &
+                  .or. atoms%npspcode(ityp) == 12) then !HGH-K convention
                  hij(1,2)=atoms%psppar(l,4,ityp)
                  hij(1,3)=atoms%psppar(l,5,ityp)
                  hij(2,3)=atoms%psppar(l,6,ityp)
