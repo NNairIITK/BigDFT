@@ -155,11 +155,11 @@ report:
 	name=`basename $@ .freq.out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
-	rm -f triH.NEB.it*
+	rm -f neb.it*
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(abs_top_builddir)/src/NEB | tee $@
-	cat triH.NEB.0*/log.yaml | grep -v "Unable to read mpd.hosts" > log.yaml 
-	rm -rf triH.NEB.0*
+	cat neb.NEB.0*/log.yaml | grep -v "Unable to read mpd.hosts" > log.yaml 
+	rm -rf neb.NEB.0*
 	rm -f gen_output_file velocities_file
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
