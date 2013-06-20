@@ -15,6 +15,7 @@
 #define g_malloc(A) malloc(A)
 #define g_malloc0(A) malloc(A)
 #define g_free(A)   free(A)
+#define gint int
 #define guint unsigned int
 #define gchar char
 #define gpointer void*
