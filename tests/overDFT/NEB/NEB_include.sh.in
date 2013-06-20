@@ -67,11 +67,13 @@ make_input()
     # Create the posinp file
     make_xyz $position_file $n_nodes $restart_file
     
-    # Copy the input.dat
+    # Copy the input.dft
     cp -f -p $datadir/default.dft ./input.dft
 
-    # Copy the input.dat
-    cp -f -p $datadir/default.perf ./input.perf
+    # Copy the input.perf
+    if test -f $datadir/default.perf ; then
+        cp -f -p $datadir/default.perf ./input.perf
+    fi
 
     # Copy the pseudo-potential files
     cp -f -p $datadir/psppar.* .

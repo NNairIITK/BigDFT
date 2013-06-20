@@ -215,9 +215,9 @@ MODULE NEB_routines
       end do
       bigdft_mpi = bigdft_mpi_svg
 
-      data_file          = trim(run_id) // ".NEB.dat"
-      interpolation_file = trim(run_id) // ".NEB.int"
-      restart_file       = trim(run_id) // ".NEB.restart"
+      data_file          = trim(job_name) // ".NEB.dat"
+      interpolation_file = trim(job_name) // ".NEB.int"
+      restart_file       = trim(job_name) // ".NEB.restart"
 
 !! initial and final configuration are read only if a new simulation
 !! is started ( restart = .FALSE. ) 
