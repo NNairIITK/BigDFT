@@ -18,6 +18,7 @@ module dictionaries_base
   character(len=max_field_length), parameter, public :: TYPE_LIST='__list__'
 
   type, public :: storage
+     sequence
      integer :: item   !< Id of the item associated to the list
      integer :: nitems !< No. of items in the list
      integer :: nelems !< No. of items in the dictionary

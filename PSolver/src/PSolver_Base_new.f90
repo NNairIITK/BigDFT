@@ -42,10 +42,10 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !cache work array
   real(kind=8), dimension(:,:,:), allocatable :: zw
   !FFT work arrays
-  real(kind=8), dimension(:,:), allocatable :: btrig1,btrig2,btrig3, &
-       ftrig1,ftrig2,ftrig3,cosinarr
-  integer, dimension(:), allocatable :: after1,now1,before1, & 
-       after2,now2,before2,after3,now3,before3
+  real(kind=8), dimension(:,:), allocatable :: btrig1,btrig2,btrig3
+  real(kind=8), dimension(:,:), allocatable :: ftrig1,ftrig2,ftrig3,cosinarr
+  integer, dimension(:), allocatable :: after1,now1,before1
+  integer, dimension(:), allocatable :: after2,now2,before2,after3,now3,before3
   real(gp), dimension(6) :: strten_omp
   !integer :: ncount0,ncount1,ncount_max,ncount_rate
 
