@@ -45,6 +45,8 @@ yaml_test:
    - Id
  Patterns to ignore:
    - errcode
+   - time
+   - Time
 
 #Runs which update and override the default
 SiH4:
