@@ -1330,3 +1330,44 @@ contains
   end subroutine input_keys_dump
 
 end module module_input_keys
+
+!> Routine to read YAML input files and create input dictionary.
+subroutine merge_input_file_to_dict(dict, fname, mpi_env)
+  use module_input_keys
+  use dictionaries
+  use yaml_parse
+  use wrapper_mpi
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: fname
+  type(mpi_environment), intent(in) :: mpi_env
+
+  integer(kind = 8) :: cbuf, cbuf_len
+  integer :: ierr
+  character, dimension(:), allocatable :: fbuf
+  type(dictionary), pointer :: udict
+  
+  if (mpi_env%iproc == 0) then
+     call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
+     if (mpi_env%nproc > 1) &
+          & call mpi_bcast(cbuf_len, 1, MPI_INTEGER, 0, mpi_env%mpi_comm, ierr)
+  else
+     call mpi_bcast(cbuf_len, 1, MPI_INTEGER, 0, mpi_env%mpi_comm, ierr)
+  end if
+  allocate(fbuf(cbuf_len))
+  if (mpi_env%iproc == 0) then
+     call copyCBuffer(fbuf(1), cbuf, cbuf_len)
+     call freeCBuffer(cbuf)
+     if (mpi_env%nproc > 1) &
+          & call mpi_bcast(fbuf(1), cbuf_len, MPI_INTEGER, 0, mpi_env%mpi_comm, ierr)
+  else
+     call mpi_bcast(fbuf(1), cbuf_len, MPI_INTEGER, 0, mpi_env%mpi_comm, ierr)
+  end if
+
+  call yaml_parse_from_char_array(udict, fbuf)
+  deallocate(fbuf)
+
+  call dict_update(dict, udict // 0)
+
+  call dict_free(udict)
+end subroutine merge_input_file_to_dict

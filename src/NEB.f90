@@ -202,10 +202,7 @@ MODULE NEB_routines
             read_posinp(i) = .true.
          end if
 
-         call dict_init(dict)
-         call read_inputs_from_text_format(dict,trim(arr_radical(i)), &
-              & bigdft_mpi%iproc)
-
+         dict => read_input_dict_from_files(trim(arr_radical(i)), bigdft_mpi)
          call standard_inputfile_names(ins(i),trim(arr_radical(i)))
          call inputs_from_dict(ins(i), atoms(i), dict, .true.)
          call dict_free(dict)

@@ -482,6 +482,16 @@ subroutine inputs_set_at(dict, file, key, i, val)
   ! This is a patch for Intel, to be corrected properly later.
   call set(dict // file // key // i, val(1:len(val)))
 END SUBROUTINE inputs_set_at
+subroutine inputs_set_from_file(dict, fname)
+  use dictionaries
+  use module_interfaces, only: read_input_dict_from_files
+  use module_defs
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: fname
+
+  dict => read_input_dict_from_files(fname, bigdft_mpi)
+end subroutine inputs_set_from_file
 subroutine inputs_fill_all(inputs_values)
   use module_input_keys
   use dictionaries

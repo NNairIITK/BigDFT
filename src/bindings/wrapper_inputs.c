@@ -135,11 +135,11 @@ BigDFT_Inputs* bigdft_inputs_new_from_files(const gchar *naming, guint iproc)
   in = bigdft_inputs_new(naming);
 
   if (naming && naming[0])
-    FC_FUNC_(read_inputs_from_text_format, READ_INPUTS_FROM_TEXT_FORMAT)
-      (&in->input_values, naming, (gint*)&iproc, strlen(naming));
+    FC_FUNC_(inputs_set_from_file, INPUTS_SET_FROM_FILE)
+      (&in->input_values, naming, strlen(naming));
   else
-    FC_FUNC_(read_inputs_from_text_format, READ_INPUTS_FROM_TEXT_FORMAT)
-      (&in->input_values, " ", (gint*)&iproc, 1);
+    FC_FUNC_(inputs_set_from_file, INPUTS_SET_FROM_FILE)
+      (&in->input_values, " ", 1);
   
   return in;
 }
