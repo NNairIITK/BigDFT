@@ -1,7 +1,7 @@
 !a> @file
 !!  Routines to initialize the information about localisation regions
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -2414,15 +2414,15 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(system_fragment), dimension(:), pointer :: ref_frags
   !local variables
   character(len = *), parameter :: subname = "input_wf"
-  integer :: i_stat, nspin, i_all, iorb, jorb, ilr, jlr,iat,ist, ifrag, itmb, jtmb, ierr 
+  integer :: i_stat, nspin, i_all, iat
   type(gaussian_basis) :: Gvirt
   real(wp), allocatable, dimension(:) :: norm
   !wvl+PAW objects
   integer :: iatyp
   type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
   type(paw_objects)::paw
-  logical :: overlap_calculated, norb_change, perx,pery,perz
-  real(gp) :: tx,ty,tz,displ,mindist,t2,t1
+  logical :: overlap_calculated, perx,pery,perz
+  real(gp) :: tx,ty,tz,displ,mindist
 
 
   !nullify paw objects:
@@ -2910,15 +2910,16 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
   !Local Variables
   character(len = *), parameter :: subname = "input_wf_memory"
-  integer :: i_stat, i_all,ilr,iorb,nbox,npsir,ist,i,l,k,i1,i2,i3,l1,l2,l3,p1,p2,p3,ii1,ii2,ii3
+  integer :: i_stat, i_all,iorb,nbox,npsir,ist,i,l,k,i1,i2,i3,l1,l2,l3,p1,p2,p3,ii1,ii2,ii3
   type(workarr_sumrho) :: w
-  real(wp), dimension(:,:,:),allocatable :: psir,psir_old
+  real(wp), dimension(:,:,:), allocatable :: psir,psir_old
   real(wp) :: hhx_old,hhy_old,hhz_old,hhx,hhy,hhz,dgrid1,dgrid2,dgrid3,expfct,x,y,z,s1,s2,s3
   real(wp) :: s1d1,s1d2,s1d3,s2d1,s2d2,s2d3,s3d1,s3d2,s3d3,norm_1,norm_2,norm_3,norm,radius,jacdet
-  real(wp),dimension(-1:1) :: coeff,ipv,ipv2
+  real(wp), dimension(-1:1) :: coeff,ipv,ipv2
 
+  !To reduce the size, use real(kind=4)
+  real(kind=4), dimension(:,:), allocatable :: shift
   real(wp) :: s1_new, s2_new, s3_new,xz,yz,zz,recnormsqr,exp_val, exp_cutoff
-  real(4), dimension(:,:), allocatable :: shift
   real(wp) :: k1,k2,k3,distance,cutoff
 
   integer :: istart,irange,iend,rest,ierr, gridx,gridy,gridz,xbox,ybox,zbox,iy,iz
@@ -2928,9 +2929,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   real(wp) :: rcov,rprb,ehomo,amu,neleconf(6,0:3)
   character(len=2) :: symbol
 
-  if(lzd_old%Glr%geocode .ne. 'F') then
-        write(*,*) 'Not implemented for boundary conditions other than free'
-        stop
+  if (lzd_old%Glr%geocode .ne. 'F') then
+     write(*,*) 'Not implemented for boundary conditions other than free'
+     stop
   end if
 
  ! Daubechies to ISF
@@ -2955,122 +2956,134 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
   ist=1
   loop_orbs: do iorb=1,orbs%norbp
-        call daub_to_isf(Lzd_old%Glr,w,psi_old(ist),psir_old(1,1,iorb))
-        ist=ist+Lzd_old%Glr%wfd%nvctr_c+7*Lzd_old%Glr%wfd%nvctr_f
+     call daub_to_isf(Lzd_old%Glr,w,psi_old(ist),psir_old(1,1,iorb))
+     ist=ist+Lzd_old%Glr%wfd%nvctr_c+7*Lzd_old%Glr%wfd%nvctr_f
   end do loop_orbs
   call deallocate_work_arrays_sumrho(w)
 
-  hhx_old = 0.5*hx_old ; hhy_old = 0.5*hy_old ; hhz_old = 0.5*hz_old  
-  hhx = 0.5*hx         ; hhy = 0.5*hy         ; hhz = 0.5*hz  
+  hhx_old = 0.5*hx_old
+  hhy_old = 0.5*hy_old
+  hhz_old = 0.5*hz_old  
+
+  hhx = 0.5*hx
+  hhy = 0.5*hy
+  hhz = 0.5*hz  
   
-  jacdet = 0.d0 ; expfct = 0.d0 ; recnormsqr = 0d0
+  jacdet = 0.d0
+  expfct = 0.d0
+  recnormsqr = 0d0
 
   irange = int(atoms%astruct%nat/nproc)
 
   rest = atoms%astruct%nat - nproc*irange
 
   do i = 0,rest-1
-   if(iproc .eq. i) irange = irange + 1 
+     if(iproc .eq. i) irange = irange + 1 
   end do
 
-  if(iproc <= rest-1) then
-   istart = iproc*irange + 1
-   iend = istart + irange - 1
+  if (iproc <= rest-1) then
+     istart = iproc*irange + 1
+     iend = istart + irange - 1
   else  
-   istart = iproc*irange + 1 + rest
-   iend = istart + irange - 1
+     istart = iproc*irange + 1 + rest
+     iend = istart + irange - 1
   end if
    
   do k = istart,iend
 
-      !determine sigma of gaussian (sigma is taken as the covalent radius of the atom,rcov)
-      nzatom = atoms%nzatom(atoms%astruct%iatype(k))
-      nvalelec =  atoms%nelpsp(atoms%astruct%iatype(k))
-      call eleconf(nzatom, nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
-      
-      radius = 1.0/((rcov)**2)
-      cutoff = 3*rcov
-      
-      !dimensions for box around atom 
-      xbox = nint(cutoff/hhx) ; ybox = nint(cutoff/hhy) ; zbox = nint(cutoff/hhz)
-  
-      gridx = nint(rxyz(1,k)/hhx)+14
-      gridy = nint(rxyz(2,k)/hhy)+14
-      gridz = nint(rxyz(3,k)/hhz)+14
-  
-    !$OMP PARALLEL DO DEFAULT(PRIVATE) SHARED(rxyz_old,rxyz,shift,gridx,gridy,gridz,xbox,ybox,zbox, &
-    !$OMP& hhz,hhy,hhx,lzd,k) FIRSTPRIVATE(radius,cutoff)
-      do i3 = max(1, gridz-zbox), min(lzd%glr%d%n3i,gridz+zbox)
-         ii3 = i3-14 ; zz = ii3*hhz ; iz = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-         do i2 = max(1,gridy-ybox), min(lzd%glr%d%n2i,gridy+ybox)
-            ii2 = i2 - 14 ; yz = ii2*hhy ; iy = (i2-1)*lzd%glr%d%n1i
-            do i1 = max(1,gridx-xbox), min(lzd%glr%d%n1i,gridx+xbox)
-                
-               ii1 = i1 - 14 ; xz = ii1*hhx
-               
-               norm_1 = 0d0 ; norm_2 = 0d0 ; norm_3 = 0d0 
-               s1_new = 0d0 ; s2_new = 0d0 ; s3_new = 0d0
-
-               s1d1 = 0d0 ; s1d2 = 0d0 ; s1d3 = 0d0
-               s2d1 = 0d0 ; s2d2 = 0d0 ; s2d3 = 0d0
-               s3d1 = 0d0 ; s3d2 = 0d0 ; s3d3 = 0d0 
-               
-               distance = sqrt((xz-rxyz(1,k))**2+(yz-rxyz(2,k))**2+(zz-rxyz(3,k))**2)
-               if(distance > cutoff) cycle 
-               
-               exp_val = 0.5*(distance**2)*radius
-               exp_cutoff = 0.5*(cutoff**2)*radius
-               
-               expfct = ex(exp_val, exp_cutoff) 
-
-               norm = expfct
-               recnormsqr = 1/expfct**2
-
-               s1_new = (rxyz(1,k) - rxyz_old(1,k))*expfct
-               s2_new = (rxyz(2,k) - rxyz_old(2,k))*expfct
-               s3_new = (rxyz(3,k) - rxyz_old(3,k))*expfct
-
-               norm_1 =  expfct*((xz-rxyz(1,k))*radius)
-               norm_2 =  expfct*((yz-rxyz(2,k))*radius)
-               norm_3 =  expfct*((zz-rxyz(3,k))*radius)
-
-               s1d1 = s1_new*((xz-rxyz(1,k))*radius)
-               s1d2 = s1_new*((yz-rxyz(2,k))*radius)
-               s1d3 = s1_new*((zz-rxyz(3,k))*radius)
-               
-               s2d1 = s2_new*((xz-rxyz(1,k))*radius)
-               s2d2 = s2_new*((yz-rxyz(2,k))*radius)
-               s2d3 = s2_new*((zz-rxyz(3,k))*radius)
+     !determine sigma of gaussian (sigma is taken as the covalent radius of the atom,rcov)
+     nzatom = atoms%nzatom(atoms%astruct%iatype(k))
+     nvalelec =  atoms%nelpsp(atoms%astruct%iatype(k))
+     call eleconf(nzatom, nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
      
-               s3d1 = s3_new*((xz-rxyz(1,k))*radius)
-               s3d2 = s3_new*((yz-rxyz(2,k))*radius)
-               s3d3 = s3_new*((zz-rxyz(3,k))*radius)
+     radius = 1.0/((rcov)**2)
+     cutoff = 3*rcov
+     
+     !dimensions for box around atom 
+     xbox = nint(cutoff/hhx) ; ybox = nint(cutoff/hhy) ; zbox = nint(cutoff/hhz)
+  
+     gridx = nint(rxyz(1,k)/hhx)+14
+     gridy = nint(rxyz(2,k)/hhy)+14
+     gridz = nint(rxyz(3,k)/hhz)+14
+  
+     !$OMP PARALLEL DO DEFAULT(PRIVATE) SHARED(rxyz_old,rxyz,shift,gridx,gridy,gridz,xbox,ybox,zbox, &
+     !$OMP& hhz,hhy,hhx,lzd,k) FIRSTPRIVATE(radius,cutoff)
+     do i3 = max(1, gridz-zbox), min(lzd%glr%d%n3i,gridz+zbox)
+        ii3 = i3-14
+        zz = ii3*hhz
+        iz = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+        do i2 = max(1,gridy-ybox), min(lzd%glr%d%n2i,gridy+ybox)
+           ii2 = i2 - 14
+           yz = ii2*hhy
+           iy = (i2-1)*lzd%glr%d%n1i
+           do i1 = max(1,gridx-xbox), min(lzd%glr%d%n1i,gridx+xbox)
+               
+              ii1 = i1 - 14
+              xz = ii1*hhx
+              
+              norm_1 = 0d0 ; norm_2 = 0d0 ; norm_3 = 0d0 
+              s1_new = 0d0 ; s2_new = 0d0 ; s3_new = 0d0
 
-               s1d1 =       (s1d1*expfct - s1_new*norm_1)*recnormsqr
-               s1d2 =       (s1d2*expfct - s1_new*norm_2)*recnormsqr
-               s1d3 =       (s1d3*expfct - s1_new*norm_3)*recnormsqr
-          
-               s2d1 =       (s2d1*expfct - s2_new*norm_1)*recnormsqr
-               s2d2 =       (s2d2*expfct - s2_new*norm_2)*recnormsqr
-               s2d3 =       (s2d3*expfct - s2_new*norm_3)*recnormsqr
-          
-               s3d1 =       (s3d1*expfct - s3_new*norm_1)*recnormsqr
-               s3d2 =       (s3d2*expfct - s3_new*norm_2)*recnormsqr
-               s3d3 =       (s3d3*expfct - s3_new*norm_3)*recnormsqr
+              s1d1 = 0d0 ; s1d2 = 0d0 ; s1d3 = 0d0
+              s2d1 = 0d0 ; s2d2 = 0d0 ; s2d3 = 0d0
+              s3d1 = 0d0 ; s3d2 = 0d0 ; s3d3 = 0d0 
+              
+              distance = sqrt((xz-rxyz(1,k))**2+(yz-rxyz(2,k))**2+(zz-rxyz(3,k))**2)
+              if(distance > cutoff) cycle 
+              
+              exp_val = 0.5*(distance**2)*radius
+              exp_cutoff = 0.5*(cutoff**2)*radius
+              
+              expfct = ex(exp_val, exp_cutoff) 
+
+              norm = expfct
+              recnormsqr = 1/expfct**2
+
+              s1_new = (rxyz(1,k) - rxyz_old(1,k))*expfct
+              s2_new = (rxyz(2,k) - rxyz_old(2,k))*expfct
+              s3_new = (rxyz(3,k) - rxyz_old(3,k))*expfct
+
+              norm_1 =  expfct*((xz-rxyz(1,k))*radius)
+              norm_2 =  expfct*((yz-rxyz(2,k))*radius)
+              norm_3 =  expfct*((zz-rxyz(3,k))*radius)
+
+              s1d1 = s1_new*((xz-rxyz(1,k))*radius)
+              s1d2 = s1_new*((yz-rxyz(2,k))*radius)
+              s1d3 = s1_new*((zz-rxyz(3,k))*radius)
+              
+              s2d1 = s2_new*((xz-rxyz(1,k))*radius)
+              s2d2 = s2_new*((yz-rxyz(2,k))*radius)
+              s2d3 = s2_new*((zz-rxyz(3,k))*radius)
+     
+              s3d1 = s3_new*((xz-rxyz(1,k))*radius)
+              s3d2 = s3_new*((yz-rxyz(2,k))*radius)
+              s3d3 = s3_new*((zz-rxyz(3,k))*radius)
+
+              s1d1 =       (s1d1*expfct - s1_new*norm_1)*recnormsqr
+              s1d2 =       (s1d2*expfct - s1_new*norm_2)*recnormsqr
+              s1d3 =       (s1d3*expfct - s1_new*norm_3)*recnormsqr
          
+              s2d1 =       (s2d1*expfct - s2_new*norm_1)*recnormsqr
+              s2d2 =       (s2d2*expfct - s2_new*norm_2)*recnormsqr
+              s2d3 =       (s2d3*expfct - s2_new*norm_3)*recnormsqr
+         
+              s3d1 =       (s3d1*expfct - s3_new*norm_1)*recnormsqr
+              s3d2 =       (s3d2*expfct - s3_new*norm_2)*recnormsqr
+              s3d3 =       (s3d3*expfct - s3_new*norm_3)*recnormsqr
+        
  
-               jacdet = s1d1*s2d2*s3d3 + s1d2*s2d3*s3d1 + s1d3*s2d1*s3d2 - s1d3*s2d2*s3d1-s1d2*s2d1*s3d3 - s1d1*s2d3*s3d2&
-                         &  + s1d1 + s2d2 + s3d3 +s1d1*s2d2+s3d3*s1d1+s3d3*s2d2 - s1d2*s2d1 - s3d2*s2d3 - s3d1*s1d3
+              jacdet = s1d1*s2d2*s3d3 + s1d2*s2d3*s3d1 + s1d3*s2d1*s3d2 - s1d3*s2d2*s3d1-s1d2*s2d1*s3d3 - s1d1*s2d3*s3d2&
+                        &  + s1d1 + s2d2 + s3d3 +s1d1*s2d2+s3d3*s1d1+s3d3*s2d2 - s1d2*s2d1 - s3d2*s2d3 - s3d1*s1d3
 
-               shift(i1+iy+iz,1) = s1_new +  shift(i1+iy+iz,1)  
-               shift(i1+iy+iz,2) = s2_new +  shift(i1+iy+iz,2)  
-               shift(i1+iy+iz,3) = s3_new +  shift(i1+iy+iz,3)  
-               shift(i1+iy+iz,4) = expfct +  shift(i1+iy+iz,4)  
-               shift(i1+iy+iz,5) = jacdet +  shift(i1+iy+iz,5)  
+              shift(i1+iy+iz,1) = real(s1_new,kind=4) +  shift(i1+iy+iz,1)  
+              shift(i1+iy+iz,2) = real(s2_new,kind=4) +  shift(i1+iy+iz,2)  
+              shift(i1+iy+iz,3) = real(s3_new,kind=4) +  shift(i1+iy+iz,3)  
+              shift(i1+iy+iz,4) = real(expfct,kind=4) +  shift(i1+iy+iz,4)  
+              shift(i1+iy+iz,5) = real(jacdet,kind=4) +  shift(i1+iy+iz,5)  
 
-            end do     
-         end do
-       end do
+           end do     
+        end do
+      end do
     !$OMP END PARALLEL DO
   end do
 
@@ -3086,12 +3099,12 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
        iy = (i2-1)*lzd%glr%d%n1i
       do i1 = 1, lzd%glr%d%n1i
 
-          s1 = shift(i1+iy+iz,1) 
-          s2 = shift(i1+iy+iz,2) 
-          s3 = shift(i1+iy+iz,3) 
-          norm = shift(i1+iy+iz,4) 
-          jacdet = shift(i1+iy+iz,5)
-	
+         s1 = shift(i1+iy+iz,1) 
+         s2 = shift(i1+iy+iz,2) 
+         s3 = shift(i1+iy+iz,3) 
+         norm = shift(i1+iy+iz,4) 
+         jacdet = shift(i1+iy+iz,5)
+
          jacdet = jacdet + 1.0
 
          if(norm.eq.0d0) norm = 1d0

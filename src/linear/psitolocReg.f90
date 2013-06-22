@@ -1,7 +1,7 @@
 !> @file
 !! Wavefunction put into a localisation region
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -205,7 +205,7 @@ subroutine psi_to_locreg2(iproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
   integer :: nseg        ! total number of segments in Llr
   integer, allocatable :: keymask(:,:)  ! shift for every segment of Llr (with respect to Glr)
   character(len=*), parameter :: subname='psi_to_locreg'
-  integer :: i_stat,i_all
+!  integer :: i_stat,i_all
   integer :: start,Gstart
   integer :: isegstart,istart
 

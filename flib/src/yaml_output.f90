@@ -478,8 +478,9 @@ contains
     character(len=*), intent(in) :: message
     integer, optional, intent(in) :: level
     !local variables
-    integer :: unt,strm,item
-    type(dictionary), pointer :: dict_tmp
+    integer :: unt,strm
+!!$    integer :: item
+!!$    type(dictionary), pointer :: dict_tmp
 
     unt=0
     if (present(unit)) unt=unit

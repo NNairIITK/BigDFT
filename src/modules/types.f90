@@ -85,7 +85,7 @@ module module_types
   integer, parameter :: SCF_KIND_GENERALIZED_DIRMIN = -1
   integer, parameter :: SCF_KIND_DIRECT_MINIMIZATION = 0
 
-  !> Function do determine the occupation numbers
+  !> Function to determine the occupation numbers
   integer, parameter :: SMEARING_DIST_ERF   = 1  !< tends to 0 and 1 faster \f$1/2\left[1-erf\left(\frac{E-\mu}{\delta E}\right)\right]\f$
   integer, parameter :: SMEARING_DIST_FERMI = 2  !< Normal Fermi distribution i.e.\f$\frac{1}{1+e^{E-\mu}/k_BT}\f$
   integer, parameter :: SMEARING_DIST_COLD1 = 3  !< Marzari's cold smearing with a=-.5634 (bumb minimization)
@@ -99,17 +99,17 @@ module module_types
           "Meth.-Pax. " /) !< Name of the smearing methods 
 
   !> Target function for the optimization of the basis functions (linear scaling version)
-  integer,parameter :: TARGET_FUNCTION_IS_TRACE=0
-  integer,parameter :: TARGET_FUNCTION_IS_ENERGY=1
-  integer,parameter :: TARGET_FUNCTION_IS_HYBRID=2
-  !!integer,parameter :: DECREASE_LINEAR=0
-  !!integer,parameter :: DECREASE_ABRUPT=1
-  !!integer,parameter :: COMMUNICATION_COLLECTIVE=0
-  !!integer,parameter :: COMMUNICATION_P2P=1
-  integer,parameter :: LINEAR_DIRECT_MINIMIZATION=100
-  integer,parameter :: LINEAR_MIXDENS_SIMPLE=101
-  integer,parameter :: LINEAR_MIXPOT_SIMPLE=102
-  integer,parameter :: LINEAR_FOE=103
+  integer, parameter :: TARGET_FUNCTION_IS_TRACE=0
+  integer, parameter :: TARGET_FUNCTION_IS_ENERGY=1
+  integer, parameter :: TARGET_FUNCTION_IS_HYBRID=2
+  !!integer, parameter :: DECREASE_LINEAR=0
+  !!integer, parameter :: DECREASE_ABRUPT=1
+  !!integer, parameter :: COMMUNICATION_COLLECTIVE=0
+  !!integer, parameter :: COMMUNICATION_P2P=1
+  integer, parameter :: LINEAR_DIRECT_MINIMIZATION=100
+  integer, parameter :: LINEAR_MIXDENS_SIMPLE=101
+  integer, parameter :: LINEAR_MIXPOT_SIMPLE=102
+  integer, parameter :: LINEAR_FOE=103
   
 
   !> Type used for the orthogonalisation parameters
@@ -127,13 +127,12 @@ module module_types
      integer :: bsLow
      !> Block size up value (see bsLow)
      integer :: bsUp
-     !> the variable methOrtho indicates which orthonormalization procedure is used:
+     !> The variable methOrtho indicates which orthonormalization procedure is used:
      !!   methOrtho==0 -> Gram-Schmidt with Cholesky decomposition
      !!   methOrtho==1 -> combined block wise classical Gram-Schmidt and Cholesky
      !!   methOrtho==2 -> Loewdin
      integer :: methOrtho
-     !> iguessTol gives the tolerance to which the input guess will converged (maximal residue of all orbitals).
-     real(gp) :: iguessTol
+     real(gp) :: iguessTol           !< Gives the tolerance to which the input guess will converged (maximal residue of all orbitals).
      integer :: methTransformOverlap, nItOrtho, blocksize_pdsyev, blocksize_pdgemm, nproc_pdsyev
   end type orthon_data
 
@@ -842,8 +841,8 @@ module module_types
   integer, parameter, public :: HARTREE_POTENTIAL  = -1976
 
   !> Flags for the restart (linear scaling only)
-  integer,parameter,public :: LINEAR_LOWACCURACY  = 101 !low accuracy after restart
-  integer,parameter,public :: LINEAR_HIGHACCURACY = 102 !high accuracy after restart
+  integer, parameter, public :: LINEAR_LOWACCURACY  = 101 !low accuracy after restart
+  integer, parameter, public :: LINEAR_HIGHACCURACY = 102 !high accuracy after restart
 
   !check if all comms are necessary here
   type, public :: hamiltonian_descriptors

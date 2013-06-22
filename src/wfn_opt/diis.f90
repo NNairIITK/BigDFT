@@ -1,7 +1,7 @@
 !> @file
 !!   Routines for density mixing and wavefunction update
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -532,7 +532,7 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   !real(wp), dimension(:), pointer :: psit,hpsit
   !local variables
   integer :: ikptp,nvctrp,ispsi,ispsidst,ikpt
-  type(diis_obj) :: diis_new
+!!$  type(diis_obj) :: diis_new
  
 
   if (diis%idsx > 0) then
