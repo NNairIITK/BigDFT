@@ -1837,27 +1837,19 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
   type(orbitals_data), intent(in) :: orbs
   type(sparseMatrix), intent(inout) :: ham, ovrlp
   real(kind=gp), dimension(ovrlp%full_dim1,nstates), intent(in) :: homo_coeffs1, homo_coeffs2
-  real(kind=gp), dimension(nstates), intent(out) :: homo_ham, homo_ovrlp
+  real(kind=gp), dimension(nstates), intent(inout) :: homo_ham, homo_ovrlp
 
   !Local variables
-  character(len=*), parameter :: subname='calc_transfer_integral'
   integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ierr, i, j, istate
-  !integer :: jfrag_ref, jtmb
   real(gp), allocatable, dimension(:,:) :: coeff_tmp
   real(gp) :: orthog_energy
 
-
-  ! make the coeff copies more efficient?
-
-  allocate(coeff_tmp(orbs%norbp,nstates), stat=i_stat)
-  call memocc(i_stat, coeff_tmp, 'coeff_tmp', subname)
+  coeff_tmp=f_malloc((/orbs%norbp,nstates/), id='coeff_tmp')
 
   !DGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
   !rows op(a) and c, cols op(b) and c, cols op(a) and rows op(b)
-  allocate(ham%matrix(ham%full_dim1,ham%full_dim1), stat=i_stat)
-  call memocc(i_stat, ham%matrix, 'ham%matrix', subname)
+  ham%matrix=f_malloc_ptr((/ham%full_dim1,ham%full_dim1/), id='ham%matrix')
   call uncompressMatrix(iproc,ham)
-  call to_zero(nstates, homo_ham(1))
   do istate=1,nstates
      if (orbs%norbp>0) then
         call dgemm('n', 'n', orbs%norbp, 1, orbs%norb, 1.d0, &
@@ -1873,15 +1865,11 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
       call mpiallred(homo_ham(1), nstates, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
-  i_all=-product(shape(ham%matrix))*kind(ham%matrix)
-  deallocate(ham%matrix, stat=i_stat)
-  call memocc(i_stat, i_all, 'ham%matrix', subname)
+  call f_free_ptr(ham%matrix)
 
-  allocate(ovrlp%matrix(ovrlp%full_dim1,ovrlp%full_dim1), stat=i_stat)
-  call memocc(i_stat, ovrlp%matrix, 'ovrlp%matrix', subname)
+  ovrlp%matrix=f_malloc_ptr((/ovrlp%full_dim1,ovrlp%full_dim1/), id='ovrlp%matrix')
   call uncompressMatrix(iproc,ovrlp)
 
-  call to_zero(nstates, homo_ovrlp(1))
   do istate=1,nstates
      if (orbs%norbp>0) then
         call dgemm('n', 'n', orbs%norbp, 1, orbs%norb, 1.d0, ovrlp%matrix(orbs%isorb+1,1), &
@@ -1895,13 +1883,8 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
       call mpiallred(homo_ovrlp(1), nstates, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
-  i_all=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
-  deallocate(ovrlp%matrix, stat=i_stat)
-  call memocc(i_stat, i_all, 'ovrlp%matrix', subname)
-
-  i_all = -product(shape(coeff_tmp))*kind(coeff_tmp)
-  deallocate(coeff_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'coeff_tmp',subname)
+  call f_free_ptr(ovrlp%matrix)
+  call f_free(coeff_tmp)
 
 end subroutine calc_transfer_integral
 
@@ -1945,13 +1928,12 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
      nstates=nstates+min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
   end do
 
-  homo_ham=f_malloc(nstates,id='homo_ham')
-  homo_ovrlp=f_malloc(nstates,id='homo_ovrlp')
-  homo_coeffs=f_malloc((/ovrlp%full_dim1,nstates/), id='homo_coeffs')
+  homo_ham=f_malloc0(nstates,id='homo_ham')
+  homo_ovrlp=f_malloc0(nstates,id='homo_ovrlp')
+  homo_coeffs=f_malloc0((/ovrlp%full_dim1,nstates/), id='homo_coeffs')
 
   istate=1
   ind=0
-  call to_zero(ovrlp%full_dim1*nstates, homo_coeffs(1,1))
   do ifrag=1,input_frag%nfrag
      ifrag_ref=input_frag%frag_index(ifrag)
      do ih=1,min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
@@ -1971,15 +1953,16 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   call overlapPowerPlusMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, 0, -8, &
        -8, orbs%norb, ovrlp%matrix, ham%matrix, .false., orbs)
   call f_free_ptr(ovrlp%matrix)
-
-  coeffs_orthog=f_malloc((/ovrlp%full_dim1,nstates/), id='coeffs_orthog')
-
-  call dgemm('n', 'n', orbs%norb, nstates, orbs%norb, 1.d0, ham%matrix(1,1), &
-       orbs%norb, homo_coeffs(1,1), orbs%norb, 0.d0, coeffs_orthog(1,1), orbs%norb)
-
+  coeffs_orthog=f_malloc((/orbs%norb,nstates/), id='coeffs_orthog')
+  call dgemm('n', 'n', orbs%norb, nstates, orbs%norbp, 1.d0, ham%matrix(1,1+orbs%isorb), &
+       orbs%norb, homo_coeffs(1+orbs%isorb,1), orbs%norb, 0.d0, coeffs_orthog(1,1), orbs%norb)
   call f_free_ptr(ham%matrix)
-  homo_ham_orthog=f_malloc(nstates, id='homo_ham_orthog')
-  homo_ovrlp_orthog=f_malloc(nstates, id='homo_ovrlp_orthog')
+  if (nproc>1) then
+      call mpiallred(coeffs_orthog(1,1), nstates*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  end if
+
+  homo_ham_orthog=f_malloc0(nstates, id='homo_ham_orthog')
+  homo_ovrlp_orthog=f_malloc0(nstates, id='homo_ovrlp_orthog')
 
   call calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,coeffs_orthog,coeffs_orthog,&
        homo_ham_orthog,homo_ovrlp_orthog)

@@ -401,7 +401,6 @@ subroutine precondition_gradient_coeff(ntmb, norb, ham, ovrlp, grad)
       end do
   end do
   
-  
   allocate(ipiv(ntmb), stat=istat)
   call memocc(istat, ipiv, 'ipiv', subname)
   

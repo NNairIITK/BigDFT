@@ -209,12 +209,13 @@ contains
        ifrag_ref=input%frag%frag_index(ifrag)
 
        do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
-          if (ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat)) &
-               /= astruct%atomnames(astruct%iatype(iat+isfat))) then
+          if (trim(ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat))) &
+               /= trim(astruct%atomnames(astruct%iatype(iat+isfat)))) then
              fragments_ok=.false.
              write(*,*) 'Atom type for fragment ',ifrag,', reference fragment ',ifrag_ref,' atom number ',iat,&
-                  ' does not match ',ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat)),&
-                  astruct%atomnames(astruct%iatype(iat+isfat))
+                  ' does not match ',&
+                  trim(ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat))),&
+                  trim(astruct%atomnames(astruct%iatype(iat+isfat)))
           end if
        end do
 
