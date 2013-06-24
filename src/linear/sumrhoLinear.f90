@@ -1843,7 +1843,6 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr)
           iixyz=(iiz-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(iiy-1)*lzd%glr%d%n1i+iix
           ! assign unique value
           psir(ist+i)=real((iiorb-1)*nxyz+iixyz,dp)
-          !write(300+iproc,'(2i4,3x,3i5,3x,3i5,3x,f12.1)') iiorb, ilr, ix, iy, iz, iix, iiy, iiz, psir(ist+i)
       end do
       ist = ist + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
   end do
