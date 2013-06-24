@@ -210,75 +210,75 @@ contains
     call dict_init(p)
 
     ! Settings
-    call set(p // HGRIDS, dict_new( (/ &
+    call set(p // HGRIDS, dict_new( &
          & COMMENT   .is. "grid spacing in the three directions (bohr)", &
-         & RANGE     .is. list_new((/ .item."0.", .item."2." /)), &
-         & DEFAULT   .is. list_new((/ .item."0.45", .item."0.45", .item."0.45" /)), &
-         & "fast"    .is. list_new((/ .item."0.55", .item."0.55", .item."0.55" /)), &
-         & "accurate".is. list_new((/ .item."0.30", .item."0.30", .item."0.30" /)) /) ))
+         & RANGE     .is. list_new(.item."0.", .item."2."), &
+         & DEFAULT   .is. list_new(.item."0.45", .item."0.45", .item."0.45"), &
+         & "fast"    .is. list_new(.item."0.55", .item."0.55", .item."0.55"), &
+         & "accurate".is. list_new(.item."0.30", .item."0.30", .item."0.30") ))
 
-    call set(p // RMULT, dict_new( (/ &
+    call set(p // RMULT, dict_new( &
          & COMMENT   .is. "c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-basec radius", &
-         & RANGE     .is. list_new((/ .item."0.", .item."100." /)), &
-         & DEFAULT   .is. list_new((/ .item."5.", .item."8." /)) /)))
+         & RANGE     .is. list_new(.item."0.", .item."100."), &
+         & DEFAULT   .is. list_new(.item."5.", .item."8.")))
 
-    call set(p // IXC, dict_new((/ &
+    call set(p // IXC, dict_new(&
          & COMMENT   .is. "exchange-correlation parameter (LDA=1,PBE=11)", &
          & DEFAULT   .is. "1", &
          & "PBE"     .is. "11", &
-         & "Hybrid"  .is. "-406" /)))
+         & "Hybrid"  .is. "-406"))
 
-    call set(p // NCHARGE, dict_new((/ &
+    call set(p // NCHARGE, dict_new(&
          & COMMENT   .is. "charge of the system", &
-         & RANGE     .is. list_new((/ .item."-500.", .item."500." /)), &
-         & DEFAULT   .is. "0" /)))
+         & RANGE     .is. list_new(.item."-500.", .item."500."), &
+         & DEFAULT   .is. "0"))
 
-    call set(p // ELECFIELD, dict_new((/ &
+    call set(p // ELECFIELD, dict_new(&
          & COMMENT   .is. "electric fielc (Ex,Ey,Ez)", &
-         & DEFAULT   .is. list_new((/ .item."0.", .item."0.", .item."0." /)) /)))
+         & DEFAULT   .is. list_new(.item."0.", .item."0.", .item."0.")))
 
-    call set(p // NSPIN, dict_new((/ &
+    call set(p // NSPIN, dict_new(&
          & COMMENT   .is. "spin polarization", &
-         & EXCLUSIVE .is. dict_new((/ "1".is."no spin", "2".is."collinear", "4".is."non-collinear" /)), &
-         & DEFAULT   .is. "1" /)))
+         & EXCLUSIVE .is. dict_new("1".is."no spin", "2".is."collinear", "4".is."non-collinear"), &
+         & DEFAULT   .is. "1"))
 
-    call set(p // MPOL, dict_new((/ &
+    call set(p // MPOL, dict_new(&
          & COMMENT .is. "total magnetic moment", &
-         & DEFAULT .is. "0" /)))
+         & DEFAULT .is. "0"))
 
-    call set(p // GNRM_CV, dict_new((/ &
+    call set(p // GNRM_CV, dict_new(&
          & COMMENT   .is. "convergence criterion gradient", &
-         & RANGE     .is. list_new((/ .item."1.e-20", .item."1." /)), &
+         & RANGE     .is. list_new(.item."1.e-20", .item."1."), &
          & DEFAULT   .is. "1e-4", &
          & "fast"    .is. "1e-3", &
-         & "accurate".is. "1e-5"/)))
+         & "accurate".is. "1e-5"))
 
-    call set(p // ITERMAX, dict_new((/ &
+    call set(p // ITERMAX, dict_new(&
          & COMMENT   .is. "max. # of wfn. opt. steps", &
-         & RANGE     .is. list_new((/ .item."0", .item."10000" /)), &
-         & DEFAULT   .is. "50" /)))
+         & RANGE     .is. list_new(.item."0", .item."10000"), &
+         & DEFAULT   .is. "50"))
 
-    call set(p // NREPMAX, dict_new((/ &
+    call set(p // NREPMAX, dict_new(&
          & COMMENT   .is. "max. # of re-diag. runs", &
-         & RANGE     .is. list_new((/ .item."0", .item."1000" /)), &
+         & RANGE     .is. list_new(.item."0", .item."1000"), &
          & DEFAULT   .is. "1", &
-         & "accurate".is. "10" /)))
+         & "accurate".is. "10"))
 
-    call set(p // NCONG, dict_new((/ &
+    call set(p // NCONG, dict_new(&
          & COMMENT   .is. "# of CG it. for preconditioning eq.", &
-         & RANGE     .is. list_new((/ .item."0", .item."20" /)), &
-         & DEFAULT   .is. "6" /)))
+         & RANGE     .is. list_new(.item."0", .item."20"), &
+         & DEFAULT   .is. "6"))
 
-    call set(p // IDSX, dict_new((/ &
+    call set(p // IDSX, dict_new(&
          & COMMENT     .is. "wfn. diis history", &
-         & RANGE       .is. list_new((/ .item."0", .item."15" /)), &
+         & RANGE       .is. list_new(.item."0", .item."15"), &
          & DEFAULT     .is. "6", &
-         & "low memory".is. "2" /)))
+         & "low memory".is. "2"))
 
-    call set(p // DISPERSION, dict_new((/ &
+    call set(p // DISPERSION, dict_new(&
          & COMMENT   .is. "dispersion correction potential (values 1,2,3,4,5), 0=none", &
-         & RANGE     .is. list_new((/ .item."0", .item."5" /)), &
-         & DEFAULT   .is. "0" /)))
+         & RANGE     .is. list_new(.item."0", .item."5"), &
+         & DEFAULT   .is. "0"))
 
     call dict_init(excl)
     call set(excl // "-1000", "empty")
@@ -293,18 +293,18 @@ contains
     call set(excl // "100", "Linear AO")
     call set(excl // "101", "Linear restart")
     call set(excl // "102", "Linear on disk")
-    call set(p // INPUTPSIID, dict_new((/ &
+    call set(p // INPUTPSIID, dict_new(&
          & DEFAULT   .is. "0", &
-         & EXCLUSIVE .is. excl /)))
+         & EXCLUSIVE .is. excl))
 
     call dict_init(excl)
     call set(excl // "0", "none")
     call set(excl // "1", "plain text")
     call set(excl // "2", "Fortran binary")
     call set(excl // "3", "ETSF file format")
-    call set(p // OUTPUT_WF, dict_new((/ &
+    call set(p // OUTPUT_WF, dict_new(&
          & DEFAULT   .is. "0", &
-         & EXCLUSIVE .is. excl /)))
+         & EXCLUSIVE .is. excl))
 
     call dict_init(excl)
     call set(excl // "0", "none")
@@ -314,39 +314,39 @@ contains
     call set(excl // "12", "density and potentials in ETSF file format")
     call set(excl // "21", "density in cube file format")
     call set(excl // "22", "density and potentials in cube file format")
-    call set(p // OUTPUT_DENSPOT, dict_new((/ &
+    call set(p // OUTPUT_DENSPOT, dict_new(&
          & DEFAULT   .is. "0", &
-         & EXCLUSIVE .is. excl /)))
+         & EXCLUSIVE .is. excl))
 
-    call set(p // RBUF, dict_new((/ &
+    call set(p // RBUF, dict_new(&
          & COMMENT     .is. "length of the tail (AU)", &
-         & RANGE       .is. list_new((/ .item."0.", .item."10." /)), &
+         & RANGE       .is. list_new(.item."0.", .item."10."), &
          & DEFAULT     .is. "0.", &
-         & "with tails".is. "5." /)))
+         & "with tails".is. "5."))
 
-    call set(p // NCONGT, dict_new((/ &
+    call set(p // NCONGT, dict_new(&
          & COMMENT   .is. "# tail CG iterations", &
-         & RANGE     .is. list_new((/ .item."0", .item."50" /)), &
-         & DEFAULT   .is. "30" /)))
+         & RANGE     .is. list_new(.item."0", .item."50"), &
+         & DEFAULT   .is. "30"))
 
-    call set(p // NORBV, dict_new((/ &
+    call set(p // NORBV, dict_new(&
          & COMMENT   .is. "Davidson subspace dim.", &
-         & RANGE     .is. list_new((/ .item."-9999", .item."9999" /)), &
-         & DEFAULT   .is. "0" /)))
+         & RANGE     .is. list_new(.item."-9999", .item."9999"), &
+         & DEFAULT   .is. "0"))
 
-    call set(p // NVIRT, dict_new((/ &
+    call set(p // NVIRT, dict_new(&
          & COMMENT   .is. "# of opt. orbs", &
-         & RANGE     .is. list_new((/ .item."0", .item."9999" /)), &
-         & DEFAULT   .is. "0" /)))
+         & RANGE     .is. list_new(.item."0", .item."9999"), &
+         & DEFAULT   .is. "0"))
 
-    call set(p // NPLOT, dict_new((/ &
+    call set(p // NPLOT, dict_new(&
          & COMMENT   .is. "# of plottec orbs", &
-         & RANGE     .is. list_new((/ .item."0", .item."9999" /)), &
-         & DEFAULT   .is. "0" /)))
+         & RANGE     .is. list_new(.item."0", .item."9999"), &
+         & DEFAULT   .is. "0"))
 
-    call set(p // DISABLE_SYM, dict_new((/ &
+    call set(p // DISABLE_SYM, dict_new(&
          & COMMENT   .is. "disable the symmetry detection", &
-         & DEFAULT   .is. "No" /)))
+         & DEFAULT   .is. "No"))
 
     get_dft_parameters => p
   END FUNCTION get_dft_parameters
@@ -359,73 +359,73 @@ contains
     call dict_init(p)
 
     ! Settings
-    call set(p // KPT_METHOD, dict_new( (/ &
+    call set(p // KPT_METHOD, dict_new( &
          & COMMENT   .is. 'K-point sampling method', &
-         & EXCLUSIVE .is. dict_new((/ "auto".is."based on kptrlen", &
-         & "MPGrid".is."Monkhorst-Pack", "manual".is."based on raw coordinates" /)), &
-         & DEFAULT   .is. "manual" /) ))
+         & EXCLUSIVE .is. dict_new("auto".is."based on kptrlen", &
+         & "MPGrid"  .is."Monkhorst-Pack", "manual".is."based on raw coordinates"), &
+         & DEFAULT   .is. "manual" ))
 
-    call set(p // KPTRLEN, dict_new( (/ &
+    call set(p // KPTRLEN, dict_new( &
          & COMMENT   .is. 'Equivalent length of K-space resolution (Bohr)', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. KPT_METHOD, &
-         &                            WHEN .is. list_new((/ .item. "auto" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0", .item."1e4" /)), &
-         & DEFAULT   .is. "0." /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. KPT_METHOD, &
+         &                         WHEN .is. list_new(.item. "auto")), &
+         & RANGE     .is. list_new(.item."0", .item."1e4"), &
+         & DEFAULT   .is. "0." ))
 
-    call set(p // NGKPT, dict_new( (/ &
+    call set(p // NGKPT, dict_new( &
          & COMMENT   .is. 'No. of Monkhorst-Pack grid points', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. KPT_METHOD, &
-         &                            WHEN .is. list_new((/ .item. "MPGrid" /)) /)), &
-         & RANGE     .is. list_new((/ .item."1", .item."10000" /)), &
-         & DEFAULT   .is. list_new((/ .item."1", .item."1", .item."1" /)) /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. KPT_METHOD, &
+         &                         WHEN .is. list_new(.item. "MPGrid")), &
+         & RANGE     .is. list_new(.item."1", .item."10000"), &
+         & DEFAULT   .is. list_new(.item."1", .item."1", .item."1") ))
 
-    call set(p // SHIFTK, dict_new( (/ &
+    call set(p // SHIFTK, dict_new( &
          & COMMENT   .is. 'Grid shifts', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. KPT_METHOD, &
-         &                            WHEN .is. list_new((/ .item. "MPGrid" /)) /)), &
-         & DEFAULT   .is. list_new((/ .item."0.", .item."0.", .item."0." /)) /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. KPT_METHOD, &
+         &                         WHEN .is. list_new(.item. "MPGrid")), &
+         & DEFAULT   .is. list_new(.item."0.", .item."0.", .item."0.") ))
 
-    call set(p // KPT, dict_new( (/ &
+    call set(p // KPT, dict_new( &
          & COMMENT   .is. 'Kpt coordinates', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. KPT_METHOD, &
-         &                            WHEN .is. list_new((/ .item. "manual" /)) /)), &
-         & DEFAULT   .is. list_new((/ .item.list_new((/ .item."0.", .item."0.", .item."0." /)) /)) /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. KPT_METHOD, &
+         &                         WHEN .is. list_new(.item. "manual")), &
+         & DEFAULT   .is. list_new(.item.list_new(.item."0.", .item."0.", .item."0.")) ))
 
-    call set(p // WKPT, dict_new( (/ &
+    call set(p // WKPT, dict_new( &
          & COMMENT   .is. 'Kpt weights', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. KPT_METHOD, &
-         &                            WHEN .is. list_new((/ .item. "manual" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0.", .item."1e4" /)), &
-         & DEFAULT   .is. list_new((/ .item."1." /)) /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. KPT_METHOD, &
+         &                         WHEN .is. list_new(.item. "manual")), &
+         & RANGE     .is. list_new(.item."0.", .item."1e4"), &
+         & DEFAULT   .is. list_new(.item."1.") ))
 
-    call set(p // BANDS, dict_new( (/ &
+    call set(p // BANDS, dict_new( &
          & COMMENT   .is. 'For doing band structure calculation', &
-         & DEFAULT   .is. "No" /) ))
+         & DEFAULT   .is. "No" ))
 
-    call set(p // ISEG, dict_new( (/ &
+    call set(p // ISEG, dict_new( &
          & COMMENT   .is. 'points for each segment of the BZ path', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. BANDS, &
-         &                            WHEN .is. list_new((/ .item. "Yes" /)) /)), &
-         & DEFAULT   .is. list_new((/ .item."1" /)) /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. BANDS, &
+         &                            WHEN .is. list_new(.item. "Yes")), &
+         & DEFAULT   .is. list_new(.item."1") ))
 
-    call set(p // KPTV, dict_new( (/ &
-         & COND      .is. dict_new((/ MASTER_KEY .is. BANDS, &
-         &                            WHEN .is. list_new((/ .item. "Yes" /)) /)), &
-         & DEFAULT   .is. list_new((/ &
-         & .item. list_new((/ .item."0. ", .item."0. ", .item."0. " /)), &
-         & .item. list_new((/ .item."0.5", .item."0.5", .item."0.5" /)) /)) /) ))
+    call set(p // KPTV, dict_new( &
+         & COND      .is. dict_new(MASTER_KEY .is. BANDS, &
+         &                         WHEN .is. list_new(.item. "Yes")), &
+         & DEFAULT   .is. list_new(&
+         & .item. list_new(.item."0. ", .item."0. ", .item."0. "), &
+         & .item. list_new(.item."0.5", .item."0.5", .item."0.5")) ))
 
-    call set(p // NGRANULARITY, dict_new( (/ &
+    call set(p // NGRANULARITY, dict_new( &
          & COMMENT   .is. '# of points done for each group', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. BANDS, &
-         &                            WHEN .is. list_new((/ .item. "Yes" /)) /)), &
-         & RANGE     .is. list_new((/ .item."1", .item."1000" /)), &
-         & DEFAULT   .is. "1" /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. BANDS, &
+         &                         WHEN .is. list_new(.item. "Yes")), &
+         & RANGE     .is. list_new(.item."1", .item."1000"), &
+         & DEFAULT   .is. "1" ))
 
-    call set(p // BAND_STRUCTURE_FILENAME, dict_new( (/ &
-         & COND      .is. dict_new((/ MASTER_KEY .is. BANDS, &
-         &                            WHEN .is. list_new((/ .item. "Yes" /)) /)), &
-         & DEFAULT   .is. "''" /) ))
+    call set(p // BAND_STRUCTURE_FILENAME, dict_new( &
+         & COND      .is. dict_new(MASTER_KEY .is. BANDS, &
+         &                         WHEN .is. list_new(.item. "Yes")), &
+         & DEFAULT   .is. "''" ))
 
     get_kpt_parameters => p
   END FUNCTION get_kpt_parameters
@@ -438,9 +438,9 @@ contains
     call dict_init(p)
 
     ! Settings
-    call set(p // GEOPT_METHOD, dict_new( (/ &
+    call set(p // GEOPT_METHOD, dict_new( &
          & COMMENT   .is. 'Geometry optimisation method', &
-         & EXCLUSIVE .is. dict_new((/ &
+         & EXCLUSIVE .is. dict_new(&
          & "SDCG"    .is. "a combination of Steepest Descent and Conjugate Gradient", &
          & "VSSD"    .is. "Variable Stepsize Steepest Descent method", &
          & "LBFGS"   .is. "limited-memory BFGS", &
@@ -448,134 +448,134 @@ contains
          & "PBFGS"   .is. "Same as BFGS with an initial Hessian obtained from a force field", &
          & "AB6MD"   .is. "molecular dynamics from ABINIT", &
          & "DIIS"    .is. "direct inversion of iterative subspace", &
-         & "FIRE"    .is. "Fast Inertial Relaxation Engine as described by Bitzek et al." /)), &
-         & DEFAULT   .is. "none" /) ))
+         & "FIRE"    .is. "Fast Inertial Relaxation Engine as described by Bitzek et al."), &
+         & DEFAULT   .is. "none" ))
 
-    call set(p // NCOUNT_CLUSTER_X, dict_new( (/ &
+    call set(p // NCOUNT_CLUSTER_X, dict_new( &
          & COMMENT   .is. 'Maximum number of force evaluations', &
-         & RANGE     .is. list_new((/ .item."0", .item."2000" /)), &
+         & RANGE     .is. list_new(.item."0", .item."2000"), &
          & PROF_KEY  .is. GEOPT_METHOD, &
          & DEFAULT   .is. "50", &
-         & "none"    .is. "1"/) ))
+         & "none"    .is. "1" ))
 
-    call set(p // FRAC_FLUCT, dict_new( (/ &
-         & RANGE     .is. list_new((/ .item."0.", .item."10." /)), &
-         & DEFAULT   .is. "1." /) ))
+    call set(p // FRAC_FLUCT, dict_new( &
+         & RANGE     .is. list_new(.item."0.", .item."10."), &
+         & DEFAULT   .is. "1." ))
 
-    call set(p // FORCEMAX, dict_new( (/ &
-         & RANGE     .is. list_new((/ .item."0.", .item."10." /)), &
-         & DEFAULT   .is. "0." /) ))
+    call set(p // FORCEMAX, dict_new( &
+         & RANGE     .is. list_new(.item."0.", .item."10."), &
+         & DEFAULT   .is. "0." ))
 
-    call set(p // RANDDIS, dict_new( (/ &
+    call set(p // RANDDIS, dict_new( &
          & COMMENT   .is. 'random displacement amplitude', &
-         & RANGE     .is. list_new((/ .item."0.", .item."10." /)), &
-         & DEFAULT   .is. "0." /) ))
+         & RANGE     .is. list_new(.item."0.", .item."10."), &
+         & DEFAULT   .is. "0." ))
 
-    call set(p // BETAX, dict_new( (/ &
+    call set(p // BETAX, dict_new( &
          & COMMENT   .is. 'Stepsize for the geometry optimisation', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. GEOPT_METHOD, &
-         &                            WHEN .is. list_new((/ .item. "SDCG", &
+         & COND      .is. dict_new(MASTER_KEY .is. GEOPT_METHOD, &
+         &                         WHEN .is. list_new(.item. "SDCG", &
          &                .item."VSSD", .item."LBFGS", .item."BFGS", .item."PBFGS", &
-         &                .item."DIIS", .item."FIRE", .item."none" /)) /)), &
+         &                .item."DIIS", .item."FIRE", .item."none")), &
          & PROF_KEY  .is. GEOPT_METHOD, &
-         & RANGE     .is. list_new((/ .item."0.", .item."100." /)), &
+         & RANGE     .is. list_new(.item."0.", .item."100."), &
          & DEFAULT   .is. "4.", &
-         & "DIIS"    .is. "2." /) ))
+         & "DIIS"    .is. "2." ))
 
-    call set(p // HISTORY, dict_new( (/ &
+    call set(p // HISTORY, dict_new( &
          & COMMENT   .is. 'history for DIIS method', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. GEOPT_METHOD, &
-         &                            WHEN .is. list_new((/ .item. "DIIS" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0", .item."100" /)), &
-         & DEFAULT   .is. "4" /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. GEOPT_METHOD, &
+         &                         WHEN .is. list_new(.item. "DIIS")), &
+         & RANGE     .is. list_new(.item."0", .item."100"), &
+         & DEFAULT   .is. "4" ))
 
-    call set(p // DTINIT, dict_new( (/ &
+    call set(p // DTINIT, dict_new( &
          & COMMENT   .is. 'initial time step for the FIRE method', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. GEOPT_METHOD, &
-         &                            WHEN .is. list_new((/ .item. "FIRE" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0", .item."1e4" /)), &
-         & DEFAULT   .is. "0.75" /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. GEOPT_METHOD, &
+         &                         WHEN .is. list_new(.item. "FIRE")), &
+         & RANGE     .is. list_new(.item."0", .item."1e4"), &
+         & DEFAULT   .is. "0.75" ))
 
-    call set(p // DTMAX, dict_new( (/ &
+    call set(p // DTMAX, dict_new( &
          & COMMENT   .is. 'maximal time step for the FIRE method', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. GEOPT_METHOD, &
-         &                            WHEN .is. list_new((/ .item. "FIRE" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0", .item."1e4" /)), &
-         & DEFAULT   .is. "1.5" /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. GEOPT_METHOD, &
+         &                         WHEN .is. list_new(.item. "FIRE")), &
+         & RANGE     .is. list_new(.item."0", .item."1e4"), &
+         & DEFAULT   .is. "1.5" ))
 
-    call set(p // IONMOV, dict_new( (/ &
+    call set(p // IONMOV, dict_new( &
          & COMMENT   .is. 'movement ion method', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. GEOPT_METHOD, &
-         &                            WHEN .is. list_new((/ .item. "AB6MD" /)) /)), &
-         & EXCLUSIVE .is. dict_new((/ "6".is."simple velocity-Verlet molecular dynamic", &
+         & COND      .is. dict_new(MASTER_KEY .is. GEOPT_METHOD, &
+         &                            WHEN .is. list_new(.item. "AB6MD")), &
+         & EXCLUSIVE .is. dict_new("6".is."simple velocity-Verlet molecular dynamic", &
          & "7".is."quenched molecular dynamic", "8".is."Nose-Hoover thermostat", &
          & "9".is."Langevin dynamic", "12".is."Isokinetic ensemble molecular dynamics", &
-         & "13".is."Iosthermal/isenthalpic ensemble" /)), &
-         & DEFAULT   .is. "6" /) ))
+         & "13".is."Iosthermal/isenthalpic ensemble"), &
+         & DEFAULT   .is. "6" ))
 
-    call set(p // DTION, dict_new( (/ &
+    call set(p // DTION, dict_new( &
          & COMMENT   .is. 'time step - Atomic Units (20.670689 AU=0.5 fs)', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. GEOPT_METHOD, &
-         &                            WHEN .is. list_new((/ .item. "AB6MD" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0", .item."1e3" /)), &
-         & DEFAULT   .is. "20.670689" /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. GEOPT_METHOD, &
+         &                         WHEN .is. list_new(.item. "AB6MD")), &
+         & RANGE     .is. list_new(.item."0", .item."1e3"), &
+         & DEFAULT   .is. "20.670689" ))
 
-    call set(p // MDITEMP, dict_new( (/ &
+    call set(p // MDITEMP, dict_new( &
          & COMMENT   .is. 'temperature of molecular dynamics', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
-         &                            WHEN .is. list_new((/ .item. "6" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0", .item."1e9" /)), &
-         & DEFAULT   .is. "300." /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. IONMOV, &
+         &                         WHEN .is. list_new(.item. "6")), &
+         & RANGE     .is. list_new(.item."0", .item."1e9"), &
+         & DEFAULT   .is. "300." ))
 
-    call set(p // MDFTEMP, dict_new( (/ &
+    call set(p // MDFTEMP, dict_new( &
          & COMMENT   .is. 'final temperature of molecular dynamics', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
-         &                            WHEN .is. list_new((/ .item. "8", .item."9", &
-         &                                                  .item."12", .item."13" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0", .item."1e9" /)), &
-         & DEFAULT   .is. "300." /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. IONMOV, &
+         &                         WHEN .is. list_new(.item. "8", .item."9", &
+         &                                            .item."12", .item."13")), &
+         & RANGE     .is. list_new(.item."0", .item."1e9"), &
+         & DEFAULT   .is. "300." ))
 
-    call set(p // NOSEINERT, dict_new( (/ &
+    call set(p // NOSEINERT, dict_new( &
          & COMMENT   .is. 'thermostat inertia coefficient for Nose_Hoover dynamics', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
-         &                            WHEN .is. list_new((/ .item. "8" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0", .item."1e9" /)), &
-         & DEFAULT   .is. "1e5" /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. IONMOV, &
+         &                         WHEN .is. list_new(.item. "8")), &
+         & RANGE     .is. list_new(.item."0", .item."1e9"), &
+         & DEFAULT   .is. "1e5" ))
 
-    call set(p // FRICTION, dict_new( (/ &
+    call set(p // FRICTION, dict_new( &
          & COMMENT   .is. 'Friction coefficient for Langevin dynamics', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
-         &                            WHEN .is. list_new((/ .item. "9" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0", .item."1e5" /)), &
-         & DEFAULT   .is. "1e-3" /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. IONMOV, &
+         &                         WHEN .is. list_new(.item. "9")), &
+         & RANGE     .is. list_new(.item."0", .item."1e5"), &
+         & DEFAULT   .is. "1e-3" ))
 
-    call set(p // MDWALL, dict_new( (/ &
+    call set(p // MDWALL, dict_new( &
          & COMMENT   .is. 'Distance in bohr where atoms can bounce for Langevin dynamics', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
-         &                            WHEN .is. list_new((/ .item. "9" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0", .item."1e5" /)), &
-         & DEFAULT   .is. "1e4" /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. IONMOV, &
+         &                         WHEN .is. list_new(.item. "9")), &
+         & RANGE     .is. list_new(.item."0", .item."1e5"), &
+         & DEFAULT   .is. "1e4" ))
 
-    call set(p // QMASS, dict_new( (/ &
+    call set(p // QMASS, dict_new( &
          & COMMENT   .is. 'Mass of each thermostat (isothermal/isenthalpic ensemble)', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
-         &                            WHEN .is. list_new((/ .item. "13" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0", .item."1e9" /)), &
-         & DEFAULT   .is. list_new((/ .item."0." /)) /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. IONMOV, &
+         &                            WHEN .is. list_new(.item. "13")), &
+         & RANGE     .is. list_new(.item."0", .item."1e9"), &
+         & DEFAULT   .is. list_new(.item."0.") ))
 
-    call set(p // BMASS, dict_new( (/ &
+    call set(p // BMASS, dict_new( &
          & COMMENT   .is. 'Barostat masses (isothermal/isenthalpic ensemble)', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
-         &                            WHEN .is. list_new((/ .item. "13" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0", .item."1e9" /)), &
-         & DEFAULT   .is. "10." /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. IONMOV, &
+         &                         WHEN .is. list_new(.item. "13")), &
+         & RANGE     .is. list_new(.item."0", .item."1e9"), &
+         & DEFAULT   .is. "10." ))
 
-    call set(p // VMASS, dict_new( (/ &
+    call set(p // VMASS, dict_new( &
          & COMMENT   .is. 'Barostat masses (isothermal/isenthalpic ensemble)', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. IONMOV, &
-         &                            WHEN .is. list_new((/ .item. "13" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0", .item."1e9" /)), &
-         & DEFAULT   .is. "1." /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. IONMOV, &
+         &                         WHEN .is. list_new(.item. "13")), &
+         & RANGE     .is. list_new(.item."0", .item."1e9"), &
+         & DEFAULT   .is. "1." ))
 
     get_geopt_parameters => p
   END FUNCTION get_geopt_parameters
@@ -588,9 +588,9 @@ contains
     call dict_init(p)
 
     ! Settings
-    call set(p // ISCF, dict_new( (/ &
+    call set(p // ISCF, dict_new( &
          & COMMENT   .is. 'mixing parameters', &
-         & EXCLUSIVE .is. dict_new((/ &
+         & EXCLUSIVE .is. dict_new(&
          & "-1" .is. "reserved, don't use it.", &
          & "0"  .is. "direct minimization", &
          & "1"  .is. "get the largest eigenvalue of the SCF cycle", &
@@ -603,48 +603,48 @@ contains
          & "13" .is. "Anderson mixing of the density", &
          & "14" .is. "Anderson mixing of the density based on the two previous iterations", &
          & "15" .is. "CG based on the minim. of the energy with respect to the density", &
-         & "17" .is. "Pulay mixing of the density" /)), &
-         & DEFAULT   .is. "0"/) ))
+         & "17" .is. "Pulay mixing of the density"), &
+         & DEFAULT   .is. "0" ))
 
-    call set(p // ITRPMAX, dict_new( (/ &
+    call set(p // ITRPMAX, dict_new( &
          & COMMENT   .is. 'maximum number of diagonalisation iterations', &
-         & RANGE     .is. list_new((/ .item."0", .item."10000" /)), &
-         & DEFAULT   .is. "1" /) ))
+         & RANGE     .is. list_new(.item."0", .item."10000"), &
+         & DEFAULT   .is. "1" ))
 
-    call set(p // RPNRM_CV, dict_new( (/ &
+    call set(p // RPNRM_CV, dict_new( &
          & COMMENT   .is. 'stop criterion on the residue of potential or density', &
-         & RANGE     .is. list_new((/ .item."0.", .item."10." /)), &
-         & DEFAULT   .is. "1e-4" /) ))
+         & RANGE     .is. list_new(.item."0.", .item."10."), &
+         & DEFAULT   .is. "1e-4" ))
 
-    call set(p // NORBSEMPTY, dict_new( (/ &
+    call set(p // NORBSEMPTY, dict_new( &
          & COMMENT   .is. 'No. of additional bands', &
-         & RANGE     .is. list_new((/ .item."0", .item."10000" /)), &
-         & DEFAULT   .is. "0" /) ))
+         & RANGE     .is. list_new(.item."0", .item."10000"), &
+         & DEFAULT   .is. "0" ))
 
-    call set(p // TEL, dict_new( (/ &
+    call set(p // TEL, dict_new( &
          & COMMENT   .is. 'electronic temperature', &
-         & RANGE     .is. list_new((/ .item."0.", .item."1e6" /)), &
-         & DEFAULT   .is. "0." /) ))
+         & RANGE     .is. list_new(.item."0.", .item."1e6"), &
+         & DEFAULT   .is. "0." ))
 
-    call set(p // OCCOPT, dict_new( (/ &
+    call set(p // OCCOPT, dict_new( &
          & COMMENT   .is. 'smearing method', &
-         & EXCLUSIVE .is. dict_new((/ &
-         & "1" .is. "error function smearing", &
-         & "2" .is. "normal Fermi distribution", &
-         & "3" .is. "Marzari's cold smearing a=-.5634 (bumb minimization)", &
-         & "4" .is. "Marzari's cold smearing with a=-.8165 (monotonic tail)", &
-         & "5" .is. "Methfessel and Paxton (same as cold with a=0)" /)), &
-         & DEFAULT   .is. "1" /) ))
+         & EXCLUSIVE .is. dict_new(&
+         &       "1" .is. "error function smearing", &
+         &       "2" .is. "normal Fermi distribution", &
+         &       "3" .is. "Marzari's cold smearing a=-.5634 (bumb minimization)", &
+         &       "4" .is. "Marzari's cold smearing with a=-.8165 (monotonic tail)", &
+         &       "5" .is. "Methfessel and Paxton (same as cold with a=0)"), &
+         & DEFAULT   .is. "1" ))
 
-    call set(p // ALPHAMIX, dict_new( (/ &
+    call set(p // ALPHAMIX, dict_new( &
          & COMMENT   .is. 'Multiplying factors for the mixing', &
-         & RANGE     .is. list_new((/ .item."0", .item."1." /)), &
-         & DEFAULT   .is. "0." /) ))
+         & RANGE     .is. list_new(.item."0", .item."1."), &
+         & DEFAULT   .is. "0." ))
 
-    call set(p // ALPHADIIS, dict_new( (/ &
+    call set(p // ALPHADIIS, dict_new( &
          & COMMENT   .is. 'Multiplying factors for the electronic DIIS', &
-         & RANGE     .is. list_new((/ .item."0.", .item."10." /)), &
-         & DEFAULT   .is. "2." /) ))
+         & RANGE     .is. list_new(.item."0.", .item."10."), &
+         & DEFAULT   .is. "2." ))
 
     get_mix_parameters => p
   END FUNCTION get_mix_parameters
@@ -657,25 +657,25 @@ contains
     call dict_init(p)
 
     ! Settings
-    call set(p // SIC_APPROACH, dict_new( (/ &
+    call set(p // SIC_APPROACH, dict_new( &
          & COMMENT   .is. 'SIC method', &
-         & EXCLUSIVE .is. dict_new((/ &
-         & "none" .is. "no self-interaction correction", &
-         & "PZ"   .is. "???", &
-         & "NK"   .is. "???" /)), &
-         & DEFAULT.is. "none"/) ))
+         & EXCLUSIVE .is. dict_new(&
+         &    "none" .is. "no self-interaction correction", &
+         &    "PZ"   .is. "???", &
+         &    "NK"   .is. "???"), &
+         & DEFAULT.is. "none" ))
 
-    call set(p // SIC_ALPHA, dict_new( (/ &
+    call set(p // SIC_ALPHA, dict_new( &
          & COMMENT   .is. 'SIC downscaling parameter', &
-         & RANGE     .is. list_new((/ .item."0", .item."1." /)), &
-         & DEFAULT   .is. "0." /) ))
+         & RANGE     .is. list_new(.item."0", .item."1."), &
+         & DEFAULT   .is. "0." ))
 
-    call set(p // SIC_FREF, dict_new( (/ &
+    call set(p // SIC_FREF, dict_new( &
          & COMMENT   .is. 'reference occupation fref', &
-         & COND      .is. dict_new((/ MASTER_KEY .is. SIC_APPROACH, &
-         &                            WHEN .is. list_new((/ .item. "NK" /)) /)), &
-         & RANGE     .is. list_new((/ .item."0.", .item."1." /)), &
-         & DEFAULT   .is. "0." /) ))
+         & COND      .is. dict_new(MASTER_KEY .is. SIC_APPROACH, &
+         &                            WHEN .is. list_new(.item. "NK")), &
+         & RANGE     .is. list_new(.item."0.", .item."1."), &
+         & DEFAULT   .is. "0." ))
 
     get_sic_parameters => p
   END FUNCTION get_sic_parameters
@@ -688,12 +688,12 @@ contains
     call dict_init(p)
 
     ! Settings
-    call set(p // TDDFT_APPROACH, dict_new( (/ &
+    call set(p // TDDFT_APPROACH, dict_new( &
          & COMMENT   .is. 'TDDFT method', &
-         & EXCLUSIVE .is. dict_new((/ &
-         & "none" .is. "no tddft post-processing", &
-         & "TDA"   .is. "???" /)), &
-         & DEFAULT.is. "none"/) ))
+         & EXCLUSIVE .is. dict_new(&
+         &    "none" .is. "no tddft post-processing", &
+         &    "TDA"  .is. "???"), &
+         & DEFAULT.is. "none" ))
 
     get_tddft_parameters => p
   END FUNCTION get_tddft_parameters
@@ -706,187 +706,187 @@ contains
     call dict_init(p)
 
     ! Settings
-    call set(p // DEBUG, dict_new( (/ &
-         & COMMENT   .is. 'debug option', &
-         & DEFAULT.is. "No"/) ))
+    call set(p // DEBUG, dict_new( &
+         & COMMENT .is. 'debug option', &
+         & DEFAULT .is. "No" ))
 
-    call set(p // FFTCACHE, dict_new( (/ &
-         & COMMENT   .is. 'cache size for the FFT', &
-         & DEFAULT.is. "8192"/) ))
+    call set(p // FFTCACHE, dict_new( &
+         & COMMENT .is. 'cache size for the FFT', &
+         & DEFAULT .is. "8192" ))
 
-    call set(p // ACCEL, dict_new( (/ &
+    call set(p // ACCEL, dict_new( &
          & COMMENT   .is. 'acceleration', &
-         & EXCLUSIVE .is. dict_new((/ &
+         & EXCLUSIVE .is. dict_new(&
          & "no"      .is. "no material acceleration", &
          & "CUDAGPU" .is. "CUDA", &
          & "OCLGPU"  .is. "OpenCL on GPU", &
          & "OCLCPU"  .is. "OpenCL on CPU", &
-         & "OCLACC"  .is. "???" /)), &
-         & DEFAULT.is. "No"/) ))
+         & "OCLACC"  .is. "???"), &
+         & DEFAULT   .is. "No" ))
 
-    call set(p // OCL_PLATFORM, dict_new( (/ &
+    call set(p // OCL_PLATFORM, dict_new( &
          & COMMENT   .is. 'Chosen OCL platform', &
-         & DEFAULT.is. " "/) ))
+         & DEFAULT.is. " " ))
 
-    call set(p // OCL_DEVICES, dict_new( (/ &
+    call set(p // OCL_DEVICES, dict_new( &
          & COMMENT   .is. 'Chosen OCL devices', &
-         & DEFAULT.is. " "/) ))
+         & DEFAULT.is. " " ))
 
-    call set(p // BLAS, dict_new( (/ &
+    call set(p // BLAS, dict_new( &
          & COMMENT   .is. 'CUBLAS acceleration', &
-         & DEFAULT.is. "No"/) ))
+         & DEFAULT.is. "No" ))
 
-    call set(p // PROJRAD, dict_new( (/ &
+    call set(p // PROJRAD, dict_new( &
          & COMMENT   .is. 'Radius of the projector as a function of the maxrad', &
-         & RANGE     .is. list_new((/ .item."0.", .item."100." /)), &
-         & DEFAULT.is. "15."/) ))
+         & RANGE     .is. list_new(.item."0.", .item."100."), &
+         & DEFAULT.is. "15." ))
 
-    call set(p // EXCTXPAR, dict_new( (/ &
+    call set(p // EXCTXPAR, dict_new( &
          & COMMENT   .is. 'Exact exchange parallelisation scheme', &
-         & EXCLUSIVE .is. dict_new((/ &
+         & EXCLUSIVE .is. dict_new(&
          & "BC"      .is. "???", &
-         & "OP2P"    .is. "???"/)), &
-         & DEFAULT.is. "OP2P"/) ))
+         & "OP2P"    .is. "???"), &
+         & DEFAULT.is. "OP2P" ))
 
-    call set(p // IG_DIAG, dict_new( (/ &
+    call set(p // IG_DIAG, dict_new( &
          & COMMENT .is. 'Input guess: (T:Direct, F:Iterative) diag. of Ham.', &
-         & DEFAULT .is. "Yes"/) ))
+         & DEFAULT .is. "Yes" ))
 
-    call set(p // IG_NORBP, dict_new( (/ &
+    call set(p // IG_NORBP, dict_new( &
          & COMMENT   .is. 'Input guess: Orbitals per process for iterative diag.', &
-         & RANGE     .is. list_new((/ .item."1", .item."1000" /)), &
-         & DEFAULT.is. "5"/) ))
+         & RANGE     .is. list_new(.item."1", .item."1000"), &
+         & DEFAULT.is. "5" ))
 
-    call set(p // IG_BLOCKS, dict_new( (/ &
+    call set(p // IG_BLOCKS, dict_new( &
          & COMMENT   .is. 'Input guess: Block sizes for orthonormalisation', &
-         & RANGE     .is. list_new((/ .item."1", .item."100000" /)), &
-         & DEFAULT   .is. list_new((/ .item."300", .item."800" /)) /) ))
+         & RANGE     .is. list_new(.item."1", .item."100000"), &
+         & DEFAULT   .is. list_new(.item."300", .item."800") ))
 
-    call set(p // IG_TOL, dict_new( (/ &
+    call set(p // IG_TOL, dict_new( &
          & COMMENT   .is. 'Input guess: Tolerance criterion', &
-         & RANGE     .is. list_new((/ .item."0.", .item."1." /)), &
-         & DEFAULT.is. "1e-4"/) ))
+         & RANGE     .is. list_new(.item."0.", .item."1."), &
+         & DEFAULT.is. "1e-4" ))
 
-    call set(p // METHORTHO, dict_new( (/ &
+    call set(p // METHORTHO, dict_new( &
          & COMMENT   .is. 'Orthogonalisation', &
-         & EXCLUSIVE .is. dict_new((/ &
+         & EXCLUSIVE .is. dict_new(&
          & "0"    .is. "Cholesky", &
          & "1"    .is. "GS/Chol", &
-         & "2"    .is. "Loewdin" /)), &
-         & DEFAULT.is. "0"/) ))
+         & "2"    .is. "Loewdin"), &
+         & DEFAULT.is. "0" ))
 
-    call set(p // RHO_COMMUN, dict_new( (/ &
+    call set(p // RHO_COMMUN, dict_new( &
          & COMMENT   .is. 'Density communication scheme (DBL, RSC, MIX)', &
-         & DEFAULT.is. "DEF"/) ))
+         & DEFAULT.is. "DEF" ))
 
-    call set(p // PSOLVER_GROUPSIZE, dict_new( (/ &
+    call set(p // PSOLVER_GROUPSIZE, dict_new( &
          & COMMENT   .is. 'Size of Poisson Solver taskgroups (0=nproc)', &
-         & RANGE     .is. list_new((/ .item."0", .item."1000000" /)), &
-         & DEFAULT.is. "0"/) ))
+         & RANGE     .is. list_new(.item."0", .item."1000000"), &
+         & DEFAULT.is. "0" ))
 
-    call set(p // PSOLVER_ACCEL, dict_new( (/ &
+    call set(p // PSOLVER_ACCEL, dict_new( &
          & COMMENT   .is. 'Acceleration of the Poisson Solver (0=none, 1=CUDA)', &
-         & EXCLUSIVE .is. dict_new((/ &
+         & EXCLUSIVE .is. dict_new(&
          & "0"    .is. "none", &
-         & "1"    .is. "CUDA"/)), &
-         & DEFAULT.is. "0"/) ))
+         & "1"    .is. "CUDA"), &
+         & DEFAULT.is. "0" ))
 
-    call set(p // UNBLOCK_COMMS, dict_new( (/ &
+    call set(p // UNBLOCK_COMMS, dict_new( &
          & COMMENT   .is. 'Overlap Communications of fields (OFF,DEN,POT)', &
-         & EXCLUSIVE .is. dict_new((/ &
+         & EXCLUSIVE .is. dict_new(&
          & "OFF"    .is. "synchronous run", &
          & "DEN"    .is. "???", &
-         & "POT"    .is. "???"/)), &
-         & DEFAULT.is. "OFF"/) ))
+         & "POT"    .is. "???"), &
+         & DEFAULT.is. "OFF" ))
 
-    call set(p // LINEAR, dict_new( (/ &
+    call set(p // LINEAR, dict_new( &
          & COMMENT   .is. 'Linear Input Guess approach', &
-         & EXCLUSIVE .is. dict_new((/ &
+         & EXCLUSIVE .is. dict_new(&
          & "OFF"    .is. "???", &
          & "LIG"    .is. "???", &
          & "FUL"    .is. "???", &
-         & "TMO"    .is. "???"/)), &
-         & DEFAULT.is. "OFF"/) ))
+         & "TMO"    .is. "???"), &
+         & DEFAULT.is. "OFF" ))
 
-    call set(p // TOLSYM, dict_new( (/ &
+    call set(p // TOLSYM, dict_new( &
          & COMMENT   .is. 'Tolerance for symmetry detection', &
-         & RANGE     .is. list_new((/ .item."0.", .item."1." /)), &
-         & DEFAULT.is. "1e-8"/) ))
+         & RANGE     .is. list_new(.item."0.", .item."1."), &
+         & DEFAULT.is. "1e-8" ))
 
-    call set(p // SIGNALING, dict_new( (/ &
+    call set(p // SIGNALING, dict_new( &
          & COMMENT   .is. 'Expose calculation results on Network', &
-         & DEFAULT.is. "No"/) ))
+         & DEFAULT.is. "No" ))
 
-    call set(p // SIGNALTIMEOUT, dict_new( (/ &
+    call set(p // SIGNALTIMEOUT, dict_new( &
          & COMMENT   .is. 'Time out on startup for signal connection (in seconds)', &
-         & RANGE     .is. list_new((/ .item."-1", .item."3600" /)), &
-         & DEFAULT.is. "0"/) ))
+         & RANGE     .is. list_new(.item."-1", .item."3600"), &
+         & DEFAULT.is. "0" ))
 
-    call set(p // DOMAIN, dict_new( (/ &
+    call set(p // DOMAIN, dict_new( &
          & COMMENT   .is. 'Domain to add to the hostname to find the IP', &
-         & DEFAULT.is. " "/) ))
+         & DEFAULT.is. " " ))
 
-    call set(p // INGUESS_GEOPT, dict_new( (/ &
+    call set(p // INGUESS_GEOPT, dict_new( &
          & COMMENT   .is. '0= wavlet input guess, 1= real space input guess', &
-         & EXCLUSIVE .is. dict_new((/ &
+         & EXCLUSIVE .is. dict_new(&
          & "0"    .is. "wavlet input guess", &
-         & "1"    .is. "real space input guess"/)), &
-         & DEFAULT.is. "0"/) ))
+         & "1"    .is. "real space input guess"), &
+         & DEFAULT.is. "0" ))
 
-    call set(p // STORE_INDEX, dict_new( (/ &
+    call set(p // STORE_INDEX, dict_new( &
          & COMMENT   .is. 'linear scaling: store indices or recalculate them', &
-         & DEFAULT.is. "Yes"/) ))
+         & DEFAULT.is. "Yes" ))
 
-    call set(p // VERBOSITY, dict_new( (/ &
+    call set(p // VERBOSITY, dict_new( &
          & COMMENT   .is. 'verbosity of the output', &
-         & EXCLUSIVE .is. dict_new((/ &
+         & EXCLUSIVE .is. dict_new(&
          & "0"    .is. "???", &
          & "1"    .is. "???", &
          & "2"    .is. "???", &
-         & "3"    .is. "???"/)), &
-         & DEFAULT.is. "2"/) ))
+         & "3"    .is. "???"), &
+         & DEFAULT.is. "2" ))
 
-    call set(p // OUTDIR, dict_new( (/ &
+    call set(p // OUTDIR, dict_new( &
          & COMMENT   .is. 'Writing directory', &
-         & DEFAULT.is. "."/) ))
+         & DEFAULT.is. "." ))
 
-    call set(p // PSP_ONFLY, dict_new( (/ &
+    call set(p // PSP_ONFLY, dict_new( &
          & COMMENT   .is. 'Calculate pseudopotential projectors on the fly', &
-         & DEFAULT.is. "Yes"/) ))
+         & DEFAULT.is. "Yes" ))
 
-    call set(p // PDSYEV_BLOCKSIZE, dict_new( (/ &
+    call set(p // PDSYEV_BLOCKSIZE, dict_new( &
          & COMMENT   .is. 'SCALAPACK linear scaling blocksize', &
-         & DEFAULT.is. "-8"/) ))
+         & DEFAULT.is. "-8" ))
 
-    call set(p // PDGEMM_BLOCKSIZE, dict_new( (/ &
+    call set(p // PDGEMM_BLOCKSIZE, dict_new( &
          & COMMENT   .is. 'SCALAPACK linear scaling blocksize', &
-         & DEFAULT.is. "-8"/) ))
+         & DEFAULT.is. "-8" ))
 
-    call set(p // MAXPROC_PDSYEV, dict_new( (/ &
+    call set(p // MAXPROC_PDSYEV, dict_new( &
          & COMMENT   .is. 'SCALAPACK linear scaling max num procs', &
-         & DEFAULT.is. "4"/) ))
+         & DEFAULT.is. "4" ))
 
-    call set(p // MAXPROC_PDGEMM, dict_new( (/ &
+    call set(p // MAXPROC_PDGEMM, dict_new( &
          & COMMENT   .is. 'SCALAPACK linear scaling max num procs', &
-         & DEFAULT.is. "4"/) ))
+         & DEFAULT.is. "4" ))
 
-    call set(p // EF_INTERPOL_DET, dict_new( (/ &
+    call set(p // EF_INTERPOL_DET, dict_new( &
          & COMMENT   .is. 'FOE: max determinant of cubic interpolation matrix', &
-         & RANGE     .is. list_new((/ .item."0.", .item."1." /)), &
-         & DEFAULT.is. "1e-20"/) ))
+         & RANGE     .is. list_new(.item."0.", .item."1."), &
+         & DEFAULT.is. "1e-20" ))
 
-    call set(p // EF_INTERPOL_CHARGEDIFF, dict_new( (/ &
+    call set(p // EF_INTERPOL_CHARGEDIFF, dict_new( &
          & COMMENT   .is. 'FOE: max charge difference for interpolation', &
-         & RANGE     .is. list_new((/ .item."0.", .item."1000." /)), &
-         & DEFAULT.is. "10."/) ))
+         & RANGE     .is. list_new(.item."0.", .item."1000."), &
+         & DEFAULT.is. "10." ))
 
-    call set(p // MIXING_AFTER_INPUTGUESS, dict_new( (/ &
+    call set(p // MIXING_AFTER_INPUTGUESS, dict_new( &
          & COMMENT   .is. 'mixing step after linear input guess (T/F)', &
-         & DEFAULT.is. "Yes"/) ))
+         & DEFAULT.is. "Yes" ))
 
-    call set(p // ITERATIVE_ORTHOGONALIZATION, dict_new( (/ &
+    call set(p // ITERATIVE_ORTHOGONALIZATION, dict_new( &
          & COMMENT   .is. 'iterative_orthogonalization for input guess orbitals', &
-         & DEFAULT.is. "No"/) ))
+         & DEFAULT.is. "No" ))
 
     get_perf_parameters => p
   END FUNCTION get_perf_parameters
@@ -941,8 +941,10 @@ contains
       type(dictionary), pointer :: dict, ref
       character(len = *), intent(in) :: key
 
-      integer :: i
+      integer :: i, j
+      character(max_field_length) :: val
       character(max_field_length), dimension(:), allocatable :: keys
+      character(max_field_length), dimension(:), allocatable :: keys_excl
 
       allocate(keys(dict_size(ref)))
       keys = dict_keys(ref)
@@ -954,6 +956,15 @@ contains
               & trim(keys(i)) /= EXCLUSIVE .and. &
               & trim(keys(i)) /= DEFAULT) then
             call add(dict // key, keys(i))
+         else if (trim(keys(i)) /= EXCLUSIVE) then
+            ! Add exclusive values.
+            allocate(keys_excl(dict_size(ref // EXCLUSIVE)))
+            keys_excl = dict_keys(ref // EXCLUSIVE)
+            do j = 1, size(keys_excl), 1
+               val = ref // EXCLUSIVE // keys_excl(j)
+               call add(dict // key, val)
+            end do
+            deallocate(keys_excl)
          end if
       end do
       deallocate(keys)
@@ -1089,7 +1100,7 @@ contains
        ! There is already a value in dict.
        if (has_key(ref, val)) then
           ! The key was asking for a profile, we copy it.
-          call copy(dict // key, ref // val)
+          call dict_copy(dict // key, ref // val)
           profile_ = val
        else
           ! The value is user-defined, we validate it with info from dict from.
@@ -1119,12 +1130,12 @@ contains
 
        ! There is no value in dict, we take it from ref.
        if (.not. has_key(ref, profile_)) profile_ = DEFAULT
-       call copy(dict // key, ref // profile_)
+       call dict_copy(dict // key, ref // profile_)
     end if
 
     ! Copy the comment.
     if (has_key(ref, COMMENT)) &
-         & call copy(dict // (trim(key) // ATTRS) // COMMENT, ref // COMMENT)
+         & call dict_copy(dict // (trim(key) // ATTRS) // COMMENT, ref // COMMENT)
     if (trim(profile_) /= DEFAULT) &
          & call set(dict // (trim(key) // ATTRS) // PROF_KEY, profile_)
 
@@ -1191,36 +1202,6 @@ contains
          end if
       end if
     end subroutine validate
-
-    recursive subroutine copy(dict, ref)
-      implicit none
-      type(dictionary), pointer :: dict, ref
-
-      integer :: i
-      character(max_field_length), dimension(:), allocatable :: keys
-      character(len = max_field_length) :: val
-      
-      if (associated(ref%child)) then
-         if (dict_len(ref) >= 1) then
-            ! List case.
-            do i = 0, dict_len(ref) - 1, 1
-               call copy(dict // i, ref // i)
-            end do            
-         else
-            ! Dictionary case
-            allocate(keys(dict_size(ref)))
-            keys = dict_keys(ref)
-            do i = 1, size(keys), 1
-               call copy(dict // keys(i), ref // keys(i))
-            end do
-            deallocate(keys)
-         end if
-      else
-         ! Leaf case.
-         val = ref
-         call set(dict, val)
-      end if
-    end subroutine copy
   END SUBROUTINE input_keys_set
 
   !> Dump a dictionary

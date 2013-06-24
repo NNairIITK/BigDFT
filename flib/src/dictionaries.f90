@@ -63,8 +63,12 @@ module dictionaries
      module procedure add_char,add_dict,add_integer,add_real,add_double,add_long
   end interface
 
+  interface list_new
+     module procedure list_new,list_new_elems
+  end interface
+
   interface dict_new
-     module procedure dict_new,dict_new_single
+     module procedure dict_new,dict_new_elems
   end interface
 
   integer(kind=8), external :: f_loc
@@ -268,23 +272,51 @@ contains
   end function dict_new
 
   !defines a dictionary from a array of storage data
-  function dict_new_single(cont)
-    type(dictionary_container), intent(in), optional :: cont
-    type(dictionary), pointer :: dict_new_single
+  function dict_new_elems(dict0, dict1, dict2, dict3, dict4, dict5, dict6, dict7, dict8, dict9, &
+       & dict10, dict11, dict12, dict13, dict14, dict15, dict16, dict17, dict18, dict19)
+    type(dictionary_container), intent(in), optional :: dict0, dict1, dict2, dict3, dict4
+    type(dictionary_container), intent(in), optional :: dict5, dict6, dict7, dict8, dict9
+    type(dictionary_container), intent(in), optional :: dict10, dict11, dict12, dict13, dict14
+    type(dictionary_container), intent(in), optional :: dict15, dict16, dict17, dict18, dict19
+    type(dictionary), pointer :: dict_new_elems
     !local variables
     type(dictionary), pointer :: dict_tmp
 
     call dict_init(dict_tmp)
-    if (present(cont)) then
-       if (associated(cont%child)) then
-          call set(dict_tmp//cont%key, cont%child)
-       else
-          call set(dict_tmp//cont%key, cont%value)
-       end if
-    end if
-    dict_new_single => dict_tmp
+    if (present(dict0)) call add_elem(dict_tmp, dict0)
+    if (present(dict1)) call add_elem(dict_tmp, dict1)
+    if (present(dict2)) call add_elem(dict_tmp, dict2)
+    if (present(dict3)) call add_elem(dict_tmp, dict3)
+    if (present(dict4)) call add_elem(dict_tmp, dict4)
+    if (present(dict5)) call add_elem(dict_tmp, dict5)
+    if (present(dict6)) call add_elem(dict_tmp, dict6)
+    if (present(dict7)) call add_elem(dict_tmp, dict7)
+    if (present(dict8)) call add_elem(dict_tmp, dict8)
+    if (present(dict9)) call add_elem(dict_tmp, dict9)
+    if (present(dict10)) call add_elem(dict_tmp, dict10)
+    if (present(dict11)) call add_elem(dict_tmp, dict11)
+    if (present(dict12)) call add_elem(dict_tmp, dict12)
+    if (present(dict13)) call add_elem(dict_tmp, dict13)
+    if (present(dict14)) call add_elem(dict_tmp, dict14)
+    if (present(dict15)) call add_elem(dict_tmp, dict15)
+    if (present(dict16)) call add_elem(dict_tmp, dict16)
+    if (present(dict17)) call add_elem(dict_tmp, dict17)
+    if (present(dict18)) call add_elem(dict_tmp, dict18)
+    if (present(dict19)) call add_elem(dict_tmp, dict19)
+    dict_new_elems => dict_tmp
+  contains
+    subroutine add_elem(dict, elem)
+      implicit none
+      type(dictionary_container), intent(in) :: elem
+      type(dictionary), pointer :: dict
 
-  end function dict_new_single
+      if (associated(elem%child)) then
+         call set(dict//elem%key, elem%child)
+      else
+         call set(dict//elem%key, elem%value)
+      end if
+    end subroutine add_elem
+  end function dict_new_elems
 
   !defines a new dictionary from a key and a value
   function dict_cont_new_with_value(key, val)
@@ -687,8 +719,44 @@ contains
     end do
 
     list_new => dict_tmp
-
   end function list_new
+
+  !> create a list from several optional values (string or dict).
+  function list_new_elems(dict0, dict1, dict2, dict3, dict4, dict5, dict6, dict7, dict8, dict9)
+    implicit none
+    type(list_container), intent(in) :: dict0
+    type(list_container), intent(in), optional :: dict1, dict2, dict3, dict4
+    type(list_container), intent(in), optional :: dict5, dict6, dict7, dict8, dict9
+    type(dictionary), pointer :: list_new_elems
+    !local variables
+    type(dictionary), pointer :: dict_tmp
+
+    !initialize dictionary
+    call dict_init(dict_tmp)
+    call fill(dict_tmp, dict0)
+    if (present(dict1)) call fill(dict_tmp, dict1)
+    if (present(dict2)) call fill(dict_tmp, dict2)
+    if (present(dict3)) call fill(dict_tmp, dict3)
+    if (present(dict4)) call fill(dict_tmp, dict4)
+    if (present(dict5)) call fill(dict_tmp, dict5)
+    if (present(dict6)) call fill(dict_tmp, dict6)
+    if (present(dict7)) call fill(dict_tmp, dict7)
+    if (present(dict8)) call fill(dict_tmp, dict8)
+    if (present(dict9)) call fill(dict_tmp, dict9)
+    list_new_elems => dict_tmp
+  contains
+    subroutine fill(dict, elem)
+      implicit none
+      type(list_container), intent(in) :: elem
+      type(dictionary), pointer :: dict
+      
+      if (associated(elem%dict)) then
+         call add(dict, elem%dict)
+      else if (len_trim(elem%val) > 0) then
+         call add(dict, elem%val)
+      end if
+    end subroutine fill
+  end function list_new_elems
 
   !> get the value from the dictionary
   subroutine get_value(val,dict)
