@@ -489,6 +489,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%inv_ovrlp)
      !tmb%linmat%inv_ovrlp%matrixindex_in_compressed_ptr => tmb%ham_descr%collcom%matrixindex_in_compressed
 
+
+     call check_communication_sumrho(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom_sr)
+
      if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of sparse matrices')
      call check_matrix_compression(iproc,tmb%linmat%ham)
      call check_matrix_compression(iproc,tmb%linmat%ovrlp)

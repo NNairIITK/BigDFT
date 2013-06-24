@@ -1790,3 +1790,142 @@ end subroutine sumrho_for_TMBs
 !!$  call f_malloc_free_routine()
 !!$
 !!$end subroutine fill_global_density
+
+
+
+
+subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr)
+  use module_base
+  use module_types
+  use module_interfaces
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  type(collective_comms),intent(in) :: collcom_sr
+
+  ! Local variables
+  integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
+  real(kind=8) :: maxdiff, sumdiff, tt
+  real(kind=8),dimension(:),allocatable :: psir, psirwork, psirt, psirtwork
+  integer,dimension(:),allocatable :: istarr
+  real(kind=8),parameter :: tol=1.d-10
+
+  if (iproc==0) call yaml_open_map('Checking transposition for sumrho')
+
+  call f_routine(id='check_communication_sumrho')
+
+  ! Allocate dummy array
+  psir=f_malloc(collcom_sr%ndimpsi_c,id='collcom_sr%ndimpsi_c')
+
+  ! Size of global box
+  nxyz=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
+
+  ! Fill with a recognizable pattern
+  ist=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inWhichLocreg(iiorb)
+      do i=1,lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+          ! coordinates within locreg
+          ii=i-1
+          iz=ii/(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i)+1
+          ii=ii-(iz-1)*lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i
+          iy=ii/lzd%llr(ilr)%d%n1i+1
+          ix=ii-(iy-1)*lzd%llr(ilr)%d%n1i+1
+          ! coordinates within global region
+          iix=ix+lzd%llr(ilr)%nsi1
+          iiy=iy+lzd%llr(ilr)%nsi2
+          iiz=iz+lzd%llr(ilr)%nsi3
+          iixyz=(iiz-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(iiy-1)*lzd%glr%d%n1i+iix
+          ! assign unique value
+          psir(ist+i)=real((iiorb-1)*nxyz+iixyz,dp)
+      end do
+      ist = ist + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+  end do
+  if(ist/=collcom_sr%ndimpsi_c) then
+      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : ist/=collcom_sr%ndimpsi_c'
+      stop
+  end if
+
+  ! Direct workarray
+  psirwork=f_malloc(collcom_sr%ndimpsi_c,id='collcom_sr%ndimpsi_c')
+
+  ! Rearrange data
+  call transpose_switch_psir(collcom_sr, psir, psirwork)
+
+  ! Original array not needed anymore
+  call f_free(psir)
+
+  ! Allocate transposed workarray
+  psirtwork=f_malloc(collcom_sr%ndimind_c,id='psirtwork')
+
+  ! Communicate the data
+  call transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
+
+  ! Direct workarray not needed anymore
+  call f_free(psirwork)
+
+  ! Allocate transposed array
+  psirt=f_malloc(collcom_sr%ndimind_c,id='psirt')
+  call transpose_unswitch_psirt(collcom_sr, psirtwork, psirt)
+
+  ! Transposed workarray not needed anymore
+  call f_free(psirtwork)
+
+
+  ! Check the layout of the transposed data
+  maxdiff=0.d0
+  sumdiff=0.d0
+
+  ! Get the starting point of each MPI task
+  istarr=f_malloc(0.to.nproc-1,id='istarr')
+  !allocate(istarr(0:nproc-1))
+  istarr=0
+  istarr(iproc)=collcom_sr%nptsp_c
+  call mpiallred(istarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  ist=0
+  do jproc=0,iproc-1
+      ist=ist+istarr(jproc)
+  end do
+  !deallocate(istarr)
+  call f_free(istarr)
+  
+  ! Iterate through all the transposed values and check whether they are correct
+  do ipt=1,collcom_sr%nptsp_c
+      ii=collcom_sr%norb_per_gridpoint_c(ipt)
+      i0=collcom_sr%isptsp_c(ipt)
+      iixyz=ist+ipt
+      do i=1,ii
+          iiorb=collcom_sr%indexrecvorbital_c(i0+i)
+          tt=psirt(i0+i)
+          maxdiff=max(maxdiff,abs(tt-real((iiorb-1)*nxyz+iixyz,dp)))
+          sumdiff=sumdiff+abs(tt-real((iiorb-1)*nxyz+iixyz,dp))
+      end do
+  end do
+
+  call f_free(psirt)
+
+  ! Reduce the results
+  if (nproc>1) then
+      call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(maxdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  end if
+  if (iproc==0) then
+      call yaml_map('Tolerances for this check',tol,fmt='(1es23.15)')
+      if (sumdiff>tol) then
+         call yaml_warning('TRANSPOSITION ERROR: total difference of '//trim(yaml_toa(sumdiff,fmt='(1es23.15)')))
+         call yaml_warning('TRANSPOSITION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es23.15)')))
+      else
+         call yaml_map('transposition check, sum', sumdiff,fmt='(1es23.15)')
+         call yaml_map('transposition check, max', maxdiff,fmt='(1es23.15)')
+      end if
+  end if
+
+  if (iproc==0) call yaml_close_map()
+
+
+end subroutine check_communication_sumrho
