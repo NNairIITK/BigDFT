@@ -1925,9 +1925,8 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   type(sparseMatrix), intent(inout) :: ham, ovrlp
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables
-  character(len=*), parameter :: subname='calc_site_energies_transfer_integrals'
   integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ierr, i, j, nstates, istate, ih, ifrag_ref
-  integer :: ifrag_ref1, ifrag_ref2, homo1, homo2, jh
+  integer :: ifrag_ref1, ifrag_ref2, homo1, homo2, jh, above_lumo
   !integer :: jfrag_ref, jtmb
   real(gp), allocatable, dimension(:,:) :: coeff_tmp, homo_coeffs, coeffs_orthog
   real(gp), allocatable, dimension(:) :: frag_sum, homo_ham, homo_ovrlp
@@ -1936,90 +1935,83 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   real(gp), dimension(1) :: trans_int_energy, trans_int_energy_orthog, trans_int_ovrlp, trans_int_ovrlp_orthog
   character(len=8) :: str
 
+  call timing(iproc,'transfer_int','ON')
+  call f_routine(id='calc_site_energies_transfer_integrals')
+
   nstates=0
+  above_lumo=3
   do ifrag=1,input_frag%nfrag
      ifrag_ref= input_frag%frag_index(ifrag)
-     nstates=nstates+min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+1,ref_frags(ifrag_ref)%fbasis%forbs%norb)
+     nstates=nstates+min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
   end do
 
-  allocate(homo_ham(nstates), stat=i_stat)
-  call memocc(i_stat, homo_ham, 'homo_ham', subname)
-  allocate(homo_ovrlp(nstates), stat=i_stat)
-  call memocc(i_stat, homo_ovrlp, 'homo_ovrlp', subname)
-
-  allocate(homo_coeffs(ovrlp%full_dim1,nstates), stat=i_stat)
-  call memocc(i_stat, homo_coeffs, 'homo_coeffs', subname)
+  homo_ham=f_malloc(nstates,id='homo_ham')
+  homo_ovrlp=f_malloc(nstates,id='homo_ovrlp')
+  homo_coeffs=f_malloc((/ovrlp%full_dim1,nstates/), id='homo_coeffs')
 
   istate=1
   ind=0
   call to_zero(ovrlp%full_dim1*nstates, homo_coeffs(1,1))
   do ifrag=1,input_frag%nfrag
      ifrag_ref=input_frag%frag_index(ifrag)
-     do ih=1,min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+1,ref_frags(ifrag_ref)%fbasis%forbs%norb)
-        do itmb=1,ref_frags(input_frag%frag_index(ifrag))%fbasis%forbs%norb
-           homo_coeffs(itmb+ind,istate)=ref_frags(ifrag_ref)%coeff(itmb,ih)
-        end do
+     do ih=1,min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
+        call dcopy(ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff(1,ih),1,homo_coeffs(1+ind,istate),1)
         istate=istate+1
      end do
-     ind=ind+ref_frags(input_frag%frag_index(ifrag))%fbasis%forbs%norb
+     ind=ind+ref_frags(ifrag_ref)%fbasis%forbs%norb
   end do
 
   call calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs,homo_coeffs,homo_ham,homo_ovrlp)
 
   ! orthogonalize
-  allocate(ovrlp%matrix(ovrlp%full_dim1,ovrlp%full_dim1), stat=i_stat)
-  call memocc(i_stat, ovrlp%matrix, 'ovrlp%matrix', subname)
+  ovrlp%matrix=f_malloc_ptr((/ovrlp%full_dim1,ovrlp%full_dim1/), id='ovrlp%matrix')
   call uncompressMatrix(iproc,ovrlp)
   ! using ham as tmp matrix for inv_ovrlp_half
-  allocate(ham%matrix(ovrlp%full_dim1,ovrlp%full_dim1), stat=i_stat)
-  call memocc(i_stat, ham%matrix, 'ham%matrix', subname)
+  ham%matrix=f_malloc_ptr((/ham%full_dim1,ham%full_dim1/), id='ham%matrix')
   call overlapPowerPlusMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, 0, -8, &
        -8, orbs%norb, ovrlp%matrix, ham%matrix, .false., orbs)
-  i_all=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
-  deallocate(ovrlp%matrix, stat=i_stat)
-  call memocc(i_stat, i_all, 'ovrlp%matrix', subname)
+  call f_free_ptr(ovrlp%matrix)
 
-  allocate(coeffs_orthog(ovrlp%full_dim1,nstates), stat=i_stat)
-  call memocc(i_stat, coeffs_orthog, 'coeffs_orthog', subname)
+  coeffs_orthog=f_malloc((/ovrlp%full_dim1,nstates/), id='coeffs_orthog')
 
   call dgemm('n', 'n', orbs%norb, nstates, orbs%norb, 1.d0, ham%matrix(1,1), &
        orbs%norb, homo_coeffs(1,1), orbs%norb, 0.d0, coeffs_orthog(1,1), orbs%norb)
 
-  i_all=-product(shape(ham%matrix))*kind(ham%matrix)
-  deallocate(ham%matrix, stat=i_stat)
-  call memocc(i_stat, i_all, 'ham%matrix', subname)
-
-  allocate(homo_ham_orthog(nstates), stat=i_stat)
-  call memocc(i_stat, homo_ham_orthog, 'homo_ham_orthog', subname)
-  allocate(homo_ovrlp_orthog(nstates), stat=i_stat)
-  call memocc(i_stat, homo_ovrlp_orthog, 'homo_ovrlp_orthog', subname)
+  call f_free_ptr(ham%matrix)
+  homo_ham_orthog=f_malloc(nstates, id='homo_ham_orthog')
+  homo_ovrlp_orthog=f_malloc(nstates, id='homo_ovrlp_orthog')
 
   call calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,coeffs_orthog,coeffs_orthog,&
        homo_ham_orthog,homo_ovrlp_orthog)
 
-  allocate(frag_sum(nstates), stat=i_stat)
-  call memocc(i_stat, frag_sum, 'frag_sum', subname)
-  allocate(frag_sum_orthog(nstates), stat=i_stat)
-  call memocc(i_stat, frag_sum_orthog, 'frag_sum_orthog', subname)
-  allocate(eval_sum(nstates), stat=i_stat)
-  call memocc(i_stat, eval_sum, 'eval_sum', subname)
+  frag_sum=f_malloc0(nstates, id='frag_sum')
+  frag_sum_orthog=f_malloc0(nstates, id='frag_sum_orthog')
+  eval_sum=f_malloc0(nstates, id='eval_sum')
 
   if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
   if (iproc==0) write(*,*) 'Site energies:'
 
   if (iproc==0) write(*,*) 'state, energy, orthog energy, frag eval, overlap, orthog overlap, occ'
   istate=1
-  call to_zero(nstates,frag_sum(1))
-  call to_zero(nstates,frag_sum_orthog(1))
-  call to_zero(nstates,eval_sum(1))
   frag_sum_tot=0
   frag_sum_tot_orthog=0
   eval_sum_tot=0
   do ifrag=1,input_frag%nfrag
      ifrag_ref=input_frag%frag_index(ifrag)
-     if (iproc==0) write(*,*) trim(input_frag%label(ifrag_ref))
-     do ih=1,min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+1,ref_frags(ifrag_ref)%fbasis%forbs%norb)
-        if (iproc==0) write(*,'((I5,1x),1x,5(F16.12,1x))',advance='NO') ih, homo_ham(istate), homo_ham_orthog(istate), &
+     if (iproc==0) write(*,'(a,i3)') trim(input_frag%label(ifrag_ref)),ifrag
+     do ih=1,min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
+        if (ih<ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
+           write(str,'(I2)') abs(ih-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp))
+           if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO-'//trim(adjustl(str))
+        else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
+           if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO'
+        else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)+1) then
+           if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO'
+        else
+           write(str,'(I2)') ih-1-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)
+           if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO+'//trim(adjustl(str))
+        end if
+        if (iproc==0) write(*,'(1x,5(F16.12,1x))',advance='NO') homo_ham(istate), homo_ham_orthog(istate), &
              ref_frags(ifrag_ref)%eval(ih), homo_ovrlp(istate), homo_ovrlp_orthog(istate)
         if (ih<ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
            frag_sum(ifrag)=frag_sum(ifrag)+homo_ham(istate)
@@ -2043,7 +2035,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
         end if
         istate=istate+1
      end do
-     if (iproc==0) write(*,'(7x,3(F16.12,1x))') 2.0_gp*frag_sum(ifrag),&
+     if (iproc==0) write(*,'(9x,3(F16.12,1x))') 2.0_gp*frag_sum(ifrag),&
           2.0_gp*frag_sum_orthog(ifrag),2.0_gp*eval_sum(ifrag)
        if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
             '-------------------------'
@@ -2052,126 +2044,116 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
      eval_sum_tot=eval_sum_tot+eval_sum(ifrag)
   end do
 
-  if (iproc==0) write(*,'(7x,3(F16.12,1x))') 2.0_gp*frag_sum_tot, 2.0_gp*frag_sum_tot_orthog,2.0_gp*eval_sum_tot
+  if (iproc==0) write(*,'(9x,3(F16.12,1x))') 2.0_gp*frag_sum_tot, 2.0_gp*frag_sum_tot_orthog,2.0_gp*eval_sum_tot
   if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
 
-  i_all = -product(shape(eval_sum))*kind(eval_sum)
-  deallocate(eval_sum,stat=i_stat)
-  call memocc(i_stat,i_all,'eval_sum',subname)
-  i_all = -product(shape(frag_sum))*kind(frag_sum)
-  deallocate(frag_sum,stat=i_stat)
-  call memocc(i_stat,i_all,'frag_sum',subname)
-  i_all = -product(shape(frag_sum_orthog))*kind(frag_sum_orthog)
-  deallocate(frag_sum_orthog,stat=i_stat)
-  call memocc(i_stat,i_all,'frag_sum_orthog',subname)
+  call f_free(eval_sum)
+  call f_free(frag_sum)
+  call f_free(frag_sum_orthog)
+  call f_free(homo_ham_orthog)
+  call f_free(homo_ovrlp_orthog)
 
-  i_all = -product(shape(homo_ham_orthog))*kind(homo_ham_orthog)
-  deallocate(homo_ham_orthog,stat=i_stat)
-  call memocc(i_stat,i_all,'homo_ham_orthog',subname)
-  i_all = -product(shape(homo_ovrlp_orthog))*kind(homo_ovrlp_orthog)
-  deallocate(homo_ovrlp_orthog,stat=i_stat)
-  call memocc(i_stat,i_all,'homo_ovrlp_orthog',subname)
-
-  if (input_frag%nfrag==2) then
+  if (input_frag%nfrag>=2) then
      if (iproc==0) write(*,*) 'Transfer integrals (HOMO and LUMO are defined as those of the neutral fragment):'
      if (iproc==0) write(*,*) 'state1, state2, energy, orthog energy, orthog energy2, overlap, orthog overlap, occ1, occ2'
-     ifrag_ref1=input_frag%frag_index(1)
-     ifrag_ref2=input_frag%frag_index(2)
-     homo1=ceiling((ref_frags(ifrag_ref1)%nelec)/2.0_gp)
-     homo2=ceiling((ref_frags(ifrag_ref2)%nelec)/2.0_gp)
+     do ifrag=1,input_frag%nfrag
+        do jfrag=ifrag+1,input_frag%nfrag
 
-     do jh=-2,2
-        if (homo2+jh>ref_frags(ifrag_ref2)%fbasis%forbs%norb) cycle  
-        if (homo2+jh<1) cycle  
-        do ih=-2,2
-           if (homo1+ih>ref_frags(ifrag_ref1)%fbasis%forbs%norb) cycle
-           if (homo1+ih<1) cycle  
+           ifrag_ref1=input_frag%frag_index(ifrag)
+           ifrag_ref2=input_frag%frag_index(jfrag)
+           homo1=ceiling((ref_frags(ifrag_ref1)%nelec)/2.0_gp)
+           homo2=ceiling((ref_frags(ifrag_ref2)%nelec)/2.0_gp)
 
-           i=homo1+ih
-           j=homo2+jh+min(ceiling((ref_frags(ifrag_ref1)%nelec+1)/2.0_gp)+1,ref_frags(ifrag_ref1)%fbasis%forbs%norb)
+           do jh=-above_lumo,1+above_lumo
+              if (homo2+jh>ref_frags(ifrag_ref2)%fbasis%forbs%norb) cycle  
+              if (homo2+jh<1) cycle  
+              do ih=-above_lumo,1+above_lumo
+                 if (homo1+ih>ref_frags(ifrag_ref1)%fbasis%forbs%norb) cycle
+                 if (homo1+ih<1) cycle  
 
-           if (iproc==0) then
-              if (ih<0) then
-                 write(str,'(I2)') abs(ih)
-                 write(*,'(a,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),adjustl(' HOMO-'//trim(adjustl(str)))
-              else if (ih==0) then
-                 write(*,'(a,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),adjustl(' HOMO  ')
-              else if (ih==1) then
-                 write(*,'(a,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),adjustl(' LUMO  ')
-              else
-                 write(str,'(I2)') ih-1
-                 write(*,'(a,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),adjustl(' LUMO+'//trim(adjustl(str)))
-              end if
-           end if
+                 i=homo1+ih
+                 j=homo2+jh+min(ceiling((ref_frags(ifrag_ref1)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref1)%fbasis%forbs%norb)
 
-           if (iproc==0) then
-              if (jh<0) then
-                 write(str,'(I2)') abs(jh)
-                 write(*,'(1x,a,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),adjustl(' HOMO-'//trim(adjustl(str)))
-              else if (jh==0) then
-                 write(*,'(1x,a,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),adjustl(' HOMO  ')
-              else if (jh==1) then
-                 write(*,'(1x,a,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),adjustl(' LUMO  ')
-              else
-                 write(str,'(I2)') jh-1
-                 write(*,'(1x,a,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),adjustl(' LUMO+'//trim(adjustl(str)))
-              end if
-           end if
+                 if (iproc==0) then
+                    if (ih<0) then
+                       write(str,'(I2)') abs(ih)
+                       write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' HOMO-'//trim(adjustl(str))
+                    else if (ih==0) then
+                       write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' HOMO  '
+                    else if (ih==1) then
+                       write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' LUMO  '
+                    else
+                       write(str,'(I2)') ih-1
+                       write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' LUMO+'//trim(adjustl(str))
+                    end if
+                 end if
 
-           call calc_transfer_integral(iproc,nproc,1,orbs,ham,ovrlp,homo_coeffs(1,i),homo_coeffs(1,j),&
-                trans_int_energy(1),trans_int_ovrlp(1))
-           call calc_transfer_integral(iproc,nproc,1,orbs,ham,ovrlp,coeffs_orthog(1,i),coeffs_orthog(1,j),&
-                trans_int_energy_orthog(1),trans_int_ovrlp_orthog(1))
+                 if (iproc==0) then
+                    if (jh<0) then
+                       write(str,'(I2)') abs(jh)
+                       write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,&
+                            ' HOMO-'//trim(adjustl(str))
+                    else if (jh==0) then
+                       write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,' HOMO  '
+                    else if (jh==1) then
+                       write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,' LUMO  '
+                    else
+                       write(str,'(I2)') jh-1
+                       write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,&
+                            ' LUMO+'//trim(adjustl(str))
+                    end if
+                 end if
 
-           orthog_energy=(trans_int_energy(1)-0.5_gp*(homo_ham(i)+homo_ham(j))*trans_int_ovrlp(1))&
-                /(1.0_gp-trans_int_ovrlp(1)**2)
+                 call calc_transfer_integral(iproc,nproc,1,orbs,ham,ovrlp,homo_coeffs(1,i),homo_coeffs(1,j),&
+                      trans_int_energy(1),trans_int_ovrlp(1))
+                 call calc_transfer_integral(iproc,nproc,1,orbs,ham,ovrlp,coeffs_orthog(1,i),coeffs_orthog(1,j),&
+                      trans_int_energy_orthog(1),trans_int_ovrlp_orthog(1))
 
-           if (iproc==0) write(*,'(2x,5(F16.12,1x))',advance='NO') trans_int_energy(1), &
-                trans_int_energy_orthog(1), orthog_energy,trans_int_ovrlp(1), trans_int_ovrlp_orthog(1)
+                 orthog_energy=(trans_int_energy(1)-0.5_gp*(homo_ham(i)+homo_ham(j))*trans_int_ovrlp(1))&
+                      /(1.0_gp-trans_int_ovrlp(1)**2)
+      
+                 if (iproc==0) write(*,'(2x,5(F16.12,1x))',advance='NO') trans_int_energy(1), &
+                      trans_int_energy_orthog(1), orthog_energy,trans_int_ovrlp(1), trans_int_ovrlp_orthog(1)
 
-           if (homo1+ih<ceiling(ref_frags(ifrag_ref1)%nelec/2.0_gp)) then
-              if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 2.0_gp
-           else if (homo1+ih==ceiling(ref_frags(ifrag_ref1)%nelec/2.0_gp)) then
-              if (mod(real(ref_frags(ifrag_ref1)%nelec,gp),2.0_gp)/=0.0_gp) then
-                 if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 1.0_gp
-              else
-                 if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 2.0_gp
-              end if
-           else
-              if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 0.0_gp
-           end if
+                 if (homo1+ih<ceiling(ref_frags(ifrag_ref1)%nelec/2.0_gp)) then
+                    if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 2.0_gp
+                 else if (homo1+ih==ceiling(ref_frags(ifrag_ref1)%nelec/2.0_gp)) then
+                    if (mod(real(ref_frags(ifrag_ref1)%nelec,gp),2.0_gp)/=0.0_gp) then
+                       if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 1.0_gp
+                    else
+                       if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 2.0_gp
+                    end if
+                 else
+                    if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 0.0_gp
+                 end if
 
-           if (homo2+jh<ceiling(ref_frags(ifrag_ref2)%nelec/2.0_gp)) then
-              if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
-           else if (homo2+jh==ceiling(ref_frags(ifrag_ref2)%nelec/2.0_gp)) then
-              if (mod(real(ref_frags(ifrag_ref2)%nelec,gp),2.0_gp)/=0.0_gp) then
-                 if (iproc==0) write(*,'(1x,F4.2)') 1.0_gp
-              else
-                 if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
-              end if
-           else
-              if (iproc==0) write(*,'(1x,F4.2)') 0.0_gp
-           end if
+                 if (homo2+jh<ceiling(ref_frags(ifrag_ref2)%nelec/2.0_gp)) then
+                    if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+                 else if (homo2+jh==ceiling(ref_frags(ifrag_ref2)%nelec/2.0_gp)) then
+                    if (mod(real(ref_frags(ifrag_ref2)%nelec,gp),2.0_gp)/=0.0_gp) then
+                       if (iproc==0) write(*,'(1x,F4.2)') 1.0_gp
+                    else
+                       if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+                    end if
+                 else
+                    if (iproc==0) write(*,'(1x,F4.2)') 0.0_gp
+                 end if
 
+              end do
+           end do
+           if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
+               '-------------------------'
         end do
      end do
-    if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
-         '-------------------------'
   end if
 
-  i_all = -product(shape(homo_ham))*kind(homo_ham)
-  deallocate(homo_ham,stat=i_stat)
-  call memocc(i_stat,i_all,'homo_ham',subname)
-  i_all = -product(shape(homo_ovrlp))*kind(homo_ovrlp)
-  deallocate(homo_ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'homo_ovrlp',subname)
-  i_all = -product(shape(homo_coeffs))*kind(homo_coeffs)
-  deallocate(homo_coeffs,stat=i_stat)
-  call memocc(i_stat,i_all,'homo_coeffs',subname)
-  i_all = -product(shape(coeffs_orthog))*kind(coeffs_orthog)
-  deallocate(coeffs_orthog,stat=i_stat)
-  call memocc(i_stat,i_all,'coeffs_orthog',subname)
+  call f_free(homo_ham)
+  call f_free(homo_ovrlp)
+  call f_free(homo_coeffs)
+  call f_free(coeffs_orthog)
 
+  call f_release_routine()
+  call timing(iproc,'transfer_int','OF')
 
 end subroutine calc_site_energies_transfer_integrals
 

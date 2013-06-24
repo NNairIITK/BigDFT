@@ -266,7 +266,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !local variables
   character(len=*), parameter :: subname='cluster'
   character(len=5) :: gridformat, wfformat
-  logical :: refill_proj, calculate_dipole !,potential_from_disk=.false.
+  logical :: refill_proj, calculate_dipole, overlap_calculated !,potential_from_disk=.false.
   logical :: DoDavidson,DoLastRunThings=.false.
   integer :: nvirt,norbv
   integer :: i, input_wf_format, output_denspot
@@ -299,6 +299,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! Pointers and variables to store the last psi
   ! before reformatting if useFormattedInput is .true.
   real(wp), dimension(:), pointer :: psi_old, psi_constrained
+  integer, dimension(:), pointer :: in_frag_charge
+  real(gp) :: energy_constrained
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj,gbd_occ!,rhocore
   ! Variables for the virtual orbitals and band diagram.
@@ -630,10 +632,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      if (in%lin%calc_transfer_integrals) then
         if (in%lin%constrained_dft) then
            ! switch excess charge to other fragment, recalculate kernel and density and reset lagrange multiplier
+           if (iproc==0) write(*,*) 'Warning: site-energy/transfer integral calculation not yet working for constrained DFT'
 
            in_frag_charge=f_malloc_ptr(in%frag%nfrag,id='in_frag_charge')
            call dcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
            in_frag_charge(cdft%ifrag_charged(1))=0
+           overlap_calculated=.true.
            call fragment_coeffs_to_kernel(in%frag,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated)
            call f_free_ptr(in_frag_charge)
 
@@ -661,8 +665,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
 
            ! keep a copy of previous wavefunctions and energies...
-           allocate(psi_constrained(tmb%npsidim_orbs), stat=istat)
-           call memocc(istat, psi_constrained, 'psi_constrained', subname)
+           allocate(psi_constrained(tmb%npsidim_orbs), stat=i_stat)
+           call memocc(i_stat, psi_constrained, 'psi_constrained', subname)
            call dcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
            energy_constrained=energy
 
@@ -671,9 +675,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
            ! calculate matrix elements here...
 
-           iall=-product(shape(psi_constrained))*kind(psi_constrained)
-           deallocate(psi_constrained, stat=istat)
-           call memocc(istat, iall, 'psi_constrained', subname)
+           i_all=-product(shape(psi_constrained))*kind(psi_constrained)
+           deallocate(psi_constrained, stat=i_stat)
+           call memocc(i_stat, i_all, 'psi_constrained', subname)
 
         else
            if (.not. in%lin%fragment_calculation) stop 'Error, fragment calculation needed for transfer integral calculation'
