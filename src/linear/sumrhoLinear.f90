@@ -1882,8 +1882,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr)
   sumdiff=0.d0
 
   ! Get the starting point of each MPI task
-  !istarr=f_malloc(0:nproc-1,id='istarr')
-  allocate(istarr(0:nproc-1))
+  istarr=f_malloc(0.to.nproc-1,id='istarr')
+  !allocate(istarr(0:nproc-1))
   istarr=0
   istarr(iproc)=collcom_sr%nptsp_c
   call mpiallred(istarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -1891,8 +1891,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr)
   do jproc=0,iproc-1
       ist=ist+istarr(jproc)
   end do
-  deallocate(istarr)
-  !call f_free(istarr)
+  !deallocate(istarr)
+  call f_free(istarr)
   
   ! Iterate through all the transposed values and check whether they are correct
   do ipt=1,collcom_sr%nptsp_c
