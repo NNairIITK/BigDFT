@@ -45,6 +45,7 @@ libmodules_a_SOURCES = base.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
 	fragments.f90 \
+   constrained_dft.f90 \
 	diis_module.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
@@ -65,6 +66,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	BIGDFT_API.@MODULE_EXT@ \
 	VDWCORRECTION.@MODULE_EXT@ \
 	MODULE_FRAGMENTS.@MODULE_EXT@ \
+	CONSTRAINED_DFT.@MODULE_EXT@ \
 	DIIS_SD_OPTIMIZATION.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
@@ -79,6 +81,7 @@ modules = module_base.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ \
 	module_fragments.@MODULE_EXT@ \
+	constrained_dft.@MODULE_EXT@ \
 	diis_sd_optimization.@MODULE_EXT@
 endif
 
@@ -114,6 +117,7 @@ BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
 fragments.o diis_module.o: base.o types.o
+constrained_dft.o: base.o types.o fragments.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

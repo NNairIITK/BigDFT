@@ -10,9 +10,9 @@ TESTDIRS = Locreg \
 	   geopt \
 	   testforces \
 	   fructose \
-	rotatesmall2 
-#      rotatesmall \
-#      cdft
+	rotatesmall2 \
+      rotatesmall \
+      cdft
 
 EXTRA_TESTDIRS = water \
 	molecule \
@@ -81,19 +81,19 @@ rotate2_write.out.post-out:
 	mv -f data-write data-read/data-benzene
 	cp -f write.xyz data-read/benzene.xyz
 
-cdft_co.out.out : cdft_c.out.out
-cdft_c.out.out : cdft_o.out.out
+cdft_ohoh.out.out : cdft_oh-.out.out
+cdft_oh-.out.out : cdft_oh-a.out.out
 
-cdft_o.out.post-out: 
-	rm -rf data-co/data-o
-	mkdir -p data-co
-	mv -f data-o data-co/data-o
-	cp -f o.xyz data-co/o.xyz
+cdft_oh-a.out.post-out: 
+	rm -rf data-ohoh/data-oh-a
+	mkdir -p data-ohoh
+	mv -f data-oh-a data-ohoh/data-oh-a
+	cp -f oh-a.xyz data-ohoh/oh-a.xyz
 
-cdft_c.out.post-out: 
-	rm -rf data-co/data-c
-	mv -f data-c data-co/data-c
-	cp -f c.xyz data-co/c.xyz
+cdft_oh-.out.post-out: 
+	rm -rf data-ohoh/data-oh-
+	mv -f data-oh- data-ohoh/data-oh-
+	cp -f oh-.xyz data-ohoh/oh-.xyz
 
 # Define the precision for specific directories.
 %.report: %.ref

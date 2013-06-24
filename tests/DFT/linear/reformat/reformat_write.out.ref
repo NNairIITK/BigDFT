@@ -1,5 +1,4 @@
  <BigDFT> log of the run will be written in logfile: ./log-write.yaml
- <BigDFT> Logfile existing, renamed into: ./logfiles/log-write.12:28:59.545.yaml
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
     | Processes from 0 to 5 treat 10 orbitals. |
@@ -17,7 +16,6 @@ WARNING: locrad for atom type C is too small; minimal value is   1.16E+01
  Processes from 0 to 5 treat 10 inguess orbitals 
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.999999756001E+01
- calling orthonormalizeLocalized (exact)
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -393,5 +391,6 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.220693E-01    1.584878E-01    1.419835E
    - Box size has changed: 28
    - Molecule was shifted: 56
    - Molecule was rotated: 0
+   - Discrete operations: 0
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.999999875207E+01

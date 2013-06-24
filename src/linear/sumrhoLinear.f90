@@ -311,14 +311,14 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
 
   if (communication_strategy==ALLGATHERV) then
       call timing(iproc,'calc_kernel','ON') !lr408t
-      if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
+      !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
       call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
       allocate(fcoeff(orbs_tmb%norb,orbs%norb), stat=istat)
       call memocc(istat, fcoeff, 'fcoeff', subname)
       call to_zero(orbs_tmb%norb*orbs%norb,fcoeff(1,1))
       if(orbs_tmb%norbp>0) then
-          !decide wether we calculate the density kernel or just transformation matrix
+          !decide whether we calculate the density kernel or just transformation matrix
           if(isKernel) then
              do iorb=1,orbs%norb
                 !call daxpy(orbs_tmb%norbp,orbs%occup(iorb),coeff(1+orbs_tmb%isorb,iorb),1,fcoeff(1+orbs_tmb%isorb,iorb),1)

@@ -1532,13 +1532,13 @@ END SUBROUTINE tmb_overlap_onsite_rotate
 
 
 !> Write all my wavefunctions in files by calling writeonewave
-subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nksorb,at,rxyz,psi,coeff)
+subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,coeff)
   use module_types
   use module_base
   use yaml_output
   use module_interfaces, except_this_one => writeonewave
   implicit none
-  integer, intent(in) :: iproc,iformat,npsidim,nksorb
+  integer, intent(in) :: iproc,iformat,npsidim,nelec
   !integer, intent(in) :: norb   !< number of orbitals, not basis functions
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
@@ -1606,7 +1606,8 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nksorb,at
       else
          open(99, file=filename//'_coeff.bin', status='unknown',form='unformatted')
       end if
-      call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),at%astruct%nat,rxyz,orbs%norb,nksorb,coeff,orbs%eval)
+      call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),at%astruct%nat,rxyz,orbs%norb,&
+           nelec,coeff,orbs%eval)
       close(99)
     end if
      call cpu_time(tr1)
@@ -2046,7 +2047,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   logical :: lstat
   character(len=*), parameter :: subname='readmywaves_linear_new'
   ! to eventually be part of the fragment structure?
-  integer :: ndim_old, iiorb, ifrag, norb, isorb, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat, itmb, jtmb, jsforb, ierr
+  integer :: ndim_old, iiorb, ifrag, norb, isorb, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat, jsforb, ierr
   type(local_zone_descriptors) :: lzd_old
   real(wp), dimension(:), pointer :: psi_old
   type(phi_array), dimension(:), pointer :: phi_array_old
@@ -2061,7 +2062,6 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   character(len=12) :: orbname
   real(wp), dimension(:), allocatable :: gpsi
 
-open(16)
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
 
@@ -2195,7 +2195,7 @@ open(16)
   ! reformat fragments
   nullify(psi_old)
 
-!if several fragments do this, otherwise find 3 nearest neighbours (use sort in time.f90) and send rxyz arrays with 4 atoms
+  !if several fragments do this, otherwise find 3 nearest neighbours (use sort in time.f90) and send rxyz arrays with 4 atoms
 
   if (input_frag%nfrag>1) then
      ! Find fragment transformations for each fragment, then put in frag_trans array for each orb
@@ -2368,8 +2368,8 @@ open(16)
 
               call find_frag_trans(min(4,ref_frags(ifrag_ref)%astruct_frg%nat),rxyz4_ref,rxyz4_new,frag_trans_orb(iorbp))
 
-              !write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,iorb,rot_axis,theta',&
-              !     ifrag,iiorb,frag_trans_orb(iorbp)%rot_axis,frag_trans_orb(iorbp)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+              write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,iorb,rot_axis,theta',&
+                   ifrag,iiorb,frag_trans_orb(iorbp)%rot_axis,frag_trans_orb(iorbp)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
 
            end do
         end do
@@ -2399,7 +2399,7 @@ open(16)
      call memocc(i_stat,i_all,'rxyz4_new',subname)
 
   end if
-close(16)
+
 
   call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,psi_old,phi_array_old)
 
@@ -2468,57 +2468,21 @@ close(16)
         stop 'Coefficient format not implemented'
      end if
 
-     call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
-          ref_frags(ifrag_ref)%nksorb,ref_frags(ifrag_ref)%coeff,&
-          tmb%orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb))
-          !tmb%orbs%eval(isforb+1)
-
+     !if (input_frag%nfrag>1) then
+        call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
+             ref_frags(ifrag_ref)%nelec,ref_frags(ifrag_ref)%coeff,ref_frags(ifrag_ref)%eval)
+             !tmb%orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb))
+             !tmb%orbs%eval(isforb+1)
+        ! copying of coeffs from fragment to tmb%coeff now occurs after this routine
+     !else
+     !   call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
+     !        ref_frags(ifrag_ref)%nelec,tmb%coeff,tmb%orbs%eval)
+     !end if
      close(unitwf)
 
      isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
   end do
 
-  ! copy from coeff fragment to global coeffs - take occupied ones first, then unoccupied
-  ! (ideally reorder these by eval?)
-  isforb=0
-  jsforb=0
-  call to_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
-  do ifrag=1,input_frag%nfrag
-     ! find reference fragment this corresponds to
-     ifrag_ref=input_frag%frag_index(ifrag)
-
-     do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-        do jtmb=1,ref_frags(ifrag_ref)%nksorb
-           tmb%coeff(isforb+itmb,jsforb+jtmb)=ref_frags(ifrag_ref)%coeff(itmb,jtmb)
-        end do
-     end do
-
-     isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-     jsforb=jsforb+ref_frags(ifrag_ref)%nksorb
-  end do
-
-  isforb=0
-  do ifrag=1,input_frag%nfrag
-     ! find reference fragment this corresponds to
-     ifrag_ref=input_frag%frag_index(ifrag)
-     do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-        do jtmb=ref_frags(ifrag_ref)%nksorb+1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-           tmb%coeff(isforb+itmb,jsforb+jtmb-ref_frags(ifrag_ref)%nksorb)=ref_frags(ifrag_ref)%coeff(itmb,jtmb)
-        end do
-     end do
-
-     isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-     jsforb=jsforb+ref_frags(ifrag_ref)%fbasis%forbs%norb-ref_frags(ifrag_ref)%nksorb
-  end do
-
-!!$open(10)
-!!$  do itmb=1,tmb%orbs%norb
-!!$     do jtmb=1,tmb%orbs%norb
-!!$        if (iproc==0) write(10,*) jtmb,itmb,tmb%coeff(jtmb,itmb)
-!!$     end do
-!!$  end do
-!!$close(10)
-!!$call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
 
   call cpu_time(tr1)
   call system_clock(ncount2,ncount_rate,ncount_max)
@@ -2575,7 +2539,6 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
 
   ! to be fixed
   if (present(orblist)) then
-print*,'present(orblist)',present(orblist)
      stop 'orblist no longer functional in initialize_linear_from_file due to addition of fragment calculation'
   end if
 
