@@ -1786,7 +1786,7 @@ real(8) function ddot(n,A,l1,B,l2)
   real(8)::scpr
   integer::i
 
-  scpr=0.00_dp
+  ddot=0.00_dp
   do i=1,n
    ddot=ddot+A(i)*B(i)
   end do
