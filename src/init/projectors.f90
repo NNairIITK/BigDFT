@@ -842,7 +842,8 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
            if (psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
         enddo
      enddo
-  else if (npspcode(ityp) == 3 .or. npspcode(ityp) == 10) then !HGH and HGH-K
+  else if (npspcode(ityp) == 3 .or. npspcode(ityp) == 10 &
+                               .or. npspcode(ityp) == 12) then !HGH and HGH-K
      do l=1,4 
         do i=1,3 
            if (psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
