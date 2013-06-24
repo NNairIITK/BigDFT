@@ -298,7 +298,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
   ! before reformatting if useFormattedInput is .true.
-  real(wp), dimension(:), pointer :: psi_old
+  real(wp), dimension(:), pointer :: psi_old, psi_constrained
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj,gbd_occ!,rhocore
   ! Variables for the virtual orbitals and band diagram.
@@ -626,22 +626,79 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
           rxyz,denspot,denspot0,nlpspd,proj,GPU,energs,energy,fpulay,infocode,ref_frags,cdft)
 
-      ! deallocate fragments
-      if (in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
-         if (in%lin%fragment_calculation) then ! we really need to deallocate
-            do ifrag=1,in%frag%nfrag_ref
-               call fragment_free(ref_frags(ifrag))
-            end do
-         else ! we haven't actually allocated anything, so can just nullify - should make this more robust/general
-            do ifrag=1,in%frag%nfrag_ref
-               ref_frags(ifrag)%astruct_frg%nat=-1
-               ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
-               call fragment_free(ref_frags(ifrag))
-               !ref_frags(ifrag)=fragment_null()
-            end do
-         end if
-         deallocate(ref_frags)
-      end if
+     ! maybe not the best place to keep it - think about it!
+     if (in%lin%calc_transfer_integrals) then
+        if (in%lin%constrained_dft) then
+           ! switch excess charge to other fragment, recalculate kernel and density and reset lagrange multiplier
+
+           in_frag_charge=f_malloc_ptr(in%frag%nfrag,id='in_frag_charge')
+           call dcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
+           in_frag_charge(cdft%ifrag_charged(1))=0
+           call fragment_coeffs_to_kernel(in%frag,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated)
+           call f_free_ptr(in_frag_charge)
+
+           call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+                KSwfn%orbs, tmb, overlap_calculated)     
+           !tmb%can_use_transposed=.false. ! - do we really need to deallocate here?
+           !i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
+           !deallocate(tmb%psit_c,stat=i_stat)                                                 
+           !call memocc(i_stat,i_all,'tmb%psit_c',subname)                                     
+           !i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)                               
+           !deallocate(tmb%psit_f,stat=i_stat)                                                 
+           !call memocc(i_stat,i_all,'tmb%psit_f',subname)     
+
+           ! Now need to calculate the charge density and the potential related to this inputguess
+           call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
+                tmb%orbs, tmb%psi, tmb%collcom_sr)
+
+           call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+                tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+           ! Must initialize rhopotold (FOR NOW... use the trivial one)
+           call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
+                denspot%rhov(1), 1, denspot0(1), 1)
+           !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+           call updatePotential(in%ixc,in%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+           call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+
+           ! keep a copy of previous wavefunctions and energies...
+           allocate(psi_constrained(tmb%npsidim_orbs), stat=istat)
+           call memocc(istat, psi_constrained, 'psi_constrained', subname)
+           call dcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
+           energy_constrained=energy
+
+           call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
+                rxyz,denspot,denspot0,nlpspd,proj,GPU,energs,energy,fpulay,infocode,ref_frags,cdft)
+
+           ! calculate matrix elements here...
+
+           iall=-product(shape(psi_constrained))*kind(psi_constrained)
+           deallocate(psi_constrained, stat=istat)
+           call memocc(istat, iall, 'psi_constrained', subname)
+
+        else
+           if (.not. in%lin%fragment_calculation) stop 'Error, fragment calculation needed for transfer integral calculation'
+           !if (input%frag%nfrag==2) call calc_transfer_integrals_old(iproc,nproc,input%frag,ref_frags,tmb%orbs,&
+           !     tmb%linmat%ham,tmb%linmat%ovrlp)
+           call calc_site_energies_transfer_integrals(iproc,nproc,in%frag,ref_frags,tmb%orbs,tmb%linmat%ham,tmb%linmat%ovrlp)
+        end if
+     end if
+
+     ! deallocate fragments
+     if (in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+        if (in%lin%fragment_calculation) then ! we really need to deallocate
+           do ifrag=1,in%frag%nfrag_ref
+              call fragment_free(ref_frags(ifrag))
+           end do
+        else ! we haven't actually allocated anything, so can just nullify - should make this more robust/general
+           do ifrag=1,in%frag%nfrag_ref
+              ref_frags(ifrag)%astruct_frg%nat=-1
+              ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
+              call fragment_free(ref_frags(ifrag))
+              !ref_frags(ifrag)=fragment_null()
+           end do
+        end if
+        deallocate(ref_frags)
+     end if
 
      !!call finalize_p2p_tags()
   

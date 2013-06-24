@@ -47,6 +47,8 @@ module constrained_dft
      integer :: charge ! defines the value of the charge which is to be constrained
      real(gp) :: lag_mult ! the Lagrange multiplier used to enforce the constraint
      character(len=100) :: method
+     integer, dimension(2) :: ifrag_charged ! make it allocatable eventually to allow for more charged fragments
+     integer :: nfrag_charged
   end type cdft_data
 
   public :: nullify_cdft_data, cdft_data_allocate, cdft_data_free, cdft_data_init
@@ -54,9 +56,10 @@ module constrained_dft
 
 contains
 
-
   ! CDFT: calculates the weight matrix w_ab via the expression S^1/2PS^1/2, where S is the overlap of the whole system
   ! CDFT: and P is a projector matrix onto the tmbs of the desired fragment
+  ! CDFT: for standalone CDFT calculations, assuming one charged fragment, for transfer integrals assuming two fragments
+  ! CDFT: where we constrain the difference - should later generalize this
   subroutine calculate_weight_matrix_lowdin(cdft,tmb,input,ref_frags,calculate_overlap_matrix)
     use module_fragments
     implicit none
@@ -66,8 +69,7 @@ contains
     logical, intent(in) :: calculate_overlap_matrix
     type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
 
-    integer :: iall, iorb, jorb, istat, ifrag, ifrag_ref, ifrag_charged, isforb
-    real(kind=gp),dimension(:),allocatable :: psit_c, psit_f
+    integer :: iall, iorb, jorb, istat, ifrag, ifrag_ref, isforb
     real(kind=gp), allocatable, dimension(:,:) :: proj_mat, ovrlp_half, proj_ovrlp_half, inv_ovrlp_half
     character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
 
@@ -76,14 +78,9 @@ contains
 
     call f_routine(id='calculate_weight_matrix_lowdin')
 
-    do ifrag=1,input%frag%nfrag
-       if (input%frag%charge(ifrag)/=0) then
-           ifrag_charged=ifrag
-          exit
-       end if
-    end do
-
-    cdft%charge=ref_frags(ifrag_charged)%nelec-input%frag%charge(ifrag_charged)
+    if (.not. input%lin%calc_transfer_integrals) then
+       cdft%charge=ref_frags(cdft%ifrag_charged(1))%nelec-input%frag%charge(cdft%ifrag_charged(1))
+    end if
 
     if (calculate_overlap_matrix) then
        if(.not.tmb%can_use_transposed) then
@@ -139,8 +136,6 @@ contains
     call f_free_ptr(tmb%linmat%ovrlp%matrix)
 
 
-
-
     ! optimize this to just change the matrix multiplication?
     proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
 
@@ -148,10 +143,17 @@ contains
     isforb=0
     do ifrag=1,input%frag%nfrag
        ifrag_ref=input%frag%frag_index(ifrag)
-       if (ifrag==ifrag_charged) then
+       if (ifrag==cdft%ifrag_charged(1)) then
           do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
              proj_mat(iorb+isforb,iorb+isforb)=1.0_gp
           end do
+       end if
+       if (input%lin%calc_transfer_integrals) then
+          if (ifrag==cdft%ifrag_charged(2)) then
+             do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+                proj_mat(iorb+isforb,iorb+isforb)=-1.0_gp
+             end do
+          end if
        end if
        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
     end do
@@ -372,7 +374,7 @@ contains
 
     character(len=200), parameter :: subname='cdft_data_free'
 
-    if (associated(cdft%weight_function)) call f_free_ptr(cdft%weight_function)
+    !if (associated(cdft%weight_function)) call f_free_ptr(cdft%weight_function)
     call deallocate_sparseMatrix(cdft%weight_matrix, subname)
     call nullify_cdft_data(cdft)
   end subroutine cdft_data_free
@@ -386,7 +388,6 @@ contains
     integer :: istat
 
     call f_routine(id='cdft_data_allocate')
-    cdft%weight_function=f_malloc_ptr(cdft%ndim_dens,id='cdft%weight_function')
     call sparse_copy_pattern(ham, cdft%weight_matrix, bigdft_mpi%iproc, subname)
     !cdft%weight_matrix%matrix_compr=f_malloc_ptr(cdft%weight_matrix%nvctr,id='cdft%weight_matrix%matrix_compr')
     allocate(cdft%weight_matrix%matrix_compr(cdft%weight_matrix%nvctr), stat=istat)
@@ -395,33 +396,55 @@ contains
 
   end subroutine cdft_data_allocate
 
-  subroutine cdft_data_init(cdft,input_frag,ndimrho)
+  subroutine cdft_data_init(cdft,input_frag,ndimrho,transfer_int)
     implicit none
     type(cdft_data), intent(inout) :: cdft
     type(fragmentInputParameters), intent(in) :: input_frag
     integer, intent(in) :: ndimrho
+    logical, intent(in) :: transfer_int
 
-    integer :: ifrag, ifrag_charged, nfrag_charged
+    integer :: ifrag, icharged
 
-    ! assume (check) for now that only one fragment is charged
-    nfrag_charged=0
+    ! For non-transfer integral calculation only one fragment should be charged
+    ! For transfer integral calculation two should have charge
+    ! the value is interpreted as the charge difference and so both should have the same charge
+    ! we therefore do a calculation with a +ve difference followed by a -ve difference
+    cdft%nfrag_charged=0
     do ifrag=1,input_frag%nfrag
-       if (input_frag%charge(ifrag)/=0) nfrag_charged=nfrag_charged+1
+       if (input_frag%charge(ifrag)/=0) cdft%nfrag_charged=cdft%nfrag_charged+1
     end do
 
-    if (nfrag_charged/=1) stop 'Error in constrained DFT, exactly one fragment must have a non-zero charge value'
+    if (transfer_int) then
+       if (cdft%nfrag_charged/=2) stop 'Error in constrained DFT, two fragments must be charged for transfer integral calculation'
+    else ! could generalize this later (by summing charges and fragments), but for now keep as simplest scenario
+       if (cdft%nfrag_charged/=1) stop 'Error in constrained DFT, exactly one fragment must have a non-zero charge value'//&
+            ' unless this is a transfer integral calculation'
+    end if
 
+    icharged=1
     do ifrag=1,input_frag%nfrag
        if (input_frag%charge(ifrag)/=0) then
-          cdft%charge=input_frag%charge(ifrag)
-          !cdft%ndim_dens=ref_frags(input_frag%index(ifrag))%fbasis%ndim_psi
-          exit
+           cdft%ifrag_charged(icharged)=ifrag
+           icharged=icharged+1
        end if
     end do
 
+    if (cdft%nfrag_charged==2) then
+       if (input_frag%charge(cdft%ifrag_charged(1))/=input_frag%charge(cdft%ifrag_charged(2))) then
+          stop 'Error in constrained DFT, both fragments should have the same charge, '//&
+               'which is interpreted as the charge difference between then two'
+       end if
+    end if
+
+    cdft%charge=input_frag%charge(cdft%ifrag_charged(1))
+
     cdft%ndim_dens=ndimrho ! either size of fragment psi (add to fragment structure?), or size of entire simulation cell
 
-    cdft%lag_mult=-0.05_gp ! pick some sensible initial value here
+    if (cdft%charge<0) then
+       cdft%lag_mult=-0.05_gp ! pick some sensible initial value here
+    else
+       cdft%lag_mult=0.05_gp ! pick some sensible initial value here
+    end if
 
     cdft%method='lowdin'
     !cdft%method='fragment_density'

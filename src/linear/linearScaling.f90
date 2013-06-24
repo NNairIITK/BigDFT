@@ -123,9 +123,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
   end if
 
-  tmb%can_use_transposed=.false.
-  nullify(tmb%psit_c)
-  nullify(tmb%psit_f)
+  ! we already have psit in the other case, and in fact the overlap, so eventually could reuse that as well
+  if (.not. (input%lin%constrained_dft .and. trim(cdft%method)=='lowdin')) then
+     tmb%can_use_transposed=.false.
+     nullify(tmb%psit_c)
+     nullify(tmb%psit_f)
+  end if
 
   call timing(iproc,'linscalinit','OF') !lr408t
 
@@ -152,25 +155,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
   if (iproc ==0) call yaml_close_map()
 
-  ! CDFT: calculate w_ab here given w(r)
-  ! CDFT: first check that we aren't updating the basis at any point and we don't have any low acc iterations
   if (input%lin%constrained_dft) then
      call timing(iproc,'constraineddft','ON')
      if (nit_lowaccuracy>0 .or. input%lin%nItBasis_highaccuracy>1) then
         stop 'Basis cannot be updated for now in constrained DFT calculations and no low accuracy is allowed'
      end if
+  end if
 
-     if (trim(cdft%method)=='fragment_density') then ! fragment density approach
-        call calculate_weight_matrix_using_density(cdft,tmb,at,input,GPU,denspot)
-     else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
-        call calculate_weight_matrix_lowdin(cdft,tmb,input,ref_frags,.true.)
-        ! debug
-        call plot_density(iproc,nproc,'initial_density.cube', &
-             at,rxyz,denspot%dpbox,1,rhopotold)
-        ! debug
-     else 
-        stop 'Error invalid method for calculating CDFT weight matrix'
-     end if
+
+  ! CDFT: calculate w_ab here given w(r)
+  ! CDFT: first check that we aren't updating the basis at any point and we don't have any low acc iterations
+  if (input%lin%constrained_dft) then
+     call timing(iproc,'constraineddft','ON')
 
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
           ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
@@ -569,11 +565,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                end if
                vold=cdft%lag_mult
                cdft%lag_mult=cdft%lag_mult+valpha*vgrad
-            else if (cdft_it==1 .or. .true.) then !first step newton
+            else if (cdft_it==1) then !first step newton
                vold=cdft%lag_mult
                if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itn, V, Vg',&
                     cdft_it,cdft%lag_mult,vgrad
-               cdft%lag_mult=cdft%lag_mult-5.0e-2
+               cdft%lag_mult=cdft%lag_mult*2.0_gp
             else ! newton
                vgrad2=(vgrad-vgrad_old)/(cdft%lag_mult-vold)
                if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itn, V, Vold, Vg, Vgold, Vg2, Vg/Vg2',&
@@ -694,14 +690,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      call write_linear_matrices(iproc,nproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb,at,rxyz)
   end if
  
-  ! maybe not the best place to keep it - think about it!
-  if (input%lin%calc_transfer_integrals) then
-     if (.not. input%lin%fragment_calculation) stop 'Error, fragment calculation needed for transfer integral calculation'
-     !if (input%frag%nfrag==2) call calc_transfer_integrals_old(iproc,nproc,input%frag,ref_frags,tmb%orbs,&
-     !     tmb%linmat%ham,tmb%linmat%ovrlp)
-     call calc_site_energies_transfer_integrals(iproc,nproc,input%frag,ref_frags,tmb%orbs,tmb%linmat%ham,tmb%linmat%ovrlp)
-  end if
-
   !DEBUG
   !ind=1
   !do iorb=1,tmb%orbs%norbp
@@ -713,6 +701,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !end do
   ! END DEBUG
 
+  ! check why this is here!
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
@@ -1920,6 +1909,7 @@ end subroutine calc_transfer_integral
 ! calculation of cSc and cHc using original coeffs and new Hamiltonian and overlap matrices
 ! parallelization to be improved
 ! only calculates transfer integrals if we have two fragments
+! occs are for neutral reference fragments...
 subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovrlp)
   use module_base
   use module_types
@@ -1985,7 +1975,6 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   call memocc(i_stat, ham%matrix, 'ham%matrix', subname)
   call overlapPowerPlusMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, 0, -8, &
        -8, orbs%norb, ovrlp%matrix, ham%matrix, .false., orbs)
-  call memocc(i_stat, i_all, 'ham%matrix', subname)
   i_all=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
   deallocate(ovrlp%matrix, stat=i_stat)
   call memocc(i_stat, i_all, 'ovrlp%matrix', subname)
@@ -1998,6 +1987,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
 
   i_all=-product(shape(ham%matrix))*kind(ham%matrix)
   deallocate(ham%matrix, stat=i_stat)
+  call memocc(i_stat, i_all, 'ham%matrix', subname)
 
   allocate(homo_ham_orthog(nstates), stat=i_stat)
   call memocc(i_stat, homo_ham_orthog, 'homo_ham_orthog', subname)
@@ -2091,9 +2081,11 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
      homo2=ceiling((ref_frags(ifrag_ref2)%nelec)/2.0_gp)
 
      do jh=-2,2
-        if (homo2+jh>ref_frags(ifrag_ref2)%fbasis%forbs%norb) cycle     
+        if (homo2+jh>ref_frags(ifrag_ref2)%fbasis%forbs%norb) cycle  
+        if (homo2+jh<1) cycle  
         do ih=-2,2
            if (homo1+ih>ref_frags(ifrag_ref1)%fbasis%forbs%norb) cycle
+           if (homo1+ih<1) cycle  
 
            i=homo1+ih
            j=homo2+jh+min(ceiling((ref_frags(ifrag_ref1)%nelec+1)/2.0_gp)+1,ref_frags(ifrag_ref1)%fbasis%forbs%norb)
@@ -2101,28 +2093,28 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
            if (iproc==0) then
               if (ih<0) then
                  write(str,'(I2)') abs(ih)
-                 write(*,'(a,a8)',advance='NO') trim(input_frag%label(1)),adjustl(' HOMO-'//trim(adjustl(str)))
+                 write(*,'(a,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),adjustl(' HOMO-'//trim(adjustl(str)))
               else if (ih==0) then
-                 write(*,'(a,a8)',advance='NO') trim(input_frag%label(1)),adjustl(' HOMO  ')
+                 write(*,'(a,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),adjustl(' HOMO  ')
               else if (ih==1) then
-                 write(*,'(a,a8)',advance='NO') trim(input_frag%label(1)),adjustl(' LUMO  ')
+                 write(*,'(a,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),adjustl(' LUMO  ')
               else
                  write(str,'(I2)') ih-1
-                 write(*,'(a,a8)',advance='NO') trim(input_frag%label(1)),adjustl(' LUMO+'//trim(adjustl(str)))
+                 write(*,'(a,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),adjustl(' LUMO+'//trim(adjustl(str)))
               end if
            end if
 
            if (iproc==0) then
               if (jh<0) then
                  write(str,'(I2)') abs(jh)
-                 write(*,'(1x,a,a8)',advance='NO') trim(input_frag%label(2)),adjustl(' HOMO-'//trim(adjustl(str)))
+                 write(*,'(1x,a,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),adjustl(' HOMO-'//trim(adjustl(str)))
               else if (jh==0) then
-                 write(*,'(1x,a,a8)',advance='NO') trim(input_frag%label(2)),adjustl(' HOMO  ')
+                 write(*,'(1x,a,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),adjustl(' HOMO  ')
               else if (jh==1) then
-                 write(*,'(1x,a,a8)',advance='NO') trim(input_frag%label(2)),adjustl(' LUMO  ')
+                 write(*,'(1x,a,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),adjustl(' LUMO  ')
               else
-                 write(str,'(I2)') jh
-                 write(*,'(1x,a,a8)',advance='NO') trim(input_frag%label(2)),adjustl(' LUMO+'//trim(adjustl(str)))
+                 write(str,'(I2)') jh-1
+                 write(*,'(1x,a,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),adjustl(' LUMO+'//trim(adjustl(str)))
               end if
            end if
 

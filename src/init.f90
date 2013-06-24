@@ -2425,9 +2425,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(paw_objects)::paw
   logical :: overlap_calculated, norb_change, perx,pery,perz
   real(gp) :: tx,ty,tz,displ,mindist,t2,t1
+  integer, dimension(:), pointer :: in_frag_charge
 
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
+
+  call f_routine(id='input_wf')
 
   !nullify paw objects:
   do iatyp=1,atoms%astruct%ntypes
@@ -2729,11 +2732,33 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!deallocate(tmb%linmat%denskern%matrix,stat=i_stat)
      !!call memocc(i_stat,i_all,'tmb%linmat%denskern%matrix',subname)           
 
+     ! CDFT: need to do this here to correct fragment charges in case of constrained transfer integral calculation
+     call nullify_cdft_data(cdft)
+     nullify(in_frag_charge)
+     if (in%lin%constrained_dft) then
+        call cdft_data_init(cdft,in%frag,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,&
+             in%lin%calc_transfer_integrals)
+        if (in%lin%calc_transfer_integrals) then
+           in_frag_charge=f_malloc_ptr(in%frag%nfrag,id='in_frag_charge')
+           call dcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
+           in_frag_charge(cdft%ifrag_charged(2))=0
+        else
+           in_frag_charge=>in%frag%charge
+        end if
+     else
+        in_frag_charge=>in%frag%charge
+     end if
+
      ! we have to copy the coeffs from the fragment structure to the tmb structure and reconstruct each 'mini' kernel
      ! this is overkill as we are recalculating the kernel anyway - fix at some point
      ! or just put into fragment structure to save recalculating for CDFT
      if (in%lin%fragment_calculation) then
-        call fragment_coeffs_to_kernel(in%frag,ref_frags,tmb,KSwfn%orbs,overlap_calculated)
+        call fragment_coeffs_to_kernel(in%frag,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated)
+        if (in%lin%calc_transfer_integrals.and.in%lin%constrained_dft) then
+           call f_free_ptr(in_frag_charge)
+        else
+           nullify(in_frag_charge)
+        end if
      else
         call dcopy(tmb%orbs%norb**2,ref_frags(1)%coeff(1,1),1,tmb%coeff(1,1),1)
         call dcopy(tmb%orbs%norb,ref_frags(1)%eval(1),1,tmb%orbs%eval(1),1)
@@ -2786,19 +2811,28 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
           tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
-     ! CDFT: calculate w(r), define some initial guess for V and initialize other cdft_data stuff
-     ! CDFT: could move to linearscaling but use rhopotold rather than rhov, but keep here in case we want to deallocate fragment stuff
-
+     ! CDFT: calculate w(r) and w_ab, define some initial guess for V and initialize other cdft_data stuff
      call timing(iproc,'constraineddft','ON')
-     call nullify_cdft_data(cdft)
      if (in%lin%constrained_dft) then
-        call cdft_data_init(cdft,in%frag,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d)
         call cdft_data_allocate(cdft,tmb%linmat%ham)
-        if (trim(cdft%method)=='fragment_density') then
+        if (trim(cdft%method)=='fragment_density') then ! fragment density approach
+           if (in%lin%calc_transfer_integrals) stop 'Must use Lowdin for CDFT transfer integral calculations for now'
+           cdft%weight_function=f_malloc_ptr(cdft%ndim_dens,id='cdft%weight_function')
            call calculate_weight_function(in,ref_frags,cdft,&
                 KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,denspot%rhov,tmb,atoms,rxyz,denspot)
+           call calculate_weight_matrix_using_density(cdft,tmb,atoms,in,GPU,denspot)
+           call f_free_ptr(cdft%weight_function)
+        else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
+           call calculate_weight_matrix_lowdin(cdft,tmb,in,ref_frags,.true.)
+           ! debug
+           call plot_density(iproc,nproc,'initial_density.cube', &
+                atoms,rxyz,denspot%dpbox,1,denspot%rhov)
+           ! debug
+        else 
+           stop 'Error invalid method for calculating CDFT weight matrix'
         end if
      end if
+
      call timing(iproc,'constraineddft','OF')
 
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
@@ -2877,6 +2911,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         inputpsi == INPUT_PSI_MEMORY_LINEAR ).and. tmb%c_obj /= 0) then
       call kswfn_emit_psi(tmb, 0, 0, iproc, nproc)
    end if
+
+   call f_release_routine()
 
 END SUBROUTINE input_wf
 

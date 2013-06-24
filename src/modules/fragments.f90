@@ -1211,11 +1211,13 @@ contains
     else
        ! squares of rot_axis are diag 0.5(R+I), signs as before
        !this is not good as it gives a array of modulus bigger than one
-       rot_axis(1:2)=0.0_gp
-       rot_axis(3)=1.0_gp
-       !rot_axis(1)=sign(dsqrt(0.5_gp*(R_mat(1,1)+1.0_gp)),rot_axis(1))
-       !rot_axis(2)=sign(dsqrt(0.5_gp*(R_mat(2,2)+1.0_gp)),rot_axis(2))
-       !rot_axis(3)=sign(dsqrt(0.5_gp*(R_mat(3,3)+1.0_gp)),rot_axis(3))
+       !rot_axis(1:2)=0.0_gp
+       !rot_axis(3)=1.0_gp
+       rot_axis(1)=sign(dsqrt(0.5_gp*(R_mat(1,1)+1.0_gp)),rot_axis(1))
+       rot_axis(2)=sign(dsqrt(0.5_gp*(R_mat(2,2)+1.0_gp)),rot_axis(2))
+       rot_axis(3)=sign(dsqrt(0.5_gp*(R_mat(3,3)+1.0_gp)),rot_axis(3))
+       norm=dnrm2(3,rot_axis,1)
+       call dscal(3,1.0_gp/norm,rot_axis,1)
        !print*,'axis_from_r3',norm,rot_axis
     end if
 
@@ -1254,13 +1256,14 @@ contains
          + a(1,3)*(a(2,1)*a(3,2) - a(3,1)*a(2,2))
   end function det_33
 
-  subroutine fragment_coeffs_to_kernel(input_frag,ref_frags,tmb,ksorbs,overlap_calculated)
+  subroutine fragment_coeffs_to_kernel(input_frag,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated)
     implicit none
     type(DFT_wavefunction), intent(inout) :: tmb
     type(fragmentInputParameters), intent(in) :: input_frag
     type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
     type(orbitals_data), intent(inout) :: ksorbs
     logical, intent(inout) :: overlap_calculated
+    integer, dimension(input_frag%nfrag), intent(in) :: input_frag_charge
 
     integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, nelecfrag_tot, itmb, jtmb
     integer :: nksorbs_correct, nksorbsp_correct, ksisorb_correct
@@ -1275,7 +1278,7 @@ contains
     nelecfrag_tot=0
     do ifrag=1,input_frag%nfrag
        ifrag_ref=input_frag%frag_index(ifrag)
-       nelecfrag_tot=nelecfrag_tot+ref_frags(ifrag_ref)%nelec-input_frag%charge(ifrag)
+       nelecfrag_tot=nelecfrag_tot+ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag)
     end do
 
     ! in theory we could add/remove states depending on their energies, but for now we force the user to specify
@@ -1312,7 +1315,7 @@ contains
 
        call razero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
 
-       do jtmb=1,nint((ref_frags(ifrag_ref)%nelec-input_frag%charge(ifrag))/2.0_gp)
+       do jtmb=1,nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
           do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
              tmb%coeff(isforb+itmb,jtmb)=ref_frags(ifrag_ref)%coeff(itmb,jtmb)
              tmb%orbs%eval(jsforb+jtmb)=ref_frags(ifrag_ref)%eval(jtmb)
@@ -1332,7 +1335,7 @@ contains
        ! should correct the occupation for kernel here, but as we replace the smaller kernel with the correct bigger kernel
        ! don't worry about this for now
        ! can also therefore keep ksorbs%norb as it is as we don't need to keep the kernel?
-       ksorbs%norb=nint((ref_frags(ifrag_ref)%nelec-input_frag%charge(ifrag))/2.0_gp)
+       ksorbs%norb=nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
        if (bigdft_mpi%iproc==0) then
           ksorbs%norbp=ksorbs%norb
           ksorbs%isorb=0
@@ -1367,14 +1370,14 @@ contains
        !call daxpy(tmb%linmat%denskern%nvctr,1.0d0,tmb%linmat%denskern%matrix_compr(1),1,kernel_final(1),1)
 
        ! update coeff_final matrix following coeff reorthonormalization
-       do jtmb=1,nint((ref_frags(ifrag_ref)%nelec-input_frag%charge(ifrag))/2.0_gp)
+       do jtmb=1,nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
           do itmb=1,tmb%orbs%norb
              coeff_final(itmb,jsforb+jtmb)=tmb%coeff(itmb,jtmb)
           end do
        end do
 
        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-       jsforb=jsforb+nint((ref_frags(ifrag_ref)%nelec-input_frag%charge(ifrag))/2.0_gp)
+       jsforb=jsforb+nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
     end do
 
     !*call dcopy(tmb%linmat%denskern%nvctr,kernel_final(1),1,tmb%linmat%denskern%matrix_compr(1),1)
@@ -1425,17 +1428,17 @@ contains
     do ifrag=1,input_frag%nfrag
        ! find reference fragment this corresponds to
        ifrag_ref=input_frag%frag_index(ifrag)
-       do jtmb=nint((ref_frags(ifrag_ref)%nelec-input_frag%charge(ifrag))/2.0_gp)+1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+       do jtmb=nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)+1,ref_frags(ifrag_ref)%fbasis%forbs%norb
           do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-             tmb%coeff(isforb+itmb,jsforb+jtmb-nint((ref_frags(ifrag_ref)%nelec-input_frag%charge(ifrag))/2.0_gp))&
+             tmb%coeff(isforb+itmb,jsforb+jtmb-nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp))&
                   =ref_frags(ifrag_ref)%coeff(itmb,jtmb)
-             tmb%orbs%eval(jsforb+jtmb-nint((ref_frags(ifrag_ref)%nelec-input_frag%charge(ifrag))/2.0_gp))&
+             tmb%orbs%eval(jsforb+jtmb-nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp))&
                   =ref_frags(ifrag_ref)%eval(jtmb)
           end do
        end do
 
        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-       jsforb=jsforb+ref_frags(ifrag_ref)%fbasis%forbs%norb-(nint((ref_frags(ifrag_ref)%nelec-input_frag%charge(ifrag))/2.0_gp))
+       jsforb=jsforb+ref_frags(ifrag_ref)%fbasis%forbs%norb-(nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp))
     end do
 
     ! debug

@@ -1154,7 +1154,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 
   !call field_rototranslation(nd,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
   !     hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
-  call field_rototranslation3D(nd,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
+  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
        hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
 
   if (size(frag_trans%discrete_operations)>0) then
@@ -1340,7 +1340,7 @@ subroutine define_filter(dt,nrange,nphi,phi,shf)
   real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
   real(gp), dimension(-nrange/2:nrange/2), intent(out) :: shf !< interpolating filter to be applied
   !local variables
-  integer :: nunit,ish,ipos,m_isf,l
+  integer :: nunit,ish,ipos,m_isf,l,jisf
   
   m_isf=nrange/2
   !number of points for a unit displacement
@@ -1348,26 +1348,49 @@ subroutine define_filter(dt,nrange,nphi,phi,shf)
   
   !evaluate the shift
   ish=nint(real(nunit,gp)*dt)
-  
-  if (ish<=0) then
-     shf(-m_isf)=0.0_gp
+
+  !starting point in the filter definition
+  ipos=ish!+1
+  if (ish<= 0) then
+     jisf=-(abs(ish))/nunit-1
+  else if (ish > 0) then
+     jisf=ish/nunit+1
   else
-     shf(-m_isf)=phi(ish)  
+     jisf=0
   end if
-  ipos=ish
-  
-  do l=-m_isf+1,m_isf-1 !extremes excluded
-     !position of the shifted argument in the phi array
+  jisf=jisf-m_isf
+
+  !fill the filters in its nonzero coefficients
+  do l=-m_isf,m_isf
+     if (jisf >= -m_isf .and. jisf <= m_isf) then
+        shf(l)=phi(ipos)
+     else
+        shf(l)=0.0_gp
+     end if
+     jisf=jisf+1
      ipos=ipos+nunit
-     shf(l)=phi(ipos)  
   end do
-  
-  if (ish<=0) then
-     shf(m_isf)=phi(ipos+nunit)
-  else
-     shf(m_isf)=0.0_gp
-  end if
-  !end of define_filter
+
+!!$  !old method
+!!$  if (ish<=0) then
+!!$     shf(-m_isf)=0.0_gp
+!!$  else
+!!$     shf(-m_isf)=phi(ish)  
+!!$  end if
+!!$  ipos=ish
+!!$  
+!!$  do l=-m_isf+1,m_isf-1 !extremes excluded
+!!$     !position of the shifted argument in the phi array
+!!$     ipos=ipos+nunit
+!!$     shf(l)=phi(ipos)  
+!!$  end do
+!!$  
+!!$  if (ish<=0) then
+!!$     shf(m_isf)=phi(ipos+nunit)
+!!$  else
+!!$     shf(m_isf)=0.0_gp
+!!$  end if
+
 end subroutine define_filter
 
 !> given a translation vector, find the inverse one
@@ -1947,9 +1970,18 @@ subroutine interpolate_xp_from_x(nx,ny,nz,cx,cy,cz,cx_new,hx,hy,hz,hx_new,&
            t0_l=(x-x_xpyz(theta,newz,x,y,z)+dx)/hx 
            k1=min(max(1,nint((x_xpyz(theta,newz,x,y,z)+cx+hx)/hx)),nx_old)
 
-           dt=t0_l-nint(t0_l)
+!!$           dt=t0_l-nint(t0_l)
            diff=real(i,gp)-(k1+t0_l)   
-           if (abs(diff - dt) < abs(diff+dt)) dt=-dt
+!!$           if (abs(diff) < 1.d0 .or. .true.) then
+              dt=-diff
+!!$           else if (abs(diff - dt) < abs(diff+dt)) then
+!!$              !if (abs(diff) < 1.d0) print *,'herex',dt,diff
+!!$              dt=-dt
+!!$           end if
+
+           !if (abs(abs(diff)-abs(dt)) > 1.d-12) print '(a,1pg25.17,4(i4),6(1pg25.17))','final values',t0_l,k1,&
+           !     i,j,k,dt,diff
+
            !define filter for the interpolation starting from a constant shift
            call define_filter(dt,nrange,nphi,phi,shf)
            !interpolate the result
@@ -2062,9 +2094,16 @@ subroutine interpolate_yp_from_y(nx,ny,nz,cx,cy,cz,cy_new,hx,hy,hz,hy_new,&
            t0_l=(y-y_xpypz(theta,newz,x,y,z)+dy)/hy 
            k1=min(max(1,nint((y_xpypz(theta,newz,x,y,z)+cy+hy)/hy)),ny_old)
 
-           dt=t0_l-nint(t0_l)
+!!$           dt=t0_l-nint(t0_l)
            diff=real(j,gp)-(k1+t0_l)   
-           if (abs(diff - dt) < abs(diff+dt)) dt=-dt
+!!$!           if (abs(diff - dt) < abs(diff+dt)) dt=-dt
+!!$           if (abs(diff) < 1.d0 .or. .true.) then
+              dt=-diff
+!!$           else if (abs(diff - dt) < abs(diff+dt)) then
+!!$              !if (abs(diff) < 1.d0) print *,'herey',dt,diff
+!!$              dt=-dt
+!!$           end if
+
            !define filter for the interpolation starting from a constant shift
            call define_filter(dt,nrange,nphi,phi,shf)
            !interpolate the result
@@ -2174,9 +2213,16 @@ subroutine interpolate_zp_from_z(nx,ny,nz,cx,cy,cz,cz_new,hx,hy,hz,hz_new,&
            t0_l=(z-z_xpypzp(theta,newz,x,y,z)+dz)/hz 
            k1=min(max(1,nint((z_xpypzp(theta,newz,x,y,z)+cz+hz)/hz)),nz_old)
 
-           dt=t0_l-nint(t0_l)
+!!$           dt=t0_l-nint(t0_l)
            diff=real(k,gp)-(k1+t0_l)   
-           if (abs(diff - dt) < abs(diff+dt)) dt=-dt
+!!$           !if (abs(diff - dt) < abs(diff+dt)) dt=-dt
+!!$           if (abs(diff) < 1.d0 .or. .true.) then
+              dt=-diff
+!!$           else if (abs(diff - dt) < abs(diff+dt)) then
+!!$              !if (abs(diff) < 1.d0) print *,'herez',dt,diff
+!!$              dt=-dt
+!!$           end if
+
            !define filter for the interpolation starting from a constant shift
            call define_filter(dt,nrange,nphi,phi,shf)
            !interpolate the result
