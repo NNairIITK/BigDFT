@@ -72,6 +72,7 @@ module dictionaries
   !> Public routines
   public :: operator(//),operator(.index.),assignment(=)
   public :: set,dict_init,dict_free,pop,append,prepend,add
+  public :: dict_copy, dict_update
   !Handle exceptions
   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,has_key,dict_keys
   public :: dict_new,list_new
@@ -924,6 +925,101 @@ contains
     end if
 
   end subroutine put_long
+
+  !> merge subd into dict.
+  subroutine dict_update(dict, subd)
+    implicit none
+    type(dictionary), pointer :: dict, subd
+
+    if (.not.associated(dict)) then
+       call dict_copy(dict, subd)
+    else
+       call update(dict, subd)
+    end if
+    
+    contains
+
+      recursive subroutine update(dict, subd)
+        implicit none
+        type(dictionary), pointer :: dict, subd
+
+        integer :: i
+        character(len = max_field_length), dimension(:), allocatable :: keys
+        character(len = max_field_length) :: val
+
+        if (dict_len(subd) > 0) then
+           ! List case
+           if (dict_size(dict) > 0) then
+              ! Incompatible dict and subd.
+              call f_err_throw()
+              return
+           end if
+           ! Replace elements.
+           do i = 0, min(dict_len(dict), dict_len(subd)) - 1, 1
+              call update(dict // i, subd // i)
+           end do
+           ! Copy additional elements.
+           do i = dict_len(dict), dict_len(subd) - 1, 1
+              call dict_copy(dict // i, subd // i)
+           end do
+        else if (dict_size(subd) > 0) then
+           if (dict_len(dict) > 0) then
+              ! Incompatible dict and subd.
+              call f_err_throw()
+              return
+           end if
+           ! Dict case
+           allocate(keys(dict_size(subd)))
+           keys = dict_keys(subd)
+           do i = 1, size(keys), 1
+              call update(dict // keys(i), subd // keys(i))
+           end do
+           deallocate(keys)
+        else if (associated(subd)) then
+           ! Scalar case
+           val = subd
+           call set(dict, val)
+        end if
+      end subroutine update
+  end subroutine dict_update
+
+  subroutine dict_copy(dict, ref)
+    implicit none
+    type(dictionary), pointer :: dict, ref
+
+    if (.not. associated(dict)) call dict_init(dict)
+    call copy(dict, ref)
+
+    contains
+      recursive subroutine copy(dict, ref)
+        implicit none
+        type(dictionary), pointer :: dict, ref
+
+        integer :: i
+        character(max_field_length), dimension(:), allocatable :: keys
+        character(len = max_field_length) :: val
+
+        if (dict_len(ref) > 0) then
+           ! List case.
+           do i = 0, dict_len(ref) - 1, 1
+              call copy(dict // i, ref // i)
+           end do
+        else if (dict_size(ref) > 0) then
+           ! Dictionary case
+           allocate(keys(dict_size(ref)))
+           keys = dict_keys(ref)
+           do i = 1, size(keys), 1
+              call copy(dict // keys(i), ref // keys(i))
+           end do
+           deallocate(keys)
+        else if (associated(ref)) then
+           ! Leaf case.
+           val = ref
+           call set(dict, val)
+        end if
+      end subroutine copy
+
+  end subroutine dict_copy
 
   !include the module of error handling
   include 'error_handling.f90'

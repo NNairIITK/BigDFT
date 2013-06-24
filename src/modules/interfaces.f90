@@ -237,13 +237,14 @@ module module_interfaces
          real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
       END SUBROUTINE write_atomic_file
 
-      subroutine read_inputs_from_text_format(input_values, radical, iproc)
+      function read_input_dict_from_files(radical, mpi_env) result(dict)
         use dictionaries
+        use wrapper_MPI
         implicit none
-        integer, intent(in) :: iproc
-        type(dictionary), pointer :: input_values
         character(len = *), intent(in) :: radical
-      end subroutine read_inputs_from_text_format
+        type(mpi_environment), intent(in) :: mpi_env
+        type(dictionary), pointer :: dict
+      end function read_input_dict_from_files
 
       subroutine inputs_from_dict(in, atoms, dict, dump)
         use module_types

@@ -37,9 +37,7 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
 
   ! initialize mpi environment (this shouldn't be done twice)
 !  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,nproc)
-  !standard names
-  call dict_init(dict)
-  call read_inputs_from_text_format(dict, trim(radical), bigdft_mpi%iproc)
+  dict => read_input_dict_from_files(trim(radical), bigdft_mpi)
 
   call standard_inputfile_names(in,trim(radical))
   call inputs_from_dict(in, atoms, dict, .true.)
@@ -219,6 +217,55 @@ subroutine standard_inputfile_names(in, radical)
   in%files = INPUTS_NONE
 END SUBROUTINE standard_inputfile_names
 
+function read_input_dict_from_files(radical, mpi_env) result(dict)
+  use dictionaries
+  use wrapper_MPI
+  use module_input_keys
+  use input_old_text_format
+  implicit none
+  character(len = *), intent(in) :: radical
+  type(mpi_environment), intent(in) :: mpi_env
+
+  type(dictionary), pointer :: dict
+  logical :: exists_default, exists_user
+  character(len = max_field_length) :: fname
+  character(len = 100) :: f0
+  
+  nullify(dict)
+  ! We try first default.yaml
+  inquire(file = trim(fname), exist = exists_default)
+  if (exists_default) call merge_input_file_to_dict(dict, "default.yaml", mpi_env)
+
+  ! We try then radical.yaml
+  if (len_trim(radical) == 0) then
+     fname = "input.yaml"
+  else
+     fname(1:max_field_length) = trim(radical) // ".yaml"
+  end if
+  inquire(file = trim(fname), exist = exists_user)
+  if (exists_user) call merge_input_file_to_dict(dict, trim(fname), mpi_env)
+
+  ! We fallback on the old text format
+  if (.not.exists_default .and. .not. exists_user) then
+     ! Parse all files.
+     call dict_init(dict)
+     call set_inputfile(f0, radical, PERF_VARIABLES)
+     call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, DFT_VARIABLES)
+     call read_dft_from_text_format(mpi_env%iproc,dict//DFT_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, KPT_VARIABLES)
+     call read_kpt_from_text_format(mpi_env%iproc,dict//KPT_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, GEOPT_VARIABLES)
+     call read_geopt_from_text_format(mpi_env%iproc,dict//GEOPT_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, MIX_VARIABLES)
+     call read_mix_from_text_format(mpi_env%iproc,dict//MIX_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, SIC_VARIABLES)
+     call read_sic_from_text_format(mpi_env%iproc,dict//SIC_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, TDDFT_VARIABLES)
+     call read_tddft_from_text_format(mpi_env%iproc,dict//TDDFT_VARIABLES, trim(f0))
+  end if
+end function read_input_dict_from_files
+
 !> Check the directory of data (create if not present)
 subroutine check_for_data_writing_directory(iproc,in)
   use module_base
@@ -327,35 +374,6 @@ subroutine default_input_variables(in)
   nullify(in%frag%dirname)
   nullify(in%frag%frag_index)
 END SUBROUTINE default_input_variables
-
-subroutine read_inputs_from_text_format(dict, radical, iproc)
-  use input_old_text_format
-  use dictionaries
-  use module_input_keys
-  !use yaml_output
-  implicit none
-  integer, intent(in) :: iproc
-  type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: radical
-
-  character(len = 100) :: fname
-
-  ! Parse all files.
-  call set_inputfile(fname, radical, PERF_VARIABLES)
-  call read_perf_from_text_format(iproc,dict//PERF_VARIABLES, trim(fname))
-  call set_inputfile(fname, radical, DFT_VARIABLES)
-  call read_dft_from_text_format(iproc,dict//DFT_VARIABLES, trim(fname))
-  call set_inputfile(fname, radical, KPT_VARIABLES)
-  call read_kpt_from_text_format(iproc,dict//KPT_VARIABLES, trim(fname))
-  call set_inputfile(fname, radical, GEOPT_VARIABLES)
-  call read_geopt_from_text_format(iproc,dict//GEOPT_VARIABLES, trim(fname))
-  call set_inputfile(fname, radical, MIX_VARIABLES)
-  call read_mix_from_text_format(iproc,dict//MIX_VARIABLES, trim(fname))
-  call set_inputfile(fname, radical, SIC_VARIABLES)
-  call read_sic_from_text_format(iproc,dict//SIC_VARIABLES, trim(fname))
-  call set_inputfile(fname, radical, TDDFT_VARIABLES)
-  call read_tddft_from_text_format(iproc,dict//TDDFT_VARIABLES, trim(fname))
-end subroutine read_inputs_from_text_format
 
 !> Assign default values for mixing variables
 subroutine mix_input_variables_default(in)

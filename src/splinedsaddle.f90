@@ -363,11 +363,10 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         write(*,*) 'degree of freedom: n,nr ',n,nr
     endif
     !-----------------------------------------------------------
-    call dict_init(dict)
     if(trim(pnow%hybrid)=='yes') then
-       call read_inputs_from_text_format(dict, 'll_input', iproc)
+       dict => read_input_dict_from_files("ll_input", bigdft_mpi)
     else
-       call read_inputs_from_text_format(dict, 'input', iproc)
+       dict => read_input_dict_from_files("input", bigdft_mpi)
     endif
     call standard_inputfile_names(ll_inputs,'input')
     call inputs_from_dict(ll_inputs, atoms, dict, .true.)

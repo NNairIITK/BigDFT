@@ -48,7 +48,7 @@ def ignore_key(key):
   ret = key in keys_to_ignore
   if (not(ret)):
     for p in patterns_to_ignore:
-      if key.find(p) > -1:
+      if str(key).find(p) > -1:
         ret=True
         exit
   return ret
@@ -391,7 +391,7 @@ for i in range(len(references)):
     data = datas[i]
     compare(data, reference, tols)
   except:
-      fatal_error(args,reports)
+    fatal_error(args,reports)
   try:
     doctime = data["Timings for root process"]["Elapsed time (s)"]
   except:

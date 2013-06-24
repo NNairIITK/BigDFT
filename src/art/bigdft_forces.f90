@@ -156,9 +156,8 @@ module bigdft_forces
          call copy_atoms_object(atoms_all,runObj%atoms,runObj%atoms%astruct%rxyz,natoms_calcul,total_nb_atoms,posquant)
          call initialize_atomic_file(me_,runObj%atoms,runObj%atoms%astruct%rxyz)
       endif
-      !standard names
-      call dict_init(dict)
-      call read_inputs_from_text_format(dict, 'input', me_)
+
+      dict => read_input_dict_from_files("input", bigdft_mpi)
       call standard_inputfile_names(runObj%inputs,'input')
       call inputs_from_dict(runObj%inputs, runObj%atoms, dict, .true.)
       call dict_free(dict)
