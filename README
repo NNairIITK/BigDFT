@@ -1,4 +1,5 @@
-/*! @file README for the BigDFT project
+/*! @file
+     The BigDFT project
 @author
      Copyright (C) 2008-2013 BigDFT Group
 
@@ -35,19 +36,23 @@ periodic systems, surfaces and isolated systems can be simulated with
 the proper boundary conditions.
 </p>
  Binaries:
- - <b> abscalc                 </b>   XANES calculation
- - <b> bart                    </b>   BigDFT + ART
- - <b> bigdft                  </b>   the main program
+ - @link BigDFT.f90      BigDFT @endlink            The main program
+ - @link frequencies.f90 frequencies @endlink       Calculation of the atomic frequencies by finite-difference
+ - @link abscalc.f90     abscalc @endlink           XANES calculation
+ - @link art.f90         bart @endlink              BigDFT + ART
+ - @link memguess.f90    memguess @endlink          Used by bigdft-tool script
+ - @link NEB.f90         NEB @endlink               Nudge-Elastic Band method (saddle point determination)
+ - @link splinedsaddle.f90 splsad @endlink          Spline Saddle search program
+ - @link WaCo.f90        WaCo @endlink              Wannier Constructors
+ - @link test_forces.f90 test_forces @endlink       Test program
+ - @link sandbox.f90     sandbox @endlink           Test for development purpose
+ - @link BigDFT2Wannier.f90 BigDFT2Wannier @endlink Wannier analysis
  - <b> bigdft-tool             </b>   Tool to check input files and to estimate memory use
- - <b> BigDFT2Wannier          </b>   Wannier analysis
- - <b> frequencies             </b>   Calculation of the atomic frequencies by finite-difference
  - <b> MDanalysis              </b>   Molecular Dynamics analysis
- - <b> memguess                </b>   Used by bigdft-tool script
- - <b> NEB                     </b>   Nudge-Elastic Band method (saddle point determination)
- - <b> oneatom                 </b>   Test program which runs non-self consistent calculations
- - <b> sandbox                 </b>   Test for development purpose
- - <b> splsad                  </b>   Spline Saddle search program
- - <b> rism                    </b>   Test program to calculate atomic charge with York's method
- - <b> test_forces             </b>   Test program
- - <b> WaCo                    </b>   Wannier Constructors
+
+Tools:
+- @link analyze_georelax.f90 analyze_georelax@endlink
+- @link fermi.f90 fermi @endlink
+- @link matchrotation.f90 matchrotation @endlink
+- @link wocc.f90 wocc @endlink
 */
