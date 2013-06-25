@@ -2649,10 +2649,12 @@ END SUBROUTINE initialize_linear_from_file
 
 
 !> Copy old support functions from phi to phi_old
-subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
+subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   use module_base
   use module_types
+  use yaml_output
   implicit none
+  integer,intent(in) :: iproc
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: lzd
   type(local_zone_descriptors), intent(inout) :: lzd_old
@@ -2747,6 +2749,7 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
   call memocc(i_stat,phi_old,'phi_old',subname)
 
   ! Now copy the suport functions
+  if (iproc==0) call yaml_map('Check the normalization of the support functions, tolerance',1.d-3,fmt='(1es12.4)')
   ind1=0
   do iorb=1,orbs%norbp
       tt=0.d0
@@ -2759,10 +2762,12 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
       end do
       tt=sqrt(tt)
       if (abs(tt-1.d0) > 1.d-3) then
-         write(*,*)'wrong phi_old',iiorb,tt
+         !write(*,*)'wrong phi_old',iiorb,tt
+         call yaml_warning('support function, value:'//trim(yaml_toa(iiorb,fmt='(i6)'))//trim(yaml_toa(tt,fmt='(1i6,1es18.9)')))
          !stop 
       end if
   end do
+  if (iproc==0) call yaml_close_map()
 
   !!!deallocation
   !!i_all=-product(shape(phi))*kind(phi)

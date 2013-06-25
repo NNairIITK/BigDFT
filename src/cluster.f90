@@ -406,7 +406,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      deallocate(KSwfn%psi,stat=i_stat)
      call memocc(i_stat,i_all,'psi',subname)
   else if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
-     call copy_tmbs(tmb, tmb_old, subname)
+     call copy_tmbs(iproc, tmb, tmb_old, subname)
      call destroy_DFT_wavefunction(tmb)
      i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
      deallocate(KSwfn%psi,stat=i_stat)
