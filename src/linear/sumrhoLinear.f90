@@ -1668,7 +1668,6 @@ end subroutine transpose_unswitch_psir
 subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho)
   use module_base
   use module_types
-  use libxc_functionals
   implicit none
 
   ! Calling arguments
@@ -1697,7 +1696,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   call timing(iproc,'sumrho_TMB    ','ON')
   
   ! Initialize rho. (not necessary for the moment)
-  !if (libxc_functionals_isgga()) then
+  !if (xc_isgga()) then
   !    call razero(collcom_sr%nptsp_c, rho_local)
   !else
    !   ! There is no mpi_allreduce, therefore directly initialize to

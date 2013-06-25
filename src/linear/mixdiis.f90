@@ -91,7 +91,7 @@ end subroutine mix_main
 subroutine mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, mixMeth, pnrm)
 use module_base
 use module_types
-use libxc_functionals
+use module_xc
 use module_interfaces, exceptThisOne => mixrhopotDIIS
 implicit none
 
@@ -212,7 +212,7 @@ endif
 ! Make a new guess for the density/potential.
 ! If we are mixing the density (mixMeth==1) it is initialized to 0 or 10^-20, depending on the functional.
 ! If we are mixing the potential (mixMeth==2) it is always initialized to 0.
-if (libxc_functionals_isgga() .or. mixMeth==2) then
+if (xc_isgga() .or. mixMeth==2) then
     call razero(ndimpot, rhopot)
 else
     ! There is no mpi_allreduce, therefore directly initialize to
