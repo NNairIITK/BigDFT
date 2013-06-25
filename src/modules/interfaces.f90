@@ -4866,6 +4866,19 @@ module module_interfaces
           real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: vector
         end subroutine uncompress_polynomial_vector
 
+        subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern)
+          use module_base
+          use module_types
+          use yaml_output
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(orbitals_data),intent(in) :: orbs
+          type(collective_comms),intent(in) :: collcom_sr
+          type(DFT_local_fields),intent(in) :: denspot
+          type(sparseMatrix),intent(in) :: denskern
+        end subroutine check_communication_sumrho
+
   
   end interface
 END MODULE module_interfaces
