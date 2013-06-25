@@ -4308,7 +4308,7 @@ module module_interfaces
           type(collective_comms),intent(inout) :: collcom_sr
         end subroutine init_collective_comms_sumro
 
-        subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho)
+        subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, print_results)
           use module_base
           use module_types
           use libxc_functionals
@@ -4318,6 +4318,7 @@ module module_interfaces
           type(collective_comms),intent(in) :: collcom_sr
           type(sparseMatrix),intent(in) :: denskern
           real(kind=8),dimension(ndimrho),intent(out) :: rho
+          logical,intent(in),optional :: print_results
         end subroutine sumrho_for_TMBs
 
         subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
