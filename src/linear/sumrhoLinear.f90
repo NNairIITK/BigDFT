@@ -1825,12 +1825,13 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   ! Local variables
   integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
   integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, jjorb, ind, ikernel
-  integer :: matrixindex_in_compressed
+  integer :: matrixindex_in_compressed, iorbmin, iorbmax, jorb
   real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, tt1, hxh, hyh, hzh, factor, hx, hy, hz, ref_value
   real(kind=8),dimension(:),allocatable :: psir, psirwork, psirt, psirtwork, rho_local, rho, rho_check
   integer,dimension(:,:,:),allocatable :: weight
   integer,dimension(:,:,:,:),allocatable :: orbital_id
   integer,dimension(:),allocatable :: istarr
+  integer,dimension(:,:),allocatable :: matrixindex_in_compressed_auxilliary
   real(kind=8),parameter :: tol_transpose=1.d-15
   real(kind=8),parameter :: tol_calculation_mean=1.d-10
   real(kind=8),parameter :: tol_calculation_max=1.d-8
@@ -1975,6 +1976,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   nmax=maxval(weight)
   allocate(orbital_id(1:nmax,1:lzd%glr%d%n1i,1:lzd%glr%d%n2i,ii3s:ii3e))
   call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
+  iorbmin=1000000000
+  iorbmax=-1000000000
   do i3=ii3s,ii3e
       do iorb=1,orbs%norb
           ilr=orbs%inwhichlocreg(iorb)
@@ -1989,6 +1992,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
               do i1=is1,ie1
                   weight(i1,i2,i3) = weight(i1,i2,i3)+1
                   orbital_id(weight(i1,i2,i3),i1,i2,i3) = iorb
+                  if (iorb<iorbmin) iorbmin=iorb
+                  if (iorb>iorbmax) iorbmax=iorb
               end do
           end do
       end do
@@ -2008,11 +2013,23 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   hzh=.5d0*lzd%hgrids(3)
   factor=1.d0/(hxh*hyh*hzh)
 
+  ! Use an auxilliary array to store the indices of the kernel in the compressed
+  ! format. The usual denskern%matrixindex_in_compressed_fortransposed can not be used 
+  ! since we are not in the transposed distribution.
+  matrixindex_in_compressed_auxilliary=f_malloc((/iorbmin.to.iorbmax,iorbmin.to.iorbmax /), &
+      id='matrixindex_in_compressed_auxilliary')
+  do iorb=iorbmin,iorbmax
+      do jorb=iorbmin,iorbmax
+          matrixindex_in_compressed_auxilliary(jorb,iorb)=matrixindex_in_compressed(denskern, jorb, iorb)
+      end do
+  end do
+
   ! Now calculate the charge density and store the result in rho_check
   allocate(rho_check(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1)))
   !$omp parallel default (none) &
   !$omp private (i2, i1, iixyz, ind, tt, i, ii, tti, ikernel, jj, ttj) &
-  !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, rho_check, nxyz, factor) &
+  !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, rho_check) &
+  !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary) &
   !$omp firstprivate (i3)
   do i3=ii3s,ii3e
       !$omp do
@@ -2024,15 +2041,11 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
               do i=1,weight(i1,i2,i3)
                   ii=orbital_id(i,i1,i2,i3)
                   tti=test_value(ii,iixyz,nxyz)
-                  !ikernel=denskern%matrixindex_in_compressed_fortransposed(ii,ii)
-                  ! Not possible to use denskern%matrixindex_in_compressed_fortransposed since we are not in the
-                  ! transposed distribution, therefore take the slow general version.
-                  ikernel=matrixindex_in_compressed(denskern, ii, ii)
+                  ikernel=matrixindex_in_compressed_auxilliary(ii,ii)
                   tt=tt+denskern%matrix_compr(ikernel)*tti*tti
                   do j=i+1,weight(i1,i2,i3)
                       jj=orbital_id(j,i1,i2,i3)
-                      !ikernel=denskern%matrixindex_in_compressed_fortransposed(jj,ii)
-                      ikernel=matrixindex_in_compressed(denskern, jj, ii)
+                      ikernel=matrixindex_in_compressed_auxilliary(jj,ii)
                       if (ikernel==0) cycle
                       ttj=test_value(jj,iixyz,nxyz)
                       tt=tt+2.d0*denskern%matrix_compr(ikernel)*tti*ttj
@@ -2044,6 +2057,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       !$omp end do
   end do
   !$omp end parallel
+
+  call f_free(matrixindex_in_compressed_auxilliary)
 
   ! Now calculate the charge density in the transposed way using the standard routine
   allocate(rho(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1)))
