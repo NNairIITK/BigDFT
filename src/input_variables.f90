@@ -17,8 +17,9 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   use module_base
   use module_types
   use module_interfaces, except_this_one => bigdft_set_input
+  use module_input_keys
   use yaml_output
-  use dictionaries
+  use dictionaries, only: dictionary
   implicit none
 
   !Arguments
@@ -42,6 +43,9 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   call standard_inputfile_names(in,trim(radical))
   call inputs_from_dict(in, atoms, dict, .true.)
   call dict_free(dict)
+
+  ! Generate the description of input variables.
+  call input_keys_dump_def(trim(in%writing_directory) // "/input_help.yaml")
 
   ! Read associated pseudo files.
   call init_atomic_values((bigdft_mpi%iproc == 0), atoms, in%ixc)

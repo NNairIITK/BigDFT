@@ -126,20 +126,20 @@ module module_input_keys
   character(len = *), parameter, public :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
 
   !> Error ids for this module.
-  integer, public :: INPUT_VAR_NOT_IN_LIST
-  integer, public :: INPUT_VAR_NOT_IN_RANGE
-  integer, public :: INPUT_VAR_ILLEGAL
+  integer, public :: INPUT_VAR_NOT_IN_LIST = 0
+  integer, public :: INPUT_VAR_NOT_IN_RANGE = 0
+  integer, public :: INPUT_VAR_ILLEGAL = 0
   type(dictionary), pointer :: failed_exclusive
 
   character(len = *), parameter :: RANGE = "__range__", EXCLUSIVE = "__exclusive__"
   character(len = *), parameter :: DEFAULT = "default", COMMENT = "__comment__"
   character(len = *), parameter :: COND = "__condition__", WHEN = "__when__"
-  character(len = *), parameter :: MASTER_KEY = "master_key", USER_DEFINED = "__user__"
+  character(len = *), parameter :: MASTER_KEY = "__master_key__", USER_DEFINED = "__user__"
   character(len = *), parameter :: PROF_KEY = "__profile__", ATTRS = "_attributes"
 
   public :: input_keys_init, input_keys_finalize
   public :: input_keys_set, input_keys_fill, input_keys_fill_all, input_keys_dump
-  public :: input_keys_equal, input_keys_get_source
+  public :: input_keys_equal, input_keys_get_source, input_keys_dump_def
   public :: input_keys_get_profiles
 
   type(dictionary), pointer :: parameters
@@ -181,18 +181,24 @@ contains
     call set(parameters // PERF_VARIABLES, get_perf_parameters())
 
     !call yaml_dict_dump(parameters, comment_key = COMMENT)
-    call f_err_define(err_name='INPUT_VAR_NOT_IN_LIST',&
-         err_msg='given value not in allowed list.',&
-         err_action='choose a value from the list below.',&
-         err_id=INPUT_VAR_NOT_IN_LIST,callback=abort_excl)
-    call f_err_define(err_name='INPUT_VAR_NOT_IN_RANGE',&
-         err_msg='given value not in allowed range.',&
-         err_action='adjust the given value.',&
-         err_id=INPUT_VAR_NOT_IN_RANGE)
-    call f_err_define(err_name='INPUT_VAR_ILLEGAL',&
-         err_msg='provided variable is not allowed in this context.',&
-         err_action='remove the input variable.',&
-         err_id=INPUT_VAR_ILLEGAL,callback=warn_illegal)
+    if (INPUT_VAR_NOT_IN_LIST == 0) then
+       call f_err_define(err_name='INPUT_VAR_NOT_IN_LIST',&
+            err_msg='given value not in allowed list.',&
+            err_action='choose a value from the list below.',&
+            err_id=INPUT_VAR_NOT_IN_LIST,callback=abort_excl)
+    end if
+    if (INPUT_VAR_NOT_IN_RANGE == 0) then
+       call f_err_define(err_name='INPUT_VAR_NOT_IN_RANGE',&
+            err_msg='given value not in allowed range.',&
+            err_action='adjust the given value.',&
+            err_id=INPUT_VAR_NOT_IN_RANGE)
+    end if
+    if (INPUT_VAR_ILLEGAL == 0) then
+       call f_err_define(err_name='INPUT_VAR_ILLEGAL',&
+            err_msg='provided variable is not allowed in this context.',&
+            err_action='remove the input variable.',&
+            err_id=INPUT_VAR_ILLEGAL,callback=warn_illegal)
+    end if
   END SUBROUTINE input_keys_init
   
   subroutine input_keys_finalize()
@@ -891,6 +897,36 @@ contains
     get_perf_parameters => p
   END FUNCTION get_perf_parameters
 
+  subroutine input_keys_dump_def(fname, file)
+    use dictionaries
+    use yaml_output
+    implicit none
+    character(len = *), intent(in) :: fname
+    character(len = *), intent(in), optional :: file
+
+    integer :: iunit_def, ierr
+
+    ! Switch YAML output stream
+    call yaml_get_default_stream(iunit_def)
+    call yaml_set_stream(unit = 789159, filename = trim(fname), tabbing = 0, record_length = 100)
+
+    call input_keys_init()
+    if (present(file)) then
+       if (has_key(parameters, file)) then
+          call yaml_dict_dump(parameters // file)
+       else
+          call yaml_dict_dump(parameters)
+       end if
+    else
+       call yaml_dict_dump(parameters)
+    end if
+    call input_keys_finalize()
+
+    ! Set back normal YAML output
+    call yaml_set_default_stream(iunit_def,ierr)
+  end subroutine input_keys_dump_def
+
+  !> get for each keys available profiles.
   function input_keys_get_profiles(file)
     use dictionaries
     implicit none
@@ -901,6 +937,8 @@ contains
     integer :: i
     character(max_field_length), dimension(:), allocatable :: keys
 
+    call input_keys_init()
+    
     call dict_init(p)
     
     if (has_key(parameters, file)) then
@@ -913,6 +951,8 @@ contains
        end do
        deallocate(keys)
     end if
+
+    call input_keys_finalize()
 
     input_keys_get_profiles => p
   contains
@@ -927,7 +967,7 @@ contains
       allocate(var(dict_size(ref)))
       var = dict_keys(ref)
       do i = 1, size(var), 1
-         call generate(dict,  var(i), ref // var(i))
+         call generate(dict, var(i), ref // var(i))
       end do
       deallocate(var)
       if (dict_size(dict) == 0) then
@@ -939,12 +979,10 @@ contains
       use dictionaries
       implicit none
       type(dictionary), pointer :: dict, ref
-      character(len = *), intent(in) :: key
+      character(max_field_length), intent(in) :: key
 
-      integer :: i, j
-      character(max_field_length) :: val
+      integer :: i
       character(max_field_length), dimension(:), allocatable :: keys
-      character(max_field_length), dimension(:), allocatable :: keys_excl
 
       allocate(keys(dict_size(ref)))
       keys = dict_keys(ref)
@@ -955,16 +993,17 @@ contains
               & trim(keys(i)) /= PROF_KEY .and. &
               & trim(keys(i)) /= EXCLUSIVE .and. &
               & trim(keys(i)) /= DEFAULT) then
-            call add(dict // key, keys(i))
-         else if (trim(keys(i)) /= EXCLUSIVE) then
-            ! Add exclusive values.
-            allocate(keys_excl(dict_size(ref // EXCLUSIVE)))
-            keys_excl = dict_keys(ref // EXCLUSIVE)
-            do j = 1, size(keys_excl), 1
-               val = ref // EXCLUSIVE // keys_excl(j)
-               call add(dict // key, val)
-            end do
-            deallocate(keys_excl)
+            call add(dict // key // "profiles", "'" // trim(keys(i)) // "'")
+            !call dict_copy(dict // key // "profiles" // keys(i), ref // keys(i))
+!!$         else if (trim(keys(i)) == EXCLUSIVE) then
+!!$            ! Add exclusive values.
+!!$            call dict_copy(dict // key // "allowed values", ref // EXCLUSIVE)
+!!$         else if (trim(keys(i)) == RANGE) then
+!!$            ! Add range definition
+!!$            call dict_copy(dict // key // "within range", ref // RANGE)
+!!$         else if (trim(keys(i)) == DEFAULT) then
+!!$            ! Add range definition
+!!$            call dict_copy(dict // key // "default value", ref // DEFAULT)
          end if
       end do
       deallocate(keys)
