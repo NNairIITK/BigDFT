@@ -104,7 +104,11 @@ report:
 	echo "$(abs_top_builddir)/src/bigdft-tool -n 1 > $@"; \
 	$(abs_top_builddir)/src/bigdft-tool -n 1 > $@ ; \
 	mv log.yaml log-memguess.yaml ; \
-	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
+	if test -f $$file.bak ; then \
+	   mv $$file.bak $$file ; \
+	elif ! test x"$(srcdir)" = x"." ; then \
+	   rm -f $$file ; \
+	fi
 	@name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
@@ -122,7 +126,9 @@ report:
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@" ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
 	if test -f $$file.bak ; then \
-	   mv $$file.bak $$file ; else rm -f $$file ; \
+	   mv $$file.bak $$file ; \
+	elif ! test x"$(srcdir)" = x"." ; then \
+	   rm -f $$file ; \
 	fi ; \
 	if test -f list_posinp; then \
 	   cat log-* > log.yaml ; \

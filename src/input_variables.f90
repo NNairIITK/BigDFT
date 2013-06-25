@@ -225,19 +225,20 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
   use dictionaries
   use wrapper_MPI
   use module_input_keys
+  use module_interfaces
   use input_old_text_format
   implicit none
   character(len = *), intent(in) :: radical
   type(mpi_environment), intent(in) :: mpi_env
 
   type(dictionary), pointer :: dict
-  logical :: exists_default, exists_user
+  logical :: exists_default, exists_user, exists
   character(len = max_field_length) :: fname
   character(len = 100) :: f0
   
   nullify(dict)
   ! We try first default.yaml
-  inquire(file = trim(fname), exist = exists_default)
+  inquire(file = "default.yaml", exist = exists_default)
   if (exists_default) call merge_input_file_to_dict(dict, "default.yaml", mpi_env)
 
   ! We try then radical.yaml
@@ -267,6 +268,11 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
      call read_sic_from_text_format(mpi_env%iproc,dict//SIC_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, TDDFT_VARIABLES)
      call read_tddft_from_text_format(mpi_env%iproc,dict//TDDFT_VARIABLES, trim(f0))
+  else
+     ! We add an overloading input.perf (for automatic test purposes).
+     ! This will be changed in far future when only YAML input will be allowed.
+     call set_inputfile(f0, radical, PERF_VARIABLES)
+     call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
   end if
 end function read_input_dict_from_files
 

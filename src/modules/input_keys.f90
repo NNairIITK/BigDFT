@@ -447,6 +447,7 @@ contains
     call set(p // GEOPT_METHOD, dict_new( &
          & COMMENT   .is. 'Geometry optimisation method', &
          & EXCLUSIVE .is. dict_new(&
+         & "none"    .is. "no geometry optimization", &
          & "SDCG"    .is. "a combination of Steepest Descent and Conjugate Gradient", &
          & "VSSD"    .is. "Variable Stepsize Steepest Descent method", &
          & "LBFGS"   .is. "limited-memory BFGS", &
@@ -1287,61 +1288,62 @@ contains
       logical :: flow
       integer :: i
       type(dictionary), pointer :: parent, attr, iter
-      character(max_field_length) :: descr
+      character(max_field_length) :: descr, tag
       character(max_field_length), dimension(:), allocatable :: keys
 
-      descr = " "
       if (index(dict%data%key, ATTRS) > 0) return
+
+      descr = " "
+      tag = " "
       parent => dict%parent
       if (associated(parent)) then
          if (has_key(parent, trim(dict%data%key) // ATTRS)) then
             attr => parent // (trim(dict%data%key) // ATTRS)
             if (has_key(attr, COMMENT)) descr = attr // COMMENT
+            !if (has_key(attr, PROF_KEY)) tag = attr // PROF_KEY
          end if
       end if
 
-      if (associated(dict%child)) then
-         if (dict_len(dict) >= 1) then
-            ! List case.
-            flow = (.not.associated(dict%child%child))
-            if (.not.flow .and. trim(descr) /= "") then
-               call yaml_open_sequence(trim(dict%data%key), advance = "no")
-               call yaml_comment(trim(descr), tabbing = 50)
-            else
-               call yaml_open_sequence(trim(dict%data%key), flow=flow)
-            end if
-            do i = 0, dict_len(dict) - 1, 1
-               call yaml_sequence("", advance = "no")
-               call dict_dump_(dict // i)
-            end do
-            if (flow .and. trim(descr) /= "") then
-               call yaml_close_sequence(advance = "no")
-               call yaml_comment(trim(descr), tabbing = 50)
-            else
-               call yaml_close_sequence()
-            end if
+      if (dict_len(dict) > 0) then
+         ! List case.
+         flow = (.not.associated(dict%child%child))
+         if (.not.flow .and. trim(descr) /= "") then
+            call yaml_open_sequence(trim(dict%data%key), tag = tag, advance = "no")
+            call yaml_comment(trim(descr), tabbing = 50)
          else
-            ! Dictionary case
-            call yaml_open_map(trim(dict%data%key),flow=.false.)
-            iter => dict_next(dict)
-            allocate(keys(dict_size(dict)))
-            keys = dict_keys(dict)
-            do i = 1, size(keys), 1
-               call dict_dump_(dict // keys(i))
-            end do
-            deallocate(keys)
-            call yaml_close_map()
+            call yaml_open_sequence(trim(dict%data%key), tag = tag, flow=flow)
          end if
-      else
+         do i = 0, dict_len(dict) - 1, 1
+            call yaml_sequence("", advance = "no")
+            call dict_dump_(dict // i)
+         end do
+         if (flow .and. trim(descr) /= "") then
+            call yaml_close_sequence(advance = "no")
+            call yaml_comment(trim(descr), tabbing = 50)
+         else
+            call yaml_close_sequence()
+         end if
+      else if (dict_size(dict) > 0) then
+         ! Dictionary case
+         call yaml_open_map(trim(dict%data%key),flow=.false.)
+         iter => dict_next(dict)
+         allocate(keys(dict_size(dict)))
+         keys = dict_keys(dict)
+         do i = 1, size(keys), 1
+            call dict_dump_(dict // keys(i))
+         end do
+         deallocate(keys)
+         call yaml_close_map()
+      else if (associated(dict)) then
          ! Leaf case.
          if (dict%data%item >= 0) then
             call yaml_sequence(trim(dict%data%value))
          else
             if (trim(descr) /= "") then
-               call yaml_map(trim(dict%data%key),trim(dict%data%value),advance = "no")
+               call yaml_map(trim(dict%data%key), trim(dict%data%value), tag = tag, advance = "no")
                call yaml_comment(trim(descr), tabbing = 50)
             else
-               call yaml_map(trim(dict%data%key),trim(dict%data%value))
+               call yaml_map(trim(dict%data%key), trim(dict%data%value), tag = tag)
             end if
          end if
       end if
@@ -1370,18 +1372,18 @@ subroutine merge_input_file_to_dict(dict, fname, mpi_env)
   if (mpi_env%iproc == 0) then
      call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
      if (mpi_env%nproc > 1) &
-          & call mpi_bcast(cbuf_len, 1, MPI_INTEGER, 0, mpi_env%mpi_comm, ierr)
+          & call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
   else
-     call mpi_bcast(cbuf_len, 1, MPI_INTEGER, 0, mpi_env%mpi_comm, ierr)
+     call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
   end if
   allocate(fbuf(cbuf_len))
   if (mpi_env%iproc == 0) then
      call copyCBuffer(fbuf(1), cbuf, cbuf_len)
      call freeCBuffer(cbuf)
      if (mpi_env%nproc > 1) &
-          & call mpi_bcast(fbuf(1), cbuf_len, MPI_INTEGER, 0, mpi_env%mpi_comm, ierr)
+          & call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
   else
-     call mpi_bcast(fbuf(1), cbuf_len, MPI_INTEGER, 0, mpi_env%mpi_comm, ierr)
+     call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
   end if
 
   call yaml_parse_from_char_array(udict, fbuf)

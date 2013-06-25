@@ -637,12 +637,13 @@ contains
 
 
   !> Open a yaml map (dictionary)
-  subroutine yaml_open_map(mapname,label,flow,unit)
+  subroutine yaml_open_map(mapname,label,tag,flow,unit)
     implicit none
     integer, optional, intent(in) :: unit
     character(len=*), optional, intent(in) :: mapname
     logical, optional, intent(in) :: flow
     character(len=*), optional, intent(in) :: label
+    character(len=*), optional, intent(in) :: tag
     !local variables
     logical :: doflow
     integer :: msg_lgt
@@ -665,8 +666,13 @@ contains
        !put the semicolon
        call buffer_string(towrite,len(towrite),':',msg_lgt)
     end if
+    !put the optional tag description
+    if (present(tag) .and. len_trim(tag) > 0) then
+       call buffer_string(towrite,len(towrite),' !',msg_lgt)
+       call buffer_string(towrite,len(towrite),trim(tag),msg_lgt)
+    end if
     !put the optional name
-    if (present(label)) then
+    if (present(label) .and. len_trim(label) > 0) then
        call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
     end if
@@ -714,11 +720,12 @@ contains
 
 
   !> Open a yaml sequence
-  subroutine yaml_open_sequence(mapname,label,flow,advance,unit)
+  subroutine yaml_open_sequence(mapname,label,tag,flow,advance,unit)
     use yaml_strings
     implicit none
     character(len=*), optional, intent(in) :: mapname !< Key of the sequence
     character(len=*), optional, intent(in) :: label   !< Add a label to be referenced as &xxx
+    character(len=*), optional, intent(in) :: tag     !< Add a tag to be referenced as !xxx
     logical, optional, intent(in) :: flow             !< .true.  Add [ and represent the sequence as a stream
                                                       !! .false. Add a flow level (go to the line and indent)
     character(len=*), optional, intent(in) :: advance !< Same option as write
@@ -744,6 +751,11 @@ contains
        call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
        !put the semicolon
        call buffer_string(towrite,len(towrite),':',msg_lgt)
+    end if
+    !put the optional tag
+    if (present(tag).and. len_trim(tag)>0) then
+       call buffer_string(towrite,len(towrite),' !',msg_lgt)
+       call buffer_string(towrite,len(towrite),trim(tag),msg_lgt)
     end if
     !put the optional name
     if (present(label).and. len_trim(label)>0) then
@@ -845,11 +857,12 @@ contains
 
 
   !> Do a yaml map
-  subroutine yaml_map(mapname,mapvalue,label,advance,unit)
+  subroutine yaml_map(mapname,mapvalue,label,tag,advance,unit)
     implicit none
     character(len=*), intent(in) :: mapname             !< key
     character(len=*), intent(in) :: mapvalue            !< value
     character(len=*), optional, intent(in) :: label     !< label for reference (&xxx)
+    character(len=*), optional, intent(in) :: tag       !< tag for tagging (!xxx)
     character(len=*), optional, intent(in) :: advance   !< advance or not
     integer, optional, intent(in) :: unit               !< unit for strem
     !local variables
@@ -870,12 +883,19 @@ contains
     !put the message
     call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
     !put the semicolon
-    call buffer_string(towrite,len(towrite),': ',msg_lgt)
+    call buffer_string(towrite,len(towrite),':',msg_lgt)
+    !put the optional tag
+    if (present(tag) .and. len_trim(tag) > 0) then
+       call buffer_string(towrite,len(towrite),' !',msg_lgt)
+       call buffer_string(towrite,len(towrite),trim(tag),msg_lgt)
+    end if
     !put the optional name
-    if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+    if (present(label) .and. len_trim(label) > 0) then
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
     end if
+    !put a space
+    call buffer_string(towrite,len(towrite),' ',msg_lgt)
 
     !while putting the message verify that the string is not too long
     msg_lgt_ck=msg_lgt
