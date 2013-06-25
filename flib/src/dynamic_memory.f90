@@ -659,7 +659,7 @@ contains
        m%lbounds(i)=bounds(i)%nlow
        m%ubounds(i)=bounds(i)%nhigh
        m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
-       end do
+    end do
 
     include 'f_malloc-inc.f90'
 
