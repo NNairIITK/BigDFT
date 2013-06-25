@@ -95,29 +95,21 @@ report:
 %.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
 	@name=`basename $@ .memguess.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
-	if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
-	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
-	   cat accel.perf >> $$file ; \
-	fi ; \
+	if test -f $$file ; then cp $$file $$file.bak ; fi ; \
+	if test -f accel.perf && ! grep -qs ACCEL $$file ; then cat accel.perf >> $$file ; fi ; \
 	echo outdir ./ >> $$file ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	echo "$(abs_top_builddir)/src/bigdft-tool -n 1 > $@"; \
 	$(abs_top_builddir)/src/bigdft-tool -n 1 > $@ ; \
 	mv log.yaml log-memguess.yaml ; \
-	if test -f $$file.bak ; then \
-	   mv $$file.bak $$file ; \
-	elif ! test x"$(srcdir)" = x"." ; then \
-	   rm -f $$file ; \
-	fi
+	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
 	@name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
 	@name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
-	if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
-	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
-	   cat accel.perf >> $$file ; \
-	fi ; \
+	if test -f $$file ; then cp $$file $$file.bak ; fi ; \
+	if test -f accel.perf && ! grep -qs ACCEL $$file ; then cat accel.perf >> $$file ; fi ; \
 	if test -f list_posinp; then \
 	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
 	fi; \
@@ -125,14 +117,8 @@ report:
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@" ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
-	if test -f $$file.bak ; then \
-	   mv $$file.bak $$file ; \
-	elif ! test x"$(srcdir)" = x"." ; then \
-	   rm -f $$file ; \
-	fi ; \
-	if test -f list_posinp; then \
-	   cat log-* > log.yaml ; \
-	fi
+	if test -f list_posinp; then cat log-* > log.yaml ; fi ; \
+	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
 	@name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.geopt.mon.out: $(abs_top_builddir)/src/bigdft

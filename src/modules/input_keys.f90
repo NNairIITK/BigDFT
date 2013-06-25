@@ -1366,6 +1366,7 @@ subroutine merge_input_file_to_dict(dict, fname, mpi_env)
 
   integer(kind = 8) :: cbuf, cbuf_len
   integer :: ierr
+  character(len = max_field_length) :: val
   character, dimension(:), allocatable :: fbuf
   type(dictionary), pointer :: udict
   
@@ -1386,10 +1387,17 @@ subroutine merge_input_file_to_dict(dict, fname, mpi_env)
      call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
   end if
 
+  call f_err_open_try()
   call yaml_parse_from_char_array(udict, fbuf)
+
+  ! Handle with possible partial dictionary.
   deallocate(fbuf)
-
   call dict_update(dict, udict // 0)
-
   call dict_free(udict)
+  
+  ierr = 0
+  if (f_err_check()) ierr = f_get_last_error(val)
+  call f_err_close_try()
+
+  if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
 end subroutine merge_input_file_to_dict

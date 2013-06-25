@@ -225,16 +225,20 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
   use dictionaries
   use wrapper_MPI
   use module_input_keys
-  use module_interfaces
+  use module_interfaces, only: merge_input_file_to_dict
   use input_old_text_format
   implicit none
   character(len = *), intent(in) :: radical
   type(mpi_environment), intent(in) :: mpi_env
 
+  integer :: ierr
   type(dictionary), pointer :: dict
-  logical :: exists_default, exists_user, exists
+  logical :: exists_default, exists_user
   character(len = max_field_length) :: fname
   character(len = 100) :: f0
+
+  ! Handle error with master proc only.
+  if (mpi_env%iproc > 0) call f_err_set_callback(f_err_ignore)
   
   nullify(dict)
   ! We try first default.yaml
@@ -274,6 +278,12 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
      call set_inputfile(f0, radical, PERF_VARIABLES)
      call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
   end if
+
+  if (mpi_env%iproc > 0) call f_err_severe_restore()
+
+  ! We put a barrier here to be sure that non master proc will be stop
+  ! by any issue on the master proc.
+  call mpi_barrier(mpi_env%mpi_comm, ierr)
 end function read_input_dict_from_files
 
 !> Check the directory of data (create if not present)
