@@ -610,9 +610,9 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      read(11,*) rcore, qcore
      !convert the core charge fraction qcore to the amplitude of the Gaussian
      !multiplied by 4pi. This is the convention used in nlccpar(1,:).
-     fourpi=8.0_gp*dacos(0.0_gp)
-     sqrt2pi=dsqrt(0.5_gp*fourpi)
-     qcore=fourpi*qcore*(nzatom-nelpsp)/&
+     fourpi=4.0_gp*pi_param!8.0_gp*dacos(0.0_gp)
+     sqrt2pi=sqrt(0.5_gp*fourpi)
+     qcore=fourpi*qcore*real(nzatom-nelpsp,gp)/&
           (sqrt2pi*rcore)**3
      donlcc=.true.
   else
@@ -1084,42 +1084,11 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   character(len=*), parameter :: subname='print_atomic_variables'
   logical :: nonloc
   integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
-  integer :: i,j,l,ityp,iat,natyp,mproj
+  integer :: i,j,l,ityp,iat,natyp,mproj,inlcc
   real(gp) :: minrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
   character(len=500) :: name_xc1, name_xc2
-
-!!$  write(*,'(1x,a)')&
-!!$       ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
-
-!!$  do ityp=1,atoms%astruct%ntypes
-!!$     !control the hardest gaussian
-!!$     minrad=1.e10_gp
-!!$     do i=0,4
-!!$        if (atoms%psppar(i,0,ityp)/=0._gp) then
-!!$           minrad=min(minrad,atoms%psppar(i,0,ityp))
-!!$        end if
-!!$     end do
-!!$     !control whether the grid spacing is too high
-!!$     if (hmax > 2.5_gp*minrad) then
-!!$        write(*,'(1x,a)')&
-!!$             'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
-!!$        write(*,'(1x,a,f5.2,a)')&
-!!$             '         Results can be meaningless if hgrid is bigger than',2.5_gp*minrad,&
-!!$             '. At your own risk!'
-!!$     end if
-!!$
-!!$     if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
-!!$        message='         X              '
-!!$     else
-!!$        message='                   X ' 
-!!$     end if
-!!$     write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&
-!!$          trim(atoms%astruct%atomnames(ityp)),atoms%nelpsp(ityp),atoms%npspcode(ityp),&
-!!$          radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3),message
-!!$  end do
-  !print *,'iatsctype',atOMS%iasctype(:)
 
   !If no atoms...
   if (atoms%astruct%ntypes == 0) return
@@ -1157,6 +1126,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
 
 !  write(*,'(1x,a)')&
   !       '------------------------------------ Pseudopotential coefficients (Upper Triangular)'
+  inlcc=0
   call yaml_comment('System Properties',hfill='-')
   call yaml_open_sequence('Properties of atoms in the system')
   do ityp=1,atoms%astruct%ntypes
@@ -1209,11 +1179,21 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
         call yaml_map('Pseudopotential type','HGH')
      case(10)
         call yaml_map('Pseudopotential type','HGH-K')
+     case(12)
+        call yaml_map('Pseudopotential type','HGH-K + NLCC')
      end select
      if (atoms%psppar(0,0,ityp)/=0) then
         call yaml_open_map('Local Pseudo Potential (HGH convention)')
           call yaml_map('Rloc',atoms%psppar(0,0,ityp),fmt='(f9.5)')
           call yaml_map('Coefficients (c1 .. c4)',atoms%psppar(0,1:4,ityp),fmt='(f9.5)')
+        call yaml_close_map()
+     end if
+     !nlcc term
+     if (atoms%npspcode(ityp) == 12) then
+        inlcc=inlcc+1
+        call yaml_open_map('Non Linear Core Correction term')
+            call yaml_map('Rcore',atoms%nlccpar(0,inlcc),fmt='(f9.5)')
+            call yaml_map('Core charge',atoms%nlccpar(1,inlcc),fmt='(f9.5)')
         call yaml_close_map()
      end if
      !see if nonlocal terms are present

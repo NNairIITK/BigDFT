@@ -91,6 +91,7 @@ contains
     if (associated(dict)) then
        call dict_free_(dict)
        deallocate(dict)
+       nullify(dict)
     end if
 
   contains
@@ -306,11 +307,14 @@ contains
 
     dict%data%item=item
     if (associated(dict%parent)) then
+       if (len_trim(dict%parent%data%value) > 0) dict%parent%data%value=repeat(' ',max_field_length)
+       
        dict%parent%data%nitems=dict%parent%data%nitems+1
        if (item+1 > dict%parent%data%nitems) then
           !if (exceptions) then
           !   last_error=DICT_ITEM_NOT_VALID
           !else
+          !so far this error has never been found
              write(*,*)'ERROR: item not valid',item,dict%parent%data%nitems
              stop
           !end if
@@ -409,7 +413,14 @@ contains
     !commented out for the moment
     !call check_key(dict)
     
-    if (associated(dict%child)) then
+    !print *,'nelems',dict%data%nelems,dict%data%nitems
+    !free previously existing dictionaries
+    if (dict%data%nelems > 0) then
+       call dict_free(dict%child)
+       dict%data%nelems=0
+    end if
+    
+    if (associated(dict%child)) then         
        subd_ptr => get_item_ptr(dict%child,item)
     else
        call dict_init(dict%child)
