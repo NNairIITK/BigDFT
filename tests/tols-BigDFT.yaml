@@ -322,7 +322,10 @@ rotatesmall_read:
  Epsilon: 2.4e-11
 
 molecule_dmix:
- Epsilon: 1.8e-11
+ Epsilon: 7.0e-11
 
 molecule_pmix:
- Epsilon: 1.8e-11
+ Epsilon: 7.0e-11
+
+molecule_dmin:
+ Epsilon: 5.0e-11
