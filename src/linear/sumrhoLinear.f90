@@ -2058,7 +2058,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
               iixyz=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
               ind=(i3-ii3s)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
               tt=1.d-20
-              do i=1,weight(i1,i2,i3)
+              do i=1,weight(i1,i2,i3) !the number of orbitals touching this grid point
                   ii=orbital_id(i,i1,i2,i3)
                   tti=test_value(ii,iixyz,nxyz)
                   ikernel=matrixindex_in_compressed_auxilliary(ii,ii)
