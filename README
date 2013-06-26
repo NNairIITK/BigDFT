@@ -1,5 +1,61 @@
-/*! @file
-     The BigDFT project
+/*!  @mainpage BigDFT Package developer documentation
+@anchor README-MAIN
+<p>
+<a href="http://bigdft.org">BigDFT</a> is a DFT massively parallel electronic structure code 
+(<a href="http://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html">GPL license</a>) using a wavelet basis set.
+Wavelets form a real space basis set distributed on an adaptive mesh (two
+levels of resolution in  our implementation).
+</p>
+
+<p>
+GTH or HGH pseudopotentials are used to remove the core electrons.
+Thanks to our Poisson solver based on a Green function formalism,  
+periodic systems, surfaces and isolated systems can be simulated with  
+the proper boundary conditions.
+</p>
+ @section B Binaries
+ - @link BigDFT.f90      BigDFT @endlink            The main program
+ - @link frequencies.f90 frequencies @endlink       Calculation of the atomic frequencies by finite-difference
+ - @link abscalc.f90     abscalc @endlink           XANES calculation
+ - @link art.f90         bart @endlink              BigDFT + ART (Activation Relaxation Technique)
+ - @link memguess.f90    memguess @endlink          Used by @link bigdft-tool.in bigdft-tool@endlink script
+ - @link NEB.f90         NEB @endlink               Nudge-Elastic Band method (saddle point determination)
+ - @link splinedsaddle.f90 splsad @endlink          Spline Saddle search program
+ - @link WaCo.f90        WaCo @endlink              Wannier Constructors
+ - @link test_forces.f90 test_forces @endlink       Test program
+ - @link sandbox.f90     sandbox @endlink           Test for development purpose
+ - @link BigDFT2Wannier.f90 BigDFT2Wannier @endlink Wannier analysis
+ - @link distances.f90  MDanalysis  @endlink        Molecular Dynamics analysis
+
+@section T Tools
+- @link bigdft-tool.in bigdft-tool @endlink         (previously called memguess): 
+  read BigDFT inputs and provide an accurate estimation of memory requirement (for each CPU in case of MPI run). 
+  It can also do some simple jobs (see the --help option output):
+<pre>
+bigdft-tool -a memory-estimation [options]:
+    Performing memory estimation for a run of BigDFT.
+bigdft-tool -a rotate [options]:
+    Rotate the input file to use the smallest mesh possible using files
+bigdft-tool -a convert-field FROM TO:
+    Convert the given scalar field to another format, files FROM and TO
+    are of the form <file.{etsf,cube}>.
+bigdft-tool -a export-wf FILE:
+    Export the compressed wavefunction from FILE to a scalar-field
+    representation in Cube format.
+bigdft-tool -a export-grid [options]:
+    Export in XYZ format the positions of all grid points.
+bigdft-tool -a atomic-wf [options]:
+    Calculates the atomic wavefunctions of the first atom in the gatom
+    basis.
+</pre>
+- @link analyze_georelax.f90 analyze_georelax@endlink
+- @link fermi.f90 fermi @endlink
+- @link matchrotation.f90 matchrotation @endlink
+- @link wocc.f90 wocc @endlink
+
+@section D Documentation
+This documentation can be generated in the <tt>doc</tt> directory by <tt>make doxygen-doc</tt>.
+
 @author
      Copyright (C) 2008-2013 BigDFT Group
 
@@ -20,39 +76,4 @@
      the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 
-@mainpage BigDFT Package developer documentation
- The BigDFT project is an electronic structure calculations based on the Daubechies wavelet basis set.
-
-<p>
-<a href="http://bigdft.org">BigDFT</a> is a DFT massively parallel electronic structure code 
-(<a href="http://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html">GPL license</a>) using a wavelet basis set.
-Wavelets form a real space basis set distributed on an adaptive mesh (two
-levels of resolution in  our implementation).
-</p>
-<p>
-GTH or HGH pseudopotentials are used to remove the core electrons.
-Thanks to our Poisson solver based on a Green function formalism,  
-periodic systems, surfaces and isolated systems can be simulated with  
-the proper boundary conditions.
-</p>
- Binaries:
- - @link BigDFT.f90      BigDFT @endlink            The main program
- - @link frequencies.f90 frequencies @endlink       Calculation of the atomic frequencies by finite-difference
- - @link abscalc.f90     abscalc @endlink           XANES calculation
- - @link art.f90         bart @endlink              BigDFT + ART
- - @link memguess.f90    memguess @endlink          Used by @ref bigdft-tool script
- - @link NEB.f90         NEB @endlink               Nudge-Elastic Band method (saddle point determination)
- - @link splinedsaddle.f90 splsad @endlink          Spline Saddle search program
- - @link WaCo.f90        WaCo @endlink              Wannier Constructors
- - @link test_forces.f90 test_forces @endlink       Test program
- - @link sandbox.f90     sandbox @endlink           Test for development purpose
- - @link BigDFT2Wannier.f90 BigDFT2Wannier @endlink Wannier analysis
- - @link bigdft-tool.in bigdft-tool @endlink        Tool to check input files and to estimate memory use
- - <b> MDanalysis              </b>   Molecular Dynamics analysis
-
-Tools:
-- @link analyze_georelax.f90 analyze_georelax@endlink
-- @link fermi.f90 fermi @endlink
-- @link matchrotation.f90 matchrotation @endlink
-- @link wocc.f90 wocc @endlink
 */

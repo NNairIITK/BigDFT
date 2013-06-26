@@ -1,4 +1,4 @@
-!> @filei
+!> @file
 !!    Use by the Bader method (Bader charge density analysis program)
 !! @author
 !! Copyright 2009

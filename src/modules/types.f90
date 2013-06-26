@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
  
-!> Modules which contains the Fortran data structures
+!> Module which contains the Fortran data structures
 !! and the routines of allocations and de-allocations
 module module_types
 
@@ -426,7 +426,7 @@ module module_types
      real(dp), dimension(:,:,:), pointer :: phnons
   end type symmetry_data
 
-!> Contains arguments needed for \rho_local for WVL+PAW
+!> Contains arguments needed for rho_local for WVL+PAW
 
   type, public :: rholoc_objects
     integer ,pointer,dimension(:)    :: msz ! mesh size for local rho
