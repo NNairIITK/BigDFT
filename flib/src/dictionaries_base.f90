@@ -415,10 +415,7 @@ contains
     
     !print *,'nelems',dict%data%nelems,dict%data%nitems
     !free previously existing dictionaries
-    if (dict%data%nelems > 0) then
-       call dict_free(dict%child)
-       dict%data%nelems=0
-    end if
+    call clean_subdict(dict)
     
     if (associated(dict%child)) then         
        subd_ptr => get_item_ptr(dict%child,item)
@@ -459,5 +456,18 @@ contains
     call get_field(st%value,val)
   end function stored_value
 
+  !> clean the child and put to zero the number of elements in the case of a dictionary
+  pure subroutine clean_subdict(dict)
+    implicit none
+    type(dictionary), pointer :: dict
+    
+    if (associated(dict)) then
+       if (dict%data%nelems > 0) then
+          call dict_free(dict%child)
+          dict%data%nelems=0
+       end if
+    end if
+    
+  end subroutine clean_subdict
 
 end module dictionaries_base
