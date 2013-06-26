@@ -125,7 +125,7 @@ report:
 	   mv $$file.bak $$file ; else rm -f $$file ; \
 	fi ; \
 	if test -f list_posinp; then \
-	   cat log-* > log.yaml ; \
+	   cat `tail -n $$(($$(wc -l < list_posinp) - 1)) list_posinp | sed "s/^\(.*\)$$/log-\1.yaml/g"` > log.yaml ; \
 	fi
 	@name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"

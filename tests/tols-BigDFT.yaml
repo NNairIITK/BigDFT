@@ -292,14 +292,10 @@ rotate_write:
 GEOPT-newIG:
   Ion-Ion interaction energy: 1.62e-11
   D: 1.1e-10
+  etot: 1.481e-11
   Energies: 4.81e-9
-  EKS: 5.6e-10
+  EKS: 5.7e-10
 
 rotatesmall_write:
   Keys to ignore:
   - Wavefunction written No.
-
-
-
-
-
