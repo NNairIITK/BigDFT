@@ -1,7 +1,7 @@
 !> @file
 ! Intialization of the collective communications for the linear version
 ! @author
-!    Copyright (C) 2011-2012 BigDFT group
+!    Copyright (C) 2011-2013 BigDFT group
 !    This file is distributed under the terms of the
 !    GNU General Public License, see ~/COPYING file
 !    or http://www.gnu.org/copyleft/gpl.txt .
@@ -3363,13 +3363,10 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   type(sparseMatrix), intent(inout) :: sparsemat
   
   ! Local variables
-  integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, nseg, irow, irowold, isegline, ilr, segn, ind, iseg
-  integer :: nseglinemax, iall, isend, irecv, kproc, imin, imax, ierr
+  integer :: iorb, jorb, istat, imin, imax
+  !integer :: kproc,jproc,jjorbold,jjorb,isend,irecv,ilr,ijorb,iiorb,ind,ierr, irow, irowold, iseg
   integer :: compressed_index
-  integer,dimension(:,:,:),pointer:: keygline
-  integer,dimension(:),pointer:: noverlaps
-  integer,dimension(:,:),pointer:: overlaps
-  integer,dimension(:,:),allocatable :: sendbuf, requests, iminmaxarr
+!  integer,dimension(:,:),allocatable :: sendbuf, requests, iminmaxarr
   character(len=*),parameter :: subname='initSparseMatrix'
 
 

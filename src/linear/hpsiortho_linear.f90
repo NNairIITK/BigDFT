@@ -1,7 +1,7 @@
 !> @file
-!! H|psi> and orthonormalization
+!! H|psi> and orthonormalization (linear scaling version)
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -19,34 +19,35 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, it
-  type(DFT_wavefunction),target,intent(inout):: tmb
-  type(localizedDIISParameters),intent(inout) :: ldiis
-  real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
-  real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
-  real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
-  real(8),intent(inout):: trHold
+  integer, intent(in) :: iproc, nproc, it
+  type(DFT_wavefunction), target, intent(inout):: tmb
+  type(localizedDIISParameters), intent(inout) :: ldiis
+  real(kind=8), dimension(tmb%orbs%norb), intent(inout) :: fnrmOldArr
+  real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha
+  real(kind=8), intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
+  real(kind=8), intent(inout):: trHold
   logical,intent(out) :: energy_increased
-  real(8),dimension(tmb%npsidim_orbs),intent(inout):: lhphiold
+  real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold
   logical,intent(inout):: overlap_calculated
-  type(energy_terms),intent(in) :: energs
-  real(8),dimension(:),pointer:: hpsit_c, hpsit_f
+  type(energy_terms), intent(in) :: energs
+  real(kind=8), dimension(:), pointer:: hpsit_c, hpsit_f
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
   logical, intent(in) :: energy_only
-  real(kind=8),dimension(tmb%npsidim_orbs),intent(out) :: hpsi_small
-  real(kind=8),dimension(tmb%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
+  real(kind=8), dimension(tmb%npsidim_orbs), intent(out) :: hpsi_small
+  real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: hpsi_noprecond
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
   integer :: matrixindex_in_compressed
-  real(kind=8) :: ddot, tt, eval_zero, gnrmArr
-  character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
-  real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
-  real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
-  real(kind=8),dimension(:),allocatable :: hpsi_conf, hpsi_tmp
-  real(kind=8),dimension(:),pointer :: kernel_compr_tmp
-  type(sparseMatrix) :: lagmat
-  real(kind=8),dimension(:),allocatable :: prefac
+  real(kind=8) :: ddot, tt, gnrmArr
+  !real(kind=8) :: eval_zero
+  character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
+  real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
+  real(kind=8), dimension(:,:), allocatable :: fnrmOvrlpArr, fnrmArr
+  real(kind=8), dimension(:), allocatable :: hpsi_conf, hpsi_tmp
+  real(kind=8), dimension(:), pointer :: kernel_compr_tmp
+  !type(sparseMatrix) :: lagmat
+  real(kind=8), dimension(:), allocatable :: prefac
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
 
@@ -92,7 +93,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call vcopy(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
           !ii=0
           !do iseg=1,tmb%linmat%denskern%nseg
-          !    do jorb=tmb%linmat%denskern%keyg(1,iseg),tmb%linmat%denskern%keyg(2,iseg)
+          !    do jorb=tmb%linmat%denskern%keyg(1,iseg), tmb%linmat%denskern%keyg(2,iseg)
           !        ii=ii+1
           !        iiorb = (jorb-1)/tmb%orbs%norb + 1
           !        jjorb = jorb - (iiorb-1)*tmb%orbs%norb
@@ -112,7 +113,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
               ilr=tmb%orbs%inwhichlocreg(iorb)
               !ii=0
               !do iseg=1,tmb%linmat%denskern%nseg
-              !    do jorb=tmb%linmat%denskern%keyg(1,iseg),tmb%linmat%denskern%keyg(2,iseg)
+              !    do jorb=tmb%linmat%denskern%keyg(1,iseg), tmb%linmat%denskern%keyg(2,iseg)
               !        ii=ii+1
               !        iiorb = (jorb-1)/tmb%orbs%norb + 1
               !        jjorb = jorb - (iiorb-1)*tmb%orbs%norb
@@ -325,7 +326,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      end do
 
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
-          tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
+          tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
           nit_precond,tmb%npsidim_orbs,hpsi_tmp,tmb%confdatarr,gnrm,gnrm_zero)
 
      ! temporarily turn confining potential off...
@@ -334,7 +335,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      prefac(:)=tmb%confdatarr(:)%prefac
      tmb%confdatarr(:)%prefac=0.0d0
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
-          tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
+          tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
           nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero) ! prefac should be zero
      call daxpy(tmb%npsidim_orbs, 1.d0, hpsi_tmp(1), 1, hpsi_small(1), 1)
      ! ...revert back to correct value
@@ -351,7 +352,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      call memocc(istat, iall, 'hpsi_tmp', subname)
   else
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
-          tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
+          tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
           nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero)
    end if
 
@@ -413,18 +414,18 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, it
-  type(localizedDIISParameters),intent(inout) :: ldiis
-  type(DFT_wavefunction),target,intent(inout) :: tmb
-  real(kind=8),dimension(tmb%npsidim_orbs),intent(inout) :: lphiold
-  real(kind=8),intent(in) :: trH, alpha_mean, alpha_max
-  real(kind=8),dimension(tmb%orbs%norbp),intent(inout) :: alpha, alphaDIIS
-  real(kind=8),dimension(tmb%npsidim_orbs),intent(inout) :: hpsi_small
-  real(kind=8),dimension(tmb%npsidim_orbs),optional,intent(out) :: psidiff
+  type(localizedDIISParameters), intent(inout) :: ldiis
+  type(DFT_wavefunction), target,intent(inout) :: tmb
+  real(kind=8), dimension(tmb%npsidim_orbs), intent(inout) :: lphiold
+  real(kind=8), intent(in) :: trH, alpha_mean, alpha_max
+  real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha, alphaDIIS
+  real(kind=8), dimension(tmb%npsidim_orbs), intent(inout) :: hpsi_small
+  real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: psidiff
   logical, intent(in) :: ortho
   
   ! Local variables
   integer :: istat, iall, i
-  character(len=*),parameter :: subname='hpsitopsi_linear'
+  character(len=*), parameter :: subname='hpsitopsi_linear'
   real(kind=8),dimension(:),allocatable :: psittmp_c, psittmp_f
   real(kind=8) :: ddot
 

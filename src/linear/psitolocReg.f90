@@ -1,7 +1,7 @@
 !> @file
 !! Wavefunction put into a localisation region
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -205,7 +205,7 @@ subroutine psi_to_locreg2(iproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
   integer :: nseg        ! total number of segments in Llr
   integer, allocatable :: keymask(:,:)  ! shift for every segment of Llr (with respect to Glr)
   character(len=*), parameter :: subname='psi_to_locreg'
-  integer :: i_stat,i_all
+!  integer :: i_stat,i_all
   integer :: start,Gstart
   integer :: isegstart,istart
 
@@ -265,7 +265,7 @@ subroutine psi_to_locreg2(iproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
         ! Define the length of the two segments
         length = min(lmax,Gmax)-max(lmin,Gmin)
 
-        icheck = icheck + length + 1
+        icheck = icheck + (length + 1)
  
         !Find the common elements and write them to the new localized wavefunction
         ! WARNING: index goes from 0 to length because it is the offset of the element
@@ -318,7 +318,7 @@ subroutine psi_to_locreg2(iproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 
         length = min(lmax,Gmax)-max(lmin,Gmin)
 
-        icheck = icheck + length + 1
+        icheck = icheck + (length + 1)
 
         !Find the common elements and write them to the new localized wavefunction
         ! WARNING: index goes from 0 to length because it is the offset of the element

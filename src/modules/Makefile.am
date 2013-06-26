@@ -110,7 +110,7 @@ $(modules): $(libmodules_a_OBJECTS)
 base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o
 types.o: base.o gaussians.o
 input.o: base.o 
-interfaces.o: base.o types.o xc.o fragments.o
+interfaces.o: base.o types.o xc.o fragments.o diis_module.o
 gaussians.o: base.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o
