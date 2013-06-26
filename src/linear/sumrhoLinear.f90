@@ -1965,7 +1965,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   ! First determine how many orbitals one has for each grid point in the current slice
   ii3s=denspot%dpbox%nscatterarr(iproc,3)+1
   ii3e=denspot%dpbox%nscatterarr(iproc,3)+denspot%dpbox%nscatterarr(iproc,1)
-  allocate(weight(1:lzd%glr%d%n1i,1:lzd%glr%d%n2i,ii3s:ii3e))
+  weight=f_malloc((/1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='weight')
   call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
   do i3=ii3s,ii3e
       do iorb=1,orbs%norb
@@ -1987,7 +1987,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
   ! The array orbital_id contains the IDs of the orbitals touching a given gridpoint
   nmax=maxval(weight)
-  allocate(orbital_id(1:nmax,1:lzd%glr%d%n1i,1:lzd%glr%d%n2i,ii3s:ii3e))
+  orbital_id=f_malloc((/1.to.nmax,1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='orbital_id')
   call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
   iorbmin=1000000000
   iorbmax=-1000000000
@@ -2044,7 +2044,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   end do
 
   ! Now calculate the charge density and store the result in rho_check
-  allocate(rho_check(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1)))
+  rho_check=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho_check')
   maxval_rho=0.d0
   !$omp parallel default (none) &
   !$omp private (i2, i1, iixyz, ind, tt, i, ii, tti, ikernel, jj, ttj) &
@@ -2083,7 +2083,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   call f_free(matrixindex_in_compressed_auxilliary)
 
   ! Now calculate the charge density in the transposed way using the standard routine
-  allocate(rho(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1)))
+  rho=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho')
   call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, &
        lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d, rho, .false.)
 
@@ -2124,8 +2124,10 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
   if (iproc==0) call yaml_close_map()
 
-  deallocate(orbital_id)
-  deallocate(weight)
+  call f_free(weight)
+  call f_free(orbital_id)
+  call f_free(rho_check)
+  call f_free(rho)
 
   call timing(iproc,'check_sumrho','OF')
 
