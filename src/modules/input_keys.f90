@@ -909,19 +909,21 @@ contains
 
     ! Switch YAML output stream
     call yaml_get_default_stream(iunit_def)
-    call yaml_set_stream(unit = 789159, filename = trim(fname), tabbing = 0, record_length = 100)
+    call yaml_set_stream(unit = 789159, filename = trim(fname), tabbing = 0, record_length = 100, istat = ierr)
 
-    call input_keys_init()
-    if (present(file)) then
-       if (has_key(parameters, file)) then
-          call yaml_dict_dump(parameters // file)
+    if (ierr == 0) then
+       call input_keys_init()
+       if (present(file)) then
+          if (has_key(parameters, file)) then
+             call yaml_dict_dump(parameters // file)
+          else
+             call yaml_dict_dump(parameters)
+          end if
        else
           call yaml_dict_dump(parameters)
        end if
-    else
-       call yaml_dict_dump(parameters)
+       call input_keys_finalize()
     end if
-    call input_keys_finalize()
 
     ! Set back normal YAML output
     call yaml_set_default_stream(iunit_def,ierr)
