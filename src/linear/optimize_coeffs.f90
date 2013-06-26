@@ -97,7 +97,7 @@ subroutine optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
      call memocc(istat, sk, 'sk', subname)
 
      ! calculate I-S*K - first set sk to identity
-     call to_zero(tmb%orbs%norbp*tmb%orbs%norb, sk(1,1))
+     if (tmb%orbs%norbp >0) call to_zero(tmb%orbs%norbp*tmb%orbs%norb, sk(1,1))
      do iorb=1,tmb%orbs%norbp
         iiorb=tmb%orbs%isorb+iorb
         sk(iorb,iiorb) = 1.d0

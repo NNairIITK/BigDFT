@@ -10,8 +10,8 @@ TESTDIRS = Locreg \
 	   geopt \
 	   testforces \
 	   fructose \
-	rotatesmall2 
-#      rotatesmall \
+	rotatesmall2  rotatesmall
+#\
 #      cdft
 
 EXTRA_TESTDIRS = water \
@@ -125,6 +125,7 @@ cdft_c.out.post-out:
 	  foe.out*)                   prec="5.6e-10" ;; \
 	  reformat_write.out*)        prec="3.e-10" ;; \
 	  paracetamol.out*)           prec="2.e-10" ;; \
+	  test.testforces*)           prec="1.e-9" ;; \
       *)                          prec="1.1e-10" ;; \
       esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

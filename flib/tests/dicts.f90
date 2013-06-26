@@ -6,7 +6,8 @@ subroutine test_dictionaries0()
   !local variables
   integer :: ival,nval
   character(len=2) :: val
-  type(dictionary), pointer :: list
+  character(len=30) :: val2
+  type(dictionary), pointer :: list,dict_tmp
   !finding operations
 !!$  print *,' Filling a linked list' 
 !!$  call dict_init(list)
@@ -101,6 +102,59 @@ subroutine test_dictionaries0()
 
   call yaml_dict_dump(dict1)
   call dict_free(dict1)
+
+  dict1=>dict_new()
+
+  call set(dict1//'hgrid',0.5,fmt='(1pe17.5)')
+  call yaml_map('Length and size before',(/dict_len(dict1//'hgrid'),dict_size(dict1//'hgrid')/))
+  !call add(dict1//'hgrid','new')
+  call set(dict1//'hgrid'//0,'new')
+
+  call yaml_open_map('There was a hidden problem here')
+  call yaml_dict_dump(dict1)
+  call yaml_close_map()
+
+  call yaml_map('Value of dict1//hgrid',trim(dict_value(dict1//'hgrid')))
+
+  !retrieve value
+  val2=dict1//'hgrid' !dict_value(dict1//'hgrid')
+  call yaml_map('Value retrieved with equal sign',trim(val2))
+  
+  !test value of the dictionary, explicitly
+  dict_tmp=>dict1//'hgrid'
+  call yaml_map('Value explicitly written in the dictionary',trim(dict_tmp%data%value))
+
+  !test length and sizes of the dictionary
+  call yaml_map('Length and size after',(/dict_len(dict_tmp),dict_size(dict_tmp)/))
+
+  call dict_free(dict1)
+
+!stop
+  dict1=>dict_new()
+  call set(dict1//'hgrid',dict_new((/'test1' .is. '1','test2' .is. '2'/)))
+  call yaml_map('Length and size before',(/dict_len(dict1//'hgrid'),dict_size(dict1//'hgrid')/))
+  call set(dict1//'hgrid'//0,'new')
+
+  call yaml_open_map('Hidden problem here')
+  call yaml_dict_dump(dict1)
+  call yaml_close_map()
+
+  call yaml_map('Value of dict1//hgrid',trim(dict_value(dict1//'hgrid')))
+
+  !retrieve value
+  val2=dict1//'hgrid' !dict_value(dict1//'hgrid')
+  call yaml_map('Value retrieved with equal sign',trim(val2))
+  
+  !test value of the dictionary, explicitly
+  dict_tmp=>dict1//'hgrid'
+  call yaml_map('Verify that the child is still associated',associated(dict_tmp%child))
+
+  !test length and sizes of the dictionary
+  call yaml_map('Length and size after',(/dict_len(dict_tmp),dict_size(dict_tmp)/))
+
+  call dict_free(dict1)
+
+
 !!$
 !!$  !new test, build list on-the-fly
 !!$  dict1=list_new((/ .item. 'Val1', .item. 'Val2', .item. 'Val3' ,&
@@ -304,7 +358,8 @@ subroutine test_dictionaries1()
    call dict_free(dictA)
 
    !example which has a bug
-   dictA=>list_new((/.item. '5',.item. '6',.item. list_new((/.item.'55',.item. '66'/))/))
+   dict_tmp => list_new((/.item.'55',.item. '66'/))
+   dictA=>list_new((/.item. '5',.item. '6',.item. dict_tmp/))
 !!$!call yaml_open_sequence("",flow=.false.)
 !!$call yaml_sequence(advance="no")
 !!$call yaml_open_map("SUCCESS",flow=.false.)

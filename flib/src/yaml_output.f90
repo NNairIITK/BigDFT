@@ -488,8 +488,9 @@ contains
     character(len=*), intent(in) :: message
     integer, optional, intent(in) :: level
     !local variables
-    integer :: unt,strm,item
-    type(dictionary), pointer :: dict_tmp
+    integer :: unt,strm
+!!$    integer :: item
+!!$    type(dictionary), pointer :: dict_tmp
 
     unt=0
     if (present(unit)) unt=unit
@@ -1698,6 +1699,7 @@ contains
       type(dictionary), pointer, intent(in) :: dict
 
       if (.not. associated(dict)) return
+      !here we iterate over dict_value which is dict%child if empty
       if (associated(dict%child)) then
          !see whether the child is a list or not
          if (dict_item(dict) >= 0) call sequence(adv='no')

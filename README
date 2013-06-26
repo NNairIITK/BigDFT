@@ -1,7 +1,5 @@
-<!-- README for BigDFT
-     ================= -->
-
-<!--
+/*! @file README for the BigDFT project
+@author
      Copyright (C) 2008-2013 BigDFT Group
 
      This file is part of BigDFT.
@@ -20,16 +18,36 @@
      along with this program; see the file COPYING. If not, write to
      the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
--->
 
-<!-- This file is written in the MediaWiki syntax, to be published on
-     http://bigdft.org -->
-BigDFT is a [//en.wikipedia.org/wiki/Density_functional_theory DFT] 
-massively parallel electronic structure code ([//www.gnu.org/licenses/gpl.html GPL] license) using a wavelet basis set.
+@mainpage BigDFT Package developer documentation
+ The BigDFT project is an electronic structure calculations based on the Daubechies wavelet basis set.
+
+<p>
+<a href="http://bigdft.org">BigDFT</a> is a DFT massively parallel electronic structure code 
+(<a href="http://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html">GPL license</a>) using a wavelet basis set.
 Wavelets form a real space basis set distributed on an adaptive mesh (two
-levels of resolution in  our implementation). [//www.abinit.org/Psps/?text=../Psps/LDA_GTH/lda GTH] or
-[//cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/Goedecker/abinit/pbe/ HGH]
-pseudopotentials are used to remove the core electrons.
+levels of resolution in  our implementation).
+</p>
+<p>
+GTH or HGH pseudopotentials are used to remove the core electrons.
 Thanks to our Poisson solver based on a Green function formalism,  
 periodic systems, surfaces and isolated systems can be simulated with  
 the proper boundary conditions.
+</p>
+ Binaries:
+ - <b> abscalc                 </b>   XANES calculation
+ - <b> bart                    </b>   BigDFT + ART
+ - <b> bigdft                  </b>   the main program
+ - <b> bigdft-tool             </b>   Tool to check input files and to estimate memory use
+ - <b> BigDFT2Wannier          </b>   Wannier analysis
+ - <b> frequencies             </b>   Calculation of the atomic frequencies by finite-difference
+ - <b> MDanalysis              </b>   Molecular Dynamics analysis
+ - <b> memguess                </b>   Used by bigdft-tool script
+ - <b> NEB                     </b>   Nudge-Elastic Band method (saddle point determination)
+ - <b> oneatom                 </b>   Test program which runs non-self consistent calculations
+ - <b> sandbox                 </b>   Test for development purpose
+ - <b> splsad                  </b>   Spline Saddle search program
+ - <b> rism                    </b>   Test program to calculate atomic charge with York's method
+ - <b> test_forces             </b>   Test program
+ - <b> WaCo                    </b>   Wannier Constructors
+*/

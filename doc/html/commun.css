@@ -272,7 +272,7 @@ div.visuLogo img
   margin:10px;
   margin-right:1em;
 }
-div.header
+div#main.header
 {
   height:100px;
 }
@@ -309,7 +309,9 @@ div.visuInfoLogo ul
   list-style-position:inside;
 }
 
-
+div.title {
+        font-size:150%;
+}
 
 div.version
 { 
