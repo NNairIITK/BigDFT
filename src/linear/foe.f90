@@ -1,4 +1,14 @@
-!could still do more tidying - assuming all sparse matrices except for fermi have the same pattern
+!> @file
+!! Fermi Operator Expansion Medthod
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
            ham, ovrlp, fermi, ebs)
   use module_base
@@ -32,7 +42,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   real(kind=8),dimension(4) :: interpol_vector, interpol_solution
   integer,dimension(4) :: ipiv
   real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
-  integer :: omp_get_thread_num
 
   !!real(8),dimension(100000) ::  work, eval, hamtmp, ovrlptmp
 

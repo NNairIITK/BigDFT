@@ -998,7 +998,6 @@ nullify(Qvect,dumQvect)
      !Local variables
      integer :: k
      type(confpot_data), dimension(ha%orbs%norbp) :: confdatarr
-     type(gaussian_basis),dimension(ha%at%astruct%ntypes)::proj_G
 
      if( ha%nproc > 1) then
         if(i>=0) then

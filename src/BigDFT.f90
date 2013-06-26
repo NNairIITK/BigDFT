@@ -119,7 +119,9 @@ program BigDFT
          call free_restart_objects(rst,subname)
 
          call deallocate_atoms(atoms,subname) 
-
+         
+         !temporary
+         !call f_malloc_dump_status()
          call bigdft_free_input(inputs)
 
       end if

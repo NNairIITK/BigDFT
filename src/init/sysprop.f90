@@ -333,7 +333,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 !!$        if (exists) then
         if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or.&
              at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
-           if (iproc == 0) call yaml_map('NLCC, Calculate core density for atom:',trim(at%astruct%atomnames(ityp)))
+           if (iproc == 0) call yaml_map('NLCC, Calculate core density for atom',trim(at%astruct%atomnames(ityp)))
            !if (iproc == 0) write(*,'(1x,a)',advance='no') 'NLCC: calculate core density for atom: '// trim(at%astruct%atomnames(ityp))//';'
            rx=rxyz(1,iat) 
            ry=rxyz(2,iat)
@@ -400,6 +400,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
   !local variables
   character(len=*), parameter :: subname='init_atomic_values'
   real(gp), dimension(3) :: radii_cf
+  real(gp):: rcore(atoms%astruct%ntypes), qcore(atoms%astruct%ntypes)
   integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat,i_all,ierr
   integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
   logical :: exists, read_radii,exist_all
@@ -419,11 +420,14 @@ subroutine init_atomic_values(verb, atoms, ixc)
   nullify(atoms%paw_NofL)
   do ityp=1,atoms%astruct%ntypes
      filename = 'psppar.'//atoms%astruct%atomnames(ityp)
+     !ALEX: if npspcode==12, nlccpar are read from psppar.Xy via rcore and qcore 
      call psp_from_file(filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
            & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
-           & radii_cf, read_radii, exists)
+           & atoms%donlcc, rcore(ityp), qcore(ityp), radii_cf, read_radii, exists)
      !To eliminate the runtime warning due to the copy of the array (TD)
      atoms%radii_cf(ityp,:)=radii_cf(:)
+     !ALEX: Count Gaussians for rhocore
+     if(atoms%npspcode(ityp)==12) nlcc_dim=nlcc_dim+1
 
      if (exists) then
         !! first time just for dimension ( storeit = . false.)
@@ -480,8 +484,25 @@ subroutine init_atomic_values(verb, atoms, ixc)
   if (atoms%donlcc) then
      nlcc_dim=0
      fill_nlcc: do ityp=1,atoms%astruct%ntypes
+        !ALEX: These are preferably read from psppar.Xy, as stored in the
+        !local variables rcore and qcore
+        if(atoms%npspcode(ityp)==12) then
+           nlcc_dim=nlcc_dim+1
+           atoms%nlcc_ngc(ityp)=1
+           atoms%nlcc_ngv(ityp)=0
+           atoms%nlccpar(0,nlcc_dim)=rcore(ityp)
+           atoms%nlccpar(1,nlcc_dim)=qcore(ityp)
+           atoms%nlccpar(2:4,nlcc_dim)=0.0_gp 
+        end if
         filename = 'nlcc.'//atoms%astruct%atomnames(ityp)
         inquire(file=filename,exist=exists)
+        !ALEX: For now we still allow this file. If nlccpar was already read from psppar.Xy 
+        !and nlcc.Xy is present as well, then use the latter and print a WARNING message.
+        !Maybe we should also give a warning if no nlcc is present in psppar.Xy.
+        if(exists .and. atoms%npspcode(ityp)==12) then
+           write(*,'(1x,a,a)')"WARNING: The deprecated input file ",filename,&
+                "is present, and NLCC data contained in psppar are overridden!"
+        end if
         if (exists) then
            !read the values of the gaussian for valence and core densities
            open(unit=79,file=filename,status='unknown')
@@ -497,21 +518,30 @@ subroutine init_atomic_values(verb, atoms, ixc)
            end do
            close(unit=79)
         end if
+     !ALEX: Cheap work-around: If npspcode is 12, we set it to 10 here.
+     !This is only to test if things are working correctly until all if clauses for
+     !npspcode 10 also work for npspcode 12, which is exactly the same except for the
+     !addition of a line for NLCC read from the psppar file.
+     !if(atoms%npspcode(ityp)==12)  atoms%npspcode(ityp)=10
      end do fill_nlcc
   end if
-
+  
 END SUBROUTINE init_atomic_values
 
 
 subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
-     & ixcpsp, psppar, radii_cf, read_radii, exists)
+     & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, read_radii, exists)
   use module_base
   implicit none
   
   character(len = *), intent(in) :: filename
   integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp
-  real(gp), intent(out) :: psppar(0:4,0:6), radii_cf(3)
+  real(gp), intent(out) :: psppar(0:4,0:6), radii_cf(3), rcore, qcore
   logical, intent(out) :: read_radii, exists
+  logical, intent(inout) ::  donlcc
+  !ALEX: Some local variables
+  real(gp):: fourpi, sqrt2pi
+  character(len=20) :: skip
 
   integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l
   character(len=100) :: line
@@ -543,7 +573,8 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      read(11,*) (psppar(1,j),j=0,3)
      do i=2,4
         read(11,*) (psppar(i,j),j=0,3)
-        read(11,*) !k coefficients, not used for the moment (no spin-orbit coupling)
+        !ALEX: Maybe this can prevent reading errors on CRAY machines?
+        read(11,*) skip !k coefficients, not used for the moment (no spin-orbit coupling)
      enddo
   else if (npspcode == 10) then !HGH-K case
      read(11,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
@@ -556,9 +587,34 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
         end do
         if (l==1) cycle
         do i=1,nprl
-           read(11,*) !k coefficients, not used
+           !ALEX: Maybe this can prevent reading errors on CRAY machines?
+           read(11,*)skip !k coefficients, not used
         end do
      end do prjloop
+  !ALEX: Add support for reading NLCC from psppar
+  else if (npspcode == 12) then !HGH-NLCC: Same as HGH-K + one additional line
+     read(11,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
+     read(11,*) nlterms !number of channels of the pseudo
+     do l=1,nlterms
+        read(11,*) psppar(l,0),nprl,psppar(l,1),&
+             (psppar(l,j+2),j=2,nprl) !h_ij terms
+        do i=2,nprl
+           read(11,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij
+        end do
+        if (l==1) cycle
+        do i=1,nprl
+           !ALEX: Maybe this can prevent reading errors on CRAY machines?
+           read(11,*) skip !k coefficients, not used
+        end do
+     end do 
+     read(11,*) rcore, qcore
+     !convert the core charge fraction qcore to the amplitude of the Gaussian
+     !multiplied by 4pi. This is the convention used in nlccpar(1,:).
+     fourpi=4.0_gp*pi_param!8.0_gp*dacos(0.0_gp)
+     sqrt2pi=sqrt(0.5_gp*fourpi)
+     qcore=fourpi*qcore*real(nzatom-nelpsp,gp)/&
+          (sqrt2pi*rcore)**3
+     donlcc=.true.
   else
      !if (iproc == 0) then
      write(*,'(1x,a,a)') trim(filename),&
@@ -1028,42 +1084,11 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   character(len=*), parameter :: subname='print_atomic_variables'
   logical :: nonloc
   integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
-  integer :: i,j,l,ityp,iat,natyp,mproj
+  integer :: i,j,l,ityp,iat,natyp,mproj,inlcc
   real(gp) :: minrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
   character(len=500) :: name_xc1, name_xc2
-
-!!$  write(*,'(1x,a)')&
-!!$       ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
-
-!!$  do ityp=1,atoms%astruct%ntypes
-!!$     !control the hardest gaussian
-!!$     minrad=1.e10_gp
-!!$     do i=0,4
-!!$        if (atoms%psppar(i,0,ityp)/=0._gp) then
-!!$           minrad=min(minrad,atoms%psppar(i,0,ityp))
-!!$        end if
-!!$     end do
-!!$     !control whether the grid spacing is too high
-!!$     if (hmax > 2.5_gp*minrad) then
-!!$        write(*,'(1x,a)')&
-!!$             'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
-!!$        write(*,'(1x,a,f5.2,a)')&
-!!$             '         Results can be meaningless if hgrid is bigger than',2.5_gp*minrad,&
-!!$             '. At your own risk!'
-!!$     end if
-!!$
-!!$     if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
-!!$        message='         X              '
-!!$     else
-!!$        message='                   X ' 
-!!$     end if
-!!$     write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&
-!!$          trim(atoms%astruct%atomnames(ityp)),atoms%nelpsp(ityp),atoms%npspcode(ityp),&
-!!$          radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3),message
-!!$  end do
-  !print *,'iatsctype',atOMS%iasctype(:)
 
   !If no atoms...
   if (atoms%astruct%ntypes == 0) return
@@ -1101,6 +1126,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
 
 !  write(*,'(1x,a)')&
   !       '------------------------------------ Pseudopotential coefficients (Upper Triangular)'
+  inlcc=0
   call yaml_comment('System Properties',hfill='-')
   call yaml_open_sequence('Properties of atoms in the system')
   do ityp=1,atoms%astruct%ntypes
@@ -1153,11 +1179,21 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
         call yaml_map('Pseudopotential type','HGH')
      case(10)
         call yaml_map('Pseudopotential type','HGH-K')
+     case(12)
+        call yaml_map('Pseudopotential type','HGH-K + NLCC')
      end select
      if (atoms%psppar(0,0,ityp)/=0) then
         call yaml_open_map('Local Pseudo Potential (HGH convention)')
           call yaml_map('Rloc',atoms%psppar(0,0,ityp),fmt='(f9.5)')
           call yaml_map('Coefficients (c1 .. c4)',atoms%psppar(0,1:4,ityp),fmt='(f9.5)')
+        call yaml_close_map()
+     end if
+     !nlcc term
+     if (atoms%npspcode(ityp) == 12) then
+        inlcc=inlcc+1
+        call yaml_open_map('Non Linear Core Correction term')
+            call yaml_map('Rcore',atoms%nlccpar(0,inlcc),fmt='(f9.5)')
+            call yaml_map('Core charge',atoms%nlccpar(1,inlcc),fmt='(f9.5)')
         call yaml_close_map()
      end if
      !see if nonlocal terms are present
@@ -1191,7 +1227,8 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
                  hij(1,2)=offdiagarr(1,1,l)*atoms%psppar(l,2,ityp)
                  hij(1,3)=offdiagarr(1,2,l)*atoms%psppar(l,3,ityp)
                  hij(2,3)=offdiagarr(2,1,l)*atoms%psppar(l,3,ityp)
-              else if (atoms%npspcode(ityp) == 10) then !HGH-K convention
+              else if (atoms%npspcode(ityp) == 10 &
+                  .or. atoms%npspcode(ityp) == 12) then !HGH-K convention
                  hij(1,2)=atoms%psppar(l,4,ityp)
                  hij(1,3)=atoms%psppar(l,5,ityp)
                  hij(2,3)=atoms%psppar(l,6,ityp)

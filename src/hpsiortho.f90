@@ -558,7 +558,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
                  pkernel,psi,pot(ispot),energs%eexctX)
          else
             !the psi should be transformed in real space
-            call exact_exchange_potential_round(iproc,nproc,at%astruct%geocode,orbs%nspin,Lzd%Glr,orbs,&
+            call exact_exchange_potential_round(iproc,nproc,orbs%nspin,Lzd%Glr,orbs,&
                 0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
                 pkernel,psi,pot(ispot),energs%eexctX)
 
@@ -1786,7 +1786,7 @@ real(8) function ddot(n,A,l1,B,l2)
   real(8)::scpr
   integer::i
 
-  scpr=0.00_dp
+  ddot=0.00_dp
   do i=1,n
    ddot=ddot+A(i)*B(i)
   end do

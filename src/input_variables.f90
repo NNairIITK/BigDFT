@@ -96,8 +96,6 @@ subroutine bigdft_free_input(in)
   
   call free_input_variables(in)
   call f_lib_finalize()
-  !finalize memory counting
-  !call memocc(0,0,'count','stop')
   !free all yaml_streams active
   call yaml_close_all_streams()
 

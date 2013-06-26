@@ -135,15 +135,15 @@ interface
 end interface
 
 interface
- subroutine mkdenpos(iwarn,nfft,nspden,option,rhonow)
-  use defs_basis
-  implicit none
-  integer,intent(inout) :: iwarn
-  integer,intent(in) :: nfft
-  integer,intent(in) :: nspden
-  integer,intent(in) :: option
-  real(dp),intent(inout) :: rhonow(nfft,nspden)
- end subroutine mkdenpos
+   subroutine mkdenpos(iwarn,nfft,nspden,option,rhonow,xc_denpos)
+     use defs_basis
+     implicit none
+     integer,intent(in) :: nfft,nspden,option
+     integer,intent(inout) :: iwarn
+     real(dp),intent(in) :: xc_denpos
+     !arrays
+     real(dp),intent(inout) :: rhonow(nfft,nspden)
+   end subroutine mkdenpos
 end interface
 
 interface

@@ -899,7 +899,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
   else
      
-     !,if(iproc==0) write(*,'(1x,a)') 'Direct diagonalization...'
+     !if(iproc==0) write(*,'(1x,a)') 'Direct diagonalization...'
      
      call timing(iproc, 'Input_comput', 'ON')
 
@@ -954,7 +954,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
         if (iproc==0) call yaml_map('Noise added to input eigenvalues to determine occupation numbers',&
              max(Tel,1.0e-3_gp),fmt='(1pe12.5)')
-        !add a small displacement in the eigenvalues
+!        !add a small displacement in the eigenvalues
         do iorb=1,orbsu%norb*orbsu%nkpts
            tt=builtin_rand(idum)
            orbsu%eval(iorb)=orbsu%eval(iorb)*(1.0_gp+max(Tel,1.0e-3_gp)*real(tt,gp))
