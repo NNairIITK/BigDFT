@@ -26,8 +26,9 @@ libflib_a_SOURCES = dictionaries_base.f90 dictionaries.f90 yaml_strings.f90 call
 	yaml_output.f90 mem_profiling.f90 dynamic_memory.f90 razero.f90 getadd.f90 time.f90 f_lib_highlev.f90 \
 	$(flush_files) $(mpi_source) $(getarg_files)
 
-DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 f_malloc-inc.f90 f_malloc-extra-inc.f90 \
-	deallocate-inc-profile.f90 allocate-inc-profile.f90
+DYN_INCLUDES =  allocate-inc.f90 deallocate-inc.f90 \
+				f_malloc-inc.f90 f_malloc-extra-inc.f90 \
+				allocate-profile-inc.f90 deallocate-profile-inc.f90
 YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90
 STRINGS_INCLUDES = yaml_toa-inc.f90
 ERR_INCLUDES = get_err-inc.f90
