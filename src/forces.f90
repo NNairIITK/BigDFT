@@ -3920,7 +3920,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   use module_base
   use module_types
   use module_interfaces
-  use libxc_functionals
+  use module_xc
   implicit none
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
@@ -3936,7 +3936,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir,hpsi
 
-  exctXcoeff=libxc_functionals_exctXfac()
+  exctXcoeff=xc_exctXfac()
 
   !initialise the work arrays
   call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  

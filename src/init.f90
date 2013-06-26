@@ -1811,7 +1811,6 @@ END SUBROUTINE input_memory_linear
            use module_interfaces, except_this_one => input_wf_diag
            use module_types
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-           use libxc_functionals
            use yaml_output
            use gaussians
            implicit none

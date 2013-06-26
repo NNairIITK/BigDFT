@@ -1603,7 +1603,6 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    use module_interfaces, except_this_one => extract_potential_for_spectra
    use module_types
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-   use libxc_functionals
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc
