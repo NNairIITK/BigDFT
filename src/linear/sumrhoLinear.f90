@@ -1665,10 +1665,9 @@ subroutine transpose_unswitch_psir(collcom_sr, psirwork, psir)
 end subroutine transpose_unswitch_psir
 
 
-subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho)
+subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, print_results)
   use module_base
   use module_types
-  use libxc_functionals
   implicit none
 
   ! Calling arguments
@@ -1677,12 +1676,24 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   type(collective_comms),intent(in) :: collcom_sr
   type(sparseMatrix),intent(in) :: denskern
   real(kind=8),dimension(ndimrho),intent(out) :: rho
+  logical,intent(in),optional :: print_results
 
   ! Local variables
   integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind
   real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
+  logical :: print_local
+
+  if (present(print_results)) then
+      if (print_results) then
+          print_local=.true.
+      else
+          print_local=.false.
+      end if
+  else
+      print_local=.true.
+  end if
 
 
   allocate(rho_local(collcom_sr%nptsp_c), stat=istat)
@@ -1697,7 +1708,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   call timing(iproc,'sumrho_TMB    ','ON')
   
   ! Initialize rho. (not necessary for the moment)
-  !if (libxc_functionals_isgga()) then
+  !if (xc_isgga()) then
   !    call razero(collcom_sr%nptsp_c, rho_local)
   !else
    !   ! There is no mpi_allreduce, therefore directly initialize to
@@ -1705,7 +1716,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   !    rho_local=1.d-20
   !end if
 
-  if (iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
+
+  if (print_local .and. iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
 
   total_charge=0.d0
   !$omp parallel default(private) &
@@ -1734,7 +1746,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   !$omp end do
   !$omp end parallel
 
-  if (iproc==0) write(*,'(a)') 'done.'
+  if (print_local .and. iproc==0) write(*,'(a)') 'done.'
 
   call timing(iproc,'sumrho_TMB    ','OF')
 
@@ -1751,7 +1763,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
 
   call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-  if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
+  if(print_local .and. iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
   
   call timing(iproc,'sumrho_allred','OF')
 
@@ -1794,10 +1806,10 @@ end subroutine sumrho_for_TMBs
 
 
 
-subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr)
+subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => check_communication_sumrho
   use yaml_output
   implicit none
 
@@ -1806,25 +1818,39 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr)
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
   type(collective_comms),intent(in) :: collcom_sr
+  type(DFT_local_fields),intent(in) :: denspot
+  type(sparseMatrix),intent(in) :: denskern
 
   ! Local variables
   integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
-  real(kind=8) :: maxdiff, sumdiff, tt
-  real(kind=8),dimension(:),allocatable :: psir, psirwork, psirt, psirtwork
+  integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, jjorb, ind, ikernel
+  integer :: matrixindex_in_compressed, iorbmin, iorbmax, jorb
+  real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, tt1, hxh, hyh, hzh, factor, hx, hy, hz, ref_value, maxval_rho
+  real(kind=8) :: diff
+  real(kind=8),dimension(:),allocatable :: psir, psirwork, psirt, psirtwork, rho_local, rho, rho_check
+  integer,dimension(:,:,:),allocatable :: weight
+  integer,dimension(:,:,:,:),allocatable :: orbital_id
   integer,dimension(:),allocatable :: istarr
-  real(kind=8),parameter :: tol=1.d-10
+  integer,dimension(:,:),allocatable :: matrixindex_in_compressed_auxilliary
+  real(kind=8),parameter :: tol_transpose=1.d-14
+  real(kind=8),parameter :: tol_calculation_mean=1.d-12
+  real(kind=8),parameter :: tol_calculation_max=1.d-10
 
-  if (iproc==0) call yaml_open_map('Checking transposition for sumrho')
+  call timing(iproc,'check_sumrho','ON')
+
+  if (iproc==0) call yaml_open_map('Checking operations for sumrho')
 
   call f_routine(id='check_communication_sumrho')
 
-  ! Allocate dummy array
-  psir=f_malloc(collcom_sr%ndimpsi_c,id='collcom_sr%ndimpsi_c')
+  ! Allocate all the main arrays arrays
+  psir=f_malloc(collcom_sr%ndimpsi_c,id='collcom_sr%ndimpsi_c') !direct array
+  psirwork=f_malloc(collcom_sr%ndimpsi_c,id='collcom_sr%ndimpsi_c') !direct workarray
+  psirtwork=f_malloc(collcom_sr%ndimind_c,id='psirtwork') !transposed workarray
 
   ! Size of global box
   nxyz=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
 
-  ! Fill with a recognizable pattern
+  ! Fill the direct array with a recognizable pattern
   ist=0
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
@@ -1842,7 +1868,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr)
           iiz=iz+lzd%llr(ilr)%nsi3
           iixyz=(iiz-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(iiy-1)*lzd%glr%d%n1i+iix
           ! assign unique value
-          psir(ist+i)=real((iiorb-1)*nxyz+iixyz,dp)
+          psir(ist+i)=test_value(iiorb,iixyz,nxyz)
       end do
       ist = ist + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
   end do
@@ -1851,17 +1877,12 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr)
       stop
   end if
 
-  ! Direct workarray
-  psirwork=f_malloc(collcom_sr%ndimpsi_c,id='collcom_sr%ndimpsi_c')
 
   ! Rearrange data
   call transpose_switch_psir(collcom_sr, psir, psirwork)
 
-  ! Original array not needed anymore
+  ! direct array not needed anymore
   call f_free(psir)
-
-  ! Allocate transposed workarray
-  psirtwork=f_malloc(collcom_sr%ndimind_c,id='psirtwork')
 
   ! Communicate the data
   call transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
@@ -1869,9 +1890,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr)
   ! Direct workarray not needed anymore
   call f_free(psirwork)
 
-  ! Allocate transposed array
-  psirt=f_malloc(collcom_sr%ndimind_c,id='psirt')
-  call transpose_unswitch_psirt(collcom_sr, psirtwork, psirt)
+  ! Rearrange array
+  call transpose_unswitch_psirt(collcom_sr, psirtwork, collcom_sr%psit_c)
 
   ! Transposed workarray not needed anymore
   call f_free(psirtwork)
@@ -1882,8 +1902,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr)
   sumdiff=0.d0
 
   ! Get the starting point of each MPI task
-  istarr=f_malloc(0.to.nproc-1,id='istarr')
-  !allocate(istarr(0:nproc-1))
+  istarr=f_malloc((/0.to.nproc-1/),id='istarr')
   istarr=0
   istarr(iproc)=collcom_sr%nptsp_c
   call mpiallred(istarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -1891,7 +1910,6 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr)
   do jproc=0,iproc-1
       ist=ist+istarr(jproc)
   end do
-  !deallocate(istarr)
   call f_free(istarr)
   
   ! Iterate through all the transposed values and check whether they are correct
@@ -1901,31 +1919,319 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr)
       iixyz=ist+ipt
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
-          tt=psirt(i0+i)
-          maxdiff=max(maxdiff,abs(tt-real((iiorb-1)*nxyz+iixyz,dp)))
-          sumdiff=sumdiff+abs(tt-real((iiorb-1)*nxyz+iixyz,dp))
+          tt=collcom_sr%psit_c(i0+i)
+          ref_value=test_value(iiorb,iixyz,nxyz)
+          diff=abs(tt-ref_value)
+          if (diff>maxdiff) maxdiff=diff
+          sumdiff=sumdiff+diff**2
+          !!write(3000+iproc,*) tt
+          !!write(4000+iproc,*) ref_value
       end do
   end do
 
-  call f_free(psirt)
 
   ! Reduce the results
   if (nproc>1) then
+      call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
-      call mpiallred(maxdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
+
+  ! Get mean value for the sum
+  sumdiff = sumdiff/(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i)
+  sumdiff=sqrt(sumdiff)
+
+  ! Print the results
   if (iproc==0) then
-      call yaml_map('Tolerances for this check',tol,fmt='(1es23.15)')
-      if (sumdiff>tol) then
-         call yaml_warning('TRANSPOSITION ERROR: total difference of '//trim(yaml_toa(sumdiff,fmt='(1es23.15)')))
-         call yaml_warning('TRANSPOSITION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es23.15)')))
+      call yaml_map('Tolerance for the following test',tol_transpose,fmt='(1es25.18)')
+      if (sumdiff>tol_transpose) then
+         call yaml_warning('TRANSPOSITION ERROR: mean difference of '//trim(yaml_toa(sumdiff,fmt='(1es25.18)')))
       else
-         call yaml_map('transposition check, sum', sumdiff,fmt='(1es23.15)')
-         call yaml_map('transposition check, max', maxdiff,fmt='(1es23.15)')
+         call yaml_map('transposition check, mean error ', sumdiff,fmt='(1es25.18)')
+      end if
+      if (maxdiff>tol_transpose) then
+         call yaml_warning('TRANSPOSITION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')))
+      else
+         call yaml_map('transposition check, max error ', maxdiff,fmt='(1es25.18)')
+      end if
+  end if
+
+
+  
+  ! Now simulate the calculation of the charge density. Take the same reproducable
+  ! values as above. In this way the charge density can be calculated without
+  ! the communication.
+  
+  ! First determine how many orbitals one has for each grid point in the current slice
+  ii3s=denspot%dpbox%nscatterarr(iproc,3)+1
+  ii3e=denspot%dpbox%nscatterarr(iproc,3)+denspot%dpbox%nscatterarr(iproc,1)
+  weight=f_malloc((/1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='weight')
+  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
+  do i3=ii3s,ii3e
+      do iorb=1,orbs%norb
+          ilr=orbs%inwhichlocreg(iorb)
+          is3=1+lzd%Llr(ilr)%nsi3
+          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+          if (is3>i3 .or. i3>ie3) cycle
+          is1=1+lzd%Llr(ilr)%nsi1
+          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+          is2=1+lzd%Llr(ilr)%nsi2
+          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+          do i2=is2,ie2
+              do i1=is1,ie1
+                  weight(i1,i2,i3) = weight(i1,i2,i3)+1
+              end do
+          end do
+      end do
+  end do
+
+  ! The array orbital_id contains the IDs of the orbitals touching a given gridpoint
+  nmax=maxval(weight)
+  orbital_id=f_malloc((/1.to.nmax,1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='orbital_id')
+  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
+  iorbmin=1000000000
+  iorbmax=-1000000000
+  do i3=ii3s,ii3e
+      do iorb=1,orbs%norb
+          ilr=orbs%inwhichlocreg(iorb)
+          is3=1+lzd%Llr(ilr)%nsi3
+          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+          if (is3>i3 .or. i3>ie3) cycle
+          is1=1+lzd%Llr(ilr)%nsi1
+          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+          is2=1+lzd%Llr(ilr)%nsi2
+          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+          do i2=is2,ie2
+              do i1=is1,ie1
+                  weight(i1,i2,i3) = weight(i1,i2,i3)+1
+                  orbital_id(weight(i1,i2,i3),i1,i2,i3) = iorb
+                  if (iorb<iorbmin) iorbmin=iorb
+                  if (iorb>iorbmax) iorbmax=iorb
+              end do
+          end do
+      end do
+  end do
+
+  ! Make sure that the bounds are okay for all processes
+  if (iorbmin>iorbmax) then
+      iorbmin=1
+      iorbmax=1
+  end if
+
+
+  ! Now calculate the charge density. Of course this is only possible since the
+  ! value of each gridpoint is given by the special pattern and therefore always known.
+
+  ! First fill the kernel with some numbers.
+  do i=1,denskern%nvctr
+      denskern%matrix_compr(i)=sine_taylor(real(denskern%nvctr-i+1,dp))
+  end do
+
+  hxh=.5d0*lzd%hgrids(1)
+  hyh=.5d0*lzd%hgrids(2)
+  hzh=.5d0*lzd%hgrids(3)
+  factor=1.d0/(hxh*hyh*hzh)
+
+  ! Use an auxilliary array to store the indices of the kernel in the compressed
+  ! format. The usual denskern%matrixindex_in_compressed_fortransposed can not be used 
+  ! since we are not in the transposed distribution.
+  matrixindex_in_compressed_auxilliary=f_malloc((/iorbmin.to.iorbmax,iorbmin.to.iorbmax /), &
+      id='matrixindex_in_compressed_auxilliary')
+  do iorb=iorbmin,iorbmax
+      do jorb=iorbmin,iorbmax
+          matrixindex_in_compressed_auxilliary(jorb,iorb)=matrixindex_in_compressed(denskern, jorb, iorb)
+      end do
+  end do
+
+  ! Now calculate the charge density and store the result in rho_check
+  rho_check=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho_check')
+  maxval_rho=0.d0
+  !$omp parallel default (none) &
+  !$omp private (i2, i1, iixyz, ind, tt, i, ii, tti, ikernel, jj, ttj) &
+  !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, rho_check) &
+  !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary, maxval_rho) &
+  !$omp firstprivate (i3)
+  do i3=ii3s,ii3e
+      !$omp do reduction(max:maxval_rho)
+      do i2=1,lzd%glr%d%n2i
+          do i1=1,lzd%glr%d%n1i
+              iixyz=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+              ind=(i3-ii3s)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+              tt=1.d-20
+              do i=1,weight(i1,i2,i3) !the number of orbitals touching this grid point
+                  ii=orbital_id(i,i1,i2,i3)
+                  tti=test_value(ii,iixyz,nxyz)
+                  ikernel=matrixindex_in_compressed_auxilliary(ii,ii)
+                  tt=tt+denskern%matrix_compr(ikernel)*tti*tti
+                  do j=i+1,weight(i1,i2,i3)
+                      jj=orbital_id(j,i1,i2,i3)
+                      ikernel=matrixindex_in_compressed_auxilliary(jj,ii)
+                      if (ikernel==0) cycle
+                      ttj=test_value(jj,iixyz,nxyz)
+                      tt=tt+2.d0*denskern%matrix_compr(ikernel)*tti*ttj
+                  end do
+              end do
+              tt=tt*factor
+              rho_check(ind)=tt
+          end do
+      end do
+      !$omp end do
+  end do
+  !$omp end parallel
+
+
+  call f_free(matrixindex_in_compressed_auxilliary)
+
+  ! Now calculate the charge density in the transposed way using the standard routine
+  rho=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho')
+  call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, &
+       lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d, rho, .false.)
+
+  ! Determine the difference between the two versions
+  sumdiff=0.d0
+  maxdiff=0.d0
+  do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
+      tt=abs(rho(i)-rho_check(i))
+      sumdiff = sumdiff + tt**2
+      if (tt>maxdiff) maxdiff=tt
+  end do
+
+  ! Reduce the results
+  if (nproc>1) then
+      call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  end if
+
+  ! Get mean value for the sum
+  sumdiff = sumdiff/(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i)
+  sumdiff=sqrt(sumdiff)
+
+  ! Print the results
+  if (iproc==0) then
+      call yaml_map('Tolerance for the following test',tol_calculation_mean,fmt='(1es25.18)')
+      if (sumdiff>tol_calculation_mean) then
+         call yaml_warning('CALCULATION ERROR: total difference of '//trim(yaml_toa(sumdiff,fmt='(1es25.18)')))
+      else
+         call yaml_map('calculation check, error sum', sumdiff,fmt='(1es25.18)')
+      end if
+      call yaml_map('Tolerance for the following test',tol_calculation_max,fmt='(1es25.18)')
+      if (sumdiff>tol_calculation_max) then
+         call yaml_warning('CALCULATION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')))
+      else
+         call yaml_map('calculation check, error max', maxdiff,fmt='(1es25.18)')
       end if
   end if
 
   if (iproc==0) call yaml_close_map()
+
+  call f_free(weight)
+  call f_free(orbital_id)
+  call f_free(rho_check)
+  call f_free(rho)
+
+  call timing(iproc,'check_sumrho','OF')
+
+
+  contains
+
+
+    function test_value(i, j, n)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: i, j, n
+      real(kind=8) :: test_value
+
+      ! Local variables
+      real(kind=8) :: ri, rj, rn
+      real(kind=8),parameter :: fac=1.d-8
+
+      ri=real(i,dp)
+      rj=real(j,dp)
+      rn=real(n,dp)
+      !test_value=fac*real((i-1)*n+j,dp)
+      !test_value=fac*(ri-1.d0)*rn+rj
+      test_value=sine_taylor((ri-1.d0)*rn)*cosine_taylor(rj)
+
+    end function test_value
+
+
+    function sine_taylor(xx)
+      implicit none
+
+      ! Calling arguments
+      real(kind=8),intent(in) :: xx
+      real(kind=8) :: sine_taylor
+
+      ! Local variables
+      real(kind=8) :: x, x2, x3, x5, x7, x9, x11, x13, x15
+      real(kind=8),parameter :: pi=3.14159265358979323846d0
+      real(kind=8),parameter :: pi2=6.28318530717958647693d0
+      real(kind=8),parameter :: inv6=1.66666666666666666667d-1
+      real(kind=8),parameter :: inv120=8.33333333333333333333d-3
+      real(kind=8),parameter :: inv5040=1.98412698412698412698d-4
+      real(kind=8),parameter :: inv362880=2.75573192239858906526d-6
+      real(kind=8),parameter :: inv39916800=2.50521083854417187751d-8
+      real(kind=8),parameter :: inv6227020800=1.60590438368216145994d-10
+      real(kind=8),parameter :: inv1307674368000=7.6471637318198164759d-13
+
+      ! The Taylor approximation is most accurate around 0, so shift by pi to be centered around this point.
+      x=mod(xx,pi2)-pi
+      x2=x*x
+      x3=x2*x
+      x5=x3*x2
+      x7=x5*x2
+      x9=x7*x2
+      x11=x9*x2
+      x13=x11*x2
+      x15=x13*x2
+
+      ! Calculate the value
+      sine_taylor = x - x3*inv6 + x5*inv120 - x7*inv5040 + x9*inv362880 &
+                    - x11*inv39916800 + x13*inv6227020800 - x15*inv1307674368000
+
+      ! Undo the shift of pi, which corresponds to a multiplication with -1
+      sine_taylor=-1.d0*sine_taylor
+
+    end function sine_taylor
+
+
+    function cosine_taylor(xx)
+      implicit none
+
+      ! Calling arguments
+      real(kind=8),intent(in) :: xx
+      real(kind=8) :: cosine_taylor
+
+      ! Local variables
+      real(kind=8) :: x, x2, x4, x6, x8, x10, x12, x14
+      real(kind=8),parameter :: pi=3.14159265358979323846d0
+      real(kind=8),parameter :: pi2=6.28318530717958647693d0
+      real(kind=8),parameter :: inv2=5.d-1
+      real(kind=8),parameter :: inv24=4.16666666666666666667d-2
+      real(kind=8),parameter :: inv720=1.38888888888888888889d-3
+      real(kind=8),parameter :: inv40320=2.48015873015873015873d-5
+      real(kind=8),parameter :: inv3628800=2.75573192239858906526d-7
+      real(kind=8),parameter :: inv479001600=2.08767569878680989792d-9
+      real(kind=8),parameter :: inv87178291200=1.14707455977297247139d-11
+
+      ! The Taylor approximation is most accurate around 0, so shift by pi to be centered around this point.
+      x=mod(xx,pi2)-pi
+      x2=x*x
+      x4=x2*x2
+      x6=x4*x2
+      x8=x6*x2
+      x10=x8*x2
+      x12=x10*x2
+      x14=x12*x2
+
+      ! Calculate the value
+      cosine_taylor = 1 - x2*inv2 + x4*inv24 - x6*inv720 + x8*inv40320 &
+                      - x10*inv3628800 + x12*inv479001600 - x14*inv87178291200
+
+      ! Undo the shift of pi, which corresponds to a multiplication with -1
+      cosine_taylor=-1.d0*cosine_taylor
+
+    end function cosine_taylor
 
 
 end subroutine check_communication_sumrho

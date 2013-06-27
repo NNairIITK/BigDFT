@@ -4175,10 +4175,11 @@ module module_interfaces
           real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
         end subroutine psi_to_kinpsi
 
-        subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
+        subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
           use module_base
           use module_types
           implicit none
+          integer,intent(in) :: iproc
           type(orbitals_data), intent(in) :: orbs
           type(local_zone_descriptors), intent(in) :: lzd
           type(local_zone_descriptors), intent(inout) :: lzd_old
@@ -4307,16 +4308,16 @@ module module_interfaces
           type(collective_comms),intent(inout) :: collcom_sr
         end subroutine init_collective_comms_sumro
 
-        subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho)
+        subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, print_results)
           use module_base
           use module_types
-          use libxc_functionals
           implicit none
           integer,intent(in) :: iproc, nproc, ndimrho
           real(kind=8),intent(in) :: hx, hy, hz
           type(collective_comms),intent(in) :: collcom_sr
           type(sparseMatrix),intent(in) :: denskern
           real(kind=8),dimension(ndimrho),intent(out) :: rho
+          logical,intent(in),optional :: print_results
         end subroutine sumrho_for_TMBs
 
         subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
@@ -4864,6 +4865,19 @@ module module_interfaces
           real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
           real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: vector
         end subroutine uncompress_polynomial_vector
+
+        subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern)
+          use module_base
+          use module_types
+          use yaml_output
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(orbitals_data),intent(in) :: orbs
+          type(collective_comms),intent(in) :: collcom_sr
+          type(DFT_local_fields),intent(in) :: denspot
+          type(sparseMatrix),intent(in) :: denskern
+        end subroutine check_communication_sumrho
 
   
   end interface

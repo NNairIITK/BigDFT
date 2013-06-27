@@ -18,6 +18,7 @@ module dictionaries_base
   character(len=max_field_length), parameter, public :: TYPE_LIST='__list__'
 
   type, public :: storage
+     sequence
      integer :: item   !< Id of the item associated to the list
      integer :: nitems !< No. of items in the list
      integer :: nelems !< No. of items in the dictionary
@@ -90,6 +91,7 @@ contains
     if (associated(dict)) then
        call dict_free_(dict)
        deallocate(dict)
+       nullify(dict)
     end if
 
   contains
@@ -305,11 +307,14 @@ contains
 
     dict%data%item=item
     if (associated(dict%parent)) then
+       if (len_trim(dict%parent%data%value) > 0) dict%parent%data%value=repeat(' ',max_field_length)
+       
        dict%parent%data%nitems=dict%parent%data%nitems+1
        if (item+1 > dict%parent%data%nitems) then
           !if (exceptions) then
           !   last_error=DICT_ITEM_NOT_VALID
           !else
+          !so far this error has never been found
              write(*,*)'ERROR: item not valid',item,dict%parent%data%nitems
              stop
           !end if
@@ -408,7 +413,11 @@ contains
     !commented out for the moment
     !call check_key(dict)
     
-    if (associated(dict%child)) then
+    !print *,'nelems',dict%data%nelems,dict%data%nitems
+    !free previously existing dictionaries
+    call clean_subdict(dict)
+    
+    if (associated(dict%child)) then         
        subd_ptr => get_item_ptr(dict%child,item)
     else
        call dict_init(dict%child)
@@ -447,5 +456,18 @@ contains
     call get_field(st%value,val)
   end function stored_value
 
+  !> clean the child and put to zero the number of elements in the case of a dictionary
+  pure subroutine clean_subdict(dict)
+    implicit none
+    type(dictionary), pointer :: dict
+    
+    if (associated(dict)) then
+       if (dict%data%nelems > 0) then
+          call dict_free(dict%child)
+          dict%data%nelems=0
+       end if
+    end if
+    
+  end subroutine clean_subdict
 
 end module dictionaries_base

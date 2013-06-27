@@ -29,6 +29,7 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   !Initalize the global mpi environment
   call bigdft_mpi_init(ierr)
   if (ierr /= MPI_SUCCESS) return
+  
 
   call bigdft_init_errors()
 
@@ -251,8 +252,9 @@ subroutine bigdft_severe_abort()
   integer :: ierr
 
   !the MPI_ABORT works only in MPI_COMM_WORLD
+  call f_malloc_dump_status()
   call f_dump_last_error()
-  call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+  call MPI_ABORT(MPI_COMM_WORLD,816437,ierr)
   if (ierr/=0) stop 'Problem in MPI_ABORT'
 
 end subroutine bigdft_severe_abort

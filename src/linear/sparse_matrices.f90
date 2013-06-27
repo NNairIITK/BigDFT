@@ -23,14 +23,15 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   type(sparseMatrix), intent(out) :: sparsemat
   
   ! Local variables
+  character(len=*), parameter :: subname='initSparseMatrix'
   integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, nseg, irow, irowold, isegline, ilr, segn, ind, iseg
-  integer :: nseglinemax, iall, isend, irecv, kproc, imin, imax, ierr
+  integer :: nseglinemax, iall
   integer :: compressed_index
-  integer,dimension(:,:,:),pointer:: keygline
-  integer,dimension(:),pointer:: noverlaps
-  integer,dimension(:,:),pointer:: overlaps
-  integer,dimension(:,:),allocatable :: sendbuf, requests, iminmaxarr
-  character(len=*),parameter :: subname='initSparseMatrix'
+  integer, dimension(:,:,:), pointer :: keygline
+  integer, dimension(:), pointer :: noverlaps
+  integer, dimension(:,:), pointer :: overlaps
+  !integer, dimension(:,:), allocatable :: sendbuf, requests, iminmaxarr
+  !integer :: ierr, imin, imax, irecv, isend, kproc
   
   call timing(iproc,'init_matrCompr','ON')
 
@@ -556,7 +557,7 @@ end subroutine determine_overlap_from_descriptors
 
 
 
-! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+!> Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
 function compressed_index(irow, jcol, norb, sparsemat)
   use module_base
   use module_types
@@ -791,7 +792,6 @@ integer function matrixindex_in_compressed(sparsemat, iorb, jorb)
   integer,intent(in) :: iorb, jorb
 
   ! Local variables
-  integer :: compressed_index
 
   if (sparsemat%store_index) then
       ! Take the value from the array

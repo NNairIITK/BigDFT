@@ -45,7 +45,7 @@ libmodules_a_SOURCES = base.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
 	fragments.f90 \
-   constrained_dft.f90 \
+	constrained_dft.f90 \
 	diis_module.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
@@ -110,7 +110,7 @@ $(modules): $(libmodules_a_OBJECTS)
 base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o
 types.o: base.o gaussians.o
 input.o: base.o 
-interfaces.o: base.o types.o xc.o fragments.o
+interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o
 gaussians.o: base.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o

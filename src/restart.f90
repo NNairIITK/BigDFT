@@ -1,7 +1,7 @@
 !> @file
-!!  Routines to do restart
+!!  Routines to do restart of the calculation
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -2039,15 +2039,15 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   integer :: ncount1,ncount_rate,ncount_max,ncount2
   integer :: iorb_out,ispinor,ilr,ind,i_all,i_stat,iorb_old
   integer :: confPotOrder,onwhichatom_tmp,unitwf
-  real(gp) :: locrad, confPotprefac
-  real(gp), dimension(3) :: locregCenter, mol_centre, mol_centre_new
+  real(gp) :: confPotprefac
+!!$ real(gp), dimension(3) :: mol_centre, mol_centre_new
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel,eval
   character(len=256) :: error, full_filename
   logical :: lstat
   character(len=*), parameter :: subname='readmywaves_linear_new'
   ! to eventually be part of the fragment structure?
-  integer :: ndim_old, iiorb, ifrag, norb, isorb, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat, jsforb, ierr
+  integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat, itmb, jtmb, jsforb
   type(local_zone_descriptors) :: lzd_old
   real(wp), dimension(:), pointer :: psi_old
   type(phi_array), dimension(:), pointer :: phi_array_old
@@ -2056,6 +2056,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   real(gp), dimension(:), allocatable :: dist
   integer, dimension(:), allocatable :: ipiv
   logical :: skip
+!!$ integer :: ierr
 
 
   ! DEBUG
@@ -2502,7 +2503,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 END SUBROUTINE readmywaves_linear_new
 
 
-! initializes onwhichatom, inwhichlocreg, locrad and locregcenter from file
+!> Initializes onwhichatom, inwhichlocreg, locrad and locregcenter from file
 subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,Lzd,iformat,&
      dir_output,filename,ref_frags,orblist)
   use module_base
@@ -2649,10 +2650,12 @@ END SUBROUTINE initialize_linear_from_file
 
 
 !> Copy old support functions from phi to phi_old
-subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
+subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   use module_base
   use module_types
+  use yaml_output
   implicit none
+  integer,intent(in) :: iproc
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: lzd
   type(local_zone_descriptors), intent(inout) :: lzd_old
@@ -2747,6 +2750,7 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
   call memocc(i_stat,phi_old,'phi_old',subname)
 
   ! Now copy the suport functions
+  if (iproc==0) call yaml_map('Check the normalization of the support functions, tolerance',1.d-3,fmt='(1es12.4)')
   ind1=0
   do iorb=1,orbs%norbp
       tt=0.d0
@@ -2759,10 +2763,12 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
       end do
       tt=sqrt(tt)
       if (abs(tt-1.d0) > 1.d-3) then
-         write(*,*)'wrong phi_old',iiorb,tt
+         !write(*,*)'wrong phi_old',iiorb,tt
+         call yaml_warning('support function, value:'//trim(yaml_toa(iiorb,fmt='(i6)'))//trim(yaml_toa(tt,fmt='(1i6,1es18.9)')))
          !stop 
       end if
   end do
+!  if (iproc==0) call yaml_close_map()
 
   !!!deallocation
   !!i_all=-product(shape(phi))*kind(phi)
@@ -3018,7 +3024,7 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   real(gp) :: displ, mindist
   integer, dimension(3) :: nb
   logical, dimension(3) :: per
-  real(gp), dimension(3) :: centre_new
+  !real(gp), dimension(3) :: centre_new
 
   !conditions for periodicity in the three directions
   per(1)=(at%astruct%geocode /= 'F')
