@@ -8,7 +8,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!> ART Module BAYES 
+!> Module BAYES used by ART (Activation Relaxation Technique)
 module BAYES
 
    implicit none

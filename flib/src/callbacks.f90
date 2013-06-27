@@ -1,13 +1,16 @@
 !> @file
-!!  Module interfacing the callback to different functions
-!!  Should be used in the error handling module
-!!  The user of this module is able to define the stopping routine, the new error and the error codes
+!! Contains defintion of callback mechanisms for BigDFT
 !! @author Luigi Genovese
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
+!> @brief Module interfacing the callback to different functions
+!! @details Should be used in the error handling module
+!! The user of this module is able to define the stopping routine, the new error and the error codes
 module exception_callbacks
 
   implicit none

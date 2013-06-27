@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> Define a dictionary and its basic usage rules
+!> Module which defines a dictionary (à la python) and its basic usage rules
 module dictionaries
   use exception_callbacks
   use dictionaries_base

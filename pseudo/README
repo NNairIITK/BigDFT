@@ -1,8 +1,8 @@
+/*! @dir pseudo
+@brief README for pseudo generation
 
-________________________
-
-   What is pseudo2.5?
-________________________
+What is pseudo2.5?
+=================
 
 
 Pseudo is a program to generate accurate, soft and transferable Goedecker-type pseudopotentials. 
@@ -21,4 +21,4 @@ linear core corrections of a simple analytic form that may be fitted as well.
 
 
 More information is given in the doc and Tutorial subdirectories.
-
+*/

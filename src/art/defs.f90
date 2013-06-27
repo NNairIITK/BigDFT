@@ -1,14 +1,13 @@
 !> @file
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!> ART Module defs
-!! This module defines almost all variables used across the program ART
+!> Module which defines almost all variables used across the program ART
 module defs
 
   implicit none

@@ -133,7 +133,7 @@
 
   end function f_err_check
 
-  !> this routine should be generalized to allow the possiblity of addin customized message at the 
+  !> This routine should be generalized to allow the possiblity of addin customized message at the 
   !! raise of the error. Also customized callback should be allowed
   function f_err_raise(condition,err_msg,err_id,err_name,callback,callback_data)
     use yaml_strings, only: yaml_toa

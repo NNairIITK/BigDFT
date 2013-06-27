@@ -3,21 +3,23 @@
   <navindex>
     <tab type="mainpage" visible="yes" title=""/>
     <tab type="pages" visible="yes" title="" intro=""/>
-    <tab type="dirs" visible="yes" title="" intro=""/>
+    <tab type="dirs" visible="no" title="" intro=""/>
     <tab type="files" visible="yes" title="">
       <tab type="filelist" visible="yes" title="" intro=""/>
       <tab type="globals" visible="yes" title="" intro=""/>
     </tab>
     <tab type="modules" visible="no" title="" intro=""/>
-    <tab type="namespaces" visible="yes" title="">
+    <tab type="namespaces" visible="no" title="">
       <tab type="namespacelist" visible="yes" title="" intro=""/>
       <tab type="namespacemembers" visible="yes" title="" intro=""/>
     </tab>
-    <tab type="classes" visible="yes" title="">
-      <tab type="classlist" visible="yes" title="" intro=""/>
-      <tab type="classindex" visible="$ALPHABETICAL_INDEX" title=""/> 
+    <tab type="classes" visible="yes" title="Modules, Types, Subroutines and Variables">
+      <tab type="classlist" visible="yes" title="Modules" intro="Here are the list of modules:"/>
+      <tab type="classindex" visible="$ALPHABETICAL_INDEX" title="Modules, Types and Interfaces"
+              intro="Here are the list of modules, types and interfaces"/> 
       <tab type="hierarchy" visible="yes" title="" intro=""/>
-      <tab type="classmembers" visible="yes" title="" intro=""/>
+      <tab type="classmembers" visible="yes" title="Functions, Subroutines and Variables" 
+              intro="Here are the list of functions, subroutines and variables:"/>
     </tab>
     <tab type="examples" visible="yes" title="" intro=""/>  
   </navindex>
@@ -25,6 +27,7 @@
   <!-- Layout definition for a class page -->
   <class>
     <briefdescription visible="yes"/>
+    <detaileddescription title=""/>
     <includes visible="$SHOW_INCLUDE_FILES"/>
     <inheritancegraph visible="$CLASS_GRAPH"/>
     <collaborationgraph visible="$COLLABORATION_GRAPH"/>
@@ -61,7 +64,6 @@
       <related title="" subtitle=""/>
       <membergroups visible="yes"/>
     </memberdecl>
-    <detaileddescription title=""/>
     <memberdef>
       <inlineclasses title=""/>
       <typedefs title=""/>
@@ -80,6 +82,7 @@
   <!-- Layout definition for a namespace page -->
   <namespace>
     <briefdescription visible="yes"/>
+    <detaileddescription title=""/>
     <memberdecl>
       <nestednamespaces visible="yes" title=""/>
       <classes visible="yes" title=""/>
@@ -89,7 +92,6 @@
       <variables title=""/>
       <membergroups visible="yes"/>
     </memberdecl>
-    <detaileddescription title=""/>
     <memberdef>
       <inlineclasses title=""/>
       <typedefs title=""/>
@@ -103,6 +105,7 @@
   <!-- Layout definition for a file page -->
   <file>
     <briefdescription visible="yes"/>
+    <detaileddescription title=""/>
     <includes visible="$SHOW_INCLUDE_FILES"/>
     <includegraph visible="$INCLUDE_GRAPH"/>
     <includedbygraph visible="$INCLUDED_BY_GRAPH"/>
@@ -117,7 +120,6 @@
       <variables title=""/>
       <membergroups visible="yes"/>
     </memberdecl>
-    <detaileddescription title=""/>
     <memberdef>
       <inlineclasses title=""/>
       <defines title=""/>

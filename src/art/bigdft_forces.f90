@@ -12,8 +12,7 @@
 !! -Laurent Karim Beland, UdeM, 2011. For working with QM/MM !!
 
 
-!> ART Module bigdft_forces
-!! Module which contains information for BigDFT run inside art
+!> Module which contains information for BigDFT run inside ART
 module bigdft_forces
 
    use module_base!, only : gp,wp,dp,Bohr_Ang

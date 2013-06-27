@@ -1,7 +1,8 @@
-/*!  README for PSolver
+/*!  @dir PSolver
+@brief README for the PSolver library
 
 <pre>
-	Copyright (C) 2006-2012 BigDFT Group
+	Copyright (C) 2006-2013 BigDFT Group
 
 	This file is part of BigDFT.
 

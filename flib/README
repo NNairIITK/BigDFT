@@ -1,5 +1,6 @@
 /*! @dir flib
-  This directory contains the flib library.
+@brief This directory contains the flib library; (memeroy allocation, dictionaries, ...).
+
 The <tt>src</tt> directory contains the different routine of the flib library:
 - Dictionaries (see @ref dictionaries.f90)
 - Dynamic memory management (see @ref dynamic_memory.f90)

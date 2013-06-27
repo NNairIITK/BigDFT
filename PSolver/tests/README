@@ -1,1 +1,2 @@
-tests for the Poisson solver package.
+/*! Tests for the Poisson solver package.
+*/

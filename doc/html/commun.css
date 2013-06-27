@@ -57,6 +57,7 @@ h1
   margin-bottom:5px;
   color:#303030;
   clear:left;
+  text-align:left;
 }
 h2
 { 
@@ -118,8 +119,8 @@ div.mainnews
 }
 div.main img
 { 
-  border:1px solid #8f8f8f;
-  margin:3px;
+  /* border:1px solid #8f8f8f; */
+  margin:0px;
   background-color:#f0f0f0;
 }
 div.main div.figure
@@ -133,8 +134,8 @@ div.main div.figure
 }
 div.main div.figure img
 { 
-  border:1px solid #8f8f8f;
-  margin-bottom:2px;
+  /* border:1px solid #8f8f8f; */
+  margin-bottom: 2px;
 /* display:block; */
 }
 div.main li
@@ -409,7 +410,7 @@ td
   border:0px;
   border-bottom:1px solid #8f8f8f;
   padding:5px;
-  vertical-align:top;
+  vertical-align:center;
 }
 th
 { 

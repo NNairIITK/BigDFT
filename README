@@ -28,7 +28,7 @@ the proper boundary conditions.
  - @link distances.f90  MDanalysis  @endlink        Molecular Dynamics analysis
 
 @section T Tools
-- @link bigdft-tool.in bigdft-tool @endlink         (previously called memguess): 
+- bigdft-tool  (previously called memguess): 
   read BigDFT inputs and provide an accurate estimation of memory requirement (for each CPU in case of MPI run). 
   It can also do some simple jobs (see the --help option output):
 <pre>

@@ -9,8 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> ART Module diis_defs
-!! with the DIIS global arrays
+!> Module containing the DIIS global arrays for ART
 module diis_defs
 
   implicit none
