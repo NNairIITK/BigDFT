@@ -1819,7 +1819,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   type(orbitals_data),intent(in) :: orbs
   type(collective_comms),intent(in) :: collcom_sr
   type(DFT_local_fields),intent(in) :: denspot
-  type(sparseMatrix),intent(in) :: denskern
+  type(sparseMatrix),intent(inout) :: denskern
 
   ! Local variables
   integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
