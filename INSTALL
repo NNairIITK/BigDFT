@@ -13,7 +13,7 @@
 </p>
 
 
-@section S1 Building the executables
+@section Building Building the executables
 
 @subsection S1.1 Configure
 <p>
@@ -31,7 +31,7 @@ Lets call this directory <tt>compile-gFortran</tt> for instance.
 One starts the configure from there <tt>'source tree path'/configure</tt>.
 </p>
 
-@subsection 1.2 General description of the options
+@subsection Options General description of the options
 One can tune the compilation environment using the following options:
 - <tt>FC</tt>: Specify the compiler (including MPI aware wrappers).
 - <tt>FCFLAGS</tt>, <tt>CFLAGS</tt> and <tt>CXXFLAGS</tt>: Specify the flags, like the optimisation flags, 
@@ -74,7 +74,7 @@ Some of them are listed here (and they can be of course combined with each other
   This version is not necessarily slower that traditional copilation.
 
 
-@subsection 1.3 Example of configure output
+@subsection Configure Example of configure output
 <p>
 At the end of the configure script a summary is printed. It looks like that:
 </p>
@@ -143,7 +143,7 @@ Now, let's look at some most common cases...
 </p>
 
 
-@subsection 1.4 Use Intel MKL libraries
+@subsection MKL Use Intel MKL libraries
 <p>
 The Intel compiler is usually provided with native Lapack and Blas implementations, called the MKL libraries. 
 To use them, the option to pass to configure is <tt>--with-ext-linalg</tt>.
@@ -158,7 +158,7 @@ In this example, the <tt>--prefix</tt> option is not mandatory and is just provi
 </p>
 
 
-@subsection 1.5 MPI compilation
+@subsection MPI MPI compilation
 <p>
 MPI detection is enable by default and the current Fortran compiler (specified with <tt>FC</tt>) is tested with respect to MPI capabilities. 
 MPI and MPI2 are supported. If MPI2 is not available a fallback has been implemented.
@@ -176,7 +176,7 @@ and <tt>--with-mpi-libs</tt> (not recommended).
 </p>
 
 
-@subsection 1.6 OpenCL compilation
+@subsection OpenCL OpenCL compilation
 <p>
 Here is a example using the Intel Fortran compiler and OpenCL installed in <tt>/applications/cuda-3.2</tt>:
 </p>
@@ -186,7 +186,7 @@ Here is a example using the Intel Fortran compiler and OpenCL installed in <tt>/
 </pre>
 
 
-@subsection 1.7 CUDA compilation
+@subsection CUDA CUDA compilation
 <p>
 The compilation with CUDA currently required to compile the code with "second underscore". 
 It is for the compiler to know how to link C and Fortran sources together. 
@@ -200,7 +200,7 @@ Here is a example using the Intel Fortran compiler and CUDA installed in /applic
   --enable-cuda-gpu --with-cuda-path=/applications/cuda-2.2
 </pre>
 
-@subsection 1.8 NetCDF I/O
+@subsection NetCDF NetCDF I/O
 <p>
 Here is a example using the Intel Fortran compiler, NetCDF installed in <tt>/applications/netcdf-3.6.3</tt> and ETSF_IO compiled in a home directory:
 </p>
@@ -212,15 +212,15 @@ Here is a example using the Intel Fortran compiler, NetCDF installed in <tt>/app
 
 
 
-@section 2 Compilation
+@section Compilation Compilation
 
-@subsection 2.1 Make
+@subsection Make Make
 <p>
 Make the package and create the &#8217;bigdft&#8217; executable, issuing <tt>make</tt>. 
 The GNU option <i>-jn</i> is working with whatever value of <i>n</i> (tested up to 16).
 </p>
 
-@subsection 2.2 Install
+@subsection Install Install
 <p>
 To install the package, issue <tt>make install</tt>. 
 It will copy all files to the specified prefix (see configure). Additionaly, another installation path can be specified by providing a <tt>prefix</tt> option.
@@ -233,7 +233,7 @@ This example will install, binaries and documentation in <tt>$HOME/usr</tt> what
 The destination directory will be created automatically if not existing.
 </p>
 
-@subsection 2.3 Clean
+@subsection Clean Clean
 <p>
 Clean the source tree of the &#8217;make&#8217; action by <tt>make clean</tt>.
 </p>
@@ -242,7 +242,7 @@ Clean the source tree of the &#8217;make&#8217; action by <tt>make clean</tt>.
 See the file @ref README-MAIN "README" for more explanations.
 
 
-@section 3 Building a library
+@section Building Building a library
 <p>
 To avoid to create the binary executables, use <tt>--disable--build-binary</tt> option.
 </p>
@@ -258,7 +258,7 @@ Users are encouraged to write their own main programs for specific applications.
 </p>
 
 
-@section 4 Running the tests
+@section Tests Running the tests
 <p>
 BigDFT is provided with several test cases (that can also be studied as examples). 
 They are located in the <tt>tests</tt> directory. To run the tests, after compilation, issue <tt>make check</tt> in this directory.

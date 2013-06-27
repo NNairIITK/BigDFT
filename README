@@ -18,7 +18,7 @@ the proper boundary conditions.
  - @link frequencies.f90 frequencies @endlink       Calculation of the atomic frequencies by finite-difference
  - @link abscalc.f90     abscalc @endlink           XANES calculation
  - @link art.f90         bart @endlink              BigDFT + ART (Activation Relaxation Technique)
- - @link memguess.f90    memguess @endlink          Used by @link bigdft-tool.in bigdft-tool@endlink script
+ - @link memguess.f90    memguess @endlink          Used by bigdft-tool script
  - @link NEB.f90         NEB @endlink               Nudge-Elastic Band method (saddle point determination)
  - @link splinedsaddle.f90 splsad @endlink          Spline Saddle search program
  - @link WaCo.f90        WaCo @endlink              Wannier Constructors
