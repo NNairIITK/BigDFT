@@ -1783,6 +1783,7 @@ end subroutine field_rototranslation
 subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,f_old,&
      hgrids_new,ndims_new,f_new)
   use module_base
+  use yaml_output
   implicit none
   integer, intent(in) :: n_phi,nrange_phi !< number of points of ISF array and real-space range
   real(gp), intent(in) :: theta !< rotation wrt newzeta vector
@@ -1796,10 +1797,19 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
   !local variables
   integer :: m_isf
+  real(gp) :: sint,cost,onemc,ux,uy,uz
   real(gp), dimension(:), allocatable :: shf
 !  real(gp), dimension(:,:), allocatable :: dx,dy,dz
   real(gp), dimension(:,:), allocatable :: work,work2
   
+
+  sint=sin(theta)
+  cost=cos(theta)
+  onemc=1.0_gp-cost
+  ux=newz(1)
+  uy=newz(2)
+  uz=newz(3)
+
 !  print *,'3d'
 
   call f_routine(id='field_rototranslation3D')
@@ -1820,6 +1830,16 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
 
   !call define_rotations(da,newz,centre_old,centre_new,0.498_gp*pi_param,hgrids_old,ndims_old,&
   !     hgrids_new,ndims_new,dx,dy,dz)
+
+  !print matrix elements
+  call yaml_open_sequence('Rotation matrix elements')
+    call yaml_sequence(trim(yaml_toa((/&
+         cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /),fmt='(1pg20.12)')))
+    call yaml_sequence(trim(yaml_toa((/&
+         ux*uy*onemc +uz*sint , cost + onemc*uy**2   , uy*uz*onemc - ux*sint /),fmt='(1pg20.12)')))
+    call yaml_sequence(trim(yaml_toa((/&
+         ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /),fmt='(1pg20.12)')))
+  call yaml_close_sequence()
 
 
   !call define_rotations_switch(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
