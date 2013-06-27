@@ -4866,7 +4866,7 @@ module module_interfaces
           real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: vector
         end subroutine uncompress_polynomial_vector
 
-        subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern)
+        subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, check_sumrho)
           use module_base
           use module_types
           use yaml_output
@@ -4877,6 +4877,7 @@ module module_interfaces
           type(collective_comms),intent(in) :: collcom_sr
           type(DFT_local_fields),intent(in) :: denspot
           type(sparseMatrix),intent(in) :: denskern
+          integer,intent(in) :: check_sumrho
         end subroutine check_communication_sumrho
 
   
