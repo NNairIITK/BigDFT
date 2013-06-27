@@ -2768,7 +2768,7 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
          !stop 
       end if
   end do
-  if (iproc==0) call yaml_close_map()
+!  if (iproc==0) call yaml_close_map()
 
   !!!deallocation
   !!i_all=-product(shape(phi))*kind(phi)

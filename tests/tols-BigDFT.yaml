@@ -76,7 +76,7 @@ AgBulk:
  Enl: 2.3e-11
  Epot: 2.1e-11
  EvXC: 7.1e-11
- tr(H): 2.5e-11
+ tr(H): 2.52e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -312,6 +312,7 @@ GEOPT-newIG:
   Ion-Ion interaction energy: 2.3e-11
   D: 1.1e-10
   Energies: 1.1e-8
+  etot: 1.481e-11
   EKS: 7.4e-10
 
 rotatesmall_write:
@@ -320,12 +321,9 @@ rotatesmall_write:
 
 rotatesmall_read:
  Epsilon: 2.4e-11
-
 molecule_dmix:
  Epsilon: 7.0e-11
-
 molecule_pmix:
  Epsilon: 7.0e-11
-
 molecule_dmin:
  Epsilon: 5.0e-11
