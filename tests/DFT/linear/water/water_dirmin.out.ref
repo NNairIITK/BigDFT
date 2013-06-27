@@ -1,8 +1,7 @@
  <BigDFT> log of the run will be written in logfile: ./log-dirmin.yaml
- <BigDFT> Logfile existing, renamed into: ./logfiles/log-dirmin.17:44:51.284.yaml
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
-    | Processes from 0 to 5 treat 12 orbitals. |
+    | Processes from 0 to 3 treat 18 orbitals. |
  -----------------------------------------------
 total elements: 5184
 non-zero elements: 3950
@@ -19,7 +18,7 @@ V3prb    4.3923E+02
 WARNING: locrad for atom type H is too small; minimal value is   4.84E+00
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)H   4.84E+00   6.95E+00   3.000E+00
 V3prb    1.6463E+01
- Processes from 0 to 5 treat 12 inguess orbitals 
+ Processes from 0 to 3 treat 18 inguess orbitals 
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599995583257E+01
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -27,25 +26,25 @@ Calculating charge density... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(40)=  -8.738865398791E-02
-   eval(41)=  -8.498827387040E-02
-   eval(42)=  -8.377481919817E-02
-   eval(43)=  -8.084751675655E-02
-   eval(44)=  -8.044891732562E-02
-   eval(45)=  -7.878761327658E-02
-   eval(46)=  -7.840288168160E-02
-   eval(47)=  -7.285231963319E-02
-   eval(48)=  -7.166938996945E-02  <-- last occupied orbital
-   eval(49)=   3.499939382916E-01  <-- first virtual orbital
-   eval(50)=   3.768779021729E-01
-   eval(51)=   3.806773047391E-01
+   eval(40)=  -8.738865398786E-02
+   eval(41)=  -8.498827387035E-02
+   eval(42)=  -8.377481919812E-02
+   eval(43)=  -8.084751675650E-02
+   eval(44)=  -8.044891732557E-02
+   eval(45)=  -7.878761327653E-02
+   eval(46)=  -7.840288168155E-02
+   eval(47)=  -7.285231963314E-02
+   eval(48)=  -7.166938996940E-02  <-- last occupied orbital
+   eval(49)=   3.499939382915E-01  <-- first virtual orbital
+   eval(50)=   3.768779021728E-01
+   eval(51)=   3.806773047390E-01
    eval(52)=   3.925838186180E-01
-   eval(53)=   4.167585167432E-01
-   eval(54)=   4.326485436420E-01
-   eval(55)=   4.327181796430E-01
-   eval(56)=   4.401672581468E-01
+   eval(53)=   4.167585167431E-01
+   eval(54)=   4.326485436419E-01
+   eval(55)=   4.327181796429E-01
+   eval(56)=   4.401672581467E-01
  -------------------------------------------------
- lowest, highest ev: -7.2886332465498282E-01  6.5759738797963185E-01
+ lowest, highest ev: -7.2886332465495995E-01  6.5759738797953515E-01
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599995597142E+01
  ------------------------------------------------------------- Input guess generated.
@@ -61,7 +60,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.142520E-01    2.081999E-01    3.142583E
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.217797E-02    6.779416E-02    8.327520E-03
- iter, fnrm, fnrmMax, trace, diff     2  2.6522762E-01  4.0187750E-01  -167.5861031506  -3.7047E+00
+ iter, fnrm, fnrmMax, trace, diff     2  2.6522762E-01  4.0187750E-01  -167.5861031507  -3.7047E+00
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
@@ -73,7 +72,8 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.135825E-02    4.519609E-02    2.225809E
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.877894E-001     0.000000E+000    -2.845260E+001     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996255656E+01
@@ -81,38 +81,40 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  9.9546873E-07   -2.01060920329590999E+02   -2.0106E+02
+   it, Delta DENS, energy, energyDiff   1  9.9546873E-07   -2.01060920329668647E+02   -2.0106E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.896137E-001    -2.845260E+001    -2.061396E+000     2.000000E-001
  
- alpha, energydiff  0.10000000000000001       2.05456555011096498E-003
+ alpha, energydiff  0.100000000000000       2.054565544312936E-003
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996194567E+01
+   Calculation finished. TOTAL CHARGE =   9.599996194568E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  4.0915707E-07   -2.01058865764040888E+02    2.0546E-03
+   it, Delta DENS, energy, energyDiff   2  4.0915707E-07   -2.01058865764124334E+02    2.0546E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     7.217148E-002    -3.051399E+001     3.111284E+000     1.000000E-001
  
- alpha, energydiff  5.00000000000000028E-002  1.29204443702519711E-002
+ alpha, energydiff  5.000000000000000E-002  1.292044437093409E-002
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996192629E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  5.2358071E-08   -2.01045945319670636E+02    1.2920E-02
+   it, Delta DENS, energy, energyDiff   3  5.2358071E-08   -2.01045945319753400E+02    1.2920E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.740271071683E+01  7.172799671481E+02 -5.336361148259E+01 -6.998568498605E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   1   9.92E-07   -2.01045945319670636E+02   -2.0105E+02
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.740271071683E+01  7.172799671482E+02 -5.336361148259E+01 -6.998568498605E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   1   9.92E-07   -2.01045945319753400E+02   -2.0105E+02
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -122,32 +124,33 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    5.24E-08   -2.01045945319670636E+02
+     FINAL values: it, Delta DENS, energy   1    5.24E-08   -2.01045945319753400E+02
    > energy difference to last iteration: -2.010459E+02
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.404941E-02    4.712359E-02    2.363360E-02
- iter, fnrm, fnrmMax, trace, diff     1  1.4145673E-01  3.5386889E-01  -165.9864194159   1.5997E+00
+ iter, fnrm, fnrmMax, trace, diff     1  1.4145673E-01  3.5386889E-01  -165.9864194160   1.5997E+00
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.817149E-02    4.440868E-02    2.486458E-02
- iter, fnrm, fnrmMax, trace, diff     2  1.2544347E-01  3.6237170E-01  -166.3103215259  -3.2390E-01
+ iter, fnrm, fnrmMax, trace, diff     2  1.2544347E-01  3.6237170E-01  -166.3103215260  -3.2390E-01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.314916E-02    4.577738E-02    2.122076E-02
- iter, fnrm, fnrmMax, trace, diff     3  1.2308948E-01  3.7665124E-01  -166.6313429234  -3.2102E-01
+ iter, fnrm, fnrmMax, trace, diff     3  1.2308948E-01  3.7665124E-01  -166.6313429235  -3.2102E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.2308948E-01  3.7665124E-01   -166.6313429
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.881277E-001    -2.740271E+001     2.579063E-001     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996258628E+01
@@ -155,38 +158,40 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  5.0326397E-07   -2.01074579249761541E+02   -2.8634E-02
+   it, Delta DENS, energy, energyDiff   1  5.0326397E-07   -2.01074579249838052E+02   -2.8634E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.511388E-001    -2.714480E+001    -4.050495E+000     2.000000E-001
  
- alpha, energydiff  0.22000000000000003      -0.11531067533940131     
+ alpha, energydiff  0.220000000000000      -0.115310675341561     
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996194060E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  3.5023887E-07   -2.01189889925100942E+02   -1.1531E-01
+   it, Delta DENS, energy, energyDiff   2  3.5023887E-07   -2.01189889925179614E+02   -1.1531E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.118048E-002    -3.119530E+001     2.808161E+000     2.200000E-001
  
- alpha, energydiff  0.11000000000000001       5.83635409554972284E-003
+ alpha, energydiff  0.110000000000000       5.836354092366491E-003
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996181089E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  1.0237128E-07   -2.01184053571005393E+02    5.8364E-03
+   it, Delta DENS, energy, energyDiff   3  1.0237128E-07   -2.01184053571087247E+02    5.8364E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.838713782272E+01  7.168257811739E+02 -5.328989570591E+01 -6.988848498666E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   2   1.71E-07   -2.01184053571005393E+02   -1.3811E-01
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.838713782272E+01  7.168257811740E+02 -5.328989570591E+01 -6.988848498666E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   2   1.71E-07   -2.01184053571087247E+02   -1.3811E-01
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -196,24 +201,25 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   2    1.02E-07   -2.01184053571005393E+02
+     FINAL values: it, Delta DENS, energy   2    1.02E-07   -2.01184053571087247E+02
    > energy difference to last iteration: -1.381083E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.370881E-002    -2.838714E+001     7.013515E-001     1.100000E-001
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.348405E-01    2.132185E-01    1.680281E-02
- iter, fnrm, fnrmMax, ebs, diff     1  3.3385123E-01  3.9627690E-01  -201.1848593762  -3.4875E+01
+ iter, fnrm, fnrmMax, ebs, diff     1  3.3385123E-01  3.9627690E-01  -201.1848593763  -3.4875E+01
  SD informations: mean alpha=1.000E+00, max alpha=1.000E+00, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    7.672453E-02    1.818188E-01    1.629568E-02
- iter, fnrm, fnrmMax, ebs, diff     2  2.5571998E-01  4.5409729E-01  -202.3902853777  -1.2054E+00
+ iter, fnrm, fnrmMax, ebs, diff     2  2.5571998E-01  4.5409729E-01  -202.3902853778  -1.2054E+00
  SD informations: mean alpha=6.278E-01, max alpha=1.100E+00, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
@@ -225,7 +231,8 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.658898E-02    7.273671E-02    2.651757E
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.756819E-002    -2.768579E+001    -1.714093E+000     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996669952E+01
@@ -233,66 +240,70 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  1.6434231E-06   -2.02898952636146532E+02   -1.7149E+00
+   it, Delta DENS, energy, energyDiff   1  1.6434231E-06   -2.02898952636227136E+02   -1.7149E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.749567E-001    -2.939988E+001    -1.226143E+001     2.000000E-001
  
- alpha, energydiff  0.10000000000000001       0.24954452119800408     
+ alpha, energydiff  0.100000000000000       0.249544521212215     
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996556765E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  4.4595771E-07   -2.02649408114948528E+02    2.4954E-01
+   it, Delta DENS, energy, energyDiff   2  4.4595771E-07   -2.02649408115014921E+02    2.4954E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.899094E-002    -4.166131E+001     3.656065E+000     1.000000E-001
  
- alpha, energydiff  5.00000000000000028E-002  3.41829996337992270E-002
+ alpha, energydiff  5.000000000000000E-002  3.418299962856963E-002
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996537803E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  6.9892169E-08   -2.02615225115314729E+02    3.4183E-02
+   it, Delta DENS, energy, energyDiff   3  6.9892169E-08   -2.02615225115386352E+02    3.4183E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.140761E-002    -3.800525E+001     5.667479E-001     5.000000E-002
  
- alpha, energydiff  5.50000000000000072E-002 -2.70933042520482559E-003
+ alpha, energydiff  5.500000000000001E-002 -2.709330425091139E-003
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996531292E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  2.3618424E-08   -2.02617934445739934E+02   -2.7093E-03
+   it, Delta DENS, energy, energyDiff   4  2.3618424E-08   -2.02617934445811443E+02   -2.7093E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.548160E-002    -3.743850E+001     1.880033E-001     5.500000E-002
  
- alpha, energydiff  6.05000000000000121E-002 -3.04561364839628368E-003
+ alpha, energydiff  6.050000000000001E-002 -3.045613654649060E-003
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996525227E+01
+   Calculation finished. TOTAL CHARGE =   9.599996525228E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   5  2.1862089E-08   -2.02620980059388330E+02   -3.0456E-03
+   it, Delta DENS, energy, energyDiff   5  2.1862089E-08   -2.02620980059466092E+02   -3.0456E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.725049666653E+01  7.082397813358E+02 -5.132428239634E+01 -6.728932576692E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   3   1.42E-06   -2.02620980059388330E+02   -1.4369E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.725049666653E+01  7.082397813359E+02 -5.132428239634E+01 -6.728932576692E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   3   1.42E-06   -2.02620980059466092E+02   -1.4369E+00
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
@@ -302,32 +313,33 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   3    2.19E-08   -2.02620980059388330E+02
+     FINAL values: it, Delta DENS, energy   3    2.19E-08   -2.02620980059466092E+02
    > energy difference to last iteration: -1.436926E+00
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.719370E-02    6.064121E-02    2.166193E-02
- iter, fnrm, fnrmMax, ebs, diff     1  1.5442581E-01  2.7726500E-01  -202.6208566438  -2.3057E-01
+ iter, fnrm, fnrmMax, ebs, diff     1  1.5442581E-01  2.7726500E-01  -202.6208566439  -2.3057E-01
  SD informations: mean alpha=4.163E-01, max alpha=4.163E-01, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.074441E-02    3.279580E-02    3.213732E-02
- iter, fnrm, fnrmMax, ebs, diff     2  9.4684620E-02  2.4409595E-01  -202.7615871439  -1.4073E-01
+ iter, fnrm, fnrmMax, ebs, diff     2  9.4684620E-02  2.4409595E-01  -202.7615871440  -1.4073E-01
  SD informations: mean alpha=4.463E-01, max alpha=4.579E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.432864E-02    3.172323E-02    3.359803E-02
- iter, fnrm, fnrmMax, ebs, diff     3  7.6962528E-02  2.5565781E-01  -202.8043803551  -4.2793E-02
+ iter, fnrm, fnrmMax, ebs, diff     3  7.6962528E-02  2.5565781E-01  -202.8043803552  -4.2793E-02
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   7.6962528E-02  2.5565781E-01   -202.8043804
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.512066E-002    -3.725050E+001    -1.714670E-002     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996381028E+01
@@ -335,66 +347,70 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  5.4901069E-07   -2.02814262500215818E+02   -1.9328E-01
+   it, Delta DENS, energy, energyDiff   1  5.4901069E-07   -2.02814262500299151E+02   -1.9328E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.551504E-002    -3.726764E+001     3.933326E+000     2.000000E-001
  
- alpha, energydiff  0.10000000000000001       4.43177792129745285E-002
+ alpha, energydiff  0.100000000000000       4.431777922752644E-002
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996397703E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  6.6311269E-08   -2.02769944721002844E+02    4.4318E-02
+   it, Delta DENS, energy, energyDiff   2  6.6311269E-08   -2.02769944721071624E+02    4.4318E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     8.146771E-003    -3.333432E+001    -5.577504E-001     1.000000E-001
  
- alpha, energydiff  5.00000000000000028E-002  7.53463419300715032E-004
+ alpha, energydiff  5.000000000000000E-002  7.534634070225366E-004
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996400351E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  9.9702950E-09   -2.02769191257583543E+02    7.5346E-04
+   it, Delta DENS, energy, energyDiff   3  9.9702950E-09   -2.02769191257664602E+02    7.5346E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.667490E-003    -3.389207E+001    -8.423463E-002     5.000000E-002
  
- alpha, energydiff  5.50000000000000072E-002 -4.96214091754154651E-005
+ alpha, energydiff  5.500000000000001E-002 -4.962140258157888E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996401247E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  3.3191532E-09   -2.02769240878992719E+02   -4.9621E-05
+   it, Delta DENS, energy, energyDiff   4  3.3191532E-09   -2.02769240879067183E+02   -4.9621E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.854874E-003    -3.397630E+001    -2.794944E-002     5.500000E-002
  
- alpha, energydiff  6.05000000000000121E-002 -5.70246470488200430E-005
+ alpha, energydiff  6.050000000000001E-002 -5.702465307422244E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996402077E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   5  3.0550406E-09   -2.02769297903639767E+02   -5.7025E-05
+   it, Delta DENS, energy, energyDiff   5  3.0550406E-09   -2.02769297903720258E+02   -5.7025E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.400425201883E+01  7.116473186846E+02 -5.198917194555E+01 -6.816890824348E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   4   5.14E-07   -2.02769297903639767E+02   -1.4832E-01
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.400425201883E+01  7.116473186847E+02 -5.198917194555E+01 -6.816890824348E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   4   5.14E-07   -2.02769297903720258E+02   -1.4832E-01
  ############################################################################################
  at iteration 4 of the outer loop:
    > basis functions optimization:
@@ -404,32 +420,33 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   4    3.06E-09   -2.02769297903639767E+02
+     FINAL values: it, Delta DENS, energy   4    3.06E-09   -2.02769297903720258E+02
    > energy difference to last iteration: -1.483178E-01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.518188E-02    2.891752E-02    4.053801E-02
- iter, fnrm, fnrmMax, ebs, diff     1  7.2121586E-02  2.5296787E-01  -202.7692955635  -7.7084E-03
+ iter, fnrm, fnrmMax, ebs, diff     1  7.2121586E-02  2.5296787E-01  -202.7692955636  -7.7084E-03
  SD informations: mean alpha=4.909E-01, max alpha=4.909E-01, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.006577E-02    3.031805E-02    3.541905E-02
- iter, fnrm, fnrmMax, ebs, diff     2  6.2825901E-02  2.5383499E-01  -202.7845580263  -1.5262E-02
+ iter, fnrm, fnrmMax, ebs, diff     2  6.2825901E-02  2.5383499E-01  -202.7845580264  -1.5262E-02
  SD informations: mean alpha=5.196E-01, max alpha=5.400E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    8.542871E-03    3.036702E-02    3.480712E-02
- iter, fnrm, fnrmMax, ebs, diff     3  5.8385045E-02  2.4956367E-01  -202.7915875248  -7.0295E-03
+ iter, fnrm, fnrmMax, ebs, diff     3  5.8385045E-02  2.4956367E-01  -202.7915875249  -7.0295E-03
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   5.8385045E-02  2.4956367E-01   -202.7915875
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.032145E-002    -3.400425E+001    -4.866797E-002     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996379687E+01
@@ -437,66 +454,70 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  1.1720296E-07   -2.02792383544146787E+02   -2.3086E-02
+   it, Delta DENS, energy, energyDiff   1  1.1720296E-07   -2.02792383544228642E+02   -2.3086E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.668378E-002    -3.405292E+001    -7.354876E-001     2.000000E-001
  
- alpha, energydiff  0.10000000000000001       1.30065766597908805E-004
+ alpha, energydiff  0.100000000000000       1.300657777392189E-004
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996368973E+01
+   Calculation finished. TOTAL CHARGE =   9.599996368974E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  4.3262281E-08   -2.02792253478380189E+02    1.3007E-04
+   it, Delta DENS, energy, energyDiff   2  4.3262281E-08   -2.02792253478450903E+02    1.3007E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.111008E-003    -3.478841E+001     3.507169E-001     1.000000E-001
  
- alpha, energydiff  5.00000000000000028E-002  3.23230707863331190E-004
+ alpha, energydiff  5.000000000000000E-002  3.232306922882344E-004
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996367351E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  6.3631007E-09   -2.02791930247672326E+02    3.2323E-04
+   it, Delta DENS, energy, energyDiff   3  6.3631007E-09   -2.02791930247758614E+02    3.2323E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.482361E-003    -3.443769E+001     5.105751E-002     5.000000E-002
  
- alpha, energydiff  5.50000000000000072E-002 -1.83774850484041963E-005
+ alpha, energydiff  5.500000000000001E-002 -1.837747356603359E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996366814E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  2.1051422E-09   -2.02791948625157374E+02   -1.8377E-05
+   it, Delta DENS, energy, energyDiff   4  2.1051422E-09   -2.02791948625232180E+02   -1.8377E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.951814E-003    -3.438663E+001     1.667090E-002     5.500000E-002
  
- alpha, energydiff  6.05000000000000121E-002 -2.09437607736617792E-005
+ alpha, energydiff  6.050000000000001E-002 -2.094376816330623E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996366321E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   5  1.9320891E-09   -2.02791969568918148E+02   -2.0944E-05
+   it, Delta DENS, energy, energyDiff   5  1.9320891E-09   -2.02791969569000344E+02   -2.0944E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.436996227107E+01  7.113214397397E+02 -5.191656003545E+01 -6.807266770129E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   5   8.16E-08   -2.02791969568918148E+02   -2.2672E-02
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.436996227107E+01  7.113214397398E+02 -5.191656003545E+01 -6.807266770128E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   5   8.16E-08   -2.02791969569000344E+02   -2.2672E-02
  ############################################################################################
  at iteration 5 of the outer loop:
    > basis functions optimization:
@@ -506,14 +527,14 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   5    1.93E-09   -2.02791969568918148E+02
+     FINAL values: it, Delta DENS, energy   5    1.93E-09   -2.02791969569000344E+02
    > energy difference to last iteration: -2.267167E-02
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    9.024705E-03    2.881255E-02    3.651214E-02
- iter, fnrm, fnrmMax, ebs, diff     1  5.8591099E-02  2.4535717E-01  -202.7919687044  -7.4107E-03
+ iter, fnrm, fnrmMax, ebs, diff     1  5.8591099E-02  2.4535717E-01  -202.7919687045  -7.4107E-03
  SD informations: mean alpha=5.678E-01, max alpha=5.678E-01, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
@@ -525,13 +546,14 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    7.544867E-03    2.919436E-02    3.440110E
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.964740E-03    2.858613E-02    3.513279E-02
- iter, fnrm, fnrmMax, ebs, diff     3  5.2472277E-02  2.3521433E-01  -202.8013633931  -3.7782E-03
+ iter, fnrm, fnrmMax, ebs, diff     3  5.2472277E-02  2.3521433E-01  -202.8013633932  -3.7782E-03
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   5.2472277E-02  2.3521433E-01   -202.8013634
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     9.258768E-003    -3.436996E+001     5.166757E-003     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996356139E+01
@@ -539,66 +561,70 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  3.5871390E-08   -2.02802008752950883E+02   -1.0039E-02
+   it, Delta DENS, energy, energyDiff   1  3.5871390E-08   -2.02802008753024438E+02   -1.0039E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.828232E-003    -3.436480E+001     2.246636E-001     2.000000E-001
  
- alpha, energydiff  0.22000000000000003      -7.41058446465103771E-005
+ alpha, energydiff  0.220000000000000      -7.410584771605500E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996353948E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  1.1475979E-08   -2.02802082858795529E+02   -7.4106E-05
+   it, Delta DENS, energy, energyDiff   2  1.1475979E-08   -2.02802082858872154E+02   -7.4106E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.844907E-003    -3.414013E+001     7.023605E-002     2.200000E-001
  
- alpha, energydiff  0.24200000000000005      -1.26456279758713208E-006
+ alpha, energydiff  0.242000000000000      -1.264570983039448E-006
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996353356E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  3.9468985E-09   -2.02802084123358327E+02   -1.2646E-06
+   it, Delta DENS, energy, energyDiff   3  3.9468985E-09   -2.02802084123443137E+02   -1.2646E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     9.862066E-004    -3.406990E+001     1.972018E-002     2.420000E-001
  
- alpha, energydiff  0.26620000000000005      -6.84440533404995222E-006
+ alpha, energydiff  0.266200000000000      -6.844400218142255E-006
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996353282E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  1.7510128E-09   -2.02802090967763661E+02   -6.8444E-06
+   it, Delta DENS, energy, energyDiff   4  1.7510128E-09   -2.02802090967843355E+02   -6.8444E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.404752E-004    -3.405018E+001     3.200298E-003     2.662000E-001
  
- alpha, energydiff  0.29282000000000008      -4.14384442137816222E-006
+ alpha, energydiff  0.292820000000000      -4.143845330872864E-006
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996353318E+01
+   Calculation finished. TOTAL CHARGE =   9.599996353319E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   5  1.1463234E-09   -2.02802095111608082E+02   -4.1438E-06
+   it, Delta DENS, energy, energyDiff   5  1.1463234E-09   -2.02802095111688686E+02   -4.1438E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.404697534409E+01  7.116586624579E+02 -5.197840970690E+01 -6.815437640479E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   6   3.44E-08   -2.02802095111608082E+02   -1.0126E-02
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.404697534409E+01  7.116586624580E+02 -5.197840970690E+01 -6.815437640478E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   6   3.44E-08   -2.02802095111688686E+02   -1.0126E-02
  ############################################################################################
  at iteration 6 of the outer loop:
    > basis functions optimization:
@@ -608,7 +634,7 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   6    1.15E-09   -2.02802095111608082E+02
+     FINAL values: it, Delta DENS, energy   6    1.15E-09   -2.02802095111688686E+02
    > energy difference to last iteration: -1.012554E-02
  ############################################################################################
  ======================== Creation of the basis functions... ========================
@@ -621,19 +647,20 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    7.390969E-03    2.730300E-02    3.737331E
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.327185E-03    2.723283E-02    3.560976E-02
- iter, fnrm, fnrmMax, ebs, diff     2  4.9676904E-02  2.2577929E-01  -202.8059178590  -3.8228E-03
+ iter, fnrm, fnrmMax, ebs, diff     2  4.9676904E-02  2.2577929E-01  -202.8059178591  -3.8228E-03
  SD informations: mean alpha=7.510E-01, max alpha=7.557E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.924479E-03    2.633160E-02    3.699478E-02
- iter, fnrm, fnrmMax, ebs, diff     3  4.7161607E-02  2.1897974E-01  -202.8087649397  -2.8471E-03
+ iter, fnrm, fnrmMax, ebs, diff     3  4.7161607E-02  2.1897974E-01  -202.8087649398  -2.8471E-03
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   4.7161607E-02  2.1897974E-01   -202.8087649
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.526057E-003    -3.404698E+001    -7.529129E-003     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996359059E+01
@@ -641,52 +668,55 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  2.9330006E-08   -2.02809081397214868E+02   -6.9863E-03
+   it, Delta DENS, energy, energyDiff   1  2.9330006E-08   -2.02809081397296950E+02   -6.9863E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.969668E-003    -3.405450E+001    -1.292788E-001     2.000000E-001
  
- alpha, energydiff  0.22000000000000003      -1.51246735981658276E-004
+ alpha, energydiff  0.220000000000000      -1.512467404154449E-004
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996355843E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  1.4774888E-08   -2.02809232643950850E+02   -1.5125E-04
+   it, Delta DENS, energy, energyDiff   2  1.4774888E-08   -2.02809232644037365E+02   -1.5125E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.995377E-003    -3.418378E+001     1.038764E-001     2.200000E-001
  
- alpha, energydiff  0.11000000000000001       1.41074787052275497E-005
+ alpha, energydiff  0.110000000000000       1.410749075603235E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354894E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  4.8313310E-09   -2.02809218536472144E+02    1.4107E-05
+   it, Delta DENS, energy, energyDiff   3  4.8313310E-09   -2.02809218536546609E+02    1.4107E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     8.842632E-004    -3.407991E+001     3.086770E-002     1.100000E-001
  
- alpha, energydiff  5.50000000000000072E-002  6.47098659101175144E-007
+ alpha, energydiff  5.500000000000001E-002  6.470889957199688E-007
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354807E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  8.1165307E-10   -2.02809217889373485E+02    6.4710E-07
+   it, Delta DENS, energy, energyDiff   4  8.1165307E-10   -2.02809217889457614E+02    6.4709E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.404903920098E+01  7.116661745907E+02 -5.197543965119E+01 -6.815038412864E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   7   1.60E-08   -2.02809217889373485E+02   -7.1228E-03
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.404903920098E+01  7.116661745908E+02 -5.197543965119E+01 -6.815038412864E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   7   1.60E-08   -2.02809217889457614E+02   -7.1228E-03
  ############################################################################################
  at iteration 7 of the outer loop:
    > basis functions optimization:
@@ -696,16 +726,16 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - density optimization converged in 4 iterations.
-     FINAL values: it, Delta DENS, energy   7    8.12E-10   -2.02809217889373485E+02
+     FINAL values: it, Delta DENS, energy   7    8.12E-10   -2.02809217889457614E+02
    > energy difference to last iteration: -7.122778E-03
  ############################################################################################
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.404903920098E+01  7.116661745907E+02 -5.197543965119E+01 -6.815038412864E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   7   1.60E-08   -2.02809217889373485E+02    0.0000E+00   FINAL
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.404903920098E+01  7.116661745908E+02 -5.197543965119E+01 -6.815038412864E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   7   1.60E-08   -2.02809217889457614E+02    0.0000E+00   FINAL
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354807E+01
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
-    | Processes from 0 to 5 treat 12 orbitals. |
+    | Processes from 0 to 3 treat 18 orbitals. |
  -----------------------------------------------
 total elements: 5184
 non-zero elements: 3950
@@ -731,20 +761,21 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ****************************** LINEAR SCALING VERSION ******************************
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     7.179400E-004     0.000000E+000    -3.404611E+001     1.000000E-001
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.103267E-03    2.525425E-02    3.835273E-02
- iter, fnrm, fnrmMax, ebs, diff     1  4.7012874E-02  2.1643607E-01  -202.8092201247  -2.0281E+02
+ iter, fnrm, fnrmMax, ebs, diff     1  4.7012874E-02  2.1643607E-01  -202.8092201248  -2.0281E+02
  SD informations: mean alpha=1.000E+00, max alpha=1.000E+00, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.162980E-03    2.365554E-02    4.136040E-02
  iter, fnrm, fnrmMax, ebs, diff     2  4.1638169E-02  1.9833652E-01  -202.8143905515  -5.1704E-03
- SD informations: mean alpha=1.037E+00, max alpha=1.100E+00, consecutive successes=2
+ SD informations: mean alpha=1.038E+00, max alpha=1.100E+00, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
@@ -755,7 +786,8 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.841700E-03    2.198747E-02    4.354665E
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.292354E-003    -3.404611E+001    -8.105248E-003     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996356013E+01
@@ -763,66 +795,70 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  1.8369433E-08   -2.02817325372970231E+02   -2.0282E+02
+   it, Delta DENS, energy, energyDiff   1  1.8369433E-08   -2.02817325373047083E+02   -2.0282E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.190401E-003    -3.405421E+001     1.634951E-003     2.000000E-001
  
- alpha, energydiff  0.22000000000000003      -8.59474857861641794E-005
+ alpha, energydiff  0.220000000000000      -8.594748157975118E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354832E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  9.3899770E-09   -2.02817411320456017E+02   -8.5947E-05
+   it, Delta DENS, energy, energyDiff   2  9.3899770E-09   -2.02817411320528663E+02   -8.5947E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.801754E-003    -3.405258E+001     3.555364E-002     2.200000E-001
  
- alpha, energydiff  0.24200000000000005      -1.02752427437735605E-005
+ alpha, energydiff  0.242000000000000      -1.027524490382348E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354579E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  3.5910964E-09   -2.02817421595698761E+02   -1.0275E-05
+   it, Delta DENS, energy, energyDiff   3  3.5910964E-09   -2.02817421595773567E+02   -1.0275E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.018323E-003    -3.401703E+001     8.766673E-003     2.420000E-001
  
- alpha, energydiff  0.26620000000000005      -8.19797821804968407E-006
+ alpha, energydiff  0.266200000000000      -8.197979695978574E-006
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354599E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  1.8512937E-09   -2.02817429793676979E+02   -8.1980E-06
+   it, Delta DENS, energy, energyDiff   4  1.8512937E-09   -2.02817429793753263E+02   -8.1980E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.461372E-004    -3.400826E+001     4.628708E-004     2.662000E-001
  
- alpha, energydiff  0.29282000000000008      -4.16943237269151723E-006
+ alpha, energydiff  0.292820000000000      -4.169430553702114E-006
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354657E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   5  1.2172874E-09   -2.02817433963109352E+02   -4.1694E-06
+   it, Delta DENS, energy, energyDiff   5  1.2172874E-09   -2.02817433963183817E+02   -4.1694E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.400779596311E+01  7.117140007137E+02 -5.198278177511E+01 -6.816007059762E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   1   8.78E-09   -2.02817433963109352E+02   -2.0282E+02
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.400779596311E+01  7.117140007138E+02 -5.198278177511E+01 -6.816007059762E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   1   8.78E-09   -2.02817433963183817E+02   -2.0282E+02
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -832,14 +868,14 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    1.22E-09   -2.02817433963109352E+02
+     FINAL values: it, Delta DENS, energy   1    1.22E-09   -2.02817433963183817E+02
    > energy difference to last iteration: -2.028174E+02
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.091985E-03    2.113373E-02    4.577432E-02
- iter, fnrm, fnrmMax, ebs, diff     1  3.9306678E-02  1.8729567E-01  -202.8174338685  -3.0433E-03
+ iter, fnrm, fnrmMax, ebs, diff     1  3.9306678E-02  1.8729567E-01  -202.8174338686  -3.0433E-03
  SD informations: mean alpha=9.135E-01, max alpha=9.135E-01, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
@@ -847,11 +883,11 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.091985E-03    2.113373E-02    4.577432E
  Decrease step size and restart with previous TMBs
  WARNING: ENERGY INCREASED
  calculate density kernel...  it_tot           2
- iter, fnrm, fnrmMax, ebs, diff, noise level     0  4.0861329E-02  1.9394855E-01  -202.8169860774   4.4779E-04   0.0000E+00
+ iter, fnrm, fnrmMax, ebs, diff, noise level     0  4.0861329E-02  1.9394855E-01  -202.8169860775   4.4779E-04   0.0000E+00
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.091985E-03    2.113373E-02    4.577432E-02
- iter, fnrm, fnrmMax, ebs, diff     1  3.9306678E-02  1.8729567E-01  -202.8174338685  -2.0282E+02
+ iter, fnrm, fnrmMax, ebs, diff     1  3.9306678E-02  1.8729567E-01  -202.8174338686  -2.0282E+02
  SD informations: mean alpha=5.481E-01, max alpha=5.481E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
@@ -859,11 +895,11 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.091985E-03    2.113373E-02    4.577432E
  Decrease step size and restart with previous TMBs
  WARNING: ENERGY INCREASED
  calculate density kernel...  it_tot           4
- iter, fnrm, fnrmMax, ebs, diff, noise level     0  4.6393664E-02  2.1435088E-01  -202.8128518878   4.5820E-03   0.0000E+00
+ iter, fnrm, fnrmMax, ebs, diff, noise level     0  4.6393664E-02  2.1435088E-01  -202.8128518879   4.5820E-03   0.0000E+00
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.091985E-03    2.113373E-02    4.577432E-02
- iter, fnrm, fnrmMax, ebs, diff     1  3.9306678E-02  1.8729567E-01  -202.8174338685  -2.0282E+02
+ iter, fnrm, fnrmMax, ebs, diff     1  3.9306678E-02  1.8729567E-01  -202.8174338686  -2.0282E+02
  SD informations: mean alpha=3.289E-01, max alpha=3.289E-01, consecutive successes=3
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
@@ -871,34 +907,35 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.091985E-03    2.113373E-02    4.577432E
  Decrease step size and restart with previous TMBs
  WARNING: ENERGY INCREASED
  calculate density kernel...  it_tot           6
- iter, fnrm, fnrmMax, ebs, diff, noise level     0  5.0110770E-02  2.2683691E-01  -202.8100225169   7.4114E-03   0.0000E+00
+ iter, fnrm, fnrmMax, ebs, diff, noise level     0  5.0110770E-02  2.2683691E-01  -202.8100225170   7.4114E-03   0.0000E+00
 Energy increasing, switching off orthonormalization of tmbs
- iter, fnrm, fnrmMax, ebs, diff     0  5.0110770E-02  2.2683691E-01  -202.8100225169   7.4114E-03
+ iter, fnrm, fnrmMax, ebs, diff     0  5.0110770E-02  2.2683691E-01  -202.8100225170   7.4114E-03
  SD informations: mean alpha=1.973E-01, max alpha=1.973E-01, consecutive successes=0
  no improvement of the orbitals, recalculate gradient
 coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.091985E-03    2.113373E-02    4.577432E-02
- iter, fnrm, fnrmMax, ebs, diff     1  3.9306678E-02  1.8729567E-01  -202.8174338685  -7.4114E-03
+ iter, fnrm, fnrmMax, ebs, diff     1  3.9306678E-02  1.8729567E-01  -202.8174338686  -7.4114E-03
  SD informations: mean alpha=3.289E-01, max alpha=3.289E-01, consecutive successes=1
 coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.739822E-03    1.726118E-02    5.273524E-02
- iter, fnrm, fnrmMax, ebs, diff     2  3.1384033E-02  1.5445106E-01  -202.8225051595  -5.0713E-03
+ iter, fnrm, fnrmMax, ebs, diff     2  3.1384033E-02  1.5445106E-01  -202.8225051596  -5.0713E-03
  SD informations: mean alpha=3.617E-01, max alpha=3.617E-01, consecutive successes=2
 coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.984649E-03    1.427663E-02    6.350026E-02
- iter, fnrm, fnrmMax, ebs, diff     3  2.5550104E-02  1.2648146E-01  -202.8261817236  -3.6766E-03
+ iter, fnrm, fnrmMax, ebs, diff     3  2.5550104E-02  1.2648146E-01  -202.8261817237  -3.6766E-03
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   2.5550104E-02  1.2648146E-01   -202.8261817
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.391512E-003    -3.400780E+001    -9.983062E-003     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354819E+01
@@ -906,66 +943,70 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  1.1128734E-08   -2.02826372081133400E+02   -8.9381E-03
+   it, Delta DENS, energy, energyDiff   1  1.1128734E-08   -2.02826372081211730E+02   -8.9381E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.096867E-003    -3.401778E+001    -4.133408E-002     2.000000E-001
  
- alpha, energydiff  0.22000000000000003      -4.29709780291887000E-005
+ alpha, energydiff  0.220000000000000      -4.297098416827794E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354178E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  5.5464181E-09   -2.02826415052111429E+02   -4.2971E-05
+   it, Delta DENS, energy, energyDiff   2  5.5464181E-09   -2.02826415052195898E+02   -4.2971E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.594927E-003    -3.405911E+001     2.453651E-002     2.200000E-001
  
- alpha, energydiff  0.24200000000000005      -1.63443519340944476E-005
+ alpha, energydiff  0.242000000000000      -1.634434738662094E-005
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996354126E+01
+   Calculation finished. TOTAL CHARGE =   9.599996354127E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  2.2574771E-09   -2.02826431396463363E+02   -1.6344E-05
+   it, Delta DENS, energy, energyDiff   3  2.2574771E-09   -2.02826431396543285E+02   -1.6344E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     9.619732E-004    -3.403458E+001     4.871139E-003     2.420000E-001
  
- alpha, energydiff  0.26620000000000005      -8.20676871171599487E-006
+ alpha, energydiff  0.266200000000000      -8.206774396057881E-006
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354217E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  1.2527265E-09   -2.02826439603232075E+02   -8.2068E-06
+   it, Delta DENS, energy, energyDiff   4  1.2527265E-09   -2.02826439603317681E+02   -8.2068E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.076870E-004    -3.402971E+001    -7.210713E-004     2.662000E-001
  
- alpha, energydiff  0.29282000000000008      -3.73955185750673991E-006
+ alpha, energydiff  0.292820000000000      -3.739547878467420E-006
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354300E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   5  8.4057267E-10   -2.02826443342783932E+02   -3.7396E-06
+   it, Delta DENS, energy, energyDiff   5  8.4057267E-10   -2.02826443342865559E+02   -3.7395E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.403042652962E+01  7.116988793834E+02 -5.197903277682E+01 -6.815511224552E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   2   7.09E-09   -2.02826443342783932E+02   -9.0094E-03
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.403042652962E+01  7.116988793835E+02 -5.197903277683E+01 -6.815511224552E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   2   7.09E-09   -2.02826443342865559E+02   -9.0094E-03
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -975,32 +1016,33 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - density optimization converged in 5 iterations.
-     FINAL values: it, Delta DENS, energy   2    8.41E-10   -2.02826443342783932E+02
+     FINAL values: it, Delta DENS, energy   2    8.41E-10   -2.02826443342865559E+02
    > energy difference to last iteration: -9.009380E-03
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.237950E-03    1.425728E-02    6.714124E-02
- iter, fnrm, fnrmMax, ebs, diff     1  2.5880586E-02  1.2730342E-01  -202.8264432872  -3.9381E-03
+ iter, fnrm, fnrmMax, ebs, diff     1  2.5880586E-02  1.2730342E-01  -202.8264432873  -3.9381E-03
  SD informations: mean alpha=3.979E-01, max alpha=3.979E-01, consecutive successes=1
 coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.590183E-03    1.171964E-02    8.262874E-02
- iter, fnrm, fnrmMax, ebs, diff     2  2.0865721E-02  1.0293304E-01  -202.8293370963  -2.8938E-03
+ iter, fnrm, fnrmMax, ebs, diff     2  2.0865721E-02  1.0293304E-01  -202.8293370964  -2.8938E-03
  SD informations: mean alpha=4.349E-01, max alpha=4.377E-01, consecutive successes=2
 coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.142963E-03    9.522644E-03    1.072120E-01
- iter, fnrm, fnrmMax, ebs, diff     3  1.6661699E-02  8.1655842E-02  -202.8313800255  -2.0429E-03
+ iter, fnrm, fnrmMax, ebs, diff     3  1.6661699E-02  8.1655842E-02  -202.8313800256  -2.0429E-03
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   1.6661699E-02  8.1655842E-02   -202.8313800
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.544628E-003    -3.403043E+001    -6.407312E-003     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996353869E+01
@@ -1008,66 +1050,70 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  6.8899526E-09   -2.02831514921373696E+02   -5.0716E-03
+   it, Delta DENS, energy, energyDiff   1  6.8899526E-09   -2.02831514921463395E+02   -5.0716E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.312529E-003    -3.403683E+001    -7.453041E-004     2.000000E-001
  
- alpha, energydiff  0.22000000000000003      -3.49805558244042913E-005
+ alpha, energydiff  0.220000000000000      -3.498054559258890E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996353739E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  3.0991927E-09   -2.02831549901929520E+02   -3.4981E-05
+   it, Delta DENS, energy, energyDiff   2  3.0991927E-09   -2.02831549902008987E+02   -3.4981E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.388263E-003    -3.403758E+001     8.807169E-003     2.200000E-001
  
- alpha, energydiff  0.24200000000000005      -1.54785431050186162E-005
+ alpha, energydiff  0.242000000000000      -1.547853901229246E-005
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996353821E+01
+   Calculation finished. TOTAL CHARGE =   9.599996353822E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  1.6339528E-09   -2.02831565380472625E+02   -1.5479E-05
+   it, Delta DENS, energy, energyDiff   3  1.6339528E-09   -2.02831565380548000E+02   -1.5479E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     8.789298E-004    -3.402877E+001     4.716328E-004     2.420000E-001
  
- alpha, energydiff  0.26620000000000005      -7.14227053322247230E-006
+ alpha, energydiff  0.266200000000000      -7.142278718674788E-006
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996353926E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  1.0390014E-09   -2.02831572522743159E+02   -7.1423E-06
+   it, Delta DENS, energy, energyDiff   4  1.0390014E-09   -2.02831572522826718E+02   -7.1423E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.615186E-004    -3.402830E+001    -1.443218E-003     2.662000E-001
  
- alpha, energydiff  0.29282000000000008      -3.21903712574567180E-006
+ alpha, energydiff  0.292820000000000      -3.219029849788058E-006
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996353999E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   5  7.0320404E-10   -2.02831575741780284E+02   -3.2190E-06
+   it, Delta DENS, energy, energyDiff   5  7.0320404E-10   -2.02831575741856568E+02   -3.2190E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.402974356267E+01  7.117051275143E+02 -5.198011439843E+01 -6.815653738613E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   3   4.47E-09   -2.02831575741780284E+02   -5.1324E-03
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.402974356267E+01  7.117051275144E+02 -5.198011439843E+01 -6.815653738613E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   3   4.47E-09   -2.02831575741856568E+02   -5.1324E-03
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
@@ -1077,85 +1123,89 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - density optimization converged in 5 iterations.
-     FINAL values: it, Delta DENS, energy   3    7.03E-10   -2.02831575741780284E+02
+     FINAL values: it, Delta DENS, energy   3    7.03E-10   -2.02831575741856568E+02
    > energy difference to last iteration: -5.132399E-03
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.411855E-03    9.519253E-03    1.150512E-01
- iter, fnrm, fnrmMax, ebs, diff     1  1.7063329E-02  8.3048688E-02  -202.8315757054  -2.2386E-03
+ iter, fnrm, fnrmMax, ebs, diff     1  1.7063329E-02  8.3048688E-02  -202.8315757055  -2.2386E-03
  SD informations: mean alpha=4.693E-01, max alpha=4.693E-01, consecutive successes=1
 coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.062832E-03    7.671357E-03    1.577052E-01
- iter, fnrm, fnrmMax, ebs, diff     2  1.3478534E-02  6.5043503E-02  -202.8331883231  -1.6126E-03
+ iter, fnrm, fnrmMax, ebs, diff     2  1.3478534E-02  6.5043503E-02  -202.8331883232  -1.6126E-03
  SD informations: mean alpha=4.967E-01, max alpha=5.162E-01, consecutive successes=2
 coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.560202E-03    6.082382E-03    1.915635E-01
- iter, fnrm, fnrmMax, ebs, diff     3  1.0635742E-02  4.9688975E-02  -202.8342715278  -1.0832E-03
+ iter, fnrm, fnrmMax, ebs, diff     3  1.0635742E-02  4.9688975E-02  -202.8342715279  -1.0832E-03
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   1.0635742E-02  4.9688975E-02   -202.8342715
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.004175E-003    -3.402974E+001    -4.064949E-003     2.000000E-001
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996354148E+01
+   Calculation finished. TOTAL CHARGE =   9.599996354149E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  5.4329837E-09   -2.02834394202545695E+02   -2.8185E-03
+   it, Delta DENS, energy, energyDiff   1  5.4329837E-09   -2.02834394202624821E+02   -2.8185E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.992905E-003    -3.403381E+001    -4.789983E-003     2.000000E-001
  
- alpha, energydiff  0.22000000000000003      -2.80816008171314024E-005
+ alpha, energydiff  0.220000000000000      -2.808160354561551E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354068E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  2.7165156E-09   -2.02834422284146513E+02   -2.8082E-05
+   it, Delta DENS, energy, energyDiff   2  2.7165156E-09   -2.02834422284228367E+02   -2.8082E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.202586E-003    -3.403860E+001     6.796814E-003     2.200000E-001
  
- alpha, energydiff  0.24200000000000005      -1.16367243663262343E-005
+ alpha, energydiff  0.242000000000000      -1.163672231996316E-005
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996354143E+01
+   Calculation finished. TOTAL CHARGE =   9.599996354144E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  1.4938104E-09   -2.02834433920870879E+02   -1.1637E-05
+   it, Delta DENS, energy, energyDiff   3  1.4938104E-09   -2.02834433920950687E+02   -1.1637E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     7.600928E-004    -3.403180E+001     2.204537E-004     2.420000E-001
  
- alpha, energydiff  0.26620000000000005      -5.32402145836385898E-006
+ alpha, energydiff  0.266200000000000      -5.324017479324539E-006
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354232E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  9.5374567E-10   -2.02834439244892337E+02   -5.3240E-06
+   it, Delta DENS, energy, energyDiff   4  9.5374567E-10   -2.02834439244968166E+02   -5.3240E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.403158122667E+01  7.117061155774E+02 -5.198003286983E+01 -6.815642592267E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   4   2.75E-09   -2.02834439244892337E+02   -2.8635E-03
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.403158122667E+01  7.117061155775E+02 -5.198003286983E+01 -6.815642592267E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   4   2.75E-09   -2.02834439244968166E+02   -2.8635E-03
  ############################################################################################
  at iteration 4 of the outer loop:
    > basis functions optimization:
@@ -1165,14 +1215,14 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - density optimization converged in 4 iterations.
-     FINAL values: it, Delta DENS, energy   4    9.54E-10   -2.02834439244892337E+02
+     FINAL values: it, Delta DENS, energy   4    9.54E-10   -2.02834439244968166E+02
    > energy difference to last iteration: -2.863503E-03
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.823826E-03    6.105523E-03    2.096172E-01
- iter, fnrm, fnrmMax, ebs, diff     1  1.0992894E-02  5.0796423E-02  -202.8344391714  -1.2508E-03
+ iter, fnrm, fnrmMax, ebs, diff     1  1.0992894E-02  5.0796423E-02  -202.8344391715  -1.2508E-03
  SD informations: mean alpha=5.330E-01, max alpha=5.330E-01, consecutive successes=1
 coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
@@ -1184,13 +1234,14 @@ coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.305712E-03    3.884043E-03    3.560771E-01
- iter, fnrm, fnrmMax, ebs, diff     3  7.1365008E-03  3.4430561E-02  -202.8358414009  -5.4227E-04
+ iter, fnrm, fnrmMax, ebs, diff     3  7.1365008E-03  3.4430561E-02  -202.8358414010  -5.4227E-04
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   7.1365008E-03  3.4430561E-02   -202.8358414
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.662933E-003    -3.403158E+001    -2.775788E-003     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354536E+01
@@ -1198,52 +1249,55 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  4.6345918E-09   -2.02835960703660703E+02   -1.5215E-03
+   it, Delta DENS, energy, energyDiff   1  4.6345918E-09   -2.02835960703742899E+02   -1.5215E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.789040E-003    -3.403436E+001    -6.779571E-003     2.000000E-001
  
- alpha, energydiff  0.22000000000000003      -2.29288049240494729E-005
+ alpha, energydiff  0.220000000000000      -2.292880151344434E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354424E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  2.6343640E-09   -2.02835983632465627E+02   -2.2929E-05
+   it, Delta DENS, energy, energyDiff   2  2.6343640E-09   -2.02835983632544412E+02   -2.2929E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.067171E-003    -3.404114E+001     7.065262E-003     2.200000E-001
  
- alpha, energydiff  0.24200000000000005      -9.01278463061316870E-006
+ alpha, energydiff  0.242000000000000      -9.012790201268217E-006
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354474E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  1.4381158E-09   -2.02835992645250258E+02   -9.0128E-06
+   it, Delta DENS, energy, energyDiff   3  1.4381158E-09   -2.02835992645334613E+02   -9.0128E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.743822E-004    -3.403407E+001     5.141089E-004     2.420000E-001
  
- alpha, energydiff  0.26620000000000005      -4.17685032516601495E-006
+ alpha, energydiff  0.266200000000000      -4.176846118753019E-006
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996354544E+01
+   Calculation finished. TOTAL CHARGE =   9.599996354545E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  9.1954130E-10   -2.02835996822100583E+02   -4.1769E-06
+   it, Delta DENS, energy, energyDiff   4  9.1954130E-10   -2.02835996822180732E+02   -4.1768E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.403355721485E+01  7.117058349942E+02 -5.197981042163E+01 -6.815613014017E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   5   1.98E-09   -2.02835996822100583E+02   -1.5576E-03
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.403355721485E+01  7.117058349943E+02 -5.197981042163E+01 -6.815613014017E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   5   1.98E-09   -2.02835996822180732E+02   -1.5576E-03
  ############################################################################################
  at iteration 5 of the outer loop:
    > basis functions optimization:
@@ -1253,32 +1307,26 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - density optimization converged in 4 iterations.
-     FINAL values: it, Delta DENS, energy   5    9.20E-10   -2.02835996822100583E+02
+     FINAL values: it, Delta DENS, energy   5    9.20E-10   -2.02835996822180732E+02
    > energy difference to last iteration: -1.557577E-03
  ############################################################################################
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.403355721485E+01  7.117058349942E+02 -5.197981042163E+01 -6.815613014017E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   5   1.98E-09   -2.02835996822100583E+02    0.0000E+00   FINAL
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.403355721485E+01  7.117058349943E+02 -5.197981042163E+01 -6.815613014017E+01  0.000000000000E+00  5.267281188354E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   5   1.98E-09   -2.02835996822180732E+02    0.0000E+00   FINAL
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996354544E+01
- wrong phi_old          17  0.99493804099695216     
- wrong phi_old          18  0.99887201958746630     
- wrong phi_old          25  0.99838042011216555     
- wrong phi_old          30  0.99735299370008479     
- wrong phi_old          40  0.99864051237683782     
- wrong phi_old          41  0.99735326295135862     
- wrong phi_old          43  0.99850832224553177     
- wrong phi_old          49  0.99879569143179892     
- wrong phi_old          50  0.99757888669703731     
- wrong phi_old          70  0.99870969529215747     
- wrong phi_old          71  0.99873080467368169     
- wrong phi_old          60  0.99856606703991935     
- wrong phi_old           5  0.99758953094129243     
- wrong phi_old           6  0.99661203346043203     
- wrong phi_old           7  0.99882534550800584     
- wrong phi_old           8  0.99865897383358004     
+   Calculation finished. TOTAL CHARGE =   9.599996354545E+01
+  #WARNING: support function, value: 40 0.99864051237683960
+  #WARNING: support function, value: 41 0.99735326295136084
+  #WARNING: support function, value: 43 0.99850832224553177
+  #WARNING: support function, value: 49 0.99879569143179958
+  #WARNING: support function, value: 50 0.99757888669703842
+  #WARNING: support function, value: 60 0.99856606703991913
+  #WARNING: support function, value: 70 0.99870969529215647
+  #WARNING: support function, value: 71 0.99873080467368258
+  #WARNING: support function, value: 25 0.99838042011216555
+  #WARNING: support function, value: 30 0.99735299370008512
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
-    | Processes from 0 to 5 treat 12 orbitals. |
+    | Processes from 0 to 3 treat 18 orbitals. |
  -----------------------------------------------
 total elements: 5184
 non-zero elements: 3946
@@ -1299,36 +1347,38 @@ sparsity: 23.88%
    - Molecule was rotated: 0
    - Discrete operations: 0
 coeff renormalization... calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599995608413E+01
+   Calculation finished. TOTAL CHARGE =   9.599995608414E+01
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.337561E-001     0.000000E+000    -2.830648E+001     1.000000E-001
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.584287E-01    3.757907E-01    1.053868E-03
- iter, fnrm, fnrmMax, ebs, diff     1  1.4449660E+00  3.0277342E+00  -197.5492399188  -1.9755E+02
+ iter, fnrm, fnrmMax, ebs, diff     1  1.4449660E+00  3.0277342E+00  -197.5492396131  -1.9755E+02
  SD informations: mean alpha=1.000E+00, max alpha=1.000E+00, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
-AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.223899E-01    3.038336E-01    1.477716E-03
- iter, fnrm, fnrmMax, ebs, diff     2  1.0725338E+00  2.5064414E+00  -200.7398718771  -3.1906E+00
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.223899E-01    3.038337E-01    1.477716E-03
+ iter, fnrm, fnrmMax, ebs, diff     2  1.0725339E+00  2.5064418E+00  -200.7398711234  -3.1906E+00
  SD informations: mean alpha=6.000E-01, max alpha=6.000E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
-AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.546937E-02    1.168856E-01    4.404529E-03
- iter, fnrm, fnrmMax, ebs, diff     3  3.7865480E-01  9.8768689E-01  -203.1370642120  -2.3972E+00
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.546938E-02    1.168856E-01    4.404528E-03
+ iter, fnrm, fnrmMax, ebs, diff     3  3.7865493E-01  9.8768743E-01  -203.1370640060  -2.3972E+00
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   3.7865480E-01  9.8768689E-01   -203.1370642
+ Final values for fnrm, fnrmMax, ebs:   3.7865493E-01  9.8768743E-01   -203.1370640
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.737397E-002    -2.830648E+001    -5.614560E+000     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996696842E+01
@@ -1336,66 +1386,70 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  2.0552618E-06   -2.03163800256479817E+02   -2.0316E+02
+   it, Delta DENS, energy, energyDiff   1  2.0552618E-06   -2.03163800051214139E+02   -2.0316E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     9.564676E-002    -3.392104E+001    -3.269408E+000     2.000000E-001
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
- alpha, energydiff  0.10000000000000001        1.0115127518458848     
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     9.564677E-002    -3.392104E+001    -3.269407E+000     2.000000E-001
+ 
+ alpha, energydiff  0.100000000000000        1.01151279514113     
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996648835E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  2.1317706E-07   -2.02152287504633932E+02    1.0115E+00
+   it, Delta DENS, energy, energyDiff   2  2.1317706E-07   -2.02152287256073009E+02    1.0115E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.078229E-002    -3.719045E+001     1.355951E+000     1.000000E-001
  
- alpha, energydiff  5.00000000000000028E-002  1.80750185154465726E-003
+ alpha, energydiff  5.000000000000000E-002  1.807500899190018E-003
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996641617E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  3.8338042E-08   -2.02150480002782388E+02    1.8075E-03
+   it, Delta DENS, energy, energyDiff   3  3.8338043E-08   -2.02150479755173819E+02    1.8075E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.164439E-002    -3.583450E+001     1.710904E-001     5.000000E-002
  
- alpha, energydiff  5.50000000000000072E-002 -2.06537099438719451E-003
+ alpha, energydiff  5.500000000000001E-002 -2.065371279286410E-003
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996639227E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  1.4138975E-08   -2.02152545373776775E+02   -2.0654E-03
+   it, Delta DENS, energy, energyDiff   4  1.4138976E-08   -2.02152545126453106E+02   -2.0654E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.837892E-002    -3.566341E+001     5.213794E-002     5.500000E-002
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
- alpha, energydiff  6.05000000000000121E-002 -2.00596361628413433E-003
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.837893E-002    -3.566341E+001     5.213794E-002     5.500000E-002
+ 
+ alpha, energydiff  6.050000000000001E-002 -2.005963873216388E-003
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996637035E+01
+   Calculation finished. TOTAL CHARGE =   9.599996637036E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   5  1.3668679E-08   -2.02154551337393059E+02   -2.0060E-03
+   it, Delta DENS, energy, energyDiff   5  1.3668680E-08   -2.02154551090326322E+02   -2.0060E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.561127108954E+01  7.103399363313E+02 -5.161836793163E+01 -6.767791538573E+01  0.000000000000E+00  5.276887859202E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   1   1.93E-06   -2.02154551337393059E+02   -2.0215E+02
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.561127052512E+01  7.103399366625E+02 -5.161836798318E+01 -6.767791545378E+01  0.000000000000E+00  5.276887859202E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   1   1.93E-06   -2.02154551090326322E+02   -2.0215E+02
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -1405,99 +1459,104 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    1.37E-08   -2.02154551337393059E+02
+     FINAL values: it, Delta DENS, energy   1    1.37E-08   -2.02154551090326322E+02
    > energy difference to last iteration: -2.021546E+02
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
-AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.635917E-02    1.707738E-01    5.285348E-03
- iter, fnrm, fnrmMax, ebs, diff     1  4.1758745E-01  1.0490819E+00  -202.1545242077  -1.4147E+00
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.635918E-02    1.707738E-01    5.285346E-03
+ iter, fnrm, fnrmMax, ebs, diff     1  4.1758758E-01  1.0490824E+00  -202.1545239607  -1.4147E+00
  SD informations: mean alpha=3.600E-01, max alpha=3.600E-01, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
-AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.506244E-02    8.246220E-02    1.810418E-02
- iter, fnrm, fnrmMax, ebs, diff     2  1.6400816E-01  3.5031839E-01  -202.7838224643  -6.2930E-01
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.506244E-02    8.246220E-02    1.810417E-02
+ iter, fnrm, fnrmMax, ebs, diff     2  1.6400818E-01  3.5031848E-01  -202.7838224417  -6.2930E-01
  SD informations: mean alpha=3.960E-01, max alpha=3.960E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
-AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.143460E-02    4.681784E-02    2.631755E-02
- iter, fnrm, fnrmMax, ebs, diff     3  1.0635765E-01  2.4566206E-01  -202.9344057274  -1.5058E-01
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.143460E-02    4.681785E-02    2.631755E-02
+ iter, fnrm, fnrmMax, ebs, diff     3  1.0635765E-01  2.4566206E-01  -202.9344057258  -1.5058E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   1.0635765E-01  2.4566206E-01   -202.9344057
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.617520E-002    -3.561127E+001    -7.419686E-001     2.000000E-001
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.617520E-002    -3.561127E+001    -7.419688E-001     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996476523E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  7.5003119E-07   -2.02944842634414954E+02   -7.9029E-01
+   it, Delta DENS, energy, energyDiff   1  7.5003128E-07   -2.02944842635253394E+02   -7.9029E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.829783E-002    -3.635324E+001     2.541051E+000     2.000000E-001
  
- alpha, energydiff  0.10000000000000001       0.10048822965120507     
+ alpha, energydiff  0.100000000000000       0.100488241670405     
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996490418E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  6.3973645E-08   -2.02844354404763749E+02    1.0049E-01
+   it, Delta DENS, energy, energyDiff   2  6.3973637E-08   -2.02844354393582989E+02    1.0049E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.152931E-002    -3.381219E+001    -4.327023E-001     1.000000E-001
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
- alpha, energydiff  5.00000000000000028E-002  2.59400891422956192E-004
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.152931E-002    -3.381219E+001    -4.327022E-001     1.000000E-001
+ 
+ alpha, energydiff  5.000000000000000E-002  2.594006452909525E-004
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996492379E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  1.0429222E-08   -2.02844095003872326E+02    2.5940E-04
+   it, Delta DENS, energy, energyDiff   3  1.0429221E-08   -2.02844094992937698E+02    2.5940E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     8.852511E-003    -3.424489E+001    -5.331633E-002     5.000000E-002
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
- alpha, energydiff  5.50000000000000072E-002 -1.61102778179156303E-004
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     8.852511E-003    -3.424489E+001    -5.331632E-002     5.000000E-002
+ 
+ alpha, energydiff  5.500000000000001E-002 -1.611027947774346E-004
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996493020E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  3.7415778E-09   -2.02844256106650505E+02   -1.6110E-04
+   it, Delta DENS, energy, energyDiff   4  3.7415777E-09   -2.02844256095732476E+02   -1.6110E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     7.899467E-003    -3.429821E+001    -1.650534E-002     5.500000E-002
  
- alpha, energydiff  6.05000000000000121E-002 -1.54961781390738906E-004
+ alpha, energydiff  6.050000000000001E-002 -1.549617965110883E-004
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996493604E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   5  3.5789218E-09   -2.02844411068431896E+02   -1.5496E-04
+   it, Delta DENS, energy, energyDiff   5  3.5789217E-09   -2.02844411057528987E+02   -1.5496E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.431471219716E+01  7.123913932415E+02 -5.201461620665E+01 -6.820201744939E+01  0.000000000000E+00  5.276887859202E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   2   7.23E-07   -2.02844411068431896E+02   -6.8986E-01
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.431471231408E+01  7.123913931093E+02 -5.201461618568E+01 -6.820201742157E+01  0.000000000000E+00  5.276887859202E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   2   7.23E-07   -2.02844411057528987E+02   -6.8986E-01
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -1507,99 +1566,104 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   2    3.58E-09   -2.02844411068431896E+02
-   > energy difference to last iteration: -6.898597E-01
+     FINAL values: it, Delta DENS, energy   2    3.58E-09   -2.02844411057528987E+02
+   > energy difference to last iteration: -6.898600E-01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
-AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.311809E-02    2.782064E-02    2.290782E-02
- iter, fnrm, fnrmMax, ebs, diff     1  8.9182007E-02  2.4286489E-01  -202.8444091122  -6.0587E-02
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.311810E-02    2.782064E-02    2.290782E-02
+ iter, fnrm, fnrmMax, ebs, diff     1  8.9182017E-02  2.4286489E-01  -202.8444091013  -6.0587E-02
  SD informations: mean alpha=4.356E-01, max alpha=4.356E-01, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
-AFTER: gnrm, gnrmmax, gnrm/gnrm_old    8.756617E-03    2.843822E-02    2.636760E-02
- iter, fnrm, fnrmMax, ebs, diff     2  6.7915142E-02  2.4404263E-01  -202.8607981452  -1.6389E-02
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    8.756618E-03    2.843822E-02    2.636760E-02
+ iter, fnrm, fnrmMax, ebs, diff     2  6.7915147E-02  2.4404263E-01  -202.8607981402  -1.6389E-02
  SD informations: mean alpha=4.610E-01, max alpha=4.792E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    7.244922E-03    2.822712E-02    2.837907E-02
- iter, fnrm, fnrmMax, ebs, diff     3  5.9545850E-02  2.4202113E-01  -202.8670651919  -6.2670E-03
+ iter, fnrm, fnrmMax, ebs, diff     3  5.9545853E-02  2.4202113E-01  -202.8670651896  -6.2670E-03
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   5.9545850E-02  2.4202113E-01   -202.8670652
+ Final values for fnrm, fnrmMax, ebs:   5.9545853E-02  2.4202113E-01   -202.8670652
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     9.604733E-003    -3.431471E+001    -3.788011E-002     2.000000E-001
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     9.604733E-003    -3.431471E+001    -3.788012E-002     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996395336E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  1.1276587E-07   -2.02867798390489725E+02   -2.3387E-02
+   it, Delta DENS, energy, energyDiff   1  1.1276590E-07   -2.02867798388330698E+02   -2.3387E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     8.074348E-003    -3.435259E+001     3.765894E-002     2.000000E-001
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
- alpha, energydiff  0.22000000000000003      -3.49661373775234097E-005
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     8.074349E-003    -3.435259E+001     3.765921E-002     2.000000E-001
+ 
+ alpha, energydiff  0.220000000000000      -3.496576903216919E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996394374E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  1.7067410E-08   -2.02867833356627102E+02   -3.4966E-05
+   it, Delta DENS, energy, energyDiff   2  1.7067413E-08   -2.02867833354099730E+02   -3.4966E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.208333E-003    -3.431493E+001     4.213456E-002     2.200000E-001
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
- alpha, energydiff  0.24200000000000005      -9.83918888550761039E-005
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.208334E-003    -3.431493E+001     4.213449E-002     2.200000E-001
+ 
+ alpha, energydiff  0.242000000000000      -9.839189920057834E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996394182E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  7.8038165E-09   -2.02867931748515957E+02   -9.8392E-05
+   it, Delta DENS, energy, energyDiff   3  7.8038174E-09   -2.02867931745998931E+02   -9.8392E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.501362E-003    -3.427280E+001     1.460972E-002     2.420000E-001
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
- alpha, energydiff  0.26620000000000005      -5.09051426433870802E-005
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.501362E-003    -3.427280E+001     1.460969E-002     2.420000E-001
+ 
+ alpha, energydiff  0.266200000000000      -5.090515355732350E-005
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996394210E+01
+   Calculation finished. TOTAL CHARGE =   9.599996394211E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  4.3959271E-09   -2.02867982653658601E+02   -5.0905E-05
+   it, Delta DENS, energy, energyDiff   4  4.3959276E-09   -2.02867982651152488E+02   -5.0905E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.531161E-003    -3.425819E+001     4.742190E-003     2.662000E-001
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
- alpha, energydiff  0.29282000000000008      -2.25297889073772239E-005
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.531161E-003    -3.425819E+001     4.742183E-003     2.662000E-001
+ 
+ alpha, energydiff  0.292820000000000      -2.252980289085826E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996394266E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   5  2.7986135E-09   -2.02868005183447508E+02   -2.2530E-05
+   it, Delta DENS, energy, energyDiff   5  2.7986139E-09   -2.02868005180955379E+02   -2.2530E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.425344690623E+01  7.125005043572E+02 -5.203970483387E+01 -6.823519059957E+01  0.000000000000E+00  5.276887859202E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   3   1.18E-07   -2.02868005183447508E+02   -2.3594E-02
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.425344685875E+01  7.125005044040E+02 -5.203970484647E+01 -6.823519061618E+01  0.000000000000E+00  5.276887859202E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   3   1.18E-07   -2.02868005180955379E+02   -2.3594E-02
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
@@ -1609,99 +1673,104 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   3    2.80E-09   -2.02868005183447508E+02
+     FINAL values: it, Delta DENS, energy   3    2.80E-09   -2.02868005180955379E+02
    > energy difference to last iteration: -2.359412E-02
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
-AFTER: gnrm, gnrmmax, gnrm/gnrm_old    7.540439E-03    2.776183E-02    2.905786E-02
- iter, fnrm, fnrmMax, ebs, diff     1  6.0034415E-02  2.3959033E-01  -202.8680045660  -7.2064E-03
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    7.540440E-03    2.776183E-02    2.905786E-02
+ iter, fnrm, fnrmMax, ebs, diff     1  6.0034418E-02  2.3959033E-01  -202.8680045635  -7.2064E-03
  SD informations: mean alpha=5.071E-01, max alpha=5.071E-01, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
-AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.482523E-03    2.764268E-02    2.932964E-02
- iter, fnrm, fnrmMax, ebs, diff     2  5.5405447E-02  2.3728213E-01  -202.8712098024  -3.2052E-03
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.482524E-03    2.764269E-02    2.932963E-02
+ iter, fnrm, fnrmMax, ebs, diff     2  5.5405448E-02  2.3728213E-01  -202.8712098008  -3.2052E-03
  SD informations: mean alpha=5.578E-01, max alpha=5.578E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.048178E-03    2.704421E-02    3.022884E-02
- iter, fnrm, fnrmMax, ebs, diff     3  5.2715130E-02  2.3346345E-01  -202.8734015711  -2.1918E-03
+ iter, fnrm, fnrmMax, ebs, diff     3  5.2715130E-02  2.3346345E-01  -202.8734015699  -2.1918E-03
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   5.2715130E-02  2.3346345E-01   -202.8734016
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.076027E-003    -3.425345E+001    -3.918967E-003     2.000000E-001
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.076027E-003    -3.425345E+001    -3.918971E-003     2.000000E-001
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996359123E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  4.2246833E-08   -2.02873598544814513E+02   -5.5934E-03
+   it, Delta DENS, energy, energyDiff   1  4.2246837E-08   -2.02873598543605794E+02   -5.5934E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.942566E-003    -3.425737E+001     5.679023E-002     2.000000E-001
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
- alpha, energydiff  0.22000000000000003      -6.03630807063382235E-005
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.942566E-003    -3.425737E+001     5.679020E-002     2.000000E-001
+ 
+ alpha, energydiff  0.220000000000000      -6.036310685431090E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996358354E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  9.0092694E-09   -2.02873658907895219E+02   -6.0363E-05
+   it, Delta DENS, energy, energyDiff   2  9.0092692E-09   -2.02873658906712649E+02   -6.0363E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.796234E-003    -3.420058E+001     2.386262E-002     2.200000E-001
  
- alpha, energydiff  0.24200000000000005      -1.18750066349093686E-005
+ alpha, energydiff  0.242000000000000      -1.187501266031177E-005
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996358173E+01
+   Calculation finished. TOTAL CHARGE =   9.599996358174E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  3.6913720E-09   -2.02873670782901854E+02   -1.1875E-05
+   it, Delta DENS, energy, energyDiff   3  3.6913721E-09   -2.02873670781725309E+02   -1.1875E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     9.906062E-004    -3.417671E+001     7.338700E-003     2.420000E-001
  
- alpha, energydiff  0.26620000000000005      -7.16554382051981520E-006
+ alpha, energydiff  0.266200000000000      -7.165540750975197E-006
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996358164E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  1.8516105E-09   -2.02873677948445675E+02   -7.1655E-06
+   it, Delta DENS, energy, energyDiff   4  1.8516106E-09   -2.02873677947266060E+02   -7.1655E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.868975E-004    -3.416937E+001     1.845944E-003     2.662000E-001
  
- alpha, energydiff  0.29282000000000008      -3.19769276302395156E-006
+ alpha, energydiff  0.292820000000000      -3.197698447365838E-006
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996358181E+01
+   Calculation finished. TOTAL CHARGE =   9.599996358182E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   5  1.0975335E-09   -2.02873681146138438E+02   -3.1977E-06
+   it, Delta DENS, energy, energyDiff   5  1.0975336E-09   -2.02873681144964507E+02   -3.1977E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.416752838085E+01  7.125970264597E+02 -5.205889618112E+01 -6.826055680365E+01  0.000000000000E+00  5.276887859202E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   4   4.18E-08   -2.02873681146138438E+02   -5.6760E-03
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.416752836798E+01  7.125970264727E+02 -5.205889618593E+01 -6.826055680997E+01  0.000000000000E+00  5.276887859202E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   4   4.18E-08   -2.02873681144964507E+02   -5.6760E-03
  ############################################################################################
  at iteration 4 of the outer loop:
    > basis functions optimization:
@@ -1711,99 +1780,104 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   4    1.10E-09   -2.02873681146138438E+02
-   > energy difference to last iteration: -5.675963E-03
+     FINAL values: it, Delta DENS, energy   4    1.10E-09   -2.02873681144964507E+02
+   > energy difference to last iteration: -5.675964E-03
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.218909E-03    2.662191E-02    3.111707E-02
- iter, fnrm, fnrmMax, ebs, diff     1  5.2685548E-02  2.3107009E-01  -202.8736810398  -2.4712E-03
+ iter, fnrm, fnrmMax, ebs, diff     1  5.2685548E-02  2.3107009E-01  -202.8736810386  -2.4712E-03
  SD informations: mean alpha=6.136E-01, max alpha=6.136E-01, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.725652E-03    2.603263E-02    3.141620E-02
- iter, fnrm, fnrmMax, ebs, diff     2  5.0311748E-02  2.2632930E-01  -202.8758290915  -2.1481E-03
+ iter, fnrm, fnrmMax, ebs, diff     2  5.0311748E-02  2.2632930E-01  -202.8758290905  -2.1481E-03
  SD informations: mean alpha=6.451E-01, max alpha=6.750E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.445058E-03    2.525228E-02    3.250451E-02
- iter, fnrm, fnrmMax, ebs, diff     3  4.8235097E-02  2.2115392E-01  -202.8777971450  -1.9681E-03
+ iter, fnrm, fnrmMax, ebs, diff     3  4.8235097E-02  2.2115392E-01  -202.8777971441  -1.9681E-03
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   4.8235097E-02  2.2115392E-01   -202.8777971
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.668871E-003    -3.416753E+001    -3.791043E-003     2.000000E-001
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996352337E+01
+   Calculation finished. TOTAL CHARGE =   9.599996352338E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  1.7743454E-08   -2.02877899340715544E+02   -4.2182E-03
+   it, Delta DENS, energy, energyDiff   1  1.7743455E-08   -2.02877899339839587E+02   -4.2182E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.152079E-003    -3.417132E+001    -3.162361E-002     2.000000E-001
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
- alpha, energydiff  0.22000000000000003      -5.23950186561705777E-005
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.152079E-003    -3.417132E+001    -3.162360E-002     2.000000E-001
+ 
+ alpha, energydiff  0.220000000000000      -5.239502308995725E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996351177E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  7.4449404E-09   -2.02877951735734200E+02   -5.2395E-05
+   it, Delta DENS, energy, energyDiff   2  7.4449400E-09   -2.02877951734862677E+02   -5.2395E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.287559E-003    -3.420294E+001     3.424126E-002     2.200000E-001
  
- alpha, energydiff  0.24200000000000005      -2.72925137778656790E-006
+ alpha, energydiff  0.242000000000000      -2.729251377786568E-006
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996350847E+01
+   Calculation finished. TOTAL CHARGE =   9.599996350848E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  2.7803815E-09   -2.02877954464985578E+02   -2.7293E-06
+   it, Delta DENS, energy, energyDiff   3  2.7803815E-09   -2.02877954464114055E+02   -2.7293E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.837960E-004    -3.416870E+001     1.002565E-002     2.420000E-001
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
- alpha, energydiff  0.26620000000000005      -3.17914123115770053E-006
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.837961E-004    -3.416870E+001     1.002565E-002     2.420000E-001
+ 
+ alpha, energydiff  0.266200000000000      -3.179140435349836E-006
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996350777E+01
+   Calculation finished. TOTAL CHARGE =   9.599996350778E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  1.3210919E-09   -2.02877957644126809E+02   -3.1791E-06
+   it, Delta DENS, energy, energyDiff   4  1.3210920E-09   -2.02877957643254490E+02   -3.1791E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.090856E-004    -3.415868E+001     2.259806E-003     2.662000E-001
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
- alpha, energydiff  0.29282000000000008      -1.56774672177562024E-006
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.090856E-004    -3.415868E+001     2.259805E-003     2.662000E-001
+ 
+ alpha, energydiff  0.292820000000000      -1.567743538544164E-006
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996350765E+01
+   Calculation finished. TOTAL CHARGE =   9.599996350766E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   5  7.9213760E-10   -2.02877959211873531E+02   -1.5677E-06
+   it, Delta DENS, energy, energyDiff   5  7.9213764E-10   -2.02877959210998029E+02   -1.5677E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.415641631837E+01  7.126132602134E+02 -5.206163625719E+01 -6.826416784856E+01  0.000000000000E+00  5.276887859202E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   5   1.32E-08   -2.02877959211873531E+02   -4.2781E-03
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.415641630611E+01  7.126132602258E+02 -5.206163626137E+01 -6.826416785407E+01  0.000000000000E+00  5.276887859202E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   5   1.32E-08   -2.02877959210998029E+02   -4.2781E-03
  ############################################################################################
  at iteration 5 of the outer loop:
    > basis functions optimization:
@@ -1813,10 +1887,10 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - density optimization converged in 5 iterations.
-     FINAL values: it, Delta DENS, energy   5    7.92E-10   -2.02877959211873531E+02
+     FINAL values: it, Delta DENS, energy   5    7.92E-10   -2.02877959210998029E+02
    > energy difference to last iteration: -4.278066E-03
  ############################################################################################
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.415641631837E+01  7.126132602134E+02 -5.206163625719E+01 -6.826416784856E+01  0.000000000000E+00  5.276887859202E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   5   1.32E-08   -2.02877959211873531E+02    0.0000E+00   FINAL
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.415641630611E+01  7.126132602258E+02 -5.206163626137E+01 -6.826416785407E+01  0.000000000000E+00  5.276887859202E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   5   1.32E-08   -2.02877959210998029E+02    0.0000E+00   FINAL
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.599996350765E+01
+   Calculation finished. TOTAL CHARGE =   9.599996350766E+01
