@@ -583,10 +583,11 @@ module module_interfaces
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
             denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-            lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags)
+            lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft)
          use module_defs
          use module_types
          use module_fragments
+         use constrained_dft
          implicit none
          integer, intent(in) :: iproc, nproc, inputpsi,  input_wf_format
          type(input_variables), intent(in) :: in
@@ -607,6 +608,7 @@ module module_interfaces
          type(local_zone_descriptors),intent(inout):: lzd_old
          type(wavefunctions_descriptors), intent(inout) :: wfd_old
          type(system_fragment), dimension(:), pointer :: ref_frags
+         type(cdft_data), intent(out) :: cdft
        END SUBROUTINE input_wf
 
        subroutine reformatmywaves(iproc,orbs,at,&
@@ -2041,9 +2043,10 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-         calculate_ham,ham_small,ldiis_coeff)
+         calculate_ham,ham_small,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,cdft)
       use module_base
       use module_types
+      use constrained_dft
       use diis_sd_optimization
       implicit none
 
@@ -2064,14 +2067,19 @@ module module_interfaces
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       logical,intent(in) :: calculate_ham
       type(sparseMatrix), intent(inout) :: ham_small ! for foe only
-      type(DIIS_obj),intent(inout),optional :: ldiis_coeff
+      type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
+      integer, intent(in), optional :: nitdmin ! for dmin only
+      real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
+      logical, intent(in), optional :: curvefit_dmin ! for dmin only
+      type(cdft_data),intent(inout),optional :: cdft
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,energy,fpulay,infocode,ref_frags)
+           energs,energy,fpulay,infocode,ref_frags,cdft)
       use module_base
       use module_types
       use module_fragments
+      use constrained_dft
       implicit none
       integer,intent(in):: iproc, nproc
       type(atoms_data),intent(inout):: at
@@ -2090,6 +2098,7 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout),target:: KSwfn
       integer,intent(out):: infocode
       type(system_fragment), dimension(:), pointer :: ref_frags 
+      type(cdft_data), intent(inout) :: cdft
     end subroutine linearScaling   
 
 
@@ -3407,7 +3416,8 @@ module module_interfaces
        end subroutine adjust_DIIS_for_high_accuracy
 
        subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, &
-                  convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
+                  convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
+                  convcrit_dmin, nitdmin)
          use module_base
          use module_types
          implicit none
@@ -3417,9 +3427,9 @@ module module_interfaces
          type(atoms_data),intent(in):: at
          integer,dimension(lorbs%norb),intent(in):: onwhichatom
          type(confpot_data),dimension(lorbs%norbp),intent(inout):: confdatarr
-         real(kind=8), intent(out) :: convCritMix, alpha_mix
+         real(kind=8), intent(out) :: convCritMix, alpha_mix, convcrit_dmin
          logical, intent(in) :: lowaccur_converged
-         integer, intent(out) :: nit_scc, mix_hist
+         integer, intent(out) :: nit_scc, mix_hist, nitdmin
          real(kind=8), dimension(nlr), intent(out) :: locrad
          integer, intent(out) :: target_function, nit_basis
        end subroutine set_optimization_variables
@@ -3816,17 +3826,6 @@ module module_interfaces
           type(orbitals_data), intent(inout) :: orbs
         end subroutine local_potential_dimensions
 
-        subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in):: iproc, nproc
-          type(orbitals_data),intent(in):: orbs
-          type(DFT_wavefunction),intent(inout):: tmb
-          type(localizedDIISParameters),intent(inout):: ldiis_coeff
-          real(8),intent(out):: fnrm
-        end subroutine optimize_coeffs
-
         subroutine DIIS_coeff(iproc, orbs, tmb, grad, coeff, ldiis)
           use module_base
           use module_types
@@ -4176,10 +4175,11 @@ module module_interfaces
           real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
         end subroutine psi_to_kinpsi
 
-        subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
+        subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
           use module_base
           use module_types
           implicit none
+          integer,intent(in) :: iproc
           type(orbitals_data), intent(in) :: orbs
           type(local_zone_descriptors), intent(in) :: lzd
           type(local_zone_descriptors), intent(inout) :: lzd_old
@@ -4308,7 +4308,7 @@ module module_interfaces
           type(collective_comms),intent(inout) :: collcom_sr
         end subroutine init_collective_comms_sumro
 
-        subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho)
+        subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, print_results)
           use module_base
           use module_types
           implicit none
@@ -4317,6 +4317,7 @@ module module_interfaces
           type(collective_comms),intent(in) :: collcom_sr
           type(sparseMatrix),intent(in) :: denskern
           real(kind=8),dimension(ndimrho),intent(out) :: rho
+          logical,intent(in),optional :: print_results
         end subroutine sumrho_for_TMBs
 
         subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
@@ -4745,8 +4746,8 @@ module module_interfaces
           real(kind=8),dimension(nseq),intent(out) :: a_seq
         end subroutine sequential_acces_matrix
 
-        subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-                   blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half, orbs)
+        subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
+                   blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half, plusminus, orbs)
           use module_base
           use module_types
           implicit none
@@ -4754,8 +4755,9 @@ module module_interfaces
           integer,intent(in) :: iproc, nproc, norb, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm
           real(kind=8),dimension(norb,norb),intent(in) :: ovrlp
           real(kind=8),dimension(norb,norb),intent(inout) :: inv_ovrlp_half
+          logical, intent(in) :: plusminus
           type(orbitals_data), optional, intent(in) :: orbs
-        end subroutine overlapPowerMinusOneHalf_old
+        end subroutine overlapPowerPlusMinusOneHalf_old
 
         subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
                    orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
@@ -4863,6 +4865,19 @@ module module_interfaces
           real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
           real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: vector
         end subroutine uncompress_polynomial_vector
+
+        subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern)
+          use module_base
+          use module_types
+          use yaml_output
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(orbitals_data),intent(in) :: orbs
+          type(collective_comms),intent(in) :: collcom_sr
+          type(DFT_local_fields),intent(in) :: denspot
+          type(sparseMatrix),intent(in) :: denskern
+        end subroutine check_communication_sumrho
 
   
   end interface

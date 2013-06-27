@@ -1,6 +1,6 @@
 1 1         # number fragments in reference system, number of fragments in current system
 1 sih3      # reference fragment number i, fragment label
-1 1         # fragment number j, reference fragment i this corresponds to
+1 1 0       # fragment number j, reference fragment i this corresponds to, charge on this fragment
 
 
 # transform to a proper list - yaml processing?

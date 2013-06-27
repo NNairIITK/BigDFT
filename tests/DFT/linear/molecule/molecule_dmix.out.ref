@@ -26,7 +26,6 @@ V3prb    5.4876E-02
  Processes from 4 to 5 treat 17 inguess orbitals 
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.139999945482E+02
- calling orthonormalizeLocalized (exact)
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.

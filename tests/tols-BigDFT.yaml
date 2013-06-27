@@ -295,6 +295,7 @@ cleanup:
 directmin:
  Patterns to ignore:
  - Wavefunction written
+ Epsilon: 3.1e-10
 
 restartdisk_charge:
  Patterns to ignore:
@@ -317,3 +318,12 @@ GEOPT-newIG:
 rotatesmall_write:
   Keys to ignore:
   - Wavefunction written No.
+
+rotatesmall_read:
+ Epsilon: 2.4e-11
+molecule_dmix:
+ Epsilon: 7.0e-11
+molecule_pmix:
+ Epsilon: 7.0e-11
+molecule_dmin:
+ Epsilon: 5.0e-11

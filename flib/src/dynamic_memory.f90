@@ -31,6 +31,18 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine geti2
 
+     subroutine geti3(array,iadd)
+       implicit none
+       integer, dimension(:,:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine geti3
+
+     subroutine geti4(array,iadd)
+       implicit none
+       integer, dimension(:,:,:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine geti4
+
      subroutine getl1(array,iadd)
        implicit none
        logical, dimension(:), allocatable, intent(in) :: array
@@ -112,12 +124,13 @@ module metadata_interfaces
   end interface
 
 interface pad_array
-  module procedure pad_i1,pad_i2
+  module procedure pad_i1,pad_i2,pad_i3,pad_i4
   module procedure pad_l1,pad_l2
   module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5
 end interface
 
-public :: pad_array,geti1,geti2,getl1,getl2
+public :: pad_array,geti1,geti2,geti3,geti4
+public :: getl1,getl2
 public :: getdp1,getdp2,getdp3,getdp4!,getlongaddress
 public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,geti1ptr,geti2ptr
 public :: address_toi,long_toa
@@ -145,6 +158,28 @@ contains
     call pad_integer(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
 
   end subroutine pad_i2
+
+  subroutine pad_i3(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(3), intent(in) :: shp
+    integer, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
+    
+    call pad_integer(array,init_to_zero,product(shp),product(shp(1:2))*(shp(3)+ndebug))
+
+  end subroutine pad_i3
+
+  subroutine pad_i4(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(4), intent(in) :: shp
+    integer, dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
+    
+    call pad_integer(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
+
+  end subroutine pad_i4
 
   subroutine pad_l1(array,init_to_zero,shp,ndebug)
     implicit none
@@ -492,7 +527,7 @@ module dynamic_memory
   end type array_bounds
 
   interface assignment(=)
-     module procedure i1_all,i2_all
+     module procedure i1_all,i2_all,i3_all,i4_all
      module procedure l1_all,l2_all
      module procedure d1_all,d2_all,d3_all,d4_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
@@ -504,7 +539,7 @@ module dynamic_memory
   end interface
 
   interface f_free
-     module procedure i1_all_free,i2_all_free
+     module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
      module procedure l1_all_free,l2_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free
   end interface
@@ -664,7 +699,7 @@ contains
        m%lbounds(i)=bounds(i)%nlow
        m%ubounds(i)=bounds(i)%nhigh
        m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
-       end do
+    end do
 
     include 'f_malloc-inc.f90'
 
@@ -1338,6 +1373,7 @@ contains
     allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
     include 'allocate-inc.f90'
   end subroutine i2_all
+
   subroutine i2_all_free(array)
     use metadata_interfaces, metadata_address => geti2
     implicit none
@@ -1345,6 +1381,45 @@ contains
     include 'deallocate-inc-profile.f90' 
     include 'deallocate-inc.f90' 
   end subroutine i2_all_free
+
+  subroutine i3_all(array,m)
+    use metadata_interfaces, metadata_address => geti3
+    implicit none
+    type(malloc_information_all), intent(in) :: m
+    integer, dimension(:,:,:), allocatable, intent(inout) :: array
+    include 'allocate-inc-profile.f90' 
+    !allocate the array
+    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
+    include 'allocate-inc.f90'
+  end subroutine i3_all
+
+  subroutine i3_all_free(array)
+    use metadata_interfaces, metadata_address => geti3
+    implicit none
+    integer, dimension(:,:,:), allocatable, intent(inout) :: array
+    include 'deallocate-inc-profile.f90' 
+    include 'deallocate-inc.f90' 
+  end subroutine i3_all_free
+
+  subroutine i4_all(array,m)
+    use metadata_interfaces, metadata_address => geti4
+    implicit none
+    type(malloc_information_all), intent(in) :: m
+    integer, dimension(:,:,:,:), allocatable, intent(inout) :: array
+    include 'allocate-inc-profile.f90' 
+    !allocate the array
+    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
+                   m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
+    include 'allocate-inc.f90'
+  end subroutine i4_all
+
+  subroutine i4_all_free(array)
+    use metadata_interfaces, metadata_address => geti4
+    implicit none
+    integer, dimension(:,:,:,:), allocatable, intent(inout) :: array
+    include 'deallocate-inc-profile.f90' 
+    include 'deallocate-inc.f90' 
+  end subroutine i4_all_free
 
 
   subroutine l1_all(array,m)

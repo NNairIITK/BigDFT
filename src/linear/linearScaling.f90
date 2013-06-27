@@ -9,13 +9,14 @@
 
 
 subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,energy,fpulay,infocode,ref_frags)
+           energs,energy,fpulay,infocode,ref_frags,cdft)
  
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => linearScaling
   use yaml_output
   use module_fragments
+  use constrained_dft
   use diis_sd_optimization
   implicit none
 
@@ -29,7 +30,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(gp), dimension(*), intent(inout) :: rhopotold
   type(nonlocal_psp_descriptors),intent(in) :: nlpspd
   real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
-  type(GPU_pointers),intent(in out) :: GPU
+  type(GPU_pointers),intent(inout) :: GPU
   type(energy_terms),intent(inout) :: energs
   real(gp), dimension(:), pointer :: rho,pot
   real(8),intent(out) :: energy
@@ -37,6 +38,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(DFT_wavefunction),intent(inout),target :: KSwfn
   integer,intent(out) :: infocode
   type(system_fragment), dimension(:), pointer :: ref_frags ! for transfer integrals
+  type(cdft_data), intent(inout) :: cdft
   
   real(8) :: pnrm,trace,trace_old,fnrm_tmb
   integer :: infoCoeff,istat,iall,it_scc,itout,info_scf,i,ierr,iorb
@@ -45,22 +47,29 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
   type(mixrhopotDIISParameters) :: mixdiis
   type(localizedDIISParameters) :: ldiis!, ldiis_coeff
-  type(DIIS_obj) :: ldiis_coeff
+  type(DIIS_obj) :: ldiis_coeff, vdiis
   logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
   logical :: fix_support_functions, check_initialguess, fix_supportfunctions
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
   real(8),dimension(:),allocatable :: locrad_tmp
-  integer :: ldiis_coeff_hist
+  integer :: ldiis_coeff_hist, nitdmin
   logical :: ldiis_coeff_changed
   integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy
-  real(8) :: pnrm_out, alpha_mix, ratio_deltas
+  real(8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin
   logical :: lowaccur_converged, exit_outer_loop
   real(8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
   type(sparseMatrix) :: ham_small
   integer :: isegsmall, iseglarge, iismall, iilarge, is, ie
+  integer :: matrixindex_in_compressed
+  
+  real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp
+  real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
+  integer :: ind_denskern, ind_ham, jorb, cdft_it, nelec, iat, ityp, ifrag, ifrag_charged, ifrag_ref, isforb, itmb
 
   call timing(iproc,'linscalinit','ON') !lr408t
+
+  call f_routine(id='linear_scaling')
 
   call allocate_local_arrays()
 
@@ -75,7 +84,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
   ! Initialize the DIIS mixing of the potential if required.
-  if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+  if(input%lin%mixHist_lowaccuracy>0) then
       call initializeMixrhopotDIIS(input%lin%mixHist_lowaccuracy, denspot%dpbox%ndimpot, mixdiis)
   end if
 
@@ -83,6 +92,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   pnrm_out=1.d100
   energyold=0.d0
   energyoldout=0.d0
+  energy=0.d0
+  energs%ebs=0.0d0
   target_function=TARGET_FUNCTION_IS_TRACE
   lowaccur_converged=.false.
   info_basis_functions=-1
@@ -90,7 +101,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   check_initialguess=.true.
   cur_it_highaccuracy=0
   trace_old=0.0d0
-  ldiis_coeff_hist=input%lin%mixHist_lowaccuracy
+  ldiis_coeff_hist=input%lin%dmin_hist_lowaccuracy
   reduce_conf=.false.
   ldiis_coeff_changed = .false.
   orthonormalization_on=.true.
@@ -106,14 +117,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! Allocate the communication arrays for the calculation of the charge density.
 
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then  
+     ldiis_coeff%alpha_coeff=input%lin%alphaSD_coeff
 !!$     call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
 !!$     call allocate_DIIS_coeff(tmb, ldiis_coeff)
      call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
   end if
 
-  tmb%can_use_transposed=.false.
-  nullify(tmb%psit_c)
-  nullify(tmb%psit_f)
+  ! we already have psit in the other case, and in fact the overlap, so eventually could reuse that as well
+  if (.not. (input%lin%constrained_dft .and. trim(cdft%method)=='lowdin')) then
+     tmb%can_use_transposed=.false.
+     nullify(tmb%psit_c)
+     nullify(tmb%psit_f)
+  end if
 
   call timing(iproc,'linscalinit','OF') !lr408t
 
@@ -140,8 +155,30 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
   if (iproc ==0) call yaml_close_map()
 
-  ! CDFT: calculate w_ab here given Nc and some scheme for calculating w(r)
-  ! CDFT: also define some initial guess for V
+  if (input%lin%constrained_dft) then
+     call timing(iproc,'constraineddft','ON')
+     if (nit_lowaccuracy>0 .or. input%lin%nItBasis_highaccuracy>1) then
+        stop 'Basis cannot be updated for now in constrained DFT calculations and no low accuracy is allowed'
+     end if
+  end if
+
+
+  ! CDFT: calculate w_ab here given w(r)
+  ! CDFT: first check that we aren't updating the basis at any point and we don't have any low acc iterations
+  if (input%lin%constrained_dft) then
+     call timing(iproc,'constraineddft','ON')
+
+     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
+          ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+     vgrad_old=ebs-cdft%charge
+
+     if (iproc==0) print*,'Tr(KW), Tr(KW)-N, V*(Tr(KW)-N)',ebs,vgrad_old,cdft%lag_mult*(ebs-cdft%charge)
+     vgrad_old=abs(vgrad_old)
+     valpha=0.5_gp
+
+     coeff_tmp=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_tmp')
+     call timing(iproc,'constraineddft','OF')
+  end if
 
 
   call timing(iproc,'linscalinit','OF') !lr408t
@@ -159,7 +196,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                lowaccur_converged, pnrm_out)
           ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
           call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
-               convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
+               convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
+               convcrit_dmin, nitdmin)
       else if (input%lin%nlevel_accuracy==1 .and. itout==1) then
           call set_variables_for_hybrid(tmb%lzd%nlr, input, at, tmb%orbs, lowaccur_converged, tmb%confdatarr, &
                target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
@@ -202,6 +240,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
           end if
 
+          ! is this really necessary if the locrads haven't changed?  we should check this!
+          ! for now for CDFT don't do the extra get_coeffs, as don't want to add extra CDFT loop here
           if (target_function==TARGET_FUNCTION_IS_HYBRID) then
               if (iproc==0) write(*,*) 'WARNING: COMMENTED THESE LINES'
           else
@@ -209,9 +249,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! being different for low and high accuracy.
              update_phi=.true.
              tmb%can_use_transposed=.false.   !check if this is set properly!
-             call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                  infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                  .true.,ham_small,ldiis_coeff=ldiis_coeff)
+             ! NB nothing is written to screen for this get_coeff
+             if (.not. input%lin%constrained_dft) then
+                call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                     .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+             end if
           end if
 
           ! Some special treatement if we are in the high accuracy part
@@ -295,7 +338,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
-           if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) ldiis_coeff%alpha_coeff=0.2d0 !reset to default value
+           if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) ldiis_coeff%alpha_coeff=input%lin%alphaSD_coeff !reset to default value
 
            if (input%inputPsiId==101 .and. info_basis_functions<0 .and. itout==1) then
                ! There seem to be some convergence problems after a restart. Better to quit
@@ -362,120 +405,196 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       end if
 
 
-      ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
-      kernel_loop : do it_scc=1,nit_scc
-
-          ! CDFT: need to pass V*w_ab to get_coeff so that it can be added to H_ab and the correct KS eqn can therefore be solved
-          ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
-          ! CDFT: all this will be in some extra CDFT loop
-          !cdft_loop : do
-
+      if (input%lin%constrained_dft) then
+         call DIIS_set(30,valpha,1,1,vdiis)
+         call dcopy(tmb%orbs%norb**2,tmb%coeff(1,1),1,coeff_tmp,1)
+         vold=cdft%lag_mult
+      end if
+      ! CDFT: need to pass V*w_ab to get_coeff so that it can be added to H_ab and the correct KS eqn can therefore be solved
+      ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
+      ! CDFT: all this will be in some extra CDFT loop
+      cdft_loop : do cdft_it=1,100
+         ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
+         kernel_loop : do it_scc=1,nit_scc
              ! If the hamiltonian is available do not recalculate it
              ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
              ! since this is only required if basis changed
              if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
-                call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                     .false.,ham_small,ldiis_coeff=ldiis_coeff)
+                if (input%lin%constrained_dft) then
+                   call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        .false.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,cdft)
+                else
+                   call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        .false.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                end if
              else
-                call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                     .true.,ham_small,ldiis_coeff=ldiis_coeff)
+                if (input%lin%constrained_dft) then
+                   call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,cdft)
+                else
+                   call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                end if
              end if
              ! Since we do not update the basis functions anymore in this loop
              update_phi = .false.
 
-             ! CDFT: update V
-             ! CDFT: we updated the kernel in get_coeff so 1st deriv of W wrt V becomes:
-             ! CDFT: Tr[Kw]-Nc as in CONQUEST
-             ! CDFT: 2nd deriv more problematic?
+             ! CDFT: this is the real energy here as we subtracted the constraint term from the Hamiltonian before calculating ebs
+             ! Calculate the total energy.
+             !if(iproc==0) print *,'energs',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
+             energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
+             energyDiff=energy-energyold
+             energyold=energy
 
+             ! update alpha_coeff for direct minimization steepest descents
+             if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and.&
+                  ldiis_coeff%idsx == 0 .and. (.not. input%lin%curvefit_dmin)) then
+                ! apply a cap so that alpha_coeff never goes below around 1.d-2 or above 2
+                if (energyDiff<0.d0 .and. ldiis_coeff%alpha_coeff < 1.8d0) then
+                   ldiis_coeff%alpha_coeff=1.1d0*ldiis_coeff%alpha_coeff
+                else if (ldiis_coeff%alpha_coeff > 1.7d-3) then
+                   ldiis_coeff%alpha_coeff=0.5d0*ldiis_coeff%alpha_coeff
+                end if
+                if(iproc==0) write(*,*) ''
+                if(iproc==0) write(*,*) 'alpha, energydiff',ldiis_coeff%alpha_coeff,energydiff
+             end if
 
-             ! CDFT: exit when W is converged wrt both V and rho
+             ! Calculate the charge density.
+             call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+                  tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
-          !end do cdft_loop
-          ! CDFT: end of CDFT loop to find V which correctly imposes constraint and corresponding density
+             ! Mix the density.
+             if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+                call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
+                     denspot, mixdiis, rhopotold, pnrm)
+                if ((pnrm<convCritMix .or. it_scc==nit_scc) .and. (.not. input%lin%constrained_dft)) then
+                   ! calculate difference in density for convergence criterion of outer loop
+                   pnrm_out=0.d0
+                   do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                      pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
+                   end do
+                   call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                   pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+                      call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+                     denspot%rhov(1), 1, rhopotOld_out(1), 1)
+                end if
+             end if
 
+             ! Calculate the new potential.
+             if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+             call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
-          ! CDFT: don't need additional energy term here as constraint should now be correctly imposed?
-          ! Calculate the total energy.
-          !if(iproc==0) print *,'energs',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
-          energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
-          energyDiff=energy-energyold
-          energyold=energy
+             ! Mix the potential
+             if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+                call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
+                     denspot, mixdiis, rhopotold, pnrm)
+                if (pnrm<convCritMix .or. it_scc==nit_scc .and. (.not. input%lin%constrained_dft)) then
+                   ! calculate difference in density for convergence criterion of outer loop
+                   pnrm_out=0.d0
+                   do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                      pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
+                   end do
+                   call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                   pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+                   call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+                        denspot%rhov(1), 1, rhopotOld_out(1), 1) 
+                end if
+             end if
 
-          ! update alpha_coeff for direct minimization steepest descents
-          if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and.&
-               ldiis_coeff%idsx == 0) then
-             if(energyDiff<0.d0) then
-                ldiis_coeff%alpha_coeff=1.1d0*ldiis_coeff%alpha_coeff
+             ! Keep the support functions fixed if they converged and the density
+             ! change is below the tolerance already in the very first iteration
+             if(it_scc==1 .and. pnrm<convCritMix .and.  info_basis_functions>0) then
+                fix_support_functions=.true.
+             end if
+
+             ! Write some informations.
+             call printSummary()
+
+             if(pnrm<convCritMix) then
+                 info_scf=it_scc
+                 exit
              else
-                ldiis_coeff%alpha_coeff=0.5d0*ldiis_coeff%alpha_coeff
+                 info_scf=-1
              end if
-             if(iproc==0) write(*,*) ''
-             if(iproc==0) write(*,*) 'alpha, energydiff',ldiis_coeff%alpha_coeff,energydiff
-          end if
 
-          ! Calculate the charge density.
-          call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+         end do kernel_loop
 
-          ! Mix the density.
-          if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-             call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
-                  denspot, mixdiis, rhopotold, pnrm)
-          end if
- 
-          if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE .and.(pnrm<convCritMix .or. it_scc==nit_scc)) then
-             ! calculate difference in density for convergence criterion of outer loop
-             pnrm_out=0.d0
-             do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
-                pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
-             end do
-             call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-             pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-             call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
-                  denspot%rhov(1), 1, rhopotOld_out(1), 1) 
-          end if
+         if (input%lin%constrained_dft) then
+            call timing(iproc,'constraineddft','ON')
+            ! CDFT: see how satisfaction of constraint varies as kernel is updated
+            ! CDFT: calculate Tr[Kw]-Nc
+            call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
+                 ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+            ! reset rhopotold (to zero) to ensure we don't exit immediately if V only changes a little
+            !call razero(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, rhopotOld(1)) 
+            call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+                 rhopotOld_out(1), 1, rhopotOld(1), 1) 
 
-          ! Calculate the new potential.
-          if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
-          call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+            call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+                 rhopotOld_out(1), 1, denspot%rhov(1), 1) 
+            call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
-          ! Mix the potential
-          if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-             call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
-                  denspot, mixdiis, rhopotold, pnrm)
-             if (pnrm<convCritMix .or. it_scc==nit_scc) then
-                ! calculate difference in density for convergence criterion of outer loop
-                pnrm_out=0.d0
-                do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
-                   pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
-                end do
-                call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-                pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-                call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
-                     denspot%rhov(1), 1, rhopotOld_out(1), 1) 
-             end if
-          end if
+            vgrad=ebs-cdft%charge
 
-          ! Keep the support functions fixed if they converged and the density
-          ! change is below the tolerance already in the very first iteration
-          if(it_scc==1 .and. pnrm<convCritMix .and.  info_basis_functions>0) then
-             fix_support_functions=.true.
-          end if
+            ! CDFT: update V (maximizing E wrt V)
+            ! CDFT: we updated the kernel in get_coeff so 1st deriv of W wrt V becomes Tr[Kw]-Nc as in CONQUEST
+            ! CDFT: 2nd deriv more problematic?
+            ! CDFT: use simplest possible scheme for now
 
-          ! Write some informations.
-          call printSummary()
+            if (iproc==0) write(*,*) ''
+            if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itc, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N), V, Vold, EBS',&
+                 cdft_it,ebs,vgrad,cdft%lag_mult*vgrad,cdft%lag_mult,vold,energs%ebs
 
-          if(pnrm<convCritMix) then
-              info_scf=it_scc
-              exit
-          else
-              info_scf=-1
-          end if
+            if (.false.) then ! diis
+               vdiis%mids=mod(vdiis%ids,vdiis%idsx)+1
+               vdiis%ids=vdiis%ids+1
+               vold=cdft%lag_mult
+               call diis_opt(0,1,1,0,1,(/0/),(/1/),1,&
+                  cdft%lag_mult,-vgrad,vdiis) 
+               !call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/1/),1,&
+               !   cdft%lag_mult,-vgrad,vdiis) 
+            else if (.false.) then !sd
+               if (abs(vgrad)<abs(vgrad_old)) then
+                  valpha=valpha*1.1d0
+               else
+                  valpha=valpha*0.6d0
+               end if
+               vold=cdft%lag_mult
+               cdft%lag_mult=cdft%lag_mult+valpha*vgrad
+            else if (cdft_it==1) then !first step newton
+               vold=cdft%lag_mult
+               if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itn, V, Vg',&
+                    cdft_it,cdft%lag_mult,vgrad
+               cdft%lag_mult=cdft%lag_mult*2.0_gp
+            else ! newton
+               vgrad2=(vgrad-vgrad_old)/(cdft%lag_mult-vold)
+               if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itn, V, Vold, Vg, Vgold, Vg2, Vg/Vg2',&
+                    cdft_it,cdft%lag_mult,vold,vgrad,vgrad_old,vgrad2,vgrad/vgrad2
+               vold_tmp=cdft%lag_mult
+               cdft%lag_mult=vold-vgrad_old/vgrad2
+               vold=vold_tmp
+            end if
 
-      end do kernel_loop
+            call dcopy(tmb%orbs%norb**2,coeff_tmp(1,1),1,tmb%coeff(1,1),1)
+            !if (abs(abs(vgrad)-abs(vgrad_old))>0.1d0) call dcopy(tmb%orbs%norb**2,coeff_tmp(1,1),1,tmb%coeff(1,1),1)
+            vgrad_old=vgrad
+
+            call timing(iproc,'constraineddft','OF')
+
+            ! CDFT: exit when W is converged wrt both V and rho
+            if (abs(ebs-cdft%charge) < 1.0e-3) exit
+
+         ! if not constrained DFT exit straight away
+         else
+            exit
+         end if
+      end do cdft_loop
+      if (input%lin%constrained_dft) call DIIS_free(vdiis)
+      ! CDFT: end of CDFT loop to find V which correctly imposes constraint and corresponding density
 
       if(tmb%can_use_transposed) then
           iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
@@ -509,12 +628,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
-           .true.,ham_small,ldiis_coeff=ldiis_coeff)
+           .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
   end if
-
 
   if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
      call deallocate_sparsematrix(ham_small,subname)
+  end if
+
+  if (input%lin%constrained_dft) then
+     call cdft_data_free(cdft)
+     call f_free(coeff_tmp)
   end if
 
 
@@ -524,7 +647,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! Deallocate everything that is not needed any more.
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call DIIS_free(ldiis_coeff)!call deallocateDIIS(ldiis_coeff)
   call deallocateDIIS(ldiis)
-  if(input%lin%mixHist_highaccuracy>0 .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+  if(input%lin%mixHist_highaccuracy>0) then
       call deallocateMixrhopotDIIS(mixdiis)
   end if
   !!call wait_p2p_communication(iproc, nproc, tmb%comgp)
@@ -557,17 +680,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   !Write the linear wavefunctions to file if asked, also write Hamiltonian and overlap matrices
   if (input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
-    call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
-       max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,KSwfn%orbs%norb,at,rxyz,tmb%psi,tmb%coeff)
-    call write_linear_matrices(iproc,nproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb,at,rxyz)
+     nelec=0
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
+        nelec=nelec+at%nelpsp(ityp)
+     enddo
+     call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
+          max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff)
+     call write_linear_matrices(iproc,nproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb,at,rxyz)
   end if
  
-  ! maybe not the best place to keep it - think about it!
-  if (input%lin%calc_transfer_integrals) then
-     if (.not. input%lin%fragment_calculation) stop 'Error, fragment calculation needed for transfer integral calculation'
-     call calc_transfer_integrals(iproc,nproc,input%frag,ref_frags,tmb%orbs,tmb%linmat%ham,tmb%linmat%ovrlp)
-  end if
-
   !DEBUG
   !ind=1
   !do iorb=1,tmb%orbs%norbp
@@ -579,6 +701,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !end do
   ! END DEBUG
 
+  ! check why this is here!
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
@@ -591,6 +714,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   nullify(rho,pot)
 
   call deallocate_local_arrays()
+  call f_release_routine()
 
   call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
 
@@ -760,7 +884,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
               write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', &
                    it_SCC, pnrm, energy, energyDiff
           else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, fnrm coeff, energy, energyDiff', &
+              write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
                    it_SCC, pnrm, energy, energyDiff
           end if
           write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
@@ -848,7 +972,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
               write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy
           else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, fnrm coeff, energy', itout, pnrm, energy
+              write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
           end if
           write(*,'(3x,a,es14.6)') '> energy difference to last iteration:', energyDiff
           write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
@@ -884,7 +1008,8 @@ end subroutine linearScaling
 
 
 subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, &
-     convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
+     convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
+     convcrit_dmin, nitdmin)
   use module_base
   use module_types
   implicit none
@@ -896,9 +1021,9 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   type(atoms_data),intent(in) :: at
   integer,dimension(lorbs%norb),intent(in) :: onwhichatom
   type(confpot_data),dimension(lorbs%norbp),intent(inout) :: confdatarr
-  real(kind=8), intent(out) :: convCritMix, alpha_mix
+  real(kind=8), intent(out) :: convCritMix, alpha_mix, convcrit_dmin
   logical, intent(in) :: lowaccur_converged
-  integer, intent(out) :: nit_scc, mix_hist
+  integer, intent(out) :: nit_scc, mix_hist, nitdmin
   real(kind=8), dimension(nlr), intent(out) :: locrad
   integer, intent(out) :: target_function, nit_basis
 
@@ -919,6 +1044,8 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       end do
       alpha_mix=input%lin%alpha_mix_highaccuracy
       convCritMix=input%lin%convCritMix_highaccuracy
+      convcrit_dmin=input%lin%convCritDmin_highaccuracy
+      nitdmin=input%lin%nItdmin_highaccuracy
   else
       do iorb=1,lorbs%norbp
           iiat=onwhichatom(lorbs%isorb+iorb)
@@ -933,6 +1060,8 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       end do
       alpha_mix=input%lin%alpha_mix_lowaccuracy
       convCritMix=input%lin%convCritMix_lowaccuracy
+      convcrit_dmin=input%lin%convCritDmin_lowaccuracy
+      nitdmin=input%lin%nItdmin_lowaccuracy
   end if
 
   !!! new hybrid version... not the best place here
@@ -1134,20 +1263,19 @@ subroutine adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_conve
   logical, intent(out) :: ldiis_coeff_changed  
 
   if(lowaccur_converged) then
-     if (input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
-        if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
-           call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
-        else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
-           call deallocateMixrhopotDIIS(mixdiis)
-        end if
-     else
+     if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
+        call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
+     else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
+        call deallocateMixrhopotDIIS(mixdiis)
+     end if
+     if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
         ! check whether ldiis_coeff_hist arrays will need reallocating due to change in history length
-        if (ldiis_coeff_hist /= input%lin%mixHist_highaccuracy) then
+        if (ldiis_coeff_hist /= input%lin%dmin_hist_highaccuracy) then
            ldiis_coeff_changed=.true.
         else
            ldiis_coeff_changed=.false.
         end if
-        ldiis_coeff_hist=input%lin%mixHist_highaccuracy
+        ldiis_coeff_hist=input%lin%dmin_hist_highaccuracy
      end if
   else
      if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
@@ -1459,8 +1587,9 @@ subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, co
 end subroutine set_variables_for_hybrid
 
 
+
 ! calculation of cSc and cHc using original coeffs (HOMO and LUMO only) and new Hamiltonian and overlap matrices
-subroutine calc_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovrlp)
+subroutine calc_transfer_integrals_old(iproc,nproc,input_frag,ref_frags,orbs,ham,ovrlp)
   use module_base
   use module_types
   use yaml_output
@@ -1476,9 +1605,113 @@ subroutine calc_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovr
   type(sparseMatrix), intent(inout) :: ham, ovrlp
   !Local variables
   character(len=*), parameter :: subname='calc_transfer_integrals'
-  integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ifrag_ref, ierr
+  integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ifrag_ref, ierr, ih, jh
   !integer :: jfrag_ref, jtmb
-  real(gp), allocatable, dimension(:,:) :: homo_coeffs, lumo_coeffs, homo_ham, lumo_ham, homo_ovrlp, lumo_ovrlp, coeff_tmp
+  integer, allocatable, dimension(:) :: homo
+  real(gp), allocatable, dimension(:,:) :: homo_coeffs
+
+  allocate(homo(input_frag%nfrag), stat=i_stat)
+  call memocc(i_stat, homo, 'homo', subname)
+
+  do ifrag=1,input_frag%nfrag
+     ifrag_ref=input_frag%frag_index(ifrag)
+     homo(ifrag)=ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)
+  end do
+
+  ntmb_tot=ham%full_dim1!=orbs%norb
+  allocate(homo_coeffs(ntmb_tot,input_frag%nfrag), stat=i_stat)
+  call memocc(i_stat, homo_coeffs, 'homo_coeffs', subname)
+
+  if (input_frag%nfrag/=2) stop 'Error, only 2 fragments may currently be considered for transfer integral calculation'
+  ! activate site energies only in case of more fragments
+
+  if (iproc==0) write(*,*) 'HOMO and LUMO are defined as those of the neutral fragment'
+
+  ! combine individual homo coeffs into a big ntmb_tot x input_frag%nfrag array
+
+  ind=ref_frags(input_frag%frag_index(1))%fbasis%forbs%norb
+  do ih=-1,2
+     if (homo(input_frag%frag_index(1))+ih>ref_frags(input_frag%frag_index(1))%fbasis%forbs%norb) cycle
+
+     call to_zero(ntmb_tot, homo_coeffs(1,1))
+
+     do itmb=1,ref_frags(input_frag%frag_index(1))%fbasis%forbs%norb
+        homo_coeffs(itmb,1)=ref_frags(input_frag%frag_index(1))%coeff(itmb,homo(input_frag%frag_index(1))+ih)
+     end do
+
+     do jh=-1,2
+        if (homo(input_frag%frag_index(2))+jh>ref_frags(input_frag%frag_index(2))%fbasis%forbs%norb) cycle     
+
+        call to_zero(ntmb_tot, homo_coeffs(1,2))
+
+        do itmb=1,ref_frags(input_frag%frag_index(2))%fbasis%forbs%norb
+           homo_coeffs(ind+itmb,2)=ref_frags(input_frag%frag_index(2))%coeff(itmb,homo(input_frag%frag_index(2))+jh)
+        end do
+
+        if (iproc==0) then
+           if (ih<0) then
+              write(*,'(a,I2)',advance='NO') 'Fragment 1 HOMO-',abs(ih)
+           else if (ih==0) then
+              write(*,'(a)',advance='NO') 'Fragment 1 HOMO'
+           else if (ih==1) then
+              write(*,'(a)',advance='NO') 'Fragment 1 LUMO'
+           else
+              write(*,'(a,I2)',advance='NO') 'Fragment 1 LUMO+',ih-1
+           end if
+        end if
+
+        if (iproc==0) then
+           if (jh<0) then
+              write(*,'(a,I2,a)') ', fragment 2 HOMO-',abs(jh),'.  '
+           else if (jh==0) then
+              write(*,'(a)') ', fragment 2 HOMO.  '
+           else if (jh==1) then
+              write(*,'(a)') ', fragment 2 LUMO.  '
+           else
+              write(*,'(a,I2)') ', fragment 2 LUMO+',jh-1,'.  '
+           end if
+        end if
+
+        call calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo_coeffs)
+
+     end do
+  end do
+
+  i_all = -product(shape(homo_coeffs))*kind(homo_coeffs)
+  deallocate(homo_coeffs,stat=i_stat)
+  call memocc(i_stat,i_all,'homo_coeffs',subname)
+
+  i_all = -product(shape(homo))*kind(homo)
+  deallocate(homo,stat=i_stat)
+  call memocc(i_stat,i_all,'homo',subname)
+
+end subroutine calc_transfer_integrals_old
+
+
+
+
+
+! calculation of cSc and cHc using original coeffs (HOMO and LUMO only) and new Hamiltonian and overlap matrices
+subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo_coeffs)
+  use module_base
+  use module_types
+  use yaml_output
+  use module_fragments
+  use internal_io
+  use module_interfaces
+  implicit none
+
+  integer, intent(in) :: iproc, nproc
+  type(fragmentInputParameters), intent(in) :: input_frag
+  type(orbitals_data), intent(in) :: orbs
+  type(sparseMatrix), intent(inout) :: ham, ovrlp
+  real(kind=gp), dimension(ovrlp%full_dim1,input_frag%nfrag), intent(in) :: homo_coeffs
+  !Local variables
+  character(len=*), parameter :: subname='calc_transfer_integral'
+  integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ierr, i, j
+  !integer :: jfrag_ref, jtmb
+  real(gp), allocatable, dimension(:,:) :: homo_ham, homo_ovrlp, coeff_tmp
+  real(gp) :: orthog_energy
 
 
   ! make the coeff copies more efficient?
@@ -1486,38 +1719,10 @@ subroutine calc_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovr
   allocate(coeff_tmp(orbs%norbp,input_frag%nfrag), stat=i_stat)
   call memocc(i_stat, coeff_tmp, 'coeff_tmp', subname)
 
-  ntmb_tot=ham%full_dim1!=orbs%norb
-  allocate(homo_coeffs(ntmb_tot,input_frag%nfrag), stat=i_stat)
-  call memocc(i_stat, homo_coeffs, 'homo_coeffs', subname)
-
-  allocate(lumo_coeffs(ntmb_tot,input_frag%nfrag), stat=i_stat)
-  call memocc(i_stat, lumo_coeffs, 'lumo_coeffs', subname)
-
-  ! combine individual homo and lumo coeffs into a big ntmb_tot x input_frag%nfrag  array
-  call to_zero(ntmb_tot*input_frag%nfrag, homo_coeffs(1,1))
-  call to_zero(ntmb_tot*input_frag%nfrag, lumo_coeffs(1,1))
-  ind=0
-  do ifrag=1,input_frag%nfrag
-     ! find reference fragment this corresponds to
-     ifrag_ref=input_frag%frag_index(ifrag)
-     do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-        homo_coeffs(ind+itmb,ifrag)=ref_frags(ifrag_ref)%coeff(itmb,ref_frags(ifrag_ref)%nksorb)
-        lumo_coeffs(ind+itmb,ifrag)=ref_frags(ifrag_ref)%coeff(itmb,ref_frags(ifrag_ref)%nksorb+1)
-     end do
-     ind=ind+ref_frags(ifrag_ref)%fbasis%forbs%norb
-  end do
-
   allocate(homo_ham(input_frag%nfrag,input_frag%nfrag), stat=i_stat)
   call memocc(i_stat, homo_ham, 'homo_ham', subname)
-
-  allocate(lumo_ham(input_frag%nfrag,input_frag%nfrag), stat=i_stat)
-  call memocc(i_stat, lumo_ham, 'lumo_ham', subname)
-
   allocate(homo_ovrlp(input_frag%nfrag,input_frag%nfrag), stat=i_stat)
   call memocc(i_stat, homo_ovrlp, 'homo_ovrlp', subname)
-
-  allocate(lumo_ovrlp(input_frag%nfrag,input_frag%nfrag), stat=i_stat)
-  call memocc(i_stat, lumo_ovrlp, 'lumo_ovrlp', subname)
 
   allocate(ham%matrix(ham%full_dim1,ham%full_dim1), stat=i_stat)
   call memocc(i_stat, ham%matrix, 'ham%matrix', subname)
@@ -1535,17 +1740,9 @@ subroutine calc_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovr
           orbs%norb, coeff_tmp, orbs%norbp, 0.d0, homo_ham, input_frag%nfrag)
   end if
 
-  call to_zero(input_frag%nfrag**2, lumo_ham(1,1))
-  if (orbs%norbp>0) then
-     call dgemm('n', 'n', orbs%norbp, input_frag%nfrag, orbs%norb, 1.d0, ham%matrix(orbs%isorb+1,1), &
-          orbs%norb, lumo_coeffs(1,1), orbs%norb, 0.d0, coeff_tmp, orbs%norbp)
-     call dgemm('t', 'n', input_frag%nfrag, input_frag%nfrag, orbs%norbp, 1.d0, lumo_coeffs(orbs%isorb+1,1), &
-          orbs%norb, coeff_tmp, orbs%norbp, 0.d0, lumo_ham, input_frag%nfrag)
-  end if
 
   if (nproc>1) then
       call mpiallred(homo_ham(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      call mpiallred(lumo_ham(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
   i_all=-product(shape(ham%matrix))*kind(ham%matrix)
@@ -1564,17 +1761,8 @@ subroutine calc_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovr
           orbs%norb, coeff_tmp, orbs%norbp, 0.d0, homo_ovrlp, input_frag%nfrag)
   end if
 
-  call to_zero(input_frag%nfrag**2, lumo_ovrlp(1,1))
-  if (orbs%norbp>0) then
-     call dgemm('n', 'n', orbs%norbp, input_frag%nfrag, orbs%norb, 1.d0, ovrlp%matrix(orbs%isorb+1,1), &
-          orbs%norb, lumo_coeffs(1,1), orbs%norb, 0.d0, coeff_tmp, orbs%norbp)
-     call dgemm('t', 'n', input_frag%nfrag, input_frag%nfrag, orbs%norbp, 1.d0, lumo_coeffs(orbs%isorb+1,1), &
-          orbs%norb, coeff_tmp, orbs%norbp, 0.d0, lumo_ovrlp, input_frag%nfrag)
-  end if
-
   if (nproc>1) then
       call mpiallred(homo_ovrlp(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      call mpiallred(lumo_ovrlp(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
   i_all=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
@@ -1585,43 +1773,389 @@ subroutine calc_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovr
   deallocate(coeff_tmp,stat=i_stat)
   call memocc(i_stat,i_all,'coeff_tmp',subname)
 
-  i_all = -product(shape(homo_coeffs))*kind(homo_coeffs)
-  deallocate(homo_coeffs,stat=i_stat)
-  call memocc(i_stat,i_all,'homo_coeffs',subname)
-
-  i_all = -product(shape(lumo_coeffs))*kind(lumo_coeffs)
-  deallocate(lumo_coeffs,stat=i_stat)
-  call memocc(i_stat,i_all,'lumo_coeffs',subname)
-
   ! output results
-  if (iproc==0) write(*,*) 'Transfer integrals and site energies:'
-  if (iproc==0) write(*,*) 'frag i, frag j, HOMO energy, LUMO energy, HOMO overlap, LUMO overlap'
-  do jfrag=1,input_frag%nfrag
-     !ifrag_ref=input_frag%frag_index(ifrag)
-     do ifrag=1,input_frag%nfrag
-        !jfrag_ref=input_frag%frag_index(jfrag)
-        if (iproc==0) write(*,'(2(I5,1x),1x,2(2(F16.12,1x),1x))') jfrag, ifrag, homo_ham(jfrag,ifrag), lumo_ham(jfrag,ifrag), &
-             homo_ovrlp(jfrag,ifrag), lumo_ovrlp(jfrag,ifrag)
+  if (iproc==0) write(*,'(a)') '-----------------------------------------------------------------------------------------'
+  if (input_frag%nfrag/=2) then
+     if (iproc==0) write(*,*) 'Transfer integrals and site energies:'
+     if (iproc==0) write(*,*) 'frag i, frag j, energy, overlap'
+     do jfrag=1,input_frag%nfrag
+        do ifrag=1,input_frag%nfrag
+           if (iproc==0) write(*,'(2(I5,1x),1x,2(F16.12,1x))') jfrag, ifrag, homo_ham(jfrag,ifrag), homo_ovrlp(jfrag,ifrag)
+        end do
      end do
-  end do
+  else ! include orthogonalized results as well
+     !if (iproc==0) write(*,*) 'Site energies:'
+     !if (iproc==0) write(*,*) 'frag i, energy, overlap, orthog energy'
+     !i=1
+     !j=2
+     !orthog_energy= (0.5_gp/(1.0_gp-homo_ovrlp(i,j)**2)) &
+     !             * ( (homo_ham(i,i)+homo_ham(j,j)) - 2.0_gp*homo_ham(i,j)*homo_ovrlp(i,j) &
+     !             + (homo_ham(i,i)-homo_ham(j,j))*dsqrt(1.0_gp-homo_ovrlp(i,j)**2) )
+     !if (iproc==0) write(*,'((I5,1x),1x,3(F16.12,1x))') 1, homo_ham(1,1), homo_ovrlp(1,1), orthog_energy
+     !orthog_energy= (0.5_gp/(1.0_gp-homo_ovrlp(i,j)**2)) &
+     !             * ( (homo_ham(i,i)+homo_ham(j,j)) - 2.0_gp*homo_ham(i,j)*homo_ovrlp(i,j) &
+     !             - (homo_ham(i,i)-homo_ham(j,j))*dsqrt(1.0_gp-homo_ovrlp(i,j)**2) )
+     !if (iproc==0) write(*,'((I5,1x),1x,3(F16.12,1x))') 2, homo_ham(2,2), homo_ovrlp(2,2), orthog_energy
+
+     if (iproc==0) write(*,*) 'Transfer integrals:'
+     if (iproc==0) write(*,*) 'frag i, frag j, energy, overlap, orthog energy'
+     i=1
+     j=2
+     orthog_energy=(homo_ham(i,j)-0.5_gp*(homo_ham(i,i)+homo_ham(j,j))*homo_ovrlp(i,j))/(1.0_gp-homo_ovrlp(i,j)**2)
+     if (iproc==0) write(*,'(2(I5,1x),1x,3(F16.12,1x))') 1, 2, homo_ham(1,2), homo_ovrlp(1,2),orthog_energy
+     i=2
+     j=1
+     orthog_energy=(homo_ham(i,j)-0.5_gp*(homo_ham(i,i)+homo_ham(j,j))*homo_ovrlp(i,j))/(1.0_gp-homo_ovrlp(i,j)**2)
+     if (iproc==0) write(*,'(2(I5,1x),1x,3(F16.12,1x))') 1, 2, homo_ham(2,1), homo_ovrlp(2,1),orthog_energy
+
+  end if
+  if (iproc==0) write(*,'(a)') '-----------------------------------------------------------------------------------------'
 
   i_all = -product(shape(homo_ham))*kind(homo_ham)
   deallocate(homo_ham,stat=i_stat)
   call memocc(i_stat,i_all,'homo_ham',subname)
-
-  i_all = -product(shape(lumo_ham))*kind(lumo_ham)
-  deallocate(lumo_ham,stat=i_stat)
-  call memocc(i_stat,i_all,'lumo_ham',subname)
-
   i_all = -product(shape(homo_ovrlp))*kind(homo_ovrlp)
   deallocate(homo_ovrlp,stat=i_stat)
   call memocc(i_stat,i_all,'homo_ovrlp',subname)
 
-  i_all = -product(shape(lumo_ovrlp))*kind(lumo_ovrlp)
-  deallocate(lumo_ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'lumo_ovrlp',subname)
+end subroutine calc_transfer_integral_old
 
-end subroutine calc_transfer_integrals
+
+! calculation of cSc and cHc using original coeffs and new Hamiltonian and overlap matrices
+! parallelization to be improved
+! also have already uncompressed and recompressed ovrlp, so could change this
+subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs1,homo_coeffs2,homo_ham,homo_ovrlp)
+  use module_base
+  use module_types
+  use yaml_output
+  use module_fragments
+  use internal_io
+  use module_interfaces
+  implicit none
+
+  integer, intent(in) :: iproc, nproc, nstates
+  type(orbitals_data), intent(in) :: orbs
+  type(sparseMatrix), intent(inout) :: ham, ovrlp
+  real(kind=gp), dimension(ovrlp%full_dim1,nstates), intent(in) :: homo_coeffs1, homo_coeffs2
+  real(kind=gp), dimension(nstates), intent(out) :: homo_ham, homo_ovrlp
+
+  !Local variables
+  character(len=*), parameter :: subname='calc_transfer_integral'
+  integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ierr, i, j, istate
+  !integer :: jfrag_ref, jtmb
+  real(gp), allocatable, dimension(:,:) :: coeff_tmp
+  real(gp) :: orthog_energy
+
+
+  ! make the coeff copies more efficient?
+
+  allocate(coeff_tmp(orbs%norbp,nstates), stat=i_stat)
+  call memocc(i_stat, coeff_tmp, 'coeff_tmp', subname)
+
+  !DGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
+  !rows op(a) and c, cols op(b) and c, cols op(a) and rows op(b)
+  allocate(ham%matrix(ham%full_dim1,ham%full_dim1), stat=i_stat)
+  call memocc(i_stat, ham%matrix, 'ham%matrix', subname)
+  call uncompressMatrix(iproc,ham)
+  call to_zero(nstates, homo_ham(1))
+  do istate=1,nstates
+     if (orbs%norbp>0) then
+        call dgemm('n', 'n', orbs%norbp, 1, orbs%norb, 1.d0, &
+             ham%matrix(orbs%isorb+1,1),orbs%norb, &
+             homo_coeffs1(1,istate), orbs%norb, 0.d0, &
+             coeff_tmp(1,istate), orbs%norbp)
+        call dgemm('t', 'n', 1, 1, orbs%norbp, 1.d0, homo_coeffs2(orbs%isorb+1,istate), &
+             orbs%norb, coeff_tmp(1,istate), orbs%norbp, 0.d0, homo_ham(istate), 1)
+     end if
+  end do
+
+  if (nproc>1) then
+      call mpiallred(homo_ham(1), nstates, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  end if
+
+  i_all=-product(shape(ham%matrix))*kind(ham%matrix)
+  deallocate(ham%matrix, stat=i_stat)
+  call memocc(i_stat, i_all, 'ham%matrix', subname)
+
+  allocate(ovrlp%matrix(ovrlp%full_dim1,ovrlp%full_dim1), stat=i_stat)
+  call memocc(i_stat, ovrlp%matrix, 'ovrlp%matrix', subname)
+  call uncompressMatrix(iproc,ovrlp)
+
+  call to_zero(nstates, homo_ovrlp(1))
+  do istate=1,nstates
+     if (orbs%norbp>0) then
+        call dgemm('n', 'n', orbs%norbp, 1, orbs%norb, 1.d0, ovrlp%matrix(orbs%isorb+1,1), &
+             orbs%norb, homo_coeffs1(1,istate), orbs%norb, 0.d0, coeff_tmp(1,istate), orbs%norbp)
+        call dgemm('t', 'n', 1, 1, orbs%norbp, 1.d0, homo_coeffs2(orbs%isorb+1,istate), &
+             orbs%norb, coeff_tmp(1,istate), orbs%norbp, 0.d0, homo_ovrlp(istate), 1)
+     end if
+  end do
+
+  if (nproc>1) then
+      call mpiallred(homo_ovrlp(1), nstates, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  end if
+
+  i_all=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
+  deallocate(ovrlp%matrix, stat=i_stat)
+  call memocc(i_stat, i_all, 'ovrlp%matrix', subname)
+
+  i_all = -product(shape(coeff_tmp))*kind(coeff_tmp)
+  deallocate(coeff_tmp,stat=i_stat)
+  call memocc(i_stat,i_all,'coeff_tmp',subname)
+
+end subroutine calc_transfer_integral
+
+
+! calculation of cSc and cHc using original coeffs and new Hamiltonian and overlap matrices
+! parallelization to be improved
+! only calculates transfer integrals if we have two fragments
+! occs are for neutral reference fragments...
+subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovrlp)
+  use module_base
+  use module_types
+  use yaml_output
+  use module_fragments
+  use internal_io
+  use module_interfaces
+  implicit none
+
+  integer, intent(in) :: iproc, nproc
+  type(fragmentInputParameters), intent(in) :: input_frag
+  type(orbitals_data), intent(in) :: orbs
+  type(sparseMatrix), intent(inout) :: ham, ovrlp
+  type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
+  !Local variables
+  integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ierr, i, j, nstates, istate, ih, ifrag_ref
+  integer :: ifrag_ref1, ifrag_ref2, homo1, homo2, jh, above_lumo
+  !integer :: jfrag_ref, jtmb
+  real(gp), allocatable, dimension(:,:) :: coeff_tmp, homo_coeffs, coeffs_orthog
+  real(gp), allocatable, dimension(:) :: frag_sum, homo_ham, homo_ovrlp
+  real(gp), allocatable, dimension(:) :: frag_sum_orthog, homo_ham_orthog, homo_ovrlp_orthog, eval_sum
+  real(gp) :: frag_sum_tot, frag_sum_tot_orthog, eval_sum_tot, orthog_energy
+  real(gp), dimension(1) :: trans_int_energy, trans_int_energy_orthog, trans_int_ovrlp, trans_int_ovrlp_orthog
+  character(len=8) :: str
+
+  call timing(iproc,'transfer_int','ON')
+  call f_routine(id='calc_site_energies_transfer_integrals')
+
+  nstates=0
+  above_lumo=3
+  do ifrag=1,input_frag%nfrag
+     ifrag_ref= input_frag%frag_index(ifrag)
+     nstates=nstates+min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
+  end do
+
+  homo_ham=f_malloc(nstates,id='homo_ham')
+  homo_ovrlp=f_malloc(nstates,id='homo_ovrlp')
+  homo_coeffs=f_malloc((/ovrlp%full_dim1,nstates/), id='homo_coeffs')
+
+  istate=1
+  ind=0
+  call to_zero(ovrlp%full_dim1*nstates, homo_coeffs(1,1))
+  do ifrag=1,input_frag%nfrag
+     ifrag_ref=input_frag%frag_index(ifrag)
+     do ih=1,min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
+        call dcopy(ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff(1,ih),1,homo_coeffs(1+ind,istate),1)
+        istate=istate+1
+     end do
+     ind=ind+ref_frags(ifrag_ref)%fbasis%forbs%norb
+  end do
+
+  call calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs,homo_coeffs,homo_ham,homo_ovrlp)
+
+  ! orthogonalize
+  ovrlp%matrix=f_malloc_ptr((/ovrlp%full_dim1,ovrlp%full_dim1/), id='ovrlp%matrix')
+  call uncompressMatrix(iproc,ovrlp)
+  ! using ham as tmp matrix for inv_ovrlp_half
+  ham%matrix=f_malloc_ptr((/ham%full_dim1,ham%full_dim1/), id='ham%matrix')
+  call overlapPowerPlusMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, 0, -8, &
+       -8, orbs%norb, ovrlp%matrix, ham%matrix, .false., orbs)
+  call f_free_ptr(ovrlp%matrix)
+
+  coeffs_orthog=f_malloc((/ovrlp%full_dim1,nstates/), id='coeffs_orthog')
+
+  call dgemm('n', 'n', orbs%norb, nstates, orbs%norb, 1.d0, ham%matrix(1,1), &
+       orbs%norb, homo_coeffs(1,1), orbs%norb, 0.d0, coeffs_orthog(1,1), orbs%norb)
+
+  call f_free_ptr(ham%matrix)
+  homo_ham_orthog=f_malloc(nstates, id='homo_ham_orthog')
+  homo_ovrlp_orthog=f_malloc(nstates, id='homo_ovrlp_orthog')
+
+  call calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,coeffs_orthog,coeffs_orthog,&
+       homo_ham_orthog,homo_ovrlp_orthog)
+
+  frag_sum=f_malloc0(nstates, id='frag_sum')
+  frag_sum_orthog=f_malloc0(nstates, id='frag_sum_orthog')
+  eval_sum=f_malloc0(nstates, id='eval_sum')
+
+  if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
+  if (iproc==0) write(*,*) 'Site energies:'
+
+  if (iproc==0) write(*,*) 'state, energy, orthog energy, frag eval, overlap, orthog overlap, occ'
+  istate=1
+  frag_sum_tot=0
+  frag_sum_tot_orthog=0
+  eval_sum_tot=0
+  do ifrag=1,input_frag%nfrag
+     ifrag_ref=input_frag%frag_index(ifrag)
+     if (iproc==0) write(*,'(a,i3)') trim(input_frag%label(ifrag_ref)),ifrag
+     do ih=1,min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
+        if (ih<ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
+           write(str,'(I2)') abs(ih-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp))
+           if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO-'//trim(adjustl(str))
+        else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
+           if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO'
+        else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)+1) then
+           if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO'
+        else
+           write(str,'(I2)') ih-1-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)
+           if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO+'//trim(adjustl(str))
+        end if
+        if (iproc==0) write(*,'(1x,5(F16.12,1x))',advance='NO') homo_ham(istate), homo_ham_orthog(istate), &
+             ref_frags(ifrag_ref)%eval(ih), homo_ovrlp(istate), homo_ovrlp_orthog(istate)
+        if (ih<ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
+           frag_sum(ifrag)=frag_sum(ifrag)+homo_ham(istate)
+           frag_sum_orthog(ifrag)=frag_sum_orthog(ifrag)+homo_ham_orthog(istate)
+           eval_sum(ifrag)=eval_sum(ifrag)+ref_frags(ifrag_ref)%eval(ih)
+           if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+        else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
+           if (mod(real(ref_frags(ifrag_ref)%nelec,gp),2.0_gp)/=0.0_gp) then
+              frag_sum(ifrag)=frag_sum(ifrag)+0.5_gp*homo_ham(istate)
+              frag_sum_orthog(ifrag)=frag_sum_orthog(ifrag)+0.5_gp*homo_ham_orthog(istate)
+              eval_sum(ifrag)=eval_sum(ifrag)+0.5_gp*ref_frags(ifrag_ref)%eval(ih)
+              if (iproc==0) write(*,'(1x,F4.2)') 1.0_gp
+           else
+              frag_sum(ifrag)=frag_sum(ifrag)+homo_ham(istate)
+              frag_sum_orthog(ifrag)=frag_sum_orthog(ifrag)+homo_ham_orthog(istate)
+              eval_sum(ifrag)=eval_sum(ifrag)+ref_frags(ifrag_ref)%eval(ih)
+              if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+           end if
+        else
+           if (iproc==0) write(*,'(1x,F4.2)') 0.0_gp
+        end if
+        istate=istate+1
+     end do
+     if (iproc==0) write(*,'(9x,3(F16.12,1x))') 2.0_gp*frag_sum(ifrag),&
+          2.0_gp*frag_sum_orthog(ifrag),2.0_gp*eval_sum(ifrag)
+       if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
+            '-------------------------'
+     frag_sum_tot=frag_sum_tot+frag_sum(ifrag)
+     frag_sum_tot_orthog=frag_sum_tot_orthog+frag_sum_orthog(ifrag)
+     eval_sum_tot=eval_sum_tot+eval_sum(ifrag)
+  end do
+
+  if (iproc==0) write(*,'(9x,3(F16.12,1x))') 2.0_gp*frag_sum_tot, 2.0_gp*frag_sum_tot_orthog,2.0_gp*eval_sum_tot
+  if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
+
+  call f_free(eval_sum)
+  call f_free(frag_sum)
+  call f_free(frag_sum_orthog)
+  call f_free(homo_ham_orthog)
+  call f_free(homo_ovrlp_orthog)
+
+  if (input_frag%nfrag>=2) then
+     if (iproc==0) write(*,*) 'Transfer integrals (HOMO and LUMO are defined as those of the neutral fragment):'
+     if (iproc==0) write(*,*) 'state1, state2, energy, orthog energy, orthog energy2, overlap, orthog overlap, occ1, occ2'
+     do ifrag=1,input_frag%nfrag
+        do jfrag=ifrag+1,input_frag%nfrag
+
+           ifrag_ref1=input_frag%frag_index(ifrag)
+           ifrag_ref2=input_frag%frag_index(jfrag)
+           homo1=ceiling((ref_frags(ifrag_ref1)%nelec)/2.0_gp)
+           homo2=ceiling((ref_frags(ifrag_ref2)%nelec)/2.0_gp)
+
+           do jh=-above_lumo,1+above_lumo
+              if (homo2+jh>ref_frags(ifrag_ref2)%fbasis%forbs%norb) cycle  
+              if (homo2+jh<1) cycle  
+              do ih=-above_lumo,1+above_lumo
+                 if (homo1+ih>ref_frags(ifrag_ref1)%fbasis%forbs%norb) cycle
+                 if (homo1+ih<1) cycle  
+
+                 i=homo1+ih
+                 j=homo2+jh+min(ceiling((ref_frags(ifrag_ref1)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref1)%fbasis%forbs%norb)
+
+                 if (iproc==0) then
+                    if (ih<0) then
+                       write(str,'(I2)') abs(ih)
+                       write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' HOMO-'//trim(adjustl(str))
+                    else if (ih==0) then
+                       write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' HOMO  '
+                    else if (ih==1) then
+                       write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' LUMO  '
+                    else
+                       write(str,'(I2)') ih-1
+                       write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' LUMO+'//trim(adjustl(str))
+                    end if
+                 end if
+
+                 if (iproc==0) then
+                    if (jh<0) then
+                       write(str,'(I2)') abs(jh)
+                       write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,&
+                            ' HOMO-'//trim(adjustl(str))
+                    else if (jh==0) then
+                       write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,' HOMO  '
+                    else if (jh==1) then
+                       write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,' LUMO  '
+                    else
+                       write(str,'(I2)') jh-1
+                       write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,&
+                            ' LUMO+'//trim(adjustl(str))
+                    end if
+                 end if
+
+                 call calc_transfer_integral(iproc,nproc,1,orbs,ham,ovrlp,homo_coeffs(1,i),homo_coeffs(1,j),&
+                      trans_int_energy(1),trans_int_ovrlp(1))
+                 call calc_transfer_integral(iproc,nproc,1,orbs,ham,ovrlp,coeffs_orthog(1,i),coeffs_orthog(1,j),&
+                      trans_int_energy_orthog(1),trans_int_ovrlp_orthog(1))
+
+                 orthog_energy=(trans_int_energy(1)-0.5_gp*(homo_ham(i)+homo_ham(j))*trans_int_ovrlp(1))&
+                      /(1.0_gp-trans_int_ovrlp(1)**2)
+      
+                 if (iproc==0) write(*,'(2x,5(F16.12,1x))',advance='NO') trans_int_energy(1), &
+                      trans_int_energy_orthog(1), orthog_energy,trans_int_ovrlp(1), trans_int_ovrlp_orthog(1)
+
+                 if (homo1+ih<ceiling(ref_frags(ifrag_ref1)%nelec/2.0_gp)) then
+                    if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 2.0_gp
+                 else if (homo1+ih==ceiling(ref_frags(ifrag_ref1)%nelec/2.0_gp)) then
+                    if (mod(real(ref_frags(ifrag_ref1)%nelec,gp),2.0_gp)/=0.0_gp) then
+                       if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 1.0_gp
+                    else
+                       if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 2.0_gp
+                    end if
+                 else
+                    if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 0.0_gp
+                 end if
+
+                 if (homo2+jh<ceiling(ref_frags(ifrag_ref2)%nelec/2.0_gp)) then
+                    if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+                 else if (homo2+jh==ceiling(ref_frags(ifrag_ref2)%nelec/2.0_gp)) then
+                    if (mod(real(ref_frags(ifrag_ref2)%nelec,gp),2.0_gp)/=0.0_gp) then
+                       if (iproc==0) write(*,'(1x,F4.2)') 1.0_gp
+                    else
+                       if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+                    end if
+                 else
+                    if (iproc==0) write(*,'(1x,F4.2)') 0.0_gp
+                 end if
+
+              end do
+           end do
+           if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
+               '-------------------------'
+        end do
+     end do
+  end if
+
+  call f_free(homo_ham)
+  call f_free(homo_ovrlp)
+  call f_free(homo_coeffs)
+  call f_free(coeffs_orthog)
+
+  call f_release_routine()
+  call timing(iproc,'transfer_int','OF')
+
+end subroutine calc_site_energies_transfer_integrals
 
 
 
