@@ -24,9 +24,9 @@ program WaCo
    type(input_variables) :: input
    type(workarr_sumrho) :: w
    type(communications_arrays), target :: commsw
-   type(local_zone_descriptors) :: Lzd   !debug only
-   integer :: iiband,ldim,gdim  !debug only
-   logical, dimension(:),allocatable :: calcbounds !Debug only
+   type(local_zone_descriptors) :: Lzd             !< debug only
+   integer :: iiband,ldim,gdim                     !< debug only
+   logical, dimension(:),allocatable :: calcbounds !< debug only
    real(gp), parameter :: b2a=0.5291772108_dp
    real :: tcpu0,tcpu1
    real(gp) :: tel
@@ -41,7 +41,7 @@ program WaCo
    integer :: nsprd,ndiag, nwannCon
    character(len=*), parameter :: subname='WaCo'
    character(len=4) :: num, units
-   integer, allocatable :: wann_list(:), Zatoms(:,:), ncenters(:), types(:,:)
+   integer, allocatable :: wann_list(:), Zatoms(:,:), ncenters(:), wtypes(:,:)
    real(gp), dimension(:,:), pointer :: rxyz, rxyz_old, cxyz,rxyz_wann
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), allocatable :: sprd(:), locrad(:), eigen(:,:), proj(:,:), projC(:,:),distw(:),charge(:),prodw(:),wannocc(:)
@@ -505,10 +505,10 @@ program WaCo
       call memocc(i_stat,i_all,'wannocc',subname)   
 
       !DOS of the sprd
-      allocate(types(2,nwann))
-      types = 1
-      call wannier_dos('sprd.dat',1,plotwann,2,types,sprd)
-      deallocate(types)
+      allocate(wtypes(2,nwann))
+      wtypes = 1
+      call wannier_dos('sprd.dat',1,plotwann,2,wtypes,sprd)
+      deallocate(wtypes)
 
 !      call scalar_kmeans_diffIG(0,maxval(sprd(1:plotwann-1))*1.0d-1,plotwann,sprd,'spread',nsprd,buf)
       call scalar_kmeans_diffIG(iproc,0,sprddiff,plotwann,sprd,'spread',nsprd,buf)
@@ -686,8 +686,8 @@ program WaCo
            diag(i,iwann) = ham(i,iwann,iwann)
         end do
      end do
-     allocate(types(nrpts,nwann),stat=i_stat)
-     call memocc(i_stat,types,'types',subname)
+     allocate(wtypes(nrpts,nwann),stat=i_stat)
+     call memocc(i_stat,wtypes,'wtypes',subname)
      do i = 1, nrpts
         do iwann = 1, nwann
            notocc = .true.
@@ -699,15 +699,15 @@ program WaCo
               end if
            end do
            if(notocc) iw1 = nsprd + 1
-           types(i,iwann) = iw1
+           wtypes(i,iwann) = iw1
         end do
      end do
 
      allocate(eigen(1,nband),stat=i_stat)
      call memocc(i_stat,eigen,'eigen',subname)
      call read_eigenvalues(trim(seedname)//'.eig',nband,1,eigen)
-     call wannier_projected_dos('Wannier_projected_dos.dat',nrpts,nwann,nband,umn,nsprd+1,types,eigen)
-     call wannier_dos('Wannier_dos.dat',nrpts,nwann,nsprd+1,types,diag)
+     call wannier_projected_dos('Wannier_projected_dos.dat',nrpts,nwann,nband,umn,nsprd+1,wtypes,eigen)
+     call wannier_dos('Wannier_dos.dat',nrpts,nwann,nsprd+1,wtypes,diag)
      i_all = -product(shape(eigen))*kind(eigen)
      deallocate(eigen,stat=i_stat)
      call memocc(i_stat,i_all,'eigen',subname)
@@ -749,9 +749,9 @@ program WaCo
      if(.not. bondAna) nsprd = 0  !if we didn't do bonding analysis, find here the best for the hamiltonian
      call scalar_kmeans_diffIG(iproc,nsprd,enediff,plotwann,diagT,'diagonal',ndiag,buf)
 
-     i_all=-product(shape(types))*kind(types)
-     deallocate(types,stat=i_stat)
-     call memocc(i_stat,i_all,'types',subname)
+     i_all=-product(shape(wtypes))*kind(wtypes)
+     deallocate(wtypes,stat=i_stat)
+     call memocc(i_stat,i_all,'wtypes',subname)
      i_all=-product(shape(diagT))*kind(diagT)
      deallocate(diagT,stat=i_stat)
      call memocc(i_stat,i_all,'diagT',subname)
@@ -2457,15 +2457,15 @@ subroutine output_stereographic_graph(natoms,mcenters,proj,projC,nsurf,ncenters,
 
 end subroutine output_stereographic_graph
 
-subroutine wannier_dos(filename,nrpts,nwann,ntypes,types,diag)
+subroutine wannier_dos(filename,nrpts,nwann,ntypes,wtypes,diag)
 use module_types
 implicit none
 character(len=*), intent(in) :: filename
-integer, intent(in) :: nrpts                                               ! Number of unit cells (r-points)
-integer, intent(in) :: nwann                                               ! Number of Wannier functions 
-integer, intent(in) :: ntypes                                              ! Number of types of Wannier functions
-integer, dimension(nrpts,nwann), intent(in) :: types                       ! Types of the Wannier functions
-real(gp), dimension(nrpts,nwann),intent(in) :: diag                        ! Diagonal elements of the Hamiltonian in Wannier basis
+integer, intent(in) :: nrpts                           !< Number of unit cells (r-points)
+integer, intent(in) :: nwann                           !< Number of Wannier functions 
+integer, intent(in) :: ntypes                          !< Number of types of Wannier functions
+integer, dimension(nrpts,nwann), intent(in) :: wtypes  !< Types of the Wannier functions
+real(gp), dimension(nrpts,nwann),intent(in) :: diag    !< Diagonal elements of the Hamiltonian in Wannier basis
 !Local variables
 integer, parameter :: ndos = 1000
 real(gp), parameter :: width=5.0d-3
@@ -2492,7 +2492,7 @@ do irpts = 1, nrpts
          gauss(ipt) = prefac * exp(-(ener - diag(irpts,iwann))**2 / (2.0_dp*width**2))            
          ! Add the Gaussian to the DOS
          dos(1,ipt) = dos(1,ipt) + gauss(ipt)
-         ityp = types(irpts,iwann) + 1
+         ityp = wtypes(irpts,iwann) + 1
          dos(ityp,ipt) = dos(ityp,ipt) + gauss(ipt)
       end do
    end do
@@ -2533,17 +2533,17 @@ close(unit=22)
 
 end subroutine wannier_dos
 
-subroutine wannier_projected_dos(filename,nrpts,nwann,norb,umn,ntypes,types,eigen)
+subroutine wannier_projected_dos(filename,nrpts,nwann,norb,umn,ntypes,wtypes,eigen)
 use module_types
 implicit none
 character(len=*), intent(in) :: filename
-integer, intent(in) :: nrpts                                               ! Number of unit cells (r-points)
-integer, intent(in) :: nwann                                               ! Number of Wannier functions 
-integer, intent(in) :: ntypes                                              ! Number of types of Wannier functions
-integer, intent(in) :: norb                                                ! Number of orbitals
-integer, dimension(nrpts,nwann), intent(in) :: types                       ! Types of the Wannier functions
-real(gp), dimension(nwann,norb), intent(in) :: umn                          ! Wannier transformation matrix
-real(gp), dimension(norb),intent(in) :: eigen                              ! Diagonal elements of the Hamiltonian in Wannier basis
+integer, intent(in) :: nrpts                           !< Number of unit cells (r-points)
+integer, intent(in) :: nwann                           !< Number of Wannier functions 
+integer, intent(in) :: ntypes                          !< Number of types of Wannier functions
+integer, intent(in) :: norb                            !< Number of orbitals
+integer, dimension(nrpts,nwann), intent(in) :: wtypes  !< Types of the Wannier functions
+real(gp), dimension(nwann,norb), intent(in) :: umn     !< Wannier transformation matrix
+real(gp), dimension(norb),intent(in) :: eigen          !< Diagonal elements of the Hamiltonian in Wannier basis
 !Local variables
 integer, parameter :: ndos = 1000
 real(gp), parameter :: width=1.0d-2
@@ -2573,7 +2573,7 @@ do irpts = 1, nrpts
             gauss(ipt) = prefac * exp(-(ener - eigen(iorb))**2 / (2.0_dp*width**2))            
             ! Add the Gaussian to the DOS
             dos(1,ipt) = dos(1,ipt) + gauss(ipt)
-            ityp = iwann+1 !types(irpts,iwann) + 1
+            ityp = iwann+1 !wtypes(irpts,iwann) + 1
             dos(ityp,ipt) = dos(ityp,ipt) + gauss(ipt)
          end do
       end do
