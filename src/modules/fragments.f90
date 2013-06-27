@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
  
-!> Define important structures and methods to manipulate embedding systems
+!> Module which defines some important structures and methods to manipulate embedding systems
 module module_fragments
   use module_base, only: gp,wp
   use module_types

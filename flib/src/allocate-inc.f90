@@ -1,5 +1,6 @@
 !> @file
 !! Include fortran file for allocation template
+!! 
 !! @author
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the

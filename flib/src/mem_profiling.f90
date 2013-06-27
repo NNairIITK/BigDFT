@@ -1,5 +1,6 @@
 !> @file
-!! memory profiling module (flib)
+!! Memory profiling module (flib)
+!! @ingroup flib
 !! @author
 !!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -8,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> This module contains routines to profile the code.
+!> Module which contains routines to profile the code.
 !! Currently only memory occupation are provided here.
 !! Ideally, timab should be incorporated here.
 module memory_profiling

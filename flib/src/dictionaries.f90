@@ -1,5 +1,6 @@
 !> @file
 !!  Module defining a dictionary
+!! @ingroup flib
 !! @author Luigi Genovese
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the

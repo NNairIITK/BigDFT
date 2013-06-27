@@ -1,22 +1,15 @@
 !> @file
 !!  Define routines for timing
+!! @ingroup flib
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group (LG)
+!!    Copyright (C) 2010-2013 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!> module to profile the actions of the code as well as the internal operations defined by the f_lib
-!!$module time_profiling
-!!$  implicit none
-!!$  
-!!$  contains
-!!$
-!!$    subroutine f_time_category(name,class,info)
-!!$    end subroutine f_time_category
-!!$end module time_profiling
 
-!>    Contains variables used a timing for BigDFT
+
+!> Module containing variables used for the timing for BigDFT
 module timeData
 !  use module_defs, only: mpi_environment, bigdft_mpi
   implicit none

@@ -1,5 +1,6 @@
 !> @file
-!!  Routine to initialize to zero arrays
+!!  Routines to initialize to zero arrays
+!! @ingroup flib
 !! @author
 !!    Copyright (C) 2009-2011 BigDFT group 
 !!    This file is distributed under the terms of the
@@ -7,6 +8,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
+!> Routine initialize double precision arrays to zero
 subroutine razero(n,x)
   implicit none
   !Arguments
@@ -28,7 +31,7 @@ subroutine razero(n,x)
 
 end subroutine razero
 
-!>   Set to zero an array x(n)
+!> Set to zero an array x(n)
 subroutine razero_simple(n,x)
   implicit none
   !Arguments
@@ -203,7 +206,7 @@ subroutine icopy(n,dx,incx,dy,incy)
 end subroutine icopy
 
 
-!>   To be used in the following function.
+!> Module used in the builtin_rand function (see razero.f90)
 module randomData
   implicit none
 
@@ -215,8 +218,8 @@ module randomData
 end module randomData
 
 
-!>   Random Number generator from Numerical Recipes
-!!   To be used for reproducibility of the results
+!> Random Number generator from Numerical Recipes
+!! To be used for reproducibility of the results
 function builtin_rand(idum)
   use randomData, only : ntab, iy, iv, start
 

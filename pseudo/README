@@ -1,5 +1,5 @@
 /*! @dir pseudo
-@brief README for pseudo generation
+@brief README for the pseudo generation program
 
 What is pseudo2.5?
 =================
@@ -21,4 +21,7 @@ linear core corrections of a simple analytic form that may be fitted as well.
 
 
 More information is given in the doc and Tutorial subdirectories.
+
+@dir pseudo/src
+@brief Contains the source of the pseudo program
 */

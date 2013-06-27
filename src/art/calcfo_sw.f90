@@ -2,21 +2,20 @@
 !! parameters from the interatomic potential
 !! @author
 !!   Fedwa El-Mellouhi, Normand Mousseau February 2006
-!!   Copyright (C) 2010-2012 BigDFT group, Normand Mousseau
+!!   Copyright (C) 2010-2013 BigDFT group, Normand Mousseau
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
 
 
-!> This module define the most important variables in the program 
+!> Module defining the most important variables for the ART part
 module parameters 
 
    implicit none
    save
 
    ! Some fixed parameters  
-
    integer, parameter :: idim = 3                !< Dimension of the problem
    integer, parameter :: species = 1             !< Number of species
    integer, parameter :: max_spec = 5            !< Max number of atomic  species admissible
@@ -29,7 +28,7 @@ module parameters
 END MODULE parameters
 
 
-!> Module which define the radius cut of SW potential
+!> Module defining the radius cut of the Stillinger-Weber potential (ART)
 module cutoff
    use parameters
    implicit none
@@ -38,15 +37,14 @@ module cutoff
 END MODULE cutoff
 
 
-!> This module defines the parameters for the Stillinger-Weber potential
+!> Module defining the parameters for the Stillinger-Weber potential (ART)
 module SWpotential
    use parameters 
    use cutoff 
    implicit none
 
-
    real(kind=8),dimension(:,:),allocatable :: SW_parameters
-   integer,dimension(:), allocatable ::    angles_to_fit !angles to fit per atom
+   integer,dimension(:), allocatable ::    angles_to_fit      !<angles to fit per atom
    integer,dimension(:,:,:),allocatable :: jk_of_angle
    real(kind=8),dimension(:,:), allocatable ::  optimum_angle
    integer      ::                         len_vect_to_fit
@@ -85,7 +83,7 @@ module SWpotential
 END MODULE  SWpotential
 
 
-!> This subroutine initializes the SW parameters 
+!> This subroutine initializes the SW parameters (ART)
 subroutine init_potential_SW()
    use SWpotential
    use defs, only : natoms

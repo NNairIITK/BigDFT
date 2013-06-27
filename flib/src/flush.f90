@@ -1,5 +1,6 @@
 !> @file
 !! Routine to flush a unit file 
+!! @ingroup flib
 !! @author
 !!    Copyright (C) 2013-2013 BigDFT group
 !!    This file is distributed under the terms of the

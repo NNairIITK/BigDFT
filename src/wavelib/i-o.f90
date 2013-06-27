@@ -256,6 +256,7 @@ subroutine ext_buffers_coarse(periodic,nb)
 END SUBROUTINE ext_buffers_coarse
 
 
+!> Module used by the linear scaling version
 module internal_io
   implicit none
 

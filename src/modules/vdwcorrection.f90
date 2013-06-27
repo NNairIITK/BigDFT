@@ -16,7 +16,7 @@
 !! or http://www.gnu.org/copyleft/gpl.txt (for latest version).
 
 
-!> @brief  Van der Waals empirical correction module. 
+!> Module defining the Van der Waals empirical correction.
 !! This module contains subroutines for calculating a Van der
 !! Waals energy correction as a sum of damped London potentials.
 module vdwcorrection

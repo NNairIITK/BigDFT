@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> Interface for routines which handle diagonalization
+!> Module defining the interfaces for routines which handle diagonalization
 module lanczos_interface
    use module_base
    use module_types

@@ -2382,6 +2382,7 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
 END SUBROUTINE occupation_input_variables
 
 
+!> Module used for the input variables
 module position_files
    implicit none
    contains
@@ -2412,6 +2413,7 @@ module position_files
       if (i_stat /= 0) eof = .true.
    END SUBROUTINE archiveGetLine
 end module position_files
+
 
 !> Read atomic file
 subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)

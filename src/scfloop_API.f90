@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  Self-Consistent Loop API
+!> Module determining the Self-Consistent Loop API
 module scfloop_API
 
   use module_base

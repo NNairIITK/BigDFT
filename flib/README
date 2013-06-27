@@ -1,10 +1,21 @@
 /*! @dir flib
-@brief This directory contains the flib library; (memeroy allocation, dictionaries, ...).
+@brief This directory contains the flib library (memory allocation, dictionaries, ...).
 
+@dir flib/src
+@brief Directory source of the flib library
+@details
 The <tt>src</tt> directory contains the different routine of the flib library:
 - Dictionaries (see @ref dictionaries.f90)
 - Dynamic memory management (see @ref dynamic_memory.f90)
 - Yaml output  (see @ref yaml_strings.f90 and @ref yaml_output.f90)
 - Exception Handling (see @ref error_handling.f90)
+
+@dir flib/tests
+@brief Contains tests for the flib library
+@details
 The <tt>tests</tt> directory contains some useful examples and tests.
+
+@defgroup flib
+  The flib library is a low-level library used by BigDFT in order to do some low-level operations:
+  - memory allocations and memory profiling 
 */

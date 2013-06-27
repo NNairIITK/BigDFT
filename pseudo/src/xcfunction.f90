@@ -1,8 +1,16 @@
-! libXC interfaces for pseudo.
+!> @file
+!! libXC interfaces for the pseudo program
+!! BigDFT package performing ab initio calculation based on wavelets
+!! @author
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
-! TEST version derived from BigDFTs libABINIT/src/56_xc/m_libxc_functionals.F90 
 
-
+!> Module defining the inetrfaces with libxc library for the pseudo program
+!! Test version derived from BigDFTs libABINIT/src/56_xc/m_libxc_functionals.F90 
 module libxcModule
 
   use xc_f90_types_m
@@ -13,11 +21,11 @@ module libxcModule
 
   type libxc_functional
     private
-    integer         :: family ! LDA, GGA, etc.
-    integer         :: id     ! identifier
+    integer         :: family !< LDA, GGA, etc.
+    integer         :: id     !< identifier
 
-    type(xc_f90_pointer_t) :: conf ! the pointer used to call the library
-    type(xc_f90_pointer_t) :: info ! information about the functional
+    type(xc_f90_pointer_t) :: conf !< the pointer used to call the library
+    type(xc_f90_pointer_t) :: info !< information about the functional
   end type libxc_functional
 
   type(libxc_functional) :: funcs(2)
@@ -33,48 +41,22 @@ module libxcModule
 &      xcfunction
 
 contains
-!!*** 
 
-!!****f* libxc_functionals/libxc_functionals_init
-!! NAME
-!!  libxc_functionals_init
-!!
-!! FUNCTION
-!!  Initialize the desired XC functional, from LibXC.
-!!  * Call the LibXC initializer
-!!  * Fill preliminary fields in module structures.
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!! 
-!! PARENTS
-!!      driver
-!!
-!! CHILDREN
-!!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
-!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
-!!
-!! SOURCE
 
+  !> Initialize the desired XC functional, from LibXC.
   subroutine libxc_functionals_init(ixc,nspden)
-
-
 
     implicit none
 
-!Arguments ------------------------------------
-!scalars
-
+    !Arguments ------------------------------------
+    !scalars
     integer, intent(in) :: nspden
     integer, intent(in) :: ixc
 
-!Local variables-------------------------------
-!scalars
-
+    !Local variables-------------------------------
+    !scalars
     integer :: i
 
-! *************************************************************************
 
     if (ixc < 0) then
        funcs(1)%id = -ixc/1000
@@ -117,30 +99,11 @@ contains
 !!!!      end do
     end do
   end subroutine libxc_functionals_init
-!!***
 
-!!****f* libxc_functionals/libxc_functionals_end
-!! NAME
-!!  libxc_functionals_end
-!!
-!! FUNCTION
-!!  End usage of LibXC functional. Call LibXC end function,
-!!  and deallocate module contents.
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!      driver
-!!
-!! CHILDREN
-!!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
-!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
-!!
-!! SOURCE
+
+  !> End usage of LibXC functional. Call LibXC end function,
+  !! and deallocate module contents.
   subroutine libxc_functionals_end()
-
 
     implicit none
 
@@ -151,37 +114,19 @@ contains
       call xc_f90_func_end(funcs(i)%conf)
     end do
   end subroutine libxc_functionals_end
-!!*** 
 
-!!****f* libxc_functionals/libxc_functionals_isgga
-!! NAME
-!!  libxc_functionals_isgga
-!!
-!! FUNCTION
-!!  Test function to identify whether the presently used functional
-!!  is a GGA or not
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!! 
-!! PARENTS
-!!
-!! CHILDREN
-!!
-!! SOURCE
+
+  !> Test function to identify whether the presently used functional
+  !! is a GGA or not
   function libxc_functionals_isgga()
-
 
     implicit none
 
-!Arguments ------------------------------------
+    !Arguments ------------------------------------
 
-!Local variables-------------------------------
-
+    !Local variables-------------------------------
     logical :: libxc_functionals_isgga
 
-! *************************************************************************
 
     if (any(funcs%family == XC_FAMILY_GGA) .or. any(funcs%family == XC_FAMILY_HYB_GGA)) then
       libxc_functionals_isgga = .true.
@@ -189,33 +134,16 @@ contains
       libxc_functionals_isgga = .false.
     end if
   end function libxc_functionals_isgga
-!!*** 
 
-!!****f* libxc_functionals/libxc_functionals_exctXfac
-!!
-!! FUNCTION
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!! 
-!! PARENTS
-!!
-!! CHILDREN
-!!
-!! SOURCE
 
   real(kind=8) function libxc_functionals_exctXfac()
 
 
     implicit none
 
-!Arguments ------------------------------------
+    !Arguments ------------------------------------
 
-!Local variables-------------------------------
-
-
-! *************************************************************************
+    !Local variables-------------------------------
 
     if (any(funcs%family == XC_FAMILY_HYB_GGA)) then
        !factors for the exact exchange contribution of different hybrid functionals
@@ -227,37 +155,19 @@ contains
     end if
 
   end function libxc_functionals_exctXfac
-!!*** 
 
-!!****f* libxc_functionals/libxc_functionals_ismgga
-!! NAME
-!!  libxc_functionals_ismgga
-!!
-!! FUNCTION
-!!  Test function to identify whether the presently used functional
-!!  is a Meta-GGA or not
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!! 
-!! PARENTS
-!!
-!! CHILDREN
-!!
-!! SOURCE
+
+  !> Test function to identify whether the presently used functional
+  !! is a Meta-GGA or not
   function libxc_functionals_ismgga()
-
 
     implicit none
 
-!Arguments ------------------------------------
+    !Arguments ------------------------------------
 
-!Local variables-------------------------------
+    !Local variables-------------------------------
 
     logical :: libxc_functionals_ismgga
-
-! *************************************************************************
 
     if (any(funcs%family == XC_FAMILY_MGGA)) then
       libxc_functionals_ismgga = .true.
@@ -266,35 +176,12 @@ contains
     end if
 
   end function libxc_functionals_ismgga
-!!*** 
 
-!!****f* libxc_functionals/libxc_functionals_getvxc
-!! NAME
-!!  libxc_functionals_getvxc
-!!
-!! FUNCTION
-!!  Return XC potential and energy, from input density (event gradient etc...)
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!! 
-!! PARENTS
-!!      drivexc
-!!
-!! CHILDREN
-!!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
-!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
-!!
-!! SOURCE
-
-!end module 
-!!***
-
-
-SUBROUTINE XCFUNCTION(nspol,rho,grad,EXC,VXC,dEdg)
-! this version calls BigDFTs XC drivers, which access LibXC as part of the ABINIT XC functions.
-! I should really try to put this apart from BigDFT and ABINIT, and directly call libXC. 
+  
+  !> Return XC potential and energy, from input density (event gradient etc...)
+  !! this version calls BigDFTs XC drivers, which access LibXC as part of the ABINIT XC functions.
+  !! I (AW) should really try to put this apart from BigDFT and ABINIT, and directly call libXC. 
+  SUBROUTINE XCFUNCTION(nspol,rho,grad,EXC,VXC,dEdg)
 
 !     use libxcModule
 

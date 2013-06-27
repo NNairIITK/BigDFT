@@ -11,9 +11,9 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> The module of the Poisson Solver.
-!!    It must be used in the parent routine. 
-!! USAGE
+!> Module used by the Poisson Solver library.
+!! It must be used in the parent routine. 
+!! @details
 !!    In the main routine in which the Poisson Solver is called
 !!    -# The Poisson kernel must be declared as a pointer, then the 
 !!       routine createKernel can be called. On exit, the kernel will be allocated and

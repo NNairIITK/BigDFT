@@ -1,3 +1,4 @@
+!> @file
 !! Wrapper for the MPI call
 !! @author
 !!    Copyright (C) 2012-2013 BigDFT group
@@ -11,7 +12,7 @@
 #include <config.inc>
 #endif
 
-!> Define routine which wrap the MPI calls
+!> Module defining the routines which wrap the MPI calls
 module wrapper_MPI
   ! TO BE REMOVED with f_malloc
   use memory_profiling

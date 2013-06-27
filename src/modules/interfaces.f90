@@ -8,34 +8,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
 !>  Modules which contains all interfaces
-!!  Interfaces of:
-!!  - call_bigdft
-!!  - geopt
-!!  - geopt_input_variables
-!!  - conjgrad
-!!  - copy_old_wavefunctions
-!!  - system_size
-!!  - MemoryEstimator
-!!  - createWavefunctionsDescriptors
-!!  - createProjectorsArrays
-!!  - createDensPotDescriptors
-!!  - createIonicPotential
-!!  - import_gaussians
-!!  - input_wf_diag
-!!  - reformatmywaves
-!!  - first_orthon
-!!  - sumrho
-!!  - LocalHamiltonianApplication
-!!  - hpsitopsi
-!!  - last_orthon
-!!  - local_forces
-!!  - orbitals_descriptors
-!!  - projectors_derivatives
-!!  - nonlocal_forces
-!!  - CalculateTailCorrection
-!!  - reformatonewave
-!!  -cholesky
 module module_interfaces
 
    implicit none

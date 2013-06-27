@@ -1,5 +1,6 @@
 !> @file
 !! Routines to get the address of objects
+!! @ingroup flib
 !! @author
 !!    Copyright (C) 2013-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -24,9 +25,11 @@ subroutine call_external(routine,args)
   end if
 end subroutine call_external
 
+
+!> Call the external routine with no argument
 subroutine call_external_f(routine)!,args)
   implicit none
-  external :: routine
+  external :: routine                  !< Routine to be called
 !  integer(kind=8), intent(in) :: args
 
 

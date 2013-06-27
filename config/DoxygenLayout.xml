@@ -8,8 +8,8 @@
       <tab type="filelist" visible="yes" title="" intro=""/>
       <tab type="globals" visible="yes" title="" intro=""/>
     </tab>
-    <tab type="modules" visible="no" title="" intro=""/>
-    <tab type="namespaces" visible="no" title="">
+    <tab type="modules" visible="yes" title="Libraries" intro="Here is the list of the internal libraries inside BigDFT"/>
+    <tab type="namespaces" visible="yes" title="">
       <tab type="namespacelist" visible="yes" title="" intro=""/>
       <tab type="namespacemembers" visible="yes" title="" intro=""/>
     </tab>
@@ -134,6 +134,7 @@
   <!-- Layout definition for a group page -->
   <group>
     <briefdescription visible="yes"/>
+    <detaileddescription title=""/>
     <groupgraph visible="$GROUP_GRAPHS"/>
     <memberdecl>
       <classes visible="yes" title=""/>
@@ -156,7 +157,6 @@
       <friends title=""/>
       <membergroups visible="yes"/>
     </memberdecl>
-    <detaileddescription title=""/>
     <memberdef>
       <pagedocs/>
       <inlineclasses title=""/>

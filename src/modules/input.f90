@@ -1,7 +1,7 @@
 !> @file
 !!  Module to handle input variables
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -13,7 +13,8 @@
 !!   - for each call to input_var remove keywords inthe previous line
 !!   - Check if all keywords were used.
 
-!> Define all basic operations to handle input variables
+
+!> Module which defines all basic operations to handle input variables
 module module_input
 
    use module_base

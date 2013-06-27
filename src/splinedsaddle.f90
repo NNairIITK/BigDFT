@@ -205,7 +205,7 @@ enddo !loop over iconfig
 end program splined_saddle
 
 
-!> Module minimization_sp for splined saddle
+!> Module for splined saddle
 module minimization_sp
     implicit none
     type parameterminimization_sp

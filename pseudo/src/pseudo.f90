@@ -1,23 +1,24 @@
+!> @file
+!! Program to genereate the pseudopotentials used by BigDFT
+!! This program is based on the sources available at
+!! http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/Goedecker/pseudo/v2.2/
+!!
+!! @author
+!!     Authors:                  Raffael.Widmer (Cuda Acceleration)
+!!                             and Alex Willand (all other modifications)  
+!!                      under the supevision of  
+!!                 Stefan Goedecker, July 2011   
+!!             Universitaet  Basel, Switzerland 
+
+
+!> Parallel fitting of HGH pseudopotentials using a simplex downhill method.
+!! Takes into account multiple atomic references, excitation energies and
+!! softness monitored by errors in 3d wavelet transformations.
+!! Uses MPI and libXC, supoorts collinear spin polarization as well as 
+!! nonlinear core corrections and has a GPU accelerated version of the
+!! wavelet part.
       program pseudo
       use libxcModule
-
-
-!     Parallel fitting of HGH pseudopotentials using a simplex downhill method.
-!     Takes into account multiple atomic references, excitation energies and
-!     softness monitored by errors in 3d wavelet transformations.
-!     Uses MPI and libXC, supoorts collinear spin polarization as well as 
-!     nonlinear core corrections and has a GPU accelerated version of the
-!     wavelet part.
-!
-!     This program is based on the sources available at
-!     http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/Goedecker/pseudo/v2.2/
-!
-!     Authors:                  Raffael.Widmer (Cuda Acceleration)
-!                             and Alex Willand (all other modifications)  
-!                      under the supevision of  
-!                 Stefan Goedecker, July 2011   
-!             Universitaet  Basel, Switzerland 
-!                                                          
 
 
       implicit real*8 (a-h,o-z)

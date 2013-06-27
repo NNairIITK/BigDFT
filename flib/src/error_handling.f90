@@ -2,6 +2,7 @@
 !!  Module defining handling of errors
 !!  In the spirit of this module each error message is handled separately
 !!  The user of this module is able to define the stopping routine, the new error and the error codes
+!! @ingroup flib
 !! @author Luigi Genovese
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -115,7 +116,9 @@
 
   end subroutine f_err_define
 
-  !> this function returns true if a generic error has been raised  !! in case of specified errors, it returns true if an error of this kind has been raised
+  
+  !> This function returns true if a generic error has been raised
+  !! in case of specified errors, it returns true if an error of this kind has been raised
   function f_err_check(err_id,err_name)
     implicit none
     integer, intent(in), optional :: err_id !< the code of the error to be checked for
@@ -139,10 +142,10 @@
     use yaml_strings, only: yaml_toa
     !use yaml_output, only: yaml_dict_dump,yaml_map
     implicit none
-    logical, intent(in), optional :: condition !< the condition which raise the error
-    integer, intent(in), optional :: err_id !< the code of the error to be raised.
-                                              !! it should already have been defined by f_err_define
-    character(len=*), intent(in), optional :: err_name,err_msg !search for the error and add a message to it 
+    logical, intent(in), optional :: condition                 !< the condition which raise the error
+    integer, intent(in), optional :: err_id                    !< the code of the error to be raised.
+                                                               !! it should already have been defined by f_err_define
+    character(len=*), intent(in), optional :: err_name,err_msg !< search for the error and add a message to it 
     integer(kind=8), intent(in), optional :: callback_data
     external :: callback
     optional :: callback
