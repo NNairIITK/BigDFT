@@ -1197,6 +1197,7 @@ contains
 
     !local variables
     real(gp) :: dnrm2, norm
+    integer :: i
 
     rot_axis(1)=R_mat(3,2)-R_mat(2,3)    
     rot_axis(2)=R_mat(1,3)-R_mat(3,1)
@@ -1214,9 +1215,17 @@ contains
        !this is not good as it gives a array of modulus bigger than one
        !rot_axis(1:2)=0.0_gp
        !rot_axis(3)=1.0_gp
-       rot_axis(1)=sign(dsqrt(0.5_gp*(R_mat(1,1)+1.0_gp)),rot_axis(1))
-       rot_axis(2)=sign(dsqrt(0.5_gp*(R_mat(2,2)+1.0_gp)),rot_axis(2))
-       rot_axis(3)=sign(dsqrt(0.5_gp*(R_mat(3,3)+1.0_gp)),rot_axis(3))
+       do i=1,3
+          if (R_mat(i,i)<-1.0_gp.and.R_mat(i,i)>-1.0_gp-1.0e-5_gp) then
+                rot_axis(i)=0.0_gp
+          else if (R_mat(i,i)<=-1.0_gp-1.0e-5_gp) then
+             stop 'Problem in assigning axis from Rmat'
+          else
+             rot_axis(i)=sign(dsqrt(0.5_gp*(R_mat(i,i)+1.0_gp)),rot_axis(i))
+          end if
+       end do
+
+       !print*,'axis_from_r3a',rot_axis,R_mat(1,1),R_mat(2,2),R_mat(3,3)
        norm=dnrm2(3,rot_axis,1)
        call dscal(3,1.0_gp/norm,rot_axis,1)
        !print*,'axis_from_r3',norm,rot_axis

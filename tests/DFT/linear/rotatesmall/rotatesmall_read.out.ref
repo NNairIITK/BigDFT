@@ -1,5 +1,4 @@
  <BigDFT> log of the run will be written in logfile: ./log-read.yaml
- <BigDFT> Logfile existing, renamed into: ./logfiles/log-read.10:49:11.297.yaml
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
     | Processes from 0 to 0 treat 2 orbitals,       |
@@ -14,19 +13,19 @@ sparsity:  0.00%
 total elements: 49
 non-zero elements: 49
 sparsity:  0.00%
-ifrag,iorb,rot_axis,theta  1   7     0.218218    -0.436436     0.872872   105.000000
-ifrag,iorb,rot_axis,theta  1   6     0.218218    -0.436436     0.872872   105.000000
-ifrag,iorb,rot_axis,theta  1   3     0.218218    -0.436436     0.872872   105.000000
-ifrag,iorb,rot_axis,theta  1   5     0.218218    -0.436436     0.872872   105.000000
-ifrag,iorb,rot_axis,theta  1   4     0.218218    -0.436436     0.872872   105.000000
-ifrag,iorb,rot_axis,theta  1   1     0.218218    -0.436436     0.872872   105.000000
-ifrag,iorb,rot_axis,theta  1   2     0.218218    -0.436436     0.872872   105.000000
+ifrag,iorb,rot_axis,theta  1   3     0.707107     0.707107    -0.000000   145.000000
+ifrag,iorb,rot_axis,theta  1   6     0.707107     0.707107    -0.000000   145.000000
+ifrag,iorb,rot_axis,theta  1   7     0.707107     0.707107    -0.000000   145.000000
+ifrag,iorb,rot_axis,theta  1   5     0.707107     0.707107    -0.000000   145.000000
+ifrag,iorb,rot_axis,theta  1   4     0.707107     0.707107    -0.000000   145.000000
+ifrag,iorb,rot_axis,theta  1   1     0.707107     0.707107     0.000000   145.000000
+ifrag,iorb,rot_axis,theta  1   2     0.707107     0.707107    -0.000000   145.000000
  Overview of the reformatting (several categories may apply):
    - No reformatting required: 0
    - Grid spacing has changed: 0
    - Number of coarse grid points has changed: 7
    - Number of fine grid points has changed: 7
-   - Box size has changed: 1
+   - Box size has changed: 0
    - Molecule was shifted: 7
    - Molecule was rotated: 7
    - Discrete operations: 0
@@ -42,51 +41,63 @@ coeff renormalization... calculate density kernel...  --------------------------
  -------------------------------------------------
  lowest, highest ev: -4.3942462258417431E-01  1.9376080229552664E-01
 coeff renormalization... calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   6.999999795573E+00
+   Calculation finished. TOTAL CHARGE =   6.999783750673E+00
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.740402E-002     0.000000E+000    -1.886265E+000     1.000000E-001
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.173571E+000     0.000000E+000     1.561442E+000     1.000000E-001
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
-AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.304875E-01    1.535754E-01    2.851787E-02
- iter, fnrm, fnrmMax, ebs, diff     1  8.0849436E-01  9.6555924E-01    -5.3562593152  -5.3563E+00
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.186422E+00    1.686559E+00    2.062795E-03
+ iter, fnrm, fnrmMax, ebs, diff     1  9.0644722E+00  1.0373412E+01    -1.7008312963  -1.7008E+00
  WARNING: not converged within 1 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   8.0849436E-01  9.6555924E-01     -5.3562593
+ Final values for fnrm, fnrmMax, ebs:   9.0644722E+00  1.0373412E+01     -1.7008313
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.217822E-002    -1.886265E+000    -1.980216E-003     2.000000E-001
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     7.445756E-001     1.561442E+000    -2.820675E-001     2.000000E-001
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   6.999999800294E+00
+   Calculation finished. TOTAL CHARGE =   6.999830326669E+00
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  6.7124260E-08   -5.35823953163852984E+00   -5.3582E+00
+   it, Delta DENS, energy, energyDiff   1  6.8852506E-07   -1.98289877505768963E+00   -1.9829E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.888245034647E+00  9.079629906893E+00 -2.180768301232E+00 -2.846016320467E+00  0.000000000000E+00  4.931397161763E+00  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   1   6.71E-08   -5.35823953163852984E+00   -5.3582E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp  1.279374865872E+00  9.093836622150E+00 -2.132308904208E+00 -2.782109794254E+00  0.000000000000E+00  4.931397161762E+00  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   1   6.89E-07   -1.98289877505768963E+00   -1.9829E+00
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -5.356259E+00    8.08E-01
+     Final values: target function, fnrm  -1.700831E+00    9.06E+00
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    6.71E-08   -5.35823953163852984E+00
-   > energy difference to last iteration: -5.358240E+00
+     FINAL values: it, Delta DENS, energy   1    6.89E-07   -1.98289877505768963E+00
+   > energy difference to last iteration: -1.982899E+00
  ############################################################################################
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.888245034647E+00  9.079629906893E+00 -2.180768301232E+00 -2.846016320467E+00  0.000000000000E+00  4.931397161763E+00  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   1   6.71E-08   -5.35823953163852984E+00    0.0000E+00   FINAL
- Transfer integrals and site energies:
- frag i, frag j, HOMO energy, LUMO energy, HOMO overlap, LUMO overlap
-    1     1   -0.071541047548   0.229879154696    1.000181981227   0.997839391384
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp  1.279374865872E+00  9.093836622150E+00 -2.132308904208E+00 -2.782109794254E+00  0.000000000000E+00  4.931397161762E+00  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   1   6.89E-07   -1.98289877505768963E+00    0.0000E+00   FINAL
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   6.999999800294E+00
+   Calculation finished. TOTAL CHARGE =   6.999830326669E+00
+-------------------------------------------------------------------------------------------------
+ Site energies:
+ state, energy, orthog energy, frag eval, overlap, orthog overlap, occ
+sih3  1
+  HOMO-3   0.011409587817   0.011476258158  -0.439424622584   1.033218621357   0.999998396732  2.00
+  HOMO-2   0.113234171542   0.118194732069  -0.269674428952   1.032021874292   1.000001840006  2.00
+  HOMO-1   0.503735339124   0.498318812609  -0.268796504403   1.023715298276   1.000000379160  2.00
+    HOMO   0.777955704834   0.775700918424  -0.095708928397   1.009682208571   0.999998436699  1.00
+    LUMO   2.429628293488   2.533792132091   0.179989692900   0.960065144143   0.999994663119  0.00
+  LUMO+1   1.907908945782   2.015050211781   0.193190860767   0.952617598403   1.000003985638  0.00
+  LUMO+2   2.303659071096   2.327354134252   0.193760802296   0.988679148143   1.000002298793  0.00
+           2.034713901801   2.031680524098  -2.051500040274
+-------------------------------------------------------------------------------------------------
+           2.034713901801   2.031680524098  -2.051500040274
+-------------------------------------------------------------------------------------------------
