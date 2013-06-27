@@ -2764,7 +2764,7 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
       tt=sqrt(tt)
       if (abs(tt-1.d0) > 1.d-3) then
          !write(*,*)'wrong phi_old',iiorb,tt
-         call yaml_warning('support function, value:'//trim(yaml_toa(iiorb,fmt='(i6)'))//trim(yaml_toa(tt,fmt='(1i6,1es18.9)')))
+         call yaml_warning('support function, value:'//trim(yaml_toa(iiorb,fmt='(i6)'))//trim(yaml_toa(tt,fmt='(1es18.9)')))
          !stop 
       end if
   end do
