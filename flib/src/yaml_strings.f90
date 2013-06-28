@@ -44,35 +44,35 @@ module yaml_strings
 
 contains
 
-  function fmt_li(data)
+  pure function fmt_li(data)
     implicit none
     integer(kind=8), intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_li
     fmt_li=yaml_int_fmt
   end function fmt_li
 
-  function fmt_i(data)
+  pure function fmt_i(data)
     implicit none
     integer, intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_i
     fmt_i=yaml_int_fmt
   end function fmt_i
 
-  function fmt_r(data)
+  pure function fmt_r(data)
     implicit none
     real, intent(in) :: data
     character(len=len(yaml_real_fmt)) :: fmt_r
     fmt_r=yaml_real_fmt
   end function fmt_r
 
-  function fmt_d(data)
+  pure function fmt_d(data)
     implicit none
     double precision, intent(in) :: data
     character(len=len(yaml_dble_fmt)) :: fmt_d
     fmt_d=yaml_dble_fmt
   end function fmt_d
 
-  function fmt_a(data)
+  pure function fmt_a(data)
     implicit none
     character(len=*), intent(in) :: data
     character(len=len(yaml_char_fmt)) :: fmt_a
@@ -176,7 +176,7 @@ contains
   end subroutine align_message
 
   !> Convert integer to character
-  function yaml_itoa(data,fmt) result(str)
+  pure function yaml_itoa(data,fmt) result(str)
     implicit none
     integer, intent(in) :: data
     include 'yaml_toa-inc.f90'
@@ -533,7 +533,7 @@ contains
 
   end function yaml_time_toa
 
-  function yaml_adjust(str)
+  pure function yaml_adjust(str)
     implicit none
     character(len=*), intent(in) :: str
     character(len=max_value_length) :: yaml_adjust
@@ -554,7 +554,7 @@ contains
   !! that are shifted off the end are lost. Positions opened up by the shift 
   !! are replaced by spaces.
   !! This routine has been downloaded from the website http://gbenthien.net/strings/index.html
-  subroutine shiftstr(str,n)
+  pure subroutine shiftstr(str,n)
     implicit none
     integer, intent(in) :: n
     character(len=*), intent(inout) :: str
@@ -569,7 +569,6 @@ contains
     end if
     if(n<0) str=str(nabs+1:)//repeat(' ',nabs)  ! shift left
     if(n>0) str=repeat(' ',nabs)//str(:lenstr-nabs)  ! shift right 
-    return
 
   end subroutine shiftstr
 

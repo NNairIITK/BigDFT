@@ -39,14 +39,14 @@ module dictionaries
   end interface
 
   interface assignment(=)
-     module procedure get_value,get_integer,get_real,get_double,get_long!,get_dict, xlf does not like
+     module procedure get_value,get_integer,get_real,get_double,get_long,get_lg!,get_dict, xlf does not like
   end interface
   interface pop
      module procedure pop_dict,pop_item,pop_last
   end interface
 
   interface set
-     module procedure put_child,put_value,put_list,put_integer,put_real,put_double,put_long
+     module procedure put_child,put_value,put_list,put_integer,put_real,put_double,put_long,put_lg
   end interface
 
   interface add
@@ -667,8 +667,7 @@ contains
     type(dictionary), intent(in) :: dict
     val(1:len(val))=' '
     if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
-    if (f_err_raise(no_value(dict),err_id=DICT_VALUE_ABSENT)) return
-
+    if (f_err_raise(no_value(dict),'The key is "'//trim(dict%data%key)//'"',err_id=DICT_VALUE_ABSENT)) return
     call get_field(dict%data%value,val)
 
   end subroutine get_value
@@ -740,6 +739,26 @@ contains
     if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
     
   end subroutine get_real
+
+  !set and get routines for different types
+  subroutine get_lg(ival,dict)
+    logical, intent(out) :: ival
+    type(dictionary), intent(in) :: dict
+    !local variables
+    character(len=max_field_length) :: val
+
+    !take value
+    val=dict
+    if (index(trim(val),'Yes') > 0) then
+       ival=.true.
+    else if (index(trim(val),'No') > 0) then
+       ival=.false.
+    else
+       call f_err_throw('Value '//val,err_id=DICT_CONVERSION_ERROR)
+       return
+    end if
+    
+  end subroutine get_lg
 
   !set and get routines for different types
   subroutine get_double(dval,dict)
@@ -821,6 +840,22 @@ contains
     end if
 
   end subroutine put_long
+
+  subroutine put_lg(dict,val,fmt)
+    use yaml_strings, only:yaml_toa
+    implicit none
+    type(dictionary), pointer :: dict
+    logical, intent(in) :: val
+    character(len=*), optional, intent(in) :: fmt
+
+    if (present(fmt)) then
+       call put_value(dict,adjustl(trim(yaml_toa(val,fmt=fmt))))
+    else
+       call put_value(dict,adjustl(trim(yaml_toa(val))))
+    end if
+
+  end subroutine put_lg
+
 
   !include the module of error handling
   include 'error_handling.f90'

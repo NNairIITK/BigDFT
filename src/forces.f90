@@ -1069,7 +1069,8 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                  end do
               end do
               !HGH case, offdiagonal terms
-              if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10) then
+              if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10 &
+                                         .or. at%npspcode(ityp) == 12 ) then
                  do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
                     do i=1,2
                        if (at%psppar(l,i,ityp) /= 0.0_gp) then 
@@ -3920,7 +3921,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   use module_base
   use module_types
   use module_interfaces
-  use libxc_functionals
+  use module_xc
   implicit none
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
@@ -3936,7 +3937,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir,hpsi
 
-  exctXcoeff=libxc_functionals_exctXfac()
+  exctXcoeff=xc_exctXfac()
 
   !initialise the work arrays
   call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  
@@ -4690,7 +4691,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                         end do
                      end do
                      !HGH case, offdiagonal terms
-                     if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10) then
+                     if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10 &
+                                                .or. at%npspcode(ityp) == 12) then
                         do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
                            do i=1,2
                               if (at%psppar(l,i,ityp) /= 0.0_gp) then 

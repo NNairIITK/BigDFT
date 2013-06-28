@@ -76,8 +76,17 @@ subroutine test_dynamic_memory()
 !!$   !   call yaml_open_map('Last')
 !!$   !   call f_malloc_dump_status()
 !!$   !   call yaml_close_map()
+   call f_routine(id='Routine A')
+   call f_release_routine()
+   call f_routine(id='Routine A')
+   call f_release_routine()
+   call f_routine(id='Routine A')
    call f_release_routine()
 
+
+   call f_release_routine()
+
+   call f_malloc_dump_status()
    call f_malloc_finalize()
 
 

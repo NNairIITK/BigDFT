@@ -1,22 +1,10 @@
-O HGH in PBE for supersmall nlc
-     8    6  130212 zatom, zion, date (ddmmyy)
-    10 -101130 0 0 2002 0     pspcod, IXC, lmax, lloc, mmax, r2well
-         0.25939111  2 -14.15180600   1.97829510 rloc nloc c1 c2
-    1
-         0.22393922  1  17.65662726      s-projector
+HGH for oxygen (O) in PBE with NLCC
+    8    6  100512 zatom, zion, date (ddmmyy)
+   12 -101130 1 0 2002 0     pspcod, IXC, lmax, lloc, mmax, r2well
+        0.26099935  2    -14.15180600      1.97829510 rloc nloc c1 c2
+   2                                       nsep
+        0.22308282  1     18.37181432      s-projector
+        0.26844098  1      0.10003633      p-projector
+                           0.00000000
+        0.25233842         0.44314024      rcore, qcore (NLCC width and fraction)
 
-
-
-
-
-spin-polarized  20  2.00      1.38      3.50     spin treatment, ng rij rcov and rprb
-    8    6  050411 zatom, zion, date (ddmmyy)
-   10 -101130 1 0 2002 0     pspcod,IXC,lmax,lloc,mmax,r2well
-    0.25154678      3  -22.032094       5.2332448     -0.42363851     rloc nloc c1 .. cnloc
-   2               
-    0.18639233      2  -27.243967       21.687637          s-projector
-                                       -3.5486208    
-    0.26042020      2   1.7209187     -0.86559313          p-projector
-                                       0.69645755    
-                        0  0 (no kij)
-                           0

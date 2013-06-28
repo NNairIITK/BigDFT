@@ -2291,7 +2291,7 @@ subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lp
         length = min(lmax,Gmax)-max(lmin,Gmin)
 
         !Find the common elements and write them to the new global wavefunction
-        icheck = icheck + length + 1
+        icheck = icheck + (length + 1)
 
         ! WARNING: index goes from 0 to length because it is the offset of the element
 
@@ -2347,7 +2347,7 @@ subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lp
         !Find the common elements and write them to the new global wavefunction
         ! First set to zero those elements which are not copied. WARNING: will not work for npsin>1!!
  
-        icheck = icheck + length + 1
+        icheck = icheck + (length + 1)
 
         ! WARNING: index goes from 0 to length because it is the offset of the element
         do ix = 0,length

@@ -265,7 +265,7 @@ subroutine psi_to_locreg2(iproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
         ! Define the length of the two segments
         length = min(lmax,Gmax)-max(lmin,Gmin)
 
-        icheck = icheck + length + 1
+        icheck = icheck + (length + 1)
  
         !Find the common elements and write them to the new localized wavefunction
         ! WARNING: index goes from 0 to length because it is the offset of the element
@@ -318,7 +318,7 @@ subroutine psi_to_locreg2(iproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 
         length = min(lmax,Gmax)-max(lmin,Gmin)
 
-        icheck = icheck + length + 1
+        icheck = icheck + (length + 1)
 
         !Find the common elements and write them to the new localized wavefunction
         ! WARNING: index goes from 0 to length because it is the offset of the element

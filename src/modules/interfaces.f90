@@ -4285,7 +4285,6 @@ module module_interfaces
         subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho)
           use module_base
           use module_types
-          use libxc_functionals
           implicit none
           integer,intent(in) :: iproc, nproc, ndimrho
           real(kind=8),intent(in) :: hx, hy, hz
