@@ -1972,7 +1972,7 @@ end subroutine sumrho_for_TMBs
 
 
 
-subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern)
+subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, check_sumrho)
   use module_base
   use module_types
   use module_interfaces, except_this_one => check_communication_sumrho
@@ -1986,6 +1986,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   type(collective_comms),intent(in) :: collcom_sr
   type(DFT_local_fields),intent(in) :: denspot
   type(sparseMatrix),intent(inout) :: denskern
+  integer,intent(in) :: check_sumrho
 
   ! Local variables
   integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
@@ -2021,6 +2022,10 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inWhichLocreg(iiorb)
+      !$omp parallel default(none) &
+      !$omp shared(orbs, lzd, psir, iorb, iiorb, ilr, ist, nxyz) &
+      !$omp private(i, ii, iz, iy, ix, iix, iiy, iiz, iixyz)
+      !$omp do
       do i=1,lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
           ! coordinates within locreg
           ii=i-1
@@ -2036,6 +2041,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
           ! assign unique value
           psir(ist+i)=test_value(iiorb,iixyz,nxyz)
       end do
+      !$omp end do
+      !$omp end parallel
       ist = ist + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
   end do
   if(ist/=collcom_sr%ndimpsi_c) then
@@ -2079,6 +2086,10 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   call f_free(istarr)
   
   ! Iterate through all the transposed values and check whether they are correct
+  !$omp parallel default(none) &
+  !$omp shared(collcom_sr, ist, nxyz, maxdiff, sumdiff) &
+  !$omp private(ipt, ii, i0, iixyz, i, iiorb, tt, ref_value, diff)
+  !$omp do reduction(+:sumdiff) reduction(max:maxdiff)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
       i0=collcom_sr%isptsp_c(ipt)
@@ -2090,10 +2101,10 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
           diff=abs(tt-ref_value)
           if (diff>maxdiff) maxdiff=diff
           sumdiff=sumdiff+diff**2
-          !!write(3000+iproc,*) tt
-          !!write(4000+iproc,*) ref_value
       end do
   end do
+  !$omp end do
+  !$omp end parallel
 
 
   ! Reduce the results
@@ -2122,177 +2133,193 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   end if
 
 
+  ! Now comes the full check.. Do it depending on the value of check_sumrho
+  if (check_sumrho==2) then
   
-  ! Now simulate the calculation of the charge density. Take the same reproducable
-  ! values as above. In this way the charge density can be calculated without
-  ! the communication.
-  
-  ! First determine how many orbitals one has for each grid point in the current slice
-  ii3s=denspot%dpbox%nscatterarr(iproc,3)+1
-  ii3e=denspot%dpbox%nscatterarr(iproc,3)+denspot%dpbox%nscatterarr(iproc,1)
-  weight=f_malloc((/1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='weight')
-  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
-  do i3=ii3s,ii3e
-      do iorb=1,orbs%norb
-          ilr=orbs%inwhichlocreg(iorb)
-          is3=1+lzd%Llr(ilr)%nsi3
-          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-          if (is3>i3 .or. i3>ie3) cycle
-          is1=1+lzd%Llr(ilr)%nsi1
-          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-          is2=1+lzd%Llr(ilr)%nsi2
-          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-          do i2=is2,ie2
-              do i1=is1,ie1
-                  weight(i1,i2,i3) = weight(i1,i2,i3)+1
-              end do
-          end do
-      end do
-  end do
-
-  ! The array orbital_id contains the IDs of the orbitals touching a given gridpoint
-  nmax=maxval(weight)
-  orbital_id=f_malloc((/1.to.nmax,1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='orbital_id')
-  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
-  iorbmin=1000000000
-  iorbmax=-1000000000
-  do i3=ii3s,ii3e
-      do iorb=1,orbs%norb
-          ilr=orbs%inwhichlocreg(iorb)
-          is3=1+lzd%Llr(ilr)%nsi3
-          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-          if (is3>i3 .or. i3>ie3) cycle
-          is1=1+lzd%Llr(ilr)%nsi1
-          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-          is2=1+lzd%Llr(ilr)%nsi2
-          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-          do i2=is2,ie2
-              do i1=is1,ie1
-                  weight(i1,i2,i3) = weight(i1,i2,i3)+1
-                  orbital_id(weight(i1,i2,i3),i1,i2,i3) = iorb
-                  if (iorb<iorbmin) iorbmin=iorb
-                  if (iorb>iorbmax) iorbmax=iorb
-              end do
-          end do
-      end do
-  end do
-
-  ! Make sure that the bounds are okay for all processes
-  if (iorbmin>iorbmax) then
-      iorbmin=1
-      iorbmax=1
-  end if
-
-
-  ! Now calculate the charge density. Of course this is only possible since the
-  ! value of each gridpoint is given by the special pattern and therefore always known.
-
-  ! First fill the kernel with some numbers.
-  do i=1,denskern%nvctr
-      denskern%matrix_compr(i)=sine_taylor(real(denskern%nvctr-i+1,dp))
-  end do
-
-  hxh=.5d0*lzd%hgrids(1)
-  hyh=.5d0*lzd%hgrids(2)
-  hzh=.5d0*lzd%hgrids(3)
-  factor=1.d0/(hxh*hyh*hzh)
-
-  ! Use an auxilliary array to store the indices of the kernel in the compressed
-  ! format. The usual denskern%matrixindex_in_compressed_fortransposed can not be used 
-  ! since we are not in the transposed distribution.
-  matrixindex_in_compressed_auxilliary=f_malloc((/iorbmin.to.iorbmax,iorbmin.to.iorbmax /), &
-      id='matrixindex_in_compressed_auxilliary')
-  do iorb=iorbmin,iorbmax
-      do jorb=iorbmin,iorbmax
-          matrixindex_in_compressed_auxilliary(jorb,iorb)=matrixindex_in_compressed(denskern, jorb, iorb)
-      end do
-  end do
-
-  ! Now calculate the charge density and store the result in rho_check
-  rho_check=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho_check')
-  maxval_rho=0.d0
-  !$omp parallel default (none) &
-  !$omp private (i2, i1, iixyz, ind, tt, i, ii, tti, ikernel, jj, ttj) &
-  !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, rho_check) &
-  !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary, maxval_rho) &
-  !$omp firstprivate (i3)
-  do i3=ii3s,ii3e
-      !$omp do reduction(max:maxval_rho)
-      do i2=1,lzd%glr%d%n2i
-          do i1=1,lzd%glr%d%n1i
-              iixyz=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
-              ind=(i3-ii3s)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
-              tt=1.d-20
-              do i=1,weight(i1,i2,i3) !the number of orbitals touching this grid point
-                  ii=orbital_id(i,i1,i2,i3)
-                  tti=test_value(ii,iixyz,nxyz)
-                  ikernel=matrixindex_in_compressed_auxilliary(ii,ii)
-                  tt=tt+denskern%matrix_compr(ikernel)*tti*tti
-                  do j=i+1,weight(i1,i2,i3)
-                      jj=orbital_id(j,i1,i2,i3)
-                      ikernel=matrixindex_in_compressed_auxilliary(jj,ii)
-                      if (ikernel==0) cycle
-                      ttj=test_value(jj,iixyz,nxyz)
-                      tt=tt+2.d0*denskern%matrix_compr(ikernel)*tti*ttj
+      ! Now simulate the calculation of the charge density. Take the same reproducable
+      ! values as above. In this way the charge density can be calculated without
+      ! the communication.
+      
+      ! First determine how many orbitals one has for each grid point in the current slice
+      ii3s=denspot%dpbox%nscatterarr(iproc,3)+1
+      ii3e=denspot%dpbox%nscatterarr(iproc,3)+denspot%dpbox%nscatterarr(iproc,1)
+      weight=f_malloc((/1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='weight')
+      call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
+      do i3=ii3s,ii3e
+          do iorb=1,orbs%norb
+              ilr=orbs%inwhichlocreg(iorb)
+              is3=1+lzd%Llr(ilr)%nsi3
+              ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+              if (is3>i3 .or. i3>ie3) cycle
+              is1=1+lzd%Llr(ilr)%nsi1
+              ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+              is2=1+lzd%Llr(ilr)%nsi2
+              ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              !$omp parallel default(none) &
+              !$omp shared(is2, ie2, is1, ie1, weight, i3) &
+              !$omp private(i2, i1) 
+              !$omp do
+              do i2=is2,ie2
+                  do i1=is1,ie1
+                      weight(i1,i2,i3) = weight(i1,i2,i3)+1
                   end do
               end do
-              tt=tt*factor
-              rho_check(ind)=tt
+              !$omp end do
+              !$omp end parallel
           end do
       end do
-      !$omp end do
-  end do
-  !$omp end parallel
-
-
-  call f_free(matrixindex_in_compressed_auxilliary)
-
-  ! Now calculate the charge density in the transposed way using the standard routine
-  rho=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho')
-  call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, &
-       lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d, rho, .false.)
-
-  ! Determine the difference between the two versions
-  sumdiff=0.d0
-  maxdiff=0.d0
-  do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
-      tt=abs(rho(i)-rho_check(i))
-      sumdiff = sumdiff + tt**2
-      if (tt>maxdiff) maxdiff=tt
-  end do
-
-  ! Reduce the results
-  if (nproc>1) then
-      call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
-  end if
-
-  ! Get mean value for the sum
-  sumdiff = sumdiff/(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i)
-  sumdiff=sqrt(sumdiff)
-
-  ! Print the results
-  if (iproc==0) then
-      call yaml_map('Tolerance for the following test',tol_calculation_mean,fmt='(1es25.18)')
-      if (sumdiff>tol_calculation_mean) then
-         call yaml_warning('CALCULATION ERROR: total difference of '//trim(yaml_toa(sumdiff,fmt='(1es25.18)')))
-      else
-         call yaml_map('calculation check, error sum', sumdiff,fmt='(1es25.18)')
+    
+      ! The array orbital_id contains the IDs of the orbitals touching a given gridpoint
+      nmax=maxval(weight)
+      orbital_id=f_malloc((/1.to.nmax,1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='orbital_id')
+      call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
+      iorbmin=1000000000
+      iorbmax=-1000000000
+      do i3=ii3s,ii3e
+          do iorb=1,orbs%norb
+              ilr=orbs%inwhichlocreg(iorb)
+              is3=1+lzd%Llr(ilr)%nsi3
+              ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+              if (is3>i3 .or. i3>ie3) cycle
+              is1=1+lzd%Llr(ilr)%nsi1
+              ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+              is2=1+lzd%Llr(ilr)%nsi2
+              ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              !$omp parallel default(none) &
+              !$omp shared(is2, ie2, is1, ie1, weight, orbital_id, i3, iorb, iorbmin, iorbmax) &
+              !$omp private(i2, i1)
+              !$omp do reduction(min:iorbmin) reduction(max:iorbmax)
+              do i2=is2,ie2
+                  do i1=is1,ie1
+                      weight(i1,i2,i3) = weight(i1,i2,i3)+1
+                      orbital_id(weight(i1,i2,i3),i1,i2,i3) = iorb
+                      if (iorb<iorbmin) iorbmin=iorb
+                      if (iorb>iorbmax) iorbmax=iorb
+                  end do
+              end do
+              !$omp end do
+              !$omp end parallel
+          end do
+      end do
+    
+      ! Make sure that the bounds are okay for all processes
+      if (iorbmin>iorbmax) then
+          iorbmin=1
+          iorbmax=1
       end if
-      call yaml_map('Tolerance for the following test',tol_calculation_max,fmt='(1es25.18)')
-      if (sumdiff>tol_calculation_max) then
-         call yaml_warning('CALCULATION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')))
-      else
-         call yaml_map('calculation check, error max', maxdiff,fmt='(1es25.18)')
+    
+    
+      ! Now calculate the charge density. Of course this is only possible since the
+      ! value of each gridpoint is given by the special pattern and therefore always known.
+    
+      ! First fill the kernel with some numbers.
+      do i=1,denskern%nvctr
+          denskern%matrix_compr(i)=sine_taylor(real(denskern%nvctr-i+1,dp))
+      end do
+    
+      hxh=.5d0*lzd%hgrids(1)
+      hyh=.5d0*lzd%hgrids(2)
+      hzh=.5d0*lzd%hgrids(3)
+      factor=1.d0/(hxh*hyh*hzh)
+    
+      ! Use an auxilliary array to store the indices of the kernel in the compressed
+      ! format. The usual denskern%matrixindex_in_compressed_fortransposed can not be used 
+      ! since we are not in the transposed distribution.
+      matrixindex_in_compressed_auxilliary=f_malloc((/iorbmin.to.iorbmax,iorbmin.to.iorbmax /), &
+          id='matrixindex_in_compressed_auxilliary')
+      do iorb=iorbmin,iorbmax
+          do jorb=iorbmin,iorbmax
+              matrixindex_in_compressed_auxilliary(jorb,iorb)=matrixindex_in_compressed(denskern, jorb, iorb)
+          end do
+      end do
+    
+      ! Now calculate the charge density and store the result in rho_check
+      rho_check=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho_check')
+      maxval_rho=0.d0
+      !$omp parallel default (none) &
+      !$omp private (i2, i1, iixyz, ind, tt, i, ii, tti, ikernel, jj, ttj) &
+      !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, rho_check) &
+      !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary, maxval_rho) &
+      !$omp firstprivate (i3)
+      do i3=ii3s,ii3e
+          !$omp do reduction(max:maxval_rho)
+          do i2=1,lzd%glr%d%n2i
+              do i1=1,lzd%glr%d%n1i
+                  iixyz=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                  ind=(i3-ii3s)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                  tt=1.d-20
+                  do i=1,weight(i1,i2,i3) !the number of orbitals touching this grid point
+                      ii=orbital_id(i,i1,i2,i3)
+                      tti=test_value(ii,iixyz,nxyz)
+                      ikernel=matrixindex_in_compressed_auxilliary(ii,ii)
+                      tt=tt+denskern%matrix_compr(ikernel)*tti*tti
+                      do j=i+1,weight(i1,i2,i3)
+                          jj=orbital_id(j,i1,i2,i3)
+                          ikernel=matrixindex_in_compressed_auxilliary(jj,ii)
+                          if (ikernel==0) cycle
+                          ttj=test_value(jj,iixyz,nxyz)
+                          tt=tt+2.d0*denskern%matrix_compr(ikernel)*tti*ttj
+                      end do
+                  end do
+                  tt=tt*factor
+                  rho_check(ind)=tt
+              end do
+          end do
+          !$omp end do
+      end do
+      !$omp end parallel
+    
+    
+      call f_free(matrixindex_in_compressed_auxilliary)
+    
+      ! Now calculate the charge density in the transposed way using the standard routine
+      rho=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho')
+      call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, &
+           lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d, rho, .false.)
+    
+      ! Determine the difference between the two versions
+      sumdiff=0.d0
+      maxdiff=0.d0
+      do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
+          tt=abs(rho(i)-rho_check(i))
+          sumdiff = sumdiff + tt**2
+          if (tt>maxdiff) maxdiff=tt
+      end do
+    
+      ! Reduce the results
+      if (nproc>1) then
+          call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
       end if
+    
+      ! Get mean value for the sum
+      sumdiff = sumdiff/(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i)
+      sumdiff=sqrt(sumdiff)
+    
+      ! Print the results
+      if (iproc==0) then
+          call yaml_map('Tolerance for the following test',tol_calculation_mean,fmt='(1es25.18)')
+          if (sumdiff>tol_calculation_mean) then
+             call yaml_warning('CALCULATION ERROR: total difference of '//trim(yaml_toa(sumdiff,fmt='(1es25.18)')))
+          else
+             call yaml_map('calculation check, error sum', sumdiff,fmt='(1es25.18)')
+          end if
+          call yaml_map('Tolerance for the following test',tol_calculation_max,fmt='(1es25.18)')
+          if (sumdiff>tol_calculation_max) then
+             call yaml_warning('CALCULATION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')))
+          else
+             call yaml_map('calculation check, error max', maxdiff,fmt='(1es25.18)')
+          end if
+      end if
+    
+      if (iproc==0) call yaml_close_map()
+    
+      call f_free(weight)
+      call f_free(orbital_id)
+      call f_free(rho_check)
+      call f_free(rho)
+
   end if
-
-  if (iproc==0) call yaml_close_map()
-
-  call f_free(weight)
-  call f_free(orbital_id)
-  call f_free(rho_check)
-  call f_free(rho)
 
   call timing(iproc,'check_sumrho','OF')
 

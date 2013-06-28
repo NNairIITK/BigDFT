@@ -2058,7 +2058,7 @@ module module_interfaces
       type(DFT_local_fields), intent(inout) :: denspot
       type(GPU_pointers),intent(inout) :: GPU
       integer,intent(out) :: infoCoeff
-      real(kind=8),intent(out) :: ebs
+      real(kind=8),intent(inout) :: ebs
       real(kind=8),intent(inout) :: fnrm
       type(nonlocal_psp_descriptors),intent(in) :: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
@@ -4271,7 +4271,7 @@ module module_interfaces
           type(atomic_structure),intent(in) :: astruct
           type(orbitals_data),intent(in) :: orbs
           type(locreg_descriptors), intent(in) :: Glr
-          type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
+          type(locreg_descriptors), dimension(nlr), intent(inout) :: Llr
           logical,dimension(nlr),intent(in) :: calculateBounds
         end subroutine determine_locregSphere_parallel
 
@@ -4866,7 +4866,7 @@ module module_interfaces
           real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: vector
         end subroutine uncompress_polynomial_vector
 
-        subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern)
+        subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, check_sumrho)
           use module_base
           use module_types
           use yaml_output
@@ -4877,6 +4877,7 @@ module module_interfaces
           type(collective_comms),intent(in) :: collcom_sr
           type(DFT_local_fields),intent(in) :: denspot
           type(sparseMatrix),intent(in) :: denskern
+          integer,intent(in) :: check_sumrho
         end subroutine check_communication_sumrho
 
   
