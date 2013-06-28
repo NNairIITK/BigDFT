@@ -592,7 +592,7 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
 
   ! Local variables
   integer :: iorb, ilr, ierr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3, istat, iall
-  real(kind=8) :: tt
+  real(kind=8) :: tt, zz
   real(kind=8),dimension(:,:),allocatable :: weight_xy
   character(len=*),parameter :: subname='get_weights_sumrho'
 
@@ -647,9 +647,6 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
   do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,1)
       !tmp=0.d0
       call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, weight_xy(1,1))
-      !!$omp parallel default(shared) &
-      !!$omp private(i2, i1, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ttt)
-      !!$omp do reduction(+:tmp)
       do iorb=1,orbs%norb
           ilr=orbs%inwhichlocreg(iorb)
           is3=1+lzd%Llr(ilr)%nsi3
@@ -659,21 +656,30 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
           ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
           is2=1+lzd%Llr(ilr)%nsi2
           ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+          !$omp parallel default(none) shared(is2, ie2, is1, ie1, weight_xy) private(i2, i1)
+          !$omp do
           do i2=is2,ie2
               do i1=is1,ie1
                   weight_xy(i1,i2) = weight_xy(i1,i2)+1.d0
               end do
           end do
+          !$omp end do
+          !$omp end parallel
       end do
-      !!$omp end do
-      !!$omp end parallel
-      weights_per_zpoint(i3)=0.d0
+      !weights_per_zpoint(i3)=0.d0
+      zz=0.d0
+      !$omp parallel default(none) shared(lzd, weight_xy, zz, tt) private(i2, i1)
+      !$omp do reduction(+: tt, zz)
       do i2=1,lzd%glr%d%n2i
           do i1=1,lzd%glr%d%n1i
              tt = tt + .5d0*(weight_xy(i1,i2)*(weight_xy(i1,i2)+1.d0))
-             weights_per_zpoint(i3) = weights_per_zpoint(i3) + .5d0*(weight_xy(i1,i2)*(weight_xy(i1,i2)))
+             !weights_per_zpoint(i3) = weights_per_zpoint(i3) + .5d0*(weight_xy(i1,i2)*(weight_xy(i1,i2)))
+             zz = zz + .5d0*(weight_xy(i1,i2)*(weight_xy(i1,i2)))
           end do
       end do
+      !$omp end do
+      !$omp end parallel
+      weights_per_zpoint(i3)=zz
   end do
   weights_per_slice(iproc)=tt
   call mpiallred(weights_per_slice(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -1826,7 +1832,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
   integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, jjorb, ind, ikernel
   integer :: matrixindex_in_compressed, iorbmin, iorbmax, jorb
-  real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, tt1, hxh, hyh, hzh, factor, hx, hy, hz, ref_value, maxval_rho
+  real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, tt1, hxh, hyh, hzh, factor, hx, hy, hz, ref_value
   real(kind=8) :: diff
   real(kind=8),dimension(:),allocatable :: psir, psirwork, psirt, psirtwork, rho_local, rho, rho_check
   integer,dimension(:,:,:),allocatable :: weight
@@ -2061,22 +2067,27 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! since we are not in the transposed distribution.
       matrixindex_in_compressed_auxilliary=f_malloc((/iorbmin.to.iorbmax,iorbmin.to.iorbmax /), &
           id='matrixindex_in_compressed_auxilliary')
+
+      !$omp parallel default(none) &
+      !$omp shared(iorbmin, iorbmax, matrixindex_in_compressed_auxilliary, denskern) &
+      !$omp private(iorb, jorb)
+      !$omp do
       do iorb=iorbmin,iorbmax
           do jorb=iorbmin,iorbmax
               matrixindex_in_compressed_auxilliary(jorb,iorb)=matrixindex_in_compressed(denskern, jorb, iorb)
           end do
       end do
+      !$omp end do
+      !$omp end parallel
     
       ! Now calculate the charge density and store the result in rho_check
       rho_check=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho_check')
-      maxval_rho=0.d0
       !$omp parallel default (none) &
-      !$omp private (i2, i1, iixyz, ind, tt, i, ii, tti, ikernel, jj, ttj) &
+      !$omp private (i3, i2, i1, iixyz, ind, tt, i, ii, tti, ikernel, jj, ttj) &
       !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, rho_check) &
-      !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary, maxval_rho) &
-      !$omp firstprivate (i3)
+      !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary)
       do i3=ii3s,ii3e
-          !$omp do reduction(max:maxval_rho)
+          !$omp do
           do i2=1,lzd%glr%d%n2i
               do i1=1,lzd%glr%d%n1i
                   iixyz=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
