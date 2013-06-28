@@ -371,6 +371,9 @@ subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot
 
   weight_c_tot=0.d0
   weight_f_tot=0.d0
+  !$omp parallel default(none) &
+  !$omp shared(lzd, weight_c, weight_f, weight_c_tot, weight_f_tot) private(i3, i2, i1)
+  !$omp do reduction(+: weight_c_tot, weight_f_tot)
   do i3=0,lzd%glr%d%n3
       do i2=0,lzd%glr%d%n2
           do i1=0,lzd%glr%d%n1
@@ -381,6 +384,8 @@ subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot
           end do
       end do
   end do
+  !$omp end do
+  !$omp end parallel
 
 
 end subroutine get_weights
