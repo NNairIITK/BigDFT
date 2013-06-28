@@ -60,26 +60,27 @@ t1=mpi_wtime()
            istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
            weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, nvalp_c, nvalp_f)
   else
-      allocate(npts_par_c(0:nproc-1), stat=istat)
-       call memocc(istat, npts_par_c, 'npts_par_c', subname)
-      allocate(npts_par_f(0:nproc-1), stat=istat)
-       call memocc(istat, npts_par_f, 'npts_par_f', subname)
-      npts_par_c=0
-      npts_par_f=0
-      npts_par_c(iproc)=collcom_reference%nptsp_c
-      npts_par_f(iproc)=collcom_reference%nptsp_f
-      call mpiallred(npts_par_c(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      call mpiallred(npts_par_f(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      call assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
-           npts_par_c, npts_par_f, &
-           istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-           weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
-      iall=-product(shape(npts_par_c))*kind(npts_par_c)
-      deallocate(npts_par_c, stat=istat)
-      call memocc(istat, iall, 'npts_par_c', subname)
-      iall=-product(shape(npts_par_f))*kind(npts_par_f)
-      deallocate(npts_par_f, stat=istat)
-      call memocc(istat, iall, 'npts_par_f', subname)
+      stop 'THIS OPTION IS DEPRECTAED'
+      !!allocate(npts_par_c(0:nproc-1), stat=istat)
+      !! call memocc(istat, npts_par_c, 'npts_par_c', subname)
+      !!allocate(npts_par_f(0:nproc-1), stat=istat)
+      !! call memocc(istat, npts_par_f, 'npts_par_f', subname)
+      !!npts_par_c=0
+      !!npts_par_f=0
+      !!npts_par_c(iproc)=collcom_reference%nptsp_c
+      !!npts_par_f(iproc)=collcom_reference%nptsp_f
+      !!call mpiallred(npts_par_c(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!call mpiallred(npts_par_f(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!call assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
+      !!     npts_par_c, npts_par_f, &
+      !!     istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+      !!     weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
+      !!iall=-product(shape(npts_par_c))*kind(npts_par_c)
+      !!deallocate(npts_par_c, stat=istat)
+      !!call memocc(istat, iall, 'npts_par_c', subname)
+      !!iall=-product(shape(npts_par_f))*kind(npts_par_f)
+      !!deallocate(npts_par_f, stat=istat)
+      !!call memocc(istat, iall, 'npts_par_f', subname)
   end if
 
 
