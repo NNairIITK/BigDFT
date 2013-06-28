@@ -1856,6 +1856,10 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inWhichLocreg(iiorb)
+      !$omp parallel default(none) &
+      !$omp shared(orbs, lzd, psir, iorb, iiorb, ilr, ist, nxyz) &
+      !$omp private(i, ii, iz, iy, ix, iix, iiy, iiz, iixyz)
+      !$omp do
       do i=1,lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
           ! coordinates within locreg
           ii=i-1
@@ -1871,6 +1875,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
           ! assign unique value
           psir(ist+i)=test_value(iiorb,iixyz,nxyz)
       end do
+      !$omp end do
+      !$omp end parallel
       ist = ist + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
   end do
   if(ist/=collcom_sr%ndimpsi_c) then
@@ -1914,6 +1920,10 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   call f_free(istarr)
   
   ! Iterate through all the transposed values and check whether they are correct
+  !$omp parallel default(none) &
+  !$omp shared(collcom_sr, ist, nxyz, maxdiff, sumdiff) &
+  !$omp private(ipt, ii, i0, iixyz, i, iiorb, tt, ref_value, diff)
+  !$omp do reduction(+:sumdiff) reduction(max:maxdiff)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
       i0=collcom_sr%isptsp_c(ipt)
@@ -1925,10 +1935,10 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
           diff=abs(tt-ref_value)
           if (diff>maxdiff) maxdiff=diff
           sumdiff=sumdiff+diff**2
-          !!write(3000+iproc,*) tt
-          !!write(4000+iproc,*) ref_value
       end do
   end do
+  !$omp end do
+  !$omp end parallel
 
 
   ! Reduce the results
@@ -1979,11 +1989,17 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
               ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
               is2=1+lzd%Llr(ilr)%nsi2
               ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              !$omp parallel default(none) &
+              !$omp shared(is2, ie2, is1, ie1, weight, i3) &
+              !$omp private(i2, i1) 
+              !$omp do
               do i2=is2,ie2
                   do i1=is1,ie1
                       weight(i1,i2,i3) = weight(i1,i2,i3)+1
                   end do
               end do
+              !$omp end do
+              !$omp end parallel
           end do
       end do
     
@@ -2003,6 +2019,10 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
               ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
               is2=1+lzd%Llr(ilr)%nsi2
               ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              !$omp parallel default(none) &
+              !$omp shared(is2, ie2, is1, ie1, weight, orbital_id, i3, iorb, iorbmin, iorbmax) &
+              !$omp private(i2, i1)
+              !$omp do reduction(min:iorbmin) reduction(max:iorbmax)
               do i2=is2,ie2
                   do i1=is1,ie1
                       weight(i1,i2,i3) = weight(i1,i2,i3)+1
@@ -2011,6 +2031,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
                       if (iorb>iorbmax) iorbmax=iorb
                   end do
               end do
+              !$omp end do
+              !$omp end parallel
           end do
       end do
     
