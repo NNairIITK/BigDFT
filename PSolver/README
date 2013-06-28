@@ -44,4 +44,7 @@ This Poisson Solver code is built following the method described in the papers
 
 Citing of this references is greatly appreciated if the routines are used 
 for scientific work.
+
+@defgroup PSolver
+Interpolating scaling function Poisson Solver Library
 */

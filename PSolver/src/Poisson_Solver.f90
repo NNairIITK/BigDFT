@@ -53,7 +53,7 @@
 !!    the XC part in the PSolver routine
 !!    Search for
 !!
-
+!! @ingroup PSolver
 module Poisson_Solver
   use wrapper_linalg
   use wrapper_MPI

@@ -1,6 +1,5 @@
 !> @file
 !!    Fake functions for MPI in the case of serial version
-!! @ingroup flib
 !! @author
 !!    Copyright (C) 2007-2013 BigDFT group 
 !!    This file is distributed under the terms of the

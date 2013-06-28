@@ -1,6 +1,5 @@
 !> @file
 !!  Define routines for timing
-!! @ingroup flib
 !! @author
 !!    Copyright (C) 2010-2013 BigDFT group (LG)
 !!    This file is distributed under the terms of the

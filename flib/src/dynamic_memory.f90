@@ -1,6 +1,5 @@
 !> @file
 !! Manage dynamic memory allocation
-!! @ingroup flib
 !! @author
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the

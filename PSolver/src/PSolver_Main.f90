@@ -79,6 +79,7 @@
 !!
 !! @todo
 !!    Wire boundary condition is missing
+!! @ingroup PSolver
 subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
      quiet,stress_tensor) !optional argument
   use yaml_output

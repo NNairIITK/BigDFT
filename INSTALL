@@ -238,7 +238,7 @@ The destination directory will be created automatically if not existing.
 Clean the source tree of the &#8217;make&#8217; action by <tt>make clean</tt>.
 </p>
 
-@subsection 2.4 The executables
+@subsection Executables The executables
 See the file @ref README-MAIN "README" for more explanations.
 
 

@@ -2,7 +2,6 @@
 !!  Module defining handling of errors
 !!  In the spirit of this module each error message is handled separately
 !!  The user of this module is able to define the stopping routine, the new error and the error codes
-!! @ingroup flib
 !! @author Luigi Genovese
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the

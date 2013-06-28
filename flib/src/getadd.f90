@@ -1,6 +1,5 @@
 !> @file
 !! Routines to get the address of objects
-!! @ingroup flib
 !! @author
 !!    Copyright (C) 2013-2013 BigDFT group
 !!    This file is distributed under the terms of the

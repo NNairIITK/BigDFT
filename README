@@ -13,6 +13,13 @@ Thanks to our Poisson solver based on a Green function formalism,
 periodic systems, surfaces and isolated systems can be simulated with  
 the proper boundary conditions.
 </p>
+
+@section L Libraries
+The BigDFT code has a core part and internal libraries:
+- The @ref flib "flib library" which controls the low-level operation concerning memopry, timing, errors
+  but provides also some tools as dictionaries objects and yaml output.
+- The @ref PSolver "PSolver library" is devoted to the resolaution of the Poisson equation.
+
  @section B Binaries
  - @link BigDFT.f90      BigDFT @endlink            The main program
  - @link frequencies.f90 frequencies @endlink       Calculation of the atomic frequencies by finite-difference

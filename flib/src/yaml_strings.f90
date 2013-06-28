@@ -1,7 +1,6 @@
 !> @file
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markeup Language (ML for Human)
-!! @ingroup flib
 !! @author
 !!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the

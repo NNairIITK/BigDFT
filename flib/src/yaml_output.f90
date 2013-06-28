@@ -1,7 +1,6 @@
 !> @file
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markeup Language (ML for Human)
-!! @ingroup flib
 !! @author
 !!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -77,6 +76,9 @@ module yaml_output
   integer :: YAML_INVALID                !< invalid action, unit inconsistency
 
   !> Generic routine
+  !! @ingroup flib
+  !! @param key mapname
+  !! @param fmt format
   interface yaml_map
      module procedure yaml_map,yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
   end interface

@@ -1,6 +1,5 @@
 !> @file
 !!  Routines to initialize to zero arrays
-!! @ingroup flib
 !! @author
 !!    Copyright (C) 2009-2011 BigDFT group 
 !!    This file is distributed under the terms of the

@@ -8,13 +8,12 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 !> Initialization of the Poisson kernel
+!! @ingroup PSolver
 !! @param verb   verbosity
 !! @param iproc  proc id
 !! @param nproc  proc number
 function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      mu0_screening,angrad,mpi_env,taskgroup_size) result(kernel)
-!! @param iproc  proc id
-!! @param nproc  proc number
   use yaml_output
   implicit none
   logical, intent(in) :: verb
@@ -106,6 +105,9 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
 
 end function pkernel_init
 
+
+!> Free memory used by the kernerl operation
+!! @ingroup PSolver
 subroutine pkernel_free(kernel,subname)
   implicit none
   character(len=*), intent(in) :: subname
@@ -179,6 +181,7 @@ end subroutine pkernel_free
 !!    To avoid that, one can properly define the kernel dimensions by adding 
 !!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
 !!    declaration.
+!! @ingroup PSolver
 subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   use yaml_output
   implicit none
@@ -622,6 +625,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','OF')
 
 END SUBROUTINE pkernel_set
+
 
 subroutine inplane_partitioning(mpi_env,mdz,n2wires,n3planes,part_mpi,inplane_mpi,n3pr1,n3pr2)
   use wrapper_mpi
