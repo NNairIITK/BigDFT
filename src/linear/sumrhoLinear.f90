@@ -775,6 +775,7 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
 
 end subroutine assign_weight_to_process_sumrho
 
+
 subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orbs, &
            istartend, weight_tot, weights_per_zpoint, norb_per_gridpoint)
   use module_base
@@ -794,71 +795,8 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   ! Local variables
   integer :: i3, ii, i2, i1, ipt, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr, i
   real(8) :: tt, weight_check
-  !logical :: fast
 
 
-!!t1=mpi_wtime()
-!!  weight_check=0.d0
-!!  do i3=1,lzd%glr%d%n3i
-!!      if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
-!!          (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then
-!!          cycle
-!!      end if
-!!      if (weights_per_zpoint(i3)==0.d0) then
-!!          fast=.true.
-!!      else
-!!          fast=.false.
-!!      end if
-!!      write(*,*) 'iproc, fast', iproc, fast
-!!      tt=0.d0
-!!      !$omp parallel default(shared) &
-!!      !$omp private(i2, i1, ii, ipt, norb, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
-!!      !$omp do reduction(+:tt)
-!!      do i2=1,lzd%glr%d%n2i
-!!          do i1=1,lzd%glr%d%n1i
-!!              ii=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
-!!              if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
-!!                  ipt=ii-istartend(1,iproc)+1
-!!                  norb=0
-!!                  if (.not.fast) then
-!!                      do iorb=1,orbs%norb
-!!                          ilr=orbs%inwhichlocreg(iorb)
-!!                          is1=1+lzd%Llr(ilr)%nsi1
-!!                          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-!!                          is2=1+lzd%Llr(ilr)%nsi2
-!!                          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-!!                          is3=1+lzd%Llr(ilr)%nsi3
-!!                          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-!!                          if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
-!!                          norb=norb+1
-!!                          end if
-!!                      end do
-!!                  end if
-!!                  norb_per_gridpoint(ipt)=norb
-!!                  !tt=tt+dble(norb**2)
-!!                  tt=tt+.5d0*dble(norb*(norb+1))
-!!              end if
-!!          end do
-!!      end do
-!!      !$omp end do
-!!      !$omp end parallel
-!!      weight_check=weight_check+tt
-!!  end do
-!!t2=mpi_wtime()
-!!write(*,*) 'iproc, individual time', iproc, t2-t1
-!!
-!!  ! Some check
-!!  call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-!!  if (weight_check/=weight_tot) then
-!!      stop '2: tt/=weight_tot'
-!!  end if
-
-
-
-
-
-
-!t1=mpi_wtime()
   call to_zero(nptsp, norb_per_gridpoint(1))
   do i3=1,lzd%glr%d%n3i
       if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
@@ -868,9 +806,6 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
       if (weights_per_zpoint(i3)==0.d0) then
           cycle
       end if
-      !!$omp parallel default(shared) &
-      !!$omp private(i2, i1, ii, ipt, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
-      !!$omp do
       do iorb=1,orbs%norb
           ilr=orbs%inwhichlocreg(iorb)
           is3=1+lzd%Llr(ilr)%nsi3
@@ -880,6 +815,9 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
           ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
           is1=1+lzd%Llr(ilr)%nsi1
           ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+          !$omp parallel default(none) &
+          !$omp shared(i3, is2, ie2, is1, ie1, lzd, istartend, iproc, norb_per_gridpoint) private(i2, i1, ii, ipt)
+          !$omp do
           do i2=is2,ie2
               do i1=is1,ie1
                   ii=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
@@ -889,18 +827,20 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
                   end if
               end do
           end do
+          !$omp end do
+          !$omp end parallel
       end do
-      !!$omp end do
-      !!$omp end parallel
   end do
 
   tt=0.d0
+  !$omp parallel default(none) shared(tt, nptsp, norb_per_gridpoint) private(i)
+  !$omp do reduction(+:tt)
   do i=1,nptsp
       tt=tt+.5d0*dble(norb_per_gridpoint(i)*(norb_per_gridpoint(i)+1))
   end do
+  !$omp end do
+  !$omp end parallel
   weight_check=tt
-!t2=mpi_wtime()
-!write(*,*) 'iproc, individual time', iproc, t2-t1
 
 
   ! Some check
@@ -937,9 +877,8 @@ subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs,
   character(len=*),parameter :: subname='determine_communication_arrays_sumrho'
 
 
-  nsendcounts=0
-  !!$omp parallel default(shared) &
-  !!$omp private(jproc, i3, i2, i1, ind)
+  call to_zero(nproc,nsendcounts(0))
+
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
@@ -949,8 +888,12 @@ subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs,
       ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
       is3=1+lzd%Llr(ilr)%nsi3
       ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-      !!$omp do
+      !$omp parallel default(none) &
+      !$omp shared(nproc, is1, ie1, is2, ie2, is3, ie3, lzd, istartend, nsendcounts) &
+      !$omp private(jproc, i1, i2, i3, ind, ii)
+      !$omp do
       do jproc=0,nproc-1
+          ii=0
           do i3=is3,ie3
               if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,jproc) .or. &
                   (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,jproc)) then
@@ -960,15 +903,17 @@ subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs,
                   do i1=is1,ie1
                     ind = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
                     if (ind>=istartend(1,jproc) .and. ind<=istartend(2,jproc)) then
-                        nsendcounts(jproc)=nsendcounts(jproc)+1
+                        !nsendcounts(jproc)=nsendcounts(jproc)+1
+                        ii=ii+1
                     end if
                   end do
               end do
           end do
+         nsendcounts(jproc)=nsendcounts(jproc)+ii
        end do
-       !!$omp end do
+       !$omp end do
+       !$omp end parallel
   end do
-  !!$omp end parallel
 
 
   ! Some check
