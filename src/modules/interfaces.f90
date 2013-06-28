@@ -4035,7 +4035,7 @@ module module_interfaces
           type(paw_objects),optional,intent(inout) :: paw
         end subroutine orthogonalize
   
-        subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, kernel)
+        subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, denskern)
           use module_base
           use module_types
           implicit none
@@ -4043,7 +4043,7 @@ module module_interfaces
           logical, intent(in) :: isKernel
           type(orbitals_data),intent(in):: orbs, orbs_tmb
           real(8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff
-          real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
+          type(sparseMatrix),intent(inout):: denskern
         end subroutine calculate_density_kernel
 
         subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, overlap_calculated)

@@ -353,9 +353,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ! Allocate all local arrays.
   call allocateLocalArrays()
 
-  ! setting lhphiold to zero for calculate_energy_and_gradient_linear - why is this needed?
-  call to_zero(max(tmb%npsidim_orbs,tmb%npsidim_comp),lhphiold(1))
-
   call timing(iproc,'getlocbasinit','ON')
   tmb%can_use_transposed=.false.
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
@@ -488,14 +485,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (scf_mode/=LINEAR_FOE) then
               ! Recalculate the kernel with the old coefficients
               call dcopy(tmb%orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%coeff(1,1), 1)
-              allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-              call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
               call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, &
-                   tmb%coeff, tmb%linmat%denskern%matrix)
-              call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
-              iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
-              deallocate(tmb%linmat%denskern%matrix, stat=istat)
-              call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
+                   tmb%coeff, tmb%linmat%denskern)
           end if
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
@@ -1259,15 +1250,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix', subname)
 
   ! Recalculate the kernel
-  allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
-
-  call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
-  call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
-
-  iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
-  deallocate(tmb%linmat%denskern%matrix,stat=istat)
-  call memocc(istat,iall,'tmb%linmat%denskern%matrix',subname)
+  call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern)
 
 end subroutine reconstruct_kernel
 
@@ -1281,7 +1264,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
 
   ! Calling arguments
   integer, intent(in) :: iproc, nproc
-  integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method 
+  integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
   type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
   type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
   type(sparseMatrix),intent(in) :: basis_overlap
@@ -1308,8 +1291,6 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
       write(*,'(a)',advance='no') 'coeff renormalization...'
   end if
 
-  call to_zero(orbs%norb**2, ovrlp_coeff(1,1))
-
   dense=.true.
 
   if (dense) then
@@ -1320,9 +1301,12 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
               basis_orbs%norb, coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp, basis_orbs%norbp)
          call dgemm('t', 'n', orbs%norb, orbs%norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
               basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ovrlp_coeff, orbs%norb)
+      else
+         call to_zero(orbs%norb**2, ovrlp_coeff(1,1))
       end if
   else ! sparse - still less efficient than dense, also needs moving to a subroutine
 
+     call to_zero(orbs%norb**2, ovrlp_coeff(1,1))
      npts_per_proc = nint(real(basis_overlap%nvctr + basis_overlap%full_dim1,dp) / real(nproc*2,dp))
      ind_start = 1+iproc*npts_per_proc
      ind_end = (iproc+1)*npts_per_proc
@@ -1398,11 +1382,11 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
   allocate(coeff_tmp(basis_orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
 
-  call to_zero(basis_orbs%norb*orbs%norb, coeff_tmp(1,1))
-
   if (orbs%norbp>0) then
      call dgemm('n', 't', basis_orbs%norb, orbs%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), basis_orbs%norb, &
           ovrlp_coeff2(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
+  else
+     call to_zero(basis_orbs%norb*orbs%norb, coeff_tmp(1,1))
   end if
 
   if (nproc>1) then
