@@ -586,7 +586,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             call timing(iproc,'constraineddft','OF')
 
             ! CDFT: exit when W is converged wrt both V and rho
-            if (abs(ebs-cdft%charge) < 1.0e-3) exit
+            if (abs(ebs-cdft%charge) < 1.0e-2) exit
 
          ! if not constrained DFT exit straight away
          else
