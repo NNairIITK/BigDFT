@@ -872,7 +872,7 @@ subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs,
   integer,intent(out) :: ndimpsi, ndimind
 
   ! Local variables
-  integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ind, ii, istat, iall, ierr
+  integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ind, ii, istat, iall, ierr, ii0
   integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
   character(len=*),parameter :: subname='determine_communication_arrays_sumrho'
 
@@ -888,10 +888,6 @@ subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs,
       ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
       is3=1+lzd%Llr(ilr)%nsi3
       ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-      !$omp parallel default(none) &
-      !$omp shared(nproc, is1, ie1, is2, ie2, is3, ie3, lzd, istartend, nsendcounts) &
-      !$omp private(jproc, i1, i2, i3, ind, ii)
-      !$omp do
       do jproc=0,nproc-1
           ii=0
           do i3=is3,ie3
@@ -899,20 +895,25 @@ subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs,
                   (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,jproc)) then
                   cycle
               end if
+              ii0=0
+              !$omp parallel default(none) &
+              !$omp shared(i3, is2, ie2, is1, ie1, lzd, istartend, jproc, ii0) private(i2, i1, ind)
+              !$omp do reduction(+:ii0)
               do i2=is2,ie2
                   do i1=is1,ie1
                     ind = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
                     if (ind>=istartend(1,jproc) .and. ind<=istartend(2,jproc)) then
                         !nsendcounts(jproc)=nsendcounts(jproc)+1
-                        ii=ii+1
+                        ii0=ii0+1
                     end if
                   end do
               end do
+              !$omp end do
+              !$omp end parallel
+              ii=ii+ii0
           end do
          nsendcounts(jproc)=nsendcounts(jproc)+ii
        end do
-       !$omp end do
-       !$omp end parallel
   end do
 
 
@@ -1172,14 +1173,15 @@ subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd,
 
   call vcopy(ndimind, indexrecvorbital(1), 1, indexrecvorbital2(1), 1)
 
-  !!$omp parallel default(shared) private(i, ind)
-  !!$omp do
+  !$omp parallel default(none) &
+  !$omp shared(ndimind, iextract, indexrecvorbital, indexrecvorbital2) private(i, ind)
+  !$omp do
   do i=1,ndimind
       ind=iextract(i)
       indexrecvorbital(ind)=indexrecvorbital2(i)
   end do
-  !!$omp end do
-  !!$omp end parallel
+  !$omp end do
+  !$omp end parallel
 
   iall=-product(shape(indexrecvorbital2))*kind(indexrecvorbital2)
   deallocate(indexrecvorbital2, stat=istat)
