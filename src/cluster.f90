@@ -509,8 +509,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
 
      if (in%check_sumrho>0) then
-     !    call check_communication_sumrho(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom_sr, &
-     !         denspot, tmb%linmat%denskern, in%check_sumrho)
+         call check_communication_sumrho(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom_sr, &
+              denspot, tmb%linmat%denskern, in%check_sumrho)
      end if
 
      if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction) then
