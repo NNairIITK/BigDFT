@@ -886,6 +886,16 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
 
   ! Now write the coefficients
   do i = 1, ntmb
+     ! first element always positive, for consistency when using for transfer integrals
+     ! unless 1st element below some threshold, in which case first significant element
+     do j=1,ntmb
+        if (abs(coeff(j,i))>1.0e-8) then
+           if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
+           exit
+        end if
+     end do
+     if (j==ntmb+1) stop 'Error finding significant coefficient!'
+
      do j = 1, ntmb
           tt = coeff(j,i)
           if (useFormattedOutput) then
@@ -2007,6 +2017,17 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
         if (i_stat /= 0) stop 'Problem reading the coefficients'
         coeff(j,i) = tt  
      end do
+  end do
+
+  ! rescale so first significant element is +ve
+  do i = 1, ntmb
+     do j = 1, ntmb
+        if (abs(coeff(j,i))>1.0e-8) then
+           if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
+           exit
+        end if
+     end do
+     if (j==ntmb+1) stop 'Error finding significant coefficient!'
   end do
 
 

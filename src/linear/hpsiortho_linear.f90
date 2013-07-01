@@ -43,7 +43,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !real(kind=8) :: eval_zero
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
-  real(kind=8), dimension(:,:), allocatable :: fnrmOvrlpArr, fnrmArr
+  real(kind=8), dimension(:), allocatable :: fnrmOvrlpArr, fnrmArr
   real(kind=8), dimension(:), allocatable :: hpsi_conf, hpsi_tmp
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
   !type(sparseMatrix) :: lagmat
@@ -195,9 +195,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
   end if
 
-  allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
+  allocate(fnrmOvrlpArr(tmb%orbs%norb), stat=istat)
   call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
-  allocate(fnrmArr(tmb%orbs%norb,2), stat=istat)
+  allocate(fnrmArr(tmb%orbs%norb), stat=istat)
   call memocc(istat, fnrmArr, 'fnrmArr', subname)
 
   ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
@@ -208,9 +208,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       iiorb=tmb%orbs%isorb+iorb
       ilr=tmb%orbs%inwhichlocreg(iiorb)
       ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, hpsi_small(ist), 1, lhphiold(ist), 1)
-      fnrmArr(iorb,1)=ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
-      fnrmOldArr(iorb)=ddot(ncount, lhphiold(ist), 1, lhphiold(ist), 1)
+      if(it>1) then
+         fnrmOvrlpArr(iorb)=ddot(ncount, hpsi_small(ist), 1, lhphiold(ist), 1)
+         !fnrmOldArr(iorb)=ddot(ncount, lhphiold(ist), 1, lhphiold(ist), 1)
+      end if
+      fnrmArr(iorb)=ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
       ist=ist+ncount
   end do
 
@@ -224,11 +226,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   fnrm=0.d0
   fnrmMax=0.d0
   do iorb=1,tmb%orbs%norbp
-      fnrm=fnrm+fnrmArr(iorb,1)
-      if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
+      fnrm=fnrm+fnrmArr(iorb)
+      if(fnrmArr(iorb)>fnrmMax) fnrmMax=fnrmArr(iorb)
       if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
       ! Adapt step size for the steepest descent minimization.
-          tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
+          tt=fnrmOvrlpArr(iorb)/sqrt(fnrmArr(iorb)*fnrmOldArr(iorb))
           ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
           if(tt>.6d0 .and. trH<trHold .and. alpha(iorb)<1.8d0) then
               alpha(iorb)=alpha(iorb)*1.1d0
@@ -242,6 +244,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
   fnrmMax=sqrt(fnrmMax)
+
+  call dcopy(tmb%orbs%norb, fnrmArr(1), 1, fnrmOldArr(1), 1)
 
   iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)
   deallocate(fnrmOvrlpArr, stat=istat)

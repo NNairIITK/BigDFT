@@ -2058,7 +2058,7 @@ module module_interfaces
       type(DFT_local_fields), intent(inout) :: denspot
       type(GPU_pointers),intent(inout) :: GPU
       integer,intent(out) :: infoCoeff
-      real(kind=8),intent(out) :: ebs
+      real(kind=8),intent(inout) :: ebs
       real(kind=8),intent(inout) :: fnrm
       type(nonlocal_psp_descriptors),intent(in) :: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
@@ -4035,7 +4035,7 @@ module module_interfaces
           type(paw_objects),optional,intent(inout) :: paw
         end subroutine orthogonalize
   
-        subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, kernel)
+        subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, denskern)
           use module_base
           use module_types
           implicit none
@@ -4043,7 +4043,7 @@ module module_interfaces
           logical, intent(in) :: isKernel
           type(orbitals_data),intent(in):: orbs, orbs_tmb
           real(8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff
-          real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
+          type(sparseMatrix),intent(inout):: denskern
         end subroutine calculate_density_kernel
 
         subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, overlap_calculated)
@@ -4271,7 +4271,7 @@ module module_interfaces
           type(atomic_structure),intent(in) :: astruct
           type(orbitals_data),intent(in) :: orbs
           type(locreg_descriptors), intent(in) :: Glr
-          type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
+          type(locreg_descriptors), dimension(nlr), intent(inout) :: Llr
           logical,dimension(nlr),intent(in) :: calculateBounds
         end subroutine determine_locregSphere_parallel
 
