@@ -986,7 +986,7 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
                      pot1=pot(ii1,ii2,ii3,1)
                      tt11=pot1*psir1
 
-                     epot_p=epot_p+real(tt11*psir1,wp)
+                     epot=epot+real(tt11*psir1,wp)
                      psir(i1,i2,i3,ispinor)=tt11
                   end do
               end if
@@ -1010,10 +1010,10 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
                  tt211=pot21*psir21
                  tt311=pot31*psir31
 
-                 epot_p=epot_p+real(tt011*psir01,wp)
-                 epot_p=epot_p+real(tt111*psir11,wp)
-                 epot_p=epot_p+real(tt211*psir21,wp)
-                 epot_p=epot_p+real(tt311*psir31,wp)
+                 epot=epot+real(tt011*psir01,wp)
+                 epot=epot+real(tt111*psir11,wp)
+                 epot=epot+real(tt211*psir21,wp)
+                 epot=epot+real(tt311*psir31,wp)
                  psir(i1+0,i2,i3,ispinor)=tt011
                  psir(i1+1,i2,i3,ispinor)=tt111
                  psir(i1+2,i2,i3,ispinor)=tt211
