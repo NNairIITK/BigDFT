@@ -2019,6 +2019,17 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
      end do
   end do
 
+  ! rescale so first significant element is +ve
+  do i = 1, ntmb
+     do j = 1, ntmb
+        if (abs(coeff(j,i))>1.0e-8) then
+           if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
+           exit
+        end if
+     end do
+     if (j==ntmb+1) stop 'Error finding significant coefficient!'
+  end do
+
 
 END SUBROUTINE read_coeff_minbasis
 
