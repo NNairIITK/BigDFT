@@ -25,12 +25,7 @@ subroutine apply_potential_lr_conf_noconf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n
   real(wp),dimension(n1i,n2i,n3i,nspinor),intent(inout) :: psir_noconf !< real-space wfn in lr where only the potential (without confinement) will be applied
   real(gp), intent(out) :: econf
   !local variables
-  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et,ii1,ii2,ii3,potorder_half, m
-  real(wp) :: x0, x1, x2, x3, r02, r12, r22, r32, cp0, cp1, cp2, cp3, psir01, psir11, psir21, psir31
-  real(wp) :: pot01, pot11, pot21, pot31, tt011, tt111, tt211, tt311 
-  real(wp) :: pot01_noconf, pot11_noconf, pot21_noconf, pot31_noconf
-  real(wp) :: tt011_noconf, tt111_noconf, tt211_noconf, tt311_noconf
-  integer :: ii01, ii11, ii21, ii31
+  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et,ii1,ii2,ii3,potorder_half
   real(wp) :: tt11,tt11_noconf,cp,r2,z2,y2
   real(wp) :: psir1,pot1,pot1_noconf,x,y,z
   real(gp) :: epot_p,econf_p!,ierr
@@ -136,109 +131,25 @@ subroutine apply_potential_lr_conf_noconf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n
            i1et=min(i1e,ibyyzz_r(2,i2-15,i3-15)+1) !in bounds coordinates
 
            !no need of setting up to zero values outside wavefunction bounds
-           m=mod(i1et-i1st+1,4)
-           !m=i1et-i1st+1
-           !m=0
-           if (m/=0) then
-               do i1=i1st,i1st+m-1
-                  x=confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1)
-                  r2=x**2+y2+z2
-                  cp=confdata%prefac*r2**potorder_half
+           do i1=i1st,i1et
+              x=confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1)
+              r2=x**2+y2+z2
+              cp=confdata%prefac*r2**potorder_half
 
-                  psir1=psir(i1,i2,i3,ispinor)
-                  !the local potential is always real (npot=1) + confining term
-                  ii1=i1-ishift(1)
-                  pot1=pot(ii1,ii2,ii3,1)+cp
-                  tt11=pot1*psir1
-
-                  pot1_noconf=pot(ii1,ii2,ii3,1)
-                  tt11_noconf=pot1_noconf*psir1
-                  psir_noconf(i1,i2,i3,ispinor) = tt11_noconf
-                  econf=econf+real(cp*psir1*psir1,wp)
-
-                  epot=epot+real(tt11*psir1,wp)
-                  psir(i1,i2,i3,ispinor)=tt11
-               end do
-           end if
-           do i1=i1st+m,i1et,4
-              x0=confdata%hh(1)*real(i1+0+confdata%ioffset(1),wp)-confdata%rxyzConf(1)
-              x1=confdata%hh(1)*real(i1+1+confdata%ioffset(1),wp)-confdata%rxyzConf(1)
-              x2=confdata%hh(1)*real(i1+2+confdata%ioffset(1),wp)-confdata%rxyzConf(1)
-              x3=confdata%hh(1)*real(i1+3+confdata%ioffset(1),wp)-confdata%rxyzConf(1)
-              r02=x0**2+y2+z2
-              r12=x1**2+y2+z2
-              r22=x2**2+y2+z2
-              r32=x3**2+y2+z2
-              cp0=confdata%prefac*r02**potorder_half
-              cp1=confdata%prefac*r12**potorder_half
-              cp2=confdata%prefac*r22**potorder_half
-              cp3=confdata%prefac*r32**potorder_half
-
-              psir01=psir(i1+0,i2,i3,ispinor)
-              psir11=psir(i1+1,i2,i3,ispinor)
-              psir21=psir(i1+2,i2,i3,ispinor)
-              psir31=psir(i1+3,i2,i3,ispinor)
+              psir1=psir(i1,i2,i3,ispinor)
               !the local potential is always real (npot=1) + confining term
-              ii01=i1+0-ishift(1)
-              ii11=i1+1-ishift(1)
-              ii21=i1+2-ishift(1)
-              ii31=i1+3-ishift(1)
-              pot01=pot(ii01,ii2,ii3,1)+cp0
-              pot11=pot(ii11,ii2,ii3,1)+cp1
-              pot21=pot(ii21,ii2,ii3,1)+cp2
-              pot31=pot(ii31,ii2,ii3,1)+cp3
-              tt011=pot01*psir01
-              tt111=pot11*psir11
-              tt211=pot21*psir21
-              tt311=pot31*psir31
+              ii1=i1-ishift(1)
+              pot1=pot(ii1,ii2,ii3,1)+cp
+              tt11=pot1*psir1
 
-              pot01_noconf=pot(ii01,ii2,ii3,1)
-              pot11_noconf=pot(ii11,ii2,ii3,1)
-              pot21_noconf=pot(ii21,ii2,ii3,1)
-              pot31_noconf=pot(ii31,ii2,ii3,1)
-              tt011_noconf=pot01_noconf*psir01
-              tt111_noconf=pot11_noconf*psir11
-              tt211_noconf=pot21_noconf*psir21
-              tt311_noconf=pot31_noconf*psir31
+              pot1_noconf=pot(ii1,ii2,ii3,1)
+              tt11_noconf=pot1_noconf*psir1
+              psir_noconf(i1,i2,i3,ispinor) = tt11_noconf
+              econf=econf+real(cp*psir1*psir1,wp)
 
-              psir_noconf(i1+0,i2,i3,ispinor) = tt011_noconf
-              psir_noconf(i1+1,i2,i3,ispinor) = tt111_noconf
-              psir_noconf(i1+2,i2,i3,ispinor) = tt211_noconf
-              psir_noconf(i1+3,i2,i3,ispinor) = tt311_noconf
-
-              econf=econf+real(cp0*psir01*psir01,wp)
-              econf=econf+real(cp1*psir11*psir11,wp)
-              econf=econf+real(cp2*psir21*psir21,wp)
-              econf=econf+real(cp3*psir31*psir31,wp)
-
-              epot=epot+real(tt011*psir01,wp)
-              epot=epot+real(tt111*psir11,wp)
-              epot=epot+real(tt211*psir21,wp)
-              epot=epot+real(tt311*psir31,wp)
-              psir(i1+0,i2,i3,ispinor)=tt011
-              psir(i1+1,i2,i3,ispinor)=tt111
-              psir(i1+2,i2,i3,ispinor)=tt211
-              psir(i1+3,i2,i3,ispinor)=tt311
+              epot=epot+real(tt11*psir1,wp)
+              psir(i1,i2,i3,ispinor)=tt11
            end do
-           !!do i1=i1st,i1et
-           !!   x=confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1)
-           !!   r2=x**2+y2+z2
-           !!   cp=confdata%prefac*r2**potorder_half
-
-           !!   psir1=psir(i1,i2,i3,ispinor)
-           !!   !the local potential is always real (npot=1) + confining term
-           !!   ii1=i1-ishift(1)
-           !!   pot1=pot(ii1,ii2,ii3,1)+cp
-           !!   tt11=pot1*psir1
-
-           !!   pot1_noconf=pot(ii1,ii2,ii3,1)
-           !!   tt11_noconf=pot1_noconf*psir1
-           !!   psir_noconf(i1,i2,i3,ispinor) = tt11_noconf
-           !!   econf=econf+real(cp*psir1*psir1,wp)
-
-           !!   epot=epot+real(tt11*psir1,wp)
-           !!   psir(i1,i2,i3,ispinor)=tt11
-           !!end do
         end do
      end do
      !$omp end do
@@ -817,8 +728,6 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
   real(gp), intent(out) :: epot
   !local variables
   integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,ii1,ii2,ii3,i1st,i1et
-  integer :: ii01, ii11, ii21, ii31, m
-  real(wp) :: psir01, psir11, psir21, psir31, pot01, pot11, pot21, pot31, tt011, tt111, tt211, tt311
   real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
   real(gp) :: epot_p!,ierr
@@ -976,46 +885,15 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
               i1st=max(i1s,ibyyzz_r(1,i2-15,i3-15)+1) !in bounds coordinates
               i1et=min(i1e,ibyyzz_r(2,i2-15,i3-15)+1) !in bounds coordinates
               !no need of setting up to zero values outside wavefunction bounds
-              m=mod(i1et-i1st+1,4)
-              if (m/=0) then
-                  do i1=i1st,i1st+m-1
-                     psir1=psir(i1,i2,i3,ispinor)
-                     !the local potential is always real (npot=1) + confining term
-                     ii1=i1-ishift(1)
-                     pot1=pot(ii1,ii2,ii3,1)
-                     tt11=pot1*psir1
-
-                     epot=epot+real(tt11*psir1,wp)
-                     psir(i1,i2,i3,ispinor)=tt11
-                  end do
-              end if
-              do i1=i1st+m,i1et,4
-                 psir01=psir(i1+0,i2,i3,ispinor)
-                 psir11=psir(i1+1,i2,i3,ispinor)
-                 psir21=psir(i1+2,i2,i3,ispinor)
-                 psir31=psir(i1+3,i2,i3,ispinor)
+              do i1=i1st,i1et
+                 psir1=psir(i1,i2,i3,ispinor)
                  !the local potential is always real (npot=1) + confining term
-                 ii01=i1+0-ishift(1)
-                 ii11=i1+1-ishift(1)
-                 ii21=i1+2-ishift(1)
-                 ii31=i1+3-ishift(1)
-                 pot01=pot(ii01,ii2,ii3,1)
-                 pot11=pot(ii11,ii2,ii3,1)
-                 pot21=pot(ii21,ii2,ii3,1)
-                 pot31=pot(ii31,ii2,ii3,1)
-                 tt011=pot01*psir01
-                 tt111=pot11*psir11
-                 tt211=pot21*psir21
-                 tt311=pot31*psir31
+                 ii1=i1-ishift(1)
+                 pot1=pot(ii1,ii2,ii3,1)
+                 tt11=pot1*psir1
 
-                 epot=epot+real(tt011*psir01,wp)
-                 epot=epot+real(tt111*psir11,wp)
-                 epot=epot+real(tt211*psir21,wp)
-                 epot=epot+real(tt311*psir31,wp)
-                 psir(i1+0,i2,i3,ispinor)=tt011
-                 psir(i1+1,i2,i3,ispinor)=tt111
-                 psir(i1+2,i2,i3,ispinor)=tt211
-                 psir(i1+3,i2,i3,ispinor)=tt311
+                 epot=epot+real(tt11*psir1,wp)
+                 psir(i1,i2,i3,ispinor)=tt11
               end do
            end do
         end do
