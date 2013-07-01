@@ -978,8 +978,7 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
               !no need of setting up to zero values outside wavefunction bounds
               m=mod(i1et-i1st+1,4)
               if (m/=0) then
-                  do i1=i1st,i1et
-
+                  do i1=i1st,i1st+m-1
                      psir1=psir(i1,i2,i3,ispinor)
                      !the local potential is always real (npot=1) + confining term
                      ii1=i1-ishift(1)
@@ -990,8 +989,7 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
                      psir(i1,i2,i3,ispinor)=tt11
                   end do
               end if
-              do i1=i1st,i1st+m-1
-
+              do i1=i1st+m,i1et,4
                  psir01=psir(i1+0,i2,i3,ispinor)
                  psir11=psir(i1+1,i2,i3,ispinor)
                  psir21=psir(i1+2,i2,i3,ispinor)
