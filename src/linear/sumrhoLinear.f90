@@ -1786,7 +1786,9 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ii3s=denspot%dpbox%nscatterarr(iproc,3)+1
       ii3e=denspot%dpbox%nscatterarr(iproc,3)+denspot%dpbox%nscatterarr(iproc,1)
       weight=f_malloc((/1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='weight')
-      call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
+      if (denspot%dpbox%nscatterarr(iproc,1)>0) then
+          call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
+      end if
       do i3=ii3s,ii3e
           do iorb=1,orbs%norb
               ilr=orbs%inwhichlocreg(iorb)
@@ -1814,7 +1816,9 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! The array orbital_id contains the IDs of the orbitals touching a given gridpoint
       nmax=maxval(weight)
       orbital_id=f_malloc((/1.to.nmax,1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='orbital_id')
-      call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
+      if (denspot%dpbox%nscatterarr(iproc,1)>0) then
+          call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
+      end if
       iorbmin=1000000000
       iorbmax=-1000000000
       do i3=ii3s,ii3e

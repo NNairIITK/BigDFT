@@ -661,30 +661,26 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
               ttt=ttt+sqrt(weight_c(i,i2,i3))
               tmp=tmp+weight_c(i,i2,i3)
               tmp2=tmp2+sqrt(weight_c(i,i2,i3))
-          end do
-          iitot=iitot+i1-i0+1
-          if (jproc<nproc) then
-              if (tt>weights_c_startend(1,jproc)) then
-                  if (jproc>0) then
-                      istartend_c(1,jproc)=iitot+1
+              iitot=iitot+1
+              if (jproc<nproc) then
+                  if (tt>weights_c_startend(1,jproc)) then
+                      if (jproc>0) then
+                          if (iproc==jproc) then
+                              istartp_seg_c=iseg
+                          end if
+                          if (iproc==jproc-1) then
+                              iendp_seg_c=iseg
+                              weightp_c=tt2
+                              nvalp_c=nint(ttt)
+                          end if
+                          istartend_c(1,jproc)=iitot+1
+                          tt2=0.d0
+                          ttt=0.d0
+                      end if
+                      jproc=jproc+1
                   end if
-                  if (iproc==jproc .and. jproc>0) then
-                      istartp_seg_c=iseg+1
-                  end if
-                  if (iproc==jproc-1 .and. jproc>0) then
-                      iendp_seg_c=iseg
-                  end if
-                  if (jproc>0 .and. iproc==jproc-1) then
-                      weightp_c=tt2
-                      nvalp_c=nint(ttt)
-                  end if
-                  if(jproc>0) then
-                      tt2=0.d0
-                      ttt=0.d0
-                  end if
-                  jproc=jproc+1
               end if
-          end if
+          end do
       end do loop_nseg_c
 
       do jproc=0,nproc-2
@@ -697,9 +693,9 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
           weightp_c=tt2
           iendp_seg_c=lzd%glr%wfd%nseg_c
       end if
-      ii=iendp_seg_c-istartp_seg_c+1
-      call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      if (ii/=lzd%glr%wfd%nseg_c) stop 'ii/=lzd%glr%wfd%nseg_c'
+      !ii=iendp_seg_c-istartp_seg_c+1
+      !call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !if (ii/=lzd%glr%wfd%nseg_c) stop 'ii/=lzd%glr%wfd%nseg_c'
   end if
 
 
@@ -760,30 +756,26 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
               ttt=ttt+sqrt(weight_f(i,i2,i3))
               tmp=tmp+weight_f(i,i2,i3)
               tmp2=tmp2+sqrt(weight_c(i,i2,i3))
-          end do
-          iitot=iitot+i1-i0+1
-          if (jproc<nproc) then
-              if (tt>weights_f_startend(1,jproc)) then
-                  if (jproc>0) then
-                      istartend_f(1,jproc)=iitot+1
+              iitot=iitot+1
+              if (jproc<nproc) then
+                  if (tt>weights_f_startend(1,jproc)) then
+                      if (jproc>0) then
+                          if (iproc==jproc) then
+                              istartp_seg_f=iseg
+                          end if
+                          if (iproc==jproc-1) then
+                              iendp_seg_f=iseg
+                              weightp_f=tt2
+                              nvalp_f=nint(ttt)
+                          end if
+                          istartend_f(1,jproc)=iitot+1
+                          tt2=0.d0
+                          ttt=0.d0
+                      end if
+                      jproc=jproc+1
                   end if
-                  if (iproc==jproc .and. jproc>0) then
-                      istartp_seg_f=iseg+1
-                  end if
-                  if (iproc==jproc-1 .and. jproc>0) then
-                      iendp_seg_f=iseg
-                  end if
-                  if (jproc>0 .and. iproc==jproc-1) then
-                      weightp_f=tt2
-                      nvalp_f=nint(ttt)
-                  end if
-                  if(jproc>0) then
-                      tt2=0.d0
-                      ttt=0.d0
-                  end if
-                  jproc=jproc+1
               end if
-          end if
+          end do
       end do loop_nseg_f
 
       do jproc=0,nproc-2
@@ -795,9 +787,9 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
           weightp_f=tt2
           iendp_seg_f=iend
       end if
-      ii=iendp_seg_f-istartp_seg_f+1
-      call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      if (ii/=lzd%glr%wfd%nseg_f) stop 'ii/=lzd%glr%wfd%nseg_f'
+      !ii=iendp_seg_f-istartp_seg_f+1
+      !call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !if (ii/=lzd%glr%wfd%nseg_f) stop 'ii/=lzd%glr%wfd%nseg_f'
   end if
 
 
@@ -818,7 +810,16 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
   ! some check
   ii_f=istartend_f(2,iproc)-istartend_f(1,iproc)+1
   if(nproc>1) call mpiallred(ii_f, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if(ii_f/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii_f/=lzd%glr%wfd%nvctr_f'
+  !if(ii_f/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii_f/=lzd%glr%wfd%nvctr_f'
+  if(ii_f/=lzd%glr%wfd%nvctr_f) then
+     write(*,*) 'ii_f/=lzd%glr%wfd%nvctr_f',ii_f,lzd%glr%wfd%nvctr_f
+     if (iproc==0) then
+         do jproc=0,nproc-1
+             write(*,*) jproc, istartend_f(1,jproc), istartend_f(2,jproc)
+         end do
+     end if
+     stop
+  end if
  
   ii_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
   if(nproc>1) call mpiallred(ii_c, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
