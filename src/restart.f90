@@ -889,7 +889,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
      ! first element always positive, for consistency when using for transfer integrals
      ! unless 1st element below some threshold, in which case first significant element
      do j=1,ntmb
-        if (abs(coeff(j,i))>1.0e-8) then
+        if (abs(coeff(j,i))>1.0e-1) then
            if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
            exit
         end if
@@ -2022,7 +2022,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
   ! rescale so first significant element is +ve
   do i = 1, ntmb
      do j = 1, ntmb
-        if (abs(coeff(j,i))>1.0e-8) then
+        if (abs(coeff(j,i))>1.0e-1) then
            if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
            exit
         end if
