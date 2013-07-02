@@ -11,11 +11,12 @@ The <tt>src</tt> directory contains the different routine of the flib library:
 - Exception Handling (see @ref error_handling.f90)
 
 @dir flib/tests
-@brief Contains tests for the flib library
+@brief Contains some tests for the flib library
 @details
 The <tt>tests</tt> directory contains some useful examples and tests.
 
 @defgroup flib The Flib library
+@brief
   The flib library is a low-level library used by BigDFT in order to do some low-level operations:
   - memory allocations and memory profiling 
 */

@@ -2,7 +2,6 @@
   <!-- Navigation index tabs for HTML output -->
   <navindex>
     <tab type="mainpage" visible="yes" title=""/>
-    <tab type="pages" visible="yes" title="" intro=""/>
     <tab type="files" visible="yes" title="">
       <tab type="filelist" visible="yes" title="" intro=""/>
       <tab type="globals" visible="yes" title="Functions/Subroutines" intro=""/>
@@ -11,7 +10,8 @@
       <tab type="namespacelist" visible="yes" title="" intro=""/>
       <tab type="namespacemembers" visible="yes" title="" intro=""/>
     </tab>
-    <tab type="modules" visible="yes" title="Libraries" intro="Here is the list of the internal libraries inside BigDFT"/>
+    <tab type="pages" visible="yes" title="" intro=""/>
+    <tab type="modules" visible="yes" title="Internal Libraries" intro="Here is the list of the internal libraries inside BigDFT"/>
     <tab type="classes" visible="yes" title="Modules, Types, Subroutines and Variables">
       <tab type="classlist" visible="yes" title="Modules" intro="Here are the list of modules:"/>
       <tab type="classindex" visible="$ALPHABETICAL_INDEX" title="Modules, Types and Interfaces"

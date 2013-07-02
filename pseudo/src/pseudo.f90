@@ -49,9 +49,9 @@ module penaltyvars
    use dims
    implicit none
    !> Simple time profiling for penalty evaluation
-   real(8) :: time(3)
+   real(8), dimension(3) :: time
    !> All-electron reference values 
-   real(8) :: ev(norbmx), crcov(norbmx), dcrcov(norbmx), ddcrcov(norbmx)
+   real(8), dimension(norbmx) :: ev, crcov, dcrcov, ddcrcov
    real(8) :: excitae
    integer :: no(norbmx),noae(norbmx),lo(norbmx),nomax(0:lmx),nomin(0:lmx)
    real(8) :: so(norbmx),zo(norbmx)
@@ -83,19 +83,19 @@ end module ppackvars
 module gatomvars
    use dims
    implicit none
-   !the total of scf iterations during this run, the number of calls to gatom
+   !> The total of scf iterations during this run, the number of calls to gatom
    integer :: itertot, ntime
-   !confining potential, charge integr. radius
+   !> Confining potential, charge integr. radius
    real(8) :: rprb, rcov
-   !gaussian basis set:
+   !> Gaussian basis set
    integer :: ng
    real(8) :: rij
    logical :: denbas
    real(8) :: xp(0:ngmx)
-   !max angular momentum number of considered and of occupied orbitals
+   !> Max angular momentum number of considered and of occupied orbitals
    integer :: lmax, lcx
    !radial grid, integr weights, finite difference
-   integer :: nint
+   integer :: nint0
    real(8) :: rr(nintmx), rw(nintmx), rd(nintmx)
    !hartree potential from gaussians on the real space grid
    real(8) :: vh((lmx+1)*((ngmx+1)*(ngmx+2))/2, (lmx+1)*((ngmx+1)*(ngmx+2))/2)
@@ -123,6 +123,7 @@ end module gatomvars
 !!  Uses mpi and libxc, supports collinear spin polarization as well as 
 !!  nonlinear core corrections and has a gpu accelerated version of the
 !!  wavelet part.
+!! @ingroup pseudo
 program pseudo
    use libxcmodule
    use pseudovars
@@ -134,7 +135,7 @@ program pseudo
    implicit real*8 (a-h,o-z)
    
    real(8) :: pp(maxdim*(maxdim+1)), yp(maxdim+1)
-   logical plotwf, mixref, energ, verbose, info, exists, ldump
+   logical :: plotwf, mixref, energ, verbose, info, exists, ldump
    !all electron orbital plots
    real(8) :: rae(nrmax), gf(nrmax,norbmx,nsmx)
    !more plotting arrays
@@ -179,9 +180,7 @@ program pseudo
    penref=1d100
    
    
-   !     mpi initialization
-   iproc=0
-   nproc=1
+   ! mpi initialization
    call mpi_init(ierr)
    call mpi_comm_rank(mpi_comm_world,iproc,ierr)
    call mpi_comm_size(mpi_comm_world,nproc,ierr)
@@ -1726,16 +1725,16 @@ program pseudo
            xp(1),xp(2),xp(3),' .... ',xp(ng-1),xp(ng)  
       write(6,*)'gaussians:',ng
       !     set up radial grid
-      nint=5*(ng+14)
+      nint0=5*(ng+14)
       rmax=min(15.d0*rprb,120.d0)
       a_grd=a0/400.d0
-      b_grd=log(rmax/a_grd)/(nint-2)
-      call radgrid(nint,rr,rw,rd,a_grd,b_grd,rmax)
+      b_grd=log(rmax/a_grd)/(nint0-2)
+      call radgrid(nint0,rr,rw,rd,a_grd,b_grd,rmax)
       write(6,'(a,t10,3(e11.4),a,2(e11.4))') ' r-grid: ',  &
-           rr(1),rr(2),rr(3),' .... ',rr(nint-1),rr(nint)  
-      write(6,*)'gridpoints:',nint
+           rr(1),rr(2),rr(3),' .... ',rr(nint0-1),rr(nint0)  
+      write(6,*)'gridpoints:',nint0
       write(6,*)
-      call crtvh(ng,lcx,lmax,xp,vh,nint,rmt,rmtg,ud,rr)
+      call crtvh(ng,lcx,lmax,xp,vh,nint0,rmt,rmtg,ud,rr)
       write(6,*)
       
       
@@ -1867,7 +1866,7 @@ program pseudo
          !    :          occup,aeval,chrg,dhrg,ehrg,res,wght,
          !    :          wfnode,psir0,wghtp0,
          !    :          rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,
-         !    :          vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,
+         !    :          vh,xp,rmt,rmtg,ud,nint0,ng,ngmx,psi,
          !    :          avgl1,avgl2,avgl3,ortprj,litprj,igrad,rr,rw,rd,
          !               the following lines differ from pseudo2.2
          !    :          iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,wghtloc,
@@ -1905,7 +1904,7 @@ program pseudo
                  occup,aeval,chrg,dhrg,ehrg,res,wght,&
                  wfnode,psir0,wghtp0,&
                  rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,&
-                 vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,&
+                 vh,xp,rmt,rmtg,ud,nint0,ng,ngmx,psi,&
                  avgl1,avgl2,avgl3,ortprj,litprj,igrad,rae,&
                  iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,&
                  wghthij,&
@@ -2176,7 +2175,7 @@ program pseudo
               !+105.0d0*gcorepp(4)*rcore**9)
          !fourpi = 16.d0*atan(1.d0)
          tt=0d0
-         do k= 1,nint
+         do k= 1,nint0
             r2=(rr(k)/rcore)**2
             tt=tt+  &
                  exp(-.5d0*r2)/fourpi *rw(k)  *(  &
@@ -2264,7 +2263,7 @@ program pseudo
          ! write out the local potential in real space
          open(17,file='local.pot')
          write(17,'(a)')'# r, vloc-vion, vion=-z/r, erf term, gpot term'
-         do k=1,nint
+         do k=1,nint0
             r=rr(k)
             gt=exp(-.5d0*(r/rloc)**2)*  &
                  (gpot(1) + gpot(2)*(r/rloc)**2+    &
@@ -2291,7 +2290,7 @@ program pseudo
             write(17,'(3(9x,a))')'#   r          ',&         
                  'v_'//il(l)//'(r,r)   ',&
                  'v_'//il(l)//'(r,rcov)'
-            do k=1,nint
+            do k=1,nint0
                r=rr(k)
                ppr1=rnrm1*r**lq    *exp(-.5d0*(r/r_l(l))**2)
                ppr2=rnrm2*r**(lq+2)*exp(-.5d0*(r/r_l2(l))**2)

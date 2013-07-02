@@ -59,6 +59,7 @@ bigdft-tool -a atomic-wf [options]:
 - @link fermi.f90 fermi @endlink
 - @link matchrotation.f90 matchrotation @endlink
 - @link wocc.f90 wocc @endlink
+- @link pseudo.f90 pseudo @endlink The pseudopotential generation tool
 
 @section D Documentation
 This documentation can be generated in the <tt>doc</tt> directory by <tt>make doxygen-doc</tt>.

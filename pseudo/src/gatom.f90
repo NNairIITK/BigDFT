@@ -1,51 +1,53 @@
+!> @file
+!! Generate atomic electronic configuration
+!! @author
+!!    Alex Willand, under the supervision of Stefan Goedecker
+!!    gpu accelerated routines by Raffael Widmer
+!!    parts of this program were based on the fitting program by matthias krack
+!!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
 
+
+!> Updated version with spin polarization and libxc support
+!! some notes about input variables:
+!! nspol are the spin channels for the xc function.
+!! nspin are spin components of orbitals with l > 0.
+!! nspin may differ from nspol in the relativistic case.
+!! the xc treatment and gaussian basis are initialized in the calling routine.
+!! energ requests a total energy calculation.
+!! verbose requests detailed output after the wfn is converged.
+!! above two logical variables have been moved from a common block.
+!! @note a note about the r_l2 variable: 
+!! this is a feature to test gaussian type projectors with two
+!! different length scales r_l and r_l2.
 subroutine gatom(energ, verbose)
-   
-   
-   !          updated version with spin polarization and libxc support
-   !          ________________________________________________________
-   
-   
-   !          some notes about input variables:
-   
-   !          nspol are the spin channels for the xc function.
-   !          nspin are spin components of orbitals with l > 0.
-   !          nspin may differ from nspol in the relativistic case.
-   !          the xc treatment and gaussian basis are initialized in the calling routine.
-   !          energ requests a total energy calculation.
-   !          verbose requests detailed output after the wfn is converged.
-   !          above two logical variables have been moved from a common block.
-   
-   !          a note about the r_l2 variable: 
-   !          this is a feature to test gaussian type projectors with two
-   !          different length scales r_l and r_l2.
-   
    
    use pseudovars
    use gatomvars
+
    implicit real*8 (a-h,o-z)
+
    !     local arrays
    real(8)::  hh(0:ng,0:ng,lmax+1,nspin),ss(0:ng,0:ng,lmax+1),  &
         hht(0:ng,0:ng),sst(0:ng,0:ng),hhsc(((ng+1)*(ng+2))/2,lmax+1),  &
         hhxc(((ng+1)*(ng+2))/2,lmax+1,nspin),  & ! only for the spin polarized case
         eval(0:ng),evec(0:ng,0:ng),pp1(0:ng,lpx),  &
-        pp2(0:ng,lpx),pp3(0:ng,lpx),potgrd(nint),  &
+        pp2(0:ng,lpx),pp3(0:ng,lpx),potgrd(nint0),  &
         rho(((ng+1)*(ng+2))/2,lmax+1,nspol),  &
-        rhoold(((ng+1)*(ng+2))/2,lmax+1,nspol),excgrd(nint),  &
-        vxcgrd(nint,nspol),pexgrd(nint),  &
-        ppr1(nint,lmax+1),ppr2(nint,lmax+1),ppr3(nint,lmax+1),  &
-        aux1(nint),aux2(nint,0:ng,lmax+1),  &
-        expxpr(0:ng,nint), tts(nspol)
+        rhoold(((ng+1)*(ng+2))/2,lmax+1,nspol),excgrd(nint0),  &
+        vxcgrd(nint0,nspol),pexgrd(nint0),  &
+        ppr1(nint0,lmax+1),ppr2(nint0,lmax+1),ppr3(nint0,lmax+1),  &
+        aux1(nint0),aux2(nint0,0:ng,lmax+1),  &
+        expxpr(0:ng,nint0), tts(nspol)
    
-   real(8):: rhogrd(nint,nspol),drhogrd(nint,nspol),  &
-        rhocore(nint,nspol)
+   real(8):: rhogrd(nint0,nspol),drhogrd(nint0,nspol),  &
+        rhocore(nint0,nspol)
    
    !          two lines for experimental feature: separable term with two r_l
    real(8):: qq1(0:ng,lpx),qq2(0:ng,lpx),qq3(0:ng,lpx), &
-        qqr1(nint,lmax+1),qqr2(nint,lmax+1),qqr3(nint,lmax+1)  
+        qqr1(nint0,lmax+1),qqr2(nint0,lmax+1),qqr3(nint0,lmax+1)  
    
-   real(8):: y1(nint),y2(nint),y3(nint),  &
-        rlist(0:nint),drlist(0:nint),ddrlist(0:nint)
+   real(8):: y1(nint0),y2(nint0),y3(nint0),  &
+        rlist(0:nint0),drlist(0:nint0),ddrlist(0:nint0)
    
    character(10):: is(2)
    real(8):: gamma
@@ -106,7 +108,7 @@ subroutine gatom(energ, verbose)
       !               done once in pseudo for i/o of nlcc.
       !
       
-      do k= 1,nint
+      do k= 1,nint0
          r2=(rr(k)/rcore)**2
          rhocore(k,1) =  &
               exp(-.5d0*r2) /fourpi  *(  &
@@ -121,7 +123,7 @@ subroutine gatom(energ, verbose)
          !           split the charge equally among the two channels
          !           even though the core charge should not be polarized,
          !           it is stored in two spin channels for further testing.
-         do k= 1,nint
+         do k= 1,nint0
             rhocore(k,1)=rhocore(k,1)*.5d0
             rhocore(k,2)=rhocore(k,1)
          end do
@@ -169,7 +171,7 @@ subroutine gatom(energ, verbose)
       rnrm1=1.d0/sqrt(.5d0*gamma(lq+1.5d0)*r_l(l)**(2*lq+3))
       rnrm2=1.d0/sqrt(.5d0*gamma(lq+3.5d0)*r_l2(l)**(2*lq+7))
       rnrm3=1.d0/sqrt(.5d0*gamma(lq+5.5d0)*r_l2(l)**(2*lq+11))
-      do k=1,nint
+      do k=1,nint0
          r=rr(k)
          ppr1(k,l)=rnrm1*r**lq    *exp(-.5d0*(r/r_l(l))**2)
          ppr2(k,l)=rnrm2*r**(lq+2)*exp(-.5d0*(r/r_l2(l))**2)
@@ -181,7 +183,7 @@ subroutine gatom(energ, verbose)
    
    
    !   external potential on grid
-   do k=1,nint
+   do k=1,nint0
       r=rr(k)
       pexgrd(k)=.5d0*(r/rprb**2)**2-zion*derf(r/(sqrt(2.d0)*rloc))/r  &
            + exp(-.5d0*(r/rloc)**2)*  &
@@ -190,7 +192,7 @@ subroutine gatom(energ, verbose)
    enddo
    
    !     store exp(-xp(i)*r**2) in expxpr()
-   do k=1,nint
+   do k=1,nint0
       r=rr(k)
       do i=0,ng
          expxpr(i,k)= exp(-xp(i)*r**2)
@@ -198,7 +200,7 @@ subroutine gatom(energ, verbose)
    enddo
    
    !     auxillary grids for resid:
-   do k=1,nint
+   do k=1,nint0
       r=rr(k)
       aux1(k)=fourpi/rw(k)
       do ll=0,lmax
@@ -411,7 +413,7 @@ subroutine gatom(energ, verbose)
       enddo
       !
       !     calc. gradient only if xc-func. with gradient-corrections
-      !     rho on grid ij=1,nint:
+      !     rho on grid ij=1,nint0:
       !     rhogrd(k) =+ rmt(k,i,j,l+1)*rho(i,j,l+1)/(4*pi)
       !     corresponding gradient:
       !     drhogrd(k)=+ rmtg(k,i,j,l+1)*rho(i,j,l+1)/(4*pi)
@@ -421,20 +423,20 @@ subroutine gatom(energ, verbose)
       
       
       tt=1.d0/(16.d0*atan(1.d0))
-      call dgemv('n',nint,((ng+1)*(ng+2))/2*(lcx+1),  &
-           tt,rmt,nint,rho(:,:,1),1,0.d0,rhogrd(:,1),1)
+      call dgemv('n',nint0,((ng+1)*(ng+2))/2*(lcx+1),  &
+           tt,rmt,nint0,rho(:,:,1),1,0.d0,rhogrd(:,1),1)
       !        try yo keep it simple. same procedure for spin down charge
       if(nspol==2)then
-         call dgemv('n',nint,((ng+1)*(ng+2))/2*(lcx+1),  &
-              tt,rmt,nint,rho(:,:,2),1,0.d0,rhogrd(:,2),1)
+         call dgemv('n',nint0,((ng+1)*(ng+2))/2*(lcx+1),  &
+              tt,rmt,nint0,rho(:,:,2),1,0.d0,rhogrd(:,2),1)
       end if
       !     for ggaenergy15, we don't need the gradient, as that driver
       !     provides the derivative by finite differences on the radial grid.
       !     therefore, calculation of drhogrid is commented out and not
       !     generalized to the spin polarized case.
       
-      !        if(igrad) call dgemv('n',nint,((ng+1)*(ng+2))/2*(lcx+1),
-      !    &           tt,rmtg,nint,rho,1,0.d0,drhogrd,1)
+      !        if(igrad) call dgemv('n',nint0,((ng+1)*(ng+2))/2*(lcx+1),
+      !    &           tt,rmtg,nint0,rho,1,0.d0,drhogrd,1)
       
       
       
@@ -442,28 +444,28 @@ subroutine gatom(energ, verbose)
       !      is added to the charge density
       !      prior to calling the xc drivers
       if(rcore>0d0)then
-         do k=1,nint
+         do k=1,nint0
             rhogrd(k,1) = rhogrd(k,1) + rhocore(k,1)
          end do
       end if
       
       if(rcore>0d0.and.nspol==2)then
-         do k=1,nint
+         do k=1,nint0
             rhogrd(k,2) = rhogrd(k,2) + rhocore(k,2)
          end do
       end if
       
       
       !     hutter
-      !      call evxc(nint,rr,rhogrd,drhogrd,vxcgrd,excgrd)
+      !      call evxc(nint0,rr,rhogrd,drhogrd,vxcgrd,excgrd)
       !     goedecker
       !     libxc wrapper
-      !     call ggaenergy_15(nspol,nint,rw,rd,rhogrd,enexc,vxcgrd,excgrd)
-      !     call ggaenergy_15(nspol,nint,rr,rw,rd,rhogrd,enexc,vxcgrd,excgrd)
-      call drivexc(nspol,nint,rr,rw,rd,rhogrd,enexc,vxcgrd,excgrd)
+      !     call ggaenergy_15(nspol,nint0,rw,rd,rhogrd,enexc,vxcgrd,excgrd)
+      !     call ggaenergy_15(nspol,nint0,rr,rw,rd,rhogrd,enexc,vxcgrd,excgrd)
+      call drivexc(nspol,nint0,rr,rw,rd,rhogrd,enexc,vxcgrd,excgrd)
       !        multiply with dr*r^2 to speed up calculation of matrix elements
       !        open(11,file='rhogrd')
-      do k=1,nint
+      do k=1,nint0
          vxcgrd(k,:)=vxcgrd(k,:)*rw(k)/fourpi
       enddo
       !        close(11)
@@ -504,20 +506,20 @@ subroutine gatom(energ, verbose)
       
       !     potential from xc libraries 
       
-      !     do 8049,k=1,nint
+      !     do 8049,k=1,nint0
       !     8049 hhsc(i,j,l+1) =+ vxcgrd(k)*rmt(k,i,j,l+1)
       
       !     modification: if spin polarized, add this term to hhxc, not hhsc.
       !                   hxc is a spin polarized matrix only for that purpose.
       hhxc=0d0
       if(nspol==1)then
-         call dgemv('t',nint,(lmax+1)*((ng+1)*(ng+2))/2,1.0d0,  &
-              rmt,nint,vxcgrd(:,1),1,1.d0,hhsc,1)
+         call dgemv('t',nint0,(lmax+1)*((ng+1)*(ng+2))/2,1.0d0,  &
+              rmt,nint0,vxcgrd(:,1),1,1.d0,hhsc,1)
       else
-         call dgemv('t',nint,(lmax+1)*((ng+1)*(ng+2))/2,1.0d0,  &
-              rmt,nint,vxcgrd(:,1),1,0.d0,hhxc(:,:,1),1)
-         call dgemv('t',nint,(lmax+1)*((ng+1)*(ng+2))/2,1.0d0,  &
-              rmt,nint,vxcgrd(:,2),1,1.d0,hhxc(:,:,2),1)
+         call dgemv('t',nint0,(lmax+1)*((ng+1)*(ng+2))/2,1.0d0,  &
+              rmt,nint0,vxcgrd(:,1),1,0.d0,hhxc(:,:,1),1)
+         call dgemv('t',nint0,(lmax+1)*((ng+1)*(ng+2))/2,1.0d0,  &
+              rmt,nint0,vxcgrd(:,2),1,1.d0,hhxc(:,:,2),1)
          
          !        spin polarized xc term end
       end if
@@ -586,7 +588,7 @@ subroutine gatom(energ, verbose)
         noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,  &
         aeval,res,  &
         hsep,  &
-        ud,nint,ng,ngmx,psi,rho,pp1,pp2,pp3,  &
+        ud,nint0,ng,ngmx,psi,rho,pp1,pp2,pp3,  &
         potgrd,pexgrd,vxcgrd,rr,rw,ppr1,ppr2,ppr3,aux1,aux2,  &
         expxpr)
    !     etot evaluates ehartree using rhogrd,
@@ -594,7 +596,7 @@ subroutine gatom(energ, verbose)
         noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,  &
         aeval,  &
         rprb,zion,rloc,gpot,r_l,r_l2,hsep,  &
-        xp,ud,nint,ng,ngmx,psi,rho,pp1,pp2,pp3,  &
+        xp,ud,nint0,ng,ngmx,psi,rho,pp1,pp2,pp3,  &
         vxcgrd,excgrd,rhogrd,rhocore,occup,rr,rw,  &
         expxpr,etotal)
    !
@@ -741,16 +743,16 @@ subroutine gatom(energ, verbose)
                dnode=0.d0
                ddnode=0.0d0
                !     find outer max of psi, search from ~10 bohr down
-               call detnp(nint,rr,10.0d0,kout)
+               call detnp(nint0,rr,10.0d0,kout)
                ttrmax=rr(kout)
                ra=ttrmax
                ttmax= dabs(wave2(ng,l,psi(0,nocc,l+1,ispin),  &
-                    expxpr,ra,kout,nint))
+                    expxpr,ra,kout,nint0))
                !      print*,'ttmax=',ttmax
                do k=kout,1, -1
                   ra= rr(k)
                   ttpsi= dabs(wave2(ng,l,psi(0,nocc,l+1,ispin),  &
-                       expxpr,ra,k,nint))
+                       expxpr,ra,k,nint0))
                   if ( ttpsi .gt. ttmax  &
                        .and. ttpsi .gt. 1.0d-4 ) then
                      ttmax=ttpsi
@@ -760,14 +762,14 @@ subroutine gatom(energ, verbose)
                enddo
                !     search up to 90% of rmax
                ttrmax=max(0.90d0*ttrmax,rr(1))
-               call detnp(nint,rr,ttrmax,kout)
+               call detnp(nint0,rr,ttrmax,kout)
                ttrmax=rr(kout)
                !       print*,'search up to ',ttrmax,ttmax
                !     calc wavefunction and it's first two derivatives on the grid
                !
                do k=1,kout
                   call wave3(ng,l,xp,psi(0,nocc,l+1,ispin),  &
-                       expxpr,rr(k),k,nint,y1(k),y2(k),y3(k))
+                       expxpr,rr(k),k,nint0,y1(k),y2(k),y3(k))
                enddo
                
                do k = 2,kout

@@ -1,9 +1,12 @@
 /*! @dir pseudo
-@brief README for the pseudo generation program
+@brief README for the pseudopotential generation program
+
+\defgroup pseudo The pseudo program
+@brief The pseudopotential generation program: This program is used to generate the pseudopotentials used by the BigDFT code.
+@details
 
 What is pseudo2.5?
 =================
-
 
 Pseudo is a program to generate accurate, soft and transferable Goedecker-type pseudopotentials. 
 The analytic form of the potentials is optimized using a downhill simplex method for least square
