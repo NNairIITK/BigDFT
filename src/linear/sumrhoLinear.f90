@@ -1799,7 +1799,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   ! Local variables
   integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
   integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, jjorb, ind, ikernel
-  integer :: matrixindex_in_compressed, iorbmin, iorbmax, jorb
+  integer :: matrixindex_in_compressed, iorbmin, iorbmax, jorb, iall, istat
   real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, tt1, hxh, hyh, hzh, factor, hx, hy, hz, ref_value
   real(kind=8) :: diff
   real(kind=8),dimension(:),allocatable :: psir, psirwork, psirt, psirtwork, rho_local, rho, rho_check
@@ -1810,6 +1810,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   real(kind=8),parameter :: tol_transpose=1.d-14
   real(kind=8),parameter :: tol_calculation_mean=1.d-12
   real(kind=8),parameter :: tol_calculation_max=1.d-10
+  character(len=200), parameter :: subname='check_sumrho'
 
   call timing(iproc,'check_sumrho','ON')
 
@@ -1951,7 +1952,9 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! First determine how many orbitals one has for each grid point in the current slice
       ii3s=denspot%dpbox%nscatterarr(iproc,3)+1
       ii3e=denspot%dpbox%nscatterarr(iproc,3)+denspot%dpbox%nscatterarr(iproc,1)
-      weight=f_malloc((/1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='weight')
+      !weight=f_malloc((/1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='weight')
+      allocate(weight(1:lzd%glr%d%n1i,1:lzd%glr%d%n2i,ii3s:ii3e), stat=istat)
+      call memocc(istat, weight, 'weight', subname)
       if (denspot%dpbox%nscatterarr(iproc,1)>0) then
           call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
       end if
@@ -1981,7 +1984,10 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       ! The array orbital_id contains the IDs of the orbitals touching a given gridpoint
       nmax=maxval(weight)
-      orbital_id=f_malloc((/1.to.nmax,1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='orbital_id')
+      !orbital_id=f_malloc((/1.to.nmax,1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='orbital_id')
+      allocate(orbital_id(1:nmax,1:lzd%glr%d%n1i,1:lzd%glr%d%n2i,ii3s:ii3e), stat=istat)
+      call memocc(istat, orbital_id, 'orbital_id', subname)
+
       if (denspot%dpbox%nscatterarr(iproc,1)>0) then
           call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
       end if
@@ -2086,7 +2092,6 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       end do
       !$omp end parallel
     
-    
       call f_free(matrixindex_in_compressed_auxilliary)
     
       ! Now calculate the charge density in the transposed way using the standard routine
@@ -2131,8 +2136,15 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       if (iproc==0) call yaml_close_map()
     
-      call f_free(weight)
-      call f_free(orbital_id)
+      !call f_free(weight)
+      !call f_free(orbital_id)
+      iall=-product(shape(weight))*kind(weight)
+      deallocate(weight, stat=istat)
+      call memocc(istat, iall, 'weight', subname)
+      iall=-product(shape(orbital_id))*kind(orbital_id)
+      deallocate(orbital_id, stat=istat)
+      call memocc(istat, iall, 'orbital_id', subname)
+
       call f_free(rho_check)
       call f_free(rho)
 
