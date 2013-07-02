@@ -43,6 +43,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      energy0=energy
   end if
 
+
   do it=1,itmax
 
      grad_cov=f_malloc((/tmb%orbs%norb,orbs%norbp/), id='grad_cov')
