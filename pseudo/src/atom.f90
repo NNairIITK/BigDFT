@@ -82,7 +82,7 @@ subroutine atom
        open(unit=50,file='psppar',form='formatted',position='append')
 
 !      it is better to append and not overwrite existing weights
-       open(unit=60,file='weights.par',position='append')
+       open(unit=60,file='input.weights',position='append')
 !
 !     begin main loop
 !
@@ -322,10 +322,10 @@ subroutine atom
           weight=0.0d0
           if (zo(iorb).gt.1.0d-4) then
             write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
-             '1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  1.0e0 0.0e0 0.0e0'
+             '1.0e5   1.0e5   0.0e0  0.0e0   1.0e5  1.0e0 0.0e0 0.0e0'
           else
             write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
-             '0.0e0   0.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0'
+             '1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0'
           endif
         enddo
         close(unit=60)
@@ -372,14 +372,14 @@ subroutine atom
 !cc     weights.par
 
 !     FITPAR, do not overwrite, append
-      open(unit=60,file='FITPAR',position='append')
-      write(60,*)' FITPAR written/appended by atom.f90: auto' 
+      open(unit=60,file='input.fitpar',position='append')
+      write(60,*)' fitting parameters appended by atom.f90: auto' 
       close(unit=60)
 
 
-!     and input.dat
-      open(unit=60,file='input.dat',position='append')
-      write(60,'(a)') "input line written by atom: -plot"
+!     and input.pseudo
+      open(unit=60,file='input.pseudo',position='append')
+      write(60,'(a)') "input line written by atom: -plot -ng 20 -rij 2.0"
       close(unit=60)
 
 
@@ -2138,9 +2138,6 @@ subroutine atom
 !
 !  Intergration loop.
 !
-
-      print *, ' SO QUA ' 
-
       nodes = 0
       do 40 j=6,nctp
 !
@@ -2611,9 +2608,8 @@ subroutine atom
 !
 !   printout
 !
- 
+
       if(iorb==ncore+nval) then
-         print *, ' SO QUI MO QUI SCRIVO  ' 
          write(plotfile, '(a,i0,a)') 'ae.pot.conf.',nconf ,'.plt'
          open(unit=37,file=trim(plotfile),status='unknown')
          write(37,'(20e20.10)') r(1), 0.0D0

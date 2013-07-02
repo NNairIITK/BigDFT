@@ -61,7 +61,7 @@ subroutine driveLDAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(1,1)=pot(2,1)
 
    return
-end subroutine
+end subroutine driveLDAsimple
 
 
 subroutine driveLDApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
@@ -93,7 +93,7 @@ subroutine driveLDApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(1,:)=pot(2,:)
 
    return
-end subroutine
+end subroutine driveLDApolarized
 
 
 
@@ -560,7 +560,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(1,1)=pot(2,1)
 
    return
-end subroutine
+end subroutine driveGGAsimple
 
 
 
@@ -1165,7 +1165,7 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(1,:)=pot(2,:)
 
    return
-end subroutine
+end subroutine driveGGApolarized
 
 
 

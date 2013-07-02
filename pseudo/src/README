@@ -1,0 +1,13 @@
+/*! @dir pseudo/src
+
+Changes as of Fri Jun 28 by Alex Willand
+
+- modules in pseudo.f90 with descriptions of the relevant variables
+- much shorter dummy argument lists for amoeba, ppack, penalty, gatom
+- radgrid.f and crtvh.f are ported to f90
+- labels, gotos and capital letters are widely eliminated
+- indention mostly adjusted to 3 spaces per level and 5 for line continuation
+- pawpatch routines (including gatom_mofied) are left unmodified and should be tested 
+
+*/
+

@@ -1,17 +1,25 @@
+!> @file
+!! Part of the pseudo program (pseudopotential generation)
+!! @author
+!!    Alex Willand, under the supervision of Stefan Goedecker
+!!    gpu accelerated routines by Raffael Widmer
+!!    parts of this program were based on the fitting program by Matthias Krack
+!!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
 
+
+
+!> This procedure is supposed to call a minimum of
+!! routines taken from an older version of BigDFT
+!! to calculate the kinetic energy in a wavelet
+!! basis. Input shall be a given gaussian
+!! representation of the wavefunction.
 subroutine  ekin_wvlt(verbose,iproc,nproc,ng,ngmx,&
         noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,&
         nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,frmult,&
          xp_in,psi_in,occup_in, ekin_pen,time) 
-!This procedure is supposed to call a minimum of
-!routines taken from an older version of BigDFT
-!to calculate the kinetic energy in a wavelet
-!basis. Input shall be a given gaussian
-!representation of the wavefunction.
-
-
 
    implicit real*8 (a-h,o-z)
+
 !     The shape of the psi and xp arrayy as defined in the main program pseudo.f
    real(8):: psi_in(0:ngmx,noccmx,lmx,nsmx),xp(0:ngmx),xp_in(0:ngmx),&
                 occup_in(noccmx,lmx,nsmx),rxyz(3),drxyz(3)
@@ -526,11 +534,11 @@ subroutine createAtomicOrbitals(iproc, nproc, nspin,&
 END SUBROUTINE
 
 
+!> Returns an input guess orbital that is a Gaussian centered at a Wannier center
+!! exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 ))
+!! in the arrays psi_c, psi_f
         subroutine crtonewave(n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hgrid, &
                    nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,psig)
-! returns an input guess orbital that is a Gaussian centered at a Wannier center
-! exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 ))
-! in the arrays psi_c, psi_f
         implicit real*8 (a-h,o-z)
         parameter(nw=16000)
         dimension xp(nterm),psiat(nterm),fac_arr(ntp)
@@ -710,13 +718,13 @@ END SUBROUTINE
 
 
 
+!> y = y + (kinetic energy operator)x 
+!! This version does not compute the y array, as only the scalar ekin
+!! is needed and a bit of time can be saved this way. Remove all !y
+!! comments to undo this modification
          subroutine ConvolkineticP(n1,n2,n3, &
                nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
                hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x,y,ekin)
-!   y = y + (kinetic energy operator)x 
-!   This version does not compute the y array, as only the scalar ekin
-!   is needed and a bit of time can be saved this way. Remove all !y
-!   comments to undo this modification
     implicit real*8 (a-h,o-z)
     logical :: firstcall=.true.
     integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
@@ -1125,9 +1133,9 @@ END SUBROUTINE
     end subroutine ConvolkineticP
 
 
+!> Calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
    subroutine system_size(rxyz,rad, &
                    cxmin,cxmax,cymin,cymax,czmin,czmax)
-! calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
 
 
    implicit real*8 (a-h,o-z)
@@ -1171,11 +1179,9 @@ END SUBROUTINE
 
 
 
-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
-
-      subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
-! calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
-! the output psiatn is a normalized version of psiat
+!> Calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
+!! the output psiatn is a normalized version of psiat
+    subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
         implicit real*8 (a-h,o-z)
         dimension xp(ng),psiat(ng),psiatn(ng)
 !        dimension xp(31),psiat(31),psiatn(31)
@@ -1239,8 +1245,6 @@ END SUBROUTINE
         END SUBROUTINE
 
 
-
-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
 subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
   
@@ -1680,6 +1684,4 @@ END SUBROUTINE calc_coeff_inguess
        implicit real*8 (a-h,o-z)
          psi_g=(X-GAU_CEN)**N_GAU*exp(-0.5d0*((X-GAU_CEN)/GAU_A)**2)
        end function psi_g
-
-
 

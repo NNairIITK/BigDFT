@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
 !> Test yaml output module
 program yaml_test
    use yaml_output
@@ -14,10 +15,6 @@ program yaml_test
    use dynamic_memory
    implicit none
    !logical :: fl
-   real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
-   real(kind=8), dimension(:), pointer :: extra_ref
-
-   integer(kind=8), dimension(2) :: testarr
    !First document
   
    call yaml_new_document()

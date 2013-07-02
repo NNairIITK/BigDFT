@@ -48,7 +48,7 @@ pseudo_LDADD = \
 
   
 #List of sources (objects) grouped by dependencies
-low_level = crtvh.f \
+low_level = \
 	wave.f \
 	wave2.f \
 	wave3.f \
@@ -57,23 +57,24 @@ low_level = crtvh.f \
 	pj2test.f \
 	xpown.f \
 	gamma.f \
-	radgrid.f \
 	zero.f \
 	zbrent.f\
 	atom.splines.f
 
 f90_level = \
-	ekin_gauss_wvlt.f90 \
 	amoeba.f90 \
-	gatom.f90 \
-	etot.f90 \
-	ppack.f90 \
-	penalty.f90 \
+	crtvh.f90 \
+	ekin_gauss_wvlt.f90 \
 	errorhandler.f90 \
+	etot.f90 \
+	gatom.f90 \
 	gatom_modified.f90 \
-	pawpatch.f90\
 	patchgenerator.f90 \
-	pawpatch.dirac.f90 
+	pawpatch.f90\
+	pawpatch.dirac.f90 \
+	penalty.f90 \
+	ppack.f90 \
+	radgrid.f90
 
 
 xc_level = \

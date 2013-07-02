@@ -1,9 +1,20 @@
+!> @file
+!! Test the error handling part of flib
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed oneder the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Routine testing the error handling part of flib
 subroutine test_error_handling()
   use yaml_output
   use dictionaries!error_handling
   implicit none
   !local variables
-  integer :: ival,err1,ERR_TOTO,ERR_TITI,ERR_GRAVE
+  integer :: ival,ERR_TOTO,ERR_TITI,ERR_GRAVE
   external :: abort_toto,abort_titi,abort1,abort2
 
   call yaml_comment('Error Handling Module Test',hfill='~')
