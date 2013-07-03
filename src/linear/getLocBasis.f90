@@ -463,7 +463,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           ratio_deltas=ediff/delta_energy_prev
           if (iproc==0) write(*,*) 'ediff, delta_energy_prev', ediff, delta_energy_prev
           if (iproc==0) write(*,*) 'ratio_deltas',ratio_deltas
-          if ((ediff>deltaenergy_multiplier_TMBexit*delta_energy_prev .or. energy_increased) .and. it>1) then
+          !if ((ediff>deltaenergy_multiplier_TMBexit*delta_energy_prev .or. energy_increased) .and. it>1) then
+          if ((it>=nit_basis .or.  energy_increased) .and. it>1) then
               if (iproc==0) write(*,*) 'reduce the confinement'
               reduce_conf=.true.
           end if
@@ -525,8 +526,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_HYBRID) &
           write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, hybrid, diff', &
           it, fnrm, fnrmMax, trH, ediff
-      if(it>=nit_basis .or. it_tot>=3*nit_basis .or. reduce_conf) then
-          if(it>=nit_basis .and. .not.energy_increased) then
+      !!if(it>=nit_basis .or. it_tot>=3*nit_basis .or. reduce_conf) then
+      !!    if(it>=nit_basis .and. .not.energy_increased) then
+      if(it>=nit_basis .or. it_tot>=3*nit_basis) then
+          if(it>=nit_basis) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
