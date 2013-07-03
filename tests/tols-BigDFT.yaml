@@ -295,7 +295,7 @@ cleanup:
 directmin:
  Patterns to ignore:
  - Wavefunction written
- Epsilon: 3.3e-10
+ Epsilon: 3.5e-10
 
 restartdisk_charge:
  Patterns to ignore:
