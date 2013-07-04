@@ -1,6 +1,6 @@
 1                                number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
 80       0                       outer loop iterations (low, high)
-100      0                       basis iterations (low, high)
+5      0                       basis iterations (low, high)
 1        1                       Kernel iterations (low, high) - directmin only
 1        0   	                  Density iterations (low, high)
 0        0                       DIIS history for basis (low, high)

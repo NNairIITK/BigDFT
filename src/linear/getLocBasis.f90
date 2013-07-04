@@ -463,8 +463,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           ratio_deltas=ediff/delta_energy_prev
           if (iproc==0) write(*,*) 'ediff, delta_energy_prev', ediff, delta_energy_prev
           if (iproc==0) write(*,*) 'ratio_deltas',ratio_deltas
-          !if ((ediff>deltaenergy_multiplier_TMBexit*delta_energy_prev .or. energy_increased) .and. it>1) then
-          if ((it>=nit_basis .or.  energy_increased) .and. it>1) then
+          if ((ediff>deltaenergy_multiplier_TMBexit*delta_energy_prev .or. energy_increased) .and. it>1) then
+          !if ((it>=nit_basis .or.  energy_increased) .and. it>1) then
               if (iproc==0) write(*,*) 'reduce the confinement'
               reduce_conf=.true.
           end if

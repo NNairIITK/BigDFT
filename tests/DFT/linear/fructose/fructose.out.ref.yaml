@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.29
- Timestamp of this run                 : 2013-06-12 09:32:11.554
+ Version Number                        : 1.7.0.32
+ Timestamp of this run                 : 2013-07-03 16:59:21.614
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -77,6 +77,7 @@
  #|domain                       Domain to add to the hostname to find the IP                 
  #|inguess_geopt 0              0= wavlet input guess, 1= real space input guess             
  #|store_index T                linear scaling: store indices or recalculate them            
+ #|check_sumrho 2               linear sumrho: 0=no check, 1=light check, 2=full check       
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
@@ -129,25 +130,29 @@
  #... (file:input.lin).....................................................Linear Parameters
  #|1              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
  #|80             outer loop iterations (low, high)                                          
- #|100            basis iterations (low, high)                                               
- #|1              kernel iterations (low, high)                                              
+ #|5              basis iterations (low, high)                                               
+ #|1              kernel iterations (low, high) - directmin only                             
+ #|1              density iterations (low, high)                                             
  #|0              DIIS history for basis (low, high)                                         
- #|0              DIIS history for kernel (low, high)                                        
+ #|0              DIIS history for kernel (low, high) - directmin only                       
+ #|0              DIIS history for density mixing (low, high)                                
  #|.5d0     .     density mixing parameter (low, high)                                       
  #|1.d-11   1.d-1 outer loop convergence (low, high)                                         
  #|4.d-5    4.d   basis convergence (low, high)                                              
  #|1.d0     1.    multiplier to (exit one TMB optimization, fix TMB completely). Only used fo
  #|-0.5d0         factor to reduce the confinement. Only used for hybrid mode.               
- #|1.d-9    1.d   kernel convergence (low, high)                                             
+ #|1.d-5    1.d   kernel convergence (low, high) - directmin only                            
+ #|1.d-9    1.d   density convergence (low, high)                                            
  #|1.d-11         convergence criterion on density to fix TMBS                               
  #|103            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
  #|1.d0     0.    initial step size for basis optimization (DIIS, SD)                        
+ #|0.2d0          initial step size for kernel update (SD), curve fitting for alpha update - 
  #|-1.8d0   1.8d  lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted a
  #|5              number of iterations in the preconditioner                                 
  #|1  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|3.d-2          fscale: length scale over which complementary error function decays from 1 
  #|0 F F          Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|F F            fragment calculation; calculate transfer_integrals                         
+ #|F F F          fragment calculation; calculate transfer_integrals; constrained DFT calcula
  #|C  4 1.4d-1 1.4d-1 0.0d-2 3.2 3.2 8.d0 Atom name, number of basis functions per atom, pref
  #|O  4 1.4d-1 1.4d-1 0.0d-2 3.2 3.2 8.d0 Atom name, number of basis functions per atom, pref
  #|H  1 1.4d-1 1.4d-1 0.0d-2 3.2 3.2 8.d0 Atom name, number of basis functions per atom, pref
@@ -361,6 +366,14 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
+ Checking operations for sumrho:
+   Tolerance for the following test    :  9.999999999999999988E-15
+   transposition check, mean error     :  0.000000000000000000E+00
+   transposition check, max error      :  0.000000000000000000E+00
+   Tolerance for the following test    :  9.999999999999999799E-13
+   calculation check, error sum        :  1.778919459473328279E-14
+   Tolerance for the following test    :  1.000000000000000036E-10
+   calculation check, error max        :  6.821210263296961784E-13
  Ion-Ion interaction energy            :  4.60424925840373E+02
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -71.999999033643
@@ -386,31 +399,15 @@
      Box                               :  [  135,  121,  119 ]
      MPI tasks                         :  4
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  17742,  419 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  17722,  419 ]
    Tolerances for this check: [ 2.75686670347478425E-07,  1.33226762955018785E-14]
    Maxdiff for transpose (checksum)    :  1.01863406598567963E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  16401,  411 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  16378,  411 ]
    Tolerances for this check: [ 1.77374002368196897E-06,  1.33226762955018785E-14]
    Maxdiff for transpose (checksum)    :  6.98491930961608887E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  135,  121,  119 ]
-   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  135,  121,  119 ]
@@ -510,46 +507,46 @@
    MPI tasks                           :  4
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x:  5.50449191E-02, y:  6.70161020E-02, z:  6.18779055E-02, 
-                    total:  1.06536267E-01}
- Clean forces norm (Ha/Bohr): {maxval:  1.374452153823E-01, fnrm2:  1.070959418707E-01}
- Raw forces norm (Ha/Bohr): {maxval:  1.650195316746E-01, fnrm2:  1.199256662872E-01}
+ Average noise forces: {x:  5.54902587E-02, y:  4.33927240E-02, z:  1.70667489E-02, 
+                    total:  7.24801437E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  1.171375197409E-01, fnrm2:  7.488497047403E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  1.324658098280E-01, fnrm2:  8.154812877884E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [-1.535693183091E-02, -2.661457416583E-02, -2.526034075781E-02]} # 0001
- -  {C: [-1.244524665387E-02, -9.364915266326E-03,  1.104766720437E-02]} # 0002
- -  {C: [ 1.311617526473E-02, -2.016539060646E-02,  1.064053762100E-02]} # 0003
- -  {C: [ 3.002251715313E-02,  3.272280336164E-02, -3.827501959286E-02]} # 0004
- -  {O: [ 5.080290453698E-02, -2.067654011061E-02,  8.213808769433E-02]} # 0005
- -  {C: [-1.811403300016E-02,  6.873293262852E-03, -7.222842368002E-03]} # 0006
- -  {O: [ 3.613357217580E-02,  3.380514945468E-02,  8.601612078446E-02]} # 0007
- -  {O: [ 6.641594881415E-02,  1.972772746081E-02,  5.608894342308E-02]} # 0008
- -  {O: [ 3.502389747923E-02,  1.156017778043E-01, -6.835003709522E-03]} # 0009
- -  {C: [ 3.327779963268E-02,  1.568060009294E-02, -5.547881049037E-02]} # 0010
- -  {O: [-3.292079618179E-02, -2.728676850058E-02,  4.860847254876E-04]} # 0011
- -  {O: [-4.336160734077E-03,  7.412800607000E-02,  1.156608129734E-01]} # 0012
- -  {H: [ 2.031937967961E-02, -7.294248519530E-03, -1.643468935076E-02]} # 0013
- -  {H: [-1.924395454028E-02, -4.360840798136E-02, -1.507909539645E-02]} # 0014
- -  {H: [-1.715368168039E-02, -1.435038207182E-02,  2.965981192310E-03]} # 0015
- -  {H: [-6.596690780020E-03,  1.215635143290E-02,  7.836072035700E-03]} # 0016
- -  {H: [-5.745344401813E-03, -3.531641856978E-02, -2.862028567824E-02]} # 0017
- -  {H: [ 5.179436531383E-03, -4.965166665733E-03, -7.741747043347E-03]} # 0018
- -  {H: [-5.938903010237E-03,  1.972237777163E-02, -2.259866958947E-03]} # 0019
- -  {H: [-1.425255417965E-02, -2.486042069914E-02, -1.411562572561E-02]} # 0020
- -  {H: [ 6.497349861496E-03, -2.661848811195E-02, -2.485743738919E-02]} # 0021
- -  {H: [-8.875020404687E-02,  1.339200813810E-02, -4.437480415033E-02]} # 0022
- -  {H: [-5.386390825221E-03,  5.813293832336E-03, -4.689385742133E-02]} # 0023
- -  {H: [-5.054808926392E-02, -8.850166741312E-02, -3.943088162137E-02]} # 0024
+ -  {C: [-3.952569214199E-02, -1.474180438595E-02, -1.241773348161E-02]} # 0001
+ -  {C: [ 1.010908709155E-03,  3.979166208017E-03,  6.997386569335E-03]} # 0002
+ -  {C: [ 9.318992492988E-04, -2.345981639976E-02,  1.148076943927E-03]} # 0003
+ -  {C: [ 6.109716128201E-02,  2.805808363905E-02, -3.397979441047E-02]} # 0004
+ -  {O: [ 2.749655644806E-02, -5.002025549571E-03,  1.287107168652E-02]} # 0005
+ -  {C: [-5.376019859021E-05,  7.329991691671E-03,  1.418578805789E-02]} # 0006
+ -  {O: [-2.915186093274E-03,  5.296657178844E-02,  5.665097192774E-02]} # 0007
+ -  {O: [ 1.145980380188E-01, -2.147486655341E-02,  1.128354198846E-02]} # 0008
+ -  {O: [-7.920099686090E-03,  8.004906359610E-02, -3.590617696600E-02]} # 0009
+ -  {C: [ 3.869335385206E-02,  2.153394613809E-02, -5.732791100999E-02]} # 0010
+ -  {O: [-8.979626325887E-03, -6.744278824204E-02,  3.458809254697E-02]} # 0011
+ -  {O: [-2.276651368301E-02,  2.404980808000E-02,  8.254101046201E-02]} # 0012
+ -  {H: [ 1.234392174137E-02, -8.633308545273E-03, -3.203143200219E-03]} # 0013
+ -  {H: [-1.637559414157E-02, -3.306025857223E-02, -7.470311670017E-03]} # 0014
+ -  {H: [-3.930299676436E-02,  1.232099741432E-02,  1.144163497997E-02]} # 0015
+ -  {H: [-1.224127306441E-02,  6.214104082161E-03,  8.396912359208E-03]} # 0016
+ -  {H: [-7.849613465263E-03, -2.485876482555E-02, -1.415915909775E-02]} # 0017
+ -  {H: [ 1.643238025016E-02, -3.981332191019E-03,  3.084779138856E-02]} # 0018
+ -  {H: [-5.491737798234E-03,  9.608401826060E-03,  2.631600389202E-03]} # 0019
+ -  {H: [-5.221350463222E-03, -3.405955760144E-03, -6.997710862951E-04]} # 0020
+ -  {H: [-3.802943133127E-03, -1.381211142575E-02, -2.061746851419E-02]} # 0021
+ -  {H: [-6.110857504165E-02,  1.409930710404E-02, -2.196355090821E-02]} # 0022
+ -  {H: [ 2.551777983022E-03,  1.814901027504E-02, -4.392820053788E-02]} # 0023
+ -  {H: [-4.160103553325E-02, -5.848541939230E-02, -2.191065841717E-02]} # 0024
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  82.23
-   Elapsed time (s)                    :  41.69
+   CPU time (s)                        :  79.60
+   Elapsed time (s)                    :  41.73
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations             :  113372
-   Tot. No. of Deallocations           :  113372
+   Tot. No. of Allocations             :  113597
+   Tot. No. of Deallocations           :  113597
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  255
