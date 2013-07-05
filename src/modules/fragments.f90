@@ -34,6 +34,19 @@ module module_fragments
          real(gp), dimension(:,:), pointer, optional :: fxyz
          character(len =*), intent(out), optional :: comment
       END SUBROUTINE read_atomic_file
+
+      subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
+                 basis_overlap, coeff, orbs)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: iproc, nproc, norb
+        integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
+        type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
+        type(orbitals_data), optional, intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
+        type(sparseMatrix),intent(in) :: basis_overlap
+        real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
+      end subroutine reorthonormalize_coeff
    end interface
 
 
@@ -1276,11 +1289,11 @@ contains
     integer, dimension(input_frag%nfrag), intent(in) :: input_frag_charge
     integer, intent(in) :: iproc
 
-    integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, nelecfrag_tot, itmb, jtmb
-    integer :: nksorbs_correct, nksorbsp_correct, ksisorb_correct
+    integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, nelecfrag_tot, itmb, jtmb, iall, istat
     real(gp), dimension(:,:), allocatable :: coeff_final, ks, ksk
     !*real(gp), dimension(:), allocatable :: kernel_final
     real(gp) :: nonidem, nelecorbs
+    character(len=*), parameter :: subname='fragment_coeffs_to_kernel'
 
 !DEAL WITH OCCUP CORRECTLY
     call timing(iproc,'kernel_init','ON')
@@ -1305,21 +1318,47 @@ contains
        stop
     end if
 
-    ! hacking ksorbs structure to give it correct norb - really messy, but easiest solution for now
-    ! FIX!
-    nksorbs_correct=ksorbs%norb
-    nksorbsp_correct=ksorbs%norbp
-    ksisorb_correct=ksorbs%isorb
-
     coeff_final=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_final')
     !*kernel_final=f_malloc(tmb%linmat%denskern%nvctr,id='kernel_final')
     !ref_frags(ifrag_ref)%kernel=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ref_frags(ifrag_ref)%kernel')
+
+    ! Calculate the overlap matrix between the TMBs.
+    if(.not. overlap_calculated) then
+       if(.not.tmb%can_use_transposed) then
+           if(associated(tmb%psit_c)) then
+               iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+               deallocate(tmb%psit_c, stat=istat)
+               call memocc(istat, iall, 'tmb%psit_c', subname)
+           end if
+           if(associated(tmb%psit_f)) then
+               iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+               deallocate(tmb%psit_f, stat=istat)
+               call memocc(istat, iall, 'tmb%psit_f', subname)
+           end if
+           allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+           call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+           allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+           call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+           call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+                tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+           tmb%can_use_transposed=.true.
+       end if
+       !call timing(iproc,'renormCoefComp','OF')
+
+       call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, &
+            tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+
+       !call timing(iproc,'renormCoefComp','ON')
+       overlap_calculated=.true.
+    end if
 
     ! copy from coeff fragment to global coeffs - occupied states only
     isforb=0
     jsforb=0
     call razero(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1))
     !*call razero(tmb%linmat%denskern%nvctr,kernel_final(1))
+    tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%ovrlp%matrix')
+    call uncompressMatrix(iproc,tmb%linmat%ovrlp)
     do ifrag=1,input_frag%nfrag
        ! find reference fragment this corresponds to
        ifrag_ref=input_frag%frag_index(ifrag)
@@ -1345,20 +1384,12 @@ contains
 
        ! should correct the occupation for kernel here, but as we replace the smaller kernel with the correct bigger kernel
        ! don't worry about this for now
-       ! can also therefore keep ksorbs%norb as it is as we don't need to keep the kernel?
-       ksorbs%norb=nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
-       if (bigdft_mpi%iproc==0) then
-          ksorbs%norbp=ksorbs%norb
-          ksorbs%isorb=0
-       else
-          ksorbs%norbp=0
-          ksorbs%isorb=0
-       end if
 
-       ! reconstruct the kernel for each fragment - don't need unoccupied states here
-!switch this to reorthonormalize coeff and fix parallelization?
-       call reconstruct_kernel(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, tmb%orthpar%blocksize_pdsyev, &
-            tmb%orthpar%blocksize_pdgemm, ksorbs, tmb, overlap_calculated) 
+       ! reorthonormalize the coeffs for each fragment - don't need unoccupied states here
+       call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+            nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
+            tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, 0, tmb%orbs, &
+            tmb%linmat%ovrlp, tmb%coeff)
 
        !! debug
        !!output final kernel
@@ -1391,6 +1422,7 @@ contains
        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
        jsforb=jsforb+nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
     end do
+    call f_free_ptr(tmb%linmat%ovrlp%matrix)
 
     !*call dcopy(tmb%linmat%denskern%nvctr,kernel_final(1),1,tmb%linmat%denskern%matrix_compr(1),1)
     call dcopy(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1),1,tmb%coeff(1,1),1)
@@ -1460,10 +1492,6 @@ contains
     !   end do
     !end do
     ! end debug
-
-    ksorbs%norbp=nksorbsp_correct
-    ksorbs%norb=nksorbs_correct
-    ksorbs%isorb=ksisorb_correct
 
     ! print starting eigenvalues
     if(bigdft_mpi%iproc==0) then

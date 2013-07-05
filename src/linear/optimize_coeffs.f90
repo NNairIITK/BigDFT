@@ -98,8 +98,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
      ! do twice with approx S^_1/2, as not quite good enough at preserving charge if only once, but exact too expensive
      ! instead of twice could add some criterion to check accuracy?
-     call reorthonormalize_coeff(iproc, nproc, orbs, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
-     call reorthonormalize_coeff(iproc, nproc, orbs, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+     call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
+     call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
 
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energy,&
           tmb%coeff,orbs,tmb%orbs,.true.)
@@ -146,6 +146,7 @@ end subroutine optimize_coeffs
 subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pred_e)
   use module_base
   use module_types
+  use module_interfaces
   implicit none
   integer, intent(in) :: iproc, nproc
   real(kind=gp), intent(inout) :: alpha
@@ -177,8 +178,8 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
 
   ! do twice with approx S^_1/2, as not quite good enough at preserving charge if only once, but exact too expensive
   ! instead of twice could add some criterion to check accuracy?
-  call reorthonormalize_coeff(iproc, nproc, orbs, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, coeff_tmp)
-  call reorthonormalize_coeff(iproc, nproc, orbs, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, coeff_tmp)
+  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, coeff_tmp, orbs)
+  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, coeff_tmp, orbs)
   call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energy1,&
        coeff_tmp,orbs,tmb%orbs,.true.)
   call f_free(coeff_tmp)

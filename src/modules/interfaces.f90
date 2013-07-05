@@ -4056,6 +4056,19 @@ module module_interfaces
           logical,intent(inout):: overlap_calculated
         end subroutine reconstruct_kernel
 
+        subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
+                   basis_overlap, coeff, orbs)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc, nproc, norb
+          integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
+          type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
+          type(orbitals_data), optional, intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
+          type(sparseMatrix),intent(in) :: basis_overlap
+          real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
+        end subroutine reorthonormalize_coeff
+
         subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
                    istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
                    weightp_c, weightp_f, nptsp_c, nptsp_f, weight_c, weight_f, &
