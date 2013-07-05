@@ -5,6 +5,12 @@
 !!    gpu accelerated routines by Raffael Widmer
 !!    parts of this program were based on the fitting program by matthias krack
 !!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Updated version with spin polarization and libxc support
@@ -39,19 +45,13 @@ subroutine gatom(energ, verbose)
         aux1(nint0),aux2(nint0,0:ng,lmax+1),  &
         expxpr(0:ng,nint0), tts(nspol)
    
-   real(8):: rhogrd(nint0,nspol),drhogrd(nint0,nspol),  &
-        rhocore(nint0,nspol)
-   
-   !          two lines for experimental feature: separable term with two r_l
-   real(8):: qq1(0:ng,lpx),qq2(0:ng,lpx),qq3(0:ng,lpx), &
-        qqr1(nint0,lmax+1),qqr2(nint0,lmax+1),qqr3(nint0,lmax+1)  
+   real(8):: rhogrd(nint0,nspol), rhocore(nint0,nspol)
    
    real(8):: y1(nint0),y2(nint0),y3(nint0),  &
         rlist(0:nint0),drlist(0:nint0),ddrlist(0:nint0)
    
-   character(10):: is(2)
    real(8):: gamma
-   logical:: energ,igrad, verbose, pol
+   logical:: energ, verbose
    
    external gamma,wave,dwave,ddwave
    save nscf,nscfo,delta,odelta

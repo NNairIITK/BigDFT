@@ -1,3 +1,17 @@
+!> @file
+!! Paw generation in pseudo program
+!! @author
+!!    Alex Willand, under the supervision of Stefan Goedecker
+!!    gpu accelerated routines by Raffael Widmer
+!!    parts of this program were based on the fitting program by matthias krack
+!!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
 
 subroutine paw_generator(izatom,zion, lmx,  lpmx, lmax,  hsep, gpot, &
      alpz, alps, &
@@ -41,11 +55,10 @@ subroutine paw_generator(izatom,zion, lmx,  lpmx, lmax,  hsep, gpot, &
   real(8), dimension(:,:), allocatable :: vh
 
   real(8), dimension(:,:,:,:), allocatable :: rmt
-  integer :: l,i,iocc,i_all,i_stat,  j 
-  real(8) :: alrcov, rij,a,a0,a0in,tt,ehomo
+  integer :: l,i,iocc 
+  real(8) :: rij,a,a0,a0in,tt
   real(8) :: value_at_r
-  integer :: igrid, isol, lpx
-  logical :: pawisactive
+  integer :: lpx
 
   !filename = 'psppar.'//trim(atomname)
 
@@ -123,8 +136,8 @@ subroutine paw_generator(izatom,zion, lmx,  lpmx, lmax,  hsep, gpot, &
      enddo
   enddo
   
-   
 END SUBROUTINE paw_generator
+
 
 function value_at_r(r, ng , expo,psi     )
 

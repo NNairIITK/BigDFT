@@ -1,23 +1,10 @@
+/*! @file
+@brief Fitting of Goedecker type pseudopotentials with pseudo_2.2
 
-[BerliOS CVS] / cp2k / potentials / Goedecker / pseudo / v2.2 / README 	Repository: BerliOS CVS
+@author
+  C. Hartwigsen, May 98
 
-Parent Directory Parent Directory | Revision Log Revision Log
-Revision 1.1.1.1 - (download) (annotate) (vendor branch)
-Tue Dec 9 14:07:23 2003 UTC (5 years, 11 months ago) by krack
-Branch: MAIN, krack
-CVS Tags: start, HEAD
-Changes since 1.1: +0 -0 lines
-
-initial import into CVS
-
-*********************************************************************
-*                                                                   *
-*  Fitting of Goedecker type pseudopotentials                       *
-*             with pseudo_2.2                                       *
-*                                                                   *
-*  C. Hartwigsen, May 98                                            *
-*********************************************************************
-
+@details
 First of all: sorry that this description is not sooooo easy to
 understand and the use of pseudo_2.2 is not self explaining! It took
 me about one year to build LDA pseudopotentials for the whole periodic
@@ -49,6 +36,7 @@ The program pseudo_2.2 fits the parameters of a Goedecker
 pseudopotential. The Goedecker pseudopotential has the form
 
 local part:
+<pre>
                            1/2  
                          r 2	
                Z_ion erf(------)
@@ -82,6 +70,7 @@ mit
                      (l + 2 i - 1/2)                     1/2
                   r_l                Gamma(l + 2 i - 1/2)
 
+</pre>
 
 Y_l,m(r) are the spherical harmonics.
 
@@ -94,16 +83,15 @@ the program 'atom' read the README file in the corresponding
 directory.
 
 
-	Necessary files for pseudo_2.2
-	------------------------------
+@section Necessary          Necessary files for pseudo_2.2
 
-1. 'atom.ae': contains all necessary data from the all electron
-calculation. The file is created by the program atom. pseudo_2.2
-uses the occupation numbers given in 'atom.ae' for the pseudo orbitals
+1. 'atom.ae':     Contains all necessary data from the all electron
+                  calculation. The file is created by the program atom. pseudo_2.2
+                  uses the occupation numbers given in 'atom.ae' for the pseudo orbitals
 
-2. 'FITPAR': determines which pseudopotential parameters have to be
-fitted. 'FITPAR' has the form:
-
+2. 'FITPAR':      Determines which pseudopotential parameters have to be
+                  fitted. 'FITPAR' has the form:
+<pre>
   Fit                        Parameter             
  f    t f f f                rloc,gpot(1,..,4)
 	    1                lmax
@@ -111,56 +99,51 @@ fitted. 'FITPAR' has the form:
  t    t f t f f f            r_l(2),h11,h12,h22,h13,h23,h33 (l=1)
  f    f f f f f f            r_l(3),h11,h12,h22,h13,h23,h33 (l=2)
  f    f f f f f f            r_l(4),h11,h12,h22,h13,h23,h33 (l=3)
+ </pre>
+                  All parameters marked by a 't' will be fitted.
 
-All parameters marked by a 't' will be fitted.
-
-3. 'weights.par': contains the weights for the penalty function
-pseudo_2.2 minimises. pseudo_2.2 fits the pseudopotential parameters by
-minimising the penalty function:
-
-c  subroutine penalty:
-
-        penal=0.0d0
+3. 'weights.par': Contains the weights for the penalty function
+                  pseudo_2.2 minimises. pseudo_2.2 fits the pseudopotential parameters by
+                  minimising the penalty function:
+<pre>
+subroutine penalty(penal)
+    penal=0.0d0
 	do i=1,n_orbital
-         penal=penal + 
-     :        ((aeval(i)-ev(i))*wght(i,1))**2 +
-     :        ((chrg(i)-crcov(i))*wght(i,2))**2 +
-     :        (100.d0*(1.d0-dhrg(i)/dcrcov(i))*wght(i,3))**2 +
-     :        (100.d0*(1.d0-ehrg(i)/ddcrcov(i)*wght(i,,4))**2 +
-     :        (res(i)*wght(i,5))**2 +
-     :        (wfnode(i,1)*wght(i,6))**2 +
-     :        (wfnode(i,2)*wght(i,7))**2 +
-     :        (wfnode(i,3)*wght(i,8))**2 +
-     :        (psir0*whgtp0)**2
-	enddo
-        penal=sqrt(penal)
-
-aeval(i)    : eigenvalue of the ae atom
-ev(i)       : eigenvalue of the pseudo atom	
-chrg(i)     : int_0^rcov psi^2 r^2 dr , ae atom
-crcov(i)    : int_0^rcov psi^2 r^2 dr , pseudo atom
-dhrg(i)     : int_0^infinity psi^2 r^4 dr,  ae atom
-dcrcov(i)   : int_0^infinity psi^2 r^4 dr,  pseudo atom
-ehrg(i)     : int_0^infinity psi^2 r^6 dr,   ae atom
-ddcrcov(i)  : int_0^infinity psi^2 r^6 dr,   pseudo atom
-res(i)      : H*psi(i) - ev(i)*psi(i)
-
-wfnode(i,1) : integral of the wavefunction between false nodes in the
-core-region caused by unwanted oszilations of the pseudowavefunction
-in this region (the lowest orbitals of each angular
-momentum must have zero nodes, the next higher orbitals must have one
-node, ...)
-wfnode(i,2) : the same as wfnode(i,1) but now for the first derivative
-of the wavefunction
-wfnode(i,3) : the same as wfnode(i,1) but now for the second derivative
-of the wavefunction
-psir0       : squared value of the lowest s pseudo wavefunction at r=0 
-
-
+       penal = penal + &
+               ((aeval(i)-ev(i))*wght(i,1))**2 + &
+               ((chrg(i)-crcov(i))*wght(i,2))**2 + &
+               (100.d0*(1.d0-dhrg(i)/dcrcov(i))*wght(i,3))**2 + &
+               (100.d0*(1.d0-ehrg(i)/ddcrcov(i)*wght(i,,4))**2 + &
+               (res(i)*wght(i,5))**2 + &
+               (wfnode(i,1)*wght(i,6))**2 + &
+               (wfnode(i,2)*wght(i,7))**2 + &
+               (wfnode(i,3)*wght(i,8))**2 + &
+               (psir0*whgtp0)**2
+	end do
+    penal=sqrt(penal)
+end subroutine penalty
+</pre>
+    +  aeval(i)    : eigenvalue of the ae atom
+    +  ev(i)       : eigenvalue of the pseudo atom
+    +  chrg(i)     : int_0^rcov psi^2 r^2 dr , ae atom
+    +  crcov(i)    : int_0^rcov psi^2 r^2 dr , pseudo atom
+    +  dhrg(i)     : int_0^infinity psi^2 r^4 dr,  ae atom
+    +  dcrcov(i)   : int_0^infinity psi^2 r^4 dr,  pseudo atom
+    +  ehrg(i)     : int_0^infinity psi^2 r^6 dr,   ae atom
+    +  ddcrcov(i)  : int_0^infinity psi^2 r^6 dr,   pseudo atom
+    +  res(i)      : H*psi(i) - ev(i)*psi(i)
+    +  wfnode(i,1) : integral of the wavefunction between false nodes in the
+                     core-region caused by unwanted oszilations of the pseudowavefunction
+                     in this region (the lowest orbitals of each angular
+                     momentum must have zero nodes, the next higher orbitals must have one
+                     node, ...)
+    +  wfnode(i,2) : the same as wfnode(i,1) but now for the first derivative
+                     of the wavefunction
+    +  wfnode(i,3) : the same as wfnode(i,1) but now for the second derivative
+                     of the wavefunction
+    +  psir0       : squared value of the lowest s pseudo wavefunction at r=0 
 The file 'weights.par' has the following form (example: Silicon):
-
- Initial weight-guess from atomic-program
- ----------------------------------------
+<pre>
     .1E+03     wghtp0
     n   l  so   eigval  chrg    dchrg  ddchrg  res    rnode dnode ddnode
    3   0  .50   2.0e1   2.0e1   0.0e0  0.0e0   0.0e0  1.0e0 0.0e0 0.0e0
@@ -185,16 +168,16 @@ The file 'weights.par' has the following form (example: Silicon):
    4   3  .50   4.0e-2  4.0e-2  0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    5   3 -.50   8.0e-3  8.0e-3  0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    5   3  .50   8.0e-3  8.0e-3  0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
+</pre>
+               For each orbital there must be one line. The columns 4-11 of these
+               lines correspond to whgt(i,1) - whgt(i,8). (The above file corresponds
+               to a relativistic calculation; for l<>0 there are is one spin up and
+               one spin down orbital.)
 
-For each orbital there must be one line. The columns 4-11 of these
-lines correspond to whgt(i,1) - whgt(i,8). (The above file corresponds
-to a relativistic calculation; for l<>0 there are is one spin up and
-one spin down orbital.)
-
-4.'psp.par': this file contains the values of the input pseudopotential
-parameters . The file is overwritten during the fit with
-the improved output values. The file has the following form:
-
+4. 'psp.par': This file contains the values of the input pseudopotential
+              parameters . The file is overwritten during the fit with
+              the improved output values. The file has the following form:
+<pre>
      14             1.50000                                 ng, rij 
      2.090     4.190                                      rcov,rprb 
  r                                    (non)relativistic calculation
@@ -204,32 +187,26 @@ the improved output values. The file has the following form:
   0.42    0.59E+01 -0.12E+01  0.32E+01 0 0 0  r_l(),hsep(), so=+0.5
   0.48    0.27E+01 -0.30E-02  0.72E-02 0 0 0  r_l(),hsep(), so=+0.5
           0.27E+01  0.61E-02 -0.14E-01 0 0 0        hsep(), so=-0.5
-
-Fist line: ng gives the number of Gaussians pseudo_2.2 uses as basis
-functions. rij determines the width of the smallest Gaussian. The
-basis functions are given by exp([-1/(2*r_loc/rij*(2/3)**i)]**2 *r**2)
-with i=0,1,..,ng.
-
-Second line: rcov is the radius of the sphere for the integration of
-crcov(i),dcrcov(i) and ddcrcov(i). rprb is the radius of the confining
-potential. rcov and rprb must agree with the values used in the
-ae-calculation (given in the file 'atom.ae').  
-
-3.rd - 5.th line: self explanatory....
-
-6.th line: lmax gives the the maximum l component of the projectors if
-lmax=-1 than the pseudopotential is a purely local potential (no
-projectors).
-
-Following lines: r_l() and the expansion coefficients for the
-projectors up to l=lmax. For relativistic calculations and l<>0 the
-are two lines for the expansion coefficients related to the spin up
-and spin down orbitals.
+</pre>
+        + First line: ng gives the number of Gaussians pseudo_2.2 uses as basis
+              functions. rij determines the width of the smallest Gaussian. The
+              basis functions are given by exp([-1/(2*r_loc/rij*(2/3)**i)]**2 *r**2)
+              with i=0,1,..,ng.
+        + Second line: rcov is the radius of the sphere for the integration of
+              crcov(i),dcrcov(i) and ddcrcov(i). rprb is the radius of the confining
+              potential. rcov and rprb must agree with the values used in the
+              ae-calculation (given in the file 'atom.ae').  
+        + 3.rd - 5.th line: self explanatory....
+        + 6.th line: lmax gives the the maximum l component of the projectors if
+              lmax=-1 than the pseudopotential is a purely local potential (no
+              projectors).
+        + Following lines: r_l() and the expansion coefficients for the
+              projectors up to l=lmax. For relativistic calculations and l<>0 the
+              are two lines for the expansion coefficients related to the spin up
+              and spin down orbitals.
 
 
-
-	Invoking pseudo_2.2
-	-------------------
+@section Invoking   Invoking pseudo_2.2
 
 When invoking pseudo_2.2 without any arguments pseudo_2.2 performs a
 single pseudo atom calculation for the pseudopotential parameters given
@@ -238,21 +215,21 @@ the corresponding values of the all electron atom read from the file
 'atom.ae'.  No fitting is done.
 
 pseudo_2.2 recognises several command line options:
-Possible options:  -cN       number of fitting cycles (-1< N < 10000)
-                   -nN       number of iterations per simplex
-                   -gN       number Gaussian
-                   -rN       set rij=N/10 
-                   -fullacc  use max. number of Gaussians
-                             (defined by the parameter ngmx in pseudo.f)
-                   -orth     orthogonalisation of the projectors
-                   -lith     transformation of the projectors as in lit.
-                   -denbas   use dense Gaussian basis    
-                   -ignore   override several warnings   
-                   -info     append gaussian coefficients of final
-                             wavefunctions to psp.par
-                   -plot     plot wfs after each iteration (write files)
-                   -lNso     average nonlocal potential = 0 for l=N
-                             (only for the highest projector)
+   + -cN       number of fitting cycles (-1< N < 10000)
+   + -nN       number of iterations per simplex
+   + -gN       number Gaussian
+   + -rN       set rij=N/10 
+   + -fullacc  use max. number of Gaussians
+               (defined by the parameter ngmx in pseudo.f)
+   + -orth     orthogonalisation of the projectors
+   + -lith     transformation of the projectors as in lit.
+   + -denbas   use dense Gaussian basis    
+   + -ignore   override several warnings   
+   + -info     append gaussian coefficients of final
+               wavefunctions to psp.par
+   + -plot     plot wfs after each iteration (write files)
+   + -lNso     average nonlocal potential = 0 for l=N
+               (only for the highest projector)
 
 At the end of each run pseudo_2.2 writes out the file 'XX'. This file
 contains the pseudopotential parameters in a form suited to be used
@@ -260,38 +237,36 @@ with CPMD. After invoking pseudo_2,2 with the option '-plot' the
 wavefunctions can be plotted with 'gnuplot pswf.gnu'.
 
 
-	Fitting pseudopotentials
-	------------------------ 
+@section Fitthing       Fitting pseudopotentials
 
 1. Before you fit any pseudopotential parameter edit the files
-'psp.par', 'FITPAR' and 'weights.par' so that they contain reasonable
-values. For the file 'psp.par' you can use the available LDA parameters
-as an initial guess. Another method is to use the parameters of a
-neighbouring element and edit the values for znuc, zion. The file
-'FITPAR' determines the parameters that are fitted - it depends on you
-which parameter you take for your pseudopotential, there is no unique
-best choice. Again you might take the already available LDA parameter
-sets as a guide. The file 'weights.par' influences the penalty
-function (see above) and thereby the fitting results. It is read by
-the program after every simplex cycle so by editing this file one can
-take influence on the fitting while the program pseudo_2.2 runs.
+        'psp.par', 'FITPAR' and 'weights.par' so that they contain reasonable
+        values. For the file 'psp.par' you can use the available LDA parameters
+        as an initial guess. Another method is to use the parameters of a
+        neighbouring element and edit the values for znuc, zion. The file
+        'FITPAR' determines the parameters that are fitted - it depends on you
+        which parameter you take for your pseudopotential, there is no unique
+        best choice. Again you might take the already available LDA parameter
+        sets as a guide. The file 'weights.par' influences the penalty
+        function (see above) and thereby the fitting results. It is read by
+        the program after every simplex cycle so by editing this file one can
+        take influence on the fitting while the program pseudo_2.2 runs.
 
 2. pseudo_2.2 uses Gaussians as basis functions. Before you start the
-fitting procedure you have to test if your basis set is sufficiently
-large.  The basis set is determined by the parameter ng and rij that
-are given in the file 'psp.par'. ng is the number of Gaussians that
-are used and rij determines the width of the smallest Gaussian. The
-larger the value of rij the smaller the lowest Gaussian that is
-used. Usually rij ranges from ~1.5 to ~4.0 and ng from ~14 to ~20.  To
-test if your basis is sufficient simply invoke pseud_2.2 without any
-argument and look at the residues for the interesting orbitals. The
-residue is a measure for the quality of the basis. As a rule of thumb
-the residue for a given orbital should be lower or at least equal to
-the error of the eigenvalue.
+        fitting procedure you have to test if your basis set is sufficiently
+        large.  The basis set is determined by the parameter ng and rij that
+        are given in the file 'psp.par'. ng is the number of Gaussians that
+        are used and rij determines the width of the smallest Gaussian. The
+        larger the value of rij the smaller the lowest Gaussian that is
+        used. Usually rij ranges from ~1.5 to ~4.0 and ng from ~14 to ~20.  To
+        test if your basis is sufficient simply invoke pseud_2.2 without any
+        argument and look at the residues for the interesting orbitals. The
+        residue is a measure for the quality of the basis. As a rule of thumb
+        the residue for a given orbital should be lower or at least equal to
+        the error of the eigenvalue.
 
-Examples:
-LDA-pseudopotential for Si with ng=12 and rij=0.7
-
+Examples: LDA-pseudopotential for Si with ng=12 and rij=0.7
+<pre>
  nl    s      occ              ae        pseudo       diff     diff*weight
  3s    .5    2.0000
          eigenvalue       -.3774E+00  -.3774E+00  -.9710E-05   .1942E-03
@@ -302,12 +277,13 @@ LDA-pseudopotential for Si with ng=12 and rij=0.7
  6s    .5     .0000
          eigenvalue        .3532E+00   .3524E+00  -.7667E-03   .6134E-05
          residue                       .5970E-03               .0000E+00
+</pre>
 
 The residue (at least) for the occupied orbitals should be ~1.0E-6. In
 the case above the lowest Gaussians are not small/sharp enough to
 allow a good description of the 3s orbital. Doing the same calculation
-with ng=12 and rij=15 one gets
-
+with ng=12 and rij=15 one gets:
+<pre>
  3s    .5    2.0000
          eigenvalue       -.3774E+00  -.3774E+00  -.2267E-04   .4534E-03
          residue                       .1531E-06               .0000E+00
@@ -320,14 +296,14 @@ with ng=12 and rij=15 one gets
  6s    .5     .0000
          eigenvalue        .3532E+00   .4698E+00   .1166E+00   .9326E-03
          residue                       .6714E-01               .0000E+00
+</pre>
 
 Now the Gaussian basis works well for the 3s orbital but is inadequate
 for higher s orbitals, as the highest Gaussians are not wide enough to
 describe correctly the tails of these orbitals. Wider Gaussians are
 simply added by increasing the value of ng i.e. the number of
-Gaussians.  Doing the above calculation with ng=16 and rij=15 one now
-gets
-
+Gaussians.  Doing the above calculation with ng=16 and rij=15 one now gets:
+<pre>
  3s    .5    2.0000
          eigenvalue       -.3774E+00  -.3774E+00  -.2269E-04   .4537E-03
          residue                       .1417E-06               .0000E+00
@@ -340,6 +316,7 @@ gets
  6s    .5     .0000
          eigenvalue        .3532E+00   .3523E+00  -.8734E-03   .6987E-05
          residue                       .3959E-05               .0000E+00 
+</pre>
 
 Now the Gaussian basis set is sufficient for a pseudopotential fit as
 the residue for the occupied and next higher orbital is lower than
@@ -421,320 +398,322 @@ think the current simplex-cycle will give no further improvement.
 
 
 
+@section Tricks     Hints and tricks
+
+- after each optimisation always(!) plot the wavefunctions. If the
+        pseudo wavefunction does not approach its all electron counterpart
+        closely for larger r something went wrong. Look if the pseudo
+        wavefunction has unwanted oscillations or nodes in the core region. if
+        oscillations or nodes or shoulders occur refit the pseudopotential
+        parameters by setting wfnode(i,1) and/or wfnode(i,2) and/or wfnode(i,3)
+        for the affected orbitals to some larger value. for most cases
+        wfnode(i,2-3) can be set to 0. usually is sufficient to test only the
+        lowest orbitals of each angular momentum l for nodes. (Set wfnode(i,1)
+        to some small value - i.e. 0.1 - and look at the output of
+        pseudo_2.2.)
 
 
-		Hints and tricks
-                ----------------
-
--after each optimisation always(!) plot the wavefunctions. If the
-pseudo wavefunction does not approach its all electron counterpart
-closely for larger r something went wrong. Look if the pseudo
-wavefunction has unwanted oscillations or nodes in the core region. if
-oscillations or nodes or shoulders occur refit the pseudopotential
-parameters by setting wfnode(i,1) and/or wfnode(i,2) and/or wfnode(i,3)
-for the affected orbitals to some larger value. for most cases
-wfnode(i,2-3) can be set to 0. usually is sufficient to test only the
-lowest orbitals of each angular momentum l for nodes. (Set wfnode(i,1)
-to some small value - i.e. 0.1 - and look at the output of
-pseudo_2.2.)
+- H, He, Li(3e),...: set wghtp0=0 (weights.par); the 1s-pseudo
+        wavefunction does not vanish at r=0!
 
 
--H, He, Li(3e),...: set wghtp0=0 (weights.par); the 1s-pseudo
-wavefunction does not vanish at r=0!
+- to do the calculation for the free atom (no confining potential) set
+        rprb=1.0d6 in 'psp.par' and invoke pseudo_2.2 with the option
+        '-ignore' (otherwise the program will stop as rprb has a different
+        value in 'atom.ae').
 
 
--to do the calculation for the free atom (no confining potential) set
-rprb=1.0d6 in 'psp.par' and invoke pseudo_2.2 with the option
-'-ignore' (otherwise the program will stop as rprb has a different
-value in 'atom.ae').
+- pseudopotentials for the 5d-elements neglecting the occupied
+        4f-orbitals: modify the file 'atom.ae' after generation: reduce number
+        of orbitals by 2, reduce zpseudo by 14 and delete the values for both
+        4f wave functions (search for the string '4 3 ') modify also the files
+        'psp.par' and 'weight.par' by killing the lines corresponding to the
+        4f orbitals
 
 
--pseudopotentials for the 5d-elements neglecting the occupied
-4f-orbitals: modify the file 'atom.ae' after generation: reduce number
-of orbitals by 2, reduce zpseudo by 14 and delete the values for both
-4f wave functions (search for the string '4 3 ') modify also the files
-'psp.par' and 'weight.par' by killing the lines corresponding to the
-4f orbitals
-
-
--pseudo_2.2 is able to treat all functionals of the current CPMD
-version (V3.0). When there is no keyword for a certain functional
-modify the code of the routine 'pseudo.f': search for the string 'LDA'
-and look at the code...(The coding of the functionals by the variables
-mfxcx, mfxcc, mgcx and mgcc is the same as in CPMD(V3.0).)
+- pseudo_2.2 is able to treat all functionals of the current CPMD
+        version (V3.0). When there is no keyword for a certain functional
+        modify the code of the routine 'pseudo.f': search for the string 'LDA'
+        and look at the code...(The coding of the functionals by the variables
+        mfxcx, mfxcc, mgcx and mgcc is the same as in CPMD(V3.0).)
 
        
--when you have to fit parameters of projectors that act only on
-unoccupied orbitals this can be done after optimising the remaining
-parameters as they do not influence the charge distribution of the
-pseudo atom and thereby the occupied orbitals. Example: the LDA
-parameter set for Bromine includes parameters for a projector for
-l=2. this projector acts on the 4d, 5d,... orbitals that are
-unoccupied in the ground state. At the first step of the fitting
-procedure these parameters are neglected by setting the penalty weights
-(in 'weights.par') for all d-orbitals equal zero and setting the
-values for all d-parameters in the file FITPAR equal false:
-
-'weights.par':
+- when you have to fit parameters of projectors that act only on
+        unoccupied orbitals this can be done after optimising the remaining
+        parameters as they do not influence the charge distribution of the
+        pseudo atom and thereby the occupied orbitals. Example: the LDA
+        parameter set for Bromine includes parameters for a projector for
+        l=2. this projector acts on the 4d, 5d,... orbitals that are
+        unoccupied in the ground state. At the first step of the fitting
+        procedure these parameters are neglected by setting the penalty weights
+        (in 'weights.par') for all d-orbitals equal zero and setting the
+        values for all d-parameters in the file FITPAR equal false:
+      + 'weights.par':
+        <pre>
 ....
    4   2 -.50   0.0e5   0.0e5   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    4   2  .50   0.0e5   0.0e5   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    5   2 -.50   0.0e4   0.0e4   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    5   2  .50   0.0e4   0.0e4   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
 ....
-'FITPAR':
+        </pre>
+      + 'FITPAR':
+        <pre>
   Fit                        Parameter             
  f    f f f f                rloc,gpot(1,..,4)
 	    2                lmax
  t    t f t f f t            r_l(1),h11,h12,h22,h13,h23,h33 (l=0)
  t    t f t f f f            r_l(2),h11,h12,h22,h13,h23,h33 (l=1)
  f    f f f f f f            r_l(3),h11,h12,h22,h13,h23,h33 (l=2)
-
-After optimising all parameters considering only occupied orbitals, the
-parameters for the d-projector can be optimised separately by modifying
-the files 'FITPAR' and 'weights.par' in the following way:
-
-'weights.par':
+        </pre>
+        After optimising all parameters considering only occupied orbitals, the
+        parameters for the d-projector can be optimised separately by modifying
+        the files 'FITPAR' and 'weights.par' in the following way:
+      + 'weights.par':
+        <pre>
 ....
    4   2 -.50   1.0e5   1.0e5   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    4   2  .50   1.0e5   1.0e5   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    5   2 -.50   1.0e4   1.0e4   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    5   2  .50   1.0e4   1.0e4   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
 ...
-'FITPAR':
+        </pre>
+      + 'FITPAR':
+        <pre>
   Fit                        Parameter             
  f    f f f f                rloc,gpot(1,..,4)
 	    2                lmax
  f    f f f f f f            r_l(1),h11,h12,h22,h13,h23,h33 (l=0)
  f    f f f f f f            r_l(2),h11,h12,h22,h13,h23,h33 (l=1)
  t    t f f f f f            r_l(3),h11,h12,h22,h13,h23,h33 (l=2)
-
-This procedure usually converges faster than fitting all parameters
-simultaneously. Relevant cases are:
-
-3p-state: Na(Q=1), Mg(Q=2)
-4p,3d-state: K(Q=1), Ca(Q=2)
-5p,4d-state: Rb(Q=1), Sr(Q=2)
-6p,5d-state: Cs(Q=1), Ba(Q=2)
-5d-state: La(Q=3) - Yb(Q=24)
-4p-state: Sc(Q=3) - Zn(Q=2,Q=12)
-5p-state: Y(Q=3)  - Cd(Q=2,Q=12)
-6p-state: La(Q=3)  - Hg(Q=2,Q=12)
-4d-state: Cu(Q=1), Zn(Q=2) - Sr(Q=10)
-5d-state: Ag(Q=1), Cd(Q=2) - Ba(Q=10)
-6d-state: Au(Q=1), Hg(Q=2) - Rn(Q=8)
-
-All listed pseudo orbitals can be fitted separately as there is no
-occupied (pseudo)orbital with same angular momentum.
+        </pre>
+        This procedure usually converges faster than fitting all parameters
+        simultaneously. Relevant cases are:
+      +  3p-state: Na(Q=1), Mg(Q=2)
+      +  4p,3d-state: K(Q=1), Ca(Q=2)
+      +  5p,4d-state: Rb(Q=1), Sr(Q=2)
+      +  6p,5d-state: Cs(Q=1), Ba(Q=2)
+      +  5d-state: La(Q=3) - Yb(Q=24)
+      +  4p-state: Sc(Q=3) - Zn(Q=2,Q=12)
+      +  5p-state: Y(Q=3)  - Cd(Q=2,Q=12)
+      +  6p-state: La(Q=3)  - Hg(Q=2,Q=12)
+      +  4d-state: Cu(Q=1), Zn(Q=2) - Sr(Q=10)
+      +  5d-state: Ag(Q=1), Cd(Q=2) - Ba(Q=10)
+      +  6d-state: Au(Q=1), Hg(Q=2) - Rn(Q=8)
+        All listed pseudo orbitals can be fitted separately as there is no
+        occupied (pseudo)orbital with same angular momentum.
 
 
 - when you use the files 'FITPAR' and 'weights.par' that are available
-together with the corresponding LDA parameter sets for a new fit,
-look if the values in 'FITPAR' and 'weights.par' correspond to a fitting
-of the unoccupied orbitals (see above) - you may have to change
-this before optimising the whole parameter set.
+        together with the corresponding LDA parameter sets for a new fit,
+        look if the values in 'FITPAR' and 'weights.par' correspond to a fitting
+        of the unoccupied orbitals (see above) - you may have to change
+        this before optimising the whole parameter set.
 
 
 - when you fit pseudopotentials starting from one of the available LDA
-parameter sets always look if the highest average coefficient of a
-projector is zero (look up the values listed in the output of a single
-pseudo atom calculation with pseudo_2.2 after 'nonlocal part as
-V_average + V_so'). If you want to use the equivalent parameter set
-for you fit invoke pseudo_2.2 with the option '-lsoN' where N refers
-to then angular momentum l. In this case the highest coefficient of
-the projector for angular momentum l only affects the splitting of the
-corresponding orbitals. This coefficient also does not appear in the
-pseudopotential parameter file 'XX' for CPMD. The file 'XX' only
-contains the scalar relativistic potential. Examples are the
-Lanthanoides La - Lu: here the highest average expansion coefficient
-of the p-projector is zero.
+        parameter sets always look if the highest average coefficient of a
+        projector is zero (look up the values listed in the output of a single
+        pseudo atom calculation with pseudo_2.2 after 'nonlocal part as
+        V_average + V_so'). If you want to use the equivalent parameter set
+        for you fit invoke pseudo_2.2 with the option '-lsoN' where N refers
+        to then angular momentum l. In this case the highest coefficient of
+        the projector for angular momentum l only affects the splitting of the
+        corresponding orbitals. This coefficient also does not appear in the
+        pseudopotential parameter file 'XX' for CPMD. The file 'XX' only
+        contains the scalar relativistic potential. Examples are the
+        Lanthanoides La - Lu: here the highest average expansion coefficient
+        of the p-projector is zero.
 
 
 - pseudo_2.2 writes out the wavefunctions into files named
-'ps.n[s,p,d,f]ibyj.dat'. n is the main quantum number and ibyj refers
-to the multiplicity (J=i/j) of the orbital (in non relativistic
-calculations ibyj is missing). Example: the file 'ps.4p1by2.dat'
-contains the pseudo wavefunction corresponding to a 4p spin down
-(J=1/2) orbital whereas the file 'ps.4p3by2.dat' contains the pseudo
-wavefunction corresponding to a 4p spin up (J=3/2) orbital. Each line
-of these files has the form: r, psi_ae(r)*r, psi_pseud(r)*r,
-|psi_ae(r)-psi_pseudo(r)|*r. As these files are thought for plotting
-they do not contain all grid points used in the calculation. If you
-need to know the wavefunction on the complete grid you have to modify
-the code in routine pseudo_2.2: comment the line ' call
-detnp(ngrid,rae,5*rcov,np)' and insert the line ' np=ngrid'.
+        'ps.n[s,p,d,f]ibyj.dat'. n is the main quantum number and ibyj refers
+        to the multiplicity (J=i/j) of the orbital (in non relativistic
+        calculations ibyj is missing). Example: the file 'ps.4p1by2.dat'
+        contains the pseudo wavefunction corresponding to a 4p spin down
+        (J=1/2) orbital whereas the file 'ps.4p3by2.dat' contains the pseudo
+        wavefunction corresponding to a 4p spin up (J=3/2) orbital. Each line
+        of these files has the form: r, psi_ae(r)*r, psi_pseud(r)*r,
+        |psi_ae(r)-psi_pseudo(r)|*r. As these files are thought for plotting
+        they do not contain all grid points used in the calculation. If you
+        need to know the wavefunction on the complete grid you have to modify
+        the code in routine pseudo_2.2: comment the line ' call
+        detnp(ngrid,rae,5*rcov,np)' and insert the line ' np=ngrid'.
 
 
 - to get a feeling what is a good fit and what is a bad fit for a
-certain atom run pseudo_2.2 with the LDA parameter set. Look at the
-errors of the eigenvalues and charges and plot the pseudo
-wavefunctions together with their all electron counterparts. This may
-serve as a guideline. The value of the penalty function is no ultimate
-quality criterion. It is only as weights sum over different errors!
+        certain atom run pseudo_2.2 with the LDA parameter set. Look at the
+        errors of the eigenvalues and charges and plot the pseudo
+        wavefunctions together with their all electron counterparts. This may
+        serve as a guideline. The value of the penalty function is no ultimate
+        quality criterion. It is only as weights sum over different errors!
 
 
--in its default fitting mode pseudo_2.2 uses the simple projectors
-p_i^l(r) and no constraints for the h_ij^l.  if you want to use the
-same transformations as in PRB ??, C.Hartwigsen, S.Goedecker and
-J.Hutter) invoke pseudo_2.2 with the option '-lith'.  If you want to
-use parameter sets with simple projectors (as given in Phys. Rev. B
-54, 1703 (1996)) invoke pseudo_2.2 without the options '-orth' or
-'-lith'. it is possible to use orthonormal projectors by invoking
-pseudo_2.2 with the option '-orth'. These orthonormal projectors
-P_i^l(r) and the corresponding matrix H(ij) have to be constructed by
-matrix-multiplications:
+- in its default fitting mode pseudo_2.2 uses the simple projectors
+        p_i^l(r) and no constraints for the h_ij^l.  if you want to use the
+        same transformations as in PRB ??, C.Hartwigsen, S.Goedecker and
+        J.Hutter) invoke pseudo_2.2 with the option '-lith'.  If you want to
+        use parameter sets with simple projectors (as given in Phys. Rev. B
+        54, 1703 (1996)) invoke pseudo_2.2 without the options '-orth' or
+        '-lith'. it is possible to use orthonormal projectors by invoking
+        pseudo_2.2 with the option '-orth'. These orthonormal projectors
+        P_i^l(r) and the corresponding matrix H(ij) have to be constructed by
+        matrix-multiplications:
+        <pre>
+         U (p_1^l(r),p_2^l(r),p_3^l(r)) = (P_1^l(r),P_2^l(r),P_3^l(r))
+         U h(ij) UT = H(ij) ; UT = transposed(U).
+        </pre>
+        The transformation matrix U, the P_i^l(r) and the matrix elements H_ij
+        are written out at the end each run whenever the command line option
+        '-orth' is used. Nevertheless the file 'psp.par' always contains the
+        matrix elements h_ij^l! We strongly recommend the use of the option
+        '-orth'! The nonlocal part of the pseudopotential then can be
+        calculated avoiding the double sum over i,j:
+        <pre>
+                              3    l                                                
+                             ---  ---                                                
+                           l \    \                     l     l        l  *        
+         dV_l(r_1,r_2)=(-1)   )    )  Y_l,m(r_1) P_i(r_1) H_ii  P_i(r_2) Y_l,m(r_2).
+                             /    /                                                
+                             ---  ---                                                
+                             i=1 m=-l 
+        </pre>
+        The use of orthonormal projectors also avoids any linear dependencies
+        during the fit. As long as pseudo_2.2 does transformations of the
+        matrix h(ij) (both options '-lith','-orth') the off diagonal terms
+        h_ij for i<>j are calculated from the the diagonal terms (i.e. the
+        h_ii's). So do not worry if the program changes the values of
+        expansion coefficients of projectors that are not marked as fitting
+        parameters in 'FITPAR'. In this case pseudo_2.2 prints a warning at
+        the beginning. Comparable pseudopotentials for the same elements using
+        different transformations for the h_ij can easily be constructed for
+        most cases by refitting the h_ij of a given pseudopotential while
+        keeping all other pseudopotential parameters fixed. Sometimes
+        refitting of the corresponding r_l will be neccessary.
 
- U (p_1^l(r),p_2^l(r),p_3^l(r)) = (P_1^l(r),P_2^l(r),P_3^l(r))
- U h(ij) UT = H(ij) ; UT = transposed(U).
 
-The transformation matrix U, the P_i^l(r) and the matrix elements H_ij
-are written out at the end each run whenever the command line option
-'-orth' is used. Nevertheless the file 'psp.par' always contains the
-matrix elements h_ij^l! We strongly recommend the use of the option
-'-orth'! The nonlocal part of the pseudopotential then can be
-calculated avoiding the double sum over i,j
-                      3    l                                                
-                     ---  ---                                                
-                   l \    \                     l     l        l  *        
- dV_l(r_1,r_2)=(-1)   )    )  Y_l,m(r_1) P_i(r_1) H_ii  P_i(r_2) Y_l,m(r_2).
-                     /    /                                                
-                     ---  ---                                                
-                     i=1 m=-l 
+- softness considerations: For certain applications you may want to
+        create a softer pseudopotential than the already available LDA
+        pseudopotentials. There are several ways: you can slightly increase
+        the values of rloc and r_l() and keep them fixed during a subsequent
+        re-fitting of the remaining parameters. This leads to a less steeper
+        local potential and less localised projectors and thereby to a softer
+        pseudopotential (unfortunately this does not necessarily mean that the
+        corresponding pseudo wavefunctions also get softer!). A second way is
+        to get rid of the localised Gaussians of the basis set pseudo_2.2 uses
+        by decreasing the value of rij ('psp.par'). Setting the weights
+        ('weights.par') for the residues of the lowest orbitals to some high
+        value forces pseudo_2.2 to generate potentials for which the pseudo
+        wavefunctions are well represented by a basis with no sharp Gaussians
+        which again corresponds to a lower cutoff energy when using a plane
+        wave basis set. Warning: never try to make a pseudopotential too soft
 
-The use of orthonormal projectors also avoids any linear dependencies
-during the fit. As long as pseudo_2.2 does transformations of the
-matrix h(ij) (both options '-lith','-orth') the off diagonal terms
-h_ij for i<>j are calculated from the the diagonal terms (i.e. the
-h_ii's). So do not worry if the program changes the values of
-expansion coefficients of projectors that are not marked as fitting
-parameters in 'FITPAR'. In this case pseudo_2.2 prints a warning at
-the beginning. Comparable pseudopotentials for the same elements using
-different transformations for the h_ij can easily be constructed for
-most cases by refitting the h_ij of a given pseudopotential while
-keeping all other pseudopotential parameters fixed. Sometimes
-refitting of the corresponding r_l will be neccessary.
-
-
--softness considerations: For certain applications you may want to
-create a softer pseudopotential than the already available LDA
-pseudopotentials. There are several ways: you can slightly increase
-the values of rloc and r_l() and keep them fixed during a subsequent
-re-fitting of the remaining parameters. This leads to a less steeper
-local potential and less localised projectors and thereby to a softer
-pseudopotential (unfortunately this does not necessarily mean that the
-corresponding pseudo wavefunctions also get softer!). A second way is
-to get rid of the localised Gaussians of the basis set pseudo_2.2 uses
-by decreasing the value of rij ('psp.par'). Setting the weights
-('weights.par') for the residues of the lowest orbitals to some high
-value forces pseudo_2.2 to generate potentials for which the pseudo
-wavefunctions are well represented by a basis with no sharp Gaussians
-which again corresponds to a lower cutoff energy when using a plane
-wave basis set. Warning: never try to make a pseudopotential too soft
+        
 - i.e. be aware that you trade accuracy for softness! In many cases a
-harder but more accurate pseudopotential will yield better results at
-even moderate cutoff energies.
+        harder but more accurate pseudopotential will yield better results at
+        even moderate cutoff energies.
 
 
--if you (re)construct the pseudopotential parameters for the file
-'psp.par' from a pseudopotential parameter file used for CPMD
-(i.e. files with a format like the 'XX' files) be careful: the
-sequence of the expansions coefficients of the projectors can be
-different! To find out the correct order look at the available LDA
-parameter sets - there you find both the 'XX' and 'psp.par' files. For
-relativistic atoms the parameters in the file 'XX' are not identical to
-'psp.par' as the only contain the scalar relativistic part
-(i.e. average potentials) and spin orbit couplings are neglected. You
-might also look at the source code of the routine 'pseudo.f' where the
-files 'psp.par' and 'XX' are created.
+- if you (re)construct the pseudopotential parameters for the file
+        'psp.par' from a pseudopotential parameter file used for CPMD
+        (i.e. files with a format like the 'XX' files) be careful: the
+        sequence of the expansions coefficients of the projectors can be
+        different! To find out the correct order look at the available LDA
+        parameter sets - there you find both the 'XX' and 'psp.par' files. For
+        relativistic atoms the parameters in the file 'XX' are not identical to
+        'psp.par' as the only contain the scalar relativistic part
+        (i.e. average potentials) and spin orbit couplings are neglected. You
+        might also look at the source code of the routine 'pseudo.f' where the
+        files 'psp.par' and 'XX' are created.
 
 
--if you are interested in the eigenfunctions and eigenvalues of the
-free pseudopotential (no confining potential) simply set the value for
-rcov in 'psp.par' to some large value and invoke pseudo_2.2 with the
-option '-ignore'. (do not worry if now the errors for the eigenvalues
-and charges relative to the ae atom are large - the ae atom results
-still refer to the confining potential!)
+- if you are interested in the eigenfunctions and eigenvalues of the
+        free pseudopotential (no confining potential) simply set the value for
+        rcov in 'psp.par' to some large value and invoke pseudo_2.2 with the
+        option '-ignore'. (do not worry if now the errors for the eigenvalues
+        and charges relative to the ae atom are large - the ae atom results
+        still refer to the confining potential!)
 
 
--maybe you want to test the transferability of your pseudopotential by
-calculating the total energy of the pseudo atom in different
-electronic states and compare the excitation energies with those of
-the all electron calculations. to do so simply use the corresponding
-files 'atom.ae' that are generated by the program 'atom' for the
-atomic state you are interested and invoke pseudo_2.2 with the option
-'-ignore'. pseudo_2.2 then calculates the total energy of the pseudo
-atom for the electronic configuration stored in 'atom.ae' even if this
-configuration is not consistent with the parameters stored in the file
-'psp.par'.
+- maybe you want to test the transferability of your pseudopotential by
+        calculating the total energy of the pseudo atom in different
+        electronic states and compare the excitation energies with those of
+        the all electron calculations. to do so simply use the corresponding
+        files 'atom.ae' that are generated by the program 'atom' for the
+        atomic state you are interested and invoke pseudo_2.2 with the option
+        '-ignore'. pseudo_2.2 then calculates the total energy of the pseudo
+        atom for the electronic configuration stored in 'atom.ae' even if this
+        configuration is not consistent with the parameters stored in the file
+        'psp.par'.
 
 
--for some applications you will need the wavefunctions of the scalar
-relativistic pseudopotentials (as stored in 'XX') rather than the
-wavefunctions of the fully relativistic pseudopotential (stored in
-'psp.par'). To calculate these wavefunctions you first have do redo
-the atomic calculation for the non relativistic atom with the program
-'atom'.  Therefore change the corresponding line in the file
-'atom.dat' from ' rel' to ' non' and run the program 'atom'. For the
-pseudo atom calculation use the new file 'atom.ae'. Edit the file
-'psp.par' created by atom and fill in the parameters of the scalar
-relativistic pseudo atom given in the file 'XX'. Be careful: the
-sequence of the expansions coefficients (hij) of the projector
-functions can be different in 'XX' and 'psp.par'. The 'psp.par' file
-now only contains one line per angular momentum as there are no longer
-spin up and spin down states for l>0!  for the parameters ng, rij ,
-rcov and rprb use the old values of the fully relativistic
-pseudopotential. You also have to edit the 'weights.par' file - there
-is now only one orbital for each n and l>0!  Now run pseudo_2.2 with
-the option '-plot'. The wavefunctions of the scalar relativistic
-pseudopotential are stored in the files 'ps.*.dat' afterwards. Do not
-worry if the pseudo atom wavefunctions do not closely fit their all
-electron: the all electron wfs correspond to a classical atom whereas
-the pseudo wfs correspond to a scalar relativistic
-atom. (Unfortunately the atomic program is unable to treat the scalar
-relativistic all electron atom.) An example for an scalar relativistic
-pseudo atom is given in the directory './EXAMPLE/SCREL'. If you
-inspect the files stored there things should become clear!
+- for some applications you will need the wavefunctions of the scalar
+        relativistic pseudopotentials (as stored in 'XX') rather than the
+        wavefunctions of the fully relativistic pseudopotential (stored in
+        'psp.par'). To calculate these wavefunctions you first have do redo
+        the atomic calculation for the non relativistic atom with the program
+        'atom'.  Therefore change the corresponding line in the file
+        'atom.dat' from ' rel' to ' non' and run the program 'atom'. For the
+        pseudo atom calculation use the new file 'atom.ae'. Edit the file
+        'psp.par' created by atom and fill in the parameters of the scalar
+        relativistic pseudo atom given in the file 'XX'. Be careful: the
+        sequence of the expansions coefficients (hij) of the projector
+        functions can be different in 'XX' and 'psp.par'. The 'psp.par' file
+        now only contains one line per angular momentum as there are no longer
+        spin up and spin down states for l>0!  for the parameters ng, rij ,
+        rcov and rprb use the old values of the fully relativistic
+        pseudopotential. You also have to edit the 'weights.par' file - there
+        is now only one orbital for each n and l>0!  Now run pseudo_2.2 with
+        the option '-plot'. The wavefunctions of the scalar relativistic
+        pseudopotential are stored in the files 'ps.*.dat' afterwards. Do not
+        worry if the pseudo atom wavefunctions do not closely fit their all
+        electron: the all electron wfs correspond to a classical atom whereas
+        the pseudo wfs correspond to a scalar relativistic
+        atom. (Unfortunately the atomic program is unable to treat the scalar
+        relativistic all electron atom.) An example for an scalar relativistic
+        pseudo atom is given in the directory './EXAMPLE/SCREL'. If you
+        inspect the files stored there things should become clear!
 
 
--in an older version of the program wfnode(i,n) had an different meaning:
- wfnode(i,n) was the the ordinate of the outermost node of the
-wavefunction (or its higher derivatives for n=2,3)) if this node is
-not allowed (the lowest orbitals of each angular momentum must have
-zero nodes, the next higher orbitals must have one node, ...). this
-sometimes resulted in a discontinuous the penalty function resulting
-resulting in a slower optimisation of the pseudopotential. By
-replacing the direct contribution of the ordinates of the nodes to the
-penalty function by the integral of the (wave)function between this
-nodes  we obtain an continuous penalty penaltyfunction.( For
-pseudo wavefunctions with the correct nodal structure both versions of
-the penalltyfunction have the same value!) The new version has the
-advantage that small oscillations of the wavefunction in the core
-region give a smaller contribution to the penalty function as large
-oscillations with the same node locations. Due to the change in the
-meaning of  wfnode(i,n) it might be necessary in some cases to change
-the corresponding weights in the file 'weights.par'. If you want to
-use the old version of the penalty function you have to edit the file 
-'gatom.f': uncomment the three lines following 
-'c     old version for nodes as used in the paper:' 
-and comment the three lines following
-'c     new version, using the integrals of the functio...'
-Nevertheless we STRONGLY recommend th use the new version.
+- in an older version of the program wfnode(i,n) had an different meaning:
+         wfnode(i,n) was the ordinate of the outermost node of the
+        wavefunction (or its higher derivatives for n=2,3)) if this node is
+        not allowed (the lowest orbitals of each angular momentum must have
+        zero nodes, the next higher orbitals must have one node, ...). this
+        sometimes resulted in a discontinuous the penalty function resulting
+        resulting in a slower optimisation of the pseudopotential. By
+        replacing the direct contribution of the ordinates of the nodes to the
+        penalty function by the integral of the (wave)function between this
+        nodes  we obtain an continuous penalty penaltyfunction.( For
+        pseudo wavefunctions with the correct nodal structure both versions of
+        the penalltyfunction have the same value!) The new version has the
+        advantage that small oscillations of the wavefunction in the core
+        region give a smaller contribution to the penalty function as large
+        oscillations with the same node locations. Due to the change in the
+        meaning of  wfnode(i,n) it might be necessary in some cases to change
+        the corresponding weights in the file 'weights.par'. If you want to
+        use the old version of the penalty function you have to edit the file 
+        'gatom.f': uncomment the three lines following 
+        'c     old version for nodes as used in the paper:' 
+        and comment the three lines following
+        'c     new version, using the integrals of the functio...'
+        Nevertheless we STRONGLY recommend th use the new version.
 
--the version used for generating the pseudopotentials published in 
- PRB ??? contained an error in the calculation of the second
-derivative of the pseudo wavefunction. Therefore it might happen that
-the pseudo wavefunctions of some heavier elements exhibit a small,
-unwanted shoulder in the core region. By refitting the pseudopotential
-with appropriate weights this shoulder dissappears. Nevertheless the
-published pseudopotentials will already work in atomic and molecular
-calculations!
+- the version used for generating the pseudopotentials published in 
+        PRB ??? contained an error in the calculation of the second
+        derivative of the pseudo wavefunction. Therefore it might happen that
+        the pseudo wavefunctions of some heavier elements exhibit a small,
+        unwanted shoulder in the core region. By refitting the pseudopotential
+        with appropriate weights this shoulder dissappears. Nevertheless the
+        published pseudopotentials will already work in atomic and molecular
+        calculations!
 
--to give you an idea about the cpu-time needed for fitting an
-pseudopotential, here are some benchmarks. the listed timings may only
-serve as a guideline, as the have been obtained with an older version
-of the program - they also depend on wether you use an special
-LAPACK/BLAS library for you machine or use the supplied source-code
-(and of course: they depend on the pseudopotential!).
+- to give you an idea about the cpu-time needed for fitting an
+        pseudopotential, here are some benchmarks. the listed timings may only
+        serve as a guideline, as the have been obtained with an older version
+        of the program - they also depend on wether you use an special
+        LAPACK/BLAS library for you machine or use the supplied source-code
+        (and of course: they depend on the pseudopotential!).
 
 15 gaussians, one cycle with 500 simplex iterations
 DEC-ALPHA 433MHZ   227.4  sec
@@ -750,15 +729,13 @@ DEC-ALPHA 433MHZ  1191.8  sec
 with ~1000 iterations each.)
 
 
-********************************************************************
-*	Example: Creating a PBE-Pseudopotential for Gold using the
-*       	 available LDA parameter SET (11-electron PSP)
-********************************************************************
 
-a) Copy the file './EXAMPLE/atom/atom_au.lda.dat' to
+@section Examples Example: Creating a PBE-Pseudopotential for Gold using the available LDA parameter SET (11-electron PSP)
+
+1. Copy the file './EXAMPLE/atom/atom_au.lda.dat' to
 './EXAMPLE/atom/atom.dat'. Edit the file atom.dat and change the
 keyword for the XC-functional from 'PADE' to 'PBE':
-
+<pre>
    Au
    PBE 
    rel
@@ -776,6 +753,7 @@ keyword for the XC-functional from 'PADE' to 'PBE':
     7    2     0.00      0.00              
     5    3     0.00      0.00              
     6    3     0.00      0.00              
+</pre>
 
 Now run the program atom. If you are interested in the all electron
 wavefunctions or the atomic XC-potential you can plot the files
@@ -788,7 +766,7 @@ atom)
 If you have any problems with the ae calculations consult the 'README'
 for the program "atom".
 
-b)Copy the file 'atom.ae' to the directory './EXAMPLE/psp/'. Copy the
+2. Copy the file 'atom.ae' to the directory './EXAMPLE/psp/'. Copy the
 file './EXAMPLE/psp/psp.par_PADE' to './EXAMPLE/psp/psp.par'. Edit the
 file 'psp.par' and change the XC-functional from 'PADE' to 'PBE'. The
 head of the file 'psp.par' should now look like:
@@ -804,6 +782,7 @@ momentum orbitals equal zero. The parameters for the projectors acting
 on the l=1 orbitals can be fitted separately as the pseudo atom has no
 occupied p-orbital. 'weights.par' should now look like:
 
+<pre>
  Initial weight-guess from atomic-program
  ----------------------------------------
     .1E+03     weight_psir0
@@ -827,11 +806,11 @@ occupied p-orbital. 'weights.par' should now look like:
    5   3  .50   1.0e2   0.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    6   3 -.50   0.0e0   0.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    6   3  .50   0.0e0   0.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
-
+</pre>
 
 edit the file 'FITPAR' and set all parameters that have to be fitted
 equal .true.; 'FITPAR' now should look like:
-
+<pre>
   Fit                        Parameter
  f    t f f f                rloc,gpot(1,..,4)
             2                lmax
@@ -839,6 +818,7 @@ equal .true.; 'FITPAR' now should look like:
  f    f f f f f f            r_l(2),h11,h12,h22,h13,h23,h33 (l=1)
  t    t f t f f f            r_l(3),h11,h12,h22,h13,h23,h33 (l=2)
  f    f f f f f f            r_l(4),h11,h12,h22,h13,h23,h33 (l=3)
+</pre>
 
 The last line of 'FITPAR' can be deleted (if you like) as there is no
 projector for l=3 (lmax=2).
@@ -854,7 +834,7 @@ current example approximately 10-20 cycles) stop further fitting of
 the parameters affecting the occupied orbitals and start fitting the
 parameters for the projectors acting on the l=1 orbitals. To do this
 modify the files 'FITPAR' and 'weights.par' in the following form:
-
+<pre>
   Fit                        Parameter
  f    f f f f                rloc,gpot(1,..,4)
             2                lmax
@@ -862,9 +842,11 @@ modify the files 'FITPAR' and 'weights.par' in the following form:
  t    t f t f f f            r_l(2),h11,h12,h22,h13,h23,h33 (l=1)
  f    f f f f f f            r_l(3),h11,h12,h22,h13,h23,h33 (l=2)
  f    f f f f f f            r_l(4),h11,h12,h22,h13,h23,h33 (l=3)
+</pre>
 
 and
 
+<pre>
  Initial weight-guess from atomic-program
  ----------------------------------------
     .1E+03     weight_psir0
@@ -888,6 +870,7 @@ and
    5   3  .50   1.0e2   0.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    6   3 -.50   0.0e0   0.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    6   3  .50   0.0e0   0.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
+</pre>
 
 You can change the files 'FITPAR' and 'weights.par' whenever you like
 while pseudo_2.2 is running. It is unnecessary to stop pseudo_2.2! The
@@ -897,10 +880,10 @@ new fitting cycle.
 Look at the output of pseud_2.2 and stop the program when the results
 are sufficiently converged.
 
-c) Test the fitting results of pseudo_2.2 with the command 'pseudo_2.2
+3. Test the fitting results of pseudo_2.2 with the command 'pseudo_2.2
 -fullacc -denbas -plot'.  Look at the output and carefully check the
 results. To look at the all electron and pseudo wavefunctions type
 'gnuplot psw.gnu' or plot the files 'ps.*.dat' with any other plotting
 program you like.
 
-  
+*/ 

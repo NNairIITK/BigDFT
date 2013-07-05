@@ -18,7 +18,8 @@ the proper boundary conditions.
 The BigDFT code has a core part and internal libraries:
 - The @ref flib "flib library" which controls the low-level operation concerning memopry, timing, errors
   but provides also some tools as dictionaries objects and yaml output.
-- The @ref PSolver "PSolver library" is devoted to the resolaution of the Poisson equation.
+- The @ref PSolver "PSolver library" is devoted to the resolution of the Poisson equation.
+- The @ref pseudo "pseudo program" is a standalone program which is used to generate the pseudopotential files.
 
  @section B Binaries
  - @link BigDFT.f90      BigDFT @endlink            The main program

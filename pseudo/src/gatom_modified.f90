@@ -1,6 +1,20 @@
+!> @file
+!! Generate atomic electronic configuration
+!! @author
+!!    Alex Willand, under the supervision of Stefan Goedecker
+!!    gpu accelerated routines by Raffael Widmer
+!!    parts of this program were based on the fitting program by matthias krack
+!!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 
-
+!> Generation of the atomci electronic structure calculation
+!! gatom modified version
 subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg,&
@@ -14,8 +28,8 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
   dimension psi(0:ng,noccmax,lmax+1),aeval(noccmx,lmax+1),&
        hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
        gpot(3),hsep(6,lpmx),rmt(n_int,0:ng,0:ng,lmax+1),&
-       pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpmx),&
-       potgrd(n_int),&
+       pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpmx)
+  dimension &     
        rho(0:ng,0:ng,lmax+1),rhoold(0:ng,0:ng,lmax+1),xcgrd(n_int),&
        rhogrd(n_int),excgrd(n_int), &
        occup(noccmx,lmax+1),chrg(noccmx,lmax+1),&
@@ -25,7 +39,8 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
        psigrid_naked_2(Ngrid,Nsol), projgrid(Ngrid,3), &
        rhogrid(Ngrid), rhogrid3(Ngrid) ,excgrid(Ngrid),potgrid(Ngrid), psigrid_not_fitted(Ngrid,Nsol),&
        psigrid_not_fitted_2(Ngrid,Nsol),&
-       vxcgrid(Ngrid), &
+       vxcgrid(Ngrid)
+  dimension &
        Egrid(nsol), ppgrid(Nsol,3), work(nsol*nsol*2), &
        H(Nsol, Nsol), &
        H_2(Nsol, Nsol), &
@@ -33,17 +48,17 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
        Hadd(Nsol, Nsol), Egrid_tmp(Nsol),Egrid_tmp_2(Nsol), Etofit(Nsol), &
        Soverlap(Nsol,Nsol), Tpsigrid(Nsol,Ngrid ),Tpsigrid_dum(Nsol, Ngrid),valuesatp(Nsol), &
        PAWpatch(Npaw, Npaw ), Spsitildes(Npaw, Npaw), genS(Nsol,Nsol), genH(Nsol,Nsol) , dumH(Nsol,Nsol),&
-       rint(nintp), rint_d(nintp), rint_w(nintp), rhoint_core(nintp), rhocore(nintp), rhocore_grid(Ngrid)
+       rint(nintp), rint_d(nintp), rint_w(nintp), rhocore(nintp), rhocore_grid(Ngrid)
 
   real(gp)  :: psipsigrid(Ngrid, Nsol)
   
 
-  real(gp) :: rgrid(Ngrid),rd(Ngrid),rw(Ngrid),ene_m, ene_p, factadd, rcond, fixfact
+  real(gp) :: rgrid(Ngrid),rd(Ngrid),rw(Ngrid),ene_m, ene_p, rcond, fixfact
   real(gp), target :: dumgrid1(Ngrid),dumgrid2(Ngrid), dumgrid3(Ngrid)
-  logical dofit
-  integer real_start, iocc, iwork(Nsol), INFO, volta, ngrid_box_2
-  character(1) EQUED
-  integer ipiv(Nsol), Npaw
+  logical :: dofit
+  integer :: real_start, iocc, iwork(Nsol), INFO, volta, ngrid_box_2
+  character(len=1) :: EQUED
+  integer :: Npaw
 
 
   dofit=.false.

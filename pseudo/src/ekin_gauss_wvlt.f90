@@ -5,7 +5,12 @@
 !!    gpu accelerated routines by Raffael Widmer
 !!    parts of this program were based on the fitting program by Matthias Krack
 !!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
-
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> This procedure is supposed to call a minimum of
@@ -25,12 +30,11 @@ subroutine  ekin_wvlt(verbose,iproc,nproc,ng,ngmx,&
                 occup_in(noccmx,lmx,nsmx),rxyz(3),drxyz(3)
    integer:: nl(lmx,nsmx)
    real*8,allocatable:: ekin_plot(:,:,:)
-   logical::plotwf, verbose
-   character(20)::frmt
+   logical :: verbose
+   character(20) :: frmt
 
   !Arguments of createWavefunctionsDescriptors
-  integer :: iproc,nproc,idsx,n1,n2,n3,norb
-  integer :: norbp,nvctrp
+  integer :: iproc,nproc,n1,n2,n3,norb
   logical :: parallel 
   real*8 :: hgrid,crmult,frmult
   integer,allocatable :: ibyz_c(:,:,:), ibxz_c(:,:,:), ibxy_c(:,:,:)
@@ -41,25 +45,13 @@ subroutine  ekin_wvlt(verbose,iproc,nproc,ng,ngmx,&
   ! arrays for DIIS convergence accelerator
   !Local variables
   real*8, parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
-  integer :: i1,i2,i3,norbme
-  real*8 :: tt,rprb, t, time(3)
+  real*8 :: t, time(3)
   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
 
-
   !Arguments of createAtomicOrbitals
-
   integer :: norbe, norbep, ngx
   integer :: nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
-  real*8,allocatable ::  psiat(:), psiatn(:)
-  real*8 :: rx, ry, rz,  scpr, eks, eki
 
-
-  !Arguments of applylocpotkinall
-  real*8, allocatable, dimension(:) ::psig, psigp
-
- 
-
-  
    include 'mpif.h'
    parallel=(nproc>1)
    ngx=ngmx
@@ -446,7 +438,7 @@ subroutine createAtomicOrbitals(iproc, nproc, nspin,&
   real*8 :: rxyz(3)
   real*8 :: xp(ngx)
   integer, parameter :: nterm_max=3
-  integer :: lx(nterm_max),ly(nterm_max),lz(nterm_max),ierr
+  integer :: lx(nterm_max),ly(nterm_max),lz(nterm_max)
   real*8 :: fac_arr(nterm_max)
   integer :: ispin,nspin, iorb, jorb,  i,  inl, l, m,  nterm
   real*8 :: rx, ry, rz,  scpr, ekin, ekgauss

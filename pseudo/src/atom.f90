@@ -30,12 +30,15 @@
 
 
 !> Run atomic program
-program main
-   call atom
-END PROGRAM main
+!! @ingroup pseudo
+program atom_program
+   implicit none
+   call atom()
+END PROGRAM atom_program
 
 
-subroutine atom
+!> Main routine to do atomic electronic structure calculation
+subroutine atom()
 
        implicit double precision(a-h,o-z)
 
@@ -587,9 +590,10 @@ subroutine atom
  10    format(17h1stop parameter =,i3)
        stop
        end subroutine ext
-!
-!      *****************************************************************
-!
+       
+       
+       !> vionic sets up the ionic potential
+       !! note that vio is the ionic potential times r
        subroutine vionic(itype,iXC,ifcore,  &
        nrmax,nr,a,b,r,rab,rprb,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
@@ -597,21 +601,15 @@ subroutine atom
        viod,viou,vid,viu,vod,vou,  &
        etot,ev,ek,ep)
        implicit double precision(a-h,o-z)
-!
-!      vionic sets up the ionic potential
-!      note that vio is the ionic potential times r
-!
+       !Local variables
        dimension r(*),rab(*),  &
        no(norb),lo(norb),so(norb),zo(norb),  &
        cdd(*),cdu(*),cdc(*),  &
        viod(lmax,*),viou(lmax,*),vid(*),viu(*),vod(*),vou(*),  &
        etot(10),ev(norb),ek(norb),ep(norb)
-       character*2 itype,nameat,icalc,cdtyp
+       character(len=2) :: itype,nameat
        integer:: iXC
 !
-       dimension iray(6)
-       character namef*6,iray*8,  &
-       namet*2,icorrt*2,mcore*4,irel*3
 !.....files
       common /files/iinput,iout,in290,in213,istore,iunit7,iunit8,istruc,  &
                      ivnlkk,isumry,ikpts
@@ -673,8 +671,7 @@ subroutine atom
        cdd(nr),cdu(nr),cdc(nr),  &
        viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
        etot(10),ev(norb),ek(norb),ep(norb)
-       dimension vtemp(1000)
-       character*2 ispp*1,nameat,itype
+       character*2 ispp*1,nameat
        integer:: iXC
 !
       parameter ( mesh = 2000 )
@@ -683,9 +680,7 @@ subroutine atom
        common  y,yp,ypp,w,s1,s2
 !
 !      for use in routine atomwr:
-       parameter (ntitle = 40)
-       character*40 text(ntitle)
-       character irel*3, xccore*4, cdtyp*2
+       integer, parameter :: ntitle = 40
 
 !     c.hartwig
 !     convention for spol  as in dsolv: spin down=1 and spin up=2
@@ -927,49 +922,46 @@ subroutine atom
        etot(7) = exc
        return
        end
-!
-!      *****************************************************************
-!
+
+
+!> Subroutine to read input parameters
        subroutine input (itype,iXC,ispp,  &
        nrmax,nr,a,b,r,rab,rprb,rcov,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
        znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
        viod,viou,vid,viu,vod,vou,  &
        etot,ev,ek,ep,nconf,  &
-!      the save block seems to FAIL sometimes
        nvalo,ncoreo)
 
-!     we need these modules to initialize libXC when reading iXC
+      ! We need these modules to initialize libXC when reading iXC
 !     use defs_basis
       use libxcModule
        implicit double precision(a-h,o-z)
-!
-!      subroutine to read input parameters
-!
        dimension r(nrmax),rab(nrmax),  &
        no(*),lo(*),so(*),zo(*),  &
        cdd(nrmax),cdu(nrmax),cdc(nrmax),  &
        viod(lmax,nrmax),viou(lmax,nrmax),vid(nrmax),viu(nrmax),  &
        vod(nrmax),vou(nrmax),  &
        etot(10),ev(*),ek(*),ep(*)
-       character*2 itype,ispp*1,nameat,blank*1
+       character(len=2) :: itype,nameat
+       character(len=1) :: ispp,blank
        integer :: iXC
        logical, parameter :: debug = .false.
 
        dimension rw(10000),rd(10000)
        common /intgrd/ rw,rd
-!      those are now dummy args on line 6
+       ! Those are now dummy args on line 6
+       ! The save block seems to FAIL sometimes
 !      save nvalo,ncoreo
 
 
 !      for use in routine atomwr:
        integer, parameter :: ntitle = 40
-       character(len=40) :: text(ntitle)
-       character*80 instrg
-       character irel*3, icalc*2, cdtyp*2
+       character(len=80) :: instrg
+       character irel*3
        character spdf(5)
-       dimension nc(15),lc(15),nomin(5),iray(2)
-       character iray*8,name*3
+       dimension nc(15),lc(15),nomin(5)
+       character(len=3) :: name
 !
        data nc /1,2,2,3,3,3,4,4,4,4,5,5,5,6,6/
        data lc /0,0,1,0,1,2,0,1,2,3,0,1,2,0,1/
@@ -1295,20 +1287,14 @@ subroutine atom
        itype='stop'
        return
        end
-!
-!      *****************************************************************
-!
-!      *****************************************************************
-!
+
+       
+       !> Function determines the nuclear charge of an element
        double precision function charge(name)
-!
-!    function determines the nuclear charge of an element
-!
+
        integer, parameter :: nelem = 103
-       character(len=2) :: name, elemnt, pertab(nelem)
-       integer :: ic(2)
-!      the periodic table
-       data pertab /  &
+       !> The periodic table
+       character(len=2), dimension(nelem), parameter :: pertab = (/ &
         'H ','HE',  &
         'LI','BE','B ','C ','N ','O ','F ','NE',  &
         'NA','MG','AL','SI','P ','S ','CL','AR',  &
@@ -1325,7 +1311,9 @@ subroutine atom
                   'TL','PB','BI','PO','AT','RN',  &
         'FR','RA',  &
              'AC','TH','PA','U ','NP','PU','AM','CM','BK','CF',  &
-                                      'ES','FM','MD','NO','LR'/
+                                      'ES','FM','MD','NO','LR' /)
+       character(len=2) :: name, elemnt
+       integer :: ic(2)
 !
 !      convert the name to upper-case, and possibly left-justify
 !
@@ -2308,9 +2296,9 @@ subroutine atom
  111  continue
       return
       end
-!
-!      *****************************************************************
-!
+
+
+      !> orban is used to analyze and printout data about the orbital
        subroutine orban(itype,iXC,ispp,iorb,ar,br,  &
        nrmax,nr,a,b,r,rab,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
@@ -2318,9 +2306,6 @@ subroutine atom
        viod,viou,vid,viu,vod,vou,  &
        etot,v,ev,ek,ep,rcov,rprb,nconf)
        implicit double precision(a-h,o-z)
-!
-!      orban is used to analyze and printout data about the orbital
-!
        dimension ar(nr),br(nr)
        dimension r(nr),rab(nr),  &
        no(norb),lo(norb),so(norb),zo(norb),  &
@@ -2330,11 +2315,8 @@ subroutine atom
        character*2 ispp*1,nameat,itype
 !
        dimension rzero(10),rextr(10),aextr(10),bextr(10)
-       dimension cg(100),gzero(10),gextr(10),cextr(10)
        character(len=10) :: name
        character(len=30) :: plotfile,orbname
-       character(len=3) :: irel
-       character(len=4) :: ifcore
        integer :: iXC
 !.....files
       common /files/iinput,iout,in290,in213,istore,iunit7,iunit8,istruc,  &
@@ -2343,11 +2325,11 @@ subroutine atom
 !     work-arrays for integration, and xc-potential
 !     SOME OF THOSE SEEM NOT TO BE USED AT ALL
       dimension ttx(50000),tty(50000),ttyp(50000),ttypp(50000),  &
-           ttw(150000),rho(nr),excgrd(nr)
-      dimension rr(10000),rw(10000),rd(10000)
+           ttw(150000)
+      dimension rw(10000),rd(10000)
       common /intgrd/ rw,rd
       character*1 il(5)
-      character*2 cnum
+      character(len=2) :: cnum
 !
 !
 !       ai = 2*137.04D0

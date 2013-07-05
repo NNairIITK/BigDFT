@@ -1,21 +1,28 @@
+!> @file
+!! Paw generation using dirac equation (?) in pseudo program
+!! @author
+!!    Alex Willand, under the supervision of Stefan Goedecker
+!!    gpu accelerated routines by Raffael Widmer
+!!    parts of this program were based on the fitting program by matthias krack
+!!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 
-
- 
+!> difnrl integrates the Schroedinger equation
+!! if finds the eigenvalue ev, the wavefunction ar
+!! and the derivative br = d(ar)/dr
       subroutine difnrl(v,ar,br,&
        nr,a,b,r,rab,np,lo,znuc,&
        ev)
-!
-!    difnrl integrates the Schroedinger equation
-!    if finds the eigenvalue ev, the wavefunction ar
-!    and the derivative br = d(ar)/dr
-!
       implicit real*8 (a-h,o-z)
-!
-!  Tolerence
-!
-      parameter(etol=-1.d-7)
-      parameter(tol=1.0d-14)
+      !> Tolerance
+      real(kind=8), parameter :: etol=-1.d-7
+      real(kind=8), parameter :: tol=1.0d-14
 !
       dimension v(nr),ar(nr),br(nr),r(nr),rab(nr) 
 
@@ -101,7 +108,7 @@
       !! write(6,15) ev,nodes
  10   continue
        !! if (itmax .lt. 2) write(6,15) ev,nodes
- 15   format(' ev =',1pe18.10,' nodes =',i2)
+       !! 15   format(' ev =',1pe18.10,' nodes =',i2)
 
       if (itmax == 0) return
       if (ev .gt. 0.0) then

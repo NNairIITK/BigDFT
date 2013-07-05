@@ -1,17 +1,28 @@
+!> @file
+!! Driver of the XC potential for pseudo program
+!! @author
+!!    Alex Willand, under the supervision of Stefan Goedecker
+!!    gpu accelerated routines by Raffael Widmer
+!!    parts of this program were based on the fitting program by matthias krack
+!!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
+
+
+!> Integrates LDA or GGA energy and potential terms.
+!! Derived from the routine ggaenergy_15.f.
+!! This version uses libXC via the bindings in xcfunction.f90.
+!! The routine is split into four cases for each LDA and GGA
+!! in closed shell or spin polarized calculations.
+!! In contrast, the original ggaenergy_15.f always did the entire
+!! GGA procedure of calculating gradients and their corrections.
 subroutine driveXC(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
-   ! ****************************************************************
-   ! integrates LDA or GGA energy and potential terms.
-   ! Derived from the routine ggaenergy_15.f.
-   ! This version uses libXC via the bindings in xcfunction.f90.
-   ! The routine is split into four cases for each LDA and GGA
-   ! in closed shell or spin polarized calculations.
-   ! In contrast, the original ggaenergy_15.f always did the entire
-   ! GGA procedure of calculating gradients and their corrections.
-   ! ****************************************************************
    use libxcModule
-   implicit real*8 (a-h,o-z)
+   implicit none
    !Dummy arguments
-   real(kind=8) :: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad)
+   integer, intent(in) :: nspol  !< Number of spin components
+   integer, intent(in) :: nrad
+   real(kind=8) :: rho(nrad,nspol),pot(nrad,nspol)
+   real(kind=8) :: r(nrad),rw(nrad),rd(nrad),eps(nrad)
+   real(kind=8), intent(out) :: enexc
 
    if (libxc_functionals_isgga()) then
       select case(nspol)
@@ -33,10 +44,8 @@ subroutine driveXC(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
 end subroutine driveXC
 
 
+!> Greatly simplified version of ggaenergy_15 for LDA XC
 subroutine driveLDAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
-   ! ****************************************************************
-   ! greatly simplified version of ggaenergy_15 for LDA XC
-   ! ****************************************************************
    use libxcModule
    implicit real*8 (a-h,o-z)
    real(kind=8) :: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad) ! dummy arguments
@@ -64,10 +73,8 @@ subroutine driveLDAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
 end subroutine driveLDAsimple
 
 
+!> The simple LDA XC driver generalized for two spin channels
 subroutine driveLDApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
-   ! ****************************************************************
-   !   the simple LDA XC driver generalized for two spin channels
-   ! ****************************************************************
    use libxcModule
    implicit real*8 (a-h,o-z)
    real(kind=8) :: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad) ! dummy arguments
@@ -96,11 +103,8 @@ subroutine driveLDApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
 end subroutine driveLDApolarized
 
 
-
+!> This one is very close to the original version of ggaenergy_15 
 subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
-   ! ****************************************************************
-   ! this one is very close to the original version of ggaenergy_15 
-   ! ****************************************************************
    use libxcModule
    implicit real*8 (a-h,o-z)
    real(8):: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad),& ! dummy arguments
@@ -563,17 +567,15 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
 end subroutine driveGGAsimple
 
 
-
-
+!> ggaenergy_15 generalized to colinear spin polarization
 subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
-   ! ****************************************************************
-   !    ggaenergy_15 generalized to colinear spin polarization
-   ! ****************************************************************
    use libxcModule
    implicit real*8 (a-h,o-z)
-   real(8):: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad),& ! dummy arguments
-             Exc,Vxc(nspol),dEdg(nspol), grad(nspol),&      ! arguments to XCfunction
-             c(-8:8), sign(nspol) !                           ! local varialbes for derivatives 
+   ! dummy arguments
+   real(kind=8) :: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad)
+   real(kind=8) :: Exc,Vxc(nspol),dEdg(nspol), grad(nspol) !< Arguments to XCfunction
+   ! Local variables
+   real(kind=8) :: c(-8:8), sign(nspol) !< Variables for derivatives 
 
    enexc=0.d0
    pot=0d0
@@ -1166,7 +1168,3 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
 
    return
 end subroutine driveGGApolarized
-
-
-
-

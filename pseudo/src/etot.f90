@@ -1,3 +1,19 @@
+!> @file
+!! Part of the pseudo program (pseudopotential generation)
+!! @author
+!!    Alex Willand, under the supervision of Stefan Goedecker
+!!    gpu accelerated routines by Raffael Widmer
+!!    parts of this program were based on the fitting program by Matthias Krack
+!!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Calculation of the total energy (pseudo program)
 subroutine etot(verbose,nspol,  &
         noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,  &
         aeval,  &
@@ -7,7 +23,7 @@ subroutine etot(verbose,nspol,  &
         expxpr,etotal)
    
    implicit real*8 (a-h,o-z)
-   logical  energ, verbose
+   logical ::  verbose
    dimension aeval(noccmx,lmx,nsmx),  &
         gpot(4),r_l(lmx),r_l2(lmx),hsep(6,lpmx,nsmx),  &
         xp(0:ng),  ud(nint,((ng+1)*(ng+2))/2,lcx+1),   &

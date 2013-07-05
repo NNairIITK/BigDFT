@@ -1,3 +1,18 @@
+!> @file
+!! Paw generation (?) in pseudo program
+!! @author
+!!    Alex Willand, under the supervision of Stefan Goedecker
+!!    gpu accelerated routines by Raffael Widmer
+!!    parts of this program were based on the fitting program by matthias krack
+!!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,&
      no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,&
@@ -24,8 +39,8 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
        wfnode(noccmx,lmx,nsmx,3),&
        gpot(*),r_l(*),hsep(6,lpmx,nsmx),&
        vh(*),xp(*),rmt(*),rmtg(*),ud(*),psi(*),&
-       rae(*),pen_cont(7),&
-       exverbose(4*nproc),time(3), penal, psir0,wghtp0,rcov,&
+       rae(*),&
+       time(3), penal, psir0,wghtp0,rcov,&
        rprb,rcore,zcore,znuc,zion,rloc,&
        wghtexci,wghtsoft,wghtrad,wghthij,&
        hgridmin,hgridmax, ampl,crmult,frmult,&
@@ -37,14 +52,14 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   
   real(8) pawrcovfact
 
-  character(len=1) ispp
-  logical:: energ, verbose, wpen, pol
+  character(len=1) :: ispp
+  logical :: energ, verbose, pol
   character(len=30) :: plotfile
   real(8), pointer :: atom_potential_fit(:)
   real(8), pointer :: statom_potential(:)
-  real(8) rdum
+  real(8) :: rdum
   
-  integer Nsolm, Npaw, ng
+  integer :: Npaw, ng
   integer Ngrid, Ngrid_box, Ngrid_biggerbox, iovrsmpl,  Ngrid_box_larger
   real(8) boxradius, biggerboxradius, a,b, EMAX
   real(8), pointer :: rgrid(:), yp(:), ypp(:), w(:), aepot(:), aepot_p(:), aepot_pp(:), &
@@ -579,15 +594,14 @@ subroutine find_pfproj_4tail( Nsol,Npaw, Ngrid,Ngrid_box,Ngrid_biggerbox,&
   integer, intent(in) ::  Nsol,Npaw,Ngrid,Ngrid_box,Ngrid_biggerbox,real_start
   real(gp), intent(inout) :: psi1s(Ngrid), rgrid(Ngrid)
   real(gp), intent(inout) :: psigrid(Ngrid,Nsol),psigrid_bigger(Ngrid,Nsol)
-  real(gp), intent(inout) :: psitilde(Ngrid,Nsol),ptilde(Ngrid,Nsol)
+  real(gp), intent(inout) :: psitilde(Ngrid,Nsol), ptilde(Ngrid,Nsol)
   !! real(gp) , intent(out) :: coeffs_out(Npaw)
   logical :: dump_functions
   !Local variables
   real(gp)   :: coeffs_out(Npaw)
-  real(gp) :: dumgrid(Ngrid),  dumgrid2(Ngrid), mass, mass_pseudo
-  integer :: segno(Nsol), segno_pseudo(Nsol)
-  integer :: i,k, igrid,j
-  real(gp)  :: coeffs(Nsol), ratio, dum, x
+  real(gp) :: dumgrid(Ngrid),  dumgrid2(Ngrid)
+  integer :: i,k
+  real(gp)  :: coeffs(Nsol), ratio, x
 
   !! check
   do i=1, Nsol-real_start+1

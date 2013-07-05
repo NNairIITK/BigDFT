@@ -1,12 +1,10 @@
+/*! @file
 
-README file for atom.f. Notice the file README.first.
+@brief README file for the program atom. Notice the file README.first.
 
-______________________________________________
+@details
 
-   atom.f: introduction and version changes
-______________________________________________
-
-
+@section Intro     atom.f90: introduction and version changes
 
 The program atom.f carries out all electron DFT calculations of an atom using interpolating cubic
 splines. For this, either the LDA, LSD or RLDA approximations may be used, or their gradient
@@ -16,7 +14,7 @@ PADE (ixc=-20) and PBE (ixc=-101130) is also accepted.
 
 
 Example for the input file atom.dat:
-
+<pre>
  Ne                             element symbol (1st line)
  -20                            functional, iXC convention from ABINIT
  r                              spin treatment keyword 
@@ -26,7 +24,7 @@ Example for the input file atom.dat:
  2    0     2.00      0.00      n,l,zdn, zup  1st valence orbital
  2    1     6.00      0.00      n,l,zdn, zup  2nd valence orbital
  3    0     0.00      0.00      n,l,zdn, zup  3rd and last orbital for the fit
-
+</pre>
 
 
 Explanations and differences to previous versions of atom.f:
@@ -38,13 +36,12 @@ PBE. More information on iXC is available in the file README.iXC.
 
 
 The third lines first non-blanc character defines the DFT method to be used as follows:
-
+<pre>
 spin treatment keyword      relativistic wfn?       polarized XC?      approximation
    n (nonrelativistic)            no                   no                 LDA, GGA
    r (relativistic)               yes                  no                RLDA  etc
    s (spinpolarized)              no                   yes                LSD  etc
-
-
+</pre>
 
 From line seven on, quantum numbers and occupation numbers are specified. For each orbital, one line
 is read with the n and l quantum numbers and two occupation numbers for s = up and down:
@@ -74,3 +71,5 @@ pseudo and contain comments how to do so. More information on this is given in t
 
 Some more information and hints are found in the original README file from a previous version,
 README.atom.old. Notice the version changes described above.
+
+*/
