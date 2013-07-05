@@ -471,11 +471,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
 
-      if ((ediff>deltaenergy_multiplier_TMBfix*delta_energy_prev .and. .not.energy_increased) .and. it>1 .and. &
-          target_function==TARGET_FUNCTION_IS_HYBRID) then
-          if (iproc==0) write(*,*) 'Will fix the support functions'
-          fix_supportfunctions=.true.
-      end if
+      !!if ((ediff>deltaenergy_multiplier_TMBfix*delta_energy_prev .and. .not.energy_increased) .and. it>1 .and. &
+      !!    target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !!    if (iproc==0) write(*,*) 'Will fix the support functions'
+      !!    fix_supportfunctions=.true.
+      !!end if
 
       !!delta_energy_prev=delta_energy
 
