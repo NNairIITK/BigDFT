@@ -15,7 +15,7 @@
 !!    Stefan Goedecker, December 2010
 !!    while at Universitaet Basel, Switzerland
 !!
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -139,13 +139,12 @@ subroutine atom()
 !
 !      set up ionic potentials
 !
- 40     continue
-        call vionic(itype,iXC,ifcore,  &
-       nrmax,nr,a,b,r,rab,rprb,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep)
+       call vionic(itype,iXC,ifcore,  &
+          nrmax,nr,a,b,r,rab,rprb,lmax,  &
+          nameat,norb,ncore,no,lo,so,zo,  &
+          znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
+          viod,viou,vid,viu,vod,vou,  &
+          etot,ev,ek,ep)
 !
 !     Potentials: always multiplied by r.
 !     viod,u ..... ionic potential (down,up)
@@ -159,13 +158,12 @@ subroutine atom()
        nspol=1
        if(ispp=='s')nspol=2
 
- 45    continue
-       call velect(0,0,iXC,ispp,nspol,ifcore,  &
-       nrmax,nr,a,b,r,rab,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep)
+       call velect(0,0,iXC,nspol,ifcore,  &
+       nr,r,rab,lmax,  &
+       norb,zo,  &
+       znuc,zsh,zel,cdd,cdu,cdc,  &
+       vod,vou,  &
+       etot)
 !
        do i=1,nr
           vid(i) = vod(i)
@@ -224,12 +222,12 @@ subroutine atom()
 !         
 !         set up output electronic potential from charge density
 !         
-          call velect(iter,iconv,iXC,ispp,nspol,ifcore,  &
-          nrmax,nr,a,b,r,rab,lmax,  &
-          nameat,norb,ncore,no,lo,so,zo,  &
-          znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-          viod,viou,vid,viu,vod,vou,  &
-          etot,ev,ek,ep)
+          call velect(iter,iconv,iXC,nspol,ifcore,  &
+          nr,r,rab,lmax,  &
+          norb,zo,  &
+          znuc,zsh,zel,cdd,cdu,cdc,  &
+          vod,vou,  &
+          etot)
 !         
 !         check for convergence (Vout - Vin)
 !         
@@ -254,20 +252,14 @@ subroutine atom()
 !         because we may want to switch to GGA thereafter
           if(iter<40)iconv=0
           
-!         diverging - reduce mixing coefficient
+          ! diverging - reduce mixing coefficient
           if (xmixo .lt. 1D-5) xmixo=1D-5
           dvold = dvmax
           write(6,70) iter,dvmax,xmixo
  70       format(7h iter =,i5,9h dvmax = ,1pe9.3,8h xmixo =,1pe9.3)
-!         
-!         mix input and output electronic potentials
-!         
-          call mixer(iter,iconv,icon2,xmixo,iXC,ispp,  &
-          nrmax,nr,a,b,r,rab,lmax,  &
-          nameat,norb,ncore,no,lo,so,zo,  &
-          znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-          viod,viou,vid,viu,vod,vou,  &
-          etot,ev,ek,ep)
+
+          ! mix input and output electronic potentials
+          call mixer(xmixo,nr,vid,viu,vod,vou)
 
 
 !      end of iteration loop
@@ -280,12 +272,11 @@ subroutine atom()
 !
 !      find total energy
 !
- 120   call etotal(itype,  &
-       nrmax,nr,a,b,r,rab,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep)
+ 120   continue
+       call etotal( &
+          nameat,norb,no,lo,so,zo,  &
+          znuc,zsh,rsh,zcore, &
+          etot,ev,ek,ep)
        if (naold /= nameat .or. iXCold /= iXC .or.  &
            ityold /= itype ) call prdiff(nconf,econf)
 !       if (nconf == 9) nconf=1
@@ -426,30 +417,24 @@ subroutine atom()
  40    continue
        nconf = 0
        end subroutine prdiff
-!
-!      *****************************************************************
-!
-       subroutine mixer(iter,iconv,icon2,xmixo,iXC,ispp,  &
-       nrmax,nr,a,b,r,rab,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep)
-       implicit double precision(a-h,o-z)
-!
-!      subroutine computes the new exchange correlation potential
-!      given the input and the output potential from the previous
-!      iteration.
-!
-       dimension r(nr),rab(nr),  &
-       no(norb),lo(norb),so(norb),zo(norb),  &
-       cdd(nr),cdu(nr),cdc(nr),  &
-       viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
-       etot(10),ev(norb),ek(norb),ep(norb)
-       character(len=1) :: ispp
-       character(len=2) :: nameat
-       integer ::  iXC
-!
+       
+       
+       !> Subroutine computes the new exchange correlation potential
+       !! given the input and the output potential from the previous
+       !! iteration.
+       subroutine mixer(xmixo,nr,vid,viu,vod,vou)
+
+       implicit none
+
+       !Arguments
+       integer, intent(in) :: nr
+       real(kind=8), intent(in) :: xmixo
+       real(kind=8), dimension(nr), intent(in) :: vod,vou
+       real(kind=8), dimension(nr), intent(inout) :: vid,viu
+       !Local variables
+       real(kind=8) :: xmixi
+       integer :: i
+       
        xmixi = 1 - xmixo
        do i=1,nr
           vid(i) = xmixo * vod(i) + xmixi * vid(i)
@@ -457,52 +442,44 @@ subroutine atom()
        end do
 
        end subroutine mixer
-!
-!      *****************************************************************
-!
-       subroutine etotal(itype,  &
-       nrmax,nr,a,b,r,rab,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep)
-       implicit double precision(a-h,o-z)
-!
-!      etotal computes the total energy from the electron charge density.
-!
-       dimension r(nr),rab(nr),  &
-       no(norb),lo(norb),so(norb),zo(norb),  &
-       cdd(nr),cdu(nr),cdc(nr),  &
-       viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
-       etot(10),ev(norb),ek(norb),ep(norb)
-       character(len=2) :: itype,nameat
-!
-!      etot(i)    i=1,10 contains various contributions to the total
-!                 energy.
-!                 (1)   sum of eigenvalues ev
-!                 (2)   sum of orbital kinetic energies ek
-!                 (3)   el-ion interaction from sum of orbital
-!                       potential energies ep
-!                 (4)   electrostatic el-el interaction  (from velect)
-!                 (5)   vxc (exchange-correlation) correction to sum
-!                       of eigenvalues                   (from velect)
-!                 (6)   3 * vc - 4 * ec
-!                       correction term for virial theorem
-!                       when correlation is included     (from velect)
-!                 (7)   exchange and correlation energy  (from velect)
-!                 (8)   kinetic energy from eigenvalues  (1,3,4,5)
-!                 (9)   potential energy
-!                 (10)  total energy
-!
-       dimension il(5)
-       character(len=1) :: il
+       
 
- 1     format(/,1x,a10,30(/,1x,10(1pe13.4)))
-!       pi = 4*atan(1.D0)
-!
-!      sum up eigenvalues ev, kinetic energies ek, and
-!      el-ion interaction ep
-!
+       !> etotal computes the total energy from the electron charge density.
+       subroutine etotal( &
+          nameat,norb,no,lo,so,zo,  &
+          znuc,zsh,rsh,zcore, &
+          etot,ev,ek,ep)
+       implicit double precision(a-h,o-z)
+       !Arguments
+       character(len=2), intent(in) :: nameat
+       integer, intent(in) :: norb
+       integer, dimension(norb), intent(in) :: no(norb), lo(norb)
+       real(kind=8), intent(in) :: rsh, znuc, zcore, zsh
+       real(kind=8), dimension(norb), intent(out) :: so(norb), zo(norb), ev(norb), ek(norb), ep(norb)
+       !> etot(i) i=1,10 contains various contributions to the total
+       !!                energy.
+       !!         (1)   sum of eigenvalues ev
+       !!         (2)   sum of orbital kinetic energies ek
+       !!         (3)   el-ion interaction from sum of orbital
+       !!               potential energies ep
+       !!         (4)   electrostatic el-el interaction  (from velect)
+       !!         (5)   vxc (exchange-correlation) correction to sum
+       !!               of eigenvalues                   (from velect)
+       !!         (6)   3 * vc - 4 * ec
+       !!               correction term for virial theorem
+       !!               when correlation is included     (from velect)
+       !!         (7)   exchange and correlation energy  (from velect)
+       !!         (8)   kinetic energy from eigenvalues  (1,3,4,5)
+       !!         (9)   potential energy
+       !!         (10)  total energy
+       real(kind=8), dimension(10), intent(out) :: etot
+       !Local variables
+       character(len=1), dimension(5) :: il
+
+       ! pi = 4*atan(1.D0)
+       
+       ! sum up eigenvalues ev, kinetic energies ek, and
+       ! el-ion interaction ep
        etot(1) = 0.D0
        etot(2) = 0.D0
        etot(3) = 0.D0
@@ -586,8 +563,7 @@ subroutine atom()
 !      700-799 etotal
 !      800-899 pseudo
 !
-       if (i /= 0) write(6,10) i
- 10    format(17h1stop parameter =,i3)
+       if (i /= 0) write(6,'(17x,a,i3)') "stop parameter =", i
        stop
        end subroutine ext
        
@@ -617,61 +593,54 @@ subroutine atom()
 !      2*znuc part (Rydberg units)
 !
        ifcore = 0
-       do 10 i=1,lmax
-       do 12 j=1,nrmax
-!  c.hartwig  add confining potential
-          viod(i,j) = -2.0d0*(znuc -.5d0*(r(j)/rprb**2)**2*r(j))
-          viou(i,j) = -2.0d0*(znuc -.5d0*(r(j)/rprb**2)**2*r(j))
-!         viod(i,j) = -2.0*(       -.5d0*(r(j)/rprb**2)**2*r(j))
-!         viou(i,j) = -2.0*(       -.5d0*(r(j)/rprb**2)**2*r(j))
-!
-!     c.hartwig  shift potential to avoid positive eigenvalues
-!     and convergence problems
-          vshift=-15.0d0*r(j)
-          viod(i,j) = viod(i,j)+vshift
-          viou(i,j) = viou(i,j)+vshift
- 12    continue
- 10   continue
+       do i=1,lmax
+          do j=1,nrmax
+             ! c.hartwig  add confining potential
+             viod(i,j) = -2.0d0*(znuc -.5d0*(r(j)/rprb**2)**2*r(j))
+             viou(i,j) = -2.0d0*(znuc -.5d0*(r(j)/rprb**2)**2*r(j))
+             ! c.hartwig  shift potential to avoid positive eigenvalues
+             ! and convergence problems
+             vshift=-15.0d0*r(j)
+             viod(i,j) = viod(i,j)+vshift
+             viou(i,j) = viou(i,j)+vshift
+          end do
+       end do
 !
 !      add potential from shell charge
 !
- 105   if (zsh == 0.D0) return
-       do 110 i=1,lmax
-       do 110 j=1,nr
-       if (r(j) .ge. rsh) viod(i,j) = viod(i,j) - 2*zsh
-       if (r(j) .ge. rsh) viou(i,j) = viou(i,j) - 2*zsh
-       if (r(j) .lt. rsh) viod(i,j) = viod(i,j) - 2*zsh*r(i)/rsh
-       if (r(j) .lt. rsh) viou(i,j) = viou(i,j) - 2*zsh*r(i)/rsh
- 110   continue
-       return
+       if (zsh == 0.D0) return
+
+       do i=1,lmax
+          do j=1,nr
+             if (r(j) .ge. rsh) viod(i,j) = viod(i,j) - 2*zsh
+             if (r(j) .ge. rsh) viou(i,j) = viou(i,j) - 2*zsh
+             if (r(j) .lt. rsh) viod(i,j) = viod(i,j) - 2*zsh*r(i)/rsh
+             if (r(j) .lt. rsh) viou(i,j) = viou(i,j) - 2*zsh*r(i)/rsh
+          end do
+       end do
        end
-!
-!      *****************************************************************
-!
-       subroutine velect(iter,iconv,iXC,ispp,nspol,ifcore,  &
-       nrmax,nr,a,b,r,rab,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep)
-!      we need these modules to re-initialize libXC in case 
-!      the first few iterations are done with LDA XC
-!      use defs_basis
+
+
+       !> velect generates the electronic output potential from
+       !! the electron charge density.
+       !! the ionic part is added in dsolve.
+       subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
+          nr,r,rab,lmax,  &
+          norb,zo,  &
+          znuc,zsh,zel,cdd,cdu,cdc,  &
+          vod,vou,  &
+          etot)
+       ! we need these modules to re-initialize libXC in case 
+       ! the first few iterations are done with LDA XC
        use libxcModule
        implicit double precision(a-h,o-z)
 
        logical, parameter :: debug = .false.
-!
-!      velect generates the electronic output potential from
-!      the electron charge density.
-!      the ionic part is added in dsolve.
-!
        dimension r(nr),rab(nr),  &
-       no(norb),lo(norb),so(norb),zo(norb),  &
+       zo(norb),  &
        cdd(nr),cdu(nr),cdc(nr),  &
-       viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
-       etot(10),ev(norb),ek(norb),ep(norb)
-       character*2 ispp*1,nameat
+       vod(nr),vou(nr),  &
+       etot(10)
        integer:: iXC
 !
       parameter ( mesh = 2000 )
@@ -1088,7 +1057,8 @@ subroutine atom()
           rw(i)=rw(i)*12.56637061435917d0*r(i)**2
           if (r(i) .gt. rmax) goto 60
  30     continue
- 60     nr = i-1
+ 60     continue
+        nr = i-1
 !
 !     modify weights at end point for improved accuracy
 !
@@ -1107,7 +1077,7 @@ subroutine atom()
 !
 !      read the number of core and valence orbitals
 !
- 6011 read(35,*,err=998,end=999) ncore, nval
+      read(35,*,err=998,end=999) ncore, nval
       nvalo=nval
       ncoreo=ncore
        if (ncore .gt. 15) then
@@ -1279,12 +1249,15 @@ subroutine atom()
 !        write (text(i),24) no(i),spdf(lo(i)+1),so(i),zo(i),irel
 !24      format (1x,i1,a,' s=',f4.1,' (occ=',f6.3,') ',a)
 !25      continue
-1000   return
+       return
 
- 998   write(6,*) 'Error while reading atom.dat'
+ 998   continue
+       write(6,*) 'Error while reading atom.dat'
        stop
- 999   write(6,*) 'Reached end of file atom.dat'
-       itype='stop'
+ 999   continue
+       write(6,*) 'Reached end of file atom.dat'
+       !Stop
+       itype='st'
        return
        end
 
@@ -1946,12 +1919,11 @@ subroutine atom()
 !   normalize wavefunction and change br from d(ar)/dj to d(ar)/dr
 !
       factor = 1 / sqrt(factor)
-      do 110 j=1,ninf
-        ar(j) = factor*ar(j)
-        br(j) = factor*br(j) / rab(j)
- 110  continue
- 111  continue
-      return
+      do j=1,ninf
+         ar(j) = factor*ar(j)
+         br(j) = factor*br(j) / rab(j)
+      end do
+
       end
 !
 !      *****************************************************************
@@ -2293,8 +2265,7 @@ subroutine atom()
         ar(j) = factor*ar(j)
         br(j) = factor*br(j)
       end do
- 111  continue
-      return
+
       end
 
 
@@ -2819,12 +2790,11 @@ subroutine atom()
              write(33,'(a,3e15.6,a)') '#',zcore,dcrc/zcore,ddcrc/zcore,  &
                        ' 0th, 2nd and 4th moment of core charge'
           endif
-          write(33,'(40x,a)')  &
-                      '# radial charge distributions rho(r)*4pi*r**2'
-          write(33,'(4(a,14x),a))')'#',' r ','core','valence','total'
+          write(33,'(40x,a)')       '# radial charge distributions rho(r)*4pi*r**2'
+          write(33,'(4(a,14x),a))') '#',' r ','core','valence','total'
           do i=1,npoint
               tt=cdu(i)+cdd(i)
-              write(33,'(4e20.12)')r(i),cdc(i),tt-cdc(i),tt
+              write(33,'(4(e20.12))') r(i),cdc(i),tt-cdc(i),tt
            end do
           close(unit=33)
 

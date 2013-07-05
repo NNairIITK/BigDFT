@@ -117,23 +117,25 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    grad=0d0
 
    j=1
-    c(0)=-2.717857142857143d0
-    c(1)=8.d0
-    c(2)=-14.d0
-    c(3)=18.66666666666667d0
-    c(4)=-17.5d0
-    c(5)=11.2d0
-    c(6)=-4.666666666666667d0
-    c(7)=1.142857142857143d0
-    c(8)=-0.125d0
+
+   c(0)=-2.717857142857143d0
+   c(1)=8.d0
+   c(2)=-14.d0
+   c(3)=18.66666666666667d0
+   c(4)=-17.5d0
+   c(5)=11.2d0
+   c(6)=-4.666666666666667d0
+   c(7)=1.142857142857143d0
+   c(8)=-0.125d0
+
    grad=0.d0
    do i=-0,8
-   grad(1)=grad(1)+c(i)*rho(j+i,1)
+      grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
    if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
+      sign(1)=rd(j)
    else
-   sign(1)=-rd(j)
+      sign(1)=-rd(j)
    endif
    grad(1)=sign(1)*grad(1)
    call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
@@ -141,7 +143,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-0,8
-   pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
+      pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
 
    j=2

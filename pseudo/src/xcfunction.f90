@@ -41,33 +41,12 @@ module libxcmodule
    &      xcfunction
    
    contains
-   !!*** 
-   
-   !!****f* libxc_functionals/libxc_functionals_init
-   !! name
-   !!  libxc_functionals_init
-   !!
-   !! function
-   !!  initialize the desired xc functional, from libxc.
+  
+
+   !>  Initialize the desired xc functional, from libxc.
    !!  * call the libxc initializer
    !!  * fill preliminary fields in module structures.
-   !!
-   !! inputs
-   !!
-   !! output
-   !! 
-   !! parents
-   !!      driver
-   !!
-   !! children
-   !!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
-   !!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
-   !!
-   !! source
-   
    subroutine libxc_functionals_init(ixc,nspden)
-      
-      
       
       implicit none
       
@@ -81,8 +60,6 @@ module libxcmodule
       !scalars
       
       integer :: i
-      
-      ! *************************************************************************
       
       if (ixc < 0) then
          funcs(1)%id = -ixc/1000
@@ -125,30 +102,11 @@ module libxcmodule
          !!!!      end do
       end do
    end subroutine libxc_functionals_init
-   !!***
-   
-   !!****f* libxc_functionals/libxc_functionals_end
-   !! name
-   !!  libxc_functionals_end
-   !!
-   !! function
-   !!  end usage of libxc functional. call libxc end function,
+  
+
+   !>  end usage of libxc functional. call libxc end function,
    !!  and deallocate module contents.
-   !!
-   !! inputs
-   !!
-   !! output
-   !!
-   !! parents
-   !!      driver
-   !!
-   !! children
-   !!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
-   !!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
-   !!
-   !! source
    subroutine libxc_functionals_end()
-      
       
       implicit none
       
@@ -159,37 +117,16 @@ module libxcmodule
          call xc_f90_func_end(funcs(i)%conf)
       end do
    end subroutine libxc_functionals_end
-   !!*** 
-   
-   !!****f* libxc_functionals/libxc_functionals_isgga
-   !! name
-   !!  libxc_functionals_isgga
-   !!
-   !! function
-   !!  test function to identify whether the presently used functional
-   !!  is a gga or not
-   !!
-   !! inputs
-   !!
-   !! output
-   !! 
-   !! parents
-   !!
-   !! children
-   !!
-   !! source
+  
+
+   !> Test function to identify whether the presently used functional
+   !! is a gga or not
    function libxc_functionals_isgga()
-      
       
       implicit none
       
-      !arguments ------------------------------------
-      
-      !local variables-------------------------------
-      
+      !local variables
       logical :: libxc_functionals_isgga
-      
-      ! *************************************************************************
       
       if (any(funcs%family == xc_family_gga) .or. any(funcs%family == xc_family_hyb_gga)) then
          libxc_functionals_isgga = .true.
@@ -197,33 +134,12 @@ module libxcmodule
          libxc_functionals_isgga = .false.
       end if
    end function libxc_functionals_isgga
-   !!*** 
    
-   !!****f* libxc_functionals/libxc_functionals_exctxfac
-   !!
-   !! function
-   !!
-   !! inputs
-   !!
-   !! output
-   !! 
-   !! parents
-   !!
-   !! children
-   !!
-   !! source
    
    real(kind=8) function libxc_functionals_exctxfac()
       
       
       implicit none
-      
-      !arguments ------------------------------------
-      
-      !local variables-------------------------------
-      
-      
-      ! *************************************************************************
       
       if (any(funcs%family == xc_family_hyb_gga)) then
          !factors for the exact exchange contribution of different hybrid functionals
@@ -235,37 +151,16 @@ module libxcmodule
       end if
       
    end function libxc_functionals_exctxfac
-   !!*** 
    
-   !!****f* libxc_functionals/libxc_functionals_ismgga
-   !! name
-   !!  libxc_functionals_ismgga
-   !!
-   !! function
-   !!  test function to identify whether the presently used functional
-   !!  is a meta-gga or not
-   !!
-   !! inputs
-   !!
-   !! output
-   !! 
-   !! parents
-   !!
-   !! children
-   !!
-   !! source
+
+   !> Test function to identify whether the presently used functional
+   !! is a meta-gga or not
    function libxc_functionals_ismgga()
       
       
       implicit none
       
-      !arguments ------------------------------------
-      
-      !local variables-------------------------------
-      
       logical :: libxc_functionals_ismgga
-      
-      ! *************************************************************************
       
       if (any(funcs%family == xc_family_mgga)) then
          libxc_functionals_ismgga = .true.
@@ -274,49 +169,27 @@ module libxcmodule
       end if
       
    end function libxc_functionals_ismgga
-   !!*** 
-   
-   !!****f* libxc_functionals/libxc_functionals_getvxc
-   !! name
-   !!  libxc_functionals_getvxc
-   !!
-   !! function
-   !!  return xc potential and energy, from input density (event gradient etc...)
-   !!
-   !! inputs
-   !!
-   !! output
-   !! 
-   !! parents
-   !!      drivexc
-   !!
-   !! children
-   !!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
-   !!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
-   !!
-   !! source
-   
-   !end module 
-   !!***
    
    
+   !> Return xc potential and energy, from input density (event gradient etc...)
+   !! this version calls bigdfts xc drivers, which access libxc as part of the abinit xc functions.
+   !! should really try to put this apart from bigdft and abinit, and directly call libxc. 
    subroutine xcfunction(nspol,rho,grad,exc,vxc,dedg)
-      ! this version calls bigdfts xc drivers, which access libxc as part of the abinit xc functions.
-      ! i should really try to put this apart from bigdft and abinit, and directly call libxc. 
-      
-      !     use libxcmodule
       
       implicit none
-      integer :: nspol,i
-      real(8) :: exc,rho(nspol),vxc(nspol),dedg(nspol),grad(nspol)  ! dummy arguments
-      real(8) :: exci,vxci(nspol), sigma(3),vsigma(3)!  ! summands and libxc arg
-      
-      !     these output quantities may be summed over two functionals (x and c)
+      !Arguments
+      integer, intent(in) :: nspol      !< Number of spin components (1 or 2)
+      real(kind=8) :: rho(nspol),vxc(nspol),dedg(nspol),grad(nspol)  ! dummy arguments
+      real(kind=8), intent(out) :: exc  !< Exchange-Correlation Energy
+      !Local variables
+      integer :: i
+      real(kind=8) :: exci
+      real(kind=8), dimension(nspol) :: vxci
+      real(kind=8), dimension(3) :: sigma(3),vsigma(3)  ! summands and libxc arg
+      ! These output quantities may be summed over two functionals (x and c)
       exc  =0.0d0
       vxc  =0.0d0
       dedg =0.0d0
-      
-      
       
       !     convert the gradient to sigma if needed 
       if (libxc_functionals_isgga()) then
@@ -360,8 +233,6 @@ module libxcmodule
             end if
          end select
       end do
-      
-      
       
       !     this part is to plot the exc(rho) function for debugging purposes
       !      do j=1,nspol
