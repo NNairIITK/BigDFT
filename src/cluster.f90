@@ -645,7 +645,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            call dcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
            in_frag_charge(cdft%ifrag_charged(1))=0
            overlap_calculated=.true.
-           call fragment_coeffs_to_kernel(in%frag,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated)
+           call fragment_coeffs_to_kernel(iproc,in%frag,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated)
            call f_free_ptr(in_frag_charge)
 
            call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &

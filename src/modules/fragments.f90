@@ -1266,7 +1266,7 @@ contains
          + a(1,3)*(a(2,1)*a(3,2) - a(3,1)*a(2,2))
   end function det_33
 
-  subroutine fragment_coeffs_to_kernel(input_frag,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated)
+  subroutine fragment_coeffs_to_kernel(iproc,input_frag,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated)
     implicit none
     type(DFT_wavefunction), intent(inout) :: tmb
     type(fragmentInputParameters), intent(in) :: input_frag
@@ -1274,6 +1274,7 @@ contains
     type(orbitals_data), intent(inout) :: ksorbs
     logical, intent(inout) :: overlap_calculated
     integer, dimension(input_frag%nfrag), intent(in) :: input_frag_charge
+    integer, intent(in) :: iproc
 
     integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, nelecfrag_tot, itmb, jtmb
     integer :: nksorbs_correct, nksorbsp_correct, ksisorb_correct
@@ -1282,7 +1283,7 @@ contains
     real(gp) :: nonidem, nelecorbs
 
 !DEAL WITH OCCUP CORRECTLY
-
+    call timing(iproc,'kernel_init','ON')
     call f_routine(id='fragment_coeffs_to_kernel')
 
     nelecfrag_tot=0
@@ -1355,6 +1356,7 @@ contains
        end if
 
        ! reconstruct the kernel for each fragment - don't need unoccupied states here
+!switch this to reorthonormalize coeff and fix parallelization?
        call reconstruct_kernel(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, tmb%orthpar%blocksize_pdsyev, &
             tmb%orthpar%blocksize_pdgemm, ksorbs, tmb, overlap_calculated) 
 
@@ -1481,6 +1483,7 @@ contains
     end if
 
     call f_release_routine()
+    call timing(iproc,'kernel_init','OF')
 
   end subroutine fragment_coeffs_to_kernel
  

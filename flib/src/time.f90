@@ -20,7 +20,7 @@
 module timeData
 !  use module_defs, only: mpi_environment, bigdft_mpi
   implicit none
-  integer, parameter :: ncat=129,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=130,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -159,6 +159,7 @@ module timeData
        'check_sumrho  ','Initialization' ,'unitary check ' ,  &
        'ApplyLocPot   ','Convolutions  ' ,'OpenCL ported ' ,  &
        'ApplyLocKin   ','Convolutions  ' ,'OpenCL ported ' ,  &
+       'kernel_init   ','Other         ' ,'Fragment calc ' ,  &
        'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat/))
   logical :: parallel,init,newfile,debugmode
   integer :: ncounters, ncaton,nproc = 0,nextra,ncat_stopped
