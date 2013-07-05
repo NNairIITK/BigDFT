@@ -1916,7 +1916,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables
   integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ierr, i, j, nstates, istate, ih, ifrag_ref
-  integer :: ifrag_ref1, ifrag_ref2, homo1, homo2, jh, above_lumo
+  integer :: ifrag_ref1, ifrag_ref2, homo1, homo2, jh, above_lumo, iind, jind
   !integer :: jfrag_ref, jtmb
   real(gp), allocatable, dimension(:,:) :: coeff_tmp, homo_coeffs, coeffs_orthog
   real(gp), allocatable, dimension(:) :: frag_sum, homo_ham, homo_ovrlp
@@ -2001,7 +2001,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
            write(str,'(I2)') ih-1-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)
            if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO+'//trim(adjustl(str))
         end if
-        if (iproc==0) write(*,'(1x,5(F16.12,1x))',advance='NO') homo_ham(istate), homo_ham_orthog(istate), &
+        if (iproc==0) write(*,'(1x,5(F20.12,1x))',advance='NO') homo_ham(istate), homo_ham_orthog(istate), &
              ref_frags(ifrag_ref)%eval(ih), homo_ovrlp(istate), homo_ovrlp_orthog(istate)
         if (ih<ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
            frag_sum(ifrag)=frag_sum(ifrag)+homo_ham(istate)
@@ -2025,7 +2025,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
         end if
         istate=istate+1
      end do
-     if (iproc==0) write(*,'(9x,3(F16.12,1x))') 2.0_gp*frag_sum(ifrag),&
+     if (iproc==0) write(*,'(9x,3(F20.12,1x))') 2.0_gp*frag_sum(ifrag),&
           2.0_gp*frag_sum_orthog(ifrag),2.0_gp*eval_sum(ifrag)
        if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
             '-------------------------'
@@ -2034,7 +2034,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
      eval_sum_tot=eval_sum_tot+eval_sum(ifrag)
   end do
 
-  if (iproc==0) write(*,'(9x,3(F16.12,1x))') 2.0_gp*frag_sum_tot, 2.0_gp*frag_sum_tot_orthog,2.0_gp*eval_sum_tot
+  if (iproc==0) write(*,'(9x,3(F20.12,1x))') 2.0_gp*frag_sum_tot, 2.0_gp*frag_sum_tot_orthog,2.0_gp*eval_sum_tot
   if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
 
   call f_free(eval_sum)
@@ -2046,12 +2046,14 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   if (input_frag%nfrag>=2) then
      if (iproc==0) write(*,*) 'Transfer integrals (HOMO and LUMO are defined as those of the neutral fragment):'
      if (iproc==0) write(*,*) 'state1, state2, energy, orthog energy, orthog energy2, overlap, orthog overlap, occ1, occ2'
+     iind=0
      do ifrag=1,input_frag%nfrag
-        do jfrag=ifrag+1,input_frag%nfrag
+        ifrag_ref1=input_frag%frag_index(ifrag)
+        homo1=ceiling((ref_frags(ifrag_ref1)%nelec)/2.0_gp)
 
-           ifrag_ref1=input_frag%frag_index(ifrag)
+        jind=0
+        do jfrag=1,ifrag-1
            ifrag_ref2=input_frag%frag_index(jfrag)
-           homo1=ceiling((ref_frags(ifrag_ref1)%nelec)/2.0_gp)
            homo2=ceiling((ref_frags(ifrag_ref2)%nelec)/2.0_gp)
 
            do jh=-above_lumo,1+above_lumo
@@ -2061,9 +2063,9 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
                  if (homo1+ih>ref_frags(ifrag_ref1)%fbasis%forbs%norb) cycle
                  if (homo1+ih<1) cycle  
 
-                 i=homo1+ih
-                 j=homo2+jh+min(ceiling((ref_frags(ifrag_ref1)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref1)%fbasis%forbs%norb)
-
+                 i=homo1+ih+iind
+                 j=homo2+jh+jind
+                      
                  if (iproc==0) then
                     if (ih<0) then
                        write(str,'(I2)') abs(ih)
@@ -2133,7 +2135,9 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
            end do
            if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
                '-------------------------'
+           jind=jind+min(ceiling((ref_frags(ifrag_ref2)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref2)%fbasis%forbs%norb)
         end do
+        iind=iind+min(ceiling((ref_frags(ifrag_ref1)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref1)%fbasis%forbs%norb)
      end do
   end if
 

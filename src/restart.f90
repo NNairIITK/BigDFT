@@ -2288,6 +2288,10 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
      end do
 
      allocate(frag_trans_orb(tmb%orbs%norbp))
+     do iorbp=1,tmb%orbs%norbp
+        nullify(frag_trans_orb(iorbp)%discrete_operations)
+     end do
+
      isforb=0
      isfat=0
      do ifrag=1,input_frag%nfrag
@@ -2330,6 +2334,9 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   else
      ! only 1 'fragment', calculate rotation/shift atom wise, using nearest neighbours
      allocate(frag_trans_orb(tmb%orbs%norbp))
+     do iorbp=1,tmb%orbs%norbp
+        nullify(frag_trans_orb(iorbp)%discrete_operations)
+     end do
 
      allocate(rxyz4_ref(3,min(4,ref_frags(ifrag_ref)%astruct_frg%nat)), stat=i_stat)
      call memocc(i_stat, rxyz4_ref, 'rxyz4_ref', subname)
@@ -2425,6 +2432,13 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 
   call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,psi_old,phi_array_old)
 
+  do iorbp=1,tmb%orbs%norbp
+     if (associated(frag_trans_orb(iorbp)%discrete_operations)) then
+        i_all = -product(shape(frag_trans_orb(iorbp)%discrete_operations))*kind(frag_trans_orb(iorbp)%discrete_operations)
+        deallocate(frag_trans_orb(iorbp)%discrete_operations,stat=i_stat)
+        call memocc(i_stat,i_all,'frag_trans_orb(iorbp)%discrete_operations',subname)
+     end if
+  end do
   deallocate(frag_trans_orb)
 
   do iorbp=1,tmb%orbs%norbp
@@ -2465,14 +2479,6 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 
 
   ! Read the coefficient file for each fragment and assemble total coeffs
-  if(iformat == WF_FORMAT_PLAIN) then
-     open(unitwf,file=filename//'_coeff.bin',status='unknown',form='formatted')
-  else if(iformat == WF_FORMAT_BINARY) then
-     open(unitwf,file=filename//'_coeff.bin',status='unknown',form='unformatted')
-  else
-     stop 'Coefficient format not implemented'
-  end if
-
   ! coeffs should eventually go into ref_frag array and then point? or be copied to (probably copied as will deallocate frag)
   unitwf=99
   isforb=0

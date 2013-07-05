@@ -4876,7 +4876,7 @@ module module_interfaces
           type(orbitals_data),intent(in) :: orbs
           type(collective_comms),intent(in) :: collcom_sr
           type(DFT_local_fields),intent(in) :: denspot
-          type(sparseMatrix),intent(in) :: denskern
+          type(sparseMatrix),intent(inout) :: denskern
           integer,intent(in) :: check_sumrho
         end subroutine check_communication_sumrho
 
