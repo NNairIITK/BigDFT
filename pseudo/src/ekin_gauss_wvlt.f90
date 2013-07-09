@@ -26,12 +26,12 @@ subroutine  ekin_wvlt(verbose,iproc,nproc,ng,ngmx,&
    implicit real*8 (a-h,o-z)
 
 !     The shape of the psi and xp arrayy as defined in the main program pseudo.f
-   real(8):: psi_in(0:ngmx,noccmx,lmx,nsmx),xp(0:ngmx),xp_in(0:ngmx),&
+   real(kind=8) :: psi_in(0:ngmx,noccmx,lmx,nsmx),xp(0:ngmx),xp_in(0:ngmx),&
                 occup_in(noccmx,lmx,nsmx),rxyz(3),drxyz(3)
-   integer:: nl(lmx,nsmx)
-   real*8,allocatable:: ekin_plot(:,:,:)
+   integer :: nl(lmx,nsmx)
+   real(kind=8), allocatable :: ekin_plot(:,:,:)
    logical :: verbose
-   character(20) :: frmt
+   character(len=20) :: frmt
 
   !Arguments of createWavefunctionsDescriptors
   integer :: iproc,nproc,n1,n2,n3,norb
@@ -507,7 +507,7 @@ subroutine createAtomicOrbitals(iproc, nproc, nspin,&
                  call ConvolkineticP(n1,n2,n3,  &
                       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,ibyz_c,ibxz_c,&
                       ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-                      psig,psigp,ekin)
+                      psig,ekin)
                  ekin_plot(iorb)=(ekin-ekgauss)**2
                  ekin_mypen=ekin_mypen+ekin_plot(iorb)
 !                DEBUG Line for high precision output
@@ -714,13 +714,13 @@ END SUBROUTINE
 !! This version does not compute the y array, as only the scalar ekin
 !! is needed and a bit of time can be saved this way. Remove all !y
 !! comments to undo this modification
-         subroutine ConvolkineticP(n1,n2,n3, &
+subroutine ConvolkineticP(n1,n2,n3, &
                nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
-               hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x,y,ekin)
+               hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x,ekin)
     implicit real*8 (a-h,o-z)
     logical :: firstcall=.true.
     integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-    dimension x(0:n1,2,0:n2,2,0:n3,2),y(0:n1,2,0:n2,2,0:n3,2)
+    dimension x(0:n1,2,0:n2,2,0:n3,2)
     dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
     dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
 
@@ -1121,12 +1121,11 @@ END SUBROUTINE
       ! write(99,'(a40,2(1x,e10.3))') 'P:ALL   PART',  &
       !      tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-    return
-    end subroutine ConvolkineticP
+end subroutine ConvolkineticP
 
 
 !> Calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
-   subroutine system_size(rxyz,rad, &
+subroutine system_size(rxyz,rad, &
                    cxmin,cxmax,cymin,cymax,czmin,czmax)
 
 
@@ -1148,13 +1147,12 @@ END SUBROUTINE
    cymax=cymax-eps_mach ; cymin=cymin+eps_mach
    czmax=czmax-eps_mach ; czmin=czmin+eps_mach
 
-     return
-     END SUBROUTINE
+END SUBROUTINE system_size
 
 
 
 
-        logical function myorbital(iorb,norbe,iproc,nproc)
+logical function myorbital(iorb,norbe,iproc,nproc)
         implicit real*8 (a-h,o-z)
         parameter(eps_mach=1.d-12)
 
@@ -1167,13 +1165,13 @@ END SUBROUTINE
         endif
 
         return
-        end function
+end function myorbital
 
 
 
 !> Calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
 !! the output psiatn is a normalized version of psiat
-    subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
+subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
         implicit real*8 (a-h,o-z)
         dimension xp(ng),psiat(ng),psiatn(ng)
 !        dimension xp(31),psiat(31),psiatn(31)
