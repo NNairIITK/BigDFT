@@ -32,14 +32,15 @@
 !! @ingroup pseudo
 program atom
 
-       implicit double precision(a-h,o-z)
+       implicit none
 
        !Parameters
        integer, parameter :: nrmax=10000                !< Maximal radial grid points
        integer, parameter :: maxorb=60                  !< Maximal number of orbitals
        integer, parameter :: lmax=5                     !< Maximal orbital moment
        integer, parameter :: maxconf=19                 !< Maximal electronic configurations
-       logical, parameter :: debug=.false.
+       integer, parameter :: maxit_max=2000             !< Maximal number of iterations
+       logical, parameter :: debug=.false.              !< Debug flag
        character(len=2), parameter :: stop_chain = 'st'
        real(kind=8), parameter :: tol=1.0d-11
        !Local variables
@@ -53,6 +54,7 @@ program atom
        real(kind=8) :: znuc                             !< Atomic number
                                                        
        integer :: nr                                    !< Mesh points
+       real(kind=8) :: a,b                              !< Parameters to build the logarithmic mesh
        real(kind=8), dimension(nrmax) :: r              !< Radial mesh r(i) = a*(exp(b*(i-1))-1)
        real(kind=8), dimension(nrmax) :: rab            !< rab(i) = (r(i)+a)*b (integration grid)
                                                         !< c.hartwig: additional grids for modified integration
@@ -79,18 +81,33 @@ program atom
        !!     (10)  Total energy
        real(kind=8), dimension(10) :: etot
 
-       real(kind=8), dimension(maxconf) :: econf
-       real(kind=8), dimension(maxorb) :: ev             !< ev  eigenvalues
-       real(kind=8), dimension(maxorb) :: ek             !< ek  kinetic energy for each orbital
-       real(kind=8), dimension(maxorb) :: ep             !< ep  potential energy (Vionic*rho) for each orbital
+       real(kind=8), dimension(maxconf) :: econf         !<Toal energies of electronic configurations
+       real(kind=8), dimension(maxorb) :: ev             !< Eigenvalues
+       real(kind=8), dimension(maxorb) :: ek             !< Kinetic energy for each orbital
+       real(kind=8), dimension(maxorb) :: ep             !< Potential energy (Vionic*rho) for each orbital
 
-       character(len=2) :: name_old,itype,itype_old,nameat,cnum
-       character(len=1) :: ispp
-       integer :: iXC_old
+       character(len=2) :: nameat,itype                  !< Name and type of atom
+       character(len=1) :: ispp                          !< Spin, relativistic calculation ('n', 's', 'r')
+
        integer :: iXC                                    !< Exchange-Correlation parameter
-       logical :: abort
+       integer :: iter                                   !< Iteration number
+       integer :: iconv                                  !< Convergence done or not
+       integer :: nconf                                  !< Number of electronic configurations
+       integer :: nspol                                  !< number of spin components (1 or 2 spin polarisation)
+       integer :: ifcore                                 !< If core electrons (for NLCC ?)
+       integer :: nvalo,ncoreo
+       integer :: maxit                                  !< LMaximal number of iterations
+       real(kind=8) :: rcov                              !< Covalent radius
+       real(kind=8) :: rprb,rsh
+       real(kind=8) :: zcore,zel,zsh
 
-!      heuristic value for fluctuating GGAs
+       character(len=2) :: name_old,itype_old,cnum
+       integer :: iXC_old
+       logical :: abort
+       real(kind=8) :: zsh_old,dvold,aa,a2,dcrc,ddcrc,dv,dvmax,weight,xmixo
+       integer :: i,icon2,ii,iorb
+
+!      Heuristic value for fluctuating GGAs
        name_old = '  '
        iXC_old = 0
        itype_old ='  '
@@ -169,7 +186,6 @@ program atom
 
 !      set up electronic potential
 
-
 !      new variable nspol: spin channels for XC
        nspol=1
        if(ispp=='s') nspol=2
@@ -183,17 +199,18 @@ program atom
        do i=1,nr
           vid(i) = vod(i)
           viu(i) = vou(i)
-          if (debug) write(*,*)'DEBUG: vid viu',vid(i),viu(i)
+          if (debug) write(*,*) 'DEBUG: vid viu',vid(i),viu(i)
        end do
 
 !      start iteration loop
 
        iconv = 0
        icon2 = 0
-       maxit = 5000
-       maxit = 2000
-       if (debug) write(*,*)'DEBUG: enter max SCF iterations'
-!      read(*,*)maxit
+       maxit = maxit_max
+       if (debug) then
+          write(*,*) 'DEBUG: enter max SCF iterations'
+          read(*,*) maxit
+       end if
 
 
 !      empirical function
@@ -254,7 +271,7 @@ program atom
           if (dvmax .gt. tol) iconv=0
           if (dvmax .ge. dvold) xmixo=0.8D0*xmixo
           inquire(file='EXIT', exist=abort)
-          if(abort)iconv=1
+          if(abort) iconv=1
 !         EXPERIMENTAL: why not in both directions?
 !         if (dvmax .le. dvold) xmixo=1.05D0*xmixo
 
@@ -411,7 +428,7 @@ program atom
 end program atom
 
 
-
+!> Print difference total energy between electronic configurations
 subroutine prdiff(nconf,econf)
        implicit none
        !Arguments
@@ -461,13 +478,13 @@ subroutine etotal( &
           nameat,norb,no,lo,so,zo,  &
           znuc,zsh,rsh,zcore, &
           etot,ev,ek,ep)
-       implicit double precision(a-h,o-z)
+       implicit none
        !Arguments
        character(len=2), intent(in) :: nameat
        integer, intent(in) :: norb
-       integer, dimension(norb), intent(in) :: no(norb), lo(norb)
+       integer, dimension(norb), intent(in) :: no, lo
        real(kind=8), intent(in) :: rsh, znuc, zcore, zsh
-       real(kind=8), dimension(norb), intent(out) :: so(norb), zo(norb), ev(norb), ek(norb), ep(norb)
+       real(kind=8), dimension(norb), intent(out) :: so, zo, ev, ek, ep
        !> etot(i) i=1,10 contains various contributions to the total energy.
        !!     (1)   Sum of eigenvalues ev
        !!     (2)   Sum of orbital kinetic energies ek
@@ -482,6 +499,8 @@ subroutine etotal( &
        real(kind=8), dimension(10), intent(out) :: etot
        !Local variables
        character(len=1), dimension(5) :: il
+       real(kind=8) :: esh,vshift
+       integer :: i
 
        ! pi = 4*atan(1.D0)
 
@@ -584,15 +603,16 @@ subroutine vionic(ifcore,  &
           znuc,zsh,rsh, &
           viod,viou)
 
-       implicit double precision(a-h,o-z)
+       implicit none
 
        !Arguments
+       integer, intent(out) :: ifcore                           !< if core
        integer, intent(in) :: nr                                !< #radial mesh points
        real(kind=8), dimension(nr), intent(in) :: r             !< Radial mesh
+       real(kind=8), intent(in) :: rprb,znuc,zsh,rsh
        integer, intent(in) :: lmax                              !< l channel
        real(kind=8), dimension(lmax,nr), intent(out) :: viod    !< Ionic potential down
        real(kind=8), dimension(lmax,nr), intent(out) :: viou    !< ionic potential up
-       integer, intent(out) :: ifcore                           !< if core 
        !Local variables
        real(kind=8) :: vshift
        integer :: i,j
@@ -639,9 +659,9 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
        ! we need these modules to re-initialize libXC in case
        ! the first few iterations are done with LDA XC
        use libxcModule
-       implicit double precision(a-h,o-z)
+       implicit none
 
-       logical, parameter :: debug = .false.
+       logical, parameter :: debug = .false.            !< Debug flag
        real(kind=8), parameter :: pi = 4.d0*atan(1.d0)
        !Arguments
        integer, intent(in) :: nr, ifcore, nspol, iconv, iter
@@ -659,6 +679,10 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
 !      convention for spol as in dsolv: spin down=1 and spin up=2
        real(kind=8), dimension(nr,nspol) :: rho,vxcgrd
        real(kind=8), dimension(nr) :: excgrd
+
+       real(kind=8) :: a1,an,b1,bn,ehart,enexc,exc,exct,rhodw,rhoup
+       real(kind=8) :: vxc,vxcd,vxcu,xlo,xnorm
+       integer :: i,ierr,l,ll,isx
 
 !      fit cd/r by splines
        y(1) = 0.D0
@@ -709,7 +733,6 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
        'scaling factor =',f6.3,/)
          endif
        endif
-
 
 !      rather than:
 !      if (iter .gt. 0 .and. abs(zel-s1(nr)) .gt. 0.01D0)
@@ -931,7 +954,7 @@ subroutine input(itype,iXC,ispp,  &
        integer, dimension(15), parameter :: lc = (/ 0,0,1,0,1,2,0,1,2,3,0,1,2,0,1 /)
        character(len=1), dimension(5), parameter :: spdf = (/ 's','p','d','f','g' /)
        character(len=1), parameter :: blank = ' '
-       logical, parameter :: debug = .false.
+       logical, parameter :: debug = .false.      !< Debug flag
 
        !Spin polarization information
        character(len=1) :: ispp
@@ -1367,6 +1390,7 @@ subroutine dsolv1( &
        integer, dimension(norb), intent(in) :: no,lo
        real(kind=8), dimension(norb) :: so,zo,ev
        !Local variables!
+       logical, parameter :: debug = .false. !< Debug flag
        integer, dimension(2,5) :: nmax
        integer, dimension(10) :: ind
        real(kind=8), dimension(nr) :: dk,d,sd,sd2,rv1,rv2,rv3,rv4,rv5
@@ -1429,10 +1453,12 @@ subroutine dsolv1( &
              d(k-1) = dk(k-1) + (viod(j,k) + llp/r(k))/r(k) + vid(k)
           if (i == 2) &
              d(k-1) = dk(k-1) + (viou(j,k) + llp/r(k))/r(k) + viu(k)
-          ! write(*,*)'debug: vio u d (k)',k,viou(j,k),viod(j,k)
-          ! write(*,*)'debug: vi u d (k)',k,viu(k),vid(k)           !!! NaN
-          ! write(*,*)'debug: r (k)',k,r(k)
-          ! write(*,*)'debug: dk (k)',k-1,dk(k-1)
+          if (debug) then
+             write(*,*)'debug: vio u d (k)',k,viou(j,k),viod(j,k)
+             write(*,*)'debug: vi u d (k)',k,viu(k),vid(k)           !!! NaN
+             write(*,*)'debug: r (k)',k,r(k)
+             write(*,*)'debug: dk (k)',k-1,dk(k-1)
+          end if
        end do
 
 !      diagonalize

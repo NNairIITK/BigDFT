@@ -1058,6 +1058,7 @@ utils/PSPfiles/Makefile
 pseudo/Makefile
 pseudo/src/Makefile
 pseudo/tests/Makefile
+pseudo/tests/atom_tests/Makefile
 doc/Makefile
 tests/Makefile
 tests/libs/Makefile
