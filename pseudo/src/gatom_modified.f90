@@ -20,7 +20,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
                  aeval,ng,psi,res,chrg,&
                  Nsol, Labs, Ngrid,Ngrid_box,Egrid,rgrid,rw,rd,psigrid, Npaw, PAWpatch, &
                  psipsigrid, rcore, zcore, Ngrid_box_larger)
-  implicit real(8) (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   integer, parameter :: gp=kind(1.0d0) 
 
   logical :: noproj, readytoexit
@@ -1063,7 +1063,7 @@ END SUBROUTINE gatom_modified
 
 
 subroutine crtvh_paw(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
-  implicit real(8) (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   integer, parameter :: gp=kind(1.0d0) 
   dimension vh(0:ng,0:ng,0:3,0:ng,0:ng,0:3),xp(0:ng),&
             rmt(n_int,0:ng,0:ng,lmax+1)
@@ -1792,10 +1792,10 @@ end function pow
  
 
 subroutine driveXC_bidon( nspin ,Ngrid,rgrid,rw,rd,rhogrid,enexc,vxcgrid,excgrid)
-  integer nspin , Ngrid, i
-  real(8) rgrid(Ngrid),rw(Ngrid),rd(Ngrid),rhogrid(Ngrid),enexc,vxcgrid(Ngrid) 
-  real(8) excgrid(Ngrid)
-  real(8) emuxc
+  integer :: nspin , Ngrid, i
+  real(kind=8) :: rgrid(Ngrid),rw(Ngrid),rd(Ngrid),rhogrid(Ngrid),enexc,vxcgrid(Ngrid) 
+  real(kind=8) :: excgrid(Ngrid)
+  real(kind=8) :: emuxc
 
 
   do i=1, Ngrid
