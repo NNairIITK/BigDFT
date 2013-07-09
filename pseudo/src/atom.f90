@@ -30,7 +30,7 @@
 
 !> Calculate the all-electron electronic structure for one atom
 !! @ingroup pseudo
-program atom
+program ae_atom
 
        implicit none
 
@@ -425,7 +425,7 @@ program atom
 !     call libxc_functionals_end()
       call prdiff(nconf,econf)
       call ext(0)
-end program atom
+end program ae_atom
 
 
 !> Print difference total energy between electronic configurations

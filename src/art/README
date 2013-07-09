@@ -1,5 +1,8 @@
 /*! @dir src/art
+@brief
+  Contains the version of ART nouveau (Activation Relaxation Technique)
 
+@details
 This version of ART nouveau has been optimized for BigDFT and other cases where
 the force evaluation is extremelly heavy. Because of that it saves the
 configuration at every step during the activation. This version of ART nouveau

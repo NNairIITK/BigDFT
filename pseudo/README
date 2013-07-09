@@ -1,6 +1,9 @@
 /*! @dir pseudo
-@brief README for the pseudopotential generation program
+@brief Contains the pseudopotential generation programs, atom and pseudo
 
 @dir pseudo/src
 @brief Contains the source of the pseudo program
+
+@dir pseudo/doc
+@brief Documentation about the generation of pseudopotentials
 */
