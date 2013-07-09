@@ -1182,7 +1182,7 @@ subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd,
   !!allocate(isendbuf(ndimpsi), stat=istat)
   !!call memocc(istat, isendbuf, 'isendbuf', subname)
 
-  
+  iitot=0
   !!$omp parallel default(shared) &
   !!$omp private(iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, indglob, ind)
   !!$omp do lastprivate(iitot)
@@ -1810,7 +1810,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   real(kind=8),parameter :: tol_transpose=1.d-14
   real(kind=8),parameter :: tol_calculation_mean=1.d-12
   real(kind=8),parameter :: tol_calculation_max=1.d-10
-  character(len=200), parameter :: subname='check_sumrho'
+  character(len=*), parameter :: subname='check_sumrho'
 
   call timing(iproc,'check_sumrho','ON')
 
@@ -1848,7 +1848,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
           iiz=iz+lzd%llr(ilr)%nsi3
           iixyz=(iiz-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(iiy-1)*lzd%glr%d%n1i+iix
           ! assign unique value
-          psir(ist+i)=test_value(iiorb,iixyz,nxyz)
+          psir(ist+i)=test_value_sumrho(iiorb,iixyz,nxyz)
       end do
       !$omp end do
       !$omp end parallel
@@ -1906,7 +1906,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
           tt=collcom_sr%psit_c(i0+i)
-          ref_value=test_value(iiorb,iixyz,nxyz)
+          ref_value=test_value_sumrho(iiorb,iixyz,nxyz)
           diff=abs(tt-ref_value)
           if (diff>maxdiff) maxdiff=diff
           sumdiff=sumdiff+diff**2
@@ -1952,12 +1952,15 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! First determine how many orbitals one has for each grid point in the current slice
       ii3s=denspot%dpbox%nscatterarr(iproc,3)+1
       ii3e=denspot%dpbox%nscatterarr(iproc,3)+denspot%dpbox%nscatterarr(iproc,1)
-      !weight=f_malloc((/1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='weight')
-      allocate(weight(1:lzd%glr%d%n1i,1:lzd%glr%d%n2i,ii3s:ii3e), stat=istat)
-      call memocc(istat, weight, 'weight', subname)
+!      weight=f_malloc((/1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='weight')
+      weight=f_malloc0((/lzd%glr%d%n1i,lzd%glr%d%n2i,ii3e-ii3s+1/),lbounds=(/1,1,ii3s/),id='weight')
+      !allocate(weight(1:lzd%glr%d%n1i,1:lzd%glr%d%n2i,ii3s:ii3e), stat=istat)
+      !call memocc(istat, weight, 'weight', subname)
+
       if (denspot%dpbox%nscatterarr(iproc,1)>0) then
           call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
       end if
+
       do i3=ii3s,ii3e
           do iorb=1,orbs%norb
               ilr=orbs%inwhichlocreg(iorb)
@@ -1984,9 +1987,11 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       ! The array orbital_id contains the IDs of the orbitals touching a given gridpoint
       nmax=maxval(weight)
-      !orbital_id=f_malloc((/1.to.nmax,1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='orbital_id')
-      allocate(orbital_id(1:nmax,1:lzd%glr%d%n1i,1:lzd%glr%d%n2i,ii3s:ii3e), stat=istat)
-      call memocc(istat, orbital_id, 'orbital_id', subname)
+
+!      orbital_id=f_malloc((/1.to.nmax,1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='orbital_id')
+      orbital_id=f_malloc((/nmax,lzd%glr%d%n1i,lzd%glr%d%n2i,ii3e-ii3s+1/),lbounds=(/1,1,1,ii3s/),id='orbital_id')
+      !allocate(orbital_id(1:nmax,1:lzd%glr%d%n1i,1:lzd%glr%d%n2i,ii3s:ii3e), stat=istat)
+      !call memocc(istat, orbital_id, 'orbital_id', subname)
 
       if (denspot%dpbox%nscatterarr(iproc,1)>0) then
           call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
@@ -2009,10 +2014,13 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
               !$omp do reduction(min:iorbmin) reduction(max:iorbmax)
               do i2=is2,ie2
                   do i1=is1,ie1
-                      weight(i1,i2,i3) = weight(i1,i2,i3)+1
-                      orbital_id(weight(i1,i2,i3),i1,i2,i3) = iorb
+	                   jj=weight(i1,i2,i3)+1
+!                      weight(i1,i2,i3) = weight(i1,i2,i3)+1
+!                      orbital_id(weight(i1,i2,i3),i1,i2,i3) = iorb
+                      orbital_id(jj,i1,i2,i3) = iorb
                       if (iorb<iorbmin) iorbmin=iorb
                       if (iorb>iorbmax) iorbmax=iorb
+                      weight(i1,i2,i3)=jj
                   end do
               end do
               !$omp end do
@@ -2032,7 +2040,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       ! First fill the kernel with some numbers.
       do i=1,denskern%nvctr
-          denskern%matrix_compr(i)=sine_taylor(real(denskern%nvctr-i+1,dp))
+          denskern%matrix_compr(i)=sine_taylor(real(denskern%nvctr-i+1,kind=8))
       end do
     
       hxh=.5d0*lzd%hgrids(1)
@@ -2073,14 +2081,14 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
                   tt=1.d-20
                   do i=1,weight(i1,i2,i3) !the number of orbitals touching this grid point
                       ii=orbital_id(i,i1,i2,i3)
-                      tti=test_value(ii,iixyz,nxyz)
+                      tti=test_value_sumrho(ii,iixyz,nxyz)
                       ikernel=matrixindex_in_compressed_auxilliary(ii,ii)
                       tt=tt+denskern%matrix_compr(ikernel)*tti*tti
                       do j=i+1,weight(i1,i2,i3)
                           jj=orbital_id(j,i1,i2,i3)
                           ikernel=matrixindex_in_compressed_auxilliary(jj,ii)
                           if (ikernel==0) cycle
-                          ttj=test_value(jj,iixyz,nxyz)
+                          ttj=test_value_sumrho(jj,iixyz,nxyz)
                           tt=tt+2.d0*denskern%matrix_compr(ikernel)*tti*ttj
                       end do
                   end do
@@ -2136,14 +2144,14 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       if (iproc==0) call yaml_close_map()
     
-      !call f_free(weight)
-      !call f_free(orbital_id)
-      iall=-product(shape(weight))*kind(weight)
-      deallocate(weight, stat=istat)
-      call memocc(istat, iall, 'weight', subname)
-      iall=-product(shape(orbital_id))*kind(orbital_id)
-      deallocate(orbital_id, stat=istat)
-      call memocc(istat, iall, 'orbital_id', subname)
+      call f_free(weight)
+      call f_free(orbital_id)
+      !iall=-product(shape(weight))*kind(weight)
+      !deallocate(weight, stat=istat)
+      !call memocc(istat, iall, 'weight', subname)
+      !iall=-product(shape(orbital_id))*kind(orbital_id)
+      !deallocate(orbital_id, stat=istat)
+      !call memocc(istat, iall, 'orbital_id', subname)
 
       call f_free(rho_check)
       call f_free(rho)
@@ -2156,27 +2164,25 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
   contains
 
-
-    function test_value(i, j, n)
+    function test_value_sumrho(i, j, n)
       implicit none
 
       ! Calling arguments
       integer,intent(in) :: i, j, n
-      real(kind=8) :: test_value
+      real(kind=8) :: test_value_sumrho
 
       ! Local variables
       real(kind=8) :: ri, rj, rn
       real(kind=8),parameter :: fac=1.d-8
 
-      ri=real(i,dp)
-      rj=real(j,dp)
-      rn=real(n,dp)
+      ri=real(i,kind=8)
+      rj=real(j,kind=8)
+      rn=real(n,kind=8)
       !test_value=fac*real((i-1)*n+j,dp)
       !test_value=fac*(ri-1.d0)*rn+rj
-      test_value=sine_taylor((ri-1.d0)*rn)*cosine_taylor(rj)
+      test_value_sumrho=sine_taylor((ri-1.d0)*rn)*cosine_taylor(rj)
 
-    end function test_value
-
+    end function test_value_sumrho
 
     function sine_taylor(xx)
       implicit none
@@ -2198,7 +2204,9 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       real(kind=8),parameter :: inv1307674368000=7.6471637318198164759d-13
 
       ! The Taylor approximation is most accurate around 0, so shift by pi to be centered around this point.
-      x=mod(xx,pi2)-pi
+      x=xx/pi2
+      x=real(int(x),kind=8)*pi2
+      x=xx-x-pi
       x2=x*x
       x3=x2*x
       x5=x3*x2
@@ -2216,7 +2224,6 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       sine_taylor=-1.d0*sine_taylor
 
     end function sine_taylor
-
 
     function cosine_taylor(xx)
       implicit none
@@ -2238,7 +2245,10 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       real(kind=8),parameter :: inv87178291200=1.14707455977297247139d-11
 
       ! The Taylor approximation is most accurate around 0, so shift by pi to be centered around this point.
-      x=mod(xx,pi2)-pi
+!      x=mod(xx,pi2)-pi
+      x=xx/pi2
+      x=real(int(x),kind=8)*pi2
+      x=xx-x-pi
       x2=x*x
       x4=x2*x2
       x6=x4*x2
@@ -2248,13 +2258,12 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       x14=x12*x2
 
       ! Calculate the value
-      cosine_taylor = 1 - x2*inv2 + x4*inv24 - x6*inv720 + x8*inv40320 &
+      cosine_taylor = 1.d0 - x2*inv2 + x4*inv24 - x6*inv720 + x8*inv40320 &
                       - x10*inv3628800 + x12*inv479001600 - x14*inv87178291200
 
       ! Undo the shift of pi, which corresponds to a multiplication with -1
       cosine_taylor=-1.d0*cosine_taylor
 
     end function cosine_taylor
-
 
 end subroutine check_communication_sumrho

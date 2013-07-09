@@ -20,7 +20,7 @@
 module timeData
 !  use module_defs, only: mpi_environment, bigdft_mpi
   implicit none
-  integer, parameter :: ncat=130,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=132,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -138,10 +138,12 @@ module timeData
        'wfd_creation  ','Other         ' ,'Miscellaneous ' ,  & 
        'comm_llr      ','Communications' ,'Miscellaneous ' ,  &
        'AllocationProf','Other         ' ,'Allocate arrs ' ,  &
-       'dirmin_lagmat1','Linear Algebra' ,'allgatherv etc' ,  &
-       'dirmin_lagmat2','Linear Algebra' ,'allreduce etc ' ,  &
+       'dirmin_lagmat1','Linear Algebra' ,'grad calc     ' ,  &
+       'dirmin_lagmat2','Linear Algebra' ,'allgatherv    ' ,  &
        'dirmin_dgesv  ','Linear Algebra' ,'dgesv/pdgesv  ' ,  &
-       'dirmin_sddiis ','Linear Algebra' ,'allreduce etc ' ,  &
+       'dirmin_sddiis ','Linear Algebra' ,'Miscellaneous ' ,  &
+       'dirmin_allgat ','Linear Algebra' ,'allgatherv    ' ,  &
+       'dirmin_sdfit  ','Linear Algebra' ,'allgatherv etc' ,  &
        'chebyshev_comp','Linear Algebra' ,'matmul/matadd ' ,  &
        'chebyshev_comm','Communications' ,'allreduce     ' ,  &
        'chebyshev_coef','Other         ' ,'Miscellaneous ' ,  &

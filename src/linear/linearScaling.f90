@@ -266,17 +266,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       end if
 
 
-      if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
-         !call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
-         call DIIS_free(ldiis_coeff)
-         call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
-         ! need to reallocate DIIS matrices to adjust for changing history length
+!      if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
+!         !call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
+!         call DIIS_free(ldiis_coeff)
+!         call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+!         ! need to reallocate DIIS matrices to adjust for changing history length
 !!$         if (ldiis_coeff_changed) then
 !!$            call deallocateDIIS(ldiis_coeff)
 !!$            call allocate_DIIS_coeff(tmb, ldiis_coeff)
 !!$            ldiis_coeff_changed = .false.
 !!$         end if
-      end if
+!      end if
 
       if(itout>1 .or. (nit_lowaccuracy==0 .and. itout==1)) then
           call deallocateDIIS(ldiis)
@@ -417,6 +417,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
       ! CDFT: all this will be in some extra CDFT loop
       cdft_loop : do cdft_it=1,100
+         if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
+            call DIIS_free(ldiis_coeff)
+            call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+         end if
          ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
          kernel_loop : do it_scc=1,nit_scc
              ! If the hamiltonian is available do not recalculate it
@@ -2112,7 +2116,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
                       /(1.0_gp-trans_int_ovrlp(1)**2)
       
                  if (iproc==0) write(*,'(2x,5(F16.12,1x))',advance='NO') trans_int_energy(1), &
-                      trans_int_energy_orthog(1), orthog_energy,trans_int_ovrlp(1), trans_int_ovrlp_orthog(1)
+                      trans_int_energy_orthog(1), orthog_energy, trans_int_ovrlp(1), trans_int_ovrlp_orthog(1)
 
                  if (homo1+ih<ceiling(ref_frags(ifrag_ref1)%nelec/2.0_gp)) then
                     if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 2.0_gp

@@ -28,7 +28,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
   ! Local variables
   integer:: iorb, jorb, istat, iall, info, iiorb, ierr, it
-  real(kind=gp),dimension(:,:),allocatable:: coeffp, grad, grad_cov
+  real(kind=gp),dimension(:,:),allocatable:: grad, grad_cov_or_coeffp !coeffp, grad_cov
   real(kind=gp) :: tt, ddot, energy0, pred_e
 
   call f_routine(id='optimize_coeffs')
@@ -43,56 +43,60 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      energy0=energy
   end if
 
+  grad_cov_or_coeffp=f_malloc((/tmb%orbs%norb,orbs%norbp/), id='grad_cov_or_coeffp')
 
   do it=1,itmax
 
-     grad_cov=f_malloc((/tmb%orbs%norb,orbs%norbp/), id='grad_cov')
-
-     call calculate_coeff_gradient(iproc,nproc,tmb,orbs,grad_cov,grad)
+     call calculate_coeff_gradient(iproc,nproc,tmb,orbs,grad_cov_or_coeffp,grad)
 
      ! Precondition the gradient (only making things worse...)
      !call precondition_gradient_coeff(tmb%orbs%norb, orbs%norbp, tmb%linmat%ham%matrix, tmb%linmat%ovrlp%matrix, grad)
 
+     call timing(iproc,'dirmin_sddiis','ON')
+
      !For fnrm, we only sum on the occupied KS orbitals
      tt=0.d0
      do iorb=1,orbs%norbp
-         tt=tt+ddot(tmb%orbs%norb, grad_cov(1,iorb), 1, grad(1,iorb), 1)
+         tt=tt+ddot(tmb%orbs%norb, grad_cov_or_coeffp(1,iorb), 1, grad(1,iorb), 1)
      end do
      call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-     call f_free(grad_cov)
      fnrm=2.0_gp*tt
-
-     call timing(iproc,'dirmin_sddiis','ON')
-     coeffp=f_malloc((/tmb%orbs%norb,orbs%norbp/),id='coeffp')
 
      if (ldiis_coeff%idsx > 0) then !do DIIS
         !TO DO: make sure DIIS works
         ldiis_coeff%mids=mod(ldiis_coeff%ids,ldiis_coeff%idsx)+1
         ldiis_coeff%ids=ldiis_coeff%ids+1
 
-        call dcopy(tmb%orbs%norb*orbs%norbp,tmb%coeff(1,orbs%isorb+1),1,coeffp(1,1),1)
+        call dcopy(tmb%orbs%norb*orbs%norbp,tmb%coeff(1,orbs%isorb+1),1,grad_cov_or_coeffp(1,1),1)
 
         call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%orbs%norb*orbs%norbp/),tmb%orbs%norb*orbs%norbp,&
-             coeffp,grad(1,1),ldiis_coeff) 
+             grad_cov_or_coeffp,grad(1,1),ldiis_coeff) 
      else  !steepest descent with curve fitting for line minimization
-        if (sd_fit_curve) call find_alpha_sd(iproc,nproc,ldiis_coeff%alpha_coeff,tmb,orbs,coeffp,grad,energy0,fnrm,pred_e)
+        call timing(iproc,'dirmin_sddiis','OF')
+        if (sd_fit_curve) call find_alpha_sd(iproc,nproc,ldiis_coeff%alpha_coeff,tmb,orbs,&
+             grad_cov_or_coeffp,grad,energy0,fnrm,pred_e)
+        call timing(iproc,'dirmin_sddiis','ON')
 
         do iorb=1,orbs%norbp
            iiorb = orbs%isorb + iorb
            do jorb=1,tmb%orbs%norb
-              coeffp(jorb,iorb)=tmb%coeff(jorb,iiorb)-ldiis_coeff%alpha_coeff*grad(jorb,iorb)
+              grad_cov_or_coeffp(jorb,iorb)=tmb%coeff(jorb,iiorb)-ldiis_coeff%alpha_coeff*grad(jorb,iorb)
            end do
         end do
      end if
 
+     call timing(iproc,'dirmin_sddiis','OF')
+
+     call timing(iproc,'dirmin_allgat','ON')
+
      if(nproc > 1) then 
-        call mpi_allgatherv(coeffp, tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%coeff, &
+        call mpi_allgatherv(grad_cov_or_coeffp, tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%coeff, &
            tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
      else
-        call dcopy(tmb%orbs%norb*orbs%norb,coeffp(1,1),1,tmb%coeff(1,1),1)
+        call dcopy(tmb%orbs%norb*orbs%norb,grad_cov_or_coeffp(1,1),1,tmb%coeff(1,1),1)
      end if
 
-     call f_free(coeffp)
+     call timing(iproc,'dirmin_allgat','OF')
 
      fnrm=sqrt(fnrm/dble(orbs%norb))
 
@@ -135,9 +139,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
   end do
 
+  call f_free(grad_cov_or_coeffp)
   call f_free(grad)
-
-  call timing(iproc,'dirmin_sddiis','OF')
 
   call f_release_routine()
 
@@ -159,6 +162,8 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
   integer :: iorb, iiorb, jorb, ierr
   real(kind=gp) :: tt, ddot, energy1, a, b, c, alpha_old
   real(kind=gp),dimension(:,:),allocatable :: coeff_tmp
+
+  call timing(iproc,'dirmin_sdfit','ON')
 
   ! take an initial step to get 2nd point
   coeff_tmp=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_tmp')
@@ -200,6 +205,7 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
   !write(127,*) 0.0_gp,energy0
   !write(127,*) alpha_old,energy1
 
+  call timing(iproc,'dirmin_sdfit','OF')
 
 end subroutine find_alpha_sd
 
@@ -297,6 +303,9 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
 
   skh=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='skh')
 
+  call timing(iproc,'dirmin_lagmat1','OF')
+  call timing(iproc,'dirmin_lagmat2','ON')
+
   ! gather together
   if(nproc > 1) then
      call mpi_allgatherv(skhp(1,1), tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, skh(1,1), &
@@ -305,6 +314,9 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   else
      call dcopy(tmb%orbs%norbp*tmb%orbs%norb,skhp(1,1),1,skh(1,1),1)
   end if
+
+  call timing(iproc,'dirmin_lagmat2','OF')
+  call timing(iproc,'dirmin_lagmat1','ON')
 
   call f_free(skhp)
 
