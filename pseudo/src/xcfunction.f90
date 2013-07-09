@@ -36,9 +36,7 @@ module libxcmodule
         &      libxc_functionals_ismgga, &
         &      libxc_functionals_exctxfac, &
         &      libxc_functionals_end, &
-        !      libxc_functionals_getvxc, &
-        !      is replaced by a simple routine
-   &      xcfunction
+        &      xcfunction
    
    contains
   
@@ -172,36 +170,37 @@ module libxcmodule
    
    
    !> Return xc potential and energy, from input density (event gradient etc...)
-   !! this version calls bigdfts xc drivers, which access libxc as part of the abinit xc functions.
-   !! should really try to put this apart from bigdft and abinit, and directly call libxc. 
+   !! This version calls bigdfts xc drivers, which access libxc as part of the abinit xc functions.
+   !! Should really try to put this apart from bigdft and abinit, and directly call libxc. 
    subroutine xcfunction(nspol,rho,grad,exc,vxc,dedg)
       
       implicit none
       !Arguments
-      integer, intent(in) :: nspol      !< Number of spin components (1 or 2)
-      real(kind=8) :: rho(nspol),vxc(nspol),dedg(nspol),grad(nspol)  ! dummy arguments
-      real(kind=8), intent(out) :: exc  !< Exchange-Correlation Energy
+      integer, intent(in) :: nspol                             !< Number of spin components (1 or 2)
+      real(kind=8), intent(in), dimension(nspol) :: rho,grad   !< Electronic density and gradient
+      real(kind=8), intent(out), dimension(nspol) :: vxc,dedg  !< xc potential
+      real(kind=8), intent(out) :: exc                         !< Exchange-Correlation Energy
       !Local variables
       integer :: i
       real(kind=8) :: exci
       real(kind=8), dimension(nspol) :: vxci
-      real(kind=8), dimension(3) :: sigma(3),vsigma(3)  ! summands and libxc arg
+      real(kind=8), dimension(3) :: sigma,vsigma  !< summands and libxc arg
       ! These output quantities may be summed over two functionals (x and c)
-      exc  =0.0d0
-      vxc  =0.0d0
-      dedg =0.0d0
+      exc  = 0.0d0
+      vxc  = 0.0d0
+      dedg = 0.0d0
       
-      !     convert the gradient to sigma if needed 
+      ! Convert the gradient to sigma if needed
       if (libxc_functionals_isgga()) then
          sigma(1)=grad(1)*grad(1)
-         if(nspol==2)then
+         if (nspol==2) then
             sigma(2)=grad(1)*grad(2)
             sigma(3)=grad(2)*grad(2)
          end if
       end if
       
-      !     libxc can use rather independent parts for exchange and correlation
-      !     the outer loop goes over both functionals from the two 3 digit codes
+      ! libxc can use rather independent parts for exchange and correlation
+      ! the outer loop goes over both functionals from the two 3 digit codes
       do i = 1,2
          if (funcs(i)%id == 0) cycle
          select case (funcs(i)%family)
@@ -220,24 +219,19 @@ module libxcmodule
             exc=exc+exci
             vxc=vxc+vxci
             
-            !            vsigma  are derivatives with respect to some products of gradients,
-            !            we want the derivatives with respect to the up and down gradients.
-            if(nspol==1)then
+            !          vsigma  are derivatives with respect to some products of gradients,
+            !          we want the derivatives with respect to the up and down gradients.
+            if (nspol==1)then
                dedg(1) = dedg(1) +  vsigma(1)*grad(1)*2d0
                
-            elseif(nspol==2)then
-               !              de/dgup  =          de/d(gup**2) *2*gup  + de/d(gup*gdn) * gdn 
+            else if (nspol==2)then
+               !       de/dgup  =          de/d(gup**2) *2*gup  + de/d(gup*gdn) * gdn 
                dedg(1)=dedg(1) + vsigma(1) *2d0*grad(1) + vsigma(2)*grad(2)
-               !              de/dgdn  =          de/d(gdn**2) *2*gd   + de/d(gup*gdn) * gup 
+               !       de/dgdn  =          de/d(gdn**2) *2*gd   + de/d(gup*gdn) * gup 
                dedg(2)=dedg(2) + vsigma(3) *2d0*grad(2) + vsigma(2)*grad(1)
             end if
          end select
       end do
-      
-      !     this part is to plot the exc(rho) function for debugging purposes
-      !      do j=1,nspol
-      !       write(17,'(i3,4f20.12)')j,rho(j),grad(j),exc,vxc(j)
-      !      end do
       
    end subroutine xcfunction
    

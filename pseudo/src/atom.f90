@@ -1,5 +1,5 @@
 !> @file
-!! Atomic program for psueod-potential calculations
+!! @brief Atomic program for pseudopotential calculations
 !! @author
 !!    Program for atomic calculations
 !!    written by Sverre Froyen, February 1982
@@ -10,8 +10,7 @@
 !!    while at MPI Stuttgart, Germany
 !!
 !!    and further altered by
-!!    Alex Willand,
-!!            under the supervision of
+!!    Alex Willand, under the supervision of
 !!    Stefan Goedecker, December 2010
 !!    while at Universitaet Basel, Switzerland
 !!
@@ -29,17 +28,17 @@
 !!    (set in difrel,difnrl)
 
 
-!> Calculate electronic structure for one atom
+!> Calculate the all-electron electronic structure for one atom
 !! @ingroup pseudo
 program atom
 
        implicit double precision(a-h,o-z)
 
        !Parameters
-       integer, parameter :: nrmax=10000 !< Maximal radial grid points
-       integer, parameter :: maxorb=60   !< Maximal number of orbitals
-       integer, parameter :: lmax=5      !< Maximal orbital moment
-       integer, parameter :: maxconf=19  !< Maximal electronic configurations
+       integer, parameter :: nrmax=10000                !< Maximal radial grid points
+       integer, parameter :: maxorb=60                  !< Maximal number of orbitals
+       integer, parameter :: lmax=5                     !< Maximal orbital moment
+       integer, parameter :: maxconf=19                 !< Maximal electronic configurations
        logical, parameter :: debug=.false.
        character(len=2), parameter :: stop_chain = 'st'
        real(kind=8), parameter :: tol=1.0d-11
@@ -54,15 +53,18 @@ program atom
        real(kind=8) :: znuc                             !< Atomic number
                                                        
        integer :: nr                                    !< Mesh points
-       real(kind=8), dimension(nrmax) :: r              !< Radial mesh
-       real(kind=8), dimension(nrmax) :: rab           
+       real(kind=8), dimension(nrmax) :: r              !< Radial mesh r(i) = a*(exp(b*(i-1))-1)
+       real(kind=8), dimension(nrmax) :: rab            !< rab(i) = (r(i)+a)*b (integration grid)
+                                                        !< c.hartwig: additional grids for modified integration
+       real(kind=8), dimension(nrmax) :: rw             !< rw(i) = rab(i)*12.56637061435917d0*r(i)**2 (integration grid)
+       real(kind=8), dimension(nrmax) :: rd             !< rd(i) = 1/rab(i) (integration grid)
        real(kind=8), dimension(nrmax) :: cdd            !< Charge density (spin down)
        real(kind=8), dimension(nrmax) :: cdu            !< Charge density (spin up)
        real(kind=8), dimension(nrmax) :: cdc            !< Core charge density (up to ncore orbitals)
        ! Potentials: always multiplied by r.
-       real(kind=8), dimension(lmax,nrmax) :: viod,viou !< viod,u ..... ionic potential (down,up)
-       real(kind=8), dimension(nrmax) :: vid,viu        !< vid,u ...... input screening potential (down,up)
-       real(kind=8), dimension(nrmax) :: vod,vou        !< vod,u ...... output screening potential (down,up)
+       real(kind=8), dimension(lmax,nrmax) :: viod,viou !< viod,u  ionic potential (down,up)
+       real(kind=8), dimension(nrmax) :: vid,viu        !< vid,u   input screening potential (down,up)
+       real(kind=8), dimension(nrmax) :: vod,vou        !< vod,u   output screening potential (down,up)
 
        !> etot(i) i=1,10 contains various contributions to the total energy.
        !!     (1)   Sum of eigenvalues ev
@@ -78,27 +80,23 @@ program atom
        real(kind=8), dimension(10) :: etot
 
        real(kind=8), dimension(maxconf) :: econf
-       real(kind=8), dimension(maxorb) :: ev             !< ev ....... eigenvalues
-       real(kind=8), dimension(maxorb) :: ek             !< ek ....... kinetic energy for each orbital
-       real(kind=8), dimension(maxorb) :: ep             !< ep ....... potential energy (Vionic*rho) for each orbital
+       real(kind=8), dimension(maxorb) :: ev             !< ev  eigenvalues
+       real(kind=8), dimension(maxorb) :: ek             !< ek  kinetic energy for each orbital
+       real(kind=8), dimension(maxorb) :: ep             !< ep  potential energy (Vionic*rho) for each orbital
 
-       character(len=2) :: naold,itype,ityold,nameat,cnum
+       character(len=2) :: name_old,itype,itype_old,nameat,cnum
        character(len=1) :: ispp
-       integer :: iXCold
-       integer :: iXC
+       integer :: iXC_old
+       integer :: iXC                                    !< Exchange-Correlation parameter
        logical :: abort
 
-!      c.hartwig: additional grids for modified integration
-       real(kind=8), dimension(10000) :: rw,rd
-       common /intgrd/ rw,rd
-
 !      heuristic value for fluctuating GGAs
-       naold = '  '
-       iXCold = 0
-       ityold ='  '
-       zsold = 0.D0
+       name_old = '  '
+       iXC_old = 0
+       itype_old ='  '
+       zsh_old = 0.d0
        nconf = 0
-       dvold = 1.0D10
+       dvold = 1.0d10
        nr    = 1
        norb  = 1
 
@@ -130,7 +128,7 @@ program atom
 !      zo ..... # electrons
 !      znuc ... atomic number
        call input(itype,iXC,ispp, &
-       & nrmax,nr,a,b,r,rab,rprb,rcov, &
+       & nrmax,nr,a,b,r,rab,rw,rd,rprb,rcov, &
        & nameat,norb,ncore, &
        & maxorb,no,lo,so,zo, &
        & znuc,zsh,rsh,zel,zcore, &
@@ -146,17 +144,16 @@ program atom
 
 
 !      set up initial charge density.
+!      cdd  charge density (spin down)
+!      cdu  charge density (spin up)
+!      cdc  core charge density (up to ncore orbitals)
 !      cdd and cdu  =  2 pi r**2 rho(r)
-        aa = sqrt(sqrt(znuc))/2.0d0+1.0d0
-        a2 = zel/4.0d0*aa**3
-        do i=1,nr
-          cdd(i) = a2*exp(-aa*r(i))*r(i)**2
-          cdu(i) = cdd(i)
-        end do
-
-!     cdd ..... charge density (spin down)
-!     cdu ..... charge density (spin up)
-!     cdc ..... core charge density (up to ncore orbitals)
+       aa = sqrt(sqrt(znuc))/2.0d0+1.0d0
+       a2 = zel/4.0d0*aa**3
+       do i=1,nr
+         cdd(i) = a2*exp(-aa*r(i))*r(i)**2
+         cdu(i) = cdd(i)
+       end do
 
 !      set up ionic potentials
 
@@ -178,7 +175,7 @@ program atom
        if(ispp=='s') nspol=2
 
        call velect(0,0,iXC,nspol,ifcore,  &
-          nr,r,rab, &
+          nr,r,rab,rw,rd, &
           zel,cdd,cdu,cdc,  &
           vod,vou,  &
           etot)
@@ -237,7 +234,7 @@ program atom
 !         set up output electronic potential from charge density
 
           call velect(iter,iconv,iXC,nspol,ifcore,  &
-             nr,r,rab, &
+             nr,r,rab,rw,rd, &
              zel,cdd,cdu,cdc,  &
              vod,vou,  &
              etot)
@@ -290,17 +287,17 @@ program atom
           nameat,norb,no,lo,so,zo,  &
           znuc,zsh,rsh,zcore, &
           etot,ev,ek,ep)
-       if (naold /= nameat .or. iXCold /= iXC .or.  &
-           ityold /= itype ) call prdiff(nconf,econf)
+       if (name_old /= nameat .or. iXC_old /= iXC .or.  &
+           itype_old /= itype ) call prdiff(nconf,econf)
 !       if (nconf == 9) nconf=1
        nconf = nconf + 1
        econf(nconf) = etot(10)
        if (nconf /= 1) write(6,130) etot(10)-econf(1)
  130   format(//,28h excitation energy         =,f18.8,/,1x,45('-'))
-       naold = nameat
-       iXCold = iXC
-       zsold = zsh
-       ityold = itype
+       name_old = nameat
+       iXC_old = iXC
+       zsh_old = zsh
+       itype_old = itype
 
 !      write the total energy to atom.ae instead of excitation
 !      energies. This allows the user to be flexible with reference
@@ -558,7 +555,7 @@ subroutine etotal( &
 end subroutine etotal
 
 
-!> i  is a stop parameter
+!> exit routine (i is a stop parameter)
 !!    000-099 main     (0 is normal exit)
 !!    100-199 input
 !!    200-299 charge
@@ -570,8 +567,10 @@ end subroutine etotal
 !!    800-899 pseudo
 subroutine ext(i)
    implicit none
-   integer, intent(in) :: i
-   if (i /= 0) write(6,'(17x,a,i3)') "stop parameter =", i
+   integer, intent(in) :: i  !< Stop parameter
+   if (i /= 0) then
+      write(6,'(17x,a,i3)') "stop parameter =", i
+   end if
    stop
 end subroutine ext
 
@@ -590,10 +589,13 @@ subroutine vionic(ifcore,  &
        !Arguments
        integer, intent(in) :: nr                                !< #radial mesh points
        real(kind=8), dimension(nr), intent(in) :: r             !< Radial mesh
-       real(kind=8), dimension(lmax,nr), intent(out) :: viod !< Ionic potential down
-       real(kind=8), dimension(lmax,nr), intent(out) :: viou !< ionic potential up
+       integer, intent(in) :: lmax                              !< l channel
+       real(kind=8), dimension(lmax,nr), intent(out) :: viod    !< Ionic potential down
+       real(kind=8), dimension(lmax,nr), intent(out) :: viou    !< ionic potential up
+       integer, intent(out) :: ifcore                           !< if core 
        !Local variables
        real(kind=8) :: vshift
+       integer :: i,j
 
 !      2*znuc part (Rydberg units)
 
@@ -630,7 +632,7 @@ end subroutine vionic
 !! the electron charge density.
 !! the ionic part is added in dsolve.
 subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
-          nr,r,rab, &
+          nr,r,rab,rw,rd, &
           zel,cdd,cdu,cdc,  &
           vod,vou,  &
           etot)
@@ -642,32 +644,23 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
        logical, parameter :: debug = .false.
        real(kind=8), parameter :: pi = 4.d0*atan(1.d0)
        !Arguments
-       integer, intent(in) :: nr, ifcore
+       integer, intent(in) :: nr, ifcore, nspol, iconv, iter
        real(kind=8), dimension(10), intent(inout) :: etot
-       real(kind=8), dimension(nr), intent(in) :: r,rab,cdc
+       real(kind=8), dimension(nr), intent(in) :: r,rab,rw,rd,cdc
        real(kind=8), dimension(nr), intent(out) :: cdd,cdu,vod,vou
        real(kind=8), intent(in) :: zel
        integer, intent(in) :: iXC
        !Local variables
-       integer, parameter :: mesh = 10000
-       real(kind=8), dimension(mesh) :: y,yp,ypp,s1,s2
-       real(kind=8), dimension(3*mesh) :: w
-       common  y,yp,ypp,w,s1,s2
-       !> for use in routine atomwr:
+       real(kind=8), dimension(nr) :: y,yp,ypp,s1,s2
+       real(kind=8), dimension(3*nr) :: w
+       !> For use in routine atomwr
        integer, parameter :: ntitle = 40
-
 !      c.hartwig
 !      convention for spol as in dsolv: spin down=1 and spin up=2
-       dimension rho(nr,nspol),excgrd(nr),vxcgrd(nr,nspol)
-       !integration grids
-       real(kind=8), dimension(10000) :: rw,rd
-       common /intgrd/ rw,rd
+       real(kind=8), dimension(nr,nspol) :: rho,vxcgrd
+       real(kind=8), dimension(nr) :: excgrd
 
 !      fit cd/r by splines
-
-       if (mesh < nr) then
-          stop 'velect: mesh too small'
-       end if
        y(1) = 0.D0
        do i=2,nr
           y(i) = (cdd(i)+cdu(i))/r(i)
@@ -798,11 +791,9 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
 
  50     continue
 
-!cccccccccccccccccccccccccccccccccccccccccccccccc
-! here was the functional specification section c
-!cccccccccccccccccccccccccccccccccccccccccccccccc
 
-
+ 
+      ! here was the functional specification section c
        do i=2,nr
 !         so how do we define this line now:
 !         rho(i)=(cdd(i)+cdu(i))/4.d0/pi/r(i)**2
@@ -817,7 +808,7 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
              rho(i,1)=(cdd(i)+cdu(i))/4.d0/pi/r(i)**2
           end if
        enddo
-!      some : added here
+!      some : added here Only for the first point!
        rho(1,:)=rho(2,:)-(rho(3,:)-rho(2,:))*r(2)/(r(3)-r(2))
 
 !CMK   this should avoid problems with XC-functionals
@@ -829,10 +820,10 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
 !        mgcx=0
 !      else if (iter==30) then
        if (iter==40.and.iXC/=-20) then
-         write(6,*) 'Switching from LDA to the requested functional'
-         write(6,*) ' iXC =',iXC,'nspol=',nspol
-         call libxc_functionals_end()
-         call libxc_functionals_init(iXC,nspol)
+          write(6,*) 'Switching from LDA to the requested functional'
+          write(6,*) ' iXC =',iXC,'nspol=',nspol
+          call libxc_functionals_end()
+          call libxc_functionals_init(iXC,nspol)
        end if
 
 
@@ -851,43 +842,43 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
 !     need energy/potential in ryd
 
 
-!     this section was and is very inefficient.
-!     let us keep this style for now
-!     but not forget to clean it up later
-
-!     the factors of two that cancel each other
-!     are from the previous versions.
-
-       if(nspol==1)then
-!      non-polarized case
-!      quite the same as in older versions
-        do i=1,nr
-          exct = 2.d0*excgrd(i)*rho(i,1)
-          vxcd = 2.d0*vxcgrd(i,1)
-          vxcu=vxcd
-          rhodw=rho(i,1)/2.d0
-          rhoup=rhodw
-          vod(i) = vod(i) + vxcd
-          vou(i) = vou(i) + vxcu
-          vxc = vxc + (vxcd*rhodw + vxcu*rhoup) * rw(i)
-          exc = exc + exct * rw(i)
-        enddo
+       ! This section was and is very inefficient.
+       ! let us keep this style for now
+       ! but not forget to clean it up later
+       ! the factors of two that cancel each other
+       ! are from the previous versions.
+       if (nspol==1)then
+          ! non-polarized case
+          ! quite the same as in older versions
+          do i=1,nr
+             exct = 2.d0*excgrd(i)*rho(i,1)
+             vxcd = 2.d0*vxcgrd(i,1)
+             vxcu=vxcd
+             rhodw=rho(i,1)/2.d0
+             rhoup=rhodw
+             vod(i) = vod(i) + vxcd
+             vou(i) = vou(i) + vxcu
+             vxc = vxc + (vxcd*rhodw + vxcu*rhoup) * rw(i)
+             exc = exc + exct * rw(i)
+          end do
        else
-!      spin polarized case
-!      same dirty style, but with two spin channels
-        do i=1,nr
-          exct =  2.d0*excgrd(i)*(rho(i,1)+rho(i,2))
-          vxcd =  2.d0*vxcgrd(i,1)
-          vxcu =  2.d0*vxcgrd(i,2)
-          rhodw=rho(i,1)/2.d0
-          rhoup=rho(i,2)/2.d0
-          vod(i) = vod(i) + vxcd
-          vou(i) = vou(i) + vxcu
-          vxc = vxc + (vxcd*rhodw + vxcu*rhoup) * rw(i)
-          exc = exc + exct * rw(i)
-!         write(18,*)vxc, vxcd
-        enddo
+          ! spin polarized case
+          ! same dirty style, but with two spin channels
+          do i=1,nr
+             exct =  2.d0*excgrd(i)*(rho(i,1)+rho(i,2))
+             vxcd =  2.d0*vxcgrd(i,1)
+             vxcu =  2.d0*vxcgrd(i,2)
+             rhodw=rho(i,1)/2.d0
+             rhoup=rho(i,2)/2.d0
+             vod(i) = vod(i) + vxcd
+             vou(i) = vou(i) + vxcu
+             vxc = vxc + (vxcd*rhodw + vxcu*rhoup) * rw(i)
+             exc = exc + exct * rw(i)
+             ! write(18,*)vxc, vxcd
+          end do
        end if
+
+       !Finally update energy quantities
        etot(4) = ehart
        etot(5) = nspol*vxc
        etot(7) = exc
@@ -895,15 +886,15 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
 end subroutine velect
 
 
-!> Subroutine to read input parameters
+!> Subroutine to read input parameters and build the different integration grids
 !!    ncore .. # core orbitals (closed shells)
 !!    no ..... n quantum number
 !!    lo ..... l do.
 !!    so ..... spin (+/- 0.5, or 0 for unpolarized)
 !!    zo ..... # electrons
 !!    znuc ... atomic number
-subroutine input (itype,iXC,ispp,  &
-          nrmax,nr,a,b,r,rab,rprb,rcov, &
+subroutine input(itype,iXC,ispp,  &
+          nrmax,nr,a,b,r,rab,rw,rd,rprb,rcov, &
           nameat,norb,ncore, &
           maxorb,no,lo,so,zo,  &
           znuc,zsh,rsh,zel,zcore, &
@@ -919,7 +910,9 @@ subroutine input (itype,iXC,ispp,  &
        integer, intent(in) :: nrmax                       !< Maximal number of radial mesh points
        integer, intent(out) :: nr                         !< # mesh points
        real(kind=8), dimension(nrmax), intent(out) :: r   !< Radial mesh r(i) = a*(exp(b*(i-1))-1)
-       real(kind=8), dimension(nrmax), intent(out) :: rab !< rab(i) = (r(i)+a)*b
+       real(kind=8), dimension(nrmax), intent(out) :: rab !< rab(i) = (r(i)+a)*b (integration grid)
+       real(kind=8), dimension(nrmax), intent(out) :: rw  !< rw(i) = rab(i)*12.56637061435917d0*r(i)**2
+       real(kind=8), dimension(nrmax), intent(out) :: rd  !< rd(i) = 1/rab(i)
        real(kind=8), intent(out) :: a,b                   !< Parameters to build the logarithmic mesh
        real(kind=8), intent(out) :: rcov                  !< Covalent radius
        integer, intent(in) :: maxorb                      !< Maximal orbitals
@@ -944,14 +937,10 @@ subroutine input (itype,iXC,ispp,  &
        character(len=1) :: ispp
        integer, dimension(5) :: nomin = (/ 10, 10 ,10, 10, 10 /)
 
-       !grid values based on r, a and b (nrmax <= 10000)
-       real(kind=8), dimension(10000) :: rw,rd
-       common /intgrd/ rw,rd
-
-!      for use in routine atomwr:
+!      For use in routine atomwr:
        integer, parameter :: ntitle = 40
        character(len=80) :: instrg
-       character :: irel*3
+       character(len=3) :: irel
        character(len=3) :: name
 
        !Read all electron configuration
@@ -1046,52 +1035,51 @@ subroutine input (itype,iXC,ispp,  &
       b = 1/bb
 
 !     modify grid-parameter, so that one grid-point matches
-!     rcov exact
-
-        do i=1,nrmax
-           if (i == nrmax) then
-              write(6,50)
-              stop 'input two'
-           endif
-           r(i) = a*(exp(b*(i-1))-1)
-           if (r(i).ge.rcov) then
-              a= rcov/(exp(b*(i-1))-1)
-              aa=-log(a*znuc)
-              goto 29
-           endif
-        enddo
-        write(*,*)'adjusted value for aa',aa
- 29     continue
-        do i=1,nrmax
-           if (i == nrmax) then
-              write(6,50)
- 50           format(/,' error in input - arraylimits', ' for radial array exceeded',/)
-              call ext(100)
-           endif
-          r(i) = a*(exp(b*(i-1))-1)
-          rab(i) = (r(i)+a)*b
-
-!     c.hartwig: set up grids for modified integration
-
-          rw(i) = b*(r(i)+a)
-          rd(i) = 1.d0/rw(i)
-          rw(i)=rw(i)*12.56637061435917d0*r(i)**2
-          if (r(i) .gt. rmax) goto 60
-        end do
- 60     continue
-        nr = i-1
-
-!     modify weights at end point for improved accuracy
+!     rcov exactly (r(i) is used in this part only for that)
+      do i=1,nrmax
+         if (i == nrmax) then
+            write(6,50)
+            stop 'input two'
+         endif
+         r(i) = a*(exp(b*(i-1))-1)
+         if (r(i).ge.rcov) then
+            a= rcov/(exp(b*(i-1))-1)
+            aa=-log(a*znuc)
+            goto 29
+         endif
+      enddo
+      write(*,*)'adjusted value for aa',aa
 
 
-        if (debug) then
-           write(*,*) 'DEBUG OPTION: No modified weights at origin!'
-        end if
+ 29   continue
+      !Build all integration grids (r, rab, rw and rd)
+      do i=1,nrmax
+         if (i == nrmax) then
+            write(6,50)
+ 50         format(/,' error in input - arraylimits', ' for radial array exceeded',/)
+            call ext(100)
+         endif
+        r(i) = a*(exp(b*(i-1))-1)
+        rab(i) = (r(i)+a)*b
+        ! c.hartwig: set up grids for modified integration
+        rw(i) = b*(r(i)+a)
+        rd(i) = 1.d0/rw(i)
+        rw(i)=rw(i)*12.56637061435917d0*r(i)**2
+        if (r(i) .gt. rmax) goto 60
+      end do
 
-        rw(1)=rw(1)*17.d0/48.d0
-        rw(2)=rw(2)*59.d0/48.d0
-        rw(3)=rw(3)*43.d0/48.d0
-        rw(4)=rw(4)*49.d0/48.d0
+ 60   continue
+      !Set the number of grid points (< rmax)
+      nr = i-1
+
+!     Modify weights at end point for improved accuracy
+      if (debug) then
+         write(*,*) 'DEBUG OPTION: No modified weights at origin!'
+      end if
+      rw(1)=rw(1)*17.d0/48.d0
+      rw(2)=rw(2)*59.d0/48.d0
+      rw(3)=rw(3)*43.d0/48.d0
+      rw(4)=rw(4)*49.d0/48.d0
 
 
 !      read the number of core and valence orbitals
@@ -1372,59 +1360,59 @@ subroutine dsolv1( &
        implicit double precision(a-h,o-z)
 
        !Arguments
-       integer, intent(in) :: norb,nr
-       dimension r(nr),rab(nr),  &
-       no(norb),lo(norb),so(norb),zo(norb),  &
-       cdd(nr),cdu(nr), &
-       viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr), &
-       ev(norb)
+       integer, intent(in) :: nr,norb,lmax
+       real(kind=8), dimension(nr), intent(in) :: r,rab,vid,viu
+       real(kind=8), dimension(nr), intent(out) :: cdd,cdu
+       real(kind=8), dimension(lmax,nr), intent(in) :: viod,viou
+       integer, dimension(norb), intent(in) :: no,lo
+       real(kind=8), dimension(norb) :: so,zo,ev
        !Local variables!
-       integer, parameter :: mesh = 4000, nvmax = 6*mesh
-       dimension nmax(2,5),dk(mesh),d(mesh),sd(mesh),sd2(mesh),e(10),  &
-       ind(10),z(nvmax),  &
-       rv1(mesh),rv2(mesh),rv3(mesh),rv4(mesh),rv5(mesh)
-       common dk,d,sd,sd2,z,rv1,rv2,rv3,rv4,rv5
+       integer, dimension(2,5) :: nmax
+       integer, dimension(10) :: ind
+       real(kind=8), dimension(nr) :: dk,d,sd,sd2,rv1,rv2,rv3,rv4,rv5
+       real(kind=8), dimension(10) :: e
+       real(kind=8), dimension(6*nr) :: z
+       integer :: nvmax
 
 !      initialize charge density arrays
 
 !     TEST
-       d=0d0
-       do 10 i=1,nr
-       cdd(i) = 0.D0
-       cdu(i) = 0.D0
- 10    continue
+       d=0.0d0
+       do i=1,nr
+          cdd(i) = 0.d0
+          cdu(i) = 0.d0
+       end do
+       nvmax = 6*nr
 
 !      find max n given l and s
 !      zero spin is treated as down
-
        do 20 i=1,2
-       do 20 j=1,lmax
-       nmax(i,j) = 0
-       do 20 k=1,norb
-       if (no(k) .le. 0) goto 20
-       if (lo(k) /= j-1) goto 20
-       if ((so(k)-0.1D0)*(i-1.5D0) .lt. 0.D0) goto 20
-       nmax(i,j)=no(k)
-       if (no(k)*(nr-1) .gt. nvmax) then
-         print*,no(k),nr-1
-         print*,no(k)*(nr-1)," > ",nvmax
-         call ext(500)
-       end if
+          do 20 j=1,lmax
+             nmax(i,j) = 0
+             do 20 k=1,norb
+                if (no(k) .le. 0) goto 20
+                if (lo(k) /= j-1) goto 20
+                if ((so(k)-0.1D0)*(i-1.5D0) .lt. 0.D0) goto 20
+                nmax(i,j)=no(k)
+                if (no(k)*(nr-1) .gt. nvmax) then
+                  print *,no(k),nr-1
+                  print *,no(k)*(nr-1)," > ",nvmax
+                  call ext(500)
+                end if
  20    continue
 
 !      set up hamiltonian matrix for kinetic energy
 !      only the diagonal depends on the potential
-
        c2 = -1.D0/b**2
        c1 = -2.D0*c2 + 0.25D0
        dk(1)  = c1 / (r(2)+a)**2
        sd(1)  = 0.D0
        sd2(1) = 0.D0
-       do 30 i=3,nr
-       dk(i-1)  = c1 / (r(i)+a)**2
-       sd(i-1)  = c2 / ((r(i)+a)*(r(i-1)+a))
-       sd2(i-1) = sd(i-1)**2
- 30    continue
+       do i=3,nr
+          dk(i-1)  = c1 / (r(i)+a)**2
+          sd(i-1)  = c2 / ((r(i)+a)*(r(i-1)+a))
+          sd2(i-1) = sd(i-1)**2
+       end do
 
 !      start loop over spin down=1 and spin up=2
 
@@ -1436,26 +1424,26 @@ subroutine dsolv1( &
        do 80 j=1,lmax
        if (nmax(i,j) == 0) goto 80
        llp = j*(j-1)
-       do 40 k=2,nr
-       if (i == 1) d(k-1) = dk(k-1)  &
-        + (viod(j,k) + llp/r(k))/r(k) + vid(k)
-       if (i == 2) d(k-1) = dk(k-1)  &
-        + (viou(j,k) + llp/r(k))/r(k) + viu(k)
-!      write(*,*)'debug: vio u d (k)',k,viou(j,k),viod(j,k)
-!      write(*,*)'debug: vi u d (k)',k,viu(k),vid(k)           !!! NaN
-!      write(*,*)'debug: r (k)',k,r(k)
-!      write(*,*)'debug: dk (k)',k-1,dk(k-1)
- 40    continue
+       do k=2,nr
+          if (i == 1) &
+             d(k-1) = dk(k-1) + (viod(j,k) + llp/r(k))/r(k) + vid(k)
+          if (i == 2) &
+             d(k-1) = dk(k-1) + (viou(j,k) + llp/r(k))/r(k) + viu(k)
+          ! write(*,*)'debug: vio u d (k)',k,viou(j,k),viod(j,k)
+          ! write(*,*)'debug: vi u d (k)',k,viu(k),vid(k)           !!! NaN
+          ! write(*,*)'debug: r (k)',k,r(k)
+          ! write(*,*)'debug: dk (k)',k-1,dk(k-1)
+       end do
 
 !      diagonalize
 
        eps = -1.D0
        call tridib(nrm,eps,d,sd,sd2,bl,bu,1,nmax(i,j),e,ind,ierr,  &
-       rv4,rv5)
+          rv4,rv5)
        if (ierr /= 0) write(6,50) ierr
  50    format(/,21h ****** error  ierr =,i3,/)
        call tinvit(nrm,nrm,d,sd,sd2,nmax(i,j),e,ind,z,ierr,  &
-       rv1,rv2,rv3,rv4,rv5)
+          rv1,rv2,rv3,rv4,rv5)
        if (ierr /= 0) write(6,50) ierr
 
 !      save energy levels and add to charge density
@@ -1463,25 +1451,24 @@ subroutine dsolv1( &
        ki = 1
        kn = 0
        do 70 k=1,norb
-       if (no(k) .le. 0) goto 70
-       if (lo(k) /= j-1) goto 70
-!      if spin(k) /= spin(i) cycle
-       if ((so(k)-0.1D0)*(i-1.5D0) .lt. 0.D0) goto 70
-       ev(k) = e(ki)
-!      write(6,*)'DSOLV1:',k,no(k),lo(k),so(k),ev(k)
-       do 60 l=2,nr
-       denr = zo(k) * z(kn+l-1)**2 / rab(l)
-       if (i == 1) cdd(l) = cdd(l) + denr
-       if (i == 2) cdu(l) = cdu(l) + denr
- 60    continue
-       ki = ki + 1
-       kn = kn + nrm
+          if (no(k) .le. 0) goto 70
+          if (lo(k) /= j-1) goto 70
+          ! if spin(k) /= spin(i) cycle
+          if ((so(k)-0.1D0)*(i-1.5D0) .lt. 0.D0) goto 70
+          ev(k) = e(ki)
+          ! write(6,*)'DSOLV1:',k,no(k),lo(k),so(k),ev(k)
+          do l=2,nr
+             denr = zo(k) * z(kn+l-1)**2 / rab(l)
+             if (i == 1) cdd(l) = cdd(l) + denr
+             if (i == 2) cdu(l) = cdu(l) + denr
+          end do
+          ki = ki + 1
+          kn = kn + nrm
  70    continue
  80    continue
-
 !      end loop over s p and d states
 
-end
+end subroutine dsolv1
 
 
 !> dsolv2 finds the (non) relativistic wave function using
@@ -1500,27 +1487,27 @@ subroutine dsolv2(iter,iconv,iXC,ispp,ifcore, &
        implicit double precision(a-h,o-z)
 
        !Arguments
-       integer, intent(in) :: nr
-       real(kind=8), dimension(nr), intent(in) :: r,rab
+       integer, intent(in) :: nr,norb,lmax
+       real(kind=8), dimension(nr), intent(in) :: r,rab,vid,viu
        real(kind=8), dimension(nr), intent(out) :: cdd,cdu,cdc
        integer, intent(in) :: ifcore,ncore
-       integer, dimension(norb) :: no,lo
-       real(kind=8), dimension(norb) :: so, zo
-       dimension viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr), &
-       ev(norb),ek(norb),ep(norb)
+       integer, dimension(norb), intent(in) :: no,lo
+       real(kind=8), dimension(norb), intent(in) :: so, zo
+       real(kind=8), dimension(lmax,nr), intent(in) :: viod,viou
+       real(kind=8), dimension(norb), intent(out) :: ev,ek,ep
        character(len=1) :: ispp
        integer, intent(in) :: iXC
        !Local variables
-       integer, parameter :: mesh = 2000
-       real(kind=8), dimension(mesh) ::  v,ar,br
-       common  v,ar,br
+       real(kind=8), dimension(nr) :: v,ar,br
+       real(kind=8) :: dcrc,ddcrc
+       integer :: i,j,lp,llp
 !.....files
 
 !      initialize arrays for charge density
        do i=1,nr
-          cdd(i) = 0.D0
-          cdu(i) = 0.D0
-          if (ifcore /= 1) cdc(i)=0.D0
+          cdd(i) = 0.d0
+          cdu(i) = 0.d0
+          if (ifcore /= 1) cdc(i)=0.d0
        end do
 !      and the moments of the core charge density
        dcrc =0d0
@@ -1546,8 +1533,6 @@ subroutine dsolv2(iter,iconv,iXC,ispp,ifcore, &
           end do
 
 !         call integration routine
-
-
           if (ispp /= 'r' ) then
               call difnrl(iter,i,v,ar,br,  &
                   lmax,nr,a,b,r,rab,  &
@@ -1577,8 +1562,8 @@ subroutine dsolv2(iter,iconv,iXC,ispp,ifcore, &
           if (iconv == 1) then
 !             orban is used to analyze and printout data about the orbital
               call orban(iXC,ispp,i,ar,br,  &
-                 nr,r,rab,lmax,  &
-                 norb,ncore,no,lo,so,zo,  &
+                 nr,r,rab, &
+                 lmax,norb,ncore,no,lo,so,zo,  &
                  znuc,zcore,cdd,cdu,cdc,dcrc,ddcrc,  &
                  viod,viou,vid,viu, &
                  v,ev,ek,ep,rcov,rprb,nconf)
@@ -2282,19 +2267,19 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 
 !> orban is used to analyze and printout data about the orbital
 subroutine orban(iXC,ispp,iorb,ar,br, &
-          nr,r,rab,lmax, &
-          norb,ncore,no,lo,so,zo, &
+          nr,r,rab, &
+          lmax,norb,ncore,no,lo,so,zo, &
           znuc,zcore,cdd,cdu,cdc,dcrc,ddcrc, &
           viod,viou,vid,viu, &
           v,ev,ek,ep,rcov,rprb,nconf)
 
        implicit double precision(a-h,o-z)
        !Arguments
-       integer, intent(in) :: nr,norb
+       integer, intent(in) :: nr,norb,lmax
        real(kind=8), dimension(nr) :: ar,br
+       real(kind=8), dimension(nr) :: r,rab
        integer, dimension(norb) :: no,lo
-       dimension r(nr),rab(nr),  &
-       so(norb),zo(norb),  &
+       dimension so(norb),zo(norb),  &
        cdd(nr),cdu(nr),cdc(nr),  &
        viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr), &
        v(nr),ev(norb),ek(norb),ep(norb)
@@ -2309,8 +2294,6 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 !     SOME OF THOSE SEEM NOT TO BE USED AT ALL
       dimension ttx(50000),tty(50000),ttyp(50000),ttypp(50000),  &
            ttw(150000)
-      real(kind=8), dimension(10000) :: rw,rd
-      common /intgrd/ rw,rd
       
       character(len=1) ::  il(5)
       character(len=2) :: cnum
@@ -2800,24 +2783,21 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
       end if
 
       if (iorb==norb) then
-!         addition for Nonlinear Core Corrections:
-!         write out the charge density of the core for plotting and fitting.
-
-          open(unit=33,file='ae.core.dens.plt')
-          write(33,'(a)')'# plot file for all electron charges'
-          if( zcore/=0.0_8) then
-             write(33,'(a,3e15.6,a)') '#',zcore,dcrc/zcore,ddcrc/zcore,  &
-                       ' 0th, 2nd and 4th moment of core charge'
-          end if
-          write(33,'(40x,a)')       '# radial charge distributions rho(r)*4pi*r**2'
-          write(33,'(4(a,14x),a))') '#',' r ','core','valence','total'
-          do i=1,npoint
-              tt=cdu(i)+cdd(i)
-              write(33,'(4e20.12)') r(i),cdc(i),tt-cdc(i),tt
-           end do
-          close(unit=33)
-
-
+!        Addition for Nonlinear Core Corrections:
+!        write out the charge density of the core for plotting and fitting.
+         open(unit=33,file='ae.core.dens.plt')
+         write(33,'(a)') '# plot file for all electron charges'
+         if( zcore /= 0.0d0) then
+            write(33,'(a,3e15.6,a)') '#',zcore,dcrc/zcore,ddcrc/zcore,  &
+                      ' 0th, 2nd and 4th moment of core charge'
+         end if
+         write(33,'(40x,a)')       '# radial charge distributions rho(r)*4pi*r**2'
+         write(33,'(4(a,14x),a)') '#',' r ','core','valence','total'
+         do i=1,npoint
+             tt=cdu(i)+cdd(i)
+             write(33,'(4e20.12)') r(i),cdc(i),tt-cdc(i),tt
+         end do
+         close(unit=33)
       end if
 
 end subroutine orban
