@@ -1796,8 +1796,9 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
   real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
   !local variables
-  integer :: m_isf
+  integer :: m_isf,ixp,iyp,izp
   real(gp) :: sint,cost,onemc,ux,uy,uz
+  real(gp), dimension(3) :: rrow
   real(gp), dimension(:), allocatable :: shf
 !  real(gp), dimension(:,:), allocatable :: dx,dy,dz
   real(gp), dimension(:,:), allocatable :: work,work2
@@ -1831,7 +1832,10 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   !call define_rotations(da,newz,centre_old,centre_new,0.498_gp*pi_param,hgrids_old,ndims_old,&
   !     hgrids_new,ndims_new,dx,dy,dz)
 
-  !print matrix elements
+  !print matrix elements, to be moved at the moment of identification of the transformation
+  call yaml_map('Rotation axis',newz,fmt='(1pg20.12)')
+  call yaml_map('Rotation angle (deg)',theta*180.0_gp/pi_param,fmt='(1pg20.12)')
+  call yaml_map('Translation vector',da,fmt='(1pg20.12)')
   call yaml_open_sequence('Rotation matrix elements')
     call yaml_sequence(trim(yaml_toa((/&
          cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /),fmt='(1pg20.12)')))
@@ -1840,6 +1844,25 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
     call yaml_sequence(trim(yaml_toa((/&
          ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /),fmt='(1pg20.12)')))
   call yaml_close_sequence()
+
+  !determine ideal sequence for rotation
+  !pay attention to what happens if two values are identical  
+  !from where xp should be determined
+  rrow=abs((/cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /))
+  ixp=maxloc(rrow,1)
+  !form where zp should be determined (note that the third line has been used)
+  rrow=abs((/ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /))
+  !exclude of course the previously found direction
+  rrow(ixp)=0.0_gp
+  izp=maxloc(rrow,1)
+  !then the last dimension, which is the intermediate one
+  rrow=1.0_gp
+  rrow(ixp)=0.d0
+  rrow(izp)=0.d0
+  iyp=maxloc(rrow,1)
+  
+  !print the suggested order
+  call yaml_map('Suggested order for the transformation',(/ixp,iyp,izp/))
 
 
   !call define_rotations_switch(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
@@ -1985,19 +2008,22 @@ subroutine interpolate_xp_from_x(nx,ny,nz,cx,cy,cz,cx_new,hx,hy,hz,hx_new,&
 !!$                !vector to be applied
 !!$                (x-x_xpyz(theta,newz,x,y,z)+dx)/hx 
            t0_l=(x-x_xpyz(theta,newz,x,y,z)+dx)/hx 
-           k1=min(max(1,nint((x_xpyz(theta,newz,x,y,z)+cx+hx)/hx)),nx_old)
-
+           k1=min(max(1,nint((x_xpyz(theta,newz,x,y,z)-dx+cx+hx)/hx)),nx_old)
+           dt=(real(k1,gp)+t0_l)-real(i,gp)
+           
 !!$           dt=t0_l-nint(t0_l)
-           diff=real(i,gp)-(k1+t0_l)   
+!           diff=real(i,gp)-(k1+t0_l)   
 !!$           if (abs(diff) < 1.d0 .or. .true.) then
-              dt=-diff
+!              dt=-diff
+
 !!$           else if (abs(diff - dt) < abs(diff+dt)) then
 !!$              !if (abs(diff) < 1.d0) print *,'herex',dt,diff
 !!$              dt=-dt
 !!$           end if
 
-           !if (abs(abs(diff)-abs(dt)) > 1.d-12) print '(a,1pg25.17,4(i4),6(1pg25.17))','final values',t0_l,k1,&
-           !     i,j,k,dt,diff
+           !if (abs(abs(diff)-abs(dt)) > 1.d-12) 
+!              print '(a,1pg25.17,4(i4),6(1pg25.17))','final values',t0_l,k1,&
+!                   i,j,k,dt,diff
 
            !define filter for the interpolation starting from a constant shift
            call define_filter(dt,nrange,nphi,phi,shf)
@@ -2109,7 +2135,7 @@ subroutine interpolate_yp_from_y(nx,ny,nz,cx,cy,cz,cy_new,hx,hy,hz,hy_new,&
 !!$                !vector to be applied
 !!$                (y-y_xpypz(theta,newz,x,y,z)+dy)/hy 
            t0_l=(y-y_xpypz(theta,newz,x,y,z)+dy)/hy 
-           k1=min(max(1,nint((y_xpypz(theta,newz,x,y,z)+cy+hy)/hy)),ny_old)
+           k1=min(max(1,nint((y_xpypz(theta,newz,x,y,z)-dy+cy+hy)/hy)),ny_old)
 
 !!$           dt=t0_l-nint(t0_l)
            diff=real(j,gp)-(k1+t0_l)   
@@ -2228,7 +2254,7 @@ subroutine interpolate_zp_from_z(nx,ny,nz,cx,cy,cz,cz_new,hx,hy,hz,hz_new,&
 !!$                (z-z_xpypzp(theta,newz,x,y,z)+dz)/hz 
 
            t0_l=(z-z_xpypzp(theta,newz,x,y,z)+dz)/hz 
-           k1=min(max(1,nint((z_xpypzp(theta,newz,x,y,z)+cz+hz)/hz)),nz_old)
+           k1=min(max(1,nint((z_xpypzp(theta,newz,x,y,z)-dz+cz+hz)/hz)),nz_old)
 
 !!$           dt=t0_l-nint(t0_l)
            diff=real(k,gp)-(k1+t0_l)   
@@ -2419,8 +2445,5 @@ print*,'centres',da,icentre_new,icentre_old
   call f_release_routine()
 
 end subroutine switch_axes
-
-
-
 
 
