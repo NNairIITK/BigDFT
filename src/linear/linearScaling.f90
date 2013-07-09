@@ -266,17 +266,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       end if
 
 
-!      if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
-!         !call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
-!         call DIIS_free(ldiis_coeff)
-!         call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
-!         ! need to reallocate DIIS matrices to adjust for changing history length
+      if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
+         !call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
+         call DIIS_free(ldiis_coeff)
+         call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+         ! need to reallocate DIIS matrices to adjust for changing history length
 !!$         if (ldiis_coeff_changed) then
 !!$            call deallocateDIIS(ldiis_coeff)
 !!$            call allocate_DIIS_coeff(tmb, ldiis_coeff)
 !!$            ldiis_coeff_changed = .false.
 !!$         end if
-!      end if
+      end if
 
       if(itout>1 .or. (nit_lowaccuracy==0 .and. itout==1)) then
           call deallocateDIIS(ldiis)
@@ -417,7 +417,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
       ! CDFT: all this will be in some extra CDFT loop
       cdft_loop : do cdft_it=1,100
-         if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
+         if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. input%lin%constrained_dft) then 
             call DIIS_free(ldiis_coeff)
             call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
          end if

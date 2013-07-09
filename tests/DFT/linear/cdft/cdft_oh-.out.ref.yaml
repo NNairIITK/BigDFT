@@ -28,14 +28,14 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-07-02 19:09:47.340
+ Timestamp of this run                 : 2013-07-09 17:43:45.619
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
  MPI tasks of root process node        :  6
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
-   Configure arguments                 : " 'FC=mpif90' '--disable-bindings'"
+   Configure arguments                 : " 'FC=mpif90'"
    Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
@@ -562,7 +562,7 @@
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
- DIIS weights: [-3.17E-08, -9.39E-07,  1.89E-05, -6.72E-05,  4.25E-04,  1.00E+00, 
+ DIIS weights: [-3.16E-08, -9.40E-07,  1.89E-05, -6.74E-05,  4.27E-04,  1.00E+00, 
                 -2.23E-26]
  Poisson Solver:
    BC                                  : Free
@@ -636,8 +636,8 @@
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
- DIIS weights: [-4.22E-04,  4.48E-04, -5.51E-05,  6.10E-03, -2.60E-02,  1.02E+00, 
-                -1.99E-22]
+ DIIS weights: [-4.05E-04,  4.31E-04, -5.55E-05,  6.06E-03, -2.59E-02,  1.02E+00, 
+                -2.00E-22]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
@@ -710,8 +710,8 @@
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
- DIIS weights: [ 1.58E-05, -2.96E-05,  3.37E-05,  7.95E-02, -6.94E-03,  9.27E-01, 
-                -1.45E-26]
+ DIIS weights: [ 1.58E-05, -2.97E-05,  3.37E-05,  7.95E-02, -6.94E-03,  9.27E-01, 
+                -1.52E-26]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
@@ -900,7 +900,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  6.001E-02,  6.300E-02 ]}
+ -  {Process:  0, Timing:  [  6.401E-02,  6.200E-02 ]}
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -911,27 +911,27 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.23896542E-03, y:  5.02761191E-04, z:  5.02761175E-04, 
                     total:  1.42848624E-03}
- Clean forces norm (Ha/Bohr): {maxval:  1.044494889981E-02, fnrm2:  2.181939150392E-04}
- Raw forces norm (Ha/Bohr): {maxval:  1.135944079763E-02, fnrm2:  2.206053368247E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  1.044494890009E-02, fnrm2:  2.181939150509E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  1.135944079799E-02, fnrm2:  2.206053368367E-04}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 1.044494889981E-02,  0.000000000000E+00, -5.421010862428E-20]} # 0001
- -  {H: [-1.044494889981E-02,  0.000000000000E+00,  5.421010862428E-20]} # 0002
+ -  {O: [ 1.044494890009E-02, -5.421010862428E-20, -5.421010862428E-20]} # 0001
+ -  {H: [-1.044494890009E-02,  0.000000000000E+00,  5.421010862428E-20]} # 0002
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  41.50
-   Elapsed time (s)                    :  41.70
+   CPU time (s)                        :  37.23
+   Elapsed time (s)                    :  37.45
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-07-02 19:09:47.339
+     2013-07-09 17:43:45.618
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  16916
-   Tot. No. of Deallocations           :  16916
+   Tot. No. of Allocations             :  17044
+   Tot. No. of Deallocations           :  17044
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  99

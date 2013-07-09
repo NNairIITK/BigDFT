@@ -1278,16 +1278,16 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   real(kind=8) :: tt!, tt2, tt3, ddot   !DEBUG
   logical :: dense
   integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
-  integer :: communication_strategy
+  integer, parameter :: communication_strategy=ALLGATHERV
 
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr) ! to check timings
   call timing(iproc,'renormCoefCom1','ON')
 
-  if (present(orbs)) then
-     communication_strategy=ALLREDUCE
-  else
-     communication_strategy=ALLGATHERV
-  end if
+  !if (present(orbs)) then
+  !   communication_strategy=ALLREDUCE
+  !else
+  !   communication_strategy=ALLGATHERV
+  !end if
 
   allocate(ovrlp_coeff(norb,norb), stat=istat)
   call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
