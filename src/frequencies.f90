@@ -8,9 +8,10 @@
 !!    For the list of contributors, see ~/AUTHORS 
 !!
 !! @todo
-!!  Add higher order for finite difference
-!!  Maybe possibility to use Lanczos to determine lowest frequencies
-!!  Indicate correct formulae for entropy
+!!  - Add higher order for finite difference
+!!  - Maybe possibility to use Lanczos to determine lowest frequencies
+!!  - Indicate correct formulae for entropy
+!!  - Use random vectors orthogonal to translation and rotations
 
 
 !> Calculate vibrational frequencies by frozen phonon approximation.

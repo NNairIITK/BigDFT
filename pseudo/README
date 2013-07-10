@@ -4,6 +4,10 @@
 @dir pseudo/src
 @brief Contains the source of the pseudo program
 
+@todo
+- Create a program to merge the capabilities of atom and pseudo.
+- Use this program to add the possibility to generate pseudopotentials with bigdft-tool.
+
 @dir pseudo/doc
 @brief Documentation about the generation of pseudopotentials
 */

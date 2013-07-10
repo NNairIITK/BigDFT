@@ -120,9 +120,9 @@
   !! in case of specified errors, it returns true if an error of this kind has been raised
   function f_err_check(err_id,err_name)
     implicit none
-    integer, intent(in), optional :: err_id !< the code of the error to be checked for
-    character(len=*), intent(in), optional :: err_name !name of the error to search
-    logical :: f_err_check
+    integer, intent(in), optional :: err_id            !< The code of the error to be checked for
+    character(len=*), intent(in), optional :: err_name !< Name of the error to search
+    logical :: f_err_check                             !< Return code
     include 'get_err-inc.f90'
 
     !check if a particular error has been found

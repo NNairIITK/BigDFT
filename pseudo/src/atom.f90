@@ -480,11 +480,12 @@ subroutine etotal( &
           etot,ev,ek,ep)
        implicit none
        !Arguments
-       character(len=2), intent(in) :: nameat
-       integer, intent(in) :: norb
-       integer, dimension(norb), intent(in) :: no, lo
-       real(kind=8), intent(in) :: rsh, znuc, zcore, zsh
-       real(kind=8), dimension(norb), intent(out) :: so, zo, ev, ek, ep
+       character(len=2), intent(in) :: nameat                    !< Name of the atom
+       integer, intent(in) :: norb                               !< #orbitals
+       integer, dimension(norb), intent(in) :: no, lo            !< quantum numbers
+       real(kind=8), intent(in) :: rsh, znuc, zcore, zsh         !< Related to the nature of the atoms
+       real(kind=8), dimension(norb), intent(out) :: so, zo  
+       real(kind=8), dimension(norb), intent(out) :: ev, ek, ep
        !> etot(i) i=1,10 contains various contributions to the total energy.
        !!     (1)   Sum of eigenvalues ev
        !!     (2)   Sum of orbital kinetic energies ek

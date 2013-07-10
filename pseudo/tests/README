@@ -11,7 +11,4 @@ as well as one test with VWN LDA, no confinement and several configurations (to 
 There are no tests for the fitting application pseudo yet. 
 Some crossover of tutorial and test for pseudo is found in ./example.O/INSTRUCTIONS.
 
-@dir pseudo/tests/atom_tests
-@brief Contains initial tests using atom with some restrictive options.
-
 */

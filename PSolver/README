@@ -45,10 +45,10 @@ for scientific work.
 	Boston, MA 02111-1307, USA.
 </pre>
 
-@dir PSolver/src
+@dir ./PSolver/src
 @brief Directory containing the source of the PSolver library
 
-@dir PSolver/tests
+@dir ./PSolver/tests
 @brief Contains some tests for the PSolver library
 
 @defgroup PSolver The PSolver library

@@ -1,20 +1,20 @@
-/*! @dir src
+/*! @dir ./src
 @brief
    This directory contains the source of the core project of BigDFT.
 
-@dir src/convolutions
+@dir ./src/convolutions
 @brief
    This directory contains the source of short convolutions used inside BigDFT.
 
-@dir src/convolutions-c
+@dir ./src/convolutions-c
 @brief
    C version of some optimized convolutions (using SSE instructions for instance).
 
-@dir src/modules
+@dir ./src/modules
 @brief
    All modules of internal part of BigDFT
 
-@dir src/linear
+@dir ./src/linear
 @brief
    Linear scaling version routines
 */

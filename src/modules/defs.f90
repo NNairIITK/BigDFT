@@ -1,7 +1,7 @@
 !> @file
 !!  File defining parameters for BigDFT package (processed by the build system)
 !! @author
-!!    Copyright (C) 2008-2011 BigDFT group
+!!    Copyright (C) 2008-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -24,8 +24,9 @@ module module_defs
   integer, parameter :: gp=kind(1.0d0)  !< general-type precision
   integer, parameter :: dp=kind(1.0d0)  !< density-type precision
   integer, parameter :: wp=kind(1.0d0)  !< wavefunction-type precision
-  integer, parameter :: tp=kind(1.0d0)  !< diis precision (single in this context, if double is only for non-regression)
+  integer, parameter :: tp=kind(1.0d0)  !< DIIS precision (single in this context, if double is only for non-regression)
 
+  !> Define type of data for MPI
   integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION
   integer, parameter :: mpidtypd=MPI_DOUBLE_PRECISION
   integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
