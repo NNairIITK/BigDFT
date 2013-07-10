@@ -1309,7 +1309,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
 
         !> Random initialisation of the wavefunctions
-!! The initialization of only the scaling function coefficients should be considered
+        !! The initialization of only the scaling function coefficients should be considered
         subroutine input_wf_random(psi, orbs)
           use module_defs
           use module_types
@@ -2509,7 +2509,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (iproc == 0) then
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------------ Random wavefunctions initialization'
-        call yaml_comment('Random wavefunctions initialization',hfill='-')
+        call yaml_comment('Random wavefunctions Initialization',hfill='-')
         call yaml_open_map("Input Hamiltonian")
      end if
 
@@ -2530,7 +2530,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (iproc == 0) then
         !write(*,'(1x,a)')&
         !     &   '------------------------------------------------------- Input Wavefunctions Creation'
-        call yaml_comment('Wavefunctions from PSP Atomic Orbitals initialization',hfill='-')
+        call yaml_comment('Wavefunctions from PSP Atomic Orbitals Initialization',hfill='-')
         call yaml_open_map('Input Hamiltonian')
      end if
      nspin=in%nspin

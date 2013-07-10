@@ -261,7 +261,7 @@ contains
        !control of the allocation/deallocation status (to be removed once f_malloc has been inserted)
        if (istat/=0) then
           if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
-          write(message,'(1x,a)')'subroutine '//trim(routine),', array '//trim(array)//&
+          write(message,'(a)') 'subroutine '//trim(routine)//', array '//trim(array)//&
                ', error code '//trim(yaml_toa(istat))
           if (f_err_raise(isize>=0,trim(message),err_name='ERR_ALLOCATE')) return
           if (f_err_raise(isize< 0,trim(message),err_name='ERR_DEALLOCATE')) return
@@ -281,7 +281,7 @@ contains
 !!$             call MPI_ABORT(MPI_COMM_WORLD,ierr)
 !!$          end if
 !!$       end if
-       !total counter, for all the processes
+       !Total counter, for all the processes
        memtot%memory=memtot%memory+int(isize,kind=8)
        if (memtot%memory > memtot%peak) then
           memtot%peak=memtot%memory
@@ -296,7 +296,7 @@ contains
        
        if (memorylimit /= 0.e0 .and. &
             memtot%memory > int(real(memorylimit,kind=8)*1073741824.d0,kind=8)) then !memory limit is in GB
-          write(message,'(1x,a,f7.3,2(a,i0),a)')&
+          write(message,'(a,f7.3,2(a,i0),a)')&
                'Limit of ',memorylimit,' GB reached, memproc ',memproc,' total memory is ',memtot%memory,' B. '
 !!$          write(*,'(1x,a)') 'Array '//trim(memtot%array)//', routine '//trim(memtot%routine)
 !!$          call MPI_ABORT(MPI_COMM_WORLD,ierr)

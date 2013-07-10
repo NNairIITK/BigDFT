@@ -17,7 +17,7 @@ module dictionaries
 
   private
 
-  type, public :: dictionary_container !>public only due to the fact that some functions are public
+  type, public :: dictionary_container !< public only due to the fact that some functions are public
      character(len=max_field_length) :: val=' '
      type(dictionary), pointer :: dict => null()
   end type dictionary_container

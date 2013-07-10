@@ -17,4 +17,12 @@
 @dir ./src/linear
 @brief
    Linear scaling version routines
+
+@dir ./src/init
+@brief
+   Initialization (guess wavefunctions)
+
+@dir ./src/profiling
+@brief
+   Old profiling routines 'should be replaced by the flib routines (see @ref flib_memory)
 */

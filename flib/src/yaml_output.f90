@@ -77,7 +77,7 @@ module yaml_output
 
   !> Generic routine to create a yaml map as foo: 1
   !! as call yaml_map('foo',1)
-  !! @ingroup flib
+  !! @ingroup flib_yaml
   !! @param mapname  Key of the map i.e. 'foo'
   !! @param mapvalue Value of the map i.e. 1
   !! @param label    (optional) Label (&xxx) to refer to the map
@@ -354,7 +354,7 @@ contains
   !! Put document_closed to .false.
   !! Check if already used before yaml_release_document by testing document_closed
   !! In this case, do nothing
-  !! @ingroup flib
+  !! @ingroup flib_yaml
   subroutine yaml_new_document(unit)
     implicit none
     integer, optional, intent(in) :: unit !< Unit of the stream
@@ -380,7 +380,7 @@ contains
 
 
   !> After this routine is called, the new_document will become effective again
-  !! @ingroup flib
+  !! @ingroup flib_yaml
   subroutine yaml_release_document(unit)
     implicit none
     integer, optional, intent(in) :: unit  !< Stream Identity number
@@ -638,7 +638,7 @@ contains
 
 
   !> Open a yaml map (dictionary)
-  !! @ingroup flib
+  !! @ingroup flib_yaml
   subroutine yaml_open_map(mapname,label,flow,unit)
     implicit none
     integer, optional, intent(in) :: unit
@@ -687,7 +687,7 @@ contains
 
 
   !> Close the map
-  !! @ingroup flib
+  !! @ingroup flib_yaml
   subroutine yaml_close_map(advance,unit)
     implicit none
     integer, optional, intent(in) :: unit
