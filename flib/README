@@ -18,5 +18,8 @@ The <tt>tests</tt> directory contains some useful examples and tests.
 @defgroup flib The Flib library
 @brief
   The flib library is a low-level library used by BigDFT in order to do some low-level operations:
-  - memory allocations and memory profiling 
+  - Memory allocations and memory profiling
+  - Define the dictionary type
+  - Library to handle yaml output
+  - Exception handling
 */

@@ -75,10 +75,15 @@ module yaml_output
   integer :: YAML_UNIT_INCONSISTENCY     !< internal error, unit inconsistency
   integer :: YAML_INVALID                !< invalid action, unit inconsistency
 
-  !> Generic routine
+  !> Generic routine to create a yaml map as foo: 1
+  !! as call yaml_map('foo',1)
   !! @ingroup flib
-  !! @param key mapname
-  !! @param fmt format
+  !! @param mapname  Key of the map i.e. 'foo'
+  !! @param mapvalue Value of the map i.e. 1
+  !! @param label    (optional) Label (&xxx) to refer to the map
+  !! @param advance  (optional) Advance or not to the line
+  !! @param unit     (optional) Unit of the stream
+  !! @param fmt      (optional) format for the value
   interface yaml_map
      module procedure yaml_map,yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
   end interface
@@ -349,9 +354,10 @@ contains
   !! Put document_closed to .false.
   !! Check if already used before yaml_release_document by testing document_closed
   !! In this case, do nothing
+  !! @ingroup flib
   subroutine yaml_new_document(unit)
     implicit none
-    integer, optional, intent(in) :: unit
+    integer, optional, intent(in) :: unit !< Unit of the stream
     !local variables
     integer :: unt,strm
 
@@ -374,6 +380,7 @@ contains
 
 
   !> After this routine is called, the new_document will become effective again
+  !! @ingroup flib
   subroutine yaml_release_document(unit)
     implicit none
     integer, optional, intent(in) :: unit  !< Stream Identity number
@@ -631,6 +638,7 @@ contains
 
 
   !> Open a yaml map (dictionary)
+  !! @ingroup flib
   subroutine yaml_open_map(mapname,label,flow,unit)
     implicit none
     integer, optional, intent(in) :: unit
@@ -679,6 +687,7 @@ contains
 
 
   !> Close the map
+  !! @ingroup flib
   subroutine yaml_close_map(advance,unit)
     implicit none
     integer, optional, intent(in) :: unit
@@ -838,14 +847,14 @@ contains
   end subroutine yaml_sequence
 
 
-  !> Do a yaml map
+  !> Create a yaml map
   subroutine yaml_map(mapname,mapvalue,label,advance,unit)
     implicit none
     character(len=*), intent(in) :: mapname             !< key
     character(len=*), intent(in) :: mapvalue            !< value
     character(len=*), optional, intent(in) :: label     !< label for reference (&xxx)
     character(len=*), optional, intent(in) :: advance   !< advance or not
-    integer, optional, intent(in) :: unit               !< unit for strem
+    integer, optional, intent(in) :: unit               !< unit of the stream
     !local variables
     logical :: cut,redo_line
     integer :: msg_lgt,strm,unt,icut,istr,ierr,msg_lgt_ck,idbg
