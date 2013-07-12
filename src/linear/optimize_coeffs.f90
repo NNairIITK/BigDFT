@@ -246,7 +246,7 @@ subroutine optimize_coeffs_extra(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnr
 
      call timing(iproc,'dirmin_allgat','OF')
 
-     fnrm=sqrt(fnrm/dble(orbs%norb))
+     fnrm=sqrt(fnrm/dble(orbs%norb+num_extra))
 
      ! do twice with approx S^_1/2, as not quite good enough at preserving charge if only once, but exact too expensive
      ! instead of twice could add some criterion to check accuracy?

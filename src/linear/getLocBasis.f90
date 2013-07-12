@@ -40,6 +40,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
   logical, intent(in), optional :: curvefit_dmin ! for dmin only
   type(cdft_data),intent(inout),optional :: cdft
+  integer, intent(in) :: extra_states
 
 
   ! Local variables 
@@ -491,7 +492,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !call vcopy(tmb%orbs%norb, occup_tmp(1), 1, tmb%orbs%occup(1), 1)
           !iall=-product(shape(occup_tmp))*kind(occup_tmp)
           !deallocate(occup_tmp, stat=istat)
-          call memocc(istat, iall, 'kernel_compr_tmp', subname)
+          !call memocc(istat, iall, 'occup_tmp', subname)
           call vcopy(tmb%linmat%denskern%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
           deallocate(kernel_compr_tmp, stat=istat)

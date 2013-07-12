@@ -183,13 +183,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! modify tmb%orbs%occup, as we normally use orbs%occup elsewhere
   if (input%lin%extra_states>0) then
      call razero(tmb%orbs%norb,tmb%orbs%occup(1))
-     call vcopy(orbs%norb, orbs%occup(1), 1, tmb%orbs%occup(1), 1)
+     call vcopy(KSwfn%orbs%norb, KSwfn%orbs%occup(1), 1, tmb%orbs%occup(1), 1)
      ! occupy the next few states - don't need to preserve the charge as only using for support function optimization
      do iorb=1,tmb%orbs%norb
         if (tmb%orbs%occup(iorb)==1.0_gp) then
            tmb%orbs%occup(iorb)=2.0_gp
         else if (tmb%orbs%occup(iorb)==0.0_gp) then
-           do jorb=iorb,min(iorb+extra_states-1,tmb%orbs%norb)
+           do jorb=iorb,min(iorb+input%lin%extra_states-1,tmb%orbs%norb)
              tmb%orbs%occup(jorb)=2.0_gp
            end do
            exit
@@ -272,7 +272,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if (.not. input%lin%constrained_dft) then
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                     .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                     .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
              end if
           end if
 
@@ -455,21 +455,25 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,cdft)
+                        .false.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        input%lin%curvefit_dmin,ldiis_coeff,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                        .false.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        input%lin%curvefit_dmin,ldiis_coeff)
                 end if
              else
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,cdft)
+                        .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        input%lin%curvefit_dmin,ldiis_coeff,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                        .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        input%lin%curvefit_dmin,ldiis_coeff)
                 end if
              end if
              ! Since we do not update the basis functions anymore in this loop
@@ -660,7 +664,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
-           .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+           .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
   end if
 
   if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small

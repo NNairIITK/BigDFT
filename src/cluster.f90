@@ -447,6 +447,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          KSwfn%comms,shift,proj,radii_cf,ref_frags)
   end if
 
+
+  if (in%lin%fragment_calculation) then
+     call output_fragment_rotations(iproc,nproc,atoms%astruct%nat,rxyz,1,trim(in%dir_output),in%frag,ref_frags)
+     !call mpi_finalize(i_all)
+     !stop
+  end if
+
   ! temporary, really want to just initialize it here rather than copy
   ! but still need to move all cubic references to KSwfn%orbs%npsidim to just KSwfn%npsidim
   KSwfn%npsidim_orbs = KSwfn%orbs%npsidim_orbs

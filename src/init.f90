@@ -2687,12 +2687,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !     & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
      !     & atoms,rxyz_old,rxyz,tmb%psi,tmb%coeff)
 
-     if (in%lin%fragment_calculation) then
-        call output_fragment_rotations(iproc,nproc,atoms%astruct%nat,rxyz,1,trim(in%dir_output),in%frag,ref_frags)
-        !call mpi_finalize(i_all)
-        !stop
-     end if
-
      call readmywaves_linear_new(iproc,trim(in%dir_output),'minBasis',input_wf_format,&
           atoms,tmb,rxyz_old,rxyz,ref_frags,in%frag,in%lin%fragment_calculation)
 
