@@ -104,7 +104,11 @@ program memguess
 
       stop
    else
-      read(unit=tatonam,fmt=*) nproc
+      read(unit=tatonam,fmt=*,iostat=ierror) nproc
+      if (ierror /= 0) then
+         call deprecation_message()
+         stop
+      end if
       i_arg = 2
       output_grid=0
       loop_getargs: do
@@ -131,14 +135,14 @@ program memguess
             !call getarg(i_arg,tatonam)
             ntimes=1
             norbgpu=0
-            read(tatonam,*,iostat=ierror)ntimes
-            if (ierror==0) then
+            read(unit=tatonam,fmt=*,iostat=ierror) ntimes
+            if (ierror == 0) then
                write(*,'(1x,a,i0,a)')&
                   &   'Repeat each calculation ',ntimes,' times.'
                i_arg = i_arg + 1
                call get_command_argument(i_arg, value = tatonam)
                !call getarg(i_arg,tatonam)
-               read(tatonam,*,iostat=ierror)norbgpu
+               read(unit=tatonam,fmt=*,iostat=ierror) norbgpu
             end if
             exit loop_getargs
          else if (trim(tatonam)=='convert') then
@@ -169,28 +173,28 @@ program memguess
             if(trim(tatonam)=='' .or. istat > 0) then
                exit loop_getargs
             else
-               read(tatonam, *) export_wf_iband
+               read(unit=tatonam,fmt=*) export_wf_iband
             end if
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = tatonam, status = istat)
             if(trim(tatonam)=='' .or. istat > 0) then
                exit loop_getargs
             else
-               read(tatonam, *) export_wf_ispin
+               read(unit=tatonam,fmt=*) export_wf_ispin
             end if
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = tatonam, status = istat)
             if(trim(tatonam)=='' .or. istat > 0) then
                exit loop_getargs
             else
-               read(tatonam, *) export_wf_ikpt
+               read(unit=tatonam,fmt=*) export_wf_ikpt
             end if
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = tatonam, status = istat)
             if(trim(tatonam)=='' .or. istat > 0) then
                exit loop_getargs
             else
-               read(tatonam, *) export_wf_ispinor
+               read(unit=tatonam,fmt=*) export_wf_ispinor
             end if
             exit loop_getargs
          else if (trim(tatonam)=='atwf') then
@@ -200,7 +204,7 @@ program memguess
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = tatonam)
             !call getarg(i_arg,tatonam)
-            read(tatonam,*,iostat=ierror)ng
+            read(unit=tatonam,fmt=*,iostat=ierror) ng
             write(*,'(1x,a,i0,a)')&
                &   'Use gaussian basis of',ng,' elements.'
             exit loop_getargs
@@ -615,7 +619,7 @@ program memguess
         atoms%astruct%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
         in%nspin,in%itrpmax,in%iscf,peakmem)
 
-   !add the comparison between cuda hamiltonian and normal one if it is the case
+   ! Add the comparison between cuda hamiltonian and normal one if it is the case
 
    call deallocate_atoms(atoms,subname)
 
