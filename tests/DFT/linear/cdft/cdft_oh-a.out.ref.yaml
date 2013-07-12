@@ -27,15 +27,15 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.0.30
- Timestamp of this run                 : 2013-06-18 16:45:37.417
+ Version Number                        : 1.7.0.32
+ Timestamp of this run                 : 2013-07-09 17:42:59.999
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
  MPI tasks of root process node        :  6
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
-   Configure arguments                 : " 'FC=mpif90' '--disable-bindings'"
+   Configure arguments                 : " 'FC=mpif90'"
    Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
@@ -66,6 +66,7 @@
  #|domain                       Domain to add to the hostname to find the IP                 
  #|inguess_geopt 0              0= wavlet input guess, 1= real space input guess             
  #|store_index T                linear scaling: store indices or recalculate them            
+ #|check_sumrho 2               linear sumrho: 0=no check, 1=light check, 2=full check       
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
@@ -309,6 +310,14 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
+ Checking operations for sumrho:
+   Tolerance for the following test    :  9.999999999999999988E-15
+   transposition check, mean error     :  0.000000000000000000E+00
+   transposition check, max error      :  0.000000000000000000E+00
+   Tolerance for the following test    :  9.999999999999999799E-13
+   calculation check, error sum        :  0.000000000000000000E+00
+   Tolerance for the following test    :  1.000000000000000036E-10
+   calculation check, error max        :  0.000000000000000000E+00
  Ion-Ion interaction energy            :  3.22341443521694E+00
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -7.000000000856
@@ -333,475 +342,618 @@
      Box                               :  [  111,  107,  107 ]
      MPI tasks                         :  6
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  5579,  76 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  5574,  74 ]
    Tolerances for this check: [ 2.92440003904492762E-06,  1.11022302462515654E-15]
-   Maxdiff for transpose (checksum)    :  7.27595761418342590E-11
+   Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  5077,  76 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  5070,  74 ]
    Tolerances for this check: [ 3.35040004473263764E-06,  1.11022302462515654E-15]
-   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
+   Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 6.94E-01,  3.06E-01, -1.31E-02]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 4.65E-01, -2.00E-02,  5.55E-01, -6.36E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 3.71E-01, -6.85E-02,  2.41E-01,  4.56E-01, -1.18E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.79E-01,  4.72E-02, -8.84E-02, -1.71E+00,  2.57E+00, -3.98E-06]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 2.01E-02,  1.28E-02,  1.43E-01,  6.08E-01, -2.41E+00,  2.63E+00, 
+                -2.25E-07]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 8.72E-01,  1.28E-01, -4.78E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 8.76E-01,  1.63E-01, -3.96E-02, -4.70E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 8.71E-01,  3.09E-01,  4.89E+00, -5.07E+00, -4.40E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 7.28E-01,  2.61E+00,  1.05E+02, -8.14E+01, -2.56E+01, -1.95E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 8.41E-01,  1.93E-02, -1.33E+01,  9.08E+00,  3.37E+00,  9.66E-01, 
+                -1.82E-06]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.18E+01,  4.82E+02, -2.43E+02, -2.39E+02,  3.59E+01, -4.61E+01, 
+                -2.87E-03]
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 8.32E-01,  1.68E-01, -9.55E-03]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 7.81E-01, -2.32E-01,  4.50E-01, -3.59E-03]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 8.24E-01, -3.34E-01,  1.17E+00, -6.58E-01, -2.13E-03]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 5.87E-01,  1.16E+00, -1.87E+00,  6.41E+00, -5.28E+00, -5.96E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 6.48E-01,  7.66E-01, -3.86E-01,  2.79E+00, -4.24E+00,  1.43E+00, 
+                -4.35E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 3.38E+00, -1.24E+00,  1.41E+00, -1.37E+01,  2.02E+01, -9.01E+00, 
+                -2.34E-03]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 3.49E+00, -1.24E+01,  3.72E+00,  6.28E+00, -2.67E+00,  2.55E+00, 
+                -8.78E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-1.16E-03,  6.60E-01, -1.10E+00,  2.88E-01, -3.43E-01,  1.49E+00, 
+                -1.80E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.87E-01, -3.50E-01,  7.25E-02,  1.91E-01, -5.07E-01,  1.41E+00, 
+                -1.16E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 9.30E-01,  7.02E-02, -1.91E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 9.67E-01,  4.43E-01, -4.11E-01, -1.33E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 9.40E-01,  8.65E-01,  1.24E+00, -2.05E+00, -5.56E-05]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 9.10E-01,  1.12E+00,  1.67E+01, -1.94E+00, -1.58E+01, -1.35E-05]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 9.10E-01,  1.20E+00,  2.60E+01, -1.72E+00, -2.48E+01, -6.25E-01, 
+                -1.33E-05]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 3.90E+01,  6.40E+03,  1.36E+02, -6.11E+03,  4.96E+02, -9.63E+02, 
+                -9.01E-03]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 3.01E+02, -2.39E+00, -2.87E+02,  8.08E+01, -9.21E+01,  6.57E-02, 
+                -5.23E-03]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-1.12E+01,  7.89E+00,  1.27E+02, -1.23E+02,  3.84E-02,  4.70E-01, 
+                -1.65E-03]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 8.65E-01,  4.25E+01, -4.36E+01,  9.16E-03, -6.23E-01,  1.89E+00, 
+                -1.18E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 7.84E-01,  2.16E-01, -3.67E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 3.90E-01, -5.96E-01,  1.21E+00, -1.93E-05]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-7.81E-02, -7.87E-01,  4.85E-01,  1.38E+00, -2.25E-06]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-4.35E-02, -1.86E-02, -7.76E-02,  3.04E-01,  8.36E-01, -3.47E-09]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-2.82E-03, -1.44E-02,  1.98E-02,  6.12E-02, -6.33E-01,  1.57E+00, 
+                -2.06E-11]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 2.42E-04, -2.66E-04, -6.40E-04,  2.05E-02, -1.10E-01,  1.09E+00, 
+                -4.78E-14]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-7.49E-05, -4.69E-05, -3.57E-03,  3.43E-02, -4.53E-01,  1.42E+00, 
+                -2.09E-15]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.12E+00, -1.18E-01, -4.00E-06]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 5.82E-02,  4.43E+00, -3.49E+00, -2.28E-09]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-6.37E-02, -2.09E+00,  1.55E+00,  1.60E+00, -1.90E-11]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 2.81E-02, -1.82E-01,  2.24E-01, -1.67E-01,  1.10E+00, -4.21E-12]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 9.91E-05,  1.15E-02, -9.15E-03, -2.01E-02,  2.96E-01,  7.22E-01, 
+                -2.57E-17]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-1.40E-03,  1.14E-03,  2.58E-03, -4.03E-02, -1.03E-01,  1.14E+00, 
+                -1.92E-18]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 7.88E-01,  2.12E-01, -1.74E-07]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 5.61E-01, -4.03E-01,  8.42E-01, -1.96E-08]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-9.86E-02, -1.23E+00,  2.20E-01,  2.11E+00, -2.37E-11]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-3.93E-02, -6.50E-02, -2.09E-02,  2.85E-01,  8.40E-01, -2.46E-13]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.52E-04,  6.51E-03, -4.61E-03, -5.62E-03, -6.43E-01,  1.65E+00, 
+                -6.24E-18]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-5.87E-04,  4.44E-04,  4.06E-04,  6.02E-02, -1.51E-01,  1.09E+00, 
+                -3.97E-19]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 8.38E-01,  1.62E-01, -2.06E-07]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 5.03E-01, -9.59E-01,  1.46E+00, -2.78E-08]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-1.32E-01, -1.59E+00,  1.01E+00,  1.71E+00, -4.60E-12]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-5.39E-02, -1.04E-01,  2.12E-02,  3.65E-01,  7.72E-01, -4.85E-14]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-1.57E-04,  1.34E-02, -1.12E-02, -6.12E-03, -6.60E-01,  1.66E+00, 
+                -4.42E-18]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-2.20E-04,  1.81E-04,  1.02E-04,  1.17E-02, -3.25E-02,  1.02E+00, 
+                -4.49E-20]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 8.28E-01,  1.72E-01, -1.09E-07]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 4.07E-01, -1.10E+00,  1.69E+00, -2.55E-08]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-1.45E-01, -1.36E+00,  1.07E+00,  1.43E+00, -5.51E-13]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-4.18E-02,  2.01E-01, -1.84E-01,  1.23E-01,  9.02E-01, -4.26E-14]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 8.03E-05,  1.09E-02, -9.49E-03, -5.43E-03, -3.83E-01,  1.39E+00, 
+                -7.90E-19]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-3.18E-04,  2.76E-04,  1.43E-04,  1.12E-02, -3.89E-02,  1.03E+00, 
+                -1.55E-20]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 7.86E-01,  2.14E-01, -5.40E-08]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 2.22E-01, -9.58E-01,  1.74E+00, -1.70E-08]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-1.54E-01, -7.74E-01,  8.13E-01,  1.11E+00, -2.23E-13]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-6.91E-03,  4.80E-01, -3.94E-01, -2.96E-01,  1.22E+00, -5.15E-15]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 2.28E-04,  1.57E-03, -1.70E-03, -1.91E-03, -4.63E-02,  1.05E+00, 
+                -3.37E-21]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 6.67E-01,  3.33E-01, -2.76E-08]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-2.03E-01, -5.15E-01,  1.72E+00, -4.54E-09]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-1.69E-01, -1.67E-01,  6.66E-01,  6.70E-01, -9.08E-14]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 8.42E-04,  1.64E-01, -1.55E-01, -3.95E-01,  1.38E+00, -9.76E-17]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 4.14E-04,  2.79E-04, -1.54E-03, -1.38E-03,  3.93E-03,  9.98E-01, 
+                -6.96E-22]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 5.55E-01,  4.45E-01, -1.38E-08]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-3.58E-01, -1.75E-01,  1.53E+00, -6.09E-14]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-3.56E-01, -1.74E-01,  1.53E+00,  4.59E-03, -5.67E-14]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 5.32E-01,  4.68E-01, -2.65E-09]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-2.40E-01, -8.37E-02,  1.32E+00, -9.99E-11]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 2.53E-02, -5.94E-03, -2.46E-01,  1.23E+00, -6.25E-17]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 4.85E-01,  5.15E-01, -1.64E-09]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-4.06E-02,  1.25E-01,  9.15E-01, -2.10E-10]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-7.48E-02, -8.94E-02, -1.94E-02,  1.18E+00, -1.80E-17]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 4.86E-01,  5.14E-01, -1.54E-09]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 8.95E-03,  1.57E-01,  8.34E-01, -1.42E-10]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-6.34E-02, -9.72E-02, -1.91E-01,  1.35E+00, -1.04E-17]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 4.82E-01,  5.18E-01, -1.59E-09]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 3.97E-02,  1.83E-01,  7.78E-01, -8.45E-11]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-5.83E-02, -1.05E-01, -3.00E-01,  1.46E+00, -5.19E-17]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 4.80E-01,  5.20E-01, -1.60E-09]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 4.50E-02,  1.90E-01,  7.65E-01, -3.56E-11]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [-5.01E-02, -1.08E-01, -3.64E-01,  1.52E+00, -2.79E-17]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 4.77E-01,  5.23E-01, -1.07E-09]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 4.39E-02,  1.93E-01,  7.63E-01, -9.23E-12]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 4.76E-01,  5.24E-01, -1.42E-09]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 4.11E-02,  1.93E-01,  7.66E-01, -7.08E-12]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 4.75E-01,  5.25E-01, -1.80E-09]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 3.70E-02,  1.93E-01,  7.70E-01, -3.90E-12]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 1.00E+00,  1.00E+00]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 4.74E-01,  5.26E-01, -1.53E-09]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  6
+ DIIS weights: [ 3.29E-02,  1.92E-01,  7.75E-01, -1.27E-12]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  111,  107,  107 ]
@@ -810,7 +962,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  7.200E-02,  7.100E-02 ]}
+ -  {Process:  0, Timing:  [  1.280E-01,  1.290E-01 ]}
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -821,27 +973,27 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -7.00675242E-04, y:  4.89002831E-04, z:  4.89516384E-04, 
                     total:  9.84731361E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.021848223274E-02, fnrm2:  2.088347582815E-04}
- Raw forces norm (Ha/Bohr): {maxval:  1.075278123678E-02, fnrm2:  2.101638878785E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  1.021848223275E-02, fnrm2:  2.088347582819E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  1.075278123681E-02, fnrm2:  2.101638878788E-04}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [-1.021848223274E-02, -2.168404344971E-19, -1.626303258728E-19]} # 0001
- -  {H: [ 1.021848223274E-02, -1.084202172486E-19, -1.084202172486E-19]} # 0002
+ -  {O: [-1.021848223275E-02, -1.626303258728E-19, -1.626303258728E-19]} # 0001
+ -  {H: [ 1.021848223275E-02, -1.084202172486E-19, -1.084202172486E-19]} # 0002
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  36.15
-   Elapsed time (s)                    :  36.80
+   CPU time (s)                        :  43.87
+   Elapsed time (s)                    :  44.53
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-06-18 16:45:37.415
+     2013-07-09 17:42:59.970
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  18468
-   Tot. No. of Deallocations           :  18468
+   Tot. No. of Allocations             :  18732
+   Tot. No. of Deallocations           :  18732
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  101

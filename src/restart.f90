@@ -889,7 +889,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
      ! first element always positive, for consistency when using for transfer integrals
      ! unless 1st element below some threshold, in which case first significant element
      do j=1,ntmb
-        if (abs(coeff(j,i))>1.0e-8) then
+        if (abs(coeff(j,i))>1.0e-1) then
            if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
            exit
         end if
@@ -1044,6 +1044,8 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
      end do
 
   end if
+
+  close(99)
 
   i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
   deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
@@ -2022,7 +2024,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
   ! rescale so first significant element is +ve
   do i = 1, ntmb
      do j = 1, ntmb
-        if (abs(coeff(j,i))>1.0e-8) then
+        if (abs(coeff(j,i))>1.0e-1) then
            if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
            exit
         end if
@@ -2288,6 +2290,10 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
      end do
 
      allocate(frag_trans_orb(tmb%orbs%norbp))
+     do iorbp=1,tmb%orbs%norbp
+        nullify(frag_trans_orb(iorbp)%discrete_operations)
+     end do
+
      isforb=0
      isfat=0
      do ifrag=1,input_frag%nfrag
@@ -2330,6 +2336,9 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   else
      ! only 1 'fragment', calculate rotation/shift atom wise, using nearest neighbours
      allocate(frag_trans_orb(tmb%orbs%norbp))
+     do iorbp=1,tmb%orbs%norbp
+        nullify(frag_trans_orb(iorbp)%discrete_operations)
+     end do
 
      allocate(rxyz4_ref(3,min(4,ref_frags(ifrag_ref)%astruct_frg%nat)), stat=i_stat)
      call memocc(i_stat, rxyz4_ref, 'rxyz4_ref', subname)
@@ -2425,6 +2434,13 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 
   call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,psi_old,phi_array_old)
 
+  do iorbp=1,tmb%orbs%norbp
+     if (associated(frag_trans_orb(iorbp)%discrete_operations)) then
+        i_all = -product(shape(frag_trans_orb(iorbp)%discrete_operations))*kind(frag_trans_orb(iorbp)%discrete_operations)
+        deallocate(frag_trans_orb(iorbp)%discrete_operations,stat=i_stat)
+        call memocc(i_stat,i_all,'frag_trans_orb(iorbp)%discrete_operations',subname)
+     end if
+  end do
   deallocate(frag_trans_orb)
 
   do iorbp=1,tmb%orbs%norbp
@@ -2438,41 +2454,33 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   call deallocate_local_zone_descriptors(lzd_old,subname)
 
   ! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
-  ind=1
-  allocate (gpsi(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
-  call memocc(i_stat,gpsi,'gpsi',subname)
-  do iorbp=1,tmb%orbs%norbp
-     iiorb=iorbp+tmb%orbs%isorb
-     ilr = tmb%orbs%inwhichlocreg(iiorb)
+  !ind=1
+  !allocate (gpsi(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
+  !call memocc(i_stat,gpsi,'gpsi',subname)
+  !do iorbp=1,tmb%orbs%norbp
+  !   iiorb=iorbp+tmb%orbs%isorb
+  !   ilr = tmb%orbs%inwhichlocreg(iiorb)
 
-     call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
-     call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
-          tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
-          1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
+  !   call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+  !   call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+  !        tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+  !        1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
 
-     write(orbname,*) iiorb
-     call plot_wf(trim(dir_output)//trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%glr,&
-          tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
-     !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
-     !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
+  !   write(orbname,*) iiorb
+  !   call plot_wf(trim(dir_output)//trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%glr,&
+  !        tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
+  !   !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
+  !   !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
   
-     ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
-  end do
-  i_all=-product(shape(gpsi))*kind(gpsi)
-  deallocate(gpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'gpsi',subname)
+  !   ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
+  !end do
+  !i_all=-product(shape(gpsi))*kind(gpsi)
+  !deallocate(gpsi,stat=i_stat)
+  !call memocc(i_stat,i_all,'gpsi',subname)
   ! END DEBUG 
 
 
   ! Read the coefficient file for each fragment and assemble total coeffs
-  if(iformat == WF_FORMAT_PLAIN) then
-     open(unitwf,file=filename//'_coeff.bin',status='unknown',form='formatted')
-  else if(iformat == WF_FORMAT_BINARY) then
-     open(unitwf,file=filename//'_coeff.bin',status='unknown',form='unformatted')
-  else
-     stop 'Coefficient format not implemented'
-  end if
-
   ! coeffs should eventually go into ref_frag array and then point? or be copied to (probably copied as will deallocate frag)
   unitwf=99
   isforb=0

@@ -125,7 +125,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      ldiis_coeff%alpha_coeff=input%lin%alphaSD_coeff
 !!$     call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
 !!$     call allocate_DIIS_coeff(tmb, ldiis_coeff)
-     call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+     if (input%lin%extra_states==0) then
+        call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+     else
+        call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*tmb%orbs%norbp,1,ldiis_coeff)
+     end if
   end if
 
   ! we already have psit in the other case, and in fact the overlap, so eventually could reuse that as well
@@ -160,18 +164,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
   if (iproc ==0) call yaml_close_map()
 
-  if (input%lin%constrained_dft) then
-     call timing(iproc,'constraineddft','ON')
-     if (nit_lowaccuracy>0 .or. input%lin%nItBasis_highaccuracy>1) then
-        stop 'Basis cannot be updated for now in constrained DFT calculations and no low accuracy is allowed'
-     end if
-  end if
-
 
   ! CDFT: calculate w_ab here given w(r)
   ! CDFT: first check that we aren't updating the basis at any point and we don't have any low acc iterations
   if (input%lin%constrained_dft) then
      call timing(iproc,'constraineddft','ON')
+     if (nit_lowaccuracy>0 .or. input%lin%nItBasis_highaccuracy>1) then
+        stop 'Basis cannot be updated for now in constrained DFT calculations and no low accuracy is allowed'
+     end if
 
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
           ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
@@ -201,6 +201,22 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   idens_cons=0
   ! ####################################
 
+  ! modify tmb%orbs%occup, as we normally use orbs%occup elsewhere
+  if (input%lin%extra_states>0) then
+     call razero(tmb%orbs%norb,tmb%orbs%occup(1))
+     call vcopy(KSwfn%orbs%norb, KSwfn%orbs%occup(1), 1, tmb%orbs%occup(1), 1)
+     ! occupy the next few states - don't need to preserve the charge as only using for support function optimization
+     do iorb=1,tmb%orbs%norb
+        if (tmb%orbs%occup(iorb)==1.0_gp) then
+           tmb%orbs%occup(iorb)=2.0_gp
+        else if (tmb%orbs%occup(iorb)==0.0_gp) then
+           do jorb=iorb,min(iorb+input%lin%extra_states-1,tmb%orbs%norb)
+             tmb%orbs%occup(jorb)=2.0_gp
+           end do
+           exit
+        end if
+     end do
+  end if
 
   call timing(iproc,'linscalinit','OF') !lr408t
 
@@ -277,7 +293,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if (.not. input%lin%constrained_dft) then
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                     .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                     .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
              end if
           end if
 
@@ -290,7 +306,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
          !call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
          call DIIS_free(ldiis_coeff)
-         call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+         if (input%lin%extra_states==0) then
+            call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+         else
+            call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*tmb%orbs%norbp,1,ldiis_coeff)
+         end if
+
          ! need to reallocate DIIS matrices to adjust for changing history length
 !!$         if (ldiis_coeff_changed) then
 !!$            call deallocateDIIS(ldiis_coeff)
@@ -358,7 +379,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
                reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
-               ratio_deltas,orthonormalization_on)
+               ratio_deltas,orthonormalization_on,input%lin%extra_states)
 
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
@@ -438,6 +459,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
       ! CDFT: all this will be in some extra CDFT loop
       cdft_loop : do cdft_it=1,100
+         if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. input%lin%constrained_dft) then 
+            call DIIS_free(ldiis_coeff)
+            if (input%lin%extra_states==0) then
+               call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+            else
+               call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*tmb%orbs%norbp,1,ldiis_coeff)
+            end if
+         end if
          ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
          kernel_loop : do it_scc=1,nit_scc
              ! If the hamiltonian is available do not recalculate it
@@ -447,21 +476,25 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,cdft)
+                        .false.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        input%lin%curvefit_dmin,ldiis_coeff,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                        .false.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        input%lin%curvefit_dmin,ldiis_coeff)
                 end if
              else
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,cdft)
+                        .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        input%lin%curvefit_dmin,ldiis_coeff,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                        .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        input%lin%curvefit_dmin,ldiis_coeff)
                 end if
              end if
              ! Since we do not update the basis functions anymore in this loop
@@ -694,7 +727,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
-           .true.,ham_small,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+           .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
   end if
 
   if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
@@ -755,7 +788,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff)
      call write_linear_matrices(iproc,nproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb,at,rxyz)
   end if
- 
+
+  ! not necessarily the best place for it
+  !if (input%lin%fragment_calculation) then
+  !   !input%lin%plotBasisFunctions
+  !   call output_fragment_rotations(iproc,nproc,at%astruct%nat,rxyz,1,trim(input%dir_output),input%frag,ref_frags)
+  !end if 
+
   !DEBUG
   !ind=1
   !do iorb=1,tmb%orbs%norbp
@@ -1914,8 +1953,8 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
 
   !DGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
   !rows op(a) and c, cols op(b) and c, cols op(a) and rows op(b)
-  ham%matrix=f_malloc_ptr((/ham%full_dim1,ham%full_dim1/), id='ham%matrix')
-  call uncompressMatrix(iproc,ham)
+  !ham%matrix=f_malloc_ptr((/ham%full_dim1,ham%full_dim1/), id='ham%matrix')
+  !call uncompressMatrix(iproc,ham)
   if (orbs%norbp>0) then
      do istate=1,nstates
         call dgemm('n', 'n', orbs%norbp, 1, orbs%norb, 1.d0, &
@@ -1933,10 +1972,10 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
       call mpiallred(homo_ham(1), nstates, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
-  call f_free_ptr(ham%matrix)
+  !call f_free_ptr(ham%matrix)
 
-  ovrlp%matrix=f_malloc_ptr((/ovrlp%full_dim1,ovrlp%full_dim1/), id='ovrlp%matrix')
-  call uncompressMatrix(iproc,ovrlp)
+  !ovrlp%matrix=f_malloc_ptr((/ovrlp%full_dim1,ovrlp%full_dim1/), id='ovrlp%matrix')
+  !call uncompressMatrix(iproc,ovrlp)
 
   if (orbs%norbp>0) then
      do istate=1,nstates
@@ -1953,7 +1992,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
       call mpiallred(homo_ovrlp(1), nstates, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
-  call f_free_ptr(ovrlp%matrix)
+  !call f_free_ptr(ovrlp%matrix)
   call f_free(coeff_tmp)
 
 end subroutine calc_transfer_integral
@@ -1979,9 +2018,9 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables
   integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ierr, i, j, nstates, istate, ih, ifrag_ref
-  integer :: ifrag_ref1, ifrag_ref2, homo1, homo2, jh, above_lumo
+  integer :: ifrag_ref1, ifrag_ref2, homo1, homo2, jh, above_lumo, iind, jind, norb_tmp
   !integer :: jfrag_ref, jtmb
-  real(gp), allocatable, dimension(:,:) :: coeff_tmp, homo_coeffs, coeffs_orthog
+  real(gp), allocatable, dimension(:,:) :: coeffs_tmp, homo_coeffs, coeffs_orthog
   real(gp), allocatable, dimension(:) :: frag_sum, homo_ham, homo_ovrlp
   real(gp), allocatable, dimension(:) :: frag_sum_orthog, homo_ham_orthog, homo_ovrlp_orthog, eval_sum
   real(gp) :: frag_sum_tot, frag_sum_tot_orthog, eval_sum_tot, orthog_energy
@@ -2001,35 +2040,42 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   homo_ham=f_malloc(nstates,id='homo_ham')
   homo_ovrlp=f_malloc(nstates,id='homo_ovrlp')
   homo_coeffs=f_malloc0((/ovrlp%full_dim1,nstates/), id='homo_coeffs')
+  !coeffs_tmp=f_malloc((/ovrlp%full_dim1,ovrlp%full_dim1/), id='coeffs_tmp')
+  ovrlp%matrix=f_malloc_ptr((/ovrlp%full_dim1,ovrlp%full_dim1/), id='ovrlp%matrix')
+  call uncompressMatrix(iproc,ovrlp)
 
   istate=1
-  ind=0
+  ind=1
   do ifrag=1,input_frag%nfrag
      ifrag_ref=input_frag%frag_index(ifrag)
-     do ih=1,min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
-        call dcopy(ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff(1,ih),1,homo_coeffs(1+ind,istate),1)
-        istate=istate+1
+
+     norb_tmp=min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
+
+     !call razero(ovrlp%full_dim1**2,coeffs_tmp(1,1),1)
+     do ih=1,norb_tmp
+        call dcopy(ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff(1,ih),1,homo_coeffs(ind,istate+ih-1),1)
+        !call dcopy(ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff(1,ih),1,coeffs_tmp(ind,ih),1)
      end do
+
+     !call reorthonormalize_coeff(iproc, nproc, norb_tmp, -8, -8, 0, orbs, ovrlp, coeffs_tmp(1,1))
+     !call dcopy(orbs%norb*norb_tmp,coeffs_tmp(1,1),1,homo_coeffs(1,istate),1)
+
+     istate=istate+norb_tmp
      ind=ind+ref_frags(ifrag_ref)%fbasis%forbs%norb
   end do
+  !call f_free(coeffs_tmp)
 
+  ham%matrix=f_malloc_ptr((/ham%full_dim1,ham%full_dim1/), id='ham%matrix')
+  call uncompressMatrix(iproc,ham)
   call calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs,homo_coeffs,homo_ham,homo_ovrlp)
 
   ! orthogonalize
-  ovrlp%matrix=f_malloc_ptr((/ovrlp%full_dim1,ovrlp%full_dim1/), id='ovrlp%matrix')
-  call uncompressMatrix(iproc,ovrlp)
-  ! using ham as tmp matrix for inv_ovrlp_half
-  ham%matrix=f_malloc_ptr((/ham%full_dim1,ham%full_dim1/), id='ham%matrix')
-  call overlapPowerPlusMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, 0, -8, &
-       -8, orbs%norb, ovrlp%matrix, ham%matrix, .false., orbs)
-  call f_free_ptr(ovrlp%matrix)
+  coeffs_tmp=f_malloc0((/orbs%norb,orbs%norb/), id='coeffs_orthog')
+  call dcopy(orbs%norb*nstates,homo_coeffs(1,1),1,coeffs_tmp(1,1),1)
+  call reorthonormalize_coeff(iproc, nproc, nstates, -8, -8, 0, orbs, ovrlp, coeffs_tmp(1,1))
   coeffs_orthog=f_malloc((/orbs%norb,nstates/), id='coeffs_orthog')
-  call dgemm('n', 'n', orbs%norb, nstates, orbs%norbp, 1.d0, ham%matrix(1,1+orbs%isorb), &
-       orbs%norb, homo_coeffs(1+orbs%isorb,1), orbs%norb, 0.d0, coeffs_orthog(1,1), orbs%norb)
-  call f_free_ptr(ham%matrix)
-  if (nproc>1) then
-      call mpiallred(coeffs_orthog(1,1), nstates*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  end if
+  call dcopy(orbs%norb*nstates,coeffs_tmp(1,1),1,coeffs_orthog(1,1),1)
+  call f_free(coeffs_tmp)
 
   homo_ham_orthog=f_malloc(nstates, id='homo_ham_orthog')
   homo_ovrlp_orthog=f_malloc(nstates, id='homo_ovrlp_orthog')
@@ -2064,7 +2110,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
            write(str,'(I2)') ih-1-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)
            if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO+'//trim(adjustl(str))
         end if
-        if (iproc==0) write(*,'(1x,5(F16.12,1x))',advance='NO') homo_ham(istate), homo_ham_orthog(istate), &
+        if (iproc==0) write(*,'(1x,5(F20.12,1x))',advance='NO') homo_ham(istate), homo_ham_orthog(istate), &
              ref_frags(ifrag_ref)%eval(ih), homo_ovrlp(istate), homo_ovrlp_orthog(istate)
         if (ih<ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
            frag_sum(ifrag)=frag_sum(ifrag)+homo_ham(istate)
@@ -2088,7 +2134,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
         end if
         istate=istate+1
      end do
-     if (iproc==0) write(*,'(9x,3(F16.12,1x))') 2.0_gp*frag_sum(ifrag),&
+     if (iproc==0) write(*,'(9x,3(F20.12,1x))') 2.0_gp*frag_sum(ifrag),&
           2.0_gp*frag_sum_orthog(ifrag),2.0_gp*eval_sum(ifrag)
        if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
             '-------------------------'
@@ -2097,7 +2143,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
      eval_sum_tot=eval_sum_tot+eval_sum(ifrag)
   end do
 
-  if (iproc==0) write(*,'(9x,3(F16.12,1x))') 2.0_gp*frag_sum_tot, 2.0_gp*frag_sum_tot_orthog,2.0_gp*eval_sum_tot
+  if (iproc==0) write(*,'(9x,3(F20.12,1x))') 2.0_gp*frag_sum_tot, 2.0_gp*frag_sum_tot_orthog,2.0_gp*eval_sum_tot
   if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
 
   call f_free(eval_sum)
@@ -2109,12 +2155,14 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   if (input_frag%nfrag>=2) then
      if (iproc==0) write(*,*) 'Transfer integrals (HOMO and LUMO are defined as those of the neutral fragment):'
      if (iproc==0) write(*,*) 'state1, state2, energy, orthog energy, orthog energy2, overlap, orthog overlap, occ1, occ2'
+     iind=0
      do ifrag=1,input_frag%nfrag
-        do jfrag=ifrag+1,input_frag%nfrag
+        ifrag_ref1=input_frag%frag_index(ifrag)
+        homo1=ceiling((ref_frags(ifrag_ref1)%nelec)/2.0_gp)
 
-           ifrag_ref1=input_frag%frag_index(ifrag)
+        jind=0
+        do jfrag=1,ifrag
            ifrag_ref2=input_frag%frag_index(jfrag)
-           homo1=ceiling((ref_frags(ifrag_ref1)%nelec)/2.0_gp)
            homo2=ceiling((ref_frags(ifrag_ref2)%nelec)/2.0_gp)
 
            do jh=-above_lumo,1+above_lumo
@@ -2124,9 +2172,9 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
                  if (homo1+ih>ref_frags(ifrag_ref1)%fbasis%forbs%norb) cycle
                  if (homo1+ih<1) cycle  
 
-                 i=homo1+ih
-                 j=homo2+jh+min(ceiling((ref_frags(ifrag_ref1)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref1)%fbasis%forbs%norb)
-
+                 i=homo1+ih+iind
+                 j=homo2+jh+jind
+                      
                  if (iproc==0) then
                     if (ih<0) then
                        write(str,'(I2)') abs(ih)
@@ -2166,7 +2214,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
                       /(1.0_gp-trans_int_ovrlp(1)**2)
       
                  if (iproc==0) write(*,'(2x,5(F16.12,1x))',advance='NO') trans_int_energy(1), &
-                      trans_int_energy_orthog(1), orthog_energy,trans_int_ovrlp(1), trans_int_ovrlp_orthog(1)
+                      trans_int_energy_orthog(1), orthog_energy, trans_int_ovrlp(1), trans_int_ovrlp_orthog(1)
 
                  if (homo1+ih<ceiling(ref_frags(ifrag_ref1)%nelec/2.0_gp)) then
                     if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 2.0_gp
@@ -2196,9 +2244,14 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
            end do
            if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
                '-------------------------'
+           jind=jind+min(ceiling((ref_frags(ifrag_ref2)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref2)%fbasis%forbs%norb)
         end do
+        iind=iind+min(ceiling((ref_frags(ifrag_ref1)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref1)%fbasis%forbs%norb)
      end do
   end if
+
+  call f_free_ptr(ham%matrix)
+  call f_free_ptr(ovrlp%matrix)
 
   call f_free(homo_ham)
   call f_free(homo_ovrlp)
@@ -2212,4 +2265,118 @@ end subroutine calc_site_energies_transfer_integrals
 
 
 
+subroutine output_fragment_rotations(iproc,nproc,nat,rxyz,iformat,filename,input_frag,ref_frags)
+  use module_base
+  use module_types
+  use yaml_output
+  use module_fragments
+  use internal_io
+  use module_interfaces
+  implicit none
 
+  integer, intent(in) :: iproc, nproc, iformat, nat
+  character(len=*), intent(in) :: filename
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  type(fragmentInputParameters), intent(in) :: input_frag
+  type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
+  !Local variables
+  integer :: i_stat, i_all, ifrag, jfrag, ifrag_ref, jfrag_ref, iat, isfat, jsfat
+  real(kind=gp), dimension(:,:), allocatable :: rxyz_ref, rxyz_new
+  real(kind=gp) :: null_axe
+  type(fragment_transformation) :: frag_trans
+  character(len=*), parameter :: subname='output_fragment_rotations'
+
+  if (iproc==0) then
+
+     null_axe=1.0d0/dsqrt(3.0d0)
+
+     if(iformat == WF_FORMAT_PLAIN) then
+        open(99, file=filename//'rotations.bin', status='unknown',form='formatted')
+        write(99,'(a)') '#Label, name, label, name, angle, axis'
+     else
+        open(99, file=filename//'rotations.bin', status='unknown',form='unformatted')
+        write(99) '#Label, name, label, name, angle, axis'
+     end if
+
+     jsfat=0
+     do jfrag=1,input_frag%nfrag
+        jfrag_ref=input_frag%frag_index(jfrag)
+        isfat=0
+        do ifrag=1,input_frag%nfrag
+           ifrag_ref=input_frag%frag_index(ifrag)
+
+           ! only calculate rotations if same type of reference fragments
+           if (jfrag_ref/=ifrag_ref) then
+              if (iformat==WF_FORMAT_PLAIN) then
+                 write(99,'(2(a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6))')  trim(input_frag%label(ifrag_ref)),ifrag,&
+                      trim(input_frag%label(jfrag_ref)),jfrag,-1.0d0,null_axe,null_axe,null_axe,&
+                      -1.0d0,-1.0d0,-1.0d0,-1.0d0,-1.0d0,-1.0d0
+              else
+                 write(99) trim(input_frag%label(ifrag_ref)),ifrag,&
+                      trim(input_frag%label(jfrag_ref)),jfrag,-1.0d0,null_axe,null_axe,null_axe,&
+                      -1.0d0,-1.0d0,-1.0d0,-1.0d0,-1.0d0,-1.0d0
+              end if
+              isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
+              cycle
+           else if (ifrag==jfrag) then
+              if (iformat==WF_FORMAT_PLAIN) then
+                 write(99,'(2(a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6))')  trim(input_frag%label(ifrag_ref)),ifrag,&
+                      trim(input_frag%label(jfrag_ref)),jfrag,0.0d0,null_axe,null_axe,null_axe,&
+                      0.0d0,0.0d0,0.0d0,0.0d0,0.0d0,0.0d0
+              else
+                 write(99)  trim(input_frag%label(ifrag_ref)),ifrag,&
+                      trim(input_frag%label(jfrag_ref)),jfrag,0.0d0,null_axe,null_axe,null_axe,&
+                      0.0d0,0.0d0,0.0d0,0.0d0,0.0d0,0.0d0
+              end if
+              isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
+              cycle
+           end if
+
+           allocate(rxyz_ref(3,ref_frags(ifrag_ref)%astruct_frg%nat), stat=i_stat)
+           call memocc(i_stat, rxyz_ref, 'rxyz_ref', subname)
+           allocate(rxyz_new(3,ref_frags(ifrag_ref)%astruct_frg%nat), stat=i_stat)
+           call memocc(i_stat, rxyz_new, 'rxyz_ref', subname)
+
+           do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+              rxyz_new(:,iat)=rxyz(:,isfat+iat)
+              rxyz_ref(:,iat)=rxyz(:,jsfat+iat)
+           end do
+
+           ! use center of fragment for now, could later change to center of symmetry
+           frag_trans%rot_center=frag_center(ref_frags(jfrag_ref)%astruct_frg%nat,rxyz_ref)
+           frag_trans%rot_center_new=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_new)
+
+           ! shift rxyz wrt center of rotation
+           do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+              rxyz_ref(:,iat)=rxyz_ref(:,iat)-frag_trans%rot_center
+              rxyz_new(:,iat)=rxyz_new(:,iat)-frag_trans%rot_center_new
+           end do
+
+           call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans)
+
+           i_all = -product(shape(rxyz_ref))*kind(rxyz_ref)
+           deallocate(rxyz_ref,stat=i_stat)
+           call memocc(i_stat,i_all,'rxyz_ref',subname)
+           i_all = -product(shape(rxyz_new))*kind(rxyz_new)
+           deallocate(rxyz_new,stat=i_stat)
+           call memocc(i_stat,i_all,'rxyz_new',subname)
+
+           if (iformat==WF_FORMAT_PLAIN) then
+              write(99,'(2(a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6))') trim(input_frag%label(ifrag_ref)),ifrag,&
+                   trim(input_frag%label(jfrag_ref)),jfrag,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans%rot_axis,&
+                   frag_trans%rot_center,frag_trans%rot_center_new
+           else
+              write(99) trim(input_frag%label(ifrag_ref)),ifrag,&
+                   trim(input_frag%label(jfrag_ref)),jfrag,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans%rot_axis,&
+                   frag_trans%rot_center,frag_trans%rot_center_new
+           end if
+           isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
+        end do
+        jsfat=jsfat+ref_frags(jfrag_ref)%astruct_frg%nat
+     end do
+
+     close(99)
+
+   end if
+
+end subroutine output_fragment_rotations
