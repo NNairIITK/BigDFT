@@ -128,7 +128,7 @@ cdft_oh-.out.post-out:
 	  paracetamol.out*)           prec="2.1e-10" ;; \
 	  rotatesmall.out*)           prec="1.1e-8" ;; \
 	  test.testforces.out*)       prec="1.1e-9" ;; \
-	  hybrid-directmin.out*)      prec="3.0e-10" ;; \
+	  hybrid-directmin.out*)      prec="1.3e-9" ;; \
       *)                          prec="1.1e-10" ;; \
       esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

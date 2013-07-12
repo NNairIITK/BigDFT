@@ -67,6 +67,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
   integer :: ind_denskern, ind_ham, jorb, cdft_it, nelec, iat, ityp, ifrag, ifrag_charged, ifrag_ref, isforb, itmb
 
+  !!! EXPERIMENTAL ############################################
+  type(sparseMatrix) :: denskern_init
+  real(8),dimension(:),allocatable :: rho_init, rho_init_old
+  real(8) :: tt, ddot, tt_old
+  integer :: idens_cons
+  !!! #########################################################
+
   call timing(iproc,'linscalinit','ON') !lr408t
 
   call f_routine(id='linear_scaling')
@@ -179,6 +186,22 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      coeff_tmp=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_tmp')
      call timing(iproc,'constraineddft','OF')
   end if
+
+  !!! EXPERIMENTAL #######################
+  !!denskern_init=tmb%linmat%denskern
+  !!nullify(denskern_init%matrix_compr)
+  !!!nullify(denskern_init%matrix)
+  !!allocate(denskern_init%matrix_compr(size(tmb%linmat%denskern%matrix_compr)))
+  !!!allocate(denskern_init%matrix(size(tmb%linmat%denskern%matrix)))
+  !!call dcopy(size(tmb%linmat%denskern%matrix_compr), tmb%linmat%denskern%matrix_compr, 1, denskern_init%matrix_compr, 1)
+  !!!call dcopy(size(tmb%linmat%denskern%matrix), tmb%linmat%denskern%matrix, 1, denskern_init%matrix, 1)
+  !!allocate(rho_init(size(denspot%rhov)))
+  !!allocate(rho_init_old(size(denspot%rhov)))
+  !!tt_old=1.d100
+  !!rho_init=0.d0
+  !!rho_init_old=0.d0
+  !!idens_cons=0
+  !!! ####################################
 
   ! modify tmb%orbs%occup, as we normally use orbs%occup elsewhere
   if (input%lin%extra_states>0) then
@@ -502,6 +525,48 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! Calculate the charge density.
              call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                   tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+
+             !!! EXPERIMENTAL ################################
+             !!if (iproc==0) then
+             !!     write(*,*) 'sum1',sum(tmb%linmat%denskern%matrix_compr)
+             !!     write(*,*) 'sum2',sum(denskern_init%matrix_compr)
+             !!end if
+             !!call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+             !!     tmb%collcom_sr, denskern_init, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, rho_init)
+             !!     !if (iproc==0) then
+             !!     !     write(200,*) denspot%rhov
+             !!     !     write(201,*) rho_init
+             !!     !end if
+             !!!call daxpy(size(denspot%rhov), -1.d0, denspot%rhov(1), 1, rho_init(1), 1)
+             !!!tt=ddot(size(denspot%rhov), rho_init(1), 1, rho_init(1), 1)
+             !!!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+             !!!tt=sqrt(tt)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+             !!!if (it_scc==1) then
+             !!!    if (iproc==0) write(*,*) 'derivative tt', tt-tt_old
+             !!!    tt_old=tt
+             !!!end if
+             !!!if (iproc==0) write(*,*) 'iproc, tt', iproc, tt
+             !!tt=0.d0
+             !!do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+             !!    tt=tt+(rho_init(i)-rho_init_old(i))**2
+             !!end do
+             !!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+             !!tt=sqrt(tt)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+             !!if (it_scc==1) then
+             !!    if (iproc==0) write(*,*) 'charge diff:',tt
+             !!    rho_init_old=rho_init
+             !!    if (tt<1.d-8) then
+             !!        idens_cons=idens_cons+1
+             !!    else
+             !!        idens_cons=0
+             !!    end if
+             !!    if (idens_cons>=3) then
+             !!        fix_supportfunctions=.true.
+             !!        if (iproc==0) write(*,*) 'new convergence criterion: will fix support functions'
+             !!    end if
+             !!end if
+
+             !!! #############################################
 
              ! Mix the density.
              if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then

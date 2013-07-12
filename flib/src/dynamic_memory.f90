@@ -1389,7 +1389,8 @@ contains
     integer, dimension(:,:,:), allocatable, intent(inout) :: array
     include 'allocate-inc-profile.f90' 
     !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
+    allocate(array(m%lbounds(1):m%ubounds(1),&
+         m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
     include 'allocate-inc.f90'
   end subroutine i3_all
 
@@ -1408,8 +1409,9 @@ contains
     integer, dimension(:,:,:,:), allocatable, intent(inout) :: array
     include 'allocate-inc-profile.f90' 
     !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
-                   m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
+    allocate(array(m%lbounds(1):m%ubounds(1),&
+         m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3),&
+         m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
     include 'allocate-inc.f90'
   end subroutine i4_all
 
