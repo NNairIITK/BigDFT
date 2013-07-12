@@ -1970,7 +1970,7 @@ module module_interfaces
           fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
           reduce_conf, fix_supportfunctions,nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix,&
-          ratio_deltas,ortho_on)
+          ratio_deltas,ortho_on,extra_states)
         use module_base
         use module_types
         implicit none
@@ -1997,6 +1997,7 @@ module module_interfaces
         real(kind=8),intent(in) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
         real(kind=8),intent(out) :: ratio_deltas
         logical, intent(inout) :: ortho_on
+        integer, intent(in) :: extra_states
       end subroutine getLocalizedBasis
 
     subroutine inputOrbitals(iproc,nproc,at,&
@@ -2043,7 +2044,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-         calculate_ham,ham_small,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,cdft)
+         calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,cdft)
       use module_base
       use module_types
       use constrained_dft
@@ -2072,6 +2073,7 @@ module module_interfaces
       real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
       logical, intent(in), optional :: curvefit_dmin ! for dmin only
       type(cdft_data),intent(inout),optional :: cdft
+      integer, intent(in) :: extra_states
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&

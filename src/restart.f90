@@ -1045,6 +1045,8 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
 
   end if
 
+  close(99)
+
   i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
   deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
   call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)

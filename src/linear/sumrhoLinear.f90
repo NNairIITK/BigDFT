@@ -2010,7 +2010,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
               ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
               !$omp parallel default(none) &
               !$omp shared(is2, ie2, is1, ie1, weight, orbital_id, i3, iorb, iorbmin, iorbmax) &
-              !$omp private(i2, i1)
+              !$omp private(i2, i1, jj)
               !$omp do reduction(min:iorbmin) reduction(max:iorbmax)
               do i2=is2,ie2
                   do i1=is1,ie1

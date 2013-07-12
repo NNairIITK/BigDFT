@@ -9,7 +9,7 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    calculate_ham,ham_small,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,cdft)
+    calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,cdft)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -254,7 +254,13 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, iall, 'matrixElements', subname)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
      if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
-     call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, curvefit_dmin)
+     ! call routine which updates coeffs for tmb%orbs%norb or orbs%norb depending on if extra states are required
+     if (extra_states>0) then
+        call optimize_coeffs_extra(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, &
+             curvefit_dmin, extra_states)
+     else
+        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, curvefit_dmin)
+     end if
   end if
 
   ! CDFT: subtract V*w_ab from Hamiltonian so that we are calculating the correct energy
@@ -299,7 +305,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
     reduce_conf,fix_supportfunctions,nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit,deltaenergy_multiplier_TMBfix,&
-    ratio_deltas,ortho_on)
+    ratio_deltas,ortho_on,extra_states)
   !
   ! Purpose:
   ! ========
@@ -335,12 +341,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),intent(in) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
   real(kind=8),intent(out) :: ratio_deltas
   logical, intent(inout) :: ortho_on
+  integer, intent(in) :: extra_states
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
-  integer :: iorb, istat,ierr,it,iall,it_tot, ncount
+  integer :: iorb, istat, ierr, it, iall, it_tot, ncount, jorb
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
-  real(kind=8),dimension(:),allocatable :: hpsi_noprecond
+  real(kind=8),dimension(:),allocatable :: hpsi_noprecond, occup_tmp, kernel_compr_tmp
   real(kind=8),dimension(:,:),allocatable :: coeff_old
   logical :: energy_increased, overlap_calculated
   character(len=*),parameter :: subname='getLocalizedBasis'
@@ -446,6 +453,30 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ncount=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
       if(ncount>0) call dcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
 
+      ! optimize the tmbs for a few extra states
+      if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
+          allocate(kernel_compr_tmp(tmb%linmat%denskern%nvctr), stat=istat)
+          call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
+          call vcopy(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          !allocate(occup_tmp(tmb%orbs%norb), stat=istat)
+          !call memocc(istat, occup_tmp, 'occup_tmp', subname)
+          !call vcopy(tmb%orbs%norb, tmb%orbs%occup(1), 1, occup_tmp(1), 1)
+          !call razero(tmb%orbs%norb,tmb%orbs%occup(1))
+          !call vcopy(orbs%norb, orbs%occup(1), 1, tmb%orbs%occup(1), 1)
+          !! occupy the next few states - don't need to preserve the charge as only using for support function optimization
+          !do iorb=1,tmb%orbs%norb
+          !   if (tmb%orbs%occup(iorb)==1.0_gp) then
+          !      tmb%orbs%occup(iorb)=2.0_gp
+          !   else if (tmb%orbs%occup(iorb)==0.0_gp) then
+          !      do jorb=iorb,min(iorb+extra_states-1,tmb%orbs%norb)
+          !         tmb%orbs%occup(jorb)=2.0_gp
+          !      end do
+          !      exit
+          !   end if
+          !end do
+          call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern)
+      end if
+
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
               meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
@@ -456,6 +487,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               energs_base, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, .false., hpsi_small)
       end if
 
+      if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
+          !call vcopy(tmb%orbs%norb, occup_tmp(1), 1, tmb%orbs%occup(1), 1)
+          !iall=-product(shape(occup_tmp))*kind(occup_tmp)
+          !deallocate(occup_tmp, stat=istat)
+          call memocc(istat, iall, 'kernel_compr_tmp', subname)
+          call vcopy(tmb%linmat%denskern%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
+          iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
+          deallocate(kernel_compr_tmp, stat=istat)
+          call memocc(istat, iall, 'kernel_compr_tmp', subname)
+      end if
 
       ediff=trH-trH_old
 

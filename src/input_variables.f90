@@ -952,10 +952,11 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%pulay_correction,'T',comment=comments)
 
   !fragment calculation and transfer integrals: true or false
-  comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation'
+  comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation; extra states to optimize (dmin only)'
   call input_var(in%lin%fragment_calculation,'F')
   call input_var(in%lin%calc_transfer_integrals,'F')
-  call input_var(in%lin%constrained_dft,'F',comment=comments)
+  call input_var(in%lin%constrained_dft,'F')
+  call input_var(in%lin%extra_states,'0',ranges=(/0,10000/),comment=comments)
 
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)

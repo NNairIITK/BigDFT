@@ -120,7 +120,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      ldiis_coeff%alpha_coeff=input%lin%alphaSD_coeff
 !!$     call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
 !!$     call allocate_DIIS_coeff(tmb, ldiis_coeff)
-     call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+     if (input%lin%extra_states==0) then
+        call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+     else
+        call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*tmb%orbs%norbp,1,ldiis_coeff)
+     end if
   end if
 
   ! we already have psit in the other case, and in fact the overlap, so eventually could reuse that as well
@@ -155,18 +159,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
   if (iproc ==0) call yaml_close_map()
 
-  if (input%lin%constrained_dft) then
-     call timing(iproc,'constraineddft','ON')
-     if (nit_lowaccuracy>0 .or. input%lin%nItBasis_highaccuracy>1) then
-        stop 'Basis cannot be updated for now in constrained DFT calculations and no low accuracy is allowed'
-     end if
-  end if
-
 
   ! CDFT: calculate w_ab here given w(r)
   ! CDFT: first check that we aren't updating the basis at any point and we don't have any low acc iterations
   if (input%lin%constrained_dft) then
      call timing(iproc,'constraineddft','ON')
+     if (nit_lowaccuracy>0 .or. input%lin%nItBasis_highaccuracy>1) then
+        stop 'Basis cannot be updated for now in constrained DFT calculations and no low accuracy is allowed'
+     end if
 
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
           ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
@@ -180,6 +180,22 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      call timing(iproc,'constraineddft','OF')
   end if
 
+  ! modify tmb%orbs%occup, as we normally use orbs%occup elsewhere
+  if (input%lin%extra_states>0) then
+     call razero(tmb%orbs%norb,tmb%orbs%occup(1))
+     call vcopy(orbs%norb, orbs%occup(1), 1, tmb%orbs%occup(1), 1)
+     ! occupy the next few states - don't need to preserve the charge as only using for support function optimization
+     do iorb=1,tmb%orbs%norb
+        if (tmb%orbs%occup(iorb)==1.0_gp) then
+           tmb%orbs%occup(iorb)=2.0_gp
+        else if (tmb%orbs%occup(iorb)==0.0_gp) then
+           do jorb=iorb,min(iorb+extra_states-1,tmb%orbs%norb)
+             tmb%orbs%occup(jorb)=2.0_gp
+           end do
+           exit
+        end if
+     end do
+  end if
 
   call timing(iproc,'linscalinit','OF') !lr408t
 
@@ -269,7 +285,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
          !call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
          call DIIS_free(ldiis_coeff)
-         call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+         if (input%lin%extra_states==0) then
+            call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+         else
+            call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*tmb%orbs%norbp,1,ldiis_coeff)
+         end if
+
          ! need to reallocate DIIS matrices to adjust for changing history length
 !!$         if (ldiis_coeff_changed) then
 !!$            call deallocateDIIS(ldiis_coeff)
@@ -337,7 +358,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
                reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
-               ratio_deltas,orthonormalization_on)
+               ratio_deltas,orthonormalization_on,input%lin%extra_states)
 
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
@@ -419,7 +440,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       cdft_loop : do cdft_it=1,100
          if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. input%lin%constrained_dft) then 
             call DIIS_free(ldiis_coeff)
-            call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+            if (input%lin%extra_states==0) then
+               call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+            else
+               call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*tmb%orbs%norbp,1,ldiis_coeff)
+            end if
          end if
          ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
          kernel_loop : do it_scc=1,nit_scc
@@ -696,7 +721,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff)
      call write_linear_matrices(iproc,nproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb,at,rxyz)
   end if
- 
+
+  ! not necessarily the best place for it
+  !if (input%lin%fragment_calculation) then
+  !   !input%lin%plotBasisFunctions
+  !   call output_fragment_rotations(iproc,nproc,at%astruct%nat,rxyz,1,trim(input%dir_output),input%frag,ref_frags)
+  !end if 
+
   !DEBUG
   !ind=1
   !do iorb=1,tmb%orbs%norbp
@@ -2167,4 +2198,118 @@ end subroutine calc_site_energies_transfer_integrals
 
 
 
+subroutine output_fragment_rotations(iproc,nproc,nat,rxyz,iformat,filename,input_frag,ref_frags)
+  use module_base
+  use module_types
+  use yaml_output
+  use module_fragments
+  use internal_io
+  use module_interfaces
+  implicit none
 
+  integer, intent(in) :: iproc, nproc, iformat, nat
+  character(len=*), intent(in) :: filename
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  type(fragmentInputParameters), intent(in) :: input_frag
+  type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
+  !Local variables
+  integer :: i_stat, i_all, ifrag, jfrag, ifrag_ref, jfrag_ref, iat, isfat, jsfat
+  real(kind=gp), dimension(:,:), allocatable :: rxyz_ref, rxyz_new
+  real(kind=gp) :: null_axe
+  type(fragment_transformation) :: frag_trans
+  character(len=*), parameter :: subname='output_fragment_rotations'
+
+  if (iproc==0) then
+
+     null_axe=1.0d0/dsqrt(3.0d0)
+
+     if(iformat == WF_FORMAT_PLAIN) then
+        open(99, file=filename//'rotations.bin', status='unknown',form='formatted')
+        write(99,'(a)') '#Label, name, label, name, angle, axis'
+     else
+        open(99, file=filename//'rotations.bin', status='unknown',form='unformatted')
+        write(99) '#Label, name, label, name, angle, axis'
+     end if
+
+     jsfat=0
+     do jfrag=1,input_frag%nfrag
+        jfrag_ref=input_frag%frag_index(jfrag)
+        isfat=0
+        do ifrag=1,input_frag%nfrag
+           ifrag_ref=input_frag%frag_index(ifrag)
+
+           ! only calculate rotations if same type of reference fragments
+           if (jfrag_ref/=ifrag_ref) then
+              if (iformat==WF_FORMAT_PLAIN) then
+                 write(99,'(2(a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6))')  trim(input_frag%label(ifrag_ref)),ifrag,&
+                      trim(input_frag%label(jfrag_ref)),jfrag,-1.0d0,null_axe,null_axe,null_axe,&
+                      -1.0d0,-1.0d0,-1.0d0,-1.0d0,-1.0d0,-1.0d0
+              else
+                 write(99) trim(input_frag%label(ifrag_ref)),ifrag,&
+                      trim(input_frag%label(jfrag_ref)),jfrag,-1.0d0,null_axe,null_axe,null_axe,&
+                      -1.0d0,-1.0d0,-1.0d0,-1.0d0,-1.0d0,-1.0d0
+              end if
+              isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
+              cycle
+           else if (ifrag==jfrag) then
+              if (iformat==WF_FORMAT_PLAIN) then
+                 write(99,'(2(a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6))')  trim(input_frag%label(ifrag_ref)),ifrag,&
+                      trim(input_frag%label(jfrag_ref)),jfrag,0.0d0,null_axe,null_axe,null_axe,&
+                      0.0d0,0.0d0,0.0d0,0.0d0,0.0d0,0.0d0
+              else
+                 write(99)  trim(input_frag%label(ifrag_ref)),ifrag,&
+                      trim(input_frag%label(jfrag_ref)),jfrag,0.0d0,null_axe,null_axe,null_axe,&
+                      0.0d0,0.0d0,0.0d0,0.0d0,0.0d0,0.0d0
+              end if
+              isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
+              cycle
+           end if
+
+           allocate(rxyz_ref(3,ref_frags(ifrag_ref)%astruct_frg%nat), stat=i_stat)
+           call memocc(i_stat, rxyz_ref, 'rxyz_ref', subname)
+           allocate(rxyz_new(3,ref_frags(ifrag_ref)%astruct_frg%nat), stat=i_stat)
+           call memocc(i_stat, rxyz_new, 'rxyz_ref', subname)
+
+           do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+              rxyz_new(:,iat)=rxyz(:,isfat+iat)
+              rxyz_ref(:,iat)=rxyz(:,jsfat+iat)
+           end do
+
+           ! use center of fragment for now, could later change to center of symmetry
+           frag_trans%rot_center=frag_center(ref_frags(jfrag_ref)%astruct_frg%nat,rxyz_ref)
+           frag_trans%rot_center_new=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_new)
+
+           ! shift rxyz wrt center of rotation
+           do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+              rxyz_ref(:,iat)=rxyz_ref(:,iat)-frag_trans%rot_center
+              rxyz_new(:,iat)=rxyz_new(:,iat)-frag_trans%rot_center_new
+           end do
+
+           call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans)
+
+           i_all = -product(shape(rxyz_ref))*kind(rxyz_ref)
+           deallocate(rxyz_ref,stat=i_stat)
+           call memocc(i_stat,i_all,'rxyz_ref',subname)
+           i_all = -product(shape(rxyz_new))*kind(rxyz_new)
+           deallocate(rxyz_new,stat=i_stat)
+           call memocc(i_stat,i_all,'rxyz_new',subname)
+
+           if (iformat==WF_FORMAT_PLAIN) then
+              write(99,'(2(a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6))') trim(input_frag%label(ifrag_ref)),ifrag,&
+                   trim(input_frag%label(jfrag_ref)),jfrag,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans%rot_axis,&
+                   frag_trans%rot_center,frag_trans%rot_center_new
+           else
+              write(99) trim(input_frag%label(ifrag_ref)),ifrag,&
+                   trim(input_frag%label(jfrag_ref)),jfrag,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans%rot_axis,&
+                   frag_trans%rot_center,frag_trans%rot_center_new
+           end if
+           isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
+        end do
+        jsfat=jsfat+ref_frags(jfrag_ref)%astruct_frg%nat
+     end do
+
+     close(99)
+
+   end if
+
+end subroutine output_fragment_rotations
