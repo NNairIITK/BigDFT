@@ -306,7 +306,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
     reduce_conf,fix_supportfunctions,nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit,deltaenergy_multiplier_TMBfix,&
-    ratio_deltas,ortho_on,extra_states)
+    ratio_deltas,ortho_on,extra_states,itout)
   !
   ! Purpose:
   ! ========
@@ -343,6 +343,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),intent(out) :: ratio_deltas
   logical, intent(inout) :: ortho_on
   integer, intent(in) :: extra_states
+  integer,intent(in) :: itout
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
@@ -356,6 +357,28 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(energy_terms) :: energs
   real(8),dimension(2):: reducearr
   real(gp) :: econf
+  real(kind=8),dimension(3,3) :: interpol_matrix, tmp_matrix
+  real(kind=8),dimension(3) :: interpol_vector, interpol_solution
+  integer :: i, ist, iiorb, ilr, ii, info
+  real(kind=8) :: tt, ddot, d2e, ttt
+  integer,dimension(3) :: ipiv
+  real(kind=8),dimension(:,:),allocatable :: psi_old
+  real(kind=8),dimension(:),allocatable :: psi_tmp
+  real(kind=8),dimension(3),save :: d2e_arr_out
+  integer,save :: isatur_in, isatur_out
+  logical :: stop_optimization
+
+
+
+  allocate(psi_old(size(tmb%psi),3))
+  allocate(psi_tmp(size(tmb%psi)))
+  psi_old(:,1)=tmb%psi
+  if (itout==1) then
+      isatur_in=0
+      isatur_out=0
+      d2e_arr_out=0
+  end if
+  stop_optimization=.false.
 
 
   ! Allocate all local arrays.
@@ -488,6 +511,139 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               energs_base, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, .false., hpsi_small)
       end if
 
+      ! NEW
+
+      if (it_tot==1) then
+          if (itout>3) then
+              d2e_arr_out(1)=d2e_arr_out(2)
+              d2e_arr_out(2)=d2e_arr_out(3)
+          end if
+          ii=max(min(itout,3),1)
+          d2e_arr_out(ii)=trH
+      end if
+
+
+      if (it>3) then
+          do i=1,3
+              interpol_matrix(1,i)=interpol_matrix(2,i)
+              interpol_matrix(2,i)=interpol_matrix(3,i)
+              !interpol_matrix(3,i)=interpol_matrix(4,i)
+              !interpol_matrix(4,i)=interpol_matrix(5,i)
+          end do
+          interpol_vector(1)=interpol_vector(2)
+          interpol_vector(2)=interpol_vector(3)
+          !interpol_vector(3)=interpol_vector(4)
+          !interpol_vector(4)=interpol_vector(5)
+          psi_old(:,1)=psi_old(:,2)
+          psi_old(:,2)=psi_old(:,3)
+          !psi_old(:,3)=psi_old(:,4)
+          !psi_old(:,4)=psi_old(:,5)
+      end if
+      psi_tmp=tmb%psi-psi_old(:,1)
+      ist=1
+      tt=0.d0
+      do iorb=1,tmb%orbs%norbp
+          iiorb=tmb%orbs%isorb+iorb
+          ilr=tmb%orbs%inwhichlocreg(iiorb)
+          ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+          tt=tt+ddot(ncount, psi_tmp(ist), 1, psi_tmp(ist), 1)
+          ist=ist+ncount
+      end do
+      call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      tt=sqrt(tt/dble(tmb%orbs%norb))
+      ii=max(min(it,3),1)
+      !interpol_matrix(ii,1)=tt**4
+      !interpol_matrix(ii,2)=tt**3
+      !interpol_matrix(ii,3)=tt**2
+      !interpol_matrix(ii,4)=tt
+      !interpol_matrix(ii,5)=tt
+      interpol_vector(ii)=trH
+      psi_old(:,ii)=tmb%psi
+
+      ! Solve the linear system interpol_matrix*interpol_solution=interpol_vector
+      if (it>=3) then
+          ttt=0.d0
+          do i=1,3
+              if (i>1) then
+                  !psi_tmp=tmb%psi-psi_old(:,i)
+                  !psi_tmp=psi_old(:,i)-psi_old(:,1)
+                  psi_tmp=psi_old(:,i)-psi_old(:,i-1)
+                  ist=1
+                  tt=0.d0
+                  do iorb=1,tmb%orbs%norbp
+                      iiorb=tmb%orbs%isorb+iorb
+                      ilr=tmb%orbs%inwhichlocreg(iiorb)
+                      ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+                      tt=tt+ddot(ncount, psi_tmp(ist), 1, psi_tmp(ist), 1)
+                      ist=ist+ncount
+                  end do
+                  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                  tt=sqrt(tt/dble(tmb%orbs%norb))
+              else
+                  tt=0.d0
+              end if
+              ttt=ttt+tt
+              !interpol_matrix(i,1)=ttt**4
+              !interpol_matrix(i,2)=ttt**3
+              !interpol_matrix(i,3)=ttt**2
+              !interpol_matrix(i,4)=ttt
+              !interpol_matrix(i,5)=1
+              interpol_matrix(i,1)=ttt**2
+              interpol_matrix(i,2)=ttt
+              interpol_matrix(i,3)=1.d0
+          end do
+          do i=1,ii
+              interpol_solution(i)=interpol_vector(i)
+              tmp_matrix(i,1)=interpol_matrix(i,1)
+              tmp_matrix(i,2)=interpol_matrix(i,2)
+              tmp_matrix(i,3)=interpol_matrix(i,3)
+              !tmp_matrix(i,4)=interpol_matrix(i,4)
+              !tmp_matrix(i,5)=interpol_matrix(i,5)
+          end do
+          if (iproc==0) then
+              do i=1,3
+                  write(*,'(3es14.6,5x,es14.6)') tmp_matrix(i,1:3), interpol_solution(i)
+              end do
+          end if
+          call dgesv(ii, 1, tmp_matrix, 3, ipiv, interpol_solution, 3, info)
+          if (info/=0) then
+             if (iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
+          end if
+          if (iproc==0) write(*,'(a,3es14.7)') 'interpol_solution(1:3)',interpol_solution(1:3)
+      end if
+
+      !d2e=6.d0*interpol_solution(1)*interpol_matrix(ii,3)+2.d0*interpol_solution(2)
+      !d2e = 12.d0*interpol_solution(1)*interpol_matrix(ii,4)**2 + 6.d0*interpol_solution(2)*interpol_matrix(ii,4) + 2.d0*interpol_solution(3)
+      d2e = 2.d0*interpol_solution(1)
+      tt = interpol_vector(1) - 2.d0*interpol_vector(2) + interpol_vector(3)
+      ttt = d2e_arr_out(1) - 2.d0*d2e_arr_out(2) + d2e_arr_out(3)
+      tt=tt/dble(orbs%norb)
+      ttt=ttt/dble(orbs%norb)
+      if (itout>=3 .and. it >=3) then
+          if (tt<1.d-5) then
+              isatur_in=isatur_in+1
+          else
+              isatur_in=0
+          end if
+          if (ttt<1.d-4) then
+              isatur_out=isatur_out+1
+          else
+              isatur_out=0
+          end if
+          if (iproc==0) then
+              write(*,'(a,3es12.4,2i4)') 'd2e',d2e,tt, ttt, isatur_in, isatur_out
+          end if
+
+          if (isatur_in>=2) then
+              stop_optimization=.true.
+          end if
+
+          if (isatur_in>=3 .and. isatur_out>=3) then
+              if (iproc==0) write(*,*) 'new fixing criterion'
+              fix_supportfunctions=.true.
+          end if
+      end if
+
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
           !call vcopy(tmb%orbs%norb, occup_tmp(1), 1, tmb%orbs%occup(1), 1)
           !iall=-product(shape(occup_tmp))*kind(occup_tmp)
@@ -570,7 +726,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           it, fnrm, fnrmMax, trH, ediff
       !!if(it>=nit_basis .or. it_tot>=3*nit_basis .or. reduce_conf) then
       !!    if(it>=nit_basis .and. .not.energy_increased) then
-      if(it>=nit_basis .or. it_tot>=3*nit_basis) then
+      !if(it>=nit_basis .or. it_tot>=3*nit_basis) then
+      if(it>=nit_basis .or. it_tot>=3*nit_basis .or. stop_optimization) then
           if(it>=nit_basis) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
@@ -586,6 +743,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
                   write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=-1
+          else if (stop_optimization) then
+              if (iproc==0) then
+                  write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
+              end if
+              infoBasisFunctions=0
           !!else if (reduce_conf) then
           !!    if (iproc==0) then
           !!        write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH

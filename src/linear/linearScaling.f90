@@ -381,7 +381,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
                reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
-               ratio_deltas,orthonormalization_on,input%lin%extra_states)
+               ratio_deltas,orthonormalization_on,input%lin%extra_states,itout)
 
            tmb%can_use_transposed=.false. !since basis functions have changed...
 

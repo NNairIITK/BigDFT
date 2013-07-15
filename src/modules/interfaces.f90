@@ -1970,7 +1970,7 @@ module module_interfaces
           fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
           reduce_conf, fix_supportfunctions,nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix,&
-          ratio_deltas,ortho_on,extra_states)
+          ratio_deltas,ortho_on,extra_states,itout)
         use module_base
         use module_types
         implicit none
@@ -1998,6 +1998,7 @@ module module_interfaces
         real(kind=8),intent(out) :: ratio_deltas
         logical, intent(inout) :: ortho_on
         integer, intent(in) :: extra_states
+        integer,intent(in) :: itout
       end subroutine getLocalizedBasis
 
     subroutine inputOrbitals(iproc,nproc,at,&
