@@ -86,7 +86,6 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
 
 END SUBROUTINE bigdft_set_input
 
-
 !> De-allocate the variable of type input_variables
 subroutine bigdft_free_input(in)
   use module_base
