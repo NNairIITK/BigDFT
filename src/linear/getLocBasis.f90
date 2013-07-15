@@ -586,11 +586,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
                   write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=-1
-          else if (reduce_conf) then
-              if (iproc==0) then
-                  write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
-              end if
-              infoBasisFunctions=0
+          !!else if (reduce_conf) then
+          !!    if (iproc==0) then
+          !!        write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
+          !!    end if
+          !!    infoBasisFunctions=0
           end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           if (infoBasisFunctions>=0) then
