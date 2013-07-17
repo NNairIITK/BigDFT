@@ -1048,6 +1048,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   use module_base
   use module_types
   use module_fragments
+  use yaml_output
   implicit none
   integer, dimension(3), intent(in) :: n,n_old
   real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
@@ -1070,6 +1071,9 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
   real(wp), dimension(:,:,:), pointer :: psifscfold, psifscf, psifscf_tmp
   integer :: itype, nd, nrange
+  real(gp), dimension(3) :: rrow
+  real(gp) :: sint,cost,onemc,ux,uy,uz
+  integer :: ixp,iyp,izp
 
   !if (size(frag_trans%discrete_operations)>0) then
   !   print*,'Error discrete operations not yet implemented',size(frag_trans%discrete_operations),&
@@ -1148,10 +1152,53 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   !call field_rototranslation(nd,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
   !     hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
 
-  !write some output on the screen
-  
+  sint=sin(frag_trans%theta)
+  cost=cos(frag_trans%theta)
+  onemc=1.0_gp-cost
+  ux=frag_trans%rot_axis(1)
+  uy=frag_trans%rot_axis(2)
+  uz=frag_trans%rot_axis(3)
 
-  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
+  !write some output on the screen
+  !print matrix elements, to be moved at the moment of identification of the transformation
+  call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
+  call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
+  call yaml_map('Translation vector',da,fmt='(1pg20.12)')
+  call yaml_open_sequence('Rotation matrix elements')
+  call yaml_sequence(trim(yaml_toa((/&
+       cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /),fmt='(1pg20.12)')))
+  call yaml_sequence(trim(yaml_toa((/&
+       ux*uy*onemc +uz*sint , cost + onemc*uy**2   , uy*uz*onemc - ux*sint /),fmt='(1pg20.12)')))
+  call yaml_sequence(trim(yaml_toa((/&
+       ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /),fmt='(1pg20.12)')))
+  call yaml_close_sequence()
+  !determine ideal sequence for rotation
+  !pay attention to what happens if two values are identical  
+  !from where xp should be determined
+  rrow=abs((/cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /))
+  ixp=maxloc(rrow,1)
+  !form where zp should be determined (note that the third line has been used)
+  rrow=abs((/ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /))
+  !exclude of course the previously found direction
+  rrow(ixp)=0.0_gp
+  izp=maxloc(rrow,1)
+  !then the last dimension, which is the intermediate one
+  rrow=1.0_gp
+  rrow(ixp)=0.d0
+  rrow(izp)=0.d0
+  iyp=maxloc(rrow,1)
+
+  !print the suggested order
+  call yaml_map('Suggested order for the transformation',(/ixp,iyp,izp/))
+
+!!$  !we should define the transformation order
+!!$  !traditional case, for testing
+!!$  ixp=1
+!!$  iyp=2
+!!$  izp=3
+!!$  print *,'final case',(/ixp,iyp,izp/)
+  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,&
+       sint,cost,onemc,(/ixp,iyp,izp/),&
        hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
 
   if (size(frag_trans%discrete_operations)>0) then
@@ -1718,7 +1765,7 @@ subroutine define_rotations_switch(da,newz,boxc_old,boxc_new,theta,hgrids_old,nd
         x=-boxc_new(1)
         do i=1,ndims_new(1)
            dz(k,i+(j-1)*ndims_new(1)) = ( -da(3) - z + (z + sint*(-(y*newz(1)) + x*newz(2)) + onemc*(x*newz(1) &
-                                      + y*newz(2))*newz(3))/(-cost - onemc*newz(3)**2) ) / hgrids_old(3)
+                + y*newz(2))*newz(3))/(-cost - onemc*newz(3)**2) ) / hgrids_old(3)
            x=x+hgrids_new(1)
         end do
         y=y+hgrids_new(2)
@@ -1784,13 +1831,15 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,cen
 end subroutine field_rototranslation
 
 !> routine which directly applies the 3D transformation of the rototranslation
-subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,f_old,&
+subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,centre_new,&
+     sint,cost,onemc,iorder,hgrids_old,ndims_old,f_old,&
      hgrids_new,ndims_new,f_new)
   use module_base
   use yaml_output
   implicit none
   integer, intent(in) :: n_phi,nrange_phi !< number of points of ISF array and real-space range
-  real(gp), intent(in) :: theta !< rotation wrt newzeta vector
+  real(gp), intent(in) :: sint,cost,onemc !< rotation wrt newzeta vector
+  integer, dimension(3), intent(in) :: iorder
   real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
   real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
   real(gp), dimension(3), intent(in) :: centre_old,centre_new !<centre of rotation
@@ -1800,20 +1849,10 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
   real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
   !local variables
-  integer :: m_isf,ixp,iyp,izp,k1,i,j,k,me,ms,l
-  real(gp) :: sint,cost,onemc,ux,uy,uz,dt,tt
-  real(gp), dimension(3) :: rrow
+  integer :: m_isf,k1,i,j,k,me,ms,l
+  real(gp) :: ux,uy,uz,dt
   real(gp), dimension(:), allocatable :: shf
-  !  real(gp), dimension(:,:), allocatable :: dx,dy,dz
   real(gp), dimension(:), allocatable :: work,work2
-
-
-  sint=sin(theta)
-  cost=cos(theta)
-  onemc=1.0_gp-cost
-  ux=newz(1)
-  uy=newz(2)
-  uz=newz(3)
 
   !print *,'3d'
   call f_routine(id='field_rototranslation3D')
@@ -1824,57 +1863,27 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   shf=f_malloc(-m_isf .to. m_isf,id='shf')
   !for each of the dimensions build the interpolating vector which is needed
 
-  !print matrix elements, to be moved at the moment of identification of the transformation
-  call yaml_map('Rotation axis',newz,fmt='(1pg20.12)')
-  call yaml_map('Rotation angle (deg)',theta*180.0_gp/pi_param,fmt='(1pg20.12)')
-  call yaml_map('Translation vector',da,fmt='(1pg20.12)')
-  call yaml_open_sequence('Rotation matrix elements')
-  call yaml_sequence(trim(yaml_toa((/&
-       cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /),fmt='(1pg20.12)')))
-  call yaml_sequence(trim(yaml_toa((/&
-       ux*uy*onemc +uz*sint , cost + onemc*uy**2   , uy*uz*onemc - ux*sint /),fmt='(1pg20.12)')))
-  call yaml_sequence(trim(yaml_toa((/&
-       ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /),fmt='(1pg20.12)')))
-  call yaml_close_sequence()
+  !first step: determine xn from a coordinate n13o=xo or yo or zo
+  !f_old (nxo,nyo,nzo) -> work(n11o,n12o,nxn) !n11o and n12o are the remaining dimensions
+  !second step: determine yn from n22o=n11o or n12o
+  !work(n11o,n12o,nxn) -> work2(n21o,nxn,nyn)
+  !thirs step: determine zn from n21o
+  !work2(n21o,nxn,nyn) -> f_new(xn,yn,zn)
 
-  !determine ideal sequence for rotation
-  !pay attention to what happens if two values are identical  
-  !from where xp should be determined
-  rrow=abs((/cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /))
-  ixp=maxloc(rrow,1)
-  !form where zp should be determined (note that the third line has been used)
-  rrow=abs((/ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /))
-  !exclude of course the previously found direction
-  rrow(ixp)=0.0_gp
-  izp=maxloc(rrow,1)
-  !then the last dimension, which is the intermediate one
-  rrow=1.0_gp
-  rrow(ixp)=0.d0
-  rrow(izp)=0.d0
-  iyp=maxloc(rrow,1)
-
-  !print the suggested order
-  call yaml_map('Suggested order for the transformation',(/ixp,iyp,izp/))
-
-  !we should define the transformation order
-  !traditional case, for testing
-  ixp=1
-  iyp=2
-  izp=3
 
   !first step
-  select case(ixp)
+  select case(iorder(1))
   case(1) !xn is derived from xo 
      do k=1,ndims_old(3)
         do j=1,ndims_old(2)
            do i=1,ndims_new(1)
-              call shift_and_start(1,1,2,3,i,j,k,&
+              call shift_and_start(iorder(1),1,2,3,i,j,k,&
                    dt,k1,ms,me)
               
               call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
               
               !work(j,k+(i-1)*ndims_old(3))
-              work(j+ind(2,3,k,i))=convolve(1,k1,j,k,ms,me,m_isf,shf,&
+              work(j+ind(2,3,k,i))=convolve(iorder(1),k1,j,k,ms,me,m_isf,shf,&
                    ndims_old(1),ndims_old(2),ndims_old(3),f_old)
            end do
         end do
@@ -1883,73 +1892,116 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
      do k=1,ndims_old(3)
         do j=1,ndims_old(1)
            do i=1,ndims_new(1)
-              call shift_and_start(2,1,1,3,i,j,k,&
+              call shift_and_start(iorder(1),1,1,3,i,j,k,&
                    dt,k1,ms,me)
               
               call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
               !work(j,k+(i-1)*ndims_old(3))
-              work(j+ind(1,3,k,i))=convolve(2,j,k1,k,ms,me,m_isf,shf,&
+              work(j+ind(1,3,k,i))=convolve(iorder(1),j,k1,k,ms,me,m_isf,shf,&
                    ndims_old(1),ndims_old(2),ndims_old(3),f_old)
            end do
         end do
      end do
   case(3) !xn is derived from zo
-     do j=1,ndims_old(2)
-        do k=1,ndims_old(1)
+     do k=1,ndims_old(2)
+        do j=1,ndims_old(1)
            do i=1,ndims_new(1)
-              call shift_and_start(3,1,1,2,i,k,j,&
+              call shift_and_start(iorder(1),1,1,2,i,j,k,&
                    dt,k1,ms,me)
 
               call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
               !work(k,j+(i-1)*ndims_old(2))
-              work(k+ind(1,2,j,i))=convolve(3,k1,j,k,ms,me,m_isf,shf,&
+              work(j+ind(1,2,k,i))=convolve(iorder(1),j,k,k1,ms,me,m_isf,shf,&
                    ndims_old(1),ndims_old(2),ndims_old(3),f_old)
            end do
         end do
      end do
   end select
   !second step
-!!$  select case((/ixp,iyp/))
-!!$  case((/1,2/)) !yp is derived from yo (and xp has been derived from x)
+  select case(iorder(1)*10+iorder(2))
+  case(21) !yp is derived from xo (and xp has been derived from y)
      do i=1,ndims_new(1)
-        do k=1,ndims_old(3)
+        do k=1,ndims_old(iorder(3))
            do j=1,ndims_new(2)
-              call shift_and_start(2,2,2,3,i,j,k,&
+              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+                   dt,k1,ms,me)
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+
+              work2(k+ind2(iorder(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
+                   ndims_old(1),ndims_old(3),ndims_new(1),work)
+           end do
+        end do
+     end do
+  case(23) !yp is derived from zo (and xp has been derived from y)
+     do i=1,ndims_new(1)
+        do k=1,ndims_old(iorder(3))
+           do j=1,ndims_new(2)
+              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+                   dt,k1,ms,me)
+
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              work2(k+ind2(iorder(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
+                   ndims_old(1),ndims_old(3),ndims_new(1),work)
+           end do
+        end do
+     end do
+  case(12) !yp is derived from yo (and xp has been derived from x)
+     do i=1,ndims_new(1)
+        do k=1,ndims_old(iorder(3))
+           do j=1,ndims_new(2)
+              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
                    dt,k1,ms,me)
               
               call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
               !work2(k,i+(j-1)*ndims_new(1))
-              work2(k+ind2(3,i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
+              work2(k+ind2(iorder(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
                    ndims_old(2),ndims_old(3),ndims_new(1),work)
            end do
         end do
      end do
-!!$  case((/3,2/)) !yp is derived from yo (and xp has been derived from z)
-!!$     do i=1,ndims_new(1)
-!!$        do k=1,ndims_old(1)
-!!$           do j=1,ndims_new(2)
-!!$              call shift_and_start(2,2,2,1,i,j,k,&
-!!$                   dt,k1,ms,me)
-!!$
-!!$              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
-!!$
-!!$              work2(k,i+(j-1)*ndims_new(1))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
-!!$                   ndims_old(1),ndims_old(2),ndims_new(1),work)
-!!$           end do
-!!$        end do
-!!$     end do
-!!$  end select
+  case(13) !yp is derived from zo (and xp has been derived from x)
+     do i=1,ndims_new(1)
+        do k=1,ndims_old(iorder(3))
+           do j=1,ndims_new(2)
+              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+                   dt,k1,ms,me)
+
+!              print *,'value fouund',dt,k1,j
+
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              !work2(k,i+(j-1)*ndims_new(1))
+              work2(k+ind2(iorder(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
+                   ndims_old(2),ndims_old(3),ndims_new(1),work)
+           end do
+        end do
+     end do
+  case(32) !yp is derived from yo (and xp has been derived from z)
+     do i=1,ndims_new(1)
+        do k=1,ndims_old(iorder(3))
+           do j=1,ndims_new(2)
+              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+                   dt,k1,ms,me)
+
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+
+              work2(k+ind2(iorder(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
+                   ndims_old(1),ndims_old(2),ndims_new(1),work)
+           end do
+        end do
+     end do
+  end select
+
   !third step
   do j=1,ndims_new(2)
      do i=1,ndims_new(1)
         do k=1,ndims_new(3)
-           call shift_and_start(3,3,2,3,i,j,k,&
+           call shift_and_start(iorder(3),3,2,3,i,j,k,&
                 dt,k1,ms,me)
-
+           
            call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
-
+           
            f_new(i,j,k)=convolve(1,k1,i,j,ms,me,m_isf,shf,&
-                ndims_old(3),ndims_new(1),ndims_new(2),work2)
+                ndims_old(iorder(3)),ndims_new(1),ndims_new(2),work2)
         end do
      end do
   end do
@@ -1981,7 +2033,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
     end function ind2
 
     
-    pure subroutine shift_and_start(ntr,istep,i2,i3,j1,j2,j3,&
+    !pure 
+    subroutine shift_and_start(ntr,istep,i2,i3,j1,j2,j3,&
          dt,istart,ms,me)
       use module_base
       implicit none
@@ -1994,11 +2047,6 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
       integer :: ivars!,istep,i1,i2,i3
       real(gp), dimension(3) :: t
       real(gp) :: t0_l
-
-!      istep=ivars/1000
-!      i1=(ivars-istep*1000)/100 !this should always be 1
-!      i2=(ivars-istep*1000-i1*100)/10
-!      i3=ivars-istep*1000-i1*100-i2*10
 
       !define the coordinates in the reference frame, which depends of the transformed variables
       t(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) !the first step is always the same
@@ -2015,28 +2063,6 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
 
       !code for the coords
       ivars=1000*istep+100+10*i2+i3
-
-!!$      do i=1,3
-!!$         if (newvars(2*i:2*i)=='n') then
-!!$            select case(newvars((2*i-1):(2*i-1)))
-!!$               case('x')
-!!$                  t(i)=-centre_new(1)+real(jcoords(1)-1,gp)*hgrids_new(1)
-!!$               case('y')
-!!$                  t(i)=-centre_new(2)+real(jcoords(2)-1,gp)*hgrids_new(2)
-!!$               case('z')
-!!$                  t(i)=-centre_new(3)+real(jcoords(3)-1,gp)*hgrids_new(3)
-!!$            end select
-!!$         else
-!!$            select case(newvars((2*i-1):(2*i-1)))
-!!$            case('x')
-!!$               t(i)=-centre_old(1)+real(jcoords(1)-1,gp)*hgrids_old(1)
-!!$            case('y')
-!!$               t(i)=-centre_old(2)+real(jcoords(2)-1,gp)*hgrids_old(2)
-!!$            case('z')
-!!$               t(i)=-centre_old(3)+real(jcoords(3)-1,gp)*hgrids_old(3)
-!!$            end select
-!!$         end if
-!!$      end do
 
       !define the value of the shift of the variable we are going to transform
 !      t0_l=(t(ntr)-x_xpyz(theta,newz,t(1),t(2),t(3))+shift(ntr))/hgrids_old(ntr)
@@ -2061,7 +2087,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
 
     end subroutine shift_and_start
 
-    pure function coord(icrd,ivars,u,C,S,onemc,x,y,z)
+    !pure 
+    function coord(icrd,ivars,u,C,S,onemc,x,y,z)
       use module_base, only: gp
       implicit none
       integer, intent(in) :: icrd !<id of the old coordinate to be retrieved
@@ -2095,7 +2122,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
          case(2123)!'xnynzo')
             coord=(-(S*u(3)*x) + y + S*u(1)*z - onemc*(u(1)*u(2)*x + (u(2)**2 + u(3)**2)*y - u(2)*u(3)*z))/(C + onemc*u(3)**2)
          case(3123)!'xnynzn')
-            coord=S*(u(2)*x - u(1)*y) + C*z + u(3)*(onemc*u(1)*x + onemc*u(2)*y + u(3)*z - C*u(3)*z)
+            coord=-(S*u(3)*x) + (C + onemc*u(2)**2)*y + onemc*u(2)*u(3)*z + u(1)*(u(2)*onemc*x + S*z)
+            !wrong one S*(u(2)*x - u(1)*y) + C*z + u(3)*(onemc*u(1)*x + onemc*u(2)*y + u(3)*z - C*u(3)*z)
          end select
       case(3)
          select case(ivars)
@@ -2105,11 +2133,17 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
             coord=(-(u(3)**2*z) + S*u(3)*y + u(2)*(u(2)*x - u(1)*y) + C*((-1 + u(3)**2)*z + x - u(2)**2*x + u(1)*u(2)*y))/&
                  (S*u(2) - onemc*u(1)*u(3))
          case(2122)!'xnynyo')
-            coord=(S*u(3)*x + C*z - y + onemc*(u(1)*u(2)*x + u(2)**2*y + u(3)**2*(z + y)))/(S*u(1) + onemc*u(2)*u(3))
+            !coord=(S*u(3)*x + C*z - y + onemc*(u(1)*u(2)*x + u(2)**2*y + u(3)**2*(z + y)))/(S*u(1) + onemc*u(2)*u(3))
+            coord=(onemc*u(1)*u(2)*x+S*u(3)*x+C*z+onemc*u(3)**2*z-C*y-onemc*u(1)**2*y)/(S*u(1) + onemc*u(2)*u(3))
          case(3123)!'xnynzn')
             coord=S*(u(2)*x - u(1)*y) + C*z + u(3)*(onemc*u(1)*x + onemc*u(2)*y + u(3)*z - C*u(3)*z)
          end select
       end select
+
+      if (coord==0.0_gp) then
+         print *,'Error, value not found',icrd,ivars
+         stop
+      end if
 
     end function coord
 
