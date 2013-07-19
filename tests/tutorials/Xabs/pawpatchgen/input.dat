@@ -1,9 +1,0 @@
--c0 -plot -paw0  -noflpaw3  -nchannelspaw2  -pawstatomae.pot.conf.0.plt -pawstn1 -pawstl0 -pawstp1  -c0 -plot  
-
-
--c0 -plot   (input file created/appended by atom.f) 
- 4 0.35  0.5 14 number, range and weighting of the hgrid samples
-     0.00    6.27    6.27       random offset, coarse and fine radii for the grid
-input line written by atom: -plot
-input line written by atom: -plot
-input line written by atom: -plot

@@ -1,6 +1,0 @@
-C6H6             # name of the .win file
-etsf             # format of the BigDFT wavefunctions: cube or binary
-  15             # number of occupied orbitals
-F   20    3      # Pre-check, no. of virtual orbitals for pre-check, no. of virtual orbitals used to write Amn and Mmn matrices
-F    F    F      # allow the writing of .cube files for atomic orbitals, their angular parts and their radial parts
-  94  132  130   # number of points for each axis in the cubic representation used by BigDFT (needed to use Wannier90)

@@ -1,8 +1,0 @@
----
-Default tolerances:
- Epsilon: 2.6e-10
-
-Keys to ignore:
- - Gflop/s
- - ms
- - Ratio
