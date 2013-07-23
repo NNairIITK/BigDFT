@@ -338,16 +338,16 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
   real(wp), dimension(nprojel), intent(inout) :: proj
   !Local variables
   character(len=*), parameter :: subname='atom_projector_paw'
-  integer :: i_all,i_stat,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,m,i,i_g,i_shell,j
+  integer :: i_all,i_stat,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,l,m,i,i_g,i_shell,j
   integer :: ncplx_k,nc,jstart_c,jj
   integer :: lmax=5
   real(gp) :: kx,ky,kz
-  real(wp) :: aux
   real(dp) :: scpr
-  real(dp) :: ddot
   real(wp),allocatable::proj_tmp(:)
   !for debugging
-  real(gp) :: gau_a(2),fac(2)
+  !integer :: jseg_c
+  !real(dp) :: ddot
+  !real(gp) :: gau_a(2),fac(2)
 
   !features of the k-point ikpt
   kx=orbs%kpts(1,ikpt)
@@ -709,7 +709,7 @@ subroutine projector_paw(geocode,atomname,iat,idir,l,i,&
   !integer :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
   integer :: istart_c,nterm
   real(gp) :: fgamma,fpi,rx,ry,rz
-  real(dp) :: scpr
+  !real(dp) :: scpr
   integer, dimension(3) :: nterm_arr
   integer, dimension(nterm_max) :: lx,ly,lz
   integer, dimension(3,nterm_max,3) :: lxyz_arr
@@ -834,7 +834,7 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
   real(gp), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   integer, intent(out) :: mproj
   !Local variables
-  integer :: l,i,ishell
+  integer :: l,i
 
   mproj=0
   if (npspcode(ityp) == 2) then !GTH
@@ -843,7 +843,8 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
            if (psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
         enddo
      enddo
-  else if (npspcode(ityp) == 3 .or. npspcode(ityp) == 10) then !HGH and HGH-K
+  else if (npspcode(ityp) == 3 .or. npspcode(ityp) == 10 &
+                               .or. npspcode(ityp) == 12) then !HGH and HGH-K
      do l=1,4 
         do i=1,3 
            if (psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
@@ -852,6 +853,7 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
   end if
 
 END SUBROUTINE numb_proj
+
 
 !>   Determines the number of projectors (for PAW, T.Rangel)
 subroutine numb_proj_paw_tr(ityp,ntypes,proj_G,mproj)
@@ -863,7 +865,7 @@ subroutine numb_proj_paw_tr(ityp,ntypes,proj_G,mproj)
   type(gaussian_basis),intent(in)::proj_G
   integer, intent(out) :: mproj
   !Local variables
-  integer :: l,i,ishell
+  integer :: l,ishell
 
   mproj=0
   do ishell=1,proj_G%nshltot
@@ -872,6 +874,7 @@ subroutine numb_proj_paw_tr(ityp,ntypes,proj_G,mproj)
   end do
 
 END SUBROUTINE numb_proj_paw_tr
+
 
 !>   Returns the compressed form of a Gaussian projector 
 !!   @f$ x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 )) @f$
@@ -906,7 +909,7 @@ subroutine crtproj(geocode,nterm,lr, &
   !integer :: counter !test
   real(wp) :: re_cmplx_prod,im_cmplx_prod
   real(gp), dimension(ncplx_g) :: factor
-  real(gp) :: err_norm
+  !real(gp) :: err_norm
   real(wp), allocatable, dimension(:,:,:) :: work
   real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
   !Variables for OpenMP

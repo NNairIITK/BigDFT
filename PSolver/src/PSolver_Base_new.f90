@@ -36,23 +36,21 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !work arrays for transpositions
   real(kind=8), dimension(:,:,:), allocatable :: zt
   real(kind=8), dimension(:,:,:), allocatable :: zt_t
-  logical, dimension(:), allocatable :: arraytag
   !work arrays for MPI
   real(kind=8), dimension(:,:,:,:,:), allocatable :: zmpi1
   real(kind=8), dimension(:,:,:,:), allocatable :: zmpi2
   !cache work array
   real(kind=8), dimension(:,:,:), allocatable :: zw
   !FFT work arrays
-  real(kind=8), dimension(:,:), allocatable :: btrig1,btrig2,btrig3, &
-       ftrig1,ftrig2,ftrig3,cosinarr
-  integer, dimension(:), allocatable :: after1,now1,before1, & 
-       after2,now2,before2,after3,now3,before3
+  real(kind=8), dimension(:,:), allocatable :: btrig1,btrig2,btrig3
+  real(kind=8), dimension(:,:), allocatable :: ftrig1,ftrig2,ftrig3,cosinarr
+  integer, dimension(:), allocatable :: after1,now1,before1
+  integer, dimension(:), allocatable :: after2,now2,before2,after3,now3,before3
   real(gp), dimension(6) :: strten_omp
   !integer :: ncount0,ncount1,ncount_max,ncount_rate
 
   integer :: maxIter
   integer :: n3pr1,n3pr2,j1start,n1p,n2dimp
-  integer, dimension(10) :: status
 
   !Initialize stress tensor no matter of the BC
   !call to_zero(6,strten(1))
@@ -115,7 +113,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 
   n1p=n1
 
-  if (nproc>2*(n3/2+1)-1) then
+  if (nproc>2*(n3/2+1)-1 .and. .false.) then
     n3pr1=nproc/(n3/2+1)
     n3pr2=n3/2+1
     if (mod(n1,n3pr1) .ne. 0) n1p=((n1/n3pr1)+1)*n3pr1

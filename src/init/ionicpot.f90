@@ -1,14 +1,14 @@
 !> @file
 !!  Routines for the ionic energy contribution
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group (LG)
+!!    Copyright (C) 2007-2013 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> Calculte the ionic contribution to the energy and the forces
+!> Calculate the ionic contribution to the energy and the forces
 subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,n1,n2,n3,&
      & pot_ion,pkernel,psoffset)
@@ -459,7 +459,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   end if
 
   ! Add empiric correction for Van der Waals forces and energy.
-  call vdwcorrection_calculate_energy(edisp,rxyz,at,dispersion,iproc)
+  call vdwcorrection_calculate_energy(edisp,rxyz,at,dispersion)
   if (iproc == 0 .and. edisp /= 0.0_gp) then
 !!$     write(*,'(1x,a, e12.5,1x,a)') &
 !!$          'Dispersion Correction Energy: ', dispersion_energy, 'Hartree'

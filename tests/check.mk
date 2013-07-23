@@ -93,9 +93,18 @@ report:
 	@if test $(MAKELEVEL) = 0 ; then	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ;python $(top_srcdir)/tests/report.py ; fi
 
 %.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
-	@export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	@name=`basename $@ .memguess.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
+	if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
+	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
+	   cat accel.perf >> $$file ; \
+	fi ; \
+	echo outdir ./ >> $$file ; \
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "$(abs_top_builddir)/src/bigdft-tool -n 1 > $@"; \
-	$(abs_top_builddir)/src/bigdft-tool -n 1 > $@
+	$(abs_top_builddir)/src/bigdft-tool -n 1 > $@ ; \
+	mv log.yaml log-memguess.yaml ; \
+	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
 	@name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
@@ -109,14 +118,14 @@ report:
 	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
 	fi; \
 	echo outdir ./ >> $$file ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@" ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
 	if test -f $$file.bak ; then \
 	   mv $$file.bak $$file ; else rm -f $$file ; \
 	fi ; \
 	if test -f list_posinp; then \
-	   cat log-* > log.yaml ; \
+	   cat `tail -n $$(($$(wc -l < list_posinp) - 1)) list_posinp | sed "s/^\(.*\)$$/log-\1.yaml/g"` > log.yaml ; \
 	fi
 	@name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
@@ -127,7 +136,7 @@ report:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.dipole.dat.out: %.out.out
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	$(run_parallel) $(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube > bader.out && mv dipole.dat $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
@@ -139,7 +148,7 @@ report:
 	   cat accel.perf >> $$file ; \
 	fi ; \
 	echo outdir ./ >> $$file ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/frequencies > $@" ; \
 	$(run_parallel) $(abs_top_builddir)/src/frequencies > $@
 	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi ;\
@@ -147,7 +156,7 @@ report:
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
 	rm -f triH.NEB.it*
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	$(abs_top_builddir)/src/NEB < input | tee $@
 	cat triH.NEB.0*/log.yaml | grep -v "Unable to read mpd.hosts" > log.yaml 
 	rm -rf triH.NEB.0*
@@ -155,31 +164,31 @@ report:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.splsad.out: $(abs_top_builddir)/src/splsad
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	$(run_parallel) $(abs_top_builddir)/src/splsad > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.minhop.out: $(abs_top_builddir)/src/global
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	$(run_parallel) $(abs_top_builddir)/src/global > $@
 #	mv log-mdinput.yaml log.yaml
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.xabs.out: $(abs_top_builddir)/src/abscalc
 	name=`basename $@ .xabs.out` ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	$(abs_top_builddir)/src/abscalc $$name > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.b2w.out: $(abs_top_builddir)/src/BigDFT2Wannier
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	$(run_parallel) $(abs_top_builddir)/src/BigDFT2Wannier $$name > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.testforces.out: $(abs_top_builddir)/src/test_forces
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	$(run_parallel) $(abs_top_builddir)/src/test_forces > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
@@ -381,7 +390,7 @@ head_message:
 	@echo "  make in:           generate all input dirs."
 	@echo "  make failed-check: run check again on all directories"
 	@echo "                     with missing report or failed report."
-	@echo "  make complete-check: for developpers, makes long and extensive tests."
+	@echo "  make complete-check: for developers, makes long and extensive tests."
 	@echo "  make X.in:         generate input dir for directory X."
 	@echo "  make X.check:      generate a report for directory X"
 	@echo "                     (if not already existing)."

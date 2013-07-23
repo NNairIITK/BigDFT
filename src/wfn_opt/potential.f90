@@ -7,7 +7,8 @@
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
 
-!>   routine for applying the local potential
+
+!> Routine for applying the local potential
 !! Support the adding of a confining potential and the localisation region of the potential
 subroutine apply_potential_lr_conf_noconf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,&
      nspinor,npot,psir,pot,epot,confdata,ibyyzz_r,psir_noconf,econf)
@@ -25,8 +26,8 @@ subroutine apply_potential_lr_conf_noconf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n
   real(gp), intent(out) :: econf
   !local variables
   integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et,ii1,ii2,ii3
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt11_noconf,cp,r2
-  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,pot1_noconf,x,y,z
+  real(wp) :: tt11,tt11_noconf,cp,r2
+  real(wp) :: psir1,pot1,pot1_noconf,x,y,z
   real(gp) :: epot_p,econf_p!,ierr
 
   if (f_err_raise(nspinor==4,'nspinor=4 not supported with noconf')) return
@@ -48,8 +49,7 @@ subroutine apply_potential_lr_conf_noconf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n
   !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
   !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,psir_noconf,econf,confdata)&
   !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et,pot1_noconf,tt11_noconf,econf_p)&
-  !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42)&
-  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ii1,ii2,ii3)
+  !$omp private(tt11,psir1,pot1,ii1,ii2,ii3)
 
   !case without bounds
   epot_p=0._gp
@@ -177,8 +177,8 @@ subroutine apply_potential_lr_conf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,&
   real(gp), intent(out) :: epot
   !local variables
   integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et,ii1,ii2,ii3
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,cp,r2
-  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,x,y,z
+  real(wp) :: tt11,cp,r2
+  real(wp) :: psir1,pot1,x,y,z
   real(gp) :: epot_p!,ierr
 
   if (f_err_raise(nspinor==4,&
@@ -200,8 +200,7 @@ subroutine apply_potential_lr_conf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,&
   !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
   !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,confdata)&
   !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et)&
-  !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42)&
-  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ii1,ii2,ii3)
+  !$omp private(tt11,psir1,pot1,ii1,ii2,ii3)
 
   !case without bounds
   epot_p=0._gp
@@ -305,7 +304,8 @@ subroutine apply_potential_lr_conf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,&
 
 END SUBROUTINE apply_potential_lr_conf
 
-!>   routine for applying the local potential
+
+!> Routine for applying the local potential
 !! Support the adding of a confining potential and the localisation region of the potential
 subroutine apply_potential_lr_conf_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,npot,psir,pot,epot,confdata)
   use module_base

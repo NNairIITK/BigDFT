@@ -2,7 +2,7 @@
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markeup Language (ML for Human)
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -33,43 +33,46 @@ module yaml_strings
      module procedure fmt_i,fmt_r,fmt_d,fmt_a,fmt_li
   end interface
 
+  !Public routines
   public ::  yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa
+
+  !Private routines
   private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa
   private :: yaml_dvtoa,yaml_ivtoa,max_value_length
   
 
 contains
 
-  function fmt_li(data)
+  pure function fmt_li(data)
     implicit none
     integer(kind=8), intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_li
     fmt_li=yaml_int_fmt
   end function fmt_li
 
-  function fmt_i(data)
+  pure function fmt_i(data)
     implicit none
     integer, intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_i
     fmt_i=yaml_int_fmt
   end function fmt_i
 
-  function fmt_r(data)
+  pure function fmt_r(data)
     implicit none
     real, intent(in) :: data
     character(len=len(yaml_real_fmt)) :: fmt_r
     fmt_r=yaml_real_fmt
   end function fmt_r
 
-  function fmt_d(data)
+  pure function fmt_d(data)
     implicit none
     double precision, intent(in) :: data
     character(len=len(yaml_dble_fmt)) :: fmt_d
     fmt_d=yaml_dble_fmt
   end function fmt_d
 
-  function fmt_a(data)
+  pure function fmt_a(data)
     implicit none
     character(len=*), intent(in) :: data
     character(len=len(yaml_char_fmt)) :: fmt_a
@@ -108,19 +111,23 @@ contains
     if (present(istat)) istat=0 !no errors
 
     lgt_add=len(buffer)
-    !do not copy strings which are too long
+    !do not copy strings which are too long if istat is present
     if (lgt_add+string_pos > string_lgt) then
+       !try to eliminate trailing spaces
+       lgt_add=len_trim(buffer)
        if (present(istat)) then
           istat=-1
           return
-       else
-          write(*,*)'ERROR (buffer string): string too long'
-          write(*,*)'Initial String: ',string(1:string_pos)
-          write(*,*)'Buffer: ',trim(buffer)
-          write(*,*)'String position: ',string_pos
-          write(*,*)'Length of Buffer: ',lgt_add
-          write(*,*)'String limit: ',string_lgt
-          stop 
+       else if (lgt_add+string_pos > string_lgt) then
+          write(*,*)'#ERROR (buffer string): string too long'
+          write(*,*)'#Initial String: ',string(1:string_pos)
+          write(*,*)'#Buffer: ',trim(buffer)
+          write(*,*)'#String position: ',string_pos
+          write(*,*)'#Length of Buffer: ',lgt_add
+          write(*,*)'#String limit: ',string_lgt
+          lgt_add=string_lgt-string_pos-1
+          write(*,*)'#Buffer shortened into: ',buffer(1:lgt_add)
+          !stop 
        end if
     end if
        
@@ -169,7 +176,7 @@ contains
   end subroutine align_message
 
   !> Convert integer to character
-  function yaml_itoa(data,fmt) result(str)
+  pure function yaml_itoa(data,fmt) result(str)
     implicit none
     integer, intent(in) :: data
     include 'yaml_toa-inc.f90'
@@ -526,7 +533,7 @@ contains
 
   end function yaml_time_toa
 
-  function yaml_adjust(str)
+  pure function yaml_adjust(str)
     implicit none
     character(len=*), intent(in) :: str
     character(len=max_value_length) :: yaml_adjust
@@ -547,7 +554,7 @@ contains
   !! that are shifted off the end are lost. Positions opened up by the shift 
   !! are replaced by spaces.
   !! This routine has been downloaded from the website http://gbenthien.net/strings/index.html
-  subroutine shiftstr(str,n)
+  pure subroutine shiftstr(str,n)
     implicit none
     integer, intent(in) :: n
     character(len=*), intent(inout) :: str
@@ -562,7 +569,6 @@ contains
     end if
     if(n<0) str=str(nabs+1:)//repeat(' ',nabs)  ! shift left
     if(n>0) str=repeat(' ',nabs)//str(:lenstr-nabs)  ! shift right 
-    return
 
   end subroutine shiftstr
 

@@ -1,14 +1,16 @@
 !> @file
-!!  Wrapper around XC library routines (both BAINIT and LibXC).
+!!  Wrapper around XC library routines (both ABINIT and LibXC).
 !! @author
 !!    Copyright (C) 2008-2010 ABINIT group (MOliveira)
-!!    Copyright (C) 2008-2012 BigDFT group (DC)
+!!    Copyright (C) 2008-2013 BigDFT group (DC)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
 
+!> Module handling the eXchange-Correlation functionals
+!! using ABINIT (old) and libxc library
 module module_xc
 
   use module_base
@@ -20,29 +22,31 @@ module module_xc
 
   implicit none
 
-  integer, public, parameter :: XC_ABINIT = 1
-  integer, public, parameter :: XC_LIBXC  = 2
-  integer, public, parameter :: XC_MIXED  = 3
+  integer, public, parameter :: XC_ABINIT = 1  !< xc functionals from ABINIT
+  integer, public, parameter :: XC_LIBXC  = 2  !< xc from libxc
+  integer, public, parameter :: XC_MIXED  = 3  !> xc mixing the origin of the xc functionals
 
+  !> Structure containing the information to call the routines for the calculation of the xc functionals
   type libxc_functional
      private
-     type(xc_f90_pointer_t) :: conf ! the pointer used to call the library
-     type(xc_f90_pointer_t) :: info ! information about the functional
+     type(xc_f90_pointer_t) :: conf !< the pointer used to call the library
+     type(xc_f90_pointer_t) :: info !< Information about the functional
   end type libxc_functional
 
+  !> Structure containing the information about the xc functionals
   type xc_info
      private
-     integer :: kind       ! ABINIT or LibXC
-     integer :: family(2)  ! LDA, GGA, etc.
-     integer :: id(2)      ! identifier
+     integer :: kind       !< ABINIT or LibXC
+     integer :: family(2)  !< LDA, GGA, etc.
+     integer :: id(2)      !< Identifier
 
      type(libxc_functional) :: funcs(2)
   end type xc_info
 
-  type(xc_info) :: xc
+  type(xc_info) :: xc      !< Global structure about the used xc functionals
 
-  logical :: abinit_init = .false.
-  character(len=500) :: ABINIT_XC_NAMES(0:28)
+  logical :: abinit_init = .false.            !< .True. if already ABINIT_XC_NAMES intialized
+  character(len=500) :: ABINIT_XC_NAMES(0:28) !< Names of the xc functionals used by ABINIT
 
   private
   public :: xc_init, &
@@ -60,14 +64,14 @@ contains
   subroutine obj_init_(xcObj, ixc, kind, nspden)
     implicit none
 
-    !Arguments ------------------------------------
+    !Arguments
     !scalars
     type(xc_info), intent(out) :: xcObj
     integer, intent(in) :: nspden
     integer, intent(in) :: kind
     integer, intent(in) :: ixc
 
-    !Local variables-------------------------------
+    !Local variables
     !scalars
     integer :: i, ierr
 
@@ -196,7 +200,7 @@ contains
   subroutine xc_init(ixc,kind,nspden)
     implicit none
 
-    !Arguments ------------------------------------
+    !Arguments
     !scalars
     integer, intent(in) :: nspden
     integer, intent(in) :: kind
@@ -241,16 +245,16 @@ contains
     end if
   end subroutine xc_dump
 
-  !>  End usage of LibXC functional. Call LibXC end function,
-  !!  and deallocate module contents.
+  !> End usage of LibXC functional. Call LibXC end function,
+  !! and deallocate module contents.
   subroutine xc_end()
     implicit none
 
     call obj_free_(xc)
   end subroutine xc_end
 
-  !>  Test function to identify whether the presently used functional
-  !!  is a GGA or not
+  !> Test function to identify whether the presently used functional
+  !! is a GGA or not
   function xc_isgga()
     implicit none
 
@@ -306,37 +310,40 @@ contains
     if (xc%kind == XC_ABINIT) then
        do i = 1, n, 1
           if (rho(i) < 1d-20) then
-             rho(i) = 1d-20 / nproc
+             rho(i) = 1d-20 / real(nproc,kind=dp)
           end if
        end do
     else
        do i = 1, n, 1
           if (rho(i) < 0.) then
-             rho(i) = 0.
+             rho(i) = 0.0_dp
           end if
        end do
     end if
   end subroutine xc_clean_rho
 
-  !>  Return XC potential and energy, from input density (even gradient etc...)
+  !> Return XC potential and energy, from input density (even gradient etc...)
   subroutine xc_getvxc(npts,exc,nspden,rho,vxc,grho2,vxcgr,dvxci)
     implicit none
 
     !Arguments ------------------------------------
     integer, intent(in) :: npts,nspden
-    real(dp),intent(in)  :: rho(npts,nspden)
-    real(dp),intent(out) :: vxc(npts,nspden), exc(npts)
+    real(dp),intent(out), dimension(npts) :: exc
+    real(dp),intent(in), dimension(npts,nspden)  :: rho
+    real(dp),intent(out), dimension(npts,nspden) :: vxc
     real(dp),intent(in) :: grho2(*)
     real(dp),intent(out) :: vxcgr(*)
     real(dp),intent(out), optional :: dvxci(npts,nspden + 1)
 
     !Local variables-------------------------------
-    integer  :: i, j, ipts, ixc, ndvxc, ngr2, nd2vxc, nvxcdgr, order
     integer, parameter :: n_blocks = 128
+    integer :: i, j, ipts, ixc, ndvxc, ngr2, nd2vxc, nvxcdgr, order
     integer :: ipte, nb
-    real(dp) :: rhotmp(nspden, n_blocks), exctmp(n_blocks), vxctmp(nspden, n_blocks)
-    real(dp) :: sigma(2*min(nspden,2)-1, n_blocks), vsigma(2*min(nspden,2)-1, n_blocks)
-    real(dp) :: v2rho2(3, n_blocks), v2rhosigma(6, n_blocks), v2sigma2(6, n_blocks)  
+    real(dp), dimension(n_blocks) :: exctmp(n_blocks)
+    real(dp), dimension(nspden, n_blocks) :: rhotmp, vxctmp
+    real(dp), dimension(2*min(nspden,2)-1, n_blocks) :: sigma, vsigma
+    real(dp), dimension(3, n_blocks) :: v2rho2
+    real(dp), dimension(6, n_blocks) :: v2rhosigma, v2sigma2
     real(dp), allocatable :: rho_(:,:), exc_(:), vxc_(:,:)
     !n(c) character(len=*), parameter :: subname='xc_getvxc'
 
@@ -542,6 +549,8 @@ contains
 
   end subroutine xc_getvxc
 
+
+  !> Initialize the names of the xc functionals used by ABINIT
   subroutine obj_init_abinit_xc_names_()
     if (abinit_init) return
 
@@ -570,4 +579,5 @@ contains
 
     abinit_init = .true.
   end subroutine obj_init_abinit_xc_names_
+
 end module module_xc

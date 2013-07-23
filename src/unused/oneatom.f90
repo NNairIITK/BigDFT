@@ -71,7 +71,7 @@ program oneatom
   call read_input_variables(iproc,'posinp',in, atoms, rxyz)
 
   if (iproc == 0) then
-     call print_general_parameters(nproc,in,atoms)
+     call print_general_parameters(in,atoms)
   end if
        
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)

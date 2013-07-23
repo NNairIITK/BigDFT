@@ -6,7 +6,8 @@ subroutine test_dictionaries0()
   !local variables
   integer :: ival,nval
   character(len=2) :: val
-  type(dictionary), pointer :: list
+  character(len=30) :: val2
+  type(dictionary), pointer :: list,dict_tmp
   !finding operations
 !!$  print *,' Filling a linked list' 
 !!$  call dict_init(list)
@@ -24,7 +25,7 @@ subroutine test_dictionaries0()
 !!$
 !!$  do ival=0,nval-1
 !!$     val=list//ival
-!!$     print *,'value',ival,val
+!!$     print *,'value',ival,valget
 !!$  end do
 !!$  
 !!$  call dict_free(list)
@@ -33,7 +34,20 @@ subroutine test_dictionaries0()
   !Test a dictionary
   !alternative way of initializing a dictionary
   !call dict_init(dict1)
+
   dict1=>dict_new()
+  call f_err_open_try()
+  ival=dict1//'Toto' 
+
+  call yaml_map('ival not existing, fake value',ival)
+
+  call yaml_map('An error has been raised',f_err_check())
+  call yaml_map('Its error id is',f_get_last_error())
+  !routine to retrieve the error
+  call f_dump_last_error()
+  call f_err_close_try()
+  call yaml_map('Error pipe is still full',f_err_check())
+ 
   ! a single scalar
 !!  call set(dict1//'',1)
 !!$  !can be also set like that, should be avoided
@@ -88,6 +102,59 @@ subroutine test_dictionaries0()
 
   call yaml_dict_dump(dict1)
   call dict_free(dict1)
+
+  dict1=>dict_new()
+
+  call set(dict1//'hgrid',0.5,fmt='(1pe17.5)')
+  call yaml_map('Length and size before',(/dict_len(dict1//'hgrid'),dict_size(dict1//'hgrid')/))
+  !call add(dict1//'hgrid','new')
+  call set(dict1//'hgrid'//0,'new')
+
+  call yaml_open_map('There was a hidden problem here')
+  call yaml_dict_dump(dict1)
+  call yaml_close_map()
+
+  call yaml_map('Value of dict1//hgrid',trim(dict_value(dict1//'hgrid')))
+
+  !retrieve value
+  val2=dict1//'hgrid' !dict_value(dict1//'hgrid')
+  call yaml_map('Value retrieved with equal sign',trim(val2))
+  
+  !test value of the dictionary, explicitly
+  dict_tmp=>dict1//'hgrid'
+  call yaml_map('Value explicitly written in the dictionary',trim(dict_tmp%data%value))
+
+  !test length and sizes of the dictionary
+  call yaml_map('Length and size after',(/dict_len(dict_tmp),dict_size(dict_tmp)/))
+
+  call dict_free(dict1)
+
+!stop
+  dict1=>dict_new()
+  call set(dict1//'hgrid',dict_new((/'test1' .is. '1','test2' .is. '2'/)))
+  call yaml_map('Length and size before',(/dict_len(dict1//'hgrid'),dict_size(dict1//'hgrid')/))
+  call set(dict1//'hgrid'//0,'new')
+
+  call yaml_open_map('Hidden problem here')
+  call yaml_dict_dump(dict1)
+  call yaml_close_map()
+
+  call yaml_map('Value of dict1//hgrid',trim(dict_value(dict1//'hgrid')))
+
+  !retrieve value
+  val2=dict1//'hgrid' !dict_value(dict1//'hgrid')
+  call yaml_map('Value retrieved with equal sign',trim(val2))
+  
+  !test value of the dictionary, explicitly
+  dict_tmp=>dict1//'hgrid'
+  call yaml_map('Verify that the child is still associated',associated(dict_tmp%child))
+
+  !test length and sizes of the dictionary
+  call yaml_map('Length and size after',(/dict_len(dict_tmp),dict_size(dict_tmp)/))
+
+  call dict_free(dict1)
+
+
 !!$
 !!$  !new test, build list on-the-fly
 !!$  dict1=list_new((/ .item. 'Val1', .item. 'Val2', .item. 'Val3' ,&
@@ -103,10 +170,10 @@ subroutine test_dictionaries1()
   use dictionaries
   implicit none
   !local variables
-   integer :: ival
+   integer :: ival,i
    type(dictionary), pointer :: dict2
    type(dictionary), pointer :: dict,dictA
-   type(dictionary), pointer :: dictA2
+   type(dictionary), pointer :: dictA2,dict_tmp
 
    !testing add
    call dict_init(dict)
@@ -219,12 +286,27 @@ subroutine test_dictionaries1()
    !  call append(dictA,dictA2)
    call yaml_dict_dump(dictA)
 
+!!$   !try to see if extra information can be added after the value
+!!$   call set(dictA//'Test Field',6,fmt='(i6.6)')
+!!$   ival = dictA//'Test Field'
+!!$   call yaml_map('Retrieving Test Field',ival)
+!!$   call yaml_map('Retrieving actual value',dict_value(dictA//'Test Field'))
+!!$
+!!$
+!!$   call set(dictA//'Test Field','6   #extra comment # extra')
+!!$   ival = dictA//'Test Field'
+!!$   call yaml_map('Retrieving Test Field Again',ival)
+!!$   call yaml_map('Retrieving actual value',dict_value(dictA//'Test Field'))
+!!$   call yaml_map('Index of comment',index(dict_value(dictA//'Test Field'),'#'))
+
    call yaml_comment('Prepend dictionary example',hfill='~')
 
    call yaml_map('Size of dict A',dict_size(dictA))
    call yaml_open_map('Dict A')
    call yaml_dict_dump(dictA)
    call yaml_close_map()
+
+
    call dict_init(dict2)
    call set(dict2//'Test1'//'Toto',5)
    call set(dict2//'Test1'//'Titi',6)
@@ -243,11 +325,80 @@ subroutine test_dictionaries1()
    call prepend(dictA,dict2)
    call yaml_map('Size of prepended',dict_size(dictA))
    call yaml_open_map('Prepended')
+   !call yaml_dict_dump2(dictA,verbatim=.true.)
    call yaml_dict_dump(dictA)
    call yaml_close_map()
    
    call yaml_map('Keys of prepended dict',dict_keys(dictA))
 
+   !perform an iterator on dictA
+   dict_tmp=>dict_next(dictA)
+   do while(associated(dict_tmp))
+      call yaml_map('Iterating in dictA',.true.)
+      call yaml_map('Key of dictA',dict_key(dict_tmp))
+      call yaml_map('Value of dictA',dict_value(dict_tmp))
+      dict_tmp=>dict_next(dict_tmp)
+   end do
+
+   call dict_free(dictA)
+
+   !fill a list and iterate over it
+   dictA=>dict_new()
+   do i=1,10
+      call add(dictA,'Value'//adjustl(trim(yaml_toa(i))))
+   end do
+
+   !perform an iterator on dict
+   dict_tmp=>dict_next(dictA)
+   do while(associated(dict_tmp))
+      call yaml_map('Item of dictA',dict_item(dict_tmp))
+      call yaml_map('Value of dictA',dict_value(dict_tmp))
+      dict_tmp=>dict_next(dict_tmp)
+   end do
+   call dict_free(dictA)
+
+   !example which has a bug
+   dict_tmp => list_new((/.item.'55',.item. '66'/))
+   dictA=>list_new((/.item. '5',.item. '6',.item. dict_tmp/))
+!!$!call yaml_open_sequence("",flow=.false.)
+!!$call yaml_sequence(advance="no")
+!!$call yaml_open_map("SUCCESS",flow=.false.)
+!!$call yaml_map("Id","0")
+!!$call yaml_map("Message","Operation has succeeded")
+!!$call yaml_map("Action","No action")
+!!$call yaml_close_map()
+!!$call yaml_sequence(advance="no")
+!!$call yaml_open_map("GENERIC_ERROR",flow=.false.)
+!!$call yaml_map("Id","1")
+!!$call yaml_map("Message","UNSPECIFIED")
+!!$call yaml_map("Action","UNKNOWN")
+!!$call yaml_close_map()
+!!$!call yaml_close_sequence()
+
+   !what should be, also this writing has problem in the indentation
+!!$    call yaml_sequence('5')
+!!$    call yaml_sequence('6')
+!!$    call yaml_sequence(advance='no')
+!!$    call yaml_open_sequence()
+!!$      call yaml_sequence('55')
+!!$      call yaml_sequence('66')
+!!$    call yaml_close_sequence()
+!!$
+   call yaml_open_sequence('List in a list')
+   call yaml_dict_dump(dictA,verbatim=.true.)
+   call yaml_dict_dump(dictA)
+   call yaml_dict_dump(dictA,flow=.true.,verbatim=.true.)
+   call yaml_dict_dump(dictA,flow=.true.)
+   call yaml_close_sequence()
+
+   !perform an iterator on dict
+   dict_tmp=>dict_next(dictA)
+   do while(associated(dict_tmp))
+      call yaml_map('Item of dictA',dict_item(dict_tmp))
+      call yaml_map('Key of dictA',dict_key(dict_tmp))
+      call yaml_map('Value of dictA',dict_value(dict_tmp))
+      dict_tmp=>dict_next(dict_tmp)
+   end do
    call dict_free(dictA)
 
  end subroutine test_dictionaries1

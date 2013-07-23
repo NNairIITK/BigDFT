@@ -1,7 +1,7 @@
 !> @file
 !!  Application of the Hamiltonian + orthonormalize constraints
 !! @author
-!!    Copyright (C) 2007-2011 CEA
+!!    Copyright (C) 2007-2013 CEA
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -22,6 +22,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   use yaml_output
   use gaussians, only: gaussian_basis
   implicit none
+  !Arguments
   logical, intent(in) :: scf
   integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag,itwfn
   character(len=3), intent(in) :: unblock_comms
@@ -44,7 +45,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   character(len=*), parameter :: subname='psitohpsi'
   logical :: unblock_comms_den,unblock_comms_pot,whilepot,savefields
   integer :: nthread_max,ithread,nthread,irhotot_add,irho_add,ispin,i_all,i_stat,correcth
-  integer :: ii,jj
+  !integer :: ii,jj
   !$ integer :: omp_get_max_threads,omp_get_thread_num,omp_get_num_threads
 
   
@@ -557,7 +558,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
                  pkernel,psi,pot(ispot),energs%eexctX)
          else
             !the psi should be transformed in real space
-            call exact_exchange_potential_round(iproc,nproc,at%astruct%geocode,orbs%nspin,Lzd%Glr,orbs,&
+            call exact_exchange_potential_round(iproc,nproc,orbs%nspin,Lzd%Glr,orbs,&
                 0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
                 pkernel,psi,pot(ispot),energs%eexctX)
 
@@ -1524,6 +1525,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    use yaml_output
    use gaussians, only: gaussian_basis
    implicit none
+   !Arguments
    integer, intent(in) :: iproc,nproc,idsx,iter
    type(DFT_wavefunction), intent(inout) :: wfn
    type(atoms_data), intent(in) :: at
@@ -1535,7 +1537,6 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    real(wp),optional, dimension(nlpspd%nprojel), intent(inout) :: proj
    !local variables
    integer :: i_all,i_stat
-   real(wp), dimension(:), pointer :: work
    character(len=*), parameter :: subname='hpsitopsi'
    !debug
    integer :: jorb,iat
@@ -1785,7 +1786,7 @@ real(8) function ddot(n,A,l1,B,l2)
   real(8)::scpr
   integer::i
 
-  scpr=0.00_dp
+  ddot=0.00_dp
   do i=1,n
    ddot=ddot+A(i)*B(i)
   end do
@@ -2046,7 +2047,7 @@ subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
 
   !print the found eigenvalues
   if (iproc == 0) then
-     call write_eigenvalues_data(nproc,tolerance,orbs,mom_vec)
+     call write_eigenvalues_data(tolerance,orbs,mom_vec)
   end if
 
   if (orbs%nspinor ==4) then
@@ -2070,12 +2071,14 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    real(gp), intent(in) :: wf
    type(orbitals_data), intent(inout) :: orbs
    !local variables
-   integer :: ikpt,iorb,melec,ii,ierr
+   real(gp), parameter :: pi=3.1415926535897932d0
+   real(gp), parameter :: sqrtpi=sqrt(pi) 
+   integer :: ikpt,iorb,melec,ii
    real(gp) :: charge, chargef
-   real(gp) :: ef,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
-   parameter(pi=3.1415926535897932d0)
-   real(gp)  ::a, x, xu, xd, f, df, tt  
-   real(gp)  ::sqrtpi ; parameter (sqrtpi=sqrt(pi)) 
+   real(gp) :: ef,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
+   real(gp) :: a, x, xu, xd, f, df, tt  
+   !integer :: ierr
+
    !write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
 
    orbs%eTS=0.0_gp  
@@ -2214,10 +2217,11 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
             cutoffd=.5d0*(1.d0+resd +exp(-xd**2)*(-a*xd**2 + .5d0*a+xd)/sqrtpi)
          end if
       enddo
-      if (cutoffu > 1.d-12 .or. cutoffd > 1.d-12 .and. iproc == 0) then
-         call yaml_warning('The last orbitals levels are occupation number != 0.0' // &
-             & ' lastu=' // trim(yaml_toa(cutoffu,fmt='(1pe8.1)')) // &
-             & ' lastd=' // trim(yaml_toa(cutoffd,fmt='(1pe8.1)')))
+
+      if ((cutoffu > 1.d-12 .or. cutoffd > 1.d-12) .and. iproc == 0) then
+         call yaml_warning('Occupation numbers do not fill all available levels' // &
+              ' lastu=' // trim(yaml_toa(cutoffu,fmt='(1pe8.1)')) // &
+              ' lastd=' // trim(yaml_toa(cutoffd,fmt='(1pe8.1)')))
       end if
       !if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
       orbs%efermi=ef
@@ -2682,108 +2686,102 @@ end subroutine wrong_components
 
 
 subroutine debug_hpsi(wfn,at,proj_G,paw,nlpspd)
-  use module_base
-  use module_types
-implicit none
-
+   use module_base
+   use module_types
+   implicit none
+   !Arguments
    type(nonlocal_psp_descriptors), intent(in) :: nlpspd
    type(DFT_wavefunction), intent(in) :: wfn
-   type(paw_objects),intent(in)::paw
+   type(paw_objects),intent(in) :: paw
    type(atoms_data), intent(in) :: at
    type(gaussian_basis),dimension(at%astruct%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
+   !Local variables   
+   integer :: ispsi_a,ispsi_b,ia,ib,iatype,ispinor
+   integer :: nvctr_c,nvctr_f,nvctr_tot
+   integer :: ncplx,nspinor
+   !integer :: i,istart_j,jlmn,j_shell,j_l,j_m
+   !integer :: mbseg_c,mbseg_f,mbvctr_c,mbvctr_f,istart_ck
+   integer :: ikpt,ispsi_k,iat,ilr,ilr_skip,iorb
+   integer :: isorb,ieorb,ispsi
+   logical :: dosome
+   real(gp),dimension(2) :: scpr
+   real(gp) :: scalprod(2,2)
+   real(dp) :: ddot
+   
+   write(*,*)'Calculate <PSI|H|PSI> for debugging'
+   
+   nvctr_c=wfn%Lzd%glr%wfd%nvctr_c
+   nvctr_f=wfn%Lzd%glr%wfd%nvctr_f
+   nvctr_tot=nvctr_c+7*nvctr_f
+   
+   ikpt=wfn%orbs%iokpt(1)
+   
+   ispsi_k=1
+   loop_kpt: do
 
-
-integer::i,istart_j,jlmn,j_shell,j_l,j_m,ispinor
-integer::ispsi_a,ispsi_b,ia,ib,iatype
-integer::nvctr_c,nvctr_f,nvctr_tot
-integer::ncplx,nspinor
-integer::mbseg_c,mbseg_f,mbvctr_c,mbvctr_f
-integer::ikpt,ispsi_k,iat,ilr,ilr_skip,iorb
-integer::isorb,ieorb,ispsi,istart_ck
-logical :: dosome, overlap
-real(gp),dimension(2)::scpr
-real(gp) ::scalprod(2,2)
-real(dp) :: ddot
-
-write(*,*)'Calculate <PSI|H|PSI> for debugging'
-
-nvctr_c=wfn%Lzd%glr%wfd%nvctr_c
-nvctr_f=wfn%Lzd%glr%wfd%nvctr_f
-nvctr_tot=nvctr_c+7*nvctr_f
-
-ikpt=wfn%orbs%iokpt(1)
-
-ispsi_k=1
-loop_kpt: do
-
-   call orbs_in_kpt(ikpt,wfn%orbs,isorb,ieorb,nspinor)
-
-   loop_lr: do ilr=1,wfn%Lzd%nlr
-      !do something only if at least one of the orbitals lives in the ilr
-      dosome=.false.
-      do iorb=isorb,ieorb
-         dosome = (wfn%orbs%inwhichlocreg(iorb+wfn%orbs%isorb) == ilr)
-         if (dosome) exit
-      end do
-      if (.not. dosome) cycle loop_lr
-
+      call orbs_in_kpt(ikpt,wfn%orbs,isorb,ieorb,nspinor)
+      
+      loop_lr: do ilr=1,wfn%Lzd%nlr
+         !do something only if at least one of the orbitals lives in the ilr
+         dosome=.false.
+         do iorb=isorb,ieorb
+            dosome = (wfn%orbs%inwhichlocreg(iorb+wfn%orbs%isorb) == ilr)
+            if (dosome) exit
+         end do
+         if (.not. dosome) cycle loop_lr
+      
       do iat=1,at%astruct%nat
            iatype=at%astruct%iatype(iat)
-           ispsi=ispsi_k
-         do iorb=isorb,ieorb
-            if (wfn%orbs%inwhichlocreg(iorb+wfn%orbs%isorb) /= ilr) then
-               !increase ispsi to meet orbital index
-               ilr_skip=wfn%orbs%inwhichlocreg(iorb+wfn%orbs%isorb)
-               ispsi=ispsi+(wfn%Lzd%Llr(ilr_skip)%wfd%nvctr_c+7*wfn%Lzd%Llr(ilr_skip)%wfd%nvctr_f)*nspinor
-               cycle
-            end if
-
-            !call plr_segs_and_vctrs(nlpspd%plr(iat),mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-            call ncplx_kpt(wfn%orbs%iokpt(iorb),wfn%orbs,ncplx)
-            !loop over all the components of the wavefunction
-            do ispinor=1,nspinor,ncplx
-              ispsi_a=ispsi
-              ispsi_b=ispsi
-              do ia=1,ncplx
-                 do ib=1,ncplx
-                    scalprod(ia,ib)=ddot(nvctr_tot,wfn%psi(ispsi_a),1,wfn%hpsi(ispsi_b),1)
-                    ispsi_b=ispsi_b+nvctr_tot
+              ispsi=ispsi_k
+            do iorb=isorb,ieorb
+               if (wfn%orbs%inwhichlocreg(iorb+wfn%orbs%isorb) /= ilr) then
+                  !increase ispsi to meet orbital index
+                  ilr_skip=wfn%orbs%inwhichlocreg(iorb+wfn%orbs%isorb)
+                  ispsi=ispsi+(wfn%Lzd%Llr(ilr_skip)%wfd%nvctr_c+7*wfn%Lzd%Llr(ilr_skip)%wfd%nvctr_f)*nspinor
+                  cycle
+               end if
+      
+               !call plr_segs_and_vctrs(nlpspd%plr(iat),mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+               call ncplx_kpt(wfn%orbs%iokpt(iorb),wfn%orbs,ncplx)
+               !loop over all the components of the wavefunction
+               do ispinor=1,nspinor,ncplx
+                 ispsi_a=ispsi
+                 ispsi_b=ispsi
+                 do ia=1,ncplx
+                    do ib=1,ncplx
+                       scalprod(ia,ib)=ddot(nvctr_tot,wfn%psi(ispsi_a),1,wfn%hpsi(ispsi_b),1)
+                       ispsi_b=ispsi_b+nvctr_tot
+                    end do
+                    ispsi_a=ispsi_a+nvctr_tot
                  end do
-                 ispsi_a=ispsi_a+nvctr_tot
-              end do
-              !then define the result
-              if (ncplx == 1) then
-                 scpr(1)=scalprod(1,1)
-              else if (ncplx == 2) then
-                 scpr(1)=scalprod(1,1)+scalprod(2,2)
-                 scpr(2)=scalprod(1,2)-scalprod(2,1)
-              end if
+                 !then define the result
+                 if (ncplx == 1) then
+                    scpr(1)=scalprod(1,1)
+                 else if (ncplx == 2) then
+                    scpr(1)=scalprod(1,1)+scalprod(2,2)
+                    scpr(2)=scalprod(1,2)-scalprod(2,1)
+                 end if
               write(*,'("<psi|H|psi> for kpt=,",i5," iat=",i5,"=>",2(f15.5,1x))')ikpt,iat,scpr
-              write(*,*)'ispsi_a','ispsi_b','nvctr_tot',ispsi_a,ispsi_b,nvctr_tot
-            end do !ispinor
-         end do !iorb
-      end do !iat
-   end do loop_lr
+                 write(*,*)'ispsi_a','ispsi_b','nvctr_tot',ispsi_a,ispsi_b,nvctr_tot
+               end do !ispinor
+            end do !iorb
+         end do !iat
+      end do loop_lr
 
-   !last k-point has been treated
-   if (ieorb == wfn%orbs%norbp) exit loop_kpt
+      !last k-point has been treated
+      if (ieorb == wfn%orbs%norbp) exit loop_kpt
    
-   ikpt=ikpt+1
-   ispsi_k=ispsi
+      ikpt=ikpt+1
+      ispsi_k=ispsi
 
-end do  loop_kpt !ikpt
+   end do  loop_kpt !ikpt
 
+   !if (.not. DistProjApply) then !TO BE REMOVED WITH NEW PROJECTOR APPLICATION
+   !   if (istart_ck-1 /= nlpspd%nprojel) &
+   !      &   stop 'incorrect once-and-for-all psp application'
+   !end if
 
-if (.not. DistProjApply) then !TO BE REMOVED WITH NEW PROJECTOR APPLICATION
-   if (istart_ck-1 /= nlpspd%nprojel) &
-      &   stop 'incorrect once-and-for-all psp application'
-end if
-
-
-
-end subroutine debug_hpsi
-
-
+END SUBROUTINE debug_hpsi
 
 
 subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)

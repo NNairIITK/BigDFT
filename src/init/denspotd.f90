@@ -120,7 +120,9 @@ subroutine dpbox_free(dpbox,subname)
      call memocc(i_stat,i_all,'ngatherarr',subname)
   end if
 
-  call mpi_environment_free(dpbox%mpi_env)
+  if (dpbox%mpi_env%mpi_comm /= bigdft_mpi%mpi_comm) then
+     call mpi_environment_free(dpbox%mpi_env)
+  end if
 
   dpbox=dpbox_null()
 

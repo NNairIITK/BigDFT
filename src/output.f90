@@ -19,7 +19,6 @@ subroutine print_logo()
   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   integer :: nthreads
   integer, parameter :: ln = 1024
-  character(len = ln), dimension(4) :: buf
 !$ integer :: omp_get_max_threads
 
 !  call yaml_comment('Daubechies Wavelets for DFT Pseudopotential Calculations',hfill='=')
@@ -97,6 +96,7 @@ subroutine print_logo()
 
 END SUBROUTINE print_logo
 
+
 subroutine print_configure_options()
   use yaml_output
   implicit none
@@ -111,10 +111,10 @@ subroutine print_configure_options()
   call yaml_map("Compilers (CC, FC, CXX)", buf(1:3))
   call bigdft_config_get_compiler_flags(buf(1), buf(2), buf(3), buf(4), ln)
   call yaml_open_map("Compiler flags")
-   call yaml_map("CFLAGS",   trim(buf(1)))
-   call yaml_map("FCFLAGS",  trim(buf(2)))
-   call yaml_map("CXXFLAGS", trim(buf(3)))
-   call yaml_map("CPPFLAGS", trim(buf(4)))
+  if (len_trim(buf(1))>0) call yaml_map("CFLAGS",   trim(buf(1)))
+  if (len_trim(buf(2))>0) call yaml_map("FCFLAGS",  trim(buf(2)))
+  if (len_trim(buf(3))>0) call yaml_map("CXXFLAGS", trim(buf(3)))
+  if (len_trim(buf(4))>0) call yaml_map("CPPFLAGS", trim(buf(4)))
   call yaml_close_map()
 !!$  call bigdft_config_get_linker(buf(1), buf(2), buf(3), buf(4), ln)
 !!$  call yaml_open_map("Linker")
@@ -123,14 +123,14 @@ subroutine print_configure_options()
 !!$   call yaml_map("LIBS",    trim(buf(3)))
 !!$   call yaml_map("Full linking options", trim(buf(4)))
 !!$  call yaml_close_map()
- 
+
  call yaml_close_map()
 
 end subroutine print_configure_options
 
 
 !> Print all general parameters
-subroutine print_general_parameters(nproc,in,atoms)
+subroutine print_general_parameters(in,atoms)
   use module_base
   use module_types
   use defs_basis
@@ -139,7 +139,6 @@ subroutine print_general_parameters(nproc,in,atoms)
   use module_input, only: case_insensitive_equiv
   implicit none
   !Arguments
-  integer, intent(in) :: nproc
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
 
@@ -745,12 +744,11 @@ end subroutine write_energies
 
 
 !> Write the eigenvalues-related information
-subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
+subroutine write_eigenvalues_data(etol,orbs,mom_vec)
   use module_base
   use module_types
   use yaml_output
   implicit none
-  integer, intent(in) :: nproc
   real(gp), intent(in) :: etol
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(:,:,:), pointer :: mom_vec

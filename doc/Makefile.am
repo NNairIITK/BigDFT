@@ -34,13 +34,15 @@ pdfs =
 endif
 
 if BUILD_DEVDOC
-devdocs = Doxygen/html
+devdocs = doxygen-doc
 else
 devdocs =
 endif
 
 doc_DATA = $(pdfs) $(devdocs)
 noinst_DATA = tests.xml
+
+doxygen-doc: Doxygen/html
 
 Doxygen/html: Doxygen.stamp web.stamp
 

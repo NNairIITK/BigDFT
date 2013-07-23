@@ -1288,7 +1288,7 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
       i_all=-product(shape(ofdcoef))*kind(ofdcoef)
       deallocate(ofdcoef,stat=i_stat)
       call memocc(i_stat,i_all,'ofdcoef',subname)
-   else if (npspcode == 10 .or. npspcode == 7 ) then !HGH-K case
+   else if (npspcode == 10 .or. npspcode == 7 .or. npspcode == 12) then !HGH-K case
 ! For PAW this is just the initial guess
       do l=1,lpx+1
          hsep(1,l)=psppar(l,1) !h11
@@ -1518,7 +1518,7 @@ subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,
       i_all=-product(shape(ofdcoef))*kind(ofdcoef)
       deallocate(ofdcoef,stat=i_stat)
       call memocc(i_stat,i_all,'ofdcoef',subname)
-   else if (npspcode == 10) then !HGH-K case
+   else if (npspcode == 10 .or. npspcode == 12) then !HGH-K case
       do l=1,lpx+1
          hsep(1,l)=psppar(l,1) !h11
          hsep(2,l)=psppar(l,4) !h12

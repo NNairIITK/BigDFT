@@ -1,7 +1,7 @@
 !> @file
 !!    Define routines for Lanczos diagonalization
 !! @author
-!!    Copyright (C) 2009-2011 BigDFT group
+!!    Copyright (C) 2009-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -18,11 +18,11 @@ module lanczos_interface
 
    !calculate the allocation dimensions
    public :: EP_inizializza,EP_initialize_start,EP_allocate_for_eigenprob,&
-        get_EP_dim,set_EP_shift,&
+      &   get_EP_dim,set_EP_shift,&
       &   EP_mat_mult,EP_make_dummy_vectors, EP_normalizza,EP_copy,EP_scalare,&
-      EP_copia_per_prova,&
+      &   EP_copia_per_prova,&
       &   EP_set_all_random,EP_GramSchmidt,EP_add_from_vect_with_fact,&
-      EP_Moltiplica, &
+      &   EP_Moltiplica, &
       &   EP_free,  EP_norma2_initialized_state ,EP_store_occupied_orbitals,EP_occprojections,&
       &   EP_multbyfact,EP_precondition,EP_Moltiplica4spectra,EP_ApplySinv,EP_ApplyS,&
       &   EP_scalare_multik
@@ -32,31 +32,31 @@ module lanczos_interface
    integer :: i_all,i_stat,ierr
    type(lanczos_args), pointer :: ha
 
-   real(8), pointer :: matrix(:,:)
+   real(kind=8), pointer :: matrix(:,:)
    real(wp), pointer :: Qvect   (:,:)
    real(wp), pointer :: dumQvect(:,:)
    real(wp), pointer :: occQvect(:)
 
-   real(8), pointer :: passed_matrix(:,:)
+   real(kind=8), pointer :: passed_matrix(:,:)
 
-   real(8) EP_shift
-   integer EP_dim
-   integer EP_dim_tot
+   real(kind=8) :: EP_shift
+   integer :: EP_dim
+   integer :: EP_dim_tot
 
    real(wp), dimension(:), pointer :: Qvect_tmp,wrk, wrk1, wrk2
-   real(wp), dimension(:), pointer ::  EP_norma2_initialized_state
+   real(wp), dimension(:), pointer :: EP_norma2_initialized_state
 
-   logical EP_doorthoocc
-   integer EP_norb
+   logical :: EP_doorthoocc
+   integer :: EP_norb
    real(wp), dimension(:), pointer :: EP_occprojections
 
    real(wp), dimension(:,:,:,:,:,:), allocatable :: psi_gross
-   logical , allocatable ::logrid(:,:,:)
+   logical , allocatable :: logrid(:,:,:)
 
    contains
 
    !!!  subroutine settapointer(p)
-   !!!    real(8), intent(inout), TARGET :: p(:,:)
+   !!!    real(kind=8), intent(inout), TARGET :: p(:,:)
    !!!    passed_matrix => p 
    !!!    return
    !!!  END SUBROUTINE settapointer
@@ -81,7 +81,7 @@ END FUNCTION get_EP_dim
 
 
 subroutine set_EP_shift(shift)
-   real(8) shift
+   real(kind=8) shift
    EP_shift=shift
    return
 END SUBROUTINE set_EP_shift
@@ -147,7 +147,7 @@ nullify(Qvect,dumQvect)
      implicit none
      !Arguments
      integer , intent(in):: m,k
-     real(8), intent (in) :: EV(1)
+     real(kind=8), intent (in) :: EV(1)
 
      call gemm('N','N', EP_dim , k, m  ,1.0_wp ,&
         &   Qvect(1,0)  , EP_dim ,&
@@ -420,7 +420,7 @@ nullify(Qvect,dumQvect)
 
 
 
-  real(8) function   EP_scalare(i,j)
+  real(kind=8) function   EP_scalare(i,j)
   implicit none
   !Arguments
   integer, intent(in) :: i,j
@@ -437,10 +437,10 @@ nullify(Qvect,dumQvect)
   END FUNCTION EP_scalare
 
 
-  real(8) function EP_scalare_interna(a,b)
+  real(kind=8) function EP_scalare_interna(a,b)
   implicit none
   !Arguments
-  real(8), intent(in):: a,b
+  real(kind=8), intent(in):: a,b
   !Local variables
   real(wp) :: sump, sumtot
 
@@ -458,9 +458,9 @@ nullify(Qvect,dumQvect)
 
   END FUNCTION EP_scalare_interna
 
-  !  real(8) function EP_scalare_interna(a,b)
+  !  real(kind=8) function EP_scalare_interna(a,b)
   !    implicit none
-  !    real(8), intent(in):: a(EP_dim), b(EP_dim)
+  !    real(kind=8), intent(in):: a(EP_dim), b(EP_dim)
   !    ! ::::::::::::::::::::::::::::::::::::::::::::::
   !    integer i,j
   !
@@ -996,9 +996,8 @@ nullify(Qvect,dumQvect)
      integer, intent(in) :: p,i
      real(gp) :: ene, gamma
      !Local variables
-     integer :: k,iatyp
+     integer :: k
      type(confpot_data), dimension(ha%orbs%norbp) :: confdatarr
-     type(gaussian_basis),dimension(ha%at%astruct%ntypes)::proj_G
 
      if( ha%nproc > 1) then
         if(i>=0) then
@@ -1037,12 +1036,7 @@ nullify(Qvect,dumQvect)
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
 
-
-
-
      if(  ha%iproc ==0 ) write(*,*)" done "
-
-
 
      if(p<0) then
         if(  ha%nproc/=1) then
@@ -1064,7 +1058,6 @@ nullify(Qvect,dumQvect)
               dumQvect(k,-p)=Qvect(k,p)+gamma*gamma*dumQvect(k,-i)
            end do
         endif
-
 
      else
         if(  ha%nproc/=1) then
@@ -1088,8 +1081,6 @@ nullify(Qvect,dumQvect)
 
      endif
 
-
-     return 
   END SUBROUTINE EP_Moltiplica4spectra
 
 
@@ -1325,7 +1316,7 @@ nullify(Qvect,dumQvect)
      implicit none
      !Arguments
      integer, intent(in) :: p,i
-     real(8), intent(in) :: fact
+     real(kind=8), intent(in) :: fact
 
      if(i.ge.0  .and. p<0) then
         call axpy(EP_dim, fact,   Qvect(1,i)  , 1,  dumQvect(1,-p)  , 1)

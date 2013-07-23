@@ -11,9 +11,20 @@
    toto: {one:  1, two:  2}
    Build Configure line:
      $(top_builddir)/src/flib/libflib.a -labinit -lxc   -lOpenCL -lm -lstdc++ -letsf_io_utils 
-      -letsf_io -lnetcdff -lnetcdf -lscalapack-openmpi -lblacs-openmpi -lblacsF77init-openmpi 
-      -llapack -lblas -larchive   -lyaml -pthread -lgthread-2.0 -lrt -lgio-2.0 -lgobject-2.0 
-      -lglib-2.0   -lgio-2.0 -lgobject-2.0 -lglib-2.0
+     -letsf_io -lnetcdff -lnetcdf -lscalapack-openmpi -lblacs-openmpi -lblacsF77init-openmpi 
+     -llapack -lblas -larchive   -lyaml -pthread -lgthread-2.0 -lrt -lgio-2.0 -lgobject-2.0 
+     -lglib-2.0   -lgio-2.0 -lgobject-2.0 -lglib-2.0
+   Build Configure line again:
+     FC=/opt/openmpi-1.6.1/bin/mpif90 FCFLAGS=-O2 -i_dynamic -msse4.2 -heap-arrays 1024 
+     -openmp 
+     --with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapack_l
+     p64.a  -Wl,--start-group  
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_lp64.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_thread.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_core.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_blacs_openmpi_lp64.a 
+     -Wl,--end-group -openmp -lpthread -lm
    Long string array: [compiler, compiler, compiler, compiler, compiler, compiler, compiler, 
                        compiler, compiler, compiler]
 ---
@@ -48,7 +59,7 @@
 ---
   #----------------------------------------------------------------------- Yaml Invoice Example
  invoice                               :  34843
- date                                  :  2013-05-17
+ date                                  :  2013-06-21
  bill-to: &id001
    given                               : Chris
    address:
@@ -73,7 +84,7 @@
   #--------------------------------------------------- Yaml Invoice Example, using dictionaries
  Retrieve the price value              :  2392.0000000000000
  invoice                               : 34843
- date                                  :  2013-05-17
+ date                                  :  2013-06-21
  bill-to:
    given                               : Chris
    family                              : Dumars
@@ -86,48 +97,122 @@
  - sku                                 : BL34D
    quantity                            : 4
    description                         : Basketball
-   price                               : 450.00000
+   price                               : 4.500000000E+02
  - sku                                 : BL4438
    quantity                            : 1
    description                         : Super Hoop
-   price                               : 2392.0000
- Tax                                   : 251.42000
- Total                                 : 4443.5200
+   price                               : 2.392000000E+03
+ Tax                                   : 2.514199982E+02
+ Total                                 : 4.443520020E+03
  Comments:
    Late afternoon is best. Backup contact is Nancy Billsmer @ 338-4338
 ---
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Error Handling Module Test
- Raising the TOTO error, errcode       :  3
+ Raising the TOTO error, errcode       :  13
  ERR_TOTO:
-   Id                                  : 3
+   Id                                  : 13
    Message:
      This is the error message for the error of kind 1 and it is written extensively on 
-      purpose to see whether yaml module prints it
+     purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4227072
+   Callback Procedure Address          : 4229376
+ Additional Info                       : Extra message added
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
+ Print the error ID                    :  13
  Raising the TOTO error, by name, without condition: ERR_TOTO
  ERR_TOTO:
-   Id                                  : 3
+   Id                                  : 13
    Message:
      This is the error message for the error of kind 1 and it is written extensively on 
-      purpose to see whether yaml module prints it
+     purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4227072
+   Callback Procedure Address          : 4229376
+ Additional Info                       : Extra message added again
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
- Callback done, errcode                :  3
+ Callback done, errcode                :  13
  GENERIC_ERROR:
    Id                                  : 1
    Message                             : UNSPECIFIED
    Action                              : UNKNOWN
+ Additional Info                       : Generic error raised, some message here
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Aie
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Error list
+ List of errors defined so far:
+ - SUCCESS:
+     Id                                : 0
+     Message                           : Operation has succeeded
+     Action                            : No action
+ - GENERIC_ERROR:
+     Id                                : 1
+     Message                           : UNSPECIFIED
+     Action                            : UNKNOWN
+ - ERR_NOT_DEFINED:
+     Id                                : 2
+     Message                           : The error id or name is invalid
+     Action                            : Control if the err id exists
+ - DICT_KEY_ABSENT:
+     Id                                : 3
+     Message                           : The dictionary has no key
+     Action                            : Internal error, contact developers
+ - DICT_ITEM_NOT_VALID:
+     Id                                : 4
+     Message                           : The item of this list is not correct
+     Action                            : Internal error, contact developers
+ - DICT_VALUE_ABSENT:
+     Id                                : 5
+     Message                           : The value for this key is absent
+ - DICT_INVALID:
+     Id                                : 6
+     Message                           : Dictionary is not associated
+ - DICT_INVALID_LIST:
+     Id                                : 7
+     Message                           : Current node is not a list
+ - DICT_CONVERSION_ERROR:
+     Id                                : 8
+     Message                           : Conversion error of the dictionary value
+     Action                            : Check the nature of the conversion
+ - YAML_INVALID:
+     Id                                : 9
+     Message                           : Generic error of yaml module, invalid operation
+ - YAML_STREAM_ALREADY_PRESENT:
+     Id                                : 10
+     Message                           : The stream is already present
+ - YAML_STREAM_NOT_FOUND:
+     Id                                : 11
+     Message                           : The stream has not been found
+ - YAML_UNIT_INCONSISTENCY:
+     Id                                : 12
+     Message:
+       The array of the units is not in agreement with the array of the streams
+     Action:
+       This is an internal error of yaml_output module, contact developers
+ - ERR_TOTO:
+     Id                                : 13
+     Message:
+       This is the error message for the error of kind 1 and it is written extensively on 
+       purpose to see whether yaml module prints it
+     Action:
+       For this error, contact the routine developer at mail at univ dot gov
+     Callback Procedure Address        : 4229376
+ - ERR_TITI:
+     Id                                : 14
+     Message                           : test2
+     Callback Procedure Address        : 4229312
+     Callback Procedure Data Address   : 140733872811136
+ - ERR_GRAVE:
+     Id                                : 15
+     Message                           : test2
+     Callback Procedure Address        : 4292080
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End of error list
+ Additional Info                       : This is the list of the errors
  ERR_TITI:
-   Id                                  : 4
+   Id                                  : 14
    Message                             : test2
-   Callback Procedure Address          : 4227008
-   Callback Procedure Data Address     : 140733595914768
+   Callback Procedure Address          : 4229312
+   Callback Procedure Data Address     : 140733872811136
+ Additional Info                       : Now TITI error has been raised
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TITI
  Callback done                         :  Yes
  Error check value                     :  Yes
@@ -135,13 +220,25 @@
  Error check code2                     :  Yes
 ---
   #Now we test dictionaries inside yaml.
+ ival not existing, fake value         :  0
+ An error has been raised              :  Yes
+ Its error id is                       :  5
+ DICT_VALUE_ABSENT:
+   Id                                  : 5
+   Message                             : The value for this key is absent
+ Additional Info                       : The key is "Toto"
+ Error pipe is still full              :  No
+ Toto                                  : 
  toto                                  : 1
  titi                                  : 1.0000000000000000
  tutu: [1, 2]
- List: [a: 0, 4, 1.0000000]
+ List: [a: 0, 4, 1.0]
  New key: {Example: 4}
  List length                           :  3
- Dictionary size                       :  5
+ Dictionary size                       :  6
+ Key1                                  : One
+ Key2                                  : Two
+ Key3                                  : Three
 ---
  List:
  - 1
@@ -223,58 +320,216 @@
    - 2
    - 3
  Keys of prepended dict                :  [ Test1, Test2, Stack, Stack2 ]
+ Iterating in dictA                    :  Yes
+ Key of dictA                          : Test1
+ Value of dictA                        : __dict__
+ Iterating in dictA                    :  Yes
+ Key of dictA                          : Test2
+ Value of dictA                        : __dict__
+ Iterating in dictA                    :  Yes
+ Key of dictA                          : Stack
+ Value of dictA                        : __list__
+ Iterating in dictA                    :  Yes
+ Key of dictA                          : Stack2
+ Value of dictA                        : __list__
+ Item of dictA                         :  0
+ Value of dictA                        : Value1
+ Item of dictA                         :  1
+ Value of dictA                        : Value2
+ Item of dictA                         :  2
+ Value of dictA                        : Value3
+ Item of dictA                         :  3
+ Value of dictA                        : Value4
+ Item of dictA                         :  4
+ Value of dictA                        : Value5
+ Item of dictA                         :  5
+ Value of dictA                        : Value6
+ Item of dictA                         :  6
+ Value of dictA                        : Value7
+ Item of dictA                         :  7
+ Value of dictA                        : Value8
+ Item of dictA                         :  8
+ Value of dictA                        : Value9
+ Item of dictA                         :  9
+ Value of dictA                        : Value10
+ List in a list:
+    #call yaml_sequence("5")
+    #call yaml_sequence("6")
+    #call yaml_sequence(advance="no")
+    #call yaml_open_sequence("",flow=.false.)
+    #call yaml_sequence("55")
+    #call yaml_sequence("66")
+    #call yaml_close_sequence()
+ - 5
+ - 6
+ - - 55
+   - 66
+    #call yaml_sequence("5")
+    #call yaml_sequence("6")
+    #call yaml_sequence(advance="no")
+    #call yaml_open_sequence("",flow=.true.)
+    #call yaml_sequence("55")
+    #call yaml_sequence("66")
+    #call yaml_close_sequence()
+ - 5
+ - 6
+ -  [55, 66]
+ Item of dictA                         :  0
+ Key of dictA                          : 
+ Value of dictA                        : 5
+ Item of dictA                         :  1
+ Key of dictA                          : 
+ Value of dictA                        : 6
+ Item of dictA                         :  2
+ Key of dictA                          : 
+ Value of dictA                        : __list__
 ---
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Routine-Tree creation example
  Calling sequence of Main program:
- - PS_Check:
-   - Routine 0
-   - Routine A
-   - Routine D:
-     - SubCase 1
-     - Subcase 2:
-       - SubSubcase1
-     - SubCase 3
-   - Routine E
-   - Routine F
+   Main program:
+     No. of calls                      :  1
+     Time of last opening              :  1371838687625319424
+     Total time (s)                    :  0
+     Profiling Enabled                 :  Yes
+     Subroutines:
+       PS_Check:
+         No. of calls                  :  1
+         Time of last opening          :  1371838687625379187
+         Total time (s)                :  0
+         Profiling Enabled             :  Yes
+         Subroutines:
+           Routine 0:
+             No. of calls              :  1
+             Total time (s)            : 3.5689380E-02
+             Profiling Enabled         :  Yes
+           Routine A:
+             No. of calls              :  1
+             Total time (s)            : 6.4268000E-05
+             Profiling Enabled         :  Yes
+           Routine D:
+             No. of calls              :  1
+             Total time (s)            : 6.1920600E-04
+             Profiling Enabled         :  Yes
+             Subroutines:
+               SubCase 1:
+                 No. of calls          :  1
+                 Total time (s)        : 6.1189000E-05
+                 Profiling Enabled     :  Yes
+               Subcase 2:
+                 No. of calls          :  1
+                 Total time (s)        : 2.1952100E-04
+                 Profiling Enabled     :  Yes
+                 Subroutines:
+                   SubSubcase1:
+                     No. of calls      :  1
+                     Total time (s)    : 6.2001000E-05
+                     Profiling Enabled :  Yes
+               SubCase 3:
+                 No. of calls          :  1
+                 Total time (s)        : 6.4030000E-05
+                 Profiling Enabled     :  Yes
+           Routine E:
+             No. of calls              :  1
+             Total time (s)            : 1.6119600E-04
+             Profiling Enabled         :  Yes
+           Routine F:
+             No. of calls              :  1
+             Total time (s)            : 6.8491000E-05
+             Profiling Enabled         :  Yes
  Routine dictionary:
    pot_ion:
      Array Id                          : pot_ion
      Size (Bytes)                      : 0
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0x828ca0
-     Address of metadata               : 140733595914624
+     Address of first element          : 0xd69960
+     Address of metadata               : 140733872810992
    xc_pot:
      Array Id                          : xc_pot
      Size (Bytes)                      : 48
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0x8224f0
-     Address of metadata               : 140733595914480
+     Address of first element          : 0xd69fc0
+     Address of metadata               : 140733872810848
    extra_ref:
      Array Id                          : extra_ref
      Size (Bytes)                      : 0
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0x82a120
-     Address of metadata               : 140733595914672
+     Address of first element          : 0xd69980
+     Address of metadata               : 140733872811040
    rhopot:
      Array Id                          : rhopot
      Size (Bytes)                      : 48
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0x826150
-     Address of metadata               : 140733595914528
+     Address of first element          : 0xd68f30
+     Address of metadata               : 140733872810896
  Global dictionary:
    potential:
      Array Id                          : potential
      Size (Bytes)                      : 24
      Allocating Routine Id             : Routine 0
-     Address of first element          : 0x821df0
-     Address of metadata               : 140733595914576
+     Address of first element          : 0xd68a70
+     Address of metadata               : 140733872810944
    Timestamp of Profile initialization:
-     2013-05-17 18:39:30.661
+     2013-06-21 20:18:07.625
+   Process Id:
+     0
+ Calling sequence of Main program:
+   Main program:
+     No. of calls                      :  1
+     Time of last opening              :  1371838687625319424
+     Total time (s)                    :  0
+     Profiling Enabled                 :  Yes
+     Subroutines:
+       PS_Check:
+         No. of calls                  :  1
+         Total time (s)                : 3.8712381E-02
+         Profiling Enabled             :  Yes
+         Subroutines:
+           Routine 0:
+             No. of calls              :  1
+             Total time (s)            : 3.5689380E-02
+             Profiling Enabled         :  Yes
+           Routine A:
+             No. of calls              : 4
+             Total time (s)            : 2.5119900E-04
+             Profiling Enabled         : Yes
+           Routine D:
+             No. of calls              :  1
+             Total time (s)            : 6.1920600E-04
+             Profiling Enabled         :  Yes
+             Subroutines:
+               SubCase 1:
+                 No. of calls          :  1
+                 Total time (s)        : 6.1189000E-05
+                 Profiling Enabled     :  Yes
+               Subcase 2:
+                 No. of calls          :  1
+                 Total time (s)        : 2.1952100E-04
+                 Profiling Enabled     :  Yes
+                 Subroutines:
+                   SubSubcase1:
+                     No. of calls      :  1
+                     Total time (s)    : 6.2001000E-05
+                     Profiling Enabled :  Yes
+               SubCase 3:
+                 No. of calls          :  1
+                 Total time (s)        : 6.4030000E-05
+                 Profiling Enabled     :  Yes
+           Routine E:
+             No. of calls              :  1
+             Total time (s)            : 1.6119600E-04
+             Profiling Enabled         :  Yes
+           Routine F:
+             No. of calls              :  1
+             Total time (s)            : 6.8491000E-05
+             Profiling Enabled         :  Yes
+ Global dictionary:
+   Timestamp of Profile initialization:
+     2013-06-21 20:18:07.625
    Process Id:
      0
  Memory Consumption Report:
    Tot. No. of Allocations             :  4
-   Tot. No. of Dellocations            :  4
+   Tot. No. of Deallocations           :  4
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  0

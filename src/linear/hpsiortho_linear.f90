@@ -1,7 +1,7 @@
 !> @file
-!! H|psi> and orthonormalization
+!! H|psi> and orthonormalization (linear scaling version)
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,39 +12,42 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-           hpsi_small, hpsi_noprecond)
+           energy_only, hpsi_small, hpsi_noprecond)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, it
-  type(DFT_wavefunction),target,intent(inout):: tmb
-  type(localizedDIISParameters),intent(inout) :: ldiis
-  real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
-  real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
-  real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
-  real(8),intent(inout):: trHold
+  integer, intent(in) :: iproc, nproc, it
+  type(DFT_wavefunction), target, intent(inout):: tmb
+  type(localizedDIISParameters), intent(inout) :: ldiis
+  real(kind=8), dimension(tmb%orbs%norb), intent(inout) :: fnrmOldArr
+  real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha
+  real(kind=8), intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
+  real(kind=8), intent(inout):: trHold
   logical,intent(out) :: energy_increased
-  real(8),dimension(tmb%npsidim_orbs),intent(inout):: lhphiold
+  real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold
   logical,intent(inout):: overlap_calculated
-  type(energy_terms),intent(in) :: energs
-  real(8),dimension(:),pointer:: hpsit_c, hpsit_f
+  type(energy_terms), intent(in) :: energs
+  real(kind=8), dimension(:), pointer:: hpsit_c, hpsit_f
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-  real(kind=8),dimension(tmb%npsidim_orbs),intent(out) :: hpsi_small
-  real(kind=8),dimension(tmb%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
+  logical, intent(in) :: energy_only
+  real(kind=8), dimension(tmb%npsidim_orbs), intent(out) :: hpsi_small
+  real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: hpsi_noprecond
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
-  real(kind=8) :: ddot, tt, eval_zero, gnrmArr
-  character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
-  real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
-  real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
-  real(kind=8),dimension(:),allocatable :: hpsi_conf, hpsi_tmp
-  real(kind=8),dimension(:),pointer :: kernel_compr_tmp
-  type(sparseMatrix) :: lagmat
-  real(kind=8),dimension(:),allocatable :: prefac
+  integer :: matrixindex_in_compressed
+  real(kind=8) :: ddot, tt, gnrmArr
+  !real(kind=8) :: eval_zero
+  character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
+  real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
+  real(kind=8), dimension(:,:), allocatable :: fnrmOvrlpArr, fnrmArr
+  real(kind=8), dimension(:), allocatable :: hpsi_conf, hpsi_tmp
+  real(kind=8), dimension(:), pointer :: kernel_compr_tmp
+  !type(sparseMatrix) :: lagmat
+  real(kind=8), dimension(:), allocatable :: prefac
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
 
@@ -65,11 +68,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end do
       call timing(iproc,'eglincomms','OF')
   end if
-
-  allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
-  call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
-  allocate(fnrmArr(tmb%orbs%norb,2), stat=istat)
-  call memocc(istat, fnrmArr, 'fnrmArr', subname)
 
   ! by default no quick exit
   energy_increased=.false.
@@ -95,13 +93,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call vcopy(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
           !ii=0
           !do iseg=1,tmb%linmat%denskern%nseg
-          !    do jorb=tmb%linmat%denskern%keyg(1,iseg),tmb%linmat%denskern%keyg(2,iseg)
+          !    do jorb=tmb%linmat%denskern%keyg(1,iseg), tmb%linmat%denskern%keyg(2,iseg)
           !        ii=ii+1
           !        iiorb = (jorb-1)/tmb%orbs%norb + 1
           !        jjorb = jorb - (iiorb-1)*tmb%orbs%norb
               do ii=1,tmb%linmat%denskern%nvctr
-                      iiorb = tmb%linmat%denskern%orb_from_index(ii,1)
-                      jjorb = tmb%linmat%denskern%orb_from_index(ii,2)
+                      iiorb = tmb%linmat%denskern%orb_from_index(1,ii)
+                      jjorb = tmb%linmat%denskern%orb_from_index(2,ii)
                   if(iiorb==jjorb) then
                       tmb%linmat%denskern%matrix_compr(ii)=0.d0
                   else
@@ -115,13 +113,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
               ilr=tmb%orbs%inwhichlocreg(iorb)
               !ii=0
               !do iseg=1,tmb%linmat%denskern%nseg
-              !    do jorb=tmb%linmat%denskern%keyg(1,iseg),tmb%linmat%denskern%keyg(2,iseg)
+              !    do jorb=tmb%linmat%denskern%keyg(1,iseg), tmb%linmat%denskern%keyg(2,iseg)
               !        ii=ii+1
               !        iiorb = (jorb-1)/tmb%orbs%norb + 1
               !        jjorb = jorb - (iiorb-1)*tmb%orbs%norb
               do ii=1,tmb%linmat%denskern%nvctr
-                      iiorb = tmb%linmat%denskern%orb_from_index(ii,1)
-                      jjorb = tmb%linmat%denskern%orb_from_index(ii,2)
+                      iiorb = tmb%linmat%denskern%orb_from_index(1,ii)
+                      jjorb = tmb%linmat%denskern%orb_from_index(2,ii)
                       if(iiorb==jjorb .and. iiorb==iorb) then
                           ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
                           call dscal(ncount, kernel_compr_tmp(ii), tmb%hpsi(ist), 1)
@@ -146,6 +144,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
   end if
 
+  iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
+  deallocate(hpsittmp_c, stat=istat)
+  call memocc(istat, iall, 'hpsittmp_c', subname)
+  iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
+  deallocate(hpsittmp_f, stat=istat)
+  call memocc(istat, iall, 'hpsittmp_f', subname)
+
 
   ! make lagmat a structure with same sparsity as h
   !call nullify_sparsematrix(lagmat)
@@ -167,7 +172,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   trH=0.d0
   call timing(iproc,'eglincomms','ON')
   do iorb=1,tmb%orbs%norb
-     ii=tmb%linmat%ham%matrixindex_in_compressed(iorb,iorb)
+     ii=matrixindex_in_compressed(tmb%linmat%ham,iorb,iorb)
      trH = trH + tmb%linmat%ham%matrix_compr(ii)
   end do
   call timing(iproc,'eglincomms','OF')
@@ -189,6 +194,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           energy_increased=.true.
       end if
   end if
+
+  allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
+  call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
+  allocate(fnrmArr(tmb%orbs%norb,2), stat=istat)
+  call memocc(istat, fnrmArr, 'fnrmArr', subname)
 
   ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
   ! of the previous iteration (fnrmOvrlpArr).
@@ -221,7 +231,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
           if(tt>.6d0 .and. trH<trHold) then
               alpha(iorb)=alpha(iorb)*1.1d0
-          else
+          ! apply a threshold so that alpha never goes below around 1.d-2
+          else if (alpha(iorb)>1.7d-3) then
               alpha(iorb)=alpha(iorb)*.6d0
           end if
           !!alpha(iorb)=min(alpha(iorb),1.5d0)
@@ -231,9 +242,30 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
   fnrmMax=sqrt(fnrmMax)
+
+  iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)
+  deallocate(fnrmOvrlpArr, stat=istat)
+  call memocc(istat, iall, 'fnrmOvrlpArr', subname)
+
+  iall=-product(shape(fnrmArr))*kind(fnrmArr)
+  deallocate(fnrmArr, stat=istat)
+  call memocc(istat, iall, 'fnrmArr', subname)
+
+  ! Determine the mean step size for steepest descent iterations.
+  tt=sum(alpha)
+  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  alpha_mean=tt/dble(tmb%orbs%norb)
+  alpha_max=maxval(alpha)
+  call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call dcopy(tmb%npsidim_orbs, hpsi_small, 1, lhphiold, 1)
   call timing(iproc,'eglincomms','OF')
+
+  ! if energy has increased or we only wanted to calculate the energy, not gradient, we can return here
+  ! rather than calculating the preconditioning for nothing
+  if ((energy_increased .or. energy_only) .and. target_function/=TARGET_FUNCTION_IS_HYBRID) return
+
   ! Precondition the gradient.
   if(iproc==0) then
       write(*,'(a)',advance='no') 'Preconditioning... '
@@ -276,7 +308,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   if(target_function==TARGET_FUNCTION_IS_HYBRID) then
      allocate(hpsi_tmp(tmb%npsidim_orbs), stat=istat)
-     call memocc(istat, hpsi_conf, 'hpsi_conf', subname)
+     call memocc(istat, hpsi_tmp, 'hpsi_tmp', subname)
      ist=1
      do iorb=1,tmb%orbs%norbp
         iiorb=tmb%orbs%isorb+iorb
@@ -294,7 +326,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      end do
 
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
-          tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
+          tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
           nit_precond,tmb%npsidim_orbs,hpsi_tmp,tmb%confdatarr,gnrm,gnrm_zero)
 
      ! temporarily turn confining potential off...
@@ -303,7 +335,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      prefac(:)=tmb%confdatarr(:)%prefac
      tmb%confdatarr(:)%prefac=0.0d0
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
-          tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
+          tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
           nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero) ! prefac should be zero
      call daxpy(tmb%npsidim_orbs, 1.d0, hpsi_tmp(1), 1, hpsi_small(1), 1)
      ! ...revert back to correct value
@@ -320,7 +352,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      call memocc(istat, iall, 'hpsi_tmp', subname)
   else
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
-          tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
+          tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
           nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero)
    end if
 
@@ -366,30 +398,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   gnrm=sqrt(gnrm/dble(tmb%orbs%norb))
   gnrmMax=sqrt(gnrmMax)
   if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
-
-
-  ! Determine the mean step size for steepest descent iterations.
-  tt=sum(alpha)
-  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  alpha_mean=tt/dble(tmb%orbs%norb)
-  alpha_max=maxval(alpha)
-  call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   call timing(iproc,'eglincomms','OF')
-
-  iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)
-  deallocate(fnrmOvrlpArr, stat=istat)
-  call memocc(istat, iall, 'fnrmOvrlpArr', subname)
-
-  iall=-product(shape(fnrmArr))*kind(fnrmArr)
-  deallocate(fnrmArr, stat=istat)
-  call memocc(istat, iall, 'fnrmArr', subname)
-
-  iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
-  deallocate(hpsittmp_c, stat=istat)
-  call memocc(istat, iall, 'hpsittmp_c', subname)
-  iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
-  deallocate(hpsittmp_f, stat=istat)
-  call memocc(istat, iall, 'hpsittmp_f', subname)
 
 
 end subroutine calculate_energy_and_gradient_linear
@@ -405,18 +414,18 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, it
-  type(localizedDIISParameters),intent(inout) :: ldiis
-  type(DFT_wavefunction),target,intent(inout) :: tmb
-  real(kind=8),dimension(tmb%npsidim_orbs),intent(inout) :: lphiold
-  real(kind=8),intent(in) :: trH, alpha_mean, alpha_max
-  real(kind=8),dimension(tmb%orbs%norbp),intent(inout) :: alpha, alphaDIIS
-  real(kind=8),dimension(tmb%npsidim_orbs),intent(inout) :: hpsi_small
-  real(kind=8),dimension(tmb%npsidim_orbs),optional,intent(out) :: psidiff
+  type(localizedDIISParameters), intent(inout) :: ldiis
+  type(DFT_wavefunction), target,intent(inout) :: tmb
+  real(kind=8), dimension(tmb%npsidim_orbs), intent(inout) :: lphiold
+  real(kind=8), intent(in) :: trH, alpha_mean, alpha_max
+  real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha, alphaDIIS
+  real(kind=8), dimension(tmb%npsidim_orbs), intent(inout) :: hpsi_small
+  real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: psidiff
   logical, intent(in) :: ortho
   
   ! Local variables
   integer :: istat, iall, i
-  character(len=*),parameter :: subname='hpsitopsi_linear'
+  character(len=*), parameter :: subname='hpsitopsi_linear'
 
   call DIISorSD(iproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold)
   if(iproc==0) then

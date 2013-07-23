@@ -6,7 +6,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
- 
+
+
+!> Reformat one wavefunction
 subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,& !n(c) iproc (arg:1)
      rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
   use module_base
@@ -602,6 +604,7 @@ contains
 
 END MODULE internal_io
 
+
 subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      & hx,hy,hz,at,wfd,rxyz_old,rxyz,psi,eval,psifscf)
   use module_base
@@ -1039,17 +1042,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
 END SUBROUTINE writeonewave
 
 
-
-!> @file
-!!  Routine to reformat one support function (linear scaling). Adapted version of reformatonewave.
-!! @author
-!!    Copyright (C) 2010-2011 BigDFT group 
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
- 
-! make frag_trans the argument so can eliminate need for interface
+!> Make frag_trans the argument so can eliminate need for interface
 subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,& 
      hgrids,n,centre_old,centre_new,da,frag_trans,psi)
   use module_base
@@ -1152,7 +1145,9 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
      stop 'only 1 discrete operation allowed right now'
   end if
 
-  call field_rototranslation(nd,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
+  !call field_rototranslation(nd,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
+  !     hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
        hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
 
   if (size(frag_trans%discrete_operations)>0) then
@@ -1209,7 +1204,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 END SUBROUTINE reformat_one_supportfunction
 
 
-!call the routine which performs the interpolation in each direction
+!> Call the routine which performs the interpolation in each direction
 subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
  use module_base
  implicit none
@@ -1225,9 +1220,11 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
  !local variables
  character(len=*), parameter :: subname='morph_and_transpose'
  real(gp), parameter  :: tol=1.e-14_gp
- integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me,k2,k1
- real(gp) :: dt,tt,t0_l,ksh1,ksh2,k,kold,alpha,diff
+ integer :: i_all,i_stat,nunit,m_isf,i,j,l,ms,me,k1
+ real(gp) :: dt,tt,t0_l,diff
  real(gp), dimension(:), allocatable :: shf !< shift filter
+!!$ integer :: k2
+!!$ real(gp) :: k,kold,ksh1,ksh2,alpha
 
  !assume for the moment that the grid spacing is constant
  !call f_malloc_routine_id(subname)
@@ -1242,56 +1239,59 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
  !number of points for a unit displacement
  nunit=nphi/nrange 
 
-
  !apply the interpolating filter to the output
  do j=1,ndat
     psi_out(j,:)=0.0_gp
     do i=1,nout
 
-       kold=-1000.0_gp
-       find_trans: do l=1,nin
-          k=real(l,gp)+t0_field(l,j)
-          if (k-real(i,gp) > tol) exit find_trans
-          kold=k
-       end do find_trans
+       !find inverse
+       call find_inverse(nin,i,t0_field(1,j),t0_l,k1)
+!!$       kold=-1000.0_gp
+!!$       find_trans: do l=1,nin
+!!$          k=real(l,gp)+t0_field(l,j)
+!!$          if (k-real(i,gp) > tol) exit find_trans
+!!$          kold=k
+!!$          !print *,l,k,t0_field(l,j),i
+!!$       end do find_trans
+!!$       ! want to use either l or l-1 to give us point i - pick closest
+!!$       if (k-real(i,gp) < -kold+real(i,gp)) then
+!!$          ksh1=k-real(i,gp)
+!!$          ksh2=-kold+real(i,gp)
+!!$          k1=l
+!!$          k2=l-1
+!!$          if (k2==0) then
+!!$             k2=1
+!!$             ksh2=ksh1
+!!$          end if
+!!$          if (k1==nin+1) then
+!!$             k1=nin
+!!$             ksh1=ksh2
+!!$          end if
+!!$       else
+!!$          ksh1=-kold+real(i,gp)
+!!$          ksh2=k-real(i,gp)
+!!$          k1=l-1
+!!$          k2=l
+!!$          if (k1==0) then
+!!$             k1=1
+!!$             ksh1=ksh2
+!!$          end if
+!!$          if (k2==nin+1) then
+!!$             k2=nin
+!!$             ksh2=ksh1
+!!$          end if
+!!$       end if
+!!$
+!!$       if (ksh1==0.0_gp .or. k1==k2) then !otherwise already have exactly on point
+!!$          ksh2=1.0_gp
+!!$          ksh1=0.0_gp
+!!$       end if 
+!!$
+!!$       alpha=ksh2/(ksh1+ksh2)
+!!$
+!!$       t0_l=alpha*t0_field(k1,j)+(1.0_gp-alpha)*t0_field(k2,j)
+!!$       !end of find_inverse
 
-       ! want to use either l or l-1 to give us point i - pick closest
-       if (k-real(i,gp) < -kold+real(i,gp)) then
-          ksh1=k-real(i,gp)
-          ksh2=-kold+real(i,gp)
-          k1=l
-          k2=l-1
-          if (k2==0) then
-             k2=1
-             ksh2=ksh1
-          end if
-          if (k1==nin+1) then
-             k1=nin
-             ksh1=ksh2
-          end if
-       else
-          ksh1=-kold+real(i,gp)
-          ksh2=k-real(i,gp)
-          k1=l-1
-          k2=l
-          if (k1==0) then
-             k1=1
-             ksh1=ksh2
-          end if
-          if (k2==nin+1) then
-             k2=nin
-             ksh2=ksh1
-          end if
-       end if
-
-       if (ksh1==0.0_gp .or. k1==k2) then !otherwise already have exactly on point
-          ksh2=1.0_gp
-          ksh1=0.0_gp
-       end if 
-
-       alpha=ksh2/(ksh1+ksh2)
-
-       t0_l=alpha*t0_field(k1,j)+(1.0_gp-alpha)*t0_field(k2,j)
 
        dt=t0_l-nint(t0_l)
    
@@ -1299,27 +1299,8 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
 
        if (abs(diff - dt) < abs(diff+dt)) dt=-dt
 
-       !evaluate the shift
-       ish=nint(real(nunit,gp)*dt)
-
-       if (ish<=0) then
-          shf(-m_isf)=0.0_gp
-       else
-          shf(-m_isf)=phi(ish)  
-       end if 
-       ipos=ish
-
-       do l=-m_isf+1,m_isf-1 !extremes excluded
-          !position of the shifted argument in the phi array
-          ipos=ipos+nunit
-          shf(l)=phi(ipos)  
-       end do
-
-       if (ish<=0) then
-          shf(m_isf)=phi(ipos+nunit)
-       else
-          shf(m_isf)=0.0_gp
-       end if 
+       !define filter for the interpolation starting from a constant shift
+       call define_filter(dt,nrange,nphi,phi,shf)
 
        !here the boundary conditions have to be considered
        tt=0.0_gp
@@ -1328,11 +1309,12 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
        do l=ms,me
           tt=tt+shf(l)*psi_in(k1+l,j)
        end do
+       !end of interpolate coefficient
+
 
        if (i > 0 .and. i < nout) psi_out(j,i)=tt
 
     end do
-
  end do
 
 ! call f_free(shf)
@@ -1344,6 +1326,129 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
 
 end subroutine morph_and_transpose
 
+subroutine define_filter(dt,nrange,nphi,phi,shf)
+  use module_base
+  implicit none
+  integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+  integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+  real(gp), intent(in) :: dt
+  real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+  real(gp), dimension(-nrange/2:nrange/2), intent(out) :: shf !< interpolating filter to be applied
+  !local variables
+  integer :: nunit,ish,ipos,m_isf,l,jisf
+  
+  m_isf=nrange/2
+  !number of points for a unit displacement
+  nunit=nphi/nrange 
+  
+  !evaluate the shift
+  ish=nint(real(nunit,gp)*dt)
+
+  !starting point in the filter definition
+  ipos=ish!+1
+  if (ish<= 0) then
+     jisf=-(abs(ish))/nunit-1
+  else if (ish > 0) then
+     jisf=ish/nunit+1
+  else
+     jisf=0
+  end if
+  jisf=jisf-m_isf
+
+  !fill the filters in its nonzero coefficients
+  do l=-m_isf,m_isf
+     if (jisf >= -m_isf .and. jisf <= m_isf) then
+        shf(l)=phi(ipos)
+     else
+        shf(l)=0.0_gp
+     end if
+     jisf=jisf+1
+     ipos=ipos+nunit
+  end do
+
+!!$  !old method
+!!$  if (ish<=0) then
+!!$     shf(-m_isf)=0.0_gp
+!!$  else
+!!$     shf(-m_isf)=phi(ish)  
+!!$  end if
+!!$  ipos=ish
+!!$  
+!!$  do l=-m_isf+1,m_isf-1 !extremes excluded
+!!$     !position of the shifted argument in the phi array
+!!$     ipos=ipos+nunit
+!!$     shf(l)=phi(ipos)  
+!!$  end do
+!!$  
+!!$  if (ish<=0) then
+!!$     shf(m_isf)=phi(ipos+nunit)
+!!$  else
+!!$     shf(m_isf)=0.0_gp
+!!$  end if
+
+end subroutine define_filter
+
+
+!> Given a translation vector, find the inverse one
+subroutine find_inverse(nin,iout,t0_field,t0_l,k1)
+  use module_base
+  use yaml_output
+  implicit none
+  integer, intent(in) :: iout                      !< Point of the new grid from which the inverse has to be found
+  integer, intent(in) :: nin                       !< Number of points of the input grid
+  real(gp), dimension(nin), intent(in) :: t0_field !< Array of displacements of the input grid
+  integer, intent(out) :: k1                       !< Starting point of the input grid from which the interplation should be calculated
+  real(gp), intent(out) :: t0_l                    !< Resulting shift from the starting point, from which the filter has to be calculated
+  !local variables
+  real(gp), parameter  :: tol=1.e-14_gp
+  integer :: l,k2
+  real(gp) :: ksh1,ksh2,k,kold,alpha
+
+  kold=-1000.0_gp
+  find_trans: do l=1,nin
+     k=real(l,gp)+t0_field(l)
+     if (k-real(iout,gp) > tol) exit find_trans
+     kold=k
+  end do find_trans
+  ! want to use either l or l-1 to give us point i - pick closest
+  if (k-real(iout,gp) < -kold+real(iout,gp)) then
+     ksh1=k-real(iout,gp)
+     ksh2=-kold+real(iout,gp)
+     k1=l
+     k2=l-1
+     if (k2==0) then
+        k2=1
+        ksh2=ksh1
+     end if
+     if (k1==nin+1) then
+        k1=nin
+        ksh1=ksh2
+     end if
+  else
+     ksh1=-kold+real(iout,gp)
+     ksh2=k-real(iout,gp)
+     k1=l-1
+     k2=l
+     if (k1==0) then
+        k1=1
+        ksh1=ksh2
+     end if
+     if (k2==nin+1) then
+        k2=nin
+        ksh2=ksh1
+     end if
+  end if
+
+  if (ksh1==0.0_gp .or. k1==k2) then !otherwise already have exactly on point
+     ksh2=1.0_gp
+     ksh1=0.0_gp
+  end if
+
+  alpha=ksh2/(ksh1+ksh2)
+
+  t0_l=alpha*t0_field(k1)+(1.0_gp-alpha)*t0_field(k2)
+
+end subroutine find_inverse
 
 subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
    use module_base
@@ -1429,6 +1534,7 @@ subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
    call memocc(i_stat,i_all,'y',subname)
 END SUBROUTINE my_scaling_function4b2B
 
+
 subroutine define_rotations(da,newz,boxc_old,boxc_new,theta,hgrids_old,ndims_old,&
      hgrids_new,ndims_new,dx,dy,dz)
   use module_base
@@ -1458,19 +1564,24 @@ subroutine define_rotations(da,newz,boxc_old,boxc_new,theta,hgrids_old,ndims_old
         x=-boxc_old(1)
         do i=1,ndims_old(1)
            dotp=newz(1)*x+newz(2)*y+newz(3)*z
-           dx(i,j+(k-1)*ndims_old(2)) = ( da(1) - x + dotp*newz(1) - cost*(-x + dotp*newz(1)) &
-                                      + sint*(z*newz(2) - y*newz(3)) ) / hgrids_old(1)
+!!$           dx(i,j+(k-1)*ndims_old(2)) = ( da(1) - x + dotp*newz(1) - cost*(-x + dotp*newz(1)) &
+!!$                                      + sint*(z*newz(2) - y*newz(3)) ) / hgrids_old(1)
+           dx(i,j+(k-1)*ndims_old(2)) = xp_xyz(da(1),theta,newz,x,y,z) / hgrids_old(1)
            x=x+hgrids_old(1)
+
         end do
+        !if (j==1 .and. k==1) print *,'test vector',dx(:,j+(k-1)*ndims_old(2)),'x,y,z',x,y,z,theta,sint,cost,'newz',newz
         !fill the second vector
         x=-boxc_new(1)
         do i=1,ndims_new(1)
-           dy(j,k+(i-1)*ndims_old(3)) = ( da(2) - y &
-                                      + y*(cost + onemc*newz(2)**2) + z*(-(sint*newz(1)) &
-                                      + onemc*newz(2)*newz(3)) - ((onemc*newz(1)*newz(2) &
-                                      + sint*newz(3))*(-x  + sint*(z*newz(2) - y*newz(3)) &
-                                      + onemc*newz(1)*(y*newz(2) + z*newz(3)))) &
-                                      / (cost + onemc*newz(1)**2) ) / hgrids_old(2)
+           dy(j,k+(i-1)*ndims_old(3)) = yp_xpyz(da(2),theta,newz,x,y,z) / hgrids_old(2)
+!!$           dy(j,k+(i-1)*ndims_old(3)) = ( da(2) - y &
+!!$                                      + y*(cost + onemc*newz(2)**2) + z*(-(sint*newz(1)) &
+!!$                                      + onemc*newz(2)*newz(3)) - ((onemc*newz(1)*newz(2) &
+!!$                                      + sint*newz(3))*(-x  + sint*(z*newz(2) - y*newz(3)) &
+!!$                                      + onemc*newz(1)*(y*newz(2) + z*newz(3)))) &
+!!$                                      / (cost + onemc*newz(1)**2) ) / hgrids_old(2)
+
            x=x+hgrids_new(1)
         end do
         y=y+hgrids_old(2)
@@ -1480,9 +1591,11 @@ subroutine define_rotations(da,newz,boxc_old,boxc_new,theta,hgrids_old,ndims_old
      do j=1,ndims_new(2)
         x=-boxc_new(1)
         do i=1,ndims_new(1)
-           dz(k,i+(j-1)*ndims_new(1)) = ( da(3) - z &
-                                      + (sint*(newz(1)*y - newz(2)*x) - onemc*newz(3)*(newz(1)*x + newz(2)*y) + z) &
-                                      / (cost + onemc*newz(3)**2) ) / hgrids_old(3)
+           dz(k,i+(j-1)*ndims_new(1)) = zp_xpypz(da(3),theta,newz,x,y,z) / hgrids_old(3)
+!!$           dz(k,i+(j-1)*ndims_new(1)) = ( da(3) - z &
+!!$                                      + (sint*(newz(1)*y - newz(2)*x) - onemc*newz(3)*(newz(1)*x + newz(2)*y) + z) &
+!!$                                      / (cost + onemc*newz(3)**2) ) / hgrids_old(3)
+
            x=x+hgrids_new(1)
         end do
         y=y+hgrids_new(2)
@@ -1490,7 +1603,66 @@ subroutine define_rotations(da,newz,boxc_old,boxc_new,theta,hgrids_old,ndims_old
      z=z+hgrids_old(3)
   end do
 
+contains
+
+  pure function xp_xyz(dx,theta,newz,x,y,z)
+    use module_base
+    implicit none
+    real(gp), intent(in) :: dx,theta,x,y,z
+    real(gp), dimension(3), intent(in) :: newz
+    real(gp) :: xp_xyz
+    !local variables
+    real(gp) :: cost,sint,onemc,dotp
+
+    sint=sin(theta)
+    cost=cos(theta)
+    onemc=1.0_gp-cost
+    dotp=newz(1)*x+newz(2)*y+newz(3)*z
+
+    xp_xyz=dx-x+dotp*newz(1) - cost*(-x + dotp*newz(1)) + sint*(z*newz(2)-y*newz(3))
+
+  end function xp_xyz
+
+  pure function yp_xpyz(dy,theta,newz,xp,y,z)
+    use module_base
+    implicit none
+    real(gp), intent(in) :: dy,theta,xp,y,z
+    real(gp), dimension(3), intent(in) :: newz
+    real(gp) :: yp_xpyz
+    !local variables
+    real(gp) :: cost,sint,onemc
+
+    sint=sin(theta)
+    cost=cos(theta)
+    onemc=1.0_gp-cost
+
+    yp_xpyz=dy - y  + y*(cost + onemc*newz(2)**2) + z*(-(sint*newz(1)) &
+         + onemc*newz(2)*newz(3)) - &
+         ((onemc*newz(1)*newz(2) + sint*newz(3))*(-xp  + sint*(z*newz(2) - y*newz(3)) &
+         + onemc*newz(1)*(y*newz(2) + z*newz(3))))  / (cost + onemc*newz(1)**2)
+
+  end function yp_xpyz
+
+  pure function zp_xpypz(dz,theta,newz,xp,yp,z)
+    use module_base
+    implicit none
+    real(gp), intent(in) :: dz,theta,xp,yp,z
+    real(gp), dimension(3), intent(in) :: newz
+    real(gp) :: zp_xpypz
+    !local variables
+    real(gp) :: cost,sint,onemc
+
+    sint=sin(theta)
+    cost=cos(theta)
+    onemc=1.0_gp-cost
+
+    zp_xpypz=dz - z +&
+         (sint*(newz(1)*yp - newz(2)*xp) - onemc*newz(3)*(newz(1)*xp + newz(2)*yp) + z) / (cost + onemc*newz(3)**2)
+
+  end function zp_xpypz
+
 end subroutine define_rotations
+
 
 subroutine define_rotations_switch(da,newz,boxc_old,boxc_new,theta,hgrids_old,ndims_old,&
      hgrids_new,ndims_new,dx,dy,dz)
@@ -1578,9 +1750,12 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,cen
   work =f_malloc(shape(dy),id='work')
   work2=f_malloc(shape(dz),id='work2')
 
-  
   call define_rotations(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
        hgrids_new,ndims_new,dx,dy,dz)
+
+  !call define_rotations(da,newz,centre_old,centre_new,0.498_gp*pi_param,hgrids_old,ndims_old,&
+  !     hgrids_new,ndims_new,dx,dy,dz)
+
 
   !call define_rotations_switch(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
   !     hgrids_new,ndims_new,dx,dy,dz)
@@ -1588,7 +1763,7 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,cen
   !perform interpolation
   call morph_and_transpose(dx,n_phi,nrange_phi,phi_ISF,ndims_old(2)*ndims_old(3),&
          ndims_old(1),f_old,ndims_new(1),work)
-  
+
   call morph_and_transpose(dy,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_old(3),&
          ndims_old(2),work,ndims_new(2),work2)
 
@@ -1603,7 +1778,505 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,cen
 
   call f_release_routine()
 end subroutine field_rototranslation
+
+!> routine which directly applies the 3D transformation of the rototranslation
+subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,f_old,&
+     hgrids_new,ndims_new,f_new)
+  use module_base
+  implicit none
+  integer, intent(in) :: n_phi,nrange_phi !< number of points of ISF array and real-space range
+  real(gp), intent(in) :: theta !< rotation wrt newzeta vector
+  real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
+  real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
+  real(gp), dimension(3), intent(in) :: centre_old,centre_new !<centre of rotation
+  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
+  integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
+  real(gp), dimension(n_phi), intent(in) :: phi_ISF
+  real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
+  real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
+  !local variables
+  integer :: m_isf
+  real(gp), dimension(:), allocatable :: shf
+!  real(gp), dimension(:,:), allocatable :: dx,dy,dz
+  real(gp), dimension(:,:), allocatable :: work,work2
+  
+!  print *,'3d'
+
+  call f_routine(id='field_rototranslation3D')
+  
+!!$  dx=f_malloc((/ndims_old(1),ndims_old(2)*ndims_old(3)/),id='dx')
+!!$  dy=f_malloc((/ndims_old(2),ndims_new(1)*ndims_old(3)/),id='dy')
+!!$  dz=f_malloc((/ndims_old(3),ndims_new(1)*ndims_new(2)/),id='dz')
+  work =f_malloc((/ndims_old(2),ndims_new(1)*ndims_old(3)/),id='work')
+  work2=f_malloc((/ndims_old(3),ndims_new(1)*ndims_new(2)/),id='work2')
+
+  m_isf=nrange_phi/2
+  shf=f_malloc(-m_isf .to. m_isf,id='shf')
+  !for each of the dimensions build the interpolating vector which is needed
+  
+
+!!$  call define_rotations(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
+!!$       hgrids_new,ndims_new,dx,dy,dz)
+
+  !call define_rotations(da,newz,centre_old,centre_new,0.498_gp*pi_param,hgrids_old,ndims_old,&
+  !     hgrids_new,ndims_new,dx,dy,dz)
+
+
+  !call define_rotations_switch(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
+  !     hgrids_new,ndims_new,dx,dy,dz)
+
+  !the condition for activating the switch can be generalized further
+  if (theta==0.0_gp .and. .false.) then
+     call shift_only(ndims_old(2)*ndims_old(3),ndims_old(1),&
+          ndims_new(1),da(1)/hgrids_old(1),nrange_phi,n_phi,phi_ISF,shf,&
+          f_old,work)
+     call shift_only(ndims_new(1)*ndims_old(3),ndims_old(2),&
+          ndims_new(2),da(2)/hgrids_old(2),nrange_phi,n_phi,phi_ISF,shf,&
+          work,work2)
+     call shift_only(ndims_new(1)*ndims_new(2),ndims_old(3),&
+          ndims_new(3),da(3)/hgrids_old(3),nrange_phi,n_phi,phi_ISF,shf,&
+          work2,f_new)
+  else
+!print *,'x'
+     !perform interpolation
+     call interpolate_xp_from_x(ndims_new(1),ndims_old(2),ndims_old(3),&
+          centre_old(1),centre_old(2),centre_old(3),centre_new(1),&
+          hgrids_old(1),hgrids_old(2),hgrids_old(3),hgrids_new(1),&
+          ndims_old(1),da(1),theta,newz,nrange_phi,n_phi,phi_ISF,shf,&
+          f_old,work)
+
+!!$  call morph_and_transpose(dx,n_phi,nrange_phi,phi_ISF,ndims_old(2)*ndims_old(3),&
+!!$         ndims_old(1),f_old,ndims_new(1),work)
+!print *,'y'
+     call interpolate_yp_from_y(ndims_new(1),ndims_new(2),ndims_old(3),&
+          centre_new(1),centre_old(2),centre_old(3),centre_new(2),&
+          hgrids_new(1),hgrids_old(2),hgrids_old(3),hgrids_new(2),&
+          ndims_old(2),da(2),theta,newz,nrange_phi,n_phi,phi_ISF,shf,&
+          work,work2)
+
+!!$  call morph_and_transpose(dy,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_old(3),&
+!!$         ndims_old(2),work,ndims_new(2),work2)
+!print *,'z'
+     call interpolate_zp_from_z(ndims_new(1),ndims_new(2),ndims_new(3),&
+          centre_new(1),centre_new(2),centre_old(3),centre_new(3),&
+          hgrids_new(1),hgrids_new(2),hgrids_old(3),hgrids_new(3),&
+          ndims_old(3),da(3),theta,newz,nrange_phi,n_phi,phi_ISF,shf,&
+          work2,f_new)
+  end if
+!!$  call morph_and_transpose(dz,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_new(2),&
+!!$         ndims_old(3),work2,ndims_new(3),f_new)
+  
+!!$  call f_free(dx)
+!!$  call f_free(dy)
+!!$  call f_free(dz)
+  call f_free(work)
+  call f_free(work2)
+  call f_free(shf)
+  call f_release_routine()
+
+end subroutine field_rototranslation3D
+
+subroutine shift_only(ndat,nin,nout,t0,nrange,nphi,phi,shf,&
+     psi_in,psi_out)
+  use module_base
+  implicit none
+  integer, intent(in) :: ndat,nin,nout
+  real(gp), intent(in) :: t0
+  integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+  integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+  real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+  real(gp), dimension(-nrange/2:nrange/2), intent(inout) :: shf !< interpolating
+  real(gp), dimension(nin,ndat), intent(in) :: psi_in
+  real(gp), dimension(ndat,nout), intent(out) :: psi_out
+  !local variables
+  integer :: i,j,ms,me,l,ish,m_isf
+  real(gp) :: dt,tt
+
+  m_isf=nrange/2  
+  dt=t0-nint(t0)
+  !define the shift for output results
+  ish=nint(t0)
+
+  !define filter for the interpolation starting from a constant shift
+  call define_filter(dt,nrange,nphi,phi,shf)
+  !apply the interpolating filter to the output
+  do j=1,ndat
+     psi_out(j,:)=0.0_gp
+     do i=1,nin
+        !here the boundary conditions have to be considered
+        tt=0.0_gp
+        ms=-min(m_isf,i-1)
+        me=min(m_isf,nin-i)
+        do l=ms,me
+           tt=tt+shf(l)*psi_in(i+l,j)
+        end do
+        !      tt=h*tt
+
+        if (i+ish > 0 .and. i+ish < nout) psi_out(j,i+ish)=tt
+        !	      write(102,*)i+ish,psi_out(j,i+ish)
+     end do
+  end do
+
+end subroutine shift_only
+
+subroutine interpolate_xp_from_x(nx,ny,nz,cx,cy,cz,cx_new,hx,hy,hz,hx_new,&
+     nx_old,dx,theta,newz,nrange,nphi,phi,shf,&
+     psi_in,psi_out)
+  use module_base
+  implicit none
+  integer, intent(in) :: nx,ny,nz,nx_old
+  real(gp), intent(in) :: cx,cy,cz,hx,hy,hz,dx,theta,cx_new,hx_new
+  real(gp), dimension(3), intent(in) :: newz
+  integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+  integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+  real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+  real(gp), dimension(-nrange/2:nrange/2), intent(inout) :: shf !< interpolating filter to be applied
+  real(gp), dimension(nx_old,ny,nz), intent(in) :: psi_in 
+  real(gp), dimension(ny,nz,nx), intent(out) :: psi_out 
+  !local variables
+  integer :: i,j,k,ms,me,l,m_isf,k1
+  real(gp) :: x,y,z,tt,dt,t0_l,diff
+  !to be removed
+  !real(gp), dimension(nx_old) :: tx
+
+  m_isf=nrange/2
+
+  z=-cz
+  do k=1,nz
+     y=-cy
+     do j=1,ny
+!!$        !fill the translation vector for this slice
+!!$        x=-cx
+!!$        do i=1,nx_old
+!!$           tx(i)=xp_xyz(dx,theta,newz,x,y,z)/hx
+!!$           x=x+hx
+!!$        end do
+        !start interpolation
+        !restart x over new coordinates
+        x=-cx_new
+        do i=1,nx
+           !find x of xp,y,z, put it in k1 and give the shift from it
+           !this routine can integrate the vector definition above
+!!$           call find_inverse(nx_old,i,tx,t0_l,k1)
+!!$           print '(a,1pg25.17,5(i4),6(1pg25.17))','final values',t0_l,k1,&
+!!$                i,j,k,&
+!!$                !value to be rounded
+!!$                min(max(1,nint((x_xpyz(theta,newz,x,y,z)+cx+hx)/hx)),nx_old),& 
+!!$                !vector to be applied
+!!$                (x-x_xpyz(theta,newz,x,y,z)+dx)/hx 
+           t0_l=(x-x_xpyz(theta,newz,x,y,z)+dx)/hx 
+           k1=min(max(1,nint((x_xpyz(theta,newz,x,y,z)+cx+hx)/hx)),nx_old)
+
+!!$           dt=t0_l-nint(t0_l)
+           diff=real(i,gp)-(k1+t0_l)   
+!!$           if (abs(diff) < 1.d0 .or. .true.) then
+              dt=-diff
+!!$           else if (abs(diff - dt) < abs(diff+dt)) then
+!!$              !if (abs(diff) < 1.d0) print *,'herex',dt,diff
+!!$              dt=-dt
+!!$           end if
+
+           !if (abs(abs(diff)-abs(dt)) > 1.d-12) print '(a,1pg25.17,4(i4),6(1pg25.17))','final values',t0_l,k1,&
+           !     i,j,k,dt,diff
+
+           !define filter for the interpolation starting from a constant shift
+           call define_filter(dt,nrange,nphi,phi,shf)
+           !interpolate the result
+           tt=0.0_gp
+           ms=-min(m_isf,k1-1)
+           me=min(m_isf,nx_old-k1)
+           do l=ms,me
+              tt=tt+shf(l)*psi_in(k1+l,j,k)
+           end do
+           !end of interpolate coefficient
+           psi_out(j,k,i)=tt
+           x=x+hx_new
+        end do
+!stop
+        y=y+hy
+     end do
+     z=z+hz
+  end do
+
+contains
+
+  pure function xp_xyz(dx,theta,newz,x,y,z)
+    use module_base
+    implicit none
+    real(gp), intent(in) :: dx,theta,x,y,z
+    real(gp), dimension(3), intent(in) :: newz
+    real(gp) :: xp_xyz
+    !local variables
+    real(gp) :: cost,sint,onemc,dotp
+
+    sint=sin(theta)
+    cost=cos(theta)
+    onemc=1.0_gp-cost
+    dotp=newz(1)*x+newz(2)*y+newz(3)*z
+
+    xp_xyz=dx-x+dotp*newz(1) - cost*(-x + dotp*newz(1)) + sint*(z*newz(2)-y*newz(3))
+
+  end function xp_xyz
+
+  !> inverse function to be put in the scheme
+  pure function x_xpyz(theta,newz,xp,y,z)
+    use module_base
+    implicit none
+    real(gp), intent(in) :: theta,xp,y,z
+    real(gp), dimension(3), intent(in) :: newz
+    real(gp) :: x_xpyz
+    !local variables
+    real(gp) :: cost,sint,onemc
+
+    sint=sin(theta)
+    cost=cos(theta)
+    onemc=1.0_gp-cost
+    x_xpyz= xp+sint*newz(3)*y-sint*newz(2)*z-&
+         onemc*newz(1)*(newz(2)*y+newz(3)*z)
+    x_xpyz=x_xpyz/(cost+onemc*(newz(1)**2))
+!!$    tx_xpyz= dx - xp  - sint*newz(3)*y+sint*newz(2)*z+&
+!!$         onemc*newz(1)*(newz(2)*y+newz(3)*z)
+!!$    tx_xpyz=tx_xpyz/(onemc*(newz(1)**2-1.0_gp))
+
+  end function x_xpyz
+
+
+end subroutine interpolate_xp_from_x
+
  
+subroutine interpolate_yp_from_y(nx,ny,nz,cx,cy,cz,cy_new,hx,hy,hz,hy_new,&
+     ny_old,dy,theta,newz,nrange,nphi,phi,shf,&
+     psi_in,psi_out)
+  use module_base
+  implicit none
+  integer, intent(in) :: nx,ny,nz,ny_old
+  real(gp), intent(in) :: cx,cy,cz,hx,hy,hz,dy,theta,cy_new,hy_new
+  real(gp), dimension(3), intent(in) :: newz
+  integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+  integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+  real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+  real(gp), dimension(-nrange/2:nrange/2), intent(inout) :: shf !< interpolating filter to be applied
+  real(gp), dimension(ny_old,nz,nx), intent(in) :: psi_in 
+  real(gp), dimension(nz,nx,ny), intent(out) :: psi_out 
+  !local variables
+  integer :: i,j,k,ms,me,l,m_isf,k1
+  real(gp) :: x,y,z,tt,dt,t0_l,diff
+  !to be removed
+  !real(gp), dimension(ny_old) :: ty
+
+  m_isf=nrange/2
+ 
+  x=-cx
+  do i=1,nx
+     z=-cz
+     do k=1,nz
+!!$        !fill the translation vector for this slice
+!!$        y=-cy
+!!$        do j=1,ny_old
+!!$           ty(j)=yp_xpyz(dy,theta,newz,x,y,z)/hy
+!!$           y=y+hy
+!!$        end do
+        !start interpolation
+        y=-cy_new
+        do j=1,ny
+           !find x of xp,y,z, put it in k1 and give the shift from it
+           !this routine can integrate the vector definition above
+!!$           call find_inverse(ny_old,j,ty,t0_l,k1)
+!!$           print '(a,1pg25.17,5(i4),6(1pg25.17))','final values',t0_l,k1,&
+!!$                i,j,k,&
+!!$                !value to be rounded
+!!$                min(max(1,nint((y_xpypz(theta,newz,x,y,z)+cy+hy)/hy)),ny_old),& 
+!!$                !vector to be applied
+!!$                (y-y_xpypz(theta,newz,x,y,z)+dy)/hy 
+           t0_l=(y-y_xpypz(theta,newz,x,y,z)+dy)/hy 
+           k1=min(max(1,nint((y_xpypz(theta,newz,x,y,z)+cy+hy)/hy)),ny_old)
+
+!!$           dt=t0_l-nint(t0_l)
+           diff=real(j,gp)-(k1+t0_l)   
+!!$!           if (abs(diff - dt) < abs(diff+dt)) dt=-dt
+!!$           if (abs(diff) < 1.d0 .or. .true.) then
+              dt=-diff
+!!$           else if (abs(diff - dt) < abs(diff+dt)) then
+!!$              !if (abs(diff) < 1.d0) print *,'herey',dt,diff
+!!$              dt=-dt
+!!$           end if
+
+           !define filter for the interpolation starting from a constant shift
+           call define_filter(dt,nrange,nphi,phi,shf)
+           !interpolate the result
+           tt=0.0_gp
+           ms=-min(m_isf,k1-1)
+           me=min(m_isf,ny_old-k1)
+           do l=ms,me
+              tt=tt+shf(l)*psi_in(k1+l,k,i)
+           end do
+           !end of interpolate coefficient
+           psi_out(k,i,j)=tt
+           y=y+hy_new
+        end do
+        z=z+hz
+     end do
+     x=x+hx
+  end do
+
+contains
+
+  pure function yp_xpyz(dy,theta,newz,xp,y,z)
+    use module_base
+    implicit none
+    real(gp), intent(in) :: dy,theta,xp,y,z
+    real(gp), dimension(3), intent(in) :: newz
+    real(gp) :: yp_xpyz
+    !local variables
+    real(gp) :: cost,sint,onemc
+
+    sint=sin(theta)
+    cost=cos(theta)
+    onemc=1.0_gp-cost
+
+    yp_xpyz=dy - y  + y*(cost + onemc*newz(2)**2) + z*(-(sint*newz(1)) &
+         + onemc*newz(2)*newz(3)) - &
+         ((onemc*newz(1)*newz(2) + sint*newz(3))*(-xp  + sint*(z*newz(2) - y*newz(3)) &
+         + onemc*newz(1)*(y*newz(2) + z*newz(3))))  / (cost + onemc*newz(1)**2)
+
+  end function yp_xpyz
+
+    pure function y_xpypz(theta,newz,xp,yp,z)
+    use module_base
+    implicit none
+    real(gp), intent(in) :: theta,xp,yp,z
+    real(gp), dimension(3), intent(in) :: newz
+    real(gp) :: y_xpypz
+    !local variables
+    real(gp) :: cost,sint,onemc
+    
+    sint=sin(theta)
+    cost=cos(theta)
+    onemc=1.0_gp-cost
+
+    y_xpypz=yp-onemc*newz(1)*newz(2)*xp-sint*newz(3)*xp+sint*newz(1)*z-&
+         onemc*((1.d0-newz(1)**2)*yp-newz(2)*newz(3)*z)
+    y_xpypz=y_xpypz/(cost+onemc*(newz(3)**2))
+
+  end function y_xpypz
+
+end subroutine interpolate_yp_from_y
+
+subroutine interpolate_zp_from_z(nx,ny,nz,cx,cy,cz,cz_new,hx,hy,hz,hz_new,&
+     nz_old,dz,theta,newz,nrange,nphi,phi,shf,&
+     psi_in,psi_out)
+  use module_base
+  implicit none
+  integer, intent(in) :: nx,ny,nz,nz_old
+  real(gp), intent(in) :: cx,cy,cz,hx,hy,hz,dz,theta,cz_new,hz_new
+  real(gp), dimension(3), intent(in) :: newz
+  integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+  integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+  real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+  real(gp), dimension(-nrange/2:nrange/2), intent(inout) :: shf !< interpolating filter to be applied
+  real(gp), dimension(nz_old,nx,ny), intent(in) :: psi_in 
+  real(gp), dimension(nx,ny,nz), intent(out) :: psi_out 
+  !local variables
+  integer :: i,j,k,ms,me,l,m_isf,k1
+  real(gp) :: x,y,z,tt,dt,t0_l,diff
+  !to be removed
+  !real(gp), dimension(nz_old) :: tz
+
+  m_isf=nrange/2
+
+  y=-cy
+  do j=1,ny
+     x=-cx
+     do i=1,nx
+!!$        z=-cz
+!!$        do k=1,nz_old
+!!$        !fill the translation vector for this slice
+!!$           tz(k)=zp_xpypz(dz,theta,newz,x,y,z)/hz
+!!$           z=z+hz
+!!$        end do
+        !start interpolation
+        z=-cz_new
+        do k=1,nz
+           !find z of xp,y,z, put it in k1 and give the shift from it
+           !this routine can integrate the vector definition above
+!!$           call find_inverse(nz_old,k,tz,t0_l,k1)
+!!$           print '(a,1pg25.17,5(i4),6(1pg25.17))','final values',t0_l,k1,&
+!!$                i,j,k,&
+!!$                !value to be rounded
+!!$                min(max(1,nint((z_xpypzp(theta,newz,x,y,z)+cz+hz)/hz)),nz_old),& 
+!!$                !vector to be applied
+!!$                (z-z_xpypzp(theta,newz,x,y,z)+dz)/hz 
+
+           t0_l=(z-z_xpypzp(theta,newz,x,y,z)+dz)/hz 
+           k1=min(max(1,nint((z_xpypzp(theta,newz,x,y,z)+cz+hz)/hz)),nz_old)
+
+!!$           dt=t0_l-nint(t0_l)
+           diff=real(k,gp)-(k1+t0_l)   
+!!$           !if (abs(diff - dt) < abs(diff+dt)) dt=-dt
+!!$           if (abs(diff) < 1.d0 .or. .true.) then
+              dt=-diff
+!!$           else if (abs(diff - dt) < abs(diff+dt)) then
+!!$              !if (abs(diff) < 1.d0) print *,'herez',dt,diff
+!!$              dt=-dt
+!!$           end if
+
+           !define filter for the interpolation starting from a constant shift
+           call define_filter(dt,nrange,nphi,phi,shf)
+           !interpolate the result
+           tt=0.0_gp
+           ms=-min(m_isf,k1-1)
+           me=min(m_isf,nz_old-k1)
+           do l=ms,me
+              tt=tt+shf(l)*psi_in(k1+l,i,j)
+           end do
+           !end of interpolate coefficient
+           psi_out(i,j,k)=tt
+           z=z+hz_new
+        end do
+        x=x+hx
+     end do
+     y=y+hy
+  end do
+
+contains
+
+  pure function zp_xpypz(dz,theta,newz,xp,yp,z)
+    use module_base
+    implicit none
+    real(gp), intent(in) :: dz,theta,xp,yp,z
+    real(gp), dimension(3), intent(in) :: newz
+    real(gp) :: zp_xpypz
+    !local variables
+    real(gp) :: cost,sint,onemc
+
+    sint=sin(theta)
+    cost=cos(theta)
+    onemc=1.0_gp-cost
+
+    zp_xpypz=dz - z +&
+         (sint*(newz(1)*yp - newz(2)*xp) - onemc*newz(3)*(newz(1)*xp + newz(2)*yp) + z) / (cost + onemc*newz(3)**2)
+
+  end function zp_xpypz
+
+  pure function z_xpypzp(theta,newz,xp,yp,zp)
+    use module_base
+    implicit none
+    real(gp), intent(in) :: theta,xp,yp,zp
+    real(gp), dimension(3), intent(in) :: newz
+    real(gp) :: z_xpypzp
+    !local variables
+    real(gp) :: cost,sint,onemc
+
+    sint=sin(theta)
+    cost=cos(theta)
+    onemc=1.0_gp-cost
+
+    z_xpypzp=sint*(newz(2)*xp-newz(1)*yp)+onemc*newz(3)*(newz(1)*xp+newz(2)*yp)+&
+         (cost+onemc*newz(3)**2)*zp
+
+  end function z_xpypzp
+
+end subroutine interpolate_zp_from_z
 
 
 
@@ -1611,14 +2284,14 @@ subroutine switch_axes(n_phi,nrange_phi,phi_ISF,centre_old,hgrids_old,ndims_old,
      hgrids_new,ndims_new,f_new,discrete_op,da_global)
   use module_base
   implicit none
-  integer, intent(in) :: n_phi,nrange_phi !< number of points of ISF array and real-space range
+  integer, intent(in) :: n_phi,nrange_phi                      !< number of points of ISF array and real-space range
   character(len=2) :: discrete_op
   real(gp), dimension(3), intent(inout) :: centre_old
   !real(gp), dimension(3), intent(out) :: centre_new !<centre of rotation
-  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
-  integer, dimension(3), intent(in) :: ndims_old !<dimension of old and new box
-  integer, dimension(3), intent(out) :: ndims_new !<dimension of old and new box
-  real(gp), dimension(3), intent(inout) :: da_global ! shift to be used in final interpolation with non-discrete rotation
+  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !< Dimension of old and new box
+  integer, dimension(3), intent(in) :: ndims_old              !< Dimension of old box
+  integer, dimension(3), intent(out) :: ndims_new             !< Dimension of new box
+  real(gp), dimension(3), intent(inout) :: da_global          !< Shift to be used in final interpolation with non-discrete rotation
   real(gp), dimension(n_phi), intent(in) :: phi_ISF
   real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
   real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(out) :: f_new ! in general allocate here to ndims_new, but size doesn't change for now so leave like this

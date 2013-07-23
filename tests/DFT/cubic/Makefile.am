@@ -77,7 +77,7 @@ SIC.post-in:
 %.report.yaml: %.ref.yaml
 	@export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`; \
 	tols=`basename $< .out.ref.yaml` ;\
 	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ;\
 	echo "python $(abs_top_srcdir)/tests/fldiff_yaml.py -r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@" ; \

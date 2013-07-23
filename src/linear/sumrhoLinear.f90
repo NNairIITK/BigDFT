@@ -1668,7 +1668,6 @@ end subroutine transpose_unswitch_psir
 subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho)
   use module_base
   use module_types
-  use libxc_functionals
   implicit none
 
   ! Calling arguments
@@ -1697,7 +1696,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   call timing(iproc,'sumrho_TMB    ','ON')
   
   ! Initialize rho. (not necessary for the moment)
-  !if (libxc_functionals_isgga()) then
+  !if (xc_isgga()) then
   !    call razero(collcom_sr%nptsp_c, rho_local)
   !else
    !   ! There is no mpi_allreduce, therefore directly initialize to
@@ -1718,11 +1717,11 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
           tt1=collcom_sr%psit_c(i0+i)
-          ind=denskern%matrixindex_in_compressed(iiorb,iiorb)
+          ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
           tt=tt+denskern%matrix_compr(ind)*tt1*tt1
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
-              ind=denskern%matrixindex_in_compressed(jjorb,iiorb)
+              ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               if (ind==0) cycle
               tt=tt+2.0_dp*denskern%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
           end do
