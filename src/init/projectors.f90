@@ -912,7 +912,6 @@ subroutine crtproj(geocode,nterm,lr, &
   !integer :: counter !test
   real(wp) :: re_cmplx_prod,im_cmplx_prod
   real(gp), dimension(ncplx_g) :: factor
-  real(gp) :: gcut
   !real(gp) :: err_norm
   real(wp), allocatable, dimension(:,:,:) :: work
   real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
@@ -921,7 +920,6 @@ subroutine crtproj(geocode,nterm,lr, &
   !$ integer :: omp_get_thread_num,omp_get_num_threads
 
 !!  integer :: ncount0,ncount_rate,ncount_max,ncount1,ncount2
-  gcut=gau_cut
 
   ! rename region boundaries
   ns1 = lr%ns1
@@ -993,21 +991,21 @@ subroutine crtproj(geocode,nterm,lr, &
      factor(:)=fac_arr(:,iterm)
      n_gau=lx(iterm) 
      call gauss_to_daub_k(hx,kx*hx,ncplx_w,ncplx_g,ncplx_k,factor,rx,gau_a,n_gau,ns1,n1,ml1,mu1,&
-          wprojx(1,0,1,iterm),work,nw,perx,gcut) 
+          wprojx(1,0,1,iterm),work,nw,perx,gau_cut) 
      !$ endif
 
      !$ ichunk=ichunk+1
      !$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=ly(iterm) 
      call gauss_to_daub_k(hy,ky*hy,ncplx_w,ncplx_g,ncplx_k,1.d0,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
-          wprojy(1,0,1,iterm),work,nw,pery,gcut) 
+          wprojy(1,0,1,iterm),work,nw,pery,gau_cut) 
      !$ endif
 
      !$ ichunk=ichunk+1
      !$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=lz(iterm) 
      call gauss_to_daub_k(hz,kz*hz,ncplx_w,ncplx_g,ncplx_k,1.d0,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
-          wprojz(1,0,1,iterm),work,nw,perz,gcut)
+          wprojz(1,0,1,iterm),work,nw,perz,gau_cut)
      !$ endif
   end do
   !$omp critical

@@ -463,7 +463,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
   real(wp), dimension(0:nwork,2,ncplx_w), intent(inout) :: ww 
   integer, intent(out) :: n_left,n_right
   real(wp), dimension(ncplx_w,0:nmax,2), intent(out) :: c
-  real(gp), optional,intent(in) :: gau_cut
+  real(gp), intent(in) :: gau_cut
   !local variables
   character(len=*), parameter :: subname='gauss_to_daub_k'
   integer :: i_all,i_stat
@@ -488,7 +488,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
   end if
   i0=nint(gau_cen/hgrid) ! the array is centered at i0
   z0=gau_cen/hgrid-real(i0,gp)
-  if(present(gau_cut))gcut=gau_cut/hgrid
+  gcut=gau_cut/hgrid
   h=.125_gp*.5_gp
 
   !calculate the array sizes;
