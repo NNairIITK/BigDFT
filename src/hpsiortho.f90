@@ -762,7 +762,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                if(any(at%npspcode == 7)) then
                  call atom_projector_paw(ikpt,iat,0,istart_c,iproj,&
                       nlpspd%nprojel,&
-                      Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),rxyz(1,iat),at,orbs,&
+                      Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),paw%rpaw(iatype),rxyz(1,iat),at,orbs,&
                       nlpspd%plr(iat),proj,nwarnings,proj_G(iatype))
                else
                  call atom_projector(ikpt,iat,0,istart_c,iproj,&

@@ -321,13 +321,13 @@ subroutine fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
 END SUBROUTINE fill_projectors
 
 subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
-     lr,hx,hy,hz,rxyz,at,orbs,plr,proj,nwarnings,proj_G)
+     lr,hx,hy,hz,rpaw,rxyz,at,orbs,plr,proj,nwarnings,proj_G)
   use module_base
   use module_types
   use gaussians, only: gaussian_basis
   implicit none
   integer, intent(in) :: iat,idir,ikpt,nprojel
-  real(gp), intent(in) :: hx,hy,hz
+  real(gp), intent(in) :: hx,hy,hz,rpaw
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: plr
@@ -399,10 +399,10 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
         !     plr%wfd%keyvglob,plr%wfd%keyglob,proj_tmp(1),nwarnings)
         !END DEBUG
         call projector_paw(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
-             proj_G%psiat(:,jj),proj_G%xp(:,jj),rxyz(1),lr,&
+             proj_G%psiat(:,jj),proj_G%xp(:,jj),rpaw,rxyz,lr,&
              hx,hy,hz,kx,ky,kz,proj_G%ncplx,ncplx_k,&
              mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-             plr%wfd%keyvglob,plr%wfd%keyglob,proj_tmp(1),nwarnings)
+             plr%wfd%keyvglob,plr%wfd%keyglob,proj_tmp,nwarnings)
         proj(istart_c:istart_c+nc-1)=proj(istart_c:istart_c+nc-1)+proj_tmp(1:nc)
      enddo
 
@@ -561,6 +561,7 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
   integer, dimension(2,mseg_c+mseg_f), intent(in) :: keyg_p
 
   real(gp), dimension(3), intent(in) :: rxyz
+  real(gp),parameter:: gau_cut=1.0_gp !dummy here, only used for PAW
   integer, intent(inout) :: nwarnings
   real(wp), dimension((mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx), intent(out) :: proj
   !Local variables
@@ -634,7 +635,7 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
      
      call crtproj(geocode,nterm,lr,hx,hy,hz,kx,ky,kz,&
           ncplx_g,ncplx,&
-          gau_a,factors,rx,ry,rz,lx,ly,lz,&
+          gau_a,gau_cut,factors,rx,ry,rz,lx,ly,lz,&
           mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c))
 
      ! testing
@@ -683,7 +684,7 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
 END SUBROUTINE projector
 
 subroutine projector_paw(geocode,atomname,iat,idir,l,i,&
-     factor,gau_a,rxyz,lr,&
+     factor,gau_a,gau_cut,rxyz,lr,&
      hx,hy,hz,kx,ky,kz,ncplx_g,ncplx_k,&
      mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,nwarnings)
   use module_base
@@ -694,7 +695,7 @@ subroutine projector_paw(geocode,atomname,iat,idir,l,i,&
   integer, intent(in) :: iat,idir,l,i,mbvctr_c,mbvctr_f,mseg_c,mseg_f
   integer, intent(in) :: ncplx_k,ncplx_g
   type(locreg_descriptors),intent(in) :: lr
-  real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
+  real(gp), intent(in) :: hx,hy,hz,kx,ky,kz,gau_cut
   !integer, dimension(2,3), intent(in) :: nboxp_c,nboxp_f
   integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
   integer, dimension(2,mseg_c+mseg_f), intent(in) :: keyg_p
@@ -759,7 +760,7 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
 
      call crtproj(geocode,nterm,lr,hx,hy,hz,kx,ky,kz,&
           ncplx_g,ncplx_k,&
-          gau_a,factors(1:ncplx_g,1:nterm),&
+          gau_a,gau_cut,factors(1:ncplx_g,1:nterm),&
           rx,ry,rz,lx(1:nterm),ly(1:nterm),lz(1:nterm),&
           mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,&
           proj(istart_c))
@@ -880,7 +881,7 @@ END SUBROUTINE numb_proj_paw_tr
 !!   in the arrays proj_c, proj_f
 subroutine crtproj(geocode,nterm,lr, & 
      hx,hy,hz,kx,ky,kz,ncplx_g,ncplx_k,&
-     gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
+     gau_a,gau_cut,fac_arr,rx,ry,rz,lx,ly,lz, & 
      mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj)
   use module_base
   use module_types
@@ -888,7 +889,7 @@ subroutine crtproj(geocode,nterm,lr, &
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: nterm,mvctr_c,mvctr_f,mseg_c,mseg_f
   integer, intent(in) :: ncplx_g,ncplx_k
-  real(gp), intent(in) :: hx,hy,hz,rx,ry,rz,kx,ky,kz
+  real(gp), intent(in) :: hx,hy,hz,rx,ry,rz,kx,ky,kz,gau_cut
   integer, dimension(nterm), intent(in) :: lx,ly,lz
   real(gp), dimension(ncplx_g,nterm), intent(in) :: fac_arr
   real(gp), dimension(ncplx_g),intent(in):: gau_a
@@ -985,21 +986,21 @@ subroutine crtproj(geocode,nterm,lr, &
      !$ if (mod(ichunk,nthread).eq.ithread) then
      factor(:)=fac_arr(:,iterm)
      n_gau=lx(iterm) 
-     call gauss_to_daub_k(hx,kx*hx,ncplx_w,ncplx_g,ncplx_k,factor,rx,gau_a,n_gau,ns1,n1,ml1,mu1,&
+     call gauss_to_daub_k(hx,kx*hx,ncplx_w,ncplx_g,ncplx_k,factor,rx,gau_a,gau_cut,n_gau,ns1,n1,ml1,mu1,&
           wprojx(1,0,1,iterm),work,nw,perx) 
      !$ endif
 
      !$ ichunk=ichunk+1
      !$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=ly(iterm) 
-     call gauss_to_daub_k(hy,ky*hy,ncplx_w,ncplx_g,ncplx_k,1.d0,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
+     call gauss_to_daub_k(hy,ky*hy,ncplx_w,ncplx_g,ncplx_k,1.d0,ry,gau_a,gau_cut,n_gau,ns2,n2,ml2,mu2,&
           wprojy(1,0,1,iterm),work,nw,pery) 
      !$ endif
 
      !$ ichunk=ichunk+1
      !$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=lz(iterm) 
-     call gauss_to_daub_k(hz,kz*hz,ncplx_w,ncplx_g,ncplx_k,1.d0,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
+     call gauss_to_daub_k(hz,kz*hz,ncplx_w,ncplx_g,ncplx_k,1.d0,rz,gau_a,gau_cut,n_gau,ns3,n3,ml3,mu3,&
           wprojz(1,0,1,iterm),work,nw,perz)
      !$ endif
   end do
