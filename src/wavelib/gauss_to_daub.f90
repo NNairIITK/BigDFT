@@ -448,9 +448,9 @@ END SUBROUTINE gauss_to_daub
 !!  In this version, we dephase the projector to wrt the center of the gaussian
 !!  this should not have an impact on the results since the operator is unchanged
 subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
-     factor,gau_cen,gau_a,gau_cut,n_gau,&!no err, errsuc
+     factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      nstart,nmax,n_left,n_right,c,& 
-     ww,nwork,periodic)      !added work arrays ww with dimension nwork
+     ww,nwork,periodic,gau_cut)      !added work arrays ww with dimension nwork
   use module_base
   implicit none
   logical, intent(in) :: periodic
@@ -460,10 +460,10 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
   integer, intent(in) :: ncplx_k !use 2 for k-points.
   real(gp), intent(in) :: hgrid,gau_cen,kval
   real(gp),dimension(ncplx_g),intent(in)::factor,gau_a
-  real(gp), intent(in) :: gau_cut
   real(wp), dimension(0:nwork,2,ncplx_w), intent(inout) :: ww 
   integer, intent(out) :: n_left,n_right
   real(wp), dimension(ncplx_w,0:nmax,2), intent(out) :: c
+  real(gp), optional,intent(in) :: gau_cut
   !local variables
   character(len=*), parameter :: subname='gauss_to_daub_k'
   integer :: i_all,i_stat
@@ -488,7 +488,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
   end if
   i0=nint(gau_cen/hgrid) ! the array is centered at i0
   z0=gau_cen/hgrid-real(i0,gp)
-  gcut=gau_cut/hgrid
+  if(present(gau_cut))gcut=gau_cut/hgrid
   h=.125_gp*.5_gp
 
   !calculate the array sizes;
