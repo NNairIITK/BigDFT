@@ -2153,6 +2153,27 @@ subroutine nullify_DFT_local_fields(denspot)
   
 end subroutine nullify_DFT_local_fields
 
+
+subroutine deallocate_denspot_distribution(dpbox,subname)
+  implicit none
+  character(len=*), intent(in) :: subname
+  type(denspot_distribution),intent(out)::dpbox
+  !local variables
+  integer :: i_all,i_stat
+  
+  if(associated(dpbox%nscatterarr)) then
+    i_all=-product(shape(dpbox%nscatterarr))*kind(dpbox%nscatterarr)
+    deallocate(dpbox%nscatterarr,stat=i_stat)
+    call memocc(i_stat,i_all,'nscatterarr',subname)
+  end if
+  if(associated(dpbox%ngatherarr)) then
+    i_all=-product(shape(dpbox%ngatherarr))*kind(dpbox%ngatherarr)
+    deallocate(dpbox%ngatherarr,stat=i_stat)
+    call memocc(i_stat,i_all,'ngatherarr',subname)
+  end if
+
+end subroutine deallocate_denspot_distribution
+
 subroutine nullify_coulomb_operator(coul_op)
   implicit none
   type(coulomb_operator),intent(out) :: coul_op
