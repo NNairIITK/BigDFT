@@ -1989,6 +1989,20 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
            end do
         end do
      end do
+  case(31) !yp is derived from xo (and xp has been derived from z)
+     do i=1,ndims_new(1)
+        do k=1,ndims_old(iorder(3))
+           do j=1,ndims_new(2)
+              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+                   dt,k1,ms,me)
+
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+
+              work2(k+ind2(iorder(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
+                   ndims_old(1),ndims_old(2),ndims_new(1),work)
+           end do
+        end do
+     end do
   end select
 
   !third step
@@ -2087,8 +2101,7 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
 
     end subroutine shift_and_start
 
-    !pure 
-    function coord(icrd,ivars,u,C,S,onemc,x,y,z)
+    pure function coord(icrd,ivars,u,C,S,onemc,x,y,z)
       use module_base, only: gp
       implicit none
       integer, intent(in) :: icrd !<id of the old coordinate to be retrieved
@@ -2140,10 +2153,10 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
          end select
       end select
 
-      if (coord==0.0_gp) then
-         print *,'Error, value not found',icrd,ivars
-         stop
-      end if
+!      if (coord==0.0_gp) then
+!         print *,'Error, value not found',icrd,ivars
+!         stop
+!      end if
 
     end function coord
 
