@@ -122,7 +122,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 !Do not modify the following lines by hand.
  use interfaces_14_hidewrite
  use interfaces_16_hideleave
- use interfaces_56_xc, except_this_one => drivexc
+ use interfaces_41_xc_lowlevel, except_this_one => drivexc
 !End of the abilint section
 
  implicit none
