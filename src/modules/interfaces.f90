@@ -144,7 +144,7 @@ module module_interfaces
         type(atoms_data), intent(out) :: atoms
       END SUBROUTINE bigdft_set_input
 
-      subroutine run_objects_init_container(runObj, inputs, atoms, rst, rxyz0)
+      subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
         use module_types
         implicit none
         type(run_objects), intent(out) :: runObj
@@ -152,7 +152,7 @@ module module_interfaces
         type(atoms_data), intent(in), target :: atoms
         type(restart_objects), intent(in), target :: rst
         real(gp), intent(in), optional :: rxyz0
-      end subroutine run_objects_init_container
+      end subroutine run_objects_associate
 
       subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
          !n(c) use module_base

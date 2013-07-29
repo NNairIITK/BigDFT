@@ -183,7 +183,7 @@ program MINHOP
   inputs_opt%inputPsiId=0
 
   call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst,subname)
-  call run_objects_init_container(runObj, inputs_md, atoms, rst)
+  call run_objects_associate(runObj, inputs_md, atoms, rst)
   call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 
   !example for retrieving the eigenvalues from this run
@@ -444,7 +444,7 @@ program MINHOP
 !!$     wpos(2,iat)=pos(2,iat) 
 !!$     wpos(3,iat)=pos(3,iat)
 !!$  enddo
-  call run_objects_init_container(runObj, inputs_md, atoms, rst, pos(1,1))
+  call run_objects_associate(runObj, inputs_md, atoms, rst, pos(1,1))
   escape=escape+1.d0
   e_pos = outs%energy
   call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, runObj, outs, &

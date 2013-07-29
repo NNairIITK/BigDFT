@@ -214,7 +214,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
 END SUBROUTINE call_bigdft
 
 !> Routines to handle the argument objects of call_bigdft().
-subroutine run_objects_init(runObj)
+subroutine run_objects_nullify(runObj)
   use module_types
   implicit none
   type(run_objects), intent(out) :: runObj
@@ -222,7 +222,7 @@ subroutine run_objects_init(runObj)
   nullify(runObj%inputs)
   nullify(runObj%atoms)
   nullify(runObj%rst)
-END SUBROUTINE run_objects_init
+END SUBROUTINE run_objects_nullify
 
 subroutine run_objects_free(runObj, subname)
   use module_types
@@ -256,7 +256,7 @@ subroutine run_objects_free_container(runObj)
   type(run_objects), intent(inout) :: runObj
 
   ! Currently do except nullifying everything.
-  call run_objects_init(runObj)
+  call run_objects_nullify(runObj)
 END SUBROUTINE run_objects_free_container
 
 subroutine run_objects_init_from_files(runObj, radical, posinp)
@@ -268,7 +268,7 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
 
   integer(kind = 8) :: dummy
 
-  call run_objects_init(runObj)
+  call run_objects_nullify(runObj)
   call atoms_new(runObj%atoms)
   call inputs_new(runObj%inputs)
   call bigdft_set_input(radical, posinp, runObj%inputs, runObj%atoms)
@@ -280,7 +280,7 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
   call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
 END SUBROUTINE run_objects_init_from_files
 
-!!$subroutine run_objects_init_from_objects(runObj, atoms, inputs, rst)
+!!$subroutine run_objects_nullify_from_objects(runObj, atoms, inputs, rst)
 !!$  use module_types
 !!$  implicit none
 !!$  type(run_objects), intent(out) :: runObj
@@ -288,7 +288,7 @@ END SUBROUTINE run_objects_init_from_files
 !!$  type(input_variables), intent(in), target, optional :: inputs
 !!$  type(restart_objects), intent(in), target, optional :: rst
 !!$
-!!$  call run_objects_init(runObj)
+!!$  call run_objects_nullify(runObj)
 !!$  runObj%atoms  => atoms
 !!$  if (present(inputs)) then
 !!$     runObj%inputs => inputs
@@ -298,9 +298,9 @@ END SUBROUTINE run_objects_init_from_files
 !!$     runObj%rst    => rst
 !!$  else
 !!$  end if
-!!$END SUBROUTINE run_objects_init_from_objects
+!!$END SUBROUTINE run_objects_nullify_from_objects
 
-subroutine run_objects_init_container(runObj, inputs, atoms, rst, rxyz0)
+subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
   use module_types
   implicit none
   type(run_objects), intent(out) :: runObj
@@ -309,14 +309,14 @@ subroutine run_objects_init_container(runObj, inputs, atoms, rst, rxyz0)
   type(restart_objects), intent(in), target :: rst
   real(gp), intent(in), optional :: rxyz0
 
-  call run_objects_init(runObj)
+  call run_objects_nullify(runObj)
   runObj%atoms  => atoms
   runObj%inputs => inputs
   runObj%rst    => rst
   if (present(rxyz0)) then
      call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
   end if
-END SUBROUTINE run_objects_init_container
+END SUBROUTINE run_objects_associate
 
 !>  Main routine which does self-consistent loop.
 !!  Does not parse input file and no geometry optimization.

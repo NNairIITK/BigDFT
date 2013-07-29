@@ -1426,7 +1426,7 @@ subroutine run_objects_new(runObj)
   type(run_objects), pointer :: runObj
 
   allocate(runObj)
-  call run_objects_init(runObj)
+  call run_objects_nullify(runObj)
 END SUBROUTINE run_objects_new
 subroutine run_objects_destroy(runObj)
   use module_types
@@ -1460,7 +1460,7 @@ subroutine run_objects_associate(runObj, inputs, atoms, rst)
   type(atoms_data), intent(in), target :: atoms
   type(restart_objects), intent(in), target :: rst
 
-  call run_objects_init(runObj)
+  call run_objects_nullify(runObj)
   runObj%atoms  => atoms
   runObj%inputs => inputs
   runObj%rst    => rst

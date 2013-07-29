@@ -285,7 +285,7 @@ contains
   END FUNCTION cubic_pbc
 
   subroutine image_init(img, inputs, atoms, rst, algorithm)
-    use module_interfaces, only: run_objects_init_container
+    use module_interfaces, only: run_objects_associate
     implicit none
     type(run_image), intent(out) :: img
     type(input_variables), intent(in) :: inputs
@@ -304,7 +304,7 @@ contains
     nullify(img%delta_pos)
     nullify(img%vel)
 
-    call run_objects_init_container(img%run, inputs, atoms, rst)
+    call run_objects_associate(img%run, inputs, atoms, rst)
     call init_global_output(img%outs, atoms%astruct%nat)
 
     write(img%log_file, "(A,A)") trim(inputs%writing_directory), &
