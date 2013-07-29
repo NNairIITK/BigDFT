@@ -681,8 +681,8 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   logical :: perx,pery,perz
   integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
   integer :: nterms_max,nterms,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3 !n(c) iscoeff
-  real(gp) :: rx,ry,rz,gau_a(ncplx_g)
-  real(gp),parameter::gau_cut=1.0_g0 !only used for PAW
+  real(gp) :: rx,ry,rz,gau_cut
+  real(gp),dimension(ncplx_g):: gau_a
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
   real(wp), allocatable, dimension(:,:,:) :: work
@@ -711,6 +711,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   !initialize the wavefunction
   call to_zero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi(1))
 
+  gau_cut=1.0_gp !only meaningful for PAW
   !calculate the number of terms for this orbital
   nterms=0
   !loop over the atoms
