@@ -1609,7 +1609,7 @@ module module_interfaces
            nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,nproc,nspden)
         use module_base
         use module_xc
-        use interfaces_56_xc
+        use interfaces_41_xc_lowlevel
         implicit none
         character(len=1), intent(in) :: geocode
         logical, intent(in) :: sumpion
