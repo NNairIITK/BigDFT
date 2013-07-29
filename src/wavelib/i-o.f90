@@ -1197,9 +1197,14 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 !!$  iyp=2
 !!$  izp=3
 !!$  print *,'final case',(/ixp,iyp,izp/)
-  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,&
-       sint,cost,onemc,(/ixp,iyp,izp/),&
-       hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+
+!!$  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,&
+!!$       sint,cost,onemc,(/ixp,iyp,izp/),&
+!!$       hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+
+  call field_rototranslation3D_interpolation(da,frag_trans%rot_axis,centre_old,centre_new,&
+     sint,cost,onemc,hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+
 
   if (size(frag_trans%discrete_operations)>0) then
      i_all=-product(shape(psifscf_tmp))*kind(psifscf_tmp)
@@ -1830,6 +1835,172 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,cen
   call f_release_routine()
 end subroutine field_rototranslation
 
+
+ !> routine which directly applies the 3D transformation of the rototranslation
+subroutine field_rototranslation3D_interpolation(da,newz,centre_old,centre_new,&
+     sint,cost,onemc,hgrids_old,ndims_old,f_old,&
+     hgrids_new,ndims_new,f_new)
+  use module_base
+  use yaml_output
+  implicit none
+  real(gp), intent(in) :: sint,cost,onemc !< rotation wrt newzeta vector
+  real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
+  real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
+  real(gp), dimension(3), intent(in) :: centre_old,centre_new !<centre of rotation
+  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
+  integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
+  real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
+  real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
+  !local variables
+  integer :: k1,i,j,k,l,it
+  real(gp) :: ux,uy,uz
+  real(gp), dimension(3) :: dt
+  real(gp), dimension(27) :: coeffs
+
+  call f_routine(id='field_rototranslation3D_interpolation')
+
+  !loop on the coordinates of the new domain
+  do k=1,ndims_new(3)
+     do j=1,ndims_new(2)
+        do i=1,ndims_new(1)
+           do it=1,3
+              call shift_and_start(i,j,k,coeffs,dt)
+           end do
+!           print *,'i,j,k',i,j,k,coeffs
+!           print *,'dt',dt
+           f_new(i,j,k)=interpolate(dt,coeffs)
+!           print *,'interpolate',f_new(i,j,k)
+        end do
+     end do
+  end do
+
+  call f_release_routine()
+!stop  
+contains
+
+  function interpolate(dt,aijk)
+    implicit none
+    real(gp), dimension(3), intent(in) :: dt
+    real(gp), dimension(0:2,0:2,0:2), intent(inout) :: aijk
+    real(gp) :: interpolate
+    !local variables
+    integer :: px,py,pz,ix,iy,iz,info
+    real(gp) :: x,y,z
+    integer, dimension(27) :: ipiv
+    real(gp), dimension(-1:1,-1:1,-1:1,0:2,0:2,0:2) :: bijk
+
+    if (maxval(abs(aijk)) == 0.0_gp) then
+       interpolate=0.0_gp
+       return
+    end if
+
+    do iz=-1,1
+       z=dt(3)+real(iz,gp)
+       z=hgrids_old(3)*z
+       do iy=-1,1
+          y=dt(2)+real(iy,gp)
+          y=hgrids_old(2)*y
+          do ix=-1,1
+             x=dt(1)+real(ix,gp)
+             x=hgrids_old(1)*x
+             do pz=0,2
+                do py=0,2
+                   do px=0,2
+                      bijk(ix,iy,iz,px,py,pz)=(x**px)*(y**py)*(z**pz)
+                   end do
+                end do
+             end do
+          end do
+       end do
+    end do
+
+    !here the linear system has to be solved to find the coefficients aijk
+    !some pragma has to be passed to MKL to ensure a monothread execution
+    call dgesv(27,1,bijk,27,ipiv,aijk,27,info)
+    if (info /=0) then 
+       print *,'error', info, dt
+       call f_err_severe()
+    end if
+    interpolate=aijk(0,0,0)
+
+  end function interpolate
+
+  !pure 
+  subroutine shift_and_start(j1,j2,j3,fijk,dt)
+    implicit none
+    integer, intent(in) :: j1,j2,j3
+    real(gp), dimension(-1:1,-1:1,-1:1), intent(out) :: fijk
+    real(gp), dimension(3), intent(out) :: dt
+    !local variables
+    integer :: ix,iy,iz,i
+    integer, dimension(3) :: istart
+    real(gp), dimension(3) :: t0_l
+
+    !define the coordinates in the reference frame, which depends of the transformed variables
+    dt(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) !the first step is always the same
+    dt(2)=-centre_new(2)+real(j2-1,gp)*hgrids_new(2)
+    dt(3)=-centre_new(3)+real(j3-1,gp)*hgrids_new(3)
+
+    !define the value of the shift of the variable we are going to transform
+    t0_l=coord(newz,cost,sint,onemc,dt(1),dt(2),dt(3))-da
+    istart=nint((t0_l+centre_old+hgrids_old)/hgrids_old)
+
+    !do i=1,3
+    !   istart(i)=min(max(istart(i),1),ndims_old(i))
+    !end do
+    
+    !doubts about that
+    t0_l=(dt-t0_l)/hgrids_old
+    !identify shift
+    dt(1)=(real(istart(1),gp)+t0_l(1))-real(j1,gp)
+    dt(2)=(real(istart(2),gp)+t0_l(2))-real(j2,gp)
+    dt(3)=(real(istart(3),gp)+t0_l(3))-real(j3,gp)
+    !end of doubts
+
+    !identify shift
+    !dt=t0_l-(-centre_old+istart*hgrids_old)
+    !dt=dt/hgrids_old
+
+    !fill array if it is inside the old box
+    fijk=0.0_gp
+    do iz=-1,1
+       if (istart(3)+iz >= 1 .and. istart(3)+iz <= ndims_old(3)) then
+          do iy=-1,1
+             if (istart(2)+iy >= 1 .and. istart(2)+iy <= ndims_old(2)) then
+             do ix=-1,1
+                if (istart(1)+ix >= 1 .and. istart(1)+ix <= ndims_old(1)) then
+                   fijk(ix,iy,iz)=&
+                        f_old(istart(1)+ix,istart(2)+iy,istart(3)+iz)
+                end if
+             end do
+          end if
+          end do
+       end if
+    end do
+
+!    if (maxval(abs(fijk)) /= 0.0_gp) then
+!       write(17,*)j1,j2,j3,dt,istart,fijk
+!    end if
+    
+
+  end subroutine shift_and_start
+
+  pure function coord(u,C,S,onemc,x,y,z)
+    use module_base, only: gp
+    implicit none
+    real(gp), intent(in) :: C,S,onemc !<trigonometric functions of the theta angle
+    real(gp), intent(in) :: x,y,z !<coordinates to be used for the mapping
+    real(gp), dimension(3), intent(in) :: u !<axis of rotation
+    real(gp), dimension(3) :: coord
+
+    coord(1)=u(1)**2*x + u(1)*u(2)*y + S*u(3)*y - S*u(2)*z + u(1)*u(3)*z - C*((-1 + u(1)**2)*x + u(1)*(u(2)*y + u(3)*z))
+    coord(2)=-(S*u(3)*x) + (C + onemc*u(2)**2)*y + onemc*u(2)*u(3)*z + u(1)*(u(2)*onemc*x + S*z)
+    coord(3)=S*(u(2)*x - u(1)*y) + C*z + u(3)*(onemc*u(1)*x + onemc*u(2)*y + u(3)*z - C*u(3)*z)
+
+  end function coord
+
+end subroutine field_rototranslation3D_interpolation
+
 !> routine which directly applies the 3D transformation of the rototranslation
 subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,centre_new,&
      sint,cost,onemc,iorder,hgrids_old,ndims_old,f_old,&
@@ -1867,7 +2038,7 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   !f_old (nxo,nyo,nzo) -> work(n11o,n12o,nxn) !n11o and n12o are the remaining dimensions
   !second step: determine yn from n22o=n11o or n12o
   !work(n11o,n12o,nxn) -> work2(n21o,nxn,nyn)
-  !thirs step: determine zn from n21o
+  !third step: determine zn from n21o
   !work2(n21o,nxn,nyn) -> f_new(xn,yn,zn)
 
 
@@ -2047,8 +2218,7 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
     end function ind2
 
     
-    !pure 
-    subroutine shift_and_start(ntr,istep,i2,i3,j1,j2,j3,&
+    pure subroutine shift_and_start(ntr,istep,i2,i3,j1,j2,j3,&
          dt,istart,ms,me)
       use module_base
       implicit none
@@ -2240,11 +2410,6 @@ subroutine shift_only(ndat,nin,nout,t0,nrange,nphi,phi,shf,&
   end do
 
 end subroutine shift_only
-
-
-
-subroutine interpolate_generic
-end subroutine interpolate_generic
 
 subroutine interpolate_xp_from_x(nx,ny,nz,cx,cy,cz,cx_new,hx,hy,hz,hx_new,&
      nx_old,dx,theta,newz,nrange,nphi,phi,shf,&
