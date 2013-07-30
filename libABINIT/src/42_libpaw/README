@@ -1,0 +1,5 @@
+These files are copied directly from libPAW VERSION 1.0
+
+The format is slightly changed to fit BigDFT.
+To format run:
+./run_format

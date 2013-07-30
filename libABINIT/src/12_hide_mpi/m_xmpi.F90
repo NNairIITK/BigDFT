@@ -53,6 +53,8 @@ MODULE m_xmpi
  !integer,public,parameter :: xmpi_group_null     = MPI_GROUP_NULL ! invalid handle.
  !integer,public,parameter :: xmpi_group_empty    = MPI_GROUP_EMPTY ! valid handle.
  integer,public,parameter :: xmpi_msg_len= MPI_MAX_ERROR_STRING ! Length of fortran string used to store MPI error strings.
+! Length of fortran string used to store MPI error strings.
+ integer,public,parameter :: xmpi_paral=1
 #else
  ! Fake replacements for the sequential version.
  integer,public,parameter :: xmpi_world          = 0
@@ -63,6 +65,7 @@ MODULE m_xmpi
  !integer,public,parameter :: xmpi_group_null     =
  !integer,public,parameter :: xmpi_group_empty    = 
  integer,public,parameter :: xmpi_msg_len=1000
+ integer,public,parameter :: xmpi_paral=0
 #endif
 
  integer,save,private  :: xmpi_tag_ub=32767 
