@@ -1176,7 +1176,7 @@ subroutine xmpio_get_info_frm(bsize_frm,mpi_type_frm,comm)
      offset = rml + 4 * bsize_int
      call MPI_FILE_READ_AT(mpio_fh,offset,read_5ivals,5,MPI_INTEGER,statux,ierr)
      !write(std_out,*)read_5ivals
-     if ( ierr==MPI_SUCCESS .and. ALL(read_5ivals==ref_5ivals) ) bsize_frm=rml
+!     if ( ierr==MPI_SUCCESS .and. ALL(read_5ivals==ref_5ivals) ) bsize_frm=rml
    end do
 
    if (ii==iimax.and.bsize_frm<=0) then

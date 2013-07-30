@@ -1095,7 +1095,7 @@ subroutine check_mpi_ierr(ierr,msg,mode_paral,file,line)
 ! *********************************************************************
 
 #ifdef HAVE_MPI
- if (ierr==MPI_SUCCESS) RETURN
+! if (ierr==MPI_SUCCESS) RETURN
  call MPI_ERROR_STRING(ierr, mpi_msg_error, ilen, ierr2)
 #else
  ilen=0; ierr2=0
