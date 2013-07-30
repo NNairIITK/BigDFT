@@ -448,9 +448,9 @@ END SUBROUTINE gauss_to_daub
 !!  In this version, we dephase the projector to wrt the center of the gaussian
 !!  this should not have an impact on the results since the operator is unchanged
 subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
-     factor,gau_cen,gau_a,gau_cut,n_gau,&!no err, errsuc
+     factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      nstart,nmax,n_left,n_right,c,& 
-     ww,nwork,periodic)      !added work arrays ww with dimension nwork
+     ww,nwork,periodic,gau_cut)      !added work arrays ww with dimension nwork
   use module_base
   implicit none
   logical, intent(in) :: periodic
@@ -458,11 +458,12 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
   integer, intent(in) :: ncplx_w !size of the ww matrix
   integer, intent(in) :: ncplx_g !1 or 2 for simple or complex gaussians, respectively.
   integer, intent(in) :: ncplx_k !use 2 for k-points.
-  real(gp), intent(in) :: hgrid,gau_cen,gau_cut,kval
+  real(gp), intent(in) :: hgrid,gau_cen,kval
   real(gp),dimension(ncplx_g),intent(in)::factor,gau_a
   real(wp), dimension(0:nwork,2,ncplx_w), intent(inout) :: ww 
   integer, intent(out) :: n_left,n_right
   real(wp), dimension(ncplx_w,0:nmax,2), intent(out) :: c
+  real(gp), intent(in) :: gau_cut
   !local variables
   character(len=*), parameter :: subname='gauss_to_daub_k'
   integer :: i_all,i_stat
@@ -712,7 +713,7 @@ contains
             ww(i-leftx,1,1)=func*cval
             ww(i-leftx,1,2)=func*sval
           else
-            ww(i-leftx,1,:)=0.0_wp
+            ww(i-leftx,1,1:2)=0.0_wp
           end if
        enddo
     else
@@ -730,7 +731,7 @@ contains
             ww(i-leftx,1,1)=func*cval
             ww(i-leftx,1,2)=func*sval
           else
-            ww(i-leftx,1,:)=0.0_wp
+            ww(i-leftx,1,1:2)=0.0_wp
           end if
        enddo
     end if
@@ -755,29 +756,25 @@ contains
             ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
             ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)
           else
-            ww(i-leftx,1,:)=0.0_wp
+            ww(i-leftx,1,1:2)=0.0_wp
           end if
        enddo
     else
        do i=leftx,rightx
           x=real(i-i0*16,gp)*h
-          if( abs(r)-gcut < 1e-8 ) then
-            r=x-z0
-            r2=r*r
-            cval=cos(a2*r2)
-            sval=sin(a2*r2)
-            rk=real(i,gp)*h
-            cval2=cos(kval*rk)
-            sval2=sin(kval*rk)
-            coeff=r**n_gau
-            r2=0.5_gp*r2/(a1**2)
-            func=dexp(-r2)
-            func=coeff*func
-            ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
-            ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)
-          else
-            ww(i-leftx,1,:)=0.0_wp
-          end if
+          r=x-z0
+          r2=r*r
+          cval=cos(a2*r2)
+          sval=sin(a2*r2)
+          rk=real(i,gp)*h
+          cval2=cos(kval*rk)
+          sval2=sin(kval*rk)
+          coeff=r**n_gau
+          r2=0.5_gp*r2/(a1**2)
+          func=dexp(-r2)
+          func=coeff*func
+          ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
+          ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)
        enddo
     end if
   END SUBROUTINE gauss_to_scf_4

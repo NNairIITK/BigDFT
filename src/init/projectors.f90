@@ -399,10 +399,10 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
         !     plr%wfd%keyvglob,plr%wfd%keyglob,proj_tmp(1),nwarnings)
         !END DEBUG
         call projector_paw(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
-             proj_G%psiat(:,jj),proj_G%xp(:,jj),rpaw,rxyz(1),lr,&
+             proj_G%psiat(:,jj),proj_G%xp(:,jj),rpaw,rxyz,lr,&
              hx,hy,hz,kx,ky,kz,proj_G%ncplx,ncplx_k,&
              mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-             plr%wfd%keyvglob,plr%wfd%keyglob,proj_tmp(1),nwarnings)
+             plr%wfd%keyvglob,plr%wfd%keyglob,proj_tmp,nwarnings)
         proj(istart_c:istart_c+nc-1)=proj(istart_c:istart_c+nc-1)+proj_tmp(1:nc)
      enddo
 
@@ -443,6 +443,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
   use module_base
   use module_types
   implicit none
+  integer, parameter :: ncplx_g=1 !this is true for NC pseudos
   integer, intent(in) :: iat,idir,ikpt,nprojel
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
@@ -454,7 +455,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
   real(wp), dimension(nprojel), intent(inout) :: proj
   !Local variables
   integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,l,i,ncplx_k
-  real(gp) :: kx,ky,kz
+  real(gp) :: kx,ky,kz,gau_a(ncplx_g)
 
   !features of the k-point ikpt
   kx=orbs%kpts(1,ikpt)
@@ -487,8 +488,9 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
 !!$                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
 !!$                proj(istart_c),nwarnings)
+           gau_a(1)=at%psppar(l,0,ityp)
            call projector(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
-                at%psppar(l,0,ityp),rxyz(1),lr,&
+                gau_a,rxyz(1),lr,&
                 hx,hy,hz,kx,ky,kz,ncplx_k,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                 plr%wfd%keyvglob,plr%wfd%keyglob,&
@@ -551,11 +553,13 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
   use module_base
   use module_types
   implicit none
+  integer,parameter::ncplx_g=1 !this is true for NC pseudos
   character(len=1), intent(in) :: geocode
   character(len=20), intent(in) :: atomname
   integer, intent(in) :: iat,idir,l,i,mbvctr_c,mbvctr_f,mseg_c,mseg_f,ncplx
   type(locreg_descriptors),intent(in) :: lr
-  real(gp), intent(in) :: hx,hy,hz,gau_a,kx,ky,kz
+  real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
+  real(gp),dimension(ncplx_g),intent(in)::gau_a
   !integer, dimension(2,3), intent(in) :: nboxp_c,nboxp_f
   integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
   integer, dimension(2,mseg_c+mseg_f), intent(in) :: keyg_p
@@ -565,12 +569,11 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
   real(wp), dimension((mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx), intent(out) :: proj
   !Local variables
   integer, parameter :: nterm_max=20 !if GTH nterm_max=4
-  integer, parameter :: ncplx_g=1 !2 for PAW.
+  real(gp),parameter :: gau_cut=1.0_gp !this is only  meaningful for PAW
   integer :: m,iterm
   !integer :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
   integer :: istart_c,nterm,idir2
   real(gp) :: fpi,factor,rx,ry,rz
-  real(gp) :: gau_cut !dummy here, only for PAW
   real(dp) :: scpr
   integer, dimension(3) :: nterm_arr
   integer, dimension(nterm_max) :: lx,ly,lz
@@ -589,7 +592,7 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
 
   istart_c=1
   !start of the projectors expansion routine
-  factor=sqrt(2.0_gp)*fpi/(sqrt(gau_a)**(2*(l-1)+4*i-1))
+  factor=sqrt(2.0_gp)*fpi/(sqrt(gau_a(1))**(2*(l-1)+4*i-1))
   do m=1,2*l-1
     
      if (idir==0) then !normal projector calculation case
@@ -598,7 +601,7 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
         factors(1:nterm)=factor*factors(1:nterm)
      else !calculation of projector derivative
         idir2=mod(idir-1,3)+1
-        call calc_coeff_derproj(l,i,m,nterm_max,gau_a,nterm_arr,lxyz_arr,fac_arr)
+        call calc_coeff_derproj(l,i,m,nterm_max,gau_a(1),nterm_arr,lxyz_arr,fac_arr)
 
         nterm=nterm_arr(idir2)
         do iterm=1,nterm
@@ -635,8 +638,8 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
      
      call crtproj(geocode,nterm,lr,hx,hy,hz,kx,ky,kz,&
           ncplx_g,ncplx,&
-          gau_a,gau_cut,factors,rx,ry,rz,lx,ly,lz,&
-          mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c))
+          gau_a(1:ncplx_g),factors,rx,ry,rz,lx,ly,lz,&
+          mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c),gau_cut)
 
      ! testing
      if (idir == 0) then
@@ -760,10 +763,10 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
 
      call crtproj(geocode,nterm,lr,hx,hy,hz,kx,ky,kz,&
           ncplx_g,ncplx_k,&
-          gau_a,rpaw,factors(1:ncplx_g,1:nterm),&
+          gau_a(1:ncplx_g),factors(1:ncplx_g,1:nterm),&
           rx,ry,rz,lx(1:nterm),ly(1:nterm),lz(1:nterm),&
           mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,&
-          proj(istart_c))
+          proj(istart_c),rpaw)
      !Check real projectors case:
      !DEBUG
      !write(*,*)'DEBUG ERASE ME, projector_paw'
@@ -881,16 +884,16 @@ END SUBROUTINE numb_proj_paw_tr
 !!   in the arrays proj_c, proj_f
 subroutine crtproj(geocode,nterm,lr, & 
      hx,hy,hz,kx,ky,kz,ncplx_g,ncplx_k,&
-     gau_a,gau_cut,fac_arr,rx,ry,rz,lx,ly,lz, & 
-     mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj)
+     gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
+     mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,gau_cut)
   use module_base
   use module_types
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: nterm,mvctr_c,mvctr_f,mseg_c,mseg_f
   integer, intent(in) :: ncplx_g,ncplx_k
-  real(gp), intent(in) :: gau_cut !only used for PAW
   real(gp), intent(in) :: hx,hy,hz,rx,ry,rz,kx,ky,kz
+  real(gp),intent(in)::gau_cut
   integer, dimension(nterm), intent(in) :: lx,ly,lz
   real(gp), dimension(ncplx_g,nterm), intent(in) :: fac_arr
   real(gp), dimension(ncplx_g),intent(in):: gau_a
@@ -987,22 +990,22 @@ subroutine crtproj(geocode,nterm,lr, &
      !$ if (mod(ichunk,nthread).eq.ithread) then
      factor(:)=fac_arr(:,iterm)
      n_gau=lx(iterm) 
-     call gauss_to_daub_k(hx,kx*hx,ncplx_w,ncplx_g,ncplx_k,factor,rx,gau_a,n_gau,gau_cut,ns1,n1,ml1,mu1,&
-          wprojx(1,0,1,iterm),work,nw,perx) 
+     call gauss_to_daub_k(hx,kx*hx,ncplx_w,ncplx_g,ncplx_k,factor,rx,gau_a,n_gau,ns1,n1,ml1,mu1,&
+          wprojx(1,0,1,iterm),work,nw,perx,gau_cut) 
      !$ endif
 
      !$ ichunk=ichunk+1
      !$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=ly(iterm) 
-     call gauss_to_daub_k(hy,ky*hy,ncplx_w,ncplx_g,ncplx_k,1.d0,ry,gau_a,n_gau,gau_cut,ns2,n2,ml2,mu2,&
-          wprojy(1,0,1,iterm),work,nw,pery) 
+     call gauss_to_daub_k(hy,ky*hy,ncplx_w,ncplx_g,ncplx_k,1.d0,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
+          wprojy(1,0,1,iterm),work,nw,pery,gau_cut) 
      !$ endif
 
      !$ ichunk=ichunk+1
      !$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=lz(iterm) 
-     call gauss_to_daub_k(hz,kz*hz,ncplx_w,ncplx_g,ncplx_k,1.d0,rz,gau_a,n_gau,gau_cut,ns3,n3,ml3,mu3,&
-          wprojz(1,0,1,iterm),work,nw,perz)
+     call gauss_to_daub_k(hz,kz*hz,ncplx_w,ncplx_g,ncplx_k,1.d0,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
+          wprojz(1,0,1,iterm),work,nw,perz,gau_cut)
      !$ endif
   end do
   !$omp critical

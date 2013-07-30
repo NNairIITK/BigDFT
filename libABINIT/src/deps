@@ -308,96 +308,92 @@ m_profiling.o: 18_memory/m_profiling.F90 \
 	$(mpi_include)
 	$(PPFCCOMPILE) -c -o m_profiling.o `test -f '18_memory/m_profiling.F90' || echo '$(srcdir)/'`18_memory/m_profiling.F90
 
-interfaces_56_xc.o: 56_xc/interfaces_56_xc.F90 \
+xcpzca.o: 41_xc_lowlevel/xcpzca.F90 \
+	defs_basis.o \
+	interfaces_14_hidewrite.o \
+	interfaces_16_hideleave.o
+	$(PPFCCOMPILE) -c -o xcpzca.o `test -f '41_xc_lowlevel/xcpzca.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcpzca.F90
+
+xcxalp.o: 41_xc_lowlevel/xcxalp.F90 \
+	defs_basis.o \
+	interfaces_14_hidewrite.o \
+	interfaces_16_hideleave.o
+	$(PPFCCOMPILE) -c -o xcxalp.o `test -f '41_xc_lowlevel/xcxalp.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcxalp.F90
+
+interfaces_41_xc_lowlevel.o: 41_xc_lowlevel/interfaces_41_xc_lowlevel.F90 \
 	defs_abitypes.o \
-	defs_basis.o \
-	defs_datatypes.o
-	$(PPFCCOMPILE) -c -o interfaces_56_xc.o `test -f '56_xc/interfaces_56_xc.F90' || echo '$(srcdir)/'`56_xc/interfaces_56_xc.F90
-
-xcpzca.o: 56_xc/xcpzca.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o xcpzca.o `test -f '56_xc/xcpzca.F90' || echo '$(srcdir)/'`56_xc/xcpzca.F90
-
-xcxalp.o: 56_xc/xcxalp.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o xcxalp.o `test -f '56_xc/xcxalp.F90' || echo '$(srcdir)/'`56_xc/xcxalp.F90
-
-xchcth.o: 56_xc/xchcth.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_56_xc.o
-	$(PPFCCOMPILE) -c -o xchcth.o `test -f '56_xc/xchcth.F90' || echo '$(srcdir)/'`56_xc/xchcth.F90
-
-xclb.o: 56_xc/xclb.F90 \
 	defs_basis.o
-	$(PPFCCOMPILE) -c -o xclb.o `test -f '56_xc/xclb.F90' || echo '$(srcdir)/'`56_xc/xclb.F90
+	$(PPFCCOMPILE) -c -o interfaces_41_xc_lowlevel.o `test -f '41_xc_lowlevel/interfaces_41_xc_lowlevel.F90' || echo '$(srcdir)/'`41_xc_lowlevel/interfaces_41_xc_lowlevel.F90
 
-xctetr.o: 56_xc/xctetr.F90 \
+xchcth.o: 41_xc_lowlevel/xchcth.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o xctetr.o `test -f '56_xc/xctetr.F90' || echo '$(srcdir)/'`56_xc/xctetr.F90
+	interfaces_16_hideleave.o \
+	interfaces_41_xc_lowlevel.o
+	$(PPFCCOMPILE) -c -o xchcth.o `test -f '41_xc_lowlevel/xchcth.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xchcth.F90
 
-xcspol.o: 56_xc/xcspol.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o xcspol.o `test -f '56_xc/xcspol.F90' || echo '$(srcdir)/'`56_xc/xcspol.F90
-
-size_dvxc.o: 56_xc/size_dvxc.F90 \
+xclb.o: 41_xc_lowlevel/xclb.F90 \
 	defs_basis.o
-	$(PPFCCOMPILE) -c -o size_dvxc.o `test -f '56_xc/size_dvxc.F90' || echo '$(srcdir)/'`56_xc/size_dvxc.F90
+	$(PPFCCOMPILE) -c -o xclb.o `test -f '41_xc_lowlevel/xclb.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xclb.F90
 
-xchelu.o: 56_xc/xchelu.F90 \
+xctetr.o: 41_xc_lowlevel/xctetr.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o xchelu.o `test -f '56_xc/xchelu.F90' || echo '$(srcdir)/'`56_xc/xchelu.F90
+	$(PPFCCOMPILE) -c -o xctetr.o `test -f '41_xc_lowlevel/xctetr.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xctetr.F90
 
-xcwign.o: 56_xc/xcwign.F90 \
+xcspol.o: 41_xc_lowlevel/xcspol.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o xcwign.o `test -f '56_xc/xcwign.F90' || echo '$(srcdir)/'`56_xc/xcwign.F90
+	$(PPFCCOMPILE) -c -o xcspol.o `test -f '41_xc_lowlevel/xcspol.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcspol.F90
 
-xcpbe.o: 56_xc/xcpbe.F90 \
+size_dvxc.o: 41_xc_lowlevel/size_dvxc.F90 \
+	defs_basis.o
+	$(PPFCCOMPILE) -c -o size_dvxc.o `test -f '41_xc_lowlevel/size_dvxc.F90' || echo '$(srcdir)/'`41_xc_lowlevel/size_dvxc.F90
+
+xchelu.o: 41_xc_lowlevel/xchelu.F90 \
+	defs_basis.o \
+	interfaces_14_hidewrite.o \
+	interfaces_16_hideleave.o
+	$(PPFCCOMPILE) -c -o xchelu.o `test -f '41_xc_lowlevel/xchelu.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xchelu.F90
+
+xcwign.o: 41_xc_lowlevel/xcwign.F90 \
+	defs_basis.o \
+	interfaces_14_hidewrite.o \
+	interfaces_16_hideleave.o
+	$(PPFCCOMPILE) -c -o xcwign.o `test -f '41_xc_lowlevel/xcwign.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcwign.F90
+
+xcpbe.o: 41_xc_lowlevel/xcpbe.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
-	interfaces_56_xc.o
-	$(PPFCCOMPILE) -c -o xcpbe.o `test -f '56_xc/xcpbe.F90' || echo '$(srcdir)/'`56_xc/xcpbe.F90
+	interfaces_41_xc_lowlevel.o
+	$(PPFCCOMPILE) -c -o xcpbe.o `test -f '41_xc_lowlevel/xcpbe.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcpbe.F90
 
-drivexc.o: 56_xc/drivexc.F90 \
+drivexc.o: 41_xc_lowlevel/drivexc.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
-	interfaces_56_xc.o \
+	interfaces_41_xc_lowlevel.o \
 	m_libxc_functionals.o
-	$(PPFCCOMPILE) -c -o drivexc.o `test -f '56_xc/drivexc.F90' || echo '$(srcdir)/'`56_xc/drivexc.F90
+	$(PPFCCOMPILE) -c -o drivexc.o `test -f '41_xc_lowlevel/drivexc.F90' || echo '$(srcdir)/'`41_xc_lowlevel/drivexc.F90
 
-m_libxc_functionals.o: 56_xc/m_libxc_functionals.F90 \
+m_libxc_functionals.o: 41_xc_lowlevel/m_libxc_functionals.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o m_libxc_functionals.o `test -f '56_xc/m_libxc_functionals.F90' || echo '$(srcdir)/'`56_xc/m_libxc_functionals.F90
+	$(PPFCCOMPILE) -c -o m_libxc_functionals.o `test -f '41_xc_lowlevel/m_libxc_functionals.F90' || echo '$(srcdir)/'`41_xc_lowlevel/m_libxc_functionals.F90
 
-mkdenpos.o: 56_xc/mkdenpos.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	m_profiling.o
-	$(PPFCCOMPILE) -c -o mkdenpos.o `test -f '56_xc/mkdenpos.F90' || echo '$(srcdir)/'`56_xc/mkdenpos.F90
+mkdenpos.o: 41_xc_lowlevel/mkdenpos.F90 \
+	defs_basis.o
+	$(PPFCCOMPILE) -c -o mkdenpos.o `test -f '41_xc_lowlevel/mkdenpos.F90' || echo '$(srcdir)/'`41_xc_lowlevel/mkdenpos.F90
 
-invcb.o: 56_xc/invcb.F90 \
+invcb.o: 41_xc_lowlevel/invcb.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o invcb.o `test -f '56_xc/invcb.F90' || echo '$(srcdir)/'`56_xc/invcb.F90
+	$(PPFCCOMPILE) -c -o invcb.o `test -f '41_xc_lowlevel/invcb.F90' || echo '$(srcdir)/'`41_xc_lowlevel/invcb.F90
 
 wrtout.o: 14_hidewrite/wrtout.F90 \
 	defs_basis.o \

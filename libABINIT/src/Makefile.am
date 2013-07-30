@@ -142,21 +142,21 @@ libabinit_a_SOURCES = \
 	56_recipspace/smpbz.F90 \
 	56_recipspace/symkpt.F90 \
 	56_recipspace/testkgrid.F90 \
-	56_xc/interfaces_56_xc.F90 \
-	56_xc/drivexc.F90 \
-	56_xc/invcb.F90 \
-	56_xc/mkdenpos.F90 \
-	56_xc/m_libxc_functionals.F90 \
-	56_xc/size_dvxc.F90 \
-	56_xc/xchcth.F90 \
-	56_xc/xchelu.F90 \
-	56_xc/xclb.F90 \
-	56_xc/xcpbe.F90 \
-	56_xc/xcpzca.F90 \
-	56_xc/xcspol.F90 \
-	56_xc/xctetr.F90 \
-	56_xc/xcwign.F90 \
-	56_xc/xcxalp.F90 \
+	41_xc_lowlevel/interfaces_41_xc_lowlevel.F90 \
+	41_xc_lowlevel/drivexc.F90 \
+	41_xc_lowlevel/invcb.F90 \
+	41_xc_lowlevel/mkdenpos.F90 \
+	41_xc_lowlevel/m_libxc_functionals.F90 \
+	41_xc_lowlevel/size_dvxc.F90 \
+	41_xc_lowlevel/xchcth.F90 \
+	41_xc_lowlevel/xchelu.F90 \
+	41_xc_lowlevel/xclb.F90 \
+	41_xc_lowlevel/xcpbe.F90 \
+	41_xc_lowlevel/xcpzca.F90 \
+	41_xc_lowlevel/xcspol.F90 \
+	41_xc_lowlevel/xctetr.F90 \
+	41_xc_lowlevel/xcwign.F90 \
+	41_xc_lowlevel/xcxalp.F90 \
 	67_common/ewald.F90 \
         67_common/ewald2.F90 \
 	67_common/fconv.F90 \

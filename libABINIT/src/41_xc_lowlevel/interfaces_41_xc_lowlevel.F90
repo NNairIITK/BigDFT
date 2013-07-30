@@ -1,10 +1,10 @@
-!!****m* ABINIT/interfaces_56_xc
+!!****m* ABINIT/interfaces_41_xc_lowlevel
 !! NAME
-!! interfaces_56_xc
+!! interfaces_41_xc_lowlevel
 !!
 !! FUNCTION
 !! This module contains the interfaces of the routines
-!! in the directory src/56_xc
+!! in the directory src/41_xc_lowlevel
 !!
 !! COPYRIGHT
 !! Copyright (C) 2010 ABINIT group
@@ -19,7 +19,7 @@
 !!
 !! SOURCE
 
-module interfaces_56_xc
+module interfaces_41_xc_lowlevel
 
  implicit none
 
@@ -189,237 +189,6 @@ interface
   real(dp),intent(in) :: rhor1tmp(cplex*nfft,2)
   real(dp),intent(out) :: vxc1(cplex*nfft,nspden)
  end subroutine mkvxcgga3
-end interface
-
-interface
- subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,option,&  
-  &  pawang,pawrad,rhor,usecore,usexcnhat,vxc,xclevel)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: ixc
-  integer,intent(in) :: lm_size
-  integer,intent(in) :: nkxc
-  integer,intent(in) :: nspden
-  integer,intent(in) :: option
-  integer,intent(in) :: usecore
-  integer,intent(in) :: usexcnhat
-  integer,intent(in) :: xclevel
-  real(dp),intent(out) :: enxc
-  real(dp),intent(out) :: enxcdc
-  type(pawang_type),intent(in) :: pawang
-  type(pawrad_type),intent(in) :: pawrad
-  real(dp),intent(in) :: corexc(pawrad%mesh_size)
-  real(dp),intent(out) :: kxc(pawrad%mesh_size,pawang%angl_size,nkxc)
-  logical,intent(in) :: lmselect(lm_size)
-  real(dp),intent(in) :: nhat(pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(in) :: rhor(pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(out) :: vxc(pawrad%mesh_size,pawang%angl_size,nspden)
- end subroutine pawxc
-end interface
-
-interface
- subroutine pawxc3(corexc1,cplex,d2enxc,kxc,lm_size,lmselect,nhat1,nkxc,nspden,option,&  
-  &  pawang,pawrad,rhor1,usecore,usexcnhat,vxc1,xclevel)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: cplex
-  integer,intent(in) :: lm_size
-  integer,intent(in) :: nkxc
-  integer,intent(in) :: nspden
-  integer,intent(in) :: option
-  integer,intent(in) :: usecore
-  integer,intent(in) :: usexcnhat
-  integer,intent(in) :: xclevel
-  real(dp),intent(out) :: d2enxc
-  type(pawang_type),intent(in) :: pawang
-  type(pawrad_type),intent(in) :: pawrad
-  real(dp),intent(in) :: corexc1(cplex*pawrad%mesh_size)
-  real(dp),intent(in) :: kxc(pawrad%mesh_size,pawang%angl_size,nkxc)
-  logical,intent(in) :: lmselect(lm_size)
-  real(dp),intent(in) :: nhat1(cplex*pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(in) :: rhor1(cplex*pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(out) :: vxc1(cplex*pawrad%mesh_size,pawang%angl_size,nspden)
- end subroutine pawxc3
-end interface
-
-interface
- subroutine pawxcm(corexc,enxc,enxcdc,exexch,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,option,&  
-  &  pawang,pawrad,pawxcdev,rhor,usecore,usexcnhat,vxc,xclevel)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: exexch
-  integer,intent(in) :: ixc
-  integer,intent(in) :: lm_size
-  integer,intent(in) :: nkxc
-  integer,intent(in) :: nspden
-  integer,intent(in) :: option
-  integer,intent(in) :: pawxcdev
-  integer,intent(in) :: usecore
-  integer,intent(in) :: usexcnhat
-  integer,intent(in) :: xclevel
-  real(dp),intent(out) :: enxc
-  real(dp),intent(out) :: enxcdc
-  type(pawang_type),intent(in) :: pawang
-  type(pawrad_type),intent(in) :: pawrad
-  real(dp),intent(in) :: corexc(pawrad%mesh_size)
-  real(dp),intent(out) :: kxc(pawrad%mesh_size,lm_size,nkxc)
-  logical,intent(in) :: lmselect(lm_size)
-  real(dp),intent(in) :: nhat(pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(in) :: rhor(pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(out) :: vxc(pawrad%mesh_size,lm_size,nspden)
- end subroutine pawxcm
-end interface
-
-interface
- subroutine pawxcm3(corexc1,cplex,d2enxc,kxc,lm_size,lmselect,nhat1,nkxc,nspden,option,&  
-  &  pawang,pawrad,pawxcdev,rhor1,usecore,usexcnhat,vxc1,xclevel)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: cplex
-  integer,intent(in) :: lm_size
-  integer,intent(in) :: nkxc
-  integer,intent(in) :: nspden
-  integer,intent(in) :: option
-  integer,intent(in) :: pawxcdev
-  integer,intent(in) :: usecore
-  integer,intent(in) :: usexcnhat
-  integer,intent(in) :: xclevel
-  real(dp),intent(out) :: d2enxc
-  type(pawang_type),intent(in) :: pawang
-  type(pawrad_type),intent(in) :: pawrad
-  real(dp),intent(in) :: corexc1(cplex*pawrad%mesh_size)
-  real(dp),intent(in) :: kxc(pawrad%mesh_size,lm_size,nkxc)
-  logical,intent(in) :: lmselect(lm_size)
-  real(dp),intent(in) :: nhat1(cplex*pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(in) :: rhor1(cplex*pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(out) :: vxc1(cplex*pawrad%mesh_size,lm_size,nspden)
- end subroutine pawxcm3
-end interface
-
-interface
- subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselect,lmselect_ep,&  
-  &  nhat,nhat_ep,nspden,option,pawang,pawrad,pawxcdev,posdensity0_limit,&  
-  &  rhor,rhor_ep,usecore,usexcnhat,vxc)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: calctype
-  integer,intent(in) :: ixcpositron
-  integer,intent(in) :: lm_size
-  integer,intent(in) :: nspden
-  integer,intent(in) :: option
-  integer,intent(in) :: pawxcdev
-  integer,intent(in) :: usecore
-  integer,intent(in) :: usexcnhat
-  real(dp),intent(out) :: enxc
-  real(dp),intent(out) :: enxcdc
-  type(pawang_type),intent(in) :: pawang
-  type(pawrad_type),intent(in) :: pawrad
-  logical,intent(in) :: posdensity0_limit
-  real(dp),intent(in) :: corexc(pawrad%mesh_size)
-  logical,intent(in) :: lmselect(lm_size)
-  logical,intent(in) :: lmselect_ep(lm_size)
-  real(dp),intent(in) :: nhat(pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(in) :: nhat_ep(pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(in) :: rhor(pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(in) :: rhor_ep(pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(out) :: vxc(pawrad%mesh_size,lm_size,nspden)
- end subroutine pawxcmpositron
-end interface
-
-interface
- subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselect,lmselect_ep,&  
-  &  nhat,nhat_ep,nspden,option,pawang,pawrad,posdensity0_limit,&  
-  &  rhor,rhor_ep,usecore,usexcnhat,vxc)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: calctype
-  integer,intent(in) :: ixcpositron
-  integer,intent(in) :: lm_size
-  integer,intent(in) :: nspden
-  integer,intent(in) :: option
-  integer,intent(in) :: usecore
-  integer,intent(in) :: usexcnhat
-  real(dp),intent(out) :: enxc
-  real(dp),intent(out) :: enxcdc
-  type(pawang_type),intent(in) :: pawang
-  type(pawrad_type),intent(in) :: pawrad
-  logical,intent(in) :: posdensity0_limit
-  real(dp),intent(in) :: corexc(pawrad%mesh_size)
-  logical,intent(in) :: lmselect(lm_size)
-  logical,intent(in) :: lmselect_ep(lm_size)
-  real(dp),intent(in) :: nhat(pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(in) :: nhat_ep(pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(in) :: rhor(pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(in) :: rhor_ep(pawrad%mesh_size,lm_size,nspden)
-  real(dp),intent(out) :: vxc(pawrad%mesh_size,pawang%angl_size,nspden)
- end subroutine pawxcpositron
-end interface
-
-interface
- subroutine pawxcsph(exc,exexch,ixc,ndvxc,ngr2,ngrad,nrad,nspden,&  
-  &  nspgrad,nvxcdgr,order,pawrad,rho_updn,vxc,xclevel)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: exexch
-  integer,intent(in) :: ixc
-  integer,intent(in) :: ndvxc
-  integer,intent(in) :: ngr2
-  integer,intent(in) :: ngrad
-  integer,intent(in) :: nrad
-  integer,intent(in) :: nspden
-  integer,intent(in) :: nspgrad
-  integer,intent(in) :: nvxcdgr
-  integer,intent(in) :: order
-  integer,intent(in) :: xclevel
-  type(pawrad_type),intent(in) :: pawrad
-  real(dp),intent(out) :: exc(nrad)
-  real(dp),intent(in) :: rho_updn(nrad,nspden)
-  real(dp),intent(out) :: vxc(nrad,nspden)
- end subroutine pawxcsph
-end interface
-
-interface
- subroutine pawxcsphpositron(calctype,fxc,ixcpositron,nrad,pawrad,posdensity0_limit,rho,rho_ep,vxce,vxcp)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: calctype
-  integer,intent(in) :: ixcpositron
-  integer,intent(in) :: nrad
-  type(pawrad_type),intent(in) :: pawrad
-  logical,intent(in) :: posdensity0_limit
-  real(dp),intent(out) :: fxc(nrad)
-  real(dp),intent(in) :: rho(nrad)
-  real(dp),intent(in) :: rho_ep(nrad)
-  real(dp),intent(out) :: vxce(nrad)
-  real(dp),intent(out) :: vxcp(nrad)
- end subroutine pawxcsphpositron
-end interface
-
-interface
- subroutine pawxcsum(lmselect1,lmselect2,lm_size,ndens,nrad,option,pawang,rho1,rho2,sum1,sum2)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: lm_size
-  integer,intent(in) :: ndens
-  integer,intent(in) :: nrad
-  integer,intent(in) :: option
-  type(pawang_type),intent(in) :: pawang
-  logical,intent(in) :: lmselect1(lm_size)
-  logical,intent(in) :: lmselect2(lm_size)
-  real(dp),intent(in) :: rho1(nrad,lm_size)
-  real(dp),intent(in) :: rho2(nrad,lm_size)
-  real(dp),intent(out) :: sum1(nrad,2*ndens-1)
-  real(dp),intent(out) :: sum2(nrad,lm_size,(2*ndens-1)*(option/2))
- end subroutine pawxcsum
 end interface
 
 interface
@@ -752,5 +521,5 @@ interface
  end subroutine xcxalp
 end interface
 
-end module interfaces_56_xc
+end module interfaces_41_xc_lowlevel
 !!***

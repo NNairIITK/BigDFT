@@ -1115,7 +1115,7 @@ module module_types
     type(cprj_objects),dimension(:,:),allocatable :: cprj
     real(wp),dimension(:),pointer :: spsi
     real(wp),dimension(:,:),pointer :: sij
-    real(dp),dimension(:),pointer :: rpaw
+    real(gp),dimension(:),pointer :: rpaw
   end type paw_objects
 
 contains
@@ -2132,24 +2132,6 @@ END SUBROUTINE deallocate_orbs
     end if
   END SUBROUTINE deallocate_pcproj_data
 
-  !nullify hamiltonian_descriptors
-  subroutine nullify_hamiltonian_descriptors(hamd)
-    type(hamiltonian_descriptors),intent(inout)::hamd
-    call nullify_local_zone_descriptors(hamd%lzd)
-    call nullify_collective_comms(hamd%collcom)
-    call nullify_p2pcomms(hamd%comgp)
-    nullify(hamd%psi)
-    nullify(hamd%psit_c)
-    nullify(hamd%psit_f)
-  END SUBROUTINE nullify_hamiltonian_descriptors
-
-  !> nullify foe_data
-  subroutine nullify_foe_data(foe)
-    type(foe_data),intent(inout)::foe
-    nullify(foe%kernel_nseg)
-    nullify(foe%kernel_segkeyg)
-  END SUBROUTINE nullify_foe_data
-
 subroutine nullify_DFT_local_fields(denspot)
   implicit none
   type(DFT_local_fields),intent(out) :: denspot
@@ -2170,6 +2152,33 @@ subroutine nullify_DFT_local_fields(denspot)
   call nullify_coulomb_operator(denspot%pkernelseq)
   
 end subroutine nullify_DFT_local_fields
+
+
+subroutine deallocate_denspot_distribution(dpbox,subname)
+  implicit none
+  character(len=*), intent(in) :: subname
+  type(denspot_distribution),intent(out)::dpbox
+  !local variables
+  integer :: i_all,i_stat
+  
+  if(associated(dpbox%nscatterarr)) then
+    i_all=-product(shape(dpbox%nscatterarr))*kind(dpbox%nscatterarr)
+    deallocate(dpbox%nscatterarr,stat=i_stat)
+    call memocc(i_stat,i_all,'nscatterarr',subname)
+  end if
+  if(associated(dpbox%ngatherarr)) then
+    i_all=-product(shape(dpbox%ngatherarr))*kind(dpbox%ngatherarr)
+    deallocate(dpbox%ngatherarr,stat=i_stat)
+    call memocc(i_stat,i_all,'ngatherarr',subname)
+  end if
+
+end subroutine deallocate_denspot_distribution
+
+subroutine nullify_coulomb_operator(coul_op)
+  implicit none
+  type(coulomb_operator),intent(out) :: coul_op
+  nullify(coul_op%kernel)
+end subroutine nullify_coulomb_operator
 
 subroutine copy_coulomb_operator(coul1,coul2,subname)
   implicit none
@@ -2223,11 +2232,6 @@ subroutine deallocate_coulomb_operator(coul_op,subname)
   call nullify_coulomb_operator(coul_op)
 end subroutine deallocate_coulomb_operator
 
-subroutine nullify_coulomb_operator(coul_op)
-  implicit none
-  type(coulomb_operator),intent(out) :: coul_op
-  nullify(coul_op%kernel)
-end subroutine nullify_coulomb_operator
 
 subroutine nullify_denspot_distribution(dpbox)
   implicit none
@@ -2236,27 +2240,6 @@ subroutine nullify_denspot_distribution(dpbox)
   nullify(dpbox%nscatterarr)
   nullify(dpbox%ngatherarr)
 end subroutine nullify_denspot_distribution
-
-subroutine deallocate_denspot_distribution(dpbox,subname)
-  implicit none
-  character(len=*), intent(in) :: subname
-  type(denspot_distribution),intent(out)::dpbox
-  !local variables
-  integer :: i_all,i_stat
-  
-  if(associated(dpbox%nscatterarr)) then
-    i_all=-product(shape(dpbox%nscatterarr))*kind(dpbox%nscatterarr)
-    deallocate(dpbox%nscatterarr,stat=i_stat)
-    call memocc(i_stat,i_all,'nscatterarr',subname)
-  end if
-  if(associated(dpbox%ngatherarr)) then
-    i_all=-product(shape(dpbox%ngatherarr))*kind(dpbox%ngatherarr)
-    deallocate(dpbox%ngatherarr,stat=i_stat)
-    call memocc(i_stat,i_all,'ngatherarr',subname)
-  end if
-
-end subroutine deallocate_denspot_distribution
-
 
 subroutine nullify_rho_descriptors(rhod)
   implicit none
