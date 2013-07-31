@@ -1059,6 +1059,8 @@ pseudo/Makefile
 pseudo/src/Makefile
 pseudo/tests/Makefile
 pseudo/tests/atom_tests/Makefile
+pseudo/tutorials/Makefile
+pseudo/tutorials/oxygen.NLCC/Makefile
 doc/Makefile
 tests/Makefile
 tests/libs/Makefile

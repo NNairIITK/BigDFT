@@ -147,7 +147,7 @@ atom.out: $(abs_top_builddir)/pseudo/src/atom
 	$(run_parallel) $(abs_top_builddir)/pseudo/src/atom > $@
 
 %.report: %.out
-	python $(abs_top_srcdir)/tests/fldiff.py $*".out" $< | tee $@
+	python $(abs_top_srcdir)/tests/fldiff.py $< $<.ref | tee $@
 
 %.clean:
 	@dir=`dirname $@` ; \
@@ -166,10 +166,4 @@ atom.out: $(abs_top_builddir)/pseudo/src/atom
         fi ; \
         cd $$dir && $(MAKE) -f ../../Makefile atom.report
 	touch $@
-
-if USE_MPI
-  mpirun_message=mpirun
-else
-  mpirun_message=
-endif
 
