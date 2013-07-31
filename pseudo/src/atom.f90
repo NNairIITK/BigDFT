@@ -1,5 +1,5 @@
 !> @file
-!! Atomic program for psueod-potential calculations
+!! @brief Atomic program for pseudopotential calculations
 !! @author
 !!    Program for atomic calculations
 !!    written by Sverre Froyen, February 1982
@@ -10,12 +10,11 @@
 !!    while at MPI Stuttgart, Germany
 !!
 !!    and further altered by
-!!    Alex Willand,
-!!            under the supervision of
+!!    Alex Willand, under the supervision of
 !!    Stefan Goedecker, December 2010
 !!    while at Universitaet Basel, Switzerland
 !!
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -41,14 +40,14 @@ subroutine atom
 
        integer, parameter :: nrmax=10000, maxorb=60, lmax=5, maxconf=19
        logical, parameter :: debug=.false.
-!
+
        dimension r(nrmax),rab(nrmax),  &
        & no(maxorb),lo(maxorb),so(maxorb),zo(maxorb),  &
        & cdd(nrmax),cdu(nrmax),cdc(nrmax),  &
        & viod(lmax,nrmax),viou(lmax,nrmax),vid(nrmax),viu(nrmax),  &
        & vod(nrmax),vou(nrmax),  &
        & etot(10),econf(maxconf),ev(maxorb),ek(maxorb),ep(maxorb)
-!
+
        character(len=2) :: naold,itype,ityold,nameat,stop_chain,cnum
        character(len=1) :: ispp
        integer :: iXCold
@@ -67,7 +66,7 @@ subroutine atom
        stop_chain  = 'st'
        zsold = 0.D0
        nconf = 0
-       dvold = 1.0D10
+       dvold = 1.0d10
        nr    = 1
        norb  = 1
 
@@ -83,13 +82,13 @@ subroutine atom
 
 !      it is better to append and not overwrite existing weights
        open(unit=60,file='input.weights',position='append')
-!
-!     begin main loop
-!
+
+!      begin main loop
+
  20    continue
-!
+
 !      read input data
-!
+
        call input (itype,iXC,ispp,  &
        & nrmax,nr,a,b,r,rab,rprb,rcov,lmax,  &
        & nameat,norb,ncore,no,lo,so,zo,  &  
@@ -104,38 +103,27 @@ subroutine atom
           write(6,*) 'too many configurations, max. is:',maxconf
           stop
        endif
-!
-!     r ...... radial mesh
-!     nr ..... # mesh points
-!     norb ... # orbitals
-!     ncore .. # core orbitals (closed shells)
-!     no ..... n quantum number
-!     lo ..... l do.
-!     so ..... spin (+/- 0.5, or 0 for unpolarized)
-!     zo ..... # electrons
-!     znuc ... atomic number
-!
 
-!       if (zsold == zsh .and. naold == nameat .and.
-!     +    ityold == itype) goto 45
 
-!
 !      set up initial charge density.
+!      cdd  charge density (spin down)
+!      cdu  charge density (spin up)
+!      cdc  core charge density (up to ncore orbitals)
 !      cdd and cdu  =  2 pi r**2 rho(r)
-!
+
         aa = sqrt(sqrt(znuc))/2.0d0+1.0d0
         a2 = zel/4.0d0*aa**3
         do i=1,nr
           cdd(i) = a2*exp(-aa*r(i))*r(i)**2
           cdu(i) = cdd(i)
         end do
-!
+
 !     cdd ..... charge density (spin down)
 !     cdu ..... charge density (spin up)
 !     cdc ..... core charge density (up to ncore orbitals)
-!
+
 !      set up ionic potentials
-!
+
  40     continue
         call vionic(itype,iXC,ifcore,  &
        nrmax,nr,a,b,r,rab,rprb,lmax,  &
@@ -143,14 +131,14 @@ subroutine atom
        znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
        viod,viou,vid,viu,vod,vou,  &
        etot,ev,ek,ep)
-!
+
 !     Potentials: always multiplied by r.
 !     viod,u ..... ionic potential (down,up)
 !     vid,u ...... input screening potential (down,up)
 !     vod,u ...... output screening potential (down,up)
-!
+
 !      set up electronic potential
-!
+
 
 !      new variable nspol: spin channels for XC
        nspol=1
@@ -163,15 +151,15 @@ subroutine atom
        znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
        viod,viou,vid,viu,vod,vou,  &
        etot,ev,ek,ep)
-!
+
        do i=1,nr
           vid(i) = vod(i)
           viu(i) = vou(i)
-          if (debug) write(*,*)'DEBUG: vid viu',vid(i),viu(i)
+          if (debug) write(*,*) 'DEBUG: vid viu',vid(i),viu(i)
        end do
-!
+
 !      start iteration loop
-!
+
        iconv = 0
        icon2 = 0
        maxit = 5000
@@ -185,11 +173,11 @@ subroutine atom
 
 !      start of iteration loop
        do 100 iter=1,maxit
-!
+
           if (iter == maxit) iconv=1
-!         
+
 !         compute orbitals (solve Schrodinger equation)
-!         
+
           if (icon2 == 0) then
 !         
 !            finite difference solution (less accurate)
@@ -213,12 +201,12 @@ subroutine atom
              etot,ev,ek,ep,rcov,rprb,nconf)
 !         
           endif
-!         
+
 !         etot ..... terms in Etotal
 !         ev ....... eigenvalues
 !         ek ....... kinetic energy for each orbital
 !         ep ....... potential energy (Vionic*rho) for each orbital
-!         
+
 !         set up output electronic potential from charge density
 !         
           call velect(iter,iconv,iXC,ispp,nspol,ifcore,  &
@@ -243,15 +231,15 @@ subroutine atom
           if (dvmax .gt. tol) iconv=0
           if (dvmax .ge. dvold) xmixo=0.8D0*xmixo
           inquire(file='EXIT', exist=abort)
-          if(abort)iconv=1
+          if(abort) iconv=1
 !         EXPERIMENTAL: why not in both directions?
 !         if (dvmax .le. dvold) xmixo=1.05D0*xmixo
-          
+
 !         For now, ignore convergence for at least the first 30 cycles
 !         because we may want to switch to GGA thereafter
           if(iter<40)iconv=0
-          
-!         diverging - reduce mixing coefficient
+
+          ! diverging - reduce mixing coefficient
           if (xmixo .lt. 1D-5) xmixo=1D-5
           dvold = dvmax
           write(6,70) iter,dvmax,xmixo
@@ -269,14 +257,14 @@ subroutine atom
 
 !      end of iteration loop
  100   continue
-!
+
        write(6,110) dvmax,xmixo
  110   format(/,34h potential not converged - dvmax =,1pe10.4,  &
        9h  xmixo =,0pf5.3)
        call ext(1)
-!
+
 !      find total energy
-!
+
  120   call etotal(itype,  &
        nrmax,nr,a,b,r,rab,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
@@ -331,11 +319,11 @@ subroutine atom
         close(unit=60)
         end if
 
-!
+
 !     next configuration of the atom
-!
+
         goto 20
-!
+
  140    continue
 
 !cc     DO NOT CREATE guess for psppar, let the user download
@@ -373,7 +361,7 @@ subroutine atom
 
 !     FITPAR, do not overwrite, append
       open(unit=60,file='input.fitpar',position='append')
-      write(60,*)' fitting parameters appended by atom.f90: auto' 
+      write(60,*)' fitting parameters appended by atom.f90: auto'
       close(unit=60)
 
 
@@ -385,7 +373,7 @@ subroutine atom
 
 !     append excitation energies (in hartree!) to file atom.ae
 !     if more than one configuration
-!
+
 
       if (nconf.gt.1) then
          do ii=0,nconf-1
@@ -400,14 +388,13 @@ subroutine atom
             close(40)
          end do
       endif
- 
+
 !     call libxc_functionals_end()
       call prdiff(nconf,econf)
       call ext(0)
       end
-!
-!      *****************************************************************
-!
+
+
        subroutine prdiff(nconf,econf)
        implicit double precision(a-h,o-z)
        dimension econf (*)
@@ -423,9 +410,9 @@ subroutine atom
  40    continue
        nconf = 0
        end subroutine prdiff
-!
+
 !      *****************************************************************
-!
+
        subroutine mixer(iter,iconv,icon2,xmixo,iXC,ispp,  &
        nrmax,nr,a,b,r,rab,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
@@ -433,11 +420,11 @@ subroutine atom
        viod,viou,vid,viu,vod,vou,  &
        etot,ev,ek,ep)
        implicit double precision(a-h,o-z)
-!
+
 !      subroutine computes the new exchange correlation potential
 !      given the input and the output potential from the previous
 !      iteration.
-!
+
        dimension r(nr),rab(nr),  &
        no(norb),lo(norb),so(norb),zo(norb),  &
        cdd(nr),cdu(nr),cdc(nr),  &
@@ -446,7 +433,7 @@ subroutine atom
        character(len=1) :: ispp
        character(len=2) :: nameat
        integer ::  iXC
-!
+
        xmixi = 1 - xmixo
        do i=1,nr
           vid(i) = xmixo * vod(i) + xmixi * vid(i)
@@ -454,9 +441,9 @@ subroutine atom
        end do
 
        end subroutine mixer
-!
+
 !      *****************************************************************
-!
+
        subroutine etotal(itype,  &
        nrmax,nr,a,b,r,rab,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
@@ -464,16 +451,16 @@ subroutine atom
        viod,viou,vid,viu,vod,vou,  &
        etot,ev,ek,ep)
        implicit double precision(a-h,o-z)
-!
+
 !      etotal computes the total energy from the electron charge density.
-!
+
        dimension r(nr),rab(nr),  &
        no(norb),lo(norb),so(norb),zo(norb),  &
        cdd(nr),cdu(nr),cdc(nr),  &
        viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
        etot(10),ev(norb),ek(norb),ep(norb)
        character(len=2) :: itype,nameat
-!
+
 !      etot(i)    i=1,10 contains various contributions to the total
 !                 energy.
 !                 (1)   sum of eigenvalues ev
@@ -490,16 +477,16 @@ subroutine atom
 !                 (8)   kinetic energy from eigenvalues  (1,3,4,5)
 !                 (9)   potential energy
 !                 (10)  total energy
-!
+
        dimension il(5)
        character(len=1) :: il
 
  1     format(/,1x,a10,30(/,1x,10(1pe13.4)))
 !       pi = 4*atan(1.D0)
-!
+
 !      sum up eigenvalues ev, kinetic energies ek, and
 !      el-ion interaction ep
-!
+
        etot(1) = 0.D0
        etot(2) = 0.D0
        etot(3) = 0.D0
@@ -514,26 +501,26 @@ subroutine atom
 !         etot(2) = etot(2) + zo(i)*ek(i)
 !         etot(3) = etot(3) + zo(i)*ep(i)
        end do
-!
+
 !      compute interaction shell - (nucleus-core)
-!
+
        esh = 0.D0
        if (zsh /= 0.D0) esh = 2*zsh*(znuc-zcore)/rsh
-!
+
 !      kinetic energy
-!
+
        etot(8) = etot(1) - etot(3) - 2*etot(4) - etot(5)
-!
+
 !      potential energy
-!
+
        etot(9) = etot(3) + etot(4) + etot(7) + esh
-!
+
 !      total energy
-!
+
        etot(10) = etot(1) - etot(4) - etot(5) + etot(7) + esh
-!
+
 !      printout
-!
+
        il(1) = 's'
        il(2) = 'p'
        il(3) = 'd'
@@ -566,13 +553,13 @@ subroutine atom
        /,28h total energy              =,f18.8)
       
        end subroutine etotal
-!
+
 !      *****************************************************************
-!
+
        subroutine ext(i)
-!
+
 !      i  is a stop parameter
-!
+
 !      000-099 main (0 is normal exit)
 !      100-199 input
 !      200-299 charge
@@ -582,14 +569,14 @@ subroutine atom
 !      600-699 dsolv2 (including difnrl and difrel)
 !      700-799 etotal
 !      800-899 pseudo
-!
+
        if (i /= 0) write(6,10) i
  10    format(17h1stop parameter =,i3)
        stop
        end subroutine ext
-!
+
 !      *****************************************************************
-!
+
        subroutine vionic(itype,iXC,ifcore,  &
        nrmax,nr,a,b,r,rab,rprb,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
@@ -597,10 +584,10 @@ subroutine atom
        viod,viou,vid,viu,vod,vou,  &
        etot,ev,ek,ep)
        implicit double precision(a-h,o-z)
-!
+
 !      vionic sets up the ionic potential
 !      note that vio is the ionic potential times r
-!
+
        dimension r(*),rab(*),  &
        no(norb),lo(norb),so(norb),zo(norb),  &
        cdd(*),cdu(*),cdc(*),  &
@@ -608,16 +595,16 @@ subroutine atom
        etot(10),ev(norb),ek(norb),ep(norb)
        character*2 itype,nameat,icalc,cdtyp
        integer:: iXC
-!
+
        dimension iray(6)
        character namef*6,iray*8,  &
        namet*2,icorrt*2,mcore*4,irel*3
 !.....files
       common /files/iinput,iout,in290,in213,istore,iunit7,iunit8,istruc,  &
                      ivnlkk,isumry,ikpts
-!
+
 !      2*znuc part (Rydberg units)
-!
+
        ifcore = 0
        do 10 i=1,lmax
        do 12 j=1,nrmax
@@ -626,7 +613,7 @@ subroutine atom
           viou(i,j) = -2.0d0*(znuc -.5d0*(r(j)/rprb**2)**2*r(j))
 !         viod(i,j) = -2.0*(       -.5d0*(r(j)/rprb**2)**2*r(j))
 !         viou(i,j) = -2.0*(       -.5d0*(r(j)/rprb**2)**2*r(j))
-!
+
 !     c.hartwig  shift potential to avoid positive eigenvalues
 !     and convergence problems
           vshift=-15.0d0*r(j)
@@ -634,9 +621,9 @@ subroutine atom
           viou(i,j) = viou(i,j)+vshift
  12    continue
  10   continue
-!
+
 !      add potential from shell charge
-!
+
  105   if (zsh == 0.D0) return
        do 110 i=1,lmax
        do 110 j=1,nr
@@ -647,9 +634,9 @@ subroutine atom
  110   continue
        return
        end
-!
+
 !      *****************************************************************
-!
+
        subroutine velect(iter,iconv,iXC,ispp,nspol,ifcore,  &
        nrmax,nr,a,b,r,rab,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
@@ -663,11 +650,11 @@ subroutine atom
        implicit double precision(a-h,o-z)
 
        logical, parameter :: debug = .false.
-!
+
 !      velect generates the electronic output potential from
 !      the electron charge density.
 !      the ionic part is added in dsolve.
-!
+
        dimension r(nr),rab(nr),  &
        no(norb),lo(norb),so(norb),zo(norb),  &
        cdd(nr),cdu(nr),cdc(nr),  &
@@ -676,12 +663,12 @@ subroutine atom
        dimension vtemp(1000)
        character*2 ispp*1,nameat,itype
        integer:: iXC
-!
+
       parameter ( mesh = 2000 )
 !     parameter ( mesh = 80000 )
        dimension y(mesh),yp(mesh),ypp(mesh),w(3*mesh),s1(mesh),s2(mesh)
        common  y,yp,ypp,w,s1,s2
-!
+
 !      for use in routine atomwr:
        parameter (ntitle = 40)
        character*40 text(ntitle)
@@ -694,12 +681,11 @@ subroutine atom
       common /intgrd/ rw,rd
 !     INCLUDE 'func.inc'
 
-!
-!
+
+
         pi = 4*atan(1.D0)
-!
+
 !      fit cd/r by splines
-!
        y(1) = 0.D0
        do 10 i=2,nr
        y(i) = (cdd(i)+cdu(i))/r(i)
@@ -713,10 +699,10 @@ subroutine atom
        b1 = 0.D0
        bn = 0.D0
        call splift(r,y,yp,ypp,nr,w,ierr,isx,a1,b1,an,bn)
-!
+
 !      compute the integrals of cd/r and cd from
 !      r(1)=0 to r(i)
-!
+
        xlo = 0.D0
        call spliq(r,y,yp,ypp,nr,xlo,r,nr,s2,ierr)
 !      s2 ==    ans(i) = integral from xlo to xup(i)
@@ -726,9 +712,9 @@ subroutine atom
        y(i)   = r(i)*y(i)
  20    continue
        call spliq(r,y,yp,ypp,nr,xlo,r,nr,s1,ierr)
-!
+
 !      check normalization
-!
+
        xnorm = 0.D0
        if (zel /= 0.D0) xnorm = zel/s1(nr)
 
@@ -749,7 +735,6 @@ subroutine atom
          endif
        endif
 
-
 !      rather than:
 !      if (iter .gt. 0 .and. abs(zel-s1(nr)) .gt. 0.01D0)
 !    1 write(6,25) iter,xnorm
@@ -757,11 +742,9 @@ subroutine atom
 !    1 /,17h iteration number,i4,3x,16hscaling factor =,g10.3,/)
 
 
-
-!
 !      compute new hartree potential
 !      renormalize the charge density
-!
+
        if (debug) write(*,*) 'DEBUG: xnorm,s1(nr),s2(nr)',xnorm,s1(nr),s2(nr)
        do 30 i=2,nr
 !      at this point, V is the same for spin up and down 
@@ -772,12 +755,12 @@ subroutine atom
        if (debug) write(*,*) 'DEBUG: cdu cdd ',cdu(i),cdd(i)
        cdu(i) = xnorm*cdu(i)
  30    continue
-!
+
        if (iconv /= 1) goto 50
-!
+
 !      compute hartree contribution to total energy
 !      does not look spin polarized yet
-!
+
        ehart = 0.D0
        ll = 4
        do 40 i=2,nr
@@ -788,18 +771,18 @@ subroutine atom
        ll = 6 - ll
  40    continue
        ehart = ehart / 6
-!
+
 !      find derivatives of the charge density
-!
+
        do 45 i=2,nr
 !      ??????????????????????????????????????????
 !      probably moved to ggaenergy17
  45    continue
-!
+
 !      store the atomic Coulomb (ionic + Hartree) potential on file
-!
+
 !      first construct the total potential, store in array vtemp:
-!
+
 !       ifile = 2
 !       irectp = 31
        do 300 l = 1, 3
@@ -812,7 +795,7 @@ subroutine atom
 !     +  (ifile,irectp,nameat,iXC,irel,xccore,zcore,norb,text,
 !     +   nr,aa,bb,r,nql,delql,nqnl,delqnl,numnl,
 !     +   itype,cdtyp,0,(l-1),mode,vtemp)
-!
+
 !       if (ispp /= ' ') then
 !         do 220 i = 1, nr
 !           vtemp(i) = viou(l,i) + vou(i) * r(i)
@@ -826,34 +809,32 @@ subroutine atom
 300     continue
 
 !        goto 50
-!
+
 !      add exchange and correlation
-!
+
 
  50     continue
 
-!cccccccccccccccccccccccccccccccccccccccccccccccc
-! here was the functional specification section c
-!cccccccccccccccccccccccccccccccccccccccccccccccc
 
-
+ 
+      ! here was the functional specification section c
        do i=2,nr
 !         so how do we define this line now:
 !         rho(i)=(cdd(i)+cdu(i))/4.d0/pi/r(i)**2
 
 
-!         CAREFUL: this looks clumsy       
+!         CAREFUL: this looks clumsy
 !         is this just some multiplzing back and forth of rw(i)?!
-          if(nspol==2)then 
+          if(nspol==2)then
              rho(i,1)=(cdd(i))/4.d0/pi/r(i)**2
              rho(i,2)=(cdu(i))/4.d0/pi/r(i)**2
           else
              rho(i,1)=(cdd(i)+cdu(i))/4.d0/pi/r(i)**2
           end if
        enddo
-!      some : added here
-       rho(1,:)=rho(2,:)-(rho(3,:)-rho(2,:))*r(2)/(r(3)-r(2)) 
-!
+!      some : added here Only for the first point!
+       rho(1,:)=rho(2,:)-(rho(3,:)-rho(2,:))*r(2)/(r(3)-r(2))
+
 !CMK   this should avoid problems with XC-functionals
 !CMK   with kinks (BLYP,....)
 !      if (iter.lt.30) then
@@ -863,22 +844,22 @@ subroutine atom
 !        mgcx=0
 !      else if (iter==30) then
        if (iter==40.and.iXC/=-20) then
-         write(6,*) 'Switching from LDA to the requested functional'
-         write(6,*) ' iXC =',iXC,'nspol=',nspol
-         call libxc_functionals_end()
-         call libxc_functionals_init(iXC,nspol)
+          write(6,*) 'Switching from LDA to the requested functional'
+          write(6,*) ' iXC =',iXC,'nspol=',nspol
+          call libxc_functionals_end()
+          call libxc_functionals_init(iXC,nspol)
        end if
-         
-         
+
+
 !      endif
-!
+
 !     hutter's routine
 !       call evxc(nr,r,rho,vxcgrd,excgrd)
 !     goedecker's routine
 !     call ggaenergy_15(nspol,nr,r,rw,rd,rho,enexc,vxcgrd,excgrd)
       call driveXC(nspol,nr,r,rw,rd,rho,enexc,vxcgrd,excgrd)
 !                rho and vxcgr are now of dimension  (ng,nspol)
-!
+
 !     c.hartwig modified integration
        exc=0.d0
        vxc=0.d0
@@ -922,14 +903,16 @@ subroutine atom
 !         write(18,*)vxc, vxcd
         enddo
        end if
+
+       !Finally update energy quantities
        etot(4) = ehart
        etot(5) = nspol*vxc
        etot(7) = exc
        return
        end
-!
+
 !      *****************************************************************
-!
+
        subroutine input (itype,iXC,ispp,  &
        nrmax,nr,a,b,r,rab,rprb,rcov,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
@@ -943,9 +926,9 @@ subroutine atom
 !     use defs_basis
       use libxcModule
        implicit double precision(a-h,o-z)
-!
+
 !      subroutine to read input parameters
-!
+
        dimension r(nrmax),rab(nrmax),  &
        no(*),lo(*),so(*),zo(*),  &
        cdd(nrmax),cdu(nrmax),cdc(nrmax),  &
@@ -962,7 +945,7 @@ subroutine atom
 !      save nvalo,ncoreo
 
 
-!      for use in routine atomwr:
+!      For use in routine atomwr:
        integer, parameter :: ntitle = 40
        character(len=40) :: text(ntitle)
        character*80 instrg
@@ -970,7 +953,7 @@ subroutine atom
        character spdf(5)
        dimension nc(15),lc(15),nomin(5),iray(2)
        character iray*8,name*3
-!
+
        data nc /1,2,2,3,3,3,4,4,4,4,5,5,5,6,6/
        data lc /0,0,1,0,1,2,0,1,2,3,0,1,2,0,1/
        data nomin /5*10/
@@ -1004,25 +987,24 @@ subroutine atom
       enddo
       j2=j2-1
 
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
       zsh=0d0
-!     READ iXC
 
-!     for now, only keep the two most commonly used functionals
-!     backwards compatible. Otherwise, require ABINITs iXC < 0
+      ! READ iXC (Information about exchange-correlation functional)
+      ! for now, only keep the two most commonly used functionals
+      ! backwards compatible. Otherwise, require ABINITs iXC < 0
       if    (instrg(j1:j2)=='PADE')then
          iXC=-20
-      elseif(instrg(j1:j2)=='PBE')then   
+      elseif(instrg(j1:j2)=='PBE')then
          iXC=-101130
       else
-         read(instrg(j1:j2),*,iostat=ierr)iXC
+         read(instrg(j1:j2),*,iostat=ierr) iXC
          if(ierr/=0)then
           write(6,*)'Could not read the XC input in atom.dat'
           stop
          end if
       end if
-        
+
+      ! Read information about spin polarization
       read(35,'(a)',err=998,end=999) instrg
       do i=len(instrg),1,-1
          if (instrg(i:i)/=' ') j1=i
@@ -1049,9 +1031,9 @@ subroutine atom
        read(35,*,err=998,end=999) rmax,aa,bb
        read(35,*,err=998,end=999) rcov,rprb
        znuc=charge(nameat)
-!
+
 !      set up grid
-!
+
        if (abs(rmax) .lt. 0.00001) rmax=100.0d0
        if (abs(aa) .lt. 0.00001) aa = 3.0d0
        if (abs(bb) .lt. 0.00001) bb = 40.0d0
@@ -1061,10 +1043,10 @@ subroutine atom
        endif
        a=exp(-aa)/znuc
        b = 1/bb
-!
+
 !     modify grid-parameter, so that one grid-point matches
 !     rcov exact
-!
+
         do i=1,nrmax
            if (i == nrmax) then
               write(6,50)
@@ -1088,18 +1070,18 @@ subroutine atom
            endif
           r(i) = a*(exp(b*(i-1))-1)
           rab(i) = (r(i)+a)*b
-!
+
 !     c.hartwig: set up grids for modified integration
-!
+
           rw(i) = b*(r(i)+a)
           rd(i) = 1.d0/rw(i)
           rw(i)=rw(i)*12.56637061435917d0*r(i)**2
           if (r(i) .gt. rmax) goto 60
  30     continue
  60     nr = i-1
-!
+
 !     modify weights at end point for improved accuracy
-!
+
 
         if (debug) then
            write(*,*) 'DEBUG OPTION: No modified weights at origin!'
@@ -1112,9 +1094,9 @@ subroutine atom
 
 
 
-!
+
 !      read the number of core and valence orbitals
-!
+
  6011 read(35,*,err=998,end=999) ncore, nval
       nvalo=nval
       ncoreo=ncore
@@ -1131,9 +1113,9 @@ subroutine atom
        if (ispp /= 's' .and. ispp  /= 'r')  ispp=blank
        nspol=1
        if(ispp=='s')nspol=2
-!
+
 !      compute occupation numbers and orbital energies for the core
-!
+
 !      the following section is not quite clear.
        zcore = 0.D0
        if (ispp == blank) then
@@ -1157,7 +1139,7 @@ subroutine atom
        if (ispp == 'r') zo(norb) = 2*(lo(norb)+sc)+1
 
 !      there must be a reason that
-!      the convention for zo is 
+!      the convention for zo is
 !      4l+2           'n' or ''
 !      2l+(1 or 2)    'r'
 !      2l+1           's'
@@ -1175,15 +1157,15 @@ subroutine atom
 
        zval = 0.D0
        if (nval == 0) goto 105
-!
+
        do 90 i=1,nval
-!
+
        read(35,*,err=998,end=999) ni,li,zd,zu
        si = 0.D0
        if (ispp /= blank) si=0.5D0
-!
+
        do 90 j=1,jmax
-!
+
        norb = norb + 1
        if (ispp /= blank) si=-si
        no(norb) = ni
@@ -1193,17 +1175,17 @@ subroutine atom
 
 !      c.hartwig
        if (zo(norb) == 0.0) zo(norb)=1.0d-20
-!
+
 !      this is an experimental option:
-!      zd > 0 = zu  ---> use Hund s rule 
+!      zd > 0 = zu  ---> use Hund s rule
 !      for auto assignment in polarized case:
        if (ispp == 's')then
           if (zu==0d0 .and. zd>0d0 .and. j==1 )then
               zd = min( dble(2*li+1), zo(norb) )
-              zu = zo(norb)-zd  
+              zu = zo(norb)-zd
 !             write(*,*)"(Hunds rule)",ni,li,si,zd,zu
           end if
-          if( si .lt. 0.1D0) then 
+          if( si .lt. 0.1D0) then
               zo(norb) = zd
           else
               zo(norb) = zu
@@ -1219,9 +1201,9 @@ subroutine atom
        if (nomin(lo(norb)+1) .gt. no(norb)) nomin(lo(norb)+1)=no(norb)
  90    continue
        nval = norb - ncore
-!
+
 !      abort if two orbitals are equal
-!
+
        if (norb .le. 0) call ext(110)
        do 101 i = 1, (norb - 1)
        do 100 j = (i + 1),norb
@@ -1243,7 +1225,7 @@ subroutine atom
 !       write(6,*)' zval = ',zval
        zel = zval
        zel=zel+zcore
-!
+
        write(6,120) nameat
  120   format(1x,a2,' all electron calculation  '/,1x,27('-'),/)
        if (ispp == 'r') write(6,150)
@@ -1295,15 +1277,15 @@ subroutine atom
        itype='stop'
        return
        end
-!
+
 !      *****************************************************************
-!
+
 !      *****************************************************************
-!
+
        double precision function charge(name)
-!
+
 !    function determines the nuclear charge of an element
-!
+
        integer, parameter :: nelem = 103
        character(len=2) :: name, elemnt, pertab(nelem)
        integer :: ic(2)
@@ -1326,13 +1308,13 @@ subroutine atom
         'FR','RA',  &
              'AC','TH','PA','U ','NP','PU','AM','CM','BK','CF',  &
                                       'ES','FM','MD','NO','LR'/
-!
+
 !      convert the name to upper-case, and possibly left-justify
-!
+
 !      code 97-122: lower case
 !      code 65-90:  upper case
 !      code 32:     blank
-!
+
        do 100 i = 1,2
 !      get the ascii value
        ic(i) = ichar( name(i:i) )
@@ -1351,7 +1333,7 @@ subroutine atom
          call ext(200)
          endif
 100    continue
-!
+
 !      left justify
        if (ic(1) == 32) then
          ic(1) = ic(2)
@@ -1359,9 +1341,9 @@ subroutine atom
          endif
 !      the standard name of the element:
        elemnt = char(ic(1))//char(ic(2))
-!
+
 !      find the element in the periodic table
-!
+
        do 150 i = 1, nelem
          if (elemnt == pertab(i)) then
            charge = i
@@ -1375,7 +1357,7 @@ subroutine atom
        return
        end
 !      *****************************************************************
-!
+
        subroutine dsolv1(  &
        nrmax,nr,a,b,r,rab,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
@@ -1383,18 +1365,18 @@ subroutine atom
        viod,viou,vid,viu,vod,vou,  &
        etot,ev,ek,ep)
        implicit double precision(a-h,o-z)
-!
+
 !      dsolv1 finds the non relativistic wave function
 !      using finite differences and matrix diagonalization
 !      initial guess for the eigenvalues need not be supplied
-!
+
        dimension r(nr),rab(nr),  &
        no(norb),lo(norb),so(norb),zo(norb),  &
        cdd(nr),cdu(nr),cdc(nr),  &
        viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
        etot(10),ev(norb),ek(norb),ep(norb)
        character*2 nameat
-!
+
       parameter ( mesh = 4000 , nvmax = 6*mesh )
 !     parameter ( mesh = 160000 , nvmax = 6*mesh )
        dimension nmax(2,5),dk(mesh),d(mesh),sd(mesh),sd2(mesh),e(10),  &
@@ -1404,20 +1386,20 @@ subroutine atom
 !.....files
       common /files/iinput,iout,in290,in213,istore,iunit7,iunit8,istruc,  &
                      ivnlkk,isumry,ikpts
-!
-!
+
+
 !      initialize charge density arrays
-!
+
 !     TEST
        d=0d0
        do 10 i=1,nr
        cdd(i) = 0.D0
        cdu(i) = 0.D0
  10    continue
-!
+
 !      find max n given l and s
 !      zero spin is treated as down
-!
+
        do 20 i=1,2
        do 20 j=1,lmax
        nmax(i,j) = 0
@@ -1432,10 +1414,10 @@ subroutine atom
          call ext(500)
        end if
  20    continue
-!
+
 !      set up hamiltonian matrix for kinetic energy
 !      only the diagonal depends on the potential
-!
+
        c2 = -1.D0/b**2
        c1 = -2.D0*c2 + 0.25D0
        dk(1)  = c1 / (r(2)+a)**2
@@ -1446,14 +1428,14 @@ subroutine atom
        sd(i-1)  = c2 / ((r(i)+a)*(r(i-1)+a))
        sd2(i-1) = sd(i-1)**2
  30    continue
-!
+
 !      start loop over spin down=1 and spin up=2
-!
+
        nrm = nr - 1
        do 80 i=1,2
-!
+
 !      start loop over s p d... states
-!
+
        do 80 j=1,lmax
        if (nmax(i,j) == 0) goto 80
        llp = j*(j-1)
@@ -1467,9 +1449,9 @@ subroutine atom
 !      write(*,*)'debug: r (k)',k,r(k)
 !      write(*,*)'debug: dk (k)',k-1,dk(k-1)
  40    continue
-!
+
 !      diagonalize
-!
+
        eps = -1.D0
        call tridib(nrm,eps,d,sd,sd2,bl,bu,1,nmax(i,j),e,ind,ierr,  &
        rv4,rv5)
@@ -1478,9 +1460,9 @@ subroutine atom
        call tinvit(nrm,nrm,d,sd,sd2,nmax(i,j),e,ind,z,ierr,  &
        rv1,rv2,rv3,rv4,rv5)
        if (ierr /= 0) write(6,50) ierr
-!
+
 !      save energy levels and add to charge density
-!
+
        ki = 1
        kn = 0
        do 70 k=1,norb
@@ -1499,14 +1481,14 @@ subroutine atom
        kn = kn + nrm
  70    continue
  80    continue
-!
+
 !      end loop over s p and d states
-!
+
        return
        end
-!
+
 !      *****************************************************************
-!
+
        subroutine dsolv2  &
        (iter,iconv,iXC,ispp,ifcore,itype,  &
        nrmax,nr,a,b,r,rab,lmax,  &
@@ -1515,14 +1497,14 @@ subroutine atom
        viod,viou,vid,viu,vod,vou,  &
        etot,ev,ek,ep,rcov,rprb,nconf)
        implicit double precision(a-h,o-z)
-!
+
 !      dsolv2 finds the (non) relativistic wave function using
 !      difnrl to intgrate the Scroedinger equation or
 !      difrel to intgrate the Dirac equation
 !      the energy level from the previous iteration is used
 !      as initial guess, and it must therefore be reasonable
 !      accurate.
-!
+
        dimension r(nr),rab(nr),  &
        no(norb),lo(norb),so(norb),zo(norb),  &
        cdd(nr),cdu(nr),cdc(nr),  &
@@ -1530,17 +1512,17 @@ subroutine atom
        etot(10),ev(norb),ek(norb),ep(norb)
        character(len=2) :: ispp*1,nameat,itype
        integer :: iXC
-!
+
        integer, parameter :: mesh = 2000
        dimension v(mesh),ar(mesh),br(mesh)
        common  v,ar,br
 !.....files
       common /files/iinput,iout,in290,in213,istore,iunit7,iunit8,istruc,  &
                      ivnlkk,isumry,ikpts
-!
-!
+
+
 !      initialize arrays for charge density
-!
+
        do 10 i=1,nr
        cdd(i) = 0.D0
        cdu(i) = 0.D0
@@ -1549,17 +1531,17 @@ subroutine atom
 !      and the moments of the core charge density
        dcrc =0d0
        ddcrc=0d0
-!
+
 !      start loop over orbitals
 !      note that spin zero is treated as down
-!
+
        do 50 i=1,norb
           if (no(i) .le. 0) goto 50
           if (zo(i) == 0.D0 .and. iconv == 0) goto 50
           if (ev(i) .ge. 0.D0) ev(i)=-1.D0
-!         
+
 !         set up potential
-!         
+
           lp  = lo(i)+1
           llp = lo(i)*lp
           do j=2,nr
@@ -1568,10 +1550,8 @@ subroutine atom
              if (ispp /= 'r') v(j) = v(j) + llp/r(j)**2
 !            if (ispp == 'n') v(j) = v(j) + llp/r(j)**2
           end do
-!         
+
 !         call integration routine
-!         
-          
           if (ispp /= 'r' ) then
               call difnrl(iter,i,v,ar,br,  &
                   lmax,nr,a,b,r,rab,  &
@@ -1584,9 +1564,9 @@ subroutine atom
                   lmax,nr,a,b,r,rab,norb,  &
                   no,lo,so,znuc,viod,viou,vid,viu,ev)
           end if
-!         
+
 !         add to the charge density
-!         
+
           do j=1,nr
              denr = zo(i) * ar(j) * ar(j)
 !            the relativistic case requires the minor component of the spinor to be added
@@ -1595,9 +1575,9 @@ subroutine atom
              if (so(i) .gt. 0.1D0) cdu(j) = cdu(j) + denr
              if (ifcore /= 1 .and. i .le. ncore) cdc(j)=cdc(j)+denr
           end do
-!         
+
 !         compute various quantities if last iteration
-!         
+
           if (iconv == 1) then
 !             orban is used to analyze and printout data about the orbital
               call orban(itype,iXC,ispp,i,ar,br,  &
@@ -1608,36 +1588,36 @@ subroutine atom
                  etot,v,ev,ek,ep,rcov,rprb,nconf)
           end if
  50    continue
-!
+
 !      end loop over orbitals
-!
+
        end subroutine dsolv2
-!
+
 !      *****************************************************************
-!
+
       subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
        nr,a,b,r,rab,norb,no,lo,so,znuc,viod,viou,  &
        vid,viu,ev)
-!
+
 !    difnrl integrates the Schroedinger equation
 !    if finds the eigenvalue ev, the wavefunction ar
 !    and the derivative br = d(ar)/dr
-!
+
       implicit real*8 (a-h,o-z)
-!
-!  Tolerence
-!
+
+!  Tolerance
+
       parameter(etol=-1.d-7)
       parameter(tol=1.0d-14)
-!
+
       dimension v(nr),ar(nr),br(nr),r(nr),rab(nr),no(norb),  &
        lo(norb),so(norb),viod(lmax,nr),viou(lmax,nr),  &
        vid(nr),viu(nr),ev(norb)
-!
+
 !    Arrays added to gain speed.
-!
+
       dimension rabrlo(5),rlp(5),rab2(nr),fa(nr),fb(nr)
-!
+
 !------Machine dependent parameter-
 !------Require exp(-2*expzer) to be within the range of the machine
 ! IBM
@@ -1647,13 +1627,13 @@ subroutine atom
 !Sun      expzer = 3.7D2
 !Vax      expzer = 44.D0
 !ray      expzer =  2.8E3
-!
+
 !     for numerical stability:
-!
+
       expzer = expzer/2
-!
+
 !      integration coefficients
-!
+
        abc1 = 1901.D0/720.D0
        abc2 = -1387.D0/360.D0
        abc3 = 109.D0/30.D0
@@ -1687,19 +1667,19 @@ subroutine atom
       do 6 j=1,nr
         rab2(j)=rab(j)*rab(j)
  6    continue
-!
+
 !   set underflow trap
-!
+
       juflow=1
       do 42 j=2,nr
         if (lp*abs(log(r(j))) .ge. expzer/2) juflow = j
  42   continue
-!
+
 !   determine effective charge and vzero for startup of
 !   outward integration
 !   ar = r**(l+1) * (1 + aa r + bb r**2 + ... )
 !   aa = -znuc / lp     bb = (-2 znuc aa + v(0) - e)/(4 l + 6)
-!
+
       zeff = 0.0d0
       if (so(iorb) .lt. 0.1 .and. viod(lp,2) .lt. -0.1) zeff=znuc
       if (so(iorb) .gt. 0.1 .and. viou(lp,2) .lt. -0.1) zeff=znuc
@@ -1732,10 +1712,10 @@ subroutine atom
       endif
  1000 format(//,' error in difnrl - ev(',i2,  &
        ') greater then v(infinty)')
-!
+
 !   find practical infinity ninf and classical turning
 !   point nctp for orbital
-!
+
       icount=0
  20   continue
       icount=icount+1
@@ -1763,18 +1743,18 @@ subroutine atom
       endif
  1010 format(//,'error in difnrl - cannot find the classical '  &
        ,/' turning point for orbital ',i2)
-!
+
 !   outward integration from 1 to nctp
 !   startup
-!
+
       bb = (vzero-ev(iorb))/(4*lp+2)
       do 35 j=2,5
         ar(j) = rlp(j) * (1+(aa+bb*r(j))*r(j))
         br(j) = rabrlo(j) * (lp+(aa*(lp+1)+bb*(lp+2)*r(j))*r(j))
  35   continue
-!
+
 !    Predictor-corrector array added.
-!
+
       fa(1) = br(1)
       fb(1) = b*br(1) + rab2(1)*var0
       fa(2) = br(2)
@@ -1785,14 +1765,14 @@ subroutine atom
       fb(4) = b*br(4) + rab2(4)*(v(4)-ev(iorb))*ar(4)
       fa(5) = br(5)
       fb(5) = b*br(5) + rab2(5)*(v(5)-ev(iorb))*ar(5)
-!
+
 !   intergration loop
-!
+
       nodes = 0
       do 40 j=6,nctp
-!
+
 !   predictor (Adams-Bashforth)
-!
+
         j1=j-1
         j2=j-2
         j3=j-3
@@ -1804,58 +1784,58 @@ subroutine atom
         brp = br(j1) + abc1*fb(j1)+abc2*fb(j2)+abc3*fb(j3)+  &
          abc4*fb(j4)+abc5*fb(j5)
         fb1 = b*brp + rab2(j)*vev*arp
-!
+
 !   corrector (Adams-Moulton)
-!
+
         arc = ar(j1) + amc0*brp+amc1*fa(j1)+amc2*fa(j2)+  &
          amc3*fa(j3)+amc4*fa(j4)
         brc = br(j1) + amc0*fb1+amc1*fb(j1)+amc2*fb(j2)+  &
          amc3*fb(j3)+amc4*fb(j4)
         fb0 = b*brc + rab2(j)*vev*arc
-!
+
 !   error reduction step
-!
+
         ar(j) = arc + amc0*(brc-brp)
         br(j) = brc + amc0*(fb0-fb1)
         fa(j) = br(j)
         fb(j) = b*br(j) + rab2(j)*vev*ar(j)
-!
+
 !   count nodes - if no underflow
-!
+
         if(j.gt.juflow.and.ar(j)*ar(j-1).lt.0.0)nodes=nodes+1
  40   continue
-!
+
       arctp = ar(nctp)
       brctp = br(nctp)
-!
+
 !   end outward integration
-!
+
 !   if number of nodes correct, start inward integration
 !   else modify energy stepwise and try again
-!
+
       if (nodes /= no(iorb)-lo(iorb)-1) then
 !     c.hartwig
 !         write(6,*) 'nodes,ev(iorb)',nodes,ev(iorb)
         if (nodes .lt. no(iorb)-lo(iorb)-1) then
-!
+
 !  too few nodes; increase ev
-!
+
           if (ev(iorb) .gt. emin) emin = ev(iorb)
           ev(iorb) = ev(iorb) - ev(iorb)/10
         else
-!
+
 !  too many nodes; decrease ev
-!
+
           if (ev(iorb) .lt. emax) emax = ev(iorb)
           ev(iorb) = ev(iorb) + ev(iorb)/10
         endif
         itmax = itmax-1
         goto 10
       endif
-!
+
 !   inward integration from ninf to nctp
 !   startup
-!
+
       do 71 j=ninf,ninf-4,-1
         alf = v(j) - ev(iorb)
         if (alf .lt. 0.0) alf = 0.0d0
@@ -1863,9 +1843,9 @@ subroutine atom
         ar(j) = exp(-alf*r(j))
         br(j) = -rab(j)*alf*ar(j)
  71   continue
-!
+
 !    Array for predictor-corrector added.
-!
+
       fa(ninf) = br(ninf)
       fb(ninf) = b*br(ninf) + rab2(ninf)*  &
        (v(ninf)-ev(iorb))*ar(ninf)
@@ -1885,15 +1865,15 @@ subroutine atom
       fa(ninf4) = br(ninf4)
       fb(ninf4) = b*br(ninf4) + rab2(ninf4)*  &
              (v(ninf4)-ev(iorb))*ar(ninf4)
-!
+
 !   integration loop
-!
+
       istop = ninf - nctp
       if (istop .lt. 5) goto 222
       do 80 j=ninf-5,nctp,-1
-!
+
 !   predictor (Adams-Bashforth)
-!
+
         j1 = j + 1
         j2 = j + 2
         j3 = j + 3
@@ -1905,37 +1885,37 @@ subroutine atom
         brp = br(j1) - (abc1*fb(j1)+abc2*fb(j2)+abc3*fb(j3)+  &
          abc4*fb(j4)+abc5*fb(j5))
         fb0 = b*brp + rab2(j)*vev*arp
-!
+
 !   corrector (Adams-Moulton)
-!
+
         arc = ar(j1) - (amc0*brp+amc1*fa(j1)+amc2*fa(j2)+  &
          amc3*fa(j3)+amc4*fa(j4))
         brc = br(j1) - (amc0*fb0+amc1*fb(j1)+amc2*fb(j2)+  &
          amc3*fb(j3)+amc4*fb(j4))
-!
+
         fb1 = b*brc + rab2(j)*vev*arc
-!
+
 !   error reduction step
-!
+
         ar(j) = arc - amc0*(brc-brp)
         br(j) = brc - amc0*(fb1-fb0)
         fa(j) = br(j)
         fb(j) = b*br(j) + rab2(j)*vev*ar(j)
  80   continue
-!
+
 !   end inward integration
-!
+
 !   rescale ar and br outside nctp to match ar(nctp) from
 !   outward integration
-!
+
   222 factor = arctp/ar(nctp)
       do 90 j=nctp,ninf
         ar(j) = factor * ar(j)
         br(j) = factor * br(j)
  90   continue
-!
+
 !   find normalizing factor
-!
+
       factor = 0.0d0
       ll = 4
       do 100 j=2,ninf
@@ -1943,9 +1923,9 @@ subroutine atom
         ll = 6 - ll
  100  continue
       factor = factor / 3
-!
+
 !   modify eigenvalue ev
-!
+
       dev = arctp * (brctp-br(nctp)) / (factor * rab(nctp))
       if (5*abs(dev) .gt. -ev(iorb)) dev=sign(ev(iorb),dev)/5
       itmax = itmax-1
@@ -1954,9 +1934,9 @@ subroutine atom
       if (ev(iorb) .gt. emax) ev(iorb) = (evold + emax) / 2
       if (ev(iorb) .lt. emin) ev(iorb) = (evold + emin) / 2
       if (abs(dev) .gt. tol*(1-ev(iorb))) goto 10
-!
+
 !   normalize wavefunction and change br from d(ar)/dj to d(ar)/dr
-!
+
       factor = 1 / sqrt(factor)
       do 110 j=1,ninf
         ar(j) = factor*ar(j)
@@ -1965,33 +1945,33 @@ subroutine atom
  111  continue
       return
       end
-!
+
 !      *****************************************************************
-!
+
       subroutine difrel(iter,iorb,v,ar,br,lmax,nr,a,b,r,rab,  &
        norb,no,lo,so,znuc,viod,viou,vid,viu,ev)
-!
+
 !  difrel integrates the relativistic Dirac equation
 !  it finds the eigenvalue ev, the major and minor component
 !  of the wavefunction, ar and br.  It uses an intial guess
 !  for the eigenvalues from dsolv1
-!
+
       implicit real*8 (a-h,o-z)
-!
+
       parameter (ai=2*137.0360411d0)
-!
+
 !  Tolernce
-!
+
       parameter (etol=-1.d-7)
       parameter (tol = 1.0d-14)
-!
+
       dimension v(nr),ar(nr),br(nr),r(nr),rab(nr),  &
        no(norb),lo(norb),so(norb),viod(lmax,nr),viou(lmax,nr),  &
        vid(nr),viu(nr),ev(norb),rabkar(nr),rabai(nr),  &
        fa(nr),fb(nr)
-!
+
       dimension rs(5)
-!
+
 !------Machine dependent parameter-
 !------Require exp(-2*expzer) to be within the range of the machine
 ! IBM
@@ -2001,14 +1981,14 @@ subroutine atom
 !Sun      expzer = 3.7D2
 !Vax      expzer = 44.D0
 !ray      expzer = 2.8E3
-!
+
 !     for numerical stability:
-!
+
       expzer = expzer/2
-!
-!
+
+
 !      integration coefficients
-!
+
        abc1 = 1901.D0/720.D0
        abc2 = -1387.D0/360.D0
        abc3 = 109.D0/30.D0
@@ -2024,7 +2004,7 @@ subroutine atom
       az = znuc/(2*ai)
       ka = lo(iorb)+1
       if (so(iorb) .lt. 0.1 .and. lo(iorb) /= 0) ka=-lo(iorb)
-!
+
 !  determine effective charge and vzero for startup of
 !  outward integration
 !  ar = r**s * (1  + a1 r + a2 r**2 + ... )
@@ -2033,7 +2013,7 @@ subroutine atom
 !  an = (az (v0 - e) a(n-1) - (s + n + ka) (v0 - e - ai**2) b(n-1))
 !        / (n ai (2 s + n))
 !  bn = ((v0 - e) a(n-1) - 2 znuc an ) / ( ai (s + n + ka))
-!
+
       s = sqrt(ka*ka-az*az)
       if (ka .gt. 0) then
         b0 = -az/(s+ka)
@@ -2045,10 +2025,10 @@ subroutine atom
       else
         vzero=viu(2)
       endif
-!
+
 !    Loop data calculated only once.
 !    Set ar() and br() to zero.
-!
+
       do 1 j=1,nr
         ar(j) = 0.0d0
         br(j) = 0.0d0
@@ -2062,14 +2042,14 @@ subroutine atom
       do 5 j=2,5
         rs(j)=r(j)**s
  5    continue
-!
+
 !  set the underflow trap
-!
+
       juflow=1
       do 42 j=2,nr
         if (s*abs(log(r(j))) .ge. expzer/2) juflow = j
  42   continue
-!
+
 
       emax = 0.0d0
       emin = -100000.0d0
@@ -2083,10 +2063,10 @@ subroutine atom
       endif
  1000 format(//,' error in difrel - ev(',i2,  &
        ') greater then v(infinty)')
-!
+
 !  Find practical infinity ninf and classical turning
 !  point nctp for orbital.
-!
+
       icount=0
  20   icount=icount+1
       do 22 j=nr,2,-1
@@ -2112,9 +2092,9 @@ subroutine atom
       endif
  1010 format(//,'error in difrel - cannot find classical',  &
        /,'turning point in orbital ',i2)
-!
+
 !  Outward integration from 1 to nctp, startup.
-!
+
       a1 = (az*(vzero-ev(iorb))-(s+1+ka)*(vzero-ev(iorb)-ai2)*b0)  &
          / (ai*(2*s+1))
       b1 = ((vzero-ev(iorb))-2*znuc*a1) / (ai*(s+1+ka))
@@ -2135,14 +2115,14 @@ subroutine atom
       fb(4) = -rabkar(4)*br(4)-(ev(iorb)-v(4))*ar(4)*rabai(4)
       fa(5) = rabkar(5)*ar(5)+(ev(iorb)-v(5)+ai2)*br(5)*rabai(5)
       fb(5) = -rabkar(5)*br(5)-(ev(iorb)-v(5))*ar(5)*rabai(5)
-!
+
 !  Intergration loop.
-!
+
       nodes = 0
       do 40 j=6,nctp
-!
+
 !  Predictor (Adams-Bashforth).
-!
+
         evvai2=ev(iorb)-v(j)+ai2
         evv=ev(iorb)-v(j)
         arp = ar(j-1) + abc1*fa(j-1)+abc2*fa(j-2)+abc3*fa(j-3)  &
@@ -2151,44 +2131,44 @@ subroutine atom
          +abc4*fb(j-4)+abc5*fb(j-5)
         fa(j) = rabkar(j)*arp+evvai2*brp*rabai(j)
         fb(j) = -rabkar(j)*brp-evv*arp*rabai(j)
-!
+
 !  Corrector (Adams-Moulton).
-!
+
         arc = ar(j-1) + amc0*fa(j)+amc1*fa(j-1)+amc2*fa(j-2)  &
          +amc3*fa(j-3)+amc4*fa(j-4)
         brc = br(j-1) + amc0*fb(j)+amc1*fb(j-1)+amc2*fb(j-2)  &
          +amc3*fb(j-3)+amc4*fb(j-4)
         faj = rabkar(j)*arc+evvai2*brc*rabai(j)
         fbj = -rabkar(j)*brc-evv*arc*rabai(j)
-!
+
 !  Error reduction step.
-!
+
         ar(j) = arc + amc0*(faj-fa(j))
         br(j) = brc + amc0*(fbj-fb(j))
         fa(j) = rabkar(j)*ar(j)+evvai2*br(j)*rabai(j)
         fb(j) = -rabkar(j)*br(j)-evv*ar(j)*rabai(j)
-!
+
 !  Count nodes - if no underflow.
-!
+
         if(j.gt.juflow.and.ar(j)*ar(j-1).lt.0.0)nodes=nodes+1
  40   continue
        arout = ar(nctp)
        arpout = fa(nctp)
-!
+
 !  End outward integration.
 !  If number of nodes correct, start inward integration
 !  else modify energy stepwise and try again.
-!
+
       if (nodes /= no(iorb)-lo(iorb)-1) then
-!
+
 !  too many nodes decrease ev
-!
+
         if (nodes .gt. no(iorb)-lo(iorb)-1) then
           if (ev(iorb) .lt. emax) emax = ev(iorb)
           ev(iorb) = ev(iorb) + ev(iorb)/10
-!
+
 !  too few nodes increase ev
-!
+
         else
           if (ev(iorb) .gt. emin) emin = ev(iorb)
           ev(iorb) = ev(iorb) - ev(iorb)/10
@@ -2196,9 +2176,9 @@ subroutine atom
         itmax = itmax-1
         goto 10
       endif
-!
+
 !  Inward integration from ninf to nctp startup.
-!
+
       do 70 j=ninf,ninf-4,-1
         alf = v(j) - ev(iorb)
         if (alf .lt. 0.0) alf = 0.0d0
@@ -2226,15 +2206,15 @@ subroutine atom
           +(ev(iorb)-v(ninf-4)+ai2)*br(ninf-4)*rabai(ninf-4)
       fb(ninf-4) = -rabkar(ninf-4)*br(ninf-4)  &
           -(ev(iorb)-v(ninf-4))*ar(ninf-4)*rabai(ninf-4)
-!
+
 !  Integration loop.
-!
+
       istop = ninf-nctp
       if (istop .lt. 5) goto 222
       do 80 j=ninf-5,nctp,-1
-!
+
 !  Predictor (Adams-Bashforth).
-!
+
         evvai2=ev(iorb)-v(j)+ai2
         evv=ev(iorb)-v(j)
         arp = ar(j+1)-(abc1*fa(j+1)+abc2*fa(j+2)+abc3*fa(j+3)  &
@@ -2243,18 +2223,18 @@ subroutine atom
          +abc4*fb(j+4)+abc5*fb(j+5))
         fa(j) = rabkar(j)*arp+evvai2*brp*rabai(j)
         fb(j) = -rabkar(j)*brp-evv*arp*rabai(j)
-!
+
 !  Corrector (Adams-Moulton).
-!
+
         arc = ar(j+1)-(amc0*fa(j)+amc1*fa(j+1)+amc2*fa(j+2)  &
          +amc3*fa(j+3)+amc4*fa(j+4))
         brc = br(j+1)-(amc0*fb(j)+amc1*fb(j+1)+amc2*fb(j+2)  &
          +amc3*fb(j+3)+amc4*fb(j+4))
         faj = rabkar(j)*arc+evvai2*brc*rabai(j)
         fbj = -rabkar(j)*brc-evv*arc*rabai(j)
-!
+
 !  Error reduction step.
-!
+
         ar(j) = arc + amc0*(faj-fa(j))
         br(j) = brc + amc0*(fbj-fb(j))
         fa(j) = rabkar(j)*ar(j)+evvai2*br(j)*rabai(j)
@@ -2262,20 +2242,20 @@ subroutine atom
  80   continue
  222  arin = ar(nctp)
       arpin = fa(nctp)
-!
+
 !  End inward integration
 !  Rescale ar and br outside nctp to match ar(nctp) from
 !  outward integration.
-!
+
       factor = arout/arin
       do 90 j=nctp,ninf
         ar(j) = factor * ar(j)
         br(j) = factor * br(j)
  90   continue
       arpin = factor * arpin
-!
+
 !  Find the normalizing factor.
-!
+
       factor = 0.0d0
       ll = 4
       do 100 j=2,ninf
@@ -2283,9 +2263,9 @@ subroutine atom
         ll = 6 - ll
  100  continue
       factor = factor / 3
-!
+
 !  Modify the eigenvalue ev.
-!
+
       dev = arout * (arpout-arpin) / (factor * rab(nctp))
       if (5*abs(dev) .gt. -ev(iorb)) dev=dsign(ev(iorb),dev)/5
       itmax = itmax-1
@@ -2297,9 +2277,9 @@ subroutine atom
         ev(iorb) = (evold + emin) / 2
       endif
       if (abs(dev) .gt. tol*(1-ev(iorb))) goto 10
-!
+
 !  Normalize the wavefunction.
-!
+
       factor = 1 / sqrt(factor)
       do j=1,ninf
         ar(j) = factor*ar(j)
@@ -2308,9 +2288,9 @@ subroutine atom
  111  continue
       return
       end
-!
+
 !      *****************************************************************
-!
+
        subroutine orban(itype,iXC,ispp,iorb,ar,br,  &
        nrmax,nr,a,b,r,rab,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
@@ -2318,9 +2298,9 @@ subroutine atom
        viod,viou,vid,viu,vod,vou,  &
        etot,v,ev,ek,ep,rcov,rprb,nconf)
        implicit double precision(a-h,o-z)
-!
+
 !      orban is used to analyze and printout data about the orbital
-!
+
        dimension ar(nr),br(nr)
        dimension r(nr),rab(nr),  &
        no(norb),lo(norb),so(norb),zo(norb),  &
@@ -2328,7 +2308,7 @@ subroutine atom
        viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
        v(nr),etot(10),ev(norb),ek(norb),ep(norb)
        character*2 ispp*1,nameat,itype
-!
+
        dimension rzero(10),rextr(10),aextr(10),bextr(10)
        dimension cg(100),gzero(10),gextr(10),cextr(10)
        character(len=10) :: name
@@ -2348,17 +2328,17 @@ subroutine atom
       common /intgrd/ rw,rd
       character*1 il(5)
       character*2 cnum
-!
-!
+
+
 !       ai = 2*137.04D0
        ai=2*137.0360411d0
        pi = 4.D0 * atan(1.D0)
        ka = lo(iorb)+1
        lp = ka
        if (so(iorb) .lt. 0.1D0 .and. lo(iorb) /= 0) ka=-lo(iorb)
-!
+
 !      compute zeroes and extrema
-!
+
        nzero = 0
        nextr = 0
        rzero(1) = 0.D0
@@ -2370,9 +2350,9 @@ subroutine atom
        do 20 i=3,nr
        if (nextr .ge. no(iorb)-lo(iorb)) goto 30
        if (ar(i)*ar(i-1) .gt. 0.D0) goto 10
-!
+
 !      zero
-!
+
        nzero = nzero + 1
        rzero(nzero) = (ar(i)*r(i-1)-ar(i-1)*r(i)) / (ar(i)-ar(i-1))
  10    arpm = arp
@@ -2382,9 +2362,9 @@ subroutine atom
        if (ispp == 'r' .and. so(iorb) .gt. 0.1D0) arp = ka*ar(i)/r(i)  &
         + (ev(iorb) - viou(lp,i)/r(i) - viu(i) + ai*ai) * br(i) / ai
        if (arp*arpm .gt. 0.D0) goto 20
-!
+
 !      extremum
-!
+
        nextr = nextr + 1
        if((arp-arpm) /=0.0_8) then
           rextr(nextr) = (arp*r(i-1)-arpm*r(i)) / (arp-arpm)
@@ -2393,11 +2373,11 @@ subroutine atom
        endif
        bextr(nextr) = br(i)
  20    continue
-!
+
 !      find orbital kinetic and potential energy
 !      the potential part includes only the interaction with
 !      the nuclear part
-!
+
  30    ek(iorb) = br(1)*br(1)*rab(1)
        ep(iorb) = 0.D0
        sa2 = 0.D0
@@ -2425,9 +2405,9 @@ subroutine atom
        ek(iorb) = ek(iorb) / 3
        ep(iorb) = ep(iorb) / 3
        if (ispp == 'r') ek(iorb) = 0.D0
-!
+
 !      fourier analyze orbital
-!
+
 !       if (iorb .lt. ncore) return
 !       kzero = 0
 !       kextr = 0
@@ -2450,18 +2430,18 @@ subroutine atom
 !       cg(i) = cg(i) / (6.D0*pi**2)
 !c      write(6,'(2i3,3f13.6)') lo(iorb),i,g,cg(i),cg(i)*g**2
 !       if (i == 1) goto 60
-!
+
 !      find extremum
-!
+
 !       if (abs(cg(i)) .gt. abs(cg(iextr))) iextr = i
 !       if (i == 2) goto 60
-!
+
 !      zero
-!
+
 !       if (cg(i)*cg(i-1) .gt. 0.D0) goto 60
-!
+
 !      zero found - update arrays
-!
+
 !       if (i-iextr .lt. 4) goto 70
 !       kzero = kzero + 1
 !       gzero(kzero) = delg*(cg(i)*(i-2)-cg(i-1)*(i-1))/(cg(i)-cg(i-1))
@@ -2474,9 +2454,9 @@ subroutine atom
 !       kextr = kextr + 1
 !       cextr(kextr) = Dlog10(abs(cg(iextr)))
 !       gextr(kextr) = delg * iextr
-!
+
 !      printout
-!
+
 !      vshift=-15.d0
 ! 70    if (iorb .lt. ncore) return
 !       write(6,80) no(iorb),lo(iorb),so(iorb)
@@ -2507,7 +2487,7 @@ subroutine atom
       expzer = 3.7D2
 !     c.hartwig for numerical stability:
       expzer = expzer/2
-!
+
 !  Find practical infinity ninf and classical turning
 !  point nctp for orbital.
       do  j=nr,2,-1
@@ -2516,7 +2496,7 @@ subroutine atom
          if (r(j)*sqrt(temp) .lt. expzer) goto 23
       enddo
  23   ninf=j
-!
+
 !     compute charge at rcov + higher moments
 !     spline interpolation/integration
 
@@ -2524,7 +2504,7 @@ subroutine atom
 !     some additional points for the spline
       npoint=min(ninf+5,nr)
 !     charge(rcov)= int_0^rcov g^2 r^2 dr + int_0^infinity f^2 r^2 dr
-!
+
       a1=0
       an=0
       b1=0
@@ -2572,9 +2552,9 @@ subroutine atom
 !         print*,'crcov+cmin:',crcov+cmin
          crcov=crcov+cmin
       endif
-!
+
 !     dcharge      = int_0^infinity (f^2+g^2) r^4 dr
-!
+
       ttxup=ttx(ninf)
       do i=1,npoint
          tty(i)=ar(i)*ar(i)
@@ -2589,9 +2569,9 @@ subroutine atom
       if(ierr/=1) write(6,*)'SPLIQ ERROR!' !stop 'spliq'
       call spliq(ttx,tty,ttyp,ttypp,npoint,ttxlo,ttxup,1,dcrcov,ierr)
       if(ierr/=1) write(6,*)'SPLIQ ERROR!' !stop 'spliq'
-!
+
 !     int_0^infinity (f^2+g^2) r^6 dr
-!
+
       do i=1,npoint
          tty(i)=tty(i)*r(i)*r(i)
       enddo
@@ -2605,9 +2585,9 @@ subroutine atom
       if(ierr/=1) write(6,*)'SPLIQ ERROR!' !stop 'spliq'
 
       nextr=01
-!
+
 !   printout
-!
+
 
       if(iorb==ncore+nval) then
          write(plotfile, '(a,i0,a)') 'ae.pot.conf.',nconf ,'.plt'
@@ -2651,7 +2631,7 @@ subroutine atom
  21      format(/,' nl   s    occ',5x,'eigenvalue',4x,'charge(rcov)',  &
               4 x,'dcharge',4x,'ddcharge')
       endif
-!     Collect 2nd and 4th moment of the core charge density for NCC 
+!     Collect 2nd and 4th moment of the core charge density for NCC
       dcrc = dcrc+zo(iorb)* dcrcov
       ddcrc=ddcrc+zo(iorb)*ddcrcov
       write(6,31) no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),  &
@@ -2662,7 +2642,7 @@ subroutine atom
        name = 'r extr    '
        write(6,100) name,(rextr(i),i=1,nextr)
  100   format(5x,a10,9f7.2)
-!
+
 !     write data to files atom.ae for pseudopotential-fit
 !     only valence electrons
 !     if (ispp/='r') ispp='n'
@@ -2672,7 +2652,7 @@ subroutine atom
             do jj=iorb,norb
                zps=zps+zo(jj)
             enddo
-!           do not append to atom.ae, but open another atom.??.ae 
+!           do not append to atom.ae, but open another atom.??.ae
             write(cnum,'(i2.2)') nconf
             open(unit=40,file='atom.'//cnum//'.ae',form='formatted')
 
@@ -2709,7 +2689,7 @@ subroutine atom
             endif
             write(40,'(i10,a)') iXC, '   iXC (ABINIT-libXC)'
             write(40,*) nr,        'number of gridpoints'
-            write(40,'(3(4x,a),9x,a,23x,a,4(12x,a))')  &  
+            write(40,'(3(4x,a),9x,a,23x,a,4(12x,a))')  &
             '#','n','l','s','z',  &
             '    eval','    charge','  dcharge','ddcharge'
          endif
@@ -2779,13 +2759,13 @@ subroutine atom
 
 !     old convention: One plot per orbital, including all core states
 !     new convention: dump all plots of one configuration in two files
-!     ae.core.orbitals.plt and ae.orbitals.plt 
+!     ae.core.orbitals.plt and ae.orbitals.plt
 !     Those two files  will be read by the pseudo fitting program
 !     In case plots of other configurations are intersting, those will
 !     be written into separate, optional files, e.g. ae.03.orbitals.plt
 
       if (iorb==1 .and. iorb.le.ncore) then
-         if(nconf==0)then 
+         if(nconf==0)then
 !           (nconf is incremented shortly after calling this routine)
             plotfile='ae.core.orbitals.plt'
          else
@@ -2793,7 +2773,7 @@ subroutine atom
          end if
          open(unit=33,file=plotfile,status='unknown')
       else if (iorb==ncore+1) then
-         if(nconf==0)then 
+         if(nconf==0)then
             plotfile='ae.orbitals.plt'
          else
             write(plotfile,'(a,i2.2,a)')'ae.',nconf,'.orbs.plt'
