@@ -1,5 +1,3 @@
-  Using LDA for generating the input guess wfn
-  initializing libXC with iXC=         -20 spin           1
  Rb all electron calculation  
  ---------------------------
 
@@ -18,6 +16,7 @@
 
   i    n    l    s     j     occ
 
+  Using LDA for generating the input guess wfn
   1    1    0   0.5   0.5    2.0000
   2    2    0   0.5   0.5    2.0000
   3    2    1  -0.5   0.5    2.0000
@@ -53,92 +52,92 @@
 
  radial grid parameters
 
- r(1) = .0 , r(2) =0.153163E-07 , ... , r(1374) = 34.60239164
+ r(1) = .0 , r(2) =1.531631E-08 , ... , r(1374) = 34.60239164
  a = 10.00765925  b = 80.00000000
 
- iter =    1 dvmax = 0.376E+00 xmixo =0.264E+00
- iter =    2 dvmax = 0.326E+00 xmixo =0.264E+00
- iter =    3 dvmax = 0.223E+00 xmixo =0.264E+00
- iorb = 30 iter =  4 ev = -0.1498713985E+02 nodes = 1
- iorb = 30 iter =  4 ev = -0.1496894116E+02 nodes = 1
- iter =    4 dvmax = 0.146E+00 xmixo =0.264E+00
- iter =    5 dvmax = 0.921E-01 xmixo =0.264E+00
- iter =    6 dvmax = 0.566E-01 xmixo =0.264E+00
- iter =    7 dvmax = 0.345E-01 xmixo =0.264E+00
- iter =    8 dvmax = 0.213E-01 xmixo =0.264E+00
- iter =    9 dvmax = 0.136E-01 xmixo =0.264E+00
- iter =   10 dvmax = 0.888E-02 xmixo =0.264E+00
- iter =   11 dvmax = 0.595E-02 xmixo =0.264E+00
- iter =   12 dvmax = 0.407E-02 xmixo =0.264E+00
- iter =   13 dvmax = 0.282E-02 xmixo =0.264E+00
- iter =   14 dvmax = 0.197E-02 xmixo =0.264E+00
- iter =   15 dvmax = 0.139E-02 xmixo =0.264E+00
- iter =   16 dvmax = 0.984E-03 xmixo =0.264E+00
- iter =   17 dvmax = 0.699E-03 xmixo =0.264E+00
- iter =   18 dvmax = 0.497E-03 xmixo =0.264E+00
- iter =   19 dvmax = 0.354E-03 xmixo =0.264E+00
- iter =   20 dvmax = 0.253E-03 xmixo =0.264E+00
- iter =   21 dvmax = 0.180E-03 xmixo =0.264E+00
- iter =   22 dvmax = 0.129E-03 xmixo =0.264E+00
- iter =   23 dvmax = 0.922E-04 xmixo =0.264E+00
- iter =   24 dvmax = 0.659E-04 xmixo =0.264E+00
- iter =   25 dvmax = 0.472E-04 xmixo =0.264E+00
- iter =   26 dvmax = 0.337E-04 xmixo =0.264E+00
- iter =   27 dvmax = 0.242E-04 xmixo =0.264E+00
- iter =   28 dvmax = 0.173E-04 xmixo =0.264E+00
- iter =   29 dvmax = 0.124E-04 xmixo =0.264E+00
- iter =   30 dvmax = 0.887E-05 xmixo =0.264E+00
- iter =   31 dvmax = 0.636E-05 xmixo =0.264E+00
- iter =   32 dvmax = 0.456E-05 xmixo =0.264E+00
- iter =   33 dvmax = 0.346E-05 xmixo =0.264E+00
- iter =   34 dvmax = 0.270E-05 xmixo =0.264E+00
- iter =   35 dvmax = 0.210E-05 xmixo =0.264E+00
- iter =   36 dvmax = 0.163E-05 xmixo =0.264E+00
- iter =   37 dvmax = 0.127E-05 xmixo =0.264E+00
- iter =   38 dvmax = 0.983E-06 xmixo =0.264E+00
- iter =   39 dvmax = 0.760E-06 xmixo =0.264E+00
- iter =   40 dvmax = 0.588E-06 xmixo =0.264E+00
- iter =   41 dvmax = 0.453E-06 xmixo =0.264E+00
- iter =   42 dvmax = 0.350E-06 xmixo =0.264E+00
- iter =   43 dvmax = 0.269E-06 xmixo =0.264E+00
- iter =   44 dvmax = 0.207E-06 xmixo =0.264E+00
- iter =   45 dvmax = 0.159E-06 xmixo =0.264E+00
- iter =   46 dvmax = 0.122E-06 xmixo =0.264E+00
- iter =   47 dvmax = 0.939E-07 xmixo =0.264E+00
- iter =   48 dvmax = 0.720E-07 xmixo =0.264E+00
- iter =   49 dvmax = 0.552E-07 xmixo =0.264E+00
- iter =   50 dvmax = 0.423E-07 xmixo =0.264E+00
- iter =   51 dvmax = 0.324E-07 xmixo =0.264E+00
- iter =   52 dvmax = 0.248E-07 xmixo =0.264E+00
- iter =   53 dvmax = 0.189E-07 xmixo =0.264E+00
- iter =   54 dvmax = 0.145E-07 xmixo =0.264E+00
- iter =   55 dvmax = 0.111E-07 xmixo =0.264E+00
- iter =   56 dvmax = 0.845E-08 xmixo =0.264E+00
- iter =   57 dvmax = 0.645E-08 xmixo =0.264E+00
- iter =   58 dvmax = 0.492E-08 xmixo =0.264E+00
- iter =   59 dvmax = 0.375E-08 xmixo =0.264E+00
- iter =   60 dvmax = 0.286E-08 xmixo =0.264E+00
- iter =   61 dvmax = 0.218E-08 xmixo =0.264E+00
- iter =   62 dvmax = 0.166E-08 xmixo =0.264E+00
- iter =   63 dvmax = 0.127E-08 xmixo =0.264E+00
- iter =   64 dvmax = 0.966E-09 xmixo =0.264E+00
- iter =   65 dvmax = 0.735E-09 xmixo =0.264E+00
- iter =   66 dvmax = 0.560E-09 xmixo =0.264E+00
- iter =   67 dvmax = 0.426E-09 xmixo =0.264E+00
- iter =   68 dvmax = 0.324E-09 xmixo =0.264E+00
- iter =   69 dvmax = 0.247E-09 xmixo =0.264E+00
- iter =   70 dvmax = 0.188E-09 xmixo =0.264E+00
- iter =   71 dvmax = 0.143E-09 xmixo =0.264E+00
- iter =   72 dvmax = 0.109E-09 xmixo =0.264E+00
- iter =   73 dvmax = 0.826E-10 xmixo =0.264E+00
- iter =   74 dvmax = 0.628E-10 xmixo =0.264E+00
- iter =   75 dvmax = 0.478E-10 xmixo =0.264E+00
- iter =   76 dvmax = 0.363E-10 xmixo =0.264E+00
- iter =   77 dvmax = 0.276E-10 xmixo =0.264E+00
- iter =   78 dvmax = 0.210E-10 xmixo =0.264E+00
- iter =   79 dvmax = 0.159E-10 xmixo =0.264E+00
- iter =   80 dvmax = 0.121E-10 xmixo =0.264E+00
- iter =   81 dvmax = 0.920E-11 xmixo =0.264E+00
+ iter =    1 dvmax = 3.757E-01 xmixo =2.643E-01
+ iter =    2 dvmax = 3.263E-01 xmixo =2.643E-01
+ iter =    3 dvmax = 2.227E-01 xmixo =2.643E-01
+ iorb = 30 iter =  4 ev = -1.4987139571E+01 nodes = 1
+ iorb = 30 iter =  4 ev = -1.4968940884E+01 nodes = 1
+ iter =    4 dvmax = 1.460E-01 xmixo =2.643E-01
+ iter =    5 dvmax = 9.211E-02 xmixo =2.643E-01
+ iter =    6 dvmax = 5.655E-02 xmixo =2.643E-01
+ iter =    7 dvmax = 3.449E-02 xmixo =2.643E-01
+ iter =    8 dvmax = 2.135E-02 xmixo =2.643E-01
+ iter =    9 dvmax = 1.357E-02 xmixo =2.643E-01
+ iter =   10 dvmax = 8.878E-03 xmixo =2.643E-01
+ iter =   11 dvmax = 5.954E-03 xmixo =2.643E-01
+ iter =   12 dvmax = 4.070E-03 xmixo =2.643E-01
+ iter =   13 dvmax = 2.821E-03 xmixo =2.643E-01
+ iter =   14 dvmax = 1.974E-03 xmixo =2.643E-01
+ iter =   15 dvmax = 1.391E-03 xmixo =2.643E-01
+ iter =   16 dvmax = 9.843E-04 xmixo =2.643E-01
+ iter =   17 dvmax = 6.988E-04 xmixo =2.643E-01
+ iter =   18 dvmax = 4.972E-04 xmixo =2.643E-01
+ iter =   19 dvmax = 3.543E-04 xmixo =2.643E-01
+ iter =   20 dvmax = 2.528E-04 xmixo =2.643E-01
+ iter =   21 dvmax = 1.805E-04 xmixo =2.643E-01
+ iter =   22 dvmax = 1.290E-04 xmixo =2.643E-01
+ iter =   23 dvmax = 9.218E-05 xmixo =2.643E-01
+ iter =   24 dvmax = 6.592E-05 xmixo =2.643E-01
+ iter =   25 dvmax = 4.716E-05 xmixo =2.643E-01
+ iter =   26 dvmax = 3.375E-05 xmixo =2.643E-01
+ iter =   27 dvmax = 2.416E-05 xmixo =2.643E-01
+ iter =   28 dvmax = 1.730E-05 xmixo =2.643E-01
+ iter =   29 dvmax = 1.239E-05 xmixo =2.643E-01
+ iter =   30 dvmax = 8.875E-06 xmixo =2.643E-01
+ iter =   31 dvmax = 6.359E-06 xmixo =2.643E-01
+ iter =   32 dvmax = 4.557E-06 xmixo =2.643E-01
+ iter =   33 dvmax = 3.461E-06 xmixo =2.643E-01
+ iter =   34 dvmax = 2.701E-06 xmixo =2.643E-01
+ iter =   35 dvmax = 2.103E-06 xmixo =2.643E-01
+ iter =   36 dvmax = 1.635E-06 xmixo =2.643E-01
+ iter =   37 dvmax = 1.269E-06 xmixo =2.643E-01
+ iter =   38 dvmax = 9.829E-07 xmixo =2.643E-01
+ iter =   39 dvmax = 7.605E-07 xmixo =2.643E-01
+ iter =   40 dvmax = 5.876E-07 xmixo =2.643E-01
+ iter =   41 dvmax = 4.535E-07 xmixo =2.643E-01
+ iter =   42 dvmax = 3.496E-07 xmixo =2.643E-01
+ iter =   43 dvmax = 2.692E-07 xmixo =2.643E-01
+ iter =   44 dvmax = 2.071E-07 xmixo =2.643E-01
+ iter =   45 dvmax = 1.592E-07 xmixo =2.643E-01
+ iter =   46 dvmax = 1.223E-07 xmixo =2.643E-01
+ iter =   47 dvmax = 9.388E-08 xmixo =2.643E-01
+ iter =   48 dvmax = 7.200E-08 xmixo =2.643E-01
+ iter =   49 dvmax = 5.519E-08 xmixo =2.643E-01
+ iter =   50 dvmax = 4.228E-08 xmixo =2.643E-01
+ iter =   51 dvmax = 3.236E-08 xmixo =2.643E-01
+ iter =   52 dvmax = 2.476E-08 xmixo =2.643E-01
+ iter =   53 dvmax = 1.894E-08 xmixo =2.643E-01
+ iter =   54 dvmax = 1.448E-08 xmixo =2.643E-01
+ iter =   55 dvmax = 1.106E-08 xmixo =2.643E-01
+ iter =   56 dvmax = 8.447E-09 xmixo =2.643E-01
+ iter =   57 dvmax = 6.449E-09 xmixo =2.643E-01
+ iter =   58 dvmax = 4.921E-09 xmixo =2.643E-01
+ iter =   59 dvmax = 3.754E-09 xmixo =2.643E-01
+ iter =   60 dvmax = 2.863E-09 xmixo =2.643E-01
+ iter =   61 dvmax = 2.183E-09 xmixo =2.643E-01
+ iter =   62 dvmax = 1.664E-09 xmixo =2.643E-01
+ iter =   63 dvmax = 1.268E-09 xmixo =2.643E-01
+ iter =   64 dvmax = 9.656E-10 xmixo =2.643E-01
+ iter =   65 dvmax = 7.354E-10 xmixo =2.643E-01
+ iter =   66 dvmax = 5.599E-10 xmixo =2.643E-01
+ iter =   67 dvmax = 4.262E-10 xmixo =2.643E-01
+ iter =   68 dvmax = 3.244E-10 xmixo =2.643E-01
+ iter =   69 dvmax = 2.468E-10 xmixo =2.643E-01
+ iter =   70 dvmax = 1.878E-10 xmixo =2.643E-01
+ iter =   71 dvmax = 1.429E-10 xmixo =2.643E-01
+ iter =   72 dvmax = 1.087E-10 xmixo =2.643E-01
+ iter =   73 dvmax = 8.263E-11 xmixo =2.643E-01
+ iter =   74 dvmax = 6.283E-11 xmixo =2.643E-01
+ iter =   75 dvmax = 4.777E-11 xmixo =2.643E-01
+ iter =   76 dvmax = 3.631E-11 xmixo =2.643E-01
+ iter =   77 dvmax = 2.760E-11 xmixo =2.643E-01
+ iter =   78 dvmax = 2.097E-11 xmixo =2.643E-01
+ iter =   79 dvmax = 1.594E-11 xmixo =2.643E-01
+ iter =   80 dvmax = 1.212E-11 xmixo =2.643E-01
+ iter =   81 dvmax = 9.198E-12 xmixo =2.643E-01
 
  rcov         =    3.2999999999999998     
  charge(rcov) = int_0^rcov g^2 r^2 dr   +  int_0^infinity f^2 r^2 dr
@@ -257,7 +256,7 @@
  vxc    correction         =     -128.78047300
  exchange + corr energy    =      -97.19627563
  kinetic energy from ev    =     3061.70730158
- potential energy          =   -6.03958901E+03
+ potential energy          =    -6039.58901411
  ---------------------------------------------
  total energy              =    -2977.88171252
  Reached end of file atom.dat
