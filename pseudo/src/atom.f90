@@ -110,17 +110,12 @@ subroutine atom
 !      cdu  charge density (spin up)
 !      cdc  core charge density (up to ncore orbitals)
 !      cdd and cdu  =  2 pi r**2 rho(r)
-
-        aa = sqrt(sqrt(znuc))/2.0d0+1.0d0
-        a2 = zel/4.0d0*aa**3
-        do i=1,nr
-          cdd(i) = a2*exp(-aa*r(i))*r(i)**2
-          cdu(i) = cdd(i)
-        end do
-
-!     cdd ..... charge density (spin down)
-!     cdu ..... charge density (spin up)
-!     cdc ..... core charge density (up to ncore orbitals)
+       aa = sqrt(sqrt(znuc))/2.0d0+1.0d0
+       a2 = zel/4.0d0*aa**3
+       do i=1,nr
+         cdd(i) = a2*exp(-aa*r(i))*r(i)**2
+         cdu(i) = cdd(i)
+       end do
 
 !      set up ionic potentials
 
@@ -217,7 +212,7 @@ subroutine atom
           etot,ev,ek,ep)
 !         
 !         check for convergence (Vout - Vin)
-!         
+
           if (iconv .gt. 0) goto 120
           dvmax = 0.D0
           do i=2,nr
@@ -395,23 +390,27 @@ subroutine atom
       end
 
 
-       subroutine prdiff(nconf,econf)
-       implicit double precision(a-h,o-z)
-       dimension econf (*)
-       if (nconf .le. 1) goto 40
+!> Print difference total energy between electronic configurations
+subroutine prdiff(nconf,econf)
+       implicit none
+       !Arguments
+       integer, intent(inout) :: nconf
+       real(kind=8), dimension (nconf) :: econf
+       !Local variables
+       integer :: i,j
+       if (nconf .le. 1) then
+          nconf = 0
+          return
+       end if
        write(6,*)
-       write(6,*)'---------------------------------------------'
+       write(6,*) '---------------------------------------------'
        write(6,10) (i,i=0,nconf-1)
  10    format(25h Total energy differences,//,2x,19i9)
        do i=1,nconf
           write(6,20) i-1,(0.5d0*(econf(i)-econf(j)),j=1,i)
  20       format(1x,i2,1x,19f9.5)
        end do
- 40    continue
-       nconf = 0
-       end subroutine prdiff
-
-!      *****************************************************************
+end subroutine prdiff
 
        subroutine mixer(iter,iconv,icon2,xmixo,iXC,ispp,  &
        nrmax,nr,a,b,r,rab,lmax,  &
@@ -554,24 +553,24 @@ subroutine atom
 
 end subroutine etotal
 
-       subroutine ext(i)
-
-!      i  is a stop parameter
-
-!      000-099 main (0 is normal exit)
-!      100-199 input
-!      200-299 charge
-!      300-399 vionic
-!      400-499 velect
-!      500-599 dsolv1
-!      600-699 dsolv2 (including difnrl and difrel)
-!      700-799 etotal
-!      800-899 pseudo
-
-       if (i /= 0) write(6,10) i
- 10    format(17h1stop parameter =,i3)
-       stop
-       end subroutine ext
+!> exit routine (i is a stop parameter)
+!!    000-099 main     (0 is normal exit)
+!!    100-199 input
+!!    200-299 charge
+!!    300-399 vionic
+!!    400-499 velect
+!!    500-599 dsolv1
+!!    600-699 dsolv2   (including difnrl and difrel)
+!!    700-799 etotal
+!!    800-899 pseudo
+subroutine ext(i)
+   implicit none
+   integer, intent(in) :: i  !< Stop parameter
+   if (i /= 0) then
+      write(6,'(17x,a,i3)') "stop parameter =", i
+   end if
+   stop
+end subroutine ext
 
 !      *****************************************************************
 
@@ -863,28 +862,26 @@ end subroutine etotal
        vxc=0.d0
 !     need energy/potential in ryd
 
-!     
-!     this section was and is very inefficient.
-!     let us keep this style for now
-!     but not forget to clean it up later
 
-!     the factors of two that cancel each other
-!     are from the previous versions.
-
-       if(nspol==1)then
-!      non-polarized case
-!      quite the same as in older versions
-        do i=1,nr
-          exct = 2.d0*excgrd(i)*rho(i,1)
-          vxcd = 2.d0*vxcgrd(i,1)
-          vxcu=vxcd
-          rhodw=rho(i,1)/2.d0
-          rhoup=rhodw
-          vod(i) = vod(i) + vxcd
-          vou(i) = vou(i) + vxcu
-          vxc = vxc + (vxcd*rhodw + vxcu*rhoup) * rw(i)
-          exc = exc + exct * rw(i)
-        enddo
+       ! This section was and is very inefficient.
+       ! let us keep this style for now
+       ! but not forget to clean it up later
+       ! the factors of two that cancel each other
+       ! are from the previous versions.
+       if (nspol==1)then
+          ! non-polarized case
+          ! quite the same as in older versions
+          do i=1,nr
+             exct = 2.d0*excgrd(i)*rho(i,1)
+             vxcd = 2.d0*vxcgrd(i,1)
+             vxcu=vxcd
+             rhodw=rho(i,1)/2.d0
+             rhoup=rhodw
+             vod(i) = vod(i) + vxcd
+             vou(i) = vou(i) + vxcu
+             vxc = vxc + (vxcd*rhodw + vxcu*rhoup) * rw(i)
+             exc = exc + exct * rw(i)
+          end do
        else
           ! spin polarized case
           ! same dirty style, but with two spin channels
@@ -1278,15 +1275,17 @@ end subroutine velect
 
 !      *****************************************************************
 
-       double precision function charge(name)
 
-!    function determines the nuclear charge of an element
 
+!> Function determines the nuclear charge of an element
+double precision function charge(name)
+       implicit none
+       !Arguments
+       character(len=2), intent(in) :: name
+       !Local variables
        integer, parameter :: nelem = 103
-       character(len=2) :: name, elemnt, pertab(nelem)
-       integer :: ic(2)
-!      the periodic table
-       data pertab /  &
+       !> The periodic table
+       character(len=2), dimension(nelem), parameter :: pertab = (/ &
         'H ','HE',  &
         'LI','BE','B ','C ','N ','O ','F ','NE',  &
         'NA','MG','AL','SI','P ','S ','CL','AR',  &
@@ -1303,32 +1302,35 @@ end subroutine velect
                   'TL','PB','BI','PO','AT','RN',  &
         'FR','RA',  &
              'AC','TH','PA','U ','NP','PU','AM','CM','BK','CF',  &
-                                      'ES','FM','MD','NO','LR'/
+                                      'ES','FM','MD','NO','LR' /)
+       character(len=2) :: elemnt
+       integer, dimension(2) :: ic
+       integer :: i
 
-!      convert the name to upper-case, and possibly left-justify
+       ! convert the name to upper-case, and possibly left-justify
+       ! code 97-122: lower case
+       ! code 65-90:  upper case
+       ! code 32:     blank
 
-!      code 97-122: lower case
-!      code 65-90:  upper case
-!      code 32:     blank
-
-       do 100 i = 1,2
-!      get the ascii value
-       ic(i) = ichar( name(i:i) )
-       if (ic(i) .ge. 97 .and. ic(i) .le. 122) then
-!        convert to upper case
-         ic(i) = ic(i) - 32
-       else if (ic(i) .ge. 65 .and. ic(i) .le. 90) then
-!        upper-case - do nothing
-       else if (ic(i) == 32) then
-!        'space' - do nothing
-       else if (ic(i) == 0) then
-!        'nul' - replace by space
-         ic(i) = 32
-       else
-         write (6,*) 'unrecognized element name:',name
-         call ext(200)
-         endif
-100    continue
+       !Raed the two character
+       do i = 1,2
+          ! get the ascii value
+          ic(i) = ichar( name(i:i) )
+          if (ic(i) .ge. 97 .and. ic(i) .le. 122) then
+             ! convert to upper case
+             ic(i) = ic(i) - 32
+          else if (ic(i) .ge. 65 .and. ic(i) .le. 90) then
+             ! upper-case - do nothing
+          else if (ic(i) == 32) then
+             ! 'space' - do nothing
+          else if (ic(i) == 0) then
+             ! 'nul' - replace by space
+             ic(i) = 32
+          else
+             write (6,*) 'unrecognized element name:',name
+             call ext(200)
+          endif
+       end do
 
        ! left justify
        if (ic(1) == 32) then
