@@ -193,12 +193,12 @@ subroutine atom
 !            
 !            predictor - corrector method (more accurate)
 !            
-             call dsolv2(iter,iconv,iXC,ispp,ifcore,itype,  &
-             nrmax,nr,a,b,r,rab,lmax,  &
-             nameat,norb,ncore,no,lo,so,zo,  &
-             znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,dcrc,ddcrc,  &
-             viod,viou,vid,viu,vod,vou,  &
-             etot,ev,ek,ep,rcov,rprb,nconf)
+             call dsolv2(iter,iconv,iXC,ispp,ifcore, &
+             nr,a,b,r,rab,lmax,  &
+             norb,ncore,no,lo,so,zo,  &
+             znuc,zcore,cdd,cdu,cdc,dcrc,ddcrc,  &
+             viod,viou,vid,viu, &
+             ev,ek,ep,rcov,rprb,nconf)
 !         
           endif
 
@@ -1489,45 +1489,45 @@ subroutine atom
 
 !      *****************************************************************
 
-       subroutine dsolv2  &
-       (iter,iconv,iXC,ispp,ifcore,itype,  &
-       nrmax,nr,a,b,r,rab,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,dcrc,ddcrc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep,rcov,rprb,nconf)
+
+!> dsolv2 finds the (non) relativistic wave function using
+!! difnrl to integrate the Schroedinger equation or
+!! difrel to integrate the Dirac equation
+!! the energy level from the previous iteration is used
+!! as initial guess, and it must therefore be reasonable
+!! accurate.
+subroutine dsolv2(iter,iconv,iXC,ispp,ifcore, &
+          nr,a,b,r,rab,lmax,  &
+          norb,ncore,no,lo,so,zo,  &
+          znuc,zcore,cdd,cdu,cdc,dcrc,ddcrc,  &
+          viod,viou,vid,viu, &
+          ev,ek,ep,rcov,rprb,nconf)
+
        implicit double precision(a-h,o-z)
 
-!      dsolv2 finds the (non) relativistic wave function using
-!      difnrl to intgrate the Scroedinger equation or
-!      difrel to intgrate the Dirac equation
-!      the energy level from the previous iteration is used
-!      as initial guess, and it must therefore be reasonable
-!      accurate.
-
-       dimension r(nr),rab(nr),  &
-       no(norb),lo(norb),so(norb),zo(norb),  &
-       cdd(nr),cdu(nr),cdc(nr),  &
-       viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
-       etot(10),ev(norb),ek(norb),ep(norb)
-       character(len=2) :: ispp*1,nameat,itype
-       integer :: iXC
-
-       integer, parameter :: mesh = 2000
-       dimension v(mesh),ar(mesh),br(mesh)
-       common  v,ar,br
+       !Arguments
+       integer, intent(in) :: nr,norb,lmax
+       real(kind=8), dimension(nr), intent(in) :: r,rab,vid,viu
+       real(kind=8), dimension(nr), intent(out) :: cdd,cdu,cdc
+       integer, intent(in) :: ifcore,ncore
+       integer, dimension(norb), intent(in) :: no,lo
+       real(kind=8), dimension(norb), intent(in) :: so, zo
+       real(kind=8), dimension(lmax,nr), intent(in) :: viod,viou
+       real(kind=8), dimension(norb), intent(out) :: ev,ek,ep
+       character(len=1) :: ispp
+       integer, intent(in) :: iXC
+       !Local variables
+       real(kind=8), dimension(nr) :: v,ar,br
+       real(kind=8) :: dcrc,ddcrc
+       integer :: i,j,lp,llp
 !.....files
-      common /files/iinput,iout,in290,in213,istore,iunit7,iunit8,istruc,  &
-                     ivnlkk,isumry,ikpts
-
 
 !      initialize arrays for charge density
-
-       do 10 i=1,nr
-       cdd(i) = 0.D0
-       cdu(i) = 0.D0
-       if (ifcore /= 1) cdc(i)=0.D0
- 10    continue
+       do i=1,nr
+          cdd(i) = 0.d0
+          cdu(i) = 0.d0
+          if (ifcore /= 1) cdc(i)=0.d0
+       end do
 !      and the moments of the core charge density
        dcrc =0d0
        ddcrc=0d0
@@ -1593,27 +1593,26 @@ subroutine atom
 
 end subroutine dsolv2
 
-      subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
-       nr,a,b,r,rab,norb,no,lo,so,znuc,viod,viou,  &
-       vid,viu,ev)
 
-!    difnrl integrates the Schroedinger equation
-!    if finds the eigenvalue ev, the wavefunction ar
-!    and the derivative br = d(ar)/dr
+!> difnrl integrates the Schroedinger equation
+!! if finds the eigenvalue ev, the wavefunction ar
+!! and the derivative br = d(ar)/dr
+subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
+         nr,a,b,r,rab,norb,no,lo,so,znuc,viod,viou,  &
+         vid,viu,ev)
 
       implicit real*8 (a-h,o-z)
 
-!  Tolerance
-
-      parameter(etol=-1.d-7)
-      parameter(tol=1.0d-14)
-
+!     Tolerance
+      real(kind=8), parameter :: etol=-1.d-7
+      real(kind=8), parameter :: tol=1.0d-14
+!     Arguments
+      integer, intent(in) :: nr
       dimension v(nr),ar(nr),br(nr),r(nr),rab(nr),no(norb),  &
        lo(norb),so(norb),viod(lmax,nr),viou(lmax,nr),  &
        vid(nr),viu(nr),ev(norb)
 
 !    Arrays added to gain speed.
-
       dimension rabrlo(5),rlp(5),rab2(nr),fa(nr),fb(nr)
 
 !------Machine dependent parameter-
@@ -1936,15 +1935,12 @@ end subroutine dsolv2
 !   normalize wavefunction and change br from d(ar)/dj to d(ar)/dr
 
       factor = 1 / sqrt(factor)
-      do 110 j=1,ninf
-        ar(j) = factor*ar(j)
-        br(j) = factor*br(j) / rab(j)
- 110  continue
- 111  continue
-      return
-      end
+      do j=1,ninf
+         ar(j) = factor*ar(j)
+         br(j) = factor*br(j) / rab(j)
+      end do
 
-!      *****************************************************************
+      end
 
 
       !> difrel integrates the relativistic Dirac equation
