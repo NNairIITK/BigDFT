@@ -139,7 +139,6 @@ subroutine atom
 
 !      set up electronic potential
 
-
 !      new variable nspol: spin channels for XC
        nspol=1
        if(ispp=='s') nspol=2
@@ -177,16 +176,14 @@ subroutine atom
 !         compute orbitals (solve Schrodinger equation)
 
           if (icon2 == 0) then
-!         
-!            finite difference solution (less accurate)
-!            
-             call dsolv1(   &
-             nrmax,nr,a,b,r,rab,lmax,  &
-             nameat,norb,ncore,no,lo,so,zo,  &
-             znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-             viod,viou,vid,viu,vod,vou,  &
-             etot,ev,ek,ep)  
-            
+             !finite difference solution (less accurate)
+             call dsolv1( &
+                nr,a,b,r,rab,lmax, &
+                norb,no,lo,so,zo, &
+                cdd,cdu, &
+                viod,viou,vid,viu, &
+                ev)
+
           else
              !predictor - corrector method (more accurate)
              call dsolv2(iter,iconv,iXC,ispp,ifcore, &
@@ -1329,27 +1326,30 @@ end function charge
 !> dsolv1 finds the non relativistic wave function
 !! using finite differences and matrix diagonalization
 !! initial guess for the eigenvalues need not be supplied
-       subroutine dsolv1(  &
-       nrmax,nr,a,b,r,rab,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep)
+subroutine dsolv1( &
+          nr,a,b,r,rab,lmax, &
+          norb,no,lo,so,zo, &
+          cdd,cdu, &
+          viod,viou,vid,viu, &
+          ev)
+
        implicit double precision(a-h,o-z)
 
-       dimension r(nr),rab(nr),  &
-       no(norb),lo(norb),so(norb),zo(norb),  &
-       cdd(nr),cdu(nr),cdc(nr),  &
-       viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
-       etot(10),ev(norb),ek(norb),ep(norb)
-       character*2 nameat
-
-      parameter ( mesh = 4000 , nvmax = 6*mesh )
-!     parameter ( mesh = 160000 , nvmax = 6*mesh )
-       dimension nmax(2,5),dk(mesh),d(mesh),sd(mesh),sd2(mesh),e(10),  &
-       ind(10),z(nvmax),  &
-       rv1(mesh),rv2(mesh),rv3(mesh),rv4(mesh),rv5(mesh)
-
+       !Arguments
+       integer, intent(in) :: nr,norb,lmax
+       real(kind=8), dimension(nr), intent(in) :: r,rab,vid,viu
+       real(kind=8), dimension(nr), intent(out) :: cdd,cdu
+       real(kind=8), dimension(lmax,nr), intent(in) :: viod,viou
+       integer, dimension(norb), intent(in) :: no,lo
+       real(kind=8), dimension(norb) :: so,zo,ev
+       !Local variables!
+       integer, parameter :: mesh = 4000 , nvmax = 6*mesh
+       logical, parameter :: debug = .false. !< Debug flag
+       integer, dimension(2,5) :: nmax
+       integer, dimension(10) :: ind
+       real(kind=8), dimension(mesh) :: dk,d,sd,sd2,rv1,rv2,rv3,rv4,rv5
+       real(kind=8), dimension(10) :: e
+       real(kind=8), dimension(6*mesh) :: z
 
 !      initialize charge density arrays
 
@@ -1406,12 +1406,12 @@ end function charge
              d(k-1) = dk(k-1) + (viod(j,k) + llp/r(k))/r(k) + vid(k)
           if (i == 2) &
              d(k-1) = dk(k-1) + (viou(j,k) + llp/r(k))/r(k) + viu(k)
-!          if (debug) then
-!             write(*,*)'debug: vio u d (k)',k,viou(j,k),viod(j,k)
-!             write(*,*)'debug: vi u d (k)',k,viu(k),vid(k)           !!! NaN
-!             write(*,*)'debug: r (k)',k,r(k)
-!             write(*,*)'debug: dk (k)',k-1,dk(k-1)
-!          end if
+          if (debug) then
+             write(*,*)'debug: vio u d (k)',k,viou(j,k),viod(j,k)
+             write(*,*)'debug: vi u d (k)',k,viu(k),vid(k)           !!! NaN
+             write(*,*)'debug: r (k)',k,r(k)
+             write(*,*)'debug: dk (k)',k-1,dk(k-1)
+          end if
        end do
 
 !      diagonalize
