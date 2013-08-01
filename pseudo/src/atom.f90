@@ -1353,6 +1353,9 @@ double precision function charge(name)
        call ext (200)
 end function charge
 
+!> dsolv1 finds the non relativistic wave function
+!! using finite differences and matrix diagonalization
+!! initial guess for the eigenvalues need not be supplied
        subroutine dsolv1(  &
        nrmax,nr,a,b,r,rab,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
@@ -1360,10 +1363,6 @@ end function charge
        viod,viou,vid,viu,vod,vou,  &
        etot,ev,ek,ep)
        implicit double precision(a-h,o-z)
-
-!      dsolv1 finds the non relativistic wave function
-!      using finite differences and matrix diagonalization
-!      initial guess for the eigenvalues need not be supplied
 
        dimension r(nr),rab(nr),  &
        no(norb),lo(norb),so(norb),zo(norb),  &
@@ -1377,10 +1376,6 @@ end function charge
        dimension nmax(2,5),dk(mesh),d(mesh),sd(mesh),sd2(mesh),e(10),  &
        ind(10),z(nvmax),  &
        rv1(mesh),rv2(mesh),rv3(mesh),rv4(mesh),rv5(mesh)
-       common dk,d,sd,sd2,z,rv1,rv2,rv3,rv4,rv5
-!.....files
-      common /files/iinput,iout,in290,in213,istore,iunit7,iunit8,istruc,  &
-                     ivnlkk,isumry,ikpts
 
 
 !      initialize charge density arrays
@@ -1433,16 +1428,18 @@ end function charge
        do 80 j=1,lmax
        if (nmax(i,j) == 0) goto 80
        llp = j*(j-1)
-       do 40 k=2,nr
-       if (i == 1) d(k-1) = dk(k-1)  &
-        + (viod(j,k) + llp/r(k))/r(k) + vid(k)
-       if (i == 2) d(k-1) = dk(k-1)  &
-        + (viou(j,k) + llp/r(k))/r(k) + viu(k)
-!      write(*,*)'debug: vio u d (k)',k,viou(j,k),viod(j,k)
-!      write(*,*)'debug: vi u d (k)',k,viu(k),vid(k)           !!! NaN
-!      write(*,*)'debug: r (k)',k,r(k)
-!      write(*,*)'debug: dk (k)',k-1,dk(k-1)
- 40    continue
+       do k=2,nr
+          if (i == 1) &
+             d(k-1) = dk(k-1) + (viod(j,k) + llp/r(k))/r(k) + vid(k)
+          if (i == 2) &
+             d(k-1) = dk(k-1) + (viou(j,k) + llp/r(k))/r(k) + viu(k)
+!          if (debug) then
+!             write(*,*)'debug: vio u d (k)',k,viou(j,k),viod(j,k)
+!             write(*,*)'debug: vi u d (k)',k,viu(k),vid(k)           !!! NaN
+!             write(*,*)'debug: r (k)',k,r(k)
+!             write(*,*)'debug: dk (k)',k-1,dk(k-1)
+!          end if
+       end do
 
 !      diagonalize
 
