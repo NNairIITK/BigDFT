@@ -1561,8 +1561,8 @@ subroutine atom
           end if
           if (ispp == 'r' ) then
               call difrel(iter,i,v,ar,br,  &
-                  lmax,nr,a,b,r,rab,norb,  &
-                  no,lo,so,znuc,viod,viou,vid,viu,ev)
+                  nr,r,rab,norb,  &
+                  no,lo,so,znuc,vid,viu,ev)
           end if
 
 !         add to the charge density
@@ -1591,9 +1591,7 @@ subroutine atom
 
 !      end loop over orbitals
 
-       end subroutine dsolv2
-
-!      *****************************************************************
+end subroutine dsolv2
 
       subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
        nr,a,b,r,rab,norb,no,lo,so,znuc,viod,viou,  &
@@ -1948,26 +1946,27 @@ subroutine atom
 
 !      *****************************************************************
 
-      subroutine difrel(iter,iorb,v,ar,br,lmax,nr,a,b,r,rab,  &
-       norb,no,lo,so,znuc,viod,viou,vid,viu,ev)
 
-!  difrel integrates the relativistic Dirac equation
-!  it finds the eigenvalue ev, the major and minor component
-!  of the wavefunction, ar and br.  It uses an intial guess
-!  for the eigenvalues from dsolv1
+      !> difrel integrates the relativistic Dirac equation
+      !! it finds the eigenvalue ev, the major and minor component
+      !! of the wavefunction, ar and br.  It uses an intial guess
+      !! for the eigenvalues from dsolv1
+      subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
+         norb,no,lo,so,znuc,vid,viu,ev)
 
       implicit real*8 (a-h,o-z)
 
-      parameter (ai=2*137.0360411d0)
+      !Arguments
+      integer, intent(in) :: iter
+      integer, intent(in) :: norb
+      !Local variables
+      real(kind=8), parameter :: ai=2*137.0360411d0
+      !> Tolerances
+      real(kind=8), parameter :: etol=-1.d-7, tol = 1.0d-14
 
-!  Tolerance
-
-      parameter (etol=-1.d-7)
-      parameter (tol = 1.0d-14)
-
-      dimension v(nr),ar(nr),br(nr),r(nr),rab(nr),  &
-       no(norb),lo(norb),so(norb),viod(lmax,nr),viou(lmax,nr),  &
-       vid(nr),viu(nr),ev(norb),rabkar(nr),rabai(nr),  &
+      dimension v(nr),ar(nr),br(nr),r(nr),rab(nr), &
+       no(norb),lo(norb),so(norb), &
+       vid(nr),viu(nr),ev(norb),rabkar(nr),rabai(nr), &
        fa(nr),fb(nr)
 
       dimension rs(5)
