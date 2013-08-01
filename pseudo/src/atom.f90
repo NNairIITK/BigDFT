@@ -127,13 +127,10 @@ subroutine atom
 
 !      set up ionic potentials
 
- 40     continue
-        call vionic(itype,iXC,ifcore,  &
-       nrmax,nr,a,b,r,rab,rprb,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep)
+       call vionic(ifcore, &
+          nr,r,rprb,lmax, &
+          znuc,zsh,rsh, &
+          viod,viou)
 
 !     Potentials: always multiplied by r.
 !     viod,u ..... ionic potential (down,up)
@@ -446,8 +443,8 @@ end subroutine prdiff
           vid(i) = xmixo * vod(i) + xmixi * vid(i)
           viu(i) = xmixo * vou(i) + xmixi * viu(i)
        end do
+end subroutine mixer
 
-       end subroutine mixer
 
 !      *****************************************************************
 
@@ -561,6 +558,7 @@ end subroutine prdiff
 
 end subroutine etotal
 
+
 !> exit routine (i is a stop parameter)
 !!    000-099 main     (0 is normal exit)
 !!    100-199 input
@@ -580,67 +578,59 @@ subroutine ext(i)
    stop
 end subroutine ext
 
-!      *****************************************************************
 
-       subroutine vionic(itype,iXC,ifcore,  &
-       nrmax,nr,a,b,r,rab,rprb,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep)
-       implicit double precision(a-h,o-z)
+!> vionic sets up the ionic potential
+!! note that viod,u is the ionic potential times r
+!! Potentials: always multiplied by r.
+!! viod,u ..... ionic potential (down,up)
+subroutine vionic(ifcore,  &
+          nr,r,rprb,lmax,  &
+          znuc,zsh,rsh, &
+          viod,viou)
 
-!      vionic sets up the ionic potential
-!      note that vio is the ionic potential times r
+       implicit none
 
-       dimension r(*),rab(*),  &
-       no(norb),lo(norb),so(norb),zo(norb),  &
-       cdd(*),cdu(*),cdc(*),  &
-       viod(lmax,*),viou(lmax,*),vid(*),viu(*),vod(*),vou(*),  &
-       etot(10),ev(norb),ek(norb),ep(norb)
-       character*2 itype,nameat,icalc,cdtyp
-       integer:: iXC
-
-       dimension iray(6)
-       character namef*6,iray*8,  &
-       namet*2,icorrt*2,mcore*4,irel*3
-!.....files
-      common /files/iinput,iout,in290,in213,istore,iunit7,iunit8,istruc,  &
-                     ivnlkk,isumry,ikpts
+       !Arguments
+       integer, intent(out) :: ifcore                           !< if core
+       integer, intent(in) :: nr                                !< #radial mesh points
+       real(kind=8), dimension(nr), intent(in) :: r             !< Radial mesh
+       real(kind=8), intent(in) :: rprb,znuc,zsh,rsh
+       integer, intent(in) :: lmax                              !< l channel
+       real(kind=8), dimension(lmax,nr), intent(out) :: viod    !< Ionic potential down
+       real(kind=8), dimension(lmax,nr), intent(out) :: viou    !< ionic potential up
+       !Local variables
+       real(kind=8) :: vshift
+       integer :: i,j
 
 !      2*znuc part (Rydberg units)
 
        ifcore = 0
-       do 10 i=1,lmax
-       do 12 j=1,nrmax
-!  c.hartwig  add confining potential
-          viod(i,j) = -2.0d0*(znuc -.5d0*(r(j)/rprb**2)**2*r(j))
-          viou(i,j) = -2.0d0*(znuc -.5d0*(r(j)/rprb**2)**2*r(j))
-!         viod(i,j) = -2.0*(       -.5d0*(r(j)/rprb**2)**2*r(j))
-!         viou(i,j) = -2.0*(       -.5d0*(r(j)/rprb**2)**2*r(j))
-
-!     c.hartwig  shift potential to avoid positive eigenvalues
-!     and convergence problems
-          vshift=-15.0d0*r(j)
-          viod(i,j) = viod(i,j)+vshift
-          viou(i,j) = viou(i,j)+vshift
- 12    continue
- 10   continue
+       do i=1,lmax
+          do j=1,nr
+             ! c.hartwig  add confining potential
+             viod(i,j) = -2.0d0*(znuc -.5d0*(r(j)/rprb**2)**2*r(j))
+             viou(i,j) = -2.0d0*(znuc -.5d0*(r(j)/rprb**2)**2*r(j))
+             ! c.hartwig  shift potential to avoid positive eigenvalues
+             ! and convergence problems
+             vshift=-15.0d0*r(j)
+             viod(i,j) = viod(i,j)+vshift
+             viou(i,j) = viou(i,j)+vshift
+          end do
+       end do
 
 !      add potential from shell charge
 
- 105   if (zsh == 0.D0) return
-       do 110 i=1,lmax
-       do 110 j=1,nr
-       if (r(j) .ge. rsh) viod(i,j) = viod(i,j) - 2*zsh
-       if (r(j) .ge. rsh) viou(i,j) = viou(i,j) - 2*zsh
-       if (r(j) .lt. rsh) viod(i,j) = viod(i,j) - 2*zsh*r(i)/rsh
-       if (r(j) .lt. rsh) viou(i,j) = viou(i,j) - 2*zsh*r(i)/rsh
- 110   continue
-       return
-       end
+       if (zsh == 0.D0) return
 
-!      *****************************************************************
+       do i=1,lmax
+          do j=1,nr
+             if (r(j) .ge. rsh) viod(i,j) = viod(i,j) - 2*zsh
+             if (r(j) .ge. rsh) viou(i,j) = viou(i,j) - 2*zsh
+             if (r(j) .lt. rsh) viod(i,j) = viod(i,j) - 2*zsh*r(i)/rsh
+             if (r(j) .lt. rsh) viou(i,j) = viou(i,j) - 2*zsh*r(i)/rsh
+          end do
+       end do
+end subroutine vionic
 
        subroutine velect(iter,iconv,iXC,ispp,nspol,ifcore,  &
        nrmax,nr,a,b,r,rab,lmax,  &
