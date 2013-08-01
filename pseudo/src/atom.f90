@@ -551,10 +551,8 @@ subroutine atom
        /,28h kinetic energy from ev    =,f18.8,  &
        /,28h potential energy          =,f18.8,/,1x,45('-'),  &
        /,28h total energy              =,f18.8)
-      
-       end subroutine etotal
 
-!      *****************************************************************
+end subroutine etotal
 
        subroutine ext(i)
 
@@ -687,12 +685,12 @@ subroutine atom
 
 !      fit cd/r by splines
        y(1) = 0.D0
-       do 10 i=2,nr
-       y(i) = (cdd(i)+cdu(i))/r(i)
-!      below test output proofs cdd cdu are charge densities
-!      write(22,'(i4,3f20.8)') i,r(i),cdu(i),cdd(i)
-       if (ifcore == 2) y(i) = y(i) + cdc(i)/r(i)
- 10    continue
+       do i=2,nr
+          y(i) = (cdd(i)+cdu(i))/r(i)
+          ! below test output proofs cdd cdu are charge densities
+          ! write(22,'(i4,3f20.8)') i,r(i),cdu(i),cdd(i)
+          if (ifcore == 2) y(i) = y(i) + cdc(i)/r(i)
+       end do
        isx = 0
        a1 = 0.D0
        an = 0.D0
@@ -746,15 +744,15 @@ subroutine atom
 !      renormalize the charge density
 
        if (debug) write(*,*) 'DEBUG: xnorm,s1(nr),s2(nr)',xnorm,s1(nr),s2(nr)
-       do 30 i=2,nr
-!      at this point, V is the same for spin up and down 
-       vod(i) = 2 * xnorm*(s1(i)/r(i) + s2(nr) - s2(i))
-       if (debug) write(*,*) 'DEBUG: vod,s1,s2',vod(i),s1(i),s2(i)
-       vou(i) = vod(i)    
-       cdd(i) = xnorm*cdd(i)
-       if (debug) write(*,*) 'DEBUG: cdu cdd ',cdu(i),cdd(i)
-       cdu(i) = xnorm*cdu(i)
- 30    continue
+       do i=2,nr
+          ! at this point, V is the same for spin up and down
+          vod(i) = 2 * xnorm*(s1(i)/r(i) + s2(nr) - s2(i))
+          if (debug) write(*,*) 'DEBUG: vod,s1,s2',vod(i),s1(i),s2(i)
+          vou(i) = vod(i)
+          cdd(i) = xnorm*cdd(i)
+          if (debug) write(*,*) 'DEBUG: cdu cdd ',cdu(i),cdd(i)
+          cdu(i) = xnorm*cdu(i)
+       end do
 
        if (iconv /= 1) goto 50
 
@@ -888,30 +886,28 @@ subroutine atom
           exc = exc + exct * rw(i)
         enddo
        else
-!      spin polarized case
-!      same dirty style, but with two spin channels
-        do i=1,nr
-          exct =  2.d0*excgrd(i)*(rho(i,1)+rho(i,2))
-          vxcd =  2.d0*vxcgrd(i,1)
-          vxcu =  2.d0*vxcgrd(i,2)
-          rhodw=rho(i,1)/2.d0
-          rhoup=rho(i,2)/2.d0
-          vod(i) = vod(i) + vxcd
-          vou(i) = vou(i) + vxcu
-          vxc = vxc + (vxcd*rhodw + vxcu*rhoup) * rw(i)
-          exc = exc + exct * rw(i)
-!         write(18,*)vxc, vxcd
-        enddo
+          ! spin polarized case
+          ! same dirty style, but with two spin channels
+          do i=1,nr
+             exct =  2.d0*excgrd(i)*(rho(i,1)+rho(i,2))
+             vxcd =  2.d0*vxcgrd(i,1)
+             vxcu =  2.d0*vxcgrd(i,2)
+             rhodw=rho(i,1)/2.d0
+             rhoup=rho(i,2)/2.d0
+             vod(i) = vod(i) + vxcd
+             vou(i) = vou(i) + vxcu
+             vxc = vxc + (vxcd*rhodw + vxcu*rhoup) * rw(i)
+             exc = exc + exct * rw(i)
+             ! write(18,*)vxc, vxcd
+          end do
        end if
 
        !Finally update energy quantities
        etot(4) = ehart
        etot(5) = nspol*vxc
        etot(7) = exc
-       return
-       end
 
-!      *****************************************************************
+end subroutine velect
 
        subroutine input (itype,iXC,ispp,  &
        nrmax,nr,a,b,r,rab,rprb,rcov,lmax,  &
@@ -1097,13 +1093,13 @@ subroutine atom
 
 !      read the number of core and valence orbitals
 
- 6011 read(35,*,err=998,end=999) ncore, nval
+      read(35,*,err=998,end=999) ncore, nval
       nvalo=nval
       ncoreo=ncore
-       if (ncore .gt. 15) then
-          write (6,*) 'more than 15 core orbitals'
-          call ext(101)
-       endif
+      if (ncore .gt. 15) then
+         write (6,*) 'more than 15 core orbitals'
+         call ext(101)
+      endif
 
  89    continue
        ncore=ncoreo
@@ -1334,29 +1330,26 @@ subroutine atom
          endif
 100    continue
 
-!      left justify
+       ! left justify
        if (ic(1) == 32) then
          ic(1) = ic(2)
          ic(2) = 32
-         endif
-!      the standard name of the element:
+       endif
+       ! the standard name of the element:
        elemnt = char(ic(1))//char(ic(2))
 
-!      find the element in the periodic table
-
-       do 150 i = 1, nelem
-         if (elemnt == pertab(i)) then
-           charge = i
-           return
-           endif
-150      continue
+       ! find the element in the periodic table
+       do i = 1, nelem
+          if (elemnt == pertab(i)) then
+             charge = i
+             return
+          endif
+       end do
        write (6,160) name,elemnt,ic
 160    format (' could not locate name in list of elements:'/  &
        ' name=',a,' converted to=',a,' ascii codes=',2i3)
        call ext (200)
-       return
-       end
-!      *****************************************************************
+end function charge
 
        subroutine dsolv1(  &
        nrmax,nr,a,b,r,rab,lmax,  &
@@ -1391,43 +1384,42 @@ subroutine atom
 !      initialize charge density arrays
 
 !     TEST
-       d=0d0
-       do 10 i=1,nr
-       cdd(i) = 0.D0
-       cdu(i) = 0.D0
- 10    continue
+       d=0.0d0
+       do i=1,nr
+          cdd(i) = 0.d0
+          cdu(i) = 0.d0
+       end do
+       !nvmax = 6*nr
 
 !      find max n given l and s
 !      zero spin is treated as down
-
        do 20 i=1,2
-       do 20 j=1,lmax
-       nmax(i,j) = 0
-       do 20 k=1,norb
-       if (no(k) .le. 0) goto 20
-       if (lo(k) /= j-1) goto 20
-       if ((so(k)-0.1D0)*(i-1.5D0) .lt. 0.D0) goto 20
-       nmax(i,j)=no(k)
-       if (no(k)*(nr-1) .gt. nvmax) then
-         print*,no(k),nr-1
-         print*,no(k)*(nr-1)," > ",nvmax
-         call ext(500)
-       end if
+          do 20 j=1,lmax
+             nmax(i,j) = 0
+             do 20 k=1,norb
+                if (no(k) .le. 0) goto 20
+                if (lo(k) /= j-1) goto 20
+                if ((so(k)-0.1D0)*(i-1.5D0) .lt. 0.D0) goto 20
+                nmax(i,j)=no(k)
+                if (no(k)*(nr-1) .gt. nvmax) then
+                  print *,no(k),nr-1
+                  print *,no(k)*(nr-1)," > ",nvmax
+                  call ext(500)
+                end if
  20    continue
 
 !      set up hamiltonian matrix for kinetic energy
 !      only the diagonal depends on the potential
-
        c2 = -1.D0/b**2
        c1 = -2.D0*c2 + 0.25D0
        dk(1)  = c1 / (r(2)+a)**2
        sd(1)  = 0.D0
        sd2(1) = 0.D0
-       do 30 i=3,nr
-       dk(i-1)  = c1 / (r(i)+a)**2
-       sd(i-1)  = c2 / ((r(i)+a)*(r(i-1)+a))
-       sd2(i-1) = sd(i-1)**2
- 30    continue
+       do i=3,nr
+          dk(i-1)  = c1 / (r(i)+a)**2
+          sd(i-1)  = c2 / ((r(i)+a)*(r(i-1)+a))
+          sd2(i-1) = sd(i-1)**2
+       end do
 
 !      start loop over spin down=1 and spin up=2
 
@@ -1454,11 +1446,11 @@ subroutine atom
 
        eps = -1.D0
        call tridib(nrm,eps,d,sd,sd2,bl,bu,1,nmax(i,j),e,ind,ierr,  &
-       rv4,rv5)
+          rv4,rv5)
        if (ierr /= 0) write(6,50) ierr
  50    format(/,21h ****** error  ierr =,i3,/)
        call tinvit(nrm,nrm,d,sd,sd2,nmax(i,j),e,ind,z,ierr,  &
-       rv1,rv2,rv3,rv4,rv5)
+          rv1,rv2,rv3,rv4,rv5)
        if (ierr /= 0) write(6,50) ierr
 
 !      save energy levels and add to charge density
@@ -1466,28 +1458,24 @@ subroutine atom
        ki = 1
        kn = 0
        do 70 k=1,norb
-       if (no(k) .le. 0) goto 70
-       if (lo(k) /= j-1) goto 70
-!      if spin(k) /= spin(i) cycle
-       if ((so(k)-0.1D0)*(i-1.5D0) .lt. 0.D0) goto 70
-       ev(k) = e(ki)
-!      write(6,*)'DSOLV1:',k,no(k),lo(k),so(k),ev(k)
-       do 60 l=2,nr
-       denr = zo(k) * z(kn+l-1)**2 / rab(l)
-       if (i == 1) cdd(l) = cdd(l) + denr
-       if (i == 2) cdu(l) = cdu(l) + denr
- 60    continue
-       ki = ki + 1
-       kn = kn + nrm
+          if (no(k) .le. 0) goto 70
+          if (lo(k) /= j-1) goto 70
+          ! if spin(k) /= spin(i) cycle
+          if ((so(k)-0.1D0)*(i-1.5D0) .lt. 0.D0) goto 70
+          ev(k) = e(ki)
+          ! write(6,*)'DSOLV1:',k,no(k),lo(k),so(k),ev(k)
+          do l=2,nr
+             denr = zo(k) * z(kn+l-1)**2 / rab(l)
+             if (i == 1) cdd(l) = cdd(l) + denr
+             if (i == 2) cdu(l) = cdu(l) + denr
+          end do
+          ki = ki + 1
+          kn = kn + nrm
  70    continue
  80    continue
-
 !      end loop over s p and d states
 
-       return
-       end
-
-!      *****************************************************************
+end subroutine dsolv1
 
 
 !> dsolv2 finds the (non) relativistic wave function using
