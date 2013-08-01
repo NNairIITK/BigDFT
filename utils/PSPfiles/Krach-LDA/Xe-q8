@@ -1,0 +1,14 @@
+Goedecker pseudopotential for Xe
+   54   8  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.56000000    1    12.73427972                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.50737118    3     2.23645069     0.15629453    -0.27630331                   rs ns hs11 hs12 hs13
+                                       -0.40355073     0.71341207                              hs22 hs23
+                                                      -1.13250655                                   hs33
+     0.54102371    2     1.13004299     0.31810091                                  rp np hp11 hp12
+                                       -0.75276413                                             hp22
+                         0.23660318    -0.04583840                                        kp11 kp12
+                                        0.10847345                                             kp22
+     0.72982111    1     0.28013078                                                 rd nd hd11
+                         0.01336223                                                       kd11

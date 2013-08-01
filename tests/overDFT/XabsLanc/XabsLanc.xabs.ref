@@ -1,0 +1,63 @@
+ <BigDFT> log of the run will be written in logfile: ./log-XabsLanc.yaml
+ ===================== BigDFT XANE calculation =============== inputPsiId= 0
+ ------------------------------------------------------------------ System Properties
+  allocate ionic potential 
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of paw projectors per atom
+    1      Fe               1                   24
+                                            ------
+ Total number of projectors =                   24
+ Total number of components =               167280
+ Percent of zero components =                   18
+ ------------------------------------------------------- Input Wavefunctions Creation
+  going to calculate spectra 
+  IN ROUTINE LANCZOS 
+ USING PTILDES TO BUILD INITIAL WAVE
+  done 
+  done 
+  done 
+  done 
+  done 
+  done 
+  done 
+  done 
+  done 
+  done 
+  done 
+  done 
+  done 
+  done 
+  done 
+  starting GramSchmidt           14
+ GramSchmidt done 
+  done 
+  starting GramSchmidt           15
+ GramSchmidt done 
+  done 
+  done 
+  done 
+  done 
+  done 
+  alpha and beta from lanczos 
+   20 1.3062311155018257E-03
+ 1.5004009007842441E+01 1.3007383495409739E+01
+ 2.3623299250133538E+01 1.9803091787356212E+01
+ 6.0892143874527100E+01 5.0818255057458003E+01
+ 1.2936912976232367E+02 7.6475719650327662E+01
+ 1.6586187036434907E+02 8.7525605757029268E+01
+ 1.7491224732639068E+02 8.2137748702909533E+01
+ 1.5761832868414803E+02 7.7686747591832130E+01
+ 1.5954182140333359E+02 8.8563657395799780E+01
+ 1.6055256592433830E+02 7.5779147436979216E+01
+ 1.6106114015840689E+02 7.6857528518425809E+01
+ 1.5444621625541615E+02 8.3392182434197238E+01
+ 1.5652581721416800E+02 7.9748522632080082E+01
+ 1.7405795257382269E+02 8.1777380847589029E+01
+ 1.6290783617372671E+02 8.5515007254161830E+01
+ 1.6581460531478115E+02 8.3817555505889345E+01
+ 1.6524026467991212E+02 8.2201622196464228E+01
+ 1.6633396175270389E+02 7.9647509033145596E+01
+ 1.6494374648023830E+02 8.4899824244882808E+01
+ 1.5483164581174302E+02 7.6125063689003952E+01
+ 1.5317148877937444E+02 7.4841709998355668E+01
+ CPU time/ELAPSED time for root process     0        19.36        24.06

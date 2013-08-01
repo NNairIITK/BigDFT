@@ -1,0 +1,11 @@
+example to use the minima hopping method.
+
+Input Files are:
+ - CPUlimit:   CPUlimit in hours
+ - earr.dat:   First line,  # of minima found and # of minima to be found
+               Second line, Eref  (Reference energy) stop if less than that
+               Third line,  accur Accuracy for rounding
+ - input.dat   Used for the first optimization of geometry
+ - ioput       First line, Ediff (Difference energy) to reject minima or not if > Ediff
+ - poscur.xyz  Initial and current position
+ - rand.inp    Seed of random number generation

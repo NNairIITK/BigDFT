@@ -1,0 +1,3 @@
+ 1  angstroem
+periodic  10  10  10 # V_Sim export to xyz from 'posinp.xyz'
+Fe   5.5  5.5  5.5 

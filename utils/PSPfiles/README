@@ -1,0 +1,3 @@
+Pseudo-potential files are taken from the CVS of BerliOS:
+cvs -z3 -d:pserver:anonymous@cvs.berlios.de:/cvsroot/cp2k co -d Krach-LDA potentials/Goedecker/abinit/pade
+cvs -z3 -d:pserver:anonymous@cvs.berlios.de:/cvsroot/cp2k co -d Krach-PBE potentials/Goedecker/abinit/pbe

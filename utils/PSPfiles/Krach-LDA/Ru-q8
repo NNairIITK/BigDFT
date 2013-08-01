@@ -1,0 +1,15 @@
+Goedecker pseudopotential for Ru
+   44   8  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.64721429    1     8.68772333                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.62565612    2     1.63786602    -0.51484914                                  rs ns hs11 hs12
+                                        1.32933477                                             hs22
+     0.74642487    2     0.63901157    -0.27483407                                  rp np hp11 hp12
+                                        0.65037612                                             hp22
+                        -0.09545431    -0.06941124                                        kp11 kp12
+                                        0.16425697                                             kp22
+     0.44035802    2    -4.88336495     1.35098513                                  rd nd hd11 hd12
+                                       -3.06374629                                             hd22
+                         0.04665238     0.02725483                                        kd11 kd12
+                                       -0.06180814                                             kd22

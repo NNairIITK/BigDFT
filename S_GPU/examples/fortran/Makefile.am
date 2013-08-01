@@ -1,0 +1,1 @@
+SUBDIRS = add_array

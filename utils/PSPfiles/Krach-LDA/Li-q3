@@ -1,0 +1,5 @@
+Goedecker pseudopotential for Li
+    3   3  070301 zatom,zion,pspdat
+10  1 -1 6 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.40000000    4   -14.03486849     9.55347627    -1.76648817     0.08436998    rloc nloc c1 c2 c3 c4
+    0                                                                               nnonloc

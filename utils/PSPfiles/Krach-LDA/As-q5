@@ -1,0 +1,14 @@
+Goedecker pseudopotential for As
+   33   5  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.52000000    0                                                                rloc nloc
+    3                                                                               nnonloc
+     0.45640025    3     4.56076106    -0.65545935    -0.33517391                   rs ns hs11 hs12 hs13
+                                        1.69238876     0.86541531                              hs22 hs23
+                                                      -1.37380421                                   hs33
+     0.55056168    2     1.81224664     0.27329186                                  rp np hp11 hp12
+                                       -0.64672658                                             hp22
+                         0.05246616    -0.00868894                                        kp11 kp12
+                                        0.02056179                                             kp22
+     0.68528272    1     0.31237276                                                 rd nd hd11
+                         0.00427335                                                       kd11

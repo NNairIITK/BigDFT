@@ -1,0 +1,12 @@
+0  no valence distribution to subtract
+1  one single gaussian for the core
+0.1426200269303580  0.0   0.0  15360.27758539605 520.5121130161991
+(coeffs normalized to rcore are quite small here, 6.355 and 0.224) 
+
+
+0  no valence distribution to subtract
+ 1  one single gaussian for the core
+   0.1602361683723572         271.2791648342456        -1891.689392991570      
+    3219.918652986358         0.000000000000000      sigma c0 c2 c4 c6
+ end of NLCC input for BigDFT
+ analytic form: gaussian(r,sigma)*sum(ck*x**k)

@@ -1,0 +1,79 @@
+ <BigDFT> log of the run will be written in logfile: ./log-Xabsb2B.yaml
+ ===================== BigDFT XANE calculation =============== inputPsiId= 0
+ ------------------------------------------------------------------ System Properties
+  allocate ionic potential 
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of paw projectors per atom
+    1      Fe               1                   24
+                                            ------
+ Total number of projectors =                   24
+ Total number of components =               669120
+ Percent of zero components =                   18
+  going to calculate spectra 
+ check b2B_xanes.cube T
+  scaling function for interpolation 
+for replica   0 SHIFT   9.448627E-01 9.448627E-01 9.448627E-01
+  IN ROUTINE  chebychev  
+ weigths   0.50000000000000000       0.50000000000000000     
+ LB_nproc=            1
+ USING PTILDES TO BUILD INITIAL WAVE
+  EP_initialize_start    OK 
+  done 
+new cheb coeffs     -0.9781822816D-03    -0.9779081606D-03     0.6328837314D-03     0.6321307585D-03
+  done 
+new cheb coeffs     -0.1905502038D-03    -0.1895824509D-03    -0.2047760442D-03    -0.2053207296D-03
+  done 
+new cheb coeffs      0.4413977567D-03     0.4410056014D-03    -0.4772117640D-03    -0.4759516856D-03
+  done 
+new cheb coeffs      0.3484240988D-03     0.3470490354D-03    -0.1440979370D-03    -0.1436504877D-03
+  done 
+new cheb coeffs     -0.3493456509D-04    -0.3376310962D-04     0.1185205406D-03     0.1159056097D-03
+  done 
+new cheb coeffs     -0.8908682524D-04    -0.8609452229D-04    -0.1899746163D-04    -0.2090170556D-04
+  done 
+new cheb coeffs      0.1436374077D-03     0.1433698776D-03    -0.2251978225D-03    -0.2226742555D-03
+  done 
+new cheb coeffs      0.2334437099D-03     0.2297143812D-03    -0.1758854081D-03    -0.1726605676D-03
+  done 
+new cheb coeffs      0.9061092886D-04     0.8941555000D-04    -0.2418018080D-04    -0.2551716803D-04
+  done 
+new cheb coeffs      0.1015380255D-04     0.1313619430D-04    -0.5322278059D-04    -0.5589126191D-04
+  done 
+new cheb coeffs      0.1299549053D-03     0.1302370336D-03    -0.2002693018D-03    -0.1971316521D-03
+  done 
+new cheb coeffs      0.2283197311D-03     0.2225382513D-03    -0.1982612285D-03    -0.1922774231D-03
+  done 
+new cheb coeffs      0.1222444998D-03     0.1190554821D-03    -0.3260261507D-04    -0.3412868507D-04
+  done 
+new cheb coeffs     -0.3305959959D-04    -0.2723204800D-04     0.5099696148D-04     0.4373006278D-04
+  done 
+new cheb coeffs     -0.2081670942D-04    -0.1613920156D-04    -0.3435878322D-04    -0.3332270742D-04
+  done 
+new cheb coeffs      0.8110835128D-04     0.7391844928D-04    -0.9074362375D-04    -0.8007447714D-04
+  done 
+new cheb coeffs      0.5327930429D-04     0.4371602126D-04     0.2058287863D-04     0.2480592660D-04
+  done 
+new cheb coeffs     -0.1049737071D-03    -0.1020533007D-03     0.1729000302D-03     0.1642818311D-03
+  done 
+new cheb coeffs     -0.2069868556D-03    -0.1964922446D-03     0.2065630463D-03     0.1983775193D-03
+  done 
+ writing spectra to  cheb_spectra_proc_0_orbp_1
+  done 
+ writing spectra to  cheb_spectra_proc_0_orbp_2
+ writing spectra to  cheb_spectra_40
+  done 
+new cheb coeffs     -0.1839950082D-03    -0.1806031521D-03     0.1577869100D-03     0.1589538400D-03
+ coefficients from Chebychev 
+   40 1.8347331808298776E+02 5.3215820427215243E-03
+ ... 
+-3.4358783223831018E-05
+ 8.1108351281735020E-05
+-9.0743623753347484E-05
+ 5.3279304290982754E-05
+ 2.0582878634231236E-05
+-1.0497370712754463E-04
+ 1.7290003021017087E-04
+-2.0698685564937247E-04
+ 2.0656304627373842E-04
+-1.8399500824586748E-04
+ CPU time/ELAPSED time for root process     0       131.60       174.15

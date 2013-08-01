@@ -1,0 +1,5 @@
+DIIS
+500      ncount_cluster: max steps during geometry relaxation
+1.d0 0.    frac_fluct:     geometry optimization stops if force norm less than frac_fluct of noise
+0.0d0     randdis:        random amplitude for atoms
+4.d0 5     betax: steepest descent step size,  if negative automatic determination

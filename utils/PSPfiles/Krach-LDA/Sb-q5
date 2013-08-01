@@ -1,0 +1,14 @@
+Goedecker pseudopotential for Sb
+   51   5  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.59000000    1     6.68022783                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.59768356    3     1.95147672    -0.01453812    -0.19191821                   rs ns hs11 hs12 hs13
+                                        0.03753727     0.49553069                              hs22 hs23
+                                                      -0.78663058                                   hs33
+     0.67212205    2     0.97031285     0.19722998                                  rp np hp11 hp12
+                                       -0.46673132                                             hp22
+                         0.13922153    -0.00993605                                        kp11 kp12
+                                        0.02351298                                             kp22
+     0.85655729    1     0.30010262                                                 rd nd hd11
+                         0.00943232                                                       kd11

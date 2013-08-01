@@ -1,0 +1,1980 @@
+ <BigDFT> log of the run will be written in logfile: ./log-foe.yaml
+ ------------------------------------------------------------------------------------
+ >>>> Partition of the basis functions among the processes.
+    | Processes from 0 to 1 treat 27 orbitals, |
+    | processes from 2 to 3 treat 26 orbitals. |
+ -----------------------------------------------
+total elements: 11236
+non-zero elements: 10732
+sparsity:  4.49%
+total elements: 11236
+non-zero elements: 5692
+sparsity: 49.34%
+total elements: 11236
+non-zero elements: 10732
+sparsity:  4.49%
+WARNING: locrad for atom type N is too small; minimal value is   1.14E+01
+type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)N   1.14E+01   2.89E+01   4.500E+00
+V3prb    1.6654E+00
+WARNING: locrad for atom type C is too small; minimal value is   1.16E+01
+type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)C   1.16E+01   2.89E+01   4.500E+00
+V3prb    1.8106E+00
+WARNING: locrad for atom type H is too small; minimal value is   4.84E+00
+type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)H   4.84E+00   2.89E+01   4.500E+00
+V3prb    5.4876E-02
+ Processes from 0 to 1 treat 27 inguess orbitals 
+ Processes from 2 to 3 treat 26 inguess orbitals 
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999945482E+02
+ calling orthonormalizeLocalized (exact)
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -1.000000000E-01   570
+ Bisection bounds:    -1.00000E-01  1.00000E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound does not give negative charge difference: diff= 7.29903E+00
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -2.000000000E-01   570
+ Bisection bounds:    -2.00000E-01  1.00000E-01
+ Can use the Chebyshev polynomials from memory.
+ lower bisection bound does not give negative charge difference: diff= 3.86685E+00
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -3.100000000E-01   570
+ Bisection bounds:    -3.10000E-01  1.00000E-01
+ Can use the Chebyshev polynomials from memory.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00   1.000000000E-01   570
+ Bisection bounds:    -3.10000E-01  1.00000E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.3704772378363E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.3048E+01   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8973402803861E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.897340280E-01   570
+ Bisection bounds:    -3.10000E-01  1.00000E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1877137493071E+02  0.0000000000000E+00
+ charge difference, exit criterion:   4.7714E+00   1.0000E-06
+ suggested Fermi energy for next iteration: -2.6103435238481E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -2.610343524E-01   570
+ Bisection bounds:    -3.10000E-01 -1.89734E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1435734011295E+02  0.0000000000000E+00
+ charge difference, exit criterion:   3.5734E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -2.7671436967270E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -2.767143697E-01   570
+ Bisection bounds:    -3.10000E-01 -2.61034E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  3.83E-06  1.00E-12
+ new fermi energy from cubic interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1372039119330E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.7961E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -2.6938548461361E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -2.693854846E-01   570
+ Bisection bounds:    -2.76714E-01 -2.61034E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -4.74E-10  1.00E-12
+ new fermi energy from cubic interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1395820320048E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -4.1797E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -2.6837047349741E-01
+ --------------------------------------------------------------------------- FOE it=9
+ FOE: it, evlow, evhigh, efermi, npl  9  -1.800E+00   2.000E+00  -2.683704735E-01   570
+ Bisection bounds:    -2.69385E-01 -2.61034E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -5.96E-14  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400015698713E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.5699E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -2.6837427157377E-01
+ -------------------------------------------------------------------------- FOE it=10
+ FOE: it, evlow, evhigh, efermi, npl  10  -1.800E+00   2.000E+00  -2.683742716E-01   570
+ Bisection bounds:    -2.69385E-01 -2.68370E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.99E-18  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999600200E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -3.9980E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -2.6837417725004E-01
+ -------------------------------------------------------------------------- FOE it=11
+ FOE: it, evlow, evhigh, efermi, npl  11  -1.800E+00   2.000E+00  -2.683741773E-01   570
+ Bisection bounds:    -2.68374E-01 -2.68370E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  1.39E-27  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999999964E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -3.5895E-10   1.0000E-06
+ suggested Fermi energy for next iteration: -2.6837417724157E-01
+ -----------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999951064E+02
+ ------------------------------------------------------------- Input guess generated.
+ ************************************************************************************
+ ****************************** LINEAR SCALING VERSION ******************************
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.477364E-01    1.917417E-01    1.408702E-03
+ iter, fnrm, fnrmMax, trace, diff     1  9.9467511E-01  1.3278142E+00  -146.4116801947  -1.4641E+02
+ SD informations: mean alpha=1.000E+00, max alpha=1.000E+00, consecutive successes=1
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.882511E-02    6.211432E-02    4.742928E-03
+ iter, fnrm, fnrmMax, trace, diff     2  3.1163442E-01  4.8318272E-01  -159.9196243801  -1.3508E+01
+ SD informations: mean alpha=6.000E-01, max alpha=6.000E-01, consecutive successes=2
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=3
+ Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.615699E-02    5.061201E-02    8.720884E-03
+ iter, fnrm, fnrmMax, trace, diff     3  1.9777115E-01  3.6672521E-01  -161.0694128948  -1.1498E+00
+ SD informations: mean alpha=6.600E-01, max alpha=6.600E-01, consecutive successes=3
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=4
+ Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.947230E-02    4.405242E-02    1.135379E-02
+ iter, fnrm, fnrmMax, trace, diff     4  1.5648890E-01  3.1010320E-01  -161.8272359048  -7.5782E-01
+ SD informations: mean alpha=7.260E-01, max alpha=7.260E-01, consecutive successes=4
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=5
+ Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.550038E-02    3.980582E-02    1.257623E-02
+ iter, fnrm, fnrmMax, trace, diff     5  1.3830732E-01  2.7276112E-01  -162.3056253367  -4.7839E-01
+ WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   1.3830732E-01  2.7276112E-01   -162.3056253
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -3.663841772E-01   570
+ Bisection bounds:    -3.66384E-01 -1.70364E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.703641772E-01   570
+ Bisection bounds:    -3.66384E-01 -1.70364E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.2011389067221E+02  0.0000000000000E+00
+ charge difference, exit criterion:   6.1139E+00   1.0000E-06
+ suggested Fermi energy for next iteration: -2.4732721235989E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -2.473272124E-01   570
+ Bisection bounds:    -3.66384E-01 -1.70364E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1651123467107E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.5112E+00   1.0000E-06
+ suggested Fermi energy for next iteration: -2.8547551119280E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -2.854755112E-01   570
+ Bisection bounds:    -3.66384E-01 -2.47327E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1414329687583E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.4330E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -3.0607758754647E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -3.060775875E-01   570
+ Bisection bounds:    -3.66384E-01 -2.85476E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  5.55E-08  1.00E-12
+ new fermi energy from cubic interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1388485409238E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -1.1515E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -3.1146963900377E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -3.114696390E-01   570
+ Bisection bounds:    -3.06078E-01 -2.85476E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  4.15E-10  1.00E-12
+ new fermi energy from cubic interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1364325927236E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -3.5674E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -3.0194972229115E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -3.019497223E-01   570
+ Bisection bounds:    -3.11470E-01 -2.85476E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  1.87E-12  1.00E-12
+ new fermi energy from cubic interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399318186394E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -6.8181E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -3.0159848172503E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -3.015984817E-01   570
+ Bisection bounds:    -3.01950E-01 -2.85476E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -3.29E-15  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400009812706E+02  0.0000000000000E+00
+ charge difference, exit criterion:   9.8127E-05   1.0000E-06
+ suggested Fermi energy for next iteration: -3.0160346508135E-01
+ --------------------------------------------------------------------------- FOE it=9
+ FOE: it, evlow, evhigh, efermi, npl  9  -1.800E+00   2.000E+00  -3.016034651E-01   570
+ Bisection bounds:    -3.01950E-01 -3.01598E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -5.62E-19  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400000216757E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.1676E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -3.0160357764715E-01
+ -------------------------------------------------------------------------- FOE it=10
+ FOE: it, evlow, evhigh, efermi, npl  10  -1.800E+00   2.000E+00  -3.016035776E-01   570
+ Bisection bounds:    -3.01950E-01 -3.01603E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.15E-28  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999999929E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -7.1179E-10   1.0000E-06
+ suggested Fermi energy for next iteration: -3.0160357761020E-01
+ -----------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999981942E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   1  8.2877441E-06   -1.75774959856075611E+02   -1.7577E+02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -3.809916776E-01   570
+ Bisection bounds:    -3.80992E-01 -2.22215E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -2.222154776E-01   570
+ Bisection bounds:    -3.80992E-01 -2.22215E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1548611314290E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.4861E+00   1.0000E-06
+ suggested Fermi energy for next iteration: -2.6621802329373E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -2.662180233E-01   570
+ Bisection bounds:    -3.80992E-01 -2.22215E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1403930408780E+02  0.0000000000000E+00
+ charge difference, exit criterion:   3.9304E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -2.9499840159477E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -2.949984016E-01   570
+ Bisection bounds:    -3.80992E-01 -2.66218E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1140987692641E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.5901E+00   1.0000E-06
+ suggested Fermi energy for next iteration: -2.7362821919071E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -2.736282192E-01   570
+ Bisection bounds:    -2.94998E-01 -2.66218E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -7.50E-10  1.00E-12
+ new fermi energy from cubic interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1385591940130E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -1.4408E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -2.6877819777252E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -2.687781978E-01   570
+ Bisection bounds:    -2.73628E-01 -2.66218E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.48E-12  1.00E-12
+ new fermi energy from cubic interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399466729494E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -5.3327E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -2.6851388707686E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -2.685138871E-01   570
+ Bisection bounds:    -2.68778E-01 -2.66218E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  9.73E-14  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400002891375E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.8914E-05   1.0000E-06
+ suggested Fermi energy for next iteration: -2.6851531243269E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -2.685153124E-01   570
+ Bisection bounds:    -2.68778E-01 -2.68514E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.26E-20  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400000050688E+02  0.0000000000000E+00
+ charge difference, exit criterion:   5.0688E-07   1.0000E-06
+ suggested Fermi energy for next iteration: -2.6851533786615E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999987057E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   2  6.4009413E-06   -1.75561526365549526E+02    2.1343E-01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -3.328196989E-01   570
+ Bisection bounds:    -3.32820E-01 -2.04211E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -2.042109769E-01   570
+ Bisection bounds:    -3.32820E-01 -2.04211E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1483284253279E+02  0.0000000000000E+00
+ charge difference, exit criterion:   8.3284E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -2.3857088622645E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -2.385708862E-01   570
+ Bisection bounds:    -3.32820E-01 -2.04211E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1407391259452E+02  0.0000000000000E+00
+ charge difference, exit criterion:   7.3913E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -2.6228131081089E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -2.622813108E-01   570
+ Bisection bounds:    -3.32820E-01 -2.38571E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1261433574204E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -1.3857E+00   1.0000E-06
+ suggested Fermi energy for next iteration: -2.4509883725854E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -2.450988373E-01   570
+ Bisection bounds:    -2.62281E-01 -2.38571E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -2.17E-10  1.00E-12
+ new fermi energy from cubic interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1396338988218E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -3.6610E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -2.4367632477891E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -2.436763248E-01   570
+ Bisection bounds:    -2.45099E-01 -2.38571E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -3.59E-13  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399695802473E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -3.0420E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -2.4354741541851E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -2.435474154E-01   570
+ Bisection bounds:    -2.43676E-01 -2.38571E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  1.70E-15  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399968399530E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -3.1600E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -2.4353247176337E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -2.435324718E-01   570
+ Bisection bounds:    -2.43547E-01 -2.38571E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  9.58E-22  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999680487E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -3.1951E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -2.4353231912420E-01
+ --------------------------------------------------------------------------- FOE it=9
+ FOE: it, evlow, evhigh, efermi, npl  9  -1.800E+00   2.000E+00  -2.435323191E-01   570
+ Bisection bounds:    -2.43532E-01 -2.38571E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  9.21E-29  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999999659E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -3.4055E-09   1.0000E-06
+ suggested Fermi energy for next iteration: -2.4353231896134E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999981999E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   3  4.9961544E-06   -1.75443360037303819E+02    1.1817E-01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -2.956188514E-01   570
+ Bisection bounds:    -2.95619E-01 -1.91446E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.914457866E-01   570
+ Bisection bounds:    -2.95619E-01 -1.91446E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1449388296618E+02  0.0000000000000E+00
+ charge difference, exit criterion:   4.9388E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -2.1876747876306E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -2.187674788E-01   570
+ Bisection bounds:    -2.95619E-01 -1.91446E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1408516455113E+02  0.0000000000000E+00
+ charge difference, exit criterion:   8.5165E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -2.3814632599437E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -2.381463260E-01   570
+ Bisection bounds:    -2.95619E-01 -2.18767E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1323247961679E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -7.6752E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -2.2457995179163E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -2.245799518E-01   570
+ Bisection bounds:    -2.38146E-01 -2.18767E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -6.46E-11  1.00E-12
+ new fermi energy from cubic interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400229640489E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.2964E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -2.2467791273674E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -2.246779127E-01   570
+ Bisection bounds:    -2.38146E-01 -2.24580E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  1.19E-14  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400018701464E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.8701E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -2.2468659777281E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -2.246865978E-01   570
+ Bisection bounds:    -2.38146E-01 -2.24678E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -2.23E-19  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999854306E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -1.4569E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -2.2468653063492E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -2.246865306E-01   570
+ Bisection bounds:    -2.24687E-01 -2.24678E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -5.38E-30  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400000000091E+02  0.0000000000000E+00
+ charge difference, exit criterion:   9.1411E-10   1.0000E-06
+ suggested Fermi energy for next iteration: -2.2468653067701E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999982076E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   4  3.9263872E-06   -1.75376218362619966E+02    6.7142E-02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -2.668766219E-01   570
+ Bisection bounds:    -2.66877E-01 -1.82496E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.824964394E-01   570
+ Bisection bounds:    -2.66877E-01 -1.82496E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1432663998028E+02  0.0000000000000E+00
+ charge difference, exit criterion:   3.2664E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -2.0453449802376E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -2.045344980E-01   570
+ Bisection bounds:    -2.66877E-01 -1.82496E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1408685689275E+02  0.0000000000000E+00
+ charge difference, exit criterion:   8.6857E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -2.2030838470292E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -2.203083847E-01   570
+ Bisection bounds:    -2.66877E-01 -2.04534E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1354917840859E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -4.5082E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -2.0975203107402E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -2.097520311E-01   570
+ Bisection bounds:    -2.20308E-01 -2.04534E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.97E-11  1.00E-12
+ new fermi energy from cubic interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1401503929730E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.5039E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -2.1042627137722E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -2.104262714E-01   570
+ Bisection bounds:    -2.20308E-01 -2.09752E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  3.41E-14  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400089602554E+02  0.0000000000000E+00
+ charge difference, exit criterion:   8.9603E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -2.1046898684942E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -2.104689868E-01   570
+ Bisection bounds:    -2.20308E-01 -2.10426E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -2.12E-17  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399995161412E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -4.8386E-05   1.0000E-06
+ suggested Fermi energy for next iteration: -2.1046679836927E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -2.104667984E-01   570
+ Bisection bounds:    -2.10469E-01 -2.10426E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.31E-24  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400000014437E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.4437E-07   1.0000E-06
+ suggested Fermi energy for next iteration: -2.1046680487946E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999983535E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 5 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   5  3.1004783E-06   -1.75337306489242337E+02    3.8912E-02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -2.446407788E-01   570
+ Bisection bounds:    -2.44641E-01 -1.76293E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.762928310E-01   570
+ Bisection bounds:    -2.44641E-01 -1.76293E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1424213196257E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.4213E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -1.9421403883646E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.942140388E-01   570
+ Bisection bounds:    -2.44641E-01 -1.76293E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1408431798498E+02  0.0000000000000E+00
+ charge difference, exit criterion:   8.4318E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -2.0703851982939E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -2.070385198E-01   570
+ Bisection bounds:    -2.44641E-01 -1.94214E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1372076657294E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.7923E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -1.9890734130971E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.989073413E-01   570
+ Bisection bounds:    -2.07039E-01 -1.94214E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -6.10E-12  1.00E-12
+ new fermi energy from cubic interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1401798940083E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.7989E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.9973265696512E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.997326570E-01   570
+ Bisection bounds:    -2.07039E-01 -1.98907E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  1.63E-14  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400067861444E+02  0.0000000000000E+00
+ charge difference, exit criterion:   6.7861E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.9976501084599E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.997650108E-01   570
+ Bisection bounds:    -2.07039E-01 -1.99733E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -9.90E-18  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399995615315E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -4.3847E-05   1.0000E-06
+ suggested Fermi energy for next iteration: -1.9976304725894E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -1.997630473E-01   570
+ Bisection bounds:    -1.99765E-01 -1.99733E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.17E-24  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400000009775E+02  0.0000000000000E+00
+ charge difference, exit criterion:   9.7750E-08   1.0000E-06
+ suggested Fermi energy for next iteration: -1.9976305162671E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999983085E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 6 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   6  2.4569920E-06   -1.75314383262613092E+02    2.2923E-02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.776441304133E+01  1.080705696895E+03 -5.082720462493E+01 -6.652864662359E+01  0.000000000000E+00  9.465423606535E+02  0.000000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   1   1.16E-06   -1.75314383262613092E+02   -1.7531E+02
+ ############################################################################################
+ at iteration 1 of the outer loop:
+   > basis functions optimization:
+     - target function is trace
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -1.623056E+02    1.38E-01
+   > density optimization:
+     - using Fermi Operator Expansion / mixing.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   1    2.46E-06   -1.75314383262613092E+02
+   > energy difference to last iteration: -1.753144E+02
+ ############################################################################################
+ Increasing the localization radius for the high accuracy part.
+total elements: 11236
+non-zero elements: 11084
+sparsity:  1.35%
+total elements: 11236
+non-zero elements: 6892
+sparsity: 38.66%
+total elements: 11236
+non-zero elements: 11084
+sparsity:  1.35%
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -2.274439705E-01   570
+ Bisection bounds:    -2.27444E-01 -1.72082E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.720821328E-01   570
+ Bisection bounds:    -2.27444E-01 -1.72082E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1419625542985E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.9626E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8677435498946E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.867743550E-01   570
+ Bisection bounds:    -2.27444E-01 -1.72082E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1407758731510E+02  0.0000000000000E+00
+ charge difference, exit criterion:   7.7587E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.9719381880872E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.971938188E-01   570
+ Bisection bounds:    -2.27444E-01 -1.86774E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1381186780680E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -1.8813E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -1.9090040813084E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.909004081E-01   570
+ Bisection bounds:    -1.97194E-01 -1.86774E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.88E-12  1.00E-12
+ new fermi energy from cubic interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1401521874809E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.5219E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.9160140483383E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.916014048E-01   570
+ Bisection bounds:    -1.97194E-01 -1.90900E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  5.12E-15  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400032790825E+02  0.0000000000000E+00
+ charge difference, exit criterion:   3.2791E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.9161684134401E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.916168413E-01   570
+ Bisection bounds:    -1.97194E-01 -1.91601E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.52E-18  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399998264462E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -1.7355E-05   1.0000E-06
+ suggested Fermi energy for next iteration: -1.9161606539654E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -1.916160654E-01   570
+ Bisection bounds:    -1.91617E-01 -1.91601E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -6.32E-26  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400000001840E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.8400E-08   1.0000E-06
+ suggested Fermi energy for next iteration: -1.9161606621834E-01
+ ------------------------------------------------------------------------------------
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.390003E-02    9.801801E-02    4.665589E-03
+ iter, fnrm, fnrmMax, ebs, diff     1  3.5945486E-01  4.8106098E-01  -175.3006230440  -1.3473E+01
+ SD informations: mean alpha=7.986E-01, max alpha=7.986E-01, consecutive successes=1
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.714020E-02    5.134277E-02    5.117104E-03
+ iter, fnrm, fnrmMax, ebs, diff     2  2.2368736E-01  3.0051505E-01  -176.1033297987  -8.0271E-01
+ WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, ebs:   2.2368736E-01  3.0051505E-01   -176.1033298
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ No Hamiltonian application required.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -2.140376105E-01   570
+ Bisection bounds:    -2.14038E-01 -1.69195E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.691945219E-01   570
+ Bisection bounds:    -2.14038E-01 -1.69195E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1423287912620E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.3288E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8372802420580E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.837280242E-01   570
+ Bisection bounds:    -2.14038E-01 -1.69195E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1402973359040E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.9734E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.9163473774940E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.916347377E-01   570
+ Bisection bounds:    -2.14038E-01 -1.83728E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1397720811363E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.2792E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8794261642295E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.879426164E-01   570
+ Bisection bounds:    -1.91635E-01 -1.83728E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -7.52E-13  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400620354867E+02  0.0000000000000E+00
+ charge difference, exit criterion:   6.2035E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8873254264147E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.887325426E-01   570
+ Bisection bounds:    -1.91635E-01 -1.87943E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  1.41E-15  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400105595819E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.0560E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8889458526379E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.888945853E-01   570
+ Bisection bounds:    -1.91635E-01 -1.88733E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -3.58E-18  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399994466205E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -5.5338E-05   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8888651621147E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -1.888865162E-01   570
+ Bisection bounds:    -1.88895E-01 -1.88733E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.43E-22  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400000048736E+02  0.0000000000000E+00
+ charge difference, exit criterion:   4.8736E-07   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8888658665514E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999987403E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   1  2.7456077E-06   -1.76129232529401861E+02   -8.1485E-01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -2.070480375E-01   570
+ Bisection bounds:    -2.07048E-01 -1.70725E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.707251358E-01   570
+ Bisection bounds:    -2.07048E-01 -1.70725E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1410100796660E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.0101E-01   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8165870981127E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.816587098E-01   570
+ Bisection bounds:    -2.07048E-01 -1.70725E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1401741834407E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.7418E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8824997403215E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.882499740E-01   570
+ Bisection bounds:    -2.07048E-01 -1.81659E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1397039881280E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.9601E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8452738988809E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.845273899E-01   570
+ Bisection bounds:    -1.88250E-01 -1.81659E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.86E-13  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400113535180E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.1354E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8466489536997E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.846648954E-01   570
+ Bisection bounds:    -1.88250E-01 -1.84527E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  1.04E-16  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400024257727E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.4258E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8470225721511E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.847022572E-01   570
+ Bisection bounds:    -1.88250E-01 -1.84665E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -4.25E-20  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999759450E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.4055E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8470189035641E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -1.847018904E-01   570
+ Bisection bounds:    -1.84702E-01 -1.84665E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -2.13E-27  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400000000508E+02  0.0000000000000E+00
+ charge difference, exit criterion:   5.0752E-09   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8470189112879E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999982506E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   2  2.1528362E-06   -1.76120083631688885E+02    9.1489E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -1.994126663E-01   570
+ Bisection bounds:    -1.99413E-01 -1.69991E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.699911159E-01   570
+ Bisection bounds:    -1.99413E-01 -1.69991E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1406566121910E+02  0.0000000000000E+00
+ charge difference, exit criterion:   6.5661E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7898186874928E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.789818687E-01   570
+ Bisection bounds:    -1.99413E-01 -1.69991E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1401105732661E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.1057E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8430028720998E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.843002872E-01   570
+ Bisection bounds:    -1.99413E-01 -1.78982E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1397208048917E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.7920E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8106586358485E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.810658636E-01   570
+ Bisection bounds:    -1.84300E-01 -1.78982E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -5.11E-14  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399860955962E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -1.3904E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8089634112745E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.808963411E-01   570
+ Bisection bounds:    -1.81066E-01 -1.78982E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -3.96E-17  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399972200857E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.7799E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8085397892288E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.808539789E-01   570
+ Bisection bounds:    -1.80896E-01 -1.78982E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  5.77E-20  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999671412E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -3.2859E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8085347220947E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -1.808534722E-01   570
+ Bisection bounds:    -1.80854E-01 -1.78982E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  7.02E-27  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999999220E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -7.8049E-09   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8085347100302E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999982349E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   3  1.7122438E-06   -1.76115038701768071E+02    5.0449E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -1.927691989E-01   570
+ Bisection bounds:    -1.92769E-01 -1.68938E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.689377431E-01   570
+ Bisection bounds:    -1.92769E-01 -1.68938E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1404944027440E+02  0.0000000000000E+00
+ charge difference, exit criterion:   4.9440E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7653350118333E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.765335012E-01   570
+ Bisection bounds:    -1.92769E-01 -1.68938E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1400747427228E+02  0.0000000000000E+00
+ charge difference, exit criterion:   7.4743E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.8078339963429E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.807833996E-01   570
+ Bisection bounds:    -1.92769E-01 -1.76534E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1397662369332E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.3376E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7811079430628E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.781107943E-01   570
+ Bisection bounds:    -1.80783E-01 -1.76534E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.48E-14  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399778679400E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.2132E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7783129716509E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.778312972E-01   570
+ Bisection bounds:    -1.78111E-01 -1.76534E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.92E-17  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399962071901E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -3.7928E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7777349330000E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.777734933E-01   570
+ Bisection bounds:    -1.77831E-01 -1.76534E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  1.29E-19  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999295131E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -7.0487E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7777239871112E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -1.777723987E-01   570
+ Bisection bounds:    -1.77773E-01 -1.76534E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  1.19E-25  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999997737E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.2626E-08   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7777239518626E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999982191E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   4  1.3651952E-06   -1.76111992853685024E+02    3.0458E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -1.874241348E-01   570
+ Bisection bounds:    -1.87424E-01 -1.68121E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.681206556E-01   570
+ Bisection bounds:    -1.87424E-01 -1.68121E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1403901449606E+02  0.0000000000000E+00
+ charge difference, exit criterion:   3.9014E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7456785592231E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.745678559E-01   570
+ Bisection bounds:    -1.87424E-01 -1.68121E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1400481323394E+02  0.0000000000000E+00
+ charge difference, exit criterion:   4.8132E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7793814869542E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.779381487E-01   570
+ Bisection bounds:    -1.87424E-01 -1.74568E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1398064858117E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -1.9351E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7574608482968E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.757460848E-01   570
+ Bisection bounds:    -1.77938E-01 -1.74568E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -4.20E-15  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399743790870E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.5621E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7541157067217E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.754115707E-01   570
+ Bisection bounds:    -1.75746E-01 -1.74568E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -6.21E-18  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399962646595E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -3.7353E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7535447715624E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.753544772E-01   570
+ Bisection bounds:    -1.75412E-01 -1.74568E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  1.07E-19  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999196718E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -8.0328E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7535322238114E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -1.753532224E-01   570
+ Bisection bounds:    -1.75354E-01 -1.74568E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  2.15E-25  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999997458E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.5416E-08   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7535321839846E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999982159E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 5 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   5  1.0888498E-06   -1.76110125566118086E+02    1.8673E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.578772050600E+01  1.082915067363E+03 -5.111894480066E+01 -6.691323533188E+01  0.000000000000E+00  9.465423606535E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   2   3.61E-07   -1.76110125566118086E+02   -7.9574E-01
+ ############################################################################################
+ at iteration 2 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -1.761033E+02    2.24E-01
+   > density optimization:
+     - using Fermi Operator Expansion / mixing.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   2    1.09E-06   -1.76110125566118086E+02
+   > energy difference to last iteration: -7.957423E-01
+ ############################################################################################
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.721406E-02    5.032162E-02    5.152108E-03
+ iter, fnrm, fnrmMax, ebs, diff     1  2.2322934E-01  2.9748042E-01  -176.1089399673  -8.0832E-01
+ SD informations: mean alpha=4.792E-01, max alpha=4.792E-01, consecutive successes=1
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.613667E-02    4.163233E-02    1.636175E-02
+ iter, fnrm, fnrmMax, ebs, diff     2  9.6458183E-02  2.1082343E-01  -176.3011735535  -1.9223E-01
+ WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, ebs:   9.6458183E-02  2.1082343E-01   -176.3011736
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ No Hamiltonian application required.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -1.831711275E-01   570
+ Bisection bounds:    -1.83171E-01 -1.67535E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.675353093E-01   570
+ Bisection bounds:    -1.83171E-01 -1.67535E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1405583914155E+02  0.0000000000000E+00
+ charge difference, exit criterion:   5.5839E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7452227511649E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.745222751E-01   570
+ Bisection bounds:    -1.83171E-01 -1.67535E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1401900063646E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.9001E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7746711483509E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.774671148E-01   570
+ Bisection bounds:    -1.83171E-01 -1.74522E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1399613316060E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -3.8668E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7648192197636E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.764819220E-01   570
+ Bisection bounds:    -1.77467E-01 -1.74522E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -3.53E-15  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400478353451E+02  0.0000000000000E+00
+ charge difference, exit criterion:   4.7835E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7702671970293E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.770267197E-01   570
+ Bisection bounds:    -1.77467E-01 -1.76482E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  3.42E-18  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400014440388E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.4440E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7704367781700E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.770436778E-01   570
+ Bisection bounds:    -1.77467E-01 -1.77027E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -9.53E-22  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999440676E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -5.5932E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7704304546651E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -1.770430455E-01   570
+ Bisection bounds:    -1.77044E-01 -1.77027E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -3.01E-26  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400000000626E+02  0.0000000000000E+00
+ charge difference, exit criterion:   6.2613E-09   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7704304617360E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999983146E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   1  9.2759269E-07   -1.76297612307758300E+02   -1.8749E-01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -1.833755525E-01   570
+ Bisection bounds:    -1.83376E-01 -1.70711E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.707105398E-01   570
+ Bisection bounds:    -1.83376E-01 -1.70711E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1403354348044E+02  0.0000000000000E+00
+ charge difference, exit criterion:   3.3543E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7528047923710E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.752804792E-01   570
+ Bisection bounds:    -1.83376E-01 -1.70711E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1400439727440E+02  0.0000000000000E+00
+ charge difference, exit criterion:   4.3973E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7744991912057E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.774499191E-01   570
+ Bisection bounds:    -1.83376E-01 -1.75280E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1398367154234E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -1.6328E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7605297878605E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.760529788E-01   570
+ Bisection bounds:    -1.77450E-01 -1.75280E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -3.85E-16  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399771287514E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.2871E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7582543792421E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.758254379E-01   570
+ Bisection bounds:    -1.76053E-01 -1.75280E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -4.72E-19  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399975467730E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.4532E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7579809887126E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.757980989E-01   570
+ Bisection bounds:    -1.75825E-01 -1.75280E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  5.94E-21  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999578050E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -4.2195E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7579762041627E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -1.757976204E-01   570
+ Bisection bounds:    -1.75798E-01 -1.75280E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  5.39E-27  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999999206E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -7.9428E-09   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7579761951393E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999982992E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   2  7.3855393E-07   -1.76296870928707449E+02    7.4138E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -1.809269497E-01   570
+ Bisection bounds:    -1.80927E-01 -1.70668E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.706682894E-01   570
+ Bisection bounds:    -1.80927E-01 -1.70668E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1402842426781E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.8424E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7452398401201E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.745239840E-01   570
+ Bisection bounds:    -1.80927E-01 -1.70668E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1400239172163E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.3917E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7621284025611E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.762128403E-01   570
+ Bisection bounds:    -1.80927E-01 -1.74524E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1398634392710E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -1.3656E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7507204944797E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.750720494E-01   570
+ Bisection bounds:    -1.76213E-01 -1.74524E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -9.94E-17  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399758375413E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.4162E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7482681159229E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.748268116E-01   570
+ Bisection bounds:    -1.75072E-01 -1.74524E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.09E-19  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399977906518E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.2093E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7480213099796E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.748021310E-01   570
+ Bisection bounds:    -1.74827E-01 -1.74524E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  3.64E-21  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999599636E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -4.0036E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7480167549809E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -1.748016755E-01   570
+ Bisection bounds:    -1.74802E-01 -1.74524E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  5.06E-27  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999999322E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -6.7757E-09   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7480167472590E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999982999E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   3  5.8937152E-07   -1.76296419245332345E+02    4.5168E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -1.789564321E-01   570
+ Bisection bounds:    -1.78956E-01 -1.70647E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.706469173E-01   570
+ Bisection bounds:    -1.78956E-01 -1.70647E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1402401488898E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.4015E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7388266833682E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.738826683E-01   570
+ Bisection bounds:    -1.78956E-01 -1.70647E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1400110862071E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.1086E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7519558991815E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.751955899E-01   570
+ Bisection bounds:    -1.78956E-01 -1.73883E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1398873727472E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -1.1263E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7426972547837E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.742697255E-01   570
+ Bisection bounds:    -1.75196E-01 -1.73883E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -2.51E-17  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399768857750E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.3114E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7403064699450E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.740306470E-01   570
+ Bisection bounds:    -1.74270E-01 -1.73883E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.94E-20  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399982208331E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -1.7792E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7401070983228E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.740107098E-01   570
+ Bisection bounds:    -1.74031E-01 -1.73883E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  1.58E-21  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999691178E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -3.0882E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7401035765654E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -1.740103577E-01   570
+ Bisection bounds:    -1.74011E-01 -1.73883E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  2.29E-27  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999999579E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -4.2106E-09   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7401035717571E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999983023E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   4  4.7046906E-07   -1.76296136483303144E+02    2.8276E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -1.773757107E-01   570
+ Bisection bounds:    -1.77376E-01 -1.70645E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.706450037E-01   570
+ Bisection bounds:    -1.77376E-01 -1.70645E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1402018797033E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.0188E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7334511305355E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.733451131E-01   570
+ Bisection bounds:    -1.77376E-01 -1.70645E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1400031042538E+02  0.0000000000000E+00
+ charge difference, exit criterion:   3.1043E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7436610203739E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.743661020E-01   570
+ Bisection bounds:    -1.77376E-01 -1.73345E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1399078015060E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -9.2198E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7361698840838E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.736169884E-01   570
+ Bisection bounds:    -1.74366E-01 -1.73345E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -6.21E-18  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399790047895E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.0995E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7339610255101E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.733961026E-01   570
+ Bisection bounds:    -1.73617E-01 -1.73345E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -2.27E-21  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399986514234E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -1.3486E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7338094058983E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.733809406E-01   570
+ Bisection bounds:    -1.73396E-01 -1.73345E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  5.66E-22  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999786793E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.1321E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7338069703216E-01
+ --------------------------------------------------------------------------- FOE it=8
+ FOE: it, evlow, evhigh, efermi, npl  8  -1.800E+00   2.000E+00  -1.733806970E-01   570
+ Bisection bounds:    -1.73381E-01 -1.73345E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  7.03E-28  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999999779E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.2054E-09   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7338069677996E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999983042E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 5 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   5  3.7555485E-07   -1.76295958320873297E+02    1.7816E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.522840148287E+01  1.083502529122E+03 -5.121242927606E+01 -6.703652216983E+01  0.000000000000E+00  9.465423606535E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   3   1.24E-07   -1.76295958320873297E+02   -1.8583E-01
+ ############################################################################################
+ at iteration 3 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -1.763012E+02    9.65E-02
+   > density optimization:
+     - using Fermi Operator Expansion / mixing.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   3    3.76E-07   -1.76295958320873297E+02
+   > energy difference to last iteration: -1.858328E-01
+ ############################################################################################
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.636296E-02    4.223196E-02    1.657089E-02
+ iter, fnrm, fnrmMax, ebs, diff     1  9.6517291E-02  2.0947715E-01  -176.2958218440  -1.8688E-01
+ SD informations: mean alpha=4.367E-01, max alpha=4.367E-01, consecutive successes=1
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.405551E-02    3.972222E-02    1.899366E-02
+ iter, fnrm, fnrmMax, ebs, diff     2  8.3553779E-02  1.9952472E-01  -176.3237882451  -2.7966E-02
+ WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, ebs:   8.3553779E-02  1.9952472E-01   -176.3237882
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ No Hamiltonian application required.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -1.761066331E-01   570
+ Bisection bounds:    -1.76107E-01 -1.70655E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.706547604E-01   570
+ Bisection bounds:    -1.76107E-01 -1.70655E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1401239950185E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.2400E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7268986217208E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.726898622E-01   570
+ Bisection bounds:    -1.76107E-01 -1.70655E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1399770445068E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.2955E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7202213266701E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.720221327E-01   570
+ Bisection bounds:    -1.72690E-01 -1.70655E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1400293867854E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.9387E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7237650838919E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.723765084E-01   570
+ Bisection bounds:    -1.72690E-01 -1.72022E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  3.55E-19  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400021692025E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.1692E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7240475162830E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.724047516E-01   570
+ Bisection bounds:    -1.72690E-01 -1.72377E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -2.28E-22  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999463505E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -5.3650E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7240406996491E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.724040700E-01   570
+ Bisection bounds:    -1.72405E-01 -1.72377E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -2.75E-26  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400000000956E+02  0.0000000000000E+00
+ charge difference, exit criterion:   9.5551E-09   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7240407117680E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999983182E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   1  3.9279640E-07   -1.76325324864073082E+02   -2.9367E-02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -1.746120796E-01   570
+ Bisection bounds:    -1.74612E-01 -1.70196E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.701960627E-01   570
+ Bisection bounds:    -1.74612E-01 -1.70196E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1401294316447E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.2943E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7207024860535E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.720702486E-01   570
+ Bisection bounds:    -1.74612E-01 -1.70196E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1399970720811E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.9279E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7158097275497E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.715809728E-01   570
+ Bisection bounds:    -1.72070E-01 -1.70196E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1400345506821E+02  0.0000000000000E+00
+ charge difference, exit criterion:   3.4551E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7192881793653E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.719288179E-01   570
+ Bisection bounds:    -1.72070E-01 -1.71581E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  1.08E-19  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400081439750E+02  0.0000000000000E+00
+ charge difference, exit criterion:   8.1440E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7203609532047E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.720360953E-01   570
+ Bisection bounds:    -1.72070E-01 -1.71929E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -4.01E-23  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399997640353E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -2.3596E-05   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7203307457423E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.720330746E-01   570
+ Bisection bounds:    -1.72036E-01 -1.71929E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -2.42E-24  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400000015664E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.5664E-07   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7203309449444E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999984643E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   2  3.0991534E-07   -1.76325252120776213E+02    7.2743E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -1.738215813E-01   570
+ Bisection bounds:    -1.73822E-01 -1.70245E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.702446077E-01   570
+ Bisection bounds:    -1.73822E-01 -1.70245E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1401070179767E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.0702E-02   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7178709068028E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.717870907E-01   570
+ Bisection bounds:    -1.73822E-01 -1.70245E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1399959564430E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -4.0436E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7137339036499E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.713733904E-01   570
+ Bisection bounds:    -1.71787E-01 -1.70245E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1400278058819E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.7806E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7165740421584E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.716574042E-01   570
+ Bisection bounds:    -1.71787E-01 -1.71373E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  3.75E-20  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400061190569E+02  0.0000000000000E+00
+ charge difference, exit criterion:   6.1191E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7173754028529E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.717375403E-01   570
+ Bisection bounds:    -1.71787E-01 -1.71657E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -2.20E-23  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399998590467E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -1.4095E-05   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7173573590390E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.717357359E-01   570
+ Bisection bounds:    -1.71738E-01 -1.71657E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -4.24E-25  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400000006986E+02  0.0000000000000E+00
+ charge difference, exit criterion:   6.9856E-08   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7173574480224E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999983772E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   3  2.4687170E-07   -1.76325218143812663E+02    3.3977E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -1.731844191E-01   570
+ Bisection bounds:    -1.73184E-01 -1.70287E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.702870705E-01   570
+ Bisection bounds:    -1.73184E-01 -1.70287E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1400883175985E+02  0.0000000000000E+00
+ charge difference, exit criterion:   8.8318E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7155350303568E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.715535030E-01   570
+ Bisection bounds:    -1.73184E-01 -1.70287E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1399957290792E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -4.2709E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7120768590869E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.712076859E-01   570
+ Bisection bounds:    -1.71554E-01 -1.70287E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1400224457275E+02  0.0000000000000E+00
+ charge difference, exit criterion:   2.2446E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7143940760773E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.714394076E-01   570
+ Bisection bounds:    -1.71554E-01 -1.71208E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  1.23E-20  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400046720558E+02  0.0000000000000E+00
+ charge difference, exit criterion:   4.6721E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7150031886666E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.715003189E-01   570
+ Bisection bounds:    -1.71554E-01 -1.71439E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -8.67E-24  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999137569E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -8.6243E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7149921486426E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.714992149E-01   570
+ Bisection bounds:    -1.71500E-01 -1.71439E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -7.95E-26  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400000003254E+02  0.0000000000000E+00
+ charge difference, exit criterion:   3.2541E-08   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7149921901417E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999983397E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   4  1.9695769E-07   -1.76325199337350568E+02    1.8806E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+ FOE: it, evlow, evhigh, efermi, npl  1  -1.800E+00   2.000E+00  -1.726726452E-01   570
+ Bisection bounds:    -1.72673E-01 -1.70326E-01
+ Need to recalculate the Chebyshev polynomials.
+ Lowest eigenvalue within interval, can continue.
+ Highest eigenvalue within interval, can continue.
+ lower bisection bound is okay.
+ --------------------------------------------------------------------------- FOE it=2
+ FOE: it, evlow, evhigh, efermi, npl  2  -1.800E+00   2.000E+00  -1.703257928E-01   570
+ Bisection bounds:    -1.72673E-01 -1.70326E-01
+ Can use the Chebyshev polynomials from memory.
+ upper bisection bound is okay.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1400726051861E+02  0.0000000000000E+00
+ charge difference, exit criterion:   7.2605E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7136250322245E-01
+ --------------------------------------------------------------------------- FOE it=3
+ FOE: it, evlow, evhigh, efermi, npl  3  -1.800E+00   2.000E+00  -1.713625032E-01   570
+ Bisection bounds:    -1.72673E-01 -1.70326E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1399958638428E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -4.1362E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7107538763008E-01
+ --------------------------------------------------------------------------- FOE it=4
+ FOE: it, evlow, evhigh, efermi, npl  4  -1.800E+00   2.000E+00  -1.710753876E-01   570
+ Bisection bounds:    -1.71363E-01 -1.70326E-01
+ Can use the Chebyshev polynomials from memory.
+ new fermi energy from bisection / secant method
+ trace of the Fermi matrix, derivative matrix:  1.1400181028939E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.8103E-03   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7126402455138E-01
+ --------------------------------------------------------------------------- FOE it=5
+ FOE: it, evlow, evhigh, efermi, npl  5  -1.800E+00   2.000E+00  -1.712640246E-01   570
+ Bisection bounds:    -1.71363E-01 -1.71075E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit:  3.89E-21  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400035820648E+02  0.0000000000000E+00
+ charge difference, exit criterion:   3.5821E-04   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7131055837263E-01
+ --------------------------------------------------------------------------- FOE it=6
+ FOE: it, evlow, evhigh, efermi, npl  6  -1.800E+00   2.000E+00  -1.713105584E-01   570
+ Bisection bounds:    -1.71363E-01 -1.71264E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -3.03E-24  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1399999469327E+02  0.0000000000000E+00
+ charge difference, exit criterion:  -5.3067E-06   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7130987905146E-01
+ --------------------------------------------------------------------------- FOE it=7
+ FOE: it, evlow, evhigh, efermi, npl  7  -1.800E+00   2.000E+00  -1.713098791E-01   570
+ Bisection bounds:    -1.71311E-01 -1.71264E-01
+ Can use the Chebyshev polynomials from memory.
+ determinant of interpolation matrix, limit: -1.51E-26  1.00E-12
+ new fermi energy from linear interpolation
+ trace of the Fermi matrix, derivative matrix:  1.1400000001533E+02  0.0000000000000E+00
+ charge difference, exit criterion:   1.5330E-08   1.0000E-06
+ suggested Fermi energy for next iteration: -1.7130988100828E-01
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999983224E+02
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 5 of the density optimization:
+   kernel obtained by Fermi Operator Expansion
+   it, Delta DENS, energy, energyDiff   5  1.5715788E-07   -1.76325188515560058E+02    1.0822E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.506314637359E+01  1.083654723409E+03 -5.123409862004E+01 -6.706508851140E+01  0.000000000000E+00  9.465423606535E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   4   5.20E-08   -1.76325188515560058E+02   -2.9230E-02
+ ############################################################################################
+ at iteration 4 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -1.763238E+02    8.36E-02
+   > density optimization:
+     - using Fermi Operator Expansion / mixing.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   4    1.57E-07   -1.76325188515560058E+02
+   > energy difference to last iteration: -2.923019E-02
+ ############################################################################################
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.506314637359E+01  1.083654723409E+03 -5.123409862004E+01 -6.706508851140E+01  0.000000000000E+00  9.465423606535E+02  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   4   5.20E-08   -1.76325188515560058E+02    0.0000E+00   FINAL
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   1.139999983224E+02

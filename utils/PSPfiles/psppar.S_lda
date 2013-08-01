@@ -1,0 +1,7 @@
+Goedecker-Teter-Hutter  Thu Jun  6 08:42:45 EDT 1996
+16  6   960606                     zatom,zion,pspdat
+2   1   0    0    2001    0.       pspcod,pspxc,lmax,lloc,mmax,r2well
+.4200000 -6.5960716 0.0000000 0 0  rloc, c1, c2, c3, c4
+.3626143 4.2228399 3.6696625       rs, h1s, h2s
+.4053110 3.8853458                 rp, h1p
+1.326141  .42   1.93               rcutoff, rloc

@@ -1,0 +1,2 @@
+tests the calculation when electric filed is applied in an arbitrary direction.
+If rotated, the forces (only magnitude!) should be conserved. The energy (because of different ref. for external potential can be different)

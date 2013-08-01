@@ -1,0 +1,14 @@
+Goedecker pseudopotential for Br
+   35   7  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.50000000    0                                                                rloc nloc
+    3                                                                               nnonloc
+     0.42820734    3     5.39883713    -0.70499608    -0.32301656                   rs ns hs11 hs12 hs13
+                                        1.82029205     0.83402517                              hs22 hs23
+                                                      -1.32397392                                   hs33
+     0.45532308    2     3.10882269     0.26715405                                  rp np hp11 hp12
+                                       -0.63220188                                             hp22
+                         0.07400663    -0.02906775                                        kp11 kp12
+                                        0.06878684                                             kp22
+     0.55784727    1     0.55590294                                                 rd nd hd11
+                         0.00714446                                                       kd11

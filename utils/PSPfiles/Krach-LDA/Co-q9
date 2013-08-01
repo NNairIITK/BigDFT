@@ -1,0 +1,14 @@
+Goedecker pseudopotential for Co
+   27   9  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.58000000    0                                                                rloc nloc
+    3                                                                               nnonloc
+     0.44045735    3     3.33497825    -1.11276628     0.75413362                   rs ns hs11 hs12 hs13
+                                        2.87315017    -1.94716465                              hs22 hs23
+                                                       3.09102805                                   hs33
+     0.61004847    2     1.63400481    -0.15047260                                  rp np hp11 hp12
+                                        0.35608316                                             hp22
+                        -0.01752129    -0.02483306                                        kp11 kp12
+                                        0.05876575                                             kp22
+     0.29166058    1   -10.35880017                                                 rd nd hd11
+                         0.00713682                                                       kd11

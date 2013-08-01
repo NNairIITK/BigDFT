@@ -1,0 +1,11 @@
+Goedecker pseudopotential for S
+   16   6  070301 zatom,zion,pspdat
+10  1  1 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.42000000    1    -6.55449184                                                 rloc nloc c1
+    2                                                                               nnonloc
+     0.36175665    2     7.90530250    -1.73188130                                  rs ns hs11 hs12
+                                        4.47169830                                             hs22
+     0.40528502    2     3.86657900     0.00000000                                  rp np hp11 hp12
+                                        0.00000000                                             hp22
+                         0.00537161    -0.00932309                                        kp11 kp12
+                                        0.02206245                                             kp22

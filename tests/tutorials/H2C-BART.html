@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="iso-8859-15"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+  <head>
+    <title>Tutorial: Energy landscape exploration using BART</title>
+    <meta name="copyright" content="&#169; 2004-2011 CEA" />
+    <link rel="author" type="text/html" href="http://www.cea.fr" hreflang="fr" lang="fr" />
+    <link rel="stylesheet" type="text/css" href="../styles/original.css" />
+  </head>
+
+  <body>
+
+    <div class="header">
+      <div class="visuLogo">
+        <img src="../images/logo_header.png" alt="" width="102" height="80" />
+      </div>
+      <!-- %%VERSION%% -->
+    </div>
+
+    <!-- %%MENU%% -->
+
+    <div class="main"><a name="top" id="top"></a>
+
+      <div class="floatingmenu">
+        <a href="H2A_MPI_OMP.html">&lt;&nbsp;Second Group</a>
+        <a style="float:right;" href="H2D-splined_saddle.html">Next lesson &gt;</a> <br />
+
+
+        <h2>Content of this lesson</h2>
+        <ul>
+          <li><a href="#Introduction"> Introduction  </a> </li>
+	  <li><a href="#Structure Overview"> The Input-Output File Structure Overview </a> </li>
+	  <li><a href="#first simulation"> A first simulation</a> </li>
+	  <li><a href="#tune"> Fine tune</a> </li>
+         
+        </ul>
+        <h2>Material</h2>
+        <ul style="float:left;margin-right:1em;">
+
+        <ul style="float:left;margin-right:1em;"> 
+          <li>C<sub>2</sub>H<sub>6</sub>/<a href="C2H6/bart.sh"     target="_blank">bart.sh     </a></li>  
+          <li>C<sub>2</sub>H<sub>6</sub>/<a href="C2H6/input.dft"   target="_blank">input.dft   </a></li>          
+          <li>C<sub>2</sub>H<sub>6</sub>/<a href="C2H6/input.geopt" target="_blank">input.geopt </a></li>          
+        </ul>	
+        <ul style="float:left;margin-right:1em;">
+          <li>C<sub>2</sub>H<sub>6</sub>/<a href="C2H6/posinp.xyz"  target="_blank">posinp.xyz  </a></li>
+          <li>C<sub>2</sub>H<sub>6</sub>/<a href="C2H6/psppar.C"    target="_blank">psppar.C    </a></li>
+          <li>C<sub>2</sub>H<sub>6</sub>/<a href="C2H6/psppar.H"    target="_blank">psppar.H    </a></li>
+        </ul>
+      </div>
+
+      
+      <p>This lesson has been created for current stable version. Earlier versions are fully capable of running this tutorial but input files may have to be changed according to possible earlier formats.<p>
+      <h1>Energy landscape exploration using BART</h1>
+
+    <h2><a name="Introduction">Introduction:</a></h2>
+
+      <p>This document explains how to use BART (ART with BigDFT). This is not a complete instruction manual but it should help anybody interested in start to run an ART exploration. </p>
+      <p> In this tutorial we assume that the user is already familiar with basic BigDFT inputs. If this is not the case, the reader is advised to follow the <a href="H1A-Basics.html" target="_blank">basic tutorial.</a> </p>
+
+      <p>The central idea to ARTn is the activation, following the eigendirection corresponding to a negative eigenvalue, of a configuration from a local minimum to a nearby saddle point. Many have proposed similar algorithms, but our emphasis was in developing an efficient algorithm that could be applied to systems with many thousands of degrees of freedom. A detailed history of the methodology can found		
+       <a href= http://www.phys.umontreal.ca/~mousseau/index.php?n=Main.Logiciels target="_blank" >here.</a></p>
+
+       <p>The basic algorithm can be divided into three steps:<p>
+
+       <li>Leaving the harmonic well</li>
+       <li>Converging to the saddle point</li>
+       <li>Relaxing to a new minimum</li>
+
+      <a href= http://en.wikipedia.org/wiki/Ethane target="_blank">
+      <img class="figure" src="http://upload.wikimedia.org/wikipedia/commons/3/36/Lilpscomb-ethane-barrier.png" width="200px" alt="Ethane" /></a>
+      <p>For the following tutorial, <a href=http://en.wikipedia.org/wiki/Ethane target="_blank" >ethane</a> molecule will be used. We will try to get  its <a href= "http://en.wikipedia.org/wiki/Rotational_barrier" >rotational</a> barrier about the carbon-carbon bond, which is around 0.12 eV.
+      </p>
+
+
+     <h2><a name="Structure Overview">Structure Overview </a></h2>
+
+
+     <h3>Input files</h3>
+     <p>
+      <h4><i>Compulsory</i></h4>
+        <ul>
+         <li> <code>bart.sh </code>: Set of ART parameters. A detailed discussion can be found in the pdf file <a href="bart.pdf" target="_blank">bart.pdf</a>.
+         <li> <code>input.dft </code> : Same as the input file in case of BigDFT.</li>
+         <li> <code>input.geopt </code>: Needed for relaxing to a new minimum. Same as the input file in case of BigDFT.</li> 
+         <li> <code>posinp.xyz </code>: Input coordinates for the starting configuration.
+         <li> <code>psppar.XX </code>: The pseudo-potential file. See BigDFT manual for explanations.
+        </ul> 
+      <h4><i>Optional</i></h4>
+        <ul>
+         <li> <code> <a href="C2H6/OPTIONAL/list_atoms.dat" target="_blank"> list_atoms.dat </a> </code> : Label of atoms for type of events <b>list</b> and <b>list_local</b>.
+         <li> <code> <a href="C2H6/OPTIONAL/initdir.xyz" target="_blank"> <i>initdir</i>.xyz </a> </code> : Coordinates of the system for imposing an initial direction in the activation. The name can be specified using  the input variable INITDIR (without extension).       
+         <li><code><i>restart.dat</i></code> : For restart. The name can be specified using the input variable RESTART.
+      </ul>
+      </p>
+
+     <h3>Output files</h3>
+     <p>
+      <p><b><i>Everything is given in SI units (angstrom, electronvolt) </i></b>
+
+ <ul>
+<li> <code>log.file.#</code> : This file shows the evolution of the exploration for each event (minimum to minimum). Below is an example of it. The meaning of the first lines is obvious. But some definitions are needed:
+ <pre>   
+  - Simulation                   :                 1
+  - Attempt                      :                 1
+  - Starting from minconf        :              1001
+  - Reference Energy (eV)        : -3.0850944663E+03
+  - Temperature 
+                 E-Eref  m_perp    ftot        fpar       fperp       eigen       delr  npart evalf   a1
+                 ( eV )                     ( eV/Ang )              ( eV/Ang**2 )
+   0  K=   0     0.0488  3 5      2.1121     -1.8646      0.9919      0.0000      0.073   0     6   0.00
+   1  K=   1     0.9539  3 4      8.0144     -7.1235      3.6724      0.0000      0.311   4    11   0.00
+   2  K=   2     2.4005  3 4      9.9938     -9.0006      4.3436     -9.9162      0.551   7    48   0.99
+   3  L=   1     2.1784  1 1      9.3262     -1.6549      9.1782     -1.5226      0.599   9    65   0.41
+   4  L=   2     2.2695  1 1      8.7310     -2.7919      8.2726     -0.8074      0.678  14    82   0.93
+   5  L=   3     2.4675  1 1      8.2922     -3.7943      7.3731     -0.7226      0.752  15    99   0.93
+   6  L=   4     2.9094  1 1      7.8985     -5.6823      5.4862     -3.0939      0.833  15   116   0.95
+   7  L=   5     3.4288  1 1      7.4007     -6.3381      3.8209     -5.8044      0.906  15   133   0.99
+   8  L=   6     3.8385  2 2      6.6976     -6.0391      2.8960     -7.9541      0.978  15   151   1.00
+   9  L=   7     4.1654  3 3      5.8915     -5.5246      2.0467     -9.5780      1.050  16   170   1.00
+  10  L=   8     4.4399  4 4      5.0526     -4.8850      1.2904    -10.7619      1.123  17   190   1.00
+  11  L=   9     4.6888  5 5      4.2076     -4.1562      0.6559    -11.8435      1.191  17   211   1.00
+  12  L=  10     4.9066  5 5      3.3740     -3.3491      0.4090    -12.8037      1.244  17   232   0.99
+  13  L=  11     5.0642  5 5      2.5215     -2.4860      0.4217    -13.6751      1.283  17   253   0.99
+  14  L=  12     5.1450  6 6      1.5650     -1.5003      0.4454    -15.8544      1.302  17   275   0.99
+  15  L=  13     5.1615  6 6      0.6170     -0.3929      0.4756    -15.8544      1.309  17   282   0.99
+  16  D=   1     5.1464  0 0      0.5217      0.0000      0.0000      0.0000      1.310  17   283   0.00
+  17  D=   2     5.1465  0 0      0.5321      0.0000      0.0000      0.0000      1.310  17   284   0.00
+  18  D=   3     5.1469  0 0      0.5483      0.0000      0.0000      0.0000      1.308  17   285   0.00
+  19  D=   4     5.1454  0 0      0.4426      0.0000      0.0000      0.0000      1.292  16   286   0.00
+  20  D=   5     5.1338  0 0      0.3263      0.0000      0.0000      0.0000      1.273  16   287   0.00
+  21  D=   6     5.1317  0 0      0.3006      0.0000      0.0000      0.0000      1.267  16   288   0.00
+  22  D=   7     5.1273  0 0      0.1964      0.0000      0.0000      0.0000      1.250  16   289   0.00
+ SADDLE 1001 CONVERGED 
+|ret  10022 |delta energy=    5.1273 
+|force_(tot,par,perp)=     0.1964    0.0353    0.1932 
+|eigenval= -23.9017 |npart=   16 |delr=    1.250 |evalf=   304 |
+
+  - Configuration stored in file :           sad1001
+  - Total energy Saddle (eV)     : -3.0799671211E+03
+  
+  RELAXATION
+  - Configuration stored in file :           min1001
+  - Total energy Minimum (eV)    : -3.0840521163E+03
+ MINIMUM 1001 REJECTED 
+|E(fin-ini)=    1.0424 |E(fin-sad)=   -4.0850 |npart=   16 |delr=    1.830 |evalf=   353 |
+</pre> 
+
+<ul>
+<li><b>Stage     </b> (2nd column): K (leaving the harmonic well), L ( convergence to saddle point ) or D ( DIIS ).
+<li><b>E-Eref  </b> (4th): Energy difference between the initial configuration, i.e. the minimum, and the activated one.
+<li><b>m_perp</b> (5th-6th): Number of steps done, and attempted, in the hyperplane for the minimization process of energy (forces). </li>
+<li><b> ftot  </b> (7th): Norm of the total force in the system.
+<li><b>fpar   </b> (8th): Force parallel to the eigendirection associated with the negative eigenvalue (convergence). In the push outside the harmonic well, force parallel to the random direction selected.
+<li><b>fpar   </b> (9th): Perpendicular projection of the force on the selected direction.
+<li><b>eigen</b> (10th): Magnitude of the lowest eigenvalue.
+<li><b>delr</b> (11th): Displacement (square root of the sum of the squares) from initial configuration (reference).
+<li><b>npart</b> (12th): Number of atoms displaced by more than 0.1 angstroems.
+<li><b>evalf</b> (13th): Total number of force evaluations for the event.
+<li><b>a1</b> (14th): Projection of the current eigendirection on the previous one.
+</ul> </ul>
+
+<ul>
+<li> <code>screen output</code> : Includes the BigDFT standard output information plus more detailed information about ART. Grep the <b>BART</b> keyword. 
+<li> <code>events.list</code> : Includes the connection between minima. It states if the event was accepted. Useful for postprocessing.
+
+<li> <code>p_<i>event</i>_<i>attempt</i>_<i>step</i>_<i>stage</i>.xyz</code> : The coordinates of the system at each step if Write_xyz==.True.
+
+
+<li> <code>min<i>"event"</i>.xyz</code> :  The coordinates of the system at each minimum.
+<li> <code>min<i>"event"</i></code> : Same as before, but useful for postprocessing.
+<li> <code>sad<i>"event"</i>.xyz</code> :  The coordinates of the system at each saddle.
+<li> <code>sad<i>"event"</i></code> : Same as before, but useful for postprocessing.
+<li> <code>restart.dat</code> : If the file exists in the directory, the simulation will restart from the step containing in it. A new log.file<i>"#+1"</i> will be created.
+</ul>
+</p>
+
+<h2> <a name="first simulation">Sending a first simulation</a></h2>
+
+<p> ART is based in a random exploration of the energy landscape of the system around a given minimum. However, for the sake of having an idea of a successful event , we have chosen an initial direction that  assures a convergence to the saddle point  in a short time. Let's do this first. This simulation takes in average 40 minutes. Do the following modification in the bart.sh input file:
+
+<pre>
+
+EVENT_TYPE  GUESS_DIRECTION
+
+</pre>
+
+and add the  <a href="C2H6/OPTIONAL/initdir.xyz" target="_blank"> C2H6/OPTIONAL/initdir.xyz </a> file to your work directory.</p> 
+
+<h2> <a name="tune">Fine tune of the parameters</a> </h2>
+
+<p>The success of an ART exploration relies on the fine tune of the parameters according to the material studied. In principle, you have to figure out what is best for you by trial and error. Let's take a look of the most important. </p>
+
+<p><b>WARNING</b> The ART method is based in the estimation of the curvature of the energy potential. Therefore, the user should choose a basis set accurate enough.</p>
+
+
+<div class="exercice">
+        <p><b>Exercise 1: Setting the step of the numerical derivative of forces in lanczos </b>: set in <code>bart.sh</code> these parameters:
+<pre>
+Setup_Initial              .True.
+Number_Lanczos_Vectors_A        16  
+delta_disp_Lanczos            0.01
+Lanczos_of_minimum         .True.
+</pre>
+
+For a given number of lanczos vectors, change <b>delta_disp_Lanczos </b> parameter, let's say between 0.0005 and 0.05. The goal is to determine
+a correct parameter having in mind the precision and limitations of our methods. Normal values are around 0.01. You will see something like this :
+<pre>
+  RELAXATION
+  - Configuration stored in file :           min1000
+  Starting Lanczos
+     Em= -4.0553758474E+02   ( gnrm =  1.0E-05  )
+   Iter     Ep-Em (eV)   Eigenvalue  a1
+     1    -8.63E-07        0.101958 0.0000
+     2    -8.95E-07        0.001721 0.9841
+     3    -8.98E-07        0.000085 1.0000
+  Done Lanczos
+.
+.
+.
+
+   4  K=   4     2.3984  3 3      6.7387     -6.0054      3.0569     -0.2533      1.003   5    55   0.78
+  Starting Lanczos
+     Em= -4.0210289625E+02   ( gnrm =  1.0E-05  )
+   Iter     Ep-Em (eV)   Eigenvalue  a1
+     1     4.58E-03       -4.712874 0.0000
+     2     4.57E-03       -5.115414 0.9993
+     3     4.57E-03       -5.098967 1.0000
+  Done Lanczos
+   5  K=   5     3.4347  3 5      6.1357     -5.7408      2.1655     -5.0990      1.210   7   109   0.78
+
+</pre>  
+Three iterations of the lanczos method are done for the minimum and for a perturbated configuration. Positive values are expected for your minimum.
+ <ul>
+<li> Check the convergence of the eigenvalue.
+<li> Check the time per force evaluations.
+</ul>
+  </div>  
+
+
+<div class="exercice">
+        <p><b>Exercise 2: Setting the number of lanczos vectors </b>: set in <code>bart.sh</code> these parameters:
+<pre>
+Setup_Initial              .True.
+Number_Lanczos_Vectors_A        16  
+delta_disp_Lanczos            0.01
+Lanczos_of_minimum         .True.
+</pre>
+
+For a given delta_disp_Lanczos, change the <b>Number_Lanczos_Vectors_A</b> parameter, let's say between 13 and 19. Usually values are around 16.
+ <ul>
+<li> Check the convergence of the eigenvalue.
+<li> Check the time per force evaluations.
+<li> Check the displacement of the system for a first negatives eigenvalues.
+</ul>
+  </div>  
+
+
+<div class="exercice">
+        <p><b>Exercise 3: Setting Eigenvalue_Threshold </b>: set in <code>bart.sh</code> these parameters:
+<pre>
+Setup_Initial              .True.
+setenv Min_Number_KSteps                3   # Min. number of ksteps before calling lanczos 
+setenv Eigenvalue_Threshold         -0.05   # Eigenvalue threshold for leaving basin
+</pre>
+We need to test the threshold for having left the harmonic well. If this is too small, the program never converges to a saddle point, if it is so large, the program will follow the initial random direction too much, reducing the odds to find low energy barriers. 
+ <ul>
+<li> Check the displacement of the system for the first negatives eigenvalues.
+<li> Change Min_Number_KSteps between 1 and 4. Check the number of force evaluations and the evolution of the eigenvalue
+</ul>
+  </div> 
+
+<div class="exercice">
+        <p><b>Exercise 4: Setting Basin_Factor </b>: set in <code>bart.sh</code> these parameters:
+<pre>
+Basin_Factor                   2.1
+</pre>
+This parameter helps you to leaving  of  the harmonic well as soon as possible, but take care. Play with diffent values and,
+  
+ <ul>
+<li> Check the displacement of the system for a first negatives eigenvalues.
+<li> Check the evolution of the eigenvalue and their projection
+</ul>
+  </div> 
+
+<div class="exercice">
+        <p><b>Exercise 5: Setting Type_of_Events </b>: set in <code>bart.sh</code> these parameters:
+<pre>
+Type_of_Events
+Radius_Initial_Deformation     1.2  
+Central_Atom                     1  
+</pre>
+Play with the diffents options, i.e. global, local, list_local, and list. 
+ <ul>
+<li> Check the displacement of the system for a first negatives eigenvalues.
+<li> Check the evolution of the eigenvalue and their projection
+</ul>
+  </div> 
+
+
+    <div class="footer">Author (E. Machado-Charry)
+      |
+      <a href="http://validator.w3.org/check/referer" title="Check HTML compliance with W3C norms">XHTML1.0</a> - 
+      <a href="http://jigsaw.w3.org/css-validator/check/referer" title="Check CSS compliance with W3C norms">CSS2</a>
+      |
+      <!-- hhmts start -->
+      Last modified: Mon OCT 3 2011
+      <!-- hhmts end -->
+    </div>
+
+  </body>
+</html>
+
+

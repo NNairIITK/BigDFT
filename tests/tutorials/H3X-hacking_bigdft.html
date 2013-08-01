@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="iso-8859-15"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+  <head>
+    <title>Tutorial: hacking inside BigDFT</title>
+    <meta name="copyright" content="&#169; 2004-2011 CEA" />
+    <link rel="author" type="text/html" href="http://www.cea.fr" hreflang="fr" lang="fr" />
+    <link rel="stylesheet" type="text/css" href="../styles/original.css" />
+  </head>
+
+  <body>
+
+    <div class="header">
+      <div class="visuLogo">
+        <img src="../images/logo_header.png" alt="" width="102" height="80" />
+      </div>
+      <!-- %%VERSION%% -->
+    </div>
+
+    <!-- %%MENU%% -->
+
+    <div class="main"><a name="top" id="top"></a>
+
+      <div class="floatingmenu">
+         <a href="H2C-BART.html">&lt;&nbsp;Third Group</a>
+        <a style="float:right;" href="H3B-charge_analysis.html">Next lesson &gt;</a> 
+        <h2>Content of this lesson</h2>
+        <ul>
+          <li>Compiling and linking with <code>libbigdft.a</code></li>
+          <li>Initialising input variables and atomic informations</li>
+          <li>The wavefunction storage in memory</li>
+          <li>The compressed form distributed over orbitals</li>
+          <li>The compressed form distributed over components</li>
+          <li>The direct-value uncompressed form</li>
+        </ul>
+        <h2>Material</h2>
+        <ul style="float:left;margin-right:1em;">
+          <li>dev/<a href="dev/posinp.xyz" target="_blank">posinp.xyz</a></li>
+          <li>dev/<a href="dev/input.dft" target="_blank">input.dft</a></li>
+        </ul>
+        <ul style="float:left;margin-right:1em;">
+          <li>dev/<a href="dev/toy_model.f90" target="_blank">toy_model.f90</a></li>
+          <li>dev/<a href="dev/Makefile" target="_blank">Makefile</a></li>
+        </ul>
+      </div>
+      
+      <p class="warn">This lesson has been created for the current stable version. Earlier
+        versions are fully capable of running this tutorial but input files may
+        have to be changed according to possible earlier formats.</p>
+      
+      <h1>Developing with BigDFT: the different representations of wavefunctions</h1>
+      
+      <p>BigDFT code is based on wavelets for the internal wavefunction storage and for several classical operations of standard DFT codes. The purpose of this tutorial is to show the numerical objects that describe the wavefunctions and how to use them in different cases.</p>
+
+      <h2>Compiling and linking with <code>libbigdft.a</code></h2>
+      <p>BigDFT provides two independent libraries: <code>libbigdft.a</code> and <code>libpoissonsolver.a</code>. The public functions provided by these libraries are described in the Fortran modules <code>BigDFT_API</code> and <code>Poisson_Solver</code> respectively. Every program that would like to use BigDFT should thus look like this (let's call it <code>toy_model.f90</code>):</p>
+      <pre>
+program wvl
+  use Poisson_Solver
+  use BigDFT_API
+  
+  implicit none
+
+  call print_logo()
+end program wvl
+</pre>
+      <p>To compile our little program, we must give the path to the previously mentioned module files. To link it, we should also provide the two libraries. In addition, BigDFT itself depends on several external libraries (that may be optional):</p>
+      <ul>
+        <li><a href="http://www.tddft.org/programs/octopus/wiki/index.php/Libxc" target="_blank">libXC</a>, for the calculation of the exchange-correlation energy using your preferred approximation;</li>
+        <li><a href="http://www.abinit.org" target="_blank">ABINIT</a>, for several DFT low level routines (symmetry, k-points, mixing);</li>
+        <li>Lapack and Blas, for linear algebra (or optimised versions like MKL);</li>
+        <li><a href="http://code.google.com/p/libarchive/" target="_blank">libarchive</a>, for on the fly compression and decompression of atomic position files (optional);</li>
+        <li><a href="http://www.etsf.eu/resources/software/libraries_and_tools" target="_blank">ETSF_IO</a>, for NetCDF input/output support following the ETSF file format specification.</li>
+      </ul>
+      <p>We provide a <a href="dev/Makefile" target="_blank"><code>Makefile</code></a> to compile the exercices of this tutorial. This Makefile should be adapted to your own installation of BigDFT. </p>
+
+      <h2>Initialising input variables and atomic informations</h2>
+      <p>Input variables, input atomic coordinates and pseudo-potential information are stored inside user specified input files, as explained in other tutorials. BigDFT_API provides two simple routines to load all of these in memory:</p>
+      <pre>
+  type(input_variables)             :: inputs
+  type(atoms_data)                  :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
+
+  ! Setup names for input and output files.
+  call standard_inputfile_names(inputs, "toy")
+  ! Read all input stuff, variables and atomic coordinates and pseudo.
+  call read_input_variables(iproc, "posinp", inputs, atoms, rxyz)
+
+  [...]
+
+  deallocate(rxyz)
+  call deallocate_atoms(atoms, "main") 
+  call free_input_variables(inputs)
+</pre>
+      <p>The first routine is used to setup all filenames based on a command line prefix (here "toy"). For more information on this prefix, see this <a href="H1X-Basic_post_processing.html" target="_blank">tutorial</a>. The second reads all provided input files and stores the input variables into the <code>inputs</code> data structure, the atomic informations into the <code>atoms</code> data structure and the positions into the array <code>rxyz</code>. The corresponding deallocating routines are also mentioned.</p>
+      <p>One can notice the <code>iproc</code> argument. Indeed, BigDFT is made for parallel runs and most of the routines will take their proc ID for itH1. In BigDFT, the input files are read only by the master proc and are then broadcasted to all procs. We must thus initialise MPI before anything else:</p>
+      <pre>
+  integer :: ierr, iproc, nproc
+
+  ! Start MPI in parallel version
+  call MPI_INIT(ierr)
+  call MPI_COMM_RANK(MPI_COMM_WORLD, iproc, ierr)
+  call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
+
+  [...]
+
+  !wait all processes before finalisation
+  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+  call MPI_FINALIZE(ierr)
+</pre>
+
+      <div class="exercice">
+        <p><b>Exercise</b>: Compile our toy_model program to initialise input variables and make the master proc print <code>inputs%crmult</code>, <code>inputs%frmult</code>, <code>inputs%hx</code>, <code>inputs%hy</code> and <code>inputs%hz</code> values.</p>
+        <p class="answer">We can see that BigDFT can run without input files, but requires a position file. We can provide <a href="dev/posinp.xyz" target="_blank">this position file for the N2 molecule</a>. By default the values are 0.45 for hgrid and 5 and 8 respectively for crmult and frmult.</p>
+      </div>
+
+      <h2>The wavefunction storage in memory</h2>
+      <img class="figure" src="Figures/CH4-grid.png" alt="visualisation of the real space mesh" />
+      <p>The storage of the wavefunction is explained in the <a href="http://inac.cea.fr/L_Sim/BigDFT/BigDFT-manual-1.5.pdf" target="_blank">BigDFT manual</a>  and in the <a href="http://inac.cea.fr/L_Sim/BigDFT/articles/Genovese--2008-wavelet_DFT.pdf" target="_blank">main JCP paper</a>. To summarise, the wavefunctions are expanded on a basis set made of Daubechies wavelets centered at different positions in space, i.e. we store only in memory the coefficients of these wavelets. The number of grid points around the atoms is governed by three input parameters: hgrid, crmult and frmult. The hgrid parameter specifies the spacing between each consecutive grid point, while crmult (frmult) specifies the extent of the coarse (fine) regular grid in real space. The grid thus created for CH<sub>4</sub> is represented on the figure to the left.</p>
+      <p>The description of this grid is stored in a structure called <em>wavefunction_descriptors</em> (<code>wfd</code>) in the code.</p>
+      <p>A wavefunction descriptor is valid only if we provide information on the full grid, i.e. the one extending outside crmult (frmult) to fill the whole rectangular space. This information is stored inside a <em>localisation region</em> structure in the code (<code>Glr</code>). The wavefunction descriptor is a member of the localisation region (<code>Glr%wfd</code>). The localisation region is additionaly defined by its boundary conditions (<code>Glr%geocode</code>) and its number of grid points in the x, y and z directions (<code>Glr%n1</code>, <code>Glr%n2</code> and <code>Glr%n3</code> respectively for the coarse discretisation and <code>Glr%n1i</code>, <code>Glr%n2i</code> and <code>Glr%n3i</code> respectively for the fine discretisation).</p>
+      <p>Let's create the global localisation region <code>Glr</code> for our toy model:</p>
+      <pre>
+  type(locreg_descriptors) :: Glr
+  type(orbitals_data)      :: orbs
+
+  integer                  :: nelec
+  real(gp), dimension(3)   :: shift
+  real(gp), allocatable    :: radii_cf(:,:)
+
+  ! Setting up the size of the calculation (description of the box and
+  !  calculation area).
+  allocate(radii_cf(atoms%ntypes,3))
+  call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf,nelec)
+  call system_size(iproc,atoms,rxyz,radii_cf,inputs%crmult,inputs%frmult, &
+       & inputs%hx,inputs%hy,inputs%hz,Glr,shift)
+
+  [...]
+
+  call deallocate_bounds(Glr%geocode,Glr%hybrid_on,Glr%bounds,"main")
+  call deallocate_orbs(orbs,"main")
+</pre>
+      <p>The <code>radii_cf</code> variable stores the physical distances used by crmult and frmult to define the expansion of the wavelet grid. It is read from the pseudo-potential, or given usual values based on atomic properties. Up to now, <code>Glr</code> contains the description of the whole regular mesh. Let's create the wavefunction descriptors containing information only on the selected points :</p>
+      <pre>
+  type(communications_arrays) :: comms
+
+  ! Setting up the wavefunction representations (descriptors for the
+  !  compressed form...).
+  call createWavefunctionsDescriptors(iproc,inputs%hx,inputs%hy,inputs%hz, &
+       & atoms,rxyz,radii_cf,inputs%crmult,inputs%frmult,Glr)
+  call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
+
+  [...]
+
+  call deallocate_wfd(Glr%wfd,"main")
+</pre>
+      <p>The additional objects <code>orbs</code> present here stores the repartition of bands among k-points, processors, spin... The <code>comms</code> object is used in parallel for band comminucations (we will use it later).</p>
+
+      <div class="exercice">
+        <p><b>Exercise</b>: Generate <code>Glr%wfd</code> and <code>orbs</code> for our toy model and print the number of coefficients that each processor should store for its wavefunctions (namely <code>orbs%npsidim</code>). Change hgrid, crmult, frmult and the number of processors to see how it evolves.</p>
+        <p class="answer">Even with more processors than orbitals (namely 6 processors in our example), the processors will allocate some memory space to store the coefficients. This is due to different representations, by orbitals or by components, as we will se later.</p>
+        <p><b>Exercise</b>: Run BigDFT on our N<sub>2</sub> example and generate the converged wavefunctions by putting output_wf to 1 in <code>input.dft</code>.</p>
+      </div>
+      
+      <p>Let's load the generated wavefunctions of the above exercice into memory. Before doing this, we need to allocate the array that will store the coefficients. We call it <code>psi</code>. It stores the coefficients of all wavefunctions distributed on the current processor. As seen in the exercice, the size is defined by <code>orbs%npsidim</code>. The allocated space is enough to store <code>orbs%norbp</code> orbitals.</p>
+      <pre>
+  real(wp), dimension(:), pointer   :: psi
+
+  ! Read wavefunctions from disk and store them in psi.
+  allocate(orbs%eval(orbs%norb*orbs%nkpts))
+  call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
+  allocate(psi(orbs%npsidim))
+  allocate(rxyz_old(3, atoms%nat))
+  call readmywaves(iproc,"data/wavefunction", orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3, &
+       & inputs%hx,inputs%hy,inputs%hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
+  call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+  [...]
+
+  deallocate(rxyz_old)
+  deallocate(psi)
+</pre>
+      <p>The code is able to reformat the wavefunctions automatically in case the system between the stored wavefunctions and the system described by the input variables would have changed (that's why we have access to the stored atomic positions).</p>
+
+      <div class="exercice">
+        <p><b>Exercise</b>: Run our toy model to read the stored wavefunctions. Change hgrid or crmult to see that the wavefunctions can be automaticaly upgraded.</p>
+      </div>
+
+      <h2>The compressed form distributed over orbitals</h2>
+      <p>The basic distribution of all orbitals over processors is by orbitals. One can see with our toy model that our system of 5 orbitals is divided into (3, 2) in case of two processors. In that distribution, the description of the coefficients is stored in the wavefunction descriptor <code>Glr%wfd</code>. The number of coefficients is the sum of the number of coefficients on the coarse grid (<code>Glr%wfd%nvctr_c</code>) and the number of coefficients on the fine grid (<code>7&nbsp;*&nbsp;Glr%wfd%nvctr_f</code>). This storage is called a compressed form since only non null coefficient are stored. These coefficients don't represent the value of the function on given grid points.</p>
+      <p>The coefficients are stored in <code>psi</code> in a contiguous way, orbital after orbital (in case of spin or k-points, it's the same, down after up, k point after k point). So, the coefficients of the i<sup>th</sup> stored orbital for a given processor, is in:</p>
+      <pre>
+psi((i - 1) * (Glr%wfd%nvctr_c + 7 * Glr%wfd%nvctr_f) + 1:
+     i      * (Glr%wfd%nvctr_c + 7 * Glr%wfd%nvctr_f))
+</pre>
+      <p>The number of orbitals in a given processor is stored in <code>orbs%norbp</code> and these orbitals correspond to the orbital ranging from <code>orbs%isorb + 1</code> to <code>orbs%isorb + orbs%norbp</code>.</p>
+
+      <div class="exercice">
+        <p><b>Exercise</b>: Check that the norm of all loaded wavefunctions in our toy model is 1. One can use the routine provided by BigDFT <code>wnrm_wrap(spinor, nvctr_c, nvctr_f, psi, nrm)</code>.</p>
+        <p class="answer">The norm is equal to 1 for all wavefunctions, this is guaranteed by the <code>readmywaves()</code> function previously called, because it normalises the input wavefunctions.</p>
+        <pre>
+  ! We can do some arithmetic on wavefunctions under compressed form.
+  do i = 1, orbs%norbp, 1
+     ! Norm calculation.
+     call wnrm_wrap(1, Glr%wfd%nvctr_c, Glr%wfd%nvctr_f, &
+          & psi((i - 1) * (Glr%wfd%nvctr_c + 7 * Glr%wfd%nvctr_f) + 1), nrm)
+     write(*,*) "Proc", iproc, " orbital", orbs%isorb + i, " is of norm ", nrm
+  end do
+</pre>
+      </div>
+      <p>This distribution is convenient when one wants to apply operators that work on orbitals one by one, like the local potential operator.</p>
+
+      <h2>The compressed form distributed over components</h2>
+      <p>When some operators must by applied to several orbitals at once, it is more convenient to use the component distribution. In this distribution, each processor stores a given subset of coefficients for ALL orbitals. The scalar products is an obvious instance in which this distribution is more convenient. Due to the orthogonality property of the basis set, scalar products of functions expressed in a Daubechie basis are scalar products of the coefficients only. We may thus fragment the whole calculation of the scalar product of two orbitals into the scalar products of small chuncks of
+these orbitals.</p>
+      <p>To switch from an orbital distribution to a component distribution, one should use a transposition which is use global communication among the processors:</p>
+      <pre>
+  real(wp), dimension(:), pointer   :: w
+
+  allocate(w(orbs%npsidim))
+  ! Transpose the psi wavefunction
+  call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,psi, work=w)
+
+  ! Retranspose the psi wavefunction
+  call untranspose_v(iproc,nproc,orbs,Glr%wfd,comms,psi, work=w)
+  deallocate(w)
+</pre>
+      <p>In the component distribution, <code>psi</code> is still the array containing the coefficients. It stores <code>comms%nvctr_par(iproc, 0) * orbs%norb</code> coefficients in all. So for each orbital, it stores <code>comms%nvctr_par(iproc, 0)</code> coefficients.</p>
+
+      <div class="exercice">
+        <p><b>Exercise</b>: After adding the transposition routines in our toy model, compute the overlap matrix &psi;<sub>i</sub>.&psi;<sub>j</sub>.</p>
+        <p class="answer">Thanks to the orthogonality property of Daubechies wavelets, one can simply use dot products on the subsets of coefficient on each processor and then use the all reduce routine from MPI to sum the results of each processors.</p>
+        <pre>
+  real(wp), dimension(:,:), pointer :: ovrlp
+
+  allocate(ovrlp(orbs%norb, orbs%norb))
+  do j = 1, orbs%norb, 1
+     do i = 1, orbs%norb, 1
+        ovrlp(i, j) = dot_double(comms%nvctr_par(iproc, 0), &
+             & psi((i - 1) * comms%nvctr_par(iproc, 0) + 1), 1, &
+             & psi((j - 1) * comms%nvctr_par(iproc, 0) + 1), 1)
+     end do
+  end do
+  ! This double loop can be expressed with BLAS DSYRK function.
+  !  call syrk('L','T',orbs%norb,comms%nvctr_par(iproc, 0),1.0_wp,psi(1), &
+  !       & max(1,comms%nvctr_par(iproc, 0)),0.0_wp,ovrlp(1,1),orbs%norb)
+  call mpiallred(ovrlp(1,1),orbs%norb * orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+  if (iproc == 0) then
+     write(*,*) "The overlap matrix is:"
+     do j = 1, orbs%norb, 1
+        write(*, "(A)", advance = "NO") "("
+        do i = 1, orbs%norb, 1  
+           write(*,"(G18.8)", advance = "NO") ovrlp(i, j)
+        end do
+        write(*, "(A)") ")"
+     end do
+  end if
+  deallocate(ovrlp)
+</pre>
+        <p class="answer">In fact, BigDFT proposes an all in one routine to do just this (also taking care of the case of spin polarised calculations or presence of k-points): <code>getOverlap()</code>.</p>
+      </div>
+
+      <h2>The direct-value uncompressed form</h2>
+      <p>Up to now, we have delt with the compressed form of the wavefunctions. We have seen that it is possible to do some operations on them in this form (scalar product, linear combination, norm...). But, sometimes, it is also required to access the value of the wavefunction on a given point of the simulation box (to apply local operators for instance). This is done by a fast wavelet transform followed by a so-called magic filter to change from the Daubechie to the interpolating scaling function family. It is done in a all in one routine called <code>daub_to_isf</code> :</p>
+      <pre>
+  type(workarr_sumrho)              :: wisf
+  real(wp), dimension(:), pointer   :: psir
+
+  allocate(psir(Glr%d%n1i * Glr%d%n2i * Glr%d%n3i))
+  call razero(Glr%d%n1i * Glr%d%n2i * Glr%d%n3i,psir)
+
+  call initialize_work_arrays_sumrho(Glr,wisf)
+  call daub_to_isf(Glr,wisf, &
+     & psi((i - 1) * (Glr%wfd%nvctr_c + 7 * Glr%wfd%nvctr_f) + 1),psir)
+
+  [...]
+
+  call deallocate_work_arrays_sumrho(wisf)
+</pre>
+      <p>In the above code, the i<sup>th</sup> orbital of the current processor is represented by its values at mesh points and is stored in <code>psir</code>. Notice that this routine expresses the wavefunction as represented on a mesh doubled in each direction as denoted by <code>Glr%d%n[123]i</code>. Indeed, in BigDFT, all scalar fields (potential, rho, ...) are represented on a mesh that coincides with the fine grid representation for wavefunctions.</p>
+
+      <div class="exercice">
+        <p><b>Exercise</b>: Allocate and compute the density rho by summing the square of the values of each wavefunction on a given processor and then all reducing the result.</p>
+        <p class="answer">Here we allocate <code>rho</code> as an array on the whole fine mesh for simplicity reasons. In BigDFT, this array is also distributed among processors.</p>
+        <pre>
+  real(dp), dimension(:), pointer   :: rhor
+
+  allocate(rhor(Glr%d%n1i * Glr%d%n2i * Glr%d%n3i))
+  call razero(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,rhor)
+  call initialize_work_arrays_sumrho(Glr,wisf)
+  do i = 1, orbs%norbp, 1
+     ! Calculate values of psi_i on each grid points.
+     call daub_to_isf(Glr,wisf, &
+          & psi((i - 1) * (Glr%wfd%nvctr_c + 7 * Glr%wfd%nvctr_f) + 1),psir)
+     ! Compute partial densities coming from occup * psi_i * psi_i.
+     do j = 1, Glr%d%n1i * Glr%d%n2i * Glr%d%n3i, 1
+        rhor(j) = rhor(j) + orbs%occup(orbs%isorb + i) * psir(j) * psir(j)
+     end do
+  end do
+  call mpiallred(rhor(1),Glr%d%n1i * Glr%d%n2i * Glr%d%n3i,MPI_SUM,MPI_COMM_WORLD,ierr)
+  if (iproc == 0) write(*,*) "System has", sum(rhor), "electrons."
+  deallocate(rhor)
+</pre>
+        <p class="answer">In the provided solution file <a href="dev/toy_model.f90" target="_blank"><code>toy_model.f90</code></a>, we give details on how it is done in BigDFT thanks to the routine <code>sumrho()</code>. It is a bit more tricky than the simple exercice above because of the distribution of <code>rho</code> (the arrays <code>nscatterarr</code> and <code>ngatherarr</code> are used to describe this distribution), the possibility of spin polarised calculations and the possibility of symmetrisation (see the <code>irrzon</code> and <code>phnons</code> arrays which should sound familiar to ABINIT developers).</p>
+      </div>
+
+      <p>As stated before, the direct-value representation can be used to express local operators. Let's take the example of the local part arising from pseudo-potentials. One can use the BigDFT routine <code>createIonicPotential()</code> to calculate this potential (remember that this potential is distributed among processors):</p>
+      <pre>
+  real(gp) :: psoffset
+  real(dp), dimension(:), pointer      :: pkernel
+  real(dp), dimension(:), pointer      :: pot_ion, potential
+  type(rho_descriptors)                :: rhodsc
+  integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
+
+  call createKernel(iproc,nproc,atoms%geocode,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i, &
+       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,16,pkernel,.false.)
+
+  allocate(nscatterarr(0:nproc-1,4))
+  allocate(ngatherarr(0:nproc-1,2))
+  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d, &
+       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
+       & rxyz,inputs%crmult,inputs%frmult,radii_cf,inputs%nspin,'D',inputs%ixc, &
+       & inputs%rho_commun,n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
+
+  allocate(pot_ion(Glr%d%n1i * Glr%d%n2i * n3p))
+  call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,&
+       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
+       & inputs%elecfield,Glr%d%n1,Glr%d%n2,Glr%d%n3, &
+       & n3pi,i3s+i3xcsh,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i, &
+       & pkernel,pot_ion,psoffset,0,.false.)
+  !allocate the potential in the full box
+  call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p, &
+       & Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,inputs%nspin, &
+       & Glr%d%n1i*Glr%d%n2i*n3d,0, &
+       & orbs%norb,orbs%norbp,ngatherarr,pot_ion,potential)
+
+  [...]
+
+  call free_full_potential(nproc,potential,"main")
+  call deallocate_rho_descriptors(rhodsc,"main")
+</pre>
+      <p>The local potential from pseudo is calculated by using the Poisson solver on fictius charges that would create the radial potential V<sub>loc</sub>(r) as described in a pseudo. So, one has to create the kernel array <code>pkernel</code> used by the Poisson solver (see <code>createKernel()</code> call). Since the potential is distributed among processors, one need to calculate the descriptors for this distribution (namely the size of each slab among z for each processor, as stored in <code>n3p</code>). This is done by <code>createDensPotDescriptors()</code>. Finally, for the convenience of this tutorial, we would prefer to have a global array for the potential so we call <code>full_local_potential()</code> to obtain the desired potential on all the fine mesh stored in <code>potential</code>.</p>
+
+      <div class="exercice">
+        <p><b>Exercise</b>: Calculate the energy coming from the local part of the pseudo (namely the integral on volume of products &lt;&psi;|V|&psi;&gt; (check that the obtained value does not depend on the number of processors!).</p>
+        <p class="answer">We use the direct-value representation for each orbital, do the product point by point and all reduce among processors.</p>
+        <pre>
+  real(dp) :: epot_sum
+
+  epot_sum = 0._dp
+  do i = 1, orbs%norbp, 1
+     call daub_to_isf(Glr,wisf, &
+          & psi((i - 1) * (Glr%wfd%nvctr_c + 7 * Glr%wfd%nvctr_f) + 1),psir)
+     do j = 1, Glr%d%n1i * Glr%d%n2i * Glr%d%n3i, 1
+        epot_sum = epot_sum + psir(j) * potential(j) * psir(j)
+     end do
+  end do
+  epot_sum = epot_sum * inputs%hx / 2._gp * inputs%hy / 2._gp * inputs%hz / 2._gp
+  call mpiallred(epot_sum,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+  if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
+</pre>
+        <p class="answer">The value for our toy model should be -0.4042004 Ht.</p>
+      </div>
+
+    <div class="footer">Author (Damien D Caliste A cea D fr)
+      |
+      <a href="http://validator.w3.org/check/referer" title="Check HTML compliance with W3C norms">XHTML1.0</a> - 
+      <a href="http://jigsaw.w3.org/css-validator/check/referer" title="Check CSS compliance with W3C norms">CSS2</a>
+      |
+      <!-- hhmts start -->
+      Last modified: Tue Oct 19 11:13:37 CEST 2011
+      <!-- hhmts end -->
+    </div>
+
+  </body>
+</html>

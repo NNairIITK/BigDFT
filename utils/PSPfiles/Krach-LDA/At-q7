@@ -1,0 +1,14 @@
+Goedecker pseudopotential for At
+   85   7  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.58000000    1    13.52041116                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.62782694    3     0.94555652     0.37409257    -0.04645981                   rs ns hs11 hs12 hs13
+                                       -0.96590285     0.11995872                              hs22 hs23
+                                                      -0.19042856                                   hs33
+     0.70982320    2     0.52707805     0.13472635                                  rp np hp11 hp12
+                                       -0.31882073                                             hp22
+                         0.48077365     0.01477071                                        kp11 kp12
+                                       -0.03495387                                             kp22
+     0.83836499    1     0.46894787                                                 rd nd hd11
+                         0.03754438                                                       kd11
