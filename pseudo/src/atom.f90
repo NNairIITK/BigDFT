@@ -28,43 +28,90 @@
 !!    (set in difrel,difnrl)
 
 
-!> Run atomic program
-program main
-   call atom
-END PROGRAM main
+!> Calculate the all-electron electronic structure for one atom
+!! @ingroup pseudo
+program ae_atom
 
+       implicit none
 
-subroutine atom
+       !Parameters
+       integer, parameter :: nrmax=10000                !< Maximal radial grid points
+       integer, parameter :: maxorb=60                  !< Maximal number of orbitals
+       integer, parameter :: lmax=5                     !< Maximal orbital moment
+       integer, parameter :: maxconf=19                 !< Maximal electronic configurations
+       integer, parameter :: maxit_max=2000             !< Maximal number of iterations
+       logical, parameter :: debug=.false.              !< Debug flag
+       character(len=2), parameter :: stop_chain = 'st'
+       real(kind=8), parameter :: tol=1.0d-11
+       !Local variables
+       integer :: norb                                  !< Number of orbitals
+       integer, dimension(maxorb) :: no                 !< For each orbital, n quantum number
+       integer, dimension(maxorb) :: lo                 !< For each orbital, l quantum number
+       real(kind=8), dimension(maxorb) :: so            !< spin (+/- 0.5, or 0 for unpolarized)
+       real(kind=8), dimension(maxorb) :: zo            !< electrons
+                                                       
+       integer :: ncore                                 !< Number of core electrons
+       real(kind=8) :: znuc                             !< Atomic number
+                                                       
+       integer :: nr                                    !< Mesh points
+       real(kind=8) :: a,b                              !< Parameters to build the logarithmic mesh
+       real(kind=8), dimension(nrmax) :: r              !< Radial mesh r(i) = a*(exp(b*(i-1))-1)
+       real(kind=8), dimension(nrmax) :: rab            !< rab(i) = (r(i)+a)*b (integration grid)
+                                                        !< c.hartwig: additional grids for modified integration
+       real(kind=8), dimension(nrmax) :: rw             !< rw(i) = rab(i)*12.56637061435917d0*r(i)**2 (integration grid)
+       real(kind=8), dimension(nrmax) :: rd             !< rd(i) = 1/rab(i) (integration grid)
+       real(kind=8), dimension(nrmax) :: cdd            !< Charge density (spin down)
+       real(kind=8), dimension(nrmax) :: cdu            !< Charge density (spin up)
+       real(kind=8), dimension(nrmax) :: cdc            !< Core charge density (up to ncore orbitals)
+       ! Potentials: always multiplied by r.
+       real(kind=8), dimension(lmax,nrmax) :: viod,viou !< viod,u  ionic potential (down,up)
+       real(kind=8), dimension(nrmax) :: vid,viu        !< vid,u   input screening potential (down,up)
+       real(kind=8), dimension(nrmax) :: vod,vou        !< vod,u   output screening potential (down,up)
 
-       implicit double precision(a-h,o-z)
+       !> etot(i) i=1,10 contains various contributions to the total energy.
+       !!     (1)   Sum of eigenvalues ev
+       !!     (2)   Sum of orbital kinetic energies ek
+       !!     (3)   El-ion interaction from sum of orbital, potential energies ep
+       !!     (4)   Electrostatic el-el interaction (from velect)
+       !!     (5)   Vxc (exchange-correlation) correction to sum of eigenvalues (from velect)
+       !!     (6)   3 * vc - 4 * ec, correction term for virial theorem, when correlation is included (from velect)
+       !!     (7)   Exchange and correlation energy  (from velect)
+       !!     (8)   Kinetic energy from eigenvalues  (1,3,4,5)
+       !!     (9)   Potential energy
+       !!     (10)  Total energy
+       real(kind=8), dimension(10) :: etot
 
-       integer, parameter :: nrmax=10000, maxorb=60, lmax=5, maxconf=19
-       logical, parameter :: debug=.false.
+       real(kind=8), dimension(maxconf) :: econf         !<Toal energies of electronic configurations
+       real(kind=8), dimension(maxorb) :: ev             !< Eigenvalues
+       real(kind=8), dimension(maxorb) :: ek             !< Kinetic energy for each orbital
+       real(kind=8), dimension(maxorb) :: ep             !< Potential energy (Vionic*rho) for each orbital
 
-       dimension r(nrmax),rab(nrmax),  &
-       & no(maxorb),lo(maxorb),so(maxorb),zo(maxorb),  &
-       & cdd(nrmax),cdu(nrmax),cdc(nrmax),  &
-       & viod(lmax,nrmax),viou(lmax,nrmax),vid(nrmax),viu(nrmax),  &
-       & vod(nrmax),vou(nrmax),  &
-       & etot(10),econf(maxconf),ev(maxorb),ek(maxorb),ep(maxorb)
+       character(len=2) :: nameat,itype                  !< Name and type of atom
+       character(len=1) :: ispp                          !< Spin, relativistic calculation ('n', 's', 'r')
 
-       character(len=2) :: naold,itype,ityold,nameat,stop_chain,cnum
-       character(len=1) :: ispp
-       integer :: iXCold
-       integer :: iXC
+       integer :: iXC                                    !< Exchange-Correlation parameter
+       integer :: iter                                   !< Iteration number
+       integer :: iconv                                  !< Convergence done or not
+       integer :: nconf                                  !< Number of electronic configurations
+       integer :: nspol                                  !< number of spin components (1 or 2 spin polarisation)
+       integer :: ifcore                                 !< If core electrons (for NLCC ?)
+       integer :: nvalo,ncoreo
+       integer :: maxit                                  !< LMaximal number of iterations
+       real(kind=8) :: rcov                              !< Covalent radius
+       real(kind=8) :: rprb,rsh
+       real(kind=8) :: zcore,zel,zsh
+
+       character(len=2) :: name_old,itype_old,cnum
+       integer :: iXC_old
        logical :: abort
+       real(kind=8) :: zsh_old,dvold,aa,a2,dcrc,ddcrc,dv,dvmax,weight,xmixo
+       integer :: i,icon2,ii,iorb
 
-!      c.hartwig: additioanl grids for modified integration
-       dimension rw(10000),rd(10000)
-       common /intgrd/ rw,rd
-!----------------------------------------------------------------------
-       tol = 1.0D-11
-!      heuristic value for fluctuating GGAs
-       naold = '  '
-       iXCold = 0
-       ityold ='  ' 
-       stop_chain  = 'st'
-       zsold = 0.D0
+!      Heuristic value for fluctuating GGAs
+       name_old = '  '
+       iXC_old = 0
+       itype_old ='  '
+       zsh_old = 0.d0
        nconf = 0
        dvold = 1.0d10
        nr    = 1
@@ -159,10 +206,11 @@ subroutine atom
 
        iconv = 0
        icon2 = 0
-       maxit = 5000
-       maxit = 2000
-       if (debug) write(*,*)'DEBUG: enter max SCF iterations'
-!      read(*,*)maxit
+       maxit = maxit_max
+       if (debug) then
+          write(*,*) 'DEBUG: enter max SCF iterations'
+          read(*,*) maxit
+       end if
 
 
 !      empirical function
@@ -211,11 +259,11 @@ subroutine atom
 !         check for convergence (Vout - Vin)
 
           if (iconv .gt. 0) goto 120
-          dvmax = 0.D0
+          dvmax = 0.d0
           do i=2,nr
-             dv = (vod(i)-vid(i))/(1.D0+vod(i)+vou(i))
+             dv = (vod(i)-vid(i))/(1.d0+vod(i)+vou(i))
              if (abs(dv) .gt. dvmax) dvmax=abs(dv)
-             dv = (vou(i)-viu(i))/(1.D0+vou(i)+vod(i))
+             dv = (vou(i)-viu(i))/(1.d0+vou(i)+vod(i))
              if (abs(dv) .gt. dvmax) dvmax=abs(dv)
           end do
           iconv = 1
@@ -256,17 +304,17 @@ subroutine atom
           nameat,norb,no,lo,so,zo,  &
           znuc,zsh,rsh,zcore, &
           etot,ev,ek,ep)
-       if (naold /= nameat .or. iXCold /= iXC .or.  &
-           ityold /= itype ) call prdiff(nconf,econf)
+       if (name_old /= nameat .or. iXC_old /= iXC .or.  &
+           itype_old /= itype ) call prdiff(nconf,econf)
 !       if (nconf == 9) nconf=1
        nconf = nconf + 1
        econf(nconf) = etot(10)
        if (nconf /= 1) write(6,130) etot(10)-econf(1)
  130   format(//,28h excitation energy         =,f18.8,/,1x,45('-'))
-       naold = nameat
-       iXCold = iXC
-       zsold = zsh
-       ityold = itype
+       name_old = nameat
+       iXC_old = iXC
+       zsh_old = zsh
+       itype_old = itype
 
 !      write the total energy to atom.ae instead of excitation
 !      energies. This allows the user to be flexible with reference
@@ -377,7 +425,7 @@ subroutine atom
 !     call libxc_functionals_end()
       call prdiff(nconf,econf)
       call ext(0)
-      end
+end program ae_atom
 
 
 !> Print difference total energy between electronic configurations
@@ -455,13 +503,13 @@ subroutine etotal( &
        real(kind=8) :: esh,vshift
        integer :: i
 
-       ! pi = 4*atan(1.D0)
+       ! pi = 4*atan(1.d0)
 
        ! sum up eigenvalues ev, kinetic energies ek, and
        ! el-ion interaction ep
-       etot(1) = 0.D0
-       etot(2) = 0.D0
-       etot(3) = 0.D0
+       etot(1) = 0.d0
+       etot(2) = 0.d0
+       etot(3) = 0.d0
 !      c.hartwig
 !      subtract vshift
        vshift=-15.0d0
@@ -476,8 +524,8 @@ subroutine etotal( &
 
 !      compute interaction shell - (nucleus-core)
 
-       esh = 0.D0
-       if (zsh /= 0.D0) esh = 2*zsh*(znuc-zcore)/rsh
+       esh = 0.d0
+       if (zsh /= 0.d0) esh = 2*zsh*(znuc-zcore)/rsh
 
 !      kinetic energy
 
@@ -588,7 +636,7 @@ subroutine vionic(ifcore,  &
 
 !      add potential from shell charge
 
-       if (zsh == 0.D0) return
+       if (zsh == 0.d0) return
 
        do i=1,lmax
           do j=1,nr
@@ -638,7 +686,7 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
        integer :: i,ierr,l,ll,isx
 
 !      fit cd/r by splines
-       y(1) = 0.D0
+       y(1) = 0.d0
        do i=2,nr
           y(i) = (cdd(i)+cdu(i))/r(i)
           ! below test output proofs cdd cdu are charge densities
@@ -646,16 +694,16 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
           if (ifcore == 2) y(i) = y(i) + cdc(i)/r(i)
        end do
        isx = 0
-       a1 = 0.D0
-       an = 0.D0
-       b1 = 0.D0
-       bn = 0.D0
+       a1 = 0.d0
+       an = 0.d0
+       b1 = 0.d0
+       bn = 0.d0
        call splift(r,y,yp,ypp,nr,w,ierr,isx,a1,b1,an,bn)
 
 !      compute the integrals of cd/r and cd from
 !      r(1)=0 to r(i)
 
-       xlo = 0.D0
+       xlo = 0.d0
        call spliq(r,y,yp,ypp,nr,xlo,r,nr,s2,ierr)
 !      s2 ==    ans(i) = integral from xlo to xup(i)
        do 20 i=1,nr
@@ -667,8 +715,8 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
 
 !      check normalization
 
-       xnorm = 0.D0
-       if (zel /= 0.D0) xnorm = zel/s1(nr)
+       xnorm = 0.d0
+       if (zel /= 0.d0) xnorm = zel/s1(nr)
 
 
 !      let us try this
@@ -713,7 +761,7 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
 !      compute hartree contribution to total energy
 !      does not look spin polarized yet
 
-       ehart = 0.D0
+       ehart = 0.d0
        ll = 4
        do 40 i=2,nr
        ehart = ehart + ll * (cdd(i)+cdu(i)) * vod(i) * rab(i)
@@ -1080,7 +1128,7 @@ subroutine input(itype,iXC,ispp,  &
 !      compute occupation numbers and orbital energies for the core
 
 !      the following section is not quite clear.
-       zcore = 0.D0
+       zcore = 0.d0
        if (ispp == blank) then
           jmax = 1
          sc = 0.0D0
@@ -1091,26 +1139,26 @@ subroutine input(itype,iXC,ispp,  &
        norb = 0
        if (ncore == 0) goto 85
        do 80 i=1,ncore
-       do 80 j=1,jmax
-       norb = norb + 1
-       no(norb) = nc(i)
-       lo(norb) = lc(i)
-       so(norb) = sc
-       zo(norb) = 2*lo(norb)+1
-!      why not do the same in the 's' case?
-       if (ispp == blank) zo(norb) = 2*zo(norb)
-       if (ispp == 'r') zo(norb) = 2*(lo(norb)+sc)+1
+          do 80 j=1,jmax
+             norb = norb + 1
+             no(norb) = nc(i)
+             lo(norb) = lc(i)
+             so(norb) = sc
+             zo(norb) = 2*lo(norb)+1
+      !      why not do the same in the 's' case?
+             if (ispp == blank) zo(norb) = 2*zo(norb)
+             if (ispp == 'r') zo(norb) = 2*(lo(norb)+sc)+1
 
-!      there must be a reason that
-!      the convention for zo is
-!      4l+2           'n' or ''
-!      2l+(1 or 2)    'r'
-!      2l+1           's'
+      !      there must be a reason that
+      !      the convention for zo is
+      !      4l+2           'n' or ''
+      !      2l+(1 or 2)    'r'
+      !      2l+1           's'
 
 
-       zcore = zcore + zo(norb)
-       if (abs(zo(norb)) .lt. 0.1D0) norb=norb-1
-       if (ispp /= blank) sc=-sc
+             zcore = zcore + zo(norb)
+             if (abs(zo(norb)) .lt. 0.1D0) norb=norb-1
+             if (ispp /= blank) sc=-sc
  80    continue
        ncore = norb
  85    continue
@@ -1118,13 +1166,13 @@ subroutine input(itype,iXC,ispp,  &
 !      end of core orbital energies and occupations
 
 
-       zval = 0.D0
+       zval = 0.d0
        if (nval == 0) goto 105
 
        do 90 i=1,nval
 
        read(35,*,err=998,end=999) ni,li,zd,zu
-       si = 0.D0
+       si = 0.d0
        if (ispp /= blank) si=0.5D0
 
        do 90 j=1,jmax
@@ -1159,7 +1207,7 @@ subroutine input(itype,iXC,ispp,  &
        if (ispp == 'r') zo(norb)=zo(norb)*(2*(li+si)+1)/(4*li+2)
        zval = zval + zo(norb)
 !      no s down orbital in the 'r' case
-       if (ispp == 'r' .and. li+si .lt. 0.D0) norb=norb-1
+       if (ispp == 'r' .and. li+si .lt. 0.d0) norb=norb-1
        if (norb == 0) goto 90
        if (nomin(lo(norb)+1) .gt. no(norb)) nomin(lo(norb)+1)=no(norb)
  90    continue
@@ -1203,7 +1251,7 @@ subroutine input(itype,iXC,ispp,  &
               ' number of valence orbitals =',i3,/,  &
               ' electronic charge          =',f10.6,/,  &
               ' ionic charge               =',f10.6,//)
-       if (zsh /= 0.D0) write(6,175) zsh,rsh
+       if (zsh /= 0.d0) write(6,175) zsh,rsh
  175   format(' shell charge =',f6.2,' at radius =',f6.2,//)
        write(6,180)
 
@@ -1215,7 +1263,7 @@ subroutine input(itype,iXC,ispp,  &
 
  180   format(' input data for orbitals'//,  &
               '  i    n    l    s     j     occ'/)
-       xji = 0.D0
+       xji = 0.d0
        do 200 i=1,norb
          if (ispp == 'r') xji = lo(i) + so(i)
          write(6,190) i,no(i),lo(i),so(i),xji,zo(i)
@@ -1343,13 +1391,13 @@ subroutine dsolv1( &
        integer, dimension(norb), intent(in) :: no,lo
        real(kind=8), dimension(norb) :: so,zo,ev
        !Local variables!
-       integer, parameter :: mesh = 4000 , nvmax = 6*mesh
-       logical, parameter :: debug = .false. !< Debug flag
+       logical, parameter :: debug = .false.  !< Debug flag
+       integer, parameter :: nomax = 10       !< Maxval(no)
        integer, dimension(2,5) :: nmax
        integer, dimension(10) :: ind
-       real(kind=8), dimension(mesh) :: dk,d,sd,sd2,rv1,rv2,rv3,rv4,rv5
+       real(kind=8), dimension(nr) :: dk,d,sd,sd2,rv1,rv2,rv3,rv4,rv5
        real(kind=8), dimension(10) :: e
-       real(kind=8), dimension(6*mesh) :: z
+       real(kind=8), dimension((nr-1)*nomax) :: z
 
 !      initialize charge density arrays
 
@@ -1359,7 +1407,7 @@ subroutine dsolv1( &
           cdd(i) = 0.d0
           cdu(i) = 0.d0
        end do
-       !nvmax = 6*nr
+       nvmax = (nr-1)*nomax
 
 !      find max n given l and s
 !      zero spin is treated as down
@@ -1369,22 +1417,23 @@ subroutine dsolv1( &
              do 20 k=1,norb
                 if (no(k) .le. 0) goto 20
                 if (lo(k) /= j-1) goto 20
-                if ((so(k)-0.1D0)*(i-1.5D0) .lt. 0.D0) goto 20
+                if ((so(k)-0.1D0)*(i-1.5D0) .lt. 0.d0) goto 20
                 nmax(i,j)=no(k)
                 if (no(k)*(nr-1) .gt. nvmax) then
                   print *,no(k),nr-1
-                  print *,no(k)*(nr-1)," > ",nvmax
+                  !Max dimension of z used by tinvit
+                  write(*,*) no(k)*(nr-1)," > ",nvmax
                   call ext(500)
                 end if
  20    continue
 
 !      set up hamiltonian matrix for kinetic energy
 !      only the diagonal depends on the potential
-       c2 = -1.D0/b**2
-       c1 = -2.D0*c2 + 0.25D0
+       c2 = -1.d0/b**2
+       c1 = -2.d0*c2 + 0.25D0
        dk(1)  = c1 / (r(2)+a)**2
-       sd(1)  = 0.D0
-       sd2(1) = 0.D0
+       sd(1)  = 0.d0
+       sd2(1) = 0.d0
        do i=3,nr
           dk(i-1)  = c1 / (r(i)+a)**2
           sd(i-1)  = c2 / ((r(i)+a)*(r(i-1)+a))
@@ -1392,58 +1441,60 @@ subroutine dsolv1( &
        end do
 
 !      start loop over spin down=1 and spin up=2
-
        nrm = nr - 1
        do 80 i=1,2
 
-!      start loop over s p d... states
+!         start loop over s p d... states
+          do 80 j=1,lmax
+             if (nmax(i,j) == 0) goto 80
+             llp = j*(j-1)
+             do k=2,nr
+                if (i == 1) &
+                   d(k-1) = dk(k-1) + (viod(j,k) + llp/r(k))/r(k) + vid(k)
+                if (i == 2) &
+                   d(k-1) = dk(k-1) + (viou(j,k) + llp/r(k))/r(k) + viu(k)
+                if (debug) then
+                   write(*,*)'debug: vio u d (k)',k,viou(j,k),viod(j,k)
+                   write(*,*)'debug: vi u d (k)',k,viu(k),vid(k)           !!! NaN
+                   write(*,*)'debug: r (k)',k,r(k)
+                   write(*,*)'debug: dk (k)',k-1,dk(k-1)
+                end if
+             end do
 
-       do 80 j=1,lmax
-       if (nmax(i,j) == 0) goto 80
-       llp = j*(j-1)
-       do k=2,nr
-          if (i == 1) &
-             d(k-1) = dk(k-1) + (viod(j,k) + llp/r(k))/r(k) + vid(k)
-          if (i == 2) &
-             d(k-1) = dk(k-1) + (viou(j,k) + llp/r(k))/r(k) + viu(k)
-          if (debug) then
-             write(*,*)'debug: vio u d (k)',k,viou(j,k),viod(j,k)
-             write(*,*)'debug: vi u d (k)',k,viu(k),vid(k)           !!! NaN
-             write(*,*)'debug: r (k)',k,r(k)
-             write(*,*)'debug: dk (k)',k-1,dk(k-1)
-          end if
-       end do
+      !      diagonalize
 
-!      diagonalize
+             eps = -1.d0
+             ! Find eigenvalues of a tridiagonal symmetric matrix between specific boundary indices using bisection
+             call tridib(nrm,eps,d,sd,sd2,bl,bu,1,nmax(i,j),e,ind,ierr,  &
+                rv4,rv5)
+             if (ierr /= 0) write(6,50) ierr
+       50    format(/,21h ****** error  ierr =,i3,/)
+             !Warning: z(nrm,nmax(i,j))
+             ! Find eigenvectors of a tridiagonal symmetric matrix corresponding 
+             ! to specified eigenvalues, using inverse iteration.
+             call tinvit(nrm,nrm,d,sd,sd2,nmax(i,j),e,ind,z,ierr,  &
+                rv1,rv2,rv3,rv4,rv5)
+             if (ierr /= 0) write(6,50) ierr
 
-       eps = -1.D0
-       call tridib(nrm,eps,d,sd,sd2,bl,bu,1,nmax(i,j),e,ind,ierr,  &
-          rv4,rv5)
-       if (ierr /= 0) write(6,50) ierr
- 50    format(/,21h ****** error  ierr =,i3,/)
-       call tinvit(nrm,nrm,d,sd,sd2,nmax(i,j),e,ind,z,ierr,  &
-          rv1,rv2,rv3,rv4,rv5)
-       if (ierr /= 0) write(6,50) ierr
+      !      save energy levels and add to charge density
 
-!      save energy levels and add to charge density
-
-       ki = 1
-       kn = 0
-       do 70 k=1,norb
-          if (no(k) .le. 0) goto 70
-          if (lo(k) /= j-1) goto 70
-          ! if spin(k) /= spin(i) cycle
-          if ((so(k)-0.1D0)*(i-1.5D0) .lt. 0.D0) goto 70
-          ev(k) = e(ki)
-          ! write(6,*)'DSOLV1:',k,no(k),lo(k),so(k),ev(k)
-          do l=2,nr
-             denr = zo(k) * z(kn+l-1)**2 / rab(l)
-             if (i == 1) cdd(l) = cdd(l) + denr
-             if (i == 2) cdu(l) = cdu(l) + denr
-          end do
-          ki = ki + 1
-          kn = kn + nrm
- 70    continue
+             ki = 1
+             kn = 0
+             do 70 k=1,norb
+                if (no(k) .le. 0) goto 70
+                if (lo(k) /= j-1) goto 70
+                ! if spin(k) /= spin(i) cycle
+                if ((so(k)-0.1D0)*(i-1.5D0) .lt. 0.d0) goto 70
+                ev(k) = e(ki)
+                ! write(6,*)'DSOLV1:',k,no(k),lo(k),so(k),ev(k)
+                do l=2,nr
+                   denr = zo(k) * z(kn+l-1)**2 / rab(l)
+                   if (i == 1) cdd(l) = cdd(l) + denr
+                   if (i == 2) cdu(l) = cdu(l) + denr
+                end do
+                ki = ki + 1
+                kn = kn + nrm
+ 70          continue
  80    continue
 !      end loop over s p and d states
 
@@ -1497,8 +1548,8 @@ subroutine dsolv2(iter,iconv,iXC,ispp,ifcore, &
 
        do 50 i=1,norb
           if (no(i) .le. 0) goto 50
-          if (zo(i) == 0.D0 .and. iconv == 0) goto 50
-          if (ev(i) .ge. 0.D0) ev(i)=-1.D0
+          if (zo(i) == 0.d0 .and. iconv == 0) goto 50
+          if (ev(i) .ge. 0.d0) ev(i)=-1.d0
 
 !         set up potential
 
@@ -1582,7 +1633,7 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 !Iris     expzer = 3.7E2
 !Apollo   expzer = 3.7D2
 !Sun      expzer = 3.7D2
-!Vax      expzer = 44.D0
+!Vax      expzer = 44.d0
 !ray      expzer =  2.8E3
 
 !     for numerical stability:
@@ -1591,16 +1642,16 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 
 !      integration coefficients
 
-       abc1 = 1901.D0/720.D0
-       abc2 = -1387.D0/360.D0
-       abc3 = 109.D0/30.D0
-       abc4 = -637.D0/360.D0
-       abc5 = 251.D0/720.D0
-       amc0 = 251.D0/720.D0
-       amc1 = 323.D0/360.D0
-       amc2 = -11.D0/30.D0
-       amc3 = 53.D0/360.D0
-       amc4 = -19.D0/720.D0
+       abc1 = 1901.d0/720.d0
+       abc2 = -1387.d0/360.d0
+       abc3 = 109.d0/30.d0
+       abc4 = -637.d0/360.d0
+       abc5 = 251.d0/720.d0
+       amc0 = 251.d0/720.d0
+       amc1 = 323.d0/360.d0
+       amc2 = -11.d0/30.d0
+       amc3 = 53.d0/360.d0
+       amc4 = -19.d0/720.d0
       itmax = 100
       lp = lo(iorb)+1
       ar(1) = 0.0d0
@@ -1827,7 +1878,7 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 
       istop = ninf - nctp
       if (istop .lt. 5) goto 222
-      do 80 j=ninf-5,nctp,-1
+      do j=ninf-5,nctp,-1
 
 !   predictor (Adams-Bashforth)
 
@@ -1858,7 +1909,7 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
         br(j) = brc - amc0*(fb1-fb0)
         fa(j) = br(j)
         fb(j) = b*br(j) + rab2(j)*vev*ar(j)
- 80   continue
+     end do
 
 !   end inward integration
 
@@ -1934,7 +1985,7 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 !Iris     expzer =3.7E2
 !Apollo   expzer = 3.7E2
 !Sun      expzer = 3.7D2
-!Vax      expzer = 44.D0
+!Vax      expzer = 44.d0
 !ray      expzer = 2.8E3
 
 !     for numerical stability:
@@ -1944,16 +1995,16 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 
 !      integration coefficients
 
-       abc1 = 1901.D0/720.D0
-       abc2 = -1387.D0/360.D0
-       abc3 = 109.D0/30.D0
-       abc4 = -637.D0/360.D0
-       abc5 = 251.D0/720.D0
-       amc0 = 251.D0/720.D0
-       amc1 = 323.D0/360.D0
-       amc2 = -11.D0/30.D0
-       amc3 = 53.D0/360.D0
-       amc4 = -19.D0/720.D0
+       abc1 = 1901.d0/720.d0
+       abc2 = -1387.d0/360.d0
+       abc3 = 109.d0/30.d0
+       abc4 = -637.d0/360.d0
+       abc5 = 251.d0/720.d0
+       amc0 = 251.d0/720.d0
+       amc1 = 323.d0/360.d0
+       amc2 = -11.d0/30.d0
+       amc3 = 53.d0/360.d0
+       amc4 = -19.d0/720.d0
       itmax = 100
       ai2 = ai * ai
       az = znuc/(2*ai)
@@ -2166,7 +2217,7 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 
       istop = ninf-nctp
       if (istop .lt. 5) goto 222
-      do 80 j=ninf-5,nctp,-1
+      do j=ninf-5,nctp,-1
 
 !  Predictor (Adams-Bashforth).
 
@@ -2194,8 +2245,9 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
         br(j) = brc + amc0*(fbj-fb(j))
         fa(j) = rabkar(j)*ar(j)+evvai2*br(j)*rabai(j)
         fb(j) = -rabkar(j)*br(j)-evv*ar(j)*rabai(j)
- 80   continue
- 222  arin = ar(nctp)
+     end do
+ 222  continue
+      arin = ar(nctp)
       arpin = fa(nctp)
 
 !  End inward integration
@@ -2280,7 +2332,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 
 !       ai = 2*137.04D0
        ai=2*137.0360411d0
-       pi = 4.D0 * atan(1.D0)
+       pi = 4.d0 * atan(1.d0)
        ka = lo(iorb)+1
        lp = ka
        if (so(iorb) .lt. 0.1D0 .and. lo(iorb) /= 0) ka=-lo(iorb)
@@ -2289,7 +2341,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 
        nzero = 0
        nextr = 0
-       rzero(1) = 0.D0
+       rzero(1) = 0.d0
        arp = br(2)
        if (ispp == 'r' .and. so(iorb) .lt. 0.1D0) arp = ka*ar(2)/r(2)  &
         + (ev(iorb) - viod(lp,2)/r(2) - vid(2) + ai*ai) * br(2) / ai
@@ -2297,7 +2349,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
         + (ev(iorb) - viou(lp,2)/r(2) - viu(2) + ai*ai) * br(2) / ai
        do 20 i=3,nr
        if (nextr .ge. no(iorb)-lo(iorb)) goto 30
-       if (ar(i)*ar(i-1) .gt. 0.D0) goto 10
+       if (ar(i)*ar(i-1) .gt. 0.d0) goto 10
 
 !      zero
 
@@ -2309,7 +2361,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
         + (ev(iorb) - viod(lp,i)/r(i) - vid(i) + ai*ai) * br(i) / ai
        if (ispp == 'r' .and. so(iorb) .gt. 0.1D0) arp = ka*ar(i)/r(i)  &
         + (ev(iorb) - viou(lp,i)/r(i) - viu(i) + ai*ai) * br(i) / ai
-       if (arp*arpm .gt. 0.D0) goto 20
+       if (arp*arpm .gt. 0.d0) goto 20
 
 !      extremum
 
@@ -2327,8 +2379,8 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 !      the nuclear part
 
  30    ek(iorb) = br(1)*br(1)*rab(1)
-       ep(iorb) = 0.D0
-       sa2 = 0.D0
+       ep(iorb) = 0.d0
+       sa2 = 0.d0
        lp = lo(iorb)+1
        llp = lo(iorb)*lp
        ll = 2
@@ -2352,7 +2404,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
  40    continue
        ek(iorb) = ek(iorb) / 3
        ep(iorb) = ep(iorb) / 3
-       if (ispp == 'r') ek(iorb) = 0.D0
+       if (ispp == 'r') ek(iorb) = 0.d0
 
 !      fourier analyze orbital
 
@@ -2363,19 +2415,19 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 !       delg = 0.2D0*pi/r(i90)
 !       do 60 i=1,100
 !       g = delg * (i-1)
-!       cg(i) = 0.D0
+!       cg(i) = 0.d0
 !       if (i == 1 .and. lp /= 1) goto 60
 !       ll = 4
 !       do 50 j=2,nr
 !       rg = r(j) * g
-!       bsl = 1.D0
+!       bsl = 1.d0
 !       if (i  /= 1) bsl = sin(rg) / rg
 !       if (lp == 2) bsl = (bsl - cos(rg)) / rg
-!       if (lp == 3) bsl = 3.D0 * (bsl - cos(rg)) / rg**2 -  bsl
+!       if (lp == 3) bsl = 3.d0 * (bsl - cos(rg)) / rg**2 -  bsl
 !       cg(i) = cg(i) + ll * r(j) * ar(j) * bsl * rab(j)
 !       ll = 6 - ll
 ! 50    continue
-!       cg(i) = cg(i) / (6.D0*pi**2)
+!       cg(i) = cg(i) / (6.d0*pi**2)
 !c      write(6,'(2i3,3f13.6)') lo(iorb),i,g,cg(i),cg(i)*g**2
 !       if (i == 1) goto 60
 
@@ -2386,7 +2438,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 
 !      zero
 
-!       if (cg(i)*cg(i-1) .gt. 0.D0) goto 60
+!       if (cg(i)*cg(i-1) .gt. 0.d0) goto 60
 
 !      zero found - update arrays
 
