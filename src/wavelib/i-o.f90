@@ -1191,19 +1191,19 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   !print the suggested order
   call yaml_map('Suggested order for the transformation',(/ixp,iyp,izp/))
 
-!!$  !we should define the transformation order
-!!$  !traditional case, for testing
+  !we should define the transformation order
+  !traditional case, for testing
 !!$  ixp=1
 !!$  iyp=2
 !!$  izp=3
 !!$  print *,'final case',(/ixp,iyp,izp/)
 
-!!$  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,&
-!!$       sint,cost,onemc,(/ixp,iyp,izp/),&
-!!$       hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
-
-  call field_rototranslation3D_interpolation(da,frag_trans%rot_axis,centre_old,centre_new,&
-     sint,cost,onemc,hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,&
+       sint,cost,onemc,(/ixp,iyp,izp/),&
+       hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+!!$
+!!$  call field_rototranslation3D_interpolation(da,frag_trans%rot_axis,centre_old,centre_new,&
+!!$     sint,cost,onemc,hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
 
 
   if (size(frag_trans%discrete_operations)>0) then
