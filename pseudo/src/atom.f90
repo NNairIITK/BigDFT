@@ -1580,12 +1580,12 @@ subroutine atom
 
           if (iconv == 1) then
 !             orban is used to analyze and printout data about the orbital
-              call orban(itype,iXC,ispp,i,ar,br,  &
-                 nrmax,nr,a,b,r,rab,lmax,  &
-                 nameat,norb,ncore,no,lo,so,zo,  &
-                 znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,dcrc,ddcrc,  &
-                 viod,viou,vid,viu,vod,vou,  &
-                 etot,v,ev,ek,ep,rcov,rprb,nconf)
+              call orban(iXC,ispp,i,ar,br,  &
+                 nr,r,rab, &
+                 lmax,norb,ncore,no,lo,so,zo,  &
+                 znuc,zcore,cdd,cdu,cdc,dcrc,ddcrc,  &
+                 viod,viou,vid,viu, &
+                 v,ev,ek,ep,rcov,rprb,nconf)
           end if
  50    continue
 
@@ -1960,7 +1960,7 @@ subroutine atom
 
       parameter (ai=2*137.0360411d0)
 
-!  Tolernce
+!  Tolerance
 
       parameter (etol=-1.d-7)
       parameter (tol = 1.0d-14)
@@ -2285,49 +2285,42 @@ subroutine atom
         ar(j) = factor*ar(j)
         br(j) = factor*br(j)
       end do
- 111  continue
-      return
+
       end
 
-!      *****************************************************************
 
-       subroutine orban(itype,iXC,ispp,iorb,ar,br,  &
-       nrmax,nr,a,b,r,rab,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,dcrc,ddcrc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,v,ev,ek,ep,rcov,rprb,nconf)
+!> orban is used to analyze and printout data about the orbital
+subroutine orban(iXC,ispp,iorb,ar,br, &
+          nr,r,rab, &
+          lmax,norb,ncore,no,lo,so,zo, &
+          znuc,zcore,cdd,cdu,cdc,dcrc,ddcrc, &
+          viod,viou,vid,viu, &
+          v,ev,ek,ep,rcov,rprb,nconf)
+
        implicit double precision(a-h,o-z)
-
-!      orban is used to analyze and printout data about the orbital
-
-       dimension ar(nr),br(nr)
-       dimension r(nr),rab(nr),  &
-       no(norb),lo(norb),so(norb),zo(norb),  &
+       !Arguments
+       integer, intent(in) :: nr,norb,lmax
+       real(kind=8), dimension(nr) :: ar,br
+       real(kind=8), dimension(nr) :: r,rab
+       integer, dimension(norb) :: no,lo
+       dimension so(norb),zo(norb),  &
        cdd(nr),cdu(nr),cdc(nr),  &
-       viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
-       v(nr),etot(10),ev(norb),ek(norb),ep(norb)
-       character*2 ispp*1,nameat,itype
+       viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr), &
+       v(nr),ev(norb),ek(norb),ep(norb)
+       character(len=1) :: ispp
 
-       dimension rzero(10),rextr(10),aextr(10),bextr(10)
-       dimension cg(100),gzero(10),gextr(10),cextr(10)
+       real(kind=8), dimension(10) :: rzero,rextr,aextr,bextr
        character(len=10) :: name
        character(len=30) :: plotfile,orbname
-       character(len=3) :: irel
-       character(len=4) :: ifcore
        integer :: iXC
-!.....files
-      common /files/iinput,iout,in290,in213,istore,iunit7,iunit8,istruc,  &
-                     ivnlkk,isumry,ikpts
 !     c.hartwig
 !     work-arrays for integration, and xc-potential
 !     SOME OF THOSE SEEM NOT TO BE USED AT ALL
       dimension ttx(50000),tty(50000),ttyp(50000),ttypp(50000),  &
-           ttw(150000),rho(nr),excgrd(nr)
-      dimension rr(10000),rw(10000),rd(10000)
-      common /intgrd/ rw,rd
-      character*1 il(5)
-      character*2 cnum
+           ttw(150000)
+      
+      character(len=1) ::  il(5)
+      character(len=2) :: cnum
 
 
 !       ai = 2*137.04D0
@@ -2589,7 +2582,9 @@ subroutine atom
 !   printout
 
 
-      if(iorb==ncore+nval) then
+      !if(iorb==ncore+nval) then
+      !nval is not uninitialized so presume that ncore+nval = norb
+      if(iorb==norb) then
          write(plotfile, '(a,i0,a)') 'ae.pot.conf.',nconf ,'.plt'
          open(unit=37,file=trim(plotfile),status='unknown')
          write(37,'(20e20.10)') r(1), 0.0D0
@@ -2751,7 +2746,11 @@ subroutine atom
 !     if(iorb>ncore) write(40,'(1x,a)')trim(plotfile)
 
 !     if this was the last orbital, then close the current atom file
-      if (iorb==ncore+nval)   close(40)
+!     Pb: nval not initialized: presume norb (TD)
+      if (iorb==norb) then
+         close(40)
+      end if
+
       dena=0
       denb=0
       i=iorb
@@ -2807,27 +2806,22 @@ subroutine atom
          close(unit=33)
       end if
 
-      if (iorb==norb)then
-!         addition for Nonlinear Core Corrections:
-!         write out the charge density of the core for plotting and fitting.
-
-          open(unit=33,file='ae.core.dens.plt')
-          write(33,'(a)')'# plot file for all electron charges'
-          if( zcore/=0.0_8) then
-             write(33,'(a,3e15.6,a)') '#',zcore,dcrc/zcore,ddcrc/zcore,  &
-                       ' 0th, 2nd and 4th moment of core charge'
-          endif
-          write(33,'(40x,a)')  &
-                      '# radial charge distributions rho(r)*4pi*r**2'
-          write(33,'(4(a,14x),a))')'#',' r ','core','valence','total'
-          do i=1,npoint
-              tt=cdu(i)+cdd(i)
-              write(33,'(4e20.12)')r(i),cdc(i),tt-cdc(i),tt
-           end do
-          close(unit=33)
-
-
+      if (iorb==norb) then
+!        Addition for Nonlinear Core Corrections:
+!        write out the charge density of the core for plotting and fitting.
+         open(unit=33,file='ae.core.dens.plt')
+         write(33,'(a)') '# plot file for all electron charges'
+         if( zcore /= 0.0d0) then
+            write(33,'(a,3e15.6,a)') '#',zcore,dcrc/zcore,ddcrc/zcore,  &
+                      ' 0th, 2nd and 4th moment of core charge'
+         end if
+         write(33,'(40x,a)')       '# radial charge distributions rho(r)*4pi*r**2'
+         write(33,'(4(a,14x),a)') '#',' r ','core','valence','total'
+         do i=1,npoint
+             tt=cdu(i)+cdd(i)
+             write(33,'(4e20.12)') r(i),cdc(i),tt-cdc(i),tt
+         end do
+         close(unit=33)
       end if
 
-
-      end subroutine orban
+end subroutine orban
