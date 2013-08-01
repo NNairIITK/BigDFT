@@ -27,7 +27,8 @@ PSEUDO_OUTPUTS = \
 
 REPORTS = \
 		  atom.out.report $(ATOM_OUTPUTS:=.report) \
-		  pseudo.out.report $(PSEUDO_OUTPUTS:=.report)
+		  pseudo.nofit.out.report $(PSEUDO_OUTPUTS:=.report) \
+		  pseudo.shortfit.out.report
 
 check: report
 
@@ -38,16 +39,26 @@ report: $(REPORTS)
 	python $(abs_top_srcdir)/tests/fldiff.py --mode=pseudo $<  $(abs_top_srcdir)/pseudo/tutorials/oxygen.NLCC/ref/$<.ref | tee $@
 
 $(ATOM_OUTPUTS): atom.out
-$(PSEUDO_OUTPUTS): pseudo.out
+$(PSEUDO_OUTPUTS): pseudo.nofit.out
 
-%.out: %.in $(abs_top_builddir)/pseudo/src/%
-	$(run_parallel) $(abs_top_builddir)/pseudo/src/$* > $@
+atom.out: atom.in $(abs_top_builddir)/pseudo/src/atom
+	$(run_parallel) $(abs_top_builddir)/pseudo/src/atom > $@
 
 atom.in:
 	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/atom.dat .
 
-pseudo.in: atom.out
+pseudo.nofit.out: pseudo.nofit.in $(abs_top_builddir)/pseudo/src/pseudo
+	$(run_parallel) $(abs_top_builddir)/pseudo/src/pseudo > $@
+
+pseudo.nofit.in: atom.out atom.out.report
+	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/psppar.GTH psppar.GTH
 	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/psppar.GTH psppar
+
+pseudo.shortfit.out: pseudo.shortfit.in $(abs_top_builddir)/pseudo/src/pseudo
+	$(run_parallel) $(abs_top_builddir)/pseudo/src/pseudo > $@
+
+pseudo.shortfit.in: pseudo.nofit.out pseudo.nofit.out.report
+	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/input.shortfit.pseudo input.pseudo
 
 clean:
 	if ! test $(top_srcdir)/pseudo/tutorials/oxygen.NLCC -ef . ; then rm -f atom.dat psppar.GTH ; fi
