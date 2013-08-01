@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 17/11/2011
+# Date: 01/08/2013
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -37,9 +37,9 @@ max_discrepancy = 1.1e-10
 
 def usage():
     print "fldiff.py [--mode=m] [--discrepancy=d] [--help] file1 file2"
-    print "  --mode=[bigdft,neb,psolver] to compare 'bigdft', 'NEB' or 'PS_Check' output files"
-    print "  --discrepancy=%7.1e Maximal discrepancy between results" % max_discrepancy
-    print "  --help   display this message"
+    print "  --mode=[bigdft,neb,psolver,pseudo] to compare 'bigdft', 'NEB', 'PS_Check' or pseudo output files"
+    print "  --discrepancy=%7.1e                maximal discrepancy between results" % max_discrepancy
+    print "  --help                             display this message"
     sys.exit(1)
 
 def n_digits(figure):
@@ -62,11 +62,13 @@ except getopt.error:
 bigdft  = False
 neb     = False
 psolver = False
+pseudo  = False
 for opt,arg in optlist:
     if opt == "-m" or opt == "--mode":
         bigdft  = (arg == "bigdft")
         neb     = (arg == "neb")
         psolver = (arg == "psolver")
+        pseudo  = (arg == "pseudo")
     elif opt == "-d" or opt == "--discrepancy":
         max_discrepancy=float(arg)
     elif opt == "-h" or opt == "--help":
@@ -164,6 +166,11 @@ elif psolver:
             or "Max diff at" in line \
             or "result" in line \
             or "for the array" in line
+elif pseudo:
+    #Remove lines containing the word time
+    def line_junk(line):
+        "True if the line must not be compared"
+        return "time" in line
 else:
     def line_junk(line):
         "Always False except for Hostname"

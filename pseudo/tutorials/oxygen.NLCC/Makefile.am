@@ -17,24 +17,40 @@ EXTRA_DIST = \
 		ref/psppar.nlcc.short.ref\
 		ref/psppar.ref
 
+ATOM_OUTPUTS = \
+			 atom.00.ae \
+			 atom.01.ae \
+			 input.pseudo
+
+PSEUDO_OUTPUTS = \
+				 orbitals.gplt
+
+REPORTS = \
+		  atom.out.report $(ATOM_OUTPUTS:=.report) \
+		  pseudo.out.report $(PSEUDO_OUTPUTS:=.report)
+
 check: report
 
-clean:
-	if ! test $(top_srcdir)/pseudo/tutorials/oxygen.NLCC -ef . ; then rm -f atom.dat ; fi
-	rm -f *.out *.report input.* psppar* ae.* *.ae
-
-report: atom.report
+report: $(REPORTS)
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
-atom.out: atom.in $(abs_top_builddir)/pseudo/src/atom
-	$(run_parallel) $(abs_top_builddir)/pseudo/src/atom > $@
+%.report: %
+	python $(abs_top_srcdir)/tests/fldiff.py --mode=pseudo $<  $(abs_top_srcdir)/pseudo/tutorials/oxygen.NLCC/ref/$<.ref | tee $@
+
+$(ATOM_OUTPUTS): atom.out
+$(PSEUDO_OUTPUTS): pseudo.out
+
+%.out: %.in $(abs_top_builddir)/pseudo/src/%
+	$(run_parallel) $(abs_top_builddir)/pseudo/src/$* > $@
 
 atom.in:
 	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/atom.dat .
 
-atom.report: atom.out
-	python $(abs_top_srcdir)/tests/fldiff.py $<  $(abs_top_srcdir)/pseudo/tutorials/oxygen.NLCC/ref/$<.ref | tee $@
-	python $(abs_top_srcdir)/tests/fldiff.py atom.00.ae $(abs_top_srcdir)/pseudo/tutorials/oxygen.NLCC/ref/atom.00.ae | tee atom.00.report
-	python $(abs_top_srcdir)/tests/fldiff.py atom.01.ae $(abs_top_srcdir)/pseudo/tutorials/oxygen.NLCC/ref/atom.01.ae | tee atom.01.report
+pseudo.in: atom.out
+	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/psppar.GTH psppar
 
+clean:
+	if ! test $(top_srcdir)/pseudo/tutorials/oxygen.NLCC -ef . ; then rm -f atom.dat psppar.GTH ; fi
+	rm -f *.out *.report input.* psppar ae.* *.ae \
+			input.* local.pot *.gplt ps.* s.kernel.pot vertex.dump hostnames.*
 
