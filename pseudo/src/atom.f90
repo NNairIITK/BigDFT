@@ -142,15 +142,13 @@ subroutine atom
 
 !      new variable nspol: spin channels for XC
        nspol=1
-       if(ispp=='s')nspol=2
+       if(ispp=='s') nspol=2
 
- 45    continue
-       call velect(0,0,iXC,ispp,nspol,ifcore,  &
-       nrmax,nr,a,b,r,rab,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep)
+       call velect(0,0,iXC,nspol,ifcore,  &
+          nr,r,rab,rw,rd, &
+          zel,cdd,cdu,cdc,  &
+          vod,vou,  &
+          etot)
 
        do i=1,nr
           vid(i) = vod(i)
@@ -188,18 +186,16 @@ subroutine atom
              znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
              viod,viou,vid,viu,vod,vou,  &
              etot,ev,ek,ep)  
-!            
-             else
-!            
-!            predictor - corrector method (more accurate)
-!            
+            
+          else
+             !predictor - corrector method (more accurate)
              call dsolv2(iter,iconv,iXC,ispp,ifcore, &
-             nr,a,b,r,rab,lmax,  &
-             norb,ncore,no,lo,so,zo,  &
-             znuc,zcore,cdd,cdu,cdc,dcrc,ddcrc,  &
-             viod,viou,vid,viu, &
-             ev,ek,ep,rcov,rprb,nconf)
-!         
+                nr,a,b,r,rab,lmax, &
+                norb,ncore,no,lo,so,zo, &
+                znuc,zcore,cdd,cdu,cdc,dcrc,ddcrc, &
+                viod,viou,vid,viu, &
+                ev,ek,ep,rcov,rprb,nconf)
+
           endif
 
 !         etot ..... terms in Etotal
@@ -208,14 +204,13 @@ subroutine atom
 !         ep ....... potential energy (Vionic*rho) for each orbital
 
 !         set up output electronic potential from charge density
-!         
-          call velect(iter,iconv,iXC,ispp,nspol,ifcore,  &
-          nrmax,nr,a,b,r,rab,lmax,  &
-          nameat,norb,ncore,no,lo,so,zo,  &
-          znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-          viod,viou,vid,viu,vod,vou,  &
-          etot,ev,ek,ep)
-!         
+
+          call velect(iter,iconv,iXC,nspol,ifcore,  &
+             nr,r,rab,rw,rd, &
+             zel,cdd,cdu,cdc,  &
+             vod,vou,  &
+             etot)
+
 !         check for convergence (Vout - Vin)
 
           if (iconv .gt. 0) goto 120
@@ -608,53 +603,42 @@ subroutine vionic(ifcore,  &
        end do
 end subroutine vionic
 
-       subroutine velect(iter,iconv,iXC,ispp,nspol,ifcore,  &
-       nrmax,nr,a,b,r,rab,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep)
-!      we need these modules to re-initialize libXC in case 
-!      the first few iterations are done with LDA XC
-!      use defs_basis
+
+!> velect generates the electronic output potential from
+!! the electron charge density.
+!! the ionic part is added in dsolve.
+subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
+          nr,r,rab,rw,rd, &
+          zel,cdd,cdu,cdc,  &
+          vod,vou,  &
+          etot)
+       ! we need these modules to re-initialize libXC in case
+       ! the first few iterations are done with LDA XC
        use libxcModule
-       implicit double precision(a-h,o-z)
+       implicit none
 
-       logical, parameter :: debug = .false.
+       logical, parameter :: debug = .false.            !< Debug flag
+       real(kind=8), parameter :: pi = 4.d0*atan(1.d0)
+       !Arguments
+       integer, intent(in) :: nr, ifcore, nspol, iconv, iter
+       real(kind=8), dimension(10), intent(inout) :: etot
+       real(kind=8), dimension(nr), intent(in) :: r,rab,rw,rd,cdc
+       real(kind=8), dimension(nr), intent(out) :: cdd,cdu,vod,vou
+       real(kind=8), intent(in) :: zel
+       integer, intent(in) :: iXC
+       !Local variables
+       real(kind=8), dimension(nr) :: y,yp,ypp,s1,s2
+       real(kind=8), dimension(3*nr) :: w
+       !> For use in routine atomwr
+       integer, parameter :: ntitle = 40
+!      c.hartwig
+!      convention for spol as in dsolv: spin down=1 and spin up=2
+       real(kind=8), dimension(nr,nspol) :: rho,vxcgrd
+       real(kind=8), dimension(nr) :: excgrd
 
-!      velect generates the electronic output potential from
-!      the electron charge density.
-!      the ionic part is added in dsolve.
-
-       dimension r(nr),rab(nr),  &
-       no(norb),lo(norb),so(norb),zo(norb),  &
-       cdd(nr),cdu(nr),cdc(nr),  &
-       viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
-       etot(10),ev(norb),ek(norb),ep(norb)
-       dimension vtemp(1000)
-       character*2 ispp*1,nameat,itype
-       integer:: iXC
-
-      parameter ( mesh = 2000 )
-!     parameter ( mesh = 80000 )
-       dimension y(mesh),yp(mesh),ypp(mesh),w(3*mesh),s1(mesh),s2(mesh)
-       common  y,yp,ypp,w,s1,s2
-
-!      for use in routine atomwr:
-       parameter (ntitle = 40)
-       character*40 text(ntitle)
-       character irel*3, xccore*4, cdtyp*2
-
-!     c.hartwig
-!     convention for spol  as in dsolv: spin down=1 and spin up=2
-      dimension rho(nr,nspol),excgrd(nr),vxcgrd(nr,nspol)
-      dimension rw(10000),rd(10000)
-      common /intgrd/ rw,rd
-!     INCLUDE 'func.inc'
-
-
-
-        pi = 4*atan(1.D0)
+       real(kind=8) :: a1,an,b1,bn,ehart,enexc,exc,exct,rhodw,rhoup
+       real(kind=8) :: vxc,vxcd,vxcu,xlo,xnorm
+       integer :: i,ierr,l,ll,isx
 
 !      fit cd/r by splines
        y(1) = 0.D0
@@ -1340,6 +1324,7 @@ double precision function charge(name)
        ' name=',a,' converted to=',a,' ascii codes=',2i3)
        call ext (200)
 end function charge
+
 
 !> dsolv1 finds the non relativistic wave function
 !! using finite differences and matrix diagonalization
