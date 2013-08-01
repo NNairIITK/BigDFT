@@ -26,6 +26,9 @@
 !!    consistency in the potential (set in the main program)
 !!    and the accuracy in the eigenvalue for a given potential
 !!    (set in difrel,difnrl)
+!!
+!! @todo
+!!    Possibility to use hybrid functionals (need exchange interaction)
 
 
 !> Calculate the all-electron electronic structure for one atom
@@ -60,8 +63,8 @@ program ae_atom
                                                         !< c.hartwig: additional grids for modified integration
        real(kind=8), dimension(nrmax) :: rw             !< rw(i) = rab(i)*12.56637061435917d0*r(i)**2 (integration grid)
        real(kind=8), dimension(nrmax) :: rd             !< rd(i) = 1/rab(i) (integration grid)
-       real(kind=8), dimension(nrmax) :: cdd            !< Charge density (spin down)
-       real(kind=8), dimension(nrmax) :: cdu            !< Charge density (spin up)
+       real(kind=8), dimension(nrmax) :: cdd            !< Charge density (spin down, 2 pi r**2 rho(r))
+       real(kind=8), dimension(nrmax) :: cdu            !< Charge density (spin up,   2 pi r**2 rho(r))
        real(kind=8), dimension(nrmax) :: cdc            !< Core charge density (up to ncore orbitals)
        ! Potentials: always multiplied by r.
        real(kind=8), dimension(lmax,nrmax) :: viod,viou !< viod,u  ionic potential (down,up)
@@ -81,7 +84,7 @@ program ae_atom
        !!     (10)  Total energy
        real(kind=8), dimension(10) :: etot
 
-       real(kind=8), dimension(maxconf) :: econf         !<Toal energies of electronic configurations
+       real(kind=8), dimension(maxconf) :: econf         !< Total energy of the different electronic configurations
        real(kind=8), dimension(maxorb) :: ev             !< Eigenvalues
        real(kind=8), dimension(maxorb) :: ek             !< Kinetic energy for each orbital
        real(kind=8), dimension(maxorb) :: ep             !< Potential energy (Vionic*rho) for each orbital
@@ -304,9 +307,9 @@ program ae_atom
           nameat,norb,no,lo,so,zo,  &
           znuc,zsh,rsh,zcore, &
           etot,ev,ek,ep)
-       if (name_old /= nameat .or. iXC_old /= iXC .or.  &
-           itype_old /= itype ) call prdiff(nconf,econf)
-!       if (nconf == 9) nconf=1
+
+       if (name_old /= nameat .or. iXC_old /= iXC .or. itype_old /= itype ) call prdiff(nconf,econf)
+
        nconf = nconf + 1
        econf(nconf) = etot(10)
        if (nconf /= 1) write(6,130) etot(10)-econf(1)
@@ -316,40 +319,40 @@ program ae_atom
        zsh_old = zsh
        itype_old = itype
 
-!      write the total energy to atom.ae instead of excitation
-!      energies. This allows the user to be flexible with reference
-!      configurations.
-       write(40,*)etot(10),'total energy of this configuration'
+       ! write the total energy to atom.ae instead of excitation
+       ! energies. This allows the user to be flexible with reference
+       ! configurations.
+       ! Put in each atom.??.ae file
+       !write(40,*) etot(10),'total energy of this configuration'
 
-       if(nconf==1)then
-       write(60,'(a,i3,a)')&
-      '----suggested weights for occup numbers of conf',nconf,'-----'
-       write(60,*)
-       write(60,*)' 1d0 1d5 1d0 1d0 1d0 1d3 '//  &
+       if (nconf==1) then
+          write(60,'(a,i3,a)') '----suggested weights for occup numbers of conf',nconf,'-----'
+          write(60,*)
+          write(60,*)' 1d0 1d5 1d0 1d0 1d0 1d3 '//  &
                   ' psi(0), dEkin_wvlt, radii, hij, locality, E_exct'
 
-!     we put the overall weights for each configuration in atom.??.ae files
-!     such that the user can combine atomic data more easily.
-!     the old format was:
-!     if (nconf.gt.1) then
-!        write(60,*) ('1.00 ',i=1,nconf),' weights for configurations'
-!        write(60,*) '0.00 ',('1.00 ',i=2,nconf),
-!    :        ' weights for excitation-energies '
-!     endif
+         !     we put the overall weights for each configuration in atom.??.ae files
+         !     such that the user can combine atomic data more easily.
+         !     the old format was:
+         !     if (nconf.gt.1) then
+         !        write(60,*) ('1.00 ',i=1,nconf),' weights for configurations'
+         !        write(60,*) '0.00 ',('1.00 ',i=2,nconf),
+         !    :        ' weights for excitation-energies '
+         !     endif
 
-       write(60,*) '  n   l  so    eigval  chrg    dchrg  ddchrg',  &
-           '  res    rnode dnode ddnode'
-        do iorb=ncore+1,norb
-          weight=0.0d0
-          if (zo(iorb).gt.1.0d-4) then
-            write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
-             '1.0e5   1.0e5   0.0e0  0.0e0   1.0e5  1.0e0 0.0e0 0.0e0'
-          else
-            write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
-             '1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0'
-          endif
-        end do
-        close(unit=60)
+          write(60,*) '  n   l  so    eigval  chrg    dchrg  ddchrg',  &
+              '  res    rnode dnode ddnode'
+          do iorb=ncore+1,norb
+             weight=0.0d0
+             if (zo(iorb).gt.1.0d-4) then
+               write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
+                '1.0e5   1.0e5   0.0e0  0.0e0   1.0e5  1.0e0 0.0e0 0.0e0'
+             else
+               write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
+                '1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0'
+             endif
+          end do
+          close(unit=60)
         end if
 
 
@@ -394,7 +397,7 @@ program ae_atom
 
 !     FITPAR, do not overwrite, append
       open(unit=60,file='input.fitpar',position='append')
-      write(60,*)' fitting parameters appended by atom.f90: auto'
+      write(60,*) ' fitting parameters appended by atom.f90: auto'
       close(unit=60)
 
 
@@ -412,8 +415,10 @@ program ae_atom
          do ii=0,nconf-1
             close(40)
             write(cnum,'(i2.2)') ii
-            open(unit=40,file='atom.'//cnum//'.ae',  &
-                                 position='append')
+            open(unit=40, file='atom.'//cnum//'.ae', position='append')
+            write(40,*) 'Configuration ',nconf
+            write(40,*) 'Total reference energy',econf(1)
+            write(40,*) 'Total energy of this configuration',econf(ii+1)
             write(40,*) 'EXCITATION ENERGIES:'
             do i=1,nconf
               write(40,*) (econf(i)-econf(1))/2.d0
@@ -2296,42 +2301,41 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
        nextr = 0
        rzero(1) = 0.d0
        arp = br(2)
-       if (ispp == 'r' .and. so(iorb) .lt. 0.1D0) arp = ka*ar(2)/r(2)  &
-        + (ev(iorb) - viod(lp,2)/r(2) - vid(2) + ai*ai) * br(2) / ai
-       if (ispp == 'r' .and. so(iorb) .gt. 0.1D0) arp = ka*ar(2)/r(2)  &
-        + (ev(iorb) - viou(lp,2)/r(2) - viu(2) + ai*ai) * br(2) / ai
+       if (ispp == 'r' .and. so(iorb) .lt. 0.1D0) &
+          arp = ka*ar(2)/r(2) + (ev(iorb) - viod(lp,2)/r(2) - vid(2) + ai*ai) * br(2) / ai
+       if (ispp == 'r' .and. so(iorb) .gt. 0.1D0) &
+          arp = ka*ar(2)/r(2) + (ev(iorb) - viou(lp,2)/r(2) - viu(2) + ai*ai) * br(2) / ai
        do 20 i=3,nr
-       if (nextr .ge. no(iorb)-lo(iorb)) goto 30
-       if (ar(i)*ar(i-1) .gt. 0.d0) goto 10
+          if (nextr .ge. no(iorb)-lo(iorb)) goto 30
+          if (ar(i)*ar(i-1) .gt. 0.d0) goto 10
 
-!      zero
+          ! zero
+          nzero = nzero + 1
+          rzero(nzero) = (ar(i)*r(i-1)-ar(i-1)*r(i)) / (ar(i)-ar(i-1))
+ 10       continue
+          arpm = arp
+          arp = br(i)
+          if (ispp == 'r' .and. so(iorb) .lt. 0.1D0) &
+             arp = ka*ar(i)/r(i) + (ev(iorb) - viod(lp,i)/r(i) - vid(i) + ai*ai) * br(i) / ai
+          if (ispp == 'r' .and. so(iorb) .gt. 0.1D0) &
+             arp = ka*ar(i)/r(i) + (ev(iorb) - viou(lp,i)/r(i) - viu(i) + ai*ai) * br(i) / ai
+          if (arp*arpm .gt. 0.d0) goto 20
 
-       nzero = nzero + 1
-       rzero(nzero) = (ar(i)*r(i-1)-ar(i-1)*r(i)) / (ar(i)-ar(i-1))
- 10    arpm = arp
-       arp = br(i)
-       if (ispp == 'r' .and. so(iorb) .lt. 0.1D0) arp = ka*ar(i)/r(i)  &
-        + (ev(iorb) - viod(lp,i)/r(i) - vid(i) + ai*ai) * br(i) / ai
-       if (ispp == 'r' .and. so(iorb) .gt. 0.1D0) arp = ka*ar(i)/r(i)  &
-        + (ev(iorb) - viou(lp,i)/r(i) - viu(i) + ai*ai) * br(i) / ai
-       if (arp*arpm .gt. 0.d0) goto 20
-
-!      extremum
-
-       nextr = nextr + 1
-       if((arp-arpm) /=0.0_8) then
-          rextr(nextr) = (arp*r(i-1)-arpm*r(i)) / (arp-arpm)
-          aextr(nextr) = (ar(i)+ar(i-1))/2  &
-               - (arp**2+arpm**2) * (r(i)-r(i-1)) / (4*(arp-arpm))
-       endif
-       bextr(nextr) = br(i)
+          ! extremum
+          nextr = nextr + 1
+          if((arp-arpm) /=0.0_8) then
+             rextr(nextr) = (arp*r(i-1)-arpm*r(i)) / (arp-arpm)
+             aextr(nextr) = (ar(i)+ar(i-1))/2 - (arp**2+arpm**2) * (r(i)-r(i-1)) / (4*(arp-arpm))
+          endif
+          bextr(nextr) = br(i)
  20    continue
 
 !      find orbital kinetic and potential energy
 !      the potential part includes only the interaction with
 !      the nuclear part
 
- 30    ek(iorb) = br(1)*br(1)*rab(1)
+ 30    continue
+       ek(iorb) = br(1)*br(1)*rab(1)
        ep(iorb) = 0.d0
        sa2 = 0.d0
        lp = lo(iorb)+1
@@ -2345,10 +2349,10 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
           deni = ar2
           if (ispp == 'r') deni=deni+br2
           ek(iorb) = ek(iorb) + ll * (br2 + ar2*llp/r(i)**2)*rab(i)
-          if (so(iorb) .lt. 0.1D0) ep(iorb) = ep(iorb)  &
-             + ll * deni*viod(lp,i)*rab(i)/r(i)
-          if (so(iorb) .gt. 0.1D0) ep(iorb) = ep(iorb)  &
-             + ll * deni*viou(lp,i)*rab(i)/r(i)
+          if (so(iorb) .lt. 0.1D0) &
+             ep(iorb) = ep(iorb) + ll * deni*viod(lp,i)*rab(i)/r(i)
+          if (so(iorb) .gt. 0.1D0) &
+             ep(iorb) = ep(iorb) + ll * deni*viou(lp,i)*rab(i)/r(i)
           ll = 6 - ll
           if (sa2 .gt. 0.10D0) goto 40
           sa2 = sa2 + deni*rab(i)
@@ -2448,7 +2452,8 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
          if (temp .lt. 0.0) temp = 0.0
          if (r(j)*sqrt(temp) .lt. expzer) goto 23
       end do
- 23   ninf=j
+ 23   continue
+      ninf=j
 
 !     compute charge at rcov + higher moments
 !     spline interpolation/integration
