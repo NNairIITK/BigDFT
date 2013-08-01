@@ -348,7 +348,7 @@ program ae_atom
             write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
              '1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0'
           endif
-        enddo
+        end do
         close(unit=60)
         end if
 
@@ -389,7 +389,7 @@ program ae_atom
 !c     :        write(50,'(tr7,2a)')
 !c     :        '  0.0 0.0 0.0 0.0 0.0 0.0 ',
 !c     :        ' hsep()'
-!c      enddo
+!c      end do
 !cc     weights.par
 
 !     FITPAR, do not overwrite, append
@@ -445,8 +445,7 @@ subroutine prdiff(nconf,econf)
        write(6,10) (i,i=0,nconf-1)
  10    format(25h Total energy differences,//,2x,19i9)
        do i=1,nconf
-          write(6,20) i-1,(0.5d0*(econf(i)-econf(j)),j=1,i)
- 20       format(1x,i2,1x,19f9.5)
+          write(6,'(1x,i2,1x,19f9.5)') i-1,(0.5d0*(econf(i)-econf(j)),j=1,i)
        end do
 end subroutine prdiff
 
@@ -674,8 +673,6 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
        !Local variables
        real(kind=8), dimension(nr) :: y,yp,ypp,s1,s2
        real(kind=8), dimension(3*nr) :: w
-       !> For use in routine atomwr
-       integer, parameter :: ntitle = 40
 !      c.hartwig
 !      convention for spol as in dsolv: spin down=1 and spin up=2
        real(kind=8), dimension(nr,nspol) :: rho,vxcgrd
@@ -683,7 +680,7 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
 
        real(kind=8) :: a1,an,b1,bn,ehart,enexc,exc,exct,rhodw,rhoup
        real(kind=8) :: vxc,vxcd,vxcu,xlo,xnorm
-       integer :: i,ierr,l,ll,isx
+       integer :: i,ierr,ll,isx
 
 !      fit cd/r by splines
        y(1) = 0.d0
@@ -706,11 +703,11 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
        xlo = 0.d0
        call spliq(r,y,yp,ypp,nr,xlo,r,nr,s2,ierr)
 !      s2 ==    ans(i) = integral from xlo to xup(i)
-       do 20 i=1,nr
-       ypp(i) = r(i)*ypp(i) + 2*yp(i)
-       yp(i)  = r(i)*yp(i)  + y(i)
-       y(i)   = r(i)*y(i)
- 20    continue
+       do i=1,nr
+          ypp(i) = r(i)*ypp(i) + 2*yp(i)
+          yp(i)  = r(i)*yp(i)  + y(i)
+          y(i)   = r(i)*y(i)
+       end do
        call spliq(r,y,yp,ypp,nr,xlo,r,nr,s1,ierr)
 
 !      check normalization
@@ -773,50 +770,8 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
        ehart = ehart / 6
 
 !      find derivatives of the charge density
+ 50    continue
 
-       do 45 i=2,nr
-!      ??????????????????????????????????????????
-!      probably moved to ggaenergy17
- 45    continue
-
-!      store the atomic Coulomb (ionic + Hartree) potential on file
-
-!      first construct the total potential, store in array vtemp:
-
-!       ifile = 2
-!       irectp = 31
-       do 300 l = 1, 3
-!       do 310 i = 1, nr
-!         vtemp(i) = viod(l,i) + vod(i) * r(i)
-!310    continue
-!       cdtyp = ' '
-!       itype = ' '
-!       call atomwr
-!     +  (ifile,irectp,nameat,iXC,irel,xccore,zcore,norb,text,
-!     +   nr,aa,bb,r,nql,delql,nqnl,delqnl,numnl,
-!     +   itype,cdtyp,0,(l-1),mode,vtemp)
-
-!       if (ispp /= ' ') then
-!         do 220 i = 1, nr
-!           vtemp(i) = viou(l,i) + vou(i) * r(i)
-!220      continue
-!         cdtyp = 'up'
-!         call atomwr
-!     +    (ifile,irectp,nameat,iXC,irel,xccore,zcore,norb,text,
-!     +     nr,aa,bb,r,nql,delql,nqnl,delqnl,numnl,
-!     +     itype,cdtyp,0,(l-1),mode,vtemp)
-!        endif
-300     continue
-
-!        goto 50
-
-!      add exchange and correlation
-
-
- 50     continue
-
-
- 
       ! here was the functional specification section c
        do i=2,nr
 !         so how do we define this line now:
@@ -831,7 +786,7 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
           else
              rho(i,1)=(cdd(i)+cdu(i))/4.d0/pi/r(i)**2
           end if
-       enddo
+       end do
 !      some : added here Only for the first point!
        rho(1,:)=rho(2,:)-(rho(3,:)-rho(2,:))*r(2)/(r(3)-r(2))
 
@@ -962,7 +917,6 @@ subroutine input(itype,iXC,ispp,  &
        integer, dimension(5) :: nomin = (/ 10, 10 ,10, 10, 10 /)
 
 !      For use in routine atomwr:
-       integer, parameter :: ntitle = 40
        character(len=80) :: instrg
        character(len=3) :: irel
        character(len=3) :: name
@@ -986,10 +940,10 @@ subroutine input(itype,iXC,ispp,  &
       j2=2
       do i=len(instrg),1,-1
          if (instrg(i:i)/=' ') j1=i
-      enddo
+      end do
       do i=len(instrg),j1,-1
          if (instrg(i:i)==' ') j2=i
-      enddo
+      end do
       j2=j2-1
       nameat=instrg(j1:j2)
       if (j2==1) nameat(2:2)=' '
@@ -998,10 +952,10 @@ subroutine input(itype,iXC,ispp,  &
       j2=2
       do i=len(instrg),1,-1
          if (instrg(i:i)/=' ') j1=i
-      enddo
+      end do
       do i=len(instrg),j1,-1
          if (instrg(i:i)==' ') j2=i
-      enddo
+      end do
       j2=j2-1
 
       zsh=0d0
@@ -1025,7 +979,7 @@ subroutine input(itype,iXC,ispp,  &
       read(35,'(a)',err=998,end=999) instrg
       do i=len(instrg),1,-1
          if (instrg(i:i)/=' ') j1=i
-      enddo
+      end do
       ispp=instrg(j1:j1)
       if (ispp=='R') ispp='r'
       if(ispp/='r'.and.ispp/='n'.and.ispp/='s') then
@@ -1071,7 +1025,7 @@ subroutine input(itype,iXC,ispp,  &
             aa=-log(a*znuc)
             goto 29
          endif
-      enddo
+      end do
       write(*,*)'adjusted value for aa',aa
 
 
@@ -1112,13 +1066,13 @@ subroutine input(itype,iXC,ispp,  &
       nvalo=nval
       ncoreo=ncore
       if (ncore .gt. 15) then
-         write (6,*) 'more than 15 core orbitals'
+         write(6,*) 'more than 15 core orbitals'
          call ext(101)
       endif
 
  89    continue
-       ncore=ncoreo
-       nval =nvalo
+       ncore = ncoreo
+       nval = nvalo
        if (ispp=='R') ispp='r'
 !      if (ispp/='r') ispp=' '
        if (ispp /= 's' .and. ispp  /= 'r')  ispp=blank
@@ -1138,8 +1092,8 @@ subroutine input(itype,iXC,ispp,  &
          endif
        norb = 0
        if (ncore == 0) goto 85
-       do 80 i=1,ncore
-          do 80 j=1,jmax
+       do i=1,ncore
+          do j=1,jmax
              norb = norb + 1
              no(norb) = nc(i)
              lo(norb) = lc(i)
@@ -1159,7 +1113,9 @@ subroutine input(itype,iXC,ispp,  &
              zcore = zcore + zo(norb)
              if (abs(zo(norb)) .lt. 0.1D0) norb=norb-1
              if (ispp /= blank) sc=-sc
- 80    continue
+          end do
+       end do
+
        ncore = norb
  85    continue
        norb = ncore
@@ -1171,45 +1127,44 @@ subroutine input(itype,iXC,ispp,  &
 
        do 90 i=1,nval
 
-       read(35,*,err=998,end=999) ni,li,zd,zu
-       si = 0.d0
-       if (ispp /= blank) si=0.5D0
+          read(35,*,err=998,end=999) ni,li,zd,zu
+          si = 0.d0
+          if (ispp /= blank) si=0.5D0
 
-       do 90 j=1,jmax
+          do 90 j=1,jmax
+             norb = norb + 1
+             if (ispp /= blank) si=-si
+             no(norb) = ni
+             lo(norb) = li
+             so(norb) = si
+             zo(norb) = zd+zu
 
-       norb = norb + 1
-       if (ispp /= blank) si=-si
-       no(norb) = ni
-       lo(norb) = li
-       so(norb) = si
-       zo(norb) = zd+zu
+      !      c.hartwig
+             if (zo(norb) == 0.0) zo(norb)=1.0d-20
 
-!      c.hartwig
-       if (zo(norb) == 0.0) zo(norb)=1.0d-20
+      !      this is an experimental option:
+      !      zd > 0 = zu  ---> use Hund s rule
+      !      for auto assignment in polarized case:
+             if (ispp == 's')then
+                if (zu==0d0 .and. zd>0d0 .and. j==1 )then
+                    zd = min( dble(2*li+1), zo(norb) )
+                    zu = zo(norb)-zd
+      !             write(*,*)"(Hunds rule)",ni,li,si,zd,zu
+                end if
+                if( si .lt. 0.1D0) then
+                    zo(norb) = zd
+                else
+                    zo(norb) = zu
+                end if
+             end if
 
-!      this is an experimental option:
-!      zd > 0 = zu  ---> use Hund s rule
-!      for auto assignment in polarized case:
-       if (ispp == 's')then
-          if (zu==0d0 .and. zd>0d0 .and. j==1 )then
-              zd = min( dble(2*li+1), zo(norb) )
-              zu = zo(norb)-zd
-!             write(*,*)"(Hunds rule)",ni,li,si,zd,zu
-          end if
-          if( si .lt. 0.1D0) then
-              zo(norb) = zd
-          else
-              zo(norb) = zu
-          end if
-       end if
-
-!      assign occupation numbers for spin orbit coupling in the relativistic case 'r'
-       if (ispp == 'r') zo(norb)=zo(norb)*(2*(li+si)+1)/(4*li+2)
-       zval = zval + zo(norb)
-!      no s down orbital in the 'r' case
-       if (ispp == 'r' .and. li+si .lt. 0.d0) norb=norb-1
-       if (norb == 0) goto 90
-       if (nomin(lo(norb)+1) .gt. no(norb)) nomin(lo(norb)+1)=no(norb)
+      !      assign occupation numbers for spin orbit coupling in the relativistic case 'r'
+             if (ispp == 'r') zo(norb)=zo(norb)*(2*(li+si)+1)/(4*li+2)
+             zval = zval + zo(norb)
+      !      no s down orbital in the 'r' case
+             if (ispp == 'r' .and. li+si .lt. 0.d0) norb=norb-1
+             if (norb == 0) goto 90
+             if (nomin(lo(norb)+1) .gt. no(norb)) nomin(lo(norb)+1)=no(norb)
  90    continue
        nval = norb - ncore
 
@@ -1251,9 +1206,9 @@ subroutine input(itype,iXC,ispp,  &
               ' number of valence orbitals =',i3,/,  &
               ' electronic charge          =',f10.6,/,  &
               ' ionic charge               =',f10.6,//)
-       if (zsh /= 0.d0) write(6,175) zsh,rsh
- 175   format(' shell charge =',f6.2,' at radius =',f6.2,//)
-       write(6,180)
+      if (zsh /= 0.d0) write(6,175) zsh,rsh
+ 175  format(' shell charge =',f6.2,' at radius =',f6.2,//)
+      write(6,180)
 
       write(6,*)' Using LDA for generating the input guess wfn'
       call libxc_functionals_init(-20,nspol)
@@ -1261,14 +1216,14 @@ subroutine input(itype,iXC,ispp,  &
 !     call libxc_functionals_init(iXC,nspol)
 
 
- 180   format(' input data for orbitals'//,  &
+ 180  format(' input data for orbitals'//,  &
               '  i    n    l    s     j     occ'/)
-       xji = 0.d0
-       do 200 i=1,norb
+      xji = 0.d0
+      do i=1,norb
          if (ispp == 'r') xji = lo(i) + so(i)
          write(6,190) i,no(i),lo(i),so(i),xji,zo(i)
  190     format(1x,i2,2i5,2f6.1,f10.4)
- 200     continue
+      end do
       write(6,210) r(2),nr,r(nr),aa,bb
  210  format(//,' radial grid parameters',//,  &
        ' r(1) = .0 , r(2) =',1pe12.6,' , ... , r(',i4,') =',0pf12.8,  &
@@ -1280,7 +1235,7 @@ subroutine input(itype,iXC,ispp,  &
 !        write (text(i),24) no(i),spdf(lo(i)+1),so(i),zo(i),irel
 !24      format (1x,i1,a,' s=',f4.1,' (occ=',f6.3,') ',a)
 !25      continue
-       return
+      return
 
        !Error of reading
  998   continue
@@ -1626,62 +1581,62 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 !    Arrays added to gain speed.
       dimension rabrlo(5),rlp(5),rab2(nr),fa(nr),fb(nr)
 
-!------Machine dependent parameter-
-!------Require exp(-2*expzer) to be within the range of the machine
-! IBM
+      ! Machine dependent parameter-
+      ! Require exp(-2*expzer) to be within the range of the machine
+      ! IBM
       expzer = 3.7D2
-!Iris     expzer = 3.7E2
-!Apollo   expzer = 3.7D2
-!Sun      expzer = 3.7D2
-!Vax      expzer = 44.d0
-!ray      expzer =  2.8E3
+      !Iris     expzer = 3.7E2
+      !Apollo   expzer = 3.7D2
+      !Sun      expzer = 3.7D2
+      !Vax      expzer = 44.d0
+      !ray      expzer =  2.8E3
 
 !     for numerical stability:
 
-      expzer = expzer/2
+      expzer = expzer/2.d0
 
-!      integration coefficients
+!     integration coefficients
+      abc1 = 1901.d0/720.d0
+      abc2 = -1387.d0/360.d0
+      abc3 = 109.d0/30.d0
+      abc4 = -637.d0/360.d0
+      abc5 = 251.d0/720.d0
+      amc0 = 251.d0/720.d0
+      amc1 = 323.d0/360.d0
+      amc2 = -11.d0/30.d0
+      amc3 = 53.d0/360.d0
+      amc4 = -19.d0/720.d0
 
-       abc1 = 1901.d0/720.d0
-       abc2 = -1387.d0/360.d0
-       abc3 = 109.d0/30.d0
-       abc4 = -637.d0/360.d0
-       abc5 = 251.d0/720.d0
-       amc0 = 251.d0/720.d0
-       amc1 = 323.d0/360.d0
-       amc2 = -11.d0/30.d0
-       amc3 = 53.d0/360.d0
-       amc4 = -19.d0/720.d0
       itmax = 100
       lp = lo(iorb)+1
       ar(1) = 0.0d0
       if (lo(iorb) == 0) then
-        br(1) = b*a
+         br(1) = b*a
       else
-        br(1) = 0.0d0
+         br(1) = 0.0d0
       endif
-      do 1 j=2,nr
-        ar(j) = 0.0d0
- 1    continue
-      do 2 j=2,nr
-        br(j) =0.0d0
- 2    continue
-      do 4 j=2,5
-        rlp(j)=r(j)**lp
- 4    continue
-      do 5 j=2,5
-        rabrlo(j)=rab(j)*r(j)**lo(iorb)
- 5    continue
-      do 6 j=1,nr
-        rab2(j)=rab(j)*rab(j)
- 6    continue
+      do j=2,nr
+         ar(j) = 0.0d0
+      end do
+      do j=2,nr
+         br(j) =0.0d0
+      end do
+      do j=2,5
+         rlp(j)=r(j)**lp
+      end do
+      do j=2,5
+         rabrlo(j)=rab(j)*r(j)**lo(iorb)
+      end do
+      do j=1,nr
+         rab2(j)=rab(j)*rab(j)
+      end do
 
 !   set underflow trap
 
       juflow=1
-      do 42 j=2,nr
-        if (lp*abs(log(r(j))) .ge. expzer/2) juflow = j
- 42   continue
+      do j=2,nr
+         if (lp*abs(log(r(j))) .ge. expzer/2) juflow = j
+      end do
 
 !   determine effective charge and vzero for startup of
 !   outward integration
@@ -1711,7 +1666,8 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
       emax = 0.0d0
       emin = -200000.0d0
       if (ev(iorb) .gt. emax) ev(iorb) = emax
- 10   if (itmax .lt. 2) write(6,15) iorb,iter,ev(iorb),nodes
+ 10   continue
+      if (itmax .lt. 2) write(6,15) iorb,iter,ev(iorb),nodes
  15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i2)
       if (itmax == 0) return
       if (ev(iorb) .gt. 0.0) then
@@ -1774,44 +1730,40 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
       fa(5) = br(5)
       fb(5) = b*br(5) + rab2(5)*(v(5)-ev(iorb))*ar(5)
 
-!   intergration loop
 
+      ! integration loop
       nodes = 0
-      do 40 j=6,nctp
+      do j=6,nctp
 
-!   predictor (Adams-Bashforth)
+         ! predictor (Adams-Bashforth)
+         j1=j-1
+         j2=j-2
+         j3=j-3
+         j4=j-4
+         j5=j-5
+         vev=v(j)-ev(iorb)
+         arp = ar(j1) + abc1*fa(j1)+abc2*fa(j2)+abc3*fa(j3)+  &
+               abc4*fa(j4)+abc5*fa(j5)
+         brp = br(j1) + abc1*fb(j1)+abc2*fb(j2)+abc3*fb(j3)+  &
+               abc4*fb(j4)+abc5*fb(j5)
+         fb1 = b*brp + rab2(j)*vev*arp
 
-        j1=j-1
-        j2=j-2
-        j3=j-3
-        j4=j-4
-        j5=j-5
-        vev=v(j)-ev(iorb)
-        arp = ar(j1) + abc1*fa(j1)+abc2*fa(j2)+abc3*fa(j3)+  &
-         abc4*fa(j4)+abc5*fa(j5)
-        brp = br(j1) + abc1*fb(j1)+abc2*fb(j2)+abc3*fb(j3)+  &
-         abc4*fb(j4)+abc5*fb(j5)
-        fb1 = b*brp + rab2(j)*vev*arp
+         ! corrector (Adams-Moulton)
+         arc = ar(j1) + amc0*brp+amc1*fa(j1)+amc2*fa(j2)+  &
+               amc3*fa(j3)+amc4*fa(j4)
+         brc = br(j1) + amc0*fb1+amc1*fb(j1)+amc2*fb(j2)+  &
+               amc3*fb(j3)+amc4*fb(j4)
+         fb0 = b*brc + rab2(j)*vev*arc
 
-!   corrector (Adams-Moulton)
-
-        arc = ar(j1) + amc0*brp+amc1*fa(j1)+amc2*fa(j2)+  &
-         amc3*fa(j3)+amc4*fa(j4)
-        brc = br(j1) + amc0*fb1+amc1*fb(j1)+amc2*fb(j2)+  &
-         amc3*fb(j3)+amc4*fb(j4)
-        fb0 = b*brc + rab2(j)*vev*arc
-
-!   error reduction step
-
-        ar(j) = arc + amc0*(brc-brp)
-        br(j) = brc + amc0*(fb0-fb1)
-        fa(j) = br(j)
-        fb(j) = b*br(j) + rab2(j)*vev*ar(j)
-
-!   count nodes - if no underflow
-
-        if(j.gt.juflow.and.ar(j)*ar(j-1).lt.0.0)nodes=nodes+1
- 40   continue
+         ! error reduction step
+         ar(j) = arc + amc0*(brc-brp)
+         br(j) = brc + amc0*(fb0-fb1)
+         fa(j) = br(j)
+         fb(j) = b*br(j) + rab2(j)*vev*ar(j)
+         
+         ! count nodes - if no underflow
+         if(j.gt.juflow.and.ar(j)*ar(j-1).lt.0.0)nodes=nodes+1
+      end do
 
       arctp = ar(nctp)
       brctp = br(nctp)
@@ -1844,13 +1796,13 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 !   inward integration from ninf to nctp
 !   startup
 
-      do 71 j=ninf,ninf-4,-1
-        alf = v(j) - ev(iorb)
-        if (alf .lt. 0.0) alf = 0.0d0
-        alf = sqrt(alf)
-        ar(j) = exp(-alf*r(j))
-        br(j) = -rab(j)*alf*ar(j)
- 71   continue
+      do j=ninf,ninf-4,-1
+         alf = v(j) - ev(iorb)
+         if (alf .lt. 0.0) alf = 0.0d0
+         alf = sqrt(alf)
+         ar(j) = exp(-alf*r(j))
+         br(j) = -rab(j)*alf*ar(j)
+      end do
 
 !    Array for predictor-corrector added.
 
@@ -1916,20 +1868,21 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 !   rescale ar and br outside nctp to match ar(nctp) from
 !   outward integration
 
-  222 factor = arctp/ar(nctp)
-      do 90 j=nctp,ninf
-        ar(j) = factor * ar(j)
-        br(j) = factor * br(j)
- 90   continue
+  222 continue
+      factor = arctp/ar(nctp)
+      do j=nctp,ninf
+         ar(j) = factor * ar(j)
+         br(j) = factor * br(j)
+      end do
 
 !   find normalizing factor
 
       factor = 0.0d0
       ll = 4
-      do 100 j=2,ninf
-        factor = factor + ll*ar(j)*ar(j)*rab(j)
-        ll = 6 - ll
- 100  continue
+      do j=2,ninf
+         factor = factor + ll*ar(j)*ar(j)*rab(j)
+         ll = 6 - ll
+      end do
       factor = factor / 3
 
 !   modify eigenvalue ev
@@ -1951,14 +1904,14 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
          br(j) = factor*br(j) / rab(j)
       end do
 
-      end
+end subroutine difnrl
 
 
-      !> difrel integrates the relativistic Dirac equation
-      !! it finds the eigenvalue ev, the major and minor component
-      !! of the wavefunction, ar and br.  It uses an intial guess
-      !! for the eigenvalues from dsolv1
-      subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
+!> difrel integrates the relativistic Dirac equation
+!! it finds the eigenvalue ev, the major and minor component
+!! of the wavefunction, ar and br.  It uses an intial guess
+!! for the eigenvalues from dsolv1
+subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
          norb,no,lo,so,znuc,vid,viu,ev)
 
       implicit real*8 (a-h,o-z)
@@ -2494,7 +2447,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
          temp = v(j) - ev(iorb)
          if (temp .lt. 0.0) temp = 0.0
          if (r(j)*sqrt(temp) .lt. expzer) goto 23
-      enddo
+      end do
  23   ninf=j
 
 !     compute charge at rcov + higher moments
@@ -2520,7 +2473,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
          ttx(i)=r(i)
          tty(i)=ar(i)*ar(i)
          if (r(i).le.rcov) ircov=i
-      enddo
+      end do
       if (ircov.gt.ninf) then
          ircov=ninf
          write(6,*) 'warning: ircov > ninf ! (ircov set to ninf)'
@@ -2538,7 +2491,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
          cmin=0.
          do i=1,npoint
             tty(i) = br(i)*br(i)
-         enddo
+         end do
          call splift(ttx,tty,ttyp,ttypp,npoint,ttw,ierr,isx,  &
               a1,b1,an,bn)
          if(ierr/=1) write(6,*)'SPLIFT ERROR!' !stop 'spliq'
@@ -2560,7 +2513,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
          tty(i)=ar(i)*ar(i)
          if (ispp=='r')tty(i)=tty(i)+br(i)*br(i)
          tty(i)=tty(i)*r(i)*r(i)
-      enddo
+      end do
       call splift(ttx,tty,ttyp,ttypp,npoint,ttw,ierr,isx,a1,b1,an,bn)
       if(ierr/=1) write(6,*)'SPLIFT ERROR!' !stop 'spliq'
 !     ddd =  = int_0^rcov (f^2+g^2) r^4 dr
@@ -2574,7 +2527,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 
       do i=1,npoint
          tty(i)=tty(i)*r(i)*r(i)
-      enddo
+      end do
       call splift(ttx,tty,ttyp,ttypp,npoint,ttw,ierr,isx,a1,b1,an,bn)
       if(ierr/=1) write(6,*)'SPLIFT ERROR!' !stop 'spliq'
       call spliq(ttx,tty,ttyp,ttypp,npoint,ttxlo,ttxup,1,ddcrcov,ierr)
@@ -2653,7 +2606,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
             zps=0
             do jj=iorb,norb
                zps=zps+zo(jj)
-            enddo
+            end do
 !           do not append to atom.ae, but open another atom.??.ae
             write(cnum,'(i2.2)') nconf
             open(unit=40,file='atom.'//cnum//'.ae',form='formatted')
@@ -2717,7 +2670,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 !           else
 !              write(40,*) r(i),ar(i)
 !           endif
-!        enddo
+!        end do
 
       endif
 
@@ -2801,7 +2754,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
          else
            write(33,'(20e20.10)') r(i),ar(i),dena
          endif
-      enddo
+      end do
 !     add a blank line for readability and use of gnuplots "every" keyword
       write(33,*)
 !     do not close this io unit unless we write to one file per orbital
