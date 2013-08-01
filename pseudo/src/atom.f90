@@ -88,14 +88,22 @@ subroutine atom
  20    continue
 
 !      read input data
-
-       call input (itype,iXC,ispp,  &
-       & nrmax,nr,a,b,r,rab,rprb,rcov,lmax,  &
-       & nameat,norb,ncore,no,lo,so,zo,  &  
-       & znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       & viod,viou,vid,viu,vod,vou,  &
-       & etot,ev,ek,ep,nconf,  &
-       & nvalo,ncoreo) !      test: pass dummy args instead of using a save block
+!      r ...... radial mesh
+!      nr ..... # mesh points
+!      norb ... # orbitals
+!      ncore .. # core orbitals (closed shells)
+!      no ..... n quantum number
+!      lo ..... l do.
+!      so ..... spin (+/- 0.5, or 0 for unpolarized)
+!      zo ..... # electrons
+!      znuc ... atomic number
+       call input(itype,iXC,ispp, &
+       & nrmax,nr,a,b,r,rab,rw,rd,rprb,rcov, &
+       & nameat,norb,ncore, &
+       & maxorb,no,lo,so,zo, &
+       & znuc,zsh,rsh,zel,zcore, &
+       & nconf,  &
+       & nvalo,ncoreo) ! test: pass dummy args instead of using a save block
 
        if (itype == stop_chain) goto 140
 
@@ -906,58 +914,79 @@ end subroutine ext
 
 end subroutine velect
 
-       subroutine input (itype,iXC,ispp,  &
-       nrmax,nr,a,b,r,rab,rprb,rcov,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep,nconf,  &
-!      the save block seems to FAIL sometimes
-       nvalo,ncoreo)
 
-!     we need these modules to initialize libXC when reading iXC
-!     use defs_basis
-      use libxcModule
+!> Subroutine to read input parameters and build the different integration grids
+!!    ncore .. # core orbitals (closed shells)
+!!    no ..... n quantum number
+!!    lo ..... l do.
+!!    so ..... spin (+/- 0.5, or 0 for unpolarized)
+!!    zo ..... # electrons
+!!    znuc ... atomic number
+subroutine input(itype,iXC,ispp,  &
+          nrmax,nr,a,b,r,rab,rw,rd,rprb,rcov, &
+          nameat,norb,ncore, &
+          maxorb,no,lo,so,zo,  &
+          znuc,zsh,rsh,zel,zcore, &
+          nconf, &
+          nvalo,ncoreo)
+
+       ! We need these modules to initialize libXC when reading iXC
+       ! use defs_basis
+       use libxcModule
        implicit double precision(a-h,o-z)
 
-!      subroutine to read input parameters
+       !Arguments
+       integer, intent(in) :: nrmax                       !< Maximal number of radial mesh points
+       integer, intent(out) :: nr                         !< # mesh points
+       real(kind=8), dimension(nrmax), intent(out) :: r   !< Radial mesh r(i) = a*(exp(b*(i-1))-1)
+       real(kind=8), dimension(nrmax), intent(out) :: rab !< rab(i) = (r(i)+a)*b (integration grid)
+       real(kind=8), dimension(nrmax), intent(out) :: rw  !< rw(i) = rab(i)*12.56637061435917d0*r(i)**2
+       real(kind=8), dimension(nrmax), intent(out) :: rd  !< rd(i) = 1/rab(i)
+       real(kind=8), intent(out) :: a,b                   !< Parameters to build the logarithmic mesh
+       real(kind=8), intent(out) :: rcov                  !< Covalent radius
+       integer, intent(in) :: maxorb                      !< Maximal orbitals
+       integer, intent(out) :: norb                       !< Number of orbitals
+       integer, dimension(maxorb), intent(out) :: no, lo
+       real(kind=8), dimension(maxorb), intent(out) :: so, zo
+       character(len=2), intent(out) :: itype
+       character(len=2), intent(out) :: nameat            !< Name of the atom
+       integer, intent(out) :: iXC
+       integer, intent(out) :: ncore, ncoreo
+       integer, intent(out) :: nvalo
+       integer, intent(out) :: nconf                      !< Number of electronic configurations
+       real(kind=8), intent(out) :: zel
+       !Local variables
+       integer, dimension(15), parameter :: nc = (/ 1,2,2,3,3,3,4,4,4,4,5,5,5,6,6 /)
+       integer, dimension(15), parameter :: lc = (/ 0,0,1,0,1,2,0,1,2,3,0,1,2,0,1 /)
+       character(len=1), dimension(5), parameter :: spdf = (/ 's','p','d','f','g' /)
+       character(len=1), parameter :: blank = ' '
+       logical, parameter :: debug = .false.      !< Debug flag
 
-       dimension r(nrmax),rab(nrmax),  &
-       no(*),lo(*),so(*),zo(*),  &
-       cdd(nrmax),cdu(nrmax),cdc(nrmax),  &
-       viod(lmax,nrmax),viou(lmax,nrmax),vid(nrmax),viu(nrmax),  &
-       vod(nrmax),vou(nrmax),  &
-       etot(10),ev(*),ek(*),ep(*)
-       character*2 itype,ispp*1,nameat,blank*1
-       integer :: iXC
-       logical, parameter :: debug = .false.
-
-       dimension rw(10000),rd(10000)
-       common /intgrd/ rw,rd
-!      those are now dummy args on line 6
-!      save nvalo,ncoreo
-
+       !Spin polarization information
+       character(len=1) :: ispp
+       integer, dimension(5) :: nomin = (/ 10, 10 ,10, 10, 10 /)
 
 !      For use in routine atomwr:
        integer, parameter :: ntitle = 40
-       character(len=40) :: text(ntitle)
-       character*80 instrg
-       character irel*3, icalc*2, cdtyp*2
-       character spdf(5)
-       dimension nc(15),lc(15),nomin(5),iray(2)
-       character iray*8,name*3
+       character(len=80) :: instrg
+       character(len=3) :: irel
+       character(len=3) :: name
 
-       data nc /1,2,2,3,3,3,4,4,4,4,5,5,5,6,6/
-       data lc /0,0,1,0,1,2,0,1,2,3,0,1,2,0,1/
-       data nomin /5*10/
-       data spdf /'s','p','d','f','g'/
-      data blank /' '/
-!------------------------------------------------------------------
-      itype='ae'
- 10   read(35,'(a)',err=998,end=999) instrg
+       !Read all electron configuration
+       itype='ae'
+
+      !Main loop for all electron configurations
+ 10   continue
+      !Read instruction
+      read(35,'(a)',err=998,end=999) instrg
+      !If blank lines, next line
       if (instrg==' ') goto 10
-      if (index(instrg,'NEXT CONFIGURATION')/=0) goto 89
+      !next configuration ?
+      if (index(instrg,'NEXT CONFIGURATION') /=0 ) goto 89
+      !Ignore the line if nconf > 1
       if (nconf.ge.1) goto 10
+
+      !For the first electronic configuration only !!
       j1=1
       j2=2
       do i=len(instrg),1,-1
@@ -1004,88 +1033,82 @@ end subroutine velect
       enddo
       ispp=instrg(j1:j1)
       if (ispp=='R') ispp='r'
-!     if (ispp/='r') ispp=' '
-         if(ispp/='r'.and.ispp/='n'.and.ispp/='s')then
-            write(6,*)'The first non-blank character on line 3'
-            write(6,*)'of atom.dat must be one of' 
-            write(6,*)'n: for non relativistic calculations'
-            write(6,*)'r: for relativistic calculations'
-            write(6,*)'s: for (relat) spin polarized calculations'
-            write(6,*)
-            write(6,*)'Character found:',ispp
-            write(6,*)'Exiting.'
-            stop
-         end if
-       
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!      if (ispp /= 's' .and. ispp  /= 'r')  ispp=blank
-!      spin-polarization needs relativistic calculation
-       znuc=0.d0
-       read(35,*,err=998,end=999) rmax,aa,bb
-       read(35,*,err=998,end=999) rcov,rprb
-       znuc=charge(nameat)
+      if(ispp/='r'.and.ispp/='n'.and.ispp/='s') then
+         write(6,*) 'The first non-blank character on line 3'
+         write(6,*) 'of atom.dat must be one of'
+         write(6,*) 'n: for non relativistic calculations'
+         write(6,*) 'r: for relativistic calculations'
+         write(6,*) 's: for (relat) spin polarized calculations'
+         write(6,*)
+         write(6,*) 'Character found:',ispp
+         write(6,*) 'Exiting.'
+         stop
+      end if
 
-!      set up grid
+      ! if (ispp /= 's' .and. ispp  /= 'r')  ispp=blank
+      ! spin-polarization needs relativistic calculation
+      znuc=0.d0
+      read(35,*,err=998,end=999) rmax,aa,bb
+      read(35,*,err=998,end=999) rcov,rprb
+      znuc=charge(nameat)
 
-       if (abs(rmax) .lt. 0.00001) rmax=100.0d0
-       if (abs(aa) .lt. 0.00001) aa = 3.0d0
-       if (abs(bb) .lt. 0.00001) bb = 40.0d0
-       if (znuc == 0.0d0) then
-          a = 10**(-aa)
-          goto 29
-       endif
-       a=exp(-aa)/znuc
-       b = 1/bb
+      ! Set up grid
+      if (abs(rmax) .lt. 0.00001) rmax=100.0d0 
+      if (abs(aa) .lt. 0.00001) aa = 3.0d0
+      if (abs(bb) .lt. 0.00001) bb = 40.0d0
+      if (znuc == 0.0d0) then
+         a = 10**(-aa)
+         goto 29
+      endif
+      a=exp(-aa)/znuc
+      b = 1/bb
 
 !     modify grid-parameter, so that one grid-point matches
-!     rcov exact
-
-        do i=1,nrmax
-           if (i == nrmax) then
-              write(6,50)
-              stop 'input two'
-           endif
-           r(i) = a*(exp(b*(i-1))-1)
-           if (r(i).ge.rcov) then
-              a= rcov/(exp(b*(i-1))-1)
-              aa=-log(a*znuc)
-              goto 29
-           endif
-        enddo
-        write(*,*)'adjusted value for aa',aa
- 29     continue
-        do 30 i=1,nrmax
-           if (i == nrmax) then
-              write(6,50)
- 50           format(/,' error in input - arraylimits',  &
-                   ' for radial array exceeded',/)
-              call ext(100)
-           endif
-          r(i) = a*(exp(b*(i-1))-1)
-          rab(i) = (r(i)+a)*b
-
-!     c.hartwig: set up grids for modified integration
-
-          rw(i) = b*(r(i)+a)
-          rd(i) = 1.d0/rw(i)
-          rw(i)=rw(i)*12.56637061435917d0*r(i)**2
-          if (r(i) .gt. rmax) goto 60
- 30     continue
- 60     nr = i-1
-
-!     modify weights at end point for improved accuracy
+!     rcov exactly (r(i) is used in this part only for that)
+      do i=1,nrmax
+         if (i == nrmax) then
+            write(6,50)
+            stop 'input two'
+         endif
+         r(i) = a*(exp(b*(i-1))-1)
+         if (r(i).ge.rcov) then
+            a= rcov/(exp(b*(i-1))-1)
+            aa=-log(a*znuc)
+            goto 29
+         endif
+      enddo
+      write(*,*)'adjusted value for aa',aa
 
 
-        if (debug) then
-           write(*,*) 'DEBUG OPTION: No modified weights at origin!'
-        end if
+ 29   continue
+      !Build all integration grids (r, rab, rw and rd)
+      do i=1,nrmax
+         if (i == nrmax) then
+            write(6,50)
+ 50         format(/,' error in input - arraylimits', ' for radial array exceeded',/)
+            call ext(100)
+         endif
+        r(i) = a*(exp(b*(i-1))-1)
+        rab(i) = (r(i)+a)*b
+        ! c.hartwig: set up grids for modified integration
+        rw(i) = b*(r(i)+a)
+        rd(i) = 1.d0/rw(i)
+        rw(i)=rw(i)*12.56637061435917d0*r(i)**2
+        if (r(i) .gt. rmax) goto 60
+      end do
 
-        rw(1)=rw(1)*17.d0/48.d0
-        rw(2)=rw(2)*59.d0/48.d0
-        rw(3)=rw(3)*43.d0/48.d0
-        rw(4)=rw(4)*49.d0/48.d0
+ 60   continue
+      !Set the number of grid points (< rmax)
+      nr = i-1
 
-
+!     Modify weights at end point for improved accuracy
+      if (debug) then
+         write(*,*) 'DEBUG OPTION: No modified weights at origin!'
+      end if
+      rw(1)=rw(1)*17.d0/48.d0
+      rw(2)=rw(2)*59.d0/48.d0
+      rw(3)=rw(3)*43.d0/48.d0
+      rw(4)=rw(4)*49.d0/48.d0
 
 
 !      read the number of core and valence orbitals
@@ -1262,19 +1285,18 @@ end subroutine velect
 !        write (text(i),24) no(i),spdf(lo(i)+1),so(i),zo(i),irel
 !24      format (1x,i1,a,' s=',f4.1,' (occ=',f6.3,') ',a)
 !25      continue
-1000   return
-
- 998   write(6,*) 'Error while reading atom.dat'
-       stop
- 999   write(6,*) 'Reached end of file atom.dat'
-       itype='stop'
        return
-       end
 
-!      *****************************************************************
-
-!      *****************************************************************
-
+       !Error of reading
+ 998   continue
+       write(6,*) 'Error while reading atom.dat'
+       stop
+       !Error: end of file
+ 999   continue
+       write(6,*) 'Reached end of file atom.dat'
+       !itype gives and error code
+       itype='st'
+end subroutine input
 
 
 !> Function determines the nuclear charge of an element
