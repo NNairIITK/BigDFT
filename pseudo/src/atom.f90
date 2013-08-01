@@ -244,15 +244,9 @@ subroutine atom
           dvold = dvmax
           write(6,70) iter,dvmax,xmixo
  70       format(7h iter =,i5,9h dvmax = ,1pe9.3,8h xmixo =,1pe9.3)
-!         
-!         mix input and output electronic potentials
-!         
-          call mixer(iter,iconv,icon2,xmixo,iXC,ispp,  &
-          nrmax,nr,a,b,r,rab,lmax,  &
-          nameat,norb,ncore,no,lo,so,zo,  &
-          znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-          viod,viou,vid,viu,vod,vou,  &
-          etot,ev,ek,ep)
+
+          ! mix input and output electronic potentials
+          call mixer(xmixo,nr,vid,viu,vod,vou)
 
 
 !      end of iteration loop
@@ -265,12 +259,11 @@ subroutine atom
 
 !      find total energy
 
- 120   call etotal(itype,  &
-       nrmax,nr,a,b,r,rab,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep)
+ 120   continue
+       call etotal( &
+          nameat,norb,no,lo,so,zo,  &
+          znuc,zsh,rsh,zcore, &
+          etot,ev,ek,ep)
        if (naold /= nameat .or. iXCold /= iXC .or.  &
            ityold /= itype ) call prdiff(nconf,econf)
 !       if (nconf == 9) nconf=1
@@ -417,26 +410,20 @@ subroutine prdiff(nconf,econf)
        end do
 end subroutine prdiff
 
-       subroutine mixer(iter,iconv,icon2,xmixo,iXC,ispp,  &
-       nrmax,nr,a,b,r,rab,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep)
-       implicit double precision(a-h,o-z)
 
-!      subroutine computes the new exchange correlation potential
-!      given the input and the output potential from the previous
-!      iteration.
-
-       dimension r(nr),rab(nr),  &
-       no(norb),lo(norb),so(norb),zo(norb),  &
-       cdd(nr),cdu(nr),cdc(nr),  &
-       viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
-       etot(10),ev(norb),ek(norb),ep(norb)
-       character(len=1) :: ispp
-       character(len=2) :: nameat
-       integer ::  iXC
+!> Subroutine computes the new exchange correlation potential
+!! given the input and the output potential from the previous
+!! iteration.
+subroutine mixer(xmixo,nr,vid,viu,vod,vou)
+       implicit none
+       !Arguments
+       integer, intent(in) :: nr
+       real(kind=8), intent(in) :: xmixo
+       real(kind=8), dimension(nr), intent(in) :: vod,vou
+       real(kind=8), dimension(nr), intent(inout) :: vid,viu
+       !Local variables
+       real(kind=8) :: xmixi
+       integer :: i
 
        xmixi = 1 - xmixo
        do i=1,nr
@@ -446,51 +433,40 @@ end subroutine prdiff
 end subroutine mixer
 
 
-!      *****************************************************************
+!> etotal computes the total energy from the electron charge density.
+subroutine etotal( &
+          nameat,norb,no,lo,so,zo,  &
+          znuc,zsh,rsh,zcore, &
+          etot,ev,ek,ep)
+       implicit none
+       !Arguments
+       character(len=2), intent(in) :: nameat                    !< Name of the atom
+       integer, intent(in) :: norb                               !< #orbitals
+       integer, dimension(norb), intent(in) :: no, lo            !< quantum numbers
+       real(kind=8), intent(in) :: rsh, znuc, zcore, zsh         !< Related to the nature of the atoms
+       real(kind=8), dimension(norb), intent(out) :: so, zo  
+       real(kind=8), dimension(norb), intent(out) :: ev, ek, ep
+       !> etot(i) i=1,10 contains various contributions to the total energy.
+       !!     (1)   Sum of eigenvalues ev
+       !!     (2)   Sum of orbital kinetic energies ek
+       !!     (3)   El-ion interaction from sum of orbital, potential energies ep
+       !!     (4)   Electrostatic el-el interaction (from velect)
+       !!     (5)   Vxc (exchange-correlation) correction to sum of eigenvalues (from velect)
+       !!     (6)   3 * vc - 4 * ec, correction term for virial theorem, when correlation is included (from velect)
+       !!     (7)   Exchange and correlation energy  (from velect)
+       !!     (8)   Kinetic energy from eigenvalues  (1,3,4,5)
+       !!     (9)   Potential energy
+       !!     (10)  Total energy
+       real(kind=8), dimension(10), intent(out) :: etot
+       !Local variables
+       character(len=1), dimension(5) :: il
+       real(kind=8) :: esh,vshift
+       integer :: i
 
-       subroutine etotal(itype,  &
-       nrmax,nr,a,b,r,rab,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep)
-       implicit double precision(a-h,o-z)
+       ! pi = 4*atan(1.D0)
 
-!      etotal computes the total energy from the electron charge density.
-
-       dimension r(nr),rab(nr),  &
-       no(norb),lo(norb),so(norb),zo(norb),  &
-       cdd(nr),cdu(nr),cdc(nr),  &
-       viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
-       etot(10),ev(norb),ek(norb),ep(norb)
-       character(len=2) :: itype,nameat
-
-!      etot(i)    i=1,10 contains various contributions to the total
-!                 energy.
-!                 (1)   sum of eigenvalues ev
-!                 (2)   sum of orbital kinetic energies ek
-!                 (3)   el-ion interaction from sum of orbital
-!                       potential energies ep
-!                 (4)   electrostatic el-el interaction  (from velect)
-!                 (5)   vxc (exchange-correlation) correction to sum
-!                       of eigenvalues                   (from velect)
-!                 (6)   3 * vc - 4 * ec
-!                       correction term for virial theorem
-!                       when correlation is included     (from velect)
-!                 (7)   exchange and correlation energy  (from velect)
-!                 (8)   kinetic energy from eigenvalues  (1,3,4,5)
-!                 (9)   potential energy
-!                 (10)  total energy
-
-       dimension il(5)
-       character(len=1) :: il
-
- 1     format(/,1x,a10,30(/,1x,10(1pe13.4)))
-!       pi = 4*atan(1.D0)
-
-!      sum up eigenvalues ev, kinetic energies ek, and
-!      el-ion interaction ep
-
+       ! sum up eigenvalues ev, kinetic energies ek, and
+       ! el-ion interaction ep
        etot(1) = 0.D0
        etot(2) = 0.D0
        etot(3) = 0.D0
