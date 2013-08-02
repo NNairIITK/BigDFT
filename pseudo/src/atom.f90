@@ -1702,7 +1702,7 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
         ev(iorb) = 0.9d0*ev(iorb)
         if (icount .gt. 100) then
           write(*,*)
-          write(6,1010)iorb
+          write(6,1010) iorb
           stop 'difnrl two'
         endif
         goto 20
@@ -1911,7 +1911,7 @@ end subroutine difnrl
 
 !> difrel integrates the relativistic Dirac equation
 !! it finds the eigenvalue ev, the major and minor component
-!! of the wavefunction, ar and br.  It uses an intial guess
+!! of the wavefunction, ar and br.  It uses an initial guess
 !! for the eigenvalues from dsolv1
 subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
          norb,no,lo,so,znuc,vid,viu,ev)
@@ -1931,35 +1931,35 @@ subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
        vid(nr),viu(nr),ev(norb),rabkar(nr),rabai(nr), &
        fa(nr),fb(nr)
 
-      dimension rs(5)
+      real(kind=8), dimension(5) :: rs
 
-!------Machine dependent parameter-
-!------Require exp(-2*expzer) to be within the range of the machine
-! IBM
+      !------Machine dependent parameter-
+      !------Require exp(-2*expzer) to be within the range of the machine
+      ! IBM
       expzer = 3.7D2
-!Iris     expzer =3.7E2
-!Apollo   expzer = 3.7E2
-!Sun      expzer = 3.7D2
-!Vax      expzer = 44.d0
-!ray      expzer = 2.8E3
+      !Iris     expzer =3.7E2
+      !Apollo   expzer = 3.7E2
+      !Sun      expzer = 3.7D2
+      !Vax      expzer = 44.d0
+      !ray      expzer = 2.8E3
 
-!     for numerical stability:
+      ! for numerical stability:
+      expzer = expzer/2.d0
 
-      expzer = expzer/2
 
+      ! integration coefficients
+      abc1 = 1901.d0/720.d0
+      abc2 = -1387.d0/360.d0
+      abc3 = 109.d0/30.d0
+      abc4 = -637.d0/360.d0
+      abc5 = 251.d0/720.d0
+      amc0 = 251.d0/720.d0
+      amc1 = 323.d0/360.d0
+      amc2 = -11.d0/30.d0
+      amc3 = 53.d0/360.d0
+      amc4 = -19.d0/720.d0
 
-!      integration coefficients
-
-       abc1 = 1901.d0/720.d0
-       abc2 = -1387.d0/360.d0
-       abc3 = 109.d0/30.d0
-       abc4 = -637.d0/360.d0
-       abc5 = 251.d0/720.d0
-       amc0 = 251.d0/720.d0
-       amc1 = 323.d0/360.d0
-       amc2 = -11.d0/30.d0
-       amc3 = 53.d0/360.d0
-       amc4 = -19.d0/720.d0
+      !
       itmax = 100
       ai2 = ai * ai
       az = znuc/(2*ai)
@@ -1990,63 +1990,68 @@ subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
 !    Loop data calculated only once.
 !    Set ar() and br() to zero.
 
-      do 1 j=1,nr
-        ar(j) = 0.0d0
-        br(j) = 0.0d0
- 1    continue
-      do 3 j=2,nr
-        rabkar(j)=rab(j)*ka/r(j)
- 3    continue
-      do 4 j=2,nr
-        rabai(j)=rab(j)/ai
- 4    continue
-      do 5 j=2,5
-        rs(j)=r(j)**s
- 5    continue
+      do j=1,nr
+         ar(j) = 0.0d0
+         br(j) = 0.0d0
+      end do
+      do j=2,nr
+         rabkar(j)=rab(j)*ka/r(j)
+      end do
+      do j=2,nr
+         rabai(j)=rab(j)/ai
+      end do
+      do j=2,5
+         rs(j)=r(j)**s
+      end do
 
-!  set the underflow trap
-
+      ! set the underflow trap
       juflow=1
-      do 42 j=2,nr
-        if (s*abs(log(r(j))) .ge. expzer/2) juflow = j
- 42   continue
+      do j=2,nr
+         if (s*abs(log(r(j))) .ge. expzer/2) juflow = j
+      end do
 
 
       emax = 0.0d0
       emin = -100000.0d0
       if (ev(iorb) .gt. emax) ev(iorb) = emax
- 10   if (itmax .lt. 2) write(6,15) iorb,iter,ev(iorb),nodes
- 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i2)
+
+ 10   continue
+      if (itmax .lt. 2) write(6,15) iorb,iter,ev(iorb),nodes
+ 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i4)
+
+      !Too many iterations !!
       if (itmax == 0) return
-      if (ev(iorb) .gt. 0.0) then
-        write(6,1000)iorb
+
+      if (ev(iorb) .gt. 0.d0) then
+        write(6,1000) iorb
         stop 'difrel one'
       endif
- 1000 format(//,' error in difrel - ev(',i2,  &
-       ') greater then v(infinty)')
+ 1000 format(//,' error in difrel - ev(',i2,') greater then v(infinty)')
 
 !  Find practical infinity ninf and classical turning
 !  point nctp for orbital.
 
       icount=0
- 20   icount=icount+1
-      do 22 j=nr,2,-1
-        temp = v(j) - ev(iorb)
-        if (temp .lt. 0.0) temp = 0.0d0
-        if (r(j)*sqrt(temp) .lt. expzer) goto 23
- 22   continue
- 23   ninf=j
+ 20   continue
+      icount=icount+1
+      do j=nr,2,-1
+         temp = v(j) - ev(iorb)
+         if (temp .lt. 0.0) temp = 0.0d0
+         if (r(j)*sqrt(temp) .lt. expzer) goto 23
+      end do
+ 23   continue
+      ninf=j
       nctp = ninf - 5
-      do 25 j=2,ninf-5
-        if (v(j) .lt. ev(iorb)) nctp = j
- 25   continue
+      do j=2,ninf-5
+         if (v(j) .lt. ev(iorb)) nctp = j
+      end do
       if (ev(iorb) .ge. etol*100) nctp=ninf-5
       if (ev(iorb) .ge. etol) ev(iorb)=0.0d0
 
       if (nctp .le. 6) then
         ev(iorb) = 0.9d0*ev(iorb)
         if (icount .gt. 100) then
-          write(6,1010)iorb
+          write(6,1010) iorb
           stop 'difrel two'
         endif
         goto 20
@@ -2062,10 +2067,10 @@ subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
       a2 = (az*(vzero-ev(iorb))*a1-(s+2+ka)*(vzero-ev(iorb)-ai2)*b1)  &
          / (2*ai*(2*s+2))
       b2 = ((vzero-ev(iorb))*a1-2*znuc*a2) / (ai*(s+2+ka))
-      do 35 j=2,5
-        ar(j) = rs(j) * (1 +(a1+a2*r(j))*r(j))
-        br(j) = rs(j) * (b0+(b1+b2*r(j))*r(j))
- 35   continue
+      do j=2,5
+         ar(j) = rs(j) * (1 +(a1+a2*r(j))*r(j))
+         br(j) = rs(j) * (b0+(b1+b2*r(j))*r(j))
+      end do
       fa(1) = 0.0d0
       fb(1) = 0.0d0
       fa(2) = rabkar(2)*ar(2)+(ev(iorb)-v(2)+ai2)*br(2)*rabai(2)
@@ -2077,64 +2082,59 @@ subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
       fa(5) = rabkar(5)*ar(5)+(ev(iorb)-v(5)+ai2)*br(5)*rabai(5)
       fb(5) = -rabkar(5)*br(5)-(ev(iorb)-v(5))*ar(5)*rabai(5)
 
-!  Intergration loop.
+!  Integration loop.
 
       nodes = 0
-      do 40 j=6,nctp
+      do j=6,nctp
 
-!  Predictor (Adams-Bashforth).
+         ! Predictor (Adams-Bashforth).
+         evvai2=ev(iorb)-v(j)+ai2
+         evv=ev(iorb)-v(j)
+         arp = ar(j-1) + abc1*fa(j-1)+abc2*fa(j-2)+abc3*fa(j-3)  &
+             + abc4*fa(j-4)+abc5*fa(j-5)
+         brp = br(j-1) + abc1*fb(j-1)+abc2*fb(j-2)+abc3*fb(j-3)  &
+             + abc4*fb(j-4)+abc5*fb(j-5)
+         fa(j) = rabkar(j)*arp+evvai2*brp*rabai(j)
+         fb(j) = -rabkar(j)*brp-evv*arp*rabai(j)
 
-        evvai2=ev(iorb)-v(j)+ai2
-        evv=ev(iorb)-v(j)
-        arp = ar(j-1) + abc1*fa(j-1)+abc2*fa(j-2)+abc3*fa(j-3)  &
-         +abc4*fa(j-4)+abc5*fa(j-5)
-        brp = br(j-1) + abc1*fb(j-1)+abc2*fb(j-2)+abc3*fb(j-3)  &
-         +abc4*fb(j-4)+abc5*fb(j-5)
-        fa(j) = rabkar(j)*arp+evvai2*brp*rabai(j)
-        fb(j) = -rabkar(j)*brp-evv*arp*rabai(j)
+         ! Corrector (Adams-Moulton).
+         arc = ar(j-1) + amc0*fa(j)+amc1*fa(j-1)+amc2*fa(j-2)  &
+             + amc3*fa(j-3)+amc4*fa(j-4)
+         brc = br(j-1) + amc0*fb(j)+amc1*fb(j-1)+amc2*fb(j-2)  &
+             + amc3*fb(j-3)+amc4*fb(j-4)
+         faj = rabkar(j)*arc+evvai2*brc*rabai(j)
+         fbj = -rabkar(j)*brc-evv*arc*rabai(j)
 
-!  Corrector (Adams-Moulton).
+         !  Error reduction step.
+         ar(j) = arc + amc0*(faj-fa(j))
+         br(j) = brc + amc0*(fbj-fb(j))
+         fa(j) = rabkar(j)*ar(j)+evvai2*br(j)*rabai(j)
+         fb(j) = -rabkar(j)*br(j)-evv*ar(j)*rabai(j)
 
-        arc = ar(j-1) + amc0*fa(j)+amc1*fa(j-1)+amc2*fa(j-2)  &
-         +amc3*fa(j-3)+amc4*fa(j-4)
-        brc = br(j-1) + amc0*fb(j)+amc1*fb(j-1)+amc2*fb(j-2)  &
-         +amc3*fb(j-3)+amc4*fb(j-4)
-        faj = rabkar(j)*arc+evvai2*brc*rabai(j)
-        fbj = -rabkar(j)*brc-evv*arc*rabai(j)
-
-!  Error reduction step.
-
-        ar(j) = arc + amc0*(faj-fa(j))
-        br(j) = brc + amc0*(fbj-fb(j))
-        fa(j) = rabkar(j)*ar(j)+evvai2*br(j)*rabai(j)
-        fb(j) = -rabkar(j)*br(j)-evv*ar(j)*rabai(j)
-
-!  Count nodes - if no underflow.
-
+         !  Count nodes - if no underflow.
         if (j.gt.juflow.and.ar(j)*ar(j-1).lt.0.0) nodes=nodes+1
- 40   continue
+
+      end do
+
        arout = ar(nctp)
        arpout = fa(nctp)
 
-!  End outward integration.
-!  If number of nodes correct, start inward integration
-!  else modify energy stepwise and try again.
-
+      ! End outward integration.
+      ! If number of nodes correct, start inward integration
+      ! else modify energy stepwise and try again.
       if (nodes /= no(iorb)-lo(iorb)-1) then
 
-!  too many nodes decrease ev
+         !  too many nodes decrease ev
+         if (nodes .gt. no(iorb)-lo(iorb)-1) then
+            if (ev(iorb) .lt. emax) emax = ev(iorb)
+            ev(iorb) = ev(iorb) + ev(iorb)/10
 
-        if (nodes .gt. no(iorb)-lo(iorb)-1) then
-          if (ev(iorb) .lt. emax) emax = ev(iorb)
-          ev(iorb) = ev(iorb) + ev(iorb)/10
-
-!  too few nodes increase ev
-
-        else
-          if (ev(iorb) .gt. emin) emin = ev(iorb)
-          ev(iorb) = ev(iorb) - ev(iorb)/10
-        endif
-        itmax = itmax-1
+         ! too few nodes increase ev
+         else
+           if (ev(iorb) .gt. emin) emin = ev(iorb)
+           ev(iorb) = ev(iorb) - ev(iorb)/10
+         endif
+         itmax = itmax-1
         goto 10
       endif
 
@@ -2478,8 +2478,8 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
       end do
       if (ircov.gt.ninf) then
          ircov=ninf
-         write(6,'(1x,a)')             'warning: ircov > ninf ! (ircov set to ninf)'
-         write(6,'(1x,a,i12,1x,a,f21.16)') '---> ninf=',ninf,' r(ninf)=',r(ninf)
+         write(6,'(1x,a)')                 'warning: ircov > ninf ! (ircov set to ninf)'
+         write(6,'(1x,a,i12,1x,a,f21.16)') '---> ninf=   ',ninf,' r(ninf)=',r(ninf)
          write(6,'(1x,a,i12,1x,a,f21.16)') '---> npoints=',npoints,' r(npoint)=',r(npoint)
       endif
       call splift(ttx,tty,ttyp,ttypp,npoint,ttw,ierr,isx,a1,b1,an,bn)
