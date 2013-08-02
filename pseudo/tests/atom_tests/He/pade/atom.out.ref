@@ -81,7 +81,7 @@
  iter =   39 dvmax = 8.583E-12 xmixo = 4.551E-01
  iter =   40 dvmax = 4.714E-12 xmixo = 4.551E-01
 
- rcov         =   0.75000000000000000     
+ rcov         =   0.7500000000000000
  charge(rcov) = int_0^rcov g^2 r^2 dr   +  int_0^infinity f^2 r^2 dr
  dcharge      = int_0^infinity (f^2+g^2) r^4 dr 
  ddcharge     = int_0^infinity (f^2+g^2) r^6 dr 

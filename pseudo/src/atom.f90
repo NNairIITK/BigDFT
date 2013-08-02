@@ -2573,7 +2573,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 
       if (iorb==1)then
          write(6,*)
-         write(6,'(1x,a,f22.16)') 'rcov         = ',rcov
+         write(6,'(1x,a,f20.16)') 'rcov         = ',rcov
          if (ispp /= 'r' ) then
             write(6,*) 'charge(rcov) = int_0^rcov psi^2 r^2 dr'
             write(6,*) 'dcharge      = int_0^infinity psi^2 r^4 dr'

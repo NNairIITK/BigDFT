@@ -73,7 +73,7 @@
  iter =   39 dvmax = 1.778E-12 xmixo = 4.809E-01
  iter =   40 dvmax = 9.464E-13 xmixo = 4.809E-01
 
- rcov         =   0.75000000000000000     
+ rcov         =   0.7500000000000000
  charge(rcov) = int_0^rcov psi^2 r^2 dr
  dcharge      = int_0^infinity psi^2 r^4 dr
  ddcharge     = int_0^infinity psi^2 r^6 dr

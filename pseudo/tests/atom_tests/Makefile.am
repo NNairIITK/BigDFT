@@ -136,9 +136,12 @@ Zr_q4/pade
 CHECKS = $(TESTDIRS:=/atom.check)
 CLEANS = $(TESTDIRS:=/atom.clean)
 
-check: $(CHECKS) report
+check: $(CHECKS) check_and_report
 
 clean: $(CLEANS)
+
+check_and_report: $(CHECKS)
+	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
