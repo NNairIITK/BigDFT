@@ -23,7 +23,7 @@
            tt4=tt3*xp(i)
            ddw=ddw +uu3*tt3+uu4*tt4+uu5*tt3+uu6*tt2
         enddo
-c     cwh
+!     cwh
         if (ll.gt.0) w=w*rpll
         return
         end

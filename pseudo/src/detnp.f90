@@ -1,7 +1,5 @@
-
-
         subroutine detnp(nn,r,rad0,npsp)
-C       DETERMINE NPSP
+!       DETERMINE NPSP
         implicit real*8 (a-h,o-z)
         dimension r(nn)
         rmin=1.d10

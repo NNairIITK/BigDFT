@@ -285,8 +285,8 @@ program ae_atom
           ! diverging - reduce mixing coefficient
           if (xmixo .lt. 1D-5) xmixo=1D-5
           dvold = dvmax
-          write(6,70) iter,dvmax,xmixo
- 70       format(7h iter =,i5,9h dvmax = ,1pe9.3,8h xmixo =,1pe9.3)
+          write(6,'(1x,a,i5,1x,a,1pe10.3,1x,a,1pe10.3)') 'iter =', iter, 'dvmax =', dvmax, 'xmixo =', xmixo
+!70       format(7h iter =,i5,9h dvmax = ,1pe9.3,8h xmixo =,1pe9.3)
 
           ! mix input and output electronic potentials
           call mixer(xmixo,nr,vid,viu,vod,vou)
@@ -296,8 +296,7 @@ program ae_atom
  100   continue
 
        write(6,110) dvmax,xmixo
- 110   format(/,34h potential not converged - dvmax =,1pe10.4,  &
-       9h  xmixo =,0pf5.3)
+ 110   format(/,34h potential not converged - dvmax =,1pe10.4,9h  xmixo = ,0pf5.3)
        call ext(1)
 
 !      find total energy
@@ -362,38 +361,34 @@ program ae_atom
 
  140    continue
 
-!cc     DO NOT CREATE guess for psppar, let the user download
-!cc     a psppar for a much better input guess.
-!cc     append some clue about additional input variables
-!cc     do not do this here, but after the 1st configuration is done.
+!!     DO NOT CREATE guess for psppar, let the user download
+!!     a psppar for a much better input guess.
+!!     append some clue about additional input variables
+!!     do not do this here, but after the 1st configuration is done.
 
-!cc     write data to files psp.par/weights.par
-!cc     for pseudopotential-fit
-!cc     if (ispp/='r') ispp='n'
-!cc     psp.par
-!c      write(50,*) ' 10   2.0     ng, rij (initial guess) '
-!c      write(50,'(2f15.10,a)') rcov, rprb, ' rcov, rprb '
-!c      if (ispp=='r') then
-!c         write(50,*)'relativistic calculation'
-!c      else
-!c         write(50,*)'non relativistic calculation'
-!c      endif
-!c      write(50,'(t2,i7,t15,a)')iXC ,'XC-functional'
-!c      write(50,'(3f7.3,2a)') znuc,zps,rcov/4.d0,
-!c     :     '  0.0 0.0 0.0 0.0',
-!c     :     '    znuc,zpseudo,rloc,gpot()'
-!c      lpx=2
-!c      write(50,*) lpx ,' lpx '
-!c      do l=0,lpx
-!c         write(50,'(f7.3,2a)')  rcov/4.0d0,
-!c     :        '  0.0 0.0 0.0 0.0 0.0 0.0 ',
-!c     :        'r_l(), hsep()'
-!c         if (ispp=='r' .and. l/=0 )
-!c     :        write(50,'(tr7,2a)')
-!c     :        '  0.0 0.0 0.0 0.0 0.0 0.0 ',
-!c     :        ' hsep()'
-!c      end do
-!cc     weights.par
+!!     write data to files psp.par/weights.par
+!!     for pseudopotential-fit
+!!     if (ispp/='r') ispp='n'
+!!     psp.par
+!      write(50,*) ' 10   2.0     ng, rij (initial guess) '
+!      write(50,'(2f15.10,a)') rcov, rprb, ' rcov, rprb '
+!      if (ispp=='r') then
+!         write(50,*)'relativistic calculation'
+!      else
+!         write(50,*)'non relativistic calculation'
+!      endif
+!      write(50,'(t2,i7,t15,a)')iXC ,'XC-functional'
+!      write(50,'(3f7.3,2a)') znuc,zps,rcov/4.d0, &
+!            '  0.0 0.0 0.0 0.0', znuc,zpseudo,rloc,gpot()'
+!      lpx=2
+!      write(50,*) lpx ,' lpx '
+!      do l=0,lpx
+!         write(50,'(f7.3,2a)')  rcov/4.0d0, &
+!               '  0.0 0.0 0.0 0.0 0.0 0.0 ','r_l(), hsep()'
+!         if (ispp=='r' .and. l/=0 ) write(50,'(tr7,2a)') &
+!              '  0.0 0.0 0.0 0.0 0.0 0.0 ', ' hsep()'
+!      end do
+!!     weights.par
 
 !     FITPAR, do not overwrite, append
       open(unit=60,file='input.fitpar',position='append')
@@ -908,7 +903,7 @@ subroutine input(itype,iXC,ispp,  &
        integer, intent(out) :: iXC
        integer, intent(out) :: ncore, ncoreo
        integer, intent(out) :: nvalo
-       integer, intent(out) :: nconf                      !< Number of electronic configurations
+       integer, intent(inout) :: nconf                    !< Number of electronic configurations
        real(kind=8), intent(out) :: zel
        !Local variables
        integer, dimension(15), parameter :: nc = (/ 1,2,2,3,3,3,4,4,4,4,5,5,5,6,6 /)
@@ -1334,6 +1329,8 @@ end function charge
 !> dsolv1 finds the non relativistic wave function
 !! using finite differences and matrix diagonalization
 !! initial guess for the eigenvalues need not be supplied
+!! @todo
+!!  Use Lapack instead of the routines from atom.splines.f90
 subroutine dsolv1( &
           nr,a,b,r,rab,lmax, &
           norb,no,lo,so,zo, &
@@ -2576,7 +2573,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 
       if (iorb==1)then
          write(6,*)
-         write(6,*) 'rcov         = ',rcov
+         write(6,'(1x,a,f22.16)') 'rcov         = ',rcov
          if (ispp /= 'r' ) then
             write(6,*) 'charge(rcov) = int_0^rcov psi^2 r^2 dr'
             write(6,*) 'dcharge      = int_0^infinity psi^2 r^4 dr'

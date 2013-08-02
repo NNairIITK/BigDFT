@@ -3,7 +3,7 @@
         dimension psi(0:ng),expxpr(0:ng,nint)
 
         wave2=DDOT(ng+1,psi,1,expxpr(0,k),1)
-c     cwh
+!     cwh
         if (ll.gt.0) wave2=wave2*r**ll
         return
         end

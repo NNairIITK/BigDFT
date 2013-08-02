@@ -1,11 +1,11 @@
 
       real*8 function gamma(x)
-c
-c     calc. gamma(x), fuer halb/ganzzahlige positive x
-c
+!
+!     calc. gamma(x), fuer halb/ganzzahlige positive x
+!
       implicit real*8 (a-h,o-z)
 
-c      print*,'entered gamma with x=',x
+!      print*,'entered gamma with x=',x
       if (x.le.0) then 
          write(6,*) 'stopped in gamma x<=0'
          stop

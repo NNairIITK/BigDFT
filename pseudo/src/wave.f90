@@ -1,4 +1,4 @@
-c     calc. int(psi(r)*dr)
+!     calc. int(psi(r)*dr)
         real*8 function Wwav(ng,ll,xp,psi,r)
         implicit real*8 (a-h,o-z)
         dimension psi(0:ng),xp(0:ng)
@@ -23,8 +23,8 @@ c     calc. int(psi(r)*dr)
               t1 = xp(i)
               t8 = sqrt(t1)
               t9 = t8*t8
-              t19 = (-r*exp(-t1*t2)/t1/2.D0+1.D0/t9/t8
-     :             *t3*Derf(t8*r))*psi(i)
+              t19 = (-r*exp(-t1*t2)/t1/2.D0+1.D0/t9/t8 &
+                   *t3*Derf(t8*r))*psi(i)
               wwav=wwav+t19
            enddo
         elseif (ll.eq.3) then
@@ -42,7 +42,7 @@ c     calc. int(psi(r)*dr)
         return
         end
 
-c     calc psi(r)
+!     calc psi(r)
         real*8 function wave(ng,ll,xp,psi,r)
         implicit real*8 (a-h,o-z)
         dimension psi(0:ng),xp(0:ng)
@@ -71,7 +71,7 @@ c     calc psi(r)
         return
         end
 
-c     calc first derivative of psi(r)
+!     calc first derivative of psi(r)
         real*8 function dwave(ng,ll,xp,psi,r)
         implicit real*8 (a-h,o-z)
         dimension psi(0:ng),xp(0:ng)
@@ -115,7 +115,7 @@ c     calc first derivative of psi(r)
         return
         end
 
-c     calc second derivative of psi(r)
+!     calc second derivative of psi(r)
         real*8 function ddwave(ng,ll,xp,psi,r)
         implicit real*8 (a-h,o-z)
         dimension psi(0:ng),xp(0:ng)
@@ -157,8 +157,8 @@ c     calc second derivative of psi(r)
               t6 = exp(-t3*t4)
               t12 = t4*t4
               t15 = t3*t3
-              t18 = 6.D0*r*t1*t6-14.D0*t4*r*t1*t3*t6+4.D0*t12*r*t1
-     :             *t15*t6
+              t18 = 6.D0*r*t1*t6-14.D0*t4*r*t1*t3*t6+4.D0*t12*r*t1 &
+                   *t15*t6
               ddwave=ddwave+t18
            enddo
         else

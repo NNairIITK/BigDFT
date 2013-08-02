@@ -1,6 +1,6 @@
         real*8 function xpown(r,n)
-c     calc. r^n, n=int
-c     this routine avoids poroblem with then CRAY
+!     calc. r^n, n=int
+!     this routine avoids poroblem with then CRAY
         implicit real*8 (a-h,o-z)
         if (n.eq.0) then
            xpown=1.d0
