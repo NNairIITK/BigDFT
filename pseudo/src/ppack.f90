@@ -50,31 +50,32 @@ subroutine ppack (verbose, pp, nstring)
    use ppackvars
    implicit none
    
-   logical verbose
-   real(8):: pp(maxdim) ! this time, it is just one vertex!
-   character(*):: nstring
+   !Arguments
+   logical :: verbose
+   real(kind=8), dimension(maxdim) :: pp !< this time, it is just one vertex!
+   character(len=*) :: nstring
    
    !local variables
    integer increm,lpxfit,ierr
    real(8):: h11,h12,h13,h22,h23,h33,hh11,hh12,hh13,hh22,hh23,hh33
    
-   integer maxpar,iline
-   parameter (maxpar = 42) !up to 5 local,  4*7 nonlocal, 5 nlcc, 4 r_l2
-   character*10 spack(maxpar)
-   character*100 string
-   logical lpack(maxpar),match
-   integer i,j,ncount,nhsep1,nhsep2,nhsep3,ll,nn,nnmin,nso
+   integer, parameter :: maxpar = 42 !< up to 5 local,  4*7 nonlocal, 5 nlcc, 4 r_l2
+   character(len=100) :: string
+   logical, dimension(maxpar) :: lpack
+   logical :: match
+   integer :: i,j,ncount,nhsep1,nhsep2,nhsep3,ll,nn,nnmin,nso,iline
    
-   real(8):: pih,xshift
+   real(kind=8) :: pih,xshift
    
    !> The spack array gives the names of all possible input.fitpar
    !! the meaning of the index is the same as for lpack
-   data spack /'rloc', 'gpot1', 'gpot2', 'gpot3', 'gpot4',&
-        'rcore','gcore1','gcore2','gcore3','gcore4',&
-        'rs','hs11','hs12','hs22','hs13','hs23','hs33','rs2',&
-        'rp','hp11','hp12','hp22','hp13','hp23','hp33','rp2',&
-        'rd','hd11','hd12','hd22','hd13','hd23','hd33','rd2',&
-        'rf','hf11','hf12','hf22','hf13','hf23','hf33','rf2'/ 
+   character(len=6), dimension(maxpar), parameter :: spack = (/ &
+      'rloc  ', 'gpot1 ', 'gpot2 ', 'gpot3 ', 'gpot4 ', &
+      'rcore ', 'gcore1', 'gcore2', 'gcore3', 'gcore4', &
+      'rs    ', 'hs11  ', 'hs12  ', 'hs22  ', 'hs13  ', 'hs23  ', 'hs33  ', 'rs2   ', &
+      'rp    ', 'hp11  ', 'hp12  ', 'hp22  ', 'hp13  ', 'hp23  ', 'hp33  ', 'rp2   ', &
+      'rd    ', 'hd11  ', 'hd12  ', 'hd22  ', 'hd13  ', 'hd23  ', 'hd33  ', 'rd2   ', &
+      'rf    ', 'hf11  ', 'hf12  ', 'hf22  ', 'hf13  ', 'hf23  ', 'hf33  ', 'rf2   ' /) 
    
    !> @note
    !!   hsep index convention:

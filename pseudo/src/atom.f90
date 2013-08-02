@@ -296,7 +296,7 @@ program ae_atom
  100   continue
 
        write(6,110) dvmax,xmixo
- 110   format(/,34h potential not converged - dvmax =,1pe10.4,9h  xmixo = ,0pf5.3)
+ 110   format(/,34h potential not converged - dvmax =,1pe11.4,9h  xmixo = ,0pf6.3)
        call ext(1)
 
 !      find total energy
@@ -344,10 +344,10 @@ program ae_atom
           do iorb=ncore+1,norb
              weight=0.0d0
              if (zo(iorb).gt.1.0d-4) then
-               write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
+               write(60,'(2i4,f5.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
                 '1.0e5   1.0e5   0.0e0  0.0e0   1.0e5  1.0e0 0.0e0 0.0e0'
              else
-               write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
+               write(60,'(2i4,f5.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
                 '1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0'
              endif
           end do
@@ -483,8 +483,8 @@ subroutine etotal( &
        integer, intent(in) :: norb                               !< #orbitals
        integer, dimension(norb), intent(in) :: no, lo            !< quantum numbers
        real(kind=8), intent(in) :: rsh, znuc, zcore, zsh         !< Related to the nature of the atoms
-       real(kind=8), dimension(norb), intent(out) :: so, zo  
-       real(kind=8), dimension(norb), intent(out) :: ev, ek, ep
+       real(kind=8), dimension(norb), intent(in) :: so, zo, ek   !< used only to display the values
+       real(kind=8), dimension(norb), intent(out) :: ev, ep
        !> etot(i) i=1,10 contains various contributions to the total energy.
        !!     (1)   Sum of eigenvalues ev
        !!     (2)   Sum of orbital kinetic energies ek
@@ -1226,7 +1226,7 @@ subroutine input(itype,iXC,ispp,  &
       end do
       write(6,210) r(2),nr,r(nr),aa,bb
  210  format(//,' radial grid parameters',//,  &
-       ' r(1) = .0 , r(2) =',1pe12.6,' , ... , r(',i4,') =',0pf12.8,  &
+       ' r(1) = .0 , r(2) =',1pe13.6,' , ... , r(',i4,') =',0pf12.8,  &
        /,' a =',f12.8,'  b =',f12.8,/)
       irel   = 'nrl'
       if (ispp == 'r') irel = 'rel'
@@ -1670,7 +1670,7 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
       if (ev(iorb) .gt. emax) ev(iorb) = emax
  10   continue
       if (itmax .lt. 2) write(6,15) iorb,iter,ev(iorb),nodes
- 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i2)
+ 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i4)
       if (itmax == 0) return
       if (ev(iorb) .gt. 0.0) then
         write(6,1000)iorb
@@ -1764,7 +1764,7 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
          fb(j) = b*br(j) + rab2(j)*vev*ar(j)
          
          ! count nodes - if no underflow
-         if(j.gt.juflow.and.ar(j)*ar(j-1).lt.0.0)nodes=nodes+1
+         if (j.gt.juflow.and.ar(j)*ar(j-1).lt.0.0) nodes=nodes+1
       end do
 
       arctp = ar(nctp)
@@ -2111,7 +2111,7 @@ subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
 
 !  Count nodes - if no underflow.
 
-        if(j.gt.juflow.and.ar(j)*ar(j-1).lt.0.0)nodes=nodes+1
+        if (j.gt.juflow.and.ar(j)*ar(j-1).lt.0.0) nodes=nodes+1
  40   continue
        arout = ar(nctp)
        arpout = fa(nctp)
@@ -2478,9 +2478,9 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
       end do
       if (ircov.gt.ninf) then
          ircov=ninf
-         write(6,*) 'warning: ircov > ninf ! (ircov set to ninf)'
-         write(6,*) '---> ninf=',ninf,' r(ninf)=',r(ninf)
-         write(6,*) '---> npoints=',npoints,' r(npoint)=',r(npoint)
+         write(6,'(1x,a)')             'warning: ircov > ninf ! (ircov set to ninf)'
+         write(6,'(1x,a,i12,1x,a,f21.16)') '---> ninf=',ninf,' r(ninf)=',r(ninf)
+         write(6,'(1x,a,i12,1x,a,f21.16)') '---> npoints=',npoints,' r(npoint)=',r(npoint)
       endif
       call splift(ttx,tty,ttyp,ttypp,npoint,ttw,ierr,isx,a1,b1,an,bn)
       if(ierr/=1) write(6,*)'SPLIFT ERROR!',ttw !stop 'spliq'
@@ -2620,9 +2620,9 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
                write(50,'(2a)')'-----suggested header for initial',  &
                               ' guess of psppar for fitting-----'
                if (ispp=='') ispp='n'
-               write(50,'(a,a,2g9.3,a)')ispp, ' 20 2.0 ',rcov, rprb,  &
+               write(50,'(a,a,2g10.3,a)')ispp, ' 20 2.0',rcov, rprb,  &
                        'the first line contains some input data'
-               write(50,'(2g9.3,8x,a)') znuc, zps,  &
+               write(50,'(2g10.3,8x,a)') znuc, zps,  &
                                           'znuc and zion as needed'
                write(50,'(a,1x,i7,6x,a)') '(2, 3 or 10)',  &
                       IXC,'supported formats, iXC as given'
