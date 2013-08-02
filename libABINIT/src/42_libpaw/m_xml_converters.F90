@@ -36,7 +36,7 @@ module m_xml_converters
 
  use defs_basis,  only : std_out    
  use m_profiling
-! use m_errors
+ use m_errors
 use interfaces_12_hide_mpi
 use interfaces_14_hidewrite
 use interfaces_16_hideleave

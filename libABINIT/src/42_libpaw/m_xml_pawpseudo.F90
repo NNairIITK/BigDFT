@@ -35,7 +35,7 @@ module m_xml_pawpseudo
 
  use defs_basis
  use m_profiling
-! use m_errors
+ use m_errors
 use interfaces_12_hide_mpi
 use interfaces_14_hidewrite
 use interfaces_16_hideleave
@@ -48,11 +48,8 @@ implicit none
 
 private
 
-
-!
 ! It defines the routines that are called from xml_parser in response
 ! to particular events.
-!
 
 public  ::  destroy_paw_setup, nullify_paw_setup
 public  ::  copy_paw_setup

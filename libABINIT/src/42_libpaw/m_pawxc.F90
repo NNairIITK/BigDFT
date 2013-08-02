@@ -26,7 +26,7 @@ module m_pawxc
  use m_pawang, only : pawang_type
  use m_pawrad, only: pawrad_type
  use m_pawtab, only: pawtab_type
-! use m_errors
+ use m_errors
 use interfaces_12_hide_mpi
 use interfaces_14_hidewrite
 use interfaces_16_hideleave

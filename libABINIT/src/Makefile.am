@@ -20,6 +20,8 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	12_hide_mpi/xalltoallv_mpi.F90 \
 	12_hide_mpi/xcast_mpi.F90 \
 	12_hide_mpi/xexch_mpi.F90 \
+	12_hide_mpi/xgather_mpi.F90 \
+        12_hide_mpi/xgatherv_mpi.F90 \
 	12_hide_mpi/xmax_mpi.F90 \
 	12_hide_mpi/xmin_mpi.F90 \
 	12_hide_mpi/xrecv_mpi.F90 \

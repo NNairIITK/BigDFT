@@ -24,7 +24,7 @@ module m_gaussfit
     
  use defs_basis
  use m_pawrad, only: pawrad_type
-! use m_errors
+ use m_errors
 use interfaces_12_hide_mpi
 use interfaces_14_hidewrite
 use interfaces_16_hideleave
@@ -373,11 +373,9 @@ CONTAINS
    nparam_out=minterm*4
  end if
 
- call xbarrier_mpi(comm_mpi)
 !communicate
  if(nproc>1) then
    call xcast_mpi(nparam_out,master,comm_mpi,ierr)
-   !
    call xcast_mpi(param_tmp(1:nparam_out),master,comm_mpi,ierr)
  end if !nproc>1
  

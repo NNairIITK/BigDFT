@@ -156,6 +156,8 @@ MODULE m_xmpi
  public :: xalltoallv_mpi
  public :: xcast_mpi
  public :: xexch_mpi
+ public :: xgather_mpi
+ public :: xgatherv_mpi
  public :: xmax_mpi
  public :: xmin_mpi
  public :: xrecv_mpi
@@ -258,6 +260,28 @@ interface xexch_mpi
   module procedure xexch_mpi_dpc_1d
   module procedure xexch_mpi_dpc_2d
 end interface xexch_mpi
+
+!----------------------------------------------------------------------
+
+interface xgather_mpi
+  module procedure xgather_mpi_int
+  module procedure xgather_mpi_int2d
+  module procedure xgather_mpi_dp
+  module procedure xgather_mpi_dp2d
+  module procedure xgather_mpi_dp3d
+  module procedure xgather_mpi_dp4d
+end interface xgather_mpi
+
+!----------------------------------------------------------------------
+
+interface xgatherv_mpi
+  module procedure xgatherv_mpi_int
+  module procedure xgatherv_mpi_int2d
+  module procedure xgatherv_mpi_dp
+  module procedure xgatherv_mpi_dp2d
+  module procedure xgatherv_mpi_dp3d
+  module procedure xgatherv_mpi_dp4d
+end interface xgatherv_mpi
 
 !----------------------------------------------------------------------
 
@@ -1056,6 +1080,10 @@ end subroutine xerror_string
 #include "xcast_mpi.F90"
 
 #include "xexch_mpi.F90"
+
+#include "xgather_mpi.F90"
+
+#include "xgatherv_mpi.F90"
 
 #include "xmax_mpi.F90"
 

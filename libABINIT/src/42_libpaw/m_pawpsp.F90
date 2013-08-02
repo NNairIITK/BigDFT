@@ -35,46 +35,53 @@
 #include "abi_common_for_bigdft.h"
 
 module m_pawpsp
-    
+
  use defs_basis
- use m_pawang, only: pawang_type
- use m_pawtab, only: pawtab_type, wvlpaw_type
- use m_pawrad, only: pawrad_type
-! use m_errors
+ use m_profiling
+ use m_errors
 use interfaces_12_hide_mpi
 use interfaces_14_hidewrite
 use interfaces_16_hideleave
- use m_profiling
+ use m_xmpi
+ use m_pawang, only: pawang_type
+ use m_pawtab, only: pawtab_type, pawtab_bcast, wvlpaw_type, pawtab_destroy,wvlpaw_nullify, &
+&                    wvlpaw_destroy, wvlpaw_rholoc_nullify, wvlpaw_rholoc_destroy
+ use m_pawrad, only: pawrad_type, pawrad_init, pawrad_destroy, pawrad_copy, pawrad_nullify, &
+&      pawrad_bcast, pawrad_ifromr, simp_gen, nderiv_gen, bound_deriv, pawrad_deducer0, poisson
+ use m_paw_numeric, only: paw_splint, paw_spline, paw_smooth, jbessel_4spline
+ use m_atompaw, only: atompaw_shapebes, atompaw_vhnzc, atompaw_shpfun, &
+&                     atompaw_dij0, atompaw_kij
+ use m_pawxc, only: pawxc, pawxcm
+#if defined HAVE_DFT_LIBXC
+ use libxc_functionals
+#endif
 
  implicit none
 
  private
 
- public:: pawpsp_calc_d5 !calculate up to the 5th derivative
- public:: pawpsp_main !main routine to read psp
- public:: pawpsp_nl
- public:: pawpsp_read !read psp from file
- public:: pawpsp_read_header !read header of psp file
- public:: pawpsp_rw_atompaw !read and writes ATOMPAW psp with gaussian |p>
- public:: pawpsp_wvl !wavelet and icoulomb>0 related operations
- public:: pawpsp_wvl_calc !wavelet related operations
- public:: pawpsp_7in  !reads non-XML atomic data
- public:: pawpsp_17in !reads XML atomic data
- public:: pawpsp_calc !calculates atomic quantities from psp info
+ public:: pawpsp_calc_d5         !calculate up to the 5th derivative
+ public:: pawpsp_main            !main routine to read psp
+ public:: pawpsp_nl              !make paw projector form factors f_l(q)
+ public:: pawpsp_read            !read psp from file
+ public:: pawpsp_read_header     !read header of psp file
+ public:: pawpsp_read_header_2   !reads pspversion, basis_size and lmn_size
+ public:: pawpsp_rw_atompaw      !read and writes ATOMPAW psp with gaussian |p>
+ public:: pawpsp_wvl             !wavelet and icoulomb>0 related operations
+ public:: pawpsp_wvl_calc        !wavelet related operations
+ public:: pawpsp_7in             !reads non-XML atomic data
+ public:: pawpsp_17in            !reads XML atomic data
+ public:: pawpsp_calc            !calculates atomic quantities from psp info
  public:: pawpsp_read_header_xml !read header of psp file for XML
- public:: pawpsp_read_pawheader !read header variables from XML objects
- !
- public:: pawpsp_cg
- public:: pawpsp_lo
- private:: pawpsp_fill_hgh !fills HGH parameters from database
- private:: pawpsp_wvl_sin2gauss !convert sin/cos to gaussians
-
-
+ public:: pawpsp_read_pawheader  !read header variables from XML objects
+ public:: pawpsp_bcast           ! broadcast PAW psp data
+ public:: pawpsp_cg              !compute sin FFT transform of a density
+ public:: pawpsp_lo              !compute sin FFT transform of local potential
+ private:: pawpsp_fill_hgh       !fills HGH parameters from database
+ private:: pawpsp_wvl_sin2gauss  !convert sin/cos to gaussians
 !!***
 
 !-------------------------------------------------------------------------
-
-
 
 !!****t* m_pawpsp/pawpsp_header_type
 !! NAME
@@ -108,7 +115,8 @@ CONTAINS
 !===========================================================
 !!***
 
-!{\src2tex{textfont=tt}}
+!-------------------------------------------------------------------------
+
 !!****f* m_pawpsp/pawpsp_nl
 !! NAME
 !! pawpsp_nl
@@ -150,8 +158,6 @@ CONTAINS
 
 subroutine pawpsp_nl(ffspl,indlmn,lmnmax,lnmax,mqgrid,qgrid,radmesh,wfll)
 
- use m_paw_numeric, only: paw_splint, paw_spline, jbessel_4spline
- use m_pawrad, only :  pawrad_init, pawrad_destroy, pawrad_copy, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -290,7 +296,8 @@ subroutine pawpsp_nl(ffspl,indlmn,lmnmax,lnmax,mqgrid,qgrid,radmesh,wfll)
 end subroutine pawpsp_nl
 !!***
 
-!{\src2tex{textfont=tt}}
+!-------------------------------------------------------------------------
+
 !!****f* m_pawpsp/pawpsp_lo
 !! NAME
 !! pawpsp_lo
@@ -333,7 +340,6 @@ end subroutine pawpsp_nl
 
 subroutine pawpsp_lo(epsatm,mqgrid,qgrid,q2vq,radmesh,vloc,yp1,ypn,zion)
 
- use m_pawrad, only : pawrad_ifromr, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -473,7 +479,8 @@ subroutine pawpsp_lo(epsatm,mqgrid,qgrid,q2vq,radmesh,vloc,yp1,ypn,zion)
 end subroutine pawpsp_lo
 !!***
 
-!{\src2tex{textfont=tt}}
+!-------------------------------------------------------------------------
+
 !!****f* m_pawpsp/pawpsp_cg
 !! NAME
 !! pawpsp_cg
@@ -515,7 +522,6 @@ end subroutine pawpsp_lo
 
 subroutine pawpsp_cg(dnqdq0,d2nqdq0,mqgrid,qgrid,nq,radmesh,nr,yp1,ypn)
 
- use m_pawrad, only : simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -697,7 +703,7 @@ subroutine pawpsp_cg(dnqdq0,d2nqdq0,mqgrid,qgrid,nq,radmesh,nr,yp1,ypn)
 end subroutine pawpsp_cg
 !!***
 
-
+!-------------------------------------------------------------------------
 
 !!****f* m_pawpsp/pawpsp_read
 !! NAME
@@ -714,11 +720,74 @@ end subroutine pawpsp_cg
 !! INPUTS
 !!
 !! OUTPUT
-!!  
 !!
 !! SIDE EFFECTS
 !!
 !! NOTES
+!!   File format of formatted PAW psp input (the 3 first lines
+!!   have already been read in calling -pspatm- routine) :
+!!   (1) title (character) line
+!!   (2) psps%znuclpsp(ipsp), zion, pspdat
+!!   (3) pspcod, pspxc, lmax, lloc, mmax, r2well
+!!   (4) psp_version, creatorID
+!!   (5) basis_size, lmn_size
+!!   (6) orbitals (for l=1 to basis_size)
+!!   (7) number_of_meshes
+!!   For imsh=1 to number_of_meshes
+!!   (8)  mesh_index, mesh_type ,mesh_size, rad_step[, log_step]
+!!   (9) r_cut(SPH)
+!!   (10) shape_type, r_shape[, shapefunction arguments]
+!!   For iln=1 to basis_size
+!!   (11) comment(character)
+!!   (12) radial mesh index for phi
+!!   (13) phi(r) (for ir=1 to phi_meshsz)
+!!   For iln=1 to basis_size
+!!   (14) comment(character)
+!!   (15) radial mesh index for tphi
+!!   (16) tphi(r) (for ir=1 to phi_mesh_size)
+!!   For iln=1 to basis_size
+!!   (17) comment(character)
+!!   (18) radial mesh index for tproj
+!!   (19) tproj(r) (for ir=1 to proj_mesh_size)
+!!   (20) comment(character)
+!!   (21) radial mesh index for core_density
+!!   (22) core_density (for ir=1 to core_mesh_size)
+!!   (23) comment(character)
+!!   (24) radial mesh index for pseudo_core_density
+!!   (25) tcore_density (for ir=1 to core_mesh_size)
+!!   (26) comment(character)
+!!   (27) Dij0 (for ij=1 to lmn_size*(lmn_size+1)/2)
+!!   (28) comment(character)
+!!   (29) Rhoij0 (for ij=1 to lmn_size*(lmn_size+1)/2)
+!!   (30) comment(character)
+!!   (31) radial mesh index for Vloc, format of Vloc (0=Vbare, 1=VH(tnzc), 2=VH(tnzc) without nhat in XC)
+!!   (32) Vloc(r) (for ir=1 to vloc_mesh_size)
+!!   ===== Following lines only if shape_type=-1 =====
+!!   For il=1 to 2*max(orbitals)+1
+!!   (33) comment(character)
+!!   (34) radial mesh index for shapefunc
+!!   (35) shapefunc(r)*gnorm(l)*r**l (for ir=1 to shape_mesh_size)
+!!   (36) comment(character)
+!!   (37) radial mesh index for pseudo_valence_density
+!!   (38) tvale(r) (for ir=1 to vale_mesh_size)
+!!
+!!   Comments:
+!!   * psp_version= ID of PAW_psp version
+!!   4 characters string of the form 'pawn' (with n varying)
+!!   * creatorID= ID of psp generator
+!!   creatorid=1xyz : psp generated from Holzwarth AtomPAW generator version x.yz
+!!   creatorid=2xyz : psp generated from Vanderbilt ultra-soft generator version x.yz
+!!   creatorid=-1: psp for tests (for developpers only)
+!!   * mesh_type= type of radial mesh
+!!   mesh_type=1 (regular grid): rad(i)=(i-1)*AA
+!!   mesh_type=2 (logari. grid): rad(i)=AA*(exp[BB*(i-1)]-1)
+!!   mesh_type=3 (logari. grid): rad(i>1)=AA*exp[BB*(i-2)] and rad(1)=0
+!!   mesh_type=4 (logari. grid): rad(i)=-AA*ln[1-BB*(i-1)] with BB=1/n
+!!   * radial shapefunction type
+!!   shape_type=-1 ; gl(r)=numeric (read from psp file)
+!!   shape_type= 1 ; gl(r)=k(r).r^l; k(r)=exp[-(r/sigma)**lambda]
+!!   shape_type= 2 ; gl(r)=k(r).r^l; k(r)=[sin(pi*r/rshp)/(pi*r/rshp)]**2 if r<=rshp
+!!   shape_type= 3 ; gl(r)=Alpha(1,l)*jl(q(1,l)*r)+Alpha(2,l)*jl(q(2,l)*r) for each l
 !!
 !! PARENTS
 !!
@@ -726,16 +795,11 @@ end subroutine pawpsp_cg
 !!
 !! SOURCE
 
-
-subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
+subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 & ncore,nmesh,pawrad,pawtab,pspversion,radmesh,save_core_msz,&
-& tncore,tnvale,tproj_mesh,usexcnhat,vale_mesh,vlocopt,vlocr,&
+& tncore,tnvale,tproj_mesh,usexcnhat_in,usexcnhat_out,vale_mesh,vlocopt,vlocr,&
 & vloc_mesh,znucl)
-    
- use m_paw_numeric, only: paw_splint, paw_spline
- use m_atompaw, only: atompaw_shapebes, atompaw_vhnzc
- use m_pawrad, only : pawrad_init, pawrad_destroy, &
-&                     pawrad_copy, nderiv_gen, bound_deriv
+
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -748,12 +812,11 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
  implicit none
 
 !Arguments ------------------------------------
- integer,intent(in):: lmax,lmnmax
- integer,intent(out)::imainmesh,pspversion,usexcnhat,vlocopt
- logical,intent(in)::save_core_msz
+ integer,intent(in):: lmax,usexcnhat_in
+ integer,intent(out) :: imainmesh,pspversion,usexcnhat_out,vlocopt
+ logical,intent(in) :: save_core_msz
  real(dp),intent(in):: znucl
 !arrays
- integer,intent(out) :: indlmn(6,lmnmax)
  real(dp),intent(out),pointer :: ncore(:),tncore(:),tnvale(:)
  real(dp),intent(out),pointer :: vlocr(:)
  type(pawrad_type),intent(out) :: pawrad
@@ -779,100 +842,25 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
  character(len=500) :: message,submessage
  logical :: read_gauss=.false.
  type(pawrad_type)::shpf_mesh
- 
+
 ! *************************************************************************
- 
+
 ! DBG_ENTER("COLL")
 
-
-!File format of formatted PAW psp input (the 3 first lines
-!have already been read in calling -pspatm- routine) :
-
-!(1) title (character) line
-!(2) psps%znuclpsp(ipsp), zion, pspdat
-!(3) pspcod, pspxc, lmax, lloc, mmax, r2well
-!(4) psp_version, creatorID
-!(5) basis_size, lmn_size
-!(6) orbitals (for l=1 to basis_size)
-!(7) number_of_meshes
-!For imsh=1 to number_of_meshes
-!(8)  mesh_index, mesh_type ,mesh_size, rad_step[, log_step]
-!(9) r_cut(SPH)
-!(10) shape_type, r_shape[, shapefunction arguments]
-!For iln=1 to basis_size
-!(11) comment(character)
-!(12) radial mesh index for phi
-!(13) phi(r) (for ir=1 to phi_meshsz)
-!For iln=1 to basis_size
-!(14) comment(character)
-!(15) radial mesh index for tphi
-!(16) tphi(r) (for ir=1 to phi_mesh_size)
-!For iln=1 to basis_size
-!(17) comment(character)
-!(18) radial mesh index for tproj
-!(19) tproj(r) (for ir=1 to proj_mesh_size)
-!(20) comment(character)
-!(21) radial mesh index for core_density
-!(22) core_density (for ir=1 to core_mesh_size)
-!(23) comment(character)
-!(24) radial mesh index for pseudo_core_density
-!(25) tcore_density (for ir=1 to core_mesh_size)
-!(26) comment(character)
-!(27) Dij0 (for ij=1 to lmn_size*(lmn_size+1)/2)
-!(28) comment(character)
-!(29) Rhoij0 (for ij=1 to lmn_size*(lmn_size+1)/2)
-!(30) comment(character)
-!(31) radial mesh index for Vloc, format of Vloc (0=Vbare, 1=VH(tnzc), 2=VH(tnzc) without nhat in XC)
-!(32) Vloc(r) (for ir=1 to vloc_mesh_size)
-!===== Following lines only if shape_type=-1 =====
-!For il=1 to 2*max(orbitals)+1
-!(33) comment(character)
-!(34) radial mesh index for shapefunc
-!(35) shapefunc(r)*gnorm(l)*r**l (for ir=1 to shape_mesh_size)
-!(36) comment(character)
-!(37) radial mesh index for pseudo_valence_density
-!(38) tvale(r) (for ir=1 to vale_mesh_size)
-!
-!Comments:
-!* psp_version= ID of PAW_psp version
-!4 characters string of the form 'pawn' (with n varying)
-!* creatorID= ID of psp generator
-!creatorid=1xyz : psp generated from Holzwarth AtomPAW generator version x.yz
-!creatorid=2xyz : psp generated from Vanderbilt ultra-soft generator version x.yz
-!creatorid=-1: psp for tests (for developpers only)
-!* mesh_type= type of radial mesh
-!mesh_type=1 (regular grid): rad(i)=(i-1)*AA
-!mesh_type=2 (logari. grid): rad(i)=AA*(exp[BB*(i-1)]-1)
-!mesh_type=3 (logari. grid): rad(i>1)=AA*exp[BB*(i-2)] and rad(1)=0
-!mesh_type=4 (logari. grid): rad(i)=-AA*ln[1-BB*(i-1)] with BB=1/n
-!* radial shapefunction type
-!shape_type=-1 ; gl(r)=numeric (read from psp file)
-!shape_type= 1 ; gl(r)=k(r).r^l; k(r)=exp[-(r/sigma)**lambda]
-!shape_type= 2 ; gl(r)=k(r).r^l; k(r)=[sin(pi*r/rshp)/(pi*r/rshp)]**2 if r<=rshp
-!shape_type= 3 ; gl(r)=Alpha(1,l)*jl(q(1,l)*r)+Alpha(2,l)*jl(q(2,l)*r) for each l
-
-
 !==========================================================
+!Destroy everything in pawtab but optional flags
+ call pawtab_destroy(pawtab)
 
-!Read psp version in line 4 of the header
- pspversion=1
- read (tmp_unit,'(a80)') pspline;pspline=adjustl(pspline)
- if (pspline(1:3)=="paw".or.pspline(1:3)=="PAW") &
-& read(unit=pspline(4:80),fmt=*) pspversion
- if (pspversion<1.or.pspversion>5) then
-   write(message, '(a,i2,a,a,a)' )&
-&   '  This version of PAW psp file (',pspversion,') is not compatible with',ch10,&
-&   '  current version of Abinit.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
- end if
 
 !==========================================================
 !Read lines 4 to 11 of the header
 
+!This is important for BigDFT in standalone mode
+ call pawpsp_read_header_2(pspversion,pawtab%basis_size,pawtab%lmn_size)
+
 !Have to maintain compatibility with Abinit v4.2.x
  if (pspversion==1) then
-   read (unit=pspline,fmt=*) pawtab%basis_size,pawtab%lmn_size
+   ABI_ALLOCATE(pawtab%orbitals,(pawtab%basis_size))
    read(tmp_unit,*) (pawtab%orbitals(ib), ib=1,pawtab%basis_size)
    pawtab%l_size=2*maxval(pawtab%orbitals)+1
    nmesh=3
@@ -899,8 +887,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
  else
 
 !  Here psp file for Abinit 4.3+
-   read (unit=pspline(5:80),fmt=*) creatorid
-   read (tmp_unit,*) pawtab%basis_size,pawtab%lmn_size
+   ABI_ALLOCATE(pawtab%orbitals,(pawtab%basis_size))
    read(tmp_unit,*) (pawtab%orbitals(ib), ib=1,pawtab%basis_size)
    pawtab%l_size=2*maxval(pawtab%orbitals)+1
    read(tmp_unit,*) nmesh
@@ -929,13 +916,62 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
    pawtab%shape_lambda=-1;pawtab%shape_sigma=1.d99
  end if
 
-!Here reading shapefunction parameters for Abinit 4.3...4.5
+!Initialize radial meshes
+ do imsh=1,nmesh
+   call pawrad_init(radmesh(imsh))
+ end do
+
+!==========================================================
+!Initialize various dims and indexes
+
+ pawtab%l_size=2*maxval(pawtab%orbitals)+1
+ pawtab%lmn2_size=pawtab%lmn_size*(pawtab%lmn_size+1)/2
+ pawtab%ij_size=pawtab%basis_size*(pawtab%basis_size+1)/2
+ pawtab%usexcnhat=usexcnhat_in
+
+!indlmn calculation (indices for (l,m,n) basis)
+ if (associated(pawtab%indlmn)) then
+   ABI_DEALLOCATE(pawtab%indlmn)
+ end if
+ ABI_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
+ ABI_ALLOCATE(nprj,(0:maxval(pawtab%orbitals)))
+ pawtab%indlmn(:,:)=0
+ ilmn=0;iln=0;nprj=0
+ do ib=1,pawtab%basis_size
+   il=pawtab%orbitals(ib)
+   nprj(il)=nprj(il)+1
+   iln=iln+1
+   do ilm=1,2*il+1
+     pawtab%indlmn(1,ilmn+ilm)=il
+     pawtab%indlmn(2,ilmn+ilm)=ilm-(il+1)
+     pawtab%indlmn(3,ilmn+ilm)=nprj(il)
+     pawtab%indlmn(4,ilmn+ilm)=il*il+ilm
+     pawtab%indlmn(5,ilmn+ilm)=iln
+     pawtab%indlmn(6,ilmn+ilm)=1
+   end do
+   ilmn=ilmn+2*il+1
+ end do
+ ABI_DEALLOCATE(nprj)
+!Are ilmn (found here) and pawtab%lmn_size compatibles ?
+ if (ilmn/=pawtab%lmn_size) then
+   write(message, '(a,a,a,a,a)' )&
+&   '  Calculated lmn size differs from',ch10,&
+&   '  lmn_size read from pseudo !',ch10,&
+&   ' Action: check your pseudopotential file.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
+ end if
+
+!==========================================================
+!Here reading shapefunction parameters
+
+!Shapefunction parameters for Abinit 4.3...4.5
  if (pspversion==2) then
    if (pawtab%shape_type==1) read(unit=pspline,fmt=*) ii,pawtab%shape_lambda,pawtab%shape_sigma
    if (pawtab%shape_type==3) pawtab%shape_type=-1
    pawtab%rshp=zero
 
-!  Here reading shapefunction parameters for Abinit 4.6+
+!Shapefunction parameters for Abinit 4.6+
  else if (pspversion>=3) then
    pawtab%rshp=zero
    if (pawtab%shape_type==-1) read(unit=pspline,fmt=*,err=21,end=21) ii,pawtab%rshp
@@ -957,6 +993,8 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
  end if
 !If shapefunction type is Bessel, deduce here its parameters from rc
  if (pawtab%shape_type==3) then
+   ABI_ALLOCATE(pawtab%shape_alpha,(2,pawtab%l_size))
+   ABI_ALLOCATE(pawtab%shape_q,(2,pawtab%l_size))
    rc=pawtab%rshp;if (rc<1.d-8) rc=pawtab%rpaw
    do il=1,pawtab%l_size
      call atompaw_shapebes(pawtab%shape_alpha(1:2,il),pawtab%shape_q(1:2,il),il-1,rc)
@@ -1036,19 +1074,11 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
 !==========================================================
 !Perfom tests
 
-
 !Are lmax and orbitals compatibles ?
  if (lmax/=maxval(pawtab%orbitals)) then
    write(message, '(a,a,a)' )&
 &   '  lmax /= MAX(orbitals) !',ch10,&
 &   '  Action: check your pseudopotential file.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
- end if
-
-!Are psps%lmnmax and pawtab%lmn_size compatibles ?
- if (lmnmax<pawtab%lmn_size) then
-   message='  lmnmax < lmn size (read from pseudo) !'
    call wrtout(std_out,message,'COLL')
    call leave_new('COLL')
  end if
@@ -1065,13 +1095,6 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
  end do
 
 !==========================================================
-!Initialize radial meshes
-
- do imsh=1,nmesh
-   call pawrad_init(radmesh(imsh))
- end do
-
-!==========================================================
 !Read tabulated atomic data
 
 !---------------------------------
@@ -1084,7 +1107,9 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
      call pawrad_destroy(pawrad)
      call pawrad_init(pawrad,mesh_size=radmesh(iread1)%mesh_size,mesh_type=radmesh(iread1)%mesh_type,&
 &     rstep=radmesh(iread1)%rstep,lstep=radmesh(iread1)%lstep,r_for_intg=pawtab%rpaw)
+     pawtab%mesh_size=pawrad%mesh_size
      imainmesh=iread1
+     ABI_ALLOCATE(pawtab%phi,(pawrad%mesh_size,pawtab%basis_size))
    else if (iread1/=imainmesh) then
      write(message, '(a,a,a)' )&
 &     '  All Phi and tPhi must be given on the same radial mesh !',ch10,&
@@ -1097,6 +1122,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
 
 !---------------------------------
 !Read pseudo wave-functions (tphi)
+ ABI_ALLOCATE(pawtab%tphi,(pawrad%mesh_size,pawtab%basis_size))
  do ib=1,pawtab%basis_size
    read (tmp_unit,*)
    if (pspversion==1) iread1=1
@@ -1140,20 +1166,9 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
  call wrtout(ab_out,message,'COLL')
  call wrtout(std_out,  message,'COLL')
 
-!Nullify wavelet objects for safety:
- if(associated(pawtab%wvl%parg)) then 
-   ABI_DEALLOCATE(pawtab%wvl%parg)   
- end if
- if(associated(pawtab%wvl%pfac)) then
-   ABI_DEALLOCATE(pawtab%wvl%pfac)
- end if
- if(associated(pawtab%wvl%pngau)) then
-   ABI_DEALLOCATE(pawtab%wvl%pngau)  
- end if
- nullify(pawtab%wvl%pngau)
- nullify(pawtab%wvl%parg)
- nullify(pawtab%wvl%pfac)
- pawtab%wvl%ptotgau=0
+!Destroy wavelet objects for safety:
+ call wvlpaw_destroy(pawtab%wvl)
+ pawtab%has_wvl=0
 
  read(tmp_unit,'(a80)') pspline
  if(index(trim(pspline),'GAUSSIAN')/=0) read_gauss=.true.
@@ -1186,6 +1201,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
      pawtab%wvl%pngau(ib)=pngau_
      jj=jj+pngau_
    end do
+   pawtab%has_wvl=2
  end if
 !
 !---------------------------------
@@ -1207,8 +1223,10 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
  end if
  ABI_ALLOCATE(ncore,(core_mesh%mesh_size))
  read (tmp_unit,*) (ncore(ir),ir=1,core_mesh%mesh_size)
-!construct and save VH[z_NC] if requested
- if (pawtab%has_vhnzc == 1) then
+
+!Construct and save VH[z_NC] if requested
+ if (pawtab%has_vhnzc==1) then
+   ABI_ALLOCATE(pawtab%VHnZC,(pawrad%mesh_size))
    ABI_ALLOCATE(vhnzc,(core_mesh%mesh_size))
    call atompaw_vhnzc(ncore,core_mesh,vhnzc,znucl)
    pawtab%VHnZC(1:pawrad%mesh_size)=vhnzc(1:pawrad%mesh_size)
@@ -1216,24 +1234,19 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
    ABI_DEALLOCATE(vhnzc)
  end if
 
- if(save_core_msz) then
-   pawtab%core_mesh_size=core_mesh%mesh_size
-   if(associated(pawtab%coredens)) then
-     ABI_DEALLOCATE(pawtab%coredens)
-   end if
-   ABI_ALLOCATE(pawtab%coredens ,(pawtab%core_mesh_size))
-   if(associated(pawtab%tcoredens)) then
-     ABI_DEALLOCATE(pawtab%tcoredens)
-   end if
-   ABI_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,6))
- else
-   pawtab%core_mesh_size=pawrad%mesh_size
- end if
+ pawtab%core_mesh_size=pawrad%mesh_size
+ if(save_core_msz) pawtab%core_mesh_size=core_mesh%mesh_size
+ ABI_ALLOCATE(pawtab%coredens,(pawtab%core_mesh_size))
  pawtab%rcore=core_mesh%rad(pawtab%core_mesh_size)
  pawtab%coredens(1:pawtab%core_mesh_size)=ncore(1:pawtab%core_mesh_size)
 
 !---------------------------------
 !Read pseudo core density (tcoredens)
+ if(save_core_msz)  then
+   ABI_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,6))
+ else
+   ABI_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,1))
+ end if
  read (tmp_unit,*)
  if (pspversion==1) iread1=1
  if (pspversion>1) read (tmp_unit,*) iread1
@@ -1261,11 +1274,13 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
 
 !---------------------------------
 !Read frozen part of Dij terms (dij0)
+ ABI_ALLOCATE(pawtab%dij0,(pawtab%lmn2_size))
  read (tmp_unit,*)
  read (tmp_unit,*) (pawtab%dij0(ib),ib=1,pawtab%lmn2_size)
 
 !---------------------------------
 !Read initial guess of rhoij (rhoij0)
+ ABI_ALLOCATE(pawtab%rhoij0,(pawtab%lmn2_size))
  read (tmp_unit,*)
  read (tmp_unit,*) (pawtab%rhoij0(ib),ib=1,pawtab%lmn2_size)
 
@@ -1296,8 +1311,8 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
      end if
    end if
  end if
- usexcnhat=0;if (vlocopt==1) usexcnhat=1
-   call pawrad_copy(radmesh(ivlocmesh),vloc_mesh)
+ usexcnhat_out=0;if (vlocopt==1) usexcnhat_out=1
+ call pawrad_copy(radmesh(ivlocmesh),vloc_mesh)
  ABI_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
  read (tmp_unit,*) (vlocr(ir),ir=1,vloc_mesh%mesh_size)
  write(message,'(a,i1)') &
@@ -1308,6 +1323,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
 !---------------------------------
 !Eventually read "numeric" shapefunctions (if shape_type=-1)
  if (pawtab%shape_type==-1) then
+   ABI_ALLOCATE(pawtab%shapefunc,(pawrad%mesh_size,pawtab%l_size))
    do il=1,pawtab%l_size
      read (tmp_unit,*)
      if (pspversion==1) iread1=1
@@ -1352,6 +1368,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
      pawtab%shapefunc(:,:)=shpf(:,:)
    end if
    ABI_DEALLOCATE(shpf)
+   call pawrad_destroy(shpf_mesh)
  end if
 
 !---------------------------------
@@ -1363,55 +1380,14 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
    call pawrad_copy(radmesh(iread1),vale_mesh)
    ABI_ALLOCATE(tnvale,(vale_mesh%mesh_size))
    read (tmp_unit,*) (tnvale(ir),ir=1,vale_mesh%mesh_size)
-   pawtab%usetvale=1
+   pawtab%has_tvale=1
    write(message,'(a,i1)') &
 &   ' Radial grid used for pseudo valence density is grid ',ivalemesh
    call wrtout(ab_out,message,'COLL')
    call wrtout(std_out,  message,'COLL')
  else
-   pawtab%usetvale=0
+   pawtab%has_tvale=0
    ABI_ALLOCATE(tnvale,(0))
- end if
-
-!==========================================================
-!Initialize various parameters in structured data
-
-!Some dims
- pawtab%l_size=2*maxval(pawtab%orbitals)+1
- pawtab%mesh_size=pawrad%mesh_size
- pawtab%lmn2_size=pawtab%lmn_size*(pawtab%lmn_size+1)/2
-
-!indlmn calculation (indices for (l,m,n) basis)
- ABI_ALLOCATE(nprj,(0:maxval(pawtab%orbitals)))
- ilmn=0;iln=0;nprj=0
- do ib=1,pawtab%basis_size
-   il=pawtab%orbitals(ib)
-   nprj(il)=nprj(il)+1
-   iln=iln+1
-   do ilm=1,2*il+1
-     indlmn(1,ilmn+ilm)=il
-     indlmn(2,ilmn+ilm)=ilm-(il+1)
-     indlmn(3,ilmn+ilm)=nprj(il)
-     indlmn(4,ilmn+ilm)=il*il+ilm
-     indlmn(5,ilmn+ilm)=iln
-     indlmn(6,ilmn+ilm)=1
-   end do
-   ilmn=ilmn+2*il+1
- end do
- ABI_DEALLOCATE(nprj)
-
-!Are ilmn (found here) and pawtab%lmn_size compatibles ?
- if (ilmn/=pawtab%lmn_size) then
-   write(message, '(a,a,a,a,a)' )&
-&   '  Calculated lmn size differs from',ch10,&
-&   '  lmn_size read from pseudo !',ch10,&
-&   ' Action: check your pseudopotential file.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
- end if
-
- if(pawtab%shape_type==-1) then
-   call pawrad_destroy(shpf_mesh)
  end if
 
 ! DBG_EXIT("COLL")
@@ -1419,6 +1395,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
 end subroutine pawpsp_read
 !!***
 
+!-------------------------------------------------------------------------
 
 !!****f* m_pawpsp/pawpsp_rw_atompaw
 !! NAME
@@ -1449,7 +1426,6 @@ end subroutine pawpsp_read
 
 subroutine pawpsp_rw_atompaw(basis_size,filpsp,wvl)
 
-
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
@@ -1469,9 +1445,9 @@ subroutine pawpsp_rw_atompaw(basis_size,filpsp,wvl)
 !Local variables-------------------------------
  integer :: ib,ii,ios,jj,step
 !arrays
- 
+
 ! *************************************************************************
- 
+
 ! DBG_ENTER("COLL")
  step=0
 ! Open psp file for reading
@@ -1516,6 +1492,8 @@ subroutine pawpsp_rw_atompaw(basis_size,filpsp,wvl)
 end subroutine pawpsp_rw_atompaw
 !!***
 
+!-------------------------------------------------------------------------
+
 !!****f* m_pawpsp/pawpsp_calc
 !! NAME
 !! pawpsp_calc
@@ -1532,12 +1510,8 @@ end subroutine pawpsp_rw_atompaw
 !!
 !! INPUTS
 !!  core_mesh<type(pawrad_type)>= radial mesh for the core density
-!!  has_dij0= .true. if dij0 is known, .false. otherwise
 !!  imainmesh= serial number of the main mesh
-!!  indlmn(6,lmnmax)= array giving l,m,n,lm,ln,s for i=lmn
 !!  ixc=exchange-correlation choice from main routine data file
-!!  lmnmax=if useylm=1, max number of (l,m,n) comp. over all type of psps
-!!            =if useylm=0, max number of (l,n)   comp. over all type of psps
 !!  lnmax=max. number of (l,n) components over all type of psps
 !!            angular momentum of nonlocal pseudopotential
 !!  mqgrid_ff=dimension of q (or G) grid for nl form factors (array ffspl)
@@ -1566,7 +1540,6 @@ end subroutine pawpsp_rw_atompaw
 !!  epsatm=$ (4\pi)\int_0^\infty [r^2 (V(r)+\frac{Zv}{r}) dr]$(hartree)
 !!  ffspl(mqgrid_ff,2,lnmax)=form factor f_l(q) and second derivative
 !!   from spline fit for each angular momentum and each projector;
-!!   if any, spin-orbit components begin at l=mpsang+1
 !!  vlspl(mqgrid_vl,2)=q^2 Vloc(q) and second derivatives from spline fit
 !!  xc_denpos= lowest allowed density (usually for the computation of the XC functionals)
 !!  xcccrc=XC core correction cutoff radius (bohr) from psp file
@@ -1577,7 +1550,7 @@ end subroutine pawpsp_rw_atompaw
 !!  vloc_mesh<type(pawrad_type)>= radial mesh for the local potential
 !!
 !! NOTES
-!!  
+!!
 !!
 !! PARENTS
 !!      pawpsp_17in,psp7in
@@ -1588,20 +1561,11 @@ end subroutine pawpsp_rw_atompaw
 !!
 !! SOURCE
 
-subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnmax,lnmax,&
-&                  mmax,mqgrid_ff,mqgrid_vl,ncore,nmesh,pawrad,pawtab,pawxcdev,pspversion,qgrid_ff,qgrid_vl,&
-&                  radmesh,tncore,tnvale,tproj_mesh,usexcnhat,vale_mesh,vloc_mesh,vlocopt,&
-&                  vlocr,vlspl,xcccrc,xclevel,xc_denpos,zion,znucl)
+subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
+&                  mmax,mqgrid_ff,mqgrid_vl,ncore,nmesh,pawrad,pawtab,pawxcdev,pspversion,&
+&                  qgrid_ff,qgrid_vl,radmesh,tncore,tnvale,tproj_mesh,usexcnhat,vale_mesh,&
+&                  vloc_mesh,vlocopt,vlocr,vlspl,xcccrc,xclevel,xc_denpos,zion,znucl)
 
- use m_paw_numeric, only: paw_splint, paw_spline
- use m_atompaw, only: atompaw_shpfun, atompaw_dij0, atompaw_kij
- use m_pawrad, only : pawrad_init, pawrad_destroy, pawrad_ifromr, &
-&                     pawrad_deducer0, simp_gen, poisson, bound_deriv
- use m_pawxc, only: pawxc, pawxcm
-
-#if defined HAVE_DFT_LIBXC
-  use libxc_functionals
-#endif
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1614,23 +1578,21 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: imainmesh,ixc,lmnmax,lnmax,mqgrid_ff,mqgrid_vl
+ integer,intent(in) :: imainmesh,ixc,lnmax,mqgrid_ff,mqgrid_vl
  integer,intent(in) :: nmesh,pawxcdev,pspversion,usexcnhat,vlocopt
  integer,intent(in) ::mmax
  integer,intent(in) :: xclevel
  real(dp),intent(in) :: xc_denpos,zion,znucl
  real(dp),intent(out) :: epsatm,xcccrc
- logical,intent(in) :: has_dij0
  type(pawrad_type),intent(in) :: core_mesh,tproj_mesh,vale_mesh
  type(pawrad_type),intent(inout) ::pawrad,vloc_mesh
  type(pawtab_type),intent(inout) :: pawtab
  
 !arrays
- integer,intent(in) :: indlmn(6,lmnmax)
  real(dp),intent(in) :: ncore(core_mesh%mesh_size),tncore(core_mesh%mesh_size)
  real(dp),intent(in) :: qgrid_vl(mqgrid_vl),qgrid_ff(mqgrid_ff)
  real(dp),intent(out) :: ffspl(mqgrid_ff,2,lnmax),vlspl(mqgrid_vl,2)
- real(dp),intent(inout) :: tnvale(vale_mesh%mesh_size*pawtab%usetvale)
+ real(dp),intent(inout) :: tnvale(vale_mesh%mesh_size*pawtab%has_tvale)
  real(dp),intent(inout) ::vlocr(vloc_mesh%mesh_size)
  type(pawrad_type),intent(in) :: radmesh(nmesh)
 
@@ -1639,7 +1601,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
  integer,parameter :: reduced_mshsz=2501
  integer :: ib,il,ilm,ilmn,iln,ir,isnotzero,itest
  integer :: j0lmn,jlm,jlmn,jln,klmn,msz,msz1,msz_tmp,mst_tmp,nspden
- logical :: reduced_ncor,reduced_nval,reduced_vloc,testval
+ logical :: has_dij0,reduced_ncor,reduced_nval,reduced_vloc,testval
  real(dp),parameter :: reduced_rstep=0.00025_dp,rm_vloc=20.0_dp
  real(dp) :: d2nvdq0,intg,intvh,lstep_tmp,qcore,qq,rstep_tmp,yp1,ypn
  character(len=500) :: message
@@ -1652,12 +1614,11 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
  logical :: tmp_lmselect(1)
 
 ! *************************************************************************
- 
-!==========================================================
-!Perfom tests on meshes
 
 ! DBG_ENTER("COLL")
 
+!==========================================================
+!Perfom tests on meshes
 
 !Are radial meshes for Phi and Vloc compatibles ?
  if (vloc_mesh%rmax<pawrad%rmax) then
@@ -1688,7 +1649,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
  end if
 
 !Are radial meshes for (t)Nvale and Phi compatibles ?
- if ((pawtab%usetvale==1).and.(vale_mesh%rmax<pawrad%rmax)) then
+ if ((pawtab%has_tvale==1).and.(vale_mesh%rmax<pawrad%rmax)) then
    write(message, '(a,a,a)' )&
 &   '  Rmax for tNvale < Rmax for Phi !',ch10,&
 &   '  Action : check your pseudopotential (increase tNvale meshSize).'
@@ -1794,7 +1755,11 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
    end if
  end if
 
+!==========================================================
+!Initializations
 
+ has_dij0=(associated(pawtab%dij0))
+ 
 !Allocate/initialize some dummy variables
  tmp_lmselect(1)=.true.
  if (pawxcdev==0) then
@@ -1815,10 +1780,14 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
 !Compute ffspl(q) (and derivatives)
 
  ffspl=zero
- call pawpsp_nl(ffspl,indlmn,pawtab%lmn_size,lnmax,mqgrid_ff,qgrid_ff,tproj_mesh,pawtab%tproj)
+ if (mqgrid_ff>0) then
+   call pawpsp_nl(ffspl,pawtab%indlmn,pawtab%lmn_size,lnmax,mqgrid_ff,qgrid_ff,&
+&                 tproj_mesh,pawtab%tproj)
+ end if
 
 !==========================================================
 !Compute eventually compensation charge radius (i.e. radius for shape functions)
+
  if (pawtab%shape_type>0.and.pawtab%rshp<1.d-8) then
    pawtab%rshp=pawtab%rpaw
  else if (pawtab%shape_type==-1) then
@@ -1846,7 +1815,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
 !Compute compensation charge density (nhat)
 !Add it to pseudo valence density
 
- if (pawtab%usetvale==1) then
+ if (pawtab%has_tvale==1) then
    msz=vale_mesh%mesh_size
    ABI_ALLOCATE(nhat,(msz))
 !  A-Has to compute norm of nhat (Int[n-tild_n])
@@ -1861,9 +1830,9 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
      work1=zero
      work2=zero
      do jlmn=1,pawtab%lmn_size
-       j0lmn=jlmn*(jlmn-1)/2;jln=indlmn(5,jlmn)
+       j0lmn=jlmn*(jlmn-1)/2;jln=pawtab%indlmn(5,jlmn)
        do ilmn=1,jlmn
-         klmn=j0lmn+ilmn;iln=indlmn(5,ilmn)
+         klmn=j0lmn+ilmn;iln=pawtab%indlmn(5,ilmn)
          yp1=two;if (ilmn==jlmn) yp1=one
          work1(1:msz1)=work1(1:msz1)+yp1*pawtab%rhoij0(klmn) &
 &         *pawtab% phi(1:msz1,iln)*pawtab% phi(1:msz1,jln)
@@ -1915,9 +1884,8 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
  end if
 
 !==========================================================
-!If read Vloc potential is in "Vbare" format,
-!translate it into VH(tnzc) format
-!VXC difference is missing !!!
+!If Vloc potential is in "Vbare" format, translate it into VH(tnzc) format
+
  if (vlocopt==0) then
    write(message,'(a)') ' Local potential is in "Vbare" format... '
    call wrtout(ab_out,message,'COLL')
@@ -1972,19 +1940,18 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
    end if
    ABI_DEALLOCATE(vbare)
    ABI_DEALLOCATE(vh)
-!  write(std_out,*)"VBLOECHL= "
-!  write(std_out,*)vlocr(1:vloc_mesh%mesh_size)
+
+!  Compute <tPhi_i|VH(tnzc)|tPhi_j> and int[VH(tnzc)*Qijhat(r)dr] parts of Dij0
+!  Note: it is possible as core_mesh and radmesh(imainmesh) have the same steps
    if (has_dij0) then
-!    Compute <tPhi_i|VH(tnzc)|tPhi_j> and int[VH(tnzc)*Qijhat(r)dr] parts of Dij0
-!    Note: it is possible as core_mesh and radmesh(imainmesh) have the same steps
      msz=radmesh(imainmesh)%mesh_size
      ABI_ALLOCATE(work1,(msz))
      work1(1:msz)=vlocr(1:msz)*r2k(1:msz)
      call simp_gen(intvh,work1,radmesh(imainmesh))
      do jlmn=1,pawtab%lmn_size
-       j0lmn=jlmn*(jlmn-1)/2;jlm=indlmn(4,jlmn);jln=indlmn(5,jlmn)
+       j0lmn=jlmn*(jlmn-1)/2;jlm=pawtab%indlmn(4,jlmn);jln=pawtab%indlmn(5,jlmn)
        do ilmn=1,jlmn
-         klmn=j0lmn+ilmn;ilm=indlmn(4,ilmn);iln=indlmn(5,ilmn)
+         klmn=j0lmn+ilmn;ilm=pawtab%indlmn(4,ilmn);iln=pawtab%indlmn(5,ilmn)
          if (jlm==ilm) then
            work1(1:msz)=pawtab%tphi(1:msz,iln)*pawtab%tphi(1:msz,jln)*(vlocr(1:msz)-intvh) &
 &           -pawtab%phi (1:msz,iln)*pawtab%phi (1:msz,jln)*intvh
@@ -2005,7 +1972,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
  if (pawtab%usexcnhat==-1) then
    pawtab%usexcnhat=usexcnhat
  else if (usexcnhat/=pawtab%usexcnhat) then
-   if (pawtab%usetvale==0) then
+   if (pawtab%has_tvale==0) then
      write(message, '(8a)' ) ch10,&
 &     ' pawpsp_calc: ERROR -',ch10,&
 &     '  It is only possible to modify the use of compensation charge density',ch10,&
@@ -2065,16 +2032,17 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
      if (usexcnhat/=0.and.pawtab%usexcnhat==0)  vxc1=vxc1-vxc2
 !    Modify VH(tnzc)
      vlocr(1:msz)=vlocr(1:msz)-vxc1(1:msz)
-     if(has_dij0) then
+     if (has_dij0) then
 !      Modify  Dij0
        ABI_ALLOCATE(work2,(pawtab%lmn2_size))
-       call atompaw_kij(indlmn,work2,lmnmax,ncore,0,0,pawtab,pawrad,core_mesh,vloc_mesh,vxc1,znucl)
+       call atompaw_kij(pawtab%indlmn,work2,pawtab%lmn_size,ncore,0,0,pawtab,pawrad,&
+&                       core_mesh,vloc_mesh,vxc1,znucl)
        pawtab%dij0=work2
        ABI_DEALLOCATE(work2)
      end if
      ABI_DEALLOCATE(vxc1)
      ABI_DEALLOCATE(vxc2)
-   end if ! usetvale/=0
+   end if ! has_tvale/=0
  end if
  if (pawtab%usexcnhat==0) then
    write(message,'(a)') &
@@ -2106,28 +2074,17 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
    ABI_DEALLOCATE(work3)
  end if
 
- if(.not.has_dij0) then
-!  Calculate pawtab%dij0
-   if (reduced_vloc) then
-     call atompaw_dij0(indlmn,pawtab%kij,lmnmax,ncore,0,pawtab,pawrad,core_mesh,rvloc_mesh,rvlocr,znucl)
-   else
-     call atompaw_dij0(indlmn,pawtab%kij,lmnmax,ncore,0,pawtab,pawrad,core_mesh,vloc_mesh,vlocr,znucl)
-   end if
-!  write(std_out,*)"DIJ0= "
-!  write(std_out,*)pawtab%dij0(1:pawtab%lmn2_size)
- end if
-
-!save as VHntZC if requested
- if (pawtab%has_vhntzc>0) then
+!Keep VH(tnZc) eventually in memory
+ if (pawtab%has_vhtnzc==1) then
+   ABI_ALLOCATE(pawtab%vhtnzc,(pawrad%mesh_size))
    if ((reduced_vloc).and.(rvloc_mesh%mesh_type==pawrad%mesh_type)&
 &   .and.(rvloc_mesh%rstep==pawrad%rstep).and.(rvloc_mesh%lstep==pawrad%lstep)) then
-     pawtab%VHntZC(1:pawrad%mesh_size)=rvlocr(1:pawrad%mesh_size)
-     pawtab%has_vhntzc=2
+     pawtab%vhtnzc(1:pawrad%mesh_size)=rvlocr(1:pawrad%mesh_size)
+     pawtab%has_vhtnzc=2
    else if ((.not.(reduced_vloc)).and.(vloc_mesh%mesh_type==pawrad%mesh_type)&
 &     .and.(vloc_mesh%rstep==pawrad%rstep).and.(vloc_mesh%lstep==pawrad%lstep)) then
-
-     pawtab%VHntZC(1:pawrad%mesh_size)=vlocr(1:pawrad%mesh_size)
-     pawtab%has_vhntzc=2
+     pawtab%vhtnzc(1:pawrad%mesh_size)=vlocr(1:pawrad%mesh_size)
+     pawtab%has_vhtnzc=2
    else
      write(message, '(5a)' ) ch10,&
 &     ' pawpsp_calc: ERROR -',ch10,&
@@ -2136,6 +2093,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
      call leave_new('COLL')
    end if
  end if 
+
 !==========================================================
 !Try to optimize CPU time:
 !If ncore mesh size is big, spline tncore into a smaller log. mesh
@@ -2163,7 +2121,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
 !Try to optimize CPU time:
 !If vale mesh size is big, spline tnvale into a smaller log. mesh
 
- if (pawtab%usetvale==1) then
+ if (pawtab%has_tvale==1) then
    reduced_nval=(vale_mesh%mesh_size>int(reduced_mshsz))
    if (reduced_nval) then
      msz=vale_mesh%mesh_size
@@ -2186,19 +2144,19 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
    reduced_nval=.false.
  end if
 
-
-
 !==========================================================
 !Compute Vlspl(q) (and second derivative) from Vloc(r)
 
 !Compute Vlspl(q)=q^2.Vloc(q) from vloc(r)
- if (reduced_vloc) then
-   call pawpsp_lo(epsatm,mqgrid_vl,qgrid_vl,vlspl(:,1),rvloc_mesh,rvlocr,yp1,ypn,zion)
- else
-   call pawpsp_lo(epsatm,mqgrid_vl,qgrid_vl,vlspl(:,1),vloc_mesh,vlocr,yp1,ypn,zion)
+ if(mqgrid_vl>0) then
+   if (reduced_vloc) then
+     call pawpsp_lo(epsatm,mqgrid_vl,qgrid_vl,vlspl(:,1),rvloc_mesh,rvlocr,yp1,ypn,zion)
+   else
+     call pawpsp_lo(epsatm,mqgrid_vl,qgrid_vl,vlspl(:,1),vloc_mesh,vlocr,yp1,ypn,zion)
+   end if
+!  Compute second derivative of Vlspl(q)
+   call paw_spline(qgrid_vl,vlspl(:,1),mqgrid_vl,yp1,ypn,vlspl(:,2))
  end if
-!Compute second derivative of Vlspl(q)
- call paw_spline(qgrid_vl,vlspl(:,1),mqgrid_vl,yp1,ypn,vlspl(:,2))
  
 
 !==========================================================
@@ -2206,34 +2164,40 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
 
  pawtab%mqgrid=mqgrid_vl
  xcccrc=core_mesh%rmax
+ ABI_ALLOCATE(pawtab%tcorespl,(pawtab%mqgrid,2))
 
- if (pawtab%usetcore/=0) then
+ if(mqgrid_vl>0.and.pawtab%usetcore/=0) then
 !  Compute tcorespl(q)=tNc(q) from tNcore(r)
    if (reduced_ncor) then
      call pawpsp_cg(pawtab%dncdq0,pawtab%d2ncdq0,mqgrid_vl,qgrid_vl,pawtab%tcorespl(:,1),rcore_mesh,rtncor,yp1,ypn)
    else
-     call pawpsp_cg(pawtab%dncdq0,pawtab%d2ncdq0,mqgrid_vl,qgrid_vl,pawtab%tcorespl(:,1),core_mesh,tncore,yp1,ypn)
+   call pawpsp_cg(pawtab%dncdq0,pawtab%d2ncdq0,mqgrid_vl,qgrid_vl,pawtab%tcorespl(:,1),core_mesh,tncore,yp1,ypn)
    end if
 !  Compute second derivative of tcorespl(q)
    call paw_spline(qgrid_vl,pawtab%tcorespl(:,1),mqgrid_vl,yp1,ypn,pawtab%tcorespl(:,2))
  else
    pawtab%tcorespl=zero
    pawtab%dncdq0=zero
+   pawtab%d2ncdq0=zero
  end if
 
 !==========================================================
 !Compute tvalespl(q) (and second derivative) from tNvale(r)
 
- if (pawtab%usetvale/=0) then
+ if (pawtab%has_tvale/=0.and.mqgrid_vl>0) then
+   ABI_ALLOCATE(pawtab%tvalespl,(pawtab%mqgrid,2))
    if (reduced_nval) then
      call pawpsp_cg(pawtab%dnvdq0,d2nvdq0,mqgrid_vl,qgrid_vl,pawtab%tvalespl(:,1),rvale_mesh,rtnval,yp1,ypn)
+     pawtab%tnvale_mesh_size=rvale_mesh%mesh_size
    else
      call pawpsp_cg(pawtab%dnvdq0,d2nvdq0,mqgrid_vl,qgrid_vl,pawtab%tvalespl(:,1),vale_mesh,tnvale,yp1,ypn)
+     pawtab%tnvale_mesh_size=vale_mesh%mesh_size
    end if
 !  Compute second derivative of tvalespl(q)
    call paw_spline(qgrid_vl,pawtab%tvalespl(:,1),mqgrid_vl,yp1,ypn,pawtab%tvalespl(:,2))
  else
    pawtab%dnvdq0=zero
+   pawtab%tnvale_mesh_size=0
  end if
 
 !==================================================
@@ -2262,18 +2226,42 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
  ABI_DEALLOCATE(work4)
 
 !==================================================
+!Compute atomic contribution to Dij (Dij0)
+!if not already in memory
+
+ if ((.not.has_dij0).and.(pawtab%has_kij==2.or.pawtab%has_kij==-1)) then
+   ABI_ALLOCATE(pawtab%dij0,(pawtab%lmn2_size))
+   if (reduced_vloc) then
+     call atompaw_dij0(pawtab%indlmn,pawtab%kij,pawtab%lmn_size,ncore,0,pawtab,pawrad,core_mesh,&
+&                      rvloc_mesh,rvlocr,znucl)
+   else
+     call atompaw_dij0(pawtab%indlmn,pawtab%kij,pawtab%lmn_size,ncore,0,pawtab,pawrad,core_mesh,&
+&                      vloc_mesh,vlocr,znucl)
+   end if
+   has_dij0=.true.
+ end if
+
+!==================================================
 !Compute kinetic operator contribution to Dij
- if (pawtab%has_kij>0.and.has_dij0) then
-   call atompaw_kij(indlmn,pawtab%kij,lmnmax,ncore,0,1,pawtab,pawrad,core_mesh,vloc_mesh,vlocr,znucl)
+
+ if (pawtab%has_kij==1.and.has_dij0) then
+   ABI_ALLOCATE(pawtab%kij,(pawtab%lmn2_size))
+   call atompaw_kij(pawtab%indlmn,pawtab%kij,pawtab%lmn_size,ncore,0,1,pawtab,pawrad,core_mesh,&
+&                   vloc_mesh,vlocr,znucl)
    pawtab%has_kij=2
+ end if
+
+!pawtab%has_kij=-1 means that kij does not have to be kept in memory
+ if (pawtab%has_kij==-1) then
+   ABI_DEALLOCATE(pawtab%kij)
+   pawtab%has_kij=0
  end if
 
 !==========================================================
 !Free temporary allocated space
- if (pawtab%usetvale==1)  then
+ if (pawtab%has_tvale==1)  then
    ABI_DEALLOCATE(nhat)
  end if
-
  if (reduced_vloc) then
    call pawrad_destroy(rvloc_mesh)
    ABI_DEALLOCATE(rvlocr)
@@ -2286,7 +2274,6 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
    call pawrad_destroy(rvale_mesh)
    ABI_DEALLOCATE(rtnval)
  end if
-
  if (pawxcdev==0)  then
    ABI_DEALLOCATE(pawang_tmp%angwgth)
    ABI_DEALLOCATE(pawang_tmp%anginit)
@@ -2299,7 +2286,8 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnm
 end subroutine pawpsp_calc
 !!***
 
-!{\src2tex{textfont=tt}}
+!-------------------------------------------------------------------------
+
 !!****f* m_pawpsp/pawpsp_calc_d5
 !! NAME
 !!  pawpsp_calc_d5
@@ -2331,9 +2319,7 @@ end subroutine pawpsp_calc
 !! SOURCE
 
 subroutine pawpsp_calc_d5(mesh,tcoredens)
-    
- use m_paw_numeric, only: paw_splint, paw_spline,paw_smooth
- use m_pawrad, only: nderiv_gen
+
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2351,9 +2337,9 @@ subroutine pawpsp_calc_d5(mesh,tcoredens)
 !character(len=500) :: message                   ! to be uncommented, if needed
  integer,parameter::it=1 !number of steps for smoothing function
  logical,parameter::use_smooth=.true.
- 
+
 ! *************************************************************************
- 
+
 !calculate first derivative from density, 
 !and store it
  call nderiv_gen(tcoredens(:,2),tcoredens(:,1),1,mesh)
@@ -2405,8 +2391,8 @@ subroutine pawpsp_calc_d5(mesh,tcoredens)
 end subroutine pawpsp_calc_d5
 !!***
 
+!-------------------------------------------------------------------------
 
-!{\src2tex{textfont=tt}}
 !!****f* m_pawpsp/pawpsp_vhar2rho
 !! NAME
 !!  pawpsp_vhar2rho
@@ -2455,7 +2441,6 @@ end subroutine pawpsp_calc_d5
 
 subroutine pawpsp_vhar2rho(pawrad,rho,v)
 
- use m_pawrad, only : nderiv_gen, pawrad_deducer0
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2477,8 +2462,8 @@ subroutine pawpsp_vhar2rho(pawrad,rho,v)
  !type(pawrad_type)::mesh_tmp
  !real(dp),allocatable::v2(:)
 
-
 ! *************************************************************************
+
 ! DBG_ENTER("COLL")
 
  nr=pawrad%mesh_size
@@ -2494,9 +2479,7 @@ subroutine pawpsp_vhar2rho(pawrad,rho,v)
  ff(2:nr)=ff(2:nr)+dfdr(2:nr,2)
  call pawrad_deducer0(ff,nr,pawrad)
 
-!
  rho(1:nr)=-ff(1:nr)/(4.d0*pi)
-!
 !call paw_smooth(rho,nr,50)
 
 !debug
@@ -2506,18 +2489,17 @@ subroutine pawpsp_vhar2rho(pawrad,rho,v)
 !write(500,'(100f15.7)')mesh_tmp%rad(ir),v2(ir),dfdr(ir,1),dfdr(ir,2)
 !end do
 !end debug
- 
 !ABI_DEALLOCATE(v2)
 !ABI_DEALLOCATE(dfdr)
 !ABI_DEALLOCATE(ff)
-
 
 ! DBG_EXIT("COLL")
 
 end subroutine pawpsp_vhar2rho
 !!***
 
-!{\src2tex{textfont=tt}}
+!-------------------------------------------------------------------------
+
 !!****f* m_pawpsp/pawpsp_wvl_calc
 !! NAME
 !! pawpsp_wvl_calc
@@ -2563,11 +2545,6 @@ end subroutine pawpsp_vhar2rho
 
 subroutine pawpsp_wvl_calc(pawtab,tnvale,usewvl,vale_mesh,vloc_mesh,vlocr)
 
- use m_paw_numeric, only: paw_splint, paw_spline
-
-!#if defined HAVE_DFT_LIBXC
-!  use libxc_functionals
-!#endif
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2585,7 +2562,7 @@ subroutine pawpsp_wvl_calc(pawtab,tnvale,usewvl,vale_mesh,vloc_mesh,vlocr)
  type(pawrad_type),intent(in) ::vloc_mesh
  
 !arrays
- real(dp),intent(in) :: tnvale(vale_mesh%mesh_size*pawtab%usetvale)
+ real(dp),intent(in) :: tnvale(vale_mesh%mesh_size*pawtab%has_tvale)
  real(dp),intent(in) :: vlocr(vloc_mesh%mesh_size)
 
 
@@ -2599,12 +2576,11 @@ subroutine pawpsp_wvl_calc(pawtab,tnvale,usewvl,vale_mesh,vloc_mesh,vlocr)
  
 ! DBG_ENTER("COLL")
 
-
 !==========================================================
 !Change mesh_size of tvalespl
 !Compute second derivative from tNvale(r)
 
- if (pawtab%usetvale/=0) then
+ if (pawtab%has_tvale/=0) then
    if(usewvl==1) then
      if(associated(pawtab%tvalespl)) then
        ABI_DEALLOCATE(pawtab%tvalespl)
@@ -2617,6 +2593,7 @@ subroutine pawpsp_wvl_calc(pawtab,tnvale,usewvl,vale_mesh,vloc_mesh,vlocr)
    end if
  else
    pawtab%dnvdq0=zero
+   pawtab%tnvale_mesh_size=0
  end if
 
 !==========================================================
@@ -2624,13 +2601,7 @@ subroutine pawpsp_wvl_calc(pawtab,tnvale,usewvl,vale_mesh,vloc_mesh,vlocr)
 !Get local density from local potential
 !use the poisson eq.
  msz=vloc_mesh%mesh_size
- if(associated(pawtab%wvl%rholoc%d)) then
-   ABI_DEALLOCATE(pawtab%wvl%rholoc%d)
- end if
- if(associated(pawtab%wvl%rholoc%rad)) then
-   ABI_DEALLOCATE(pawtab%wvl%rholoc%rad)
- end if
-
+ call wvlpaw_rholoc_destroy(pawtab%wvl%rholoc)
  ABI_ALLOCATE(pawtab%wvl%rholoc%d,(msz,4))
  ABI_ALLOCATE(pawtab%wvl%rholoc%rad,(msz))
  pawtab%wvl%rholoc%msz=msz
@@ -2675,7 +2646,8 @@ subroutine pawpsp_wvl_calc(pawtab,tnvale,usewvl,vale_mesh,vloc_mesh,vlocr)
 end subroutine pawpsp_wvl_calc
 !!***
 
-!{\src2tex{textfont=tt}}
+!-------------------------------------------------------------------------
+
 !!****f* m_pawpsp/pawpsp_17in
 !! NAME
 !! pawpsp_17in
@@ -2695,8 +2667,6 @@ end subroutine pawpsp_wvl_calc
 !!  ipsp= id in the array of the currently read pseudo.
 !!  ixc=exchange-correlation choice from main routine data file
 !!  lmax=value of lmax mentioned at the second line of the psp file
-!!  lmnmax=if useylm=1, max number of (l,m,n) comp. over all type of psps
-!!            =if useylm=0, max number of (l,n)   comp. over all type of psps
 !!  lnmax=max. number of (l,n) components over all type of psps
 !!            angular momentum of nonlocal pseudopotential
 !!  mmax=max number of pts in real space grid (already read in the psp file header)
@@ -2704,12 +2674,6 @@ end subroutine pawpsp_wvl_calc
 !!  mqgrid_vl=dimension of q (or G) grid for Vloc (array vlspl)
 !!  pawxcdev=choice of XC development (0=no dev. (use of angular mesh) ; 1 or 2=dev. on moments) 
 !!  pspheads= header of the current pseudopotential
-!!  pspso=spin-orbit characteristics, govern the content of ffspl and ekb
-!!            if =0 : this input requires NO spin-orbit characteristics of the psp
-!!            if =2 : this input requires HGH characteristics of the psp
-!!            if =3 : this input requires HFN characteristics of the psp
-!!            if =1 : this input will be changed at output to 1, 2, 3, according
-!!                    to the intrinsic characteristics of the psp file
 !!  qgrid_ff(psps%mqgrid_ff)=values of q on grid from 0 to qmax (bohr^-1) for nl form factors
 !!  qgrid_vl(psps%mqgrid_vl)=values of q on grid from 0 to qmax (bohr^-1) for Vloc
 !!  xclevel= XC functional level
@@ -2720,8 +2684,6 @@ end subroutine pawpsp_wvl_calc
 !!  epsatm=$ (4\pi)\int_0^\infty [r^2 (V(r)+\frac{Zv}{r}) dr]$(hartree)
 !!  ffspl(psps%mqgrid_ff,2,psps%lnmax)=form factor f_l(q) and second derivative
 !!   from spline fit for each angular momentum and each projector;
-!!   if any, spin-orbit components begin at l=mpsang+1
-!!  indlmn(6,psps%lmnmax)= array giving l,m,n,lm,ln,s for i=lmn
 !!  pawrad <type(pawrad_type)>=paw radial mesh and related data
 !!  pawtab <type(pawtab_type)>=paw tabulated starting data
 !!  vlspl(psps%mqgrid_vl,2)=q^2 Vloc(q) and second derivatives from spline fit
@@ -2731,6 +2693,17 @@ end subroutine pawpsp_wvl_calc
 !!
 !! NOTES
 !!  Spin-orbit not yet implemented (to be done)
+!!  Comments:
+!!  * mesh_type= type of radial mesh
+!!  mesh_type=1 (regular grid): rad(i)=(i-1)*AA
+!!  mesh_type=2 (logari. grid): rad(i)=AA*(exp[BB*(i-1)]-1)
+!!  mesh_type=3 (logari. grid): rad(i>1)=AA*exp[BB*(i-2)] and rad(1)=0
+!!  mesh_type=4 (logari. grid): rad(i)=-AA*ln[1-BB*(i-1)] with BB=1/n
+!!  * radial shapefunction type
+!!  shape_type=-1 ; gl(r)=numeric (read from psp file)
+!!  shape_type= 1 ; gl(r)=k(r).r^l; k(r)=exp[-(r/sigma)**lambda]
+!!  shape_type= 2 ; gl(r)=k(r).r^l; k(r)=[sin(pi*r/rshp)/(pi*r/rshp)]**2 if r<=rshp
+!!  shape_type= 3 ; gl(r)=Alpha(1,l)*jl(q(1,l)*r)+Alpha(2,l)*jl(q(2,l)*r) for each l
 !!
 !! PARENTS
 !!      pawpsp_paw
@@ -2741,20 +2714,13 @@ end subroutine pawpsp_wvl_calc
 !!
 !! SOURCE
 
-subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
+subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 & lnmax,mmax,mqgrid_ff,mqgrid_vl,pawpsp_header,pawrad,pawtab,&
-& pawxcdev,pspso, qgrid_ff,qgrid_vl,usexcnhat_in,vlspl,xcccrc,&
+& pawxcdev, qgrid_ff,qgrid_vl,usexcnhat_in,vlspl,xcccrc,&
 & xclevel,xc_denpos,zion,znucl)
 
- use m_paw_numeric, only: paw_splint, paw_spline
  use m_xml_pawpseudo_types
  use m_xml_pawpseudo
- use m_atompaw, only: atompaw_shapebes, atompaw_vhnzc
- use m_pawrad, only : pawrad_init, pawrad_destroy, pawrad_destroy_array, &
- &                     pawrad_copy, bound_deriv
-#if defined HAVE_DFT_LIBXC
-  use libxc_functionals
-#endif
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2767,7 +2733,7 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: ipsp,ixc,lmax,lmnmax,lnmax,mqgrid_ff,mqgrid_vl,pawxcdev,pspso,usexcnhat_in
+ integer,intent(in) :: ipsp,ixc,lmax,lnmax,mqgrid_ff,mqgrid_vl,pawxcdev,usexcnhat_in
  integer,intent(inout) ::mmax
  integer,intent(in) :: xclevel
  real(dp),intent(in) :: xc_denpos,zion,znucl
@@ -2777,7 +2743,6 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
  type(pawtab_type),intent(inout) :: pawtab
  
 !arrays
- integer,intent(out) :: indlmn(6,lmnmax)
  real(dp),intent(in) :: qgrid_ff(mqgrid_ff),qgrid_vl(mqgrid_vl)
  real(dp),intent(out) :: ffspl(mqgrid_ff,2,lnmax)
  real(dp),intent(out) :: vlspl(mqgrid_vl,2)
@@ -2788,54 +2753,85 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
  integer :: ir,iread1,ishpfmesh,ivalemesh,ivlocmesh,j0lmn,jlm
  integer :: jlmn,jln,klmn,msz,nmesh,nval,pspversion,sz10,usexcnhat,vlocopt
  real(dp) :: fourpi,occ,rc,yp1,ypn
- logical :: has_dij0
+ logical,parameter :: save_core_msz=.false. ! Temporary
  character(len=500) :: message
  type(pawrad_type) :: core_mesh,shpf_mesh,tproj_mesh,vale_mesh,vloc_mesh
 !arrays
  integer,allocatable :: nprj(:)
- real(dp),allocatable :: ncore(:)
+ real(dp),allocatable :: kij(:),ncore(:)
  real(dp),allocatable :: shpf(:,:),tncore(:),tnvale(:),vhnzc(:),vlocr(:)
  real(dp),allocatable :: work1(:),work2(:),work3(:),work4(:)
  type(pawrad_type),allocatable :: radmesh(:)
 
 !************************************************************************
 
-!(27) Dij0 (for ij=1 to lmn_size*(lmn_size+1)/2)
-!(28) comment(character)
-!(29) Rhoij0 (for ij=1 to lmn_size*(lmn_size+1)/2)
-
-!
-!Comments:
-!* mesh_type= type of radial mesh
-!mesh_type=1 (regular grid): rad(i)=(i-1)*AA
-!mesh_type=2 (logari. grid): rad(i)=AA*(exp[BB*(i-1)]-1)
-!mesh_type=3 (logari. grid): rad(i>1)=AA*exp[BB*(i-2)] and rad(1)=0
-!mesh_type=4 (logari. grid): rad(i)=-AA*ln[1-BB*(i-1)] with BB=1/n
-!* radial shapefunction type
-!shape_type=-1 ; gl(r)=numeric (read from psp file)
-!shape_type= 1 ; gl(r)=k(r).r^l; k(r)=exp[-(r/sigma)**lambda]
-!shape_type= 2 ; gl(r)=k(r).r^l; k(r)=[sin(pi*r/rshp)/(pi*r/rshp)]**2 if r<=rshp
-!shape_type= 3 ; gl(r)=Alpha(1,l)*jl(q(1,l)*r)+Alpha(2,l)*jl(q(2,l)*r) for each l
-
-
-!==========================================================
-
 ! DBG_ENTER("COLL")
 
 !==========================================================
+!Destroy everything in pawtab but optional flags
+ call pawtab_destroy(pawtab)
 
+!==========================================================
+!Initialize useful data
  pawtab%usexcnhat=usexcnhat_in
  fourpi=4*acos(-1.d0)
  pspversion=pawpsp_header%pawver
- pawtab%basis_size=pawpsp_header%basis_size
- pawtab%lmn_size=pawpsp_header%lmn_size
- pawtab%l_size=pawpsp_header%l_size
+
+!==========================================================
+!Initialize partial waves quantum numbers
 
  ipsploc=ipsp2xml(ipsp)
- nmesh=paw_setup(ipsploc)%ngrid
+ pawtab%basis_size=pawpsp_header%basis_size
+ ABI_ALLOCATE(pawtab%orbitals,(pawtab%basis_size))
  do ib=1,pawtab%basis_size
    pawtab%orbitals(ib)=paw_setup(ipsploc)%valence_states%state(ib)%ll
  end do
+
+!==========================================================
+!Initialize various dims and indexes
+
+ pawtab%lmn_size=pawpsp_header%lmn_size
+ pawtab%lmn2_size=pawtab%lmn_size*(pawtab%lmn_size+1)/2
+ pawtab%l_size=2*maxval(pawtab%orbitals)+1
+ pawtab%ij_size=pawtab%basis_size*(pawtab%basis_size+1)/2
+
+!indlmn calculation (indices for (l,m,n) basis)
+ if (associated(pawtab%indlmn)) then
+   ABI_DEALLOCATE(pawtab%indlmn)
+ end if
+ ABI_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
+ pawtab%indlmn(:,:)=0
+ ABI_ALLOCATE(nprj,(0:maxval(pawtab%orbitals)))
+ ilmn=0;iln=0;nprj=0
+ do ib=1,pawtab%basis_size
+   il=pawtab%orbitals(ib)
+   nprj(il)=nprj(il)+1
+   iln=iln+1
+   do ilm=1,2*il+1
+     pawtab%indlmn(1,ilmn+ilm)=il
+     pawtab%indlmn(2,ilmn+ilm)=ilm-(il+1)
+     pawtab%indlmn(3,ilmn+ilm)=nprj(il)
+     pawtab%indlmn(4,ilmn+ilm)=il*il+ilm
+     pawtab%indlmn(5,ilmn+ilm)=iln
+     pawtab%indlmn(6,ilmn+ilm)=1
+   end do
+   ilmn=ilmn+2*il+1
+ end do
+ ABI_DEALLOCATE(nprj)
+!Are ilmn (found here) and pawtab%lmn_size compatibles ?
+ if (ilmn/=pawtab%lmn_size) then
+   write(message, '(a,a,a,a,a)' )&
+&   '  Calculated lmn size differs from',ch10,&
+&   '  lmn_size read from pseudo !',ch10,&
+&   ' Action: check your pseudopotential file.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
+ end if
+
+!==========================================================
+!Read and initialize radial meshes
+
+ nmesh=paw_setup(ipsploc)%ngrid
  ABI_DATATYPE_ALLOCATE(radmesh,(nmesh))
  do imsh=1,nmesh
    radmesh(imsh)%mesh_type=-1
@@ -2878,9 +2874,16 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
    end select
  end do
 
+!Initialize radial meshes
+ do imsh=1,nmesh
+   call pawrad_init(radmesh(imsh))
+ end do
+
  pawtab%rpaw=pawpsp_header%rpaw
 
+!==========================================================
 !Here reading shapefunction parameters
+
  pawtab%shape_type=pawpsp_header%shape_type
  pawtab%shape_lambda=-1;pawtab%shape_sigma=1.d99
  pawtab%rshp=pawpsp_header%rshp
@@ -2900,10 +2903,15 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
 
 !If shapefunction type is Bessel, deduce here its parameters from rc
  if (pawtab%shape_type==3) then
+   ABI_ALLOCATE(pawtab%shape_alpha,(2,pawtab%l_size))
+   ABI_ALLOCATE(pawtab%shape_q,(2,pawtab%l_size))
    rc=pawtab%rshp;if (rc<1.d-8) rc=pawtab%rpaw
    do il=1,pawtab%l_size
      call atompaw_shapebes(pawtab%shape_alpha(1:2,il),pawtab%shape_q(1:2,il),il-1,rc)
    end do
+ else
+   ABI_ALLOCATE(pawtab%shape_alpha,(0,0))
+   ABI_ALLOCATE(pawtab%shape_q,(0,0))
  end if
 
 !==========================================================
@@ -2983,27 +2991,11 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
 !==========================================================
 !Perfom tests
 
-!Spin-orbit not yet implemented
- if (pspso>1) then
-   write(message, '(a,a,a)' )&
-&   '  Spin-orbit not yet implemented for PAW psps !',ch10,&
-&   '  Action : check your pseudopotential or input file.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
- end if
-
 !Are lmax and orbitals compatibles ?
  if (lmax/=maxval(pawtab%orbitals)) then
    write(message, '(a,a,a)' )&
 &   '  lmax /= MAX(orbitals) !',ch10,&
 &   '  Action: check your pseudopotential file.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
- end if
-
-!Are psps%lmnmax and pawtab%lmn_size compatibles ?
- if (lmnmax<pawtab%lmn_size) then
-   message='  lmnmax < lmn size (read from pseudo) !'
    call wrtout(std_out,message,'COLL')
    call leave_new('COLL')
  end if
@@ -3020,13 +3012,6 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
  end do
 
 !==========================================================
-!Initialize radial meshes
-
- do imsh=1,nmesh
-   call pawrad_init(radmesh(imsh))
- end do
-
-!==========================================================
 !Read tabulated atomic data
 
 !---------------------------------
@@ -3040,11 +3025,13 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
          call pawrad_destroy(pawrad)
          call pawrad_init(pawrad,mesh_size=radmesh(imsh)%mesh_size,mesh_type=radmesh(imsh)%mesh_type, &
 &         rstep=radmesh(imsh)%rstep,lstep=radmesh(imsh)%lstep,r_for_intg=pawtab%rpaw)
+         pawtab%mesh_size=pawrad%mesh_size
          mmax=radmesh(imsh)%mesh_size
          imainmesh=imsh
          cycle
        end if
      end do
+     ABI_ALLOCATE(pawtab%phi,(pawrad%mesh_size,pawtab%basis_size))
    else if (trim(paw_setup(ipsploc)%ae_partial_wave(ib)%grid)/=trim(paw_setup(ipsploc)%radial_grid(imainmesh)%id)) then
      write(message, '(a,a,a)' )&
 &     '  All Phi and tPhi must be given on the same radial mesh !',ch10,&
@@ -3064,6 +3051,7 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
 !---------------------------------
 !Read pseudo wave-functions (tphi)
 
+ ABI_ALLOCATE(pawtab%tphi,(pawrad%mesh_size,pawtab%basis_size))
  do ib=1,pawtab%basis_size
 
    if(trim(paw_setup(ipsploc)%pseudo_partial_wave(ib)%grid)/=trim(paw_setup(ipsploc)%radial_grid(imainmesh)%id)) then
@@ -3086,11 +3074,9 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
 !---------------------------------
 !Read projectors (tproj)
 !Pending, add reading of Gaussian projectors:
- ! Nullify wavelet objects for safety:
- nullify(pawtab%wvl%pngau)
- nullify(pawtab%wvl%parg)
- nullify(pawtab%wvl%pfac)
- pawtab%wvl%ptotgau=0
+!Nullify wavelet objects for safety:
+ call wvlpaw_nullify(pawtab%wvl)
+ pawtab%has_wvl=0
 
  do ib=1,pawtab%basis_size
    if (ib==1) then
@@ -3143,15 +3129,21 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
 !write(std_out,*)"NCORE= "
 !write(std_out,*)ncore(1:core_mesh%mesh_size)
 
-!construct and save VH[z_NC] if requested
- if (pawtab%has_vhnzc == 1) then
+!Construct and save VH[z_NC] if requested
+ if (pawtab%has_vhnzc==1) then
+   ABI_ALLOCATE(pawtab%VHnZC,(pawrad%mesh_size))
    ABI_ALLOCATE(vhnzc,(core_mesh%mesh_size))
    call atompaw_vhnzc(ncore,core_mesh,vhnzc,znucl)
    pawtab%VHnZC(1:pawrad%mesh_size)=vhnzc(1:pawrad%mesh_size)
    pawtab%has_vhnzc=2
    ABI_DEALLOCATE(vhnzc)
  end if
- pawtab%coredens(1:pawrad%mesh_size)=ncore(1:pawrad%mesh_size)
+
+ pawtab%core_mesh_size=pawrad%mesh_size
+ if(save_core_msz) pawtab%core_mesh_size=core_mesh%mesh_size
+ ABI_ALLOCATE(pawtab%coredens,(pawtab%core_mesh_size))
+ pawtab%rcore=core_mesh%rad(pawtab%core_mesh_size)
+ pawtab%coredens(1:pawtab%core_mesh_size)=ncore(1:pawtab%core_mesh_size)
 
 !---------------------------------
 !Read pseudo core density (tcoredens)
@@ -3173,9 +3165,14 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
  tncore(1:core_mesh%mesh_size)=paw_setup(ipsploc)%pseudo_core_density%data(1:core_mesh%mesh_size)/sqrt(fourpi)
 !write(std_out,*)"TNCORE= "
 !write(std_out,*)tncore(1:core_mesh%mesh_size)
+ if(save_core_msz)  then
+   ABI_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,6))
+ else
+   ABI_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,1))
+ end if
  if (maxval(abs(tncore(:)))<tol6) then
    pawtab%usetcore=0
-   pawtab%tcoredens(1:pawrad%mesh_size,1)=zero
+   pawtab%tcoredens(1:pawrad%mesh_size,:)=zero
  else
    pawtab%usetcore=1
    pawtab%tcoredens(1:pawrad%mesh_size,1)=tncore(1:pawrad%mesh_size)
@@ -3250,6 +3247,7 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
 !---------------------------------
 !Eventually read "numeric" shapefunctions (if shape_type=-1)
  if (pawtab%shape_type==-1) then
+   ABI_ALLOCATE(pawtab%shapefunc,(pawrad%mesh_size,pawtab%l_size))
    do imsh=1,nmesh
      if(trim(paw_setup(ipsploc)%shape_function%grid)==trim(paw_setup(ipsploc)%radial_grid(imsh)%id)) then
        iread1=imsh
@@ -3323,19 +3321,20 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
    tnvale(1:vale_mesh%mesh_size)=paw_setup(ipsploc)%pseudo_valence_density%data(1:vale_mesh%mesh_size)/sqrt(fourpi)
 !  write(std_out,*)"TNVALE= "
 !  write(std_out,*)tnvale(1:vale_mesh%mesh_size)
-   pawtab%usetvale=1
+   pawtab%has_tvale=1
    write(message,'(a,i1)') &
 &   ' Radial grid used for pseudo valence density is grid ',ivalemesh
    call wrtout(ab_out,message,'COLL')
    call wrtout(std_out,  message,'COLL')
  else
-   pawtab%usetvale=0
+   pawtab%has_tvale=0
    ABI_ALLOCATE(tnvale,(0))
  end if
 
 !---------------------------------
 !Read initial guess of rhoij (rhoij0)
 
+ ABI_ALLOCATE(pawtab%rhoij0,(pawtab%lmn2_size))
  pawtab%rhoij0=zero
  ilmn0=0
  do ib=1,pawtab%basis_size
@@ -3349,76 +3348,51 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
  end do
 !write(std_out,*)"RHOIJ0= "
 !write(std_out,*)pawtab%rhoij0(1:pawtab%lmn2_size)
-!==========================================================
-!Initialize various parameters in structured data
-!Some dims
- pawtab%l_size=2*maxval(pawtab%orbitals)+1
- pawtab%mesh_size=pawrad%mesh_size
- pawtab%lmn2_size=pawtab%lmn_size*(pawtab%lmn_size+1)/2
- pawtab%core_mesh_size=pawrad%mesh_size
- pawtab%rcore=core_mesh%rad(pawtab%core_mesh_size)
 
-!indlmn calculation (indices for (l,m,n) basis)
- ABI_ALLOCATE(nprj,(0:maxval(pawtab%orbitals)))
- ilmn=0;iln=0;nprj=0
- do ib=1,pawtab%basis_size
-   il=pawtab%orbitals(ib)
-   nprj(il)=nprj(il)+1
-   iln=iln+1
-   do ilm=1,2*il+1
-     indlmn(1,ilmn+ilm)=il
-     indlmn(2,ilmn+ilm)=ilm-(il+1)
-     indlmn(3,ilmn+ilm)=nprj(il)
-     indlmn(4,ilmn+ilm)=il*il+ilm
-     indlmn(5,ilmn+ilm)=iln
-     indlmn(6,ilmn+ilm)=1
-   end do
-   ilmn=ilmn+2*il+1
- end do
- ABI_DEALLOCATE(nprj)
-
-!Are ilmn (found here) and pawtab%lmn_size compatibles ?
- if (ilmn/=pawtab%lmn_size) then
-   write(message, '(a,a,a,a,a)' )&
-&   '  Calculated lmn size differs from',ch10,&
-&   '  lmn_size read from pseudo !',ch10,&
-&   ' Action: check your pseudopotential file.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
- end if
 !---------------------------------
-!Read Kij terms (kij0)
- pawtab%kij=zero
+!Read Kij terms (kij0) and deduce eventually Dij0
+ nval=paw_setup(ipsploc)%valence_states%nval
+ ABI_ALLOCATE(kij,(pawtab%lmn2_size))
  nval=paw_setup(ipsploc)%valence_states%nval
  do jlmn=1,pawtab%lmn_size
    j0lmn=jlmn*(jlmn-1)/2
-   jlm=indlmn(4,jlmn);jln=indlmn(5,jlmn)
+   jlm=pawtab%indlmn(4,jlmn);jln=pawtab%indlmn(5,jlmn)
    do ilmn=1,jlmn
      klmn=j0lmn+ilmn
-     ilm=indlmn(4,ilmn);iln=indlmn(5,ilmn)
-     if (ilm==jlm) pawtab%kij(klmn)=paw_setup(ipsploc)%kinetic_energy_differences%data(jln+(iln-1)*nval)
+     ilm=pawtab%indlmn(4,ilmn);iln=pawtab%indlmn(5,ilmn)
+     if (ilm==jlm) kij(klmn)=paw_setup(ipsploc)%kinetic_energy_differences%data(jln+(iln-1)*nval)
    end do
  end do
 !write(std_out,*)"KIJ= "
-!write(std_out,*)pawtab%kij(1:pawtab%lmn2_size)
+!write(std_out,*)kij(1:pawtab%lmn2_size)
 
- has_dij0=.false.
+ if (vlocopt>0) then
+   ABI_ALLOCATE(pawtab%dij0,(pawtab%lmn2_size))
+   call atompaw_dij0(pawtab%indlmn,kij,pawtab%lmn_size,ncore,0,pawtab,pawrad,core_mesh,&
+&                    vloc_mesh,vlocr,znucl)
+ end if
 
- call pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnmax,lnmax,&
-& mmax,mqgrid_ff,mqgrid_vl,ncore,nmesh,pawrad,pawtab,pawxcdev,pspversion,&
-& qgrid_ff,qgrid_vl,&
-& radmesh,tncore,tnvale,tproj_mesh,usexcnhat,vale_mesh,vloc_mesh,vlocopt,&
-& vlocr,vlspl,xcccrc,xclevel,xc_denpos,zion,znucl)
+!Keep eventualy Kij in memory
+ if (pawtab%has_kij==1.or.vlocopt==0) then
+   ABI_ALLOCATE(pawtab%kij,(pawtab%lmn2_size))
+   pawtab%kij(:)=kij(:)
+   if (vlocopt> 0) pawtab%has_kij=2
+!  This -1 means that pawtab%kij will be freed later
+   if (vlocopt==0) pawtab%has_kij=-1
+ end if
 
-!Nullify wvl+paw objects:
- nullify(pawtab%wvl%rholoc%rad)
- nullify(pawtab%wvl%rholoc%d)
- pawtab%wvl%rholoc%msz=0
+!==========================================================
+!Compute additional atomic data inly depending on present DATASET
 
+ call pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
+&     mmax,mqgrid_ff,mqgrid_vl,ncore,nmesh,pawrad,pawtab,pawxcdev,pspversion,&
+&     qgrid_ff,qgrid_vl,radmesh,tncore,tnvale,tproj_mesh,usexcnhat,vale_mesh,&
+&     vloc_mesh,vlocopt,vlocr,vlspl,xcccrc,xclevel,xc_denpos,zion,znucl)
 
 !==========================================================
 !Free temporary allocated space
- call pawrad_destroy_array(radmesh)
+
+ call pawrad_destroy(radmesh)
  call pawrad_destroy(tproj_mesh)
  call pawrad_destroy(core_mesh)
  call pawrad_destroy(vloc_mesh)
@@ -3434,14 +3408,13 @@ subroutine pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
  end if
  ABI_DEALLOCATE(tnvale)
 
-
 ! DBG_EXIT('COLL')
 
 end subroutine pawpsp_17in
 !!***
 
+!-------------------------------------------------------------------------
 
-!{\src2tex{textfont=tt}}
 !!****f* m_pawpsp/pawpsp_7in
 !! NAME
 !! pawpsp_7in
@@ -3464,38 +3437,6 @@ end subroutine pawpsp_17in
 !!  ixc=exchange-correlation choice from main routine data file
 !!  lloc=angular momentum choice of local pseudopotential
 !!  lmax=value of lmax mentioned at the second line of the psp file
-!!  psps <type(pseudopotential_type)>=at output, values depending on the read
-!!                                    pseudo are set.
-!!   | dimekb=dimension of ekb (see module defs_psp.f)
-!!   | filpsp=name of formatted external file containing atomic psp data.
-!!   | lmnmax=if useylm=1, max number of (l,m,n) comp. over all type of psps
-!!   |           =if useylm=0, max number of (l,n)   comp. over all type of psps
-!!   | lnmax=max. number of (l,n) components over all type of psps
-!!   |           angular momentum of nonlocal pseudopotential
-!!   | mpsang= 1+maximum angular momentum for nonlocal pseudopotentials
-!!   | mpssoang= 1+maximum (spin*angular momentum) for nonlocal pseudopotentials
-!!   | mqgrid_ff=dimension of q (or G) grid for nl form factors (array ffspl)
-!!   | mqgrid_vl=dimension of q (or G) grid for Vloc (array vlspl)
-!!   | n1xccc=dimension of xccc1d ; 0 if no XC core correction is used
-!!   | optnlxccc=option for nl XC core correction
-!!   | positron=0 if electron GS calculation
-!!   |              1 if positron GS calculation
-!!   |              2 if electron GS calculation in presence of the positron
-!!   | pspso=spin-orbit characteristics, govern the content of ffspl and ekb
-!!   |          if =0 : this input requires NO spin-orbit characteristics of the psp
-!!   |          if =2 : this input requires HGH characteristics of the psp
-!!   |          if =3 : this input requires HFN characteristics of the psp
-!!   |          if =1 : this input will be changed at output to 1, 2, 3, according
-!!   |                  to the intrinsic characteristics of the psp file
-!!   | qgrid_ff(mqgrid_ff)=values of q on grid from 0 to qmax (bohr^-1) for nl form factors
-!!   | qgrid_vl(mqgrid_vl)=values of q on grid from 0 to qmax (bohr^-1) for Vloc
-!!   | usepaw= 0 for non paw calculation; =1 for paw calculation
-!!   | usewvl=1 for wavelets calculation; 0 for non wavelets calculation
-!!   | useylm=governs the way the nonlocal operator is to be applied:
-!!   |            1=using Ylm, 0=using Legendre polynomials
-!!   | vlspl_recipSpace=.true. if pseudo are expressed in reciprocal space.
-!!   | znuclpsp=atomic number of atom as specified in input file to main routine
-!!
 !!  pawxcdev=choice of XC development (0=no dev. (use of angular mesh) ; 1 or 2=dev. on moments)
 !!  xclevel= XC functional level
 !!  zion=nominal valence of atom as specified in psp file
@@ -3504,8 +3445,6 @@ end subroutine pawpsp_17in
 !!  epsatm=$ (4\pi)\int_0^\infty [r^2 (V(r)+\frac{Zv}{r}) dr]$(hartree)
 !!  ffspl(psps%mqgrid_ff,2,psps%lnmax)=form factor f_l(q) and second derivative
 !!   from spline fit for each angular momentum and each projector;
-!!   if any, spin-orbit components begin at l=mpsang+1
-!!  indlmn(6,psps%lmnmax)= array giving l,m,n,lm,ln,s for i=lmn
 !!  pawrad <type(pawrad_type)>=paw radial mesh and related data
 !!  pawtab <type(pawtab_type)>=paw tabulated starting data
 !!  vlspl(mqgrid_vl,2)=q^2 Vloc(q) and second derivatives from spline fit
@@ -3521,12 +3460,11 @@ end subroutine pawpsp_17in
 !!
 !! SOURCE
 
-subroutine pawpsp_7in(epsatm,ffspl,icoulomb,indlmn,ixc,&
-& lmax,lmnmax,lnmax,mmax,mqgrid_ff,mqgrid_vl,&
+subroutine pawpsp_7in(epsatm,ffspl,icoulomb,ixc,&
+& lmax,lnmax,mmax,mqgrid_ff,mqgrid_vl,&
 & pawrad,pawtab,pawxcdev,qgrid_ff,qgrid_vl,&
 & usewvl,usexcnhat_in,vlspl,xcccrc,xclevel,xc_denpos,zion,znucl)
 
- use m_pawrad, only : pawrad_destroy, pawrad_destroy_array
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3539,7 +3477,7 @@ subroutine pawpsp_7in(epsatm,ffspl,icoulomb,indlmn,ixc,&
 !Arguments ------------------------------------
 !scalars
  integer, intent(in):: icoulomb,ixc
- integer, intent(in):: lmax,lmnmax,lnmax,mmax
+ integer, intent(in):: lmax,lnmax,mmax
  integer, intent(in):: mqgrid_ff,mqgrid_vl,pawxcdev
  integer, intent(in):: usewvl,usexcnhat_in,xclevel
  real(dp), intent(in):: xc_denpos,zion,znucl
@@ -3547,7 +3485,6 @@ subroutine pawpsp_7in(epsatm,ffspl,icoulomb,indlmn,ixc,&
  type(pawrad_type), intent(out):: pawrad
  type(pawtab_type), intent(out) :: pawtab
 !arrays
- integer,intent(out):: indlmn(6,lmnmax)
  real(dp),intent(in):: qgrid_ff(mqgrid_ff),qgrid_vl(mqgrid_vl)
  real(dp),intent(out) :: ffspl(mqgrid_ff,2,lnmax)
  real(dp),intent(out) :: vlspl(mqgrid_vl,2)
@@ -3557,32 +3494,28 @@ subroutine pawpsp_7in(epsatm,ffspl,icoulomb,indlmn,ixc,&
  integer :: imainmesh
  integer :: nmesh
  integer :: pspversion,usexcnhat,vlocopt
- logical :: has_dij0,save_core_msz
-! character(len=500) :: message
+ logical :: save_core_msz
  type(pawrad_type) :: core_mesh,tproj_mesh,vale_mesh,vloc_mesh
  real(dp),pointer :: ncore(:),tncore(:),tnvale(:)
  real(dp),pointer :: vlocr(:)
  type(pawrad_type),pointer :: radmesh(:)
+
 !************************************************************************
 
 ! DBG_ENTER("COLL")
 
- pawtab%usexcnhat=usexcnhat_in
  save_core_msz=(usewvl==1 .or. icoulomb .ne. 0)
  nullify(radmesh)
 
- call pawpsp_read(core_mesh,imainmesh,indlmn,lmax,lmnmax,&
+ call pawpsp_read(core_mesh,imainmesh,lmax,&
 &  ncore,nmesh,pawrad,pawtab,pspversion,radmesh,save_core_msz,&
-&  tncore,tnvale,tproj_mesh,usexcnhat,vale_mesh,vlocopt,vlocr,&
+&  tncore,tnvale,tproj_mesh,usexcnhat_in,usexcnhat,vale_mesh,vlocopt,vlocr,&
 &  vloc_mesh,znucl)
 
- has_dij0=.true.
- call pawpsp_calc(core_mesh,epsatm,ffspl,has_dij0,imainmesh,indlmn,ixc,lmnmax,lnmax,&
-& mmax,mqgrid_ff,mqgrid_vl,ncore,nmesh,pawrad,pawtab,pawxcdev,pspversion,&
-& qgrid_ff,qgrid_vl,&
-& radmesh,tncore,tnvale,tproj_mesh,usexcnhat,vale_mesh,vloc_mesh,vlocopt,&
-& vlocr,vlspl,xcccrc,xclevel,xc_denpos,zion,znucl)
-
+ call pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
+&     mmax,mqgrid_ff,mqgrid_vl,ncore,nmesh,pawrad,pawtab,pawxcdev,pspversion,&
+&     qgrid_ff,qgrid_vl,radmesh,tncore,tnvale,tproj_mesh,usexcnhat,vale_mesh,&
+&     vloc_mesh,vlocopt,vlocr,vlspl,xcccrc,xclevel,xc_denpos,zion,znucl)
 
  if(usewvl==1 .or. icoulomb > 0) then
 !  Calculate up to the 5th derivative of tcoredens
@@ -3590,14 +3523,12 @@ subroutine pawpsp_7in(epsatm,ffspl,icoulomb,indlmn,ixc,&
 !  Other wvl related operations
    call pawpsp_wvl_calc(pawtab,tnvale,usewvl,vale_mesh,vloc_mesh,vlocr)
  else
-   nullify(pawtab%wvl%rholoc%rad)
-   nullify(pawtab%wvl%rholoc%d)
-   pawtab%wvl%rholoc%msz=0
+   call wvlpaw_rholoc_nullify(pawtab%wvl%rholoc)
  end if
 
 !==========================================================
 !Free temporary allocated space
- call pawrad_destroy_array(radmesh)
+ call pawrad_destroy(radmesh)
  call pawrad_destroy(tproj_mesh)
  call pawrad_destroy(core_mesh)
  call pawrad_destroy(vloc_mesh)
@@ -3607,7 +3538,6 @@ subroutine pawpsp_7in(epsatm,ffspl,icoulomb,indlmn,ixc,&
  ABI_DEALLOCATE(tncore)
  if (pspversion>=4)  then
    call pawrad_destroy(vale_mesh)
-   if (.FALSE.) call wrtout(std_out,"Another silly trick for XLF","COLL")
  end if
  ABI_DEALLOCATE(tnvale)
 
@@ -3616,9 +3546,8 @@ subroutine pawpsp_7in(epsatm,ffspl,icoulomb,indlmn,ixc,&
 end subroutine pawpsp_7in
 !!***
 
+!-------------------------------------------------------------------------
 
-
-!{\src2tex{textfont=tt}}
 !!****f* m_pawpsp/pawpsp_fill_hgh
 !! NAME
 !! pawpsp_fill_hgh
@@ -3659,7 +3588,6 @@ subroutine pawpsp_fill_hgh(gth_hasGeometry,&
 & gth_psppar,gth_radii_cf,gth_radii_cov,&
 & gth_semicore,npspcode,wvl_crmult,wvl_frmult,zion,znuclpsp)
 
- use m_paw_numeric, only: paw_splint, paw_spline
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3695,8 +3623,6 @@ subroutine pawpsp_fill_hgh(gth_hasGeometry,&
  real(dp) :: amu,rcov, rprb, ehomo, radfine
  real(dp) :: neleconf(6,0:3)
 #endif
-
- 
 !arrays
 
 
@@ -3793,8 +3719,8 @@ subroutine pawpsp_fill_hgh(gth_hasGeometry,&
 end subroutine pawpsp_fill_hgh
 !!***
 
+!-------------------------------------------------------------------------
 
-!{\src2tex{textfont=tt}}
 !!****f* m_pawpsp/pawpsp_wvl_sin2gauss
 !! NAME
 !!  pawpsp_wvl_sin2gauss
@@ -3868,11 +3794,9 @@ end subroutine pawpsp_fill_hgh
   !complex(dp),allocatable::f(:)
 !************************************************************************
 
-!
-!
 !  Convert from \sum(sin+cos) expressions to sums of complex gaussians
 !  (only works for option=4, see fit_gen)
-!
+
 !  get number of coefficients:
    ii=0
    do ib=1,basis_size
@@ -3928,9 +3852,8 @@ end subroutine pawpsp_fill_hgh
 !
      ii=ii+nterm*2
    end do
-!  
+
 !  begin debug
-!  
 !  write(*,*)'pawpsp_wvl_sin2gauss, comment me'
 !  nr=3000
 !  rmax=10.d0
@@ -3960,14 +3883,14 @@ end subroutine pawpsp_fill_hgh
 !  ABI_DEALLOCATE(r)
 !  ABI_DEALLOCATE(f)
 !  ABI_DEALLOCATE(y)
-!
 !  end debug
-!
 
  end subroutine pawpsp_wvl_sin2gauss
 !!***
 
-!!****f* pawpsp_main/pawpsp_read_header
+!-------------------------------------------------------------------------
+
+!!****f* m_pawpsp/pawpsp_read_header
 !! NAME
 !!  pawpsp_read_header
 !!
@@ -4001,8 +3924,7 @@ subroutine pawpsp_read_header(lloc,lmax,mmax,pspcod,pspxc,r2well,zion,znucl)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawpsp_read_header'
- use interfaces_14_hidewrite
+#define ABI_FUNC 'pawpsp_read_header_2'
 !End of the abilint section
 
 implicit none
@@ -4015,7 +3937,6 @@ implicit none
  character(len=fnlen):: title
  character(len=500) :: message
 ! *************************************************************************
-!==========================================================
 
 !Read and write some description of file from first line (character data)
  read (tmp_unit,'(a)') title
@@ -4043,12 +3964,88 @@ implicit none
  call wrtout(ab_out,message,'COLL')
  call wrtout(std_out,  message,'COLL')
 
-
-   
 end subroutine pawpsp_read_header
 !!***
 
+!-------------------------------------------------------------------------
 
+!!****f* m_pawpsp/pawpsp_read_header_2
+!! NAME
+!!  pawpsp_read_header_2
+!!
+!! FUNCTION
+!!
+!! COPYRIGHT
+!! Copyright (C) 1998-2013 ABINIT group (TRangel)
+!!  This file is distributed under the terms of the
+!!  GNU General Public License, see ~abinit/COPYING
+!!  or http://www.gnu.org/copyleft/gpl.txt .
+!!
+!! INPUTS
+!!
+!! OUTPUT
+!!  
+!!
+!! SIDE EFFECTS
+!!
+!! NOTES
+!! Reads pspversion, basis_size and lmn_size
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+
+subroutine pawpsp_read_header_2(pspversion,basis_size,lmn_size)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawpsp_read_header'
+ use interfaces_14_hidewrite
+!End of the abilint section
+
+implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,intent(out) :: pspversion,basis_size,lmn_size
+
+!Local variables-------------------------------
+ integer :: creatorid
+ character(len=80) :: pspline
+ character(len=500) :: message
+
+! *************************************************************************
+
+!Read psp version in line 4 of the header
+ pspversion=1
+ read (tmp_unit,'(a80)') pspline;pspline=adjustl(pspline)
+ if (pspline(1:3)=="paw".or.pspline(1:3)=="PAW") &
+& read(unit=pspline(4:80),fmt=*) pspversion
+ if (pspversion<1.or.pspversion>5) then
+   write(message, '(a,i2,a,a,a)' )&
+&   '  This version of PAW psp file (',pspversion,') is not compatible with',ch10,&
+&   '  current version of Abinit.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
+ end if
+
+ if (pspversion==1) then
+   read (unit=pspline,fmt=*) basis_size,lmn_size
+ else
+!  Here psp file for Abinit 4.3+
+   read (unit=pspline(5:80),fmt=*) creatorid
+   read (tmp_unit,*) basis_size,lmn_size
+ end if
+
+end subroutine pawpsp_read_header_2
+!!***
+
+!-------------------------------------------------------------------------
 
 !!****f* m_pawpsp/pawpsp_wvl
 !! NAME
@@ -4084,8 +4081,6 @@ subroutine pawpsp_wvl(filpsp,gth_hasGeometry,gth_psppar,&
 & usewvl, wvl_crmult, wvl_frmult, wvl_ngauss, zion, znuclpsp, comm_mpi)
 
  use m_gaussfit, only: gaussfit_projector
- use m_pawrad, only: pawrad_init, pawrad_nullify, pawrad_destroy
- use m_xmpi
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -4171,6 +4166,7 @@ implicit none
 end subroutine pawpsp_wvl
 !!***
 
+!-------------------------------------------------------------------------
 
 !!****f* m_pawpsp/pawpsp_read_header_xml
 !! NAME
@@ -4187,7 +4183,6 @@ end subroutine pawpsp_wvl
 !! INPUTS
 !!
 !! OUTPUT
-!!  
 !!
 !! SIDE EFFECTS
 !!
@@ -4206,11 +4201,7 @@ end subroutine pawpsp_wvl
 subroutine pawpsp_read_header_xml(lloc,lmax,pspcod,pspxc,&
 & psxml,r2well,zion,znucl)
 
-!
  use m_xml_pawpseudo_types
-#if defined HAVE_DFT_LIBXC
- use libxc_functionals, only : libxc_functionals_getid
-#endif
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -4229,9 +4220,8 @@ implicit none
  character(len=100) :: xclibxc
  character(len=500) :: message
 !arrays
-! *************************************************************************
-!==========================================================
 
+! *************************************************************************
 
  lloc   = 0
  r2well = 0
@@ -4319,10 +4309,10 @@ implicit none
      end if
  end select
 
-   
 end subroutine pawpsp_read_header_xml
 !!***
 
+!-------------------------------------------------------------------------
 
 !!****f* m_pawpsp/pawpsp_read_pawheader
 !! NAME
@@ -4373,7 +4363,6 @@ implicit none
 !Local variables-------------------------------
  integer::il
 ! *************************************************************************
-!==========================================================
 
 !All of this was moved from pawpsxml2ab,
 !basis_size
@@ -4419,24 +4408,189 @@ implicit none
 end subroutine pawpsp_read_pawheader
 !!***
 
+!-------------------------------------------------------------------------
 
+!!****f* m_pawpsp/pawpsp_bcast
+!! NAME
+!! pawpsp_bcast
+!!
+!! FUNCTION
+!! Communicate paw data to all processors
+!!
+!! COPYRIGHT
+!! Copyright (C) 2009-2013 ABINIT group (FJ,MT)
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~abinit/COPYING
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
+!!
+!! INPUTS
+!! comm_mpi= communicator used to broadcast data
+!! lnmax= Max. number of (l,n) components over all type of psps
+!! mqgrid_ff= dimension of ffspl
+!! mqgrid_vl= dimension of vlspl
+!!
+!! OUTPUT
+!!  epsatm=$ (4\pi)\int_0^\infty [r^2 (V(r)+\frac{Zv}{r}) dr]$(hartree)
+!!  ffspl(mqgrid_ff,2,lnmax)=Kleinman-Bylander form factor f_l(q) and
+!!   second derivative from spline fit for each angular momentum and
+!!  pawrad=<type pawrad_type>
+!!  pawtab=<type pawtab_type>
+!!   all the important information from the
+!!   pseudopotential file. On one processor at input,
+!!   on all processors at output
+!!  vlspl(mqgrid_vl,2)=q^2 Vloc(q) and second derivatives from spline fit
+!!  xcccrc=XC core correction cutoff radius (bohr) from psp file
+!!
+!! PARENTS
+!!      pspatm_abinit,pspatm_pspio
+!!
+!! CHILDREN
+!!      pawrad_bcast,pawtab_bcast,xcast_mpi
+!!
+!! SOURCE
+
+#if defined HAVE_CONFIG_H
+#include "config.inc"
+#endif
+
+#include "abi_common_for_bigdft.h"
+
+
+subroutine pawpsp_bcast(comm_mpi,epsatm,ffspl,lnmax,mqgrid_ff,mqgrid_vl,pawrad,pawtab,vlspl,xcccrc)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawpsp_bcast'
+!End of the abilint section
+
+ implicit none
+
+#if defined HAVE_MPI1
+ include 'mpif.h'
+#endif
+
+!Arguments ------------------------------------
+ integer,intent(in) :: comm_mpi,lnmax,mqgrid_ff,mqgrid_vl
+ real(dp),intent(inout) :: epsatm,xcccrc
+ real(dp),intent(inout) :: ffspl(mqgrid_ff,2,lnmax)
+ real(dp),intent(inout) :: vlspl(mqgrid_vl,2)
+ type(pawrad_type),intent(inout) :: pawrad
+ type(pawtab_type),intent(inout) :: pawtab
+
+!Local variables-------------------------------
+ integer :: ierr,indx,me,nn,nsz,isz1,isz2
+ integer,allocatable :: list_int(:)
+ real(dp),allocatable :: list_dpr(:)
+
+!*************************************************************************
+
+ me=xcomm_rank(comm_mpi)
+
+!Broadcast pawrad
+ call pawrad_bcast(pawrad,comm_mpi)
+
+!Broadcast pawtab
+ call pawtab_bcast(pawtab,comm_mpi)
+
+!Brodcast the integers
+ nsz=1
+ ABI_ALLOCATE(list_int,(nsz))
+ nn=0
+ if(me==0) then
+   nn=2+size(ffspl)+size(vlspl)
+ end if
+ if(me==0) then
+   list_int(1)=nn
+ end if
+ call xcast_mpi(list_int,0,comm_mpi,ierr)
+ if(me/=0) then
+   nn =list_int(1)
+ end if
+ ABI_DEALLOCATE(list_int)
+
+!Broadcast the reals
+ ABI_ALLOCATE(list_dpr,(nn))
+ if(me==0) then
+   list_dpr(1)=epsatm
+   list_dpr(2)=xcccrc
+   isz1=size(vlspl)
+   list_dpr(3:3+isz1-1)=reshape(vlspl(:,:),(/isz1/))
+   isz2=size(ffspl)
+   list_dpr(3+isz1:3+isz1+isz2-1)=reshape(ffspl(:,:,:),(/isz2/))
+ end if
+ call xcast_mpi(list_dpr,0,comm_mpi,ierr)
+ if(me/=0) then
+   epsatm=list_dpr(1)
+   xcccrc=list_dpr(2)
+   indx=3
+   isz1=mqgrid_vl
+   vlspl(:,:)=reshape(list_dpr(indx:indx+2*isz1-1),(/isz1,2/))
+   indx=indx+2*isz1
+   isz1=mqgrid_ff
+   isz2=lnmax
+   ffspl(:,:,:)=reshape(list_dpr(indx:indx+2*isz1*isz2-1),(/isz1,2,isz2/))
+ end if
+ ABI_DEALLOCATE(list_dpr)
+
+end subroutine pawpsp_bcast
+!!***
+
+!-------------------------------------------------------------------------
 
 !!****f* m_pawpsp/pawpsp_main
 !! NAME
 !! pawpsp_main
 !!
 !! FUNCTION
-!! Reads and communicates atomic DATA
+!! Reads a PAW dataset (atomic data)
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (DCA, XG, GMR, FrD, AF, DRH,TRangel)
+!! Copyright (C) 2013-2013 ABINIT group (TRangel,MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 !!
 !! INPUTS
+!!  filpsp=name of the file containing the PAW dataset
+!!  usewvl=1 if we use a wavelet basis, 0 other wise (plane waves)
+!!  icoulomb=1 if we use a Poisson routine with wavelets, 0 otherwise
+!!  ixc=index of the XC correlation functional
+!!  xclevel=type of XC functional (1=LDA, 2=GGA, ...)
+!!  pawxcdev=order of the developement of the PAW on-site terms
+!!           (0: full calculation, 1: order 1, 2:order 2)
+!!  usexcnhat=flag controlling the use of compensation charge (nhat) in XC potential
+!!  qgrid_ff=size of the mesh for the sin FFT transform of the non-local projectors (form factors)
+!!           (plane waves only, 0 otherwise)
+!!  qgrid_vl=size of the mesh for the sin FFT transform of the local potential
+!!           (plane waves only, 0 otherwise)
+!!  ffspl=sin FFT transform of the non-local projectors (form factors) (plane waves only)
+!!  vlspl=sin FFT transform of the local potential (plane waves only)
+!!  epsatm=$ 4\pi\int[r^2 (V(r)+\frac{Zv}{r}dr]$.
+!!  xcccrc=XC core correction cutoff radius (bohr)
+!!  zionpsp=valence of atom as specified in input file
+!!  znuclpsp=atomic number of atom as specified in input file
+!!  ===== Optional arguments for wvl =====
+!!    gth_hasGeometry
+!!    gth_psppar
+!!    gth_radii_cf
+!!    gth_radii_cov
+!!    gth_semicore
+!!    wvl_crmult
+!!    wvl_frmult
+!!    wvl_ngauss
+!!  ===== Other optional arguments =====
+!!    psxml=datastructure containing a XMP PAW dataset
+!!    comm_mpi=MPI communicator
+!!    xc_denpos=tolerance on density/potential for the calculation of XC potential
+!!              (if density<xc_denpos, density=zero)
+!!
 !! OUTPUT
+!!  pawrad <type(pawrad_type)>=data containing PAW radial grid informations
+!!  pawtab <type(pawtab_type)>=data containing the PAW dataset (partial waves...)
 !!
 !! SIDE EFFECTS
 !!
@@ -4449,21 +4603,15 @@ end subroutine pawpsp_read_pawheader
 !!
 !! SOURCE
 
-subroutine pawpsp_main(epsatm,ffspl,filpsp,icoulomb,&
-& indlmn,ipsp,ixc,lmnmax,lnmax,&
-& mpsang,mqgrid_ff,mqgrid_vl,&
-& pawrad,pawtab,pawxcdev,&
-& pspso,qgrid_ff,qgrid_vl,usewvl,usexcnhat,&
-& vlspl,wvl_crmult,wvl_frmult,&
-& wvl_ngauss,xcccrc,xclevel,xc_denpos,&
-& zionpsp,znuclpsp,comm_mpi,gth_hasGeometry,gth_psppar,&
-& gth_radii_cf,gth_radii_cov,gth_semicore,psxml)
+subroutine pawpsp_main( &
+& pawrad,pawtab,&
+& filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
+& qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,zionpsp,znuclpsp,&
+& gth_hasGeometry,gth_psppar,gth_radii_cf,gth_radii_cov,gth_semicore,&
+& wvl_crmult,wvl_frmult,wvl_ngauss,&
+& psxml,comm_mpi,xc_denpos)
 
- use m_pawrad, only: pawrad_destroy,pawrad_init,pawrad_nullify
-! use m_xml_pseudo_types
  use m_xml_pawpseudo_types, only: paw_setup_t
-! use m_xml_pawpseudo
- use m_xmpi
 !#if defined HAVE_TRIO_FOX
 ! use fox_sax
 !#endif
@@ -4479,53 +4627,74 @@ subroutine pawpsp_main(epsatm,ffspl,filpsp,icoulomb,&
 
 !Arguments ------------------------------------
 !scalars
- integer, intent(in):: icoulomb,ipsp,ixc,lmnmax,lnmax
- integer, intent(in):: mpsang,mqgrid_ff,mqgrid_vl
- integer, intent(in):: pawxcdev,usewvl,usexcnhat,xclevel
- integer, intent(inout)::pspso
- real(dp), intent(in):: wvl_crmult,wvl_frmult
- real(dp), intent(in):: xc_denpos,zionpsp,znuclpsp
- real(dp),intent(out)::epsatm,xcccrc
+ integer,intent(in) :: icoulomb,ixc
+ integer,intent(in) :: pawxcdev,usewvl,usexcnhat,xclevel
+ integer,optional,intent(in) :: comm_mpi
+ integer,optional,intent(out) :: gth_semicore
+ logical,optional,intent(out) :: gth_hasGeometry
+ real(dp),intent(in):: zionpsp,znuclpsp
+ real(dp),optional,intent(in) :: xc_denpos
+ real(dp),intent(out) :: epsatm,xcccrc
+ real(dp),optional,intent(in) :: wvl_crmult,wvl_frmult
+ real(dp),optional,intent(out):: gth_radii_cov
  character(len=fnlen),intent(in):: filpsp   ! name of the psp file
- type(pawrad_type),intent(out) :: pawrad
- type(pawtab_type),intent(inout):: pawtab
- integer, optional,intent(in):: comm_mpi
- integer,optional,intent(out):: gth_semicore
- real(dp),optional,intent(out)::gth_radii_cov
- logical,optional,intent(out):: gth_hasGeometry
+ type(pawrad_type),intent(inout) :: pawrad
+ type(pawtab_type),intent(inout) :: pawtab
  type(paw_setup_t),optional,intent(in) :: psxml
 !arrays
- integer,intent(in):: wvl_ngauss(2)
- integer,intent(out) :: indlmn(6,lmnmax)
- real(dp),intent(in):: qgrid_ff(mqgrid_ff),qgrid_vl(mqgrid_vl)
- real(dp),intent(out):: ffspl(mqgrid_ff,2,lnmax)
- real(dp),intent(out) :: vlspl(mqgrid_vl,2)
- real(dp),optional,intent(out)::gth_psppar(0:4,0:6)
- real(dp),optional,intent(out):: gth_radii_cf(3)
+ integer,optional,intent(in) :: wvl_ngauss(2)
+ real(dp),intent(in) :: qgrid_ff(:),qgrid_vl(:)
+ real(dp),intent(out) :: ffspl(:,:,:),vlspl(:,:)
+ real(dp),optional,intent(out) :: gth_psppar(0:4,0:6),gth_radii_cf(3)
+
 !Local variables-------------------------------
- integer:: lmax,lloc,mmax,me
- integer:: pspcod,pspxc,usexml
- real(dp):: r2well,zion,znucl
- character(len=500):: message
- type(pawpsp_header_type):: pawpsp_header
+ integer :: ipsp,lmax,lloc,lnmax,mmax,me,mqgrid_ff,mqgrid_vl,pspcod,pspxc,usexml
+ real(dp),parameter :: xc_denpos_default=tol14
+ real(dp) :: my_xc_denpos,r2well,zion,znucl
+ character(len=500) :: message
+ type(pawpsp_header_type) :: pawpsp_header
 !arrays
-!no_abirules
-!!#if defined HAVE_TRIO_FOX
-!!!!  usexml= 0 for non xml ps format ; =1 for xml ps format
-!! integer :: iostat,maxn_pots
-!! type(xml_t)                :: fxml
-!! type(pseudo_t), pointer    :: psxml
-!!#endif
- 
 
 ! *************************************************************************
- 
-!==========================================================
 
 ! DBG_ENTER("COLL")
 
+!Temporary limitation
+ if (pspcod==17) then
+   message='cannot work for XML PAW setups!'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
+ end if
+
+!Check consistency of parameters
+ if (icoulomb/= 0.or.usewvl==1) then
+   if ((.not.present(gth_hasGeometry)).or.(.not.present(gth_psppar)).or.&
+&      (.not.present(gth_radii_cf)).or.(.not.present(gth_radii_cov)).or.&
+&      (.not.present(gth_semicore)).or.(.not.present(wvl_crmult)).or.&
+&      (.not.present(wvl_frmult)).or.(.not.present(wvl_ngauss))) then
+     message='usewvl==1 or icoulomb/=0: a mandatory argument is missing!'
+     call wrtout(std_out,message,'COLL')
+     call leave_new('COLL')
+   end if
+ end if
+
+ mqgrid_ff=size(qgrid_ff)
+ mqgrid_vl=size(qgrid_vl)
+ lnmax=size(ffspl,3)
+ if (size(ffspl,1)/=mqgrid_ff.or.size(ffspl,2)/=2) then
+   message='invalid sizes for ffspl!'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
+ end if
+ if (size(vlspl,1)/=mqgrid_vl.or.size(vlspl,2)/=2) then
+   message='invalid sizes for vlspl!'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
+ end if
+
+ my_xc_denpos=xc_denpos_default;if (present(xc_denpos)) my_xc_denpos=xc_denpos
  pawtab%usexcnhat=usexcnhat
- me=0;  if (present(comm_mpi))me=xcomm_rank(comm_mpi)
+ me=0;if (present(comm_mpi))me=xcomm_rank(comm_mpi)
 
  if(me==0) then
    write(message, '(a,t38,a)' )'- pspatm: opening atomic psp file',trim(filpsp)
@@ -4568,20 +4737,21 @@ subroutine pawpsp_main(epsatm,ffspl,filpsp,icoulomb,&
 !  Check data for consistency against main routine input
    call pawpsp_consistency()
 
-!  Read rest of the PSP file:   
+!  Read rest of the PSP file
    if(pspcod==7) then
-!Pending: psp7calc is not yet moved to libPAW
-     call pawpsp_7in(epsatm,ffspl,icoulomb,indlmn,ixc,&
-&     lmax,lmnmax,lnmax,mmax,mqgrid_ff,mqgrid_vl,&
+!    ABINIT proprietary format
+     call pawpsp_7in(epsatm,ffspl,icoulomb,ixc,&
+&     lmax,lnmax,mmax,mqgrid_ff,mqgrid_vl,&
 &     pawrad,pawtab,pawxcdev,qgrid_ff,qgrid_vl,&
-&     usewvl,usexcnhat,vlspl,xcccrc,xclevel,xc_denpos,zion,znucl)
+&     usewvl,usexcnhat,vlspl,xcccrc,xclevel,my_xc_denpos,zion,znucl)
 
    else if (pspcod==17)then
 !    XML format
-     call pawpsp_17in(epsatm,ffspl,indlmn,ipsp,ixc,lmax,lmnmax,&
+     ipsp=1
+     call pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 &     lnmax,mmax,mqgrid_ff,mqgrid_vl,pawpsp_header,pawrad,pawtab,&
-&     pawxcdev,pspso,qgrid_ff,qgrid_vl,usexcnhat,vlspl,xcccrc,&
-&     xclevel,xc_denpos,zion,znucl)
+&     pawxcdev,qgrid_ff,qgrid_vl,usexcnhat,vlspl,xcccrc,&
+&     xclevel,my_xc_denpos,zion,znucl)
 
    end if
  end if!me==0
@@ -4593,18 +4763,16 @@ subroutine pawpsp_main(epsatm,ffspl,filpsp,icoulomb,&
  call wrtout(ab_out,message,'COLL')
  call wrtout(std_out,  message,'COLL')
 
-!PENDING: Depends on 51_manage_mpi:
-!!Communicate PAW objects
-! if(present(comm_mpi)) then
-!   if(xcomm_size(comm_mpi)>1) then
-!     call pawbcast(comm_mpi,epsatm,ffspl,indlmn,&
-!&     lmnmax,lnmax,mqgrid_ff,mqgrid_vl,&
-!&     pawrad,pawtab,pspso,vlspl,xcccrc)
-!   end if
-! end if
+!Communicate PAW objects
+ if(present(comm_mpi)) then
+   if(xcomm_size(comm_mpi)>1) then
+     call pawpsp_bcast(comm_mpi,epsatm,ffspl,lnmax,mqgrid_ff,mqgrid_vl,&
+&         pawrad,pawtab,vlspl,xcccrc)
+   end if
+ end if
 
-!  WVL+PAW: 
- if(icoulomb /= 0 .or. usewvl==1) then
+!WVL+PAW:
+ if(icoulomb/=0.or.usewvl==1) then
    if(present(comm_mpi))then
     call pawpsp_wvl(filpsp,gth_hasGeometry,gth_psppar,gth_radii_cf,&
 &    gth_radii_cov,gth_semicore,pawrad,pawtab,usewvl,wvl_crmult,wvl_frmult,&
@@ -4626,6 +4794,8 @@ subroutine pawpsp_main(epsatm,ffspl,filpsp,icoulomb,&
 
 contains
 !!***
+
+!-------------------------------------------------------------------------
 
 !!****f* pawpsp_main/pawpsp_check_xml_upf
 !! NAME
@@ -4671,8 +4841,8 @@ implicit none
  character(len=fnlen),intent(in):: filpsp   ! name of the psp file
 !Local variables-------------------------------
  character(len=70):: testxml
+
 ! *************************************************************************
-!==========================================================
 
 !  Check if the file pseudopotential file is written in XML
    usexml = 0
@@ -4704,9 +4874,11 @@ implicit none
 !     call leave_new('COLL')
    end if
    close (unit=tmp_unit)
-   
+
 end subroutine pawpsp_check_xml_upf
 !!***
+
+!-------------------------------------------------------------------------
 
 !!****f* pawpsp_main/pawpsp_consistency
 !! NAME
@@ -4723,7 +4895,6 @@ end subroutine pawpsp_check_xml_upf
 !! INPUTS
 !!
 !! OUTPUT
-!!  
 !!
 !! SIDE EFFECTS
 !!
@@ -4749,8 +4920,8 @@ subroutine pawpsp_consistency()
 implicit none
 
 !Local variables-------------------------------
+
 ! *************************************************************************
-!==========================================================
 
 !Check gth parameters are present for WVL:
  if(icoulomb /= 0 .or. usewvl==1) then
@@ -4775,18 +4946,6 @@ implicit none
    call leave_new('COLL')
  end if
 
-!Does required spin-orbit characteristics agree with format
-!(At present, only HGH and phoney pseudopotentials can have spin-orbit)
-!write(std_out,*) pspso
- if(pspso/=0)then
-   write(message, '(a,a,a,i3,a,a,a)' )&
-&   '  Pseudopotential file cannot give spin-orbit characteristics,',ch10,&
-&   '  while pspso(itypat)=',pspso,'.',ch10,&
-&   '  Action : check your pseudopotential and input files for consistency.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
- end if
-
 !Does nuclear charge znuclpsp agree with psp input znucl
  if (abs(znuclpsp-znucl)>tol8) then
    write(message, '(a,f10.5,2a,f10.5,5a)' )&
@@ -4805,19 +4964,6 @@ implicit none
 &   '  does not equal input zionpsp=',zionpsp,' better than 1e-08 .',ch10,&
 &   '  zion is read from the psp file in pawpsp_main, while',ch10,&
 &   '  zionpsp is read in iofn2.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
- end if
-
-
-
-!Is the highest angular momentum within limits?
-!Recall mpsang is 1+highest l for nonlocal correction.
-!Nonlocal corrections for s, p, d, and f are supported.
- if (lmax+1>mpsang) then
-   write(message, '(a,i10,a,i10,a,a)' )&
-&   '  input lmax+1=',lmax+1,' exceeds mpsang=',mpsang,ch10,&
-&   '  indicates input lmax too large for dimensions.'
    call wrtout(std_out,message,'COLL')
    call leave_new('COLL')
  end if
@@ -4855,6 +5001,8 @@ end subroutine pawpsp_consistency
 
 end subroutine pawpsp_main
 !!***
+
+!-------------------------------------------------------------------------
 
 end module m_pawpsp
 !!***

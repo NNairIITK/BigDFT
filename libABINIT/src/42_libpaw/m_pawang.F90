@@ -34,7 +34,7 @@
 MODULE m_pawang
 
  use defs_basis
-! use m_errors
+ use m_errors
 use interfaces_12_hide_mpi
 use interfaces_14_hidewrite
 use interfaces_16_hideleave

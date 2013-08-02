@@ -35,7 +35,7 @@
 MODULE m_pawrad
 
  use defs_basis
-! use m_errors
+ use m_errors
 use interfaces_12_hide_mpi
 use interfaces_14_hidewrite
 use interfaces_16_hideleave
@@ -49,9 +49,7 @@ use interfaces_16_hideleave
 !public procedures.
  public :: pawrad_init         ! Main creation method
  public :: pawrad_nullify      ! Nullify the object
- public :: pawrad_nullify_array! Nullify the object
  public :: pawrad_destroy      ! Frees the allocated memory
- public :: pawrad_destroy_array! Frees the allocated memory
  public :: pawrad_print        ! Printout of the basic info
  public :: pawrad_isame        ! Checks whether two meshes are equivalent or have the same equation.
  public :: pawrad_copy         ! Returns a copy of the mesh.
@@ -65,6 +63,15 @@ use interfaces_16_hideleave
  public :: poisson             ! Solves Poisson eq. for angularly dependent charge distribution
 !                                of angular momentum l.
  public :: calc_slatradl       ! Calculates the radial part of Slater integrals.
+
+ interface pawrad_nullify
+   module procedure pawrad_nullify_0D
+   module procedure pawrad_nullify_1D
+ end interface pawrad_nullify
+ interface pawrad_destroy
+   module procedure pawrad_destroy_0D
+   module procedure pawrad_destroy_1D
+ end interface pawrad_destroy
 
  ! TODO: Might use bit flags, but all radmesh stuff should be encapsulated here!
  integer,private,parameter :: RMESH_LINEAR = 1
@@ -188,8 +195,6 @@ CONTAINS
 !!    %rmax = Max. value of r = rad(mesh_size)
 !!
 !! PARENTS
-!!      m_atom,m_paw_pwij,mkcore_paw,mkcore_wvl,optics_paw_core,psp17in
-!!      psp7calc,psp7in,psp7nl,ptildefit,wvl_initro
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -332,28 +337,27 @@ end subroutine pawrad_init
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawrad/pawrad_nullify
+!!****f* m_pawrad/pawrad_nullify_0D
 !! NAME
-!!  pawrad_nullify
+!!  pawrad_nullify_0D
 !!
 !! FUNCTION
 !!  Nullify all pointers in the object
 !!
 !! PARENTS
-!!      m_pawrad
 !!
 !! CHILDREN
 !!      poisson,simp_gen
 !!
 !! SOURCE
 
-subroutine pawrad_nullify(Rmesh)
+subroutine pawrad_nullify_0D(Rmesh)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawrad_nullify'
+#define ABI_FUNC 'pawrad_nullify_0D'
 !End of the abilint section
 
  implicit none
@@ -372,33 +376,32 @@ subroutine pawrad_nullify(Rmesh)
  Rmesh%mesh_size=0
  Rmesh%mesh_type=-1
 
-end subroutine pawrad_nullify
+end subroutine pawrad_nullify_0D
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawrad/pawrad_nullify_array
+!!****f* m_pawrad/pawrad_nullify_1D
 !! NAME
-!!  pawrad_nullify_array
+!!  pawrad_nullify_1D
 !!
 !! FUNCTION
 !!  Nullify all pointers in an array of pawrad data structures
 !!
 !! PARENTS
-!!      driver,m_atom
 !!
 !! CHILDREN
 !!      poisson,simp_gen
 !!
 !! SOURCE
 
-subroutine pawrad_nullify_array(Rmesh)
+subroutine pawrad_nullify_1D(Rmesh)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawrad_nullify_array'
+#define ABI_FUNC 'pawrad_nullify_1D'
 !End of the abilint section
 
  implicit none
@@ -417,37 +420,35 @@ subroutine pawrad_nullify_array(Rmesh)
  if (nn==0) return
 
  do ii=1,nn
-   call pawrad_nullify(Rmesh(ii))
+   call pawrad_nullify_0D(Rmesh(ii))
  end do
 
-end subroutine pawrad_nullify_array
+end subroutine pawrad_nullify_1D
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawrad/pawrad_destroy
+!!****f* m_pawrad/pawrad_destroy_0D
 !! NAME
-!!  pawrad_destroy
+!!  pawrad_destroy_0D
 !!
 !! FUNCTION
-!!  Frees all memory allocated
+!!  Frees all memory allocated in the object
 !!
 !! PARENTS
-!!      m_paw_pwij,m_pawrad,mkcore_paw,mkcore_wvl,optics_paw_core,psp17in
-!!      psp7calc,psp7in,psp7nl,ptildefit,wvl_initro
 !!
 !! CHILDREN
 !!      poisson,simp_gen
 !!
 !! SOURCE
 
-subroutine pawrad_destroy(Rmesh)
+subroutine pawrad_destroy_0D(Rmesh)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawrad_destroy'
+#define ABI_FUNC 'pawrad_destroy_0D'
 !End of the abilint section
 
  implicit none
@@ -480,34 +481,32 @@ subroutine pawrad_destroy(Rmesh)
 
 ! DBG_EXIT("COLL")
 
-end subroutine pawrad_destroy
+end subroutine pawrad_destroy_0D
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawrad/pawrad_destroy_array
+!!****f* m_pawrad/pawrad_destroy_1D
 !! NAME
-!!  pawrad_destroy_array
+!!  pawrad_destroy_1D
 !!
 !! FUNCTION
 !!  Destroy all objects in an array of pawrad data structures
 !!
 !! PARENTS
-!!      driver,m_atom,m_paw_slater
-!!      psp17in,psp7in
 !!
 !! CHILDREN
 !!      poisson,simp_gen
 !!
 !! SOURCE
 
-subroutine pawrad_destroy_array(Rmesh)
+subroutine pawrad_destroy_1D(Rmesh)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawrad_destroy_array'
+#define ABI_FUNC 'pawrad_destroy_1D'
 !End of the abilint section
 
  implicit none
@@ -526,10 +525,10 @@ subroutine pawrad_destroy_array(Rmesh)
  if (nn==0) return
  
  do ii=1,nn
-   call pawrad_destroy(Rmesh(ii))
+   call pawrad_destroy_0D(Rmesh(ii))
  end do
 
-end subroutine pawrad_destroy_array
+end subroutine pawrad_destroy_1D
 !!***
 
 !----------------------------------------------------------------------
@@ -552,7 +551,6 @@ end subroutine pawrad_destroy_array
 !!  Only writing.
 !!
 !! PARENTS
-!!      m_atom
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -658,7 +656,6 @@ end subroutine pawrad_print
 !!    * 2 if Rmesh2 is denser than Rmesh1
 !!
 !! PARENTS
-!!      m_atom,m_paw_slater
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -738,7 +735,6 @@ end subroutine pawrad_isame
 !!  mesh2 <type(pawrad_type)>=data containing radial grid information of output mesh
 !!
 !! PARENTS
-!!      m_paw_pwij,psp17in,psp7in,psp7nl
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -815,11 +811,6 @@ end subroutine pawrad_copy
 !!  func(funcsz)=array containing values of function to extrapolate
 !!
 !! PARENTS
-!!      Lij,denfgr,m_paw_slater,m_paw_toolbox,m_pawrad,make_efg_onsite
-!!      optics_paw,optics_paw_core,pawdenpot,pawdensities,pawdijfr,pawdijso
-!!      pawnabla_init,pawtwdij,pawtwdij_2a,pawtwdij_2c,pawtwdij_2d,pawvhnzc
-!!      pawxc,pawxc3_gga,pawxcsph,pawxcsph3,pawxcsphpositron,psp7calc,ptildefit
-!!      vhar2rho
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -873,7 +864,6 @@ end subroutine pawrad_deducer0
 !!  pawrad=<type pawrad_type>= a radial mesh datastructure for PAW
 !!
 !! PARENTS
-!!      pawbcast
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1059,14 +1049,6 @@ end subroutine pawrad_bcast
 !!  intg=resulting integral by Simpson rule
 !!
 !! PARENTS
-!!      Lij,m_atom,m_paw_commutator,m_paw_pwij,m_paw_slater,m_pawrad
-!!      make_efg_onsite,mlwfovlp_projpaw,optics_paw,optics_paw_core
-!!      partial_dos_fractions_paw,pawdensities,pawdij,pawdij0,pawdijfr,pawdijso
-!!      pawinit,pawkij,pawnabla_init,pawpuxinit,pawshpfun,pawtwdij,pawtwdij_1
-!!      pawtwdij_2a,pawtwdij_2b,pawtwdij_2c,pawtwdij_2d,pawtwdij_2e,pawtwdij_2f
-!!      pawxc,pawxc3,pawxc3_gga,pawxcm,pawxcm3,pawxcmpositron,pawxcpositron
-!!      poslifetime,psp7calc,psp7cg,psp7lo,psp7nl,qijb_kk,smatrix_pawinit
-!!      twqijb_kk
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1188,9 +1170,6 @@ end subroutine simp_gen
 !!  der(:,nder)=resulting derived function
 !!
 !! PARENTS
-!!      m_paw_toolbox,optics_paw,optics_paw_core,pawdijso,pawinit,pawnabla_init
-!!      pawtwdij,pawtwdij_1,pawxc,pawxc3_gga,pawxcsph,pawxcsph3
-!!      pawxcsphpositron,poslifetime,psp7cc,psp7cc_wvl,spline_paw_fncs,vhar2rho
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1305,7 +1284,6 @@ end subroutine nderiv_gen
 !!  zz(ndim)= first or second derivative of y
 !!
 !! PARENTS
-!!      m_pawrad
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1408,7 +1386,6 @@ end subroutine nderiv_lin
 !!  yp1,ypn= derivatives of func at r(1) and r(n)
 !!
 !! PARENTS
-!!      optics_paw_core,pawdij0,pawkij,psp17in,psp7calc,psp7in
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1471,8 +1448,6 @@ end subroutine bound_deriv
 !!                                   +(r^l) int[r''^(1-l)g(r'')dr''])
 !!
 !! PARENTS
-!!      m_pawrad,pawdenpot,pawinit,pawpuxinit,pawtwdij_2a,pawtwdij_2c
-!!      pawtwdij_2d,pawtwdij_2f,pawvhnzc,psp7calc
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1716,7 +1691,6 @@ end function pawrad_ifromr
 !!  where $r_< = min(r1,r2)$ and $r_> = Max(r1,r2)$.
 !!
 !! PARENTS
-!!      m_paw_slater
 !!
 !! CHILDREN
 !!      poisson,simp_gen

@@ -33,7 +33,7 @@
 MODULE m_pawtab
 
  use defs_basis
-! use m_errors
+ use m_errors
 use interfaces_12_hide_mpi
 use interfaces_14_hidewrite
 use interfaces_16_hideleave
@@ -46,20 +46,34 @@ use interfaces_16_hideleave
 
 !public procedures.
  public :: pawtab_nullify
- public :: pawtab_nullify_array
  public :: pawtab_destroy
- public :: pawtab_destroy_array
+ public :: pawtab_set_flags
  public :: pawtab_print
  public :: pawtab_bcast
  public :: wvlpaw_destroy
  public :: wvlpaw_nullify
+ public :: wvlpaw_rholoc_destroy
+ public :: wvlpaw_rholoc_nullify
+
+ interface pawtab_nullify
+   module procedure pawtab_nullify_0D
+   module procedure pawtab_nullify_1D
+ end interface pawtab_nullify
+ interface pawtab_destroy
+   module procedure pawtab_destroy_0D
+   module procedure pawtab_destroy_1D
+ end interface pawtab_destroy
+ interface pawtab_set_flags
+   module procedure pawtab_set_flags_0D
+   module procedure pawtab_set_flags_1D
+ end interface pawtab_set_flags
 !!***
 
 !----------------------------------------------------------------------
 
-!!****t* m_pawtab/rholoc_type
+!!****t* m_pawtab/wvlpaw_rholoc_type
 !! NAME
-!! rholoc_type
+!! wvlpaw_rholoc_type
 !!
 !! FUNCTION
 !! Objects for WVL+PAW
@@ -68,7 +82,7 @@ use interfaces_16_hideleave
 
  type,public :: wvlpaw_rholoc_type
 
-  integer :: msz           ! mesh size 
+  integer :: msz             ! mesh size 
   real(dp),pointer :: d(:,:) ! local rho and derivatives
   real(dp),pointer :: rad(:) ! radial mesh 
 
@@ -146,18 +160,31 @@ use interfaces_16_hideleave
    ! if 1, onsite matrix elements of the kinetic operator are allocated
    ! if 2, onsite matrix elements of the kinetic operator are computed and stored
 
+  integer :: has_shapefncg
+   ! if 1, the spherical Fourier transforms of the radial shape functions are allocated
+   ! if 2, the spherical Fourier transforms of the radial shape functions are computed and stored
+
   integer :: has_nabla
    ! if 1, onsite matrix elements of the nabla operator are allocated.
    ! if 2, onsite matrix elements of the nabla operator are computed and stored.
 
-  integer :: has_vhntzc
-   ! if 1, space for vhntzc is allocated
-   ! if 2, vhntzc has been read from PAW file and stored
+  integer :: has_tvale
+   ! Flag controling use of pseudized valence density (0 if tnval is unknown)
+   ! if 1, tvalespl() is allocated.
+   ! if 2, tvalespl() is computed and stored.
+
+  integer :: has_vhtnzc
+   ! if 1, space for vhtnzc is allocated
+   ! if 2, vhtnzc has been read from PAW file and stored
 
   integer :: has_vhnzc
    ! if 1, space for vhnzc is allocated
    ! if 2, vhnzc has been computed and stored
 
+  integer :: has_wvl
+   ! if 1, data for wavelets (pawwvl) are allocated
+   ! if 2, data for wavelets (pawwvl) are computed and stored
+   
   integer :: ij_proj
    ! Number of (i,j) elements for the orbitals on which U acts (PAW+U only)
    ! on the considered atom type (ij_proj=1 (1 projector), 3 (2 projectors)...)
@@ -236,9 +263,6 @@ use interfaces_16_hideleave
   integer :: usetcore
    ! Flag controling use of pseudized core density (0 if tncore=zero)
 
-  integer :: usetvale
-   ! Flag controling use of pseudized valence density (0 if tnval is unknown)
-
   integer :: usexcnhat
    ! 0 if compensation charge density is not included in XC terms
    ! 1 if compensation charge density is included in XC terms
@@ -303,6 +327,11 @@ use interfaces_16_hideleave
    ! Array giving klm, kln, abs(il-jl), (il+jl), ilm and jlm for each klmn=(ilmn,jlmn)
    ! Note: ilmn=(il,im,in) and ilmn<=jlmn
 
+  integer, pointer :: indlmn(:,:) 
+   ! indlmn(6,lmn2_size,ntypat)
+   ! For each type of psp,
+   ! array giving l,m,n,lm,ln,spin for i=lmn (if useylm=1)
+
   integer, pointer :: klmntomn(:,:)
    ! klmntomn(4,lmn2_size)
    ! Array giving im, jm ,in, and jn for each klmn=(ilmn,jlmn)
@@ -356,10 +385,10 @@ use interfaces_16_hideleave
    ! gnorm(l_size)
    ! Give the the normalization factor of each radial shape function
 
-  real(dp),pointer :: kij(:)
+  real(dp), pointer :: kij(:)
    ! Onsite matrix elements <phi|\kinetic|phj>-<tphi|\kinetic|tphj>
 
-  real(dp),pointer :: nabla_ij(:,:,:)
+  real(dp), pointer :: nabla_ij(:,:,:)
    ! nabla_ij(3,lmn_size,lmn_size))
    ! Onsite matrix elements <phi|\nabla|phj>-<tphi|\nabla|tphj>
 
@@ -457,8 +486,8 @@ use interfaces_16_hideleave
    ! Screened interaction matrix deduced from calculation of Slater integrals
    ! computed on the basis of orbitals on which local exact exchange acts.
 
-  real(dp), pointer :: VHntZC(:)
-   ! VHntZC(mesh_size)
+  real(dp), pointer :: vhtnzc(:)
+   ! vhtnzc(mesh_size)
    ! Hartree potential for pseudized Zc density, v_H[\tilde{n}_{Zc}]
    ! read in from PAW file
 
@@ -483,9 +512,9 @@ CONTAINS
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawtab/pawtab_nullify
+!!****f* m_pawtab/pawtab_nullify_0D
 !! NAME
-!!  pawtab_nullify
+!!  pawtab_nullify_0D
 !!
 !! FUNCTION
 !!  Nullify pointers and flags in a pawtab structure
@@ -501,13 +530,13 @@ CONTAINS
 !!
 !! SOURCE
 
-subroutine pawtab_nullify(Pawtab)
+subroutine pawtab_nullify_0D(Pawtab)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawtab_nullify'
+#define ABI_FUNC 'pawtab_nullify_0D'
 !End of the abilint section
 
  implicit none
@@ -523,6 +552,7 @@ subroutine pawtab_nullify(Pawtab)
  !@Pawtab_type
 
  nullify(Pawtab%indklmn)
+ nullify(Pawtab%indlmn)
  nullify(Pawtab%klmntomn)
  nullify(Pawtab%kmix)
  nullify(Pawtab%lnproju)
@@ -557,7 +587,7 @@ subroutine pawtab_nullify(Pawtab)
  nullify(Pawtab%tvalespl)
  nullify(Pawtab%Vee)
  nullify(Pawtab%Vex)
- nullify(Pawtab%VHntZC)
+ nullify(Pawtab%vhtnzc)
  nullify(Pawtab%VHnZC)
  nullify(Pawtab%wvl%parg)
  nullify(Pawtab%wvl%pfac)
@@ -569,12 +599,17 @@ subroutine pawtab_nullify(Pawtab)
  call wvlpaw_nullify(Pawtab%wvl)
 
  ! === Reset all flags and sizes ===
+
+!Flags controlling optional arrays
  Pawtab%has_kij=0
- Pawtab%has_nabla=0
- Pawtab%has_vhntzc=0
+ Pawtab%has_tvale=0
+ Pawtab%has_vhtnzc=0
  Pawtab%has_vhnzc=0
+ Pawtab%has_nabla=0
+ Pawtab%has_shapefncg=0
+ Pawtab%has_wvl=0
+
  Pawtab%usetcore=0
- Pawtab%usetvale=0
  Pawtab%usexcnhat=0
  Pawtab%useexexch=0
  Pawtab%usepawu=0
@@ -597,32 +632,31 @@ subroutine pawtab_nullify(Pawtab)
  Pawtab%tnvale_mesh_size=0
  Pawtab%shape_type=-10
 
-end subroutine pawtab_nullify
+end subroutine pawtab_nullify_0D
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawtap/pawtab_nullify_array
+!!****f* m_pawtap/pawtab_nullify_1D
 !! NAME
-!!  pawtab_nullify_array
+!!  pawtab_nullify_1D
 !!
 !! FUNCTION
 !!  Nullify all pointers in an array of pawtab data structures
 !!
 !! PARENTS
-!!      driver,mblktyp1,mblktyp5,rdddb9,thmeig
 !!
 !! CHILDREN
 !!
 !! SOURCE
 
-subroutine pawtab_nullify_array(Pawtab)
+subroutine pawtab_nullify_1D(Pawtab)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawtab_nullify_array'
+#define ABI_FUNC 'pawtab_nullify_1D'
 !End of the abilint section
 
  implicit none
@@ -641,17 +675,17 @@ subroutine pawtab_nullify_array(Pawtab)
  if (nn==0) return
 
  do ii=1,nn
-   call pawtab_nullify(Pawtab(ii))
+   call pawtab_nullify_0D(Pawtab(ii))
  end do
 
-end subroutine pawtab_nullify_array
+end subroutine pawtab_nullify_1D
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawtab/pawtab_destroy
+!!****f* m_pawtab/pawtab_destroy_0D
 !! NAME
-!!  pawtab_destroy
+!!  pawtab_destroy_0D
 !!
 !! FUNCTION
 !!  Deallocate pointers and nullify flags in a pawtab structure
@@ -661,19 +695,18 @@ end subroutine pawtab_nullify_array
 !!  All associated pointers in Pawtab are deallocated
 !!
 !! PARENTS
-!!      m_pawtab
 !!
 !! CHILDREN
 !!
 !! SOURCE
 
-subroutine pawtab_destroy(Pawtab)
+subroutine pawtab_destroy_0D(Pawtab)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawtab_destroy'
+#define ABI_FUNC 'pawtab_destroy_0D'
 !End of the abilint section
 
  implicit none
@@ -690,6 +723,9 @@ subroutine pawtab_destroy(Pawtab)
 
  if (associated(Pawtab%indklmn))  then
   ABI_DEALLOCATE(Pawtab%indklmn)
+ end if
+ if (associated(Pawtab%indlmn))  then
+  ABI_DEALLOCATE(Pawtab%indlmn)
  end if
  if (associated(Pawtab%klmntomn))  then
    ABI_DEALLOCATE(Pawtab%klmntomn)
@@ -793,8 +829,8 @@ subroutine pawtab_destroy(Pawtab)
  if (associated(Pawtab%Vex))  then
    ABI_DEALLOCATE(Pawtab%Vex)
  end if
- if (associated(Pawtab%VHntZC))  then
-   ABI_DEALLOCATE(Pawtab%VHntZC)
+ if (associated(Pawtab%vhtnzc))  then
+   ABI_DEALLOCATE(Pawtab%vhtnzc)
  end if
  if (associated(Pawtab%VHnZC))  then
    ABI_DEALLOCATE(Pawtab%VHnZC)
@@ -806,12 +842,18 @@ subroutine pawtab_destroy(Pawtab)
  call wvlpaw_destroy(Pawtab%wvl)
 
  ! === Reset all flags and sizes ===
- Pawtab%has_kij=0
- Pawtab%has_nabla=0
- Pawtab%has_vhntzc=0
- Pawtab%has_vhnzc=0
+
+!CAUTION: do not reset these flags
+!They are set from input data and must be kept
+!Pawtab%has_kij=0
+!Pawtab%has_tvale=0
+!Pawtab%has_vhtnzc=0
+!Pawtab%has_vhnzc=0
+!Pawtab%has_nabla=0
+!Pawtab%has_shapefncg=0
+!Pawtab%has_wvl=0
+
  Pawtab%usetcore=0
- Pawtab%usetvale=0
  Pawtab%usexcnhat=0
  Pawtab%useexexch=0
  Pawtab%usepawu=0
@@ -834,32 +876,31 @@ subroutine pawtab_destroy(Pawtab)
  Pawtab%tnvale_mesh_size=0
  Pawtab%shape_type=-10
  
-end subroutine pawtab_destroy
+end subroutine pawtab_destroy_0D
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawtap/pawtab_destroy_array
+!!****f* m_pawtap/pawtab_destroy_1D
 !! NAME
-!!  pawtab_destroy_array
+!!  pawtab_destroy_1D
 !!
 !! FUNCTION
 !!  Destroy (deallocate) all pointers in an array of pawtab data structures
 !!
 !! PARENTS
-!!      driver,mblktyp1,mblktyp5,rdddb9,thmeig
 !!
 !! CHILDREN
 !!
 !! SOURCE
 
-subroutine pawtab_destroy_array(Pawtab)
+subroutine pawtab_destroy_1D(Pawtab)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawtab_destroy_array'
+#define ABI_FUNC 'pawtab_destroy_1D'
 !End of the abilint section
 
  implicit none
@@ -878,10 +919,128 @@ subroutine pawtab_destroy_array(Pawtab)
  if (nn==0) return
 
  do ii=1,nn
-   call pawtab_destroy(Pawtab(ii))
+   call pawtab_destroy_0D(Pawtab(ii))
  end do
 
-end subroutine pawtab_destroy_array
+end subroutine pawtab_destroy_1D
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_pawtap/pawtab_set_flags_0D
+!! NAME
+!!  pawtab_set_flags_0D
+!!
+!! FUNCTION
+!!  Set flags controlling optional arrays in a pawtab datastructure
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine pawtab_set_flags_0D(Pawtab,has_kij,has_tvale,has_vhnzc,&
+&                              has_vhtnzc,has_nabla,has_shapefncg,has_wvl)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawtab_set_flags_0D'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+ integer,intent(in),optional :: has_kij,has_tvale,has_vhnzc,has_vhtnzc
+ integer,intent(in),optional :: has_nabla,has_shapefncg,has_wvl
+ type(pawtab_type),intent(inout) :: Pawtab
+
+!Local variables-------------------------------
+
+! *************************************************************************
+
+ !@pawtab_type
+
+ Pawtab%has_kij      =0
+ Pawtab%has_tvale    =0
+ Pawtab%has_vhnzc    =0
+ Pawtab%has_vhtnzc   =0
+ Pawtab%has_nabla    =0
+ Pawtab%has_shapefncg=0
+ Pawtab%has_wvl      =0
+ if (present(has_kij))      Pawtab%has_kij=has_kij
+ if (present(has_tvale))    Pawtab%has_nabla=has_tvale
+ if (present(has_vhnzc))    Pawtab%has_vhnzc=has_vhnzc
+ if (present(has_vhtnzc))   Pawtab%has_vhtnzc=has_vhtnzc
+ if (present(has_nabla))    Pawtab%has_nabla=has_nabla
+ if (present(has_shapefncg))Pawtab%has_shapefncg=has_shapefncg
+ if (present(has_wvl))      Pawtab%has_wvl=has_wvl
+
+end subroutine pawtab_set_flags_0D
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_pawtap/pawtab_set_flags_1D
+!! NAME
+!!  pawtab_destroy_set_flags_1D
+!!
+!! FUNCTION
+!!  Set flags controlling optional arrays in an array of pawtab datastructures
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine pawtab_set_flags_1D(Pawtab,has_kij,has_tvale,has_vhnzc,&
+&                              has_vhtnzc,has_nabla,has_shapefncg,has_wvl)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawtab_set_flags_1D'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+ integer,intent(in),optional :: has_kij,has_tvale,has_vhnzc,has_vhtnzc
+ integer,intent(in),optional :: has_nabla,has_shapefncg,has_wvl
+ type(pawtab_type),intent(inout) :: Pawtab(:)
+
+!Local variables-------------------------------
+ integer :: ii,nn
+
+! *************************************************************************
+
+ !@pawtab_type
+
+ nn=size(Pawtab)
+ if (nn==0) return
+
+ do ii=1,nn
+   Pawtab(ii)%has_kij      =0
+   Pawtab(ii)%has_tvale    =0
+   Pawtab(ii)%has_vhnzc    =0
+   Pawtab(ii)%has_vhtnzc   =0
+   Pawtab(ii)%has_nabla    =0
+   Pawtab(ii)%has_shapefncg=0
+   Pawtab%has_wvl          =0
+   if (present(has_kij))      Pawtab(ii)%has_kij=has_kij
+   if (present(has_tvale))    Pawtab(ii)%has_nabla=has_tvale
+   if (present(has_vhnzc))    Pawtab(ii)%has_vhnzc=has_vhnzc
+   if (present(has_vhtnzc))   Pawtab(ii)%has_vhtnzc=has_vhtnzc
+   if (present(has_nabla))    Pawtab(ii)%has_nabla=has_nabla
+   if (present(has_shapefncg))Pawtab(ii)%has_shapefncg=has_shapefncg
+   if (present(has_wvl))      Pawtab(ii)%has_wvl=has_wvl
+ end do
+
+end subroutine pawtab_set_flags_1D
 !!***
 
 !----------------------------------------------------------------------
@@ -900,7 +1059,6 @@ end subroutine pawtab_destroy_array
 !!  Only writing
 !!
 !! PARENTS
-!!      bethe_salpeter,screening,sigma
 !!
 !! CHILDREN
 !!
@@ -984,8 +1142,6 @@ subroutine pawtab_print(Pawtab,header,unit,prtvol,mode_paral)
   call wrtout(ab_out,msg,'COLL')
   write(msg,'(a,i4)')'  Use pseudized core density ..................... ',Pawtab(ityp)%usetcore
   call wrtout(ab_out,msg,'COLL')
-  write(msg,'(a,i4)')'  Use pseudized valence density .................. ',Pawtab(ityp)%usetvale
-  call wrtout(ab_out,msg,'COLL')
   write(msg,'(a,i4)')'  Option for the use of hat density in XC terms .. ',Pawtab(ityp)%usexcnhat
   call wrtout(ab_out,msg,'COLL')
   write(msg,'(a,i4)')'  Use LDA+U ...................................... ',Pawtab(ityp)%usepawu
@@ -1010,11 +1166,17 @@ subroutine pawtab_print(Pawtab,header,unit,prtvol,mode_paral)
   ! "Has" flags
   write(msg,'(a,i4)')'  Has kij   ...................................... ',Pawtab(ityp)%has_kij
   call wrtout(ab_out,msg,'COLL')
-  write(msg,'(a,i4)')'  Has nabla ...................................... ',Pawtab(ityp)%has_nabla
+  write(msg,'(a,i4)')'  Has tvale ...................................... ',Pawtab(ityp)%has_tvale
   call wrtout(ab_out,msg,'COLL')
-  write(msg,'(a,i4)')'  Has vhntzc ..................................... ',Pawtab(ityp)%has_vhntzc
+  write(msg,'(a,i4)')'  Has vhtnzc ..................................... ',Pawtab(ityp)%has_vhtnzc
   call wrtout(ab_out,msg,'COLL')
   write(msg,'(a,i4)')'  Has vhnzc ...................................... ',Pawtab(ityp)%has_vhnzc
+  call wrtout(ab_out,msg,'COLL')
+  write(msg,'(a,i4)')'  Has nabla ...................................... ',Pawtab(ityp)%has_nabla
+  call wrtout(ab_out,msg,'COLL')
+  write(msg,'(a,i4)')'  Has shapefuncg ................................. ',Pawtab(ityp)%has_shapefncg
+  call wrtout(ab_out,msg,'COLL')
+  write(msg,'(a,i4)')'  Has wvl ........................................ ',Pawtab(ityp)%has_wvl
   call wrtout(ab_out,msg,'COLL')
   !
   ! Real scalars
@@ -1069,7 +1231,6 @@ end subroutine pawtab_print
 !!  pawtab=<type pawtab_type>=a pawtab datastructure
 !!
 !! PARENTS
-!!      pawbcast
 !!
 !! CHILDREN
 !!
@@ -1132,6 +1293,9 @@ subroutine pawtab_bcast(pawtab,comm_mpi)
   if(associated(pawtab%orbitals)) then
     nn_int=nn_int+size(pawtab%orbitals)
   end if
+  if(associated(pawtab%indlmn)) then
+    nn_int=nn_int+size(pawtab%indlmn)
+  end if
  end if
 
 !Calculate the size of the reals
@@ -1154,8 +1318,8 @@ subroutine pawtab_bcast(pawtab,comm_mpi)
    if (associated(pawtab%kij)) then
      nn=nn+size(pawtab%kij)
    end if
-   if (associated(pawtab%vhntzc)) then
-     nn=nn+size(pawtab%vhntzc)
+   if (associated(pawtab%vhtnzc)) then
+     nn=nn+size(pawtab%vhtnzc)
    end if
    if (associated(pawtab%vhnzc)) then
      nn=nn+size(pawtab%vhnzc)
@@ -1210,7 +1374,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi)
  end if
 
 !Broadcast the integers
- ABI_ALLOCATE(list_int,(25))
+ ABI_ALLOCATE(list_int,(27))
  if(me==0) then
    list_int(1)=pawtab%basis_size
    list_int(2)=pawtab%lmn_size
@@ -1221,22 +1385,24 @@ subroutine pawtab_bcast(pawtab,comm_mpi)
    list_int(7)=pawtab%has_vhnzc
    list_int(8)=pawtab%usetcore
    list_int(9)=pawtab%usexcnhat
-   list_int(10)=pawtab%usetvale
-   list_int(11)=pawtab%has_vhntzc
+   list_int(10)=pawtab%has_tvale
+   list_int(11)=pawtab%has_vhtnzc
    list_int(12)=pawtab%mqgrid
-   list_int(13)=pawtab%has_kij
-   list_int(14)=pawtab%core_mesh_size
-   list_int(15)=pawtab%tnvale_mesh_size
-   list_int(16)=pawtab%wvl%ptotgau
-   list_int(17)=pawtab%wvl%rholoc%msz
-   list_int(18)=pawtab%wvl%npspcode_init_guess
-   list_int(19)=isz2_tcoredens
-   list_int(20)=isz1_tvalespl
-   list_int(21)=isz2_tvalespl
-   list_int(22)=isz2_rholoc_d
-   list_int(23)=isz1_tproj
-   list_int(24)=nn
-   list_int(25)=nn_int
+   list_int(13)=pawtab%has_shapefncg
+   list_int(14)=pawtab%has_kij
+   list_int(15)=pawtab%core_mesh_size
+   list_int(16)=pawtab%tnvale_mesh_size
+   list_int(17)=pawtab%has_wvl
+   list_int(18)=pawtab%wvl%ptotgau
+   list_int(19)=pawtab%wvl%rholoc%msz
+   list_int(20)=pawtab%wvl%npspcode_init_guess
+   list_int(21)=isz2_tcoredens
+   list_int(22)=isz1_tvalespl
+   list_int(23)=isz2_tvalespl
+   list_int(24)=isz2_rholoc_d
+   list_int(25)=isz1_tproj
+   list_int(26)=nn
+   list_int(27)=nn_int
  end if
 
  call xcast_mpi(list_int,0,comm_mpi,ierr)
@@ -1251,22 +1417,24 @@ subroutine pawtab_bcast(pawtab,comm_mpi)
    pawtab%has_vhnzc=list_int(7)
    pawtab%usetcore=list_int(8)
    pawtab%usexcnhat=list_int(9)
-   pawtab%usetvale=list_int(10)
-   pawtab%has_vhntzc=list_int(11)
+   pawtab%has_tvale=list_int(10)
+   pawtab%has_vhtnzc=list_int(11)
    pawtab%mqgrid=list_int(12)
-   pawtab%has_kij=list_int(13)
-   pawtab%core_mesh_size=list_int(14)
-   pawtab%tnvale_mesh_size=list_int(15)
-   pawtab%wvl%ptotgau=list_int(16)
-   pawtab%wvl%rholoc%msz=list_int(17)
-   pawtab%wvl%npspcode_init_guess=list_int(18)
-   isz2_tcoredens=list_int(19)
-   isz1_tvalespl=list_int(20)
-   isz2_tvalespl=list_int(21)
-   isz2_rholoc_d=list_int(22)
-   isz1_tproj=list_int(23)
-   nn=list_int(24)
-   nn_int=list_int(25)
+   pawtab%has_shapefncg=list_int(13)
+   pawtab%has_kij=list_int(14)
+   pawtab%core_mesh_size=list_int(15)
+   pawtab%tnvale_mesh_size=list_int(16)
+   pawtab%has_wvl=list_int(17)
+   pawtab%wvl%ptotgau=list_int(18)
+   pawtab%wvl%rholoc%msz=list_int(19)
+   pawtab%wvl%npspcode_init_guess=list_int(20)
+   isz2_tcoredens=list_int(21)
+   isz1_tvalespl=list_int(22)
+   isz2_tvalespl=list_int(23)
+   isz2_rholoc_d=list_int(24)
+   isz1_tproj=list_int(25)
+   nn=list_int(26)
+   nn_int=list_int(27)
  end if
  ABI_DEALLOCATE(list_int)
 
@@ -1278,16 +1446,12 @@ subroutine pawtab_bcast(pawtab,comm_mpi)
      if(pawtab%wvl%ptotgau>0) then
        isz1=pawtab%basis_size
        if(.not. associated(pawtab%wvl%pngau)) then
-         write(message, '(a,a,a)' )&
-&         '  pawtab_bcast: wvl%pngau is not associated ',ch10,&
-&         '  BUG: contact ABINIT group.'
+         message='wvl%pngau is not associated'
          call wrtout(std_out,message,'COLL')
          call leave_new('COLL')
        end if
        if(size(pawtab%wvl%pngau) /= isz1) then
-         write(message, '(a,a,a)' )&
-&         '  pawtab_bcast: wvl%pngau invalid size ',ch10,&
-&         '  BUG: contact ABINIT group.'
+         message='pngau invalid size'
          call wrtout(std_out,message,'COLL')
          call leave_new('COLL')
        end if
@@ -1295,21 +1459,30 @@ subroutine pawtab_bcast(pawtab,comm_mpi)
        indx=indx+isz1
      end if
      isz1=pawtab%basis_size
-     if(.not. associated(pawtab%orbitals)) then
-       write(message, '(a,a,a)' )&
-&       '  pawtab_bcast: pawtab%orbitals is not associated ',ch10,&
-&       '  BUG: contact ABINIT group.'
+     if(.not.associated(pawtab%orbitals)) then
+       message='pawtab%orbitals is not associated'
        call wrtout(std_out,message,'COLL')
        call leave_new('COLL')
      end if
      if(size(pawtab%orbitals)/=isz1) then
-       write(message, '(a,a,a)' )&
-&       '  pawtab_bcast: pawtab%orbitals: wrong size ',ch10,&
-&       '  BUG: contact ABINIT group.'
+       message='pawtab%orbitals: wrong size'
        call wrtout(std_out,message,'COLL')
        call leave_new('COLL')
      end if
      list_int(indx:indx+isz1-1)=pawtab%orbitals(:)
+     indx=indx+isz1
+     isz1=6*pawtab%lmn_size
+     if(.not.associated(pawtab%indlmn)) then
+       message='pawtab%indlmn is not associated'
+       call wrtout(std_out,message,'COLL')
+       call leave_new('COLL')
+     end if
+     if(size(pawtab%orbitals)/=isz1) then
+       message='pawtab%orbitals: wrong size'
+       call wrtout(std_out,message,'COLL')
+       call leave_new('COLL')
+     end if
+     list_int(indx:indx+isz1-1)=reshape(pawtab%indlmn,(/6*pawtab%lmn_size/))
      indx=indx+isz1
    end if
 
@@ -1332,6 +1505,13 @@ subroutine pawtab_bcast(pawtab,comm_mpi)
      isz1=pawtab%basis_size
      ABI_ALLOCATE(pawtab%orbitals,(isz1))
      pawtab%orbitals(:)=list_int(indx:indx+isz1-1)
+     indx=indx+isz1
+     if(associated(pawtab%indlmn)) then
+       ABI_DEALLOCATE(pawtab%indlmn)
+     end if
+     isz1=6*pawtab%lmn_size
+     ABI_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
+     pawtab%indlmn(:,:)=reshape(list_int(indx:indx+isz1-1),(/6,pawtab%lmn_size/))
      indx=indx+isz1
    end if
    ABI_DEALLOCATE(list_int)
@@ -1405,14 +1585,14 @@ subroutine pawtab_bcast(pawtab,comm_mpi)
      list_dpr(indx:indx+isz1-1)=pawtab%kij(:)
      indx=indx+isz1
    end if
-   if (associated(pawtab%vhntzc)) then
-     isz1=size(pawtab%vhntzc)
+   if (associated(pawtab%vhtnzc)) then
+     isz1=size(pawtab%vhtnzc)
      if(isz1/=pawtab%mesh_size) then
-       message='vhntzc: sz1 /= pawtab%mesh_size'
+       message='vhtnzc: sz1 /= pawtab%mesh_size'
        call wrtout(std_out,message,'COLL')
        call leave_new('COLL')
      end if
-     list_dpr(indx:indx+isz1-1)=pawtab%vhntzc(:)
+     list_dpr(indx:indx+isz1-1)=pawtab%vhtnzc(:)
      indx=indx+isz1
    end if
    if (associated(pawtab%vhnzc)) then
@@ -1610,11 +1790,11 @@ subroutine pawtab_bcast(pawtab,comm_mpi)
      pawtab%kij(:)=list_dpr(indx:indx+isz1-1)
      indx=indx+isz1
    end if
-   if (associated(pawtab%vhntzc)) then
-     ABI_DEALLOCATE(pawtab%vhntzc)
+   if (associated(pawtab%vhtnzc)) then
+     ABI_DEALLOCATE(pawtab%vhtnzc)
      isz1=pawtab%mesh_size
-     ABI_ALLOCATE(pawtab%vhntzc,(isz1))
-     pawtab%vhntzc(:)=list_dpr(indx:indx+isz1-1)
+     ABI_ALLOCATE(pawtab%vhtnzc,(isz1))
+     pawtab%vhtnzc(:)=list_dpr(indx:indx+isz1-1)
      indx=indx+isz1
    end if
    if (associated(pawtab%vhnzc)) then
@@ -1747,11 +1927,10 @@ end subroutine pawtab_bcast
 !!  Deallocate pointers and nullify flags in a wvlpaw structure
 !!
 !! SIDE EFFECTS
-!!  wvlpaw<type(wvlpaw_type)>=datastructure to be nullified.
+!!  wvlpaw<type(wvlpaw_type)>=datastructure to be destroyed.
 !!  All associated pointers are deallocated.
 !!
 !! PARENTS
-!!      m_pawtab
 !!
 !! CHILDREN
 !!
@@ -1784,15 +1963,11 @@ subroutine wvlpaw_destroy(wvlpaw)
  if(associated(wvlpaw%pfac)) then
    ABI_DEALLOCATE(wvlpaw%pfac)
  end if
- if(associated(wvlpaw%rholoc%d)) then
-   ABI_DEALLOCATE(wvlpaw%rholoc%d)
- end if
- if(associated(wvlpaw%rholoc%rad)) then
-   ABI_DEALLOCATE(wvlpaw%rholoc%rad)
- end if
 
+ wvlpaw%npspcode_init_guess=0
  wvlpaw%ptotgau=0
- wvlpaw%rholoc%msz=0
+
+ call wvlpaw_rholoc_destroy(wvlpaw%rholoc)
 
 end subroutine wvlpaw_destroy
 !!***
@@ -1810,7 +1985,6 @@ end subroutine wvlpaw_destroy
 !!  wvlpaw=datastructure to be nullified
 !!
 !! PARENTS
-!!      m_pawtab
 !!
 !! CHILDREN
 !!
@@ -1837,14 +2011,106 @@ subroutine wvlpaw_nullify(wvlpaw)
  nullify(wvlpaw%pngau)
  nullify(wvlpaw%parg)
  nullify(wvlpaw%pfac)
- nullify(wvlpaw%rholoc%d)
- nullify(wvlpaw%rholoc%rad)
-
+ 
  wvlpaw%npspcode_init_guess=0
  wvlpaw%ptotgau=0
- wvlpaw%rholoc%msz=0
-
+ 
+ call wvlpaw_rholoc_nullify(wvlpaw%rholoc)
+ 
 end subroutine wvlpaw_nullify
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_pawtab/wvlpaw_rholoc_destroy
+!! NAME
+!!  wvlpaw_rholoc_destroy
+!!
+!! FUNCTION
+!!  Deallocate pointers and nullify flags in a wvlpaw%rholoc structure
+!!
+!! SIDE EFFECTS
+!!  wvlpaw_rholoc<type(wvlpaw_rholoc_type)>=datastructure to be destroyed.
+!!  All associated pointers are deallocated.
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine wvlpaw_rholoc_destroy(wvlpaw_rholoc)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'wvlpaw_rholoc_destroy'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+ type(wvlpaw_rholoc_type),intent(inout) :: wvlpaw_rholoc
+
+! *************************************************************************
+
+ !@wvlpaw_rholoc_type
+
+ if(associated(wvlpaw_rholoc%d)) then
+   ABI_DEALLOCATE(wvlpaw_rholoc%d)
+ end if
+ if(associated(wvlpaw_rholoc%rad)) then
+   ABI_DEALLOCATE(wvlpaw_rholoc%rad)
+ end if
+
+ wvlpaw_rholoc%msz=0
+
+end subroutine wvlpaw_rholoc_destroy
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_pawtab/wvlpaw_rholoc_nullify
+!! NAME
+!!  wvlpaw_rholoc_nullify
+!!
+!! FUNCTION
+!!  Nullify pointers and flags in a wvlpaw%rholoc structure
+!!
+!! SIDE EFFECTS
+!!  wvlpaw_rholoc<type(wvlpaw_rholoc_type)>=datastructure to be nullified.
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine wvlpaw_rholoc_nullify(wvlpaw_rholoc)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'wvlpaw_rholoc_nullify'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+ type(wvlpaw_rholoc_type),intent(inout) :: wvlpaw_rholoc
+
+! *************************************************************************
+
+ !@wvlpaw_rholoc_type
+
+ nullify(wvlpaw_rholoc%d)
+ nullify(wvlpaw_rholoc%rad)
+
+ wvlpaw_rholoc%msz=0
+
+end subroutine wvlpaw_rholoc_nullify
 !!***
 
 !----------------------------------------------------------------------

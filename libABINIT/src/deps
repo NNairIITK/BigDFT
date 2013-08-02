@@ -306,6 +306,7 @@ m_xml_converters.o: 42_libpaw/m_xml_converters.F90 \
 	interfaces_12_hide_mpi.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
+	m_errors.o \
 	m_profiling.o
 	$(PPFCCOMPILE) -c -o m_xml_converters.o `test -f '42_libpaw/m_xml_converters.F90' || echo '$(srcdir)/'`42_libpaw/m_xml_converters.F90
 
@@ -314,6 +315,7 @@ m_pawio.o: 42_libpaw/m_pawio.F90 \
 	interfaces_12_hide_mpi.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
+	m_errors.o \
 	m_profiling.o
 	$(PPFCCOMPILE) -c -o m_pawio.o `test -f '42_libpaw/m_pawio.F90' || echo '$(srcdir)/'`42_libpaw/m_pawio.F90
 
@@ -322,6 +324,7 @@ m_pawtab.o: 42_libpaw/m_pawtab.F90 \
 	interfaces_12_hide_mpi.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
+	m_errors.o \
 	m_profiling.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawtab.o `test -f '42_libpaw/m_pawtab.F90' || echo '$(srcdir)/'`42_libpaw/m_pawtab.F90
@@ -331,6 +334,7 @@ m_gaussfit.o: 42_libpaw/m_gaussfit.F90 \
 	interfaces_12_hide_mpi.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
+	m_errors.o \
 	m_paw_numeric.o \
 	m_pawrad.o \
 	m_profiling.o \
@@ -342,6 +346,7 @@ m_atompaw.o: 42_libpaw/m_atompaw.F90 \
 	interfaces_12_hide_mpi.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
+	m_errors.o \
 	m_paw_numeric.o \
 	m_pawrad.o \
 	m_pawtab.o \
@@ -353,6 +358,7 @@ m_pawang.o: 42_libpaw/m_pawang.F90 \
 	interfaces_12_hide_mpi.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
+	m_errors.o \
 	m_profiling.o \
 	m_sphharm.o \
 	m_xmpi.o
@@ -363,6 +369,7 @@ m_pawrhoij.o: 42_libpaw/m_pawrhoij.F90 \
 	interfaces_12_hide_mpi.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
+	m_errors.o \
 	m_fstrings.o \
 	m_io_tools.o \
 	m_paral_atom.o \
@@ -381,6 +388,7 @@ m_xml_pawpseudo.o: 42_libpaw/m_xml_pawpseudo.F90 \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
 	interfaces_32_util.o \
+	m_errors.o \
 	m_profiling.o \
 	m_xml_pawpseudo_types.o
 	$(PPFCCOMPILE) -c -o m_xml_pawpseudo.o `test -f '42_libpaw/m_xml_pawpseudo.F90' || echo '$(srcdir)/'`42_libpaw/m_xml_pawpseudo.F90
@@ -391,6 +399,7 @@ m_paw_numeric.o: 42_libpaw/m_paw_numeric.F90 \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
 	interfaces_28_numeric_noabirule.o \
+	m_errors.o \
 	m_pawrad.o \
 	m_pawtab.o \
 	m_profiling.o
@@ -401,6 +410,7 @@ m_sphharm.o: 42_libpaw/m_sphharm.F90 \
 	interfaces_12_hide_mpi.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
+	m_errors.o \
 	m_profiling.o
 	$(PPFCCOMPILE) -c -o m_sphharm.o `test -f '42_libpaw/m_sphharm.F90' || echo '$(srcdir)/'`42_libpaw/m_sphharm.F90
 
@@ -409,6 +419,7 @@ m_paral_atom.o: 42_libpaw/m_paral_atom.F90 \
 	interfaces_12_hide_mpi.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
+	m_errors.o \
 	m_profiling.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_paral_atom.o `test -f '42_libpaw/m_paral_atom.F90' || echo '$(srcdir)/'`42_libpaw/m_paral_atom.F90
@@ -422,6 +433,7 @@ m_pawrad.o: 42_libpaw/m_pawrad.F90 \
 	interfaces_12_hide_mpi.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
+	m_errors.o \
 	m_profiling.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawrad.o `test -f '42_libpaw/m_pawrad.F90' || echo '$(srcdir)/'`42_libpaw/m_pawrad.F90
@@ -433,6 +445,7 @@ m_pawpsp.o: 42_libpaw/m_pawpsp.F90 \
 	interfaces_16_hideleave.o \
 	m_libxc_functionals.o \
 	m_atompaw.o \
+	m_errors.o \
 	m_gaussfit.o \
 	m_paw_numeric.o \
 	m_pawang.o \
@@ -442,7 +455,8 @@ m_pawpsp.o: 42_libpaw/m_pawpsp.F90 \
 	m_profiling.o \
 	m_xml_pawpseudo.o \
 	m_xml_pawpseudo_types.o \
-	m_xmpi.o
+	m_xmpi.o \
+	$(mpi_include)
 	$(PPFCCOMPILE) -c -o m_pawpsp.o `test -f '42_libpaw/m_pawpsp.F90' || echo '$(srcdir)/'`42_libpaw/m_pawpsp.F90
 
 m_pawcprj.o: 42_libpaw/m_pawcprj.F90 \
@@ -450,6 +464,7 @@ m_pawcprj.o: 42_libpaw/m_pawcprj.F90 \
 	interfaces_12_hide_mpi.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
+	m_errors.o \
 	m_pawtab.o \
 	m_profiling.o \
 	m_xmpi.o
@@ -462,6 +477,7 @@ m_pawxc.o: 42_libpaw/m_pawxc.F90 \
 	interfaces_16_hideleave.o \
 	interfaces_41_xc_lowlevel.o \
 	m_libxc_functionals.o \
+	m_errors.o \
 	m_pawang.o \
 	m_pawrad.o \
 	m_pawtab.o \
@@ -641,6 +657,11 @@ defs_parameters.o: 10_defs/defs_parameters.F90 \
 defs_basis.o: 10_defs/defs_basis.F90
 	$(PPFCCOMPILE) -c -o defs_basis.o `test -f '10_defs/defs_basis.F90' || echo '$(srcdir)/'`10_defs/defs_basis.F90
 
+xgatherv_mpi.o: 12_hide_mpi/xgatherv_mpi.F90 \
+	defs_basis.o \
+	$(mpi_include)
+	$(PPFCCOMPILE) -c -o xgatherv_mpi.o `test -f '12_hide_mpi/xgatherv_mpi.F90' || echo '$(srcdir)/'`12_hide_mpi/xgatherv_mpi.F90
+
 xmax_mpi.o: 12_hide_mpi/xmax_mpi.F90 \
 	defs_basis.o \
 	$(mpi_include)
@@ -699,6 +720,11 @@ xcast_mpi.o: 12_hide_mpi/xcast_mpi.F90 \
 	defs_basis.o \
 	$(mpi_include)
 	$(PPFCCOMPILE) -c -o xcast_mpi.o `test -f '12_hide_mpi/xcast_mpi.F90' || echo '$(srcdir)/'`12_hide_mpi/xcast_mpi.F90
+
+xgather_mpi.o: 12_hide_mpi/xgather_mpi.F90 \
+	defs_basis.o \
+	$(mpi_include)
+	$(PPFCCOMPILE) -c -o xgather_mpi.o `test -f '12_hide_mpi/xgather_mpi.F90' || echo '$(srcdir)/'`12_hide_mpi/xgather_mpi.F90
 
 xsend_mpi.o: 12_hide_mpi/xsend_mpi.F90 \
 	defs_basis.o \

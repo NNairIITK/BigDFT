@@ -22,7 +22,7 @@ while ($line = <TEMP>){
  $iline=$iline+1;
  if($state==0){
    if($line=~/\s*use\s*m_errors/){
-     print "!$line";
+     print "$line";
      print "use interfaces_12_hide_mpi\n";
      print "use interfaces_14_hidewrite\n";
      print "use interfaces_16_hideleave\n";
