@@ -175,7 +175,9 @@ elif pseudo:
     #Remove lines containing the word time
     def line_junk(line):
         "True if the line must not be compared"
-        return "time" in line
+        return "time" in line \
+            or "date" in line \
+            or "changes" in line
 else:
     def line_junk(line):
         "Always False except for Hostname"

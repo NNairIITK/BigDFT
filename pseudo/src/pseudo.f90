@@ -49,9 +49,9 @@ module penaltyvars
    use dims
    implicit none
    !> Simple time profiling for penalty evaluation
-   real(8), dimension(3) :: time
+   real(8) :: time(3)
    !> All-electron reference values 
-   real(8), dimension(norbmx) :: ev, crcov, dcrcov, ddcrcov
+   real(8) :: ev(norbmx), crcov(norbmx), dcrcov(norbmx), ddcrcov(norbmx)
    real(8) :: excitae
    integer :: no(norbmx),noae(norbmx),lo(norbmx),nomax(0:lmx),nomin(0:lmx)
    real(8) :: so(norbmx),zo(norbmx)
@@ -83,16 +83,16 @@ end module ppackvars
 module gatomvars
    use dims
    implicit none
-   !> The total of scf iterations during this run, the number of calls to gatom
+   !the total of scf iterations during this run, the number of calls to gatom
    integer :: itertot, ntime
-   !> Confining potential, charge integr. radius
+   !confining potential, charge integr. radius
    real(8) :: rprb, rcov
-   !> Gaussian basis set
+   !gaussian basis set:
    integer :: ng
    real(8) :: rij
    logical :: denbas
    real(8) :: xp(0:ngmx)
-   !> Max angular momentum number of considered and of occupied orbitals
+   !max angular momentum number of considered and of occupied orbitals
    integer :: lmax, lcx
    !radial grid, integr weights, finite difference
    integer :: nint
@@ -123,7 +123,6 @@ end module gatomvars
 !!  Uses mpi and libxc, supports collinear spin polarization as well as 
 !!  nonlinear core corrections and has a gpu accelerated version of the
 !!  wavelet part.
-!! @ingroup pseudo
 program pseudo
    use libxcmodule
    use pseudovars
@@ -135,7 +134,7 @@ program pseudo
    implicit real*8 (a-h,o-z)
    
    real(8) :: pp(maxdim*(maxdim+1)), yp(maxdim+1)
-   logical :: plotwf, mixref, energ, verbose, info, exists, ldump
+   logical plotwf, mixref, energ, verbose, info, exists, ldump
    !all electron orbital plots
    real(8) :: rae(nrmax), gf(nrmax,norbmx,nsmx)
    !more plotting arrays
@@ -158,6 +157,7 @@ program pseudo
    integer ::  nconfpaw, nchannelspaw, npawl, pawstn, pawstl, pawstp
    real(8) :: pawrcovfact
    character(len=125) :: pawstatom
+   logical :: fullac,igrad
    !For timings
    real :: t0,t
 
@@ -179,7 +179,9 @@ program pseudo
    penref=1d100
    
    
-   ! mpi initialization
+   !     mpi initialization
+   iproc=0
+   nproc=1
    call mpi_init(ierr)
    call mpi_comm_rank(mpi_comm_world,iproc,ierr)
    call mpi_comm_size(mpi_comm_world,nproc,ierr)
@@ -201,8 +203,8 @@ program pseudo
    write(6,*) '*********************************************'
    write(6,*) '***              pseudo_2.5               ***'
    write(6,*) '***              fitting of               ***'
-   write(6,*) '***   goedecker type pseudopotentials     ***'
-   write(6,*) '***   last changes:        april 2013     ***'
+   write(6,*) '***   Goedecker type pseudopotentials     ***'
+   write(6,*) '***   last changes:         june 2013     ***'
    
    if(iproc>0)then  
       write(6,'(a,i2,a,i2,a)')            &
@@ -231,6 +233,7 @@ program pseudo
    nsmplx=2000
    ng=20
    rij=2.0
+   fullac=.false.
    denbas=.false.
    avgl1=.false.
    avgl2=.false.
@@ -239,6 +242,7 @@ program pseudo
    ortprj=.false.
    litprj=.false.
    energ=.false.
+   igrad=.false.
    verbose=.false.
    info=.false.
    mixref=.false.
@@ -329,6 +333,8 @@ program pseudo
                  '"orthogonalisation" of the hij as in ref. krack'
             write(6,*) '                  -lith      ',  &
                  'offdiagonal hij depend on hii as in ref. hgh.'
+            write(6,*) '                  -fullacc   ',  &
+                 'use max. number of gaussians'
             write(6,*) '                  -lnso      ',  &
                  'avg nonlocal potential =0 for l=n  '
             write(6,*) '                            ',  &
@@ -425,6 +431,12 @@ program pseudo
          write(6,'(a,f6.3)')' smallest gaussian: sigma0 = rloc /',rij
          if(ierr/=0)write(6,'(a,a,i3)')'above value was set to ',   &
               'its default due to a reading error. check line',iline
+      endif
+      ii=index(string,'-fullacc')
+      if (ii.ne.0) then
+         ng=ngmx
+         write(6,*) 'use max. number of gaussians'
+         
       endif
       ii=index(string,'-plot')
       if (ii.ne.0) then
@@ -1842,6 +1854,31 @@ program pseudo
          
          
          
+         !            the vertex number 1 holds the initial psp
+         
+         !            this call is not needed anymore, because
+         !            we already wrote details of all vertices
+         
+         !            iter=0
+         !            write(*,*)'test line, vertex 1 again'
+         !            call penalty(energ,verbose,nfit,pp(1),yp(1),
+         !    :          noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,
+         !    :          no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,
+         !    :          occup,aeval,chrg,dhrg,ehrg,res,wght,
+         !    :          wfnode,psir0,wghtp0,
+         !    :          rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,
+         !    :          vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,
+         !    :          avgl1,avgl2,avgl3,ortprj,litprj,igrad,rr,rw,rd,
+         !               the following lines differ from pseudo2.2
+         !    :          iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,wghtloc,
+         !    :          nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,frmult,
+         !    :          excitae,ntime,iter,itertot,penref,time)
+         
+         
+         !     refine simplex only every 10.th step
+         !     end of if-block
+         !         endif
+         !
          !     starting amoeba
          !
          !           ftol=1.d-7 is not hardcoded anymore
@@ -1869,7 +1906,7 @@ program pseudo
                  wfnode,psir0,wghtp0,&
                  rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,&
                  vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,&
-                 avgl1,avgl2,avgl3,ortprj,litprj,.true.,rae,&
+                 avgl1,avgl2,avgl3,ortprj,litprj,igrad,rae,&
                  iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,&
                  wghthij,&
                  nhgrid,hgridmin,hgridmax,nhpow,ampl,crmult,frmult,&

@@ -298,7 +298,7 @@ subroutine atom
 !      write the total energy to atom.ae instead of excitation
 !      energies. This allows the user to be flexible with reference
 !      configurations.
-       write(40,*)etot(10),'total energy of this configuration'
+    !write(40,*)etot(10),'total energy of this configuration'
 
        if(nconf==1)then
        write(60,'(a,i3,a)')&
@@ -393,6 +393,7 @@ subroutine atom
             write(cnum,'(i2.2)') ii
             open(unit=40,file='atom.'//cnum//'.ae',  &
                                  position='append')
+            write(40,*) econf(ii+1),'total energy of this configuration'
             write(40,*) 'EXCITATION ENERGIES:'
             do i=1,nconf
               write(40,*) (econf(i)-econf(1))/2.d0
@@ -2698,7 +2699,7 @@ subroutine atom
 !              write(40,'(a,i2,a)') ' NEXT CONFIGURATION (',nconf,')'
 !           endif
             write(40,*) norb-ncore,syswght,'orbitals, system weight'
-            write(40,*) znuc,zps,rcov,rprb,  &
+            write(40,'(4f19.16,1x,a)') znuc,zps,rcov,rprb,  &
                  'znuc, zpseudo, rcov, rprb'
             if (ispp=='r') then
                write(40,*)'relativistic calculation'

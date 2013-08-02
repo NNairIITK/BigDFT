@@ -201,7 +201,7 @@ program pseudo
    write(6,*) '*********************************************'
    write(6,*) '***              pseudo_2.5               ***'
    write(6,*) '***              fitting of               ***'
-   write(6,*) '***   goedecker type pseudopotentials     ***'
+   write(6,*) '***   Goedecker type pseudopotentials     ***'
    write(6,*) '***   last changes:        april 2013     ***'
    
    if(iproc>0)then  

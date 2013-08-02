@@ -1,0 +1,304 @@
+ *********************************************
+ ***              pseudo_2.5               ***
+ ***              fitting of               ***
+ ***   Goedecker type pseudopotentials     ***
+ ***   last changes:         june 2013     ***
+ *********************************************
+ 
+ reading the file input.pseudo
+ _____________________________
+ 
+ do one fit cycle
+ 100 max. simplex iterations
+ basis set size: 20 gaussians
+ smallest gaussian: sigma0 = rloc / 2.000
+ plot wfs after each iteration
+  1 lines have been read.
+ 
+ reading data from atom.00.ae
+ ____________________________
+ 
+ 
+ 
+ pseudo states =           18
+ znuc          =    8.00000000000000     
+ zpseudo       =    6.00000000000000     
+ r_covalent    =    1.38000000000000     
+ r_confining   =    6.00000000000000     
+ method        = s
+ gridpoints    =          906
+ 
+ initializing libxc with ixc =    -20; nspol =    2
+ 
+  nl    s      occ        eigenvalue     charge(rcov)    
+ 2s  -0.5    1.0000   -0.8689416243    0.7254021527
+ 2s   0.5    1.0000   -0.8689416243    0.7254021527
+ 3s  -0.5    0.0000    0.0151372211    0.0175632463
+ 3s   0.5    0.0000    0.0151372211    0.0175632463
+ 4s  -0.5    0.0000    0.0883882720    0.0089555627
+ 4s   0.5    0.0000    0.0883882720    0.0089555627
+ 2p  -0.5    2.0000   -0.3358904554    0.6523808984
+ 2p   0.5    2.0000   -0.3358904554    0.6523808984
+ 3p  -0.5    0.0000    0.0559529538    0.0125193436
+ 3p   0.5    0.0000    0.0559529538    0.0125193436
+ 4p  -0.5    0.0000    0.1123282821    0.0127731263
+ 4p   0.5    0.0000    0.1123282821    0.0127731263
+ 3d  -0.5    0.0000    0.0911350106    0.0000649589
+ 3d   0.5    0.0000    0.0911350106    0.0000649589
+ 4d  -0.5    0.0000    0.1387255306    0.0001830829
+ 4d   0.5    0.0000    0.1387255306    0.0001830829
+ 4f  -0.5    0.0000    0.1224616901    0.0000002207
+ 4f   0.5    0.0000    0.1224616901    0.0000002207
+ noccmax            3
+ 
+ all electron and pseudo-wfn quantum numbers
+         n(ae)   l   inl(ps)   
+           2     0     1
+           2     0     1
+           3     0     2
+           3     0     2
+           4     0     3
+           4     0     3
+           2     1     1
+           2     1     1
+           3     1     2
+           3     1     2
+           4     1     3
+           4     1     3
+           3     2     1
+           3     2     1
+           4     2     2
+           4     2     2
+           4     3     1
+           4     3     1
+ 
+ reading penalty weights from file input.weights
+ _______________________________________________
+ 
+ weight for psi(r=0)=0 is      0.100E+01
+ for ekin(gauss-wavelet)       0.100E+06
+ for keeping radii wide        0.100E+01
+ for keeping hij small         0.100E+01
+ for keeping vloc local        0.100E+01
+ and for excitation energies   0.100E+04
+ 
+ reading data from psppar
+ ________________________
+ 
+ hgh matrix format
+ 
+     1.380     6.000    rcov and rprb (charge integr and confinement)
+                             spin polarized calculation
+        -20                  ixc for xc-functional
+ 
+ local part
+   8.   6.00  0.248 -0.165E+02  0.237E+01  0.000E+00  0.000E+00 znuc,zion, rloc, gpot() 
+ nonlocal part in internal format
+   1                                                       lpx, (projectors for l=0..lpx)
+ s-projector
+  0.222  0.182E+02  0.000E+00  0.000E+00  0.000E+00  0.000E+00  0.000E+00  r_l(),hsep(), so=+0.5
+ 
+ gaussian basis
+ ______________
+ 
+ amin,amax 0.1239E+00 0.9761E+01
+ gaussian 0.2150E+02 0.1418E+02 0.9357E+01 ....  0.1206E-01 0.7955E-02
+ gaussians:          20
+ r-grid:  0.3097E-03 0.3338E-03 0.3597E-03 ....  0.7748E+02 0.8351E+02
+ gridpoints:         168
+ 
+ 
+ reading fitting parameters from input.fitpar
+ ____________________________________________
+ 
+ auto: free all params except for rloc and rcore
+  1 lines have been read. free params are:
+ gpot1 
+ gpot2 
+ rs    
+ hs11  
+ 
+ starting amoeba cycle   1
+ _________________________
+ 
+ penalty contributions of the initial parameters and random simplex vertices
+ ___________________________________________________________________________
+ 
+    step    vertex   penalty,             gaus-wvlt            psp empirical        eigenvalues etc
+       0       1     0.1791621173E+02     0.0000000000E+00     0.5142118368E+00     0.1790883103E+02
+       0       2     0.1499037962E+04     0.0000000000E+00     0.5142118368E+00     0.1499037874E+04
+       0       3     0.2700863337E+04     0.0000000000E+00     0.5142118368E+00     0.2700863288E+04
+       0       4     0.1791616835E+02     0.0000000000E+00     0.5142118368E+00     0.1790878763E+02
+       0       5     0.1791632408E+02     0.0000000000E+00     0.5142118368E+00     0.1790894343E+02
+ 
+ penalty contributions of the currently lowest vertex
+ ____________________________________________________
+ 
+    step    gatom    penalty,             gaus-wvlt            psp empirical        eigenvalues etc
+      11      45     0.1194448619E+02     0.0000000000E+00     0.5142122389E+00     0.1193341259E+02
+ no improvement during          40 iterations, tolerance is         200
+ no improvement during          80 iterations, tolerance is         200
+ --- simplex done, max no of iterations reached.
+ ______________
+ leaving amoeba
+ 
+ 
+ 
+  pseudo atom energies
+  ____________________
+ 
+ kinetic energy            =   11.8440176429
+ potential energy          =  -16.2285757190
+ non local energy          =    1.3035385039
+ hartree energy with xc    =   11.3458925135
+ exchange + corr energy    =   -3.1531860411
+ vxc    correction         =   -4.1342010878
+ -------------------------------------------
+ el-el  interaction energy =   13.6304460640
+ external energy           =  -39.3552667656
+ sum of eigenvalues        =   -3.0810195723
+ -------------------------------------------
+ total energy              =  -15.7304505897
+ 
+ atomic+electronic charge 0.1776E-14
+ 
+ 
+ empirical penalty terms from psppar
+ ___________________________________
+ 
+ narrow radii     1.746176737101813E-002
+ large  hij       0.513915357995144     
+ large  kij       0.000000000000000E+000
+ vloc(r>rcov)     1.748655611288974E-006
+ 
+ 
+ penalty contributions from this configuration
+ _____________________________________________
+ 
+          psi(r=0) =  0.2649E-06          ; psi(0)*wght=  0.2649E-06
+ 
+ nl    s      occ              ae        pseudo       diff     diff*weight
+ 2s  -0.5    1.0000
+         eigenvalue      -0.8689E+00 -0.8688E+00  0.9779E-04  0.9779E+01
+         charge           0.7254E+00  0.7253E+00 -0.1171E-03  0.1171E+02
+         residue                      0.2314E-07              0.2314E-02
+         rnode                        0.0000E+00              0.0000E+00
+ 
+ 2s   0.5    1.0000
+         eigenvalue      -0.8689E+00 -0.8688E+00  0.9779E-04  0.9779E+01
+         charge           0.7254E+00  0.7253E+00 -0.1171E-03  0.1171E+02
+         residue                      0.2314E-07              0.2314E-02
+         rnode                        0.0000E+00              0.0000E+00
+ 
+ 3s  -0.5    0.0000
+         eigenvalue       0.1514E-01  0.1510E-01 -0.3670E-04  0.3670E-04
+         charge           0.1756E-01  0.1763E-01  0.7018E-04  0.7018E-04
+         residue                      0.2891E-08              0.0000E+00
+ 
+ 3s   0.5    0.0000
+         eigenvalue       0.1514E-01  0.1510E-01 -0.3670E-04  0.3670E-04
+         charge           0.1756E-01  0.1763E-01  0.7018E-04  0.7018E-04
+         residue                      0.2891E-08              0.0000E+00
+ 
+ 4s  -0.5    0.0000
+         eigenvalue       0.8839E-01  0.8862E-01  0.2285E-03  0.2285E-03
+         charge           0.8956E-02  0.9039E-02  0.8379E-04  0.8379E-04
+         residue                      0.1507E-07              0.0000E+00
+ 
+ 4s   0.5    0.0000
+         eigenvalue       0.8839E-01  0.8862E-01  0.2285E-03  0.2285E-03
+         charge           0.8956E-02  0.9039E-02  0.8379E-04  0.8379E-04
+         residue                      0.1507E-07              0.0000E+00
+ 
+ 2p  -0.5    2.0000
+         eigenvalue      -0.3359E+00 -0.3358E+00  0.5748E-04  0.5748E+01
+         charge           0.6524E+00  0.6522E+00 -0.1714E-03  0.1714E+02
+         residue                      0.5231E-06              0.5231E-01
+         rnode                        0.0000E+00              0.0000E+00
+ 
+ 2p   0.5    2.0000
+         eigenvalue      -0.3359E+00 -0.3358E+00  0.5748E-04  0.5748E+01
+         charge           0.6524E+00  0.6522E+00 -0.1714E-03  0.1714E+02
+         residue                      0.5231E-06              0.5231E-01
+         rnode                        0.0000E+00              0.0000E+00
+ 
+ 3p  -0.5    0.0000
+         eigenvalue       0.5595E-01  0.5596E-01  0.1067E-04  0.1067E-04
+         charge           0.1252E-01  0.1252E-01  0.1541E-05  0.1541E-05
+         residue                      0.4108E-07              0.0000E+00
+ 
+ 3p   0.5    0.0000
+         eigenvalue       0.5595E-01  0.5596E-01  0.1067E-04  0.1067E-04
+         charge           0.1252E-01  0.1252E-01  0.1541E-05  0.1541E-05
+         residue                      0.4108E-07              0.0000E+00
+ 
+ 4p  -0.5    0.0000
+         eigenvalue       0.1123E+00  0.1133E+00  0.9784E-03  0.9784E-03
+         charge           0.1277E-01  0.1296E-01  0.1866E-03  0.1866E-03
+         residue                      0.2335E-07              0.0000E+00
+ 
+ 4p   0.5    0.0000
+         eigenvalue       0.1123E+00  0.1133E+00  0.9784E-03  0.9784E-03
+         charge           0.1277E-01  0.1296E-01  0.1866E-03  0.1866E-03
+         residue                      0.2335E-07              0.0000E+00
+ 
+ 3d  -0.5    0.0000
+         eigenvalue       0.9114E-01  0.9124E-01  0.1030E-03  0.1030E-03
+         charge           0.6496E-04  0.6532E-04  0.3601E-06  0.3601E-06
+         residue                      0.2055E-06              0.0000E+00
+ 
+ 3d   0.5    0.0000
+         eigenvalue       0.9114E-01  0.9124E-01  0.1030E-03  0.1030E-03
+         charge           0.6496E-04  0.6532E-04  0.3601E-06  0.3601E-06
+         residue                      0.2055E-06              0.0000E+00
+ 
+ 4d  -0.5    0.0000
+         eigenvalue       0.1387E+00  0.1435E+00  0.4758E-02  0.4758E-02
+         charge           0.1831E-03  0.2026E-03  0.1947E-04  0.1947E-04
+         residue                      0.1468E-06              0.0000E+00
+ 
+ 4d   0.5    0.0000
+         eigenvalue       0.1387E+00  0.1435E+00  0.4758E-02  0.4758E-02
+         charge           0.1831E-03  0.2026E-03  0.1947E-04  0.1947E-04
+         residue                      0.1468E-06              0.0000E+00
+ 
+ 4f  -0.5    0.0000
+         eigenvalue       0.1225E+00  0.1230E+00  0.5841E-03  0.5841E-03
+         charge           0.2207E-06  0.2274E-06  0.6723E-08  0.6723E-08
+         residue                      0.7384E-06              0.0000E+00
+ 
+ 4f   0.5    0.0000
+         eigenvalue       0.1225E+00  0.1230E+00  0.5841E-03  0.5841E-03
+         charge           0.2207E-06  0.2274E-06  0.6723E-08  0.6723E-08
+         residue                      0.7384E-06              0.0000E+00
+ 
+ diff for dcharg and echarge is given in (%)
+ 
+ resulting pseudpotential parameters
+ ___________________________________
+ 
+    8   6  20130802                        zatom, zion, date (yymmdd)
+   10       -20 0 0 2002 0                 pspcod, ixc, lmax, lloc, mmax, r2well
+        0.24775350  3    -16.48244813      2.37013530      0.00078778      rloc nloc c1 .. cnloc
+    1                                      nsep
+        0.22219969  1     18.19963870      s-projector
+ 
+ gnuplot script written for comparison of valence 
+                 and pseudovalence: orbitals.gplt
+ 
+ 
+ total scf-cycles:               3158
+ pseudoatom calculations:         587
+ 
+ simple time profiling
+ _____________________
+ 
+ gatom  overall runtime    41.575 seconds
+ mpi communication time     0.000 seconds
+ wavelet libraries time     0.000 seconds
+ ________________________________________
+               cpu time    42.007 seconds
+ 
+ ______________________________________________________
+                                               finished
+ 

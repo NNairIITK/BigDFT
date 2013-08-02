@@ -20,7 +20,10 @@ EXTRA_DIST = \
 ATOM_OUTPUTS = \
 			 atom.00.ae \
 			 atom.01.ae \
-			 input.pseudo
+			 input.pseudo \
+			 input.weights \
+			 input.fitpar \
+			 psppar.atom
 
 PSEUDO_OUTPUTS = \
 				 orbitals.gplt
@@ -36,13 +39,15 @@ report: $(REPORTS)
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 %.report: %
-	python $(abs_top_srcdir)/tests/fldiff.py --mode=pseudo $<  $(abs_top_srcdir)/pseudo/tutorials/oxygen.NLCC/ref/$<.ref | tee $@
+	python $(abs_top_srcdir)/tests/fldiff.py --mode=pseudo --discrepancy=1.e-4 \
+			$<  $(abs_top_srcdir)/pseudo/tutorials/oxygen.NLCC/ref/$<.ref | tee $@
 
 $(ATOM_OUTPUTS): atom.out
 $(PSEUDO_OUTPUTS): pseudo.nofit.out
 
 atom.out: atom.in $(abs_top_builddir)/pseudo/src/atom
 	$(run_parallel) $(abs_top_builddir)/pseudo/src/atom > $@
+	cp psppar psppar.atom
 
 atom.in:
 	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/atom.dat .

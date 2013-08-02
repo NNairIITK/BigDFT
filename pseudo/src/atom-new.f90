@@ -411,9 +411,10 @@ program ae_atom
             close(40)
             write(cnum,'(i2.2)') ii
             open(unit=40, file='atom.'//cnum//'.ae', position='append')
-            write(40,*) 'Configuration ',nconf
-            write(40,*) 'Total reference energy',econf(1)
-            write(40,*) 'Total energy of this configuration',econf(ii+1)
+            !write(40,*) 'Configuration ',nconf
+            !write(40,*) 'Total reference energy',econf(1)
+            write(40,*) econf(ii+1),'total energy of this configuration'
+            !write(40,*) 'Total energy of this configuration',econf(ii+1)
             write(40,*) 'EXCITATION ENERGIES:'
             do i=1,nconf
               write(40,*) (econf(i)-econf(1))/2.d0
@@ -2635,7 +2636,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 !              write(40,'(a,i2,a)') ' NEXT CONFIGURATION (',nconf,')'
 !           endif
             write(40,*) norb-ncore,syswght,'orbitals, system weight'
-            write(40,*) znuc,zps,rcov,rprb,  &
+            write(40,'(4f19.16,1x,a)') znuc,zps,rcov,rprb,  &
                  'znuc, zpseudo, rcov, rprb'
             if (ispp=='r') then
                write(40,*)'relativistic calculation'
