@@ -150,7 +150,7 @@ atom.out: $(abs_top_builddir)/pseudo/src/atom
 	$(run_parallel) $(abs_top_builddir)/pseudo/src/atom > $@
 
 %.report: %.out
-	python $(abs_top_srcdir)/tests/fldiff.py --discrepancy=1.e-8 --mindigits=2 $< $<.ref | tee $@
+	python $(abs_top_srcdir)/tests/fldiff.py --discrepancy=2.e-8 --mindigits=2 $< $<.ref | tee $@
 
 %.clean:
 	@dir=`dirname $@` ; \
