@@ -1,7 +1,7 @@
   Cs
   PADE
   rel
-       70.0     10.0  90.00      rmax,aa,bb 
+       70.0     10.0  110.00      rmax,aa,bb 
        4.5 7.0 			 rcov,rprb
     11   11				 number of core and valence orbitals
     6    0     1.00      0.00		   
