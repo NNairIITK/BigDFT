@@ -43,9 +43,10 @@ program ae_atom
        integer, parameter :: lmax=5                     !< Maximal orbital moment
        integer, parameter :: maxconf=19                 !< Maximal electronic configurations
        integer, parameter :: maxit_max=2000             !< Maximal number of iterations
-       logical, parameter :: debug=.false.              !< Debug flag
        character(len=2), parameter :: stop_chain = 'st'
        real(kind=8), parameter :: tol=1.0d-11
+       real(kind=8), parameter :: xmixo_min = 1.d-5     !< Minimal value of the mixing parameter
+       logical, parameter :: debug=.false.              !< Debug flag
        !Local variables
        integer :: norb                                  !< Number of orbitals
        integer, dimension(maxorb) :: no                 !< For each orbital, n quantum number
@@ -270,8 +271,8 @@ program ae_atom
           end do
           iconv = 1
           icon2 = icon2+1
-          if (dvmax .gt. tol) iconv=0
-          if (dvmax .ge. dvold) xmixo=0.8d0*xmixo
+          if (dvmax >  tol) iconv=0
+          if (dvmax >= dvold) xmixo=0.8d0*xmixo
           inquire(file='EXIT', exist=abort)
           if(abort) iconv=1
 !         EXPERIMENTAL: why not in both directions?
@@ -282,7 +283,7 @@ program ae_atom
           if(iter<40) iconv=0
 
           ! diverging - reduce mixing coefficient
-          if (xmixo < 1d-5) xmixo=1d-5
+          if (xmixo < xmixo_min) xmixo = xmixo_min
           dvold = dvmax
           write(6,'(1x,a,i5,1x,a,1pe10.3,1x,a,1pe10.3)') 'iter =', iter, 'dvmax =', dvmax, 'xmixo =', xmixo
 
@@ -2064,16 +2065,15 @@ subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
       if (ev(iorb) .ge. etol*100d0) nctp=ninf-5
       if (ev(iorb) .ge. etol) ev(iorb)=0.0d0
 
-      if (nctp .le. 6) then
+      if (nctp <= 6) then
         ev(iorb) = 0.9d0*ev(iorb)
-        if (icount .gt. 100) then
-          write(6,1010) iorb
+        if (icount > 100) then
+          write(6,'(//,a)') 'error in difrel - cannot find classical'
+          write(6,'(a,i2)') 'turning point in orbital ',iorb
           stop 'difrel two'
         endif
         goto 20
       endif
- 1010 format(//,'error in difrel - cannot find classical',  &
-       /,'turning point in orbital ',i2)
 
 !  Outward integration from 1 to nctp, startup.
 
