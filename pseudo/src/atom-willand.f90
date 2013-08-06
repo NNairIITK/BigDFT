@@ -255,7 +255,7 @@ subroutine atom
           if (xmixo .lt. 1D-5) xmixo=1D-5
           dvold = dvmax
           write(6,70) iter,dvmax,xmixo
- 70       format(7h iter =,i5,9h dvmax = ,1pe9.3,8h xmixo =,1pe9.3)
+ 70       format(7h iter =,i5,9h dvmax = ,1pe9.3,8h xmixo =,1pe10.3)
 !         
 !         mix input and output electronic potentials
 !         
@@ -1279,7 +1279,7 @@ subroutine atom
  200     continue
       write(6,210) r(2),nr,r(nr),aa,bb
  210  format(//,' radial grid parameters',//,  &
-       ' r(1) = .0 , r(2) =',1pe12.6,' , ... , r(',i4,') =',0pf12.8,  &
+       ' r(1) = .0 , r(2) =',1pe13.6,' , ... , r(',i4,') =',0pf12.8,  &
        /,' a =',f12.8,'  b =',f12.8,/)
       irel   = 'nrl'
       if (ispp == 'r') irel = 'rel'
@@ -1725,7 +1725,7 @@ subroutine atom
       emin = -200000.0d0
       if (ev(iorb) .gt. emax) ev(iorb) = emax
  10   if (itmax .lt. 2) write(6,15) iorb,iter,ev(iorb),nodes
- 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i2)
+ 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i3)
       if (itmax == 0) return
       if (ev(iorb) .gt. 0.0) then
         write(6,1000)iorb
@@ -2076,7 +2076,7 @@ subroutine atom
       emin = -100000.0d0
       if (ev(iorb) .gt. emax) ev(iorb) = emax
  10   if (itmax .lt. 2) write(6,15) iorb,iter,ev(iorb),nodes
- 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i2)
+ 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i3)
       if (itmax == 0) return
       if (ev(iorb) .gt. 0.0) then
         write(6,1000)iorb
@@ -2546,7 +2546,7 @@ subroutine atom
          ircov=ninf
          write(6,*) 'warning: ircov > ninf ! (ircov set to ninf)'
          write(6,*) '---> ninf=',ninf,' r(ninf)=',r(ninf)
-         write(6,*) '---> npoints=',npoints,' r(npoint)=',r(npoint)
+         write(6,*) '---> npoints=',npoint,' r(npoint)=',r(npoint)
       endif
       call splift(ttx,tty,ttyp,ttypp,npoint,ttw,ierr,isx,a1,b1,an,bn)
       if(ierr/=1) write(6,*)'SPLIFT ERROR!',ttw !stop 'spliq'
