@@ -1,7 +1,7 @@
  C
  PADE 
  relativistic
- 20.0      10.0 60.0             rmax,aa,bb  10,60
+ 20.0      10.0 80.0             rmax,aa,bb  10,60
  1.45d0   2.9d0			 rcov,rprb
     1    9				 number of core and valence orbitals
     2    0     2.00      0.00		   

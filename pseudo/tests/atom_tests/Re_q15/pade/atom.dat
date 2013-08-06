@@ -1,7 +1,7 @@
  Re
  PADE 
  relativistic
-       40.0     10.0 80.0        znuc,rmax,aa,bb  10.0 80.0
+       45.0     10.0 80.0        znuc,rmax,aa,bb  10.0 80.0
        2.6d0   5.2		 rcov,rprb
     9   14 			 number of core and valence orbitals
     5    0     2.00      0.00	 n,l,zup,zdown   (for each valence orbital)

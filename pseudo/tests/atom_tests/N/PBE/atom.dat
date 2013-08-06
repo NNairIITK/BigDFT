@@ -1,7 +1,7 @@
  N
  PBE 
  relativistic
- 20.0      10.0 60.0          	rmax,aa,bb
+ 30.0      10.0 80.0          	rmax,aa,bb
        1.42d0   2.84d0		rcov,rprb
     1    9			number of core and valence orbitals
     2    0     2.00      0.00		   

@@ -642,7 +642,7 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
        use libxcModule
        implicit none
 
-       logical, parameter :: debug = .true.            !< Debug flag
+       logical, parameter :: debug = .false.            !< Debug flag
        real(kind=8), parameter :: pi = 4.d0*atan(1.d0)
        !Arguments
        integer, intent(in) :: nr, ifcore, nspol, iconv, iter

@@ -1,7 +1,7 @@
    Ba
    PADE
    rel
-       70.0     10.0  70.00      rmax,aa,bb 
+       70.0     10.0  85.00      rmax,aa,bb 
        4.0 7.0 			 rcov,rprb
     11   11			 number of core and valence orbitals
     6    0     2.00      0.00		   

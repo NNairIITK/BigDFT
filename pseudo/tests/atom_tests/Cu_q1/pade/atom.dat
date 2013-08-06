@@ -1,7 +1,7 @@
   Cu
   PADE 
   relativistic
-       40              10.0 70.0         rmax,aa,bb 
+       40              10.0 90.0         rmax,aa,bb 
        2.80d0   5.6d0			 rcov,rprb
     6    13				 number of core and valence orbitals
     4    0     1.00      0.00		   

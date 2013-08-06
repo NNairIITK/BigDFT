@@ -1,7 +1,7 @@
    Au
    PADE
    rel
-       35.0     10.0 70.0      rmax,aa,bb 
+       35.0     10.0 110.0      rmax,aa,bb 
        2.7d0   5.4d0	       rcov,rprb
     12   11		       number of core and valence orbitals
     6    0     1.00      0.00		   

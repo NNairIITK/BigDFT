@@ -1,7 +1,7 @@
   Er
   PADE
   rel
-  60.0     10.0 80.0    rmax,aa,bb
+  60.0     10.0 100.0    rmax,aa,bb
        2.92d0   5.83d0	rcov,rprb
     9   13 		number of core and valence orbitals
     5    0     2.00      0.00
