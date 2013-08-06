@@ -2262,11 +2262,19 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
       !dt=(real(istart,gp)+t0_l)-real(jcoords(ntr),gp)
       select case(ntr)
       case(1)
-         dt=(real(istart,gp)+t0_l)-real(j1,gp)
+         dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j1,gp)*hgrids_new(1))/hgrids_old(ntr)
       case(2)
-         dt=(real(istart,gp)+t0_l)-real(j2,gp)
+         if (istep >=2) then
+            dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j2,gp)*hgrids_new(2))/hgrids_old(ntr)
+         else
+            dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j2,gp)*hgrids_old(i2))/hgrids_old(ntr)
+         end if
       case(3)
-         dt=(real(istart,gp)+t0_l)-real(j3,gp)
+         if (istep ==3) then
+            dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j3,gp)*hgrids_new(3))/hgrids_old(ntr)
+         else
+            dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j3,gp)*hgrids_old(i3))/hgrids_old(ntr)
+         end if
       end select
 
     end subroutine shift_and_start
