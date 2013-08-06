@@ -1725,7 +1725,7 @@ subroutine atom
       emin = -200000.0d0
       if (ev(iorb) .gt. emax) ev(iorb) = emax
  10   if (itmax .lt. 2) write(6,15) iorb,iter,ev(iorb),nodes
- 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i3)
+ 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i4)
       if (itmax == 0) return
       if (ev(iorb) .gt. 0.0) then
         write(6,1000)iorb
@@ -2076,7 +2076,7 @@ subroutine atom
       emin = -100000.0d0
       if (ev(iorb) .gt. emax) ev(iorb) = emax
  10   if (itmax .lt. 2) write(6,15) iorb,iter,ev(iorb),nodes
- 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i3)
+ 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i4)
       if (itmax == 0) return
       if (ev(iorb) .gt. 0.0) then
         write(6,1000)iorb

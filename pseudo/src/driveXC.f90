@@ -48,7 +48,7 @@ end subroutine driveXC
 !> Greatly simplified version of ggaenergy_15 for LDA XC
 subroutine driveLDAsimple(nspol,nrad,r,rho,enexc,pot,eps)
    use libxcModule
-   implicit real*8 (a-h,o-z)
+   implicit none
    !Arguments
    integer, intent(in) :: nspol                             !< Number of spin components
    integer, intent(in) :: nrad                              !< Number of grid points
@@ -60,6 +60,7 @@ subroutine driveLDAsimple(nspol,nrad,r,rho,enexc,pot,eps)
    !Local variables
    real(kind=8), dimension(1) :: Vxc,dEdg, grad,rhoj        !< Arguments to XCfunction
    real(kind=8) :: Exc                                      !< Arguments to XCfunction
+   integer :: j
 
    if (nspol /= 1) then
       write(*,*) 'nspol=',nspol
@@ -91,7 +92,7 @@ end subroutine driveLDAsimple
 !! @warning This routine is called with nspol == 2 !
 subroutine driveLDApolarized(nspol,nrad,rw,rho,enexc,pot,eps)
    use libxcModule
-   implicit real*8 (a-h,o-z)
+   implicit none
    !Arguments
    integer, intent(in) :: nspol                             !< Number of spin components
    integer, intent(in) :: nrad                              !< Number of grid points
@@ -103,6 +104,7 @@ subroutine driveLDApolarized(nspol,nrad,rw,rho,enexc,pot,eps)
    !Local variables
    real(kind=8), dimension(2) :: Vxc,dEdg,grad,rhoj         !< Arguments to XCfunction
    real(kind=8) :: Exc                                      !< Arguments to XCfunction
+   integer :: j
 
    if (nspol /= 2) then
       write(*,*) 'nspol=',nspol
@@ -134,7 +136,7 @@ end subroutine driveLDApolarized
 !> This one is very close to the original version of ggaenergy_15 
 subroutine driveGGAsimple(nspol,nrad,rw,rd,rho,enexc,pot,eps)
    use libxcModule
-   implicit real*8 (a-h,o-z)
+   implicit none
    !Arguments
    integer, intent(in) :: nspol                             !< Number of spin components
    integer, intent(in) :: nrad                              !< Number of grid points
@@ -147,6 +149,7 @@ subroutine driveGGAsimple(nspol,nrad,rw,rd,rho,enexc,pot,eps)
    real(kind=8), dimension(1) :: Vxc,dEdg, grad,rhoj        !< Arguments to XCfunction
    real(kind=8) :: Exc                                      !< Arguments to XCfunction
    real(kind=8) :: c(-8:8), sign(1)                         !< Variables for derivatives 
+   integer :: i,j
 
    if (nspol /= 1) then
       write(*,*) 'nspol=',nspol
@@ -629,7 +632,7 @@ end subroutine driveGGAsimple
 !> ggaenergy_15 generalized to colinear spin polarization
 subroutine driveGGApolarized(nspol,nrad,rw,rd,rho,enexc,pot,eps)
    use libxcModule
-   implicit real*8 (a-h,o-z)
+   implicit none
    !Arguments
    integer, intent(in) :: nspol                             !< Number of spin components
    integer, intent(in) :: nrad                              !< Number of grid points
@@ -642,6 +645,7 @@ subroutine driveGGApolarized(nspol,nrad,rw,rd,rho,enexc,pot,eps)
    real(kind=8), dimension(2) :: Vxc,dEdg, grad,rhoj        !< Arguments to XCfunction
    real(kind=8) :: Exc                                      !< Arguments to XCfunction
    real(kind=8) :: c(-8:8), sign(2)                         !< Variables for derivatives 
+   integer :: i,j
 
    if (nspol /= 2) then
       write(*,*) 'nspol=',nspol
