@@ -280,7 +280,7 @@ program ae_atom
 
 !         For now, ignore convergence for at least the first 30 cycles
 !         because we may want to switch to GGA thereafter
-          if(iter<40)iconv=0
+          if(iter<40) iconv=0
 
           ! diverging - reduce mixing coefficient
           if (xmixo .lt. 1D-5) xmixo=1D-5
@@ -718,7 +718,7 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
 
 
 !      let us try this
-       if (iter .gt. 3 .and. abs(zel-s1(nr)) .gt. 0.01) then
+       if (iter .gt. 3 .and. abs(zel-s1(nr)) .gt. 0.01d0) then
          if (zel .lt. s1(nr)+1.0 ) then
            write(6,24) iter,xnorm
  24    format(/,' warning *** charge density rescaled in',  &
@@ -734,7 +734,7 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
        endif
 
 !      rather than:
-!      if (iter .gt. 0 .and. abs(zel-s1(nr)) .gt. 0.01D0)
+!      if (iter .gt. 0 .and. abs(zel-s1(nr)) .gt. 0.01d0)
 !    1 write(6,25) iter,xnorm
 !25    format(/,46h warning *** charge density rescaled in velect,
 !    1 /,17h iteration number,i4,3x,16hscaling factor =,g10.3,/)
@@ -884,7 +884,7 @@ subroutine input(itype,iXC,ispp,  &
        ! We need these modules to initialize libXC when reading iXC
        ! use defs_basis
        use libxcModule
-       implicit double precision(a-h,o-z)
+       implicit none
 
        !Arguments
        integer, intent(in) :: nrmax                       !< Maximal number of radial mesh points
@@ -894,6 +894,7 @@ subroutine input(itype,iXC,ispp,  &
        real(kind=8), dimension(nrmax), intent(out) :: rw  !< rw(i) = rab(i)*12.56637061435917d0*r(i)**2
        real(kind=8), dimension(nrmax), intent(out) :: rd  !< rd(i) = 1/rab(i)
        real(kind=8), intent(out) :: a,b                   !< Parameters to build the logarithmic mesh
+       real(kind=8), intent(out) :: rprb                  !< Radius ?
        real(kind=8), intent(out) :: rcov                  !< Covalent radius
        integer, intent(in) :: maxorb                      !< Maximal orbitals
        integer, intent(out) :: norb                       !< Number of orbitals
@@ -905,7 +906,7 @@ subroutine input(itype,iXC,ispp,  &
        integer, intent(out) :: ncore, ncoreo
        integer, intent(out) :: nvalo
        integer, intent(inout) :: nconf                    !< Number of electronic configurations
-       real(kind=8), intent(out) :: zel
+       real(kind=8), intent(out) :: zel,znuc,zsh,rsh,zcore
        !Local variables
        integer, dimension(15), parameter :: nc = (/ 1,2,2,3,3,3,4,4,4,4,5,5,5,6,6 /)
        integer, dimension(15), parameter :: lc = (/ 0,0,1,0,1,2,0,1,2,3,0,1,2,0,1 /)
@@ -913,14 +914,17 @@ subroutine input(itype,iXC,ispp,  &
        character(len=1), parameter :: blank = ' '
        logical, parameter :: debug = .false.      !< Debug flag
 
-       !Spin polarization information
+       ! Spin polarization information
        character(len=1) :: ispp
        integer, dimension(5) :: nomin = (/ 10, 10 ,10, 10, 10 /)
-
-!      For use in routine atomwr:
+       ! For use in routine atomwr:
        character(len=80) :: instrg
        character(len=3) :: irel
        character(len=3) :: name
+
+       real(kind=8) :: charge
+       real(kind=8) :: aa,bb,rmax,sc,si,xji,zd,zion,zu,zval
+       integer :: i,ierr,j,j1,j2,jmax,li,ni,nspol,nval
 
        !Read all electron configuration
        itype='ae'
@@ -1086,7 +1090,7 @@ subroutine input(itype,iXC,ispp,  &
        zcore = 0.d0
        if (ispp == blank) then
           jmax = 1
-         sc = 0.0D0
+         sc = 0.0d0
        else
          jmax = 2
          sc = - 0.5D0
@@ -1173,19 +1177,21 @@ subroutine input(itype,iXC,ispp,  &
 
        if (norb .le. 0) call ext(110)
        do 101 i = 1, (norb - 1)
-       do 100 j = (i + 1),norb
-         if (no(i) == no(j) .and. lo(i) == lo(j)) then
-            if (abs(so(i)-so(j)) .lt. 1.0D-3) then
-               print*,'i,no(i),lo(i),so(i):',i,no(i),lo(i),so(i)
-               print*,'j,no(j),lo(j),so(j):',j,no(j),lo(j),so(j)
+          do 100 j = (i + 1),norb
+            if (no(i) == no(j) .and. lo(i) == lo(j)) then
+               if (abs(so(i)-so(j)) .lt. 1.0D-3) then
+                  print*,'i,no(i),lo(i),so(i):',i,no(i),lo(i),so(i)
+                  print*,'j,no(j),lo(j),so(j):',j,no(j),lo(j),so(j)
 
-               call ext(110+i)
-            endif
-          endif
- 100     continue
-! print*,'i,no(i),lo(i),so(i):',i,no(i),lo(i),so(i)
- 101     continue
- 105   zion = znuc - zcore - zval
+                  call ext(110+i)
+               endif
+             endif
+ 100      continue
+          ! print*,'i,no(i),lo(i),so(i):',i,no(i),lo(i),so(i)
+ 101   continue
+
+ 105   continue
+       zion = znuc - zcore - zval
 !       write(6,*)' zion = ',zion
 !       write(6,*)' znuc = ',znuc
 !       write(6,*)' zcore = ',zcore
@@ -1339,7 +1345,7 @@ subroutine dsolv1( &
           viod,viou,vid,viu, &
           ev)
 
-       implicit double precision(a-h,o-z)
+       implicit none
 
        !Arguments
        integer, intent(in) :: nr,norb,lmax
@@ -1348,6 +1354,7 @@ subroutine dsolv1( &
        real(kind=8), dimension(lmax,nr), intent(in) :: viod,viou
        integer, dimension(norb), intent(in) :: no,lo
        real(kind=8), dimension(norb) :: so,zo,ev
+       real(kind=8), intent(in) :: a,b
        !Local variables!
        logical, parameter :: debug = .false.  !< Debug flag
        integer, parameter :: nomax = 10       !< Maxval(no)
@@ -1356,6 +1363,8 @@ subroutine dsolv1( &
        real(kind=8), dimension(nr) :: dk,d,sd,sd2,rv1,rv2,rv3,rv4,rv5
        real(kind=8), dimension(10) :: e
        real(kind=8), dimension((nr-1)*nomax) :: z
+       real(kind=8) :: bl,bu,c1,c2,denr,eps
+       integer :: i,j,k,ki,l,llp,nrm,nvmax,ierr,kn
 
 !      initialize charge density arrays
 
@@ -1472,22 +1481,25 @@ subroutine dsolv2(iter,iconv,iXC,ispp,ifcore, &
           viod,viou,vid,viu, &
           ev,ek,ep,rcov,rprb,nconf)
 
-       implicit double precision(a-h,o-z)
+       implicit none
 
        !Arguments
-       integer, intent(in) :: nr,norb,lmax
+       integer, intent(in) :: iter,iconv,ifcore,ncore,lmax,nconf
+       integer, intent(in) :: nr,norb
        real(kind=8), dimension(nr), intent(in) :: r,rab,vid,viu
        real(kind=8), dimension(nr), intent(out) :: cdd,cdu,cdc
-       integer, intent(in) :: ifcore,ncore
        integer, dimension(norb), intent(in) :: no,lo
        real(kind=8), dimension(norb), intent(in) :: so, zo
        real(kind=8), dimension(lmax,nr), intent(in) :: viod,viou
        real(kind=8), dimension(norb), intent(out) :: ev,ek,ep
+       real(kind=8), intent(out) :: dcrc,ddcrc
+       real(kind=8), intent(in) :: a,b,znuc,zcore,rcov,rprb
        character(len=1) :: ispp
        integer, intent(in) :: iXC
+
        !Local variables
        real(kind=8), dimension(nr) :: v,ar,br
-       real(kind=8) :: dcrc,ddcrc
+       real(kind=8) :: denr
        integer :: i,j,lp,llp
 !.....files
 
@@ -1570,19 +1582,28 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
          nr,a,b,r,rab,norb,no,lo,so,znuc,viod,viou,  &
          vid,viu,ev)
 
-      implicit real*8 (a-h,o-z)
+      implicit none
 
-!     Tolerance
+!     Arguments
+      integer, intent(in) :: iter,iorb,lmax
+      integer, intent(in) :: norb,nr
+      integer, dimension(norb) :: no,lo
+      real(kind=8), dimension(norb) :: so,ev
+      real(kind=8), dimension(nr) :: v,ar,br,r,rab, vid,viu
+      real(kind=8), dimension(lmax,nr) :: viod,viou
+      real(kind=8), intent(in) :: a,b,znuc
+      !Local variables
+      !> Tolerance
       real(kind=8), parameter :: etol=-1.d-7
       real(kind=8), parameter :: tol=1.0d-14
-!     Arguments
-      integer, intent(in) :: nr
-      dimension v(nr),ar(nr),br(nr),r(nr),rab(nr),no(norb),  &
-       lo(norb),so(norb),viod(lmax,nr),viou(lmax,nr),  &
-       vid(nr),viu(nr),ev(norb)
-
-!    Arrays added to gain speed.
-      dimension rabrlo(5),rlp(5),rab2(nr),fa(nr),fb(nr)
+      !> Arrays added to gain speed.
+      real(kind=8), dimension(5) :: rabrlo,rlp
+      real(kind=8), dimension(nr) :: rab2,fa,fb
+      real(kind=8) :: brp,brctp,brc,bb,arp,arctp,arc,amc4,amc3,amc2,amc1,amc0,alf
+      real(kind=8) :: aa,abc1,abc2,abc3,abc4,abc5,dev,emax,emin,evold,expzer,factor
+      real(kind=8) :: fb0,fb1,temp,var0,vev,vzero,zeff
+      integer :: icount,istop,itmax,j,j1,j2,j3,j4,J5,juflow,ll,nctp,ninf,ninf1,ninf2,ninf3,ninf4,lp
+      integer :: nodes
 
       ! Machine dependent parameter-
       ! Require exp(-2*expzer) to be within the range of the machine
@@ -1647,12 +1668,12 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 !   aa = -znuc / lp     bb = (-2 znuc aa + v(0) - e)/(4 l + 6)
 
       zeff = 0.0d0
-      if (so(iorb) .lt. 0.1 .and. viod(lp,2) .lt. -0.1) zeff=znuc
-      if (so(iorb) .gt. 0.1 .and. viou(lp,2) .lt. -0.1) zeff=znuc
+      if (so(iorb) .lt. 0.1d0 .and. viod(lp,2) .lt. -0.1d0) zeff=znuc
+      if (so(iorb) .gt. 0.1d0 .and. viou(lp,2) .lt. -0.1d0) zeff=znuc
       aa = -zeff/lp
       vzero = -2*zeff*aa
-      if (zeff == 0.0) then
-        if (so(iorb) .lt. 0.1 ) then
+      if (zeff == 0.0d0) then
+        if (so(iorb) .lt. 0.1d0 ) then
           vzero=vzero+viod(lp,2)/r(2)
         else
           vzero=vzero+viou(lp,2)/r(2)
@@ -1917,22 +1938,25 @@ end subroutine difnrl
 subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
          norb,no,lo,so,znuc,vid,viu,ev)
 
-      implicit real*8 (a-h,o-z)
+      implicit none
 
       !Arguments
-      integer, intent(in) :: iter
-      integer, intent(in) :: norb
+      integer, intent(in) :: iter,iorb
+      integer, intent(in) :: norb,nr
+      integer, dimension(norb) :: no,lo
+      real(kind=8), dimension(norb) :: so,ev
+      real(kind=8), dimension(nr) :: v,ar,br,r,rab,vid,viu
+      real(kind=8), intent(in) :: znuc
+
       !Local variables
-      real(kind=8), parameter :: ai=2*137.0360411d0
+      real(kind=8), parameter :: ai=2.d0*137.0360411d0
       !> Tolerances
       real(kind=8), parameter :: etol=-1.d-7, tol = 1.0d-14
-
-      dimension v(nr),ar(nr),br(nr),r(nr),rab(nr), &
-       no(norb),lo(norb),so(norb), &
-       vid(nr),viu(nr),ev(norb),rabkar(nr),rabai(nr), &
-       fa(nr),fb(nr)
-
+      real(kind=8), dimension(nr) :: rabkar,rabai, fa,fb
       real(kind=8), dimension(5) :: rs
+      real(kind=8) :: a1,a2,abc1,abc2,abc3,abc4,abc5,ai2,alf,amc0,amc1,amc2,amc3,amc4,arc,arin,arout,arp,arpin
+      real(kind=8) :: az,b0,b1,b2,brc,brp,dev,emax,emin,evold,evv,arpout,evvai2,expzer,factor,faj,fbj,s,temp,vzero
+      integer :: icount,istop,itmax,j,juflow,ka,ll,nctp,ninf,nodes
 
       !------Machine dependent parameter-
       !------Require exp(-2*expzer) to be within the range of the machine
@@ -2260,29 +2284,36 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
           viod,viou,vid,viu, &
           v,ev,ek,ep,rcov,rprb,nconf)
 
-       implicit double precision(a-h,o-z)
+       implicit none
        !Arguments
-       integer, intent(in) :: nr,norb,lmax
-       real(kind=8), dimension(nr) :: ar,br
-       real(kind=8), dimension(nr) :: r,rab
-       integer, dimension(norb) :: no,lo
-       dimension so(norb),zo(norb),  &
-       cdd(nr),cdu(nr),cdc(nr),  &
-       viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr), &
-       v(nr),ev(norb),ek(norb),ep(norb)
-       character(len=1) :: ispp
-
+       character(len=1), intent(out) :: ispp
+       integer, intent(in) :: ncore,lmax,nconf,iXC,iorb
+       integer, intent(in) :: nr,norb
+       real(kind=8), dimension(nr), intent(in) :: ar,br
+       real(kind=8), dimension(nr), intent(in) :: r,rab
+       integer, dimension(norb), intent(in) :: no,lo
+       real(kind=8), dimension(norb), intent(in) :: so,zo,ev
+       real(kind=8), dimension(norb), intent(out) :: ek,ep
+       real(kind=8), dimension(nr), intent(in) :: cdd,cdu,cdc,vid,viu,v
+       real(kind=8), dimension(lmax,nr), intent(in) :: viod,viou
+       real(kind=8), intent(in) :: znuc,zcore, rcov,rprb
+       real(kind=8), intent(out) :: dcrc, ddcrc
+       !Local variables
        real(kind=8), dimension(10) :: rzero,rextr,aextr,bextr
        character(len=10) :: name
        character(len=30) :: plotfile,orbname
-       integer :: iXC
+       real(kind=8) :: a1,ai,an,ar2,arp,arpm,b1,bn,br2,cmin,dena,denb,deni,expzer
+       real(kind=8) :: ddd,dddd,dcrcov,ddcrcov,pi,sa2,syswght,crcov
+       real(kind=8) :: temp,toplot,tt,ttxlo,ttxup
+       real(kind=8) :: zps,vshift
+       integer :: i,ierr,i90,i99,ii,inum,ircov,isx,j,jj,ka,ll,llp,lp,nextr,ninf,npoint,nzero
 !     c.hartwig
 !     work-arrays for integration, and xc-potential
 !     SOME OF THOSE SEEM NOT TO BE USED AT ALL
-      dimension ttx(50000),tty(50000),ttyp(50000),ttypp(50000),  &
-           ttw(150000)
+      real(kind=8), dimension(50000) :: ttx,tty,ttyp,ttypp
+      real(kind=8), dimension(150000) :: ttw
       
-      character(len=1) ::  il(5)
+      character(len=1), dimension(5) :: il
       character(len=2) :: cnum
 
 
@@ -2352,7 +2383,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
           if (so(iorb) .gt. 0.1D0) &
              ep(iorb) = ep(iorb) + ll * deni*viou(lp,i)*rab(i)/r(i)
           ll = 6 - ll
-          if (sa2 .gt. 0.10D0) goto 40
+          if (sa2 .gt. 0.10d0) goto 40
           sa2 = sa2 + deni*rab(i)
           if (sa2 .le. 0.01D0) i99 = i
           i90 = i
@@ -2481,7 +2512,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
          ircov=ninf
          write(6,'(1x,a)')                 'warning: ircov > ninf ! (ircov set to ninf)'
          write(6,'(1x,a,i12,1x,a,f21.16)') '---> ninf=   ',ninf,' r(ninf)=',r(ninf)
-         write(6,'(1x,a,i12,1x,a,f21.16)') '---> npoints=',npoints,' r(npoint)=',r(npoint)
+         write(6,'(1x,a,i12,1x,a,f21.16)') '---> npoints=',npoint,' r(npoint)=',r(npoint)
       endif
       call splift(ttx,tty,ttyp,ttypp,npoint,ttw,ierr,isx,a1,b1,an,bn)
       if(ierr/=1) write(6,*)'SPLIFT ERROR!',ttw !stop 'spliq'
@@ -2550,7 +2581,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
       if(iorb==norb) then
          write(plotfile, '(a,i0,a)') 'ae.pot.conf.',nconf ,'.plt'
          open(unit=37,file=trim(plotfile),status='unknown')
-         write(37,'(20e20.10)') r(1), 0.0D0
+         write(37,'(20e20.10)') r(1), 0.0d0
          do j=2,nr
             if (ispp=='r') then
                toplot = 0.5D0*(vid(j)+viu(j))

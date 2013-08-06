@@ -66,14 +66,14 @@
  iter =    4 dvmax = 1.608E-01 xmixo = 2.396E-01
  iter =    5 dvmax = 1.093E-01 xmixo = 2.396E-01
  iorb = 32 iter =  6 ev = -1.3560734042E+01 nodes = 3
- iorb = 32 iter =  6 ev = -1.4916807447E+01 nodes =19
+ iorb = 32 iter =  6 ev = -1.4916807447E+01 nodes = 19
  iter =    6 dvmax = 7.282E-02 xmixo = 2.396E-01
  iter =    7 dvmax = 4.807E-02 xmixo = 2.396E-01
  iter =    8 dvmax = 3.173E-02 xmixo = 2.396E-01
  iorb = 35 iter =  9 ev = -1.3563199811E+01 nodes = 0
- iorb = 35 iter =  9 ev = -1.4919519793E+01 nodes =17
+ iorb = 35 iter =  9 ev = -1.4919519793E+01 nodes = 17
  iorb = 36 iter =  9 ev = -1.3557413579E+01 nodes = 0
- iorb = 36 iter =  9 ev = -1.4913154936E+01 nodes =17
+ iorb = 36 iter =  9 ev = -1.4913154936E+01 nodes = 17
  iter =    9 dvmax = 2.077E-02 xmixo = 2.396E-01
  iter =   10 dvmax = 1.504E-02 xmixo = 2.396E-01
  iter =   11 dvmax = 1.044E-02 xmixo = 2.396E-01
@@ -153,7 +153,7 @@
  iter =   85 dvmax = 9.823E-12 xmixo = 2.396E-01
  warning: ircov > ninf ! (ircov set to ninf)
  ---> ninf=        1224  r(ninf)=   3.3711804335508164     
- ---> npoints=           0  r(npoint)=   3.5886029414187717     
+ ---> npoints=        1229  r(npoint)=   3.5886029414187717     
 
  rcov         =    3.5000000000000000     
  charge(rcov) = int_0^rcov g^2 r^2 dr   +  int_0^infinity f^2 r^2 dr

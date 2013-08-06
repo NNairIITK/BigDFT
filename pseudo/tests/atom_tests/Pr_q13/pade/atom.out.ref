@@ -63,7 +63,7 @@
  iter =    1 dvmax = 4.101E-01 xmixo = 2.387E-01
  iter =    2 dvmax = 3.233E-01 xmixo = 2.387E-01
  iorb = 25 iter =  3 ev = -1.4600943429E+01 nodes = 5
- iorb = 25 iter =  3 ev = -1.6061037772E+01 nodes =10
+ iorb = 25 iter =  3 ev = -1.6061037772E+01 nodes = 10
  iter =    3 dvmax = 2.319E-01 xmixo = 2.387E-01
  iter =    4 dvmax = 1.618E-01 xmixo = 2.387E-01
  iter =    5 dvmax = 1.100E-01 xmixo = 2.387E-01
@@ -150,7 +150,7 @@
  iter =   86 dvmax = 8.828E-12 xmixo = 2.387E-01
  warning: ircov > ninf ! (ircov set to ninf)
  ---> ninf=        1224  r(ninf)=   3.3133887689756598
- ---> npoints=           0  r(npoint)=   3.5270840338515925
+ ---> npoints=        1229  r(npoint)=   3.5270840338515925
 
  rcov         =   3.4399999999999999
  charge(rcov) = int_0^rcov g^2 r^2 dr   +  int_0^infinity f^2 r^2 dr

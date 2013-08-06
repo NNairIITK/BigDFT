@@ -64,9 +64,9 @@
  iter =    4 dvmax = 1.480E-01 xmixo = 2.643E-01
  iter =    5 dvmax = 9.349E-02 xmixo = 2.643E-01
  iorb = 33 iter =  6 ev = -1.3533978433E+01 nodes = 0
- iorb = 33 iter =  6 ev = -1.4887376277E+01 nodes =16
+ iorb = 33 iter =  6 ev = -1.4887376277E+01 nodes = 16
  iorb = 34 iter =  6 ev = -1.3533978241E+01 nodes = 0
- iorb = 34 iter =  6 ev = -1.4887376065E+01 nodes =16
+ iorb = 34 iter =  6 ev = -1.4887376065E+01 nodes = 16
  iter =    6 dvmax = 5.746E-02 xmixo = 2.643E-01
  iter =    7 dvmax = 3.505E-02 xmixo = 2.643E-01
  iter =    8 dvmax = 2.168E-02 xmixo = 2.643E-01

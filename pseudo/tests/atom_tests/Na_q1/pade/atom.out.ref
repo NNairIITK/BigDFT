@@ -51,9 +51,9 @@
  a = 10.01166143  b = 60.00000000
 
  iter =    1 dvmax = 3.592E-01 xmixo = 3.460E-01
- iorb = 25 iter =  2 ev = -1.5341216123E+01 nodes =11
+ iorb = 25 iter =  2 ev = -1.5341216123E+01 nodes = 11
  iorb = 25 iter =  2 ev = -1.3807094511E+01 nodes = 0
- iorb = 26 iter =  2 ev = -1.5341215791E+01 nodes =11
+ iorb = 26 iter =  2 ev = -1.5341215791E+01 nodes = 11
  iorb = 26 iter =  2 ev = -1.3807094212E+01 nodes = 0
  iter =    2 dvmax = 2.266E-01 xmixo = 3.460E-01
  iter =    3 dvmax = 1.193E-01 xmixo = 3.460E-01

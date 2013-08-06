@@ -169,7 +169,7 @@
  iter =  103 dvmax = 7.881E-12 xmixo = 2.206E-01
  warning: ircov > ninf ! (ircov set to ninf)
  ---> ninf=        1067  r(ninf)=   2.1593281206634805     
- ---> npoints=           0  r(npoint)=   2.3192079030176149     
+ ---> npoints=        1072  r(npoint)=   2.3192079030176149     
 
  rcov         =    2.6000000000000001     
  charge(rcov) = int_0^rcov g^2 r^2 dr   +  int_0^infinity f^2 r^2 dr

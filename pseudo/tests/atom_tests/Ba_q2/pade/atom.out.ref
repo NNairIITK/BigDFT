@@ -64,311 +64,311 @@
  iter =    2 dvmax = 3.415E-01 xmixo = 2.414E-01
  iter =    3 dvmax = 2.392E-01 xmixo = 2.414E-01
  iter =    4 dvmax = 1.293E-01 xmixo = 2.414E-01
- iorb = 29 iter =  5 ev = -1.4128364655E+01 nodes =22
+ iorb = 29 iter =  5 ev = -1.4128364655E+01 nodes = 22
  iorb = 29 iter =  5 ev = -1.5541201121E+01 nodes = 4
- iorb = 30 iter =  5 ev = -1.4128364666E+01 nodes =22
+ iorb = 30 iter =  5 ev = -1.4128364666E+01 nodes = 22
  iorb = 30 iter =  5 ev = -1.5541201133E+01 nodes = 4
  iter =    5 dvmax = 9.116E-02 xmixo = 2.414E-01
  iorb = 33 iter =  6 ev = -1.4251563700E+01 nodes = 1
  iorb = 33 iter =  6 ev = -1.4251563701E+01 nodes = 1
  iter =    6 dvmax = 8.522E-02 xmixo = 2.414E-01
- iorb = 18 iter =  7 ev = -1.4723454471E+01 nodes =18
+ iorb = 18 iter =  7 ev = -1.4723454471E+01 nodes = 18
  iorb = 18 iter =  7 ev = -1.3251109023E+01 nodes = 4
- iorb = 19 iter =  7 ev = -1.4401216633E+01 nodes =22
+ iorb = 19 iter =  7 ev = -1.4401216633E+01 nodes = 22
  iorb = 19 iter =  7 ev = -1.2961094970E+01 nodes = 4
- iorb = 25 iter =  7 ev = -1.4284426730E+01 nodes =22
+ iorb = 25 iter =  7 ev = -1.4284426730E+01 nodes = 22
  iorb = 25 iter =  7 ev = -1.2855984057E+01 nodes = 3
- iorb = 26 iter =  7 ev = -1.4281618341E+01 nodes =22
+ iorb = 26 iter =  7 ev = -1.4281618341E+01 nodes = 22
  iorb = 26 iter =  7 ev = -1.2853456507E+01 nodes = 3
 
  warning *** charge density partially rescaled in velect
  iteration number   7   scaling factor = 1.021
 
  iter =    7 dvmax = 6.633E-02 xmixo = 2.414E-01
- iorb = 33 iter =  8 ev = -1.4159806194E+01 nodes =20
+ iorb = 33 iter =  8 ev = -1.4159806194E+01 nodes = 20
  iorb = 33 iter =  8 ev = -1.5575786814E+01 nodes = 2
- iorb = 34 iter =  8 ev = -1.4159806191E+01 nodes =20
+ iorb = 34 iter =  8 ev = -1.4159806191E+01 nodes = 20
  iorb = 34 iter =  8 ev = -1.5575786810E+01 nodes = 2
  iter =    8 dvmax = 4.157E-02 xmixo = 2.414E-01
  iorb = 34 iter =  9 ev = -1.4231141889E+01 nodes = 1
  iorb = 34 iter =  9 ev = -1.4231141916E+01 nodes = 1
  iorb = 35 iter =  9 ev = -1.2875546878E+01 nodes = 1
- iorb = 35 iter =  9 ev = -1.4163101566E+01 nodes =21
+ iorb = 35 iter =  9 ev = -1.4163101566E+01 nodes = 21
  iorb = 36 iter =  9 ev = -1.2875083341E+01 nodes = 1
- iorb = 36 iter =  9 ev = -1.4162591675E+01 nodes =21
+ iorb = 36 iter =  9 ev = -1.4162591675E+01 nodes = 21
  iter =    9 dvmax = 5.549E-02 xmixo = 1.931E-01
- iorb = 19 iter = 10 ev = -1.4417736983E+01 nodes =22
+ iorb = 19 iter = 10 ev = -1.4417736983E+01 nodes = 22
  iorb = 19 iter = 10 ev = -1.2975963285E+01 nodes = 5
- iorb = 29 iter = 10 ev = -1.4396278130E+01 nodes =19
+ iorb = 29 iter = 10 ev = -1.4396278130E+01 nodes = 19
  iorb = 29 iter = 10 ev = -1.2956650317E+01 nodes = 2
- iorb = 30 iter = 10 ev = -1.4393199585E+01 nodes =19
+ iorb = 30 iter = 10 ev = -1.4393199585E+01 nodes = 19
  iorb = 30 iter = 10 ev = -1.2953879626E+01 nodes = 2
- iorb = 31 iter = 10 ev = -1.4273767740E+01 nodes =21
+ iorb = 31 iter = 10 ev = -1.4273767740E+01 nodes = 21
  iorb = 31 iter = 10 ev = -1.2846390966E+01 nodes = 2
- iorb = 32 iter = 10 ev = -1.4273273754E+01 nodes =21
+ iorb = 32 iter = 10 ev = -1.4273273754E+01 nodes = 21
  iorb = 32 iter = 10 ev = -1.2845946379E+01 nodes = 2
- iorb = 35 iter = 10 ev = -1.4222499968E+01 nodes =19
+ iorb = 35 iter = 10 ev = -1.4222499968E+01 nodes = 19
  iorb = 35 iter = 10 ev = -1.2800249971E+01 nodes = 0
- iorb = 36 iter = 10 ev = -1.4221987938E+01 nodes =19
+ iorb = 36 iter = 10 ev = -1.4221987938E+01 nodes = 19
  iorb = 36 iter = 10 ev = -1.2799789144E+01 nodes = 0
  iter =   10 dvmax = 5.319E-02 xmixo = 1.931E-01
  iorb = 35 iter = 11 ev = -1.2853932731E+01 nodes = 1
- iorb = 35 iter = 11 ev = -1.4139326004E+01 nodes =21
+ iorb = 35 iter = 11 ev = -1.4139326004E+01 nodes = 21
  iorb = 36 iter = 11 ev = -1.2853469971E+01 nodes = 1
- iorb = 36 iter = 11 ev = -1.4138816969E+01 nodes =21
+ iorb = 36 iter = 11 ev = -1.4138816969E+01 nodes = 21
  iter =   11 dvmax = 5.344E-02 xmixo = 1.545E-01
- iorb = 19 iter = 12 ev = -1.4359061218E+01 nodes =23
+ iorb = 19 iter = 12 ev = -1.4359061218E+01 nodes = 23
  iorb = 19 iter = 12 ev = -1.2923155096E+01 nodes = 5
- iorb = 29 iter = 12 ev = -1.4327025812E+01 nodes =20
+ iorb = 29 iter = 12 ev = -1.4327025812E+01 nodes = 20
  iorb = 29 iter = 12 ev = -1.2894323231E+01 nodes = 2
- iorb = 30 iter = 12 ev = -1.4324970530E+01 nodes =20
+ iorb = 30 iter = 12 ev = -1.4324970530E+01 nodes = 20
  iorb = 30 iter = 12 ev = -1.2892473477E+01 nodes = 2
  iter =   12 dvmax = 5.235E-02 xmixo = 1.545E-01
  iter =   13 dvmax = 4.640E-02 xmixo = 1.545E-01
  iter =   14 dvmax = 5.268E-02 xmixo = 1.236E-01
  iorb = 34 iter = 15 ev = -1.2851725627E+01 nodes = 0
- iorb = 34 iter = 15 ev = -1.4136898190E+01 nodes =21
- iorb = 35 iter = 15 ev = -1.4090149782E+01 nodes =21
+ iorb = 34 iter = 15 ev = -1.4136898190E+01 nodes = 21
+ iorb = 35 iter = 15 ev = -1.4090149782E+01 nodes = 21
  iorb = 35 iter = 15 ev = -1.5499164760E+01 nodes = 3
- iorb = 36 iter = 15 ev = -1.4090149570E+01 nodes =21
+ iorb = 36 iter = 15 ev = -1.4090149570E+01 nodes = 21
  iorb = 36 iter = 15 ev = -1.5499164527E+01 nodes = 3
  iter =   15 dvmax = 3.021E-02 xmixo = 1.236E-01
  iter =   16 dvmax = 6.155E-02 xmixo = 9.886E-02
- iorb = 20 iter = 17 ev = -1.4258081219E+01 nodes =24
+ iorb = 20 iter = 17 ev = -1.4258081219E+01 nodes = 24
  iorb = 20 iter = 17 ev = -1.2832273097E+01 nodes = 6
- iorb = 23 iter = 17 ev = -1.4290581889E+01 nodes =22
+ iorb = 23 iter = 17 ev = -1.4290581889E+01 nodes = 22
  iorb = 23 iter = 17 ev = -1.2861523700E+01 nodes = 4
- iorb = 24 iter = 17 ev = -1.4286941429E+01 nodes =22
+ iorb = 24 iter = 17 ev = -1.4286941429E+01 nodes = 22
  iorb = 24 iter = 17 ev = -1.2858247286E+01 nodes = 4
- iorb = 25 iter = 17 ev = -1.4238047324E+01 nodes =23
+ iorb = 25 iter = 17 ev = -1.4238047324E+01 nodes = 23
  iorb = 25 iter = 17 ev = -1.2814242592E+01 nodes = 4
- iorb = 26 iter = 17 ev = -1.4235682152E+01 nodes =23
+ iorb = 26 iter = 17 ev = -1.4235682152E+01 nodes = 23
  iorb = 26 iter = 17 ev = -1.2812113937E+01 nodes = 4
- iorb = 31 iter = 17 ev = -1.4243333289E+01 nodes =21
+ iorb = 31 iter = 17 ev = -1.4243333289E+01 nodes = 21
  iorb = 31 iter = 17 ev = -1.2818999960E+01 nodes = 3
- iorb = 32 iter = 17 ev = -1.4242909716E+01 nodes =21
+ iorb = 32 iter = 17 ev = -1.4242909716E+01 nodes = 21
  iorb = 32 iter = 17 ev = -1.2818618745E+01 nodes = 3
  iter =   17 dvmax = 4.738E-02 xmixo = 9.886E-02
  iorb = 29 iter = 18 ev = -1.4210807279E+01 nodes = 3
  iorb = 29 iter = 18 ev = -1.4206503415E+01 nodes = 3
- iorb = 35 iter = 18 ev = -1.4105594158E+01 nodes =21
+ iorb = 35 iter = 18 ev = -1.4105594158E+01 nodes = 21
  iorb = 35 iter = 18 ev = -1.5516153574E+01 nodes = 3
- iorb = 36 iter = 18 ev = -1.4105588941E+01 nodes =21
+ iorb = 36 iter = 18 ev = -1.4105588941E+01 nodes = 21
  iorb = 36 iter = 18 ev = -1.5516147835E+01 nodes = 3
  iter =   18 dvmax = 4.467E-02 xmixo = 9.886E-02
- iorb = 31 iter = 19 ev = -1.4226872572E+01 nodes =21
+ iorb = 31 iter = 19 ev = -1.4226872572E+01 nodes = 21
  iorb = 31 iter = 19 ev = -1.2804185315E+01 nodes = 3
- iorb = 32 iter = 19 ev = -1.4226250673E+01 nodes =21
+ iorb = 32 iter = 19 ev = -1.4226250673E+01 nodes = 21
  iorb = 32 iter = 19 ev = -1.2803625605E+01 nodes = 3
  iter =   19 dvmax = 4.811E-02 xmixo = 7.909E-02
- iorb = 33 iter = 20 ev = -1.4153734223E+01 nodes =20
+ iorb = 33 iter = 20 ev = -1.4153734223E+01 nodes = 20
  iorb = 33 iter = 20 ev = -1.4147448956E+01 nodes = 1
- iorb = 34 iter = 20 ev = -1.4153733744E+01 nodes =20
+ iorb = 34 iter = 20 ev = -1.4153733744E+01 nodes = 20
  iorb = 34 iter = 20 ev = -1.4148149131E+01 nodes = 1
  iter =   20 dvmax = 3.403E-02 xmixo = 7.909E-02
- iorb = 25 iter = 21 ev = -1.4208839156E+01 nodes =24
+ iorb = 25 iter = 21 ev = -1.4208839156E+01 nodes = 24
  iorb = 25 iter = 21 ev = -1.4206828090E+01 nodes = 6
- iorb = 26 iter = 21 ev = -1.4206670854E+01 nodes =24
+ iorb = 26 iter = 21 ev = -1.4206670854E+01 nodes = 24
  iorb = 26 iter = 21 ev = -1.4205142796E+01 nodes = 6
- iorb = 31 iter = 21 ev = -1.4303180001E+01 nodes =21
+ iorb = 31 iter = 21 ev = -1.4303180001E+01 nodes = 21
  iorb = 31 iter = 21 ev = -1.2872862001E+01 nodes = 3
- iorb = 35 iter = 21 ev = -1.4169685552E+01 nodes =20
+ iorb = 35 iter = 21 ev = -1.4169685552E+01 nodes = 20
  iorb = 35 iter = 21 ev = -1.2752716997E+01 nodes = 1
- iorb = 36 iter = 21 ev = -1.4168737553E+01 nodes =20
+ iorb = 36 iter = 21 ev = -1.4168737553E+01 nodes = 20
  iorb = 36 iter = 21 ev = -1.2751863798E+01 nodes = 1
  iter =   21 dvmax = 5.804E-02 xmixo = 6.327E-02
- iorb = 33 iter = 22 ev = -1.4229629825E+01 nodes =19
+ iorb = 33 iter = 22 ev = -1.4229629825E+01 nodes = 19
  iorb = 33 iter = 22 ev = -1.2806666842E+01 nodes = 0
- iorb = 34 iter = 22 ev = -1.4229582822E+01 nodes =19
+ iorb = 34 iter = 22 ev = -1.4229582822E+01 nodes = 19
  iorb = 34 iter = 22 ev = -1.2806624539E+01 nodes = 0
  iter =   22 dvmax = 4.435E-02 xmixo = 6.327E-02
- iorb = 20 iter = 23 ev = -1.4216220355E+01 nodes =25
+ iorb = 20 iter = 23 ev = -1.4216220355E+01 nodes = 25
  iorb = 20 iter = 23 ev = -1.4202449554E+01 nodes = 7
- iorb = 25 iter = 23 ev = -1.4194402286E+01 nodes =24
+ iorb = 25 iter = 23 ev = -1.4194402286E+01 nodes = 24
  iorb = 25 iter = 23 ev = -1.4191320897E+01 nodes = 6
- iorb = 26 iter = 23 ev = -1.4192434438E+01 nodes =24
+ iorb = 26 iter = 23 ev = -1.4192434438E+01 nodes = 24
  iorb = 26 iter = 23 ev = -1.4189117774E+01 nodes = 6
- iorb = 31 iter = 23 ev = -1.4192282136E+01 nodes =22
+ iorb = 31 iter = 23 ev = -1.4192282136E+01 nodes = 22
  iorb = 31 iter = 23 ev = -1.4187505878E+01 nodes = 4
- iorb = 32 iter = 23 ev = -1.4191841159E+01 nodes =22
+ iorb = 32 iter = 23 ev = -1.4191841159E+01 nodes = 22
  iorb = 32 iter = 23 ev = -1.4188280571E+01 nodes = 4
  iter =   23 dvmax = 4.824E-02 xmixo = 5.062E-02
- iorb = 20 iter = 24 ev = -1.4262012976E+01 nodes =24
+ iorb = 20 iter = 24 ev = -1.4262012976E+01 nodes = 24
  iorb = 20 iter = 24 ev = -1.2835811679E+01 nodes = 6
- iorb = 25 iter = 24 ev = -1.4250837647E+01 nodes =23
+ iorb = 25 iter = 24 ev = -1.4250837647E+01 nodes = 23
  iorb = 25 iter = 24 ev = -1.2825753882E+01 nodes = 4
- iorb = 26 iter = 24 ev = -1.4248625284E+01 nodes =23
+ iorb = 26 iter = 24 ev = -1.4248625284E+01 nodes = 23
  iorb = 26 iter = 24 ev = -1.2823762756E+01 nodes = 4
- iorb = 31 iter = 24 ev = -1.4247006628E+01 nodes =21
+ iorb = 31 iter = 24 ev = -1.4247006628E+01 nodes = 21
  iorb = 31 iter = 24 ev = -1.2822305965E+01 nodes = 3
- iorb = 32 iter = 24 ev = -1.4247784570E+01 nodes =21
+ iorb = 32 iter = 24 ev = -1.4247784570E+01 nodes = 21
  iorb = 32 iter = 24 ev = -1.2823006113E+01 nodes = 3
- iorb = 33 iter = 24 ev = -1.4221884542E+01 nodes =20
+ iorb = 33 iter = 24 ev = -1.4221884542E+01 nodes = 20
  iorb = 33 iter = 24 ev = -1.2799696088E+01 nodes = 0
- iorb = 34 iter = 24 ev = -1.4221808084E+01 nodes =20
+ iorb = 34 iter = 24 ev = -1.4221808084E+01 nodes = 20
  iorb = 34 iter = 24 ev = -1.2799627276E+01 nodes = 0
- iorb = 35 iter = 24 ev = -1.4179269109E+01 nodes =20
+ iorb = 35 iter = 24 ev = -1.4179269109E+01 nodes = 20
  iorb = 35 iter = 24 ev = -1.2761342198E+01 nodes = 0
- iorb = 36 iter = 24 ev = -1.4178976771E+01 nodes =20
+ iorb = 36 iter = 24 ev = -1.4178976771E+01 nodes = 20
  iorb = 36 iter = 24 ev = -1.2761079094E+01 nodes = 0
  iter =   24 dvmax = 4.454E-02 xmixo = 5.062E-02
  iorb = 33 iter = 25 ev = -1.2853376525E+01 nodes = 0
- iorb = 33 iter = 25 ev = -1.4138714178E+01 nodes =21
+ iorb = 33 iter = 25 ev = -1.4138714178E+01 nodes = 21
  iorb = 34 iter = 25 ev = -1.2853307425E+01 nodes = 0
- iorb = 34 iter = 25 ev = -1.4138638167E+01 nodes =21
+ iorb = 34 iter = 25 ev = -1.4138638167E+01 nodes = 21
  iorb = 35 iter = 25 ev = -1.2814861784E+01 nodes = 0
- iorb = 35 iter = 25 ev = -1.4096347962E+01 nodes =21
+ iorb = 35 iter = 25 ev = -1.4096347962E+01 nodes = 21
  iorb = 36 iter = 25 ev = -1.2814597576E+01 nodes = 0
- iorb = 36 iter = 25 ev = -1.4096057333E+01 nodes =21
+ iorb = 36 iter = 25 ev = -1.4096057333E+01 nodes = 21
  iter =   25 dvmax = 4.173E-02 xmixo = 5.062E-02
- iorb = 33 iter = 26 ev = -1.4295968161E+01 nodes =19
+ iorb = 33 iter = 26 ev = -1.4295968161E+01 nodes = 19
  iorb = 33 iter = 26 ev = -1.2866371345E+01 nodes = 0
- iorb = 34 iter = 26 ev = -1.4295831768E+01 nodes =19
+ iorb = 34 iter = 26 ev = -1.4295831768E+01 nodes = 19
  iorb = 34 iter = 26 ev = -1.2866248591E+01 nodes = 0
  iorb = 35 iter = 26 ev = -1.2954068105E+01 nodes = 0
- iorb = 35 iter = 26 ev = -1.4249474916E+01 nodes =19
+ iorb = 35 iter = 26 ev = -1.4249474916E+01 nodes = 19
  iorb = 36 iter = 26 ev = -1.2954842032E+01 nodes = 0
- iorb = 36 iter = 26 ev = -1.4250326236E+01 nodes =19
+ iorb = 36 iter = 26 ev = -1.4250326236E+01 nodes = 19
  iter =   26 dvmax = 4.498E-02 xmixo = 4.049E-02
- iorb = 20 iter = 27 ev = -1.4211965374E+01 nodes =25
+ iorb = 20 iter = 27 ev = -1.4211965374E+01 nodes = 25
  iorb = 20 iter = 27 ev = -1.2790768836E+01 nodes = 6
- iorb = 25 iter = 27 ev = -1.4190900519E+01 nodes =24
+ iorb = 25 iter = 27 ev = -1.4190900519E+01 nodes = 24
  iorb = 25 iter = 27 ev = -1.2771810467E+01 nodes = 5
- iorb = 26 iter = 27 ev = -1.4188977588E+01 nodes =24
+ iorb = 26 iter = 27 ev = -1.4188977588E+01 nodes = 24
  iorb = 26 iter = 27 ev = -1.2770079829E+01 nodes = 5
- iorb = 31 iter = 27 ev = -1.4187752031E+01 nodes =22
+ iorb = 31 iter = 27 ev = -1.4187752031E+01 nodes = 22
  iorb = 31 iter = 27 ev = -1.2768976828E+01 nodes = 3
- iorb = 32 iter = 27 ev = -1.4187389591E+01 nodes =22
+ iorb = 32 iter = 27 ev = -1.4187389591E+01 nodes = 22
  iorb = 32 iter = 27 ev = -1.2768650632E+01 nodes = 3
  iter =   27 dvmax = 3.586E-02 xmixo = 4.049E-02
- iorb = 35 iter = 28 ev = -1.4166601438E+01 nodes =20
+ iorb = 35 iter = 28 ev = -1.4166601438E+01 nodes = 20
  iorb = 35 iter = 28 ev = -1.2749941294E+01 nodes = 1
- iorb = 36 iter = 28 ev = -1.4165756268E+01 nodes =20
+ iorb = 36 iter = 28 ev = -1.4165756268E+01 nodes = 20
  iorb = 36 iter = 28 ev = -1.2749180641E+01 nodes = 1
  iter =   28 dvmax = 5.324E-02 xmixo = 3.240E-02
- iorb = 33 iter = 29 ev = -1.4221239716E+01 nodes =20
+ iorb = 33 iter = 29 ev = -1.4221239716E+01 nodes = 20
  iorb = 33 iter = 29 ev = -1.2799115744E+01 nodes = 0
- iorb = 34 iter = 29 ev = -1.4221211014E+01 nodes =20
+ iorb = 34 iter = 29 ev = -1.4221211014E+01 nodes = 20
  iorb = 34 iter = 29 ev = -1.2799089913E+01 nodes = 0
- iorb = 35 iter = 29 ev = -1.4211568463E+01 nodes =20
+ iorb = 35 iter = 29 ev = -1.4211568463E+01 nodes = 20
  iorb = 35 iter = 29 ev = -1.2790411616E+01 nodes = 0
- iorb = 36 iter = 29 ev = -1.4206464946E+01 nodes =20
+ iorb = 36 iter = 29 ev = -1.4206464946E+01 nodes = 20
  iorb = 36 iter = 29 ev = -1.2785818451E+01 nodes = 0
  iter =   29 dvmax = 4.245E-02 xmixo = 3.240E-02
- iorb = 20 iter = 30 ev = -1.4221731487E+01 nodes =25
+ iorb = 20 iter = 30 ev = -1.4221731487E+01 nodes = 25
  iorb = 20 iter = 30 ev = -1.2799558338E+01 nodes = 6
- iorb = 25 iter = 30 ev = -1.4199672464E+01 nodes =24
+ iorb = 25 iter = 30 ev = -1.4199672464E+01 nodes = 24
  iorb = 25 iter = 30 ev = -1.2779705218E+01 nodes = 5
- iorb = 26 iter = 30 ev = -1.4197654768E+01 nodes =23
+ iorb = 26 iter = 30 ev = -1.4197654768E+01 nodes = 23
  iorb = 26 iter = 30 ev = -1.2777889292E+01 nodes = 5
- iorb = 31 iter = 30 ev = -1.4198879683E+01 nodes =22
+ iorb = 31 iter = 30 ev = -1.4198879683E+01 nodes = 22
  iorb = 31 iter = 30 ev = -1.2778991714E+01 nodes = 3
- iorb = 32 iter = 30 ev = -1.4198357177E+01 nodes =22
+ iorb = 32 iter = 30 ev = -1.4198357177E+01 nodes = 22
  iorb = 32 iter = 30 ev = -1.2778521459E+01 nodes = 3
  iorb = 34 iter = 30 ev = -1.2852767808E+01 nodes = 0
- iorb = 34 iter = 30 ev = -1.4138044588E+01 nodes =21
- iorb = 36 iter = 30 ev = -1.4237573824E+01 nodes =20
+ iorb = 34 iter = 30 ev = -1.4138044588E+01 nodes = 21
+ iorb = 36 iter = 30 ev = -1.4237573824E+01 nodes = 20
  iorb = 36 iter = 30 ev = -1.2813816442E+01 nodes = 0
  iter =   30 dvmax = 4.816E-02 xmixo = 2.592E-02
  iorb = 20 iter = 31 ev = -1.2853238198E+01 nodes = 6
- iorb = 20 iter = 31 ev = -1.4138562018E+01 nodes =25
+ iorb = 20 iter = 31 ev = -1.4138562018E+01 nodes = 25
  iorb = 25 iter = 31 ev = -1.2833301816E+01 nodes = 5
- iorb = 25 iter = 31 ev = -1.4116631997E+01 nodes =24
+ iorb = 25 iter = 31 ev = -1.4116631997E+01 nodes = 24
  iorb = 26 iter = 31 ev = -1.2831478274E+01 nodes = 5
- iorb = 26 iter = 31 ev = -1.4114626101E+01 nodes =24
+ iorb = 26 iter = 31 ev = -1.4114626101E+01 nodes = 24
  iorb = 31 iter = 31 ev = -1.2832585320E+01 nodes = 3
- iorb = 31 iter = 31 ev = -1.4115843852E+01 nodes =23
+ iorb = 31 iter = 31 ev = -1.4115843852E+01 nodes = 23
  iorb = 32 iter = 31 ev = -1.2832113092E+01 nodes = 3
- iorb = 32 iter = 31 ev = -1.4115324401E+01 nodes =23
- iorb = 33 iter = 31 ev = -1.4217991915E+01 nodes =20
+ iorb = 32 iter = 31 ev = -1.4115324401E+01 nodes = 23
+ iorb = 33 iter = 31 ev = -1.4217991915E+01 nodes = 20
  iorb = 33 iter = 31 ev = -1.2796192724E+01 nodes = 0
- iorb = 35 iter = 31 ev = -1.4173300122E+01 nodes =20
+ iorb = 35 iter = 31 ev = -1.4173300122E+01 nodes = 20
  iorb = 35 iter = 31 ev = -1.2755970110E+01 nodes = 0
  iter =   31 dvmax = 4.275E-02 xmixo = 2.592E-02
- iorb = 31 iter = 32 ev = -1.4175044059E+01 nodes =22
+ iorb = 31 iter = 32 ev = -1.4175044059E+01 nodes = 22
  iorb = 31 iter = 32 ev = -1.4165358914E+01 nodes = 4
- iorb = 32 iter = 32 ev = -1.4174522431E+01 nodes =22
+ iorb = 32 iter = 32 ev = -1.4174522431E+01 nodes = 22
  iorb = 32 iter = 32 ev = -1.4164772070E+01 nodes = 4
  iorb = 33 iter = 32 ev = -1.2849858468E+01 nodes = 0
- iorb = 33 iter = 32 ev = -1.4134844315E+01 nodes =21
+ iorb = 33 iter = 32 ev = -1.4134844315E+01 nodes = 21
  iorb = 35 iter = 32 ev = -1.2809467165E+01 nodes = 0
- iorb = 35 iter = 32 ev = -1.4090413882E+01 nodes =21
- iorb = 36 iter = 32 ev = -1.4235768745E+01 nodes =20
+ iorb = 35 iter = 32 ev = -1.4090413882E+01 nodes = 21
+ iorb = 36 iter = 32 ev = -1.4235768745E+01 nodes = 20
  iorb = 36 iter = 32 ev = -1.2812191871E+01 nodes = 0
  iter =   32 dvmax = 4.278E-02 xmixo = 2.073E-02
- iorb = 34 iter = 33 ev = -1.4458412619E+01 nodes =17
+ iorb = 34 iter = 33 ev = -1.4458412619E+01 nodes = 17
  iorb = 34 iter = 33 ev = -1.3012571357E+01 nodes = 0
  iorb = 35 iter = 33 ev = -1.2854513160E+01 nodes = 0
- iorb = 35 iter = 33 ev = -1.4139964476E+01 nodes =20
+ iorb = 35 iter = 33 ev = -1.4139964476E+01 nodes = 20
  iter =   33 dvmax = 4.260E-02 xmixo = 2.073E-02
- iorb = 31 iter = 34 ev = -1.4197599984E+01 nodes =22
+ iorb = 31 iter = 34 ev = -1.4197599984E+01 nodes = 22
  iorb = 31 iter = 34 ev = -1.2777839986E+01 nodes = 3
- iorb = 32 iter = 34 ev = -1.4197099694E+01 nodes =22
+ iorb = 32 iter = 34 ev = -1.4197099694E+01 nodes = 22
  iorb = 32 iter = 34 ev = -1.2777389725E+01 nodes = 3
- iorb = 33 iter = 34 ev = -1.4169635717E+01 nodes =20
+ iorb = 33 iter = 34 ev = -1.4169635717E+01 nodes = 20
  iorb = 33 iter = 34 ev = -1.4157332139E+01 nodes = 1
  iter =   34 dvmax = 3.688E-02 xmixo = 2.073E-02
  iorb = 31 iter = 35 ev = -1.2831428761E+01 nodes = 3
- iorb = 31 iter = 35 ev = -1.4114571637E+01 nodes =23
+ iorb = 31 iter = 35 ev = -1.4114571637E+01 nodes = 23
  iorb = 32 iter = 35 ev = -1.2830976612E+01 nodes = 3
- iorb = 32 iter = 35 ev = -1.4114074273E+01 nodes =23
- iorb = 33 iter = 35 ev = -1.4216706344E+01 nodes =20
+ iorb = 32 iter = 35 ev = -1.4114074273E+01 nodes = 23
+ iorb = 33 iter = 35 ev = -1.4216706344E+01 nodes = 20
  iorb = 33 iter = 35 ev = -1.2795035710E+01 nodes = 0
  iorb = 34 iter = 35 ev = -1.3010271137E+01 nodes = 0
- iorb = 34 iter = 35 ev = -1.4311298251E+01 nodes =19
+ iorb = 34 iter = 35 ev = -1.4311298251E+01 nodes = 19
  iter =   35 dvmax = 4.265E-02 xmixo = 1.659E-02
- iorb = 31 iter = 36 ev = -1.4173766509E+01 nodes =22
+ iorb = 31 iter = 36 ev = -1.4173766509E+01 nodes = 22
  iorb = 31 iter = 36 ev = -1.4171561199E+01 nodes = 4
- iorb = 32 iter = 36 ev = -1.4173267059E+01 nodes =22
+ iorb = 32 iter = 36 ev = -1.4173267059E+01 nodes = 22
  iorb = 32 iter = 36 ev = -1.4170773798E+01 nodes = 4
  iorb = 33 iter = 36 ev = -1.2848696602E+01 nodes = 0
- iorb = 33 iter = 36 ev = -1.4133566262E+01 nodes =21
- iorb = 34 iter = 36 ev = -1.4371318172E+01 nodes =18
+ iorb = 33 iter = 36 ev = -1.4133566262E+01 nodes = 21
+ iorb = 34 iter = 36 ev = -1.4371318172E+01 nodes = 18
  iorb = 34 iter = 36 ev = -1.2934186355E+01 nodes = 0
- iorb = 35 iter = 36 ev = -1.4146792988E+01 nodes =20
+ iorb = 35 iter = 36 ev = -1.4146792988E+01 nodes = 20
  iorb = 35 iter = 36 ev = -1.4143971464E+01 nodes = 2
- iorb = 36 iter = 36 ev = -1.4143408708E+01 nodes =20
+ iorb = 36 iter = 36 ev = -1.4143408708E+01 nodes = 20
  iorb = 36 iter = 36 ev = -1.4137433648E+01 nodes = 2
  iter =   36 dvmax = 3.703E-03 xmixo = 1.659E-02
- iorb = 33 iter = 37 ev = -1.4192840796E+01 nodes =20
+ iorb = 33 iter = 37 ev = -1.4192840796E+01 nodes = 20
  iorb = 33 iter = 37 ev = -1.2773556716E+01 nodes = 0
  iter =   37 dvmax = 6.668E-03 xmixo = 1.327E-02
  iorb = 33 iter = 38 ev = -1.2827127528E+01 nodes = 0
- iorb = 33 iter = 38 ev = -1.4109840280E+01 nodes =21
+ iorb = 33 iter = 38 ev = -1.4109840280E+01 nodes = 21
  iter =   38 dvmax = 1.756E-02 xmixo = 1.062E-02
- iorb = 34 iter = 39 ev = -1.4206574233E+01 nodes =20
+ iorb = 34 iter = 39 ev = -1.4206574233E+01 nodes = 20
  iorb = 34 iter = 39 ev = -1.2785916810E+01 nodes = 0
  iter =   39 dvmax = 4.251E-02 xmixo = 8.492E-03
- iorb = 33 iter = 40 ev = -1.4338258939E+01 nodes =18
+ iorb = 33 iter = 40 ev = -1.4338258939E+01 nodes = 18
  iorb = 33 iter = 40 ev = -1.2904433046E+01 nodes = 0
- iorb = 34 iter = 40 ev = -1.4255521563E+01 nodes =19
+ iorb = 34 iter = 40 ev = -1.4255521563E+01 nodes = 19
  iorb = 34 iter = 40 ev = -1.2829969407E+01 nodes = 0
  iter =   40 dvmax = 4.054E-02 xmixo = 8.492E-03
  iorb = 33 iter = 41 ev = -1.2958552737E+01 nodes = 0
- iorb = 33 iter = 41 ev = -1.4254408011E+01 nodes =19
+ iorb = 33 iter = 41 ev = -1.4254408011E+01 nodes = 19
  iorb = 34 iter = 41 ev = -1.2883776807E+01 nodes = 0
- iorb = 34 iter = 41 ev = -1.4172154488E+01 nodes =20
+ iorb = 34 iter = 41 ev = -1.4172154488E+01 nodes = 20
  iter =   41 dvmax = 3.523E-02 xmixo = 8.492E-03
- iorb = 33 iter = 42 ev = -1.4314189341E+01 nodes =19
+ iorb = 33 iter = 42 ev = -1.4314189341E+01 nodes = 19
  iorb = 33 iter = 42 ev = -1.2882770407E+01 nodes = 0
- iorb = 34 iter = 42 ev = -1.4231590856E+01 nodes =20
+ iorb = 34 iter = 42 ev = -1.4231590856E+01 nodes = 20
  iorb = 34 iter = 42 ev = -1.2808431770E+01 nodes = 0
  iter =   42 dvmax = 4.045E-02 xmixo = 6.794E-03
  iter =   43 dvmax = 1.699E-02 xmixo = 6.794E-03
  iter =   44 dvmax = 3.025E-02 xmixo = 5.435E-03
- iorb = 34 iter = 45 ev = -1.4203202334E+01 nodes =20
+ iorb = 34 iter = 45 ev = -1.4203202334E+01 nodes = 20
  iorb = 34 iter = 45 ev = -1.2782882101E+01 nodes = 0
  iter =   45 dvmax = 3.526E-02 xmixo = 4.348E-03
  iorb = 34 iter = 46 ev = -1.2836492022E+01 nodes = 0
- iorb = 34 iter = 46 ev = -1.4120141224E+01 nodes =21
+ iorb = 34 iter = 46 ev = -1.4120141224E+01 nodes = 21
  iter =   46 dvmax = 3.085E-02 xmixo = 4.348E-03
- iorb = 34 iter = 47 ev = -1.4179359455E+01 nodes =20
+ iorb = 34 iter = 47 ev = -1.4179359455E+01 nodes = 20
  iorb = 34 iter = 47 ev = -1.2761423509E+01 nodes = 0
  iter =   47 dvmax = 2.557E-02 xmixo = 4.348E-03
  iorb = 34 iter = 48 ev = -1.2814943435E+01 nodes = 0
- iorb = 34 iter = 48 ev = -1.4096437779E+01 nodes =21
+ iorb = 34 iter = 48 ev = -1.4096437779E+01 nodes = 21
  iter =   48 dvmax = 2.673E-02 xmixo = 3.478E-03
- iorb = 34 iter = 49 ev = -1.4155556600E+01 nodes =20
+ iorb = 34 iter = 49 ev = -1.4155556600E+01 nodes = 20
  iorb = 34 iter = 49 ev = -1.4153736588E+01 nodes = 1
  iter =   49 dvmax = 1.583E-02 xmixo = 3.478E-03
  iter =   50 dvmax = 1.123E-02 xmixo = 3.478E-03
@@ -2323,7 +2323,7 @@
  iter = 1999 dvmax = 1.720E-03 xmixo = 1.000E-05
  warning: ircov > ninf ! (ircov set to ninf)
  ---> ninf=        1071  r(ninf)=   3.5174029000751297     
- ---> npoints=           0  r(npoint)=   3.7778365030704641     
+ ---> npoints=        1076  r(npoint)=   3.7778365030704641     
 
  rcov         =    4.0000000000000000     
  charge(rcov) = int_0^rcov g^2 r^2 dr   +  int_0^infinity f^2 r^2 dr
