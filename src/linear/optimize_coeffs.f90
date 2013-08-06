@@ -418,9 +418,11 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   call timing(iproc,'dirmin_lagmat1','ON')
 
   ! we have the kernel already, but need it to not contain occupations so recalculate here
-  call calculate_density_kernel(iproc, nproc, .false., KSorbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern)
+  ! don't want to lose information in the compress/uncompress process - ideally need to change sparsity pattern of kernel
+  !call calculate_density_kernel(iproc, nproc, .false., KSorbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern)
   tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='denskern')
-  call uncompressMatrix(iproc,tmb%linmat%denskern)
+  !call uncompressMatrix(iproc,tmb%linmat%denskern)
+  call calculate_density_kernel_uncompressed(iproc, nproc, .false., KSorbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
 
   sk=f_malloc0((/tmb%orbs%norbp,tmb%orbs%norb/), id='sk')
 
@@ -567,9 +569,10 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
   end do
 
   ! we have the kernel already, but need it to not contain occupations so recalculate here
-  call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern)
+  !call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern)
   tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='denskern')
-  call uncompressMatrix(iproc,tmb%linmat%denskern)
+  !call uncompressMatrix(iproc,tmb%linmat%denskern)
+  call calculate_density_kernel_uncompressed (iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
 
   call dcopy(tmb%orbs%norb,occup_tmp(1),1,tmb%orbs%occup(1),1)
   call f_free(occup_tmp)

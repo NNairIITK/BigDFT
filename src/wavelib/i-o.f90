@@ -1048,6 +1048,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   use module_base
   use module_types
   use module_fragments
+  use yaml_output
   implicit none
   integer, dimension(3), intent(in) :: n,n_old
   real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
@@ -1070,6 +1071,9 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
   real(wp), dimension(:,:,:), pointer :: psifscfold, psifscf, psifscf_tmp
   integer :: itype, nd, nrange
+  real(gp), dimension(3) :: rrow
+  real(gp) :: sint,cost,onemc,ux,uy,uz
+  integer :: ixp,iyp,izp
 
   !if (size(frag_trans%discrete_operations)>0) then
   !   print*,'Error discrete operations not yet implemented',size(frag_trans%discrete_operations),&
@@ -1147,8 +1151,60 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 
   !call field_rototranslation(nd,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
   !     hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
-  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
+
+  sint=sin(frag_trans%theta)
+  cost=cos(frag_trans%theta)
+  onemc=1.0_gp-cost
+  ux=frag_trans%rot_axis(1)
+  uy=frag_trans%rot_axis(2)
+  uz=frag_trans%rot_axis(3)
+
+  !write some output on the screen
+  !print matrix elements, to be moved at the moment of identification of the transformation
+  call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
+  call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
+  call yaml_map('Translation vector',da,fmt='(1pg20.12)')
+  call yaml_open_sequence('Rotation matrix elements')
+  call yaml_sequence(trim(yaml_toa((/&
+       cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /),fmt='(1pg20.12)')))
+  call yaml_sequence(trim(yaml_toa((/&
+       ux*uy*onemc +uz*sint , cost + onemc*uy**2   , uy*uz*onemc - ux*sint /),fmt='(1pg20.12)')))
+  call yaml_sequence(trim(yaml_toa((/&
+       ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /),fmt='(1pg20.12)')))
+  call yaml_close_sequence()
+  !determine ideal sequence for rotation
+  !pay attention to what happens if two values are identical  
+  !from where xp should be determined
+  rrow=abs((/cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /))
+  ixp=maxloc(rrow,1)
+  !form where zp should be determined (note that the third line has been used)
+  rrow=abs((/ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /))
+  !exclude of course the previously found direction
+  rrow(ixp)=0.0_gp
+  izp=maxloc(rrow,1)
+  !then the last dimension, which is the intermediate one
+  rrow=1.0_gp
+  rrow(ixp)=0.d0
+  rrow(izp)=0.d0
+  iyp=maxloc(rrow,1)
+
+  !print the suggested order
+  call yaml_map('Suggested order for the transformation',(/ixp,iyp,izp/))
+
+  !we should define the transformation order
+  !traditional case, for testing
+!!$  ixp=1
+!!$  iyp=2
+!!$  izp=3
+!!$  print *,'final case',(/ixp,iyp,izp/)
+
+  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,&
+       sint,cost,onemc,(/ixp,iyp,izp/),&
        hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+!!$
+!!$  call field_rototranslation3D_interpolation(da,frag_trans%rot_axis,centre_old,centre_new,&
+!!$     sint,cost,onemc,hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+
 
   if (size(frag_trans%discrete_operations)>0) then
      i_all=-product(shape(psifscf_tmp))*kind(psifscf_tmp)
@@ -1714,7 +1770,7 @@ subroutine define_rotations_switch(da,newz,boxc_old,boxc_new,theta,hgrids_old,nd
         x=-boxc_new(1)
         do i=1,ndims_new(1)
            dz(k,i+(j-1)*ndims_new(1)) = ( -da(3) - z + (z + sint*(-(y*newz(1)) + x*newz(2)) + onemc*(x*newz(1) &
-                                      + y*newz(2))*newz(3))/(-cost - onemc*newz(3)**2) ) / hgrids_old(3)
+                + y*newz(2))*newz(3))/(-cost - onemc*newz(3)**2) ) / hgrids_old(3)
            x=x+hgrids_new(1)
         end do
         y=y+hgrids_new(2)
@@ -1779,13 +1835,182 @@ subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,cen
   call f_release_routine()
 end subroutine field_rototranslation
 
-!> routine which directly applies the 3D transformation of the rototranslation
-subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,f_old,&
+
+ !> routine which directly applies the 3D transformation of the rototranslation
+subroutine field_rototranslation3D_interpolation(da,newz,centre_old,centre_new,&
+     sint,cost,onemc,hgrids_old,ndims_old,f_old,&
      hgrids_new,ndims_new,f_new)
   use module_base
+  use yaml_output
+  implicit none
+  real(gp), intent(in) :: sint,cost,onemc !< rotation wrt newzeta vector
+  real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
+  real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
+  real(gp), dimension(3), intent(in) :: centre_old,centre_new !<centre of rotation
+  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
+  integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
+  real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
+  real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
+  !local variables
+  integer :: k1,i,j,k,l,it
+  real(gp) :: ux,uy,uz
+  real(gp), dimension(3) :: dt
+  real(gp), dimension(27) :: coeffs
+
+  call f_routine(id='field_rototranslation3D_interpolation')
+
+  !loop on the coordinates of the new domain
+  do k=1,ndims_new(3)
+     do j=1,ndims_new(2)
+        do i=1,ndims_new(1)
+           do it=1,3
+              call shift_and_start(i,j,k,coeffs,dt)
+           end do
+!           print *,'i,j,k',i,j,k,coeffs
+!           print *,'dt',dt
+           f_new(i,j,k)=interpolate(dt,coeffs)
+!           print *,'interpolate',f_new(i,j,k)
+        end do
+     end do
+  end do
+
+  call f_release_routine()
+!stop  
+contains
+
+  function interpolate(dt,aijk)
+    implicit none
+    real(gp), dimension(3), intent(in) :: dt
+    real(gp), dimension(0:2,0:2,0:2), intent(inout) :: aijk
+    real(gp) :: interpolate
+    !local variables
+    integer :: px,py,pz,ix,iy,iz,info
+    real(gp) :: x,y,z
+    integer, dimension(27) :: ipiv
+    real(gp), dimension(-1:1,-1:1,-1:1,0:2,0:2,0:2) :: bijk
+
+    if (maxval(abs(aijk)) == 0.0_gp) then
+       interpolate=0.0_gp
+       return
+    end if
+
+    do iz=-1,1
+       z=dt(3)+real(iz,gp)
+       z=hgrids_old(3)*z
+       do iy=-1,1
+          y=dt(2)+real(iy,gp)
+          y=hgrids_old(2)*y
+          do ix=-1,1
+             x=dt(1)+real(ix,gp)
+             x=hgrids_old(1)*x
+             do pz=0,2
+                do py=0,2
+                   do px=0,2
+                      bijk(ix,iy,iz,px,py,pz)=(x**px)*(y**py)*(z**pz)
+                   end do
+                end do
+             end do
+          end do
+       end do
+    end do
+
+    !here the linear system has to be solved to find the coefficients aijk
+    !some pragma has to be passed to MKL to ensure a monothread execution
+    call dgesv(27,1,bijk,27,ipiv,aijk,27,info)
+    if (info /=0) then 
+       print *,'error', info, dt
+       call f_err_severe()
+    end if
+    interpolate=aijk(0,0,0)
+
+  end function interpolate
+
+  !pure 
+  subroutine shift_and_start(j1,j2,j3,fijk,dt)
+    implicit none
+    integer, intent(in) :: j1,j2,j3
+    real(gp), dimension(-1:1,-1:1,-1:1), intent(out) :: fijk
+    real(gp), dimension(3), intent(out) :: dt
+    !local variables
+    integer :: ix,iy,iz,i
+    integer, dimension(3) :: istart
+    real(gp), dimension(3) :: t0_l
+
+    !define the coordinates in the reference frame, which depends of the transformed variables
+    dt(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) !the first step is always the same
+    dt(2)=-centre_new(2)+real(j2-1,gp)*hgrids_new(2)
+    dt(3)=-centre_new(3)+real(j3-1,gp)*hgrids_new(3)
+
+    !define the value of the shift of the variable we are going to transform
+    t0_l=coord(newz,cost,sint,onemc,dt(1),dt(2),dt(3))-da
+    istart=nint((t0_l+centre_old+hgrids_old)/hgrids_old)
+
+    !do i=1,3
+    !   istart(i)=min(max(istart(i),1),ndims_old(i))
+    !end do
+    
+    !doubts about that
+    t0_l=(dt-t0_l)/hgrids_old
+    !identify shift
+    dt(1)=(real(istart(1),gp)+t0_l(1))-real(j1,gp)
+    dt(2)=(real(istart(2),gp)+t0_l(2))-real(j2,gp)
+    dt(3)=(real(istart(3),gp)+t0_l(3))-real(j3,gp)
+    !end of doubts
+
+    !identify shift
+    !dt=t0_l-(-centre_old+istart*hgrids_old)
+    !dt=dt/hgrids_old
+
+    !fill array if it is inside the old box
+    fijk=0.0_gp
+    do iz=-1,1
+       if (istart(3)+iz >= 1 .and. istart(3)+iz <= ndims_old(3)) then
+          do iy=-1,1
+             if (istart(2)+iy >= 1 .and. istart(2)+iy <= ndims_old(2)) then
+             do ix=-1,1
+                if (istart(1)+ix >= 1 .and. istart(1)+ix <= ndims_old(1)) then
+                   fijk(ix,iy,iz)=&
+                        f_old(istart(1)+ix,istart(2)+iy,istart(3)+iz)
+                end if
+             end do
+          end if
+          end do
+       end if
+    end do
+
+!    if (maxval(abs(fijk)) /= 0.0_gp) then
+!       write(17,*)j1,j2,j3,dt,istart,fijk
+!    end if
+    
+
+  end subroutine shift_and_start
+
+  pure function coord(u,C,S,onemc,x,y,z)
+    use module_base, only: gp
+    implicit none
+    real(gp), intent(in) :: C,S,onemc !<trigonometric functions of the theta angle
+    real(gp), intent(in) :: x,y,z !<coordinates to be used for the mapping
+    real(gp), dimension(3), intent(in) :: u !<axis of rotation
+    real(gp), dimension(3) :: coord
+
+    coord(1)=u(1)**2*x + u(1)*u(2)*y + S*u(3)*y - S*u(2)*z + u(1)*u(3)*z - C*((-1 + u(1)**2)*x + u(1)*(u(2)*y + u(3)*z))
+    coord(2)=-(S*u(3)*x) + (C + onemc*u(2)**2)*y + onemc*u(2)*u(3)*z + u(1)*(u(2)*onemc*x + S*z)
+    coord(3)=S*(u(2)*x - u(1)*y) + C*z + u(3)*(onemc*u(1)*x + onemc*u(2)*y + u(3)*z - C*u(3)*z)
+
+  end function coord
+
+end subroutine field_rototranslation3D_interpolation
+
+!> routine which directly applies the 3D transformation of the rototranslation
+subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,centre_new,&
+     sint,cost,onemc,iorder,hgrids_old,ndims_old,f_old,&
+     hgrids_new,ndims_new,f_new)
+  use module_base
+  use yaml_output
   implicit none
   integer, intent(in) :: n_phi,nrange_phi !< number of points of ISF array and real-space range
-  real(gp), intent(in) :: theta !< rotation wrt newzeta vector
+  real(gp), intent(in) :: sint,cost,onemc !< rotation wrt newzeta vector
+  integer, dimension(3), intent(in) :: iorder
   real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
   real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
   real(gp), dimension(3), intent(in) :: centre_old,centre_new !<centre of rotation
@@ -1795,84 +2020,359 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
   real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
   !local variables
-  integer :: m_isf
+  integer :: m_isf,k1,i,j,k,me,ms,l
+  real(gp) :: ux,uy,uz,dt
   real(gp), dimension(:), allocatable :: shf
-!  real(gp), dimension(:,:), allocatable :: dx,dy,dz
-  real(gp), dimension(:,:), allocatable :: work,work2
-  
-!  print *,'3d'
+  real(gp), dimension(:), allocatable :: work,work2
 
+  !print *,'3d'
   call f_routine(id='field_rototranslation3D')
-  
-!!$  dx=f_malloc((/ndims_old(1),ndims_old(2)*ndims_old(3)/),id='dx')
-!!$  dy=f_malloc((/ndims_old(2),ndims_new(1)*ndims_old(3)/),id='dy')
-!!$  dz=f_malloc((/ndims_old(3),ndims_new(1)*ndims_new(2)/),id='dz')
-  work =f_malloc((/ndims_old(2),ndims_new(1)*ndims_old(3)/),id='work')
-  work2=f_malloc((/ndims_old(3),ndims_new(1)*ndims_new(2)/),id='work2')
+  work =f_malloc(ndims_new(1)*(maxval(ndims_old))**2,id='work')
+  work2=f_malloc(ndims_new(1)*ndims_new(2)*maxval(ndims_old),id='work2')
 
   m_isf=nrange_phi/2
   shf=f_malloc(-m_isf .to. m_isf,id='shf')
   !for each of the dimensions build the interpolating vector which is needed
-  
 
-!!$  call define_rotations(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
-!!$       hgrids_new,ndims_new,dx,dy,dz)
+  !first step: determine xn from a coordinate n13o=xo or yo or zo
+  !f_old (nxo,nyo,nzo) -> work(n11o,n12o,nxn) !n11o and n12o are the remaining dimensions
+  !second step: determine yn from n22o=n11o or n12o
+  !work(n11o,n12o,nxn) -> work2(n21o,nxn,nyn)
+  !third step: determine zn from n21o
+  !work2(n21o,nxn,nyn) -> f_new(xn,yn,zn)
 
-  !call define_rotations(da,newz,centre_old,centre_new,0.498_gp*pi_param,hgrids_old,ndims_old,&
-  !     hgrids_new,ndims_new,dx,dy,dz)
 
+  !first step
+  select case(iorder(1))
+  case(1) !xn is derived from xo 
+     do k=1,ndims_old(3)
+        do j=1,ndims_old(2)
+           do i=1,ndims_new(1)
+              call shift_and_start(iorder(1),1,2,3,i,j,k,&
+                   dt,k1,ms,me)
+              
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              
+              !work(j,k+(i-1)*ndims_old(3))
+              work(j+ind(2,3,k,i))=convolve(iorder(1),k1,j,k,ms,me,m_isf,shf,&
+                   ndims_old(1),ndims_old(2),ndims_old(3),f_old)
+           end do
+        end do
+     end do
+  case(2) !xn is derived from yo
+     do k=1,ndims_old(3)
+        do j=1,ndims_old(1)
+           do i=1,ndims_new(1)
+              call shift_and_start(iorder(1),1,1,3,i,j,k,&
+                   dt,k1,ms,me)
+              
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              !work(j,k+(i-1)*ndims_old(3))
+              work(j+ind(1,3,k,i))=convolve(iorder(1),j,k1,k,ms,me,m_isf,shf,&
+                   ndims_old(1),ndims_old(2),ndims_old(3),f_old)
+           end do
+        end do
+     end do
+  case(3) !xn is derived from zo
+     do k=1,ndims_old(2)
+        do j=1,ndims_old(1)
+           do i=1,ndims_new(1)
+              call shift_and_start(iorder(1),1,1,2,i,j,k,&
+                   dt,k1,ms,me)
 
-  !call define_rotations_switch(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
-  !     hgrids_new,ndims_new,dx,dy,dz)
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              !work(k,j+(i-1)*ndims_old(2))
+              work(j+ind(1,2,k,i))=convolve(iorder(1),j,k,k1,ms,me,m_isf,shf,&
+                   ndims_old(1),ndims_old(2),ndims_old(3),f_old)
+           end do
+        end do
+     end do
+  end select
+  !second step
+  select case(iorder(1)*10+iorder(2))
+  case(21) !yp is derived from xo (and xp has been derived from y)
+     do i=1,ndims_new(1)
+        do k=1,ndims_old(iorder(3))
+           do j=1,ndims_new(2)
+              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+                   dt,k1,ms,me)
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
 
-  !the condition for activating the switch can be generalized further
-  if (theta==0.0_gp .and. .false.) then
-     call shift_only(ndims_old(2)*ndims_old(3),ndims_old(1),&
-          ndims_new(1),da(1)/hgrids_old(1),nrange_phi,n_phi,phi_ISF,shf,&
-          f_old,work)
-     call shift_only(ndims_new(1)*ndims_old(3),ndims_old(2),&
-          ndims_new(2),da(2)/hgrids_old(2),nrange_phi,n_phi,phi_ISF,shf,&
-          work,work2)
-     call shift_only(ndims_new(1)*ndims_new(2),ndims_old(3),&
-          ndims_new(3),da(3)/hgrids_old(3),nrange_phi,n_phi,phi_ISF,shf,&
-          work2,f_new)
-  else
-!print *,'x'
-     !perform interpolation
-     call interpolate_xp_from_x(ndims_new(1),ndims_old(2),ndims_old(3),&
-          centre_old(1),centre_old(2),centre_old(3),centre_new(1),&
-          hgrids_old(1),hgrids_old(2),hgrids_old(3),hgrids_new(1),&
-          ndims_old(1),da(1),theta,newz,nrange_phi,n_phi,phi_ISF,shf,&
-          f_old,work)
+              work2(k+ind2(iorder(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
+                   ndims_old(1),ndims_old(3),ndims_new(1),work)
+           end do
+        end do
+     end do
+  case(23) !yp is derived from zo (and xp has been derived from y)
+     do i=1,ndims_new(1)
+        do k=1,ndims_old(iorder(3))
+           do j=1,ndims_new(2)
+              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+                   dt,k1,ms,me)
 
-!!$  call morph_and_transpose(dx,n_phi,nrange_phi,phi_ISF,ndims_old(2)*ndims_old(3),&
-!!$         ndims_old(1),f_old,ndims_new(1),work)
-!print *,'y'
-     call interpolate_yp_from_y(ndims_new(1),ndims_new(2),ndims_old(3),&
-          centre_new(1),centre_old(2),centre_old(3),centre_new(2),&
-          hgrids_new(1),hgrids_old(2),hgrids_old(3),hgrids_new(2),&
-          ndims_old(2),da(2),theta,newz,nrange_phi,n_phi,phi_ISF,shf,&
-          work,work2)
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              work2(k+ind2(iorder(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
+                   ndims_old(1),ndims_old(3),ndims_new(1),work)
+           end do
+        end do
+     end do
+  case(12) !yp is derived from yo (and xp has been derived from x)
+     do i=1,ndims_new(1)
+        do k=1,ndims_old(iorder(3))
+           do j=1,ndims_new(2)
+              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+                   dt,k1,ms,me)
+              
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              !work2(k,i+(j-1)*ndims_new(1))
+              work2(k+ind2(iorder(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
+                   ndims_old(2),ndims_old(3),ndims_new(1),work)
+           end do
+        end do
+     end do
+  case(13) !yp is derived from zo (and xp has been derived from x)
+     do i=1,ndims_new(1)
+        do k=1,ndims_old(iorder(3))
+           do j=1,ndims_new(2)
+              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+                   dt,k1,ms,me)
 
-!!$  call morph_and_transpose(dy,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_old(3),&
-!!$         ndims_old(2),work,ndims_new(2),work2)
-!print *,'z'
-     call interpolate_zp_from_z(ndims_new(1),ndims_new(2),ndims_new(3),&
-          centre_new(1),centre_new(2),centre_old(3),centre_new(3),&
-          hgrids_new(1),hgrids_new(2),hgrids_old(3),hgrids_new(3),&
-          ndims_old(3),da(3),theta,newz,nrange_phi,n_phi,phi_ISF,shf,&
-          work2,f_new)
-  end if
-!!$  call morph_and_transpose(dz,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_new(2),&
-!!$         ndims_old(3),work2,ndims_new(3),f_new)
-  
-!!$  call f_free(dx)
-!!$  call f_free(dy)
-!!$  call f_free(dz)
+!              print *,'value fouund',dt,k1,j
+
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              !work2(k,i+(j-1)*ndims_new(1))
+              work2(k+ind2(iorder(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
+                   ndims_old(2),ndims_old(3),ndims_new(1),work)
+           end do
+        end do
+     end do
+  case(32) !yp is derived from yo (and xp has been derived from z)
+     do i=1,ndims_new(1)
+        do k=1,ndims_old(iorder(3))
+           do j=1,ndims_new(2)
+              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+                   dt,k1,ms,me)
+
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+
+              work2(k+ind2(iorder(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
+                   ndims_old(1),ndims_old(2),ndims_new(1),work)
+           end do
+        end do
+     end do
+  case(31) !yp is derived from xo (and xp has been derived from z)
+     do i=1,ndims_new(1)
+        do k=1,ndims_old(iorder(3))
+           do j=1,ndims_new(2)
+              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+                   dt,k1,ms,me)
+
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+
+              work2(k+ind2(iorder(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
+                   ndims_old(1),ndims_old(2),ndims_new(1),work)
+           end do
+        end do
+     end do
+  end select
+
+  !third step
+  do j=1,ndims_new(2)
+     do i=1,ndims_new(1)
+        do k=1,ndims_new(3)
+           call shift_and_start(iorder(3),3,2,3,i,j,k,&
+                dt,k1,ms,me)
+           
+           call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+           
+           f_new(i,j,k)=convolve(1,k1,i,j,ms,me,m_isf,shf,&
+                ndims_old(iorder(3)),ndims_new(1),ndims_new(2),work2)
+        end do
+     end do
+  end do
+
   call f_free(work)
   call f_free(work2)
   call f_free(shf)
   call f_release_routine()
+
+  contains
+    
+    !index of work array for step 1
+    pure function ind(jc2,jc3,i2,i3)
+      implicit none
+      integer, intent(in) :: jc2,jc3,i2,i3
+      integer :: ind
+
+      ind=ndims_old(jc2)*(i2-1)+ndims_old(jc2)*ndims_old(jc3)*(i3-1)
+
+    end function ind
+
+    pure function ind2(jc3,i2,i3)
+      implicit none
+      integer, intent(in) :: jc3,i2,i3
+      integer :: ind2
+
+      ind2=ndims_old(jc3)*(i2-1)+ndims_old(jc3)*ndims_new(1)*(i3-1)
+
+    end function ind2
+
+    
+    pure subroutine shift_and_start(ntr,istep,i2,i3,j1,j2,j3,&
+         dt,istart,ms,me)
+      use module_base
+      implicit none
+      integer, intent(in) :: ntr !< id of the dimension to be transformed
+      integer, intent(in) :: istep,i2,i3
+      integer, intent(in) :: j1,j2,j3
+      integer, intent(out) :: istart,ms,me
+      real(gp), intent(out) :: dt
+      !local variables
+      integer :: ivars!,istep,i1,i2,i3
+      real(gp), dimension(3) :: t
+      real(gp) :: t0_l
+
+      !define the coordinates in the reference frame, which depends of the transformed variables
+      t(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) !the first step is always the same
+      if (istep >=2) then
+         t(2)=-centre_new(2)+real(j2-1,gp)*hgrids_new(2)
+      else
+         t(2)=-centre_old(i2)+real(j2-1,gp)*hgrids_old(i2)
+      end if
+      if (istep ==3) then
+         t(3)=-centre_new(3)+real(j3-1,gp)*hgrids_new(3)
+      else
+         t(3)=-centre_old(i3)+real(j3-1,gp)*hgrids_old(i3)
+      end if
+
+      !code for the coords
+      ivars=1000*istep+100+10*i2+i3
+
+      !define the value of the shift of the variable we are going to transform
+!      t0_l=(t(ntr)-x_xpyz(theta,newz,t(1),t(2),t(3))+shift(ntr))/hgrids_old(ntr)
+      t0_l=(t(ntr)-coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))+da(ntr))/hgrids_old(ntr)
+      istart=min(max(1,nint((&
+           coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))-da(ntr)+centre_old(ntr)+hgrids_old(ntr))&
+           /hgrids_old(ntr))),ndims_old(ntr))
+            !identify extremes for the convolution
+      ms=-min(m_isf,istart-1)
+      me=min(m_isf,ndims_old(ntr)-istart)
+      
+      !identify shift
+      !dt=(real(istart,gp)+t0_l)-real(jcoords(ntr),gp)
+      select case(ntr)
+      case(1)
+         dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j1,gp)*hgrids_new(1))/hgrids_old(ntr)
+      case(2)
+         if (istep >=2) then
+            dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j2,gp)*hgrids_new(2))/hgrids_old(ntr)
+         else
+            dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j2,gp)*hgrids_old(i2))/hgrids_old(ntr)
+         end if
+      case(3)
+         if (istep ==3) then
+            dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j3,gp)*hgrids_new(3))/hgrids_old(ntr)
+         else
+            dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j3,gp)*hgrids_old(i3))/hgrids_old(ntr)
+         end if
+      end select
+
+    end subroutine shift_and_start
+
+    pure function coord(icrd,ivars,u,C,S,onemc,x,y,z)
+      use module_base, only: gp
+      implicit none
+      integer, intent(in) :: icrd !<id of the old coordinate to be retrieved
+      integer, intent(in) :: ivars !< order of the variables in terms of 1000+istep+first*100+second*10+third
+      real(gp), intent(in) :: C,S,onemc !<trigonometric functions of the theta angle
+      real(gp), intent(in) :: x,y,z !<coordinates to be used for the mapping
+      
+      real(gp), dimension(3), intent(in) :: u !<axis of rotation
+      real(gp) :: coord
+
+      coord=0.0_gp
+      select case(icrd)
+      case(1) !x coordinate
+         select case(ivars)
+         case(1123)!'xnyozo')
+            coord=(x + S*u(3)*y - S*u(2)*z - onemc*u(1)*(u(2)*y + u(3)*z))/(C + onemc*u(1)**2)
+         case(2123)!'xnynzo')
+            coord=(u(2)**2*x - u(2)*(u(1)*y + S*z) + u(3)*(S*y + u(1)*z) + C*(x - u(2)**2*x + u(1)*u(2)*y - u(1)*u(3)*z))/&
+                 (C + u(3)**2 - C*u(3)**2)
+         case(3123)!'xnynzn')
+            coord=u(1)**2*x + u(1)*u(2)*y + S*u(3)*y - S*u(2)*z + u(1)*u(3)*z - C*((-1 + u(1)**2)*x + u(1)*(u(2)*y + u(3)*z))
+         case(2122)!'xnynyo')
+            coord=(S*(u(1)*x + u(2)*(-z + y)) + onemc*u(3)*(-(u(2)*x) + u(1)*(z + y)))/(S*u(1) + onemc*u(2)*u(3))
+         end select
+      case(2) !y coordinate
+         select case(ivars)
+         case(1113)!'xnxozo')
+            coord=((-C + (-1 + C)*u(1)**2)*y + x - S*u(2)*z + (-1 + C)*u(1)*u(3)*z)/(onemc*u(1)*u(2) - S*u(3))
+         case(2121)!'xnynxo')
+            coord=(onemc*u(3)*(-(u(2)*(z + x)) + u(1)*y) + S*(u(1)*(-z + x) + u(2)*y))/(S*u(2) - onemc*u(1)*u(3))
+         case(2123)!'xnynzo')
+            coord=(-(S*u(3)*x) + y + S*u(1)*z - onemc*(u(1)*u(2)*x + (u(2)**2 + u(3)**2)*y - u(2)*u(3)*z))/(C + onemc*u(3)**2)
+         case(3123)!'xnynzn')
+            coord=-(S*u(3)*x) + (C + onemc*u(2)**2)*y + onemc*u(2)*u(3)*z + u(1)*(u(2)*onemc*x + S*z)
+            !wrong one S*(u(2)*x - u(1)*y) + C*z + u(3)*(onemc*u(1)*x + onemc*u(2)*y + u(3)*z - C*u(3)*z)
+         end select
+      case(3)
+         select case(ivars)
+         case(1112)!'xnxoyo')
+            coord=(-(u(1)**2*y) + C*(-1 + u(1)**2)*y + x - u(1)*u(2)*z + C*u(1)*u(2)*z + S*u(3)*z)/(S*u(2) + onemc*u(1)*u(3))
+         case(2121)!'xnynxo')
+            coord=(-(u(3)**2*z) + S*u(3)*y + u(2)*(u(2)*x - u(1)*y) + C*((-1 + u(3)**2)*z + x - u(2)**2*x + u(1)*u(2)*y))/&
+                 (S*u(2) - onemc*u(1)*u(3))
+         case(2122)!'xnynyo')
+            !coord=(S*u(3)*x + C*z - y + onemc*(u(1)*u(2)*x + u(2)**2*y + u(3)**2*(z + y)))/(S*u(1) + onemc*u(2)*u(3))
+            coord=(onemc*u(1)*u(2)*x+S*u(3)*x+C*z+onemc*u(3)**2*z-C*y-onemc*u(1)**2*y)/(S*u(1) + onemc*u(2)*u(3))
+         case(3123)!'xnynzn')
+            coord=S*(u(2)*x - u(1)*y) + C*z + u(3)*(onemc*u(1)*x + onemc*u(2)*y + u(3)*z - C*u(3)*z)
+         end select
+      end select
+
+!      if (coord==0.0_gp) then
+!         print *,'Error, value not found',icrd,ivars
+!         stop
+!      end if
+
+    end function coord
+
+    pure function convolve(idim,i,j,k,ms,me,m_isf,shf,n1,n2,n3,f_in)
+      use module_base, only: gp
+      implicit none
+      integer, intent(in) :: idim !<dimension to be convolved
+      integer, intent(in) :: n1,n2,n3,m_isf
+      integer, intent(in) :: i,j,k !< starting point of the convolution
+      integer, intent(in) :: ms,me !< extremes for the shift
+      real(gp), dimension(-m_isf:m_isf), intent(in) :: shf
+      real(gp), dimension(n1,n2,n3), intent(in) :: f_in
+      real(gp) :: convolve
+      !local variables
+      integer :: l
+      real(gp) :: tt
+
+      tt=0.0_gp
+      select case(idim)
+      case(1)
+         do l=ms,me
+            tt=tt+shf(l)*f_in(i+l,j,k)
+         end do
+      case(2)
+         do l=ms,me
+            tt=tt+shf(l)*f_in(i,j+l,k)
+         end do
+      case(3)
+         do l=ms,me
+            tt=tt+shf(l)*f_in(i,j,k+l)
+         end do
+      end select
+
+      !end of interpolate coefficient
+      convolve=tt
+
+    end function convolve
+
 
 end subroutine field_rototranslation3D
 
@@ -1941,43 +2441,19 @@ subroutine interpolate_xp_from_x(nx,ny,nz,cx,cy,cz,cx_new,hx,hy,hz,hx_new,&
 
   m_isf=nrange/2
 
-  z=-cz
   do k=1,nz
-     y=-cy
      do j=1,ny
-!!$        !fill the translation vector for this slice
-!!$        x=-cx
-!!$        do i=1,nx_old
-!!$           tx(i)=xp_xyz(dx,theta,newz,x,y,z)/hx
-!!$           x=x+hx
-!!$        end do
-        !start interpolation
-        !restart x over new coordinates
-        x=-cx_new
         do i=1,nx
-           !find x of xp,y,z, put it in k1 and give the shift from it
-           !this routine can integrate the vector definition above
-!!$           call find_inverse(nx_old,i,tx,t0_l,k1)
-!!$           print '(a,1pg25.17,5(i4),6(1pg25.17))','final values',t0_l,k1,&
-!!$                i,j,k,&
-!!$                !value to be rounded
-!!$                min(max(1,nint((x_xpyz(theta,newz,x,y,z)+cx+hx)/hx)),nx_old),& 
-!!$                !vector to be applied
-!!$                (x-x_xpyz(theta,newz,x,y,z)+dx)/hx 
+           z=-cz+real(k-1,gp)*hz
+           y=-cy+real(j-1,gp)*hy
+           x=-cx_new+real(i-1,gp)*hx_new
+
            t0_l=(x-x_xpyz(theta,newz,x,y,z)+dx)/hx 
-           k1=min(max(1,nint((x_xpyz(theta,newz,x,y,z)+cx+hx)/hx)),nx_old)
-
-!!$           dt=t0_l-nint(t0_l)
-           diff=real(i,gp)-(k1+t0_l)   
-!!$           if (abs(diff) < 1.d0 .or. .true.) then
-              dt=-diff
-!!$           else if (abs(diff - dt) < abs(diff+dt)) then
-!!$              !if (abs(diff) < 1.d0) print *,'herex',dt,diff
-!!$              dt=-dt
-!!$           end if
-
-           !if (abs(abs(diff)-abs(dt)) > 1.d-12) print '(a,1pg25.17,4(i4),6(1pg25.17))','final values',t0_l,k1,&
-           !     i,j,k,dt,diff
+           k1=min(max(1,nint((x_xpyz(theta,newz,x,y,z)-dx+cx+hx)/hx)),nx_old)
+           dt=(real(k1,gp)+t0_l)-real(i,gp)
+           !if (abs(abs(diff)-abs(dt)) > 1.d-12) 
+!              print '(a,1pg25.17,4(i4),6(1pg25.17))','final values',t0_l,k1,&
+!                   i,j,k,dt,diff
 
            !define filter for the interpolation starting from a constant shift
            call define_filter(dt,nrange,nphi,phi,shf)
@@ -1990,15 +2466,12 @@ subroutine interpolate_xp_from_x(nx,ny,nz,cx,cy,cz,cx_new,hx,hy,hz,hx_new,&
            end do
            !end of interpolate coefficient
            psi_out(j,k,i)=tt
-           x=x+hx_new
         end do
-!stop
-        y=y+hy
      end do
-     z=z+hz
   end do
 
 contains
+
 
   pure function xp_xyz(dx,theta,newz,x,y,z)
     use module_base
@@ -2089,7 +2562,7 @@ subroutine interpolate_yp_from_y(nx,ny,nz,cx,cy,cz,cy_new,hx,hy,hz,hy_new,&
 !!$                !vector to be applied
 !!$                (y-y_xpypz(theta,newz,x,y,z)+dy)/hy 
            t0_l=(y-y_xpypz(theta,newz,x,y,z)+dy)/hy 
-           k1=min(max(1,nint((y_xpypz(theta,newz,x,y,z)+cy+hy)/hy)),ny_old)
+           k1=min(max(1,nint((y_xpypz(theta,newz,x,y,z)-dy+cy+hy)/hy)),ny_old)
 
 !!$           dt=t0_l-nint(t0_l)
            diff=real(j,gp)-(k1+t0_l)   
@@ -2208,7 +2681,7 @@ subroutine interpolate_zp_from_z(nx,ny,nz,cx,cy,cz,cz_new,hx,hy,hz,hz_new,&
 !!$                (z-z_xpypzp(theta,newz,x,y,z)+dz)/hz 
 
            t0_l=(z-z_xpypzp(theta,newz,x,y,z)+dz)/hz 
-           k1=min(max(1,nint((z_xpypzp(theta,newz,x,y,z)+cz+hz)/hz)),nz_old)
+           k1=min(max(1,nint((z_xpypzp(theta,newz,x,y,z)-dz+cz+hz)/hz)),nz_old)
 
 !!$           dt=t0_l-nint(t0_l)
            diff=real(k,gp)-(k1+t0_l)   
@@ -2399,8 +2872,5 @@ print*,'centres',da,icentre_new,icentre_old
   call f_release_routine()
 
 end subroutine switch_axes
-
-
-
 
 

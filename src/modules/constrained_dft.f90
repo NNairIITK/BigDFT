@@ -1,5 +1,5 @@
 module constrained_dft
-  use module_base, only: gp,wp
+  use module_base, only: gp,wp,f_err_throw
   use module_types
   use dynamic_memory
   implicit none
@@ -415,10 +415,18 @@ contains
     end do
 
     if (transfer_int) then
-       if (cdft%nfrag_charged/=2) stop 'Error in constrained DFT, two fragments must be charged for transfer integral calculation'
+       if (cdft%nfrag_charged/=2) then
+          call f_err_throw(&
+               'Error in constrained DFT, two fragments must be charged for transfer integral calculation')
+          return
+       end if
     else ! could generalize this later (by summing charges and fragments), but for now keep as simplest scenario
-       if (cdft%nfrag_charged/=1) stop 'Error in constrained DFT, exactly one fragment must have a non-zero charge value'//&
-            ' unless this is a transfer integral calculation'
+       if (cdft%nfrag_charged/=1) then
+          call f_err_throw(&
+               'Error in constrained DFT, exactly one fragment must have a non-zero charge value'//&
+               ' unless this is a transfer integral calculation')
+          return
+       end if
     end if
 
     icharged=1
@@ -431,8 +439,9 @@ contains
 
     if (cdft%nfrag_charged==2) then
        if (input_frag%charge(cdft%ifrag_charged(1))/=input_frag%charge(cdft%ifrag_charged(2))) then
-          stop 'Error in constrained DFT, both fragments should have the same charge, '//&
-               'which is interpreted as the charge difference between then two'
+          call f_err_throw('Error in constrained DFT, both fragments should have the same charge, '//& 
+               'which is interpreted as the charge difference between then two')
+          return
        end if
     end if
 

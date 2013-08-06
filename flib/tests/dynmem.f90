@@ -6,7 +6,9 @@ subroutine test_dynamic_memory()
    !logical :: fl
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
-integer,dimension(:,:,:),allocatable :: weight
+  integer,dimension(:,:,:),allocatable :: weight
+  integer,dimension(:,:,:,:),allocatable :: orbital_id
+
    call yaml_comment('Routine-Tree creation example',hfill='~')
    !call dynmem_sandbox()
 
@@ -44,6 +46,11 @@ call f_free(weight)
      call f_release_routine()
     call f_release_routine()
     call f_routine(id='SubCase 3')
+      weight    =f_malloc((/1.to.1,1.to.1,-1.to.-1/),id='weight')
+      orbital_id=f_malloc((/1.to.1,1.to.1,1.to.7,0.to.0/),id='orbital_id')
+    call f_malloc_dump_status()
+      call f_free(weight)
+      call f_free(orbital_id)
     call f_release_routine()
    call f_release_routine()
    call f_routine(id='Routine E')

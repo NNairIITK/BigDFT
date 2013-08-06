@@ -924,10 +924,7 @@ contains
        call memocc(i_stat,frag_trans%discrete_operations,'frag_trans%discrete_operations',subname)
     !end if
 
-
   end subroutine find_frag_trans
-
-
 
   subroutine find_discrete_operations(frag_trans,R_mat)
     use module_base
