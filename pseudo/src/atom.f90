@@ -130,9 +130,6 @@ program ae_atom
 !      what input variables for the fit need to be added
        open(unit=50,file='psppar',form='formatted',position='append')
 
-!      it is better to append and not overwrite existing weights
-       open(unit=60,file='input.weights',position='append')
-
 !      begin main loop
 
  20    continue
@@ -157,8 +154,8 @@ program ae_atom
 
        if (itype == stop_chain) goto 140
 
-       if (nconf .gt. maxconf) then
-          write(6,*) 'too many configurations, max. is:',maxconf
+       if (nconf > maxconf) then
+          write(6,'(a,1x,i0)') 'too many configurations, max. is:',maxconf
           stop
        endif
 
@@ -211,7 +208,7 @@ program ae_atom
        icon2 = 0
        maxit = maxit_max
        if (debug) then
-          write(*,*) 'DEBUG: enter max SCF iterations'
+          write(*,'(a)') 'DEBUG: enter max SCF iterations'
           read(*,*) maxit
        end if
 
@@ -321,12 +318,12 @@ program ae_atom
        ! Put in each atom.??.ae file
        !write(40,*) etot(10),'total energy of this configuration'
 
-       if (nconf==1) then
-          write(60,'(a,i3,a)') '----suggested weights for occup numbers of conf',nconf,'-----'
-          write(60,*)
-          write(60,*)' 1d0 1d5 1d0 1d0 1d0 1d3 '//  &
-                  ' psi(0), dEkin_wvlt, radii, hij, locality, E_exct'
+       if (nconf == 1) then
+          ! it is better to append and not overwrite existing weights
+          open(unit=60,file='input.weights',position='append')
 
+          write(60,'(a,i3,a)') '----suggested weights for occup numbers of conf',nconf,'-----'
+          write(60,'(/,a)') ' 1d0 1d5 1d0 1d0 1d0 1d3  psi(0), dEkin_wvlt, radii, hij, locality, E_exct'
          !     we put the overall weights for each configuration in atom.??.ae files
          !     such that the user can combine atomic data more easily.
          !     the old format was:
@@ -335,16 +332,14 @@ program ae_atom
          !        write(60,*) '0.00 ',('1.00 ',i=2,nconf),
          !    :        ' weights for excitation-energies '
          !     endif
-
-          write(60,*) '  n   l  so    eigval  chrg    dchrg  ddchrg',  &
-              '  res    rnode dnode ddnode'
+          write(60,'(a)') '  n   l  so    eigval  chrg    dchrg  ddchrg  res    rnode dnode ddnode'
           do iorb=ncore+1,norb
              weight=0.0d0
-             if (zo(iorb).gt.1.0d-4) then
-               write(60,'(2i4,f5.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
+             if (zo(iorb) > 1.0d-4) then
+               write(60,'(2i4,1x,f5.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
                 '1.0e5   1.0e5   0.0e0  0.0e0   1.0e5  1.0e0 0.0e0 0.0e0'
              else
-               write(60,'(2i4,f5.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
+               write(60,'(2i4,1x,f5.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
                 '1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0'
              endif
           end do
@@ -389,7 +384,7 @@ program ae_atom
 
 !     FITPAR, do not overwrite, append
       open(unit=60,file='input.fitpar',position='append')
-      write(60,*) ' fitting parameters appended by atom.f90: auto'
+      write(60,'(a)') ' fitting parameters appended by atom.f90: auto'
       close(unit=60)
 
 
@@ -410,11 +405,11 @@ program ae_atom
             open(unit=40, file='atom.'//cnum//'.ae', position='append')
             !write(40,*) 'Configuration ',nconf
             !write(40,*) 'Total reference energy',econf(1)
-            write(40,*) econf(ii+1),'total energy of this configuration'
+            write(40,'(f21.14,6x,a)') econf(ii+1),'total energy of this configuration'
             !write(40,*) 'Total energy of this configuration',econf(ii+1)
-            write(40,*) 'EXCITATION ENERGIES:'
+            write(40,'(a)') 'EXCITATION ENERGIES:'
             do i=1,nconf
-              write(40,*) (econf(i)-econf(1))/2.d0
+              write(40,'(1pe25.17)') (econf(i)-econf(1))/2.d0
             end do
             close(40)
          end do
@@ -1044,7 +1039,7 @@ subroutine input(itype,iXC,ispp,  &
         rw(i) = b*(r(i)+a)
         rd(i) = 1.d0/rw(i)
         rw(i)=rw(i)*12.56637061435917d0*r(i)**2
-        if (r(i) .gt. rmax) goto 60
+        if (r(i) > rmax) goto 60
       end do
 
  60   continue
@@ -2583,7 +2578,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
             toplot = toplot + viod(1,j)/r(j)
             write(37,'(2e20.10)') r(j), toplot
          end do
-         close(37)
+         close(unit=37)
       endif
 
       vshift=-15d0
@@ -2607,8 +2602,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
             write(6,*) 'ddcharge     = int_0^infinity (f^2+g^2) r^6 dr '
          endif
          write(6,21)
- 21      format(/,' nl   s    occ',5x,'eigenvalue',4x,'charge(rcov)',  &
-              4 x,'dcharge',4x,'ddcharge')
+ 21      format(/,' nl   s    occ',5x,'eigenvalue',4x,'charge(rcov)',4x,'dcharge',4x,'ddcharge')
       endif
 !     Collect 2nd and 4th moment of the core charge density for NCC
       dcrc = dcrc+zo(iorb)* dcrcov
@@ -2633,50 +2627,45 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
             end do
 !           do not append to atom.ae, but open another atom.??.ae
             write(cnum,'(i2.2)') nconf
-            open(unit=40,file='atom.'//cnum//'.ae',form='formatted')
 
             if (nconf == 0 ) then
                syswght=1d0
 !              write the comment lines for psppar here, as we need the
 !              zion= zps for the first configuration
-               write(50,'(2a)')'-----suggested header for initial',  &
-                              ' guess of psppar for fitting-----'
+               write(50,'(a)') '-----suggested header for initial guess of psppar for fitting-----'
                if (ispp=='') ispp='n'
-               write(50,'(a,a,2g10.3,a)')ispp, ' 20 2.0',rcov, rprb,  &
-                       'the first line contains some input data'
-               write(50,'(2g10.3,8x,a)') znuc, zps,  &
-                                          'znuc and zion as needed'
-               write(50,'(a,1x,i7,6x,a)') '(2, 3 or 10)',  &
-                      IXC,'supported formats, iXC as given'
-               write(50,*)'--you can download pseudopotentials from--'
-               write(50,*)'http://www.abinit.org/downloads/psp-links'
+               write(50,'(a,a,2g10.3,a)') ispp, ' 20 2.0',rcov, rprb, 'the first line contains some input data'
+               write(50,'(2g10.3,8x,a)') znuc, zps, 'znuc and zion as needed'
+               write(50,'(a,1x,i7,6x,a)') '(2, 3 or 10)', IXC,'supported formats, iXC as given'
+               write(50,'(a)') '--you can download pseudopotentials from--'
+               write(50,'(a)') 'http://www.abinit.org/downloads/psp-links'
             else
                syswght=1d-2
             endif
+
 !           else
 !              write(40,'(a,i2,a)') ' NEXT CONFIGURATION (',nconf,')'
 !           endif
+            open(unit=40,file='atom.'//cnum//'.ae',form='formatted')
             write(40,*) norb-ncore,syswght,'orbitals, system weight'
             write(40,'(4f19.16,1x,a)') znuc,zps,rcov,rprb,  &
                  'znuc, zpseudo, rcov, rprb'
             if (ispp=='r') then
-               write(40,*)'relativistic calculation'
+               write(40,*) 'relativistic calculation'
             elseif(ispp=='s')then
-               write(40,*)'spin polarized calculation'
+               write(40,*) 'spin polarized calculation'
             else
-               write(40,*)'non relativistic calculation'
+               write(40,*) 'non relativistic calculation'
             endif
             write(40,'(i10,a)') iXC, '   iXC (ABINIT-libXC)'
             write(40,*) nr,        'number of gridpoints'
-            write(40,'(3(4x,a),9x,a,23x,a,4(12x,a))')  &
-            '#','n','l','s','z',  &
-            '    eval','    charge','  dcharge','ddcharge'
+            write(40,'(3(4x,a),9x,a,23x,a,4(12x,a))') &
+                 '#','n','l','s','z', '    eval','    charge','  dcharge','ddcharge'
          endif
 !        better use formatted output here!
-         write(40,  &
-               '(5x,2i5,6e20.12,1x)')  &
-!              in case many plot files are written,
-!              append the file names using advance='no'  &
+!        in case many plot files are written,
+!        append the file names using advance='no'  &
+         write(40,'(5x,2i5,6e20.12,1x)')  &
                no(iorb),lo(iorb),  &
                so(iorb),zo(iorb),  &
               (ev(iorb)-vshift)/2.,crcov,dcrcov,ddcrcov
@@ -2766,9 +2755,9 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
       write(33,'(3a,i3,a,i3)')'# ' ,trim(orbname),  &
                 '; plot me every :::',i-1,'::',i-1
       if (ispp=='r') then
-         write(33,*)'# r , major , minor , den(major) , den(minor)'
+         write(33,'(a)') '# r , major , minor , den(major) , den(minor)'
       else
-         write(33,*)'# r , psi , den(major)'
+         write(33,'(a)') '# r , psi , den(major)'
       endif
       do i=1,npoint
          dena = dena +  ar(i)*ar(i)*rab(i)
@@ -2796,10 +2785,9 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
          open(unit=33,file='ae.core.dens.plt')
          write(33,'(a)') '# plot file for all electron charges'
          if( zcore /= 0.0d0) then
-            write(33,'(a,3e15.6,a)') '#',zcore,dcrc/zcore,ddcrc/zcore,  &
-                      ' 0th, 2nd and 4th moment of core charge'
+            write(33,'(a,3e15.6,a)') '#',zcore,dcrc/zcore,ddcrc/zcore,' 0th, 2nd and 4th moment of core charge'
          end if
-         write(33,'(40x,a)')       '# radial charge distributions rho(r)*4pi*r**2'
+         write(33,'(40x,a)')      '# radial charge distributions rho(r)*4pi*r**2'
          write(33,'(4(a,14x),a)') '#',' r ','core','valence','total'
          do i=1,npoint
              tt=cdu(i)+cdd(i)
