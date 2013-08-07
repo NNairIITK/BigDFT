@@ -68,10 +68,10 @@
  iter =   34 dvmax = 4.142E-11 xmixo = 4.809E-01
  iter =   35 dvmax = 2.206E-11 xmixo = 4.809E-01
  iter =   36 dvmax = 1.175E-11 xmixo = 4.809E-01
- iter =   37 dvmax = 6.259E-12 xmixo = 4.809E-01
+ iter =   37 dvmax = 6.260E-12 xmixo = 4.809E-01
  iter =   38 dvmax = 3.335E-12 xmixo = 4.809E-01
  iter =   39 dvmax = 1.778E-12 xmixo = 4.809E-01
- iter =   40 dvmax = 9.464E-13 xmixo = 4.809E-01
+ iter =   40 dvmax = 9.465E-13 xmixo = 4.809E-01
 
  rcov         =   0.7500000000000000
  charge(rcov) = int_0^rcov psi^2 r^2 dr

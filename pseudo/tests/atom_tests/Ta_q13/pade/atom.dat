@@ -1,7 +1,7 @@
   Ta
   PADE
   rel
-  40.0     10.0 80.0   rmax,aa,bb
+  40.0     10.0 90.0   rmax,aa,bb
        2.7d0   5.4     rcov,rprb
     9   14 	       number of core and valence orbitals
     5    0     2.00      0.00

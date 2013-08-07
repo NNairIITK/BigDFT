@@ -1,7 +1,7 @@
   Ni
   PADE 
   relativistic
-       30     10.0 70.0         rmax,aa,bb 
+       30     10.0 80.0         rmax,aa,bb 
        2.30d0   4.6d0			 rcov,rprb
     3    16				 number of core and valence orbitals
     3    0     2.00      0.00		   

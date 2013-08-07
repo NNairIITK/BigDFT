@@ -451,6 +451,8 @@ end subroutine prdiff
 !> Subroutine computes the new exchange correlation potential
 !! given the input and the output potential from the previous
 !! iteration.
+!! @todo
+!! Improving the mixing algorithm
 subroutine mixer(xmixo,nr,vid,viu,vod,vou)
        implicit none
        !Arguments
@@ -1651,7 +1653,7 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 
       juflow=1
       do j=2,nr
-         if (lp*abs(log(r(j))) .ge. expzer/2) juflow = j
+         if (lp*abs(log(r(j))) >= expzer/2.d0) juflow = j
       end do
 
 !   determine effective charge and vzero for startup of
@@ -1665,29 +1667,29 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
       aa = -zeff/lp
       vzero = -2*zeff*aa
       if (zeff == 0.0d0) then
-        if (so(iorb) .lt. 0.1d0 ) then
+        if (so(iorb) < 0.1d0 ) then
           vzero=vzero+viod(lp,2)/r(2)
         else
           vzero=vzero+viou(lp,2)/r(2)
         endif
       endif
-      if (so(iorb) .lt. 0.1) then
+      if (so(iorb) < 0.1d0) then
         vzero=vzero+vid(2)
       else
         vzero=vzero+viu(2)
       endif
       var0 = 0.0d0
-      if (lo(iorb) == 0) var0=-2*zeff
+      if (lo(iorb) == 0) var0=-2.d0*zeff
       if (lo(iorb) == 1) var0=2.0d0
       emax = 0.0d0
       emin = -200000.0d0
       if (ev(iorb) .gt. emax) ev(iorb) = emax
  10   continue
-      if (itmax .lt. 2) write(6,15) iorb,iter,ev(iorb),nodes
+      if (itmax < 2) write(6,15) iorb,iter,ev(iorb),nodes
  15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i4)
       if (itmax == 0) return
-      if (ev(iorb) .gt. 0.0) then
-        write(6,1000)iorb
+      if (ev(iorb) > 0.d0) then
+        write(6,1000) iorb
         stop 'difnrl one'
       endif
  1000 format(//,' error in difnrl - ev(',i2,  &
@@ -1699,19 +1701,19 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
       icount=0
  20   continue
       icount=icount+1
-      do 22 j=nr,2,-1
-        temp = v(j) -ev(iorb)
-        if (temp .lt. 0.0) temp = 0.0d0
-        if (r(j)*sqrt(temp) .lt. expzer) goto 23
- 22   continue
+      do j=nr,2,-1
+         temp = v(j) - ev(iorb)
+         if (temp < 0.0d0) temp = 0.0d0
+         if (r(j)*sqrt(temp) < expzer) goto 23
+      end do
  23   continue
       ninf=j
       nctp = ninf - 5
       do j=2,ninf-5
-        if (v(j) .lt. ev(iorb)) nctp = j
+        if (v(j) < ev(iorb)) nctp = j
       end do
-      if (ev(iorb) .ge. etol*10) nctp=ninf-5
-      if (ev(iorb) .ge. etol) ev(iorb)=0.0d0
+      if (ev(iorb) >= etol*10.d0) nctp=ninf-5
+      if (ev(iorb) >= etol) ev(iorb)=0.0d0
       if (nctp .le. 6) then
         ev(iorb) = 0.9d0*ev(iorb)
         if (icount .gt. 100) then
@@ -1778,7 +1780,7 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
          fb(j) = b*br(j) + rab2(j)*vev*ar(j)
          
          ! count nodes - if no underflow
-         if (j.gt.juflow.and.ar(j)*ar(j-1).lt.0.0) nodes=nodes+1
+         if (j > juflow .and. ar(j)*ar(j-1) < 0.d0) nodes=nodes+1
       end do
 
       arctp = ar(nctp)
@@ -1786,24 +1788,21 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 
 !   end outward integration
 
-!   if number of nodes correct, start inward integration
-!   else modify energy stepwise and try again
-
+      !   if number of nodes correct, start inward integration
+      !   else modify energy stepwise and try again
       if (nodes /= no(iorb)-lo(iorb)-1) then
-!     c.hartwig
-!         write(6,*) 'nodes,ev(iorb)',nodes,ev(iorb)
-        if (nodes .lt. no(iorb)-lo(iorb)-1) then
+         !     c.hartwig
+         !         write(6,*) 'nodes,ev(iorb)',nodes,ev(iorb)
+        if (nodes < no(iorb)-lo(iorb)-1) then
 
-!  too few nodes; increase ev
-
-          if (ev(iorb) .gt. emin) emin = ev(iorb)
-          ev(iorb) = ev(iorb) - ev(iorb)/10
+           !  too few nodes; increase ev
+           if (ev(iorb) > emin) emin = ev(iorb)
+           ev(iorb) = ev(iorb) - ev(iorb)/10.d0
         else
 
-!  too many nodes; decrease ev
-
-          if (ev(iorb) .lt. emax) emax = ev(iorb)
-          ev(iorb) = ev(iorb) + ev(iorb)/10
+           !  too many nodes; decrease ev
+           if (ev(iorb) < emax) emax = ev(iorb)
+           ev(iorb) = ev(iorb) + ev(iorb)/10.d0
         endif
         itmax = itmax-1
         goto 10
@@ -1814,7 +1813,7 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 
       do j=ninf,ninf-4,-1
          alf = v(j) - ev(iorb)
-         if (alf .lt. 0.0) alf = 0.0d0
+         if (alf < 0.d0) alf = 0.0d0
          alf = sqrt(alf)
          ar(j) = exp(-alf*r(j))
          br(j) = -rab(j)*alf*ar(j)
@@ -1845,39 +1844,39 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 !   integration loop
 
       istop = ninf - nctp
-      if (istop .lt. 5) goto 222
+      if (istop < 5) goto 222
       do j=ninf-5,nctp,-1
 
 !   predictor (Adams-Bashforth)
 
-        j1 = j + 1
-        j2 = j + 2
-        j3 = j + 3
-        j4 = j + 4
-        j5 = j + 5
-        vev = v(j)-ev(iorb)
-        arp = ar(j1) - (abc1*fa(j1)+abc2*fa(j2)+abc3*fa(j3)+  &
-         abc4*fa(j4)+abc5*fa(j5))
-        brp = br(j1) - (abc1*fb(j1)+abc2*fb(j2)+abc3*fb(j3)+  &
-         abc4*fb(j4)+abc5*fb(j5))
-        fb0 = b*brp + rab2(j)*vev*arp
+         j1 = j + 1
+         j2 = j + 2
+         j3 = j + 3
+         j4 = j + 4
+         j5 = j + 5
+         vev = v(j)-ev(iorb)
+         arp = ar(j1) - (abc1*fa(j1)+abc2*fa(j2)+abc3*fa(j3)+  &
+               abc4*fa(j4)+abc5*fa(j5))
+         brp = br(j1) - (abc1*fb(j1)+abc2*fb(j2)+abc3*fb(j3)+  &
+               abc4*fb(j4)+abc5*fb(j5))
+         fb0 = b*brp + rab2(j)*vev*arp
 
 !   corrector (Adams-Moulton)
 
-        arc = ar(j1) - (amc0*brp+amc1*fa(j1)+amc2*fa(j2)+  &
-         amc3*fa(j3)+amc4*fa(j4))
-        brc = br(j1) - (amc0*fb0+amc1*fb(j1)+amc2*fb(j2)+  &
-         amc3*fb(j3)+amc4*fb(j4))
+         arc = ar(j1) - (amc0*brp+amc1*fa(j1)+amc2*fa(j2)+  &
+               amc3*fa(j3)+amc4*fa(j4))
+         brc = br(j1) - (amc0*fb0+amc1*fb(j1)+amc2*fb(j2)+  &
+               amc3*fb(j3)+amc4*fb(j4))
 
-        fb1 = b*brc + rab2(j)*vev*arc
+         fb1 = b*brc + rab2(j)*vev*arc
 
 !   error reduction step
 
-        ar(j) = arc - amc0*(brc-brp)
-        br(j) = brc - amc0*(fb1-fb0)
-        fa(j) = br(j)
-        fb(j) = b*br(j) + rab2(j)*vev*ar(j)
-     end do
+         ar(j) = arc - amc0*(brc-brp)
+         br(j) = brc - amc0*(fb1-fb0)
+         fa(j) = br(j)
+         fb(j) = b*br(j) + rab2(j)*vev*ar(j)
+      end do
 
 !   end inward integration
 
@@ -1904,17 +1903,17 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
 !   modify eigenvalue ev
 
       dev = arctp * (brctp-br(nctp)) / (factor * rab(nctp))
-      if (5*abs(dev) .gt. -ev(iorb)) dev=sign(ev(iorb),dev)/5
+      if (5.d0*abs(dev) .gt. -ev(iorb)) dev=sign(ev(iorb),dev)/5.d0
       itmax = itmax-1
       evold = ev(iorb)
       ev(iorb) = ev(iorb) + dev
-      if (ev(iorb) .gt. emax) ev(iorb) = (evold + emax) / 2
-      if (ev(iorb) .lt. emin) ev(iorb) = (evold + emin) / 2
+      if (ev(iorb) .gt. emax) ev(iorb) = (evold + emax) / 2.d0
+      if (ev(iorb) .lt. emin) ev(iorb) = (evold + emin) / 2.d0
       if (abs(dev) .gt. tol*(1-ev(iorb))) goto 10
 
 !   normalize wavefunction and change br from d(ar)/dj to d(ar)/dr
 
-      factor = 1 / sqrt(factor)
+      factor = 1.d0 / sqrt(factor)
       do j=1,ninf
          ar(j) = factor*ar(j)
          br(j) = factor*br(j) / rab(j)
