@@ -203,19 +203,17 @@ program pseudo
    penref=1d100
    
    
-   !     mpi initialization
-   iproc=0
-   nproc=1
-   call mpi_init(ierr)
-   call mpi_comm_rank(mpi_comm_world,iproc,ierr)
-   call mpi_comm_size(mpi_comm_world,nproc,ierr)
+   ! MPI initialization
+   call MPI_INIT(ierr)
+   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
    
    
    !     this might not work with all compilers:
    !     generate additional output files for each
    !     process iproc > 0 connected to unit 6,
    !     which serves as standard output for process 0.
-   if(iproc>0)then
+   if (iproc > 0) then
       write(label,'(a,i2.2,a)')'proc.',iproc,'.out'
       open(6,file=trim(label))
    end if
@@ -230,11 +228,11 @@ program pseudo
    write(6,*) '***   Goedecker type pseudopotentials     ***'
    write(6,*) '***   last changes:         june 2013     ***'
    
-   if(iproc>0)then  
+   if (iproc>0) then  
       write(6,'(a,i2,a,i2,a)')            &
            ' ***   output file for process ',iproc, ' of ',  &
            nproc,'    ***'  
-   elseif(nproc>1)then
+   elseif (nproc>1) then
       write(6,'(a,i2,a)')   &
            ' ***   parallel run with ', nproc,  &
            ' processes      ***'  

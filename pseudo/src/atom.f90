@@ -29,6 +29,7 @@
 !!
 !! @todo
 !!    Possibility to use hybrid functionals (need exchange interaction)
+!!    atom is not parallelized: The tests are a problem...
 
 
 !> Calculate the all-electron electronic structure for one atom
