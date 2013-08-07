@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> pack the fittingparameters into one array for amoeba
+!> pack the fitting parameters into one array for amoeba
 !! and vice versa
 !! if nstring = 'init'   -> initialisation + packing
 !! if nstring = 'pack'   -> packing
@@ -28,22 +28,22 @@
 !! the number of spin channels for charge and xc is
 !! nspol, which equals 2 for polarized dft calculations
 !! and 1 otherwise. thus, nspin = max(nspol,nso).
-
-!! for now, relativistic polarized dft with
-!! nspol=nso=nspin=2 is not supported.
-
+!!
 !! the list format reading of booleans from input.fitpar
 !! in fixed order is discarded in this version.
 !! the user rather gives a list of keywords in input.fitpar
 !! that name the psppar that are to be fitted.
 !! if input.fitpar is empty and the verbose flag is on,
 !! some help text will be printed.
-
+!!
+!! @warning
+!! For now, relativistic polarized dft with
+!! nspol=nso=nspin=2 is not supported.
+!!
 !! @note
-!!   many lines of this routine are here only
-!!   to perform rather meaningless transformations
-!!   of the hij and kij for given l. these can
-!!   be eliminated, but are still here for testing.
+!!   Many lines of this routine are here only
+!!   to perform rather meaningless transformations of the hij and kij for given l. 
+!!   These can be eliminated, but are still here for testing.
 subroutine ppack (verbose, pp, nstring)
    
    use pseudovars
@@ -51,81 +51,58 @@ subroutine ppack (verbose, pp, nstring)
    implicit none
    
    !Arguments
-   logical :: verbose
-   real(kind=8), dimension(maxdim) :: pp !< this time, it is just one vertex!
-   character(len=*) :: nstring
+   logical, intent(in) :: verbose                     !< verbosity
+   real(kind=8), dimension(maxdim), intent(out) :: pp !< this time, it is just one vertex!
+   character(len=*), intent(in) :: nstring            !< 'init' -> initialisation + packing, 'pack' -> packing, 'unpack'-> unpacking
    
    !local variables
-   integer increm,lpxfit,ierr
-   real(8):: h11,h12,h13,h22,h23,h33,hh11,hh12,hh13,hh22,hh23,hh33
-   
-   integer, parameter :: maxpar = 42 !< up to 5 local,  4*7 nonlocal, 5 nlcc, 4 r_l2
+   logical, parameter :: debug = .false.
+   real(kind=8), parameter :: pih=2.d0*atan(1.d0)
    character(len=100) :: string
-   logical, dimension(maxpar) :: lpack
+   integer :: increm,lpxfit,ierr
+   real(kind=8) :: h11,h12,h13,h22,h23,h33,hh11,hh12,hh13,hh22,hh23,hh33
    logical :: match
    integer :: i,j,ncount,nhsep1,nhsep2,nhsep3,ll,nn,nnmin,nso,iline
+   real(kind=8) :: xshift
    
-   real(kind=8) :: pih,xshift
-   
-   !> The spack array gives the names of all possible input.fitpar
-   !! the meaning of the index is the same as for lpack
-   character(len=6), dimension(maxpar), parameter :: spack = (/ &
-      'rloc  ', 'gpot1 ', 'gpot2 ', 'gpot3 ', 'gpot4 ', &
-      'rcore ', 'gcore1', 'gcore2', 'gcore3', 'gcore4', &
-      'rs    ', 'hs11  ', 'hs12  ', 'hs22  ', 'hs13  ', 'hs23  ', 'hs33  ', 'rs2   ', &
-      'rp    ', 'hp11  ', 'hp12  ', 'hp22  ', 'hp13  ', 'hp23  ', 'hp33  ', 'rp2   ', &
-      'rd    ', 'hd11  ', 'hd12  ', 'hd22  ', 'hd13  ', 'hd23  ', 'hd33  ', 'rd2   ', &
-      'rf    ', 'hf11  ', 'hf12  ', 'hf22  ', 'hf13  ', 'hf23  ', 'hf33  ', 'rf2   ' /) 
-   
-   !> @note
-   !!   hsep index convention:
-   !!   hsep 1   -    h11
-   !!   hsep 2   -    h12
-   !!   hsep 3   -    h22
-   !!   hsep 4   -    h13
-   !!   hsep 5   -    h23
-   !!   hsep 6   -    h33
-   
-   nso=1
-   if(nspin>nspol)nso=2
+   if (debug) print *,'Debug: entered ppack, nstring=',nstring
+
+   if (nspin > nspol) then
+      nso=2
+   else
+      nso=1
+   end if
    
    !
    !------------------------------------------------------------------
-   !     initialisation: set up the list of parameters to be (un)packed
-   !     lpack() = 1 -> (un)pack, lpack() = 0 -> keep aktual value
-   !     if a file "input.fitpar" exist in the current directory lpack() will be
-   !     read from there
-   
-   !      print*,'entered ppack, nstring=',nstring
-   !      print*,'nfit=',nfit
-   
-   pih=2.d0*atan(1.d0)
-   if (nstring.eq.'init') then
+   ! initialisation: set up the list of parameters to be (un)packed
+   ! lpack() = .true. -> (un)pack, lpack() = .false. -> keep actual value
+   ! if a file "input.fitpar" exist in the current directory lpack() will be
+   ! read from there
+   if (nstring == 'init') then
       do i=1,maxdim
          lpack(i)=.false.
          pp(i) = 0.0d0
       enddo
       
-      open(20,file='input.fitpar')
+      open(unit=20,file='input.fitpar')
       !        let us parse the input.fitpar file line by line
       do iline=1,999
-         read(20,'(a)',iostat=ierr)string
+         read(20,'(a)',iostat=ierr) string
          
-         if(ierr<0)then
+         if (ierr<0) then
             !                end of file, exit from the reading loop
-            if(verbose) write(6,'(i3,a)')&
-                 iline-1,' lines have been read. free params are:'
+            if (verbose) write(6,'(i3,a)') iline-1,' lines have been read. free params are:'
             exit
-         elseif(ierr>0) then
+         elseif (ierr>0) then
             !                errors for reading strings should not happen
-            write(6,*)'reading error for file input.fitpar'
+            write(6,*) 'reading error for file input.fitpar'
             exit
          end if
          
          !             "auto", automatic assignment requested:
-         if( index(string,'auto')>0)then
-            if(verbose) write(6,*)&
-                 'auto: free all params except for rloc and rcore'
+         if ( index(string,'auto')>0) then
+            if (verbose) write(6,*) 'auto: free all params except for rloc and rcore'
             !                all nonzero psppar except for rloc are freed.
             !                unused r_l are assigned a default value of 1d0,
             !                so free them if they differ from that.
@@ -146,9 +123,9 @@ subroutine ppack (verbose, pp, nstring)
          end if    
          
          !             to avoid confusion, use qcore as an alias for gcore(1)
-         if( index(string,'qcore')>0)then
+         if ( index(string,'qcore')>0)then
             lpack(6+1)=.true.
-            if(verbose) write(6,*) 'qcore corresponds to gcore1'
+            if (verbose) write(6,*) 'qcore corresponds to gcore1'
          end if
          
          
@@ -159,18 +136,18 @@ subroutine ppack (verbose, pp, nstring)
          do i=1,maxpar
             match=( index(string, trim(spack(i)) ) >0)
             lpack(i) = (lpack(i) .or. match ) 
-            !                 if(match.and.verbose) write(6,*) spack(i)
+            !                 if (match.and.verbose) write(6,*) spack(i)
          end do
       end do
-      close(20)
+      close(unit=20)
       
-      !        print some help if nothing matches
-      if(.not.any(lpack) .and. verbose)then
-         write(6,*)'could not recognize any keyword for free'
-         write(6,*)'fitting variables in the file input.fitpar.'
+      !  print some help if nothing matches
+      if (.not.any(lpack) .and. verbose) then
+         write(6,'(a)') 'could not recognize any keyword for free'
+         write(6,'(a)') 'fitting variables in the file input.fitpar.'
          write(6,*)
-         write(6,*)'valid keywords are the following:'
-         write(6,*)'auto'
+         write(6,'(a)') 'valid keywords are the following:'
+         write(6,'(a)') 'auto'
          write(6,'(5(2x,a))') spack(1:5)
          write(6,'(5(2x,a))') spack(6:10)
          write(6,'(8(2x,a))') spack(11:18)
@@ -178,9 +155,9 @@ subroutine ppack (verbose, pp, nstring)
          write(6,'(8(2x,a))') spack(27:34)
          write(6,'(8(2x,a))') spack(35:42)
          write(6,*)
-         write(6,*)'the keyword "auto" will free all parameters read from psppar and'
-         write(6,*)'override previous keywords for params that are not present there.'
-         write(6,*)'exception: does not free rloc.'
+         write(6,'(a)') 'the keyword "auto" will free all parameters read from psppar and'
+         write(6,'(a)') 'override previous keywords for params that are not present there.'
+         write(6,'(a)') 'exception: does not free rloc.'
          write(6,*)
          
       end if
@@ -189,7 +166,7 @@ subroutine ppack (verbose, pp, nstring)
       !        compare it with the lpx read from psppar
       lpxfit=0
       do i=1,4
-         if( any(lpack(3+8*i: 10+8*i)) ) lpxfit= i
+         if ( any(lpack(3+8*i: 10+8*i)) ) lpxfit= i
       end do
       if ( lpxfit .gt. lpx ) then
          !           this warning message does not need the error handler
@@ -212,7 +189,7 @@ subroutine ppack (verbose, pp, nstring)
       !     h(l2),h(l+1,4),h(l+1,5)  as fitting parameter 
       
       !
-      if(ortprj.or.litprj) then
+      if (ortprj.or.litprj) then
          !        due to gcore&gcore, indices of rl&hsep are shifted by +5
          do i=0,lpx-1
             if (lpack( (i*7+6) +7) ) then
@@ -235,38 +212,37 @@ subroutine ppack (verbose, pp, nstring)
             endif
          enddo
       end if
-      !        count fitting params --> simplex dimension
+
+      ! count fitting params --> simplex dimension
       nfit = 0
       do i=1,maxpar
          if (lpack(i)) then 
-            if(verbose) write(6,*) spack(i)
+            if (verbose) write(6,*) spack(i)
             !              write(99,*) spack(i)
             !              also write to the dumpfile
-            nfit = nfit +1
+            nfit = nfit + 1
          endif
       enddo
-      !
-      !     double count projectors for nso=2 and l>0
-      !
-      !     index offset from new input.fitpar for core (5) and r_l2 (one per l)
-      
-      !         print*,'nfit before double count:',nfit
-      if (nso.eq.2) then
-         !     l=1   hsep(1,1)  at position 14+5+1
+      !  double count projectors for nso=2 and l>0
+      !  index offset from new input.fitpar for core (5) and r_l2 (one per l)
+      if (debug) print *,'Debug: nfit before double count:',nfit
+      if (nso == 2) then
+         !  l=1   hsep(1,1)  at position 14+5+1
          do i=20,25
-            if (lpack(i)) nfit =nfit + 1
+            if (lpack(i)) nfit = nfit + 1
          enddo
-         !     l=2   hsep(1,1)  at position 21+5+2
+         !  l=2   hsep(1,1)  at position 21+5+2
          do i=28,33
-            if (lpack(i)) nfit =nfit + 1
+            if (lpack(i)) nfit = nfit + 1
          enddo
-         !     l=3   hsep(1,1)  at position 28+5+3
+         !  l=3   hsep(1,1)  at position 28+5+3
          do i=36,41
-            if (lpack(i)) nfit =nfit + 1
+            if (lpack(i)) nfit = nfit + 1
          enddo
       endif
-      !         print*,'nfit after double count:',nfit
-      if (nfit.gt.maxdim)then
+      if (debug) print *,'Debug: nfit after double count:',nfit
+      if (debug) print *,'Debug: lpack=',lpack
+      if (nfit > maxdim) then
          write(6,*) 'aborting: maxdim,  nfit:',maxdim,nfit
          stop 'nfit > maxdim'
       end if
@@ -369,32 +345,30 @@ subroutine ppack (verbose, pp, nstring)
             endif
          enddo
       enddo
-   endif
-   !
+   endif !end of initialization
+
    !------------------------------------------------------------------
-   !
-   !     pack the parameters into the array pp()
-   !
-   if (nstring.eq.'pack'.or.nstring.eq.'init') then
-      !         print*,'nfit=',nfit
+   ! pack the parameters into the array pp()
+   if (nstring == 'pack' .or. nstring == 'init') then
       do i=1,nfit
          pp(i)=0.0d0
       enddo
-      !         write(*,*) 'packed array pp:'
-      !         write(*,'(20e8.2)') (pp(i),i=1,nfit)
+      ncount = nfit + 1
+      ! write(*,*) 'packed array pp:'
+      ! write(*,'(20e8.2)') (pp(i),i=1,nfit)
    endif
-   !
+
+
    !------------------------------------------------------------------
+   !unpack array pp()
    !
-   !     unpack array pp()
-   !
-   
    !     frequently used weighting scheme: factor bound to +/- 10% 
    !                                       using  arctan(pp)/5pi 
-   
-   if (nstring.eq.'unpack') then
-      !        write(*,*) 'unpacking array pp:'
-      !        write(*,'(20e8.2)') (pp(i),i=1,nfit)
+  
+
+   if (nstring == 'unpack') then
+      ! write(*,*) 'unpacking array pp:'
+      ! write(*,'(20e8.2)') (pp(i),i=1,nfit)
       ncount = 1
       !     rloc
       if (lpack(1)) then 
@@ -421,24 +395,22 @@ subroutine ppack (verbose, pp, nstring)
       !        downside: we cannot change the sign of a gcore curing the fit.
       do i=1,4
          if (lpack(6+i)) then 
-            gcore(i) = ogcore(i) *( 1d0 + 0.01d0 * pp(ncount) )
+            gcore(i) = ogcore(i) *( 1.d0 + 0.01d0 * pp(ncount) )
             ncount = ncount + 1
          endif  
       enddo
-      
-      
       
       !     projectors for l=0: r_l(1),hsep(1,1-6)
       !        in the polarized case, be sure to keep the down
       !        component equal to the up component.
       !        this is done after the following section with
       !        explicit treatment for each l-component.
-      increm=6+5
+      increm=6+5 !11
       if ( lpack(increm) ) then 
          r_l(1) = orl(1)+.10d0*orl(1)*atan(pp(ncount))/pih 
-         ncount = ncount + 1
+         ncount = ncount + 1 
       endif  
-      do i=1,6
+      do i=1,6 !12 to 17
          if (lpack(increm+i)) then 
             hsep(i,1,1)= ohsep(i,1,1)+pp(ncount)
             !              ncount = ncount + nspol
@@ -453,7 +425,7 @@ subroutine ppack (verbose, pp, nstring)
       else
          !           convention: if r_l2 is not free but r_l is, 
          !                       then r_l2 must be disabled 
-         if(lpack(increm)) r_l2(1) = r_l(1) 
+         if (lpack(increm)) r_l2(1) = r_l(1) 
       endif  
       if (ortprj) then
          !     do back transformation from orthonormal projectors to 
@@ -481,7 +453,7 @@ subroutine ppack (verbose, pp, nstring)
          hsep(5,1,1)= -0.5d0 * sqrt(100.d0/63.0d0) *hsep(6,1,1)
       endif
       !     projectors for l=1: r_l(1),hsep(1,1-6,1-2)
-      increm=13+5+1
+      increm=13+5+1 !19
       if (lpack(increm)) then 
          r_l(2) = orl(2)+.10d0*orl(2)*atan(pp(ncount))/pih 
          ncount = ncount + 1
@@ -489,12 +461,12 @@ subroutine ppack (verbose, pp, nstring)
       do i=1,6
          if (lpack(increm+i)) then 
             hsep(i,2,1)= ohsep(i,2,1) + pp(ncount)
-            if (nso.eq.2) hsep(i,2,2)= ohsep(i,2,2)+pp(ncount+1)
+            if (nso == 2) hsep(i,2,2)= ohsep(i,2,2)+pp(ncount+1)
             ncount = ncount + nso
          else
             hsep(i,2,1)= ohsep(i,2,1)
             !              relativistic : copy back fixed pars
-            if (nso.eq.2) hsep(i,2,2)= ohsep(i,2,2)
+            if (nso == 2) hsep(i,2,2)= ohsep(i,2,2)
          endif  
       enddo
       if ( lpack(increm+7) ) then 
@@ -503,7 +475,7 @@ subroutine ppack (verbose, pp, nstring)
       else
          !           convention: if r_l2 is not free but r_l is, 
          !                       then r_l2 must be disabled 
-         if(lpack(increm)) r_l2(2) = r_l(2) 
+         if (lpack(increm)) r_l2(2) = r_l(2) 
       endif  
       if (ortprj) then
          do i=1,nso
@@ -546,25 +518,24 @@ subroutine ppack (verbose, pp, nstring)
       do i=1,6
          if (lpack(increm+i)) then 
             hsep(i,3,1)= ohsep(i,3,1)+pp(ncount)
-            if (nso.eq.2) hsep(i,3,2)= ohsep(i,3,2)+pp(ncount+1)
+            if (nso == 2) hsep(i,3,2)= ohsep(i,3,2)+pp(ncount+1)
             ncount = ncount + nso
          else
             hsep(i,3,1)= ohsep(i,3,1)
             !              relativistic : copy back fixed pars
-            if (nso.eq.2) hsep(i,3,2)= ohsep(i,3,2)
+            if (nso == 2) hsep(i,3,2)= ohsep(i,3,2)
          endif  
       enddo
       if ( lpack(increm+7) ) then 
-         r_l2(3) = orl2(3)+.10d0*orl2(3)*atan(pp(ncount))/pih 
+         r_l2(3) = orl2(3) + 0.10d0*orl2(3)*atan(pp(ncount))/pih 
          ncount = ncount + 1
       else
          !           convention: if r_l2 is not free but r_l is, 
          !                       then r_l2 must be disabled 
-         if(lpack(increm)) r_l2(3) = r_l(3) 
+         if (lpack(increm)) r_l2(3) = r_l(3) 
       endif  
       if (ortprj) then
          do i=1,nso
-            !     
             !     do back transformation from orthonormal projectors to 
             !     unnormalized projectors:
             h11=hsep(1,3,i)
@@ -604,12 +575,12 @@ subroutine ppack (verbose, pp, nstring)
       do i=1,6
          if (lpack(increm+i)) then 
             hsep(i,4,1)= ohsep(i,4,1)+pp(ncount)
-            if (nso.eq.2) hsep(i,4,2)= ohsep(i,4,2)+pp(ncount+1)
+            if (nso == 2) hsep(i,4,2)= ohsep(i,4,2)+pp(ncount+1)
             ncount = ncount + nso
          else
             hsep(i,4,1)= ohsep(i,4,1)
             !              relativistic : copy back fixed pars
-            if (nso.eq.2) hsep(i,4,2)= ohsep(i,4,2)
+            if (nso == 2) hsep(i,4,2)= ohsep(i,4,2)
          endif  
       enddo
       if ( lpack(increm+7) ) then 
@@ -618,7 +589,7 @@ subroutine ppack (verbose, pp, nstring)
       else
          !           convention: if r_l2 is not free but r_l is, 
          !                       then r_l2 must be disabled 
-         if(lpack(increm)) r_l2(4) = r_l(4) 
+         if (lpack(increm)) r_l2(4) = r_l(4) 
       endif  
       if (ortprj) then
          do i=1,nso
@@ -648,7 +619,7 @@ subroutine ppack (verbose, pp, nstring)
       !        in the polarized, nonrelativistic case, the projectors
       !        must be the same for up and down states!
       !        below line is to be on the safe side.
-      if(nspol>nso)  hsep(:,:,2)= hsep(:,:,1)
+      if (nspol>nso)  hsep(:,:,2)= hsep(:,:,1)
       
       if (litprj) then
          do i=1,nso
@@ -662,7 +633,7 @@ subroutine ppack (verbose, pp, nstring)
       !     projector is zero; if the projectors have to be orthogonalized modify
       !     also the corcesponding offdialgonal elements
       !     (only for relativistic calculations)
-      if (nso.eq.2) then
+      if (nso == 2) then
          nhsep1=0
          nhsep2=0
          nhsep3=0
@@ -856,8 +827,12 @@ subroutine ppack (verbose, pp, nstring)
          endif
          
       endif
-   endif  
-   !------------------------------------------------------------------
-   !      print*,'leave ppack with nfit=',nfit
-   return
+   endif  !end of unpack section
+
+   !Test
+   if (ncount-1 /= nfit) then
+      write(*,'(a,i0,a,i0,a)') 'Bug in ppack: ncount (',ncount-1,') /= nfit (',nfit,')'
+      stop
+   end if
+   if (debug) print *,'Debug: leave ppack with nfit=',nfit,' and ncount=',ncount-1
 end subroutine ppack

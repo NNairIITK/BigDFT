@@ -28,10 +28,9 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      pawrcovfact)
   
   implicit none
-  !! implicit real*8 (a-h,o-z)
   integer, parameter :: gp=kind(1.0d0) 
-  logical avgl1,avgl2,avgl3,ortprj,litprj,igrad
-  real(8) pp(maxdim),so(norb),ev(norb),crcov(norb),&
+  logical :: avgl1,avgl2,avgl3,ortprj,litprj,igrad
+  real(kind=8) :: pp(maxdim),so(norb),ev(norb),crcov(norb),&
        dcrcov(norb),ddcrcov(norb),occup(noccmx,lmx,nsmx),aeval(noccmx,lmx,nsmx),&
        chrg(noccmx,lmx,nsmx),dhrg(noccmx,lmx,nsmx),&
        ehrg(noccmx,lmx,nsmx),res(noccmx,lmx,nsmx),&
@@ -46,30 +45,30 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
        hgridmin,hgridmax, ampl,crmult,frmult,&
        excitAE,iter,itertot,penref, wghtconf
   
-  integer no(norb),lo(norb),nconfpaw, npawl, nchannelspaw , maxdim,&
+  integer :: no(norb),lo(norb),nconfpaw, npawl, nchannelspaw , maxdim,&
        noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,nint,ng_fit,ngmx,iproc,&
        nproc,nhgrid,nhpow,ntime, norb, ngrid_fit, j,   pawstN, pawstL, pawstP
   
-  real(8) pawrcovfact
+  real(kind=8) :: pawrcovfact
 
   character(len=1) :: ispp
   logical :: energ, verbose, pol
   character(len=30) :: plotfile
-  real(8), pointer :: atom_potential_fit(:)
-  real(8), pointer :: statom_potential(:)
-  real(8) :: rdum
+  real(kind=8), pointer :: atom_potential_fit(:)
+  real(kind=8), pointer :: statom_potential(:)
+  real(kind=8) :: rdum
   
   integer :: Npaw, ng
   integer Ngrid, Ngrid_box, Ngrid_biggerbox, iovrsmpl,  Ngrid_box_larger
-  real(8) boxradius, biggerboxradius, a,b, EMAX
-  real(8), pointer :: rgrid(:), yp(:), ypp(:), w(:), aepot(:), aepot_p(:), aepot_pp(:), &
+  real(kind=8) boxradius, biggerboxradius, a,b, EMAX
+  real(kind=8), pointer :: rgrid(:), yp(:), ypp(:), w(:), aepot(:), aepot_p(:), aepot_pp(:), &
        rgrid_ab(:), aepot_cent(:), staepot(:), rw(:),rd(:)
-  real(8) a1,b1,an,bn
+  real(kind=8) a1,b1,an,bn
   integer ierr, isx
   integer LPaw, n, Nsol
   integer igrid
-  real(8), pointer :: psi_initial_copy(:),psi_initial(:), dumpsi_p(:)
-  real(8) dum_energy
+  real(kind=8), pointer :: psi_initial_copy(:),psi_initial(:), dumpsi_p(:)
+  real(kind=8) dum_energy
   character(1000) filename
   character(len=125) :: pawstatom
   real(gp) , pointer ::  psigrid(:,:), Egrid(:), nonloc(:)

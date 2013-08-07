@@ -2637,8 +2637,8 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
                write(50,'(a,a,2g10.3,a)') ispp, ' 20 2.0',rcov, rprb, 'the first line contains some input data'
                write(50,'(2g10.3,8x,a)') znuc, zps, 'znuc and zion as needed'
                write(50,'(a,1x,i7,6x,a)') '(2, 3 or 10)', IXC,'supported formats, iXC as given'
-               write(50,'(a)') '--you can download pseudopotentials from--'
-               write(50,'(a)') 'http://www.abinit.org/downloads/psp-links'
+               write(50,'(1x,a)') '--you can download pseudopotentials from--'
+               write(50,'(1x,a)') 'http://www.abinit.org/downloads/psp-links'
             else
                syswght=1d-2
             endif

@@ -29,18 +29,18 @@ module pseudovars
    !!@note  nspin is just to check for the relativistic case. 
    !!       only if nspin==2 and nspol==1 then kij should be nonzero.
    !!       atomic number, ionic charge. technically, these could be non-integer.
-   real(8) :: znuc, zion 
+   real(kind=8) :: znuc, zion 
    !> The local part
-   real(8) :: rloc, gpot(4) 
+   real(kind=8) :: rloc, gpot(4) 
    !> The separable part: nr of angular momentum channels, radii, coeffs
    integer :: lpx
-   real(8) :: r_l(4),  hsep(6, 4, 2) !< Indices: ij, l, s
+   real(kind=8) :: r_l(4),  hsep(6, 4, 2) !< Indices: ij, l, s
    !> An experimental extra length scale, not useful
-   real(8) :: r_l2(4)
+   real(kind=8) :: r_l2(4)
    !> nlcc parameters: actually, gcore(2:4) are zero in practice.
-   real(8) ::  rcore, gcore(4)
+   real(kind=8) ::  rcore, gcore(4)
    !> A backup is needed for packing and shifting the pseudopotential parameters
-   real(8) :: orloc, ogpot(4), orl(4), orl2(4), ohsep(6, 4, 2), orcore, ogcore(4)
+   real(kind=8) :: orloc, ogpot(4), orl(4), orl2(4), ohsep(6, 4, 2), orcore, ogcore(4)
 end module pseudovars
 
 
@@ -49,17 +49,17 @@ module penaltyvars
    use dims
    implicit none
    !> Simple time profiling for penalty evaluation
-   real(8) :: time(3)
+   real(kind=8) :: time(3)
    !> All-electron reference values 
-   real(8) :: ev(norbmx), crcov(norbmx), dcrcov(norbmx), ddcrcov(norbmx)
-   real(8) :: excitae
+   real(kind=8) :: ev(norbmx), crcov(norbmx), dcrcov(norbmx), ddcrcov(norbmx)
+   real(kind=8) :: excitae
    integer :: no(norbmx),noae(norbmx),lo(norbmx),nomax(0:lmx),nomin(0:lmx)
-   real(8) :: so(norbmx),zo(norbmx)
+   real(kind=8) :: so(norbmx),zo(norbmx)
    !> Some weights for the penalty
-   real(8) :: wghtconf, wghtexci, wghtsoft, wghtrad, wghthij, wghtloc, wghtp0
+   real(kind=8) :: wghtconf, wghtexci, wghtsoft, wghtrad, wghthij, wghtloc, wghtp0
    !> Some variables for the softness estimate via wavelets
    integer :: nhpow, nhgrid
-   real(8) :: hgridmin, hgridmax, ampl, crmult, frmult
+   real(kind=8) :: hgridmin, hgridmax, ampl, crmult, frmult
    !weights for orbital properties are actually part of gatomvars
 end module penaltyvars
 
@@ -68,6 +68,29 @@ end module penaltyvars
 module ppackvars
    use dims
    implicit none
+
+   integer, parameter :: maxpar = 42    !< Max parameters: up to 5 local,  4*7 nonlocal, 5 nlcc, 4 r_l2
+
+   logical, dimension(maxpar) :: lpack  !< .true. if the parameters is fitted
+
+   !> The spack array gives the names of all possible input.fitpar
+   !! the meaning of the index is the same as for lpack
+   !> @note
+   !!   hsep index convention:
+   !!   hsep 1   -    h11
+   !!   hsep 2   -    h12
+   !!   hsep 3   -    h22
+   !!   hsep 4   -    h13
+   !!   hsep 5   -    h23
+   !!   hsep 6   -    h33
+   character(len=6), dimension(maxpar), parameter :: spack = (/ &
+      'rloc  ', 'gpot1 ', 'gpot2 ', 'gpot3 ', 'gpot4 ', &
+      'rcore ', 'gcore1', 'gcore2', 'gcore3', 'gcore4', &
+      'rs    ', 'hs11  ', 'hs12  ', 'hs22  ', 'hs13  ', 'hs23  ', 'hs33  ', 'rs2   ', &
+      'rp    ', 'hp11  ', 'hp12  ', 'hp22  ', 'hp13  ', 'hp23  ', 'hp33  ', 'rp2   ', &
+      'rd    ', 'hd11  ', 'hd12  ', 'hd22  ', 'hd13  ', 'hd23  ', 'hd33  ', 'rd2   ', &
+      'rf    ', 'hf11  ', 'hf12  ', 'hf22  ', 'hf13  ', 'hf23  ', 'hf33  ', 'rf2   ' /) 
+   
    integer :: nfit    !< Number of free parameters for amoeba/packing
    !> These options are rarely in use, but still supported
    logical :: avgl1,avgl2,avgl3,ortprj,litprj
@@ -83,37 +106,38 @@ end module ppackvars
 module gatomvars
    use dims
    implicit none
-   !the total of scf iterations during this run, the number of calls to gatom
-   integer :: itertot, ntime
-   !confining potential, charge integr. radius
-   real(8) :: rprb, rcov
-   !gaussian basis set:
+   integer :: itertot   !< The total of scf iterations during this run
+   integer :: ntime     !< The number of calls to gatom
+   real(kind=8) :: rprb !< Confining potential, charge integr. radius
+   real(kind=8) :: rcov !< Charge integr. radius
+   !> gaussian basis set:
    integer :: ng
-   real(8) :: rij
+   real(kind=8) :: rij
    logical :: denbas
-   real(8) :: xp(0:ngmx)
-   !max angular momentum number of considered and of occupied orbitals
+   real(kind=8) :: xp(0:ngmx)
+   !> max angular momentum number of considered and of occupied orbitals
    integer :: lmax, lcx
-   !radial grid, integr weights, finite difference
+   !> radial grid, integr weights, finite difference
    integer :: nint
-   real(8) :: rr(nintmx), rw(nintmx), rd(nintmx)
-   !hartree potential from gaussians on the real space grid
-   real(8) :: vh((lmx+1)*((ngmx+1)*(ngmx+2))/2, (lmx+1)*((ngmx+1)*(ngmx+2))/2)
-   !transformation from gaussian matrix elements to realspace and vice versa
-   real(8) :: rmt(nintmx,((ngmx+1)*(ngmx+2))/2, lmx+1), &
-        ud(nintmx,((ngmx+1)*(ngmx+2))/2, lmx+1)
+   real(kind=8) :: rr(nintmx), rw(nintmx), rd(nintmx)
+   !> Hartree potential from gaussians on the real space grid
+   real(kind=8) :: vh((lmx+1)*((ngmx+1)*(ngmx+2))/2, (lmx+1)*((ngmx+1)*(ngmx+2))/2)
+   !> Transformation from gaussian matrix elements to realspace and vice versa
+   real(kind=8) :: rmt(nintmx,((ngmx+1)*(ngmx+2))/2, lmx+1), &
+                    ud(nintmx,((ngmx+1)*(ngmx+2))/2, lmx+1)
    !deprecated matrix for computing the gradient.
-   real(8) ::          rmtg(nintmx,((ngmx+1)*(ngmx+2))/2, lmx+1)
+   real(kind=8) :: rmtg(nintmx,((ngmx+1)*(ngmx+2))/2, lmx+1)
    !highest number of distinct n quantum numbers per l channel, nr of orbitals
    integer :: noccmax, norb
-   !occupation numbers, eigenvalues, dft energy
-   real(8) :: occup(noccmx,lmx,nsmx), aeval(noccmx,lmx,nsmx), etotal
+   real(kind=8) :: occup(noccmx,lmx,nsmx) !< occupation numbers
+   real(kind=8) :: aeval(noccmx,lmx,nsmx) !< eigenvalues
+   real(kind=8) :: etotal                 !< DFT energy
    !orbitals, charge integrals, moments, residues, nodes
-   real(8) :: psi(0:ngmx,noccmx,lmx,nsmx), psir0, chrg(noccmx,lmx,nsmx),  &
+   real(kind=8) :: psi(0:ngmx,noccmx,lmx,nsmx), psir0, chrg(noccmx,lmx,nsmx),  &
         dhrg(noccmx,lmx,nsmx),ehrg(noccmx,lmx,nsmx), &
         res(noccmx,lmx,nsmx), wfnode(noccmx,lmx,nsmx,3)
    !orbital weights, passed to skip computation of unneeded quantities
-   real(8) :: wght(noccmx,lmx,nsmx,8)
+   real(kind=8) :: wght(noccmx,lmx,nsmx,8)
 end module gatomvars
 
 
@@ -133,16 +157,16 @@ program pseudo
    !to be replaced with implicit none
    implicit real*8 (a-h,o-z)
    
-   real(8) :: pp(maxdim*(maxdim+1)), yp(maxdim+1)
+   real(kind=8) :: pp(maxdim*(maxdim+1)), yp(maxdim+1)
    logical plotwf, mixref, energ, verbose, info, exists, ldump
    !all electron orbital plots
-   real(8) :: rae(nrmax), gf(nrmax,norbmx,nsmx)
+   real(kind=8) :: rae(nrmax), gf(nrmax,norbmx,nsmx)
    !more plotting arrays
-   real(8) :: psiold(nrmax,noccmx,lmx+1,nsmx)
+   real(kind=8) :: psiold(nrmax,noccmx,lmx+1,nsmx)
    !local variables for reading and reformatting of psppar
-   real(8) :: ofdcoef(3,4), psppar(6,4,2), hso(6), havg(6)
+   real(kind=8) :: ofdcoef(3,4), psppar(6,4,2), hso(6), havg(6)
    ! just a temporary array for excitations
-   real(8) :: excit(200)
+   real(kind=8) :: excit(200)
    character(len=1) :: il(5),methodps,methodae
    character(len=80) :: errmsg
    character(len=7), dimension(2) :: is
@@ -155,7 +179,7 @@ program pseudo
    !      integer*4:: datedmy(3)
    character(len=8) :: dateymd
    integer ::  nconfpaw, nchannelspaw, npawl, pawstn, pawstl, pawstp
-   real(8) :: pawrcovfact
+   real(kind=8) :: pawrcovfact
    character(len=125) :: pawstatom
    logical :: fullac,igrad
    !For timings
