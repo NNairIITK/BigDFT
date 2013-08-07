@@ -1,0 +1,287 @@
+ *********************************************
+ ***              pseudo_2.5               ***
+ ***              fitting of               ***
+ ***   Goedecker type pseudopotentials     ***
+ ***   last changes:         june 2013     ***
+ *********************************************
+
+ reading the file input.pseudo
+ _____________________________
+
+ 100 max. simplex iterations
+ basis set size: 20 gaussians
+ smallest gaussian: sigma0 = rloc / 2.000
+ plot wfs after each iteration
+  1 lines have been read.
+ do one pseudopotential calculation.
+ no fitting.
+
+ reading data from atom.00.ae
+ ____________________________
+
+
+
+ pseudo states =           18
+ znuc          =    8.0000000000000000     
+ zpseudo       =    6.0000000000000000     
+ r_covalent    =    1.3799999999999999     
+ r_confining   =    6.0000000000000000     
+ method        = s
+ gridpoints    =          906
+
+ initializing libxc with ixc =    -20; nspol =    2
+
+  nl    s      occ        eigenvalue     charge(rcov)    
+ 2s  -0.5    1.0000   -0.8689416243    0.7254021527
+ 2s   0.5    1.0000   -0.8689416243    0.7254021527
+ 3s  -0.5    0.0000    0.0151372211    0.0175632463
+ 3s   0.5    0.0000    0.0151372211    0.0175632463
+ 4s  -0.5    0.0000    0.0883882720    0.0089555627
+ 4s   0.5    0.0000    0.0883882720    0.0089555627
+ 2p  -0.5    2.0000   -0.3358904554    0.6523808984
+ 2p   0.5    2.0000   -0.3358904554    0.6523808984
+ 3p  -0.5    0.0000    0.0559529538    0.0125193436
+ 3p   0.5    0.0000    0.0559529538    0.0125193436
+ 4p  -0.5    0.0000    0.1123282821    0.0127731263
+ 4p   0.5    0.0000    0.1123282821    0.0127731263
+ 3d  -0.5    0.0000    0.0911350106    0.0000649589
+ 3d   0.5    0.0000    0.0911350106    0.0000649589
+ 4d  -0.5    0.0000    0.1387255306    0.0001830829
+ 4d   0.5    0.0000    0.1387255306    0.0001830829
+ 4f  -0.5    0.0000    0.1224616901    0.0000002207
+ 4f   0.5    0.0000    0.1224616901    0.0000002207
+ noccmax            3
+
+ all electron and pseudo-wfn quantum numbers
+         n(ae)   l   inl(ps)   
+           2     0     1
+           2     0     1
+           3     0     2
+           3     0     2
+           4     0     3
+           4     0     3
+           2     1     1
+           2     1     1
+           3     1     2
+           3     1     2
+           4     1     3
+           4     1     3
+           3     2     1
+           3     2     1
+           4     2     2
+           4     2     2
+           4     3     1
+           4     3     1
+
+ reading penalty weights from file input.weights
+ _______________________________________________
+
+ weight for psi(r=0)=0 is      0.000E+00
+ for ekin(gauss-wavelet)       0.100E+06
+ for keeping radii wide        0.100E+01
+ for keeping hij small         0.100E+01
+ for keeping vloc local        0.100E+01
+ and for excitation energies   0.100E+04
+
+ reading data from psppar
+ ________________________
+
+ hgh matrix format
+
+ nlcc data from the last line:
+     width rcore  0.14000000000000001     
+  fraction qcore  0.45000000000000001     
+
+ derived nlcc properties:
+     core charge  0.90000000000000002     
+    rhocore(r=0)   261.69683116712054     
+   analytic form           gaussian
+     polynomials               none
+
+
+     1.380     6.000    rcov and rprb (charge integr and confinement)
+                             spin polarized calculation
+        -20                  ixc for xc-functional
+
+ local part
+   8.   6.00  0.248 -0.165E+02  0.237E+01  0.000E+00  0.000E+00 znuc,zion, rloc, gpot() 
+ nonlocal part in internal format
+   1                                                       lpx, (projectors for l=0..lpx)
+ s-projector
+  0.222  0.182E+02  0.000E+00  0.000E+00  0.000E+00  0.000E+00  0.000E+00  r_l(),hsep(), so=+0.5
+
+ gaussian basis
+ ______________
+
+ amin,amax 0.1239E+00 0.9761E+01
+ gaussian 0.2150E+02 0.1418E+02 0.9357E+01 ....  0.1206E-01 0.7955E-02
+ gaussians:          20
+ r-grid:  0.3097E-03 0.3338E-03 0.3597E-03 ....  0.7748E+02 0.8351E+02
+ gridpoints:         168
+
+
+
+  pseudo atom energies
+  ____________________
+
+ kinetic energy            =   12.2191544467
+ potential energy          =  -16.6435394315
+ non local energy          =    1.3495060253
+ hartree energy with xc    =   12.7380532904
+ exchange + corr energy    =   -4.6146163350
+ vxc    correction         =   -4.2919685522
+ -------------------------------------------
+ el-el  interaction energy =   13.7649115328
+ external energy           =  -39.8813939403
+ sum of eigenvalues        =   -3.0748789596
+ -------------------------------------------
+ total energy              =  -17.1624382752
+
+ atomic+electronic charge 0.1336E-07
+
+
+ empirical penalty terms from psppar
+ ___________________________________
+
+ narrow radii     1.74845339864897267E-002
+ large  hij       0.51430782601786140     
+ large  kij        0.0000000000000000     
+ vloc(r>rcov)     1.72748907912537322E-006
+
+ resulting penalty value   185.85328774012669     
+
+ penalty contributions from this configuration
+ _____________________________________________
+
+          psi(r=0) =  0.1724E-02          ; psi(0)*wght=  0.0000E+00
+
+ nl    s      occ              ae        pseudo       diff     diff*weight
+ 2s  -0.5    1.0000
+         eigenvalue      -0.8689E+00 -0.8566E+00  0.1231E-01  0.1231E+03
+         charge           0.7254E+00  0.7238E+00 -0.1569E-02  0.1569E+01
+         residue                      0.3229E-06              0.0000E+00
+         rnode                        0.0000E+00              0.0000E+00
+
+ 2s   0.5    1.0000
+         eigenvalue      -0.8689E+00 -0.8566E+00  0.1231E-01  0.1231E+03
+         charge           0.7254E+00  0.7238E+00 -0.1569E-02  0.1569E+01
+         residue                      0.3229E-06              0.0000E+00
+         rnode                        0.0000E+00              0.0000E+00
+
+ 3s  -0.5    0.0000
+         eigenvalue       0.1514E-01  0.1612E-01  0.9872E-03  0.0000E+00
+         charge           0.1756E-01  0.1751E-01 -0.5228E-04  0.0000E+00
+         residue                      0.1818E-07              0.0000E+00
+
+ 3s   0.5    0.0000
+         eigenvalue       0.1514E-01  0.1612E-01  0.9872E-03  0.0000E+00
+         charge           0.1756E-01  0.1751E-01 -0.5228E-04  0.0000E+00
+         residue                      0.1818E-07              0.0000E+00
+
+ 4s  -0.5    0.0000
+         eigenvalue       0.8839E-01  0.8901E-01  0.6260E-03  0.0000E+00
+         charge           0.8956E-02  0.9133E-02  0.1777E-03  0.0000E+00
+         residue                      0.3073E-07              0.0000E+00
+
+ 4s   0.5    0.0000
+         eigenvalue       0.8839E-01  0.8901E-01  0.6260E-03  0.0000E+00
+         charge           0.8956E-02  0.9133E-02  0.1777E-03  0.0000E+00
+         residue                      0.3073E-07              0.0000E+00
+
+ 2p  -0.5    2.0000
+         eigenvalue      -0.3359E+00 -0.3404E+00 -0.4512E-02  0.4512E+02
+         charge           0.6524E+00  0.6617E+00  0.9328E-02  0.9328E+01
+         residue                      0.5413E-06              0.0000E+00
+         rnode                        0.0000E+00              0.0000E+00
+
+ 2p   0.5    2.0000
+         eigenvalue      -0.3359E+00 -0.3404E+00 -0.4512E-02  0.4512E+02
+         charge           0.6524E+00  0.6617E+00  0.9328E-02  0.9328E+01
+         residue                      0.5413E-06              0.0000E+00
+         rnode                        0.0000E+00              0.0000E+00
+
+ 3p  -0.5    0.0000
+         eigenvalue       0.5595E-01  0.5616E-01  0.2025E-03  0.0000E+00
+         charge           0.1252E-01  0.1217E-01 -0.3445E-03  0.0000E+00
+         residue                      0.5235E-07              0.0000E+00
+
+ 3p   0.5    0.0000
+         eigenvalue       0.5595E-01  0.5616E-01  0.2025E-03  0.0000E+00
+         charge           0.1252E-01  0.1217E-01 -0.3445E-03  0.0000E+00
+         residue                      0.5235E-07              0.0000E+00
+
+ 4p  -0.5    0.0000
+         eigenvalue       0.1123E+00  0.1133E+00  0.1005E-02  0.0000E+00
+         charge           0.1277E-01  0.1273E-01 -0.4796E-04  0.0000E+00
+         residue                      0.2722E-07              0.0000E+00
+
+ 4p   0.5    0.0000
+         eigenvalue       0.1123E+00  0.1133E+00  0.1005E-02  0.0000E+00
+         charge           0.1277E-01  0.1273E-01 -0.4796E-04  0.0000E+00
+         residue                      0.2722E-07              0.0000E+00
+
+ 3d  -0.5    0.0000
+         eigenvalue       0.9114E-01  0.9143E-01  0.2947E-03  0.0000E+00
+         charge           0.6496E-04  0.6219E-04 -0.2768E-05  0.0000E+00
+         residue                      0.2095E-06              0.0000E+00
+
+ 3d   0.5    0.0000
+         eigenvalue       0.9114E-01  0.9143E-01  0.2947E-03  0.0000E+00
+         charge           0.6496E-04  0.6219E-04 -0.2768E-05  0.0000E+00
+         residue                      0.2095E-06              0.0000E+00
+
+ 4d  -0.5    0.0000
+         eigenvalue       0.1387E+00  0.1437E+00  0.5001E-02  0.0000E+00
+         charge           0.1831E-03  0.1941E-03  0.1098E-04  0.0000E+00
+         residue                      0.1623E-06              0.0000E+00
+
+ 4d   0.5    0.0000
+         eigenvalue       0.1387E+00  0.1437E+00  0.5001E-02  0.0000E+00
+         charge           0.1831E-03  0.1941E-03  0.1098E-04  0.0000E+00
+         residue                      0.1623E-06              0.0000E+00
+
+ 4f  -0.5    0.0000
+         eigenvalue       0.1225E+00  0.1231E+00  0.6524E-03  0.0000E+00
+         charge           0.2207E-06  0.2207E-06 -0.2703E-10  0.0000E+00
+         residue                      0.7425E-06              0.0000E+00
+
+ 4f   0.5    0.0000
+         eigenvalue       0.1225E+00  0.1231E+00  0.6524E-03  0.0000E+00
+         charge           0.2207E-06  0.2207E-06 -0.2703E-10  0.0000E+00
+         residue                      0.7425E-06              0.0000E+00
+
+ diff for dcharg and echarge is given in (%)
+
+ resulting pseudpotential parameters
+ ___________________________________
+
+    8   6  20130807                        zatom, zion, date (yymmdd)
+   11       -20 0 0 2002 0                 pspcod, ixc, lmax, lloc, mmax, r2well
+        0.24775350  2    -16.50052797      2.37488057      rloc nloc c1 .. cnloc
+    1                                      nsep
+        0.22217380  1     18.20195442      s-projector
+        0.14000000         0.45000000      rcore, qcore (nlcc)
+
+ analytic core charge of the nlcc:  0.90000000000000002     
+ value for the radial grid used:    0.89999999740899372     
+
+
+ gnuplot script written for comparison of valence 
+                 and pseudovalence: orbitals.gplt
+
+
+ total scf-cycles:                 35
+ pseudoatom calculations:           1
+
+ simple time profiling
+ _____________________
+
+ gatom  overall runtime     0.088 seconds
+ mpi communication time     0.000 seconds
+ wavelet libraries time     0.000 seconds
+ ________________________________________
+               cpu time     0.224 seconds
+
+ ______________________________________________________
+                                               finished
+

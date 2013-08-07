@@ -1,6 +1,0 @@
- 0  no valence distribution to subtract
- 1  one single gaussian for the core
-   0.1499799606607913         477.3770668098523        -3859.523932641311      
-    15663.69896148431         0.000000000000000      sigma c0 c2 c4 c6
- end of NLCC input for BigDFT
- analytic form: gaussian(r,sigma)*sum(ck*x**k)

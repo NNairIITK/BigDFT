@@ -353,35 +353,6 @@ program ae_atom
 
  140    continue
 
-!!     DO NOT CREATE guess for psppar, let the user download
-!!     a psppar for a much better input guess.
-!!     append some clue about additional input variables
-!!     do not do this here, but after the 1st configuration is done.
-
-!!     write data to files psp.par/weights.par
-!!     for pseudopotential-fit
-!!     if (ispp/='r') ispp='n'
-!!     psp.par
-!      write(50,*) ' 10   2.0     ng, rij (initial guess) '
-!      write(50,'(2f15.10,a)') rcov, rprb, ' rcov, rprb '
-!      if (ispp=='r') then
-!         write(50,*)'relativistic calculation'
-!      else
-!         write(50,*)'non relativistic calculation'
-!      endif
-!      write(50,'(t2,i7,t15,a)')iXC ,'XC-functional'
-!      write(50,'(3f7.3,2a)') znuc,zps,rcov/4.d0, &
-!            '  0.0 0.0 0.0 0.0', znuc,zpseudo,rloc,gpot()'
-!      lpx=2
-!      write(50,*) lpx ,' lpx '
-!      do l=0,lpx
-!         write(50,'(f7.3,2a)')  rcov/4.0d0, &
-!               '  0.0 0.0 0.0 0.0 0.0 0.0 ','r_l(), hsep()'
-!         if (ispp=='r' .and. l/=0 ) write(50,'(tr7,2a)') &
-!              '  0.0 0.0 0.0 0.0 0.0 0.0 ', ' hsep()'
-!      end do
-!!     weights.par
-
 !     FITPAR, do not overwrite, append
       open(unit=60,file='input.fitpar',position='append')
       write(60,'(a)') ' fitting parameters appended by atom.f90: auto'

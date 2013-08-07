@@ -26,12 +26,18 @@ ATOM_OUTPUTS = \
 			 psppar.atom
 
 PSEUDO_OUTPUTS = \
-				 orbitals.gplt
+				 orbitals.gplt \
+				 nlcc.gplt
 
 REPORTS = \
 		  atom.out.report $(ATOM_OUTPUTS:=.report) \
 		  pseudo.nofit.out.report $(PSEUDO_OUTPUTS:=.report) \
-		  pseudo.shortfit.out.report
+		  pseudo.shortfit.out.report \
+		  pseudo.parallelnofit.out.report \
+		  pseudo.NLCCnofit.out.report \
+		  pseudo.NLCCfit.out.report \
+		  pseudo.NLCCfree.out.report \
+		  pseudo.NLCCfree2.out.report
 
 check: report
 
@@ -44,6 +50,7 @@ report: $(REPORTS)
 
 $(ATOM_OUTPUTS): atom.out
 $(PSEUDO_OUTPUTS): pseudo.nofit.out
+nlcc.gplt: pseudo.NLCCnofit.out
 
 atom.out: atom.in $(abs_top_builddir)/pseudo/src/atom
 	$(run_parallel) $(abs_top_builddir)/pseudo/src/atom > $@
@@ -64,6 +71,39 @@ pseudo.shortfit.out: pseudo.shortfit.in $(abs_top_builddir)/pseudo/src/pseudo
 
 pseudo.shortfit.in: pseudo.nofit.out pseudo.nofit.out.report
 	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/input.shortfit.pseudo input.pseudo
+
+pseudo.parallelnofit.out: pseudo.parallelnofit.in $(abs_top_builddir)/pseudo/src/pseudo
+	$(run_parallel) $(abs_top_builddir)/pseudo/src/pseudo > $@
+
+pseudo.parallelnofit.in: pseudo.shortfit.out pseudo.shortfit.out.report
+	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/input.parallelnofit.pseudo  input.pseudo
+	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/input.parallelnofit.weights input.weights
+
+pseudo.NLCCnofit.out: pseudo.NLCCnofit.in $(abs_top_builddir)/pseudo/src/pseudo
+	$(run_parallel) $(abs_top_builddir)/pseudo/src/pseudo > $@
+
+pseudo.NLCCnofit.in: pseudo.parallelnofit.out pseudo.parallelnofit.out.report
+	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/input.NLCCnofit.pseudo input.pseudo
+	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/psppar.addNLCC psppar.addNLCC
+	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/psppar.addNLCC psppar
+
+pseudo.NLCCfit.out: pseudo.NLCCfit.in $(abs_top_builddir)/pseudo/src/pseudo
+	$(run_parallel) $(abs_top_builddir)/pseudo/src/pseudo > $@
+
+pseudo.NLCCfit.in: pseudo.NLCCnofit.out pseudo.NLCCnofit.out.report
+	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/input.NLCCfit.pseudo input.pseudo
+
+pseudo.NLCCfree.out: pseudo.NLCCfree.in $(abs_top_builddir)/pseudo/src/pseudo
+	$(run_parallel) $(abs_top_builddir)/pseudo/src/pseudo > $@
+
+pseudo.NLCCfree.in: pseudo.NLCCfit.out pseudo.NLCCfit.out.report
+	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/input.NLCCfree.fitpar input.fitpar
+
+pseudo.NLCCfree2.out: pseudo.NLCCfree.in $(abs_top_builddir)/pseudo/src/pseudo
+	$(run_parallel) $(abs_top_builddir)/pseudo/src/pseudo > $@
+
+pseudo.NLCCfree2.in: pseudo.NLCCfree.out pseudo.NLCCfree.out.report
+	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/input.NLCCfree2.pseudo input.pseudo
 
 clean:
 	if ! test $(top_srcdir)/pseudo/tutorials/oxygen.NLCC -ef . ; then rm -f atom.dat psppar.GTH ; fi
