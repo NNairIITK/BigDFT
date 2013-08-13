@@ -365,7 +365,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:,:),allocatable :: psi_old
   real(kind=8),dimension(:),allocatable :: psi_tmp
   real(kind=8),dimension(3),save :: d2e_arr_out
-  integer,save :: isatur_in, isatur_out
+  integer,save :: isatur_out
+  integer :: isatur_in
   logical :: stop_optimization
 
 
@@ -374,7 +375,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   allocate(psi_tmp(size(tmb%psi)))
   psi_old(:,1)=tmb%psi
   if (itout==1) then
-      isatur_in=0
       isatur_out=0
       d2e_arr_out=0
   end if
@@ -383,6 +383,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   ! Allocate all local arrays.
   call allocateLocalArrays()
+
+  !!!EXPERIMENTAL
+  !!    call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+  !!         tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
+  !!         tmb%can_use_transposed)
+  !!    ortho_on=.false.
+  !!!END EXPERIMENTAL
 
   call timing(iproc,'getlocbasinit','ON')
   tmb%can_use_transposed=.false.
@@ -408,6 +415,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   fix_supportfunctions=.false.
   delta_energy_prev=1.d100
 
+  isatur_in=0
   iterLoop: do
       it=it+1
       it=max(it,1) !since it could become negative (2 is subtracted if the loop cycles)
@@ -615,17 +623,26 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !d2e=6.d0*interpol_solution(1)*interpol_matrix(ii,3)+2.d0*interpol_solution(2)
       !d2e = 12.d0*interpol_solution(1)*interpol_matrix(ii,4)**2 + 6.d0*interpol_solution(2)*interpol_matrix(ii,4) + 2.d0*interpol_solution(3)
       d2e = 2.d0*interpol_solution(1)
-      tt = interpol_vector(1) - 2.d0*interpol_vector(2) + interpol_vector(3)
-      ttt = d2e_arr_out(1) - 2.d0*d2e_arr_out(2) + d2e_arr_out(3)
-      tt=tt/dble(orbs%norb)
-      ttt=ttt/dble(orbs%norb)
+      tt = abs(interpol_vector(1))*(interpol_vector(1) - 2.d0*interpol_vector(2) + interpol_vector(3))
+      ttt = abs(d2e_arr_out(1))*(d2e_arr_out(1) - 2.d0*d2e_arr_out(2) + d2e_arr_out(3))
+      tt=tt/dble(tmb%orbs%norb)
+      ttt=ttt/dble(tmb%orbs%norb)
+      if (iproc==0) write(*,'(a,2es14.5)') 'tt, ttt', tt, ttt
       if (itout>=3 .and. it >=3) then
-          if (tt<1.d-5) then
+          !if (abs(tt)<1.d-4 .and. .not.energy_increased) then
+          !if (abs(tt)<1.d-4 .and. abs(ttt)<1.d-3) then
+          !if (tt>0.d0 .and. tt<1.d-1 .and. ttt>0.d0 .and. ttt<1.d1 .and. .false.) then
+          !!if (tt>0.d0 .and. tt<1.d-1) then
+          !!    if (iproc==0) write(*,*) 'SWITCH OFF ORTHO'
+          !!    ortho_on=.false.
+          !!end if
+          !if (abs(tt)<1.d-5 .and. .not.energy_increased) then
+          if (abs(tt)<1.d-1 .and. .not.energy_increased) then
               isatur_in=isatur_in+1
           else
               isatur_in=0
           end if
-          if (ttt<1.d-4) then
+          if (abs(ttt)<1.d-4) then
               isatur_out=isatur_out+1
           else
               isatur_out=0
@@ -638,10 +655,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               stop_optimization=.true.
           end if
 
-          if (isatur_in>=3 .and. isatur_out>=3) then
-              if (iproc==0) write(*,*) 'new fixing criterion'
-              fix_supportfunctions=.true.
-          end if
+          !!if (isatur_in>=2 .and. isatur_out>=2) then
+          !!    if (iproc==0) write(*,*) 'new fixing criterion'
+          !!    fix_supportfunctions=.true.
+          !!end if
       end if
 
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
@@ -659,6 +676,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           ratio_deltas=ediff/delta_energy_prev
+          if (ldiis%switchSD) then
+              ratio_deltas=0.5d0
+              if (iproc==0) write(*,*) 'WARNING: TEMPORARY FIX for ratio_deltas!'
+          end if
           if (iproc==0) write(*,*) 'ediff, delta_energy_prev', ediff, delta_energy_prev
           if (iproc==0) write(*,*) 'ratio_deltas',ratio_deltas
           if ((ediff>deltaenergy_multiplier_TMBexit*delta_energy_prev .or. energy_increased) .and. it>1) then
@@ -707,9 +728,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (it_tot<2*nit_basis) then ! just in case the step size is the problem
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
-             if (iproc==0) write(*,'(a)') 'Energy increasing, switching off orthonormalization of tmbs'
-             ortho_on=.false.
-             alpha=alpha*5.0d0/3.0d0 ! increase alpha to make up for decrease from previous iteration
+             if (iproc==0) write(*,*) 'WARNING: SWITCHING OFF ORTHO COMMENTED'
+             !!if (iproc==0) write(*,'(a)') 'Energy increasing, switching off orthonormalization of tmbs'
+             !!ortho_on=.false.
+             !!alpha=alpha*5.0d0/3.0d0 ! increase alpha to make up for decrease from previous iteration
           end if
       end if 
 
@@ -791,6 +813,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! step, given by the product of the force and the "displacement" .
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call estimate_energy_change(tmb%npsidim_orbs, tmb%orbs, tmb%lzd, psidiff, hpsi_noprecond, delta_energy)
+          ! This is a hack...
+          if (energy_increased) then
+              delta_energy=1.d100
+              ratio_deltas=1.d100
+          end if
           if (iproc==0) write(*,*) 'delta_energy', delta_energy
           delta_energy_prev=delta_energy
       end if
