@@ -1738,6 +1738,7 @@ end subroutine estimate_energy_change
 subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   use module_base
   use module_types
+  use module_interfaces
   implicit none
 
   ! Calling arguments
