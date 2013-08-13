@@ -830,6 +830,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if(scf_mode/=LINEAR_FOE) then
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
                orbs, tmb, overlap_calculated)
+      else
+          call purify_kernel(iproc, nproc, tmb, overlap_calculated)
       end if
       if(iproc==0) then
           write(*,'(a)') 'done.'
@@ -1730,3 +1732,94 @@ subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, psidiff, hpsi_nopreco
   call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 end subroutine estimate_energy_change
+
+
+
+subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(DFT_wavefunction),intent(inout):: tmb
+  logical,intent(inout):: overlap_calculated
+
+  ! Local variables
+  integer :: istat, iall
+  real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk
+  character(len=*),parameter :: subname='purify_kernel'
+
+  ! Calculate the overlap matrix between the TMBs.
+  if(.not. overlap_calculated) then
+     if(.not.tmb%can_use_transposed) then
+         if(associated(tmb%psit_c)) then
+             iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+             deallocate(tmb%psit_c, stat=istat)
+             call memocc(istat, iall, 'tmb%psit_c', subname)
+         end if
+         if(associated(tmb%psit_f)) then
+             iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+             deallocate(tmb%psit_f, stat=istat)
+             call memocc(istat, iall, 'tmb%psit_f', subname)
+         end if
+         allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+         call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+         allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+         call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+         call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+         tmb%can_use_transposed=.true.
+     end if
+     !call timing(iproc,'renormCoefComp','OF')
+
+     call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
+          tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+
+     !call timing(iproc,'renormCoefComp','ON')
+     overlap_calculated=.true.
+  end if
+
+  allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+  allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
+  call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+  call uncompressMatrix(iproc,tmb%linmat%denskern)
+
+  allocate(ks(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
+  call memocc(istat, ks, 'ks', subname) 
+  allocate(ksk(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
+  call memocc(istat, ksk, 'ksk', subname) 
+  allocate(ksksk(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
+  call memocc(istat, ksksk, 'ksksk', subname) 
+
+  call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, &
+             tmb%linmat%ovrlp%matrix(1,1), tmb%orbs%norb, 0.d0, ks(1,1), tmb%orbs%norb) 
+  call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
+             tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, 0.d0, ksk(1,1), tmb%orbs%norb)
+  call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
+             ksk(1,1), tmb%orbs%norb, 0.d0, ksksk(1,1), tmb%orbs%norb)
+  if (iproc==0) write(*,*) 'PURIFYING THE KERNEL'
+  tmb%linmat%denskern%matrix = 3*ksk-2*ksksk
+  
+  iall = -product(shape(ks))*kind(ks)
+  deallocate(ks,stat=istat)
+  call memocc(istat, iall, 'ks', subname)
+  iall = -product(shape(ksk))*kind(ksk)
+  deallocate(ksk,stat=istat)
+  call memocc(istat, iall, 'ksk', subname)
+  iall = -product(shape(ksksk))*kind(ksksk)
+  deallocate(ksksk,stat=istat)
+  call memocc(istat, iall, 'ksksk', subname)
+
+  call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
+
+  iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
+  deallocate(tmb%linmat%ovrlp%matrix, stat=istat)
+  call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix', subname)
+  iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
+  deallocate(tmb%linmat%denskern%matrix, stat=istat)
+  call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
+
+end subroutine purify_kernel
