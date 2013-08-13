@@ -831,7 +831,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
                orbs, tmb, overlap_calculated)
       else
-          !call purify_kernel(iproc, nproc, tmb, overlap_calculated)
+          call purify_kernel(iproc, nproc, tmb, overlap_calculated)
       end if
       if(iproc==0) then
           write(*,'(a)') 'done.'
