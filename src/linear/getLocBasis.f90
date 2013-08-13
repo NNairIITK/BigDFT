@@ -831,7 +831,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
                orbs, tmb, overlap_calculated)
       else
-          call purify_kernel(iproc, nproc, tmb, overlap_calculated)
+          !call purify_kernel(iproc, nproc, tmb, overlap_calculated)
       end if
       if(iproc==0) then
           write(*,'(a)') 'done.'
@@ -1738,7 +1738,7 @@ end subroutine estimate_energy_change
 subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => purify_kernel
   implicit none
 
   ! Calling arguments
@@ -1795,6 +1795,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   allocate(ksksk(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
   call memocc(istat, ksksk, 'ksksk', subname) 
 
+  tmb%linmat%denskern%matrix=0.5d0*tmb%linmat%denskern%matrix
+
   call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, &
              tmb%linmat%ovrlp%matrix(1,1), tmb%orbs%norb, 0.d0, ks(1,1), tmb%orbs%norb) 
   call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
@@ -1802,7 +1804,21 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
              ksk(1,1), tmb%orbs%norb, 0.d0, ksksk(1,1), tmb%orbs%norb)
   if (iproc==0) write(*,*) 'PURIFYING THE KERNEL'
+  !do istat=1,tmb%orbs%norb
+  !    do iall=1,tmb%orbs%norb
+  !        write(200+iproc,*) istat, iall, tmb%linmat%denskern%matrix(iall,istat)
+  !        write(300+iproc,*) istat, iall, ks(iall,istat)
+  !        write(400+iproc,*) istat, iall, ksk(iall,istat)
+  !        write(500+iproc,*) istat, iall, ksksk(iall,istat)
+  !    end do
+  !end do
   tmb%linmat%denskern%matrix = 3*ksk-2*ksksk
+  tmb%linmat%denskern%matrix=2.0d0*tmb%linmat%denskern%matrix
+  do istat=1,tmb%orbs%norb
+      do iall=1,tmb%orbs%norb
+          write(600+iproc,*) istat, iall, tmb%linmat%denskern%matrix(iall,istat)
+      end do
+  end do
   
   iall = -product(shape(ks))*kind(ks)
   deallocate(ks,stat=istat)
