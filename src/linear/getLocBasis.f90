@@ -1747,10 +1747,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   logical,intent(inout):: overlap_calculated
 
   ! Local variables
-  integer :: istat, iall, it, lwork, info
+  integer :: istat, iall, it, lwork, info, iorb, jorb
   real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk, kernel, overlap
   real(kind=8),dimension(:),allocatable :: eval, work
   character(len=*),parameter :: subname='purify_kernel'
+  real(kind=8) :: dnrm2
 
   ! Calculate the overlap matrix between the TMBs.
   if(.not. overlap_calculated) then
@@ -1810,6 +1811,21 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   do it=1,10
 
+      if (iproc==0) then
+          do iorb=1,tmb%orbs%norb
+              do jorb=1,tmb%orbs%norb
+                  if (abs(tmb%linmat%ovrlp%matrix(iorb,jorb))-abs(tmb%linmat%ovrlp%matrix(jorb,iorb))>1.d-20) then
+                      write(*,'(a,2es18.8)') 'NOT SYMM', tmb%linmat%ovrlp%matrix(iorb,jorb), tmb%linmat%ovrlp%matrix(jorb,iorb)
+                  end if
+              end do
+          end do
+      end if
+
+      !!tmb%linmat%ovrlp%matrix=0.d0
+      !!do istat=1,tmb%orbs%norb
+      !!    tmb%linmat%ovrlp%matrix(istat,istat)=1.1d0
+      !!end do
+
       kernel=tmb%linmat%denskern%matrix
       overlap=tmb%linmat%ovrlp%matrix
 
@@ -1832,33 +1848,40 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
                  ksk(1,1), tmb%orbs%norb, 0.d0, ksksk(1,1), tmb%orbs%norb)
       if (iproc==0) write(*,*) 'PURIFYING THE KERNEL'
-      if (iproc==0) then
-          do istat=1,tmb%orbs%norb
-              do iall=1,tmb%orbs%norb
-                  write(200+iproc,*) istat, iall, tmb%linmat%denskern%matrix(iall,istat)
-                  write(300+iproc,*) istat, iall, ks(iall,istat)
-                  write(400+iproc,*) istat, iall, ksk(iall,istat)
-                  write(500+iproc,*) istat, iall, ksksk(iall,istat)
-              end do
-          end do
-      end if
+      !!if (iproc==0) then
+      !!    do istat=1,tmb%orbs%norb
+      !!        do iall=1,tmb%orbs%norb
+      !!            write(200+iproc,*) istat, iall, tmb%linmat%denskern%matrix(iall,istat)
+      !!            write(300+iproc,*) istat, iall, ks(iall,istat)
+      !!            write(400+iproc,*) istat, iall, ksk(iall,istat)
+      !!            write(500+iproc,*) istat, iall, ksksk(iall,istat)
+      !!        end do
+      !!    end do
+      !!end if
+      overlap=ksk-tmb%linmat%denskern%matrix
+      if (iproc==0) write(*,*) 'diff from idempotency', dnrm2(tmb%orbs%norb**2, overlap, 1)
       tmb%linmat%denskern%matrix = 3*ksk-2*ksksk
-      if (iproc==0) then
-          do istat=1,tmb%orbs%norb
-              do iall=1,tmb%orbs%norb
-                  write(600+iproc,*) istat, iall, tmb%linmat%denskern%matrix(iall,istat)
-              end do
-          end do
-      end if
+      !tmb%linmat%denskern%matrix = tmb%linmat%denskern%matrix/1.1d0
+      !!if (iproc==0) then
+      !!    do istat=1,tmb%orbs%norb
+      !!        do iall=1,tmb%orbs%norb
+      !!            write(600+iproc,*) istat, iall, tmb%linmat%denskern%matrix(iall,istat)
+      !!        end do
+      !!    end do
+      !!end if
+
+      !call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
+      !call uncompressMatrix(iproc,tmb%linmat%denskern)
+
   end do
   tmb%linmat%denskern%matrix=2.0d0*tmb%linmat%denskern%matrix
-  if (iproc==0) then
-      do istat=1,tmb%orbs%norb
-          do iall=1,tmb%orbs%norb
-              write(700+iproc,*) istat, iall, tmb%linmat%denskern%matrix(iall,istat)
-          end do
-      end do
-  end if 
+  !!if (iproc==0) then
+  !!    do istat=1,tmb%orbs%norb
+  !!        do iall=1,tmb%orbs%norb
+  !!            write(700+iproc,*) istat, iall, tmb%linmat%denskern%matrix(iall,istat)
+  !!        end do
+  !!    end do
+  !!end if 
   iall = -product(shape(ks))*kind(ks)
   deallocate(ks,stat=istat)
   call memocc(istat, iall, 'ks', subname)
