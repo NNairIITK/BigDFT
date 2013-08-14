@@ -365,11 +365,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
                    tmb%confdatarr(:)%prefac=input%lin%reduce_confinement_factor*tmb%confdatarr(:)%prefac
                else
-                   if (ratio_deltas<=1.d0) then
+                   if (ratio_deltas<=1.d0 .and. ratio_deltas>0.d0) then
                        if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',ratio_deltas
                        tmb%confdatarr(:)%prefac=ratio_deltas*tmb%confdatarr(:)%prefac
-                   else
+                   else if (ratio_deltas>1.d0) then
                        if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
+                       if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
+                       tmb%confdatarr(:)%prefac=0.5d0*tmb%confdatarr(:)%prefac
+                   else if (ratio_deltas<=0.d0) then
+                       if (iproc==0) write(*,*) 'WARNING: ratio_deltas<=0.d0!. Using 0.5 instead'
                        if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
                        tmb%confdatarr(:)%prefac=0.5d0*tmb%confdatarr(:)%prefac
                    end if
