@@ -1747,8 +1747,9 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   logical,intent(inout):: overlap_calculated
 
   ! Local variables
-  integer :: istat, iall, it
-  real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk
+  integer :: istat, iall, it, lwork, info
+  real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk, kernel, overlap
+  real(kind=8),dimension(:),allocatable :: eval, work
   character(len=*),parameter :: subname='purify_kernel'
 
   ! Calculate the overlap matrix between the TMBs.
@@ -1795,34 +1796,69 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   allocate(ksksk(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
   call memocc(istat, ksksk, 'ksksk', subname) 
 
+  allocate(kernel(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
+  !call memocc(istat, kernel, 'kernel', subname) 
+  allocate(overlap(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
+  !call memocc(istat, overlap, 'overlap', subname) 
+  allocate(eval(tmb%orbs%norb),stat=istat)
+  !call memocc(istat, eval, 'eval', subname) 
+  lwork=10*tmb%orbs%norb
+  allocate(work(lwork),stat=istat)
+  !call memocc(istat, work, 'work', subname) 
+
   tmb%linmat%denskern%matrix=0.5d0*tmb%linmat%denskern%matrix
 
-  do it=1,3
+  do it=1,10
 
-      call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, &
+      kernel=tmb%linmat%denskern%matrix
+      overlap=tmb%linmat%ovrlp%matrix
+
+      call dsygv(1, 'n', 'l', tmb%orbs%norb, kernel, tmb%orbs%norb, overlap, tmb%orbs%norb, eval, work, lwork, info)
+      if (info==0) then
+          if (iproc==0) then
+              write(*,*) 'eval min: ',eval(1)
+              write(*,*) 'eval max: ',eval(tmb%orbs%norb)
+          end if
+      else
+          if (iproc==0) write(*,*) 'ERROR dsygv: info=',info
+          call mpi_finalize(info)
+          stop
+      end if
+
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, &
                  tmb%linmat%ovrlp%matrix(1,1), tmb%orbs%norb, 0.d0, ks(1,1), tmb%orbs%norb) 
-      call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
                  tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, 0.d0, ksk(1,1), tmb%orbs%norb)
-      call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
                  ksk(1,1), tmb%orbs%norb, 0.d0, ksksk(1,1), tmb%orbs%norb)
       if (iproc==0) write(*,*) 'PURIFYING THE KERNEL'
-      !do istat=1,tmb%orbs%norb
-      !    do iall=1,tmb%orbs%norb
-      !        write(200+iproc,*) istat, iall, tmb%linmat%denskern%matrix(iall,istat)
-      !        write(300+iproc,*) istat, iall, ks(iall,istat)
-      !        write(400+iproc,*) istat, iall, ksk(iall,istat)
-      !        write(500+iproc,*) istat, iall, ksksk(iall,istat)
-      !    end do
-      !end do
+      if (iproc==0) then
+          do istat=1,tmb%orbs%norb
+              do iall=1,tmb%orbs%norb
+                  write(200+iproc,*) istat, iall, tmb%linmat%denskern%matrix(iall,istat)
+                  write(300+iproc,*) istat, iall, ks(iall,istat)
+                  write(400+iproc,*) istat, iall, ksk(iall,istat)
+                  write(500+iproc,*) istat, iall, ksksk(iall,istat)
+              end do
+          end do
+      end if
       tmb%linmat%denskern%matrix = 3*ksk-2*ksksk
+      if (iproc==0) then
+          do istat=1,tmb%orbs%norb
+              do iall=1,tmb%orbs%norb
+                  write(600+iproc,*) istat, iall, tmb%linmat%denskern%matrix(iall,istat)
+              end do
+          end do
+      end if
   end do
   tmb%linmat%denskern%matrix=2.0d0*tmb%linmat%denskern%matrix
-  !!do istat=1,tmb%orbs%norb
-  !!    do iall=1,tmb%orbs%norb
-  !!        write(600+iproc,*) istat, iall, tmb%linmat%denskern%matrix(iall,istat)
-  !!    end do
-  !!end do
-  
+  if (iproc==0) then
+      do istat=1,tmb%orbs%norb
+          do iall=1,tmb%orbs%norb
+              write(700+iproc,*) istat, iall, tmb%linmat%denskern%matrix(iall,istat)
+          end do
+      end do
+  end if 
   iall = -product(shape(ks))*kind(ks)
   deallocate(ks,stat=istat)
   call memocc(istat, iall, 'ks', subname)
