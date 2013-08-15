@@ -54,6 +54,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr
   real(kind=gp),dimension(:,:),allocatable :: coeff_orig
+  real(kind=8) :: deviation
 
 
   if(calculate_ham) then
@@ -82,6 +83,15 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
     
   end if
+
+  ! Temporaray: check deviation from unity
+  allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+  call deviation_from_unity(iproc, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, deviation)
+  if (iproc==0) then
+      write(*,'(a,es16.6)') 'max dev from unity', deviation
+  end if
+  deallocate(tmb%linmat%ovrlp%matrix, stat=istat)
 
   ! Post the p2p communications for the density. (must not be done in inputguess)
   if(communicate_phi_for_lsumrho) then
@@ -360,7 +370,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(3,3) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(3) :: interpol_vector, interpol_solution
   integer :: i, ist, iiorb, ilr, ii, info
-  real(kind=8) :: tt, ddot, d2e, ttt
+  real(kind=8) :: tt, ddot, d2e, ttt, energy_first
   integer,dimension(3) :: ipiv
   real(kind=8),dimension(:,:),allocatable :: psi_old
   real(kind=8),dimension(:),allocatable :: psi_tmp
@@ -519,6 +529,18 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               energs_base, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, .false., hpsi_small)
       end if
 
+      if (it_tot==1) then
+          energy_first=trH
+      end if
+      if (iproc==0) write(*,'(a,3es16.7)') 'trH, energy_first, (trH-energy_first)/energy_first', &
+                                            trH, energy_first, (trH-energy_first)/energy_first
+      if ((trH-energy_first)/energy_first>1.d-5) then
+          stop_optimization=.true.
+          if (iproc==0) write(*,'(a,3es16.7)') 'new stopping crit: trH, energy_first, (trH-energy_first)/energy_first', &
+                                                trH, energy_first, (trH-energy_first)/energy_first
+      end if
+
+
       ! NEW
 
       if (it_tot==1) then
@@ -625,7 +647,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       d2e = 2.d0*interpol_solution(1)
       tt = abs(interpol_vector(1))*(interpol_vector(1) - 2.d0*interpol_vector(2) + interpol_vector(3))
       ttt = abs(d2e_arr_out(1))*(d2e_arr_out(1) - 2.d0*d2e_arr_out(2) + d2e_arr_out(3))
-      tt=tt/dble(tmb%orbs%norb)
+      !tt=tt/dble(tmb%orbs%norb)
       ttt=ttt/dble(tmb%orbs%norb)
       if (iproc==0) write(*,'(a,2es14.5)') 'tt, ttt', tt, ttt
       if (itout>=3 .and. it >=3) then
@@ -637,7 +659,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!    ortho_on=.false.
           !!end if
           !if (abs(tt)<1.d-5 .and. .not.energy_increased) then
-          if (abs(tt)<1.d-1 .and. .not.energy_increased) then
+          !if (abs(tt)<1.d-1 .and. .not.energy_increased) then
+          if (abs(tt)<1.d-2 .and. .not.energy_increased) then
               isatur_in=isatur_in+1
           else
               isatur_in=0
@@ -651,7 +674,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               write(*,'(a,3es12.4,2i4)') 'd2e',d2e,tt, ttt, isatur_in, isatur_out
           end if
 
-          if (isatur_in>=2) then
+          !if (isatur_in>=2) then
+          if (isatur_in>=200) then
               stop_optimization=.true.
           end if
 
@@ -728,10 +752,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (it_tot<2*nit_basis) then ! just in case the step size is the problem
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
-             if (iproc==0) write(*,*) 'WARNING: SWITCHING OFF ORTHO COMMENTED'
-             !!if (iproc==0) write(*,'(a)') 'Energy increasing, switching off orthonormalization of tmbs'
-             !!ortho_on=.false.
-             !!alpha=alpha*5.0d0/3.0d0 ! increase alpha to make up for decrease from previous iteration
+             !if (iproc==0) write(*,*) 'WARNING: SWITCHING OFF ORTHO COMMENTED'
+             if (iproc==0) write(*,'(a)') 'Energy increasing, switching off orthonormalization of tmbs'
+             ortho_on=.false.
+             alpha=alpha*5.0d0/3.0d0 ! increase alpha to make up for decrease from previous iteration
           end if
       end if 
 
@@ -1809,17 +1833,17 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   tmb%linmat%denskern%matrix=0.5d0*tmb%linmat%denskern%matrix
 
-  do it=1,10
+  do it=1,3
 
-      if (iproc==0) then
-          do iorb=1,tmb%orbs%norb
-              do jorb=1,tmb%orbs%norb
-                  if (abs(tmb%linmat%ovrlp%matrix(iorb,jorb))-abs(tmb%linmat%ovrlp%matrix(jorb,iorb))>1.d-20) then
-                      write(*,'(a,2es18.8)') 'NOT SYMM', tmb%linmat%ovrlp%matrix(iorb,jorb), tmb%linmat%ovrlp%matrix(jorb,iorb)
-                  end if
-              end do
-          end do
-      end if
+      !!if (iproc==0) then
+      !!    do iorb=1,tmb%orbs%norb
+      !!        do jorb=1,tmb%orbs%norb
+      !!            if (abs(tmb%linmat%ovrlp%matrix(iorb,jorb))-abs(tmb%linmat%ovrlp%matrix(jorb,iorb))>1.d-20) then
+      !!                write(*,'(a,2es18.8)') 'NOT SYMM', tmb%linmat%ovrlp%matrix(iorb,jorb), tmb%linmat%ovrlp%matrix(jorb,iorb)
+      !!            end if
+      !!        end do
+      !!    end do
+      !!end if
 
       !!tmb%linmat%ovrlp%matrix=0.d0
       !!do istat=1,tmb%orbs%norb
@@ -1829,17 +1853,17 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       kernel=tmb%linmat%denskern%matrix
       overlap=tmb%linmat%ovrlp%matrix
 
-      call dsygv(1, 'n', 'l', tmb%orbs%norb, kernel, tmb%orbs%norb, overlap, tmb%orbs%norb, eval, work, lwork, info)
-      if (info==0) then
-          if (iproc==0) then
-              write(*,*) 'eval min: ',eval(1)
-              write(*,*) 'eval max: ',eval(tmb%orbs%norb)
-          end if
-      else
-          if (iproc==0) write(*,*) 'ERROR dsygv: info=',info
-          call mpi_finalize(info)
-          stop
-      end if
+      !!call dsygv(1, 'n', 'l', tmb%orbs%norb, kernel, tmb%orbs%norb, overlap, tmb%orbs%norb, eval, work, lwork, info)
+      !!if (info==0) then
+      !!    if (iproc==0) then
+      !!        write(*,*) 'eval min: ',eval(1)
+      !!        write(*,*) 'eval max: ',eval(tmb%orbs%norb)
+      !!    end if
+      !!else
+      !!    if (iproc==0) write(*,*) 'ERROR dsygv: info=',info
+      !!    call mpi_finalize(info)
+      !!    stop
+      !!end if
 
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, &
                  tmb%linmat%ovrlp%matrix(1,1), tmb%orbs%norb, 0.d0, ks(1,1), tmb%orbs%norb) 
