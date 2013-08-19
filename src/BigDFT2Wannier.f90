@@ -35,7 +35,7 @@ program BigDFT2Wannier
    real :: tcpu0,tcpu1
    real(kind=8) ::tel
    real(kind=8) :: znorm,xnorm,ortho,ddot
-   real(kind=8),parameter :: eps6=1.0d-6, eps8=1.0d-8
+   real(kind=8),parameter :: eps6=1.0d-6!, eps8=1.0d-8
    real(gp), dimension(:,:), pointer :: rxyz, rxyz_old
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), dimension(3) :: shift
@@ -1910,7 +1910,7 @@ subroutine radialpart(rvalue, zona, np, nx, ny, nz, ix, iy, iz, &
    real(kind=8), dimension(nx,ny,nz), intent(out) :: func_r
 
    ! local variables 
-   real(kind=8), parameter :: eps8  = 1.0e-8
+   !real(kind=8), parameter :: eps8  = 1.0e-8
    real(kind=8) :: rr
 
    rr = sqrt( xx*xx + yy*yy + zz*zz )

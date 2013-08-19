@@ -788,7 +788,7 @@ module module_interfaces
       subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
            & fxyz, fnoise, fion, fdisp, fpulay, &
            & strten, pressure, ewaldstr, xcstr, &
-           & GPU, energs, denspot, atoms, rxyz, nlpspd, proj, &
+           & GPU, denspot, atoms, rxyz, nlpspd, proj, &
            & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole)
         use module_base
         use module_types
@@ -798,7 +798,6 @@ module module_interfaces
         type(DFT_wavefunction), intent(in) :: KSwfn
         type(DFT_wavefunction), intent(inout) :: tmb
         type(GPU_pointers), intent(inout) :: GPU
-        type(energy_terms), intent(in) :: energs
         type(DFT_local_fields), intent(inout) :: denspot
         type(atoms_data), intent(in) :: atoms
         type(nonlocal_psp_descriptors), intent(inout) :: nlpspd

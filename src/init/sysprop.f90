@@ -1,7 +1,7 @@
 !> @file
 !!  Routines related to system properties
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -691,11 +691,13 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   use module_base
   use module_types
   implicit none
+  !Arguments
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: crmult, frmult, projrad
   real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
-
-  integer, parameter :: nelecmax=32,nmax=6,lmax=4
+  !Local Variables
+  integer, parameter :: nmax=6,lmax=4
+  !integer, parameter :: nelecmax=32
   character(len=2) :: symbol
   integer :: i,ityp,mxpl,mxchg,nsccode
   real(gp) :: rcov,rprb,ehomo,radfine,amu,maxrad
@@ -750,8 +752,9 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data), intent(inout) :: orbs
   !local variables
-  character(len=*), parameter :: subname='read_orbital_variables'
-  integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
+  !character(len=*), parameter :: subname='read_orbital_variables'
+  integer, parameter :: nelecmax=32,lmax=4,noccmax=2
+  !integer, parameter :: nmax=6
   logical :: exists
   integer :: iat,iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
   integer :: norbuempty,norbdempty,nelec
@@ -1020,6 +1023,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   if (verb .and. iproc == 0) call yaml_close_sequence()
 end subroutine read_orbital_variables
 
+
 subroutine read_atomic_variables(atoms, fileocc, nspin)
   use module_base
   use module_types
@@ -1030,8 +1034,9 @@ subroutine read_atomic_variables(atoms, fileocc, nspin)
   type(atoms_data), intent(inout) :: atoms
   integer, intent(in) :: nspin
   !local variables
-  character(len=*), parameter :: subname='read_atomic_variables'
-  integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
+  !character(len=*), parameter :: subname='read_atomic_variables'
+  integer, parameter :: nelecmax=32,nmax=6,lmax=4
+  !integer, parameter :: noccmax=2
   character(len=2) :: symbol
   integer :: ityp,iat,ierror,mxpl
   integer :: mxchg,nsccode
@@ -1081,9 +1086,9 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   integer, intent(in) :: ixc
   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   !local variables
-  character(len=*), parameter :: subname='print_atomic_variables'
+  !character(len=*), parameter :: subname='print_atomic_variables'
+  !integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
   logical :: nonloc
-  integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
   integer :: i,j,l,ityp,iat,natyp,mproj,inlcc
   real(gp) :: minrad
   real(gp), dimension(3,3) :: hij

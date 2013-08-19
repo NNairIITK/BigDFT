@@ -1859,7 +1859,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
   real(gp), intent(inout) :: eproj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
   !local variables
-  character(len=*), parameter :: subname='apply_atproj_iorb'
+  !character(len=*), parameter :: subname='apply_atproj_iorb'
   integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,l,i,istart_c_i,ncplx,m,j,icplx
   real(gp) :: eproj_i
   real(wp), dimension(4,7,3,4) :: cproj,dproj !<scalar products with the projectors (always assumed to be complex and spinorial)
@@ -2085,9 +2085,9 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
   type(gaussian_basis), intent(in) :: proj_G
   type(paw_objects),intent(inout)::paw
   !local variables
+  !character(len=*), parameter :: subname='apply_atproj_iorb'
   integer :: sij_opt
   integer :: ncplx
-  character(len=*), parameter :: subname='apply_atproj_iorb'
   integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   real(gp) :: eproj_i
 

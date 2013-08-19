@@ -184,7 +184,7 @@ subroutine fit_SW_potential()
    real(kind=8) :: trash_energy
    real(kind=8),dimension(3) :: invbox
    real(kind=8), parameter :: tolerance = 0.40d0
-   integer,parameter :: max_mc_steps = 20
+   !integer,parameter :: max_mc_steps = 20
    integer :: ierror
    real(kind=8) :: value,dummy
    real(kind=8) :: diff_square_force

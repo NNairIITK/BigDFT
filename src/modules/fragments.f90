@@ -244,7 +244,7 @@ contains
     !integer :: norbu, norbd, nlr, ilr, iall, iorb, istat
     !integer,dimension(:),allocatable :: norbsPerLocreg, norbsPerAtom
     !real(kind=8),dimension(:,:),allocatable :: locregCenter
-    character(len=*),parameter :: subname='init_minimal_orbitals_data'
+    !character(len=*),parameter :: subname='init_minimal_orbitals_data'
 
     call timing(iproc,'init_orbs_lin ','ON')
  

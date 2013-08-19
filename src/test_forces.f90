@@ -34,7 +34,7 @@ program test_forces
    type(atoms_data) :: atoms
    type(input_variables) :: inputs
    type(restart_objects) :: rst
-   character(len=60), parameter :: filename="list_posinp"
+   !character(len=60), parameter :: filename="list_posinp"
    character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
    character(len=60) :: run_id
    ! atomic coordinates, forces

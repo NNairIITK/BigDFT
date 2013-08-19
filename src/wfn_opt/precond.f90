@@ -142,7 +142,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
   real(wp) :: cprecr,scpr,evalmax,eval_zero,gnrm_orb
   real(gp) :: kx,ky,kz
 !!$  integer :: i_stat,i_all,ispinor,nbox
-  logical, parameter :: newp=.true.
+!!$  logical, parameter :: newp=.true.
 !!$  real(gp) :: eh_fake,monop
 !!$  real(wp), dimension(:), allocatable :: hpsir
 !!$  type(coulomb_operator) :: G_Helmholtz

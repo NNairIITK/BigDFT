@@ -24,7 +24,7 @@ subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itr
   type(locreg_descriptors), intent(in) :: lr
   real(kind=8), intent(out) :: peakmem
   !Local variables
-  character(len=*), parameter :: subname='MemoryEstimator'
+  !character(len=*), parameter :: subname='MemoryEstimator'
   real(kind=8), parameter :: eps_mach=1.d-12
   integer :: norbp,nvctrp,n1,n2,n3
   integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3

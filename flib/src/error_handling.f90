@@ -77,7 +77,7 @@
 
   !> define a new error specification and returns the corresponding error code
   !! optionally, a error-specific callback function can be defined
-  subroutine f_err_define(err_name,err_msg,err_id,err_action,callback,callback_data)
+  recursive subroutine f_err_define(err_name,err_msg,err_id,err_action,callback,callback_data)
     implicit none
     character(len=*), intent(in) :: err_name,err_msg
     integer, intent(out) :: err_id

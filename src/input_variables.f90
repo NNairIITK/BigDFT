@@ -1695,8 +1695,8 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
   type(atoms_data), intent(inout) :: atoms
   logical, intent(in) :: dump
   !local variables
+  !character(len=*), parameter :: subname='fragment_input_variables'
   logical :: exists
-  character(len=*), parameter :: subname='fragment_input_variables'
   character(len=256) :: comments
   integer :: ifrag, frag_num, ierr
 

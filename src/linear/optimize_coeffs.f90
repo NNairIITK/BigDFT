@@ -1,7 +1,7 @@
 !> @file
 !! Optimize the coefficients
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -32,7 +32,7 @@ subroutine optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   integer,dimension(:),allocatable:: ipiv
   real(8) :: tt, ddot!, tt2
   logical :: dense
-  character(len=*),parameter:: subname='optimize_coeffs'
+  character(len=*), parameter :: subname='optimize_coeffs'
 
   ! we have the kernel already, but need it to not contain occupations so recalculate here
   allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
@@ -297,7 +297,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
   real(8),dimension(:,:),allocatable:: lagmat, rhs, gradp, coeffp !, ovrlp_coeff, ovrlp_tmp
   integer,dimension(:),allocatable:: ipiv
   real(8):: tt, ddot, tt2
-  character(len=*),parameter:: subname='optimize_coeffs'
+  character(len=*), parameter :: subname='optimize_coeffs'
 
   allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, lagmat, 'lagmat', subname)
@@ -599,7 +599,7 @@ end subroutine optimize_coeffs
 !  real(8),dimension(:,:),allocatable:: lagmat, rhs, ovrlp_tmp, ovrlp_coeff, grad
 !  integer,dimension(:),allocatable:: ipiv
 !  real(8):: tt, ddot
-!  character(len=*),parameter:: subname='optimize_coeffs2'
+!  character(len=*), parameter :: subname='optimize_coeffs2'
 !
 !  allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
 !  call memocc(istat, lagmat, 'lagmat', subname)
@@ -753,7 +753,7 @@ subroutine precondition_gradient_coeff(ntmb, norb, ham, ovrlp, grad)
   complex(8),dimension(:,:),allocatable:: mat
   complex(8),dimension(:,:),allocatable:: rhs
   integer,dimension(:),allocatable:: ipiv
-  character(len=*),parameter:: subname='precondition_gradient_coeff'
+  character(len=*), parameter :: subname='precondition_gradient_coeff'
   
   allocate(mat(ntmb,ntmb), stat=istat)
   !call memocc(istat, mat, 'mat', subname)
@@ -826,7 +826,7 @@ subroutine DIIS_coeff(iproc, orbs, tmb, grad, coeff, ldiis)
   real(8),dimension(:,:),allocatable:: mat
   real(8),dimension(:),allocatable:: rhs, work
   integer,dimension(:),allocatable:: ipiv
-  character(len=*),parameter:: subname='DIIS_coeff'
+  character(len=*), parameter :: subname='DIIS_coeff'
   
   !!call timing(iproc,'optimize_DIIS ','ON')
   
@@ -982,7 +982,7 @@ subroutine initialize_DIIS_coeff(isx, ldiis)
   type(localizedDIISParameters),intent(inout):: ldiis
   
   ! Local variables
-  character(len=*),parameter:: subname='initialize_DIIS_coeff'
+  !character(len=*), parameter :: subname='initialize_DIIS_coeff'
     
   ldiis%isx=isx
   ldiis%is=0
@@ -1005,7 +1005,7 @@ subroutine allocate_DIIS_coeff(tmb, ldiis)
   
   ! Local variables
   integer:: ii, istat
-  character(len=*),parameter:: subname='allocate_DIIS_coeff'
+  character(len=*), parameter :: subname='allocate_DIIS_coeff'
 
   allocate(ldiis%mat(ldiis%isx,ldiis%isx,tmb%orbs%norbp),stat=istat)
   call memocc(istat, ldiis%mat, 'ldiis%mat', subname)

@@ -1,14 +1,14 @@
 !> @file
 !!   Routines to handle Gaussian basis set
 !! @author
-!!    Copyright (C) 2007-2011 CEA (LG)
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  Restart from gaussian functions
+!> Restart from gaussian functions
 subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
@@ -522,7 +522,6 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
 END SUBROUTINE gaussian_pswf_basis
 
 
-
 !> Create gaussian structure from ptildes   _for_paw
 subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
      iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg, iorbto_paw_nchannels, iorbto_imatrixbeg )
@@ -543,7 +542,7 @@ subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
 
   !local variables
   character(len=*), parameter :: subname='gaussian_pswf_basis_for_paw'
-  integer, parameter :: noccmax=2,lmax=4,nmax=6,nelecmax=32
+  !integer, parameter :: noccmax=2,lmax=4,nmax=6,nelecmax=32
   integer :: il, j
   integer :: i_stat,iat,ityp,jtyp,ishell,iexpo,l,i
   integer :: ig,iexpoat_qs , iexpoat_coeffs

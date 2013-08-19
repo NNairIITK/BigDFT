@@ -184,6 +184,7 @@ subroutine allocate_atoms_nat(atoms, subname)
   call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
 END SUBROUTINE allocate_atoms_nat
 
+
 !> Allocation of the arrays inside the structure atoms_data
 subroutine allocate_astruct_nat(astruct, nat, subname)
   use module_base
@@ -193,8 +194,8 @@ subroutine allocate_astruct_nat(astruct, nat, subname)
   integer, intent(in) :: nat
   character(len = *), intent(in) :: subname
   !local variables
+  !integer, parameter :: nelecmax=32
   integer :: i_stat
-  integer, parameter :: nelecmax=32
 
   astruct%nat = nat
 
@@ -214,6 +215,7 @@ subroutine allocate_astruct_nat(astruct, nat, subname)
   astruct%input_polarization(:)=100
 
 END SUBROUTINE allocate_astruct_nat
+
 
 subroutine allocate_atoms_ntypes(atoms, subname)
   use module_base

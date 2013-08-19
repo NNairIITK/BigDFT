@@ -1220,7 +1220,7 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
  real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
  !local variables
  character(len=*), parameter :: subname='morph_and_transpose'
- real(gp), parameter  :: tol=1.e-14_gp
+!!$ real(gp), parameter  :: tol=1.e-14_gp
  integer :: i_all,i_stat,nunit,m_isf,i,j,l,ms,me,k1
  real(gp) :: dt,tt,t0_l,diff
  real(gp), dimension(:), allocatable :: shf !< shift filter

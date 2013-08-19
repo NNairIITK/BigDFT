@@ -677,7 +677,8 @@ function GetBottom(atoms,nspin)
    integer, intent(in) :: nspin
    !Local variables
    character(len=*), parameter :: subname='GetBottom'
-   integer, parameter :: noccmax=2,lmax=4,nmax=6,nelecmax=32, ng=21
+   integer, parameter :: noccmax=2,lmax=4,nelecmax=32, ng=21
+   !integer, parameter :: nmax=6
 
    integer :: ity,  i_all
    real(gp) , pointer :: expo(:),  occup(:,:)
