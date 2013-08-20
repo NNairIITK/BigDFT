@@ -381,10 +381,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                !if (iproc==0) write(*,'(a,es18.8)') 'tmb%confdatarr(1)%prefac',tmb%confdatarr(1)%prefac
            end if
 
-           if (pnrm_out<1.d-9) then
-               if (iproc==0) write(*,*) 'outswitch off ortho'
-               orthonormalization_on=.false.
-           end if
+           !!if (pnrm_out<5.d-9) then
+           !!    if (iproc==0) write(*,*) 'outswitch off ortho'
+           !!    orthonormalization_on=.false.
+           !!end if
+           !!if (sum(tmb%confdatarr(:)%prefac)==0.d0) then
+           !!    if (iproc==0) write(*,*) 'WARNING: modifi nit_basis'
+           !!    nit_basis=100
+           !!end if
+           !if (iproc==0) write(*,*) 'upper bound for prefac: 1.d-5'
+           !tmb%confdatarr(:)%prefac=max(tmb%confdatarr(:)%prefac,1.d-5)
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
                reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
@@ -1116,7 +1122,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           end if
        end if
 
+    ! WARNING HACK S.M.
+    if (mean_conf<1.d-15) then
+        !if (iproc==0) write(*,*) 'WARNING MODIFY CONF'
+        !tmb%confdatarr(:)%prefac=0.d0
+        if (iproc==0) write(*,*) 'WARNING MODIFY nit_basis'
+        nit_basis=0
+    end if
+    if (pnrm_out<1.d-6) then
+        if (iproc==0) write(*,*) 'outswitch off ortho'
+        orthonormalization_on=.false.
+    end if
+
     end subroutine print_info
+
 
 end subroutine linearScaling
 

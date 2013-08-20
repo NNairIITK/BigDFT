@@ -55,6 +55,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   real(kind=gp) :: tmprtr
   real(kind=gp),dimension(:,:),allocatable :: coeff_orig
   real(kind=8) :: deviation
+  integer :: iat, iiorb, jjorb
 
 
   if(calculate_ham) then
@@ -178,6 +179,37 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       iall=-product(shape(hpsit_f))*kind(hpsit_f)
       deallocate(hpsit_f, stat=istat)
       call memocc(istat, iall, 'hpsit_f', subname)
+
+      !! experimental by SM
+      !if (iproc==0) write(*,*) 'deleting additional entries im ham.. SM'
+      !allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      !call memocc(istat, tmb%linmat%ham%matrix, 'tmb%linmat%ham%matrix', subname)
+      !call uncompressMatrix(iproc,tmb%linmat%ham)
+      !iorb=0
+      !do iat=1,at%astruct%nat
+      !    if (iproc==0) write(*,*) 'iat, at%astruct%iatype(iat)', iat, at%astruct%iatype(iat)
+      !    if (at%astruct%iatype(iat)==1) then
+      !        iiorb=4
+      !        jjorb=9
+      !    else if (at%astruct%iatype(iat)==2) then
+      !        iiorb=1
+      !        jjorb=1
+      !    else
+      !        stop 'wrong type'
+      !    end if
+      !    do i=1,jjorb
+      !        iorb=iorb+1
+      !        if (i>iiorb) then
+      !            tmb%linmat%ham%matrix(:,iorb)=0.d0
+      !            tmb%linmat%ham%matrix(iorb,:)=0.d0
+      !        end if
+      !    end do
+      !end do
+      !call compress_matrix_for_allreduce(iproc,tmb%linmat%ham)
+      !iall=-product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
+      !deallocate(tmb%linmat%ham%matrix, stat=istat)
+      !call memocc(istat, iall, 'tmb%linmat%ham%matrix', subname)
+
 
       if (scf_mode==LINEAR_FOE) then
          ! NOT ENTIRELY GENERAL HERE - assuming ovrlp is small and ham is large, converting ham to match ovrlp
@@ -376,7 +408,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),allocatable :: psi_tmp
   real(kind=8),dimension(3),save :: d2e_arr_out
   integer,save :: isatur_out
-  integer :: isatur_in
+  integer :: isatur_in, correction_orthoconstraint_local
   logical :: stop_optimization
 
 
@@ -519,6 +551,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern)
       end if
 
+      correction_orthoconstraint_local=correction_orthoconstraint
+      if(.not.ortho_on) then
+          correction_orthoconstraint_local=2
+      end if
+
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
               meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
@@ -534,7 +571,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       if (iproc==0) write(*,'(a,3es16.7)') 'trH, energy_first, (trH-energy_first)/energy_first', &
                                             trH, energy_first, (trH-energy_first)/energy_first
-      if ((trH-energy_first)/energy_first>1.d-5) then
+      if ((trH-energy_first)/energy_first>1.d-3) then
           stop_optimization=.true.
           if (iproc==0) write(*,'(a,3es16.7)') 'new stopping crit: trH, energy_first, (trH-energy_first)/energy_first', &
                                                 trH, energy_first, (trH-energy_first)/energy_first
@@ -704,6 +741,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               ratio_deltas=0.5d0
               if (iproc==0) write(*,*) 'WARNING: TEMPORARY FIX for ratio_deltas!'
           end if
+          !if (iproc==0) write(*,*) 'WARNING: HACK FOR ratio_deltas, set to 1.d0!!'
+          !if (iproc==0) write(*,*) 'WARNING: HACK FOR ratio_deltas, set to 0.5d0*(ratio_deltas+1.d0)!!'
+          !ratio_deltas=0.5d0*(ratio_deltas+1.d0)
+          !ratio_deltas=1.d0
           if (iproc==0) write(*,*) 'ediff, delta_energy_prev', ediff, delta_energy_prev
           if (iproc==0) write(*,*) 'ratio_deltas',ratio_deltas
           if ((ediff>deltaenergy_multiplier_TMBexit*delta_energy_prev .or. energy_increased) .and. it>1) then
@@ -752,10 +793,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (it_tot<2*nit_basis) then ! just in case the step size is the problem
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
-             !if (iproc==0) write(*,*) 'WARNING: SWITCHING OFF ORTHO COMMENTED'
-             if (iproc==0) write(*,'(a)') 'Energy increasing, switching off orthonormalization of tmbs'
-             ortho_on=.false.
-             alpha=alpha*5.0d0/3.0d0 ! increase alpha to make up for decrease from previous iteration
+             if (iproc==0) write(*,*) 'WARNING: SWITCHING OFF ORTHO COMMENTED'
+             !if (iproc==0) write(*,'(a)') 'Energy increasing, switching off orthonormalization of tmbs'
+             !ortho_on=.false.
+             !alpha=alpha*5.0d0/3.0d0 ! increase alpha to make up for decrease from previous iteration
           end if
       end if 
 

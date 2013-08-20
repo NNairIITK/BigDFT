@@ -161,7 +161,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp
   type(local_zone_descriptors),intent(in) :: lzd
-  type(orbitals_Data),intent(in) :: orbs
+  !type(orbitals_Data),intent(in) :: orbs
+  type(orbitals_Data),intent(inout) :: orbs !temporary inout
   type(collective_comms),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
   integer,intent(in) :: correction_orthoconstraint
@@ -217,17 +218,16 @@ call timing(iproc,'misc','ON')
      iorb = lagmat%orb_from_index(1,ii)
      jorb = lagmat%orb_from_index(2,ii)
      ii_trans=matrixindex_in_compressed(lagmat,jorb, iorb)
-
-  !do jorb=1,orbs%norb
-     !do iorb=1,orbs%norb
-          !ii_trans = matrixindex_in_compressed(lagmat,jorb, iorb)
-          !ii = matrixindex_in_compressed(lagmat,iorb, jorb)
-          !if (ii==0.or.ii_trans==0) cycle
-          tmp_mat_compr(ii)=-0.5d0*lagmat%matrix_compr(ii) &
-               -0.5d0*lagmat%matrix_compr(ii_trans)
-          !tmp_mat%matrix_compr(ii)=-0.5d0*lagmat%matrix_compr(ii) &
-          !     -0.5d0*lagmat%matrix_compr(ii_trans)
-      !end do
+     tmp_mat_compr(ii)=-0.5d0*lagmat%matrix_compr(ii)-0.5d0*lagmat%matrix_compr(ii_trans)
+     ! SM: This is a hack, should use another variable
+     if (correction_orthoconstraint==2) then
+         if (iorb/=jorb) then
+             tmp_mat_compr(ii)=0.d0
+         end if
+     end if
+     if (iorb==jorb) then
+         orbs%eval(iorb)=lagmat%matrix_compr(ii)
+     end if
   end do
 
   allocate(lagmat_tmp_compr(lagmat%nvctr), stat=istat) ! save cf doing sparsecopy
