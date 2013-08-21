@@ -2520,7 +2520,7 @@ subroutine write_fraction_string(l,occ,string,nstring)
    end if
 else
    nstring=5
-   write(string,'(1x,f4.2)')occ
+   write(string,'(1x,f4.2)') occ
 end if
 
 END SUBROUTINE write_fraction_string

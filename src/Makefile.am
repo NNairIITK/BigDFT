@@ -319,7 +319,7 @@ xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 geometry.o bfgs.o sdcg.o: lbfgs.o
 
-#initAndUtils.o: cleanup.o
+initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 
 # Introspection for Python bindings
 # ---------------------------------

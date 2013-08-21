@@ -75,8 +75,10 @@
     call dict_free(dict_present_error)
   end subroutine f_err_finalize
 
-  !> define a new error specification and returns the corresponding error code
+  !> Define a new error specification and returns the corresponding error code
   !! optionally, a error-specific callback function can be defined
+  !! @warning
+  !!   gfortran complains on runtime (with option -Wextra) that this routine is recursive.
   recursive subroutine f_err_define(err_name,err_msg,err_id,err_action,callback,callback_data)
     implicit none
     character(len=*), intent(in) :: err_name,err_msg
