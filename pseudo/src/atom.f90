@@ -132,7 +132,6 @@ program ae_atom
        open(unit=50,file='psppar',form='formatted',position='append')
 
 !      begin main loop
-
  20    continue
 
 !      read input data
@@ -292,8 +291,7 @@ program ae_atom
 !      end of iteration loop
  100   continue
 
-       write(6,110) dvmax,xmixo
- 110   format(/,34h potential not converged - dvmax =,1pe11.4,9h  xmixo = ,0pf6.3)
+       write(6,'(/," potential not converged - dvmax =",1pe11.4,"  xmixo = ",0pf6.3)') dvmax,xmixo
        call ext(1)
 
 !      find total energy
@@ -307,8 +305,7 @@ program ae_atom
 
        nconf = nconf + 1
        econf(nconf) = etot(10)
-       if (nconf /= 1) write(6,130) etot(10)-econf(1)
- 130   format(//,28h excitation energy         =,f18.8,/,1x,45('-'))
+       if (nconf /= 1) write(6,'(//," excitation energy         =",f18.8,/,1x,45("-"))') etot(10)-econf(1)
        name_old = nameat
        iXC_old = iXC
        itype_old = itype
@@ -362,7 +359,7 @@ program ae_atom
 
 !     and input.pseudo
       open(unit=60,file='input.pseudo',position='append')
-      write(60,'(a)') "input line written by atom: -plot -ng 20 -rij 2.0"
+      write(60,'(a)') 'input line written by atom: -plot -ng 20 -rij 2.0'
       close(unit=60)
 
 
@@ -407,8 +404,7 @@ subroutine prdiff(nconf,econf)
        end if
        write(6,*)
        write(6,*) '---------------------------------------------'
-       write(6,10) (i,i=0,nconf-1)
- 10    format(25h Total energy differences,//,2x,19i9)
+       write(6,'(" Total energy differences",//,2x,19i9)') (i,i=0,nconf-1)
        do i=1,nconf
           write(6,'(1x,i2,1x,19f9.5)') i-1,(0.5d0*(econf(i)-econf(j)),j=1,i)
        end do
@@ -508,30 +504,26 @@ subroutine etotal( &
        il(4) = 'f'
        il(5) = 'g'
        write(6,*)
-       write(6,20) nameat
- 20    format(a3,25h output data for orbitals,/,1x,27('-'),//,  &
-       17h nl    s      occ,9x,'eigenvalue',4x,14hkinetic energy,  &
-       6x,'pot energy'/)
+       write(6,'(a3," output data for orbitals",/,1x,27("-"),//, &
+       & " nl    s      occ",9x,"eigenvalue",4x,"kinetic energy  ",6x,"pot energy",/)') nameat
        do i=1,norb
 !         c.hartwig give energies in hartree
           ev(i) = ev(i) - vshift
           ep(i) = ep(i) - vshift
-          write(6,30) no(i),il(lo(i)+1),so(i),zo(i),&
-               ev(i)/2,ek(i)/2,ep(i)/2
- 30       format(1x,i1,a1,f6.1,f10.4,3f17.8)
+          write(6,'(1x,i1,a1,f6.1,f10.4,3f17.8)') no(i),il(lo(i)+1),so(i),zo(i),&
+                              ev(i)/2.d0,ek(i)/2.d0,ep(i)/2.d0
        end do
 !      c.hartwig give energies in hartree; no virial correction
-       write(6,50) (etot(i)*.5d0,i=1,5), (etot(i)*.5d0,i=7,10)
- 50    format(//,15h total energies,/,1x,14('-'),/,  &
-       /,28h sum of eigenvalues        =,f18.8,  &
-       /,28h kinetic energy from ek    =,f18.8,  &
-       /,28h el-ion interaction energy =,f18.8,  &
-       /,28h el-el  interaction energy =,f18.8,  &
-       /,28h vxc    correction         =,f18.8,  &
-       /,28h exchange + corr energy    =,f18.8,  &
-       /,28h kinetic energy from ev    =,f18.8,  &
-       /,28h potential energy          =,f18.8,/,1x,45('-'),  &
-       /,28h total energy              =,f18.8)
+       write(6,'(//," total energies",/,1x,14("-"),/,  &
+       & /," sum of eigenvalues        =",f18.8,  &
+       & /," kinetic energy from ek    =",f18.8,  &
+       & /," el-ion interaction energy =",f18.8,  &
+       & /," el-el  interaction energy =",f18.8,  &
+       & /," vxc    correction         =",f18.8,  &
+       & /," exchange + corr energy    =",f18.8,  &
+       & /," kinetic energy from ev    =",f18.8,  &
+       & /," potential energy          =",f18.8,/,1x,45("-"),  &
+       & /," total energy              =",f18.8)') (etot(i)*.5d0,i=1,5), (etot(i)*.5d0,i=7,10)
 
 end subroutine etotal
 
@@ -671,25 +663,21 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
 
 !      let us try this
        if (iter .gt. 3 .and. abs(zel-s1(nr)) .gt. 0.01d0) then
-         if (zel .lt. s1(nr)+1.0 ) then
-           write(6,24) iter,xnorm
- 24    format(/,' warning *** charge density rescaled in',  &
-       ' velect',/,' iteration number',i4,3x,  &
-       'scaling factor =',f6.3,/)
+         if (zel .lt. s1(nr)+1.d0 ) then
+           write(6,'(/," warning *** charge density rescaled in",  &
+             & " velect",/," iteration number",i4,3x,"scaling factor =",f6.3,/)') iter,xnorm
          else
            xnorm=.99d0*xnorm
-           write(6,25) iter,xnorm
- 25    format(/,' warning *** charge density partially rescaled in',  &
-       ' velect',/,' iteration number',i4,3x,  &
-       'scaling factor =',f6.3,/)
+           write(6,'(/," warning *** charge density partially rescaled in",  &
+             & " velect",/," iteration number",i4,3x,"scaling factor =",f6.3,/)') iter,xnorm
          endif
        endif
 
 !      rather than:
-!      if (iter .gt. 0 .and. abs(zel-s1(nr)) .gt. 0.01d0)
-!    1 write(6,25) iter,xnorm
-!25    format(/,46h warning *** charge density rescaled in velect,
-!    1 /,17h iteration number,i4,3x,16hscaling factor =,g10.3,/)
+!      if (iter .gt. 0 .and. abs(zel-s1(nr)) .gt. 0.01d0) then
+!         write(6,'(/,46h," warning *** charge density rescaled in velect", &
+!         /,17h," iteration number",i4,3x,16h,"scaling factor =",g10.3,/)') iter,xnorm
+!      end if
 
 
 !      compute new hartree potential
@@ -873,7 +861,6 @@ subroutine input(itype,iXC,ispp,  &
        !Local variables
        integer, dimension(15), parameter :: nc = (/ 1,2,2,3,3,3,4,4,4,4,5,5,5,6,6 /)
        integer, dimension(15), parameter :: lc = (/ 0,0,1,0,1,2,0,1,2,3,0,1,2,0,1 /)
-       character(len=1), dimension(5), parameter :: spdf = (/ 's','p','d','f','g' /)
        character(len=1), parameter :: blank = ' '
        logical, parameter :: debug = .false.      !< Debug flag
 
@@ -981,7 +968,7 @@ subroutine input(itype,iXC,ispp,  &
 !     rcov exactly (r(i) is used in this part only for that)
       do i=1,nrmax
          if (i == nrmax) then
-            write(6,50)
+            write(6,'(/," error in input - arraylimits", " for radial array exceeded",/)')
             stop 'input two'
          endif
          ! For i = 0 r(i) = 0
@@ -1001,8 +988,7 @@ subroutine input(itype,iXC,ispp,  &
       !Build all integration grids (r, rab, rw and rd)
       do i=1,nrmax
          if (i == nrmax) then
-            write(6,50)
- 50         format(/,' error in input - arraylimits', ' for radial array exceeded',/)
+            write(6,'(/," error in input - arraylimits", " for radial array exceeded",/)')
             call ext(100)
          endif
         r(i) = a*(exp(b*(i-1))-1)
@@ -1085,6 +1071,7 @@ subroutine input(itype,iXC,ispp,  &
        end do
 
        ncore = norb
+
  85    continue
        norb = ncore
 !      end of core orbital energies and occupations
@@ -1139,19 +1126,18 @@ subroutine input(itype,iXC,ispp,  &
 !      abort if two orbitals are equal
 
        if (norb .le. 0) call ext(110)
-       do 101 i = 1, (norb - 1)
-          do 100 j = (i + 1),norb
-            if (no(i) == no(j) .and. lo(i) == lo(j)) then
-               if (abs(so(i)-so(j)) .lt. 1.0D-3) then
-                  print*,'i,no(i),lo(i),so(i):',i,no(i),lo(i),so(i)
-                  print*,'j,no(j),lo(j),so(j):',j,no(j),lo(j),so(j)
-
-                  call ext(110+i)
-               endif
-             endif
- 100      continue
+       do i = 1, (norb - 1)
+          do j = (i + 1),norb
+             if (no(i) == no(j) .and. lo(i) == lo(j)) then
+                if (abs(so(i)-so(j)) < 1.0d-3) then
+                   write(*,'(1x,a,3(i0,1x),f6.1)') 'i,no(i),lo(i),so(i):',i,no(i),lo(i),so(i)
+                   write(*,'(1x,a,3(i0,1x),f6.1)') 'j,no(j),lo(j),so(j):',j,no(j),lo(j),so(j)
+                   call ext(110+i)
+                endif
+              endif
+          end do
           ! print*,'i,no(i),lo(i),so(i):',i,no(i),lo(i),so(i)
- 101   continue
+       end do
 
  105   continue
        zion = znuc - zcore - zval
@@ -1162,56 +1148,50 @@ subroutine input(itype,iXC,ispp,  &
        zel = zval
        zel=zel+zcore
 
-       write(6,120) nameat
- 120   format(1x,a2,' all electron calculation  '/,1x,27('-'),/)
-       if (ispp == 'r') write(6,150)
- 150   format(' r e l a t i v i s t i c ! !'/)
+       write(6,'(1x,a2," all electron calculation  ",/,1x,27("-"),/)') nameat
+       if (ispp == 'r') write(6,'(" r e l a t i v i s t i c ! !",/)')
        name = '   '
        if (ispp /= 's') name = 'non'
-       write(6,160) iXC,name
- 160   format(' iXC = ',i7,3x,a3,' spin-polarized'/)
-       write(6,170) znuc,ncore,nval,zel,zion
- 170   format(' nuclear charge             =',f10.6,/,  &
-              ' number of core orbitals    =',i3,/,  &
-              ' number of valence orbitals =',i3,/,  &
-              ' electronic charge          =',f10.6,/,  &
-              ' ionic charge               =',f10.6,//)
-      write(6,180)
+       write(6,'(" iXC = ",i7,3x,a3," spin-polarized",/)') iXC,name
+       write(6, &
+            '(" nuclear charge             =",f10.6,/,  &
+            & " number of core orbitals    =",i3,/,  &
+            & " number of valence orbitals =",i3,/,  &
+            & " electronic charge          =",f10.6,/,  &
+            & " ionic charge               =",f10.6,//)') znuc,ncore,nval,zel,zion
 
-      write(6,*)' Using LDA for generating the input guess wfn'
+      write(6,'(" input data for orbitals",//,"  i    n    l    s     j     occ",/)')
+
+      write(6,'(a)') ' Using LDA for generating the input guess wfn'
       call libxc_functionals_init(-20,nspol)
+
 !     write(6,*)' initializing libXC with iXC=',iXC,'spin',nspol
 !     call libxc_functionals_init(iXC,nspol)
 
-
- 180  format(' input data for orbitals'//,  &
-              '  i    n    l    s     j     occ'/)
       xji = 0.d0
       do i=1,norb
          if (ispp == 'r') xji = lo(i) + so(i)
-         write(6,190) i,no(i),lo(i),so(i),xji,zo(i)
- 190     format(1x,i2,2i5,2f6.1,f10.4)
+         write(6,'(1x,i2,2i5,2f6.1,f10.4)') i,no(i),lo(i),so(i),xji,zo(i)
       end do
-      write(6,210) r(2),nr,r(nr),aa,bb
- 210  format(//,' radial grid parameters',//,  &
-       ' r(1) = .0 , r(2) =',1pe13.6,' , ... , r(',i4,') =',0pf12.8,  &
-       /,' a =',f12.8,'  b =',f12.8,/)
+
+      write(6,'(//," radial grid parameters",//," r(1) = .0 , r(2) =",1pe13.6," , ... , r(",&
+         &      i4,") =",0pf12.8,/," a =",f12.8,"  b =",f12.8,/)') r(2),nr,r(nr),aa,bb
+
       irel   = 'nrl'
       if (ispp == 'r') irel = 'rel'
       if (ispp == 's') irel = 'spp'
-!      do 25 i = 1, norb
-!        write (text(i),24) no(i),spdf(lo(i)+1),so(i),zo(i),irel
-!24      format (1x,i1,a,' s=',f4.1,' (occ=',f6.3,') ',a)
-!25      continue
+!      do i = 1, norb
+!        write(text(i),'(1x,i1,a," s=",f4.1," (occ=",f6.3,") ",a)') no(i),spdf(lo(i)+1),so(i),zo(i),irel
+!      end do
       return
 
        !Error of reading
  998   continue
-       write(6,*) 'Error while reading atom.dat'
+       write(6,'(1x,a)') 'Error while reading atom.dat'
        stop
        !Error: end of file
  999   continue
-       write(6,*) 'Reached end of file atom.dat'
+       write(6,'(1x,a)') 'Reached end of file atom.dat'
        !itype gives and error code
        itype='st'
 end subroutine input
@@ -1287,9 +1267,8 @@ double precision function charge(name)
              return
           endif
        end do
-       write (6,160) name,elemnt,ic
-160    format (' could not locate name in list of elements:'/  &
-       ' name=',a,' converted to=',a,' ascii codes=',2i3)
+       write(6,'(" could not locate name in list of elements:",/," name=",a," converted to=",a, &
+          &       " ascii codes=",2i3)') name,elemnt,ic
        call ext (200)
 end function charge
 
@@ -1345,12 +1324,12 @@ subroutine dsolv1( &
              do 20 k=1,norb
                 if (no(k) <= 0) goto 20
                 if (lo(k) /= j-1) goto 20
-                if ((so(k)-0.1d0)*(real(i,kind=8)-1.5d0) .lt. 0.d0) goto 20
+                if ((so(k)-0.1d0)*(real(i,kind=8)-1.5d0) < 0.d0) goto 20
                 nmax(i,j)=no(k)
-                if (no(k)*(nr-1) .gt. nvmax) then
-                  print *,no(k),nr-1
+                if (no(k)*(nr-1) > nvmax) then
+                  write(*,'(2(1x,i0))') no(k),nr-1
                   !Max dimension of z used by tinvit
-                  write(*,*) no(k)*(nr-1)," > ",nvmax
+                  write(*,'(1x,i0,a,i0)') no(k)*(nr-1)," > ",nvmax
                   call ext(500)
                 end if
  20    continue
@@ -1393,19 +1372,15 @@ subroutine dsolv1( &
 
              eps = -1.d0
              ! Find eigenvalues of a tridiagonal symmetric matrix between specific boundary indices using bisection
-             call tridib(nrm,eps,d,sd,sd2,bl,bu,1,nmax(i,j),e,ind,ierr,  &
-                rv4,rv5)
-             if (ierr /= 0) write(6,50) ierr
-       50    format(/,21h ****** error  ierr =,i3,/)
+             call tridib(nrm,eps,d,sd,sd2,bl,bu,1,nmax(i,j),e,ind,ierr, rv4,rv5)
+             if (ierr /= 0) write(6,'(/," ****** error  ierr =",i3,/)') ierr
              !Warning: z(nrm,nmax(i,j))
              ! Find eigenvectors of a tridiagonal symmetric matrix corresponding 
              ! to specified eigenvalues, using inverse iteration.
-             call tinvit(nrm,nrm,d,sd,sd2,nmax(i,j),e,ind,z,ierr,  &
-                rv1,rv2,rv3,rv4,rv5)
-             if (ierr /= 0) write(6,50) ierr
+             call tinvit(nrm,nrm,d,sd,sd2,nmax(i,j),e,ind,z,ierr, rv1,rv2,rv3,rv4,rv5)
+             if (ierr /= 0) write(6,'(/," ****** error  ierr =",i3,/)') ierr
 
       !      save energy levels and add to charge density
-
              ki = 1
              kn = 0
              do 70 k=1,norb
@@ -1652,15 +1627,12 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
       emin = -200000.0d0
       if (ev(iorb) .gt. emax) ev(iorb) = emax
  10   continue
-      if (itmax < 2) write(6,15) iorb,iter,ev(iorb),nodes
- 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i4)
+      if (itmax < 2) write(6,'(" iorb =",i3," iter =",i3," ev =",1pe18.10," nodes =",i4)') iorb,iter,ev(iorb),nodes
       if (itmax == 0) return
       if (ev(iorb) > 0.d0) then
-        write(6,1000) iorb
+        write(6,'(//," error in difnrl - ev(",i2,") greater then v(infinty)")') iorb
         stop 'difnrl one'
       endif
- 1000 format(//,' error in difnrl - ev(',i2,  &
-       ') greater then v(infinty)')
 
 !   find practical infinity ninf and classical turning
 !   point nctp for orbital
@@ -1685,22 +1657,20 @@ subroutine difnrl(iter,iorb,v,ar,br,lmax,  &
         ev(iorb) = 0.9d0*ev(iorb)
         if (icount .gt. 100) then
           write(*,*)
-          write(6,1010) iorb
+          write(6,'(//,"error in difnrl - cannot find the classical ",/" turning point for orbital ",i2)') iorb
           stop 'difnrl two'
         endif
         goto 20
       endif
- 1010 format(//,'error in difnrl - cannot find the classical '  &
-       ,/' turning point for orbital ',i2)
 
 !   outward integration from 1 to nctp
 !   startup
 
       bb = (vzero-ev(iorb))/(4*lp+2)
-      do 35 j=2,5
-        ar(j) = rlp(j) * (1+(aa+bb*r(j))*r(j))
-        br(j) = rabrlo(j) * (lp+(aa*(lp+1)+bb*(lp+2)*r(j))*r(j))
- 35   continue
+      do j=2,5
+         ar(j) = rlp(j) * (1+(aa+bb*r(j))*r(j))
+         br(j) = rabrlo(j) * (lp+(aa*(lp+1)+bb*(lp+2)*r(j))*r(j))
+      end do
 
 !    Predictor-corrector array added.
 
@@ -1990,26 +1960,24 @@ subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
       ! set the underflow trap
       juflow=1
       do j=2,nr
-         if (s*abs(log(r(j))) .ge. expzer/2) juflow = j
+         if (s*abs(log(r(j))) .ge. expzer/2.d0) juflow = j
       end do
 
 
       emax = 0.0d0
       emin = -100000.0d0
-      if (ev(iorb) .gt. emax) ev(iorb) = emax
+      if (ev(iorb) > emax) ev(iorb) = emax
 
  10   continue
-      if (itmax .lt. 2) write(6,15) iorb,iter,ev(iorb),nodes
- 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i4)
+      if (itmax < 2) write(6,'(" iorb =",i3," iter =",i3," ev =",1pe18.10," nodes =",i4)') iorb,iter,ev(iorb),nodes
 
       !Too many iterations !!
       if (itmax == 0) return
 
       if (ev(iorb) .gt. 0.d0) then
-        write(6,1000) iorb
+        write(6,'(//," error in difrel - ev(",i2,") greater then v(infinty)")') iorb
         stop 'difrel one'
       endif
- 1000 format(//,' error in difrel - ev(',i2,') greater then v(infinty)')
 
 !  Find practical infinity ninf and classical turning
 !  point nctp for orbital.
@@ -2192,21 +2160,21 @@ subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
 !  outward integration.
 
       factor = arout/arin
-      do 90 j=nctp,ninf
-        ar(j) = factor * ar(j)
-        br(j) = factor * br(j)
- 90   continue
+      do j=nctp,ninf
+         ar(j) = factor * ar(j)
+         br(j) = factor * br(j)
+      end do
       arpin = factor * arpin
 
 !  Find the normalizing factor.
 
       factor = 0.0d0
       ll = 4
-      do 100 j=2,ninf
-        factor = factor + ll*(ar(j)*ar(j)+br(j)*br(j))*rab(j)
-        ll = 6 - ll
- 100  continue
-      factor = factor / 3
+      do j=2,ninf
+         factor = factor + ll*(ar(j)*ar(j)+br(j)*br(j))*rab(j)
+         ll = 6 - ll
+      end do
+      factor = factor / 3.d0
 
 !  Modify the eigenvalue ev.
 
@@ -2256,7 +2224,6 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
        real(kind=8), intent(in) :: znuc,zcore, rcov,rprb
        real(kind=8), intent(out) :: dcrc, ddcrc
        !Local variables
-       real(kind=8), parameter :: pi = 4.d0*atan(1.d0)
        real(kind=8), dimension(10) :: rzero,rextr,aextr,bextr
        character(len=10) :: name
        character(len=30) :: plotfile,orbname
@@ -2288,13 +2255,13 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
        nextr = 0
        rzero(1) = 0.d0
        arp = br(2)
-       if (ispp == 'r' .and. so(iorb) .lt. 0.1d0) &
-          arp = ka*ar(2)/r(2) + (ev(iorb) - viod(lp,2)/r(2) - vid(2) + ai*ai) * br(2) / ai
-       if (ispp == 'r' .and. so(iorb) .gt. 0.1d0) &
-          arp = ka*ar(2)/r(2) + (ev(iorb) - viou(lp,2)/r(2) - viu(2) + ai*ai) * br(2) / ai
+       if (ispp == 'r' .and. so(iorb) < 0.1d0) &
+             arp = ka*ar(2)/r(2) + (ev(iorb) - viod(lp,2)/r(2) - vid(2) + ai*ai) * br(2) / ai
+       if (ispp == 'r' .and. so(iorb) > 0.1d0) &
+             arp = ka*ar(2)/r(2) + (ev(iorb) - viou(lp,2)/r(2) - viu(2) + ai*ai) * br(2) / ai
        do 20 i=3,nr
           if (nextr .ge. no(iorb)-lo(iorb)) goto 30
-          if (ar(i)*ar(i-1) .gt. 0.d0) goto 10
+          if (ar(i)*ar(i-1) > 0.d0) goto 10
 
           ! zero
           nzero = nzero + 1
@@ -2302,11 +2269,11 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
  10       continue
           arpm = arp
           arp = br(i)
-          if (ispp == 'r' .and. so(iorb) .lt. 0.1d0) &
-             arp = ka*ar(i)/r(i) + (ev(iorb) - viod(lp,i)/r(i) - vid(i) + ai*ai) * br(i) / ai
-          if (ispp == 'r' .and. so(iorb) .gt. 0.1d0) &
-             arp = ka*ar(i)/r(i) + (ev(iorb) - viou(lp,i)/r(i) - viu(i) + ai*ai) * br(i) / ai
-          if (arp*arpm .gt. 0.d0) goto 20
+          if (ispp == 'r' .and. so(iorb) < 0.1d0) &
+                arp = ka*ar(i)/r(i) + (ev(iorb) - viod(lp,i)/r(i) - vid(i) + ai*ai) * br(i) / ai
+          if (ispp == 'r' .and. so(iorb) > 0.1d0) &
+                arp = ka*ar(i)/r(i) + (ev(iorb) - viou(lp,i)/r(i) - viu(i) + ai*ai) * br(i) / ai
+          if (arp*arpm > 0.d0) goto 20
 
           ! extremum
           nextr = nextr + 1
@@ -2358,42 +2325,42 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 !       iextr = 1
 !       delg = 0.2d0*pi/r(i90)
 !       do 60 i=1,100
-!       g = delg * (i-1)
-!       cg(i) = 0.d0
-!       if (i == 1 .and. lp /= 1) goto 60
-!       ll = 4
-!       do 50 j=2,nr
-!       rg = r(j) * g
-!       bsl = 1.d0
-!       if (i  /= 1) bsl = sin(rg) / rg
-!       if (lp == 2) bsl = (bsl - cos(rg)) / rg
-!       if (lp == 3) bsl = 3.d0 * (bsl - cos(rg)) / rg**2 -  bsl
-!       cg(i) = cg(i) + ll * r(j) * ar(j) * bsl * rab(j)
-!       ll = 6 - ll
-! 50    continue
-!       cg(i) = cg(i) / (6.d0*pi**2)
-!c      write(6,'(2i3,3f13.6)') lo(iorb),i,g,cg(i),cg(i)*g**2
-!       if (i == 1) goto 60
-
-!      find extremum
-
-!       if (abs(cg(i)) .gt. abs(cg(iextr))) iextr = i
-!       if (i == 2) goto 60
-
-!      zero
-
-!       if (cg(i)*cg(i-1) .gt. 0.d0) goto 60
-
-!      zero found - update arrays
-
-!       if (i-iextr .lt. 4) goto 70
-!       kzero = kzero + 1
-!       gzero(kzero) = delg*(cg(i)*(i-2)-cg(i-1)*(i-1))/(cg(i)-cg(i-1))
-!       kextr = kextr + 1
-!       cextr(kextr) = Dlog10(abs(cg(iextr)))
-!       gextr(kextr) = delg * (iextr-1)
-!       if (kextr == 5) goto 70
-!       iextr = i
+!          g = delg * (i-1)
+!          cg(i) = 0.d0
+!          if (i == 1 .and. lp /= 1) goto 60
+!          ll = 4
+!          do j=2,nr
+!             rg = r(j) * g
+!             bsl = 1.d0
+!             if (i  /= 1) bsl = sin(rg) / rg
+!             if (lp == 2) bsl = (bsl - cos(rg)) / rg
+!             if (lp == 3) bsl = 3.d0 * (bsl - cos(rg)) / rg**2 -  bsl
+!             cg(i) = cg(i) + ll * r(j) * ar(j) * bsl * rab(j)
+!             ll = 6 - ll
+!          end do
+!          cg(i) = cg(i) / (6.d0*pi**2)
+!          write(6,'(2i3,3f13.6)') lo(iorb),i,g,cg(i),cg(i)*g**2
+!          if (i == 1) goto 60
+           
+!          !find extremum
+           
+!          if (abs(cg(i)) .gt. abs(cg(iextr))) iextr = i
+!          if (i == 2) goto 60
+           
+!          !zero
+           
+!          if (cg(i)*cg(i-1) .gt. 0.d0) goto 60
+           
+!          !zero found - update arrays
+           
+!          if (i-iextr .lt. 4) goto 70
+!          kzero = kzero + 1
+!          gzero(kzero) = delg*(cg(i)*(i-2)-cg(i-1)*(i-1))/(cg(i)-cg(i-1))
+!          kextr = kextr + 1
+!          cextr(kextr) = Dlog10(abs(cg(iextr)))
+!          gextr(kextr) = delg * (iextr-1)
+!          if (kextr == 5) goto 70
+!          iextr = i
 ! 60    continue
 !       kextr = kextr + 1
 !       cextr(kextr) = Dlog10(abs(cg(iextr)))
@@ -2402,28 +2369,26 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 !      printout
 
 !      vshift=-15.d0
-! 70    if (iorb .lt. ncore) return
-!       write(6,80) no(iorb),lo(iorb),so(iorb)
-! 80    format(/' n =',i2,'  l =',i2,'  s =',f4.1)
-!       write(6,90)  (ev(iorb)-vshift)/2.,ek(iorb)/2.,ep(iorb)/2.
-! 90    format(8x,'ev =',1pe15.8,'  ek =',1pe14.8,'  ep =',1pe15.8)
-!       name = 'a extr    '
-!       write(6,100) name,(aextr(i),i=1,nextr)
-!       name = 'b extr    '
-!       if (ispp == 'r') write(6,100) name,(bextr(i),i=1,nextr)
-!       name = 'r extr    '
-!       write(6,100) name,(rextr(i),i=1,nextr)
-!       name = 'r zero    '
-!       write(6,100) name,(rzero(i),i=1,nzero)
-!       name = 'r 90/99 % '
-!       write(6,100) name,r(i90),r(i99)
-!       name = 'c extr lg '
-!       write(6,100) name,(cextr(i),i=1,kextr)
-!       name = 'g extr    '
-!       write(6,100) name,(gextr(i),i=1,kextr)
-!       name = 'g zero    '
-!       write(6,100) name,(gzero(i),i=1,kzero)
-! 100   format(8x,a10,8f8.3)
+! 70   continue
+!      if (iorb .lt. ncore) return
+!      write(6,'(/" n =",i2,"  l =",i2,"  s =",f4.1)') no(iorb),lo(iorb),so(iorb)
+!      write(6,'(8x,"ev =",1pe15.8,"  ek =",1pe14.8,"  ep =",1pe15.8)') (ev(iorb)-vshift)/2.,ek(iorb)/2.,ep(iorb)/2.
+!      name = 'a extr    '
+!      write(6,'(8x,a10,8f8.3)') name,(aextr(i),i=1,nextr)
+!      name = 'b extr    '
+!      if (ispp == 'r') write(6,'(8x,a10,8f8.3)') name,(bextr(i),i=1,nextr)
+!      name = 'r extr    '
+!      write(6,'(8x,a10,8f8.3)') name,(rextr(i),i=1,nextr)
+!      name = 'r zero    '
+!      write(6,'(8x,a10,8f8.3)') name,(rzero(i),i=1,nzero)
+!      name = 'r 90/99 % '
+!      write(6,'(8x,a10,8f8.3)') name,r(i90),r(i99)
+!      name = 'c extr lg '
+!      write(6,'(8x,a10,8f8.3)') name,(cextr(i),i=1,kextr)
+!      name = 'g extr    '
+!      write(6,'(8x,a10,8f8.3)') name,(gextr(i),i=1,kextr)
+!      name = 'g zero    '
+!      write(6,'(8x,a10,8f8.3)') name,(gzero(i),i=1,kzero)
 
 !------Machine dependent parameter-
 !------Require exp(-2*expzer) to be within the range of the machine
@@ -2485,15 +2450,15 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
          end do
          call splift(ttx,tty,ttyp,ttypp,npoint,ttw,ierr,isx,  &
               a1,b1,an,bn)
-         if(ierr/=1) write(6,*)'SPLIFT ERROR!' !stop 'spliq'
+         if(ierr/=1) write(6,'(a)') 'SPLIFT ERROR!' !stop 'spliq'
 !         ttxup=ttx(ircov)
 !         call spliq(ttx,tty,ttyp,ttypp,npoint,ttxlo,ttxup,1,cmin,ierr)
 !         if(ierr/=1) stop 'spliq'
-!         print*,'crcov+cmin:',crcov+cmin
+!         write(*,*) 'crcov+cmin:',crcov+cmin
          ttxup=ttx(ninf)
          call spliq(ttx,tty,ttyp,ttypp,npoint,ttxlo,ttxup,1,cmin,ierr)
-         if(ierr/=1) write(6,*)'SPLIQ ERROR!' !stop 'spliq'
-!         print*,'crcov+cmin:',crcov+cmin
+         if(ierr/=1) write(6,'(a)') 'SPLIQ ERROR!' !stop 'spliq'
+!         write(*,*) 'crcov+cmin:',crcov+cmin
          crcov=crcov+cmin
       endif
 
@@ -2560,33 +2525,29 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
       il(4) = 'f'
       il(5) = 'g'
 
-      if (iorb==1)then
+      if (iorb==1) then
          write(6,*)
          write(6,'(1x,a,f20.16)') 'rcov         = ',rcov
          if (ispp /= 'r' ) then
-            write(6,*) 'charge(rcov) = int_0^rcov psi^2 r^2 dr'
-            write(6,*) 'dcharge      = int_0^infinity psi^2 r^4 dr'
-            write(6,*) 'ddcharge     = int_0^infinity psi^2 r^6 dr'
+            write(6,'(1x,a)') 'charge(rcov) = int_0^rcov psi^2 r^2 dr'
+            write(6,'(1x,a)') 'dcharge      = int_0^infinity psi^2 r^4 dr'
+            write(6,'(1x,a)') 'ddcharge     = int_0^infinity psi^2 r^6 dr'
          else
-            write(6,*) 'charge(rcov) = int_0^rcov g^2 r^2 dr ',  &
-                 '  +  int_0^infinity f^2 r^2 dr'
-            write(6,*) 'dcharge      = int_0^infinity (f^2+g^2) r^4 dr '
-            write(6,*) 'ddcharge     = int_0^infinity (f^2+g^2) r^6 dr '
+            write(6,'(1x,a)') 'charge(rcov) = int_0^rcov g^2 r^2 dr   +  int_0^infinity f^2 r^2 dr'
+            write(6,'(1x,a)') 'dcharge      = int_0^infinity (f^2+g^2) r^4 dr '
+            write(6,'(1x,a)') 'ddcharge     = int_0^infinity (f^2+g^2) r^6 dr '
          endif
-         write(6,21)
- 21      format(/,' nl   s    occ',5x,'eigenvalue',4x,'charge(rcov)',4x,'dcharge',4x,'ddcharge')
+         write(6,'(/,1x,"nl   s    occ",5x,"eigenvalue",4x,"charge(rcov)",4x,"dcharge",4x,"ddcharge")')
       endif
 !     Collect 2nd and 4th moment of the core charge density for NCC
       dcrc = dcrc+zo(iorb)* dcrcov
       ddcrc=ddcrc+zo(iorb)*ddcrcov
-      write(6,31) no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),  &
-           (ev(iorb)-vshift)/2.,crcov,dcrcov,ddcrcov
- 31   format(1x,i1,a1,f4.1,f8.3,2(1pe15.7),2(1pe12.5))
+      write(6,'(1x,i1,a1,f5.1,f8.3,2(1pe15.7),2(1pe12.5))') &
+           no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),(ev(iorb)-vshift)/2.d0,crcov,dcrcov,ddcrcov
 !      write(6,*) 'drcov at rcov :',ddd
 !      write(6,*) 'ddrcov at rcov:',dddd
        name = 'r extr    '
-       write(6,100) name,(rextr(i),i=1,nextr)
- 100   format(5x,a10,9f7.2)
+       write(6,'(5x,a10,9f7.2)') name,(rextr(i),i=1,nextr)
 
 !     write data to files atom.ae for pseudopotential-fit
 !     only valence electrons
@@ -2601,7 +2562,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
             write(cnum,'(i2.2)') nconf
 
             if (nconf == 0 ) then
-               syswght=1d0
+               syswght=1.d0
 !              write the comment lines for psppar here, as we need the
 !              zion= zps for the first configuration
                write(50,'(a)') '-----suggested header for initial guess of psppar for fitting-----'
@@ -2612,22 +2573,22 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
                write(50,'(1x,a)') '--you can download pseudopotentials from--'
                write(50,'(1x,a)') 'http://www.abinit.org/downloads/psp-links'
             else
-               syswght=1d-2
+               syswght=1.d-2
             endif
 
 !           else
 !              write(40,'(a,i2,a)') ' NEXT CONFIGURATION (',nconf,')'
 !           endif
             open(unit=40,file='atom.'//cnum//'.ae',form='formatted')
-            write(40,*) norb-ncore,syswght,'orbitals, system weight'
+            write(40,'(i12,1x,f21.16,1x,a)') norb-ncore,syswght,'orbitals, system weight'
             write(40,'(4f19.16,1x,a)') znuc,zps,rcov,rprb,  &
                  'znuc, zpseudo, rcov, rprb'
             if (ispp=='r') then
-               write(40,*) 'relativistic calculation'
+               write(40,'(a)') 'relativistic calculation'
             elseif(ispp=='s')then
-               write(40,*) 'spin polarized calculation'
+               write(40,'(a)') 'spin polarized calculation'
             else
-               write(40,*) 'non relativistic calculation'
+               write(40,'(a)') 'non relativistic calculation'
             endif
             write(40,'(i10,a)') iXC, '   iXC (ABINIT-libXC)'
             write(40,*) nr,        'number of gridpoints'
