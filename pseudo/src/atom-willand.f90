@@ -2657,7 +2657,7 @@ subroutine atom
       ddcrc=ddcrc+zo(iorb)*ddcrcov
       write(6,31) no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),  &
            (ev(iorb)-vshift)/2.,crcov,dcrcov,ddcrcov
- 31   format(1x,i1,a1,f4.1,f8.3,2(1pe15.7),2(1pe12.5))
+ 31   format(1x,i1,a1,f5.1,f8.3,2(1pe15.7),2(1pe12.5))
 !      write(6,*) 'drcov at rcov :',ddd
 !      write(6,*) 'ddrcov at rcov:',dddd
        name = 'r extr    '

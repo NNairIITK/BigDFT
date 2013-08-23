@@ -867,7 +867,9 @@ subroutine input(itype,iXC,ispp,  &
    !i.e. the first line of the file atom.dat
    loop_next: do
       !Read instruction
-      read(35,'(a)',err=998,end=999) instrg
+      read(35,'(a)',iostat=ierr) instrg
+      call error_iostat()
+      if (ierr < 0) return
       !If blank lines, next line
       if (instrg == ' ') cycle
       !next configuration ?
@@ -889,7 +891,9 @@ subroutine input(itype,iXC,ispp,  &
       j2=j2-1
       nameat=instrg(j1:j2)
       if (j2==1) nameat(2:2)=' '
-      read(35,'(a)',err=998,end=999) instrg
+      read(35,'(a)',iostat=ierr) instrg
+      call error_iostat()
+      if (ierr < 0) return
       j1=1
       j2=2
       do i=len(instrg),1,-1
@@ -916,7 +920,9 @@ subroutine input(itype,iXC,ispp,  &
       end if
 
       ! Read information about spin polarization
-      read(35,'(a)',err=998,end=999) instrg
+      read(35,'(a)',iostat=ierr) instrg
+      call error_iostat()
+      if (ierr < 0) return
       do i=len(instrg),1,-1
          if (instrg(i:i)/=' ') j1=i
       end do
@@ -937,8 +943,14 @@ subroutine input(itype,iXC,ispp,  &
       ! if (ispp /= 's' .and. ispp  /= 'r')  ispp=blank
       ! spin-polarization needs relativistic calculation
       znuc=0.d0
-      read(35,*,err=998,end=999) rmax,aa,bb
-      read(35,*,err=998,end=999) rcov,rprb
+      read(35,*,iostat=ierr) rmax,aa,bb
+      call error_iostat()
+      if (ierr < 0) return
+
+      read(35,*,iostat=ierr) rcov,rprb
+      call error_iostat()
+      if (ierr < 0) return
+
       znuc=charge(nameat)
 
       ! Set up grid
@@ -1003,7 +1015,10 @@ subroutine input(itype,iXC,ispp,  &
 
 
       !read the number of core and valence orbitals
-      read(35,*,err=998,end=999) ncore, nval
+      read(35,*,iostat=ierr) ncore, nval
+      call error_iostat()
+      if (ierr < 0) return
+
       nvalo=nval
       ncoreo=ncore
       if (ncore > 15) then
@@ -1069,7 +1084,9 @@ subroutine input(itype,iXC,ispp,  &
    if (nval /= 0) then
 
       do i=1,nval
-         read(35,*,err=998,end=999) ni,li,zd,zu
+         read(35,*,iostat=ierr) ni,li,zd,zu
+         call error_iostat()
+         if (ierr < 0) return
          si = 0.d0
          if (ispp /= blank) si=0.5d0
 
@@ -1173,17 +1190,23 @@ subroutine input(itype,iXC,ispp,  &
      !do i = 1, norb
      !   write(text(i),'(1x,i1,a," s=",f4.1," (occ=",f6.3,") ",a)') no(i),spdf(lo(i)+1),so(i),zo(i),irel
      !end do
-    return
 
-    !Error of reading
-998 continue
-    write(6,'(1x,a)') 'Error while reading atom.dat'
-    stop
-    !Error: end of file
-999 continue
-    write(6,'(1x,a)') 'Reached end of file atom.dat'
-    !itype gives and error code
-    itype='st'
+contains
+   subroutine error_iostat()
+      implicit none
+      if (ierr > 0) then
+         !Error of reading
+          write(6,'(1x,a)') 'Error while reading atom.dat'
+          stop
+       else if (ierr < 0) then
+          !Error: end of file
+          write(6,'(1x,a)') 'Reached end of file atom.dat'
+          !itype gives and error code
+          itype='st'
+          return
+       end if
+    end subroutine error_iostat
+
 end subroutine input
 
 
@@ -2242,8 +2265,9 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
          arp = ka*ar(2)/r(2) + (ev(iorb) - viod(lp,2)/r(2) - vid(2) + ai*ai) * br(2) / ai
    if (ispp == 'r' .and. so(iorb) > 0.1d0) &
          arp = ka*ar(2)/r(2) + (ev(iorb) - viou(lp,2)/r(2) - viu(2) + ai*ai) * br(2) / ai
+
    do i=3,nr
-      if (nextr >= no(iorb)-lo(iorb)) goto 30
+      if (nextr >= no(iorb)-lo(iorb)) exit
       if (ar(i)*ar(i-1) <= 0.d0) then
          ! zero
          nzero = nzero + 1
@@ -2269,8 +2293,6 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
    !find orbital kinetic and potential energy
    !the potential part includes only the interaction with
    !the nuclear part
-
-30 continue
    ek(iorb) = br(1)*br(1)*rab(1)
    ep(iorb) = 0.d0
    sa2 = 0.d0
@@ -2278,7 +2300,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
    llp = lo(iorb)*lp
    ll = 2
    if (2*(nr/2) == nr) ll=4
-   do 40 ii=2,nr
+   do ii=2,nr
       i = nr-ii+2
       ar2 = ar(i)*ar(i)
       br2 = br(i)*br(i)
@@ -2290,11 +2312,12 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
       if (so(iorb) > 0.1d0) &
          ep(iorb) = ep(iorb) + ll * deni*viou(lp,i)*rab(i)/r(i)
       ll = 6 - ll
-      if (sa2 > 0.10d0) goto 40
+      if (sa2 > 0.10d0) cycle
       sa2 = sa2 + deni*rab(i)
       if (sa2 <= 0.01d0) i99 = i
       i90 = i
-40 continue
+   end do
+
    ek(iorb) = ek(iorb) / 3
    ep(iorb) = ep(iorb) / 3
    if (ispp == 'r') ek(iorb) = 0.d0
