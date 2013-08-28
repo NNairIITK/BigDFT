@@ -1137,15 +1137,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
     !if (mean_conf<1.d-15 .and. .false.) then
     !if (mean_conf<1.d-15) then
     !if (mean_conf<1.d-10 .and. abs(meanconf_der)<1.d-15) then
-    if (mean_conf<1.d-10 .and. abs(meanconf_der)/mean_conf>1.d0) then
-    !!if (itout>=40) then
+    !if (mean_conf<1.d-10 .and. abs(meanconf_der)/mean_conf>1.d0) then
+    if (itout>=38) then
         !if (iproc==0) write(*,*) 'WARNING MODIFY CONF'
         !tmb%confdatarr(:)%prefac=0.d0
         if (iproc==0) write(*,*) 'WARNING MODIFY nit_basis'
         nit_basis=0
     end if
-    if (mean_conf<1.d-5) then
-    !!if (itout>=18) then
+    !if (mean_conf<1.d-5) then
+    if (itout>=13) then
         if (iproc==0) write(*,*) 'outswitch off ortho'
         orthonormalization_on=.false.
     end if
