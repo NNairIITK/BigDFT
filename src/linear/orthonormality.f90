@@ -219,12 +219,12 @@ call timing(iproc,'misc','ON')
      jorb = lagmat%orb_from_index(2,ii)
      ii_trans=matrixindex_in_compressed(lagmat,jorb, iorb)
      tmp_mat_compr(ii)=-0.5d0*lagmat%matrix_compr(ii)-0.5d0*lagmat%matrix_compr(ii_trans)
-     ! SM: This is a hack, should use another variable
-     if (correction_orthoconstraint==2) then
-         if (iorb/=jorb) then
-             tmp_mat_compr(ii)=0.d0
-         end if
-     end if
+     !!! SM: This is a hack, should use another variable
+     !!if (correction_orthoconstraint==2) then
+     !!    if (iorb/=jorb) then
+     !!        tmp_mat_compr(ii)=0.d0
+     !!    end if
+     !!end if
      if (iorb==jorb) then
          orbs%eval(iorb)=lagmat%matrix_compr(ii)
      end if

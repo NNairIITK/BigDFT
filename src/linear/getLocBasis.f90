@@ -920,9 +920,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   end do iterLoop
 
-  if (iproc==0) write(*,'(a,3es16.6)') 'NEW RATIO: ediff_sum, delta_energy_prev_sum, ratio_deltas', &
-      ediff_sum, delta_energy_prev_sum, ratio_deltas
-  ratio_deltas=ediff_sum/delta_energy_prev_sum
+  !if (iproc==0) write(*,'(a,3es16.6)') 'NEW RATIO: ediff_sum, delta_energy_prev_sum, ratio_deltas', &
+  !    ediff_sum, delta_energy_prev_sum, ratio_deltas
+  !ratio_deltas=ediff_sum/delta_energy_prev_sum
 
   ! Deallocate potential
   iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
