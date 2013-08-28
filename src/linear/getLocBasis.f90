@@ -398,7 +398,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
   real(8),dimension(2):: reducearr
-  real(gp) :: econf
+  real(gp) :: econf, ediff_sum, delta_energy_prev_sum
   real(kind=8),dimension(3,3) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(3) :: interpol_vector, interpol_solution
   integer :: i, ist, iiorb, ilr, ii, info
@@ -409,7 +409,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(3),save :: d2e_arr_out
   integer,save :: isatur_out
   integer :: isatur_in, correction_orthoconstraint_local
-  logical :: stop_optimization
+  logical :: stop_optimization, energy_increased_previous
 
 
 
@@ -456,6 +456,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   reduce_conf=.false.
   fix_supportfunctions=.false.
   delta_energy_prev=1.d100
+
+  ediff_sum=0.d0
+  delta_energy_prev_sum=0.d0
+  energy_increased_previous=.false.
 
   isatur_in=0
   iterLoop: do
@@ -571,7 +575,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       if (iproc==0) write(*,'(a,3es16.7)') 'trH, energy_first, (trH-energy_first)/energy_first', &
                                             trH, energy_first, (trH-energy_first)/energy_first
-      if ((trH-energy_first)/energy_first>1.d-3) then
+      if ((trH-energy_first)/energy_first>1.d-5) then
           stop_optimization=.true.
           if (iproc==0) write(*,'(a,3es16.7)') 'new stopping crit: trH, energy_first, (trH-energy_first)/energy_first', &
                                                 trH, energy_first, (trH-energy_first)/energy_first
@@ -737,6 +741,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           ratio_deltas=ediff/delta_energy_prev
+          if (.not.energy_increased_previous .and. it>1) then
+              ediff_sum=ediff_sum+ediff
+              delta_energy_prev_sum=delta_energy_prev_sum+delta_energy_prev
+          end if
           if (ldiis%switchSD) then
               ratio_deltas=0.5d0
               if (iproc==0) write(*,*) 'WARNING: TEMPORARY FIX for ratio_deltas!'
@@ -752,6 +760,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if (iproc==0) write(*,*) 'reduce the confinement'
               reduce_conf=.true.
           end if
+      end if
+
+      if (energy_increased) then
+          energy_increased_previous=.true.
+      else
+          energy_increased_previous=.false.
       end if
 
 
@@ -903,6 +917,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
   end do iterLoop
+
+  if (iproc==0) write(*,'(a,3es16.6)') 'NEW RATIO: ediff_sum, delta_energy_prev_sum, ratio_deltas', &
+      ediff_sum, delta_energy_prev_sum, ratio_deltas
+  ratio_deltas=ediff_sum/delta_energy_prev_sum
 
   ! Deallocate potential
   iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)

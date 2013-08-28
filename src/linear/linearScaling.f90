@@ -70,8 +70,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !!! EXPERIMENTAL ############################################
   type(sparseMatrix) :: denskern_init
   real(8),dimension(:),allocatable :: rho_init, rho_init_old
-  real(8) :: tt, ddot, tt_old
+  real(8) :: tt, ddot, tt_old, meanconf_der
   integer :: idens_cons
+  real(8),dimension(10000) :: meanconf_array
   !!! #########################################################
 
   call timing(iproc,'linscalinit','ON') !lr408t
@@ -391,6 +392,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            !!end if
            !if (iproc==0) write(*,*) 'upper bound for prefac: 1.d-5'
            !tmb%confdatarr(:)%prefac=max(tmb%confdatarr(:)%prefac,1.d-5)
+           !if (iproc==0) write(*,*) 'WARNING: set orthonormalization_on to false'
+           !orthonormalization_on=.false.
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
                reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
@@ -1123,16 +1126,30 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        end if
 
     ! WARNING HACK S.M.
-    if (mean_conf<1.d-15) then
+    meanconf_array(itout)=mean_conf
+    if (itout>=4) then
+        meanconf_der = 11.d0/6.d0*meanconf_array(itout-0) &
+                      -      3.d0*meanconf_array(itout-1) &
+                      + 3.d0/2.d0*meanconf_array(itout-2) &
+                      - 1.d0/3.d0*meanconf_array(itout-3)
+        if (iproc==0) write(*,'(a,es16.5)') 'meanconf_der',meanconf_der
+    end if
+    !if (mean_conf<1.d-15 .and. .false.) then
+    !if (mean_conf<1.d-15) then
+    !if (mean_conf<1.d-10 .and. abs(meanconf_der)<1.d-15) then
+    if (mean_conf<1.d-10 .and. abs(meanconf_der)/mean_conf>1.d0) then
+    !!if (itout>=40) then
         !if (iproc==0) write(*,*) 'WARNING MODIFY CONF'
         !tmb%confdatarr(:)%prefac=0.d0
         if (iproc==0) write(*,*) 'WARNING MODIFY nit_basis'
         nit_basis=0
     end if
-    if (pnrm_out<1.d-6) then
+    if (mean_conf<1.d-5) then
+    !!if (itout>=18) then
         if (iproc==0) write(*,*) 'outswitch off ortho'
         orthonormalization_on=.false.
     end if
+
 
     end subroutine print_info
 
