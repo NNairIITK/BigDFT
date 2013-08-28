@@ -11,17 +11,8 @@ EXTRA_DIST = \
 	Manual/grid400.pdf \
 	Manual/BigDFT-manual.tex \
 	Manual/sym_16.pdf \
-	html/commun.css \
-	html/doxygen.css \
-	html/footer.html \
-	html/header.html \
 	html/logo_header.png \
-	html/menu_fond.png \
-	html/menu_footer.png \
-	html/menu_header.png \
-	html/original.css \
-	html/point.png \
-	html/sample.png
+	html/extra.css
 
 CLEANFILES = *.aux *.toc *.log *.xml
 
@@ -46,7 +37,7 @@ doxygen-doc: Doxygen/html
 
 Doxygen/html: Doxygen.stamp web.stamp
 
-Doxygen.stamp: $(top_builddir)/config/Doxyfile $(srcdir)/html/header.html $(srcdir)/html/footer.html
+Doxygen.stamp: $(top_builddir)/config/Doxyfile
 	\rm -rf Doxygen;\
 	doxygen $(top_builddir)/config/Doxyfile; \
 	touch Doxygen.stamp
