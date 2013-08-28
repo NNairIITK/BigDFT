@@ -740,14 +740,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ediff=trH-trH_old
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          ratio_deltas=ediff/delta_energy_prev
+          if (.not.energy_increased .and. .not.energy_increased_previous) then
+              ratio_deltas=ediff/delta_energy_prev
+          end if
           if (.not.energy_increased_previous .and. it>1) then
               ediff_sum=ediff_sum+ediff
               delta_energy_prev_sum=delta_energy_prev_sum+delta_energy_prev
           end if
           if (ldiis%switchSD) then
-              ratio_deltas=0.5d0
-              if (iproc==0) write(*,*) 'WARNING: TEMPORARY FIX for ratio_deltas!'
+              !!ratio_deltas=0.5d0
+              !!if (iproc==0) write(*,*) 'WARNING: TEMPORARY FIX for ratio_deltas!'
           end if
           !if (iproc==0) write(*,*) 'WARNING: HACK FOR ratio_deltas, set to 1.d0!!'
           !if (iproc==0) write(*,*) 'WARNING: HACK FOR ratio_deltas, set to 0.5d0*(ratio_deltas+1.d0)!!'
@@ -895,7 +897,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           ! This is a hack...
           if (energy_increased) then
               delta_energy=1.d100
-              ratio_deltas=1.d100
+              !ratio_deltas=1.d100
           end if
           if (iproc==0) write(*,*) 'delta_energy', delta_energy
           delta_energy_prev=delta_energy
