@@ -2195,7 +2195,7 @@ subroutine ncplx_kpt(ikpt,orbs,ncplx)
 END SUBROUTINE ncplx_kpt
 
 
-!!!>   Calculate the action of the local hamiltonian on the orbitals
+!!!> Calculate the action of the local hamiltonian on the orbitals
 !!subroutine local_hamiltonianParabola(iproc,orbs,lr,hx,hy,hz,&
 !!     nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, onWhichAtom, at)
 !!  use module_base

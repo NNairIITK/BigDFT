@@ -1,5 +1,7 @@
 EXTRA_DIST = \
 		README \
+		ref/atom.00.ae.ref\
+		ref/atom.01.ae.ref\
 		ref/atom.out.ref\
 		ref/fit.fixed.NLCC.out.ref\
 		ref/fit.fixed.NLCC.proc.01.ref\
@@ -12,10 +14,16 @@ EXTRA_DIST = \
 		ref/fit.without.NLCC.proc.01.ref\
 		ref/GTH.closedshell.out.ref\
 		ref/GTH.polarized.out.ref\
-		ref/nlcc.ref\
-		ref/nlcc.short.ref\
-		ref/psppar.nlcc.short.ref\
-		ref/psppar.ref
+		ref/input.fitpar.ref\
+		ref/input.pseudo.ref\
+		ref/input.weights.ref\
+		ref/nlcc.gplt.ref\
+		ref/orbitals.gplt.ref\
+		ref/pseudo.nofit.out.ref \
+		ref/pseudo.parallelnofit.out.ref \
+		ref/pseudo.shortfit.out.ref \
+		ref/psppar.atom.ref \
+		ref/psppar.nlcc.short.ref
 
 ATOM_OUTPUTS = \
 			 atom.00.ae \

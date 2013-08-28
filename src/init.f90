@@ -1,4 +1,4 @@
-!a> @file
+!> @file
 !!  Routines to initialize the information about localisation regions
 !! @author
 !!    Copyright (C) 2007-2013 BigDFT group

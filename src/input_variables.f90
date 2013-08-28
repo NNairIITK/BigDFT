@@ -1,4 +1,4 @@
-!!> @file
+!> @file
 !!  Routines to read and print input variables
 !! @author
 !!    Copyright (C) 2007-2013 BigDFT group 
