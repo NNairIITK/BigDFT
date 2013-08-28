@@ -52,10 +52,6 @@ Doxygen.stamp: $(top_builddir)/config/Doxyfile $(srcdir)/html/header.html $(srcd
 	touch Doxygen.stamp
 
 web.stamp: Doxygen.stamp
-	if [ ! -d Doxygen/images ] ; then mkdir Doxygen/images ; fi
-	\cp $(srcdir)/html/*.png Doxygen/images
-	if [ ! -d Doxygen/styles ] ; then mkdir Doxygen/styles ; fi
-	\cp $(srcdir)/html/*.css Doxygen/styles
 	touch web.stamp
 
 cluster.pdf: cluster.tex compress.pdf figrid.pdf

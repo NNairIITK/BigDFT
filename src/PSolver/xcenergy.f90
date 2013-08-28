@@ -780,41 +780,10 @@ END SUBROUTINE XC_potential
 !! Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
 !! to the XC potential, or even ignored.
 !!
-!! SYNOPSIS
-!!    geocode  Indicates the boundary conditions (BC) of the problem:
-!!            'F' free BC, isolated systems.
-!!                The program calculates the solution as if the given density is
-!!                "alone" in R^3 space.
-!!            'S' surface BC, isolated in y direction, periodic in xz plane                
-!!                The given density is supposed to be periodic in the xz plane,
-!!                so the dimensions in these direction mus be compatible with the FFT
-!!                Beware of the fact that the isolated direction is y!
-!!            'P' periodic BC.
-!!                The density is supposed to be periodic in all the three directions,
-!!                then all the dimensions must be compatible with the FFT.
-!!                No need for setting up the kernel.
-!!    m1,m3       global dimensions in the three directions.
-!!    nproc       number of processors
-!!    iproc       label of the process,from 0 to nproc-1
-!!    ixc         eXchange-Correlation code. Indicates the XC functional to be used 
-!!                for calculating XC energies and potential. 
-!!                ixc=0 indicates that no XC terms are computed. The XC functional codes follow
-!!                the ABINIT convention.
-!!    hx,hy,hz    grid spacings. 
-!!    rho         density in the distributed format, also in spin-polarised
-!!    exc,vxc     XC energy and integral of $\rho V_{xc}$ respectively
-!!    nxc         value of the effective distributed dimension in the third direction
-!!    nwb         enlarged dimension for calculating the WB correction
-!!    nxt         enlarged dimension for calculating the GGA case 
-!!                (further enlarged for compatibility with WB correction if it is the case)
-!!    nwbl,nwbr
-!!    nxcl,nxcr   shifts in the three directions to be compatible with the relation
-!!                nxc+nxcl+nxcr-2=nwb, nwb+nwbl+nwbr=nxt.
-!!
 !! @warning
-!!    The dimensions of pot_ion must be compatible with geocode, datacode,
-!!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
-!!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
+!!    The dimensions of pot_ion must be compatible with geocode, datacode and ixc.
+!!    Since the arguments of these routines are indicated with the *,
+!!    it is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
 subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rho,gradient,vxci,exc,vxc,order,ndvxc,dvxci,nspden,wbstr)
 
@@ -824,15 +793,38 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   implicit none
 
   !Arguments
+  !> Indicates the boundary conditions (BC) of the problem:
+  !!   'F' free BC, isolated systems.
+  !!       The program calculates the solution as if the given density is
+  !!       "alone" in R^3 space.
+  !!   'S' surface BC, isolated in y direction, periodic in xz plane                
+  !!       The given density is supposed to be periodic in the xz plane,
+  !!       so the dimensions in these direction mus be compatible with the FFT
+  !!       Beware of the fact that the isolated direction is y!
+  !!   'P' periodic BC.
+  !!       The density is supposed to be periodic in all the three directions,
+  !!       then all the dimensions must be compatible with the FFT.
+  !!       No need for setting up the kernel.
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,ixc,nspden
-  integer, intent(in) :: nwbl,nwbr,order,ndvxc
-  real(gp), intent(in) :: hx,hy,hz
-  real(dp), dimension(*), intent(in) :: gradient !< of size 1 if not needed
-  real(dp), dimension(m1,m3,nxt,nspden), intent(inout) :: rho
+  integer, intent(in) :: m1,m3     !< Global dimensions in the three directions.
+  integer, intent(in) :: nxc       !< Value of the effective distributed dimension in the third direction
+  integer, intent(in) :: nwb       !< Enlarged dimension for calculating the WB correction
+  integer, intent(in) :: nxt       !< Enlarged dimension for calculating the GGA case 
+                                   !! (further enlarged for compatibility with WB correction if it is the case)
+  integer, intent(in) :: nwbl,nwbr !< nwb=nxc+nxcl+nxcr-2, nwb+nwbl+nwbr=nxt.
+  integer, intent(in) :: nxcl,nxcr !< Shifts in the three directions to be compatible with the relation
+  !> eXchange-Correlation code. Indicates the XC functional to be used 
+  !!   for calculating XC energies and potential. 
+  !!   ixc=0 indicates that no XC terms are computed. 
+  !!   The XC functional codes follow the ABINIT convention or if negative the libXC one.
+  integer, intent(in) :: ixc
+  integer, intent(in) :: order,ndvxc,nspden
+  real(gp), intent(in) :: hx,hy,hz                            !< Grid spacings. 
+  real(dp), dimension(*), intent(in) :: gradient              !< of size 1 if not needed
+  real(dp), dimension(m1,m3,nxt,nspden), intent(inout) :: rho !< Density in the distributed format, also in spin-polarised
   real(dp), dimension(m1,m3,nwb,nspden), intent(out) :: vxci
   real(dp), dimension(m1,m3,nwb,ndvxc), intent(out) :: dvxci
-  real(dp), intent(out) :: exc,vxc
+  real(dp), intent(out) :: exc,vxc                            !< XC energy and integral of $\rho V_{xc}$ respectively
   real(dp), dimension(6), intent(inout) :: wbstr
 
   !Local variables----------------
@@ -896,7 +888,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   wbstr(:)=0._dp
   if (use_gradient) then
      !do not calculate the White-Bird term in the Leeuwen Baerends XC case
-     if (ixc/=13) then
+     if (ixc /= 13 .or. ixc /= -160) then
         call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,3,gradient,&
              real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci,wbstr)
      end if
@@ -1029,8 +1021,6 @@ END SUBROUTINE xc_energy_new
 !!                No need for setting up the kernel.
 !!    m1,m2,m3    global dimensions in the three directions.
 !!    md1,md2,md3 dimensions of the arrays compatible with the FFT in the three directions.
-!!    nproc       number of processors
-!!    iproc       label of the process,from 0 to nproc-1
 !!    ixc         eXchange-Correlation code. Indicates the XC functional to be used 
 !!                for calculating XC energies and potential. 
 !!                ixc=0 indicates that no XC terms are computed. The XC functional codes follow

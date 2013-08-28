@@ -869,6 +869,7 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
 END SUBROUTINE shift_periodic_directions
 
 
+!> Calculate the extremes of the boxes taking into account the spheres around the atoms
 subroutine calc_vol(geocode,nat,rxyz,vol)
    use module_base
    implicit none
@@ -880,7 +881,6 @@ subroutine calc_vol(geocode,nat,rxyz,vol)
    integer :: iat
    real(gp) :: cxmin,cxmax,cymin,cymax,czmin,czmax
 
-   !calculate the extremes of the boxes taking into account the spheres around the atoms
    cxmax=-1.e10_gp 
    cxmin=1.e10_gp
 
@@ -1098,7 +1098,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    i_all=-product(shape(ngatherarr))*kind(ngatherarr)
    deallocate(ngatherarr,stat=i_stat)
    call memocc(i_stat,i_all,'ngatherarr',subname)
-
 
 
    !compare the results between the different actions of the hamiltonian
@@ -1512,6 +1511,8 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
    call memocc(i_stat,i_all,'rxyz_file',subname)
 END SUBROUTINE take_psi_from_file
 
+
+!> Deprecated message for memguess (do not use directly!!)
 subroutine deprecation_message()
    implicit none
    write(*, "(15x,A)") "+--------------------------------------------+"
