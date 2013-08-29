@@ -227,8 +227,10 @@ def document_report(hostname,tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet)
 
 import yaml_hl
 
+#Class used to define options in order to hightlight the YAML output by mean of yaml_hl
 class Pouet:
   def __init__(self):
+    #Define a temporary file
     self.input = "report"
     self.output = None
     self.style = "ascii"
@@ -412,12 +414,19 @@ for i in range(len(references)):
   hl = yaml_hl.YAMLHighlight(options)
   hl.highlight()
   
-#create dictionary for the final report
-
-finres=document_report(hostname,biggest_tol,max_discrepancy,failed_documents,leak_memory,total_misses,total_missed_items,time)
+# Create dictionary for the final report
 if len(references)> 1:
-  sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
-  reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  finres=document_report(hostname,biggest_tol,max_discrepancy,failed_documents,leak_memory,total_misses,total_missed_items,time)
+  newreport = open("report", "w")
+  newreport.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  newreport.close()
+  reports.write(open("report", "rb").read())
+  Style = yaml_hl.Style
+  hl = yaml_hl.YAMLHighlight(options)
+  hl.highlight()
+
+#Then remove the file "report" (temporary file)
+os.remove("report")
 
 sys.exit(0)
 

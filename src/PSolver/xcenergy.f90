@@ -887,8 +887,8 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   end if
   wbstr(:)=0._dp
   if (use_gradient) then
-     !do not calculate the White-Bird term in the Leeuwen Baerends XC case
-     if (ixc /= 13 .or. ixc /= -160) then
+     ! Do not calculate the White-Bird term in the Leeuwen Baerends XC case
+     if (ixc /= 13 .and. ixc /= -160) then
         call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,3,gradient,&
              real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci,wbstr)
      end if
