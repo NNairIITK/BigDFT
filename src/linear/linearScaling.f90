@@ -1145,7 +1145,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         if (iproc==0) write(*,*) 'WARNING MODIFY nit_basis'
         nit_basis=0
     end if
-    if (mean_conf<1.d-4) then
+    if (mean_conf<1.d-4 .and..false.) then
     !if (itout>=13) then
         if (iproc==0) write(*,*) 'outswitch off ortho'
         orthonormalization_on=.false.
