@@ -10,7 +10,7 @@
       <tab type="namespacelist" visible="yes" title="" intro=""/>
       <tab type="namespacemembers" visible="yes" title="" intro=""/>
     </tab>
-    <tab type="modules" visible="yes" title="Internal Libraries" intro="Here is the list of the internal libraries inside BigDFT"/>
+    <tab type="modules" visible="yes" title="Internal Libraries" intro="Here is the list of the internal libraries inside BigDFT:"/>
     <tab type="classes" visible="yes" title="Modules, Types, Subroutines and Variables">
       <tab type="classlist" visible="yes" title="Modules" intro="Here are the list of modules:"/>
       <tab type="classindex" visible="$ALPHABETICAL_INDEX" title="Modules, Types and Interfaces"

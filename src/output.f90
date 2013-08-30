@@ -1195,7 +1195,7 @@ subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
 END SUBROUTINE write_orbital_data
 
 
-!> Write diis weights
+!> Write DIIS weights
 subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
   use module_base
   use yaml_output

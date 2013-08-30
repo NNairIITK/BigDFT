@@ -1,4 +1,7 @@
-/*! @dir ./src
+/*! @file
+@brief README of the BigDFT source directory
+
+@dir ./src
 @brief
    This directory contains the source of the core project of BigDFT.
 
@@ -25,4 +28,17 @@
 @dir ./src/profiling
 @brief
    Old profiling routines 'should be replaced by the flib routines (see @ref flib_memory)
+
+@dir ./src/tools
+@brief
+   Tools to analyze the outputs from BigDFT (bader, ...)
+
+@dir ./src/wavelib
+@brief
+   Contains some routines useful to handling the wavefunctions
+
+@dir ./src/wfn_opt
+@brief
+   Contains routines which operates to the wavefunctions
+
 */

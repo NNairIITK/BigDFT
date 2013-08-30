@@ -1,6 +1,6 @@
 /*! @brief Installation of the PSolver library
 
-@page Installation-PSolver PSolver: installation instructions
+@page INSTALLATION-PSOLVER Installation instructions of the PSolver library
 
 This Poisson Solver is conceived as a module, compiled from the file 'Poisson_Solver.f90'
 For using it inside a separate program, please read the documentation in such file.

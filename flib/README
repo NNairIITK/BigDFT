@@ -1,4 +1,7 @@
-/*! @dir flib
+/*! @file
+@brief README of the flib library.
+
+@dir flib
 @brief This directory contains the flib library (memory allocation, dictionaries, ...).
 
 @dir flib/src

@@ -1,4 +1,14 @@
-!> fill the array fISF with the value of the fourier transform of the ISF of order m
+!> @file
+!!  Fourier transform coefficient of the interpolating scaling function
+!! @author
+!!    Copyright (C) 2002-2013 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Fill the array fISF with the value of the Fourier transform of the ISF of order m
 !! In particular, fISF(q)=\tilde \phi (\pi q / (2 m))
 !! 2048 coefficients are stored, selected by following the desired ISF order
 !! the order strored are m=8,14,16,20,24,30,40,50,60,100

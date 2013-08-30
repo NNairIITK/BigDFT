@@ -10,13 +10,12 @@ See the file INSTALL for generic compilation and installation instructions.
 
 This Poisson Solver code is built following the method described in the papers
 
- Genovese, L; Deutsch, T; Goedecker, S.
+ L.Genovese, T. Deutsch, S. Goedecker,
  Journal of Chemical Physics, 127 (5), 054704 (2007).
- Efficient and accurate three-dimensional Poisson solver for surface
- problems.
+ Efficient and accurate three-dimensional Poisson solver for surface problems.
  http://dx.doi.org/10.1063/1.2754685
 
- Genovese, L; Deutsch, T; Neelov, A; Goedecker, S; Beylkin, G.
+ L. Genovese, T. Deutsch, A. Neelov, S. Goedecker, G. Beylkin,
  Journal of Chemical Physics, 125 (7), 074105 (2006).
  Efficient solution of Poisson's equation with free boundary conditions
  http://dx.doi.org/10.1063/1.2335442

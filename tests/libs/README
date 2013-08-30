@@ -1,0 +1,35 @@
+/*! @file
+@brief README of the non-regression tests for the internal libraries
+
+@dir ./tests/libs
+@brief Directory of the tests for internal libraries
+
+The command <tt>make check</tt> performs the series of tests:
+* CUDA/:          Tests CUDA implementation (GPU).
+* fft/:           Low level tests functionality for the Fast Fourier Transform.
+* H2-freq/:       Computes the vibration properties of the H2 molecule using finite differences
+                  (test the 'frequencies' program).
+* MINHOP/:        Tests global research using minima hopping
+                  (test the 'global' program).
+* NEB/:           Runs NEB (Nudged-Elastic Band) calculations.
+* OpenCL/:        Tests the OpenCL part of the code (GPU).
+* xcPSolver/:     Tests the Poisson Solver implementation.
+* XabsCheb/:      Tests XANES calculations.
+
+
+
+Read the manual for more information or go to the web site http://bigdft.org
+
+
+Test in parallel
+----------------
+
+Use the environment variable 'run_parallel' as:
+<pre>
+export run_parallel='mpirun -np 2'
+To use a batch system, add a batch file with:
+export run_parallel=...
+make check
+</pre>
+
+*/

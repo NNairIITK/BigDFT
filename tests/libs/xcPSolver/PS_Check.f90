@@ -7,6 +7,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+!> Check the Psolver components of BigDFT
 program PS_Check
    use module_base
    use module_xc

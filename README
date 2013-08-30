@@ -1,4 +1,7 @@
-/*!  @mainpage BigDFT Package developer documentation
+/*! @file
+@brief README of the src directory for the project BigDFT.
+
+@mainpage BigDFT Package developer documentation
 @anchor README-MAIN
 <p>
 <a href="http://bigdft.org">BigDFT</a> is a DFT massively parallel electronic structure code 
@@ -22,18 +25,19 @@ The BigDFT code has a core part and internal libraries:
 - The @ref pseudo "pseudo program" is a standalone program which is used to generate the pseudopotential files.
 
  @section B Binaries
- - @link BigDFT.f90      BigDFT @endlink            The main program
- - @link frequencies.f90 frequencies @endlink       Calculation of the atomic frequencies by finite-difference
- - @link abscalc.f90     abscalc @endlink           XANES calculation
- - @link art.f90         bart @endlink              BigDFT + ART (Activation Relaxation Technique)
- - @link memguess.f90    memguess @endlink          Used by bigdft-tool script
- - @link NEB.f90         NEB @endlink               Nudge-Elastic Band method (saddle point determination)
- - @link splinedsaddle.f90 splsad @endlink          Spline Saddle search program
- - @link WaCo.f90        WaCo @endlink              Wannier Constructors
- - @link test_forces.f90 test_forces @endlink       Test program
- - @link sandbox.f90     sandbox @endlink           Test for development purpose
- - @link BigDFT2Wannier.f90 BigDFT2Wannier @endlink Wannier analysis
- - @link distances.f90  MDanalysis  @endlink        Molecular Dynamics analysis
+ - @link BigDFT.f90          BigDFT         @endlink  The main program
+ - @link memguess.f90        memguess       @endlink  Used by bigdft-tool script
+ - @link frequencies.f90     frequencies    @endlink  Calculation of the atomic frequencies by finite-difference
+ - @link distances.f90       MDanalysis     @endlink  Molecular Dynamics analysis 
+ - @link WaCo.f90            WaCo           @endlink  Wannier Constructors
+ - @link BigDFT2Wannier.f90  BigDFT2Wannier @endlink  Wannier analysis
+ - @link art.f90             bart           @endlink  EXPERIMENTAL, BigDFT + ART (Activation Relaxation Technique)
+ - @link abscalc.f90         abscalc        @endlink  EXPERIMENTAL, XANES spectrum calculation
+ - @link splinedsaddle.f90   splsad         @endlink  EXPERIMENTAL, Spline Saddle search program
+ - @link test_forces.f90     test_forces    @endlink  Test program
+ - @link sandbox.f90         sandbox        @endlink  Test for development purpose
+                        (browse the posout files generated during a molecular dynamic calculation to compute several quantities, 
+                        like the radial distribution g(r)).
 
 @section T Tools
 - bigdft-tool  (previously called memguess): 

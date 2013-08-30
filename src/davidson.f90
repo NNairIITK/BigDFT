@@ -1,5 +1,4 @@
 !> @file
-!       Set to zero:
 !!  Routines to do diagonalisation with Davidson algorithm
 !! @author
 !!    Copyright (C) 2007-2013 BigDFT group
