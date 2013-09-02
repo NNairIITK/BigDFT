@@ -310,59 +310,70 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !    ist=ist+ncnt
   !end do
 
-  if (iproc==0) write(*,*) 'HACK S.M.: precond'
-  !!if(target_function==TARGET_FUNCTION_IS_HYBRID) then
-  !!   allocate(hpsi_tmp(tmb%npsidim_orbs), stat=istat)
-  !!   call memocc(istat, hpsi_tmp, 'hpsi_tmp', subname)
-  !!   ist=1
-  !!   do iorb=1,tmb%orbs%norbp
-  !!      iiorb=tmb%orbs%isorb+iorb
-  !!      ilr = tmb%orbs%inWhichLocreg(iiorb)
-  !!      ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!if (iproc==0) write(*,*) 'HACK S.M.: precond'
+  if(target_function==TARGET_FUNCTION_IS_HYBRID) then
+     allocate(hpsi_tmp(tmb%npsidim_orbs), stat=istat)
+     call memocc(istat, hpsi_tmp, 'hpsi_tmp', subname)
+     ist=1
+     do iorb=1,tmb%orbs%norbp
+        iiorb=tmb%orbs%isorb+iorb
+        ilr = tmb%orbs%inWhichLocreg(iiorb)
+        ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
 
-  !!      tt=ddot(ncnt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
-  !!      tt=tt/ddot(ncnt, hpsi_conf(ist), 1, hpsi_conf(ist), 1)
-  !!      do i=ist,ist+ncnt-1
-  !!         hpsi_tmp(i)=tt*hpsi_conf(i)
-  !!      end do
-  !!      call daxpy(ncnt, -tt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
+        tt=ddot(ncnt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
+        tt=tt/ddot(ncnt, hpsi_conf(ist), 1, hpsi_conf(ist), 1)
+        do i=ist,ist+ncnt-1
+           hpsi_tmp(i)=tt*hpsi_conf(i)
+        end do
+        call daxpy(ncnt, -tt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
 
-  !!      ist=ist+ncnt
-  !!   end do
+        ist=ist+ncnt
+     end do
 
-  !!   call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
-  !!        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
-  !!        nit_precond,tmb%npsidim_orbs,hpsi_tmp,tmb%confdatarr,gnrm,gnrm_zero)
+     !!if (ldiis%isx>0) then
+     !!    if (iproc==0) write(*,*) 'HACK precond: 10*conf'
+     !!    tmb%confdatarr(:)%prefac=10.d0*tmb%confdatarr(:)%prefac
+     !!end if
+     call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
+          tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
+          nit_precond,tmb%npsidim_orbs,hpsi_tmp,tmb%confdatarr,gnrm,gnrm_zero)
+     !!if (ldiis%isx>0) then
+     !!    tmb%confdatarr(:)%prefac=0.1d0*tmb%confdatarr(:)%prefac
+     !!end if
 
-  !!   ! temporarily turn confining potential off...
-  !!   allocate(prefac(tmb%orbs%norbp),stat=istat)
-  !!   call memocc(istat, prefac, 'prefac', subname)
-  !!   prefac(:)=tmb%confdatarr(:)%prefac
-  !!   tmb%confdatarr(:)%prefac=0.0d0
-  !!   call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
-  !!        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
-  !!        nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero) ! prefac should be zero
-  !!   call daxpy(tmb%npsidim_orbs, 1.d0, hpsi_tmp(1), 1, hpsi_small(1), 1)
-  !!   ! ...revert back to correct value
-  !!   tmb%confdatarr(:)%prefac=prefac
+     ! temporarily turn confining potential off...
+     allocate(prefac(tmb%orbs%norbp),stat=istat)
+     call memocc(istat, prefac, 'prefac', subname)
+     prefac(:)=tmb%confdatarr(:)%prefac
+     tmb%confdatarr(:)%prefac=0.0d0
+     call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
+          tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
+          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero) ! prefac should be zero
+     call daxpy(tmb%npsidim_orbs, 1.d0, hpsi_tmp(1), 1, hpsi_small(1), 1)
+     ! ...revert back to correct value
+     tmb%confdatarr(:)%prefac=prefac
 
-  !!   iall=-product(shape(prefac))*kind(prefac)
-  !!   deallocate(prefac, stat=istat)
-  !!   call memocc(istat, iall, 'prefac', subname)
-  !!   iall=-product(shape(hpsi_conf))*kind(hpsi_conf)
-  !!   deallocate(hpsi_conf, stat=istat)
-  !!   call memocc(istat, iall, 'hpsi_conf', subname)
-  !!   iall=-product(shape(hpsi_tmp))*kind(hpsi_tmp)
-  !!   deallocate(hpsi_tmp, stat=istat)
-  !!   call memocc(istat, iall, 'hpsi_tmp', subname)
-  !!else
-     !if (iproc==0) write(*,*) 'HACK precond: 10*conf'
-     !tmb%confdatarr(:)%prefac=10.d0*tmb%confdatarr(:)%prefac
+     iall=-product(shape(prefac))*kind(prefac)
+     deallocate(prefac, stat=istat)
+     call memocc(istat, iall, 'prefac', subname)
+     iall=-product(shape(hpsi_conf))*kind(hpsi_conf)
+     deallocate(hpsi_conf, stat=istat)
+     call memocc(istat, iall, 'hpsi_conf', subname)
+     iall=-product(shape(hpsi_tmp))*kind(hpsi_tmp)
+     deallocate(hpsi_tmp, stat=istat)
+     call memocc(istat, iall, 'hpsi_tmp', subname)
+  else
+     !!if (ldiis%isx>0) then
+     !!    if (iproc==0) write(*,*) 'HACK precond: 10*conf'
+     !!    tmb%confdatarr(:)%prefac=10.d0*tmb%confdatarr(:)%prefac
+     !!end if
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
           nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero)
-     !tmb%confdatarr(:)%prefac=0.1d0*tmb%confdatarr(:)%prefac
-  !!end if
+     !!if (ldiis%isx>0) then
+     !!    tmb%confdatarr(:)%prefac=0.1d0*tmb%confdatarr(:)%prefac
+     !!end if
+  end if
 
   !sum over all the partial residues
   if (nproc > 1) then
