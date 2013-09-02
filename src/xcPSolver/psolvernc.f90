@@ -1,83 +1,26 @@
-!>    Calculate the Poisson equation @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
-!!    from a given @f$\rho@f$, for different boundary conditions an for different data distributions.
-!!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
-!! @author
-!!    Copyright (C) 2002-2007 BigDFT group 
+!> @file
+!!   Routine to calculate the Poisson solver
+!!  @todo Should be remove from src/xcPSolver
+!!
+!! @copyright
+!!    Copyright (C) 2008-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SYNOPSIS
-!!    geocode  Indicates the boundary conditions (BC) of the problem:
-!!            'F' free BC, isolated systems.
-!!                The program calculates the solution as if the given density is
-!!                "alone" in R^3 space.
-!!            'S' surface BC, isolated in y direction, periodic in xz plane                
-!!                The given density is supposed to be periodic in the xz plane,
-!!                so the dimensions in these direction mus be compatible with the FFT
-!!                Beware of the fact that the isolated direction is y!
-!!            'P' periodic BC.
-!!                The density is supposed to be periodic in all the three directions,
-!!                then all the dimensions must be compatible with the FFT.
-!!                No need for setting up the kernel.
-!!    datacode Indicates the distribution of the data of the input/output array:
-!!            'G' global data. Each process has the whole array of the density 
-!!                which will be overwritten with the whole array of the potential
-!!            'D' distributed data. Each process has only the needed part of the density
-!!                and of the potential. The data distribution is such that each processor
-!!                has the xy planes needed for the calculation AND for the evaluation of the 
-!!                gradient, needed for XC part, and for the White-Bird correction, which
-!!                may lead up to 8 planes more on each side. Due to this fact, the information
-!!                between the processors may overlap.
-!!    nproc       number of processors
-!!    iproc       label of the process,from 0 to nproc-1
-!!    n01,n02,n03 global dimension in the three directions. They are the same no matter if the 
-!!                datacode is in 'G' or in 'D' position.
-!!    ixc         eXchange-Correlation code. Indicates the XC functional to be used 
-!!                for calculating XC energies and potential. 
-!!                ixc=0 indicates that no XC terms are computed. The XC functional codes follow
-!!                the ABINIT convention.
-!!    hx,hy,hz    grid spacings. For the isolated BC case for the moment they are supposed to 
-!!                be equal in the three directions
-!!    rhopot      main input/output array.
-!!                On input, it represents the density values on the grid points
-!!                On output, it is the Hartree potential, namely the solution of the Poisson 
-!!                equation PLUS (when ixc/=0 sumpion=.true.) the XC potential 
-!!                PLUS (again for ixc/=0 and sumpion=.true.) the pot_ion array. 
-!!                The output is non overlapping, in the sense that it does not
-!!                consider the points that are related to gradient and WB calculation
-!!    karray      kernel of the poisson equation. It is provided in distributed case, with
-!!                dimensions that are related to the output of the PS_dim4allocation routine
-!!                it MUST be created by following the same geocode as the Poisson Solver.
-!!    pot_ion     additional external potential that is added to the output, 
-!!                when the XC parameter ixc/=0 and sumpion=.true., otherwise it corresponds 
-!!                to the XC potential Vxc.
-!!                When sumpion=.true., it is always provided in the distributed form,
-!!                clearly without the overlapping terms which are needed only for the XC part
-!!                When sumpion=.false. it is the XC potential and therefore it has 
-!!                the same distribution of the data as the potential
-!!                Ignored when ixc=0.
-!!    eh,exc,vxc  Hartree energy, XC energy and integral of $\rho V_{xc}$ respectively
-!!    offset      value of the potential at the point 1,1,1 of the grid.
-!!                To be used only in the periodic case, ignored for other boundary conditions.
-!!    sumpion     logical value which states whether to sum pot_ion to the final result or not
-!!                if sumpion==.true. rhopot will be the Hartree potential + pot_ion+vxci
-!!                                   pot_ion will be untouched
-!!                if sumpion==.false. rhopot will be only the Hartree potential
-!!                                    pot_ion will be the XC potential vxci
-!!                this value is ignored when ixc=0. In that case pot_ion is untouched
+
+
+!>    Calculate the Poisson equation @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
+!!    from a given @f$\rho@f$, for different boundary conditions an for different data distributions.
+!!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
 !! @warning
 !!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
-!! Author:
-!!    Luigi Genovese
-!! CREATION DATE
-!!    February 2007
-!! 
+!! @author Luigi Genovese
+!! @date   February 2007
 subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)!,&
 !     alpha,beta,gamma,quiet) !optional argument
@@ -87,16 +30,66 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   use yaml_output
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
-  character(len=1), intent(in) :: geocode
-  character(len=1), intent(in) :: datacode
-  logical, intent(in) :: sumpion
-  integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
-  real(gp), intent(in) :: hx,hy,hz
-  real(dp), intent(in) :: offset
-  real(dp), dimension(*), intent(in) :: karray
-  real(gp), intent(out) :: eh,exc,vxc
-  real(dp), dimension(*), intent(inout) :: rhopot
-  real(wp), dimension(*), intent(inout) :: pot_ion
+  !Arguments
+  character(len=1), intent(in) :: geocode  !< geocode  Indicates the boundary conditions (BC) of the problem:
+                                           !! 'F' free BC, isolated systems.
+                                           !!     The program calculates the solution as if the given density is
+                                           !!     "alone" in R^3 space.
+                                           !! 'S' surface BC, isolated in y direction, periodic in xz plane                
+                                           !!     The given density is supposed to be periodic in the xz plane,
+                                           !!     so the dimensions in these direction mus be compatible with the FFT
+                                           !!     Beware of the fact that the isolated direction is y!
+                                           !! 'P' periodic BC.
+                                           !!     The density is supposed to be periodic in all the three directions,
+                                           !!     then all the dimensions must be compatible with the FFT.
+                                           !!     No need for setting up the kernel.
+  character(len=1), intent(in) :: datacode !< datacode Indicates the distribution of the data of the input/output array:
+                                           !! 'G' global data. Each process has the whole array of the density 
+                                           !!     which will be overwritten with the whole array of the potential
+                                           !! 'D' distributed data. Each process has only the needed part of the density
+                                           !!     and of the potential. The data distribution is such that each processor
+                                           !!     has the xy planes needed for the calculation AND for the evaluation of the 
+                                           !!     gradient, needed for XC part, and for the White-Bird correction, which
+                                           !!     may lead up to 8 planes more on each side. Due to this fact, the information
+                                           !!     between the processors may overlap.
+  logical, intent(in) :: sumpion           !< sumpion     logical value which states whether to sum pot_ion to the final result or not
+                                           !!  if .true. rhopot will be the Hartree potential + pot_ion+vxci
+                                           !!            pot_ion will be untouched
+                                           !!  if .false. rhopot will be only the Hartree potential
+                                           !!            pot_ion will be the XC potential vxci
+                                           !!  this value is ignored when ixc=0. In that case pot_ion is untouched
+  integer, intent(in) :: iproc             !< Label of the process,from 0 to nproc-1
+  integer, intent(in) :: nproc             !< Number of processors
+  integer, intent(in) :: n01,n02,n03       !< Global dimension in the three directions. They are the same no matter if the 
+                                           !! datacode is in 'G' or in 'D' position.
+  integer, intent(in) :: ixc               !< eXchange-Correlation code. Indicates the XC functional to be used 
+                                           !! for calculating XC energies and potential. 
+                                           !! ixc=0 indicates that no XC terms are computed. The XC functional codes follow
+                                           !! the ABINIT convention.
+  integer, intent(in) :: nspin
+  real(gp), intent(in) :: hx,hy,hz         !< Grid spacings. For the isolated BC case for the moment they are supposed to 
+                                           !! be equal in the three directions
+  real(dp), intent(in) :: offset           !< Value of the potential at the point 1,1,1 of the grid.
+                                           !! To be used only in the periodic case, ignored for other boundary conditions.
+  real(dp), dimension(*), intent(in) :: karray !< Kernel of the poisson equation. It is provided in distributed case, with
+                                           !! dimensions that are related to the output of the PS_dim4allocation routine
+                                           !! it MUST be created by following the same geocode as the Poisson Solver.
+  real(gp), intent(out) :: eh,exc,vxc      !< Hartree energy, XC energy and integral of @f$\rho V_{xc}@f$ respectively
+  real(dp), dimension(*), intent(inout) :: rhopot !< Main input/output array.
+                                           !! On input, it represents the density values on the grid points
+                                           !! On output, it is the Hartree potential, namely the solution of the Poisson 
+                                           !! equation PLUS (when ixc/=0 sumpion=.true.) the XC potential 
+                                           !! PLUS (again for ixc/=0 and sumpion=.true.) the pot_ion array. 
+                                           !! The output is non overlapping, in the sense that it does not
+                                           !! consider the points that are related to gradient and WB calculation
+  real(wp), dimension(*), intent(inout) :: pot_ion !< Additional external potential that is added to the output, 
+                                           !! when the XC parameter ixc/=0 and sumpion=.true., otherwise it corresponds 
+                                           !! to the XC potential Vxc.
+                                           !! When sumpion=.true., it is always provided in the distributed form,
+                                           !! clearly without the overlapping terms which are needed only for the XC part
+                                           !! When sumpion=.false. it is the XC potential and therefore it has 
+                                           !! the same distribution of the data as the potential
+                                           !! Ignored when ixc=0.
 !  character(len=3), intent(in), optional :: quiet
 !  !triclinic lattice
 !  real(dp), intent(in), optional :: alpha,beta,gamma
@@ -536,88 +529,16 @@ END SUBROUTINE PSolver
 
 
 
-!>    Transforms a generalized spin density into a pointwise collinear spin density which is
-!!    then passed to the Poisson Solver (PSolver). 
-!! @author
-!!    Copyright (C) 2002-2007 BigDFT group 
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SYNOPSIS
-!!    geocode  Indicates the boundary conditions (BC) of the problem:
-!!            'F' free BC, isolated systems.
-!!                The program calculates the solution as if the given density is
-!!                "alone" in R^3 space.
-!!            'S' surface BC, isolated in y direction, periodic in xz plane                
-!!                The given density is supposed to be periodic in the xz plane,
-!!                so the dimensions in these direction mus be compatible with the FFT
-!!                Beware of the fact that the isolated direction is y!
-!!            'P' periodic BC.
-!!                The density is supposed to be periodic in all the three directions,
-!!                then all the dimensions must be compatible with the FFT.
-!!                No need for setting up the kernel.
-!!    datacode Indicates the distribution of the data of the input/output array:
-!!            'G' global data. Each process has the whole array of the density 
-!!                which will be overwritten with the whole array of the potential
-!!            'D' distributed data. Each process has only the needed part of the density
-!!                and of the potential. The data distribution is such that each processor
-!!                has the xy planes needed for the calculation AND for the evaluation of the 
-!!                gradient, needed for XC part, and for the White-Bird correction, which
-!!                may lead up to 8 planes more on each side. Due to this fact, the information
-!!                between the processors may overlap.
-!!    nproc       number of processors
-!!    iproc       label of the process,from 0 to nproc-1
-!!    n01,n02,n03 global dimension in the three directions. They are the same no matter if the 
-!!                datacode is in 'G' or in 'D' position.
-!!    n3d         third dimension of the density. For distributed data, it takes into account 
-!!                the enlarging needed for calculating the XC functionals.
-!!                For global data it is simply equal to n03. 
-!!                When there are too many processes and there is no room for the density n3d=0
-!!    ixc         eXchange-Correlation code. Indicates the XC functional to be used 
-!!                for calculating XC energies and potential. 
-!!                ixc=0 indicates that no XC terms are computed. The XC functional codes follow
-!!                the ABINIT convention.
-!!    hx,hy,hz    grid spacings. For the isolated BC case for the moment they are supposed to 
-!!                be equal in the three directions
-!!    rhopot      main input/output array.
-!!                On input, it represents the density values on the grid points
-!!                On output, it is the Hartree potential, namely the solution of the Poisson 
-!!                equation PLUS (when ixc/=0 sumpion=.true.) the XC potential 
-!!                PLUS (again for ixc/=0 and sumpion=.true.) the pot_ion array. 
-!!                The output is non overlapping, in the sense that it does not
-!!                consider the points that are related to gradient and WB calculation
-!!    karray      kernel of the poisson equation. It is provided in distributed case, with
-!!                dimensions that are related to the output of the PS_dim4allocation routine
-!!                it MUST be created by following the same geocode as the Poisson Solver.
-!!    pot_ion     additional external potential that is added to the output, 
-!!                when the XC parameter ixc/=0 and sumpion=.true., otherwise it corresponds 
-!!                to the XC potential Vxc.
-!!                When sumpion=.true., it is always provided in the distributed form,
-!!                clearly without the overlapping terms which are needed only for the XC part
-!!                When sumpion=.false. it is the XC potential and therefore it has 
-!!                the same distribution of the data as the potential
-!!                Ignored when ixc=0.
-!!    eh,exc,vxc  Hartree energy, XC energy and integral of $\rho V_{xc}$ respectively
-!!    offset      value of the potential at the point 1,1,1 of the grid.
-!!                To be used only in the periodic case, ignored for other boundary conditions.
-!!    sumpion     logical value which states whether to sum pot_ion to the final result or not
-!!                if sumpion==.true. rhopot will be the Hartree potential + pot_ion+vxci
-!!                                   pot_ion will be untouched
-!!                if sumpion==.false. rhopot will be only the Hartree potential
-!!                                    pot_ion will be the XC potential vxci
-!!                this value is ignored when ixc=0. In that case pot_ion is untouched
+!> Transforms a generalized spin density into a pointwise collinear spin density which is
+!! then passed to the Poisson Solver (PSolver). 
 !! @warning
 !!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
-!! Author:
-!!    Anders Bergman
-!! CREATION DATE
-!!    March 2008
+!! @author Anders Bergman
+!! @date   March 2008
 !! 
 subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
@@ -625,16 +546,68 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use dictionaries, only: f_err_raise
   implicit none
-  character(len=1), intent(in) :: geocode
-  character(len=1), intent(in) :: datacode
-  logical, intent(in) :: sumpion
-  integer, intent(in) :: iproc,nproc,n01,n02,n03,n3d,ixc,nspin
-  real(gp), intent(in) :: hx,hy,hz
-  real(dp), intent(in) :: offset
-  real(dp), dimension(*), intent(in) :: karray
-  real(gp), intent(out) :: eh,exc,vxc
-  real(wp), dimension(*), intent(inout) :: pot_ion
-  real(dp), dimension(*), intent(inout) :: rhopot
+  !Arguments
+  character(len=1), intent(in) :: geocode  !< geocode  Indicates the boundary conditions (BC) of the problem:
+                                           !! 'F' free BC, isolated systems.
+                                           !!     The program calculates the solution as if the given density is
+                                           !!     "alone" in R^3 space.
+                                           !! 'S' surface BC, isolated in y direction, periodic in xz plane                
+                                           !!     The given density is supposed to be periodic in the xz plane,
+                                           !!     so the dimensions in these direction mus be compatible with the FFT
+                                           !!     Beware of the fact that the isolated direction is y!
+                                           !! 'P' periodic BC.
+                                           !!     The density is supposed to be periodic in all the three directions,
+                                           !!     then all the dimensions must be compatible with the FFT.
+                                           !!     No need for setting up the kernel.
+  character(len=1), intent(in) :: datacode !< datacode Indicates the distribution of the data of the input/output array:
+                                           !! 'G' global data. Each process has the whole array of the density 
+                                           !!     which will be overwritten with the whole array of the potential
+                                           !! 'D' distributed data. Each process has only the needed part of the density
+                                           !!     and of the potential. The data distribution is such that each processor
+                                           !!     has the xy planes needed for the calculation AND for the evaluation of the 
+                                           !!     gradient, needed for XC part, and for the White-Bird correction, which
+                                           !!     may lead up to 8 planes more on each side. Due to this fact, the information
+                                           !!     between the processors may overlap.
+  logical, intent(in) :: sumpion           !< sumpion     logical value which states whether to sum pot_ion to the final result or not
+                                           !!  if .true. rhopot will be the Hartree potential + pot_ion+vxci
+                                           !!            pot_ion will be untouched
+                                           !!  if .false. rhopot will be only the Hartree potential
+                                           !!            pot_ion will be the XC potential vxci
+                                           !!  this value is ignored when ixc=0. In that case pot_ion is untouched
+  integer, intent(in) :: iproc             !< Label of the process,from 0 to nproc-1
+  integer, intent(in) :: nproc             !< Number of processors
+  integer, intent(in) :: n01,n02,n03       !< Global dimension in the three directions. They are the same no matter if the 
+                                           !! datacode is in 'G' or in 'D' position.
+  integer, intent(in) :: n3d               !< Third dimension of the density. For distributed data, it takes into account
+                                           !! When there are too many processes and there is no room for the density n3d=0.
+  integer, intent(in) :: ixc               !< eXchange-Correlation code. Indicates the XC functional to be used 
+                                           !! for calculating XC energies and potential. 
+                                           !! ixc=0 indicates that no XC terms are computed. The XC functional codes follow
+                                           !! the ABINIT convention.
+  integer, intent(in) :: nspin
+  real(gp), intent(in) :: hx,hy,hz         !< Grid spacings. For the isolated BC case for the moment they are supposed to 
+                                           !! be equal in the three directions
+  real(dp), intent(in) :: offset           !< Value of the potential at the point 1,1,1 of the grid.
+                                           !! To be used only in the periodic case, ignored for other boundary conditions.
+  real(dp), dimension(*), intent(in) :: karray !< Kernel of the poisson equation. It is provided in distributed case, with
+                                           !! dimensions that are related to the output of the PS_dim4allocation routine
+                                           !! it MUST be created by following the same geocode as the Poisson Solver.
+  real(gp), intent(out) :: eh,exc,vxc      !< Hartree energy, XC energy and integral of @f$\rho V_{xc}@f$ respectively
+  real(dp), dimension(*), intent(inout) :: rhopot !< Main input/output array.
+                                           !! On input, it represents the density values on the grid points
+                                           !! On output, it is the Hartree potential, namely the solution of the Poisson 
+                                           !! equation PLUS (when ixc/=0 sumpion=.true.) the XC potential 
+                                           !! PLUS (again for ixc/=0 and sumpion=.true.) the pot_ion array. 
+                                           !! The output is non overlapping, in the sense that it does not
+                                           !! consider the points that are related to gradient and WB calculation
+  real(wp), dimension(*), intent(inout) :: pot_ion !< Additional external potential that is added to the output, 
+                                           !! when the XC parameter ixc/=0 and sumpion=.true., otherwise it corresponds 
+                                           !! to the XC potential Vxc.
+                                           !! When sumpion=.true., it is always provided in the distributed form,
+                                           !! clearly without the overlapping terms which are needed only for the XC part
+                                           !! When sumpion=.false. it is the XC potential and therefore it has 
+                                           !! the same distribution of the data as the potential
+                                           !! Ignored when ixc=0.
   !local variables
   character(len=*), parameter :: subname='PSolverNC'
   real(dp) :: rhon,rhos,factor
