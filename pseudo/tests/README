@@ -1,7 +1,10 @@
-/*! @dir pseudo/tests
+/*! @file
+@brief README of the pseudopotential tests
+
+@dir ./pseudo/tests
 @brief Tests for atom and pseudo programs.
+
 @details
-@brief 
 The initial import has tests for atom.f with a wide variety of chemical elements,
 but only in relativistic Teter93 LDA (iXC = - 000 020 or 1, nspol=1).
 

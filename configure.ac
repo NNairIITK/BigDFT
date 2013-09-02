@@ -1045,7 +1045,7 @@ src/modules/bigdft_cst.h
 src/modules/configure.inc
 src/modules/configure.c
 src/convolutions/Makefile
-src/PSolver/Makefile
+src/xcPSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
 src/convolutions-c/Makefile

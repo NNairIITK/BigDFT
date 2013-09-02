@@ -14,8 +14,8 @@ The command <tt>make check</tt> performs the series of tests:
 - @subpage TESTS_OVERDFT     Tests advanced features of BigDFT;
 - @subpage TESTS_LIBS        Tests the internal libraries used by BigDFT;
 - @subpage TESTS_TUTORIALS   Tutorials of BigDFT;
-- @link    ./tests/images @endlink   Contains the images used by the html page of the tutorials;
-- @link    ./tests/styles @endlink   Css stylesheets.
+-          tests/images      Contains the images used by the html page of the tutorials;
+-          tests/styles      Css stylesheets.
 
 
 Read the manual for more information or go to the web site http://bigdft.org.

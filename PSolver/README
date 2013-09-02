@@ -1,4 +1,4 @@
-/*!  @dir PSolver
+/*!  @dir ./PSolver
 @brief Directory containing the PSolver library
 @details
 This Poisson Solver is part of the BigDFT project but can also be used separately.

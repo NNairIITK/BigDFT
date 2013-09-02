@@ -2,7 +2,7 @@
 
 OTHERS = fft_check.f90 fft_cache.f90
 
-EXTRA_DIST = fft_check.out.ref fft_cache.gnuplot fft_cache.py
+EXTRA_DIST = fft_check.out.ref fft_cache.out.ref fft_cache.gnuplot fft_cache.py
 
 check_PROGRAMS = fft_check fft_cache
 
@@ -15,7 +15,7 @@ fft_cache_LDFLAGS =
 fft_cache_LDADD = @LINALG_LIBS@
 
 CLEANFILES = fft_check.out fft_cache.out fft_cache.dat fft_columns.dat fft_perf.dat \
-	fft_cache fldiff.report \
+	fft_cache fft_cache.gnuplot *.report \
 	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@
 
 fft_cache.o: fft3d.o
@@ -25,16 +25,25 @@ fft_check.out: fft_check
 	./fft_check > fft_check.out
 
 fft_cache.dat: fft_cache
-	./fft_cache 0
-	./fft_cache 6
-	./fft_cache 12
-	./fft_cache 24
-	./fft_cache 50
-	./fft_cache 75
-	./fft_cache 100
-
-check: fft_check.out fft_cache.dat
-	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.e-8 \
-		fft_check.out $(srcdir)/fft_check.out.ref | tee fldiff.report
+	./fft_cache 0   >  fft_cache.out 2>&1
+	./fft_cache 6   >> fft_cache.out 2>&1
+	./fft_cache 12  >> fft_cache.out 2>&1
+	./fft_cache 24  >> fft_cache.out 2>&1
+	./fft_cache 50  >> fft_cache.out 2>&1
+	./fft_cache 75  >> fft_cache.out 2>&1
+	./fft_cache 100 >> fft_cache.out 2>&1
 	python $(srcdir)/fft_cache.py
+
+fft_check.report: fft_check.out
+	python $(top_srcdir)/tests/fldiff.py --mode=pseudo --discrepancy=1.e-8 \
+		fft_check.out $(srcdir)/fft_check.out.ref | tee fft_check.report
+
+fft_cache.report: fft_cache.dat
+	python $(top_srcdir)/tests/fldiff.py --mode=pseudo \
+		fft_cache.out $(srcdir)/fft_cache.out.ref | tee fft_cache.report
+
+check: fft_check.report fft_cache.report
+
+report:
+	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 

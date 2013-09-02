@@ -1,4 +1,15 @@
-subroutine init_matrices(n, A, S)
+!> @file
+!!  Initialize the matrices for the test of dsygv.
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Initialize the matrices A and B for the dsygv test
+subroutine dsygv_init_matrices(n, A, S)
   implicit none
   
   ! Calling arguments
@@ -28,4 +39,4 @@ subroutine init_matrices(n, A, S)
       end do
   end do
 
-end subroutine init_matrices
+end subroutine dsygv_init_matrices

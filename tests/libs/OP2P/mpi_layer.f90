@@ -1,3 +1,14 @@
+!> @file
+!!  Module for the test OP2P (overlap point to point)
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module for the test OP2P (overlap point to point)
 module mpi_layer
   use module_base
   implicit none

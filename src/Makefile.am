@@ -15,7 +15,7 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 SUBDIRS = \
 	modules \
 	convolutions \
-	PSolver \
+	xcPSolver \
 	$(sub_dirs_libconfig) \
 	CUDA \
 	OpenCL \
@@ -38,7 +38,7 @@ subs_static_library = \
 	modules/libmodules.a \
 	CUDA/libCUDA.a \
 	convolutions/libconvolutions.a \
-	PSolver/libxcPSolver.a \
+	xcPSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
 	bindings/libbindings.a
 out_static_library =  \

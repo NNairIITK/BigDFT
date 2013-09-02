@@ -1,3 +1,14 @@
+!> @file
+!!  Routines to wrap the dsygv call for the test of dsygv (Lapack or Scalapak).
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Wrap the dsygv call (dsygv test).
 subroutine dsygv_wrapper(itype, jobz, uplo, n, A, ldA, S, ldS, eval)
   implicit none
 
@@ -21,7 +32,7 @@ subroutine dsygv_wrapper(itype, jobz, uplo, n, A, ldA, S, ldS, eval)
 end subroutine dsygv_wrapper
 
 
-
+!> Routine wrapping the parallel dsygv (scalapack).
 subroutine pdsygvx_wrapper(iproc, nproc, blocksize, comm, itype, jobz, uplo, n, a, lda, b, ldb, w)
   implicit none
   include 'mpif.h'
@@ -180,6 +191,5 @@ subroutine pdsygvx_wrapper(iproc, nproc, blocksize, comm, itype, jobz, uplo, n, 
       call mpi_bcast(w(1), n, mpi_double_precision, 0, mpi_comm_world, ierr)
       call mpi_bcast(info, 1, mpi_integer, 0, mpi_comm_world, ierr)
   end if
-
 
 end subroutine pdsygvx_wrapper

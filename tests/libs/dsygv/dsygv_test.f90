@@ -1,5 +1,16 @@
-program test
-  !use interfaces
+!> @file
+!!  Program to test the dsygv routine
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Test the dsygv routine
+program dsygv_test
+  !use dsygv_interfaces
   implicit none
   include 'mpif.h'
 
@@ -78,4 +89,4 @@ program test
   call mpi_barrier(mpi_comm_world, ierr)
   call mpi_finalize(ierr)
 
-end program test
+end program dsygv_test

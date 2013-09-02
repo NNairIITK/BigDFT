@@ -41,4 +41,9 @@
 @brief
    Contains routines which operates to the wavefunctions
 
+@dir ./src/xcPSolver
+@brief
+   Contains the routine to calculate the exchange-correlation energy and potential using the libxc library.
+@todo Remove the use of PSolver in this directory and call it xc.
+
 */
