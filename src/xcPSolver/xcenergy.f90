@@ -270,8 +270,7 @@ end function spherical_gaussian_value
 !!                be equal in the three directions
 !!    @param rho         Main input array. it represents the density values on the grid points
 !!    @param potxc       Main output array, the values on the grid points of the XC potential
-!!    @param exc,vxc     XC energy and integral of $\rho V_{xc}$ respectively
-!!    @param nspin       Value of the spin-polarisation
+!!    @param exc,vxc     XC energy and integral of @f$\rho V_{xc}@f$ respectively
 !! @warning
 !!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
@@ -289,7 +288,8 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
-  integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin,mpi_comm
+  integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,mpi_comm
+  integer, intent(in) :: nspin !< Value of the spin-polarisation
   real(gp), intent(in) :: hx,hy,hz
   real(gp), intent(out) :: exc,vxc
   real(dp), dimension(*), intent(inout) :: rho
@@ -570,7 +570,6 @@ call to_zero(6,rhocstr(1))
      end do
   end if
 
-  !
   !if rhohat is present, add it to charge density
   if(present(rhohat)) then
      do ispin=1,nspin
@@ -824,7 +823,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   real(dp), dimension(m1,m3,nxt,nspden), intent(inout) :: rho !< Density in the distributed format, also in spin-polarised
   real(dp), dimension(m1,m3,nwb,nspden), intent(out) :: vxci
   real(dp), dimension(m1,m3,nwb,ndvxc), intent(out) :: dvxci
-  real(dp), intent(out) :: exc,vxc                            !< XC energy and integral of $\rho V_{xc}$ respectively
+  real(dp), intent(out) :: exc,vxc                            !< XC energy and integral of @f$\rho V_{xc}@f$ respectively
   real(dp), dimension(6), intent(inout) :: wbstr
 
   !Local variables----------------
@@ -1033,7 +1032,7 @@ END SUBROUTINE xc_energy_new
 !!    pot_ion     additional external potential that is added to the output, 
 !!                when the XC parameter ixc/=0. It is always provided in the distributed form,
 !!                clearly without the overlapping terms which are needed only for the XC part
-!!    exc,vxc     XC energy and integral of $\rho V_{xc}$ respectively
+!!    exc,vxc     XC energy and integral of @f$\rho V_{xc}@f$ respectively
 !!    nxc         value of the effective distributed dimension in the third direction
 !!    nwb         enlarged dimension for calculating the WB correction
 !!    nxt         enlarged dimension for calculating the GGA case 

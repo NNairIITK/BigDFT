@@ -31,7 +31,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   !Arguments
-  character(len=1), intent(in) :: geocode  !< geocode  Indicates the boundary conditions (BC) of the problem:
+  character(len=1), intent(in) :: geocode  !< Indicates the boundary conditions (BC) of the problem:
                                            !! 'F' free BC, isolated systems.
                                            !!     The program calculates the solution as if the given density is
                                            !!     "alone" in R^3 space.
@@ -43,7 +43,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
                                            !!     The density is supposed to be periodic in all the three directions,
                                            !!     then all the dimensions must be compatible with the FFT.
                                            !!     No need for setting up the kernel.
-  character(len=1), intent(in) :: datacode !< datacode Indicates the distribution of the data of the input/output array:
+  character(len=1), intent(in) :: datacode !< Indicates the distribution of the data of the input/output array:
                                            !! 'G' global data. Each process has the whole array of the density 
                                            !!     which will be overwritten with the whole array of the potential
                                            !! 'D' distributed data. Each process has only the needed part of the density
@@ -52,7 +52,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
                                            !!     gradient, needed for XC part, and for the White-Bird correction, which
                                            !!     may lead up to 8 planes more on each side. Due to this fact, the information
                                            !!     between the processors may overlap.
-  logical, intent(in) :: sumpion           !< sumpion     logical value which states whether to sum pot_ion to the final result or not
+  logical, intent(in) :: sumpion           !< Logical value which states whether to sum pot_ion to the final result or not
                                            !!  if .true. rhopot will be the Hartree potential + pot_ion+vxci
                                            !!            pot_ion will be untouched
                                            !!  if .false. rhopot will be only the Hartree potential
@@ -66,7 +66,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
                                            !! for calculating XC energies and potential. 
                                            !! ixc=0 indicates that no XC terms are computed. The XC functional codes follow
                                            !! the ABINIT convention.
-  integer, intent(in) :: nspin
+  integer, intent(in) :: nspin             !< Value of the spin-polarisation
   real(gp), intent(in) :: hx,hy,hz         !< Grid spacings. For the isolated BC case for the moment they are supposed to 
                                            !! be equal in the three directions
   real(dp), intent(in) :: offset           !< Value of the potential at the point 1,1,1 of the grid.
@@ -539,7 +539,6 @@ END SUBROUTINE PSolver
 !!    to 10^-20 and not to zero.
 !! @author Anders Bergman
 !! @date   March 2008
-!! 
 subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
   use module_base
@@ -547,7 +546,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
   use dictionaries, only: f_err_raise
   implicit none
   !Arguments
-  character(len=1), intent(in) :: geocode  !< geocode  Indicates the boundary conditions (BC) of the problem:
+  character(len=1), intent(in) :: geocode  !< Indicates the boundary conditions (BC) of the problem:
                                            !! 'F' free BC, isolated systems.
                                            !!     The program calculates the solution as if the given density is
                                            !!     "alone" in R^3 space.
@@ -559,7 +558,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
                                            !!     The density is supposed to be periodic in all the three directions,
                                            !!     then all the dimensions must be compatible with the FFT.
                                            !!     No need for setting up the kernel.
-  character(len=1), intent(in) :: datacode !< datacode Indicates the distribution of the data of the input/output array:
+  character(len=1), intent(in) :: datacode !< Indicates the distribution of the data of the input/output array:
                                            !! 'G' global data. Each process has the whole array of the density 
                                            !!     which will be overwritten with the whole array of the potential
                                            !! 'D' distributed data. Each process has only the needed part of the density
@@ -568,7 +567,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
                                            !!     gradient, needed for XC part, and for the White-Bird correction, which
                                            !!     may lead up to 8 planes more on each side. Due to this fact, the information
                                            !!     between the processors may overlap.
-  logical, intent(in) :: sumpion           !< sumpion     logical value which states whether to sum pot_ion to the final result or not
+  logical, intent(in) :: sumpion           !< Logical value which states whether to sum pot_ion to the final result or not
                                            !!  if .true. rhopot will be the Hartree potential + pot_ion+vxci
                                            !!            pot_ion will be untouched
                                            !!  if .false. rhopot will be only the Hartree potential
@@ -584,7 +583,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
                                            !! for calculating XC energies and potential. 
                                            !! ixc=0 indicates that no XC terms are computed. The XC functional codes follow
                                            !! the ABINIT convention.
-  integer, intent(in) :: nspin
+  integer, intent(in) :: nspin             !< Value of the spin-polarisation
   real(gp), intent(in) :: hx,hy,hz         !< Grid spacings. For the isolated BC case for the moment they are supposed to 
                                            !! be equal in the three directions
   real(dp), intent(in) :: offset           !< Value of the potential at the point 1,1,1 of the grid.

@@ -21,7 +21,7 @@
 !! The theoretical background is described in :
 !! 1) S. Goedecker: Rotating a three-dimensional array in optimal
 !! positions for vector processing: Case study for a three-dimensional Fast
-!! Fourier Transform, Comp. Phys. Commun. \underline{76}, 294 (1993)
+!! Fourier Transform, Comp. Phys. Commun. 76, 294 (1993)
 !! Citing of this reference is greatly appreciated if the routines are used 
 !! for scientific work.
 !!

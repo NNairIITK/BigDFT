@@ -9,7 +9,7 @@
 
 
 !> Fill the array fISF with the value of the Fourier transform of the ISF of order m
-!! In particular, fISF(q)=\tilde \phi (\pi q / (2 m))
+!! In particular, @f$fISF(q)=\tilde \phi (\pi q / (2 m))@f$
 !! 2048 coefficients are stored, selected by following the desired ISF order
 !! the order strored are m=8,14,16,20,24,30,40,50,60,100
 pure subroutine four_isf_coeffs(m,fISF)
