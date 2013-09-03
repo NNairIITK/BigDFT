@@ -164,7 +164,7 @@ subroutine etot(verbose,nspol,  &
                   endif
                enddo
                !             write(*,'(a,f20.12,3i3,f10.3)')
-               !    :       'debug: ekin component',(ekin-dd)/zz,ll,ispin,iocc,zz
+               !    :       'DEBUG: ekin component',(ekin-dd)/zz,ll,ispin,iocc,zz
             endif
          enddo
       enddo
@@ -174,13 +174,13 @@ subroutine etot(verbose,nspol,  &
    epot   = etotal - ekin  + eh !  -.5*enl
    if(verbose)then ! condition in previos versions was energ
       write(6,*) 
-      write(6,*)' pseudo atom energies'
+      write(6,*)' Pseudo atom energies'
       write(6,*)' ____________________'
       write(6,*) 
       write(6,'(a,f16.10)')' kinetic energy            =',ekin
       write(6,'(a,f16.10)')' potential energy          =',epot
       write(6,'(a,f16.10)')' non local energy          =',enl
-      write(6,'(a,f16.10)')' hartree energy with xc    =',eh
+      write(6,'(a,f16.10)')' hartree energy with XC    =',eh
       write(6,'(a,f16.10)')' exchange + corr energy    =',exc
       write(6,'(a,f16.10)')' vxc    correction         =',vxc
       write(6,'(a)')' -------------------------------------------'

@@ -7,21 +7,17 @@ subroutine radgrid(nrad,rr,rw,rd,a_grd,b_grd,rmax)
    ! rd() di/dr
    !            ^ /4pir?
    
-   fourpi=16.d0*atan(1.d0)
-   do i=1,nrad
+        fourpi=16.d0*atan(1.d0)
+   do 100,i=1,nrad
       rr(i)=a_grd*exp(b_grd*(i-1))
       rw(i)=b_grd*rr(i)
       rd(i)=1.d0/rw(i)
       rw(i)=rw(i)*fourpi*rr(i)**2
-      if (rr(i).gt.rmax) exit
-   end do
-   if(rr(min(i,nrad))<rmax) then
-      !write(6,*)'rmax too large, stopped in rradgrid'
-      !stop
-      write(6,*)'WARNING: The largest distance on the radial grid'
-      write(6,*)'         may be too short. Consider to either'
-      write(6,*)'         raise ng or to lower rprb.'
-   end if
+      if (rr(i).gt.rmax) goto 200
+100 continue
+   write(6,*)'rmax too large, stopped in rradgrid'
+   stop
+200 continue
    nrad=i-1
    ! modify weights at en point for improved accuracy
    rw(1)=rw(1)*17.d0/48.d0
@@ -29,5 +25,4 @@ subroutine radgrid(nrad,rr,rw,rd,a_grd,b_grd,rmax)
    rw(3)=rw(3)*43.d0/48.d0
    rw(4)=rw(4)*49.d0/48.d0
    
-   return
 end subroutine radgrid
