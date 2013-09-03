@@ -121,9 +121,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       deallocate(confdatarrtmp)
 
       !DEBUG
-      if(iproc==0) then
-        print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
-      end if
+      !if(iproc==0) then
+      !  print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
+      !end if
       !END DEBUG
 
       iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)

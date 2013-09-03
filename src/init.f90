@@ -2698,7 +2698,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      overlap_calculated=.false.
      allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=i_stat)
      call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
-
      allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=i_stat)
      call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
 
@@ -2825,7 +2824,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            call calculate_weight_matrix_using_density(cdft,tmb,atoms,in,GPU,denspot)
            call f_free_ptr(cdft%weight_function)
         else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
-           call calculate_weight_matrix_lowdin(cdft,tmb,in,ref_frags,.true.)
+           call calculate_weight_matrix_lowdin(cdft,tmb,in,ref_frags,.false.)
            ! debug
            !call plot_density(iproc,nproc,'initial_density.cube', &
            !     atoms,rxyz,denspot%dpbox,1,denspot%rhov)

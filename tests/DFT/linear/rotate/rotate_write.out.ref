@@ -80,31 +80,31 @@ Calculating charge density... done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.085982E-003    -1.303840E+001     9.475853E-002     2.000000E-001
  
- alpha, energydiff  0.10000000000000001       1.33718734929288985E-004
+ alpha, energydiff  0.10000000000000001       1.33718734900867275E-004
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   2.999999983652E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  2.8365043E-09   -3.73282228559705942E+01    1.3372E-04
+   it, Delta DENS, energy, energyDiff   2  2.8365043E-09   -3.73282228559706226E+01    1.3372E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.201464E-003    -1.294364E+001    -1.359159E-003     1.000000E-001
  
- alpha, energydiff  0.11000000000000001      -1.46747373719335883E-006
+ alpha, energydiff  0.11000000000000001      -1.46747368034993997E-006
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   2.999999983652E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  7.1723420E-10   -3.73282243234443314E+01   -1.4675E-06
+   it, Delta DENS, energy, energyDiff   3  7.1723420E-10   -3.73282243234443030E+01   -1.4675E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.294499871605E+01  1.317990737812E+02 -1.227540340554E+01 -1.605489805566E+01  0.000000000000E+00  1.036365814939E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   1   7.34E-08   -3.73282243234443314E+01   -3.7328E+01
+   itoutL, Delta DENSOUT, energy, energyDiff   1   7.34E-08   -3.73282243234443030E+01   -3.7328E+01
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -114,7 +114,7 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    7.17E-10   -3.73282243234443314E+01
+     FINAL values: it, Delta DENS, energy   1    7.17E-10   -3.73282243234443030E+01
    > energy difference to last iteration: -3.732822E+01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -152,21 +152,21 @@ Calculating charge density... done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.000037E-003    -1.304474E+001     5.850200E-002     2.000000E-001
  
- alpha, energydiff  0.10000000000000001       2.48122081870860711E-004
+ alpha, energydiff  0.10000000000000001       2.48122081842439002E-004
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   2.999999983052E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  1.5620977E-09   -3.74274940900916846E+01    2.4812E-04
+   it, Delta DENS, energy, energyDiff   2  1.5620977E-09   -3.74274940900917130E+01    2.4812E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.203427E-003    -1.298624E+001    -2.003943E-003     1.000000E-001
  
- alpha, energydiff  0.11000000000000001      -1.85973144084528030E-006
+ alpha, energydiff  0.11000000000000001      -1.85973141242357087E-006
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   2.999999983053E+01
  ---------------------------------------------------------------- Updating potential.
@@ -203,8 +203,8 @@ Calculating charge density... done.
    eval(13)=  -2.947227009889E-01
    eval(14)=  -2.159343426178E-01
    eval(15)=  -2.157983312451E-01  <-- last occupied orbital
-   eval(16)=  -8.869651251743E-04  <-- first virtual orbital
-   eval(17)=  -8.593026102973E-04
+   eval(16)=  -8.869651251735E-04  <-- first virtual orbital
+   eval(17)=  -8.593026102968E-04
    eval(18)=   1.483455456764E-01
    eval(19)=   1.765058567148E-01
    eval(20)=   2.341033510150E-01
@@ -212,9 +212,198 @@ Calculating charge density... done.
    eval(22)=   3.263024946865E-01
    eval(23)=   3.416226321141E-01
  -------------------------------------------------
- lowest, highest ev: -7.6598131581205686E-01  7.1863560043504926E-01
+ lowest, highest ev: -7.6598131581205586E-01  7.1863560043504970E-01
  calculate density kernel...    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.298856873188E+01  1.318618059544E+02 -1.229622452743E+01 -1.608251741605E+01  0.000000000000E+00  1.036365814939E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   2   1.40E-07   -3.74274959498231254E+01    0.0000E+00   FINAL
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [ 4.962930700003E-05, -0.121467949344, -0.163462019267]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [ 6.482213699854E-05, -0.132899850107, -0.364882639655]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-3.473588489999E-04, -5.909092082700E-02, -1.458644997700E-02]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-3.375056279999E-04, -1.371446512000E-02, -0.335950614381]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-3.857824580003E-04, -0.146517833754, -0.280968903102]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [ 6.482213699854E-05, -0.132899850107, -0.364882639655]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-3.473588489999E-04, -5.909092082700E-02, -1.458644997700E-02]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-1.333390600067E-05, -8.761439339800E-02, -0.266415065261]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-3.857824580003E-04, -0.146517833754, -0.280968903102]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-3.473588489999E-04, -5.909092082700E-02, -1.458644997700E-02]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [ 6.482213699854E-05, -0.132899850107, -0.364882639655]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-1.333390600067E-05, -8.761439339800E-02, -0.266415065261]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-3.857824580003E-04, -0.146517833754, -0.280968903102]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-3.473588489999E-04, -5.909092082700E-02, -1.458644997700E-02]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-5.166095100151E-05, -0.115229104718, -0.102559220198]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-1.333390600067E-05, -8.761439339800E-02, -0.266415065261]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-3.857824580003E-04, -0.146517833754, -0.280968903102]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [ 6.482213699854E-05, -0.132899850107, -0.364882639655]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [ 6.720319199971E-05, -6.926884740700E-02, -0.289628027113]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-1.766761500122E-05, -2.515063288400E-02, -0.117442088532]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-1.333390600067E-05, -8.761439339800E-02, -0.266415065261]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
  Overview of the reformatting (several categories may apply):
    - No reformatting required: 4
    - Grid spacing has changed: 0

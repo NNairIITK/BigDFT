@@ -1861,6 +1861,16 @@ Calculating charge density... done.
  lowest, highest ev: -4.8974045301572311E-01  3.5766215709997345E-01
  calculate density kernel...    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.667111111668E-01  2.033127281716E+01 -3.934437337753E+00 -5.156538012287E+00  0.000000000000E+00  3.223414435217E+00  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   19   9.26E-11   -1.65524688186150115E+01    0.0000E+00   FINAL
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+
+ Translation vector                    :  [ -0.721380260151,  0.00000000000,  0.00000000000 ]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
  Overview of the reformatting (several categories may apply):
    - No reformatting required: 4
    - Grid spacing has changed: 0
