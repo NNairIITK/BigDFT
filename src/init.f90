@@ -2740,7 +2740,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         if (in%lin%calc_transfer_integrals) then
            in_frag_charge=f_malloc_ptr(in%frag%nfrag,id='in_frag_charge')
            call dcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
-           in_frag_charge(cdft%ifrag_charged(2))=0
+           ! assume all other fragments neutral, use total system charge to get correct charge for the other fragment
+           in_frag_charge(cdft%ifrag_charged(2))=in%ncharge - in_frag_charge(cdft%ifrag_charged(1))
+           cdft%charge=cdft%ifrag_charged(1)-cdft%ifrag_charged(2)
         else
            in_frag_charge=>in%frag%charge
         end if
@@ -2795,13 +2797,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!call f_free_ptr(tmb%linmat%denskern%matrix)   
 
      tmb%can_use_transposed=.false. ! - do we really need to deallocate here?
-
      i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
      deallocate(tmb%psit_c,stat=i_stat)                                                 
      call memocc(i_stat,i_all,'tmb%psit_c',subname)                                     
      i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)                               
      deallocate(tmb%psit_f,stat=i_stat)                                                 
-     call memocc(i_stat,i_all,'tmb%psit_f',subname)     
+     call memocc(i_stat,i_all,'tmb%psit_f',subname)
+     nullify(tmb%psit_c)
+     nullify(tmb%psit_f)
 
      ! Now need to calculate the charge density and the potential related to this inputguess
      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
@@ -2824,8 +2827,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
            call calculate_weight_matrix_lowdin(cdft,tmb,in,ref_frags,.true.)
            ! debug
-           call plot_density(iproc,nproc,'initial_density.cube', &
-                atoms,rxyz,denspot%dpbox,1,denspot%rhov)
+           !call plot_density(iproc,nproc,'initial_density.cube', &
+           !     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
            ! debug
         else 
            stop 'Error invalid method for calculating CDFT weight matrix'

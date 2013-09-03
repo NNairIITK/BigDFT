@@ -38,6 +38,19 @@ module constrained_dft
          real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout),optional :: hpsi_noconf
          real(gp),intent(out),optional :: econf
        end subroutine LocalHamiltonianApplication
+
+       subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
+                   blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half, plusminus, orbs)
+          use module_base
+          use module_types
+          implicit none
+  
+          integer,intent(in) :: iproc, nproc, norb, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm
+          real(kind=8),dimension(norb,norb),intent(in) :: ovrlp
+          real(kind=8),dimension(norb,norb),intent(inout) :: inv_ovrlp_half
+          logical, intent(in) :: plusminus
+          type(orbitals_data), optional, intent(in) :: orbs
+       end subroutine overlapPowerPlusMinusOneHalf_old
   end interface
 
   type, public :: cdft_data
@@ -440,7 +453,7 @@ contains
     if (cdft%nfrag_charged==2) then
        if (input_frag%charge(cdft%ifrag_charged(1))/=input_frag%charge(cdft%ifrag_charged(2))) then
           call f_err_throw('Error in constrained DFT, both fragments should have the same charge, '//& 
-               'which is interpreted as the charge difference between then two')
+               'which is interpreted as the charge difference between the two')
           return
        end if
     end if

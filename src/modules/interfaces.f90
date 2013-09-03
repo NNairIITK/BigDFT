@@ -4895,6 +4895,21 @@ module module_interfaces
           integer,intent(in) :: check_sumrho
         end subroutine check_communication_sumrho
 
+        subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, sd_fit_curve, num_extra)
+          use module_base
+          use module_types
+          use diis_sd_optimization
+          implicit none
+          integer,intent(in):: iproc, nproc, itmax
+          type(orbitals_data),intent(in):: orbs
+          type(DFT_wavefunction),intent(inout):: tmb
+          type(DIIS_obj), intent(inout) :: ldiis_coeff
+          real(kind=gp),intent(in):: fnrm_crit
+          real(kind=gp),intent(out):: fnrm
+          real(kind=gp), intent(inout) :: energy
+          logical, intent(in) :: sd_fit_curve
+          integer, optional, intent(in) :: num_extra
+        end subroutine optimize_coeffs
   
   end interface
 END MODULE module_interfaces
