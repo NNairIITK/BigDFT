@@ -52,9 +52,9 @@ unit3=10*iproc+9
         iz0=nint(rxyz(3,iiAt)/hzh)
 
         jj=0
-        write(c1,'(i0)') iproc
-        write(c2,'(i0)') iorb
-        write(c3,'(i0)') it
+        write(c1,'(i5.5)') iproc
+        write(c2,'(i5.5)') iorb
+        write(c3,'(i5.5)') it
         file1='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_x'
         file2='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_y'
         file3='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_z'

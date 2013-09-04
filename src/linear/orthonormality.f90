@@ -256,6 +256,11 @@ call timing(iproc,'misc','ON')
          jcol = lagmat%orb_from_index(2,jj)
          tmp_mat_compr(jj)=tmp_mat2(irow,jcol)
       end do
+      deallocate(linmat%ovrlp%matrix)
+      deallocate(tmp_mat)
+      deallocate(tmp_mat2)
+      deallocate(ipiv)
+      deallocate(work)
   end if
   !! ##########################################################
 
