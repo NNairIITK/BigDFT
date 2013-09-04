@@ -50,6 +50,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(:), allocatable :: prefac
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
+  real(8),dimension(:),allocatable :: prefacarr
 
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
       allocate(hpsi_conf(tmb%npsidim_orbs), stat=istat)
@@ -364,14 +365,19 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      call memocc(istat, iall, 'hpsi_tmp', subname)
   else
      !!if (ldiis%isx>0) then
-     !!    if (iproc==0) write(*,*) 'HACK precond: 10*conf'
-     !!    tmb%confdatarr(:)%prefac=10.d0*tmb%confdatarr(:)%prefac
+         !if (iproc==0) write(*,*) 'HACK precond: max(prefac,1.d-3)'
+         !tmb%confdatarr(:)%prefac=10.d0*tmb%confdatarr(:)%prefac
+         !allocate(prefacarr(tmb%orbs%norbp))
+         !prefacarr(:)=tmb%confdatarr(:)%prefac
+         !tmb%confdatarr(:)%prefac=max(tmb%confdatarr(:)%prefac,1.d-3)
      !!end if
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
           nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero)
      !!if (ldiis%isx>0) then
-     !!    tmb%confdatarr(:)%prefac=0.1d0*tmb%confdatarr(:)%prefac
+         !tmb%confdatarr(:)%prefac=0.1d0*tmb%confdatarr(:)%prefac
+         !tmb%confdatarr(:)%prefac=prefacarr(:)
+         !deallocate(prefacarr)
      !!end if
   end if
 

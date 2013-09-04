@@ -391,7 +391,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
   integer :: iorb, istat, ierr, it, iall, it_tot, ncount, jorb
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
-  real(kind=8),dimension(:),allocatable :: hpsi_noprecond, occup_tmp, kernel_compr_tmp
+  real(kind=8),dimension(:),allocatable :: hpsi_noprecond, occup_tmp, kernel_compr_tmp, philarge
   real(kind=8),dimension(:,:),allocatable :: coeff_old
   logical :: energy_increased, overlap_calculated
   character(len=*),parameter :: subname='getLocalizedBasis'
@@ -402,13 +402,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(3,3) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(3) :: interpol_vector, interpol_solution
   integer :: i, ist, iiorb, ilr, ii, info
-  real(kind=8) :: tt, ddot, d2e, ttt, energy_first
+  real(kind=8) :: tt, ddot, d2e, ttt, energy_first, hxh, hyh, hzh
   integer,dimension(3) :: ipiv
   real(kind=8),dimension(:,:),allocatable :: psi_old
   real(kind=8),dimension(:),allocatable :: psi_tmp
   real(kind=8),dimension(3),save :: d2e_arr_out
   integer,save :: isatur_out
-  integer :: isatur_in, correction_orthoconstraint_local
+  integer :: isatur_in, correction_orthoconstraint_local, npsidim_small, npsidim_large, ists, istl, sdim, ldim, nspin
   logical :: stop_optimization, energy_increased_previous
 
 
@@ -559,6 +559,30 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if(.not.ortho_on) then
           correction_orthoconstraint_local=2
       end if
+
+      !! PLOT ###########################################################################
+      !hxh=0.5d0*tmb%lzd%hgrids(1)      
+      !hyh=0.5d0*tmb%lzd%hgrids(2)      
+      !hzh=0.5d0*tmb%lzd%hgrids(3)      
+      !npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      !allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))
+      !philarge=0.d0
+      !ists=1
+      !istl=1
+      !do iorb=1,tmb%orbs%norbp
+      !    ilr = tmb%orbs%inWhichLocreg(orbs%isorb+iorb)
+      !    sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      !    ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      !    nspin=1 !this must be modified later
+      !    call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
+      !         tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))
+      !    ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      !    istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      !end do
+      !call plotOrbitals(iproc, tmb%orbs, tmb%lzd%Glr, philarge, at%astruct%nat, rxyz, hxh, hyh, hzh, 100*itout+it)
+      !deallocate(philarge)
+      !! END PLOT #######################################################################
+
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
