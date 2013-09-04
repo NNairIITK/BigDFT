@@ -132,12 +132,28 @@ do iorb=1,orbs%norbp
     mat(min(ldiis%isx,ldiis%is)+1,min(ldiis%isx,ldiis%is)+1)=0.d0
     rhs(min(ldiis%isx,ldiis%is)+1)=1.d0
 
+    !!if (iorb==1) then
+    !!  do i=1,min(ldiis%isx,ldiis%is)
+    !!    do j=1,min(ldiis%isx,ldiis%is)
+    !!      if (iproc==0) write(*,'(a,2i6,es14.5)') 'i,j,mat(i,j)',i,j,mat(i,j)
+    !!    end do
+    !!  end do
+    !!  write(*,*) '----------------------'
+    !!end if
+
     !make the matrix symmetric (hermitian) to use DGESV (ZGESV) (no work array, more stable)
     do i=1,min(ldiis%isx,ldiis%is)+1
        do j=1,min(ldiis%isx,ldiis%is)+1
           mat(j,i) = mat(i,j)
        end do
     end do
+    !!if (iorb==1) then
+    !!  do i=1,min(ldiis%isx,ldiis%is)
+    !!    do j=1,min(ldiis%isx,ldiis%is)
+    !!      if (iproc==0) write(*,'(a,2i6,es14.5)') 'i,j,mat(i,j)',i,j,mat(i,j)
+    !!    end do
+    !!  end do
+    !!end if
     ! solve linear system, supposing it is general. More stable, no need of work array
     if(ldiis%is>1) then
      call dgesv(min(ldiis%isx,ldiis%is)+1,1,mat(1,1),ldiis%isx+1,  & 
