@@ -5,6 +5,17 @@
 @brief Tests for atom and pseudo programs.
 
 @details
+This directory contains:
+- atoms           Tests only the atom program;
+- H-pseudo        Tests the pseudopotential generation for Hydrogen atom;
+-  example-O.new  Test from Alex Willand (this directory is old and should be removed. 
+                  This is exactly the same test as the directory pseudo/tutorials/oxygen.NLCC).
+- pawpatchtest    Tests the PAW patch.
+
+@dir ./pseudo/tests/atoms
+@brief Tests for many atoms the atom program.
+
+@details
 The initial import has tests for atom.f with a wide variety of chemical elements,
 but only in relativistic Teter93 LDA (iXC = - 000 020 or 1, nspol=1).
 

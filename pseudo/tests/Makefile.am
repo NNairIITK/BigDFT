@@ -1,7 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = \
-	  atom_tests 
+	  atoms \
+	  H-pseudo \
+	  pawpatchtest
 
 if BUILD_LIBYAML
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
