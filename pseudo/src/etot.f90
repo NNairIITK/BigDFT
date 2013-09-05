@@ -22,25 +22,36 @@ subroutine etot(verbose,nspol,  &
         xcgrd,excgrd,rhogrd,rhocore,occup,rr,rw,  &
         expxpr,etotal)
    
-   implicit real*8 (a-h,o-z)
-   logical ::  verbose
-   dimension aeval(noccmx,lmx,nsmx),  &
-        gpot(4),r_l(lmx),r_l2(lmx),hsep(6,lpmx,nsmx),  &
-        xp(0:ng),  ud(nint,((ng+1)*(ng+2))/2,lcx+1),   &
-        psi(0:ngmx,noccmx,lmx,nsmx),  &
-        rho(((ng+1)*(ng+2))/2,lmax+1,nspol),  &
-        pp1(0:ng,lmax+1),pp2(0:ng,lmax+1),pp3(0:ng,lmax+1),  &
-        xcgrd(nint,nspol), rhogrd(nint,nspol),rhocore(nint,nspol),  &
-        occup(noccmx,lmx,nsmx),expxpr(0:ng,nint)
-   dimension scpr1(nsmx),scpr2(nsmx),scpr3(nsmx)
+   implicit none
+   real(kind=8), parameter :: fourpi = 16.d0*atan(1.d0)
+   !Arguments
+   logical, intent(in) :: verbose
+   integer, intent(in) :: nspol,noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx
+   integer, intent(in) :: ng,nint,ngmx
+   real(kind=8), intent(in) :: rprb,zion,rloc
+   real(kind=8), dimension(noccmx,lmx,nsmx), intent(in) :: aeval,occup
+   real(kind=8), dimension(4), intent(in) :: gpot
+   real(kind=8), dimension(nint,nspol), intent(in) :: xcgrd, rhocore
+   real(kind=8), dimension(nint,nspol), intent(inout) :: rhogrd
+   real(kind=8), dimension(0:ng,lmax+1), intent(in) :: pp1,pp2,pp3
+   real(kind=8), dimension(lmx), intent(in) :: r_l,r_l2
+   real(kind=8), dimension(6,lpmx,nsmx), intent(in) :: hsep
+   real(kind=8), intent(out) :: etotal
+   !Local variables
+   real(kind=8), dimension(0:ng,nint) :: expxpr
+   real(kind=8), dimension(0:ng) :: xp
+   real(kind=8), dimension(nint,((ng+1)*(ng+2))/2,lcx+1) :: ud
+   real(kind=8), dimension(0:ngmx,noccmx,lmx,nsmx) :: psi
+   real(kind=8), dimension(((ng+1)*(ng+2))/2,lmax+1,nspol) :: rho
+   real(kind=8), dimension(nsmx) :: scpr1,scpr2,scpr3
+   real(kind=8), dimension(nint) :: vexgrd,excgrd,vhgrd,rr,rw
+   real(kind=8) :: dd,denfull,eext,eh,ehart,eigsum,ekin,enl,epot,exc
+   real(kind=8) :: psigrd,r,rkin,rnrm1,rnrm2,rnrm3,sep,vxc,zz
+   real(kind=8) :: ddot,wave2
+   integer :: i,iocc,ispin,ispol,k,l,ll
    
-   dimension vexgrd(nint),excgrd(nint),vhgrd(nint)
-   dimension rr(nint),rw(nint)
+   real(kind=8), external :: gamma
    
-   external gamma
-   
-   
-   fourpi = 16.d0*atan(1.d0)
    exc  = 0.0d0
    eext = 0.0d0
    ekin = 0.0d0
@@ -174,13 +185,13 @@ subroutine etot(verbose,nspol,  &
    epot   = etotal - ekin  + eh !  -.5*enl
    if(verbose)then ! condition in previos versions was energ
       write(6,*) 
-      write(6,*)' Pseudo atom energies'
+      write(6,*)' pseudo atom energies'
       write(6,*)' ____________________'
       write(6,*) 
       write(6,'(a,f16.10)')' kinetic energy            =',ekin
       write(6,'(a,f16.10)')' potential energy          =',epot
       write(6,'(a,f16.10)')' non local energy          =',enl
-      write(6,'(a,f16.10)')' hartree energy with XC    =',eh
+      write(6,'(a,f16.10)')' hartree energy with xc    =',eh
       write(6,'(a,f16.10)')' exchange + corr energy    =',exc
       write(6,'(a,f16.10)')' vxc    correction         =',vxc
       write(6,'(a)')' -------------------------------------------'

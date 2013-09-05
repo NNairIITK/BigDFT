@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Pack the fitting parameters into one array for amoeba
+!> pack the fitting parameters into one array for amoeba
 !! and vice versa
 !! if nstring = 'init'   -> initialisation + packing
 !! if nstring = 'pack'   -> packing

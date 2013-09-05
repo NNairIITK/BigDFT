@@ -1,22 +1,24 @@
-        real*8 function xpown(r,n)
-!     calc. r^n, n=int
-!     this routine avoids poroblem with then CRAY
-        implicit real*8 (a-h,o-z)
-        if (n.eq.0) then
-           xpown=1.d0
-           return
-        endif
-        if (r.eq.0.d0) then
-           xpown=0.d0
-           return
-        endif
-        xpown=1.d0
-        do i=1,abs(n)
-           xpown=xpown*r
-        enddo
-        if (n.lt.0) xpown=1.d0/xpown
-        return
-        end
+!> Calculates r^n, n=int
+!! This routine avoids problem with CRAY
+real(kind=8) function xpown(r,n)
+   implicit none
+   !Arguments
+   real(kind=8), intent(in) :: r
+   integer, intent(in) :: n
+   !Local variables
+   integer :: i
+   if (n == 0) then
+      xpown=1.d0
+      return
+   endif
+   if (r == 0.d0) then
+      xpown=0.d0
+      return
+   endif
+   xpown=1.d0
+   do i=1,abs(n)
+      xpown=xpown*r
+   enddo
+   if (n < 0) xpown=1.d0/xpown
 
-
-
+end function xpown

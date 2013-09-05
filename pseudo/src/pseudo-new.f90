@@ -154,9 +154,11 @@ program pseudo
    use ppackvars
    use gatomvars
    
-   !to be replaced with implicit none
-   implicit real*8 (a-h,o-z)
-   
+   implicit none
+  
+   real(kind=8), parameter :: fourpi = 16.d0*datan(1.d0)
+   real(kind=8), parameter :: sqrt2pi = dsqrt(fourpi*0.5d0) 
+
    real(kind=8) :: pp(maxdim*(maxdim+1)), yp(maxdim+1)
    logical plotwf, mixref, energ, verbose, info, exists, ldump
    !all electron orbital plots
@@ -183,7 +185,14 @@ program pseudo
    character(len=125) :: pawstatom
    logical :: fullac,igrad
    !For timings
-   real :: t0,t
+   real(kind=8) :: t0,t
+   real(kind=8) :: a0,a,a_grd,b_grd,dh,et,ftol,gt,penref,ppc1,ppc2,ppc3,ppr1,ppr2,ppr3
+   real(kind=8) :: qcore,r,r2,ra,randnr,rcovp,rmax,rnrm1,rnrm2,rnrm3,rprbp,sign1,sign2,ss,sw
+   real(kind=8) :: tt,ttdiff,ttmax,ttold,ttpsi,ttrmax,zcore,zionp,znucp
+   real(kind=8) :: wave
+   integer :: i,ierr,ierrpp,igrid,igf,ii,iiter,iline,iorb,ipspcod,j,j1,j2
+   integer :: k,l,lpj,lq,ngpot,nloc,np,nprl,nsign,ntrymax,nw
+   integer :: nproc,iproc,ispin,iter,ixcpp,lw,ngrid,nocc
 
    !     include 'func.inc'
    include 'mpif.h'
@@ -1460,8 +1469,6 @@ program pseudo
                else
                   !compute gcore(1) from qcore. gcore(2:4) are
                   !always zero, but we keep them for future testing.
-                  fourpi = 16.d0*datan(1.d0)
-                  sqrt2pi = dsqrt(fourpi*0.5d0) 
                   gcore(1) = fourpi* qcore * (znuc-zion) / &
                        (sqrt2pi*rcore)**3
                   write(6,*)
@@ -2170,8 +2177,6 @@ program pseudo
             if(any(gcore(2:4)/=0d0)) write(*,*) &
                  'warning: core charge is not just a gaussian'
             !compute qcore from gcore(1)
-            fourpi = 16.d0*datan(1.d0)
-            sqrt2pi = dsqrt(fourpi*0.5d0) 
             qcore = gcore(1) * (sqrt2pi*rcore)**3 / &
                  (fourpi  *   (znuc-zion) )
             !append nlcc line to psppar
