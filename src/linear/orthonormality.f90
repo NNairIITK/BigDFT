@@ -178,7 +178,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   !type(SparseMatrix) :: tmp_mat
   real(kind=8),dimension(:),allocatable :: tmp_mat_compr, lagmat_tmp_compr, work
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
-  real(kind=8),dimension(:,:),allocatable :: tmp_mat, tmp_mat2
+  real(kind=8),dimension(:,:),allocatable :: tmp_mat, tmp_mat2, tmp_mat3
   integer,dimension(:),allocatable :: ipiv
 
   ! removed option for correction orthoconstrain for now
@@ -248,12 +248,24 @@ call timing(iproc,'misc','ON')
       allocate(ipiv(orbs%norb))
       lwork=10*orbs%norb
       allocate(work(lwork))
+      allocate(tmp_mat3(orbs%norb,orbs%norb))
+      tmp_mat3=linmat%ovrlp%matrix
       call dgetrf(orbs%norb, orbs%norb, linmat%ovrlp%matrix, orbs%norb, ipiv, info)
       call dgetri(orbs%norb, linmat%ovrlp%matrix, orbs%norb, ipiv, work, lwork, info)
+      !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp%matrix, orbs%norb, tmp_mat3, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
+      !!if (iproc==0) then
+      !!  do iorb=1,orbs%norb
+      !!    do jorb=1,orbs%norb
+      !!      write(*,'(a,2i8,es14.5)') 'iorb, jorb, tmp_mat2(iorb,jorb)', iorb, jorb, tmp_mat2(iorb,jorb)
+      !!    end do
+      !!  end do
+      !!end if
       call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp%matrix, orbs%norb, tmp_mat, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
       do jj=1,lagmat%nvctr
          irow = lagmat%orb_from_index(1,jj)
          jcol = lagmat%orb_from_index(2,jj)
+         !!if (iproc==0) write(*,'(a,3i8,2es16.6)') 'jj, irow, jcol, tmp_mat_compr(jj), tmp_mat2(irow,jcol)', &
+         !!                                          jj, irow, jcol, tmp_mat_compr(jj), tmp_mat2(irow,jcol)
          tmp_mat_compr(jj)=tmp_mat2(irow,jcol)
       end do
       deallocate(linmat%ovrlp%matrix)
@@ -277,6 +289,20 @@ call timing(iproc,'misc','ON')
 call timing(iproc,'misc','OF')
   call build_linear_combination_transposed(collcom, lagmat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
   !call build_linear_combination_transposed(collcom, tmp_mat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+
+  !!! TEST ORTHOGONALITY OF GRADIENT AND TMBs ##############################
+  !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, linmat%ovrlp)
+  !!allocate(linmat%ovrlp%matrix(orbs%norb,orbs%norb))
+  !!call uncompressMatrix(iproc,linmat%ovrlp)
+  !!if (iproc==0) then
+  !!  do iorb=1,orbs%norb
+  !!    do jorb=1,orbs%norb
+  !!      write(*,'(a,2i8,es16.6)') 'iorb, jorb, linmat%ovrlp%matrix(jorb,iorb)', iorb, jorb, linmat%ovrlp%matrix(jorb,iorb)
+  !!    end do
+  !!  end do
+  !!end if
+  !!deallocate(linmat%ovrlp%matrix)
+  !!! END TEST #############################################################
 
   call vcopy(lagmat%nvctr,lagmat_tmp_compr(1),1,lagmat%matrix_compr(1),1)
 

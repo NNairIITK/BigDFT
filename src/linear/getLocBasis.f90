@@ -599,7 +599,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       if (iproc==0) write(*,'(a,3es16.7)') 'trH, energy_first, (trH-energy_first)/energy_first', &
                                             trH, energy_first, (trH-energy_first)/energy_first
-      if ((trH-energy_first)/energy_first>1.d-5) then
+      if ((trH-energy_first)/energy_first>1.d-5 .and. .false.) then
           stop_optimization=.true.
           if (iproc==0) write(*,'(a,3es16.7)') 'new stopping crit: trH, energy_first, (trH-energy_first)/energy_first', &
                                                 trH, energy_first, (trH-energy_first)/energy_first

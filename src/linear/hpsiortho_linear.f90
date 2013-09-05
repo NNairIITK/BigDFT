@@ -452,6 +452,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   integer :: istat, iall, i
   character(len=*), parameter :: subname='hpsitopsi_linear'
   real(kind=8),dimension(:),allocatable :: psittmp_c, psittmp_f
+  real(kind=8), dimension(:),allocatable :: norm
   real(kind=8) :: ddot
 
   call DIISorSD(iproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold)
@@ -570,6 +571,29 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed)
+  else
+      if (iproc==0) write(*,*) 'normalize...'
+      if(associated(tmb%psit_c)) then
+          iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+          deallocate(tmb%psit_c, stat=istat)
+          call memocc(istat, iall, 'tmb%psit_c', subname)
+      end if
+      if(associated(tmb%psit_f)) then
+          iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+          deallocate(tmb%psit_f, stat=istat)
+          call memocc(istat, iall, 'tmb%psit_f', subname)
+      end if
+      allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+      call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+      allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+      call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+      tmb%can_use_transposed=.true.
+
+      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+      allocate(norm(tmb%orbs%norb))
+      call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
+      deallocate(norm)
+      call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
   end if
 
   ! Emit that new wavefunctions are ready.
