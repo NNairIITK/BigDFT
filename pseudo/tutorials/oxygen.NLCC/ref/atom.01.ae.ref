@@ -1,6 +1,6 @@
-          18  1.00000000000000002E-002 orbitals, system weight
- 8.0000000000000000 6.0000000000000000 1.3799999999999999 6.0000000000000000 znuc, zpseudo, rcov, rprb
- spin polarized calculation
+          18    0.0100000000000000 orbitals, system weight
+   8.0000000000000000   6.0000000000000000   1.3799999999999999  6.00     znuc, zpseudo, rcov, rprb
+spin polarized calculation
        -20   iXC (ABINIT-libXC)
          906 number of gridpoints
     #    n    l         s                       z                eval                charge              dcharge            ddcharge
@@ -22,7 +22,7 @@
          4    2  0.500000000000E+00  0.000000000000E+00  0.138871194425E+00  0.153246569813E-03  0.172621652459E+03  0.421335842743E+05
          4    3 -0.500000000000E+00  0.000000000000E+00  0.122372672468E+00  0.232279324052E-06  0.154584440460E+03  0.289739409514E+05
          4    3  0.500000000000E+00  0.000000000000E+00  0.122373301212E+00  0.203463225579E-06  0.154605438588E+03  0.289790904788E+05
-  -149.04446574351221      total energy of this configuration
- EXCITATION ENERGIES:
-   0.0000000000000000     
- -5.50800407783071932E-002
+  -149.04446574351226      total energy of this configuration
+EXCITATION ENERGIES:
+01   0.00000000000000000E+00
+02  -5.50800407783071932E-02

@@ -100,9 +100,9 @@ program ae_atom
    integer :: nspol                                  !< number of spin components (1 or 2 spin polarisation)
    integer :: ifcore                                 !< If core electrons (for NLCC ?)
    integer :: nvalo,ncoreo
-   integer :: maxit                                  !< LMaximal number of iterations
+   integer :: maxit                                  !< Maximal number of iterations
    real(kind=8) :: rcov                              !< Covalent radius
-   real(kind=8) :: rprb
+   real(kind=8) :: rprb                              !< Radius for the parabolic confinement potential
    real(kind=8) :: zcore,zel
 
    character(len=2) :: name_old,itype_old,cnum
@@ -123,9 +123,6 @@ program ae_atom
    !Open the main input file: the routine input will read each configuration
    open(unit=35,file='atom.dat',status='unknown')
 
-   !do not append to atom.ae, but open an atom.??.ae per conf
-   !open(unit=40,file='atom.ae',form='formatted')
-
    !There will be no input guess for psppar, but only some clues
    !what input variables for the fit need to be added
    open(unit=50,file='psppar',form='formatted',position='append')
@@ -134,7 +131,7 @@ program ae_atom
    !begin main loop over electronic configurations
    loop_configurations: do
 
-      !read input data
+      ! Read input data
       !r ...... radial mesh
       !nr ..... # mesh points
       !norb ... # orbitals
@@ -150,7 +147,7 @@ program ae_atom
       & maxorb,no,lo,so,zo, &
       & znuc,zel,zcore, &
       & nconf,  &
-      & nvalo,ncoreo) ! test: pass dummy args instead of using a save block
+      & nvalo,ncoreo) 
 
       if (itype == stop_chain) exit loop_configurations
 
@@ -305,11 +302,6 @@ program ae_atom
       iXC_old = iXC
       itype_old = itype
 
-      ! write the total energy to atom.ae instead of excitation
-      ! energies. This allows the user to be flexible with reference
-      ! configurations.
-      ! Put in each atom.??.ae file
-      !write(40,*) etot(10),'total energy of this configuration'
 
       if (nconf == 1) then
          ! it is better to append and not overwrite existing weights
@@ -368,9 +360,9 @@ program ae_atom
          !write(40,*) 'Total energy of this configuration',econf(ii+1)
          write(40,'(a)') 'EXCITATION ENERGIES:'
          do i=1,nconf
-            write(40,'(1pe25.17)') (econf(i)-econf(1))/2.d0
+            write(40,'(i2.2,1x,1pe25.17)') i,(econf(i)-econf(1))/2.d0
          end do
-         close(40)
+         close(unit=40)
       end do
    end if
 
@@ -547,7 +539,8 @@ subroutine vionic(ifcore,  &
    integer, intent(out) :: ifcore                           !< if core
    integer, intent(in) :: nr                                !< #radial mesh points
    real(kind=8), dimension(nr), intent(in) :: r             !< Radial mesh
-   real(kind=8), intent(in) :: rprb,znuc
+   real(kind=8), intent(in) :: rprb                         !< Radius for the parabolic confinement potential
+   real(kind=8), intent(in) :: znuc
    integer, intent(in) :: lmax                              !< l channel
    real(kind=8), dimension(lmax,nr), intent(out) :: viod    !< Ionic potential down
    real(kind=8), dimension(lmax,nr), intent(out) :: viou    !< ionic potential up
@@ -825,7 +818,7 @@ subroutine input(itype,iXC,ispp,  &
    real(kind=8), dimension(nrmax), intent(out) :: rw  !< rw(i) = rab(i)*12.56637061435917d0*r(i)**2
    real(kind=8), dimension(nrmax), intent(out) :: rd  !< rd(i) = 1/rab(i)
    real(kind=8), intent(out) :: a,b                   !< Parameters to build the logarithmic mesh
-   real(kind=8), intent(out) :: rprb                  !< Radius ?
+   real(kind=8), intent(out) :: rprb                  !< Radius for the parabolic confinement potential
    real(kind=8), intent(out) :: rcov                  !< Covalent radius
    integer, intent(in) :: maxorb                      !< Maximal number of orbitals
    integer, intent(out) :: norb                       !< Number of orbitals
@@ -1192,6 +1185,7 @@ subroutine input(itype,iXC,ispp,  &
      !end do
 
 contains
+
    subroutine error_iostat()
       implicit none
       if (ierr > 0) then
@@ -1443,7 +1437,8 @@ subroutine dsolv2(iter,iconv,iXC,ispp,ifcore, &
    real(kind=8), dimension(lmax,nr), intent(in) :: viod,viou
    real(kind=8), dimension(norb), intent(out) :: ev,ek,ep
    real(kind=8), intent(out) :: dcrc,ddcrc
-   real(kind=8), intent(in) :: a,b,znuc,zcore,rcov,rprb
+   real(kind=8), intent(in) :: a,b,znuc,zcore,rcov
+   real(kind=8), intent(in) :: rprb                         !< Radius for the parabolic confinement potential
    character(len=1) :: ispp
    integer, intent(in) :: iXC
 
@@ -1892,11 +1887,12 @@ subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
    !> Maximum number of integration step
    integer, parameter :: max_itmax=100
    real(kind=8), parameter :: ai=2.d0*137.0360411d0
+   real(kind=8), parameter :: ai2 = ai * ai
    !> Tolerances
    real(kind=8), parameter :: etol=-1.d-7, tol = 1.0d-14
    real(kind=8), dimension(nr) :: rabkar,rabai, fa,fb
    real(kind=8), dimension(5) :: rs
-   real(kind=8) :: a1,a2,abc1,abc2,abc3,abc4,abc5,ai2,alf,amc0,amc1,amc2,amc3,amc4,arc,arin,arout,arp,arpin
+   real(kind=8) :: a1,a2,abc1,abc2,abc3,abc4,abc5,alf,amc0,amc1,amc2,amc3,amc4,arc,arin,arout,arp,arpin
    real(kind=8) :: az,b0,b1,b2,brc,brp,dev,emax,emin,evold,evv,arpout,evvai2,expzer,factor,faj,fbj,s,temp,vzero
    integer :: icount,istop,itmax,j,juflow,ka,ll,nctp,ninf,nodes
 
@@ -1926,8 +1922,7 @@ subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
    amc3 = 53.d0/360.d0
    amc4 = -19.d0/720.d0
 
-   ai2 = ai * ai
-   az = znuc/(2*ai)
+   az = znuc/(2.d0*ai)
    ka = lo(iorb)+1
    if (so(iorb) < 0.1d0 .and. lo(iorb) /= 0) ka=-lo(iorb)
 
@@ -1940,11 +1935,11 @@ subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
          !/ (n ai (2 s + n))
    !bn = ((v0 - e) a(n-1) - 2 znuc an ) / ( ai (s + n + ka))
 
-   s = sqrt(ka*ka-az*az)
-   if (ka > 0d0) then
-      b0 = -az/(s+ka)
+   s = sqrt(real(ka*ka,kind=8)-az*az)
+   if (ka > 0) then
+      b0 = -az/(s+real(ka,kind=8))
    else
-      b0 = (s-ka)/az
+      b0 = (s-real(ka,kind=8))/az
    end if
    if (so(iorb) < 0.1d0) then
       vzero=vid(2)
@@ -1960,7 +1955,7 @@ subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
       br(j) = 0.0d0
    end do
    do j=2,nr
-      rabkar(j)=rab(j)*ka/r(j)
+      rabkar(j)=rab(j)*real(ka,kind=8)/r(j)
    end do
    do j=2,nr
       rabai(j)=rab(j)/ai
@@ -2020,12 +2015,12 @@ subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
 
       !Outward integration from 1 to nctp, startup.
 
-      a1 = (az*(vzero-ev(iorb))-(s+1+ka)*(vzero-ev(iorb)-ai2)*b0)  &
-         / (ai*(2*s+1))
-      b1 = ((vzero-ev(iorb))-2*znuc*a1) / (ai*(s+1+ka))
-      a2 = (az*(vzero-ev(iorb))*a1-(s+2+ka)*(vzero-ev(iorb)-ai2)*b1)  &
-         / (2*ai*(2*s+2))
-      b2 = ((vzero-ev(iorb))*a1-2*znuc*a2) / (ai*(s+2+ka))
+      a1 = (az*(vzero-ev(iorb))-(s+1.d0+real(ka,kind=8))*(vzero-ev(iorb)-ai2)*b0)  &
+         / (ai*(2.d0*s+1.d0))
+      b1 = ((vzero-ev(iorb))-2*znuc*a1) / (ai*(s+1.d0+real(ka,kind=8)))
+      a2 = (az*(vzero-ev(iorb))*a1-(s+2.d0+real(ka,kind=8))*(vzero-ev(iorb)-ai2)*b1)  &
+         / (2.d0*ai*(2.d0*s+2))
+      b2 = ((vzero-ev(iorb))*a1-2*znuc*a2) / (ai*(s+2.d0+real(ka,kind=8)))
       do j=2,5
          ar(j) = rs(j) * (1 +(a1+a2*r(j))*r(j))
          br(j) = rs(j) * (b0+(b1+b2*r(j))*r(j))
@@ -2099,10 +2094,10 @@ subroutine difrel(iter,iorb,v,ar,br,nr,r,rab,  &
 
       do j=ninf,ninf-4,-1
          alf = v(j) - ev(iorb)
-         if (alf < 0.0) alf = 0.0d0
+         if (alf < 0.d0) alf = 0.d0
          alf = sqrt(alf)
          ar(j) = exp(-alf*r(j))
-         br(j) = ai*(alf+ka/r(j))*ar(j)/(v(j)-ev(iorb)-ai2)
+         br(j) = ai*(alf+real(ka,kind=8)/r(j))*ar(j)/(v(j)-ev(iorb)-ai2)
       end do
       fa(ninf) = rabkar(ninf)*ar(ninf)+  &
                 (ev(iorb)-v(ninf)+ai2)*br(ninf)*rabai(ninf)
@@ -2227,17 +2222,20 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
    real(kind=8), dimension(norb), intent(out) :: ek,ep
    real(kind=8), dimension(nr), intent(in) :: cdd,cdu,cdc,vid,viu,v
    real(kind=8), dimension(lmax,nr), intent(in) :: viod,viou
-   real(kind=8), intent(in) :: znuc,zcore, rcov,rprb
+   real(kind=8), intent(in) :: znuc,zcore, rcov
+   real(kind=8), intent(in) :: rprb                         !< Radius for the parabolic confinement potential
    real(kind=8), intent(out) :: dcrc, ddcrc
    !Local variables
+   real(kind=8), parameter :: ai=2.d0*137.0360411d0
+   real(kind=8), parameter :: ai2 = ai * ai
    real(kind=8), dimension(10) :: rzero,rextr,aextr,bextr
    character(len=10) :: name
    character(len=30) :: plotfile,orbname
-   real(kind=8) :: a1,ai,an,ar2,arp,arpm,b1,bn,br2,dena,denb,deni,expzer
+   real(kind=8) :: a1,an,ar2,arp,arpm,b1,bn,br2,dena,denb,deni,expzer
    real(kind=8) :: ddd,dddd,sa2,syswght
    real(kind=8) :: temp,toplot,tt
    real(kind=8) :: zps,vshift
-   integer :: i,ierr,i90,i99,ii,inum,ircov,isx,j,jj,ka,ll,llp,lp,nextr,ninf,npoint,nzero
+   integer :: i,ierr,i90,i99,ii,ircov,isx,j,jj,ka,ll,llp,lp,nextr,ninf,npoint,nzero
    !c.hartwig
    !work-arrays for integration, and xc-potential
    !SOME OF THOSE SEEM NOT TO BE USED AT ALL
@@ -2249,8 +2247,6 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
    character(len=2) :: cnum
 
 
-   !ai = 2*137.04d0
-   ai=2*137.0360411d0
    ka = lo(iorb)+1
    lp = ka
    if (so(iorb) < 0.1d0 .and. lo(iorb) /= 0) ka=-lo(iorb)
@@ -2262,9 +2258,9 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
    rzero(1) = 0.d0
    arp = br(2)
    if (ispp == 'r' .and. so(iorb) < 0.1d0) &
-         arp = ka*ar(2)/r(2) + (ev(iorb) - viod(lp,2)/r(2) - vid(2) + ai*ai) * br(2) / ai
+         arp = ka*ar(2)/r(2) + (ev(iorb) - viod(lp,2)/r(2) - vid(2) + ai2) * br(2) / ai
    if (ispp == 'r' .and. so(iorb) > 0.1d0) &
-         arp = ka*ar(2)/r(2) + (ev(iorb) - viou(lp,2)/r(2) - viu(2) + ai*ai) * br(2) / ai
+         arp = ka*ar(2)/r(2) + (ev(iorb) - viou(lp,2)/r(2) - viu(2) + ai2) * br(2) / ai
 
    do i=3,nr
       if (nextr >= no(iorb)-lo(iorb)) exit
@@ -2276,9 +2272,9 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
       arpm = arp
       arp = br(i)
       if (ispp == 'r' .and. so(iorb) < 0.1d0) &
-            arp = ka*ar(i)/r(i) + (ev(iorb) - viod(lp,i)/r(i) - vid(i) + ai*ai) * br(i) / ai
+            arp = ka*ar(i)/r(i) + (ev(iorb) - viod(lp,i)/r(i) - vid(i) + ai2) * br(i) / ai
       if (ispp == 'r' .and. so(iorb) > 0.1d0) &
-            arp = ka*ar(i)/r(i) + (ev(iorb) - viou(lp,i)/r(i) - viu(i) + ai*ai) * br(i) / ai
+            arp = ka*ar(i)/r(i) + (ev(iorb) - viou(lp,i)/r(i) - viu(i) + ai2) * br(i) / ai
       if (arp*arpm > 0.d0) cycle
 
       ! extremum
@@ -2501,7 +2497,6 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 
    !printout
 
-
    !if (iorb==ncore+nval) then
    !nval is not uninitialized so presume that ncore+nval = norb
    if (iorb==norb) then
@@ -2559,12 +2554,10 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
    !if (ispp/='r') ispp='n'
    if (iorb>ncore) then
       if (iorb==ncore+1) then
-         zps=0
+         zps=0.d0
          do jj=iorb,norb
             zps=zps+zo(jj)
          end do
-         !do not append to atom.ae, but open another atom.??.ae
-         write(cnum,'(i2.2)') nconf
 
          if (nconf == 0 ) then
             syswght=1.d0
@@ -2572,7 +2565,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
             !zion= zps for the first configuration
             write(50,'(a)') '-----suggested header for initial guess of psppar for fitting-----'
             if (ispp=='') ispp='n'
-            write(50,'(a,a,2g10.3,a)') ispp, ' 20 2.0',rcov, rprb, 'the first line contains some input data'
+            write(50,'(a,a,2g10.3,1x,a)') ispp, ' 20 2.0',rcov, rprb, 'the first line contains some input data'
             write(50,'(2g10.3,8x,a)') znuc, zps, 'znuc and zion as needed'
             write(50,'(a,1x,i7,6x,a)') '(2, 3 or 10)', IXC,'supported formats, iXC as given'
             write(50,'(1x,a)') '--you can download pseudopotentials from--'
@@ -2581,20 +2574,19 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
             syswght=1.d-2
          end if
 
-         !else
-            !write(40,'(a,i2,a)') ' NEXT CONFIGURATION (',nconf,')'
-         !end if
+         ! Write the configuration into atom.??.ae
+         write(cnum,'(i2.2)') nconf
          open(unit=40,file='atom.'//cnum//'.ae',form='formatted')
-         write(40,'(i12,1x,f21.16,1x,a)') norb-ncore,syswght,'orbitals, system weight'
-         write(40,'(4f19.16,1x,a)') znuc,zps,rcov,rprb,  &
-              'znuc, zpseudo, rcov, rprb'
-         if (ispp=='r') then
+         write(40,'(i12,1x,f21.16,1x,a)')     norb-ncore,syswght, 'orbitals, system weight'
+         write(40,'(3(f21.16),1pg10.3,1x,a)') znuc,zps,rcov,rprb, 'znuc, zpseudo, rcov, rprb'
+         select case(ispp)
+         case('r')
             write(40,'(a)') 'relativistic calculation'
-         elseif (ispp=='s') then
+         case('s')
             write(40,'(a)') 'spin polarized calculation'
-         else
+         case default
             write(40,'(a)') 'non relativistic calculation'
-         end if
+         end select
          write(40,'(i10,a)') iXC, '   iXC (ABINIT-libXC)'
          write(40,*) nr,        'number of gridpoints'
          write(40,'(3(4x,a),9x,a,23x,a,4(12x,a))') &
@@ -2626,27 +2618,25 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
 
    !c.chartwig:
    !save data for plots
-   write(cnum,'(i2)') nconf
-   inum=2
-   if (nconf > 9) inum=1
+   write(cnum,'(i2.2)') nconf
    if (ispp=='r') then
       orbname='ae.'//  &
            char(ichar('0')+no(iorb))//  &
            il(lo(iorb)+1)//  &
            char(ichar('0')+int(2*(lo(iorb)+so(iorb))))//'by2'//  &
-           '.conf'//cnum(inum:2)//'.dat'
+           '.conf'//cnum//'.dat'
    elseif (ispp=='n') then
       orbname='ae.'//  &
            char(ichar('0')+no(iorb))//il(lo(iorb)+1)//  &
-           '.conf'//cnum(inum:2)//'.dat'
+           '.conf'//cnum//'.dat'
    elseif (so(iorb)>0) then
       orbname='ae.'//  &
           char(ichar('0')+no(iorb))//il(lo(iorb)+1)//'.up'//  &
-           '.conf'//cnum(inum:2)//'.dat'
+           '.conf'//cnum//'.dat'
    else
       orbname='ae.'//  &
           char(ichar('0')+no(iorb))//il(lo(iorb)+1)//'.down'//  &
-           '.conf'//cnum(inum:2)//'.dat'
+           '.conf'//cnum//'.dat'
    end if
    !Let us create only two plotfiles and put the old plot file
    !name on a comment line instead. Do not write the plot to atom.ae.
@@ -2672,7 +2662,6 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
    !Those two files  will be read by the pseudo fitting program
    !In case plots of other configurations are intersting, those will
    !be written into separate, optional files, e.g. ae.03.orbitals.plt
-
    if (iorb == 1 .and. iorb <= ncore) then
       if (nconf == 0) then
          !(nconf is incremented shortly after calling this routine)
