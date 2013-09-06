@@ -1,6 +1,6 @@
   H
   PADE 
-  normal
+  nonrelativistic
   10.0          10.0 60.0      rmax,aa,bb 
        0.75d0   1.21d0         rcov,rprb
     0    10                    number of core and valence orbitals

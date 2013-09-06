@@ -235,7 +235,7 @@ program pseudo
    write(6,*) '***              pseudo_2.5               ***'
    write(6,*) '***              fitting of               ***'
    write(6,*) '***   Goedecker type pseudopotentials     ***'
-   write(6,*) '***   last changes:         june 2013     ***'
+   write(6,*) '***   last changes:    september 2013     ***'
    
    if (iproc>0) then  
       write(6,'(a,i2,a,i2,a)')            &
@@ -310,9 +310,8 @@ program pseudo
    ! blank characters between keyword and value.
    
    
-   write(6,*)'reading the file input.pseudo'
-   write(6,*)'_____________________________'
-   write(6,*)
+   write(6,'(1x,a)')   'Reading the file input.pseudo'
+   write(6,'(1x,a,/)') '_____________________________'
    
    
    open(unit=11,file='input.pseudo')
@@ -324,42 +323,23 @@ program pseudo
          write(6,'(i3,a)') iline-1,' lines have been read.'
          
          if (iline == 1) then
-            write(6,'(a,i2)')'   could not read the file input.pseudo'
-            write(6,*)
-            write(6,*) 'possible options (with input n/float)'
-            write(6,*)
-            write(6,'(2a)') '                   -ng      n ',  &
-                 'number of gaussians - raise this for wider sigmamax'
-            write(6,'(2a)') '                   -rij     f ',  &
-                 'divider for gaussians - raise this for denser sigmamin' 
-            write(6,*) '                  -denbas    ',  &
-                 'dense basis with smaller steps simgan/simgan-1'
-            write(6,*) '                  -mixref    ',  &
-                 'allow mixed ae reference data, e.g. various rprb'
-            write(6,*) '                  -plot      ',  &
-                 'plot wfs after each iteration'
-            write(6,*) '                  -info      ',  &
-                 'write gaussian coefficients of final'
-            write(6,*) '                             ',  &
-                 'wavefunctions to gauss.par'
-            write(6,*)   
+            write(6,'(3x,a,i2)')  'could not read the file input.pseudo'
+            write(6,'(/,1x,a,/)') 'possible options (with input n/float):'
+            write(6,'(19x,a)')    '-ng      n number of gaussians - raise this for wider sigmamax'
+            write(6,'(19x,a)')    '-rij     f divider for gaussians - raise this for denser sigmamin' 
+            write(6,'(19x,a)')    '-denbas    dense basis with smaller steps simgan/simgan-1'
+            write(6,'(19x,a)')    '-mixref    allow mixed ae reference data, e.g. various rprb'
+            write(6,'(19x,a)')    '-plot      plot wfs after each iteration'
+            write(6,'(19x,a)')    '-info      write gaussian coefficients of final wavefunctions to gauss.par'
+            write(6,'(/,1x,a)') 'keywords for fitting:'
+            write(6,'(19x,a)')    '-cy      n number of fitting cycles (-1< n< 10000)'
+            write(6,'(19x,a)')    '-fit       equivalent to -cy 1'
+            write(6,'(19x,a)')    '-maxiter n max number of iterations per simplex cycle'
+            write(6,'(19x,a)')    '-inwidth f initial width of the random simplex'
+            write(6,'(19x,a)')    '-stuck   n max steps to consider simplex stuck'
+            write(6,'(19x,a)')    '-cvg     f convergence crit for simplex spread'
             
-            write(6,*)' keywords for fitting'
-            write(6,*) '                  -cy      n ',  &
-                 'number of fitting cycles (-1< n< 10000)'
-            write(6,*) '                  -fit       ',  &
-                 'equivalent to -cy 1'
-            write(6,*) '                  -maxiter n ',  &
-                 'max number of iterations per simplex cycle'
-            write(6,*) '                  -inwidth f ',  &
-                 'initial width of the random simplex'
-            write(6,*) '                  -stuck   n ',  &
-                 'max steps to consider simplex stuck'
-            write(6,*) '                  -cvg     f ',  &
-                 'convergence crit for simplex spread'
-            write(6,*)   
-            
-            write(6,*)' keywords for backwards compatibility:'
+            write(6,'(/,1x,a)') 'keywords for backwards compatibility:'
             write(6,*) '                  -orth      ',  &
                  '"orthogonalisation" of the hij as in ref. krack'
             write(6,*) '                  -lith      ',  &
@@ -454,7 +434,7 @@ program pseudo
       if (ii /= 0) then
          label=string(ii+3:min(ii+13,120))
          read(label,*,iostat=ierr)ng
-         write(6,'(a,i3,a)')' basis set size:',ng,' gaussians'
+         write(6,'(a,i3,a)')' Basis set size:',ng,' Gaussians'
          if (ierr/=0)write(6,'(a,a,i3)')'above value was set to ',   &
               'its default due to a reading error. check line',iline
       endif
@@ -462,7 +442,7 @@ program pseudo
       if (ii /= 0) then
          label=string(ii+4:min(ii+14,120))
          read(label,*,iostat=ierr)rij
-         write(6,'(a,f6.3)')' smallest gaussian: sigma0 = rloc /',rij
+         write(6,'(a,f6.3)')' smallest Gaussian: sigma0 = rloc /',rij
          if (ierr/=0)write(6,'(a,a,i3)')'above value was set to ',   &
               'its default due to a reading error. check line',iline
       endif
@@ -712,7 +692,7 @@ program pseudo
    ! ----------------- read data from ae calculation -----------------
    write(6,*)
    write(filename,'(a,i2.2,a)') 'atom.',iproc,'.ae'
-   write(6,*) 'reading data from '//trim(filename)
+   write(6,*) 'Reading data from '//trim(filename)
    write(6,*) '____________________________'
    write(6,*)
    inquire(file=filename, exist=exists)
@@ -737,46 +717,46 @@ program pseudo
    ! Read the file atom.??.ae
    open(unit=40,file=trim(filename),form='formatted',status='unknown')
    read(40,*,iostat=ierr) norb, wghtconf
-   if (ierr/=0)ierr=3
+   if (ierr /= 0) ierr=3
    write(errmsg,*)'error: 1st line of ae ref data'
    call errorhandler(ierr,iproc,nproc,errmsg)
    read(40,*,iostat=ierr) znucp,zionp,rcovp,rprbp
-   if (ierr/=0)ierr=3
+   if (ierr /= 0) ierr=3
    write(errmsg,*)'error: 2nd line of ae ref data'
    call errorhandler(ierr,iproc,nproc,errmsg)
    read(40,'(a)',iostat=ierr) label
-   if (ierr/=0)ierr=3
+   if (ierr /= 0) ierr=3
    write(errmsg,*)'error: 3rd line of ae ref data'
    call errorhandler(ierr,iproc,nproc,errmsg)
    j=1
    
    do i=len(label),1,-1
-      if (label(i:i) == ' ') j=i
+      if (label(i:i) /= ' ') j=i
    end do
    methodae=label(j:j)
    read(40,'(a)',iostat=ierr) label
    j1=1
    j2=2
    do i=len(label),1,-1
-      if (label(i:i) == ' ') j1=i
+      if (label(i:i) /= ' ') j1=i
    end do
    do i=len(label),j1,-1
-      if (label(i:i).eq.' ') j2=i
+      if (label(i:i) == ' ') j2=i
    end do
    j2=j2-1
    
-   !     reading of ixc
-   !     for now, only keep the two most commonly used functionals
-   !     backwards compatible. otherwise, require abinits ixc < 0
+   ! reading of ixc
+   ! for now, only keep the two most commonly used functionals
+   ! backwards compatible. otherwise, require abinits ixc < 0
    
    !     icorrp=label(j1:j2)
-   if    (label(j1:j2)=='pade')then
+   if    (label(j1:j2) == 'pade') then
       ixc=-20
-   elseif (label(j1:j2)=='pbe')then   
+   elseif (label(j1:j2) == 'pbe') then   
       ixc=-101130
    else
       read(label(j1:j2),*,iostat=ierr) ixc
-      if (ierr/=0)then
+      if (ierr /= 0) then
          write(6,*)'could not read the xc input in '//trim(filename)
          stop
       end if
@@ -786,19 +766,18 @@ program pseudo
    !      read(40,'(t2,a)',iostat=ierr) methodae
    !      read(40,'(t2,a)',iostat=ierr) icorrp
    read(40,*,iostat=ierr) ngrid
-   if (ierr/=0.or.ngrid .gt. nrmax )ierr=3
-   if (ngrid .gt. nrmax )  &
-        write(6,*)'input number value is to large.'
-   write(errmsg,*)'error: nr gridpoints in ae ref'
+   if (ierr /= 0 .or. ngrid .gt. nrmax ) ierr=3
+   if (ngrid .gt. nrmax )  write(6,*)'input number value is to large.'
+   write(errmsg,*) 'error: nr gridpoints in ae ref'
    call errorhandler(ierr,iproc,nproc,errmsg)
    write(6,*)
-   write(6,*)'pseudo states = ', norb
-   write(6,*)'znuc          = ', znucp
-   write(6,*)'zpseudo       = ', zionp
-   write(6,*)'r_covalent    = ', rcovp
-   write(6,*)'r_confining   = ', rprbp
-   write(6,*)'method        = ', methodae
-   write(6,*)'gridpoints    = ', ngrid
+   write(6,*) 'pseudo states = ', norb
+   write(6,*) 'znuc          = ', znucp
+   write(6,*) 'zpseudo       = ', zionp
+   write(6,*) 'r_covalent    = ', rcovp
+   write(6,*) 'r_confining   = ', rprbp
+   write(6,*) 'method        = ', methodae
+   write(6,*) 'gridpoints    = ', ngrid
    il(1) = 's'
    il(2) = 'p'
    il(3) = 'd'
@@ -819,7 +798,7 @@ program pseudo
    
    write(6,*)
    write(6,'(a,i7,a,i5)')  &
-        ' initializing libxc with ixc =', ixc,'; nspol =',nspol
+        ' Initializing libXC with iXC =', ixc,'; nspol =',nspol
    !      the barriers are here because the init routine writes to stout
    !      with each process. need to find a way to fix this.
    if (nproc > 1) call mpi_barrier(mpi_comm_world,ierr)  
@@ -840,14 +819,14 @@ program pseudo
            ev(iorb),crcov(iorb),dcrcov(iorb),ddcrcov(iorb)!,plotfile
       !        write(6,*,iostat=ierr) no(iorb),lo(iorb),so(iorb),zo(iorb),
       !    :        ev(iorb),crcov(iorb),dcrcov(iorb),ddcrcov(iorb),plotfile
-      if (ierr/=0)ierr=3
+      if (ierr /= 0) ierr=3
       write(errmsg,*)'reading error in ae ref data'
       call errorhandler(ierr,iproc,nproc,errmsg)
       write(6,'(1x,i1,a1,f6.1,f10.4,2f16.10,2f16.7,a)') &
            no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),  &
            ev(iorb),crcov(iorb)
       !    :        ev(iorb),crcov(iorb),dcrcov(iorb),ddcrcov(iorb)
-      if (plotwf.and.iproc==0)then
+      if (plotwf.and.iproc==0) then
          !         use this statement if atom is compiled to write one file
          !         per configuration and orbital
          !         open(41,file=trim(plotfile))
@@ -858,7 +837,7 @@ program pseudo
                  igf=1,nspin)  
             !           error handling in the loop is slow, but better give detailed feedback
             !           for now, we only plot the ground state, i.e. atom.00.ae
-            if (ierr/=0)ierr=2
+            if (ierr /= 0) ierr=2
             !            write(errmsg,*)'error reading ae plots',
             !    :                  trim(plotfile),
             !     :                 'orb',iorb,'pt',igrid
@@ -928,21 +907,20 @@ program pseudo
       do j=1,ngrid
          psiold(j,nocc,l+1,ispin) = 0.0d0
          !           use major comp. as reference
-         if (rae(j) == 0.0)  &
+         if (rae(j) /= 0.0)  &
               psiold(j,nocc,l+1,ispin)=gf(j,iorb,1)/rae(j)
       end do
    end do
    
-   write(6,*)
-   write(6,*) 'all electron and pseudo-wfn quantum numbers'
-   write(6,*) '        n(ae)   l   inl(ps)   '
+   write(6,'(/,1x,a)') 'All electron and pseudo-wfn quantum numbers'
+   write(6,'(9x,a)')   'n(AE)   l   inl(PS)'
    do iorb=1,norb
       write(6,'(6x,3i6)')  noae(iorb),lo(iorb), no(iorb)
    end do
    
    !     read excitation energies from the last line of atom.??.ae
    
-   if (nproc>1)then
+   if (nproc>1) then
       write(6,*)
       !        read etotal and exchange data with all processes
       !        it would be enough to broadcast etot of system 0,
@@ -951,7 +929,7 @@ program pseudo
       excit=0d0
       read(40,*,iostat=ierr)excit(1)
       write(6,*)'all electron energy (ryd):',excit(1)
-      if (ierr/=0)then
+      if (ierr/=0) then
          write(6,*)
          write(6,*)'               warning'
          write(6,*)'the last line of the atomic reference file'
@@ -984,19 +962,18 @@ program pseudo
    else
       excitae = 0d0
    end if
-   !     done reading atomic ref data
-   close(40)
+   ! done reading atomic ref data
+   close(unit=40)
    
-   !
-   !     weights will be read from input.weights
+   ! weights will be read from input.weights
    !
    
-   !     pseudo 2.4 was backwards compatible with this files
-   !     reading conventions from pseudo2.2 and 2.3.
-   !     for this version, this is not the case anymore!
+   ! pseudo 2.4 was backwards compatible with this files
+   ! reading conventions from pseudo2.2 and 2.3.
+   ! for this version, this is not the case anymore!
    
    write(6,*)
-   write(6,*) 'reading penalty weights from file input.weights'
+   write(6,*) 'Reading penalty weights from file input.weights'
    write(6,*) '_______________________________________________'
    write(6,*)
    open(unit=24,file='input.weights',form='formatted')
@@ -1006,11 +983,10 @@ program pseudo
    wghtrad  = 0d0
    wghthij  = 0d0
    wghtexci = 0d0
-   !        what about a different ordering for reading these?
-   read(24,*,iostat=ierr)wghtp0,wghtsoft,wghtrad,wghthij,wghtloc,wghtexci
-   !        no need to call error handler here, shared input file
-   if (ierr/=0)  &
-        write(6,*)'reading error for weights of psi(r=0) and softness.'
+   ! what about a different ordering for reading these?
+   read(24,*,iostat=ierr) wghtp0,wghtsoft,wghtrad,wghthij,wghtloc,wghtexci
+   ! no need to call error handler here, shared input file
+   if (ierr /= 0) write(6,*) 'reading error for weights of psi(r=0) and softness.'
    write(6,'(a,e10.3)') ' weight for psi(r=0)=0 is     ',wghtp0
    write(6,'(a,e10.3)') ' for ekin(gauss-wavelet)      ',wghtsoft
    write(6,'(a,e10.3)') ' for keeping radii wide       ',wghtrad
@@ -1018,9 +994,9 @@ program pseudo
    write(6,'(a,e10.3)') ' for keeping vloc local       ',wghtloc
    write(6,'(a,e10.3)') ' and for excitation energies  ',wghtexci
    
-   read(24,*)!comment line
+   read(24,*) !comment line
    
-   !        read the weights for eigenvalues and integrals into the array wght
+   ! read the weights for eigenvalues and integrals into the array wght
    
    do iorb=1,norb
       nocc=no(iorb)
@@ -1029,10 +1005,9 @@ program pseudo
       ss = so(iorb)
       if (ss.lt.0) ispin=2
       read(24,*) nw,lw,sw,(wght(nocc,l+1,ispin,i),i=1,8)
-      if (noae(iorb) == nw .or. l == lw .or. ss == sw) then
+      if (noae(iorb) /= nw .or. l /= lw .or. ss /= sw) then
          write(6,*) 'error in file input.weights'
-         write(6,*) 'need weights for n,l,s:',  &
-              noae(iorb),l,so(iorb)
+         write(6,*) 'need weights for n,l,s:', noae(iorb),l,so(iorb)
          write(6,*) 'found            n,l,s:',nw,lw,sw
          if (nproc>1) call mpi_finalize(ierr)
          stop
@@ -1087,7 +1062,7 @@ program pseudo
          !!!             read(12,*,iostat=ierr)
          !!!             read(12,*,iostat=ierrnlcc)rcore,gcore
          !!!             close(12)
-         !!!             if (ierrnlcc==0)then
+         !!!             if (ierrnlcc==0) then
          !!!             write(6,*)
          !!!             write(6,*)'reading core charge coefficients from nlcc'
          !!!             write(6,*)'__________________________________________'
@@ -1118,7 +1093,7 @@ program pseudo
          !     notice some additional data needs can be read from the first line.
          
          inquire(file='psppar',exist=exists) 
-         if (.not.exists)then
+         if (.not.exists) then
             !           no need to call errorhandler, shared file
             write(6,*)'the file psppar is lacking.'
             write(6,*)'pseudo potentials are available from'
@@ -1151,7 +1126,7 @@ program pseudo
          !             s   spin polarized (and relativistic)
          
          !           ng and rij are the number and relative max width of the gaussians
-         if (ierr/=0)then
+         if (ierr/=0) then
             write(6,*)
             write(6,*)'                notice'
             write(6,*)
@@ -1180,11 +1155,11 @@ program pseudo
             !                read the calculation type from the label
             j=1
             do i=len(label),1,-1
-               if (label(i:i) == ' ') j=i
+               if (label(i:i) /= ' ') j=i
             end do
             methodps=label(j:j)
             ierr=0
-            if (methodps == 'r'.and.methodps == 'n'.and.methodps == 's')then
+            if (methodps /= 'r' .and. methodps /= 'n' .and. methodps /= 's') then
                write(6,*)'the first non-blank character of psppar'
                write(6,*)'must be one of' 
                write(6,*)'n: for nonrelativistic calculations'
@@ -1197,7 +1172,7 @@ program pseudo
                stop
             end if
          end if
-         if (methodae == methodps) ierr=3
+         if (methodae /= methodps) ierr=3
          write(errmsg,*)'inconsistent spin treatment.'
          call errorhandler(ierr,iproc,nproc,errmsg)
          !              below option does not really make sense.
@@ -1213,7 +1188,7 @@ program pseudo
          !              endif
          
          read(11,*,iostat=ierr) znuc, zion
-         if (ierr/=0)then
+         if (ierr/=0) then
             !               no need to call error handler, shared input file
             !               thus some stop statements have not been eliminated here
             write(6,*)
@@ -1227,7 +1202,7 @@ program pseudo
          
          
          read(11,*,iostat=ierr) ipspcod, ixcpp
-         if (ierr/=0)then
+         if (ierr/=0) then
             !               no need to call error handler, shared input file
             write(6,*)
             write(6,*)'             warning'
@@ -1238,22 +1213,22 @@ program pseudo
          end if
          
          !           for convenience: convert lda and pbe ixc from abinit to libxc
-         if (ixcpp==1)then
+         if (ixcpp==1) then
             write(6,*)'lda pade: ixc = 1 or -20 are equivalent.'
             ixcpp=-20
          end if
-         if (ixcpp==11)then
+         if (ixcpp==11) then
             write(6,*)'pbe: ixc = 11 or -101130 are equivalent.'
             ixcpp=-101130
          end if
          
-         if (ng .gt. ngmx )then 
+         if (ng .gt. ngmx ) then 
             write(6,*) 'gaussians: ',ng
             write(6,*) 'maximum is:',ngmx
             if (nproc>1) call mpi_finalize(ierr)
             stop
          endif
-         if (noccmax.gt.ng+1)then
+         if (noccmax.gt.ng+1) then
             write(6,*) 'noccmax>ng+1'
             write(6,*) 'ng+1,rij ',ng+1,rij
             if (nproc>1) call mpi_finalize(ierr)
@@ -1264,7 +1239,7 @@ program pseudo
          !           already read from psppar
          !           read(23,*) rcov,rprb
          ierr=0
-         if (rcov == rcovp) then
+         if (rcov /= rcovp) then
             ierr=1
             write(6,*)'rcov from atom.ae and psppar not identical'
             write(6,*) 'atom.ae   rcov=',rcovp
@@ -1302,7 +1277,7 @@ program pseudo
          
          
          ierr=0
-         if (rprb == rprbp) then
+         if (rprb /= rprbp) then
             write(6,*)'rprb in atomic reference differs',   &
                  ' from the value in psppar.'
             write(6,*) 'atom.ae   rprb=',rprbp
@@ -1331,16 +1306,16 @@ program pseudo
          !           j1=1
          !           j2=2
          !           do i=len(label),1,-1
-         !              if (label(i:i) == ' ') j1=i
+         !              if (label(i:i) /= ' ') j1=i
          !           end do
          !           do i=len(label),j1,-1
          !              if (label(i:i).eq.' ') j2=i
          !           end do
          !           j2=j2-1
          !           icorr=label(j1:j2)
-         !           if (icorr == icorrp) then
+         !           if (icorr /= icorrp) then
          ierr=0
-         if (ixc == ixcpp) then
+         if (ixc /= ixcpp) then
             write(6,*) 'contradiction in exchange correlation'
             write(6,*) 'atom.ae   ixc=',ixc
             write(6,*) 'psppar    ixc=',ixcpp
@@ -1364,7 +1339,7 @@ program pseudo
          
          !           read(11,*) znuc, zion, rloc, gpot(1),gpot(2),gpot(3),gpot(4)
          ierr=0
-         if (znucp == znuc) then
+         if (znucp /= znuc) then
             write(6,*) 'znuc from atom.ae and psppar not identical'
             write(6,*) 'atom.ae   znuc=',znucp
             write(6,*) 'psppar    znuc=',znuc
@@ -1373,7 +1348,7 @@ program pseudo
          write(errmsg,*) 'nucleonic charge differs from ae data'
          call errorhandler(ierr,iproc,nproc,errmsg)
          ierr=0
-         if (zionp == zion) then
+         if (zionp /= zion) then
             write(6,*) 'zion from atom.ae and psppar not identical'
             write(6,*) 'atom.ae  zion=',zionp
             write(6,*) 'psppar   zion=',zion
@@ -1388,7 +1363,7 @@ program pseudo
          !           be sure to have zeroes for undefined entries.
          psppar = 0d0
          
-         if (ipspcod==10.or.ipspcod==11)then
+         if (ipspcod == 10 .or. ipspcod == 11) then
             write(6,*)'hgh matrix format'
             !              ! hgh-k format: all projector elements given.
             ! dimensions explicitly defined for nonzero output.
@@ -1414,7 +1389,7 @@ program pseudo
                ! add some line to read r_l2 if nprl < 0
                read(11,'(a)') string
                read(string,*) r_l(l),nprl
-               if (nprl>0)then
+               if (nprl > 0) then
                   read(string,*) r_l(l),nprl,  &
                        psppar(1,l,1),(psppar(j+2,l,1),  &
                        j=2,nprl)  !h_ij 1st line
@@ -1436,7 +1411,7 @@ program pseudo
                        j=2,nprl)  !h_ij 1st line
                   read(11,*)r_l2(l), psppar(2,l,1),(psppar(2+j+1,l,1),  &
                        j=2+1,nprl)!2nd line
-                  if (nprl==3) read(11,*) psppar(3,l,1)! thid line
+                  if (nprl == 3) read(11,*) psppar(3,l,1)! thid line
                end if
                
                !                 there are no kij the s-projector
@@ -1446,10 +1421,10 @@ program pseudo
                        j=i+1,nprl)!all k_ij
                end do
             end do ! loop over l 
-            if (ipspcod==11)then
+            if (ipspcod==11) then
                ! this psppar uses nlcc
                read(11,*,iostat=ierrpp) rcore, qcore 
-               if (ierrpp/=0)then
+               if (ierrpp/=0) then
                   write(6,*)' pspcod=11 implies nlcc data on the last line,'
                   write(6,*)' but rcore and qcore could not be read!' 
                   rcore= -1d0 
@@ -1472,7 +1447,7 @@ program pseudo
                end if
             end if
             
-         elseif (ipspcod==3)then
+         elseif (ipspcod==3) then
             write(6,*)'hgh diagonal format'
             !                hgh diagonal part case
             !                technically, lpx is fixed at the max value of
@@ -1483,7 +1458,7 @@ program pseudo
                read(11,*) r_l(l),psppar(1:3,l,1) 
                read(11,*)        psppar(1:3,l,2) 
             end do
-         elseif (ipspcod==2)then
+         elseif (ipspcod==2) then
             write(6,*)'gth format'
             !                ! gth case
             !                technically, lpx is fixed at s and p
@@ -1508,7 +1483,7 @@ program pseudo
          
          !           avoid radii equal zero, even for unused projectors. 
          do l=1,lpx
-            if (r_l(l)==0d0)then
+            if (r_l(l)==0d0) then
                write(6,*)'all r_l should be nonzero.'
                write(6,*)'the r_l of the ',il(l),'-projector has been'
                write(6,*)'adjusted from 0 to 1. check your psppar.'
@@ -1605,7 +1580,7 @@ program pseudo
             
             
             !              in the nonrelativistic case, we are done.
-            if (nspin==2)then
+            if (nspin==2) then
                !                in the polarized case, copy the missing s projector
                if (nspol==2)  hsep(:,1,2)=hsep(:,1,1)
                !                use psppar as a temporary array 
@@ -1636,7 +1611,7 @@ program pseudo
             !              fill hsep(up,dn) upper diagonal col by col, as needed for the fit
             
             !             for a nonrelativistic calculation, discard the kij elements
-            if (nspin==1)then
+            if (nspin==1) then
                do l=1,lpx
                   hsep(1,l,1)=psppar(1,l,1) !h11
                   hsep(2,l,1)=psppar(4,l,1) !h12
@@ -1679,7 +1654,7 @@ program pseudo
               ' rcov and rprb (charge integr and confinement)'
          if (methodps.eq.'r') then
             write(6,'(t30,a)')'relativistic calculation'
-         elseif (methodps.eq.'s')then
+         elseif (methodps.eq.'s') then
             write(6,'(t30,a)')'spin polarized calculation'
          else
             write(6,'(t30,a)')'non relativistic calculation'
@@ -1795,7 +1770,7 @@ program pseudo
          
          !           the random numbers generated should be the same for all processes.
          !           though, let us enforce equality with mpi broadcast from process 0.
-         if (iproc==0)then
+         if (iproc==0) then
             do i=1,nfit
                !     f90 intrinsic
                call random_number(randnr)
@@ -1820,7 +1795,7 @@ program pseudo
          write(6,'(2a)')' _______________________________________',  &
               '____________________________________'
          write(6,*)
-         if (nproc>1)then
+         if (nproc>1) then
             write(6,'(a)')'  amoeba   vertex    overall penalty'//  &
                  !    :               '      softness             narrow radii      '//  &
                  '      softness             psp empirical     '//  &
@@ -1851,7 +1826,7 @@ program pseudo
          write(6,'(2a)')' _______________________________________',  &
               '_____________'
          write(6,*)
-         if (nproc>1)then
+         if (nproc>1) then
             write(6,'(a)')'  amoeba   gatom     overall penalty'//  &
                  !    :               '      softness             narrow radii      '//  &
                  '      softness             psp empirical     '//  &
@@ -1974,13 +1949,13 @@ program pseudo
               chrg(nocc,l+1,ispin)-crcov(iorb),  &
               abs(wght(nocc,l+1,ispin,2)*  &
               (chrg(nocc,l+1,ispin)-crcov(iorb)))
-         if (wght(nocc,l+1,ispin,3) == 0.0d0)  &
+         if (wght(nocc,l+1,ispin,3) /= 0.0d0)  &
               write(6,'(t10,a,t25,4e12.4)') 'dcharge   ',  &
               dcrcov(iorb),dhrg(nocc,l+1,ispin),  &
               100.d0*abs(1.d0-dhrg(nocc,l+1,ispin)/dcrcov(iorb)),  &
               abs(wght(nocc,l+1,ispin,3))*  &
               100.d0*abs(1.d0-dhrg(nocc,l+1,ispin)/dcrcov(iorb))
-         if (wght(nocc,l+1,ispin,4) == 0.0d0)  &
+         if (wght(nocc,l+1,ispin,4) /= 0.0d0)  &
               write(6,'(t10,a,t25,4e12.4)') 'echarge   ',  &
               ddcrcov(iorb),ehrg(nocc,l+1,ispin),  &
               100.d0*abs(1.d0-ehrg(nocc,l+1,ispin)/ddcrcov(iorb)),  &
@@ -1989,15 +1964,15 @@ program pseudo
          write(6,'(t10,a,t25,2e24.4)') 'residue   ',  &
               res(nocc,l+1,ispin),  &
               abs(wght(nocc,l+1,ispin,5)*res(nocc,l+1,ispin))
-         if (wght(nocc,l+1,ispin,6) == 0.0d0)  &
+         if (wght(nocc,l+1,ispin,6) /= 0.0d0)  &
               write(6,'(t10,a,t25,2e24.4)') 'rnode     ',  &
               wfnode(nocc,l+1,ispin,1),  &
               abs(wght(nocc,l+1,ispin,6)*wfnode(nocc,l+1,ispin,1))
-         if (wght(nocc,l+1,ispin,7) == 0.0d0)  &
+         if (wght(nocc,l+1,ispin,7) /= 0.0d0)  &
               write(6,'(t10,a,t25,2e24.4)') 'dnode     ',  &
               wfnode(nocc,l+1,ispin,2),  &
               abs(wght(nocc,l+1,ispin,7)*wfnode(nocc,l+1,ispin,2))
-         if (wght(nocc,l+1,ispin,8) == 0.0d0)  &
+         if (wght(nocc,l+1,ispin,8) /= 0.0d0)  &
               write(6,'(t10,a,t25,2e24.4)') 'ddnode    ',  &
               wfnode(nocc,l+1,ispin,3),  &
               abs(wght(nocc,l+1,ispin,8)*wfnode(nocc,l+1,ispin,3))
@@ -2022,13 +1997,13 @@ program pseudo
       !             and give lpj a negative sign, usually -2.
       
       
-      if (iproc==0)then
+      if (iproc==0) then
          open(unit=13,file='psppar')!,position='append')
          
-         if (methodps=='r')then
+         if (methodps=='r') then
             write(13,'(a)',advance='no')  &
                  'relativistic '
-         elseif (methodps=='s')then
+         elseif (methodps=='s') then
             write(13,'(a)',advance='no')  &
                  'spin-polarized '
          else
@@ -2043,7 +2018,7 @@ program pseudo
          write( 6,'(1x,2i4,2x,a,23x,a)') int(znuc+.1),int(zion+.1),dateymd,' zatom, zion, date (yymmdd)'
          
          ! if nlcc was used, use pspcod=11 instead of 10
-         if (rcore<0d0)then
+         if (rcore < 0d0) then
             ipspcod=10
          else
             ipspcod=11
@@ -2056,9 +2031,9 @@ program pseudo
          !           determine the number of nonzero terms in the local potential
          ngpot=0
          do j=1,4
-            if (gpot(j) == 0.d0) ngpot=j
+            if (gpot(j) /= 0.d0) ngpot=j
          end do
-         if (ngpot==0)then
+         if (ngpot == 0) then
             write(13,'(2x,f16.8,a)')rloc,' 0 rloc nloc ck (none)'
             write( 6,'(2x,f16.8,a)')rloc,' 0 rloc nloc ck (none)'
          else
@@ -2129,7 +2104,7 @@ program pseudo
                     ,il(l)//'-projector'
                write(13,'(2x,a,35x,f16.8)')trim(label),havg(3)
                write( 6,'(2x,a,35x,f16.8)')trim(label),havg(3)
-               if (l.gt.1)then
+               if (l.gt.1) then
                   write(13,'(21x,2f16.8)') hso(1:2)
                   write( 6,'(21x,2f16.8)') hso(1:2)
                   write(13,'(37x, f16.8)') hso(3)
@@ -2148,7 +2123,7 @@ program pseudo
                     trim(label),havg(3),havg(5)
                write(13,'(53x,f16.8)') havg(6)
                write( 6,'(53x,f16.8)') havg(6)
-               if (l.gt.1)then
+               if (l.gt.1) then
                   write(13,'(21x,3f16.8)') hso(1:2),hso(4)
                   write( 6,'(21x,3f16.8)') hso(1:2),hso(4)
                   write(13,'(37x,2f16.8)') hso(3),hso(5)
@@ -2160,7 +2135,7 @@ program pseudo
             !              dimension of hij
          end do
          !           loop over l
-         if (ipspcod==11)then
+         if (ipspcod==11) then
             if (any(gcore(2:4)/=0d0)) write(*,*) &
                  'warning: core charge is not just a gaussian'
             !compute qcore from gcore(1)
@@ -2177,7 +2152,7 @@ program pseudo
       end if
       !        end of writing the psppar by process zero
       
-      if (rcore>0d0)then
+      if (rcore>0d0) then
          write(6,*)
          write(6,*)'analytic core charge of the nlcc:',  &
               dble(znuc-zion)*qcore
@@ -2227,7 +2202,7 @@ program pseudo
       
       
       !  dumpfile for testing with another program
-      if (ldump.and.iproc==0)then
+      if (ldump .and. iproc == 0) then
          write(6,*)'writing out a dumpfile of',  &
               8*4+size(xp)+size(psi)+size(occup),'byte'           
          open(13,file='dumpfile.bin',form='unformatted')
@@ -2239,7 +2214,7 @@ program pseudo
       
       ! here we used to overwrite old values of 'psp.par' with the current ones
       ! there was an info flag used to append some gaussian coeffs to psp.par
-      if (iproc == 0 .and. namoeb == 0) then
+      if (iproc == 0 .and. namoeb /= 0) then
          if (info) then
             open(unit=23,file='gauss.par',form='formatted')
             write(23,*) 'additional information (last calculation):'
@@ -2334,7 +2309,7 @@ program pseudo
             l=lo(iorb)
             ispin=1
             if (so(iorb).lt.0) ispin=2
-            if (methodps.eq.'r')then
+            if (methodps.eq.'r') then
                fname= 'ps.'//char(ichar('0')+noae(iorb))  &
                     //il(lo(iorb)+1)  &
                     //char(ichar('0')+int(2*(lo(iorb)+so(iorb))))  &
@@ -2347,10 +2322,10 @@ program pseudo
                fname= 'ps.'//char(ichar('0')+noae(iorb))  &
                     //il(lo(iorb)+1)
                tname=char(ichar('0')+noae(iorb))//il(lo(iorb)+1)
-               if (so(iorb)<0)then
+               if (so(iorb)<0) then
                   fname=trim(fname)//'.down'
                   tname=trim(tname)//'.down'
-               elseif (so(iorb)>0)then
+               elseif (so(iorb)>0) then
                   fname=trim(fname)//'.up'
                   tname=trim(tname)//'.up'
                end if

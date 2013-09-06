@@ -19,10 +19,14 @@ atom.in:
 
 atom.out: atom.in $(abs_top_builddir)/pseudo/src/atom
 	$(run_parallel) $(abs_top_builddir)/pseudo/src/atom > $@
-	cp psppar psppar.atom
+	mv psppar psppar.atom
+	mv input.weights input.weights.atom
 
 pseudo.in: atom.out atom.out.report
 	cp $(top_srcdir)/pseudo/tests/H-pseudo/input.pseudo .
+	cp $(top_srcdir)/pseudo/tests/H-pseudo/input.fitpar .
+	cp $(top_srcdir)/pseudo/tests/H-pseudo/input.weights .
+	cp $(top_srcdir)/pseudo/tests/H-pseudo/psppar.GTH psppar
 
 pseudo.out: pseudo.in $(abs_top_builddir)/pseudo/src/pseudo
 	$(run_parallel) $(abs_top_builddir)/pseudo/src/pseudo > $@
