@@ -4,22 +4,22 @@
  ***   Goedecker type pseudopotentials     ***
  ***   last changes:         june 2013     ***
  *********************************************
- 
+
  reading the file input.pseudo
  _____________________________
- 
+
  basis set size: 20 gaussians
  smallest gaussian: sigma0 = rloc / 2.000
  plot wfs after each iteration
    4fit cycles
  500 max. simplex iterations
   3 lines have been read.
- 
+
  reading data from atom.00.ae
  ____________________________
- 
- 
- 
+
+
+
  pseudo states =           10
  znuc          =    1.00000000000000     
  zpseudo       =    1.00000000000000     
@@ -27,9 +27,9 @@
  r_confining   =    1.21000000000000     
  method        = n
  gridpoints    =          739
- 
+
  initializing libxc with ixc =    -20; nspol =    1
- 
+
   nl    s      occ        eigenvalue     charge(rcov)    
  1s   0.0    1.0000    0.3213783604    0.3245689314
  2s   0.0    0.0000    1.9079478495    0.1866289794
@@ -42,7 +42,7 @@
  4d   0.0    0.0000    3.5945803635    0.0097319450
  5d   0.0    0.0000    4.9728985531    0.0169967859
  noccmax            4
- 
+
  all electron and pseudo-wfn quantum numbers
          n(ae)   l   inl(ps)   
            1     0     1
@@ -55,7 +55,7 @@
            3     2     1
            4     2     2
            5     2     3
- 
+
  reading penalty weights from file input.weights
  _______________________________________________
  
@@ -69,10 +69,10 @@
  
  reading data from psppar
  ________________________
- 
- 
+
+
                  notice
- 
+
  the first line of psppar does not specify
  optional information about the calculation
  type (polarized, non-/relativistic),

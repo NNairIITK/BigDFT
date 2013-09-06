@@ -190,7 +190,7 @@ subroutine penalty(energ,verbose,pp,penal,  &
    
    if(wghtsoft .gt. 0d0 .and. nhgrid .gt. 0 )then ! .and. mod(iter,nskip).eq.0)
       call ekin_wvlt(verbose,iproc,nproc,ng,ngmx,  &
-           noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,  &
+           noccmx,lmx,nspin,nsmx,  &
            nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,  &
            frmult, xp,psi,occup,ekin_pen,time)
       !        important: here we scale the radii for the coarse

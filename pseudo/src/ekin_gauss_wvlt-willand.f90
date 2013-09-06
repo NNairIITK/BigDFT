@@ -19,7 +19,7 @@
 !! basis. Input shall be a given gaussian
 !! representation of the wavefunction.
 subroutine  ekin_wvlt(verbose,iproc,nproc,ng,ngmx,&
-        noccmx,lmx,nspin,nsmx,&
+        noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,&
         nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,frmult,&
          xp_in,psi_in,occup_in, ekin_pen,time) 
 
