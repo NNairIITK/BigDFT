@@ -141,60 +141,60 @@ unit12=20*iproc+14
                    dizz=dble(izz)
 
                    ! Write along x-axis
-                   if(iy==ix0 .and. iz==iz0) write(unit1,*) ix, phir(jj)
+                   if(iyy==0 .and. izz==0) write(unit1,'(2es18.10)') dixx, phir(jj)
 
                    ! Write along y-axis
-                   if(ix==ix0 .and. iz==iz0) write(unit2,*) iy, phir(jj)
+                   if(ixx==0 .and. izz==0) write(unit2,'(2es18.10)') diyy, phir(jj)
 
                    ! Write along z-axis
-                   if(ix==ix0 .and. iy==iy0) write(unit3,*) iz, phir(jj)
+                   if(ixx==0 .and. iyy==0) write(unit3,'(2es18.10)') dizz, phir(jj)
 
                    ! Write diagonal in octant +x,+y,+z
                    if (ixx==iyy .and. ixx==izz .and. iyy==izz) then
-                       write(unit4,*) sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                       write(unit4,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
                    end if
 
                    ! Write diagonal in octant -x,+y,+z
                    if (-ixx==iyy .and. -ixx==izz .and. iyy==izz) then
-                       write(unit5,*) sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                       write(unit5,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
                    end if
 
                    ! Write diagonal in octant -x,-y,+z
                    if (-ixx==-iyy .and. -ixx==izz .and. -iyy==izz) then
-                       write(unit6,*) sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                       write(unit6,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
                    end if
 
                    ! Write diagonal in octant +x,-y,+z
                    if (ixx==-iyy .and. ixx==izz .and. -iyy==izz) then
-                       write(unit7,*) sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                       write(unit7,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
                    end if
 
                    ! Write along line in direction of the closest atom
                    dowrite=gridpoint_close_to_straightline(ix, iy, iz, &
                        rxyz(1,iiat), rxyz(1,closeid(1)), hxh, hyh, hzh)
                    if (dowrite) then
-                       write(unit8,*) sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                       write(unit8,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
                    end if
 
                    ! Write along line in direction of the second closest atom
                    dowrite=gridpoint_close_to_straightline(ix, iy, iz, &
                        rxyz(1,iiat), rxyz(1,closeid(2)), hxh, hyh, hzh)
                    if (dowrite) then
-                       write(unit9,*) sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                       write(unit9,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
                    end if
 
                    ! Write along line in direction of the third closest atom
                    dowrite=gridpoint_close_to_straightline(ix, iy, iz, &
                        rxyz(1,iiat), rxyz(1,closeid(3)), hxh, hyh, hzh)
                    if (dowrite) then
-                       write(unit10,*) sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                       write(unit10,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
                    end if
 
                    ! Write along line in direction of the fourth closest atom
                    dowrite=gridpoint_close_to_straightline(ix, iy, iz, &
                        rxyz(1,iiat), rxyz(1,closeid(4)), hxh, hyh, hzh)
                    if (dowrite) then
-                       write(unit11,*) sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                       write(unit11,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
                    end if
 
                 end do
@@ -238,18 +238,23 @@ unit12=20*iproc+14
         ! Along the line in direction of the fourth closest atom
         rxyzref(:,11)=rxyz(1,closeid(4))
 
+        do iat=1,11
+            write(unit12,'(a,2(3es12.4,4x))') '#  ', rxyz(:,iiat), rxyzref(:,iat)
+        end do
+
         do iat=1,nat
-             write(unit11,'(12es12.3)') base_point(rxyz(:,iiat), rxyzref(:,1), rxyz(:,iat)), &
-                                        base_point(rxyz(:,iiat), rxyzref(:,2), rxyz(:,iat)), &
-                                        base_point(rxyz(:,iiat), rxyzref(:,3), rxyz(:,iat)), &
-                                        base_point(rxyz(:,iiat), rxyzref(:,4), rxyz(:,iat)), &
-                                        base_point(rxyz(:,iiat), rxyzref(:,5), rxyz(:,iat)), &
-                                        base_point(rxyz(:,iiat), rxyzref(:,6), rxyz(:,iat)), &
-                                        base_point(rxyz(:,iiat), rxyzref(:,7), rxyz(:,iat)), &
-                                        base_point(rxyz(:,iiat), rxyzref(:,8), rxyz(:,iat)), &
-                                        base_point(rxyz(:,iiat), rxyzref(:,9), rxyz(:,iat)), &
-                                        base_point(rxyz(:,iiat), rxyzref(:,10), rxyz(:,iat)), &
-                                        base_point(rxyz(:,iiat), rxyzref(:,11), rxyz(:,iat))
+             write(unit12,'(13es12.3)') 0.d0, &
+                                        base_point_distance(rxyz(:,iiat), rxyzref(:,1), rxyz(:,iat)), &
+                                        base_point_distance(rxyz(:,iiat), rxyzref(:,2), rxyz(:,iat)), &
+                                        base_point_distance(rxyz(:,iiat), rxyzref(:,3), rxyz(:,iat)), &
+                                        base_point_distance(rxyz(:,iiat), rxyzref(:,4), rxyz(:,iat)), &
+                                        base_point_distance(rxyz(:,iiat), rxyzref(:,5), rxyz(:,iat)), &
+                                        base_point_distance(rxyz(:,iiat), rxyzref(:,6), rxyz(:,iat)), &
+                                        base_point_distance(rxyz(:,iiat), rxyzref(:,7), rxyz(:,iat)), &
+                                        base_point_distance(rxyz(:,iiat), rxyzref(:,8), rxyz(:,iat)), &
+                                        base_point_distance(rxyz(:,iiat), rxyzref(:,9), rxyz(:,iat)), &
+                                        base_point_distance(rxyz(:,iiat), rxyzref(:,10), rxyz(:,iat)), &
+                                        base_point_distance(rxyz(:,iiat), rxyzref(:,11), rxyz(:,iat))
         end do
 
 
@@ -264,6 +269,7 @@ unit12=20*iproc+14
         close(unit=unit9)
         close(unit=unit10)
         close(unit=unit11)
+        close(unit=unit12)
 
         istart=istart+(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)*orbs%nspinor
 
@@ -361,19 +367,43 @@ contains
 
 
 
-  function base_point(a, b, c)
+  function base_point_distance(a, b, c)
     ! Determine the base point of the perpendicular of the point C with respect
     ! to the vector going through the points A and B.
 
     ! Calling arguments
     real(kind=8),dimension(3),intent(in) :: a, b, c
-    real(kind=8),dimension(3) :: base_point
+    real(kind=8) :: base_point_distance
 
+    ! Local variables
+    real(kind=8),dimension(3) :: base_point, distance_vector, ab
+    real(kind=8) :: diffp1, diffm1, ddot, dnrm2, cosangle
+
+    ! Base point of the perpendicular
     base_point(1) = (a(1)*c(1)-b(1)*c(1))/(a(1)-b(1))
     base_point(2) = (a(2)*c(2)-b(2)*c(2))/(a(2)-b(2))
     base_point(3) = (a(3)*c(3)-b(3)*c(3))/(a(3)-b(3))
 
-  end function base_point
+    ! Vector from A to B
+    ab = b - a
+
+    ! Vector from the point A to the base point
+    distance_vector = base_point - a
+
+    ! Angle between the distance vector and vector from A to B.
+    ! A cosine of 1 means that they are parallel, -1 means that they are anti-parallel.
+    cosangle = ddot(3,distance_vector,1,ab,1)/(dnrm2(3,distance_vector,1)*dnrm2(3,ab,1))
+    diffp1=abs(cosangle-1)
+    diffm1=abs(cosangle+1)
+    if (diffp1<diffm1) then
+        ! parallel
+        base_point_distance = dnrm2(3,distance_vector,1)
+    else
+        ! antiparallel
+        base_point_distance = -dnrm2(3,distance_vector,1)
+    end if
+
+  end function base_point_distance
 
 
 end subroutine plotOrbitals
