@@ -440,7 +440,7 @@ contains
 
     ! Local variables
     real(kind=8),dimension(3) :: cma, bma, f, distvec
-    real(kind=8) :: abs_cmacbma, abs_bma, dnrm2
+    real(kind=8) :: lambda, ddot, dnrm2
 
     cma=c-a 
     bma=b-a
