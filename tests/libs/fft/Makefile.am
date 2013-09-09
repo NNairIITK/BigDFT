@@ -2,7 +2,7 @@
 
 OTHERS = fft_check.f90 fft_cache.f90
 
-EXTRA_DIST = fft_check.out.ref fft_cache.out.ref fft_cache.gnuplot fft_cache.py
+EXTRA_DIST = fft_check.out.ref fft_cache.out.ref fft_cache.py
 
 check_PROGRAMS = fft_check fft_cache
 

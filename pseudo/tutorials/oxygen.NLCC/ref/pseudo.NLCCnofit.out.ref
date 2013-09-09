@@ -86,7 +86,7 @@
  reading data from psppar
  ________________________
 
- hgh matrix format
+ HGH matrix format
 
  nlcc data from the last line:
      width rcore  0.14000000000000001     
@@ -99,7 +99,7 @@
      polynomials               none
 
 
-     1.380     6.000    rcov and rprb (charge integr and confinement)
+     1.380     6.000    rcov and rprb (charge integral and confinement)
                              spin polarized calculation
         -20                  ixc for xc-functional
 

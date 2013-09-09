@@ -2,20 +2,20 @@
  ***              pseudo_2.5               ***
  ***              fitting of               ***
  ***   Goedecker type pseudopotentials     ***
- ***   last changes:        april 2013     ***
+ ***   last changes:    september 2013     ***
  *********************************************
 
- reading the file input.pseudo
+ Reading the file input.pseudo
  _____________________________
 
- basis set size: 20 gaussians
- smallest gaussian: sigma0 = rloc / 2.000
+ Basis set size: 20 Gaussians
+ smallest Gaussian: sigma0 = rloc / 2.000
  plot wfs after each iteration
   1 lines have been read.
  do one pseudopotential calculation.
  no fitting.
 
- reading data from atom.00.ae
+ Reading data from atom.00.ae
  ____________________________
 
 
@@ -28,7 +28,7 @@
  method        = s
  gridpoints    =          906
 
- initializing libxc with ixc =    -20; nspol =    2
+ Initializing libXC with iXC =    -20; nspol =    2
 
   nl    s      occ        eigenvalue     charge(rcov)    
  2s  -0.5    1.0000   -0.8689416243    0.7254021527
@@ -51,8 +51,8 @@
  4f   0.5    0.0000    0.1224616901    0.0000002207
  noccmax            3
 
- all electron and pseudo-wfn quantum numbers
-         n(ae)   l   inl(ps)   
+ All electron and pseudo-wfn quantum numbers
+         n(AE)   l   inl(PS)
            2     0     1
            2     0     1
            3     0     2
@@ -72,7 +72,7 @@
            4     3     1
            4     3     1
 
- reading penalty weights from file input.weights
+ Reading penalty weights from file input.weights
  _______________________________________________
 
  weight for psi(r=0)=0 is      0.100E+01
@@ -82,24 +82,21 @@
  for keeping vloc local        0.100E+01
  and for excitation energies   0.100E+04
 
- reading data from psppar
+ Reading data from psppar
  ________________________
 
 
-                 notice
+ Warning
+ The first line of psppar does not specify optional information 
+ about the calculation type (polarized, non-/relativistic),
+ the confinement rprb and the integration radius rcov.
+ The values are taken from atom.ae files without proofreading.
 
- the first line of psppar does not specify
- optional information about the calculation
- type (polarized, non-/relativistic),
- the confinement rprb and the integration
- radius rcov. values are taken from
- atom ae files without proofreading.
+ GTH format
 
- gth format
-
-     1.380     6.000    rcov and rprb (charge integr and confinement)
+     1.380     6.000    rcov and rprb (charge integral and confinement)
                              spin polarized calculation
-        -20                  ixc for xc-functional
+        -20                  ixc for XC-functional
 
  local part
    8.   6.00  0.248 -0.165E+02  0.237E+01  0.000E+00  0.000E+00 znuc,zion, rloc, gpot() 
@@ -253,7 +250,7 @@
  resulting pseudpotential parameters
  ___________________________________
 
-    8   6  20130801                        zatom, zion, date (yymmdd)
+    8   6  20130909                        zatom, zion, date (yymmdd)
    10       -20 0 0 2002 0                 pspcod, ixc, lmax, lloc, mmax, r2well
         0.24775350  2    -16.48222840      2.37013530      rloc nloc c1 .. cnloc
     1                                      nsep
@@ -269,11 +266,11 @@
  simple time profiling
  _____________________
 
- gatom  overall runtime     0.092 seconds
+ gatom  overall runtime     0.096 seconds
  mpi communication time     0.000 seconds
  wavelet libraries time     0.000 seconds
  ________________________________________
-               cpu time     0.220 seconds
+               cpu time     0.224 seconds
 
  ______________________________________________________
                                                finished

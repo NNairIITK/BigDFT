@@ -3,8 +3,14 @@
 !! @author
 !!    Alex Willand, under the supervision of Stefan Goedecker
 !!    gpu accelerated routines by Raffael Widmer
-!!    parts of this program were based on the fitting program by matthias krack
+!!    parts of this program were based on the fitting program by Matthias Krack
 !!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> NEW: !! spin polarized treatment if nspol == 2
@@ -17,8 +23,7 @@ subroutine resid(nspol, &
    ppr1,ppr2,ppr3,aux1,aux2, &
    expxpr)
 
-
-   implicit real*8 (a-h,o-z)
+   implicit none
    !Arguments
    integer, intent(in) :: nspol,noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx
    integer, intent(in) :: nint,ng,ngmx
@@ -26,22 +31,25 @@ subroutine resid(nspol, &
    real(kind=8), dimension(noccmx,lmx,nsmx), intent(inout) :: res
    real(kind=8), dimension(6,lpmx,nsmx), intent(in) :: hsep
    real(kind=8), dimension(nint,((ng+1)*(ng+2))/2,lcx+1), intent(in) :: ud
-   dimension :: psi(0:ngmx,noccmx,lmx,nsmx), &
-   !          rho (ij,l+1, ispin)
-   rho(((ng+1)*(ng+2))/2,lmax+1,nspol), &
-   pp1(0:ng,lmax+1),pp2(0:ng,lmax+1),pp3(0:ng,lmax+1), &
-   potgrd(nint),pexgrd(nint), &
-   !          Vxc (ij, ispin) ; xcgrid is actually a waste of memory
-   xcgrd(nint,nspol),rr(nint),rw(nint), &
-   ppr1(nint,lmax),ppr2(nint,lmax),ppr3(nint,lmax), &
-   aux1(nint),aux2(nint,0:ng,lmax+1), &
-   expxpr(0:ng,nint)
+   real(kind=8), dimension(0:ngmx,noccmx,lmx,nsmx), intent(in) :: psi
+   real(kind=8), dimension(((ng+1)*(ng+2))/2,lmax+1,nspol), intent(in) :: rho
+   real(kind=8), dimension(0:ng,lmax+1), intent(in) :: pp1,pp2,pp3
+   real(kind=8), dimension(nint), intent(out) :: potgrd
+   real(kind=8), dimension(nint), intent(in) :: pexgrd
+   real(kind=8), dimension(nint,nspol), intent(in) :: xcgrd !< Vxc (ij, ispin) ; xcgrd is actually a waste of memory
+   real(kind=8), dimension(nint), intent(in) :: rr,rw
+   real(kind=8), dimension(nint,lmax), intent(in) :: ppr1,ppr2,ppr3
+   real(kind=8), dimension(nint), intent(in) :: aux1
+   real(kind=8), dimension(nint,0:ng,lmax+1), intent(in) :: aux2
+   real(kind=8), dimension(0:ng,nint), intent(in) :: expxpr
    !Local variables
    real(kind=8), parameter :: fourpi = 16.d0*atan(1.d0)
 
-   real(kind=8), dimension(nsmx) :: scpr1,scpr2,scpr3
    logical :: nothing
-   external :: gamma
+   real(kind=8), dimension(nsmx) :: scpr1,scpr2,scpr3
+   real(kind=8) :: psigrd,r,rkin,sep,tt
+   real(kind=8), external :: gamma,ddot,wave2
+   integer :: i,iocc,ispin,k,ll
 
    nothing = .true.
    do ll=0,lmax

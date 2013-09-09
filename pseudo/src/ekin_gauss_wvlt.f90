@@ -23,9 +23,9 @@ subroutine  ekin_wvlt(verbose,iproc,nproc,ng,ngmx,&
         nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,frmult,&
          xp_in,psi_in,occup_in, ekin_pen,time) 
 
-   implicit real*8 (a-h,o-z)
+   implicit real(kind=8) (a-h,o-z)
 
-!     The shape of the psi and xp arrayy as defined in the main program pseudo.f
+   ! The shape of the psi and xp array as defined in the main program pseudo.f90
    real(kind=8) :: psi_in(0:ngmx,noccmx,lmx,nsmx),xp(0:ngmx),xp_in(0:ngmx),&
                 occup_in(noccmx,lmx,nsmx),rxyz(3),drxyz(3)
    integer :: nl(lmx,nsmx)
@@ -33,70 +33,70 @@ subroutine  ekin_wvlt(verbose,iproc,nproc,ng,ngmx,&
    logical :: verbose
    character(len=20) :: frmt
 
-  !Arguments of createWavefunctionsDescriptors
-  integer :: iproc,nproc,n1,n2,n3,norb
-  logical :: parallel 
-  real*8 :: hgrid,crmult,frmult
-  integer,allocatable :: ibyz_c(:,:,:), ibxz_c(:,:,:), ibxy_c(:,:,:)
-  integer,allocatable :: ibyz_f(:,:,:), ibxz_f(:,:,:), ibxy_f(:,:,:)
-  ! wavefunction 
-!  real*8, allocatable :: psi(:,:)
-  ! wavefunction gradients
-  ! arrays for DIIS convergence accelerator
-  !Local variables
-  real*8, parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
-  real*8 :: t, time(3)
-  logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
-
-  !Arguments of createAtomicOrbitals
-  integer :: norbe, norbep, ngx
-  integer :: nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
-
+   !Arguments of createWavefunctionsDescriptors
+   integer :: iproc,nproc,n1,n2,n3,norb
+   logical :: parallel 
+   real(kind=8) :: hgrid,crmult,frmult
+   integer,allocatable :: ibyz_c(:,:,:), ibxz_c(:,:,:), ibxy_c(:,:,:)
+   integer,allocatable :: ibyz_f(:,:,:), ibxz_f(:,:,:), ibxy_f(:,:,:)
+   ! wavefunction 
+   ! real(kind=8), allocatable :: psi(:,:)
+   ! wavefunction gradients
+   ! arrays for DIIS convergence accelerator
+   !Local variables
+   real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
+   real(kind=8) :: t, time(3)
+   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
+   
+   !Arguments of createAtomicOrbitals
+   integer :: norbe, norbep, ngx
+   integer :: nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
+   
    include 'mpif.h'
    parallel=(nproc>1)
    ngx=ngmx
-!write(6,*)'parallel=',parallel
-
+   !write(6,*)'parallel=',parallel
    
-!   Each process needs the wfn of configuration 1 from process zero 
-    if(parallel)then
+    
+   ! Each process needs the wfn of configuration 1 from process zero 
+   if (parallel)then
       ncoeff=product(shape(psi_in))
-         call cpu_time(t)
-         time(2)=time(2)-t
+      call cpu_time(t)
+      time(2)=time(2)-t
       call MPI_BCAST(psi_in,ncoeff,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-         call cpu_time(t)
-         time(2)=time(2)+t
-      if(ierr.ne.0)write(*,*)'MPI_BCAST of PSI: ierr',ierr
-    end if
+      call cpu_time(t)
+      time(2)=time(2)+t
+      if (ierr.ne.0) write(*,*)'MPI_BCAST of PSI: ierr',ierr
+   end if
+   
+   ! Don't read atomic positions from posinp.xyz.
+   ! Nonzero coordinates are available with random shifts.
+   rxyz=0d0
 
-! Don't read atomic positions from posinp.xyz.
-! Nonzero coordinates are available with random shifts.
-        rxyz=0d0
 
+   !get number of (semicore and) valence orbitals from occup that,
+   !as we only want to enforce softness for the occupied states.
+   !Also count nl, the occupied number of orbitals per l&s channel
 
-!get number of (semicore and) valence orbitals from occup that,
-!as we only want to enforce softness for the occupied states.
-!Also count nl, the occupied number of orbitals per l&s channel
-
-!To do so, take occup from process zero = configuration one := ground state
-!and broadcast the result.
-nl=0
-norb=0
-if(iproc==0)then
-   do l=1,lmx
-      do ispin=1,nspin
-          do iocc=1,noccmx
-              !convention from atom.f : occupation numbers are not written out
-              !as zeroes, but such that multiplying by 1d20 occupies the orbital 
-              if(occup_in(iocc,l,ispin)>1d-10)then
-                 norb=norb+1
-                 nl(l,ispin)=nl(l,ispin)+1
-              end if
-          end do
-          !write(6,*)'debug: l,s,nl(l,s)',l,ispin,nl(l,ispin)
-      end do
-   end do
-end if
+   !To do so, take occup from process zero = configuration one := ground state
+   !and broadcast the result.
+   nl=0
+   norb=0
+   if (iproc==0)then
+      do l=1,lmx
+         do ispin=1,nspin
+            do iocc=1,noccmx
+               !convention from atom.f : occupation numbers are not written out
+               !as zeroes, but such that multiplying by 1d20 occupies the orbital 
+               if(occup_in(iocc,l,ispin)>1d-10)then
+                  norb=norb+1
+                  nl(l,ispin)=nl(l,ispin)+1
+               end if
+            end do
+            !write(6,*)'debug: l,s,nl(l,s)',l,ispin,nl(l,ispin)
+        end do
+     end do
+  end if
 
 if(parallel)then 
     ncoeff=product(shape(nl))      
@@ -430,24 +430,24 @@ subroutine createAtomicOrbitals(iproc, nproc, nspin,&
   integer :: nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
   integer :: ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
   integer :: ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-  real*8 :: hgrid , dnrm2
+  real(kind=8) :: hgrid , dnrm2
   !character(len = 20) :: pspatomnames(npsp)
   !character(len = 20) :: atomnames
   !integer :: ng, nl(4)
   integer :: ng, nl(5,2)
-  real*8 :: rxyz(3)
-  real*8 :: xp(ngx)
+  real(kind=8) :: rxyz(3)
+  real(kind=8) :: xp(ngx)
   integer, parameter :: nterm_max=3
   integer :: lx(nterm_max),ly(nterm_max),lz(nterm_max)
-  real*8 :: fac_arr(nterm_max)
+  real(kind=8) :: fac_arr(nterm_max)
   integer :: ispin,nspin, iorb, jorb,  i,  inl, l, m,  nterm
-  real*8 :: rx, ry, rz,  scpr, ekin, ekgauss
-  real*8:: psi_in(0:32,7,5,2)
+  real(kind=8) :: rx, ry, rz,  scpr, ekin, ekgauss
+  real(kind=8):: psi_in(0:32,7,5,2)
   logical myorbital
-  real*8, allocatable ::psig (:) 
-  real*8, allocatable ::psigp(:) 
+  real(kind=8), allocatable ::psig (:) 
+  real(kind=8), allocatable ::psigp(:) 
   real(8):: ekin_mypen,ekin_plot(norbe)
-  real*8,allocatable:: psiatn(:), psiat(:)
+  real(kind=8),allocatable:: psiatn(:), psiat(:)
   allocate (psiatn(ngx), psiat(ngx))
   allocate(psig (8*(1+n1)*(1+n2)*(1+n3)),psigp(8*(1+n1)*(1+n2)*(1+n3) )) 
   ekin_mypen=0.d0
@@ -531,14 +531,14 @@ END SUBROUTINE
 !! in the arrays psi_c, psi_f
         subroutine crtonewave(n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hgrid, &
                    nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,psig)
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         parameter(nw=16000)
         dimension xp(nterm),psiat(nterm),fac_arr(ntp)
         dimension lx(ntp),ly(ntp),lz(ntp)
-        real*8, allocatable, dimension(:,:) :: wprojx, wprojy, wprojz
-        real*8, allocatable, dimension(:,:) :: work
+        real(kind=8), allocatable, dimension(:,:) :: wprojx, wprojy, wprojz
+        real(kind=8), allocatable, dimension(:,:) :: work
         !new variable
-        real*8  ::psig(0:n1,2,0:n2,2,0:n3,2)
+        real(kind=8)  ::psig(0:n1,2,0:n2,2,0:n3,2)
         psig=0.d0
 
         allocate(wprojx(0:n1,2),wprojy(0:n2,2),wprojz(0:n3,2),work(0:nw,2))
@@ -717,7 +717,7 @@ END SUBROUTINE
 subroutine ConvolkineticP(n1,n2,n3, &
                nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
                hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x,ekin)
-    implicit real*8 (a-h,o-z)
+    implicit real(kind=8) (a-h,o-z)
     logical :: firstcall=.true.
     integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
     dimension x(0:n1,2,0:n2,2,0:n3,2)
@@ -1129,7 +1129,7 @@ subroutine system_size(rxyz,rad, &
                    cxmin,cxmax,cymin,cymax,czmin,czmax)
 
 
-   implicit real*8 (a-h,o-z)
+   implicit real(kind=8) (a-h,o-z)
    parameter(eps_mach=1.d-12)
    dimension rxyz(3)
 
@@ -1153,7 +1153,7 @@ END SUBROUTINE system_size
 
 
 logical function myorbital(iorb,norbe,iproc,nproc)
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         parameter(eps_mach=1.d-12)
 
         tt=dble(norbe)/dble(nproc)
@@ -1172,7 +1172,7 @@ end function myorbital
 !> Calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
 !! the output psiatn is a normalized version of psiat
 subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension xp(ng),psiat(ng),psiatn(ng)
 !        dimension xp(31),psiat(31),psiatn(31)
 !!!write(*,*)'entered ATOMKIN, debug lines:'
@@ -1342,7 +1342,7 @@ END SUBROUTINE calc_coeff_inguess
 
 
         subroutine bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         logical logrid
         dimension logrid(0:n1,0:n2,0:n3)
         dimension ibyz(2,0:n2,0:n3),ibxz(2,0:n1,0:n3),ibxy(2,0:n1,0:n2)
@@ -1422,7 +1422,7 @@ END SUBROUTINE calc_coeff_inguess
                                rxyz,rad,hgrid,logrid)
 ! set up an array logrid(i1,i2,i3) that specifies whether the grid point
 ! i1,i2,i3 is the center of a scaling function/wavelet
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         logical logrid
         parameter(eps_mach=1.d-12,onem=1.d0-eps_mach)
         dimension rxyz(3)!
@@ -1461,7 +1461,7 @@ END SUBROUTINE calc_coeff_inguess
 !=================== gauss to daub ==================================
 !!***
  !       PROGRAM MAIN
- !       implicit real*8 (a-h,o-z)          
+ !       implicit real(kind=8) (a-h,o-z)          
  !       PARAMETER(NMAX=1000,NWORK=10000)
  !       DIMENSION C(0:NMAX,2)
 !!
@@ -1501,7 +1501,7 @@ END SUBROUTINE calc_coeff_inguess
 !!         C(:,1) array of scaling function coefficients:
 !!         C(:,2) array of wavelet coefficients:
 !!         WW(:,1),WW(:,2): work arrays that have to be 16 times larger than C
-            implicit real*8 (a-h,o-z)
+            implicit real(kind=8) (a-h,o-z)
             INTEGER LEFTS(0:4),RIGHTS(0:4),RIGHTX,LEFTX,RIGHT_T
             DIMENSION C(0:NMAX,2)
             DIMENSION WW(0:NWORK,2)
@@ -1599,7 +1599,7 @@ END SUBROUTINE calc_coeff_inguess
 !
 !       APPLYING THE MAGIC FILTER ("SHRINK") 
 !
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         INTEGER RIGHT,RIGHTX
         DIMENSION CX(LEFTX:RIGHTX),C(LEFT:RIGHT)
         INCLUDE 'recs16.inc'
@@ -1621,7 +1621,7 @@ END SUBROUTINE calc_coeff_inguess
 !
 !      FORWARD WAVELET TRANSFORM WITHOUT WAVELETS ("SHRINK")
 !
-       implicit real*8 (a-h,o-z)
+       implicit real(kind=8) (a-h,o-z)
        INTEGER RIGHT,RIGHT_1
        DIMENSION C(LEFT:RIGHT)
        DIMENSION C_1(LEFT_1:RIGHT_1)
@@ -1646,7 +1646,7 @@ END SUBROUTINE calc_coeff_inguess
 !
 !      CONVENTIONAL FORWARD WAVELET TRANSFORM ("SHRINK")
 !
-       implicit real*8 (a-h,o-z)
+       implicit real(kind=8) (a-h,o-z)
        INTEGER RIGHT,RIGHT_1
        DIMENSION C(LEFT:RIGHT)
        DIMENSION CD_1(LEFT_1:RIGHT_1,2)
@@ -1671,7 +1671,7 @@ END SUBROUTINE calc_coeff_inguess
        END SUBROUTINE FORWARD
 
        function psi_g(x,GAU_A,GAU_CEN,N_GAU)
-       implicit real*8 (a-h,o-z)
+       implicit real(kind=8) (a-h,o-z)
          psi_g=(X-GAU_CEN)**N_GAU*exp(-0.5d0*((X-GAU_CEN)/GAU_A)**2)
        end function psi_g
 

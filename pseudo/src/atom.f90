@@ -123,11 +123,6 @@ program ae_atom
    !Open the main input file: the routine input will read each configuration
    open(unit=35,file='atom.dat',status='unknown')
 
-   !There will be no input guess for psppar, but only some clues
-   !what input variables for the fit need to be added
-   open(unit=50,file='psppar',form='formatted',position='append')
-
-
    !begin main loop over electronic configurations
    loop_configurations: do
 
@@ -351,7 +346,7 @@ program ae_atom
    !if more than one configuration
    if (nconf > 1) then
       do ii=0,nconf-1
-         close(40)
+         close(unit=40)
          write(cnum,'(i2.2)') ii
          open(unit=40, file='atom.'//cnum//'.ae', position='append')
          !write(40,*) 'Configuration ',nconf
@@ -2245,6 +2240,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
    
    character(len=1), dimension(5) :: il
    character(len=2) :: cnum
+   character(len=8) :: dateymd
 
 
    ka = lo(iorb)+1
@@ -2560,16 +2556,22 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
          end do
 
          if (nconf == 0 ) then
+            !write the comment lines for psppar here, as we need the zion= zps for the first configuration
+            !There will be no input guess for psppar, but only some clues
+            !what input variables for the fit need to be added
+            open(unit=50,file='psppar',form='formatted')
+
+            if (ispp == '') ispp='n'
+            write(50,'(a,2g10.3,1x,a)') ispp, rcov, rprb, 'method, rcov and rprb'
+            !old format
+            !write(50,'(a,a,2g10.3,1x,a)') ispp, ' 20 2.0',rcov, rprb, 'the first line contains some input data'
+            write(50,'(a)') '^- suggested header for initial guess of psppar for fitting -^'
+            write(50,'(a)') 'Then add the Goedecker psuedopotential (psppar) with the first following line:'
+            call date_and_time(dateymd)
+            write(50,'(1x,2i4,2x,a,23x,a)') int(znuc+.1),int(zps+.1),dateymd,' zatom, zion, date (yymmdd)'
+            write(50,'(a)') '-- you can download pseudopotentials from http://www.abinit.org/downloads/psp-links --'
+            close(unit=50)
             syswght=1.d0
-            !write the comment lines for psppar here, as we need the
-            !zion= zps for the first configuration
-            write(50,'(a)') '-----suggested header for initial guess of psppar for fitting-----'
-            if (ispp=='') ispp='n'
-            write(50,'(a,a,2g10.3,1x,a)') ispp, ' 20 2.0',rcov, rprb, 'the first line contains some input data'
-            write(50,'(2g10.3,8x,a)') znuc, zps, 'znuc and zion as needed'
-            write(50,'(a,1x,i7,6x,a)') '(2, 3 or 10)', IXC,'supported formats, iXC as given'
-            write(50,'(1x,a)') '--you can download pseudopotentials from--'
-            write(50,'(1x,a)') 'http://www.abinit.org/downloads/psp-links'
          else
             syswght=1.d-2
          end if
@@ -2648,7 +2650,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
    !if this was the last orbital, then close the current atom file
    !Pb: nval not initialized: presume norb (TD)
    if (iorb==norb) then
-      close(40)
+      close(unit=40)
    end if
 
    dena=0

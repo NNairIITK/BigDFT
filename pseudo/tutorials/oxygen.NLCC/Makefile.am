@@ -34,6 +34,7 @@ ATOM_OUTPUTS = \
 			 psppar.atom
 
 PSEUDO_OUTPUTS = \
+				 psppar.nofit \
 				 orbitals.gplt \
 				 nlcc.gplt
 
@@ -60,19 +61,20 @@ $(ATOM_OUTPUTS): atom.out
 $(PSEUDO_OUTPUTS): pseudo.nofit.out
 nlcc.gplt: pseudo.NLCCnofit.out
 
+atom.in:
+	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/atom.dat .
+
 atom.out: atom.in $(abs_top_builddir)/pseudo/src/atom
 	$(run_parallel) $(abs_top_builddir)/pseudo/src/atom > $@
 	cp psppar psppar.atom
 
-atom.in:
-	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/atom.dat .
-
-pseudo.nofit.out: pseudo.nofit.in $(abs_top_builddir)/pseudo/src/pseudo
-	$(run_parallel) $(abs_top_builddir)/pseudo/src/pseudo > $@
-
 pseudo.nofit.in: atom.out atom.out.report
 	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/psppar.GTH psppar.GTH
 	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/psppar.GTH psppar
+
+pseudo.nofit.out: pseudo.nofit.in $(abs_top_builddir)/pseudo/src/pseudo
+	$(run_parallel) $(abs_top_builddir)/pseudo/src/pseudo > $@
+	cp psppar psppar.nofit
 
 pseudo.shortfit.in: pseudo.nofit.out pseudo.nofit.out.report
 	cp $(top_srcdir)/pseudo/tutorials/oxygen.NLCC/input.shortfit.pseudo input.pseudo

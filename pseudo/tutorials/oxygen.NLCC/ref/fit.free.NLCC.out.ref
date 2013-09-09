@@ -100,7 +100,7 @@
 
  HGH matrix format
 
-     1.380     6.000    rcov and rprb (charge integr and confinement)
+     1.380     6.000    rcov and rprb (charge integral and confinement)
                              spin polarized calculation
         -20                  ixc for XC-functional
 

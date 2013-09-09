@@ -1,6 +1,5 @@
------suggested header for initial guess of psppar for fitting-----
-s 20 2.0  1.38     6.00    the first line contains some input data
- 8.00     6.00            znuc and zion as needed
-(2, 3 or 10)     -20      supported formats, iXC as given
- --you can download pseudopotentials from--
- http://www.abinit.org/downloads/psp-links
+s  1.38      6.00     method, rcov and rprb
+^- suggested header for initial guess of psppar for fitting -^
+Then add the Goedecker psuedopotential (psppar) with the first following line:
+    8   6  20130909                        zatom, zion, date (yymmdd)
+-- you can download pseudopotentials from http://www.abinit.org/downloads/psp-links --
