@@ -325,18 +325,23 @@ unit12=20*iproc+14
         rxyzref(:,11)=rxyz(1,closeid(4))
 
         write(unit12,'(a,es16.8)') '# sum(phir)', sum(phir)
-        write(unit12,'(a,2i7)') '# inwhichlocreg, onwhichatom', tmb%orbs%inwhichlocreg(ilr), tmb%orbs%onwhichatom(ilr)
-        write(unit12,'(a,3i9,2x,2i9)') '# ix0, ixmin, ixmax, nsi1, n1i, ', ix0, ixmin, ixmax, tmb%lzd%llr(ilr)%nsi1, tmb%lzd%llr(ilr)%d%n1i
-        write(unit12,'(a,3i9,2x,2i9)') '# iy0, iymin, iymax, nsi2, n2i, ', iy0, iymin, iymax, tmb%lzd%llr(ilr)%nsi2, tmb%lzd%llr(ilr)%d%n2i
-        write(unit12,'(a,3i9,2x,2i9)') '# iz0, izmin, izmax, nsi3, n3i, ', iz0, izmin, izmax, tmb%lzd%llr(ilr)%nsi3, tmb%lzd%llr(ilr)%d%n3i
+        write(unit12,'(a,2i7)') '# inwhichlocreg, onwhichatom', &
+            tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb), tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
+        write(unit12,'(a,3i9,2x,2i9)') '# ix0, ixmin, ixmax, nsi1, n1i, ', &
+            ix0, ixmin, ixmax, tmb%lzd%llr(ilr)%nsi1, tmb%lzd%llr(ilr)%d%n1i
+        write(unit12,'(a,3i9,2x,2i9)') '# iy0, iymin, iymax, nsi2, n2i, ', &
+            iy0, iymin, iymax, tmb%lzd%llr(ilr)%nsi2, tmb%lzd%llr(ilr)%d%n2i
+        write(unit12,'(a,3i9,2x,2i9)') '# iz0, izmin, izmax, nsi3, n3i, ', &
+            iz0, izmin, izmax, tmb%lzd%llr(ilr)%nsi3, tmb%lzd%llr(ilr)%d%n3i
 
         do iat=1,11
-            write(unit12,'(a,5(3es12.4,4x))') '#  ', rxyz(:,iiat), rxyzref(:,iat), rxyz(:,iat), rxyzref(:,iat)-rxyz(:,iiat), rxyz(:,iat)-rxyz(:,iiat)
+            write(unit12,'(a,5(3es12.4,4x))') '#  ', &
+                rxyz(:,iiat), rxyzref(:,iat), rxyz(:,iat), rxyzref(:,iat)-rxyz(:,iiat), rxyz(:,iat)-rxyz(:,iiat)
         end do
 
         do iat=1,nat
             if (iat/=iiat) then
-                write(unit12,'(13es12.3)') 0.d0, &
+                write(unit12,'(12es12.3)') 0.d0, &
                                             base_point_distance(rxyz(:,iiat), rxyzref(:,1), rxyz(:,iat)), &
                                             base_point_distance(rxyz(:,iiat), rxyzref(:,2), rxyz(:,iat)), &
                                             base_point_distance(rxyz(:,iiat), rxyzref(:,3), rxyz(:,iat)), &
@@ -349,7 +354,7 @@ unit12=20*iproc+14
                                             base_point_distance(rxyz(:,iiat), rxyzref(:,10), rxyz(:,iat)), &
                                             base_point_distance(rxyz(:,iiat), rxyzref(:,11), rxyz(:,iat))
             else
-                write(unit12,'(13es12.3)') 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0 
+                write(unit12,'(12es12.3)') 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0 , 0.d0
             end if
         end do
 
