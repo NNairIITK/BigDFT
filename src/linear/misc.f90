@@ -9,93 +9,512 @@
  
 
 !> Plots the orbitals
-subroutine plotOrbitals(iproc, orbs, Glr, phi, nat, rxyz, hxh, hyh, hzh, it)
+subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
 integer :: iproc
-type(orbitals_data), intent(inout) :: orbs
-type(locreg_descriptors), intent(in) :: Glr
-real(kind=8), dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) :: phi
+type(DFT_wavefunction),intent(in) :: tmb
+real(kind=8), dimension((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%nspinor*tmb%orbs%norbp) :: phi
 integer :: nat
 real(kind=8), dimension(3,nat) :: rxyz
 real(kind=8) :: hxh, hyh, hzh
 integer :: it
 
-integer :: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat
-integer :: unit1, unit2, unit3
+integer :: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat, iat
+integer :: unit1, unit2, unit3, unit4, unit5, unit6, unit7, unit8, unit9, unit10, unit11, unit12
+integer :: ixx, iyy, izz, maxid, i, ixmin, ixmax, iymin, iymax, izmin, izmax
+integer :: iseg, j0, j1, i0, ilr
+real(kind=8) :: dixx, diyy, dizz, prevdiff, maxdiff, diff, dnrm2
 real(kind=8), dimension(:), allocatable :: phir
+real(kind=8), dimension(:,:,:), allocatable :: psig_c
+real(kind=8),dimension(3) :: rxyzdiff
+real(kind=8),dimension(3,11) :: rxyzref
+integer,dimension(4) :: closeid
 type(workarr_sumrho) :: w
 character(len=10) :: c1, c2, c3
-character(len=50) :: file1, file2, file3
+character(len=50) :: file1, file2, file3, file4, file5, file6, file7, file8, file9, file10, file11, file12
+logical :: dowrite
 
-allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
+allocate(phir(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i), stat=istat)
 
-call initialize_work_arrays_sumrho(Glr,w)
+call initialize_work_arrays_sumrho(tmb%lzd%glr,w)
 
 istart=0
 
-unit1=10*iproc+7
-unit2=10*iproc+8
-unit3=10*iproc+9
+unit1 =20*iproc+3
+unit2 =20*iproc+4
+unit3 =20*iproc+5
+unit4 =20*iproc+6
+unit5 =20*iproc+7
+unit6 =20*iproc+8
+unit7 =20*iproc+9
+unit8 =20*iproc+10
+unit9 =20*iproc+11
+unit10=20*iproc+12
+unit11=20*iproc+13
+unit12=20*iproc+14
 
-!write(*,*) 'write, orbs%nbasisp', orbs%norbp
-    orbLoop: do iorb=1,orbs%norbp
+!write(*,*) 'write, tmb%orbs%nbasisp', tmb%orbs%norbp
+    orbLoop: do iorb=1,tmb%orbs%norbp
         !!phir=0.d0
-        call to_zero(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i, phir(1))
-        call daub_to_isf(Glr,w,phi(istart+1),phir(1))
-        iiAt=orbs%inwhichlocreg(orbs%isorb+iorb)
-        ix0=nint(rxyz(1,iiAt)/hxh)
-        iy0=nint(rxyz(2,iiAt)/hyh)
-        iz0=nint(rxyz(3,iiAt)/hzh)
+        call to_zero(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i, phir(1))
+        call daub_to_isf(tmb%lzd%glr,w,phi(istart+1),phir(1))
+        ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
+        iiAt=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
+        ix0=nint(rxyz(1,iiAt)/hxh)!-15
+        iy0=nint(rxyz(2,iiAt)/hyh)!-15
+        iz0=nint(rxyz(3,iiAt)/hzh)!-15
 
-        jj=0
+        ! Search the four closest atoms
+        prevdiff=1.d-5 ! the same atom
+        do i=1,4
+            maxdiff=1.d100
+            do iat=1,nat
+                rxyzdiff(:)=rxyz(:,iat)-rxyz(:,iiat)
+                diff=dnrm2(3,rxyzdiff,1)
+                if (diff<maxdiff .and. diff>prevdiff) then
+                    maxdiff=diff
+                    maxid=iat
+                end if
+            end do
+            closeid(i)=maxid
+            prevdiff=maxdiff*1.00001d0 !just to be sure that not twice the same is chosen
+        end do
+
         write(c1,'(i5.5)') iproc
         write(c2,'(i5.5)') iorb
         write(c3,'(i5.5)') it
         file1='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_x'
         file2='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_y'
         file3='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_z'
+        file4='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_pxpypz'
+        file5='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_mxpypz'
+        file6='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_mxmypz'
+        file7='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_pxmypz'
+        file8='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_1st'
+        file9='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_2nd'
+        file10='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_3rd'
+        file11='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_4th'
+        file12='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_info'
         open(unit=unit1, file=trim(file1))
         open(unit=unit2, file=trim(file2))
         open(unit=unit3, file=trim(file3))
-        do i3=1,Glr%d%n3i
-            do i2=1,Glr%d%n2i
-                do i1=1,Glr%d%n1i
+        open(unit=unit4, file=trim(file4))
+        open(unit=unit5, file=trim(file5))
+        open(unit=unit6, file=trim(file6))
+        open(unit=unit7, file=trim(file7))
+        open(unit=unit8, file=trim(file8))
+        open(unit=unit9, file=trim(file9))
+        open(unit=unit10, file=trim(file10))
+        open(unit=unit11, file=trim(file11))
+        open(unit=unit12, file=trim(file12))
+        
+        !write(unit1,'(a,3i8)') '# ix0, iy0, iz0 ',ix0,iy0,iz0
+        !write(unit2,'(a,3i8)') '# ix0, iy0, iz0 ',ix0,iy0,iz0
+        !write(unit3,'(a,3i8)') '# ix0, iy0, iz0 ',ix0,iy0,iz0
+        !write(unit4,'(a,3i8)') '# ix0, iy0, iz0 ',ix0,iy0,iz0
+        !write(unit5,'(a,3i8)') '# ix0, iy0, iz0 ',ix0,iy0,iz0
+        !write(unit6,'(a,3i8)') '# ix0, iy0, iz0 ',ix0,iy0,iz0
+        !write(unit7,'(a,3i8)') '# ix0, iy0, iz0 ',ix0,iy0,iz0
+
+
+
+        ! TEMPORARY ######################################
+        allocate(psig_c(0:tmb%lzd%glr%d%n1,0:tmb%lzd%glr%d%n2,0:tmb%lzd%glr%d%n3))
+        psig_c=0.d0
+        do iseg=1,tmb%lzd%glr%wfd%nseg_c
+           jj=tmb%lzd%glr%wfd%keyvloc(iseg)
+           j0=tmb%lzd%glr%wfd%keygloc(1,iseg)
+           j1=tmb%lzd%glr%wfd%keygloc(2,iseg)
+           ii=j0-1
+           i3=ii/((tmb%lzd%glr%d%n1+1)*(tmb%lzd%glr%d%n2+1))
+           ii=ii-i3*(tmb%lzd%glr%d%n1+1)*(tmb%lzd%glr%d%n2+1)
+           i2=ii/(tmb%lzd%glr%d%n1+1)
+           i0=ii-i2*(tmb%lzd%glr%d%n1+1)
+           i1=i0+j1-j0
+           do i=i0,i1
+              psig_c(i,i2,i3)=phi(istart+i-i0+jj)
+           enddo
+        enddo
+        ixmax=-1000000
+        ixmin= 1000000
+        iymax=-1000000
+        iymin= 1000000
+        izmax=-1000000
+        izmin= 1000000
+        do i3=0,tmb%lzd%glr%d%n3
+           do i2=0,tmb%lzd%glr%d%n2
+              do i1=0,tmb%lzd%glr%d%n1
+                 if (psig_c(i1,i2,i3)/=0.d0) then
+                     if (i1>ixmax) ixmax=i1
+                     if (i1<ixmin) ixmin=i1
+                     if (i2>iymax) iymax=i2
+                     if (i2<iymin) iymin=i2
+                     if (i3>izmax) izmax=i3
+                     if (i3<izmin) izmin=i3
+                 end if
+              end do
+           end do
+        end do
+
+        !!ixmax=ixmax-tmb%lzd%llr(ilr)%ns1
+        !!ixmin=ixmin-tmb%lzd%llr(ilr)%ns1
+        !!iymax=iymax-tmb%lzd%llr(ilr)%ns2
+        !!iymin=iymin-tmb%lzd%llr(ilr)%ns2
+        !!izmax=izmax-tmb%lzd%llr(ilr)%ns3
+        !!izmin=izmin-tmb%lzd%llr(ilr)%ns3
+
+        deallocate(psig_c)
+        write(unit12,'(a,2i6,3x,6i9)') '# id, ilr, ixconf, ix0, ixmin, ixmax, ns1, n1', & 
+            tmb%orbs%isorb+iorb, ilr, nint(tmb%confdatarr(iorb)%rxyzconf(1)/(2.d0*hxh)), nint(rxyz(1,iiat)/(2.d0*hxh)), ixmin, ixmax, tmb%lzd%llr(ilr)%ns1, tmb%lzd%llr(ilr)%d%n1
+        write(unit12,'(a,2i6,3x,6i9)') '# id, ilr, iyconf, iy0, iymin, iymax, ns2, n2', &
+            tmb%orbs%isorb+iorb, ilr, nint(tmb%confdatarr(iorb)%rxyzconf(2)/(2.d0*hyh)), nint(rxyz(2,iiat)/(2.d0*hyh)), iymin, iymax, tmb%lzd%llr(ilr)%ns2, tmb%lzd%llr(ilr)%d%n2
+        write(unit12,'(a,2i6,3x,6i9)') '# id, ilr, izconf, iz0, izmin, izmax, ns3, n3', &
+            tmb%orbs%isorb+iorb, ilr, nint(tmb%confdatarr(iorb)%rxyzconf(3)/(2.d0*hzh)), nint(rxyz(3,iiat)/(2.d0*hzh)), izmin, izmax, tmb%lzd%llr(ilr)%ns3, tmb%lzd%llr(ilr)%d%n3
+
+        ! END TEMPORARY ##################################
+
+
+
+
+
+        ixmax=-1000000
+        ixmin= 1000000
+        iymax=-1000000
+        iymin= 1000000
+        izmax=-1000000
+        izmin= 1000000
+        jj=0
+        do i3=1,tmb%lzd%glr%d%n3i
+            do i2=1,tmb%lzd%glr%d%n2i
+                do i1=1,tmb%lzd%glr%d%n1i
                    jj=jj+1
                    ! z component of point jj
-                   iz=jj/(Glr%d%n2i*Glr%d%n1i)
+                   iz=jj/(tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n1i)
                    ! Subtract the 'lower' xy layers
-                   ii=jj-iz*(Glr%d%n2i*Glr%d%n1i)
+                   ii=jj-iz*(tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n1i)
                    ! y component of point jj
-                   iy=ii/Glr%d%n1i
+                   iy=ii/tmb%lzd%glr%d%n1i
                    ! Subtract the 'lower' y rows
-                   ii=ii-iy*Glr%d%n1i
+                   ii=ii-iy*tmb%lzd%glr%d%n1i
                    ! x component
                    ix=ii
 !if(phir(jj)>1.d0) write(*,'(a,3i7,es15.6)') 'WARNING: ix, iy, iz, phir(jj)', ix, iy, iz, phir(jj)
-                   if(iy==ix0 .and. iz==iz0) write(unit1,*) ix, phir(jj)
-                   ! Write along y-axis
-                   if(ix==ix0 .and. iz==iz0) write(unit2,*) iy, phir(jj)
-                   ! Write along z-axis
-                   if(ix==ix0 .and. iy==iy0) write(unit3,*) iz, phir(jj)
 
+
+                   ! Shift the values due to the convolutions bounds
+                   ix=ix-14
+                   iy=iy-14
+                   iz=iz-14
+                   
+                   if (phir(jj)/=0.d0) then
+                       if (ix>ixmax) ixmax=ix
+                       if (ix<ixmin) ixmin=ix
+                       if (iy>iymax) iymax=iy
+                       if (iy<iymin) iymin=iy
+                       if (iz>izmax) izmax=iz
+                       if (iz<izmin) izmin=iz
+                   end if
+
+                   ixx=ix-ix0
+                   iyy=iy-iy0
+                   izz=iz-iz0
+                   dixx=hxh*dble(ixx)
+                   diyy=hyh*dble(iyy)
+                   dizz=hzh*dble(izz)
+
+                   ! Write along x-axis
+                   if(iyy==0 .and. izz==0) write(unit1,'(2es18.10)') dixx, phir(jj)
+
+                   ! Write along y-axis
+                   if(ixx==0 .and. izz==0) write(unit2,'(2es18.10)') diyy, phir(jj)
+
+                   ! Write along z-axis
+                   if(ixx==0 .and. iyy==0) write(unit3,'(2es18.10)') dizz, phir(jj)
+
+                   ! Write diagonal in octant +x,+y,+z
+                   if (ixx==iyy .and. ixx==izz .and. iyy==izz) then
+                       write(unit4,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                   end if
+
+                   ! Write diagonal in octant -x,+y,+z
+                   if (-ixx==iyy .and. -ixx==izz .and. iyy==izz) then
+                       write(unit5,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                   end if
+
+                   ! Write diagonal in octant -x,-y,+z
+                   if (-ixx==-iyy .and. -ixx==izz .and. -iyy==izz) then
+                       write(unit6,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                   end if
+
+                   ! Write diagonal in octant +x,-y,+z
+                   if (ixx==-iyy .and. ixx==izz .and. -iyy==izz) then
+                       write(unit7,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                   end if
+
+                   ! Write along line in direction of the closest atom
+                   dowrite=gridpoint_close_to_straightline(ix, iy, iz, &
+                       rxyz(1,iiat), rxyz(1,closeid(1)), hxh, hyh, hzh)
+                   if (dowrite) then
+                       write(unit8,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                   end if
+
+                   ! Write along line in direction of the second closest atom
+                   dowrite=gridpoint_close_to_straightline(ix, iy, iz, &
+                       rxyz(1,iiat), rxyz(1,closeid(2)), hxh, hyh, hzh)
+                   if (dowrite) then
+                       write(unit9,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                   end if
+
+                   ! Write along line in direction of the third closest atom
+                   dowrite=gridpoint_close_to_straightline(ix, iy, iz, &
+                       rxyz(1,iiat), rxyz(1,closeid(3)), hxh, hyh, hzh)
+                   if (dowrite) then
+                       write(unit10,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                   end if
+
+                   ! Write along line in direction of the fourth closest atom
+                   dowrite=gridpoint_close_to_straightline(ix, iy, iz, &
+                       rxyz(1,iiat), rxyz(1,closeid(4)), hxh, hyh, hzh)
+                   if (dowrite) then
+                       write(unit11,'(2es18.10)') sqrt(dixx**2+diyy**2+dizz**2)*dsign(1.d0,dizz), phir(jj)
+                   end if
 
                 end do
             end do
         end do
+
+        ! Write the positions of the atoms, following the same order as above.
+        ! For each grid point, write those atoms which lie in the plane
+        ! perpendicular to the axis under consideration.
+
+        ! Along the x axis
+        rxyzref(1,1)=rxyz(1,iiat)+1.d0 ; rxyzref(2,1)=rxyz(2,iiat) ; rxyzref(3,1)=rxyz(3,iiat)
+
+        ! Along the y axis
+        rxyzref(1,2)=rxyz(1,iiat) ; rxyzref(2,2)=rxyz(2,iiat)+1.d0 ; rxyzref(3,2)=rxyz(3,iiat)
+
+        ! Along the z axis
+        rxyzref(1,3)=rxyz(1,iiat) ; rxyzref(2,3)=rxyz(2,iiat) ; rxyzref(3,3)=rxyz(3,iiat)+1.d0
+
+        ! Along the diagonal in the octant +x,+y,+z
+        rxyzref(1,4)=rxyz(1,iiat)+1.d0 ; rxyzref(2,4)=rxyz(2,iiat)+1.d0 ; rxyzref(3,4)=rxyz(3,iiat)+1.d0
+
+        ! Along the diagonal in the octant -x,+y,+z
+        rxyzref(1,5)=rxyz(1,iiat)-1.d0 ; rxyzref(2,5)=rxyz(2,iiat)+1.d0 ; rxyzref(3,5)=rxyz(3,iiat)+1.d0
+
+        ! Along the diagonal in the octant -x,-y,+z
+        rxyzref(1,6)=rxyz(1,iiat)-1.d0 ; rxyzref(2,6)=rxyz(2,iiat)-1.d0 ; rxyzref(3,6)=rxyz(3,iiat)+1.d0
+
+        ! Along the diagonal in the octant +x,-y,+z
+        rxyzref(1,7)=rxyz(1,iiat)+1.d0 ; rxyzref(2,7)=rxyz(2,iiat)-1.d0 ; rxyzref(3,7)=rxyz(3,iiat)+1.d0
+
+        ! Along the line in direction of the closest atom
+        rxyzref(:,8)=rxyz(1,closeid(1))
+
+        ! Along the line in direction of the second closest atom
+        rxyzref(:,9)=rxyz(1,closeid(2))
+
+        ! Along the line in direction of the third closest atom
+        rxyzref(:,10)=rxyz(1,closeid(3))
+
+        ! Along the line in direction of the fourth closest atom
+        rxyzref(:,11)=rxyz(1,closeid(4))
+
+        write(unit12,'(a,es16.8)') '# sum(phir)', sum(phir)
+        write(unit12,'(a,2i7)') '# inwhichlocreg, onwhichatom', &
+            tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb), tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
+        write(unit12,'(a,3i9,2x,2i9)') '# ix0, ixmin, ixmax, nsi1, n1i, ', &
+            ix0, ixmin, ixmax, tmb%lzd%llr(ilr)%nsi1, tmb%lzd%llr(ilr)%d%n1i
+        write(unit12,'(a,3i9,2x,2i9)') '# iy0, iymin, iymax, nsi2, n2i, ', &
+            iy0, iymin, iymax, tmb%lzd%llr(ilr)%nsi2, tmb%lzd%llr(ilr)%d%n2i
+        write(unit12,'(a,3i9,2x,2i9)') '# iz0, izmin, izmax, nsi3, n3i, ', &
+            iz0, izmin, izmax, tmb%lzd%llr(ilr)%nsi3, tmb%lzd%llr(ilr)%d%n3i
+
+        do iat=1,11
+            write(unit12,'(a,5(3es12.4,4x))') '#  ', &
+                rxyz(:,iiat), rxyzref(:,iat), rxyz(:,iat), rxyzref(:,iat)-rxyz(:,iiat), rxyz(:,iat)-rxyz(:,iiat)
+        end do
+
+        do iat=1,nat
+            if (iat/=iiat) then
+                write(unit12,'(12es12.3)') 0.d0, &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,1), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,2), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,3), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,4), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,5), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,6), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,7), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,8), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,9), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,10), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,11), rxyz(:,iat))
+            else
+                write(unit12,'(12es12.3)') 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0 , 0.d0
+            end if
+        end do
+
+
         close(unit=unit1)
         close(unit=unit2)
         close(unit=unit3)
+        close(unit=unit4)
+        close(unit=unit5)
+        close(unit=unit6)
+        close(unit=unit7)
+        close(unit=unit8)
+        close(unit=unit9)
+        close(unit=unit10)
+        close(unit=unit11)
+        close(unit=unit12)
 
-        istart=istart+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor
+        istart=istart+(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%nspinor
 
     end do orbLoop
 
 call deallocate_work_arrays_sumrho(w)
 deallocate(phir, stat=istat)
+
+
+contains
+
+  function gridpoint_close_to_straightline(ix, iy, iz, a, b, hxh, hyh, hzh)
+    ! Checks whether the grid point (ix,iy,iz) is close to the straight line
+    ! going through the points a and b.
+    !! IGNORE THIS "Close" means that the point is closest to the line in that plane which is
+    !! "most orthogonal" (the angle between the line and the plane normal is
+    !! minimal) to the line.
+    
+    ! Calling arguments
+    integer,intent(in) :: ix, iy, iz
+    real(kind=8),dimension(3),intent(in) :: a, b
+    real(kind=8),intent(in) :: hxh, hyh, hzh
+    logical :: gridpoint_close_to_straightline
+
+    ! Local variables
+    real(kind=8),dimension(3) :: rxyz
+    real(kind=8) :: dist, hh, threshold
+    
+    !!! Determine which plane is "most orthogonal" to the straight line
+    !!xx(1)=1.d0 ; xx(2)=0.d0 ; xx(3)=0.d0
+    !!yy(1)=0.d0 ; yy(2)=1.d0 ; yy(3)=0.d0
+    !!zz(1)=0.d0 ; zz(2)=0.d0 ; zz(3)=1.d0
+    !!bma=b-a
+    !!abs_bma=dnrm2(3,bma,1)
+    !!! angle between line and xy plane
+    !!cosangle(1)=ddot(3,bma,1,zz,1)/dnrm2(bma)
+    !!! angle between line and xz plane
+    !!cosangle(2)=ddot(3,bma,1,yy,1)/dnrm2(bma)
+    !!! angle between line and yz plane
+    !!cosangle(3)=ddot(3,bma,1,xx,1)/dnrm2(bma)
+    !!plane=minloc(cosangle)
+
+    ! Calculate the shortest distance between the grid point (ix,iy,iz) and the
+    ! straight line through the points a and b.
+    rxyz = ix*hxh + iy*hyh + iz*hzh
+    dist=get_distance(a, b, rxyz)
+
+    ! Calculate the threshold
+    threshold = sqrt(0.5d0*hxh**2 + 0.5d0*hyh**2 + 0.5d0*hzh**2)
+
+    ! Check whether the point is close
+    if (dist<threshold) then
+        gridpoint_close_to_straightline=.true.
+    else
+        gridpoint_close_to_straightline=.false.
+    end if
+
+  end function gridpoint_close_to_straightline
+
+  function get_distance(a, b, c)
+    ! Calculate the shortest distance between point C and the 
+    ! straight line trough the points A and B.
+
+    ! Calling arguments
+    real(kind=8),dimension(3),intent(in) :: a, b, c
+    real(kind=8) :: get_distance
+
+    ! Local variables
+    real(kind=8),dimension(3) :: cma, bma, f, distvec
+    real(kind=8) :: lambda, ddot, dnrm2
+
+    cma=c-a 
+    bma=b-a
+    lambda=ddot(3,bma,1,cma,1)/ddot(3,bma,1,bma,1)
+    
+    ! The point on the straight line which is closest to c
+    f=a+lambda*bma
+
+    ! Get the distance between c and f
+    distvec=c-f
+    get_distance=dnrm2(3,distvec,1)
+
+  end function get_distance
+
+
+  function cross_product(a,b)
+    ! Calculates the crosss product of the two vectors a and b.
+
+    ! Calling arguments
+    real(kind=8),dimension(3),intent(in) :: a, b
+    real(kind=8),dimension(3) :: cross_product
+
+    cross_product(1) = a(2)*b(3) - a(3)*b(2)
+    cross_product(2) = a(3)*b(1) - a(1)*b(3)
+    cross_product(3) = a(1)*b(2) - a(2)*b(1)
+
+  end function cross_product
+
+
+
+  function base_point_distance(a, b, c)
+    ! Determine the base point of the perpendicular of the point C with respect
+    ! to the vector going through the points A and B.
+
+    ! Calling arguments
+    real(kind=8),dimension(3),intent(in) :: a, b, c
+    real(kind=8) :: base_point_distance
+
+    ! Local variables
+    real(kind=8),dimension(3) :: base_point, distance_vector, ab, ac
+    real(kind=8) :: diffp1, diffm1, ddot, dnrm2, cosangle, lambda
+
+    ! Vectors from A to B and from A to C
+    ab = b - a
+    ac = c - a
+
+    !lambda = (ab(1)*ac(1) + ab(2)*ac(2) + ab(3)*ac(3)) / (ab(1)**2 + ab(2)**2 + ab(3)**2)
+    lambda = ddot(3,ab,1,ac,1)/ddot(3,ab,1,ab,1)
+
+
+    ! Base point of the perpendicular
+    base_point = a + lambda*ab
+    !base_point(1) = (a(1)*c(1)-b(1)*c(1))/(a(1)-b(1))
+    !base_point(2) = (a(2)*c(2)-b(2)*c(2))/(a(2)-b(2))
+    !base_point(3) = (a(3)*c(3)-b(3)*c(3))/(a(3)-b(3))
+
+
+    ! Vector from the point A to the base point
+    distance_vector = base_point - a
+
+    ! Angle between the distance vector and vector from A to B.
+    ! A cosine of 1 means that they are parallel, -1 means that they are anti-parallel.
+    cosangle = ddot(3,distance_vector,1,ab,1)/(dnrm2(3,distance_vector,1)*dnrm2(3,ab,1))
+    diffp1=abs(cosangle-1)
+    diffm1=abs(cosangle+1)
+    if (diffp1<diffm1) then
+        ! parallel
+        base_point_distance = dnrm2(3,distance_vector,1)
+    else
+        ! antiparallel
+        base_point_distance = -dnrm2(3,distance_vector,1)
+    end if
+
+  end function base_point_distance
 
 
 end subroutine plotOrbitals

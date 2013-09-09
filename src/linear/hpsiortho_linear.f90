@@ -470,9 +470,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      !!    if (iproc==0) write(*,*) 'HACK precond: 10*conf'
      !!    tmb%confdatarr(:)%prefac=10.d0*tmb%confdatarr(:)%prefac
      !!end if
+     !if (iproc==0) write(*,*) 'HACK precond: max(prefac,1.d-3)'
+     !allocate(prefacarr(tmb%orbs%norbp))
+     !prefacarr(:)=tmb%confdatarr(:)%prefac
+     !tmb%confdatarr(:)%prefac=max(tmb%confdatarr(:)%prefac,1.d-3)
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
           nit_precond,tmb%npsidim_orbs,hpsi_tmp,tmb%confdatarr,gnrm,gnrm_zero)
+     !tmb%confdatarr(:)%prefac=prefacarr(:)
+     !deallocate(prefacarr)
      !!if (ldiis%isx>0) then
      !!    tmb%confdatarr(:)%prefac=0.1d0*tmb%confdatarr(:)%prefac
      !!end if
