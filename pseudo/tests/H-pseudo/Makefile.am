@@ -1,6 +1,8 @@
 EXTRA_DIST = \
 			 input.fitpar \
-			 input.weights
+			 input.weights \
+			 psppar \
+			 psppar.GTH
 
 
 REPORTS = \
@@ -28,7 +30,7 @@ pseudo.in: atom.out atom.out.report
 	cp $(top_srcdir)/pseudo/tests/H-pseudo/input.pseudo .
 	cp $(top_srcdir)/pseudo/tests/H-pseudo/input.fitpar .
 	cp $(top_srcdir)/pseudo/tests/H-pseudo/input.weights .
-	cp $(top_srcdir)/pseudo/tests/H-pseudo/psppar.GTH psppar
+	cp $(top_srcdir)/pseudo/tests/H-pseudo/psppar psppar
 
 pseudo.out: pseudo.in $(abs_top_builddir)/pseudo/src/pseudo
 	$(run_parallel) $(abs_top_builddir)/pseudo/src/pseudo > $@

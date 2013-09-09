@@ -115,7 +115,7 @@ module gatomvars
    integer :: ntime     !< The number of calls to gatom
    real(kind=8) :: rprb !< Confining potential, charge integral radius
    real(kind=8) :: rcov !< Charge integral radius
-   integer :: ng        !< gaussian basis set:
+   integer :: ng        !< Gaussian basis set:
    real(kind=8) :: rij
    logical :: denbas
    real(kind=8) :: xp(0:ngmx)
@@ -433,7 +433,7 @@ program pseudo
       ii=index(string,'-denbas')
       if (ii /= 0) then
          denbas=.true.
-         write(6,'(1x,a)') 'use dense gaussian basis'
+         write(6,'(1x,a)') 'use dense Gaussian basis'
       endif
       ii=index(string,'-mixref')
       if (ii /= 0) then
@@ -1596,7 +1596,7 @@ program pseudo
          if (lpx.ge.1) then
             write(6,*) 'nonlocal part in internal format'
             write(6,'(i4,t60,a)') lpx ,  &
-                 'lpx, (projectors for l=0..lpx)'
+                 'lpx, (Projectors for l=0..lpx)'
             do l=1,lpx
                write(6,*) il(l)//'-projector'
                write(6,'(f7.3,t8,6e11.3,t76,a)') r_l(l),  &
@@ -1633,7 +1633,7 @@ program pseudo
          a=a*tt
       end do
       write(6,*)
-      write(6,*)'gaussian basis'
+      write(6,*)'Gaussian basis'
       write(6,*)'______________'
       write(6,*)
       write(6,'(a,4e11.4)') ' amin,amax',a0,a
