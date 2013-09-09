@@ -418,9 +418,8 @@ contains
     rxyz = ix*hxh + iy*hyh + iz*hzh
     dist=get_distance(a, b, rxyz)
 
-    ! Calculate the threshold, given by sqrt(2*(hh/2)**2)
-    hh = (hxh+hyh+hzh)/3.d0
-    threshold=sqrt(hh*2/2)
+    ! Calculate the threshold
+    threshold = sqrt(0.5d0*hxh**2 + 0.5d0*hyh**2 + 0.5d0*hzh**2)
 
     ! Check whether the point is close
     if (dist<threshold) then
@@ -440,15 +439,19 @@ contains
     real(kind=8) :: get_distance
 
     ! Local variables
-    real(kind=8),dimension(3) :: cma, bma, cmacbma
+    real(kind=8),dimension(3) :: cma, bma, f, distvec
     real(kind=8) :: abs_cmacbma, abs_bma, dnrm2
 
     cma=c-a 
     bma=b-a
-    cmacbma=cross_product(cma,bma)
-    abs_cmacbma=dnrm2(3,cmacbma,1)
-    abs_bma=dnrm2(3,bma,1)
-    get_distance=abs_cmacbma/abs_bma
+    lambda=ddot(3,bma,1,cma,1)/ddot(3,bma,1,bma,1)
+    
+    ! The point on the straight line which is closest to c
+    f=a+lambda*bma
+
+    ! Get the distance between c and f
+    distvec=c-f
+    get_distance=dnrm2(3,distvec,1)
 
   end function get_distance
 
