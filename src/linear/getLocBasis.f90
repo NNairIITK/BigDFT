@@ -570,7 +570,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ists=1
       istl=1
       do iorb=1,tmb%orbs%norbp
-          ilr = tmb%orbs%inWhichLocreg(orbs%isorb+iorb)
+          ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
           sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
           ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
           nspin=1 !this must be modified later
@@ -579,7 +579,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
           istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
       end do
-      call plotOrbitals(iproc, tmb%orbs, tmb%lzd, philarge, at%astruct%nat, rxyz, hxh, hyh, hzh, 100*itout+it)
+      call plotOrbitals(iproc, tmb, philarge, at%astruct%nat, rxyz, hxh, hyh, hzh, 100*itout+it)
       deallocate(philarge)
       ! END PLOT #######################################################################
 

@@ -9,16 +9,15 @@
  
 
 !> Plots the orbitals
-subroutine plotOrbitals(iproc, orbs, lzd, phi, nat, rxyz, hxh, hyh, hzh, it)
+subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
 integer :: iproc
-type(orbitals_data), intent(inout) :: orbs
-type(local_zone_descriptors), intent(in) :: lzd
-real(kind=8), dimension((lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) :: phi
+type(DFT_wavefunction),intent(in) :: tmb
+real(kind=8), dimension((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%nspinor*tmb%orbs%norbp) :: phi
 integer :: nat
 real(kind=8), dimension(3,nat) :: rxyz
 real(kind=8) :: hxh, hyh, hzh
@@ -26,9 +25,11 @@ integer :: it
 
 integer :: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat, iat
 integer :: unit1, unit2, unit3, unit4, unit5, unit6, unit7, unit8, unit9, unit10, unit11, unit12
-integer :: ixx, iyy, izz, maxid, i
+integer :: ixx, iyy, izz, maxid, i, ixmin, ixmax, iymin, iymax, izmin, izmax
+integer :: iseg, j0, j1, i0, ilr
 real(kind=8) :: dixx, diyy, dizz, prevdiff, maxdiff, diff, dnrm2
 real(kind=8), dimension(:), allocatable :: phir
+real(kind=8), dimension(:,:,:), allocatable :: psig_c
 real(kind=8),dimension(3) :: rxyzdiff
 real(kind=8),dimension(3,11) :: rxyzref
 integer,dimension(4) :: closeid
@@ -37,9 +38,9 @@ character(len=10) :: c1, c2, c3
 character(len=50) :: file1, file2, file3, file4, file5, file6, file7, file8, file9, file10, file11, file12
 logical :: dowrite
 
-allocate(phir(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i), stat=istat)
+allocate(phir(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i), stat=istat)
 
-call initialize_work_arrays_sumrho(lzd%glr,w)
+call initialize_work_arrays_sumrho(tmb%lzd%glr,w)
 
 istart=0
 
@@ -56,19 +57,21 @@ unit10=20*iproc+12
 unit11=20*iproc+13
 unit12=20*iproc+14
 
-!write(*,*) 'write, orbs%nbasisp', orbs%norbp
-    orbLoop: do iorb=1,orbs%norbp
+!write(*,*) 'write, tmb%orbs%nbasisp', tmb%orbs%norbp
+    orbLoop: do iorb=1,tmb%orbs%norbp
         !!phir=0.d0
-        call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, phir(1))
-        call daub_to_isf(lzd%glr,w,phi(istart+1),phir(1))
-        iiAt=orbs%inwhichlocreg(orbs%isorb+iorb)
-        ix0=nint(rxyz(1,iiAt)/hxh)
-        iy0=nint(rxyz(2,iiAt)/hyh)
-        iz0=nint(rxyz(3,iiAt)/hzh)
+        call to_zero(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i, phir(1))
+        call daub_to_isf(tmb%lzd%glr,w,phi(istart+1),phir(1))
+        ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
+        iiAt=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
+        ix0=nint(rxyz(1,iiAt)/hxh)!-15
+        iy0=nint(rxyz(2,iiAt)/hyh)!-15
+        iz0=nint(rxyz(3,iiAt)/hzh)!-15
 
         ! Search the four closest atoms
         prevdiff=1.d-5 ! the same atom
         do i=1,4
+            maxdiff=1.d100
             do iat=1,nat
                 rxyzdiff(:)=rxyz(:,iat)-rxyz(:,iiat)
                 diff=dnrm2(3,rxyzdiff,1)
@@ -81,7 +84,6 @@ unit12=20*iproc+14
             prevdiff=maxdiff*1.00001d0 !just to be sure that not twice the same is chosen
         end do
 
-        jj=0
         write(c1,'(i5.5)') iproc
         write(c2,'(i5.5)') iorb
         write(c3,'(i5.5)') it
@@ -118,27 +120,111 @@ unit12=20*iproc+14
         !write(unit6,'(a,3i8)') '# ix0, iy0, iz0 ',ix0,iy0,iz0
         !write(unit7,'(a,3i8)') '# ix0, iy0, iz0 ',ix0,iy0,iz0
 
-        do i3=1,lzd%glr%d%n3i
-            do i2=1,lzd%glr%d%n2i
-                do i1=1,lzd%glr%d%n1i
+
+
+        ! TEMPORARY ######################################
+        allocate(psig_c(0:tmb%lzd%glr%d%n1,0:tmb%lzd%glr%d%n2,0:tmb%lzd%glr%d%n3))
+        psig_c=0.d0
+        do iseg=1,tmb%lzd%glr%wfd%nseg_c
+           jj=tmb%lzd%glr%wfd%keyvloc(iseg)
+           j0=tmb%lzd%glr%wfd%keygloc(1,iseg)
+           j1=tmb%lzd%glr%wfd%keygloc(2,iseg)
+           ii=j0-1
+           i3=ii/((tmb%lzd%glr%d%n1+1)*(tmb%lzd%glr%d%n2+1))
+           ii=ii-i3*(tmb%lzd%glr%d%n1+1)*(tmb%lzd%glr%d%n2+1)
+           i2=ii/(tmb%lzd%glr%d%n1+1)
+           i0=ii-i2*(tmb%lzd%glr%d%n1+1)
+           i1=i0+j1-j0
+           do i=i0,i1
+              psig_c(i,i2,i3)=phi(istart+i-i0+jj)
+           enddo
+        enddo
+        ixmax=-1000000
+        ixmin= 1000000
+        iymax=-1000000
+        iymin= 1000000
+        izmax=-1000000
+        izmin= 1000000
+        do i3=0,tmb%lzd%glr%d%n3
+           do i2=0,tmb%lzd%glr%d%n2
+              do i1=0,tmb%lzd%glr%d%n1
+                 if (psig_c(i1,i2,i3)/=0.d0) then
+                     if (i1>ixmax) ixmax=i1
+                     if (i1<ixmin) ixmin=i1
+                     if (i2>iymax) iymax=i2
+                     if (i2<iymin) iymin=i2
+                     if (i3>izmax) izmax=i3
+                     if (i3<izmin) izmin=i3
+                 end if
+              end do
+           end do
+        end do
+
+        !!ixmax=ixmax-tmb%lzd%llr(ilr)%ns1
+        !!ixmin=ixmin-tmb%lzd%llr(ilr)%ns1
+        !!iymax=iymax-tmb%lzd%llr(ilr)%ns2
+        !!iymin=iymin-tmb%lzd%llr(ilr)%ns2
+        !!izmax=izmax-tmb%lzd%llr(ilr)%ns3
+        !!izmin=izmin-tmb%lzd%llr(ilr)%ns3
+
+        deallocate(psig_c)
+        write(unit12,'(a,2i6,3x,6i9)') '# id, ilr, ixconf, ix0, ixmin, ixmax, ns1, n1', & 
+            tmb%orbs%isorb+iorb, ilr, nint(tmb%confdatarr(iorb)%rxyzconf(1)/(2.d0*hxh)), nint(rxyz(1,iiat)/(2.d0*hxh)), ixmin, ixmax, tmb%lzd%llr(ilr)%ns1, tmb%lzd%llr(ilr)%d%n1
+        write(unit12,'(a,2i6,3x,6i9)') '# id, ilr, iyconf, iy0, iymin, iymax, ns2, n2', &
+            tmb%orbs%isorb+iorb, ilr, nint(tmb%confdatarr(iorb)%rxyzconf(2)/(2.d0*hyh)), nint(rxyz(2,iiat)/(2.d0*hyh)), iymin, iymax, tmb%lzd%llr(ilr)%ns2, tmb%lzd%llr(ilr)%d%n2
+        write(unit12,'(a,2i6,3x,6i9)') '# id, ilr, izconf, iz0, izmin, izmax, ns3, n3', &
+            tmb%orbs%isorb+iorb, ilr, nint(tmb%confdatarr(iorb)%rxyzconf(3)/(2.d0*hzh)), nint(rxyz(3,iiat)/(2.d0*hzh)), izmin, izmax, tmb%lzd%llr(ilr)%ns3, tmb%lzd%llr(ilr)%d%n3
+
+        ! END TEMPORARY ##################################
+
+
+
+
+
+        ixmax=-1000000
+        ixmin= 1000000
+        iymax=-1000000
+        iymin= 1000000
+        izmax=-1000000
+        izmin= 1000000
+        jj=0
+        do i3=1,tmb%lzd%glr%d%n3i
+            do i2=1,tmb%lzd%glr%d%n2i
+                do i1=1,tmb%lzd%glr%d%n1i
                    jj=jj+1
                    ! z component of point jj
-                   iz=jj/(lzd%glr%d%n2i*lzd%glr%d%n1i)
+                   iz=jj/(tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n1i)
                    ! Subtract the 'lower' xy layers
-                   ii=jj-iz*(lzd%glr%d%n2i*lzd%glr%d%n1i)
+                   ii=jj-iz*(tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n1i)
                    ! y component of point jj
-                   iy=ii/lzd%glr%d%n1i
+                   iy=ii/tmb%lzd%glr%d%n1i
                    ! Subtract the 'lower' y rows
-                   ii=ii-iy*lzd%glr%d%n1i
+                   ii=ii-iy*tmb%lzd%glr%d%n1i
                    ! x component
                    ix=ii
 !if(phir(jj)>1.d0) write(*,'(a,3i7,es15.6)') 'WARNING: ix, iy, iz, phir(jj)', ix, iy, iz, phir(jj)
+
+
+                   ! Shift the values due to the convolutions bounds
+                   ix=ix-14
+                   iy=iy-14
+                   iz=iz-14
+                   
+                   if (phir(jj)/=0.d0) then
+                       if (ix>ixmax) ixmax=ix
+                       if (ix<ixmin) ixmin=ix
+                       if (iy>iymax) iymax=iy
+                       if (iy<iymin) iymin=iy
+                       if (iz>izmax) izmax=iz
+                       if (iz<izmin) izmin=iz
+                   end if
+
                    ixx=ix-ix0
                    iyy=iy-iy0
                    izz=iz-iz0
-                   dixx=dble(ixx)
-                   diyy=dble(iyy)
-                   dizz=dble(izz)
+                   dixx=hxh*dble(ixx)
+                   diyy=hyh*dble(iyy)
+                   dizz=hzh*dble(izz)
 
                    ! Write along x-axis
                    if(iyy==0 .and. izz==0) write(unit1,'(2es18.10)') dixx, phir(jj)
@@ -238,23 +324,33 @@ unit12=20*iproc+14
         ! Along the line in direction of the fourth closest atom
         rxyzref(:,11)=rxyz(1,closeid(4))
 
+        write(unit12,'(a,es16.8)') '# sum(phir)', sum(phir)
+        write(unit12,'(a,2i7)') '# inwhichlocreg, onwhichatom', tmb%orbs%inwhichlocreg(ilr), tmb%orbs%onwhichatom(ilr)
+        write(unit12,'(a,3i9,2x,2i9)') '# ix0, ixmin, ixmax, nsi1, n1i, ', ix0, ixmin, ixmax, tmb%lzd%llr(ilr)%nsi1, tmb%lzd%llr(ilr)%d%n1i
+        write(unit12,'(a,3i9,2x,2i9)') '# iy0, iymin, iymax, nsi2, n2i, ', iy0, iymin, iymax, tmb%lzd%llr(ilr)%nsi2, tmb%lzd%llr(ilr)%d%n2i
+        write(unit12,'(a,3i9,2x,2i9)') '# iz0, izmin, izmax, nsi3, n3i, ', iz0, izmin, izmax, tmb%lzd%llr(ilr)%nsi3, tmb%lzd%llr(ilr)%d%n3i
+
         do iat=1,11
-            write(unit12,'(a,2(3es12.4,4x))') '#  ', rxyz(:,iiat), rxyzref(:,iat)
+            write(unit12,'(a,5(3es12.4,4x))') '#  ', rxyz(:,iiat), rxyzref(:,iat), rxyz(:,iat), rxyzref(:,iat)-rxyz(:,iiat), rxyz(:,iat)-rxyz(:,iiat)
         end do
 
         do iat=1,nat
-             write(unit12,'(13es12.3)') 0.d0, &
-                                        base_point_distance(rxyz(:,iiat), rxyzref(:,1), rxyz(:,iat)), &
-                                        base_point_distance(rxyz(:,iiat), rxyzref(:,2), rxyz(:,iat)), &
-                                        base_point_distance(rxyz(:,iiat), rxyzref(:,3), rxyz(:,iat)), &
-                                        base_point_distance(rxyz(:,iiat), rxyzref(:,4), rxyz(:,iat)), &
-                                        base_point_distance(rxyz(:,iiat), rxyzref(:,5), rxyz(:,iat)), &
-                                        base_point_distance(rxyz(:,iiat), rxyzref(:,6), rxyz(:,iat)), &
-                                        base_point_distance(rxyz(:,iiat), rxyzref(:,7), rxyz(:,iat)), &
-                                        base_point_distance(rxyz(:,iiat), rxyzref(:,8), rxyz(:,iat)), &
-                                        base_point_distance(rxyz(:,iiat), rxyzref(:,9), rxyz(:,iat)), &
-                                        base_point_distance(rxyz(:,iiat), rxyzref(:,10), rxyz(:,iat)), &
-                                        base_point_distance(rxyz(:,iiat), rxyzref(:,11), rxyz(:,iat))
+            if (iat/=iiat) then
+                write(unit12,'(13es12.3)') 0.d0, &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,1), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,2), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,3), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,4), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,5), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,6), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,7), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,8), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,9), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,10), rxyz(:,iat)), &
+                                            base_point_distance(rxyz(:,iiat), rxyzref(:,11), rxyz(:,iat))
+            else
+                write(unit12,'(13es12.3)') 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0 
+            end if
         end do
 
 
@@ -271,7 +367,7 @@ unit12=20*iproc+14
         close(unit=unit11)
         close(unit=unit12)
 
-        istart=istart+(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)*orbs%nspinor
+        istart=istart+(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%nspinor
 
     end do orbLoop
 
@@ -376,16 +472,23 @@ contains
     real(kind=8) :: base_point_distance
 
     ! Local variables
-    real(kind=8),dimension(3) :: base_point, distance_vector, ab
-    real(kind=8) :: diffp1, diffm1, ddot, dnrm2, cosangle
+    real(kind=8),dimension(3) :: base_point, distance_vector, ab, ac
+    real(kind=8) :: diffp1, diffm1, ddot, dnrm2, cosangle, lambda
+
+    ! Vectors from A to B and from A to C
+    ab = b - a
+    ac = c - a
+
+    !lambda = (ab(1)*ac(1) + ab(2)*ac(2) + ab(3)*ac(3)) / (ab(1)**2 + ab(2)**2 + ab(3)**2)
+    lambda = ddot(3,ab,1,ac,1)/ddot(3,ab,1,ab,1)
+
 
     ! Base point of the perpendicular
-    base_point(1) = (a(1)*c(1)-b(1)*c(1))/(a(1)-b(1))
-    base_point(2) = (a(2)*c(2)-b(2)*c(2))/(a(2)-b(2))
-    base_point(3) = (a(3)*c(3)-b(3)*c(3))/(a(3)-b(3))
+    base_point = a + lambda*ab
+    !base_point(1) = (a(1)*c(1)-b(1)*c(1))/(a(1)-b(1))
+    !base_point(2) = (a(2)*c(2)-b(2)*c(2))/(a(2)-b(2))
+    !base_point(3) = (a(3)*c(3)-b(3)*c(3))/(a(3)-b(3))
 
-    ! Vector from A to B
-    ab = b - a
 
     ! Vector from the point A to the base point
     distance_vector = base_point - a
