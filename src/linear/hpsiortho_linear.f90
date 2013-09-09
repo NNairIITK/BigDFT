@@ -155,117 +155,117 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-  ! EXPERIMENTAL: add the term stemming from the derivative of the kernel with respect to the support funtions #################
+  !!!! EXPERIMENTAL: add the term stemming from the derivative of the kernel with respect to the support funtions #################
 
-  if (iproc==0) write(*,*) 'kernel term...'
+  !!!if (iproc==0) write(*,*) 'kernel term...'
 
-  ! Calculate the matrix Q = 3KHK - 2KSKHK - 2KHKSK
-  if(.not. tmb%ham_descr%can_use_transposed) then
-      allocate(tmb%ham_descr%psit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
-      !call memocc(istat, tmb%ham_descr%psit_c, 'tmb%ham_descr%psit_c', subname)
+  !!!! Calculate the matrix Q = 3KHK - 2KSKHK - 2KHKSK
+  !!!if(.not. tmb%ham_descr%can_use_transposed) then
+  !!!    allocate(tmb%ham_descr%psit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
+  !!!    !call memocc(istat, tmb%ham_descr%psit_c, 'tmb%ham_descr%psit_c', subname)
 
-      allocate(tmb%ham_descr%psit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
-      !call memocc(istat, tmb%ham_descr%psit_f, 'tmb%ham_descr%psit_f', subname)
+  !!!    allocate(tmb%ham_descr%psit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
+  !!!    !call memocc(istat, tmb%ham_descr%psit_f, 'tmb%ham_descr%psit_f', subname)
 
-      call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, tmb%ham_descr%psi, &
-           tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
-      !can_use_transposed=.true.
-  end if
+  !!!    call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, tmb%ham_descr%psi, &
+  !!!         tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
+  !!!    !can_use_transposed=.true.
+  !!!end if
 
-  ! It is assumed that this routine is called with the transposed gradient ready if it is associated...
-  if(.not.associated(hpsit_c)) then
-      allocate(hpsit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
-      !call memocc(istat, hpsit_c, 'hpsit_c', subname)
+  !!!! It is assumed that this routine is called with the transposed gradient ready if it is associated...
+  !!!if(.not.associated(hpsit_c)) then
+  !!!    allocate(hpsit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
+  !!!    !call memocc(istat, hpsit_c, 'hpsit_c', subname)
  
-      allocate(hpsit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
-      !call memocc(istat, hpsit_f, 'hpsit_f', subname)
+  !!!    allocate(hpsit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
+  !!!    !call memocc(istat, hpsit_f, 'hpsit_f', subname)
  
-     call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, tmb%hpsi, &
-          hpsit_c, hpsit_f, tmb%ham_descr%lzd)
-  end if
+  !!!   call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, tmb%hpsi, &
+  !!!        hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+  !!!end if
 
-  if(.not.tmb%can_use_transposed) then
-      if(.not.associated(tmb%psit_c)) then
-          allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-      end if
-      if(.not.associated(tmb%psit_f)) then
-          allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
-      end if
-      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-           tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-      tmb%can_use_transposed=.true.
-  end if
+  !!!if(.not.tmb%can_use_transposed) then
+  !!!    if(.not.associated(tmb%psit_c)) then
+  !!!        allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+  !!!        call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+  !!!    end if
+  !!!    if(.not.associated(tmb%psit_f)) then
+  !!!        allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+  !!!        call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+  !!!    end if
+  !!!    call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+  !!!         tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+  !!!    tmb%can_use_transposed=.true.
+  !!!end if
 
-  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-       tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
-  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%ham_descr%psit_c, hpsit_c, &
-       tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%ham)
-  !!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%ham_descr%psit_c, &
-  !!     tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%psit_f, tmb%linmat%ovrlp)
+  !!!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
+  !!!     tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+  !!!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%ham_descr%psit_c, hpsit_c, &
+  !!!     tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%ham)
+  !!!!!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%ham_descr%psit_c, &
+  !!!!!     tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%psit_f, tmb%linmat%ovrlp)
 
-  allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  call uncompressMatrix(iproc,tmb%linmat%ham)
-  allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  call uncompressMatrix(iproc,tmb%linmat%denskern)
-  allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+  !!!allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb))
+  !!!call uncompressMatrix(iproc,tmb%linmat%ham)
+  !!!allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
+  !!!call uncompressMatrix(iproc,tmb%linmat%denskern)
+  !!!allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb))
+  !!!call uncompressMatrix(iproc,tmb%linmat%ovrlp)
 
-  allocate(SK(tmb%orbs%norb,tmb%orbs%norb))
-  allocate(KS(tmb%orbs%norb,tmb%orbs%norb))
-  allocate(HK(tmb%orbs%norb,tmb%orbs%norb))
-  allocate(KHK(tmb%orbs%norb,tmb%orbs%norb))
-  allocate(KSKHK(tmb%orbs%norb,tmb%orbs%norb))
-  allocate(KHKSK(tmb%orbs%norb,tmb%orbs%norb))
-  allocate(Q(tmb%orbs%norb,tmb%orbs%norb))
+  !!!allocate(SK(tmb%orbs%norb,tmb%orbs%norb))
+  !!!allocate(KS(tmb%orbs%norb,tmb%orbs%norb))
+  !!!allocate(HK(tmb%orbs%norb,tmb%orbs%norb))
+  !!!allocate(KHK(tmb%orbs%norb,tmb%orbs%norb))
+  !!!allocate(KSKHK(tmb%orbs%norb,tmb%orbs%norb))
+  !!!allocate(KHKSK(tmb%orbs%norb,tmb%orbs%norb))
+  !!!allocate(Q(tmb%orbs%norb,tmb%orbs%norb))
 
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%ovrlp%matrix, tmb%orbs%norb, &
-       tmb%linmat%denskern%matrix, tmb%orbs%norb, 0.d0, SK, tmb%orbs%norb)
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix, tmb%orbs%norb, &
-       tmb%linmat%ovrlp%matrix, tmb%orbs%norb, 0.d0, KS, tmb%orbs%norb)
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%ham%matrix, tmb%orbs%norb, &
-       tmb%linmat%denskern%matrix, tmb%orbs%norb, 0.d0, HK, tmb%orbs%norb)
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix, tmb%orbs%norb, &
-       HK, tmb%orbs%norb, 0.d0, KHK, tmb%orbs%norb)
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, KS, tmb%orbs%norb, &
-       KHK, tmb%orbs%norb, 0.d0, KSKHK, tmb%orbs%norb)
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, KHK, tmb%orbs%norb, &
-       SK, tmb%orbs%norb, 0.d0, KHKSK, tmb%orbs%norb)
+  !!!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%ovrlp%matrix, tmb%orbs%norb, &
+  !!!     tmb%linmat%denskern%matrix, tmb%orbs%norb, 0.d0, SK, tmb%orbs%norb)
+  !!!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix, tmb%orbs%norb, &
+  !!!     tmb%linmat%ovrlp%matrix, tmb%orbs%norb, 0.d0, KS, tmb%orbs%norb)
+  !!!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%ham%matrix, tmb%orbs%norb, &
+  !!!     tmb%linmat%denskern%matrix, tmb%orbs%norb, 0.d0, HK, tmb%orbs%norb)
+  !!!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix, tmb%orbs%norb, &
+  !!!     HK, tmb%orbs%norb, 0.d0, KHK, tmb%orbs%norb)
+  !!!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, KS, tmb%orbs%norb, &
+  !!!     KHK, tmb%orbs%norb, 0.d0, KSKHK, tmb%orbs%norb)
+  !!!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, KHK, tmb%orbs%norb, &
+  !!!     SK, tmb%orbs%norb, 0.d0, KHKSK, tmb%orbs%norb)
 
-  Q = 3*KHK - 2*KSKHK -2*KHKSK
+  !!!Q = 3*KHK - 2*KSKHK -2*KHKSK
 
-  ! Store the matrix Q temporaily in tmb%linmat%ham
-  tmb%linmat%ham%matrix=Q
+  !!!! Store the matrix Q temporaily in tmb%linmat%ham
+  !!!tmb%linmat%ham%matrix=Q
 
-  call build_linear_combination_transposed(tmb%ham_descr%collcom, tmb%linmat%ham, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
-       .false., hpsit_c, hpsit_f, iproc)
+  !!!call build_linear_combination_transposed(tmb%ham_descr%collcom, tmb%linmat%ham, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
+  !!!     .false., hpsit_c, hpsit_f, iproc)
 
-  call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-       hpsit_c, hpsit_f, tmb%hpsi, tmb%ham_descr%lzd)
+  !!!call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+  !!!     hpsit_c, hpsit_f, tmb%hpsi, tmb%ham_descr%lzd)
 
-  deallocate(tmb%linmat%ham%matrix)
-  deallocate(tmb%linmat%denskern%matrix)
-  deallocate(tmb%linmat%ovrlp%matrix)
+  !!!deallocate(tmb%linmat%ham%matrix)
+  !!!deallocate(tmb%linmat%denskern%matrix)
+  !!!deallocate(tmb%linmat%ovrlp%matrix)
 
-  deallocate(SK)
-  deallocate(KS)
-  deallocate(HK)
-  deallocate(KHK)
-  deallocate(KSKHK)
-  deallocate(KHKSK)
-  deallocate(Q)
+  !!!deallocate(SK)
+  !!!deallocate(KS)
+  !!!deallocate(HK)
+  !!!deallocate(KHK)
+  !!!deallocate(KSKHK)
+  !!!deallocate(KHKSK)
+  !!!deallocate(Q)
 
-  deallocate(hpsit_c)
-  deallocate(hpsit_f)
+  !!!deallocate(hpsit_c)
+  !!!deallocate(hpsit_f)
 
-  ! not sure about this
-  if(.not. tmb%ham_descr%can_use_transposed) then
-      deallocate(tmb%ham_descr%psit_c)
-      deallocate(tmb%ham_descr%psit_f)
-  end if
+  !!!! not sure about this
+  !!!if(.not. tmb%ham_descr%can_use_transposed) then
+  !!!    deallocate(tmb%ham_descr%psit_c)
+  !!!    deallocate(tmb%ham_descr%psit_f)
+  !!!end if
 
-  ! END EXPERIMENTAL ###########################################################################################################
+  !!!! END EXPERIMENTAL ###########################################################################################################
 
 
   ! make lagmat a structure with same sparsity as h
