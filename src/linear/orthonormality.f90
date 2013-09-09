@@ -234,7 +234,8 @@ call timing(iproc,'misc','ON')
 
   ! NEW: reactivate correction for non-orthogonality ##########
   if (correction_orthoconstraint==0) then
-      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
+      ! WARNING: it is mandatory that the overlap matrix jas been calculated before
+      !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
       allocate(linmat%ovrlp%matrix(orbs%norb,orbs%norb))
       call uncompressMatrix(iproc,linmat%ovrlp)
       allocate(tmp_mat(orbs%norb,orbs%norb))
