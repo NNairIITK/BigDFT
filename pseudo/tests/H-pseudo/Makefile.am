@@ -1,4 +1,6 @@
-EXTRA_DIST = 
+EXTRA_DIST = \
+			 input.fitpar \
+			 input.weights
 
 
 REPORTS = \

@@ -23,6 +23,7 @@ EXTRA_DIST = \
 		ref/pseudo.parallelnofit.out.ref \
 		ref/pseudo.shortfit.out.ref \
 		ref/psppar.atom.ref \
+		ref/psppar.shortfit.ref \
 		ref/psppar.nlcc.short.ref
 
 ATOM_OUTPUTS = \
