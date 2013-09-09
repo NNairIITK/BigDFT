@@ -1070,7 +1070,8 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                  end do
               end do
               !HGH case, offdiagonal terms
-              if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10) then
+              if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10 &
+                                         .or. at%npspcode(ityp) == 12 ) then
                  do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
                     do i=1,2
                        if (at%psppar(l,i,ityp) /= 0.0_gp) then 
@@ -4707,7 +4708,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                         end do
                      end do
                      !HGH case, offdiagonal terms
-                     if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10) then
+                     if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10 &
+                                                .or. at%npspcode(ityp) == 12) then
                         do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
                            do i=1,2
                               if (at%psppar(l,i,ityp) /= 0.0_gp) then 

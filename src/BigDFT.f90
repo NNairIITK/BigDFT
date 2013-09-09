@@ -85,6 +85,9 @@ program BigDFT
          ! Deallocations.
          call deallocate_global_output(outs)
          call run_objects_free(runObj, subname)
+         
+         !temporary
+         !call f_malloc_dump_status()
       end if
    enddo !loop over iconfig
 

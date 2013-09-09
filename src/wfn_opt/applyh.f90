@@ -1434,7 +1434,7 @@ subroutine build_hgh_hij_matrix(npspcode,psppar,hij)
      loop_diag: do i=1,3
         hij(i,i,l)=psppar(l,i) !diagonal term
         if ((npspcode == 3 .and. l/=4 .and. i/=3) .or. &
-             (npspcode == 10 .and. i/=3)) then !HGH(-K) case, offdiagonal terms
+             ((npspcode == 10 .or. npspcode == 12) .and. i/=3)) then !HGH(-K) case, offdiagonal terms
            loop_offdiag: do j=i+1,3
               if (psppar(l,j) == 0.0_gp) exit loop_offdiag
               !offdiagonal HGH term
@@ -1509,7 +1509,7 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
      istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
   enddo
   if ((npspcode == 3 .and. l/=4 .and. i/=3) .or. &
-       (npspcode == 10 .and. i/=3)) then !HGH(-K) case, offdiagonal terms
+       ((npspcode == 10 .or. npspcode == 12 ).and. i/=3)) then !HGH(-K) case, offdiagonal terms
      loop_j: do j=i+1,3
         if (psppar(l,j) == 0.0_gp) exit loop_j
 

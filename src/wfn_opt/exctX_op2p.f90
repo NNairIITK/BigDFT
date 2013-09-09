@@ -1,3 +1,15 @@
+!> @file
+!!   Module used to calculate the exact exchange potential with
+!! overlap point to point
+!! @author
+!!    Copyright (C) 2011-2013 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Module used to calculate op2p (overlap point-to-point) for the exact exchange
 module module_exctx_op2p
   use module_base
   use module_types
@@ -6,6 +18,7 @@ module module_exctx_op2p
 
   private
 
+  !> Public routines
   public :: op2p_exctx_run,op2p_descriptors,orbs_to_attributes,op2p_exctx_set,op2p_exctx_clear
 
   integer :: ncalls,ncalltot
@@ -47,7 +60,7 @@ contains
 
   end subroutine OP2P_exctx_clear
 
-  !> internal operation which calculates the partial densities for any of the orbitals
+  !> Internal operation which calculates the partial densities for any of the orbitals
   !! then uses these information to evaluate the exact exchange operator
   subroutine internal_exctx_operation(istep,iproc,igroup,remote_result,&
      isorb,jsorb,iorbs,jorbs,norbi,norbj,&

@@ -1,7 +1,7 @@
 !> @file
 !! Orthonormalization
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -28,11 +28,12 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   logical,intent(inout) :: can_use_transposed
 
   ! Local variables
-  integer :: it, istat, iall, irow, jcol, ii, iorb, jorb
-  real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm
+  integer :: it, istat, iall
+  !integer :: irow, ii, iorb, jcol, jorb
+  real(kind=8), dimension(:),allocatable :: psittemp_c, psittemp_f, norm
   !type(sparseMatrix) :: inv_ovrlp_half
-  character(len=*),parameter :: subname='orthonormalizeLocalized'
-  real(8),dimension(orbs%norb,orbs%norb) :: tempmat
+  character(len=*), parameter :: subname='orthonormalizeLocalized'
+  !real(kind=8), dimension(orbs%norb,orbs%norb) :: tempmat
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
@@ -67,7 +68,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
       !!do ii=1,ovrlp%nvctr
       !!   irow = ovrlp%orb_from_index(ii,1)
       !!   jcol = ovrlp%orb_from_index(ii,2)
-      !!   tempmat(irow,jcol)=ovrlp%matrix_compr(ii)
+      !!   Tempmat(irow,jcol)=ovrlp%matrix_compr(ii)
       !!end do
       !!if (iproc==0) then
       !!    do irow=1,orbs%norb
