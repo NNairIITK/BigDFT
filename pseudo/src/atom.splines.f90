@@ -392,91 +392,95 @@ end subroutine spliq
 !
 !      *****************************************************************
 !
-      subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
-!
-      integer i,j,k,l,m,n,p,q,r,s,ii,m1,m2,m11,m22,tag,ierr,isturm
-      double precision d(n),e(n),e2(n),w(m),rv4(n),rv5(n)
-      double precision u,v,lb,t1,t2,ub,xu,x0,x1,eps1,machep
-!     real abs,max,min,DBLE
-      integer ind(m)
-!
-!     this subroutine is a translation of the algol procedure bisect,
-!     num. math. 9, 386-393(1967) by barth, martin, and wilkinson.
-!     handbook for auto. comp., vol.ii-linear algebra, 249-256(1971).
-!
-!     this subroutine finds those eigenvalues of a tridiagonal
-!     symmetric matrix between specified boundary indices,
-!     using bisection.
-!
-!     on input-
-!
-!        n is the order of the matrix,
-!
-!        eps1 is an absolute error tolerance for the computed
-!          eigenvalues.  if the input eps1 is non-positive,
-!          it is reset for each submatrix to a default value,
-!          namely, minus the product of the relative machine
-!          precision and the 1-norm of the submatrix,
-!
-!        d contains the diagonal elements of the input matrix,
-!
-!        e contains the subdiagonal elements of the input matrix
-!          in its last n-1 positions.  e(1) is arbitrary,
-!
-!        e2 contains the squares of the corresponding elements of e.
-!          e2(1) is arbitrary,
-!
-!        m11 specifies the lower boundary index for the desired
-!          eigenvalues,
-!
-!        m specifies the number of eigenvalues desired.  the upper
-!          boundary index m22 is then obtained as m22=m11+m-1.
-!
-!     on output-
-!
-!        eps1 is unaltered unless it has been reset to its
-!          (last) default value,
-!
-!        d and e are unaltered,
-!
-!        elements of e2, corresponding to elements of e regarded
-!          as negligible, have been replaced by zero causing the
-!          matrix to split into a direct sum of submatrices.
-!          e2(1) is also set to zero,
-!
-!        lb and ub define an interval containing exactly the desired
-!          eigenvalues,
-!
-!        w contains, in its first m positions, the eigenvalues
-!          between indices m11 and m22 in ascending order,
-!
-!        ind contains in its first m positions the submatrix indices
-!          associated with the corresponding eigenvalues in w --
-!          1 for eigenvalues belonging to the first submatrix from
-!          the top, 2 for those belonging to the second submatrix, etc.,
-!
-!        ierr is set to
-!          zero       for normal return,
-!          3*n+1      if multiple eigenvalues at index m11 make
-!                     unique selection impossible,
-!          3*n+2      if multiple eigenvalues at index m22 make
-!                     unique selection impossible,
-!
-!        rv4 and rv5 are temporary storage arrays.
-!
-!     note that subroutine tql1, imtql1, or tqlrat is generally faster
-!     than tridib, if more than n/4 eigenvalues are to be found.
-!
-!     questions and comments should be directed to b. s. garbow,
-!     applied mathematics division, argonne national laboratory
-!
+
+!> This subroutine is a translation of the algol procedure bisect,
+!! num. math. 9, 386-393(1967) by barth, martin, and wilkinson.
+!! handbook for auto. comp., vol.ii-linear algebra, 249-256(1971).
+!!
+!! this subroutine finds those eigenvalues of a tridiagonal
+!! symmetric matrix between specified boundary indices,
+!! using bisection.
+!!
+!! on input-
+!!
+!!    n is the order of the matrix,
+!!
+!!    eps1 is an absolute error tolerance for the computed
+!!      eigenvalues.  if the input eps1 is non-positive,
+!!      it is reset for each submatrix to a default value,
+!!      namely, minus the product of the relative machine
+!!      precision and the 1-norm of the submatrix,
+!!
+!!    d contains the diagonal elements of the input matrix,
+!!
+!!    e contains the subdiagonal elements of the input matrix
+!!      in its last n-1 positions.  e(1) is arbitrary,
+!!
+!!    e2 contains the squares of the corresponding elements of e.
+!!      e2(1) is arbitrary,
+!!
+!!    m11 specifies the lower boundary index for the desired
+!!      eigenvalues,
+!!
+!!    m specifies the number of eigenvalues desired.  the upper
+!!      boundary index m22 is then obtained as m22=m11+m-1.
+!!
+!! on output-
+!!
+!!    eps1 is unaltered unless it has been reset to its
+!!      (last) default value,
+!!
+!!    d and e are unaltered,
+!!
+!!    elements of e2, corresponding to elements of e regarded
+!!      as negligible, have been replaced by zero causing the
+!!      matrix to split into a direct sum of submatrices.
+!!      e2(1) is also set to zero,
+!!
+!!    lb and ub define an interval containing exactly the desired
+!!      eigenvalues,
+!!
+!!    w contains, in its first m positions, the eigenvalues
+!!      between indices m11 and m22 in ascending order,
+!!
+!!    ind contains in its first m positions the submatrix indices
+!!      associated with the corresponding eigenvalues in w --
+!!      1 for eigenvalues belonging to the first submatrix from
+!!      the top, 2 for those belonging to the second submatrix, etc.,
+!!
+!!    ierr is set to
+!!      zero       for normal return,
+!!      3*n+1      if multiple eigenvalues at index m11 make
+!!                 unique selection impossible,
+!!      3*n+2      if multiple eigenvalues at index m22 make
+!!                 unique selection impossible,
+!!
+!!    rv4 and rv5 are temporary storage arrays.
+!!
+!! note that subroutine tql1, imtql1, or tqlrat is generally faster
+!! than tridib, if more than n/4 eigenvalues are to be found.
+!!
+!! questions and comments should be directed to B. S. Garbow,
+!! applied mathematics division, Argonne National Laboratory
+subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
+
+      implicit none
+      !Arguments
+      integer, intent(in) :: n,m,m11
+      integer, intent(out) :: ierr
+      integer, dimension(m), intent(out) :: ind
+      !Local variables
+      real(kind=8), parameter :: machep = 2.D0**(-47)
+      integer :: i,j,k,l,p,q,r,s,ii,m1,m2,m22,tag,isturm
+      real(kind=8) :: d(n),e(n),e2(n),w(m),rv4(n),rv5(n)
+      real(kind=8) :: u,v,lb,t1,t2,ub,xu,x0,x1,eps1
 !     ------------------------------------------------------------------
 !
 !     ********** machep is a machine dependent parameter specifying
 !                the relative precision of floating point arithmetic.
 !
 !                **********
-      machep = 2.D0**(-47)
+!      machep = 2.D0**(-47)
 !
       ierr = 0
       tag = 0
