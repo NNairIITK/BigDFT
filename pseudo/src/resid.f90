@@ -13,7 +13,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> NEW: !! spin polarized treatment if nspol == 2
+!> Spin polarized treatment if nspol == 2
 subroutine resid(nspol, &
    noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx, &
    aeval,res, &

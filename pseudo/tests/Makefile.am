@@ -3,6 +3,7 @@
 SUBDIRS = \
 	  atoms \
 	  H-pseudo \
+	  C-pseudo \
 	  pawpatchtest
 
 if BUILD_LIBYAML

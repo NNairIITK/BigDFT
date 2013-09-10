@@ -36,7 +36,7 @@ pseudo.out: pseudo.in $(abs_top_builddir)/pseudo/src/pseudo
 	$(run_parallel) $(abs_top_builddir)/pseudo/src/pseudo > $@
 
 clean:
-	if ! test $(top_srcdir)/pseudo/tests/H-pseudo -ef . ; then rm -f atom.dat input.pseudo ; fi
-	rm -f *.out *.report input.* psppar ae.* *.ae \
-			input.* local.pot *.gplt ps.* s.kernel.pot vertex.dump hostnames.*
-
+	if ! test $(top_srcdir)/pseudo/tests/H-pseudo -ef . ; then \
+			rm -f atom.dat input.pseudo psppar ; fi
+	rm -f *.out *.report ae.* *.ae psppar.* \
+			local.pot *.gplt ps.* s.kernel.pot vertex.dump hostnames.*

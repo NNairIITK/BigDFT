@@ -1060,6 +1060,7 @@ pseudo/src/Makefile
 pseudo/tests/Makefile
 pseudo/tests/atoms/Makefile
 pseudo/tests/H-pseudo/Makefile
+pseudo/tests/C-pseudo/Makefile
 pseudo/tests/pawpatchtest/Makefile
 pseudo/tutorials/Makefile
 pseudo/tutorials/oxygen.NLCC/Makefile
