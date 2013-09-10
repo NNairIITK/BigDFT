@@ -1,261 +1,271 @@
-      subroutine splift(x,y,yp,ypp,n,w,ierr,isx,a1,b1,an,bn)
-      implicit double precision(a-h,o-z)
-!
-!     sandia mathematical program library
-!     applied mathematics division 2613
-!     sandia laboratories
-!     albuquerque, new mexico  87185
-!     control data 6600/7600  version 7.2  may 1978
-!  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-!                    issued by sandia laboratories                     *
-!  *                   a prime contractor to the                       *
-!  *                united states department of energy                 *
-!  * * * * * * * * * * * * * * * notice  * * * * * * * * * * * * * * * *
-!  * this report was prepared as an account of work sponsored by the   *
-!  * united states government.  neither the united states nor the      *
-!  * united states department of energy nor any of their employees,    *
-!  * nor any of their contractors, subcontractors, or their employees  *
-!  * makes any warranty, express or implied, or assumes any legal      *
-!  * liability or responsibility for the accuracy, completeness or     *
-!  * usefulness of any information, apparatus, product or process      *
-!  * disclosed, or represents that its use would not infringe          *
-!  * owned rights.                                                     *
-!  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-!  * the primary document for the library of which this routine is     *
-!  * part is sand77-1441.                                              *
-!  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-!
-!     written by rondall e. jones
-!
-!     abstract
-!         splift fits an interpolating cubic spline to the n data points
-!         given in x and y and returns the first and second derivatives
-!         in yp and ypp.  the resulting spline (defined by x, y, and
-!         ypp) and its first and second derivatives may then be
-!         evaluated using splint.  the spline may be integrated using
-!         spliq.  for a smoothing spline fit see subroutine smoo.
-!
-!     description of arguments
-!         the user must dimension all arrays appearing in the call list,
-!         e.g.   x(n), y(n), yp(n), ypp(n), w(3n)
-!
-!       --input--
-!
-!         x    - array of abscissas of data (in increasing order)
-!         y    - array of ordinates of data
-!         n    - the number of data points.  the arrays x, y, yp, and
-!                ypp must be dimensioned at least n.  (n .ge. 4)
-!         isx  - must be zero on the initial call to splift.
-!                if a spline is to be fitted to a second set of data
-!                that has the same set of abscissas as a previous set,
-!                and if the contents of w have not been changed since
-!                that previous fit was computed, then isx may be
-!                set to one for faster execution.
-!         a1,b1,an,bn - specify the end conditions for the spline which
-!                are expressed as constraints on the second derivative
-!                of the spline at the end points (see ypp).
-!                the end condition constraints are
-!                        ypp(1) = a1*ypp(2) + b1
-!                and
-!                        ypp(n) = an*ypp(n-1) + bn
-!                where
-!                        abs(a1).lt. 1.0  and  abs(an).lt. 1.0.
-!
-!                the smoothest spline (i.e., least integral of square
-!                of second derivative) is obtained by a1=b1=an=bn=0.
-!                in this case there is an inflection at x(1) and x(n).
-!                if the data is to be extrapolated (say, by using splint
-!                to evaluate the spline outside the range x(1) to x(n)),
-!                then taking a1=an=0.5 and b1=bn=0 may yield better
-!                results.  in this case there is an inflection
-!                at x(1) - (x(2)-x(1)) and at x(n) + (x(n)-x(n-1)).
-!                in the more general case of a1=an=a  and b1=bn=0,
-!                there is an inflection at x(1) - (x(2)-x(1))*a/(1.0-a)
-!                and at x(n) + (x(n)-x(n-1))*a/(1.0-a).
-!
-!                a spline that has a given first derivative yp1 at x(1)
-!                and ypn at y(n) may be defined by using the
-!                following conditions.
-!
-!                a1=-0.5
-!
-!                b1= 3.0*((y(2)-y(1))/(x(2)-x(1))-yp1)/(x(2)-x(1))
-!
-!                an=-0.5
-!
-!                bn=-3.0*((y(n)-y(n-1))/(x(n)-x(n-1))-ypn)/(x(n)-x(n-1))
-!
-!       --output--
-!
-!         yp   - array of first derivatives of spline (at the x(i))
-!         ypp  - array of second derivatives of spline (at the x(i))
-!         ierr - a status code
-!              --normal code
-!                 1 means that the requested spline was computed.
-!              --abnormal codes
-!                 2 means that n, the number of points, was .lt. 4.
-!                 3 means the abscissas were not strictly increasing.
-!
-!       --work--
-!
-!         w    - array of working storage dimensioned at least 3n.
-      dimension x(n),y(n),yp(n),ypp(n),w(n,3)
-!
-      if (n.lt.4) go to 200
-      nm1  = n-1
-      nm2  = n-2
-      if (isx.gt.0) go to 40
-      do 5 i=2,n
-      if (x(i)-x(i-1)) 300,300,5
-    5 continue
-!
-!     define the tridiagonal matrix
-!
+!> @file
+!! sandia mathematical program library
+!!     applied mathematics division 2613
+!!     sandia laboratories
+!!     albuquerque, new mexico  87185
+!!     control data 6600/7600  version 7.2  may 1978
+!!  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+!!                    issued by sandia laboratories                     *
+!!  *                   a prime contractor to the                       *
+!!  *                united states department of energy                 *
+!!  * * * * * * * * * * * * * * * notice  * * * * * * * * * * * * * * * *
+!!  * this report was prepared as an account of work sponsored by the   *
+!!  * united states government.  neither the united states nor the      *
+!!  * united states department of energy nor any of their employees,    *
+!!  * nor any of their contractors, subcontractors, or their employees  *
+!!  * makes any warranty, express or implied, or assumes any legal      *
+!!  * liability or responsibility for the accuracy, completeness or     *
+!!  * usefulness of any information, apparatus, product or process      *
+!!  * disclosed, or represents that its use would not infringe          *
+!!  * owned rights.                                                     *
+!!  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+!!  * the primary document for the library of which this routine is     *
+!!  * part is sand77-1441.                                              *
+!!  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+!!
+
+
+!>         splift fits an interpolating cubic spline to the n data points
+!!         given in x and y and returns the first and second derivatives
+!!         in yp and ypp.  the resulting spline (defined by x, y, and
+!!         ypp) and its first and second derivatives may then be
+!!         evaluated using splint.  the spline may be integrated using
+!!         spliq.  for a smoothing spline fit see subroutine smoo.
+!!
+!!     description of arguments
+!!         the user must dimension all arrays appearing in the call list,
+!!         e.g.   x(n), y(n), yp(n), ypp(n), w(3n)
+!!
+!!       --input--
+!!
+!!         x    - array of abscissas of data (in increasing order)
+!!         y    - array of ordinates of data
+!!         n    - the number of data points.  the arrays x, y, yp, and
+!!                ypp must be dimensioned at least n.  (n .ge. 4)
+!!         isx  - must be zero on the initial call to splift.
+!!                if a spline is to be fitted to a second set of data
+!!                that has the same set of abscissas as a previous set,
+!!                and if the contents of w have not been changed since
+!!                that previous fit was computed, then isx may be
+!!                set to one for faster execution.
+!!         a1,b1,an,bn - specify the end conditions for the spline which
+!!                are expressed as constraints on the second derivative
+!!                of the spline at the end points (see ypp).
+!!                the end condition constraints are
+!!                        ypp(1) = a1*ypp(2) + b1
+!!                and
+!!                        ypp(n) = an*ypp(n-1) + bn
+!!                where
+!!                        abs(a1).lt. 1.0  and  abs(an).lt. 1.0.
+!!
+!!                the smoothest spline (i.e., least integral of square
+!!                of second derivative) is obtained by a1=b1=an=bn=0.
+!!                in this case there is an inflection at x(1) and x(n).
+!!                if the data is to be extrapolated (say, by using splint
+!!                to evaluate the spline outside the range x(1) to x(n)),
+!!                then taking a1=an=0.5 and b1=bn=0 may yield better
+!!                results.  in this case there is an inflection
+!!                at x(1) - (x(2)-x(1)) and at x(n) + (x(n)-x(n-1)).
+!!                in the more general case of a1=an=a  and b1=bn=0,
+!!                there is an inflection at x(1) - (x(2)-x(1))*a/(1.0-a)
+!!                and at x(n) + (x(n)-x(n-1))*a/(1.0-a).
+!!
+!!                a spline that has a given first derivative yp1 at x(1)
+!!                and ypn at y(n) may be defined by using the
+!!                following conditions.
+!!
+!!                a1=-0.5
+!!
+!!                b1= 3.0*((y(2)-y(1))/(x(2)-x(1))-yp1)/(x(2)-x(1))
+!!
+!!                an=-0.5
+!!
+!!                bn=-3.0*((y(n)-y(n-1))/(x(n)-x(n-1))-ypn)/(x(n)-x(n-1))
+!!
+!!       --output--
+!!
+!!         yp   - array of first derivatives of spline (at the x(i))
+!!         ypp  - array of second derivatives of spline (at the x(i))
+!!         ierr - a status code
+!!              --normal code
+!!                 1 means that the requested spline was computed.
+!!              --abnormal codes
+!!                 2 means that n, the number of points, was .lt. 4.
+!!                 3 means the abscissas were not strictly increasing.
+!!
+!!       --work--
+!!
+!!         w    - array of working storage dimensioned at least 3n.
+!! @author written by Rondall E. Jones
+subroutine splift(x,y,yp,ypp,n,w,ierr,isx,a1,b1,an,bn)
+   implicit none
+   !Arguments
+   integer, intent(in) :: n     !< the number of data points
+   integer, intent(in) :: isx   !< must be zero on the initial call to splift.
+                                !! if a spline is to be fitted to a second set of data that has the same set 
+                                !! of abscissas as a previous set, and if the contents of w have not been changed since
+                                !! that previous fit was computed, then isx may be set to one for faster execution.
+   real(kind=8), intent(in) :: a1,b1,an,bn !< specify the end conditions for the spline which are expressed as constraints 
+                                           !! on the second derivative of the spline at the end points (see ypp).
+                                           !! the end condition constraints are ypp(1) = a1*ypp(2) + b1
+                                           !! and                               ypp(n) = an*ypp(n-1) + bn
+                                           !! where abs(a1).lt. 1.0  and  abs(an).lt. 1.0.
+   integer, intent(out) :: ierr !< a status code
+                                !! (normal),   1 means that the requested spline was computed.
+                                !! (abnormal), 2 means that n, the number of points, was < 4.
+                                !!             3 means the abscissas were not strictly increasing.
+   real(kind=8), dimension(n), intent(in) :: x    !< array of abscissas of data (in increasing order)
+   real(kind=8), dimension(n), intent(in) :: y    !< array of ordinates of data
+   real(kind=8), dimension(n), intent(out) :: yp  !< array of first derivatives of spline (at the x(i))
+   real(kind=8), dimension(n), intent(out) :: ypp !< array of second derivatives of spline (at the x(i))
+   real(kind=8), dimension(n,3), intent(out) :: w !< array of working storage dimensioned at least 3n.
+   
+   !Local variables
+   real(kind=8) :: dnew,dold
+   integer :: i,nm1,nm2,j
+
+   !Check if enough points
+   if (n < 4) then
+      ierr = 2
+      write(6,'(47h in splift, there were less than 4 data values.)')
+      return
+   end if
+   nm1  = n-1
+   nm2  = n-2
+
+   if (isx == 0) then
+      !Initialize w (which keeps the L U decomposition)
+      do i=2,n
+         if (x(i)-x(i-1) <= 0.d0) then
+            ierr = 3
+            write(6,'(11h in splift, 44h the abscissas were not strictly increasing.)')
+            return
+         end if
+      end do
+
+      ! define the tridiagonal matrix
       w(1,3) = x(2)-x(1)
-      do 10 i=2,nm1
-      w(i,2) = w(i-1,3)
-      w(i,3) = x(i+1)-x(i)
-   10 w(i,1) = 2.D0*(w(i,2)+w(i,3))
+      do i=2,nm1
+         w(i,2) = w(i-1,3)
+         w(i,3) = x(i+1)-x(i)
+         w(i,1) = 2.D0*(w(i,2)+w(i,3))
+      end do
       w(1,1) = 4.D0
       w(1,3) =-4.D0*a1
       w(n,1) = 4.D0
       w(n,2) =-4.D0*an
-!
-!     l u decomposition
-!
-      do 30 i=2,n
-      w(i-1,3) = w(i-1,3)/w(i-1,1)
-   30 w(i,1)   = w(i,1) - w(i,2)*w(i-1,3)
-!
-!     define *constant* vector
-!
-   40 ypp(1) = 4.D0*b1
-      dold   = (y(2)-y(1))/w(2,2)
-      do 50 i=2,nm2
+
+      ! L U decomposition
+      do i=2,n
+         w(i-1,3) = w(i-1,3)/w(i-1,1)
+         w(i,1)   = w(i,1) - w(i,2)*w(i-1,3)
+      end do
+   end if
+
+   ! define *constant* vector
+   ypp(1) = 4.D0*b1
+   dold   = (y(2)-y(1))/w(2,2)
+   do i=2,nm2
       dnew   = (y(i+1) - y(i))/w(i+1,2)
       ypp(i) = 6.D0*(dnew - dold)
       yp(i)  = dold
-   50 dold   = dnew
-      dnew   = (y(n)-y(n-1))/(x(n)-x(n-1))
-      ypp(nm1) = 6.D0*(dnew - dold)
-      ypp(n) = 4.D0*bn
-      yp(nm1)= dold
-      yp(n)  = dnew
-!
-!     forward substitution
-!
-      ypp(1) = ypp(1)/w(1,1)
-      do 60 i=2,n
-   60 ypp(i) = (ypp(i) - w(i,2)*ypp(i-1))/w(i,1)
-!
-!     backward substitution
-!
-      do 70 j=1,nm1
+      dold   = dnew
+   end do
+   dnew   = (y(n)-y(n-1))/(x(n)-x(n-1))
+   ypp(nm1) = 6.D0*(dnew - dold)
+   ypp(n) = 4.D0*bn
+   yp(nm1)= dold
+   yp(n)  = dnew
+
+   ! forward substitution
+   ypp(1) = ypp(1)/w(1,1)
+   do i=2,n
+      ypp(i) = (ypp(i) - w(i,2)*ypp(i-1))/w(i,1)
+   end do
+
+   ! backward substitution
+   do j=1,nm1
       i = n-j
-   70 ypp(i) = ypp(i) - w(i,3)*ypp(i+1)
-!
-!     compute first derivatives
-!
-      yp(1)  = (y(2)-y(1))/(x(2)-x(1)) - (x(2)-x(1))*(2.D0*ypp(1) + ypp(2))/6.D0
-      do 80 i=2,nm1
-   80 yp(i)  = yp(i) + w(i,2)*(ypp(i-1) + 2.D0*ypp(i))/6.D0
-      yp(n)  = yp(n) + (x(n)-x(nm1))*(ypp(nm1) + 2.D0*ypp(n))/6.D0
-!
-      ierr = 1
-      return
-  200 ierr = 2
-      write(6,210)
-  210 format(47h in splift, there were less than 4 data values.)
-      return
-  300 ierr = 3
-      write(6,310)
-  310 format(11h in splift, 44h the abscissas were not strictly increasing.)
-      return
-      end
-!
-!      *****************************************************************
-!
-      subroutine spliq(x,y,yp,ypp,n,xlo,xup,nup,ans,ierr)
-      implicit double precision(a-h,o-z)
-      dimension x(n),y(n),yp(n),ypp(n),xup(nup),ans(nup)
-!
-!     sandia mathematical program library
-!     applied mathematics division 2613
-!     sandia laboratories
-!     albuquerque, new mexico  87185
-!     control data 6600/7600  version 7.2  may 1978
-!  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-!                    issued by sandia laboratories                     *
-!  *                   a prime contractor to the                       *
-!  *                united states department of energy                 *
-!  * * * * * * * * * * * * * * * notice  * * * * * * * * * * * * * * * *
-!  * this report was prepared as an account of work sponsored by the   *
-!  * united states government.  neither the united states nor the      *
-!  * united states department of energy nor any of their employees,    *
-!  * nor any of their contractors, subcontractors, or their employees  *
-!  * makes any warranty, express or implied, or assumes any legal      *
-!  * liability or responsibility for the accuracy, completeness or     *
-!  * usefulness of any information, apparatus, product or process      *
-!  * disclosed, or represents that its use would not infringe          *
-!  * owned rights.                                                     *
-!  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-!  * the primary document for the library of which this routine is     *
-!  * part is sand77-1441.                                              *
-!  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-!
-!     this routine was written by m. k. gordon
-!
-!     abstract
-!
-!     subroutine spliq integrates a cubic spline (generated by
-!     splift, smoo, etc.) on the intervals (xlo,xup(i)), where xup
-!     is a sequence of upper limits on the intervals of integration.
-!     the only restrictions on xlo and xup(*) are
-!                xlo .lt. xup(1),
-!                xup(i) .le. xup(i+1)   for each i .
-!     endpoints beyond the span of abscissas are allowed.
-!     the spline over the interval (x(i),x(i+1)) is regarded
-!     as a cubic polynomial expanded about x(i) and is integrated
-!     analytically.
-!
-!     description of arguments
-!         the user must dimension all arrays appearing in the call list,
-!         e.g.  x(n), y(n), yp(n), ypp(n), xup(nup), ans(nup)
-!
-!      --input--
-!
-!        x    - array of abscissas (in increasing order) that define the
-!               spline.  usually x is the same as x in splift or smoo.
-!        y    - array of ordinates that define the spline.  usually y is
-!               the same as y in splift or as r in smoo.
-!        yp   - array of first derivatives of the spline at abscissas.
-!               usually yp is the same as yp in splift or r1 in smoo.
-!        ypp  - array of second derivatives that define the spline.
-!               usually ypp is the same as ypp in splift or r2 in smoo.
-!        n    - the number of data points that define the spline.
-!        xlo  - left endpoint of integration intervals.
-!        xup  - right endpoint or array of right endpoints of
-!               integration intervals in ascending order.
-!        nup  - the number of right endpoints.  if nup is greater than
-!               1, then xup and ans must be dimensioned at least nup.
-!
-!      --output--
-!
-!        ans -- array of integral values, that is,
-!               ans(i) = integral from xlo to xup(i)
-!        ierr -- error status
-!                = 1 integration successful
-!                = 2 improper input - n.lt.4 or nup.lt.1
-!                = 3 improper input - abscissas not in
-!                        strictly ascending order
-!                = 4 improper input - right endpoints xup not
-!                        in ascending order
-!                = 5 improper input - xlo.gt.xup(1)
-!                = 6 integration successful but at least one endpoint
-!                        not within span of abscissas
-!
-!   check for improper input
-!
+      ypp(i) = ypp(i) - w(i,3)*ypp(i+1)
+   end do
+
+   ! compute first derivatives
+   yp(1)  = (y(2)-y(1))/(x(2)-x(1)) - (x(2)-x(1))*(2.D0*ypp(1) + ypp(2))/6.D0
+   do i=2,nm1
+      yp(i)  = yp(i) + w(i,2)*(ypp(i-1) + 2.D0*ypp(i))/6.D0
+   end do
+   yp(n)  = yp(n) + (x(n)-x(nm1))*(ypp(nm1) + 2.D0*ypp(n))/6.D0
+
+   !Normal error code
+   ierr = 1
+end subroutine splift
+
+
+!>     subroutine spliq integrates a cubic spline (generated by
+!!     splift, smoo, etc.) on the intervals (xlo,xup(i)), where xup
+!!     is a sequence of upper limits on the intervals of integration.
+!!     the only restrictions on xlo and xup(*) are
+!!                xlo .lt. xup(1),
+!!                xup(i) .le. xup(i+1)   for each i .
+!!     endpoints beyond the span of abscissas are allowed.
+!!     the spline over the interval (x(i),x(i+1)) is regarded
+!!     as a cubic polynomial expanded about x(i) and is integrated
+!!     analytically.
+!!
+!!     description of arguments
+!!         the user must dimension all arrays appearing in the call list,
+!!         e.g.  x(n), y(n), yp(n), ypp(n), xup(nup), ans(nup)
+!!
+!!      --input--
+!!
+!!        x    - array of abscissas (in increasing order) that define the
+!!               spline.  usually x is the same as x in splift or smoo.
+!!        y    - array of ordinates that define the spline.  usually y is
+!!               the same as y in splift or as r in smoo.
+!!        yp   - array of first derivatives of the spline at abscissas.
+!!               usually yp is the same as yp in splift or r1 in smoo.
+!!        ypp  - array of second derivatives that define the spline.
+!!               usually ypp is the same as ypp in splift or r2 in smoo.
+!!        n    - the number of data points that define the spline.
+!!        xlo  - left endpoint of integration intervals.
+!!        xup  - right endpoint or array of right endpoints of
+!!               integration intervals in ascending order.
+!!        nup  - the number of right endpoints.  if nup is greater than
+!!               1, then xup and ans must be dimensioned at least nup.
+!!
+!!      --output--
+!!
+!!        ans -- array of integral values, that is,
+!!               ans(i) = integral from xlo to xup(i)
+!!        ierr -- error status
+!!                = 1 integration successful
+!!                = 2 improper input - n.lt.4 or nup.lt.1
+!!                = 3 improper input - abscissas not in
+!!                        strictly ascending order
+!!                = 4 improper input - right endpoints xup not
+!!                        in ascending order
+!!                = 5 improper input - xlo.gt.xup(1)
+!!                = 6 integration successful but at least one endpoint
+!!                        not within span of abscissas
+!!
+!!   check for improper input
+!!
+!! @author     this routine was written by M. K. Gordon
+subroutine spliq(x,y,yp,ypp,n,xlo,xup,nup,ans,ierr)
+      implicit none
+      !Arguments
+      integer, intent(in) :: n     !< the number of data points that define the spline.
+      integer, intent(in) :: nup   !< the number of right endpoints.
+      integer, intent(out) :: ierr !< error status
+      real(kind=8), dimension(n), intent(in) :: x,y,yp,ypp
+      real(kind=8), intent(in) :: xlo !< left endpoint of integration intervals
+      real(kind=8), dimension(nup), intent(in) :: xup  !< right endpoint or array of right endpoints of integration intervals in ascending order.
+      real(kind=8), dimension(nup), intent(out) :: ans !< array of integral values, that is ans(i) = integral from xlo to xup(i)
+      !Local variables
+      real(kind=8) :: hlo,hdiff,hi,hi2,hi3,hlo2,hsum,hup,hup2,hup3,hup4
+      real(kind=8) :: psum0,psum1,psum2,psum3,sum,sum0,sum1,sum2,sum3
+      integer :: nm1,nm2,i,j,m
+
       ierr = 2
       if(n .ge. 4  .and.  nup .ge. 1) go to 1
       write(6,110)

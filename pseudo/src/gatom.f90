@@ -30,36 +30,41 @@ subroutine gatom(energ, verbose)
    use pseudovars
    use gatomvars
 
-   implicit real*8 (a-h,o-z)
+   implicit none
 
-   !     local arrays
-   real(8)::  hh(0:ng,0:ng,lmax+1,nspin),ss(0:ng,0:ng,lmax+1),  &
-        hht(0:ng,0:ng),sst(0:ng,0:ng),hhsc(((ng+1)*(ng+2))/2,lmax+1),  &
-        hhxc(((ng+1)*(ng+2))/2,lmax+1,nspin),  & ! only for the spin polarized case
-        eval(0:ng),evec(0:ng,0:ng),pp1(0:ng,lpx),  &
-        pp2(0:ng,lpx),pp3(0:ng,lpx),potgrd(nint),  &
-        rho(((ng+1)*(ng+2))/2,lmax+1,nspol),  &
-        rhoold(((ng+1)*(ng+2))/2,lmax+1,nspol),excgrd(nint),  &
-        vxcgrd(nint,nspol),pexgrd(nint),  &
-        ppr1(nint,lmax+1),ppr2(nint,lmax+1),ppr3(nint,lmax+1),  &
-        aux1(nint),aux2(nint,0:ng,lmax+1),  &
-        expxpr(0:ng,nint), tts(nspol)
-   
-   real(8):: rhogrd(nint,nspol), rhocore(nint,nspol)
-   
-   real(8):: y1(nint),y2(nint),y3(nint),  &
-        rlist(0:nint),drlist(0:nint),ddrlist(0:nint)
-   
-   real(8):: gamma
-   logical:: energ, verbose
-   
-   external gamma,wave,dwave,ddwave
-   save nscf,nscfo,delta,odelta
-   fourpi = 16.d0*atan(1.d0)
-   
-   
-   
-   
+   !Arguments
+   logical, intent(in) :: energ, verbose
+   !Local variables
+   real(kind=8), parameter :: fourpi = 16.d0*atan(1.d0)
+   real(kind=8), dimension(0:ng,0:ng,lmax+1,nspin) :: hh
+   real(kind=8), dimension(0:ng,0:ng,lmax+1) :: ss
+   real(kind=8), dimension(0:ng,0:ng) :: hht,sst
+   real(kind=8), dimension(((ng+1)*(ng+2))/2,lmax+1) :: hhsc
+   real(kind=8), dimension(((ng+1)*(ng+2))/2,lmax+1,nspin) :: hhxc !< only for the spin polarized case
+   real(kind=8), dimension(((ng+1)*(ng+2))/2,lmax+1,nspol) :: rho, rhoold
+   real(kind=8), dimension(0:ng) :: eval
+   real(kind=8), dimension(0:ng,0:ng) :: evec
+   real(kind=8), dimension(0:ng,lpx) :: pp1,pp2,pp3
+   real(kind=8), dimension(nint,lmax+1) :: ppr1,ppr2,ppr3
+   real(kind=8), dimension(nint,0:ng,lmax+1) :: aux2
+   real(kind=8), dimension(0:ng,nint) :: expxpr
+   real(kind=8), dimension(nspol) :: tts
+   real(kind=8), dimension(nint,nspol) :: vxcgrd, rhogrd, rhocore
+   real(kind=8), dimension(nint) :: potgrd, excgrd, pexgrd, aux1, y1,y2,y3
+   real(kind=8), dimension(0:nint) :: rlist,drlist,ddrlist
+
+   real(kind=8) :: aa,const,ddnode,d,dnode,ddrnode,drnode
+   real(kind=8) :: enexc,evsum,evsumold,gml,gml1,gml2,gml3,hhij
+   real(kind=8) :: pw1,pw2,pw3,pw4,r,r2,ra,rmix,rnode,rnrm1,rnrm2,rnrm3,rrdnode,rrnode,sd
+   real(kind=8) :: sum1,sum2,sum3,sxp,terf,texp,tol,tt,tt0,tt1,tt2,tt3,ttmax,ttpsi,ttrmax
+   real(kind=8) :: ttt,ttt2,tttt,x1,x2
+   integer :: l,iocc,ispin,i,k,ij,info,isp,it,j,kout,ll,lq,nddnode,ndnode,nnode,nocc
+
+   real(kind=8), external :: gamma, wave, dwave, ddwave, wave2,zbrent,wwav
+
+   real(kind=8), save :: delta, odelta
+   integer, save :: nscf, nscfo
+
    if (ntime .eq. 0) then
       !     c. hartwig    modified scf mixing
       !     initialize variables for first iteration rmix
@@ -83,7 +88,7 @@ subroutine gatom(energ, verbose)
    
    !***********************************************************************
    
-   !      just to be sure
+   ! just to be sure
    rhocore=0d0
    
    if(rcore>0d0)then
@@ -97,7 +102,6 @@ subroutine gatom(energ, verbose)
       
       !      to be consistent with the convention in bigdft
       !      let us use a factor of four pi for the nlcc here.
-      fourpi = 16.d0*atan(1.d0)
       
       !      careful: in bigdft, the polynomial part is
       !               not scaled by rcore. this results

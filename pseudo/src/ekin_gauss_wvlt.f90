@@ -19,38 +19,52 @@
 !! basis. Input shall be a given gaussian
 !! representation of the wavefunction.
 subroutine  ekin_wvlt(verbose,iproc,nproc,ng,ngmx,&
-        noccmx,lmx,nspin,nsmx,&
-        nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,frmult,&
-         xp_in,psi_in,occup_in, ekin_pen,time) 
+   noccmx,lmx,nspin,nsmx,&
+   nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,frmult,&
+   xp_in,psi_in,occup_in, ekin_pen,time) 
 
-   implicit real(kind=8) (a-h,o-z)
+   implicit none
 
-   ! The shape of the psi and xp array as defined in the main program pseudo.f90
-   real(kind=8) :: psi_in(0:ngmx,noccmx,lmx,nsmx),xp(0:ngmx),xp_in(0:ngmx),&
-                occup_in(noccmx,lmx,nsmx),rxyz(3),drxyz(3)
-   integer :: nl(lmx,nsmx)
-   real(kind=8), allocatable :: ekin_plot(:,:,:)
-   logical :: verbose
+   !Arguments
+   integer, intent(in) :: iproc,nproc,ng,ngmx,noccmx,lmx,nspin,nsmx,nhpow
+   integer, intent(out) :: nhgrid
+   !> The shape of the psi and xp array as defined in the main program pseudo.f90
+   real(kind=8), dimension(0:ngmx,noccmx,lmx,nsmx), intent(in) :: psi_in
+   real(kind=8), dimension(0:ngmx), intent(in) :: xp_in
+   real(kind=8), dimension(noccmx,lmx,nsmx), intent(in) :: occup_in
+   real(kind=8), dimension(3), intent(inout) :: time
+   real(kind=8), intent(in) :: hgridmin, hgridmax,crmult,frmult,ampl
+   real(kind=8), intent(out) :: ekin_pen
+   logical, intent(in) :: verbose
+   !Local variables
+   real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
+   integer, dimension(lmx,nsmx) :: nl
+   real(kind=8), dimension(0:ngmx) :: xp
+   real(kind=8), dimension(:,:,:), allocatable :: ekin_plot
    character(len=20) :: frmt
 
    !Arguments of createWavefunctionsDescriptors
-   integer :: iproc,nproc,n1,n2,n3,norb
+   integer :: n1,n2,n3,norb
    logical :: parallel 
-   real(kind=8) :: hgrid,crmult,frmult
-   integer,allocatable :: ibyz_c(:,:,:), ibxz_c(:,:,:), ibxy_c(:,:,:)
-   integer,allocatable :: ibyz_f(:,:,:), ibxz_f(:,:,:), ibxy_f(:,:,:)
+   real(kind=8) :: hgrid
+   integer, dimension(:,:,:), allocatable :: ibyz_c, ibxz_c, ibxy_c
+   integer, dimension(:,:,:), allocatable :: ibyz_f, ibxz_f, ibxy_f
    ! wavefunction 
    ! real(kind=8), allocatable :: psi(:,:)
    ! wavefunction gradients
    ! arrays for DIIS convergence accelerator
-   !Local variables
-   real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
-   real(kind=8) :: t, time(3)
-   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
-   
+   real(kind=8) :: t
+   logical, dimension(:,:,:), allocatable :: logrid_c, logrid_f
+
    !Arguments of createAtomicOrbitals
    integer :: norbe, norbep, ngx
+   integer :: i,ihgrid,iocc,iorb,ispin,iprocs,iserial
+   integer :: ierr,l,nprocs,nfull,ncoeff
    integer :: nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
+   
+   real(kind=8), dimension(3) :: rxyz
+   real(kind=8) :: alat1, alat2, alat3,cxmin,cxmax,cymin,cymax,czmin,czmax
+   real(kind=8) :: drxyz, ekin_mypen,rad,wghth,wghthsum
    
    include 'mpif.h'
    parallel=(nproc>1)
@@ -112,13 +126,12 @@ norbe=norb! we do not treat unoccupied orbitals, thus norbe=norb
 
 
 if(verbose)then
-   write(6,*)'Penalty contributions from wavelet transformtaions' 
-   write(6,*)'__________________________________________________'
+   write(6,'(1x,a)') 'Penalty contributions from wavelet transformtaions' 
+   write(6,'(1x,a)') '__________________________________________________'
    !output some additional information. This is not really needed,
    !only done once after the amoeba has converged/exited.
-   write(6,*)
-   write(6,*)'Occupation numbers and orbital indices for wavelet transformation'
-   write(6,*)'          l          inl          s   -> orbital   occupation number' 
+   write(6,'(/,1x,a)') 'Occupation numbers and orbital indices for wavelet transformation'
+   write(6,'(1x,a)')   '          l          inl          s   -> orbital   occupation number' 
    iorb=0
    do l=1,lmx
       do ispin=1,nspin
@@ -412,9 +425,7 @@ end if
       
 deallocate(ekin_plot)
 
-return
-end subroutine 
-
+end subroutine ekin_wvlt
 
 
 subroutine createAtomicOrbitals(iproc, nproc, nspin,&
@@ -424,30 +435,32 @@ subroutine createAtomicOrbitals(iproc, nproc, nspin,&
        ekin_mypen,ekin_plot)
 
   implicit none
-
-  integer :: norbe, norbep, ngx, iproc, nproc
-  integer :: n1, n2, n3 
-  integer :: nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
-  integer :: ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
-  integer :: ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-  real(kind=8) :: hgrid , dnrm2
+  !Arguments
+  integer, intent(in) :: norbe, norbep, ngx, iproc, nproc
+  integer, intent(in) :: n1, n2, n3 
+  integer, intent(in) :: nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
+  integer, intent(in) :: ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
+  integer, intent(in) :: ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
+  real(kind=8), intent(in) :: hgrid 
   !character(len = 20) :: pspatomnames(npsp)
   !character(len = 20) :: atomnames
   !integer :: ng, nl(4)
-  integer :: ng, nl(5,2)
-  real(kind=8) :: rxyz(3)
-  real(kind=8) :: xp(ngx)
+  integer, intent(in) :: ng, nl(5,2)
+  real(kind=8), dimension(3), intent(in) :: rxyz
+  real(kind=8), dimension(ngx), intent(in) :: xp
+  !Local variables
   integer, parameter :: nterm_max=3
-  integer :: lx(nterm_max),ly(nterm_max),lz(nterm_max)
-  real(kind=8) :: fac_arr(nterm_max)
+  integer, dimension(nterm_max) :: lx,ly,lz
+  real(kind=8), dimension(nterm_max) :: fac_arr
   integer :: ispin,nspin, iorb, jorb,  i,  inl, l, m,  nterm
   real(kind=8) :: rx, ry, rz,  scpr, ekin, ekgauss
-  real(kind=8):: psi_in(0:32,7,5,2)
-  logical myorbital
-  real(kind=8), allocatable ::psig (:) 
-  real(kind=8), allocatable ::psigp(:) 
-  real(8):: ekin_mypen,ekin_plot(norbe)
-  real(kind=8),allocatable:: psiatn(:), psiat(:)
+  real(kind=8), dimension(0:32,7,5,2) :: psi_in
+  logical :: myorbital
+  real(kind=8), dimension(:), allocatable :: psig, psigp, psiatn, psiat
+  real(kind=8), dimension(norbe) :: ekin_plot
+  real(kind=8) :: ekin_mypen
+  real(kind=8), external :: dnrm2
+
   allocate (psiatn(ngx), psiat(ngx))
   allocate(psig (8*(1+n1)*(1+n2)*(1+n3)),psigp(8*(1+n1)*(1+n2)*(1+n3) )) 
   ekin_mypen=0.d0
@@ -523,13 +536,14 @@ subroutine createAtomicOrbitals(iproc, nproc, nspin,&
 
 !  end do
 
-END SUBROUTINE
+END SUBROUTINE createAtomicOrbitals
 
 
 !> Returns an input guess orbital that is a Gaussian centered at a Wannier center
 !! exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 ))
 !! in the arrays psi_c, psi_f
-        subroutine crtonewave(n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hgrid, &
+!! @todo Use the routine from bigdft program.
+subroutine crtonewave(n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hgrid, &
                    nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,psig)
         implicit real(kind=8) (a-h,o-z)
         parameter(nw=16000)
@@ -705,8 +719,7 @@ END SUBROUTINE
 
           deallocate(wprojx,wprojy,wprojz,work)
 
-    return
-    END SUBROUTINE
+END SUBROUTINE
 
 
 
