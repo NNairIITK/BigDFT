@@ -23,79 +23,80 @@
 !!  * part is sand77-1441.                                              *
 !!  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 !!
+!! @todo Remove arithmetic if
 
 
-!>         splift fits an interpolating cubic spline to the n data points
-!!         given in x and y and returns the first and second derivatives
-!!         in yp and ypp.  the resulting spline (defined by x, y, and
-!!         ypp) and its first and second derivatives may then be
-!!         evaluated using splint.  the spline may be integrated using
-!!         spliq.  for a smoothing spline fit see subroutine smoo.
+!> splift fits an interpolating cubic spline to the n data points
+!! given in x and y and returns the first and second derivatives
+!! in yp and ypp.  the resulting spline (defined by x, y, and
+!! ypp) and its first and second derivatives may then be
+!! evaluated using splint.  the spline may be integrated using
+!! spliq.  for a smoothing spline fit see subroutine smoo.
 !!
-!!     description of arguments
-!!         the user must dimension all arrays appearing in the call list,
-!!         e.g.   x(n), y(n), yp(n), ypp(n), w(3n)
+!! description of arguments
+!!     the user must dimension all arrays appearing in the call list,
+!!     e.g.   x(n), y(n), yp(n), ypp(n), w(3n)
 !!
-!!       --input--
+!!   --input--
 !!
-!!         x    - array of abscissas of data (in increasing order)
-!!         y    - array of ordinates of data
-!!         n    - the number of data points.  the arrays x, y, yp, and
-!!                ypp must be dimensioned at least n.  (n .ge. 4)
-!!         isx  - must be zero on the initial call to splift.
-!!                if a spline is to be fitted to a second set of data
-!!                that has the same set of abscissas as a previous set,
-!!                and if the contents of w have not been changed since
-!!                that previous fit was computed, then isx may be
-!!                set to one for faster execution.
-!!         a1,b1,an,bn - specify the end conditions for the spline which
-!!                are expressed as constraints on the second derivative
-!!                of the spline at the end points (see ypp).
-!!                the end condition constraints are
-!!                        ypp(1) = a1*ypp(2) + b1
-!!                and
-!!                        ypp(n) = an*ypp(n-1) + bn
-!!                where
-!!                        abs(a1).lt. 1.0  and  abs(an).lt. 1.0.
+!!     x    - array of abscissas of data (in increasing order)
+!!     y    - array of ordinates of data
+!!     n    - the number of data points.  the arrays x, y, yp, and
+!!            ypp must be dimensioned at least n.  (n .ge. 4)
+!!     isx  - must be zero on the initial call to splift.
+!!            if a spline is to be fitted to a second set of data
+!!            that has the same set of abscissas as a previous set,
+!!            and if the contents of w have not been changed since
+!!            that previous fit was computed, then isx may be
+!!            set to one for faster execution.
+!!     a1,b1,an,bn - specify the end conditions for the spline which
+!!            are expressed as constraints on the second derivative
+!!            of the spline at the end points (see ypp).
+!!            the end condition constraints are
+!!                    ypp(1) = a1*ypp(2) + b1
+!!            and
+!!                    ypp(n) = an*ypp(n-1) + bn
+!!            where
+!!                    abs(a1).lt. 1.0  and  abs(an).lt. 1.0.
 !!
-!!                the smoothest spline (i.e., least integral of square
-!!                of second derivative) is obtained by a1=b1=an=bn=0.
-!!                in this case there is an inflection at x(1) and x(n).
-!!                if the data is to be extrapolated (say, by using splint
-!!                to evaluate the spline outside the range x(1) to x(n)),
-!!                then taking a1=an=0.5 and b1=bn=0 may yield better
-!!                results.  in this case there is an inflection
-!!                at x(1) - (x(2)-x(1)) and at x(n) + (x(n)-x(n-1)).
-!!                in the more general case of a1=an=a  and b1=bn=0,
-!!                there is an inflection at x(1) - (x(2)-x(1))*a/(1.0-a)
-!!                and at x(n) + (x(n)-x(n-1))*a/(1.0-a).
+!!            the smoothest spline (i.e., least integral of square
+!!            of second derivative) is obtained by a1=b1=an=bn=0.
+!!            in this case there is an inflection at x(1) and x(n).
+!!            if the data is to be extrapolated (say, by using splint
+!!            to evaluate the spline outside the range x(1) to x(n)),
+!!            then taking a1=an=0.5 and b1=bn=0 may yield better
+!!            results.  in this case there is an inflection
+!!            at x(1) - (x(2)-x(1)) and at x(n) + (x(n)-x(n-1)).
+!!            in the more general case of a1=an=a  and b1=bn=0,
+!!            there is an inflection at x(1) - (x(2)-x(1))*a/(1.0-a)
+!!            and at x(n) + (x(n)-x(n-1))*a/(1.0-a).
 !!
-!!                a spline that has a given first derivative yp1 at x(1)
-!!                and ypn at y(n) may be defined by using the
-!!                following conditions.
+!!            a spline that has a given first derivative yp1 at x(1)
+!!            and ypn at y(n) may be defined by using the
+!!            following conditions.
 !!
-!!                a1=-0.5
+!!            a1=-0.5
 !!
-!!                b1= 3.0*((y(2)-y(1))/(x(2)-x(1))-yp1)/(x(2)-x(1))
+!!            b1= 3.0*((y(2)-y(1))/(x(2)-x(1))-yp1)/(x(2)-x(1))
 !!
-!!                an=-0.5
+!!            an=-0.5
 !!
-!!                bn=-3.0*((y(n)-y(n-1))/(x(n)-x(n-1))-ypn)/(x(n)-x(n-1))
+!!            bn=-3.0*((y(n)-y(n-1))/(x(n)-x(n-1))-ypn)/(x(n)-x(n-1))
 !!
-!!       --output--
+!!   --output--
 !!
-!!         yp   - array of first derivatives of spline (at the x(i))
-!!         ypp  - array of second derivatives of spline (at the x(i))
-!!         ierr - a status code
-!!              --normal code
-!!                 1 means that the requested spline was computed.
-!!              --abnormal codes
-!!                 2 means that n, the number of points, was .lt. 4.
-!!                 3 means the abscissas were not strictly increasing.
+!!     yp   - array of first derivatives of spline (at the x(i))
+!!     ypp  - array of second derivatives of spline (at the x(i))
+!!     ierr - a status code
+!!          --normal code
+!!             1 means that the requested spline was computed.
+!!          --abnormal codes
+!!             2 means that n, the number of points, was .lt. 4.
+!!             3 means the abscissas were not strictly increasing.
 !!
-!!       --work--
+!!   --work--
 !!
-!!         w    - array of working storage dimensioned at least 3n.
+!!     w    - array of working storage dimensioned at least 3n.
 !! @author written by Rondall E. Jones
 subroutine splift(x,y,yp,ypp,n,w,ierr,isx,a1,b1,an,bn)
    implicit none
@@ -201,114 +202,119 @@ subroutine splift(x,y,yp,ypp,n,w,ierr,isx,a1,b1,an,bn)
 end subroutine splift
 
 
-!>     subroutine spliq integrates a cubic spline (generated by
-!!     splift, smoo, etc.) on the intervals (xlo,xup(i)), where xup
-!!     is a sequence of upper limits on the intervals of integration.
-!!     the only restrictions on xlo and xup(*) are
-!!                xlo .lt. xup(1),
-!!                xup(i) .le. xup(i+1)   for each i .
-!!     endpoints beyond the span of abscissas are allowed.
-!!     the spline over the interval (x(i),x(i+1)) is regarded
-!!     as a cubic polynomial expanded about x(i) and is integrated
-!!     analytically.
+!> subroutine spliq integrates a cubic spline (generated by
+!! splift, smoo, etc.) on the intervals (xlo,xup(i)), where xup
+!! is a sequence of upper limits on the intervals of integration.
+!! the only restrictions on xlo and xup(*) are
+!!            xlo .lt. xup(1),
+!!            xup(i) .le. xup(i+1)   for each i .
+!! endpoints beyond the span of abscissas are allowed.
+!! the spline over the interval (x(i),x(i+1)) is regarded
+!! as a cubic polynomial expanded about x(i) and is integrated
+!! analytically.
 !!
-!!     description of arguments
-!!         the user must dimension all arrays appearing in the call list,
-!!         e.g.  x(n), y(n), yp(n), ypp(n), xup(nup), ans(nup)
+!! description of arguments
+!!     the user must dimension all arrays appearing in the call list,
+!!     e.g.  x(n), y(n), yp(n), ypp(n), xup(nup), ans(nup)
 !!
-!!      --input--
+!!  --input--
 !!
-!!        x    - array of abscissas (in increasing order) that define the
-!!               spline.  usually x is the same as x in splift or smoo.
-!!        y    - array of ordinates that define the spline.  usually y is
-!!               the same as y in splift or as r in smoo.
-!!        yp   - array of first derivatives of the spline at abscissas.
-!!               usually yp is the same as yp in splift or r1 in smoo.
-!!        ypp  - array of second derivatives that define the spline.
-!!               usually ypp is the same as ypp in splift or r2 in smoo.
-!!        n    - the number of data points that define the spline.
-!!        xlo  - left endpoint of integration intervals.
-!!        xup  - right endpoint or array of right endpoints of
-!!               integration intervals in ascending order.
-!!        nup  - the number of right endpoints.  if nup is greater than
-!!               1, then xup and ans must be dimensioned at least nup.
+!!    x    - array of abscissas (in increasing order) that define the
+!!           spline.  usually x is the same as x in splift or smoo.
+!!    y    - array of ordinates that define the spline.  usually y is
+!!           the same as y in splift or as r in smoo.
+!!    yp   - array of first derivatives of the spline at abscissas.
+!!           usually yp is the same as yp in splift or r1 in smoo.
+!!    ypp  - array of second derivatives that define the spline.
+!!           usually ypp is the same as ypp in splift or r2 in smoo.
+!!    n    - the number of data points that define the spline.
+!!    xlo  - left endpoint of integration intervals.
+!!    xup  - right endpoint or array of right endpoints of
+!!           integration intervals in ascending order.
+!!    nup  - the number of right endpoints.  if nup is greater than
+!!           1, then xup and ans must be dimensioned at least nup.
 !!
-!!      --output--
+!!  --output--
 !!
-!!        ans -- array of integral values, that is,
-!!               ans(i) = integral from xlo to xup(i)
-!!        ierr -- error status
-!!                = 1 integration successful
-!!                = 2 improper input - n.lt.4 or nup.lt.1
-!!                = 3 improper input - abscissas not in
-!!                        strictly ascending order
-!!                = 4 improper input - right endpoints xup not
-!!                        in ascending order
-!!                = 5 improper input - xlo.gt.xup(1)
-!!                = 6 integration successful but at least one endpoint
-!!                        not within span of abscissas
+!!    ans -- array of integral values, that is,
+!!           ans(i) = integral from xlo to xup(i)
+!!    ierr -- error status
+!!            = 1 integration successful
+!!            = 2 improper input - n.lt.4 or nup.lt.1
+!!            = 3 improper input - abscissas not in
+!!                    strictly ascending order
+!!            = 4 improper input - right endpoints xup not
+!!                    in ascending order
+!!            = 5 improper input - xlo.gt.xup(1)
+!!            = 6 integration successful but at least one endpoint
+!!                    not within span of abscissas
 !!
-!!   check for improper input
+!! check for improper input
 !!
-!! @author     this routine was written by M. K. Gordon
+!! @author This routine was written by M. K. Gordon
 subroutine spliq(x,y,yp,ypp,n,xlo,xup,nup,ans,ierr)
-      implicit none
-      !Arguments
-      integer, intent(in) :: n     !< the number of data points that define the spline.
-      integer, intent(in) :: nup   !< the number of right endpoints.
-      integer, intent(out) :: ierr !< error status
-      real(kind=8), dimension(n), intent(in) :: x,y,yp,ypp
-      real(kind=8), intent(in) :: xlo !< left endpoint of integration intervals
-      real(kind=8), dimension(nup), intent(in) :: xup  !< right endpoint or array of right endpoints of integration intervals in ascending order.
-      real(kind=8), dimension(nup), intent(out) :: ans !< array of integral values, that is ans(i) = integral from xlo to xup(i)
-      !Local variables
-      real(kind=8) :: hlo,hdiff,hi,hi2,hi3,hlo2,hsum,hup,hup2,hup3,hup4
-      real(kind=8) :: psum0,psum1,psum2,psum3,sum,sum0,sum1,sum2,sum3
-      integer :: nm1,nm2,i,j,m
-
-      ierr = 2
-      if(n .ge. 4  .and.  nup .ge. 1) go to 1
-      write(6,110)
- 110  format(36h in spliq, either n.lt.4 or nup.lt.1)
-      return
- 1    nm1 = n-1
-      nm2 = n-2
-      ierr = 3
-      do 2 i = 1,nm1
-        if(x(i) .lt. x(i+1)) go to 2
-        write(6,120)
- 120    format(43h in spliq, abscissas not in ascending order)
+  implicit none
+  !Arguments
+  integer, intent(in) :: n     !< the number of data points that define the spline.
+  integer, intent(in) :: nup   !< the number of right endpoints.
+  integer, intent(out) :: ierr !< error status
+  real(kind=8), dimension(n), intent(in) :: x,y,yp,ypp
+  real(kind=8), intent(in) :: xlo !< left endpoint of integration intervals
+  real(kind=8), dimension(nup), intent(in) :: xup  !< right endpoint or array of right endpoints of integration intervals in ascending order.
+  real(kind=8), dimension(nup), intent(out) :: ans !< array of integral values, that is ans(i) = integral from xlo to xup(i)
+  !Local variables
+  real(kind=8) :: hlo,hdiff,hi,hi2,hi3,hlo2,hsum,hup,hup2,hup3,hup4
+  real(kind=8) :: psum0,psum1,psum2,psum3,sum,sum0,sum1,sum2,sum3
+  integer :: nm1,nm2,i,j,m
+  !Check length of arrays
+  if (n < 4  .or.  nup < 1) then
+     ierr = 2
+     write(6,'(36h in spliq, either n.lt.4 or nup.lt.1)')
+     return
+  end if
+  nm1 = n-1
+  nm2 = n-2
+  !Check ascending order
+  do i = 1,nm1
+     if (x(i) >= x(i+1)) then
+        ierr = 3
+        write(6,'(43h in spliq, abscissas not in ascending order)')
         return
- 2      continue
-      if(nup .eq. 1) go to 4
-      ierr = 4
-      do 3 i = 2,nup
-        if(xup(i-1) .le. xup(i)) go to 3
-        write(6,130)
- 130    format(49h in spliq, right endpoints not in ascending order)
-        return
- 3      continue
- 4    ierr = 5
-      if(xlo .le. xup(1)) go to 5
-      write(6,140)
- 140  format(26h in spliq, xlo .gt. xup(1))
+     end if
+  end do
+  !Check ascending order for right endpoints
+  if (nup > 1) then
+      do i = 2,nup
+         if (xup(i-1) > xup(i)) then
+            ierr = 4
+            write(6,'(49h in spliq, right endpoints not in ascending order)')
+            return
+         end if
+      end do
+   end if
+   !Check if left end point < right end points
+   if (xlo > xup(1)) then
+      ierr = 5
+      write(6,'(26h in spliq, xlo .gt. xup(1))')
       write(6,*) xlo ,'>',xup(1)
       return
-    5 ierr = 1
-      if(xlo .lt. x(1)  .or.  xup(nup) .gt. x(n)) ierr = 6
-!
-!   locate xlo in interval (x(i),x(i+1))
-!
+   end if
+   !Normal code
+   ierr = 1
+   if (xlo .lt. x(1)  .or.  xup(nup) .gt. x(n)) ierr = 6
+
+   ! locate xlo in interval (x(i),x(i+1))
       do 10 i = 1,nm2
-        if(xlo .lt. x(i+1)) go to 20
+        if (xlo .lt. x(i+1)) go to 20
  10     continue
       i = nm1
- 20   hlo = xlo-x(i)
+ 20   continue
+      hlo = xlo-x(i)
       hlo2 = hlo*hlo
       hi = x(i+1)-x(i)
       hi2 = hi*hi
       do 30 j = 1,nup
-        if(xup(j) .gt. x(i+1)  .and.  xlo .lt. x(nm1)) go to 40
+        if (xup(j) .gt. x(i+1)  .and.  xlo .lt. x(nm1)) go to 40
 !
 !   compute special cases of xup in interval with xlo
 !
@@ -320,13 +326,15 @@ subroutine spliq(x,y,yp,ypp,n,xlo,xup,nup,ans,ierr)
         sum = sum + ypp(i)*hdiff*(hup2+hlo*hup+hlo2)/6.D0
         sum = sum + yp(i)*hdiff*hsum/2.D0
         sum = sum + y(i)*hdiff
- 30     ans(j) = sum
+        ans(j) = sum
+ 30   continue
       return
 !
 !   compute integral between xlo and x(i+1) as four terms in taylor
 !   polynomial and advance i to i+1
 !
- 40   hdiff = hi-hlo
+ 40   continue
+      hdiff = hi-hlo
       hsum = hi+hlo
       sum0 = y(i)*hdiff
       sum1 = yp(i)*hdiff*hsum
@@ -336,8 +344,9 @@ subroutine spliq(x,y,yp,ypp,n,xlo,xup,nup,ans,ierr)
 !
 !   locate each xup(m) in interval (x(i),x(i+1))
 !
-      do 80 m = j,nup
- 50     if(xup(m) .lt. x(i+1)  .or.  i .eq. nm1) go to 60
+      do m = j,nup
+ 50      continue  
+         if (xup(m) .lt. x(i+1)  .or.  i .eq. nm1) go to 60
 !
 !   augment integral between abscissas to include interval
 !   (x(i),x(i+1)) and advance i to i+1
@@ -354,14 +363,16 @@ subroutine spliq(x,y,yp,ypp,n,xlo,xup,nup,ans,ierr)
 !
 !   integral between x(i) and xup(m) is zero
 !
- 60     if(xup(m) .ne. x(i)) go to 70
+ 60     continue
+        if (xup(m) .ne. x(i)) go to 70
         sum = ((sum3/24.D0 + sum2/6.D0) + sum1/2.D0) + sum0
-        go to 80
+        go to 90
 !
 !   compute integral between x(i) and xup(m) and evaluate
 !   taylor polynomial in reverse order
 !
- 70     hup = xup(m)-x(i)
+ 70     continue
+        hup = xup(m)-x(i)
         hup2 = hup*hup
         hup3 = hup2*hup
         hup4 = hup3*hup
@@ -373,105 +384,104 @@ subroutine spliq(x,y,yp,ypp,n,xlo,xup,nup,ans,ierr)
         sum = (sum3+psum3)/24.D0 + (sum2+psum2)/6.D0
         sum = sum + (sum1+psum1)/2.D0
         sum = sum + (sum0+psum0)
- 80     ans(m) = sum
-      return
-      end
-!
-!      *****************************************************************
-!
-      subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
-!
-      integer i,j,k,l,m,n,p,q,r,s,ii,m1,m2,m11,m22,tag,ierr,isturm
-      double precision d(n),e(n),e2(n),w(m),rv4(n),rv5(n)
-      double precision u,v,lb,t1,t2,ub,xu,x0,x1,eps1,machep
-!     real abs,max,min,DBLE
-      integer ind(m)
-!
-!     this subroutine is a translation of the algol procedure bisect,
-!     num. math. 9, 386-393(1967) by barth, martin, and wilkinson.
-!     handbook for auto. comp., vol.ii-linear algebra, 249-256(1971).
-!
-!     this subroutine finds those eigenvalues of a tridiagonal
-!     symmetric matrix between specified boundary indices,
-!     using bisection.
-!
-!     on input-
-!
-!        n is the order of the matrix,
-!
-!        eps1 is an absolute error tolerance for the computed
-!          eigenvalues.  if the input eps1 is non-positive,
-!          it is reset for each submatrix to a default value,
-!          namely, minus the product of the relative machine
-!          precision and the 1-norm of the submatrix,
-!
-!        d contains the diagonal elements of the input matrix,
-!
-!        e contains the subdiagonal elements of the input matrix
-!          in its last n-1 positions.  e(1) is arbitrary,
-!
-!        e2 contains the squares of the corresponding elements of e.
-!          e2(1) is arbitrary,
-!
-!        m11 specifies the lower boundary index for the desired
-!          eigenvalues,
-!
-!        m specifies the number of eigenvalues desired.  the upper
-!          boundary index m22 is then obtained as m22=m11+m-1.
-!
-!     on output-
-!
-!        eps1 is unaltered unless it has been reset to its
-!          (last) default value,
-!
-!        d and e are unaltered,
-!
-!        elements of e2, corresponding to elements of e regarded
-!          as negligible, have been replaced by zero causing the
-!          matrix to split into a direct sum of submatrices.
-!          e2(1) is also set to zero,
-!
-!        lb and ub define an interval containing exactly the desired
-!          eigenvalues,
-!
-!        w contains, in its first m positions, the eigenvalues
-!          between indices m11 and m22 in ascending order,
-!
-!        ind contains in its first m positions the submatrix indices
-!          associated with the corresponding eigenvalues in w --
-!          1 for eigenvalues belonging to the first submatrix from
-!          the top, 2 for those belonging to the second submatrix, etc.,
-!
-!        ierr is set to
-!          zero       for normal return,
-!          3*n+1      if multiple eigenvalues at index m11 make
-!                     unique selection impossible,
-!          3*n+2      if multiple eigenvalues at index m22 make
-!                     unique selection impossible,
-!
-!        rv4 and rv5 are temporary storage arrays.
-!
-!     note that subroutine tql1, imtql1, or tqlrat is generally faster
-!     than tridib, if more than n/4 eigenvalues are to be found.
-!
-!     questions and comments should be directed to b. s. garbow,
-!     applied mathematics division, argonne national laboratory
-!
-!     ------------------------------------------------------------------
-!
-!     ********** machep is a machine dependent parameter specifying
-!                the relative precision of floating point arithmetic.
-!
-!                **********
-      machep = 2.D0**(-47)
-!
-      ierr = 0
-      tag = 0
-      xu = d(1)
-      x0 = d(1)
-      u = 0.D0
-!     ********** look for small sub-diagonal entries and determine an
-!                interval containing all the eigenvalues **********
+ 90     continue
+        ans(m) = sum
+     end do
+end subroutine spliq
+
+
+!> this subroutine is a translation of the algol procedure bisect,
+!! num. math. 9, 386-393(1967) by barth, martin, and wilkinson.
+!! handbook for auto. comp., vol.ii-linear algebra, 249-256(1971).
+!!
+!! this subroutine finds those eigenvalues of a tridiagonal
+!! symmetric matrix between specified boundary indices,
+!! using bisection.
+!!
+!! on input-
+!!
+!!    n is the order of the matrix,
+!!
+!!    eps1 is an absolute error tolerance for the computed
+!!      eigenvalues.  if the input eps1 is non-positive,
+!!      it is reset for each submatrix to a default value,
+!!      namely, minus the product of the relative machine
+!!      precision and the 1-norm of the submatrix,
+!!
+!!    d contains the diagonal elements of the input matrix,
+!!
+!!    e contains the subdiagonal elements of the input matrix
+!!      in its last n-1 positions.  e(1) is arbitrary,
+!!
+!!    e2 contains the squares of the corresponding elements of e.
+!!      e2(1) is arbitrary,
+!!
+!!    m11 specifies the lower boundary index for the desired
+!!      eigenvalues,
+!!
+!!    m specifies the number of eigenvalues desired.  the upper
+!!      boundary index m22 is then obtained as m22=m11+m-1.
+!!
+!! on output-
+!!
+!!    eps1 is unaltered unless it has been reset to its
+!!      (last) default value,
+!!
+!!    d and e are unaltered,
+!!
+!!    elements of e2, corresponding to elements of e regarded
+!!      as negligible, have been replaced by zero causing the
+!!      matrix to split into a direct sum of submatrices.
+!!      e2(1) is also set to zero,
+!!
+!!    lb and ub define an interval containing exactly the desired
+!!      eigenvalues,
+!!
+!!    w contains, in its first m positions, the eigenvalues
+!!      between indices m11 and m22 in ascending order,
+!!
+!!    ind contains in its first m positions the submatrix indices
+!!      associated with the corresponding eigenvalues in w --
+!!      1 for eigenvalues belonging to the first submatrix from
+!!      the top, 2 for those belonging to the second submatrix, etc.,
+!!
+!!    ierr is set to
+!!      zero       for normal return,
+!!      3*n+1      if multiple eigenvalues at index m11 make
+!!                 unique selection impossible,
+!!      3*n+2      if multiple eigenvalues at index m22 make
+!!                 unique selection impossible,
+!!
+!!    rv4 and rv5 are temporary storage arrays.
+!!
+!! note that subroutine tql1, imtql1, or tqlrat is generally faster
+!! than tridib, if more than n/4 eigenvalues are to be found.
+!!
+!! questions and comments should be directed to B. S. garbow,
+!! applied mathematics division, Argonne National Laboratory
+subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
+
+   implicit none
+   !Arguments
+   integer, intent(in) :: n,m,m11
+   integer, dimension(m), intent(out) :: ind,ierr
+   real(kind=8), dimension(n), intent(in) :: d,e
+   real(kind=8), dimension(n), intent(out) :: e2,rv4,rv5
+   real(kind=8), dimension(m), intent(out) :: w
+   real(kind=8), intent(inout) :: eps1
+   real(kind=8), intent(out) :: lb,ub
+   !Local variables
+   real(kind=8), parameter :: machep= 2.D0**(-47) !< machine dependent parameter specifying
+                                                  !! the relative precision of floating point arithmetic.
+   real(kind=8) :: u,v,t1,t2,xu,x0,x1
+   integer :: i,j,k,l,p,q,r,s,ii,m1,m2,m22,tag,isturm
+
+   ierr = 0
+   tag = 0
+   xu = d(1)
+   x0 = d(1)
+   u = 0.D0
+   ! look for small sub-diagonal entries and determine an interval containing all the eigenvalues
       do 40 i = 1, n
          x1 = u
          u = 0.D0
@@ -645,86 +655,77 @@ subroutine spliq(x,y,yp,ypp,n,xlo,xup,nup,ans,ierr)
   980 ierr = 3 * n + isturm
  1001 lb = t1
       ub = t2
-      return
-!     ********** last card of tridib **********
-      end
-!
-!      *****************************************************************
-!
-      subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
-!
-      integer i,j,m,n,p,q,r,s,ii,ip,jj,nm,its,tag,ierr,group
-      double precision d(n),e(n),e2(n),w(m),z(nm,m)
-      double precision rv1(n),rv2(n),rv3(n),rv4(n),rv6(n)
-      double precision u,v,uk,xu,x0,x1,eps2,eps3,eps4,norm,order,machep
-!     real sqrt,abs,DBLE
-      integer ind(m)
-!     level 2, z
-!
-!     this subroutine is a translation of the inverse iteration tech-
-!     nique in the algol procedure tristurm by peters and wilkinson.
-!     handbook for auto. comp., vol.ii-linear algebra, 418-439(1971).
-!
-!     this subroutine finds those eigenvectors of a tridiagonal
-!     symmetric matrix corresponding to specified eigenvalues,
-!     using inverse iteration.
-!
-!     on input-
-!
-!        nm must be set to the row dimension of two-dimensional
-!          array parameters as declared in the calling program
-!          dimension statement,
-!
-!        n is the order of the matrix,
-!
-!        d contains the diagonal elements of the input matrix,
-!
-!        e contains the subdiagonal elements of the input matrix
-!          in its last n-1 positions.  e(1) is arbitrary,
-!
-!        e2 contains the squares of the corresponding elements of e,
-!          with zeros corresponding to negligible elements of e.
-!          e(i) is considered negligible if it is not larger than
-!          the product of the relative machine precision and the sum
-!          of the magnitudes of d(i) and d(i-1).  e2(1) must contain
-!          0.0 if the eigenvalues are in ascending order, or 2.0
-!          if the eigenvalues are in descending order.  if  bisect,
-!          tridib, or  imtqlv  has been used to find the eigenvalues,
-!          their output e2 array is exactly what is expected here,
-!
-!        m is the number of specified eigenvalues,
-!
-!        w contains the m eigenvalues in ascending or descending order,
-!
-!        ind contains in its first m positions the submatrix indices
-!          associated with the corresponding eigenvalues in w --
-!          1 for eigenvalues belonging to the first submatrix from
-!          the top, 2 for those belonging to the second submatrix, etc.
-!
-!     on output-
-!
-!        all input arrays are unaltered,
-!
-!        z contains the associated set of orthonormal eigenvectors.
-!          any vector which fails to converge is set to zero,
-!
-!        ierr is set to
-!          zero       for normal return,
-!          -r         if the eigenvector corresponding to the r-th
-!                     eigenvalue fails to converge in 5 iterations,
-!
-!        rv1, rv2, rv3, rv4, and rv6 are temporary storage arrays.
-!
-!     questions and comments should be directed to b. s. garbow,
-!     applied mathematics division, argonne national laboratory
-!
-!     ------------------------------------------------------------------
-!
-!     ********** machep is a machine dependent parameter specifying
-!                the relative precision of floating point arithmetic.
-!
-!                **********
-      machep = 2.D0**(-47)
+
+end subroutine tridib
+
+
+!> this subroutine is a translation of the inverse iteration tech-
+!! nique in the algol procedure tristurm by peters and wilkinson.
+!! handbook for auto. comp., vol.ii-linear algebra, 418-439(1971).
+!!
+!! this subroutine finds those eigenvectors of a tridiagonal
+!! symmetric matrix corresponding to specified eigenvalues,
+!! using inverse iteration.
+!!
+!! on input-
+!!
+!!    nm must be set to the row dimension of two-dimensional
+!!      array parameters as declared in the calling program
+!!      dimension statement,
+!!
+!!    n is the order of the matrix,
+!!
+!!    d contains the diagonal elements of the input matrix,
+!!
+!!    e contains the subdiagonal elements of the input matrix
+!!      in its last n-1 positions.  e(1) is arbitrary,
+!!
+!!    e2 contains the squares of the corresponding elements of e,
+!!      with zeros corresponding to negligible elements of e.
+!!      e(i) is considered negligible if it is not larger than
+!!      the product of the relative machine precision and the sum
+!!      of the magnitudes of d(i) and d(i-1).  e2(1) must contain
+!!      0.0 if the eigenvalues are in ascending order, or 2.0
+!!      if the eigenvalues are in descending order.  if  bisect,
+!!      tridib, or  imtqlv  has been used to find the eigenvalues,
+!!      their output e2 array is exactly what is expected here,
+!!
+!!    m is the number of specified eigenvalues,
+!!
+!!    w contains the m eigenvalues in ascending or descending order,
+!!
+!!    ind contains in its first m positions the submatrix indices
+!!      associated with the corresponding eigenvalues in w --
+!!      1 for eigenvalues belonging to the first submatrix from
+!!      the top, 2 for those belonging to the second submatrix, etc.
+!!
+!! on output-
+!!
+!!    all input arrays are unaltered,
+!!
+!!    z contains the associated set of orthonormal eigenvectors.
+!!      any vector which fails to converge is set to zero,
+!!
+!!    ierr is set to
+!!      zero       for normal return,
+!!      -r         if the eigenvector corresponding to the r-th
+!!                 eigenvalue fails to converge in 5 iterations,
+!!
+!!    rv1, rv2, rv3, rv4, and rv6 are temporary storage arrays.
+!!
+!! questions and comments should be directed to b. s. garbow,
+!! applied mathematics division, argonne national laboratory
+subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
+
+   implicit none
+   integer :: i,j,m,n,p,q,r,s,ii,ip,jj,nm,its,tag,ierr,group
+   double precision :: d(n),e(n),e2(n),w(m),z(nm,m)
+   double precision :: rv1(n),rv2(n),rv3(n),rv4(n),rv6(n)
+   double precision :: u,v,uk,xu,x0,x1,eps2,eps3,eps4,norm,order
+   integer :: ind(m)
+   !Local variables
+   real(kind=8), parameter :: machep= 2.D0**(-47) !< machine dependent parameter specifying
+                                                  !! the relative precision of floating point arithmetic.
 !
       ierr = 0
       if (m .eq. 0) go to 1001
@@ -887,179 +888,73 @@ subroutine spliq(x,y,yp,ypp,n,xlo,xup,nup,ans,ierr)
 !
       if (q .lt. n) go to 100
  1001 return
-!     ********** last card of tinvit **********
-      end
-!CCCCC =-------------------------------------------------------------------=
-      SUBROUTINE pwcorr(r,c,g,dg)
-      IMPLICIT real*8 (a-h,o-z)
-      DIMENSION c(6)
-      r12=DSQRT(r)
-      r32=r*r12
-      r2=r*r
-      rb=c(3)*r12+c(4)*r+c(5)*r32+c(6)*r2
-      sb=1.0d0+1.0d0/(2.0d0*c(1)*rb)
-      g=-2.0d0*c(1)*(1.0d0+c(2)*r)*DLOG(sb)
-      drb=c(3)/(2.0d0*r12)+c(4)+1.5d0*c(5)*r12+2.0d0*c(6)*r
-      dg=(1.0d0+c(2)*r)*drb/(rb*rb*sb)-2.0d0*c(1)*c(2)*DLOG(sb)
-      RETURN
-      END 
-!     ==================================================================
-      SUBROUTINE OPTX(rho,grho,sx,v1x,v2x)
-!     OPTX, Handy et al. JCP 116, p. 5411 (2002) and refs. therein
-!     Present release: Tsukuba, 20/6/2002
-!--------------------------------------------------------------------------
-!     rhoa = rhob = 0.5 * rho in LDA implementation
-!     grho is the SQUARE of the gradient of rho! --> gr=sqrt(grho)
-!     sx  : total exchange correlation energy at point r
-!     v1x : d(sx)/drho
-!     v2x : 1/gr*d(sx)/d(gr)
-!--------------------------------------------------------------------------
-      IMPLICIT REAL*8 (a-h,o-z)
-      PARAMETER(SMALL=1.D-20,SMAL2=1.D-08)
-!.......coefficients and exponents....................
-      PARAMETER(o43=4.0d0/3.0d0,two13=1.259921049894873D0)
-      PARAMETER(two53=3.174802103936399D0,gam=0.006D0)
-      PARAMETER(a1cx=0.9784571170284421D0,a2=1.43169D0)
-!.......OPTX in compact form..........................
-      IF(RHO.LE.SMALL) THEN
-       sx=0.0D0
-       v1x=0.0D0
-       v2x=0.0D0
-      ELSE
-       gr=DMAX1(grho,SMAL2)
-       rho43=rho**o43
-       xa=two13*DSQRT(gr)/rho43
-       gamx2=gam*xa*xa
-       uden=1.d+00/(1.d+00+gamx2)
-       uu=a2*gamx2*gamx2*uden*uden
-       uden=rho43*uu*uden
-       sx=-rho43*(a1cx+uu)/two13
-       v1x=o43*(sx+two53*uden)/rho
-       v2x=-two53*uden/gr
-      ENDIF
-!
-      RETURN
-      END
 
-      subroutine zero(n,x)
-      implicit real*8 (a-h,o-z)
-      dimension x(n)
-      do 10,i=1,n-1,2
-         x(i)=0.d0
-         x(i+1)=0.d0
- 10   continue
-      istart=i
-      do 11,i=istart,n
-         x(i)=0.d0
- 11   continue
-      return
-      end
+end subroutine tinvit
 
 
-
-      SUBROUTINE SPLINT (X,Y,YPP,N,XI,YI,YPI,YPPI,NI,KERR)
+!> SPLINT EVALUATES A CUBIC SPLINE AND ITS FIRST AND SECOND
+!!     DERIVATIVES AT THE ABSCISSAS IN XI.  THE SPLINE (WHICH
+!!     IS DEFINED BY X, Y, AND YPP) MAY HAVE BEEN DETERMINED BY
+!!     SPLIFT OR SMOO OR ANY OTHER SPLINE FITTING ROUTINE THAT
+!!     PROVIDES SECOND DERIVATIVES.
+!!
+!! DESCRIPTION OF ARGUMENTS
+!!     THE USER MUST DIMENSION ALL ARRAYS APPEARING IN THE CALL LIST
+!!     E.G.  X(N), Y(N), YPP(N), XI(NI), YI(NI), YPI(NI), YPPI(NI)
+!!
+!!   --INPUT--
+!!
+!!     X   - ARRAY OF ABSCISSAS (IN INCREASING ORDER) THAT DEFINE TH
+!!           SPLINE.  USUALLY X IS THE SAME AS X IN SPLIFT OR SMOO.
+!!     Y   - ARRAY OF ORDINATES THAT DEFINE THE SPLINE.  USUALLY Y I
+!!           THE SAME AS Y IN SPLIFT OR AS R IN SMOO.
+!!     YPP - ARRAY OF SECOND DERIVATIVES THAT DEFINE THE SPLINE.
+!!           USUALLY YPP IS THE SAME AS YPP IN SPLIFT OR R2 IN SMOO.
+!!     N   - THE NUMBER OF DATA POINTS THAT DEFINE THE SPLINE.
+!!           THE ARRAYS X, Y, AND YPP MUST BE DIMENSIONED AT LEAST N
+!!           N MUST BE GREATER THAN OR EQUAL TO 2.
+!!     XI  - THE ABSCISSA OR ARRAY OF ABSCISSAS (IN ARBITRARY ORDER)
+!!           AT WHICH THE SPLINE IS TO BE EVALUATED.
+!!           EACH XI(K) THAT LIES BETWEEN X(1) AND X(N) IS A CASE OF
+!!           INTERPOLATION.  EACH XI(K) THAT DOES NOT LIE BETWEEN
+!!           X(1) AND X(N) IS A CASE OF EXTRAPOLATION.  BOTH CASES
+!!           ARE ALLOWED.  SEE DESCRIPTION OF KERR.
+!!     NI  - THE NUMBER OF ABSCISSAS AT WHICH THE SPLINE IS TO BE
+!!           EVALUATED.  IF NI IS GREATER THAN 1, THEN XI, YI, YPI,
+!!           AND YPPI MUST BE ARRAYS DIMENSIONED AT LEAST NI.
+!!           NI MUST BE GREATER THAN OR EQUAL TO 1.
+!!
+!!   --OUTPUT--
+!!
+!!     YI  - ARRAY OF VALUES OF THE SPLINE (ORDINATES) AT XI.
+!!     YPI - ARRAY OF VALUES OF THE FIRST DERIVATIVE OF SPLINE AT XI
+!! 
+!!     YPPI- ARRAY OF VALUES OF SECOND DERIVATIVES OF SPLINE AT XI.
+!!     KERR- A STATUS CODE
+!!         --NORMAL CODES
+!!            1 MEANS THAT THE SPLINE WAS EVALUATED AT EACH ABSCISSA
+!!              IN XI USING ONLY INTERPOLATION.
+!!            2 MEANS THAT THE SPLINE WAS EVALUATED AT EACH ABSCISSA
+!!              IN XI, BUT AT LEAST ONE EXTRAPOLATION WAS PERFORMED.
+!!         -- ABNORMAL CODE
+!!            3 MEANS THAT THE REQUESTED NUMBER OF EVALUATIONS, NI,
+!!             WAS NOT POSITIVE.
+!!
+!! @author Written by Rondall E. Jones
+subroutine SPLINT (X,Y,YPP,N,XI,YI,YPI,YPPI,NI,KERR)
          
-         ! INPUT
-    
-         Integer, Intent(in) :: N,NI
-         Real(8), Intent(in) :: X(N),Y(N),YPP(N),XI(NI)
-
-         ! OUTPUT
-
-         Integer, Intent(out) :: KERR
-         Real(8), Intent(out) :: YI(NI),YPI(NI),YPPI(NI)
-
-
-
-
-!
- !C     SANDIA MATHEMATICAL PROGRAM LIBRARY
- !C     APPLIED MATHEMATICS DIVISION 2613
- !C     SANDIA LABORATORIES
- !C     ALBUQUERQUE, NEW MEXICO  87185
- !C     CONTROL DATA 6600/7600  VERSION 7.2  MAY 1978
- !C  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- !C                    ISSUED BY SANDIA LABORATORIES
- !C  *                   A PRIME CONTRACTOR TO THE
- !C  *                UNITED STATES DEPARTMENT OF ENERGY
- !C  * * * * * * * * * * * * * * * NOTICE  * * * * * * * * * * * * * * *
- !C  * THIS REPORT WAS PREPARED AS AN ACCOUNT OF WORK SPONSORED BY THE
- !C  * UNITED STATES GOVERNMENT.  NEITHER THE UNITED STATES NOR THE
- !C  * UNITED STATES DEPARTMENT OF ENERGY NOR ANY OF THEIR EMPLOYEES,
- !C  * NOR ANY OF THEIR CONTRACTORS, SUBCONTRACTORS, OR THEIR EMPLOYEES
- !C  * MAKES ANY WARRANTY, EXPRESS OR IMPLIED, OR ASSUMES ANY LEGAL
- !!  * LIABILITY OR RESPONSIBILITY FOR THE ACCURACY, COMPLETENESS OR
-!  * USEFULNESS OF ANY INFORMATION, APPARATUS, PRODUCT OR PROCESS
-!  * DISCLOSED, OR REPRESENTS THAT ITS USE WOULD NOT INFRINGE
-!  * OWNED RIGHTS.
-!  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-!  * THE PRIMARY DOCUMENT FOR THE LIBRARY OF WHICH THIS ROUTINE IS
-!  * PART IS SAND77-1441.
-!  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-!
-!     WRITTEN BY RONDALL E. JONES
-!
-!     ABSTRACT
-!
-!         SPLINT EVALUATES A CUBIC SPLINE AND ITS FIRST AND SECOND
-!         DERIVATIVES AT THE ABSCISSAS IN XI.  THE SPLINE (WHICH
-!         IS DEFINED BY X, Y, AND YPP) MAY HAVE BEEN DETERMINED BY
-!         SPLIFT OR SMOO OR ANY OTHER SPLINE FITTING ROUTINE THAT
-!         PROVIDES SECOND DERIVATIVES.
-!
-!     DESCRIPTION OF ARGUMENTS
-!         THE USER MUST DIMENSION ALL ARRAYS APPEARING IN THE CALL LIST
-!         E.G.  X(N), Y(N), YPP(N), XI(NI), YI(NI), YPI(NI), YPPI(NI)
-!
-!       --INPUT--
-!
-!         X   - ARRAY OF ABSCISSAS (IN INCREASING ORDER) THAT DEFINE TH
-!               SPLINE.  USUALLY X IS THE SAME AS X IN SPLIFT OR SMOO.
-!         Y   - ARRAY OF ORDINATES THAT DEFINE THE SPLINE.  USUALLY Y I
-!               THE SAME AS Y IN SPLIFT OR AS R IN SMOO.
-!         YPP - ARRAY OF SECOND DERIVATIVES THAT DEFINE THE SPLINE.
-!               USUALLY YPP IS THE SAME AS YPP IN SPLIFT OR R2 IN SMOO.
-!         N   - THE NUMBER OF DATA POINTS THAT DEFINE THE SPLINE.
-!               THE ARRAYS X, Y, AND YPP MUST BE DIMENSIONED AT LEAST N
-!               N MUST BE GREATER THAN OR EQUAL TO 2.
-!         XI  - THE ABSCISSA OR ARRAY OF ABSCISSAS (IN ARBITRARY ORDER)
-!               AT WHICH THE SPLINE IS TO BE EVALUATED.
-!               EACH XI(K) THAT LIES BETWEEN X(1) AND X(N) IS A CASE OF
-!               INTERPOLATION.  EACH XI(K) THAT DOES NOT LIE BETWEEN
-!               X(1) AND X(N) IS A CASE OF EXTRAPOLATION.  BOTH CASES
-!               ARE ALLOWED.  SEE DESCRIPTION OF KERR.
-!         NI  - THE NUMBER OF ABSCISSAS AT WHICH THE SPLINE IS TO BE
-!               EVALUATED.  IF NI IS GREATER THAN 1, THEN XI, YI, YPI,
-!               AND YPPI MUST BE ARRAYS DIMENSIONED AT LEAST NI.
-!               NI MUST BE GREATER THAN OR EQUAL TO 1.
-!
-!       --OUTPUT--
-!
-!         YI  - ARRAY OF VALUES OF THE SPLINE (ORDINATES) AT XI.
-!         YPI - ARRAY OF VALUES OF THE FIRST DERIVATIVE OF SPLINE AT XI
-
-!         YPPI- ARRAY OF VALUES OF SECOND DERIVATIVES OF SPLINE AT XI.
-!         KERR- A STATUS CODE
-!             --NORMAL CODES
-!                1 MEANS THAT THE SPLINE WAS EVALUATED AT EACH ABSCISSA
-!                  IN XI USING ONLY INTERPOLATION.
-!                2 MEANS THAT THE SPLINE WAS EVALUATED AT EACH ABSCISSA
-!                  IN XI, BUT AT LEAST ONE EXTRAPOLATION WAS PERFORMED.
-!             -- ABNORMAL CODE
-!                3 MEANS THAT THE REQUESTED NUMBER OF EVALUATIONS, NI,
-!                 WAS NOT POSITIVE.
-!
-
-
-   ! *** Local
-
-      Integer :: nm1,i,K,IL,IR
-      Real(8) :: H,H2,XR,XR2,XR3,XL,XL2,XL3,XX
+   implicit none
+   !Arguments
+   Integer, Intent(in) :: N,NI
+   Real(kind=8), Intent(in) :: X(N),Y(N),YPP(N),XI(NI)
+   Integer, Intent(out) :: KERR
+   Real(kind=8), Intent(out) :: YI(NI),YPI(NI),YPPI(NI)
+   !Local variables
+   Integer :: nm1,i,K,IL,IR
+   Real(8) :: H,H2,XR,XR2,XR3,XL,XL2,XL3,XX
   
-!
-!     CHECK INPUT
-!
-      IF (NI) 1,1,2
+   ! CHECK INPUT
+   IF (NI) 1,1,2
  1    CONTINUE
     !    1 CALL ERRCHK(67,67HIN SPLINT,  THE REQUESTED NUMBER OF INTERPOLATI
     !     1NS WAS NOT POSITIVE)
@@ -1129,6 +1024,5 @@ subroutine spliq(x,y,yp,ypp,n,xlo,xup,nup,ans,ierr)
  110  IL = 1
       IR = I+1
       GO TO 10
-!
-      END subroutine SPLINT
-      
+
+END subroutine SPLINT
