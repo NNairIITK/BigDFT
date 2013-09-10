@@ -17,9 +17,8 @@ subroutine amoeba(p,y,ndim,ftol,iter,itmax,namoeb, iproc,nproc, ntrymax, energ,v
    
    implicit none
    !Arguments
-   integer, intent(in) :: ndim, iproc,nproc,itmax
+   integer, intent(in) :: ndim, iproc,nproc,itmax,ntrymax
    integer, intent(inout) :: namoeb
-   integer, intent(out) :: ntrymax
    real(kind=8), intent(in) :: ftol,energ
    logical, intent(out) :: verbose
    real(kind=8), dimension(ndim,ndim+1), intent(out) :: p
