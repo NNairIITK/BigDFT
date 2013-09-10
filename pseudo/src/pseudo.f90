@@ -1,5 +1,5 @@
 !> @file
-!! atomic program for generating and optimizing hgh pseudo-potentials.
+!! atomic program for generating and optimizing HGH pseudo-potentials.
 !! @author
 !!    Alex Willand, under the supervision of Stefan Goedecker
 !!    gpu accelerated routines by Raffael Widmer
@@ -335,7 +335,7 @@ program pseudo
             write(6,'(19x,a)')    '-maxiter n max number of iterations per simplex cycle'
             write(6,'(19x,a)')    '-inwidth f initial width of the random simplex'
             write(6,'(19x,a)')    '-stuck   n max steps to consider simplex stuck'
-            write(6,'(19x,a)')    '-cvg     f convergence crit for simplex spread'
+            write(6,'(19x,a)')    '-cvg     f convergence criteria for simplex spread'
             
             write(6,'(/,1x,a)') 'keywords for backwards compatibility:'
             write(6,'(19x,a)')    '-orth      "orthogonalisation" of the hij as in ref. Krack'
@@ -374,7 +374,7 @@ program pseudo
       if (ii /= 0) then
          label=string(ii+3:min(ii+13,120))
          read(label,*,iostat=ierr) namoeb
-         write(6,'(i4,a)') namoeb, 'fit cycles'
+         write(6,'(1x,i0,1x,a)') namoeb, 'fit cycles'
          if (ierr /= 0) write(6,'(a,a,i3)')'above value was set to ',   &
               'its default due to a reading error. check line',iline
       endif
@@ -492,7 +492,7 @@ program pseudo
       if (ii /= 0) then
          label=string(ii+4:min(ii+14,120))
          read(label,*,iostat=ierr)ftol
-         write(6,'(f12.4,a)')ftol,' convergence crit for the simplex'
+         write(6,'(1pe12.4,a)') ftol,' convergence criteria for the simplex'
          if (ierr /= 0) write(6,'(a,a,i3)')'above value was set to ',  &
               'its default due to a reading error. check line',iline
       endif
@@ -930,10 +930,8 @@ program pseudo
    ! reading conventions from pseudo2.2 and 2.3.
    ! for this version, this is not the case anymore!
    
-   write(6,*)
-   write(6,*) 'Reading penalty weights from file input.weights'
-   write(6,*) '_______________________________________________'
-   write(6,*)
+   write(6,'(/,1x,a)') 'Reading penalty weights from file input.weights'
+   write(6,'(1x,a,/)') '_______________________________________________'
    open(unit=24,file='input.weights',form='formatted')
    read(24,*)
    wghtp0   = 0d0
@@ -945,12 +943,12 @@ program pseudo
    read(24,*,iostat=ierr) wghtp0,wghtsoft,wghtrad,wghthij,wghtloc,wghtexci
    ! no need to call error handler here, shared input file
    if (ierr /= 0) write(6,*) 'Reading error for weights of psi(r=0) and softness.'
-   write(6,'(a,e10.3)') ' weight for psi(r=0)=0 is     ',wghtp0
-   write(6,'(a,e10.3)') ' for ekin(gauss-wavelet)      ',wghtsoft
-   write(6,'(a,e10.3)') ' for keeping radii wide       ',wghtrad
-   write(6,'(a,e10.3)') ' for keeping hij small        ',wghthij
-   write(6,'(a,e10.3)') ' for keeping vloc local       ',wghtloc
-   write(6,'(a,e10.3)') ' and for excitation energies  ',wghtexci
+   write(6,'(a,1pe10.3)') ' weight for psi(r=0)=0 is     ',wghtp0
+   write(6,'(a,1pe10.3)') ' for ekin(gauss-wavelet)      ',wghtsoft
+   write(6,'(a,1pe10.3)') ' for keeping radii wide       ',wghtrad
+   write(6,'(a,1pe10.3)') ' for keeping hij small        ',wghthij
+   write(6,'(a,1pe10.3)') ' for keeping vloc local       ',wghtloc
+   write(6,'(a,1pe10.3)') ' and for excitation energies  ',wghtexci
    
    read(24,*) !comment line
    
@@ -1654,7 +1652,7 @@ program pseudo
       write(6,*)
       
      
-      if (namoeb.gt.0) then
+      if (namoeb > 0) then
          
          ! some old, commmented out feature
          ! refine simplex only every 10.th step
@@ -1662,13 +1660,9 @@ program pseudo
          ! if (mod(iter,10) == 0) then
          
          
-         !
          ! pack initial guess
-         !
-         
-         write(6,*)'reading fitting parameters from input.fitpar'
-         write(6,*)'____________________________________________'
-         write(6,*)
+         write(6,'(1x,a)')   'Reading fitting parameters from input.fitpar'
+         write(6,'(1x,a,/)') '____________________________________________'
          
          verbose=.true.
          call ppack (verbose, pp(1), 'init')
@@ -1843,74 +1837,51 @@ program pseudo
       ! fit or evaluate once
       
       
-      !
       ! print results
-      !
-      write(6,*)
-      write(6,*)'penalty contributions from this configuration'
-      write(6,*)'_____________________________________________'
-      write(6,*)
-      write(6,'(2(tr10,a,e12.4))')  &
-           'psi(r=0) =',psir0,'; psi(0)*wght=',abs(psir0*wghtp0)
-      write(6,*)
-      write(6,'(a,t32,a,t42,a,t55,a,t64,a)')  &
-           ' nl    s      occ','ae','pseudo','diff','diff*weight'
+      write(6,'(/,1x,a)')                    'penalty contributions from this configuration'
+      write(6,'(1x,a,/)')                    '_____________________________________________'
+      write(6,'(2(tr10,a,e12.4),/)')         'psi(r=0) =',psir0,'; psi(0)*wght=',abs(psir0*wghtp0)
+      write(6,'(a,t32,a,t42,a,t55,a,t64,a)') ' nl    s      occ','ae','pseudo','diff','diff*weight'
       
       do iorb=1,norb
-         write(6,'(1x,i1,a1,f6.1,f10.4)') &
-              noae(iorb),il(lo(iorb)+1),so(iorb),zo(iorb)
+         write(6,'(1x,i1,a1,f6.1,f10.4)') noae(iorb),il(lo(iorb)+1),so(iorb),zo(iorb)
          nocc=no(iorb)
          l=lo(iorb)
          ispin=1
          if (so(iorb).lt.0) ispin=2
-         write(6,'(t10,a,t25,4e12.4)') 'eigenvalue ',  &
-              ev(iorb),aeval(nocc,l+1,ispin),  &
-              aeval(nocc,l+1,ispin)-ev(iorb),  &
-              abs(wght(nocc,l+1,ispin,1)*  &
-              (aeval(nocc,l+1,ispin)-ev(iorb)))
-         write(6,'(t10,a,t25,4e12.4)') 'charge    ',  &
-              crcov(iorb),chrg(nocc,l+1,ispin),  &
-              chrg(nocc,l+1,ispin)-crcov(iorb),  &
-              abs(wght(nocc,l+1,ispin,2)*  &
-              (chrg(nocc,l+1,ispin)-crcov(iorb)))
+         write(6,'(t10,a,t25,4(1pe12.4))') 'eigenvalue',  &
+              ev(iorb),aeval(nocc,l+1,ispin), aeval(nocc,l+1,ispin)-ev(iorb),  &
+              abs(wght(nocc,l+1,ispin,1)*(aeval(nocc,l+1,ispin)-ev(iorb)))
+         write(6,'(t10,a,t25,4(1pe12.4))') 'charge',  &
+              crcov(iorb),chrg(nocc,l+1,ispin), chrg(nocc,l+1,ispin)-crcov(iorb),  &
+              abs(wght(nocc,l+1,ispin,2)*(chrg(nocc,l+1,ispin)-crcov(iorb)))
          if (wght(nocc,l+1,ispin,3) /= 0.0d0)  &
-              write(6,'(t10,a,t25,4e12.4)') 'dcharge   ',  &
-              dcrcov(iorb),dhrg(nocc,l+1,ispin),  &
-              100.d0*abs(1.d0-dhrg(nocc,l+1,ispin)/dcrcov(iorb)),  &
-              abs(wght(nocc,l+1,ispin,3))*  &
-              100.d0*abs(1.d0-dhrg(nocc,l+1,ispin)/dcrcov(iorb))
+              write(6,'(t10,a,t25,4(1pe12.4))') 'dcharge',  &
+              dcrcov(iorb),dhrg(nocc,l+1,ispin), 100.d0*abs(1.d0-dhrg(nocc,l+1,ispin)/dcrcov(iorb)), &
+              abs(wght(nocc,l+1,ispin,3))* 100.d0*abs(1.d0-dhrg(nocc,l+1,ispin)/dcrcov(iorb))
          if (wght(nocc,l+1,ispin,4) /= 0.0d0)  &
-              write(6,'(t10,a,t25,4e12.4)') 'echarge   ',  &
-              ddcrcov(iorb),ehrg(nocc,l+1,ispin),  &
-              100.d0*abs(1.d0-ehrg(nocc,l+1,ispin)/ddcrcov(iorb)),  &
-              abs(wght(nocc,l+1,ispin,4))*  &
-              100.d0*abs(1.d0-ehrg(nocc,l+1,ispin)/ddcrcov(iorb))
-         write(6,'(t10,a,t25,2e24.4)') 'residue   ',  &
-              res(nocc,l+1,ispin),  &
-              abs(wght(nocc,l+1,ispin,5)*res(nocc,l+1,ispin))
+              write(6,'(t10,a,t25,4(1pe12.4))') 'echarge',  &
+              ddcrcov(iorb),ehrg(nocc,l+1,ispin), 100.d0*abs(1.d0-ehrg(nocc,l+1,ispin)/ddcrcov(iorb)),  &
+              abs(wght(nocc,l+1,ispin,4))* 100.d0*abs(1.d0-ehrg(nocc,l+1,ispin)/ddcrcov(iorb))
+         write(6,'(t10,a,t25,2(1pe24.4))') 'residue',  &
+              res(nocc,l+1,ispin), abs(wght(nocc,l+1,ispin,5)*res(nocc,l+1,ispin))
          if (wght(nocc,l+1,ispin,6) /= 0.0d0)  &
-              write(6,'(t10,a,t25,2e24.4)') 'rnode     ',  &
-              wfnode(nocc,l+1,ispin,1),  &
-              abs(wght(nocc,l+1,ispin,6)*wfnode(nocc,l+1,ispin,1))
+              write(6,'(t10,a,t25,2(1pe24.4))') 'rnode',  &
+              wfnode(nocc,l+1,ispin,1),  abs(wght(nocc,l+1,ispin,6)*wfnode(nocc,l+1,ispin,1))
          if (wght(nocc,l+1,ispin,7) /= 0.0d0)  &
-              write(6,'(t10,a,t25,2e24.4)') 'dnode     ',  &
-              wfnode(nocc,l+1,ispin,2),  &
-              abs(wght(nocc,l+1,ispin,7)*wfnode(nocc,l+1,ispin,2))
+              write(6,'(t10,a,t25,2(1pe24.4))') 'dnode',  &
+              wfnode(nocc,l+1,ispin,2), abs(wght(nocc,l+1,ispin,7)*wfnode(nocc,l+1,ispin,2))
          if (wght(nocc,l+1,ispin,8) /= 0.0d0)  &
-              write(6,'(t10,a,t25,2e24.4)') 'ddnode    ',  &
-              wfnode(nocc,l+1,ispin,3),  &
-              abs(wght(nocc,l+1,ispin,8)*wfnode(nocc,l+1,ispin,3))
-         write(6,*)
+              write(6,'(t10,a,t25,2(1pe24.4),/)') 'ddnode',  &
+              wfnode(nocc,l+1,ispin,3), abs(wght(nocc,l+1,ispin,8)*wfnode(nocc,l+1,ispin,3))
       end do
-      write(6,*) 'diff for dcharg and echarge is given in (%)'
+      write(6,'(1x,a)') 'diff for dcharg and echarge is given in (%)'
       
       ! always print out the psppar, also if no fitting was done.
       ! this is useful to convert to pspcod 10 without fitting,
       ! and to include some extra information.
-      write(6,*)
-      write(6,*) 'resulting pseudpotential parameters'
-      write(6,*) '___________________________________'
-      write(6,*) 
+      write(6,'(/,1x,a)') 'resulting pseudpotential parameters'
+      write(6,'(1x,a,/)') '___________________________________'
       
       ! at this point, overwrite  the psppar in abinit pspcod=10 format
       ! do the output twice, to psppar and to the logfile(s)

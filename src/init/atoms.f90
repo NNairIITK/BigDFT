@@ -127,6 +127,7 @@ subroutine deallocate_atoms(atoms,subname)
 
 END SUBROUTINE deallocate_atoms
 
+
 !> Deallocate the structure atoms_data.
 subroutine deallocate_atomic_structure(astruct,subname) 
   use module_base
@@ -161,6 +162,7 @@ subroutine deallocate_atomic_structure(astruct,subname)
   call deallocate_symmetry(astruct%sym, subname)
 
 END SUBROUTINE deallocate_atomic_structure
+
 
 !> Allocation of the arrays inside the structure atoms_data
 subroutine allocate_atoms_nat(atoms, subname)
@@ -336,16 +338,14 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
   end if
 END SUBROUTINE atoms_set_symmetries
 
+
 !> Add a displacement of atomic positions and put in the box
-!! @param atom    atoms_data structure
-!! @param rxyz    atomic positions
-!! @param randdis random displacement
 subroutine atoms_set_displacement(atoms, rxyz, randdis)
   use module_types
   implicit none
-  type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
-  real(gp), intent(in) :: randdis
+  type(atoms_data), intent(inout) :: atoms                        !< atoms_data structure
+  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz !< atomic positions
+  real(gp), intent(in) :: randdis                                 !< random displacement
 
   integer :: iat
   real(gp) :: tt

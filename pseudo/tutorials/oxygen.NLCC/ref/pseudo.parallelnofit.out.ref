@@ -2,21 +2,21 @@
  ***              pseudo_2.5               ***
  ***              fitting of               ***
  ***   Goedecker type pseudopotentials     ***
- ***   last changes:         june 2013     ***
+ ***   last changes:    september 2013     ***
  *********************************************
 
- reading the file input.pseudo
+ Reading the file input.pseudo
  _____________________________
 
  100 max. simplex iterations
- basis set size: 20 gaussians
- smallest gaussian: sigma0 = rloc / 2.000
+ Basis set size: 20 Gaussians
+ smallest Gaussian: sigma0 = rloc / 2.000
  plot wfs after each iteration
   1 lines have been read.
  do one pseudopotential calculation.
  no fitting.
 
- reading data from atom.00.ae
+ Reading data from atom.00.ae
  ____________________________
 
 
@@ -29,7 +29,7 @@
  method        = s
  gridpoints    =          906
 
- initializing libxc with ixc =    -20; nspol =    2
+ Initializing libXC with iXC =    -20; nspol =    2
 
   nl    s      occ        eigenvalue     charge(rcov)    
  2s  -0.5    1.0000   -0.8689416243    0.7254021527
@@ -52,8 +52,8 @@
  4f   0.5    0.0000    0.1224616901    0.0000002207
  noccmax            3
 
- all electron and pseudo-wfn quantum numbers
-         n(ae)   l   inl(ps)   
+ All electron and pseudo-wfn quantum numbers
+         n(AE)   l   inl(PS)
            2     0     1
            2     0     1
            3     0     2
@@ -73,33 +73,33 @@
            4     3     1
            4     3     1
 
- reading penalty weights from file input.weights
+ Reading penalty weights from file input.weights
  _______________________________________________
 
  weight for psi(r=0)=0 is      0.000E+00
- for ekin(gauss-wavelet)       0.100E+06
- for keeping radii wide        0.100E+01
- for keeping hij small         0.100E+01
- for keeping vloc local        0.100E+01
- and for excitation energies   0.100E+04
+ for ekin(gauss-wavelet)       1.000E+05
+ for keeping radii wide        1.000E+00
+ for keeping hij small         1.000E+00
+ for keeping vloc local        1.000E+00
+ and for excitation energies   1.000E+03
 
- reading data from psppar
+ Reading data from psppar
  ________________________
 
  HGH matrix format
 
      1.380     6.000    rcov and rprb (charge integral and confinement)
                              spin polarized calculation
-        -20                  ixc for xc-functional
+        -20                  ixc for XC-functional
 
  local part
    8.   6.00  0.248 -0.165E+02  0.237E+01  0.000E+00  0.000E+00 znuc,zion, rloc, gpot() 
  nonlocal part in internal format
-   1                                                       lpx, (projectors for l=0..lpx)
+   1                                                       lpx, (Projectors for l=0..lpx)
  s-projector
   0.222  0.182E+02  0.000E+00  0.000E+00  0.000E+00  0.000E+00  0.000E+00  r_l(),hsep(), so=+0.5
 
- gaussian basis
+ Gaussian basis
  ______________
 
  amin,amax 0.1239E+00 0.9761E+01
@@ -146,105 +146,87 @@
 
  nl    s      occ              ae        pseudo       diff     diff*weight
  2s  -0.5    1.0000
-         eigenvalue      -0.8689E+00 -0.8689E+00  0.1908E-05  0.1908E-01
-         charge           0.7254E+00  0.7254E+00  0.3942E-05  0.3942E-02
-         residue                      0.2239E-07              0.0000E+00
+         eigenvalue      -8.6894E-01 -8.6894E-01  1.9082E-06  1.9082E-02
+         charge           7.2540E-01  7.2541E-01  3.9424E-06  3.9424E-03
+         residue                      2.2387E-08              0.0000E+00
          rnode                        0.0000E+00              0.0000E+00
-
  2s   0.5    1.0000
-         eigenvalue      -0.8689E+00 -0.8689E+00  0.1908E-05  0.1908E-01
-         charge           0.7254E+00  0.7254E+00  0.3942E-05  0.3942E-02
-         residue                      0.2239E-07              0.0000E+00
+         eigenvalue      -8.6894E-01 -8.6894E-01  1.9082E-06  1.9082E-02
+         charge           7.2540E-01  7.2541E-01  3.9424E-06  3.9424E-03
+         residue                      2.2387E-08              0.0000E+00
          rnode                        0.0000E+00              0.0000E+00
-
  3s  -0.5    0.0000
-         eigenvalue       0.1514E-01  0.1511E-01 -0.3003E-04  0.0000E+00
-         charge           0.1756E-01  0.1763E-01  0.6511E-04  0.0000E+00
-         residue                      0.2859E-08              0.0000E+00
-
+         eigenvalue       1.5137E-02  1.5107E-02 -3.0030E-05  0.0000E+00
+         charge           1.7563E-02  1.7628E-02  6.5114E-05  0.0000E+00
+         residue                      2.8593E-09              0.0000E+00
  3s   0.5    0.0000
-         eigenvalue       0.1514E-01  0.1511E-01 -0.3003E-04  0.0000E+00
-         charge           0.1756E-01  0.1763E-01  0.6511E-04  0.0000E+00
-         residue                      0.2859E-08              0.0000E+00
-
+         eigenvalue       1.5137E-02  1.5107E-02 -3.0030E-05  0.0000E+00
+         charge           1.7563E-02  1.7628E-02  6.5114E-05  0.0000E+00
+         residue                      2.8593E-09              0.0000E+00
  4s  -0.5    0.0000
-         eigenvalue       0.8839E-01  0.8862E-01  0.2294E-03  0.0000E+00
-         charge           0.8956E-02  0.9038E-02  0.8225E-04  0.0000E+00
-         residue                      0.1503E-07              0.0000E+00
-
+         eigenvalue       8.8388E-02  8.8618E-02  2.2942E-04  0.0000E+00
+         charge           8.9556E-03  9.0378E-03  8.2250E-05  0.0000E+00
+         residue                      1.5034E-08              0.0000E+00
  4s   0.5    0.0000
-         eigenvalue       0.8839E-01  0.8862E-01  0.2294E-03  0.0000E+00
-         charge           0.8956E-02  0.9038E-02  0.8225E-04  0.0000E+00
-         residue                      0.1503E-07              0.0000E+00
-
+         eigenvalue       8.8388E-02  8.8618E-02  2.2942E-04  0.0000E+00
+         charge           8.9556E-03  9.0378E-03  8.2250E-05  0.0000E+00
+         residue                      1.5034E-08              0.0000E+00
  2p  -0.5    2.0000
-         eigenvalue      -0.3359E+00 -0.3359E+00 -0.3144E-05  0.3144E-01
-         charge           0.6524E+00  0.6524E+00 -0.2809E-05  0.2809E-02
-         residue                      0.5252E-06              0.0000E+00
+         eigenvalue      -3.3589E-01 -3.3589E-01 -3.1442E-06  3.1442E-02
+         charge           6.5238E-01  6.5238E-01 -2.8092E-06  2.8092E-03
+         residue                      5.2518E-07              0.0000E+00
          rnode                        0.0000E+00              0.0000E+00
-
  2p   0.5    2.0000
-         eigenvalue      -0.3359E+00 -0.3359E+00 -0.3144E-05  0.3144E-01
-         charge           0.6524E+00  0.6524E+00 -0.2809E-05  0.2809E-02
-         residue                      0.5252E-06              0.0000E+00
+         eigenvalue      -3.3589E-01 -3.3589E-01 -3.1442E-06  3.1442E-02
+         charge           6.5238E-01  6.5238E-01 -2.8092E-06  2.8092E-03
+         residue                      5.2518E-07              0.0000E+00
          rnode                        0.0000E+00              0.0000E+00
-
  3p  -0.5    0.0000
-         eigenvalue       0.5595E-01  0.5597E-01  0.1427E-04  0.0000E+00
-         charge           0.1252E-01  0.1251E-01 -0.5127E-05  0.0000E+00
-         residue                      0.4111E-07              0.0000E+00
-
+         eigenvalue       5.5953E-02  5.5967E-02  1.4274E-05  0.0000E+00
+         charge           1.2519E-02  1.2514E-02 -5.1268E-06  0.0000E+00
+         residue                      4.1106E-08              0.0000E+00
  3p   0.5    0.0000
-         eigenvalue       0.5595E-01  0.5597E-01  0.1427E-04  0.0000E+00
-         charge           0.1252E-01  0.1251E-01 -0.5127E-05  0.0000E+00
-         residue                      0.4111E-07              0.0000E+00
-
+         eigenvalue       5.5953E-02  5.5967E-02  1.4274E-05  0.0000E+00
+         charge           1.2519E-02  1.2514E-02 -5.1268E-06  0.0000E+00
+         residue                      4.1106E-08              0.0000E+00
  4p  -0.5    0.0000
-         eigenvalue       0.1123E+00  0.1133E+00  0.9795E-03  0.0000E+00
-         charge           0.1277E-01  0.1296E-01  0.1819E-03  0.0000E+00
-         residue                      0.2339E-07              0.0000E+00
-
+         eigenvalue       1.1233E-01  1.1331E-01  9.7947E-04  0.0000E+00
+         charge           1.2773E-02  1.2955E-02  1.8192E-04  0.0000E+00
+         residue                      2.3389E-08              0.0000E+00
  4p   0.5    0.0000
-         eigenvalue       0.1123E+00  0.1133E+00  0.9795E-03  0.0000E+00
-         charge           0.1277E-01  0.1296E-01  0.1819E-03  0.0000E+00
-         residue                      0.2339E-07              0.0000E+00
-
+         eigenvalue       1.1233E-01  1.1331E-01  9.7947E-04  0.0000E+00
+         charge           1.2773E-02  1.2955E-02  1.8192E-04  0.0000E+00
+         residue                      2.3389E-08              0.0000E+00
  3d  -0.5    0.0000
-         eigenvalue       0.9114E-01  0.9124E-01  0.1063E-03  0.0000E+00
-         charge           0.6496E-04  0.6525E-04  0.2939E-06  0.0000E+00
-         residue                      0.2056E-06              0.0000E+00
-
+         eigenvalue       9.1135E-02  9.1241E-02  1.0625E-04  0.0000E+00
+         charge           6.4959E-05  6.5253E-05  2.9391E-07  0.0000E+00
+         residue                      2.0559E-07              0.0000E+00
  3d   0.5    0.0000
-         eigenvalue       0.9114E-01  0.9124E-01  0.1063E-03  0.0000E+00
-         charge           0.6496E-04  0.6525E-04  0.2939E-06  0.0000E+00
-         residue                      0.2056E-06              0.0000E+00
-
+         eigenvalue       9.1135E-02  9.1241E-02  1.0625E-04  0.0000E+00
+         charge           6.4959E-05  6.5253E-05  2.9391E-07  0.0000E+00
+         residue                      2.0559E-07              0.0000E+00
  4d  -0.5    0.0000
-         eigenvalue       0.1387E+00  0.1435E+00  0.4763E-02  0.0000E+00
-         charge           0.1831E-03  0.2024E-03  0.1929E-04  0.0000E+00
-         residue                      0.1472E-06              0.0000E+00
-
+         eigenvalue       1.3873E-01  1.4349E-01  4.7627E-03  0.0000E+00
+         charge           1.8308E-04  2.0237E-04  1.9288E-05  0.0000E+00
+         residue                      1.4715E-07              0.0000E+00
  4d   0.5    0.0000
-         eigenvalue       0.1387E+00  0.1435E+00  0.4763E-02  0.0000E+00
-         charge           0.1831E-03  0.2024E-03  0.1929E-04  0.0000E+00
-         residue                      0.1472E-06              0.0000E+00
-
+         eigenvalue       1.3873E-01  1.4349E-01  4.7627E-03  0.0000E+00
+         charge           1.8308E-04  2.0237E-04  1.9288E-05  0.0000E+00
+         residue                      1.4715E-07              0.0000E+00
  4f  -0.5    0.0000
-         eigenvalue       0.1225E+00  0.1230E+00  0.5852E-03  0.0000E+00
-         charge           0.2207E-06  0.2273E-06  0.6584E-08  0.0000E+00
-         residue                      0.7385E-06              0.0000E+00
-
+         eigenvalue       1.2246E-01  1.2305E-01  5.8516E-04  0.0000E+00
+         charge           2.2071E-07  2.2729E-07  6.5837E-09  0.0000E+00
+         residue                      7.3848E-07              0.0000E+00
  4f   0.5    0.0000
-         eigenvalue       0.1225E+00  0.1230E+00  0.5852E-03  0.0000E+00
-         charge           0.2207E-06  0.2273E-06  0.6584E-08  0.0000E+00
-         residue                      0.7385E-06              0.0000E+00
-
+         eigenvalue       1.2246E-01  1.2305E-01  5.8516E-04  0.0000E+00
+         charge           2.2071E-07  2.2729E-07  6.5837E-09  0.0000E+00
+         residue                      7.3848E-07              0.0000E+00
  diff for dcharg and echarge is given in (%)
 
  resulting pseudpotential parameters
  ___________________________________
 
-    8   6  20130807                        zatom, zion, date (yymmdd)
+    8   6  20130910                        zatom, zion, date (yymmdd)
    10       -20 0 0 2002 0                 pspcod, ixc, lmax, lloc, mmax, r2well
         0.24775350  2    -16.49544038      2.37310251      rloc nloc c1 .. cnloc
     1                                      nsep
@@ -264,7 +246,7 @@
  mpi communication time     0.000 seconds
  wavelet libraries time     0.000 seconds
  ________________________________________
-               cpu time     0.228 seconds
+               cpu time     0.220 seconds
 
  ______________________________________________________
                                                finished

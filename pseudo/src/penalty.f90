@@ -32,13 +32,13 @@ subroutine penalty(energ,verbose,pp,penal,  &
    
    include 'mpif.h'
    
-   !     set res() =-1 for orbitals with zero charge and
-   !      wght(nocc,l+1,ispin,5) set to zero
-   !     this avoids unneccessay computations of res() in the
-   !     routine resid()
+   ! set res() =-1 for orbitals with zero charge and
+   !  wght(nocc,l+1,ispin,5) set to zero
+   ! this avoids unneccessay computations of res() in the
+   ! routine resid()
    
-   !     when we print out detailed info with verbose,
-   !     we actually do not want to miss any residues
+   ! when we print out detailed info with verbose,
+   ! we actually do not want to miss any residues
    
    do iorb=1,norb
       nocc=no(iorb)
@@ -53,10 +53,10 @@ subroutine penalty(energ,verbose,pp,penal,  &
          res(nocc,l+1,ispin) = 0.d0
       endif
    enddo
-   !  unpack variables
-   !      print*,'penalty: maxdim=',maxdim
-   !     convention for spin treatment with libxc using the pol variable
-   call  ppack (verbose, pp(1), 'unpack')
+   ! unpack variables
+   ! print*,'penalty: maxdim=',maxdim
+   ! convention for spin treatment with libxc using the pol variable
+   call ppack (verbose, pp(1), 'unpack')
    
    call cpu_time(t)
    time(1)=time(1)-t
@@ -85,7 +85,7 @@ subroutine penalty(energ,verbose,pp,penal,  &
            (wfnode(nocc,l+1,ispin,2)*wght(nocc,l+1,ispin,7))**2 +  &
            (wfnode(nocc,l+1,ispin,3)*wght(nocc,l+1,ispin,8))**2  
       
-      if(penalorb**2>= 0d0) then
+      if (penalorb**2>= 0d0) then
          !                some isnan test... 
          !                we dont want to add nan to the penalty,
          !                but rather give info for debugging
@@ -130,12 +130,12 @@ subroutine penalty(energ,verbose,pp,penal,  &
    pen_k=0d0
    do l=1,lpx
       do i=1,6
-         if(hsep(i,l,1).eq.0)cycle
+         if (hsep(i,l,1).eq.0)cycle
          pen_h= pen_h+(hsep(i,l,1)*0.1d0)**12
-         if(hsep(i,l,2).eq.0)cycle
+         if (hsep(i,l,2).eq.0)cycle
          pen_h= pen_h+(hsep(i,l,2)*0.1d0)**12
          tk=2d0*(hsep(i,l,1)-hsep(i,l,2))/(2*l-1)
-         if(tk.eq.0)cycle
+         if (tk.eq.0)cycle
          !          we may want to try different weights on kij later
          pen_k= pen_k+(tk*0.5d0)**12
       end do
@@ -148,8 +148,8 @@ subroutine penalty(energ,verbose,pp,penal,  &
    pen_loc=0d0
    do k=1,nint
       r=rr(k)
-      if(r<rcov) cycle
-      if(r>1.5*rcov) exit
+      if (r<rcov) cycle
+      if (r>1.5*rcov) exit
       !        local potential vloc(r)
       dd=exp(-.5d0*(r/rloc)**2)*  &
            (gpot(1) + gpot(2)*(r/rloc)**2+    &
@@ -161,15 +161,15 @@ subroutine penalty(energ,verbose,pp,penal,  &
    
    !     if we're not in the middle of a fit,
    !     give some more information about these penalty terms
-   if(verbose)then
+   if (verbose) then
       write(6,*)
-      write(6,*)'empirical penalty terms from psppar'
-      write(6,*)'___________________________________'
-      write(6,*)
-      write(6,*)'narrow radii   ',sqrt(pen_r)
-      write(6,*)'large  hij     ',sqrt(pen_h)
-      write(6,*)'large  kij     ',sqrt(pen_k)
-      write(6,*)'vloc(r>rcov)   ',sqrt(pen_loc)
+      write(6,*) 'empirical penalty terms from psppar'
+      write(6,*) '___________________________________'
+      write(6,*) 
+      write(6,*) 'narrow radii   ',sqrt(pen_r)
+      write(6,*) 'large  hij     ',sqrt(pen_h)
+      write(6,*) 'large  kij     ',sqrt(pen_k)
+      write(6,*) 'vloc(r>rcov)   ',sqrt(pen_loc)
       write(6,*)
       
    end if
@@ -182,13 +182,13 @@ subroutine penalty(energ,verbose,pp,penal,  &
    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
    
    !     first, make sure that excitation energies of value zero are ignored
-   if(excitae.eq.0d0)wghtexci=0d0
+   if (excitae.eq.0d0)wghtexci=0d0
    
    !     if the weight for softness is nonzero,
    !     calculate the change in kinetic energy when
    !     transforming psi into a debauchie wavelet basis
    
-   if(wghtsoft .gt. 0d0 .and. nhgrid .gt. 0 )then ! .and. mod(iter,nskip).eq.0)
+   if (wghtsoft .gt. 0d0 .and. nhgrid .gt. 0 ) then ! .and. mod(iter,nskip).eq.0)
       call ekin_wvlt(verbose,iproc,nproc,ng,ngmx,  &
            noccmx,lmx,nspin,nsmx,  &
            nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,  &
@@ -199,7 +199,7 @@ subroutine penalty(energ,verbose,pp,penal,  &
       ekin_pen=0d0
    end if
    
-   if(nproc.eq.1)then
+   if (nproc.eq.1) then
       !        serial case: one configuration, no excitation energies
       pen_cont(4)=wghtconf**2*penal
       pen_cont(6)=wghtsoft**2*ekin_pen
@@ -213,10 +213,10 @@ subroutine penalty(energ,verbose,pp,penal,  &
       
       !        compute excitation energy for this configuration. 
       !        for this, get total energy of configuration 1.
-      if(iproc.eq.0) eref=etotal
+      if (iproc.eq.0) eref=etotal
       call mpi_bcast(eref,1,mpi_double_precision,0,  &
            mpi_comm_world,ierr)
-      if(ierr.ne.0)write(*,*)'mpi_bcast ierr',ierr
+      if (ierr.ne.0) write(*,*)'mpi_bcast ierr',ierr
       excit=etotal-eref
       
       !        sum up penalty contributions from this mpi process
@@ -235,7 +235,7 @@ subroutine penalty(energ,verbose,pp,penal,  &
       !        and over the orbitals and hgrid samples of the wavelet transform
       call mpi_allreduce(pen_cont(1:3),pen_cont(4:6),3,  &
            mpi_double_precision,mpi_sum,mpi_comm_world,ierr)
-      if(ierr.ne.0)write(*,*)'mpi_allreduce ierr',ierr
+      if (ierr.ne.0) write(*,*)'mpi_allreduce ierr',ierr
       call cpu_time(t)
       time(2)=time(2)+t
       penal=sqrt(sum(pen_cont(4:7)))
@@ -247,16 +247,14 @@ subroutine penalty(energ,verbose,pp,penal,  &
    !     if the penalty is below the reference - usually the currently
    !     lowest vertex of the simplex -  write out the major components:
    
-   if(penal<penref)then
-      if(nproc.eq.1)then
-         write(6,'(2i8,4(1x,e20.10))')  &
-              iter, ntime, penal, sqrt(pen_cont(6)),  &
-              sqrt(pen_cont(7)),sqrt(pen_cont(4))
+   if (penal<penref) then
+      if (nproc.eq.1) then
+         write(6,'(2i8,4(1x,1pe20.10))')  iter, ntime, penal, sqrt(pen_cont(6)), sqrt(pen_cont(7)),&
+              sqrt(pen_cont(4))
       else
          pen_cont(4:7)=sqrt(pen_cont(4:7))
-         write(6, '(2i8,7(1x,e20.10))')   &
-              iter, ntime, penal,pen_cont(6),pen_cont(7),  &
-              pen_cont(4:5),sqrt(sum(pen_cont(1:2)))
+         write(6, '(2i8,7(1x,1pe20.10))') iter, ntime, penal, pen_cont(6),pen_cont(7), pen_cont(4:5), &
+              sqrt(sum(pen_cont(1:2)))
       end if
       !         write the vertex to the dumpfile without transforming  psppar
       !         this gives the psppar of all vertices ever found to be the lowest
@@ -264,23 +262,21 @@ subroutine penalty(energ,verbose,pp,penal,  &
       !         disabling this should speed up things a little
       
       !         backspace(99)
-      if(iproc.eq.0)then
-         write(99,'(e11.3,a)')penal,' penalty' 
-         write(99,'(5e11.3,t65,a)')rloc,gpot,  ' rloc, gpot'
-         write(99,'(5e11.3,t65,a)')rcore,gcore,'rcore, gcore'
+      if (iproc.eq.0) then
+         write(99,'(1pe11.3,a)') penal,' penalty' 
+         write(99,'(5(1pe11.3),t65,a)') rloc,gpot,  ' rloc, gpot'
+         write(99,'(5(1pe11.3),t65,a)') rcore,gcore,'rcore, gcore'
          do l=1,lpx
-            write(99,'(f7.3,t8,6e11.3,t76,a)') r_l(l),  &
-                 (hsep(i,l,1),i=1,6),'r_l,hij(up)'
+            write(99,'(f7.3,t8,6e11.3,t76,a)') r_l(l), (hsep(i,l,1),i=1,6),'r_l,hij(up)'
             if (l.gt.1-nspol .and. nspin.eq.2)  &
-                 write(99,'(t8,6e11.3,t76,a)')  &
-                 (hsep(i,l,2),i=1,6),'      hij(dn)'
+                 write(99,'(t8,6e11.3,t76,a)') (hsep(i,l,2),i=1,6),'      hij(dn)'
          enddo
          write(99,*)  
       end if
    end if
    
    
-   if(nproc>1.and.verbose)then
+   if (nproc>1.and.verbose) then
       !         write out the excitation energies
       !         get excitation energies from all processes  
       !         using mpiallreduce may be a clumsy way of doing this
@@ -291,12 +287,9 @@ subroutine penalty(energ,verbose,pp,penal,  &
       call mpi_allreduce(exverbose(1),  &
            exverbose(2*nproc+1),2*nproc,  &
            mpi_double_precision,mpi_sum,mpi_comm_world,ierr)
-      write(6,*)
-      write(6,*)'excitation energies'
-      write(6,*)'___________________'
-      write(6,*)
-      write(6,*)'configuration,    de=etot-etot1,'//  &
-           '    (de-de_ae)*weight'
+      write(6,'(/,1x,a)') 'excitation energies'
+      write(6,'(1x,a,/)') '___________________'
+      write(6,'(1x,a)')    'configuration,    de=etot-etot1,    (de-de_ae)*weight'
       do i=1,nproc
          write(6,'(10x,i4,3e20.12)')  &
               i-1,exverbose(2*nproc+2*i-1),  &
@@ -305,7 +298,7 @@ subroutine penalty(energ,verbose,pp,penal,  &
       write(6,*)
    end if
    ierr=0
-   if(nproc>1) call mpi_barrier(mpi_comm_world,ierr)  
-   if(ierr.ne.0)write(*,*)'mpi_barrier ierr',ierr
+   if (nproc>1) call mpi_barrier(mpi_comm_world,ierr)  
+   if (ierr.ne.0) write(*,*)'mpi_barrier ierr',ierr
    
 end subroutine penalty

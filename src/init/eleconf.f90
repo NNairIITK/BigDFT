@@ -1,7 +1,7 @@
 !> @file
 !!  Data routines for electronic configuration of the atoms
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group (TD,LG)
+!!    Copyright (C) 2007-2013 BigDFT group (TD,LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -9,33 +9,25 @@
 
 
 !>   Give electronic configuration of atom
-!! SYNOPSIS
-!!  Input
-!!   @param nzatom    Z number of atom
-!!   @param nvalelec  Number of valence electrons
-!!  Output
-!!   @param symbol    Atomic symbol
-!!   @param rcov      Covalent radius
-!!   @param rprb      Parabolic radius for the input guess using the subroutine "gatom"
-!!   @param ehomo     Highest occupied molecular orbital energy
-!!                    See <a>http://physics.nist.gov/PhysRefData/DFTdata/Tables/ptable.html</a>
-!!   @param neleconf  Occupation number (electronic configuration of the atom)
-!!   @param nsccode   Semicore orbitals, indicated as an integer.
-!!                    The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
-!!                    where n_l are the number of semicore orbitals for a given angular momentum
-!!                    starting from the lower level of course
-!!   @param mxpl      Maximum spin polarisation to be placed on the atom
-!!   @param mxchg     Maximum charge to be placed on the atom
-!!   @param amu       Atomic mass unit (use values coming from ABINIT/11util/atmdata.F90)
 subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
   implicit none
 ! Arguments
-  integer, intent(in) :: nzatom,nvalelec
-  character(len=2), intent(out) :: symbol
-  real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
+  integer, intent(in) :: nzatom            !< Z number of atom
+  integer, intent(in) :: nvalelec          !< Number of valence electrons
+  character(len=2), intent(out) :: symbol  !< Atomic symbol
+  real(kind=8), intent(out) :: rcov        !< Covalent radius
+  real(kind=8), intent(out) :: rprb        !< Parabolic radius for the input guess using the subroutine "gatom"
+  real(kind=8), intent(out) :: ehomo       !< Highest occupied molecular orbital energy
+                                           !! See <a>http://physics.nist.gov/PhysRefData/DFTdata/Tables/ptable.html</a>
+  real(kind=8), intent(out) :: amu         !< Atomic mass unit (use values coming from ABINIT/11util/atmdata.F90)
   integer, parameter :: nmax=6,lmax=3
-  real(kind=8), intent(out) :: neleconf(nmax,0:lmax)
-  integer, intent(out) :: nsccode,mxpl,mxchg
+  real(kind=8), dimension(nmax,0:lmax), intent(out) :: neleconf !< Occupation number (electronic configuration of the atom)
+  integer, intent(out) :: nsccode !< Semicore orbitals, indicated as an integer.
+                                  !! The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
+                                  !! where n_l are the number of semicore orbitals for a given angular momentum
+                                  !! starting from the lower level of course
+  integer, intent(out) :: mxpl    !< Maximum spin polarisation to be placed on the atom
+  integer, intent(out) :: mxchg   !< Maximum charge to be placed on the atom
 ! Local variables
   integer :: n,l,nsum,ipow,lsc,inorbsc,i
   real(kind=8) :: sccode
@@ -1659,7 +1651,6 @@ end select
   end if
 
   !calculate the maximum spin polarisation  to be placed on the atom
-
   mxpl=0
   do l=0,lmax
      do i=1,nmax
@@ -1672,7 +1663,7 @@ end select
 END SUBROUTINE eleconf
 
 
-!>   Give the symbol of element.
+!> Give the symbol of element.
 subroutine nzsymbol(nzatom, symbol)
   implicit none
 ! Arguments
@@ -1699,7 +1690,7 @@ subroutine nzsymbol(nzatom, symbol)
 END SUBROUTINE nzsymbol
 
 
-!>   Correct the electronic configuration for a given atomic charge
+!> Correct the electronic configuration for a given atomic charge
 subroutine correct_semicore(nmax,lmax,ichg,neleconf,eleconf,nsccode)
   use module_base
   implicit none
