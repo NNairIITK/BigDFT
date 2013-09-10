@@ -275,7 +275,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !call memocc(istat, lagmat%matrix_compr, 'lagmat%matrix_compr', subname)
 
   ! Calculate the overlap matrix, can be optimized ############################
-  if(.not.tmb%can_use_transposed) then
+  !if(.not.tmb%can_use_transposed) then
       if(.not.associated(tmb%psit_c)) then
           allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
           call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
@@ -284,10 +284,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
           call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
       end if
-      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-           tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-      tmb%can_use_transposed=.true.
-  end if
+  !end if
+  call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+       tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+  tmb%can_use_transposed=.true.
 
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
        tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
