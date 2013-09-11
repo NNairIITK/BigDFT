@@ -997,12 +997,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call dcopy(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1), 1, coeff_old(1,1), 1)
       end if
 
-      if(scf_mode/=LINEAR_FOE) then
-          call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-               orbs, tmb, overlap_calculated)
-      else
-          call purify_kernel(iproc, nproc, tmb, overlap_calculated)
-      end if
+      if (iproc==0) write(*,*) 'WARNING: NO UPDATE OF KERNEL'
+      !if(scf_mode/=LINEAR_FOE) then
+      !    call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+      !         orbs, tmb, overlap_calculated)
+      !else
+      !    call purify_kernel(iproc, nproc, tmb, overlap_calculated)
+      !end if
       if(iproc==0) then
           write(*,'(a)') 'done.'
       end if
