@@ -854,7 +854,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !!if(it>=nit_basis .or. it_tot>=3*nit_basis .or. reduce_conf) then
       !!    if(it>=nit_basis .and. .not.energy_increased) then
       !if(it>=nit_basis .or. it_tot>=3*nit_basis) then
-      if(it>=nit_basis .or. it_tot>=3*nit_basis .or. stop_optimization) then
+      if(it>=nit_basis .or. it_tot>=3*nit_basis .or. stop_optimization .or.  fnrm<1.d-40) then
           if(it>=nit_basis) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
@@ -880,6 +880,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!        write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
           !!    end if
           !!    infoBasisFunctions=0
+          else if (fnrm<1.d-40) then
+              if (iproc==0) write(*,* ) 'converged!'
+              infoBasisFunctions=0
           end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           if (infoBasisFunctions>=0) then
@@ -1483,13 +1486,13 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
       ldiis%icountDIISFailureCons=ldiis%icountDIISFailureCons+1
       ldiis%icountDIISFailureTot=ldiis%icountDIISFailureTot+1
       ldiis%icountSDSatur=0
-      if((ldiis%icountDIISFailureCons>=2 .or. ldiis%icountDIISFailureTot>=3 .or. ldiis%resetDIIS) .and. ldiis%isx>0) then
+      if((ldiis%icountDIISFailureCons>=4 .or. ldiis%icountDIISFailureTot>=6 .or. ldiis%resetDIIS) .and. ldiis%isx>0) then
           ! Switch back to SD.
           alpha=ldiis%alphaSD
           if(iproc==0) then
-              if(ldiis%icountDIISFailureCons>=2) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
+              if(ldiis%icountDIISFailureCons>=4) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
                   ldiis%icountDIISFailureCons, ' times consecutively. Switch to SD with stepsize', alpha(1)
-              if(ldiis%icountDIISFailureTot>=3) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
+              if(ldiis%icountDIISFailureTot>=6) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
                   ldiis%icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
               if(ldiis%resetDIIS) write(*,'(1x,a)') 'reset DIIS due to flag'
           end if
