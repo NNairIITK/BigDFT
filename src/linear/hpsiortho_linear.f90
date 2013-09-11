@@ -37,13 +37,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: hpsi_noprecond
 
   ! Local variables
-  integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
-  integer :: matrixindex_in_compressed
+  integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i, jorb
+  integer :: matrixindex_in_compressed, lwork, info
   real(kind=8) :: ddot, tt, gnrmArr, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot
   !real(kind=8) :: eval_zero
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
-  real(kind=8), dimension(:), allocatable :: fnrmOvrlpArr, fnrmArr
+  real(kind=8), dimension(:), allocatable :: fnrmOvrlpArr, fnrmArr, work
   real(kind=8), dimension(:), allocatable :: hpsi_conf, hpsi_tmp
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
   !type(sparseMatrix) :: lagmat
@@ -52,6 +52,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   real(8),dimension(:),allocatable :: prefacarr
   real(kind=8),dimension(:,:),allocatable :: SK, KS, HK, KHK, KSKHK, KHKSK , Q
+  integer,dimension(:),allocatable :: ipiv
 
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
       allocate(hpsi_conf(tmb%npsidim_orbs), stat=istat)
@@ -165,7 +166,34 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%ham_descr%psit_c, &
        tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%psit_f, tmb%linmat%ham)
-  ! ###########################################################################
+
+  !!%%! invert overlap
+  !!%%allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb))
+  !!%%call uncompressMatrix(iproc, tmb%linmat%ham)
+  !!%%allocate(ipiv(tmb%orbs%norb))
+  !!%%lwork=10*tmb%orbs%norb
+  !!%%allocate(work(lwork))
+  !!%%call dgetrf(tmb%orbs%norb, tmb%orbs%norb, tmb%linmat%ham%matrix, tmb%orbs%norb, ipiv, info)
+  !!%%call dgetri(tmb%orbs%norb, tmb%linmat%ham%matrix, tmb%orbs%norb, ipiv, work, lwork, info)
+  !!%%call compress_matrix_for_allreduce(iproc,tmb%linmat%ham)
+  !!%%deallocate(ipiv)
+  !!%%deallocate(work)
+  !!%%deallocate(tmb%linmat%ham%matrix)
+
+
+  do ii=1,tmb%linmat%ham%nvctr
+     !iorb = tmb%linmat%ham%orb_from_index(1,ii)
+     !jorb = tmb%linmat%ham%orb_from_index(2,ii)
+     !if (iproc==0) write(333,'(a,2i8,es16.6)') 'iorb, jorb, matrix', iorb, jorb, tmb%linmat%ham%matrix_compr(ii)
+     !!if (iorb==jorb) then
+     !!    tmb%linmat%ham%matrix_compr(ii)=1.d0
+     !!else
+     !!    tmb%linmat%ham%matrix_compr(ii)=0.d0
+     !!end if
+  end do
+  if (iproc==0) write(333,'(a,)') '========================================='
+
+  !! ###########################################################################
 
   hpsittmp_c=hpsit_c
   hpsittmp_f=hpsit_f

@@ -252,8 +252,10 @@ call timing(iproc,'misc','ON')
       allocate(work(lwork))
       allocate(tmp_mat3(orbs%norb,orbs%norb))
       tmp_mat3=linmat%ovrlp%matrix
+
       call dgetrf(orbs%norb, orbs%norb, linmat%ovrlp%matrix, orbs%norb, ipiv, info)
       call dgetri(orbs%norb, linmat%ovrlp%matrix, orbs%norb, ipiv, work, lwork, info)
+
       !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp%matrix, orbs%norb, tmp_mat3, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
       !!if (iproc==0) then
       !!  do iorb=1,orbs%norb
