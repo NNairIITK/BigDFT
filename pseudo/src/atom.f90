@@ -474,9 +474,8 @@ subroutine etotal(nameat,norb,no,lo,so,zo, etot,ev,ek,ep)
    il(3) = 'd'
    il(4) = 'f'
    il(5) = 'g'
-   write(6,*)
-   write(6,'(a3," output data for orbitals",/,1x,27("-"),//, &
-   & " nl    s      occ",9x,"eigenvalue",4x,"kinetic energy  ",6x,"pot energy",/)') nameat
+   write(6,'(/,a3,1x,a,/,1x,27("-"),//,1x,a,9x,a,4x,a,8x,a,/)') &
+        nameat,'output data for orbitals','nl    s      occ','eigenvalue','kinetic energy','pot energy'
    do i=1,norb
       !c.hartwig give energies in hartree
       ev(i) = ev(i) - vshift
@@ -2521,8 +2520,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
    il(5) = 'g'
 
    if (iorb==1) then
-      write(6,*)
-      write(6,'(1x,a,f20.16)') 'rcov         = ',rcov
+      write(6,'(/,1x,a,f20.16)') 'rcov         = ',rcov
       if (ispp /= 'r' ) then
          write(6,'(1x,a)') 'charge(rcov) = int_0^rcov psi^2 r^2 dr'
          write(6,'(1x,a)') 'dcharge      = int_0^infinity psi^2 r^4 dr'

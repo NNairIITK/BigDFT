@@ -471,9 +471,9 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
    real(kind=8), dimension(n), intent(out) :: e2,rv4,rv5
    real(kind=8), dimension(m), intent(out) :: w
    !Local variables
-   !> machep is a machine dependent parameter specifying
-   !! the relative precision of floating point arithmetic.
-   real(kind=8), parameter :: machep = 2.D0**(-47)
+   !> machep is a machine dependent parameter specifying the relative precision of floating point arithmetic.
+   !real(kind=8), parameter :: machep = 2.D0**(-47)
+   real(kind=8), parameter :: machep = epsilon(1.d0)
    integer :: i,j,k,l,p,q,r,s,ii,m1,m2,m22,tag,isturm
    real(kind=8) :: u,v,lb,t1,t2,ub,xu,x0,x1
 
@@ -484,19 +484,19 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
    u = 0.D0
 
    ! look for small sub-diagonal entries and determine an interval containing all the eigenvalues
-   do 40 i = 1, n
+   do i = 1, n
       x1 = u
       u = 0.D0
       if (i .ne. n) u = abs(e(i+1))
       xu = min(d(i)-(x1+u),xu)
       x0 = max(d(i)+(x1+u),x0)
       if (i == 1) go to 20
-      if (abs(e(i)) > machep * (abs(d(i)) + abs(d(i-1)))) go to 40
-   20 continue
+      if (abs(e(i)) > machep * (abs(d(i)) + abs(d(i-1)))) cycle
+20    continue
       e2(i) = 0.D0
-40 continue
+   end do
 
-   x1 = max(abs(xu),abs(x0)) * machep * DBLE(n)
+   x1 = max(abs(xu),abs(x0)) * machep * real(n,kind=8)
    xu = xu - x1
    t1 = xu
    x0 = x0 + x1
@@ -553,7 +553,7 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
    x0 = d(p)
    u = 0.D0
 
-   do 120 q = p, n
+   do q = p, n
       x1 = u
       u = 0.D0
       v = 0.D0
@@ -564,7 +564,7 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
       xu = min(d(q)-(x1+u),xu)
       x0 = max(d(q)+(x1+u),x0)
       if (v == 0.D0) go to 140
-120 continue
+   end do
 
 140 continue
    x1 = max(abs(xu),abs(x0)) * machep
@@ -578,7 +578,7 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
    go to 900
 
 180 continue
-   x1 = x1 * DBLE(q-p+1)
+   x1 = x1 * real(q-p+1,kind=8)
    lb = max(t1,xu-x1)
    ub = min(t2,x0+x1)
    x1 = lb
@@ -597,10 +597,10 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
    x0 = ub
    isturm = 5
 
-   do 240 i = m1, m2
+   do i = m1, m2
       rv5(i) = ub
       rv4(i) = lb
-240 continue
+   end do
 
    ! loop for k-th eigenvalue
    ! for k=m2 step -1 until m1 do --
@@ -609,12 +609,12 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
 250 continue
    xu = lb
    ! for i=k step -1 until m1 do --
-   do 260 ii = m1, k
+   do ii = m1, k
       i = m1 + k - ii
-      if (xu .ge. rv4(i)) go to 260
+      if (xu .ge. rv4(i)) cycle
       xu = rv4(i)
       go to 280
-260 continue
+   end do
 
 280 continue
    if (x0 > rv5(k)) x0 = rv5(k)
@@ -628,7 +628,7 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
    s = p - 1
    u = 1.D0
 
-   do 340 i = p, q
+   do i = p, q
       if (u .ne. 0.D0) go to 325
       v = abs(e(i)) / machep
       if (e2(i) == 0.D0) v = 0.D0
@@ -638,7 +638,7 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
 330   continue
       u = d(i) - x1 - v
       if (u < 0.D0) s = s + 1
-340 continue
+   end do
 
    go to (60,80,200,220,360), isturm
 
@@ -677,11 +677,11 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
       if (k > m2) go to 940
       if (rv5(k) .ge. w(l)) go to 915
 
-      do 905 ii = j, s
+      do ii = j, s
          i = l + s - ii
          w(i+1) = w(i)
          ind(i+1) = ind(i)
-905   continue
+      end do
 
 910   continue
       w(l) = rv5(k)
@@ -773,11 +773,11 @@ subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
    real(kind=8), dimension(nm,m), intent(out) :: z
    real(kind=8), dimension(n), intent(out) :: rv1,rv2,rv3,rv4,rv6 !< Temporary storage arrays
    !Local variables
+   !> Machine dependent parameter specifying the relative precision of floating point arithmetic.
+   !real(kind=8), parameter :: machep= 2.D0**(-47)
+   real(kind=8), parameter :: machep= epsilon(1.d0)
    integer :: i,j,p,q,r,s,ii,ip,jj,its,tag,group
    real(kind=8) :: u,v,uk,xu,x0,x1,eps2,eps3,eps4,norm,order
-   !Local variables
-   real(kind=8), parameter :: machep= 2.D0**(-47) !< machine dependent parameter specifying
-                                                  !! the relative precision of floating point arithmetic.
 
    ierr = 0
    if (m == 0) go to 1001
@@ -788,10 +788,10 @@ subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
 100 continue
    p = q + 1
 
-   do 120 q = p, n
+   do q = p, n
       if (q == n) go to 140
       if (e2(q+1) == 0.D0) go to 140
-120 continue
+   end do
    ! find vectors by inverse iteration
 140 continue
    tag = tag + 1
@@ -811,9 +811,9 @@ subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
       norm = abs(d(p))
       ip = p + 1
 
-      do 500 i = ip, q
+      do i = ip, q
          norm = norm + abs(d(i)) + abs(e(i))
-500   continue
+      end do
 
       ! eps2 is the criterion for grouping,
       ! eps3 replaces zero pivots and equal
@@ -821,7 +821,7 @@ subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
       ! eps4 is taken very small to avoid overflow
       eps2 = 1.0D-3 * norm
       eps3 = machep * norm
-      uk = DBLE(q-p+1)
+      uk = real(q-p+1,kind=8)
       eps4 = uk * eps3
       uk = eps4 / sqrt(uk)
       s = p
@@ -869,12 +869,12 @@ subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
       ! back substitution
       ! for i=q step -1 until p do --
 600   continue
-      do 620 ii = p, q
+      do ii = p, q
          i = p + q - ii
          rv6(i) = (rv6(i) - u * rv2(i) - v * rv3(i)) / rv1(i)
          v = u
          u = rv6(i)
-620   continue
+      end do
       ! orthogonalize with respect to previous members of group
       if (group == 0) go to 700
       j = r
@@ -885,13 +885,13 @@ subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
          if (ind(j) .ne. tag) go to 630
          xu = 0.D0
 
-         do 640 i = p, q
+         do i = p, q
             xu = xu + rv6(i) * z(i,j)
-640      continue
+         end do
 
-         do 660 i = p, q
+         do i = p, q
             rv6(i) = rv6(i) - xu * z(i,j)
-660      continue
+         end do
 
 680   continue
 
@@ -913,9 +913,9 @@ subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
   740 continue
       xu = eps4 / norm
 
-      do 760 i = p, q
+      do i = p, q
          rv6(i) = rv6(i) * xu
-760   continue
+      end do
 
       ! elimination operations on next vector iterate
 780   continue
@@ -940,20 +940,20 @@ subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
 840   continue
       u = 0.D0
 
-      do 860 i = p, q
+      do i = p, q
          u = u + rv6(i)**2
-  860 continue
+      end do
 
       xu = 1.D0 / sqrt(u)
 
   870 continue
-      do 880 i = 1, n
+      do i = 1, n
          z(i,r) = 0.D0
-880   continue
+      end do
 
-      do 900 i = p, q
+      do i = p, q
          z(i,r) = rv6(i) * xu
-900   continue
+      end do
 
       x0 = x1
 920 continue
