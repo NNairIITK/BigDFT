@@ -147,59 +147,59 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
   end if
 
-  ! EXPERIMENTAL: correction for co- / contravariant ===============================================================
-  ! Calculate the overlap matrix, can be optimized ############################
-  ! Use ham since it has the correct SHAMOP pattern
-  !if(.not.tmb%ham_descr%can_use_transposed) then
-      if(.not.associated(tmb%ham_descr%psit_c)) then
-          allocate(tmb%ham_descr%psit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, tmb%ham_descr%psit_c, 'tmb%ham_descr%psit_c', subname)
-      end if
-      if(.not.associated(tmb%ham_descr%psit_f)) then
-          allocate(tmb%ham_descr%psit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, tmb%ham_descr%psit_f, 'tmb%ham_descr%psit_f', subname)
-      end if
-  !end if
-  call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-       tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
-  tmb%ham_descr%can_use_transposed=.true.
+  !!! EXPERIMENTAL: correction for co- / contravariant ===============================================================
+  !!! Calculate the overlap matrix, can be optimized ############################
+  !!! Use ham since it has the correct SHAMOP pattern
+  !!!if(.not.tmb%ham_descr%can_use_transposed) then
+  !!    if(.not.associated(tmb%ham_descr%psit_c)) then
+  !!        allocate(tmb%ham_descr%psit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
+  !!        call memocc(istat, tmb%ham_descr%psit_c, 'tmb%ham_descr%psit_c', subname)
+  !!    end if
+  !!    if(.not.associated(tmb%ham_descr%psit_f)) then
+  !!        allocate(tmb%ham_descr%psit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
+  !!        call memocc(istat, tmb%ham_descr%psit_f, 'tmb%ham_descr%psit_f', subname)
+  !!    end if
+  !!!end if
+  !!call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+  !!     tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
+  !!tmb%ham_descr%can_use_transposed=.true.
 
-  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%ham_descr%psit_c, &
-       tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%psit_f, tmb%linmat%ham)
+  !!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%ham_descr%psit_c, &
+  !!     tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%psit_f, tmb%linmat%ham)
 
-  !!%%! invert overlap
-  !!%%allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  !!%%call uncompressMatrix(iproc, tmb%linmat%ham)
-  !!%%allocate(ipiv(tmb%orbs%norb))
-  !!%%lwork=10*tmb%orbs%norb
-  !!%%allocate(work(lwork))
-  !!%%call dgetrf(tmb%orbs%norb, tmb%orbs%norb, tmb%linmat%ham%matrix, tmb%orbs%norb, ipiv, info)
-  !!%%call dgetri(tmb%orbs%norb, tmb%linmat%ham%matrix, tmb%orbs%norb, ipiv, work, lwork, info)
-  !!%%call compress_matrix_for_allreduce(iproc,tmb%linmat%ham)
-  !!%%deallocate(ipiv)
-  !!%%deallocate(work)
-  !!%%deallocate(tmb%linmat%ham%matrix)
+  !!!!%%! invert overlap
+  !!!!%%allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb))
+  !!!!%%call uncompressMatrix(iproc, tmb%linmat%ham)
+  !!!!%%allocate(ipiv(tmb%orbs%norb))
+  !!!!%%lwork=10*tmb%orbs%norb
+  !!!!%%allocate(work(lwork))
+  !!!!%%call dgetrf(tmb%orbs%norb, tmb%orbs%norb, tmb%linmat%ham%matrix, tmb%orbs%norb, ipiv, info)
+  !!!!%%call dgetri(tmb%orbs%norb, tmb%linmat%ham%matrix, tmb%orbs%norb, ipiv, work, lwork, info)
+  !!!!%%call compress_matrix_for_allreduce(iproc,tmb%linmat%ham)
+  !!!!%%deallocate(ipiv)
+  !!!!%%deallocate(work)
+  !!!!%%deallocate(tmb%linmat%ham%matrix)
 
 
-  do ii=1,tmb%linmat%ham%nvctr
-     !iorb = tmb%linmat%ham%orb_from_index(1,ii)
-     !jorb = tmb%linmat%ham%orb_from_index(2,ii)
-     !if (iproc==0) write(333,'(a,2i8,es16.6)') 'iorb, jorb, matrix', iorb, jorb, tmb%linmat%ham%matrix_compr(ii)
-     !!if (iorb==jorb) then
-     !!    tmb%linmat%ham%matrix_compr(ii)=1.d0
-     !!else
-     !!    tmb%linmat%ham%matrix_compr(ii)=0.d0
-     !!end if
-  end do
-  !if (iproc==0) write(333,'(a)') '========================================='
+  !!do ii=1,tmb%linmat%ham%nvctr
+  !!   !iorb = tmb%linmat%ham%orb_from_index(1,ii)
+  !!   !jorb = tmb%linmat%ham%orb_from_index(2,ii)
+  !!   !if (iproc==0) write(333,'(a,2i8,es16.6)') 'iorb, jorb, matrix', iorb, jorb, tmb%linmat%ham%matrix_compr(ii)
+  !!   !!if (iorb==jorb) then
+  !!   !!    tmb%linmat%ham%matrix_compr(ii)=1.d0
+  !!   !!else
+  !!   !!    tmb%linmat%ham%matrix_compr(ii)=0.d0
+  !!   !!end if
+  !!end do
+  !!!if (iproc==0) write(333,'(a)') '========================================='
 
-  !! ###########################################################################
+  !!!! ###########################################################################
 
-  hpsittmp_c=hpsit_c
-  hpsittmp_f=hpsit_f
-  call build_linear_combination_transposed(tmb%ham_descr%collcom, tmb%linmat%ham, &
-       hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-  ! END EXPERIMENTAL ===============================================================================================
+  !!hpsittmp_c=hpsit_c
+  !!hpsittmp_f=hpsit_f
+  !!call build_linear_combination_transposed(tmb%ham_descr%collcom, tmb%linmat%ham, &
+  !!     hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+  !!! END EXPERIMENTAL ===============================================================================================
 
   iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
   deallocate(hpsittmp_c, stat=istat)
