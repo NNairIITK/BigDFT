@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 02/08/2013
+# Date: 11/09/2013
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -177,7 +177,8 @@ elif pseudo:
         "True if the line must not be compared"
         return "time" in line \
             or "date" in line \
-            or "changes" in line
+            or "changes" in line \
+            or "nodes" in line
 else:
     def line_junk(line):
         "Always False except for Hostname"

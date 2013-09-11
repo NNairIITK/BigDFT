@@ -459,6 +459,8 @@ end subroutine spliq
 !!
 !! questions and comments should be directed to B. S. Garbow,
 !! applied mathematics division, Argonne National Laboratory
+!!
+!! @todo Remove arithmetics if
 subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
 
    implicit none
@@ -490,9 +492,9 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
       if (i .ne. n) u = abs(e(i+1))
       xu = min(d(i)-(x1+u),xu)
       x0 = max(d(i)+(x1+u),x0)
-      if (i == 1) go to 20
-      if (abs(e(i)) > machep * (abs(d(i)) + abs(d(i-1)))) cycle
-20    continue
+      if (i > 1) then
+         if (abs(e(i)) > machep * (abs(d(i)) + abs(d(i-1)))) cycle
+      end if
       e2(i) = 0.D0
    end do
 
@@ -775,7 +777,7 @@ subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
    !Local variables
    !> Machine dependent parameter specifying the relative precision of floating point arithmetic.
    !real(kind=8), parameter :: machep= 2.D0**(-47)
-   real(kind=8), parameter :: machep= epsilon(1.d0)
+   real(kind=8), parameter :: machep = epsilon(1.d0)
    integer :: i,j,p,q,r,s,ii,ip,jj,its,tag,group
    real(kind=8) :: u,v,uk,xu,x0,x1,eps2,eps3,eps4,norm,order
 

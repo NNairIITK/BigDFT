@@ -16,7 +16,7 @@
 
   i    n    l    s     j     occ
 
-  Using LDA for generating the input guess wfn
+ Using LDA for generating the input guess wfn
   1    1    0   0.5   0.5    2.0000
   2    2    0   0.5   0.5    2.0000
   3    2    1  -0.5   0.5    2.0000
@@ -62,193 +62,155 @@
  r(1) = .0 , r(2) = 8.387851E-09 , ... , r(1254) = 34.63491845
  a = 10.01133218  b = 70.00000000
 
- iter =    1 dvmax = 3.993E-01 xmixo = 2.257E-01
- iter =    2 dvmax = 3.606E-01 xmixo = 2.257E-01
- iter =    3 dvmax = 2.664E-01 xmixo = 2.257E-01
- iter =    4 dvmax = 1.918E-01 xmixo = 2.257E-01
- iter =    5 dvmax = 1.344E-01 xmixo = 2.257E-01
- iter =    6 dvmax = 9.190E-02 xmixo = 2.257E-01
- iter =    7 dvmax = 6.172E-02 xmixo = 2.257E-01
- iter =    8 dvmax = 4.135E-02 xmixo = 2.257E-01
- iter =    9 dvmax = 2.821E-02 xmixo = 2.257E-01
- iter =   10 dvmax = 1.981E-02 xmixo = 2.257E-01
- iter =   11 dvmax = 1.427E-02 xmixo = 2.257E-01
- iter =   12 dvmax = 1.045E-02 xmixo = 2.257E-01
- iter =   13 dvmax = 7.729E-03 xmixo = 2.257E-01
- iter =   14 dvmax = 5.756E-03 xmixo = 2.257E-01
- iter =   15 dvmax = 4.708E-03 xmixo = 2.257E-01
- iter =   16 dvmax = 3.819E-03 xmixo = 2.257E-01
- iter =   17 dvmax = 3.080E-03 xmixo = 2.257E-01
- iter =   18 dvmax = 2.473E-03 xmixo = 2.257E-01
- iter =   19 dvmax = 1.979E-03 xmixo = 2.257E-01
- iter =   20 dvmax = 1.578E-03 xmixo = 2.257E-01
- iter =   21 dvmax = 1.256E-03 xmixo = 2.257E-01
- iter =   22 dvmax = 9.974E-04 xmixo = 2.257E-01
- iter =   23 dvmax = 7.905E-04 xmixo = 2.257E-01
- iter =   24 dvmax = 6.255E-04 xmixo = 2.257E-01
- iter =   25 dvmax = 4.942E-04 xmixo = 2.257E-01
- iter =   26 dvmax = 3.899E-04 xmixo = 2.257E-01
- iter =   27 dvmax = 3.073E-04 xmixo = 2.257E-01
- iter =   28 dvmax = 2.419E-04 xmixo = 2.257E-01
- iter =   29 dvmax = 1.902E-04 xmixo = 2.257E-01
- iter =   30 dvmax = 1.495E-04 xmixo = 2.257E-01
- iter =   31 dvmax = 1.173E-04 xmixo = 2.257E-01
- iter =   32 dvmax = 9.204E-05 xmixo = 2.257E-01
- iter =   33 dvmax = 7.214E-05 xmixo = 2.257E-01
- iter =   34 dvmax = 5.651E-05 xmixo = 2.257E-01
- iter =   35 dvmax = 4.424E-05 xmixo = 2.257E-01
- iter =   36 dvmax = 3.462E-05 xmixo = 2.257E-01
- iter =   37 dvmax = 2.707E-05 xmixo = 2.257E-01
- iter =   38 dvmax = 2.116E-05 xmixo = 2.257E-01
- iter =   39 dvmax = 1.653E-05 xmixo = 2.257E-01
- iter =   40 dvmax = 1.291E-05 xmixo = 2.257E-01
- iter =   41 dvmax = 1.008E-05 xmixo = 2.257E-01
- iter =   42 dvmax = 7.863E-06 xmixo = 2.257E-01
- iter =   43 dvmax = 6.134E-06 xmixo = 2.257E-01
- iter =   44 dvmax = 4.783E-06 xmixo = 2.257E-01
- iter =   45 dvmax = 3.729E-06 xmixo = 2.257E-01
- iter =   46 dvmax = 2.906E-06 xmixo = 2.257E-01
- iter =   47 dvmax = 2.264E-06 xmixo = 2.257E-01
- iter =   48 dvmax = 1.763E-06 xmixo = 2.257E-01
- iter =   49 dvmax = 1.373E-06 xmixo = 2.257E-01
- iter =   50 dvmax = 1.069E-06 xmixo = 2.257E-01
- iter =   51 dvmax = 8.322E-07 xmixo = 2.257E-01
- iter =   52 dvmax = 6.477E-07 xmixo = 2.257E-01
- iter =   53 dvmax = 5.039E-07 xmixo = 2.257E-01
- iter =   54 dvmax = 3.920E-07 xmixo = 2.257E-01
- iter =   55 dvmax = 3.049E-07 xmixo = 2.257E-01
- iter =   56 dvmax = 2.371E-07 xmixo = 2.257E-01
- iter =   57 dvmax = 1.844E-07 xmixo = 2.257E-01
- iter =   58 dvmax = 1.433E-07 xmixo = 2.257E-01
- iter =   59 dvmax = 1.114E-07 xmixo = 2.257E-01
- iter =   60 dvmax = 8.661E-08 xmixo = 2.257E-01
- iter =   61 dvmax = 6.731E-08 xmixo = 2.257E-01
- iter =   62 dvmax = 5.230E-08 xmixo = 2.257E-01
- iter =   63 dvmax = 4.063E-08 xmixo = 2.257E-01
- iter =   64 dvmax = 3.157E-08 xmixo = 2.257E-01
- iter =   65 dvmax = 2.452E-08 xmixo = 2.257E-01
- iter =   66 dvmax = 1.905E-08 xmixo = 2.257E-01
- iter =   67 dvmax = 1.479E-08 xmixo = 2.257E-01
- iter =   68 dvmax = 1.149E-08 xmixo = 2.257E-01
- iter =   69 dvmax = 8.920E-09 xmixo = 2.257E-01
- iter =   70 dvmax = 6.926E-09 xmixo = 2.257E-01
- iter =   71 dvmax = 5.377E-09 xmixo = 2.257E-01
- iter =   72 dvmax = 4.174E-09 xmixo = 2.257E-01
- iter =   73 dvmax = 3.240E-09 xmixo = 2.257E-01
- iter =   74 dvmax = 2.515E-09 xmixo = 2.257E-01
- iter =   75 dvmax = 1.952E-09 xmixo = 2.257E-01
- iter =   76 dvmax = 1.515E-09 xmixo = 2.257E-01
- iter =   77 dvmax = 1.176E-09 xmixo = 2.257E-01
- iter =   78 dvmax = 9.125E-10 xmixo = 2.257E-01
- iter =   79 dvmax = 7.081E-10 xmixo = 2.257E-01
- iter =   80 dvmax = 5.494E-10 xmixo = 2.257E-01
- iter =   81 dvmax = 4.263E-10 xmixo = 2.257E-01
- iter =   82 dvmax = 3.307E-10 xmixo = 2.257E-01
- iter =   83 dvmax = 2.566E-10 xmixo = 2.257E-01
- iter =   84 dvmax = 1.991E-10 xmixo = 2.257E-01
- iter =   85 dvmax = 1.544E-10 xmixo = 2.257E-01
- iter =   86 dvmax = 1.198E-10 xmixo = 2.257E-01
- iter =   87 dvmax = 9.292E-11 xmixo = 2.257E-01
- iter =   88 dvmax = 7.207E-11 xmixo = 2.257E-01
- iter =   89 dvmax = 5.590E-11 xmixo = 2.257E-01
- iter =   90 dvmax = 4.335E-11 xmixo = 2.257E-01
- iter =   91 dvmax = 3.363E-11 xmixo = 2.257E-01
- iter =   92 dvmax = 2.608E-11 xmixo = 2.257E-01
- iter =   93 dvmax = 2.022E-11 xmixo = 2.257E-01
- iter =   94 dvmax = 1.568E-11 xmixo = 2.257E-01
- iter =   95 dvmax = 1.216E-11 xmixo = 2.257E-01
- iter =   96 dvmax = 9.429E-12 xmixo = 2.257E-01
+ iter =    1 dvmax = 4.218E-01 xmixo = 2.257E-01
+ iter =    2 dvmax = 3.330E-01 xmixo = 2.257E-01
+ iter =    3 dvmax = 2.442E-01 xmixo = 2.257E-01
+ iter =    4 dvmax = 1.746E-01 xmixo = 2.257E-01
+ iter =    5 dvmax = 1.218E-01 xmixo = 2.257E-01
+ iter =    6 dvmax = 8.327E-02 xmixo = 2.257E-01
+ iter =    7 dvmax = 5.656E-02 xmixo = 2.257E-01
+ iter =    8 dvmax = 3.912E-02 xmixo = 2.257E-01
+ iter =    9 dvmax = 2.784E-02 xmixo = 2.257E-01
+ iter =   10 dvmax = 2.019E-02 xmixo = 2.257E-01
+ iter =   11 dvmax = 1.482E-02 xmixo = 2.257E-01
+ iter =   12 dvmax = 1.097E-02 xmixo = 2.257E-01
+ iter =   13 dvmax = 8.156E-03 xmixo = 2.257E-01
+ iter =   14 dvmax = 6.087E-03 xmixo = 2.257E-01
+ iter =   15 dvmax = 4.554E-03 xmixo = 2.257E-01
+ iter =   16 dvmax = 3.489E-03 xmixo = 2.257E-01
+ iter =   17 dvmax = 2.828E-03 xmixo = 2.257E-01
+ iter =   18 dvmax = 2.281E-03 xmixo = 2.257E-01
+ iter =   19 dvmax = 1.832E-03 xmixo = 2.257E-01
+ iter =   20 dvmax = 1.467E-03 xmixo = 2.257E-01
+ iter =   21 dvmax = 1.171E-03 xmixo = 2.257E-01
+ iter =   22 dvmax = 9.327E-04 xmixo = 2.257E-01
+ iter =   23 dvmax = 7.412E-04 xmixo = 2.257E-01
+ iter =   24 dvmax = 5.879E-04 xmixo = 2.257E-01
+ iter =   25 dvmax = 4.656E-04 xmixo = 2.257E-01
+ iter =   26 dvmax = 3.681E-04 xmixo = 2.257E-01
+ iter =   27 dvmax = 2.906E-04 xmixo = 2.257E-01
+ iter =   28 dvmax = 2.292E-04 xmixo = 2.257E-01
+ iter =   29 dvmax = 1.805E-04 xmixo = 2.257E-01
+ iter =   30 dvmax = 1.421E-04 xmixo = 2.257E-01
+ iter =   31 dvmax = 1.117E-04 xmixo = 2.257E-01
+ iter =   32 dvmax = 8.772E-05 xmixo = 2.257E-01
+ iter =   33 dvmax = 6.885E-05 xmixo = 2.257E-01
+ iter =   34 dvmax = 5.399E-05 xmixo = 2.257E-01
+ iter =   35 dvmax = 4.232E-05 xmixo = 2.257E-01
+ iter =   36 dvmax = 3.314E-05 xmixo = 2.257E-01
+ iter =   37 dvmax = 2.594E-05 xmixo = 2.257E-01
+ iter =   38 dvmax = 2.030E-05 xmixo = 2.257E-01
+ iter =   39 dvmax = 1.587E-05 xmixo = 2.257E-01
+ iter =   40 dvmax = 1.240E-05 xmixo = 2.257E-01
+ iter =   41 dvmax = 9.690E-06 xmixo = 2.257E-01
+ iter =   42 dvmax = 7.567E-06 xmixo = 2.257E-01
+ iter =   43 dvmax = 5.907E-06 xmixo = 2.257E-01
+ iter =   44 dvmax = 4.609E-06 xmixo = 2.257E-01
+ iter =   45 dvmax = 3.595E-06 xmixo = 2.257E-01
+ iter =   46 dvmax = 2.804E-06 xmixo = 2.257E-01
+ iter =   47 dvmax = 2.186E-06 xmixo = 2.257E-01
+ iter =   48 dvmax = 1.703E-06 xmixo = 2.257E-01
+ iter =   49 dvmax = 1.327E-06 xmixo = 2.257E-01
+ iter =   50 dvmax = 1.034E-06 xmixo = 2.257E-01
+ iter =   51 dvmax = 8.051E-07 xmixo = 2.257E-01
+ iter =   52 dvmax = 6.269E-07 xmixo = 2.257E-01
+ iter =   53 dvmax = 4.880E-07 xmixo = 2.257E-01
+ iter =   54 dvmax = 3.798E-07 xmixo = 2.257E-01
+ iter =   55 dvmax = 2.955E-07 xmixo = 2.257E-01
+ iter =   56 dvmax = 2.299E-07 xmixo = 2.257E-01
+ iter =   57 dvmax = 1.788E-07 xmixo = 2.257E-01
+ iter =   58 dvmax = 1.391E-07 xmixo = 2.257E-01
+ iter =   59 dvmax = 1.082E-07 xmixo = 2.257E-01
+ iter =   60 dvmax = 8.409E-08 xmixo = 2.257E-01
+ iter =   61 dvmax = 6.537E-08 xmixo = 2.257E-01
+ iter =   62 dvmax = 5.081E-08 xmixo = 2.257E-01
+ iter =   63 dvmax = 3.949E-08 xmixo = 2.257E-01
+ iter =   64 dvmax = 3.069E-08 xmixo = 2.257E-01
+ iter =   65 dvmax = 2.385E-08 xmixo = 2.257E-01
+ iter =   66 dvmax = 1.853E-08 xmixo = 2.257E-01
+ iter =   67 dvmax = 1.439E-08 xmixo = 2.257E-01
+ iter =   68 dvmax = 1.118E-08 xmixo = 2.257E-01
+ iter =   69 dvmax = 8.683E-09 xmixo = 2.257E-01
+ iter =   70 dvmax = 6.744E-09 xmixo = 2.257E-01
+ iter =   71 dvmax = 5.237E-09 xmixo = 2.257E-01
+ iter =   72 dvmax = 4.067E-09 xmixo = 2.257E-01
+ iter =   73 dvmax = 3.158E-09 xmixo = 2.257E-01
+ iter =   74 dvmax = 2.451E-09 xmixo = 2.257E-01
+ iter =   75 dvmax = 1.903E-09 xmixo = 2.257E-01
+ iter =   76 dvmax = 1.477E-09 xmixo = 2.257E-01
+ iter =   77 dvmax = 1.147E-09 xmixo = 2.257E-01
+ iter =   78 dvmax = 8.901E-10 xmixo = 2.257E-01
+ iter =   79 dvmax = 6.908E-10 xmixo = 2.257E-01
+ iter =   80 dvmax = 5.361E-10 xmixo = 2.257E-01
+ iter =   81 dvmax = 4.161E-10 xmixo = 2.257E-01
+ iter =   82 dvmax = 3.229E-10 xmixo = 2.257E-01
+ iter =   83 dvmax = 2.505E-10 xmixo = 2.257E-01
+ iter =   84 dvmax = 1.944E-10 xmixo = 2.257E-01
+ iter =   85 dvmax = 1.508E-10 xmixo = 2.257E-01
+ iter =   86 dvmax = 1.170E-10 xmixo = 2.257E-01
+ iter =   87 dvmax = 9.078E-11 xmixo = 2.257E-01
+ iter =   88 dvmax = 7.042E-11 xmixo = 2.257E-01
+ iter =   89 dvmax = 5.463E-11 xmixo = 2.257E-01
+ iter =   90 dvmax = 4.238E-11 xmixo = 2.257E-01
+ iter =   91 dvmax = 3.287E-11 xmixo = 2.257E-01
+ iter =   92 dvmax = 2.549E-11 xmixo = 2.257E-01
+ iter =   93 dvmax = 1.977E-11 xmixo = 2.257E-01
+ iter =   94 dvmax = 1.533E-11 xmixo = 2.257E-01
+ iter =   95 dvmax = 1.190E-11 xmixo = 2.257E-01
+ iter =   96 dvmax = 9.224E-12 xmixo = 2.257E-01
  warning: ircov > ninf ! (ircov set to ninf)
- ---> ninf=        1069  r(ninf)=   2.4645395976121351     
- ---> npoints=        1074  r(npoint)=   2.6470176786399109     
+ ---> ninf=           1069  r(ninf)=   2.4645395976121351
+ ---> npoints=        1074  r(npoint)=   2.6470176786399109
 
- rcov         =    2.5000000000000000     
+ rcov         =   2.5000000000000000
  charge(rcov) = int_0^rcov g^2 r^2 dr   +  int_0^infinity f^2 r^2 dr
  dcharge      = int_0^infinity (f^2+g^2) r^4 dr 
  ddcharge     = int_0^infinity (f^2+g^2) r^6 dr 
 
- nl   s    occ     eigenvalue    charge(rcov)    dcharge    ddcharge
- 1s 0.5   2.000 -2.7914034E+03  1.0000000E+00 4.19843E-04 4.81780E-07
-     r extr       0.01
- 2s 0.5   2.000 -4.8797749E+02  1.0000000E+00 6.36493E-03 7.09342E-05
-     r extr       0.01
- 2p -0.5   2.000 -4.6754571E+02  1.0000000E+00 4.51966E-03 4.23720E-05
-     r extr       0.05
- 2p 0.5   4.000 -4.0779137E+02  1.0000000E+00 5.71249E-03 6.39883E-05
-     r extr       0.05
- 3s 0.5   2.000 -1.1410066E+02  1.0000000E+00 4.14468E-02 2.59850E-03
-     r extr       0.01
- 3p -0.5   2.000 -1.0493605E+02  1.0000000E+00 3.78719E-02 2.27533E-03
-     r extr       0.03
- 3p 0.5   4.000 -9.1855645E+01  1.0000000E+00 4.43646E-02 3.08520E-03
-     r extr       0.04
- 3d -0.5   4.000 -7.6515507E+01  1.0000000E+00 3.41505E-02 2.06372E-03
-     r extr       0.14
- 3d 0.5   6.000 -7.3686960E+01  1.0000000E+00 3.59227E-02 2.26280E-03
-     r extr       0.14
- 4s 0.5   2.000 -2.4307969E+01  1.0000000E+00 2.02662E-01 5.95493E-02
-     r extr       0.01
- 4p -0.5   2.000 -2.0443798E+01  1.0000000E+00 2.07554E-01 6.41271E-02
-     r extr       0.03
- 4p 0.5   4.000 -1.7340938E+01  1.0000000E+00 2.41574E-01 8.67402E-02
-     r extr       0.04
- 4d -0.5   4.000 -1.0998517E+01  9.9999999E-01 2.58176E-01 1.06641E-01
-     r extr       0.11
- 4d 0.5   6.000 -1.0422612E+01  9.9999998E-01 2.70540E-01 1.17055E-01
-     r extr       0.11
- 5s 0.5   2.000 -3.5938934E+00  9.9947397E-01 1.07341E+00 1.68507E+00
-     r extr       0.01
- 6s 0.5   2.000 -2.3032630E-01  4.0631528E-01 9.30084E+00 1.38841E+02
-     r extr       0.01
- 7s 0.5   0.000  6.4621863E-02  5.8717106E-02 5.64262E+01 4.36019E+03
-     r extr       0.01
- 8s 0.5   0.000  1.6875339E-01  4.0483431E-02 1.21476E+02 1.97759E+04
-     r extr       0.01
- 5p -0.5   2.000 -2.3752688E+00  9.9764998E-01 1.28005E+00 2.49026E+00
-     r extr       0.03
- 5p 0.5   4.000 -1.8702246E+00  9.9377601E-01 1.53641E+00 3.62370E+00
-     r extr       0.04
- 6p -0.5   0.000 -4.9703057E-02  1.7542268E-01 1.66788E+01 4.64554E+02
-     r extr       0.03
- 6p 0.5   0.000 -2.3078893E-02  1.1074922E-01 2.04472E+01 6.81900E+02
-     r extr       0.04
- 7p -0.5   0.000  1.0966428E-01  5.0081120E-02 7.71089E+01 8.01116E+03
-     r extr       0.03
- 7p 0.5   0.000  1.1845207E-01  4.0402635E-02 8.29647E+01 9.25738E+03
-     r extr       0.04
- 8p -0.5   0.000  2.0226415E-01  4.2929293E-02 1.37974E+02 2.60926E+04
-     r extr       0.03
- 8p 0.5   0.000  2.1012609E-01  3.6380497E-02 1.42920E+02 2.80781E+04
-     r extr       0.04
- 5d -0.5   2.800 -2.8835778E-01  8.7623990E-01 3.35824E+00 2.24550E+01
-     r extr       0.11
- 5d 0.5   4.200 -2.4290283E-01  8.5056155E-01 3.69941E+00 2.77930E+01
-     r extr       0.11
- 6d -0.5   0.000  1.0533818E-01  1.7257076E-02 5.86552E+01 4.84576E+03
-     r extr       0.11
- 6d 0.5   0.000  1.0690337E-01  2.0031142E-02 6.00834E+01 5.05401E+03
-     r extr       0.11
- 7d -0.5   0.000  1.8946095E-01  1.7677816E-02 1.19560E+02 1.99824E+04
-     r extr       0.11
- 7d 0.5   0.000  1.9113577E-01  1.9893279E-02 1.20862E+02 2.04006E+04
-     r extr       0.11
- 4f -0.5   6.000 -2.3463344E+00  9.9995702E-01 3.46051E-01 2.57031E-01
-     r extr       0.39
- 4f 0.5   8.000 -2.2315604E+00  9.9994647E-01 3.56395E-01 2.73655E-01
-     r extr       0.40
- 5f -0.5   0.000  1.6207216E-01  1.0318444E-03 8.93500E+01 1.03855E+04
-     r extr       0.35
- 5f 0.5   0.000  1.6207564E-01  1.0236290E-03 8.93579E+01 1.03869E+04
-     r extr       0.36
- 6f -0.5   0.000  2.3643110E-01  3.3783646E-03 1.38300E+02 2.74874E+04
-     r extr       0.35
- 6f 0.5   0.000  2.3644234E-01  3.3469654E-03 1.38324E+02 2.74941E+04
-     r extr       0.36
+ nl   s    occ     eigenvalue    charge(rcov)    dcharge    ddcharge     r extr
+ 1s  0.5   2.000 -2.7914034E+03  1.0000000E+00 4.19843E-04 4.81780E-07   0.11
+ 2s  0.5   2.000 -4.8797749E+02  1.0000000E+00 6.36493E-03 7.09342E-05   0.08
+ 2p -0.5   2.000 -4.6754571E+02  1.0000000E+00 4.51966E-03 4.23720E-05   0.47
+ 2p  0.5   4.000 -4.0779137E+02  1.0000000E+00 5.71249E-03 6.39883E-05   0.53
+ 3s  0.5   2.000 -1.1410066E+02  1.0000000E+00 4.14468E-02 2.59850E-03   0.07
+ 3p -0.5   2.000 -1.0493605E+02  1.0000000E+00 3.78719E-02 2.27533E-03   0.35
+ 3p  0.5   4.000 -9.1855645E+01  1.0000000E+00 4.43646E-02 3.08520E-03   0.40
+ 3d -0.5   4.000 -7.6515507E+01  1.0000000E+00 3.41505E-02 2.06372E-03   1.40
+ 3d  0.5   6.000 -7.3686960E+01  1.0000000E+00 3.59227E-02 2.26280E-03   1.44
+ 4s  0.5   2.000 -2.4307969E+01  1.0000000E+00 2.02662E-01 5.95493E-02   0.07
+ 4p -0.5   2.000 -2.0443798E+01  1.0000000E+00 2.07554E-01 6.41271E-02   0.33
+ 4p  0.5   4.000 -1.7340938E+01  1.0000000E+00 2.41574E-01 8.67402E-02   0.39
+ 4d -0.5   4.000 -1.0998517E+01  9.9999999E-01 2.58176E-01 1.06641E-01   1.09
+ 4d  0.5   6.000 -1.0422612E+01  9.9999998E-01 2.70540E-01 1.17055E-01   1.12
+ 5s  0.5   2.000 -3.5938934E+00  9.9947397E-01 1.07341E+00 1.68507E+00   0.07
+ 6s  0.5   2.000 -2.3032630E-01  4.0631528E-01 9.30084E+00 1.38841E+02   0.07
+ 7s  0.5   0.000  6.4621863E-02  5.8717106E-02 5.64262E+01 4.36019E+03   0.07
+ 8s  0.5   0.000  1.6875339E-01  4.0483431E-02 1.21476E+02 1.97759E+04   0.07
+ 5p -0.5   2.000 -2.3752688E+00  9.9764998E-01 1.28005E+00 2.49026E+00   0.33
+ 5p  0.5   4.000 -1.8702246E+00  9.9377601E-01 1.53641E+00 3.62370E+00   0.38
+ 6p -0.5   0.000 -4.9703057E-02  1.7542268E-01 1.66788E+01 4.64554E+02   0.33
+ 6p  0.5   0.000 -2.3078893E-02  1.1074922E-01 2.04472E+01 6.81900E+02   0.38
+ 7p -0.5   0.000  1.0966428E-01  5.0081120E-02 7.71089E+01 8.01116E+03   0.33
+ 7p  0.5   0.000  1.1845207E-01  4.0402635E-02 8.29647E+01 9.25738E+03   0.38
+ 8p -0.5   0.000  2.0226415E-01  4.2929293E-02 1.37974E+02 2.60926E+04   0.33
+ 8p  0.5   0.000  2.1012609E-01  3.6380497E-02 1.42920E+02 2.80781E+04   0.38
+ 5d -0.5   2.800 -2.8835778E-01  8.7623990E-01 3.35824E+00 2.24550E+01   1.06
+ 5d  0.5   4.200 -2.4290283E-01  8.5056155E-01 3.69941E+00 2.77930E+01   1.09
+ 6d -0.5   0.000  1.0533818E-01  1.7257076E-02 5.86552E+01 4.84576E+03   1.06
+ 6d  0.5   0.000  1.0690337E-01  2.0031142E-02 6.00834E+01 5.05401E+03   1.09
+ 7d -0.5   0.000  1.8946095E-01  1.7677816E-02 1.19560E+02 1.99824E+04   1.06
+ 7d  0.5   0.000  1.9113577E-01  1.9893279E-02 1.20862E+02 2.04006E+04   1.09
+ 4f -0.5   6.000 -2.3463344E+00  9.9995702E-01 3.46051E-01 2.57031E-01   3.92
+ 4f  0.5   8.000 -2.2315604E+00  9.9994647E-01 3.56395E-01 2.73655E-01   3.97
+ 5f -0.5   0.000  1.6207216E-01  1.0318444E-03 8.93500E+01 1.03855E+04   3.52
+ 5f  0.5   0.000  1.6207564E-01  1.0236290E-03 8.93579E+01 1.03869E+04   3.57
+ 6f -0.5   0.000  2.3643110E-01  3.3783646E-03 1.38300E+02 2.74874E+04   3.52
+ 6f  0.5   0.000  2.3644234E-01  3.3469654E-03 1.38324E+02 2.74941E+04   3.56
 
  Ir output data for orbitals
  ---------------------------
 
- nl    s      occ         eigenvalue    kinetic energy      pot energy
+ nl    s      occ         eigenvalue   kinetic energy      pot energy
 
  1s   0.5    2.0000   -2791.40339331       0.00000000   -7098.44558241
  2s   0.5    2.0000    -487.97749325       0.00000000   -1737.16409663

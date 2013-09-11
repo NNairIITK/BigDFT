@@ -42,7 +42,7 @@ program ae_atom
    integer, parameter :: maxorb=60                  !< Maximal number of orbitals
    integer, parameter :: lmax=5                     !< Maximal orbital moment
    integer, parameter :: maxconf=19                 !< Maximal electronic configurations
-   integer, parameter :: maxit_max=2000             !< Maximal number of iterations
+   integer, parameter :: maxit_max=3000             !< Maximal number of iterations
    character(len=2), parameter :: stop_chain = 'st'
    real(kind=8), parameter :: tol=1.0d-11
    real(kind=8), parameter :: xmixo_min = 1.d-5     !< Minimal value of the mixing parameter
@@ -199,7 +199,7 @@ program ae_atom
       icon2 = 0
       maxit = maxit_max
       if (debug) then
-         write(*,'(a)') 'DEBUG: enter max SCF iterations'
+         write(6,'(a)') 'DEBUG: enter max SCF iterations'
          read(*,*) maxit
       end if
 
@@ -474,7 +474,7 @@ subroutine etotal(nameat,norb,no,lo,so,zo, etot,ev,ek,ep)
    il(3) = 'd'
    il(4) = 'f'
    il(5) = 'g'
-   write(6,'(/,a3,1x,a,/,1x,27("-"),//,1x,a,9x,a,4x,a,8x,a,/)') &
+   write(6,'(/,a3,1x,a,/,1x,27("-"),//,1x,a,9x,a,3x,a,6x,a,/)') &
         nameat,'output data for orbitals','nl    s      occ','eigenvalue','kinetic energy','pot energy'
    do i=1,norb
       !c.hartwig give energies in hartree
@@ -636,11 +636,11 @@ subroutine velect(iter,iconv,iXC,nspol,ifcore,  &
    if (iter > 3 .and. abs(zel-s1(nr)) > 0.01d0) then
      if (zel < s1(nr)+1.d0 ) then
        write(6,'(/," warning *** charge density rescaled in",  &
-         & " velect",/," iteration number",i4,3x,"scaling factor =",f6.3,/)') iter,xnorm
+         & " velect",/," iteration number",i4,3x,"scaling factor =",1pe10.3,/)') iter,xnorm
      else
        xnorm=.99d0*xnorm
        write(6,'(/," warning *** charge density partially rescaled in",  &
-         & " velect",/," iteration number",i4,3x,"scaling factor =",f6.3,/)') iter,xnorm
+         & " velect",/," iteration number",i4,3x,"scaling factor =",1pe10.3,/)') iter,xnorm
      end if
    end if
 
@@ -838,7 +838,7 @@ subroutine input(itype,iXC,ispp,  &
 
    ! Spin polarization information
    integer, dimension(5) :: nomin = (/ 10, 10 ,10, 10, 10 /)
-   ! For use in routine atomwr:
+   ! For use in routine atomwr
    character(len=80) :: instrg
    character(len=3) :: irel
    character(len=3) :: name
@@ -1144,8 +1144,11 @@ subroutine input(itype,iXC,ispp,  &
 
     write(6,'(1x,a2," all electron calculation  ",/,1x,27("-"),/)') nameat
     if (ispp == 'r') write(6,'(" r e l a t i v i s t i c ! !",/)')
-    name = '   '
-    if (ispp /= 's') name = 'non'
+    if (ispp /= 's') then
+       name = 'non'
+    else
+       name = '   '
+    end if
     write(6,'(" iXC = ",i7,3x,a3," spin-polarized",/)') iXC,name
     write(6, &
          '(" nuclear charge             =",f10.6,/,  &
@@ -2223,7 +2226,7 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
    real(kind=8), parameter :: ai=2.d0*137.0360411d0
    real(kind=8), parameter :: ai2 = ai * ai
    real(kind=8), dimension(10) :: rzero,rextr,aextr,bextr
-   character(len=10) :: name
+   !character(len=10) :: name
    character(len=30) :: plotfile,orbname
    real(kind=8) :: a1,an,ar2,arp,arpm,b1,bn,br2,dena,denb,deni,expzer
    real(kind=8) :: ddd,dddd,sa2,syswght
@@ -2232,7 +2235,6 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
    integer :: i,ierr,i90,i99,ii,ircov,isx,j,jj,ka,ll,llp,lp,nextr,ninf,npoint,nzero
    !c.hartwig
    !work-arrays for integration, and xc-potential
-   !SOME OF THOSE SEEM NOT TO BE USED AT ALL
    real(kind=8) :: ttxup,ttxlo,cmin,crcov,dcrcov,ddcrcov
    real(kind=8), dimension(nr) :: ttx,tty,ttyp,ttypp
    real(kind=8), dimension(3*nr) :: ttw
@@ -2530,18 +2532,19 @@ subroutine orban(iXC,ispp,iorb,ar,br, &
          write(6,'(1x,a)') 'dcharge      = int_0^infinity (f^2+g^2) r^4 dr '
          write(6,'(1x,a)') 'ddcharge     = int_0^infinity (f^2+g^2) r^6 dr '
       end if
-      write(6,'(/,1x,"nl   s    occ",5x,"eigenvalue",4x,"charge(rcov)",4x,"dcharge",4x,"ddcharge")')
+      write(6,'(/,1x,a,5x,a,4x,a,4x,a,4x,a,5x,a)') &
+      'nl   s    occ','eigenvalue','charge(rcov)','dcharge','ddcharge','r extr'
    end if
 
    !Collect 2nd and 4th moment of the core charge density for NCC
    dcrc = dcrc+zo(iorb)* dcrcov
    ddcrc=ddcrc+zo(iorb)*ddcrcov
-   write(6,'(1x,i1,a1,f5.1,f8.3,2(1pe15.7),2(1pe12.5))') &
-        no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),(ev(iorb)-vshift)/2.d0,crcov,dcrcov,ddcrcov
+   write(6,'(1x,i1,a1,f5.1,f8.3,2(1pe15.7),2(1pe12.5),9(f7.2))') &
+        no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),(ev(iorb)-vshift)/2.d0,crcov,dcrcov,ddcrcov,(rextr(i),i=1,nextr)
    !write(6,*) 'drcov at rcov :',ddd
    !write(6,*) 'ddrcov at rcov:',dddd
-   name = 'r extr    '
-   write(6,'(5x,a10,9f7.2)') name,(rextr(i),i=1,nextr)
+   !name = 'r extr    '
+   !write(6,'(5x,a10,9f7.2)') name,(rextr(i),i=1,nextr)
 
    !write data to files atom.ae for pseudopotential-fit
    !only valence electrons

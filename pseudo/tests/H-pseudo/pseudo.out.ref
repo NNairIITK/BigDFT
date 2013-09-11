@@ -20,13 +20,13 @@
 
 
 
- pseudo states =           10
- znuc          =    1.0000000000000000     
- zpseudo       =    1.0000000000000000     
- r_covalent    =   0.75000000000000000     
- r_confining   =    1.2100000000000000     
- method        = n
- gridpoints    =          739
+ pseudo states =         10
+ znuc          =      1.000
+ zpseudo       =      1.000
+ r_covalent    =  7.500E-01
+ r_confining   =  1.210E+00
+ method        =          n
+ gridpoints    =        739
 
  Initializing libXC with iXC =    -20; nspol =    1
 
@@ -206,7 +206,7 @@
  resulting pseudpotential parameters
  ___________________________________
 
-    1   1  20130910                        zatom, zion, date (yymmdd)
+    1   1  20130911                        zatom, zion, date (yymmdd)
    10       -20 0 0 2002 0                 pspcod, ixc, lmax, lloc, mmax, r2well
         0.20000000  2     -4.06633260      0.67783220      rloc nloc c1 .. cnloc
     1                                      nsep
@@ -321,7 +321,7 @@
  resulting pseudpotential parameters
  ___________________________________
 
-    1   1  20130910                        zatom, zion, date (yymmdd)
+    1   1  20130911                        zatom, zion, date (yymmdd)
    10       -20 0 0 2002 0                 pspcod, ixc, lmax, lloc, mmax, r2well
         0.20000000  2     -4.06633260      0.67783220      rloc nloc c1 .. cnloc
     1                                      nsep
@@ -436,7 +436,7 @@
  resulting pseudpotential parameters
  ___________________________________
 
-    1   1  20130910                        zatom, zion, date (yymmdd)
+    1   1  20130911                        zatom, zion, date (yymmdd)
    10       -20 0 0 2002 0                 pspcod, ixc, lmax, lloc, mmax, r2well
         0.20000000  2     -4.06633260      0.67783220      rloc nloc c1 .. cnloc
     1                                      nsep
@@ -551,7 +551,7 @@
  resulting pseudpotential parameters
  ___________________________________
 
-    1   1  20130910                        zatom, zion, date (yymmdd)
+    1   1  20130911                        zatom, zion, date (yymmdd)
    10       -20 0 0 2002 0                 pspcod, ixc, lmax, lloc, mmax, r2well
         0.20000000  2     -4.06633260      0.67783220      rloc nloc c1 .. cnloc
     1                                      nsep
@@ -567,11 +567,11 @@
  simple time profiling
  _____________________
 
- gatom  overall runtime     2.808 seconds
+ gatom  overall runtime     2.956 seconds
  mpi communication time     0.000 seconds
  wavelet libraries time     0.000 seconds
  ________________________________________
-               cpu time     3.012 seconds
+               cpu time     3.176 seconds
 
  ______________________________________________________
                                                finished
