@@ -281,9 +281,9 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
               !case active only in the linear scaling case
               if(confdatarr(iorb)%prefac > 0.0_gp .or. confdatarr(iorb)%potorder > 0)then
               !   call yaml_map('Localizing preconditioner factor',confdatarr(iorb)%prefac)
-              write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centerx, startx', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(1)/hx), lzd%llr(ilr)%ns1
-              write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centery, starty', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(2)/hy), lzd%llr(ilr)%ns2
-              write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centerz, startz', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(3)/hz), lzd%llr(ilr)%ns3
+              !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centerx, startx', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(1)/hx), lzd%llr(ilr)%ns1
+              !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centery, starty', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(2)/hy), lzd%llr(ilr)%ns2
+              !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centerz, startz', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(3)/hz), lzd%llr(ilr)%ns3
 
                  call solvePrecondEquation(iproc,nproc,Lzd%Llr(ilr),ncplx,ncong,&
                       cprecr,&

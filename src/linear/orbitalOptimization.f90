@@ -24,9 +24,9 @@ type(localizedDIISParameters),intent(inout):: ldiis
 
 ! Local variables
 integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, info
-integer:: mj, jj, k, jjst, isthist, iall
+integer:: mj, jj, k, jjst, isthist, iall, ierr
 real(8):: ddot
-real(8),dimension(:,:),allocatable:: mat
+real(8),dimension(:,:),allocatable:: mat, totmat
 real(8),dimension(:),allocatable:: rhs
 integer,dimension(:),allocatable:: ipiv
 character(len=*),parameter:: subname='optimizeDIIS'
@@ -115,6 +115,13 @@ do iorb=1,orbs%norbp
     end do
 end do
 
+! Sum up all partial matrices
+allocate(totmat(ldiis%isx,ldiis%isx))
+totmat=0.d0
+do iorb=1,orbs%norbp
+    totmat(:,:)=totmat(:,:)+ldiis%mat(:,:,iorb)
+end do
+call mpiallred(totmat(1,1), ldiis%isx**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 ist=1
 do iorb=1,orbs%norbp
@@ -124,7 +131,9 @@ do iorb=1,orbs%norbp
         mat(i,min(ldiis%isx,ldiis%is)+1)=1.d0
         rhs(i)=0.d0
         do j=i,min(ldiis%isx,ldiis%is)
-            mat(i,j)=ldiis%mat(i,j,iorb)
+            !mat(i,j)=ldiis%mat(i,j,iorb)
+            if (iproc==0) write(*,*) 'WARNING: TAKING ONE SINGLE MATRIX!!'
+            mat(i,j)=totmat(i,j)
             !if(iproc==0) write(*,'(a,2i8,es14.3)') 'i, j, mat(i,j)', i, j, mat(i,j)
             !!write(*,'(a,3i8,es14.3)') 'proc, i, j, mat(i,j)', iproc, i, j, mat(i,j)
         end do
@@ -213,6 +222,7 @@ do iorb=1,orbs%norbp
     ist=ist+ncount
 end do
 
+deallocate(totmat)
 
 iall=-product(shape(mat))*kind(mat)
 deallocate(mat, stat=istat)

@@ -39,7 +39,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
   integer :: matrixindex_in_compressed
-  real(kind=8) :: ddot, tt, gnrmArr
+  real(kind=8) :: ddot, tt, gnrmArr, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot
   !real(kind=8) :: eval_zero
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
@@ -146,12 +146,40 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
   end if
 
+  ! EXPERIMENTAL: correction for co- / contravariant ===============================================================
+  ! Calculate the overlap matrix, can be optimized ############################
+  ! Use ham since it has the correct SHAMOP pattern
+  !if(.not.tmb%ham_descr%can_use_transposed) then
+      if(.not.associated(tmb%ham_descr%psit_c)) then
+          allocate(tmb%ham_descr%psit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
+          call memocc(istat, tmb%ham_descr%psit_c, 'tmb%ham_descr%psit_c', subname)
+      end if
+      if(.not.associated(tmb%ham_descr%psit_f)) then
+          allocate(tmb%ham_descr%psit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
+          call memocc(istat, tmb%ham_descr%psit_f, 'tmb%ham_descr%psit_f', subname)
+      end if
+  !end if
+  call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+       tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
+  tmb%ham_descr%can_use_transposed=.true.
+
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%ham_descr%psit_c, &
+       tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%psit_f, tmb%linmat%ham)
+  ! ###########################################################################
+
+  hpsittmp_c=hpsit_c
+  hpsittmp_f=hpsit_f
+  call build_linear_combination_transposed(tmb%ham_descr%collcom, tmb%linmat%ham, &
+       hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+  ! END EXPERIMENTAL ===============================================================================================
+
   iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
   deallocate(hpsittmp_c, stat=istat)
   call memocc(istat, iall, 'hpsittmp_c', subname)
   iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
   deallocate(hpsittmp_f, stat=istat)
   call memocc(istat, iall, 'hpsittmp_f', subname)
+
 
 
 
@@ -359,6 +387,22 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! This is of course only necessary if we are using steepest descent and not DIIS.
   ! if newgradient is true, the angle criterion cannot be used and the choice whether to
   ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
+
+  ! TEMPORARY #################################
+  ! This is just for tests, can be improved
+  fnrmOvrlp_tot=0.d0
+  fnrm_tot=0.d0
+  fnrmOld_tot=0.d0
+  do iorb=1,tmb%orbs%norbp
+      fnrmOvrlp_tot=fnrmOvrlp_tot+fnrmOvrlpArr(iorb)
+      fnrm_tot=fnrm_tot+fnrmArr(iorb)
+      fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
+  end do
+  call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(fnrm_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(fnrmOld_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  ! ###########################################
+
   fnrm=0.d0
   fnrmMax=0.d0
   do iorb=1,tmb%orbs%norbp
@@ -366,7 +410,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       if(fnrmArr(iorb)>fnrmMax) fnrmMax=fnrmArr(iorb)
       if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
       ! Adapt step size for the steepest descent minimization.
-          tt=fnrmOvrlpArr(iorb)/sqrt(fnrmArr(iorb)*fnrmOldArr(iorb))
+          if (iproc==0 .and. iorb==1) write(*,*) 'WARNING: USING SAME STEP SIZE'
+          !tt=fnrmOvrlpArr(iorb)/sqrt(fnrmArr(iorb)*fnrmOldArr(iorb))
+          tt=fnrmOvrlp_tot/sqrt(fnrm_tot*fnrmOld_tot)
           ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
           if(tt>.6d0 .and. trH<trHold .and. alpha(iorb)<1.8d0) then
               alpha(iorb)=alpha(iorb)*1.1d0
@@ -506,11 +552,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      call memocc(istat, iall, 'hpsi_tmp', subname)
   else
      !!if (ldiis%isx>0) then
-         !if (iproc==0) write(*,*) 'HACK precond: max(prefac,1.d-3)'
+         !if (iproc==0) write(*,*) 'HACK precond: max(prefac,1.d-4)'
          !tmb%confdatarr(:)%prefac=10.d0*tmb%confdatarr(:)%prefac
          !allocate(prefacarr(tmb%orbs%norbp))
          !prefacarr(:)=tmb%confdatarr(:)%prefac
-         !tmb%confdatarr(:)%prefac=max(tmb%confdatarr(:)%prefac,1.d-3)
+         !tmb%confdatarr(:)%prefac=max(tmb%confdatarr(:)%prefac,1.d-4)
      !!end if
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
@@ -713,6 +759,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
            tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed)
   else
+      ! Wasteful to do it transposed...
       if (iproc==0) write(*,*) 'normalize...'
       if(associated(tmb%psit_c)) then
           iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
