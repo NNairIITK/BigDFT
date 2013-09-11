@@ -71,7 +71,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(sparseMatrix) :: denskern_init
   real(8),dimension(:),allocatable :: rho_init, rho_init_old
   real(8) :: tt, ddot, tt_old, meanconf_der
-  integer :: idens_cons
+  integer :: idens_cons, ii
   real(8),dimension(10000) :: meanconf_array
   !!! #########################################################
 
@@ -521,6 +521,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                         input%lin%curvefit_dmin,ldiis_coeff)
                 end if
              end if
+
+             !!! TEMPORARY ##########################################################################
+             !!do ii=1,tmb%linmat%denskern%nvctr
+             !!     iorb = tmb%linmat%denskern%orb_from_index(1,ii)
+             !!     jorb = tmb%linmat%denskern%orb_from_index(2,ii)
+             !!     if (iproc==0) write(*,*) 'iorb, jorb, denskern', iorb, jorb, tmb%linmat%denskern%matrix_compr(ii)
+             !!  end do
+             !!! END TEMPORARY ######################################################################
+
+
              ! Since we do not update the basis functions anymore in this loop
              update_phi = .false.
 

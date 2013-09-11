@@ -393,7 +393,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: psit_c_tmp, psit_f_tmp, work, eval
   real(kind=8),dimension(:),allocatable :: hpsi_noprecond, occup_tmp, kernel_compr_tmp, philarge
-  real(kind=8),dimension(:,:),allocatable :: coeff_old
+  real(kind=8),dimension(:,:),allocatable :: coeff_old, tempmat
   logical :: energy_increased, overlap_calculated
   character(len=*),parameter :: subname='getLocalizedBasis'
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
@@ -435,40 +435,62 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   !!!END EXPERIMENTAL
 
 
-  ! TRANSFORM TO DIAGONAL KERNEL $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-  allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  call uncompressMatrix(iproc,tmb%linmat%denskern)
-  allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  call uncompressMatrix(iproc,tmb%linmat%ovrlp)
-  lwork=100*tmb%orbs%norb
-  allocate(work(lwork))
-  allocate(eval(tmb%orbs%norb))
-  call dsygv(1, 'v', 'l', tmb%orbs%norb, tmb%linmat%denskern%matrix, tmb%orbs%norb, &
-       tmb%linmat%ovrlp%matrix, tmb%orbs%norb, eval, work, lwork, info)
-  deallocate(eval)
-  call compress_matrix_for_allreduce(iproc, tmb%linmat%denskern)
-  if(.not.associated(tmb%psit_c)) then
-      allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-  end if
-  if(.not.associated(tmb%psit_f)) then
-      allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
-  end if
-  call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-       tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-  allocate(psit_c_tmp(sum(tmb%collcom%nrecvcounts_c)))
-  allocate(psit_f_tmp(7*sum(tmb%collcom%nrecvcounts_f)))
-  psit_c_tmp=tmb%psit_c
-  psit_f_tmp=tmb%psit_f
-  tmb%can_use_transposed=.true.
-  call build_linear_combination_transposed(tmb%collcom, tmb%linmat%denskern, tmb%psit_c, tmb%psit_f, &
-       .true., psit_c_tmp, psit_f_tmp, iproc)
-  deallocate(psit_c_tmp)
-  deallocate(psit_f_tmp)
-  deallocate(tmb%linmat%denskern%matrix)
-  deallocate(tmb%linmat%ovrlp%matrix)
-  ! $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+  ! NOT WORKING !
+  !!!!!! TRANSFORM TO DIAGONAL KERNEL $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+  !!!!!allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
+  !!!!!call uncompressMatrix(iproc,tmb%linmat%denskern)
+  !!!!!allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb))
+  !!!!!call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+  !!!!!lwork=100*tmb%orbs%norb
+  !!!!!allocate(work(lwork))
+  !!!!!allocate(eval(tmb%orbs%norb))
+  !!!!!call dsygv(1, 'v', 'l', tmb%orbs%norb, tmb%linmat%denskern%matrix, tmb%orbs%norb, &
+  !!!!!     tmb%linmat%ovrlp%matrix, tmb%orbs%norb, eval, work, lwork, info)
+  !!!!!if(.not.associated(tmb%psit_c)) then
+  !!!!!    allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+  !!!!!    call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+  !!!!!end if
+  !!!!!if(.not.associated(tmb%psit_f)) then
+  !!!!!    allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+  !!!!!    call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+  !!!!!end if
+  !!!!!call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+  !!!!!     tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+  !!!!!allocate(psit_c_tmp(sum(tmb%collcom%nrecvcounts_c)))
+  !!!!!allocate(psit_f_tmp(7*sum(tmb%collcom%nrecvcounts_f)))
+  !!!!!psit_c_tmp=tmb%psit_c
+  !!!!!psit_f_tmp=tmb%psit_f
+  !!!!!tmb%can_use_transposed=.true.
+  !!!!!allocate(tempmat(tmb%orbs%norb,tmb%orbs%norb))
+  !!!!!tempmat=tmb%linmat%denskern%matrix
+  !!!!!do iorb=1,tmb%orbs%norb
+  !!!!!    do jorb=1,tmb%orbs%norb
+  !!!!!        tmb%linmat%denskern%matrix(jorb,iorb)=tempmat(iorb,jorb)
+  !!!!!    end do
+  !!!!!end do
+  !!!!!deallocate(tempmat)
+  !!!!!call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
+  !!!!!call build_linear_combination_transposed(tmb%collcom, tmb%linmat%denskern, psit_c_tmp, psit_f_tmp, &
+  !!!!!     .true., tmb%psit_c, tmb%psit_f, iproc)
+  !!!!!call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+  !!!!!     tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
+  !!!!!!do ii=1,tmb%linmat%denskern%nvctr
+  !!!!!!   iorb = tmb%linmat%denskern%orb_from_index(1,ii)
+  !!!!!!   jorb = tmb%linmat%denskern%orb_from_index(2,ii)
+  !!!!!!   if (iorb/=jorb) then
+  !!!!!!       tmb%linmat%denskern%matrix_compr(ii)=0.d0
+  !!!!!!   else
+  !!!!!!       tmb%linmat%denskern%matrix_compr(ii)=eval(iorb)
+  !!!!!!       if (iproc==0) write(*,*) 'iorb, eval', iorb, eval(iorb)
+  !!!!!!   end if
+  !!!!!!end do
+  !!!!!deallocate(psit_c_tmp)
+  !!!!!deallocate(psit_f_tmp)
+  !!!!!deallocate(tmb%linmat%denskern%matrix)
+  !!!!!deallocate(tmb%linmat%ovrlp%matrix)
+  !!!!!deallocate(eval)
+  !!!!!return
+  !!!!!! $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 
 

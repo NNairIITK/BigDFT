@@ -191,7 +191,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      !!    tmb%linmat%ham%matrix_compr(ii)=0.d0
      !!end if
   end do
-  if (iproc==0) write(333,'(a,)') '========================================='
+  !if (iproc==0) write(333,'(a)') '========================================='
 
   !! ###########################################################################
 
